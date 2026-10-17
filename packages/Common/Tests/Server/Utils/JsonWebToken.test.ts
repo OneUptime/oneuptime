@@ -1,19 +1,48 @@
-import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import CookieUtil from "../../../Server/Utils/Cookie";
+import { ExpressResponse } from "../../../Server/Utils/Express";
+import JSONWebToken, { PURPOSE_CLAIM } from "../../../Server/Utils/JsonWebToken";
+import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
+import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
+import User from "../../../Models/DatabaseModels/User";
+import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import Timezone from "../../../Types/Timezone";
 import jwt from "jsonwebtoken";
 import { generateKeyPairSync } from "crypto";
+
+jest.mock("../../../Server/Utils/Logger");
+
+const ALL_PURPOSES: Array<JsonWebTokenPurpose> = Object.values(
+  JsonWebTokenPurpose,
+) as Array<JsonWebTokenPurpose>;
 
 describe("JSONWebToken", () => {
   const userId: ObjectID = ObjectID.generate();
   const sessionId: ObjectID = ObjectID.generate();
   const email: Email = new Email("jwt-test@oneuptime.com");
+
+  function sessionToken(expiresInSeconds: number = 300): string {
+    return JSONWebToken.signUserLoginToken({
+      tokenData: {
+        userId: userId,
+        email: email,
+        name: new Name("Test User"),
+        timezone: Timezone.AsiaKolkata,
+        isMasterAdmin: true,
+        isGlobalLogin: true,
+        sessionId: sessionId,
+      },
+      expiresInSeconds: expiresInSeconds,
+    });
+  }
 
   describe("signJsonPayload / decodeJsonPayload", () => {
     test("should round trip a json payload", () => {
@@ -68,31 +97,23 @@ describe("JSONWebToken", () => {
       }).toThrow("Expected JSONObject");
     });
 
-    test("should refuse a bare-string payload through decode() too", () => {
+    test("should refuse a bare-string payload through decode() too, whatever it is asked for", () => {
       const token: string = jwt.sign("just-a-string", TokenSigningKey.get());
 
-      expect(() => {
-        return JSONWebToken.decode(token);
-      }).toThrow(BadDataException);
+      for (const purpose of ALL_PURPOSES) {
+        expect(() => {
+          return JSONWebToken.decode(token, purpose);
+        }).toThrow(BadDataException);
+      }
     });
   });
 
   describe("signUserLoginToken / decode", () => {
     test("should round trip user login token data", () => {
-      const token: string = JSONWebToken.signUserLoginToken({
-        tokenData: {
-          userId: userId,
-          email: email,
-          name: new Name("Test User"),
-          timezone: Timezone.AsiaKolkata,
-          isMasterAdmin: true,
-          isGlobalLogin: true,
-          sessionId: sessionId,
-        },
-        expiresInSeconds: 300,
-      });
-
-      const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+      const decoded: JSONWebTokenData = JSONWebToken.decode(
+        sessionToken(),
+        JsonWebTokenPurpose.UserSession,
+      );
 
       expect(decoded.userId.toString()).toEqual(userId.toString());
       expect(decoded.email.toString()).toEqual(email.toString());
@@ -102,7 +123,16 @@ describe("JSONWebToken", () => {
       expect(decoded.sessionId?.toString()).toEqual(sessionId.toString());
     });
 
-    test("should leave sessionId undefined when it was not signed", () => {
+    test("should say it is a session, in the purpose claim", () => {
+      expect(JSONWebToken.decodeJsonPayload(sessionToken())).toEqual(
+        expect.objectContaining({
+          [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession,
+          sessionId: sessionId.toString(),
+        }),
+      );
+    });
+
+    test("a token that names no session is no session, though it says it is one", () => {
       const token: string = JSONWebToken.sign({
         data: {
           userId: userId,
@@ -112,15 +142,15 @@ describe("JSONWebToken", () => {
           isGlobalLogin: false,
         } as JSONWebTokenData,
         expiresInSeconds: 300,
+        purpose: JsonWebTokenPurpose.UserSession,
       });
 
-      const decoded: JSONWebTokenData = JSONWebToken.decode(token);
-
-      expect(decoded.sessionId).toBeUndefined();
-      expect(decoded.isMasterAdmin).toBe(false);
+      expect(() => {
+        return JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession);
+      }).toThrow(BadDataException);
     });
 
-    test("should decode a status page private user token", () => {
+    test("should decode a status page private user token as a status page session", () => {
       const statusPageId: ObjectID = ObjectID.generate();
 
       const token: string = JSONWebToken.signJsonPayload(
@@ -128,34 +158,55 @@ describe("JSONWebToken", () => {
           userId: userId.toString(),
           email: email.toString(),
           statusPageId: statusPageId.toString(),
+          sessionId: sessionId.toString(),
+          [PURPOSE_CLAIM]: JsonWebTokenPurpose.StatusPageSession,
         },
         300,
       );
 
-      const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+      const decoded: JSONWebTokenData = JSONWebToken.decode(
+        token,
+        JsonWebTokenPurpose.StatusPageSession,
+      );
 
       expect(decoded.statusPageId?.toString()).toEqual(statusPageId.toString());
       // Status page users are never master admins.
       expect(decoded.isMasterAdmin).toBe(false);
       expect(decoded.name?.toString()).toEqual("User");
+      expect(decoded.sessionId?.toString()).toEqual(sessionId.toString());
     });
 
     test("should throw BadDataException for a malformed token", () => {
-      expect(() => {
-        return JSONWebToken.decode("not-a-token");
-      }).toThrow(BadDataException);
+      for (const purpose of ALL_PURPOSES) {
+        expect(() => {
+          return JSONWebToken.decode("not-a-token", purpose);
+        }).toThrow(BadDataException);
+      }
     });
 
     test("should throw BadDataException for an expired token", () => {
-      const expiredToken: string = jwt.sign(
-        { userId: userId.toString(), email: email.toString() },
-        TokenSigningKey.get(),
-        { expiresIn: -10 },
-      );
+      for (const purpose of ALL_PURPOSES) {
+        expect(() => {
+          return JSONWebToken.decode(sessionToken(-10), purpose);
+        }).toThrow(BadDataException);
+      }
+    });
 
-      expect(() => {
-        return JSONWebToken.decode(expiredToken);
-      }).toThrow(BadDataException);
+    test("every refusal reads the same, whatever the reason", () => {
+      for (const token of [
+        "not-a-token",
+        sessionToken(-10),
+        CookieUtil.getSSOToken({
+          user: buildUser(),
+          projectId: ObjectID.generate(),
+          ssoProviderId: ObjectID.generate(),
+          ssoProviderType: SsoProviderType.ProjectSSO,
+        }),
+      ]) {
+        expect(() => {
+          return JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession);
+        }).toThrow("AccessToken is invalid or expired");
+      }
     });
   });
 
@@ -170,6 +221,87 @@ describe("JSONWebToken", () => {
         "just-a-string",
       );
     });
+
+    test("writes the purpose it is given, and none when it is given none", () => {
+      for (const purpose of ALL_PURPOSES) {
+        const token: string = JSONWebToken.sign({
+          data: { userId: userId, email: email } as JSONWebTokenData,
+          expiresInSeconds: 300,
+          purpose: purpose,
+        });
+
+        expect(JSONWebToken.decodeJsonPayload(token)[PURPOSE_CLAIM]).toBe(
+          purpose,
+        );
+      }
+
+      const withoutPurpose: string = JSONWebToken.sign({
+        data: { userId: userId, email: email } as JSONWebTokenData,
+        expiresInSeconds: 300,
+      });
+
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          JSONWebToken.decodeJsonPayload(withoutPurpose),
+          PURPOSE_CLAIM,
+        ),
+      ).toBe(false);
+    });
+
+    /*
+     * What a token is for is said by whoever signs it. A purpose that came
+     * in with the data - copied from a decoded token, or from anything that
+     * came from elsewhere - is never signed into the new token.
+     */
+    test("never carries a purpose over from the data", () => {
+      const smuggled: JSONObject = {
+        userId: userId.toString(),
+        email: email.toString(),
+        sessionId: sessionId.toString(),
+        [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession,
+      };
+
+      const unsaid: string = JSONWebToken.sign({
+        data: smuggled,
+        expiresInSeconds: 300,
+      });
+
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          JSONWebToken.decodeJsonPayload(unsaid),
+          PURPOSE_CLAIM,
+        ),
+      ).toBe(false);
+      expect(() => {
+        return JSONWebToken.decode(unsaid, JsonWebTokenPurpose.UserSession);
+      }).toThrow(BadDataException);
+
+      const saidOtherwise: string = JSONWebToken.sign({
+        data: smuggled,
+        expiresInSeconds: 300,
+        purpose: JsonWebTokenPurpose.SsoSignIn,
+      });
+
+      expect(JSONWebToken.decodeJsonPayload(saidOtherwise)[PURPOSE_CLAIM]).toBe(
+        JsonWebTokenPurpose.SsoSignIn,
+      );
+    });
+
+    test("re-signing a decoded session without a purpose makes no session", () => {
+      const decoded: JSONWebTokenData = JSONWebToken.decode(
+        sessionToken(),
+        JsonWebTokenPurpose.UserSession,
+      );
+
+      const resigned: string = JSONWebToken.sign({
+        data: decoded,
+        expiresInSeconds: 300,
+      });
+
+      expect(() => {
+        return JSONWebToken.decode(resigned, JsonWebTokenPurpose.UserSession);
+      }).toThrow(BadDataException);
+    });
   });
 
   /*
@@ -179,24 +311,15 @@ describe("JSONWebToken", () => {
    */
   describe("decode: when the token was issued", () => {
     test("should carry the issue time, in milliseconds", () => {
-      const token: string = JSONWebToken.sign({
-        data: {
-          userId: userId,
-          email: email,
-          name: new Name("Test User"),
-          isMasterAdmin: false,
-          isGlobalLogin: false,
-        } as JSONWebTokenData,
-        expiresInSeconds: 300,
-      });
+      const token: string = sessionToken();
 
       const issuedAtInSeconds: number = JSONWebToken.decodeJsonPayload(token)[
         "iat"
       ] as number;
 
-      expect(JSONWebToken.decode(token).issuedAtMs).toBe(
-        issuedAtInSeconds * 1000,
-      );
+      expect(
+        JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession).issuedAtMs,
+      ).toBe(issuedAtInSeconds * 1000);
     });
 
     test("should carry it for a status page user's token too", () => {
@@ -205,34 +328,41 @@ describe("JSONWebToken", () => {
           userId: userId.toString(),
           email: email.toString(),
           statusPageId: ObjectID.generate().toString(),
+          sessionId: sessionId.toString(),
+          [PURPOSE_CLAIM]: JsonWebTokenPurpose.StatusPageSession,
         },
         300,
       );
 
-      expect(JSONWebToken.decode(token).issuedAtMs).toBe(
-        (JSONWebToken.decodeJsonPayload(token)["iat"] as number) * 1000,
-      );
+      expect(
+        JSONWebToken.decode(token, JsonWebTokenPurpose.StatusPageSession)
+          .issuedAtMs,
+      ).toBe((JSONWebToken.decodeJsonPayload(token)["iat"] as number) * 1000);
     });
 
     test("should leave it undefined for a token that does not say", () => {
       const token: string = jwt.sign(
-        { userId: userId.toString(), email: email.toString() },
+        {
+          userId: userId.toString(),
+          email: email.toString(),
+          sessionId: sessionId.toString(),
+          [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession,
+        },
         TokenSigningKey.get(),
         { noTimestamp: true },
       );
 
-      expect(JSONWebToken.decode(token).issuedAtMs).toBeUndefined();
+      expect(
+        JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession).issuedAtMs,
+      ).toBeUndefined();
     });
 
     test("should check the signature once, and never read a token unchecked", () => {
+      const token: string = sessionToken();
       const verify: jest.SpyInstance = jest.spyOn(jwt, "verify");
       const unchecked: jest.SpyInstance = jest.spyOn(jwt, "decode");
-      const token: string = JSONWebToken.signJsonPayload(
-        { userId: userId.toString(), email: email.toString() },
-        300,
-      );
 
-      JSONWebToken.decode(token);
+      JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession);
 
       expect(verify).toHaveBeenCalledTimes(1);
       expect(unchecked).not.toHaveBeenCalled();
@@ -241,14 +371,13 @@ describe("JSONWebToken", () => {
     });
 
     test("should not sign a decoded token's issue time into a new token", () => {
-      const first: string = JSONWebToken.signJsonPayload(
-        { userId: userId.toString(), email: email.toString() },
-        300,
-      );
-
       const second: string = JSONWebToken.sign({
-        data: JSONWebToken.decode(first),
+        data: JSONWebToken.decode(
+          sessionToken(),
+          JsonWebTokenPurpose.UserSession,
+        ),
         expiresInSeconds: 300,
+        purpose: JsonWebTokenPurpose.UserSession,
       });
 
       expect(
@@ -283,5 +412,491 @@ describe("JSONWebToken", () => {
       }) as JSONObject;
       expect(verified["sub"]).toEqual("oauth-subject");
     });
+  });
+});
+
+function buildUser(): User {
+  const user: User = new User();
+  user.id = new ObjectID("7a7a7a7a-7a7a-4a7a-8a7a-7a7a7a7a7a7a");
+  user.email = new Email("member@example.com");
+  user.name = new Name("Member");
+  return user;
+}
+
+function noCookies(): ExpressResponse {
+  return {
+    cookie: (): void => {
+      // The token is what is read here, not the cookie.
+    },
+  } as unknown as ExpressResponse;
+}
+
+const THIRTY_DAYS_IN_SECONDS: number = 30 * 24 * 60 * 60;
+
+interface TokenKind {
+  name: string;
+  token: () => string;
+  // The one purpose it is read as, or none.
+  readAs: JsonWebTokenPurpose | null;
+}
+
+/*
+ * Every kind of token OneUptime signs with TokenSigningKey, made where the
+ * product makes it, and the one thing each is read as. The releases before
+ * tokens said what they were for made the "earlier release" ones.
+ */
+const TOKEN_KINDS: Array<TokenKind> = [
+  {
+    name: "a session (sign-in access token)",
+    token: (): string => {
+      return JSONWebToken.signUserLoginToken({
+        tokenData: {
+          userId: buildUser().id!,
+          email: buildUser().email!,
+          name: buildUser().name!,
+          timezone: null,
+          isMasterAdmin: false,
+          isGlobalLogin: true,
+          sessionId: ObjectID.generate(),
+        },
+        expiresInSeconds: 900,
+      });
+    },
+    readAs: JsonWebTokenPurpose.UserSession,
+  },
+  {
+    name: "a project SAML sign-in",
+    token: (): string => {
+      return CookieUtil.getSSOToken({
+        user: buildUser(),
+        projectId: ObjectID.generate(),
+        ssoProviderId: ObjectID.generate(),
+        ssoProviderType: SsoProviderType.ProjectSSO,
+      });
+    },
+    readAs: JsonWebTokenPurpose.SsoSignIn,
+  },
+  {
+    name: "a project OIDC sign-in",
+    token: (): string => {
+      return CookieUtil.getSSOToken({
+        user: buildUser(),
+        projectId: ObjectID.generate(),
+        ssoProviderId: ObjectID.generate(),
+        ssoProviderType: SsoProviderType.ProjectOIDC,
+      });
+    },
+    readAs: JsonWebTokenPurpose.SsoSignIn,
+  },
+  {
+    name: "a Global SAML sign-in",
+    token: (): string => {
+      return CookieUtil.getGlobalSSOToken({
+        user: buildUser(),
+        ssoProviderId: ObjectID.generate(),
+        ssoProviderType: SsoProviderType.GlobalSSO,
+      });
+    },
+    readAs: JsonWebTokenPurpose.SsoSignIn,
+  },
+  {
+    name: "a Global OIDC sign-in",
+    token: (): string => {
+      return CookieUtil.getGlobalSSOToken({
+        user: buildUser(),
+        ssoProviderId: ObjectID.generate(),
+        ssoProviderType: SsoProviderType.GlobalOIDC,
+      });
+    },
+    readAs: JsonWebTokenPurpose.SsoSignIn,
+  },
+  {
+    name: "a status page private user's session",
+    token: (): string => {
+      const privateUser: StatusPagePrivateUser = new StatusPagePrivateUser();
+      privateUser.id = ObjectID.generate();
+      privateUser.email = new Email("reader@example.com");
+
+      return CookieUtil.setStatusPagePrivateUserCookie({
+        expressResponse: noCookies(),
+        user: privateUser,
+        statusPageId: ObjectID.generate(),
+        sessionId: ObjectID.generate(),
+        refreshToken: ObjectID.generate().toString(),
+        refreshTokenExpiresAt: OneUptimeDate.getSomeDaysAfter(30),
+      });
+    },
+    readAs: JsonWebTokenPurpose.StatusPageSession,
+  },
+  {
+    name: "a session an earlier release signed",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        {
+          userId: buildUser().id!.toString(),
+          email: "member@example.com",
+          name: "Member",
+          timezone: null,
+          isMasterAdmin: true,
+          isGlobalLogin: true,
+          sessionId: ObjectID.generate().toString(),
+          projectId: "",
+        },
+        900,
+      );
+    },
+    // Fifteen minutes old at most: the client renews it on the 401.
+    readAs: null,
+  },
+  {
+    name: "a project SSO sign-in an earlier release gave",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        {
+          userId: buildUser().id!.toString(),
+          projectId: ObjectID.generate().toString(),
+          name: "Member",
+          email: "member@example.com",
+          isMasterAdmin: false,
+          isGeneralLogin: false,
+          ssoProviderId: ObjectID.generate().toString(),
+          ssoProviderType: SsoProviderType.ProjectSSO,
+        },
+        THIRTY_DAYS_IN_SECONDS,
+      );
+    },
+    readAs: JsonWebTokenPurpose.SsoSignIn,
+  },
+  {
+    name: "a Global SSO sign-in an earlier release gave",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        {
+          userId: buildUser().id!.toString(),
+          projectId: "",
+          name: "Member",
+          email: "member@example.com",
+          isMasterAdmin: false,
+          isGeneralLogin: false,
+          ssoProviderId: ObjectID.generate().toString(),
+          ssoProviderType: SsoProviderType.GlobalOIDC,
+        },
+        THIRTY_DAYS_IN_SECONDS,
+      );
+    },
+    readAs: JsonWebTokenPurpose.SsoSignIn,
+  },
+  {
+    name: "a status page private user's session an earlier release signed",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        {
+          userId: ObjectID.generate().toString(),
+          email: "reader@example.com",
+          statusPageId: ObjectID.generate().toString(),
+          sessionId: ObjectID.generate().toString(),
+          name: "",
+          projectId: "",
+        },
+        900,
+      );
+    },
+    readAs: JsonWebTokenPurpose.StatusPageSession,
+  },
+  {
+    name: "a status page's master-password cookie",
+    token: (): string => {
+      let value: string = "";
+      CookieUtil.setStatusPageMasterPasswordCookie({
+        expressResponse: {
+          cookie: (_name: string, cookieValue: string): void => {
+            value = cookieValue;
+          },
+        } as unknown as ExpressResponse,
+        statusPageId: ObjectID.generate(),
+      });
+      return value;
+    },
+    readAs: null,
+  },
+  {
+    name: "a dashboard's master-password cookie",
+    token: (): string => {
+      let value: string = "";
+      CookieUtil.setDashboardMasterPasswordCookie({
+        expressResponse: {
+          cookie: (_name: string, cookieValue: string): void => {
+            value = cookieValue;
+          },
+        } as unknown as ExpressResponse,
+        dashboardId: ObjectID.generate(),
+      });
+      return value;
+    },
+    readAs: null,
+  },
+  {
+    name: "an on-call page link",
+    token: (): string => {
+      return OnCallPageLinkToken.sign({
+        userOnCallLogTimelineId: ObjectID.generate(),
+      });
+    },
+    readAs: null,
+  },
+  {
+    name: "a sign-in in flight through an identity provider",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        {
+          state: "state",
+          nonce: "nonce",
+          codeVerifier: "verifier",
+          projectId: ObjectID.generate().toString(),
+        },
+        600,
+      );
+    },
+    readAs: null,
+  },
+  {
+    name: "a reseller's token",
+    token: (): string => {
+      return JSONWebToken.sign({
+        data: { resellerId: "reseller" },
+        expiresInSeconds: 60,
+      });
+    },
+    readAs: null,
+  },
+];
+
+describe("what a token is for: each kind is read as what it is, and as nothing else", () => {
+  test.each(TOKEN_KINDS)(
+    "$name",
+    ({ token, readAs }: TokenKind) => {
+      const value: string = token();
+
+      for (const purpose of ALL_PURPOSES) {
+        const reads: boolean = ((): boolean => {
+          try {
+            JSONWebToken.decode(value, purpose);
+            return true;
+          } catch {
+            return false;
+          }
+        })();
+
+        expect({ purpose, reads }).toEqual({
+          purpose,
+          reads: purpose === readAs,
+        });
+      }
+    },
+  );
+
+  test("an SSO sign-in is never read as a session, whichever kind of provider gave it", () => {
+    for (const providerType of Object.values(SsoProviderType)) {
+      const projectSignIn: string = CookieUtil.getSSOToken({
+        user: buildUser(),
+        projectId: ObjectID.generate(),
+        ssoProviderId: ObjectID.generate(),
+        ssoProviderType: providerType,
+      });
+      const globalSignIn: string = CookieUtil.getGlobalSSOToken({
+        user: buildUser(),
+        ssoProviderId: ObjectID.generate(),
+        ssoProviderType: providerType,
+      });
+
+      for (const token of [projectSignIn, globalSignIn]) {
+        expect(() => {
+          return JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession);
+        }).toThrow(BadDataException);
+      }
+    }
+  });
+});
+
+describe("JSONWebToken.isFor", () => {
+  const sessionClaims: JSONObject = {
+    userId: ObjectID.generate().toString(),
+    email: "member@example.com",
+    sessionId: ObjectID.generate().toString(),
+    [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession,
+  };
+
+  const ssoClaims: JSONObject = {
+    userId: ObjectID.generate().toString(),
+    email: "member@example.com",
+    projectId: ObjectID.generate().toString(),
+    ssoProviderId: ObjectID.generate().toString(),
+    ssoProviderType: SsoProviderType.ProjectSSO,
+    [PURPOSE_CLAIM]: JsonWebTokenPurpose.SsoSignIn,
+  };
+
+  const statusPageClaims: JSONObject = {
+    userId: ObjectID.generate().toString(),
+    email: "reader@example.com",
+    statusPageId: ObjectID.generate().toString(),
+    sessionId: ObjectID.generate().toString(),
+    [PURPOSE_CLAIM]: JsonWebTokenPurpose.StatusPageSession,
+  };
+
+  function without(claims: JSONObject, name: string): JSONObject {
+    const copy: JSONObject = { ...claims };
+    delete copy[name];
+    return copy;
+  }
+
+  test("a session says it is one, and names its user and its session", () => {
+    expect(
+      JSONWebToken.isFor(sessionClaims, JsonWebTokenPurpose.UserSession),
+    ).toBe(true);
+
+    for (const refused of [
+      without(sessionClaims, PURPOSE_CLAIM),
+      without(sessionClaims, "sessionId"),
+      without(sessionClaims, "userId"),
+      { ...sessionClaims, sessionId: "not-an-id" },
+      { ...sessionClaims, sessionId: 42 },
+      { ...sessionClaims, userId: "not-an-id" },
+      { ...sessionClaims, statusPageId: ObjectID.generate().toString() },
+      { ...sessionClaims, [PURPOSE_CLAIM]: "User-Session" },
+      { ...sessionClaims, [PURPOSE_CLAIM]: "user-session " },
+      { ...sessionClaims, [PURPOSE_CLAIM]: ["user-session"] },
+      { ...sessionClaims, [PURPOSE_CLAIM]: { value: "user-session" } },
+      { ...sessionClaims, [PURPOSE_CLAIM]: JsonWebTokenPurpose.SsoSignIn },
+      {
+        ...sessionClaims,
+        [PURPOSE_CLAIM]: JsonWebTokenPurpose.StatusPageSession,
+      },
+    ]) {
+      expect({
+        claims: refused,
+        isSession: JSONWebToken.isFor(
+          refused,
+          JsonWebTokenPurpose.UserSession,
+        ),
+      }).toEqual({ claims: refused, isSession: false });
+    }
+  });
+
+  test("an SSO sign-in says it is one, and names no session or status page", () => {
+    expect(JSONWebToken.isFor(ssoClaims, JsonWebTokenPurpose.SsoSignIn)).toBe(
+      true,
+    );
+
+    for (const refused of [
+      { ...ssoClaims, sessionId: ObjectID.generate().toString() },
+      { ...ssoClaims, statusPageId: ObjectID.generate().toString() },
+      { ...ssoClaims, [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession },
+      {
+        ...ssoClaims,
+        [PURPOSE_CLAIM]: JsonWebTokenPurpose.StatusPageSession,
+      },
+      { ...ssoClaims, [PURPOSE_CLAIM]: "on-call-page" },
+    ]) {
+      expect({
+        claims: refused,
+        isSsoSignIn: JSONWebToken.isFor(refused, JsonWebTokenPurpose.SsoSignIn),
+      }).toEqual({ claims: refused, isSsoSignIn: false });
+    }
+  });
+
+  test("an SSO sign-in an earlier release gave is read as one only by the kind of provider that gave it", () => {
+    const earlier: JSONObject = without(ssoClaims, PURPOSE_CLAIM);
+
+    for (const providerType of Object.values(SsoProviderType)) {
+      expect(
+        JSONWebToken.isFor(
+          { ...earlier, ssoProviderType: providerType },
+          JsonWebTokenPurpose.SsoSignIn,
+        ),
+      ).toBe(true);
+    }
+
+    for (const refused of [
+      without(earlier, "ssoProviderType"),
+      { ...earlier, ssoProviderType: "SomeOtherProvider" },
+      { ...earlier, ssoProviderType: "projectsso" },
+      { ...earlier, sessionId: ObjectID.generate().toString() },
+      { ...earlier, statusPageId: ObjectID.generate().toString() },
+    ]) {
+      expect({
+        claims: refused,
+        isSsoSignIn: JSONWebToken.isFor(refused, JsonWebTokenPurpose.SsoSignIn),
+      }).toEqual({ claims: refused, isSsoSignIn: false });
+    }
+
+    // Never as a session.
+    expect(JSONWebToken.isFor(earlier, JsonWebTokenPurpose.UserSession)).toBe(
+      false,
+    );
+  });
+
+  test("a status page's session says it is one and names its status page", () => {
+    expect(
+      JSONWebToken.isFor(statusPageClaims, JsonWebTokenPurpose.StatusPageSession),
+    ).toBe(true);
+
+    for (const refused of [
+      without(statusPageClaims, "statusPageId"),
+      { ...statusPageClaims, [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession },
+      { ...statusPageClaims, [PURPOSE_CLAIM]: JsonWebTokenPurpose.SsoSignIn },
+      // An earlier release's names its session as well as its status page.
+      without(without(statusPageClaims, PURPOSE_CLAIM), "sessionId"),
+    ]) {
+      expect({
+        claims: refused,
+        isStatusPageSession: JSONWebToken.isFor(
+          refused,
+          JsonWebTokenPurpose.StatusPageSession,
+        ),
+      }).toEqual({ claims: refused, isStatusPageSession: false });
+    }
+
+    expect(
+      JSONWebToken.isFor(
+        without(statusPageClaims, PURPOSE_CLAIM),
+        JsonWebTokenPurpose.StatusPageSession,
+      ),
+    ).toBe(true);
+  });
+
+  test("a status page's session is never a dashboard session, nor an SSO sign-in", () => {
+    for (const claims of [
+      statusPageClaims,
+      without(statusPageClaims, PURPOSE_CLAIM),
+    ]) {
+      expect(JSONWebToken.isFor(claims, JsonWebTokenPurpose.UserSession)).toBe(
+        false,
+      );
+      expect(JSONWebToken.isFor(claims, JsonWebTokenPurpose.SsoSignIn)).toBe(
+        false,
+      );
+    }
+  });
+
+  test("a purpose this server does not know is read as nothing", () => {
+    for (const purpose of ["admin", "", "user-session-v2", "sso"]) {
+      for (const asked of ALL_PURPOSES) {
+        expect(
+          JSONWebToken.isFor(
+            {
+              ...sessionClaims,
+              ...ssoClaims,
+              ...statusPageClaims,
+              [PURPOSE_CLAIM]: purpose,
+            },
+            asked,
+          ),
+        ).toBe(false);
+      }
+    }
+
+    expect(
+      JSONWebToken.isFor(sessionClaims, "admin" as JsonWebTokenPurpose),
+    ).toBe(false);
   });
 });

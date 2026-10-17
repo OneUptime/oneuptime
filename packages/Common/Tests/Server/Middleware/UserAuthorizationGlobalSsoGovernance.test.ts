@@ -12,6 +12,7 @@ import { ProjectSsoProviderStandingValue } from "../../../Server/Utils/ProjectSs
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import Email from "../../../Types/Email";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
@@ -162,10 +163,11 @@ const mintProjectToken: (data: {
   });
 };
 
+// An SSO sign-in's claims, read as the SSO readers read them.
 const decodeToken: (token: string) => JSONWebTokenData = (
   token: string,
 ): JSONWebTokenData => {
-  return JSONWebToken.decode(token);
+  return JSONWebToken.decode(token, JsonWebTokenPurpose.SsoSignIn);
 };
 
 interface RequestParts {

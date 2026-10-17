@@ -2,6 +2,7 @@ import CookieUtil from "../../../Server/Utils/Cookie";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import { JSONObject } from "../../../Types/JSON";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -37,7 +38,10 @@ describe("CookieUtil.getSSOToken - SSO provider discriminator", () => {
     expect(typeof token).toBe("string");
     expect(token.length).toBeGreaterThan(0);
 
-    const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+    const decoded: JSONWebTokenData = JSONWebToken.decode(
+      token,
+      JsonWebTokenPurpose.SsoSignIn,
+    );
 
     expect(decoded.userId?.toString()).toBe(user.id!.toString());
     expect(decoded.projectId?.toString()).toBe(projectId.toString());

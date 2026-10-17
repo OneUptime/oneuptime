@@ -19,6 +19,7 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
@@ -391,7 +392,10 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
               UserMiddleware.getAccessTokenFromExpressRequest(req);
 
             if (accessToken) {
-              extendedByUserId = JSONWebToken.decode(accessToken).userId;
+              extendedByUserId = JSONWebToken.decode(
+                accessToken,
+                JsonWebTokenPurpose.UserSession,
+              ).userId;
             }
           } catch {
             // Only used for the log line - never block the extension on it.
@@ -518,7 +522,10 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
               UserMiddleware.getAccessTokenFromExpressRequest(req);
 
             if (accessToken) {
-              adjustedByUserId = JSONWebToken.decode(accessToken).userId;
+              adjustedByUserId = JSONWebToken.decode(
+                accessToken,
+                JsonWebTokenPurpose.UserSession,
+              ).userId;
             }
           } catch {
             // Only used for the log line - never block the adjustment on it.

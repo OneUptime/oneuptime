@@ -14,6 +14,7 @@ import RealtimeJoinAccess, {
 } from "../../../../Server/Utils/Realtime/RealtimeJoinAccess";
 import SsoAuthorizationException from "../../../../Types/Exception/SsoAuthorizationException";
 import { JSONObject } from "../../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../../Types/Permission";
 import SsoProviderType from "../../../../Types/SSO/SsoProviderType";
@@ -243,6 +244,7 @@ function accessToken(isMasterAdmin: boolean): string {
       name: "Realtime Guard",
       isMasterAdmin: isMasterAdmin,
       sessionId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      purpose: JsonWebTokenPurpose.UserSession,
     },
     15 * 60,
   );
@@ -266,6 +268,7 @@ function projectSsoToken(
             ssoProviderType: SsoProviderType.ProjectSSO,
           }
         : {}),
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     },
     30 * 60,
   );

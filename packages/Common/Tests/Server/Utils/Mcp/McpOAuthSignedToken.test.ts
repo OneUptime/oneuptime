@@ -5,6 +5,7 @@ import TokenSigningKey from "../../../../Server/Utils/TokenSigningKey";
 import JSONWebToken from "../../../../Server/Utils/JsonWebToken";
 import Email from "../../../../Types/Email";
 import { JSONObject } from "../../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../../Types/JsonWebTokenPurpose";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import crypto from "crypto";
@@ -36,9 +37,9 @@ jest.mock("../../../../Server/Utils/Logger");
  *   - nobody without TokenSigningKey can make or alter one (ENCRYPTION_SECRET
  *     when the operator set one, and never a value the repository ships);
  *   - a token minted for one purpose is not accepted as another;
- *   - it is never a JWT, in either direction - JSONWebToken.decode accepts
- *     any JWT signed with TokenSigningKey that carries a user id and an email
- *     as a full dashboard session;
+ *   - it is never a JWT, in either direction - every JWT OneUptime signs is
+ *     signed with TokenSigningKey, and one that says it is a session
+ *     (JsonWebTokenPurpose.UserSession) is a full dashboard session;
  *   - it stops working when it says it does;
  *   - verify() answers null for everything else, and never throws.
  */
@@ -966,9 +967,11 @@ describe("McpOAuthSignedToken is never a JWT, in either direction", () => {
     for (const purpose of ALL_PURPOSES) {
       const token: string = signOrFail(purpose, SESSION_SHAPED_CLAIMS);
 
-      expect(() => {
-        return JSONWebToken.decode(token);
-      }).toThrow("AccessToken is invalid or expired");
+      for (const jwtPurpose of Object.values(JsonWebTokenPurpose)) {
+        expect(() => {
+          return JSONWebToken.decode(token, jwtPurpose);
+        }).toThrow("AccessToken is invalid or expired");
+      }
 
       expect(() => {
         return JSONWebToken.decodeJsonPayload(token);
@@ -1002,9 +1005,12 @@ describe("McpOAuthSignedToken is never a JWT, in either direction", () => {
     });
 
     // It IS a session, which is exactly why it must not also be one of these.
-    expect(JSONWebToken.decode(sessionToken).userId.toString()).toBe(
-      userId.toString(),
-    );
+    expect(
+      JSONWebToken.decode(
+        sessionToken,
+        JsonWebTokenPurpose.UserSession,
+      ).userId.toString(),
+    ).toBe(userId.toString());
 
     for (const purpose of ALL_PURPOSES) {
       expect(

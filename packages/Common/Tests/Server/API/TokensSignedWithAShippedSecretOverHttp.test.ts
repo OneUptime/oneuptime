@@ -30,6 +30,7 @@ import {
 } from "../TestingUtils/ShippedEncryptionSecrets";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import {
   afterAll,
   beforeAll,
@@ -68,8 +69,11 @@ import { AddressInfo } from "net";
  * whichever HMAC algorithm signed it, unsigned, and for an ordinary user as
  * much as for a master admin. In the same installation a session the server
  * signed itself still gets through, so the refusal is the signature's, not
- * the route's. And an installation whose operator set ENCRYPTION_SECRET still
- * takes the sessions it signed before the upgrade.
+ * the route's: every forged session says it is one (JsonWebTokenPurpose), as
+ * the server's own do. And an installation whose operator set
+ * ENCRYPTION_SECRET still takes the sessions it signs with it, while an
+ * access token from before tokens said what they were for is answered as an
+ * expired one, which the client renews.
  */
 
 const VICTIM_USER_ID: string = "7e7e7e7e-7e7e-4e7e-8e7e-7e7e7e7e7e7e";
@@ -98,6 +102,14 @@ interface Installation {
 }
 
 function masterAdminClaims(): Record<string, unknown> {
+  return {
+    ...masterAdminClaimsBeforeTheUpgrade(),
+    purpose: JsonWebTokenPurpose.UserSession,
+  };
+}
+
+// A master admin's access token as the releases before tokens said what they were for signed it.
+function masterAdminClaimsBeforeTheUpgrade(): Record<string, unknown> {
   return {
     userId: FORGED_USER_ID,
     email: "nobody@example.com",
@@ -597,13 +609,44 @@ describe("over HTTP, an installation whose operator set ENCRYPTION_SECRET", () =
   });
 
   test.each(CARRIERS)(
-    "still takes a master admin's session an earlier release signed with that secret, sent as a %s",
+    "still takes a master admin's session signed with that secret, sent as a %s",
     async (carrier: Carrier) => {
       const server: Installation = started();
 
-      // What the release before this change signed every session with.
-      const issuedBeforeTheUpgrade: string = jwt.sign(
+      // The secret the releases before this change signed every session with.
+      const signedWithTheSecret: string = jwt.sign(
         masterAdminClaims(),
+        OPERATOR_ENCRYPTION_SECRET,
+        { expiresIn: 15 * 60 },
+      );
+
+      const result: HttpResult = await send({
+        installation: server,
+        method: "GET",
+        path: `/api/user/${VICTIM_USER_ID}/authentication-status`,
+        token: signedWithTheSecret,
+        carrier,
+      });
+
+      expect(result.status).toBe(200);
+      expect(server.reached).toEqual([
+        `authentication-status ${VICTIM_USER_ID}`,
+      ]);
+    },
+  );
+
+  /*
+   * An access token from before tokens said what they were for lived fifteen
+   * minutes. It is a 401, as one that expired, and the client renews it with
+   * its refresh token, which the upgrade does not touch.
+   */
+  test.each(CARRIERS)(
+    "answers a session an earlier release signed with that secret 401, sent as a %s, so the client renews it",
+    async (carrier: Carrier) => {
+      const server: Installation = started();
+
+      const issuedBeforeTheUpgrade: string = jwt.sign(
+        masterAdminClaimsBeforeTheUpgrade(),
         OPERATOR_ENCRYPTION_SECRET,
         { expiresIn: 15 * 60 },
       );
@@ -616,10 +659,8 @@ describe("over HTTP, an installation whose operator set ENCRYPTION_SECRET", () =
         carrier,
       });
 
-      expect(result.status).toBe(200);
-      expect(server.reached).toEqual([
-        `authentication-status ${VICTIM_USER_ID}`,
-      ]);
+      expect(result.status).toBe(401);
+      expect(server.reached).toEqual([]);
     },
   );
 

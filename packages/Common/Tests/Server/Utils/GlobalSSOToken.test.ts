@@ -7,6 +7,7 @@ import CookieName from "../../../Types/CookieName";
 import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
@@ -136,7 +137,10 @@ describe("CookieUtil.getGlobalSSOToken - payload", () => {
     expect(payload["projectId"] || undefined).toBeUndefined();
 
     // And the decoded view the middleware actually consumes has no project.
-    const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+    const decoded: JSONWebTokenData = JSONWebToken.decode(
+      token,
+      JsonWebTokenPurpose.SsoSignIn,
+    );
     expect(decoded.projectId).toBeUndefined();
 
     // Contrast: a per-project token DOES bind a project.
@@ -147,9 +151,12 @@ describe("CookieUtil.getGlobalSSOToken - payload", () => {
       ssoProviderId: ObjectID.generate(),
       ssoProviderType: SsoProviderType.ProjectSSO,
     });
-    expect(JSONWebToken.decode(projectToken).projectId?.toString()).toBe(
-      projectId.toString(),
-    );
+    expect(
+      JSONWebToken.decode(
+        projectToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      ).projectId?.toString(),
+    ).toBe(projectId.toString());
   });
 
   test("both Global provider types round-trip through the token", () => {
@@ -170,7 +177,10 @@ describe("CookieUtil.getGlobalSSOToken - payload", () => {
         ssoProviderType: providerType,
       });
 
-      const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+      const decoded: JSONWebTokenData = JSONWebToken.decode(
+        token,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
 
       expect(decoded.ssoProviderType).toBe(providerType);
       expect(decoded.ssoProviderId?.toString()).toBe(ssoProviderId.toString());
@@ -260,6 +270,7 @@ describe("CookieUtil.setGlobalSSOCookie", () => {
     // The value written is a real, verifiable global token for this user.
     const decoded: JSONWebTokenData = JSONWebToken.decode(
       callArgs[1] as string,
+      JsonWebTokenPurpose.SsoSignIn,
     );
     expect(decoded.userId.toString()).toBe(userId.toString());
     expect(decoded.ssoProviderId?.toString()).toBe(ssoProviderId.toString());
@@ -533,10 +544,13 @@ describe("UserMiddleware.doesSsoTokenForProjectExist - global slot type confusio
         ssoProviderId: ssoProviderId.toString(),
       },
       expiresInSeconds: THIRTY_DAYS_IN_SECONDS,
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     });
 
     // The token itself verifies fine - it is the missing type that disqualifies it.
-    expect(JSONWebToken.decode(token).ssoProviderType).toBeUndefined();
+    expect(
+      JSONWebToken.decode(token, JsonWebTokenPurpose.SsoSignIn).ssoProviderType,
+    ).toBeUndefined();
 
     for (const req of [buildCookieRequest(token), buildHeaderRequest(token)]) {
       expect(UserMiddleware.getGlobalSsoTokenData(req)).toBeNull();
