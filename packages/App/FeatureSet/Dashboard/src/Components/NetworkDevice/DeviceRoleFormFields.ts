@@ -26,7 +26,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const DEVICE_ROLE_FIELD_TITLE: string = translationKey("Device Role");
 
 export const DEVICE_ROLE_FIELD_DESCRIPTION: string = translationKey(
-  "What this device does on the network. Leave it empty for SNMP devices — the role is read from their own identity, and that is more reliable than a guess. Set it for anything without SNMP to read: a ping-only device has no identity to classify, so without this it is drawn as an anonymous node and treated as top-of-network when the map lays out the hierarchy.",
+  "Set it for devices without SNMP, so the map can place them. SNMP devices report their own.",
 );
 
 export const DEVICE_ROLE_FIELD_PLACEHOLDER: string = translationKey(

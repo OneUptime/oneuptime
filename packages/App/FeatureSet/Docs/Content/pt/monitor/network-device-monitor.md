@@ -502,7 +502,7 @@ Em vez de adicionar os dispositivos um de cada vez, varra uma faixa de endereço
 flowchart TB
     Scan["Varredura de descoberta<br/>em uma sonda"]
     Ping["Ping em cada endereço<br/>da faixa"]
-    Check{"Verificar SNMP nos<br/>hosts que respondem?"}
+    Check{"Método de varredura?"}
     Read["Ler via SNMP o nome e o<br/>fabricante de cada host"]
     Found["Hosts encontrados"]
     Review["Review Results:<br/>escolher e importar"]
@@ -510,8 +510,8 @@ flowchart TB
     Devices["Dispositivos, consultados<br/>pela sonda da varredura"]
     Scan --> Ping
     Ping --> Check
-    Check -->|"Ativado"| Read
-    Check -->|"Desativado"| Found
+    Check -->|"SNMP"| Read
+    Check -->|"ICMP"| Found
     Read --> Found
     Found --> Review
     Found --> Rules
@@ -524,13 +524,13 @@ flowchart TB
 Acesse **Rede → Discovery** e clique em **Iniciar varredura**. **Discover Devices** na **Visão geral** da Rede abre o mesmo formulário.
 
 ### Dizer o que varrer
-Na etapa **Alvo da varredura**, digite a faixa, confira a **Sonda** e decida se vai usar **Check SNMP on hosts that answer**.
+Digite a faixa em **Alvo da varredura**, confira a **Sonda** e escolha o **Método de varredura**: **ICMP (ping)**, com o qual uma varredura nova começa, ou **SNMP**.
 
 ### Adicionar as credenciais a testar
-Com o SNMP ativado, a etapa **Credenciais SNMP** pede os conjuntos de credenciais a testar. Com ele desativado não há segunda etapa: a varredura é uma [varredura só com ping](#varreduras-só-com-ping), e **Iniciar varredura** fica na primeira página.
+Só uma varredura SNMP pede credenciais: escolher **SNMP** acrescenta a etapa **Credenciais SNMP**, com os conjuntos de credenciais a testar. Uma [varredura ICMP](#varreduras-icmp) não tem segunda etapa, e **Iniciar varredura** fica na primeira página.
 
 ### Iniciar a varredura
-Clique em **Iniciar varredura**. A sonda varre a faixa e informa quantos hosts varreu e quantos responderam: quantos responderam ao SNMP ou, em uma varredura só com ping, quantos responderam ao ping.
+Clique em **Iniciar varredura**. A sonda varre a faixa e informa quantos hosts varreu e quantos responderam: quantos responderam ao SNMP ou, em uma varredura ICMP, quantos responderam ao ping.
 
 ### Importar o que ela encontrou
 Clique em **Review Results** na varredura, escolha os hosts a importar e clique em **Próximo**. Escolha com que frequência eles são verificados e se cada um recebe um monitor, e então importe-os; veja [Importar o que uma varredura encontrou](#importar-o-que-uma-varredura-encontrou).
@@ -540,8 +540,8 @@ Clique em **Review Results** na varredura, escolha os hosts a importar e clique 
 | --- | --- | --- |
 | Alvo da varredura | Os endereços a varrer, em [notação CIDR ou de faixas de octetos](#notação-do-alvo-da-varredura). | Sim |
 | Sonda | A sonda que executa a varredura. Ela precisa alcançar a faixa diretamente. Um projeto com exatamente uma sonda personalizada começa com ela. Um projeto sem sonda própria é avisado disso, com **Adicionar uma sonda** ao lado do campo. | Sim |
-| Check SNMP on hosts that answer | Uma varredura primeiro envia ping à faixa; isto decide se os hosts que respondem são depois consultados via SNMP sobre o nome e o fabricante. Desative para uma [varredura só com ping](#varreduras-só-com-ping). Escolhido ao criar a varredura e fixo depois disso. Ativado por padrão. | Não |
-| Credenciais a tentar | A segunda etapa: os conjuntos de credenciais a testar, em ordem. Cada host é consultado com cada conjunto até um responder, então adicione um conjunto por grupo de dispositivos que compartilham versão e community ou usuário v3. **Adicionar mais credenciais** adiciona um. | Quando a verificação SNMP está ativada |
+| Método de varredura | **ICMP (ping)** envia ping a cada endereço da faixa e lista o que responde, sem credenciais: uma [varredura ICMP](#varreduras-icmp). **SNMP** também envia ping e depois pergunta a cada host que responde o nome e o fabricante. Uma varredura nova começa em **ICMP (ping)**; **Editar** muda isso depois, e a varredura roda de novo. | Sim |
+| Credenciais a tentar | A segunda etapa de uma varredura SNMP: os conjuntos de credenciais a testar, em ordem. Cada host é consultado com cada conjunto até um responder, então adicione um conjunto por grupo de dispositivos que compartilham versão e community ou usuário v3. **Adicionar mais credenciais** adiciona um. | Quando o método é SNMP |
 
 Recolhidos em **Mais campos** na primeira etapa, para as varreduras que precisam deles:
 
@@ -587,7 +587,7 @@ As faixas de octetos existem para redes que não têm o formato de blocos CIDR. 
 Todo host que uma varredura encontra é importado como dispositivo consultado pela sonda, com a sonda da varredura atribuída e a sondagem ativada, então ele tem um status desde a primeira sondagem. O que muda de um host para outro é o que vem com ele:
 
 - Os hosts que responderam ao SNMP são importados com o endereço que respondeu como nome do host, o nome escolhido como descrito abaixo e as credenciais que responderam, então uma varredura v3 importa dispositivos prontos para o walk v3 que começam a coletar interfaces e inventário na hora.
-- Os hosts que responderam ao ping mas não ao SNMP — todo host que uma [varredura só com ping](#varreduras-só-com-ping) encontra, e os hosts que uma varredura SNMP não conseguiu identificar — são importados sem credenciais. A sonda envia ping a eles no agendamento deles; adicione credenciais depois, no dispositivo ou como um perfil nele ou no site dele, e a mesma sonda também começa a fazer o walk.
+- Os hosts que responderam ao ping mas não ao SNMP — todo host que uma [varredura ICMP](#varreduras-icmp) encontra, e os hosts que uma varredura SNMP não conseguiu identificar — são importados sem credenciais. A sonda envia ping a eles no agendamento deles; adicione credenciais depois, no dispositivo ou como um perfil nele ou no site dele, e a mesma sonda também começa a fazer o walk.
 
 Um host já registrado como dispositivo é marcado como **Já adicionado** e nunca é importado duas vezes. A sondagem dá um status a cada dispositivo importado; para saber quando um cair, dê a ele um monitor: escolha **Um monitor para cada dispositivo** ao importar, ou deixe uma [política de alertas](#políticas-de-alertas) dar um a cada dispositivo que ela cobre.
 
@@ -657,7 +657,7 @@ Um nome só melhora: um dispositivo mantém o nome quando o registro DNS dele mu
 
 Revisar cada varredura à mão não escala além das primeiras sub-redes. **Rede → Regras → Auto Import Rules** é onde você escreve a importação uma vez: uma regra diz quais hosts descobertos reivindicar (uma faixa de IPs, e padrões opcionais de nome de sistema, descrição e `sysObjectID`) e, opcionalmente, qual modelo de monitor e qual [OID Collection Template](#oid-collection-templates) os dispositivos que ela importa recebem. Uma regra marcada como exclusão não reivindica nada e veta as outras: é assim que impressoras e telefones são separados de uma regra de sub-rede ampla.
 
-Em uma regra, **Verificar a cada** define com que frequência a sonda da varredura consulta cada dispositivo que a regra importa, como **Verificar a cada** faz quando você importa de **Review Results**; vazio, é a cada 5 minutos. Uma regra que também importa hosts que responderam só ao ping também dá a eles o modelo de monitor dela: a sonda envia ping a eles, então as verificações do modelo sobre se um dispositivo está no ar e sobre os traps que ele envia funcionam para eles na hora, e as verificações que leem um walk SNMP, assim que o dispositivo tiver credenciais.
+Em uma regra, **Verificar a cada** define com que frequência a sonda da varredura consulta cada dispositivo que a regra importa, como **Verificar a cada** faz quando você importa de **Review Results**; vazio, é a cada 5 minutos. Uma regra com **Include Ping-Only Hosts** ativado também importa hosts que responderam só ao ping, entre eles todo host que uma [varredura ICMP](#varreduras-icmp) encontra, e também dá a eles o modelo de monitor dela: a sonda envia ping a eles, então as verificações do modelo sobre se um dispositivo está no ar e sobre os traps que ele envia funcionam para eles na hora, e as verificações que leem um walk SNMP, assim que o dispositivo tiver credenciais.
 
 As regras não têm agendamento próprio e não precisam de um. As regras habilitadas rodam sozinhas sobre os resultados de cada varredura conforme eles chegam, incluindo os resultados parciais que uma varredura longa envia enquanto ainda está em andamento, então os hosts são importados até um minuto depois de encontrados, e não no fim da faixa. Ative **Repeat this scan** em uma varredura de descoberta e o par vira um arranjo permanente: a varredura percorre a sua faixa de novo no seu intervalo, e cada host novo que ela encontra é importado sem que ninguém aperte nada.
 
@@ -672,23 +672,23 @@ Parques grandes são importados em lotes cadenciados. Criar um dispositivo ou um
 
 Dispositivos e monitores são trabalhos separados com limites separados: uma regra que ganha um modelo de monitor depois que os dispositivos dela foram importados não cria nenhum dispositivo, só monitores, e o relatório dela diz isso.
 
-### Varreduras só com ping
+### Varreduras ICMP
 
-Desative **Check SNMP on hosts that answer** e a varredura é uma simples varredura ICMP: ela envia ping a cada endereço da faixa, informa os que responderam e não envia nenhum pacote SNMP. A etapa Credenciais SNMP sai do formulário, que vira uma única página com **Iniciar varredura**, e nenhuma versão, community string ou credencial v3 é pedida ou guardada na varredura.
+Com **ICMP (ping)** como **Método de varredura**, com o qual uma varredura nova começa, a varredura é uma simples varredura ICMP: ela envia ping a cada endereço da faixa, informa os que responderam e não envia nenhum pacote SNMP. O formulário não tem a etapa Credenciais SNMP, então é uma única página com **Iniciar varredura**, e nenhuma versão, community string ou credencial v3 é pedida ou guardada na varredura.
 
-A escolha é feita ao criar a varredura e não pode ser mudada: uma varredura criada só com ping continua só com ping, inclusive em cada execução de uma varredura repetida. Para varrer a mesma faixa do outro jeito, crie uma segunda varredura.
+Você pode mudar o método depois, em **Editar** na varredura. Um método mudado executa a varredura de novo: os hosts que a última execução encontrou são apagados, e os dispositivos que você já importou ficam como estão.
 
 Recorra a uma quando:
 
-- Você não tem credenciais SNMP para a faixa: um laboratório, a rede de um locatário, uma sub-rede que você herdou. Uma varredura só com ping diz o que está vivo ali sem que você precise antes adivinhar uma community string.
+- Você não tem credenciais SNMP para a faixa: um laboratório, a rede de um locatário, uma sub-rede que você herdou. Uma varredura ICMP diz o que está vivo ali sem que você precise antes adivinhar uma community string.
 - Você quer um inventário, e não uma verificação de identidade: o que responde nesta faixa, não qual modelo é. Ela também é a mais rápida das duas, porque pula a consulta SNMP e o timeout por host nos hosts que respondem ao ping, mas não vão falar SNMP com você.
 
 Duas coisas a saber antes de executar uma:
 
-- A sonda precisa de um ambiente de execução que permita ICMP. A varredura executa o `ping` do sistema operacional, então o contêiner da sonda precisa da capability `NET_RAW` e do binário. As implantações do próprio OneUptime têm os dois: `docker-compose.base.yml` e o `probeContainerSecurityContext` do chart Helm adicionam `NET_RAW`, e a imagem da sonda instala `iputils-ping`. Uma falha aqui geralmente significa que um `securityContext` do Kubernetes endurecido removeu `NET_RAW`, ou que uma imagem de sonda personalizada deixou o `ping` de fora. Uma varredura só com ping não tem então mais nada a tentar, então ela falha com uma mensagem que diz isso, em vez de informar uma faixa vazia. Se o ping parar de funcionar no meio do caminho, a varredura mantém os hosts que já confirmou e informa que a faixa não foi totalmente verificada.
+- A sonda precisa de um ambiente de execução que permita ICMP. A varredura executa o `ping` do sistema operacional, então o contêiner da sonda precisa da capability `NET_RAW` e do binário. As implantações do próprio OneUptime têm os dois: `docker-compose.base.yml` e o `probeContainerSecurityContext` do chart Helm adicionam `NET_RAW`, e a imagem da sonda instala `iputils-ping`. Uma falha aqui geralmente significa que um `securityContext` do Kubernetes endurecido removeu `NET_RAW`, ou que uma imagem de sonda personalizada deixou o `ping` de fora. Uma varredura ICMP não tem então mais nada a tentar, então ela falha com uma mensagem que diz isso, em vez de informar uma faixa vazia. Se o ping parar de funcionar no meio do caminho, a varredura mantém os hosts que já confirmou e informa que a faixa não foi totalmente verificada.
 - Tudo o que ela encontra é importado como dispositivo consultado pela sonda sem credenciais, que recebe ping da sonda da varredura desde a primeira sondagem. Adicione credenciais, no dispositivo ou como um perfil nele ou no site dele, quando as tiver, e a sonda começa também a fazer o walk do dispositivo.
 
-Uma varredura só com ping encontra apenas hosts que respondem ao eco ICMP. Hosts que descartam ping (hosts Windows por padrão, e muitas vezes VLANs de gerenciamento) ficam invisíveis para ela mesmo quando respondem a SNMP. Uma varredura SNMP cobre esse caso: quando a passada de ping dela não encontra nenhum equipamento que responda a SNMP, ela volta e consulta via SNMP também os endereços silenciosos. Então, se você espera dispositivos gerenciados em uma faixa e uma varredura só com ping volta vazia, varra a faixa de novo com **Check SNMP on hosts that answer** ativado.
+Uma varredura ICMP encontra apenas hosts que respondem ao eco ICMP. Hosts que descartam ping (hosts Windows por padrão, e muitas vezes VLANs de gerenciamento) ficam invisíveis para ela mesmo quando respondem a SNMP. Uma varredura SNMP cobre esse caso: quando a passada de ping dela não encontra nenhum equipamento que responda a SNMP, ela volta e consulta via SNMP também os endereços silenciosos. Então, se você espera dispositivos gerenciados em uma faixa e uma varredura ICMP volta vazia, mude o **Método de varredura** dela para **SNMP**.
 
 ## Alertas
 

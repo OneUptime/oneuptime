@@ -120,6 +120,8 @@ beforeEach(() => {
     .spyOn(GlobalConfigService, "getRequireSsoForLogin")
     .mockResolvedValue(false);
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  // A session that says master admin is one whose person still is one.
+  jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
   jest
     .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
     .mockResolvedValue(GLOBAL_PERMISSION);

@@ -1177,7 +1177,7 @@ export function buildScanStatusMessage(
 
     parts.push(
       `Swept ${scanResult.scannedHostCount} hosts with ICMP ping only ` +
-        `(Check SNMP is off for this scan): ${aliveHostCount} answered ping.`,
+        `(Scan method is ICMP, so no SNMP): ${aliveHostCount} answered ping.`,
     );
 
     /*
@@ -1191,7 +1191,7 @@ export function buildScanStatusMessage(
       parts.push(
         "Nothing answered ICMP ping. Check that this probe can reach the range and that ICMP echo is permitted to it. " +
           "Hosts that drop ping - Windows hosts do by default, and management VLANs often do - cannot be found by an ICMP-only scan; " +
-          "turn Check SNMP on if you expect managed devices here.",
+          "switch the scan to SNMP if you expect managed devices.",
       );
     }
 
@@ -1342,7 +1342,7 @@ export function buildScanProgressMessage(progress: SubnetScanProgress): string {
       `Scan in progress: ${swept} of ${total} addresses swept so far. ` +
         phaseMessage +
         `${progress.respondedToPingCount ?? 0} answered ICMP ping ` +
-        `(Check SNMP is off for this scan). ` +
+        `(Scan method is ICMP, so no SNMP). ` +
         `These results update as the sweep continues.`,
     );
   }

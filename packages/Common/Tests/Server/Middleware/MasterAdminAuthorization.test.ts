@@ -13,6 +13,7 @@ import {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
@@ -116,6 +117,7 @@ describe("MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware", () => {
   let response: ExpressResponse;
   let next: NextFunction;
   let decodeSpy: jest.SpyInstance<any, any>;
+  let isUserMasterAdminSpy: jest.SpyInstance<any, any>;
 
   type RequestWithHeadersFunction = (
     headers: Record<string, string | undefined>,
@@ -167,6 +169,15 @@ describe("MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware", () => {
      * BlockedUserMiddleware.test.ts. Here every session is not blocked.
      */
     getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+
+    /*
+     * And a session that says master admin is one whose person still is one,
+     * unless a test below says their access was removed.
+     */
+    isUserMasterAdminSpy = getJestSpyOn(
+      UserService,
+      "isUserMasterAdmin",
+    ).mockResolvedValue(true);
   });
 
   describe("when there is no access token (the expired-cookie case)", () => {
@@ -308,6 +319,91 @@ describe("MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware", () => {
       expect(Response.sendErrorResponse).not.toHaveBeenCalled();
     });
   });
+
+  /*
+   * A session's token says whether its person was a master admin when it
+   * was signed, up to 15 minutes ago. Another master admin may have removed
+   * the access since, and these routes set anyone's password and two factor
+   * auth: the person's account is asked, and its answer is the one that
+   * counts. The whole path over HTTP is MasterAdminRemovalOverHttp.test.ts.
+   */
+  describe("when the session's person is no longer a master admin", () => {
+    const PERSON: ObjectID = new ObjectID(
+      "3c3c3c3c-3c3c-4c3c-8c3c-3c3c3c3c3c3c",
+    );
+
+    beforeEach(() => {
+      decodeSpy.mockReturnValue({
+        userId: PERSON,
+        isMasterAdmin: true,
+      } as unknown as JSONWebTokenData as never);
+    });
+
+    test("refuses the session with the 422 a session that never was one gets", async () => {
+      isUserMasterAdminSpy.mockResolvedValue(false);
+
+      await run(requestWithHeaders({ authorization: "Bearer former.jwt" }));
+
+      expect(next).not.toHaveBeenCalled();
+      expectNotAuthorized(sentError(), NOT_A_MASTER_ADMIN_MESSAGE);
+    });
+
+    test("asks the account of the session's own person", async () => {
+      isUserMasterAdminSpy.mockResolvedValue(false);
+
+      await run(requestWithHeaders({ authorization: "Bearer former.jwt" }));
+
+      expect(isUserMasterAdminSpy).toHaveBeenCalledTimes(1);
+      expect(isUserMasterAdminSpy).toHaveBeenCalledWith(PERSON);
+    });
+
+    test("lets the session through while the account still is a master admin's", async () => {
+      await run(requestWithHeaders({ authorization: "Bearer admin.jwt" }));
+
+      expect(isUserMasterAdminSpy).toHaveBeenCalledWith(PERSON);
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Only ever taken away: a session that never said master admin is not
+     * made one by its account, so nothing is asked for it.
+     */
+    test("never asks for a session that does not say master admin", async () => {
+      decodeSpy.mockReturnValue({
+        userId: PERSON,
+        isMasterAdmin: false,
+      } as unknown as JSONWebTokenData as never);
+
+      await run(requestWithHeaders({ authorization: "Bearer user.jwt" }));
+
+      expect(isUserMasterAdminSpy).not.toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+      expectNotAuthorized(sentError(), NOT_A_MASTER_ADMIN_MESSAGE);
+    });
+
+    // "We could not find out" is not "yes": the error, never the token's word.
+    test("answers a lookup that fails with its error, and lets nothing through", async () => {
+      const failure: Error = new Error("database unavailable");
+      isUserMasterAdminSpy.mockRejectedValue(failure);
+
+      await run(requestWithHeaders({ authorization: "Bearer admin.jwt" }));
+
+      expect(next).not.toHaveBeenCalled();
+      expect(sentError()).toBe(failure);
+    });
+
+    // A blocked person is refused as blocked, whatever else their account says.
+    test("refuses a blocked person as blocked (401) without asking more", async () => {
+      getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(true);
+
+      await run(requestWithHeaders({ authorization: "Bearer admin.jwt" }));
+
+      expect(next).not.toHaveBeenCalled();
+      expect(isUserMasterAdminSpy).not.toHaveBeenCalled();
+      expectNotAuthenticated(sentError(), ExceptionMessages.UserBlocked);
+    });
+  });
 });
 
 describe("MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware", () => {
@@ -357,6 +453,9 @@ describe("MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddlewa
      * BlockedUserMiddleware.test.ts. Here every session is not blocked.
      */
     getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+
+    // A session that says master admin is one whose person still is one, unless a test says otherwise.
+    getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
   });
 
   describe("when the master API key is presented", () => {
@@ -616,6 +715,35 @@ describe("MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddlewa
       expect(next).not.toHaveBeenCalled();
 
       // Still a 422: the caller is known, and a refresh would not change that.
+      expectNotAuthorized(sentError(), NOT_A_MASTER_ADMIN_MESSAGE);
+    });
+
+    /*
+     * The key is a credential of its own; a session is the person's, and
+     * counts only while they are a master admin.
+     */
+    test("refuses the session of someone whose master admin access was removed", async () => {
+      getJestSpyOn(
+        UserMiddleware,
+        "getAccessTokenFromExpressRequest",
+      ).mockReturnValue("a.former.master.admin.token" as never);
+
+      getJestSpyOn(JSONWebToken, "decode").mockReturnValue({
+        userId: new ObjectID("4d4d4d4d-4d4d-4d4d-8d4d-4d4d4d4d4d4d"),
+        isMasterAdmin: true,
+      } as unknown as JSONWebTokenData as never);
+
+      getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(false);
+
+      request = requestWithHeaders({});
+
+      await MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware(
+        request,
+        response,
+        next,
+      );
+
+      expect(next).not.toHaveBeenCalled();
       expectNotAuthorized(sentError(), NOT_A_MASTER_ADMIN_MESSAGE);
     });
 

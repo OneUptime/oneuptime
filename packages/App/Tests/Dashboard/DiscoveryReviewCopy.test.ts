@@ -713,7 +713,7 @@ describe("the dialog puts that copy on screen", () => {
 /*
  * THE ICMP-ONLY SWEEP (issue #3445)
  *
- * A discovery scan can be run with Check SNMP off: a plain ICMP sweep that
+ * A discovery scan can be run as ICMP (ping): a plain ICMP sweep that
  * sends no SNMP packet, asks for no credentials, and reports every host that
  * answered ping. Three things the dialog says would be wrong on such a scan
  * in a way that reads as a failure rather than as a result:

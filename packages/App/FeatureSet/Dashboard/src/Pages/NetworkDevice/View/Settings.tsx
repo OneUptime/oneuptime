@@ -281,7 +281,7 @@ const NetworkDeviceSettings: FunctionComponent<
         cardProps={{
           title: "Device Settings",
           description:
-            "Identity, monitoring method and SNMP credentials for this device. A probe-polled device is pinged whether or not it has credentials; add them to walk it over SNMP as well.",
+            "Identity, monitoring method and SNMP credentials. Without credentials the device is only pinged.",
         }}
         isEditable={true}
         editButtonText="Edit Settings"
@@ -447,7 +447,7 @@ const NetworkDeviceSettings: FunctionComponent<
             sectionTitle: "SNMP",
             sectionDescription: SNMP_STEP_DESCRIPTION,
             description:
-              "A reusable credential set shared by devices of one kind. The device's own credentials below win when both are set; leave those empty to use the profile. The device's site can carry a default profile too, which applies when neither of these is set.",
+              "A saved set of credentials. The device's own credentials below win; its site can carry a default.",
             sideLink: {
               text: "Manage credential profiles",
               url: RouteUtil.populateRouteParams(
@@ -482,7 +482,7 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Ping only — clear this device's own SNMP credentials",
             stepId: "snmp",
             description:
-              "Removes the community string and v3 username from this device. It keeps being pinged and keeps its status; interfaces and inventory stop refreshing unless a credential profile (here or on the site) still provides credentials.",
+              "Removes this device's own community string and v3 username. It is still pinged.",
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             onChange: (
@@ -702,8 +702,8 @@ const NetworkDeviceSettings: FunctionComponent<
         cardProps={{
           title: "Polling & Data Collection",
           description: isDeviceMonitorBacked
-            ? "This device is a bound-monitor override: nothing polls it, and the monitor bound to it decides its status. Switch its monitoring method to Probe above to have a probe ping it (and walk it over SNMP once it has credentials)."
-            : "The assigned probe pings this device on its own schedule and, when it has SNMP credentials, walks it too — inventory, interfaces, topology neighbors, endpoints, and health OIDs. Monitors are only needed to alert on what these polls report.",
+            ? "This device is a bound-monitor override: nothing polls it. Switch to Probe above to have a probe ping it."
+            : "The probe pings this device and, with SNMP credentials, walks it for inventory, interfaces and health.",
         }}
         isEditable={!isDeviceMonitorBacked}
         refresher={pollingCardRefresher}
@@ -756,7 +756,7 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "OID Collection Template",
             stepId: "health-oids",
             description:
-              "The shared OID list this device collects, on top of any device-specific OIDs below. The link is live and nothing is copied here: editing the template changes what every device linked to it collects on the next poll. Interfaces need no OIDs — bits in/out, errors, utilization and up/down are walked for every port automatically.",
+              "A shared list of health OIDs. Editing the template changes what every linked device collects.",
             sideLink: {
               text: "Manage templates",
               url: RouteUtil.populateRouteParams(
@@ -782,7 +782,7 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Device-Specific Health OIDs",
             stepId: "health-oids",
             description:
-              "Extra OIDs only this device collects, on top of whatever its template contributes. If more than one device needs the same OID it belongs on a template instead — one edit there reaches every device linked to it. Values are recorded as device metrics and can be alerted on through monitor criteria.",
+              "Extra OIDs only this device collects, on top of its template's. Recorded as device metrics.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             getCustomElement: (
@@ -839,7 +839,7 @@ const NetworkDeviceSettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "When the device's vendor is fingerprinted from its SNMP sysObjectID and the Health OID list above is empty, seed it with the matching vendor health template automatically on the next poll. A non-empty list is never touched. A device linked to an OID Collection Template is never seeded either, whatever this is set to, because its list comes from the template. Auto-imported devices have this on by default.",
+              "Fills an empty Health OID list with the vendor's template on the next poll. A list you set is never touched.",
           },
           {
             field: {
@@ -848,7 +848,7 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Device-Specific SNMP Tables",
             stepId: "snmp-tables",
             description: translator.translateTemplate(
-              "Lists this device keeps, walked whole on every poll - IPsec tunnels, Wi-Fi radios, routing neighbours, fans, power supplies - on top of its OID Collection Template's tables. A table with the same key as a template table replaces it on this device. Up to {{max}} tables.",
+              "Extra tables only this device walks, on top of its template's. Up to {{max}}.",
               { max: MAX_DEVICE_SPECIFIC_TABLES },
             ),
             fieldType: FormFieldSchemaType.CustomComponent,

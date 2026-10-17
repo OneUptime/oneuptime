@@ -362,10 +362,9 @@ const createDevice: CreateDeviceFunction = async (data: {
    * polled. The fold says so in one sentence while nothing is set.
    */
   await expect(
-    modal.getByText(
-      "Optional. Without it the device is pinged, so it gets a status and a response time.",
-      { exact: false },
-    ),
+    modal.getByText("Optional. Without it the device is only pinged.", {
+      exact: false,
+    }),
   ).toBeVisible({ timeout: 30000 });
 
   /*

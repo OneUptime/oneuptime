@@ -502,7 +502,7 @@ Statt Geräte einzeln hinzuzufügen, durchsuchen Sie von einer Sonde aus einen A
 flowchart TB
     Scan["Erkennungsscan<br/>auf einer Sonde"]
     Ping["Jede Adresse im<br/>Bereich anpingen"]
-    Check{"SNMP auf antwortenden<br/>Hosts prüfen?"}
+    Check{"Scanmethode?"}
     Read["Name und Hersteller jedes<br/>Hosts per SNMP lesen"]
     Found["Gefundene Hosts"]
     Review["Ergebnisse prüfen:<br/>auswählen und importieren"]
@@ -510,8 +510,8 @@ flowchart TB
     Devices["Geräte, abgefragt von<br/>der Sonde des Scans"]
     Scan --> Ping
     Ping --> Check
-    Check -->|"An"| Read
-    Check -->|"Aus"| Found
+    Check -->|"SNMP"| Read
+    Check -->|"ICMP"| Found
     Read --> Found
     Found --> Review
     Found --> Rules
@@ -524,13 +524,13 @@ flowchart TB
 Gehen Sie zu **Netzwerk → Erkennung** und klicken Sie auf **Scan starten**. **Geräte erkennen** in der Netzwerk-**Übersicht** öffnet dasselbe Formular.
 
 ### Sagen, was gescannt wird
-Geben Sie im Schritt **Scanziel** den Bereich ein, prüfen Sie die **Sonde** und entscheiden Sie, ob **SNMP auf antwortenden Hosts prüfen** aktiv sein soll.
+Geben Sie den Bereich in **Scanziel** ein, prüfen Sie die **Sonde** und wählen Sie die **Scanmethode**: **ICMP (Ping)**, mit der ein neuer Scan beginnt, oder **SNMP**.
 
 ### Zu versuchende Anmeldedaten hinzufügen
-Mit SNMP an fragt der Schritt **SNMP-Anmeldedaten** nach den Sätzen von Anmeldedaten, die versucht werden. Mit SNMP aus gibt es keinen zweiten Schritt: Der Scan ist ein [reiner Ping-Scan](#reine-ping-scans), und **Scan starten** steht auf der ersten Seite.
+Nur ein SNMP-Scan fragt nach Anmeldedaten: Wenn Sie **SNMP** wählen, kommt der Schritt **SNMP-Anmeldedaten** hinzu, mit den Sätzen von Anmeldedaten, die versucht werden. Ein [ICMP-Scan](#icmp-scans) hat keinen zweiten Schritt, und **Scan starten** steht auf der ersten Seite.
 
 ### Den Scan starten
-Klicken Sie auf **Scan starten**. Die Sonde durchsucht den Bereich und meldet, wie viele Hosts sie gescannt hat und wie viele geantwortet haben: wie viele auf SNMP geantwortet haben, oder bei einem reinen Ping-Scan, wie viele auf Ping.
+Klicken Sie auf **Scan starten**. Die Sonde durchsucht den Bereich und meldet, wie viele Hosts sie gescannt hat und wie viele geantwortet haben: wie viele auf SNMP geantwortet haben, oder bei einem ICMP-Scan, wie viele auf Ping.
 
 ### Importieren, was gefunden wurde
 Klicken Sie beim Scan auf **Ergebnisse prüfen**, wählen Sie die Hosts zum Importieren aus und klicken Sie auf **Weiter**. Legen Sie fest, wie oft sie geprüft werden und ob jedes Gerät einen Monitor bekommt, und importieren Sie sie dann; siehe [Importieren, was ein Scan gefunden hat](#importieren-was-ein-scan-gefunden-hat).
@@ -540,8 +540,8 @@ Klicken Sie beim Scan auf **Ergebnisse prüfen**, wählen Sie die Hosts zum Impo
 | --- | --- | --- |
 | Scanziel | Die zu scannenden Adressen, in [CIDR- oder Oktettbereichsschreibweise](#schreibweise-des-scanziels). | Ja |
 | Sonde | Die Sonde, die den Scan ausführt. Sie muss den Bereich direkt erreichen. Ein Projekt mit genau einer benutzerdefinierten Sonde beginnt mit dieser. Ein Projekt ohne eigene Sonde erfährt das, mit **Sonde hinzufügen** neben dem Feld. | Ja |
-| SNMP auf antwortenden Hosts prüfen | Ein Scan pingt zuerst den Bereich an; dies entscheidet, ob die antwortenden Hosts dann per SNMP nach Name und Hersteller gefragt werden. Schalten Sie es für einen [reinen Ping-Scan](#reine-ping-scans) aus. Wird beim Anlegen des Scans gewählt und ist danach fest. Standardmäßig an. | Nein |
-| Anmeldedaten zum Ausprobieren | Der zweite Schritt: die zu versuchenden Sätze von Anmeldedaten, der Reihe nach. Jeder Host wird mit jedem Satz gefragt, bis einer antwortet, fügen Sie also einen Satz pro Gruppe von Geräten hinzu, die Version und Community oder v3-Benutzer teilen. **Weitere Anmeldedaten hinzufügen** fügt einen hinzu. | Wenn SNMP-Prüfung an ist |
+| Scanmethode | **ICMP (Ping)** pingt jede Adresse im Bereich an und listet auf, was antwortet, ohne Anmeldedaten: ein [ICMP-Scan](#icmp-scans). **SNMP** pingt ebenfalls und fragt dann jeden antwortenden Host nach Name und Hersteller. Ein neuer Scan beginnt mit **ICMP (Ping)**; **Bearbeiten** ändert das später, und der Scan läuft erneut. | Ja |
+| Anmeldedaten zum Ausprobieren | Der zweite Schritt eines SNMP-Scans: die zu versuchenden Sätze von Anmeldedaten, der Reihe nach. Jeder Host wird mit jedem Satz gefragt, bis einer antwortet, fügen Sie also einen Satz pro Gruppe von Geräten hinzu, die Version und Community oder v3-Benutzer teilen. **Weitere Anmeldedaten hinzufügen** fügt einen hinzu. | Wenn die Methode SNMP ist |
 
 Unter **Weitere Felder** auf dem ersten Schritt eingeklappt, für die Scans, die sie brauchen:
 
@@ -587,7 +587,7 @@ Oktettbereiche gibt es für Netzwerke, die nicht wie CIDR-Blöcke geformt sind. 
 Jeder Host, den ein Scan findet, wird als sondenabgefragtes Gerät importiert, mit der Sonde des Scans zugewiesen und eingeschalteter Abfrage, er hat also ab seiner ersten Abfrage einen Status. Was sich zwischen den Hosts unterscheidet, ist, was mitkommt:
 
 - Hosts, die auf SNMP geantwortet haben, werden mit der antwortenden Adresse als Hostname, dem wie unten gewählten Namen und den Anmeldedaten importiert, die geantwortet haben, ein v3-Scan importiert also Geräte, die sofort per v3 abfragbar sind und gleich Schnittstellen und Inventar erfassen.
-- Hosts, die auf Ping, aber nicht auf SNMP geantwortet haben — jeder Host, den ein [reiner Ping-Scan](#reine-ping-scans) findet, und die Hosts, die ein SNMP-Scan nicht identifizieren konnte —, werden ohne Anmeldedaten importiert. Die Sonde pingt sie nach ihrem Zeitplan an; fügen Sie später Anmeldedaten hinzu, auf dem Gerät oder als Profil auf ihm oder seinem Standort, und dieselbe Sonde beginnt, sie auch abzufragen.
+- Hosts, die auf Ping, aber nicht auf SNMP geantwortet haben — jeder Host, den ein [ICMP-Scan](#icmp-scans) findet, und die Hosts, die ein SNMP-Scan nicht identifizieren konnte —, werden ohne Anmeldedaten importiert. Die Sonde pingt sie nach ihrem Zeitplan an; fügen Sie später Anmeldedaten hinzu, auf dem Gerät oder als Profil auf ihm oder seinem Standort, und dieselbe Sonde beginnt, sie auch abzufragen.
 
 Ein Host, der bereits als Gerät registriert ist, ist als **Bereits hinzugefügt** markiert und wird nie zweimal importiert. Die Abfrage gibt jedem importierten Gerät einen Status; um zu erfahren, wenn eines ausfällt, geben Sie ihm einen Monitor: Wählen Sie beim Import **Eine Überwachung pro Gerät**, oder lassen Sie eine [Warnungsrichtlinie](#warnungsrichtlinien) jedem Gerät, das sie abdeckt, einen geben.
 
@@ -657,7 +657,7 @@ Ein Name wird immer nur verbessert: Ein Gerät behält seinen Namen, wenn sich s
 
 Jeden Scan von Hand zu prüfen, skaliert nicht über die ersten paar Subnetze hinaus. Unter **Netzwerk → Regeln → Regeln für automatischen Import** schreiben Sie den Import einmal fest: Eine Regel sagt, welche erkannten Hosts sie übernimmt (einen IP-Bereich und optionale Muster für Systemname, Beschreibung und `sysObjectID`) und optional, welche Monitor-Vorlage und welche [OID-Erfassungsvorlage](#oid-erfassungsvorlagen) die importierten Geräte bekommen. Eine als Ausschluss markierte Regel übernimmt nichts und legt gegen die anderen ein Veto ein: So werden Drucker und Telefone aus einer breiten Subnetzregel herausgenommen.
 
-Das **Prüfintervall** einer Regel legt fest, wie oft die Sonde des Scans jedes Gerät abfragt, das die Regel importiert, so wie das **Prüfintervall** beim Import aus **Ergebnisse prüfen**; leer bleibt es bei alle 5 Minuten. Eine Regel, die auch Hosts importiert, die nur auf Ping geantwortet haben, gibt auch ihnen ihre Monitorvorlage: Die Sonde pingt sie an, also wirken die Prüfungen der Vorlage darauf, ob ein Gerät erreichbar ist, und auf die Traps, die es sendet, sofort, und ihre Prüfungen, die einen SNMP-Walk lesen, sobald das Gerät Anmeldedaten hat.
+Das **Prüfintervall** einer Regel legt fest, wie oft die Sonde des Scans jedes Gerät abfragt, das die Regel importiert, so wie das **Prüfintervall** beim Import aus **Ergebnisse prüfen**; leer bleibt es bei alle 5 Minuten. Eine Regel mit **Reine Ping-Hosts einbeziehen** importiert auch Hosts, die nur auf Ping geantwortet haben, darunter jeden Host, den ein [ICMP-Scan](#icmp-scans) findet, und gibt auch ihnen ihre Monitorvorlage: Die Sonde pingt sie an, also wirken die Prüfungen der Vorlage darauf, ob ein Gerät erreichbar ist, und auf die Traps, die es sendet, sofort, und ihre Prüfungen, die einen SNMP-Walk lesen, sobald das Gerät Anmeldedaten hat.
 
 Regeln haben keinen eigenen Zeitplan und brauchen keinen. Aktivierte Regeln laufen von selbst gegen die Ergebnisse jedes Scans, sobald sie eintreffen, einschließlich der Teilergebnisse, die ein langer Scan hochlädt, während er noch läuft, Hosts werden also innerhalb einer Minute nach ihrem Fund importiert statt am Ende des Bereichs. Schalten Sie bei einem Erkennungsscan **Diesen Scan wiederholen** ein, und das Paar wird zu einer dauerhaften Einrichtung: Der Scan durchsucht seinen Bereich in Ihrem Intervall erneut, und jeder neue Host, den er findet, wird importiert, ohne dass jemand etwas drückt.
 
@@ -672,23 +672,23 @@ Große Bestände werden in abgemessenen Stapeln importiert. Das Anlegen eines Ge
 
 Geräte und Monitore sind getrennte Arbeit mit getrennten Grenzen: Eine Regel, die eine Monitor-Vorlage bekommt, nachdem ihre Geräte importiert wurden, legt gar keine Geräte an, nur Monitore, und ihr Bericht sagt das.
 
-### Reine Ping-Scans
+### ICMP-Scans
 
-Schalten Sie **SNMP auf antwortenden Hosts prüfen** aus, und der Scan ist ein einfacher ICMP-Scan: Er pingt jede Adresse im Bereich an, meldet die, die geantwortet haben, und sendet überhaupt kein SNMP-Paket. Der Schritt SNMP-Anmeldedaten verschwindet aus dem Formular, es ist also eine Seite mit **Scan starten** darauf, und keine Version, kein Community-String und keine v3-Anmeldedaten werden abgefragt oder im Scan gespeichert.
+Mit **ICMP (Ping)** als **Scanmethode**, mit der ein neuer Scan beginnt, ist ein Scan ein einfacher ICMP-Scan: Er pingt jede Adresse im Bereich an, meldet die, die geantwortet haben, und sendet überhaupt kein SNMP-Paket. Das Formular hat keinen Schritt SNMP-Anmeldedaten, es ist also eine Seite mit **Scan starten** darauf, und keine Version, kein Community-String und keine v3-Anmeldedaten werden abgefragt oder im Scan gespeichert.
 
-Die Wahl fällt beim Anlegen des Scans und kann nicht geändert werden: Ein als reiner Ping-Scan angelegter Scan bleibt einer, auch bei jedem Lauf eines wiederholten Scans. Um denselben Bereich anders zu scannen, legen Sie einen zweiten Scan an.
+Sie können die Methode später über **Bearbeiten** des Scans ändern. Eine geänderte Methode führt den Scan erneut aus: Die Hosts, die sein letzter Lauf gefunden hat, werden gelöscht, und Geräte, die Sie bereits importiert haben, bleiben, wie sie sind.
 
 Greifen Sie zu einem, wenn:
 
-- Sie keine SNMP-Anmeldedaten für den Bereich haben: ein Labor, ein Mandantennetz, ein geerbtes Subnetz. Ein reiner Ping-Scan sagt Ihnen, was dort lebt, ohne dass Sie zuerst einen Community-String raten.
+- Sie keine SNMP-Anmeldedaten für den Bereich haben: ein Labor, ein Mandantennetz, ein geerbtes Subnetz. Ein ICMP-Scan sagt Ihnen, was dort lebt, ohne dass Sie zuerst einen Community-String raten.
 - Sie eine Inventurrunde statt einer Identitätsprüfung wollen: was in diesem Bereich antwortet, nicht welches Modell es ist. Er ist auch der schnellere der beiden, weil er die SNMP-Prüfung und ihre Zeitüberschreitung pro Host bei Hosts überspringt, die auf Ping antworten, aber nicht per SNMP mit Ihnen sprechen.
 
 Zwei Dinge, die Sie vor einem Lauf wissen sollten:
 
-- Die Sonde braucht eine Laufzeit, die ICMP erlaubt. Der Scan führt das `ping` des Betriebssystems aus, der Container der Sonde braucht also die Capability `NET_RAW` und das Programm. Die eigenen Bereitstellungen von OneUptime haben beides: `docker-compose.base.yml` und `probeContainerSecurityContext` des Helm-Charts fügen `NET_RAW` hinzu, und das Sonden-Image installiert `iputils-ping`. Ein Fehler hier bedeutet meist, dass ein gehärteter Kubernetes-`securityContext` `NET_RAW` entfernt hat oder ein eigenes Sonden-Image `ping` weggelassen hat. Ein reiner Ping-Scan hat dann nichts mehr zu versuchen und schlägt mit einer Meldung fehl, die das sagt, statt einen leeren Bereich zu melden. Wenn Ping mitten im Lauf nicht mehr funktioniert, behält der Scan die Hosts, die er schon bestätigt hat, und sagt, dass der Bereich nicht vollständig geprüft wurde.
+- Die Sonde braucht eine Laufzeit, die ICMP erlaubt. Der Scan führt das `ping` des Betriebssystems aus, der Container der Sonde braucht also die Capability `NET_RAW` und das Programm. Die eigenen Bereitstellungen von OneUptime haben beides: `docker-compose.base.yml` und `probeContainerSecurityContext` des Helm-Charts fügen `NET_RAW` hinzu, und das Sonden-Image installiert `iputils-ping`. Ein Fehler hier bedeutet meist, dass ein gehärteter Kubernetes-`securityContext` `NET_RAW` entfernt hat oder ein eigenes Sonden-Image `ping` weggelassen hat. Ein ICMP-Scan hat dann nichts mehr zu versuchen und schlägt mit einer Meldung fehl, die das sagt, statt einen leeren Bereich zu melden. Wenn Ping mitten im Lauf nicht mehr funktioniert, behält der Scan die Hosts, die er schon bestätigt hat, und sagt, dass der Bereich nicht vollständig geprüft wurde.
 - Alles, was er findet, wird als sondenabgefragtes Gerät ohne Anmeldedaten importiert und ab der ersten Abfrage von der Sonde des Scans angepingt. Fügen Sie Anmeldedaten hinzu, auf dem Gerät oder als Profil auf ihm oder seinem Standort, wann immer Sie sie haben, und die Sonde beginnt, das Gerät auch abzufragen.
 
-Ein reiner Ping-Scan findet nur Hosts, die auf ICMP-Echo antworten. Hosts, die Ping verwerfen (Windows-Hosts standardmäßig, und oft Management-VLANs), bleiben für ihn unsichtbar, auch wenn sie auf SNMP antworten. Ein SNMP-Scan deckt diesen Fall ab: Wenn sein Ping-Durchgang überhaupt keinen SNMP-Antwortenden findet, geht er zurück und fragt auch die stillen Adressen per SNMP. Wenn Sie also verwaltete Geräte in einem Bereich erwarten und ein reiner Ping-Scan leer zurückkommt, scannen Sie ihn erneut mit **SNMP auf antwortenden Hosts prüfen** an.
+Ein ICMP-Scan findet nur Hosts, die auf ICMP-Echo antworten. Hosts, die Ping verwerfen (Windows-Hosts standardmäßig, und oft Management-VLANs), bleiben für ihn unsichtbar, auch wenn sie auf SNMP antworten. Ein SNMP-Scan deckt diesen Fall ab: Wenn sein Ping-Durchgang überhaupt keinen SNMP-Antwortenden findet, geht er zurück und fragt auch die stillen Adressen per SNMP. Wenn Sie also verwaltete Geräte in einem Bereich erwarten und ein ICMP-Scan leer zurückkommt, stellen Sie seine **Scanmethode** auf **SNMP** um.
 
 ## Warnungen
 

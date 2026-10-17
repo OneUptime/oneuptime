@@ -1184,6 +1184,49 @@ describe("MCP OAuth, end to end", () => {
       expectUnauthorized(await callAsClient());
     });
 
+    /*
+     * A master admin is not held to the instance's Require SSO, so their
+     * client was connected without an SSO sign-in. Once another master
+     * admin removes the access, they are held to it like every member -
+     * from their client's very next call, not a minute later.
+     */
+    it("the instance requires SSO, and a master admin who connected without it has their master admin access removed", async () => {
+      const admin: TestMember = harness.addMember({ isMasterAdmin: true });
+
+      harness.addMembership(admin, project);
+      harness.setGlobalSsoRequired(true);
+
+      const adminClient: ConnectedClient = await connect({ member: admin });
+
+      const callAsAdminClient: () => Promise<HttpResult> =
+        (): Promise<HttpResult> => {
+          return harness.callTool(
+            "list_incidents",
+            {},
+            OAuthTestHarness.bearer(adminClient.accessToken),
+          );
+        };
+
+      expect((await callAsAdminClient()).status).toBe(200);
+
+      const callsWhileAMasterAdmin: number = api.calls.length;
+      expect(callsWhileAMasterAdmin).toBeGreaterThan(0);
+
+      harness.setMasterAdmin(admin, false);
+
+      expectUnauthorized(await callAsAdminClient());
+      expect(api.calls).toHaveLength(callsWhileAMasterAdmin);
+
+      // Their own client, refreshed, is held to it too.
+      const refresh: HttpResult = await harness.refresh(
+        adminClient.clientId,
+        adminClient.refreshToken,
+      );
+
+      expect(refresh.status).toBe(400);
+      expect(refresh.json.error).toBe("invalid_grant");
+    });
+
     it("someone presses Disconnect", async () => {
       harness.store.deleteGrant(connected.grantId);
 

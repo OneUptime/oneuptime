@@ -502,7 +502,7 @@ I stället för att lägga till enheter en i taget kan du skanna ett adressinter
 flowchart TB
     Scan["Discovery-skanning<br/>på en sond"]
     Ping["Pinga varje adress<br/>i intervallet"]
-    Check{"Kontrollera SNMP på<br/>värdar som svarar?"}
+    Check{"Skanningsmetod?"}
     Read["Läs varje värds namn och<br/>tillverkare via SNMP"]
     Found["Hittade värdar"]
     Review["Review Results:<br/>välj och importera"]
@@ -510,8 +510,8 @@ flowchart TB
     Devices["Enheter, avsökta av<br/>skanningens sond"]
     Scan --> Ping
     Ping --> Check
-    Check -->|"På"| Read
-    Check -->|"Av"| Found
+    Check -->|"SNMP"| Read
+    Check -->|"ICMP"| Found
     Read --> Found
     Found --> Review
     Found --> Rules
@@ -524,13 +524,13 @@ flowchart TB
 Gå till **Nätverk → Discovery** och klicka på **Starta skanning**. **Discover Devices** på Nätverk-**Översikt** öppnar samma formulär.
 
 ### Ange vad som ska skannas
-I steget **Skanningsmål** skriver du intervallet, kontrollerar **Sond** och bestämmer om du vill använda **Check SNMP on hosts that answer**.
+Skriv intervallet i **Skanningsmål**, kontrollera **Sond** och välj **Skanningsmetod**: **ICMP (ping)**, som en ny skanning börjar på, eller **SNMP**.
 
 ### Lägg till autentiseringsuppgifter att prova
-Med SNMP påslaget ber steget **SNMP-autentiseringsuppgifter** om de uppsättningar autentiseringsuppgifter som ska provas. Med det avslaget finns inget andra steg: skanningen är en [skanning med bara ping](#skanningar-med-bara-ping), och **Starta skanning** finns på första sidan.
+Bara en SNMP-skanning ber om autentiseringsuppgifter: väljer du **SNMP** tillkommer steget **SNMP-autentiseringsuppgifter**, med de uppsättningar autentiseringsuppgifter som ska provas. En [ICMP-skanning](#icmp-skanningar) har inget andra steg, och **Starta skanning** finns på första sidan.
 
 ### Starta skanningen
-Klicka på **Starta skanning**. Sonden skannar intervallet och rapporterar hur många värdar den skannade och hur många som svarade: hur många som svarade på SNMP, eller, vid en skanning med bara ping, hur många som svarade på ping.
+Klicka på **Starta skanning**. Sonden skannar intervallet och rapporterar hur många värdar den skannade och hur många som svarade: hur många som svarade på SNMP, eller, vid en ICMP-skanning, hur många som svarade på ping.
 
 ### Importera det den hittade
 Klicka på **Review Results** på skanningen, välj de värdar som ska importeras och klicka på **Nästa**. Välj hur ofta de kontrolleras och om var och en får en monitor, och importera dem sedan; se [Import av det en skanning hittade](#import-av-det-en-skanning-hittade).
@@ -540,8 +540,8 @@ Klicka på **Review Results** på skanningen, välj de värdar som ska importera
 | --- | --- | --- |
 | Skanningsmål | Adresserna som ska skannas, i [CIDR- eller oktettintervallnotation](#notation-för-skanningsmål). | Ja |
 | Sond | Sonden som kör skanningen. Den måste nå intervallet direkt. Ett projekt med exakt en anpassad sond börjar med den. Ett projekt utan egen sond får veta det, med **Lägg till en sond** bredvid fältet. | Ja |
-| Check SNMP on hosts that answer | En skanning pingar först intervallet; detta avgör om värdarna som svarar sedan tillfrågas via SNMP om sitt namn och sin tillverkare. Stäng av det för en [skanning med bara ping](#skanningar-med-bara-ping). Väljs när skanningen skapas och ligger fast efter det. På som standard. | Nej |
-| Autentiseringsuppgifter att prova | Det andra steget: de uppsättningar autentiseringsuppgifter som ska provas, i ordning. Varje värd tillfrågas med varje uppsättning tills en svarar, så lägg till en uppsättning per grupp av enheter som delar version och community eller v3-användare. **Lägg till fler autentiseringsuppgifter** lägger till en. | När SNMP-kontrollen är påslagen |
+| Skanningsmetod | **ICMP (ping)** pingar varje adress i intervallet och listar det som svarar, utan autentiseringsuppgifter: en [ICMP-skanning](#icmp-skanningar). **SNMP** pingar också och frågar sedan varje värd som svarar om dess namn och tillverkare. En ny skanning börjar på **ICMP (ping)**; **Redigera** ändrar det senare, och skanningen körs igen. | Ja |
+| Autentiseringsuppgifter att prova | Det andra steget i en SNMP-skanning: de uppsättningar autentiseringsuppgifter som ska provas, i ordning. Varje värd tillfrågas med varje uppsättning tills en svarar, så lägg till en uppsättning per grupp av enheter som delar version och community eller v3-användare. **Lägg till fler autentiseringsuppgifter** lägger till en. | När metoden är SNMP |
 
 Hopfällda under **Fler fält** i första steget, för de skanningar som behöver dem:
 
@@ -587,7 +587,7 @@ Oktettintervall finns för nätverk som inte är formade som CIDR-block. `10.16-
 Varje värd som en skanning hittar importeras som en sondavsökt enhet, med skanningens sond tilldelad och avsökningen påslagen, så den har en status från sin första avsökning. Det som skiljer sig mellan värdarna är vad de har med sig:
 
 - Värdar som svarade på SNMP importeras med adressen som svarade som värdnamn, namnet valt enligt nedan och de autentiseringsuppgifter som svarade, så en v3-skanning importerar enheter som är redo att walkas via v3 och som genast börjar samla in gränssnitt och inventarium.
-- Värdar som svarade på ping men inte på SNMP — varje värd som en [skanning med bara ping](#skanningar-med-bara-ping) hittar, och de värdar som en SNMP-skanning inte kunde identifiera — importeras utan autentiseringsuppgifter. Sonden pingar dem enligt deras schema; lägg till autentiseringsuppgifter senare, på enheten eller som en profil på den eller dess plats, så börjar samma sond också walka dem.
+- Värdar som svarade på ping men inte på SNMP — varje värd som en [ICMP-skanning](#icmp-skanningar) hittar, och de värdar som en SNMP-skanning inte kunde identifiera — importeras utan autentiseringsuppgifter. Sonden pingar dem enligt deras schema; lägg till autentiseringsuppgifter senare, på enheten eller som en profil på den eller dess plats, så börjar samma sond också walka dem.
 
 En värd som redan är registrerad som enhet är markerad **Redan tillagd** och importeras aldrig två gånger. Avsökningen ger varje importerad enhet en status; för att få veta när en går ner ger du den en monitor: välj **En övervakning för varje enhet** när du importerar, eller låt en [varningspolicy](#varningspolicyer) ge en till varje enhet den täcker.
 
@@ -657,7 +657,7 @@ Ett namn blir bara bättre: en enhet behåller sitt namn när dess DNS-post änd
 
 Att granska varje skanning för hand skalar inte förbi de första subnäten. **Nätverk → Regler → Auto Import Rules** är där du skriver ner importen en gång: en regel anger vilka upptäckta värdar den gör anspråk på (ett IP-intervall och valfria mönster för systemnamn, beskrivning och `sysObjectID`) och, valfritt, vilken monitormall och vilken [OID Collection Template](#oid-collection-templates) de enheter den importerar får. En regel som är markerad som undantag gör inte anspråk på något och lägger in veto mot de andra: så skärs skrivare och telefoner ut ur en bred subnätsregel.
 
-I en regel bestämmer **Kontrollera var** hur ofta skanningens sond avsöker varje enhet som regeln importerar, precis som **Kontrollera var** när du importerar från **Review Results**; tomt är det var 5:e minut. En regel som också importerar värdar som bara svarade på ping ger även dem sin monitormall: sonden pingar dem, så mallens kontroller av om en enhet är uppe och av de traps den skickar fungerar för dem direkt, och dess kontroller som läser en SNMP-walk så snart enheten har autentiseringsuppgifter.
+I en regel bestämmer **Kontrollera var** hur ofta skanningens sond avsöker varje enhet som regeln importerar, precis som **Kontrollera var** när du importerar från **Review Results**; tomt är det var 5:e minut. En regel med **Include Ping-Only Hosts** påslaget importerar också värdar som bara svarade på ping, bland dem varje värd som en [ICMP-skanning](#icmp-skanningar) hittar, och ger även dem sin monitormall: sonden pingar dem, så mallens kontroller av om en enhet är uppe och av de traps den skickar fungerar för dem direkt, och dess kontroller som läser en SNMP-walk så snart enheten har autentiseringsuppgifter.
 
 Regler har inget eget schema och behöver inget. Aktiverade regler körs själva mot varje skannings resultat när de kommer in, inklusive de delresultat som en lång skanning laddar upp medan den fortfarande pågår, så värdar importeras inom en minut efter att de hittats i stället för i slutet av intervallet. Slå på **Repeat this scan** på en discovery-skanning så blir paret ett stående arrangemang: skanningen skannar sitt intervall igen med ditt intervall, och varje ny värd den hittar importeras utan att någon trycker på något.
 
@@ -672,23 +672,23 @@ Stora miljöer importeras i avvägda batcher. Att skapa en enhet eller en monito
 
 Enheter och monitorer är separat arbete med separata gränser: en regel som får en monitormall efter att dess enheter har importerats skapar inga enheter alls, bara monitorer, och dess rapport säger det.
 
-### Skanningar med bara ping
+### ICMP-skanningar
 
-Stäng av **Check SNMP on hosts that answer** så är skanningen en enkel ICMP-skanning: den pingar varje adress i intervallet, rapporterar dem som svarade och skickar inga SNMP-paket alls. Steget SNMP-autentiseringsuppgifter försvinner från formuläret, så det är en sida med **Starta skanning** på, och ingen version, community string eller v3-autentiseringsuppgift efterfrågas eller lagras på skanningen.
+Med **ICMP (ping)** som **Skanningsmetod**, som en ny skanning börjar på, är skanningen en enkel ICMP-skanning: den pingar varje adress i intervallet, rapporterar dem som svarade och skickar inga SNMP-paket alls. Formuläret har inget steg för SNMP-autentiseringsuppgifter, så det är en sida med **Starta skanning** på, och ingen version, community string eller v3-autentiseringsuppgift efterfrågas eller lagras på skanningen.
 
-Valet görs när skanningen skapas och kan inte ändras: en skanning som skapas med bara ping förblir med bara ping, även vid varje körning av en upprepad skanning. För att skanna samma intervall på det andra sättet skapar du en andra skanning.
+Du kan ändra metoden senare, under skanningens **Redigera**. En ändrad metod kör skanningen igen: värdarna som den senaste körningen hittade rensas, och enheter som du redan har importerat förblir som de är.
 
 Ta till en när:
 
-- Du inte har några SNMP-autentiseringsuppgifter för intervallet: ett labb, en hyresgästs nätverk, ett subnät som du har ärvt. En skanning med bara ping talar om vad som lever där utan att du först måste gissa en community string.
+- Du inte har några SNMP-autentiseringsuppgifter för intervallet: ett labb, en hyresgästs nätverk, ett subnät som du har ärvt. En ICMP-skanning talar om vad som lever där utan att du först måste gissa en community string.
 - Du vill ha en inventarieskanning snarare än en identitetskontroll: vad som svarar i det här intervallet, inte vilken modell det är. Den är också den snabbaste av de två, eftersom den hoppar över SNMP-förfrågan och dess timeout per värd på värdar som svarar på ping men inte vill prata SNMP med dig.
 
 Två saker att veta innan du kör en:
 
-- Sonden behöver en körmiljö som tillåter ICMP. Skanningen kör operativsystemets `ping`, så sondens container behöver kapabiliteten `NET_RAW` och programmet. OneUptimes egna driftsättningar har båda: `docker-compose.base.yml` och Helm-diagrammets `probeContainerSecurityContext` lägger till `NET_RAW`, och sondens avbildning installerar `iputils-ping`. Ett fel här betyder oftast att en härdad Kubernetes-`securityContext` har tagit bort `NET_RAW`, eller att en anpassad sondavbildning har utelämnat `ping`. En skanning med bara ping har då inget mer att prova, så den misslyckas med ett meddelande som säger det, i stället för att rapportera ett tomt intervall. Om ping slutar fungera halvvägs behåller skanningen de värdar den redan har bekräftat och säger att intervallet inte kontrollerades helt.
+- Sonden behöver en körmiljö som tillåter ICMP. Skanningen kör operativsystemets `ping`, så sondens container behöver kapabiliteten `NET_RAW` och programmet. OneUptimes egna driftsättningar har båda: `docker-compose.base.yml` och Helm-diagrammets `probeContainerSecurityContext` lägger till `NET_RAW`, och sondens avbildning installerar `iputils-ping`. Ett fel här betyder oftast att en härdad Kubernetes-`securityContext` har tagit bort `NET_RAW`, eller att en anpassad sondavbildning har utelämnat `ping`. En ICMP-skanning har då inget mer att prova, så den misslyckas med ett meddelande som säger det, i stället för att rapportera ett tomt intervall. Om ping slutar fungera halvvägs behåller skanningen de värdar den redan har bekräftat och säger att intervallet inte kontrollerades helt.
 - Allt den hittar importeras som en sondavsökt enhet utan autentiseringsuppgifter, som pingas av skanningens sond från sin första avsökning. Lägg till autentiseringsuppgifter, på enheten eller som en profil på den eller dess plats, när du har dem, så börjar sonden också walka enheten.
 
-En skanning med bara ping hittar bara värdar som svarar på ICMP-eko. Värdar som kastar ping (Windows-värdar som standard, och ofta hanterings-VLAN:er) förblir osynliga för den även när de svarar på SNMP. En SNMP-skanning täcker det fallet: när dess pingomgång inte hittar någon SNMP-svarare alls går den tillbaka och frågar även de tysta adresserna via SNMP. Så om du förväntar dig hanterade enheter i ett intervall och en skanning med bara ping kommer tillbaka tom, skanna det igen med **Check SNMP on hosts that answer** påslaget.
+En ICMP-skanning hittar bara värdar som svarar på ICMP-eko. Värdar som kastar ping (Windows-värdar som standard, och ofta hanterings-VLAN:er) förblir osynliga för den även när de svarar på SNMP. En SNMP-skanning täcker det fallet: när dess pingomgång inte hittar någon SNMP-svarare alls går den tillbaka och frågar även de tysta adresserna via SNMP. Så om du förväntar dig hanterade enheter i ett intervall och en ICMP-skanning kommer tillbaka tom, byter du dess **Skanningsmetod** till **SNMP**.
 
 ## Varningar
 

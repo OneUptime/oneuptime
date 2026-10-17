@@ -792,7 +792,7 @@ describe("buildScanStatusMessage — an ICMP-only sweep", () => {
     const message: string = buildScanStatusMessage(makeIcmpOnlyResult(), 0);
 
     expect(message).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping.",
     );
   });
 
@@ -864,7 +864,7 @@ describe("buildScanStatusMessage — an ICMP-only sweep", () => {
     );
 
     expect(message).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping.",
     );
     expect(message).not.toContain("Authentication failure");
     expect(message).not.toContain("ICMP-silent");
@@ -883,7 +883,7 @@ describe("buildScanStatusMessage — an ICMP-only sweep", () => {
      * one that leaked the count in some other spelling.
      */
     expect(buildScanStatusMessage(makeIcmpOnlyResult(), 7)).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping.",
     );
   });
 
@@ -955,16 +955,18 @@ describe("buildScanStatusMessage — an ICMP-only sweep that found nothing", () 
   });
 
   /*
-   * The way out, in the wizard's own words. "Check SNMP" is the label on the
-   * toggle, so the advice can be followed without a translation step.
+   * The way out, in the Start Scan form's own words: a scan's method is ICMP
+   * or SNMP, picked from two cards, and an Edit dialog changes it - so the
+   * advice names the other choice and can be followed without a translation
+   * step.
    */
-  test("points at the Check SNMP toggle as the way to find them", () => {
+  test("points at the SNMP choice as the way to find them", () => {
     expect(
       buildScanStatusMessage(
         makeIcmpOnlyResult({ respondedToPingCount: 0 }),
         0,
       ),
-    ).toContain("turn Check SNMP on if you expect managed devices here");
+    ).toContain("switch the scan to SNMP if you expect managed devices");
   });
 
   test("stays away from a sweep that did find hosts", () => {
@@ -1043,7 +1045,7 @@ describe("buildScanStatusMessage — an ICMP-only sweep that stopped early", () 
     );
 
     expect(message).toContain(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 3 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 3 answered ping.",
     );
   });
 
@@ -1176,12 +1178,12 @@ describe("buildScanStatusMessage — the ICMP-only message and the column it lan
     );
     // Whole, not clipped through the middle of the count.
     expect(message).toContain(
-      "Swept 32768 hosts with ICMP ping only (Check SNMP is off for this scan): 0 answered ping.",
+      "Swept 32768 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 0 answered ping.",
     );
 
     // And what is lost is the last clause of the advice, which is the least of it.
     expect(message).not.toContain(
-      "turn Check SNMP on if you expect managed devices here",
+      "switch the scan to SNMP if you expect managed devices",
     );
   });
 });
@@ -1225,7 +1227,7 @@ describe("buildScanStatusMessage — the SNMP branch is unchanged by all of this
 
     expect(message).toContain("Nothing answered SNMP on port 161");
     expect(message).not.toContain("Nothing answered ICMP ping.");
-    expect(message).not.toContain("Check SNMP is off for this scan");
+    expect(message).not.toContain("Scan method is ICMP, so no SNMP");
   });
 
   /*
@@ -1404,10 +1406,10 @@ const ICMP_STOPPED_EARLY_CAVEAT: string =
 const ICMP_NOTHING_ANSWERED_ADVICE: string =
   "Nothing answered ICMP ping. Check that this probe can reach the range and that ICMP echo is permitted to it. " +
   "Hosts that drop ping - Windows hosts do by default, and management VLANs often do - cannot be found by an ICMP-only scan; " +
-  "turn Check SNMP on if you expect managed devices here.";
+  "switch the scan to SNMP if you expect managed devices.";
 
 function icmpOnlyHeadline(scannedHostCount: number, answered: number): string {
-  return `Swept ${scannedHostCount} hosts with ICMP ping only (Check SNMP is off for this scan): ${answered} answered ping.`;
+  return `Swept ${scannedHostCount} hosts with ICMP ping only (Scan method is ICMP, so no SNMP): ${answered} answered ping.`;
 }
 
 function snmpHeadline(
@@ -4143,7 +4145,7 @@ describe("buildScanStatusMessage — carries the host-naming note", () => {
         0,
       ),
     ).toBe(
-      `Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping. ${note}`,
+      `Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping. ${note}`,
     );
   });
 
