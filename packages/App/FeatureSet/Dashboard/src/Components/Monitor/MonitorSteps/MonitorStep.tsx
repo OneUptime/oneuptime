@@ -22,6 +22,8 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Service from "Common/Models/DatabaseModels/Service";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeUtil from "../../../Utils/Probe";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -73,7 +75,31 @@ const fieldTypeByValueType: Record<MonitorStepViewValueType, FieldType> = {
   // Both are resolved to a model by this component and rendered as elements.
   [MonitorStepViewValueType.TelemetryServices]: FieldType.Element,
   [MonitorStepViewValueType.NetworkDevice]: FieldType.Text,
+  // Resolved to the probes' names by this component.
+  [MonitorStepViewValueType.Probes]: FieldType.ArrayOfText,
 };
+
+// A probe the step names that no probe list holds any more.
+const DELETED_PROBE_NAME: string = "Deleted probe";
+
+const getWatchedProbeIds: (rows: Array<MonitorStepViewRow>) => Array<string> =
+  (rows: Array<MonitorStepViewRow>): Array<string> => {
+    const ids: Array<string> = [];
+
+    for (const row of rows) {
+      if (row.valueType !== MonitorStepViewValueType.Probes) {
+        continue;
+      }
+
+      for (const id of (row.value as Array<string> | undefined) || []) {
+        if (id && !ids.includes(id)) {
+          ids.push(id);
+        }
+      }
+    }
+
+    return ids;
+  };
 
 const getTelemetryServiceIds: (
   rows: Array<MonitorStepViewRow>,
@@ -130,13 +156,17 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const telemetryServiceIds: Array<string> = getTelemetryServiceIds(rows);
   const networkDeviceId: string | undefined = getNetworkDeviceId(rows);
+  const watchedProbeIds: Array<string> = getWatchedProbeIds(rows);
+  const watchedProbeIdsKey: string = watchedProbeIds.join(",");
 
   /*
    * Most monitor types reference nothing outside the step, so they must not
    * pay for a fetch — or flash a loader — on the way in.
    */
   const hasReferencesToResolve: boolean =
-    telemetryServiceIds.length > 0 || Boolean(networkDeviceId);
+    telemetryServiceIds.length > 0 ||
+    Boolean(networkDeviceId) ||
+    watchedProbeIds.length > 0;
 
   /*
    * The effect keys off this joined string rather than the array itself:
@@ -151,6 +181,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [networkDeviceName, setNetworkDeviceName] = useState<
     string | undefined
   >(undefined);
+  // Probe id (lower case) to name, for the probes a Probe Status step watches.
+  const [probeNamesById, setProbeNamesById] = useState<Map<string, string>>(
+    new Map<string, string>(),
+  );
 
   const fetchServices: PromiseVoidFunction = async (): Promise<void> => {
     if (telemetryServiceIds.length === 0) {
@@ -206,6 +240,31 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     setNetworkDeviceName(networkDevice?.name || undefined);
   };
 
+  /*
+   * The global probes and the project's own, the same list the picker
+   * offers, so a probe reads here as it does there.
+   */
+  const fetchWatchedProbes: PromiseVoidFunction = async (): Promise<void> => {
+    if (watchedProbeIds.length === 0) {
+      setProbeNamesById(new Map<string, string>());
+      return;
+    }
+
+    const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+    const names: Map<string, string> = new Map<string, string>();
+
+    for (const probe of probes) {
+      if (probe._id) {
+        names.set(
+          probe._id.toString().toLowerCase(),
+          probe.name?.toString() || "Probe",
+        );
+      }
+    }
+
+    setProbeNamesById(names);
+  };
+
   const loadComponent: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError(undefined);
@@ -213,6 +272,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     try {
       await fetchServices();
       await fetchNetworkDevice();
+      await fetchWatchedProbes();
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Error));
     }
@@ -224,12 +284,18 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     if (!hasReferencesToResolve) {
       setServices([]);
       setNetworkDeviceName(undefined);
+      setProbeNamesById(new Map<string, string>());
       setIsLoading(false);
       return;
     }
 
     loadComponent();
-  }, [props.monitorType, telemetryServiceIdsKey, networkDeviceId]);
+  }, [
+    props.monitorType,
+    telemetryServiceIdsKey,
+    networkDeviceId,
+    watchedProbeIdsKey,
+  ]);
 
   if (isLoading) {
     return <ComponentLoader />;
@@ -263,6 +329,28 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         getElement: (): ReactElement => {
           return <ServicesElement services={services} />;
         },
+      });
+
+      continue;
+    }
+
+    if (row.valueType === MonitorStepViewValueType.Probes) {
+      item[row.key] = (
+        (row.value as Array<string> | undefined) || []
+      ).map((probeId: string): string => {
+        return (
+          probeNamesById.get(probeId.toLowerCase()) ||
+          translator.translateText(DELETED_PROBE_NAME) ||
+          DELETED_PROBE_NAME
+        );
+      });
+
+      fields.push({
+        key: row.key,
+        title: row.title,
+        description: row.description,
+        fieldType: fieldTypeByValueType[row.valueType],
+        placeholder: row.placeholder,
       });
 
       continue;

@@ -164,6 +164,10 @@ import MonitorStepDnssecMonitor, {
   MonitorStepDnssecMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDnssecMonitor";
 import ExternalStatusPageMonitorStepForm from "./ExternalStatusPageMonitor/ExternalStatusPageMonitorStepForm";
+import ProbeStatusMonitorStepForm from "./ProbeStatusMonitor/ProbeStatusMonitorStepForm";
+import MonitorStepProbeStatusMonitor, {
+  MonitorStepProbeStatusMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepProbeStatusMonitor";
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
@@ -2058,6 +2062,24 @@ return {
             }
             onChange={(value: MonitorStepExternalStatusPageMonitor) => {
               monitorStep.setExternalStatusPageMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.ProbeStatus && (
+        <Card
+          title="Probes to Watch"
+          description="Get one incident when a probe disconnects, and see it resolve when the probe is back."
+        >
+          <ProbeStatusMonitorStepForm
+            monitorStepProbeStatusMonitor={
+              monitorStep.data?.probeStatusMonitor ||
+              MonitorStepProbeStatusMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepProbeStatusMonitor) => {
+              monitorStep.setProbeStatusMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />

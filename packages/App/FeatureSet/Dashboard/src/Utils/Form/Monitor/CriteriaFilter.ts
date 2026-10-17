@@ -853,6 +853,26 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    /*
+     * A Probe Status monitor counts the probes it watches. Disconnected
+     * Probes leads - "a probe is down" is the rule nearly everyone writes,
+     * and a new filter starts on it - then Connected Probes, for "fewer
+     * than two are left" on a monitor that watches several.
+     */
+    if (monitorType === MonitorType.ProbeStatus) {
+      options = [CheckOn.DisconnectedProbes, CheckOn.ConnectedProbes]
+        .map((checkOn: CheckOn): DropdownOption | undefined => {
+          return options.find((i: DropdownOption) => {
+            return i.value === checkOn;
+          });
+        })
+        .filter(
+          (option: DropdownOption | undefined): option is DropdownOption => {
+            return Boolean(option);
+          },
+        );
+    }
+
     return options;
   }
 
@@ -1585,6 +1605,31 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    /*
+     * Probe counts are whole numbers the server compares with
+     * CompareCriteria.compareCriteriaNumbers. Greater Than leads, so a new
+     * filter reads "more than 0 disconnected"; equality is a real rule too
+     * ("0 disconnected" is the online default).
+     */
+    if (
+      checkOn === CheckOn.ConnectedProbes ||
+      checkOn === CheckOn.DisconnectedProbes
+    ) {
+      options = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+      ].map((filterType: FilterType): DropdownOption => {
+        return {
+          label: filterType.toString(),
+          value: filterType,
+        };
+      });
+    }
+
     if (
       checkOn === CheckOn.ExternalStatusPageOverallStatus ||
       checkOn === CheckOn.ExternalStatusPageComponentStatus
@@ -1906,6 +1951,14 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.LlmAnswerCount) {
       return "0";
+    }
+
+    if (checkOn === CheckOn.DisconnectedProbes) {
+      return "0";
+    }
+
+    if (checkOn === CheckOn.ConnectedProbes) {
+      return "1";
     }
 
     if (checkOn === CheckOn.ServerProcessCommand) {
