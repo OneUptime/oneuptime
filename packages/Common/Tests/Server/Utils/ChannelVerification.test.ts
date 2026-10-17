@@ -795,9 +795,7 @@ describe("ChannelVerification", () => {
           item: buildLiveRow(),
           itemId: ITEM_ID,
         }),
-      ).rejects.toThrow(
-        new BadDataException("Item not found"),
-      );
+      ).rejects.toThrow(new BadDataException("Item not found"));
     });
   });
 

@@ -322,16 +322,15 @@ describe("sendFirstCodeOrRemoveItem", () => {
     isMember.mockResolvedValue(false as never);
     const issueAndSend: ReturnType<typeof jest.fn> = jest.fn();
 
-    const refusal: unknown = await ChannelVerification.sendFirstCodeOrRemoveItem(
-      {
+    const refusal: unknown =
+      await ChannelVerification.sendFirstCodeOrRemoveItem({
         service: asService(fake),
         itemId: ITEM_ID,
         item: OWNED_ROW,
         issueAndSend: issueAndSend as unknown as () => Promise<void>,
-      },
-    ).catch((error: unknown) => {
-      return error;
-    });
+      }).catch((error: unknown) => {
+        return error;
+      });
 
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
     expect((refusal as Error).message).toBe(

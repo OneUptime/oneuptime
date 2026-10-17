@@ -351,9 +351,7 @@ describe("every resend asks the membership of the row's project", () => {
       const guarded: number = body.indexOf(
         "ChannelVerification.sendFirstCodeOrRemoveItem(",
       );
-      const sends: number = body.indexOf(
-        "this.issueAndSendVerificationCode(",
-      );
+      const sends: number = body.indexOf("this.issueAndSendVerificationCode(");
 
       expect(guarded).toBeGreaterThan(-1);
       expect(sends).toBeGreaterThan(guarded);

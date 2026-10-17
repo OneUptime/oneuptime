@@ -1014,7 +1014,9 @@ describe("VerificationCodeRateLimit", () => {
           "/USER-SMS ",
           PROJECT_A.toUpperCase(),
         ),
-      ).toBe(VerificationCodeRateLimit.resolveChannelKey("/user-sms", PROJECT_A));
+      ).toBe(
+        VerificationCodeRateLimit.resolveChannelKey("/user-sms", PROJECT_A),
+      );
       expect(
         VerificationCodeRateLimit.resolveChannelKey("/user-call", PROJECT_A),
       ).not.toBe(
