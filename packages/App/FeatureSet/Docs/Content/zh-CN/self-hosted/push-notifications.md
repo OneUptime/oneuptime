@@ -13,22 +13,22 @@ OneUptime 通过 **OneUptime On-Call** 移动应用在手机上呼叫人员，�
 
 ```mermaid title="推送如何到达手机或浏览器"
 flowchart TB
-    Server["你的 OneUptime 服务器"]
-    Relay["OneUptime 推送中继"]
+    Server["你的 OneUptime<br/>服务器"]
+    Relay["OneUptime<br/>推送中继"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
     Phone["OneUptime On-Call 应用"]
     PushService["浏览器的<br/>推送服务"]
     Browser["浏览器"]
-    Server -->|"未设置 EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"已设置 EXPO_ACCESS_TOKEN"| Expo
+    Server -->|"未设置<br/>EXPO_ACCESS_TOKEN"| Relay
+    Server -->|"已设置<br/>EXPO_ACCESS_TOKEN"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 

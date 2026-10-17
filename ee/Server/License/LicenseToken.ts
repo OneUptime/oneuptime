@@ -667,7 +667,15 @@ export type LicenseClassificationReason =
   | "unsupported-algorithm"
   | "bad-signature"
   | "bad-claims"
-  | "instance-mismatch";
+  | "instance-mismatch"
+  /*
+   * Not a token at all: a self-hosted installation bought on a cloud
+   * marketplace, licensed by that marketplace taking its usage reports
+   * (MarketplaceLicense.ts) - or, for "marketplace-refused", by the
+   * marketplace saying the buyer is not subscribed.
+   */
+  | "marketplace"
+  | "marketplace-refused";
 
 export interface LicenseTokenClassification extends EnterpriseLicenseSnapshot {
   reason: LicenseClassificationReason;

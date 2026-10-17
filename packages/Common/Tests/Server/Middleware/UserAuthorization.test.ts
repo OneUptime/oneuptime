@@ -22,6 +22,7 @@ import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundExce
 import HashedString from "../../../Types/HashedString";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import {
   UserGlobalAccessPermission,
@@ -168,7 +169,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toEqual({});
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
       expect(spyErrorLogger).toHaveBeenCalledWith(error, undefined);
     });
 
@@ -187,7 +191,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toEqual({});
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
       expect(spyErrorLogger).not.toBeCalled();
     });
 
@@ -269,7 +276,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toStrictEqual(false);
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
     });
 
     test("should return false, when decoded JWT object's userId does not match with userId passed as parameter", () => {
@@ -290,7 +300,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toStrictEqual(false);
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
     });
 
     test("should return true", () => {
@@ -405,7 +418,10 @@ describe("UserMiddleware", () => {
         ),
       );
       expect(next).not.toHaveBeenCalled();
-      expect(spyJWTDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyJWTDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.UserSession,
+      );
       expect(UserService.updateOneBy).not.toHaveBeenCalled();
     });
 
@@ -785,6 +801,38 @@ describe("UserMiddleware", () => {
       expect(spyGetRequireSsoForLogin).toHaveBeenCalledWith(projectId);
     });
 
+    test("should throw, when the instance-wide sign-in rule cannot be read: never 'not required'", async () => {
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(false);
+      spyGetGlobalRequireSsoForLogin.mockRejectedValueOnce(
+        new Error("database down"),
+      );
+
+      await expect(
+        UserMiddleware.getUserTenantAccessPermissionWithTenantId({
+          req,
+          tenantId: projectId,
+          userId,
+        }),
+      ).rejects.toThrow("database down");
+      expect(spyIsSsoSatisfiedForProject).not.toHaveBeenCalled();
+    });
+
+    test("should throw, when the provider the project pins cannot be read: never 'any provider will do'", async () => {
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(true);
+      spyGetRequireSsoWithSsoProviderId.mockRejectedValueOnce(
+        new Error("database down"),
+      );
+
+      await expect(
+        UserMiddleware.getUserTenantAccessPermissionWithTenantId({
+          req,
+          tenantId: projectId,
+          userId,
+        }),
+      ).rejects.toThrow("database down");
+      expect(spyIsSsoSatisfiedForProject).not.toHaveBeenCalled();
+    });
+
     test("should throw SsoAuthorizationException error, when sso login is required but sso token for the projectId does not exist", async () => {
       spyGetRequireSsoForLogin.mockResolvedValueOnce(true);
 
@@ -1019,26 +1067,30 @@ describe("UserMiddleware", () => {
       );
     });
 
-    test("should return user tenant access permission, when project for a projectId is not found, but project level permission exist for the projectId", async () => {
+    test("should leave a project out, when project for a projectId is not found, even when a project level permission is still held for the projectId", async () => {
       spyGetProjectRequireSsoForLogin.mockRejectedValueOnce(
         new BadDataException("Project not found"),
       );
 
-      getJestSpyOn(
+      // What a permission cache could still hold for a project deleted since.
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,
         "getUserTenantAccessPermission",
-      ).mockResolvedValueOnce(mockedUserTenantAccessPermission);
+      ).mockResolvedValue(mockedUserTenantAccessPermission);
 
-      const result: Dictionary<UserTenantAccessPermission> | null =
-        await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
-          req,
-          userId,
-          [projectId],
-        );
+      try {
+        const result: Dictionary<UserTenantAccessPermission> | null =
+          await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+            req,
+            userId,
+            [projectId],
+          );
 
-      expect(result).toEqual({
-        [projectId.toString()]: mockedUserTenantAccessPermission,
-      });
+        expect(result).toBeNull();
+        expect(spyGetUserTenantAccessPermission).not.toHaveBeenCalled();
+      } finally {
+        spyGetUserTenantAccessPermission.mockReset();
+      }
     });
 
     test("should return null, when project for a projectId is not found, and project level permission does not exist for the projectId", async () => {
@@ -1049,7 +1101,7 @@ describe("UserMiddleware", () => {
       const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
         AccessTokenService,
         "getUserTenantAccessPermission",
-      ).mockResolvedValueOnce(null);
+      );
 
       const result: Dictionary<UserTenantAccessPermission> | null =
         await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
@@ -1059,11 +1111,75 @@ describe("UserMiddleware", () => {
         );
 
       expect(result).toBeNull();
-      expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
-        userId,
-        projectId,
-        { userGlobalAccessPermission: undefined },
+      expect(spyGetUserTenantAccessPermission).not.toHaveBeenCalled();
+    });
+
+    test("should throw, when the sign-in rule of a project cannot be read", async () => {
+      spyGetProjectRequireSsoForLogin.mockRejectedValueOnce(
+        new Error("database down"),
       );
+
+      await expect(
+        UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+          req,
+          userId,
+          [projectId],
+        ),
+      ).rejects.toThrow("database down");
+    });
+
+    test("should throw, when the instance-wide sign-in rule cannot be read, and not read it for a master admin", async () => {
+      spyGetGlobalRequireSsoForLogin.mockRejectedValue(
+        new Error("database down"),
+      );
+
+      await expect(
+        UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+          req,
+          userId,
+          [projectId],
+        ),
+      ).rejects.toThrow("database down");
+
+      spyGetGlobalRequireSsoForLogin.mockClear();
+
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getUserTenantAccessPermission",
+      ).mockResolvedValue(mockedUserTenantAccessPermission);
+
+      try {
+        await expect(
+          UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+            {
+              userAuthorization: { isMasterAdmin: true },
+            } as unknown as ExpressRequest,
+            userId,
+            [projectId],
+          ),
+        ).resolves.toEqual({
+          [projectId.toString()]: mockedUserTenantAccessPermission,
+        });
+        expect(spyGetGlobalRequireSsoForLogin).not.toHaveBeenCalled();
+      } finally {
+        spyGetUserTenantAccessPermission.mockReset();
+      }
+    });
+
+    test("should throw, when the provider a project pins cannot be read", async () => {
+      spyGetProjectRequireSsoForLogin.mockResolvedValueOnce(true);
+      spyGetRequireSsoWithSsoProviderId.mockRejectedValueOnce(
+        new Error("database down"),
+      );
+
+      await expect(
+        UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+          req,
+          userId,
+          [projectId],
+        ),
+      ).rejects.toThrow("database down");
+      expect(spyIsSsoSatisfiedForProject).not.toHaveBeenCalled();
     });
 
     test("should hand every project's lookup the global permission the project list came from", async () => {

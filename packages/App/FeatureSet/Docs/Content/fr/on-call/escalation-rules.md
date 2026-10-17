@@ -93,15 +93,15 @@ Chaque personne alertée par un niveau est jointe selon ses propres règles d'as
 flowchart TB
     subgraph notify["Notifier"]
         direction LR
-        schedule["Planning d'astreinte"]
+        schedule["Planning<br/>d'astreinte"]
         team["Équipe"]
         user["Personne"]
     end
-    schedule -->|"la personne d'astreinte"| person["Personne alertée"]
+    schedule -->|"la personne<br/>d'astreinte"| person["Personne alertée"]
     team -->|"chaque membre"| person
     user -->|"directement"| person
-    person --> rules["Ses règles d'astreinte"]
-    rules --> methods["Ses méthodes de notification"]
+    person --> rules["Ses règles<br/>d'astreinte"]
+    rules --> methods["Ses méthodes<br/>de notification"]
 ```
 
 Un remplacement d'utilisateur en vigueur pour une personne envoie ses alertes à la personne qui la remplace. Un remplacement qui ne désigne personne pour la remplacer lui fait passer son tour : elle ne reçoit pas d'alerte, l'exécution de la politique indique qu'elle est absente et jusqu'à quand, et dans un planning d'astreinte chacun de ses tours revient à la personne suivante de la rotation. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
@@ -171,10 +171,10 @@ Une personne alertée qui ne peut pas prendre l'alerte, parce qu'elle dort, est 
 ```mermaid title="Transmettre une alerte fait passer la politique au niveau suivant tout de suite"
 flowchart TB
     page["Level 1 alerte Alex"] --> take{"Alex peut-il<br/>la prendre ?"}
-    take -->|"Oui"| ack["Alex accuse réception :<br/>les alertes s'arrêtent"]
+    take -->|"Oui"| ack["Alex accuse<br/>réception :<br/>les alertes s'arrêtent"]
     take -->|"Non"| pass["Alex la transmet"]
-    pass --> others{"Quelqu'un d'autre encore<br/>alerté sur Level 1 ?"}
-    others -->|"Oui"| wait["La politique les attend,<br/>comme avant"]
+    pass --> others{"Quelqu'un<br/>d'autre encore<br/>alerté sur Level 1 ?"}
+    others -->|"Oui"| wait["La politique<br/>les attend,<br/>comme avant"]
     others -->|"Non"| next["Level 2 est alerté<br/>maintenant"]
 ```
 

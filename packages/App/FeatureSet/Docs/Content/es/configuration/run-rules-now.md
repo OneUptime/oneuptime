@@ -4,12 +4,12 @@ Las reglas de etiquetas, de propietarios y de privacidad se ejecutan automática
 
 ```mermaid title="Qué hace una ejecución"
 flowchart TB
-    S["Ejecutar ahora"] --> E["Cada recurso del proyecto"]
-    E --> M{"¿Coincide con la regla?"}
+    S["Ejecutar ahora"] --> E["Cada recurso<br/>del proyecto"]
+    E --> M{"¿Coincide<br/>con la regla?"}
     M -->|"No"| K["Se queda como está"]
     M -->|"Sí"| H{"¿Ya tiene lo que<br/>añade la regla?"}
-    H -->|"Sí"| A["Se cuenta como ya aplicada"]
-    H -->|"No"| C["Se añaden etiquetas o propietarios,<br/>o se vuelve privado"]
+    H -->|"Sí"| A["Se cuenta como<br/>ya aplicada"]
+    H -->|"No"| C["Se añaden<br/>etiquetas o<br/>propietarios,<br/>o se vuelve<br/>privado"]
 ```
 
 ## Qué reglas se pueden ejecutar

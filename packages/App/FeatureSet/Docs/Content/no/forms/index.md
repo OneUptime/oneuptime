@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### Arbeidsflyter
 
-Skjemaer har de genererte arbeidsflytkomponentene: **On Create Form**, **On Update Form** og så videre. Bruk **On Create Incident** eller **On Create Scheduled Maintenance** for å handle på det et skjema har opprettet.
+Skjemaer har de genererte arbeidsflytkomponentene: **On Create Form**, **On Update Form** og så videre. Bruk **On Create Incident** eller **On Create Scheduled Maintenance Event** for å handle på det et skjema har opprettet.
 
 ### Den offentlige sidens egne endepunkter
 

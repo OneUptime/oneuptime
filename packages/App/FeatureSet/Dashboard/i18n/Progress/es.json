@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30159,
-    "untranslated": 3789
+    "keys": 30374,
+    "untranslated": 3765
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -44,6 +44,7 @@
     "AWS Lambda",
     "Active + Clean",
     "Actor",
+    "Agenda",
     "Albania",
     "Alias",
     "Amazon EKS",
@@ -181,6 +182,7 @@
     "Host",
     "Host ",
     "Hosts",
+    "ICMP (ping)",
     "India",
     "Indonesia",
     "Info",

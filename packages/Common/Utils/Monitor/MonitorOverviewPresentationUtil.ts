@@ -3,6 +3,9 @@ import { CheckOn } from "../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
+import ProbeStatusMonitorResponse, {
+  ProbeStatusMonitorProbe,
+} from "../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import { formatDurationCompact } from "../Slo/SloDuration";
 import MonitorCheckScheduleUtil, {
   MonitorCheckFreshness,
@@ -18,6 +21,7 @@ import MonitorOverviewFamilyUtil, {
 } from "./MonitorOverviewFamily";
 import { MonitorOverviewProbeSummary } from "./MonitorOverviewProbeUtil";
 import MonitorStatusHistoryUtil from "./MonitorStatusHistoryUtil";
+import ProbeStatusMonitorUtil from "./ProbeStatusMonitorUtil";
 import MonitorOverviewTargetUtil, {
   MonitorOverviewTarget,
 } from "./MonitorOverviewTargetUtil";
@@ -254,6 +258,18 @@ export interface MonitorOverviewPresentationInput {
    */
   evaluationStatus?: MonitorOverviewEvaluationStatus | undefined;
   minimumProbeAgreement?: number | undefined;
+  /*
+   * A Probe Status monitor's newest evaluation, read from the same log row
+   * as latestEvaluationAt: the probes it watched and which were connected.
+   * The hero's "Latest result" says which probe is down. Unset for every
+   * other type, and while the log holds no evaluation.
+   */
+  probeStatus?:
+    | Pick<
+        ProbeStatusMonitorResponse,
+        "probes" | "connectedProbeCount" | "disconnectedProbeCount"
+      >
+    | undefined;
 }
 
 export interface MonitorOverviewBadge {
@@ -344,6 +360,8 @@ interface MonitorOverviewContext {
   intervalPhrase: string;
   stepCount: number;
   networkDeviceId: string | null;
+  // The probes a Probe Status monitor watches; 0 for every other family.
+  watchedProbeCount: number;
   isPaused: boolean;
   isNoProbeEnabled: boolean;
   isAllProbesDisconnected: boolean;
@@ -688,6 +706,10 @@ export default class MonitorOverviewPresentationUtil {
     );
     const networkDeviceId: string | null =
       MonitorOverviewCriteriaUtil.getNetworkDeviceId(input.monitorSteps);
+    const watchedProbeCount: number =
+      family === MonitorOverviewFamily.ProbeStatus
+        ? ProbeStatusMonitorUtil.getWatchedProbeIds(input.monitorSteps).length
+        : 0;
 
     const isPaused: boolean =
       Boolean(input.pause.isArchived) ||
@@ -751,7 +773,9 @@ export default class MonitorOverviewPresentationUtil {
       runState = MonitorOverviewRunState.NotChecking;
     } else if (
       stepCount === 0 ||
-      (family === MonitorOverviewFamily.NetworkDevice && !networkDeviceId)
+      (family === MonitorOverviewFamily.NetworkDevice && !networkDeviceId) ||
+      // Nothing to evaluate: the server skips a step that watches no probe.
+      (family === MonitorOverviewFamily.ProbeStatus && watchedProbeCount === 0)
     ) {
       runState = MonitorOverviewRunState.NotConfigured;
     } else if (
@@ -776,6 +800,7 @@ export default class MonitorOverviewPresentationUtil {
       intervalPhrase: lowerFirst(intervalText),
       stepCount: stepCount,
       networkDeviceId: networkDeviceId,
+      watchedProbeCount: watchedProbeCount,
       isPaused: isPaused,
       isNoProbeEnabled: isNoProbeEnabled,
       isAllProbesDisconnected: isAllProbesDisconnected,
@@ -1116,6 +1141,9 @@ export default class MonitorOverviewPresentationUtil {
          * monitor, it says only that none happened in the last day.
          */
         return data.evaluationLog === "never";
+      case MonitorOverviewFamily.ProbeStatus:
+        // Its evaluations leave a trace only in the log, as a device's do.
+        return data.evaluationLog === "never";
       default:
         // Manual monitors are never evaluated.
         return false;
@@ -1245,6 +1273,21 @@ export default class MonitorOverviewPresentationUtil {
           context.family === MonitorOverviewFamily.NetworkDevice &&
           context.stepCount > 0;
 
+        if (
+          context.family === MonitorOverviewFamily.ProbeStatus &&
+          context.stepCount > 0
+        ) {
+          return {
+            tone: "neutral",
+            badge: { text: "Not set up", tone: "neutral" },
+            secondaryBadges: [],
+            headline: { text: "This monitor watches no probes" },
+            explanation:
+              "Pick the probes it watches. It opens an incident when one of them disconnects.",
+            callToAction: { text: "Pick probes", linkKey: "criteria" },
+          };
+        }
+
         return {
           tone: "neutral",
           badge: { text: "Not set up", tone: "neutral" },
@@ -1326,6 +1369,22 @@ export default class MonitorOverviewPresentationUtil {
         ) {
           running.explanation =
             "No poll or trap from this device has been evaluated in the last day, so the status shown is the last one recorded.";
+        }
+
+        /*
+         * Evaluated every minute, so a day with nothing in the log means
+         * there was nothing to evaluate: every probe it watches was deleted.
+         */
+        if (
+          context.family === MonitorOverviewFamily.ProbeStatus &&
+          context.evaluationLog === "expired"
+        ) {
+          running.explanation =
+            "Not evaluated in the last day. The probes this monitor watches may have been deleted: pick probes again under Criteria. The status shown is the last one recorded.";
+          running.callToAction = {
+            text: "Pick probes",
+            linkKey: "criteria",
+          };
         }
 
         return running;
@@ -1423,6 +1482,9 @@ export default class MonitorOverviewPresentationUtil {
       headline = "Waiting for the first poll";
       explanation =
         "No poll or trap from this device has been evaluated yet. Check that a probe is assigned to poll it.";
+    } else if (context.family === MonitorOverviewFamily.ProbeStatus) {
+      explanation =
+        "This monitor checks the probes it watches every minute. The first result arrives within a minute or two.";
     } else if (input.monitorType === MonitorType.IncomingRequest) {
       headline = "Waiting for the first heartbeat";
       explanation =
@@ -1645,6 +1707,30 @@ export default class MonitorOverviewPresentationUtil {
         };
       }
 
+      case MonitorOverviewFamily.ProbeStatus: {
+        let emptyText: string = "Not evaluated yet";
+
+        if (context.evaluationStatus === "loading") {
+          emptyText = "Loading…";
+        } else if (context.evaluationLog === "expired") {
+          emptyText = NOT_EVALUATED_IN_LOG_TEXT;
+        }
+
+        // Evaluated by the server every minute: that is its schedule.
+        return {
+          label: "Last evaluated",
+          at:
+            context.evaluationStatus === "loaded"
+              ? input.latestEvaluationAt
+              : undefined,
+          emptyText: emptyText,
+          cadenceText: isScheduled ? "Every minute" : undefined,
+          isUnavailable:
+            context.evaluationStatus === "error" ||
+            context.evaluationStatus === "forbidden",
+        };
+      }
+
       default:
         return {
           label: null,
@@ -1830,6 +1916,40 @@ export default class MonitorOverviewPresentationUtil {
         });
         break;
 
+      case MonitorOverviewFamily.ProbeStatus: {
+        /*
+         * Which probe is down comes first, as a probe check's latest result
+         * does. No "Evaluates" fact: the pulse above already says "Every
+         * minute". A monitor watching no probe has no result to give.
+         */
+        if (context.watchedProbeCount > 0) {
+          facts.push(
+            MonitorOverviewPresentationUtil.getProbeStatusResultFact(
+              input,
+              context,
+            ),
+          );
+        }
+
+        facts.push(
+          context.watchedProbeCount > 0
+            ? {
+                key: "probes",
+                label: "Watches",
+                value: pluralize(context.watchedProbeCount, "probe", "probes"),
+                linkKey: "criteria",
+              }
+            : {
+                key: "probes",
+                label: "Watches",
+                value: "No probes picked",
+                isMuted: true,
+                linkKey: "criteria",
+              },
+        );
+        break;
+      }
+
       default:
         facts.push({
           key: "checks",
@@ -1848,6 +1968,88 @@ export default class MonitorOverviewPresentationUtil {
       ...facts.slice(0, MAX_FACTS - 1),
       { key: "owners", label: "Owners", value: "" },
     ];
+  }
+
+  /*
+   * A Probe Status monitor's newest evaluation, in the hero: which of its
+   * probes are disconnected, by name, or that they all are connected. It
+   * reads the same log row as the pulse's "Last evaluated", so the two
+   * never describe different evaluations.
+   */
+  private static getProbeStatusResultFact(
+    input: MonitorOverviewPresentationInput,
+    context: MonitorOverviewContext,
+  ): MonitorOverviewFact {
+    const base: { key: MonitorOverviewFactKey; label: string } = {
+      key: "latest-result",
+      label: "Latest result",
+    };
+
+    if (
+      context.evaluationStatus === "error" ||
+      context.evaluationStatus === "forbidden"
+    ) {
+      return { ...base, value: "Unavailable", isMuted: true };
+    }
+
+    if (context.evaluationStatus === "loading") {
+      return { ...base, value: "Loading…", isMuted: true };
+    }
+
+    const result: MonitorOverviewPresentationInput["probeStatus"] =
+      input.probeStatus;
+
+    if (!result) {
+      return {
+        ...base,
+        value: "—",
+        secondary:
+          context.evaluationLog === "expired"
+            ? "None in the last day"
+            : "No results yet",
+        isMuted: true,
+      };
+    }
+
+    const probes: Array<ProbeStatusMonitorProbe> = Array.isArray(result.probes)
+      ? result.probes
+      : [];
+    const connected: number = result.connectedProbeCount || 0;
+    const disconnected: number = result.disconnectedProbeCount || 0;
+    const total: number = connected + disconnected;
+
+    // Every probe it watches was deleted: nothing was counted.
+    if (total === 0) {
+      return {
+        ...base,
+        value: "No probes found",
+        secondary: "Pick probes again",
+        tone: "warning",
+      };
+    }
+
+    if (disconnected > 0) {
+      return {
+        ...base,
+        value:
+          total === 1
+            ? "Disconnected"
+            : `${disconnected} of ${total} disconnected`,
+        secondary: ProbeStatusMonitorUtil.joinProbeNames(
+          ProbeStatusMonitorUtil.getDisconnectedProbes({ probes: probes }),
+        ),
+        tone: "danger",
+      };
+    }
+
+    return {
+      ...base,
+      value: total === 1 ? "Connected" : `${total} of ${total} connected`,
+      // One probe is named; several connected need no list.
+      secondary:
+        total === 1 ? ProbeStatusMonitorUtil.joinProbeNames(probes) : undefined,
+      tone: "good",
+    };
   }
 
   private static getLatestResultFact(
@@ -2045,7 +2247,19 @@ export default class MonitorOverviewPresentationUtil {
       connection: isAwaiting ? null : layout.setupKind,
       summary: {
         isShown:
-          layout.summaryDescription !== null && !(isAwaiting && isPushFamily),
+          layout.summaryDescription !== null &&
+          !(isAwaiting && isPushFamily) &&
+          /*
+           * A Probe Status monitor that watches no probe has nothing to
+           * summarise: an older evaluation would list probes it no longer
+           * watches. Before its first evaluation the hero already says
+           * when one comes, so an empty card would only say it again.
+           */
+          !(
+            context.family === MonitorOverviewFamily.ProbeStatus &&
+            (context.runState === MonitorOverviewRunState.NotConfigured ||
+              isAwaiting)
+          ),
         description: layout.summaryDescription || "",
       },
       // The connection card only makes sense once something has connected.

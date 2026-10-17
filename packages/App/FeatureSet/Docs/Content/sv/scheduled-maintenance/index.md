@@ -63,6 +63,8 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 
 Listan visar **Nummer för schemalagt underhåll**, **Titel**, **Nuvarande tillstånd**, **Berörda resurser**, **Visas på statussida**, **Börjar den**, **Varaktighet**, **Slutar den**, **Etiketter** och **Ägare**. Markera händelser för att hantera flera samtidigt: **Ändra tillstånd**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** eller **Ta bort**.
 
+**Lista** och **Kalender**, längst till höger i listans filterfält, visar samma händelser som en tabell eller på en månad, en vecka eller en dag. Se [Underhållskalender](/docs/scheduled-maintenance/calendar).
+
 ## Vad en händelse påverkar
 
 Medan en händelse pågår behandlar OneUptime avbrottet den planerar som väntat:

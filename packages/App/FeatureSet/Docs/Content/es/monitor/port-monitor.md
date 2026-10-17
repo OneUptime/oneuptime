@@ -20,9 +20,9 @@ sequenceDiagram
     participant H as Host
     P->>D: Resolver el nombre de host
     D-->>P: Direcciones
-    P->>H: Abrir una conexión TCP con el puerto
+    P->>H: Abrir una conexión<br/>TCP con el puerto
     H-->>P: Conexión aceptada
-    Note over P,H: El tiempo de conexión total es la resolución más la conexión
+    Note over P,H: El tiempo de conexión total es<br/>la resolución más la conexión
 ```
 
 La sonda solo abre conexiones TCP: un servicio que escucha únicamente en UDP, como un agente SNMP, no se puede comprobar con un monitor de puerto.

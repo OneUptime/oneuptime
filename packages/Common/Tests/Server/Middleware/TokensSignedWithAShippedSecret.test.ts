@@ -6,6 +6,7 @@ import {
   setEncryptionSecret,
 } from "../TestingUtils/ShippedEncryptionSecrets";
 import Exception from "../../../Types/Exception/Exception";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import {
   afterAll,
   beforeAll,
@@ -45,7 +46,12 @@ import jwt from "jsonwebtoken";
  *
  * Each has a control in the same configuration: the token the server signs
  * itself still works. And an installation whose operator set ENCRYPTION_SECRET
- * keeps accepting what it signed before the upgrade.
+ * keeps accepting what it signs with it, and what it signed before the
+ * upgrade: the access tokens from before tokens said what they were for, so
+ * nobody is signed out, and the SSO sign-ins it gave.
+ *
+ * Every forged token says what it is for (JsonWebTokenPurpose), as the
+ * server's own do, so the signature is the only thing wrong with it.
  */
 
 jest.mock("../../../Server/Utils/Logger");
@@ -107,6 +113,8 @@ async function serverWith(
   const sentErrors: Array<Exception> = [];
 
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false as never);
+  // The master admin a genuine session names is one still.
+  jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true as never);
   jest
     .spyOn(UserService, "updateLastActive")
     .mockResolvedValue(undefined as never);
@@ -177,6 +185,14 @@ function publicKeysOf(server: Server): Array<string> {
 }
 
 function masterAdminClaims(): Record<string, unknown> {
+  return {
+    ...masterAdminClaimsBeforeTheUpgrade(),
+    purpose: JsonWebTokenPurpose.UserSession,
+  };
+}
+
+// A master admin's access token as the releases before tokens said what they were for signed it.
+function masterAdminClaimsBeforeTheUpgrade(): Record<string, unknown> {
   return {
     userId: USER_ID,
     email: "nobody@example.com",
@@ -451,40 +467,45 @@ describe.each(SHIPPED_ENCRYPTION_SECRETS)(
       const userId: AnyClass = new server.ObjectID(USER_ID);
 
       for (const key of publicKeysOf(server)) {
-        const projectToken: string = signWith(key, {
-          userId: USER_ID,
-          projectId: PROJECT_ID,
-          email: "nobody@example.com",
-          name: "Nobody",
-          isMasterAdmin: false,
-          ssoProviderId: SSO_PROVIDER_ID,
-          ssoProviderType: server.SsoProviderType["ProjectSSO"],
-        });
-        const globalToken: string = signWith(key, {
-          userId: USER_ID,
-          email: "nobody@example.com",
-          name: "Nobody",
-          isMasterAdmin: false,
-          ssoProviderId: SSO_PROVIDER_ID,
-          ssoProviderType: server.SsoProviderType["GlobalSSO"],
-        });
+        // As this release signs them, and as the releases before it did.
+        for (const purpose of [JsonWebTokenPurpose.SsoSignIn, undefined]) {
+          const projectToken: string = signWith(key, {
+            userId: USER_ID,
+            projectId: PROJECT_ID,
+            email: "nobody@example.com",
+            name: "Nobody",
+            isMasterAdmin: false,
+            ssoProviderId: SSO_PROVIDER_ID,
+            ssoProviderType: server.SsoProviderType["ProjectSSO"],
+            ...(purpose ? { purpose } : {}),
+          });
+          const globalToken: string = signWith(key, {
+            userId: USER_ID,
+            email: "nobody@example.com",
+            name: "Nobody",
+            isMasterAdmin: false,
+            ssoProviderId: SSO_PROVIDER_ID,
+            ssoProviderType: server.SsoProviderType["GlobalSSO"],
+            ...(purpose ? { purpose } : {}),
+          });
 
-        expect(
-          server.UserMiddleware.getStatelessValidProjectScopedSsoSignIn(
-            cookieRequest({
-              [server.CookieUtil.getUserSSOKey(projectId)]: projectToken,
-            }),
-            projectId,
-            userId,
-          ),
-        ).toBeNull();
-        expect(
-          server.UserMiddleware.getGlobalSsoTokenData(
-            cookieRequest({
-              [server.CookieUtil.getGlobalSSOKey()]: globalToken,
-            }),
-          ),
-        ).toBeNull();
+          expect(
+            server.UserMiddleware.getStatelessValidProjectScopedSsoSignIn(
+              cookieRequest({
+                [server.CookieUtil.getUserSSOKey(projectId)]: projectToken,
+              }),
+              projectId,
+              userId,
+            ),
+          ).toBeNull();
+          expect(
+            server.UserMiddleware.getGlobalSsoTokenData(
+              cookieRequest({
+                [server.CookieUtil.getGlobalSSOKey()]: globalToken,
+              }),
+            ),
+          ).toBeNull();
+        }
       }
 
       // The tokens the server signs itself still prove one.
@@ -595,17 +616,23 @@ describe.each(SHIPPED_ENCRYPTION_SECRETS)(
         userId: USER_ID,
         email: "viewer@example.com",
         statusPageId: STATUS_PAGE_ID,
+        sessionId: "00000000-0000-4000-8000-000000000000",
+        purpose: JsonWebTokenPurpose.StatusPageSession,
       };
 
       for (const key of publicKeysOf(server)) {
         expect(() => {
-          return server.JSONWebToken.decode(signWith(key, claims));
+          return server.JSONWebToken.decode(
+            signWith(key, claims),
+            JsonWebTokenPurpose.StatusPageSession,
+          );
         }).toThrow("AccessToken is invalid or expired");
       }
 
       expect(
         server.JSONWebToken.decode(
           server.JSONWebToken.signJsonPayload(claims, 60),
+          JsonWebTokenPurpose.StatusPageSession,
         ).statusPageId.toString(),
       ).toBe(STATUS_PAGE_ID);
     });
@@ -655,7 +682,7 @@ describe.each(SHIPPED_ENCRYPTION_SECRETS)(
 describe("an installation whose operator set ENCRYPTION_SECRET", () => {
   const startedServer: () => Server = useServer(OPERATOR_ENCRYPTION_SECRET);
 
-  test("keeps accepting the sessions it signed before the upgrade, so nobody is signed out", async () => {
+  test("keeps accepting the sessions it signs with that secret, so nobody is signed out", async () => {
     const server: Server = startedServer();
     const req: Request = bearerRequest(
       signWith(OPERATOR_ENCRYPTION_SECRET, masterAdminClaims()),
@@ -674,6 +701,111 @@ describe("an installation whose operator set ENCRYPTION_SECRET", () => {
         ),
       ),
     );
+  });
+
+  /*
+   * An access token from before tokens said what they were for lived fifteen
+   * minutes, and while the upgrade rolls out a server of the release before
+   * signs more of them. Each is still the session it is, so nobody is
+   * signed out - and only for the fifteen minutes such a token lived.
+   */
+  test("keeps accepting the access tokens it signed before the upgrade, so nobody is signed out", async () => {
+    const server: Server = startedServer();
+    const req: Request = bearerRequest(
+      signWith(OPERATOR_ENCRYPTION_SECRET, masterAdminClaimsBeforeTheUpgrade()),
+    );
+
+    expectPassed(
+      await run(server, server.UserMiddleware.getUserMiddleware, req),
+    );
+    expect(req.userType).toBe(server.UserType["MasterAdmin"]);
+    expectPassed(
+      await run(
+        server,
+        server.MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+        bearerRequest(
+          signWith(
+            OPERATOR_ENCRYPTION_SECRET,
+            masterAdminClaimsBeforeTheUpgrade(),
+          ),
+        ),
+      ),
+    );
+  });
+
+  test("answers the same claims signed for longer than an access token lived 401", async () => {
+    const server: Server = startedServer();
+    const req: Request = bearerRequest(
+      jwt.sign(
+        masterAdminClaimsBeforeTheUpgrade(),
+        OPERATOR_ENCRYPTION_SECRET,
+        {
+          expiresIn: 30 * 24 * 60 * 60,
+        },
+      ),
+    );
+    const result: MiddlewareRun = await run(
+      server,
+      server.UserMiddleware.getUserMiddleware,
+      req,
+    );
+
+    expectRefusedAsSignedOut(result);
+    expect(result.sentErrors[0]?.message).toBe(INVALID_ACCESS_TOKEN_MESSAGE);
+    expect(req.userAuthorization).toBeUndefined();
+  });
+
+  test("keeps accepting the SSO sign-ins it gave before the upgrade, as SSO sign-ins", async () => {
+    const server: Server = startedServer();
+    const projectId: AnyClass = new server.ObjectID(PROJECT_ID);
+    const userId: AnyClass = new server.ObjectID(USER_ID);
+
+    const projectToken: string = signWith(OPERATOR_ENCRYPTION_SECRET, {
+      userId: USER_ID,
+      projectId: PROJECT_ID,
+      email: "nobody@example.com",
+      name: "Nobody",
+      isMasterAdmin: false,
+      isGeneralLogin: false,
+      ssoProviderId: SSO_PROVIDER_ID,
+      ssoProviderType: server.SsoProviderType["ProjectSSO"],
+    });
+    const globalToken: string = signWith(OPERATOR_ENCRYPTION_SECRET, {
+      userId: USER_ID,
+      projectId: "",
+      email: "nobody@example.com",
+      name: "Nobody",
+      isMasterAdmin: false,
+      isGeneralLogin: false,
+      ssoProviderId: SSO_PROVIDER_ID,
+      ssoProviderType: server.SsoProviderType["GlobalSSO"],
+    });
+
+    expect(
+      server.UserMiddleware.getStatelessValidProjectScopedSsoSignIn(
+        cookieRequest({
+          [server.CookieUtil.getUserSSOKey(projectId)]: projectToken,
+        }),
+        projectId,
+        userId,
+      ),
+    ).not.toBeNull();
+    expect(
+      server.UserMiddleware.getGlobalSsoTokenData(
+        cookieRequest({ [server.CookieUtil.getGlobalSSOKey()]: globalToken }),
+      ),
+    ).not.toBeNull();
+
+    // ...and as nothing more: neither is a session.
+    for (const token of [projectToken, globalToken]) {
+      expectRefusedAsSignedOut(
+        await run(
+          server,
+          server.UserMiddleware.getUserMiddleware,
+          bearerRequest(token),
+        ),
+      );
+    }
   });
 
   test("keeps accepting the MCP tokens it signed before the upgrade", async () => {

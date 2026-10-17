@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Pessoa
     participant O as OneUptime
     participant I as Provedor de identidade
-    U->>O: Login com SSO, escolha do projeto
-    O->>I: Solicitação SAML para a URL de login
+    U->>O: Login com SSO,<br/>escolha do projeto
+    O->>I: Solicitação SAML<br/>para a URL de login
     I->>U: Página de login
     U->>I: Credenciais e MFA
-    I->>O: Asserção assinada para a Reply URL
-    Note over O: Verifica a assinatura e o emissor,<br/>lê o email do Name ID
+    I->>O: Asserção assinada<br/>para a Reply URL
+    Note over O: Verifica a assinatura<br/>e o emissor,<br/>lê o email do Name ID
     O->>U: Login feito no projeto
 ```
 
@@ -36,8 +36,13 @@ O OneUptime lê apenas algumas informações da asserção que seu IdP envia:
 | --- | --- |
 | Assinatura | Verifica com o **Certificado público** do provedor. A resposta deve ser assinada e não pode estar criptografada. |
 | Issuer | Deve corresponder exatamente ao **Emissor** do provedor. |
+| Audience | Precisa ser o **Identifier (Entity ID)** do provedor. Uma resposta que o seu IdP criou para outro aplicativo é recusada. |
+| Recipient e Destination | Precisam ser a **Reply URL** do provedor, o endereço para o qual a resposta foi enviada. |
+| `NotBefore` e `NotOnOrAfter` | A resposta só é aceita enquanto eles permitem, e no máximo 10 minutos depois de emitida, com 3 minutos de folga para relógios que não coincidem. |
 | Name ID | O endereço de email da pessoa. Deve ser um endereço de email válido. |
 | `http://schemas.microsoft.com/identity/claims/displayname` | O nome da pessoa, usado quando o OneUptime cria a conta dela. Opcional. |
+
+Cada resposta faz o login uma única vez. Enviada de novo, por exemplo ao voltar no navegador depois do login, ela é recusada: faça o login de novo.
 
 Quem faz login pela primeira vez entra nas **Equipes** do provedor, que decidem o que a pessoa pode fazer: veja [Funções e equipes dos usuários de SSO](#funções-e-equipes-dos-usuários-de-sso).
 
@@ -326,6 +331,22 @@ A pessoa ainda não está no projeto, e o provedor não tem **Equipes** em que c
 
 :::details "Issuer URL does not match"
 O emissor na asserção do seu IdP não é o **Emissor** do provedor. Copie-o de novo do seu IdP — a URL do realm do Keycloak, o **Microsoft Entra Identifier** ou o Identity Provider Issuer do Okta — para que os dois correspondam exatamente.
+:::
+
+:::details "SAML Audience does not match"
+A resposta foi criada para outro aplicativo: a audience dela não é o **Identifier (Entity ID)** deste provedor. No seu IdP, defina o entity ID do aplicativo como o **Identifier (Entity ID)** de **Ver configuração SSO**: o **Client ID** no Keycloak, o **Identifier (Entity ID)** no Entra ID, a **Audience URI (SP Entity ID)** no Okta. Um IdP configurado apenas com o endereço do OneUptime como entity ID, como `https://oneuptime.com`, continua funcionando.
+:::
+
+:::details "SAML Recipient does not match"
+A resposta foi enviada para outro endereço: o recipient dela não é a **Reply URL** deste provedor. No seu IdP, defina a reply URL do aplicativo como a **Reply URL (Assertion Consumer Service URL)** de **Ver configuração SSO**: a **Assertion Consumer Service POST Binding URL** no Keycloak, a **Reply URL (Assertion Consumer Service URL)** no Entra ID, a **Single sign-on URL** no Okta. "SAML Destination does not match" tem a mesma causa e a mesma solução.
+:::
+
+:::details "SAML response has expired"
+A resposta chegou ao OneUptime mais tarde do que o seu IdP permite, ou mais de 10 minutos depois de emitida: faça o login de novo. Se continuar acontecendo, o relógio do seu IdP ou do servidor do OneUptime está errado; o OneUptime aceita até 3 minutos de diferença entre eles. "SAML response is not valid yet" é o mesmo problema ao contrário.
+:::
+
+:::details "SAML response was already used"
+Cada resposta do seu IdP faz o login uma única vez. Voltar no navegador depois do login, ou recarregar a página pela qual o seu IdP passou você, envia a mesma resposta de novo: faça o login de novo, pelo OneUptime ou pelo seu IdP.
 :::
 
 :::details O login falha com um erro de assinatura ou de certificado

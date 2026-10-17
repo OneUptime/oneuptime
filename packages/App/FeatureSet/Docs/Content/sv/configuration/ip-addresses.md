@@ -3,7 +3,7 @@
 OneUptime Clouds sonder kontrollerar dina webbplatser, API:er och servrar från en fast uppsättning IP-adresser. Står en brandvägg eller en tillåtelselista framför det du övervakar måste du tillåta dessa adresser så att kontrollerna kommer igenom.
 
 ```mermaid title="Var tillåtelselistan gäller"
-flowchart LR
+flowchart TB
     P["OneUptime-sonder"] -->|"kontrollerar från de listade IP-adresserna"| F["Din brandvägg"]
     F -->|"tillåten"| S["Din webbplats, ditt API eller din server"]
 ```

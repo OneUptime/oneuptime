@@ -155,16 +155,17 @@ Group By के बिना, समाप्त हुई IPsec टनल प�
 ```mermaid title="Group By के बिना और उसके साथ"
 flowchart TB
     subgraph Without["Group By के बिना"]
-        direction LR
+        direction TB
         A1["HQ-Branch1 गिरा"] --> M1["एक गिनती"]
         B1["Branch2 गिरा"] --> M1
         M1 --> X1["एक अलर्ट"]
     end
     subgraph With["con_name पर समूहित"]
-        direction LR
+        direction TB
         A2["HQ-Branch1 गिरा"] --> X2["HQ-Branch1 अलर्ट"]
         B2["Branch2 गिरा"] --> Y2["Branch2 अलर्ट"]
     end
+    Without ~~~ With
 ```
 
 ### स्वतंत्र समाधान

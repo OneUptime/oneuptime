@@ -15,13 +15,13 @@ Ein Runbook kann von selbst starten: nach einem Zeitplan oder wenn ein anderes T
 flowchart TB
     subgraph starts["Was den Lauf startet"]
         direction LR
-        schedule["Der Zeitplan: ein Zeitpunkt kommt"]
-        webhook["Der Webhook: ein POST an seine URL"]
+        schedule["Der Zeitplan: ein<br/>Zeitpunkt kommt"]
+        webhook["Der Webhook: ein<br/>POST an seine URL"]
     end
-    schedule --> checks["Das Runbook ist eingeschaltet und hat Schritte"]
+    schedule --> checks["Das Runbook ist<br/>eingeschaltet<br/>und hat Schritte"]
     webhook --> checks
-    checks --> execution["Ausführung, markiert als Schedule oder Webhook"]
-    execution --> worker["Der OneUptime Worker führt die Schritte aus"]
+    checks --> execution["Ausführung, markiert als<br/>Schedule oder Webhook"]
+    execution --> worker["Der OneUptime Worker<br/>führt die Schritte aus"]
 ```
 
 Ein Auslöser startet einen Lauf so, wie **Jetzt ausführen** es tut: Der Lauf ist eine Ausführung der aktuellen Schritte des Runbooks und hängt an keinem Vorfall, keiner Warnung und keinem geplanten Wartungsereignis. Jeder Lauf hält fest, was ihn gestartet hat. Die **Ausführungen** des Runbooks und **Runbooks → Ausführungen** zeigen es unter **Ausgelöst von**, mit dem Zeitpunkt, zu dem ein geplanter Lauf fällig war, oder der Adresse, die den Webhook aufgerufen hat, und beide Listen lassen sich danach filtern.

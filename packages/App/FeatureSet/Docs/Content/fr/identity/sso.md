@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Personne
     participant O as OneUptime
     participant I as Fournisseur d'identité
-    U->>O: Connexion avec SSO, choix du projet
-    O->>I: Requête SAML vers l'URL de connexion
+    U->>O: Connexion avec SSO,<br/>choix du projet
+    O->>I: Requête SAML vers<br/>l'URL de connexion
     I->>U: Page de connexion
     U->>I: Identifiants et MFA
-    I->>O: Assertion signée vers la Reply URL
-    Note over O: Vérifie la signature et l'émetteur,<br/>lit l'e-mail dans le Name ID
+    I->>O: Assertion signée<br/>vers la Reply URL
+    Note over O: Vérifie la signature<br/>et l'émetteur,<br/>lit l'e-mail dans le Name ID
     O->>U: Connectée au projet
 ```
 
@@ -36,8 +36,13 @@ OneUptime ne lit que quelques éléments de l'assertion envoyée par votre IdP :
 | --- | --- |
 | Signature | La vérifie avec le **Certificat public** du fournisseur. La réponse doit être signée et ne doit pas être chiffrée. |
 | Issuer | Doit correspondre exactement à l'**Émetteur** du fournisseur. |
+| Audience | Doit être l'**Identifiant (Entity ID)** du fournisseur. Une réponse que votre IdP a créée pour une autre application est refusée. |
+| Recipient et Destination | Doivent être la **Reply URL** du fournisseur, l'adresse à laquelle la réponse a été envoyée. |
+| `NotBefore` et `NotOnOrAfter` | La réponse n'est acceptée que tant qu'ils le permettent, et au plus tard 10 minutes après son émission, avec 3 minutes de tolérance pour les horloges qui ne s'accordent pas. |
 | Name ID | L'adresse e-mail de la personne. Ce doit être une adresse e-mail valide. |
 | `http://schemas.microsoft.com/identity/claims/displayname` | Le nom de la personne, utilisé quand OneUptime crée son compte. Facultatif. |
+
+Chaque réponse ne connecte qu'une seule fois. Envoyée de nouveau, par exemple en revenant en arrière dans le navigateur après la connexion, elle est refusée : connectez-vous de nouveau.
 
 Les personnes qui se connectent pour la première fois rejoignent les **Équipes** du fournisseur, qui décident de ce qu'elles peuvent faire : voir [Rôles et équipes des utilisateurs SSO](#rôles-et-équipes-des-utilisateurs-sso).
 
@@ -326,6 +331,22 @@ La personne ne fait pas encore partie du projet, et le fournisseur n'a aucune **
 
 :::details "Issuer URL does not match"
 L'émetteur figurant dans l'assertion de votre IdP n'est pas l'**Émetteur** du fournisseur. Copiez-le de nouveau depuis votre IdP — l'URL du realm Keycloak, le **Microsoft Entra Identifier** ou l'Identity Provider Issuer d'Okta — pour que les deux correspondent exactement.
+:::
+
+:::details "SAML Audience does not match"
+La réponse a été créée pour une autre application : son audience n'est pas l'**Identifiant (Entity ID)** de ce fournisseur. Dans votre IdP, définissez l'entity ID de l'application sur l'**Identifiant (Entity ID)** indiqué dans **Voir la configuration SSO** : le **Client ID** dans Keycloak, l'**Identifier (Entity ID)** dans Entra ID, l'**Audience URI (SP Entity ID)** dans Okta. Un IdP configuré avec la seule adresse d'OneUptime comme entity ID, par exemple `https://oneuptime.com`, continue de fonctionner.
+:::
+
+:::details "SAML Recipient does not match"
+La réponse a été envoyée pour une autre adresse : son recipient n'est pas la **Reply URL** de ce fournisseur. Dans votre IdP, définissez la reply URL de l'application sur la **Reply URL (Assertion Consumer Service URL)** indiquée dans **Voir la configuration SSO** : l'**Assertion Consumer Service POST Binding URL** dans Keycloak, la **Reply URL (Assertion Consumer Service URL)** dans Entra ID, la **Single sign-on URL** dans Okta. "SAML Destination does not match" a la même cause et la même solution.
+:::
+
+:::details "SAML response has expired"
+La réponse est arrivée à OneUptime plus tard que votre IdP ne le permet, ou plus de 10 minutes après son émission : connectez-vous de nouveau. Si cela se répète, l'horloge de votre IdP ou du serveur OneUptime est fausse ; OneUptime tolère 3 minutes d'écart entre elles. "SAML response is not valid yet" est le même problème dans l'autre sens.
+:::
+
+:::details "SAML response was already used"
+Chaque réponse de votre IdP ne connecte qu'une seule fois. Revenir en arrière dans le navigateur après la connexion, ou recharger la page par laquelle votre IdP vous a fait passer, envoie de nouveau la même réponse : connectez-vous de nouveau, depuis OneUptime ou depuis votre IdP.
 :::
 
 :::details La connexion échoue avec une erreur de signature ou de certificat

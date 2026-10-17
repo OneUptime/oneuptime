@@ -7,6 +7,8 @@ Um incidente é o registro a partir do qual sua equipe trabalha quando algo queb
 - [Estados e severidades de incidentes](/docs/incidents/states-and-severities): O ciclo de vida, e o que fazem a confirmação e a resolução.
 - [Notas, responsáveis e feed de incidentes](/docs/incidents/notes-owners-and-feed): Atualizações para os clientes e para sua equipe, e quem fica sabendo delas.
 - [Alertas vinculados](/docs/incidents/linked-alerts): Ligue os alertas que uma interrupção gerou ao incidente que os explica.
+- [Episódios](/docs/incidents/episodes): Agrupe incidentes relacionados e trabalhe neles como um só.
+- [Post-mortems](/docs/incidents/postmortems): Escreva o que aconteceu e publique na sua página de status.
 - [Configurações e automação de incidentes](/docs/incidents/settings): Modelos, campos personalizados, funções, medições e regras.
 :::
 
@@ -34,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Formulário"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Novo incidente"]
-    incident --> rules["As regras de incidente são executadas"]
-    rules --> oncall["As políticas de plantão acionam"]
-    rules --> owners["Os proprietários são notificados"]
-    rules --> pages["As páginas de status são atualizadas"]
+    incident --> rules["As regras de<br/>incidente são<br/>executadas"]
+    rules --> oncall["As políticas de<br/>plantão acionam"]
+    rules --> owners["Os proprietários<br/>são notificados"]
+    rules --> pages["As páginas<br/>de status são<br/>atualizadas"]
     oncall --> feed["Incidente Feed"]
     owners --> feed
     pages --> feed
@@ -56,7 +60,7 @@ Cinco caminhos levam ao mesmo objeto:
 - **Pela API** — `POST /api/incident` com uma chave de API. O servidor preenche para você `declaredAt`, o estado de criação e o número do incidente.
 - **Por um formulário** — alguém de fora da sua equipe preenche um formulário que você compartilhou como link, sem uma conta do OneUptime. O incidente é declarado oculto das páginas de status, a partir do modelo de incidente do formulário, se ele tiver um. Veja [Formulários](/docs/forms/index).
 
-As integrações também abrem incidentes: o [Huntress](/docs/integrations/huntress) transforma cada relatório de incidente que seu SOC envia em um incidente, que aciona as políticas de plantão que você escolher. Veja [Declarar um incidente](/docs/incidents/declaring-incidents) para o passo a passo campo a campo.
+Os workflows também abrem incidentes: o workflow do [Huntress](/docs/integrations/huntress) transforma cada relatório de incidente que seu SOC envia em um incidente, que aciona a política de plantão que você escolher. Veja [Declarar um incidente](/docs/incidents/declaring-incidents) para o passo a passo campo a campo.
 
 ### 2. As pessoas certas ficam sabendo
 
@@ -77,7 +81,7 @@ Os respondedores confirmam o incidente, anexam os recursos afetados, vinculam os
 
 Clicar em **Resolver** move o incidente para o estado resolvido, registra isso na linha do tempo de estados, para o relógio de duração, devolve os monitores que ele retém e tira o incidente da seção ativa de qualquer página de status em que ele aparecia. Nada mais precisa mudar para isso acontecer — uma página de status mostra apenas incidentes em um estado acima do estado resolvido. Veja [O que a resolução faz](/docs/incidents/states-and-severities#o-que-a-resolução-faz).
 
-Depois disso, você pode escrever um post-mortem e, se quiser, publicá-lo na página de status.
+Depois disso, você pode escrever um [post-mortem](/docs/incidents/postmortems) e, se quiser, publicá-lo na página de status.
 
 ## Termos-chave
 
@@ -103,7 +107,7 @@ Quando um projeto é criado, o OneUptime cria exatamente três estados de incide
 
 ```mermaid title="Os estados com que todo projeto novo começa"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: declarado
     Identified --> Acknowledged: Confirmar
     Identified --> Resolved: Resolver
@@ -156,11 +160,10 @@ Abra **Incidentes** no menu **Produtos** da barra superior. Seu menu lateral é 
 | **Episódios**             | Os episódios de incidente, um recurso de agrupamento separado com suas próprias páginas.                                                                                   |
 | **IA**                    | **Insights**, **Registros**, **Configurações**: o que o OneUptime AI aprendeu com seus incidentes e tudo o que fez por eles, e o que pode fazer por conta própria — com as regras sobre quais incidentes investiga e corrige. Veja [AI SRE](/docs/ai/ai-sre). |
 | **Espaço de trabalho**    | Os espaços de chat que este projeto conectou: **Slack**, **Microsoft Teams** ou ambos, cada um com suas regras de notificação para incidentes. Se nenhum estiver conectado, contém **Conectar Slack ou Teams**, uma página que mostra os dois e como conectá-los. |
-| **Integrações**           | Ferramentas que abrem incidentes por conta própria: **Huntress**, cujos relatórios de incidente viram incidentes que acionam o plantão. Veja [Huntress](/docs/integrations/huntress). |
 | **Regras**                | Os mecanismos de regras: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA**, **Reminder Rules**. |
 | **Configurações**         | **Estado do incidente**, **Severidade do incidente**, **Modelos de incidentes**, **Modelos de notas**, **Modelos de post-mortem**, **Campos personalizados**, **Funções de incidente**, **Medições**, **Alertas vinculados**, **Participação em episódios**, **Numeração**. |
 
-**Visão geral** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Integrações**, **Regras**, **Configurações** e **Desenvolvedores** ficam recolhidas por padrão, para que o menu abra nas listas que você usa todos os dias. Clique no título de uma seção para expandi-la e encontrar as páginas a que o resto desta documentação se refere; uma seção também se abre sozinha sempre que você está em uma de suas páginas. A configuração de incidentes não fica nas configurações do projeto; ela vive toda aqui.
+**Visão geral** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** ficam recolhidas por padrão, para que o menu abra nas listas que você usa todos os dias. Clique no título de uma seção para expandi-la e encontrar as páginas a que o resto desta documentação se refere; uma seção também se abre sozinha sempre que você está em uma de suas páginas. A configuração de incidentes não fica nas configurações do projeto; ela vive toda aqui.
 
 A lista de incidentes mostra **Número do incidente**, **Título**, **Estado**, **Gravidade**, **Recursos afetados**, **Declarado**, **Duração**, **Rótulos** e **Proprietários**, com uma ação em massa **Alterar estado** para encerrar vários de uma vez.
 

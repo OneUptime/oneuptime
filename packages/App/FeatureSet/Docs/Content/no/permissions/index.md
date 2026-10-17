@@ -12,14 +12,14 @@ Alt i OneUptime lever inne i et **prosjekt**. Hvem som kan gjøre hva i prosjekt
 ```mermaid title="Slik får en person og en API-nøkkel tilgang"
 flowchart TB
     User["En bruker<br/>(én konto)"]
-    Key["En API-nøkkel"]
     subgraph Project["Et prosjekt"]
         direction TB
+        Key["En API-nøkkel"]
         Team["Team"]
-        Allow["Tillatte tillatelser,<br/>hver med et omfang:<br/>Alle, Eide eller Etiketter"]
-        Block["Blokkerte tillatelser,<br/>som alltid vinner"]
-        KeyRules["Nøkkelens egne tillatte<br/>og blokkerte tillatelser"]
-        Resources["Overvåkere, hendelser,<br/>statussider og mer"]
+        Allow["Tillatte<br/>tillatelser,<br/>hver med<br/>et omfang:<br/>Alle, Eide<br/>eller Etiketter"]
+        Block["Blokkerte<br/>tillatelser,<br/>som alltid vinner"]
+        KeyRules["Nøkkelens<br/>egne tillatte<br/>og blokkerte<br/>tillatelser"]
+        Resources["Overvåkere,<br/>hendelser,<br/>statussider og mer"]
     end
     User -->|"medlem av"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"når"| Resources
     KeyRules -->|"når"| Resources
     Block -.->|"tar bort"| Resources
+    Allow ~~~ Block
 ```
 
 | Begrep | Hva det er |
@@ -58,6 +59,7 @@ En bruker er «i» et prosjekt når vedkommende er medlem av **minst ett team** 
 - Invitasjoner oppretter et ventende teammedlem. Brukeren teller først som prosjektmedlem — og får først noen tillatelse — **etter å ha godtatt invitasjonen.**
 - **Inviter bruker** starter på prosjektets medlemsteam: teamet som har `ProjectMember` for hele prosjektet, altså **Members** med mindre du har gitt det nytt navn. Velg et annet team for å gi personen mer eller mindre tilgang. Ingenting er valgt når du ikke selv kunne invitert til det teamet — å invitere noen gir dem teamets tillatelser, og du kan bare gi videre tillatelser du selv har — eller når prosjektet ikke har et slikt team. Administratordashbordet starter på det samme teamet overalt der en administrator av instansen legger noen til i et prosjekt: **Inviter bruker** på et prosjekt, **Legg til i prosjekt** på en bruker og på flere brukere samtidig, og prosjektene som er knyttet til en [global SSO-leverandør](/docs/identity/global-sso).
 - Fjerner du en bruker fra alle team i et prosjekt, mister vedkommende tilgangen til prosjektet fra neste forespørsel — også mens vedkommende er pålogget. Kontoen og brukerens andre prosjekter berøres ikke. Brukeren tas ut av prosjektets vaktplaner, eskaleringsregler og overstyringer, av rollene i de åpne hendelsene og episodene og av eierne av ressursene; løste hendelser beholder hvem som eide og ledet dem.
+- Fjerner du noens tilgang som hovedadministrator i Admin Dashboard på en selvhostet installasjon, mister vedkommende den fra neste forespørsel — også mens vedkommende er pålogget. Vedkommende forblir pålogget og beholder prosjektene vedkommende er medlem av.
 - Den som forlater et prosjekt, får ikke lenger varslene fra det. Personens egne varslingsmetoder, -regler og -innstillinger for prosjektet fjernes sammen med det siste teamet — e-post, SMS, anrop, WhatsApp, Telegram, push, webhook, Slack og Microsoft Teams, e-postsammendraget og e-posten som ennå ikke er sendt, nummeret for innkommende anrop og vaktpåminnelsene —, så den som blir med igjen, starter fra standardinnstillingene. Det som fortsatt nevner personen, som brukeren en regel for innkommende anrop ringer til eller en eier som beholdes på en løst hendelse, varsler ikke lenger personen: ingenting sendes på vegne av et prosjekt til noen som ikke er medlem, og en ventende invitasjon er ennå ikke et medlemskap. Disse stedene viser **Ikke lenger medlem** ved siden av navnet, slik at du kan sette inn en annen. Den som er invitert og ikke har akseptert ennå, viser i stedet **Invitasjon ikke akseptert ennå**. Hvis en overstyring sender noens varsler videre til en person som har forlatt prosjektet, varsles i stedet den som overstyringen dekker. Å forlate prosjektet kobler også fra MCP-klientene personen har koblet til prosjektet, og personens personlige lenke til vaktkalenderen viser deretter en tom kalender. På OneUptime Cloud bekrefter den som kommer tilbake via prosjektets enkel pålogging (SSO), den på nytt fra e-postkassen sin.
 - Krever prosjektet SSO og brukeren ennå ikke har autentisert seg via identitetsleverandøren, behandles vedkommende som uautorisert SSO-bruker og ser ingenting før det er gjort. Se [SSO](/docs/identity/sso).
 - Med SCIM satt opp kan identitetsleverandøren opprette, oppdatere og fjerne brukere og teammedlemskap automatisk. Se [SCIM](/docs/identity/scim).

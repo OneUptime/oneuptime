@@ -27,7 +27,7 @@ Cuando creas una programación en la página **Programaciones de guardia**, el f
 Las personas se turnan de una en una, y la primera está de guardia en cuanto se crea la programación:
 
 ```mermaid title="Layer 1 con tres personas y turnos de 1 semana"
-flowchart LR
+flowchart TB
     alice["Alice<br/>semana 1"] -->|"relevo"| bob["Bob<br/>semana 2"]
     bob -->|"relevo"| carol["Carol<br/>semana 3"]
     carol -->|"vuelta a la primera"| alice
@@ -52,11 +52,11 @@ La rotación de una programación se compone de capas, en su página **Capas**. 
 
 ```mermaid title="La capa más alta con alguien de guardia es la que avisa"
 flowchart TB
-    start["Un nivel avisa a la programación"] --> first{"¿Alguien de guardia<br/>en la capa superior?"}
-    first -->|"Sí"| pageTop["Avisar a esa persona"]
-    first -->|"No"| next{"¿Alguien de guardia<br/>en la siguiente capa?"}
-    next -->|"Sí"| pageNext["Avisar a esa persona"]
-    next -->|"No"| gap["No se avisa a nadie<br/>un hueco de cobertura"]
+    start["Un nivel avisa a<br/>la programación"] --> first{"¿Alguien<br/>de guardia<br/>en la capa<br/>superior?"}
+    first -->|"Sí"| pageTop["Avisar a<br/>esa persona"]
+    first -->|"No"| next{"¿Alguien<br/>de guardia<br/>en la siguiente capa?"}
+    next -->|"Sí"| pageNext["Avisar a<br/>esa persona"]
+    next -->|"No"| gap["No se avisa<br/>a nadie<br/>un hueco de<br/>cobertura"]
 ```
 
 **Añadir capa** añade una capa que empieza como la primera: de guardia desde ahora, cada persona durante una semana, las 24 horas. Despliega una capa para añadirle personas y para cambiar cuándo empieza, cada cuánto hace el relevo, cuándo hace el primer relevo y las horas en que está de guardia:

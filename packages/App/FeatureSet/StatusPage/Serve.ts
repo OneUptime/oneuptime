@@ -28,6 +28,10 @@ import {
   isSearchEngineIndexingAllowed,
   isStatusPagePreviewPath,
 } from "Common/Types/StatusPage/SearchEngineIndexing";
+import {
+  getStatusPageThemeHead,
+  STATUS_PAGE_THEME_FALLBACK,
+} from "Common/Types/StatusPage/StatusPageTheme";
 
 export const APP_NAME: string = "status-page";
 
@@ -112,6 +116,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             rssFeedPath: rssFeedPath,
             isSearchEngineIndexingEnabled:
               statusPageData.isSearchEngineIndexingEnabled,
+            // The page's theme, applied before its first paint.
+            statusPageTheme: getStatusPageThemeHead(statusPageData.theme),
           };
         }
 
@@ -140,6 +146,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
           lang: DEFAULT_STATUS_PAGE_LANGUAGE,
           rssFeedPath: rssFeedPath,
           isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled,
+          /*
+           * No page to read a theme from: the light page every status page
+           * starts from. The app reads the page's own theme once it loads.
+           */
+          statusPageTheme: getStatusPageThemeHead(STATUS_PAGE_THEME_FALLBACK),
         };
       },
     });

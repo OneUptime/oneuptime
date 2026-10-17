@@ -10,6 +10,33 @@ import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
 export const Moment: typeof moment = moment;
 
+// A whole number of nanoseconds, as fromUnixNano reads one exactly.
+const UNIX_NANO_INTEGER_PATTERN: RegExp = /^[+-]?\d+$/;
+
+/*
+ * BigInt(1000000), made the first time fromUnixNano reads an integer string
+ * rather than when this module loads: every frontend bundle loads Date.ts,
+ * and a browser without BigInt must still load it. Only that one read needs
+ * BigInt, as before.
+ */
+let nanosPerMillisecond: bigint | undefined;
+
+/*
+ * How many seconds OneUptimeDate.toClickhouseDateTime keeps the text of,
+ * each in the slot its second picks (a power of two, so the slot is a mask).
+ * A second's text is kept until another second takes its slot.
+ */
+const CLICKHOUSE_DATE_TIME_MEMO_SLOTS: number = 256;
+
+// NaN never equals a second, so an empty slot is never read.
+const clickhouseDateTimeMemoSeconds: Float64Array = new Float64Array(
+  CLICKHOUSE_DATE_TIME_MEMO_SLOTS,
+).fill(Number.NaN);
+
+const clickhouseDateTimeMemoTexts: Array<string> = new Array<string>(
+  CLICKHOUSE_DATE_TIME_MEMO_SLOTS,
+).fill("");
+
 /*
  * The units a calendar (rather than a fixed-length) interval can be measured in.
  * See getStartOfCalendarUnit / addRemoveCalendarUnits below.
@@ -905,18 +932,25 @@ export default class OneUptimeDate {
      * up to a full millisecond of precision. When the raw value is an integer
      * string, divide with BigInt to keep exact millisecond precision; fall
      * back to numeric division for number inputs and non-integer strings.
+     *
+     * The Date is built directly, not through moment(millis).toDate(): every
+     * ingested log, span and metric data point comes through here, and for a
+     * number moment does nothing but `new Date(millis)` - wrapped in a moment
+     * object, its input checks and a second Date - which cost about fifteen
+     * times the work. Both give the same instant for every number, NaN and
+     * out-of-range values (an Invalid Date) included.
      */
     if (typeof timestamp === "string") {
       const trimmed: string = timestamp.trim();
-      const integerPattern: RegExp = /^[+-]?\d+$/;
-      if (integerPattern.test(trimmed)) {
-        const nanosPerMilli: bigint = BigInt(1000000);
-        const millis: number = Number(BigInt(trimmed) / nanosPerMilli);
-        return moment(millis).toDate();
+      if (UNIX_NANO_INTEGER_PATTERN.test(trimmed)) {
+        if (nanosPerMillisecond === undefined) {
+          nanosPerMillisecond = BigInt(1000000);
+        }
+        return new Date(Number(BigInt(trimmed) / nanosPerMillisecond));
       }
-      return moment(Number(trimmed) / 1000000).toDate();
+      return new Date(Number(trimmed) / 1000000);
     }
-    return moment(timestamp / 1000000).toDate();
+    return new Date(timestamp / 1000000);
   }
 
   public static parseRfc5424Timestamp(value: string): Date | undefined {
@@ -2411,10 +2445,31 @@ export default class OneUptimeDate {
    * of magnitude more expensive than reading the UTC fields directly.
    * Output is byte-identical to moment's, including the "Invalid date"
    * sentinel for NaN dates.
+   *
+   * The text depends on nothing but the second the date falls in, and the
+   * rows of one telemetry batch fall in a handful of seconds - a data
+   * point's time and its start time, a span's start and end - so the text
+   * of recent seconds is kept (CLICKHOUSE_DATE_TIME_MEMO_SLOTS): a second
+   * already written is read back instead of formatted again.
    */
   private static formatUtcClickhouseDateTime(date: Date): string {
-    if (Number.isNaN(date.getTime())) {
+    const epochMs: number = date.getTime();
+
+    if (Number.isNaN(epochMs)) {
       return "Invalid date";
+    }
+
+    // Floored, so an instant before 1970 keeps the second it falls in.
+    const epochSecond: number = Math.floor(epochMs / 1000);
+
+    /*
+     * The slot only decides where a second is kept; a read checks the second
+     * itself, so two seconds sharing a slot never read each other's text.
+     */
+    const slot: number = epochSecond & (CLICKHOUSE_DATE_TIME_MEMO_SLOTS - 1);
+
+    if (clickhouseDateTimeMemoSeconds[slot] === epochSecond) {
+      return clickhouseDateTimeMemoTexts[slot] as string;
     }
 
     const year: string = String(date.getUTCFullYear()).padStart(4, "0");
@@ -2424,7 +2479,12 @@ export default class OneUptimeDate {
     const minutes: string = String(date.getUTCMinutes()).padStart(2, "0");
     const seconds: string = String(date.getUTCSeconds()).padStart(2, "0");
 
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    const text: string = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+    clickhouseDateTimeMemoSeconds[slot] = epochSecond;
+    clickhouseDateTimeMemoTexts[slot] = text;
+
+    return text;
   }
 
   public static toClickhouseDateTime(date: Date | string): string {

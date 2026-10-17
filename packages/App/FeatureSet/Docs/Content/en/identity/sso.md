@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Person
     participant O as OneUptime
     participant I as Identity provider
-    U->>O: Login with SSO, pick the project
-    O->>I: SAML request, to the Sign On URL
+    U->>O: Login with SSO,<br/>pick the project
+    O->>I: SAML request, to<br/>the Sign On URL
     I->>U: Sign-in page
     U->>I: Credentials and MFA
-    I->>O: Signed assertion, to the Reply URL
-    Note over O: Checks the signature and Issuer,<br/>reads the email from the Name ID
+    I->>O: Signed assertion,<br/>to the Reply URL
+    Note over O: Checks the signature<br/>and Issuer,<br/>reads the email<br/>from the Name ID
     O->>U: Signed in to the project
 ```
 
@@ -36,8 +36,13 @@ OneUptime reads only a few things from the assertion your IdP sends:
 | --- | --- |
 | Signature | Checks it against the provider's **Public Certificate**. The response must be signed, and must not be encrypted. |
 | Issuer | Must match the provider's **Issuer** exactly. |
+| Audience | Must be the provider's **Identifier (Entity ID)**. A response your IdP made for another application is refused. |
+| Recipient and Destination | Must be the provider's **Reply URL**, the address the response was sent to. |
+| `NotBefore` and `NotOnOrAfter` | The response is accepted only while they allow it, and no later than 10 minutes after it was issued, with 3 minutes of leeway for clocks that disagree. |
 | Name ID | The person's email address. It must be a valid email address. |
 | `http://schemas.microsoft.com/identity/claims/displayname` | The person's name, used when OneUptime creates their account. Optional. |
+
+Each response signs someone in once. Sent again, for example by going back in the browser after signing in, it is refused: sign in again.
 
 People who sign in for the first time join the provider's **Teams**, which decide what they can do: see [Roles and teams for SSO users](#roles-and-teams-for-sso-users).
 
@@ -326,6 +331,22 @@ The person is not in the project yet, and the provider has no **Teams** to add t
 
 :::details "Issuer URL does not match"
 The issuer in your IdP's assertion is not the provider's **Issuer**. Copy it again from your IdP — the Keycloak realm URL, the **Microsoft Entra Identifier**, or Okta's Identity Provider Issuer — so the two match exactly.
+:::
+
+:::details "SAML Audience does not match"
+The response was made for another application: its audience is not this provider's **Identifier (Entity ID)**. In your IdP, set the application's entity ID to the **Identifier (Entity ID)** from **View SSO Config** — the **Client ID** in Keycloak, the **Identifier (Entity ID)** in Entra ID, the **Audience URI (SP Entity ID)** in Okta. An IdP set up with OneUptime's address alone as the entity ID, such as `https://oneuptime.com`, keeps working.
+:::
+
+:::details "SAML Recipient does not match"
+The response was sent for another address: its recipient is not this provider's **Reply URL**. In your IdP, set the application's reply URL to the **Reply URL (Assertion Consumer Service URL)** from **View SSO Config** — the **Assertion Consumer Service POST Binding URL** in Keycloak, the **Reply URL (Assertion Consumer Service URL)** in Entra ID, the **Single sign-on URL** in Okta. "SAML Destination does not match" has the same cause and the same fix.
+:::
+
+:::details "SAML response has expired"
+The response reached OneUptime later than your IdP allows, or more than 10 minutes after it was issued: sign in again. If it keeps happening, the clock of your IdP or of the OneUptime server is wrong; OneUptime allows them to be 3 minutes apart. "SAML response is not valid yet" is the same problem the other way round.
+:::
+
+:::details "SAML response was already used"
+Each response from your IdP signs someone in once. Going back in the browser after signing in, or reloading the page your IdP sent you through, sends the same response again: sign in again, from OneUptime or from your IdP.
 :::
 
 :::details Sign-in fails with a signature or certificate error

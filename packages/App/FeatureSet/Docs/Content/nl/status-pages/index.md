@@ -29,7 +29,7 @@ flowchart TB
 
 Statuspagina's staan onder **Statuspagina's**, in het menu **Producten** in de bovenste balk, bij de essentiële onderdelen. Alles op deze pagina geldt per statuspagina: een project kan er zoveel hebben als het wil — een openbare voor klanten, een privé voor een intern publiek, een per regio voor een specifieke markt.
 
-De pagina toont de monitoren die u erop zet als resources. Incidenten en gepland onderhoud komen via die monitoren op de pagina, en aankondigingen worden er rechtstreeks op geplaatst. Bezoekers lezen de pagina, en abonnees krijgen bericht van elke wijziging via de kanalen die ze hebben gekozen.
+De pagina toont de monitoren die u erop zet als resources, en incidenten komen via die monitoren op de pagina. [Geplande onderhoudsgebeurtenissen](/docs/scheduled-maintenance/index) en aankondigingen komen er rechtstreeks op: elk ervan noemt de statuspagina's waarop het wordt getoond. Bezoekers lezen de pagina, en abonnees krijgen bericht van elke wijziging via de kanalen die ze hebben gekozen.
 
 ## In het kort
 
@@ -163,7 +163,7 @@ Of de pagina een item **Abonneren** toont (**Abonneepagina weergeven**, `showSub
 
 Onder de kaart staan **Statuspagina exporteren als JSON**, dat de eigen instellingen van de statuspagina downloadt naar een bestand dat u opnieuw kunt importeren, en **Archive status page** (zie [Een statuspagina archiveren](#een-statuspagina-archiveren)). Het totale uptimepercentage en de downtimestatussen waren hier vroeger twee eigen kaarten, elk achter een knop **Bewerken**; nu zijn het rijen van de kaart.
 
-**Waar de kleuren staan.** De kleuren van de uptimebalken staan hier niet: de **Standaard balkkleur** en de kleurregels voor de balken staan onder **Meer instellingen** in **Statuspagina's → uw pagina → Huisstijl → Huisstijl**. Er bestaat nergens een instelling voor een thema of een merkkleur; alles wat verder gaat dan die bedieningselementen doet u met **Aangepaste CSS**.
+**Waar de kleuren staan.** De kleuren van de uptimebalken staan hier niet: de **Standaard balkkleur** en de kleurregels voor de balken staan onder **Meer instellingen** in **Statuspagina's → uw pagina → Huisstijl → Huisstijl**. Het **Thema** van de pagina (licht, donker, of zoals het apparaat van elke bezoeker is ingesteld) is een kaart bovenaan diezelfde pagina. Er bestaat geen instelling voor een merkkleur; alles wat verder gaat dan die bedieningselementen doet u met **Aangepaste CSS**.
 
 ## Vooraf bekijken voordat u live gaat
 
@@ -213,11 +213,13 @@ Onder **Meer instellingen** van **Toegang** beperkt de sectie **IP-toelatingslij
 
 ## De insluitbare badge en de RSS-feed
 
-Twee manieren om de status ergens anders te tonen dan op de pagina zelf.
+Drie manieren om de status ergens anders te tonen dan op de pagina zelf.
 
 **Ingesloten statusbadge.** Zet onder **Statuspagina's → uw pagina → Geavanceerd → Ingesloten status** de optie **Ingesloten statusbadge inschakelen** aan (`enableEmbeddedOverallStatus`, standaard uit) en klik daarna op **Token opnieuw genereren** in de kaart **Beveiligingstoken** om de badge zijn token te geven (`embeddedOverallStatusToken`). De badge wordt geserveerd vanaf `/api/status-page/badge/<status-page-id>?token=<token>`, en het scherm toont hem in **Badge-voorbeeld** met fragmenten om te kopiëren, zodat u de huidige algemene status in uw documentatie, de voettekst van uw app of een marketingpagina kunt zetten.
 
 **RSS-feed.** Elke statuspagina serveert `/rss`: een feed met de titel "{paginatitel} Updates", met de **Paginatitel** die onder **Huisstijl** is ingesteld, of de naam van de pagina als ze er geen heeft, en waarvan de items beginnen met `Incident: `, `Announcement: ` en `Scheduled Maintenance: `. Handig voor wie uw updates liever in een feedlezer of een chatbot binnenhaalt dan zich per e-mail te abonneren.
+
+**Onderhoudsagenda.** Elke statuspagina serveert ook `/maintenance.ics`: het geplande onderhoud dat ze toont, als een agenda waarop Google Agenda, Apple Agenda of Outlook zich kan abonneren. Bezoekers voegen hem toe met **Abonneren op agenda** op de pagina **Geplande gebeurtenissen**, en één gebeurtenis met **Toevoegen aan agenda** op de pagina van die gebeurtenis. De agenda van een privépagina is leeg, omdat een agenda-app niet kan inloggen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#de-agenda-van-een-statuspagina).
 
 Als u de gegevens liever zelf ophaalt: de statuspagina steunt op openbare lees-endpoints voor het overzicht, de incidenten, de geplande onderhoudsgebeurtenissen, de aankondigingen en de episoden; zie [Publieke API](/docs/status-pages/public-api).
 

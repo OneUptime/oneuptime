@@ -29,7 +29,7 @@ El explorador tiene cuatro pestañas:
 | --- | --- |
 | **Visor** | Buscar y filtrar spans, y abrir sus trazas. Se abre con la última hora, los más recientes primero, 50 spans por página. |
 | **Análisis** | Tasas de solicitudes, tasas de error y latencia por servicio, y las solicitudes que merecen un vistazo. |
-| **Guía de configuración** | Cómo enviar trazas con OpenTelemetry, usando una de sus claves de ingesta. |
+| **Guía de configuración** | Cómo enviar trazas con OpenTelemetry, usando una de sus [claves de ingesta](/docs/telemetry/ingestion-keys). |
 | **Ajustes** | Lo que les pasa a los spans al llegar: **Canalizaciones**, **Filtros de descarte**, **Reglas de depuración** y **Reglas de grabación**. |
 
 ## Antes de empezar
@@ -115,12 +115,12 @@ Limítela a algunos servicios con la lista desplegable junto al selector de tiem
 
 ## Qué les pasa a los spans al llegar
 
-La pestaña **Ajustes** contiene las reglas que OneUptime aplica a los spans al llegar, como hace con los registros. Actúan sobre los spans que llegan después, no sobre los ya almacenados.
+La pestaña **Ajustes** contiene las reglas que OneUptime aplica a los spans al llegar, como hace con los registros. Actúan sobre los spans que llegan después, no sobre los ya almacenados. Cuánto tiempo se conserva cada span también se decide cuando llega: consulte [Retención de datos](/docs/telemetry/data-retention).
 
 | Regla | Qué hace |
 | --- | --- |
-| **Filtros de descarte** | Descartar los spans que no quiere conservar, o conservar solo una muestra. |
-| **Reglas de depuración** | Ocultar datos sensibles en los atributos de los spans. |
+| **Filtros de descarte** | Descartar los spans que no quiere conservar, o conservar solo una muestra. Consulte [Descartar o muestrear entradas](/docs/telemetry/drop-filters-and-scrub-rules#descartar-o-muestrear-entradas). |
+| **Reglas de depuración** | Ocultar datos sensibles en los atributos de los spans. Consulte [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles). |
 | **Canalizaciones** | Cambiar y enriquecer spans: cada canalización selecciona spans con un filtro y luego ejecuta sus procesadores en orden. |
 | **Reglas de grabación** | Convertir cada minuto los recuentos de spans, los recuentos de errores y las duraciones en métricas nuevas. Consulte [Reglas de grabación de registros](/docs/telemetry/log-recording-rules). |
 

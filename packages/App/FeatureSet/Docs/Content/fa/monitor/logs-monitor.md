@@ -155,16 +155,17 @@ flowchart TB
 ```mermaid title="بدون Group By و با آن"
 flowchart TB
     subgraph Without["بدون Group By"]
-        direction LR
+        direction TB
         A1["HQ-Branch1 از کار افتاد"] --> M1["یک شمارش"]
         B1["Branch2 از کار افتاد"] --> M1
         M1 --> X1["یک هشدار"]
     end
     subgraph With["گروه‌بندی بر اساس con_name"]
-        direction LR
+        direction TB
         A2["HQ-Branch1 از کار افتاد"] --> X2["هشدار برای HQ-Branch1"]
         B2["Branch2 از کار افتاد"] --> Y2["هشدار برای Branch2"]
     end
+    Without ~~~ With
 ```
 
 ### رفع مستقل

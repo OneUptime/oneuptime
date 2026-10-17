@@ -19,9 +19,9 @@ En Proxmox-monitor är knuten till ett kluster. Varje minut kör den sin fråga 
 flowchart TB
     subgraph site["Ditt nätverk"]
         direction LR
-        pve["Proxmox VE-API"] --> agent["OneUptimes Proxmox-agent"]
+        pve["Proxmox VE-API"] --> agent["OneUptimes<br/>Proxmox-agent"]
     end
-    agent -->|"pve-mått över OTLP"| oneuptime["OneUptime"]
+    agent -->|"pve-mått<br/>över OTLP"| oneuptime["OneUptime"]
     native["Inbyggd push i<br/>Proxmox VE 9"] -.->|"alternativ"| oneuptime
     oneuptime -->|"första data"| registered["Kluster registrerat"]
     oneuptime --> monitor["Proxmox-monitor"]

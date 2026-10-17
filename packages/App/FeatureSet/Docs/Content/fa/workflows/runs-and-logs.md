@@ -29,12 +29,12 @@ stateDiagram-v2
     state "خطا" as Failed
     state "Timeout" as TimedOut
     [*] --> Scheduled: تریگر فعال می‌شود
-    Scheduled --> Running: یک اجراکننده آن را برمی‌دارد
+    Scheduled --> Running: یک اجراکننده<br/>آن را برمی‌دارد
     Scheduled --> Failed: در ۵ دقیقه برداشته نشد
     Running --> Waiting: یک بلوک Sleep
     Waiting --> Running: زمان تمام شد
     Running --> Executed: به پایان رسید
-    Running --> Failed: یک بلوک اجرا را متوقف کرد
+    Running --> Failed: یک بلوک اجرا<br/>را متوقف کرد
     Running --> TimedOut: وقتش تمام شد
     Executed --> [*]
     Failed --> [*]

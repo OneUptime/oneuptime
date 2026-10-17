@@ -18,7 +18,7 @@ sequenceDiagram
     participant P as 프로브
     participant A as 여러분의 API
     participant O as OneUptime
-    P->>A: 지정한 메서드, 헤더, 본문으로 요청
+    P->>A: 지정한 메서드,<br/>헤더, 본문으로 요청
     A-->>P: 상태 코드, 헤더, 본문
     Note over P: 실패, 4xx 또는 5xx,<br/>10초보다 느린 응답을 재시도
     P->>O: 확인 결과

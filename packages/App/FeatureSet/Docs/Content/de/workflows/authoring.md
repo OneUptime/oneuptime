@@ -57,7 +57,7 @@ Ziehen Sie von einem Punkt unten an einem Baustein nach unten zum Punkt oben am 
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Nichts verbunden, also endet die Ausführung"])
+    check -->|"No"| ends(["Nichts verbunden, also<br/>endet die Ausführung"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```

@@ -25,10 +25,10 @@ sequenceDiagram
     B->>S: Permitir la app
     S-->>B: Redirección a /api/slack/auth
     B->>O: Código de un solo uso
-    O->>S: Canjear el código por un token de bot
+    O->>S: Canjear el código<br/>por un token de bot
     Note over O,S: Una vez conectado
-    O->>S: Publicar mensajes, HTTPS saliente
-    S->>O: Eventos, clics, comandos, HTTPS entrante
+    O->>S: Publicar mensajes,<br/>HTTPS saliente
+    S->>O: Eventos, clics,<br/>comandos, HTTPS entrante
 ```
 
 - **Saliente**: OneUptime llama a la Web API de Slack para publicar mensajes, crear canales y subir imágenes.
@@ -196,7 +196,7 @@ OAuth es una [redirección del navegador seguida de un canje del token en el ser
 ### Despliegues privados y seguridad de los callbacks
 
 ```mermaid title="Publicar los callbacks de Slack desde un despliegue privado"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["Pasarela pública"]
     GW -->|"/api/slack/* solo POST"| ING["Ingress de OneUptime"]
     Users["Empleados en la VPN"] --> ING

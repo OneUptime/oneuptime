@@ -25,9 +25,9 @@ AI-funksjoner bruker prosjektets standardleverandør. Et prosjekt uten standardl
 flowchart TB
     F["En AI-funksjon<br/>trenger en modell"] --> D{"Har prosjektet<br/>en standard-<br/>leverandør?"}
     D -->|"ja"| P["Prosjektets<br/>standardleverandør"]
-    D -->|"nei"| G{"Finnes det en global<br/>leverandør?"}
-    G -->|"ja"| GP["Den globale leverandøren:<br/>AI-kreditter på<br/>OneUptime Cloud"]
-    G -->|"nei"| N["Ingenting kjører, og<br/>AI-sidene sier at<br/>en leverandør mangler"]
+    D -->|"nei"| G{"Finnes det<br/>en global<br/>leverandør?"}
+    G -->|"ja"| GP["Den globale<br/>leverandøren:<br/>AI-kreditter på<br/>OneUptime Cloud"]
+    G -->|"nei"| N["Ingenting<br/>kjører, og<br/>AI-sidene sier at<br/>en leverandør<br/>mangler"]
 ```
 
 En leverandør er et prosjekts standard når **Angi som standard** er slått på, noe den er for hver ny leverandør. Et prosjekt der alle leverandørene har standard slått av, faller tilbake på den globale leverandøren, som om det ikke hadde noen.

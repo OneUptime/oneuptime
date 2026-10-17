@@ -21,15 +21,15 @@ En Docker Swarm-monitor er knyttet til én klynge. Hvert minutt kjører den spø
 flowchart TB
     subgraph cluster["Swarm-klyngen din"]
         direction LR
-        manager["Agent på en manager"]
-        others["Innsamlere på andre noder"]
+        manager["Agent på<br/>en manager"]
+        others["Innsamlere på<br/>andre noder"]
     end
-    manager -->|"metrikker og inventar"| oneuptime["OneUptime"]
+    manager -->|"metrikker<br/>og inventar"| oneuptime["OneUptime"]
     others -->|"metrikker"| oneuptime
     oneuptime -->|"første data"| registered["Klynge registrert"]
-    oneuptime --> monitor["Docker Swarm-monitor"]
+    oneuptime --> monitor["Docker<br/>Swarm-monitor"]
     monitor -->|"hvert minutt"| criteria{"Kriterier oppfylt?"}
-    criteria -->|"ja"| incident["Hendelse eller varsel"]
+    criteria -->|"ja"| incident["Hendelse<br/>eller varsel"]
     criteria -->|"nei"| online["Monitor tilkoblet"]
 ```
 

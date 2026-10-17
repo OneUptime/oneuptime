@@ -246,7 +246,7 @@ URL лент никогда не перенаправляют. Они отвеч
 Собственный Nginx OneUptime не пишет запросы к лентам в свои журналы:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;

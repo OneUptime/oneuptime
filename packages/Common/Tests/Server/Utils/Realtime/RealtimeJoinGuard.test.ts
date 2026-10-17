@@ -14,6 +14,7 @@ import RealtimeJoinAccess, {
 } from "../../../../Server/Utils/Realtime/RealtimeJoinAccess";
 import SsoAuthorizationException from "../../../../Types/Exception/SsoAuthorizationException";
 import { JSONObject } from "../../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../../Types/Permission";
 import SsoProviderType from "../../../../Types/SSO/SsoProviderType";
@@ -130,6 +131,7 @@ describe("the realtime join runs the API's own checks", () => {
       "getSsoTokens",
       "getGlobalSsoTokenData",
       "isUserBlocked",
+      "isUserMasterAdmin",
       "requireSsoForLogin",
       "ProjectService",
       "GlobalConfigService",
@@ -243,6 +245,7 @@ function accessToken(isMasterAdmin: boolean): string {
       name: "Realtime Guard",
       isMasterAdmin: isMasterAdmin,
       sessionId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      purpose: JsonWebTokenPurpose.UserSession,
     },
     15 * 60,
   );
@@ -266,6 +269,7 @@ function projectSsoToken(
             ssoProviderType: SsoProviderType.ProjectSSO,
           }
         : {}),
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     },
     30 * 60,
   );
@@ -447,6 +451,10 @@ describe("for the same handshake, the join answers as the API does", () => {
     (UserService.isUserBlocked as unknown as jest.Mock).mockResolvedValue(
       false,
     );
+    // A handshake that says master admin is one whose person still is one.
+    (UserService.isUserMasterAdmin as unknown as jest.Mock).mockResolvedValue(
+      true,
+    );
     (
       AccessTokenService.getUserTenantAccessPermission as unknown as jest.Mock
     ).mockResolvedValue(tenantPermission);
@@ -496,6 +504,107 @@ describe("for the same handshake, the join answers as the API does", () => {
       });
     });
   }
+
+  /*
+   * A server admin whose master admin access was removed, with the access
+   * token they already had: neither the API nor the join lets them into a
+   * project they are not a member of, and both hold them to the server's
+   * Require SSO in one they are.
+   */
+  test("a server admin whose access was removed is let in nowhere they are not a member, on either side", async () => {
+    (UserService.isUserMasterAdmin as unknown as jest.Mock).mockResolvedValue(
+      false,
+    );
+    (
+      ProjectService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockResolvedValue(false);
+    (
+      ProjectService.getRequireSsoWithSsoProviderId as unknown as jest.Mock
+    ).mockResolvedValue(null);
+    (
+      GlobalConfigService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockResolvedValue(false);
+    (
+      AccessTokenService.getUserTenantAccessPermission as unknown as jest.Mock
+    ).mockResolvedValue(null);
+
+    for (const handshake of HANDSHAKES) {
+      if (!handshake.isMasterAdmin) {
+        continue;
+      }
+
+      const headers: Record<string, string> = headersOf(handshake);
+
+      await expect(apiAnswer(headers)).resolves.toBe("not-allowed");
+      await expect(joinAnswer(headers)).resolves.toBe("not-allowed");
+    }
+
+    // A member of the project, while the server requires SSO: asked for it, as any member is.
+    (
+      AccessTokenService.getUserTenantAccessPermission as unknown as jest.Mock
+    ).mockResolvedValue(tenantPermission);
+    (
+      GlobalConfigService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockResolvedValue(true);
+
+    const withoutSso: Record<string, string> = headersOf(
+      HANDSHAKES.find((handshake: HandshakeCase): boolean => {
+        return handshake.isMasterAdmin && handshake.cookies.length === 0;
+      })!,
+    );
+
+    await expect(apiAnswer(withoutSso)).resolves.toBe("sso-required");
+    await expect(joinAnswer(withoutSso)).resolves.toBe("sso-required");
+  });
+
+  /*
+   * A rule that cannot be read is no answer, for the join as for the API:
+   * both fail with the error (the join is then not made), and neither lets
+   * the handshake in as though nothing were required.
+   */
+  test("the instance-wide requirement that cannot be read lets no member in, on either side; a server admin is not asked it", async () => {
+    (
+      ProjectService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockResolvedValue(false);
+    (
+      ProjectService.getRequireSsoWithSsoProviderId as unknown as jest.Mock
+    ).mockResolvedValue(null);
+    (
+      GlobalConfigService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockRejectedValue(new Error("database unavailable"));
+
+    for (const handshake of HANDSHAKES) {
+      const headers: Record<string, string> = headersOf(handshake);
+
+      if (handshake.isMasterAdmin) {
+        await expect(apiAnswer(headers)).resolves.toBe("allowed");
+        await expect(joinAnswer(headers)).resolves.toBe("allowed");
+        continue;
+      }
+
+      await expect(apiAnswer(headers)).rejects.toThrow("database unavailable");
+      await expect(joinAnswer(headers)).rejects.toThrow("database unavailable");
+    }
+  });
+
+  test("a pinned provider that cannot be read lets nobody in, on either side, server admins included", async () => {
+    (
+      ProjectService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockResolvedValue(true);
+    (
+      ProjectService.getRequireSsoWithSsoProviderId as unknown as jest.Mock
+    ).mockRejectedValue(new Error("database unavailable"));
+    (
+      GlobalConfigService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockResolvedValue(false);
+
+    for (const handshake of HANDSHAKES) {
+      const headers: Record<string, string> = headersOf(handshake);
+
+      await expect(apiAnswer(headers)).rejects.toThrow("database unavailable");
+      await expect(joinAnswer(headers)).rejects.toThrow("database unavailable");
+    }
+  });
 
   test("the matrix has both answers in it", async () => {
     (

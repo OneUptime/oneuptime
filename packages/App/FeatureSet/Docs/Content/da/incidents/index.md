@@ -7,6 +7,8 @@ En hændelse er den optegnelse, dit team arbejder ud fra, når noget går i styk
 - [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities): Livscyklussen, og hvad bekræftelse og løsning gør.
 - [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed): Opdateringer til kunder og til dit team, og hvem der hører om dem.
 - [Tilknyttede advarsler](/docs/incidents/linked-alerts): Knyt de advarsler, et udfald udløste, til den hændelse, der forklarer dem.
+- [Episoder](/docs/incidents/episodes): Saml relaterede hændelser, og arbejd med dem som én.
+- [Postmortem-analyser](/docs/incidents/postmortems): Skriv ned, hvad der skete, og offentliggør det på din statusside.
 - [Hændelsesindstillinger og automatisering](/docs/incidents/settings): Skabeloner, brugerdefinerede felter, roller, målinger og regler.
 :::
 
@@ -34,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Formular"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Ny hændelse"]
     incident --> rules["Hændelsesregler kører"]
-    rules --> oncall["Vagtpolitikker tilkalder"]
+    rules --> oncall["Vagtpolitikker<br/>tilkalder"]
     rules --> owners["Ejerne får besked"]
-    rules --> pages["Statussider opdateres"]
+    rules --> pages["Statussider<br/>opdateres"]
     oncall --> feed["Hændelse Feed"]
     owners --> feed
     pages --> feed
@@ -56,7 +60,7 @@ Fem veje fører til det samme objekt:
 - **Via API'et** — `POST /api/incident` med en API-nøgle. Serveren udfylder `declaredAt`, oprettelsestilstanden og hændelsesnummeret for dig.
 - **Via en formular** — en uden for dit team udfylder en formular, du har delt som et link, uden en OneUptime-konto. Hændelsen erklæres skjult for statussider, ud fra formularens hændelsesskabelon, hvis den har en. Se [Formularer](/docs/forms/index).
 
-Integrationer åbner også hændelser: [Huntress](/docs/integrations/huntress) gør hver hændelsesrapport, dens SOC sender, til én hændelse, der tilkalder de vagtpolitikker, du vælger. Se [Opret en hændelse](/docs/incidents/declaring-incidents) for gennemgangen felt for felt.
+Workflows åbner også hændelser: [Huntress](/docs/integrations/huntress)-workflowet gør hver hændelsesrapport, dens SOC sender, til én hændelse, der tilkalder den vagtpolitik, du vælger. Se [Opret en hændelse](/docs/incidents/declaring-incidents) for gennemgangen felt for felt.
 
 ### 2. De rigtige personer får det at vide
 
@@ -77,7 +81,7 @@ Dem, der reagerer, bekræfter hændelsen, tilføjer berørte ressourcer, knytter
 
 Et klik på **Løs** flytter hændelsen til den løste tilstand, registrerer det i tilstandstidslinjen, stopper varighedsuret, giver de monitorer fri, den holder, og fjerner hændelsen fra den aktive del af enhver statusside, den blev vist på. Intet andet behøver at ændre sig — en statusside viser kun hændelser i en tilstand over den løste tilstand. Se [Hvad løsning gør](/docs/incidents/states-and-severities#hvad-løsning-gør).
 
-Derefter kan du skrive en postmortem og eventuelt offentliggøre den på statussiden.
+Derefter kan du skrive en [postmortem](/docs/incidents/postmortems) og eventuelt offentliggøre den på statussiden.
 
 ## Nøglebegreber
 
@@ -103,7 +107,7 @@ Når et projekt oprettes, opretter OneUptime præcis tre hændelsestilstande, i 
 
 ```mermaid title="De tilstande, hvert nyt projekt starter med"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: erklæret
     Identified --> Acknowledged: Bekræft
     Identified --> Resolved: Løs
@@ -156,11 +160,10 @@ Rediger eller tilføj alvorsgrader under **Hændelser → Indstillinger → Hæn
 | **Episoder**  | Hændelsesepisoder, en separat grupperingsfunktion med sine egne sider.                                                                                                    |
 | **AI**        | **Indsigter**, **Protokoller**, **Indstillinger**: hvad OneUptime AI har lært af dine hændelser, og alt, hvad den har gjort for dem, og hvad den må gøre på egen hånd — med reglerne for, hvilke hændelser den undersøger og retter. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbejdsområde** | De chatarbejdsområder, projektet har forbundet: **Slack**, **Microsoft Teams** eller begge, hver med sine notifikationsregler for hændelser. Er ingen af dem forbundet, indeholder det **Forbind Slack eller Teams**, en side, der viser begge, og hvordan de forbindes. |
-| **Integrationer** | Værktøjer, der selv åbner hændelser: **Huntress**, hvis hændelsesrapporter bliver til hændelser, der tilkalder vagten. Se [Huntress](/docs/integrations/huntress). |
 | **Regler**    | Regelmotorerne: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **SLA-regler**, **Reminder Rules**. |
 | **Indstillinger** | **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Postmortem-skabeloner**, **Brugerdefinerede felter**, **Hændelsesroller**, **Målinger**, **Tilknyttede advarsler**, **Medlemskab af episoder**, **Nummerering**. |
 
-**Oversigt** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Integrationer**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen som standard, så menuen åbner på de lister, du bruger hver dag. Klik på et afsnits titel for at folde det ud og finde de sider, resten af denne dokumentation henviser til; et afsnit åbner også af sig selv, når du er på en af dets sider. Konfigurationen af hændelser ligger ikke under projektindstillingerne; den ligger helt her.
+**Oversigt** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen som standard, så menuen åbner på de lister, du bruger hver dag. Klik på et afsnits titel for at folde det ud og finde de sider, resten af denne dokumentation henviser til; et afsnit åbner også af sig selv, når du er på en af dets sider. Konfigurationen af hændelser ligger ikke under projektindstillingerne; den ligger helt her.
 
 Selve listen over hændelser viser **Hændelsesnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer**, **Erklæret**, **Varighed**, **Etiketter** og **Ejere**, med en massehandling **Skift tilstand** til at lukke flere på én gang.
 

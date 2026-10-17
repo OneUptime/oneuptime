@@ -22,8 +22,8 @@ sequenceDiagram
     S->>O: E-mail à l'adresse du moniteur
     O->>O: Le stocker sur le moniteur
     O->>O: Vérifier les critères
-    O->>T: Alerte ou incident, si l'un correspond
-    Note over O: Toutes les 30 secondes, vérifier<br/>les critères Email Received
+    O->>T: Alerte ou incident,<br/>si l'un correspond
+    Note over O: Toutes les 30 secondes,<br/>vérifier<br/>les critères Email Received
 ```
 
 1. Quand vous créez un moniteur d'e-mails entrants, OneUptime lui donne une adresse e-mail unique.

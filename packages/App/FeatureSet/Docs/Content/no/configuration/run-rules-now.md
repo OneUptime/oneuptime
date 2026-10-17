@@ -9,7 +9,7 @@ flowchart TB
     M -->|"Nei"| K["Blir som den er"]
     M -->|"Ja"| H{"Har den allerede<br/>det regelen legger til?"}
     H -->|"Ja"| A["Telles som allerede brukt"]
-    H -->|"Nei"| C["Etiketter eller eiere lagt til,<br/>eller gjort privat"]
+    H -->|"Nei"| C["Etiketter eller<br/>eiere lagt til,<br/>eller gjort privat"]
 ```
 
 ## Hvilke regler kan kjøres

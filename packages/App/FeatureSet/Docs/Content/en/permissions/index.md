@@ -12,14 +12,14 @@ Everything in OneUptime lives inside a **project**. Who can do what inside that 
 ```mermaid title="How a person and an API key get access"
 flowchart TB
     User["A user<br/>(one account)"]
-    Key["An API key"]
     subgraph Project["A project"]
         direction TB
+        Key["An API key"]
         Team["Team"]
-        Allow["Allow permissions,<br/>each with a scope:<br/>All, Owned or Labels"]
+        Allow["Allow permissions,<br/>each with a scope:<br/>All, Owned<br/>or Labels"]
         Block["Block permissions,<br/>which always win"]
-        KeyRules["The key's own allow<br/>and block permissions"]
-        Resources["Monitors, incidents,<br/>status pages and more"]
+        KeyRules["The key's<br/>own allow<br/>and block<br/>permissions"]
+        Resources["Monitors,<br/>incidents,<br/>status pages<br/>and more"]
     end
     User -->|"member of"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"reach"| Resources
     KeyRules -->|"reach"| Resources
     Block -.->|"take away"| Resources
+    Allow ~~~ Block
 ```
 
 | Concept | What it is |
@@ -58,6 +59,7 @@ A user is "in" a project when they are a member of **at least one team** in it. 
 - Invitations create a pending team member. The user only counts as a project member — and only gains any permission — **after they accept the invitation.**
 - **Invite User** starts on the project's members team: the team that holds `ProjectMember` for the whole project, which is **Members** unless you renamed it. Pick another team to give the person more or less access. Nothing is picked when you could not invite to that team yourself — inviting someone hands them the team's permissions, and you can only hand on permissions you hold — or when the project has no such team. The Admin Dashboard starts on the same team wherever an instance administrator adds someone to a project: **Invite User** on a project, **Add to Project** on a user and on several users at once, and the projects attached to a [global SSO provider](/docs/identity/global-sso).
 - Removing a user from every team in a project removes their access to it, from their next request on — including while they are signed in. Their account and their other projects are not affected. They are taken off the project's on-call schedules, escalation rules and overrides, off the roles of its open incidents and episodes, and off the owners of its resources; resolved incidents keep the record of who owned and ran them.
+- On a self-hosted installation, removing someone's master admin access in the Admin Dashboard takes it away from their next request on — including while they are signed in. They stay signed in, and keep the projects they are a member of.
 - Someone who leaves a project stops getting its notifications. Their own notification methods, rules and settings for the project go with their last team — email, SMS, phone, WhatsApp, Telegram, push, webhook, Slack and Microsoft Teams, their email rollup and the rollup email not sent yet, their number for incoming calls and their shift reminders — so joining again starts from the defaults. Anything that still names them, such as the user an incoming call rule rings or an owner kept on a resolved incident, no longer notifies them: nothing is sent on a project's behalf to anyone who is not a member of it, and a pending invitation is not membership yet. Those places show **No longer a member** next to their name, so you can put someone else there. Someone invited who has not accepted yet shows **Invitation not accepted yet** instead. If an override routes someone's pages to a person who has left, the person it covers is paged instead. Leaving also disconnects the MCP clients they connected to the project, and their personal on-call calendar link shows an empty calendar from then on. On OneUptime Cloud, someone who comes back through the project's single sign-on confirms it from their mailbox again.
 - If your project enforces SSO and a user has not authenticated through the identity provider yet, they are treated as an unauthorised SSO user and see nothing until they do. See [SSO](/docs/identity/sso).
 - With SCIM configured, your identity provider can create, update and remove users and their team memberships automatically. See [SCIM](/docs/identity/scim).

@@ -28,13 +28,13 @@ stateDiagram-v2
     state "Executed" as Executed
     state "Ошибка" as Failed
     state "Timeout" as TimedOut
-    [*] --> Scheduled: срабатывает триггер
-    Scheduled --> Running: исполнитель берёт его
-    Scheduled --> Failed: не взят в течение 5 минут
+    [*] --> Scheduled: срабатывает<br/>триггер
+    Scheduled --> Running: исполнитель<br/>берёт его
+    Scheduled --> Failed: не взят в<br/>течение 5 минут
     Running --> Waiting: блок Sleep
     Waiting --> Running: время вышло
     Running --> Executed: дошёл до конца
-    Running --> Failed: блок остановил запуск
+    Running --> Failed: блок остановил<br/>запуск
     Running --> TimedOut: закончилось время
     Executed --> [*]
     Failed --> [*]

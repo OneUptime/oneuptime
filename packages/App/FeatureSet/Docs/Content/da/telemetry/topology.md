@@ -77,7 +77,7 @@ Klik på en pil for at se dens anmodningsrate, fejlrate og gennemsnitlige latens
 
 **Infrastruktur** viser, hvor dine tjenester kører: klynger, værter, pods, containere og de andre ressourcer, der sender data. Replikaer af én workload samles i én post, og du kan åbne hvad som helst for at se indeni.
 
-- **Gennemse den på din måde.** Vis den som **List** eller **Map**, fra hele din infrastruktur ned til én pod. Tallene over den viser, hvor mange ressourcer og workloads den tegner, hvor mange tjenester den kan placere, og hvor mange tavse ressourcer den udelader.
+- **Gennemse den på din måde.** Vis den som **Liste** eller **Map**, fra hele din infrastruktur ned til én pod. Tallene over den viser, hvor mange ressourcer og workloads den tegner, hvor mange tjenester den kan placere, og hvor mange tavse ressourcer den udelader.
 - **Find en ressource.** Søg efter den ved navn, og klik på **View details** for at åbne dens side.
 - **Skift mellem visninger.** En tjeneste, der står på en ressource, åbner på **Service Map**, og de ressourcer, en tjeneste kører på, åbner på **Infrastruktur**.
 

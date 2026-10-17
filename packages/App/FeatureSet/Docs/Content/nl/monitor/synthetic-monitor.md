@@ -19,15 +19,15 @@ sequenceDiagram
     participant P as Sonde
     participant B as Browser
     participant A as Uw webapp
-    O->>P: Script, geheimen ingevuld
-    loop Elke browser en elk schermformaat
-        P->>B: Het script uitvoeren
-        B->>A: Pagina's laden, klikken, typen
+    O->>P: Script, geheimen<br/>ingevuld
+    loop Elke browser<br/>en elk<br/>schermformaat
+        P->>B: Het script<br/>uitvoeren
+        B->>A: Pagina's laden,<br/>klikken, typen
         A-->>B: Pagina's
-        B-->>P: Resultaat, schermafbeeldingen, logs
+        B-->>P: Resultaat,<br/>scherm-<br/>afbeeldingen,<br/>logs
     end
-    P->>O: Eén antwoord per uitvoering
-    O->>O: De criteria toetsen
+    P->>O: Eén antwoord<br/>per uitvoering
+    O->>O: De criteria<br/>toetsen
 ```
 
 | Schermtype | Viewport |

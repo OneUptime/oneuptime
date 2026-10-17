@@ -23,11 +23,11 @@ AI-functies gebruiken de standaardprovider van het project. Een project zonder s
 
 ```mermaid title="Welke provider een AI-functie gebruikt"
 flowchart TB
-    F["Een AI-functie<br/>heeft een model nodig"] --> D{"Heeft het project<br/>een standaard-<br/>provider?"}
+    F["Een AI-functie<br/>heeft een<br/>model nodig"] --> D{"Heeft het project<br/>een standaard-<br/>provider?"}
     D -->|"ja"| P["De standaardprovider<br/>van het project"]
     D -->|"nee"| G{"Is er een globale<br/>provider?"}
-    G -->|"ja"| GP["De globale provider:<br/>AI-tegoed op<br/>OneUptime Cloud"]
-    G -->|"nee"| N["Er draait niets, en<br/>de AI-pagina's melden<br/>dat er een provider<br/>ontbreekt"]
+    G -->|"ja"| GP["De globale<br/>provider:<br/>AI-tegoed op<br/>OneUptime Cloud"]
+    G -->|"nee"| N["Er draait<br/>niets, en<br/>de AI-pagina's<br/>melden<br/>dat er een<br/>provider<br/>ontbreekt"]
 ```
 
 Een provider is de standaard van een project wanneer **Instellen als standaard** aan staat, wat voor elke nieuwe provider zo is. Een project waarvan bij alle providers de standaard uit staat, valt terug op de globale provider, alsof het er geen had.

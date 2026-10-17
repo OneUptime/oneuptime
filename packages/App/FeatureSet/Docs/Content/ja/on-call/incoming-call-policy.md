@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Twilio アカウントと、その Account SID と Auth Token | ポリシーの番号と通話はこのアカウントで動作し、Twilio はこのアカウントに料金を請求します。 |
 | OneUptime Cloud の **Growth** プラン | プロジェクトが独自の Twilio 設定を持つために必要です。 |
-| セルフホストの場合、Twilio から到達できる OneUptime サーバー | Twilio はすべての通話を `https://<your host>/notification/incoming-call/voice` に送ります。 |
+| セルフホストの場合、Twilio から到達できる OneUptime サーバー | Twilio はすべての通話を `https://<your host>/notification/incoming-call/voice` に、各呼び出しの結果を `https://<your host>/notification/incoming-call/dial-status/...` に送ります。 |
 | プロジェクトで **SMS** がオンになっていること | 各エンジニアの番号は、SMS で送られるコードで確認します。 |
 | 各エンジニアの確認済みの番号 | ルールが呼び出すのは、プロジェクトで着信用の番号を追加して確認した人だけです。 |
 
@@ -86,13 +86,13 @@ sequenceDiagram
     participant Twilio
     participant OneUptime
     participant Engineer as エンジニア
-    Caller->>Twilio: ポリシーの番号に電話する
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: 挨拶の後、最初のルールの担当者を呼び出す
-    Twilio->>Engineer: ルールの呼び出し時間だけ鳴らす
+    Caller->>Twilio: ポリシーの<br/>番号に電話する
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: 挨拶の後、<br/>最初のルールの<br/>担当者を呼び出す
+    Twilio->>Engineer: ルールの呼び出し<br/>時間だけ鳴らす
     Note over Twilio,Engineer: 時間内に誰も応答しない
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: 次のルールの担当者を呼び出す
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: 次のルールの<br/>担当者を呼び出す
     Twilio->>Engineer: 次の人を呼び出す
     Engineer-->>Twilio: 応答する
     Twilio-->>Caller: 発信者をつなぐ

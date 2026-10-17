@@ -180,7 +180,7 @@ resource "oneuptime_monitor" "website" {
 
 ### हर मॉनिटर प्रकार की सेटिंग्स
 
-जिन मॉनिटर प्रकारों में पते से ज़्यादा सेट करना होता है, वे अपनी सेटिंग्स (लॉग क्वेरी, डेटाबेस कनेक्शन, निगरानी करने का क्लस्टर) अपने ख़ुद के एट्रिब्यूट में रखते हैं, `jsonencode()` से लिखे कच्चे JSON के रूप में: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor` और `iot_monitor`।
+जिन मॉनिटर प्रकारों में पते से ज़्यादा सेट करना होता है, वे अपनी सेटिंग्स (लॉग क्वेरी, डेटाबेस कनेक्शन, निगरानी करने का क्लस्टर) अपने ख़ुद के एट्रिब्यूट में रखते हैं, `jsonencode()` से लिखे कच्चे JSON के रूप में: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` और `probe_status_monitor`।
 
 इनका JSON डैशबोर्ड वाला ही होता है, कुंजियाँ camelCase में। इसके भीतर ID वैसे ही लिखा जाता है जैसे API लिखता है: `{ _type = "ObjectID", value = "..." }`। एक Logs मॉनिटर जो किसी एक सेवा की त्रुटियाँ गिनता है:
 

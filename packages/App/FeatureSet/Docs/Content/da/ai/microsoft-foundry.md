@@ -16,16 +16,16 @@ OneUptime kalder din Foundry-ressource over HTTPS fra OneUptime-serveren, aldrig
 ```mermaid title="Hvor OneUptimes AI-anmodninger går hen"
 flowchart TB
     subgraph OU["OneUptime-server"]
-        F["AI-undersøgelser, noter, postmortems, rettelsesopgaver"]
+        F["AI-undersøgelser,<br/>noter, postmortems,<br/>rettelsesopgaver"]
     end
     subgraph AZ["Dit Azure-abonnement"]
-        R["Foundry-ressource contoso-ai"]
-        V1["OpenAI v1-API: /openai/v1/chat/completions"]
-        AN["Anthropic-API: /anthropic/v1/messages"]
+        R["Foundry-ressource<br/>contoso-ai"]
+        V1["OpenAI v1-API:<br/>/openai/v1/chat/completions"]
+        AN["Anthropic-API:<br/>/anthropic/v1/messages"]
         D1["Udrulning gpt-5.1"]
-        D2["Udrulning claude-sonnet-5-5"]
+        D2["Udrulning<br/>claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API-nøgle"| R
+    F -->|"HTTPS +<br/>API-nøgle"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```

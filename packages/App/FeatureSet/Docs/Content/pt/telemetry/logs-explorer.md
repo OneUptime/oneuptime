@@ -29,7 +29,7 @@ O explorador tem quatro abas:
 | --- | --- |
 | **Visualizador** | Pesquisar, filtrar e ler registros. Abre na última hora, os mais recentes primeiro, 100 registros por página. |
 | **Insights** | O que seus serviços registraram em um intervalo de tempo, e o que deu errado. |
-| **Guia de configuração** | Como enviar registros com OpenTelemetry, Fluent Bit ou Fluentd, usando uma das suas chaves de ingestão. |
+| **Guia de configuração** | Como enviar registros com OpenTelemetry, Fluent Bit ou Fluentd, usando uma das suas [chaves de ingestão](/docs/telemetry/ingestion-keys). |
 | **Configurações** | O que acontece com os registros quando chegam: **Pipelines**, **Filtros de descarte**, **Regras de mascaramento** e **Regras de gravação**. |
 
 ## Antes de começar
@@ -111,7 +111,7 @@ As visualizações salvas pertencem ao projeto, então todos nele veem a mesma l
 
 Mude a lista para **Analytics** para contar registros em vez de lê-los. Escolha uma série temporal, uma lista dos principais ou uma tabela; conte cada registro, ou os valores únicos de um campo; e agrupe por gravidade, serviço, traço, span ou qualquer atributo, e depois por um segundo campo. Uma lista dos principais ou uma tabela mostra os 5, 10, 25 ou 50 primeiros grupos.
 
-Clique em **List** para voltar às próprias linhas.
+Clique em **Lista** para voltar às próprias linhas.
 
 ## Abrir traços e métricas relacionados
 
@@ -132,12 +132,12 @@ Selecione um dos principais erros para ver o que acontecia ao redor dele: quando
 
 ## O que acontece com os registros quando chegam
 
-A aba **Configurações** reúne as regras que o OneUptime aplica a cada registro antes de armazená-lo. Elas agem sobre os registros que chegam depois, não sobre os já armazenados.
+A aba **Configurações** reúne as regras que o OneUptime aplica a cada registro antes de armazená-lo. Elas agem sobre os registros que chegam depois, não sobre os já armazenados. Por quanto tempo cada registro é mantido também é decidido quando ele chega: veja [Retenção de dados](/docs/telemetry/data-retention).
 
 | Regra | O que faz |
 | --- | --- |
-| **Filtros de descarte** | Descartar os registros que você não quer guardar, ou guardar só uma amostra deles. |
-| **Regras de mascaramento** | Mascarar dados sensíveis, como endereços de e-mail e números de cartão. |
+| **Filtros de descarte** | Descartar os registros que você não quer guardar, ou guardar só uma amostra deles. Veja [Descartar ou amostrar entradas](/docs/telemetry/drop-filters-and-scrub-rules#descartar-ou-amostrar-entradas). |
+| **Regras de mascaramento** | Mascarar dados sensíveis, como endereços de e-mail e números de cartão. Veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis). |
 | **Pipelines** | Extrair campos da mensagem, corrigir a gravidade, renomear atributos. Veja [Pipelines de registros](/docs/telemetry/log-pipelines). |
 | **Regras de gravação** | Transformar os registros correspondentes em métricas. Veja [Regras de gravação de registros](/docs/telemetry/log-recording-rules). |
 

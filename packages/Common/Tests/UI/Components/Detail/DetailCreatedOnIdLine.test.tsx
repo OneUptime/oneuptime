@@ -392,14 +392,15 @@ describe("no time, no piece", () => {
     expect(screen.queryByText("Created")).toBeNull();
   });
 
-  test("with no ID either, the detail is the grid, exactly as before", () => {
+  test("with no ID either, the detail is the grid alone", () => {
     const grid: HTMLElement = renderDetail({
       fields: [NAME, CREATED_FIELD],
       item: { ...MONITOR, _id: undefined, createdAt: null },
     });
 
     expect(grid).toHaveAttribute("id", "monitor-detail");
-    expect(grid.className).toBe("grid grid-cols-1 gap-0 sm:grid-cols-1 w-full");
+    // The grid alone: one column, no line under it (DetailGridLayout).
+    expect(grid.className).toBe("grid grid-cols-1 w-full");
     expect(rowTitles(grid)).toEqual(["Name"]);
     expect(screen.queryByTestId("detail-record-line")).toBeNull();
   });

@@ -45,8 +45,9 @@ import JobDictionary from "../FeatureSet/Workers/Utils/JobDictionary";
  */
 
 /*
- * Cron jobs the enterprise module owns. Earlier releases registered all five
- * from core, so their repeatable definitions can still be in Redis on any
+ * Cron jobs the enterprise module owns. Earlier releases registered the first
+ * five from core, and the marketplace usage job runs only where a marketplace
+ * is named, so their repeatable definitions can still be in Redis on any
  * install; a Community process (or an Enterprise process that registers only
  * some of them - the license-server jobs run only with billing) would then
  * fail every run with "No job found". Core registers a no-op handler for each
@@ -59,6 +60,12 @@ export const ENTERPRISE_OWNED_JOB_NAMES: ReadonlyArray<string> = [
   "EnterpriseLicense:ReconcileInstanceUsage",
   "InstanceHealth:EvaluatePostgresHealth",
   "InstanceHealth:EvaluateRedisHealth",
+  /*
+   * Registered only by an Enterprise process billed through a cloud
+   * marketplace, so it can be in Redis on an installation that stops naming
+   * one (ENTERPRISE_MARKETPLACE).
+   */
+  "EnterpriseMarketplace:ReportUsage",
 ];
 
 export const DEFAULT_ENTERPRISE_INIT_TIMEOUT_IN_MS: number = 30 * 1000;

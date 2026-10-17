@@ -21,13 +21,13 @@ sequenceDiagram
     actor U as ユーザー
     participant O as OneUptime
     participant I as アイデンティティプロバイダー
-    U->>O: SSOでログイン、プロジェクトを選択
-    O->>I: サインオン URL への SAML リクエスト
+    U->>O: SSOでログイン、<br/>プロジェクトを選択
+    O->>I: サインオン URL への<br/>SAML リクエスト
     I->>U: サインインページ
     U->>I: 認証情報と MFA
-    I->>O: 署名付きアサーションを応答 URL へ
-    Note over O: 署名と発行者を確認し、<br/>Name ID からメールアドレスを読み取る
-    O->>U: プロジェクトにサインイン済み
+    I->>O: 署名付きアサーションを<br/>応答 URL へ
+    Note over O: 署名と発行者を確認し、<br/>Name ID から<br/>メールアドレスを読み取る
+    O->>U: プロジェクトに<br/>サインイン済み
 ```
 
 OneUptime は、IdP が送信するアサーションから次のものだけを読み取ります。
@@ -36,8 +36,13 @@ OneUptime は、IdP が送信するアサーションから次のものだけを
 | --- | --- |
 | 署名 | プロバイダーの **公開証明書** と照合します。レスポンスは署名されている必要があり、暗号化されていてはいけません。 |
 | Issuer | プロバイダーの **発行者** と完全に一致する必要があります。 |
+| Audience | プロバイダーの **識別子（エンティティ ID）** である必要があります。IdP が別のアプリケーション向けに作成したレスポンスは拒否されます。 |
+| Recipient と Destination | プロバイダーの **応答 URL**、つまりレスポンスの送信先アドレスである必要があります。 |
+| `NotBefore` と `NotOnOrAfter` | レスポンスは、これらが許す間だけ、かつ発行から 10 分以内に限って受け付けられます。ずれている時計のために 3 分の猶予があります。 |
 | Name ID | その人のメールアドレスです。有効なメールアドレスである必要があります。 |
 | `http://schemas.microsoft.com/identity/claims/displayname` | その人の名前で、OneUptime がアカウントを作成するときに使います。省略可能です。 |
+
+各レスポンスでサインインできるのは 1 回だけです。サインイン後にブラウザーで戻るなどして再送されたレスポンスは拒否されます。もう一度サインインしてください。
 
 初めてサインインした人はプロバイダーの **チーム** に参加し、そのチームによってできることが決まります。[SSO ユーザーのロールとチーム](#sso-ユーザーのロールとチーム) をご覧ください。
 
@@ -326,6 +331,22 @@ SAML または OIDC プロバイダーをオフにするか削除すると、そ
 
 :::details "Issuer URL does not match"
 IdP のアサーションに含まれる発行者が、プロバイダーの **発行者** と一致していません。IdP から（Keycloak のレルム URL、**Microsoft Entra Identifier**、Okta の Identity Provider Issuer を）コピーし直して、2 つが完全に一致するようにしてください。
+:::
+
+:::details "SAML Audience does not match"
+レスポンスの audience が、このプロバイダーの **識別子（エンティティ ID）** ではありません。IdP が別のアプリケーション向けにレスポンスを作成しています。IdP で、アプリケーションの entity ID を **SSO 設定を表示** の **識別子（エンティティ ID）** に設定してください（Keycloak では **Client ID**、Entra ID では **Identifier (Entity ID)**、Okta では **Audience URI (SP Entity ID)**）。OneUptime のアドレスだけ（`https://oneuptime.com` など）を entity ID として設定した IdP は、そのまま使えます。
+:::
+
+:::details "SAML Recipient does not match"
+レスポンスの recipient が、このプロバイダーの **応答 URL** ではありません。レスポンスは別のアドレス宛てに送られています。IdP で、アプリケーションの reply URL を **SSO 設定を表示** の **応答 URL（Assertion Consumer Service URL）** に設定してください（Keycloak では **Assertion Consumer Service POST Binding URL**、Entra ID では **Reply URL (Assertion Consumer Service URL)**、Okta では **Single sign-on URL**）。"SAML Destination does not match" も原因と対処は同じです。
+:::
+
+:::details "SAML response has expired"
+レスポンスが OneUptime に届いたのが、IdP が許すより遅いか、発行から 10 分より後でした。もう一度サインインしてください。何度も起きる場合は、IdP か OneUptime サーバーの時計がずれています。OneUptime が許すずれは 3 分までです。"SAML response is not valid yet" は、同じ問題が逆向きに起きたものです。
+:::
+
+:::details "SAML response was already used"
+IdP の各レスポンスでサインインできるのは 1 回だけです。サインイン後にブラウザーで戻ったり、IdP に経由させられたページを再読み込みしたりすると、同じレスポンスが再送されます。OneUptime から、または IdP から、もう一度サインインしてください。
 :::
 
 :::details 署名または証明書のエラーでサインインに失敗する

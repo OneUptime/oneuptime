@@ -15,13 +15,13 @@ Un runbook puede iniciarse solo: según una programación, o cuando otra herrami
 flowchart TB
     subgraph starts["Qué inicia la ejecución"]
         direction LR
-        schedule["La programación: llega una hora"]
-        webhook["El webhook: un POST a su URL"]
+        schedule["La programación:<br/>llega una hora"]
+        webhook["El webhook: un<br/>POST a su URL"]
     end
-    schedule --> checks["El runbook está activado y tiene pasos"]
+    schedule --> checks["El runbook está<br/>activado y tiene pasos"]
     webhook --> checks
-    checks --> execution["Ejecución, marcada como Schedule o Webhook"]
-    execution --> worker["El Worker de OneUptime ejecuta los pasos"]
+    checks --> execution["Ejecución, marcada<br/>como Schedule o Webhook"]
+    execution --> worker["El Worker de OneUptime<br/>ejecuta los pasos"]
 ```
 
 Un desencadenante inicia una ejecución como lo hace **Ejecutar ahora**: la ejecución recorre los pasos actuales del runbook y no está vinculada a ningún incidente, alerta ni evento de mantenimiento programado. Cada ejecución registra qué la inició. Las **Ejecuciones** del runbook y **Runbooks → Ejecuciones** lo muestran en **Activado por**, con la hora en que vencía una ejecución programada o la dirección que llamó al webhook, y ambas listas se pueden filtrar por ello.

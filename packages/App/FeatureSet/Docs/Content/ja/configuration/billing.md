@@ -13,8 +13,8 @@ OneUptime Cloud では、プロジェクトはユーザー単位のプラン料�
 
 ```mermaid title="OneUptime Cloud のプロジェクトが支払うもの"
 flowchart TB
-    project["あなたのプロジェクト"] --> plan["プラン: ユーザー<br/>ごとの月額料金"]
-    project --> usage["従量課金:<br/>テレメトリとモニター"]
+    project["あなたの<br/>プロジェクト"] --> plan["プラン: ユーザー<br/>ごとの月額料金"]
+    project --> usage["従量課金:<br/>テレメトリと<br/>モニター"]
     project --> balances["前払い残高:<br/>メッセージと AI"]
     plan --> invoices["請求書:<br/>支払い方法に請求"]
     usage --> invoices

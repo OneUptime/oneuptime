@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as Dashbord
     participant O as OneUptime
     participant P as Sonde
-    D->>O: Start pakkeopptak: grensesnitt, filter, grenser
-    P->>O: Noen opptak til meg? (hvert 10. sekund)
+    D->>O: Start pakkeopptak:<br/>grensesnitt, filter, grenser
+    P->>O: Noen opptak til meg?<br/>(hvert 10. sekund)
     O-->>P: Dette
-    P->>P: tcpdump til en grense nås eller Stopp trykkes
+    P->>P: tcpdump til en grense<br/>nås eller Stopp trykkes
     P->>O: Last opp pcap-filen
     D->>O: Last ned
-    O-->>D: pcap-filen, og en oppføring i revisjonsloggen
+    O-->>D: pcap-filen, og en<br/>oppføring i revisjonsloggen
 ```
 
 1. **Start.** Noen som har lov til å starte opptak, velger sondens grensesnitt, et filter og grensene, og klikker **Start opptak**. OneUptime kontrollerer filteret og grensene mot det sonden tillater før opptaket lagres.

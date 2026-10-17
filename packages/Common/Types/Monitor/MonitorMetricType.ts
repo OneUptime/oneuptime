@@ -186,6 +186,13 @@ enum MonitorMetricType {
    * offline, which is what a partial failure must never do.
    */
   DatabaseMetricGroupsFailed = "oneuptime.monitor.database.metric.groups.failed",
+
+  /*
+   * Probe Status monitors: how many of the probes the monitor watches were
+   * connected, and how many were not, at each evaluation (every minute).
+   */
+  ConnectedProbes = "oneuptime.monitor.probes.connected",
+  DisconnectedProbes = "oneuptime.monitor.probes.disconnected",
 }
 
 export default MonitorMetricType;

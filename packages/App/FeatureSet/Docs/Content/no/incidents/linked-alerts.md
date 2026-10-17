@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Deg
     participant OneUptime
     participant Alerts as Varsler
-    You->>OneUptime: Erklær hendelse, med opptil 50 varsler
-    OneUptime->>OneUptime: Kontroller hvert varsel og tillatelsene dine
-    OneUptime->>OneUptime: Opprett hendelsen, og kjør personvernreglene
+    You->>OneUptime: Erklær hendelse, med<br/>opptil 50 varsler
+    OneUptime->>OneUptime: Kontroller hvert varsel<br/>og tillatelsene dine
+    OneUptime->>OneUptime: Opprett hendelsen, og<br/>kjør personvernreglene
     OneUptime->>Alerts: Knytt til hvert varsel
-    OneUptime-->>You: Den nye hendelsen, med varslene allerede tilknyttet
-    OneUptime->>Alerts: Bekreft dem i bakgrunnen, hvis boksen er avkrysset
+    OneUptime-->>You: Den nye hendelsen, med<br/>varslene allerede tilknyttet
+    OneUptime->>Alerts: Bekreft dem i bakgrunnen,<br/>hvis boksen er avkrysset
 ```
 
 Når du sender, kontrollerer serveren varslene før den oppretter noe: høyst 50 av dem, hvert et varsel i dette prosjektet som du har lov til å se, og du må ha lov til å knytte varsler til hendelser. Feiler en kontroll, avvises forespørselen, og ingen hendelse opprettes — så en feil varsel-ID bruker aldri opp et hendelsesnummer. Når hendelsen finnes — og når personvernreglene har kjørt, slik at tilknyttingene vet om den er privat — knyttes hvert varsel til før forespørselen returnerer, så hendelsens side **Tilknyttede varsler** allerede viser dem. Feiler en enkelt tilknytting — fordi varselet ble slettet et øyeblikk før, for eksempel — erklæres hendelsen likevel, og de andre varslene knyttes likevel til.

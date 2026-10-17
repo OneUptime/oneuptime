@@ -47,6 +47,8 @@ Hver kanal har også sin egen liste i statussidens sidemeny under **Abonnenter**
 
 **Én bryter er ikke nok.** Elementet **Abonner** i statussidens navigasjonslinje vises bare når **Vis abonnentside** er på *og* minst én kanal er på. Hvis du slår på **E-post**, men lar **Vis abonnentside** være av, har besøkende ingen måte å komme til skjemaet på.
 
+**En kalender i stedet.** Besøkende som bare vil ha det planlagte vedlikeholdet ditt i sin egen kalender, trenger ikke å abonnere: **Abonner på kalender** på sidens side **Planlagte hendelser** legger det til i Google Kalender, Apple Kalender eller Outlook, og kalenderen holder seg oppdatert av seg selv. Den sender ingenting og avhenger ikke av kanalene ovenfor, og en privat side tilbyr den ikke. Se [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#kalenderen-til-en-statusside).
+
 ## Å slå av alle varsler
 
 Det første kortet på **Abonnentsinnstillinger**, **Varsler**, inneholder **Send varsler til abonnenter** (`sendSubscriberNotifications`), på som standard, som lagres så snart du slår den om. Er den av, sender statussiden ingenting til abonnentene sine: ingen varsler om hendelser, episoder, planlagt vedlikehold eller kunngjøringer, ingen notater eller etteranalyser og ingen e-postrapport, uansett hva kanalene og hendelsestypene dens sier. Abonnentene beholdes, og besøkende kan fortsatt abonnere så lenge siden **Abonner** og en kanal er på; en ny e-postabonnent får fortsatt e-posten som bekrefter abonnementet. Ingenting holdes tilbake for å bli sendt senere: slås den på igjen, forteller siden abonnentene sine om det som skjer fra da av.

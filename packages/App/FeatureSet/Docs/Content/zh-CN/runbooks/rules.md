@@ -19,15 +19,15 @@ Runbook 规则会在 **事件** 、 **警报** 或 **计划维护事件** 被创
 
 ```mermaid title="从新事件到已启动的 Runbook"
 flowchart TB
-    created["事件、警报或维护事件被创建"] --> labels["标签规则添加其标签"]
-    labels --> rules["该产品已启用的 Runbook 规则"]
+    created["事件、<br/>警报或维护事件被创建"] --> labels["标签规则添加其标签"]
+    labels --> rules["该产品已启用的<br/>Runbook 规则"]
     rules --> match{"条件匹配吗？"}
     match -->|"否"| nothing["规则不启动任何内容"]
-    match -->|"是"| union["所有匹配规则的 Runbook，各一次"]
-    union --> runnable{"Runbook 已启用且有步骤吗？"}
+    match -->|"是"| union["所有匹配规则的<br/>Runbook，各一次"]
+    union --> runnable{"Runbook<br/>已启用且有步骤吗？"}
     runnable -->|"否"| skipped["跳过该 Runbook"]
     runnable -->|"是"| execution["创建执行并加入队列"]
-    execution --> attached["显示在事件的运行手册页面上"]
+    execution --> attached["显示在事件的<br/>运行手册页面上"]
 ```
 
 规则触发时，对它指定的每个 Runbook 都会发生以下过程：

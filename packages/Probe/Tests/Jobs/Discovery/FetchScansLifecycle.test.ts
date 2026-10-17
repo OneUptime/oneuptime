@@ -573,7 +573,7 @@ describe("runScan — the sweep config carries the scan's mode and its credentia
     const message: string = body["statusMessage"] as string;
 
     expect(message).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 2 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 2 answered ping.",
     );
     expect(message).not.toContain("Answered by credentials");
     expect(message).not.toContain("No host answered");

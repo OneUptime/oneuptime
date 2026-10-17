@@ -27,7 +27,7 @@ Lorsque vous créez un planning sur la page **Plannings d'astreinte**, le formul
 Les personnes se relaient une à une, et la première est d'astreinte dès la création du planning :
 
 ```mermaid title="Layer 1 avec trois personnes et des tours de 1 semaine"
-flowchart LR
+flowchart TB
     alice["Alice<br/>semaine 1"] -->|"passation"| bob["Bob<br/>semaine 2"]
     bob -->|"passation"| carol["Carol<br/>semaine 3"]
     carol -->|"retour à la première"| alice
@@ -52,11 +52,11 @@ La rotation d'un planning se compose de couches, sur sa page **Couches**. Les co
 
 ```mermaid title="La couche la plus haute où quelqu'un est d'astreinte est celle qui alerte"
 flowchart TB
-    start["Un niveau alerte le planning"] --> first{"Quelqu'un d'astreinte<br/>dans la couche du haut ?"}
-    first -->|"Oui"| pageTop["Alerter cette personne"]
-    first -->|"Non"| next{"Quelqu'un d'astreinte<br/>dans la couche suivante ?"}
-    next -->|"Oui"| pageNext["Alerter cette personne"]
-    next -->|"Non"| gap["Personne n'est alerté<br/>un trou de couverture"]
+    start["Un niveau alerte<br/>le planning"] --> first{"Quelqu'un<br/>d'astreinte<br/>dans la couche<br/>du haut ?"}
+    first -->|"Oui"| pageTop["Alerter cette<br/>personne"]
+    first -->|"Non"| next{"Quelqu'un<br/>d'astreinte<br/>dans la couche<br/>suivante ?"}
+    next -->|"Oui"| pageNext["Alerter cette<br/>personne"]
+    next -->|"Non"| gap["Personne<br/>n'est alerté<br/>un trou de<br/>couverture"]
 ```
 
 **Ajouter une couche** ajoute une couche qui démarre comme la première : d'astreinte dès maintenant, chaque personne pendant une semaine, 24 heures sur 24. Dépliez une couche pour y ajouter des personnes, et pour changer quand elle commence, à quelle fréquence elle passe le relais, quand a lieu sa première passation et ses heures d'astreinte :

@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Person
     participant O as OneUptime
     participant I as Identitätsanbieter
-    U->>O: Mit SSO anmelden, Projekt wählen
-    O->>I: SAML-Anfrage an die Anmelde-URL
+    U->>O: Mit SSO anmelden,<br/>Projekt wählen
+    O->>I: SAML-Anfrage an<br/>die Anmelde-URL
     I->>U: Anmeldeseite
     U->>I: Zugangsdaten und MFA
-    I->>O: Signierte Assertion an die Antwort-URL
-    Note over O: Prüft Signatur und Aussteller,<br/>liest die E-Mail aus der Name ID
+    I->>O: Signierte Assertion<br/>an die Antwort-URL
+    Note over O: Prüft Signatur und Aussteller,<br/>liest die E-Mail<br/>aus der Name ID
     O->>U: Im Projekt angemeldet
 ```
 
@@ -36,8 +36,13 @@ OneUptime liest nur wenige Dinge aus der Assertion, die Ihr IdP sendet:
 | --- | --- |
 | Signatur | Prüft sie gegen das **Öffentliches Zertifikat** des Anbieters. Die Antwort muss signiert und darf nicht verschlüsselt sein. |
 | Issuer | Muss genau dem **Aussteller** des Anbieters entsprechen. |
+| Audience | Muss die **Kennung (Entity ID)** des Anbieters sein. Eine Antwort, die Ihr IdP für eine andere Anwendung erstellt hat, wird abgelehnt. |
+| Recipient und Destination | Müssen die **Antwort-URL** des Anbieters sein, die Adresse, an die die Antwort gesendet wurde. |
+| `NotBefore` und `NotOnOrAfter` | Die Antwort wird nur angenommen, solange diese es erlauben, und höchstens 10 Minuten nach ihrer Ausstellung, mit 3 Minuten Spielraum für Uhren, die voneinander abweichen. |
 | Name ID | Die E-Mail-Adresse der Person. Sie muss eine gültige E-Mail-Adresse sein. |
 | `http://schemas.microsoft.com/identity/claims/displayname` | Der Name der Person, wenn OneUptime ihr Konto anlegt. Optional. |
+
+Jede Antwort gilt für genau eine Anmeldung. Wird sie erneut gesendet, etwa weil Sie nach der Anmeldung im Browser zurückgehen, wird sie abgelehnt: Melden Sie sich erneut an.
 
 Wer sich zum ersten Mal anmeldet, kommt in die **Teams** des Anbieters, und diese bestimmen, was die Person tun darf: siehe [Rollen und Teams für SSO-Benutzer](#rollen-und-teams-für-sso-benutzer).
 
@@ -326,6 +331,22 @@ Die Person ist noch nicht im Projekt, und der Anbieter hat keine **Teams**, in d
 
 :::details "Issuer URL does not match"
 Der Issuer in der Assertion Ihres IdP ist nicht der **Aussteller** des Anbieters. Kopieren Sie ihn erneut aus Ihrem IdP – die Realm-URL von Keycloak, den **Microsoft Entra Identifier** oder den Identity Provider Issuer von Okta –, damit beide genau übereinstimmen.
+:::
+
+:::details "SAML Audience does not match"
+Die Audience der Antwort ist nicht die **Kennung (Entity ID)** dieses Anbieters; Ihr IdP hat sie für eine andere Anwendung erstellt. Setzen Sie in Ihrem IdP die Entity ID der Anwendung auf die **Kennung (Entity ID)** aus **SSO-Konfiguration anzeigen** – die **Client ID** in Keycloak, die **Identifier (Entity ID)** in Entra ID, die **Audience URI (SP Entity ID)** in Okta. Ein IdP, der mit der Adresse von OneUptime allein als Entity ID eingerichtet wurde, etwa `https://oneuptime.com`, funktioniert weiter.
+:::
+
+:::details "SAML Recipient does not match"
+Der Recipient der Antwort ist nicht die **Antwort-URL** dieses Anbieters; die Antwort wurde für eine andere Adresse gesendet. Setzen Sie in Ihrem IdP die Antwort-URL der Anwendung auf die **Antwort-URL (Assertion Consumer Service URL)** aus **SSO-Konfiguration anzeigen** – die **Assertion Consumer Service POST Binding URL** in Keycloak, die **Reply URL (Assertion Consumer Service URL)** in Entra ID, die **Single sign-on URL** in Okta. "SAML Destination does not match" hat dieselbe Ursache und dieselbe Lösung.
+:::
+
+:::details "SAML response has expired"
+Die Antwort hat OneUptime später erreicht, als Ihr IdP erlaubt, oder mehr als 10 Minuten nach ihrer Ausstellung: Melden Sie sich erneut an. Passiert das immer wieder, geht die Uhr Ihres IdP oder des OneUptime-Servers falsch; OneUptime erlaubt, dass sie 3 Minuten auseinanderliegen. "SAML response is not valid yet" ist dasselbe Problem in umgekehrter Richtung.
+:::
+
+:::details "SAML response was already used"
+Jede Antwort Ihres IdP gilt für genau eine Anmeldung. Wenn Sie nach der Anmeldung im Browser zurückgehen oder die Seite neu laden, über die Ihr IdP Sie weitergeleitet hat, wird dieselbe Antwort erneut gesendet: Melden Sie sich erneut an, über OneUptime oder über Ihren IdP.
 :::
 
 :::details Die Anmeldung scheitert mit einem Signatur- oder Zertifikatsfehler

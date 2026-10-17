@@ -30,9 +30,9 @@ O OneUptime precisa de três armazenamentos de dados em produção. Cada um cres
 
 ```mermaid title="Com o que cada armazenamento cresce"
 flowchart TB
-    Tel["Logs, métricas, traces"] -->|"taxa de ingestão × retenção"| CH[("ClickHouse")]
-    State["Monitores, incidentes, usuários"] -->|"número de entidades e histórico"| PG[("PostgreSQL")]
-    Work["Filas, cache, sessões"] -->|"profundidade das filas"| VK[("Valkey")]
+    Tel["Logs, métricas,<br/>traces"] -->|"taxa de<br/>ingestão<br/>× retenção"| CH[("ClickHouse")]
+    State["Monitores,<br/>incidentes,<br/>usuários"] -->|"número de<br/>entidades<br/>e histórico"| PG[("PostgreSQL")]
+    Work["Filas, cache,<br/>sessões"] -->|"profundidade<br/>das filas"| VK[("Valkey")]
 ```
 
 | Armazenamento | O que guarda | O que determina o tamanho |

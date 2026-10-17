@@ -73,11 +73,11 @@ O comportamento de um provedor global depende de você anexar projetos a ele ou 
 flowchart TB
     S["Alguém faz login"] --> A{"Projetos anexados?"}
     A -->|"Não"| K{"Tem uma conta?"}
-    K -->|"Não"| R["Recusado: convide primeiro"]
-    K -->|"Sim"| E["Login feito nos projetos dele"]
-    A -->|"Sim"| D{"Novo, com o cadastro<br/>desativado?"}
+    K -->|"Não"| R["Recusado:<br/>convide primeiro"]
+    K -->|"Sim"| E["Login feito nos<br/>projetos dele"]
+    A -->|"Sim"| D{"Novo, com<br/>o cadastro<br/>desativado?"}
     D -->|"Sim"| R
-    D -->|"Não"| P["Adicionado aos projetos anexados<br/>em que ainda não está"]
+    D -->|"Não"| P["Adicionado aos<br/>projetos anexados<br/>em que ainda<br/>não está"]
     P --> E
 ```
 
@@ -147,6 +147,14 @@ A pessoa tem conta, mas não pertence a nenhum projeto, e o provedor não tem on
 
 :::details "Issuer URL does not match"
 Em um provedor SAML, o emissor na resposta do seu provedor de identidade não é o **Issuer** salvo no provedor. Copie-o de novo do seu provedor de identidade; os dois precisam corresponder exatamente.
+:::
+
+:::details "SAML Audience does not match"
+Em um provedor SAML, a resposta foi criada para outro aplicativo: a audience dela não é o **Issuer (Entity ID)** do provedor. No seu provedor de identidade, defina o entity ID do aplicativo como o **Issuer (Entity ID)** da página do provedor. "SAML Recipient does not match" e "SAML Destination does not match" significam o mesmo para a reply URL dele: defina-a como a **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Cada resposta do seu provedor de identidade faz o login uma única vez, e só nos minutos seguintes à emissão: depois disso, ela é recusada com "SAML response has expired". Faça o login de novo. Se as respostas continuarem expirando, confira os relógios deste servidor e do seu provedor de identidade.
 :::
 
 ## Próximos passos

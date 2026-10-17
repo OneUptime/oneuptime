@@ -23,11 +23,11 @@ sequenceDiagram
     B->>O: Connect with GitHub App
     O-->>B: 重新導向到應用程式的安裝頁面
     B->>G: 安裝並授權應用程式
-    G-->>B: 重新導向到 /api/github/auth/callback
+    G-->>B: 重新導向到<br/>/api/github/auth/callback
     B->>O: installation_id 和一次性代碼
     O->>G: 交換代碼，檢查安裝
     O->>G: 匯入安裝中的儲存庫
-    G->>O: Webhook 傳送到 /api/github/webhook
+    G->>O: Webhook 傳送到<br/>/api/github/webhook
 ```
 
 - 瀏覽器重新導向帶有安裝資訊和一次性 OAuth 代碼。OneUptime 交換該代碼，以確認安裝應用程式的 GitHub 帳號管理著這個安裝，然後匯入其中的儲存庫。已經存在的安裝則改為透過登入 GitHub 來連接：此時該代碼會告訴 OneUptime 這個帳號管理著哪些安裝。

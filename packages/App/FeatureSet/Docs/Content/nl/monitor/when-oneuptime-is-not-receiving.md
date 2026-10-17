@@ -11,7 +11,7 @@ Elk OneUptime-proces dat gegevens binnenkrijgt, legt elke 30 seconden vast dat h
 - Inhalen: zolang de wachtrij met nog te verwerken gegevens meer dan een minuut achterloopt, de tijd sinds de oudste gegevens die er nog in wachten.
 
 ```mermaid title="Tijd die OneUptime buiten beschouwing laat"
-flowchart LR
+flowchart TB
     receiving["Ontvangen"] -->|"90 seconden niets vastgelegd"| down["Geen ontvangst"]
     down -->|"een proces legt weer vast"| grace["2 minuten opnieuw verbinden"]
     grace --> again["Ontvangen"]

@@ -390,7 +390,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
       {showModal && didProbeLoadFail && (
         <Modal
           title="Probes Could Not Be Loaded"
-          description="Nothing was changed. A probe is required — it is what will ping these devices — and the project's probes could not be loaded just now. Try again in a moment."
+          description="Nothing was changed: your probes could not be loaded. Try again in a moment."
           onClose={closeModal}
           closeButtonText="Close"
         >
@@ -400,7 +400,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
       {showModal && hasNoProbes && (
         <Modal
           title="No Probes Yet"
-          description="A probe-polled device is pinged by the probe assigned to it, so there has to be one that can reach these devices. Create a custom probe on their network first, then come back and switch them."
+          description="No probe can reach these devices yet. Add a probe on their network first, then try again."
           onClose={closeModal}
           closeButtonText="Close"
         >
@@ -420,7 +420,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
            * in place — it may be paging somebody — but it stops being the
            * device's status; the probe's poll is.
            */
-          description="Switches each selected monitor-backed device to probe polling: the probe you pick pings it on its schedule, and walks it over SNMP as well once it has credentials, so the device has a status from its first poll — with no monitor needed. A monitor already bound to a device stays bound, but the device's status comes from the probe from now on. Devices that are already probe-polled are skipped."
+          description="The probe you pick pings each device, and walks it when it has credentials. Bound monitors stay, but the probe sets the status."
           isLoading={isLoadingProbes}
           onClose={closeModal}
           submitButtonText={SWITCH_TO_PROBE_POLLING_ACTION_TITLE}
@@ -456,7 +456,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
                 },
                 title: "Probe",
                 description:
-                  "The probe that will ping these devices on their schedule, and walk them over SNMP when they have credentials. It has to be able to reach them directly: a global probe on the public internet cannot ping a private (RFC 1918) address, so for devices on an internal network pick a custom probe deployed on that network.",
+                  "It must reach these devices directly: pick a probe on their network.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
                 dropdownOptions: probeDropdownOptions,

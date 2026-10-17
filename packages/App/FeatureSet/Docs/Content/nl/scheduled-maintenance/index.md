@@ -63,6 +63,8 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De l
 
 De lijst toont **Nummer van geplande onderhoud**, **Titel**, **Huidige staat**, **Getroffen middelen**, **Weergegeven op statuspagina**, **Begint op**, **Duur**, **Eindigt op**, **Labels** en **Eigenaren**. Selecteer gebeurtenissen om er meerdere tegelijk te bewerken: **Status wijzigen**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** of **Verwijderen**.
 
+**Lijst** en **Agenda**, rechts in de filterbalk van de lijst, tonen dezelfde gebeurtenissen als tabel of op een maand, een week of een dag. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar).
+
 ## Wat een gebeurtenis beïnvloedt
 
 Zolang een gebeurtenis loopt, behandelt OneUptime de storing die ze plant als verwacht:

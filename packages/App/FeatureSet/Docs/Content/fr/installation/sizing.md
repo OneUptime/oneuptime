@@ -30,9 +30,9 @@ OneUptime a besoin de trois bases de données en production. Chacune grossit ave
 
 ```mermaid title="Ce qui fait grossir chaque base"
 flowchart TB
-    Tel["Journaux, métriques, traces"] -->|"débit d'ingestion × rétention"| CH[("ClickHouse")]
-    State["Moniteurs, incidents, utilisateurs"] -->|"nombre d'entités et historique"| PG[("PostgreSQL")]
-    Work["Files d'attente, cache, sessions"] -->|"profondeur des files"| VK[("Valkey")]
+    Tel["Journaux,<br/>métriques,<br/>traces"] -->|"débit d'ingestion<br/>× rétention"| CH[("ClickHouse")]
+    State["Moniteurs,<br/>incidents,<br/>utilisateurs"] -->|"nombre<br/>d'entités et<br/>historique"| PG[("PostgreSQL")]
+    Work["Files d'attente,<br/>cache, sessions"] -->|"profondeur<br/>des files"| VK[("Valkey")]
 ```
 
 | Base | Ce qu'elle stocke | Ce qui détermine sa taille |

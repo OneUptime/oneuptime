@@ -223,14 +223,14 @@ Un cambio de estado puede notificar a los suscriptores de tu página de estado, 
 
 ```mermaid title="¿Llega un cambio de estado a los suscriptores?"
 flowchart TB
-    change["Cambio de estado guardado"] --> box{"¿Casilla Notificar activada?"}
+    change["Cambio de<br/>estado guardado"] --> box{"¿Casilla Notificar<br/>activada?"}
     box -->|No| skipped["Omitido"]
     box -->|Sí| note{"¿Con una nota pública?"}
     note -->|Sí| carried["La nota es el mensaje"]
     note -->|No| queued["Fila en cola"]
     queued --> gates{"¿Supera cada barrera?"}
-    gates -->|No| reason["Omitido, motivo registrado"]
-    gates -->|Sí| sent["Suscriptores notificados"]
+    gates -->|No| reason["Omitido, motivo<br/>registrado"]
+    gates -->|Sí| sent["Suscriptores<br/>notificados"]
 ```
 
 La notificación se solicita por fila de cronología con **Notificar a suscriptores de la página de estado** (`shouldStatusPageSubscribersBeNotified`), la casilla del diálogo de cambio de estado y del formulario manual de la cronología. En el diálogo de cambio de estado empieza desactivada cuando el incidente se declaró sin notificar a los suscriptores. La misma casilla decide también si la nota pública del diálogo notifica a alguien. Cuando está desactivada, la fila se guarda con un estado omitido y una explicación. Cuando está activada, la fila se pone en cola y una tarea en segundo plano la recoge: la tarea se ejecuta cada minuto, así que la entrega es rápida pero no instantánea.

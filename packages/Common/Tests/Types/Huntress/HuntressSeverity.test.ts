@@ -10,8 +10,8 @@ import HuntressSeverity, {
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * Huntress's three severities, as its API writes them, and how a
- * connection's "Page On-Call For" threshold reads them.
+ * Huntress's three severities, as its API writes them, and which reports a
+ * Huntress workflow that pages from a severity up pages for.
  */
 describe("HuntressSeverity", () => {
   test("the three severities Huntress documents, most severe first", () => {

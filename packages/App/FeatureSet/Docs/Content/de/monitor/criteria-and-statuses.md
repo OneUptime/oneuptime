@@ -15,14 +15,14 @@ Bei jeder Prüfung eines Monitors bewerten seine Kriterien das Ergebnis von oben
 
 ```mermaid title="Wie jede Prüfung bewertet wird"
 flowchart TB
-    R["Das Ergebnis einer Prüfung"] --> C1{"Erstes Kriterium:<br/>treffen seine Filter zu?"}
-    C1 -->|"Ja"| A["Dieses Kriterium handelt"]
-    C1 -->|"Nein"| C2{"Nächstes Kriterium:<br/>treffen seine Filter zu?"}
+    R["Das Ergebnis<br/>einer Prüfung"] --> C1{"Erstes<br/>Kriterium:<br/>treffen seine<br/>Filter zu?"}
+    C1 -->|"Ja"| A["Dieses Kriterium<br/>handelt"]
+    C1 -->|"Nein"| C2{"Nächstes<br/>Kriterium:<br/>treffen seine<br/>Filter zu?"}
     C2 -->|"Ja"| A
-    C2 -->|"Keines traf zu"| D["Der Monitor geht in<br/>seinen Standardstatus"]
-    A --> S["Ändert den Status"]
-    A --> I["Deklariert einen Vorfall"]
-    A --> L["Erstellt eine Warnung"]
+    C2 -->|"Keines traf zu"| D["Der Monitor<br/>geht in<br/>seinen<br/>Standardstatus"]
+    A --> S["Ändert<br/>den Status"]
+    A --> I["Deklariert<br/>einen Vorfall"]
+    A --> L["Erstellt<br/>eine Warnung"]
 ```
 
 Die Reihenfolge gehört zur Regel. Ein neuer Monitor listet seine Kriterien vom schlimmsten Fall an: offline, dann eine Warnung, wo sein Typ eine hat (ein Zertifikat oder eine Domäne, die bald abläuft), dann online. Ein breites gesundes Kriterium wie **Is Online** auf **Wahr** trifft auf fast jede Prüfung zu, deshalb kommt es zuletzt: über den anderen würde es jedes Mal zuerst zutreffen, und sie würden nie handeln.

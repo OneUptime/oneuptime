@@ -99,13 +99,13 @@ sequenceDiagram
     participant Runner as ワークフローのランナー
     participant Variable as OAuth 2.0 変数
     participant IdP as ID プロバイダー
-    Runner->>Variable: キャッシュされたトークンを読む
-    alt 期限切れ、または 1 分以内に期限切れ
+    Runner->>Variable: キャッシュされた<br/>トークンを読む
+    alt 期限切れ、<br/>または 1 分以内に期限切れ
         Runner->>IdP: トークンリクエスト
         IdP-->>Runner: 新しいアクセストークン
         Runner->>Variable: 新しいトークンを保存する
     end
-    Runner->>Runner: 期限内のトークンでステップを実行する
+    Runner->>Runner: 期限内のトークンで<br/>ステップを実行する
 ```
 
 - ワークフローが初めて変数を使うとき、OneUptime は ID プロバイダーのトークンエンドポイントにアクセストークンを要求し、保存します。

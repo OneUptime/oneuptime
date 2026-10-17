@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as Instrumentpanel
     participant O as OneUptime
     participant P as Sond
-    D->>O: Starta paketinspelning: gränssnitt, filter, gränser
-    P->>O: Några inspelningar till mig? (var 10:e sekund)
+    D->>O: Starta paketinspelning:<br/>gränssnitt, filter, gränser
+    P->>O: Några inspelningar till<br/>mig? (var 10:e sekund)
     O-->>P: Den här
-    P->>P: tcpdump tills en gräns nås eller Stoppa trycks
+    P->>P: tcpdump tills en gräns<br/>nås eller Stoppa trycks
     P->>O: Ladda upp pcap-filen
     D->>O: Ladda ner
-    O-->>D: pcap-filen, och en post i granskningsloggen
+    O-->>D: pcap-filen, och en post<br/>i granskningsloggen
 ```
 
 1. **Start.** Någon som får starta inspelningar väljer sondens gränssnitt, ett filter och gränserna, och klickar på **Starta inspelning**. OneUptime kontrollerar filtret och gränserna mot det sonden tillåter innan inspelningen sparas.

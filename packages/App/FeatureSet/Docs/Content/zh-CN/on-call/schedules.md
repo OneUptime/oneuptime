@@ -27,7 +27,7 @@
 人员一次一个轮流值班，计划创建后第一个人立即开始值班：
 
 ```mermaid title="三人每人值班 1 周的 Layer 1"
-flowchart LR
+flowchart TB
     alice["Alice<br/>第 1 周"] -->|"交接"| bob["Bob<br/>第 2 周"]
     bob -->|"交接"| carol["Carol<br/>第 3 周"]
     carol -->|"回到第一个人"| alice

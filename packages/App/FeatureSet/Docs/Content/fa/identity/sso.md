@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as شخص
     participant O as OneUptime
     participant I as ارائه‌دهنده هویت
-    U->>O: ورود با SSO، انتخاب پروژه
-    O->>I: درخواست SAML به نشانی ورود
+    U->>O: ورود با SSO،<br/>انتخاب پروژه
+    O->>I: درخواست SAML<br/>به نشانی ورود
     I->>U: صفحهٔ ورود
     U->>I: اعتبارنامه‌ها و MFA
-    I->>O: assertion امضاشده به Reply URL
-    Note over O: امضا و صادرکننده را بررسی می‌کند،<br/>ایمیل را از Name ID می‌خواند
+    I->>O: assertion امضاشده<br/>به Reply URL
+    Note over O: امضا و صادرکننده<br/>را بررسی می‌کند،<br/>ایمیل را از<br/>Name ID می‌خواند
     O->>U: واردشده به پروژه
 ```
 
@@ -36,8 +36,13 @@ OneUptime فقط چند چیز را از assertionی که IdP شما می‌فر
 | --- | --- |
 | امضا | آن را با **گواهی عمومی** ارائه‌دهنده بررسی می‌کند. پاسخ باید امضا شده باشد و نباید رمزنگاری شده باشد. |
 | Issuer | باید دقیقاً با **صادرکننده** ارائه‌دهنده یکی باشد. |
+| Audience | باید **Identifier (Entity ID)** ارائه‌دهنده باشد. پاسخی که IdP شما برای برنامه‌ای دیگر ساخته است رد می‌شود. |
+| Recipient و Destination | باید **Reply URL** ارائه‌دهنده باشند، یعنی نشانی‌ای که پاسخ به آن فرستاده شده است. |
+| `NotBefore` و `NotOnOrAfter` | پاسخ فقط تا وقتی پذیرفته می‌شود که این دو اجازه دهند، و حداکثر تا ۱۰ دقیقه پس از صدورش، با ۳ دقیقه رواداری برای ساعت‌هایی که با هم یکسان نیستند. |
 | Name ID | نشانی ایمیل شخص. باید یک نشانی ایمیل معتبر باشد. |
 | `http://schemas.microsoft.com/identity/claims/displayname` | نام شخص، که OneUptime هنگام ساختن حساب او به کار می‌برد. اختیاری. |
+
+هر پاسخ فقط یک بار کسی را وارد می‌کند. اگر دوباره فرستاده شود، مثلاً با برگشتن در مرورگر پس از ورود، رد می‌شود: دوباره وارد شوید.
 
 کسانی که برای نخستین بار وارد می‌شوند به **تیم‌ها**ی ارائه‌دهنده می‌پیوندند، و همین تیم‌ها تعیین می‌کنند که چه کاری می‌توانند بکنند: [نقش‌ها و تیم‌ها برای کاربران SSO](#نقشها-و-تیمها-برای-کاربران-sso) را ببینید.
 
@@ -326,6 +331,22 @@ OneUptime نقش‌ها یا گروه‌های ارائه‌دهنده هویت 
 
 :::details "Issuer URL does not match"
 صادرکننده در assertion از IdP شما، **صادرکننده** ارائه‌دهنده نیست. آن را دوباره از IdP خود کپی کنید — نشانی realm در Keycloak، **Microsoft Entra Identifier**، یا Identity Provider Issuer در Okta — تا این دو دقیقاً یکی باشند.
+:::
+
+:::details "SAML Audience does not match"
+مقدار audience پاسخ، **Identifier (Entity ID)** این ارائه‌دهنده نیست: IdP شما پاسخ را برای برنامه‌ای دیگر ساخته است. در IdP خود، entity ID برنامه را روی **Identifier (Entity ID)** از **مشاهده پیکربندی SSO** بگذارید — **Client ID** در Keycloak، **Identifier (Entity ID)** در Entra ID، **Audience URI (SP Entity ID)** در Okta. یک IdP که فقط با نشانی OneUptime به‌عنوان entity ID راه‌اندازی شده است، مانند `https://oneuptime.com`، همچنان کار می‌کند.
+:::
+
+:::details "SAML Recipient does not match"
+مقدار recipient پاسخ، **Reply URL** این ارائه‌دهنده نیست: پاسخ برای نشانی دیگری فرستاده شده است. در IdP خود، reply URL برنامه را روی **Reply URL (Assertion Consumer Service URL)** از **مشاهده پیکربندی SSO** بگذارید — **Assertion Consumer Service POST Binding URL** در Keycloak، **Reply URL (Assertion Consumer Service URL)** در Entra ID، **Single sign-on URL** در Okta. "SAML Destination does not match" همین علت و همین راه‌حل را دارد.
+:::
+
+:::details "SAML response has expired"
+پاسخ دیرتر از آنچه IdP شما اجازه می‌دهد، یا بیش از ۱۰ دقیقه پس از صدورش، به OneUptime رسیده است: دوباره وارد شوید. اگر این اتفاق تکرار شود، ساعت IdP شما یا سرور OneUptime درست نیست؛ OneUptime اجازه می‌دهد این دو تا ۳ دقیقه با هم فاصله داشته باشند. "SAML response is not valid yet" همین مشکل در جهت وارونه است.
+:::
+
+:::details "SAML response was already used"
+هر پاسخ از IdP شما فقط یک بار کسی را وارد می‌کند. برگشتن در مرورگر پس از ورود، یا بارگذاری دوبارهٔ صفحه‌ای که IdP شما را از آن گذراند، همان پاسخ را دوباره می‌فرستد: دوباره وارد شوید، از OneUptime یا از IdP خود.
 :::
 
 :::details ورود با خطای امضا یا گواهی شکست می‌خورد

@@ -758,6 +758,51 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     );
   };
 
+  /*
+   * TIMED_SCRIPT for several converters, each timed on its own: the budget
+   * is what one converter may take, so the converters a channel runs one
+   * after another do not share it. The converter is in the result's name.
+   */
+  const TIMED_EACH_SCRIPT: (converters: Record<string, string>) => string = (
+    converters: Record<string, string>,
+  ): string => {
+    return (
+      String.raw`
+        const converters = {` +
+      Object.entries(converters)
+        .map(([name, convert]: [string, string]): string => {
+          return JSON.stringify(name) + ": " + convert;
+        })
+        .join(",") +
+      String.raw`};
+
+        // Loaded and compiled once, as in a server.
+        for (const convert of Object.values(converters)) {
+          await convert("warm *up* [a](https://a.b) | a |");
+        }
+
+        for (const [name, markdownOf] of Object.entries(quadraticInputs)) {
+          const markdown = markdownOf();
+
+          for (const [converterName, convert] of Object.entries(converters)) {
+            const started = process.hrtime.bigint();
+
+            results[name + " (" + converterName + ")"] = await attempt(async () => {
+              await convert(markdown);
+              const ms = Math.round(Number(process.hrtime.bigint() - started) / 1e6);
+
+              return { ["in under " + ` +
+      String(QUADRATIC_BUDGET_IN_MS) +
+      String.raw` + " ms (took " + ms + " ms)"]: ms < ` +
+      String(QUADRATIC_BUDGET_IN_MS) +
+      String.raw` };
+            });
+          }
+        }
+      `
+    );
+  };
+
   test("an email and plain text read 64 KB of every shape that was slow in good time", () => {
     const report: ProcessReport = runUnoptimized(
       [
@@ -872,26 +917,50 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     expectEveryCheckPassed(report);
   }, 600000);
 
+  /*
+   * Four converters, each held to the budget on its own. Timed together, the
+   * two Slack ones took 2.3 s on CI's runners on quotes opening with a bold
+   * label: about 1.2 s each, inside what one converter may take.
+   */
   test("Slack and Microsoft Teams read 64 KB of every shape that was slow in good time", () => {
     const report: ProcessReport = runUnoptimized(
       [
         'export { default as SlackUtil } from "./Server/Utils/Workspace/Slack/Slack";',
         'export { default as MicrosoftTeamsUtil } from "./Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";',
       ],
-      TIMED_SCRIPT(
-        String.raw`async (markdown) => {
-          const payloadMarkdownBlock = { _type: "WorkspacePayloadMarkdown", text: markdown };
-
-          lib.SlackUtil.getMarkdownBlocks({ payloadMarkdownBlock });
-          lib.SlackUtil.convertMarkdownToSlackRichText(markdown);
-          lib.MicrosoftTeamsUtil["buildMessageCardFromMarkdown"](markdown);
-          lib.MicrosoftTeamsUtil.getMarkdownBlock({ payloadMarkdownBlock });
+      TIMED_EACH_SCRIPT({
+        "Slack's blocks": String.raw`async (markdown) => {
+          lib.SlackUtil.getMarkdownBlocks({
+            payloadMarkdownBlock: { _type: "WorkspacePayloadMarkdown", text: markdown },
+          });
         }`,
-      ),
+        "Slack's rich text": String.raw`async (markdown) => {
+          lib.SlackUtil.convertMarkdownToSlackRichText(markdown);
+        }`,
+        "the Teams message card": String.raw`async (markdown) => {
+          lib.MicrosoftTeamsUtil["buildMessageCardFromMarkdown"](markdown);
+        }`,
+        "the Teams text block": String.raw`async (markdown) => {
+          lib.MicrosoftTeamsUtil.getMarkdownBlock({
+            payloadMarkdownBlock: { _type: "WorkspacePayloadMarkdown", text: markdown },
+          });
+        }`,
+      }),
     );
 
     expectUnoptimizedProcess(report);
-    expect(Object.keys(report.results).length).toBeGreaterThan(20);
+    // Every shape, through each of the four.
+    expect(Object.keys(report.results).length).toBeGreaterThan(4 * 20);
+    expect(
+      Object.keys(report.results).filter((name: string): boolean => {
+        return name.startsWith("quotes opening with a bold label (");
+      }),
+    ).toEqual([
+      "quotes opening with a bold label (Slack's blocks)",
+      "quotes opening with a bold label (Slack's rich text)",
+      "quotes opening with a bold label (the Teams message card)",
+      "quotes opening with a bold label (the Teams text block)",
+    ]);
     expectEveryCheckPassed(report);
   }, 600000);
 

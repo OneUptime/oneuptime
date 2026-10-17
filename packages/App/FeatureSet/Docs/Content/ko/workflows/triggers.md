@@ -1,12 +1,13 @@
 # 워크플로우 트리거
 
-트리거는 워크플로의 첫 번째 블록으로, 워크플로가 언제 실행될지 결정합니다. 모든 워크플로에는 정확히 하나의 트리거가 있습니다. 다섯 가지 유형 중에서 고릅니다.
+트리거는 워크플로의 첫 번째 블록으로, 워크플로가 언제 실행될지 결정합니다. 모든 워크플로에는 정확히 하나의 트리거가 있습니다. 여섯 가지 유형 중에서 고릅니다.
 
 :::cards
 - [수동](#manual): 빌더나 다른 워크플로에서 워크플로를 시작합니다.
 - [일정](#schedule): cron 식으로 쓴 반복 일정에 따라 실행합니다.
 - [웹훅](#webhook): 다른 시스템이 URL을 호출해 시작하게 합니다.
 - [수신 이메일](#incoming-email): 워크플로 전용 주소로 보낸 이메일마다 시작합니다.
+- [Huntress](#huntress): Huntress가 인시던트 보고서에 대해 보내는 이벤트마다 시작합니다.
 - [OneUptime 이벤트 트리거](#oneuptime-이벤트-트리거): 레코드가 생성, 업데이트, 삭제될 때 반응합니다.
 :::
 
@@ -20,6 +21,7 @@
 | 반복 일정에 따라 실행하기                      | **일정**                    |
 | 다른 시스템이 데이터를 보내게 하기             | **웹훅**                    |
 | 이메일로 시작하기                              | **Incoming Email**          |
+| Huntress 인시던트 보고서에 대응하기             | **Huntress Incident Report** |
 | OneUptime 안의 일에 반응하기                   | **OneUptime 이벤트**        |
 
 워크플로에는 트리거를 하나만 둘 수 있습니다. 같은 자동화를 두 가지 방법으로 시작해야 한다면, 공통 로직을 **Manual** 트리거가 있는 워크플로에 만들고, 얇은 "래퍼" 워크플로 두 개에서 **Execute Workflow** 블록으로 그것을 시작하세요.
@@ -76,12 +78,12 @@ sequenceDiagram
     participant Caller as 사용하는 도구
     participant OneUptime
     participant Runner as 워크플로 실행기
-    Caller->>OneUptime: 웹훅 URL로 GET 또는 POST
+    Caller->>OneUptime: 웹훅 URL로<br/>GET 또는 POST
     alt 워크플로가 켜져 있음
         OneUptime-->>Caller: 200, 상태 Scheduled
-        OneUptime->>Runner: 헤더, 쿼리, 본문과 함께 실행을 대기열에 넣음
-        Runner->>Runner: 트리거 다음의 블록을 실행함
-    else 워크플로가 꺼져 있거나 보관됨
+        OneUptime->>Runner: 헤더, 쿼리,<br/>본문과 함께 실행을<br/>대기열에 넣음
+        Runner->>Runner: 트리거 다음의<br/>블록을 실행함
+    else 워크플로가 꺼져<br/>있거나 보관됨
         OneUptime-->>Caller: 이유와 함께 400
     end
 ```
@@ -150,6 +152,14 @@ OneUptime이 워크플로에 전용 이메일 주소를 줍니다. 그 주소로
 
 > [!NOTE]
 > 셀프 호스팅 설치에서는 관리자가 구성한 수신 이메일 공급자를 통해 OneUptime이 이메일을 받습니다. [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email)을 참조하세요. 그 전까지는 트리거에 주소가 없으며, 설정에 그렇게 표시됩니다.
+
+## Huntress
+
+OneUptime이 워크플로에 관리형 탐지 및 대응 서비스인 Huntress 전용 URL을 줍니다. Huntress는 인시던트 보고서에 관한 모든 이벤트를 엔드포인트의 서명 시크릿으로 서명해 이 URL로 보내고, 이벤트마다 워크플로가 한 번 시작됩니다. SOC가 보고서를 보낼 때, 누군가 댓글을 달 때, 보고서가 닫힐 때입니다.
+
+적합한 용도: Huntress 인시던트 보고서마다 인시던트를 열고, 온콜을 호출하고, 보고서가 닫힐 때까지 따라가기. **Open an incident for each Huntress incident report** 템플릿이 세 가지를 모두 합니다.
+
+Huntress를 연결하려면 캔버스에서 **Huntress Incident Report** 트리거를 클릭합니다. Huntress에 줄 URL을 보여 주고, 엔드포인트의 서명 시크릿을 저장하며, Huntress가 마지막으로 워크플로에 닿은 때를 알려 줍니다. 그 시크릿으로 서명되지 않은 요청은 아무것도 시작하지 않으므로 URL은 비밀번호가 아닙니다. Huntress에서의 설정, 트리거가 반환하는 값, 트리거의 설정은 [Huntress](/docs/integrations/huntress)를 참고하세요.
 
 ## OneUptime 이벤트 트리거
 

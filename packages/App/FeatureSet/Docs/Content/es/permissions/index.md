@@ -12,14 +12,14 @@ Los **propietarios** son otra idea. Un propietario es quien se responsabiliza de
 ```mermaid title="Cómo obtienen acceso una persona y una clave de API"
 flowchart TB
     User["Un usuario<br/>(una cuenta)"]
-    Key["Una clave de API"]
     subgraph Project["Un proyecto"]
         direction TB
+        Key["Una clave<br/>de API"]
         Team["Equipo"]
-        Allow["Permisos concedidos,<br/>cada uno con un alcance:<br/>Todos, Propios o Etiquetas"]
-        Block["Permisos bloqueados,<br/>que siempre ganan"]
-        KeyRules["Los permisos concedidos y<br/>bloqueados de la propia clave"]
-        Resources["Monitores, incidentes,<br/>páginas de estado y más"]
+        Allow["Permisos<br/>concedidos,<br/>cada uno con<br/>un alcance:<br/>Todos, Propios<br/>o Etiquetas"]
+        Block["Permisos<br/>bloqueados,<br/>que siempre ganan"]
+        KeyRules["Los permisos<br/>concedidos y<br/>bloqueados de<br/>la propia clave"]
+        Resources["Monitores,<br/>incidentes,<br/>páginas de<br/>estado y más"]
     end
     User -->|"miembro de"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"alcanzan"| Resources
     KeyRules -->|"alcanzan"| Resources
     Block -.->|"quitan"| Resources
+    Allow ~~~ Block
 ```
 
 | Concepto | Qué es |
@@ -58,6 +59,7 @@ Un usuario está «en» un proyecto cuando es miembro de **al menos un equipo** 
 - Las invitaciones crean un miembro de equipo pendiente. El usuario solo cuenta como miembro del proyecto —y solo obtiene algún permiso— **después de aceptar la invitación.**
 - **Invitar usuario** empieza en el equipo de miembros del proyecto: el equipo que tiene `ProjectMember` para todo el proyecto, que es **Members** salvo que lo haya renombrado. Elija otro equipo para dar a la persona más o menos acceso. No hay nada elegido cuando usted no podría invitar a ese equipo —invitar a alguien le transmite los permisos del equipo, y solo puede transmitir permisos que usted tiene— o cuando el proyecto no tiene un equipo así. El panel de administración empieza en el mismo equipo siempre que un administrador de la instancia añade a alguien a un proyecto: **Invitar usuario** en un proyecto, **Añadir al proyecto** en un usuario y en varios usuarios a la vez, y los proyectos asociados a un [proveedor de SSO global](/docs/identity/global-sso).
 - Quitar a un usuario de todos los equipos de un proyecto le retira el acceso a ese proyecto, desde su siguiente petición, incluso mientras tiene la sesión iniciada. Su cuenta y sus otros proyectos no se ven afectados. Se le quita de los calendarios de guardia, las reglas de escalado y las sustituciones del proyecto, de los roles de sus incidentes y episodios abiertos y de los propietarios de sus recursos; los incidentes resueltos conservan el registro de quién los tenía y los dirigió.
+- En una instalación autoalojada, quitarle a alguien el acceso de administrador principal en el Admin Dashboard se lo retira desde su siguiente petición, incluso mientras tiene la sesión iniciada. Mantiene la sesión iniciada y conserva los proyectos de los que es miembro.
 - Quien deja un proyecto deja de recibir sus notificaciones. Sus propios métodos, reglas y ajustes de notificación del proyecto se eliminan con su último equipo — correo, SMS, llamada, WhatsApp, Telegram, push, webhook, Slack y Microsoft Teams, su resumen por correo y el correo aún sin enviar, su número para llamadas entrantes y sus recordatorios de turno —, así que si vuelve a unirse empieza con los valores predeterminados. Lo que todavía lo nombra, como el usuario al que llama una regla de llamadas entrantes o un propietario que se conserva en un incidente resuelto, ya no lo notifica: no se envía nada en nombre de un proyecto a quien no es miembro, y una invitación pendiente todavía no es membresía. Esos lugares muestran **Ya no es miembro** junto a su nombre, para que pueda poner a otra persona. Quien está invitado y aún no ha aceptado muestra en su lugar **Invitación aún no aceptada**. Si una sustitución envía los avisos de alguien a una persona que ha dejado el proyecto, se avisa en su lugar a la persona a la que cubre. Dejar el proyecto también desconecta los clientes MCP que la persona conectó al proyecto, y su enlace personal al calendario de guardias muestra desde entonces un calendario vacío. En OneUptime Cloud, quien vuelve mediante el inicio de sesión único (SSO) del proyecto lo confirma de nuevo desde su correo.
 - Si su proyecto exige SSO y un usuario aún no se ha autenticado con el proveedor de identidad, se le trata como usuario SSO no autorizado y no ve nada hasta que lo haga. Consulte [SSO](/docs/identity/sso).
 - Con SCIM configurado, su proveedor de identidad puede crear, actualizar y eliminar usuarios y sus pertenencias a equipos automáticamente. Consulte [SCIM](/docs/identity/scim).

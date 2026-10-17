@@ -81,6 +81,7 @@ const CHOICE_TYPES: Array<ComponentInputType> = [
   ComponentInputType.WorkflowSelect,
   ComponentInputType.IncidentTemplateSelect,
   ComponentInputType.AlertSeveritySelect,
+  ComponentInputType.IncidentSeveritySelect,
   ComponentInputType.Choice,
   ComponentInputType.CronTab,
 ];

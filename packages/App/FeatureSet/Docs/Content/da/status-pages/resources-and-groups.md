@@ -75,7 +75,7 @@ Klik på **Tilføj monitor**. Rækken vises i gruppen og på statussiden.
 I en gittergruppe beder dialogen også om den række og kolonne, monitoren skal stå i, over **Flere felter**; se [Listelayout eller gitterlayout](#listelayout-eller-gitterlayout).
 
 > [!TIP]
-> For at vise flere tjek som én række tilføjer du en monitorgruppe. Med kontakten **Monitorgrupper** slået til (**Projektindstillinger** > **Avanceret** > **Funktionsflag**, som gemmes, så snart du slår den om) står der et link under rullelisten: **Add a Monitor Group instead.** Klik på det, og **Overvågning** bliver til **Monitor Gruppe** (**Vælg overvågningsgruppe**); **Add a Monitor instead.** skifter tilbage.
+> For at vise flere tjek som én række tilføjer du en [monitorgruppe](/docs/monitor/monitor-groups). Med kontakten **Monitorgrupper** slået til (**Projektindstillinger** > **Avanceret** > **Funktionsflag**, som gemmes, så snart du slår den om) står der et link under rullelisten: **Add a Monitor Group instead.** Klik på det, og **Overvågning** bliver til **Monitor Gruppe** (**Vælg overvågningsgruppe**); **Add a Monitor instead.** skifter tilbage.
 
 ### Tilføj flere på én gang
 
@@ -139,7 +139,7 @@ Klik på **Create Status Page Group**. Gruppen vises i navigatoren, klar til mon
 
 De to felter er **Gruppenavn** (`name`) og **Parent Group** (`parentStatusPageGroupId`). De to sammenfoldede sektioner indeholder resten:
 
-- **Layout**: dens sammenfoldede overskrift siger **List** eller **Grid**. Den indeholder **Visningstilstand** og et gitters akser (se [Listelayout eller gitterlayout](#listelayout-eller-gitterlayout)), og den åbner af sig selv på en gittergruppe.
+- **Layout**: dens sammenfoldede overskrift siger **Liste** eller **Grid**. Den indeholder **Visningstilstand** og et gitters akser (se [Listelayout eller gitterlayout](#listelayout-eller-gitterlayout)), og den åbner af sig selv på en gittergruppe.
 - **Flere felter**: gruppeniveauets udgaver af ressourceindstillingerne:
   - **Gruppebeskrivelse** (`description`): valgfri markdown, vist under overskriften. Et billede i den vises for alle besøgende.
   - **Udvid på statusside som standard** (`isExpandedByDefault`): til som standard; afgør, om sektionen starter åben eller sammenfoldet for besøgende.
@@ -171,7 +171,7 @@ Sektionen **Layout** i gruppeformularen angiver gruppens **Visningstilstand** (`
 
 | Hvis du vil… | Vælg |
 | --------------- | ---- |
-| Vise en enkel lodret liste over tjenester, én pr. række | **List** (standard) |
+| Vise en enkel lodret liste over tjenester, én pr. række | **Liste** (standard) |
 | Vise den samme tjeneste i flere regioner eller lejere som en matrix | **Grid** |
 
 Vælg **Grid**, og der vises fire felter mere:

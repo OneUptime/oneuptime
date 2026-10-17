@@ -33,6 +33,20 @@ export const MOVED_INCIDENT_FORM_PATHS: { forms: string; formView: string } = {
 };
 
 /*
+ * Huntress connections (Incidents > Integrations > Huntress) became
+ * workflows with a Huntress Incident Report trigger, each keeping its
+ * connection's id: the list forwards to Workflows, and a connection's page
+ * to its workflow. Relative to …/incidents/.
+ */
+export const MOVED_HUNTRESS_PATHS: {
+  connections: string;
+  connectionView: string;
+} = {
+  connections: "integrations/huntress",
+  connectionView: `integrations/huntress/${RouteParams.ModelID}`,
+};
+
+/*
  * The AI settings page and the Auto Remediation Rules moved from the
  * Settings and Rules sections into the AI section of the Incidents and Alerts
  * menus (…/ai/settings and …/ai/auto-remediation-rules). Then the rules page

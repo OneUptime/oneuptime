@@ -3,12 +3,18 @@ import { EnterpriseLicenseSnapshot } from "Common/Server/Enterprise/EnterpriseLi
 import Select from "Common/Server/Types/Database/Select";
 import PartialEntity from "Common/Types/Database/PartialEntity";
 import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import EnterpriseMarketplaceBillingUtil, {
+  EnterpriseMarketplaceBillingState,
+} from "Common/Types/EnterpriseLicense/EnterpriseMarketplaceBilling";
 import {
   classifyLicenseToken,
   LicenseStoredColumns,
   LicenseTokenClassification,
 } from "./LicenseToken";
 import { getTrustedLicenseKeys } from "./TrustedLicenseKeys";
+import MarketplaceLicense, {
+  getConfiguredMarketplace,
+} from "./MarketplaceLicense";
 import {
   ACCEPT_UNVERIFIED_LEGACY_LICENSES,
   LICENSE_GRACE_PERIOD_IN_DAYS,
@@ -37,6 +43,11 @@ export interface LicenseInputs {
   // The license-wide unique user count oneuptime.com last reported.
   currentUserCount: number | null;
   instances: Array<EnterpriseLicenseInstanceSummary>;
+  /*
+   * How the installation bills through the cloud marketplace it was bought
+   * on, if it was: what licenses it without a key (MarketplaceLicense).
+   */
+  marketplaceBilling: EnterpriseMarketplaceBillingState | null;
 }
 
 // The columns LicenseInputs are built from.
@@ -51,6 +62,7 @@ export const LICENSE_INPUTS_SELECT: Select<GlobalConfig> = {
   enterpriseEditionFirstSeenAt: true,
   enterpriseLicenseCurrentUserCount: true,
   enterpriseLicenseInstances: true,
+  enterpriseMarketplaceBilling: true,
   instanceId: true,
 };
 
@@ -122,6 +134,9 @@ export default class LicenseInputsUtil {
       instances: Array.isArray(instances)
         ? (instances as Array<EnterpriseLicenseInstanceSummary>)
         : [],
+      marketplaceBilling: EnterpriseMarketplaceBillingUtil.fromJSON(
+        config?.enterpriseMarketplaceBilling,
+      ),
     };
   }
 
@@ -184,6 +199,11 @@ export default class LicenseInputsUtil {
             ) as Array<EnterpriseLicenseInstanceSummary>)
           : []
         : inputs.instances,
+      marketplaceBilling: has("enterpriseMarketplaceBilling")
+        ? EnterpriseMarketplaceBillingUtil.fromJSON(
+            value("enterpriseMarketplaceBilling"),
+          )
+        : inputs.marketplaceBilling,
     };
   }
 
@@ -210,6 +230,30 @@ export default class LicenseInputsUtil {
       trialDays: LICENSE_TRIAL_PERIOD_IN_DAYS,
       acceptUnverified: ACCEPT_UNVERIFIED_LEGACY_LICENSES,
     });
+  }
+
+  /*
+   * The license the installation runs on: the token's classification (as
+   * classify), or the marketplace license when the installation was bought
+   * on a cloud marketplace and that classifies better. The license client's
+   * own activation and refresh guards keep judging the token alone
+   * (classify): a marketplace subscription says nothing about whether a
+   * returned token is a downgrade of the stored one.
+   */
+  public static classifyWithMarketplace(
+    inputs: LicenseInputs,
+    now: Date,
+    env?: Record<string, string | undefined>,
+  ): LicenseTokenClassification {
+    return MarketplaceLicense.pickBetter(
+      LicenseInputsUtil.classify(inputs, now),
+      MarketplaceLicense.classify({
+        state: inputs.marketplaceBilling,
+        configuredMarketplace: getConfiguredMarketplace(env),
+        now,
+        graceDays: LICENSE_GRACE_PERIOD_IN_DAYS,
+      }),
+    );
   }
 
   /*
@@ -245,6 +289,10 @@ export default class LicenseInputsUtil {
 
     if (classification.message) {
       snapshot.message = classification.message;
+    }
+
+    if (classification.marketplace) {
+      snapshot.marketplace = classification.marketplace;
     }
 
     return snapshot;

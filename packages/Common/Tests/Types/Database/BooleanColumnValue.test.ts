@@ -179,6 +179,54 @@ describe("toStoredBoolean: exactly the literals boolin reads, no more", () => {
   });
 });
 
+/*
+ * A request can write any text to a switch, so reading it takes time that
+ * grows with its length, whatever its shape. The whitespace around a
+ * literal was trimmed with a pattern ending in a repeated class and `$`,
+ * which starts again at every place inside a run of whitespace that is not
+ * at the end: 40,000 characters of it between two letters took over a
+ * second, and 400,000 about two minutes.
+ */
+describe("toStoredBoolean: a value 400,000 characters long is read in good time", () => {
+  const LENGTH: number = 400000;
+
+  test.each([
+    ["spaces between two letters", "x" + " ".repeat(LENGTH) + "x"],
+    ["tabs between two letters", "a" + "\t".repeat(LENGTH) + "b"],
+    [
+      "every kind of space boolin skips, between two letters",
+      "y" + " \t\n\v\f\r".repeat(Math.ceil(LENGTH / 6)) + "n",
+    ],
+    ["spaces inside a literal", "t" + " ".repeat(LENGTH) + "rue"],
+  ] as Array<[string, string]>)(
+    "%s is refused at once",
+    (_label: string, value: string) => {
+      expect(value.length).toBeGreaterThan(LENGTH);
+
+      const started: bigint = process.hrtime.bigint();
+      const stored: unknown = toStoredBoolean(value);
+      const writable: boolean = isWritableBooleanValue(value);
+      const ms: number = Number(process.hrtime.bigint() - started) / 1e6;
+
+      expect(stored).toBe(value);
+      expect(writable).toBe(false);
+      expect(ms).toBeLessThan(2000);
+    },
+  );
+
+  test("a literal with 400,000 characters of whitespace around it is read", () => {
+    const value: string =
+      " ".repeat(LENGTH / 2) + "\tFalse\r\n" + " ".repeat(LENGTH / 2);
+
+    const started: bigint = process.hrtime.bigint();
+    const stored: unknown = toStoredBoolean(value);
+    const ms: number = Number(process.hrtime.bigint() - started) / 1e6;
+
+    expect(stored).toBe(false);
+    expect(ms).toBeLessThan(2000);
+  });
+});
+
 describe("isWritableBooleanValue: what a Boolean column may be written with", () => {
   test.each([
     ["true", true],

@@ -8,14 +8,14 @@ Les permanences affichées sont celles avec lesquelles OneUptime alerte les pers
 flowchart TB
     subgraph setup["Chaque planning"]
         direction LR
-        layers["Couches et rotations"]
-        overrides["Remplacements d'utilisateurs"]
+        layers["Couches et<br/>rotations"]
+        overrides["Remplacements<br/>d'utilisateurs"]
     end
-    layers --> shifts["Qui est d'astreinte, et quand"]
+    layers --> shifts["Qui est<br/>d'astreinte,<br/>et quand"]
     overrides --> shifts
-    shifts --> timeline["Chronologie des astreintes"]
-    shifts --> paging["Les règles d'escalade les alertent"]
-    shifts --> feeds["Flux de calendrier"]
+    shifts --> timeline["Chronologie<br/>des astreintes"]
+    shifts --> paging["Les règles<br/>d'escalade<br/>les alertent"]
+    shifts --> feeds["Flux de<br/>calendrier"]
 ```
 
 ## Ouvrir la chronologie
@@ -42,7 +42,7 @@ Sous la grille, **On call this week** (**On call this month** dans la vue mensue
 
 ## Changer la période et le fuseau horaire
 
-- Basculez entre **Week** et **Mois**, naviguez avec les flèches et revenez avec **Today**.
+- Basculez entre **Semaine** et **Mois**, naviguez avec les flèches et revenez avec **Aujourd'hui**.
 - Les heures s'affichent dans votre propre fuseau horaire. Le bouton de fuseau horaire ouvre **View timeline in timezone**, qui affiche la chronologie dans n'importe quel autre fuseau sans changer qui est d'astreinte : chaque planning continue de faire ses passations dans son propre fuseau.
 - La chronologie couvre 180 jours en arrière et 365 jours en avant.
 

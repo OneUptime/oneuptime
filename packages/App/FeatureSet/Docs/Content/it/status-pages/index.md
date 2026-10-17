@@ -29,7 +29,7 @@ flowchart TB
 
 Le pagine di stato si trovano in **Pagine di stato**, nel menu **Prodotti** della barra superiore, tra gli elementi essenziali. Tutto ciò che è in questa pagina vale per singola pagina di stato: un progetto può averne quante ne vuole — una pubblica per i clienti, una privata per un pubblico interno, una per regione per un mercato specifico.
 
-La pagina mostra come risorse i monitor che vi inserite. Gli incidenti e la manutenzione programmata vi arrivano attraverso quei monitor, mentre gli annunci vi vengono pubblicati direttamente. I visitatori leggono la pagina, e gli iscritti ricevono notizia di ogni cambiamento sui canali che hanno scelto.
+La pagina mostra come risorse i monitor che vi inserite, e gli incidenti vi arrivano attraverso quei monitor. Gli [eventi di manutenzione pianificata](/docs/scheduled-maintenance/index) e gli annunci vi arrivano direttamente: ognuno indica le pagine di stato su cui viene mostrato. I visitatori leggono la pagina, e gli iscritti ricevono notizia di ogni cambiamento sui canali che hanno scelto.
 
 ## In sintesi
 
@@ -163,7 +163,7 @@ Se la pagina mostra una voce **Iscriviti** (**Mostra pagina iscritti**, `showSub
 
 Sotto la scheda ci sono **Esporta come JSON: Pagina di stato**, che scarica le impostazioni proprie della pagina di stato in un file che potete importare di nuovo, e **Archive status page** (vedete [Archiviare una pagina di stato](#archiviare-una-pagina-di-stato)). La percentuale di uptime complessiva e gli stati di inattività erano prima due schede a sé qui, ciascuna dietro un pulsante **Modifica**; ora sono righe della scheda.
 
-**Dove sono i colori.** I colori delle barre di uptime non sono qui: il **Colore predefinito della barra** e le regole di colore delle barre si trovano in **Altre impostazioni** in **Pagine di stato → la vostra pagina → Branding → Branding**. Non esiste alcuna impostazione di tema o di colore del marchio; tutto ciò che va oltre quei controlli si fa con il **CSS personalizzato**.
+**Dove sono i colori.** I colori delle barre di uptime non sono qui: il **Colore predefinito della barra** e le regole di colore delle barre si trovano in **Altre impostazioni** in **Pagine di stato → la vostra pagina → Branding → Branding**. Il **Tema** della pagina (chiaro, scuro o come è impostato il dispositivo di ogni visitatore) è una scheda in alto nella stessa pagina. Non esiste alcuna impostazione di colore del marchio; tutto ciò che va oltre quei controlli si fa con il **CSS personalizzato**.
 
 ## Vedere l'anteprima prima di andare in produzione
 
@@ -213,11 +213,13 @@ In **Altre impostazioni** di **Accesso**, la sezione **Lista IP consentiti** (la
 
 ## Il badge incorporabile e il feed RSS
 
-Due modi per mostrare lo stato altrove rispetto alla pagina stessa.
+Tre modi per mostrare lo stato altrove rispetto alla pagina stessa.
 
 **Badge di stato incorporato.** In **Pagine di stato → la vostra pagina → Avanzato → Stato incorporato**, attivate **Abilita badge di stato incorporato** (`enableEmbeddedOverallStatus`, disattivato per impostazione predefinita), poi fate clic su **Rigenera token** nella scheda **Token di sicurezza** per dare al badge il suo token (`embeddedOverallStatusToken`). Il badge è servito da `/api/status-page/badge/<status-page-id>?token=<token>`, e la schermata lo mostra in **Anteprima del badge** con frammenti da copiare, così potete mettere lo stato generale attuale nella vostra documentazione, nel piè di pagina della vostra app o in una pagina di marketing.
 
 **Feed RSS.** Ogni pagina di stato serve `/rss`: un feed intitolato "{titolo della pagina} Updates", con il **Titolo della pagina** impostato in **Branding**, o il suo nome se non ne ha uno, e le cui voci iniziano con `Incident: `, `Announcement: ` e `Scheduled Maintenance: `. Utile per chi preferisce portare i vostri aggiornamenti in un lettore o in un chatbot invece di iscriversi via email.
+
+**Calendario della manutenzione.** Ogni pagina di stato serve anche `/maintenance.ics`: la manutenzione programmata che mostra, come un calendario a cui Google Calendar, Calendario Apple o Outlook possono iscriversi. I visitatori lo aggiungono con **Iscriviti al calendario** nella pagina **Eventi pianificati**, e un singolo evento con **Aggiungi al calendario** nella pagina dell'evento stesso. Il calendario di una pagina privata è vuoto, perché un'app di calendario non può accedere. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#il-calendario-di-una-pagina-di-stato).
 
 Se preferite recuperare i dati voi stessi, la pagina di stato si basa su endpoint pubblici di lettura per la panoramica, gli incidenti, gli eventi di manutenzione programmata, gli annunci e gli episodi: vedete [API pubblica](/docs/status-pages/public-api).
 

@@ -6,6 +6,7 @@ import {
   SSO_ROUTERS,
   SsoRouterEntry,
 } from "../../../FeatureSet/Identity/SsoRouters";
+import SamlServiceProviders from "../../../FeatureSet/Identity/Utils/SamlServiceProvider";
 import ProjectSsoSignInConfirmation, {
   ProjectSsoKind,
 } from "../../../FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation";
@@ -482,9 +483,56 @@ describe("the URLs the product hands out are all served", () => {
   );
 
   /*
+   * The Reply URL each SAML router hands an identity provider - in its
+   * AuthnRequest, and as what a response's Recipient must name. The routers
+   * take it from SamlServiceProviders (SamlSignInRoutesGuard.test.ts holds
+   * them to that), so it is read from there, as it is built.
+   */
+  const SAML_REPLY_URLS: Record<string, () => string> = {
+    "SSO.ts": (): string => {
+      return SamlServiceProviders.forProjectSso({
+        projectId: "11111111-1111-4111-8111-111111111111",
+        projectSsoId: "22222222-2222-4222-8222-222222222222",
+      }).replyUrl;
+    },
+    "GlobalSSO.ts": (): string => {
+      return SamlServiceProviders.forGlobalSso({
+        globalSsoId: "22222222-2222-4222-8222-222222222222",
+      }).replyUrl;
+    },
+    "StatusPageSSO.ts": (): string => {
+      return SamlServiceProviders.forStatusPageSso({
+        statusPageId: "11111111-1111-4111-8111-111111111111",
+        statusPageSsoId: "22222222-2222-4222-8222-222222222222",
+      }).replyUrl;
+    },
+  };
+
+  // The shape of the path of a built URL after its /identity/.
+  const shapeAfterIdentity: (url: string) => PathShape = (
+    url: string,
+  ): PathShape => {
+    const marker: string = "/identity/";
+    const at: number = url.indexOf(marker);
+
+    expect({ url, underIdentity: at >= 0 }).toEqual({
+      url,
+      underIdentity: true,
+    });
+
+    const segments: Array<string> = url
+      .substring(at + marker.length)
+      .split("/")
+      .filter(Boolean);
+
+    return { head: segments[0]!, parameters: segments.length - 1 };
+  };
+
+  /*
    * What the routers themselves hand an identity provider: the ACS URL in a
-   * SAML AuthnRequest and the redirect URI of an OIDC authorization request,
-   * both built as `${HttpProtocol}${Host}/identity/<path>`.
+   * SAML AuthnRequest (from SamlServiceProviders, above) and the redirect URI
+   * of an OIDC authorization request, built as
+   * `${HttpProtocol}${Host}/identity/<path>`.
    */
   test.each([
     ["SSO.ts", { head: "idp-login", parameters: 2 }, "POST"],
@@ -505,11 +553,21 @@ describe("the URLs the product hands out are all served", () => {
     "%s sends identity providers back to a route it serves",
     (file: string, callback: PathShape, method: string) => {
       const source: string = readAppFile("FeatureSet", "Identity", "API", file);
-      const identityPaths: Array<PathShape> = [
-        ...source.matchAll(/\/identity(\/[^`"'\s]*)/g),
-      ].flatMap((match: RegExpMatchArray): Array<PathShape> => {
-        return findBuiltPaths(match[1]!, [callback.head]);
-      });
+      const samlReplyUrl: (() => string) | undefined = SAML_REPLY_URLS[file];
+
+      if (samlReplyUrl) {
+        expect(source).toContain(
+          "acsUrl: URL.fromString(serviceProvider.replyUrl)",
+        );
+      }
+
+      const identityPaths: Array<PathShape> = samlReplyUrl
+        ? [shapeAfterIdentity(samlReplyUrl())]
+        : [...source.matchAll(/\/identity(\/[^`"'\s]*)/g)].flatMap(
+            (match: RegExpMatchArray): Array<PathShape> => {
+              return findBuiltPaths(match[1]!, [callback.head]);
+            },
+          );
 
       expect(identityPaths).toContainEqual(callback);
       expect(isServed(callback, method)).toBe(true);

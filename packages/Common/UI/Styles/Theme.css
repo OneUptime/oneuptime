@@ -1,7 +1,9 @@
 /*
- * Shared dashboard theme tokens (Dashboard + Admin Dashboard). Light is
- * intentionally the default; the dark values are activated only by the
- * explicit class applied to <html>.
+ * Shared dashboard theme tokens (Dashboard + Admin Dashboard), and the
+ * public status page's dark theme. Light is intentionally the default; the
+ * dark values are activated only by the explicit class applied to <html>:
+ * by the reader's own pick in the dashboards, and by the page's Theme
+ * setting on a status page (Common/Types/StatusPage/StatusPageTheme.ts).
  */
 :root {
   color-scheme: light;
@@ -186,7 +188,7 @@ html.dark :is(.bg-gray-200, .bg-slate-200) {
   background-color: var(--ou-surface-quaternary);
 }
 
-html.dark [class~="bg-gray-200/70"] {
+html.dark :is([class~="bg-gray-200/70"], [class~="bg-gray-200/80"]) {
   background-color: color-mix(
     in srgb,
     var(--ou-surface-quaternary) 82%,
@@ -310,6 +312,11 @@ html.dark :is(
   ):hover,
 html.dark [class~="focus:text-gray-900"]:focus,
 html.dark [class~="focus-visible:text-gray-900"]:focus-visible,
+/*
+ * Named as well as matched below: the status page's calendar tiles brighten
+ * their arrow on hover, and its dark-mode guard reads named classes.
+ */
+html.dark .group:hover [class~="group-hover:text-gray-600"],
 html.dark .group:hover [class*="group-hover"][class*="text-gray-"],
 /*
  * `group-[:not(:hover)]:hidden` is a group-hover reveal written so a foreign
@@ -533,7 +540,8 @@ html.dark :is(
     .to-gray-50,
     .to-gray-100,
     .to-slate-50,
-    [class~="to-gray-50/50"]
+    [class~="to-gray-50/50"],
+    [class~="to-gray-50/80"]
   ) {
   --tw-gradient-to: var(--ou-surface-secondary)
     var(--tw-gradient-to-position);
@@ -1365,7 +1373,6 @@ html.dark .chrome-picker svg {
 
 /* React Big Calendar ships a light-only skin; these remain wrapper-scoped. */
 html.dark .oneuptime-calendar .rbc-calendar,
-html.dark .oneuptime-calendar .rbc-toolbar-label,
 html.dark .oneuptime-calendar .rbc-date-cell,
 html.dark .oneuptime-calendar .rbc-agenda-view table,
 html.dark .oneuptime-calendar .rbc-agenda-date-cell,
@@ -1373,11 +1380,17 @@ html.dark .oneuptime-calendar .rbc-agenda-time-cell {
   color: var(--ou-text-secondary);
 }
 
-html.dark .oneuptime-calendar :is(
+/*
+ * .rbc-calendar is in these two selectors for its weight: Calendar.css paints
+ * the week view's day names with a selector four classes deep, and the
+ * agenda's column titles with one as heavy as the second rule would be
+ * without it. (The toolbar's selectors that used to sit in these lists gave
+ * them that weight; the toolbar is now the product's own, CalendarToolbar.)
+ */
+html.dark .oneuptime-calendar .rbc-calendar :is(
     .rbc-month-view,
     .rbc-time-view,
     .rbc-agenda-view,
-    .rbc-toolbar .rbc-btn-group,
     .rbc-time-content,
     .rbc-day-bg,
     .rbc-timeslot-group
@@ -1386,11 +1399,9 @@ html.dark .oneuptime-calendar :is(
   border-color: var(--ou-border-default);
 }
 
-html.dark .oneuptime-calendar :is(
+html.dark .oneuptime-calendar .rbc-calendar :is(
     .rbc-header,
     .rbc-off-range-bg,
-    .rbc-toolbar button:hover,
-    .rbc-toolbar button:focus,
     .rbc-agenda-view thead > tr > th
   ) {
   background-color: var(--ou-surface-secondary);
@@ -1402,16 +1413,61 @@ html.dark .oneuptime-calendar .rbc-today {
   background-color: var(--ou-accent-soft);
 }
 
-html.dark .oneuptime-calendar .rbc-toolbar button {
+/* Today in the month grid: the surface rule above paints every day cell
+   the card's colour and outranks .rbc-today, so today needs its own. */
+html.dark .oneuptime-calendar .rbc-month-view .rbc-day-bg.rbc-today {
+  background-color: var(--ou-accent-soft);
+}
+
+/* A block in a dark colour - a state or a person whose colour is black or
+   near it - keeps an edge on the dark grid. */
+html.dark .oneuptime-calendar .rbc-event {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%);
+}
+
+html.dark .oneuptime-calendar-legend-dot {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 35%);
+}
+
+/*
+ * A soft block (Calendar's eventAppearance, CalendarEventTone): its dark
+ * tone rides along on the inline style as custom properties. Important,
+ * because what it replaces is an inline style. Not scoped to the calendar's
+ * wrapper: the "+N more" list is drawn outside it.
+ */
+html.dark .rbc-event.oneuptime-calendar-event--soft {
+  background-color: var(--ou-calendar-event-dark-bg) !important;
+  color: var(--ou-calendar-event-dark-text) !important;
+  box-shadow: var(--ou-calendar-event-dark-shadow) !important;
+}
+
+/* The "+N more" list, a small card at the end of the page's body. */
+html.dark .rbc-overlay {
   background-color: var(--ou-surface-primary);
   border-color: var(--ou-border-default);
+  box-shadow: var(--ou-shadow-md);
+}
+
+html.dark .rbc-overlay .rbc-overlay-header {
+  border-color: var(--ou-border-subtle);
   color: var(--ou-text-secondary);
 }
 
-html.dark .oneuptime-calendar .rbc-toolbar button.rbc-active {
-  background-color: var(--ou-accent-soft);
-  border-color: var(--ou-border-strong);
-  color: var(--ou-accent-text);
+/*
+ * The week and day grids: the lines between days, and only the hours'
+ * lines - the half hours' would draw every hour twice as busy as the light
+ * theme's faint ones.
+ */
+html.dark .oneuptime-calendar .rbc-time-content > * + * > * {
+  border-left-color: var(--ou-border-subtle) !important;
+}
+
+html.dark .oneuptime-calendar .rbc-day-slot .rbc-time-slot {
+  border-top-color: transparent !important;
+}
+
+html.dark .oneuptime-calendar .rbc-time-view .rbc-timeslot-group {
+  border-bottom-color: var(--ou-border-subtle) !important;
 }
 
 html.dark .oneuptime-calendar :is(.rbc-off-range, .rbc-label) {
@@ -1465,6 +1521,66 @@ html.dark svg :is([fill="#94a3b8"], [fill="#6b7280"]) {
 html.dark :fullscreen,
 html.dark :fullscreen::backdrop {
   background-color: var(--ou-background-primary);
+}
+
+/*
+ * Status colours (Common/UI/Utils/StatusColorStyle). People pick them for a
+ * light page, and on a dark card the darkest of them all but vanish. Text in
+ * a status colour - a status's name, an uptime percentage, a group's rollup
+ * - takes the nearest lighter shade of it that reads at 4.5:1 on the dark
+ * card, which the element carries as a custom property. Important, because
+ * what it replaces is an inline style.
+ */
+html.dark [data-ou-status-text] {
+  color: var(--ou-status-text-dark) !important;
+}
+
+/*
+ * An uptime bar keeps its colour exactly as picked: the recommended colours
+ * are told apart by lightness, for people with red-green colour blindness,
+ * and a lighter red would look like the orange beside it. A bar too dark to
+ * stand out from the dark card (the very dark red of a long outage) gets a
+ * one-pixel edge inside it, in a lighter shade of its own colour that does.
+ */
+html.dark [data-ou-bar-edge] {
+  box-shadow: inset 0 0 0 1px var(--ou-bar-edge-dark);
+}
+
+/*
+ * A day with no data (Graphs/DayUptimeGraph.css): on the light theme a pale
+ * grey, hatched in white, that sits back behind the days that were
+ * measured. The same grey on a dark card is the brightest thing in the
+ * strip, so the dark theme draws it a step darker, hatched in the page's own
+ * colour: still told apart from every measured day by its stripes, and
+ * still back where it belongs. Important, because the grey is the bar's
+ * inline background colour.
+ */
+html.dark .uptime-bar-no-data {
+  background-color: #64748b !important;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(15 23 42 / 45%) 0,
+    rgb(15 23 42 / 45%) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+}
+
+/*
+ * A status page's logo, on a page a visitor can see dark: a Dark page, and
+ * one that follows each visitor's device (StatusPage/src/Components/Logo/
+ * LogoPlate). That one logo is also the light page's and the emails', so it
+ * is made for a light background - dark lettering on nothing, as often as
+ * not - and on the dark page it sits on a small light backdrop, where it
+ * reads as it does on the light page.
+ */
+html.dark [data-ou-logo-plate] {
+  background-color: #f8fafc;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  box-shadow:
+    0 0 0 1px rgb(148 163 184 / 24%),
+    0 1px 2px rgb(0 0 0 / 30%);
 }
 
 /*

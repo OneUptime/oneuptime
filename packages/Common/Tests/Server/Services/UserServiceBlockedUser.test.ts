@@ -78,8 +78,8 @@ let findOneById: jest.SpyInstance;
 let revokeAllSessionsByUserId: jest.SpyInstance;
 
 beforeEach(() => {
-  UserService.forgetBlockedStatus(USER_ID);
-  UserService.forgetBlockedStatus(OTHER_USER_ID);
+  UserService.forgetAccountStanding(USER_ID);
+  UserService.forgetAccountStanding(OTHER_USER_ID);
 
   findOneById = jest
     .spyOn(UserService, "findOneById")
@@ -156,7 +156,11 @@ describe("UserService.onUpdateSuccess — blocking a user", () => {
 });
 
 describe("UserService.isUserBlocked", () => {
-  test("reads isBlocked from the user row, and only that column", async () => {
+  /*
+   * With isMasterAdmin: every authenticated request asks both, so one
+   * primary-key read answers both (UserServiceAccountStanding).
+   */
+  test("reads isBlocked from the user row, with isMasterAdmin and nothing else", async () => {
     findOneById.mockResolvedValue(storedUser({ isBlocked: true }) as never);
 
     await expect(UserService.isUserBlocked(USER_ID)).resolves.toBe(true);
@@ -164,7 +168,7 @@ describe("UserService.isUserBlocked", () => {
     expect(findOneById).toHaveBeenCalledTimes(1);
     expect(findOneById).toHaveBeenCalledWith({
       id: USER_ID,
-      select: { isBlocked: true },
+      select: { isBlocked: true, isMasterAdmin: true },
       props: { isRoot: true },
     });
   });

@@ -29,7 +29,7 @@ The explorer has four tabs:
 | --- | --- |
 | **Viewer** | Search and filter spans, and open their traces. It opens on the past hour, newest first, 50 spans per page. |
 | **Insights** | Request rates, error rates and latency per service, and the requests worth a look. |
-| **Setup Guide** | How to send traces with OpenTelemetry, using one of your ingestion keys. |
+| **Setup Guide** | How to send traces with OpenTelemetry, using one of your [ingestion keys](/docs/telemetry/ingestion-keys). |
 | **Settings** | What happens to spans as they arrive: **Pipelines**, **Drop Filters**, **Scrub Rules** and **Recording Rules**. |
 
 ## Before you begin
@@ -115,12 +115,12 @@ Scope it to some services with the dropdown beside the time picker.
 
 ## What happens to spans as they arrive
 
-The **Settings** tab holds the rules OneUptime applies to spans as they arrive, as it does for logs. They act on the spans that arrive afterwards, not on stored ones.
+The **Settings** tab holds the rules OneUptime applies to spans as they arrive, as it does for logs. They act on the spans that arrive afterwards, not on stored ones. How long each span is kept is decided as it arrives too: see [Data Retention](/docs/telemetry/data-retention).
 
 | Rule | What it does |
 | --- | --- |
-| **Drop Filters** | Discard spans you do not want to keep, or keep a sample of them. |
-| **Scrub Rules** | Mask sensitive data in span attributes. |
+| **Drop Filters** | Discard spans you do not want to keep, or keep a sample of them. See [Drop or sample records](/docs/telemetry/drop-filters-and-scrub-rules#drop-or-sample-records). |
+| **Scrub Rules** | Mask sensitive data in span attributes. See [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data). |
 | **Pipelines** | Change and enrich spans: each pipeline matches spans with a filter, then runs its processors in order. |
 | **Recording Rules** | Turn span counts, error counts and durations into new metrics, every minute. See [Log Recording Rules](/docs/telemetry/log-recording-rules). |
 

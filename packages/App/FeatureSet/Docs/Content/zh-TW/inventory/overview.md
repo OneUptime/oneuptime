@@ -123,7 +123,7 @@ OneUptime 探索到的關係如果 30 天內沒有再次出現，就會被移除
 
 ## 關係與拓撲
 
-OneUptime 在觀察項目時，會以有方向的關係把它們連接起來。**資產清單 → Topology Map** 會繪製這些關係，項目的 **Connections** 頁面會列出它自己的關係。
+OneUptime 在觀察項目時，會以有方向的關係把它們連接起來。**資產清單 → Topology Map** 會繪製這些關係，項目的 **Connections** 頁面會列出它自己的關係。請參閱 [拓撲](/docs/telemetry/topology)。
 
 | 關係 | 範例 |
 | --- | --- |

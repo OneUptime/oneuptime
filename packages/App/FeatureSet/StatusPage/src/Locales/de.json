@@ -22,6 +22,10 @@
     "label": "Sprache",
     "switchLanguage": "Sprache wechseln"
   },
+  "theme": {
+    "switchToDark": "Zum dunklen Design wechseln",
+    "switchToLight": "Zum hellen Design wechseln"
+  },
   "nav": {
     "overview": "Übersicht",
     "incidents": "Vorfälle",
@@ -125,7 +129,27 @@
     "noneDescription": "Für diese Statusseite wurden keine geplanten Ereignisse veröffentlicht.",
     "scheduledAt": "Geplant für ",
     "report": "Bericht über geplantes Ereignis",
-    "notFound": "Kein geplantes Ereignis für diese Statusseite gefunden."
+    "notFound": "Kein geplantes Ereignis für diese Statusseite gefunden.",
+    "calendar": {
+      "subscribe": "Kalender abonnieren",
+      "subscribeTitle": "Geplante Wartungen abonnieren",
+      "subscribeDescription": "Holen Sie sich die geplanten Wartungen dieser Seite in Ihre Kalender-App. Sie bleiben von selbst auf dem neuesten Stand.",
+      "eventTitle": "Zum Kalender hinzufügen",
+      "eventDescription": "Fügen Sie diese Wartung Ihrer Kalender-App hinzu.",
+      "addToCalendar": "Zum Kalender hinzufügen",
+      "addHeading": "Zu Ihrem Kalender hinzufügen",
+      "google": "Google Kalender",
+      "googleHint": "Öffnet Google Kalender in einem neuen Tab",
+      "device": "Apple Kalender / Outlook",
+      "deviceHint": "Öffnet die Kalender-App auf diesem Gerät",
+      "deviceFileHint": "Lädt die Wartung für die Kalender-App auf diesem Gerät herunter",
+      "copyHeading": "Oder Link kopieren",
+      "copyHint": "Fügen Sie ihn in eine beliebige Kalender-App ein, die einen Kalender per URL abonnieren kann.",
+      "copy": "Link kopieren",
+      "copied": "Kopiert!",
+      "done": "Fertig",
+      "refreshNote": "Kalender-Apps suchen nach eigenem Zeitplan nach Änderungen, daher kann es einige Stunden dauern, bis eine Änderung erscheint."
+    }
   },
   "subscribe": {
     "title": "Abonnieren",

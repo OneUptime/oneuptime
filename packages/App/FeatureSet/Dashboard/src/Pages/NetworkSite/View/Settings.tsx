@@ -158,9 +158,8 @@ const NetworkSiteSettings: FunctionComponent<
             stepId: "hierarchy",
             sectionTitle: "Place This Site",
             sectionDescription:
-              "Optional. Any site that is not below this one in your site type hierarchy can be the parent. Sites of the type configured directly above are listed first.",
-            description:
-              "Leave this empty to keep the site at the top level. Sites of a type below this one, and sites of a unit-level type, cannot be parents.",
+              "Any site not below this one can be the parent. Sites of the type directly above are listed first.",
+            description: "Leave it empty to keep the site at the top level.",
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: (values: FormValues<NetworkSite>) => {
               return fetchParentNetworkSiteOptions(values, modelId);
@@ -175,10 +174,9 @@ const NetworkSiteSettings: FunctionComponent<
             title: "Default Probe",
             stepId: "monitoring-defaults",
             sectionTitle: "Monitoring Defaults",
-            sectionDescription:
-              "What a device registered into this site starts out with. Set these once and a device can be added by name and address alone.",
+            sectionDescription: "What a device added to this site starts with.",
             description:
-              "The probe that pings and walks devices in this site unless a device names its own. A device created into this site with no probe inherits it (so does one moved here without a probe); devices that already have a probe keep it. Pick a custom probe deployed on this site's network — a probe on the public internet cannot reach a private address.",
+              "A device added here without a probe inherits it. A probe on the public internet cannot reach a private network.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Probe,
@@ -195,7 +193,7 @@ const NetworkSiteSettings: FunctionComponent<
             title: "Default SNMP Credential Profile",
             stepId: "monitoring-defaults",
             description:
-              "The SNMP credentials devices in this site are walked with when neither the device nor its own profile carries any. With a profile here, a device added to this site is walked over SNMP from its first poll; without one anywhere it is pinged only.",
+              "Used by devices here that have no credentials of their own. A device with none anywhere is pinged only.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSnmpCredentialProfile,
@@ -338,7 +336,7 @@ const NetworkSiteSettings: FunctionComponent<
             },
             title: "Alert When Unhealthy",
             description:
-              "When enabled, an alert opens the moment this site's rollup transitions to a non-operational status, and auto-resolves on recovery.",
+              "Opens an alert when the site turns unhealthy, and resolves it when the site recovers.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -415,7 +413,7 @@ const NetworkSiteSettings: FunctionComponent<
             },
             title: "Rollup Policy",
             description:
-              "Worst status: any offline device makes this site offline — right for a single unit, where four switches in one building are not independent. Percentage of devices down: the share decides — right for a region, where one dark switch in one store should not paint four hundred of them red.",
+              "Worst status: one offline device makes the site offline. Percentage of devices down: the share decides.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: [
               {
@@ -440,7 +438,7 @@ const NetworkSiteSettings: FunctionComponent<
             },
             title: "Offline Threshold (%)",
             description:
-              "Only used by the percentage policy. At or above this share of reporting devices down, the site is offline. Below it, but above zero, the site is degraded.",
+              "For the percentage policy: the share of devices down at which the site is offline.",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "50",

@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Você
     participant OneUptime
     participant Alerts as Alertas
-    You->>OneUptime: Declarar incidente, com até 50 alertas
-    OneUptime->>OneUptime: Verificar cada alerta e suas permissões
-    OneUptime->>OneUptime: Criar o incidente e executar suas regras de privacidade
+    You->>OneUptime: Declarar incidente,<br/>com até 50 alertas
+    OneUptime->>OneUptime: Verificar cada alerta<br/>e suas permissões
+    OneUptime->>OneUptime: Criar o incidente e<br/>executar suas regras<br/>de privacidade
     OneUptime->>Alerts: Vincular cada alerta
-    OneUptime-->>You: O novo incidente, com os alertas já vinculados
-    OneUptime->>Alerts: Confirmá-los em segundo plano, se a caixa estiver marcada
+    OneUptime-->>You: O novo incidente, com<br/>os alertas já vinculados
+    OneUptime->>Alerts: Confirmá-los em<br/>segundo plano, se a<br/>caixa estiver marcada
 ```
 
 Quando você envia, o servidor verifica os alertas antes de criar qualquer coisa: no máximo 50, cada um um alerta deste projeto que você tem permissão para ver, e você precisa ter permissão para vincular alertas a incidentes. Se alguma verificação falhar, a requisição é rejeitada e nenhum incidente é criado — então um id de alerta errado nunca consome um número de incidente. Depois que o incidente existe — e depois que suas regras de privacidade rodaram, para que os vínculos saibam se ele é privado — cada alerta é vinculado antes de a requisição responder, então a página **Alertas vinculados** do incidente já os lista. Se um único vínculo falhar — porque o alerta foi excluído um instante antes, por exemplo — o incidente ainda é declarado e os outros alertas ainda são vinculados.

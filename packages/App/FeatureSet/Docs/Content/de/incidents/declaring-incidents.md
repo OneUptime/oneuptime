@@ -21,7 +21,7 @@ Es gibt fünf Wege, auf denen ein Vorfall in OneUptime entsteht, und alle enden 
 | einen aus eigenem Code, einem Skript oder einem anderen Werkzeug öffnen wollen | `POST /api/incident`                                           |
 | Personen außerhalb Ihres Teams Probleme über einen Link melden lassen wollen | ein [Formular](/docs/forms/index)                                |
 
-Alle fünf schreiben dasselbe Modell, ein von einer Probe geöffneter Vorfall sieht also genauso aus wie einer, den ein Responder von Hand geöffnet hat – bis auf ein paar Verwaltungsspalten, die der Server bei automatischen setzt. Auch Integrationen schreiben es: [Huntress](/docs/integrations/huntress) öffnet für jeden Vorfallbericht, den sein SOC sendet, einen Vorfall.
+Alle fünf schreiben dasselbe Modell, ein von einer Probe geöffneter Vorfall sieht also genauso aus wie einer, den ein Responder von Hand geöffnet hat – bis auf ein paar Verwaltungsspalten, die der Server bei automatischen setzt. Auch Workflows schreiben es: Der [Huntress](/docs/integrations/huntress)-Workflow öffnet für jeden Vorfallbericht, den sein SOC sendet, einen Vorfall.
 
 > [!TIP]
 > Sie können einen Vorfall auch aus Warnungen melden: **Vorfall melden** in einer Warnungsliste, in der Kopfzeile einer Warnung oder auf der Seite **Verknüpfte Vorfälle** einer Warnung öffnet denselben Assistenten, vorausgefüllt aus den Warnungen, und verknüpft sie mit dem neuen Vorfall. Ein standardmäßig angehaktes Kästchen im Formular bestätigt die Warnungen außerdem, damit ihre Eskalation stoppt. Siehe [Verknüpfte Warnungen](/docs/incidents/linked-alerts).
@@ -250,14 +250,7 @@ Der Erstellungsaufruf tut mehr, als eine Zeile zu schreiben:
 flowchart TB
     request["Erstellungsanfrage"] --> fill["Server füllt die Lücken"]
     fill --> template["Vorlage angewendet, falls vorhanden"]
-    template --> rules
-    subgraph rules["Regeln, in dieser Reihenfolge"]
-        direction LR
-        privacy["Datenschutz"] --> owner["Eigentümer"]
-        owner --> label["Beschriftung"]
-        label --> oncall["Bereitschaft"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Regeln, in dieser Reihenfolge:<br/>Datenschutz, Eigentümer, Beschriftung,<br/>Bereitschaft, Runbook"]
     rules --> policies["Bereitschaftsrichtlinien laufen"]
     policies --> subscribers["Abonnenten eingereiht"]
     subscribers --> workflows["Workflows starten"]
@@ -284,10 +277,10 @@ Ein späterer **Anfangsstatus** – im Formular, über den **Anfänglicher Vorfa
 
 ```mermaid title="Was ein neuer Vorfall auslöst, je nach dem Status, in dem er beginnt"
 flowchart TB
-    start{"Anfangsstatus"} -->|"Erstellungsstatus, der Standard"| live["Als neu behandelt: alarmiert die Bereitschaft"]
-    start -->|"Bestätigt oder später"| acked["Erfasst: alarmiert niemanden"]
-    start -->|"Behoben oder später"| over["Als vorbei erfasst"]
-    over --> quiet["Keine Gruppierung, Runbooks, KI, kein Kanal, kein SLA"]
+    start{"Anfangsstatus"} -->|"Erstellungsstatus,<br/>der Standard"| live["Als neu<br/>behandelt:<br/>alarmiert die<br/>Bereitschaft"]
+    start -->|"Bestätigt<br/>oder später"| acked["Erfasst:<br/>alarmiert<br/>niemanden"]
+    start -->|"Behoben<br/>oder später"| over["Als vorbei<br/>erfasst"]
+    over --> quiet["Keine Gruppierung,<br/>Runbooks, KI, kein<br/>Kanal, kein SLA"]
 ```
 
 - **In Ihrem bestätigten Status oder danach** – **Bestätigt** oder ein Status, der unter **Vorfälle → Einstellungen → Vorfallsstatus** darunter steht – läuft keine Bereitschaftsrichtlinie, es wird also niemand alarmiert. Der Vorfall listet seine Richtlinien weiterhin auf, die gewählten und die von Bereitschaftsregeln hinzugefügten, und sein Feed sagt in einer Zeile, warum: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Sein SLA, falls eine Regel ihm eines gibt, beginnt bereits als beantwortet. Alles Weitere unten läuft wie bei jedem neuen Vorfall.

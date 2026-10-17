@@ -57,7 +57,8 @@ const RETENTION_PATTERN: RegExp =
 /*
  * Alphabetical, because it is compared with a sorted directory listing.
  *
- * The three on-call CALENDAR feeds are configuration in the same sense as the
+ * The CALENDAR feeds - the three on-call links and the team's scheduled
+ * maintenance link - are configuration in the same sense as the
  * threat-intel feed: each row is a long-lived capability token (the calendar
  * subscription URL) plus its settings and fetch bookkeeping. Age-expiring one
  * would silently break every calendar app subscribed to it after three years.
@@ -67,13 +68,20 @@ const RETENTION_PATTERN: RegExp =
 const CONFIGURATION_FEED_SERVICE_NAMES: ReadonlyArray<string> = [
   "OnCallDutyPolicyScheduleCalendarFeedService",
   "ProjectOnCallCalendarFeedService",
+  "ScheduledMaintenanceCalendarFeedService",
   "ThreatIntelFeedService",
   "UserOnCallCalendarFeedService",
+];
+
+// Configuration feeds with no settings of their own to check on an update.
+const SETTINGLESS_CONFIGURATION_FEED_SERVICE_NAMES: ReadonlyArray<string> = [
+  "ScheduledMaintenanceCalendarFeedService",
 ];
 
 const CALENDAR_FEED_MODEL_NAMES: ReadonlyArray<string> = [
   "OnCallDutyPolicyScheduleCalendarFeed",
   "ProjectOnCallCalendarFeed",
+  "ScheduledMaintenanceCalendarFeed",
   "UserOnCallCalendarFeed",
 ];
 
@@ -175,10 +183,40 @@ describe("Feed service retention windows", () => {
       const source: string = readServiceSource(serviceName);
 
       expect(source).toContain("protected override async onBeforeCreate");
-      expect(source).toContain("protected override async onBeforeUpdate");
+
+      // A link with settings checks them on every write (see below for one without).
+      if (!SETTINGLESS_CONFIGURATION_FEED_SERVICE_NAMES.includes(serviceName)) {
+        expect(source).toContain("protected override async onBeforeUpdate");
+      }
+
       expect(source).not.toMatch(/public async create\w+FeedItem\s*\(/);
     },
   );
+
+  test("the scheduled maintenance link has no settings to check on update: only its switch is written", () => {
+    /*
+     * The on-call links clamp their window settings on every update. The
+     * team's scheduled maintenance link has no window (it always reaches 90
+     * days back and a year ahead), so the one column a caller may update is
+     * its on / off switch; the token, the project and the bookkeeping are
+     * written by the service alone.
+     */
+    const source: string = readModelSource("ScheduledMaintenanceCalendarFeed");
+    const updatable: Array<string> = source
+      .split("@ColumnAccessControl(")
+      .slice(1)
+      .filter((block: string): boolean => {
+        return block.includes("update: updatePermissions");
+      })
+      .map((block: string): string => {
+        return block.match(/public (\w+)\?/)?.[1] || "";
+      });
+
+    expect(updatable).toEqual(["isEnabled"]);
+    expect(SETTINGLESS_CONFIGURATION_FEED_SERVICE_NAMES).toEqual([
+      "ScheduledMaintenanceCalendarFeedService",
+    ]);
+  });
 
   test("ThreatIntelFeed owns a live subscription lifecycle", () => {
     /*

@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.66",
+  "version": "14.0.67",
   "description": "",
   "repository": {
     "type": "git",
@@ -10,6 +10,7 @@
   "scripts": {
     "test-alerts-ui": "playwright test --config playwright.alerts.config.ts",
     "test-status-page-search-ui": "playwright test --config playwright.status-page-search.config.ts",
+    "test-status-page-theme-ui": "playwright test --config playwright.status-page-theme-ui.config.ts",
     "test-navigation-search-ui": "playwright test --config playwright.navigation-search.config.ts",
     "preinstall": "npx playwright install-deps && npx playwright install",
     "test": "playwright test || (curl $E2E_TESTS_FAILED_WEBHOOK_URL && exit 1)",
@@ -55,7 +56,9 @@
     "test-status-timeline-ui": "playwright test --config playwright.status-timeline-ui.config.ts",
     "test-episode-bulk-add-ui": "playwright test --config playwright.episode-bulk-add-ui.config.ts",
     "test-runbook-triggers-ui": "playwright test --config playwright.runbook-triggers-ui.config.ts",
-    "test-sign-in-options-ui": "playwright test --config playwright.sign-in-options-ui.config.ts"
+    "test-sign-in-options-ui": "playwright test --config playwright.sign-in-options-ui.config.ts",
+    "test-maintenance-calendar-ui": "playwright test --config playwright.maintenance-calendar-ui.config.ts",
+    "test-detail-cards-ui": "playwright test --config playwright.detail-cards-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

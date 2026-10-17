@@ -149,6 +149,14 @@ flowchart TB
 對於 SAML 提供者，身分提供者回應中的簽發者不是提供者上儲存的 **Issuer**。請從身分提供者重新複製；兩者必須完全一致。
 :::
 
+:::details "SAML Audience does not match"
+對於 SAML 提供者，回應的 audience 不是提供者的 **Issuer (Entity ID)**：您的身分提供者是為其他應用程式建立這個回應的。請在身分提供者中將應用程式的 entity ID 設為提供者頁面上的 **Issuer (Entity ID)**。"SAML Recipient does not match" 和 "SAML Destination does not match" 對其 reply URL 的意思相同：請將其設為 **ACS URL (Assertion Consumer Service / Reply URL)**。
+:::
+
+:::details "SAML response was already used"
+您的身分提供者的每個回應只能登入一次，而且只在簽發後幾分鐘內有效：之後會以 "SAML response has expired" 被拒絕。請重新登入。如果回應不斷過期，請檢查本伺服器和您的身分提供者的時鐘。
+:::
+
 ## 後續步驟
 
 :::cards

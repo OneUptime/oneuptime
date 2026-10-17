@@ -15,19 +15,19 @@ Denne side forklarer, hvordan du tillader det, bevidst og snævert. Tre kontakte
 | **Monitorer** af typen API, Website, External Status Page og Custom JavaScript Code | **Probens** eget miljø | Private adresser afvist |
 
 ```mermaid title="Tre kontakter, hver for sin slags forbindelse"
-flowchart TB
+flowchart LR
     subgraph Server["OneUptime-serveren"]
         direction TB
-        Webhooks["Workflows og webhooks"]
-        Outbound["Datakilder, LLM-udbydere,<br/>SMTP og andre forbindelser"]
+        Webhooks["Workflows<br/>og webhooks"]
+        Outbound["Datakilder,<br/>LLM-udbydere,<br/>SMTP og andre<br/>forbindelser"]
     end
     subgraph Probe["Hver probe"]
-        Monitors["Monitorer af typen API, Website,<br/>External Status Page og<br/>Custom JavaScript Code"]
+        Monitors["Monitorer af typen<br/>API, Website,<br/>External<br/>Status Page og<br/>Custom<br/>JavaScript Code"]
     end
-    Private["Dit private netværk"]
-    Webhooks -->|"slået fra som standard"| Private
-    Outbound -->|"slået til som standard"| Private
-    Monitors -->|"slået fra som standard"| Private
+    Private["Dit private<br/>netværk"]
+    Webhooks -->|"slået fra<br/>som standard"| Private
+    Outbound -->|"slået til<br/>som standard"| Private
+    Monitors -->|"slået fra<br/>som standard"| Private
 ```
 
 Netværksnære monitortyper som Ping, Port, SSL-certifikat, DNS, DNSSEC, SNMP / Netværksenhed, SQL-forespørgsel, Databasesundhed, Synthetic og Network Path bruger deres egne transporter. Indstillingen på denne side styrer de HTTP-transporter, der returnerer vilkårligt svarindhold til et projekt: monitorer af typen API, Website, External Status Page og Custom JavaScript Code.

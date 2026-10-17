@@ -29,7 +29,7 @@ Utforskeren har fire faner:
 | --- | --- |
 | **Viser** | Søk i, filtrer og les logger. Den åpner på siste time, nyeste først, 100 logger per side. |
 | **Innsikt** | Hva tjenestene dine logget i et tidsintervall, og hva som gikk galt. |
-| **Oppsettveiledning** | Hvordan du sender logger med OpenTelemetry, Fluent Bit eller Fluentd med en av inntaksnøklene dine. |
+| **Oppsettveiledning** | Hvordan du sender logger med OpenTelemetry, Fluent Bit eller Fluentd med en av [inntaksnøklene](/docs/telemetry/ingestion-keys) dine. |
 | **Innstillinger** | Hva som skjer med logger når de kommer inn: **Pipelines**, **Drop-filtre**, **Scrub-regler** og **Opptaksregler**. |
 
 ## Før du begynner
@@ -111,7 +111,7 @@ Lagrede visninger hører til prosjektet, så alle i det ser den samme listen. Et
 
 Bytt listen til **Analytics** for å telle logger i stedet for å lese dem. Velg en tidsserie, en toppliste eller en tabell; tell hver logg, eller de unike verdiene i ett felt; og grupper etter alvorlighetsgrad, tjeneste, spor, span eller et hvilket som helst attributt, deretter etter et felt til. En toppliste eller en tabell viser de øverste 5, 10, 25 eller 50 gruppene.
 
-Klikk på **List** for å gå tilbake til selve linjene.
+Klikk på **Liste** for å gå tilbake til selve linjene.
 
 ## Åpne tilhørende spor og målinger
 
@@ -132,12 +132,12 @@ Velg en av de største feilene for å se hva som skjedde rundt den: når den opp
 
 ## Hva som skjer med logger når de kommer inn
 
-Fanen **Innstillinger** inneholder reglene OneUptime bruker på hver logg før den lagres. De virker på loggene som kommer inn etterpå, ikke på lagrede.
+Fanen **Innstillinger** inneholder reglene OneUptime bruker på hver logg før den lagres. De virker på loggene som kommer inn etterpå, ikke på lagrede. Hvor lenge hver logg beholdes, avgjøres også når den kommer inn: se [Dataoppbevaring](/docs/telemetry/data-retention).
 
 | Regel | Hva den gjør |
 | --- | --- |
-| **Drop-filtre** | Forkast logger du ikke vil beholde, eller behold bare et utvalg av dem. |
-| **Scrub-regler** | Masker sensitive data, som e-postadresser og kortnumre. |
+| **Drop-filtre** | Forkast logger du ikke vil beholde, eller behold bare et utvalg av dem. Se [Forkast poster eller ta utvalg](/docs/telemetry/drop-filters-and-scrub-rules#forkast-poster-eller-ta-utvalg). |
+| **Scrub-regler** | Masker sensitive data, som e-postadresser og kortnumre. Se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data). |
 | **Pipelines** | Trekk felt ut av meldingen, rett alvorlighetsgraden, gi attributter nye navn. Se [Loggpipelines](/docs/telemetry/log-pipelines). |
 | **Opptaksregler** | Gjør samsvarende logger om til målinger. Se [Opptaksregler for logger](/docs/telemetry/log-recording-rules). |
 

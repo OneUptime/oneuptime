@@ -29,7 +29,7 @@ flowchart TB
 
 Las páginas de estado están en **Páginas de estado**, en el menú **Productos** de la barra superior, entre los esenciales. Todo lo que hay en esta página es por página de estado: un proyecto puede tener tantas como quiera — una pública para clientes, una privada para un público interno, una por región para un mercado concreto.
 
-La página muestra como recursos los monitores que colocas en ella. Los incidentes y el mantenimiento programado llegan a ella a través de esos monitores, y los anuncios se publican directamente en ella. Los visitantes leen la página, y los suscriptores reciben aviso de cada cambio por los canales que eligieron.
+La página muestra como recursos los monitores que colocas en ella, y los incidentes llegan a ella a través de esos monitores. Los [eventos de mantenimiento programado](/docs/scheduled-maintenance/index) y los anuncios llegan a ella directamente: cada uno indica las páginas de estado en las que se muestra. Los visitantes leen la página, y los suscriptores reciben aviso de cada cambio por los canales que eligieron.
 
 ## De un vistazo
 
@@ -163,7 +163,7 @@ Si la página muestra un elemento **Suscribirse** (**Mostrar página de suscript
 
 Debajo de la tarjeta están **Exportar como JSON: Página de estado**, que descarga los ajustes propios de la página de estado en un archivo que puedes volver a importar, y **Archive status page** (consulta [Archivar una página de estado](#archivar-una-página-de-estado)). El porcentaje de tiempo de actividad general y los estados de inactividad eran antes dos tarjetas propias aquí, cada una tras un botón **Editar**; ahora son filas de la tarjeta.
 
-**Dónde están los colores.** Los colores de las barras de tiempo de actividad no están aquí: el **Color de barra predeterminado** y las reglas de color de las barras están en **Más ajustes** en **Páginas de estado → tu página → Marca → Marca**. No hay ningún ajuste de tema ni de color de marca en ninguna parte; todo lo que vaya más allá de esos controles se hace con **CSS personalizado**.
+**Dónde están los colores.** Los colores de las barras de tiempo de actividad no están aquí: el **Color de barra predeterminado** y las reglas de color de las barras están en **Más ajustes** en **Páginas de estado → tu página → Marca → Marca**. El **Tema** de la página (claro, oscuro o según el dispositivo de cada visitante) es una tarjeta cerca del principio de esa misma página. No hay ningún ajuste de color de marca; todo lo que vaya más allá de esos controles se hace con **CSS personalizado**.
 
 ## Previsualizar antes de publicar
 
@@ -213,11 +213,13 @@ En **Más ajustes** de **Acceso**, la sección **Lista de IP permitidas** (la co
 
 ## La insignia incrustable y el feed RSS
 
-Dos formas de mostrar el estado en otro sitio que no sea la propia página.
+Tres formas de mostrar el estado en otro sitio que no sea la propia página.
 
 **Insignia de estado incrustada.** En **Páginas de estado → tu página → Avanzado → Estado incrustado**, activa **Habilitar insignia de estado incrustada** (`enableEmbeddedOverallStatus`, desactivado por defecto) y después haz clic en **Regenerar token** en la tarjeta **Token de seguridad** para dar a la insignia su token (`embeddedOverallStatusToken`). La insignia se sirve desde `/api/status-page/badge/<status-page-id>?token=<token>`, y la pantalla la muestra en **Vista previa del distintivo** con fragmentos para copiar, para que puedas poner el estado general actual en tu documentación, en el pie de página de tu aplicación o en una página de marketing.
 
 **Feed RSS.** Cada página de estado sirve `/rss`: un feed titulado "{título de la página} Updates", con el **Título de la página** definido en **Marca**, o su nombre si no tiene, y cuyos elementos empiezan por `Incident: `, `Announcement: ` y `Scheduled Maintenance: `. Útil para quien prefiere llevar tus actualizaciones a un lector o a un chatbot en lugar de suscribirse por correo electrónico.
+
+**Calendario de mantenimiento.** Cada página de estado sirve también `/maintenance.ics`: el mantenimiento programado que muestra, como un calendario al que Google Calendar, el Calendario de Apple u Outlook pueden suscribirse. Los visitantes lo añaden con **Suscribirse al calendario** en la página **Eventos programados**, y un solo evento con **Añadir al calendario** en la propia página del evento. El calendario de una página privada está vacío, porque una aplicación de calendario no puede iniciar sesión. Consulta [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#el-calendario-de-una-página-de-estado).
 
 Si prefieres obtener los datos tú mismo, la página de estado se apoya en endpoints públicos de lectura para el resumen, los incidentes, los eventos de mantenimiento programado, los anuncios y los episodios: consulta [API pública](/docs/status-pages/public-api).
 

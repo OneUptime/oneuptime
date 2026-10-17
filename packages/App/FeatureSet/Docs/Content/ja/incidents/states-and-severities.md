@@ -223,13 +223,13 @@ API と Terraform では、順序は `order` 列です。小さい番号が先�
 
 ```mermaid title="状態の変更は購読者に届くか"
 flowchart TB
-    change["状態の変更を保存"] --> box{"通知のチェックはオン？"}
+    change["状態の変更を保存"] --> box{"通知の<br/>チェックはオン？"}
     box -->|いいえ| skipped["スキップ"]
     box -->|はい| note{"公開メモが一緒？"}
-    note -->|はい| carried["メモがメッセージになる"]
+    note -->|はい| carried["メモが<br/>メッセージになる"]
     note -->|いいえ| queued["行をキューに追加"]
-    queued --> gates{"すべての関門を通過？"}
-    gates -->|いいえ| reason["スキップ、理由を記録"]
+    queued --> gates{"すべての<br/>関門を通過？"}
+    gates -->|いいえ| reason["スキップ、<br/>理由を記録"]
     gates -->|はい| sent["購読者に通知"]
 ```
 

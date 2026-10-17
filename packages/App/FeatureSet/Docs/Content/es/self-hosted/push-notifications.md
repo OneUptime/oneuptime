@@ -13,8 +13,8 @@ OneUptime avisa a las personas en el móvil a través de la aplicación **OneUpt
 
 ```mermaid title="Cómo llega un push a un móvil o a un navegador"
 flowchart TB
-    Server["Tu servidor de OneUptime"]
-    Relay["Relé de push de OneUptime"]
+    Server["Tu servidor<br/>de OneUptime"]
+    Relay["Relé de push<br/>de OneUptime"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
@@ -22,13 +22,13 @@ flowchart TB
     PushService["El servicio push<br/>del navegador"]
     Browser["Navegador"]
     Server -->|"sin EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN definido"| Expo
+    Server -->|"EXPO_ACCESS_TOKEN<br/>definido"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -106,9 +106,9 @@ El alcance es deliberadamente estrecho. Solo pueden hacerlo los avisos que produ
 flowchart TB
     Page["Un aviso de guardia"]
     Rule{"¿Su regla de guardia está<br/>en «Alerta crítica»?"}
-    Device{"¿Critical On-Call Alerts<br/>activado en este dispositivo?"}
+    Device{"¿Critical On-Call Alerts<br/>activado en este<br/>dispositivo?"}
     OS{"¿El sistema del teléfono<br/>permite alertas críticas?"}
-    Loud["Reproduce un sonido pese al<br/>modo silencio y No molestar"]
+    Loud["Reproduce un<br/>sonido pese al<br/>modo silencio<br/>y No molestar"]
     Quiet["Se entrega en silencio,<br/>como cualquier otro push"]
     Page --> Rule
     Rule -->|"sí"| Device

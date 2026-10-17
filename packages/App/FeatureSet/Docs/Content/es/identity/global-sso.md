@@ -71,13 +71,13 @@ El comportamiento de un proveedor global depende de si le adjuntas proyectos:
 
 ```mermaid title="Qué hace un proveedor global al iniciar sesión"
 flowchart TB
-    S["Alguien inicia sesión"] --> A{"¿Proyectos adjuntos?"}
+    S["Alguien<br/>inicia sesión"] --> A{"¿Proyectos<br/>adjuntos?"}
     A -->|"No"| K{"¿Tiene cuenta?"}
-    K -->|"No"| R["Rechazado: invitarlo primero"]
-    K -->|"Sí"| E["Sesión iniciada en sus proyectos"]
-    A -->|"Sí"| D{"¿Nuevo, con el registro<br/>desactivado?"}
+    K -->|"No"| R["Rechazado:<br/>invitarlo primero"]
+    K -->|"Sí"| E["Sesión iniciada<br/>en sus proyectos"]
+    A -->|"Sí"| D{"¿Nuevo, con<br/>el registro<br/>desactivado?"}
     D -->|"Sí"| R
-    D -->|"No"| P["Añadido a los proyectos adjuntos<br/>en los que aún no está"]
+    D -->|"No"| P["Añadido a los<br/>proyectos adjuntos<br/>en los que<br/>aún no está"]
     P --> E
 ```
 
@@ -147,6 +147,14 @@ La persona tiene cuenta, pero no pertenece a ningún proyecto, y el proveedor no
 
 :::details "Issuer URL does not match"
 En un proveedor SAML, el emisor de la respuesta de tu proveedor de identidad no es el **Issuer** guardado en el proveedor. Vuelve a copiarlo de tu proveedor de identidad; ambos deben coincidir exactamente.
+:::
+
+:::details "SAML Audience does not match"
+En un proveedor SAML, la respuesta se creó para otra aplicación: su audience no es el **Issuer (Entity ID)** del proveedor. En tu proveedor de identidad, establece el entity ID de la aplicación en el **Issuer (Entity ID)** de la página del proveedor. "SAML Recipient does not match" y "SAML Destination does not match" significan lo mismo para su URL de respuesta: establécela en la **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Cada respuesta de tu proveedor de identidad inicia sesión una sola vez, y solo durante unos minutos después de emitirse: después se rechaza con "SAML response has expired". Vuelve a iniciar sesión. Si las respuestas siguen caducando, comprueba los relojes de este servidor y de tu proveedor de identidad.
 :::
 
 ## Próximos pasos

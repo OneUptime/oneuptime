@@ -29,7 +29,7 @@ Udforskeren har fire faner:
 | --- | --- |
 | **Seer** | Søg i, filtrér og læs protokoller. Den åbner på den seneste time, nyeste først, 100 protokoller pr. side. |
 | **Indsigter** | Hvad dine tjenester har logget i et tidsinterval, og hvad der gik galt. |
-| **Opsætningsvejledning** | Sådan sender du protokoller med OpenTelemetry, Fluent Bit eller Fluentd med en af dine indtagelsesnøgler. |
+| **Opsætningsvejledning** | Sådan sender du protokoller med OpenTelemetry, Fluent Bit eller Fluentd med en af dine [indtagelsesnøgler](/docs/telemetry/ingestion-keys). |
 | **Indstillinger** | Hvad der sker med protokoller, når de ankommer: **Pipelines**, **Drop-filtre**, **Scrub-regler** og **Optagelsesregler**. |
 
 ## Før du begynder
@@ -111,7 +111,7 @@ Gemte visninger hører til projektet, så alle i det ser den samme liste. Et rul
 
 Skift listen til **Analytics** for at tælle protokoller i stedet for at læse dem. Vælg en tidsserie, en topliste eller en tabel; tæl hver protokol eller de unikke værdier i ét felt; og gruppér efter alvorlighed, tjeneste, spor, span eller en vilkårlig attribut og derefter efter et andet felt. En topliste eller en tabel viser de øverste 5, 10, 25 eller 50 grupper.
 
-Klik på **List** for at gå tilbage til selve linjerne.
+Klik på **Liste** for at gå tilbage til selve linjerne.
 
 ## Åbn tilhørende spor og metrikker
 
@@ -132,12 +132,12 @@ Vælg en af de største fejl for at se, hvad der skete omkring den: hvornår den
 
 ## Hvad der sker med protokoller, når de ankommer
 
-Fanen **Indstillinger** rummer de regler, OneUptime anvender på hver protokol, før den gemmes. De virker på de protokoller, der ankommer bagefter, ikke på gemte.
+Fanen **Indstillinger** rummer de regler, OneUptime anvender på hver protokol, før den gemmes. De virker på de protokoller, der ankommer bagefter, ikke på gemte. Hvor længe hver protokol opbevares, afgøres også, når den ankommer: se [Dataopbevaring](/docs/telemetry/data-retention).
 
 | Regel | Hvad den gør |
 | --- | --- |
-| **Drop-filtre** | Kassér protokoller, du ikke vil beholde, eller behold kun en stikprøve af dem. |
-| **Scrub-regler** | Maskér følsomme data, såsom e-mailadresser og kortnumre. |
+| **Drop-filtre** | Kassér protokoller, du ikke vil beholde, eller behold kun en stikprøve af dem. Se [Kassér poster, eller tag stikprøver](/docs/telemetry/drop-filters-and-scrub-rules#kassér-poster-eller-tag-stikprøver). |
+| **Scrub-regler** | Maskér følsomme data, såsom e-mailadresser og kortnumre. Se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data). |
 | **Pipelines** | Træk felter ud af beskeden, ret alvorligheden, omdøb attributter. Se [Logpipelines](/docs/telemetry/log-pipelines). |
 | **Optagelsesregler** | Gør matchende protokoller til metrikker. Se [Optagelsesregler for logs](/docs/telemetry/log-recording-rules). |
 

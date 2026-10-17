@@ -223,13 +223,13 @@ Un cambio di stato può avvisare gli iscritti alla vostra pagina di stato, ma pa
 
 ```mermaid title="Un cambio di stato raggiunge gli iscritti?"
 flowchart TB
-    change["Cambio di stato salvato"] --> box{"Casella Notifica attiva?"}
+    change["Cambio di<br/>stato salvato"] --> box{"Casella<br/>Notifica attiva?"}
     box -->|No| skipped["Saltato"]
-    box -->|Sì| note{"Con una nota pubblica?"}
-    note -->|Sì| carried["La nota è il messaggio"]
+    box -->|Sì| note{"Con una nota<br/>pubblica?"}
+    note -->|Sì| carried["La nota è<br/>il messaggio"]
     note -->|No| queued["Riga in coda"]
-    queued --> gates{"Supera ogni controllo?"}
-    gates -->|No| reason["Saltato, motivo registrato"]
+    queued --> gates{"Supera ogni<br/>controllo?"}
+    gates -->|No| reason["Saltato, motivo<br/>registrato"]
     gates -->|Sì| sent["Iscritti avvisati"]
 ```
 

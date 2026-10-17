@@ -63,6 +63,8 @@ Abre **Mantenimiento programado** desde el menú **Productos** de la barra super
 
 La lista muestra **Número del mantenimiento programado**, **Título**, **Estado actual**, **Recursos afectados**, **Mostrado en la página de estado**, **Comienza en**, **Duración**, **Termina en**, **Etiquetas** y **Propietarios**. Selecciona eventos para actuar sobre varios a la vez: **Cambiar estado**, **Añadir etiquetas**, **Quitar etiquetas**, **Añadir propietario**, **Quitar propietario** o **Eliminar**.
 
+**Lista** y **Calendario**, en el extremo derecho de la barra de filtros de la lista, muestran los mismos eventos como una tabla o en un mes, una semana o un día. Consulta [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar).
+
 ## Qué afecta un evento
 
 Mientras un evento está en curso, OneUptime trata la caída que planifica como esperada:

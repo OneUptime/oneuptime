@@ -212,13 +212,18 @@ const RunAutoImportRuleModal: FunctionComponent<ComponentProps> = (
     );
   }
 
-  // English keys: the confirmation looks its description up.
+  /*
+   * English keys: the confirmation looks its description up. Two lines
+   * each: what the run reads (every completed scan, not just the latest) and
+   * what it leaves behind. The rule's own form says a template gives each
+   * device a monitor, which may be billed.
+   */
   const description: string = props.isDryRun
     ? translationKey(
-        'Evaluate this rule against every completed discovery scan in the project and report what it would import. Nothing is written — no devices or active monitors are created — so this is the safe way to answer "what would this rule import" before trusting it against live scans.\n\nIf the rule has a Monitor Template selected, the preview also reports how many eligible devices would receive an active Network Device monitor. Existing monitors are never duplicated, and exclusion rules still veto.',
+        "Shows what this rule would import from every completed scan, and how many monitors its template would add. Nothing is created.",
       )
     : translationKey(
-        "Evaluate this rule against every completed discovery scan in the project and import every host it matches as a network device. This creates devices from ALL completed scans in the project, not just the most recent one — a broad rule can import a lot at once, so consider a Dry Run first.\n\nIf the rule has a Monitor Template selected, eligible devices also receive an active Network Device monitor. Existing monitors are never duplicated and exclusion rules still veto. Site assignment, owner, and label rules apply automatically.\n\nLarge estates are imported in several paced batches; keep this dialog open until it reports, and it will tell you if anything is still left over.",
+        "Imports every host this rule matches from all completed scans, not just the latest. Try a Dry Run first, and keep this open until it reports.",
       );
 
   return (

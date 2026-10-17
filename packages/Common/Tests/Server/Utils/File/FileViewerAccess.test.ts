@@ -100,6 +100,8 @@ function signedInAs(decoded: Partial<JSONWebTokenData> | Error | null): void {
 
 beforeEach(() => {
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  // A session that says master admin is one whose person still is one, unless a test says otherwise.
+  jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -177,6 +179,21 @@ describe("FileViewerAccess.getViewer: the signed-in person an image request come
     expect((await FileViewerAccess.getViewer(REQUEST))?.isMasterAdmin).toBe(
       false,
     );
+  });
+
+  /*
+   * A server admin sees every private image. Someone whose master admin
+   * access was removed sees, with the session they already hold, only what
+   * the member they are may see.
+   */
+  test("the user, no server admin once their master admin access was removed", async () => {
+    signedInAs({ userId: USER_ID, isMasterAdmin: true });
+    jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(false);
+
+    expect(await FileViewerAccess.getViewer(REQUEST)).toEqual({
+      userId: USER_ID,
+      isMasterAdmin: false,
+    });
   });
 });
 

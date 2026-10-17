@@ -99,7 +99,7 @@ Open the incident's **On-Call Executions** page. Empty means the incident had no
 :::
 
 :::details Someone was paged on the wrong channel, or not at all
-Open **On-Call Duty → Readiness** and click **Coverage** on their row. It shows the methods they verified and every severity they have no rule for. Only they can fix it, under **User Settings**: send them a setup reminder from the same page. See [Readiness & Reports](/docs/on-call/readiness).
+Open **On-Call Duty → Readiness** and click **Coverage** on their row. It shows the methods they verified and every severity they have no rule for. Only they can fix it, under **User Settings**: send them a setup reminder from the same page. See [Readiness & Reports](/docs/on-call/readiness). On OneUptime Cloud, a phone that blocks unknown callers can silence a page: add [OneUptime's numbers](/docs/on-call/phone-number-whitelist) to its allow list.
 :::
 
 :::details A person on holiday is still being paged

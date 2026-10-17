@@ -13,15 +13,15 @@ Un **agent de runbook**, que le tableau de bord appelle **Agent Runbook** (le Ru
 
 ```mermaid title="Ce qui circule sur le réseau entre un agent Runbook et OneUptime"
 flowchart TB
-    subgraph yours["Votre infrastructure"]
-        direction LR
-        runner["Conteneur de l'agent Runbook"]
-        targets["Hôtes, clusters, services internes"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Le Worker met l'étape en file"]
         ingest["API des agents Runbook"]
+    end
+    subgraph yours["Votre infrastructure"]
+        direction LR
+        runner["Conteneur de l'agent Runbook"]
+        targets["Hôtes, clusters, services internes"]
     end
     worker --> ingest
     runner -->|"HTTPS sortant, ID et clé de l'agent"| ingest

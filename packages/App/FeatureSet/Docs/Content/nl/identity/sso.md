@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Persoon
     participant O as OneUptime
     participant I as Identiteitsprovider
-    U->>O: Inloggen met SSO, project kiezen
-    O->>I: SAML-verzoek naar de aanmeldings-URL
+    U->>O: Inloggen met SSO,<br/>project kiezen
+    O->>I: SAML-verzoek naar<br/>de aanmeldings-URL
     I->>U: Aanmeldpagina
     U->>I: Inloggegevens en MFA
-    I->>O: Ondertekende assertion naar de Reply URL
-    Note over O: Controleert de handtekening en de uitgever,<br/>leest het e-mailadres uit de Name ID
+    I->>O: Ondertekende assertion<br/>naar de Reply URL
+    Note over O: Controleert de handtekening<br/>en de uitgever,<br/>leest het e-mailadres<br/>uit de Name ID
     O->>U: Aangemeld in het project
 ```
 
@@ -36,8 +36,13 @@ OneUptime leest maar een paar dingen uit de assertion die uw IdP stuurt:
 | --- | --- |
 | Handtekening | Controleert die met het **Openbaar certificaat** van de provider. Het antwoord moet ondertekend zijn en mag niet versleuteld zijn. |
 | Issuer | Moet exact overeenkomen met de **Uitgever** van de provider. |
+| Audience | Moet de **Identifier (Entity ID)** van de provider zijn. Een antwoord dat uw IdP voor een andere applicatie heeft gemaakt, wordt geweigerd. |
+| Recipient en Destination | Moeten de **Reply URL** van de provider zijn, het adres waarnaar het antwoord is gestuurd. |
+| `NotBefore` en `NotOnOrAfter` | Het antwoord wordt alleen aangenomen zolang die het toestaan, en uiterlijk 10 minuten nadat het is uitgegeven, met 3 minuten speling voor klokken die niet gelijklopen. |
 | Name ID | Het e-mailadres van de persoon. Het moet een geldig e-mailadres zijn. |
 | `http://schemas.microsoft.com/identity/claims/displayname` | De naam van de persoon, gebruikt wanneer OneUptime het account aanmaakt. Optioneel. |
+
+Met elk antwoord wordt maar één keer aangemeld. Wordt het opnieuw verstuurd, bijvoorbeeld doordat u na het aanmelden in de browser teruggaat, dan wordt het geweigerd: meld u opnieuw aan.
 
 Wie zich voor het eerst aanmeldt, komt in de **Teams** van de provider, en die bepalen wat de persoon mag: zie [Rollen en teams voor SSO-gebruikers](#rollen-en-teams-voor-sso-gebruikers).
 
@@ -326,6 +331,22 @@ De persoon zit nog niet in het project en de provider heeft geen **Teams** om he
 
 :::details "Issuer URL does not match"
 De issuer in de assertion van uw IdP is niet de **Uitgever** van de provider. Kopieer hem opnieuw uit uw IdP — de realm-URL van Keycloak, de **Microsoft Entra Identifier** of de Identity Provider Issuer van Okta — zodat beide exact overeenkomen.
+:::
+
+:::details "SAML Audience does not match"
+Het antwoord is voor een andere applicatie gemaakt: de audience ervan is niet de **Identifier (Entity ID)** van deze provider. Stel in uw IdP de entity ID van de applicatie in op de **Identifier (Entity ID)** uit **SSO-configuratie bekijken**: de **Client ID** in Keycloak, de **Identifier (Entity ID)** in Entra ID, de **Audience URI (SP Entity ID)** in Okta. Een IdP die is ingesteld met alleen het adres van OneUptime als entity ID, zoals `https://oneuptime.com`, blijft werken.
+:::
+
+:::details "SAML Recipient does not match"
+Het antwoord is voor een ander adres verstuurd: de recipient ervan is niet de **Reply URL** van deze provider. Stel in uw IdP de reply URL van de applicatie in op de **Reply URL (Assertion Consumer Service URL)** uit **SSO-configuratie bekijken**: de **Assertion Consumer Service POST Binding URL** in Keycloak, de **Reply URL (Assertion Consumer Service URL)** in Entra ID, de **Single sign-on URL** in Okta. "SAML Destination does not match" heeft dezelfde oorzaak en dezelfde oplossing.
+:::
+
+:::details "SAML response has expired"
+Het antwoord kwam later bij OneUptime aan dan uw IdP toestaat, of meer dan 10 minuten nadat het is uitgegeven: meld u opnieuw aan. Gebeurt het steeds weer, dan loopt de klok van uw IdP of van de OneUptime-server verkeerd; OneUptime staat toe dat ze 3 minuten uit elkaar liggen. "SAML response is not valid yet" is hetzelfde probleem andersom.
+:::
+
+:::details "SAML response was already used"
+Met elk antwoord van uw IdP wordt maar één keer aangemeld. Na het aanmelden teruggaan in de browser, of de pagina herladen waarlangs uw IdP u stuurde, verstuurt hetzelfde antwoord opnieuw: meld u opnieuw aan, via OneUptime of via uw IdP.
 :::
 
 :::details Aanmelden mislukt met een handtekening- of certificaatfout

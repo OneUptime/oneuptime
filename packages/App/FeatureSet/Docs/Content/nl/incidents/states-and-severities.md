@@ -223,14 +223,14 @@ Een statuswijziging kan je statuspagina-abonnees een melding sturen, maar gaat d
 
 ```mermaid title="Bereikt een statuswijziging de abonnees?"
 flowchart TB
-    change["Statuswijziging opgeslagen"] --> box{"Meldingsvakje aan?"}
+    change["Statuswijziging<br/>opgeslagen"] --> box{"Meldingsvakje aan?"}
     box -->|Nee| skipped["Overgeslagen"]
-    box -->|Ja| note{"Openbare notitie erbij?"}
-    note -->|Ja| carried["De notitie is het bericht"]
-    note -->|Nee| queued["Rij in de wachtrij"]
-    queued --> gates{"Door elke poort?"}
-    gates -->|Nee| reason["Overgeslagen, reden vastgelegd"]
-    gates -->|Ja| sent["Abonnees op de hoogte gesteld"]
+    box -->|Ja| note{"Openbare<br/>notitie<br/>erbij?"}
+    note -->|Ja| carried["De notitie<br/>is het<br/>bericht"]
+    note -->|Nee| queued["Rij in de<br/>wachtrij"]
+    queued --> gates{"Door elke<br/>poort?"}
+    gates -->|Nee| reason["Overgeslagen,<br/>reden vastgelegd"]
+    gates -->|Ja| sent["Abonnees op<br/>de hoogte<br/>gesteld"]
 ```
 
 Een melding wordt per tijdlijnrij aangevraagd met **Statuspagina-abonnees op de hoogte stellen** (`shouldStatusPageSubscribersBeNotified`), het selectievakje in het dialoogvenster voor statuswijzigingen en op het handmatige tijdlijnformulier. In het dialoogvenster voor statuswijzigingen begint het uit als het incident werd gemeld zonder abonnees op de hoogte te stellen. Hetzelfde selectievakje bepaalt ook of de openbare notitie in het dialoogvenster iemand iets laat weten. Staat het uit, dan wordt de rij opgeslagen met de status overgeslagen en een uitleg. Staat het aan, dan komt de rij in de wachtrij en pakt een achtergrondtaak hem op — de taak draait elke minuut, dus de bezorging is snel maar niet direct.

@@ -854,6 +854,175 @@ export default class Workflow extends BaseModel {
   })
   public incomingEmailSecretKey?: ObjectID = undefined;
 
+  /*
+   * The signing secret of a trigger whose sender signs its requests: the
+   * Huntress trigger (Types/Workflow/HuntressTrigger). Huntress signs each
+   * request with its endpoint's signing secret, and a request that is not
+   * signed with this one starts nothing.
+   *
+   * Write-only, like every credential: encrypted at rest and never read
+   * back by anyone - the dashboard only learns whether one is saved
+   * (isWebhookSigningSecretSet). Whoever can create or edit the workflow
+   * may set it; WorkflowService checks it is a secret the sender could
+   * have issued, and saves it trimmed.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateWorkflow,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
+    ],
+    read: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Webhook Signing Secret",
+    description:
+      "The signing secret of a trigger that checks the signature of each request, such as the Huntress trigger's endpoint secret (whsec_...). A request that is not signed with it starts nothing. Encrypted at rest and never returned by the API.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public webhookSigningSecret?: string = undefined;
+
+  /*
+   * Whether webhookSigningSecret holds a secret, for the pages that cannot
+   * read it. Written by the server alone, from the secret, in the same
+   * write that saves one (WorkflowService.onCreatePermitted /
+   * onUpdatePermitted); a value a request sends for it is dropped. So,
+   * like VMwareVCenter.isVCenterPasswordSet beside its write-only
+   * password, nobody may create or update it: the API reference, the MCP
+   * tools and the Terraform provider show it as read-only, and a
+   * configuration never sets what only the secret decides.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Webhook Signing Secret Saved",
+    description:
+      "Whether a webhook signing secret is saved. A trigger that checks signatures refuses every request until it is. Set by the server from the signing secret itself.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isWebhookSigningSecretSet?: boolean = undefined;
+
+  /*
+   * What the last request to a trigger that checks signatures did, so its
+   * settings can say whether the sender reaches the workflow - and why it
+   * is refused when it does not. Written by the trigger alone
+   * (Server/Utils/Huntress/HuntressWebhookHandler), without hooks and
+   * without touching updatedAt: a delivery is not an edit of the workflow.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Last Webhook Request At",
+    description:
+      "When a request signed with the webhook signing secret last arrived. Empty until the sender's first one.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastWebhookRequestAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Last Webhook Error",
+    description:
+      "Why the last request to a trigger that checks signatures was refused, if it was. Cleared by the next request that is accepted, and by saving a new signing secret.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public lastWebhookError?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Last Webhook Error At",
+    description: "When the last webhook error happened.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastWebhookErrorAt?: Date = undefined;
+
   // This is a BullMQ job key that is used to schedule job for this workflow. This is used internally to remove existing job.
   @ColumnAccessControl({
     create: [],

@@ -93,14 +93,14 @@ flowchart TB
 flowchart TB
     subgraph notify["通知する"]
         direction LR
-        schedule["オンコールスケジュール"]
+        schedule["オンコール<br/>スケジュール"]
         team["チーム"]
         user["ユーザー"]
     end
-    schedule -->|"その時のオンコール担当者"| person["呼び出される人"]
+    schedule -->|"その時の<br/>オンコール<br/>担当者"| person["呼び出される人"]
     team -->|"メンバー全員"| person
     user -->|"直接"| person
-    person --> rules["その人のオンコールルール"]
+    person --> rules["その人の<br/>オンコールルール"]
     rules --> methods["その人の通知方法"]
 ```
 

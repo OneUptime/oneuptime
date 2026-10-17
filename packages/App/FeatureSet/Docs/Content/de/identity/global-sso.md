@@ -71,13 +71,13 @@ Wie sich ein globaler Anbieter verhält, hängt davon ab, ob Sie ihm Projekte zu
 
 ```mermaid title="Was ein globaler Anbieter bei der Anmeldung tut"
 flowchart TB
-    S["Jemand meldet sich an"] --> A{"Projekte zugewiesen?"}
+    S["Jemand meldet<br/>sich an"] --> A{"Projekte<br/>zugewiesen?"}
     A -->|"Nein"| K{"Hat ein Konto?"}
-    K -->|"Nein"| R["Abgelehnt: zuerst einladen"]
-    K -->|"Ja"| E["In den eigenen Projekten angemeldet"]
-    A -->|"Ja"| D{"Neu, und Registrierung<br/>deaktiviert?"}
+    K -->|"Nein"| R["Abgelehnt:<br/>zuerst einladen"]
+    K -->|"Ja"| E["In den eigenen<br/>Projekten<br/>angemeldet"]
+    A -->|"Ja"| D{"Neu, und<br/>Registrierung<br/>deaktiviert?"}
     D -->|"Ja"| R
-    D -->|"Nein"| P["Zugewiesenen Projekten hinzugefügt,<br/>in denen die Person noch nicht ist"]
+    D -->|"Nein"| P["Zugewiesenen<br/>Projekten<br/>hinzugefügt,<br/>in denen die<br/>Person noch<br/>nicht ist"]
     P --> E
 ```
 
@@ -147,6 +147,14 @@ Die Person hat ein Konto, gehört aber zu keinem Projekt, und der Anbieter hat n
 
 :::details "Issuer URL does not match"
 Bei einem SAML-Anbieter ist der Issuer in der Antwort Ihres Identitätsanbieters nicht der **Issuer**, der am Anbieter gespeichert ist. Kopieren Sie ihn erneut aus Ihrem Identitätsanbieter; beide müssen genau übereinstimmen.
+:::
+
+:::details "SAML Audience does not match"
+Bei einem SAML-Anbieter ist die Audience der Antwort nicht die **Issuer (Entity ID)** des Anbieters; Ihr Identitätsanbieter hat sie für eine andere Anwendung erstellt. Setzen Sie in Ihrem Identitätsanbieter die Entity ID der Anwendung auf die **Issuer (Entity ID)** auf der Seite des Anbieters. "SAML Recipient does not match" und "SAML Destination does not match" bedeuten dasselbe für ihre Antwort-URL: Setzen Sie sie auf die **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Jede Antwort Ihres Identitätsanbieters gilt für genau eine Anmeldung, und nur wenige Minuten nach ihrer Ausstellung: Danach wird sie mit "SAML response has expired" abgelehnt. Melden Sie sich erneut an. Laufen Antworten immer wieder ab, prüfen Sie die Uhren dieses Servers und Ihres Identitätsanbieters.
 :::
 
 ## Nächste Schritte

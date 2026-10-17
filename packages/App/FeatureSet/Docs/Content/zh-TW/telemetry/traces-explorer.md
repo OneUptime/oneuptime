@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | **檢視者** | 搜尋和篩選 span，並開啟它們的追蹤。開啟時顯示最近一小時的 span，最新在前，每頁 50 個。 |
 | **洞察** | 每個服務的請求率、錯誤率和延遲，以及值得一看的請求。 |
-| **設定指南** | 如何使用你的某個擷取金鑰，透過 OpenTelemetry 傳送追蹤。 |
+| **設定指南** | 如何使用你的某個 [擷取金鑰](/docs/telemetry/ingestion-keys)，透過 OpenTelemetry 傳送追蹤。 |
 | **設定** | span 到達時會發生什麼：**管道**、**捨棄過濾器**、**清理規則** 和 **記錄規則**。 |
 
 ## 開始之前
@@ -115,12 +115,12 @@ flowchart TB
 
 ## span 到達時會發生什麼
 
-**設定** 分頁包含 OneUptime 在 span 到達時套用的規則，與日誌的做法相同。它們作用於之後到達的 span，而不是已儲存的 span。
+**設定** 分頁包含 OneUptime 在 span 到達時套用的規則，與日誌的做法相同。它們作用於之後到達的 span，而不是已儲存的 span。每個 span 保留多久，也是在它到達時決定的：請參閱 [資料保留](/docs/telemetry/data-retention)。
 
 | 規則 | 作用 |
 | --- | --- |
-| **捨棄過濾器** | 捨棄你不想保留的 span，或者只保留其中的一部分樣本。 |
-| **清理規則** | 遮蓋 span 屬性中的敏感資料。 |
+| **捨棄過濾器** | 捨棄你不想保留的 span，或者只保留其中的一部分樣本。請參閱 [捨棄或取樣記錄](/docs/telemetry/drop-filters-and-scrub-rules#捨棄或取樣記錄)。 |
+| **清理規則** | 遮蓋 span 屬性中的敏感資料。請參閱 [清理敏感資料](/docs/telemetry/drop-filters-and-scrub-rules#清理敏感資料)。 |
 | **管道** | 變更並擴充 span：每個管道以篩選條件比對 span，然後依序執行它的處理器。 |
 | **記錄規則** | 每分鐘把 span 數、錯誤數和持續時間轉換為新的指標。請參閱 [日誌記錄規則](/docs/telemetry/log-recording-rules)。 |
 

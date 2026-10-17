@@ -30,8 +30,8 @@ OneUptime 在生产环境中需要三个数据存储。它们各自随不同的�
 
 ```mermaid title="每个数据存储随什么增长"
 flowchart TB
-    Tel["日志、指标、追踪"] -->|"摄取速率 × 保留期"| CH[("ClickHouse")]
-    State["监控器、事件、用户"] -->|"实体数量和历史"| PG[("PostgreSQL")]
+    Tel["日志、指标、追踪"] -->|"摄取速率<br/>× 保留期"| CH[("ClickHouse")]
+    State["监控器、<br/>事件、用户"] -->|"实体数量和历史"| PG[("PostgreSQL")]
     Work["队列、缓存、会话"] -->|"队列深度"| VK[("Valkey")]
 ```
 

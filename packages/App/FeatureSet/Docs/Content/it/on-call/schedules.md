@@ -27,7 +27,7 @@ Quando crei una pianificazione nella pagina **Pianificazioni di reperibilità**,
 Le persone si alternano una alla volta, e la prima è reperibile non appena la pianificazione viene creata:
 
 ```mermaid title="Layer 1 con tre persone e turni di 1 settimana"
-flowchart LR
+flowchart TB
     alice["Alice<br/>settimana 1"] -->|"passaggio"| bob["Bob<br/>settimana 2"]
     bob -->|"passaggio"| carol["Carol<br/>settimana 3"]
     carol -->|"di nuovo alla prima"| alice
@@ -52,10 +52,10 @@ La rotazione di una pianificazione è fatta di livelli, nella sua pagina **Livel
 
 ```mermaid title="Il livello più alto con qualcuno reperibile è quello che avvisa"
 flowchart TB
-    start["Un livello avvisa la pianificazione"] --> first{"Qualcuno reperibile<br/>nel livello più alto?"}
-    first -->|"Sì"| pageTop["Avvisare quella persona"]
-    first -->|"No"| next{"Qualcuno reperibile<br/>nel livello successivo?"}
-    next -->|"Sì"| pageNext["Avvisare quella persona"]
+    start["Un livello avvisa<br/>la pianificazione"] --> first{"Qualcuno reperibile<br/>nel livello più alto?"}
+    first -->|"Sì"| pageTop["Avvisare<br/>quella persona"]
+    first -->|"No"| next{"Qualcuno reperibile<br/>nel livello<br/>successivo?"}
+    next -->|"Sì"| pageNext["Avvisare<br/>quella persona"]
     next -->|"No"| gap["Nessuno viene avvisato<br/>un buco di copertura"]
 ```
 

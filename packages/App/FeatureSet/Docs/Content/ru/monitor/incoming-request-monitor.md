@@ -25,11 +25,11 @@ sequenceDiagram
     participant J as Ваша задача
     participant O as OneUptime
     participant T as Дежурная команда
-    J->>O: GET или POST /heartbeat/KEY
+    J->>O: GET или<br/>POST /heartbeat/KEY
     O-->>J: Сразу 200
     O->>O: Проверка критериев
     Note over O: Каждые 30 секунд — поиск<br/>пропавших запросов
-    O->>T: Инцидент, если критерий совпал
+    O->>T: Инцидент, если<br/>критерий совпал
 ```
 
 Используйте его, чтобы:

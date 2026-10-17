@@ -71,13 +71,13 @@ Hoe een globale provider zich gedraagt, hangt ervan af of u er projecten aan kop
 
 ```mermaid title="Wat een globale provider bij het aanmelden doet"
 flowchart TB
-    S["Iemand meldt zich aan"] --> A{"Projecten gekoppeld?"}
+    S["Iemand meldt<br/>zich aan"] --> A{"Projecten<br/>gekoppeld?"}
     A -->|"Nee"| K{"Heeft een account?"}
-    K -->|"Nee"| R["Geweigerd: eerst uitnodigen"]
-    K -->|"Ja"| E["Aangemeld in de eigen projecten"]
-    A -->|"Ja"| D{"Nieuw, met registratie<br/>uitgeschakeld?"}
+    K -->|"Nee"| R["Geweigerd:<br/>eerst uitnodigen"]
+    K -->|"Ja"| E["Aangemeld in de<br/>eigen projecten"]
+    A -->|"Ja"| D{"Nieuw, met<br/>registratie<br/>uitgeschakeld?"}
     D -->|"Ja"| R
-    D -->|"Nee"| P["Toegevoegd aan gekoppelde projecten<br/>waar hij nog niet in zit"]
+    D -->|"Nee"| P["Toegevoegd<br/>aan gekoppelde<br/>projecten<br/>waar hij nog<br/>niet in zit"]
     P --> E
 ```
 
@@ -147,6 +147,14 @@ De persoon heeft een account, maar hoort bij geen enkel project, en de provider 
 
 :::details "Issuer URL does not match"
 Bij een SAML-provider is de issuer in het antwoord van uw identiteitsprovider niet de **Issuer** die op de provider is opgeslagen. Kopieer hem opnieuw uit uw identiteitsprovider; beide moeten exact overeenkomen.
+:::
+
+:::details "SAML Audience does not match"
+Bij een SAML-provider is het antwoord voor een andere applicatie gemaakt: de audience ervan is niet de **Issuer (Entity ID)** van de provider. Stel in uw identiteitsprovider de entity ID van de applicatie in op de **Issuer (Entity ID)** op de pagina van de provider. "SAML Recipient does not match" en "SAML Destination does not match" betekenen hetzelfde voor de reply URL ervan: stel die in op de **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Met elk antwoord van uw identiteitsprovider wordt maar één keer aangemeld, en alleen in de minuten nadat het is uitgegeven: daarna wordt het geweigerd met "SAML response has expired". Meld u opnieuw aan. Verlopen antwoorden steeds weer, controleer dan de klokken van deze server en van uw identiteitsprovider.
 :::
 
 ## Volgende stappen

@@ -19,12 +19,12 @@ sequenceDiagram
     participant P as 프로브
     participant B as 브라우저
     participant A as 여러분의 웹 앱
-    O->>P: 시크릿이 채워진 스크립트
-    loop 브라우저와 화면 크기마다
+    O->>P: 시크릿이<br/>채워진 스크립트
+    loop 브라우저와<br/>화면 크기마다
         P->>B: 스크립트 실행
-        B->>A: 페이지 로드, 클릭, 입력
+        B->>A: 페이지 로드,<br/>클릭, 입력
         A-->>B: 페이지
-        B-->>P: 결과, 스크린샷, 로그
+        B-->>P: 결과,<br/>스크린샷, 로그
     end
     P->>O: 실행마다 응답 하나
     O->>O: 기준 평가

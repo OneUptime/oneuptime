@@ -75,7 +75,7 @@ Fate clic su **Aggiungi monitor**. La riga compare nel gruppo e sulla pagina di 
 In un gruppo a griglia, la finestra di dialogo chiede anche la riga e la colonna in cui va il monitor, sopra **Altri campi**; vedete [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia).
 
 > [!TIP]
-> Per mostrare più controlli come un'unica riga, aggiungete un gruppo di monitor. Con l'interruttore **Gruppi di monitor** attivo (**Impostazioni del progetto** > **Avanzato** > **Flag delle funzionalità**, che si salva non appena lo spostate), un link sotto l'elenco a discesa dice **Add a Monitor Group instead.** Fateci clic e **Monitor** diventa **Monitor Gruppo** (**Seleziona gruppo di monitor**); **Add a Monitor instead.** torna indietro.
+> Per mostrare più controlli come un'unica riga, aggiungete un [gruppo di monitor](/docs/monitor/monitor-groups). Con l'interruttore **Gruppi di monitor** attivo (**Impostazioni del progetto** > **Avanzato** > **Flag delle funzionalità**, che si salva non appena lo spostate), un link sotto l'elenco a discesa dice **Add a Monitor Group instead.** Fateci clic e **Monitor** diventa **Monitor Gruppo** (**Seleziona gruppo di monitor**); **Add a Monitor instead.** torna indietro.
 
 ### Aggiungerne diversi insieme
 
@@ -139,7 +139,7 @@ Fate clic su **Create Status Page Group**. Il gruppo compare nel navigatore, pro
 
 I due campi sono **Nome gruppo** (`name`) e **Parent Group** (`parentStatusPageGroupId`). Le due sezioni chiuse contengono tutto il resto:
 
-- **Layout**: la sua intestazione chiusa dice **List** o **Grid**. Contiene **Modalità di visualizzazione** e gli assi di una griglia (vedete [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia)), e si apre da sola su un gruppo a griglia.
+- **Layout**: la sua intestazione chiusa dice **Elenco** o **Grid**. Contiene **Modalità di visualizzazione** e gli assi di una griglia (vedete [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia)), e si apre da sola su un gruppo a griglia.
 - **Altri campi**: le copie, a livello di gruppo, delle opzioni delle risorse:
   - **Descrizione gruppo** (`description`): Markdown facoltativo, mostrato sotto l'intestazione. Un'immagine al suo interno viene mostrata a ogni visitatore.
   - **Espandi sulla pagina di stato per impostazione predefinita** (`isExpandedByDefault`): attivo per impostazione predefinita; indica se la sezione parte aperta o chiusa per i visitatori.
@@ -171,7 +171,7 @@ La sezione **Layout** del modulo del gruppo imposta la **Modalità di visualizza
 
 | Se volete… | Scegliete |
 | --------------- | ---- |
-| Mostrare un semplice elenco verticale di servizi, uno per riga | **List** (il predefinito) |
+| Mostrare un semplice elenco verticale di servizi, uno per riga | **Elenco** (il predefinito) |
 | Mostrare lo stesso servizio in più regioni o tenant come una matrice | **Grid** |
 
 Scegliete **Grid** e compaiono altri quattro campi:

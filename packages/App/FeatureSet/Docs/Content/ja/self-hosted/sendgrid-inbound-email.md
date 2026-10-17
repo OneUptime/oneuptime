@@ -17,12 +17,12 @@ OneUptime の **Incoming Email Monitor** を使うと、モニターごとに固
 
 ```mermaid title="メールがモニターに届くまで"
 sequenceDiagram
-    participant Sender as 送信元メールサーバー
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as 送信元<br/>メールサーバー
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: モニターのアドレス宛てのメール (MX レコード経由)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: アドレスをモニターまたはワークフローに対応付ける
+    Sender->>SendGrid: モニターの<br/>アドレス宛ての<br/>メール (MX<br/>レコード経由)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: アドレスを<br/>モニターまたは<br/>ワークフローに<br/>対応付ける
     OneUptime-->>SendGrid: 200 OK
 ```
 

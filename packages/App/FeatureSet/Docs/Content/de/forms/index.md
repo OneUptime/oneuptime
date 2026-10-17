@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### Workflows
 
-Formulare haben die erzeugten Workflow-Komponenten – **On Create Form**, **On Update Form** und so weiter. Um auf das zu reagieren, was ein Formular angelegt hat, verwenden Sie **On Create Incident** oder **On Create Scheduled Maintenance**.
+Formulare haben die erzeugten Workflow-Komponenten – **On Create Form**, **On Update Form** und so weiter. Um auf das zu reagieren, was ein Formular angelegt hat, verwenden Sie **On Create Incident** oder **On Create Scheduled Maintenance Event**.
 
 ### Die eigenen Endpunkte der öffentlichen Seite
 

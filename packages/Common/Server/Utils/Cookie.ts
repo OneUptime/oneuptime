@@ -8,6 +8,7 @@ import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivate
 import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CookieName from "../../Types/CookieName";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
@@ -46,6 +47,10 @@ export default class CookieUtil {
    * (e.g. its own Project SSO, or an instance-wide Global SSO). Used by both
    * the cookie flow (web) and the deep-link flow (mobile) so the token shape
    * stays identical.
+   *
+   * It is an SSO sign-in (JsonWebTokenPurpose.SsoSignIn) and never a
+   * session: a project that requires SSO reads it only next to a session of
+   * the same person, which the same sign-in hands out.
    */
   @CaptureSpan()
   public static getSSOToken(data: {
@@ -72,6 +77,7 @@ export default class CookieUtil {
           : undefined,
       },
       expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     });
   }
 
@@ -105,6 +111,8 @@ export default class CookieUtil {
    * every project the user belongs to (including projects created after login).
    * It carries the `ssoProviderId` / `ssoProviderType` discriminator so a
    * project that pins a specific provider can still be enforced.
+   *
+   * Like the per-project one, it is an SSO sign-in and never a session.
    */
   @CaptureSpan()
   public static getGlobalSSOToken(data: {
@@ -125,6 +133,7 @@ export default class CookieUtil {
         ssoProviderType: data.ssoProviderType.toString(),
       },
       expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     });
   }
 
@@ -243,8 +252,14 @@ export default class CookieUtil {
       );
     }
 
+    /*
+     * What the dashboards read to show a master admin's links and settings
+     * (UserUtil.isMasterAdmin); the server decides from the account itself.
+     * Taken away for everyone else, so a browser that last signed in as a
+     * master admin whose access was removed stops showing them at the
+     * session's next renewal, as the server already has.
+     */
     if (user.isMasterAdmin) {
-      // set user isMasterAdmin cookie
       CookieUtil.setCookie(
         res,
         CookieName.IsMasterAdmin,
@@ -254,6 +269,8 @@ export default class CookieUtil {
           httpOnly: false,
         },
       );
+    } else {
+      CookieUtil.removeCookie(res, CookieName.IsMasterAdmin);
     }
 
     if (user.profilePictureId) {
@@ -301,6 +318,7 @@ export default class CookieUtil {
         sessionId: sessionId,
       },
       expiresInSeconds: accessTokenExpiresInSeconds,
+      purpose: JsonWebTokenPurpose.StatusPageSession,
     });
 
     CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(statusPageId), token, {

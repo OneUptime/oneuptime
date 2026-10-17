@@ -15,13 +15,13 @@ Each time a monitor is checked, its criteria judge the result from the top of th
 
 ```mermaid title="How each check is judged"
 flowchart TB
-    R["The result of a check"] --> C1{"First criteria:<br/>do its filters match?"}
+    R["The result<br/>of a check"] --> C1{"First criteria:<br/>do its<br/>filters match?"}
     C1 -->|"Yes"| A["That criteria acts"]
-    C1 -->|"No"| C2{"Next criteria:<br/>do its filters match?"}
+    C1 -->|"No"| C2{"Next criteria:<br/>do its<br/>filters match?"}
     C2 -->|"Yes"| A
-    C2 -->|"None matched"| D["The monitor goes to its<br/>default status"]
-    A --> S["Changes the status"]
-    A --> I["Declares an incident"]
+    C2 -->|"None matched"| D["The monitor<br/>goes to its<br/>default status"]
+    A --> S["Changes<br/>the status"]
+    A --> I["Declares<br/>an incident"]
     A --> L["Creates an alert"]
 ```
 

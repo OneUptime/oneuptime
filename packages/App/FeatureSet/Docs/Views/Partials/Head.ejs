@@ -293,6 +293,14 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
          */
         let latestDraw = 0;
 
+        /*
+         * How much smaller than mermaid laid it out a diagram may be drawn
+         * to fit the column: its 16px labels down to 12px, the size of a
+         * callout's label and a code sample's file name. A diagram up to
+         * 786px wide fits the 590px column whole.
+         */
+        const MIN_DIAGRAM_SCALE = 3 / 4;
+
         const draw = async () => {
             const thisDraw = ++latestDraw;
             mermaid.initialize({
@@ -300,6 +308,21 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
                 // The page says a diagram could not be drawn; mermaid draws no graphic for it.
                 suppressErrorRendering: true,
                 theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+                /*
+                 * Sequence diagrams laid out to fit the article's 590px column.
+                 * mermaid's own spacing - a 50px margin on each side, 50px
+                 * between participants and boxes at least 150px wide - made
+                 * three participants 650px wide before a word of their
+                 * messages, so every such diagram scrolled sideways. With
+                 * these, four participants and their messages, broken into
+                 * short lines, fit; the margins match a flowchart's, and a
+                 * box still grows to fit its name.
+                 */
+                sequence: {
+                    diagramMarginX: 8,
+                    actorMargin: 20,
+                    width: 100,
+                },
             });
             for (let index = 0; index < diagrams.length; index++) {
                 // One that did not parse will not on a redraw either; it stays as it is.
@@ -325,19 +348,23 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
                     diagrams[index].setAttribute('data-diagram', 'drawn');
 
                     /*
-                     * Fill the column, but never below the layout Mermaid
-                     * computed: its own width="100%" scales a wide flowchart
-                     * down until the labels are unreadable. The wrapper
-                     * scrolls instead.
+                     * The size mermaid laid the diagram out at, centred in its
+                     * box. One wider than the column is drawn smaller to fit
+                     * it, but never below MIN_DIAGRAM_SCALE of that size;
+                     * wider still, it keeps that size and the box scrolls.
+                     * Filling the column instead blew a narrow top-to-bottom
+                     * diagram up to twice its size, and mermaid's own
+                     * width="100%" shrinks a wide one until its labels cannot
+                     * be read.
                      */
                     const svg = diagrams[index].querySelector('svg');
                     const naturalWidth = svg
                         ? Number((svg.getAttribute('viewBox') || '').split(/\s+/)[2])
                         : 0;
                     if (svg && naturalWidth > 0) {
-                        svg.style.maxWidth = 'none';
-                        svg.style.width = '100%';
-                        svg.style.minWidth = Math.ceil(naturalWidth) + 'px';
+                        svg.style.width = Math.ceil(naturalWidth) + 'px';
+                        svg.style.maxWidth = '100%';
+                        svg.style.minWidth = Math.ceil(naturalWidth * MIN_DIAGRAM_SCALE) + 'px';
                     }
                 } catch (error) {
                     if (thisDraw !== latestDraw) {

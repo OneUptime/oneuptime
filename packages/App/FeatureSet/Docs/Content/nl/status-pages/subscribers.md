@@ -47,6 +47,8 @@ Elk kanaal heeft ook een eigen lijst in het zijmenu van de statuspagina, onder *
 
 **Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt alleen wanneer **Abonneepagina weergeven** aan staat *en* minstens één kanaal aan staat. Als u **E-mail** aanzet maar **Abonneepagina weergeven** uit laat, kunnen bezoekers het formulier niet bereiken.
 
+**Een agenda in plaats daarvan.** Bezoekers die uw gepland onderhoud alleen in hun eigen agenda willen, hoeven zich niet te abonneren: **Abonneren op agenda** op de pagina **Geplande gebeurtenissen** voegt het toe aan Google Agenda, Apple Agenda of Outlook, en de agenda houdt zichzelf bij. Er wordt niets verstuurd, het hangt niet af van de kanalen hierboven, en een privépagina biedt het niet aan. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#de-agenda-van-een-statuspagina).
+
 ## Alle meldingen uitzetten
 
 De eerste kaart op **Abonneeinstellingen**, **Meldingen**, bevat **Meldingen naar abonnees sturen** (`sendSubscriberNotifications`), standaard aan, die wordt opgeslagen zodra u hem omzet. Staat hij uit, dan stuurt de statuspagina haar abonnees niets: geen melding over een incident, episode, gepland onderhoud of aankondiging, geen notitie of postmortem en geen e-mailrapport, wat haar kanalen en gebeurtenistypen ook zeggen. Haar abonnees blijven bewaard, en bezoekers kunnen zich nog steeds abonneren zolang de pagina **Abonneren** en een kanaal aan staan; een nieuwe e-mailabonnee krijgt nog steeds de e-mail die het abonnement bevestigt. Er wordt niets achtergehouden om later te verzenden: zet u hem weer aan, dan vertelt de pagina haar abonnees over wat er vanaf dat moment gebeurt.

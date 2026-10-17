@@ -126,7 +126,7 @@ const NetworkDeviceOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
-            "Case-insensitive regex — or a '*' wildcard pattern such as *0664* — matched against the network device name and description.",
+            "A regex or * pattern, such as *0664*, matched against the device's name and description.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "core-switch-.* or *0664*",

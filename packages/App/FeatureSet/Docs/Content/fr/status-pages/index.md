@@ -29,7 +29,7 @@ flowchart TB
 
 Les pages de statut se trouvent sous **Pages de statut** dans le menu **Produits** de la barre du haut, parmi l'essentiel. Tout ce qui figure sur cette page s'applique par page de statut : un projet peut en exploiter autant qu'il le souhaite — une page publique pour les clients, une page privée pour un public interne, une page par région pour un marché donné.
 
-La page montre les moniteurs que vous y placez comme ses ressources. Les incidents et la maintenance planifiée l'atteignent par ces moniteurs, et vous y publiez les annonces directement. Les visiteurs lisent la page, et les abonnés sont informés de chaque changement sur les canaux qu'ils ont choisis.
+La page montre les moniteurs que vous y placez comme ses ressources, et les incidents l'atteignent par ces moniteurs. Les [événements de maintenance planifiée](/docs/scheduled-maintenance/index) et les annonces l'atteignent directement : chacun nomme les pages de statut où il s'affiche. Les visiteurs lisent la page, et les abonnés sont informés de chaque changement sur les canaux qu'ils ont choisis.
 
 ## En un coup d'œil
 
@@ -163,7 +163,7 @@ Le fait que la page affiche un élément **S'abonner** (**Afficher la page des a
 
 Sous la carte se trouvent **Exporter au format JSON : Page de statut**, qui télécharge les paramètres propres de la page de statut dans un fichier que vous pouvez réimporter, et **Archive status page** (voir [Archiver une page de statut](#archiver-une-page-de-statut)). Le pourcentage de disponibilité global et les statuts d'indisponibilité étaient autrefois deux cartes à part ici, chacune derrière un bouton **Modifier** ; ce sont désormais des lignes de la carte.
 
-**Où sont les couleurs.** Les couleurs des barres de disponibilité ne sont pas ici — la **Couleur de barre par défaut** et les règles de couleur des barres se trouvent sous **Plus de paramètres** sur **Pages de statut → votre page → Image de marque → Image de marque**. Il n'y a de réglage de thème ou de couleur de marque nulle part ; tout ce qui va au-delà de ces contrôles se fait avec **CSS personnalisé**.
+**Où sont les couleurs.** Les couleurs des barres de disponibilité ne sont pas ici — la **Couleur de barre par défaut** et les règles de couleur des barres se trouvent sous **Plus de paramètres** sur **Pages de statut → votre page → Image de marque → Image de marque**. Le **Thème** de la page (clair, sombre, ou selon le réglage de l'appareil de chaque visiteur) est une carte en haut de cette même page. Il n'y a de réglage de couleur de marque nulle part ; tout ce qui va au-delà de ces contrôles se fait avec **CSS personnalisé**.
 
 ## Prévisualiser avant la mise en ligne
 
@@ -213,11 +213,13 @@ Sous **Plus de paramètres** sur **Accès**, la section **Liste d'autorisation I
 
 ## Le badge intégrable et le flux RSS
 
-Deux façons d'afficher le statut ailleurs que sur la page elle-même.
+Trois façons d'afficher le statut ailleurs que sur la page elle-même.
 
 **Badge de statut intégré.** Sur **Pages de statut → votre page → Avancé → Statut intégré**, activez **Activer le badge de statut intégré** (`enableEmbeddedOverallStatus`, désactivé par défaut), puis cliquez sur **Regénérer le jeton** sur la carte **Jeton de sécurité** pour donner au badge son jeton (`embeddedOverallStatusToken`). Le badge est servi depuis `/api/status-page/badge/<status-page-id>?token=<token>`, et l'écran l'affiche sous **Aperçu du badge** avec des extraits à copier, pour que vous puissiez placer le statut global actuel dans votre documentation, le pied de page de votre application ou une page marketing.
 
 **Flux RSS.** Chaque page de statut sert `/rss` — un flux intitulé « {titre de la page} Updates », avec le **Titre de la page** défini dans **Image de marque**, ou son nom si elle n'en a pas, et dont les éléments commencent par `Incident: `, `Announcement: ` et `Scheduled Maintenance: `. Pratique pour ceux qui préfèrent faire passer vos mises à jour par un lecteur ou un chatbot plutôt que s'abonner par e-mail.
+
+**Calendrier de maintenance.** Chaque page de statut sert aussi `/maintenance.ics` : la maintenance planifiée qu'elle affiche, sous forme d'un calendrier auquel Google Agenda, Apple Calendrier ou Outlook peuvent s'abonner. Les visiteurs l'ajoutent avec **S'abonner au calendrier** sur la page **Événements planifiés**, et un seul événement avec **Ajouter au calendrier** sur la page de cet événement. Le calendrier d'une page privée est vide, car une application de calendrier ne peut pas se connecter. Voir [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#le-calendrier-dune-page-de-statut).
 
 Si vous préférez récupérer les données vous-même, la page de statut s'appuie sur des points de terminaison publics en lecture pour la vue d'ensemble, les incidents, les événements de maintenance planifiée, les annonces et les épisodes — voir [API publique](/docs/status-pages/public-api).
 

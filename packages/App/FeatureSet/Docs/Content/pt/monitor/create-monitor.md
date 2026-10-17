@@ -19,7 +19,7 @@ Acesse **Monitores** e clique em **Criar monitor**. O formulário abre na primei
 A primeira pergunta é o **Tipo de monitor**: o que você quer monitorar?
 
 - Os seis tipos que a maioria das pessoas cria vêm primeiro: **Site**, **API**, **Ping**, **Porta**, **SSL Certificate** e **Incoming Request**, para heartbeats de cron jobs e webhooks.
-- **Mais tipos de monitor** lista todos os outros tipos sob a sua categoria, como **Infraestrutura** (Kubernetes, Docker, host) e **Telemetria** (registros, métricas, traços). **Manual**, um monitor cujo status você mesmo define, fica em **Outro**.
+- **Mais tipos de monitor** lista todos os outros tipos sob a sua categoria, como **Infraestrutura** (Kubernetes, Docker, host) e **Telemetria** (registros, métricas, traços). **Manual**, um monitor cujo status você mesmo define, e **Status da sonda**, que avisa quando uma sonda se desconecta, ficam em **Outro**.
 - Ou digite na caixa de pesquisa. Ela conhece as palavras que você já usa, como `k8s`, `postgres`, `heartbeat` ou `tls`, e **Enter** escolhe o primeiro resultado.
 
 O tipo escolhido encolhe para uma linha. Clique em **Alterar** para escolher outro; pressione **Escape** durante a escolha para manter o tipo que você tinha.
@@ -70,7 +70,7 @@ flowchart TB
     end
 ```
 
-Incidentes e alertas configurados para se resolver automaticamente, como os dos critérios padrão, se resolvem sozinhos assim que o critério deixa de corresponder. Um monitor verificado por mais de uma sonda só muda quando as sondas concordam: por padrão, toda sonda ativada e conectada precisa chegar ao mesmo resultado. Para exigir menos, defina **Concordância de sondas** na página **Configuração → Sondas e intervalo** do monitor.
+Incidentes e alertas configurados para se resolver automaticamente, como os dos critérios padrão, se resolvem sozinhos assim que o critério deixa de corresponder. Um monitor verificado por mais de uma sonda só muda quando as sondas concordam: por padrão, toda sonda ativada e conectada precisa chegar ao mesmo resultado. Para exigir menos, defina **Concordância de sondas** na página **Configuração → Sondas e intervalo** do monitor. Para tudo o que um critério pode conter e os status que um monitor pode mostrar, veja [Critérios e status de monitores](/docs/monitor/criteria-and-statuses).
 
 ## Sondas e intervalo
 
@@ -101,6 +101,8 @@ Cada tipo de monitor tem a sua própria página, com as suas configurações, os
 :::cards
 - [Monitor de site](/docs/monitor/website-monitor): Verificar se uma página carrega, e o que ela responde.
 - [Monitor de API](/docs/monitor/api-monitor): Chamar um endpoint com um método, cabeçalhos e um corpo.
+- [Critérios e status de monitores](/docs/monitor/criteria-and-statuses): O que define o status de cada monitor.
 - [Modelos de monitor](/docs/monitor/monitor-templates): Criar muitos monitores a partir de uma configuração e mantê-los alinhados.
+- [Grupos de monitores](/docs/monitor/monitor-groups): Reunir vários monitores em um único status.
 - [Incidentes](/docs/incidents/index): O que acontece depois que um monitor declara um incidente.
 :::

@@ -75,7 +75,7 @@ Clique em **Adicionar monitor**. A linha aparece no grupo e na página de status
 Em um grupo em grade, a caixa de diálogo também pede a linha e a coluna em que o monitor fica, acima de **Mais campos**; veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade).
 
 > [!TIP]
-> Para mostrar várias verificações como uma única linha, adicione um grupo de monitores. Com a chave **Grupos de monitores** ativada (**Configurações do projeto** > **Avançado** > **Sinalizadores de recursos**, que salva assim que você a aciona), um link abaixo da lista suspensa diz **Add a Monitor Group instead.** Clique nele e **Monitor** vira **Monitor Grupo** (**Selecionar Grupo de Monitores**); **Add a Monitor instead.** volta atrás.
+> Para mostrar várias verificações como uma única linha, adicione um [grupo de monitores](/docs/monitor/monitor-groups). Com a chave **Grupos de monitores** ativada (**Configurações do projeto** > **Avançado** > **Sinalizadores de recursos**, que salva assim que você a aciona), um link abaixo da lista suspensa diz **Add a Monitor Group instead.** Clique nele e **Monitor** vira **Monitor Grupo** (**Selecionar Grupo de Monitores**); **Add a Monitor instead.** volta atrás.
 
 ### Adicionar vários de uma vez
 
@@ -139,7 +139,7 @@ Clique em **Create Status Page Group**. O grupo aparece no navegador, pronto par
 
 Os dois campos são **Nome do Grupo** (`name`) e **Parent Group** (`parentStatusPageGroupId`). As duas seções recolhidas guardam todo o resto:
 
-- **Layout**: seu cabeçalho recolhido diz **List** ou **Grid**. Ela contém **Modo de visualização** e os eixos de uma grade (veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade)), e se abre sozinha em um grupo em grade.
+- **Layout**: seu cabeçalho recolhido diz **Lista** ou **Grid**. Ela contém **Modo de visualização** e os eixos de uma grade (veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade)), e se abre sozinha em um grupo em grade.
 - **Mais campos**: as cópias, no nível do grupo, das opções dos recursos:
   - **Descrição do Grupo** (`description`): markdown opcional, mostrado abaixo do cabeçalho. Uma imagem nele é mostrada a todos os visitantes.
   - **Expandir na Página de status por padrão** (`isExpandedByDefault`): ativado por padrão; define se a seção começa aberta ou recolhida para os visitantes.
@@ -171,7 +171,7 @@ A seção **Layout** do formulário do grupo define o **Modo de visualização**
 
 | Se você quer… | Escolha |
 | --------------- | ---- |
-| Mostrar uma lista vertical simples de serviços, um por linha | **List** (o padrão) |
+| Mostrar uma lista vertical simples de serviços, um por linha | **Lista** (o padrão) |
 | Mostrar o mesmo serviço em várias regiões ou locatários como uma matriz | **Grid** |
 
 Escolha **Grid** e aparecem mais quatro campos:

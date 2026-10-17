@@ -17,12 +17,12 @@ Ce guide explique comment configurer SendGrid Inbound Parse pour transférer les
 
 ```mermaid title="Comment un e-mail atteint un moniteur"
 sequenceDiagram
-    participant Sender as Serveur de messagerie expéditeur
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as Serveur de<br/>messagerie<br/>expéditeur
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: E-mail à l'adresse du moniteur (votre enregistrement MX)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Associer l'adresse à un moniteur ou à un workflow
+    Sender->>SendGrid: E-mail à<br/>l'adresse du<br/>moniteur (votre<br/>enregistrement<br/>MX)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: Associer<br/>l'adresse à<br/>un moniteur ou<br/>à un workflow
     OneUptime-->>SendGrid: 200 OK
 ```
 

@@ -22,6 +22,10 @@
     "label": "Sprog",
     "switchLanguage": "Skift sprog"
   },
+  "theme": {
+    "switchToDark": "Skift til mørkt tema",
+    "switchToLight": "Skift til lyst tema"
+  },
   "nav": {
     "overview": "Oversigt",
     "incidents": "Hændelser",
@@ -125,7 +129,27 @@
     "noneDescription": "Der er ikke offentliggjort nogen planlagte hændelser for denne statusside.",
     "scheduledAt": "Planlagt til ",
     "report": "Rapport for planlagt hændelse",
-    "notFound": "Der blev ikke fundet nogen planlagt hændelse for denne statusside."
+    "notFound": "Der blev ikke fundet nogen planlagt hændelse for denne statusside.",
+    "calendar": {
+      "subscribe": "Abonner på kalender",
+      "subscribeTitle": "Abonner på planlagt vedligeholdelse",
+      "subscribeDescription": "Få denne sides planlagte vedligeholdelse i din kalenderapp. Den holder sig selv opdateret.",
+      "eventTitle": "Føj til kalender",
+      "eventDescription": "Føj denne vedligeholdelse til din kalenderapp.",
+      "addToCalendar": "Føj til kalender",
+      "addHeading": "Føj til din kalender",
+      "google": "Google Kalender",
+      "googleHint": "Åbner Google Kalender i en ny fane",
+      "device": "Apple Kalender / Outlook",
+      "deviceHint": "Åbner kalenderappen på denne enhed",
+      "deviceFileHint": "Henter vedligeholdelsen til kalenderappen på denne enhed",
+      "copyHeading": "Eller kopiér linket",
+      "copyHint": "Indsæt det i en hvilken som helst kalenderapp, der kan abonnere på en kalender via URL.",
+      "copy": "Kopiér link",
+      "copied": "Kopieret!",
+      "done": "Færdig",
+      "refreshNote": "Kalenderapps tjekker for ændringer efter deres egen plan, så det kan tage et par timer, før en opdatering vises."
+    }
   },
   "subscribe": {
     "title": "Abonner",

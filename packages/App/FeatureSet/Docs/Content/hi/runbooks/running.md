@@ -22,7 +22,7 @@ stateDiagram-v2
     [*] --> Scheduled: रन शुरू हुआ
     Scheduled --> Running: कोई Worker इसे लेता है
     Running --> WaitingForManualStep: Manual चरण या अनुमोदन
-    WaitingForManualStep --> Scheduled: पूरा, अनुमोदित या छोड़ा गया
+    WaitingForManualStep --> Scheduled: पूरा, अनुमोदित<br/>या छोड़ा गया
     Running --> Completed: सभी चरण पूरे
     Running --> Failed: कोई चरण विफल
     Scheduled --> Cancelled: निष्पादन रद्द करें

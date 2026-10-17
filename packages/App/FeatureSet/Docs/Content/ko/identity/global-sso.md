@@ -71,13 +71,13 @@
 
 ```mermaid title="로그인할 때 글로벌 공급자가 하는 일"
 flowchart TB
-    S["누군가 로그인"] --> A{"연결된 프로젝트가 있음?"}
+    S["누군가 로그인"] --> A{"연결된<br/>프로젝트가 있음?"}
     A -->|"아니요"| K{"계정이 있음?"}
     K -->|"아니요"| R["거부: 먼저 초대"]
-    K -->|"예"| E["자신의 프로젝트에 로그인"]
-    A -->|"예"| D{"새 사용자이고 가입이<br/>꺼져 있음?"}
+    K -->|"예"| E["자신의<br/>프로젝트에 로그인"]
+    A -->|"예"| D{"새 사용자이고<br/>가입이<br/>꺼져 있음?"}
     D -->|"예"| R
-    D -->|"아니요"| P["아직 속하지 않은<br/>연결된 프로젝트에 추가"]
+    D -->|"아니요"| P["아직 속하지 않은<br/>연결된<br/>프로젝트에 추가"]
     P --> E
 ```
 
@@ -147,6 +147,14 @@ flowchart TB
 
 :::details "Issuer URL does not match"
 SAML 공급자의 경우, ID 공급자 응답의 발급자가 공급자에 저장된 **Issuer**와 다릅니다. ID 공급자에서 다시 복사하세요. 두 값은 정확히 일치해야 합니다.
+:::
+
+:::details "SAML Audience does not match"
+SAML 공급자의 경우, 응답의 audience가 공급자의 **Issuer (Entity ID)** 값이 아닙니다. ID 공급자가 다른 애플리케이션용으로 응답을 만들었습니다. ID 공급자에서 애플리케이션의 entity ID를 공급자 페이지의 **Issuer (Entity ID)** 값으로 설정하세요. "SAML Recipient does not match"와 "SAML Destination does not match"는 그 reply URL에 대해 같은 뜻입니다. **ACS URL (Assertion Consumer Service / Reply URL)** 값으로 설정하세요.
+:::
+
+:::details "SAML response was already used"
+ID 공급자의 각 응답으로는 한 번만 로그인할 수 있으며, 그것도 발급 후 몇 분 안에만 가능합니다. 그 뒤에는 "SAML response has expired"로 거부됩니다. 다시 로그인하세요. 응답이 계속 만료된다면 이 서버와 ID 공급자의 시계를 확인하세요.
 :::
 
 ## 다음 단계

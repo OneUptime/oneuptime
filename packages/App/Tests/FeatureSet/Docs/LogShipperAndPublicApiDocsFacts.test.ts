@@ -2653,7 +2653,11 @@ describe("the Public API page", () => {
     const METHOD_OF: Record<string, string> = {
       Incidents: "getIncidents",
       Episodes: "getEpisodes",
-      "Scheduled maintenance events": "getScheduledMaintenanceEvents",
+      /*
+       * The route checks who may read the page, then answers with what the
+       * page shows, as the page's maintenance calendar reads it too.
+       */
+      "Scheduled maintenance events": "readShownScheduledMaintenanceEvents",
       Announcements: "getAnnouncements",
     };
 

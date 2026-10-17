@@ -30,9 +30,9 @@ OneUptime necesita tres almacenes de datos en producción. Cada uno crece con al
 
 ```mermaid title="Con qué crece cada almacén de datos"
 flowchart TB
-    Tel["Registros, métricas, trazas"] -->|"tasa de ingesta × retención"| CH[("ClickHouse")]
-    State["Monitores, incidentes, usuarios"] -->|"número de entidades e historial"| PG[("PostgreSQL")]
-    Work["Colas, caché, sesiones"] -->|"profundidad de las colas"| VK[("Valkey")]
+    Tel["Registros,<br/>métricas, trazas"] -->|"tasa de<br/>ingesta ×<br/>retención"| CH[("ClickHouse")]
+    State["Monitores,<br/>incidentes,<br/>usuarios"] -->|"número de<br/>entidades<br/>e historial"| PG[("PostgreSQL")]
+    Work["Colas, caché,<br/>sesiones"] -->|"profundidad<br/>de las colas"| VK[("Valkey")]
 ```
 
 | Almacén | Qué guarda | Qué determina su tamaño |

@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | A Twilio account, with its Account SID and Auth Token | The policy's numbers and calls run on it, and Twilio bills them to it. |
 | The **Growth** plan, on OneUptime Cloud | A project needs it for its own Twilio configuration. |
-| A OneUptime server that Twilio can reach, if you host it yourself | Twilio sends every call to `https://<your host>/notification/incoming-call/voice`. |
+| A OneUptime server that Twilio can reach, if you host it yourself | Twilio sends every call to `https://<your host>/notification/incoming-call/voice`, and how each ring ended to `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** on in the project | Each engineer's number is verified with a code sent by SMS. |
 | A verified number for each engineer | A rule rings only people who added and verified a number for incoming calls in the project. |
 
@@ -86,16 +86,16 @@ sequenceDiagram
     participant Twilio
     participant OneUptime
     participant Engineer
-    Caller->>Twilio: Dials the policy's number
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Greeting, then ring the first rule's person
-    Twilio->>Engineer: Rings for the rule's Ring for time
+    Caller->>Twilio: Dials the<br/>policy's number
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Greeting, then<br/>ring the first<br/>rule's person
+    Twilio->>Engineer: Rings for the<br/>rule's Ring for time
     Note over Twilio,Engineer: Nobody answers in time
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Ring the next rule's person
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Ring the next<br/>rule's person
     Twilio->>Engineer: Rings the next person
     Engineer-->>Twilio: Answers
-    Twilio-->>Caller: Puts the caller through
+    Twilio-->>Caller: Puts the<br/>caller through
 ```
 
 A rule is skipped, without ringing anyone, when nobody can be rung for it right now: its schedule has nobody on call, the person has no verified number for incoming calls in this project, or they are no longer a member of the project. When no rule has anyone to ring, the caller hears the **No One Available Message**. A disabled policy answers every call with "Sorry, this service is currently disabled." and hangs up.

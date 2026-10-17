@@ -196,7 +196,7 @@ OAuth 是 [浏览器重定向，随后在服务器端交换令牌](https://docs.
 ### 私有部署和回调安全
 
 ```mermaid title="从私有部署发布 Slack 回调"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["公共网关"]
     GW -->|"/api/slack/* 仅 POST"| ING["OneUptime ingress"]
     Users["VPN 上的员工"] --> ING

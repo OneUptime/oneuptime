@@ -30,6 +30,7 @@ import { Green } from "../../Types/BrandColors";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
@@ -109,6 +110,11 @@ import {
   getAllowedEmailDomainsProblem,
   normalizeAllowedEmailDomains,
 } from "../../Types/StatusPage/SubscriberRestrictions";
+import {
+  getStatusPageThemeProblem,
+  NEW_STATUS_PAGE_THEME,
+  STATUS_PAGE_THEME_COLUMN,
+} from "../../Types/StatusPage/StatusPageTheme";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
@@ -248,7 +254,8 @@ export const INCIDENT_COUNT_STATUS_PAGE_SELECT: Select<StatusPage> = {
  * Refuses a status page write holding a value no reader of it can use
  * (checkCreateBeforeReferences, checkUpdateBeforeReferences), and writes
  * the Allowed Email Domains it holds the way every reader reads them: one
- * valid domain a line, lower-cased, or nothing.
+ * valid domain a line, lower-cased, or nothing. A theme is Light, Dark or
+ * System, spelled exactly so (Types/StatusPage/StatusPageTheme), or nothing.
  */
 export const assertStatusPageWriteValues: (
   data: Record<string, unknown>,
@@ -260,6 +267,14 @@ export const assertStatusPageWriteValues: (
 
   if (sessionLengthProblem) {
     throw new BadDataException(sessionLengthProblem);
+  }
+
+  const themeProblem: string | null = getStatusPageThemeProblem(
+    data[STATUS_PAGE_THEME_COLUMN],
+  );
+
+  if (themeProblem) {
+    throw new BadDataException(themeProblem);
   }
 
   if (data[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN] !== undefined) {
@@ -638,6 +653,17 @@ export class Service extends ProjectReferencesService<StatusPage> {
 
     if (!createBy.data.defaultBarColor) {
       createBy.data.defaultBarColor = Green;
+    }
+
+    /*
+     * A page made from now on follows each visitor's device, light or dark,
+     * unless its create names a theme. The column's default stays Light: it
+     * is what the pages made before the setting were given, and what the
+     * Terraform provider sends for a configuration that names no theme
+     * (StatusPage.theme).
+     */
+    if (createBy.data.theme === undefined || createBy.data.theme === null) {
+      createBy.data.theme = NEW_STATUS_PAGE_THEME;
     }
 
     /*
@@ -1281,7 +1307,10 @@ export class Service extends ProjectReferencesService<StatusPage> {
       return null;
     }
 
-    const decoded: JSONWebTokenData = JSONWebToken.decode(token as string);
+    const decoded: JSONWebTokenData = JSONWebToken.decode(
+      token as string,
+      JsonWebTokenPurpose.StatusPageSession,
+    );
 
     if (
       decoded.statusPageId?.toString() !== statusPageId.toString() ||

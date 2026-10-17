@@ -30,9 +30,9 @@ OneUptime 在正式環境中需要三個資料儲存。它們各自隨不同的�
 
 ```mermaid title="每個資料儲存隨什麼成長"
 flowchart TB
-    Tel["記錄、指標、追蹤"] -->|"擷取速率 × 保留期"| CH[("ClickHouse")]
-    State["監視器、事件、使用者"] -->|"實體數量和歷史"| PG[("PostgreSQL")]
-    Work["佇列、快取、工作階段"] -->|"佇列深度"| VK[("Valkey")]
+    Tel["記錄、指標、追蹤"] -->|"擷取速率<br/>× 保留期"| CH[("ClickHouse")]
+    State["監視器、<br/>事件、使用者"] -->|"實體數量和歷史"| PG[("PostgreSQL")]
+    Work["佇列、快取、<br/>工作階段"] -->|"佇列深度"| VK[("Valkey")]
 ```
 
 | 資料儲存 | 儲存的內容 | 決定其大小的因素 |

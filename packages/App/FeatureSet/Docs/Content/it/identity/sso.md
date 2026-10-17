@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Persona
     participant O as OneUptime
     participant I as Provider di identità
-    U->>O: Accedi con SSO, scelta del progetto
-    O->>I: Richiesta SAML all'URL di accesso
+    U->>O: Accedi con SSO,<br/>scelta del progetto
+    O->>I: Richiesta SAML<br/>all'URL di accesso
     I->>U: Pagina di accesso
     U->>I: Credenziali e MFA
-    I->>O: Asserzione firmata alla Reply URL
-    Note over O: Verifica la firma e l'emittente,<br/>legge l'email dal Name ID
+    I->>O: Asserzione firmata<br/>alla Reply URL
+    Note over O: Verifica la firma<br/>e l'emittente,<br/>legge l'email dal Name ID
     O->>U: Accesso eseguito al progetto
 ```
 
@@ -36,8 +36,13 @@ OneUptime legge solo poche cose dall'asserzione che invia il tuo IdP:
 | --- | --- |
 | Firma | La verifica con il **Certificato pubblico** del provider. La risposta deve essere firmata e non deve essere cifrata. |
 | Issuer | Deve corrispondere esattamente all'**Emittente** del provider. |
+| Audience | Deve essere l'**Identifier (Entity ID)** del provider. Una risposta che il tuo IdP ha creato per un'altra applicazione viene rifiutata. |
+| Recipient e Destination | Devono essere la **Reply URL** del provider, l'indirizzo a cui è stata inviata la risposta. |
+| `NotBefore` e `NotOnOrAfter` | La risposta è accettata solo finché lo consentono, e non oltre 10 minuti dalla sua emissione, con 3 minuti di tolleranza per gli orologi che non coincidono. |
 | Name ID | L'indirizzo email della persona. Deve essere un indirizzo email valido. |
 | `http://schemas.microsoft.com/identity/claims/displayname` | Il nome della persona, usato quando OneUptime crea il suo account. Facoltativo. |
+
+Ogni risposta fa accedere una sola volta. Inviata di nuovo, ad esempio tornando indietro nel browser dopo l'accesso, viene rifiutata: accedi di nuovo.
 
 Chi accede per la prima volta entra nei **Team** del provider, che decidono che cosa può fare: vedi [Ruoli e team degli utenti SSO](#ruoli-e-team-degli-utenti-sso).
 
@@ -326,6 +331,22 @@ La persona non è ancora nel progetto e il provider non ha **Team** in cui aggiu
 
 :::details "Issuer URL does not match"
 L'emittente nell'asserzione del tuo IdP non è l'**Emittente** del provider. Copialo di nuovo dal tuo IdP — l'URL del realm di Keycloak, il **Microsoft Entra Identifier** o l'Identity Provider Issuer di Okta — in modo che i due coincidano esattamente.
+:::
+
+:::details "SAML Audience does not match"
+La risposta è stata creata per un'altra applicazione: la sua audience non è l'**Identifier (Entity ID)** di questo provider. Nel tuo IdP, imposta l'entity ID dell'applicazione sull'**Identifier (Entity ID)** di **Visualizza configurazione SSO**: il **Client ID** in Keycloak, l'**Identifier (Entity ID)** in Entra ID, l'**Audience URI (SP Entity ID)** in Okta. Un IdP configurato con il solo indirizzo di OneUptime come entity ID, ad esempio `https://oneuptime.com`, continua a funzionare.
+:::
+
+:::details "SAML Recipient does not match"
+La risposta è stata inviata per un altro indirizzo: il suo recipient non è la **Reply URL** di questo provider. Nel tuo IdP, imposta la reply URL dell'applicazione sulla **Reply URL (Assertion Consumer Service URL)** di **Visualizza configurazione SSO**: la **Assertion Consumer Service POST Binding URL** in Keycloak, la **Reply URL (Assertion Consumer Service URL)** in Entra ID, la **Single sign-on URL** in Okta. "SAML Destination does not match" ha la stessa causa e la stessa soluzione.
+:::
+
+:::details "SAML response has expired"
+La risposta è arrivata a OneUptime più tardi di quanto consenta il tuo IdP, o più di 10 minuti dopo la sua emissione: accedi di nuovo. Se continua a succedere, l'orologio del tuo IdP o del server OneUptime è sbagliato; OneUptime ammette al massimo 3 minuti di differenza tra i due. "SAML response is not valid yet" è lo stesso problema al contrario.
+:::
+
+:::details "SAML response was already used"
+Ogni risposta del tuo IdP fa accedere una sola volta. Tornare indietro nel browser dopo l'accesso, o ricaricare la pagina attraverso cui ti ha mandato il tuo IdP, invia di nuovo la stessa risposta: accedi di nuovo, da OneUptime o dal tuo IdP.
 :::
 
 :::details L'accesso non riesce con un errore di firma o di certificato

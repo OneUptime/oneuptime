@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### Workflows
 
-Formularer har de genererede workflow-komponenter: **On Create Form**, **On Update Form** og så videre. Brug **On Create Incident** eller **On Create Scheduled Maintenance** for at reagere på det, en formular har oprettet.
+Formularer har de genererede workflow-komponenter: **On Create Form**, **On Update Form** og så videre. Brug **On Create Incident** eller **On Create Scheduled Maintenance Event** for at reagere på det, en formular har oprettet.
 
 ### Den offentlige sides egne endepunkter
 

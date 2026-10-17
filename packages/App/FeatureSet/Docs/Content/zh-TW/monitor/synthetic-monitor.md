@@ -18,13 +18,13 @@ sequenceDiagram
     participant O as OneUptime
     participant P as 探測器
     participant B as 瀏覽器
-    participant A as 你的 Web 應用程式
-    O->>P: 已填入密鑰的指令碼
-    loop 每種瀏覽器和螢幕尺寸
+    participant A as 你的 Web<br/>應用程式
+    O->>P: 已填入密鑰的<br/>指令碼
+    loop 每種瀏覽器和<br/>螢幕尺寸
         P->>B: 執行指令碼
-        B->>A: 載入頁面、點選、輸入
+        B->>A: 載入頁面、<br/>點選、輸入
         A-->>B: 頁面
-        B-->>P: 結果、螢幕截圖、日誌
+        B-->>P: 結果、<br/>螢幕截圖、日誌
     end
     P->>O: 每次執行一個回應
     O->>O: 評估條件

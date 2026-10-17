@@ -12,13 +12,14 @@ print_header "Status Page Branding Update Verification"
 PAGE_ID=$(get_output status_page_id)
 
 RESPONSE=$(api_get_resource "/api/status-page" "$PAGE_ID" \
-    '{"_id": true, "pageTitle": true, "copyrightText": true, "customCSS": true}')
+    '{"_id": true, "pageTitle": true, "copyrightText": true, "customCSS": true, "theme": true}')
 
 validation_failed=0
 
 validate_field "$RESPONSE" "pageTitle" "Terraform E2E Branding Updated" || validation_failed=1
 validate_field "$RESPONSE" "copyrightText" "Copyright Terraform E2E Updated" || validation_failed=1
 validate_field "$RESPONSE" "customCSS" ".status-page { background: #f5f5f5; }" || validation_failed=1
+validate_field "$RESPONSE" "theme" "System" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then
     print_failed "Status Page Branding Update Verification"

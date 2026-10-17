@@ -1,0 +1,59 @@
+# The verification Google Cloud Marketplace runs against a fresh deployment
+# (mpdev verify, and Google's own review): OneUptime's readiness endpoint must
+# answer 200 five times in a row - a backend still finishing its first
+# migration flaps - and the status and dashboard pages must load, all through
+# the nginx service a buyer reaches.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-tester"
+  labels:
+    app.kubernetes.io/name: "{{ .Release.Name }}"
+  annotations:
+    marketplace.cloud.google.com/verification: test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: tester
+      image: "{{ .Values.testerImage }}"
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: ONEUPTIME_URL
+          value: "http://{{ .Release.Name }}-nginx.{{ .Release.Namespace }}.svc"
+      command:
+        - node
+        - -e
+        - |
+          const base = process.env.ONEUPTIME_URL;
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          const status = async (path) => {
+            try {
+              const response = await fetch(base + path, { redirect: "manual" });
+              return response.status;
+            } catch (err) {
+              return 0;
+            }
+          };
+          (async () => {
+            const deadline = Date.now() + 25 * 60 * 1000;
+            let consecutive = 0;
+            while (consecutive < 5) {
+              if (Date.now() > deadline) {
+                console.error("OneUptime did not become ready in time.");
+                process.exit(1);
+              }
+              const code = await status("/status/ready");
+              consecutive = code === 200 ? consecutive + 1 : 0;
+              console.log("GET /status/ready -> " + code);
+              await sleep(5000);
+            }
+            for (const path of ["/status", "/dashboard", "/accounts"]) {
+              const code = await status(path);
+              console.log("GET " + path + " -> " + code);
+              if (code < 200 || code >= 400) {
+                console.error(path + " did not load.");
+                process.exit(1);
+              }
+            }
+            console.log("OneUptime is up.");
+          })();

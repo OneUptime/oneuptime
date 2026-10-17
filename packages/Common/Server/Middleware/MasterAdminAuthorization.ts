@@ -1,7 +1,5 @@
-import UserMiddleware from "./UserAuthorization";
+import UserMiddleware, { RequestSession } from "./UserAuthorization";
 import ProjectMiddleware from "./ProjectAuthorization";
-import UserService from "../Services/UserService";
-import JSONWebToken from "../Utils/JsonWebToken";
 import Response from "../Utils/Response";
 import {
   ExpressRequest,
@@ -12,7 +10,6 @@ import Exception from "../../Types/Exception/Exception";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
-import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import ObjectID from "../../Types/ObjectID";
 
 export default class MasterAdminAuthorization {
@@ -21,69 +18,47 @@ export default class MasterAdminAuthorization {
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
+    /*
+     * The session, read as every route reads it (readRequestSession): a
+     * session's own access token, and nothing else OneUptime signs, of a
+     * user who is not blocked - and a master admin's only while their
+     * account still is one. The token says what its person was when it was
+     * signed, up to 15 minutes ago; another master admin may have removed
+     * the access since, and these routes set anyone's password and two
+     * factor auth, and give the access back. A lookup that fails is
+     * reported as what it is, never answered with the token's word.
+     */
+    let requestSession: RequestSession;
+
     try {
-      const accessToken: string | undefined =
-        UserMiddleware.getAccessTokenFromExpressRequest(req);
+      requestSession = await UserMiddleware.readRequestSession(req);
+    } catch (err) {
+      Response.sendErrorResponse(req, res, err as Exception);
+      return;
+    }
 
-      /*
-       * No token and an undecodable one are both 401, not 422: the access-token
-       * cookie expires with the JWT inside it, so an Admin Dashboard tab left
-       * idle past the token lifetime arrives here with no token at all. Only a
-       * 401 makes the browser client refresh the session and replay the
-       * request; a 422 left the admin looking at "Unauthorized" until a reload.
-       * A valid session that simply is not a master admin stays 422.
-       */
-      if (!accessToken) {
-        Response.sendErrorResponse(
-          req,
-          res,
-          new NotAuthenticatedException(
-            "Unauthorized: Access token is required.",
-          ),
-        );
-        return;
-      }
+    /*
+     * No token and an undecodable one are both 401, not 422: the access-token
+     * cookie expires with the JWT inside it, so an Admin Dashboard tab left
+     * idle past the token lifetime arrives here with no token at all. Only a
+     * 401 makes the browser client refresh the session and replay the
+     * request; a 422 left the admin looking at "Unauthorized" until a reload.
+     * A valid session that simply is not a master admin stays 422 - one
+     * whose master admin access was removed too: a renewed session would be
+     * the same person, no master admin either.
+     */
+    if (requestSession.kind === "none") {
+      Response.sendErrorResponse(
+        req,
+        res,
+        new NotAuthenticatedException(
+          "Unauthorized: Access token is required.",
+        ),
+      );
+      return;
+    }
 
-      const authData: JSONWebTokenData = JSONWebToken.decode(accessToken);
-
-      if (!authData.isMasterAdmin) {
-        Response.sendErrorResponse(
-          req,
-          res,
-          new NotAuthorizedException(
-            "Unauthorized: Only master admins can perform this action.",
-          ),
-        );
-        return;
-      }
-
-      /*
-       * These routes read the JWT themselves rather than going through
-       * UserAuthorization, so they need the same blocked-user check: a
-       * blocked master admin's access token is still valid for up to 15
-       * minutes. Its own try, so a failed lookup is reported as what it is
-       * rather than as the invalid-token 401 below.
-       */
-      let isUserBlocked: boolean;
-
-      try {
-        isUserBlocked = await UserService.isUserBlocked(authData.userId);
-      } catch (err) {
-        Response.sendErrorResponse(req, res, err as Exception);
-        return;
-      }
-
-      if (isUserBlocked) {
-        Response.sendErrorResponse(
-          req,
-          res,
-          new NotAuthenticatedException(ExceptionMessages.UserBlocked),
-        );
-        return;
-      }
-
-      next();
-    } catch {
+    if (requestSession.kind === "invalid") {
       Response.sendErrorResponse(
         req,
         res,
@@ -91,7 +66,31 @@ export default class MasterAdminAuthorization {
           "Unauthorized: Invalid or expired access token.",
         ),
       );
+      return;
     }
+
+    // A blocked user's access token is still valid for up to 15 minutes.
+    if (requestSession.kind === "blocked") {
+      Response.sendErrorResponse(
+        req,
+        res,
+        new NotAuthenticatedException(ExceptionMessages.UserBlocked),
+      );
+      return;
+    }
+
+    if (!requestSession.session.isMasterAdmin) {
+      Response.sendErrorResponse(
+        req,
+        res,
+        new NotAuthorizedException(
+          "Unauthorized: Only master admins can perform this action.",
+        ),
+      );
+      return;
+    }
+
+    next();
   }
 
   /*

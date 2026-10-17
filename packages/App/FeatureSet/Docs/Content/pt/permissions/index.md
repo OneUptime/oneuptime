@@ -12,14 +12,14 @@ Os **proprietários** são outra ideia. Um proprietário é quem responde por um
 ```mermaid title="Como uma pessoa e uma chave de API recebem acesso"
 flowchart TB
     User["Um usuário<br/>(uma conta)"]
-    Key["Uma chave de API"]
     subgraph Project["Um projeto"]
         direction TB
+        Key["Uma chave<br/>de API"]
         Team["Equipe"]
-        Allow["Permissões concedidas,<br/>cada uma com um escopo:<br/>Todos, Próprios ou Rótulos"]
-        Block["Permissões bloqueadas,<br/>que sempre vencem"]
-        KeyRules["As permissões concedidas<br/>e bloqueadas da chave"]
-        Resources["Monitores, incidentes,<br/>páginas de status e mais"]
+        Allow["Permissões<br/>concedidas,<br/>cada uma com<br/>um escopo:<br/>Todos,<br/>Próprios<br/>ou Rótulos"]
+        Block["Permissões<br/>bloqueadas,<br/>que sempre<br/>vencem"]
+        KeyRules["As permissões<br/>concedidas<br/>e bloqueadas<br/>da chave"]
+        Resources["Monitores,<br/>incidentes,<br/>páginas de<br/>status e mais"]
     end
     User -->|"membro de"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"alcançam"| Resources
     KeyRules -->|"alcançam"| Resources
     Block -.->|"retiram"| Resources
+    Allow ~~~ Block
 ```
 
 | Conceito | O que é |
@@ -58,6 +59,7 @@ Um usuário está «em» um projeto quando é membro de **pelo menos uma equipe*
 - Convites criam um membro de equipe pendente. O usuário só conta como membro do projeto — e só ganha qualquer permissão — **depois de aceitar o convite.**
 - **Convidar Usuário** começa na equipe de membros do projeto: a equipe que tem `ProjectMember` para o projeto inteiro, que é **Members** a menos que você a tenha renomeado. Escolha outra equipe para dar à pessoa mais ou menos acesso. Nada vem escolhido quando você mesmo não poderia convidar para essa equipe — convidar alguém repassa as permissões da equipe, e você só pode repassar permissões que tem — ou quando o projeto não tem uma equipe assim. O painel de administração começa na mesma equipe sempre que um administrador da instância adiciona alguém a um projeto: **Convidar Usuário** em um projeto, **Adicionar ao projeto** em um usuário e em vários usuários de uma vez, e os projetos ligados a um [provedor de SSO global](/docs/identity/global-sso).
 - Remover um usuário de todas as equipes de um projeto retira o acesso dele a esse projeto, a partir da próxima requisição dele — inclusive enquanto ele está conectado. A conta e os outros projetos dele não são afetados. Ele sai das escalas de plantão, das regras de escalonamento e das substituições do projeto, dos papéis dos incidentes e episódios abertos e dos proprietários dos recursos; os incidentes resolvidos guardam o registro de quem foi proprietário deles e os conduziu.
+- Em uma instalação auto-hospedada, remover o acesso de administrador principal de alguém no Admin Dashboard o retira a partir da próxima requisição dessa pessoa — inclusive enquanto ela está conectada. Ela continua conectada e mantém os projetos dos quais é membro.
 - Quem sai de um projeto deixa de receber as notificações dele. Os próprios métodos, regras e configurações de notificação da pessoa para o projeto são removidos com a última equipe — e-mail, SMS, chamada, WhatsApp, Telegram, push, webhook, Slack e Microsoft Teams, o resumo por e-mail e o e-mail ainda não enviado, o número para chamadas recebidas e os lembretes de plantão —, então quem volta começa com os padrões. O que ainda a menciona, como o usuário para quem uma regra de chamadas recebidas liga ou um responsável mantido em um incidente resolvido, não a notifica mais: nada é enviado em nome de um projeto a quem não é membro dele, e um convite pendente ainda não é participação. Esses lugares mostram **Não é mais membro** ao lado do nome, para que você coloque outra pessoa. Quem foi convidado e ainda não aceitou mostra **Convite ainda não aceito** no lugar. Se uma substituição encaminha os chamados de alguém para uma pessoa que saiu, quem é chamado é a pessoa que ela cobre. Sair também desconecta os clientes MCP que a pessoa conectou ao projeto, e o link pessoal do calendário de plantão dela passa a mostrar um calendário vazio. No OneUptime Cloud, quem volta pelo login único (SSO) do projeto confirma-o novamente pelo e-mail.
 - Se o seu projeto exige SSO e um usuário ainda não se autenticou pelo provedor de identidade, ele é tratado como usuário SSO não autorizado e não vê nada até fazê-lo. Veja [SSO](/docs/identity/sso).
 - Com o SCIM configurado, o provedor de identidade pode criar, atualizar e remover usuários e suas participações em equipes automaticamente. Veja [SCIM](/docs/identity/scim).

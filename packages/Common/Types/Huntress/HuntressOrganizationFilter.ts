@@ -1,16 +1,18 @@
 import { HuntressNamedRef } from "./HuntressWebhook";
 
 /*
- * Which Huntress organizations a connection opens incidents for.
+ * Which Huntress organizations' reports start a Huntress workflow: the
+ * Huntress Incident Report trigger's Only These Organizations setting.
  *
- * An MSP's Huntress account holds one organization per client. A
- * connection watches all of them unless it lists some, one per line, by
- * name (as Huntress shows it, in any case) or by id (the number in the
- * Huntress portal's address, /org/<id>/...). The list is kept as the text
- * that was typed, so it reads back exactly as it was written.
+ * An MSP's Huntress account holds one organization per client. A workflow
+ * receives the reports of all of them unless its trigger lists some, one
+ * per line, by name (as Huntress shows it, in any case) or by id (the
+ * number in the Huntress portal's address, /org/<id>/...). The list is kept
+ * as the text that was typed, so it reads back exactly as it was written.
  *
- * Pure: shared by the server, which applies it, and the dashboard, which
- * validates and summarizes it.
+ * Pure: the webhook applies it (Server/Utils/Huntress/HuntressWebhookHandler),
+ * and the move of the Huntress connections made before to workflows reads
+ * theirs with it.
  */
 
 export const HUNTRESS_MAX_WATCHED_ORGANIZATIONS: number = 1000;
@@ -51,9 +53,9 @@ export function parseHuntressOrganizationFilter(
 }
 
 /*
- * Why a filter cannot be saved, or null when it can. Checked when a
- * connection is saved, so a filter that would never match reaches the
- * person typing it rather than silently watching nothing.
+ * Why a filter would never match as typed, or null when it can: for a form
+ * that checks the list before it is saved, so a mistake reaches the person
+ * typing it rather than silently watching nothing.
  */
 export function getHuntressOrganizationFilterProblem(
   text: string | null | undefined,

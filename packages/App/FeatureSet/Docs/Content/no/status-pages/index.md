@@ -29,7 +29,7 @@ flowchart TB
 
 Statussider ligger under **Statussider** i menyen **Produkter** i den øverste linjen, blant de viktigste. Alt på denne siden gjelder per statusside: et prosjekt kan ha så mange det vil — en offentlig for kunder, en privat for et internt publikum, en per region for et bestemt marked.
 
-Siden viser monitorene du setter på den, som ressurser. Hendelser og planlagt vedlikehold når siden gjennom disse monitorene, og kunngjøringer publiseres direkte på den. Besøkende leser siden, og abonnenter blir varslet om hver endring på kanalene de har valgt.
+Siden viser monitorene du setter på den, som ressurser, og hendelser når siden gjennom disse monitorene. [Planlagte vedlikeholdshendelser](/docs/scheduled-maintenance/index) og kunngjøringer når den direkte: hver av dem angir statussidene den vises på. Besøkende leser siden, og abonnenter blir varslet om hver endring på kanalene de har valgt.
 
 ## Kort oppsummert
 
@@ -163,7 +163,7 @@ Om siden viser et element **Abonner** (**Vis abonnentside**, `showSubscriberPage
 
 Under kortet står **Eksporter Statusside som JSON**, som laster ned statussidens egne innstillinger til en fil du kan importere igjen, og **Archive status page** (se [Arkiver en statusside](#å-arkivere-en-statusside)). Den samlede oppetidsprosenten og nedetidsstatusene var tidligere to egne kort her, hver bak en knapp **Rediger**; nå er de rader på kortet.
 
-**Hvor fargene er.** Fargene på oppetidsstolpene er ikke her: **Standard stolpefarge** og fargereglene for stolpene ligger under **Flere innstillinger** i **Statussider → siden din → Merkevare → Merkevare**. Det finnes ingen innstilling for tema eller merkevarefarge noe sted; alt utover disse kontrollene gjør du med **Egendefinert CSS**.
+**Hvor fargene er.** Fargene på oppetidsstolpene er ikke her: **Standard stolpefarge** og fargereglene for stolpene ligger under **Flere innstillinger** i **Statussider → siden din → Merkevare → Merkevare**. Sidens **Tema** (lyst, mørkt eller slik hver besøkendes enhet er innstilt) er et kort øverst på den samme siden. Det finnes ingen innstilling for merkevarefarge; alt utover disse kontrollene gjør du med **Egendefinert CSS**.
 
 ## Å forhåndsvise før du går live
 
@@ -213,11 +213,13 @@ Under **Flere innstillinger** på **Tilgang** begrenser seksjonen **IP-tillatels
 
 ## Det innebygde merket og RSS-strømmen
 
-To måter å vise status andre steder enn på selve siden.
+Tre måter å vise status andre steder enn på selve siden.
 
 **Innebygd statusmerke.** Under **Statussider → siden din → Avansert → Innebygd status** slår du på **Aktiver innebygd statusmerke** (`enableEmbeddedOverallStatus`, av som standard), og klikker deretter på **Regenerer token** på kortet **Sikkerhetstoken** for å gi merket et token (`embeddedOverallStatusToken`). Merket leveres fra `/api/status-page/badge/<status-page-id>?token=<token>`, og skjermen viser det i **Badge-forhåndsvisning** med utdrag du kan kopiere, slik at du kan sette den gjeldende samlede statusen inn i dokumentasjonen din, bunnteksten i appen din eller en markedsføringsside.
 
 **RSS-strøm.** Hver statusside leverer `/rss`: en strøm med tittelen "{sidetittel} Updates", med **Sidetittel** angitt under **Merkevare**, eller sidens navn hvis den ikke har noen, og der elementene begynner med `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Nyttig for dem som heller vil hente oppdateringene dine inn i en strømleser eller en chatbot enn å abonnere via e-post.
+
+**Vedlikeholdskalender.** Hver statusside leverer også `/maintenance.ics`: det planlagte vedlikeholdet den viser, som en kalender Google Kalender, Apple Kalender eller Outlook kan abonnere på. Besøkende legger den til med **Abonner på kalender** på sidens side **Planlagte hendelser**, og én enkelt hendelse med **Legg til i kalender** på hendelsens egen side. Kalenderen til en privat side er tom, siden en kalenderapp ikke kan logge inn. Se [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#kalenderen-til-en-statusside).
 
 Hvis du heller vil hente dataene selv, bygger statussiden på offentlige lese-endepunkter for oversikten, hendelsene, de planlagte vedlikeholdshendelsene, kunngjøringene og episodene: se [Offentlig API](/docs/status-pages/public-api).
 

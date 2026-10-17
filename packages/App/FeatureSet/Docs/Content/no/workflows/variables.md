@@ -99,13 +99,13 @@ sequenceDiagram
     participant Runner as Arbeidsflytkjører
     participant Variable as OAuth 2.0-variabel
     participant IdP as Identitetsleverandør
-    Runner->>Variable: Leser det hurtigbufrede tokenet
-    alt Utløpt, eller utløper innen ett minutt
+    Runner->>Variable: Leser det<br/>hurtigbufrede tokenet
+    alt Utløpt, eller utløper<br/>innen ett minutt
         Runner->>IdP: Tokenforespørsel
         IdP-->>Runner: Nytt tilgangstoken
         Runner->>Variable: Lagrer det nye tokenet
     end
-    Runner->>Runner: Kjører trinnet med et token som ikke er utløpt
+    Runner->>Runner: Kjører trinnet med et<br/>token som ikke er utløpt
 ```
 
 - Første gang en arbeidsflyt bruker variabelen, ber OneUptime tokenendepunktet til identitetsleverandøren din om et tilgangstoken og lagrer det.

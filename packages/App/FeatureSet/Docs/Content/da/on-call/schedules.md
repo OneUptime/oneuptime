@@ -27,7 +27,7 @@ Når du opretter en vagtplan på siden **Vagtplaner**, beder formularen om dens 
 Personerne skiftes én ad gangen, og den første har vagt, så snart vagtplanen er oprettet:
 
 ```mermaid title="Layer 1 med tre personer og tørne på 1 uge"
-flowchart LR
+flowchart TB
     alice["Alice<br/>uge 1"] -->|"overdragelse"| bob["Bob<br/>uge 2"]
     bob -->|"overdragelse"| carol["Carol<br/>uge 3"]
     carol -->|"tilbage til den første"| alice

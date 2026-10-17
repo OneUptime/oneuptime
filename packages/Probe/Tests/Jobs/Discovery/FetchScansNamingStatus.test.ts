@@ -642,7 +642,7 @@ describe("runScan — a reverse-DNS pass cut short by its time budget", () => {
      */
     expect(finalUpload()["success"]).toBe(true);
     expect(finalStatusMessage()).toBe(
-      "Swept 1022 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+      "Swept 1022 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 300 answered ping. " +
         "Reverse DNS named 25 of 300 hosts before its 1m time limit; " +
         "172 were never looked up " +
         "(raise PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS on the probe to allow longer).",
@@ -676,7 +676,7 @@ describe("runScan — a reverse-DNS pass cut short by its time budget", () => {
     expect(message).toBe(
       INCOMPLETE_ICMP_SWEEP_CAVEAT +
         " " +
-        "Swept 1022 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+        "Swept 1022 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 300 answered ping. " +
         "Reverse DNS named 25 of 300 hosts before its 1m time limit; " +
         "172 were never looked up " +
         "(raise PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS on the probe to allow longer).",
@@ -759,7 +759,7 @@ describe("runScan — a reverse-DNS pass whose resolver never answered", () => {
     expect(finalUpload()["success"]).toBe(true);
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 300 answered ping. " +
         "Reverse DNS lookups from this probe got no answers, so none of the 300 hosts got a reverse DNS name " +
         "- check the probe's DNS resolver and the reverse DNS zone for this range.",
     );
@@ -788,7 +788,7 @@ describe("runScan — a reverse-DNS pass whose resolver never answered", () => {
     expect(finalUpload()["success"]).toBe(true);
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 300 answered ping. " +
         "Reverse DNS lookups from this probe got no answers (queryPtr ESERVFAIL 10.0.0.1), " +
         "so none of the 300 hosts got a reverse DNS name " +
         "- check the probe's DNS resolver and the reverse DNS zone for this range.",
@@ -818,7 +818,7 @@ describe("runScan — a reverse-DNS pass whose resolver never answered", () => {
     await runScan(makeIcmpOnlyScan());
 
     expect(finalStatusMessage()).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 300 answered ping. " +
         "Reverse DNS lookups from this probe got no answers, so only the 2 of 300 hosts listed in the probe's hosts file got a reverse DNS name " +
         "- check the probe's DNS resolver and the reverse DNS zone for this range.",
     );
@@ -872,7 +872,7 @@ describe("runScan — a reverse-DNS pass that threw", () => {
 
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 300 answered ping. " +
         "Reverse DNS lookups failed on this probe (unknown error), " +
         "so none of the 300 hosts got a reverse DNS name.",
     );
@@ -995,7 +995,7 @@ describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", 
    * per-host reason rides on each host for the Review dialog's tooltip.
    */
   const CUSTOMER_HEADLINE: string =
-    "Swept 15 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.";
+    "Swept 15 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping.";
 
   test("the reported scan: 4 of 12 named, 2 timed out, 6 with no record — the message names the 2, the hosts carry their codes", async () => {
     scanSpy.mockResolvedValue(
@@ -1293,7 +1293,7 @@ describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", 
     await runScan(makeIcmpOnlyScan());
 
     expect(finalStatusMessage()).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 300 answered ping. " +
         "Reverse DNS named 25 of 300 hosts before its 1m time limit; 172 were never looked up " +
         "(raise PROBE_DISCOVERY_REVERSE_DNS_BUDGET_IN_MS on the probe to allow longer). " +
         "Reverse DNS lookups failed for 40 of 300 hosts; " +
@@ -1336,7 +1336,7 @@ describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", 
     await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
 
     expect(finalStatusMessage()).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 2500 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 2500 answered ping. " +
         "Reverse DNS lookups failed for 30 of 2,500 hosts; " +
         "hover the (i) beside an unnamed host for the reason, and rescan to try again. " +
         "NetBIOS lookups are capped at 2,000 hosts per scan, so 500 hosts were not asked " +
@@ -1363,7 +1363,7 @@ describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", 
 
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 300 answered ping. " +
         "Reverse DNS lookups from this probe got no answers (queryPtr ETIMEOUT), so none of the 300 hosts got a reverse DNS name - " +
         "check the probe's DNS resolver and the reverse DNS zone for this range.",
     );
@@ -1398,7 +1398,7 @@ describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", 
 
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 300 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 300 answered ping. " +
         "Reverse DNS lookups failed on this probe (name table went away), " +
         "so none of the 300 hosts got a reverse DNS name.",
     );
@@ -1502,7 +1502,7 @@ describe("runScan — a NetBIOS lookup cut short", () => {
     expect(finalUpload()["success"]).toBe(true);
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 2500 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 2500 answered ping. " +
         "NetBIOS lookups are capped at 2,000 hosts per scan, so 500 hosts were not asked " +
         "(raise PROBE_DISCOVERY_NETBIOS_MAX_HOSTS on the probe to ask more).",
     );
@@ -1548,7 +1548,7 @@ describe("runScan — a NetBIOS lookup cut short", () => {
 
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 65534 hosts with ICMP ping only (Check SNMP is off for this scan): 4200 answered ping. " +
+      "Swept 65534 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 4200 answered ping. " +
         "NetBIOS lookups are capped at 4,000 hosts per scan, so 200 hosts were not asked.",
     );
     expect(message).not.toContain("PROBE_DISCOVERY_NETBIOS_MAX_HOSTS");
@@ -1574,7 +1574,7 @@ describe("runScan — a NetBIOS lookup cut short", () => {
 
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 40 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 40 answered ping. " +
         "NetBIOS lookups stopped because the probe's UDP socket failed (send ENETUNREACH 10.20.0.13:137) after naming 3 hosts.",
     );
     expect(message).not.toContain("time limit");
@@ -1605,7 +1605,7 @@ describe("runScan — a NetBIOS lookup cut short", () => {
 
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 40 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 40 answered ping. " +
         "NetBIOS lookups did not run because the probe's UDP socket failed (The UDP socket did not bind in time).",
     );
     expect(message).not.toContain("stopped");
@@ -1641,7 +1641,7 @@ describe("runScan — a NetBIOS lookup cut short", () => {
     expect(netbiosCalls).toEqual([]);
     const message: string = finalStatusMessage();
     expect(message).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 2500 answered ping. " +
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 2500 answered ping. " +
         "NetBIOS names were not looked up: this is a global probe, and global probes never send NetBIOS queries.",
     );
     // Nothing from the double's verdict leaked through: it was never asked.
@@ -1677,7 +1677,7 @@ describe("runScan — a NetBIOS lookup cut short", () => {
     await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
 
     expect(finalStatusMessage()).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 40 answered ping.",
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 40 answered ping.",
     );
     expect(
       uploadedDevices(finalUpload()).some((device: DiscoveredHost) => {
@@ -1744,7 +1744,7 @@ describe("runScan — a NetBIOS lookup cut short", () => {
     await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
 
     expect(finalStatusMessage()).toBe(
-      "Swept 15 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping. " +
+      "Swept 15 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping. " +
         "Reverse DNS lookups failed for 2 of 12 hosts; " +
         "hover the (i) beside an unnamed host for the reason, and rescan to try again. " +
         "NetBIOS names were not looked up: this is a global probe, and global probes never send NetBIOS queries.",
@@ -1819,7 +1819,7 @@ describe("runScan — the NetBIOS host cap the seam is asked for", () => {
 
     // Nothing to confess, so no note: an unset knob is the healthy case.
     expect(finalStatusMessage()).toBe(
-      "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 40 answered ping.",
+      "Swept 4094 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 40 answered ping.",
     );
   });
 
@@ -1956,7 +1956,7 @@ describe("runScan — the NetBIOS host cap the seam is asked for", () => {
       const message: string = uploads[0]!["statusMessage"] as string;
       expect(message.length).toBeLessThanOrEqual(MAX_STATUS_MESSAGE_LENGTH);
       expect(message).toBe(
-        "Swept 65534 hosts with ICMP ping only (Check SNMP is off for this scan): 3200 answered ping. " +
+        "Swept 65534 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 3200 answered ping. " +
           "NetBIOS lookups are capped at 3,000 hosts per scan, so 200 hosts were not asked " +
           "(raise PROBE_DISCOVERY_NETBIOS_MAX_HOSTS on the probe to ask more).",
       );
@@ -2390,7 +2390,7 @@ describe("runScan — the uploaded message fits the column", () => {
     const message: string = finalStatusMessage();
     expect(message).toBe(
       INCOMPLETE_ICMP_SWEEP_CAVEAT +
-        " Swept 65534 hosts with ICMP ping only (Check SNMP is off for this scan): 3000 answered ping. " +
+        " Swept 65534 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 3000 answered ping. " +
         "Reverse DNS hit its 3m 27s limit; 1,976 of 3,000 hosts not looked up. " +
         // All 3,000: none has an SNMP name (issue #4518).
         "NetBIOS skipped 1,000 hosts over its 2,000-host cap. " +
@@ -2445,7 +2445,7 @@ describe("runScan — the uploaded message fits the column", () => {
 
     const essential: string =
       INCOMPLETE_ICMP_SWEEP_CAVEAT +
-      " Swept 65534 hosts with ICMP ping only (Check SNMP is off for this scan): 3000 answered ping.";
+      " Swept 65534 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 3000 answered ping.";
     const message: string = finalStatusMessage();
 
     expect(message.indexOf(essential + " ")).toBe(0);
@@ -2497,7 +2497,7 @@ describe("runScan — the uploaded message fits the column", () => {
 
     expect(message).toBe(
       INCOMPLETE_ICMP_SWEEP_CAVEAT +
-        " Swept 32768 hosts with ICMP ping only (Check SNMP is off for this scan): 6000 answered ping." +
+        " Swept 32768 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 6000 answered ping." +
         " Reverse DNS hit its 10m limit; 2,400 of 6,000 hosts not looked up." +
         " Reverse DNS failed for 1,800 of 6,000 hosts; rescan to retry." +
         // All 6,000 go to NetBIOS: none has an SNMP name (issue #4518).

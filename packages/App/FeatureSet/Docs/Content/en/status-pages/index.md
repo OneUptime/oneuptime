@@ -29,7 +29,7 @@ flowchart TB
 
 Status pages live under **Status Pages** in the **Products** menu of the top bar, among the essentials. Everything on this page is per-status-page: a project can run as many of them as it likes — a public one for customers, a private one for an internal audience, a per-region one for a specific market.
 
-The page shows the monitors you put on it as its resources. Incidents and scheduled maintenance reach it through those monitors, and announcements are posted to it directly. Visitors read the page, and subscribers are told about each change on the channels they picked.
+The page shows the monitors you put on it as its resources, and incidents reach it through those monitors. [Scheduled maintenance events](/docs/scheduled-maintenance/index) and announcements reach it directly: each one names the status pages it is shown on. Visitors read the page, and subscribers are told about each change on the channels they picked.
 
 ## At a glance
 
@@ -163,7 +163,7 @@ Whether the page shows a **Subscribe** item (**Show Subscriber Page**, `showSubs
 
 Below the card are **Export Status Page as JSON**, which downloads the status page's own settings as a file you can import again, and **Archive status page** (see [Archiving a status page](#archiving-a-status-page)). The overall uptime percent and the downtime statuses used to be two cards of their own here, each behind an **Edit** button; they are rows of the card now.
 
-**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color** and the bar-color rules are under **More settings** on **Status Pages → your page → Branding → Branding**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
+**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color** and the bar-color rules are under **More settings** on **Status Pages → your page → Branding → Branding**. The page's **Theme** (light, dark, or as each visitor's device is set) is a card near the top of that same page. There is no brand-color setting; anything beyond those controls is done with **Custom CSS**.
 
 ## Previewing before you go live
 
@@ -213,11 +213,13 @@ Under **More settings** on **Access**, the **IP Allowlist** section (the `ipWhit
 
 ## The embeddable badge and the RSS feed
 
-Two ways to surface status somewhere other than the page itself.
+Three ways to surface status somewhere other than the page itself.
 
 **Embedded status badge.** On **Status Pages → your page → Advanced → Embedded Status**, turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default), then click **Regenerate Token** on the **Security Token** card to give the badge its token (`embeddedOverallStatusToken`). The badge is served from `/api/status-page/badge/<status-page-id>?token=<token>`, and the screen shows it under **Badge Preview** with snippets to copy, so you can drop the current overall status into your docs, your app's footer or a marketing page.
 
 **RSS feed.** Every status page serves `/rss` — a feed titled "{page title} Updates", with the page's **Page Title** from **Branding**, or its name when it has none, and whose items are prefixed `Incident: `, `Announcement: ` and `Scheduled Maintenance: `. Handy for people who would rather pipe your updates into a reader or a chat bot than subscribe by email.
+
+**Maintenance calendar.** Every status page also serves `/maintenance.ics`: the scheduled maintenance it shows, as a calendar that Google Calendar, Apple Calendar or Outlook can subscribe to. Visitors add it with **Subscribe to calendar** on the page's **Scheduled Events** page, and a single event with **Add to calendar** on the event's own page. A private page's calendar is empty, since a calendar app cannot sign in. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar#a-status-pages-calendar).
 
 If you'd rather pull the data yourself, the status page is backed by public read endpoints for the overview, incidents, scheduled maintenance events, announcements and episodes — see [Public API](/docs/status-pages/public-api).
 

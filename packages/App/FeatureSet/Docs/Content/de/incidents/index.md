@@ -7,6 +7,8 @@ Ein Vorfall ist der Datensatz, mit dem Ihr Team arbeitet, wenn etwas kaputtgeht:
 - [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities): Der Lebenszyklus und was Bestätigen und Beheben bewirken.
 - [Vorfallnotizen, Eigentümer & Feed](/docs/incidents/notes-owners-and-feed): Updates für Kunden und für Ihr Team, und wer davon erfährt.
 - [Verknüpfte Warnungen](/docs/incidents/linked-alerts): Die Warnungen, die ein Ausfall ausgelöst hat, an den Vorfall knüpfen, der sie erklärt.
+- [Episoden](/docs/incidents/episodes): Zusammengehörige Vorfälle bündeln und gemeinsam bearbeiten.
+- [Postmortem-Analysen](/docs/incidents/postmortems): Aufschreiben, was passiert ist, und es auf Ihrer Statusseite veröffentlichen.
 - [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings): Vorlagen, benutzerdefinierte Felder, Rollen, Messungen und Regeln.
 :::
 
@@ -34,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Formular"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Neuer Vorfall"]
-    incident --> rules["Vorfallsregeln laufen"]
-    rules --> oncall["Bereitschaftsrichtlinien alarmieren"]
-    rules --> owners["Eigentümer werden benachrichtigt"]
-    rules --> pages["Statusseiten werden aktualisiert"]
+    incident --> rules["Vorfallsregeln<br/>laufen"]
+    rules --> oncall["Bereitschafts-<br/>richtlinien<br/>alarmieren"]
+    rules --> owners["Eigentümer werden<br/>benachrichtigt"]
+    rules --> pages["Statusseiten<br/>werden<br/>aktualisiert"]
     oncall --> feed["Vorfalls-Feed"]
     owners --> feed
     pages --> feed
@@ -56,7 +60,7 @@ Fünf Wege führen zum selben Objekt:
 - **Über die API** – `POST /api/incident` mit einem API-Schlüssel. Der Server füllt `declaredAt`, den Erstellungsstatus und die Vorfallnummer für Sie aus.
 - **Per Formular** – jemand außerhalb Ihres Teams füllt ein Formular aus, das Sie als Link geteilt haben, ohne OneUptime-Konto. Der Vorfall wird vor Statusseiten verborgen gemeldet, aus der Vorfallsvorlage des Formulars, falls es eine hat. Siehe [Formulare](/docs/forms/index).
 
-Auch Integrationen öffnen Vorfälle: [Huntress](/docs/integrations/huntress) macht aus jedem Vorfallbericht, den sein SOC sendet, einen Vorfall, der die von Ihnen gewählten Bereitschaftsrichtlinien alarmiert. Die Schritt-für-Schritt-Beschreibung aller Felder finden Sie unter [Einen Vorfall melden](/docs/incidents/declaring-incidents).
+Auch Workflows öffnen Vorfälle: Der [Huntress](/docs/integrations/huntress)-Workflow macht aus jedem Vorfallbericht, den sein SOC sendet, einen Vorfall, der die von Ihnen gewählte Bereitschaftsrichtlinie alarmiert. Die Schritt-für-Schritt-Beschreibung aller Felder finden Sie unter [Einen Vorfall melden](/docs/incidents/declaring-incidents).
 
 ### 2. Die richtigen Leute erfahren davon
 
@@ -77,7 +81,7 @@ Responder bestätigen den Vorfall, hängen betroffene Ressourcen an, verknüpfen
 
 Ein Klick auf **Beheben** setzt den Vorfall in den behobenen Status, versieht die Statuszeitachse mit einem Zeitstempel, stoppt die Dauer, gibt die Monitore frei, die er hält, und entfernt den Vorfall aus dem aktiven Bereich jeder Statusseite, auf der er angezeigt wurde. Dafür muss sich sonst nichts ändern – eine Statusseite zeigt nur Vorfälle in einem Status über dem behobenen Status. Siehe [Was Beheben bewirkt](/docs/incidents/states-and-severities#was-beheben-bewirkt).
 
-Danach können Sie ein Postmortem schreiben und es optional auf der Statusseite veröffentlichen.
+Danach können Sie ein [Postmortem](/docs/incidents/postmortems) schreiben und es optional auf der Statusseite veröffentlichen.
 
 ## Wichtige Begriffe
 
@@ -103,7 +107,7 @@ Beim Anlegen eines Projekts erzeugt OneUptime genau drei Vorfallsstatus, in dies
 
 ```mermaid title="Die Status, mit denen jedes neue Projekt beginnt"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: gemeldet
     Identified --> Acknowledged: Bestätigen
     Identified --> Resolved: Beheben
@@ -156,11 +160,10 @@ Schweregrade bearbeiten oder ergänzen Sie unter **Vorfälle → Einstellungen �
 | **Episoden** | Vorfallsepisoden, eine eigene Funktion zur Gruppierung mit eigenen Seiten. |
 | **KI** | **Einblicke**, **Protokolle**, **Einstellungen**: was die OneUptime-KI aus Ihren Vorfällen gelernt und alles, was sie für sie getan hat, und was sie selbstständig tun darf – mit den Regeln, welche Vorfälle sie untersucht und behebt. Siehe [AI SRE](/docs/ai/ai-sre). |
 | **Arbeitsbereich** | Die Chat-Arbeitsbereiche, die dieses Projekt verbunden hat: **Slack**, **Microsoft Teams** oder beide, jeweils mit ihren Benachrichtigungsregeln für Vorfälle. Ist keiner verbunden, enthält er **Slack oder Teams verbinden**, eine Seite, die beide zeigt und erklärt, wie man sie verbindet. |
-| **Integrationen** | Werkzeuge, die selbst Vorfälle öffnen: **Huntress**, dessen Vorfallberichte zu Vorfällen werden, die die Bereitschaft alarmieren. Siehe [Huntress](/docs/integrations/huntress). |
 | **Regeln** | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Erinnerungsregeln**. |
 | **Einstellungen** | **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Messungen**, **Verknüpfte Warnungen**, **Episodenzugehörigkeit**, **Nummerierung**. |
 
-**Übersicht** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Integrationen**, **Regeln**, **Einstellungen** und **Entwickler** sind standardmäßig eingeklappt, damit das Menü mit den Listen beginnt, die Sie täglich nutzen. Klicken Sie auf den Titel eines Abschnitts, um ihn aufzuklappen und die Seiten zu finden, auf die sich der Rest dieser Doku bezieht; ein Abschnitt öffnet sich auch von selbst, wenn Sie auf einer seiner Seiten sind. Die Vorfallskonfiguration liegt nicht in den Projekteinstellungen, sondern vollständig hier.
+**Übersicht** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind standardmäßig eingeklappt, damit das Menü mit den Listen beginnt, die Sie täglich nutzen. Klicken Sie auf den Titel eines Abschnitts, um ihn aufzuklappen und die Seiten zu finden, auf die sich der Rest dieser Doku bezieht; ein Abschnitt öffnet sich auch von selbst, wenn Sie auf einer seiner Seiten sind. Die Vorfallskonfiguration liegt nicht in den Projekteinstellungen, sondern vollständig hier.
 
 Die Vorfallliste selbst zeigt **Vorfallnummer**, **Titel**, **Status**, **Schweregrad**, **Betroffene Ressourcen**, **Erklärt**, **Dauer**, **Beschriftungen** und **Eigentümer**, mit der Massenaktion **Status ändern**, um mehrere auf einmal zu schließen.
 

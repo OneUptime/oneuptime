@@ -63,6 +63,8 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 
 Listen viser **Nummer for planlagt vedlikehold**, **Tittel**, **Nåværende tilstand**, **Berørte ressurser**, **Vist på statussiden**, **Begynner den**, **Varighet**, **Slutter den**, **Etiketter** og **Eiere**. Velg hendelser for å handle på flere samtidig: **Endre tilstand**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** eller **Slett**.
 
+**Liste** og **Kalender**, lengst til høyre i listens filterlinje, viser de samme hendelsene som en tabell eller på en måned, en uke eller en dag. Se [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar).
+
 ## Hva en hendelse påvirker
 
 Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forventet:

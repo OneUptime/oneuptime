@@ -37,6 +37,9 @@ import {
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "../../../Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import UserUtil from "../../Utils/User";
+import CloudMarketplace, {
+  CloudMarketplaceUtil,
+} from "../../../Types/Marketplace/CloudMarketplace";
 import {
   fillTemplate,
   Translator,
@@ -512,9 +515,37 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       licenseVerification === "verified");
 
   /*
+   * The cloud marketplace that licenses this installation, when it was bought
+   * on one (AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace).
+   * There is no key to add, renew or refresh then: the license lasts as long
+   * as the marketplace takes the installation's hourly usage reports, so the
+   * key-centred copy below is replaced by the marketplace's.
+   */
+  const licenseMarketplace: CloudMarketplace | null =
+    IS_ENTERPRISE_EDITION &&
+    CloudMarketplaceUtil.isCloudMarketplace(licensePayload?.["marketplace"])
+      ? (licensePayload?.["marketplace"] as CloudMarketplace)
+      : null;
+
+  const marketplaceName: string = licenseMarketplace
+    ? CloudMarketplaceUtil.getDisplayName(licenseMarketplace)
+    : "";
+
+  // How billing stands, for a master admin (the server sends it to nobody else).
+  const marketplaceBilling: JSONObject | null =
+    licenseMarketplace &&
+    licensePayload?.["marketplaceBilling"] &&
+    typeof licensePayload["marketplaceBilling"] === "object" &&
+    !Array.isArray(licensePayload["marketplaceBilling"])
+      ? (licensePayload["marketplaceBilling"] as JSONObject)
+      : null;
+
+  /*
    * The two faces of "grace". An unlicensed installation's trial (counted from
    * the first run of the Enterprise Edition) is not an expired license, and
    * the dialog must not tell somebody who never had a license to renew one.
+   * A marketplace license in grace is neither: its reports are not being
+   * accepted, which the marketplace notice explains.
    */
   const isUnlicensedTrial: boolean =
     IS_ENTERPRISE_EDITION &&
@@ -524,7 +555,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const isExpiredGrace: boolean =
     IS_ENTERPRISE_EDITION &&
     licenseStatus === "grace" &&
-    graceReason !== "unlicensed";
+    graceReason !== "unlicensed" &&
+    !licenseMarketplace;
+
+  const isMarketplaceReportingGrace: boolean =
+    Boolean(licenseMarketplace) && licenseStatus === "grace";
 
   /*
    * A license issued before OneUptime signed its licenses: accepted, but it
@@ -850,6 +885,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       name = translationKey(
         "Enterprise Edition (License Expired, Grace Period)",
       );
+    } else if (isMarketplaceReportingGrace) {
+      name = translationKey("Enterprise Edition (Marketplace Reports Failing)");
+    } else if (licenseMarketplace && !licenseValid) {
+      name = translationKey(
+        "Enterprise Edition (Marketplace Subscription Ended)",
+      );
     } else if (licenseValid) {
       name = translationKey("Enterprise Edition");
     } else if (licenseStatus === "expired") {
@@ -904,6 +945,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return translationKey("Renew license");
     }
 
+    if (isMarketplaceReportingGrace) {
+      return translationKey("Check billing");
+    }
+
+    if (licenseMarketplace && !licenseValid) {
+      return translationKey("Check subscription");
+    }
+
     if (!licenseValid) {
       if (licenseStatus === "expired") {
         return translationKey("Renew license");
@@ -932,6 +981,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     seatTone,
     isUnlicensedTrial,
     isExpiredGrace,
+    isMarketplaceReportingGrace,
+    licenseMarketplace,
     showEditionMismatchNotice,
   ]);
 
@@ -991,16 +1042,41 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       );
     }
 
+    if (isMarketplaceReportingGrace) {
+      return translationKey(
+        "Your cloud marketplace has not accepted this installation's usage reports lately. Enterprise features keep working during the grace period.",
+      );
+    }
+
+    if (licenseMarketplace && !licenseValid) {
+      return translationKey(
+        "Your cloud marketplace subscription no longer licenses this installation.",
+      );
+    }
+
     if (!licenseValid) {
       return translationKey(
         "Add a valid license to turn SCIM provisioning and audit logging back on and make enterprise configuration editable.",
       );
     }
 
+    if (licenseMarketplace) {
+      return translationKey(
+        "Licensed through your cloud marketplace subscription: every user is billed by the hour.",
+      );
+    }
+
     return translationKey(
       "License, version, seat usage, and the instances covered by this key.",
     );
-  }, [isConfigLoading, licenseValid, isUnlicensedTrial, isExpiredGrace]);
+  }, [
+    isConfigLoading,
+    licenseValid,
+    isUnlicensedTrial,
+    isExpiredGrace,
+    isMarketplaceReportingGrace,
+    licenseMarketplace,
+  ]);
 
   const communityFeatures: Array<string> = useMemo(() => {
     return [
@@ -1346,6 +1422,158 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   ) : null;
 
   /*
+   * A license that is a cloud marketplace subscription: what the marketplace
+   * last said, in place of the notices about license keys. A master admin is
+   * also shown the last report the marketplace took and the last problem
+   * reporting, which are what to check when reports stop being accepted.
+   */
+  const marketplaceLastAccepted: JSONObject | null =
+    marketplaceBilling?.["lastAcceptedReport"] &&
+    typeof marketplaceBilling["lastAcceptedReport"] === "object"
+      ? (marketplaceBilling["lastAcceptedReport"] as JSONObject)
+      : null;
+
+  const marketplaceLastAcceptedText: string | null = ((): string | null => {
+    const acceptedAt: unknown = marketplaceLastAccepted?.["acceptedAt"];
+    const quantity: unknown = marketplaceLastAccepted?.["quantity"];
+
+    if (typeof acceptedAt !== "string" || typeof quantity !== "number") {
+      return null;
+    }
+
+    const date: Date = OneUptimeDate.fromString(acceptedAt);
+
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+
+    return translator.translateTemplate(
+      "Last usage report accepted {{date}}: {{quantity}} user-hours.",
+      { date: date.toLocaleString(), quantity: String(quantity) },
+    );
+  })();
+
+  const marketplaceProblem: string =
+    typeof marketplaceBilling?.["lastProblem"] === "string"
+      ? (marketplaceBilling["lastProblem"] as string)
+      : "";
+
+  const marketplaceNoticeElement: ReactElement | null =
+    ((): ReactElement | null => {
+      if (!licenseMarketplace) {
+        return null;
+      }
+
+      const problemElement: ReactElement | null = marketplaceProblem ? (
+        <p
+          data-testid="enterprise-marketplace-problem"
+          className="mt-2 break-words text-xs leading-relaxed"
+        >
+          {translator.translateTemplate("Last reporting problem: {{problem}}", {
+            problem: marketplaceProblem,
+          })}
+        </p>
+      ) : null;
+
+      if (licenseValid && licenseStatus !== "grace") {
+        return (
+          <section
+            role="status"
+            data-testid="enterprise-marketplace-license-notice"
+            className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800"
+          >
+            <h4 className="text-sm font-semibold text-emerald-900">
+              {translator.translateTemplate(
+                "Licensed through {{marketplace}}",
+                {
+                  marketplace: marketplaceName,
+                },
+              )}
+            </h4>
+            <p className="mt-1 text-xs leading-relaxed">
+              {translator.translateTemplate(
+                "Every user of this installation is billed by the hour on your {{marketplace}} account. Enterprise features stay licensed for as long as {{marketplace}} accepts the installation's hourly usage reports.",
+                { marketplace: marketplaceName },
+              )}
+            </p>
+            {marketplaceLastAcceptedText && (
+              <p className="mt-2 text-xs leading-relaxed">
+                {marketplaceLastAcceptedText}
+              </p>
+            )}
+            {problemElement}
+          </section>
+        );
+      }
+
+      if (licenseStatus === "grace") {
+        return (
+          <section
+            role="status"
+            data-testid="enterprise-marketplace-grace-notice"
+            className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-800"
+          >
+            <h4 className="text-sm font-semibold text-amber-900">
+              {translator.translateTemplate(
+                "{{marketplace}} is not accepting usage reports",
+                { marketplace: marketplaceName },
+              )}
+            </h4>
+            <p className="mt-1 text-xs leading-relaxed">
+              {[
+                graceEndsAtText
+                  ? translator.translateTemplate(
+                      "Every enterprise feature keeps working until {{date}}.",
+                      { date: graceEndsAtText },
+                    )
+                  : translator.translateText(
+                      "Every enterprise feature keeps working until the grace period ends.",
+                    ),
+                translator.translateTemplate(
+                  "Make sure this installation can reach {{marketplace}} and is set up as the listing's instructions say.",
+                  { marketplace: marketplaceName },
+                ),
+              ].join(" ")}
+            </p>
+            {marketplaceLastAcceptedText && (
+              <p className="mt-2 text-xs leading-relaxed">
+                {marketplaceLastAcceptedText}
+              </p>
+            )}
+            {problemElement}
+          </section>
+        );
+      }
+
+      return (
+        <section
+          role="alert"
+          data-testid="enterprise-marketplace-ended-notice"
+          className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-800"
+        >
+          <h4 className="text-sm font-semibold text-red-900">
+            {translator.translateTemplate(
+              "{{marketplace}} no longer licenses this installation",
+              { marketplace: marketplaceName },
+            )}
+          </h4>
+          {licenseMessage && (
+            <p
+              data-testid="enterprise-license-status-message"
+              className="mt-1 text-xs leading-relaxed"
+            >
+              {licenseMessage}
+            </p>
+          )}
+          <p className="mt-1 text-xs leading-relaxed">
+            {translator.translateText(LICENSE_LAPSED_STATE)}
+          </p>
+          {problemElement}
+        </section>
+      );
+    })();
+
+  /*
    * What the license status means for this installation, in plain words.
    * Before the lapse (the trial, the grace period) every branch warns what
    * will stop and when (LICENSE_LAPSE_CONSEQUENCES); after it, what has
@@ -1354,6 +1582,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const licenseStatusNoticeElement: ReactElement | null = (() => {
     if (!showLicenseStatusNotices) {
       return null;
+    }
+
+    if (licenseMarketplace) {
+      return marketplaceNoticeElement;
     }
 
     if (isUnlicensedTrial) {
@@ -1670,7 +1902,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
               {licenseStatusNoticeElement}
 
-              {showLicenseDetails && (
+              {showLicenseDetails && !licenseMarketplace && (
                 <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-2">
                   <div className="min-w-0 bg-white px-4 py-3">
                     <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500">

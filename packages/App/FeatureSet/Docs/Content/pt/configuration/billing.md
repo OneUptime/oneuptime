@@ -13,10 +13,10 @@ No OneUptime Cloud, um projeto paga pelo plano, por usuário, e pelo que usa: te
 
 ```mermaid title="O que um projeto paga no OneUptime Cloud"
 flowchart TB
-    project["Seu projeto"] --> plan["O plano: um preço<br/>por usuário e por mês"]
-    project --> usage["Pague pelo uso:<br/>telemetria e monitores"]
-    project --> balances["Saldos pré-pagos:<br/>mensagens e IA"]
-    plan --> invoices["Faturas, cobradas no<br/>seu método de pagamento"]
+    project["Seu projeto"] --> plan["O plano:<br/>um preço<br/>por usuário<br/>e por mês"]
+    project --> usage["Pague pelo uso:<br/>telemetria<br/>e monitores"]
+    project --> balances["Saldos<br/>pré-pagos:<br/>mensagens e IA"]
+    plan --> invoices["Faturas,<br/>cobradas no<br/>seu método<br/>de pagamento"]
     usage --> invoices
     balances --> recharge["Recarregados pelo<br/>mesmo cartão"]
 ```

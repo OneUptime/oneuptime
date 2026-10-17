@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["実行を開始するもの"]
         direction LR
         rule["Runbook ルール"]
-        manual["イベントで Runbook を実行"]
-        runnow["Runbook で今すぐ実行"]
+        manual["イベントで<br/>Runbook を実行"]
+        runnow["Runbook で<br/>今すぐ実行"]
     end
-    rule --> execution["実行: ステップのスナップショット"]
+    rule --> execution["実行: ステップの<br/>スナップショット"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker がステップを順に処理"]
-    worker -->|"手動ステップまたは承認"| person["人の対応を待つ"]
-    worker -->|"HTTP と AI のステップ"| onworker["Worker で実行"]
-    worker -->|"JavaScript、Bash、SSH、Kubernetes"| runner["自社インフラの Runner"]
-    person --> record["ステータス、出力、エラーを記録"]
+    execution --> worker["OneUptime Worker が<br/>ステップを順に処理"]
+    worker -->|"手動ステッ<br/>プまたは承認"| person["人の対応を待つ"]
+    worker -->|"HTTP と<br/>AI のステップ"| onworker["Worker で実行"]
+    worker -->|"JavaScript、<br/>Bash、SSH、<br/>Kubernetes"| runner["自社インフラの<br/>Runner"]
+    person --> record["ステータス、<br/>出力、エラーを記録"]
     onworker --> record
     runner --> record
-    record --> history["イベントの Runbook ページと Runbook の実行一覧"]
+    record --> history["イベントの<br/>Runbook ページと<br/>Runbook の実行一覧"]
 ```
 
 Runbook を実行するたびに **実行** が作成されます。開始時に Runbook のステップがコピーされ、OneUptime はそれを順に処理します。Manual ステップや承認が必要なステップは、誰かが対応するまで実行を一時停止します。

@@ -19,10 +19,10 @@ sequenceDiagram
     participant S as Uw systeem
     participant O as OneUptime
     participant T as On-callteam
-    S->>O: E-mail naar het adres van de monitor
+    S->>O: E-mail naar het<br/>adres van de monitor
     O->>O: Op de monitor opslaan
     O->>O: De criteria toetsen
-    O->>T: Waarschuwing of incident, als er een overeenkomt
+    O->>T: Waarschuwing of incident,<br/>als er een overeenkomt
     Note over O: Elke 30 seconden criteria<br/>met Email Received toetsen
 ```
 

@@ -15,19 +15,19 @@ OneUptime は、プライベート、ループバック、リンクローカル�
 | API、Website、External Status Page、Custom JavaScript Code の**モニター** | **プローブ**自身の環境 | プライベートアドレスは拒否 |
 
 ```mermaid title="三つのスイッチ、それぞれが独自の種類の接続を担当"
-flowchart TB
+flowchart LR
     subgraph Server["OneUptime サーバー"]
         direction TB
-        Webhooks["ワークフローと Webhook"]
-        Outbound["データソース、LLM プロバイダー、<br/>SMTP、その他の接続"]
+        Webhooks["ワークフローと<br/>Webhook"]
+        Outbound["データソース、LLM<br/>プロバイダー、<br/>SMTP、<br/>その他の接続"]
     end
     subgraph Probe["各プローブ"]
-        Monitors["API、Website、<br/>External Status Page、<br/>Custom JavaScript Code のモニター"]
+        Monitors["API、Website、<br/>External Status Page、<br/>Custom JavaScript Code の<br/>モニター"]
     end
-    Private["あなたのプライベートネットワーク"]
-    Webhooks -->|"デフォルトでオフ"| Private
-    Outbound -->|"デフォルトでオン"| Private
-    Monitors -->|"デフォルトでオフ"| Private
+    Private["あなたのプ<br/>ライベート<br/>ネットワーク"]
+    Webhooks -->|"デフォル<br/>トでオフ"| Private
+    Outbound -->|"デフォル<br/>トでオン"| Private
+    Monitors -->|"デフォル<br/>トでオフ"| Private
 ```
 
 Ping、Port、SSL 証明書、DNS、DNSSEC、SNMP / ネットワークデバイス、SQL クエリ、データベースの健全性、Synthetic、Network Path といったネットワークネイティブなモニタータイプは、独自のトランスポートを使います。このページの設定が管理するのは、任意のレスポンス内容をプロジェクトに返す HTTP トランスポート、つまり API、Website、External Status Page、Custom JavaScript Code のモニターです。

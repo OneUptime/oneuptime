@@ -29,7 +29,7 @@ O explorador tem quatro abas:
 | --- | --- |
 | **Visualizador** | Pesquisar e filtrar spans, e abrir os traços deles. Abre na última hora, os mais recentes primeiro, 50 spans por página. |
 | **Insights** | Taxas de requisições, taxas de erro e latência por serviço, e as requisições que merecem uma olhada. |
-| **Guia de configuração** | Como enviar traços com OpenTelemetry, usando uma das suas chaves de ingestão. |
+| **Guia de configuração** | Como enviar traços com OpenTelemetry, usando uma das suas [chaves de ingestão](/docs/telemetry/ingestion-keys). |
 | **Configurações** | O que acontece com os spans quando chegam: **Pipelines**, **Filtros de descarte**, **Regras de mascaramento** e **Regras de gravação**. |
 
 ## Antes de começar
@@ -115,12 +115,12 @@ Limite-a a alguns serviços com a lista suspensa ao lado do seletor de tempo.
 
 ## O que acontece com os spans quando chegam
 
-A aba **Configurações** reúne as regras que o OneUptime aplica aos spans quando eles chegam, como faz com os registros. Elas agem sobre os spans que chegam depois, não sobre os já armazenados.
+A aba **Configurações** reúne as regras que o OneUptime aplica aos spans quando eles chegam, como faz com os registros. Elas agem sobre os spans que chegam depois, não sobre os já armazenados. Por quanto tempo cada span é mantido também é decidido quando ele chega: veja [Retenção de dados](/docs/telemetry/data-retention).
 
 | Regra | O que faz |
 | --- | --- |
-| **Filtros de descarte** | Descartar os spans que você não quer guardar, ou guardar só uma amostra deles. |
-| **Regras de mascaramento** | Mascarar dados sensíveis nos atributos dos spans. |
+| **Filtros de descarte** | Descartar os spans que você não quer guardar, ou guardar só uma amostra deles. Veja [Descartar ou amostrar entradas](/docs/telemetry/drop-filters-and-scrub-rules#descartar-ou-amostrar-entradas). |
+| **Regras de mascaramento** | Mascarar dados sensíveis nos atributos dos spans. Veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis). |
 | **Pipelines** | Alterar e enriquecer spans: cada pipeline seleciona spans com um filtro e depois executa os processadores dele em ordem. |
 | **Regras de gravação** | Transformar a cada minuto contagens de spans, contagens de erros e durações em novas métricas. Veja [Regras de gravação de registros](/docs/telemetry/log-recording-rules). |
 

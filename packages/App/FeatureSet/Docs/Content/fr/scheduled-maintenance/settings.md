@@ -125,7 +125,7 @@ Chaque modèle de maintenance a des déclencheurs et des actions de workflow, no
 | **Scheduled Maintenance Member**  | Crée, modifie et supprime des événements avec leurs notes, chronologies d'état et propriétaires, ainsi que les deux types de modèles. |
 | **Scheduled Maintenance Admin**   | Tout ce que fait un membre, et en plus crée, modifie et supprime des états de maintenance.          |
 
-Les règles, champs personnalisés et mesures requièrent **Project Owner** ou **Project Admin**, ou un rôle personnalisé avec l'autorisation propre à cette page, comme **Create Scheduled Maintenance Owner Rule**. **Project Member** travaille avec les événements et les modèles, comme **Scheduled Maintenance Member**. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
+Les règles, champs personnalisés et mesures requièrent **Project Owner** ou **Project Admin**, ou un rôle personnalisé avec l'autorisation propre à cette page, comme **Create Scheduled Maintenance Owner Rule**. Les règles de runbook acceptent aussi **Runbook Admin**. **Project Member** travaille avec les événements et les modèles, comme **Scheduled Maintenance Member**. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
 
 ## Dépannage
 

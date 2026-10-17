@@ -21,7 +21,7 @@ sequenceDiagram
     O->>P: Script, secretos rellenados
     P->>A: Solicitudes del script
     A-->>P: Respuestas
-    P->>O: Resultado, registros, tiempo, métricas
+    P->>O: Resultado, registros,<br/>tiempo, métricas
     O->>O: Evaluar los criterios
 ```
 

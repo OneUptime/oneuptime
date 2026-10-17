@@ -22,6 +22,7 @@ import StatusPageGroupNestingLayoutUtil from "Common/Utils/StatusPage/GroupNesti
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { translateStatusName } from "../../Utils/StatusTranslation";
+import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
 
 export interface ComponentProps {
   monitorName: string;
@@ -188,9 +189,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       return (
         <div
           className="font-medium"
-          style={{
-            color: props.currentStatus?.color?.toString() || Green.toString(),
-          }}
+          {...getStatusTextProps(
+            props.currentStatus?.color?.toString() || Green.toString(),
+          )}
         >
           {uptimePercent}
           {t("overview.uptimeSuffix")}
@@ -202,9 +203,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       return (
         <div
           className=""
-          style={{
-            color: props.currentStatus?.color?.toString() || Green.toString(),
-          }}
+          {...getStatusTextProps(
+            props.currentStatus?.color?.toString() || Green.toString(),
+          )}
         >
           {translateStatusName(props.currentStatus?.name) ||
             t("overview.operational")}

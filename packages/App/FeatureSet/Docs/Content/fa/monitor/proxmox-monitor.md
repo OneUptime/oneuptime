@@ -19,9 +19,9 @@
 flowchart TB
     subgraph site["شبکه شما"]
         direction LR
-        pve["API در Proxmox VE"] --> agent["عامل Proxmox در OneUptime"]
+        pve["API در Proxmox VE"] --> agent["عامل Proxmox<br/>در OneUptime"]
     end
-    agent -->|"متریک‌های pve از راه OTLP"| oneuptime["OneUptime"]
+    agent -->|"متریک‌های pve<br/>از راه OTLP"| oneuptime["OneUptime"]
     native["ارسال بومی در<br/>Proxmox VE 9"] -.->|"جایگزین"| oneuptime
     oneuptime -->|"نخستین داده"| registered["خوشه ثبت شد"]
     oneuptime --> monitor["مانیتور Proxmox"]

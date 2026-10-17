@@ -76,7 +76,7 @@ const NetworkDeviceRolesPage: FunctionComponent<
         cardProps={{
           title: "Device Roles",
           description:
-            "What a device can be on your network — Router, Switch, Firewall and so on. Rename them, change how each is drawn on the map, or add your own.",
+            "What a device can be, such as Router or Switch. Rename them, change how each is drawn, or add your own.",
         }}
         helpContent={{
           title: "How Device Roles Work",
@@ -194,7 +194,7 @@ const NetworkDeviceRolesPage: FunctionComponent<
             required: false,
             placeholder: "Select a shape",
             description:
-              "The shape devices of this role are drawn with on the network topology map. Left empty they are drawn as a neutral circle.",
+              "How devices of this role are drawn on the map. Empty draws a plain circle.",
           },
           {
             field: { isCoreLayer: true },
@@ -206,19 +206,18 @@ const NetworkDeviceRolesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Devices of this role are banded at the top of the topology map and preferred as the root of a parent-child tree. Router, Firewall and Load balancer are core by default; Switch is not, because a switch hangs off a router.",
+              "Drawn at the top of the map, as the root of the tree. Routers, firewalls and load balancers are core.",
           },
           {
             field: { isSnmpWalkable: true },
             title: "Is SNMP Walkable",
             stepId: "monitoring",
             sectionTitle: "How it is checked",
-            sectionDescription:
-              "Some devices answer a ping and nothing else. Adopting one as an SNMP device produces a device that is permanently unreachable.",
+            sectionDescription: "Some devices answer ping and nothing else.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Devices of this role usually speak SNMP. Turn it off for roles that do not — adopting one from the topology map then opens on a monitor rather than SNMP polling.",
+              "Turn it off for roles that do not speak SNMP. Adding one from the map then uses a monitor.",
           },
         ]}
         showRefreshButton={true}

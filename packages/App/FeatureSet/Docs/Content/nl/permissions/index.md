@@ -12,14 +12,14 @@ Alles in OneUptime leeft binnen een **project**. Wie wat mag doen binnen dat pro
 ```mermaid title="Hoe een persoon en een API-sleutel toegang krijgen"
 flowchart TB
     User["Een gebruiker<br/>(één account)"]
-    Key["Een API-sleutel"]
     subgraph Project["Een project"]
         direction TB
+        Key["Een API-sleutel"]
         Team["Team"]
-        Allow["Toegestane machtigingen,<br/>elk met een bereik:<br/>Alle, Eigen of Labels"]
-        Block["Geblokkeerde machtigingen,<br/>die altijd winnen"]
-        KeyRules["De eigen toegestane en<br/>geblokkeerde machtigingen van de sleutel"]
-        Resources["Monitors, incidenten,<br/>statuspagina's en meer"]
+        Allow["Toegestane<br/>machtigingen,<br/>elk met<br/>een bereik:<br/>Alle, Eigen<br/>of Labels"]
+        Block["Geblokkeerde<br/>machtigingen,<br/>die altijd winnen"]
+        KeyRules["De eigen<br/>toegestane en<br/>geblokkeerde<br/>machtigingen<br/>van de sleutel"]
+        Resources["Monitors,<br/>incidenten,<br/>statuspagina's<br/>en meer"]
     end
     User -->|"lid van"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"bereiken"| Resources
     KeyRules -->|"bereiken"| Resources
     Block -.->|"nemen weg"| Resources
+    Allow ~~~ Block
 ```
 
 | Begrip | Wat het is |
@@ -58,6 +59,7 @@ Een gebruiker zit "in" een project als hij lid is van **minstens één team** da
 - Uitnodigingen maken een openstaand teamlid aan. De gebruiker telt pas als projectlid — en krijgt pas enige machtiging — **nadat hij de uitnodiging heeft geaccepteerd.**
 - **Gebruiker uitnodigen** begint bij het ledenteam van het project: het team dat `ProjectMember` voor het hele project heeft, dus **Members** tenzij u het hebt hernoemd. Kies een ander team om de persoon meer of minder toegang te geven. Er is niets gekozen wanneer u zelf niet voor dat team zou mogen uitnodigen — wie iemand uitnodigt, geeft de machtigingen van het team door, en u kunt alleen machtigingen doorgeven die u zelf hebt — of wanneer het project zo'n team niet heeft. Het beheerdersdashboard begint bij hetzelfde team waar een beheerder van de instantie iemand aan een project toevoegt: **Gebruiker uitnodigen** bij een project, **Aan project toevoegen** bij een gebruiker en bij meerdere gebruikers tegelijk, en de projecten die aan een [globale SSO-provider](/docs/identity/global-sso) zijn gekoppeld.
 - Een gebruiker uit alle teams van een project verwijderen ontneemt hem de toegang tot dat project, vanaf zijn volgende verzoek — ook terwijl hij is aangemeld. Zijn account en zijn andere projecten blijven ongemoeid. Hij wordt van de pikettroosters, escalatieregels en overrides van het project gehaald, uit de rollen van de open incidenten en episodes en uit de eigenaren van de resources; opgeloste incidenten houden vast wie ze bezat en leidde.
+- Op een zelf-gehoste installatie ontneemt het intrekken van iemands hoofdbeheerderstoegang in het Admin Dashboard hem die toegang vanaf zijn volgende verzoek — ook terwijl hij is aangemeld. Hij blijft aangemeld en houdt de projecten waarvan hij lid is.
 - Wie een project verlaat, krijgt er geen meldingen meer van. Zijn eigen meldingsmethoden, -regels en -instellingen voor het project verdwijnen met zijn laatste team — e-mail, sms, oproep, WhatsApp, Telegram, push, webhook, Slack en Microsoft Teams, de e-mailsamenvatting en de nog niet verstuurde e-mail, het nummer voor inkomende oproepen en de dienstherinneringen —, zodat opnieuw lid worden met de standaardwaarden begint. Wat hem daarna nog noemt, zoals de gebruiker die een regel voor inkomende oproepen belt of een eigenaar die op een opgelost incident blijft staan, stuurt hem geen meldingen meer: namens een project wordt niets gestuurd naar iemand die er geen lid van is, en een openstaande uitnodiging is nog geen lidmaatschap. Op die plekken staat **Geen lid meer** naast de naam, zodat u er iemand anders kunt neerzetten. Bij iemand die is uitgenodigd en nog niet heeft geaccepteerd, staat in plaats daarvan **Uitnodiging nog niet geaccepteerd**. Als een override iemands meldingen doorstuurt naar iemand die het project heeft verlaten, wordt in plaats daarvan de persoon gealarmeerd voor wie de override geldt. Bij vertrek worden ook de MCP-clients losgekoppeld die de persoon met het project heeft verbonden, en zijn persoonlijke link naar de piketagenda toont vanaf dan een lege agenda. Op OneUptime Cloud bevestigt iemand die via de single sign-on van het project terugkomt dat opnieuw vanuit zijn mailbox.
 - Als uw project SSO afdwingt en een gebruiker zich nog niet via de identityprovider heeft geauthenticeerd, geldt hij als niet-geautoriseerde SSO-gebruiker en ziet hij niets tot hij dat doet. Zie [SSO](/docs/identity/sso).
 - Met SCIM ingesteld kan uw identityprovider gebruikers en hun teamlidmaatschappen automatisch aanmaken, bijwerken en verwijderen. Zie [SCIM](/docs/identity/scim).

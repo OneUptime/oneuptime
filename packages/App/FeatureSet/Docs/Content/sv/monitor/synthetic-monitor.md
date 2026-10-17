@@ -19,15 +19,15 @@ sequenceDiagram
     participant P as Sond
     participant B as Webbläsare
     participant A as Din webbapp
-    O->>P: Skript, hemligheter ifyllda
-    loop Varje webbläsare och skärmstorlek
+    O->>P: Skript,<br/>hemligheter<br/>ifyllda
+    loop Varje webbläsare<br/>och skärmstorlek
         P->>B: Kör skriptet
-        B->>A: Ladda sidor, klicka, skriv
+        B->>A: Ladda sidor,<br/>klicka, skriv
         A-->>B: Sidor
-        B-->>P: Resultat, skärmbilder, loggar
+        B-->>P: Resultat,<br/>skärmbilder,<br/>loggar
     end
-    P->>O: Ett svar per körning
-    O->>O: Utvärdera kriterierna
+    P->>O: Ett svar<br/>per körning
+    O->>O: Utvärdera<br/>kriterierna
 ```
 
 | Skärmtyp | Visningsområde |

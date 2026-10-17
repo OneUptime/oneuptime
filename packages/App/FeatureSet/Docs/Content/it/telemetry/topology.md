@@ -77,7 +77,7 @@ Fate clic su una freccia per vederne la frequenza delle richieste, il tasso di e
 
 **Infrastruttura** mostra dove girano i vostri servizi: cluster, host, pod, container e le altre risorse che inviano dati. Le repliche di uno stesso carico di lavoro sono raggruppate in una sola voce, e potete aprire qualsiasi cosa per guardarci dentro.
 
-- **Sfogliatela a modo vostro.** Mostratela come **List** o come **Map**, da tutta la vostra infrastruttura fino a un singolo pod. I conteggi in alto dicono quante risorse e quanti carichi di lavoro disegna, quanti servizi riesce a collocare e quante risorse silenziose lascia fuori.
+- **Sfogliatela a modo vostro.** Mostratela come **Elenco** o come **Map**, da tutta la vostra infrastruttura fino a un singolo pod. I conteggi in alto dicono quante risorse e quanti carichi di lavoro disegna, quanti servizi riesce a collocare e quante risorse silenziose lascia fuori.
 - **Trovate una risorsa.** Cercatela per nome e fate clic su **View details** per aprirne la pagina.
 - **Passate da una vista all'altra.** Un servizio elencato su una risorsa si apre sulla **Service Map**, e le risorse su cui gira un servizio si aprono su **Infrastruttura**.
 

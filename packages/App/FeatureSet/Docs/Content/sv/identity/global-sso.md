@@ -73,11 +73,11 @@ Hur en global leverantör beter sig beror på om du ansluter några projekt till
 flowchart TB
     S["Någon loggar in"] --> A{"Projekt anslutna?"}
     A -->|"Nej"| K{"Har ett konto?"}
-    K -->|"Nej"| R["Avvisad: bjud in först"]
-    K -->|"Ja"| E["Inloggad i sina projekt"]
-    A -->|"Ja"| D{"Ny, med registrering<br/>avstängd?"}
+    K -->|"Nej"| R["Avvisad:<br/>bjud in först"]
+    K -->|"Ja"| E["Inloggad i<br/>sina projekt"]
+    A -->|"Ja"| D{"Ny, med<br/>registrering<br/>avstängd?"}
     D -->|"Ja"| R
-    D -->|"Nej"| P["Läggs till i anslutna projekt<br/>som personen inte är med i ännu"]
+    D -->|"Nej"| P["Läggs till i<br/>anslutna projekt<br/>som personen inte<br/>är med i ännu"]
     P --> E
 ```
 
@@ -147,6 +147,14 @@ Personen har ett konto men tillhör inget projekt, och leverantören har inget a
 
 :::details "Issuer URL does not match"
 För en SAML-leverantör är utfärdaren i svaret från din identitetsleverantör inte den **Issuer** som är sparad på leverantören. Kopiera den igen från din identitetsleverantör; de två måste matcha exakt.
+:::
+
+:::details "SAML Audience does not match"
+För en SAML-leverantör är svarets audience inte leverantörens **Issuer (Entity ID)**: din identitetsleverantör skapade svaret för ett annat program. Ställ in programmets entity ID i din identitetsleverantör till **Issuer (Entity ID)** på leverantörens sida. "SAML Recipient does not match" och "SAML Destination does not match" betyder detsamma för programmets reply URL: ställ in den till **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Varje svar från din identitetsleverantör loggar in en enda gång, och bara inom några minuter efter att det utfärdades: därefter avvisas det med "SAML response has expired". Logga in igen. Om svaren fortsätter att gå ut, kontrollera klockorna på den här servern och hos din identitetsleverantör.
 :::
 
 ## Nästa steg

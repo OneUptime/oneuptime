@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Probe
     participant D as Your database
-    O->>P: Monitor settings, secrets resolved
+    O->>P: Monitor settings,<br/>secrets resolved
     P->>D: Your query, read-only
     D-->>P: Up to Max Rows + 1 rows
-    P->>O: Row count, scalar, first row, time, error
+    P->>O: Row count, scalar,<br/>first row, time, error
     O->>O: Evaluate criteria
 ```
 

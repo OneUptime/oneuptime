@@ -13,6 +13,7 @@ import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorPr
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement } from "react";
 import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
+import ProbeStatusMonitorResponse from "Common/Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -54,6 +55,8 @@ export interface ComponentProps {
   monitorId?: ObjectID | undefined;
   telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
+  // A Probe Status monitor's newest evaluation: its probes, as found.
+  probeStatusMonitorResponse?: ProbeStatusMonitorResponse | undefined;
   /*
    * The newest criteria verdict per probe id, for the probe-run types. When
    * given, the card shows the verdict of the probe that is picked rather
@@ -304,6 +307,7 @@ const Summary: FunctionComponent<ComponentProps> = (
             props.incomingEmailMonitorHeartbeatCheckedAt
           }
           evaluationSummary={selectedEvaluationSummary}
+          probeStatusMonitorResponse={props.probeStatusMonitorResponse}
         />
         {otherEvaluationProbeName ? (
           <p

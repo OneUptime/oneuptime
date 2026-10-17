@@ -21,13 +21,13 @@ sequenceDiagram
     participant O as OneUptime
     participant G as GitHub
     B->>O: GitHub App で接続
-    O-->>B: アプリのインストールページへリダイレクト
-    B->>G: アプリをインストールして認可
-    G-->>B: /api/github/auth/callback へリダイレクト
-    B->>O: installation_id とワンタイムコード
-    O->>G: コードを交換し、インストールを確認
-    O->>G: インストールのリポジトリをインポート
-    G->>O: /api/github/webhook への Webhook
+    O-->>B: アプリの<br/>インストールページへ<br/>リダイレクト
+    B->>G: アプリを<br/>インストールして認可
+    G-->>B: /api/github/auth/callback<br/>へリダイレクト
+    B->>O: installation_id<br/>とワンタイムコード
+    O->>G: コードを交換し、<br/>インストールを確認
+    O->>G: インストールの<br/>リポジトリをインポート
+    G->>O: /api/github/webhook<br/>への Webhook
 ```
 
 - ブラウザーのリダイレクトには、インストールとワンタイムの OAuth コードが含まれます。OneUptime はコードを交換して、アプリをインストールした GitHub アカウントがそのインストールを管理していることを確認し、そのリポジトリをインポートします。すでに存在するインストールは、代わりに GitHub へのサインインで接続します。このときコードは、そのアカウントが管理しているインストールを OneUptime に伝えます。

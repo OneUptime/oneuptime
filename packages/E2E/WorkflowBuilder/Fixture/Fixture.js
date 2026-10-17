@@ -48,6 +48,10 @@
  *                         runs the POST is on another branch.
  * ?scenario=page...       the Page steps, and the project their settings
  *                         pick people from (PageScenarios.js)
+ * ?scenario=huntress      the Huntress template's workflow, and its
+ *                         trigger's panel: the URL to give Huntress, the
+ *                         signing secret, and whether Huntress reaches it
+ *                         (HuntressScenario.js)
  * ?page=on-call-logs      the Dashboard's real on-call logs table, with
  *                         pages that have no policy behind them among a
  *                         policy's runs (OnCallLogs.js)
@@ -96,6 +100,11 @@ import {
   installOnCallLogs,
 } from "./OnCallLogs";
 import { getPageScenario, installPageProject } from "./PageScenarios";
+import {
+  HUNTRESS_WEBHOOK_KEY,
+  getHuntressScenario,
+  installHuntressWorkflow,
+} from "./HuntressScenario";
 import { BuilderPage, installBuilderPage } from "./BuilderPage";
 
 const params = new URLSearchParams(window.location.search);
@@ -350,6 +359,15 @@ if (pageScenario) {
   initialNodes = pageScenario.nodes;
   initialEdges = pageScenario.edges;
   installPageProject(params);
+}
+
+// So does the Huntress template's, with the workflow its panel reads.
+const huntressScenario = getHuntressScenario(scenario, metadataOf);
+
+if (huntressScenario) {
+  initialNodes = huntressScenario.nodes;
+  initialEdges = huntressScenario.edges;
+  installHuntressWorkflow(params);
 }
 
 // What the builder hands its page to save, for the spec to read.
@@ -631,6 +649,10 @@ function App() {
           });
         }}
         runsAreTestRuns={params.get("off") === "1"}
+        webhookSecretKey={huntressScenario ? HUNTRESS_WEBHOOK_KEY : undefined}
+        canSeeWebhookSecretKey={
+          huntressScenario ? params.get("url") !== "hidden" : undefined
+        }
         onWorkflowUpdated={(nodes, edges) => {
           window.__savedGraph = { nodes: nodes, edges: edges };
           setGraphNodes(nodes);

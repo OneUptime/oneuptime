@@ -11,10 +11,10 @@ flowchart TB
         layers["Lagen en rotaties"]
         overrides["Overrides van gebruikers"]
     end
-    layers --> shifts["Wie er dienst heeft, en wanneer"]
+    layers --> shifts["Wie er dienst<br/>heeft, en wanneer"]
     overrides --> shifts
-    shifts --> timeline["Tijdlijn van bereikbaarheidsschema's"]
-    shifts --> paging["Escalatieregels roepen hen op"]
+    shifts --> timeline["Tijdlijn van<br/>bereikbaarheidsschema's"]
+    shifts --> paging["Escalatieregels<br/>roepen hen op"]
     shifts --> feeds["Agendafeeds"]
 ```
 
@@ -42,7 +42,7 @@ Onder het raster toont **On call this week** (**On call this month** in de maand
 
 ## De periode en de tijdzone wijzigen
 
-- Wissel tussen **Week** en **Month**, blader met de pijlen en ga terug met **Today**.
+- Wissel tussen **Week** en **Maand**, blader met de pijlen en ga terug met **Vandaag**.
 - Tijden worden in uw eigen tijdzone getoond. De tijdzoneknop opent **View timeline in timezone**, dat de tijdlijn in een andere zone toont zonder te veranderen wanneer iemand dienst heeft: elk schema draagt de dienst nog steeds over in zijn eigen tijdzone.
 - De tijdlijn beslaat 180 dagen terug en 365 dagen vooruit.
 

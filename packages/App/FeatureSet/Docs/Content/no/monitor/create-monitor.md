@@ -19,7 +19,7 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Skjemaet åpner på fø
 Det første spørsmålet er **Monitortype**: hva vil du overvåke?
 
 - De seks typene folk oppretter oftest, kommer først: **Nettsted**, **API**, **Ping**, **Port**, **SSL Certificate** og **Incoming Request**, for heartbeats fra cron-jobber og webhooks.
-- **Flere monitortyper** viser alle andre typer under kategorien sin, som **Infrastruktur** (Kubernetes, Docker, vert) og **Telemetri** (logger, målinger, spor). **Manual**, en monitor der du selv setter statusen, ligger under **Annet**.
+- **Flere monitortyper** viser alle andre typer under kategorien sin, som **Infrastruktur** (Kubernetes, Docker, vert) og **Telemetri** (logger, målinger, spor). **Manual**, en monitor der du selv setter statusen, og **Sondestatus**, som gir beskjed når en probe mister forbindelsen, ligger under **Annet**.
 - Eller skriv i søkefeltet. Det kjenner ordene du allerede bruker, som `k8s`, `postgres`, `heartbeat` eller `tls`, og **Enter** velger det første treffet.
 
 Den valgte typen krymper til én linje. Klikk på **Endre** for å velge en annen; trykk på **Escape** mens du velger for å beholde typen du hadde.
@@ -70,7 +70,7 @@ flowchart TB
     end
 ```
 
-Hendelser og varsler som er satt til å løses automatisk, slik standardkriterienes er, løser seg selv så snart kriteriet deres ikke lenger samsvarer. En monitor som sjekkes av mer enn én sonde, endres bare når sondene er enige: som standard må hver sonde som er slått på og tilkoblet, komme til samme resultat. For å kreve færre setter du **Sondeenighet** på monitorens side **Konfigurasjon → Sonder og intervall**.
+Hendelser og varsler som er satt til å løses automatisk, slik standardkriterienes er, løser seg selv så snart kriteriet deres ikke lenger samsvarer. En monitor som sjekkes av mer enn én sonde, endres bare når sondene er enige: som standard må hver sonde som er slått på og tilkoblet, komme til samme resultat. For å kreve færre setter du **Sondeenighet** på monitorens side **Konfigurasjon → Sonder og intervall**. Alt et kriterium kan inneholde, og statusene en monitor kan vise, finner du i [Monitorkriterier og statuser](/docs/monitor/criteria-and-statuses).
 
 ## Sonder og intervall
 
@@ -101,6 +101,8 @@ Hver monitortype har sin egen side med innstillingene sine, standardkriteriene o
 :::cards
 - [Nettsted-overvåking](/docs/monitor/website-monitor): Sjekk at en side lastes, og hva den svarer.
 - [API-overvåking](/docs/monitor/api-monitor): Kall et endepunkt med en metode, hoder og en brødtekst.
+- [Monitorkriterier og statuser](/docs/monitor/criteria-and-statuses): Hva som setter statusen til hver monitor.
 - [Monitormaler](/docs/monitor/monitor-templates): Opprett mange monitorer fra én konfigurasjon, og hold dem like.
+- [Monitorgrupper](/docs/monitor/monitor-groups): Samle flere monitorer i én status.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at en monitor har erklært en hendelse.
 :::

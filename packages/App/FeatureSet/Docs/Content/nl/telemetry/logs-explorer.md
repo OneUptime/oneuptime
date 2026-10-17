@@ -29,7 +29,7 @@ De verkenner heeft vier tabbladen:
 | --- | --- |
 | **Kijker** | Logboeken zoeken, filteren en lezen. Opent op het afgelopen uur, nieuwste eerst, 100 logboeken per pagina. |
 | **Inzichten** | Wat uw services in een tijdsbereik gelogd hebben, en wat er misging. |
-| **Installatiegids** | Hoe u logboeken verstuurt met OpenTelemetry, Fluent Bit of Fluentd, met een van uw ingestiesleutels. |
+| **Installatiegids** | Hoe u logboeken verstuurt met OpenTelemetry, Fluent Bit of Fluentd, met een van uw [ingestiesleutels](/docs/telemetry/ingestion-keys). |
 | **Instellingen** | Wat er met logboeken gebeurt als ze binnenkomen: **Pipelines**, **Drop-filters**, **Scrub-regels** en **Opnameregels**. |
 
 ## Voordat u begint
@@ -111,7 +111,7 @@ Opgeslagen weergaven horen bij het project, dus iedereen erin ziet dezelfde lijs
 
 Zet de lijst op **Analytics** om logboeken te tellen in plaats van te lezen. Kies een tijdreeks, een toplijst of een tabel; tel elk logboek, of de unieke waarden van één veld; en groepeer op ernst, service, trace, span of een willekeurig attribuut, en daarna op een tweede veld. Een toplijst of een tabel toont de bovenste 5, 10, 25 of 50 groepen.
 
-Klik op **List** om terug te gaan naar de regels zelf.
+Klik op **Lijst** om terug te gaan naar de regels zelf.
 
 ## Bijbehorende traces en metrieken openen
 
@@ -132,12 +132,12 @@ Selecteer een topfout om te zien wat er rond die fout gebeurde: wanneer hij optr
 
 ## Wat er met logboeken gebeurt als ze binnenkomen
 
-Het tabblad **Instellingen** bevat de regels die OneUptime op elk logboek toepast voordat het wordt opgeslagen. Ze werken op de logboeken die daarna binnenkomen, niet op opgeslagen logboeken.
+Het tabblad **Instellingen** bevat de regels die OneUptime op elk logboek toepast voordat het wordt opgeslagen. Ze werken op de logboeken die daarna binnenkomen, niet op opgeslagen logboeken. Hoe lang elk logboek wordt bewaard, wordt ook bij aankomst bepaald: zie [Gegevensbewaring](/docs/telemetry/data-retention).
 
 | Regel | Wat hij doet |
 | --- | --- |
-| **Drop-filters** | Logboeken weggooien die u niet wilt bewaren, of er alleen een steekproef van bewaren. |
-| **Scrub-regels** | Gevoelige gegevens maskeren, zoals e-mailadressen en kaartnummers. |
+| **Drop-filters** | Logboeken weggooien die u niet wilt bewaren, of er alleen een steekproef van bewaren. Zie [Records weggooien of bemonsteren](/docs/telemetry/drop-filters-and-scrub-rules#records-weggooien-of-bemonsteren). |
+| **Scrub-regels** | Gevoelige gegevens maskeren, zoals e-mailadressen en kaartnummers. Zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen). |
 | **Pipelines** | Velden uit het bericht halen, de ernst corrigeren, attributen hernoemen. Zie [Logboekpipelines](/docs/telemetry/log-pipelines). |
 | **Opnameregels** | Overeenkomende logboeken omzetten in metrieken. Zie [Opnameregels voor logboeken](/docs/telemetry/log-recording-rules). |
 

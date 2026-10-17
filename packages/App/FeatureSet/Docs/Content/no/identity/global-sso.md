@@ -71,13 +71,13 @@ Hvordan en global leverandør oppfører seg, avhenger av om du knytter prosjekte
 
 ```mermaid title="Hva en global leverandør gjør ved pålogging"
 flowchart TB
-    S["Noen logger inn"] --> A{"Prosjekter tilknyttet?"}
+    S["Noen logger inn"] --> A{"Prosjekter<br/>tilknyttet?"}
     A -->|"Nei"| K{"Har en konto?"}
-    K -->|"Nei"| R["Avvist: inviter først"]
-    K -->|"Ja"| E["Logget inn i egne prosjekter"]
-    A -->|"Ja"| D{"Ny, med registrering<br/>slått av?"}
+    K -->|"Nei"| R["Avvist:<br/>inviter først"]
+    K -->|"Ja"| E["Logget inn i<br/>egne prosjekter"]
+    A -->|"Ja"| D{"Ny, med<br/>registrering<br/>slått av?"}
     D -->|"Ja"| R
-    D -->|"Nei"| P["Lagt til i tilknyttede prosjekter<br/>personen ikke er med i ennå"]
+    D -->|"Nei"| P["Lagt til i<br/>tilknyttede<br/>prosjekter<br/>personen ikke<br/>er med i ennå"]
     P --> E
 ```
 
@@ -147,6 +147,14 @@ Personen har en konto, men hører ikke til noe prosjekt, og leverandøren har in
 
 :::details "Issuer URL does not match"
 For en SAML-leverandør er issuer i svaret fra identitetsleverandøren din ikke den **Issuer** som er lagret på leverandøren. Kopier den på nytt fra identitetsleverandøren din; de to må samsvare nøyaktig.
+:::
+
+:::details "SAML Audience does not match"
+For en SAML-leverandør er svarets audience ikke leverandørens **Issuer (Entity ID)**: identitetsleverandøren din laget svaret for en annen applikasjon. Sett applikasjonens entity ID i identitetsleverandøren din til **Issuer (Entity ID)** på leverandørens side. "SAML Recipient does not match" og "SAML Destination does not match" betyr det samme for applikasjonens reply URL: sett den til **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Hvert svar fra identitetsleverandøren din logger inn bare én gang, og bare innen noen minutter etter at det ble utstedt: deretter avvises det med "SAML response has expired". Logg inn på nytt. Hvis svarene fortsetter å utløpe, kontroller klokkene på denne serveren og hos identitetsleverandøren din.
 :::
 
 ## Neste steg

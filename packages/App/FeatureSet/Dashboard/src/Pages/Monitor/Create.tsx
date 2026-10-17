@@ -126,6 +126,9 @@ import {
   RevenueFunnelStage,
 } from "Common/Types/Analytics/RevenueEvent";
 import ProbeUtil from "../../Utils/Probe";
+import ProbeStatusProbeChoices, {
+  WATCH_PROBE_QUERY_PARAM,
+} from "../../Components/Form/Monitor/ProbeStatusMonitor/ProbeStatusProbeChoices";
 import MonitorProbeSelectionUtil from "Common/Utils/Monitor/MonitorProbeSelectionUtil";
 import { MonitorPayAsYouGoCard } from "../../Components/Billing/PayAsYouGo";
 import ActiveMonitorLimitNotice, {
@@ -711,6 +714,36 @@ const MonitorCreate: FunctionComponent<
    * The device is read once, up front, because the branch needs its
    * monitoring method and the Ping branch needs its address and probe.
    */
+  /*
+   * The probe's name names the monitor. A probe that cannot be read (gone,
+   * or not this project's) still leaves the type picked; the step form
+   * then falls back to its usual defaults.
+   */
+  const preSeedFromWatchProbeLink: (probeId: string) => Promise<void> = async (
+    probeId: string,
+  ): Promise<void> => {
+    let probeName: string = "";
+
+    try {
+      const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+      const probe: Probe | undefined = probes.find((item: Probe): boolean => {
+        return item._id?.toString().toLowerCase() === probeId.toLowerCase();
+      });
+
+      probeName = probe?.name?.toString() || "";
+    } catch {
+      // Recoverable: the monitor type is still preselected below.
+    }
+
+    const monitorName: string =
+      ProbeStatusProbeChoices.getMonitorNameForProbe(probeName);
+
+    setInitialValues({
+      monitorType: MonitorType.ProbeStatus,
+      ...(monitorName ? { name: monitorName } : {}),
+    });
+  };
+
   const preSeedFromNetworkDeviceLink: (
     networkDeviceId: string,
   ) => Promise<void> = async (networkDeviceId: string): Promise<void> => {
@@ -1274,6 +1307,23 @@ const MonitorCreate: FunctionComponent<
           NETWORK_EVENT_DEVICE_QUERY_PARAM,
         )?.trim() || null,
       ).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    /*
+     * "Monitor this probe" from a probe's row or page: a Probe Status
+     * monitor, named after the probe. Its step form starts watching that
+     * probe (it reads the same parameter).
+     */
+    const watchProbeId: string | null = Navigation.getQueryStringByName(
+      WATCH_PROBE_QUERY_PARAM,
+    );
+
+    if (watchProbeId && watchProbeId.trim()) {
+      setIsLoading(true);
+      preSeedFromWatchProbeLink(watchProbeId.trim()).finally(() => {
         setIsLoading(false);
       });
       return;

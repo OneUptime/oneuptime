@@ -14,7 +14,7 @@ Le impostazioni del progetto raccolgono ciò che vale per l'intero progetto: il 
 Vai a **Prodotti → Impostazioni → Impostazioni del progetto**. Il menu laterale raggruppa le pagine in sezioni, e solo **Base** è aperta all'inizio: fai clic sul titolo di una sezione per aprirla. Una sezione si apre da sola su qualsiasi sua pagina.
 
 ```mermaid title="Che cosa raccolgono le impostazioni del progetto"
-flowchart TB
+flowchart LR
     settings["Impostazioni del progetto"] --> project["Il progetto: dettagli,<br/>etichette, importazioni"]
     settings --> connect["A che cosa si collega:<br/>chat, telemetria, IA"]
     settings --> access["Chi entra: chiavi,<br/>domini, accesso"]

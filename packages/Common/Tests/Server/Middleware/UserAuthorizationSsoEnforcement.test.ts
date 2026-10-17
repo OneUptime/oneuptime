@@ -85,11 +85,11 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * What never changes: nothing is enforced when nothing is configured, and
  * master admins are exempt from the INSTANCE-WIDE requirement only (so a
  * broken global IdP cannot lock them out) and stay held to a project's own.
- * On the single-tenant path an unknown project is TenantNotFound and any
- * other error reading the project's requirement refuses the request (fails
- * closed). The multi-tenant fan-out reads an unreadable project's own
- * requirement as not set (the instance-wide requirement still applies) and
- * leaves access to AccessTokenService.
+ * A requirement that cannot be read - the project's own, the provider it
+ * pins, or the instance-wide one - refuses the request with the error, on
+ * the single-tenant path and in the multi-tenant fan-out alike: it is never
+ * "not required", nor "any provider will do". An unknown project is
+ * TenantNotFound on the single-tenant path, and left out of the fan-out.
  *
  * Billing and the edition are pinned in every test (CI's config.env sets
  * BILLING_ENABLED=true).
@@ -324,25 +324,37 @@ describe("UserMiddleware enforces SSO requirements in every edition", () => {
         expect(ssoSatisfied).not.toHaveBeenCalled();
       });
 
-      test("the multi-tenant path reads a project requirement it cannot read as not set and leaves access to AccessTokenService", async () => {
-        // A database error on one project, an unknown project on the other.
+      test("the multi-tenant path refuses the whole request when a project's own requirement cannot be read: never 'not required'", async () => {
+        // A database error on one project; the other reads as not required.
         projectRequireSso.mockImplementation(
           async (id: ObjectID): Promise<boolean> => {
             if (id.toString() === projectId.toString()) {
               throw new Error("database down");
             }
-            throw new BadDataException("Project not found");
+            return false;
           },
         );
-        // AccessTokenService grants the first project and refuses the second.
-        tenantPermissionLookup.mockImplementation(
-          async (
-            _userId: ObjectID,
-            id: ObjectID,
-          ): Promise<UserTenantAccessPermission | null> => {
-            return id.toString() === projectId.toString()
-              ? tenantPermission
-              : null;
+        // A satisfied SSO sign-in changes nothing: the rule is not known.
+        ssoSatisfied.mockResolvedValue(true);
+
+        // A project's own requirement binds master admins too.
+        for (const req of [userRequest, masterAdminRequest]) {
+          await expect(resolveMulti(req)).rejects.toThrow("database down");
+        }
+
+        // With the instance-wide requirement on, the same.
+        globalRequireSso.mockResolvedValue(true);
+
+        await expect(resolveMulti()).rejects.toThrow("database down");
+      });
+
+      test("the multi-tenant path leaves out a project that does not exist, whatever AccessTokenService still holds for it", async () => {
+        projectRequireSso.mockImplementation(
+          async (id: ObjectID): Promise<boolean> => {
+            if (id.toString() === projectId.toString()) {
+              throw new BadDataException("Project not found");
+            }
+            return false;
           },
         );
 
@@ -351,34 +363,82 @@ describe("UserMiddleware enforces SSO requirements in every edition", () => {
             await resolveMulti(req);
 
           expect(result).toEqual({
-            [projectId.toString()]: tenantPermission,
+            [otherProjectId.toString()]: tenantPermission,
           });
         }
-        expect(ssoSatisfied).not.toHaveBeenCalled();
-        expect(tenantPermissionLookup).toHaveBeenCalledWith(userId, projectId, {
-          userGlobalAccessPermission: undefined,
-        });
-        expect(tenantPermissionLookup).toHaveBeenCalledWith(
-          userId,
-          otherProjectId,
-          { userGlobalAccessPermission: undefined },
-        );
-      });
 
-      test("the multi-tenant path still applies the instance-wide requirement to a project whose own requirement cannot be read", async () => {
-        projectRequireSso.mockRejectedValue(new Error("database down"));
+        expect(tenantPermissionLookup).not.toHaveBeenCalledWith(
+          userId,
+          projectId,
+          expect.anything(),
+        );
+
+        // Under the instance-wide requirement too: left out, not handed the default permission.
         globalRequireSso.mockResolvedValue(true);
 
-        const result: Dictionary<UserTenantAccessPermission> | null =
-          await resolveMulti();
-
-        expect(result).toEqual({
-          [projectId.toString()]: defaultPermission(projectId),
+        expect(await resolveMulti()).toEqual({
           [otherProjectId.toString()]: defaultPermission(otherProjectId),
         });
-        expect(ssoSatisfied).toHaveBeenCalledWith(
-          expect.objectContaining({ projectId }),
+      });
+
+      test("an instance-wide requirement that cannot be read refuses the request, with an SSO sign-in or without: never 'not required'", async () => {
+        globalRequireSso.mockRejectedValue(new Error("database down"));
+
+        await expect(resolveSingle()).rejects.toThrow("database down");
+
+        ssoSatisfied.mockResolvedValue(true);
+
+        await expect(resolveSingle()).rejects.toThrow("database down");
+        expect(ssoSatisfied).not.toHaveBeenCalled();
+      });
+
+      test("the multi-tenant path refuses the whole request when the instance-wide requirement cannot be read", async () => {
+        globalRequireSso.mockRejectedValue(new Error("database down"));
+
+        await expect(resolveMulti()).rejects.toThrow("database down");
+
+        ssoSatisfied.mockResolvedValue(true);
+
+        await expect(resolveMulti()).rejects.toThrow("database down");
+        expect(tenantPermissionLookup).not.toHaveBeenCalled();
+      });
+
+      test("master admins are not asked the instance-wide requirement, so it failing to read does not refuse them", async () => {
+        globalRequireSso.mockRejectedValue(new Error("database down"));
+
+        await expect(resolveSingle(masterAdminRequest)).resolves.toBe(
+          tenantPermission,
         );
+        expect(await resolveMulti(masterAdminRequest)).toEqual({
+          [projectId.toString()]: tenantPermission,
+          [otherProjectId.toString()]: tenantPermission,
+        });
+        expect(globalRequireSso).not.toHaveBeenCalled();
+      });
+
+      test("a project's pinned provider that cannot be read refuses the request: never 'any provider will do'", async () => {
+        projectRequireSso.mockResolvedValue(true);
+        projectRequiredProvider.mockRejectedValue(new Error("database down"));
+        // An SSO sign-in from some provider is on the request.
+        ssoSatisfied.mockResolvedValue(true);
+
+        // A project's own requirement binds master admins too.
+        for (const req of [userRequest, masterAdminRequest]) {
+          await expect(resolveSingle(req)).rejects.toThrow("database down");
+          await expect(resolveMulti(req)).rejects.toThrow("database down");
+        }
+
+        expect(ssoSatisfied).not.toHaveBeenCalled();
+      });
+
+      test("the provider pinned under the instance-wide requirement that cannot be read refuses the request too", async () => {
+        globalRequireSso.mockResolvedValue(true);
+        projectRequiredProvider.mockRejectedValue(new Error("database down"));
+        ssoSatisfied.mockResolvedValue(true);
+
+        await expect(resolveSingle()).rejects.toThrow("database down");
+        await expect(resolveMulti()).rejects.toThrow("database down");
+        expect(ssoSatisfied).not.toHaveBeenCalled();
       });
 
       test("the multi-tenant path hands SSO-required projects the default permission only", async () => {

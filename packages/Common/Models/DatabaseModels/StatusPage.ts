@@ -45,6 +45,7 @@ import {
 } from "typeorm";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import StatusPageReportPeriodType from "../../Types/StatusPage/StatusPageReportPeriodType";
+import StatusPageTheme from "../../Types/StatusPage/StatusPageTheme";
 import { DEFAULT_STATUS_PAGE_LANGUAGE } from "../../Types/StatusPage/StatusPageLanguage";
 
 @OperationalResource()
@@ -2780,6 +2781,60 @@ export default class StatusPage extends BaseModel {
     transformer: Color.getDatabaseTransformer(),
   })
   public defaultBarColor?: Color = undefined;
+
+  /*
+   * Light, Dark, or System - light or dark as each visitor's device is set
+   * (Types/StatusPage/StatusPageTheme). The column's default is Light, the
+   * page every status page was before the setting: the migration fills it
+   * in for them, and it is the default the generated Terraform provider
+   * sends, so a Terraform configuration that names no theme keeps its pages
+   * as they are. A page made in the dashboard or through the API with no
+   * theme starts with System instead (StatusPageService.onBeforeCreate).
+   * Free on every plan: it is how the page looks, not what it shows.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Theme",
+    required: false,
+    defaultValue: StatusPageTheme.Light,
+    description:
+      "How the status page looks to visitors: Light, Dark, or System (light or dark, as each visitor's device is set). A status page created without a theme starts with System.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    default: StatusPageTheme.Light,
+  })
+  public theme?: StatusPageTheme = undefined;
 
   @ColumnAccessControl({
     create: [

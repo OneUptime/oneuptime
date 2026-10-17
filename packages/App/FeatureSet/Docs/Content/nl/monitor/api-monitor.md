@@ -18,11 +18,11 @@ sequenceDiagram
     participant P as Sonde
     participant A as Uw API
     participant O as OneUptime
-    P->>A: Aanvraag met uw methode, headers en body
+    P->>A: Aanvraag met uw<br/>methode, headers en body
     A-->>P: Statuscode, headers en body
-    Note over P: Probeert een fout, een 4xx of 5xx,<br/>of een antwoord trager dan 10 s opnieuw
+    Note over P: Probeert een fout,<br/>een 4xx of 5xx,<br/>of een antwoord trager<br/>dan 10 s opnieuw
     P->>O: Resultaat van de controle
-    O->>O: De criteria controleren, van boven naar beneden
+    O->>O: De criteria controleren,<br/>van boven naar beneden
 ```
 
 Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en kan uw API dus niet als offline markeren.
