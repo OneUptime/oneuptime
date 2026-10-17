@@ -236,6 +236,10 @@ const PROVIDER_CONSOLES: Array<string> = [
   "Scopes",
   "meeting:write:meeting:admin",
   "meeting:write:admin",
+  // The scopes that let a Server-to-Server OAuth app read call transcripts.
+  "cloud_recording:read:list_recording_files:admin",
+  "cloud_recording:read:meeting_transcript:admin",
+  "recording:read:admin",
   "Activate",
   "Account ID",
   "Client ID",
@@ -380,6 +384,15 @@ const TEMPLATE_LABELS: Record<string, Record<string, TemplateLabel>> = {
     "Use your own Zoom app": {
       template: "Use your own {{provider}} app",
       values: { provider: "Zoom" },
+    },
+    // The Video Call card's button that asks the provider for a call's transcript.
+    "Get from Zoom": {
+      template: "Get from {{provider}}",
+      values: { provider: "Zoom" },
+    },
+    "Get from Google Meet": {
+      template: "Get from {{provider}}",
+      values: { provider: "Google Meet" },
     },
   },
 };
@@ -640,7 +653,8 @@ const NUMBERS: Record<string, Array<string>> = {
    */
   [SLACK]: ["7", "15", "80", "40"],
   [TEAMS]: ["7", "15", "50", "30"],
-  [VIDEO]: ["40", "30"],
+  // And the largest transcript file Add transcript takes, in MB.
+  [VIDEO]: ["40", "30", "5"],
   [BUILDING]: ["50", "100", "500", "20000", "10000", "512", "128"],
   [SHARING]: ["429", "503"],
 };

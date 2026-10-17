@@ -42,6 +42,12 @@ const ENTRY_FILES: Array<string> = [
     "InvestigationConversation",
     "InvestigationConversation.tsx",
   ),
+  /*
+   * What OneUptime AI read in the incident's calls (issue #4875) is handed
+   * to the panel by the page too (renderCallSummaries), so it is a third
+   * place to start: its lists, quotes and marks are part of the card.
+   */
+  path.join(AI_COMPONENTS_DIR, "CallSummary", "CallSummarySection.tsx"),
 ];
 
 const THEME_CSS_PATH: string = path.join(
@@ -242,6 +248,8 @@ describe("the AI Investigation card in the dark theme", () => {
 
     expect(Array.from(modules.keys()).sort()).toEqual(
       expect.arrayContaining([
+        "CallSummary/CallSummarySection.tsx",
+        "CallSummary/UseCallRootCauseModal.tsx",
         "ClusterAccessNotice.tsx",
         "InvestigationConversation/AnswerSources.tsx",
         "InvestigationConversation/ConversationComposer.tsx",
