@@ -46,6 +46,7 @@ const {
   ancestry,
   instructions,
 } = require("./Utils/DockerfileTemplate");
+const { releaseTagImages } = require("./Utils/ReleaseWorkflow");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const CHECK_SCRIPT = "Scripts/GHA/check_app_image_edition.sh";
@@ -427,7 +428,7 @@ describe("release.yml", () => {
     expect(needs).toContain("test-e2e-release-saas");
     expect(needs).toContain("test-e2e-release-self-hosted");
     expect(needs).toContain("test-e2e-release-enterprise");
-    expect(jobs["push-release-tags"].strategy.matrix.image).toContain("app");
+    expect(releaseTagImages(jobs["push-release-tags"])).toContain("app");
   });
 
   test("the App build and merge publish version tags only, never the release tags", () => {

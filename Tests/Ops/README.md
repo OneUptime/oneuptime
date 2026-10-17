@@ -812,13 +812,16 @@ previous push's image.
 Nothing writes the GitHub release once release.yml has published it: every
 job with a step that creates, fills or edits the release
 (`softprops/action-gh-release`, `ncipollo/release-action`, `gh release
-create|upload|edit`) must be one `finalize-github-release` waits for. The app
-jobs were not, and 14.0.46 shipped without its Android APK: the APK finished
-after the publish, and GitHub refused the upload. The app jobs are waited for
-but not required, so the suite reads the publish job's `if` the way Actions
-does (an `if` with no status function is `success() && if`). The release
-publishes after an app build fails, and not when a job it requires did not
-succeed, when the run was cancelled, or off `release`.
+create|upload|edit`) must be one `finalize-github-release` waits for, and the
+publish job's own attach steps (the SBOMs, the infrastructure agent and the
+apps, built ahead of the release) must all come before the step that
+publishes. The app jobs once did not, and 14.0.46 shipped without its Android
+APK: the APK finished after the publish, and GitHub refused the upload. The
+app builds are waited for but not required, so the suite reads the publish
+job's `if` the way Actions does (an `if` with no status function is
+`success() && if`). The release publishes after an app build fails, and not
+when a job it requires did not succeed, when the run was cancelled, or off
+`release`.
 
 release.yml calls terraform-provider-e2e.yml as the release's gate, and a
 called workflow reads the caller's `github.workflow` and `github.ref`, so its
@@ -830,6 +833,38 @@ workflow declares (GitHub refuses to start a run that passes any other), and
 works the group out, with `Utils/WorkflowExpression.js`, for two release runs
 (different groups), two pushes to master and two pushes to one pull request
 (one group each, so the newest still supersedes).
+
+### `ReleaseCriticalPath.test.js`
+
+What a release run waits for, and what it no longer does. The organization
+runs 20 jobs at a time and a release run's jobs queue behind every other
+workflow's, so most of a release's hours were queue: 4h42m for 14.0.65, under
+two of them work. release.yml now starts each job when it has what it needs
+and has fewer jobs between the e2e suite and the publish, under the release
+owner's rule: build earlier, never publish earlier.
+
+The suite pins, for every job that publishes (the tags, the draft, the charts,
+the publish, the Terraform provider, the npm packages, the store jobs, and
+the four agent images that move their own `release` tags), everything it
+waited for before, directly or through other jobs, as a floor it may never go
+under; and that the tags, the draft, the charts and the publish wait for all
+three e2e jobs. Then what moved earlier: the builds of images with version
+tags only, and the e2e jobs, no longer wait for `generate-build-number` (a job
+may wait for it only if it reads the number or publishes); the e2e jobs no
+longer wait for `publish-npm-packages`, which `push-release-tags` needs
+instead, and nothing they run installs a package it publishes (the e2e
+package's manifest and lockfile, and the Dockerfiles of every image the e2e
+stacks boot, name none); `push-release-tags` is one job, not a matrix of ten,
+and its step is run with a fake `docker` on PATH, in the `bash -e` Actions
+gives a step that names no shell: both tags of every image, from this
+version's tags, one image's failure not stopping the others but failing the
+job by name, and a refused call retried; and the SBOMs, the infrastructure
+agent and the two apps are built while the images are tested, only for
+`release` (as the draft, which they used to need), kept as artifacts (one
+each, replaced on a re-run, an empty one failing) and attached by
+`finalize-github-release` before it publishes: the apps only when their build
+succeeded, under the asset names the release has always had, and the SBOM job
+waiting for the merge of exactly the images `generate_sboms.sh` scans.
 
 ### `CompileWorkflow.test.js`
 
@@ -1002,8 +1037,10 @@ context or from a stage that holds it.
 `Utils/ReleaseWorkflow.js` reads the image-release workflows: a job's needs
 (directly and transitively), the command lines of its steps (backslash
 continuations joined), the flags of its `build_docker_images.sh` and
-`merge_docker_manifests.sh` calls, which Dockerfiles it builds and warms, and a
-bash array out of a script. `KubernetesAiAgentRelease.test.js` keeps its own
+`merge_docker_manifests.sh` calls, which Dockerfiles it builds and warms, the
+images whose release tags `push-release-tags` moves (`releaseTagImages`) and
+whether a job retags an image (`retagsImage`), and a bash array out of a
+script. `KubernetesAiAgentRelease.test.js` keeps its own
 copies of these helpers as written; new image release tests use this module.
 
 `Utils/WorkflowExpression.js` evaluates a workflow's `${{ }}` expressions for
