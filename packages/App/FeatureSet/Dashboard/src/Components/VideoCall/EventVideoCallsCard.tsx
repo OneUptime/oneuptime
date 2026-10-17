@@ -33,6 +33,9 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import { scrollToAIInvestigationPanel } from "../AI/AIInvestigationStatus";
+import CallTranscriptBlock from "./CallTranscriptBlock";
+import { getCallSummarySectionId } from "./CallTranscriptState";
 import StartVideoCallModal from "./StartVideoCallModal";
 import { EventVideoCall, VideoCallEventKind } from "./useEventVideoCalls";
 import VideoCallProviderLogo, {
@@ -57,6 +60,36 @@ export interface ComponentProps {
   // A call was started or removed: refresh the calls and the feed.
   onChanged: () => void;
   onRetry: () => void;
+  /*
+   * Opens what OneUptime AI read in a call's transcript, on the AI
+   * Investigation card. Scrolls to the call's section there when not given.
+   */
+  onReviewCallSummary?: ((callId: string) => void) | undefined;
+}
+
+/*
+ * Brings a call's section of the AI Investigation card into view - the
+ * whole card while the section is not there yet - and moves the focus to it.
+ */
+export function scrollToCallSummary(callId: string): void {
+  const section: HTMLElement | null = document.getElementById(
+    getCallSummarySectionId(callId),
+  );
+
+  if (!section) {
+    scrollToAIInvestigationPanel();
+    return;
+  }
+
+  const prefersReducedMotion: boolean =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  section.scrollIntoView({
+    behavior: prefersReducedMotion ? "auto" : "smooth",
+    block: "start",
+  });
+  section.focus({ preventScroll: true });
 }
 
 /*
@@ -87,17 +120,27 @@ export function getVideoCallHeadline(call: EventVideoCall): string {
   }
 }
 
-const CallRow: FunctionComponent<{
+interface CallRowProps {
   call: EventVideoCall;
   isPrimary: boolean;
   canRemove: boolean;
   onRemove: () => void;
-}> = (props: {
-  call: EventVideoCall;
-  isPrimary: boolean;
-  canRemove: boolean;
-  onRemove: () => void;
-}): ReactElement => {
+  /*
+   * An incident's call keeps its transcript (issue #4875): shown under the
+   * call, with what may be done with it. An alert's call has none.
+   */
+  transcript?:
+    | {
+        canManage: boolean;
+        onReview: () => void;
+        onChanged: () => void;
+      }
+    | undefined;
+}
+
+const CallRow: FunctionComponent<CallRowProps> = (
+  props: CallRowProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const call: EventVideoCall = props.call;
   const joinUrl: string = call.joinUrl || "";
@@ -120,13 +163,29 @@ const CallRow: FunctionComponent<{
 
   const isHuddle: boolean = call.provider === VideoCallProvider.SlackHuddle;
 
+  const transcriptBlock: ReactElement = props.transcript ? (
+    <CallTranscriptBlock
+      call={call as IncidentVideoCall}
+      callLabel={
+        translator.translateText(getVideoCallHeadline(call)) ||
+        getVideoCallHeadline(call)
+      }
+      canManage={props.transcript.canManage}
+      isCompact={!props.isPrimary}
+      onReview={props.transcript.onReview}
+      onChanged={props.transcript.onChanged}
+    />
+  ) : (
+    <></>
+  );
+
   return (
     <li
       data-testid="event-video-call"
       className={
         props.isPrimary
           ? "rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-          : "flex items-center gap-3 py-3"
+          : "py-3"
       }
     >
       <div className="flex items-start gap-3">
@@ -147,6 +206,7 @@ const CallRow: FunctionComponent<{
           <p className="mt-0.5 truncate text-xs text-gray-500">
             {startedAt ? `${startedBy} · ${startedAt}` : startedBy}
           </p>
+          {props.isPrimary ? <></> : transcriptBlock}
         </div>
         {!props.isPrimary && (
           <a
@@ -195,6 +255,8 @@ const CallRow: FunctionComponent<{
           )}
         </div>
       )}
+
+      {props.isPrimary ? transcriptBlock : <></>}
     </li>
   );
 };
@@ -229,6 +291,32 @@ const EventVideoCallsCard: FunctionComponent<ComponentProps> = (
   );
 
   const [primary, ...earlier] = props.calls;
+
+  // An incident's calls keep their transcripts; an alert's do not (yet).
+  const transcriptOf: (
+    call: EventVideoCall,
+  ) => CallRowProps["transcript"] = (
+    call: EventVideoCall,
+  ): CallRowProps["transcript"] => {
+    if (props.kind !== VideoCallEventKind.Incident) {
+      return undefined;
+    }
+
+    const callId: string = call.id?.toString() || "";
+
+    return {
+      canManage: createGate.isAllowed,
+      onReview: () => {
+        if (props.onReviewCallSummary) {
+          props.onReviewCallSummary(callId);
+          return;
+        }
+
+        scrollToCallSummary(callId);
+      },
+      onChanged: props.onChanged,
+    };
+  };
 
   let body: ReactElement;
 
@@ -294,6 +382,7 @@ const EventVideoCallsCard: FunctionComponent<ComponentProps> = (
             onRemove={() => {
               setCallToRemove(primary);
             }}
+            transcript={transcriptOf(primary)}
           />
         </ul>
         {earlier.length > 0 && (
@@ -310,6 +399,7 @@ const EventVideoCallsCard: FunctionComponent<ComponentProps> = (
                     isPrimary={false}
                     canRemove={false}
                     onRemove={() => {}}
+                    transcript={transcriptOf(call)}
                   />
                 );
               })}

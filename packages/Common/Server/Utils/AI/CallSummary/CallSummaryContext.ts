@@ -253,11 +253,13 @@ export default class CallSummaryContext {
     lines: Array<TranscriptLine>,
     budget: number,
   ): { text: string; used: number } {
+    const leftOut: { text: string; used: number } = {
+      text: "(The transcript is left out: the calls above used the space for transcripts.)\n\n",
+      used: 0,
+    };
+
     if (budget <= 0) {
-      return {
-        text: "(The transcript is left out: the calls above used the space for transcripts.)\n\n",
-        used: 0,
-      };
+      return leftOut;
     }
 
     let text: string = "The call's transcript (OneUptime AI has not read it):\n\n";
@@ -274,6 +276,11 @@ export default class CallSummaryContext {
       text += written;
       used += written.length;
       included++;
+    }
+
+    // Not one line fits in what the calls above left.
+    if (included === 0 && lines.length > 0) {
+      return leftOut;
     }
 
     if (included < lines.length) {
