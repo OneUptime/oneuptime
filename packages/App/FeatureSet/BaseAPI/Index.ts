@@ -1140,6 +1140,15 @@ import TeamMemberCustomFieldService, {
 import TeamPermissionService, {
   Service as TeamPermissionServiceType,
 } from "Common/Server/Services/TeamPermissionService";
+import CustomRoleService, {
+  Service as CustomRoleServiceType,
+} from "Common/Server/Services/CustomRoleService";
+import CustomRolePermissionService, {
+  Service as CustomRolePermissionServiceType,
+} from "Common/Server/Services/CustomRolePermissionService";
+import TeamCustomRoleService, {
+  Service as TeamCustomRoleServiceType,
+} from "Common/Server/Services/TeamCustomRoleService";
 import TeamComplianceSettingService, {
   TeamComplianceSettingService as TeamComplianceSettingServiceType,
 } from "Common/Server/Services/TeamComplianceSettingService";
@@ -1527,6 +1536,9 @@ import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
+import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -1700,6 +1712,7 @@ import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
 import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
+import OnCallPagePassOnAPI from "Common/Server/API/OnCallPagePassOnAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -3763,6 +3776,30 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CustomRole, CustomRoleServiceType>(
+        CustomRole,
+        CustomRoleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CustomRolePermission, CustomRolePermissionServiceType>(
+        CustomRolePermission,
+        CustomRolePermissionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamCustomRole, TeamCustomRoleServiceType>(
+        TeamCustomRole,
+        TeamCustomRoleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<TeamComplianceSetting, TeamComplianceSettingServiceType>(
         TeamComplianceSetting,
         TeamComplianceSettingService,
@@ -5269,6 +5306,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * needs permission to edit it.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelMembersAPI);
+
+    /*
+     * "Can't take it? Pass it on" for the signed-in person's own pages about
+     * a record (/on-call-page/pass-on/<record type>/<id>), from a record's
+     * page in the Dashboard and from the mobile app.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallPagePassOnAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

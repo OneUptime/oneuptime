@@ -234,7 +234,20 @@ export interface DockerSwarmResourceBreakdown
 
 export default interface MetricMonitorResponse {
   projectId: ObjectID;
+  /*
+   * The window the monitor's queries read: its rolling time range, ending
+   * now (or where the ingest queue is, while it is behind). "All Values"
+   * judges whether a series' data covers it (MetricWindowCoverage).
+   */
   startAndEndDate?: InBetween<Date>;
+  /*
+   * Set when a query read more rows than one read returns: such a read is
+   * cut at its row limit and keeps only the newest rows, so the data before
+   * this time may be missing. The window is judged from here instead of
+   * from its start - otherwise every series would look as if it began here.
+   * Absent when every read was whole.
+   */
+  dataCompleteFrom?: Date | undefined;
   metricResult: Array<AggregatedResult>;
   metricViewConfig: MetricsViewConfig;
   monitorId: ObjectID;

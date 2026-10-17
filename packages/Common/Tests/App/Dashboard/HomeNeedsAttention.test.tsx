@@ -79,14 +79,34 @@ import {
   HomeList,
   HomeOverviewData,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeOverviewData";
+import { HOME_ROW_CARD_BODY_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeRowCard";
 import NeedsAttention, {
   ALL_CLEAR_DESCRIPTION,
   ALL_CLEAR_TITLE,
   AttentionGroup,
   AttentionGroupKey,
+  CENTERED_STATE_CLASS_NAME,
   getAttentionGroups,
+  NOTHING_MONITORED_DESCRIPTION,
   NOTHING_MONITORED_TITLE,
+  UNAVAILABLE_DESCRIPTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/NeedsAttention";
+import {
+  COULD_NOT_LOAD_THIS_LIST,
+  toHeadline,
+} from "../../../UI/Components/Table/EmptyTableMessage";
+import IconProp from "../../../Types/Icon/IconProp";
+import { resolveFlex } from "../../ResponsiveFlexLayout";
+import {
+  describeHeightFill,
+  resolveFlexGrow,
+} from "../../ResponsiveHeightFill";
+import {
+  LAPTOP_WIDTH_IN_PX,
+  PHONE_WIDTH_IN_PX,
+  TABLET_WIDTH_IN_PX,
+  WIDE_DESKTOP_WIDTH_IN_PX,
+} from "../../ResponsiveVisibility";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -510,38 +530,239 @@ describe("the rows", () => {
 });
 
 describe("nothing open", () => {
-  test("with monitors: nothing needs your attention", () => {
+  /*
+   * Each state with nothing to list is the product's empty state - the one
+   * every list draws (TableEmptyState) - so "Nothing needs your attention"
+   * reads like "No active incidents" on the list a number opens.
+   */
+  function emptyStateIn(wrapper: HTMLElement): HTMLElement {
+    return within(wrapper).getByTestId(/^home-attention-[a-z]+-state$/);
+  }
+
+  test("with monitors: nothing needs your attention, as the lists say all is clear", () => {
     renderCard(overview());
 
     const empty: HTMLElement = screen.getByTestId("home-attention-empty");
+    const state: HTMLElement = emptyStateIn(empty);
+
     expect(empty).toHaveAttribute("data-state", "all-clear");
-    expect(empty).toHaveTextContent(ALL_CLEAR_TITLE);
-    expect(empty).toHaveTextContent(ALL_CLEAR_DESCRIPTION);
+    expect(state).toHaveAttribute("data-testid", "home-attention-empty-state");
+    expect(state).toHaveAttribute("data-empty-state-kind", "all-clear");
+    expect(
+      within(state).getByTestId("home-attention-empty-state-title"),
+    ).toHaveTextContent(ALL_CLEAR_TITLE);
+    expect(
+      within(state).getByTestId("home-attention-empty-state-description"),
+    ).toHaveTextContent(ALL_CLEAR_DESCRIPTION);
+    // The green check, as on every all-clear list.
+    expect(
+      within(state)
+        .getByTestId("home-attention-empty-state-illustration")
+        .querySelector("[data-icon]"),
+    ).toHaveAttribute("data-icon", IconProp.CheckCircle);
     expect(screen.queryByTestId("home-attention-total")).toBeNull();
+    expect(screen.queryByTestId("home-attention-groups")).toBeNull();
   });
 
   test("with nothing monitored: says where problems will show, not that all is clear", () => {
     renderCard(overview({ totalMonitors: 0 }));
 
     const empty: HTMLElement = screen.getByTestId("home-attention-empty");
+    const state: HTMLElement = emptyStateIn(empty);
+
     expect(empty).toHaveAttribute("data-state", "nothing-monitored");
-    expect(empty).toHaveTextContent(NOTHING_MONITORED_TITLE);
+    // "Nothing here yet", in the kind a list with nothing created yet draws.
+    expect(state).toHaveAttribute("data-empty-state-kind", "empty");
+    expect(
+      within(state)
+        .getByTestId("home-attention-empty-state-illustration")
+        .querySelector("[data-icon]"),
+    ).toHaveAttribute("data-icon", IconProp.Inbox);
+    expect(
+      within(state).getByTestId("home-attention-empty-state-title"),
+    ).toHaveTextContent(NOTHING_MONITORED_TITLE);
+    expect(
+      within(state).getByTestId("home-attention-empty-state-description"),
+    ).toHaveTextContent(NOTHING_MONITORED_DESCRIPTION);
     expect(empty).not.toHaveTextContent(ALL_CLEAR_TITLE);
+    // Nothing to create from here: the checklist and Create do that.
+    expect(within(empty).queryByRole("button")).toBeNull();
   });
 
-  test("while loading, placeholders; when the batch failed, a pointer to Refresh", () => {
+  test("while loading, placeholders", () => {
     renderCard(null, true);
 
     expect(screen.getByTestId("home-attention-loading")).toBeInTheDocument();
     expect(screen.queryByTestId("home-attention-empty")).toBeNull();
+    expect(screen.queryByTestId("home-attention-unavailable")).toBeNull();
+  });
 
-    cleanup();
+  test("when the batch failed: the list could not be loaded, and Try again above loads it", () => {
     renderCard(null, false);
 
-    expect(screen.getByTestId("home-attention-unavailable")).toHaveTextContent(
-      "Refresh",
+    const unavailable: HTMLElement = screen.getByTestId(
+      "home-attention-unavailable",
     );
+    const state: HTMLElement = emptyStateIn(unavailable);
+
+    expect(state).toHaveAttribute(
+      "data-testid",
+      "home-attention-unavailable-state",
+    );
+    expect(state).toHaveAttribute("data-empty-state-kind", "error");
+    // The sentence every list uses, drawn as a heading: no full stop.
+    expect(COULD_NOT_LOAD_THIS_LIST).toBe("Couldn't load this list.");
+    expect(
+      within(state).getByTestId("home-attention-unavailable-state-title"),
+    ).toHaveTextContent(/^Couldn't load this list$/);
+    expect(
+      within(state).getByTestId("home-attention-unavailable-state-description"),
+    ).toHaveTextContent(UNAVAILABLE_DESCRIPTION);
+    expect(UNAVAILABLE_DESCRIPTION).toBe("Use Try again above to load it.");
+    /*
+     * The list fails only when Home's first read did, and then the health
+     * card above offers Try again - there is no Refresh to point at.
+     */
+    expect(unavailable).not.toHaveTextContent("Refresh");
+    expect(screen.queryByTestId("home-attention-empty")).toBeNull();
   });
+});
+
+/*
+ * On Home the card shares a row with "Your project" (Pages/Home/Home.tsx),
+ * and either side can be the taller. "We have quite a bit of empty space
+ * between cards": the card used to end with its content, so a short one left
+ * bare page under it. It is now as tall as the box it is in.
+ */
+describe("the card in its row", () => {
+  const WIDTHS: Array<number> = [
+    PHONE_WIDTH_IN_PX,
+    TABLET_WIDTH_IN_PX,
+    LAPTOP_WIDTH_IN_PX,
+    WIDE_DESKTOP_WIDTH_IN_PX,
+  ];
+
+  function body(): HTMLElement {
+    return screen
+      .getByTestId("home-needs-attention")
+      .querySelector('[data-testid="card"] > div > div > div:last-child')!;
+  }
+
+  test("the card runs to the bottom of the box it is in", () => {
+    renderCard(busy());
+
+    const card: HTMLElement = within(
+      screen.getByTestId("home-needs-attention"),
+    ).getByTestId("card");
+
+    expect(card).toHaveAttribute("data-fill-height", "true");
+    expect(card).toHaveClass("h-full");
+    // Its body is the column the states grow in.
+    expect(body()).toHaveClass("flex", "flex-1", "flex-col");
+  });
+
+  test.each([
+    ["all clear", overview(), "home-attention-empty"],
+    [
+      "nothing monitored",
+      overview({ totalMonitors: 0 }),
+      "home-attention-empty",
+    ],
+    ["the list failed", null, "home-attention-unavailable"],
+  ] as Array<[string, HomeOverviewData | null, string]>)(
+    "%s: the state takes the room the card has and sits in its middle, at every width",
+    (_label: string, data: HomeOverviewData | null, testId: string) => {
+      renderCard(data);
+
+      const wrapper: HTMLElement = screen.getByTestId(testId);
+      const className: string = wrapper.getAttribute("class") || "";
+
+      expect(className).toBe(CENTERED_STATE_CLASS_NAME);
+      expect(wrapper.parentElement).toBe(body());
+
+      for (const width of WIDTHS) {
+        // It grows into the body's column...
+        expect(describeHeightFill(wrapper, width)).toBeNull();
+        expect(resolveFlexGrow(wrapper, width)).toBe(1);
+        // ...and is itself a column that centres what it holds.
+        expect(resolveFlex(className, width, "flex-direction")).toBe("column");
+        expect(resolveFlex(className, width, "justify-content")).toBe("center");
+      }
+
+      // Across the card too: the empty state centres its own lines.
+      const state: HTMLElement = within(wrapper).getByTestId(
+        /^home-attention-[a-z]+-state$/,
+      );
+      expect(state).toHaveClass("items-center", "text-center");
+    },
+  );
+
+  test("a list keeps its rows at the top, with any room under them", () => {
+    renderCard(
+      overview({
+        ongoingMaintenance: list([
+          maintenance(1, "Database failover drill", fromNow(40 * MINUTE)),
+        ]),
+      }),
+    );
+
+    const groups: HTMLElement = screen.getByTestId("home-attention-groups");
+
+    expect(groups.parentElement).toBe(body());
+    expect(body().firstElementChild).toBe(groups);
+    for (const width of WIDTHS) {
+      // It does not grow, so it ends with its last row, at the top.
+      expect(resolveFlexGrow(groups, width)).toBe(0);
+    }
+    expect(groups).not.toHaveClass("justify-center");
+    expect(screen.queryByTestId("home-attention-empty")).toBeNull();
+  });
+
+  test("the placeholders sit at the top while the batch loads", () => {
+    renderCard(null, true);
+
+    const loading: HTMLElement = screen.getByTestId("home-attention-loading");
+
+    expect(body().firstElementChild).toBe(loading);
+    expect(resolveFlexGrow(loading, LAPTOP_WIDTH_IN_PX)).toBe(0);
+  });
+
+  /*
+   * The header has its divider in every state - the placeholders included,
+   * which used to draw none - so nothing is added under the header when the
+   * batch lands. And the body starts as far under the header as the bodies
+   * of the cards beside it in Home's row, so the dividers under their
+   * headers run on one line across the row (it started 4px further down).
+   */
+  test.each([
+    ["the placeholders", null, true, "home-attention-loading"],
+    ["the list", busy(), false, "home-attention-groups"],
+    ["all clear", overview(), false, "home-attention-empty"],
+    [
+      "nothing monitored",
+      overview({ totalMonitors: 0 }),
+      false,
+      "home-attention-empty",
+    ],
+    ["the list failed", null, false, "home-attention-unavailable"],
+  ] as Array<[string, HomeOverviewData | null, boolean, string]>)(
+    "%s: right under the header's divider, which starts where the row's other cards start theirs",
+    (
+      _label: string,
+      data: HomeOverviewData | null,
+      isLoading: boolean,
+      testId: string,
+    ) => {
+      renderCard(data, isLoading);
+
+      const first: Element | null = body().firstElementChild;
+
+      expect(first).toBe(screen.getByTestId(testId));
+      expect(first).toHaveClass("border-t", "border-gray-100");
+      expect(body()).toHaveClass(...HOME_ROW_CARD_BODY_CLASS_NAME.split(" "));
+      expect(body()).not.toHaveClass("mt-4");
+    },
+  );
 });
 
 describe("getAttentionGroups", () => {
@@ -603,5 +824,26 @@ describe("in German", () => {
     expect(screen.getByTestId("home-attention-empty")).toHaveTextContent(
       german(ALL_CLEAR_TITLE),
     );
+    expect(screen.getByTestId("home-attention-empty")).toHaveTextContent(
+      german(ALL_CLEAR_DESCRIPTION),
+    );
+  });
+
+  test("a list that could not be loaded says so, and where to try again, in German", () => {
+    activeLocale = DE;
+    renderCard(null, false);
+
+    const unavailable: HTMLElement = screen.getByTestId(
+      "home-attention-unavailable",
+    );
+
+    expect(
+      within(unavailable).getByTestId("home-attention-unavailable-state-title"),
+    ).toHaveTextContent(toHeadline(german(COULD_NOT_LOAD_THIS_LIST)));
+    expect(
+      within(unavailable).getByTestId(
+        "home-attention-unavailable-state-description",
+      ),
+    ).toHaveTextContent(german(UNAVAILABLE_DESCRIPTION));
   });
 });

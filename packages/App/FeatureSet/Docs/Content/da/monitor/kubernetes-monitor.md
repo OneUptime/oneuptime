@@ -107,7 +107,7 @@ Disse monitorer evaluerer altid **Metric Value** – værdien af den konfigurere
 | Sum | Summen af alle værdier |
 | Maximum Value | Højeste værdi i tidsvinduet |
 | Minimum Value | Laveste værdi i tidsvinduet |
-| All Values | Alle værdier skal matche kriteriet |
+| All Values | Alle værdier skal matche kriteriet og dække hele tidsvinduet |
 | Any Value | Mindst én værdi skal matche |
 
 ### Betingelser

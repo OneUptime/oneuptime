@@ -264,7 +264,8 @@
       "loginPrompt": "請登入以檢視 {{statusPageName}}",
       "forgotPassword": "忘記密碼？",
       "submit": "登入",
-      "useSSO": "改用單一登入（SSO）"
+      "or": "或",
+      "logInWithSso": "透過 SSO 登入"
     },
     "sso": {
       "title": "透過 SSO 登入",

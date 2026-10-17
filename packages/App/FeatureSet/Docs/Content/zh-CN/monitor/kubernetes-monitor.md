@@ -107,7 +107,7 @@ flowchart LR
 | 总和 | 所有值的总和 |
 | Maximum Value | 时间窗口内的最高值 |
 | Minimum Value | 时间窗口内的最低值 |
-| All Values | 所有值都必须满足条件 |
+| All Values | 所有值都必须满足条件，并且要覆盖整个时间窗口 |
 | Any Value | 至少有一个值满足即可 |
 
 ### 条件类型

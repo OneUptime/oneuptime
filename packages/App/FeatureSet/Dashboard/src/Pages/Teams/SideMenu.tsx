@@ -19,6 +19,12 @@ const TeamsSideMenu: FunctionComponent = (): ReactElement => {
   // Auto-expand Settings when the user is on a page inside it; otherwise collapsed.
   const isOnSettingsPage: boolean = Navigation.isOnThisPage(customFieldsRoute);
 
+  // A role's own page keeps Roles marked: it is one of the roles listed there.
+  const roleViewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.TEAM_ROLE_VIEW] as Route,
+  );
+  const isOnRolePage: boolean = Navigation.isOnThisPage(roleViewRoute);
+
   const sections: SideMenuSectionProps[] = [
     {
       title: "Teams",
@@ -29,6 +35,20 @@ const TeamsSideMenu: FunctionComponent = (): ReactElement => {
             to: RouteUtil.populateRouteParams(RouteMap[PageMap.TEAMS] as Route),
           },
           icon: IconProp.Team,
+        },
+        /*
+         * The project's custom roles, and the built-in ones: named sets of
+         * permissions given to teams. A role's own page sits under it.
+         */
+        {
+          link: {
+            title: "Roles",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TEAM_ROLES] as Route,
+            ),
+          },
+          activeRoute: isOnRolePage ? roleViewRoute : undefined,
+          icon: IconProp.Identification,
         },
       ],
     },

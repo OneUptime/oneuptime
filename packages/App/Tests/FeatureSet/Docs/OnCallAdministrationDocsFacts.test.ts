@@ -961,13 +961,15 @@ describe("repeating a policy", () => {
         repeatPolicyIfNoOneAcknowledgesNoOfTimes: 3,
       }),
     ).toBe(3);
+    // The job moves each run on through OnCallEscalationAdvance (#4914), which holds the repeat check.
     expect(
       readWorkerSource(
         "OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
       ),
-    ).toMatch(
-      /<=\s*getOnCallPolicyRepeatsAllowed\(executionLog\.onCallDutyPolicy\)/,
-    );
+    ).toContain("OnCallEscalationAdvance");
+    expect(
+      readCommonSource("Server/Utils/OnCall/OnCallEscalationAdvance.ts"),
+    ).toMatch(/<=\s*getOnCallPolicyRepeatsAllowed\(run\.onCallDutyPolicy\)/);
     expect(english(ON_CALL_POLICIES)).toContain(
       "While it is off, the policy runs once.",
     );

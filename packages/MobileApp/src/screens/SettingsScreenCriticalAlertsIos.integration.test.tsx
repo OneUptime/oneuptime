@@ -135,6 +135,16 @@ function serverSpy(): jest.SpyInstance {
   return pushDeviceApi.setCriticalAlertsEnabledOnServer as unknown as jest.SpyInstance;
 }
 
+/*
+ * What the server was told this phone does with a critical page, in order:
+ * "off" while iOS does not allow critical alerts, never "on".
+ */
+function toldServer(): Array<boolean> {
+  return serverSpy().mock.calls.map((call: Array<unknown>): boolean => {
+    return (call[0] as { isEnabled: boolean }).isEnabled;
+  });
+}
+
 type SwitchElement = { props: { value?: boolean } };
 
 async function turnCriticalAlertsOn(): Promise<void> {
@@ -199,7 +209,9 @@ describe("On an iOS build without Apple's critical alerts entitlement", () => {
     });
 
     expect(criticalAlertsSwitch().props.value).toBe(false);
-    expect(serverSpy()).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false]);
+    });
   });
 });
 
@@ -249,6 +261,46 @@ describe("After updating to a build that carries the entitlement", () => {
   });
 });
 
+/*
+ * The maintainer's screenshot: the switch off on this screen while the
+ * Dashboard still said "On". Critical alerts turned off since - in iOS
+ * Settings, here - leave the responder's choice on but nothing ringing
+ * through; the screen shows the switch off, and the server is told the same.
+ */
+describe("Critical alerts turned off in iOS Settings since they were turned on", () => {
+  beforeEach(async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    await AsyncStorage.setItem(
+      "oneuptime_critical_alerts_reported",
+      JSON.stringify({ deviceToken: DEVICE_TOKEN, isEnabled: true }),
+    );
+    simulateIos(
+      iosPermissions("granted", false),
+      iosPermissions("granted", false),
+    );
+  });
+
+  test("the switch reads off, and the server is told off", async () => {
+    await render(<SettingsScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("switch")).toBeTruthy();
+    });
+
+    expect(criticalAlertsSwitch().props.value).toBe(false);
+    await waitFor(() => {
+      expect(serverSpy()).toHaveBeenCalledWith({
+        deviceToken: DEVICE_TOKEN,
+        isEnabled: false,
+      });
+    });
+
+    // No alarm to choose while nothing rings through, and no error: nobody asked.
+    expect(screen.queryByTestId("settings-row-alarm-sound")).toBeNull();
+    expect(screen.queryByTestId("settings-critical-alerts-error")).toBeNull();
+  });
+});
+
 describe("With notifications turned off for the app", () => {
   test("the screen says to turn notifications back on first", async () => {
     simulateIos(iosPermissions("denied", null), iosPermissions("denied", null));
@@ -260,6 +312,6 @@ describe("With notifications turned off for the app", () => {
     });
 
     expect(screen.queryByText(/Update OneUptime On-Call/)).toBeNull();
-    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(toldServer()).not.toContain(true);
   });
 });

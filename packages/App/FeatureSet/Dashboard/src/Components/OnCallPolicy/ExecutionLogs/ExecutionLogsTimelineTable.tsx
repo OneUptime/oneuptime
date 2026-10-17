@@ -448,6 +448,16 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                     text={OnCallDutyExecutionLogTimelineStatus.Started}
                   />
                 );
+              } else if (
+                // They could not take it, and passed it on.
+                item["status"] === OnCallDutyExecutionLogTimelineStatus.PassedOn
+              ) {
+                return (
+                  <Pill
+                    color={Yellow}
+                    text={OnCallDutyExecutionLogTimelineStatus.PassedOn}
+                  />
+                );
               }
 
               return (

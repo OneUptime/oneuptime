@@ -188,7 +188,8 @@ API 블록과 그 밖의 HTTP 블록은 OneUptime에서 요청을 보내고, IRC
 OneUptime 레코드를 읽고 바꾸는 단계 — Find, Create, Update, Delete 구성 요소와 On Create, On Update, On Create or Update, On Delete 트리거 — 는 워크플로 프로젝트의 **Project Admin**으로 동작합니다. 누가 워크플로를 만들었든, 단계는 Project Admin이 대시보드와 API에서 받는 것과 같은 검사를 받습니다.
 
 - **워크플로 자체의 프로젝트만.** 단계는 워크플로가 속한 프로젝트의 레코드만 읽고 쓰며 다른 프로젝트는 건드리지 않고, Update는 레코드를 다른 프로젝트로 옮기지 않습니다.
-- **Project Admin에게 허용된 것만.** 단계는 Project Admin 자신이 가진 팀 및 API 키 권한만 부여할 수 있으므로, **Project Owner**, 청구, 프로젝트 삭제 권한을 나눠 주거나, 소유자 팀처럼 Project Admin을 넘어서는 권한을 가진 팀에 누군가를 추가할 수 없습니다. 단계는 프로브나 AI 에이전트를 누가 만들었는지 읽을 수 없으며, 그것은 프로젝트 소유자만 봅니다.
+- **Project Admin에게 허용된 것만.** 단계는 **Project Owner**, 청구, 프로젝트 삭제 권한으로만 할 수 있는 일을 할 수 없으며, 프로브나 AI 에이전트를 누가 만들었는지 읽을 수 없습니다. 그것은 프로젝트 소유자만 봅니다.
+- **누가 접근하는지는 바꾸지 않음.** 단계는 팀, 팀 구성원, 팀 권한, 사용자 정의 역할, API 키 권한을 만들거나 바꾸거나 삭제하지 않습니다. Project Admin에게는 허용되더라도 그렇습니다. 워크플로를 만드는 사람이 그 단계가 할 일을 정하며, 그 사람은 **Project Member**일 수도 있으므로, 그럴 수 있는 단계는 만든 사람에게 받지 않은 접근 권한, 예를 들어 **Project Admin**을 넘겨주게 됩니다. 단계는 거부되며, 실행의 로그에는 프로젝트의 팀과 API 키를 관리하는 사람이 변경해야 한다고 나옵니다. 이 레코드의 트리거와 Find 단계는 그대로 동작합니다.
 - **Runbook 자격 증명 읽기는 제외.** Project Admin은 Runbook 자격 증명을 읽을 수 있지만, 그 권한이 단계에 빌려지지는 않습니다. 변경에 그 읽기가 필요한 경우 — OneUptime AI가 묻지 않고 명령을 실행하게 하기, Runner에서 **AI 해결 명령 실행**을 켜기, OneUptime AI의 명령을 실행하는 Runner에 SSH 자격 증명을 지정하기, Runbook의 단계처럼 Runbook 자격 증명을 지정하기 — 에는 대신 워크플로의 단계를 마지막으로 저장한 사람을 확인하며, 그 사람이 Runbook 자격 증명을 읽을 수 없다면(**Read Runbook Credential**, 또는 Project Owner나 Project Admin) 단계가 거부됩니다. OneUptime은 누군가 워크플로를 만들 때와 누군가 단계를 저장할 때마다 그 사람을 기록합니다. 워크플로 이름을 바꾸거나, 레이블을 바꾸거나, 켜고 끄는 것은 마지막으로 단계를 저장한 사람을 바꾸지 않습니다. API 키로 단계를 저장하면 아무도 기록되지 않으므로, 사람이 단계를 저장할 때까지 워크플로의 단계는 이런 변경을 할 수 없습니다.
 - **플랜에 포함된 것만.** OneUptime Cloud에서는 플랜에 포함되지 않은 것을 만들거나 바꾸는 단계가 대시보드와 마찬가지로 필요한 플랜과 함께 거부됩니다. 청구가 없는 셀프 호스팅 설치에는 플랜 한도가 없습니다.
 - **OneUptime이 직접 관리하는 것은 제외.** 다음은 워크플로를 포함해 모두에게 거부됩니다.
@@ -199,7 +200,7 @@ OneUptime 레코드를 읽고 바꾸는 단계 — Find, Create, Update, Delete 
   - 레코드를 만든 뒤 그 레코드가 어느 레코드에 속하는지 바꾸기. 예를 들어 소유자 행이 대상으로 하는 모니터나 메모가 달린 인시던트입니다
 - **누구도 아닌 이로서.** 워크플로가 만든 레코드에는 생성자가 없으며, 감사 로그는 변경한 주체로 당시 이름의 워크플로를 기록합니다.
 
-검사가 단계를 거부하면, 단계는 거부된 변경을 하지 않고 **Error** 출력을 따르며, 실행의 로그에는 단계와 이유가 알기 쉬운 말로 나옵니다. 예: *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. 워크플로의 [실행 기록](/docs/workflows/runs-and-logs)에서 읽으세요. Create Many 단계는 레코드를 하나씩 만들며 처음 거부된 것에서 멈춥니다. 그 전에 만든 레코드는 남습니다.
+검사가 단계를 거부하면, 단계는 거부된 변경을 하지 않고 **Error** 출력을 따르며, 실행의 로그에는 단계와 이유가 알기 쉬운 말로 나옵니다. 예: *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. 워크플로의 [실행 기록](/docs/workflows/runs-and-logs)에서 읽으세요. Create Many 단계는 레코드를 하나씩 만들며 처음 거부된 것에서 멈춥니다. 그 전에 만든 레코드는 남습니다.
 
 다른 시스템과 대화하는 단계 — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code, Generate Text with AI — 는 OneUptime 레코드를 읽거나 바꾸지 않으므로, 이 중 어느 것도 이들에게는 바뀌는 것이 없습니다.
 

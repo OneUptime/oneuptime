@@ -53,9 +53,13 @@ import {
   PushDevicePlatform,
   getCriticalAlertDeviceState,
   getPushDevicePlatform,
+  readTestNotificationIsCritical,
+  wasTestSentAsCriticalAlert,
 } from "./PushDeviceCriticalAlerts";
 import PushDeviceCriticalAlertStatus from "./PushDeviceCriticalAlertStatus";
-import PushDeviceCriticalAlertSteps from "./PushDeviceCriticalAlertSteps";
+import PushDeviceCriticalAlertSteps, {
+  CriticalAlertTestDidNotRingHint,
+} from "./PushDeviceCriticalAlertSteps";
 
 interface RegisteredBrowser {
   deviceId: string;
@@ -84,13 +88,28 @@ export interface ShownPushDevice {
   isCriticalAlertEnabled: boolean;
 }
 
+// How a test notification went: the error to show, or what it did.
+interface TestNotificationResult {
+  failure: string | null;
+  // Whether it went as a critical alert, when the server said.
+  isCriticalAlert: boolean | null;
+}
+
 /*
  * What a test notification does on the device it went to, said once it is
  * on its way. A phone with critical alerts on is sent a critical test - it
  * rings through silent mode as a page would (UserPushAPI's
  * test-notification route) - and any other phone an ordinary one, which a
  * silenced phone keeps quiet. A browser shows it only where the site may
- * show notifications.
+ * show notifications. For a test from the list, isCriticalAlertEnabled is
+ * what the server said it sent (wasTestSentAsCriticalAlert), not what the
+ * list showed.
+ *
+ * An ordinary test says why: critical alerts are off on that phone. The
+ * list may have said On a moment ago - the phone's app turned them off
+ * since, and the row catches up behind the dialog - and "it follows the
+ * phone's sound settings" alone left the person to work out that the
+ * Dashboard now knows.
  */
 export function getTestNotificationSentDescription(
   translator: Translator,
@@ -111,8 +130,24 @@ export function getTestNotificationSentDescription(
   }
 
   return translator.translateTemplate(
-    "Sent to {{deviceName}}. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
+    "Sent to {{deviceName}}. Critical alerts are off on that phone, so it stays quiet on silent or in Do Not Disturb. Turn them on to have on-call pages ring through.",
     { deviceName: device.deviceName },
+  );
+}
+
+/*
+ * Whether the dialog that says a test went out also says what to do when it
+ * did not ring through (CriticalAlertTestDidNotRingHint): only for a phone
+ * it went to as a critical alert - the one dialog that promises it rings
+ * through silent mode, which the phone's own settings can still have
+ * stopped without its app saying so.
+ */
+export function canOfferDidNotRingHintAfterTest(
+  device: ShownPushDevice,
+): boolean {
+  return (
+    device.platform !== PushDevicePlatform.Browser &&
+    device.isCriticalAlertEnabled
   );
 }
 
@@ -405,12 +440,12 @@ const Push: () => JSX.Element = (): ReactElement => {
     }
   };
 
-  // The error to show, or null once the notification is on its way.
+  // The error to show, or - once it is on its way - what it went as.
   const sendTestNotification: (
     deviceId: string,
-  ) => Promise<string | null> = async (
+  ) => Promise<TestNotificationResult> = async (
     deviceId: string,
-  ): Promise<string | null> => {
+  ): Promise<TestNotificationResult> => {
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post({
@@ -423,12 +458,20 @@ const Push: () => JSX.Element = (): ReactElement => {
         });
 
       if (response.isFailure()) {
-        return API.getFriendlyMessage(response);
+        return {
+          failure: API.getFriendlyMessage(response),
+          isCriticalAlert: null,
+        };
       }
 
-      return null;
+      return {
+        failure: null,
+        isCriticalAlert: readTestNotificationIsCritical(
+          (response as HTTPResponse<JSONObject>).data,
+        ),
+      };
     } catch (err: unknown) {
-      return API.getFriendlyMessage(err);
+      return { failure: API.getFriendlyMessage(err), isCriticalAlert: null };
     }
   };
 
@@ -442,14 +485,14 @@ const Push: () => JSX.Element = (): ReactElement => {
       setIsSendingTestNotification(true);
       setTestNotificationError("");
 
-      const failure: string | null = await sendTestNotification(
+      const result: TestNotificationResult = await sendTestNotification(
         registeredBrowser.deviceId,
       );
 
       setIsSendingTestNotification(false);
 
-      if (failure) {
-        setTestNotificationError(failure);
+      if (result.failure) {
+        setTestNotificationError(result.failure);
         return;
       }
 
@@ -480,6 +523,11 @@ const Push: () => JSX.Element = (): ReactElement => {
   // Whether the dialog that says a test went out also leads to the steps.
   const canShowStepsAfterTest: boolean = Boolean(
     testedDevice && canOfferCriticalAlertStepsAfterTest(testedDevice),
+  );
+
+  // Whether it also says what to do when a critical test did not ring through.
+  const canShowDidNotRingHint: boolean = Boolean(
+    testedDevice && canOfferDidNotRingHintAfterTest(testedDevice),
   );
 
   return (
@@ -514,18 +562,37 @@ const Push: () => JSX.Element = (): ReactElement => {
               onCompleteAction: VoidFunction,
               onError: ErrorFunction,
             ) => {
-              const failure: string | null = await sendTestNotification(
+              const result: TestNotificationResult = await sendTestNotification(
                 item._id!.toString(),
               );
 
               onCompleteAction();
 
-              if (failure) {
-                onError(new Error(failure));
+              if (result.failure) {
+                onError(new Error(result.failure));
                 return;
               }
 
-              setTestedDevice(toShownDevice(item));
+              const listed: ShownPushDevice = toShownDevice(item);
+
+              const isCriticalAlert: boolean = wasTestSentAsCriticalAlert({
+                platform: listed.platform,
+                isListedAsOn: listed.isCriticalAlertEnabled,
+                answer: result.isCriticalAlert,
+              });
+
+              setTestedDevice({
+                ...listed,
+                isCriticalAlertEnabled: isCriticalAlert,
+              });
+
+              /*
+               * The phone's app changed its critical alerts since the list
+               * was read: read it again, so the row says what the test did.
+               */
+              if (isCriticalAlert !== listed.isCriticalAlertEnabled) {
+                setRefreshToggle(ObjectID.generate().toString());
+              }
             },
           },
           deleteGuard.deleteActionButton,
@@ -671,7 +738,14 @@ const Push: () => JSX.Element = (): ReactElement => {
            * A state of the device, set in the OneUptime On-Call app on it:
            * drawn as a status (PushDeviceCriticalAlertStatus) with, while it
            * is off, the way to turn it on - never as a checkmark that reads
-           * like a switch this card could flip.
+           * like a switch this card could flip. What the phone will really
+           * do, as its app last reported it: the app reports it whenever
+           * it is opened, and turns it off here when the phone's own
+           * settings stop allowing critical alerts.
+           *
+           * The (i) says what it does and where it is set, in two sentences.
+           * That a browser cannot have it is said by the browser's own cell
+           * ("Not available in browsers"), so the (i) does not say it again.
            */
           {
             field: {
@@ -679,7 +753,7 @@ const Push: () => JSX.Element = (): ReactElement => {
             },
             title: "Critical Alerts",
             headerTooltip:
-              "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
+              "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened.",
             type: FieldType.Element,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-xs",
@@ -787,7 +861,9 @@ const Push: () => JSX.Element = (): ReactElement => {
       {/*
        * A phone with critical alerts off is told to turn them on, so the
        * dialog leads there - to that phone's steps - rather than leaving the
-       * advice with nowhere to go. Any other device's dialog only closes.
+       * advice with nowhere to go. A phone sent a critical test is told where
+       * to look if it did not ring through. Any other device's dialog only
+       * closes.
        */}
       {testedDevice ? (
         <ConfirmModal
@@ -817,7 +893,11 @@ const Push: () => JSX.Element = (): ReactElement => {
               setStepsDevice(testedDevice);
             }
           }}
-        />
+        >
+          {canShowDidNotRingHint ? (
+            <CriticalAlertTestDidNotRingHint />
+          ) : undefined}
+        </ConfirmModal>
       ) : (
         <></>
       )}

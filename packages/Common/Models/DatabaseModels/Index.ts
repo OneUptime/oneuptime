@@ -324,6 +324,9 @@ import TeamCustomField from "./TeamCustomField";
 import TeamMember from "./TeamMember";
 import TeamMemberCustomField from "./TeamMemberCustomField";
 import TeamPermission from "./TeamPermission";
+import CustomRole from "./CustomRole";
+import CustomRolePermission from "./CustomRolePermission";
+import TeamCustomRole from "./TeamCustomRole";
 import TeamComplianceSetting from "./TeamComplianceSetting";
 import UsageBilling from "./TelemetryUsageBilling";
 import User from "./User";
@@ -549,6 +552,9 @@ const AllModelTypes: Array<{
   TeamMember,
   TeamMemberCustomField,
   TeamPermission,
+  CustomRole,
+  CustomRolePermission,
+  TeamCustomRole,
   TeamComplianceSetting,
   ApiKey,
   Label,

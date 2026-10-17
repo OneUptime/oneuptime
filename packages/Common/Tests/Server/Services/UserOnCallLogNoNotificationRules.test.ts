@@ -1269,6 +1269,11 @@ describe("UserOnCallLogService.onUpdateSuccess - status translation", () => {
       UserNotificationExecutionStatus.Started,
       OnCallDutyExecutionLogTimelineStatus.Started,
     ],
+    // The person could not take the page and passed it on (OnCallPagePassOn).
+    [
+      UserNotificationExecutionStatus.PassedOn,
+      OnCallDutyExecutionLogTimelineStatus.PassedOn,
+    ],
   ])(
     "%s on the log becomes %s on the timeline",
     async (
@@ -1313,9 +1318,87 @@ describe("UserOnCallLogService.onUpdateSuccess - status translation", () => {
     ]);
   });
 
+  /*
+   * A step whose person passed the page on (OnCallPagePassOn) keeps saying
+   * so: the run reads who passed its page on from these steps, and the
+   * worker that sends a person's notifications may finish their log - or a
+   * log just created may reach "executing" - after they passed it on.
+   */
+  test.each<[UserNotificationExecutionStatus]>([
+    [UserNotificationExecutionStatus.Completed],
+    [UserNotificationExecutionStatus.Executing],
+    [UserNotificationExecutionStatus.Started],
+    [UserNotificationExecutionStatus.Scheduled],
+    [UserNotificationExecutionStatus.Error],
+  ])(
+    "%s on the log does not write over a step that says the page was passed on",
+    async (status: UserNotificationExecutionStatus): Promise<void> => {
+      logFindBySpy.mockResolvedValue([
+        {
+          onCallDutyPolicyExecutionLogTimelineId: TIMELINE_ID,
+          onCallDutyPolicyExecutionLogTimeline: {
+            status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
+          },
+        },
+      ] as never);
+
+      await callOnUpdateSuccess({ status: status });
+
+      expect(timelineUpdateSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each<[OnCallDutyExecutionLogTimelineStatus]>([
+    [OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged],
+    [OnCallDutyExecutionLogTimelineStatus.Skipped],
+    [OnCallDutyExecutionLogTimelineStatus.Error],
+  ])(
+    "passing a page on does not write over a step that says %s: it reached nobody to pass it on",
+    async (stepStatus: OnCallDutyExecutionLogTimelineStatus): Promise<void> => {
+      logFindBySpy.mockResolvedValue([
+        {
+          onCallDutyPolicyExecutionLogTimelineId: TIMELINE_ID,
+          onCallDutyPolicyExecutionLogTimeline: { status: stepStatus },
+        },
+      ] as never);
+
+      await callOnUpdateSuccess({
+        status: UserNotificationExecutionStatus.PassedOn,
+      });
+
+      expect(timelineUpdateSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each<[OnCallDutyExecutionLogTimelineStatus]>([
+    [OnCallDutyExecutionLogTimelineStatus.Executing],
+    [OnCallDutyExecutionLogTimelineStatus.Started],
+    [OnCallDutyExecutionLogTimelineStatus.NotificationSent],
+  ])(
+    "passing a page on marks a step that says %s, with the log's message",
+    async (stepStatus: OnCallDutyExecutionLogTimelineStatus): Promise<void> => {
+      logFindBySpy.mockResolvedValue([
+        {
+          onCallDutyPolicyExecutionLogTimelineId: TIMELINE_ID,
+          onCallDutyPolicyExecutionLogTimeline: { status: stepStatus },
+        },
+      ] as never);
+
+      await callOnUpdateSuccess({
+        status: UserNotificationExecutionStatus.PassedOn,
+        statusMessage: "Passed on: could not take this page.",
+      });
+
+      expect(timelineUpdates()[0]!.data).toEqual({
+        status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
+        statusMessage: "Passed on: could not take this page.",
+      });
+    },
+  );
+
   test("every member of UserNotificationExecutionStatus has a case - the default is unreachable for valid members", async () => {
     /*
-     * The enum has exactly five members and the switch has exactly five cases,
+     * The enum has exactly six members and the switch has exactly six cases,
      * so `default: throw new BadDataException("Invalid status")` cannot be hit
      * by a value that came out of the enum. It is reachable only when a caller
      * pushes a string that was never a member (an API payload, a migration, or
@@ -1329,6 +1412,7 @@ describe("UserOnCallLogService.onUpdateSuccess - status translation", () => {
       UserNotificationExecutionStatus.Completed,
       UserNotificationExecutionStatus.Error,
       UserNotificationExecutionStatus.Executing,
+      UserNotificationExecutionStatus.PassedOn,
       UserNotificationExecutionStatus.Scheduled,
       UserNotificationExecutionStatus.Started,
     ]);

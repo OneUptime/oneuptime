@@ -526,7 +526,7 @@ describe("the refusals a picked role meets", () => {
     await expect(
       callHook(TeamPermissionService, "onBeforeCreate", createBy),
     ).rejects.toThrow(
-      "You cannot grant ProjectMember because your own access does not include that permission at an equal or broader scope.",
+      "You cannot grant Project Member because your own access does not include that permission at an equal or broader scope.",
     );
   });
 

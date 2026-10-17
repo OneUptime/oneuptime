@@ -35,6 +35,7 @@ import {
   MicrosoftSignInClientId,
 } from "Common/UI/Config";
 import MicrosoftSignInButton from "../Components/MicrosoftSignInButton/MicrosoftSignInButton";
+import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import BaseAPI from "Common/UI/Utils/API/API";
 import UiAnalytics from "Common/UI/Utils/Analytics";
@@ -734,8 +735,21 @@ const RegisterPage: () => JSX.Element = () => {
               });
             }}
           />
+          {/*
+           * The other way to sign up, where this server offers one: under
+           * "or", drawn as the sign-in page draws its other ways in.
+           */}
           {MicrosoftSignInClientId ? (
-            <MicrosoftSignInButton title={t("register.signUpWithMicrosoft")} />
+            <div data-testid="sign-up-options">
+              <LabelledDivider
+                label={t("common.or")}
+                className="my-5"
+                dataTestId="sign-up-options-divider"
+              />
+              <MicrosoftSignInButton
+                title={t("register.signUpWithMicrosoft")}
+              />
+            </div>
           ) : (
             <></>
           )}

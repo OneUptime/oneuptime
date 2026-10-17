@@ -298,6 +298,8 @@ const NOTIFICATION_METHOD: string =
 
 // The models a single reference may name without the caller's read of them, and why.
 const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
+  CustomRole:
+    "A custom role is read by everyone who may read a team's permissions; the reference check refuses another project's role, and giving one is held to the grant ceiling of every permission in it.",
   User: "People are held to membership of the project (ProjectScopedReferenceValidator), not to a read of the user table.",
   Team: "Every member reads the project's teams; the reference check refuses another project's team.",
   File: "A record points only at its own project's files (FileOwnership), checked on every create and update.",

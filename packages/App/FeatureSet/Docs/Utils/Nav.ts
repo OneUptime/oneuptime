@@ -622,6 +622,41 @@ const DocsNav: NavGroup[] = [
         title: "OpenTelemetry",
         url: "/docs/telemetry/open-telemetry",
       },
+      // The key every sender needs, right after the guide that creates one.
+      {
+        title: "Ingestion Keys",
+        url: "/docs/telemetry/ingestion-keys",
+      },
+      /*
+       * Where the telemetry goes once it arrives: the services it belongs
+       * to, then the explorers a reader works in and the map of how it all
+       * connects, before the reference pages (search syntax, zooming) those
+       * explorers share.
+       */
+      {
+        title: "Service Catalog",
+        url: "/docs/telemetry/services",
+      },
+      {
+        title: "Logs Explorer",
+        url: "/docs/telemetry/logs-explorer",
+      },
+      {
+        title: "Traces Explorer",
+        url: "/docs/telemetry/traces-explorer",
+      },
+      {
+        title: "Metrics Explorer",
+        url: "/docs/telemetry/metrics-explorer",
+      },
+      {
+        title: "Exception Tracking",
+        url: "/docs/telemetry/exceptions",
+      },
+      {
+        title: "Topology",
+        url: "/docs/telemetry/topology",
+      },
       {
         title: "Search Syntax",
         url: "/docs/telemetry/search-syntax",
@@ -633,6 +668,18 @@ const DocsNav: NavGroup[] = [
       {
         title: "Log Pipelines",
         url: "/docs/telemetry/log-pipelines",
+      },
+      /*
+       * What happens to telemetry before and after it is stored: what is
+       * dropped or masked as it arrives, then how long the rest is kept.
+       */
+      {
+        title: "Drop Filters & Scrub Rules",
+        url: "/docs/telemetry/drop-filters-and-scrub-rules",
+      },
+      {
+        title: "Data Retention",
+        url: "/docs/telemetry/data-retention",
       },
       {
         title: "Continuous Profiling",
@@ -1260,6 +1307,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/permissions/index",
       },
       {
+        title: "Inviting People",
+        url: "/docs/permissions/inviting-people",
+      },
+      {
         title: "Permission Reference",
         url: "/docs/permissions/reference",
       },
@@ -1287,6 +1338,18 @@ const DocsNav: NavGroup[] = [
     title: "Configuration",
     section: "Administration",
     links: [
+      {
+        title: "Project Settings",
+        url: "/docs/configuration/project-settings",
+      },
+      {
+        title: "Billing & Usage",
+        url: "/docs/configuration/billing",
+      },
+      {
+        title: "Audit Logs",
+        url: "/docs/configuration/audit-logs",
+      },
       {
         title: "IP Addresses",
         url: "/docs/configuration/ip-addresses",

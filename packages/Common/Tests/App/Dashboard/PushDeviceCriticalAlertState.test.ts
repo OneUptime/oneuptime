@@ -11,6 +11,8 @@ import {
   PushDevicePlatform,
   getCriticalAlertDeviceState,
   getPushDevicePlatform,
+  readTestNotificationIsCritical,
+  wasTestSentAsCriticalAlert,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/PushDeviceCriticalAlerts";
 
 /*
@@ -298,4 +300,95 @@ describe("the sentences the steps are built from", () => {
       alarmSoundRow: "Alarm sound",
     });
   });
+});
+
+/*
+ * What a sent test says it did. The maintainer's dialog said "Sent to iPhone
+ * 14 Pro Max as a critical alert: it rings even when the phone is on silent"
+ * for a phone that had critical alerts off: it worded the list as read, and
+ * the list was older than the phone's last report. The server now answers
+ * whether the test went as a critical alert (UserPushAPI's
+ * test-notification route), and that is what the dialog words.
+ */
+describe("what the server said a test notification did", () => {
+  test.each([
+    ["it went as a critical alert", { isCriticalAlert: true }, true],
+    ["it went as an ordinary push", { isCriticalAlert: false }, false],
+  ])("%s", (_name: string, answer: unknown, expected: boolean) => {
+    expect(readTestNotificationIsCritical(answer)).toBe(expected);
+  });
+
+  test.each([
+    [
+      "an answer from a server before it said",
+      { success: true, message: "Test notification sent successfully" },
+    ],
+    ["a string", { isCriticalAlert: "true" }],
+    ["a number", { isCriticalAlert: 1 }],
+    ["null", { isCriticalAlert: null }],
+    ["a list", [{ isCriticalAlert: true }]],
+    ["no answer", undefined],
+    ["an empty answer", null],
+    ["text", "isCriticalAlert"],
+  ])("%s says nothing", (_name: string, answer: unknown) => {
+    expect(readTestNotificationIsCritical(answer)).toBeNull();
+  });
+});
+
+describe("what the dialog after a test says it did", () => {
+  test.each([
+    // The server's answer wins over the list, either way.
+    [PushDevicePlatform.IOS, true, false, false],
+    [PushDevicePlatform.IOS, false, true, true],
+    [PushDevicePlatform.Android, true, false, false],
+    [PushDevicePlatform.Android, false, true, true],
+    [PushDevicePlatform.IOS, true, true, true],
+    [PushDevicePlatform.IOS, false, false, false],
+  ])(
+    "a %s phone listed as on: %s, answered %s - said critical: %s",
+    (
+      platform: PushDevicePlatform,
+      isListedAsOn: boolean,
+      answer: boolean,
+      expected: boolean,
+    ) => {
+      expect(
+        wasTestSentAsCriticalAlert({
+          platform: platform,
+          isListedAsOn: isListedAsOn,
+          answer: answer,
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  test.each([[true], [false]])(
+    "a server that does not say leaves it to the list (listed as on: %s)",
+    (isListedAsOn: boolean) => {
+      expect(
+        wasTestSentAsCriticalAlert({
+          platform: PushDevicePlatform.IOS,
+          isListedAsOn: isListedAsOn,
+          answer: null,
+        }),
+      ).toBe(isListedAsOn);
+    },
+  );
+
+  test.each([
+    [true, true],
+    [true, null],
+    [false, true],
+  ])(
+    "a browser is never said to have had a critical alert (listed as on: %s, answered %s)",
+    (isListedAsOn: boolean, answer: boolean | null) => {
+      expect(
+        wasTestSentAsCriticalAlert({
+          platform: PushDevicePlatform.Browser,
+          isListedAsOn: isListedAsOn,
+          answer: answer,
+        }),
+      ).toBe(false);
+    },
+  );
 });

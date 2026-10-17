@@ -203,4 +203,26 @@ describe("where a new team opens", () => {
       PageMap.TEAM_VIEW_MEMBERS,
     );
   });
+
+  test("with one of the project's custom roles it can do something now: Members", () => {
+    expect(
+      getNewTeamPage({
+        role: null,
+        customRoleId: "0b000000-0000-4000-8000-000000000001",
+        wasAccessAsked: true,
+      }),
+    ).toBe(PageMap.TEAM_VIEW_MEMBERS);
+  });
+
+  test("no custom role picked reads as Choose permissions later: Permissions", () => {
+    for (const customRoleId of [null, undefined]) {
+      expect(
+        getNewTeamPage({
+          role: null,
+          customRoleId: customRoleId,
+          wasAccessAsked: true,
+        }),
+      ).toBe(PageMap.TEAM_VIEW_PERMISSIONS);
+    }
+  });
 });

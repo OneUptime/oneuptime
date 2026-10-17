@@ -107,7 +107,7 @@ Estos monitores siempre evalúan el **Metric Value**: el valor de la consulta de
 | Suma | Suma de todos los valores |
 | Maximum Value | Valor más alto de la ventana de tiempo |
 | Minimum Value | Valor más bajo de la ventana de tiempo |
-| All Values | Todos los valores deben cumplir el criterio |
+| All Values | Todos los valores deben cumplir el criterio y cubrir toda la ventana de tiempo |
 | Any Value | Al menos un valor debe cumplirlo |
 
 ### Condiciones

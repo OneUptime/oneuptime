@@ -393,10 +393,14 @@ const TIMELINE_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable.tsx";
 const EXECUTION_TIMELINE: string = "Execution Timeline";
 
-// Where the sections are, in every language: the English page's outline.
+/*
+ * Where the sections are, in every language: the English page's outline.
+ * Passing a page on (PassOnDocs.test.ts) sits between the rotation and the
+ * editing sections.
+ */
 const LEVELS_SECTION: number = 2;
 const NEXT_IN_ROTATION_SECTION: number = 3;
-const API_SECTION: number = 5;
+const API_SECTION: number = 6;
 
 // A schedule the section's example names, and the run message it quotes.
 const EXAMPLE_SCHEDULE: string = "Payments primary";

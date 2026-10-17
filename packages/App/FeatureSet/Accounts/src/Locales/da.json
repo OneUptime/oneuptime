@@ -13,7 +13,8 @@
     "confirmPassword": "Bekræft adgangskode",
     "newPassword": "Ny adgangskode",
     "code": "Kode",
-    "yourCompany": "Dit firma"
+    "yourCompany": "Dit firma",
+    "or": "eller"
   },
   "language": {
     "label": "Sprog",
@@ -50,7 +51,7 @@
     "subtitle": "Brug din adgangskode, din organisations SSO eller en adgangsnøgle.",
     "submitButton": "Log ind",
     "forgotPassword": "Glemt adgangskode?",
-    "useSso": "Brug i stedet single sign-on (SSO)",
+    "signInWithSso": "Log ind med SSO",
     "signInWithMicrosoft": "Log ind med Microsoft",
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer.",
@@ -146,7 +147,7 @@
     "title": "Log ind med SSO",
     "subtitle": "Log ind med din SSO-udbyder for at få adgang til din konto.",
     "submitButton": "Log ind med SSO",
-    "useUsernameInstead": "Brug i stedet brugernavn og adgangskode.",
+    "signInWithPassword": "Log ind med adgangskode",
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer.",
     "selectProjectTitle": "Vælg projekt",

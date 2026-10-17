@@ -1,0 +1,148 @@
+# Sporutforsker
+
+Sporutforskeren finner forespørslene som har gått gjennom tjenestene dine: de trege, de mislykkede, de som berørte kontoen til én bestemt kunde. Søk i og filtrer spannene tjenestene dine sender, og åpne deretter et spor for å se hvert trinn i forespørselen som foss, flammegraf eller tjenestekart.
+
+:::cards
+- [Finn en forespørsel](#finn-en-forespørsel): Søk i spans, og filtrer deretter etter tjeneste, status eller type.
+- [Les et spor](#les-et-spor): Hvor tiden gikk, og hvilket trinn som feilet.
+- [Vis spannene dine i diagrammer](#vis-spannene-dine-i-diagrammer): Antall forespørsler og svartider, gruppert slik du vil.
+- [Innsikt i spor](#innsikt-i-spor): Feilrater, latens og de tregeste forespørslene.
+:::
+
+## Spor og spans
+
+Et spor er én forespørsel på vei gjennom systemet ditt. Hvert trinn den tar, som en HTTP-handler, en databasespørring eller et kall til en annen tjeneste, er et span, og spans ligger inne i spannene som startet dem. Det første spannet i et spor, uten forelder, er rot-spannet: forespørselens inngangspunkt.
+
+```mermaid title="Én forespørsel er ett spor av nestede spans"
+flowchart TB
+    root["Rot-span:<br/>POST /checkout"] --> auth["Span: kontroller<br/>økten"]
+    root --> pay["Span: belast<br/>kortet"]
+    pay --> sql["Span: INSERT<br/>INTO orders"]
+    pay --> call["Span: kall<br/>betalingsleverandøren"]
+```
+
+Hver rad i utforskeren er et span, så en travel tjeneste fyller listen med databasespørringer og interne kall. For å vise én rad per forespørsel velger du **Root spans** under **Span-kategori** i sidepanelet.
+
+Utforskeren har fire faner:
+
+| Fane | Hva den er til |
+| --- | --- |
+| **Viser** | Søk i og filtrer spans, og åpne sporene deres. Den åpner på siste time, nyeste først, 50 spans per side. |
+| **Innsikt** | Antall forespørsler, feilrater og latens per tjeneste, og forespørslene som er verdt en titt. |
+| **Oppsettveiledning** | Hvordan du sender spor med OpenTelemetry med en av inntaksnøklene dine. |
+| **Innstillinger** | Hva som skjer med spans når de kommer inn: **Pipelines**, **Drop-filtre**, **Scrub-regler** og **Opptaksregler**. |
+
+## Før du begynner
+
+- **Spor som kommer inn.** Instrumenter tjenestene dine med [OpenTelemetry](/docs/telemetry/open-telemetry). Fanen **Oppsettveiledning** viser koden for språket ditt.
+- **En rolle som kan lese telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Telemetry Service Traces. Omfanget avgjør hvem sine spans du ser: se [Telemetri](/docs/permissions/index#telemetri).
+
+## Finn en forespørsel
+
+:::steps
+### Åpne Viser
+
+Gå til **Produkter → Observerbarhet → Spor**. **Viser** viser spannene fra siste time, nyeste først, hver med status, tjeneste, navn og varighet.
+
+### Velg tidsintervallet
+
+Velg et intervall i tidsvelgeren, eller dra over diagrammet over listen for å zoome inn på en topp. Dobbeltklikk på diagrammet for å zoome ut igjen. Se [Zoome inn på et tidsintervall](/docs/telemetry/charts-and-time-ranges).
+
+### Søk
+
+Skriv et søk og trykk Enter, for eksempel `service:checkout status:error duration:>500`. Løse ord søker i span-navn, og `@key:value` søker i et attributt som `@http.route:/orders`. Se [Søkesyntaks](/docs/telemetry/search-syntax#spor).
+
+### Snevre inn med filtre
+
+Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke. Sidepanelet filtrerer etter **Tjeneste**, etter verten, klyngen eller den andre ressursen som sendte spannet, etter **Status**, **Span-kategori**, **Har unntak**, **Span-type**, **Span-navn**, **Service Instance** og **Vertens navn**.
+
+### Åpne et span
+
+Klikk på en rad for å folde den ut: attributtene, og loggene og unntakene den registrerte. Klikk på **See full trace** for å åpne hele sporet.
+:::
+
+Søket ditt, brikkene dine og tidsintervallet lagres i sidens adresse, så en ny innlasting, et bokmerke eller en delt lenke åpner de samme spannene.
+
+## Les et spor
+
+Siden til et spor begynner med tallene for forespørselen:
+
+| Tall | Hva det er |
+| --- | --- |
+| Varighet | Hvor lang tid hele forespørselen tok. |
+| Spans | Hvor mange spans sporet har. |
+| Tjenester | Hvor mange tjenester forespørselen gikk gjennom. |
+| Feil | Hvor mange spans som endte med feilstatus. Klikk på det for å vise bare dem. |
+| Dybde | Den dypeste kjeden av nestede spans. |
+
+Under dem velger du én av fire visninger:
+
+| Visning | Hva den viser |
+| --- | --- |
+| **Waterfall** | Hvert span på en tidslinje, nestet under spannet som startet det. Slå på **Critical path** for å fremheve kjeden av spans som avgjorde hvor lang tid forespørselen tok. |
+| **Flammegraf** | Det samme treet som stablede søyler, der de bredeste søylene tok lengst tid. |
+| **Service map** | Tjenestene forespørselen gikk gjennom, og kallene mellom dem. |
+| **Operations** | Én rad per tjeneste og span-navn, med kall, feil, egen tid og total tid. En operasjon som kalles 10 ganger eller mer fra ett forelder-span, markeres: ofte en N+1-spørring eller en løkke som kunne vært samlet. |
+
+Klikk på et span i en hvilken som helst visning for å åpne panelet, med faner for attributter, hendelser, logger, unntak og lenker, og for profilen eller LLM-kallet når det har et. Søk i sporets spans etter navn, ID eller tjeneste med søkefeltet ved siden av visningene (trykk `/`), og slå på **Errors only** for bare å beholde spannene som feilet.
+
+Et stort spor laster 500 spans om gangen. Klikk på knappen nederst i sporet for å laste flere, eller alle.
+
+> [!TIP]
+> **Fix performance with AI** ser etter et kjent ytelsesmønster i sporet: en N+1-spørring, ett span som tar mesteparten av tiden, eller kall etter hverandre som kunne kjørt parallelt. Når den finner ett, starter den en AI-oppgave som åpner en pull request som retter det. Se [Rettingsoppgaver](/docs/ai/ai-agent).
+
+## Vis spannene dine i diagrammer
+
+Diagrammet over listen viser antall spans over tid, fordelt på status. Velg et annet mål i diagrammets topp for i stedet å vise gjennomsnittlig, median (P50) eller P95-svartid.
+
+For mer bytter du listen fra **Spans** til **Analytics**. Velg en tidsserie, en toppliste eller en tabell; mål antall forespørsler, antall feil eller svartider (gjennomsnitt, P50, P90, P95, P99, minimum eller maksimum); og grupper etter span-navn, tjeneste, status, span-type eller et hvilket som helst attributt, deretter etter et felt til. En toppliste eller en tabell viser fra 5 til 100 grupper.
+
+## Følg, lagre og del
+
+- Klikk på **Pauset** over listen for å slå på direkteoppdateringer. Knappen viser da **Live**, og listen ser etter nye spans hvert 10. sekund. Klikk igjen for å sette på pause.
+- **Saved Views** tar vare på et søk, filtrene og tidsintervallet under et navn, for alle i prosjektet. Lagrede visninger fungerer som i [Loggutforsker](/docs/telemetry/logs-explorer#lagre-en-visning).
+- Knappene **Logger** og **Målinger** åpner de utforskerne for det samme tidsvinduet, med så mye av filtreringen din som de kan bruke. Pek på en knapp for å se hva den ikke kan ta med.
+
+## Innsikt i spor
+
+Fanen **Innsikt** oppsummerer forespørslene i et tidsintervall:
+
+- antall forespørsler, feilraten og P50-, P95- og P99-latensen;
+- en helsetabell over tjenestene dine, sortert etter feilrate, slik at tjenestene som trenger oppmerksomhet, kommer først;
+- de siste mislykkede forespørslene, og de tregeste.
+
+Begrens den til bestemte tjenester med nedtrekkslisten ved siden av tidsvelgeren.
+
+## Hva som skjer med spans når de kommer inn
+
+Fanen **Innstillinger** inneholder reglene OneUptime bruker på spans når de kommer inn, som for logger. De virker på spannene som kommer inn etterpå, ikke på lagrede.
+
+| Regel | Hva den gjør |
+| --- | --- |
+| **Drop-filtre** | Forkast spans du ikke vil beholde, eller behold bare et utvalg av dem. |
+| **Scrub-regler** | Masker sensitive data i span-attributter. |
+| **Pipelines** | Endre og berike spans: hver pipeline velger ut spans med et filter og kjører deretter prosessorene sine i rekkefølge. |
+| **Opptaksregler** | Gjør hvert minutt antall spans, antall feil og varigheter om til nye målinger. Se [Opptaksregler for logger](/docs/telemetry/log-recording-rules). |
+
+## Feilsøking
+
+:::details Et spor sier at ingen spans ble funnet
+Spans kommer vanligvis innen ett minutt etter at forespørselen er ferdig. Klikk på **Oppdater** på sporets side for å sjekke igjen.
+:::
+
+:::details Noen spans står på øverste nivå i fossen
+De viser til et forelder-span som OneUptime ikke har mottatt, ofte fordi tjenesten som skrev forelderen, ikke sender spor til OneUptime ennå. Instrumenter den tjenesten også.
+:::
+
+:::details Listen viser langt flere rader enn forespørsler
+Hver rad er et span, ikke en forespørsel. Velg **Root spans** under **Span-kategori** i sidepanelet for å vise én rad per forespørsel.
+:::
+
+## Neste steg
+
+:::cards
+- [Søkesyntaks](/docs/telemetry/search-syntax): Hvert filter søkefeltet forstår.
+- [Trase-overvåking](/docs/monitor/traces-monitor): Få varsel om mislykkede eller trege forespørsler.
+- [Unntakssporing](/docs/telemetry/exceptions): Gå gjennom feilene spannene dine registrerer.
+- [Loggutforsker](/docs/telemetry/logs-explorer): Les logglinjene en forespørsel skrev.
+:::

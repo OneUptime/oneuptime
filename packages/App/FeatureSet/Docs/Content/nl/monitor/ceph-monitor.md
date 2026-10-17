@@ -218,7 +218,7 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | Veld | Wat het doet |
 | --- | --- |
 | **Metriek** | De query of formule die wordt gecontroleerd, via de variabelenaam. |
-| **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet voldoen) of **Any Value** (één is genoeg). |
+| **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet voldoen, over het hele venster) of **Any Value** (één is genoeg). |
 | **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
 | **Threshold** | De waarde om mee te vergelijken. Ernaast staat een eenhedenlijst als de metric een eenheid heeft. Niet zichtbaar bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Low** (4σ), **Medium** (3σ, standaard) of **High** (2σ). |

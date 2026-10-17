@@ -144,7 +144,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | --- | --- |
 | **Filtertype** | Alltid **Metric Value**, den eneste sjekken denne monitoren tilbyr. |
 | **Select Metric Variable** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
-| **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare) eller **Any Value** (én er nok). |
+| **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standarden) eller **Høy** (2σ). |

@@ -8,7 +8,10 @@ import { formatHiddenFacetCount } from "../FacetVisibility";
 export interface HiddenFacetsFooterProps {
   // Empty resource facets the sidebar folded away.
   hiddenCount: number;
-  // Their section titles, listed in the tooltip.
+  /*
+   * Their section titles in English, as the facet configs write them; the
+   * tooltip lists them in the reader's language, as the headers draw them.
+   */
   hiddenTitles: ReadonlyArray<string>;
   // Whether the hidden facets are currently revealed.
   isShowingHidden: boolean;
@@ -31,7 +34,11 @@ const HiddenFacetsFooter: FunctionComponent<HiddenFacetsFooterProps> = (
     return null;
   }
 
-  const hiddenTitlesText: string = props.hiddenTitles.join(", ");
+  const hiddenTitlesText: string = props.hiddenTitles
+    .map((title: string): string => {
+      return translator.translateText(title) || title;
+    })
+    .join(", ");
 
   return (
     <div

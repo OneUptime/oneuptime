@@ -37,6 +37,7 @@ flowchart TB
 | Team | A named group inside a project that carries permissions. |
 | Team member | A user who has been invited to a team and accepted. |
 | Permission | A single capability, e.g. `CreateProjectMonitor`, or a role that bundles many, e.g. `MonitorAdmin`. |
+| Custom role | A set of permissions you name once and give to teams. |
 | Scope | How wide an allow permission reaches: all resources, only owned ones, or only labelled ones. |
 | Owner | A user or team marked as responsible for one specific resource. |
 | Label | A tag you put on resources, used to restrict permissions and to organise. |
@@ -131,6 +132,24 @@ A permission to change or delete something reaches only what you may also read, 
 These are also the keys you use when creating API keys, and the ones the API and the Terraform provider expect.
 
 The full list is in the [Permission Reference](/docs/permissions/reference).
+
+### Custom roles
+
+A custom role is a set of permissions you name once and give to teams: an Incident Responder made of `IncidentMember`, `AlertMember` and `OnCallViewer`, say, or a Team Lead. Every team you give it to gets the same permissions, and you change them for all of those teams in one place. On OneUptime Cloud, custom roles need the Scale plan, as changing a team's permissions does.
+
+:::steps
+1. Open **Teams** from the **Products** menu, under **Settings**, then **Roles**, and click **Create Custom Role**.
+2. Type its **Name** and pick the built-in roles it bundles under **Permissions**, for every resource in the project. The description is under **More fields**.
+3. Create the role. It opens on its page, where **Add Role** adds another built-in role and **Add Permission** (in the card's **⋯** menu) a single permission, each with a scope and labels, as on a team.
+4. Click **Give to a Team** under **Teams with this Role**. A team's **Permissions** page has **Add Custom Role** too, and **Create Team** offers the custom roles you could give under **Access**.
+:::
+
+- A team's members get every permission of its custom roles, at the same scope and with the same labels, exactly as if the team held them itself. A block on the team still wins.
+- A role stays linked to the teams that have it: a change to it reaches all of them at once, and the role's page says how many teams and people that is. **Remove** takes the role from one team. Deleting the role takes its permissions from every team that has it; the teams keep their members and their other roles and permissions.
+- You can put into a role, and give a team a role, only what you could give the team directly: a role holding a permission you do not hold at the same or a broader scope is refused, and the refusal names the permission. A role never holds `ProjectOwner`, and **Owners** and **Admin** are never given one.
+- A team's **Permissions** page lists its custom roles above its own permissions. What a role gives is changed on the role's page, not on the team's.
+- API keys do not take custom roles. A key serves one integration, so give it exactly the permissions it needs on its own page.
+- The built-in roles are listed under **Built-in Roles**, at the bottom of the **Roles** page.
 
 ### Allow and block
 

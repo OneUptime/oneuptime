@@ -1055,7 +1055,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           {
             page: PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE,
             title: "Schedule Timeline",
-            icon: IconProp.ViewColumns,
+            icon: IconProp.Timeline,
             keywords: ["rota", "who is on call", "calendar"],
           },
           {
@@ -2542,6 +2542,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "All Teams",
             icon: IconProp.Team,
             keywords: ["create team", "groups", "permissions", "roles"],
+          },
+          {
+            page: PageMap.TEAM_ROLES,
+            title: "Roles",
+            icon: IconProp.Identification,
+            keywords: [
+              "custom roles",
+              "custom role",
+              "create role",
+              "built-in roles",
+              "rbac",
+            ],
           },
         ],
       },

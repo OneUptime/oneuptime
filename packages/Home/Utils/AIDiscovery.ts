@@ -11,6 +11,7 @@
 
 import PageSEOConfig, { PageSEOData } from "./PageSEO";
 import Pricing, { PricingPlans } from "./Pricing";
+import { ResellersPageContent } from "./Resellers";
 import ProductCompare, {
   Product,
   PricingTier,
@@ -368,6 +369,71 @@ export function generatePageMarkdown(
   );
   lines.push(`- [Pricing](${baseUrl}/pricing.md)`);
   lines.push(`- [Documentation](${baseUrl}/docs)`);
+  lines.push(`- [Sign up](${baseUrl}/accounts/register)`);
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+/*
+ * /resellers.md: the resellers by region, from the same content the page
+ * renders (Utils/Resellers.ts), and how to become one.
+ */
+export function generateResellersMarkdown(
+  homeUrl: string,
+  content: ResellersPageContent,
+): string {
+  const baseUrl: string = normalizeBaseUrl(homeUrl);
+  const seo: PageSEOData | undefined = PageSEOConfig["/resellers"];
+  const lines: Array<string> = [];
+
+  lines.push("# Resellers");
+  lines.push("");
+  if (seo) {
+    lines.push(`> ${seo.description}`);
+    lines.push("");
+  }
+  lines.push(`Canonical page: ${baseUrl}/resellers`);
+
+  lines.push("");
+  lines.push("## Resellers by region");
+
+  if (content.regions.length === 0) {
+    lines.push("");
+    lines.push(
+      "No resellers are listed yet. Buy OneUptime directly instead: start for free, or talk to the team.",
+    );
+  }
+
+  for (const group of content.regions) {
+    lines.push("");
+    lines.push(`### ${group.region}`);
+    lines.push("");
+    for (const reseller of group.resellers) {
+      const localName: string = reseller.localName
+        ? ` (${reseller.localName})`
+        : "";
+      lines.push(
+        `- [${reseller.name}](${reseller.websiteUrl})${localName}, ${reseller.location}: ${reseller.summary}`,
+      );
+    }
+  }
+
+  lines.push("");
+  lines.push("## Become a reseller");
+  lines.push("");
+  lines.push(
+    `Companies that want to sell OneUptime can send the form at ${baseUrl}/resellers#become-a-reseller, or email ${content.form.fallbackEmail}.`,
+  );
+
+  lines.push("");
+  lines.push("## Learn More");
+  lines.push("");
+  lines.push(
+    `- [All OneUptime products and links for LLMs](${baseUrl}/llms.txt)`,
+  );
+  lines.push(`- [Pricing](${baseUrl}/pricing.md)`);
+  lines.push(`- [Request a demo](${baseUrl}/enterprise/demo.md)`);
   lines.push(`- [Sign up](${baseUrl}/accounts/register)`);
   lines.push("");
 

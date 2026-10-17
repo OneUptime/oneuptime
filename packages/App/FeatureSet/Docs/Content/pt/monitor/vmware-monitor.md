@@ -269,7 +269,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | Campo | O que faz |
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da sua variável. |
-| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todo valor precisa corresponder) ou **Any Value** (basta um). |
+| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todo valor precisa corresponder, na janela inteira) ou **Any Value** (basta um). |
 | **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
 | **Threshold** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece nas condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |

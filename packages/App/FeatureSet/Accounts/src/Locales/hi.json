@@ -13,7 +13,8 @@
     "confirmPassword": "पासवर्ड की पुष्टि करें",
     "newPassword": "नया पासवर्ड",
     "code": "कोड",
-    "yourCompany": "आपकी कंपनी"
+    "yourCompany": "आपकी कंपनी",
+    "or": "या"
   },
   "language": {
     "label": "भाषा",
@@ -50,7 +51,7 @@
     "subtitle": "पासवर्ड, अपने संगठन के SSO या पासकी से साइन इन करें।",
     "submitButton": "लॉगिन",
     "forgotPassword": "पासवर्ड भूल गए?",
-    "useSso": "इसके बजाय एकल साइन-ऑन (SSO) का उपयोग करें",
+    "signInWithSso": "SSO से साइन इन करें",
     "signInWithMicrosoft": "Microsoft से साइन इन करें",
     "noAccountPrompt": "खाता नहीं है?",
     "registerLink": "पंजीकरण करें।",
@@ -146,7 +147,7 @@
     "title": "SSO से लॉगिन",
     "subtitle": "अपने खाते तक पहुंचने के लिए अपने SSO प्रदाता से लॉगिन करें।",
     "submitButton": "SSO से लॉगिन",
-    "useUsernameInstead": "इसके बजाय उपयोगकर्ता नाम और पासवर्ड का उपयोग करें।",
+    "signInWithPassword": "पासवर्ड से साइन इन करें",
     "noAccountPrompt": "खाता नहीं है?",
     "registerLink": "पंजीकरण करें।",
     "selectProjectTitle": "प्रोजेक्ट चुनें",

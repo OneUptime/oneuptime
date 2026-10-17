@@ -107,7 +107,7 @@ These monitors always evaluate the **Metric Value** — the value of the configu
 | Sum | Sum of all values |
 | Maximum Value | Highest value in the time window |
 | Minimum Value | Lowest value in the time window |
-| All Values | All values must match the criteria |
+| All Values | All values must match the criteria, and must cover the whole time window |
 | Any Value | At least one value must match |
 
 ### Conditions

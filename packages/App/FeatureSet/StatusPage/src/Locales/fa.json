@@ -264,7 +264,8 @@
       "loginPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید",
       "forgotPassword": "رمز عبور را فراموش کرده‌اید؟",
       "submit": "ورود",
-      "useSSO": "به جای آن از ورود یکپارچه (SSO) استفاده کنید"
+      "or": "یا",
+      "logInWithSso": "ورود با SSO"
     },
     "sso": {
       "title": "ورود با SSO",

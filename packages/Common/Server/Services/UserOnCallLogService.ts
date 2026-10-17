@@ -295,11 +295,31 @@ export class Service extends DatabaseService<Model> {
         case UserNotificationExecutionStatus.Started:
           status = OnCallDutyExecutionLogTimelineStatus.Started;
           break;
+        // The person passed the page on (OnCallPagePassOn).
+        case UserNotificationExecutionStatus.PassedOn:
+          status = OnCallDutyExecutionLogTimelineStatus.PassedOn;
+          break;
         default:
           throw new BadDataException("Invalid status");
       }
 
       for (const item of items) {
+        const stepStatus: OnCallDutyExecutionLogTimelineStatus | undefined =
+          item.onCallDutyPolicyExecutionLogTimeline?.status;
+
+        /*
+         * A step whose person passed the page on stays that way: the run
+         * reads who passed its page on from these steps
+         * (OnCallEscalationAdvance), so moving one back to "Executing" or
+         * "Notification Sent" would let the run page that person again - and
+         * the worker that sends a person's notifications may still be
+         * finishing their log just as they pass it on. Only acknowledging
+         * changes it (UserOnCallLogTimelineService).
+         */
+        if (stepStatus === OnCallDutyExecutionLogTimelineStatus.PassedOn) {
+          continue;
+        }
+
         /*
          * A log that completes says "Notification Sent" on its timeline step
          * - unless the step already says what became of the page: skipped
@@ -309,12 +329,28 @@ export class Service extends DatabaseService<Model> {
          */
         if (
           status === OnCallDutyExecutionLogTimelineStatus.NotificationSent &&
-          item.onCallDutyPolicyExecutionLogTimeline?.status &&
+          stepStatus &&
           [
             OnCallDutyExecutionLogTimelineStatus.Skipped,
             OnCallDutyExecutionLogTimelineStatus.Error,
             OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
-          ].includes(item.onCallDutyPolicyExecutionLogTimeline.status)
+          ].includes(stepStatus)
+        ) {
+          continue;
+        }
+
+        /*
+         * A page is passed on only from a step that reached its person: one
+         * that was acknowledged, skipped or failed keeps what it says.
+         */
+        if (
+          status === OnCallDutyExecutionLogTimelineStatus.PassedOn &&
+          stepStatus &&
+          [
+            OnCallDutyExecutionLogTimelineStatus.Skipped,
+            OnCallDutyExecutionLogTimelineStatus.Error,
+            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+          ].includes(stepStatus)
         ) {
           continue;
         }

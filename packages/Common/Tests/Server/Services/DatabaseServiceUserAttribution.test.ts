@@ -536,6 +536,8 @@ function isRefusal(outcome: unknown): boolean {
       "NotAuthenticatedException",
       "ForbiddenException",
       "PaymentRequiredException",
+      // A workflow's step writes no record that decides who may do what.
+      "WorkflowAccessChangeRefusedException",
     ].includes(outcome.constructor.name)
   );
 }

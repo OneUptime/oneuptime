@@ -15,6 +15,7 @@ import {
   RenderResult,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as fs from "fs";
 import * as path from "path";
@@ -193,7 +194,21 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-import Home from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
+import Home, {
+  HOME_ROW_CLASS_NAME,
+  HOME_ROW_MAIN_COLUMN_CLASS_NAME,
+  HOME_ROW_SIDE_COLUMN_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
+import { HOME_ROW_CARD_BODY_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeRowCard";
+import {
+  describeHeightFill,
+  describeHeightFillChain,
+  resolveFlexGrow,
+} from "../../ResponsiveHeightFill";
+import {
+  LAPTOP_WIDTH_IN_PX,
+  WIDE_DESKTOP_WIDTH_IN_PX,
+} from "../../ResponsiveVisibility";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -636,6 +651,267 @@ describe("the page", () => {
     expect(analyticsMock).toHaveBeenCalledWith(
       "dashboard/home",
       expect.objectContaining({}),
+    );
+  });
+});
+
+/*
+ * "We have quite a bit of empty space between cards." From xl up, Needs
+ * attention shares a row with Your project and Upcoming maintenance, and the
+ * shorter side ended early, leaving bare page under it. The row now ends on
+ * one line: the grid stretches both columns, and the LAST card in each
+ * column runs to the bottom of the row. Which card is last depends on the
+ * data - Upcoming maintenance is left out when nothing is scheduled - so
+ * both states are held here.
+ *
+ * jsdom lays nothing out, so the boxes are read the way the browser lays
+ * them out (Tests/ResponsiveHeightFill). E2E/HomeOverview measures the real
+ * boxes in every scenario.
+ */
+describe("the row under the health card", () => {
+  const ROW_WIDTHS: Array<number> = [
+    LAPTOP_WIDTH_IN_PX,
+    WIDE_DESKTOP_WIDTH_IN_PX,
+  ];
+
+  function row(): HTMLElement {
+    return screen.getByTestId("home-overview-row");
+  }
+
+  // What the reader sees as the card: its frame, with border and shadow.
+  function frameOf(testId: string): HTMLElement {
+    return within(screen.getByTestId(testId)).getByTestId("card")
+      .firstElementChild as HTMLElement;
+  }
+
+  function childTestIds(element: HTMLElement): Array<string | null> {
+    return Array.from(element.children).map((child: Element): string | null => {
+      return child.getAttribute("data-testid");
+    });
+  }
+
+  async function renderWithUpcoming(): Promise<void> {
+    await renderHome();
+    await waitFor(() => {
+      expect(screen.getByTestId("home-upcoming-row")).toBeInTheDocument();
+    });
+  }
+
+  // A healthy, finished project with nothing scheduled.
+  async function renderQuiet(): Promise<void> {
+    projects.set(PROJECT_ID, {
+      ...busyProject(),
+      incidents: [],
+      alerts: [],
+      upcoming: [],
+    });
+    await renderHome();
+    await waitFor(() => {
+      expect(screen.queryByTestId("home-upcoming-loading")).toBeNull();
+    });
+    expect(screen.queryByTestId("home-upcoming-maintenance")).toBeNull();
+  }
+
+  test("two thirds for the open work and one third beside it from xl up, one column below", async () => {
+    await renderHome();
+
+    expect(row().getAttribute("class")).toBe(HOME_ROW_CLASS_NAME);
+    expect(HOME_ROW_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["grid", "grid-cols-1", "xl:grid-cols-3"]),
+    );
+    expect(childTestIds(row())).toEqual([
+      "home-overview-row-main",
+      "home-overview-row-side",
+    ]);
+    expect(
+      screen.getByTestId("home-overview-row-main").getAttribute("class"),
+    ).toBe(HOME_ROW_MAIN_COLUMN_CLASS_NAME);
+    expect(HOME_ROW_MAIN_COLUMN_CLASS_NAME).toContain("xl:col-span-2");
+    expect(
+      screen.getByTestId("home-overview-row-side").getAttribute("class"),
+    ).toBe(HOME_ROW_SIDE_COLUMN_CLASS_NAME);
+  });
+
+  test("each column holds only its cards, so the column's last-child rule always lands on a card", async () => {
+    await renderWithUpcoming();
+
+    expect(childTestIds(screen.getByTestId("home-overview-row-main"))).toEqual([
+      "home-needs-attention",
+    ]);
+    expect(childTestIds(screen.getByTestId("home-overview-row-side"))).toEqual([
+      "home-project-resources",
+      "home-upcoming-maintenance",
+    ]);
+  });
+
+  test.each(ROW_WIDTHS)(
+    "at %ipx the grid stretches both columns to the row's height",
+    async (width: number) => {
+      await renderWithUpcoming();
+
+      expect(
+        describeHeightFill(screen.getByTestId("home-overview-row-main"), width),
+      ).toBeNull();
+      expect(
+        describeHeightFill(screen.getByTestId("home-overview-row-side"), width),
+      ).toBeNull();
+    },
+  );
+
+  test.each(ROW_WIDTHS)(
+    "at %ipx with maintenance coming up, Needs attention and Upcoming maintenance run to the bottom of the row; Your project keeps its height above",
+    async (width: number) => {
+      await renderWithUpcoming();
+
+      expect(
+        describeHeightFillChain(frameOf("home-needs-attention"), row(), width),
+      ).toEqual([]);
+      expect(
+        describeHeightFillChain(
+          frameOf("home-upcoming-maintenance"),
+          row(),
+          width,
+        ),
+      ).toEqual([]);
+      // Not the last card: as tall as its seven rows, as before.
+      expect(
+        describeHeightFillChain(
+          frameOf("home-project-resources"),
+          row(),
+          width,
+        ),
+      ).toEqual([
+        '[data-testid="home-project-resources"] does not grow in its flex column (flex-1, or [&>*:last-child]:flex-1 on the column), so it ends where its content ends',
+      ]);
+    },
+  );
+
+  test.each(ROW_WIDTHS)(
+    "at %ipx with nothing scheduled, Your project is the last card and runs to the bottom of the row",
+    async (width: number) => {
+      await renderQuiet();
+
+      expect(screen.getByTestId("home-attention-empty")).toHaveAttribute(
+        "data-state",
+        "all-clear",
+      );
+      expect(
+        describeHeightFillChain(
+          frameOf("home-project-resources"),
+          row(),
+          width,
+        ),
+      ).toEqual([]);
+      expect(
+        describeHeightFillChain(frameOf("home-needs-attention"), row(), width),
+      ).toEqual([]);
+    },
+  );
+
+  test("a brand-new project: where problems will show, beside every resource to set up, both to the bottom of the row", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    await renderHome();
+
+    expect(screen.getByTestId("home-attention-empty")).toHaveAttribute(
+      "data-state",
+      "nothing-monitored",
+    );
+    expect(screen.queryByTestId("home-upcoming-maintenance")).toBeNull();
+
+    for (const testId of ["home-needs-attention", "home-project-resources"]) {
+      expect({
+        testId,
+        reasons: describeHeightFillChain(
+          frameOf(testId),
+          row(),
+          LAPTOP_WIDTH_IN_PX,
+        ),
+      }).toEqual({ testId, reasons: [] });
+    }
+  });
+
+  test("in the all-clear card, the state grows all the way from the row to the middle of the card", async () => {
+    await renderQuiet();
+
+    const empty: HTMLElement = screen.getByTestId("home-attention-empty");
+
+    expect(describeHeightFillChain(empty, row(), LAPTOP_WIDTH_IN_PX)).toEqual(
+      [],
+    );
+    expect(resolveFlexGrow(empty, LAPTOP_WIDTH_IN_PX)).toBe(1);
+  });
+
+  test("every card in the row asks to fill its box, so whichever is last runs to the bottom", async () => {
+    await renderWithUpcoming();
+
+    for (const testId of [
+      "home-needs-attention",
+      "home-project-resources",
+      "home-upcoming-maintenance",
+    ]) {
+      expect({
+        testId,
+        fill: within(screen.getByTestId(testId))
+          .getByTestId("card")
+          .getAttribute("data-fill-height"),
+      }).toEqual({ testId, fill: "true" });
+    }
+  });
+
+  /*
+   * Side by side with their tops level, the cards' headers end on one line
+   * when they are as tall as each other - and so must the dividers under
+   * them, which run across the row as one line. Needs attention started its
+   * list 4px further down than the cards beside it (mt-4 against mt-3).
+   */
+  test("every card in the row starts its list the same distance under its header, under a divider", async () => {
+    await renderWithUpcoming();
+
+    const MARGIN_TOP_TOKEN: RegExp = /^-?mt-/;
+    const marginTops: Array<string> = [];
+
+    for (const testId of [
+      "home-needs-attention",
+      "home-project-resources",
+      "home-upcoming-maintenance",
+    ]) {
+      const body: HTMLElement = frameOf(testId).firstElementChild!
+        .lastElementChild as HTMLElement;
+
+      expect({ testId, body: body.getAttribute("class") }).toEqual({
+        testId,
+        body: expect.stringContaining(HOME_ROW_CARD_BODY_CLASS_NAME),
+      });
+      expect({
+        testId,
+        divider: body.firstElementChild?.classList.contains("border-t"),
+      }).toEqual({ testId, divider: true });
+      marginTops.push(
+        (body.getAttribute("class") || "")
+          .split(" ")
+          .filter((token: string): boolean => {
+            return MARGIN_TOP_TOKEN.test(token);
+          })[0] || "",
+      );
+    }
+
+    expect(new Set(marginTops).size).toBe(1);
+    expect(marginTops[0]).not.toBe("");
+  });
+
+  test("the cards outside the row keep their own height", async () => {
+    await renderHome();
+
+    expect(
+      within(screen.getByTestId("home-explore-products"))
+        .getByTestId("card")
+        .getAttribute("data-fill-height"),
+    ).toBeNull();
+    expect(row().contains(screen.getByTestId("home-explore-products"))).toBe(
+      false,
+    );
+    expect(row().contains(screen.getByTestId("home-project-health"))).toBe(
+      false,
     );
   });
 });

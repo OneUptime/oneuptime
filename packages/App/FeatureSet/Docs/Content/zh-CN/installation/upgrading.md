@@ -275,7 +275,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 现有工作流会发生的变化：
 
-- 向团队或 API 密钥授予 Project Admin 不具备的权限的步骤——**Project Owner**、账单或删除项目，或 Project Admin 权限之外的任何权限——会被拒绝；把某人添加到权限多于 Project Admin 的团队（例如所有者团队）的步骤也会被拒绝。
+- 创建、更改或删除团队、团队成员、团队权限、自定义角色或 API 密钥权限的步骤会被拒绝，无论它要授予什么，包括 **Project Owner** 和 **Project Admin**：工作流步骤不会改变谁能访问项目。这些更改由管理项目团队和 API 密钥的人来做。
 - 编辑或删除动态条目、写入通知日志、设置 OneUptime 自行维护的值（已验证的 CNAME、团队的保护开关、主要事件角色、通知和提醒字段、当前谁在值班、SLO 的结果、私有用户的密码重置令牌……）或把记录移到另一个上级之下的步骤会被拒绝。完整列表见该页面。
 - 通过发送 `createdIncidentTemplateId` 从模板声明事件的 **Create One Incident** 步骤会被拒绝。请改为在该步骤的 **Incident Template** 设置中选择模板，并从其 **JSON Object** 中去掉 `createdIncidentTemplateId`。这样该步骤就会像仪表板那样从模板声明事件——步骤设置的所有内容优先，包括状态——添加模板的所有者，并记录该模板。仍在发送该列的步骤，其运行日志会指向该设置。请参阅 [从模板声明事件](/docs/workflows/components#根据模板宣布事件)。
 - 选择探针或 AI 代理由谁创建的步骤会被拒绝。

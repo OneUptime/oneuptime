@@ -32,7 +32,8 @@ import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/Logi
  * Single sign-on on the Accounts pages, in every edition.
  *
  * SAML and OIDC sign-in are part of every edition, so:
- *   - the password page always offers "Use single sign-on (SSO) instead";
+ *   - the password page always offers "Sign in with SSO", a button under
+ *     "or" below Login (it was the link "Use single sign-on (SSO) instead");
  *   - the SSO page always shows the email form, with the instance-wide
  *     providers it discovers above it. A provider lookup that fails - a 404
  *     from a proxy that does not route /identity, a 402, a 500 - is treated
@@ -90,8 +91,8 @@ jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
 });
 
 const IDENTITY_ORIGIN: string = "https://oneuptime.example.com/identity";
-const USE_SSO_LINK: string = english.login.useSso;
-const USE_PASSWORD_LINK: string = english.sso.useUsernameInstead;
+const SSO_OPTION: string = english.login.signInWithSso;
+const PASSWORD_OPTION: string = english.sso.signInWithPassword;
 const PROJECT_A: string = "11111111-1111-4111-8111-111111111111";
 const PROJECT_B: string = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_1: string = "33333333-3333-4333-8333-333333333333";
@@ -152,11 +153,12 @@ const retiredEditionLogicIn: (source: string) => Array<string> = (
 
 // Every key the two pages read for single sign-on.
 const SSO_LOCALE_KEYS: Array<string> = [
-  "login.useSso",
+  "common.or",
+  "login.signInWithSso",
   "sso.title",
   "sso.subtitle",
   "sso.submitButton",
-  "sso.useUsernameInstead",
+  "sso.signInWithPassword",
   "sso.noAccountPrompt",
   "sso.registerLink",
   "sso.selectProjectTitle",
@@ -319,7 +321,7 @@ const navigatedTo: () => Array<string> = (): Array<string> => {
 const expectEmailForm: () => void = (): void => {
   expect(screen.getByTestId("email")).toBeInTheDocument();
   expect(screen.getByText(english.sso.subtitle)).toBeInTheDocument();
-  expect(screen.getByText(USE_PASSWORD_LINK).closest("a")).toHaveAttribute(
+  expect(screen.getByRole("link", { name: PASSWORD_OPTION })).toHaveAttribute(
     "href",
     "/accounts/login",
   );
@@ -399,20 +401,22 @@ describe("Accounts single sign-on, in every edition", () => {
 
         expect(await screen.findByTestId("email")).toBeInTheDocument();
         expect(screen.getByTestId("password")).toBeInTheDocument();
-        expect(screen.getByText(USE_SSO_LINK).closest("a")).toHaveAttribute(
+        expect(screen.getByRole("link", { name: SSO_OPTION })).toHaveAttribute(
           "href",
           "/accounts/sso",
         );
       },
     );
 
-    test("the link is translated: German gets the German text", async () => {
+    test("the option is translated: German gets the German text", async () => {
       await i18n.changeLanguage("de");
 
       renderLogin();
 
-      expect(await screen.findByText(german.login.useSso)).toBeInTheDocument();
-      expect(german.login.useSso).not.toBe(USE_SSO_LINK);
+      expect(
+        await screen.findByRole("link", { name: german.login.signInWithSso }),
+      ).toHaveAttribute("href", "/accounts/sso");
+      expect(german.login.signInWithSso).not.toBe(SSO_OPTION);
     });
   });
 
@@ -655,10 +659,19 @@ describe("Accounts single sign-on, in every edition", () => {
     });
 
     test("the password page links to the SSO page unconditionally", () => {
-      const source: string = readAccountsSource("Pages/Login.tsx");
+      // Whitespace collapsed, so the check reads the markup, not its layout.
+      const source: string = readAccountsSource("Pages/Login.tsx")
+        .split(/\s+/)
+        .join(" ");
 
-      expect(source).toContain('<Link to={new Route("/accounts/sso")}>');
-      expect(source).toContain('{t("login.useSso")}');
+      /*
+       * The option opens the list of other ways in, with nothing deciding
+       * whether it is drawn.
+       */
+      expect(source).toContain(
+        '<div className="space-y-3"> <SignInOptionLink to={new Route("/accounts/sso")}',
+      );
+      expect(source).toContain('title={t("login.signInWithSso")}');
     });
 
     test("the check catches the retired edition gate and notice (negative control)", () => {

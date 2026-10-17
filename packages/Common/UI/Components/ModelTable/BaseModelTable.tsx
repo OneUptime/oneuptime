@@ -375,6 +375,16 @@ export interface BaseTableProps<
     | ((item: TBaseModel, modalType?: ModalType) => Promise<TBaseModel>)
     | undefined;
   createVerb?: string;
+  /*
+   * The create dialog's own title and button, for a table whose noun would
+   * misname what the button that opened the dialog adds: a custom role's
+   * Permissions card adds a role or a single permission ("Add a Role to
+   * Incident Responder", "Add Role"), not a "New Permission". English to
+   * look up, or words already in the reader's language. Left out, the
+   * dialog says "<verb> New <singular name>" as before.
+   */
+  createFormTitle?: string | undefined;
+  createFormSubmitButtonText?: string | undefined;
   showAs?: ShowAs | undefined;
   singularName?: string | undefined;
   pluralName?: string | undefined;
