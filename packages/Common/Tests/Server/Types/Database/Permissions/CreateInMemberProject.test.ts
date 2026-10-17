@@ -225,6 +225,25 @@ describe("which models the rule holds", () => {
       expect(new modelType().getTenantColumn()).toBe("projectId");
     }
   });
+
+  /*
+   * The rule is asked when a row is created, so a row must not be movable
+   * into a project afterwards: nobody may change the project a person's
+   * own row is in, or whose row it is - under either name.
+   */
+  test("no row of them is moved to another project, or another person, by an update", () => {
+    for (const [name, modelType] of SCANNED) {
+      const model: BaseModel = new modelType();
+
+      for (const column of ["projectId", "project", "userId", "user"]) {
+        expect({
+          model: name,
+          column: column,
+          update: model.getColumnAccessControlFor(column)?.update,
+        }).toEqual({ model: name, column: column, update: [] });
+      }
+    }
+  });
 });
 
 describe.each(SCANNED)(
