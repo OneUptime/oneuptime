@@ -75,13 +75,13 @@ const E2E_JOBS = [
   {
     workflow: ".github/workflows/test-release.yaml",
     job: "test-e2e-test-saas",
-    tag: `enterprise-${VERSION}-test`,
+    tag: `enterprise-${VERSION}-test-amd64`,
     edition: "enterprise",
   },
   {
     workflow: ".github/workflows/test-release.yaml",
     job: "test-e2e-test-self-hosted",
-    tag: `${VERSION}-test`,
+    tag: `${VERSION}-test-amd64`,
     edition: "community",
   },
   {
@@ -93,7 +93,7 @@ const E2E_JOBS = [
   {
     workflow: ".github/workflows/test-release.yaml",
     job: "test-e2e-test-enterprise",
-    tag: `enterprise-${VERSION}-test`,
+    tag: `enterprise-${VERSION}-test-amd64`,
     edition: "enterprise",
   },
 ];

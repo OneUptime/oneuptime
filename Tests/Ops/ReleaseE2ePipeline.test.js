@@ -28,7 +28,9 @@
  * they used to wait for the Helm chart test and, through it, a 35-minute
  * Terraform provider dry run. That is checked here against the compose files
  * themselves, because a job that started before one of its images was pushed
- * would not fail - it would test the previous push's image.
+ * would not fail - it would test the previous push's image. In
+ * test-release.yaml they wait for those images' builds, not their merges, and
+ * run the amd64 tags the builds push (TestReleaseE2eImages.test.js).
  *
  * The SaaS and self-hosted suites run as shards (E2E_SHARD, see
  * packages/E2E/Sharding/Sharding.ts). packages/E2E's `npm run test-sharding`
@@ -207,6 +209,20 @@ function mergeJobFor(image) {
   return match ? `${match[1]}-docker-image-merge` : null;
 }
 
+/**
+ * The build job of a OneUptime image, from its reference:
+ * oneuptime/app:${APP_TAG} -> app-docker-image-build. null for anything that
+ * is not a OneUptime image built by the workflow.
+ * @param {string} image
+ * @returns {string|null}
+ */
+function buildJobFor(image) {
+  const merge = mergeJobFor(image);
+  return merge
+    ? merge.replace(/-docker-image-merge$/, "-docker-image-build")
+    : null;
+}
+
 // The compose files a job's `docker compose ... up ... -d` boots its stack with.
 function startedStack(job) {
   const start = job.steps.map(commandOf).find((command) => {
@@ -251,6 +267,17 @@ describe("the helpers this suite reads the workflows with", () => {
     );
     expect(mergeJobFor("postgres:15")).toBeNull();
     expect(mergeJobFor("oneuptime/app:release")).toBeNull();
+  });
+
+  test("name the build job of a OneUptime image, and of nothing else", () => {
+    expect(buildJobFor("oneuptime/nginx:${APP_TAG}")).toBe(
+      "nginx-docker-image-build",
+    );
+    expect(buildJobFor("ghcr.io/oneuptime/e2e:${APP_TAG}")).toBe(
+      "e2e-docker-image-build",
+    );
+    expect(buildJobFor("postgres:15")).toBeNull();
+    expect(buildJobFor("oneuptime/app:release")).toBeNull();
   });
 
   test("read the shard counts test-sharding checks", () => {
@@ -495,6 +522,14 @@ test("docker-compose.base.yml hands E2E_SHARD to the e2e container, empty unless
   expect(e2e.environment.E2E_SHARD).toBe("${E2E_SHARD:-}");
 });
 
+/*
+ * Each e2e job waits for the builds of exactly the images its stack runs,
+ * and for no merge, directly or through another job: it runs the -amd64 tags
+ * the builds' amd64 legs push (TestReleaseE2eImages.test.js holds the tags to
+ * Scripts/GHA/build_docker_images.sh). The merges, a few seconds of work each
+ * behind a queue of their own, used to stand between the last build and the
+ * e2e jobs: 34 to 49 minutes on run 38996994440.
+ */
 describe(`${TEST_RELEASE}: each e2e job waits for exactly the images it runs`, () => {
   const jobs = readYaml(TEST_RELEASE).jobs;
 
@@ -507,13 +542,13 @@ describe(`${TEST_RELEASE}: each e2e job waits for exactly the images it runs`, (
       ...stackImages(startedStack(jobs[name])),
       ...stackImages([E2E_OVERLAY]),
     ];
-    const merges = images.map(mergeJobFor).filter(Boolean).sort();
+    const builds = images.map(buildJobFor).filter(Boolean).sort();
 
     // The suite's own image, and at least the App, really are among them.
-    expect(merges).toContain("e2e-docker-image-merge");
-    expect(merges).toContain("app-docker-image-merge");
-    for (const merge of merges) {
-      expect(jobs[merge]).toBeDefined();
+    expect(builds).toContain("e2e-docker-image-build");
+    expect(builds).toContain("app-docker-image-build");
+    for (const build of builds) {
+      expect(jobs[build]).toBeDefined();
     }
 
     expect(
@@ -522,7 +557,12 @@ describe(`${TEST_RELEASE}: each e2e job waits for exactly the images it runs`, (
           return need !== "read-version";
         })
         .sort(),
-    ).toEqual(merges);
+    ).toEqual(builds);
+    expect(
+      [...ancestorsOf(jobs, name)].filter((job) => {
+        return job.endsWith("-docker-image-merge");
+      }),
+    ).toEqual([]);
   });
 });
 

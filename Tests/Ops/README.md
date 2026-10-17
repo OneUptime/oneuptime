@@ -803,10 +803,11 @@ The SaaS and self-hosted e2e jobs of both workflows run as shards
 packages/E2E's `npm run test-sharding` verifies (its `WORKFLOW_SHARD_TOTALS`),
 `fail-fast: false`, `E2E_SHARD` handed to the step that runs the suite, and an
 artifact name per shard. Each of test-release.yaml's e2e jobs must wait for
-exactly the images its stack runs, read from the compose files its start step
-boots (each file's services merged over the last, those behind a profile left
-out) plus the e2e overlay: a job that started before one of its images was
-pushed would not fail, it would test the previous push's image.
+the builds of exactly the images its stack runs, and for no merge, read from
+the compose files its start step boots (each file's services merged over the
+last, those behind a profile left out) plus the e2e overlay: a job that
+started before one of its images was pushed would not fail, it would test the
+previous push's image.
 
 Nothing writes the GitHub release once release.yml has published it: every
 job with a step that creates, fills or edits the release
@@ -842,6 +843,26 @@ installs both App and a FeatureSet (resolution from a FeatureSet walks up into
 App; MobileApp compiles after Common in its job (its tsconfig maps `Common/*`
 to `../Common/build/dist/*`); and every step after a job's first install runs
 unless the run was cancelled, so one run reports each package that fails.
+
+### `TestReleaseE2eImages.test.js`
+
+test-release.yaml's e2e jobs run each image's `-amd64` tag, which the amd64
+leg of the image's build job pushes, so they need the builds of their stack's
+images and no merge: a merge is a few seconds of work behind a runner queue of
+its own, and the merges used to stand between the last build and the e2e jobs
+(34 to 49 minutes on run 38996994440, 14.0.66's e2e evidence). The suite runs
+`Scripts/GHA/build_docker_images.sh` with each build job's own flags for the
+amd64 leg, with a fake `docker` on PATH that records every call, and holds the
+tag each e2e job boots - the same in every step that names it, the pin step's
+included, which it runs - to the tags that leg pushes, for every image of the
+job's stack and in the job's edition. No step of an e2e job, and no job env,
+may name a tag a merge pushes (`<version>-test`, `enterprise-<version>-test`,
+`test`, `enterprise-test`), in a run line, an env entry or an action's input:
+the job does not wait for the merges, so until they run those tags still name
+the previous push's images. It also pins that the merges still run
+for every image built, that `test-helm-chart` (which installs the multi-arch
+`test` tags) still waits for them, and that nothing in the workflow lets a
+failed job end the run green (no `continue-on-error`, no `always()`).
 
 ### `TerraformProviderGeneratorTypeCheck.test.js`
 
