@@ -47,8 +47,10 @@ De kaart **Thema**, direct onder het logo, bepaalt hoe de pagina er voor haar be
 | Keuze | Wat bezoekers zien |
 | ------ | ----------------- |
 | **Licht** | De lichte pagina, hoe hun apparaat ook is ingesteld. Statuspagina's die gemaakt zijn voordat de instelling bestond, staan op **Licht**, dus ze zien eruit zoals altijd. |
-| **Donker** | De donkere pagina, hoe hun apparaat ook is ingesteld. Het logo wordt getoond zoals het is, dus gebruik er een dat gemaakt is voor een donkere achtergrond. |
-| **Zoals het apparaat van elke bezoeker** | Licht of donker, zoals hun apparaat is ingesteld, en de pagina wisselt mee met het apparaat zolang ze open is. Met een knop met een zon of een maan in de footer van de pagina kan een bezoeker wisselen, en hun browser onthoudt de keuze. Op de donkere pagina staat het logo op een lichte achtergrond, zodat ook een logo dat gemaakt is voor een witte pagina goed zichtbaar blijft. |
+| **Donker** | De donkere pagina, hoe hun apparaat ook is ingesteld. |
+| **Zoals het apparaat van elke bezoeker** | Licht of donker, zoals hun apparaat is ingesteld, en de pagina wisselt mee met het apparaat zolang ze open is. Met een knop met een zon of een maan in de footer van de pagina kan een bezoeker wisselen, en hun browser onthoudt de keuze. |
+
+Op de donkere pagina staat het logo op een lichte achtergrond, zodat ook een logo dat gemaakt is voor een witte pagina goed zichtbaar blijft.
 
 Een statuspagina die vanaf nu wordt gemaakt, begint met **Zoals het apparaat van elke bezoeker**. Via de API en Terraform heet het veld `theme`, met een van de waarden `Light`, `Dark` of `System` (**Zoals het apparaat van elke bezoeker**), precies zo geschreven; elke andere waarde wordt geweigerd. Een Terraform-configuratie die geen `theme` instelt, krijgt `Light`, zodat een configuratie die vóór de instelling is geschreven nooit een wijziging plant op een pagina die ze beheert.
 

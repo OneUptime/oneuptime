@@ -21,8 +21,10 @@ import {
  *   - In the dark theme no surface of the overview, the incident, the
  *     announcement, the maintenance event, the subscribe form, the sign-in
  *     pages or the not-found page is left a light box; status text reads at
- *     4.5:1; the very dark red of a long outage's bar has an edge; a page
- *     that follows the device puts its logo on a light backdrop.
+ *     4.5:1; the very dark red of a long outage's bar has an edge; a Dark
+ *     page and one that follows the device put the logo on a light backdrop.
+ *   - The footer's language and theme controls sit centred on a phone, and
+ *     the switch is a target a thumb can hit.
  *
  * Screenshots of every surface in both themes are saved for review under
  * output/playwright/status-page-theme-ui.
@@ -750,14 +752,32 @@ test.describe("the logo", () => {
     expect(await plateOf(page)).toBe("rgba(0, 0, 0, 0)");
   });
 
-  test("is shown as it is on a Dark page, whose owner chose a logo for it", async ({
+  test("sits on the backdrop on a Dark page too, whatever the device: the one logo is made for light", async ({
     page,
   }: {
     page: Page;
   }) => {
+    /*
+     * The page's one logo is the light page's and the emails' too, so a
+     * Dark page puts it on the backdrop as well: its owner has nothing to
+     * change, and nothing to break in their emails.
+     */
+    await page.emulateMedia({ colorScheme: "light" });
     await openPage(page, PAGE, "theme=Dark");
 
+    expect(await plateOf(page)).toBe("rgb(248, 250, 252)");
+  });
+
+  test("sits on nothing on a Light page, on a dark device too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await openPage(page, PAGE, "theme=Light");
+
     expect(await plateOf(page)).toBe("rgba(0, 0, 0, 0)");
+    await expect(page.locator("[data-ou-logo-plate]")).toHaveCount(0);
   });
 
   test("sits on the backdrop on a sign-in page too", async ({

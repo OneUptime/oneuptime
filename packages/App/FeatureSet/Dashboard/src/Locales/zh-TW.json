@@ -30359,7 +30359,7 @@
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "其中 {{count}} 個已在其他片段中，因此不會新增。在此專案中，一個事件只能屬於一個片段。",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "其中 {{count}} 個已在其他片段中，因此不會新增。在此專案中，一個事件只能屬於一個片段。",
   "Dark": "深色",
-  "Every visitor sees the dark page. Use a logo made for a dark background.": "所有訪客都看到深色頁面。請使用為深色背景設計的標誌。",
+  "Every visitor sees the dark page.": "所有訪客都看到深色頁面。",
   "Every visitor sees the light page.": "所有訪客都看到淺色頁面。",
   "How your status page looks to visitors.": "訪客看到的狀態頁面外觀。",
   "Light": "淺色",

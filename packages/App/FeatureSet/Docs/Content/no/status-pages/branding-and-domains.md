@@ -47,8 +47,10 @@ Kortet **Tema**, rett under logoen, bestemmer hvordan siden ser ut for de besøk
 | Valg | Hva de besøkende ser |
 | ------ | ----------------- |
 | **Lyst** | Den lyse siden, uansett hvordan enheten deres er innstilt. Statussider som ble laget før innstillingen fantes, er **Lyst**, så de ser ut som de alltid har gjort. |
-| **Mørkt** | Den mørke siden, uansett hvordan enheten deres er innstilt. Logoen vises som den er, så bruk en som er laget for en mørk bakgrunn. |
-| **Som hver besøkendes enhet** | Lyst eller mørkt, slik enheten deres er innstilt, og siden skifter med enheten mens den er åpen. En sol- eller måneknapp i sidens bunntekst lar en besøkende bytte, og nettleseren deres husker valget. På den mørke siden står logoen på en lys bakgrunn, så en logo som er laget for en hvit side, fortsatt synes godt. |
+| **Mørkt** | Den mørke siden, uansett hvordan enheten deres er innstilt. |
+| **Som hver besøkendes enhet** | Lyst eller mørkt, slik enheten deres er innstilt, og siden skifter med enheten mens den er åpen. En sol- eller måneknapp i sidens bunntekst lar en besøkende bytte, og nettleseren deres husker valget. |
+
+På den mørke siden står logoen på en lys bakgrunn, så en logo som er laget for en hvit side, fortsatt synes godt.
 
 En statusside som lages fra nå av, starter med **Som hver besøkendes enhet**. Gjennom API-et og Terraform heter feltet `theme`, med en av verdiene `Light`, `Dark` eller `System` (**Som hver besøkendes enhet**), skrevet nøyaktig slik; enhver annen verdi avvises. En Terraform-konfigurasjon som ikke angir noe `theme`, får `Light`, så en konfigurasjon som ble skrevet før innstillingen, planlegger aldri en endring på en side den styrer.
 

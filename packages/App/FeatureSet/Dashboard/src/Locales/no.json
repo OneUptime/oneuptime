@@ -30359,7 +30359,7 @@
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "{{count}} av dem er allerede i en annen episode og blir derfor ikke lagt til. En hendelse kan bare være i én episode i dette prosjektet.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "{{count}} av dem er allerede i en annen episode og blir derfor ikke lagt til. En hendelse kan bare være i én episode i dette prosjektet.",
   "Dark": "Mørkt",
-  "Every visitor sees the dark page. Use a logo made for a dark background.": "Alle besøkende ser den mørke siden. Bruk en logo laget for mørk bakgrunn.",
+  "Every visitor sees the dark page.": "Alle besøkende ser den mørke siden.",
   "Every visitor sees the light page.": "Alle besøkende ser den lyse siden.",
   "How your status page looks to visitors.": "Slik ser statussiden din ut for besøkende.",
   "Light": "Lyst",

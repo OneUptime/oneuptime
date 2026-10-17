@@ -146,6 +146,17 @@ export function doesStatusPageThemeFollowDevice(
   return theme === StatusPageTheme.System;
 }
 
+/*
+ * Whether a visitor can ever see the page dark: a Dark page, and a page
+ * that follows the device. Its logo - the one logo the page has, made for
+ * the light page and for the emails the page sends, which are light too -
+ * then sits on a light backdrop while the page is dark (StatusPage's
+ * LogoPlate), so it reads as it does on the light page.
+ */
+export function canStatusPageThemeBeDark(theme: StatusPageTheme): boolean {
+  return theme === StatusPageTheme.Dark || theme === StatusPageTheme.System;
+}
+
 // A visitor's own pick, as it was kept in their browser, or null for none.
 export function parseStatusPageVisitorColorScheme(
   value: unknown,

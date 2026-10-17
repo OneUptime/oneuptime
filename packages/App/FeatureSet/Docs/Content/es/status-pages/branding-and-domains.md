@@ -47,8 +47,10 @@ La tarjeta **Tema**, justo debajo del logotipo, decide cómo ven la página sus 
 | Opción | Lo que ven los visitantes |
 | ------ | ----------------- |
 | **Claro** | La página clara, tenga como tenga configurado su dispositivo. Las páginas de estado creadas antes de que existiera el ajuste están en **Claro**, así que se ven como siempre. |
-| **Oscuro** | La página oscura, tenga como tenga configurado su dispositivo. El logotipo se muestra tal cual, así que usa uno pensado para un fondo oscuro. |
-| **Según el dispositivo de cada visitante** | Clara u oscura, según esté configurado su dispositivo, y cambia con él mientras la página está abierta. Un botón de sol o de luna en el pie de la página permite al visitante cambiarla, y su navegador recuerda la elección. En la página oscura, el logotipo se coloca sobre un fondo claro, así que un logotipo pensado para una página blanca se sigue viendo bien. |
+| **Oscuro** | La página oscura, tenga como tenga configurado su dispositivo. |
+| **Según el dispositivo de cada visitante** | Clara u oscura, según esté configurado su dispositivo, y cambia con él mientras la página está abierta. Un botón de sol o de luna en el pie de la página permite al visitante cambiarla, y su navegador recuerda la elección. |
+
+En la página oscura, el logotipo se coloca sobre un fondo claro, así que un logotipo pensado para una página blanca se sigue viendo bien.
 
 Una página de estado creada a partir de ahora empieza con **Según el dispositivo de cada visitante**. En la API y en Terraform el campo es `theme`, con uno de los valores `Light`, `Dark` o `System` (**Según el dispositivo de cada visitante**), escritos exactamente así; cualquier otro valor se rechaza. Una configuración de Terraform que no indica ningún `theme` recibe `Light`, así que una configuración escrita antes del ajuste nunca planifica un cambio en una página que gestiona.
 

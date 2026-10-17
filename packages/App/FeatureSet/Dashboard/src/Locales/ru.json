@@ -30359,7 +30359,7 @@
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "Уже входят в другой эпизод, поэтому не будут добавлены: {{count}}. В этом проекте инцидент может входить только в один эпизод.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "Уже входит в другой эпизод, поэтому не будет добавлен: {{count}}. В этом проекте инцидент может входить только в один эпизод.",
   "Dark": "Тёмная",
-  "Every visitor sees the dark page. Use a logo made for a dark background.": "Все посетители видят тёмную страницу. Используйте логотип, рассчитанный на тёмный фон.",
+  "Every visitor sees the dark page.": "Все посетители видят тёмную страницу.",
   "Every visitor sees the light page.": "Все посетители видят светлую страницу.",
   "How your status page looks to visitors.": "Как ваша страница статуса выглядит для посетителей.",
   "Light": "Светлая",

@@ -47,8 +47,10 @@ O cartão **Tema**, logo abaixo do logotipo, define como a página aparece para 
 | Opção | O que os visitantes veem |
 | ------ | ----------------- |
 | **Claro** | A página clara, seja qual for a configuração do dispositivo deles. As páginas de status criadas antes de existir essa opção estão em **Claro**, então continuam com a aparência de sempre. |
-| **Escuro** | A página escura, seja qual for a configuração do dispositivo deles. O logotipo aparece como é, então use um feito para fundo escuro. |
-| **Conforme o dispositivo de cada visitante** | Clara ou escura, conforme o dispositivo deles está configurado, e muda junto com ele enquanto a página está aberta. Um botão de sol ou de lua no rodapé da página permite ao visitante trocar, e o navegador dele lembra a escolha. Na página escura, o logotipo fica sobre um fundo claro, então um logotipo feito para uma página branca continua bem visível. |
+| **Escuro** | A página escura, seja qual for a configuração do dispositivo deles. |
+| **Conforme o dispositivo de cada visitante** | Clara ou escura, conforme o dispositivo deles está configurado, e muda junto com ele enquanto a página está aberta. Um botão de sol ou de lua no rodapé da página permite ao visitante trocar, e o navegador dele lembra a escolha. |
+
+Na página escura, o logotipo fica sobre um fundo claro, então um logotipo feito para uma página branca continua bem visível.
 
 Uma página de status criada de agora em diante começa com **Conforme o dispositivo de cada visitante**. Pela API e pelo Terraform, o campo é `theme`, com um dos valores `Light`, `Dark` ou `System` (**Conforme o dispositivo de cada visitante**), escritos exatamente assim; qualquer outro valor é recusado. Uma configuração do Terraform que não define nenhum `theme` recebe `Light`, então uma configuração escrita antes dessa opção nunca planeja uma mudança em uma página que gerencia.
 

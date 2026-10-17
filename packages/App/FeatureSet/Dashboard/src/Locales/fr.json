@@ -30359,7 +30359,7 @@
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "{{count}} éléments de la sélection sont déjà dans un autre épisode et ne seront donc pas ajoutés. Un incident ne peut faire partie que d'un seul épisode dans ce projet.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "{{count}} élément de la sélection est déjà dans un autre épisode et ne sera donc pas ajouté. Un incident ne peut faire partie que d'un seul épisode dans ce projet.",
   "Dark": "Sombre",
-  "Every visitor sees the dark page. Use a logo made for a dark background.": "Tous les visiteurs voient la page sombre. Utilisez un logo conçu pour un fond sombre.",
+  "Every visitor sees the dark page.": "Tous les visiteurs voient la page sombre.",
   "Every visitor sees the light page.": "Tous les visiteurs voient la page claire.",
   "How your status page looks to visitors.": "L'apparence de votre page de statut pour les visiteurs.",
   "Light": "Clair",

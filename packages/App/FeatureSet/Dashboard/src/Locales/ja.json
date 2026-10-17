@@ -30359,7 +30359,7 @@
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "うち {{count}} 件はすでに別のエピソードに含まれているため、追加されません。このプロジェクトでは、インシデントは 1 つのエピソードにしか含めることができません。",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "うち {{count}} 件はすでに別のエピソードに含まれているため、追加されません。このプロジェクトでは、インシデントは 1 つのエピソードにしか含めることができません。",
   "Dark": "ダーク",
-  "Every visitor sees the dark page. Use a logo made for a dark background.": "すべての訪問者にダークページを表示します。暗い背景向けのロゴを使用してください。",
+  "Every visitor sees the dark page.": "すべての訪問者にダークページを表示します。",
   "Every visitor sees the light page.": "すべての訪問者にライトページを表示します。",
   "How your status page looks to visitors.": "訪問者に表示されるステータスページの見た目です。",
   "Light": "ライト",

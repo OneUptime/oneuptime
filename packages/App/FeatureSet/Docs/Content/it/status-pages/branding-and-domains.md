@@ -47,8 +47,10 @@ La scheda **Tema**, subito sotto il logo, decide come appare la pagina ai suoi v
 | Opzione | Cosa vedono i visitatori |
 | ------ | ----------------- |
 | **Chiaro** | La pagina chiara, comunque sia impostato il loro dispositivo. Le pagine di stato create prima che l'impostazione esistesse sono su **Chiaro**, quindi hanno l'aspetto di sempre. |
-| **Scuro** | La pagina scura, comunque sia impostato il loro dispositivo. Il logo è mostrato così com'è, quindi usatene uno pensato per uno sfondo scuro. |
-| **Come il dispositivo di ogni visitatore** | Chiara o scura, come è impostato il loro dispositivo, e cambia con esso mentre la pagina è aperta. Un pulsante con il sole o la luna nel footer della pagina permette al visitatore di cambiarla, e il suo browser ricorda la scelta. Sulla pagina scura il logo poggia su uno sfondo chiaro, così anche un logo pensato per una pagina bianca resta ben visibile. |
+| **Scuro** | La pagina scura, comunque sia impostato il loro dispositivo. |
+| **Come il dispositivo di ogni visitatore** | Chiara o scura, come è impostato il loro dispositivo, e cambia con esso mentre la pagina è aperta. Un pulsante con il sole o la luna nel footer della pagina permette al visitatore di cambiarla, e il suo browser ricorda la scelta. |
+
+Sulla pagina scura il logo poggia su uno sfondo chiaro, così anche un logo pensato per una pagina bianca resta ben visibile.
 
 Una pagina di stato creata da ora in poi parte con **Come il dispositivo di ogni visitatore**. Tramite l'API e Terraform il campo è `theme`, con uno dei valori `Light`, `Dark` o `System` (**Come il dispositivo di ogni visitatore**), scritti esattamente così; qualsiasi altro valore viene rifiutato. Una configurazione Terraform che non imposta alcun `theme` riceve `Light`, quindi una configurazione scritta prima dell'impostazione non pianifica mai una modifica a una pagina che gestisce.
 

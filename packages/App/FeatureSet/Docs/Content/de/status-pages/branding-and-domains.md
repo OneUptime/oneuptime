@@ -47,8 +47,10 @@ Die Karte **Design**, direkt unter dem Logo, legt fest, wie die Seite für ihre 
 | Auswahl | Was Besucher sehen |
 | ------ | ----------------- |
 | **Hell** | Die helle Seite, egal wie ihr Gerät eingestellt ist. Statusseiten, die vor dieser Einstellung angelegt wurden, sind **Hell**, sie sehen also aus wie immer. |
-| **Dunkel** | Die dunkle Seite, egal wie ihr Gerät eingestellt ist. Das Logo wird so gezeigt, wie es ist; verwenden Sie also eines, das für einen dunklen Hintergrund gemacht ist. |
-| **Wie das Gerät des Besuchers** | Hell oder dunkel, wie ihr Gerät eingestellt ist, und die Seite wechselt mit dem Gerät, solange sie offen ist. Eine Schaltfläche mit Sonne oder Mond in der Fußzeile der Seite lässt Besucher umschalten, und ihr Browser merkt sich die Wahl. Auf der dunklen Seite steht das Logo auf einem hellen Hintergrund, sodass auch ein Logo für eine weiße Seite gut zu sehen bleibt. |
+| **Dunkel** | Die dunkle Seite, egal wie ihr Gerät eingestellt ist. |
+| **Wie das Gerät des Besuchers** | Hell oder dunkel, wie ihr Gerät eingestellt ist, und die Seite wechselt mit dem Gerät, solange sie offen ist. Eine Schaltfläche mit Sonne oder Mond in der Fußzeile der Seite lässt Besucher umschalten, und ihr Browser merkt sich die Wahl. |
+
+Auf der dunklen Seite steht das Logo auf einem hellen Hintergrund, sodass auch ein Logo für eine weiße Seite gut zu sehen bleibt.
 
 Eine Statusseite, die ab jetzt angelegt wird, beginnt mit **Wie das Gerät des Besuchers**. Über die API und Terraform heißt das Feld `theme`, mit einem der Werte `Light`, `Dark` oder `System` (**Wie das Gerät des Besuchers**), genau so geschrieben; jeder andere Wert wird abgelehnt. Eine Terraform-Konfiguration, die kein `theme` setzt, bekommt `Light`, sodass eine Konfiguration von vor dieser Einstellung nie eine Änderung an einer Seite plant, die sie verwaltet.
 

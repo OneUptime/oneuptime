@@ -30359,7 +30359,7 @@
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "{{count}} مورد از آن‌ها از قبل در اپیزود دیگری هستند، پس افزوده نمی‌شوند. در این پروژه هر حادثه فقط می‌تواند در یک اپیزود باشد.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "{{count}} مورد از آن‌ها از قبل در اپیزود دیگری است، پس افزوده نمی‌شود. در این پروژه هر حادثه فقط می‌تواند در یک اپیزود باشد.",
   "Dark": "تیره",
-  "Every visitor sees the dark page. Use a logo made for a dark background.": "همه بازدیدکنندگان صفحه تیره را می‌بینند. از لوگویی استفاده کنید که برای پس‌زمینه تیره ساخته شده است.",
+  "Every visitor sees the dark page.": "همه بازدیدکنندگان صفحه تیره را می‌بینند.",
   "Every visitor sees the light page.": "همه بازدیدکنندگان صفحه روشن را می‌بینند.",
   "How your status page looks to visitors.": "ظاهر صفحه وضعیت شما برای بازدیدکنندگان.",
   "Light": "روشن",

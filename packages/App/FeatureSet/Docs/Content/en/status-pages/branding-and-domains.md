@@ -47,8 +47,10 @@ The **Theme** card, right under the logo, sets how the page looks to its visitor
 | Choice | What visitors see |
 | ------ | ----------------- |
 | **Light** | The light page, whatever their device is set to. Status pages made before the setting existed are **Light**, so they look as they always have. |
-| **Dark** | The dark page, whatever their device is set to. The logo is shown as it is, so use one made for a dark background. |
-| **Match each visitor's device** | Light or dark, as their device is set, changing with it while the page is open. A sun or moon button in the page's footer lets a visitor switch, and their browser remembers the choice. On the dark page the logo sits on a light backdrop, so a logo made for a white page still reads. |
+| **Dark** | The dark page, whatever their device is set to. |
+| **Match each visitor's device** | Light or dark, as their device is set, changing with it while the page is open. A sun or moon button in the page's footer lets a visitor switch, and their browser remembers the choice. |
+
+On the dark page the logo sits on a light backdrop, so a logo made for a white page still reads.
 
 A status page made from now on starts with **Match each visitor's device**. Through the API and Terraform the field is `theme`, one of `Light`, `Dark` or `System` (**Match each visitor's device**), written exactly so; any other value is refused. A Terraform configuration that sets no `theme` gets `Light`, so a configuration written before the setting never plans a change on a page it manages.
 

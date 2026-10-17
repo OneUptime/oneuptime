@@ -402,13 +402,31 @@ describe("the Theme section", () => {
     );
   });
 
-  it("says what a Dark page and a page that follows the device do with the logo, as the card does", () => {
-    expect(section).toContain(
-      "The logo is shown as it is, so use one made for a dark background.",
-    );
-    expect(section).toContain(
-      "On the dark page the logo sits on a light backdrop, so a logo made for a white page still reads.",
-    );
+  it("says the logo sits on a light backdrop on every dark page, under the choices, as the status page draws it", () => {
+    /*
+     * A Dark page and one that follows the device both put the page's one
+     * logo on a light backdrop while dark (StatusPage's LogoPlate), so the
+     * sentence is a paragraph of its own under the table, not one row's.
+     */
+    const backdrop: string =
+      "On the dark page the logo sits on a light backdrop, so a logo made for a white page still reads.";
+    const lines: Array<string> = section.split("\n");
+    const lastRow: number = lines.findIndex((line: string): boolean => {
+      return line.startsWith("| **Match each visitor's device** |");
+    });
+
+    expect(lastRow).toBeGreaterThan(-1);
+    expect(lines.slice(lastRow + 1, lastRow + 3)).toEqual(["", backdrop]);
+    expect(lines[lastRow]).not.toContain("logo");
+    expect(
+      lines.find((line: string): boolean => {
+        return line.startsWith("| **Dark** |");
+      }),
+    ).toBe("| **Dark** | The dark page, whatever their device is set to. |");
+
+    // Nothing asks an owner for a second logo, or tells them their one shows as it is.
+    expect(section).not.toContain("shown as it is");
+    expect(section).not.toContain("made for a dark background");
     expect(section).toContain(
       "A sun or moon button in the page's footer lets a visitor switch, and their browser remembers the choice.",
     );

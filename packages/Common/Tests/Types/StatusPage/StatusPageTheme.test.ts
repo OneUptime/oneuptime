@@ -23,6 +23,7 @@ import StatusPageTheme, {
   STATUS_PAGE_VISITOR_THEME_STORAGE_KEY,
   StatusPageColorScheme,
   StatusPageThemeHead,
+  canStatusPageThemeBeDark,
   doesStatusPageThemeFollowDevice,
   getStatusPageColorScheme,
   getStatusPageThemeFromHeadSetting,
@@ -58,6 +59,14 @@ describe("the three themes", () => {
     expect(doesStatusPageThemeFollowDevice(StatusPageTheme.System)).toBe(true);
     expect(doesStatusPageThemeFollowDevice(StatusPageTheme.Light)).toBe(false);
     expect(doesStatusPageThemeFollowDevice(StatusPageTheme.Dark)).toBe(false);
+  });
+
+  test("a visitor can see a Dark page dark, and one that follows their device, never a Light one", () => {
+    expect(canStatusPageThemeBeDark(StatusPageTheme.Dark)).toBe(true);
+    expect(canStatusPageThemeBeDark(StatusPageTheme.System)).toBe(true);
+    expect(canStatusPageThemeBeDark(StatusPageTheme.Light)).toBe(false);
+    // A theme nobody can read is the light page.
+    expect(canStatusPageThemeBeDark(parseStatusPageTheme("Sepia"))).toBe(false);
   });
 });
 

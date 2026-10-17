@@ -86,12 +86,11 @@ export interface StatusPageThemeChoice {
 /*
  * The three choices, in the order they are offered: the light page every
  * status page has been, the dark one, and the one that follows each
- * visitor. Each one sentence or two, beside a picture of the page in it
- * (StatusPageThemePreview). The logo is mentioned only where its owner has
- * something to do: a Dark page shows it as it is, so they are told to use
- * one made for a dark background. A page that follows the visitor needs
- * nothing from them - its logo sits on a light backdrop on the dark page
- * (StatusPage's LogoPlate) - so its sentence says only what visitors get.
+ * visitor. Each says only what visitors get, in a sentence or two, beside a
+ * picture of the page in it (StatusPageThemePreview). None asks anything of
+ * the owner's logo: the page has one, made for the light page and the
+ * emails, and wherever the page is dark it sits on a light backdrop
+ * (StatusPage's LogoPlate), so it reads on every choice as it is.
  */
 export const STATUS_PAGE_THEME_CHOICES: ReadonlyArray<StatusPageThemeChoice> = [
   {
@@ -102,9 +101,7 @@ export const STATUS_PAGE_THEME_CHOICES: ReadonlyArray<StatusPageThemeChoice> = [
   {
     value: StatusPageTheme.Dark,
     title: translationKey("Dark"),
-    description: translationKey(
-      "Every visitor sees the dark page. Use a logo made for a dark background.",
-    ),
+    description: translationKey("Every visitor sees the dark page."),
   },
   {
     value: StatusPageTheme.System,

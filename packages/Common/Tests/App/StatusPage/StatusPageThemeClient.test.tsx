@@ -662,10 +662,15 @@ describe("the footer's controls for the visitor", () => {
 });
 
 describe("the logo's backdrop", () => {
-  test("is offered only on a page that follows the visitor's device", () => {
+  test("is offered on every page a visitor can see dark: Dark, and one that follows the device", () => {
+    /*
+     * The page's one logo is made for the light page and its emails; a
+     * Light page never needs the backdrop, and the others need it whenever
+     * they are dark (Theme.css draws it only under html.dark).
+     */
     const cases: Array<[StatusPageTheme, boolean]> = [
       [StatusPageTheme.Light, false],
-      [StatusPageTheme.Dark, false],
+      [StatusPageTheme.Dark, true],
       [StatusPageTheme.System, true],
     ];
 
@@ -691,38 +696,41 @@ describe("the logo's backdrop", () => {
     }
   });
 
-  test("the header's logo sits on it on a System page", () => {
-    act(() => {
-      StatusPageThemeUtil.setPageTheme(StatusPageTheme.System);
-    });
+  test.each([[StatusPageTheme.System], [StatusPageTheme.Dark]])(
+    "the header's logo sits on it on a %s page",
+    (theme: StatusPageTheme) => {
+      act(() => {
+        StatusPageThemeUtil.setPageTheme(theme);
+      });
 
-    const logo: File = new File();
-    logo.file = new Uint8Array([
-      60, 115, 118, 103, 47, 62,
-    ]) as unknown as Buffer;
-    logo.fileType = MimeType.svg;
+      const logo: File = new File();
+      logo.file = new Uint8Array([
+        60, 115, 118, 103, 47, 62,
+      ]) as unknown as Buffer;
+      logo.fileType = MimeType.svg;
 
-    // jsdom has no object URLs; the header draws the logo from one.
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      writable: true,
-      value: (): string => {
-        return "blob:logo";
-      },
-    });
+      // jsdom has no object URLs; the header draws the logo from one.
+      Object.defineProperty(URL, "createObjectURL", {
+        configurable: true,
+        writable: true,
+        value: (): string => {
+          return "blob:logo";
+        },
+      });
 
-    render(
-      <StatusPageHeader
-        links={[]}
-        logo={logo}
-        logoAltText="Acme"
-        onLogoClicked={() => {}}
-      />,
-    );
+      render(
+        <StatusPageHeader
+          links={[]}
+          logo={logo}
+          logoAltText="Acme"
+          onLogoClicked={() => {}}
+        />,
+      );
 
-    const plate: HTMLElement = document.getElementById("status-page-logo")!;
+      const plate: HTMLElement = document.getElementById("status-page-logo")!;
 
-    expect(plate).toHaveAttribute(LOGO_PLATE_ATTRIBUTE, "");
-    expect(plate.querySelector("img")).toHaveAttribute("alt", "Acme");
-  });
+      expect(plate).toHaveAttribute(LOGO_PLATE_ATTRIBUTE, "");
+      expect(plate.querySelector("img")).toHaveAttribute("alt", "Acme");
+    },
+  );
 });

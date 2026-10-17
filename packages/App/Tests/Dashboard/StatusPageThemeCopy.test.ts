@@ -25,8 +25,9 @@ import path from "path";
 /*
  * Theme, on a status page's Branding page (StatusPageThemeCopy): one choice
  * of three, in the plain words a status page owner reads - Light, Dark, or
- * Match each visitor's device - each with one sentence on what visitors get,
- * and what the page does with the one logo it has.
+ * Match each visitor's device - each with a sentence or two on what
+ * visitors get, and nothing asked of the one logo the page has: wherever the
+ * page is dark, the logo sits on a light backdrop (StatusPage's LogoPlate).
  *
  * The card itself is rendered in Common/Tests/App/Dashboard/
  * StatusPageThemeCard.test.tsx; this holds the words and the rules the card
@@ -109,34 +110,31 @@ describe("the three choices", () => {
     }
   });
 
-  test("Dark tells the owner the logo is shown as it is, so it should be one made for a dark background", () => {
-    expect(STATUS_PAGE_THEME_CHOICES[1]!.description).toContain(
-      "logo made for a dark background",
+  test("Light and Dark say what every visitor sees, the one as the other", () => {
+    expect(STATUS_PAGE_THEME_CHOICES[0]!.description).toBe(
+      "Every visitor sees the light page.",
+    );
+    expect(STATUS_PAGE_THEME_CHOICES[1]!.description).toBe(
+      "Every visitor sees the dark page.",
     );
   });
 
-  test("the visitor's device says visitors can switch it in the footer, and asks nothing of the owner", () => {
-    const description: string = STATUS_PAGE_THEME_CHOICES[2]!.description;
-
-    expect(description).toBe(
+  test("the visitor's device says visitors can switch it in the footer", () => {
+    expect(STATUS_PAGE_THEME_CHOICES[2]!.description).toBe(
       "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.",
     );
+  });
 
+  test("no choice asks anything of the logo: wherever the page is dark it sits on a light backdrop", () => {
     /*
-     * The logo needs nothing from its owner on such a page - it sits on a
-     * light backdrop on the dark page (StatusPage's LogoPlate) - so the
-     * sentence leaves it out. Only Dark, whose logo is shown as it is, asks.
+     * The page's one logo is made for the light page and for the emails the
+     * page sends, which are light too. A Dark page and one that follows the
+     * device put it on a light backdrop while dark (StatusPage's LogoPlate),
+     * so no owner has a logo to change, and none to break their emails with.
      */
-    expect(description).not.toContain("logo");
-    expect(
-      STATUS_PAGE_THEME_CHOICES.filter(
-        (choice: StatusPageThemeChoice): boolean => {
-          return choice.description.includes("logo");
-        },
-      ).map((choice: StatusPageThemeChoice): StatusPageTheme => {
-        return choice.value;
-      }),
-    ).toEqual([StatusPageTheme.Dark]);
+    for (const choice of STATUS_PAGE_THEME_CHOICES) {
+      expect(choice.description.toLowerCase()).not.toContain("logo");
+    }
   });
 
   test("each has its own radio test id", () => {
@@ -354,9 +352,8 @@ describe("translations", () => {
   );
 
   /*
-   * Each language's word for the logo, as its Dark sentence uses it: the
-   * sentence for the visitor's device leaves the logo out in every language,
-   * as the English does.
+   * Each language's word for the logo, as its "No logo uploaded." uses it:
+   * no choice's sentence names the logo, in any language, as in English.
    */
   const LOGO_WORDS: Record<string, string> = {
     de: "Logo",
@@ -378,22 +375,29 @@ describe("translations", () => {
   };
 
   test.each(OTHER_LOCALES)(
-    "%s says the visitor's device as shortly as the English, without the logo",
+    "%s says each choice as shortly as the English, without the logo",
     (locale: string) => {
       const translations: Record<string, unknown> = readLocale(locale);
-      const english: string = STATUS_PAGE_THEME_CHOICES[2]!.description;
-      const translated: string = translations[english] as string;
-      const darkSentence: string = translations[
-        STATUS_PAGE_THEME_CHOICES[1]!.description
-      ] as string;
-      const logo: string = LOGO_WORDS[locale]!;
+      const logo: string = LOGO_WORDS[locale]!.toLowerCase();
 
-      // The word is the one this language's Dark sentence uses for the logo.
-      expect([locale, darkSentence.includes(logo)]).toEqual([locale, true]);
-      expect([locale, translated.includes(logo)]).toEqual([locale, false]);
-      expect(translated.length).toBeLessThanOrEqual(
-        Math.ceil(english.length * 1.6),
-      );
+      // The word is the one this language uses for the logo.
+      expect([
+        locale,
+        String(translations["No logo uploaded."]).toLowerCase().includes(logo),
+      ]).toEqual([locale, true]);
+
+      for (const choice of STATUS_PAGE_THEME_CHOICES) {
+        const translated: string = translations[choice.description] as string;
+
+        expect([
+          locale,
+          choice.value,
+          translated.toLowerCase().includes(logo),
+        ]).toEqual([locale, choice.value, false]);
+        expect(translated.length).toBeLessThanOrEqual(
+          Math.ceil(choice.description.length * 1.6),
+        );
+      }
     },
   );
 

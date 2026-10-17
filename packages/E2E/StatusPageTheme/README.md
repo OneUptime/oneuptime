@@ -21,8 +21,10 @@ visitor's switch in the footer and what their browser remembers of it, and the d
 theme on every surface: no light box on the overview, the incident list and an
 incident, an announcement, the maintenance list and an event, the subscribe form,
 the private sign-in page and the not-found page; status text at 4.5:1; the very dark
-red of a long outage's bar with an edge; the logo on a light backdrop on a page that
-follows the device. Screenshots of every surface are under
+red of a long outage's bar with an edge; the logo on a light backdrop whenever a Dark
+page or one that follows the device is dark; and the footer's language and theme
+controls centred on a phone, around a switch a thumb can hit. Screenshots of every
+surface are under
 `output/playwright/status-page-theme-ui`.
 
 This checks real browser rendering and the app's theme handling; the API, the

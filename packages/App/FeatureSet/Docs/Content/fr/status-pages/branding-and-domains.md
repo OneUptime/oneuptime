@@ -47,8 +47,10 @@ La carte **Thème**, juste sous le logo, définit l'apparence de la page pour se
 | Option | Ce que voient les visiteurs |
 | ------ | ----------------- |
 | **Clair** | La page claire, quel que soit le réglage de leur appareil. Les pages de statut créées avant l'existence de ce réglage sont en **Clair**, elles gardent donc l'apparence qu'elles ont toujours eue. |
-| **Sombre** | La page sombre, quel que soit le réglage de leur appareil. Le logo est affiché tel quel, utilisez donc un logo conçu pour un fond sombre. |
-| **Selon l'appareil de chaque visiteur** | Claire ou sombre, selon le réglage de leur appareil, et elle change avec lui tant que la page est ouverte. Un bouton soleil ou lune dans le pied de page permet au visiteur de basculer, et son navigateur retient ce choix. Sur la page sombre, le logo est posé sur un fond clair, si bien qu'un logo conçu pour une page blanche reste lisible. |
+| **Sombre** | La page sombre, quel que soit le réglage de leur appareil. |
+| **Selon l'appareil de chaque visiteur** | Claire ou sombre, selon le réglage de leur appareil, et elle change avec lui tant que la page est ouverte. Un bouton soleil ou lune dans le pied de page permet au visiteur de basculer, et son navigateur retient ce choix. |
+
+Sur la page sombre, le logo est posé sur un fond clair, si bien qu'un logo conçu pour une page blanche reste lisible.
 
 Une page de statut créée à partir de maintenant commence avec **Selon l'appareil de chaque visiteur**. Dans l'API et dans Terraform, le champ est `theme`, avec l'une des valeurs `Light`, `Dark` ou `System` (**Selon l'appareil de chaque visiteur**), écrites exactement ainsi ; toute autre valeur est refusée. Une configuration Terraform qui ne définit aucun `theme` reçoit `Light`, si bien qu'une configuration écrite avant ce réglage ne planifie jamais de changement sur une page qu'elle gère.
 
