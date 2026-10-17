@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30323,
-    "untranslated": 9899
+    "keys": 30324,
+    "untranslated": 9850
   },
   "sameAsEnglish": [
     " incidents",
@@ -208,6 +208,7 @@
     "Hong Kong",
     "Hong Kong (+852)",
     "Horizontal Pod Autoscalers",
+    "ICMP (ping)",
     "Identification",
     "Image",
     "Images",

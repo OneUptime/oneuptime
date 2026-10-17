@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30323,
-    "untranslated": 17150
+    "keys": 30324,
+    "untranslated": 17056
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -13,6 +13,7 @@
     "Failover",
     "Gateway",
     "Hardware",
+    "ICMP (ping)",
     "Interface",
     "Interface {{index}}",
     "Interfaces",

@@ -44,7 +44,7 @@ export const MONITORING_METHOD_OPTIONS: Array<DropdownOption> = [
  */
 // English keys: the forms look their descriptions and placeholders up.
 export const MONITOR_BINDING_FIELD_DESCRIPTION: string = translationKey(
-  'The monitor whose status IS this device\'s status — the override for gear a probe cannot reach, or whose health is better judged by an HTTP or port check. Leave it empty to record the device now and bind a monitor later — it still belongs to a site and still appears on the map, and its status reads Pending, tagged "No monitor", until one is bound. Most devices do not need this: switch the method to Probe and the assigned probe pings the device itself.',
+  "Its status becomes the device's status. Leave it empty to bind a monitor later.",
 );
 
 export const MONITOR_BINDING_FIELD_PLACEHOLDER: string = translationKey(
@@ -59,7 +59,7 @@ export const MONITOR_BINDING_FIELD_PLACEHOLDER: string = translationKey(
  * Ping or IP monitor", which read as a prerequisite; the binding is optional.
  */
 export const MONITORING_METHOD_FIELD_DESCRIPTION: string = translationKey(
-  "Probe is the normal choice: the assigned probe pings this device on its schedule, and walks it over SNMP as well whenever it has credentials — a phone, a camera or a PDU with no SNMP is simply pinged. Pick Bound monitor only when nothing can reach the device from a probe, or when an existing HTTP, port or Ping monitor already judges its health; that monitor's status then becomes the device's status and polling stops. Either way the device belongs to a site, carries labels, and appears on the network topology map.",
+  "Probe pings the device and walks it over SNMP when it has credentials. Use Bound monitor if no probe can reach it.",
 );
 
 /*
@@ -71,7 +71,7 @@ export const MONITORING_METHOD_FIELD_DESCRIPTION: string = translationKey(
  * walked. One sentence for all four keeps that from happening again.
  */
 export const HOSTNAME_FIELD_DESCRIPTION: string = translationKey(
-  "The device's address — an IP or a hostname. A probe-polled device is pinged here on its schedule, and walked over SNMP at the same address once it has credentials; a monitor-backed device is only identified by it. It is also the address a Ping monitor created for the device checks.",
+  "The device's IP address or hostname.",
 );
 
 /*
@@ -109,9 +109,9 @@ export function isMonitorBackedDevice(
  * topology dialog agree about what an empty community string means.
  */
 export const SNMP_STEP_DESCRIPTION: string = translationKey(
-  "Optional. Leave the community string (or v3 username) empty and this device is pinged only — it still gets a status from its first poll. Add credentials, or pick a credential profile, to walk it over SNMP as well: interfaces, hardware inventory, neighbours and health OIDs.",
+  "Without credentials the device is only pinged. Add them to also read its interfaces, inventory and health.",
 );
 
 export const PROBE_FIELD_DESCRIPTION: string = translationKey(
-  "The probe that pings this device on its schedule, walks it over SNMP when it has credentials, and receives its traps, syslog and NetFlow. It has to be able to reach the device directly, so pick one deployed on the device's network — a probe on the public internet cannot reach a private address. Polling starts as soon as the device is created.",
+  "Pings the device, walks it over SNMP and receives its traps, syslog and flows. It must reach the device directly.",
 );

@@ -496,7 +496,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * Network Device guide.
        */
       description:
-        "Asks hosts with no SNMP name for their Windows name over UDP 137. Turn it off if your intrusion detection flags NetBIOS queries.",
+        "Asks hosts with no SNMP name for their Windows name (UDP 137). Turn it off if your intrusion detection flags it.",
     },
     /*
      * How the hosts this scan finds are NAMED when they import (OneUptime

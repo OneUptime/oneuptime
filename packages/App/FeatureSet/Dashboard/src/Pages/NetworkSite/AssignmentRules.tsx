@@ -52,7 +52,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
           // The menu's name: "Assignment Rules" left out what they assign to.
           title: "Site Assignment Rules",
           description:
-            "Put devices into sites by their address or name, as they are added. When several rules match, the highest in the list wins: drag to reorder. A device you put in a site by hand stays there until its address or name changes. Run Now applies a rule to the devices you already have.",
+            "Put devices into sites by address or name as they are added, or with Run Now. The highest matching rule wins: drag to reorder.",
         }}
         noItemsMessage="No assignment rules yet. Add one to route newly discovered devices into the right site automatically."
         actionButtons={[
@@ -145,7 +145,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
             title: "Hostname",
             stepId: "match-criteria",
             description:
-              "Wildcard pattern ('*' matches any run of characters, case-insensitive). It is matched against the device's hostname, its SNMP system name, its display name and its DNS name — a match on any of them assigns the device. Example: *0664* matches UN0664LANSWI03.",
+              "A * pattern, such as *0664*, matched against the device's hostname, SNMP name, name and DNS name.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "unit-1042-*",

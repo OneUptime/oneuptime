@@ -89,7 +89,7 @@ const NetworkDeviceLinkRulesPage: FunctionComponent<
       cardProps={{
         title: "Network Device Link Rules",
         description:
-          "Draw uplinks on the topology map from labels: every device with the child labels is linked to the one device with the parent labels.",
+          "Draw uplinks on the map from labels: devices with the child labels link to the one with the parent labels.",
       }}
       helpContent={{
         title: "How Network Device Link Rules Work",
@@ -193,7 +193,7 @@ const NetworkDeviceLinkRulesPage: FunctionComponent<
           stepId: "devices",
           sectionTitle: "The device they uplink to",
           sectionDescription:
-            "These labels must identify exactly one device. If none or several carry them, the rule draws nothing and says so on the topology map.",
+            "These labels must pick out exactly one device, or the rule draws nothing.",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
             type: Label,
@@ -213,7 +213,7 @@ const NetworkDeviceLinkRulesPage: FunctionComponent<
           defaultValue: NetworkDeviceLinkRuleScope.Project,
           placeholder: "Project",
           description:
-            "Project: the parent labels must name exactly one device across the whole project. Site: they must name exactly one device inside each site, and the rule is applied once per site. Devices that are not assigned to a site are skipped by a site-scoped rule.",
+            "Project: one parent across the project. Site: one parent in each site; devices without a site are skipped.",
         },
       ]}
       showRefreshButton={true}

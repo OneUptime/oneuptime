@@ -67,7 +67,7 @@ const NetworkSnmpCredentialProfilesPage: FunctionComponent<
         cardProps={{
           title: "SNMP Credentials",
           description:
-            "Reusable SNMP credential sets. A device is walked with the first usable set it finds — its own credentials, then the profile on the device, then the profile on its site — and is pinged only when it has none. A profile that devices or sites still use cannot be deleted.",
+            "A device uses its own credentials, then the profile on the device, then its site's. A profile in use cannot be deleted.",
         }}
         helpContent={{
           title: "How SNMP Credential Profiles Work",
@@ -137,7 +137,7 @@ const NetworkSnmpCredentialProfilesPage: FunctionComponent<
             placeholder: "Branch offices - v2c",
             validation: { minLength: 2 },
             description:
-              "What this credential set is for — usually where it is deployed or which platform it opens. Names are unique in the project.",
+              "Usually where it is used or what it opens, such as Core switches.",
           },
           {
             field: { description: true },
@@ -156,7 +156,7 @@ const NetworkSnmpCredentialProfilesPage: FunctionComponent<
            */
           ...getSnmpConfigFormFields({
             communityStringDescription:
-              "Required for SNMP V1 and V2c; not used for V3. Used for every device that picks this profile, on the device or through its site.",
+              "Required for V1 and V2c, not used by V3.",
             stepId: "credentials",
           }),
         ]}

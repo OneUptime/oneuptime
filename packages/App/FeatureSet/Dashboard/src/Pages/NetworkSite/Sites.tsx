@@ -434,7 +434,7 @@ const NetworkSites: FunctionComponent<
         cardProps={{
           title: "Sites",
           description:
-            "The places your devices are in - offices, stores, data centers - grouped as deep as you like. Each site shows the health of everything in it.",
+            "The places your devices are in, such as offices and stores. Each site shows the health of everything in it.",
           buttons: [
             /*
              * OUTLINE, not NORMAL/PRIMARY: BaseModelTable promotes the first
@@ -589,9 +589,9 @@ const NetworkSites: FunctionComponent<
             stepId: "hierarchy",
             sectionTitle: "Place This Site",
             sectionDescription:
-              "Optional. Any site that is not below this one in your site type hierarchy can be the parent. Sites of the type configured directly above are listed first.",
+              "Any site not below this one can be the parent. Sites of the type directly above are listed first.",
             description:
-              "Leave this empty to keep the site at the top level. Sites of a type below this one, and sites of a unit-level type, cannot be parents.",
+              "Leave it empty to keep the site at the top level.",
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: fetchParentNetworkSiteOptions,
             required: false,
@@ -605,9 +605,9 @@ const NetworkSites: FunctionComponent<
             stepId: "monitoring-defaults",
             sectionTitle: "Monitoring Defaults",
             sectionDescription:
-              "What a device registered into this site starts out with. Set these once and a device can be added by name and address alone.",
+              "What a device added to this site starts with.",
             description:
-              "The probe that pings and walks devices in this site unless a device names its own. A device created into this site with no probe inherits it (so does one moved here without a probe); devices that already have a probe keep it. Pick a custom probe deployed on this site's network — a probe on the public internet cannot reach a private address.",
+              "A device added here without a probe inherits it. A probe on the public internet cannot reach a private network.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Probe,
@@ -624,7 +624,7 @@ const NetworkSites: FunctionComponent<
             title: "Default SNMP Credential Profile",
             stepId: "monitoring-defaults",
             description:
-              "The SNMP credentials devices in this site are walked with when neither the device nor its own profile carries any. With a profile here, a device added to this site is walked over SNMP from its first poll; without one anywhere it is pinged only.",
+              "Used by devices here that have no credentials of their own. A device with none anywhere is pinged only.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSnmpCredentialProfile,

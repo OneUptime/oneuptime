@@ -379,7 +379,7 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
         ) : hasNoProfiles ? (
           <Modal
             title="No SNMP Credential Profiles Yet"
-            description="An SNMP Credential Profile is one named credential set — a community string, or a v3 user with its keys — shared by every device and site that picks it. Create one first, then come back and attach these devices to it."
+            description="An SNMP Credential Profile is a saved set of credentials. Create one first, then attach these devices to it."
             onClose={closeSetModal}
             closeButtonText="Close"
           >
@@ -394,7 +394,7 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
         ) : (
           <BasicFormModal<SetSnmpCredentialProfileFormData>
             title={SET_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE}
-            description="Every selected device is walked with this profile's credentials on its next poll. A device that carries its own SNMP credentials keeps using them — its own credentials win over the profile — and a monitor-backed device is not polled at all, so the profile has no effect on it."
+            description="From their next poll these devices use the profile, unless they have their own SNMP credentials. Monitor-backed devices are not polled."
             isLoading={isLoadingProfiles}
             onClose={closeSetModal}
             submitButtonText="Set Profile"

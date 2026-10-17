@@ -102,10 +102,10 @@ interface InheritedPlacement {
 const SNMP_STEP_TITLE: string = "SNMP Credentials";
 
 const SNMP_STEP_DESCRIPTION: string =
-  "Optional. Leave the community string empty to ping only; add credentials for interfaces, inventory and health. A device without them is pinged by its probe and reads Up or Down from that alone — credentials can be added later on its Settings page.";
+  "Leave the community string empty to only ping the device. Add it for interfaces, inventory and health.";
 
 const SNMP_COMMUNITY_FIELD_DESCRIPTION: string =
-  "Optional. Leave it empty to ping only; add it for interfaces, inventory and health. Used by SNMP V1 and V2c, not by V3.";
+  "Leave it empty to only ping. Used by SNMP V1 and V2c, not V3.";
 
 const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -327,7 +327,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
          * leaves the peer on the map as a separate unmanaged node.
          */
         description:
-          "The name this device advertises to its neighbours. Keep it, or set the hostname below to an address they report, so the map recognises this device as the one it already draws.",
+          "The name its neighbours report. Keep it so the map knows this is the device it already draws.",
         placeholder: "core-switch-01",
       },
       {
@@ -384,7 +384,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
          * Terraform callers may set it later), so the form does.
          */
         description:
-          "The probe that polls this device: it pings it on its schedule, and walks it over SNMP as well when the next step has credentials. It has to reach the device directly, so the probe already polling the switch this device hangs off is pre-selected when every neighbouring device agrees on one.",
+          "It pings the device, and walks it over SNMP when it has credentials. Picked for you when its neighbours agree on one.",
         sideLink: {
           text: "Create a custom probe",
           url: RouteUtil.populateRouteParams(
