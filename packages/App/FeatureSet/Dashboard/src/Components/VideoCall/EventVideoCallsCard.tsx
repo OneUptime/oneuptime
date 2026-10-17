@@ -33,6 +33,12 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import { scrollToAIInvestigationPanel } from "../AI/AIInvestigationStatus";
+import CallTranscriptBlock from "./CallTranscriptBlock";
+import {
+  formatCallTranscriptTime,
+  getCallSummarySectionId,
+} from "./CallTranscriptState";
 import StartVideoCallModal from "./StartVideoCallModal";
 import { EventVideoCall, VideoCallEventKind } from "./useEventVideoCalls";
 import VideoCallProviderLogo, {
@@ -57,6 +63,36 @@ export interface ComponentProps {
   // A call was started or removed: refresh the calls and the feed.
   onChanged: () => void;
   onRetry: () => void;
+  /*
+   * Opens what OneUptime AI read in a call's transcript, on the AI
+   * Investigation card. Scrolls to the call's section there when not given.
+   */
+  onReviewCallSummary?: ((callId: string) => void) | undefined;
+}
+
+/*
+ * Brings a call's section of the AI Investigation card into view - the
+ * whole card while the section is not there yet - and moves the focus to it.
+ */
+export function scrollToCallSummary(callId: string): void {
+  const section: HTMLElement | null = document.getElementById(
+    getCallSummarySectionId(callId),
+  );
+
+  if (!section) {
+    scrollToAIInvestigationPanel();
+    return;
+  }
+
+  const prefersReducedMotion: boolean =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  section.scrollIntoView({
+    behavior: prefersReducedMotion ? "auto" : "smooth",
+    block: "start",
+  });
+  section.focus({ preventScroll: true });
 }
 
 /*
@@ -87,17 +123,27 @@ export function getVideoCallHeadline(call: EventVideoCall): string {
   }
 }
 
-const CallRow: FunctionComponent<{
+interface CallRowProps {
   call: EventVideoCall;
   isPrimary: boolean;
   canRemove: boolean;
   onRemove: () => void;
-}> = (props: {
-  call: EventVideoCall;
-  isPrimary: boolean;
-  canRemove: boolean;
-  onRemove: () => void;
-}): ReactElement => {
+  /*
+   * An incident's call keeps its transcript (issue #4875): shown under the
+   * call, with what may be done with it. An alert's call has none.
+   */
+  transcript?:
+    | {
+        canManage: boolean;
+        onReview: () => void;
+        onChanged: () => void;
+      }
+    | undefined;
+}
+
+const CallRow: FunctionComponent<CallRowProps> = (
+  props: CallRowProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const call: EventVideoCall = props.call;
   const joinUrl: string = call.joinUrl || "";
@@ -114,11 +160,32 @@ const CallRow: FunctionComponent<{
         })
       : translator.translateText("Started from the API") || "";
 
+  // "5 minutes ago" in the reader's language, as the transcript's line says it.
   const startedAt: string = call.createdAt
-    ? OneUptimeDate.fromNow(OneUptimeDate.fromString(call.createdAt))
+    ? formatCallTranscriptTime({
+        date: OneUptimeDate.fromString(call.createdAt),
+        language: translator.language,
+        now: OneUptimeDate.getCurrentDate(),
+      })
     : "";
 
   const isHuddle: boolean = call.provider === VideoCallProvider.SlackHuddle;
+
+  const transcriptBlock: ReactElement = props.transcript ? (
+    <CallTranscriptBlock
+      call={call as IncidentVideoCall}
+      callLabel={
+        translator.translateText(getVideoCallHeadline(call)) ||
+        getVideoCallHeadline(call)
+      }
+      canManage={props.transcript.canManage}
+      isCompact={!props.isPrimary}
+      onReview={props.transcript.onReview}
+      onChanged={props.transcript.onChanged}
+    />
+  ) : (
+    <></>
+  );
 
   return (
     <li
@@ -126,7 +193,7 @@ const CallRow: FunctionComponent<{
       className={
         props.isPrimary
           ? "rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-          : "flex items-center gap-3 py-3"
+          : "py-3"
       }
     >
       <div className="flex items-start gap-3">
@@ -147,6 +214,7 @@ const CallRow: FunctionComponent<{
           <p className="mt-0.5 truncate text-xs text-gray-500">
             {startedAt ? `${startedBy} · ${startedAt}` : startedBy}
           </p>
+          {props.isPrimary ? <></> : transcriptBlock}
         </div>
         {!props.isPrimary && (
           <a
@@ -174,27 +242,39 @@ const CallRow: FunctionComponent<{
             <Icon icon={IconProp.VideoCamera} className="h-4 w-4" />
             {translator.translateText(isHuddle ? "Join huddle" : "Join call")}
           </a>
-          <CopyTextButton
-            textToBeCopied={joinUrl}
-            label="Copy link"
-            size="md"
-            variant="soft"
-          />
-          {props.canRemove && (
-            <Button
-              title="Remove"
-              icon={IconProp.Trash}
-              buttonStyle={ButtonStyleType.ICON}
-              buttonSize={ButtonSize.Small}
-              ariaLabel={translator.translateText("Remove this call")}
-              tooltip={translator.translateText(
-                "Remove this call from the page. The meeting itself is not deleted.",
-              )}
-              onClick={props.onRemove}
+          {/*
+            Copy link and Remove wrap as one: when the row is too narrow
+            for all three, Join call takes its line and the two go under
+            it, never Remove on a line of its own.
+          */}
+          <div
+            data-testid="event-video-call-secondary-actions"
+            className="flex flex-shrink-0 items-center gap-2"
+          >
+            <CopyTextButton
+              textToBeCopied={joinUrl}
+              label="Copy link"
+              size="md"
+              variant="soft"
             />
-          )}
+            {props.canRemove && (
+              <Button
+                title="Remove"
+                icon={IconProp.Trash}
+                buttonStyle={ButtonStyleType.ICON}
+                buttonSize={ButtonSize.Small}
+                ariaLabel={translator.translateText("Remove this call")}
+                tooltip={translator.translateText(
+                  "Remove this call from the page. The meeting itself is not deleted.",
+                )}
+                onClick={props.onRemove}
+              />
+            )}
+          </div>
         </div>
       )}
+
+      {props.isPrimary ? transcriptBlock : <></>}
     </li>
   );
 };
@@ -229,6 +309,30 @@ const EventVideoCallsCard: FunctionComponent<ComponentProps> = (
   );
 
   const [primary, ...earlier] = props.calls;
+
+  // An incident's calls keep their transcripts; an alert's do not (yet).
+  const transcriptOf: (call: EventVideoCall) => CallRowProps["transcript"] = (
+    call: EventVideoCall,
+  ): CallRowProps["transcript"] => {
+    if (props.kind !== VideoCallEventKind.Incident) {
+      return undefined;
+    }
+
+    const callId: string = call.id?.toString() || "";
+
+    return {
+      canManage: createGate.isAllowed,
+      onReview: () => {
+        if (props.onReviewCallSummary) {
+          props.onReviewCallSummary(callId);
+          return;
+        }
+
+        scrollToCallSummary(callId);
+      },
+      onChanged: props.onChanged,
+    };
+  };
 
   let body: ReactElement;
 
@@ -294,6 +398,7 @@ const EventVideoCallsCard: FunctionComponent<ComponentProps> = (
             onRemove={() => {
               setCallToRemove(primary);
             }}
+            transcript={transcriptOf(primary)}
           />
         </ul>
         {earlier.length > 0 && (
@@ -310,6 +415,7 @@ const EventVideoCallsCard: FunctionComponent<ComponentProps> = (
                     isPrimary={false}
                     canRemove={false}
                     onRemove={() => {}}
+                    transcript={transcriptOf(call)}
                   />
                 );
               })}

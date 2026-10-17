@@ -110,6 +110,8 @@ En ny installation av Enterprise Edition körs som en **provperiod på 14 dagar*
 
 Licensen hanteras från **utgåvemärket**, som huvudadministratörer ser i sidhuvudet i administratörspanelen och i sidfoten i Dashboarden. Det visar licensstatus, platsanvändning och, för huvudadministratörer, instans-ID:t.
 
+OneUptime Enterprise som köpts på AWS Marketplace, Microsoft Marketplace eller Google Cloud Marketplace behöver ingen licensnyckel: prenumerationen på marknadsplatsen är licensen och debiterar varje användare per timme. Se [Molnmarknadsplatser](/docs/installation/cloud-marketplaces).
+
 ### Onlineaktivering (licensnyckel)
 
 :::steps

@@ -110,6 +110,8 @@ En ny installation af Enterprise Edition kører som en **prøveperiode på 14 da
 
 Licensen administreres fra **udgavemærket**, som masteradministratorer ser i headeren på Admin-dashboardet og i bunden af Dashboardet. Det viser licensstatus, brugen af pladser og, for masteradministratorer, instans-ID'et.
 
+OneUptime Enterprise købt på AWS Marketplace, Microsoft Marketplace eller Google Cloud Marketplace kræver ingen licensnøgle: abonnementet på markedspladsen giver licensen og fakturerer hver bruger pr. time. Se [Cloud-markedspladser](/docs/installation/cloud-marketplaces).
+
 ### Onlineaktivering (licensnøgle)
 
 :::steps

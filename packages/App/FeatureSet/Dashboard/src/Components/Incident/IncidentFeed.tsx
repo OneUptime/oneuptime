@@ -127,6 +127,8 @@ export const INCIDENT_FEED_KINDS: Record<IncidentFeedEventType, FeedEntryKind> =
       SHARED_FEED_ENTRY_KINDS.VideoCallStarted,
     [IncidentFeedEventType.VideoCallFailed]:
       SHARED_FEED_ENTRY_KINDS.VideoCallFailed,
+    [IncidentFeedEventType.VideoCallTranscriptAdded]:
+      SHARED_FEED_ENTRY_KINDS.VideoCallTranscriptAdded,
     [IncidentFeedEventType.ChannelMemberAdded]:
       SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
   };
