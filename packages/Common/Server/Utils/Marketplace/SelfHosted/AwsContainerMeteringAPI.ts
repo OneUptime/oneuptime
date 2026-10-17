@@ -40,6 +40,9 @@ const CONTENT_TYPE: string = "application/x-amz-json-1.1";
 // The longest ClientToken AWS takes.
 export const AWS_METER_USAGE_CLIENT_TOKEN_MAX_LENGTH: number = 64;
 
+// The product codes AWS issues (MeterUsage's ProductCode pattern, never empty).
+const AWS_PRODUCT_CODE_PATTERN: RegExp = /^[-a-zA-Z0-9/=:_.@]{1,255}$/;
+
 // The largest UsageQuantity AWS takes.
 export const AWS_METER_USAGE_MAX_QUANTITY: number = 2147483647;
 
@@ -193,7 +196,7 @@ export default class AwsContainerMeteringAPI {
   public static validateRecord(record: AwsMeterUsageRecord): void {
     const problems: Array<string> = [];
 
-    if (!(/^[-a-zA-Z0-9/=:_.@]{1,255}$/).test(record.productCode || "")) {
+    if (!AWS_PRODUCT_CODE_PATTERN.test(record.productCode || "")) {
       problems.push("the product code is not one AWS could have issued");
     }
 
