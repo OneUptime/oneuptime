@@ -4736,8 +4736,14 @@ html.dark .docs-theme-toggle .docs-icon-light {
   display: block;
   text-align: center;
 }
-/* Width is set per diagram after rendering — see the Mermaid block in Head.ejs. */
+/*
+ * Width is set per diagram after rendering — see the Mermaid block in
+ * Head.ejs. A diagram narrower than the column sits in its middle, over the
+ * caption; one wider starts at the left edge of the box it scrolls in.
+ */
 .docs-diagram .mermaid svg {
+  display: block;
+  margin-inline: auto;
   height: auto;
 }
 /*

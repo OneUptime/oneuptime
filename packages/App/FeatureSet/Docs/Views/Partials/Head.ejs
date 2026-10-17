@@ -293,6 +293,13 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
          */
         let latestDraw = 0;
 
+        /*
+         * How much smaller than mermaid laid it out a diagram may be drawn
+         * to fit the column: its 16px labels down to 13px, the size of the
+         * caption under it.
+         */
+        const MIN_DIAGRAM_SCALE = 13 / 16;
+
         const draw = async () => {
             const thisDraw = ++latestDraw;
             mermaid.initialize({
@@ -340,19 +347,23 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
                     diagrams[index].setAttribute('data-diagram', 'drawn');
 
                     /*
-                     * Fill the column, but never below the layout Mermaid
-                     * computed: its own width="100%" scales a wide flowchart
-                     * down until the labels are unreadable. The wrapper
-                     * scrolls instead.
+                     * The size mermaid laid the diagram out at, centred in its
+                     * box. One wider than the column is drawn smaller to fit
+                     * it, but never below MIN_DIAGRAM_SCALE of that size;
+                     * wider still, it keeps that size and the box scrolls.
+                     * Filling the column instead blew a narrow top-to-bottom
+                     * diagram up to twice its size, and mermaid's own
+                     * width="100%" shrinks a wide one until its labels cannot
+                     * be read.
                      */
                     const svg = diagrams[index].querySelector('svg');
                     const naturalWidth = svg
                         ? Number((svg.getAttribute('viewBox') || '').split(/\s+/)[2])
                         : 0;
                     if (svg && naturalWidth > 0) {
-                        svg.style.maxWidth = 'none';
-                        svg.style.width = '100%';
-                        svg.style.minWidth = Math.ceil(naturalWidth) + 'px';
+                        svg.style.width = Math.ceil(naturalWidth) + 'px';
+                        svg.style.maxWidth = '100%';
+                        svg.style.minWidth = Math.ceil(naturalWidth * MIN_DIAGRAM_SCALE) + 'px';
                     }
                 } catch (error) {
                     if (thisDraw !== latestDraw) {

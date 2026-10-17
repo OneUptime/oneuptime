@@ -154,6 +154,111 @@ const RULE_DIAGRAMS = [
   },
 ];
 
+/*
+ * ?diagrams=sizes (docs only): three flowcharts in a 590px column, the width
+ * the docs' article gives a diagram at 1280px: one narrower than the
+ * column, one a little wider - it fits once drawn at 13/16 of its size - and
+ * one too wide to fit even then.
+ */
+const SIZE_DIAGRAMS = [
+  {
+    title: "Narrow",
+    code: 'flowchart TB\n  start["Start"] --> finish["Finish"]',
+  },
+  {
+    title: "A little wider than the column",
+    code: [
+      "flowchart LR",
+      '  one["First step"] --> two["Second step"]',
+      '  two --> three["Third step"]',
+      '  three --> four["Fourth"]',
+    ].join("\n"),
+  },
+  {
+    title: "Far wider than the column",
+    code: [
+      "flowchart LR",
+      '  one["First step"] --> two["Second step"]',
+      '  two --> three["Third step"]',
+      '  three --> four["Fourth step"]',
+      '  four --> five["Fifth step"]',
+      '  five --> six["Sixth step"]',
+      '  six --> seven["Seventh step"]',
+    ].join("\n"),
+  },
+];
+
+// Where the docs pages are, by language: Content/<lang>/<category>/<page>.md.
+const docsContentDirectory = path.join(
+  repository,
+  "packages/App/FeatureSet/Docs/Content",
+);
+
+// The languages the docs are written in: Content's folders.
+function docsLanguages() {
+  return fs
+    .readdirSync(docsContentDirectory, { withFileTypes: true })
+    .filter((entry) => {
+      return entry.isDirectory();
+    })
+    .map((entry) => {
+      return entry.name;
+    });
+}
+
+/*
+ * ?source=<lang> (docs only): every diagram of every docs page in that
+ * language, in page order, each marked with the page and its place on it
+ * (data-source="monitor/api-monitor#1"), captioned as the page captions it.
+ */
+function docsSourceDiagrams(lang) {
+  const root = path.join(docsContentDirectory, lang);
+  const pages = [];
+  const walk = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const full = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name.endsWith(".md")) {
+        pages.push(full);
+      }
+    }
+  };
+  walk(root);
+  pages.sort();
+
+  const diagrams = [];
+  for (const file of pages) {
+    const page = path
+      .relative(root, file)
+      .split(path.sep)
+      .join("/")
+      .replace(/\.md$/, "");
+    const lines = fs.readFileSync(file, "utf8").split("\n");
+    let count = 0;
+    for (let i = 0; i < lines.length; i++) {
+      if (!lines[i].startsWith("```mermaid")) {
+        continue;
+      }
+      const title = lines[i].match(/title="([^"]*)"/);
+      const body = [];
+      let j = i + 1;
+      while (j < lines.length && !lines[j].startsWith("```")) {
+        body.push(lines[j]);
+        j++;
+      }
+      count++;
+      diagrams.push({
+        title: title ? title[1] : null,
+        code: body.join("\n"),
+        source: `${page}#${count}`,
+      });
+      i = j;
+    }
+  }
+  return diagrams;
+}
+
 // The same five characters the docs' and the blog's renderers escape.
 function escapeHtml(text) {
   return String(text)
@@ -184,11 +289,17 @@ function diagramsFor(url) {
 
 // The docs page's diagrams, with the title each is captioned with.
 function docsDiagramsFor(url) {
+  const source = url.searchParams.get("source");
+  if (source) {
+    return docsSourceDiagrams(source);
+  }
   switch (url.searchParams.get("diagrams")) {
     case "persian":
       return PERSIAN_DIAGRAMS;
     case "rules":
       return RULE_DIAGRAMS;
+    case "sizes":
+      return SIZE_DIAGRAMS;
     default:
       return diagramsFor(url).map((code) => {
         return { title: null, code: code };
@@ -215,8 +326,18 @@ function docsT(lang) {
  * page, marked English and left to right as Partials/Content.ejs marks it.
  */
 function docsPage(url) {
-  const lang = url.searchParams.get("lang") === "fa" ? "fa" : "en";
+  const source = url.searchParams.get("source");
+  const lang = source || (url.searchParams.get("lang") === "fa" ? "fa" : "en");
   const dir = RIGHT_TO_LEFT_DOCS_LANGUAGES.includes(lang) ? "rtl" : "ltr";
+  /*
+   * The width the docs' article gives a diagram's box at 1280px: 590px
+   * inside its padding and border, as the sizes and every page's diagrams
+   * are checked in.
+   */
+  const column =
+    source || url.searchParams.get("diagrams") === "sizes"
+      ? ' style="width: 632px"'
+      : "";
   const head = ejs.render(
     fs.readFileSync(docsHead, "utf8"),
     {
@@ -231,7 +352,10 @@ function docsPage(url) {
       const caption = diagram.title
         ? `<p class="docs-diagram__caption">${escapeHtml(diagram.title)}</p>`
         : "";
-      return `<div class="docs-diagram"><div class="mermaid">${escapeHtml(diagram.code)}</div>${caption}</div>`;
+      const from = diagram.source
+        ? ` data-source="${escapeHtml(diagram.source)}"`
+        : "";
+      return `<div class="docs-diagram"${from}><div class="mermaid">${escapeHtml(diagram.code)}</div>${caption}</div>`;
     })
     .join("\n");
   const englishCopy =
@@ -239,7 +363,7 @@ function docsPage(url) {
       ? ' lang="en" dir="ltr"'
       : "";
 
-  return `<!doctype html><html lang="${lang}" dir="${dir}" class="h-full antialiased"><head>${head}</head><body class="docs-body min-h-full"><article class="docs-article"><div class="docs-content"${englishCopy}><h1>Diagrams</h1><p>Text before the diagrams.</p>${diagrams}<p>Text after them.</p></div></article></body></html>`;
+  return `<!doctype html><html lang="${lang}" dir="${dir}" class="h-full antialiased"><head>${head}</head><body class="docs-body min-h-full"><article class="docs-article"${column}><div class="docs-content"${englishCopy}><h1>Diagrams</h1><p>Text before the diagrams.</p>${diagrams}<p>Text after them.</p></div></article></body></html>`;
 }
 
 /*
@@ -428,6 +552,12 @@ async function main() {
     response.setHeader("Content-Type", "text/html; charset=utf-8");
 
     if (url.pathname === "/docs") {
+      // ?source= names a docs language, never a path.
+      const source = url.searchParams.get("source");
+      if (source !== null && !docsLanguages().includes(source)) {
+        response.writeHead(404).end();
+        return;
+      }
       response.end(docsPage(url));
       return;
     }
