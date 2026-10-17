@@ -159,8 +159,7 @@ const NetworkSiteSettings: FunctionComponent<
             sectionTitle: "Place This Site",
             sectionDescription:
               "Any site not below this one can be the parent. Sites of the type directly above are listed first.",
-            description:
-              "Leave it empty to keep the site at the top level.",
+            description: "Leave it empty to keep the site at the top level.",
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: (values: FormValues<NetworkSite>) => {
               return fetchParentNetworkSiteOptions(values, modelId);
@@ -175,8 +174,7 @@ const NetworkSiteSettings: FunctionComponent<
             title: "Default Probe",
             stepId: "monitoring-defaults",
             sectionTitle: "Monitoring Defaults",
-            sectionDescription:
-              "What a device added to this site starts with.",
+            sectionDescription: "What a device added to this site starts with.",
             description:
               "A device added here without a probe inherits it. A probe on the public internet cannot reach a private network.",
             fieldType: FormFieldSchemaType.Dropdown,

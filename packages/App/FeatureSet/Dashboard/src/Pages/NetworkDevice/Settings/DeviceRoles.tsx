@@ -213,8 +213,7 @@ const NetworkDeviceRolesPage: FunctionComponent<
             title: "Is SNMP Walkable",
             stepId: "monitoring",
             sectionTitle: "How it is checked",
-            sectionDescription:
-              "Some devices answer ping and nothing else.",
+            sectionDescription: "Some devices answer ping and nothing else.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:

@@ -2261,7 +2261,11 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
       return field.stepId === STEP_SCAN_TARGET && !field.collapsibleSection;
     });
 
-    expect(onScreen.map(fieldKeyOf)).toEqual(["cidr", "probe", "isSnmpEnabled"]);
+    expect(onScreen.map(fieldKeyOf)).toEqual([
+      "cidr",
+      "probe",
+      "isSnmpEnabled",
+    ]);
 
     for (const field of onScreen) {
       expect({
@@ -2892,7 +2896,9 @@ describe("NetBIOS name lookup is asked on the Scan Target step (issue #3677)", (
     const sectionDescription: string = fieldNamed(KEY).sectionDescription || "";
 
     const snmp: number = sectionDescription.indexOf("SNMP name");
-    const netbios: number = sectionDescription.indexOf("Windows (NetBIOS) name");
+    const netbios: number = sectionDescription.indexOf(
+      "Windows (NetBIOS) name",
+    );
     const reverseDns: number = sectionDescription.indexOf("reverse-DNS name");
     const address: number = sectionDescription.indexOf("its address");
 

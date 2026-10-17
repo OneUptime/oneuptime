@@ -29,8 +29,7 @@ export function getDevicePollingFormFields(
         isPollingEnabled: true,
       },
       title: "Polling Enabled",
-      description:
-        "Turn it off to pause polling without deleting the device.",
+      description: "Turn it off to pause polling without deleting the device.",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
     },

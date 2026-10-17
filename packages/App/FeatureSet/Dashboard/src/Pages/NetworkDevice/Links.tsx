@@ -133,8 +133,7 @@ const NetworkDeviceLinks: FunctionComponent<
             },
             title: "From Port",
             stepId: "ports",
-            description:
-              "Free text, such as Gi1/0/24.",
+            description: "Free text, such as Gi1/0/24.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "Gi1/0/24",

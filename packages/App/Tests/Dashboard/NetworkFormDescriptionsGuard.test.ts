@@ -198,7 +198,11 @@ function findConstant(file: string, name: string): ts.Expression | null {
  * a ternary or an ||, the argument of translationKey(...), and a constant -
  * this file's own or one imported from a relative module.
  */
-function textsOf(file: string, node: ts.Node | undefined, depth: number): Array<string> {
+function textsOf(
+  file: string,
+  node: ts.Node | undefined,
+  depth: number,
+): Array<string> {
   if (!node || depth > 8) {
     return [];
   }
@@ -249,14 +253,13 @@ function textsOf(file: string, node: ts.Node | undefined, depth: number): Array<
       return textsOf(file, local, depth + 1);
     }
 
-    const imported: { specifier: string; imported: string } | null =
-      findImport(file, node.text);
+    const imported: { specifier: string; imported: string } | null = findImport(
+      file,
+      node.text,
+    );
 
     if (imported && imported.specifier.startsWith(".")) {
-      const target: string | null = resolveRelative(
-        file,
-        imported.specifier,
-      );
+      const target: string | null = resolveRelative(file, imported.specifier);
 
       if (target) {
         const constant: ts.Expression | null = findConstant(
@@ -289,7 +292,10 @@ function modelOf(node: ts.Node): string | null {
   let current: ts.Node | undefined = node.parent;
 
   while (current) {
-    if (ts.isJsxOpeningElement(current) || ts.isJsxSelfClosingElement(current)) {
+    if (
+      ts.isJsxOpeningElement(current) ||
+      ts.isJsxSelfClosingElement(current)
+    ) {
       for (const attribute of current.attributes.properties) {
         if (!ts.isJsxAttribute(attribute) || !attribute.initializer) {
           continue;
@@ -345,8 +351,10 @@ const models: Map<string, ModelClass | null> = new Map<
 >();
 
 function loadModel(file: string, identifier: string): ModelClass | null {
-  const imported: { specifier: string; isDefault: boolean } | null =
-    findImport(file, identifier);
+  const imported: { specifier: string; isDefault: boolean } | null = findImport(
+    file,
+    identifier,
+  );
 
   if (
     !imported ||

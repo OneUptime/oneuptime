@@ -34,7 +34,13 @@ import { AutoImportRuleMatcher } from "Common/Utils/NetworkDiscovery/AutoImportR
  *   - and no language still names the old switch.
  */
 
-const REPOSITORY_PACKAGES: string = path.resolve(__dirname, "..", "..", "..", "..");
+const REPOSITORY_PACKAGES: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+);
 
 function readSource(relative: string): string {
   return fs.readFileSync(path.join(REPOSITORY_PACKAGES, relative), "utf8");
@@ -106,12 +112,15 @@ describe("the English page", () => {
       "Common/Server/Services/NetworkDeviceDiscoveryScanService.ts",
     );
     const sweepColumns: string =
-      service.split("const SWEEP_COLUMNS: Array<string> = [")[1]?.split("];")[0] ||
-      "";
+      service
+        .split("const SWEEP_COLUMNS: Array<string> = [")[1]
+        ?.split("];")[0] || "";
 
     expect(sweepColumns).toContain('"isSnmpEnabled"');
     expect(
-      readSource("App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery.tsx"),
+      readSource(
+        "App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery.tsx",
+      ),
     ).toContain(
       "Changing the target, probe, scan method or credentials runs the scan again",
     );
@@ -119,7 +128,9 @@ describe("the English page", () => {
     expect(ICMP_SECTION).toContain(
       "You can change the method later, on the scan's **Edit**. A changed method runs the scan again: the hosts its last run found are cleared, and devices you already imported stay as they are.",
     );
-    expect(ENGLISH).not.toContain("cannot be changed: a scan created ping-only");
+    expect(ENGLISH).not.toContain(
+      "cannot be changed: a scan created ping-only",
+    );
     expect(ENGLISH).not.toContain("fixed after that");
   });
 

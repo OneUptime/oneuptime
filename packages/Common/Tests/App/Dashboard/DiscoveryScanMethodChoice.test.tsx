@@ -1,6 +1,12 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React, { ReactElement, useState } from "react";
 import DiscoveryScanMethodChoice from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryScanMethodChoice";
 
@@ -66,12 +72,15 @@ describe("which card is chosen", () => {
   test.each([
     ["undefined", undefined],
     ["null", null],
-  ])("%s is SNMP, the method every scan had before the choice", (_label: string, value: null | undefined) => {
-    renderChoice(value, () => {});
+  ])(
+    "%s is SNMP, the method every scan had before the choice",
+    (_label: string, value: null | undefined) => {
+      renderChoice(value, () => {});
 
-    expect(card("snmp")).toHaveAttribute("aria-checked", "true");
-    expect(card("icmp")).toHaveAttribute("aria-checked", "false");
-  });
+      expect(card("snmp")).toHaveAttribute("aria-checked", "true");
+      expect(card("icmp")).toHaveAttribute("aria-checked", "false");
+    },
+  );
 });
 
 describe("what a pick reports", () => {

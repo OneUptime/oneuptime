@@ -88,8 +88,7 @@ const NetworkSiteChildSites: FunctionComponent<
               networkSiteType: true,
             },
             title: "Site Type",
-            description:
-              "Any type except the ones above this site's type.",
+            description: "Any type except the ones above this site's type.",
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: () => {
               return fetchChildNetworkSiteTypeOptions(modelId);

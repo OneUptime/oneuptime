@@ -362,9 +362,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
              * FormField hands a CustomComponent `value || ""`, which turns
              * ICMP's false into an empty string.
              */
-            isSnmpEnabled={
-              values.isSnmpEnabled as boolean | null | undefined
-            }
+            isSnmpEnabled={values.isSnmpEnabled as boolean | null | undefined}
             ariaLabelledby={customElementProps.ariaLabelledby}
             tabIndex={customElementProps.tabIndex}
             error={customElementProps.error}
@@ -945,9 +943,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                      */}
                     <span
                       className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-                      title={translator.translateText(
-                        methodBadge.description,
-                      )}
+                      title={translator.translateText(methodBadge.description)}
                       data-testid="discovery-scan-method-badge"
                     >
                       {translator.translateText(methodBadge.text)}

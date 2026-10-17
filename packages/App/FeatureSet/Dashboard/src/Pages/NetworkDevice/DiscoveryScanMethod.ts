@@ -153,7 +153,10 @@ type ReadDiscoveryScanMethodFunction = (
 export const readDiscoveryScanMethod: ReadDiscoveryScanMethodFunction = (
   value: unknown,
 ): DiscoveryScanMethod | null => {
-  if (value === DiscoveryScanMethod.Icmp || value === DiscoveryScanMethod.Snmp) {
+  if (
+    value === DiscoveryScanMethod.Icmp ||
+    value === DiscoveryScanMethod.Snmp
+  ) {
     return value;
   }
 

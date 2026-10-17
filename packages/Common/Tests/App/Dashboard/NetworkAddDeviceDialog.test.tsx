@@ -501,7 +501,9 @@ describe("the SNMP fold", () => {
     const header: HTMLElement = foldNamed("SNMP");
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(header).not.toHaveTextContent("Without it the device is only pinged");
+    expect(header).not.toHaveTextContent(
+      "Without it the device is only pinged",
+    );
     expect(
       setChips(header).some((chip: string): boolean => {
         return chip.startsWith("SNMP Community String");

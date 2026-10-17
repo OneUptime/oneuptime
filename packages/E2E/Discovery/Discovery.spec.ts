@@ -800,9 +800,11 @@ test("an untouched Start New Scan sends an ICMP scan, with no credentials", asyn
   await modal.getByPlaceholder("192.168.1.0/24").fill("10.20.0.0/24");
   await page.getByTestId("modal-footer-submit-button").click();
 
-  await expect.poll(async () => {
-    return (await scanWrites(page)).length;
-  }).toBe(1);
+  await expect
+    .poll(async () => {
+      return (await scanWrites(page)).length;
+    })
+    .toBe(1);
 
   expect((await scanWrites(page))[0]).toMatchObject({
     cidr: "10.20.0.0/24",
@@ -830,9 +832,11 @@ test("an SNMP scan sends its method and the credentials it was given", async ({
     .fill("campus-ro");
   await page.getByTestId("modal-footer-submit-button").click();
 
-  await expect.poll(async () => {
-    return (await scanWrites(page)).length;
-  }).toBe(1);
+  await expect
+    .poll(async () => {
+      return (await scanWrites(page)).length;
+    })
+    .toBe(1);
 
   expect((await scanWrites(page))[0]).toMatchObject({
     cidr: "10.20.0.0/24",
