@@ -52,6 +52,13 @@ import EpisodeMembersAdd, {
 import EpisodeMembersBatch, {
   EpisodeMemberFeedMention,
 } from "../Utils/Episode/EpisodeMembersBatch";
+import EpisodeSingleMembership, {
+  INCIDENT_IN_ANOTHER_EPISODE_REASON,
+  INCIDENT_SINGLE_MEMBERSHIP,
+} from "../../Types/Episode/EpisodeSingleMembership";
+import EpisodeSingleMembershipCheck, {
+  RecordInAnotherEpisodeException,
+} from "../Utils/Episode/EpisodeSingleMembershipCheck";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -333,6 +340,18 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * In another episode already, in a project that allows an incident in
+     * only one (EpisodeSingleMembership): refused, whoever adds it and
+     * however - a person, an API key, a workflow, the grouping engine. After
+     * the visibility check, as the duplicate check is: the refusal names
+     * only what the caller can see.
+     */
+    await this.refuseIfInAnotherEpisode({
+      createBy: createBy,
+      incidentId: incidentId,
+    });
+
+    /*
      * Added by the person making the request. DatabaseService has already
      * taken out whatever addedByUser the request named, under both names
      * (UserAttribution), so with no person on it - an API key, a workflow -
@@ -432,6 +451,188 @@ export class Service extends ProjectReferencesService<Model> {
         "The incident to add does not exist in this project, or you do not have access to it.",
       );
     }
+  }
+
+  /*
+   * Refuses a member whose incident is in another episode already, when the
+   * project allows an incident in only one (EpisodeSingleMembership). It is
+   * not in this episode - the duplicate check came first - so any episode
+   * it is in is another. The refusal names the incident, and the episode it
+   * is in when the caller can see that episode: a private one they cannot
+   * open is "another episode". OneUptime's own writes see every episode.
+   */
+  @CaptureSpan()
+  private async refuseIfInAnotherEpisode(data: {
+    createBy: CreateBy<Model>;
+    incidentId: ObjectID;
+  }): Promise<void> {
+    const { createBy } = data;
+
+    const projectId: ObjectID | null =
+      createBy.props.tenantId ||
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        "project",
+      );
+
+    if (!projectId) {
+      return;
+    }
+
+    const holdingEpisodeId: ObjectID | null = await this.findHoldingEpisodeId({
+      projectId: projectId,
+      incidentId: data.incidentId,
+    });
+
+    if (!holdingEpisodeId) {
+      return;
+    }
+
+    const incident: Incident | null = await IncidentService.findOneById({
+      id: data.incidentId,
+      select: {
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const episodeSelect: {
+      episodeNumber: true;
+      episodeNumberWithPrefix: true;
+    } = {
+      episodeNumber: true,
+      episodeNumberWithPrefix: true,
+    };
+
+    const episode: IncidentEpisode | null = createBy.props.isRoot
+      ? await IncidentEpisodeService.findOneById({
+          id: holdingEpisodeId,
+          select: episodeSelect,
+          props: {
+            isRoot: true,
+          },
+        })
+      : await CallerVisibleRead.find(() => {
+          return IncidentEpisodeService.findOneById({
+            id: holdingEpisodeId,
+            select: episodeSelect,
+            props: createBy.props,
+          });
+        });
+
+    throw new RecordInAnotherEpisodeException(
+      EpisodeSingleMembership.getAddRefusal({
+        kind: INCIDENT_SINGLE_MEMBERSHIP,
+        recordLabel: EpisodeSingleMembership.getLabel(
+          incident?.incidentNumberWithPrefix,
+          incident?.incidentNumber,
+        ),
+        episodeLabel: EpisodeSingleMembership.getLabel(
+          episode?.episodeNumberWithPrefix,
+          episode?.episodeNumber,
+        ),
+      }),
+    );
+  }
+
+  /*
+   * The episode that keeps an incident out of every other one: the latest
+   * episode it is in, when the project allows an incident in only one
+   * episode (EpisodeSingleMembership). Null when it is in no episode, or
+   * when the project allows several. The member rows are read first, so
+   * the project's switch is read only for an incident that is in an
+   * episode - adding one that is in none, the usual case, never reads it.
+   */
+  @CaptureSpan()
+  public async findHoldingEpisodeId(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+  }): Promise<ObjectID | null> {
+    const membership: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        incidentId: data.incidentId,
+      },
+      select: {
+        incidentEpisodeId: true,
+      },
+      sort: {
+        createdAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!membership?.incidentEpisodeId) {
+      return null;
+    }
+
+    const isOnlyOneEpisodeAllowed: boolean =
+      await EpisodeSingleMembershipCheck.isOn({
+        projectId: data.projectId,
+        kind: INCIDENT_SINGLE_MEMBERSHIP,
+      });
+
+    return isOnlyOneEpisodeAllowed ? membership.incidentEpisodeId : null;
+  }
+
+  /*
+   * The incidents among `incidentIds` that are in an episode, when the
+   * project allows an incident in only one episode (EpisodeSingleMembership)
+   * - the ones no other episode may take. Empty when none is in an episode,
+   * or when the project allows several; read like findHoldingEpisodeId,
+   * the member rows first.
+   */
+  @CaptureSpan()
+  public async findIncidentIdsHeldInEpisodes(data: {
+    projectId: ObjectID;
+    incidentIds: Array<ObjectID>;
+  }): Promise<Set<string>> {
+    if (data.incidentIds.length === 0) {
+      return new Set();
+    }
+
+    const members: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        incidentId: QueryHelper.any(data.incidentIds),
+      },
+      select: {
+        incidentId: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const incidentIdsInAnEpisode: Set<string> = new Set();
+
+    for (const member of members) {
+      if (member.incidentId) {
+        incidentIdsInAnEpisode.add(
+          EpisodeMembersAdd.normalizeId(member.incidentId),
+        );
+      }
+    }
+
+    if (incidentIdsInAnEpisode.size === 0) {
+      return incidentIdsInAnEpisode;
+    }
+
+    const isOnlyOneEpisodeAllowed: boolean =
+      await EpisodeSingleMembershipCheck.isOn({
+        projectId: data.projectId,
+        kind: INCIDENT_SINGLE_MEMBERSHIP,
+      });
+
+    return isOnlyOneEpisodeAllowed ? incidentIdsInAnEpisode : new Set();
   }
 
   @CaptureSpan()
@@ -751,7 +952,9 @@ export class Service extends ProjectReferencesService<Model> {
    * incidents to episodes at all, and that they can see the episode - the
    * whole request is refused otherwise - then each incident. An incident
    * they cannot see is answered like one that does not exist, and is not
-   * added; one in the episode already is left as it is. Every other is added
+   * added; one in the episode already is left as it is; one in another
+   * episode, in a project that allows an incident in only one
+   * (EpisodeSingleMembership), is not added and says why. Every other is added
    * as a member of its own, through this service's create, so each is the
    * same row, with the same follow-ons on the incident, as an incident added
    * on its own; the episode's side is written once for all of them
@@ -823,6 +1026,20 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
     /*
+     * Of the rest, the ones in another episode already, when the project
+     * allows an incident in only one (EpisodeSingleMembership): each is not
+     * added, and says why. The others are added as always.
+     */
+    const incidentIdsInAnotherEpisode: Set<string> =
+      await this.findIncidentIdsHeldInEpisodes({
+        projectId: projectId,
+        incidentIds: incidentIds.filter((incidentId: ObjectID) => {
+          const key: string = EpisodeMembersAdd.normalizeId(incidentId);
+          return visibleIncidentIds.has(key) && !incidentIdsInEpisode.has(key);
+        }),
+      });
+
+    /*
      * The API key that asked, when no person did: the entry each incident
      * gets names it, as an incident added on its own through the API does.
      */
@@ -846,6 +1063,14 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
+      if (incidentIdsInAnotherEpisode.has(key)) {
+        result.notAdded.push({
+          id: key,
+          reason: INCIDENT_IN_ANOTHER_EPISODE_REASON,
+        });
+        continue;
+      }
+
       try {
         const wasAdded: boolean = await this.createMemberAddedTogether({
           projectId: projectId,
@@ -863,10 +1088,16 @@ export class Service extends ProjectReferencesService<Model> {
           result.alreadyInEpisode.push(key);
         }
       } catch (error) {
+        /*
+         * Put in another episode while this request ran: said as the one
+         * found before is, so the dialogs list both under one reason.
+         */
         const message: string =
-          error instanceof Error && error.message
-            ? error.message
-            : "This incident could not be added to the episode.";
+          error instanceof RecordInAnotherEpisodeException
+            ? INCIDENT_IN_ANOTHER_EPISODE_REASON
+            : error instanceof Error && error.message
+              ? error.message
+              : "This incident could not be added to the episode.";
 
         logger.error(
           `IncidentEpisodeMemberService could not add incident ${key} to episode ${incidentEpisodeId.toString()}: ${message}`,
@@ -901,8 +1132,10 @@ export class Service extends ProjectReferencesService<Model> {
    * incident the caller can see in the project - one that is not refuses
    * the whole create, so no episode is left behind without some of the
    * incidents it was created for - and the caller must be allowed to add
-   * incidents to episodes. Hands back the ids, each once, and the most
-   * severe of the incidents' severities.
+   * incidents to episodes. In a project that allows an incident in only one
+   * episode (EpisodeSingleMembership), one that is in an episode already
+   * refuses the whole create too, naming the incidents that are. Hands back
+   * the ids, each once, and the most severe of the incidents' severities.
    */
   @CaptureSpan()
   public async validateIncidentsForNewEpisode(data: {
@@ -937,6 +1170,8 @@ export class Service extends ProjectReferencesService<Model> {
           select: {
             _id: true,
             incidentSeverityId: true,
+            incidentNumber: true,
+            incidentNumberWithPrefix: true,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -957,6 +1192,55 @@ export class Service extends ProjectReferencesService<Model> {
     if (!allVisible) {
       throw new BadDataException(
         "Some of the incidents to add to the episode do not exist in this project, or you do not have access to them.",
+      );
+    }
+
+    /*
+     * In an episode already, in a project that allows an incident in only
+     * one: the new episode may not take them, so it is not created. Each is
+     * named by its number - the caller can see every one of them - in the
+     * order asked.
+     */
+    const incidentIdsInAnEpisode: Set<string> =
+      await this.findIncidentIdsHeldInEpisodes({
+        projectId: data.projectId,
+        incidentIds: incidentIds,
+      });
+
+    if (incidentIdsInAnEpisode.size > 0) {
+      const incidentById: Map<string, Incident> = new Map();
+
+      for (const incident of incidents) {
+        incidentById.set(
+          EpisodeMembersAdd.normalizeId(incident._id || ""),
+          incident,
+        );
+      }
+
+      const labels: Array<string | null> = [];
+
+      for (const incidentId of incidentIds) {
+        const key: string = EpisodeMembersAdd.normalizeId(incidentId);
+
+        if (!incidentIdsInAnEpisode.has(key)) {
+          continue;
+        }
+
+        const incident: Incident | undefined = incidentById.get(key);
+
+        labels.push(
+          EpisodeSingleMembership.getLabel(
+            incident?.incidentNumberWithPrefix,
+            incident?.incidentNumber,
+          ),
+        );
+      }
+
+      throw new RecordInAnotherEpisodeException(
+        EpisodeSingleMembership.getNewEpisodeRefusal({
+          kind: INCIDENT_SINGLE_MEMBERSHIP,
+          recordLabels: labels,
+        }),
       );
     }
 
