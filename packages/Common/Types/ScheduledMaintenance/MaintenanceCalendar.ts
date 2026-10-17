@@ -148,12 +148,18 @@ export interface MaintenanceCalendarInput {
    * written whatever `events` holds.
    */
   emptyReason?: string | undefined;
-  // More events fell in the window than a calendar takes; the oldest were left out.
+  /*
+   * More events fell in the window than one calendar takes; those furthest
+   * ahead were left out (they come in as the window moves).
+   */
   isTruncated?: boolean | undefined;
 }
 
 export const MAINTENANCE_CALENDAR_TRUNCATED_NOTE: string =
-  "There are more events than one calendar can hold, so only the latest ones are listed.";
+  "There are more events than one calendar can hold, so the ones furthest ahead are left out until they come closer.";
+
+// At most this many events go in one calendar.
+export const MAINTENANCE_CALENDAR_MAX_EVENTS: number = 1000;
 
 export default class MaintenanceCalendar {
   // scheduled-maintenance-<id>@oneuptime, the same in every calendar.

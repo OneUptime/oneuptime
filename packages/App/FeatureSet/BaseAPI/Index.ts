@@ -1001,6 +1001,9 @@ import OnCallDutyPolicyScheduleCalendarFeedService, {
 import ProjectOnCallCalendarFeedService, {
   Service as ProjectOnCallCalendarFeedServiceType,
 } from "Common/Server/Services/ProjectOnCallCalendarFeedService";
+import ScheduledMaintenanceCalendarFeedService, {
+  Service as ScheduledMaintenanceCalendarFeedServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceCalendarFeedService";
 import UserOnCallShiftReminderService, {
   Service as UserOnCallShiftReminderServiceType,
 } from "Common/Server/Services/UserOnCallShiftReminderService";
@@ -1490,6 +1493,7 @@ import UserOnCallCalendarFeed from "Common/Models/DatabaseModels/UserOnCallCalen
 import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
+import ScheduledMaintenanceCalendarFeed from "Common/Models/DatabaseModels/ScheduledMaintenanceCalendarFeed";
 import UserOnCallShiftReminder from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "Common/Models/DatabaseModels/UserOnCallShiftReminderLog";
 import UserNotificationEmailRollupItem from "Common/Models/DatabaseModels/UserNotificationEmailRollupItem";
@@ -1709,6 +1713,7 @@ import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
+import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
 import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
@@ -5286,6 +5291,19 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallCalendarAPI);
 
     /*
+     * The team's calendar link for scheduled maintenance: the public
+     * capability route (/scheduled-maintenance-calendar/project/:token/...,
+     * no UserMiddleware - the token in the path is the credential) and the
+     * session routes the Subscribe dialog uses (/project-feed/*). Its CRUD
+     * router below serves the link's on / off switch; the token columns
+     * have read [] so CRUD never returns one.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      ScheduledMaintenanceCalendarAPI,
+    );
+
+    /*
      * The schedule timeline: every schedule the caller can read, side by
      * side over a week or a month (/on-call-schedule-timeline). Session-only;
      * it reads through the same schedule-level shift cache as the feeds.
@@ -5357,6 +5375,17 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         ProjectOnCallCalendarFeed,
         ProjectOnCallCalendarFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceCalendarFeed,
+        ScheduledMaintenanceCalendarFeedServiceType
+      >(
+        ScheduledMaintenanceCalendarFeed,
+        ScheduledMaintenanceCalendarFeedService,
       ).getRouter(),
     );
 

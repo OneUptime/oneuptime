@@ -207,6 +207,8 @@ import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import UserOnCallCalendarFeedService from "./UserOnCallCalendarFeedService";
 import OnCallDutyPolicyScheduleCalendarFeedService from "./OnCallDutyPolicyScheduleCalendarFeedService";
 import ProjectOnCallCalendarFeedService from "./ProjectOnCallCalendarFeedService";
+// The team's calendar link for scheduled maintenance
+import ScheduledMaintenanceCalendarFeedService from "./ScheduledMaintenanceCalendarFeedService";
 import UserOnCallShiftReminderService from "./UserOnCallShiftReminderService";
 import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogService";
 // On-Call Duty
@@ -813,6 +815,7 @@ const services: Array<BaseService> = [
   UserOnCallCalendarFeedService,
   OnCallDutyPolicyScheduleCalendarFeedService,
   ProjectOnCallCalendarFeedService,
+  ScheduledMaintenanceCalendarFeedService,
   UserOnCallShiftReminderService,
   UserOnCallShiftReminderLogService,
   OnCallDutyPolicyScheduleLayerService,

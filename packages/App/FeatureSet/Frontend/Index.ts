@@ -47,6 +47,7 @@ import { getProductBrandingViewVariables } from "Common/Server/Utils/ProductBran
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import { getBrandedDashboardManifest } from "./BrandedManifest";
+import StatusPageMaintenanceCalendarFeed from "Common/Server/Utils/StatusPage/StatusPageMaintenanceCalendarFeed";
 import fsp from "fs/promises";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -571,6 +572,19 @@ const registerDashboardRootPwaFiles: () => void = (): void => {
 const init: PromiseVoidFunction = async (): Promise<void> => {
   app.get("/rss", handleRSS);
   app.get("/status-page/:statusPageId/rss", handleRSS);
+
+  /*
+   * A status page's maintenance calendar, beside its RSS feed: on the page's
+   * own domain and on its address under OneUptime, ?event=<id> for one
+   * event as a file. Served in this process, with the request's own
+   * cookies and address, so who may read it is decided exactly as for the
+   * page (StatusPageMaintenanceCalendarFeed).
+   */
+  app.get(
+    ["/maintenance.ics", "/status-page/:statusPageId/maintenance.ics"],
+    StatusPageMaintenanceCalendarFeed.getRateLimitMiddleware(),
+    StatusPageMaintenanceCalendarFeed.getHandler(),
+  );
 
   /*
    * llms.txt routes (machine-readable entry point for AI agents). The root
