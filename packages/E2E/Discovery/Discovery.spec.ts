@@ -862,20 +862,164 @@ test("the scan list names each scan's method", async ({
   await expect(sweep.getByTestId("discovery-scan-method-badge")).toHaveText(
     "ICMP",
   );
+  // The tooltip names the method the way the form does.
   await expect(
     sweep.getByTestId("discovery-scan-method-badge"),
-  ).toHaveAttribute(
-    "title",
-    "Finds the devices that answer ping. No credentials needed.",
-  );
+  ).toHaveAttribute("title", "Scan method: ICMP (ping)");
   await expect(snmp.getByTestId("discovery-scan-method-badge")).toHaveText(
     "SNMP",
+  );
+  await expect(snmp.getByTestId("discovery-scan-method-badge")).toHaveAttribute(
+    "title",
+    "Scan method: SNMP",
   );
 
   await page.screenshot({
     path: path.join(screenshots, "discovery-scan-method-badges.png"),
     fullPage: false,
   });
+});
+
+/*
+ * A long name wraps beside its badge. The badge used to wrap instead, onto a
+ * line of its own under the name, whenever the two did not fit side by side.
+ */
+test("a scan's method badge stays on its name's first line", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page);
+
+  interface BadgeLine {
+    name: string;
+    // The badge's top less the name's: 0 when they share a line.
+    topOffset: number;
+    // The badge's left less the name's right: never below 0.
+    gapAfterName: number;
+    nameLineCount: number;
+  }
+
+  for (const width of [1440, 1024, 390]) {
+    await page.setViewportSize({ width: width, height: 1000 });
+
+    /*
+     * Every row at once, in one read: the list redraws its rows as the
+     * live progress refreshes, so a row measured a step at a time can be
+     * replaced mid-measure.
+     */
+    const lines: Array<BadgeLine> = await page.evaluate(
+      (): Array<BadgeLine> => {
+        return Array.from(
+          document.querySelectorAll<HTMLElement>(
+            '[data-testid="discovery-scan-method-badge"]',
+          ),
+        )
+          .filter((badge: HTMLElement): boolean => {
+            return badge.getBoundingClientRect().width > 0;
+          })
+          .map((badge: HTMLElement): BadgeLine => {
+            const name: HTMLElement =
+              badge.previousElementSibling as HTMLElement;
+            const nameBox: DOMRect = name.getBoundingClientRect();
+            const badgeBox: DOMRect = badge.getBoundingClientRect();
+            const lineHeight: number = Number.parseFloat(
+              window.getComputedStyle(name).lineHeight,
+            );
+
+            return {
+              name: name.textContent || "",
+              topOffset: Math.round(badgeBox.top - nameBox.top),
+              gapAfterName: Math.round(badgeBox.left - nameBox.right),
+              nameLineCount: Math.round(nameBox.height / lineHeight),
+            };
+          });
+      },
+    );
+
+    // Every scan in the fixture has its badge on screen.
+    expect(lines.length).toBeGreaterThanOrEqual(10);
+
+    for (const line of lines) {
+      // Level with the name's first line, and after it, never under it.
+      expect(Math.abs(line.topOffset)).toBeLessThanOrEqual(2);
+      expect(line.gapAfterName).toBeGreaterThanOrEqual(0);
+    }
+
+    // The long names do wrap: beside the badge, not under it.
+    expect(
+      lines.some((line: BadgeLine): boolean => {
+        return line.nameLineCount > 1;
+      }),
+    ).toBe(true);
+  }
+});
+
+/*
+ * A scan's Edit dialog opens on the method the scan has, and says what
+ * changing it does in a note set apart from the form above it.
+ */
+test("Edit opens on the scan's method, with its note apart from the form", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page);
+
+  const sweep: Locator = page
+    .getByRole("row")
+    .filter({ hasText: "Branch offices — Ping sweep" });
+  await sweep.getByRole("button", { name: "Edit", exact: true }).click();
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(
+    modal.getByText("Edit Discovery Scan", { exact: true }),
+  ).toBeVisible();
+  await expect(methodCard(modal, "icmp")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(modal.getByRole("navigation", { name: "Progress" })).toHaveCount(
+    0,
+  );
+
+  const note: Locator = modal.getByTestId("discovery-scan-edit-rerun-note");
+  await expect(note).toContainText(
+    "Changing the target, probe, scan method or credentials runs the scan again",
+  );
+
+  const fold: { y: number; height: number } | null = await modal
+    .getByTestId("folded-section")
+    .first()
+    .boundingBox();
+  const noteBox: { y: number } | null = await note.boundingBox();
+
+  expect(fold).not.toBeNull();
+  expect(noteBox).not.toBeNull();
+  // A field's gap, not a hairline: the note used to touch More fields.
+  expect(noteBox!.y - (fold!.y + fold!.height)).toBeGreaterThanOrEqual(16);
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-edit-icmp-scan.png"),
+    fullPage: false,
+  });
+
+  await page.getByTestId("modal-footer-close-button").click();
+  await expect(modal).toHaveCount(0);
+
+  // An SNMP scan opens on SNMP, with its credentials as the second step.
+  const guest: Locator = page
+    .getByRole("row")
+    .filter({ hasText: "Guest network" });
+  await guest.getByRole("button", { name: "Edit", exact: true }).click();
+
+  await expect(methodCard(modal, "snmp")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(
+    modal.getByRole("navigation", { name: "Progress" }).getByRole("listitem"),
+  ).toHaveText(["Scan Target", "SNMP Credentials"]);
 });
 
 /*

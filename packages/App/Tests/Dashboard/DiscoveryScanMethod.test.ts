@@ -2,9 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  DISCOVERY_SCAN_CREATE_FORM_TITLE,
   DISCOVERY_SCAN_ICMP_OPTION_DESCRIPTION,
   DISCOVERY_SCAN_ICMP_OPTION_TITLE,
   DISCOVERY_SCAN_METHOD_BADGE_TEXT,
+  DISCOVERY_SCAN_METHOD_BADGE_TOOLTIP,
   DISCOVERY_SCAN_METHOD_FIELD_DESCRIPTION,
   DISCOVERY_SCAN_METHOD_FIELD_TITLE,
   DISCOVERY_SCAN_METHOD_LABELS,
@@ -276,7 +278,7 @@ describe("the scan list's badge", () => {
     });
   });
 
-  test("names each scan's method, with its card's line as the tooltip", () => {
+  test("names each scan's method, and its tooltip names it as the form does", () => {
     const icmp: DiscoveryScanMethodBadge = getDiscoveryScanMethodBadge({
       isSnmpEnabled: false,
     });
@@ -286,17 +288,70 @@ describe("the scan list's badge", () => {
 
     expect(icmp).toEqual({
       text: "ICMP",
-      description: DISCOVERY_SCAN_ICMP_OPTION_DESCRIPTION,
+      tooltip: "Scan method: ICMP (ping)",
     });
     expect(snmp).toEqual({
       text: "SNMP",
-      description: DISCOVERY_SCAN_SNMP_OPTION_DESCRIPTION,
+      tooltip: "Scan method: SNMP",
     });
+  });
+
+  /*
+   * The tooltip is the field's label and the card's title, so it reads the
+   * way the form did - and never the card's line: "Needs SNMP credentials"
+   * on a scan that has them would read as something missing.
+   */
+  test("the tooltip is the field's label and the card's title, never the card's line", () => {
+    for (const method of [DiscoveryScanMethod.Icmp, DiscoveryScanMethod.Snmp]) {
+      const tooltip: string = DISCOVERY_SCAN_METHOD_BADGE_TOOLTIP[method];
+
+      expect(tooltip).toBe(
+        `${DISCOVERY_SCAN_METHOD_FIELD_TITLE}: ${getDiscoveryScanMethodOption(method).title}`,
+      );
+      expect(tooltip).not.toContain(
+        getDiscoveryScanMethodOption(method).description,
+      );
+      expect(tooltip).not.toMatch(/need/i);
+    }
   });
 
   test("names a scan stored without the column SNMP", () => {
     expect(getDiscoveryScanMethodBadge({}).text).toBe("SNMP");
+    expect(getDiscoveryScanMethodBadge({}).tooltip).toBe("Scan method: SNMP");
     expect(getDiscoveryScanMethodBadge(null).text).toBe("SNMP");
+  });
+});
+
+/*
+ * The create dialog's title. The scans table builds one from its verb and
+ * noun ("{{action}} New {{itemName}}") unless it is handed one, and several
+ * languages can only fill that in as "Starten: Scan"; a sentence of its own
+ * is worded whole in each.
+ */
+describe("the Start New Scan dialog's title", () => {
+  test("is one English sentence", () => {
+    expect(DISCOVERY_SCAN_CREATE_FORM_TITLE).toBe("Start New Scan");
+  });
+
+  test("is what the scans table opens its create form with", () => {
+    const page: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Pages",
+        "NetworkDevice",
+        "Discovery.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(page).toContain(
+      "createFormTitle={DISCOVERY_SCAN_CREATE_FORM_TITLE}",
+    );
   });
 });
 
@@ -310,6 +365,9 @@ describe("the words, in every language", () => {
     DISCOVERY_SCAN_SNMP_OPTION_DESCRIPTION,
     DISCOVERY_SCAN_METHOD_BADGE_TEXT[DiscoveryScanMethod.Icmp],
     DISCOVERY_SCAN_METHOD_BADGE_TEXT[DiscoveryScanMethod.Snmp],
+    DISCOVERY_SCAN_METHOD_BADGE_TOOLTIP[DiscoveryScanMethod.Icmp],
+    DISCOVERY_SCAN_METHOD_BADGE_TOOLTIP[DiscoveryScanMethod.Snmp],
+    DISCOVERY_SCAN_CREATE_FORM_TITLE,
   ];
 
   // Sentences and the label: protocol names may read the same everywhere.
@@ -318,6 +376,9 @@ describe("the words, in every language", () => {
     DISCOVERY_SCAN_METHOD_FIELD_DESCRIPTION,
     DISCOVERY_SCAN_ICMP_OPTION_DESCRIPTION,
     DISCOVERY_SCAN_SNMP_OPTION_DESCRIPTION,
+    DISCOVERY_SCAN_METHOD_BADGE_TOOLTIP[DiscoveryScanMethod.Icmp],
+    DISCOVERY_SCAN_METHOD_BADGE_TOOLTIP[DiscoveryScanMethod.Snmp],
+    DISCOVERY_SCAN_CREATE_FORM_TITLE,
   ];
 
   test("are English keys the dashboard can look up", () => {
@@ -353,6 +414,32 @@ describe("the words, in every language", () => {
       expect(locale[DISCOVERY_SCAN_ICMP_OPTION_TITLE]).toContain("ICMP");
       expect(locale[DISCOVERY_SCAN_SNMP_OPTION_TITLE]).toBe("SNMP");
       expect(locale[DISCOVERY_SCAN_SNMP_OPTION_DESCRIPTION]).toContain("SNMP");
+    },
+  );
+
+  /*
+   * Each tooltip starts with the locale's own word for the field's label,
+   * and ends with the card's title as the locale draws it.
+   */
+  test.each(OTHER_LOCALES)(
+    "%s words each badge's tooltip with its own label and card title",
+    (fileName: string) => {
+      const locale: Record<string, string> = readLocale(fileName);
+
+      for (const method of [
+        DiscoveryScanMethod.Icmp,
+        DiscoveryScanMethod.Snmp,
+      ]) {
+        const tooltip: string =
+          locale[DISCOVERY_SCAN_METHOD_BADGE_TOOLTIP[method]]!;
+
+        expect(
+          tooltip.startsWith(locale[DISCOVERY_SCAN_METHOD_FIELD_TITLE]!),
+        ).toBe(true);
+        expect(
+          tooltip.endsWith(locale[getDiscoveryScanMethodOption(method).title]!),
+        ).toBe(true);
+      }
     },
   );
 

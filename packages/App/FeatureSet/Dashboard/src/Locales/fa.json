@@ -22408,7 +22408,6 @@
   "Hosts in this cluster that can run VMs (effective), out of all its hosts, from the latest report. A host in maintenance mode or not responding is not effective and is flagged in red.": "Hosts in this cluster that can run VMs (effective), out of all its hosts, from the latest report. A host in maintenance mode or not responding is not effective and is flagged in red.",
   "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host found so far is counted, including ones not seen recently.": "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host found so far is counted, including ones not seen recently.",
   "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host found so far is counted, including ones not seen recently.": "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host found so far is counted, including ones not seen recently.",
-  "Hosts that answered SNMP out of the addresses swept, with hosts that answered only ping counted separately as alive without SNMP. On a ping-only scan it is the hosts that answered ping. While a scan runs, both cover only what has been swept so far.": "Hosts that answered SNMP out of the addresses swept, with hosts that answered only ping counted separately as alive without SNMP. On a ping-only scan it is the hosts that answered ping. While a scan runs, both cover only what has been swept so far.",
   "Hover one to see exactly where it sits.": "Hover one to see exactly where it sits.",
   "Hover one to trace what it connects to.": "Hover one to trace what it connects to.",
   "How Windows starts the service: Automatic (at boot), Manual (only when requested), Disabled (cannot be started), or Boot and System (loaded early, usually drivers).": "How Windows starts the service: Automatic (at boot), Manual (only when requested), Disabled (cannot be started), or Boot and System (loaded early, usually drivers).",
@@ -30407,5 +30406,9 @@
   "Opens one incident when one of these probes goes three minutes without a heartbeat. It resolves itself when the probe is back.": "وقتی یکی از این پراب‌ها سه دقیقه ضربانی نفرستد، یک حادثه باز می‌شود. با بازگشت پراب، خودبه‌خود برطرف می‌شود.",
   "What this monitor watches, and the settings it uses.": "آنچه این مانیتور زیر نظر دارد و تنظیماتی که به کار می‌برد.",
   "{{marketplace}} is not accepting usage reports": "{{marketplace}} is not accepting usage reports",
-  "{{marketplace}} no longer licenses this installation": "{{marketplace}} no longer licenses this installation"
+  "{{marketplace}} no longer licenses this installation": "{{marketplace}} no longer licenses this installation",
+  "Hosts that answered SNMP out of the addresses swept, with hosts that answered only ping counted separately as alive without SNMP. On an ICMP scan it is the hosts that answered ping. While a scan runs, both cover only what has been swept so far.": "میزبان‌هایی از نشانی‌های پیمایش‌شده که به SNMP پاسخ دادند؛ میزبان‌هایی که فقط به ping پاسخ دادند جداگانه به‌عنوان فعال بدون SNMP شمرده می‌شوند. در اسکن ICMP، میزبان‌هایی هستند که به ping پاسخ دادند. تا وقتی اسکن در جریان است، هر دو فقط بخشی را که تاکنون پیمایش شده در بر می‌گیرند.",
+  "Scan method: ICMP (ping)": "روش اسکن: ICMP (ping)",
+  "Scan method: SNMP": "روش اسکن: SNMP",
+  "Start New Scan": "شروع اسکن جدید"
 }

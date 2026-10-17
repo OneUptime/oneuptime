@@ -49,6 +49,14 @@ export enum DiscoveryScanMethod {
 export const NEW_DISCOVERY_SCAN_METHOD: DiscoveryScanMethod =
   DiscoveryScanMethod.Icmp;
 
+/*
+ * The create dialog's title, as one sentence a language words whole. Left to
+ * the scans table, it is built from the verb and the noun ("{{action}} New
+ * {{itemName}}"), which several languages can only fill in as "Starten: Scan".
+ */
+export const DISCOVERY_SCAN_CREATE_FORM_TITLE: string =
+  translationKey("Start New Scan");
+
 // The field's label, above the two cards.
 export const DISCOVERY_SCAN_METHOD_FIELD_TITLE: string =
   translationKey("Scan method");
@@ -112,6 +120,21 @@ export const DISCOVERY_SCAN_METHOD_BADGE_TEXT: Record<
 > = {
   [DiscoveryScanMethod.Icmp]: translationKey("ICMP"),
   [DiscoveryScanMethod.Snmp]: translationKey("SNMP"),
+};
+
+/*
+ * The badge's tooltip: what the word on it is. A bare "ICMP" or "SNMP" beside
+ * a scan's name is plain to whoever picked it; the tooltip names it the way
+ * the form does, the card's title included, for everyone else. Not the card's
+ * line: on a scan that has its credentials, "Needs SNMP credentials" would
+ * read as something missing.
+ */
+export const DISCOVERY_SCAN_METHOD_BADGE_TOOLTIP: Record<
+  DiscoveryScanMethod,
+  string
+> = {
+  [DiscoveryScanMethod.Icmp]: translationKey("Scan method: ICMP (ping)"),
+  [DiscoveryScanMethod.Snmp]: translationKey("Scan method: SNMP"),
 };
 
 type GetDiscoveryScanMethodFunction = (
@@ -194,8 +217,8 @@ export const getDiscoveryScanMethodOption: GetDiscoveryScanMethodOptionFunction 
 export interface DiscoveryScanMethodBadge {
   // "ICMP" or "SNMP": an English key, looked up as it is drawn.
   text: string;
-  // The card's line, for the badge's tooltip.
-  description: string;
+  // "Scan method: ICMP (ping)": an English key too, for the badge's tooltip.
+  tooltip: string;
 }
 
 type GetDiscoveryScanMethodBadgeFunction = (
@@ -203,8 +226,8 @@ type GetDiscoveryScanMethodBadgeFunction = (
 ) => DiscoveryScanMethodBadge;
 
 /*
- * A scan's badge in the scan list: the method's word, and the card's line as
- * its tooltip, so the list says what the form said when the scan was started.
+ * A scan's badge in the scan list: the method's word, and the method named
+ * the way the form names it as its tooltip.
  */
 export const getDiscoveryScanMethodBadge: GetDiscoveryScanMethodBadgeFunction =
   (scan: DiscoveryScanMode | null | undefined): DiscoveryScanMethodBadge => {
@@ -212,7 +235,7 @@ export const getDiscoveryScanMethodBadge: GetDiscoveryScanMethodBadgeFunction =
 
     return {
       text: DISCOVERY_SCAN_METHOD_BADGE_TEXT[method],
-      description: getDiscoveryScanMethodOption(method).description,
+      tooltip: DISCOVERY_SCAN_METHOD_BADGE_TOOLTIP[method],
     };
   };
 

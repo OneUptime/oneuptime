@@ -386,5 +386,17 @@ describe("changing the method in the Edit dialog", () => {
     expect(dialog()).toHaveTextContent(
       "The hosts its last run found are cleared. Devices you already imported stay as they are.",
     );
+
+    /*
+     * One note, under the form and set apart from its last field: it used
+     * to sit flush against More fields.
+     */
+    const note: HTMLElement = within(dialog()).getByTestId(
+      "discovery-scan-edit-rerun-note",
+    );
+    expect(note).toHaveTextContent(
+      "Changing the target, probe, scan method or credentials runs the scan again",
+    );
+    expect(note).toHaveClass("mt-6");
   });
 });

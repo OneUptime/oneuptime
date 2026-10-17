@@ -60,6 +60,7 @@ import {
   validateSnmpConfigs,
 } from "./DiscoveryScanFormValidation";
 import {
+  DISCOVERY_SCAN_CREATE_FORM_TITLE,
   DISCOVERY_SCAN_METHOD_FIELD_DESCRIPTION,
   DISCOVERY_SCAN_METHOD_FIELD_TITLE,
   DiscoveryScanMethodBadge,
@@ -94,6 +95,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  composedValue,
   translatableTerm,
   translatePlural,
   translateTemplate,
@@ -201,7 +203,16 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        */
       description: translateTemplate(
         "A subnet such as 192.168.1.0/24, or an octet range such as 10.16-22.0-255.51-66. Up to {{max}} addresses.",
-        { max: ScanTargetUtil.MAX_SCAN_HOSTS.toLocaleString("en-US") },
+        {
+          /*
+           * Written the way the sentence's language writes numbers: an
+           * English "32,768" in a German sentence reads as 32.768 - a
+           * decimal - to a German reader.
+           */
+          max: composedValue((sentence: Translator): string => {
+            return sentence.formatNumber(ScanTargetUtil.MAX_SCAN_HOSTS);
+          }),
+        },
       ),
       /*
        * Parses the target with exactly the function the server validates
@@ -248,7 +259,12 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
                 other: "This target sweeps {{count}} addresses.",
               },
               hostCount,
-              { count: hostCount.toLocaleString("en-US") },
+              // The count in the sentence's language, as the limit above.
+              {
+                count: composedValue((sentence: Translator): string => {
+                  return sentence.formatNumber(hostCount);
+                }),
+              },
             )}
           </p>
         );
@@ -764,6 +780,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
         createVerb="Start"
         singularName="Scan"
         pluralName="Scans"
+        // "Start New Scan", worded whole in every language.
+        createFormTitle={DISCOVERY_SCAN_CREATE_FORM_TITLE}
         showCreateForm={isNewScanRequested}
         // A new scan starts on ICMP (DiscoveryScanMethod.ts).
         createInitialValues={NEW_DISCOVERY_SCAN_FORM_VALUES}
@@ -923,13 +941,18 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
               return (
                 <div className="min-w-56 max-w-xs space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-sm font-medium text-gray-900">
+                  {/*
+                   * The badge stays on the name's first line: a long name
+                   * wraps beside it rather than pushing it onto a line of
+                   * its own.
+                   */}
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 break-words text-sm font-medium text-gray-900">
                       {name || item.cidr || "—"}
                     </div>
                     {/*
                      * The scan's method, ICMP or SNMP, in the words of the two
-                     * cards it was started with, the card's line as the
+                     * cards it was started with, named in full in the
                      * tooltip. Every row says it: both are first-class
                      * choices now, and a Pending or In Progress scan has no
                      * result summary yet to tell them apart.
@@ -943,7 +966,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                      */}
                     <span
                       className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-                      title={translator.translateText(methodBadge.description)}
+                      title={translator.translateText(methodBadge.tooltip)}
                       data-testid="discovery-scan-method-badge"
                     >
                       {translator.translateText(methodBadge.text)}
@@ -1435,6 +1458,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
            */
           footer={
             <Alert
+              /*
+               * Apart from the form above it: the form's last field ends
+               * with no margin of its own, and the note touched it.
+               */
+              className="mt-6"
+              dataTestId="discovery-scan-edit-rerun-note"
               type={AlertType.INFO}
               strongTitle="Changing the target, probe, scan method or credentials runs the scan again"
               title="The hosts its last run found are cleared. Devices you already imported stay as they are."

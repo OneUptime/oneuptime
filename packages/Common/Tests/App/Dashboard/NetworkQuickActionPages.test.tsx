@@ -47,6 +47,7 @@ const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 type RecordedTableProps = {
   showCreateForm?: boolean | undefined;
   createInitialValues?: Record<string, unknown> | undefined;
+  createFormTitle?: string | undefined;
   createVerb?: string | undefined;
   singularName?: string | undefined;
   emptyState?:
@@ -470,6 +471,17 @@ describe("Discovery, opened with ?open=discover-devices", () => {
     await renderAt(DISCOVERY_PATH, DiscoveryPage);
 
     expect(screen.queryByTestId("create-form-opened")).toBeNull();
+  });
+
+  /*
+   * Its title is a sentence of its own. Built from the table's verb and
+   * noun, several languages could only word it "Starten: Scan".
+   */
+  test("titles the form Start New Scan, as one sentence", async () => {
+    await renderAt(`${DISCOVERY_PATH}?open=discover-devices`, DiscoveryPage);
+
+    expect(lastTableProps().createFormTitle).toBe("Start New Scan");
+    expect(lastTableProps().createVerb).toBe("Start");
   });
 
   test("does not answer the Add Device action", async () => {

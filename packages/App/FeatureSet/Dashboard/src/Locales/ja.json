@@ -22408,7 +22408,6 @@
   "Hosts in this cluster that can run VMs (effective), out of all its hosts, from the latest report. A host in maintenance mode or not responding is not effective and is flagged in red.": "最新の報告に基づく、このクラスターの全ホストのうち VM を実行できる（有効な）ホストの数です。メンテナンスモードのホストや応答しないホストは有効とはみなされず、赤で示されます。",
   "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host found so far is counted, including ones not seen recently.": "SNMP ウォーク中にスイッチやルーターのアドレステーブル（ARP テーブルと MAC フォワーディングテーブル）で見つかった PC、電話機、プリンターなどのホストです。最近確認されていないものも含め、これまでに見つかったすべてのホストを数えます。",
   "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host found so far is counted, including ones not seen recently.": "このサイトに割り当てられたデバイスがアドレステーブル（ARP テーブルと MAC フォワーディングテーブル）で見つけた PC、電話機、プリンターなどのホストです。最近確認されていないものも含め、これまでに見つかったすべてのホストを数えます。",
-  "Hosts that answered SNMP out of the addresses swept, with hosts that answered only ping counted separately as alive without SNMP. On a ping-only scan it is the hosts that answered ping. While a scan runs, both cover only what has been swept so far.": "スイープしたアドレスのうち SNMP に応答したホストの数で、ping にのみ応答したホストは SNMP なしで稼働中として別に数えます。ping のみのスキャンでは、ping に応答したホストの数です。スキャンの実行中は、どちらもそれまでにスイープした分だけが対象です。",
   "Hover one to see exactly where it sits.": "カーソルを合わせると、正確な位置を確認できます。",
   "Hover one to trace what it connects to.": "カーソルを合わせると、接続先をたどれます。",
   "How Windows starts the service: Automatic (at boot), Manual (only when requested), Disabled (cannot be started), or Boot and System (loaded early, usually drivers).": "Windows によるサービスの開始方法です: 自動（起動時）、手動（要求時のみ）、無効（開始できない）、またはブートとシステム（早い段階で読み込まれる。通常はドライバー）。",
@@ -30407,5 +30406,9 @@
   "Opens one incident when one of these probes goes three minutes without a heartbeat. It resolves itself when the probe is back.": "これらのプローブのいずれかが 3 分間ハートビートを送らないと、インシデントを 1 件作成します。プローブが戻ると自動的に解決されます。",
   "What this monitor watches, and the settings it uses.": "このモニターが監視する対象と、使用する設定。",
   "{{marketplace}} is not accepting usage reports": "{{marketplace}} が使用状況レポートを受け付けていません",
-  "{{marketplace}} no longer licenses this installation": "{{marketplace}} はこのインストールのライセンスを提供しなくなりました"
+  "{{marketplace}} no longer licenses this installation": "{{marketplace}} はこのインストールのライセンスを提供しなくなりました",
+  "Hosts that answered SNMP out of the addresses swept, with hosts that answered only ping counted separately as alive without SNMP. On an ICMP scan it is the hosts that answered ping. While a scan runs, both cover only what has been swept so far.": "スイープしたアドレスのうち SNMP に応答したホストの数で、ping にのみ応答したホストは SNMP なしで稼働中として別に数えます。ICMP スキャンでは、ping に応答したホストの数です。スキャンの実行中は、どちらもそれまでにスイープした分だけが対象です。",
+  "Scan method: ICMP (ping)": "スキャン方法: ICMP（ping）",
+  "Scan method: SNMP": "スキャン方法: SNMP",
+  "Start New Scan": "新しいスキャンを開始"
 }
