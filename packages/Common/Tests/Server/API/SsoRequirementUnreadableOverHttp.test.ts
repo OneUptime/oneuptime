@@ -971,6 +971,63 @@ describe("a server that requires SSO, in a project that does not require it itse
   });
 });
 
+/*
+ * The mobile app signs its requests the other way: the session as a bearer
+ * token, and its SSO sign-in in a header (x-global-sso-token, or
+ * x-sso-tokens for a project's own). The same rules, read the same way.
+ */
+describe("the mobile app's requests: a bearer session, with its SSO sign-in in a header", () => {
+  function listLabelsFromTheApp(withSsoSignIn: boolean): Promise<HttpResult> {
+    const signIn: Dictionary<string> = withSsoSignIn
+      ? ssoSignIn()
+      : passwordSignIn();
+
+    return send({
+      method: "POST",
+      path: "/api/label/get-list",
+      cookies: {},
+      headers: {
+        tenantid: PROJECT_ID.toString(),
+        authorization: `Bearer ${signIn[CookieUtil.getUserTokenKey()]!}`,
+        ...(withSsoSignIn
+          ? {
+              "x-global-sso-token": signIn[CookieUtil.getGlobalSSOKey()]!,
+            }
+          : {}),
+      },
+      body: { query: {}, select: { _id: true } },
+    });
+  }
+
+  test("with the rule read, the app is asked to sign in with SSO without one, and gets the project with one", async () => {
+    expect((await listLabelsFromTheApp(false)).status).toBe(
+      ExceptionCode.SsoAuthorizationException,
+    );
+    expect(reached).toEqual([]);
+
+    expect((await listLabelsFromTheApp(true)).status).toBe(200);
+    expectListedAs({
+      what: "labels",
+      userId: MEMBER_ID,
+      tenantId: PROJECT_ID,
+      permissions: undefined,
+    });
+  });
+
+  test.each(READ_FAILURES)(
+    "the rule cannot be read ($name): the app's request is refused with the error, with an SSO sign-in or without, and nothing is read",
+    async (readFailure: ReadFailure) => {
+      failingReads.set(serverConfig, readFailure.failure);
+
+      for (const withSsoSignIn of [false, true]) {
+        expectAnError(await listLabelsFromTheApp(withSsoSignIn));
+      }
+
+      expect(reached).toEqual([]);
+    },
+  );
+});
+
 describe("a project that requires SSO itself", () => {
   test("is held to its own rule, so the server's rule is not read and a failure to read it changes nothing", async () => {
     failingReads.set(serverConfig, A_READ_FAILURE.failure);
