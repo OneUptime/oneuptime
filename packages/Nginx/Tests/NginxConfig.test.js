@@ -64,8 +64,11 @@ const PROXY_HTTP_VERSION_EXCEPTIONS = [
 ];
 
 /*
- * The on-call calendar feed location. The URL carries a bearer token
- * (/api/on-call-calendar/user/<token>/shifts.ics), so it is the ONE place in
+ * The calendar feed location: the on-call feeds and the team's scheduled
+ * maintenance calendar. The URL carries a bearer token
+ * (/api/on-call-calendar/user/<token>/shifts.ics,
+ * /api/scheduled-maintenance-calendar/project/<token>/maintenance.ics), so it
+ * is the ONE place in
  * the shipped config where per-request access logging is switched off: an
  * access-log line there is a credential written to disk. Every server block
  * must carry it, because a calendar client can be pointed at any of the three
@@ -73,7 +76,7 @@ const PROXY_HTTP_VERSION_EXCEPTIONS = [
  * defeats the purpose on that listener.
  */
 const CALENDAR_FEED_LOCATION_SPEC =
-  "~ ^/api/on-call-calendar/(user|schedule|project)/";
+  "~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/";
 
 function findCalendarFeedLocation(serverBlock) {
   return getLocationBlocks(serverBlock.body).find((location) => {
@@ -588,7 +591,7 @@ test("no other location silences or redirects its error log", () => {
   );
 });
 
-test("the calendar feed regex covers the three feed kinds and nothing else", () => {
+test("the calendar feed regex covers the four feed kinds and nothing else", () => {
   const pattern = new RegExp(locationRegexSource(CALENDAR_FEED_LOCATION_SPEC));
 
   const token = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCd0";
@@ -597,9 +600,12 @@ test("the calendar feed regex covers the three feed kinds and nothing else", () 
     `/api/on-call-calendar/user/${token}/shifts.ics`,
     `/api/on-call-calendar/schedule/${token}/schedule.ics`,
     `/api/on-call-calendar/project/${token}/project.ics`,
-    // Any path under the three prefixes: a mistyped file name still has the
+    // The team's scheduled maintenance calendar carries a token the same way.
+    `/api/scheduled-maintenance-calendar/project/${token}/maintenance.ics`,
+    // Any path under the four prefixes: a mistyped file name still has the
     // token in it and still must not be logged.
     "/api/on-call-calendar/user/not-a-token/anything",
+    "/api/scheduled-maintenance-calendar/project/not-a-token/anything",
   ]) {
     assert.ok(pattern.test(uri), `should match ${uri}`);
   }
@@ -618,6 +624,17 @@ test("the calendar feed regex covers the three feed kinds and nothing else", () 
     "/api/on-call-calendar/users/abc/shifts.ics",
     "/api/on-call-calendar/user",
     "/api/on-call-calendar/",
+    // The maintenance calendar's session routes carry no token either.
+    "/api/scheduled-maintenance-calendar/project-feed/current",
+    "/api/scheduled-maintenance-calendar/project-feed/publish",
+    "/api/scheduled-maintenance-calendar/project-feed/rotate",
+    "/api/scheduled-maintenance-calendarx/project/abc/maintenance.ics",
+    "/status-page-api/scheduled-maintenance-calendar/project/abc/maintenance.ics",
+    "/api/scheduled-maintenance-calendar/projects/abc/maintenance.ics",
+    "/api/scheduled-maintenance-calendar/",
+    // A status page's own calendar is public and carries no token.
+    "/maintenance.ics",
+    "/status-page/00000000-0000-4000-8000-000000000000/maintenance.ics",
   ]) {
     assert.ok(!pattern.test(uri), `should NOT match ${uri}`);
   }
@@ -637,9 +654,26 @@ test("nginx location precedence sends feed requests to the calendar block and ma
   }
 
   assert.equal(
+    resolveLocation(
+      locations,
+      `/api/scheduled-maintenance-calendar/project/${token}/maintenance.ics`,
+    ).spec,
+    CALENDAR_FEED_LOCATION_SPEC,
+    "a maintenance calendar request must land in the unlogged location, not /api",
+  );
+
+  assert.equal(
     resolveLocation(locations, "/api/on-call-calendar/feed/current").spec,
     "/api",
     "the management routes must keep landing in /api and being logged",
+  );
+  assert.equal(
+    resolveLocation(
+      locations,
+      "/api/scheduled-maintenance-calendar/project-feed/current",
+    ).spec,
+    "/api",
+    "the maintenance calendar's management routes must keep landing in /api",
   );
   assert.equal(
     resolveLocation(locations, "/api/on-call-calendar/my-shifts").spec,
