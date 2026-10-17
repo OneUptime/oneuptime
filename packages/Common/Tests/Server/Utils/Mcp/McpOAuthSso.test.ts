@@ -432,19 +432,22 @@ describe("McpOAuthSso", () => {
       );
     });
 
-    test("the provider lookup failing reads as 'any provider' - still required, never 'not required'", async () => {
+    test("the provider lookup failing throws - never 'any provider will do', as for a browser request", async () => {
       projectRequireSso.mockResolvedValue(true);
       projectRequiredProvider.mockRejectedValue(new Error("cache unavailable"));
 
-      await expect(
-        McpOAuthSso.getRequirement({
-          projectId: PROJECT_ID,
-          isMasterAdmin: false,
-        }),
-      ).resolves.toEqual({ isRequired: true, requiredSsoProviderId: null });
+      // A project's own requirement binds master admins too.
+      for (const isMasterAdmin of [false, true]) {
+        await expect(
+          McpOAuthSso.getRequirement({
+            projectId: PROJECT_ID,
+            isMasterAdmin: isMasterAdmin,
+          }),
+        ).rejects.toThrow("cache unavailable");
+      }
     });
 
-    test("the instance switch failing to read is 'not set', as it is for a browser request", async () => {
+    test("the instance switch failing to read throws - never 'not set', as for a browser request", async () => {
       globalRequireSso.mockRejectedValue(new Error("database unavailable"));
 
       await expect(
@@ -452,7 +455,31 @@ describe("McpOAuthSso", () => {
           projectId: PROJECT_ID,
           isMasterAdmin: false,
         }),
+      ).rejects.toThrow("database unavailable");
+    });
+
+    test("the provider lookup failing under the instance switch throws too", async () => {
+      globalRequireSso.mockResolvedValue(true);
+      projectRequiredProvider.mockRejectedValue(new Error("cache unavailable"));
+
+      await expect(
+        McpOAuthSso.getRequirement({
+          projectId: PROJECT_ID,
+          isMasterAdmin: false,
+        }),
+      ).rejects.toThrow("cache unavailable");
+    });
+
+    test("a master admin is not asked the instance switch, so it failing to read changes nothing for them", async () => {
+      globalRequireSso.mockRejectedValue(new Error("database unavailable"));
+
+      await expect(
+        McpOAuthSso.getRequirement({
+          projectId: PROJECT_ID,
+          isMasterAdmin: true,
+        }),
       ).resolves.toEqual({ isRequired: false, requiredSsoProviderId: null });
+      expect(globalRequireSso).not.toHaveBeenCalled();
     });
 
     test("a project that does not exist throws: it is never 'no SSO required'", async () => {

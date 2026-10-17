@@ -1193,6 +1193,54 @@ describe("McpOAuthGrantAccess", () => {
         );
       });
 
+      test("an instance-wide requirement that cannot be read is an error - never 'not required', whatever the grant's evidence", async () => {
+        globalRequireSso.mockRejectedValue(new Error("database unavailable"));
+
+        await expect(evaluate(grantWith())).rejects.toThrow(
+          "database unavailable",
+        );
+        await expect(evaluate(grantWith(goodEvidence))).rejects.toThrow(
+          "database unavailable",
+        );
+      });
+
+      test("the code exchange that activates a grant is refused too while the instance-wide requirement cannot be read", async () => {
+        globalRequireSso.mockRejectedValue(new Error("database unavailable"));
+
+        await expect(
+          evaluate(grantWith({ activatedAt: undefined }), {
+            requireActivated: false,
+          }),
+        ).rejects.toThrow("database unavailable");
+      });
+
+      test("a master admin is not asked the instance-wide requirement, so it failing to read changes nothing for them", async () => {
+        globalRequireSso.mockRejectedValue(new Error("database unavailable"));
+        findUser.mockResolvedValue(userRow({ isMasterAdmin: true }));
+
+        expect((await evaluate(grantWith())).isAllowed).toBe(true);
+        expect(globalRequireSso).not.toHaveBeenCalled();
+      });
+
+      test("a pinned provider that cannot be read is an error - never 'any provider will do'", async () => {
+        projectRequireSso.mockResolvedValue(true);
+        projectRequiredProvider.mockRejectedValue(
+          new Error("database unavailable"),
+        );
+
+        await expect(evaluate(grantWith(goodEvidence))).rejects.toThrow(
+          "database unavailable",
+        );
+      });
+
+      test("a project requirement that cannot be read is an error", async () => {
+        projectRequireSso.mockRejectedValue(new Error("database unavailable"));
+
+        await expect(evaluate(grantWith(goodEvidence))).rejects.toThrow(
+          "database unavailable",
+        );
+      });
+
       test("the SSO rules are read for the grant's project", async () => {
         projectRequireSso.mockResolvedValue(true);
 
