@@ -213,12 +213,31 @@ const getReaderTimezone: () => string = (): string => {
 };
 
 /*
- * Starts At on a new event: the next full hour on the reader's clock, held
- * the way the date input holds what is typed into it (an ISO string).
+ * A Starts At the create page's address asks for (?startsAt=<ISO>, as the
+ * Calendar view's + on a day sends it), held the way the date input holds
+ * it, or null when there is none or it is not a real instant.
  */
-export const getDefaultMaintenanceStartsAt: () => string = (): string => {
-  return OneUptimeDate.toString(
-    getNextFullHour(OneUptimeDate.getCurrentDate(), getReaderTimezone()),
+export const readRequestedMaintenanceStartsAt: (
+  requested: string | null | undefined,
+) => string | null = (requested: string | null | undefined): string | null => {
+  const startsAt: Date | null = toMaintenanceDate(requested);
+
+  return startsAt ? OneUptimeDate.toString(startsAt) : null;
+};
+
+/*
+ * Starts At on a new event: the one the page's address asks for, else the
+ * next full hour on the reader's clock, held the way the date input holds
+ * what is typed into it (an ISO string).
+ */
+export const getDefaultMaintenanceStartsAt: (
+  requested?: string | null | undefined,
+) => string = (requested?: string | null | undefined): string => {
+  return (
+    readRequestedMaintenanceStartsAt(requested) ||
+    OneUptimeDate.toString(
+      getNextFullHour(OneUptimeDate.getCurrentDate(), getReaderTimezone()),
+    )
   );
 };
 

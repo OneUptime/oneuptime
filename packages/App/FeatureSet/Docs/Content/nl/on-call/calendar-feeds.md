@@ -246,7 +246,7 @@ De feed toont de rotatie **zoals die nu is ingesteld**, ook voor dagen in het ve
 De eigen Nginx van OneUptime houdt feedverzoeken uit zijn logboeken:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;

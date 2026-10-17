@@ -213,11 +213,13 @@ Em **Mais configurações** de **Acesso**, a seção **Lista de IPs permitidos**
 
 ## O selo incorporável e o feed RSS
 
-Duas formas de mostrar o status em outro lugar que não a própria página.
+Três formas de mostrar o status em outro lugar que não a própria página.
 
 **Selo de status incorporado.** Em **Páginas de status → sua página → Avançado → Status incorporado**, ligue **Habilitar selo de status incorporado** (`enableEmbeddedOverallStatus`, desligado por padrão) e clique em **Regenerar token** no cartão **Token de segurança** para dar ao selo o token dele (`embeddedOverallStatusToken`). O selo é servido em `/api/status-page/badge/<status-page-id>?token=<token>`, e a tela o mostra em **Pré-visualização do selo** com trechos para copiar, para que você possa colocar o status geral atual na sua documentação, no rodapé do seu aplicativo ou em uma página de marketing.
 
 **Feed RSS.** Toda página de status serve `/rss`: um feed intitulado "{título da página} Updates", com o **Título da página** definido em **Marca**, ou o nome dela se não tiver um, e cujos itens começam com `Incident: `, `Announcement: ` e `Scheduled Maintenance: `. Útil para quem prefere levar suas atualizações para um leitor ou um chatbot em vez de se inscrever por e-mail.
+
+**Calendário de manutenção.** Toda página de status também serve `/maintenance.ics`: a manutenção programada que ela mostra, como um calendário que o Google Agenda, o Calendário da Apple ou o Outlook podem assinar. Os visitantes o adicionam com **Subscrever o calendário** na página **Eventos agendados**, e um único evento com **Adicionar ao calendário** na própria página do evento. O calendário de uma página privada fica vazio, já que um app de calendário não consegue entrar. Veja [Calendário de manutenção](/docs/scheduled-maintenance/calendar#o-calendário-de-uma-página-de-status).
 
 Se você preferir buscar os dados por conta própria, a página de status se apoia em endpoints públicos de leitura para a visão geral, os incidentes, os eventos de manutenção programada, os anúncios e os episódios: veja [API pública](/docs/status-pages/public-api).
 

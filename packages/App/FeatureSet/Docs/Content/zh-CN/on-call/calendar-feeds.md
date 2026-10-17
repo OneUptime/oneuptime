@@ -246,7 +246,7 @@ OneUptime 本身提供的是最新数据：对层、轮换、替班或策略关�
 OneUptime 自带的 Nginx 不会把订阅源请求写入日志：
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;

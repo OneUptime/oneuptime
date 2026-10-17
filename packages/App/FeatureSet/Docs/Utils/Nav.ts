@@ -598,6 +598,10 @@ const DocsNav: NavGroup[] = [
         title: "Maintenance Rules & Settings",
         url: "/docs/scheduled-maintenance/settings",
       },
+      {
+        title: "Maintenance Calendar",
+        url: "/docs/scheduled-maintenance/calendar",
+      },
     ],
   },
   {

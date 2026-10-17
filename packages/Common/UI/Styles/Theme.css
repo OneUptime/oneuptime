@@ -312,6 +312,11 @@ html.dark :is(
   ):hover,
 html.dark [class~="focus:text-gray-900"]:focus,
 html.dark [class~="focus-visible:text-gray-900"]:focus-visible,
+/*
+ * Named as well as matched below: the status page's calendar tiles brighten
+ * their arrow on hover, and its dark-mode guard reads named classes.
+ */
+html.dark .group:hover [class~="group-hover:text-gray-600"],
 html.dark .group:hover [class*="group-hover"][class*="text-gray-"],
 /*
  * `group-[:not(:hover)]:hidden` is a group-hover reveal written so a foreign
@@ -1368,7 +1373,6 @@ html.dark .chrome-picker svg {
 
 /* React Big Calendar ships a light-only skin; these remain wrapper-scoped. */
 html.dark .oneuptime-calendar .rbc-calendar,
-html.dark .oneuptime-calendar .rbc-toolbar-label,
 html.dark .oneuptime-calendar .rbc-date-cell,
 html.dark .oneuptime-calendar .rbc-agenda-view table,
 html.dark .oneuptime-calendar .rbc-agenda-date-cell,
@@ -1376,11 +1380,17 @@ html.dark .oneuptime-calendar .rbc-agenda-time-cell {
   color: var(--ou-text-secondary);
 }
 
-html.dark .oneuptime-calendar :is(
+/*
+ * .rbc-calendar is in these two selectors for its weight: Calendar.css paints
+ * the week view's day names with a selector four classes deep, and the
+ * agenda's column titles with one as heavy as the second rule would be
+ * without it. (The toolbar's selectors that used to sit in these lists gave
+ * them that weight; the toolbar is now the product's own, CalendarToolbar.)
+ */
+html.dark .oneuptime-calendar .rbc-calendar :is(
     .rbc-month-view,
     .rbc-time-view,
     .rbc-agenda-view,
-    .rbc-toolbar .rbc-btn-group,
     .rbc-time-content,
     .rbc-day-bg,
     .rbc-timeslot-group
@@ -1389,11 +1399,9 @@ html.dark .oneuptime-calendar :is(
   border-color: var(--ou-border-default);
 }
 
-html.dark .oneuptime-calendar :is(
+html.dark .oneuptime-calendar .rbc-calendar :is(
     .rbc-header,
     .rbc-off-range-bg,
-    .rbc-toolbar button:hover,
-    .rbc-toolbar button:focus,
     .rbc-agenda-view thead > tr > th
   ) {
   background-color: var(--ou-surface-secondary);
@@ -1405,16 +1413,61 @@ html.dark .oneuptime-calendar .rbc-today {
   background-color: var(--ou-accent-soft);
 }
 
-html.dark .oneuptime-calendar .rbc-toolbar button {
+/* Today in the month grid: the surface rule above paints every day cell
+   the card's colour and outranks .rbc-today, so today needs its own. */
+html.dark .oneuptime-calendar .rbc-month-view .rbc-day-bg.rbc-today {
+  background-color: var(--ou-accent-soft);
+}
+
+/* A block in a dark colour - a state or a person whose colour is black or
+   near it - keeps an edge on the dark grid. */
+html.dark .oneuptime-calendar .rbc-event {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%);
+}
+
+html.dark .oneuptime-calendar-legend-dot {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 35%);
+}
+
+/*
+ * A soft block (Calendar's eventAppearance, CalendarEventTone): its dark
+ * tone rides along on the inline style as custom properties. Important,
+ * because what it replaces is an inline style. Not scoped to the calendar's
+ * wrapper: the "+N more" list is drawn outside it.
+ */
+html.dark .rbc-event.oneuptime-calendar-event--soft {
+  background-color: var(--ou-calendar-event-dark-bg) !important;
+  color: var(--ou-calendar-event-dark-text) !important;
+  box-shadow: var(--ou-calendar-event-dark-shadow) !important;
+}
+
+/* The "+N more" list, a small card at the end of the page's body. */
+html.dark .rbc-overlay {
   background-color: var(--ou-surface-primary);
   border-color: var(--ou-border-default);
+  box-shadow: var(--ou-shadow-md);
+}
+
+html.dark .rbc-overlay .rbc-overlay-header {
+  border-color: var(--ou-border-subtle);
   color: var(--ou-text-secondary);
 }
 
-html.dark .oneuptime-calendar .rbc-toolbar button.rbc-active {
-  background-color: var(--ou-accent-soft);
-  border-color: var(--ou-border-strong);
-  color: var(--ou-accent-text);
+/*
+ * The week and day grids: the lines between days, and only the hours'
+ * lines - the half hours' would draw every hour twice as busy as the light
+ * theme's faint ones.
+ */
+html.dark .oneuptime-calendar .rbc-time-content > * + * > * {
+  border-left-color: var(--ou-border-subtle) !important;
+}
+
+html.dark .oneuptime-calendar .rbc-day-slot .rbc-time-slot {
+  border-top-color: transparent !important;
+}
+
+html.dark .oneuptime-calendar .rbc-time-view .rbc-timeslot-group {
+  border-bottom-color: var(--ou-border-subtle) !important;
 }
 
 html.dark .oneuptime-calendar :is(.rbc-off-range, .rbc-label) {

@@ -212,6 +212,8 @@ import OnCallDutyPolicyScheduleOwnerUser from "./OnCallDutyPolicyScheduleOwnerUs
 import UserOnCallCalendarFeed from "./UserOnCallCalendarFeed";
 import OnCallDutyPolicyScheduleCalendarFeed from "./OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "./ProjectOnCallCalendarFeed";
+// The team's calendar link for scheduled maintenance
+import ScheduledMaintenanceCalendarFeed from "./ScheduledMaintenanceCalendarFeed";
 import UserOnCallShiftReminder from "./UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "./UserOnCallShiftReminderLog";
 
@@ -876,6 +878,7 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyScheduleOwnerUser,
   OnCallDutyPolicyScheduleCalendarFeed,
   ProjectOnCallCalendarFeed,
+  ScheduledMaintenanceCalendarFeed,
   UserOnCallCalendarFeed,
   UserOnCallShiftReminder,
   UserOnCallShiftReminderLog,

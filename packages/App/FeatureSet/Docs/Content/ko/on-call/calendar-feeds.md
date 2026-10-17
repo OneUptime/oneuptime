@@ -246,7 +246,7 @@ OneUptime 자체는 최신 데이터를 제공합니다. 레이어, 로테이션
 OneUptime의 자체 Nginx는 피드 요청을 로그에 남기지 않습니다.
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;

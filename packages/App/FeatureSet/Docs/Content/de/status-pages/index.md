@@ -213,11 +213,13 @@ Unter **Weitere Einstellungen** auf **Zugriff** beschränkt der Abschnitt **IP-Z
 
 ## Das einbettbare Badge und der RSS-Feed
 
-Zwei Wege, den Status anderswo als auf der Seite selbst zu zeigen.
+Drei Wege, den Status anderswo als auf der Seite selbst zu zeigen.
 
 **Eingebettetes Status-Badge.** Schalten Sie auf **Statusseiten → Ihre Seite → Erweitert → Eingebetteter Status** **Eingebettetes Status-Badge aktivieren** ein (`enableEmbeddedOverallStatus`, standardmäßig aus) und klicken Sie dann auf der Karte **Sicherheitstoken** auf **Token neu generieren**, um dem Badge sein Token zu geben (`embeddedOverallStatusToken`). Das Badge wird unter `/api/status-page/badge/<status-page-id>?token=<token>` ausgeliefert, und der Bildschirm zeigt es unter **Badge-Vorschau** mit Snippets zum Kopieren, damit Sie den aktuellen Gesamtstatus in Ihre Dokumentation, die Fußzeile Ihrer App oder eine Marketingseite einbauen können.
 
 **RSS-Feed.** Jede Statusseite liefert `/rss` aus – einen Feed mit dem Titel „{Seitentitel} Updates“, mit dem **Seitentitel** der Seite aus **Branding** oder ihrem Namen, wenn sie keinen hat, und mit Einträgen, die mit `Incident: `, `Announcement: ` und `Scheduled Maintenance: ` beginnen. Praktisch für alle, die Ihre Updates lieber in einen Reader oder einen Chatbot leiten, als per E-Mail zu abonnieren.
+
+**Wartungskalender.** Jede Statusseite liefert außerdem `/maintenance.ics` aus: die geplante Wartung, die sie zeigt, als Kalender, den Google Kalender, Apple Kalender oder Outlook abonnieren können. Besucher fügen ihn mit **Kalender abonnieren** auf der Seite **Geplante Ereignisse** hinzu, und ein einzelnes Ereignis mit **Zum Kalender hinzufügen** auf dessen eigener Seite. Der Kalender einer privaten Seite ist leer, da sich eine Kalender-App nicht anmelden kann. Siehe [Wartungskalender](/docs/scheduled-maintenance/calendar#der-kalender-einer-statusseite).
 
 Wenn Sie die Daten lieber selbst abrufen, stehen hinter der Statusseite öffentliche Lese-Endpunkte für die Übersicht, Vorfälle, geplante Wartungsereignisse, Ankündigungen und Episoden – siehe [Öffentliche API](/docs/status-pages/public-api).
 

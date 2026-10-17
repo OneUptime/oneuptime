@@ -111,7 +111,7 @@ Sparade vyer hör till projektet, så alla i det ser samma lista. Ett rullande i
 
 Växla listan till **Analytics** för att räkna loggar i stället för att läsa dem. Välj en tidsserie, en topplista eller en tabell; räkna varje logg, eller de unika värdena i ett fält; och gruppera efter allvarlighetsgrad, tjänst, spår, span eller valfritt attribut, och sedan efter ett andra fält. En topplista eller en tabell visar de översta 5, 10, 25 eller 50 grupperna.
 
-Klicka på **List** för att gå tillbaka till själva raderna.
+Klicka på **Lista** för att gå tillbaka till själva raderna.
 
 ## Öppna tillhörande spår och mätvärden
 
