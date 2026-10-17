@@ -659,6 +659,8 @@ export default class InvestigationThreadService {
     projectId: ObjectID;
     subject: InvestigationThreadSubject;
     aiRunId: ObjectID;
+    // Whoever asked (or decided on a paused answer): the commands are theirs.
+    props: DatabaseCommonInteractionProps;
   }): Promise<InvestigationThreadTurnContext | null> {
     try {
       return await InvestigationThread.buildTurnContext(data);
@@ -679,6 +681,7 @@ export default class InvestigationThreadService {
         projectId: data.turn.projectId,
         subject: data.subject,
         aiRunId: data.turn.aiRunId,
+        props: data.turn.props,
       });
 
     return {

@@ -36,6 +36,34 @@ export const KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS: Array<Permission> = [
 ];
 
 /*
+ * What a caller who may not edit a cluster is told, when an action on that
+ * one cluster takes permission to edit it - decided for the cluster's own
+ * row, its labels and owners included
+ * (KubernetesClusterAiAccessService.assertCallerMayChangeCluster).
+ */
+export const KUBERNETES_AI_ACCESS_TEST_EDIT_REFUSAL: string =
+  "You need permission to edit this Kubernetes cluster to run its AI access test.";
+
+export const KUBERNETES_AI_AGENT_RESET_EDIT_REFUSAL: string =
+  "You need permission to edit this Kubernetes cluster to reset its Kubernetes AI agent.";
+
+/*
+ * Approving an AI plan runs its kubectl commands on the cluster, so the
+ * approver must be someone who may edit it: named by the plan's snapshot
+ * of the cluster's name when it has one, since a plan can reach more than
+ * one cluster.
+ */
+export function getKubernetesAiPlanApprovalEditRefusal(
+  clusterName?: string | undefined,
+): string {
+  const cluster: string = clusterName
+    ? `Kubernetes cluster "${clusterName}"`
+    : "this Kubernetes cluster";
+
+  return `You do not have permission to edit ${cluster}, so you cannot approve an AI plan that changes it. Ask someone who may edit the cluster to approve it, or dismiss the suggestion.`;
+}
+
+/*
  * What deleting a previous in-cluster Runner does. The binding's foreign
  * key is ON DELETE SET NULL, so a deleted Runner's clusters are left with
  * no Runner bound, and registration never binds a cluster that had one

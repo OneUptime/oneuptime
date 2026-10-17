@@ -217,6 +217,27 @@ describe("InvestigationThreadService.sendMessage", () => {
     expect(turn.aiRunId.toString()).toBe(RUN_ID.toString());
   });
 
+  /*
+   * The turn's commands are the asker's: its read-only kubectl and
+   * infrastructure commands reach only what the asker may view, so the
+   * context is built with the asker's own props.
+   */
+  test("builds the turn's context, and its commands, for the person asking", async () => {
+    await send();
+    await flush();
+
+    const build: jest.SpyInstance =
+      InvestigationThread.buildTurnContext as unknown as jest.SpyInstance;
+
+    expect(build).toHaveBeenCalledTimes(1);
+    expect(build.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      subject: SUBJECT,
+      aiRunId: RUN_ID,
+      props: ASKER_PROPS,
+    });
+  });
+
   test("acts on clear requests by default (auto-run)", async () => {
     await send();
     await flush();
@@ -481,6 +502,29 @@ describe("InvestigationThreadService.respondToApproval", () => {
     expect(turn.isSharedThread).toBe(true);
     expect(turn.permissionMode).toBe(AIChatPermissionMode.AskForApproval);
     expect(decisions).toEqual([{ toolCallId: "call-1", approved: true }]);
+  });
+
+  test("a resumed turn's commands are the decider's: its context is built with their props", async () => {
+    await InvestigationThreadService.respondToApproval({
+      projectId: PROJECT_ID,
+      subject: SUBJECT,
+      userId: VIEWER_ID,
+      props: deciderProps,
+      assistantMessageId: ASSISTANT_MESSAGE_ID,
+      approved: true,
+    });
+    await flush();
+
+    const build: jest.SpyInstance =
+      InvestigationThread.buildTurnContext as unknown as jest.SpyInstance;
+
+    expect(build).toHaveBeenCalledTimes(1);
+    expect(build.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      subject: SUBJECT,
+      aiRunId: RUN_ID,
+      props: deciderProps,
+    });
   });
 
   test("only finds the message inside this subject's thread", async () => {
