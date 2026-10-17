@@ -23,12 +23,14 @@ import UserProjectSsoConsentService from "Common/Server/Services/UserProjectSsoC
 import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
 import TokenSigningKey from "Common/Server/Utils/TokenSigningKey";
+import SsoTeamMembership, {
+  SsoTeamMembershipOutcome,
+} from "./SsoTeamMembership";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import Team from "Common/Models/DatabaseModels/Team";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 
 /*
@@ -94,6 +96,8 @@ export enum ProjectSsoConfirmationOutcome {
   AccountBlocked = "account-blocked",
   ProviderUnavailable = "provider-unavailable",
   NoDefaultTeams = "no-default-teams",
+  // The project has no room for one more person (SsoTeamMembership).
+  NoRoom = "no-room",
 }
 
 export interface ProjectSsoConfirmationResult {
@@ -615,22 +619,21 @@ export default class ProjectSsoSignInConfirmation {
         },
       });
     } else {
-      // The provider's default teams, exactly as its callback would add them.
-      for (const team of provider.teams) {
-        const teamMember: TeamMember = new TeamMember();
-        teamMember.projectId = projectId;
-        teamMember.userId = user.id;
-        teamMember.hasAcceptedInvitation = true;
-        teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
-        teamMember.teamId = team.id!;
-
-        await TeamMemberService.create({
-          data: teamMember,
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
+      /*
+       * The provider's default teams, exactly as its callback would add
+       * them: a seat like anyone invited. A project with no room for one
+       * more person adds them nowhere, and nothing more is written - no
+       * consent, so their next sign-in asks again.
+       */
+      const added: SsoTeamMembershipOutcome =
+        await SsoTeamMembership.addToTeams({
+          projectId: projectId,
+          userId: user.id,
+          teams: provider.teams,
         });
+
+      if (added === SsoTeamMembershipOutcome.NoRoom) {
+        return { outcome: ProjectSsoConfirmationOutcome.NoRoom };
       }
     }
 
