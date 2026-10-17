@@ -115,7 +115,7 @@ API나 Terraform으로 만든 페이지에도 아래에 설명하는 설정과 �
 - `/announcements` 및 `/announcements/:id`.
 - `/scheduled-events` 및 `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` 및 `/unsubscribe/:token`: 구독자가 받는 메시지 속 링크.
+- `/confirm-subscription/:id`, `/update-subscription/:token` 및 `/unsubscribe/:token`: 구독자가 받는 메시지 속 링크.
 - `/rss`: 피드.
 - `/login`, `/sso` 및 `/master-password`: 비공개 페이지에서만 의미가 있습니다.
 

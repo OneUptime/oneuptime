@@ -115,13 +115,13 @@ flowchart TB
 
 订阅者收到的每条消息都带有一个取消订阅链接，形如 `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-{token}`：位于邮件底部、短信或 Slack 或 Microsoft Teams 消息的正文中，以及 Webhook 负载中的 `unsubscribeUrl`。令牌是属于这一个订阅的随机密钥，所以该链接无需登录即可使用。私密状态页也是如此，尽管那里其他一切都需要已登录的访客。
 
-唯一的例外是来自 **public** 状态页的短信，它带的是订阅者的 **更新订阅** 链接（见下文）。该页面在公开状态页上无需登录即可使用，而且它的链接短 57 个字符。短信按每 160 个字符的分段计费，所以较长的链接会让大多数默认短信多出一个分段。自定义短信模板中的 `{{unsubscribeUrl}}` 遵循同样的规则。来自私密状态页的短信带的是取消订阅链接。
+短信带的是同一个链接，无论来自公开状态页还是私密状态页，自定义短信模板中的 `{{unsubscribeUrl}}` 也一样。只带订阅者 ID 的链接会更短，但每个能看到该订阅者的项目成员都能读到它的 ID，这样的链接会让他们能够更改该订阅。
 
-短信日志（状态页和项目设置中 **通知日志** 的 **SMS** 选项卡）保存每条短信的文本，能读取它的项目成员比能管理订阅者的人更多。所以日志显示的取消订阅链接中，令牌被替换为 `[redacted]`，例如 `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`。只有订阅者自己的手机会收到可用的链接。API 也从不返回新订阅者的令牌，即使在创建它的请求的响应中也不会。
+短信日志（状态页和项目设置中 **通知日志** 的 **SMS** 选项卡）保存每条短信的文本，能读取它的项目成员比能管理订阅者的人更多。所以日志显示的取消订阅链接或订阅管理链接中，令牌被替换为 `[redacted]`，例如 `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`。只有订阅者自己的手机会收到可用的链接。API 也从不返回新订阅者的令牌，即使在创建它的请求的响应中也不会。
 
 **打开链接不会改变任何东西。** 页面会显示状态页的名称和徽标，以及链接所属的订阅：完整的电子邮件地址、只显示后四位的电话号码、Slack 或 Microsoft Teams 工作区名称，或者 Webhook 的主机。它会询问 *您要停止接收此状态页的通知吗？* 只有按下 **取消订阅** 才会取消订阅，所以会打开消息中每个链接的邮件扫描器和链接预览器无法取消任何人的订阅。页面上不会显示其他任何内容，其中的自定义 JavaScript 也不会运行。确认两次，或者打开一个已经取消的订阅的链接，只会显示它已被取消。在公开状态页上，取消订阅页面还会链接到订阅者的 **更新订阅** 页面，以便改为选择要接收哪些通知。
 
-**更新订阅** 页面 `{statusPageUrl}/update-subscription/{statusPageSubscriberId}` 的标题是 **更新订阅**，并告诉访客可以在那里更新偏好设置或取消订阅。它包含：
+**更新订阅** 页面 `{statusPageUrl}/update-subscription/{statusPageSubscriberId}-{token}` 同样只凭订阅的令牌才能打开：仅有订阅者 ID 什么也打不开。它的标题是 **更新订阅**，并告诉访客可以在那里更新偏好设置或取消订阅。它包含：
 
 - 页面允许的任何资源和事件类型选择器。
 - 一个 **取消订阅** 开关，说明为取消订阅所有资源。它写入 **已取消订阅**（`isUnsubscribed`，默认 false）。
@@ -129,11 +129,11 @@ flowchart TB
 
 在私密状态页上，它和页面的其他部分一样需要已登录的访客。丢失了链接的人可以在 **订阅** 页面上使用 **管理现有订阅**，然后按 **发送管理链接**。链接会发送到订阅本身（它的电子邮件地址、电话号码，或者它的 Slack 或 Microsoft Teams 频道），绝不会发送到请求中的地址，而且无论是否匹配到订阅，页面的回答都相同，所以无法用它来查出谁订阅了。该消息链接到 **更新订阅** 页面，并把两个链接都交给自定义模板：`manageSubscriptionUrl` 和 `unsubscribeUrl`。
 
-支撑这一切的端点是 `POST .../subscribe/:statusPageId`、`POST .../manage-subscription/:statusPageId`、`POST .../get-subscription/:statusPageId/:subscriberId`、`PUT .../update-subscription/:statusPageId/:subscriberId`，以及 `GET` 和 `POST .../unsubscribe/:statusPageId/:subscriberId/:token`。取消订阅的 `GET` 只描述链接。`POST` 无论请求体是什么都会取消订阅，包括一键取消订阅请求的 `List-Unsubscribe=One-Click` 请求体。对于错误的令牌、已删除的订阅者和另一个状态页的订阅者，两者给出的回答都相同，所以无法用它们来查出谁订阅了。
+支撑这一切的端点是 `POST .../subscribe/:statusPageId`、`POST .../manage-subscription/:statusPageId`、`POST .../get-subscription/:statusPageId/:subscriberId/:token`、`PUT .../update-subscription/:statusPageId/:subscriberId/:token`，以及 `GET` 和 `POST .../unsubscribe/:statusPageId/:subscriberId/:token`。取消订阅的 `GET` 只描述链接。`POST` 无论请求体是什么都会取消订阅，包括一键取消订阅请求的 `List-Unsubscribe=One-Click` 请求体。每个接受令牌的端点，对于缺失或错误的令牌、已删除的订阅者和另一个状态页的订阅者，给出的回答都相同，所以任何一个都无法用来查出谁订阅了。
 
 取消订阅是翻转一个标志，而不是删除一行，所以记录会以设置了 **已取消订阅** 的状态留在渠道列表中，这在你之后需要解释某个地址为什么不再收到邮件时很有用。无论是谁取消了订阅（订阅者通过链接或 **更新订阅** 页面，或者队友在仪表板上或通过 API），它还会记录 **取消订阅于**（`unsubscribedAt`）。每个订阅者列表都有一个 **取消订阅于** 列和筛选器。再次关闭 **已取消订阅** 会清除它。在 OneUptime 开始记录这一点之前取消的订阅没有日期。
 
-在取消订阅页面出现之前发送的消息中的链接仍然可用：**更新订阅** 链接仍然会打开那个页面。很旧的消息中带有 `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`，它过去一打开就会取消订阅。现在它不再改变任何东西：它会进入取消订阅页面，页面会说明该链接已过时，请使用最近一条消息中的链接。
+只带订阅者 ID 的链接已经打不开任何东西。旧消息中的 **更新订阅** 链接 `{statusPageUrl}/update-subscription/{statusPageSubscriberId}` 会打开一个说明链接已过期的页面，页面上的 **获取新链接** 会进入 **订阅** 页面。很旧的消息中带有 `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`，它过去一打开就会取消订阅。现在它不再改变任何东西：它会进入取消订阅页面，页面会说明该链接已过时，请使用最近一条消息中的链接。
 
 ### 共享地址和邮件列表
 

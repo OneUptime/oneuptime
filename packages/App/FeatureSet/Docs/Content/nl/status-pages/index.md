@@ -115,7 +115,7 @@ De openbare pagina is een eigen applicatie, met een kleine set routes:
 - `/announcements` en `/announcements/:id`.
 - `/scheduled-events` en `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` en `/unsubscribe/:token`: de links in de berichten die abonnees krijgen.
+- `/confirm-subscription/:id`, `/update-subscription/:token` en `/unsubscribe/:token`: de links in de berichten die abonnees krijgen.
 - `/rss`: de feed.
 - `/login`, `/sso` en `/master-password`: alleen relevant op een privépagina.
 

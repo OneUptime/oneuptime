@@ -115,7 +115,7 @@ La pagina pubblica è un'applicazione a sé, con un piccolo insieme di percorsi:
 - `/announcements` e `/announcements/:id`.
 - `/scheduled-events` e `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` e `/unsubscribe/:token`: i link dei messaggi che ricevono gli iscritti.
+- `/confirm-subscription/:id`, `/update-subscription/:token` e `/unsubscribe/:token`: i link dei messaggi che ricevono gli iscritti.
 - `/rss`: il feed.
 - `/login`, `/sso` e `/master-password`: rilevanti solo su una pagina privata.
 
