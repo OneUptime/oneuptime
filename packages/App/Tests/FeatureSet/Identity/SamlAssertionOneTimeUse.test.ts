@@ -45,7 +45,8 @@ jest.mock("Common/Server/Utils/Logger", () => {
 const setStringIfNotExists: jest.Mock =
   GlobalCache.setStringIfNotExists as unknown as jest.Mock;
 
-const PROVIDER_ID: string = "22222222-2222-4222-8222-222222222222";
+// Letters in it, so that the same id in upper case is really spelled otherwise.
+const PROVIDER_ID: string = "2b2c2d2e-2222-4222-8222-22222222222f";
 
 /*
  * The margin a record is kept beyond the assertion's own time, written out
@@ -267,6 +268,8 @@ describe("where a use is recorded", () => {
   });
 
   test("the provider's id is the same however it is written", () => {
+    expect(PROVIDER_ID.toUpperCase()).not.toBe(PROVIDER_ID);
+
     expect(
       keyFor({
         providerKind: SamlProviderKind.ProjectSso,

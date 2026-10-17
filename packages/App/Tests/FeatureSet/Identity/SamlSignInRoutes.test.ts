@@ -76,13 +76,17 @@ const USER_EMAIL: string = "dana.scully@example.com";
 const USER_ID: string = "10000000-0000-4000-8000-000000000001";
 const TEAM_ID: string = "10000000-0000-4000-8000-000000000002";
 
-const PROJECT_ID: string = "20000000-0000-4000-8000-000000000001";
-const PROJECT_SSO_ID: string = "20000000-0000-4000-8000-000000000002";
+/*
+ * Ids with letters in them, as real ones have: a spelling in upper case is
+ * then really another spelling.
+ */
+const PROJECT_ID: string = "2abc0000-0000-4000-8000-0000000000a1";
+const PROJECT_SSO_ID: string = "2abc0000-0000-4000-8000-0000000000b2";
 
-const STATUS_PAGE_ID: string = "30000000-0000-4000-8000-000000000001";
-const STATUS_PAGE_SSO_ID: string = "30000000-0000-4000-8000-000000000002";
+const STATUS_PAGE_ID: string = "3def0000-0000-4000-8000-0000000000c1";
+const STATUS_PAGE_SSO_ID: string = "3def0000-0000-4000-8000-0000000000d2";
 
-const GLOBAL_SSO_ID: string = "40000000-0000-4000-8000-000000000001";
+const GLOBAL_SSO_ID: string = "4fab0000-0000-4000-8000-0000000000e1";
 
 // Another application the same identity provider signs people in to.
 const OTHER_APPLICATION: { entityId: string; replyUrl: string } = {
@@ -1639,6 +1643,33 @@ describe.each(FLOWS)(
         expect(refusalMessage()).not.toBeNull();
       },
     );
+
+    test("posted again with the provider's id in upper case, it is told it was used", async () => {
+      const response: string = freshResponse();
+      const params: Record<string, string> = withParam(
+        flow,
+        providerIdParam(flow),
+        (id: string): string => {
+          return id.toUpperCase();
+        },
+      );
+
+      // The fixture's ids have letters, so this is really another spelling.
+      expect(params[providerIdParam(flow)]).not.toBe(
+        flow.params[providerIdParam(flow)],
+      );
+
+      await post(flow, response);
+      expect(flow.signedIn()).toBe(true);
+
+      jest.clearAllMocks();
+
+      await post(flow, response, { params });
+
+      expect(providerFound).toBe(true);
+      expectNobodySignedIn(flow);
+      expect(refusalMessage()).toBe(SAML_RESPONSE_ALREADY_USED_MESSAGE);
+    });
 
     test.each(ID_SPELLINGS)(
       "posted with the provider's id $name and then as given, it signs in once between them",
