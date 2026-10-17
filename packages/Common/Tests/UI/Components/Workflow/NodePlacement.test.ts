@@ -534,9 +534,11 @@ describe("Workflow node reveal: where the canvas moves to", () => {
  * in, at the fit's zoom. One that fits is left as fitted.
  */
 describe("Workflow canvas on open: the trigger in view", () => {
-  // The Huntress template fitted at React Flow's smallest zoom, 0.5, on a
-  // 1250 x 500 canvas: its middle shows, and its trigger (x 100, y 100) is
-  // drawn at y = 100 * 0.5 - 210 = -160.
+  /*
+   * The Huntress template fitted at React Flow's smallest zoom, 0.5, on a
+   * 1250 x 500 canvas: its middle shows, and its trigger (x 100, y 100) is
+   * drawn at y = 100 * 0.5 - 210 = -160.
+   */
   const FITTED: WorkflowCanvasViewport = { x: 677, y: -210, zoom: 0.5 };
   const LAPTOP: WorkflowCanvasSize = { width: 1250, height: 500 };
 
