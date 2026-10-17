@@ -86,8 +86,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
  * for the project carries only Project User - what being a member means, and
  * what AccessTokenService gives every member whose teams grant nothing else -
  * which none of these tables lists, so CurrentUser is all that lets them
- * create here. This is the attacker's session in the scenario above, and also
- * the ordinary shape of a first-party dashboard request.
+ * create here. This is the session of the scenario above, and also the
+ * ordinary shape of a first-party dashboard request.
  */
 function memberProps(): DatabaseCommonInteractionProps {
   return {
