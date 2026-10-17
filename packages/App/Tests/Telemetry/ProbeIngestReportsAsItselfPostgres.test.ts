@@ -1032,7 +1032,11 @@ describePostgres("a probe reports as itself (Postgres)", () => {
       const answer: HttpResult = await post(
         "/probe/response/ingest",
         probeBody(globalProbe, {
-          probeMonitorResponse: checkResult({ monitor: monitor }),
+          // As every probe sends it: naming itself.
+          probeMonitorResponse: checkResult({
+            monitor: monitor,
+            namedProbe: globalProbe.id,
+          }),
         }),
       );
 
