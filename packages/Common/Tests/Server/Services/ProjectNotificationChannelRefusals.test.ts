@@ -32,6 +32,7 @@ import {
   ProjectNotificationChannel,
   STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE,
 } from "../../../Utils/Project/NotificationChannels";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
@@ -127,6 +128,8 @@ function expectSaysWhoCan(message: string): void {
 
 beforeEach(() => {
   stubProjectDirectory({});
+  // A code is sent again for a member of the number's project only.
+  getJestSpyOn(ProjectMembership, "isMember").mockResolvedValue(true);
 });
 
 afterEach(() => {

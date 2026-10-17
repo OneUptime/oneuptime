@@ -170,11 +170,19 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in groups balanced
-  # by measured duration (about 23 minutes each with the setup, on
-  # 2026-10-17's runners), Event Overview and the Workflow Builder suite (14
-  # to 19 minutes each) with one short suite beside them. Each suite still
-  # runs exactly as before: same config, same browsers, one worker.
+  # own fixture server on its own port - so they run here in six groups
+  # balanced by measured duration. Event Overview and the Workflow Builder
+  # suite fill a group each on their own (20.4 and 19.4 minutes on
+  # 2026-10-17's slowest runner); the other groups hold 15 to 17 minutes of
+  # suites. Setup adds a minute and a half. Each suite still runs exactly as
+  # before: same config, same browsers, one worker.
+  #
+  # The same group has taken a third longer on one run than on the next with
+  # nothing changed but the runner (group 1: about 18 and 24 minutes), so keep
+  # each group near 20 minutes on a slow runner, well under the job's 30. When
+  # one passes about 22, move a suite or add a group. When Event Overview or
+  # the Workflow Builder suite passes it alone, split that suite across two
+  # groups with Playwright's --shard.
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, and
   # its output paths in the upload step below.
@@ -189,15 +197,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Event Overview with Status Page Theme (about 2.5 minutes): with the
-          # thirteen shorter suites that shared its group (about 14 minutes
-          # together, now group 5) and the setup, the group passed the job's
-          # 30 minutes.
+          # Event Overview on its own. With the thirteen shorter suites that
+          # once shared its group and the setup, the group passed the job's 30
+          # minutes. Status Page Theme moved to group 6 when this group took
+          # 24.3 minutes.
           - group: 1
             browsers: chromium
             suites: >-
               test-event-overview-ui
-              test-status-page-theme-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -215,34 +222,35 @@ jobs:
               test-diagrams-ui
               test-navigation-search-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
-          # differs in each).
+          # differs in each). Discovery (about 5 minutes) moved to group 6
+          # when this group took 23.5 minutes.
           - group: 3
             browsers: chromium firefox
             suites: >-
               test-monitor-overview-ui
               test-value-picker-ui
-              test-discovery-ui
               test-event-notes-ui
               test-trace-detail-ui
               test-security-events-empty-states-ui
               test-status-page-search-ui
               test-label-rule-transfer-ui
               test-list-delete-ui
-          # The Workflow Builder suite with Calendar Feed (about 2.5 minutes):
-          # the suite sat in group 2 near the job's 30 minutes, and its On
-          # Create or Update spec would take that group past them. Its two
-          # projects, a laptop and a phone, are both Chromium.
+          # The Workflow Builder suite on its own: it sat in group 2 near the
+          # job's 30 minutes, and its On Create or Update spec would take that
+          # group past them. Its two projects, a laptop and a phone, are both
+          # Chromium. Calendar Feed moved to group 6 when this group took 23.6
+          # minutes.
           - group: 4
             browsers: chromium
             suites: >-
               test-workflow-builder-ui
-              test-calendar-feed-ui
           # The Chromium-only suites that ran after Event Overview in group 1.
           # Topology is one of them (about 2.5 minutes) since the Workflow
           # Builder suite grew again with its UI review: group 2 had reached
           # 24.5 of the job's 30 minutes on a slow runner. Calendar Feed and
           # Status Page Theme moved to groups 4 and 1 when this group reached
-          # 28.5 minutes.
+          # 28.5 minutes, and its last five suites to group 6 when it took
+          # 25.5.
           - group: 5
             browsers: chromium
             suites: >-
@@ -260,6 +268,16 @@ jobs:
               test-episode-bulk-add-ui
               test-runbook-triggers-ui
               test-network-first-run-ui
+          # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
+          # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
+          # Discovery from group 3, Status Page Theme from group 1 and Calendar
+          # Feed from group 4. All Chromium.
+          - group: 6
+            browsers: chromium
+            suites: >-
+              test-discovery-ui
+              test-status-page-theme-ui
+              test-calendar-feed-ui
               test-custom-roles-ui
               test-sign-in-options-ui
               test-maintenance-calendar-ui

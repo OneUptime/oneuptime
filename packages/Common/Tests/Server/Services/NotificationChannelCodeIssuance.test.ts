@@ -6,12 +6,14 @@ import ChannelVerification, {
   VerificationCodeState,
 } from "../../../Server/Utils/ChannelVerification";
 import VerificationCode from "../../../Server/Utils/VerificationCode";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Email from "../../../Types/Email";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import Exception from "../../../Types/Exception/Exception";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 jest.mock("../../../Server/Services/MailService");
 jest.mock("../../../Server/Utils/Logger", () => {
@@ -173,8 +175,59 @@ describe("notification channel verification code issuance", () => {
         .mockResolvedValue(item as never) as never;
     };
 
+    // Whether the row's owner is a member of its project (ProjectMembership).
+    let isMember: jest.SpyInstance;
+
+    beforeEach(() => {
+      isMember = jest
+        .spyOn(ProjectMembership, "isMember")
+        .mockResolvedValue(true as never);
+    });
+
+    afterEach(() => {
+      isMember.mockRestore();
+    });
+
     it("refuses an unknown item", async () => {
       stubFind(null);
+
+      await expect(
+        UserEmailService.resendVerificationCode(ITEM_ID),
+      ).rejects.toThrow("not found");
+    });
+
+    /*
+     * A code goes out only for a member of the row's project: the owner of
+     * a row in a project they left, or were never in, is answered as if the
+     * row did not exist - before anything is issued or sent.
+     */
+    it("refuses a row whose owner is not a member of its project, sending nothing", async () => {
+      stubFind(buildItem());
+      isMember.mockResolvedValue(false as never);
+
+      await expect(
+        UserEmailService.resendVerificationCode(ITEM_ID),
+      ).rejects.toThrow(new BadDataException("Item not found"));
+
+      expect(MailService.sendMail).not.toHaveBeenCalled();
+      expect(updateOneById).not.toHaveBeenCalled();
+    });
+
+    it("asks about the row's own project and owner", async () => {
+      stubFind(buildItem());
+
+      await UserEmailService.resendVerificationCode(ITEM_ID);
+
+      const asked: { projectId: ObjectID; userId: ObjectID } = isMember.mock
+        .calls[0]![0] as { projectId: ObjectID; userId: ObjectID };
+
+      expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(asked.userId.toString()).toBe(USER_ID.toString());
+    });
+
+    it("says nothing about the row - not even that it is verified - to an owner who is not a member", async () => {
+      stubFind(buildItem({ isVerified: true }));
+      isMember.mockResolvedValue(false as never);
 
       await expect(
         UserEmailService.resendVerificationCode(ITEM_ID),
@@ -331,18 +384,46 @@ describe("notification channel verification code issuance", () => {
     };
 
     let previousFlag: string | undefined;
+    let isMember: jest.SpyInstance;
 
     beforeEach(() => {
       previousFlag = process.env[FLAG];
       delete process.env[FLAG];
+
+      // The first code goes out for a member of the address's project only.
+      isMember = jest
+        .spyOn(ProjectMembership, "isMember")
+        .mockResolvedValue(true as never);
     });
 
     afterEach(() => {
+      isMember.mockRestore();
+
       if (previousFlag === undefined) {
         delete process.env[FLAG];
       } else {
         process.env[FLAG] = previousFlag;
       }
+    });
+
+    /*
+     * Nor does a code, or the hatch, reach somebody who is not a member of
+     * the address's project by the time it is sent: the add is refused and
+     * the address taken out, with no mail.
+     */
+    it("sends no first code to somebody no longer a member, and takes the address out", async () => {
+      process.env[FLAG] = "true";
+      isMember.mockResolvedValue(false as never);
+      const removed: jest.Mock = jest.fn().mockResolvedValue(1);
+      UserEmailService.deleteOneById = removed as never;
+
+      await expect(runOnCreateSuccess(buildItem())).rejects.toThrow(
+        "You are not authorized to access this project's data.",
+      );
+
+      expect(MailService.sendMail).not.toHaveBeenCalled();
+      expect(updateOneById).not.toHaveBeenCalled();
+      expect(removed).toHaveBeenCalledTimes(1);
     });
 
     it("with the flag unset, a code is issued and mailed but never returned", async () => {
