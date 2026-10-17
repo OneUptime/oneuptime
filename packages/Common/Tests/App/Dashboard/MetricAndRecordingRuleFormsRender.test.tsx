@@ -318,13 +318,22 @@ function filterValueBoxes(): Array<HTMLElement> {
   return within(dialog()).queryAllByPlaceholderText("http.server.duration");
 }
 
+function appliesToAnswer(name: string): HTMLElement {
+  return within(dialog()).getByRole("radio", { name: name });
+}
+
 async function addFilter(value: string): Promise<void> {
   const before: number = filterValueBoxes().length;
 
   await act(async (): Promise<void> => {
-    fireEvent.click(
-      within(dialog()).getByRole("button", { name: "Add Filter" }),
-    );
+    if (before === 0) {
+      // "Only data points that match filters" opens the first one.
+      fireEvent.click(appliesToAnswer("Only data points that match filters"));
+    } else {
+      fireEvent.click(
+        within(dialog()).getByRole("button", { name: "Add Filter" }),
+      );
+    }
   });
 
   await waitFor(() => {
@@ -435,14 +444,31 @@ describe("Metrics > Settings > Pipeline Rules", () => {
     expect(
       within(dialog()).getByRole("textbox", { name: "Name" }),
     ).toBeVisible();
+    /*
+     * What the rule fires on, asked as every rule's conditions are: every
+     * data point, where a new rule starts, or only those its filters match.
+     * It said "If no filters are added, then this rule will apply to every
+     * metric data point." over an Add Filter button.
+     */
+    const appliesTo: HTMLElement = within(dialog()).getByRole("radiogroup", {
+      name: /Applies to/,
+    });
     expect(
-      within(dialog()).getByRole("button", { name: "Add Filter" }),
-    ).toBeVisible();
+      within(appliesTo).getByRole("radio", { name: "All data points" }),
+    ).toBeChecked();
     expect(
-      within(dialog()).getByText(
+      within(appliesTo).getByRole("radio", {
+        name: "Only data points that match filters",
+      }),
+    ).not.toBeChecked();
+    expect(
+      within(dialog()).queryByRole("button", { name: "Add Filter" }),
+    ).toBeNull();
+    expect(
+      within(dialog()).queryByText(
         "If no filters are added, then this rule will apply to every metric data point.",
       ),
-    ).toBeVisible();
+    ).toBeNull();
 
     // Folded: listed by name, at defaults the rule works with.
     expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
@@ -662,6 +688,56 @@ describe("Metrics > Settings > Pipeline Rules", () => {
     expect(model["filterCondition"]).toBe(FilterCondition.All);
     // No filters: an empty list, which matches every data point.
     expect(model["filters"]).toEqual([]);
+  });
+
+  test("'Only data points that match filters' opens one filter; 'All data points' again saves none", async () => {
+    await openCreateForm();
+    await nameRule("Drop for now");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(appliesToAnswer("Only data points that match filters"));
+    });
+    await waitFor(() => {
+      expect(filterValueBoxes()).toHaveLength(1);
+    });
+    expect(
+      within(dialog()).getByRole("button", { name: "Add Filter" }),
+    ).toBeVisible();
+
+    fireEvent.change(filterValueBoxes()[0]!, {
+      target: { value: "kept.aside" },
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(appliesToAnswer("All data points"));
+    });
+    await waitFor(() => {
+      expect(filterValueBoxes()).toHaveLength(0);
+    });
+
+    // Picked again, the filter set aside comes back as it was.
+    await act(async (): Promise<void> => {
+      fireEvent.click(appliesToAnswer("Only data points that match filters"));
+    });
+    await waitFor(() => {
+      expect(filterValueBoxes()).toHaveLength(1);
+    });
+    expect(filterValueBoxes()[0]).toHaveValue("kept.aside");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(appliesToAnswer("All data points"));
+    });
+
+    await pressNext();
+    await pickRuleType(MetricPipelineRuleType.Drop);
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    // No filters: an empty list, which matches every data point.
+    expect(sentModel()["filters"]).toEqual([]);
   });
 
   test("will not go on from Match without a name", async () => {

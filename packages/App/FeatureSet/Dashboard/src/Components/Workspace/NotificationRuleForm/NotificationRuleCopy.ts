@@ -96,7 +96,7 @@ export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
  * incident." under an Add Condition button, and people added a condition
  * they did not want.
  */
-export const NOTIFICATION_RULE_SUBJECTS: Readonly<
+const RULE_SUBJECTS: Readonly<
   Record<NotificationRuleEventType, RuleCriteriaSubject>
 > = {
   [NotificationRuleEventType.Incident]: RuleCriteriaSubject.Incidents,
@@ -111,13 +111,35 @@ export const NOTIFICATION_RULE_SUBJECTS: Readonly<
     RuleCriteriaSubject.OnCallPolicies,
 };
 
-export const getNotificationRuleAppliesTo: (
-  eventType: NotificationRuleEventType,
-) => RuleCriteriaSubjectCopy = (
-  eventType: NotificationRuleEventType,
-): RuleCriteriaSubjectCopy => {
-  return getRuleCriteriaSubjectCopy(NOTIFICATION_RULE_SUBJECTS[eventType]);
+const answersByEventType: (
+  pick: (copy: RuleCriteriaSubjectCopy) => string,
+) => ByEventType = (
+  pick: (copy: RuleCriteriaSubjectCopy) => string,
+): ByEventType => {
+  const answers: Partial<Record<NotificationRuleEventType, string>> = {};
+
+  for (const eventType of Object.values(NotificationRuleEventType)) {
+    answers[eventType] = pick(
+      getRuleCriteriaSubjectCopy(RULE_SUBJECTS[eventType]),
+    );
+  }
+
+  return answers as Record<NotificationRuleEventType, string>;
 };
+
+// "All incidents": a new rule's answer, with no conditions.
+export const APPLIES_TO_ALL_ANSWERS: ByEventType = answersByEventType(
+  (copy: RuleCriteriaSubjectCopy): string => {
+    return copy.all;
+  },
+);
+
+// "Only incidents that match conditions": the answer that opens them.
+export const APPLIES_TO_MATCHING_ANSWERS: ByEventType = answersByEventType(
+  (copy: RuleCriteriaSubjectCopy): string => {
+    return copy.matching;
+  },
+);
 
 /*
  * What one rule of each kind is called - on the card's Create button, the

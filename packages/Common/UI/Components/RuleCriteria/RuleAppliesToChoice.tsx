@@ -63,8 +63,8 @@ const RuleAppliesToChoice: FunctionComponent<ComponentProps> = (
   };
 
   const id: string = useId();
-  const groupName: string = `rule-applies-to-${id}`;
-  const labelId: string = `rule-applies-to-label-${id}`;
+  const groupName: string = `rule-applies-choice-${id}`;
+  const labelId: string = `rule-applies-label-${id}`;
   const testId: string = props.dataTestId || "rule-applies-to";
 
   const renderAnswer: (data: {

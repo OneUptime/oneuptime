@@ -142,6 +142,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import RunbookRulesTable, {
+  getRunbookRuleAppliesTo,
   getRunbookRuleDocumentation,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/RunbookRulesTable";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
@@ -159,6 +160,7 @@ import {
 } from "../../../Types/Rules/RuleCriteria";
 import { getRunbookRuleCriteriaFields } from "../../../Types/Runbook/RunbookRuleCriteria";
 import RunbookRuleTriggerEntity from "../../../Types/Runbook/RunbookRuleTriggerEntity";
+import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
@@ -250,12 +252,17 @@ interface TriggerCase {
   trigger: RunbookRuleTriggerEntity;
   entityLabel: string;
   criteria: Array<string>;
+  // What the rule applies to, as its form asks it.
+  all: string;
+  matching: string;
 }
 
 const TRIGGERS: Array<TriggerCase> = [
   {
     trigger: RunbookRuleTriggerEntity.Incident,
     entityLabel: "incident",
+    all: "All incidents",
+    matching: "Only incidents that match conditions",
     criteria: [
       "Monitors",
       "Incident Severities",
@@ -270,6 +277,8 @@ const TRIGGERS: Array<TriggerCase> = [
   {
     trigger: RunbookRuleTriggerEntity.Alert,
     entityLabel: "alert",
+    all: "All alerts",
+    matching: "Only alerts that match conditions",
     criteria: [
       "Monitors",
       "Alert Severities",
@@ -284,6 +293,8 @@ const TRIGGERS: Array<TriggerCase> = [
   {
     trigger: RunbookRuleTriggerEntity.ScheduledMaintenance,
     entityLabel: "scheduled maintenance event",
+    all: "All scheduled maintenance events",
+    matching: "Only scheduled maintenance events that match conditions",
     criteria: [
       "Monitors",
       "Event Labels",
@@ -328,6 +339,10 @@ async function renderCreateForm(trigger: TriggerCase): Promise<void> {
       name="Runbook Rule"
       fields={props["formFields"] as Fields<RunbookRule>}
       steps={props["formSteps"] as Array<FormStep<RunbookRule>>}
+      // As the table hands its form what its rules are about.
+      ruleCriteriaSubject={
+        props["ruleCriteriaSubject"] as RuleCriteriaSubject | undefined
+      }
       formType={FormType.Create}
       initialValues={{ name: "Start the failover runbook", isEnabled: true }}
       submitButtonText="Create Runbook Rule"
@@ -357,7 +372,16 @@ async function addCondition(
   value: string,
 ): Promise<void> {
   const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "Add condition" }));
+
+  if (index === 0) {
+    // "Only ... that match conditions" opens the first one.
+    await user.click(
+      screen.getByRole("radio", { name: /^Only .+ that match conditions$/ }),
+    );
+  } else {
+    await user.click(screen.getByRole("button", { name: "Add condition" }));
+  }
+
   await selectOption(`Criteria for condition ${index + 1}`, criterion);
   await user.click(
     screen.getByRole("button", {
@@ -396,11 +420,40 @@ afterEach(() => {
 
 describe("Create New Runbook Rule - Match Criteria", () => {
   test.each(TRIGGERS)(
+    "the $trigger table's rules ask '$all' or '$matching', starting on '$all'",
+    async (trigger: TriggerCase) => {
+      expect(tableProps(trigger)["ruleCriteriaSubject"]).toBe(
+        getRunbookRuleAppliesTo(trigger.trigger),
+      );
+
+      await renderCreateForm(trigger);
+
+      expect(screen.getByRole("radio", { name: trigger.all })).toBeChecked();
+      expect(
+        screen.getByRole("radio", { name: trigger.matching }),
+      ).not.toBeChecked();
+      expect(screen.queryByTestId("rule-criteria-row-0")).toBeNull();
+    },
+  );
+
+  test("a rule that starts runbooks for every incident is saved with no conditions", async () => {
+    await renderCreateForm(TRIGGERS[0]!);
+
+    const rule: RunbookRule = await pickRunbookAndCreate();
+
+    expect(rule.criteria).toEqual({
+      schemaVersion: 1,
+      filterCondition: "All",
+      filters: [],
+    });
+  });
+
+  test.each(TRIGGERS)(
     "the $trigger Criteria dropdown lists what the other $entityLabel rules match on",
     async (trigger: TriggerCase) => {
       await renderCreateForm(trigger);
       const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
-      await user.click(screen.getByRole("button", { name: "Add condition" }));
+      await user.click(screen.getByRole("radio", { name: trigger.matching }));
 
       const menu: HTMLElement = await openMenu("Criteria for condition 1");
       const options: Array<string> = within(menu)
@@ -538,7 +591,9 @@ describe("Create New Runbook Rule - Match Criteria", () => {
     await renderCreateForm(TRIGGERS[0]!);
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "Add condition" }));
+    await user.click(
+      screen.getByRole("radio", { name: TRIGGERS[0]!.matching }),
+    );
     await selectOption("Criteria for condition 1", "Monitor Name");
     expect(screen.getByTestId("rule-criteria-row-0")).toHaveTextContent(
       "Contains",

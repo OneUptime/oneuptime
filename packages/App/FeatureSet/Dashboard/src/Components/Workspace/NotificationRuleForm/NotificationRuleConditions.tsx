@@ -9,7 +9,6 @@ import NotificationRuleCondition, {
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
 import RuleAppliesToChoice from "Common/UI/Components/RuleCriteria/RuleAppliesToChoice";
-import { RuleCriteriaSubjectCopy } from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -21,7 +20,8 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import ObjectID from "Common/Types/ObjectID";
 import {
-  getNotificationRuleAppliesTo,
+  APPLIES_TO_ALL_ANSWERS,
+  APPLIES_TO_MATCHING_ANSWERS,
   NOTIFICATION_RULE_CONDITIONS_TITLES,
 } from "./NotificationRuleCopy";
 
@@ -107,10 +107,6 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   const checkOnByEventType: Array<NotificationRuleConditionCheckOn> =
     NotificationRuleConditionUtil.getCheckOnByEventType(props.eventType);
 
-  const appliesTo: RuleCriteriaSubjectCopy = getNotificationRuleAppliesTo(
-    props.eventType,
-  );
-
   const addCondition: () => void = (): void => {
     const firstCheckOn: NotificationRuleConditionCheckOn | undefined =
       checkOnByEventType[0];
@@ -146,8 +142,8 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   return (
     <div>
       <RuleAppliesToChoice
-        allLabel={appliesTo.all}
-        matchingLabel={appliesTo.matching}
+        allLabel={APPLIES_TO_ALL_ANSWERS[props.eventType]}
+        matchingLabel={APPLIES_TO_MATCHING_ANSWERS[props.eventType]}
         isMatching={rows.length > 0}
         onChooseAll={(): void => {
           setRowsSetAside(rows);

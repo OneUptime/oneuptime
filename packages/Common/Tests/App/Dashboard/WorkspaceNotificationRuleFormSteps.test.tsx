@@ -373,7 +373,7 @@ async function toConditions(user: UserEvent): Promise<void> {
   });
   await next(user);
   await waitForStep("Conditions");
-  await within(dialog()).findByRole("button", { name: "Add Condition" });
+  await within(dialog()).findByTestId("notification-rule-applies-to-all");
   await settle();
 }
 
@@ -441,14 +441,32 @@ describe("Create a Slack notification rule for incidents", () => {
         "Conditions are checked when an incident is created and again each time it changes, so a rule for acknowledged incidents acts when an incident is acknowledged.",
       ),
     ).toBeVisible();
+    /*
+     * Then all of them, or only those that match conditions: a new rule is
+     * for every incident and says so, with no condition to fill in.
+     */
     expect(
-      within(dialog()).getByTestId("notification-rule-no-conditions-yet"),
-    ).toHaveTextContent("No conditions: the rule is for every incident.");
-    expect(
-      within(dialog()).getByRole("button", { name: "Add Condition" }),
+      within(dialog()).getByRole("radiogroup", { name: "Which incidents" }),
     ).toBeVisible();
+    expect(
+      within(dialog()).getByRole("radio", { name: "All incidents" }),
+    ).toBeChecked();
+    expect(
+      within(dialog()).getByRole("radio", {
+        name: "Only incidents that match conditions",
+      }),
+    ).not.toBeChecked();
+    expect(
+      within(dialog()).queryByRole("button", { name: "Add Condition" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).queryByTestId("notification-rule-no-conditions-yet"),
+    ).not.toBeInTheDocument();
     // No conditions yet: nothing to combine, so no All / Any.
-    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
+    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(2);
+    expect(
+      within(dialog()).queryByRole("radio", { name: "Any" }),
+    ).not.toBeInTheDocument();
     expect(
       within(dialog()).queryByRole("switch", {
         name: /^Post to existing channels/,
@@ -481,7 +499,9 @@ describe("Create a Slack notification rule for incidents", () => {
 
     await toConditions(user);
     await user.click(
-      within(dialog()).getByRole("button", { name: "Add Condition" }),
+      within(dialog()).getByRole("radio", {
+        name: "Only incidents that match conditions",
+      }),
     );
     await next(user);
 
@@ -714,7 +734,9 @@ describe("Create a Slack notification rule for incidents", () => {
     await toConditions(user);
 
     await user.click(
-      within(dialog()).getByRole("button", { name: "Add Condition" }),
+      within(dialog()).getByRole("radio", {
+        name: "Only incidents that match conditions",
+      }),
     );
     await settle();
     fireEvent.change(within(dialog()).getAllByRole("textbox")[0]!, {
@@ -722,7 +744,10 @@ describe("Create a Slack notification rule for incidents", () => {
     });
     await settle();
 
-    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
+    // One condition: nothing to combine, so no All / Any.
+    expect(
+      within(dialog()).queryByRole("radio", { name: "Any" }),
+    ).not.toBeInTheDocument();
 
     await user.click(
       within(dialog()).getByRole("button", { name: "Add Condition" }),
@@ -777,7 +802,9 @@ describe("Create a Slack notification rule for incidents", () => {
     await toConditions(user);
 
     await user.click(
-      within(dialog()).getByRole("button", { name: "Add Condition" }),
+      within(dialog()).getByRole("radio", {
+        name: "Only incidents that match conditions",
+      }),
     );
     await settle();
     fireEvent.change(within(dialog()).getAllByRole("textbox")[0]!, {
@@ -785,7 +812,10 @@ describe("Create a Slack notification rule for incidents", () => {
     });
     await settle();
 
-    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
+    // One condition: nothing to combine, so no All / Any.
+    expect(
+      within(dialog()).queryByRole("radio", { name: "Any" }),
+    ).not.toBeInTheDocument();
 
     await next(user);
     await waitForStep("Destination");
@@ -1158,7 +1188,7 @@ describe("Name the channel a rule creates", () => {
     });
     await next(user);
     await waitForStep("Conditions");
-    await within(dialog()).findByRole("button", { name: "Add Condition" });
+    await within(dialog()).findByTestId("notification-rule-applies-to-all");
     await settle();
     await next(user);
     await waitForStep("Destination");
