@@ -55,7 +55,10 @@ import {
   RESOURCE_AI_LOGS_LIMIT,
   ResourceAiLogs,
 } from "../../../Types/AI/ResourceAiAccessApi";
-import { getResourceAiAgentResetRefusal } from "../../../Types/AI/ResourceAiAccessPermissions";
+import {
+  getResourceAiAgentResetEditRefusal,
+  getResourceAiAgentResetRefusal,
+} from "../../../Types/AI/ResourceAiAccessPermissions";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../Types/AI/AIRunType";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -108,7 +111,8 @@ import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
  *   anyone who may read any one of the eight types);
  * - /status needs only read access; /test needs edit access to the resource
  *   (a block row is a denial, not a grant); /reset-agent needs one of
- *   RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS;
+ *   RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS and edit access to THIS resource,
+ *   both decided for its own row, labels included;
  * - /test runs the type's test commands through ResourceCommandJobRunner.run
  *   as an access test with no AI run, through the resource's CURRENT agent,
  *   and keeps going only while commands succeed; a gap that blocks the
@@ -1787,11 +1791,17 @@ describe("ResourceAiAccessAPI", () => {
     });
 
     test.each([
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditAutoRemediationRule,
-    ])("resets this resource's agent for %s", async (role: Permission) => {
-      propsSpy.mockResolvedValue(userProps({ permissions: [role] }));
+      [Permission.ProjectOwner],
+      [Permission.ProjectAdmin],
+      // The admin set, and an edit of the resource.
+      [
+        Permission.EditAutoRemediationRule,
+        kind.readPermission,
+        kind.editPermission,
+      ],
+      [Permission.EditAutoRemediationRule, Permission.ProjectMember],
+    ])("resets this resource's agent for %s", async (...roles: Array<Permission>) => {
+      propsSpy.mockResolvedValue(userProps({ permissions: roles }));
 
       const result: RouteCallResult = await callRoute(
         RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
@@ -1926,6 +1936,208 @@ describe("ResourceAiAccessAPI", () => {
         } to reset.`,
       );
       expect(resetSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The admin set alone is not enough: resetting a resource's agent takes
+     * an edit of THAT resource too, decided for its own row as turning its
+     * fixes on is (ResourceAiAccessService.assertCallerMayChangeResource).
+     */
+    describe("and only on a resource the admin may edit", () => {
+      const PROD_LABEL_ID: ObjectID = new ObjectID(
+        "44444444-4444-4444-8444-444444444444",
+      );
+      const STAGING_LABEL_ID: ObjectID = new ObjectID(
+        "55555555-5555-4555-8555-555555555555",
+      );
+
+      // The resource as its table holds it: a model with its labels.
+      function serveResourceLabelled(labelId: ObjectID, name: string): void {
+        const label: Label = new Label();
+        label.id = labelId;
+        label.name = name;
+
+        const row: BaseModel = new LABELLED_MODELS[kind.resourceType]!();
+        row.id = RESOURCE_ID;
+        const record: Record<string, unknown> = row as unknown as Record<
+          string,
+          unknown
+        >;
+        record["projectId"] = PROJECT_ID;
+        record["name"] = "prod-1";
+        record["labels"] = [label];
+
+        findSpies.get(kind.resourceType)!.mockResolvedValue(row);
+      }
+
+      function refusedWithoutReset(result: RouteCallResult): void {
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect((result.thrownToNext as Error).message).toBe(
+          getResourceAiAgentResetEditRefusal(kind.resourceType),
+        );
+        expect(agentLookup).not.toHaveBeenCalled();
+        expect(resetSpy).not.toHaveBeenCalled();
+        expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
+      }
+
+      test("refuses Edit Auto Remediation Rule with a read of the resource but no edit of it", async () => {
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [
+              Permission.EditAutoRemediationRule,
+              kind.readPermission,
+            ],
+          }),
+        );
+
+        refusedWithoutReset(
+          await callRoute(
+            RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+            body(kind.resourceType),
+          ),
+        );
+      });
+
+      test("refuses Edit Auto Remediation Rule whose edit of the resource is limited to another label", async () => {
+        serveResourceLabelled(PROD_LABEL_ID, "prod");
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [
+              Permission.EditAutoRemediationRule,
+              kind.readPermission,
+            ],
+            scoped: [
+              { permission: kind.editPermission, labelIds: [STAGING_LABEL_ID] },
+            ],
+          }),
+        );
+
+        refusedWithoutReset(
+          await callRoute(
+            RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+            body(kind.resourceType),
+          ),
+        );
+      });
+
+      test("negative control: the same admin resets a resource carrying their label", async () => {
+        serveResourceLabelled(STAGING_LABEL_ID, "staging");
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [
+              Permission.EditAutoRemediationRule,
+              kind.readPermission,
+            ],
+            scoped: [
+              { permission: kind.editPermission, labelIds: [STAGING_LABEL_ID] },
+            ],
+          }),
+        );
+
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(resetSpy).toHaveBeenCalledTimes(1);
+      });
+
+      test("refuses a project admin blocked from editing a label this resource carries", async () => {
+        serveResourceLabelled(PROD_LABEL_ID, "prod");
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [Permission.ProjectAdmin],
+            scoped: [
+              {
+                permission: kind.editPermission,
+                labelIds: [PROD_LABEL_ID],
+                isBlockPermission: true,
+              },
+            ],
+          }),
+        );
+
+        refusedWithoutReset(
+          await callRoute(
+            RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+            body(kind.resourceType),
+          ),
+        );
+      });
+
+      test("negative control: that block leaves a resource without the label alone", async () => {
+        serveResourceLabelled(STAGING_LABEL_ID, "staging");
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [Permission.ProjectAdmin],
+            scoped: [
+              {
+                permission: kind.editPermission,
+                labelIds: [PROD_LABEL_ID],
+                isBlockPermission: true,
+              },
+            ],
+          }),
+        );
+
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(resetSpy).toHaveBeenCalledTimes(1);
+      });
+
+      test("asks the edit with the caller's own props, for this resource in the caller's project", async () => {
+        const mayChange: jest.SpyInstance = jest.spyOn(
+          ResourceAiAccessService,
+          "assertCallerMayChangeResource",
+        );
+        propsSpy.mockResolvedValue(
+          userProps({ permissions: [Permission.ProjectAdmin] }),
+        );
+
+        await callRoute(
+          RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(mayChange).toHaveBeenCalledTimes(1);
+        const args: {
+          props: DatabaseCommonInteractionProps;
+          projectId: ObjectID;
+          resourceType: AiResourceType;
+          resourceId: ObjectID;
+        } = mayChange.mock.calls[0]![0];
+        expect(args.props.isRoot).toBeFalsy();
+        expect(args.props.userId?.toString()).toBe(USER_ID.toString());
+        expect(args.projectId.toString()).toBe(PROJECT_ID.toString());
+        expect(args.resourceType).toBe(kind.resourceType);
+        expect(args.resourceId.toString()).toBe(RESOURCE_ID.toString());
+        expect(resetSpy).toHaveBeenCalledTimes(1);
+      });
+
+      test("an error other than a refusal is not dressed up as one", async () => {
+        jest
+          .spyOn(ResourceAiAccessService, "assertCallerMayChangeResource")
+          .mockRejectedValue(new Error("database down"));
+        propsSpy.mockResolvedValue(
+          userProps({ permissions: [Permission.ProjectAdmin] }),
+        );
+
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+          body(kind.resourceType),
+        );
+
+        expect(result.thrownToNext).not.toBeInstanceOf(
+          NotAuthorizedException,
+        );
+        expect((result.thrownToNext as Error).message).toBe("database down");
+        expect(resetSpy).not.toHaveBeenCalled();
+      });
     });
   });
 

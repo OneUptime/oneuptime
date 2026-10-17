@@ -8,7 +8,10 @@ import KubernetesClusterService from "../../../Server/Services/KubernetesCluster
 import RunnerJobService from "../../../Server/Services/RunnerJobService";
 import KubectlJobRunner from "../../../Server/Utils/AI/ClusterAccess/KubectlJobRunner";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import Label from "../../../Models/DatabaseModels/Label";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
+import { KUBERNETES_AI_ACCESS_TEST_EDIT_REFUSAL } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 import {
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
@@ -58,8 +61,12 @@ import {
  * - both routes read the cluster under the USER's props, scoped to the
  *   tenant; a cluster id from another project is reported exactly like a
  *   missing one, and nothing past the lookup runs;
- * - /status needs only read access; /test needs edit access to the cluster
- *   (a block row is a denial, not a grant) and says so in its own words;
+ * - /status needs only read access; /test needs edit access to THIS
+ *   cluster, decided for its own row as an update of it would be: a block
+ *   row is a denial, not a grant, an edit grant limited to other labels
+ *   does not reach it, a block on one of its labels takes it away, and a
+ *   credential issued for reading only may not run it - said in the test's
+ *   own words;
  * - /test has its own limits — one test at a time per cluster (an atomic
  *   reservation, so concurrent requests cannot all start), a few per minute
  *   and a ceiling per hour per cluster, and a few per minute per user
@@ -249,11 +256,23 @@ function lastResponse(): JSONObject {
   return calls[calls.length - 1]![2] as JSONObject;
 }
 
+/*
+ * A caller's permission rows as an access token carries them: grants and
+ * blocks with no labels, and rows limited to some labels (`scoped`).
+ */
 function userProps(data: {
   permissions: Array<Permission>;
   blocked?: Array<Permission> | undefined;
+  scoped?:
+    | Array<{
+        permission: Permission;
+        labelIds: Array<ObjectID>;
+        isBlockPermission?: boolean | undefined;
+      }>
+    | undefined;
   userId?: ObjectID | undefined;
   isMasterAdmin?: boolean | undefined;
+  isReadOnlyCredential?: boolean | undefined;
 }): DatabaseCommonInteractionProps {
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
 
@@ -278,10 +297,25 @@ function userProps(data: {
     },
   );
 
+  const scoped: Array<UserPermission> = (data.scoped || []).map(
+    (row: {
+      permission: Permission;
+      labelIds: Array<ObjectID>;
+      isBlockPermission?: boolean | undefined;
+    }): UserPermission => {
+      return {
+        _type: "UserPermission",
+        permission: row.permission,
+        labelIds: row.labelIds,
+        isBlockPermission: Boolean(row.isBlockPermission),
+      } as UserPermission;
+    },
+  );
+
   permissionMap[PROJECT_ID.toString()] = {
     _type: "UserTenantAccessPermission",
     projectId: PROJECT_ID,
-    permissions: [...grants, ...blocks],
+    permissions: [...grants, ...blocks, ...scoped],
   };
 
   return {
@@ -290,7 +324,31 @@ function userProps(data: {
     userType: UserType.User,
     userTenantAccessPermission: permissionMap,
     ...(data.isMasterAdmin ? { isMasterAdmin: true } : {}),
+    ...(data.isReadOnlyCredential ? { isReadOnlyCredential: true } : {}),
   } as DatabaseCommonInteractionProps;
+}
+
+/*
+ * A role that may edit clusters: an edit reads the row by its id and
+ * project, so it needs the read as well, as the update endpoint does.
+ */
+const CLUSTER_EDITOR: Array<Permission> = [
+  Permission.ReadKubernetesCluster,
+  Permission.EditKubernetesCluster,
+];
+
+const PROD_LABEL_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
+const STAGING_LABEL_ID: ObjectID = new ObjectID(
+  "77777777-7777-4777-8777-777777777777",
+);
+
+function label(id: ObjectID, name: string): Label {
+  const model: Label = new Label();
+  model.id = id;
+  model.name = name;
+  return model;
 }
 
 function readyStatus(
@@ -351,13 +409,17 @@ function gap(
   };
 }
 
-function clusterRow(projectId: ObjectID = PROJECT_ID): KubernetesCluster {
-  return {
-    id: CLUSTER_ID,
-    _id: CLUSTER_ID.toString(),
-    projectId,
-    name: "prod-us",
-  } as unknown as KubernetesCluster;
+// The cluster as its table holds it: a model, with the labels it carries.
+function clusterRow(
+  projectId: ObjectID = PROJECT_ID,
+  labels: Array<Label> = [],
+): KubernetesCluster {
+  const model: KubernetesCluster = new KubernetesCluster();
+  model.id = CLUSTER_ID;
+  model.projectId = projectId;
+  model.name = "prod-us";
+  model.labels = labels;
+  return model;
 }
 
 describe("KubernetesClusterAiAccessAPI", () => {
@@ -475,11 +537,15 @@ describe("KubernetesClusterAiAccessAPI", () => {
         (mutex as unknown as { unlock: () => void }).unlock();
       });
 
+    /*
+     * A team's block with labels narrows the editable lookup itself, against
+     * the cluster's label join table.
+     */
+    withLabelJoinTables();
+
     propsSpy = jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-      .mockResolvedValue(
-        userProps({ permissions: [Permission.EditKubernetesCluster] }),
-      );
+      .mockResolvedValue(userProps({ permissions: CLUSTER_EDITOR }));
 
     clusterFind = jest
       .spyOn(KubernetesClusterService, "findOneBy")
@@ -668,8 +734,12 @@ describe("KubernetesClusterAiAccessAPI", () => {
 
     test("admits every role that may edit the cluster, and a master admin", async () => {
       for (const props of [
+        userProps({ permissions: [Permission.ProjectOwner] }),
+        userProps({ permissions: [Permission.ProjectAdmin] }),
         userProps({ permissions: [Permission.ProjectMember] }),
-        userProps({ permissions: [Permission.EditKubernetesCluster] }),
+        userProps({ permissions: [Permission.SettingsAdmin] }),
+        userProps({ permissions: [Permission.SettingsMember] }),
+        userProps({ permissions: CLUSTER_EDITOR }),
         userProps({ permissions: [], isMasterAdmin: true }),
       ]) {
         jest.clearAllMocks();
@@ -680,6 +750,309 @@ describe("KubernetesClusterAiAccessAPI", () => {
         expect(result.nextCallCount).toBe(0);
         expect(enqueueSpy).toHaveBeenCalledTimes(2);
       }
+    });
+
+    test("refuses every role that may only read the cluster, and a member who may not even read it", async () => {
+      for (const permissions of [
+        [Permission.Viewer],
+        [Permission.SettingsViewer],
+        [Permission.ReadKubernetesCluster],
+        [Permission.ReadKubernetesCluster, Permission.CreateKubernetesCluster],
+        [Permission.ReadKubernetesCluster, Permission.DeleteKubernetesCluster],
+        [Permission.ReadProjectIncident],
+        // Edit without the read: a change needs a read of the same row.
+        [Permission.EditKubernetesCluster],
+      ]) {
+        jest.clearAllMocks();
+        propsSpy.mockResolvedValue(userProps({ permissions }));
+
+        const result: RouteCallResult = await callRoute(TEST_ROUTE);
+
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect((result.thrownToNext as Error).message).toBe(
+          KUBERNETES_AI_ACCESS_TEST_EDIT_REFUSAL,
+        );
+        expect(enqueueSpy).not.toHaveBeenCalled();
+      }
+    });
+  });
+
+  /*
+   * Edit access is decided for THIS cluster, from its own row, as an update
+   * of it through the API would be (KubernetesClusterAiAccessService
+   * .assertCallerMayChangeCluster) - not "may the caller edit some cluster
+   * somewhere in the project". The permission layer weighs the row's
+   * labels here for real; the cluster's table is a stand-in that returns
+   * the row whatever the query, so the owner scope and the label SQL are
+   * held on Postgres instead (KubernetesClusterEditScopePostgres).
+   */
+  describe("POST /kubernetes-cluster/ai-access/test - edit access to THIS cluster, labels included", () => {
+    function refusedBeforeAnythingRan(result: RouteCallResult): void {
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Error).message).toBe(
+        KUBERNETES_AI_ACCESS_TEST_EDIT_REFUSAL,
+      );
+      expect(reserveSpy).not.toHaveBeenCalled();
+      expect(lockSpy).not.toHaveBeenCalled();
+      expect(countSpy).not.toHaveBeenCalled();
+      expect(statusSpy).not.toHaveBeenCalled();
+      expect(enqueueSpy).not.toHaveBeenCalled();
+      expect(outcomeSpy).not.toHaveBeenCalled();
+      expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
+    }
+
+    function ranBothCommands(result: RouteCallResult): void {
+      expect(result.nextCallCount).toBe(0);
+      expect(enqueueSpy).toHaveBeenCalledTimes(2);
+      expect(lastResponse()["ok"]).toBe(true);
+    }
+
+    test("an edit grant limited to another label does not reach this cluster", async () => {
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(PROD_LABEL_ID, "prod")]),
+      );
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [Permission.ReadKubernetesCluster],
+          scoped: [
+            {
+              permission: Permission.EditKubernetesCluster,
+              labelIds: [STAGING_LABEL_ID],
+            },
+          ],
+        }),
+      );
+
+      refusedBeforeAnythingRan(await callRoute(TEST_ROUTE));
+    });
+
+    test("negative control: the same grant reaches a cluster carrying its label", async () => {
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(STAGING_LABEL_ID, "staging")]),
+      );
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [Permission.ReadKubernetesCluster],
+          scoped: [
+            {
+              permission: Permission.EditKubernetesCluster,
+              labelIds: [STAGING_LABEL_ID],
+            },
+          ],
+        }),
+      );
+
+      ranBothCommands(await callRoute(TEST_ROUTE));
+    });
+
+    test("an edit grant limited to labels does not reach a cluster that carries none", async () => {
+      clusterFind.mockResolvedValue(clusterRow(PROJECT_ID, []));
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [Permission.ReadKubernetesCluster],
+          scoped: [
+            {
+              permission: Permission.EditKubernetesCluster,
+              labelIds: [STAGING_LABEL_ID],
+            },
+          ],
+        }),
+      );
+
+      refusedBeforeAnythingRan(await callRoute(TEST_ROUTE));
+    });
+
+    test("an edit grant over every cluster reaches a labelled one", async () => {
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(PROD_LABEL_ID, "prod")]),
+      );
+      propsSpy.mockResolvedValue(userProps({ permissions: CLUSTER_EDITOR }));
+
+      ranBothCommands(await callRoute(TEST_ROUTE));
+    });
+
+    test("a block on editing this cluster's label refuses a project member", async () => {
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(PROD_LABEL_ID, "prod")]),
+      );
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [Permission.ProjectMember],
+          scoped: [
+            {
+              permission: Permission.EditKubernetesCluster,
+              labelIds: [PROD_LABEL_ID],
+              isBlockPermission: true,
+            },
+          ],
+        }),
+      );
+
+      refusedBeforeAnythingRan(await callRoute(TEST_ROUTE));
+    });
+
+    test("negative control: that block does not touch a cluster without the label", async () => {
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(STAGING_LABEL_ID, "staging")]),
+      );
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [Permission.ProjectMember],
+          scoped: [
+            {
+              permission: Permission.EditKubernetesCluster,
+              labelIds: [PROD_LABEL_ID],
+              isBlockPermission: true,
+            },
+          ],
+        }),
+      );
+
+      ranBothCommands(await callRoute(TEST_ROUTE));
+    });
+
+    test("a project admin blocked from editing this cluster's label is refused too", async () => {
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(PROD_LABEL_ID, "prod")]),
+      );
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [Permission.ProjectAdmin],
+          scoped: [
+            {
+              permission: Permission.EditKubernetesCluster,
+              labelIds: [PROD_LABEL_ID],
+              isBlockPermission: true,
+            },
+          ],
+        }),
+      );
+
+      refusedBeforeAnythingRan(await callRoute(TEST_ROUTE));
+    });
+
+    test("a role limited to a label (Project Member for staging) reaches only clusters carrying it", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [],
+          scoped: [
+            {
+              permission: Permission.ProjectMember,
+              labelIds: [STAGING_LABEL_ID],
+            },
+          ],
+        }),
+      );
+
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(PROD_LABEL_ID, "prod")]),
+      );
+      refusedBeforeAnythingRan(await callRoute(TEST_ROUTE));
+
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(STAGING_LABEL_ID, "staging")]),
+      );
+      ranBothCommands(await callRoute(TEST_ROUTE));
+    });
+
+    test("a block on reading this cluster's label refuses it too: a change needs a read", async () => {
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(PROD_LABEL_ID, "prod")]),
+      );
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [Permission.ProjectMember],
+          scoped: [
+            {
+              permission: Permission.ReadKubernetesCluster,
+              labelIds: [PROD_LABEL_ID],
+              isBlockPermission: true,
+            },
+          ],
+        }),
+      );
+
+      refusedBeforeAnythingRan(await callRoute(TEST_ROUTE));
+    });
+
+    test("a credential issued for reading only may not run it, whatever its roles", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [Permission.ProjectOwner],
+          isReadOnlyCredential: true,
+        }),
+      );
+
+      refusedBeforeAnythingRan(await callRoute(TEST_ROUTE));
+    });
+
+    test("weighs the cluster's own labels, read as OneUptime in the caller's project", async () => {
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(PROD_LABEL_ID, "prod")]),
+      );
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [Permission.ReadKubernetesCluster],
+          scoped: [
+            {
+              permission: Permission.EditKubernetesCluster,
+              labelIds: [STAGING_LABEL_ID],
+            },
+          ],
+        }),
+      );
+
+      await callRoute(TEST_ROUTE);
+
+      const labelReads: Array<{
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+      }> = (
+        clusterFind.mock.calls as Array<
+          Array<{
+            query: Record<string, unknown>;
+            select: Record<string, unknown>;
+            props: DatabaseCommonInteractionProps;
+          }>
+        >
+      )
+        .map(
+          (
+            call: Array<{
+              query: Record<string, unknown>;
+              select: Record<string, unknown>;
+              props: DatabaseCommonInteractionProps;
+            }>,
+          ) => {
+            return call[0]!;
+          },
+        )
+        .filter(
+          (args: {
+            select: Record<string, unknown>;
+            props: DatabaseCommonInteractionProps;
+          }): boolean => {
+            return Boolean(args.props.isRoot) && Boolean(args.select["labels"]);
+          },
+        );
+
+      expect(labelReads).toHaveLength(1);
+      expect(String(labelReads[0]!.query["_id"])).toBe(CLUSTER_ID.toString());
+      expect(String(labelReads[0]!.query["projectId"])).toBe(
+        PROJECT_ID.toString(),
+      );
+    });
+
+    test("a master admin needs no edit grant: the cluster is read once, for the read gate", async () => {
+      clusterFind.mockResolvedValue(
+        clusterRow(PROJECT_ID, [label(PROD_LABEL_ID, "prod")]),
+      );
+      propsSpy.mockResolvedValue(
+        userProps({ permissions: [], isMasterAdmin: true }),
+      );
+
+      ranBothCommands(await callRoute(TEST_ROUTE));
+      expect(clusterFind).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -1728,9 +2101,7 @@ describe("KubernetesClusterAiAccessAPI", () => {
     });
 
     test("/test withholds them from its status too, yet still runs through the bound credential", async () => {
-      propsSpy.mockResolvedValue(
-        userProps({ permissions: [Permission.EditKubernetesCluster] }),
-      );
+      propsSpy.mockResolvedValue(userProps({ permissions: CLUSTER_EDITOR }));
 
       await callRoute(TEST_ROUTE);
 
