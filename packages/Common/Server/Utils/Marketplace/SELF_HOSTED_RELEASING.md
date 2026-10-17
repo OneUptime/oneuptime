@@ -11,6 +11,12 @@ OneUptime Cloud's listings (SaaS, billed in usage units) are a different
 product with a different integration: see [RELEASING.md](RELEASING.md). The
 two share seller accounts, company facts and listing media, nothing else.
 
+Buyers read the guide at
+[`/docs/installation/cloud-marketplaces`](https://oneuptime.com/docs/installation/cloud-marketplaces)
+(`packages/App/FeatureSet/Docs/Content/<lang>/installation/cloud-marketplaces.md`,
+in every docs language): installing, billing, licensing, upgrading, settings
+and troubleshooting. Change it with the product: every listing links to it.
+
 Written on **17 October 2026**, together with the billing code and the
 packaging, before any self-hosted listing existed. Nothing in this guide had
 been submitted to any marketplace yet. When you do something below, add it to
@@ -628,7 +634,7 @@ create the first account. The first start migrates the database and takes a
 few minutes. Within the hour, the dashboard's edition label shows Enterprise
 Edition, licensed through AWS Marketplace.
 
-Documentation: https://oneuptime.com/docs
+Documentation: https://oneuptime.com/docs/installation/cloud-marketplaces
 Support: https://oneuptime.com/support
 ```
 
@@ -708,9 +714,16 @@ cost a review round.
   so the AWS edition cannot bill (or be licensed) before then.
 - The values in `editions.json` are placeholders until each portal shows the
   real ones.
-- No buyer documentation page yet (docs pages must be translated into 16
-  languages to pass the docs tests). The listings' usage instructions carry
-  the essentials.
+- **Google Cloud deployments have no upgrade path yet.** Google Cloud
+  Marketplace never updates a deployed app, and a deployer-based app has no
+  upgrade button: Google asks sellers to document the upgrade steps, and the
+  buyer guide only says to contact support. Settle it with the Partner
+  Engineer (Terraform-based Kubernetes apps update in place) before the
+  Google listing goes live.
+- **OneUptime's update notice reads GitHub releases**, so a marketplace
+  installation is told about a release before it is on its marketplace. The
+  buyer guide tells buyers to upgrade through the marketplace; setting
+  `updateCheck.disabled` in the editions (`build.py`) would remove the notice.
 - Releases are built by hand from this guide; a CI workflow could run the
   build, mirror and push steps once the registries exist.
 - Microsoft and Google editions install on `linux/amd64` nodes only.

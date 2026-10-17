@@ -1442,6 +1442,10 @@ const DocsNav: NavGroup[] = [
         url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
       },
       {
+        title: "Cloud Marketplaces",
+        url: "/docs/installation/cloud-marketplaces",
+      },
+      {
         title: "Sizing & Capacity Planning",
         url: "/docs/installation/sizing",
       },
