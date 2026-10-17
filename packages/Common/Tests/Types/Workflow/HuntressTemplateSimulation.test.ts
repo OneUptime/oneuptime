@@ -71,6 +71,7 @@ import {
   SimulationTrace,
   createdWithId,
   found,
+  many,
   runTemplate,
 } from "./WorkflowTemplateSimulator";
 import {
@@ -86,6 +87,30 @@ const INCIDENT_ID: string = "6a1b2c3d-0000-4000-8000-000000000001";
 const NOTE_ID: string = "6a1b2c3d-0000-4000-8000-000000000002";
 const TIMELINE_ID: string = "6a1b2c3d-0000-4000-8000-000000000003";
 const RESOLVED_STATE_ID: string = "6a1b2c3d-0000-4000-8000-000000000004";
+
+/*
+ * The project's incident states, as Find Many hands them back: in no
+ * particular order, with a state of the project's own after Resolved.
+ */
+const PROJECT_STATES: Array<JSONObject> = [
+  { _id: "6a1b2c3d-0000-4000-8000-000000000014", name: "Closed", order: 4 },
+  {
+    _id: RESOLVED_STATE_ID,
+    name: "Resolved",
+    order: 3,
+    isResolvedState: true,
+  },
+  {
+    _id: "6a1b2c3d-0000-4000-8000-000000000011",
+    name: "Identified",
+    order: 1,
+  },
+  {
+    _id: "6a1b2c3d-0000-4000-8000-000000000012",
+    name: "Acknowledged",
+    order: 2,
+  },
+];
 const POLICY_ID: string = "7b1c2d3e-0000-4000-8000-000000000001";
 const OTHER_LABEL_ID: string = "7b1c2d3e-0000-4000-8000-000000000002";
 const LABEL_ID: string = "8c1d2e3f-0000-4000-8000-000000000001";
@@ -173,14 +198,19 @@ function paged(summary: string): OnCallPageResult {
   } as unknown as OnCallPageResult;
 }
 
-// The incident a report opened, as Find One Incident hands it back.
-function openIncident(isResolved: boolean = false): DatabaseReply {
+// The incident a report opened, as Find One Incident hands it back, in one of the project's states.
+function openIncident(stateName: string = "Acknowledged"): DatabaseReply {
+  const state: JSONObject = PROJECT_STATES.find((candidate: JSONObject) => {
+    return candidate["name"] === stateName;
+  }) as JSONObject;
+
   return found({
     _id: INCIDENT_ID,
     incidentNumberWithPrefix: "INC-42",
     currentIncidentState: {
-      name: isResolved ? "Resolved" : "Investigating",
-      isResolvedState: isResolved,
+      name: state["name"],
+      order: state["order"],
+      isResolvedState: state["isResolvedState"] === true,
     },
   });
 }
@@ -198,10 +228,7 @@ function database(overrides: FakeDatabase = {}): FakeDatabase {
         : openIncident();
     },
     "incident-internal-note-create-one": createdWithId(NOTE_ID),
-    "incident-state-find-one": found({
-      _id: RESOLVED_STATE_ID,
-      name: "Resolved",
-    }),
+    "incident-state-find-many": many(PROJECT_STATES),
     "incident-state-timeline-create-one": createdWithId(TIMELINE_ID),
     ...overrides,
   };
@@ -541,14 +568,16 @@ describe("closing the report", () => {
       "switch-1",
       "find-incident-2",
       "if-found-2",
-      "if-resolved-1",
-      "find-resolved-state-1",
+      "find-states-1",
+      "decide-resolve-1",
+      "if-resolve-1",
       "resolve-incident-1",
       "log-resolved",
     ]);
-    expect(callsTo(trace, "find-resolved-state-1")[0]!.args["query"]).toEqual({
-      isResolvedState: true,
-    });
+    // The resolved state is found by the rule, among all of them: no record is asked for by its flag.
+    expect(
+      JSON.stringify(callsTo(trace, "find-states-1")[0]!.args["query"]),
+    ).not.toContain("isResolvedState");
     expect(
       callsTo(trace, "resolve-incident-1")[0]!.args["json"] as JSONObject,
     ).toEqual({
@@ -561,16 +590,44 @@ describe("closing the report", () => {
     ]);
   });
 
-  test("leaves an incident that is resolved already as it is", async () => {
+  test.each(["Resolved", "Closed"])(
+    "leaves an incident that is %s already as it is: at or past Resolved, it never moves back",
+    async (stateName: string) => {
+      const trace: SimulationTrace = await run({
+        body: getHuntressClosedBody(),
+        database: database({ "incident-find-one": openIncident(stateName) }),
+      });
+
+      expect(trace.ports["if-resolve-1"]).toBe("no");
+      expect(callsTo(trace, "resolve-incident-1")).toHaveLength(0);
+      expect(trace.logs).toEqual([
+        "ℹ️ INC-42 was already resolved when Huntress closed incident report 1234.",
+      ]);
+    },
+  );
+
+  test("the resolved state is the first one flagged in the project's order, wherever the list puts it", async () => {
     const trace: SimulationTrace = await run({
       body: getHuntressClosedBody(),
-      database: database({ "incident-find-one": openIncident(true) }),
+      database: database({
+        "incident-state-find-many": many([
+          ...PROJECT_STATES,
+          // A second state flagged resolved, further down: Resolve moves into the first.
+          {
+            _id: "6a1b2c3d-0000-4000-8000-000000000015",
+            name: "Archived",
+            order: 5,
+            isResolvedState: true,
+          },
+        ]),
+      }),
     });
 
-    expect(callsTo(trace, "resolve-incident-1")).toHaveLength(0);
-    expect(trace.logs).toEqual([
-      "ℹ️ INC-42 was already resolved when Huntress closed incident report 1234.",
-    ]);
+    expect(
+      (callsTo(trace, "resolve-incident-1")[0]!.args["json"] as JSONObject)[
+        "incidentStateId"
+      ],
+    ).toBe(RESOLVED_STATE_ID);
   });
 
   test("a report first seen already dismissed resolves nothing it never opened", async () => {
@@ -585,16 +642,39 @@ describe("closing the report", () => {
     ]);
   });
 
-  test("a resolved state that cannot be found is said in the log, and nothing is written", async () => {
+  test("states that cannot be read are said in the log, and nothing is written", async () => {
     const trace: SimulationTrace = await run({
       body: getHuntressClosedBody(),
-      database: database({ "incident-state-find-one": DATABASE_FAILURE }),
+      database: database({ "incident-state-find-many": DATABASE_FAILURE }),
     });
 
     expect(callsTo(trace, "resolve-incident-1")).toHaveLength(0);
     expect(trace.logs).toEqual([
-      "❌ Could not find the resolved incident state, so INC-42 was not resolved. Why is in the run log above.",
+      "❌ Could not read this project's incident states, so INC-42 was not resolved. Why is in the run log above.",
     ]);
+  });
+
+  test("a project without a resolved state is said in the log, and nothing is written", async () => {
+    const trace: SimulationTrace = await run({
+      body: getHuntressClosedBody(),
+      database: database({
+        "incident-state-find-many": many(
+          PROJECT_STATES.filter((state: JSONObject): boolean => {
+            return state["isResolvedState"] !== true;
+          }),
+        ),
+      }),
+    });
+
+    expect(trace.ports["decide-resolve-1"]).toBe("error");
+    expect(callsTo(trace, "resolve-incident-1")).toHaveLength(0);
+    expect(trace.logs).toHaveLength(1);
+    expect(trace.logs[0]).toContain(
+      "❌ Could not tell whether INC-42 is resolved, so it was not resolved:",
+    );
+    expect(trace.logs[0]).toContain(
+      "This project has no resolved incident state.",
+    );
   });
 
   test("a resolution that cannot be written is said in the log", async () => {

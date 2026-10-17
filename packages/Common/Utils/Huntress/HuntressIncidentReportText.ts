@@ -16,10 +16,13 @@ import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
  * Everything in a report was written outside OneUptime - by Huntress's SOC
  * analysts, or by whoever named the host or the organization - and it is
  * read by responders in the dashboard, in emails, and in Slack and
- * Microsoft Teams. So names and ids are placed as text with `mdText`, and
- * the analyst's summary and comments as outside Markdown
- * (FeedMarkdown.writtenOutside): they keep their formatting, but nothing in
- * them fetches an image, mentions a channel or draws a diagram.
+ * Microsoft Teams. So every part that came from Huntress - a name, a
+ * subject, a status, the analyst's summary and comments - is placed as
+ * reported (FeedMarkdown.reportedValue), as the Jira and Dynamics 365
+ * templates place what people wrote there: it reads as written and keeps
+ * its formatting, but nothing in it fetches an image, mentions a channel,
+ * draws a diagram, starts HTML (Teams reads HTML), or is a link whose words
+ * hide where it goes. OneUptime's own words around it are `mdText`.
  *
  * Fields are cut to their limits when the payload is read
  * (Types/Huntress/HuntressWebhook), and nothing here runs a pattern over
@@ -216,14 +219,65 @@ export function getHuntressIncidentTitle(
   const subject: string = getHuntressSubjectWithoutSeverity(event.subject);
 
   if (subject) {
-    return `Huntress: ${subject}`;
+    return placedInTitle("Huntress: ", subject, "");
   }
 
   if (event.organization.name) {
-    return `Huntress incident report ${event.reportId} (${event.organization.name})`;
+    return placedInTitle(
+      `Huntress incident report ${event.reportId} (`,
+      event.organization.name,
+      ")",
+    );
   }
 
   return `Huntress incident report ${event.reportId}`;
+}
+
+// The longest an incident's title is: its column (ColumnLength.LongText).
+export const HUNTRESS_MAX_INCIDENT_TITLE_LENGTH: number = 500;
+
+/*
+ * A name from Huntress between the title's own words. A title is read as
+ * Markdown in emails, chats and feeds, so the name is placed as reported
+ * (FeedMarkdown.reportedValue): it reads as typed, and nothing in it - an
+ * image, a link, HTML, a chat mention - acts. What that adds is invisible
+ * but counts towards the column, so a name that no longer fits is cut, and
+ * ends in "…".
+ */
+function placedInTitle(before: string, name: string, after: string): string {
+  const room: number =
+    HUNTRESS_MAX_INCIDENT_TITLE_LENGTH - before.length - after.length;
+  const placed: string = FeedMarkdown.reportedValue(name);
+
+  if (placed.length <= room) {
+    return `${before}${placed}${after}`;
+  }
+
+  /*
+   * The most of the name that fits once placed, found by halving: what a
+   * character takes once placed varies. Cut between characters, never
+   * inside one an emoji is made of.
+   */
+  const characters: Array<string> = Array.from(name);
+  let fitting: string = FeedMarkdown.reportedValue("…");
+  let low: number = 0;
+  let high: number = characters.length - 1;
+
+  while (low <= high) {
+    const kept: number = Math.floor((low + high) / 2);
+    const candidate: string = FeedMarkdown.reportedValue(
+      `${characters.slice(0, kept).join("").trimEnd()}…`,
+    );
+
+    if (candidate.length <= room) {
+      fitting = candidate;
+      low = kept + 1;
+    } else {
+      high = kept - 1;
+    }
+  }
+
+  return `${before}${fitting}${after}`;
 }
 
 function getIndicatorsText(
@@ -258,7 +312,7 @@ export function getHuntressIncidentDescription(data: {
   );
 
   if (event.organization.name) {
-    facts.push(mdText`**Organization:** ${event.organization.name}`);
+    facts.push(mdText`**Organization:** ${reported(event.organization.name)}`);
   }
 
   const affectedName: string | null = getHuntressAffectedName(event);
@@ -267,12 +321,12 @@ export function getHuntressIncidentDescription(data: {
 
   if (affectedName && platformTitle) {
     facts.push(
-      mdText`**${affectedLabel}:** ${affectedName} (${platformTitle})`,
+      mdText`**${affectedLabel}:** ${reported(affectedName)} (${reported(platformTitle)})`,
     );
   } else if (affectedName) {
-    facts.push(mdText`**${affectedLabel}:** ${affectedName}`);
+    facts.push(mdText`**${affectedLabel}:** ${reported(affectedName)}`);
   } else if (platformTitle) {
-    facts.push(mdText`**Platform:** ${platformTitle}`);
+    facts.push(mdText`**Platform:** ${reported(platformTitle)}`);
   }
 
   const indicators: string | null = getIndicatorsText(event.indicatorCounts);
@@ -294,7 +348,7 @@ export function getHuntressIncidentDescription(data: {
   const parts: Array<MarkdownText> = [];
 
   if (event.summary) {
-    parts.push(FeedMarkdown.writtenOutside(event.summary));
+    parts.push(reported(event.summary));
   }
 
   parts.push(FeedMarkdown.bulletList(facts));
@@ -305,12 +359,14 @@ export function getHuntressIncidentDescription(data: {
 // A comment someone added to the report in Huntress, as an incident note.
 export function getHuntressCommentNote(comment: string): string {
   return FeedMarkdown.join(
-    [
-      mdText`**Comment added in Huntress**`,
-      FeedMarkdown.writtenOutside(comment),
-    ],
+    [mdText`**Comment added in Huntress**`, reported(comment)],
     "\n\n",
   ).toString();
+}
+
+// What came from Huntress, as reported: it reads as written, and nothing in it acts.
+function reported(value: string): MarkdownText {
+  return FeedMarkdown.asMarkdown(FeedMarkdown.reportedValue(value));
 }
 
 /*
@@ -323,7 +379,7 @@ export function getHuntressClosedNote(
   event: Pick<HuntressIncidentReportEvent, "reportId" | "status">,
 ): string {
   if (event.status) {
-    return mdText`Huntress closed incident report ${event.reportId} (status: ${event.status}).`.toString();
+    return mdText`Huntress closed incident report ${event.reportId} (status: ${reported(event.status)}).`.toString();
   }
 
   return mdText`Huntress closed incident report ${event.reportId}.`.toString();

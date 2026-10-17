@@ -58,6 +58,7 @@ import {
   getHuntressIdentityReportBody,
   getHuntressIncidentReportBody,
 } from "../Huntress/HuntressWebhookFixtures";
+import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test } from "@jest/globals";
 
 const NOW: Date = new Date("2026-10-09T10:00:00.000Z");
@@ -320,7 +321,11 @@ describe("the values the run hands on", () => {
     expect(values[HuntressTriggerValue.IncidentTitle]).toBe(
       "Huntress: Incident on DESKTOP-ARL0EQ1 (Acme Corp)",
     );
-    expect(description).toContain("\\![x](https://tracker.example/p.png)");
+    // Reads as Huntress wrote it, with invisible breaks where it would act.
+    expect(description.split(WORD_JOINER).join("")).toContain(
+      "See ![x](https://tracker.example/p.png) <!channel> @here",
+    );
+    expect(description).not.toContain("![x](");
     expect(description).not.toContain("<!channel>");
     // The summary as Huntress wrote it is still there, raw, for a step that wants it.
     expect(values[HuntressTriggerValue.Summary]).toContain("<!channel>");

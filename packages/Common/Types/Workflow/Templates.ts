@@ -7059,8 +7059,46 @@ const huntressPageCondition: HuntressPageConditionFunction = (
 const HUNTRESS_FIND_INCIDENT_SELECT: JSONObject = {
   _id: true,
   incidentNumberWithPrefix: true,
-  currentIncidentState: { name: true, isResolvedState: true },
+  currentIncidentState: { name: true, order: true, isResolvedState: true },
 };
+
+/*
+ * Whether Huntress closing a report resolves its incident, and into which
+ * state, by the one rule OneUptime resolves by (Utils/ResolvedState): the
+ * project's resolved state is the first one from the top flagged resolved,
+ * and an incident at it or past it - a "Closed" of the project's own, say -
+ * is resolved already. An incident never moves back. All it reads is
+ * OneUptime's own: the incident and the project's states.
+ */
+const HUNTRESS_DECIDE_RESOLVE_SCRIPT: string = String.raw`// Whether to resolve the incident Huntress closed the report of, and into which state.
+// The project's resolved state is the first one from the top flagged resolved. An
+// incident at it or past it ("Closed", say) is resolved already: it never moves back.
+
+// Another step's output quoted into the arguments arrives as JSON text.
+const readJson = (value) => {
+  if (typeof value !== 'string') return value === undefined ? null : value;
+  try { return JSON.parse(value); } catch (error) { return null; }
+};
+// OneUptime ids are serialized as { _type, value }.
+const idOf = (value) => (value && typeof value === 'object' ? String(value.value || '') : String(value || ''));
+
+const incident = readJson(args.incident) || {};
+const list = readJson(args.states);
+const states = Array.isArray(list) ? list.filter((state) => state && typeof state === 'object') : [];
+const resolved = states
+  .slice()
+  .sort((a, b) => Number(a.order) - Number(b.order))
+  .find((state) => state.isResolvedState === true);
+
+if (!resolved) {
+  throw new Error('This project has no resolved incident state.');
+}
+
+const current = incident.currentIncidentState || {};
+const isResolved = current.isResolvedState === true || Number(current.order) >= Number(resolved.order);
+
+return { proceed: !isResolved, stateId: idOf(resolved._id) };
+`;
 
 type HuntressFindIncidentArgsFunction = () => JSONObject;
 
@@ -7478,47 +7516,68 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
       return { nodes: nodes, edges: edges };
     }
 
+    /*
+     * The project's states, so the decision below finds its resolved one by
+     * the rule, and never by asking for records by the flag.
+     */
     addNode({
-      componentId: "if-resolved-1",
-      metadataId: ComponentID.IfElse,
+      componentId: "find-states-1",
+      metadataId: "incident-state-find-many",
       componentType: ComponentType.Component,
       position: { x: 400, y: 940 },
       args: {
-        "input-1-type": ConditionValueType.Boolean,
-        "input-1":
-          "{{local.components.find-incident-2.returnValues.model.currentIncidentState.isResolvedState}}",
-        operator: ConditionOperator.EqualTo,
-        "input-2-type": ConditionValueType.Boolean,
-        "input-2": true,
+        // Every row. Query cannot be left empty, so it asks for any id.
+        query: { _id: { _type: "NotNull", value: null } },
+        select: { _id: true, name: true, order: true, isResolvedState: true },
+        limit: 50,
       },
     });
-    connect("if-found-2", "yes", "if-resolved-1");
+    connect("if-found-2", "yes", "find-states-1");
+
+    log(
+      "log-states-failed",
+      { x: 700, y: 1140 },
+      `❌ Could not read this project's incident states, so ${closedIncident} was not resolved. Why is in the run log above.`,
+    );
+    connect("find-states-1", "error", "log-states-failed");
+
+    addNode({
+      componentId: "decide-resolve-1",
+      metadataId: ComponentID.JavaScriptCode,
+      componentType: ComponentType.Component,
+      position: { x: 400, y: 1140 },
+      args: {
+        code: HUNTRESS_DECIDE_RESOLVE_SCRIPT,
+        arguments: jsonText({
+          incident: "{{local.components.find-incident-2.returnValues.model}}",
+          states: "{{local.components.find-states-1.returnValues.models}}",
+        }),
+      },
+    });
+    connect("find-states-1", "success", "decide-resolve-1");
+
+    log(
+      "log-decide-failed",
+      { x: 700, y: 1340 },
+      `❌ Could not tell whether ${closedIncident} is resolved, so it was not resolved: {{local.components.decide-resolve-1.returnValues.error}}`,
+    );
+    connect("decide-resolve-1", "error", "log-decide-failed");
+
+    addNode({
+      componentId: "if-resolve-1",
+      metadataId: ComponentID.IfElse,
+      componentType: ComponentType.Component,
+      position: { x: 400, y: 1340 },
+      args: proceedCondition("decide-resolve-1"),
+    });
+    connect("decide-resolve-1", "success", "if-resolve-1");
 
     log(
       "log-already-resolved",
-      { x: 550, y: 1140 },
+      { x: 550, y: 1540 },
       `ℹ️ ${closedIncident} was already resolved when Huntress closed incident report ${huntressValue(HuntressTriggerValue.ReportId)}.`,
     );
-    connect("if-resolved-1", "yes", "log-already-resolved");
-
-    addNode({
-      componentId: "find-resolved-state-1",
-      metadataId: "incident-state-find-one",
-      componentType: ComponentType.Component,
-      position: { x: 250, y: 1140 },
-      args: {
-        query: { isResolvedState: true },
-        select: { _id: true, name: true },
-      },
-    });
-    connect("if-resolved-1", "no", "find-resolved-state-1");
-
-    log(
-      "log-state-failed",
-      { x: 550, y: 1340 },
-      `❌ Could not find the resolved incident state, so ${closedIncident} was not resolved. Why is in the run log above.`,
-    );
-    connect("find-resolved-state-1", "error", "log-state-failed");
+    connect("if-resolve-1", "no", "log-already-resolved");
 
     addNode({
       /*
@@ -7528,29 +7587,29 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
       componentId: "resolve-incident-1",
       metadataId: "incident-state-timeline-create-one",
       componentType: ComponentType.Component,
-      position: { x: 250, y: 1340 },
+      position: { x: 250, y: 1540 },
       args: {
         json: jsonText({
           incidentId:
             "{{local.components.find-incident-2.returnValues.model._id}}",
           incidentStateId:
-            "{{local.components.find-resolved-state-1.returnValues.model._id}}",
+            "{{local.components.decide-resolve-1.returnValues.returnValue.stateId}}",
           rootCause: huntressValue(HuntressTriggerValue.Note),
         }),
       },
     });
-    connect("find-resolved-state-1", "success", "resolve-incident-1");
+    connect("if-resolve-1", "yes", "resolve-incident-1");
 
     log(
       "log-resolved",
-      { x: 100, y: 1540 },
+      { x: 100, y: 1740 },
       `✅ Resolved ${closedIncident}: Huntress closed incident report ${huntressValue(HuntressTriggerValue.ReportId)}.`,
     );
     connect("resolve-incident-1", "success", "log-resolved");
 
     log(
       "log-resolve-failed",
-      { x: 400, y: 1540 },
+      { x: 400, y: 1740 },
       `❌ Could not resolve ${closedIncident} for ${HUNTRESS_REPORT}. Why is in the run log above.`,
     );
     connect("resolve-incident-1", "error", "log-resolve-failed");

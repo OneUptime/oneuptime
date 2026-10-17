@@ -310,12 +310,17 @@ describe("the searches from the report, on the real catalog", () => {
   });
 
   test("the trigger picker", () => {
-    expect(titles(TRIGGER_INDEX, "incident").slice(0, 4)).toEqual([
+    // The two popular ones lead; Huntress's names incidents too: it starts on a Huntress incident report.
+    expect(titles(TRIGGER_INDEX, "incident").slice(0, 5)).toEqual([
       "On Create Incident",
       "On Update Incident",
+      "Huntress Incident Report",
       "On Create or Update Incident",
       "On Delete Incident",
     ]);
+    expect(titles(TRIGGER_INDEX, "huntress")[0]).toBe(
+      "Huntress Incident Report",
+    );
     expect(titles(TRIGGER_INDEX, "incident created")[0]).toBe(
       "On Create Incident",
     );
