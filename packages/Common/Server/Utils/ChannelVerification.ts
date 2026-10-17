@@ -1,6 +1,7 @@
 import DatabaseService from "../Services/DatabaseService";
 import Select from "../Types/Database/Select";
 import logger from "./Logger";
+import ProjectMembership from "./TeamMember/ProjectMembership";
 import VerificationCode from "./VerificationCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -138,6 +139,11 @@ export enum ChannelVerificationOutcome {
   Verified = "verified",
   NotFound = "not-found",
   NotOwner = "not-owner",
+  /*
+   * The row is the caller's, in a project they are not a member of (any
+   * more): answered like a row that does not exist (isOwnerProjectMember).
+   */
+  NotProjectMember = "not-project-member",
   AlreadyVerified = "already-verified",
   Expired = "expired",
   TooManyAttempts = "too-many-attempts",
@@ -208,6 +214,51 @@ const asWriter: (
 };
 
 export default class ChannelVerification {
+  /*
+   * Whether the person a channel row belongs to is a member of the project
+   * the row is in now: an accepted invitation to one of its teams, read from
+   * the database rather than from a cached permission set
+   * (ProjectMembership.isMember).
+   *
+   * A code is sent, checked and reported on only for a member. A row whose
+   * owner is not one - who left the project, or who never was and added the
+   * row before a create had to come from a member
+   * (CreatePermission.checkCreateInMemberProject) - is answered like a row
+   * that does not exist: the project pays for no message to it, and nothing
+   * about the project is read for it. The Telegram channel asks the same
+   * (UserTelegramService.hasActiveProjectMembership).
+   */
+  public static async isOwnerProjectMember(
+    item: VerifiableChannelFields,
+  ): Promise<boolean> {
+    if (!item.projectId || !item.userId) {
+      return false;
+    }
+
+    return await ProjectMembership.isMember({
+      projectId: new ObjectID(item.projectId.toString()),
+      userId: new ObjectID(item.userId.toString()),
+    });
+  }
+
+  /*
+   * For a resend (each channel service's resendVerificationCode, whoever
+   * asks - the person, or an administrator for them): refuses a row whose
+   * owner is not a member of its project (isOwnerProjectMember), in the
+   * words a missing row is refused with, before anything about the project
+   * - whether it can send, its balance - is read.
+   */
+  public static async assertOwnerIsProjectMember(data: {
+    item: VerifiableChannelFields;
+    itemId: ObjectID;
+  }): Promise<void> {
+    if (!(await ChannelVerification.isOwnerProjectMember(data.item))) {
+      throw new BadDataException(
+        "Item with ID " + data.itemId.toString() + " not found",
+      );
+    }
+  }
+
   /*
    * When a code issued now stops being accepted.
    */
@@ -536,6 +587,10 @@ export default class ChannelVerification {
    *   ownership first, so one user cannot even probe the state of another
    *   user's row;
    *
+   *   membership of the row's project next, so a row its owner is no longer
+   *   allowed to have - in a project they are not a member of - is never
+   *   checked, counted or verified (isOwnerProjectMember);
+   *
    *   already-verified before the counter, so re-submitting a code against a
    *   row that is already done is not a way to burn somebody's attempts;
    *
@@ -588,6 +643,14 @@ export default class ChannelVerification {
 
     if (item.userId?.toString() !== data.userId.toString()) {
       return { outcome: ChannelVerificationOutcome.NotOwner };
+    }
+
+    /*
+     * Theirs, but in a project they are not a member of: nothing is checked,
+     * counted or marked verified (isOwnerProjectMember).
+     */
+    if (!(await ChannelVerification.isOwnerProjectMember(item))) {
+      return { outcome: ChannelVerificationOutcome.NotProjectMember };
     }
 
     if (item.isVerified) {
@@ -686,13 +749,16 @@ export default class ChannelVerification {
    *
    * IncorrectCode and NotFound deliberately do NOT say anything the caller
    * did not already know, and every failure is a plain BadDataException so
-   * the shape of the response does not vary with the reason either.
+   * the shape of the response does not vary with the reason either. A row
+   * of a project its owner is not a member of is answered as one that does
+   * not exist.
    */
   public static getFailureException(
     outcome: ChannelVerificationOutcome,
   ): BadDataException {
     switch (outcome) {
       case ChannelVerificationOutcome.NotFound:
+      case ChannelVerificationOutcome.NotProjectMember:
         return new BadDataException("Item not found");
       case ChannelVerificationOutcome.NotOwner:
         return new BadDataException("Invalid user ID");

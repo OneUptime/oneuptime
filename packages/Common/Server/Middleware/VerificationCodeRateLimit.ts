@@ -15,7 +15,8 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * Request limiting for the notification-channel verification routes:
  * /user-email/verify, /user-sms/verify, /user-call/verify,
  * /user-whats-app/verify, /user-incoming-call-number/verify and each of their
- * resend siblings.
+ * resend siblings - and for adding a method of one of those channels, which
+ * sends its first code at once (checkAddAllowed).
  *
  * WHAT THIS IS FOR, GIVEN THE DATABASE ALREADY COUNTS ATTEMPTS
  *
@@ -32,7 +33,9 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  *   MESSAGE VOLUME. Every issued code is a real email, SMS, voice call or
  *   WhatsApp message to somebody who did not ask for it, billed to the
  *   project. The resend bucket bounds that independently of whether any
- *   individual row is inside its own cooldown.
+ *   individual row is inside its own cooldown, and the add bucket bounds the
+ *   first codes: adding a number, removing it and adding it again sends a
+ *   code each time, from a new row with no cooldown of its own.
  *
  *   COST BEFORE THE CHECK. A verify request costs a session lookup and a row
  *   read before the attempt counter is even consulted. This runs first.
@@ -55,6 +58,12 @@ export enum VerificationCodeRateLimitBucket {
 
   /* Asking for a new code. The spending-somebody-else's-attention surface. */
   Resend = "resend",
+
+  /*
+   * Adding a method, which sends its first code: the same message a resend
+   * sends, from a fresh row each time.
+   */
+  Add = "add",
 }
 
 export enum VerificationCodeRateLimitScope {
@@ -178,6 +187,49 @@ const RESEND_BUCKET: BucketConfig = {
   ),
 };
 
+/*
+ * Add budget: the first codes. Adding an email address, an SMS, call or
+ * WhatsApp number or an incoming call number sends its code at once - a
+ * message on somebody's phone and a line on the project's bill, like a
+ * resend, but from a new row, which has no cooldown of its own. An add's
+ * "item" is the kind of method a person adds (the channel): five numbers of
+ * one kind in a quarter of an hour is more than anyone sets up, and lets a
+ * person mistype one several times. Per person, ten covers adding every
+ * kind at once; per address it is the verify budget's, because a whole
+ * office behind one NAT sets up its phones together.
+ */
+const ADD_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "NOTIFICATION_VERIFICATION_ADD_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perItemLimit: parsePositiveIntFromEnv(
+    "NOTIFICATION_VERIFICATION_ADD_RATE_LIMIT_PER_CHANNEL_PER_WINDOW",
+    5,
+  ),
+  perUserLimit: parsePositiveIntFromEnv(
+    "NOTIFICATION_VERIFICATION_ADD_RATE_LIMIT_PER_USER_PER_WINDOW",
+    10,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "NOTIFICATION_VERIFICATION_ADD_RATE_LIMIT_PER_IP_PER_WINDOW",
+    150,
+  ),
+};
+
+/*
+ * What a refused request is told, by bucket. The same words whichever
+ * counter refused it.
+ */
+const REFUSAL_MESSAGES: Record<VerificationCodeRateLimitBucket, string> = {
+  [VerificationCodeRateLimitBucket.Verify]:
+    "Too many verification attempts. Please try again later.",
+  [VerificationCodeRateLimitBucket.Resend]:
+    "Too many verification codes requested. Please try again later.",
+  [VerificationCodeRateLimitBucket.Add]:
+    "Too many notification methods added. Please try again later.",
+};
+
 const KEY_PREFIX: string = "notifverify:rl:";
 
 /*
@@ -263,6 +315,16 @@ export default class VerificationCodeRateLimit {
     return value.toLowerCase();
   }
 
+  /*
+   * The key an add is counted under for its channel: the channel's own path
+   * ("/user-sms"), so each kind of method has its own allowance.
+   */
+  public static resolveChannelKey(channel: string): string {
+    return VerificationCodeRateLimit.sanitizeKeySegment(
+      `add${channel.trim().toLowerCase()}`,
+    );
+  }
+
   private static sanitizeKeySegment(value: string): string {
     return (
       value
@@ -278,9 +340,15 @@ export default class VerificationCodeRateLimit {
   public static getBucketConfig(
     bucket: VerificationCodeRateLimitBucket,
   ): BucketConfig {
-    return bucket === VerificationCodeRateLimitBucket.Resend
-      ? RESEND_BUCKET
-      : VERIFY_BUCKET;
+    if (bucket === VerificationCodeRateLimitBucket.Resend) {
+      return RESEND_BUCKET;
+    }
+
+    if (bucket === VerificationCodeRateLimitBucket.Add) {
+      return ADD_BUCKET;
+    }
+
+    return VERIFY_BUCKET;
   }
 
   /*
@@ -482,62 +550,119 @@ export default class VerificationCodeRateLimit {
       res: ExpressResponse,
       next: NextFunction,
     ): Promise<void> => {
-      const itemKey: string = VerificationCodeRateLimit.resolveItemKey(req);
-      const userKey: string = VerificationCodeRateLimit.resolveUserKey(req);
-      const clientIp: string = VerificationCodeRateLimit.resolveClientIp(req);
-
-      const decision: VerificationCodeRateLimitDecision =
-        await VerificationCodeRateLimit.consume({
-          itemKey,
-          userKey,
-          clientIp,
-          bucket,
+      const refusal: TooManyRequestsException | null =
+        await VerificationCodeRateLimit.countRequest({
+          req: req,
+          res: res,
+          bucket: bucket,
+          itemKey: VerificationCodeRateLimit.resolveItemKey(req),
         });
 
-      if (decision.outcome === VerificationCodeRateLimitOutcome.RateLimited) {
-        if (decision.retryAfterSeconds) {
-          VerificationCodeRateLimit.setRetryAfterHeader(
-            res,
-            decision.retryAfterSeconds,
-          );
-        }
-
-        if (decision.isFirstRejectionInWindow) {
-          logger.warn(
-            `VerificationCodeRateLimit: rejected ${bucket} request for item ${itemKey} from user ${userKey} at ${clientIp} (${decision.scope} limit)`,
-          );
-        }
-
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new TooManyRequestsException(
-            bucket === VerificationCodeRateLimitBucket.Resend
-              ? "Too many verification codes requested. Please try again later."
-              : "Too many verification attempts. Please try again later.",
-          ),
-        );
-      }
-
-      if (
-        decision.outcome === VerificationCodeRateLimitOutcome.CounterUnavailable
-      ) {
-        /*
-         * Fails open. See the note at the top of this file: the expiry, the
-         * attempt counter, the rotation and the resend cooldown are all in
-         * Postgres and all still in force, so allowing the request through
-         * costs a bounded amount of extra attempt budget rather than an
-         * unlimited guessing oracle.
-         */
-        if (VerificationCodeRateLimit.shouldLogCounterUnavailable(bucket)) {
-          logger.warn(
-            `VerificationCodeRateLimit: rate limit counter unavailable, allowing ${bucket} requests unthrottled`,
-          );
-        }
+      if (refusal) {
+        return Response.sendErrorResponse(req, res, refusal);
       }
 
       return next();
     };
+  }
+
+  /*
+   * For adding a method of a channel that sends a code - the create route
+   * of the email, SMS, call, WhatsApp and incoming call number APIs, through
+   * their BaseAPI.onBeforeCreate: counts the add in the add bucket, under
+   * the person, the channel (resolveChannelKey) and the client address, and
+   * throws a TooManyRequestsException over the limit, with Retry-After set.
+   *
+   * The create route has no requireUserAuthentication of its own, so a
+   * request that names no person is not counted at all: its create is
+   * refused before anything is sent - an expired session with a 401 the
+   * browser refreshes on, anything else by the create's own permission
+   * check - and counting it would spend the shared budgets of everybody
+   * without a session, or behind the same address, for a request that sends
+   * nothing.
+   */
+  public static async checkAddAllowed(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    // The channel's CRUD path: "/user-sms".
+    channel: string;
+  }): Promise<void> {
+    if (!(data.req as OneUptimeRequest)?.userAuthorization?.userId) {
+      return;
+    }
+
+    const refusal: TooManyRequestsException | null =
+      await VerificationCodeRateLimit.countRequest({
+        req: data.req,
+        res: data.res,
+        bucket: VerificationCodeRateLimitBucket.Add,
+        itemKey: VerificationCodeRateLimit.resolveChannelKey(data.channel),
+      });
+
+    if (refusal) {
+      throw refusal;
+    }
+  }
+
+  /*
+   * Counts one request in a bucket (consume) and answers with the refusal to
+   * send when it is over the limit - Retry-After set, the first refusal of a
+   * window logged - or null when it may go on. A counter that cannot be
+   * read lets it go on (see the note at the top of this file).
+   */
+  private static async countRequest(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    bucket: VerificationCodeRateLimitBucket;
+    itemKey: string;
+  }): Promise<TooManyRequestsException | null> {
+    const { req, res, bucket, itemKey } = data;
+    const userKey: string = VerificationCodeRateLimit.resolveUserKey(req);
+    const clientIp: string = VerificationCodeRateLimit.resolveClientIp(req);
+
+    const decision: VerificationCodeRateLimitDecision =
+      await VerificationCodeRateLimit.consume({
+        itemKey,
+        userKey,
+        clientIp,
+        bucket,
+      });
+
+    if (decision.outcome === VerificationCodeRateLimitOutcome.RateLimited) {
+      if (decision.retryAfterSeconds) {
+        VerificationCodeRateLimit.setRetryAfterHeader(
+          res,
+          decision.retryAfterSeconds,
+        );
+      }
+
+      if (decision.isFirstRejectionInWindow) {
+        logger.warn(
+          `VerificationCodeRateLimit: rejected ${bucket} request for item ${itemKey} from user ${userKey} at ${clientIp} (${decision.scope} limit)`,
+        );
+      }
+
+      return new TooManyRequestsException(REFUSAL_MESSAGES[bucket]);
+    }
+
+    if (
+      decision.outcome === VerificationCodeRateLimitOutcome.CounterUnavailable
+    ) {
+      /*
+       * Fails open. See the note at the top of this file: the expiry, the
+       * attempt counter, the rotation and the resend cooldown are all in
+       * Postgres and all still in force, so allowing the request through
+       * costs a bounded amount of extra attempt budget rather than an
+       * unlimited guessing oracle.
+       */
+      if (VerificationCodeRateLimit.shouldLogCounterUnavailable(bucket)) {
+        logger.warn(
+          `VerificationCodeRateLimit: rate limit counter unavailable, allowing ${bucket} requests unthrottled`,
+        );
+      }
+    }
+
+    return null;
   }
 
   /*

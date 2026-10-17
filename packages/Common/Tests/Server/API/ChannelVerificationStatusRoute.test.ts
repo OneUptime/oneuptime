@@ -13,6 +13,7 @@ import ChannelVerification, {
   ChannelVerificationStatus,
   VerifiableChannelFields,
 } from "../../../Server/Utils/ChannelVerification";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import {
   NextFunction,
   OneUptimeRequest,
@@ -23,7 +24,7 @@ import { mockRouter } from "./Helpers";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -128,6 +129,9 @@ describe.each(CHANNELS)("$name verification status", (channel: Channel) => {
   let cannotSendReason: string | null;
   let service: Record<string, jest.Mock>;
 
+  // Whether the row's owner is a member of its project (ProjectMembership).
+  let isMember: jest.SpyInstance;
+
   const callStatus: (body: Record<string, unknown>) => Promise<void> = async (
     body: Record<string, unknown>,
   ) => {
@@ -194,6 +198,14 @@ describe.each(CHANNELS)("$name verification status", (channel: Channel) => {
     } as unknown as OneUptimeResponse;
 
     nextFunction = jest.fn();
+
+    isMember = jest
+      .spyOn(ProjectMembership, "isMember")
+      .mockResolvedValue(true as never);
+  });
+
+  afterEach(() => {
+    isMember.mockRestore();
   });
 
   it("is registered behind the signed-in user's session", () => {
@@ -251,6 +263,43 @@ describe.each(CHANNELS)("$name verification status", (channel: Channel) => {
     expect(lastError().message).toBe("Invalid user ID");
     expect(service["getVerificationStatus"]).not.toHaveBeenCalled();
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The owner's own row, in a project they are not a member of: answered as
+   * a row that does not exist, and the project is not asked whether it
+   * could send a code (its SMS setting, its balance, its Twilio account).
+   */
+  it("answers an owner who is not a member of the row's project as if the row did not exist", async () => {
+    isMember.mockResolvedValue(false as never);
+
+    await callStatus({ itemId: ITEM_ID });
+
+    expect(lastError().message).toBe("Item not found");
+    expect(service["getVerificationStatus"]).not.toHaveBeenCalled();
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  it("asks about the row's own project and owner", async () => {
+    await callStatus({ itemId: ITEM_ID });
+
+    expect(isMember).toHaveBeenCalledTimes(1);
+
+    const asked: { projectId: ObjectID; userId: ObjectID } = isMember.mock
+      .calls[0]![0] as { projectId: ObjectID; userId: ObjectID };
+
+    expect(asked.projectId.toString()).toBe(PROJECT_ID);
+    expect(asked.userId.toString()).toBe(OWNER_ID);
+  });
+
+  it("asks nobody's membership before the row is known to be the caller's", async () => {
+    mockRequest.userAuthorization = {
+      userId: new ObjectID(OTHER_USER_ID),
+    } as JSONWebTokenData;
+
+    await callStatus({ itemId: ITEM_ID });
+
+    expect(isMember).not.toHaveBeenCalled();
   });
 
   it("tells the owner where their code stands", async () => {

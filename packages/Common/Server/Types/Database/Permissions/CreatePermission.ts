@@ -29,6 +29,7 @@ import {
   UnreadableParentException,
 } from "../../../Utils/Database/ProjectScopedReferenceRefusal";
 import RelationIdUtil from "../../../Utils/Database/RelationIdUtil";
+import CallerPermission from "../../../Utils/Permission/CallerPermission";
 import { applyIncidentSelfPrivacyFilter } from "../../../Utils/Incident/IncidentPrivacyFilter";
 import { applyIncidentEpisodeSelfPrivacyFilter } from "../../../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
 import { shouldBypassRecordPrivacy } from "../../../Utils/PrivacyFilterUtil";
@@ -168,6 +169,206 @@ export default class CreatePermission {
     );
 
     CreatePermission.checkCreateOwnership(modelType, data, props);
+
+    // And into a project its creator belongs to. See the helper.
+    CreatePermission.checkCreateInMemberProject(modelType, data, props);
+  }
+
+  /*
+   * Why a row somebody adds for themselves is refused in a project they are
+   * not a member of (checkCreateInMemberProject): the words every route uses
+   * for a project the caller may not open (CommonAPI
+   * .assertAuthenticatedProjectMember), whether the project exists or not.
+   */
+  public static readonly NOT_A_PROJECT_MEMBER_MESSAGE: string =
+    "You are not authorized to access this project's data.";
+
+  // Why such a create that names no project at all is refused.
+  public static readonly PROJECT_REQUIRED_MESSAGE: string =
+    "Project ID is required. Please pass the project ID in the 'tenantid' header.";
+
+  /*
+   * A ROW SOMEBODY ADDS FOR THEMSELVES GOES INTO A PROJECT THEY ARE A MEMBER
+   * OF.
+   *
+   * Permission.CurrentUser is granted to every signed-in person, whatever
+   * project the request names (DatabaseCommonInteractionPropsUtil
+   * .getUserPermissions). A model that belongs to a project and is created by
+   * that grant - a person's own notification methods, rules, settings and
+   * shift reminders - is therefore created by people who are not in the
+   * project too, unless something asks. checkCreateOwnership holds such a row
+   * to its creator; this holds it to a project its creator belongs to.
+   * Without it, a signed-in person who is not a member of a project - a
+   * former member, a member of another project, a fresh sign-up - who knows
+   * its id could add a phone number or an email address to it, and every add
+   * sends a verification message the project pays for: through its own
+   * Twilio account, or from its prepaid balance, which its real on-call SMS
+   * and calls need.
+   *
+   * So, when CurrentUser is all that lets the caller create in the table
+   * (TenantPermission.isAccessGrantedOnlyByCurrentUser):
+   *
+   *   - the caller is a person (a user session);
+   *   - the row names no project other than the one the request is made in,
+   *     under either of its names: a create's hooks read the row's project
+   *     before DatabaseService stamps the request's onto it, and a hook that
+   *     answers with that project's SMS setting or balance would describe a
+   *     project that is not the caller's;
+   *   - the caller is a member of that project: the request was authorized
+   *     for it (CallerPermission.isProjectMember - an accepted invitation, the
+   *     project's sign-in rules met, the project not blocked). An invitation
+   *     not accepted yet is not membership, and someone who left is not a
+   *     member any more. A request that names no project (no tenantid
+   *     header) is asked for one, unless it is a request across the caller's
+   *     own projects and the row names one of them.
+   *
+   * Asked before a create's hooks run (DatabaseService
+   * .checkCallerBeforeHooks), so no hook reads, sends or answers anything for
+   * someone who is not a member, and again on the record as it is written
+   * (checkCreatePermissions). A caller who holds a role permission in the
+   * model's own create list holds it as a member already, and is left to it;
+   * so are root and master admin callers - OneUptime seeding a member's
+   * defaults, or a project administrator adding a method for a member
+   * (UserNotificationMethodAdminService, which asks the member's membership
+   * itself). Models of no project (a person's sessions and sign-in
+   * credentials) are not asked.
+   */
+  public static checkCreateInMemberProject<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    data: TBaseModel | undefined,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const model: BaseModel = new modelType();
+    const tenantColumn: string | null = model.getTenantColumn();
+
+    // A model of no project, or Project itself (a new project is its own tenant).
+    if (!tenantColumn || tenantColumn === "_id") {
+      return;
+    }
+
+    if (
+      !TenantPermission.isAccessGrantedOnlyByCurrentUser(
+        modelType,
+        props,
+        DatabaseRequestType.Create,
+      )
+    ) {
+      return;
+    }
+
+    // As checkCreateOwnership words it: a grant no person holds owns nothing.
+    if (!props.userId) {
+      throw new NotAuthorizedException(
+        `A user session is required to create ${model.singularName}.`,
+      );
+    }
+
+    // The projects the row names, under either of its names, each once.
+    const namedProjectIds: Array<string> = data
+      ? CreatePermission.getNamedProjectIds(model, data, tenantColumn)
+      : [];
+
+    if (namedProjectIds.length > 1) {
+      throw new BadDataException(
+        `A ${model.singularName} belongs to one project, and this one names ${namedProjectIds.length}.`,
+      );
+    }
+
+    const namedProjectId: string | null = namedProjectIds[0] || null;
+
+    if (props.tenantId) {
+      if (
+        namedProjectId &&
+        namedProjectId !== CreatePermission.normalizeProjectId(props.tenantId)
+      ) {
+        throw new BadDataException(
+          `A ${model.singularName} is added to the project this request is made in, and the project it names is another one.`,
+        );
+      }
+
+      // The caller's permissions for the project the request is made in.
+      if (!CallerPermission.isProjectMember(props)) {
+        throw new NotAuthorizedException(
+          CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
+        );
+      }
+
+      return;
+    }
+
+    /*
+     * A request that names no project: the row must name one, and the
+     * request must carry the caller's permissions for it - which only a
+     * request across the caller's own projects does (getUserMiddleware reads
+     * them for every project they are a member of). Any other such request
+     * carries nobody's permissions for any project, so it is asked for the
+     * project rather than told that its caller is a stranger to it.
+     */
+    if (!namedProjectId || !props.userTenantAccessPermission) {
+      throw new BadDataException(CreatePermission.PROJECT_REQUIRED_MESSAGE);
+    }
+
+    if (!CallerPermission.isProjectMember(props, new ObjectID(namedProjectId))) {
+      throw new NotAuthorizedException(
+        CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
+      );
+    }
+  }
+
+  // An id as it is compared: trimmed, and in one case (Postgres reads uuids so).
+  private static normalizeProjectId(id: ObjectID | string): string {
+    return id.toString().trim().toLowerCase();
+  }
+
+  /*
+   * The projects a create's row names, each once, as normalizeProjectId
+   * writes it: under its tenant column and under the relation that joins on
+   * it (a notification method's `projectId` and `project`), as the caller
+   * wrote them. Empty for a row that names none.
+   */
+  private static getNamedProjectIds(
+    model: BaseModel,
+    data: BaseModel,
+    tenantColumn: string,
+  ): Array<string> {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const keys: Array<string> = [tenantColumn];
+
+    for (const columnName of model.getTableColumns().columns) {
+      const metadata: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(columnName);
+
+      if (
+        metadata &&
+        metadata.type === TableColumnType.Entity &&
+        metadata.manyToOneRelationColumn === tenantColumn
+      ) {
+        keys.push(columnName);
+      }
+    }
+
+    const ids: Set<string> = new Set<string>();
+
+    for (const key of keys) {
+      const id: ObjectID | null = RelationIdUtil.read(record, [key]);
+      const normalized: string = id
+        ? CreatePermission.normalizeProjectId(id)
+        : "";
+
+      if (normalized) {
+        ids.add(normalized);
+      }
+    }
+
+    return Array.from(ids);
   }
 
   /**

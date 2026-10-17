@@ -238,6 +238,16 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * Only for a member of the row's project: anybody else's row is answered
+     * as one that does not exist, before the project is asked whether it can
+     * send (ChannelVerification.assertOwnerIsProjectMember).
+     */
+    await ChannelVerification.assertOwnerIsProjectMember({
+      item: item,
+      itemId: itemId,
+    });
+
     if (item.isVerified) {
       throw new BadDataException("WhatsApp number already verified");
     }
