@@ -1,4 +1,17 @@
 import Column from "./Types/Column";
+import FieldType from "../Types/FieldType";
+import {
+  TABLE_BODY_CELL_CLASS_NAME,
+  TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
+  TABLE_CELL_TEXT_CLASS_NAME,
+  TABLE_CELL_MAX_WIDTH_CLASS_NAME,
+  TABLE_CELL_TRUNCATE_CLASS_NAMES,
+  TABLE_PRIMARY_CELL_TEXT_CLASS_NAME,
+  TABLE_ROW_RULE_CLASS_NAME,
+  TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
+  getTableCellPaddingClassName,
+  hasMaxWidthClassName,
+} from "./TableLayout";
 import GenericObject from "../../../Types/GenericObject";
 
 /*
@@ -12,12 +25,29 @@ export const DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME: string = "max-w-md";
 export interface TableCellClassNameOptions<T extends GenericObject> {
   column: Column<T>;
   /*
-   * Compared against the RENDERED column count, not the declared one: with
-   * any column filtered out (hideOnMobile, permissions, the viewer's own
-   * layout) the two differ, and the extra right padding would land on the
-   * wrong cell - or on none.
+   * Compared against the RENDERED cells, not the declared columns: with any
+   * column filtered out (hideOnMobile, permissions, the viewer's own layout)
+   * the two differ, and the row's end padding would land on the wrong cell -
+   * or on none.
    */
   isLastRenderedColumn: boolean;
+  /*
+   * The row's first cell: no drag grip and no select box before it. It
+   * starts where the card's own text does. Absent means a grip or a box
+   * comes first.
+   */
+  isFirstRenderedCell?: boolean | undefined;
+  /*
+   * The last row draws no rule under itself: the footer's own rule is right
+   * there.
+   */
+  isLastRow?: boolean | undefined;
+  /*
+   * The row's first column (not counting a grip or a select box): the
+   * record's name, in almost every list. Drawn a step heavier, in the
+   * reading colour.
+   */
+  isPrimaryColumn?: boolean | undefined;
 }
 
 /**
@@ -27,12 +57,11 @@ export interface TableCellClassNameOptions<T extends GenericObject> {
  * count, badge and actions cell in the product - it is what keeps
  * "12 Mar 2026, 4:05 pm" from folding onto two lines, in roughly two hundred
  * column declarations that have no layout coverage of their own. Columns that
- * hold prose opt out with `wrapContent`; see Types/Column.ts for why a
- * max-width alone does not work and in fact makes the overlap worse
- * (OneUptime issue #3585).
+ * hold prose opt out with `wrapContent`; see Types/Column.ts.
  *
- * For a column that declares no wrapping this returns the exact string the
- * two cell renderers hard-coded before it existed, character for character.
+ * The rest is the row's look (TableLayout): the reading size on a 24px
+ * line, the padding that puts 24px between two columns and at the row's two
+ * ends, and the hairline under every row but the last.
  */
 export function getTableCellClassName<T extends GenericObject>(
   options: TableCellClassNameOptions<T>,
@@ -41,37 +70,71 @@ export function getTableCellClassName<T extends GenericObject>(
     ? "whitespace-normal break-words"
     : "whitespace-nowrap";
 
-  const paddingRightClassName: string = options.isLastRenderedColumn
-    ? "pr-6"
-    : "pr-3";
+  const classNames: Array<string> = [
+    whitespaceClassName,
+    getTableCellPaddingClassName({
+      isFirst: Boolean(options.isFirstRenderedCell),
+      isLast: options.isLastRenderedColumn,
+    }),
+    TABLE_BODY_CELL_CLASS_NAME,
+    options.isPrimaryColumn &&
+    options.column.type !== FieldType.Actions
+      ? TABLE_PRIMARY_CELL_TEXT_CLASS_NAME
+      : TABLE_CELL_TEXT_CLASS_NAME,
+  ];
 
-  return `${whitespaceClassName} py-4 pl-4 ${paddingRightClassName} text-sm font-medium text-gray-500 sm:pl-6 align-top`;
+  if (options.column.type === FieldType.Actions) {
+    classNames.push("text-right");
+  }
+
+  if (!options.isLastRow) {
+    classNames.push(TABLE_ROW_RULE_CLASS_NAME);
+  }
+
+  return classNames.join(" ");
 }
 
 /**
  * The classes for the `<div>` that wraps a cell's content.
  *
- * Empty for a column that asks for nothing, which is the overwhelming
- * majority - deliberately, so neither the DOM nor a single class shifts for a
- * column that declares neither option.
+ * A wrapping column gets its width cap HERE, on the `<td>`'s direct child,
+ * never on the `<td>` itself: CSS leaves the effect of `max-width` on a
+ * table-cell box undefined and browsers ignore it, while a max-width on a
+ * block child DOES cap the column's contribution under `table-layout:
+ * auto` - which is what Table.tsx renders.
  *
- * A wrapping column always gets its width cap HERE, on the `<td>`'s direct
- * child, never on the `<td>` itself: CSS leaves the effect of `max-width` on
- * a table-cell box undefined and browsers ignore it, while a max-width on a
- * block child DOES cap the column's max-content contribution under
- * `table-layout: auto` - which is what Table.tsx renders, its `<table>`
- * carrying no table-layout utility.
+ * Every other column but Actions is capped too, at TABLE_CELL_MAX_WIDTH, and
+ * ALWAYS together with a clip and an ellipsis (TableLayout): a long name or
+ * title is cut short on its one line, and shown in full under the pointer
+ * (TableRow), rather than widening the table past the card. A cap on a
+ * line that does not wrap without the clip is what painted a sentence over
+ * its neighbours in #3585, so the two are only ever written together, here.
+ * A column that names its own cap in contentClassName keeps it, clipped the
+ * same way.
  */
 export function getTableCellContentClassName<T extends GenericObject>(
   column: Column<T>,
 ): string {
   const classNames: Array<string> = [];
 
+  if (column.type === FieldType.Actions) {
+    return column.contentClassName || "";
+  }
+
   if (column.wrapContent) {
     classNames.push(
       column.wrapMaxWidthClassName || DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME,
+      TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
     );
+  } else {
+    if (!hasMaxWidthClassName(column.contentClassName)) {
+      classNames.push(TABLE_CELL_MAX_WIDTH_CLASS_NAME);
+    }
+
+    classNames.push(TABLE_CELL_TRUNCATE_CLASS_NAMES);
   }
+
+  classNames.push(TABLE_CELL_CONTENT_ALIGN_CLASS_NAME);
 
   if (column.contentClassName) {
     classNames.push(column.contentClassName);

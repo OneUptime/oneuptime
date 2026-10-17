@@ -11,6 +11,23 @@ import {
   getTableCellClassName,
   getTableCellContentClassName,
 } from "./CellClassName";
+import {
+  TABLE_ACTIONS_CONTENT_CLASS_NAME,
+  TABLE_CLICKABLE_ROW_CLASS_NAME,
+  TABLE_DRAG_HANDLE_CELL_CLASS_NAME,
+  TABLE_MOBILE_FIELD_NAME_CLASS_NAME,
+  TABLE_MOBILE_FIELD_VALUE_CLASS_NAME,
+  TABLE_MOBILE_ROW_CLASS_NAME,
+  TABLE_ROW_CLASS_NAME,
+  TABLE_ROW_RULE_CLASS_NAME,
+  TABLE_SELECT_CELL_CLASS_NAME,
+  TABLE_SELECTED_ROW_CLASS_NAME,
+  TABLE_STICKY_END_BODY_CELL_CLASS_NAME,
+  TABLE_STUCK_END_CELL_CLASS_NAME,
+  getTableCellPaddingClassName,
+} from "./TableLayout";
+import TableEmptyValue, { isDashPlaceholder } from "./TableEmptyValue";
+import { showFullValueWhenCutShort } from "./FullValueTitle";
 import Columns from "./Types/Columns";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -77,6 +94,18 @@ export interface ComponentProps<T extends GenericObject> {
   itemNotSelectableReason?: string | undefined;
   /** What this row is ("Monitor: Checkout API"), for its ⋯ menu's name. */
   itemLabel?: string | undefined;
+
+  /*
+   * The last row of the page draws no rule under itself: the footer's own
+   * rule is right under it.
+   */
+  isLastRow?: boolean | undefined;
+  /*
+   * The rows scroll sideways (the columns are wider than the card): the
+   * Actions cell, which sticks at the right edge, is ruled off from the
+   * cells passing under it.
+   */
+  isOverflowing?: boolean | undefined;
 
   // responsive
   isMobile?: boolean;
@@ -148,6 +177,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   const isItemSelectable: boolean = props.isItemSelectable !== false;
 
   /*
+   * A row that opens its record on a click (its page hands it an onClick)
+   * takes the pointer's hand, as a link does.
+   */
+  const isClickable: boolean = Boolean(props.rowProps?.onClick);
+
+  /*
    * The bulk-select box, identical on the mobile card and the desktop row. It is
    * one function rather than two copies because the two used to drift: the
    * mobile copy still has no `disabled` handling of its own, and a locked row
@@ -197,6 +232,99 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     );
   };
 
+  /*
+   * A cell's value, read off the row the way its column says. Undefined for
+   * a column with nothing to draw (no key); an empty value is the quiet dash
+   * (TableEmptyValue), or the column's own words when it has some.
+   */
+  const getColumnContent: (column: Column<T>) => React.ReactNode = (
+    column: Column<T>,
+  ): React.ReactNode => {
+    if (!column.key) {
+      return null;
+    }
+
+    if (column.getElement) {
+      const element: ReactElement = column.getElement(props.item);
+
+      return isDashPlaceholder(element) ? <TableEmptyValue /> : element;
+    }
+
+    const value: unknown = props.item[column.key];
+
+    /*
+     * A missing value: the column's own words in the grey an absent value
+     * is drawn in, or a dash.
+     */
+    const getNoValue: () => ReactElement = (): ReactElement => {
+      if (column.noValueMessage) {
+        return (
+          <span className="text-gray-500">
+            {translateString(column.noValueMessage) ?? column.noValueMessage}
+          </span>
+        );
+      }
+
+      return <TableEmptyValue />;
+    };
+
+    switch (column.type) {
+      case FieldType.Date:
+      case FieldType.DateTime:
+        return value
+          ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              value as string,
+              column.type === FieldType.Date,
+            )
+          : getNoValue();
+      case FieldType.USDCents:
+        return value
+          ? ((value as number) || 0) / 100 + " USD"
+          : column.noValueMessage || "0 USD";
+      case FieldType.Percent:
+        return value ? value + "%" : column.noValueMessage || "0%";
+      case FieldType.Color:
+        return value ? <ColorInput value={value as Color} /> : getNoValue();
+      case FieldType.LongText:
+        return value ? (
+          <LongTextViewer text={value as string} />
+        ) : (
+          getNoValue()
+        );
+      case FieldType.Boolean:
+        /*
+         * Yes is a tick; No is the quiet dash - a column of crosses down
+         * every row that is off read louder than the few that are on. A
+         * screen reader hears the word either way.
+         */
+        return value ? (
+          <span
+            className="inline-flex h-6 items-center text-gray-700"
+            data-testid="table-boolean-yes"
+          >
+            <Icon
+              icon={IconProp.Check}
+              className="h-5 w-5"
+              thick={ThickProp.Thick}
+            />
+            <span className="sr-only">
+              {translateString("Yes") ?? "Yes"}
+            </span>
+          </span>
+        ) : (
+          <TableEmptyValue screenReaderText="No" />
+        );
+      default: {
+        const text: string | undefined = getNestedValue(
+          props.item,
+          String(column.key),
+        )?.toString();
+
+        return text || getNoValue();
+      }
+    }
+  };
+
   const getRow: GetRowFunction = (
     provided?: DraggableProvided,
     snapshot?: DraggableStateSnapshot,
@@ -217,28 +345,32 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             {...props.rowProps}
             {...provided?.draggableProps}
             ref={provided?.innerRef}
-            className={`p-4 bg-white border-b border-gray-200 ${draggingClassName} ${props.rowProps?.className || ""}`}
+            className={[
+              TABLE_MOBILE_ROW_CLASS_NAME,
+              props.isItemSelected ? "bg-indigo-50" : "",
+              isClickable
+                ? `${TABLE_CLICKABLE_ROW_CLASS_NAME} active:bg-gray-100`
+                : "",
+              draggingClassName,
+              props.rowProps?.className || "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           >
             {/*
              * The card's controls - its grip and its select box - share one
              * line above its fields rather than stacking a line each.
              */}
-            {props.enableDragAndDrop ? (
+            {props.enableDragAndDrop || props.isBulkActionsEnabled ? (
               <div className="mb-3 -ml-1 flex items-center gap-2">
-                {getDragHandle(provided)}
+                {props.enableDragAndDrop ? getDragHandle(provided) : <></>}
                 {props.isBulkActionsEnabled ? getBulkSelectCheckbox() : <></>}
               </div>
             ) : (
               <></>
             )}
 
-            {props.isBulkActionsEnabled && !props.enableDragAndDrop ? (
-              <div className="mb-3">{getBulkSelectCheckbox()}</div>
-            ) : (
-              <></>
-            )}
-
-            <div className="space-y-3">
+            <dl className="space-y-2.5">
               {renderedColumns.map((column: Column<T>, i: number) => {
                 if (column.type === FieldType.Actions) {
                   const customAction: ReactElement | null = column.getElement
@@ -246,7 +378,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     : null;
 
                   return (
-                    <div key={i} className="flex flex-wrap items-center gap-2">
+                    <div
+                      key={i}
+                      className="flex flex-wrap items-center gap-2 pt-1"
+                    >
                       {customAction}
                       <RowActions<T>
                         item={props.item}
@@ -259,82 +394,19 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                   );
                 }
 
-                const value: any =
-                  column.key && !column.getElement ? (
-                    column.type === FieldType.Date ? (
-                      props.item[column.key] ? (
-                        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                          props.item[column.key] as string,
-                          true,
-                        )
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.DateTime ? (
-                      props.item[column.key] ? (
-                        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                          props.item[column.key] as string,
-                          false,
-                        )
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.USDCents ? (
-                      props.item[column.key] ? (
-                        ((props.item[column.key] as number) || 0) / 100 + " USD"
-                      ) : (
-                        column.noValueMessage || "0 USD"
-                      )
-                    ) : column.type === FieldType.Percent ? (
-                      props.item[column.key] ? (
-                        props.item[column.key] + "%"
-                      ) : (
-                        column.noValueMessage || "0%"
-                      )
-                    ) : column.type === FieldType.Color ? (
-                      props.item[column.key] ? (
-                        <ColorInput value={props.item[column.key] as Color} />
-                      ) : (
-                        column.noValueMessage || "0%"
-                      )
-                    ) : column.type === FieldType.LongText ? (
-                      props.item[column.key] ? (
-                        <LongTextViewer
-                          text={props.item[column.key] as string}
-                        />
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.Boolean ? (
-                      props.item[column.key] ? (
-                        <Icon
-                          icon={IconProp.Check}
-                          className={"h-5 w-5 text-gray-500"}
-                          thick={ThickProp.Thick}
-                        />
-                      ) : (
-                        <Icon
-                          icon={IconProp.False}
-                          className={"h-5 w-5 text-gray-500"}
-                          thick={ThickProp.Thick}
-                        />
-                      )
-                    ) : (
-                      getNestedValue(
-                        props.item,
-                        String(column.key),
-                      )?.toString() ||
-                      column.noValueMessage ||
-                      ""
-                    )
-                  ) : column.key && column.getElement ? (
-                    column.getElement(props.item)
-                  ) : null;
+                const value: React.ReactNode =
+                  column.key && column.type === FieldType.Boolean
+                    ? props.item[column.key]
+                      ? getColumnContent(column)
+                      : null
+                    : getColumnContent(column);
 
-                // Skip empty values for mobile view
+                // A card leaves out the fields that have nothing to say.
                 if (
                   !value ||
-                  (typeof value === "string" && value.trim() === "")
+                  (typeof value === "string" && value.trim() === "") ||
+                  (React.isValidElement(value) &&
+                    value.type === TableEmptyValue)
                 ) {
                   return null;
                 }
@@ -342,21 +414,29 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 return (
                   <div
                     key={i}
-                    className="flex flex-col space-y-1"
+                    className="flex flex-col"
                     onClick={() => {
                       if (column.tooltipText) {
                         setTooltipModalText(column.tooltipText(props.item));
                       }
                     }}
                   >
-                    <div className="text-sm font-medium text-gray-500">
+                    <dt className={TABLE_MOBILE_FIELD_NAME_CLASS_NAME}>
                       {translateString(column.title) ?? column.title}
-                    </div>
-                    <div className="text-sm text-gray-900">{value}</div>
+                    </dt>
+                    <dd
+                      className={
+                        i === 0
+                          ? `${TABLE_MOBILE_FIELD_VALUE_CLASS_NAME} font-medium`
+                          : TABLE_MOBILE_FIELD_VALUE_CLASS_NAME
+                      }
+                    >
+                      {value}
+                    </dd>
                   </div>
                 );
               })}
-            </div>
+            </dl>
           </div>
           {tooltipModalText && (
             <ConfirmModal
@@ -406,6 +486,14 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
         }
       : provided?.draggableProps.style;
 
+    // The cells the row draws before its columns: a grip, then a select box.
+    const leadingCellCount: number =
+      (props.enableDragAndDrop ? 1 : 0) + (props.isBulkActionsEnabled ? 1 : 0);
+
+    const ruleClassName: string = props.isLastRow
+      ? ""
+      : ` ${TABLE_ROW_RULE_CLASS_NAME}`;
+
     // Desktop view: render as table row
     return (
       <>
@@ -414,27 +502,42 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
           {...provided?.draggableProps}
           style={rowStyle}
           ref={provided?.innerRef}
-          className={
-            `${props.rowProps?.className || ""} ${
-              snapshot?.isDragging ? `bg-white ${draggingClassName}` : ""
-            }`.trim() || undefined
-          }
+          data-selected={props.isItemSelected ? "true" : undefined}
+          className={[
+            props.isItemSelected
+              ? TABLE_SELECTED_ROW_CLASS_NAME
+              : TABLE_ROW_CLASS_NAME,
+            isClickable ? TABLE_CLICKABLE_ROW_CLASS_NAME : "",
+            snapshot?.isDragging ? draggingClassName : "",
+            props.rowProps?.className || "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           {props.enableDragAndDrop && (
             <td
-              className="w-10 py-3 pl-4 pr-0 align-top"
+              className={`${TABLE_DRAG_HANDLE_CELL_CLASS_NAME} ${getTableCellPaddingClassName(
+                { isFirst: true, isLast: false },
+              )}${ruleClassName}`}
               style={getLockedCellStyle()}
             >
               {getDragHandle(provided)}
             </td>
           )}
           {props.isBulkActionsEnabled && (
-            <td className="w-10 py-3.5  align-top" style={getLockedCellStyle()}>
-              <div className="ml-5">{getBulkSelectCheckbox()}</div>
+            <td
+              className={`${TABLE_SELECT_CELL_CLASS_NAME} ${getTableCellPaddingClassName(
+                { isFirst: !props.enableDragAndDrop, isLast: false },
+              )}${ruleClassName}`}
+              style={getLockedCellStyle()}
+            >
+              {getBulkSelectCheckbox()}
             </td>
           )}
           {props.columns &&
             renderedColumns.map((column: Column<T>, i: number) => {
+              const isActions: boolean = column.type === FieldType.Actions;
+
               /*
                * Shared with the loading skeleton, so the two can no longer
                * drift, and the one place that decides whether this cell's
@@ -443,116 +546,80 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
               const className: string = getTableCellClassName<T>({
                 column: column,
                 isLastRenderedColumn: i === renderedColumns.length - 1,
+                isFirstRenderedCell: leadingCellCount === 0 && i === 0,
+                isLastRow: props.isLastRow,
+                isPrimaryColumn: i === 0,
               });
 
-              let columnContent: React.ReactNode = null;
-
-              if (column.key && !column.getElement) {
-                columnContent =
-                  column.type === FieldType.Date ? (
-                    props.item[column.key] ? (
-                      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        props.item[column.key] as string,
-                        true,
-                      )
-                    ) : (
-                      column.noValueMessage || ""
-                    )
-                  ) : column.type === FieldType.DateTime ? (
-                    props.item[column.key] ? (
-                      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        props.item[column.key] as string,
-                        false,
-                      )
-                    ) : (
-                      column.noValueMessage || ""
-                    )
-                  ) : column.type === FieldType.USDCents ? (
-                    props.item[column.key] ? (
-                      ((props.item[column.key] as number) || 0) / 100 + " USD"
-                    ) : (
-                      column.noValueMessage || "0 USD"
-                    )
-                  ) : column.type === FieldType.Percent ? (
-                    props.item[column.key] ? (
-                      props.item[column.key] + "%"
-                    ) : (
-                      column.noValueMessage || "0%"
-                    )
-                  ) : column.type === FieldType.Color ? (
-                    props.item[column.key] ? (
-                      <ColorInput value={props.item[column.key] as Color} />
-                    ) : (
-                      column.noValueMessage || "0%"
-                    )
-                  ) : column.type === FieldType.LongText ? (
-                    props.item[column.key] ? (
-                      <LongTextViewer text={props.item[column.key] as string} />
-                    ) : (
-                      column.noValueMessage || ""
-                    )
-                  ) : column.type === FieldType.Boolean ? (
-                    props.item[column.key] ? (
-                      <Icon
-                        icon={IconProp.Check}
-                        className={"h-5 w-5 text-gray-500"}
-                        thick={ThickProp.Thick}
-                      />
-                    ) : (
-                      <Icon
-                        icon={IconProp.False}
-                        className={"h-5 w-5 text-gray-500"}
-                        thick={ThickProp.Thick}
-                      />
-                    )
-                  ) : (
-                    getNestedValue(
-                      props.item,
-                      String(column.key),
-                    )?.toString() ||
-                    column.noValueMessage ||
-                    ""
-                  );
-              } else if (column.key && column.getElement) {
-                columnContent = column.getElement(props.item);
-              }
+              /*
+               * The Actions cell sticks at the table's right edge, and when
+               * the rows scroll sideways is ruled off from the cells passing
+               * under it.
+               */
+              const stickyClassName: string = isActions
+                ? ` ${TABLE_STICKY_END_BODY_CELL_CLASS_NAME}${
+                    props.isOverflowing
+                      ? ` ${TABLE_STUCK_END_CELL_CLASS_NAME}`
+                      : ""
+                  }`
+                : "";
 
               /*
-               * The column's own classes, plus the width cap a wrapping
-               * column gets - which has to sit on this div rather than on the
-               * <td>, because max-width is ignored on a table-cell box.
+               * An Actions column with a key and an element of its own draws
+               * that element before the row's buttons.
+               */
+              const columnContent: React.ReactNode = isActions
+                ? column.key && column.getElement
+                  ? column.getElement(props.item)
+                  : null
+                : getColumnContent(column);
+
+              /*
+               * The column's own classes, plus the width cap - which has to
+               * sit on this div rather than on the <td>, because max-width
+               * is ignored on a table-cell box.
                */
               const contentWrapperClassName: string =
                 getTableCellContentClassName<T>(column);
 
-              const actionsContainerClassName: string = contentWrapperClassName
-                ? `flex items-center justify-end gap-2 ${contentWrapperClassName}`
-                : "flex items-center justify-end gap-2";
-
               return (
                 <td
                   key={i}
-                  className={className}
-                  style={{
-                    textAlign:
-                      column.type === FieldType.Actions ? "right" : "left",
-                    ...(getLockedCellStyle() || {}),
-                  }}
+                  className={`${className}${stickyClassName}`}
+                  style={getLockedCellStyle()}
                   onClick={() => {
                     if (column.tooltipText) {
                       setTooltipModalText(column.tooltipText(props.item));
                     }
                   }}
+                  data-row-click-ignore={
+                    column.tooltipText ? "true" : undefined
+                  }
                 >
-                  {column.type !== FieldType.Actions &&
+                  {!isActions &&
                     columnContent !== null &&
                     columnContent !== undefined && (
-                      <div className={contentWrapperClassName}>
+                      <div
+                        className={contentWrapperClassName}
+                        onMouseEnter={
+                          column.wrapContent
+                            ? undefined
+                            : showFullValueWhenCutShort
+                        }
+                      >
                         {columnContent}
                       </div>
                     )}
-                  {column.type === FieldType.Actions && (
-                    <div className={actionsContainerClassName}>
+                  {isActions && (
+                    <div
+                      className={[
+                        "flex items-center justify-end gap-2",
+                        TABLE_ACTIONS_CONTENT_CLASS_NAME,
+                        contentWrapperClassName,
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
                       {columnContent}
                       <RowActions<T>
                         item={props.item}

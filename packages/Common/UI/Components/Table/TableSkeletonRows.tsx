@@ -1,6 +1,13 @@
 import Skeleton from "../Skeleton/Skeleton";
+import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
 import { getTableCellClassName } from "./CellClassName";
+import {
+  TABLE_DRAG_HANDLE_CELL_CLASS_NAME,
+  TABLE_ROW_RULE_CLASS_NAME,
+  TABLE_SELECT_CELL_CLASS_NAME,
+  getTableCellPaddingClassName,
+} from "./TableLayout";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -55,17 +62,14 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
         data-testid="table-skeleton-loader"
         role="status"
         aria-live="polite"
-        className="divide-y divide-gray-200 bg-white"
+        className="divide-y divide-gray-100 bg-white"
       >
         <span className="sr-only">
           {translator.translateText("Loading...")}
         </span>
         {rowIndexes.map((rowIndex: number) => {
           return (
-            <div
-              key={rowIndex}
-              className="p-4 bg-white border-b border-gray-200"
-            >
+            <div key={rowIndex} className="bg-white px-4 py-4">
               <div className="space-y-3">
                 {visibleColumns.map(
                   (_column: Column<T>, columnIndex: number) => {
@@ -91,24 +95,42 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
     );
   }
 
+  // The cells a row draws before its columns: a grip, then a select box.
+  const leadingCellCount: number =
+    (props.enableDragAndDrop ? 1 : 0) + (props.isBulkActionsEnabled ? 1 : 0);
+
   return (
     <tbody
       data-testid="table-skeleton-loader"
       role="status"
       aria-live="polite"
-      className="divide-y divide-gray-200 bg-white"
     >
       {rowIndexes.map((rowIndex: number) => {
+        const isLastRow: boolean = rowIndex === rowIndexes.length - 1;
+        const ruleClassName: string = isLastRow
+          ? ""
+          : ` ${TABLE_ROW_RULE_CLASS_NAME}`;
+
         return (
-          <tr key={rowIndex}>
+          <tr key={rowIndex} className="bg-white">
             {props.enableDragAndDrop && (
-              <td className="ml-5 py-4 w-10 align-top">
-                <Skeleton className="ml-6 h-5 w-5" />
+              <td
+                className={`${TABLE_DRAG_HANDLE_CELL_CLASS_NAME} ${getTableCellPaddingClassName(
+                  { isFirst: true, isLast: false },
+                )}${ruleClassName}`}
+              >
+                <div className="flex h-7 w-6 items-center justify-center">
+                  <Skeleton className="h-5 w-4" />
+                </div>
               </td>
             )}
             {props.isBulkActionsEnabled && (
-              <td className="w-10 py-3.5  align-top">
-                <div className="ml-5">
+              <td
+                className={`${TABLE_SELECT_CELL_CLASS_NAME} ${getTableCellPaddingClassName(
+                  { isFirst: !props.enableDragAndDrop, isLast: false },
+                )}${ruleClassName}`}
+              >
+                <div className="flex h-6 items-center">
                   <Skeleton className="h-4 w-4" />
                 </div>
               </td>
@@ -122,6 +144,10 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
               const className: string = getTableCellClassName<T>({
                 column: column,
                 isLastRenderedColumn: columnIndex === visibleColumns.length - 1,
+                isFirstRenderedCell:
+                  leadingCellCount === 0 && columnIndex === 0,
+                isLastRow: isLastRow,
+                isPrimaryColumn: columnIndex === 0,
               });
 
               return (
@@ -131,10 +157,25 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
                       {translator.translateText("Loading...")}
                     </span>
                   )}
-                  <Skeleton
-                    className="h-4"
-                    widthVariantIndex={rowIndex + columnIndex}
-                  />
+                  {/*
+                   * On the row's 24px line, as the value it stands in for
+                   * will be, so the rows keep their height when they land.
+                   * The Actions column holds a button's shape, so the
+                   * column keeps the width its View and ⋯ will take.
+                   */}
+                  {column.type === FieldType.Actions ? (
+                    <div className="flex h-6 items-center justify-end gap-2">
+                      <Skeleton className="h-6 w-24 rounded-md" />
+                      <Skeleton className="h-4 w-5" />
+                    </div>
+                  ) : (
+                    <div className="flex h-6 items-center">
+                      <Skeleton
+                        className="h-4"
+                        widthVariantIndex={rowIndex + columnIndex}
+                      />
+                    </div>
+                  )}
                 </td>
               );
             })}

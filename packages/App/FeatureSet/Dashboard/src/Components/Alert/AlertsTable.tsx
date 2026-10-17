@@ -1071,6 +1071,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 <LiveDuration
                   startDate={item.createdAt}
                   endDate={isResolved ? resolvedAt : undefined}
+                  isCompact={true}
                 />
               );
             },

@@ -513,6 +513,15 @@ html.dark :is(.shadow-lg, .shadow-xl, .shadow-2xl) {
   --tw-shadow: var(--ou-shadow-lg);
 }
 
+/*
+ * The soft shadow a table's Actions column casts over the cells that scroll
+ * under it (Common/UI/Components/Table/TableLayout.ts): the light one is
+ * lost against a dark row.
+ */
+html.dark [class~="shadow-[-8px_0_12px_-10px_rgba(15,23,42,0.18)]"] {
+  --tw-shadow: -8px 0 12px -10px rgb(0 0 0 / 70%);
+}
+
 /* Light gradients become layered dark surfaces. */
 html.dark :is(
     .from-white,

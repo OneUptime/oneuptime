@@ -42,8 +42,17 @@ export interface CardButtonSchema {
  * the description would be squeezed into a column a word or two wide, so the
  * title and the actions share the first line and the description runs under
  * both, across the card's whole width.
+ *
+ * "toolbar" is the stacked header for a card as wide as the page whose
+ * actions are a row of controls - a table's search, its saved views, its
+ * main button and ⋯. The title and the controls share the first line, and
+ * the description runs under both; but where the stacked header keeps half
+ * the line for the title, this one keeps only what a title needs (12rem), so
+ * a table's controls stay beside its title until they really do not fit,
+ * rather than dropping to a line of their own the moment a filter brings
+ * the Saved Views button in.
  */
-export type CardHeaderLayout = "default" | "stacked";
+export type CardHeaderLayout = "default" | "stacked" | "toolbar";
 
 /*
  * Every layout, for the tests that hold each of them to the rule above: a
@@ -52,6 +61,7 @@ export type CardHeaderLayout = "default" | "stacked";
 const CARD_HEADER_LAYOUT_SET: Record<CardHeaderLayout, true> = {
   default: true,
   stacked: true,
+  toolbar: true,
 };
 
 export const CARD_HEADER_LAYOUTS: ReadonlyArray<CardHeaderLayout> = Object.keys(
@@ -119,6 +129,13 @@ export const CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME: string =
   "min-w-0 md:grow md:basis-1/2";
 
 /*
+ * In the toolbar header from md up the title grows into what the controls
+ * leave, and keeps the line with them as long as they leave it 12rem.
+ */
+export const CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME: string =
+  "min-w-0 md:grow md:basis-48";
+
+/*
  * Each action's own box. Button carries a left margin meant for a dialog's
  * footer (md:ml-3 on a normal button, ml-1 on an outline one), which made
  * the gaps between a card's buttons uneven - 18px between two normal
@@ -180,7 +197,8 @@ const Card: FunctionComponent<ComponentProps> = (
     props.buttons && props.buttons.length > 0,
   );
   const hasActions: boolean = Boolean(props.rightElement) || hasButtons;
-  const isStacked: boolean = props.headerLayout === "stacked";
+  const isToolbar: boolean = props.headerLayout === "toolbar";
+  const isStacked: boolean = props.headerLayout === "stacked" || isToolbar;
   const translatedTitle: string | ReactElement | undefined = translateValue(
     props.title,
   );
@@ -266,7 +284,10 @@ const Card: FunctionComponent<ComponentProps> = (
    * the card's whole width.
    */
   const stackedHeader: ReactElement = (
-    <div data-testid="card-header" data-header-layout="stacked">
+    <div
+      data-testid="card-header"
+      data-header-layout={isToolbar ? "toolbar" : "stacked"}
+    >
       {(titleElement || actionsElement) && (
         <div
           data-testid="card-header-title-row"
@@ -277,7 +298,9 @@ const Card: FunctionComponent<ComponentProps> = (
               data-testid="card-header-title-block"
               className={
                 actionsElement
-                  ? CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME
+                  ? isToolbar
+                    ? CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME
+                    : CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME
                   : "w-full min-w-0"
               }
             >

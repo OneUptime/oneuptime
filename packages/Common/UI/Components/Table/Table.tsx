@@ -28,6 +28,8 @@ import TableBody from "./TableBody";
 import { useIsCardSection } from "../Card/CardSurface";
 import TableHeader from "./TableHeader";
 import TableSkeletonRows from "./TableSkeletonRows";
+import { TABLE_CLASS_NAME } from "./TableLayout";
+import useTableScrollState, { TableScrollState } from "./useTableScrollState";
 import Columns from "./Types/Columns";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
@@ -238,6 +240,9 @@ const Table: TableFunction = <T extends GenericObject>(
    */
   const tableElementRef: React.RefObject<HTMLTableElement> =
     useRef<HTMLTableElement>(null);
+  // The box the rows scroll sideways in, when they are wider than it.
+  const scrollBoxRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
   const [dragColumnWidths, setDragColumnWidths] =
     useState<Array<number> | null>(null);
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
@@ -273,6 +278,17 @@ const Table: TableFunction = <T extends GenericObject>(
       }
     }
   }, [props.bulkSelectedItems]);
+
+  /*
+   * Whether the rows are wider than the card (they scroll sideways, and the
+   * Actions column sticks at the right edge), and whether the header row
+   * can stick under the page's top bar (TableLayout).
+   */
+  const scrollState: TableScrollState = useTableScrollState({
+    scrollRef: scrollBoxRef,
+    tableRef: tableElementRef,
+    watch: [isMobile, props.data.length, props.columns.length],
+  });
 
   /*
    * A refetch with rows already on screen (pagination, sort, refresh - the
@@ -316,11 +332,11 @@ const Table: TableFunction = <T extends GenericObject>(
   };
 
   /*
-   * The rule under the header row the table body used to draw. A phone shows
-   * no header row, and the table's own container already draws that line,
-   * so a second one would sit right under it.
+   * The empty state and the load error sit under the header row, whose own
+   * rule closes it; a phone shows no header row, and the table's box draws
+   * the line above them there.
    */
-  const stateBlockClassName: string = `${isMobile ? "" : "border-t border-gray-200 "}md:-mx-6 md:px-6`;
+  const stateBlockClassName: string = "md:-mx-6 md:px-6";
 
   const getEmptyStateElement: GetReactElementFunction = (): ReactElement => {
     if (props.emptyStateProps) {
@@ -467,6 +483,7 @@ const Table: TableFunction = <T extends GenericObject>(
         dragDisabledReason={props.dragDisabledReason}
         dragColumnWidths={dragColumnWidths}
         isBulkActionsEnabled={isBulkActionsEnabled}
+        isOverflowing={scrollState.isOverflowing}
         onItemSelected={(item: T) => {
           // set bulk selected items.
           setBulkSelectedItems([...bulkSelectedItems, item]);
@@ -634,69 +651,80 @@ const Table: TableFunction = <T extends GenericObject>(
           );
         }}
       >
-        <div className="-my-2 overflow-x-auto md:-mx-6">
-          <div className="inline-block min-w-full py-2 align-middle">
-            <div
-              className={
-                props.tableContainerClassName
-                  ? props.tableContainerClassName
-                  : "overflow-hidden border-t border-gray-200"
-              }
-            >
-              {/*
-               * Dims the stale rows (header included) while a refetch is in
-               * flight and blocks clicks on them - a sort or row action
-               * against data about to be replaced is a race. The wrapper
-               * sits OUTSIDE the <table> because a <div> cannot legally wrap
-               * a <tbody> inside one.
-               */}
-              <div
-                data-testid="table-content"
-                className={
-                  isRefetchingWithData
-                    ? "opacity-60 pointer-events-none transition-opacity duration-150"
-                    : "transition-opacity duration-150"
-                }
-              >
-                {isMobile ? (
-                  // Mobile view: render as list
-                  <div className="min-w-full divide-y divide-gray-200">
-                    {isEmptyResult ? <></> : getTablebody()}
-                  </div>
-                ) : (
-                  // Desktop view: render as table
-                  <table
-                    ref={tableElementRef}
-                    className="min-w-full divide-y divide-gray-200"
-                  >
-                    <TableHeader
-                      id={`${props.id}-header`}
-                      columns={props.columns}
-                      onSortChanged={props.onSortChanged}
-                      enableDragAndDrop={props.enableDragAndDrop}
-                      sortBy={props.sortBy}
-                      sortOrder={props.sortOrder}
-                      isBulkActionsEnabled={isBulkActionsEnabled}
-                      onAllItemsDeselected={() => {
-                        setIsAllItemsSelected(false);
-                        props.onBulkClearAllItems?.();
-                      }}
-                      onAllItemsOnThePageSelected={() => {
-                        if (props.onBulkSelectItemsOnCurrentPage) {
-                          props.onBulkSelectItemsOnCurrentPage();
-                        }
-                      }}
-                      isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
-                      isSomeItemsOnThePageSelected={
-                        isSomeItemsOnThePageSelected
-                      }
-                      hasTableItems={selectableRowsOnThePage.length > 0}
-                    />
-                    {isEmptyResult ? <></> : getTablebody()}
-                  </table>
-                )}
+        {/*
+         * The table runs to the card's edges (md:-mx-6). When its columns
+         * are wider than the card it scrolls sideways in this box, its
+         * Actions column stuck at the box's right edge; when they fit there
+         * is no scroll box at all, so the header row can stick to the page
+         * (useTableScrollState).
+         */}
+        <div
+          ref={scrollBoxRef}
+          data-testid="table-scroll"
+          data-overflowing={scrollState.isOverflowing ? "true" : "false"}
+          className={[
+            /*
+             * relative: the box is the containing block of what is
+             * positioned absolutely inside it - a screen reader's words
+             * (sr-only) in a cell scrolled out of sight - so its scroll clips
+             * them; without it they widened the whole page.
+             */
+            "relative md:-mx-6",
+            scrollState.isOverflowing ? "overflow-x-auto" : "",
+            props.tableContainerClassName || "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {/*
+           * Dims the stale rows (header included) while a refetch is in
+           * flight and blocks clicks on them - a sort or row action against
+           * data about to be replaced is a race. The wrapper sits OUTSIDE
+           * the <table> because a <div> cannot legally wrap a <tbody> inside
+           * one.
+           */}
+          <div
+            data-testid="table-content"
+            className={
+              isRefetchingWithData
+                ? "opacity-60 pointer-events-none transition-opacity duration-150"
+                : "transition-opacity duration-150"
+            }
+          >
+            {isMobile ? (
+              // Mobile view: render as list
+              <div className="min-w-full border-t border-gray-200">
+                {isEmptyResult ? <></> : getTablebody()}
               </div>
-            </div>
+            ) : (
+              // Desktop view: render as table
+              <table ref={tableElementRef} className={TABLE_CLASS_NAME}>
+                <TableHeader
+                  id={`${props.id}-header`}
+                  columns={props.columns}
+                  onSortChanged={props.onSortChanged}
+                  enableDragAndDrop={props.enableDragAndDrop}
+                  sortBy={props.sortBy}
+                  sortOrder={props.sortOrder}
+                  isBulkActionsEnabled={isBulkActionsEnabled}
+                  isSticky={scrollState.canStickHeader}
+                  isOverflowing={scrollState.isOverflowing}
+                  onAllItemsDeselected={() => {
+                    setIsAllItemsSelected(false);
+                    props.onBulkClearAllItems?.();
+                  }}
+                  onAllItemsOnThePageSelected={() => {
+                    if (props.onBulkSelectItemsOnCurrentPage) {
+                      props.onBulkSelectItemsOnCurrentPage();
+                    }
+                  }}
+                  isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
+                  isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
+                  hasTableItems={selectableRowsOnThePage.length > 0}
+                />
+                {isEmptyResult ? <></> : getTablebody()}
+              </table>
+            )}
           </div>
         </div>
         {isEmptyResult && getNoItemsElement()}

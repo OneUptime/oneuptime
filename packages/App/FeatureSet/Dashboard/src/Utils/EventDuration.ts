@@ -18,6 +18,22 @@ function formatDurationUnit(count: number, unit: string): string {
   return `${count} ${unit}${count === 1 ? "" : "s"}`;
 }
 
+/*
+ * How many units a table's Duration column says: the two largest ("10 days,
+ * 23 hours"). "10 days, 23 hours, 31 minutes" made the column the widest in
+ * the Incidents list, and the minutes of a ten-day incident say nothing a
+ * reader scanning a list needs. The whole duration is the cell's tooltip.
+ */
+export const TABLE_DURATION_MAX_UNITS: number = 2;
+
+export interface EventDurationTextOptions {
+  /*
+   * At most this many units, the largest first: "10 days, 23 hours" for a
+   * duration of 10 days, 23 hours and 31 minutes. Every unit when absent.
+   */
+  maxUnits?: number | undefined;
+}
+
 /**
  * Format an event duration consistently anywhere it is shown in Dashboard.
  * The caller supplies `endDate` for completed events and the current time for
@@ -29,8 +45,16 @@ function formatDurationUnit(count: number, unit: string): string {
  * left out rather than spelled "0 minutes". Partial minutes never round up.
  * Formatted here rather than with OneUptimeDate's
  * convertMinutesToDaysHoursAndMinutes, whose wording other features pin.
+ *
+ * With maxUnits, only the largest units are said, and a smaller one is
+ * dropped rather than rounded ("1 day, 23 hours" for a day, 23 hours and 59
+ * minutes): a duration is never said to be longer than it was.
  */
-export function getEventDurationText(startDate: Date, endDate: Date): string {
+export function getEventDurationText(
+  startDate: Date,
+  endDate: Date,
+  options?: EventDurationTextOptions | undefined,
+): string {
   const minutes: number = OneUptimeDate.getDifferenceInMinutes(
     endDate,
     startDate,
@@ -57,6 +81,12 @@ export function getEventDurationText(startDate: Date, endDate: Date): string {
 
   if (remainingMinutes > 0) {
     parts.push(formatDurationUnit(remainingMinutes, "minute"));
+  }
+
+  const maxUnits: number | undefined = options?.maxUnits;
+
+  if (maxUnits !== undefined && maxUnits >= 1 && parts.length > maxUnits) {
+    return parts.slice(0, Math.floor(maxUnits)).join(", ");
   }
 
   return parts.join(", ");

@@ -80,6 +80,11 @@ import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
 import Pill from "../Pill/Pill";
 import Table from "../Table/Table";
+import {
+  RowClickEventLike,
+  isNewTabClick,
+  isRowOpeningClick,
+} from "../Table/RowClick";
 import TableEmptyState from "../Table/TableEmptyState";
 import { hasFilterValues } from "../Table/TableEmptyStateBuilders";
 import EmptyStateOptions from "./EmptyStateOptions";
@@ -201,6 +206,12 @@ export enum ShowAs {
  * statement timeout while capping a maxed-out selection at ten round trips.
  */
 export const BULK_SELECT_ALL_PAGE_SIZE: number = 1000;
+
+/*
+ * The frame of a table drawn without a card of its own (no cardProps).
+ */
+export const MODEL_TABLE_FRAME_CLASS_NAME: string =
+  "overflow-clip rounded-xl border border-gray-200 bg-white px-6 pb-6 shadow-sm";
 
 export interface SaveFilterProps {
   tableId: string;
@@ -1782,8 +1793,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const showActionsColumn: boolean = Boolean(
       (props.isDeleteable && getActionGate(ModelAction.Delete).show) ||
         (props.isEditable && getActionGate(ModelAction.Update).show) ||
-        (props.isViewable &&
-          PermissionGate.check(model, ModelAction.Read).isAllowed) ||
+        isViewActionShown ||
         (props.actionButtons && props.actionButtons.length > 0) ||
         props.showViewIdButton,
     );
@@ -3064,6 +3074,123 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     };
   }, [showColumnCustomizationModal, attributeColumnKey]);
 
+  /*
+   * Whether a row can be opened: the table offers View and the reader may
+   * read the record. The same test decides whether View is a row action.
+   */
+  const isViewActionShown: boolean = Boolean(
+    props.isViewable && PermissionGate.check(model, ModelAction.Read).isAllowed,
+  );
+
+  type GetViewTargetFunction = (item: TBaseModel) => Promise<{
+    route: Route | URL;
+    baseModel: TBaseModel;
+  }>;
+
+  /*
+   * Where a row's record is: the page's own route for it (onViewPage), or
+   * the view route with the record's id. One place for View and for a click
+   * on the row, so the two always open the same page.
+   */
+  const getViewTarget: GetViewTargetFunction = async (
+    item: TBaseModel,
+  ): Promise<{ route: Route | URL; baseModel: TBaseModel }> => {
+    let baseModel: TBaseModel = item;
+    if (!(item instanceof BaseModel) && !(item instanceof AnalyticsBaseModel)) {
+      baseModel = props.callbacks.getModelFromJSON(item as JSONObject);
+    }
+
+    if (props.onBeforeView) {
+      await props.onBeforeView(baseModel);
+    }
+
+    if (props.onViewPage) {
+      return { route: await props.onViewPage(baseModel), baseModel };
+    }
+
+    if (!props.viewPageRoute) {
+      throw new BadDataException("props.viewPageRoute not found");
+    }
+
+    const id: string = baseModel.id?.toString() || "";
+
+    return {
+      route: new Route(props.viewPageRoute.toString()).addRoute("/" + id),
+      baseModel,
+    };
+  };
+
+  /*
+   * A row of a table whose rows open their records opens on a click
+   * anywhere on it - not on a link, a button or a box inside it
+   * (Table/RowClick) - as a list in Linear, GitHub or Stripe does. Its View
+   * button stays: it says what the row does, and is the way in from the
+   * keyboard. Cmd, Ctrl or Shift held, or the middle button, opens the
+   * record in a new tab.
+   */
+  const isRowClickable: boolean =
+    isViewActionShown && Boolean(props.onViewPage || props.viewPageRoute);
+
+  type OnRowClickFunction = (
+    item: TBaseModel,
+    event: React.MouseEvent<HTMLElement>,
+  ) => void;
+
+  const onRowClick: OnRowClickFunction = (
+    item: TBaseModel,
+    event: React.MouseEvent<HTMLElement>,
+  ): void => {
+    const clickEvent: RowClickEventLike = event;
+
+    if (!isRowOpeningClick(clickEvent)) {
+      return;
+    }
+
+    const openInNewTab: boolean = isNewTabClick(clickEvent);
+
+    getViewTarget(item)
+      .then(
+        ({
+          route,
+          baseModel,
+        }: {
+          route: Route | URL;
+          baseModel: TBaseModel;
+        }): void => {
+          if (!openInNewTab) {
+            props.onViewComplete?.(baseModel);
+          }
+
+          Navigation.navigate(route, { openInNewTab: openInNewTab });
+        },
+      )
+      .catch((err: Error) => {
+        setErrorModalText(API.getFriendlyMessage(err));
+      });
+  };
+
+  type GetRowPropsFunction = (
+    item: TBaseModel,
+  ) => React.HTMLAttributes<HTMLElement>;
+
+  const getRowProps: GetRowPropsFunction | undefined = isRowClickable
+    ? (item: TBaseModel): React.HTMLAttributes<HTMLElement> => {
+        const rowProps: React.HTMLAttributes<HTMLElement> & {
+          "data-row-opens-record": string;
+        } = {
+          "data-row-opens-record": "true",
+          onClick: (event: React.MouseEvent<HTMLElement>): void => {
+            onRowClick(item, event);
+          },
+          onAuxClick: (event: React.MouseEvent<HTMLElement>): void => {
+            onRowClick(item, event);
+          },
+        };
+
+        return rowProps;
+      }
+    : undefined;
+
   const setActionSchema: VoidFunction = () => {
     const actionsSchema: Array<ActionButtonSchema<TBaseModel>> = [];
 
@@ -3107,10 +3234,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
     }
 
-    if (
-      props.isViewable &&
-      PermissionGate.check(model, ModelAction.Read).isAllowed
-    ) {
+    if (isViewActionShown) {
       actionsSchema.push({
         title: props.viewButtonText
           ? tx(props.viewButtonText)
@@ -3137,44 +3261,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onError: ErrorFunction,
         ) => {
           try {
-            let baseModel: TBaseModel = item;
-            if (
-              !(item instanceof BaseModel) &&
-              !(item instanceof AnalyticsBaseModel)
-            ) {
-              baseModel = props.callbacks.getModelFromJSON(item as JSONObject);
-            }
-
-            if (props.onBeforeView) {
-              item = await props.onBeforeView(baseModel);
-            }
-
-            if (props.onViewPage) {
-              const route: Route | URL = await props.onViewPage(baseModel);
-
-              onCompleteAction();
-
-              if (props.onViewComplete) {
-                props.onViewComplete(baseModel);
-              }
-
-              return Navigation.navigate(route);
-            }
-
-            if (!props.viewPageRoute) {
-              throw new BadDataException("props.viewPageRoute not found");
-            }
+            const {
+              route,
+              baseModel,
+            }: { route: Route | URL; baseModel: TBaseModel } =
+              await getViewTarget(item);
 
             onCompleteAction();
+
             if (props.onViewComplete) {
               props.onViewComplete(baseModel);
             }
 
-            const id: string = baseModel.id?.toString() || "";
-
-            return Navigation.navigate(
-              new Route(props.viewPageRoute.toString()).addRoute("/" + id),
-            );
+            return Navigation.navigate(route);
           } catch (err) {
             onError(err as Error);
           }
@@ -3821,14 +3920,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           }
         }}
         filterData={filterData}
-        className={
-          props.cardProps
-            ? ""
-            : "rounded-lg border-2 border-gray-200 p-6 pt-0 pb-5"
-        }
-        tableContainerClassName={
-          props.cardProps ? "" : "overflow-hidden rounded"
-        }
+        /*
+         * A table outside a card is framed as a card is - one hairline,
+         * rounded, white - with the padding the table's rows and footer
+         * reach out to (-mx-6, -mb-6). It was a 2px border whose footer ran
+         * 4px past its bottom edge. overflow-clip rounds the header band's
+         * corners without making a scroll box, so the header row can still
+         * stick to the page.
+         */
+        className={props.cardProps ? "" : MODEL_TABLE_FRAME_CLASS_NAME}
         onFilterRefreshClick={async () => {
           await getFilterDropdownItems();
         }}
@@ -4129,6 +4229,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await fetchItems();
         }}
         actionButtons={actionButtonSchema}
+        getRowProps={getRowProps}
       />,
     );
   };
@@ -5292,6 +5393,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <div>
           {props.cardProps && (
             <Card
+              /*
+               * A table's header holds a row of controls - search, saved
+               * views, the main button, the ⋯ - so the title shares its line
+               * with them and the description runs under both, across the
+               * card, rather than being squeezed into a column beside them
+               * (Card's "toolbar" header).
+               */
+              headerLayout="toolbar"
               {...props.cardProps}
               description={cardDescription}
               buttons={headerButtons}
