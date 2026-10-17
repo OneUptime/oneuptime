@@ -99,7 +99,7 @@ Når du har vakt for en retningslinje, viser klokken øverst til høyre det. Kli
 :::
 
 :::details Noen ble tilkalt på feil kanal, eller ikke i det hele tatt
-Åpne **Vakttjeneste → Beredskap**, og klikk på **Coverage** i raden til personen. Den viser metodene de har verifisert, og hver alvorlighetsgrad de ikke har noen regel for. Bare de selv kan rette det, under **Brukerinnstillinger**: send dem en påminnelse om oppsettet fra den samme siden. Se [Beredskap og rapporter](/docs/on-call/readiness).
+Åpne **Vakttjeneste → Beredskap**, og klikk på **Coverage** i raden til personen. Den viser metodene de har verifisert, og hver alvorlighetsgrad de ikke har noen regel for. Bare de selv kan rette det, under **Brukerinnstillinger**: send dem en påminnelse om oppsettet fra den samme siden. Se [Beredskap og rapporter](/docs/on-call/readiness). På OneUptime Cloud kan en telefon som blokkerer ukjente oppringere, dempe et varsel: legg [OneUptimes numre](/docs/on-call/phone-number-whitelist) til i tillatelseslisten.
 :::
 
 :::details En person på ferie blir fortsatt tilkalt

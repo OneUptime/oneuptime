@@ -1,6 +1,6 @@
 # Docker Compose
 
-Docker Compose を使って、完全で無料の OneUptime インスタンスを 1 台の Linux サーバーで動かします。このページでは、新しいサーバーからインスタンスが動き出すまでを案内し、続いて HTTPS、本番向けの強化、バックアップ、アップデート、削除について説明します。
+Docker Compose を使って、完全で無料の OneUptime インスタンスを 1 台の Linux サーバーで動かします。このページでは、新しいサーバーからインスタンスが動き出すまでを案内し、続いて HTTPS、本番向けの強化、バックアップ、アップデート、削除について説明します。OneUptime 自体のコードを開発する場合は、 [ローカル開発](/docs/installation/local-development) を参照してください。
 
 :::cards
 - [OneUptime をインストールする](#oneuptime-をインストールする): 新しいサーバーから最初のアカウントまで 6 ステップ。

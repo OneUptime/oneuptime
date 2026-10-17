@@ -1,6 +1,6 @@
 # Docker Compose
 
-Draai een volledige, gratis OneUptime-instantie op één Linux-server met Docker Compose. Deze pagina brengt u van een nieuwe server naar een draaiende instantie en behandelt daarna HTTPS, het beveiligen voor productie, back-ups, updates en verwijderen.
+Draai een volledige, gratis OneUptime-instantie op één Linux-server met Docker Compose. Deze pagina brengt u van een nieuwe server naar een draaiende instantie en behandelt daarna HTTPS, het beveiligen voor productie, back-ups, updates en verwijderen. Wilt u in plaats daarvan aan de code van OneUptime zelf werken, zie dan [Lokale ontwikkeling](/docs/installation/local-development).
 
 :::cards
 - [OneUptime installeren](#oneuptime-installeren): Van een nieuwe server naar uw eerste account in zes stappen.

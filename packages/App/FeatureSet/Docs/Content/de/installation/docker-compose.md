@@ -1,6 +1,6 @@
 # Docker Compose
 
-Betreiben Sie mit Docker Compose eine vollständige, kostenlose OneUptime-Instanz auf einem einzigen Linux-Server. Diese Seite führt Sie von einem frischen Server zu einer laufenden Instanz und behandelt danach HTTPS, die Absicherung für den Produktivbetrieb, Backups, Updates und das Entfernen.
+Betreiben Sie mit Docker Compose eine vollständige, kostenlose OneUptime-Instanz auf einem einzigen Linux-Server. Diese Seite führt Sie von einem frischen Server zu einer laufenden Instanz und behandelt danach HTTPS, die Absicherung für den Produktivbetrieb, Backups, Updates und das Entfernen. Um stattdessen am Code von OneUptime selbst zu arbeiten, siehe [Lokale Entwicklung](/docs/installation/local-development).
 
 :::cards
 - [OneUptime installieren](#oneuptime-installieren): Von einem frischen Server zu Ihrem ersten Konto in sechs Schritten.

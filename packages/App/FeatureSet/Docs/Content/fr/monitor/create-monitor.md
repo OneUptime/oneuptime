@@ -70,7 +70,7 @@ flowchart TB
     end
 ```
 
-Les incidents et les alertes réglés pour se résoudre automatiquement, comme ceux des critères par défaut, se résolvent d'eux-mêmes dès que leur critère ne correspond plus. Un moniteur vérifié par plusieurs sondes ne change que lorsque ses sondes sont d'accord : par défaut, chaque sonde activée et connectée doit arriver au même résultat. Pour en exiger moins, réglez **Accord des sondes** sur la page **Configuration → Sondes et intervalle** du moniteur.
+Les incidents et les alertes réglés pour se résoudre automatiquement, comme ceux des critères par défaut, se résolvent d'eux-mêmes dès que leur critère ne correspond plus. Un moniteur vérifié par plusieurs sondes ne change que lorsque ses sondes sont d'accord : par défaut, chaque sonde activée et connectée doit arriver au même résultat. Pour en exiger moins, réglez **Accord des sondes** sur la page **Configuration → Sondes et intervalle** du moniteur. Pour tout ce qu'un critère peut contenir, et les statuts qu'un moniteur peut afficher, voir [Critères et statuts des moniteurs](/docs/monitor/criteria-and-statuses).
 
 ## Sondes et intervalle
 
@@ -101,6 +101,8 @@ Chaque type de moniteur a sa propre page, avec ses réglages, ses critères par 
 :::cards
 - [Surveillance de site web](/docs/monitor/website-monitor): Vérifier qu'une page se charge, et ce qu'elle répond.
 - [Surveillance d'API](/docs/monitor/api-monitor): Appeler un point de terminaison avec une méthode, des en-têtes et un corps.
+- [Critères et statuts des moniteurs](/docs/monitor/criteria-and-statuses): Ce qui définit le statut de chaque moniteur.
 - [Modèles de moniteur](/docs/monitor/monitor-templates): Créer de nombreux moniteurs à partir d'une configuration et les garder alignés.
+- [Groupes de moniteurs](/docs/monitor/monitor-groups): Regrouper plusieurs moniteurs en un seul statut.
 - [Incidents](/docs/incidents/index): Ce qui se passe après qu'un moniteur a déclaré un incident.
 :::

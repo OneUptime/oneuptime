@@ -7,6 +7,8 @@ Un incidente è il documento su cui lavora il vostro team quando qualcosa si rom
 - [Stati e gravità degli incidenti](/docs/incidents/states-and-severities): Il ciclo di vita, e che cosa fanno il riconoscimento e la risoluzione.
 - [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed): Aggiornamenti per i clienti e per il vostro team, e chi ne viene informato.
 - [Avvisi collegati](/docs/incidents/linked-alerts): Collegate gli avvisi sollevati da un disservizio all'incidente che li spiega.
+- [Episodi](/docs/incidents/episodes): Raggruppate gli incidenti correlati e lavorateci come su uno solo.
+- [Post-mortem](/docs/incidents/postmortems): Scrivete cosa è successo e pubblicatelo sulla vostra pagina di stato.
 - [Impostazioni e automazione degli incidenti](/docs/incidents/settings): Modelli, campi personalizzati, ruoli, misurazioni e regole.
 :::
 
@@ -77,7 +79,7 @@ I responder riconoscono l'incidente, collegano le risorse interessate, collegano
 
 Fare clic su **Risolvi** porta l'incidente nello stato risolto, ne lascia traccia nella cronologia degli stati, ferma il conteggio della durata, restituisce i monitor che trattiene e toglie l'incidente dalla sezione attiva di qualsiasi pagina di stato su cui era mostrato. Non serve cambiare nient'altro perché ciò accada: una pagina di stato mostra solo gli incidenti in uno stato che si trova sopra lo stato risolto. Vedete [Che cosa fa la risoluzione](/docs/incidents/states-and-severities#che-cosa-fa-la-risoluzione).
 
-Dopodiché potete scrivere un post-mortem e, se volete, pubblicarlo sulla pagina di stato.
+Dopodiché potete scrivere un [post-mortem](/docs/incidents/postmortems) e, se volete, pubblicarlo sulla pagina di stato.
 
 ## Termini chiave
 

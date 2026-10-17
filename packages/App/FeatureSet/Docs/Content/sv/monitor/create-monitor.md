@@ -70,7 +70,7 @@ flowchart TB
     end
 ```
 
-Incidenter och larm som är inställda på att lösas automatiskt, som standardkriteriernas, löser sig själva så snart deras kriterium slutar matcha. En monitor som kontrolleras av mer än en sond ändras bara när sonderna är överens: som standard måste varje sond som är påslagen och ansluten komma fram till samma resultat. För att kräva färre ställer du in **Sondöverensstämmelse** på monitorns sida **Konfiguration → Sonder och intervall**.
+Incidenter och larm som är inställda på att lösas automatiskt, som standardkriteriernas, löser sig själva så snart deras kriterium slutar matcha. En monitor som kontrolleras av mer än en sond ändras bara när sonderna är överens: som standard måste varje sond som är påslagen och ansluten komma fram till samma resultat. För att kräva färre ställer du in **Sondöverensstämmelse** på monitorns sida **Konfiguration → Sonder och intervall**. Allt ett kriterium kan innehålla, och de statusar en monitor kan visa, finns i [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses).
 
 ## Sonder och intervall
 
@@ -101,6 +101,8 @@ Varje monitortyp har en egen sida med sina inställningar, sina standardkriterie
 :::cards
 - [Webbplatsövervakning](/docs/monitor/website-monitor): Kontrollera att en sida laddas och vad den svarar.
 - [API-övervakning](/docs/monitor/api-monitor): Anropa en slutpunkt med en metod, huvuden och en kropp.
+- [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses): Vad som sätter varje monitors status.
 - [Monitormallar](/docs/monitor/monitor-templates): Skapa många monitorer från en konfiguration och håll dem lika.
+- [Monitorgrupper](/docs/monitor/monitor-groups): Samla flera monitorer i en status.
 - [Incidenter](/docs/incidents/index): Vad som händer efter att en monitor har deklarerat en incident.
 :::

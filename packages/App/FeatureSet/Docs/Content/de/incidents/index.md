@@ -7,6 +7,8 @@ Ein Vorfall ist der Datensatz, mit dem Ihr Team arbeitet, wenn etwas kaputtgeht:
 - [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities): Der Lebenszyklus und was Bestätigen und Beheben bewirken.
 - [Vorfallnotizen, Eigentümer & Feed](/docs/incidents/notes-owners-and-feed): Updates für Kunden und für Ihr Team, und wer davon erfährt.
 - [Verknüpfte Warnungen](/docs/incidents/linked-alerts): Die Warnungen, die ein Ausfall ausgelöst hat, an den Vorfall knüpfen, der sie erklärt.
+- [Episoden](/docs/incidents/episodes): Zusammengehörige Vorfälle bündeln und gemeinsam bearbeiten.
+- [Postmortem-Analysen](/docs/incidents/postmortems): Aufschreiben, was passiert ist, und es auf Ihrer Statusseite veröffentlichen.
 - [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings): Vorlagen, benutzerdefinierte Felder, Rollen, Messungen und Regeln.
 :::
 
@@ -77,7 +79,7 @@ Responder bestätigen den Vorfall, hängen betroffene Ressourcen an, verknüpfen
 
 Ein Klick auf **Beheben** setzt den Vorfall in den behobenen Status, versieht die Statuszeitachse mit einem Zeitstempel, stoppt die Dauer, gibt die Monitore frei, die er hält, und entfernt den Vorfall aus dem aktiven Bereich jeder Statusseite, auf der er angezeigt wurde. Dafür muss sich sonst nichts ändern – eine Statusseite zeigt nur Vorfälle in einem Status über dem behobenen Status. Siehe [Was Beheben bewirkt](/docs/incidents/states-and-severities#was-beheben-bewirkt).
 
-Danach können Sie ein Postmortem schreiben und es optional auf der Statusseite veröffentlichen.
+Danach können Sie ein [Postmortem](/docs/incidents/postmortems) schreiben und es optional auf der Statusseite veröffentlichen.
 
 ## Wichtige Begriffe
 

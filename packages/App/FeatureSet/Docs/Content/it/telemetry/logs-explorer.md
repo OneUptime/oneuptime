@@ -29,7 +29,7 @@ L'esploratore ha quattro schede:
 | --- | --- |
 | **Visualizzatore** | Cercare, filtrare e leggere i log. Si apre sull'ultima ora, prima i più recenti, 100 log per pagina. |
 | **Informazioni** | Che cosa hanno registrato i vostri servizi in un intervallo di tempo, e che cosa è andato storto. |
-| **Guida alla configurazione** | Come inviare log con OpenTelemetry, Fluent Bit o Fluentd, usando una delle vostre chiavi di ingestione. |
+| **Guida alla configurazione** | Come inviare log con OpenTelemetry, Fluent Bit o Fluentd, usando una delle vostre [chiavi di ingestione](/docs/telemetry/ingestion-keys). |
 | **Impostazioni** | Che cosa succede ai log quando arrivano: **Pipeline**, **Filtri di scarto**, **Regole di mascheramento** e **Regole di registrazione**. |
 
 ## Prima di iniziare
@@ -132,12 +132,12 @@ Selezionate un errore principale per vedere che cosa succedeva intorno: quando �
 
 ## Che cosa succede ai log quando arrivano
 
-La scheda **Impostazioni** contiene le regole che OneUptime applica a ogni log prima di memorizzarlo. Agiscono sui log che arrivano dopo, non su quelli già memorizzati.
+La scheda **Impostazioni** contiene le regole che OneUptime applica a ogni log prima di memorizzarlo. Agiscono sui log che arrivano dopo, non su quelli già memorizzati. Anche per quanto tempo viene conservato ogni log si decide al suo arrivo: vedere [Conservazione dei dati](/docs/telemetry/data-retention).
 
 | Regola | Cosa fa |
 | --- | --- |
-| **Filtri di scarto** | Scartare i log che non volete conservare, o conservarne solo un campione. |
-| **Regole di mascheramento** | Mascherare i dati sensibili, come indirizzi email e numeri di carta. |
+| **Filtri di scarto** | Scartare i log che non volete conservare, o conservarne solo un campione. Vedere [Scartare o campionare i record](/docs/telemetry/drop-filters-and-scrub-rules#scartare-o-campionare-i-record). |
+| **Regole di mascheramento** | Mascherare i dati sensibili, come indirizzi email e numeri di carta. Vedere [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili). |
 | **Pipeline** | Estrarre campi dal messaggio, correggere la gravità, rinominare attributi. Vedere [Pipeline dei log](/docs/telemetry/log-pipelines). |
 | **Regole di registrazione** | Trasformare i log corrispondenti in metriche. Vedere [Regole di registrazione dei log](/docs/telemetry/log-recording-rules). |
 

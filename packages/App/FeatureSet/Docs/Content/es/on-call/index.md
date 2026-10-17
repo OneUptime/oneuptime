@@ -99,7 +99,7 @@ Abre la página **Ejecuciones de guardia** del incidente. Si está vacía, el in
 :::
 
 :::details Alguien recibió el aviso por el canal equivocado, o no lo recibió
-Abre **Guardia → Preparación** y haz clic en **Cobertura** en su fila. Verás los métodos que ha verificado y cada gravedad para la que no tiene regla. Solo esa persona puede arreglarlo, en **Ajustes de usuario**: envíale un recordatorio de configuración desde la misma página. Consulta [Preparación e informes](/docs/on-call/readiness).
+Abre **Guardia → Preparación** y haz clic en **Cobertura** en su fila. Verás los métodos que ha verificado y cada gravedad para la que no tiene regla. Solo esa persona puede arreglarlo, en **Ajustes de usuario**: envíale un recordatorio de configuración desde la misma página. Consulta [Preparación e informes](/docs/on-call/readiness). En OneUptime Cloud, un teléfono que bloquea las llamadas desconocidas puede silenciar un aviso: añade [los números de OneUptime](/docs/on-call/phone-number-whitelist) a su lista de permitidos.
 :::
 
 :::details Una persona de vacaciones sigue recibiendo avisos

@@ -32,6 +32,7 @@ flowchart TB
 
 - **Los servicios se crean por ti.** El atributo de recurso `service.name` (definido con `OTEL_SERVICE_NAME`) da nombre al servicio al que pertenecen tus datos. OneUptime crea el servicio la primera vez que envía y lo muestra en **Productos → Servicios**.
 - **Los errores se convierten en excepciones.** Los eventos de excepción de los spans y las excepciones registradas en los registros se agrupan en incidencias en **Excepciones**; consulta [Excepciones a partir de registros](#excepciones-a-partir-de-registros).
+- **Las reglas actúan sobre los datos al llegar.** Los [filtros de descarte y las reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules) descartan u ocultan lo que nunca quieres almacenar, y la [retención de datos](/docs/telemetry/data-retention) decide cuánto tiempo se conserva el resto.
 
 ## Antes de empezar
 
@@ -407,7 +408,7 @@ La página de cada clave, en **Ajustes del proyecto → Telemetría y APM → Cl
 | **Límite de solicitudes por minuto** | El máximo de solicitudes OTLP/HTTP por minuto que se aceptan con la clave, sumando todos los clientes que la usan. Vacío significa sin límite en una clave de servidor, y 6000 en una clave de navegador. |
 | **Usado por última vez el** | Cuándo se aceptaron datos por última vez con la clave. Úsalo para encontrar claves que puedes rotar o eliminar sin riesgo. |
 
-**Restablecer clave secreta** en la página de la clave sustituye el secreto. Toda aplicación y todo collector que envíe con el anterior será rechazado hasta que lo actualices.
+**Restablecer clave secreta** en la página de la clave sustituye el secreto. Toda aplicación y todo collector que envíe con el anterior será rechazado hasta que lo actualices. Para las claves de navegador, cómo rotar una clave de forma segura y qué significa cada rechazo, consulta [Claves de ingesta](/docs/telemetry/ingestion-keys).
 
 ## OneUptime autoalojado
 

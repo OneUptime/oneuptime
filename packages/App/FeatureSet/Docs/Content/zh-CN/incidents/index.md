@@ -7,6 +7,8 @@
 - [事件状态与严重级别](/docs/incidents/states-and-severities): 生命周期，以及确认和解决会做什么。
 - [事件备注、负责人与动态](/docs/incidents/notes-owners-and-feed): 写给客户和团队的更新，以及谁会收到它们。
 - [关联的告警](/docs/incidents/linked-alerts): 把一次故障引发的告警关联到解释它们的事件上。
+- [片段](/docs/incidents/episodes): 把相关的事件归为一组，作为一个整体处理。
+- [事后分析](/docs/incidents/postmortems): 写下发生了什么，并发布到你的状态页。
 - [事件设置与自动化](/docs/incidents/settings): 模板、自定义字段、角色、测量和规则。
 :::
 
@@ -77,7 +79,7 @@ flowchart TB
 
 点击 **解决** 会把事件移到已解决状态、在状态时间线上记下一笔、停止持续时间计时、交还事件占用的监视器，并把事件从它所显示的每个状态页的活动部分移除。为此不需要改动其他任何东西——状态页只显示处于已解决状态之上的状态中的事件。参见 [解决会做什么](/docs/incidents/states-and-severities#解决会做什么)。
 
-之后你可以撰写事后分析，并可选择将其发布到状态页。
+之后你可以撰写 [事后分析](/docs/incidents/postmortems)，并可选择将其发布到状态页。
 
 ## 关键术语
 

@@ -1,6 +1,6 @@
 # Docker Compose
 
-使用 Docker Compose 在一台 Linux 服务器上运行一个完整、免费的 OneUptime 实例。本页带你从一台全新的服务器走到一个运行中的实例，然后介绍 HTTPS、生产环境加固、备份、更新和卸载。
+使用 Docker Compose 在一台 Linux 服务器上运行一个完整、免费的 OneUptime 实例。本页带你从一台全新的服务器走到一个运行中的实例，然后介绍 HTTPS、生产环境加固、备份、更新和卸载。如果要开发 OneUptime 本身的代码，请参阅 [本地开发](/docs/installation/local-development)。
 
 :::cards
 - [安装 OneUptime](#安装-oneuptime): 从全新服务器到第一个账号，共六步。

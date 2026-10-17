@@ -99,7 +99,7 @@ Ouvrez la page **Exécutions d'astreinte** de l'incident. Si elle est vide, l'in
 :::
 
 :::details Quelqu'un a été alerté sur le mauvais canal, ou pas du tout
-Ouvrez **Astreinte → Disponibilité** et cliquez sur **Couverture** sur sa ligne. Vous y voyez les méthodes que la personne a vérifiées et chaque gravité pour laquelle elle n'a pas de règle. Elle seule peut corriger cela, sous **Paramètres utilisateur** : envoyez-lui un rappel de configuration depuis la même page. Voir [Disponibilité et rapports](/docs/on-call/readiness).
+Ouvrez **Astreinte → Disponibilité** et cliquez sur **Couverture** sur sa ligne. Vous y voyez les méthodes que la personne a vérifiées et chaque gravité pour laquelle elle n'a pas de règle. Elle seule peut corriger cela, sous **Paramètres utilisateur** : envoyez-lui un rappel de configuration depuis la même page. Voir [Disponibilité et rapports](/docs/on-call/readiness). Sur OneUptime Cloud, un téléphone qui bloque les appels inconnus peut faire taire une alerte : ajoutez [les numéros de OneUptime](/docs/on-call/phone-number-whitelist) à sa liste d'autorisation.
 :::
 
 :::details Une personne en congé est toujours alertée

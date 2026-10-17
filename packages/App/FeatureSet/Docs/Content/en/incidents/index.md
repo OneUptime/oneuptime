@@ -7,6 +7,8 @@ An incident is the record your team works from when something breaks: what is af
 - [Incident States & Severities](/docs/incidents/states-and-severities): The lifecycle, and what acknowledging and resolving do.
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed): Updates for customers and for your team, and who hears about them.
 - [Linked Alerts](/docs/incidents/linked-alerts): Tie the alerts an outage raised to the incident that explains them.
+- [Episodes](/docs/incidents/episodes): Group related incidents and work on them as one.
+- [Postmortems](/docs/incidents/postmortems): Write up what happened, and publish it on your status page.
 - [Incident Settings & Automation](/docs/incidents/settings): Templates, custom fields, roles, measurements and rules.
 :::
 
@@ -77,7 +79,7 @@ Responders acknowledge the incident, attach affected resources, link the alerts 
 
 Clicking **Resolve** moves the incident to the resolved state, stamps the state timeline, stops the duration clock, gives back the monitors it holds, and removes the incident from the active section of any status page it was showing on. Nothing else has to change for that to happen — a status page shows only incidents in a state above the resolved state. See [What resolving does](/docs/incidents/states-and-severities#what-resolving-does).
 
-After that you can write a postmortem and, optionally, publish it to the status page.
+After that you can write a [postmortem](/docs/incidents/postmortems) and, optionally, publish it to the status page.
 
 ## Key terms
 

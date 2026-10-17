@@ -1,6 +1,6 @@
 # Docker Compose
 
-Run a complete, free OneUptime instance on one Linux server with Docker Compose. This page takes you from a fresh server to a running instance, then covers HTTPS, production hardening, backups, updates and removal.
+Run a complete, free OneUptime instance on one Linux server with Docker Compose. This page takes you from a fresh server to a running instance, then covers HTTPS, production hardening, backups, updates and removal. To work on OneUptime's own code instead, see [Local Development](/docs/installation/local-development).
 
 :::cards
 - [Install OneUptime](#install-oneuptime): From a fresh server to your first account in six steps.

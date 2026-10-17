@@ -7,6 +7,8 @@ En incident är posten ditt team arbetar utifrån när något går sönder: vad 
 - [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities): Livscykeln, och vad bekräftelse och lösning gör.
 - [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-feed): Uppdateringar till kunder och till ditt team, och vem som får höra om dem.
 - [Länkade larm](/docs/incidents/linked-alerts): Knyt larmen som ett avbrott utlöste till incidenten som förklarar dem.
+- [Episoder](/docs/incidents/episodes): Samla relaterade incidenter och arbeta med dem som en.
+- [Efteranalyser](/docs/incidents/postmortems): Skriv ner vad som hände och publicera det på din statussida.
 - [Incidentinställningar och automatisering](/docs/incidents/settings): Mallar, anpassade fält, roller, mätningar och regler.
 :::
 
@@ -77,7 +79,7 @@ De som ingriper bekräftar incidenten, lägger till berörda resurser, länkar l
 
 Ett klick på **Lös** flyttar incidenten till det lösta tillståndet, registrerar det i tillståndstidslinjen, stoppar varaktighetsklockan, släpper monitorerna den håller och tar bort incidenten från den aktiva delen av varje statussida den visades på. Inget annat behöver ändras för det — en statussida visar bara incidenter i ett tillstånd ovanför det lösta tillståndet. Se [Vad lösning gör](/docs/incidents/states-and-severities#vad-lösning-gör).
 
-Därefter kan du skriva en efteranalys och, om du vill, publicera den på statussidan.
+Därefter kan du skriva en [efteranalys](/docs/incidents/postmortems) och, om du vill, publicera den på statussidan.
 
 ## Nyckelbegrepp
 

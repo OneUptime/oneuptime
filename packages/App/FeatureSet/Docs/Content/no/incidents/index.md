@@ -7,6 +7,8 @@ En hendelse er posten teamet ditt jobber ut fra når noe ryker: hva som er berø
 - [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities): Livssyklusen, og hva bekreftelse og løsning gjør.
 - [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed): Oppdateringer til kunder og til teamet ditt, og hvem som får høre om dem.
 - [Koblede varsler](/docs/incidents/linked-alerts): Knytt varslene et avbrudd utløste til hendelsen som forklarer dem.
+- [Episoder](/docs/incidents/episodes): Samle relaterte hendelser, og arbeid med dem som én.
+- [Etteranalyser](/docs/incidents/postmortems): Skriv ned hva som skjedde, og publiser det på statussiden din.
 - [Hendelsesinnstillinger og automatisering](/docs/incidents/settings): Maler, egendefinerte felt, roller, målinger og regler.
 :::
 
@@ -77,7 +79,7 @@ De som responderer, bekrefter hendelsen, legger til berørte ressurser, knytter 
 
 Et klikk på **Løs** flytter hendelsen til den løste tilstanden, registrerer det i tilstandstidslinjen, stopper varighetsklokken, gir fra seg monitorene den holder, og fjerner hendelsen fra den aktive delen av enhver statusside den ble vist på. Ingenting annet trenger å endres — en statusside viser bare hendelser i en tilstand over den løste tilstanden. Se [Hva løsning gjør](/docs/incidents/states-and-severities#hva-løsning-gjør).
 
-Deretter kan du skrive en etteranalyse og eventuelt publisere den på statussiden.
+Deretter kan du skrive en [etteranalyse](/docs/incidents/postmortems) og eventuelt publisere den på statussiden.
 
 ## Nøkkelbegreper
 

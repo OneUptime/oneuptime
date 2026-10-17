@@ -123,7 +123,7 @@ OneUptime이 스스로는 결코 볼 수 없는 것을 항목으로 추가하면
 
 ## 관계와 토폴로지
 
-OneUptime은 항목을 관찰하면서 방향이 있는 관계로 연결합니다. **인벤토리 → Topology Map**이 관계를 그리고, 항목의 **Connections** 페이지는 그 항목의 관계를 나열합니다.
+OneUptime은 항목을 관찰하면서 방향이 있는 관계로 연결합니다. **인벤토리 → Topology Map**이 관계를 그리고, 항목의 **Connections** 페이지는 그 항목의 관계를 나열합니다. [토폴로지](/docs/telemetry/topology) 를 참조하세요.
 
 | 관계 | 예시 |
 | --- | --- |

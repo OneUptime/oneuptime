@@ -7,6 +7,8 @@ Un incidente es el registro con el que trabaja tu equipo cuando algo falla: qué
 - [Estados y severidades de incidentes](/docs/incidents/states-and-severities): El ciclo de vida, y qué hacen reconocer y resolver.
 - [Notas, responsables y actividad de incidentes](/docs/incidents/notes-owners-and-feed): Actualizaciones para los clientes y para tu equipo, y quién se entera de ellas.
 - [Alertas vinculadas](/docs/incidents/linked-alerts): Une las alertas que provocó una interrupción al incidente que las explica.
+- [Episodios](/docs/incidents/episodes): Agrupa incidentes relacionados y trabaja en ellos como uno solo.
+- [Informes post mortem](/docs/incidents/postmortems): Escribe lo que pasó y publícalo en tu página de estado.
 - [Configuración y automatización de incidentes](/docs/incidents/settings): Plantillas, campos personalizados, roles, mediciones y reglas.
 :::
 
@@ -77,7 +79,7 @@ Los respondedores reconocen el incidente, adjuntan los recursos afectados, vincu
 
 Hacer clic en **Resolver** lleva el incidente al estado resuelto, deja constancia en la cronología de estados, detiene el contador de duración, devuelve los monitores que retiene y quita el incidente de la sección activa de cualquier página de estado en la que se mostraba. No hace falta cambiar nada más para que ocurra: una página de estado solo muestra incidentes en un estado situado por encima del estado resuelto. Consulta [Qué hace resolver](/docs/incidents/states-and-severities#qué-hace-resolver).
 
-Después puedes escribir un post mortem y, si quieres, publicarlo en la página de estado.
+Después puedes escribir un [post mortem](/docs/incidents/postmortems) y, si quieres, publicarlo en la página de estado.
 
 ## Términos clave
 

@@ -1,6 +1,6 @@
 # Docker Compose
 
-Ejecuta una instancia completa y gratuita de OneUptime en un solo servidor Linux con Docker Compose. Esta página te lleva de un servidor recién creado a una instancia en marcha, y después trata HTTPS, el endurecimiento para producción, las copias de seguridad, las actualizaciones y la desinstalación.
+Ejecuta una instancia completa y gratuita de OneUptime en un solo servidor Linux con Docker Compose. Esta página te lleva de un servidor recién creado a una instancia en marcha, y después trata HTTPS, el endurecimiento para producción, las copias de seguridad, las actualizaciones y la desinstalación. Para trabajar en el código de OneUptime, consulta [Desarrollo local](/docs/installation/local-development).
 
 :::cards
 - [Instalar OneUptime](#instalar-oneuptime): De un servidor recién creado a tu primera cuenta, en seis pasos.

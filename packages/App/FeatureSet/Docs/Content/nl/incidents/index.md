@@ -7,6 +7,8 @@ Een incident is het dossier van waaruit je team werkt als er iets stukgaat: wat 
 - [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities): De levenscyclus, en wat bevestigen en oplossen doen.
 - [Incidentnotities, eigenaren en feed](/docs/incidents/notes-owners-and-feed): Updates voor klanten en voor je team, en wie ervan hoort.
 - [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts): Koppel de waarschuwingen die een storing opleverde aan het incident dat ze verklaart.
+- [Episodes](/docs/incidents/episodes): Groepeer samenhangende incidenten en werk eraan als één geheel.
+- [Postmortem-analyses](/docs/incidents/postmortems): Schrijf op wat er gebeurde en publiceer het op je statuspagina.
 - [Incidentinstellingen en automatisering](/docs/incidents/settings): Sjablonen, aangepaste velden, rollen, metingen en regels.
 :::
 
@@ -77,7 +79,7 @@ Responders bevestigen het incident, voegen getroffen middelen toe, koppelen de w
 
 Een klik op **Oplossen** zet het incident in de opgeloste status, legt dat vast in de statustijdlijn, stopt de duurklok, geeft de monitoren vrij die het vasthoudt en haalt het incident uit het actieve deel van elke statuspagina waarop het stond. Verder hoeft er niets te veranderen — een statuspagina toont alleen incidenten in een status boven de opgeloste status. Zie [Wat oplossen doet](/docs/incidents/states-and-severities#wat-oplossen-doet).
 
-Daarna kun je een postmortem schrijven en het eventueel op de statuspagina publiceren.
+Daarna kun je een [postmortem](/docs/incidents/postmortems) schrijven en het eventueel op de statuspagina publiceren.
 
 ## Kernbegrippen
 
