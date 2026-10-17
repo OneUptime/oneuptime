@@ -28,6 +28,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import AddCallTranscriptModal from "./AddCallTranscriptModal";
 import {
+  CALL_TRANSCRIPTS_DOCS_PATH,
   CallTranscriptFromProvider,
   getCallTranscriptFromProvider,
   readCallTranscriptAgain,
@@ -39,13 +40,14 @@ import {
   CallTranscriptView,
   getCallTranscriptView,
 } from "./CallTranscriptState";
+import { videoCallDocsUrl } from "./VideoCallApi";
 
 /*
  * A call's transcript, under the call on the Video Call card (issue #4875).
  *
- * Without one: what a transcript is for, and how to get it - Get transcript
- * for a Zoom or Google Meet meeting OneUptime started (its provider is
- * asked), Add transcript for any call. With one: how long it is, where it
+ * Without one: what a transcript is for, and how to get it - Get from Zoom
+ * or Get from Google Meet for a meeting OneUptime started there (the
+ * provider is asked), Add transcript for any call. With one: how long it is, where it
  * came from, where OneUptime AI's reading of it stands, and View. What
  * OneUptime AI found is on the AI Investigation card, which Review opens.
  *
@@ -71,6 +73,36 @@ export interface ComponentProps {
 const WARNING_REASONS: ReadonlyArray<VideoCallTranscriptUnavailableReason> = [
   VideoCallTranscriptUnavailableReason.PermissionMissing,
   VideoCallTranscriptUnavailableReason.ConnectionProblem,
+];
+
+/*
+ * A provider's answer, which may name a long scope -
+ * "cloud_recording:read:list_recording_files:admin" - in the card's narrow
+ * column: it may break after each colon in it rather than mid-word.
+ */
+function withBreaksAfterColons(text: string): Array<ReactElement> {
+  const pieces: Array<string> = text.split(":");
+
+  return pieces.map((piece: string, index: number): ReactElement => {
+    return (
+      <Fragment key={index}>
+        {piece}
+        {index < pieces.length - 1 ? (
+          <>
+            :<wbr />
+          </>
+        ) : (
+          <></>
+        )}
+      </Fragment>
+    );
+  });
+}
+
+// Answers the docs say how to fix: a scope to add, transcription to turn on.
+const SET_UP_REASONS: ReadonlyArray<VideoCallTranscriptUnavailableReason> = [
+  VideoCallTranscriptUnavailableReason.PermissionMissing,
+  VideoCallTranscriptUnavailableReason.NotTranscribed,
 ];
 
 export function describeTranscriptLength(
@@ -212,7 +244,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
       case CallTranscriptReading.Failed:
         return (
           <div data-testid="call-transcript-read-failed" className="text-xs">
-            <p className="flex items-start gap-1.5 text-gray-700">
+            <div className="flex items-start gap-1.5 text-gray-700">
               <Icon
                 icon={IconProp.Alert}
                 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-red-600"
@@ -232,7 +264,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
               </span>
-            </p>
+            </div>
             {props.canManage ? (
               <button
                 type="button"
@@ -281,7 +313,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
                   ) || "";
 
         return (
-          <p
+          <div
             data-testid="call-transcript-read"
             className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600"
           >
@@ -310,7 +342,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
                 ? translator.translateText("Review")
                 : translator.translateText("See what it found")}
             </button>
-          </p>
+          </div>
         );
       }
       default:
@@ -341,7 +373,23 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
           }`}
         />
         <p className="min-w-0 flex-1 break-words text-gray-600">
-          {error || unavailable!.message}
+          {error || withBreaksAfterColons(unavailable!.message)}
+          {!error && SET_UP_REASONS.includes(unavailable!.reason) ? (
+            <>
+              {" "}
+              <a
+                href={videoCallDocsUrl(CALL_TRANSCRIPTS_DOCS_PATH).toString()}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="call-transcript-set-up-docs"
+                className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                {translator.translateText("How to set it up")}
+              </a>
+            </>
+          ) : (
+            <></>
+          )}
         </p>
         <button
           type="button"
@@ -369,10 +417,10 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
         })}
         dataTestId="call-transcript-menu"
         elementToBeShownInsteadOfButton={
-          // As tall as the Small View button beside it.
+          // As tall as the Small View button beside it, whose text is larger on a phone.
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white p-1.5 text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white p-2 text-gray-600 md:p-1.5 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             data-testid="call-transcript-menu-button"
           >
             <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
@@ -419,20 +467,26 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
       <></>
     );
 
+  // "Get from Zoom": the button says where it gets the transcript.
+  const getFromProviderTitle: string = translator.translateTemplate(
+    "Get from {{provider}}",
+    { provider: providerName },
+  );
+
+  /*
+   * A Button keeps a left margin for a button row of its own; here they sit
+   * in a wrapping row with a gap, so the margin goes.
+   */
   const getAndAddButtons: ReactElement = props.canManage ? (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0">
       {view.canGetFromProvider ? (
         <Button
-          title="Get transcript"
+          title={getFromProviderTitle}
           icon={IconProp.DocumentArrowDown}
           buttonStyle={ButtonStyleType.NORMAL}
           buttonSize={ButtonSize.Small}
           isLoading={isGetting}
           dataTestId="call-transcript-get"
-          tooltip={translator.translateTemplate(
-            "Ask {{provider}} for this meeting's transcript.",
-            { provider: providerName },
-          )}
           onClick={() => {
             void getFromProvider();
           }}
@@ -443,11 +497,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
       <Button
         title="Add transcript"
         icon={IconProp.DocumentPlus}
-        buttonStyle={
-          view.canGetFromProvider
-            ? ButtonStyleType.OUTLINE
-            : ButtonStyleType.NORMAL
-        }
+        buttonStyle={ButtonStyleType.NORMAL}
         buttonSize={ButtonSize.Small}
         dataTestId="call-transcript-add"
         onClick={() => {
@@ -508,7 +558,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
           >
             {isGetting
               ? translator.translateText("Getting the transcript…")
-              : translator.translateText("Get transcript")}
+              : getFromProviderTitle}
           </button>
         ) : (
           <></>
@@ -528,42 +578,54 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
       <></>
     );
   } else if (view.hasTranscript) {
+    /*
+     * The card sits in the page's narrow column: the title shares its line
+     * with View and the menu, and what is said about the transcript runs
+     * the column's whole width under them.
+     */
+    const facts: string = [
+      describeTranscriptLength(view.info, translator),
+      sourceLine,
+    ]
+      .filter((fact: string): boolean => {
+        return fact.length > 0;
+      })
+      .join(" · ");
+
     content = (
-      <div className="flex items-start gap-3">
-        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-          <Icon icon={IconProp.DocumentText} className="h-4 w-4" />
-        </span>
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-sm font-medium text-gray-900">
-            {translator.translateText("Transcript")}
-            {view.info ? (
-              <span className="font-normal text-gray-500">
-                {" · "}
-                {describeTranscriptLength(view.info, translator)}
-              </span>
-            ) : (
-              <></>
-            )}
-          </p>
-          {sourceLine ? (
-            <p className="text-xs text-gray-500">{sourceLine}</p>
-          ) : (
-            <></>
-          )}
-          {readingLine()}
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-1">
-          <Button
-            title="View"
-            buttonStyle={ButtonStyleType.NORMAL}
-            buttonSize={ButtonSize.Small}
-            dataTestId="call-transcript-view"
-            onClick={() => {
-              setIsViewing(true);
-            }}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <Icon
+            icon={IconProp.DocumentText}
+            className="h-4 w-4 flex-shrink-0 text-gray-400"
           />
-          {manageMenu}
+          <p className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900">
+            {translator.translateText("Transcript")}
+          </p>
+          <div className="flex flex-shrink-0 items-center gap-1 [&>button]:ml-0 [&>button]:md:ml-0">
+            <Button
+              title="View"
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Small}
+              dataTestId="call-transcript-view"
+              onClick={() => {
+                setIsViewing(true);
+              }}
+            />
+            {manageMenu}
+          </div>
         </div>
+        {facts ? (
+          <p
+            data-testid="call-transcript-facts"
+            className="text-xs text-gray-500"
+          >
+            {facts}
+          </p>
+        ) : (
+          <></>
+        )}
+        {readingLine()}
       </div>
     );
   } else {
@@ -575,7 +637,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
           </p>
           <p className="mt-0.5 text-xs text-gray-500">
             {translator.translateText(
-              "After the call, add its transcript: OneUptime AI reads it and suggests the root cause for you to review.",
+              "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
             )}
           </p>
         </div>

@@ -86,7 +86,10 @@ export function formatFileSize(bytes: number): string {
     return `${Math.round(bytes / 1024)} KB`;
   }
 
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  // "5 MB", "2.4 MB".
+  const megabytes: number = Math.round((bytes / (1024 * 1024)) * 10) / 10;
+
+  return `${megabytes} MB`;
 }
 
 const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
@@ -246,8 +249,9 @@ const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
                 {translator.translateText("Choose a file")}
               </span>
               <span className="text-xs text-gray-500">
-                {translator.translateText(
-                  "or drop it here: .vtt, .srt or .txt, up to 5 MB",
+                {translator.translateTemplate(
+                  "or drop it here: .vtt, .srt or .txt, up to {{size}}",
+                  { size: formatFileSize(MAX_TRANSCRIPT_FILE_BYTES) },
                 )}
               </span>
             </button>

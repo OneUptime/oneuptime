@@ -54,6 +54,8 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
   // Several alerts or incidents added to an episode in one request.
   "/alert-episode-member/add-alerts",
   "/incident-episode-member/add-incidents",
+  // An incident call's transcript and what OneUptime AI read in it (#4875).
+  "/incident-video-call/",
 ];
 
 /*
@@ -123,6 +125,15 @@ const GUARDED_PAGES: Array<GuardedPage> = [
   {
     page: ["Components", "EpisodeMembers", "EpisodeMembersApi.ts"],
     routePrefix: "-episode-member/add-",
+  },
+  /*
+   * The Video Call card and the AI Investigation card reach an incident
+   * call's transcript routes - add, get from the provider, remove, read
+   * again, decide on the suggested root cause - through this one module.
+   */
+  {
+    page: ["Components", "VideoCall", "CallTranscriptApi.ts"],
+    routePrefix: "/incident-video-call/",
   },
 ];
 

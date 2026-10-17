@@ -281,7 +281,12 @@ export default function useEventVideoCalls(data: {
     };
   }, [recheckDelay, eventKey, attempt]);
 
-  // While OneUptime AI reads a transcript, look again until it is done.
+  /*
+   * While OneUptime AI reads a transcript, look again until it is done.
+   * Each look sets up the next one when it starts, not when its answer
+   * comes: a look that fails keeps what is on screen without changing it,
+   * and must not end the looking.
+   */
   const isReading: boolean =
     !isLoading && !error && isAnyCallBeingRead(calls, new Date());
 
@@ -297,7 +302,7 @@ export default function useEventVideoCalls(data: {
     return () => {
       clearTimeout(timer);
     };
-  }, [isReading, loaded]);
+  }, [isReading, refreshCounter]);
 
   return { calls, hasLoaded: !isLoading, error, refresh };
 }

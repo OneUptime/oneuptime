@@ -22,11 +22,15 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
  * request carries the project's tenant header (ModelAPI.getCommonHeaders):
  * the routes read the call with the caller's own permissions. A refusal is
  * thrown as the HTTPErrorResponse, for API.getFriendlyErrorMessage.
+ * Each call writes its route out in full, as the tenant header sweep
+ * (App's ProjectScopedApiTenantHeader) reads them.
  *
  * React-free on purpose: App's tests read it.
  */
 
-export const INCIDENT_VIDEO_CALL_ROUTE: string = "/incident-video-call";
+// The docs section on call transcripts: what each provider needs to keep one.
+export const CALL_TRANSCRIPTS_DOCS_PATH: string =
+  "/docs/workspace-connections/video-calls#call-transcripts";
 
 // What adding a transcript, or reading it from the provider, answers with.
 export interface CallTranscriptSaved {
@@ -38,12 +42,6 @@ export interface CallTranscriptSaved {
 export type CallTranscriptFromProvider =
   | ({ added: true } & CallTranscriptSaved)
   | ({ added: false } & VideoCallTranscriptUnavailable);
-
-function routeFor(callId: ObjectID | string, path: string): URL {
-  return URL.fromURL(APP_API_URL).addRoute(
-    `${INCIDENT_VIDEO_CALL_ROUTE}/${callId.toString()}/${path}`,
-  );
-}
 
 function readSaved(data: JSONObject | undefined): CallTranscriptSaved {
   const status: JSONValue | undefined = data?.["callSummaryStatus"];
@@ -69,7 +67,9 @@ export async function addCallTranscript(data: {
 
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await API.post<JSONObject>({
-      url: routeFor(data.callId, "transcript"),
+      url: URL.fromURL(APP_API_URL).addRoute(
+        `/incident-video-call/${data.callId.toString()}/transcript`,
+      ),
       headers: ModelAPI.getCommonHeaders(),
       data: body,
     });
@@ -90,7 +90,9 @@ export async function getCallTranscriptFromProvider(data: {
 }): Promise<CallTranscriptFromProvider> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await API.post<JSONObject>({
-      url: routeFor(data.callId, "transcript/from-provider"),
+      url: URL.fromURL(APP_API_URL).addRoute(
+        `/incident-video-call/${data.callId.toString()}/transcript/from-provider`,
+      ),
       headers: ModelAPI.getCommonHeaders(),
       data: {},
     });
@@ -124,7 +126,9 @@ export async function removeCallTranscript(data: {
 }): Promise<void> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await API.delete<JSONObject>({
-      url: routeFor(data.callId, "transcript"),
+      url: URL.fromURL(APP_API_URL).addRoute(
+        `/incident-video-call/${data.callId.toString()}/transcript`,
+      ),
       headers: ModelAPI.getCommonHeaders(),
       data: {},
     });
@@ -140,7 +144,9 @@ export async function readCallTranscriptAgain(data: {
 }): Promise<CallTranscriptSaved> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await API.post<JSONObject>({
-      url: routeFor(data.callId, "call-summary"),
+      url: URL.fromURL(APP_API_URL).addRoute(
+        `/incident-video-call/${data.callId.toString()}/call-summary`,
+      ),
       headers: ModelAPI.getCommonHeaders(),
       data: {},
     });
@@ -170,7 +176,9 @@ export async function reviewCallRootCauseSuggestion(data: {
 
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await API.post<JSONObject>({
-      url: routeFor(data.callId, "root-cause-suggestion"),
+      url: URL.fromURL(APP_API_URL).addRoute(
+        `/incident-video-call/${data.callId.toString()}/root-cause-suggestion`,
+      ),
       headers: ModelAPI.getCommonHeaders(),
       data: body,
     });

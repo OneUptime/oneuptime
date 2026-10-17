@@ -37,7 +37,10 @@ import React, {
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { getVideoCallHeadline } from "../../VideoCall/EventVideoCallsCard";
-import { reviewCallRootCauseSuggestion } from "../../VideoCall/CallTranscriptApi";
+import {
+  readCallTranscriptAgain,
+  reviewCallRootCauseSuggestion,
+} from "../../VideoCall/CallTranscriptApi";
 import CallTranscriptModal from "../../VideoCall/CallTranscriptModal";
 import {
   CallTranscriptReading,
@@ -201,6 +204,7 @@ const CallSummaryOfCall: FunctionComponent<{
   const translator: Translator = useTranslator();
   const [isUsing, setIsUsing] = useState<boolean>(false);
   const [isDeciding, setIsDeciding] = useState<boolean>(false);
+  const [isRereading, setIsRereading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [isViewing, setIsViewing] = useState<boolean>(false);
 
@@ -222,6 +226,20 @@ const CallSummaryOfCall: FunctionComponent<{
       props.onChanged();
     } catch (err) {
       setIsDeciding(false);
+      setError(API.getFriendlyErrorMessage(err as Error));
+    }
+  };
+
+  const readAgain: () => Promise<void> = async (): Promise<void> => {
+    setIsRereading(true);
+    setError(undefined);
+
+    try {
+      await readCallTranscriptAgain({ callId });
+      setIsRereading(false);
+      props.onChanged();
+    } catch (err) {
+      setIsRereading(false);
       setError(API.getFriendlyErrorMessage(err as Error));
     }
   };
@@ -281,23 +299,61 @@ const CallSummaryOfCall: FunctionComponent<{
     props.view.reading === CallTranscriptReading.Failed ||
     props.view.reading === CallTranscriptReading.Stuck
   ) {
+    /*
+     * Try again sits under the notice's sentence, lined up with it (the
+     * mark's width and the gap after it), not inside it: the notice's text
+     * is a paragraph.
+     */
     body = (
-      <InvestigationNotice
-        role="alert"
-        testId="call-summary-failed"
-        indicator={noticeFailedIcon}
-        title={
-          props.view.reading === CallTranscriptReading.Stuck
-            ? "Reading the transcript took too long"
-            : "OneUptime AI could not read the transcript"
-        }
-      >
-        {props.view.reading === CallTranscriptReading.Failed
-          ? props.view.readingMessage
-          : translator.translateText(
-              "Read it again from the Video Call card.",
-            )}
-      </InvestigationNotice>
+      <div className="space-y-1">
+        <InvestigationNotice
+          role="alert"
+          testId="call-summary-failed"
+          indicator={noticeFailedIcon}
+          title={
+            props.view.reading === CallTranscriptReading.Stuck
+              ? "Reading the transcript took too long"
+              : "OneUptime AI could not read the transcript"
+          }
+        >
+          {props.view.reading === CallTranscriptReading.Failed
+            ? props.view.readingMessage
+            : translator.translateText(
+                "It stopped before it suggested anything.",
+              )}
+        </InvestigationNotice>
+        {props.canWorkOnCalls ? (
+          <div className="pl-7">
+            <button
+              type="button"
+              data-testid="call-summary-read-again"
+              disabled={isRereading}
+              className="rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => {
+                void readAgain();
+              }}
+            >
+              {translator.translateText("Try again")}
+            </button>
+          </div>
+        ) : (
+          <></>
+        )}
+        {error ? (
+          <div className="pt-2">
+            <InvestigationNotice
+              role="alert"
+              testId="call-summary-error"
+              indicator={noticeFailedIcon}
+              title="Could not start reading it again"
+            >
+              {error}
+            </InvestigationNotice>
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
     );
   } else if (summary) {
     const rootCause: CallSummary["rootCause"] = summary.rootCause;
@@ -335,7 +391,7 @@ const CallSummaryOfCall: FunctionComponent<{
                   className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
                 >
                   <Icon icon={IconProp.Sparkles} className="h-3 w-3" />
-                  {translator.translateText("Suggested by AI, not confirmed")}
+                  {translator.translateText("Not confirmed")}
                 </span>
               )}
             </div>
@@ -360,13 +416,18 @@ const CallSummaryOfCall: FunctionComponent<{
                   )}
             </p>
 
+            {/* In the order they were said, as the transcript has them. */}
             <ul className="mt-3 space-y-2">
-              {rootCause.citations.map((citation: CallSummaryCitation) => {
-                return <Quote key={citation.line} citation={citation} />;
-              })}
+              {[...rootCause.citations]
+                .sort((left: CallSummaryCitation, right: CallSummaryCitation) => {
+                  return left.line - right.line;
+                })
+                .map((citation: CallSummaryCitation) => {
+                  return <Quote key={citation.line} citation={citation} />;
+                })}
             </ul>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0">
               {props.view.suggestion === RootCauseSuggestionStatus.Suggested ? (
                 <>
                   {props.canEditRootCause ? (
@@ -652,7 +713,8 @@ const CallSummarySection: FunctionComponent<ComponentProps> = (
               incidentId={props.incidentId}
               call={entry.call}
               view={entry.view}
-              isOnlyCall={readings.length === 1}
+              // "The incident's call" only when it has no other call to mean.
+              isOnlyCall={props.calls.length === 1}
               canWorkOnCalls={canWorkOnCalls}
               canEditRootCause={canEditRootCause}
               onChanged={props.onChanged}

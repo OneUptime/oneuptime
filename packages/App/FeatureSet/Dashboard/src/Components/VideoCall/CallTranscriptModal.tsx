@@ -17,6 +17,7 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -26,9 +27,13 @@ import React, {
  * and Copy, for the whole transcript as text. The transcript is read when
  * the dialog opens: the page's list of calls never carries it.
  *
- * A long call is hundreds of remarks; the first MAX_SHOWN are drawn and a
- * button draws the rest, so a dialog never builds twenty thousand rows at
- * once.
+ * A long call is hundreds of remarks; the first TRANSCRIPT_ROWS_SHOWN_AT_ONCE
+ * are drawn and a button draws the rest, so a dialog never builds twenty
+ * thousand rows at once.
+ *
+ * Opened from what OneUptime AI read, it starts on the first line the
+ * suggestion quotes - drawn, however far into the call it is, and scrolled
+ * to - with every quoted line highlighted.
  */
 
 export interface ComponentProps {
@@ -41,6 +46,27 @@ export interface ComponentProps {
 }
 
 export const TRANSCRIPT_ROWS_SHOWN_AT_ONCE: number = 400;
+
+/*
+ * How many rows to draw first: enough to reach the first highlighted line,
+ * in steps of TRANSCRIPT_ROWS_SHOWN_AT_ONCE.
+ */
+export function getRowsShownFirst(highlightLines: Array<number> = []): number {
+  const first: number = Math.min(
+    ...highlightLines.filter((line: number): boolean => {
+      return Number.isInteger(line) && line > 0;
+    }),
+  );
+
+  if (!Number.isFinite(first)) {
+    return TRANSCRIPT_ROWS_SHOWN_AT_ONCE;
+  }
+
+  return (
+    Math.ceil(first / TRANSCRIPT_ROWS_SHOWN_AT_ONCE) *
+    TRANSCRIPT_ROWS_SHOWN_AT_ONCE
+  );
+}
 
 interface NumberedLine {
   number: number;
@@ -77,8 +103,12 @@ const CallTranscriptModal: FunctionComponent<ComponentProps> = (
   const [lines, setLines] = useState<Array<TranscriptLine> | null>(null);
   const [error, setError] = useState<string | undefined>(undefined);
   const [query, setQuery] = useState<string>("");
-  const [shown, setShown] = useState<number>(TRANSCRIPT_ROWS_SHOWN_AT_ONCE);
+  const [shown, setShown] = useState<number>(
+    getRowsShownFirst(props.highlightLines),
+  );
   const [loadCount, setLoadCount] = useState<number>(0);
+  const listRef: React.RefObject<HTMLOListElement> =
+    useRef<HTMLOListElement>(null);
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -111,6 +141,20 @@ const CallTranscriptModal: FunctionComponent<ComponentProps> = (
   }, [lines, query]);
 
   const highlighted: Set<number> = new Set<number>(props.highlightLines || []);
+
+  // Once the transcript is drawn, the first highlighted line is in view.
+  useEffect(() => {
+    if (!lines || highlighted.size === 0) {
+      return;
+    }
+
+    const first: HTMLElement | null | undefined =
+      listRef.current?.querySelector<HTMLElement>("[data-highlighted='true']");
+
+    if (first && typeof first.scrollIntoView === "function") {
+      first.scrollIntoView({ block: "center" });
+    }
+  }, [lines]);
 
   let body: ReactElement;
 
@@ -147,12 +191,27 @@ const CallTranscriptModal: FunctionComponent<ComponentProps> = (
           }}
         />
 
+        {highlighted.size > 0 ? (
+          <p
+            data-testid="call-transcript-highlight-legend"
+            className="flex items-center gap-2 text-xs text-gray-500"
+          >
+            <span className="h-3 w-3 flex-shrink-0 rounded-sm bg-amber-50 ring-1 ring-inset ring-amber-200" />
+            {translator.translateText(
+              "Highlighted: the lines the suggested root cause quotes.",
+            )}
+          </p>
+        ) : (
+          <></>
+        )}
+
         {matching.length === 0 ? (
           <p className="text-sm text-gray-500">
             {translator.translateText("No remark has these words.")}
           </p>
         ) : (
           <ol
+            ref={listRef}
             data-testid="call-transcript-lines"
             aria-label={translator.translateText("Transcript")}
             className="max-h-[60vh] divide-y divide-gray-100 overflow-y-auto"
@@ -165,7 +224,8 @@ const CallTranscriptModal: FunctionComponent<ComponentProps> = (
                   key={entry.number}
                   data-testid="call-transcript-line"
                   data-line={entry.number}
-                  className={`flex gap-3 py-2 ${isHighlighted ? "bg-amber-50" : ""}`}
+                  data-highlighted={isHighlighted ? "true" : undefined}
+                  className={`flex gap-3 px-2 py-2 ${isHighlighted ? "bg-amber-50" : ""}`}
                 >
                   <span className="w-16 flex-shrink-0 pt-0.5 font-mono text-xs tabular-nums text-gray-500">
                     {entry.line.offsetInSeconds === undefined

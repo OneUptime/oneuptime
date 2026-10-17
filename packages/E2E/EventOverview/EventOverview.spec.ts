@@ -11856,3 +11856,543 @@ test.describe("a private incident or episode (?private=1)", () => {
     });
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * An incident call's transcript (?calls=, ?transcriptFetch=) - issue #4875
+ * ---------------------------------------------------------------------------
+ *
+ * Incident #1042's Zoom meeting keeps its transcript: read from Zoom, or
+ * added by a person (a Microsoft Teams meeting's, which Microsoft lets no
+ * app read). OneUptime AI reads it and suggests the root cause on the AI
+ * card - marked as a suggestion, resting on quoted lines - and nothing
+ * reaches the incident until a person uses it.
+ */
+test.describe("an incident call's transcript (?calls=)", () => {
+  const ZOOM_CALL_ID: string = uuid("88000000", 1);
+
+  function callsCard(page: Page): Locator {
+    return page.getByTestId("event-video-calls-card");
+  }
+
+  function callSummary(page: Page): Locator {
+    return page.getByTestId("call-summary");
+  }
+
+  async function transcriptRequests(
+    page: Page,
+    method: string,
+    route: string,
+  ): Promise<Array<RecordedApiRequest>> {
+    return (
+      await apiRequestsTo(page, `/incident-video-call/${ZOOM_CALL_ID}/${route}`)
+    ).filter((request: RecordedApiRequest): boolean => {
+      return request.method === method;
+    });
+  }
+
+  test("Get from Zoom reads the transcript, and what OneUptime AI suggests appears on the AI card without a reload", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=zoom");
+
+    const card: Locator = callsCard(page);
+    // Nothing read yet: the AI card says nothing about the call.
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+    await expect(
+      card.getByText(
+        "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
+      ),
+    ).toBeVisible();
+
+    await card.getByRole("button", { name: "Get from Zoom" }).click();
+
+    await expect(card.getByTestId("call-transcript-reading")).toHaveText(
+      "OneUptime AI is reading it…",
+    );
+    await expect(card.getByTestId("call-transcript-facts")).toContainText(
+      "11 minutes · 3 speakers · Read from Zoom",
+    );
+    await expect(page.getByTestId("call-summary-reading")).toBeVisible();
+
+    // The page looks again while it reads.
+    await expect(card.getByTestId("call-transcript-read")).toContainText(
+      "OneUptime AI suggested a root cause for you to review.",
+      { timeout: 30000 },
+    );
+    expect(
+      await transcriptRequests(page, "POST", "transcript/from-provider"),
+    ).toHaveLength(1);
+
+    await card.getByTestId("call-transcript-review").click();
+
+    await expect(callSummary(page)).toBeFocused();
+    await expect(callSummary(page)).toBeInViewport();
+    await expect(callSummary(page).getByTestId("call-summary-status")).toHaveText(
+      "Not confirmed",
+    );
+    await expectNoErrorStates(page);
+  });
+
+  test("when Zoom has no transcript to give, the card says why and what to do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const answers: Array<{ mode: string; text: string; docs: boolean }> = [
+      {
+        mode: "not-ready",
+        text: "Zoom is still preparing this meeting's transcript.",
+        docs: false,
+      },
+      {
+        mode: "permission",
+        text: "This connection's Zoom app cannot read transcripts.",
+        docs: true,
+      },
+      {
+        mode: "not-transcribed",
+        text: "Zoom has no transcript of this meeting.",
+        docs: true,
+      },
+    ];
+
+    for (const answer of answers) {
+      await openReady(page, INCIDENT_PAGE, `calls=zoom&transcriptFetch=${answer.mode}`);
+
+      const card: Locator = callsCard(page);
+      await card.getByRole("button", { name: "Get from Zoom" }).click();
+
+      const outcome: Locator = card.getByTestId("call-transcript-outcome");
+      await expect(outcome).toContainText(answer.text);
+
+      const docs: Locator = outcome.getByRole("link", { name: "How to set it up" });
+
+      if (answer.docs) {
+        await expect(docs).toHaveAttribute(
+          "href",
+          /\/docs\/workspace-connections\/video-calls#call-transcripts$/,
+        );
+        await expect(docs).toHaveAttribute("target", "_blank");
+        await expect(docs).toHaveAttribute("rel", "noopener noreferrer");
+      } else {
+        await expect(docs).toHaveCount(0);
+      }
+
+      // Nothing was added: the transcript is still to get.
+      await expect(card.getByTestId("call-transcript-facts")).toHaveCount(0);
+
+      await outcome.getByRole("button", { name: "Dismiss" }).click();
+      await expect(outcome).toHaveCount(0);
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "calls=zoom&transcriptFetch=permission");
+    await callsCard(page).getByRole("button", { name: "Get from Zoom" }).click();
+    await expect(callsCard(page).getByTestId("call-transcript-outcome")).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("a Microsoft Teams meeting's transcript is added by hand, and read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=teams");
+
+    const card: Locator = callsCard(page);
+    await expect(card.getByTestId("call-transcript-get")).toHaveCount(0);
+
+    await card.getByRole("button", { name: "Add transcript" }).click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Add the call's transcript",
+    });
+    await expect(dialog).toContainText(
+      "In Microsoft Teams, open the meeting's Recap, then Transcript, and download it as a .vtt file.",
+    );
+    await expect(
+      dialog.getByRole("button", { name: "Add transcript" }),
+    ).toBeDisabled();
+
+    const text: string =
+      "[00:00:05] Priya Shah: Checkout is timing out.\n[00:12:03] Sam Lee: The pool maxes at 50.";
+    await dialog.getByTestId("add-call-transcript-text").fill(text);
+    await dialog.getByRole("button", { name: "Add transcript" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    const [added] = await transcriptRequests(page, "POST", "transcript");
+    expect(added?.body).toEqual({ text });
+
+    await expect(card.getByTestId("call-transcript-facts")).toContainText(
+      "12 minutes · 2 speakers · Added by Maya Chen",
+    );
+    await expect(card.getByTestId("call-transcript-read")).toBeVisible({
+      timeout: 30000,
+    });
+  });
+
+  test("the suggested root cause: marked Not confirmed, resting on the call's lines in the order they were said", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const section: Locator = callSummary(page);
+    await expect(section).toContainText("From the incident's call");
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Not confirmed",
+    );
+    await expect(section).toContainText(
+      "Said on the call: someone found or confirmed it.",
+    );
+
+    const quotes: Locator = section.getByTestId("call-summary-quote");
+    await expect(quotes).toHaveCount(3);
+    expect(
+      await quotes.evaluateAll((items: Array<Element>): Array<string | null> => {
+        return items.map((item: Element): string | null => {
+          return item.getAttribute("data-line");
+        });
+      }),
+    ).toEqual(["6", "10", "11"]);
+    await expect(quotes.first()).toContainText("00:04:03 · Sam Rivera");
+
+    // Nothing reached the incident by being suggested.
+    expect(
+      (await fixture(page)).updates.filter((write: RecordedWrite): boolean => {
+        return write.modelName === "Incident";
+      }),
+    ).toEqual([]);
+
+    // The rest of what the call said is folded under it.
+    const details: Locator = section.getByTestId("call-summary-details");
+    await expect(details).not.toHaveAttribute("open", "");
+    await details.locator("summary").click();
+    await expect(details.getByTestId("call-summary-findings")).toContainText(
+      "Confirmed on the call",
+    );
+    await expect(details.getByTestId("call-summary-findings")).toContainText(
+      "Hypothesis",
+    );
+    await expect(details.getByTestId("call-summary-actions")).toContainText(
+      "Add an alert on database pool usage. (Jordan Patel)",
+    );
+  });
+
+  test("View transcript starts on the quoted lines, highlighted", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    await callSummary(page)
+      .getByRole("button", { name: "View transcript" })
+      .click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Transcript of the Zoom meeting",
+    });
+    const lines: Locator = dialog.getByTestId("call-transcript-line");
+    await expect(lines).toHaveCount(12);
+    await expect(dialog.getByTestId("call-transcript-highlight-legend")).toBeVisible();
+    await expect(dialog.locator("[data-highlighted='true']")).toHaveCount(3);
+    await expect(lines.nth(5)).toHaveAttribute("data-highlighted", "true");
+
+    await dialog.getByTestId("call-transcript-search").fill("rollback");
+    await expect(lines).toHaveCount(1);
+    await expect(lines.first()).toContainText(
+      "Rollback done, p95 is back under 300 milliseconds.",
+    );
+  });
+
+  test("Use as root cause: the editor shows the suggestion as written, nothing is saved until the person saves it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const section: Locator = callSummary(page);
+    await section.getByRole("button", { name: "Use as root cause" }).click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Use as root cause" });
+    const editor: Locator = dialog.locator('[contenteditable="true"]').first();
+
+    // An identifier stays as written: code, never italic.
+    await expect(editor.locator("code").first()).toHaveText("DB_POOL_MAX=10");
+    await expect(editor.locator("em")).toHaveCount(0);
+    await expect(editor.locator("blockquote")).toHaveCount(3);
+    await expect(editor.locator("blockquote").first()).toContainText(
+      "00:04:03 · Sam Rivera: The new release has DB_POOL_MAX=10, it was 40 before.",
+    );
+
+    // It replaces the incident's root cause, which it shows.
+    await expect(dialog).toContainText(
+      "It replaces the incident's current root cause. Show it",
+    );
+
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toHaveCount(0);
+    expect(
+      await transcriptRequests(page, "POST", "root-cause-suggestion"),
+    ).toEqual([]);
+
+    await section.getByRole("button", { name: "Use as root cause" }).click();
+    await page
+      .getByRole("dialog", { name: "Use as root cause" })
+      .getByRole("button", { name: "Save as root cause" })
+      .click();
+    await expect(
+      page.getByRole("dialog", { name: "Use as root cause" }),
+    ).toHaveCount(0);
+
+    const [decision] = await transcriptRequests(
+      page,
+      "POST",
+      "root-cause-suggestion",
+    );
+    expect(decision?.body["decision"]).toBe("Accepted");
+    expect(String(decision?.body["rootCause"])).toContain(
+      "shipped with `DB_POOL_MAX=10` instead of 40",
+    );
+    expect(String(decision?.body["rootCause"])).toContain(
+      "> 00:04:03 · Sam Rivera: The new release has `DB_POOL_MAX=10`, it was 40 before.",
+    );
+
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Used as root cause",
+    );
+    await expect(
+      section.getByRole("link", { name: "View root cause" }),
+    ).toBeVisible();
+    await expect(callsCard(page).getByTestId("call-transcript-read")).toContainText(
+      "Used as the incident's root cause.",
+    );
+  });
+
+  test("a save the server refuses keeps the dialog open and says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript&fail=suggestion");
+
+    await callSummary(page)
+      .getByRole("button", { name: "Use as root cause" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", { name: "Use as root cause" });
+    await dialog.getByRole("button", { name: "Save as root cause" }).click();
+
+    await expect(dialog).toContainText(
+      "You do not have permission to edit this incident's root cause.",
+    );
+    await expect(callSummary(page).getByTestId("call-summary-status")).toHaveText(
+      "Not confirmed",
+    );
+  });
+
+  test("Dismiss sets the suggestion aside, and Undo brings it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const section: Locator = callSummary(page);
+    await section.getByRole("button", { name: "Dismiss" }).click();
+
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Dismissed",
+    );
+    await expect(section).toContainText("Maya Chen dismissed it");
+
+    await section.getByRole("button", { name: "Undo" }).click();
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Not confirmed",
+    );
+
+    expect(
+      (await transcriptRequests(page, "POST", "root-cause-suggestion")).map(
+        (request: RecordedApiRequest): unknown => {
+          return request.body["decision"];
+        },
+      ),
+    ).toEqual(["Dismissed", "Suggested"]);
+  });
+
+  test("a decision already made: who used it, or dismissed it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=accepted");
+    await expect(callSummary(page)).toContainText(
+      "Jordan Patel used it as the incident's root cause",
+    );
+    await expect(
+      callSummary(page).getByRole("button", { name: "Use as root cause" }),
+    ).toHaveCount(0);
+
+    await openReady(page, INCIDENT_PAGE, "calls=dismissed");
+    await expect(callSummary(page)).toContainText("Jordan Patel dismissed it");
+    await expect(
+      callSummary(page).getByRole("button", { name: "Undo" }),
+    ).toBeVisible();
+  });
+
+  test("a call that did not settle the cause suggests none, and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=not-enough");
+
+    const section: Locator = callSummary(page);
+    await expect(section.getByTestId("call-summary-not-enough")).toContainText(
+      "Not enough was said on the call to suggest a root cause",
+    );
+    await expect(section.getByTestId("call-summary-root-cause")).toHaveCount(0);
+    await expect(section.getByTestId("call-summary-details")).toHaveAttribute(
+      "open",
+      "",
+    );
+    await expect(callsCard(page).getByTestId("call-transcript-read")).toContainText(
+      "not enough was said to suggest a root cause",
+    );
+  });
+
+  test("a reading that failed, or stopped part-way, is offered again from either card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=failed");
+
+    await expect(page.getByTestId("call-summary-failed")).toContainText(
+      "This project reached its daily AI token limit.",
+    );
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read-failed"),
+    ).toContainText("OneUptime AI could not read it.");
+
+    await page.getByTestId("call-summary-read-again").click();
+    await expect(page.getByTestId("call-summary-reading")).toBeVisible();
+    await expect(callSummary(page).getByTestId("call-summary-status")).toHaveText(
+      "Not confirmed",
+      { timeout: 30000 },
+    );
+    expect(await transcriptRequests(page, "POST", "call-summary")).toHaveLength(
+      1,
+    );
+
+    await openReady(page, INCIDENT_PAGE, "calls=stuck");
+    await expect(page.getByTestId("call-summary-failed")).toContainText(
+      "Reading the transcript took too long",
+    );
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read-failed"),
+    ).toContainText("OneUptime AI took too long to read it.");
+  });
+
+  test("AI off for the project: the card says so, and the AI card says nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=skipped");
+
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read-skipped"),
+    ).toContainText("AI features are disabled for this project.");
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+  });
+
+  test("removing the transcript asks first and keeps the incident's root cause", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const card: Locator = callsCard(page);
+    await card.getByTestId("call-transcript-menu-button").click();
+    await page.getByRole("menuitem", { name: "Remove transcript" }).click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Remove the transcript?",
+    });
+    await expect(dialog).toContainText("The incident's root cause is kept.");
+    await dialog.getByRole("button", { name: "Remove" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    expect(await transcriptRequests(page, "DELETE", "transcript")).toHaveLength(
+      1,
+    );
+    await expect(
+      card.getByRole("button", { name: "Get from Zoom" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+  });
+
+  test("two calls: each named for its own, the earlier one's transcript on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=two");
+
+    await expect(callSummary(page)).toContainText("From the Zoom meeting");
+
+    const rows: Locator = callsCard(page).getByTestId("event-video-call");
+    await expect(rows).toHaveCount(2);
+    await expect(
+      rows.nth(1).getByRole("button", { name: "Add transcript" }),
+    ).toBeVisible();
+  });
+
+  test("on a phone and in the dark theme, both cards fit and read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+    await page.mouse.move(0, 0);
+    await screenshotElement(callsCard(page), "incident-call-transcript-card");
+    await screenshotElement(
+      page.getByTestId("call-summaries"),
+      "incident-call-summary",
+    );
+
+    await openReady(page, INCIDENT_PAGE, "calls=transcript&theme=dark");
+    await page.mouse.move(0, 0);
+    await screenshotElement(callsCard(page), "incident-call-transcript-card-dark");
+    await screenshotElement(
+      page.getByTestId("call-summaries"),
+      "incident-call-summary-dark",
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+    await expectNoHorizontalOverflow(page);
+
+    // The View button and the menu beside it are as tall as each other.
+    const view: { height: number } | null = await callsCard(page)
+      .getByTestId("call-transcript-view")
+      .boundingBox();
+    const menu: { height: number } | null = await callsCard(page)
+      .getByTestId("call-transcript-menu-button")
+      .boundingBox();
+    expect(Math.abs(view!.height - menu!.height)).toBeLessThanOrEqual(2);
+
+    await screenshotElement(
+      page.getByTestId("call-summaries"),
+      "incident-call-summary-mobile",
+    );
+  });
+});
