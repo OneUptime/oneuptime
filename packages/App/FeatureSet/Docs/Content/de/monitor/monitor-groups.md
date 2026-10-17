@@ -5,7 +5,7 @@ Eine Monitor-Gruppe fasst mehrere Monitore zu einem Status zusammen. Gruppieren 
 :::cards
 - [Wie der Status einer Gruppe ermittelt wird](#wie-der-status-einer-gruppe-ermittelt-wird): Der schlimmste Status unter ihren Monitoren.
 - [Monitor-Gruppen einschalten](#monitor-gruppen-einschalten): Ein Schalter in den Projekteinstellungen.
-- [Eine Monitor-Gruppe erstellen](#eine-monitor-gruppe-erstellen): Benennen Sie sie, dann weisen Sie ihre Monitore zu.
+- [Eine Monitor-Gruppe erstellen](#eine-monitor-gruppe-erstellen): Benennen Sie sie, dann fügen Sie ihre Monitore hinzu.
 - [Eine Gruppe auf einer Statusseite anzeigen](#eine-gruppe-auf-einer-statusseite-anzeigen): Eine Zeile für die ganze Gruppe.
 :::
 
@@ -63,16 +63,16 @@ Gehen Sie zu **Monitore → Monitor-Gruppen**. Die Karte **Monitor-Gruppen** lis
 
 Klicken Sie auf **Monitor-Gruppe erstellen**, geben Sie einen **Name** und, wenn Sie möchten, eine **Beschreibung** ein, und klicken Sie unten im Formular auf **Monitor-Gruppe erstellen**. Die Gruppe beginnt ohne Monitore.
 
-### Ihre Monitore zuweisen
+### Ihre Monitore hinzufügen
 
-Öffnen Sie die Gruppe und klicken Sie in ihrem Seitenmenü auf **Monitore**. Klicken Sie auf **Monitor zuweisen**, wählen Sie unter **Überwachung auswählen** einen Monitor und klicken Sie auf **Zuweisen**. Wiederholen Sie das für jeden Monitor der Gruppe.
+Öffnen Sie die Gruppe: Solange sie keinen Monitor hat, bietet ihre **Übersicht** **Monitore hinzufügen** an. Später klicken Sie in ihrem Seitenmenü auf **Monitore** und dann auf **Monitore hinzufügen**. Wählen Sie unter **Monitore** jeden Monitor der Gruppe und klicken Sie auf **Monitore hinzufügen**.
 
 ### Ihren Status prüfen
 
 Klicken Sie auf **Übersicht**. **Aktueller Status** zeigt den jetzigen Status der Gruppe, und **Verfügbarkeits-Diagramm** zeigt ihre letzten 90 Tage, einen Balken pro Tag.
 :::
 
-Um einen Monitor aus der Gruppe zu nehmen, klicken Sie in **Monitore in der Gruppe** in seiner Zeile auf **Zuweisung aufheben**. Der Monitor selbst ändert sich nicht. Ein Monitor kann zu mehr als einer Gruppe gehören.
+Um einen Monitor aus der Gruppe zu nehmen, klicken Sie in **Monitore in der Gruppe** in seiner Zeile auf **Entfernen**. Der Monitor selbst ändert sich nicht. Ein Monitor kann zu mehr als einer Gruppe gehören.
 
 ## Die Seiten einer Gruppe
 
@@ -80,12 +80,12 @@ Um einen Monitor aus der Gruppe zu nehmen, klicken Sie in **Monitore in der Grup
 
 | Seite | Was sie zeigt |
 | --- | --- |
-| **Übersicht** | **Details der Überwachungsgruppe**, **Aktueller Status** und **Verfügbarkeits-Diagramm** mit der Verfügbarkeit der Gruppe in Prozent über die letzten 90 Tage. |
-| **Eigentümer** | Die Personen und Teams, die für die Gruppe verantwortlich sind. |
-| **Monitore** | **Monitore in der Gruppe**, mit **Monitor zuweisen** und **Zuweisung aufheben**. |
+| **Übersicht** | **Details der Überwachungsgruppe**, **Aktueller Status** und **Verfügbarkeits-Diagramm** mit der Verfügbarkeit der Gruppe in Prozent über die letzten 90 Tage. Eine Gruppe ohne Monitore bietet statt des Diagramms **Monitore hinzufügen** an. |
+| **Monitore** | **Monitore in der Gruppe**, mit **Monitore hinzufügen** und **Entfernen**. |
 | **Vorfälle** | Die Vorfälle auf einem beliebigen Monitor der Gruppe. |
 | **Warnungen** | Die Warnungen auf einem beliebigen Monitor der Gruppe. |
-| **Audit-Protokolle** | Wer die Gruppe wann geändert hat. Die Seite steht unter **Erweitert**, das eingeklappt beginnt. |
+| **Eigentümer** | Die Personen und Teams, die für die Gruppe verantwortlich sind. Die Seite steht unter **Erweitert**, das eingeklappt beginnt. |
+| **Audit-Protokolle** | Wer die Gruppe wann geändert hat, ebenfalls unter **Erweitert**. |
 | **Gruppe löschen** | Löscht die Gruppe, ebenfalls unter **Erweitert**. |
 
 Die Verfügbarkeit in der **Übersicht** zählt jeden Status außer dem betriebsbereiten als Ausfallzeit. Eine Statusseite zählt nur die Status in ihrer eigenen Liste **Zählt als Ausfallzeit**: siehe [Auswählen, was auf der Seite angezeigt wird](/docs/status-pages/index#auswählen-was-auf-der-seite-erscheint).
@@ -130,7 +130,7 @@ Der Schalter **Monitor-Gruppen** ist aus. Schalten Sie ihn unter **Projekteinste
 :::
 
 :::details Die Gruppe zeigt Offline, aber die meisten ihrer Monitore laufen
-Das ist die Regel: Die Gruppe zeigt ihren schlimmsten Monitor. Öffnen Sie **Monitore** in der Gruppe, um den ausgefallenen Monitor zu finden, oder heben Sie die Zuweisung eines Monitors auf, der nicht in die Gruppe gehört.
+Das ist die Regel: Die Gruppe zeigt ihren schlimmsten Monitor. Öffnen Sie **Monitore** in der Gruppe, um den ausgefallenen Monitor zu finden, oder entfernen Sie einen Monitor, der nicht in die Gruppe gehört.
 :::
 
 :::details Eine Statusseite kann die Gruppe nicht hinzufügen

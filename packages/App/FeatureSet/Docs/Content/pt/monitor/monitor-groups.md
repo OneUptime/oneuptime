@@ -5,7 +5,7 @@ Um grupo de monitores reúne vários monitores em um único status. Agrupe os mo
 :::cards
 - [Como o status de um grupo é calculado](#como-o-status-de-um-grupo-é-calculado): O pior status entre os seus monitores.
 - [Ativar os grupos de monitores](#ativar-os-grupos-de-monitores): Uma chave nas configurações do projeto.
-- [Criar um grupo de monitores](#criar-um-grupo-de-monitores): Dê um nome e depois atribua os monitores.
+- [Criar um grupo de monitores](#criar-um-grupo-de-monitores): Dê um nome e depois adicione os monitores.
 - [Mostrar um grupo em uma página de status](#mostrar-um-grupo-em-uma-página-de-status): Uma linha para o grupo inteiro.
 :::
 
@@ -63,16 +63,16 @@ Vá para **Monitores → Grupos de monitores**. O cartão **Grupos de monitores*
 
 Clique em **Criar: Monitor Grupo**, digite um **Nome** e, se quiser, uma **Descrição**, e clique em **Criar: Monitor Grupo** no final do formulário. O grupo começa sem monitores.
 
-### Atribuir os monitores
+### Adicionar os monitores
 
-Abra o grupo e clique em **Monitores** no menu lateral dele. Clique em **Atribuir monitor**, escolha um monitor em **Selecionar Monitor** e clique em **Atribuir**. Faça isso para cada monitor do grupo.
+Abra o grupo: enquanto ele não tiver nenhum monitor, a **Visão geral** dele oferece **Add Monitors**. Depois, clique em **Monitores** no menu lateral dele e em **Add Monitors**. Escolha cada monitor do grupo em **Monitores** e clique em **Add Monitors**.
 
 ### Conferir o status
 
 Clique em **Visão geral**. **Status Atual** mostra o status do grupo agora, e **Gráfico de tempo de atividade** mostra os últimos 90 dias dele, uma barra por dia.
 :::
 
-Para tirar um monitor do grupo, clique em **Desatribuir** na linha dele em **Monitores no Grupo**. O monitor em si não muda. Um monitor pode pertencer a mais de um grupo.
+Para tirar um monitor do grupo, clique em **Remover** na linha dele em **Monitores no Grupo**. O monitor em si não muda. Um monitor pode pertencer a mais de um grupo.
 
 ## As páginas de um grupo
 
@@ -80,12 +80,12 @@ Abra um grupo para ver as páginas dele no menu lateral:
 
 | Página | O que mostra |
 | --- | --- |
-| **Visão geral** | **Detalhes do Grupo de Monitores**, **Status Atual** e **Gráfico de tempo de atividade** com a porcentagem de disponibilidade do grupo nos últimos 90 dias. |
-| **Proprietários** | As pessoas e equipes responsáveis pelo grupo. |
-| **Monitores** | **Monitores no Grupo**, com **Atribuir monitor** e **Desatribuir**. |
+| **Visão geral** | **Detalhes do Grupo de Monitores**, **Status Atual** e **Gráfico de tempo de atividade** com a porcentagem de disponibilidade do grupo nos últimos 90 dias. Um grupo sem monitores oferece **Add Monitors** no lugar do gráfico. |
+| **Monitores** | **Monitores no Grupo**, com **Add Monitors** e **Remover**. |
 | **Incidentes** | Os incidentes em qualquer monitor do grupo. |
 | **Alertas** | Os alertas em qualquer monitor do grupo. |
-| **Registros de auditoria** | Quem alterou o grupo, e quando. Fica em **Avançado**, que começa recolhido. |
+| **Proprietários** | As pessoas e equipes responsáveis pelo grupo. Fica em **Avançado**, que começa recolhido. |
+| **Registros de auditoria** | Quem alterou o grupo, e quando, também em **Avançado**. |
 | **Excluir grupo** | Exclui o grupo, também em **Avançado**. |
 
 A disponibilidade em **Visão geral** conta como indisponibilidade todo status exceto o operacional. Uma página de status conta só os status da sua própria lista **Conta como indisponibilidade**: veja [Escolher o que aparece na página](/docs/status-pages/index#escolher-o-que-aparece-na-página).
@@ -130,7 +130,7 @@ A chave **Grupos de monitores** está desligada. Ligue-a em **Configurações do
 :::
 
 :::details O grupo mostra Offline, mas a maioria dos monitores está no ar
-É a regra: o grupo mostra o seu pior monitor. Abra **Monitores** no grupo para encontrar o monitor fora do ar, ou desatribua um monitor que não pertence ao grupo.
+É a regra: o grupo mostra o seu pior monitor. Abra **Monitores** no grupo para encontrar o monitor fora do ar, ou remova um monitor que não pertence ao grupo.
 :::
 
 :::details Uma página de status não consegue adicionar o grupo

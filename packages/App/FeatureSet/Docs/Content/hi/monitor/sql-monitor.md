@@ -139,7 +139,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 | **होस्ट** | डेटाबेस होस्ट जिस तक प्रोब पहुँच सके (उदाहरण के लिए `db.internal`)। |
 | **पोर्ट** | डेटाबेस पोर्ट। |
 | **डेटाबेस नाम** | वह डेटाबेस जिस पर क्वेरी चलानी है। |
-| **Use Windows Integrated Authentication** | केवल Microsoft SQL Server। SQL उपयोगकर्ता नाम और पासवर्ड के बजाय उस account से प्रमाणित करें जिससे प्रोब चल रहा है। देखें [Windows Integrated Authentication](#windows-integrated-authentication)। |
+| **प्रमाणीकरण** | केवल Microsoft SQL Server: **उपयोगकर्ता नाम और पासवर्ड**, जो डिफ़ॉल्ट है, या **Windows Integrated Authentication**, जो उस account से साइन इन करता है जिससे प्रोब चल रहा है। देखें [Windows Integrated Authentication](#windows-integrated-authentication)। |
 | **उपयोगकर्ता नाम** | एक केवल-पढ़ने वाला, न्यूनतम-अधिकार वाला डेटाबेस उपयोगकर्ता। |
 | **पासवर्ड** | डेटाबेस पासवर्ड। हम ज़ोरदार सलाह देते हैं कि पासवर्ड सादे टेक्स्ट में टाइप करने के बजाय `{{monitorSecrets.name}}` से किसी [मॉनिटर सीक्रेट](/docs/monitor/monitor-secrets) को संदर्भित करें (देखें [पासवर्ड के लिए मॉनिटर सीक्रेट का उपयोग](#पासवर्ड-के-लिए-मॉनिटर-सीक्रेट-का-उपयोग))। |
 | **SQL Query** | चलाने के लिए केवल-पढ़ने वाली क्वेरी (देखें [क्वेरी लिखें](#क्वेरी-लिखें))। |
@@ -157,7 +157,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 
 ### Windows Integrated Authentication
 
-Microsoft SQL Server के लिए, प्रोब process की पहचान से एक भरोसेमंद कनेक्शन खोलने हेतु **Use Windows Integrated Authentication** चालू करें। इस मोड में उपयोगकर्ता नाम और पासवर्ड fields अनदेखे किए जाते हैं और driver को नहीं भेजे जाते। क्योंकि प्रोब को ऐसी पहचान चाहिए जिस पर आपका domain भरोसा करे, इस प्रमाणीकरण मोड के लिए self-hosted प्रोब का उपयोग करें।
+Microsoft SQL Server के लिए, प्रोब process की पहचान से एक भरोसेमंद कनेक्शन खोलने हेतु **प्रमाणीकरण** में **Windows Integrated Authentication** चुनें। तब फ़ॉर्म **उपयोगकर्ता नाम** और **पासवर्ड** छिपा देता है, और इनमें से कोई भी driver को नहीं भेजा जाता। क्योंकि प्रोब को ऐसी पहचान चाहिए जिस पर आपका domain भरोसा करे, इस प्रमाणीकरण मोड के लिए self-hosted प्रोब का उपयोग करें।
 
 | प्रोब कहाँ चलता है | क्या सेट करना है |
 |---|---|

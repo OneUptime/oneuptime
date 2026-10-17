@@ -5,7 +5,7 @@ En monitorgruppe samler flere monitorer i én status. Gruppér de monitorer, der
 :::cards
 - [Sådan beregnes en gruppes status](#sådan-beregnes-en-gruppes-status): Den værste status blandt dens monitorer.
 - [Slå monitorgrupper til](#slå-monitorgrupper-til): Én kontakt i projektindstillingerne.
-- [Opret en monitorgruppe](#opret-en-monitorgruppe): Giv den et navn, og tildel så dens monitorer.
+- [Opret en monitorgruppe](#opret-en-monitorgruppe): Giv den et navn, og tilføj så dens monitorer.
 - [Vis en gruppe på en statusside](#vis-en-gruppe-på-en-statusside): Én række for hele gruppen.
 :::
 
@@ -63,16 +63,16 @@ Gå til **Overvågninger → Monitorgrupper**. Kortet **Monitorgrupper** viser h
 
 Klik på **Opret Monitor Gruppe**, indtast et **Navn** og, hvis du vil, en **Beskrivelse**, og klik på **Opret Monitor Gruppe** nederst i formularen. Gruppen starter uden monitorer.
 
-### Tildel dens monitorer
+### Tilføj dens monitorer
 
-Åbn gruppen, og klik på **Monitorer** i dens sidemenu. Klik på **Tildel overvågning**, vælg en monitor under **Vælg overvågning**, og klik på **Tildel**. Gør det for hver monitor i gruppen.
+Åbn gruppen: indtil den har en monitor, tilbyder dens **Oversigt** **Add Monitors**. Senere klikker du på **Monitorer** i dens sidemenu og derefter på **Add Monitors**. Vælg hver monitor i gruppen under **Monitorer**, og klik på **Add Monitors**.
 
 ### Tjek dens status
 
 Klik på **Oversigt**. **Aktuel status** viser gruppens status lige nu, og **Oppetidgraf** viser dens seneste 90 dage, én søjle pr. dag.
 :::
 
-For at tage en monitor ud af gruppen klikker du på **Fjern tildeling** i dens række under **Overvågninger i gruppe**. Selve monitoren ændres ikke. En monitor kan høre til mere end én gruppe.
+For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række under **Overvågninger i gruppe**. Selve monitoren ændres ikke. En monitor kan høre til mere end én gruppe.
 
 ## En gruppes sider
 
@@ -80,12 +80,12 @@ For at tage en monitor ud af gruppen klikker du på **Fjern tildeling** i dens r
 
 | Side | Hvad den viser |
 | --- | --- |
-| **Oversigt** | **Detaljer om overvågningsgruppe**, **Aktuel status** og **Oppetidgraf** med gruppens oppetidsprocent over de seneste 90 dage. |
-| **Ejere** | De personer og teams, der er ansvarlige for gruppen. |
-| **Monitorer** | **Overvågninger i gruppe**, med **Tildel overvågning** og **Fjern tildeling**. |
+| **Oversigt** | **Detaljer om overvågningsgruppe**, **Aktuel status** og **Oppetidgraf** med gruppens oppetidsprocent over de seneste 90 dage. En gruppe uden monitorer tilbyder **Add Monitors** i stedet for grafen. |
+| **Monitorer** | **Overvågninger i gruppe**, med **Add Monitors** og **Fjern**. |
 | **Hændelser** | Hændelserne på enhver monitor i gruppen. |
 | **Advarsler** | Advarslerne på enhver monitor i gruppen. |
-| **Auditlogs** | Hvem der ændrede gruppen, og hvornår. Den ligger under **Avanceret**, som starter foldet sammen. |
+| **Ejere** | De personer og teams, der er ansvarlige for gruppen. Den ligger under **Avanceret**, som starter foldet sammen. |
+| **Auditlogs** | Hvem der ændrede gruppen, og hvornår, også under **Avanceret**. |
 | **Slet gruppe** | Sletter gruppen, også under **Avanceret**. |
 
 Oppetiden på **Oversigt** tæller enhver status undtagen den driftsklare som nedetid. En statusside tæller kun statusserne på sin egen liste **Tæller som nedetid**: se [Vælg, hvad siden viser](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden).
@@ -130,7 +130,7 @@ Kontakten **Monitorgrupper** er slået fra. Slå den til under **Projektindstill
 :::
 
 :::details Gruppen viser Offline, men de fleste af dens monitorer kører
-Det er reglen: gruppen viser sin værste monitor. Åbn **Monitorer** i gruppen for at finde den monitor, der er nede, eller fjern tildelingen af en monitor, der ikke hører til i gruppen.
+Det er reglen: gruppen viser sin værste monitor. Åbn **Monitorer** i gruppen for at finde den monitor, der er nede, eller fjern en monitor, der ikke hører til i gruppen.
 :::
 
 :::details En statusside kan ikke tilføje gruppen

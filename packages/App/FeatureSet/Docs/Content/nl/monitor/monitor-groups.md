@@ -5,7 +5,7 @@ Een monitorgroep voegt meerdere monitoren samen tot één status. Groepeer de mo
 :::cards
 - [Hoe de status van een groep wordt bepaald](#hoe-de-status-van-een-groep-wordt-bepaald): De slechtste status onder haar monitoren.
 - [Monitorgroepen inschakelen](#monitorgroepen-inschakelen): Eén schakelaar in de projectinstellingen.
-- [Een monitorgroep maken](#een-monitorgroep-maken): Geef haar een naam en wijs haar monitoren toe.
+- [Een monitorgroep maken](#een-monitorgroep-maken): Geef haar een naam en voeg haar monitoren toe.
 - [Een groep op een statuspagina tonen](#een-groep-op-een-statuspagina-tonen): Eén rij voor de hele groep.
 :::
 
@@ -63,16 +63,16 @@ Ga naar **Monitoren → Monitorgroepen**. De kaart **Monitorgroepen** toont elke
 
 Klik op **Monitor Groep aanmaken**, vul een **Naam** en, als u wilt, een **Beschrijving** in, en klik onderaan het formulier op **Monitor Groep aanmaken**. De groep begint zonder monitoren.
 
-### Haar monitoren toewijzen
+### Haar monitoren toevoegen
 
-Open de groep en klik in haar zijmenu op **Monitoren**. Klik op **Monitor toewijzen**, kies een monitor onder **Selecteer monitor** en klik op **Toewijzen**. Doe dit voor elke monitor in de groep.
+Open de groep: zolang ze geen monitor heeft, biedt haar **Overzicht** **Add Monitors** aan. Klik later in haar zijmenu op **Monitoren** en dan op **Add Monitors**. Kies onder **Monitoren** elke monitor van de groep en klik op **Add Monitors**.
 
 ### Haar status controleren
 
 Klik op **Overzicht**. **Huidige status** toont de status van de groep nu, en **Uptime grafiek** toont haar laatste 90 dagen, één balk per dag.
 :::
 
-Om een monitor uit de groep te halen, klikt u in **Monitoren in groep** op zijn rij op **Toewijzing opheffen**. De monitor zelf verandert niet. Een monitor kan bij meer dan één groep horen.
+Om een monitor uit de groep te halen, klikt u in **Monitoren in groep** op zijn rij op **Verwijderen**. De monitor zelf verandert niet. Een monitor kan bij meer dan één groep horen.
 
 ## De pagina's van een groep
 
@@ -80,12 +80,12 @@ Open een groep om haar pagina's in het zijmenu te zien:
 
 | Pagina | Wat ze toont |
 | --- | --- |
-| **Overzicht** | **Details van monitorgroep**, **Huidige status** en **Uptime grafiek** met het beschikbaarheidspercentage van de groep over de laatste 90 dagen. |
-| **Eigenaren** | De mensen en teams die verantwoordelijk zijn voor de groep. |
-| **Monitoren** | **Monitoren in groep**, met **Monitor toewijzen** en **Toewijzing opheffen**. |
+| **Overzicht** | **Details van monitorgroep**, **Huidige status** en **Uptime grafiek** met het beschikbaarheidspercentage van de groep over de laatste 90 dagen. Een groep zonder monitoren biedt **Add Monitors** aan in plaats van de grafiek. |
+| **Monitoren** | **Monitoren in groep**, met **Add Monitors** en **Verwijderen**. |
 | **Incidenten** | De incidenten op elke monitor in de groep. |
 | **Waarschuwingen** | De waarschuwingen op elke monitor in de groep. |
-| **Auditlogboeken** | Wie de groep wanneer heeft gewijzigd. Staat onder **Geavanceerd**, dat ingeklapt begint. |
+| **Eigenaren** | De mensen en teams die verantwoordelijk zijn voor de groep. Staat onder **Geavanceerd**, dat ingeklapt begint. |
+| **Auditlogboeken** | Wie de groep wanneer heeft gewijzigd, ook onder **Geavanceerd**. |
 | **Groep verwijderen** | Verwijdert de groep, ook onder **Geavanceerd**. |
 
 De beschikbaarheid in het **Overzicht** telt elke status behalve de operationele als downtime. Een statuspagina telt alleen de statussen in haar eigen lijst **Telt als downtime**: zie [Kiezen wat de pagina toont](/docs/status-pages/index#kiezen-wat-er-op-de-pagina-komt).
@@ -130,7 +130,7 @@ De schakelaar **Monitorgroepen** staat uit. Zet hem aan onder **Projectinstellin
 :::
 
 :::details De groep toont Offline, maar de meeste monitoren werken
-Dat is de regel: de groep toont haar slechtste monitor. Open **Monitoren** in de groep om de uitgevallen monitor te vinden, of hef de toewijzing op van een monitor die niet in de groep hoort.
+Dat is de regel: de groep toont haar slechtste monitor. Open **Monitoren** in de groep om de uitgevallen monitor te vinden, of verwijder een monitor die niet in de groep hoort.
 :::
 
 :::details Een statuspagina kan de groep niet toevoegen

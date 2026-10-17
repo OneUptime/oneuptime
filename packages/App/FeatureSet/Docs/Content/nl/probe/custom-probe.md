@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### De sonde aanmaken
 
-Open **Monitoren → Instellingen → Sondes** en klik op **Sonde aanmaken**. Geef hem een **Naam** en een **Beschrijving**: beide zijn verplicht. **Meer velden** bevat het **Sondelogo**, **Schakel monitoring automatisch in op nieuwe monitoren**, waarmee deze sonde wordt gekozen voor elke nieuwe monitor die u maakt, en **Labels**.
+Open **Monitoren → Instellingen → Sondes** en klik op **Sonde aanmaken**. Geef hem een **Naam** en een **Beschrijving**: beide zijn verplicht. **Meer velden** bevat het **Sondelogo**, **Toevoegen aan nieuwe monitoren**, waarmee elke nieuwe monitor begint met deze sonde geselecteerd, en **Labels**.
 
 ### De ID en sleutel kopiëren
 

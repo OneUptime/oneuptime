@@ -5,7 +5,7 @@ En monitorgruppe samler flere monitorer i én status. Grupper monitorene som til
 :::cards
 - [Slik beregnes en gruppes status](#slik-beregnes-en-gruppes-status): Den verste statusen blant monitorene.
 - [Slå på monitorgrupper](#slå-på-monitorgrupper): Én bryter i prosjektinnstillingene.
-- [Opprett en monitorgruppe](#opprett-en-monitorgruppe): Gi den et navn, og tildel så monitorene.
+- [Opprett en monitorgruppe](#opprett-en-monitorgruppe): Gi den et navn, og legg så til monitorene.
 - [Vis en gruppe på en statusside](#vis-en-gruppe-på-en-statusside): Én rad for hele gruppen.
 :::
 
@@ -63,16 +63,16 @@ Gå til **Overvåkere → Monitorgrupper**. Kortet **Monitorgrupper** viser hver
 
 Klikk på **Opprett Monitor Gruppe**, skriv inn et **Navn** og, om du vil, en **Beskrivelse**, og klikk på **Opprett Monitor Gruppe** nederst i skjemaet. Gruppen starter uten monitorer.
 
-### Tildel monitorene
+### Legg til monitorene
 
-Åpne gruppen og klikk på **Monitorer** i sidemenyen. Klikk på **Tildel overvåker**, velg en monitor under **Velg overvåking** og klikk på **Tildel**. Gjør dette for hver monitor i gruppen.
+Åpne gruppen: til den har en monitor, tilbyr **Oversikt** **Add Monitors**. Senere klikker du på **Monitorer** i sidemenyen og deretter på **Add Monitors**. Velg hver monitor i gruppen under **Monitorer** og klikk på **Add Monitors**.
 
 ### Sjekk statusen
 
 Klikk på **Oversikt**. **Gjeldende status** viser gruppens status nå, og **Oppetidsgraf** viser de siste 90 dagene, én stolpe per dag.
 :::
 
-For å ta en monitor ut av gruppen klikker du på **Fjern tildeling** i raden i **Overvåkinger i gruppe**. Selve monitoren endres ikke. En monitor kan høre til mer enn én gruppe.
+For å ta en monitor ut av gruppen klikker du på **Fjern** i raden i **Overvåkinger i gruppe**. Selve monitoren endres ikke. En monitor kan høre til mer enn én gruppe.
 
 ## Sidene til en gruppe
 
@@ -80,12 +80,12 @@ For å ta en monitor ut av gruppen klikker du på **Fjern tildeling** i raden i 
 
 | Side | Hva den viser |
 | --- | --- |
-| **Oversikt** | **Detaljer for overvåkingsgruppe**, **Gjeldende status** og **Oppetidsgraf** med gruppens oppetid i prosent de siste 90 dagene. |
-| **Eiere** | Personene og teamene som har ansvaret for gruppen. |
-| **Monitorer** | **Overvåkinger i gruppe**, med **Tildel overvåker** og **Fjern tildeling**. |
+| **Oversikt** | **Detaljer for overvåkingsgruppe**, **Gjeldende status** og **Oppetidsgraf** med gruppens oppetid i prosent de siste 90 dagene. En gruppe uten monitorer tilbyr **Add Monitors** i stedet for grafen. |
+| **Monitorer** | **Overvåkinger i gruppe**, med **Add Monitors** og **Fjern**. |
 | **Hendelser** | Hendelsene på en hvilken som helst monitor i gruppen. |
 | **Varsler** | Varslene på en hvilken som helst monitor i gruppen. |
-| **Revisjonslogger** | Hvem som endret gruppen, og når. Den ligger under **Avansert**, som starter sammenslått. |
+| **Eiere** | Personene og teamene som har ansvaret for gruppen. Den ligger under **Avansert**, som starter sammenslått. |
+| **Revisjonslogger** | Hvem som endret gruppen, og når, også under **Avansert**. |
 | **Slett gruppe** | Sletter gruppen, også under **Avansert**. |
 
 Oppetiden på **Oversikt** teller alle statuser unntatt den driftsklare som nedetid. En statusside teller bare statusene i sin egen liste **Teller som nedetid**: se [Velg hva siden viser](/docs/status-pages/index#å-velge-hva-som-vises-på-siden).
@@ -130,7 +130,7 @@ Bryteren **Monitorgrupper** er slått av. Slå den på under **Prosjektinnstilli
 :::
 
 :::details Gruppen viser Frakoblet, men de fleste monitorene er oppe
-Det er regelen: gruppen viser den verste monitoren sin. Åpne **Monitorer** i gruppen for å finne monitoren som er nede, eller fjern tildelingen av en monitor som ikke hører hjemme i gruppen.
+Det er regelen: gruppen viser den verste monitoren sin. Åpne **Monitorer** i gruppen for å finne monitoren som er nede, eller fjern en monitor som ikke hører hjemme i gruppen.
 :::
 
 :::details En statusside kan ikke legge til gruppen
