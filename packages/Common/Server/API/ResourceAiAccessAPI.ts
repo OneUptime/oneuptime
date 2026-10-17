@@ -39,6 +39,7 @@ import {
 import {
   RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
   getResourceAgentName,
+  getResourceAiAgentResetEditRefusal,
   getResourceAiAgentResetRefusal,
   getResourceSentenceName,
 } from "../../Types/AI/ResourceAiAccessPermissions";
@@ -143,7 +144,8 @@ const router: ExpressRouter = Express.getRouter();
  *     Forgets the key of the resource's AI agent, so whatever holds it is
  *     locked out and the real agent registers afresh within a few minutes.
  *     For the people who may loosen AI access
- *     (RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS).
+ *     (RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS) and may edit THIS resource
+ *     (decided for its row, as the test's edit access is).
  *
  *   POST /resource-ai-access/logs         { resourceType, resourceId }
  *     Everything AI did on the resource, newest first, as summaries: the AI
@@ -371,7 +373,11 @@ async function assertCanEditResource(data: {
 
 /*
  * Resetting the agent locks out whatever holds its key, and the real agent
- * registers afresh: the same people who may loosen AI access may do it.
+ * registers afresh: the same people who may loosen AI access may do it -
+ * one of the admin set, and permission to edit THIS resource, decided for
+ * its own row as turning its fixes on is (an update of the resource). The
+ * admin set is checked first, here; the resource's row next
+ * (assertCanChangeResourceToResetAgent).
  */
 function assertCanResetAiAgent(data: {
   props: DatabaseCommonInteractionProps;
@@ -394,6 +400,36 @@ function assertCanResetAiAgent(data: {
     throw new NotAuthorizedException(
       getResourceAiAgentResetRefusal(data.resourceType),
     );
+  }
+}
+
+/*
+ * The other half of who may reset the agent: someone who may edit this
+ * resource (ResourceAiAccessService.assertCallerMayChangeResource). An
+ * admin whose edit of the resource is limited to other labels, or blocked
+ * for a label it carries, may not reset its agent - as they may not turn
+ * its fixes on.
+ */
+async function assertCanChangeResourceToResetAgent(data: {
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  resource: AccessibleResource;
+}): Promise<void> {
+  try {
+    await ResourceAiAccessService.assertCallerMayChangeResource({
+      props: data.props,
+      projectId: data.projectId,
+      resourceType: data.resource.resourceType,
+      resourceId: data.resource.id,
+    });
+  } catch (error) {
+    if (error instanceof NotAuthorizedException) {
+      throw new NotAuthorizedException(
+        getResourceAiAgentResetEditRefusal(data.resource.resourceType),
+      );
+    }
+
+    throw error;
   }
 }
 
@@ -1049,6 +1085,12 @@ router.post(
         props,
         projectId: tenantId,
         resourceType: resource.resourceType,
+      });
+
+      await assertCanChangeResourceToResetAgent({
+        props,
+        projectId: tenantId,
+        resource,
       });
 
       const agentName: string = getResourceAgentName(resource.resourceType);

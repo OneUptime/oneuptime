@@ -9,8 +9,12 @@ import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import Runner, {
   RunnerConnectionStatus,
 } from "../../Models/DatabaseModels/Runner";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../Types/Date";
@@ -2566,6 +2570,84 @@ class KubernetesClusterAiAccessServiceClass {
     }
 
     return crypto.timingSafeEqual(presentedBuffer, currentBuffer);
+  }
+
+  /*
+   * ------------------------------------------------------------------
+   * Who may act on a cluster
+   * ------------------------------------------------------------------
+   */
+
+  /*
+   * Throws `refusal` unless the caller may EDIT this cluster, decided for
+   * its own row exactly as an update of it through the API would be
+   * (DatabaseService.findOneUpdatableById): the update permissions, a
+   * team's block on the whole table or on a label the cluster carries, a
+   * grant limited to labels the cluster does not carry, a grant limited to
+   * the clusters the caller or their teams own, a credential issued for
+   * reading only, and a cluster the caller may not read at all. Holding an
+   * edit permission somewhere in the project is not enough: an edit grant
+   * limited to "staging" does not reach the "production" cluster, and a
+   * block for "production" takes it away.
+   *
+   * Asked before every action on one cluster that only someone who may
+   * edit it may cause, outside that update: its AI access test (which
+   * spends its Runner and records Last verified on it), resetting its
+   * Kubernetes AI agent, and approving an AI plan whose kubectl commands
+   * change it. ResourceAiAccessService.assertCallerMayChangeResource holds
+   * the infrastructure resources to the same rule. A cluster that is not in
+   * the project is refused like one the caller may not edit. Root and
+   * master admins are not gated.
+   */
+  @CaptureSpan()
+  public async assertCallerMayChangeCluster(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    clusterId: ObjectID;
+    refusal: string;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    /*
+     * The caller's permissions are read for the cluster's own project: the
+     * permission layer reads the rows of props.tenantId.
+     */
+    const callerProps: DatabaseCommonInteractionProps = {
+      ...data.props,
+      tenantId: data.projectId,
+      isMultiTenantRequest: false,
+    };
+
+    let cluster: KubernetesCluster | null = null;
+
+    try {
+      cluster = await KubernetesClusterService.findOneUpdatableById({
+        id: data.clusterId,
+        select: { _id: true, projectId: true },
+        props: callerProps,
+      });
+    } catch (error) {
+      // Whatever the reason the update would be refused, one refusal.
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof NotAuthenticatedException ||
+        error instanceof NotFoundException
+      ) {
+        throw new NotAuthorizedException(data.refusal);
+      }
+
+      throw error;
+    }
+
+    if (
+      !cluster ||
+      !cluster.projectId ||
+      cluster.projectId.toString() !== data.projectId.toString()
+    ) {
+      throw new NotAuthorizedException(data.refusal);
+    }
   }
 
   /*
