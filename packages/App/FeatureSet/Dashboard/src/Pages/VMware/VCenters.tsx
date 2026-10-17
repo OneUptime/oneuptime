@@ -238,7 +238,7 @@ const VMwareVCenters: FunctionComponent<
         cardProps={{
           title: "vCenters",
           description:
-            "vCenter Servers (and standalone ESXi hosts) monitored in this project. Connect one with its address and a read-only account - a probe you run collects it, with no agent to install - or install the VMware Agent and it appears here when it first reports.",
+            "vCenter Servers and ESXi hosts in this project. Connect one with a read-only account and a probe, or install the VMware Agent.",
         }}
         showViewIdButton={true}
         formSteps={VMWARE_CONNECT_FORM_STEPS}
@@ -411,7 +411,7 @@ const VMwareVCenters: FunctionComponent<
       {clusterCount === 0 && (
         <VMwareDocumentationCard
           title="Getting Started with VMware Monitoring"
-          description="No vCenters connected yet. Connect one above with a read-only account - a probe you run collects it, with no agent to install - or install the VMware Agent using the guide below and your vCenter appears here automatically."
+          description="No vCenters yet. Connect one above with a read-only account, or install the VMware Agent using the guide below."
         />
       )}
       {labelBulkActionModals}

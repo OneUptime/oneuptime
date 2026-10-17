@@ -235,7 +235,7 @@ export const SeatUsageMeter: FunctionComponent<SeatUsageMeterProps> = (
 export const CAN_BE_WHITE_LABELLED_TITLE: string = "Can be white-labelled";
 
 export const CAN_BE_WHITE_LABELLED_DESCRIPTION: string =
-  "Lets the customer replace the OneUptime name and logo on their own installation, from Admin Dashboard > Settings > White Label. Their installation picks it up at its next license refresh (daily, or when they refresh the license), from a signed license token only.";
+  "Lets the customer use their own name and logo on their installation (Settings > White Label), from its next license refresh.";
 
 // Beside the license type in the list, for a license with the switch on.
 export const WhiteLabelBadge: FunctionComponent = (): ReactElement => {

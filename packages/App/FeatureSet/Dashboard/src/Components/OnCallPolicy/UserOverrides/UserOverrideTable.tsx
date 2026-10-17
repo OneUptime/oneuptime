@@ -270,8 +270,8 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
             ? "On-Call Policy User Overrides"
             : "Global User Overrides",
           description: props.onCallDutyPolicyId
-            ? "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > Advanced > User Overrides."
-            : "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page, under Advanced.",
+            ? "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation."
+            : "While someone is away, their pages from every on-call policy go to whoever covers for them, or to the next person in the rotation.",
         }}
         formFields={formFields}
         noItemsMessage={

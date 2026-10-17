@@ -226,7 +226,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
         title: "Change Monitor Status to",
         stepId: "resources-affected",
         description:
-          "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.",
+          "The status the event's monitors change to while it is ongoing, including monitors picked when it is scheduled.",
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownModal: {
           type: MonitorStatus,

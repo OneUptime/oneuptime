@@ -236,7 +236,7 @@ const getAllowedOriginsField: GetAllowedOriginsFieldFunction = (data: {
     },
     placeholder: '["https://app.example.com", "app://com.example.mobile"]',
     description:
-      'List web origins and exact native app identities as a JSON array. Web origins include the scheme and any port; one leading host wildcard is supported. React Native session replay uses "app://" plus the Android package or iOS bundle id, and app entries cannot contain wildcards. An app identity is self-asserted by the client, not platform attestation.',
+      'A JSON array of web origins (with scheme and port) and app:// identities for React Native session replay.',
   };
 };
 
@@ -266,7 +266,7 @@ const getPinnedServiceNameField: GetPinnedServiceNameFieldFunction = (data: {
     required: false,
     placeholder: "storefront-web",
     description:
-      "Set service.name on all telemetry sent with this key. This prevents someone who copies the public key from writing telemetry under a different service name.",
+      "Sets service.name on everything sent with this key, so a copied key cannot write as another service.",
     collapsibleSection: data.collapsibleSection,
   };
 };
@@ -327,14 +327,14 @@ export const getIngestionKeyFormFields: (
                 title: "Server",
                 icon: IconProp.Server,
                 description:
-                  "For servers, containers and OpenTelemetry collectors. Writes every kind of telemetry without origin restrictions. Keep it secret: never include it in browser JavaScript or a mobile app.",
+                  "For servers, containers and OpenTelemetry collectors. Keep it secret: never put it in a browser or a mobile app.",
               },
               {
                 value: TelemetryIngestionKeyType.Browser,
                 title: "Browser",
                 icon: IconProp.Globe,
                 description:
-                  "For public web telemetry and React Native session replay. Web origins may send traces, logs, metrics and replays; exact app:// identities authorize mobile replay only. Requests are rate limited. Configure the identities in the next step.",
+                  "For websites and React Native session replay. Safe to publish: limited to the origins you list, and rate limited.",
               },
             ],
             required: true,

@@ -786,7 +786,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         },
         title: "Parent Group",
         description:
-          "Nest this group inside another group on your status page (for example Corporate Units › Region › Market). Leave empty to keep it at the top level. Every level shows the rolled up status and uptime of everything beneath it.",
+          "Nest this group inside another, such as Region › Market. Each level shows the status of everything beneath it.",
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownOptions: getParentGroupOptions(),
         required: false,
@@ -798,7 +798,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         },
         title: "View Mode",
         description:
-          "How resources in this group are laid out on the public status page. 'List' is the classic vertical list. 'Grid' renders resources as a matrix using row and column axes.",
+          "How this group's resources are laid out: a list, or a grid of rows and columns.",
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
           StatusPageGroupViewMode,

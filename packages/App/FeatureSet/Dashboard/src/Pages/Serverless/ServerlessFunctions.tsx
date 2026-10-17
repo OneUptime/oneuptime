@@ -126,7 +126,7 @@ const ServerlessFunctions: FunctionComponent<
             title: "Function Name (faas.name)",
             placeholder: "checkout-handler",
             description:
-              "The faas.name your function's telemetry carries, exactly. On Azure Functions, that is the function app's OTEL_SERVICE_NAME. Telemetry is matched to this function by it.",
+              "The faas.name your function's telemetry carries, exactly (on Azure Functions, the app's OTEL_SERVICE_NAME).",
           }),
           getDisplayNameFormField<ServerlessFunction>({
             getDefaultName:
@@ -135,7 +135,7 @@ const ServerlessFunctions: FunctionComponent<
               ),
             placeholder: "Checkout handler",
             description:
-              "Starts as the function name, the way discovered functions are named. Type a name of your own to show it instead. Telemetry is still matched by the function name.",
+              "Starts as the function name. Type your own name to show instead; telemetry is still matched by the function name.",
             collapsibleSection: advancedSection,
           }),
           {

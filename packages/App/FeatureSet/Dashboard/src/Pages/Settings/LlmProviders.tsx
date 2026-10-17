@@ -355,7 +355,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               required: false,
               placeholder: "sk-...",
               description:
-                "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
+                "Required for OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq and Mistral. Optional for Ollama and OpenAI-compatible servers.",
             },
             {
               field: {
@@ -368,7 +368,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               placeholder:
                 "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
               description:
-                "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment's name for Azure OpenAI / Microsoft Foundry, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
+                "The model to use, such as gpt-5.1 or claude-sonnet-5-5. For Azure OpenAI / Microsoft Foundry, your deployment's name.",
             },
             {
               field: {
@@ -389,7 +389,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 maxLength: ColumnLength.ShortURL,
               },
               description:
-                "Required for Azure OpenAI / Microsoft Foundry, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI / Microsoft Foundry use your resource's endpoint, e.g. https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude. Optional for others to override the default endpoint. Everyone who can see this project's settings can read it, so never put a key, a token or a password in it: use the API Key.",
+                "Needed for Azure OpenAI / Microsoft Foundry, Ollama and OpenAI-compatible servers. Keep keys out: anyone who sees these settings can read it.",
             },
             {
               field: {
@@ -407,7 +407,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                */
               defaultValue: true,
               description:
-                "Use this provider for AI features in this project. Only the default provider is used — if you turn this off (and no other provider is the default), this provider will not be used by AI features.",
+                "AI features in this project use the default provider.",
             },
             {
               field: {
@@ -419,7 +419,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               required: false,
               collapsibleSection: advancedSection,
               description:
-                'Optional JSON object with extra parameters sent directly to the provider API. These override any defaults. Leave empty unless you need model-specific parameters. Presets — OpenAI / Azure OpenAI (gpt-5 family): {"max_completion_tokens": 2048} | OpenAI o1/o3 reasoning models: {"reasoning_effort": "high", "max_completion_tokens": 10000} | Override temperature: {"temperature": 0.2} | Top-p sampling: {"top_p": 0.9}',
+                'Extra JSON parameters sent to the provider with every request, such as {"temperature": 0.2}. Leave empty unless your model needs them.',
             },
           ]}
           showRefreshButton={true}

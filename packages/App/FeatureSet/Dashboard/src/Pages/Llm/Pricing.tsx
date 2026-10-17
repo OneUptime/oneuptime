@@ -41,7 +41,7 @@ const LlmPricingPage: FunctionComponent<PageComponentProps> = (
       cardProps={{
         title: "Custom LLM Pricing",
         description:
-          "Custom per-million-token prices for this project — negotiated rates, self-hosted models, or fine-tunes the built-in catalog does not know. When a span reports tokens but no cost, the longest matching model prefix wins across your entries and the built-in catalog; your entry beats the built-in one on ties.",
+          "Your own per-million-token prices, for negotiated rates or models the built-in catalog does not know. They win over the catalog's.",
       }}
       noItemsMessage={
         "No custom LLM prices found. Spans are priced with the built-in list-price catalog."
@@ -59,7 +59,7 @@ const LlmPricingPage: FunctionComponent<PageComponentProps> = (
           required: true,
           placeholder: "gpt-4o or my-custom-finetune",
           description:
-            "Model-name prefix this price matches (case-insensitive). The longest matching prefix wins, so gpt-4o also matches gpt-4o-2024-08-06 unless a longer entry exists.",
+            "The model-name prefix this price matches, case-insensitive. The longest matching prefix wins.",
         },
         {
           field: { description: true },

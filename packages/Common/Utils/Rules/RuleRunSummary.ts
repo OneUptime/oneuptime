@@ -40,20 +40,20 @@ export default class RuleRunSummary {
 
     switch (meta.action) {
       case RuleRunAction.AddLabels:
-        return `Evaluate this rule against the ${meta.resourcePlural} that already exist in this project and attach its labels to the ones it matches. Label rules normally only run when a ${meta.resourceSingular} is created, so this is how a rule reaches ${meta.resourcePlural} that existed before it was written.\n\nLabels are only added, never removed, so running this more than once is safe.`;
+        return `Attach this rule's labels to the ${meta.resourcePlural} it matches that already exist. Labels are only added, never removed, so running it again is safe.`;
       case RuleRunAction.AddOwners:
-        return `Evaluate this rule against the ${meta.resourcePlural} that already exist in this project and add its owners to the ones it matches. Owner rules normally only run when a ${meta.resourceSingular} is created, so this is how a rule reaches ${meta.resourcePlural} that existed before it was written.\n\nOwners are only added, never removed, and owners who are already assigned are skipped, so running this more than once is safe.`;
+        return `Add this rule's owners to the ${meta.resourcePlural} it matches that already exist. Owners are only added, never removed, so running it again is safe.`;
       case RuleRunAction.MarkPrivate:
-        return `Evaluate this rule against the ${meta.resourcePlural} that already exist in this project and make the ones it matches private. Privacy rules normally only run when a ${meta.resourceSingular} is created, so this is how a rule reaches ${meta.resourcePlural} that existed before it was written.\n\nNothing is ever made public again by a run, so running this more than once is safe.`;
+        return `Make the ${meta.resourcePlural} this rule matches that already exist private. Nothing is made public again, so running it again is safe.`;
       case RuleRunAction.SyncStatusPageMonitors:
-        return "Re-evaluate this rule against every monitor in the project: monitors it matches are added to this status page, and monitors it added earlier that no longer match are removed. Monitors added to the page by hand are never touched.\n\nRules already re-sync when they are saved, so use this to pick up changes the page missed.";
+        return "Add the monitors this rule matches to this status page, and remove the ones it added that no longer match. Monitors added by hand are never touched.";
       case RuleRunAction.SyncSloMonitors:
         /*
          * Says "this SLO's enabled monitor rules", not "this rule": membership
          * is a union, so the sync evaluates every enabled rule of the SLO
          * together, and promising one rule's effect would misdescribe it.
          */
-        return "Re-evaluate this SLO's enabled monitor rules against every monitor in the project: monitors any of them matches are attached to this SLO, and monitors the rules attached earlier that none of them matches any more are detached. Monitors attached to the SLO by hand are never touched.\n\nRules already re-sync the SLO when they are saved, so use this to pick up changes the SLO missed.";
+        return "Attach the monitors this SLO's enabled rules match, and detach the ones they attached that no longer match. Monitors attached by hand are never touched.";
     }
   }
 
@@ -66,10 +66,10 @@ export default class RuleRunSummary {
     }
 
     if (meta.action === RuleRunAction.SyncSloMonitors) {
-      return "Re-sync this SLO's monitors now: attach the monitors its enabled rules match and detach the ones the rules attached that no longer match. Monitors attached by hand are left alone.";
+      return "Re-sync this SLO's monitors now with its enabled rules. Monitors attached by hand are left alone.";
     }
 
-    return `This rule runs automatically only when a ${meta.resourceSingular} is created. Run it now to apply it to the ${meta.resourcePlural} that already exist in this project.`;
+    return `This rule runs when a ${meta.resourceSingular} is created. Run it now for the ${meta.resourcePlural} that already exist.`;
   }
 
   /*
@@ -95,11 +95,11 @@ export default class RuleRunSummary {
     }
 
     if (meta.action === RuleRunAction.SyncSloMonitors) {
-      return `Re-sync this SLO's monitors for ${rules}? Each run re-evaluates all of this SLO's enabled monitor rules together, so after the first one the rest usually find nothing to change. Monitors attached by hand are never touched, and disabled rules are skipped with an error.`;
+      return `Re-sync this SLO's monitors for ${rules}? Its enabled rules are run together, and monitors attached by hand are never touched.`;
     }
 
     const lines: Array<string> = [
-      `Run ${rules} against the ${meta.resourcePlural} that already exist in this project? Each rule is applied the same way it is when a ${meta.resourceSingular} is created, and disabled rules are skipped with an error.`,
+      `Run ${rules} on the ${meta.resourcePlural} that already exist? Disabled rules are skipped.`,
     ];
 
     if (meta.action === RuleRunAction.AddOwners) {

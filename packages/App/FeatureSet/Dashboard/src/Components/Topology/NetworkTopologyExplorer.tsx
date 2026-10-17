@@ -944,7 +944,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
                    * and the search box's dropdown is where that shows up.
                    */
                   isRemoteSearchable(normalizedSearch)
-                  ? `No ${childTypeLabelPlural} at this level match what you are looking for. Click the search box to see matching sites from anywhere in your network, or clear the search or the health filter to see the rest of this level.`
+                  ? `No ${childTypeLabelPlural} here match. Click the search box to find sites anywhere in your network, or clear the filters.`
                   : `No ${childTypeLabelPlural} at this level match what you are looking for. Clear the search or the health filter to see the rest.`
                 : `Nothing has been added inside ${
                     currentSite ? currentSite.name : "this project"

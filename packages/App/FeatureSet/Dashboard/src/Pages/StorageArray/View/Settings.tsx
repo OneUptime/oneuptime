@@ -28,7 +28,7 @@ const StorageArraySettings: FunctionComponent<
         nameField={{
           title: "Name",
           description:
-            "Must match the storage.array.name the Storage Array Agent reports (its STORAGE_ARRAY_NAME). Telemetry is matched to this array by it: rename it on the agent too, or the agent's next report creates a new storage array.",
+            "Must match the storage.array.name the Storage Array Agent reports. Rename it there too, or its next report creates a new array.",
           placeholder: "pure-prod-01",
         }}
         descriptionField={{

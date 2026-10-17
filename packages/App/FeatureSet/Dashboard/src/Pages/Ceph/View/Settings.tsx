@@ -27,7 +27,7 @@ const CephClusterSettings: FunctionComponent<
         nameField={{
           title: "Name",
           description:
-            "Must match the ceph.cluster.name the Ceph Agent reports (its CEPH_CLUSTER_NAME). Telemetry is matched to this cluster by it: rename it on the agent too, or the agent's next report creates a new cluster.",
+            "Must match the ceph.cluster.name the Ceph Agent reports. Rename it there too, or the agent's next report creates a new cluster.",
           placeholder: "production-ceph-cluster",
         }}
         descriptionField={{

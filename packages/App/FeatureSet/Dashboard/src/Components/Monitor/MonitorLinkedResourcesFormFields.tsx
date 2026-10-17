@@ -40,7 +40,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         },
         title: "Linked Resources",
         description:
-          "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.",
+          "The hosts, clusters, databases and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.",
         fieldType: FormFieldSchemaType.CustomComponent,
         required: false,
         getCustomElement: (

@@ -140,7 +140,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Re-investigation Cooldown (Minutes)",
               description:
-                "Repeat alerts from the same monitor within this many minutes are not re-investigated — the first analysis stands. Leave empty for no cooldown, so every alert is investigated. At most 1440 minutes (a day).",
+                "Alerts from the same monitor within this many minutes reuse the first investigation. Leave empty to investigate every alert. At most 1440.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "No cooldown",
@@ -195,7 +195,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Max Concurrent Alert Investigations",
               description:
-                "How many alert investigations may run at the same time for this project. Leave empty for no limit — every alert investigation starts right away. With a limit set (minimum 1), queued alert investigations wait for a free slot and expire after 30 minutes.",
+                "How many alert investigations may run at once. Leave empty for no limit. Queued ones wait for a free slot for up to 30 minutes.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "No limit",
@@ -206,7 +206,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Alert Investigation Time Limit (Minutes)",
               description:
-                "Stop an alert investigation after this many minutes and report what it found. Leave empty for no time limit — OneUptime AI keeps investigating (running every query and command it needs) until it is done.",
+                "Stop an alert investigation after this many minutes and report what it found. Leave empty for no limit.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "No time limit",
@@ -276,7 +276,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Daily Alert AI Fix Task Limit",
               description:
-                "How many fix pull requests OneUptime AI may start on for alerts each day, whether someone asked for one or not. Leave empty for no limit, or set 0 to pause them.",
+                "How many fix pull requests OneUptime AI may start for alerts each day. Leave empty for no limit, or 0 to pause them.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "No limit",

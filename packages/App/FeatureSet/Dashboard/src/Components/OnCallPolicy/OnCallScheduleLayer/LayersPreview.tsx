@@ -831,7 +831,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           description={
             scheduleZoneName
               ? translator.translateTemplate(
-                  "A combined preview of who is on call and when, after all layers and priorities are applied. Restriction windows are resolved in this schedule's timezone — {{timezone}}.",
+                  "Who is on call and when, with every layer applied. Times are in this schedule's timezone, {{timezone}}.",
                   { timezone: scheduleZoneName },
                 )
               : translator.translateTemplate(

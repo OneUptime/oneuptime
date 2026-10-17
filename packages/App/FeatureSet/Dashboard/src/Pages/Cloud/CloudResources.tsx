@@ -206,7 +206,7 @@ const CloudResources: FunctionComponent<
         cardProps={{
           title: "Cloud Environments",
           description:
-            "Managed cloud compute environments auto-discovered from OpenTelemetry — one per cloud.platform + account + region (AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Elastic Beanstalk, App Runner). Per-service breakdown lives under Services.",
+            "Managed compute environments discovered from OpenTelemetry, one per platform, account and region, such as AWS ECS or Google Cloud Run.",
         }}
         formFields={[
           {
@@ -219,7 +219,7 @@ const CloudResources: FunctionComponent<
             required: true,
             placeholder: "Select a platform",
             description:
-              "The managed compute platform this environment runs on. Must equal the cloud.platform resource attribute your collector reports, or telemetry will never be matched to this environment.",
+              "The platform this environment runs on. It must match the cloud.platform your collector reports.",
             onChange: followWithDisplayName<CloudResource>({
               fieldKey: "cloudPlatform",
               getDefaultName: getCloudEnvironmentNameFromFields,
@@ -234,7 +234,7 @@ const CloudResources: FunctionComponent<
             required: false,
             placeholder: "123456789012",
             description:
-              "AWS account id, GCP project id or Azure subscription id — exactly as the cloud.account.id resource attribute reports it. Leave blank if your collector does not report one.",
+              "The AWS account, GCP project or Azure subscription id, as cloud.account.id reports it. Leave blank if it is not reported.",
             onChange: followWithDisplayName<CloudResource>({
               fieldKey: "cloudAccountId",
               getDefaultName: getCloudEnvironmentNameFromFields,
@@ -259,7 +259,7 @@ const CloudResources: FunctionComponent<
             getDefaultName: getCloudEnvironmentNameFromFields,
             placeholder: "AWS ECS · us-east-1 · 123456789012",
             description:
-              "Starts as platform · region · account, the way discovered environments are named. Type a name of your own to show it instead. Telemetry is still matched by the platform, account and region.",
+              "Starts as platform · region · account. Type your own name to show instead; telemetry is still matched by platform, account and region.",
             collapsibleSection: advancedSection,
           }),
           {
@@ -458,7 +458,7 @@ const CloudResources: FunctionComponent<
       {count === 0 && (
         <CloudDocumentationCard
           title="Getting Started with Cloud Environments"
-          description="No cloud environments connected yet. Point your OpenTelemetry Collector at OneUptime with a cloud resource detector using the guide below — managed compute appears here automatically once the first telemetry arrives."
+          description="No cloud environments yet. Point your OpenTelemetry Collector at OneUptime with a cloud resource detector, using the guide below."
         />
       )}
     </Fragment>

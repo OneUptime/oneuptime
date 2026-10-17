@@ -179,7 +179,7 @@ export function getVMwareConnectFormFields(
       required: false,
       placeholder: "AB:CD:EF:...",
       description:
-        "Leave empty when vCenter's certificate is from an authority the probe trusts. vCenter uses a certificate from its own authority by default: test the connection to see it, and trust it.",
+        "Leave empty if the probe trusts vCenter's certificate. vCenter's own certificate needs trusting: test the connection to see it.",
       customValidation: (values: FormValues<VMwareVCenter>): string | null => {
         return validateTrustedCertificate(
           (values as Record<string, unknown>)["trustedCertificateFingerprint"],
@@ -322,7 +322,7 @@ export function getVMwareConnectionFormFields(
       required: false,
       placeholder: "AB:CD:EF:...",
       description:
-        "Leave empty when vCenter's certificate is from an authority the probe trusts. vCenter uses a certificate from its own authority by default: test the connection to see it, and trust it.",
+        "Leave empty if the probe trusts vCenter's certificate. vCenter's own certificate needs trusting: test the connection to see it.",
       customValidation: (values: FormValues<VMwareVCenter>): string | null => {
         return validateTrustedCertificate(
           (values as Record<string, unknown>)["trustedCertificateFingerprint"],

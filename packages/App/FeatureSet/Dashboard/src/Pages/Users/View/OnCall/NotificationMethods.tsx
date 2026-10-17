@@ -1029,7 +1029,7 @@ const UserViewNotificationMethods: FunctionComponent<
                 )
           }
           description={translator.translateTemplate(
-            "A verification code is sent to the address or device you enter. {{name}} has to enter that code before this method can notify them — you cannot verify it for them.",
+            "A verification code is sent to what you enter, and {{name}} must enter it before this method can notify them.",
             { name: firstName },
           )}
           isLoading={isSaving}

@@ -32,7 +32,7 @@ import {
  * (a two-label name is an ordinary DNS domain without a namespace).
  */
 export const DATABASE_SERVER_ADDRESS_DESCRIPTION: string =
-  "The host name or IP your applications connect to — what their traces report as server.address. Never localhost. For an address that only resolves inside one Kubernetes cluster (pg.shop.svc.cluster.local, pg.shop.svc) or a private IP, add the cluster your agent reports: pg.shop.svc.cluster.local:5432@prod-eu. A SQL Server named instance is host\\INSTANCE. Do not include a user name (user@host).";
+  "The host or IP your applications connect to (server.address). For an in-cluster or private address, add @<cluster>: pg.shop.svc:5432@prod-eu.";
 
 /*
  * Appended to the `@<cluster>` advice for a Kubernetes Service name: for

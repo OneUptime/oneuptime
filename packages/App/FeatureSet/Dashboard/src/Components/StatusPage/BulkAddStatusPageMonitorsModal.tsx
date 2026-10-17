@@ -157,7 +157,7 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         },
         title: "Monitors",
         description:
-          "Select monitors that will be shown on the status page. The display name and description of each resource is copied from its monitor. Monitors already on this status page are skipped, so selecting a label again only adds the monitors that are new to it.",
+          "The monitors to show on the status page, with their names and descriptions. Ones already on the page are skipped.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         dropdownModal: {
           type: Monitor,
@@ -201,7 +201,7 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         required: false,
         defaultValue: true,
         description:
-          "Monitors carrying these labels are added to this group now and whenever a new monitor is given one of them. Turn this off to add only the monitors selected above, once.",
+          "Also add monitors that get one of these labels later.",
         showIf: (): boolean => {
           return syncLabels.length > 0 && !props.gridPlacement;
         },

@@ -757,7 +757,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
               [removeSecretFieldName(definition.provider, field.key)]: true,
             },
             title: `Remove the stored ${field.title}`,
-            description: `On: the stored ${field.title} is deleted when you save, for example after switching to a different sign-in method. Anything typed in ${field.title} is ignored while this is on.`,
+            description: `Delete the stored ${field.title} when you save, for example after changing the sign-in method.`,
             stepId: CREDENTIALS_STEP_ID,
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
@@ -853,7 +853,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
         field: { caseMinimumSeverity: true },
         title: "Open Cases From",
         description:
-          "Alerts this product raised at or above this severity open security cases to triage, grouped by the user, host or address they are about. Never: the alerts are imported as events only.",
+          "Alerts at or above this severity open security cases, grouped by user, host or address. Never imports them as events only.",
         stepId: POLLING_STEP_ID,
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownOptions: CASE_SEVERITY_CHOICES.map(

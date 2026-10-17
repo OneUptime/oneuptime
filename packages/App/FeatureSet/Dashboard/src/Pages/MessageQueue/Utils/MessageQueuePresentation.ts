@@ -82,7 +82,7 @@ export const MESSAGE_QUEUE_OTHER_SYSTEM_LABEL: string =
 export const MESSAGE_QUEUE_OTHER_SYSTEM_FIELD: string = "otherMessagingSystem";
 
 export const MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION: string =
-  'The messaging.system value your applications\' spans report for this broker, exactly as they report it: lowercase letters, digits, ".", "_" and "-", at most 64 characters.';
+  'The messaging.system value your spans report for this broker, exactly as written.';
 
 /**
  * The create form's System dropdown: every catalog system, then the "Other
@@ -427,7 +427,7 @@ export const MESSAGE_QUEUE_NOT_FOUND_MESSAGE: string = "Queue not found.";
  * owner rules, which match on name and description, see the new one.
  */
 export const MESSAGE_QUEUE_NAME_HELP: string =
-  "Shown everywhere this queue appears. Renaming is safe: queues are matched by their messaging system and destination, never by name, and label and owner rules match the new name.";
+  "Shown everywhere this queue appears. Renaming is safe: queues are matched by their messaging system and destination, not their name.";
 
 /*
  * Deleting a DISCOVERED queue does not make it go away: the next span or
@@ -444,7 +444,7 @@ export const MESSAGE_QUEUE_DELETE_WARNING: string =
   "A queue discovered from application traces or broker metrics comes back the next time its spans or metrics name it, with a new id and without the name, description, labels and owners people gave it; its traces and metrics are still there. To hide a queue you no longer care about, archive it instead (Settings → Archive).";
 
 export const MESSAGE_QUEUE_DESTINATION_DESCRIPTION: string =
-  "The queue, topic or subscription name as your applications and the broker name it. An SQS queue URL, an SNS topic ARN or a Pub/Sub resource path is reduced to its name, the way discovery reads it.";
+  "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.";
 
 /*
  * An empty namespace is a real queue: the one spans from the emulator or
@@ -453,7 +453,7 @@ export const MESSAGE_QUEUE_DESTINATION_DESCRIPTION: string =
  * that queue — which is why the field says when to leave it empty.
  */
 export const MESSAGE_QUEUE_NAMESPACE_DESCRIPTION: string =
-  "The Azure namespace the queue lives in: the first part of <namespace>.servicebus.windows.net, or that whole host name. It is part of the queue's identity, because two namespaces can each hold a queue of the same name. Leave it empty only for a queue your applications reach through the emulator or a custom domain: their spans name no namespace, and Azure Monitor's metrics never reach such a queue.";
+  "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.";
 
 // ---- manual create ----------------------------------------------------------
 

@@ -180,7 +180,7 @@ export const SMTP_PASSWORD_DESCRIPTION: string = translationKey(
 );
 
 export const SMTP_TRANSPORT_DESCRIPTION: string = translationKey(
-  "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.",
+  "SMTP works with most mail servers. Pick Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off.",
 );
 
 /*
@@ -192,7 +192,7 @@ export const SMTP_TRANSPORT_DESCRIPTION: string = translationKey(
  * enable this if you use port 587" was the opposite of the advice now.
  */
 export const SMTP_REQUIRE_TLS_DESCRIPTION: string = translationKey(
-  "Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted.",
+  "Send mail only over an encrypted connection with a valid certificate. Port 465 is always encrypted.",
 );
 
 export const SMTP_FROM_EMAIL_DESCRIPTION: string = translationKey(
@@ -656,7 +656,7 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       required: true,
       placeholder: "Client secret value",
       description:
-        "For Client Credentials: Client secret from your OAuth application. For JWT Bearer (Google): The entire private_key from your service account JSON file (including BEGIN/END markers).",
+        "Your OAuth app's client secret. For Google (JWT Bearer), the whole private_key from the service account's JSON file.",
       disableSpellCheck: true,
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpOAuthCredentials(values, columns);
@@ -672,7 +672,7 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       placeholder:
         "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
       description:
-        "The OAuth token endpoint URL. For Microsoft 365 (both SMTP+OAuth and Microsoft Graph): https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
+        "Your provider's OAuth token endpoint. For Google: https://oauth2.googleapis.com/token",
       disableSpellCheck: true,
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpOAuthCredentials(values, columns);
@@ -687,7 +687,7 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       required: true,
       placeholder: "https://graph.microsoft.com/.default",
       description:
-        "The OAuth scope(s) required. For Microsoft Graph: https://graph.microsoft.com/.default. For Microsoft 365 SMTP+OAuth: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+        "For Microsoft 365 SMTP: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
       disableSpellCheck: true,
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpOAuthCredentials(values, columns);

@@ -543,7 +543,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "Send First Report At",
             description:
-              "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.",
+              "Later summaries follow at the same time of day. Leave empty to start at 09:00 at the start of the next period.",
             fieldType: FormFieldSchemaType.DateTime,
             required: false,
             stepId: "schedule",
@@ -901,7 +901,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Send Test Summary Now`}
           error={testError}
-          description={`This will send the "${testSummary.name}" summary to ${getWorkspaceTypeDisplayName(props.workspaceType)} right now. The summary will include data from the last ${testSummary.numberOfDaysOfData || 7} days. This will not affect the regular schedule.`}
+          description={`Send the "${testSummary.name}" summary to ${getWorkspaceTypeDisplayName(props.workspaceType)} now, with the last ${testSummary.numberOfDaysOfData || 7} days of data. The regular schedule is not affected.`}
           submitButtonText={"Send Now"}
           onClose={() => {
             setShowTestModal(false);

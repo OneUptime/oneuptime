@@ -96,7 +96,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
           <div>
             <FieldLabelElement
               title="Component Group Filter (Optional)"
-              description="Scope to a specific component group, e.g. 'APIs'. Incidents and component statuses outside this group are ignored. Supported for Atlassian Statuspage and incident.io."
+              description="Only watch one component group, e.g. 'APIs'. Works with Atlassian Statuspage and incident.io."
               required={false}
             />
             <Input

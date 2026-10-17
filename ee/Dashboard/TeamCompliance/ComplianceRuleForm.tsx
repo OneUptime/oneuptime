@@ -448,7 +448,7 @@ export const getComplianceRuleFormFields: (
       stepId: RULE_FORM_STEP_SCOPE,
       title: "Channels",
       description:
-        "Members need a rule that notifies them on each channel you pick - Call and Push notification, say, so a critical page rings their phone and reaches the app. Leave empty to accept any channel.",
+        "Members need a notification rule on each channel you pick, such as Call and Push notification. Leave empty to accept any channel.",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
       dropdownOptions: getChannelDropdownOptions(offeredWorkspaces),
       placeholder: "Any channel",

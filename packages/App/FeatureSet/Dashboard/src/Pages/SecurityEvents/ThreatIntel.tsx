@@ -213,7 +213,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "API Token",
             stepId: "authentication",
             description:
-              "Bearer token for token-authenticated collections. Encrypted at rest and never returned by the API — use the row's Update Credentials action to rotate it later. Leave empty for anonymous or basic-auth collections.",
+              "A bearer token for collections that need one. It is never shown again; use Update Credentials to replace it.",
             fieldType: FormFieldSchemaType.Password,
             required: false,
             /*
@@ -292,7 +292,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Open a Case on Match",
             stepId: "cases",
             description:
-              "Group each event that names a known indicator into a security case to triage: a new case, or the open case already about that indicator. Playbooks run on the cases it opens.",
+              "Group events that name a known indicator into security cases. Playbooks run on the cases it opens.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -549,7 +549,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           headerLayout: "stacked",
           title: "Indicators",
           description:
-            "Raw ingested indicator rows from the feeds above, eventually consistent: a re-polled indicator can briefly appear twice until ClickHouse merges versions, and revoked or expired rows remain listed until retention cleanup. Matching always checks validity and revocation at query time, so a stale row here is never matched.",
+            "Indicators from the feeds above. An indicator can briefly appear twice, and expired ones stay listed for a while; matching skips both.",
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -720,7 +720,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
                 },
                 title: "Authentication",
                 description:
-                  "How the poller authenticates to the TAXII server. The choice replaces the feed's current authentication — any previously stored secret of the other kind is cleared.",
+                  "How OneUptime signs in to the TAXII server. Changing it clears the secret of the other kind.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownOptions: [
                   { label: "API Token (Bearer)", value: "api-token" },

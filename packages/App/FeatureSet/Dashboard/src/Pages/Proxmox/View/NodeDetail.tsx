@@ -476,7 +476,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
         <ConfirmModal
           title="Remove Node"
           description={translator.translateTemplate(
-            "Only remove {{nodeName}} if it has been removed from the Proxmox cluster. OneUptime cannot tell a node that was removed from one that is down, so it keeps reporting it as offline until you remove it here. Once it is removed, its Node Offline alert resolves within a few minutes. If {{nodeName}} reports again, it comes back.",
+            "Only remove {{nodeName}} if it left the Proxmox cluster: OneUptime reports it offline until you do. If it reports again, it comes back.",
             { nodeName: pveNodeName },
           )}
           submitButtonText="Remove Node"

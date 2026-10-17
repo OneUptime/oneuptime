@@ -74,7 +74,7 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
-            "Notify master administrators when Valkey discards keys because it reached its memory limit. Leave this off if you run Valkey as a pure cache, where eviction is expected.",
+            "Notify master admins when Valkey drops keys because it is out of memory. Leave it off if Valkey is only a cache, where that is expected.",
         },
         {
           field: {
@@ -113,7 +113,7 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
-            "Notify master administrators when a Valkey RDB snapshot or AOF write fails, which means everything since the last successful write is lost if Valkey restarts.",
+            "Notify master admins when a Valkey RDB snapshot or AOF write fails: a restart would lose everything since the last good write.",
         },
       ]}
       modelDetailProps={{

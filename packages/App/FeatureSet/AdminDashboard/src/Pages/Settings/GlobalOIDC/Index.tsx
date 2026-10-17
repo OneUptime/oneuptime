@@ -45,7 +45,7 @@ const Settings: FunctionComponent = (): ReactElement => {
       <Banner
         openInNewTab={true}
         title="Instance-wide OpenID Connect (OIDC) SSO"
-        description="If no projects are attached to a provider, it works for ALL projects a user is already a member of (users must be invited first — they cannot sign up). Open a provider to attach projects and auto-provision users into specific teams."
+        description="A provider with no projects attached signs people in to the projects they already belong to. Attach projects to add newcomers to their teams."
         link={Route.fromString("/docs/identity/global-sso")}
         hideOnMobile={true}
       />

@@ -202,7 +202,7 @@ const KubernetesClusters: FunctionComponent<
               getNameFromIdentityField<KubernetesCluster>("clusterIdentifier"),
             placeholder: "Production US East",
             description:
-              "Starts as the cluster name, the way discovered clusters are named. Type a name of your own to show it instead. Telemetry is still matched by the cluster name.",
+              "Starts as the cluster name. Type your own name to show instead; telemetry is still matched by the cluster name.",
             collapsibleSection: advancedSection,
           }),
           {

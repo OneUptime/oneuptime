@@ -53,7 +53,7 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="Lookup Method"
-          description="How registration data is read. Auto uses RDAP when the TLD publishes one and falls back to WHOIS. Some TLDs (such as .digital) have no working WHOIS server, and some (such as .io) have no RDAP service."
+          description="How registration data is read. Auto uses RDAP where the TLD has it and falls back to WHOIS."
           required={true}
         />
         <Dropdown

@@ -198,7 +198,7 @@ const AttackCoveragePage: FunctionComponent<
 
       <Card
         title="MITRE ATT&CK Coverage"
-        description="Each column is a tactic - what an attacker is trying to do - and each cell a technique - how. A lit cell is covered by at least one enabled detection rule; an outlined one is covered by a rule in the library you have not added yet. Select a technique to see the rules behind it."
+        description="Columns are tactics and cells techniques. Lit cells are covered by your rules, outlined ones by library rules not added yet."
         headerLayout="stacked"
         rightElement={
           <Toggle

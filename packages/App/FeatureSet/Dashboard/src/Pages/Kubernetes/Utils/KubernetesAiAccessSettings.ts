@@ -194,7 +194,7 @@ export const REMEDIATION_MODE_OPTION_DESCRIPTIONS: Record<
  * unattended by the modal's every-mode protections.
  */
 export const KUBECTL_ALLOWLIST_FIELD_DESCRIPTION: string = translationKey(
-  'One pattern per line. A riskier kubectl command that matches a pattern runs without approval. Patterns are matched word by word: * matches exactly one word, flags must be written out, and a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web.',
+  'One pattern per line, matched word by word: * is one word and flags are written out. A matching kubectl command runs without approval.',
 );
 
 /*

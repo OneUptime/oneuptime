@@ -82,7 +82,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Turn this off to stop accepting telemetry written with this key straight away, without deleting it. This is the fastest response to a key you think is being abused, and it is reversible - if the key leaked rather than just misbehaved, rotate it below as well.",
+              "Accept telemetry sent with this key. Turning it off stops a misused key at once, without deleting it.",
           },
           {
             field: {
@@ -93,7 +93,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Date,
             required: false,
             description:
-              "After this date the key stops being accepted. Leave it empty for a key that never expires. An expiry bounds how long a copy of a published browser key stays useful to whoever took it.",
+              "After this date the key stops working. Leave empty for a key that never expires.",
             validation: {
               dateShouldBeInTheFuture: true,
             },
@@ -108,7 +108,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toString(),
             description: translator.translateTemplate(
-              "Ingest requests per minute accepted with this key. The limit is per key and shared by every client using it, so it has to clear your whole fleet at peak, not one browser tab. Leave it empty to use the default for a browser key ({{limit}} per minute) and to leave a server key unlimited.",
+              "Requests per minute this key accepts, shared by every client using it. Leave empty for {{limit}} on a browser key, unlimited on a server key.",
               { limit: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE },
             ),
             validation: {
@@ -157,7 +157,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             placeholder:
               '["https://app.example.com", "app://com.example.mobile"]',
             description:
-              'JSON array of web origins and exact native app identities this key may be used from. Required on a Browser key. Web origins include the scheme and port and may use one leading "*." host wildcard. React Native replay uses "app://" plus the Android package or iOS bundle id; app entries cannot use wildcards and are self-asserted identifiers, not platform attestation. Ignored on a Server key.',
+              'A JSON array of web origins and app:// identities this key may be used from. Required on a Browser key.',
           },
           {
             field: {
@@ -169,7 +169,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "storefront-web",
             description:
-              "Forces service.name to this value on everything the key writes, replacing whatever the sender set. Anyone who copies the key out of your page can then only write into this one service, instead of forging telemetry that looks like it came from one of your backend services.",
+              "Forces service.name to this value on everything the key writes, so a copied key cannot pose as your other services.",
           },
         ]}
         modelDetailProps={{

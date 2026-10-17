@@ -324,7 +324,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
           title: props.cardTitle || "Inventory",
           description:
             props.cardDescription ||
-            "Everything OneUptime knows about your estate: services, hosts, pods and containers discovered from telemetry, network devices and cloud resources mirrored from elsewhere in OneUptime, plus anything you register by hand.",
+            "Everything OneUptime knows about: services, hosts and containers from telemetry, network devices, cloud resources, and anything you add by hand.",
         }}
         query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,

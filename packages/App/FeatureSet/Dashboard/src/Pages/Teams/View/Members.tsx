@@ -162,7 +162,7 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
             },
             title: "Email",
             description:
-              "Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to this team.",
+              "We email them an invitation to this team.",
             fieldType: FormFieldSchemaType.Email,
             required: true,
             placeholder: "member@company.com",

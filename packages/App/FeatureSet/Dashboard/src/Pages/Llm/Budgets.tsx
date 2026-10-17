@@ -45,7 +45,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
       cardProps={{
         title: "LLM Cost Budgets",
         description:
-          "Daily USD budgets for LLM spend. Every 15 minutes a worker sums the UTC day's LLM span cost and publishes the oneuptime.llm.budget.spend.usd and oneuptime.llm.budget.percent.used metrics. Alert with a Metrics monitor (e.g. percent used >= 80) filtered by the oneuptime.llm.budget.id attribute, with a 30-minute rolling window.",
+          "Daily USD budgets for LLM spend. Spend is published as metrics every 15 minutes: alert on them with a Metrics monitor.",
       }}
       noItemsMessage={"No LLM cost budgets found."}
       formSteps={[
@@ -88,7 +88,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           required: true,
           placeholder: "100",
           description:
-            "Daily budget in USD, evaluated over the UTC day. Spend and percent-used are published as metrics every 15 minutes — alert on them with a Metrics monitor.",
+            "The daily budget in USD, over the UTC day.",
         },
         {
           field: { service: true },

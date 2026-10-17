@@ -406,7 +406,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             <Checkbox
               value={criteriaIncident.showIncidentOnStatusPage !== false}
               title="Show Incident on Status Page"
-              description="When disabled, this incident will not be visible on your public status pages"
+              description="Show it on the public status pages that list its monitors."
               onChange={(value: boolean) => {
                 updateField("showIncidentOnStatusPage", value);
               }}
@@ -417,7 +417,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             <Checkbox
               value={criteriaIncident.isPrivate === true}
               title="Private Incident"
-              description="When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them."
+              description="Only the incident's owners, project admins and project owners can see it. It never shows on status pages."
               onChange={(value: boolean) => {
                 updateField("isPrivate", value);
               }}

@@ -123,7 +123,7 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
     "Used space as a share of this mount's total size, reserved space included, averaged over the selected range. The bar turns amber at 75% and red at 90%.",
   ),
   processCountCached: translationKey(
-    "How many processes the host had in any state (running, sleeping, idle and so on), as last saved on the host record. It is refreshed from incoming metrics at most about once a minute.",
+    "How many processes the host had, in any state, as last saved. It refreshes about once a minute at most.",
   ),
   processCpu: translationKey(
     "CPU this process used (user plus system time) as a share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Time it spent waiting on disk is left out.",

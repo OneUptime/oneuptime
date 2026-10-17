@@ -52,7 +52,7 @@ const StatusPageMcp: FunctionComponent<
         title="Enable MCP Server"
         getDescription={(): string => {
           return translationKey(
-            "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.",
+            "AI agents can read this status page over the public OneUptime MCP server.",
           );
         }}
         dataTestId={STATUS_PAGE_MCP_SERVER_SWITCH_TEST_ID}

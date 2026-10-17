@@ -48,7 +48,7 @@ export const RequireSsoForLoginSwitchCopy: {
   ),
   requireConfirmTitle: translationKey("Require SSO for this project?"),
   requireConfirmDescription: translationKey(
-    "Everyone in this project, you included, will have to sign in with SSO to open it. Anyone signed in with a password is locked out of the project until they sign in with SSO, so test SSO with the link above first.",
+    "Everyone, you included, must sign in with SSO to open this project. Test SSO with the link above first.",
   ),
   requireConfirmButton: translationKey("Require SSO"),
 };

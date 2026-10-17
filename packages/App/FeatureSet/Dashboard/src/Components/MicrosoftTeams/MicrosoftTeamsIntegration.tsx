@@ -86,7 +86,7 @@ export const MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION: string = translationKey(
  * yours.
  */
 export const TEAMS_CONSENT_COMPLETED_DESCRIPTION: string = translationKey(
-  "Admin consent is granted for your Microsoft 365 organization. OneUptime posts what your notification rules send to your teams' channels. Each member connects their own Microsoft Teams account to act as themselves.",
+  "Consent is granted for your Microsoft 365 organization, so OneUptime can post your notification rules to channels.",
 );
 
 export const YOUR_TEAMS_ACCOUNT_CONNECTED_TITLE: string = translationKey(
@@ -812,7 +812,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             description={
               isAdminConsentCompleted
                 ? TEAMS_CONSENT_COMPLETED_DESCRIPTION
-                : "Grant tenant-wide admin consent for the OneUptime Microsoft Teams app. This step is required to enable application permissions (e.g., posting to channels) without per-user consent. You must be a Microsoft 365 admin."
+                : "A Microsoft 365 admin grants the OneUptime app consent for your whole organization, so it can post to channels."
             }
             buttons={
               isAdminConsentCompleted

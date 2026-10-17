@@ -700,10 +700,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     <>
                       {translator.translateText(
                         showIncidentControl && showAlertControl
-                          ? "Each email that matches opens its own incident and alert, even while earlier ones are open. Replies are added to them as notes until they are resolved."
+                          ? "Each matching email opens its own incident and alert. Replies are added as notes until they are resolved."
                           : showIncidentControl
-                            ? "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved."
-                            : "Each email that matches opens its own alert, even while earlier ones are open. Replies are added to that alert as notes until it is resolved.",
+                            ? "Each matching email opens its own incident. Replies are added to it as notes until it is resolved."
+                            : "Each matching email opens its own alert. Replies are added to it as notes until it is resolved.",
                       )}{" "}
                       {/* Styled as the incident form's docs link above it. */}
                       <Link
@@ -793,7 +793,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               <Toggle
                 value={showIncidentGrouping}
                 title="Group incidents and alerts by a payload field"
-                description="When enabled, this criteria opens a separate incident and alert per distinct value extracted from the request body, so a single webhook endpoint (e.g. Grafana) can keep multiple incidents active at once. Leave off for the default one-active-incident-per-criteria behaviour."
+                description="Open a separate incident and alert for each value of a field in the request body, so one webhook can keep several open."
                 onChange={(value: boolean) => {
                   setShowIncidentGrouping(value);
                   if (value) {

@@ -130,7 +130,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                   title: "SCIM (System for Cross-domain Identity Management)",
                   description:
-                    "SCIM is an open standard for automating the exchange of user identity information between identity domains, or IT systems. Use SCIM to automatically provision and deprovision users with access to your private Status Page.",
+                    "Let your identity provider add and remove the people who can see this private status page.",
                 }}
                 documentationLink={Route.fromString("/docs/identity/scim")}
                 onBeforeCreate={(scim: StatusPageSCIM) => {
@@ -300,7 +300,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         <ConfirmModal
           title={"Reset Bearer Token"}
           description={
-            "Are you sure you want to reset the bearer token? This will invalidate the current token and you will need to update your identity provider with the new token."
+            "The current token stops working at once. Update your identity provider with the new token."
           }
           submitButtonText={"Reset"}
           onSubmit={resetBearerToken}

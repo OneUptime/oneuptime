@@ -37,7 +37,7 @@ import {
  * until it is translated into how much downtime it allows.
  */
 const SLO_TARGET_HELP_TEXT: string =
-  "The share of time this SLO's monitors must be up, e.g. 99.9. Over 30 days, 99.9% allows 43 minutes of downtime and 99.99% allows about 4. Must be greater than 0 and at most 99.999 — a 100% target leaves no error budget to track.";
+  "The share of time its monitors must be up. Over 30 days, 99.9% allows 43 minutes of downtime and 99.99% about 4.";
 
 /*
  * The create form is one page of three rows: the SLO's name, its target,
@@ -362,7 +362,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       },
       title: "At-Risk Threshold (%)",
       description:
-        "The SLO turns At Risk when less than this percentage of its error budget remains, so you hear about a burn before the budget is gone. A whole number from 0 to 100; the default is 20.",
+        "The SLO turns At Risk when less than this share of its error budget is left. 20 by default.",
       fieldType: FormFieldSchemaType.Number,
       /*
        * Required because the column is NOT NULL with a DB default, so the

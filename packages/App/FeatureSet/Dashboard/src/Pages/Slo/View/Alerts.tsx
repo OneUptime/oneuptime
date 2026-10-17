@@ -43,7 +43,7 @@ const SloAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <AlertsTable
         query={query}
         title="Alerts"
-        description="Alerts raised by this SLO's burn rate rules. They are ordinary alerts, so they carry severity, on-call escalation and the usual state timeline, and each one lists this SLO under its affected resources. A rule that declares incidents instead shows them on the Incidents tab."
+        description="Alerts raised by this SLO's burn rate rules. Incidents they declare are on the Incidents tab."
         noItemsMessage="This SLO has not raised any alerts. Burn rate rules create one when the error budget starts burning too fast."
         /*
          * An alert belongs here only because a rule linked it to this SLO.

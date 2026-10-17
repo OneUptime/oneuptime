@@ -100,7 +100,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
       cardProps={{
         title: "Incident Label Rules",
         description:
-          "Auto-attach labels to incidents — including labels inherited from the incident's monitors, hosts, Kubernetes clusters, Docker hosts, and Podman hosts — when matching incidents are created.",
+          "Auto-attach labels to new incidents that match, including labels from their monitors and infrastructure.",
       }}
       helpContent={{
         title: "How Incident Label Rules Work",
