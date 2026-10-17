@@ -18,7 +18,7 @@ flowchart TB
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["OneUptime<br/>On-Call 应用"]
+    Phone["OneUptime On-Call 应用"]
     PushService["浏览器的<br/>推送服务"]
     Browser["浏览器"]
     Server -->|"未设置<br/>EXPO_ACCESS_TOKEN"| Relay

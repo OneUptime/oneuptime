@@ -22,7 +22,7 @@ flowchart LR
         Outbound["データソース、LLM<br/>プロバイダー、<br/>SMTP、<br/>その他の接続"]
     end
     subgraph Probe["各プローブ"]
-        Monitors["API、Website、<br/>External<br/>Status Page、<br/>Custom<br/>JavaScript<br/>Code のモニター"]
+        Monitors["API、Website、<br/>External Status Page、<br/>Custom JavaScript Code の<br/>モニター"]
     end
     Private["あなたのプ<br/>ライベート<br/>ネットワーク"]
     Webhooks -->|"デフォル<br/>トでオフ"| Private

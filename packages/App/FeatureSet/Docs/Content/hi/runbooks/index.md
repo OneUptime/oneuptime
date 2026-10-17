@@ -23,7 +23,7 @@ flowchart TB
     rule --> execution["निष्पादन: चरणों<br/>का स्नैपशॉट"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime<br/>Worker चरणों को<br/>क्रम से लेता है"]
+    execution --> worker["OneUptime Worker<br/>चरणों को<br/>क्रम से लेता है"]
     worker -->|"Manual चरण<br/>या अनुमोदन"| person["किसी व्यक्ति<br/>की प्रतीक्षा"]
     worker -->|"HTTP और AI चरण"| onworker["Worker पर<br/>चलते हैं"]
     worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["आपके इंफ्रास्ट्रक्चर<br/>में Runner"]

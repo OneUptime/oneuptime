@@ -18,11 +18,11 @@
 flowchart LR
     subgraph Server["سرور OneUptime"]
         direction TB
-        Webhooks["گردش‌های کاری<br/>و وب‌هوک‌ها"]
-        Outbound["منابع داده،<br/>ارائه‌دهندگان LLM،<br/>SMTP و<br/>اتصال‌های دیگر"]
+        Webhooks["گردش‌های کاری و وب‌هوک‌ها"]
+        Outbound["منابع داده،<br/>ارائه‌دهندگان LLM،<br/>SMTP و اتصال‌های دیگر"]
     end
     subgraph Probe["هر پراب"]
-        Monitors["مانیتورهای<br/>API، Website،<br/>External<br/>Status Page و<br/>Custom<br/>JavaScript Code"]
+        Monitors["مانیتورهای API، Website،<br/>External Status Page و<br/>Custom JavaScript Code"]
     end
     Private["شبکه خصوصی شما"]
     Webhooks -->|"به‌طور<br/>پیش‌فرض خاموش"| Private

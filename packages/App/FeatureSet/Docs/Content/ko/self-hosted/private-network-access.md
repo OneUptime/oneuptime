@@ -22,7 +22,7 @@ flowchart LR
         Outbound["데이터 소스,<br/>LLM 공급자,<br/>SMTP 및<br/>기타 연결"]
     end
     subgraph Probe["각 프로브"]
-        Monitors["API, Website,<br/>External<br/>Status Page,<br/>Custom<br/>JavaScript<br/>Code 모니터"]
+        Monitors["API, Website,<br/>External Status Page,<br/>Custom JavaScript Code<br/>모니터"]
     end
     Private["사용자의<br/>프라이빗<br/>네트워크"]
     Webhooks -->|"기본값은 꺼짐"| Private

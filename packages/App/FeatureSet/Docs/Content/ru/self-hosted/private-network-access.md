@@ -22,7 +22,7 @@ flowchart LR
         Outbound["Источники данных,<br/>поставщики LLM,<br/>SMTP и другие<br/>соединения"]
     end
     subgraph Probe["Каждая проба"]
-        Monitors["Мониторы<br/>API, Website,<br/>External<br/>Status Page и<br/>Custom<br/>JavaScript Code"]
+        Monitors["Мониторы API, Website,<br/>External Status Page и<br/>Custom JavaScript Code"]
     end
     Private["Ваша частная сеть"]
     Webhooks -->|"по умолчанию<br/>выключено"| Private

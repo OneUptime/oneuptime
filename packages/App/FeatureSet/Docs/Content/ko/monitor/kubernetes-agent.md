@@ -19,7 +19,7 @@ flowchart LR
         direction TB
         nodes["모든 Linux 노드:<br/>노드 컬렉터, eBPF"]
         collector["클러스터 컬렉터"]
-        ai["Kubernetes<br/>AI 에이전트"]
+        ai["Kubernetes AI<br/>에이전트"]
     end
     nodes -->|"로그, 메트릭,<br/>트레이스"| oneuptime["OneUptime"]
     collector -->|"메트릭, 이벤트"| oneuptime

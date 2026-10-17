@@ -18,13 +18,13 @@ OneUptime कुछ आउटबाउंड अनुरोधों को उ
 flowchart LR
     subgraph Server["OneUptime सर्वर"]
         direction TB
-        Webhooks["वर्कफ़्लो और वेबहुक"]
-        Outbound["डेटा स्रोत,<br/>LLM प्रदाता,<br/>SMTP और अन्य कनेक्शन"]
+        Webhooks["वर्कफ़्लो<br/>और वेबहुक"]
+        Outbound["डेटा स्रोत,<br/>LLM प्रदाता,<br/>SMTP और<br/>अन्य कनेक्शन"]
     end
     subgraph Probe["हर प्रोब"]
-        Monitors["API, Website,<br/>External<br/>Status Page और<br/>Custom JavaScript<br/>Code मॉनिटर"]
+        Monitors["API, Website,<br/>External Status Page और<br/>Custom JavaScript Code<br/>मॉनिटर"]
     end
-    Private["आपका निजी नेटवर्क"]
+    Private["आपका निजी<br/>नेटवर्क"]
     Webhooks -->|"डिफ़ॉल्ट<br/>रूप से बंद"| Private
     Outbound -->|"डिफ़ॉल्ट<br/>रूप से चालू"| Private
     Monitors -->|"डिफ़ॉल्ट<br/>रूप से बंद"| Private

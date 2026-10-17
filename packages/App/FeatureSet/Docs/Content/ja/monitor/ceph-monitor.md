@@ -22,7 +22,7 @@ flowchart TB
         active["アクティブな mgr"]
         standby["スタンバイの mgr"]
     end
-    active -->|"ポート 9283 の<br/>メトリクス"| agent["OneUptime<br/>Ceph Agent"]
+    active -->|"ポート 9283 の<br/>メトリクス"| agent["OneUptime Ceph Agent"]
     standby -.->|"フェイル<br/>オーバー後"| agent
     agent -->|"OTLP で<br/>送る Ceph<br/>メトリクス"| oneuptime["OneUptime"]
     oneuptime -->|"最初のデータ"| registered["クラスターを登録"]

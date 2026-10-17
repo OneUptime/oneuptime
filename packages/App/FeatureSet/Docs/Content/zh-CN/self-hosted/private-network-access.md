@@ -22,7 +22,7 @@ flowchart LR
         Outbound["数据源、LLM 提供商、<br/>SMTP 及其他连接"]
     end
     subgraph Probe["每个探测器"]
-        Monitors["API、Website、<br/>External Status Page 和<br/>Custom JavaScript<br/>Code 监视器"]
+        Monitors["API、Website、<br/>External Status Page 和<br/>Custom JavaScript Code<br/>监视器"]
     end
     Private["你的私有网络"]
     Webhooks -->|"默认关闭"| Private

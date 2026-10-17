@@ -23,7 +23,7 @@ flowchart TB
     rule --> execution["実行: ステップの<br/>スナップショット"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime<br/>Worker が<br/>ステップを順に処理"]
+    execution --> worker["OneUptime Worker が<br/>ステップを順に処理"]
     worker -->|"手動ステッ<br/>プまたは承認"| person["人の対応を待つ"]
     worker -->|"HTTP と<br/>AI のステップ"| onworker["Worker で実行"]
     worker -->|"JavaScript、<br/>Bash、SSH、<br/>Kubernetes"| runner["自社インフラの<br/>Runner"]

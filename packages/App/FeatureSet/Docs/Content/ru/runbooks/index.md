@@ -23,7 +23,7 @@ flowchart TB
     rule --> execution["Выполнение:<br/>снимок шагов"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime<br/>Worker<br/>проходит шаги<br/>по порядку"]
+    execution --> worker["OneUptime Worker<br/>проходит<br/>шаги по порядку"]
     worker -->|"Manual-шаг или<br/>подтверждение"| person["Ожидает<br/>человека"]
     worker -->|"HTTP- и<br/>AI-шаги"| onworker["Выполняются<br/>на Worker"]
     worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner в вашей<br/>инфраструктуре"]
