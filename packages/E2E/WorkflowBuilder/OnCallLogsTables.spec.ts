@@ -41,17 +41,19 @@ const LONG_INCIDENT_TITLE: string =
 
 /*
  * How wide the column may be: its content is capped at 20rem (max-w-xs),
- * and a cell has 1.5rem before its content and 0.75rem after it.
+ * and the row's first cell has 1.5rem before its content and 0.75rem after
+ * it (Common's TableLayout).
  */
 const NAME_COLUMN_CAP_IN_PX: number = 320 + 24 + 12;
 
 /*
  * The Triggered By column's content is capped at 24rem (max-w-sm) and never
- * narrower than 12rem (min-w-[12rem]), with the same space around it. The
- * line under a label that names a workflow has the same 12rem floor.
+ * narrower than 12rem (min-w-[12rem]); a cell inside the row has 0.75rem on
+ * either side of its content - two columns sit 1.5rem apart. The line under
+ * a label that names a workflow has the same 12rem floor.
  */
-const TITLE_COLUMN_CAP_IN_PX: number = 384 + 24 + 12;
-const TITLE_COLUMN_FLOOR_IN_PX: number = 192 + 24 + 12;
+const TITLE_COLUMN_CAP_IN_PX: number = 384 + 12 + 12;
+const TITLE_COLUMN_FLOOR_IN_PX: number = 192 + 12 + 12;
 const WORKFLOW_LINE_FLOOR_IN_PX: number = 192;
 
 const DIRECT_PAGE_EXPLANATION: string =
