@@ -35,19 +35,23 @@ describe("the Project columns", () => {
   test.each([
     [INCIDENT_SINGLE_MEMBERSHIP_COLUMN, "limitIncidentsToOneEpisode"],
     [ALERT_SINGLE_MEMBERSHIP_COLUMN, "limitAlertsToOneEpisode"],
-  ])("%s is a Project switch, off by default", (column: string, name) => {
-    expect(column).toBe(name);
+  ])(
+    "%s is a Project switch, off by default",
+    (column: string, name: string) => {
+      expect(column).toBe(name);
 
-    const tableColumn: ReturnType<typeof getTableColumns>[string] | undefined =
-      columns[column];
+      const tableColumn:
+        | ReturnType<typeof getTableColumns>[string]
+        | undefined = columns[column];
 
-    expect(tableColumn).toBeDefined();
-    expect(tableColumn?.type).toBe(TableColumnType.Boolean);
-    // Off for every project, existing or new: today's behaviour.
-    expect(tableColumn?.defaultValue).toBe(false);
-    expect(tableColumn?.isDefaultValueColumn).toBe(true);
-    expect(tableColumn?.required).toBe(true);
-  });
+      expect(tableColumn).toBeDefined();
+      expect(tableColumn?.type).toBe(TableColumnType.Boolean);
+      // Off for every project, existing or new: today's behaviour.
+      expect(tableColumn?.defaultValue).toBe(false);
+      expect(tableColumn?.isDefaultValueColumn).toBe(true);
+      expect(tableColumn?.required).toBe(true);
+    },
+  );
 
   test.each([
     INCIDENT_SINGLE_MEMBERSHIP_COLUMN,

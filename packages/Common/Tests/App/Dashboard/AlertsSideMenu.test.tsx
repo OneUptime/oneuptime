@@ -485,7 +485,9 @@ describe("Alerts side menu", () => {
       ]);
       // Named apart from the Episodes section, so no two say the same.
       expect(
-        linksIn("Settings").map((link: MenuLink) => link.title),
+        linksIn("Settings").map((link: MenuLink): string => {
+          return link.title;
+        }),
       ).not.toContain("Episodes");
       // The Episodes section still lists the episodes, not the setting.
       expect(
