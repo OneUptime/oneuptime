@@ -898,18 +898,16 @@ export default class Workflow extends BaseModel {
 
   /*
    * Whether webhookSigningSecret holds a secret, for the pages that cannot
-   * read it. WorkflowService sets it from the secret whenever one is
-   * written, whatever the request says, so it is writable by exactly the
-   * people who may write the secret.
+   * read it. Written by the server alone, from the secret, in the same
+   * write that saves one (WorkflowService.onCreatePermitted /
+   * onUpdatePermitted); a value a request sends for it is dropped. So,
+   * like VMwareVCenter.isVCenterPasswordSet beside its write-only
+   * password, nobody may create or update it: the API reference, the MCP
+   * tools and the Terraform provider show it as read-only, and a
+   * configuration never sets what only the secret decides.
    */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateWorkflow,
-      Permission.ProjectMember,
-      Permission.WorkflowAdmin,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -920,19 +918,14 @@ export default class Workflow extends BaseModel {
       Permission.WorkflowViewer,
       Permission.ReadWorkflow,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditWorkflow,
-      Permission.WorkflowAdmin,
-    ],
+    update: [],
   })
   @TableColumn({
     required: true,
     type: TableColumnType.Boolean,
     title: "Webhook Signing Secret Saved",
     description:
-      "Whether a webhook signing secret is saved. A trigger that checks signatures refuses every request until it is. Set from the signing secret itself; a value sent for it is ignored.",
+      "Whether a webhook signing secret is saved. A trigger that checks signatures refuses every request until it is. Set by the server from the signing secret itself.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

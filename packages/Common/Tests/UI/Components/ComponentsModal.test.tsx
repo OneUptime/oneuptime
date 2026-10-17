@@ -229,10 +229,25 @@ describe("the start view leads with what people use", () => {
       "On Create Alert",
       "On Update Monitor",
     ]);
-    // Every hand-written trigger is popular, so there is nothing more to list.
+    /*
+     * Every trigger anybody might start from is popular. An integration's
+     * own trigger is for those who use it, so it follows under More
+     * triggers - the rest of the hand-written triggers - as the Telegram,
+     * IRC and Mattermost steps follow under More components: Huntress's,
+     * after the popular ones and before the resources.
+     */
+    expect(buttonNames(section("More triggers"))).toEqual([
+      "Huntress Incident Report",
+    ]);
     expect(
-      screen.queryByRole("region", { name: "More triggers" }),
-    ).not.toBeInTheDocument();
+      section("Popular").compareDocumentPosition(section("More triggers")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      section("More triggers").compareDocumentPosition(
+        section("OneUptime resources"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(section("OneUptime resources")).toHaveTextContent(
       "Start this workflow when an incident, alert, monitor or any other record in this project is created, updated or deleted.",
     );
