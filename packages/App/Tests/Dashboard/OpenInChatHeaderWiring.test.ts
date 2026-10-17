@@ -56,6 +56,10 @@ interface RecordPage {
   header?: string;
 }
 
+/*
+ * Pass it on (#4914) puts its actions first on the incident and alert pages
+ * and their episodes; the chat links still reach the header after them.
+ */
 const PAGES: Array<RecordPage> = [
   {
     name: "Incident",
@@ -63,7 +67,7 @@ const PAGES: Array<RecordPage> = [
     page: "Pages/Incidents/View/Index.tsx",
     firstEarlyReturn: "if (loadedModelId !== modelIdString) {",
     secondaryActions:
-      "secondaryActions={[ ...getJoinVideoCallActions(videoCalls), ...getOpenInChatActions(channelLinks), ]}",
+      "secondaryActions={[ ...passOn.actions, ...getJoinVideoCallActions(videoCalls), ...getOpenInChatActions(channelLinks), ]}",
   },
   {
     name: "Alert",
@@ -71,14 +75,15 @@ const PAGES: Array<RecordPage> = [
     page: "Pages/Alerts/View/Index.tsx",
     firstEarlyReturn: "if (loadedModelId !== modelIdString) {",
     secondaryActions:
-      "secondaryActions={[ ...(joinVideoCallAction ? [joinVideoCallAction] : []), ...getOpenInChatActions(channelLinks), ]}",
+      "secondaryActions={[ ...passOn.actions, ...(joinVideoCallAction ? [joinVideoCallAction] : []), ...getOpenInChatActions(channelLinks), ]}",
   },
   {
     name: "Incident episode",
     recordType: WorkspaceChannelRecordType.IncidentEpisode,
     page: "Pages/Incidents/EpisodeView/Index.tsx",
     firstEarlyReturn: "if (loadedModelId !== modelIdString) {",
-    secondaryActions: "secondaryActions={getOpenInChatActions(channelLinks)}",
+    secondaryActions:
+      "secondaryActions={[ ...passOn.actions, ...getOpenInChatActions(channelLinks), ]}",
     header: "Components/IncidentEpisode/ChangeState.tsx",
   },
   {
@@ -86,7 +91,8 @@ const PAGES: Array<RecordPage> = [
     recordType: WorkspaceChannelRecordType.AlertEpisode,
     page: "Pages/Alerts/EpisodeView/Index.tsx",
     firstEarlyReturn: "if (loadedModelId !== modelIdString) {",
-    secondaryActions: "secondaryActions={getOpenInChatActions(channelLinks)}",
+    secondaryActions:
+      "secondaryActions={[ ...passOn.actions, ...getOpenInChatActions(channelLinks), ]}",
     header: "Components/AlertEpisode/ChangeState.tsx",
   },
   {

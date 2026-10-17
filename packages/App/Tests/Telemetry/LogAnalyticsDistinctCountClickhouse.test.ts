@@ -77,8 +77,16 @@ const integration: typeof describe.skip = endpoint ? describe : describe.skip;
 const database: string = `log_distinct_count_test_${process.pid}_${Date.now()}`;
 
 const MINUTE: number = 60 * 1000;
+const HOUR: number = 60 * MINUTE;
+/*
+ * The window starts on the clock hour before the current one. The time
+ * series buckets by the clock hour (bucketSizeInMinutes: 60), so every log
+ * below falls in one bucket whatever minute the suite runs. Started on a
+ * minute instead, an hour's edge fell between a pod's two logs when the suite
+ * ran at :25 or :28 past the hour, and the series counted that pod twice.
+ */
 const WINDOW_START: Date = new Date(
-  Math.floor(Date.now() / MINUTE) * MINUTE - 30 * MINUTE,
+  Math.floor(Date.now() / HOUR) * HOUR - HOUR,
 );
 const WINDOW_END: Date = new Date(WINDOW_START.getTime() + 20 * MINUTE);
 
