@@ -1,10 +1,16 @@
 /*
- * Scheduled Maintenance > Events in a real browser, with no backend:
- * Fixture.js renders the actual page - its List | Calendar switch, the
- * calendar, the filter chips and the Subscribe to calendar dialog - bundled
- * with the app's esbuild config, Tailwind, theme and font, and answers the
- * API calls they make from an in-page store the specs drive: the events, the
- * team's calendar link, and every request.
+ * Scheduled maintenance calendars in a real browser, with no backend:
+ *
+ *   - Fixture.js: the Dashboard's Scheduled Maintenance > Events page - its
+ *     List | Calendar switch, the calendar, the filter chips and the
+ *     Subscribe to calendar dialog (any path but the two below);
+ *   - StatusPageFixture.js: a status page's Scheduled Events list and an
+ *     event's page, with Subscribe to calendar and Add to calendar
+ *     (/status-page/<id>/scheduled-events... and /scheduled-events...).
+ *
+ * Both are bundled with the apps' esbuild config, Tailwind, theme and font,
+ * and answer the API calls the pages make from an in-page store the specs
+ * drive and read.
  */
 const fs = require("fs");
 const http = require("http");
@@ -32,6 +38,10 @@ const config = createConfig({
     ),
   },
 });
+config.entryPoints = [
+  path.join(__dirname, "Fixture.js"),
+  path.join(__dirname, "StatusPageFixture.js"),
+];
 config.target = "es2022";
 config.loader[".js"] = "jsx";
 config.sourcemap = false;
@@ -54,7 +64,17 @@ const env = `{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERS
  * not only the body - a rule on `*` wins over inheritance, which is what a
  * page draws in.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Maintenance calendar fixture</title><script>window.process={env:${env}};window.global=window;</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class"};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}body{margin:0}*{box-sizing:border-box}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const page = (bundle) => {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Maintenance calendar fixture</title><script>window.process={env:${env}};window.global=window;</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class"};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}body{margin:0}*{box-sizing:border-box}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/${bundle}.js"></script></body></html>`;
+};
+
+// A status page's addresses: its preview path, or its own domain's.
+const isStatusPagePath = (pathname) => {
+  return (
+    pathname.startsWith("/status-page/") ||
+    pathname.startsWith("/scheduled-events")
+  );
+};
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -86,7 +106,9 @@ async function main() {
       return;
     }
     response.setHeader("Content-Type", "text/html");
-    response.end(html);
+    response.end(
+      page(isStatusPagePath(url.pathname) ? "StatusPageFixture" : "Fixture"),
+    );
   });
   server.listen(port, "127.0.0.1", () => {
     console.log(`Maintenance calendar fixture ready at http://127.0.0.1:${port}/`);

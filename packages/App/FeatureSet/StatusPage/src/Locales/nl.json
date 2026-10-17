@@ -125,7 +125,27 @@
     "noneDescription": "Geen geplande gebeurtenissen geplaatst voor deze statuspagina.",
     "scheduledAt": "Gepland voor ",
     "report": "Rapport geplande gebeurtenis",
-    "notFound": "Geen geplande gebeurtenis gevonden voor deze statuspagina."
+    "notFound": "Geen geplande gebeurtenis gevonden voor deze statuspagina.",
+    "calendar": {
+      "subscribe": "Abonneren op agenda",
+      "subscribeTitle": "Abonneren op gepland onderhoud",
+      "subscribeDescription": "Krijg het geplande onderhoud van deze pagina in uw agenda-app. Het blijft vanzelf up-to-date.",
+      "eventTitle": "Toevoegen aan agenda",
+      "eventDescription": "Voeg dit onderhoud toe aan uw agenda-app.",
+      "addToCalendar": "Toevoegen aan agenda",
+      "addHeading": "Toevoegen aan uw agenda",
+      "google": "Google Agenda",
+      "googleHint": "Opent Google Agenda in een nieuw tabblad",
+      "device": "Apple Agenda / Outlook",
+      "deviceHint": "Opent de agenda-app op dit apparaat",
+      "deviceFileHint": "Downloadt het onderhoud voor de agenda-app op dit apparaat",
+      "copyHeading": "Of kopieer de link",
+      "copyHint": "Plak hem in een agenda-app die zich via een URL op een agenda kan abonneren.",
+      "copy": "Link kopiëren",
+      "copied": "Gekopieerd!",
+      "done": "Klaar",
+      "refreshNote": "Agenda-apps controleren op hun eigen moment op wijzigingen, dus het kan een paar uur duren voordat een update verschijnt."
+    }
   },
   "subscribe": {
     "title": "Abonneren",

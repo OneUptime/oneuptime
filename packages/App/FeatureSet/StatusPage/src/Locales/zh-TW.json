@@ -125,7 +125,27 @@
     "noneDescription": "此狀態頁未發佈任何排定事件。",
     "scheduledAt": "排定於 ",
     "report": "排定事件報告",
-    "notFound": "在此狀態頁上找不到排定事件。"
+    "notFound": "在此狀態頁上找不到排定事件。",
+    "calendar": {
+      "subscribe": "訂閱行事曆",
+      "subscribeTitle": "訂閱排定的維護",
+      "subscribeDescription": "在您的行事曆應用程式中取得此頁面的排定維護。它會自動保持最新。",
+      "eventTitle": "新增至行事曆",
+      "eventDescription": "將此維護新增至您的行事曆應用程式。",
+      "addToCalendar": "新增至行事曆",
+      "addHeading": "新增至您的行事曆",
+      "google": "Google 日曆",
+      "googleHint": "在新分頁中開啟 Google 日曆",
+      "device": "Apple 行事曆 / Outlook",
+      "deviceHint": "開啟此裝置上的行事曆應用程式",
+      "deviceFileHint": "為此裝置上的行事曆應用程式下載該事件",
+      "copyHeading": "或複製連結",
+      "copyHint": "將它貼到任何可以透過 URL 訂閱行事曆的行事曆應用程式中。",
+      "copy": "複製連結",
+      "copied": "已複製！",
+      "done": "完成",
+      "refreshNote": "行事曆應用程式會依自己的時程檢查變更，因此更新可能需要幾個小時才會出現。"
+    }
   },
   "subscribe": {
     "title": "訂閱",

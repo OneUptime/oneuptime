@@ -125,7 +125,27 @@
     "noneDescription": "このステータスページに予定されたイベントは投稿されていません。",
     "scheduledAt": "予定日時: ",
     "report": "予定イベントレポート",
-    "notFound": "このステータスページで予定されたイベントが見つかりません。"
+    "notFound": "このステータスページで予定されたイベントが見つかりません。",
+    "calendar": {
+      "subscribe": "カレンダーを購読",
+      "subscribeTitle": "計画メンテナンスを購読",
+      "subscribeDescription": "このページの計画メンテナンスをカレンダーアプリで受け取れます。自動で最新の状態に保たれます。",
+      "eventTitle": "カレンダーに追加",
+      "eventDescription": "このメンテナンスをカレンダーアプリに追加します。",
+      "addToCalendar": "カレンダーに追加",
+      "addHeading": "カレンダーに追加",
+      "google": "Google カレンダー",
+      "googleHint": "Google カレンダーを新しいタブで開きます",
+      "device": "Apple カレンダー / Outlook",
+      "deviceHint": "このデバイスのカレンダーアプリを開きます",
+      "deviceFileHint": "このデバイスのカレンダーアプリ用にイベントをダウンロードします",
+      "copyHeading": "またはリンクをコピー",
+      "copyHint": "URL でカレンダーを購読できる任意のカレンダーアプリに貼り付けてください。",
+      "copy": "リンクをコピー",
+      "copied": "コピーしました",
+      "done": "完了",
+      "refreshNote": "カレンダーアプリは独自のスケジュールで変更を確認するため、更新が表示されるまで数時間かかることがあります。"
+    }
   },
   "subscribe": {
     "title": "購読する",
