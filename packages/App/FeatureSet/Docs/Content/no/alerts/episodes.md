@@ -64,7 +64,7 @@ Klikk på **Opprett egendefinert regel** under malene, eller på **Opprett grupp
 
 #### Avgrens den
 
-Under **Hvilke varsler** legger du til betingelser for monitorer, alvorlighetsgrader, etiketter, titler og beskrivelser. La det stå tomt for å gruppere hvert nytt varsel. Klikk deretter på **Opprett grupperingsregel for varsler**.
+Under **Hvilke varsler** grupperer **Alle varsler**, som en ny regel starter på, hvert nytt varsel. For å snevre inn regelen velger du **Bare varsler som oppfyller betingelsene** og legger til betingelser for monitorer, alvorlighetsgrader, etiketter, titler og beskrivelser. Klikk deretter på **Opprett grupperingsregel for varsler**.
 :::
 
 Alt annet en regel kan gjøre, er foldet sammen under **Flere felt** sist på trinnet **Gruppering**, i tre grupper. Sammenfoldet nevner overskriften hva den inneholder, og viser hver innstilling regelen bruker som en brikke, så det aldri skjules hva en regel gjør når du redigerer den.

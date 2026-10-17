@@ -293,7 +293,7 @@ To kontakter på hver signaltypes side med AI-indstillinger afgør, hvad OneUpti
 
 En regel for automatisk afhjælpning stiller tre spørgsmål:
 
-1. **Betingelser**: hvilke hændelser den matcher: monitorer, alvorligheder, labels, monitorlabels, titel og beskrivelse, de samme betingelser som projektets andre regler for hændelser og advarsler. En regel uden betingelser matcher alle hændelser.
+1. **Betingelser**: hvilke hændelser den matcher: **Alle hændelser**, som en ny regel starter på, eller **Kun hændelser, der opfylder betingelserne** på monitorer, alvorligheder, labels, monitorlabels, titel og beskrivelse, de samme betingelser som projektets andre regler for hændelser og advarsler.
 2. **Ret med**: **OneUptime AI** retter hændelsen gennem AI-agenten på det cluster eller den vært, den berører; **Runbooks** kører de runbooks, reglen nævner, på samme måde hver gang.
 3. **Godkendelse**: **Spørg, før der rettes**: intet kører, før nogen godkender rettelsen med ét klik. **Ret uden at spørge**: runbooks starter med det samme, og OneUptime AI retter uden godkendelse, hvor end AI-agentens indstillinger tillader det; et cluster eller en vært, der er sat til at bede om godkendelse, spørger stadig.
 

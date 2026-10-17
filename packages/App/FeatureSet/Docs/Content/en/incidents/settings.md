@@ -588,7 +588,7 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 **Or answer two questions.** **Create Custom Rule**, or the card's create button, opens a form that starts as a working rule:
 
 - **Grouping** — **Group incidents by**: **Monitor**, **Everything Together**, **Severity**, **Title** or **Custom**. Custom adds a **Group By** step with the five switches underneath the answers (monitor, severity, incident title, incident labels and monitor labels; labels group by their exact set). **Only group incidents that arrive close together** is on by default: an incident joins an episode only if it arrives within the time window of the episode's previous incident. Turned off, matching incidents keep joining the open episode until it is resolved. **Name** follows the answer until you type your own, and **Enabled** is on.
-- **Which Incidents** — conditions that narrow the rule down. Leave it empty to group every new incident.
+- **Which Incidents** — **All incidents**, where a new rule starts, groups every new incident. **Only incidents that match conditions** opens the conditions that narrow the rule down.
 
 Everything else a rule can do is folded under **More fields**, at the end of the **Grouping** step, in three groups: **On-Call & Ownership** (the on-call policies to run when the rule opens an episode, **Episode Owners**, and episode role assignments), **Episode Lifecycle** (reopen recently resolved episodes, wait before resolving an episode, and resolve quiet episodes — each a switch with its minutes) and **Details** (the rule's description, the episode title and description templates, showing episodes on status pages, and episode labels). Folded, its header names what it holds, and each setting a rule uses is a chip that says what it is set to — "On-Call Duty Policies: 2", "Reopen recently resolved episodes: 30 minutes" — so editing a rule never hides what it does. Opening it adds no step: **Create Incident Grouping Rule** is on **Which Incidents**, the last step. The alert form has no status page or episode role settings.
 
@@ -610,7 +610,7 @@ The create form has three steps:
 
 :::steps
 1. **Basic Info** — **Name** (the placeholder suggests something like paging the database team for any DB incident) and **Description**. The rule starts enabled; its edit form adds the **Enabled** switch, and the list renders a green **Enabled** or red **Disabled** pill per rule.
-2. **Match Criteria** — the rule's **Conditions**. Each condition picks a criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, **Incident Title**, **Incident Description**, **Monitor Name** or **Monitor Description** — an operator and a value, and reads like a sentence: "If **Incident Title** contains `database`", "And **Monitor Labels** has any of _Production_".
+2. **Match Criteria** — **All incidents**, where a new rule starts, or **Only incidents that match conditions**, which opens the rule's conditions. Each condition picks a criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, **Incident Title**, **Incident Description**, **Monitor Name** or **Monitor Description** — an operator and a value, and reads like a sentence: "If **Incident Title** contains `database`", "And **Monitor Labels** has any of _Production_".
 3. **On-Call Policies** — the policies this rule executes.
 :::
 

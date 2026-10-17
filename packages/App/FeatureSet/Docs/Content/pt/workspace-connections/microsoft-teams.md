@@ -84,7 +84,7 @@ Criar uma regra passa por quatro etapas:
 | Etapa | O que você define |
 | --- | --- |
 | **Básico** | **Nome da regra** e **Descrição da regra**. |
-| **Condições** | A quais eventos a regra se aplica, por exemplo por gravidade, estado, rótulo, monitor ou palavras no título. Elas são verificadas quando um evento é criado e novamente a cada atualização que o OneUptime publica sobre ele, então uma regra para incidentes confirmados age quando um incidente é confirmado. Sem condições, a regra vale para todo evento. Com duas ou mais, **Condição de correspondência** diz se todas precisam corresponder ou se basta uma. |
+| **Condições** | A quais eventos a regra se aplica, por exemplo por gravidade, estado, rótulo, monitor ou palavras no título. Elas são verificadas quando um evento é criado e novamente a cada atualização que o OneUptime publica sobre ele, então uma regra para incidentes confirmados age quando um incidente é confirmado. Uma regra nova vale para todo evento, por exemplo **Todos os incidentes**. Para restringi-la, escolha **Somente os incidentes que atendem às condições** e adicione as condições. Com duas ou mais, **Condição de correspondência** diz se todas precisam corresponder ou se basta uma. |
 | **Destino** | Onde ela publica: um canal existente de uma equipe que você escolher, os chats que você escolher, um canal para cada incidente (ou alerta, episódio, evento, monitor ou política de plantão) criado em uma equipe que você escolher, ou vários deles juntos. Abaixo da etapa, **O que esta regra faz** diz isso em frases, como o cartão da regra. |
 | **Video Call** | Somente incidentes e alertas: inicia uma chamada para cada um. Consulte [Videochamadas](/docs/workspace-connections/video-calls). |
 

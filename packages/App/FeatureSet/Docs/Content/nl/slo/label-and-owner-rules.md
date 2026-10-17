@@ -26,7 +26,7 @@ Open **SLOs**, dan **Instellingen** → **Labelregels** of **Instellingen** → 
 
 ### Kiezen waarop de regel van toepassing is
 
-Klik in de stap **Overeenkomst** op **Voorwaarde toevoegen** voor elke voorwaarde waaraan een SLO moet voldoen (zie [Overeenkomstcriteria](#overeenkomstcriteria)). Kies bij twee of meer **Voldoet aan alle** of **Voldoet aan één**. Een regel zonder voorwaarden is van toepassing op elke nieuwe SLO.
+In de stap **Overeenkomst** begint **Geldt voor** bij **Alle SLO's**, elke nieuwe SLO. Om de regel in te perken, kies **Alleen SLO's die aan de voorwaarden voldoen** en vul de voorwaarde in die opent (zie [Overeenkomstcriteria](#overeenkomstcriteria)); klik op **Voorwaarde toevoegen** voor elke andere voorwaarde waaraan een SLO moet voldoen. Kies bij twee of meer **Voldoet aan alle** of **Voldoet aan één**.
 
 ### Kiezen wat de regel toevoegt
 

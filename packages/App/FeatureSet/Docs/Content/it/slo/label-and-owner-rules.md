@@ -26,7 +26,7 @@ Apri **SLOs**, poi **Impostazioni** → **Regole etichette** o **Impostazioni** 
 
 ### Scegliere a cosa corrisponde la regola
 
-Nel passo **Corrispondenza**, fai clic su **Aggiungi condizione** per ogni condizione che uno SLO deve soddisfare (vedi [Criteri di corrispondenza](#criteri-di-corrispondenza)). Con due o più, scegli **Soddisfa tutte** o **Soddisfa almeno una**. Una regola senza condizioni corrisponde a ogni nuovo SLO.
+Nel passo **Corrispondenza**, **Si applica a** parte da **Tutti gli SLO**, ogni nuovo SLO. Per restringerla, scegli **Solo gli SLO che soddisfano le condizioni** e compila la condizione che si apre (vedi [Criteri di corrispondenza](#criteri-di-corrispondenza)); fai clic su **Aggiungi condizione** per ogni altra condizione che uno SLO deve soddisfare. Con due o più, scegli **Soddisfa tutte** o **Soddisfa almeno una**.
 
 ### Scegliere cosa aggiunge la regola
 

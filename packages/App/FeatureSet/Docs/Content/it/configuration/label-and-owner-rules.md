@@ -40,7 +40,7 @@ Apri la pagina **Regole etichette** o **Regole del proprietario** del prodotto e
 
 ### Scegliere a cosa corrisponde la regola
 
-Nel passaggio **Corrispondenza**, fai clic su **Aggiungi condizione** per ogni condizione che la risorsa deve soddisfare. Con due o più condizioni, scegli **Soddisfa tutte** o **Soddisfa almeno una**. Una regola senza condizioni corrisponde a ogni nuova risorsa.
+Nel passaggio **Corrispondenza**, **Si applica a** parte da ogni nuova risorsa, per esempio **Tutti gli host** in una regola per gli host. Per restringerla, scegli **Solo gli host che soddisfano le condizioni** e compila la condizione che si apre; fai clic su **Aggiungi condizione** per ogni altra condizione che la risorsa deve soddisfare. Con due o più condizioni, scegli **Soddisfa tutte** o **Soddisfa almeno una**.
 
 ### Scegliere cosa aggiunge la regola
 

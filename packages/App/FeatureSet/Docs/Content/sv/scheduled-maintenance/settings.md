@@ -73,7 +73,7 @@ Klicka på **Skapa Scheduled Maintenance Reminder Rule**. Under **Rule Info** ge
 
 ### Välj vilka händelser det ska påminnas om
 
-Under **Matchningskriterier** väljer du de **Etiketter** den gäller för. Lämna dem tomma för att påminna om varje händelse.
+Under **Matchningskriterier** låter du **Alla schemalagda underhållshändelser** vara valt för att påminna om varje händelse, eller väljer **Endast schemalagda underhållshändelser som uppfyller villkoren** och sedan de **Etiketter** den gäller för.
 
 ### Ställ in intervallet
 

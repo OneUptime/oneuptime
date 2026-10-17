@@ -64,7 +64,7 @@ Klik op **Aangepaste regel maken** onder de sjablonen, of op **Groeperingsregel 
 
 #### Afbakenen
 
-Voeg bij **Welke waarschuwingen** voorwaarden toe op monitors, ernstniveaus, labels, titels en beschrijvingen. Laat het leeg om elke nieuwe waarschuwing te groeperen. Klik daarna op **Groeperingsregel voor waarschuwingen maken**.
+Bij **Welke waarschuwingen** groepeert **Alle waarschuwingen**, waar een nieuwe regel mee begint, elke nieuwe waarschuwing. Om de regel in te perken, kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg voorwaarden toe op monitors, ernstniveaus, labels, titels en beschrijvingen. Klik daarna op **Groeperingsregel voor waarschuwingen maken**.
 :::
 
 Al het andere wat een regel kan doen, staat ingeklapt onder **Meer velden** aan het einde van de stap **Groepering**, in drie groepen. Ingeklapt noemt de kop wat erin staat en toont elke instelling die de regel gebruikt als chip, zodat het bewerken van een regel nooit verbergt wat ze doet.

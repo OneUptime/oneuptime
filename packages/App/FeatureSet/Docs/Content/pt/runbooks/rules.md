@@ -57,7 +57,7 @@ Em **Informações básicas**, informe um **Nome**, como "Iniciar failover de BD
 
 ### Adicionar condições
 
-Em **Critérios de Correspondência**, clique em **Adicionar condição**, escolha um critério e um operador e digite ou escolha o valor. Adicione mais condições se precisar e escolha **Corresponder a todas** ou **Corresponder a qualquer**. Não adicione nenhuma para iniciar os runbooks em todo evento novo desse tipo.
+Em **Critérios de Correspondência**, **Aplica-se a** começa em todo evento novo desse tipo, por exemplo **Todos os incidentes**, e a regra inicia seus runbooks em cada um. Para restringi-la, escolha a outra resposta, por exemplo **Somente os incidentes que atendem às condições**, depois escolha um critério e um operador e digite ou escolha o valor. Clique em **Adicionar condição** para mais condições e escolha **Corresponder a todas** ou **Corresponder a qualquer**.
 
 ### Escolher os runbooks
 
@@ -71,7 +71,7 @@ Em **Runbooks**, escolha um ou mais **Runbooks para iniciar** e clique em **Cria
 | **Nome** | Um rótulo curto e claro para a regra. |
 | **Descrição** | Contexto opcional para a equipe. |
 | **Habilitado** | Ligado em uma regra nova. Desligue-o no formulário de edição da regra para suspendê-la sem excluí-la. |
-| **Condições** | O que a regra compara, na etapa **Critérios de Correspondência**. Deixe vazio para corresponder a todo evento do seu tipo. |
+| **Condições** | O que a regra compara, na etapa **Critérios de Correspondência**. Uma regra sem condições, por exemplo em **Todos os incidentes**, corresponde a todo evento do seu tipo. |
 | **Runbooks para iniciar** | Um ou mais runbooks lançados quando a regra dispara. |
 
 ## Condições

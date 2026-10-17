@@ -68,7 +68,7 @@ Dans la liste de vérification, cliquez sur **Configurez une politique d'astrein
 
 ### La déclencher pour chaque incident
 
-Ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte**. Cliquez sur **Créer : Règle d'astreinte des incidents**, saisissez un **Nom** et cliquez sur **Suivant**. Laissez **Critères de correspondance** vide, pour que la règle s'applique à chaque incident, et cliquez sur **Suivant**. Choisissez votre politique sous **Politiques d'astreinte** et cliquez sur **Créer : Règle d'astreinte des incidents**.
+Ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte**. Cliquez sur **Créer : Règle d'astreinte des incidents**, saisissez un **Nom** et cliquez sur **Suivant**. Dans **Critères de correspondance**, laissez **Tous les incidents** sélectionné, pour que la règle s'applique à chaque incident, et cliquez sur **Suivant**. Choisissez votre politique sous **Politiques d'astreinte** et cliquez sur **Créer : Règle d'astreinte des incidents**.
 
 ### Choisir comment vous êtes joint
 

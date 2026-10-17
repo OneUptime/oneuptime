@@ -26,7 +26,7 @@ Ouvrez **SLOs**, puis **Paramètres** → **Règles d'étiquettes** ou **Paramè
 
 ### Choisir ce à quoi la règle correspond
 
-À l'étape **Correspondance**, cliquez sur **Ajouter une condition** pour chaque condition qu'un SLO doit remplir (voir [Critères de correspondance](#critères-de-correspondance)). Avec deux conditions ou plus, choisissez **Toutes requises** ou **Au moins une requise**. Une règle sans condition correspond à chaque nouveau SLO.
+À l'étape **Correspondance**, **S'applique à** démarre sur **Tous les SLO**, chaque nouveau SLO. Pour restreindre la règle, choisissez **Uniquement les SLO qui correspondent aux conditions** et remplissez la condition qui s'ouvre (voir [Critères de correspondance](#critères-de-correspondance)) ; cliquez sur **Ajouter une condition** pour chaque autre condition qu'un SLO doit remplir. Avec deux conditions ou plus, choisissez **Toutes requises** ou **Au moins une requise**.
 
 ### Choisir ce que la règle ajoute
 

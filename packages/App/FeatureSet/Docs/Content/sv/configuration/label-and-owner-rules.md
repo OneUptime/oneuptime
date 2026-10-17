@@ -40,7 +40,7 @@ Alla etikett- och ägarregler skapas på samma sätt, i två steg.
 
 ### Välj vad regeln matchar
 
-I steget **Matcha** klickar du på **Lägg till villkor** för varje villkor som resursen måste uppfylla. Med två eller fler väljer du **Matcha alla** eller **Matcha något**. En regel utan villkor matchar alla nya resurser.
+I steget **Matcha** börjar **Gäller för** på alla nya resurser, till exempel **Alla värdar** i en värdregel. För att snäva in regeln väljer du **Endast värdar som uppfyller villkoren** och fyller i villkoret som öppnas; klicka på **Lägg till villkor** för varje annat villkor som resursen måste uppfylla. Med två eller fler väljer du **Matcha alla** eller **Matcha något**.
 
 ### Välj vad regeln lägger till
 

@@ -83,7 +83,7 @@ Haz clic en **Crear Regla de guardia de alertas**. En **Información básica**, 
 
 ### Elegir las alertas
 
-En **Criterios de coincidencia**, añade las condiciones que debe cumplir una alerta. Déjalas vacías para que coincida con todas las alertas nuevas.
+En **Criterios de coincidencia**, **Todas las alertas**, donde empieza una regla nueva, coincide con todas las alertas nuevas. Para acotarla, elige **Solo las alertas que cumplen las condiciones** y añade las condiciones que debe cumplir una alerta.
 
 ### Elegir las políticas
 
@@ -119,7 +119,7 @@ Haz clic en **Crear Regla de recordatorio de alertas**. En **Información de la 
 
 ### Elegir de qué alertas recordar
 
-En **Criterios de coincidencia**, elige las **Gravedades de alerta** y las **Etiquetas** a las que se aplica. Déjalas vacías para recordar todas las alertas.
+En **Criterios de coincidencia**, deja marcado **Todas las alertas** para recordar todas las alertas, o elige **Solo las alertas que cumplen las condiciones** y luego las **Gravedades de alerta** y las **Etiquetas** a las que se aplica.
 
 ### Fijar el intervalo
 

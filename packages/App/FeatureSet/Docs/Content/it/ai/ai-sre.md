@@ -293,7 +293,7 @@ Due interruttori nella pagina delle impostazioni IA di ogni tipo di segnale deci
 
 Una regola di rimedio automatico pone tre domande:
 
-1. **Condizioni**: a quali incidenti corrisponde: monitor, gravità, label, label dei monitor, titolo e descrizione, le stesse condizioni delle altre regole per incidenti e avvisi del progetto. Una regola senza condizioni corrisponde a ogni incidente.
+1. **Condizioni**: a quali incidenti corrisponde: **Tutti gli incidenti**, da cui parte una nuova regola, oppure **Solo gli incidenti che soddisfano le condizioni** su monitor, gravità, label, label dei monitor, titolo e descrizione, le stesse condizioni delle altre regole per incidenti e avvisi del progetto.
 2. **Correggi con**: **OneUptime AI** corregge l'incidente tramite l'agente IA sul cluster o sull'host che colpisce; **Runbook** esegue i runbook che la regola nomina, ogni volta allo stesso modo.
 3. **Approvazione**: **Chiedi prima di correggere**: non viene eseguito nulla finché qualcuno non approva la correzione con un clic. **Correggi senza chiedere**: i runbook partono subito, e OneUptime AI corregge senza approvazione ovunque le impostazioni dell'agente IA lo consentano; un cluster o un host impostato per chiedere l'approvazione la chiede comunque.
 

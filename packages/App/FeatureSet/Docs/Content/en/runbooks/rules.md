@@ -57,7 +57,7 @@ On **Basic Info**, enter a **Name**, such as "Start DB failover for database inc
 
 ### Add conditions
 
-On **Match Criteria**, click **Add condition**, pick a criterion and an operator, and enter or pick the value. Add more conditions if you need them, and choose **Match all** or **Match any**. Add none to start the runbooks for every new event of this kind.
+On **Match Criteria**, **Applies to** starts on every new event of this kind, such as **All incidents**, and the rule starts its runbooks for each one. To narrow it down, pick the other answer, such as **Only incidents that match conditions**, then pick a criterion and an operator, and enter or pick the value. Click **Add condition** for more conditions, and choose **Match all** or **Match any**.
 
 ### Pick the runbooks
 
@@ -71,7 +71,7 @@ On **Runbooks**, choose one or more **Runbooks to Start**, then click **Create R
 | **Name** | A short, human label for the rule. |
 | **Description** | Optional context for teammates. |
 | **Enabled** | On for a new rule. Switch it off on the rule's edit form to suspend it without deleting it. |
-| **Conditions** | What the rule matches, on the **Match Criteria** step. Leave it empty to match every event of its type. |
+| **Conditions** | What the rule matches, on the **Match Criteria** step. A rule without any, such as one on **All incidents**, matches every event of its type. |
 | **Runbooks to Start** | One or more runbooks to launch when the rule fires. |
 
 ## Conditions

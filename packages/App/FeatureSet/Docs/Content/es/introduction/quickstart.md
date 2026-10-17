@@ -68,7 +68,7 @@ En la lista, haz clic en **Configura una política de guardia**, o abre **Guardi
 
 ### Activarla con cada incidente
 
-Abre **Incidentes** desde el menú **Productos**, despliega **Reglas** en el menú lateral y elige **Reglas de guardia**. Haz clic en **Crear Regla de guardia de incidentes**, escribe un **Nombre** y haz clic en **Siguiente**. Deja vacío **Criterios de coincidencia**, para que la regla coincida con todos los incidentes, y haz clic en **Siguiente**. Elige tu política en **Políticas de guardia** y haz clic en **Crear Regla de guardia de incidentes**.
+Abre **Incidentes** desde el menú **Productos**, despliega **Reglas** en el menú lateral y elige **Reglas de guardia**. Haz clic en **Crear Regla de guardia de incidentes**, escribe un **Nombre** y haz clic en **Siguiente**. En **Criterios de coincidencia**, deja marcado **Todos los incidentes**, para que la regla coincida con todos los incidentes, y haz clic en **Siguiente**. Elige tu política en **Políticas de guardia** y haz clic en **Crear Regla de guardia de incidentes**.
 
 ### Elegir cómo te localizan
 

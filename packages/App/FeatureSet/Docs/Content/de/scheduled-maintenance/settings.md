@@ -73,7 +73,7 @@ Klicken Sie auf **Erinnerungsregel für geplante Wartungen erstellen**. Geben Si
 
 ### Wählen, an welche Ereignisse erinnert wird
 
-Wählen Sie unter **Übereinstimmungskriterien** die **Beschriftungen**, für die sie gilt. Lassen Sie sie leer, um an jedes Ereignis zu erinnern.
+Lassen Sie unter **Übereinstimmungskriterien** die Auswahl **Alle geplanten Wartungsereignisse** stehen, um an jedes Ereignis zu erinnern, oder wählen Sie **Nur geplante Wartungsereignisse, die den Bedingungen entsprechen** und dann die **Beschriftungen**, für die sie gilt.
 
 ### Das Intervall festlegen
 

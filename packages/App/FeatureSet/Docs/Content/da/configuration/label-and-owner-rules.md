@@ -40,7 +40,7 @@ Alle etiket- og ejerregler oprettes på samme måde, i to trin.
 
 ### Vælg, hvad reglen matcher
 
-I trinnet **Match** skal du klikke på **Tilføj betingelse** for hver betingelse, ressourcen skal opfylde. Med to eller flere vælger du **Alle skal matche** eller **Én skal matche**. En regel uden betingelser matcher alle nye ressourcer.
+I trinnet **Match** starter **Gælder for** på alle nye ressourcer, for eksempel **Alle værter** i en værtsregel. For at indsnævre reglen vælger du **Kun værter, der opfylder betingelserne** og udfylder den betingelse, der åbnes; klik på **Tilføj betingelse** for hver anden betingelse, ressourcen skal opfylde. Med to eller flere vælger du **Alle skal matche** eller **Én skal matche**.
 
 ### Vælg, hvad reglen tilføjer
 

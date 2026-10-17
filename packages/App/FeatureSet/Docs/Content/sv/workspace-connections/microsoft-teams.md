@@ -84,7 +84,7 @@ Att skapa en regel går igenom fyra steg:
 | Steg | Vad du anger |
 | --- | --- |
 | **Grundläggande** | **Regelnamn** och **Regelbeskrivning**. |
-| **Villkor** | Vilka händelser regeln gäller, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. De kontrolleras när en händelse skapas och igen vid varje uppdatering som OneUptime publicerar om den, så en regel för bekräftade incidenter verkar när en incident bekräftas. Utan villkor gäller regeln varje händelse. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
+| **Villkor** | Vilka händelser regeln gäller, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. De kontrolleras när en händelse skapas och igen vid varje uppdatering som OneUptime publicerar om den, så en regel för bekräftade incidenter verkar när en incident bekräftas. En ny regel gäller varje händelse, till exempel **Alla incidenter**. För att snäva in den väljer du **Endast incidenter som uppfyller villkoren** och lägger till villkoren. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
 | **Mål** | Var den publicerar: en befintlig kanal i ett team som du väljer, de chattar som du väljer, en kanal för varje incident (eller larm, episod, händelse, monitor eller jourpolicy) som skapas i ett team som du väljer, eller flera av dessa tillsammans. Under steget säger **Vad regeln gör** det i meningar, som regelns kort. |
 | **Video Call** | Endast incidenter och larm: starta ett samtal för var och en. Se [Videosamtal](/docs/workspace-connections/video-calls). |
 

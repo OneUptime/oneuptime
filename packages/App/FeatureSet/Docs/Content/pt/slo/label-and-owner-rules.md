@@ -26,7 +26,7 @@ Abra **SLOs**, depois **Configurações** → **Regras de Rótulos** ou **Config
 
 ### Escolher a que a regra corresponde
 
-Na etapa **Corresponder**, clique em **Adicionar condição** para cada condição que um SLO precisa atender (veja [Critérios de correspondência](#critérios-de-correspondência)). Com duas ou mais, escolha **Corresponder a todas** ou **Corresponder a qualquer**. Uma regra sem condições corresponde a todo SLO novo.
+Na etapa **Corresponder**, **Aplica-se a** começa em **Todos os SLOs**, todo SLO novo. Para restringi-la, escolha **Somente os SLOs que atendem às condições** e preencha a condição que se abre (veja [Critérios de correspondência](#critérios-de-correspondência)); clique em **Adicionar condição** para cada outra condição que um SLO precisa atender. Com duas ou mais, escolha **Corresponder a todas** ou **Corresponder a qualquer**.
 
 ### Escolher o que a regra adiciona
 

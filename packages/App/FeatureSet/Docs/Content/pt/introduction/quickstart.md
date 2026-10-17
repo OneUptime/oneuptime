@@ -68,7 +68,7 @@ Na lista, clique em **Configure uma política de plantão**, ou abra **Plantão*
 
 ### Acioná-la em cada incidente
 
-Abra **Incidentes** no menu **Produtos**, expanda **Regras** no menu lateral e escolha **Regras de Plantão**. Clique em **Criar: Incident On-Call Rule**, digite um **Nome** e clique em **Próximo**. Deixe **Critérios de Correspondência** vazio, para que a regra valha para todos os incidentes, e clique em **Próximo**. Escolha sua política em **Políticas de plantão** e clique em **Criar: Incident On-Call Rule**.
+Abra **Incidentes** no menu **Produtos**, expanda **Regras** no menu lateral e escolha **Regras de Plantão**. Clique em **Criar: Incident On-Call Rule**, digite um **Nome** e clique em **Próximo**. Em **Critérios de Correspondência**, deixe **Todos os incidentes** selecionado, para que a regra valha para todos os incidentes, e clique em **Próximo**. Escolha sua política em **Políticas de plantão** e clique em **Criar: Incident On-Call Rule**.
 
 ### Escolher como você é contatado
 

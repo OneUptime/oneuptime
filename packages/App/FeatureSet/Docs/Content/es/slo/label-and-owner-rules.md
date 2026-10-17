@@ -26,7 +26,7 @@ Abre **SLO**, luego **Ajustes** → **Reglas de etiquetas** o **Ajustes** → **
 
 ### Elegir con qué coincide la regla
 
-En el paso **Coincidencia**, haz clic en **Añadir condición** para cada condición que deba cumplir un SLO (consulta [Criterios de coincidencia](#criterios-de-coincidencia)). Con dos o más, elige **Coincidir con todas** o **Coincidir con cualquiera**. Una regla sin condiciones coincide con cada SLO nuevo.
+En el paso **Coincidencia**, **Se aplica a** empieza en **Todos los SLO**, cada SLO nuevo. Para acotarla, elige **Solo los SLO que cumplen las condiciones** y rellena la condición que se abre (consulta [Criterios de coincidencia](#criterios-de-coincidencia)); haz clic en **Añadir condición** para cada otra condición que deba cumplir un SLO. Con dos o más, elige **Coincidir con todas** o **Coincidir con cualquiera**.
 
 ### Elegir qué añade la regla
 
