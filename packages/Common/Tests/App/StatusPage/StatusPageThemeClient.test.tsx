@@ -28,12 +28,16 @@ import File from "../../../Models/DatabaseModels/File";
 import MimeType from "../../../Types/File/MimeType";
 import StatusPageThemeUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPageTheme";
 import ThemeSwitch, {
+  THEME_SWITCH_CLASS_NAME,
   THEME_SWITCH_TEST_ID,
 } from "../../../../App/FeatureSet/StatusPage/src/Components/ThemeSwitch/ThemeSwitch";
 import LogoPlate, {
   LOGO_PLATE_ATTRIBUTE,
 } from "../../../../App/FeatureSet/StatusPage/src/Components/Logo/LogoPlate";
-import StatusPageFooter from "../../../../App/FeatureSet/StatusPage/src/Components/Footer/Footer";
+import StatusPageFooter, {
+  FOOTER_VISITOR_CONTROLS_CLASS_NAME,
+  FOOTER_VISITOR_CONTROLS_TEST_ID,
+} from "../../../../App/FeatureSet/StatusPage/src/Components/Footer/Footer";
 import StatusPageHeader from "../../../../App/FeatureSet/StatusPage/src/Components/Header/Header";
 import englishLocale from "../../../../App/FeatureSet/StatusPage/src/Locales/en.json";
 
@@ -593,6 +597,67 @@ describe("the footer's light / dark switch", () => {
     expect(
       document.querySelectorAll("footer .text-sm.text-center").length,
     ).toBe(footerItems);
+  });
+});
+
+describe("the footer's controls for the visitor", () => {
+  test("are one entry, centred on a phone like every other entry, and at the row's end from md up, on every page", () => {
+    for (const theme of [
+      StatusPageTheme.Light,
+      StatusPageTheme.Dark,
+      StatusPageTheme.System,
+    ]) {
+      act(() => {
+        StatusPageThemeUtil.setPageTheme(theme);
+      });
+
+      renderWithTranslation(<StatusPageFooter links={[]} copyright="Acme" />);
+
+      const controls: HTMLElement = screen.getByTestId(
+        FOOTER_VISITOR_CONTROLS_TEST_ID,
+      );
+
+      expect([theme, controls.className]).toEqual([
+        theme,
+        FOOTER_VISITOR_CONTROLS_CLASS_NAME,
+      ]);
+      expect(controls).toHaveClass("justify-center", "md:justify-start");
+      expect(
+        controls.contains(
+          screen.getByRole("combobox", { name: "Switch language" }),
+        ),
+      ).toBe(true);
+      expect([
+        theme,
+        controls.contains(screen.queryByTestId(THEME_SWITCH_TEST_ID)),
+      ]).toEqual([theme, theme === StatusPageTheme.System]);
+      expect(controls).toHaveAttribute(
+        "data-follows-device",
+        theme === StatusPageTheme.System ? "true" : "false",
+      );
+
+      cleanup();
+    }
+  });
+
+  test("the light / dark switch is a 28px target, its overhang taken back so the row keeps its height", () => {
+    act(() => {
+      StatusPageThemeUtil.setPageTheme(StatusPageTheme.System);
+    });
+
+    renderWithTranslation(<ThemeSwitch />);
+
+    const button: HTMLElement = screen.getByTestId(THEME_SWITCH_TEST_ID);
+
+    expect(button.className).toBe(THEME_SWITCH_CLASS_NAME);
+    // 28px square, around a 16px icon.
+    expect(button).toHaveClass("h-7", "w-7", "-my-1.5");
+    // A soft ground on hover, and the keyboard's ring.
+    expect(button).toHaveClass(
+      "hover:bg-gray-100",
+      "focus-visible:ring-2",
+      "focus-visible:ring-indigo-500",
+    );
   });
 });
 

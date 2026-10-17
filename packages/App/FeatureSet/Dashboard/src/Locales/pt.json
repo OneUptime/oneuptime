@@ -30363,7 +30363,7 @@
   "Every visitor sees the light page.": "Todos os visitantes veem a página clara.",
   "How your status page looks to visitors.": "Como os visitantes veem sua página de status.",
   "Light": "Claro",
-  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "Claro ou escuro, conforme a configuração do dispositivo de cada visitante. Os visitantes podem trocar no rodapé da página, e seu logotipo ganha um fundo claro na página escura.",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "Claro ou escuro, conforme a configuração do dispositivo de cada visitante. Os visitantes podem trocar no rodapé.",
   "Match each visitor's device": "Conforme o dispositivo de cada visitante",
   "Status page theme": "Tema da página de status",
   "Theme": "Tema",

@@ -9,6 +9,12 @@ import ThemeSwitch from "../ThemeSwitch/ThemeSwitch";
 import { useStatusPageTheme } from "../../Utils/StatusPageTheme";
 import { doesStatusPageThemeFollowDevice } from "Common/Types/StatusPage/StatusPageTheme";
 
+export const FOOTER_VISITOR_CONTROLS_TEST_ID: string =
+  "status-page-footer-visitor-controls";
+
+export const FOOTER_VISITOR_CONTROLS_CLASS_NAME: string =
+  "flex items-center justify-center gap-4 md:justify-start";
+
 export interface ComponentProps {
   copyright?: string | undefined;
   links: Array<Link>;
@@ -49,19 +55,24 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * On a page that follows each visitor's device, the visitor's light / dark
-   * switch sits beside the language switcher, as one group: the two ways a
-   * visitor can make the page their own. A Light or Dark page's footer is as
-   * it was.
+   * The ways a visitor makes the page their own, as one footer entry: the
+   * language switcher and, on a page that follows each visitor's device,
+   * their light / dark switch beside it (ThemeSwitch draws nothing on a
+   * Light or Dark page). Centred on a phone, as every other footer entry
+   * is, and at the row's end from md up.
    */
   links.push({
-    content: doesStatusPageThemeFollowDevice(theme) ? (
-      <div className="flex items-center justify-center gap-4 md:justify-start">
+    content: (
+      <div
+        className={FOOTER_VISITOR_CONTROLS_CLASS_NAME}
+        data-testid={FOOTER_VISITOR_CONTROLS_TEST_ID}
+        data-follows-device={
+          doesStatusPageThemeFollowDevice(theme) ? "true" : "false"
+        }
+      >
         <LanguageSwitcher enabledLanguages={props.enabledLanguages || null} />
         <ThemeSwitch />
       </div>
-    ) : (
-      <LanguageSwitcher enabledLanguages={props.enabledLanguages || null} />
     ),
   });
 

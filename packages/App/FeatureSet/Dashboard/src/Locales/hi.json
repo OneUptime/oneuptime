@@ -30363,7 +30363,7 @@
   "Every visitor sees the light page.": "हर आगंतुक को हल्का पृष्ठ दिखता है।",
   "How your status page looks to visitors.": "आपका स्थिति पृष्ठ आगंतुकों को कैसा दिखता है।",
   "Light": "हल्की",
-  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "हर आगंतुक के डिवाइस की सेटिंग के अनुसार हल्का या गहरा। आगंतुक पृष्ठ के फ़ुटर में इसे बदल सकते हैं, और गहरे पृष्ठ पर आपके लोगो के पीछे हल्की पृष्ठभूमि रहती है।",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "हर आगंतुक के डिवाइस की सेटिंग के अनुसार हल्का या गहरा। आगंतुक फ़ुटर में इसे बदल सकते हैं।",
   "Match each visitor's device": "हर आगंतुक के डिवाइस के अनुसार",
   "Status page theme": "स्थिति पृष्ठ की थीम",
   "Theme": "थीम",

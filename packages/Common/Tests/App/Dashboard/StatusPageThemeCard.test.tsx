@@ -22,7 +22,8 @@ import { getJestSpyOn } from "../../Spy";
 
 /*
  * Theme, on a status page's Branding page: Light, Dark, or as each visitor's
- * device is set - three radio rows that save the moment one is picked.
+ * device is set - three radio rows that save the moment one is picked, each
+ * beside a picture of the page in that theme.
  *
  * Only the network and the permission gate are stubbed; the card, its
  * choice rows and its "Saved" are the real ones.
@@ -145,6 +146,30 @@ function radio(theme: StatusPageTheme): HTMLInputElement {
   return screen.getByTestId(
     getStatusPageThemeChoiceTestId(theme),
   ) as HTMLInputElement;
+}
+
+// The picture beside a choice: its label (the slot), and the drawing in it.
+function picture(theme: StatusPageTheme): {
+  slot: HTMLElement;
+  drawing: SVGElement;
+} {
+  const slot: HTMLElement = screen.getByTestId(
+    `${getStatusPageThemeChoiceTestId(theme)}-visual`,
+  );
+
+  return { slot, drawing: slot.querySelector("svg") as SVGElement };
+}
+
+function framed(): Array<string> {
+  return STATUS_PAGE_THEME_CHOICES.filter(
+    (choice: StatusPageThemeChoice): boolean => {
+      return (
+        picture(choice.value).drawing.getAttribute("data-selected") === "true"
+      );
+    },
+  ).map((choice: StatusPageThemeChoice): string => {
+    return choice.value;
+  });
 }
 
 function checked(): Array<string> {
@@ -407,6 +432,107 @@ describe("someone who may not edit the status page", () => {
   });
 });
 
+describe("the pictures beside the choices", () => {
+  test("each choice has a picture of the page in its theme, beside it, hidden from screen readers", async () => {
+    await renderCard();
+    await loaded();
+
+    for (const choice of STATUS_PAGE_THEME_CHOICES) {
+      const { slot, drawing } = picture(choice.value);
+
+      expect(drawing).toHaveAttribute("data-theme-preview", choice.value);
+      expect(slot).toHaveAttribute("aria-hidden", "true");
+      expect(drawing).toHaveAttribute("aria-hidden", "true");
+      // It is the radio's own label, so pressing it is pressing the choice.
+      expect(slot.tagName).toBe("LABEL");
+      expect(slot).toHaveAttribute("for", radio(choice.value).id);
+      // It adds no words: the radio is still named by its title alone.
+      expect(slot).toHaveTextContent("");
+      expect(screen.getByRole("radio", { name: choice.title })).toBe(
+        radio(choice.value),
+      );
+    }
+  });
+
+  test("a page that follows the device is pictured half light and half dark", async () => {
+    await renderCard();
+    await loaded();
+
+    const fills: (theme: StatusPageTheme) => Array<string> = (
+      theme: StatusPageTheme,
+    ): Array<string> => {
+      return Array.from(
+        picture(theme).drawing.querySelectorAll("rect[fill]"),
+      ).map((element: Element): string => {
+        return element.getAttribute("fill") || "";
+      });
+    };
+
+    const light: Array<string> = fills(StatusPageTheme.Light);
+    const dark: Array<string> = fills(StatusPageTheme.Dark);
+    const both: Array<string> = fills(StatusPageTheme.System);
+
+    expect(light).toContain("#f9fafb");
+    expect(light).not.toContain("#0f172a");
+    expect(dark).toContain("#0f172a");
+    expect(dark).not.toContain("#f9fafb");
+    expect(both).toContain("#f9fafb");
+    expect(both).toContain("#0f172a");
+  });
+
+  test("the choice in force has its picture framed, and the frame follows a pick", async () => {
+    stored = { theme: StatusPageTheme.Dark };
+
+    await renderCard();
+    await loaded();
+
+    expect(framed()).toEqual([StatusPageTheme.Dark]);
+
+    await act(async () => {
+      fireEvent.click(radio(StatusPageTheme.System));
+    });
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+    expect(framed()).toEqual([StatusPageTheme.System]);
+  });
+
+  test("pressing a picture picks its choice and saves it", async () => {
+    await renderCard();
+    await loaded();
+
+    await act(async () => {
+      fireEvent.click(picture(StatusPageTheme.Dark).slot);
+    });
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      (updateByIdMock.mock.calls[0]![0] as Record<string, unknown>)["data"],
+    ).toEqual({ theme: StatusPageTheme.Dark });
+    expect(checked()).toEqual([StatusPageTheme.Dark]);
+  });
+
+  test("for someone who may not edit the page, pressing a picture saves nothing", async () => {
+    gate = {
+      isAllowed: false,
+      disabledReason: "You do not have permission to update this Status Page.",
+    };
+
+    await renderCard();
+    await loaded();
+
+    await act(async () => {
+      fireEvent.click(picture(StatusPageTheme.Dark).slot);
+    });
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(checked()).toEqual([StatusPageTheme.Light]);
+  });
+});
+
 describe("a page with custom code", () => {
   test.each([
     ["custom CSS", { customCSS: ".status-page { color: #111; }" }],
@@ -420,9 +546,22 @@ describe("a page with custom code", () => {
       await renderCard();
       await loaded();
 
+      const note: HTMLElement = screen.getByTestId(
+        STATUS_PAGE_THEME_CUSTOM_CODE_NOTE_TEST_ID,
+      );
+
+      expect(note).toHaveTextContent(StatusPageThemeCopy.customCodeNote);
+
+      // The CSS prefix it names is drawn as code.
+      const codeElements: Array<HTMLElement> = Array.from(
+        note.querySelectorAll("code"),
+      );
+
       expect(
-        screen.getByTestId(STATUS_PAGE_THEME_CUSTOM_CODE_NOTE_TEST_ID),
-      ).toHaveTextContent(StatusPageThemeCopy.customCodeNote);
+        codeElements.map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+      ).toEqual(["html.dark"]);
     },
   );
 

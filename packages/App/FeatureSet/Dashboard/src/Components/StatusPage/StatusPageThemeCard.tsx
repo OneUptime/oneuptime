@@ -32,14 +32,18 @@ import StatusPageThemeCopy, {
   STATUS_PAGE_THEME_CUSTOM_CODE_NOTE_TEST_ID,
   STATUS_PAGE_THEME_ERROR_TEST_ID,
   StatusPageThemeChoice,
+  StatusPageThemeNotePart,
   getShownStatusPageTheme,
   getStatusPageThemeChoiceTestId,
+  getStatusPageThemeNoteParts,
   hasStatusPageCustomCode,
 } from "./StatusPageThemeCopy";
+import StatusPageThemePreview from "./StatusPageThemePreview";
 
 /*
  * Theme, on a status page's Branding page: Light, Dark, or as each
- * visitor's device is set - one choice of three (StatusPageThemeCopy).
+ * visitor's device is set - one choice of three (StatusPageThemeCopy), each
+ * beside a small picture of the page in it (StatusPageThemePreview).
  *
  * - Picking one saves it at once and says "Saved" beside it; there is no
  *   Edit button and no dialog for a single pick. A pick the server refuses
@@ -106,6 +110,12 @@ const ThemeSetting: FunctionComponent<ThemeSettingProps> = (
           value: choice.value,
           title: choice.title,
           description: choice.description,
+          visual: (
+            <StatusPageThemePreview
+              theme={choice.value}
+              isSelected={setting.value === choice.value}
+            />
+          ),
           dataTestId: getStatusPageThemeChoiceTestId(choice.value),
         };
       },
@@ -142,7 +152,24 @@ const ThemeSetting: FunctionComponent<ThemeSettingProps> = (
           className="border-t border-gray-200 px-5 py-3 text-sm text-gray-500 md:px-6"
           data-testid={STATUS_PAGE_THEME_CUSTOM_CODE_NOTE_TEST_ID}
         >
-          {translator.translateText(StatusPageThemeCopy.customCodeNote)}
+          {/* The CSS prefix it names is drawn as code, in every language. */}
+          {getStatusPageThemeNoteParts(
+            translator.translateText(StatusPageThemeCopy.customCodeNote) ||
+              StatusPageThemeCopy.customCodeNote,
+          ).map(
+            (part: StatusPageThemeNotePart, index: number): ReactElement => {
+              return part.isCode ? (
+                <code
+                  key={index}
+                  className="rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-700"
+                >
+                  {part.text}
+                </code>
+              ) : (
+                <React.Fragment key={index}>{part.text}</React.Fragment>
+              );
+            },
+          )}
         </p>
       ) : (
         <></>

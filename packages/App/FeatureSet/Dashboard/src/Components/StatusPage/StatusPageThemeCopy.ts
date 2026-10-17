@@ -1,8 +1,11 @@
+import Color from "Common/Types/Color";
 import StatusPageTheme, {
+  STATUS_PAGE_THEME_COLORS,
   STATUS_PAGE_THEME_FALLBACK,
   parseStatusPageTheme,
 } from "Common/Types/StatusPage/StatusPageTheme";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { DARK_THEME_CARD } from "Common/Utils/StatusPage/StatusColorsOnDark";
 
 /*
  * Theme, on a status page's Branding page (Status Pages -> a page ->
@@ -35,6 +38,45 @@ export const StatusPageThemeCopy: {
   notFound: translationKey("Status page not found."),
 };
 
+/*
+ * The class the note names, written as code wherever it appears in the
+ * note's sentence. Every translation keeps it as it is (App/Tests/Dashboard/
+ * StatusPageThemeCopy.test.ts): it is what the CSS says, in any language.
+ */
+export const STATUS_PAGE_DARK_THEME_CSS_PREFIX: string = "html.dark";
+
+export interface StatusPageThemeNotePart {
+  text: string;
+  // Drawn as code: the CSS prefix the note names.
+  isCode: boolean;
+}
+
+/*
+ * The custom code note, translated, cut into its words and the CSS prefix
+ * it names, so the card draws the prefix as code.
+ */
+export const getStatusPageThemeNoteParts: (
+  translatedNote: string,
+) => Array<StatusPageThemeNotePart> = (
+  translatedNote: string,
+): Array<StatusPageThemeNotePart> => {
+  const parts: Array<StatusPageThemeNotePart> = [];
+
+  translatedNote
+    .split(STATUS_PAGE_DARK_THEME_CSS_PREFIX)
+    .forEach((text: string, index: number): void => {
+      if (index > 0) {
+        parts.push({ text: STATUS_PAGE_DARK_THEME_CSS_PREFIX, isCode: true });
+      }
+
+      if (text.length > 0) {
+        parts.push({ text, isCode: false });
+      }
+    });
+
+  return parts;
+};
+
 export interface StatusPageThemeChoice {
   value: StatusPageTheme;
   title: string;
@@ -44,10 +86,12 @@ export interface StatusPageThemeChoice {
 /*
  * The three choices, in the order they are offered: the light page every
  * status page has been, the dark one, and the one that follows each
- * visitor. What a dark page does with the page's one logo is said where it
- * matters: a Dark page shows it as it is, so its owner is told to use one
- * made for a dark background; a page that follows the visitor puts it on a
- * light backdrop on the dark page (StatusPage's LogoPlate).
+ * visitor. Each one sentence or two, beside a picture of the page in it
+ * (StatusPageThemePreview). The logo is mentioned only where its owner has
+ * something to do: a Dark page shows it as it is, so they are told to use
+ * one made for a dark background. A page that follows the visitor needs
+ * nothing from them - its logo sits on a light backdrop on the dark page
+ * (StatusPage's LogoPlate) - so its sentence says only what visitors get.
  */
 export const STATUS_PAGE_THEME_CHOICES: ReadonlyArray<StatusPageThemeChoice> = [
   {
@@ -66,10 +110,71 @@ export const STATUS_PAGE_THEME_CHOICES: ReadonlyArray<StatusPageThemeChoice> = [
     value: StatusPageTheme.System,
     title: translationKey("Match each visitor's device"),
     description: translationKey(
-      "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.",
+      "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.",
     ),
   },
 ];
+
+/*
+ * The colours of the pictures beside the choices (StatusPageThemePreview):
+ * the status page's own, so the picture is the page. Plain colours, never
+ * Tailwind classes, which the dashboard's own dark theme would remap.
+ */
+export interface StatusPageThemePreviewPalette {
+  // The page behind everything.
+  page: string;
+  // The header's logo mark and the page's name beside it.
+  mark: string;
+  name: string;
+  // A card of the overview, its edge and its title line.
+  card: string;
+  cardEdge: string;
+  line: string;
+  // Uptime bars: a day that was up, and one that was not.
+  up: string;
+  degraded: string;
+}
+
+export const getStatusPageThemePreviewPalettes: () => {
+  light: StatusPageThemePreviewPalette;
+  dark: StatusPageThemePreviewPalette;
+} = (): {
+  light: StatusPageThemePreviewPalette;
+  dark: StatusPageThemePreviewPalette;
+} => {
+  return {
+    light: {
+      page: STATUS_PAGE_THEME_COLORS.light,
+      mark: "#6366f1",
+      name: "#9ca3af",
+      card: "#ffffff",
+      cardEdge: "#e5e7eb",
+      line: "#d1d5db",
+      up: "#22c55e",
+      degraded: "#f59e0b",
+    },
+    dark: {
+      page: STATUS_PAGE_THEME_COLORS.dark,
+      mark: "#818cf8",
+      name: "#64748b",
+      // The dark theme's card (Theme.css --ou-surface-primary).
+      card: Color.rgbToColor(DARK_THEME_CARD).toString().toLowerCase(),
+      cardEdge: "#334155",
+      line: "#475569",
+      up: "#22c55e",
+      degraded: "#f59e0b",
+    },
+  };
+};
+
+/*
+ * The picture's frame: a mid grey that shows against the light card and the
+ * dark one alike, so the light picture has an edge on the light dashboard
+ * and the dark picture on the dark one. The choice in force is framed in the
+ * accent colour, which reads at 3:1 on both.
+ */
+export const STATUS_PAGE_THEME_PREVIEW_EDGE: string = "rgb(148 163 184 / 60%)";
+export const STATUS_PAGE_THEME_PREVIEW_SELECTED_EDGE: string = "#6366f1";
 
 // The card's data-testid.
 export const STATUS_PAGE_THEME_CARD_TEST_ID: string = "status-page-theme";

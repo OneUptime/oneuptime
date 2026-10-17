@@ -518,6 +518,70 @@ test.describe("a page that follows the visitor's device", () => {
   });
 });
 
+test.describe("the footer's controls for the visitor", () => {
+  test("the light / dark switch is a target a thumb can hit", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, PAGE, "theme=System");
+
+    const box: { width: number; height: number } | null = await page
+      .getByTestId("status-page-theme-switch")
+      .boundingBox();
+
+    expect(box).not.toBeNull();
+    // WCAG 2.2's 24px minimum; the switch is 28px around its 16px icon.
+    expect(box!.width).toBeGreaterThanOrEqual(24);
+    expect(box!.height).toBeGreaterThanOrEqual(24);
+  });
+
+  for (const theme of ["Light", "Dark", "System"]) {
+    test(`${theme}: on a phone they sit centred, like every other entry of the footer`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openPage(page, PAGE, `theme=${theme}`);
+
+      const controls: Locator = page.getByTestId(
+        "status-page-footer-visitor-controls",
+      );
+
+      await controls.scrollIntoViewIfNeeded();
+
+      // The middle of what the entry draws: the language switcher, and the switch.
+      const middle: number = await controls.evaluate(
+        (element: Element): number => {
+          const boxes: Array<DOMRect> = Array.from(element.children)
+            .map((child: Element): DOMRect => {
+              return child.getBoundingClientRect();
+            })
+            .filter((box: DOMRect): boolean => {
+              return box.width > 0;
+            });
+
+          const left: number = Math.min(
+            ...boxes.map((box: DOMRect): number => {
+              return box.left;
+            }),
+          );
+          const right: number = Math.max(
+            ...boxes.map((box: DOMRect): number => {
+              return box.right;
+            }),
+          );
+
+          return (left + right) / 2;
+        },
+      );
+
+      expect(Math.abs(middle - 390 / 2)).toBeLessThanOrEqual(2);
+    });
+  }
+});
+
 test.describe("a Light or Dark page", () => {
   for (const theme of ["Light", "Dark"]) {
     test(`${theme} offers no switch, and the device does not move it`, async ({

@@ -30363,7 +30363,7 @@
   "Every visitor sees the light page.": "すべての訪問者にライトページを表示します。",
   "How your status page looks to visitors.": "訪問者に表示されるステータスページの見た目です。",
   "Light": "ライト",
-  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "訪問者ごとのデバイスの設定に合わせて、ライトまたはダークで表示します。訪問者はページのフッターで切り替えられ、ダークページではロゴの後ろに明るい背景が付きます。",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "訪問者ごとのデバイスの設定に合わせて、ライトまたはダークで表示します。訪問者はフッターで切り替えられます。",
   "Match each visitor's device": "訪問者のデバイスに合わせる",
   "Status page theme": "ステータスページのテーマ",
   "Theme": "テーマ",

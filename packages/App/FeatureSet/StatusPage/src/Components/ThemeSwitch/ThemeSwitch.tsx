@@ -21,9 +21,17 @@ import { useTranslation } from "react-i18next";
  * what it does as its name and tooltip. The pick is kept in the visitor's
  * browser; picking what their device asks for again lets the page follow the
  * device once more (StatusPageThemeUtil.switchColorScheme).
+ *
+ * The icon is 16px, as the language switcher's is; the button around it is
+ * 28px square, a target a thumb can hit, with a soft ground on hover. Its
+ * vertical overhang is taken back with a negative margin, so the footer's
+ * row keeps the height of its text.
  */
 
 export const THEME_SWITCH_TEST_ID: string = "status-page-theme-switch";
+
+export const THEME_SWITCH_CLASS_NAME: string =
+  "-my-1.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 const ThemeSwitch: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -48,7 +56,7 @@ const ThemeSwitch: FunctionComponent = (): ReactElement => {
       title={label}
       data-testid={THEME_SWITCH_TEST_ID}
       data-color-scheme={colorScheme}
-      className="inline-flex items-center justify-center rounded p-0.5 text-gray-500 transition-colors duration-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+      className={THEME_SWITCH_CLASS_NAME}
     >
       <Icon
         icon={isDark ? IconProp.Sun : IconProp.Moon}

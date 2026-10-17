@@ -30363,7 +30363,7 @@
   "Every visitor sees the light page.": "همه بازدیدکنندگان صفحه روشن را می‌بینند.",
   "How your status page looks to visitors.": "ظاهر صفحه وضعیت شما برای بازدیدکنندگان.",
   "Light": "روشن",
-  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "روشن یا تیره، مطابق تنظیم دستگاه هر بازدیدکننده. بازدیدکنندگان می‌توانند آن را در پانویس صفحه عوض کنند و لوگوی شما در صفحه تیره یک پس‌زمینه روشن می‌گیرد.",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "روشن یا تیره، مطابق تنظیم دستگاه هر بازدیدکننده. بازدیدکنندگان می‌توانند آن را در پانویس عوض کنند.",
   "Match each visitor's device": "مطابق دستگاه هر بازدیدکننده",
   "Status page theme": "پوسته صفحه وضعیت",
   "Theme": "پوسته",

@@ -30363,7 +30363,7 @@
   "Every visitor sees the light page.": "所有访问者都看到浅色页面。",
   "How your status page looks to visitors.": "访问者看到的状态页外观。",
   "Light": "浅色",
-  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "按每位访问者的设备设置显示浅色或深色。访问者可以在页面底部切换，深色页面上的徽标会带有浅色衬底。",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "按每位访问者的设备设置显示浅色或深色。访问者可以在页面底部切换。",
   "Match each visitor's device": "跟随访问者的设备",
   "Status page theme": "状态页主题",
   "Theme": "主题",

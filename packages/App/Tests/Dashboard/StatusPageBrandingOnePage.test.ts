@@ -484,10 +484,14 @@ describe("one place for each branding setting", () => {
       "Components/StatusPage/StatusPageBrandingCopy.ts",
       "Pages/StatusPages/View/Branding.tsx",
     ],
-    // Light, Dark or the visitor's device: its card, and the card's copy.
+    /*
+     * Light, Dark or the visitor's device: its card, the card's copy, and
+     * the picture of the page beside each of its choices.
+     */
     theme: [
       "Components/StatusPage/StatusPageThemeCard.tsx",
       "Components/StatusPage/StatusPageThemeCopy.ts",
+      "Components/StatusPage/StatusPageThemePreview.tsx",
     ],
   };
 
