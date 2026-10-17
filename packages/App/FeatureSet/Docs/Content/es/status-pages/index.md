@@ -115,7 +115,7 @@ La página pública es una aplicación propia, con un pequeño conjunto de rutas
 - `/announcements` y `/announcements/:id`.
 - `/scheduled-events` y `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` y `/unsubscribe/:token`: los enlaces de los mensajes que reciben los suscriptores.
+- `/confirm-subscription/:id`, `/update-subscription/:token` y `/unsubscribe/:token`: los enlaces de los mensajes que reciben los suscriptores.
 - `/rss`: el feed.
 - `/login`, `/sso` y `/master-password`: solo relevantes en una página privada.
 

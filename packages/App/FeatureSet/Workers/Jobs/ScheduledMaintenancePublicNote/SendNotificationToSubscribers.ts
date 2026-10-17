@@ -21,7 +21,6 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
-import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
   SubscriberNotificationEmailBodyTemplateVariables,
@@ -578,29 +577,13 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${publicNote.id}.`,
           );
 
-          /*
-           * On a public status page the SMS keeps the shorter manage link,
-           * which works there without signing in: an SMS is billed by the
-           * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
-           */
-          const smsUnsubscribeUrl: string =
-            StatusPageSubscriberUnsubscribe.buildSmsLink({
-              isPublicStatusPage: statuspage.isPublicStatusPage,
-              statusPageUrl: statusPageURL,
-              subscriberId: subscriber.id!,
-              unsubscribeUrl: unsubscribeUrl,
-            });
-
           let smsMessage: string;
           if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
             // Use custom template only when custom Twilio is configured
             smsMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 smsTemplate.templateBody,
-                {
-                  ...subscriberPlainTextTemplateVariables,
-                  unsubscribeUrl: smsUnsubscribeUrl,
-                },
+                subscriberPlainTextTemplateVariables,
               );
           } else {
             // Use default hard-coded template
@@ -612,7 +595,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                 })
               : `${copy.smsPrefix} ${event.title || ""} on ${statusPageName}.`;
 
-            smsMessage = `${smsHeadline} Details: ${scheduledEventDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
+            smsMessage = `${smsHeadline} Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`;
           }
 
           const sms: SMS = {

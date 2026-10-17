@@ -115,25 +115,25 @@ flowchart TB
 
 訂閱者收到的每則訊息都附有一個取消訂閱連結，形式為 `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-{token}`：位於郵件底部、簡訊或 Slack 或 Microsoft Teams 訊息的內文中，以及 Webhook 承載內容中的 `unsubscribeUrl`。權杖是屬於這一個訂閱的隨機密碼，所以這個連結不需登入即可使用。私人狀態頁面也是如此，儘管那裡其他一切都需要已登入的訪客。
 
-唯一的例外是來自 **public** 狀態頁面的簡訊，它附的是訂閱者的 **更新訂閱** 連結（見下文）。該頁面在公開狀態頁面上不需登入即可使用，而且它的連結短 57 個字元。簡訊依每 160 個字元的區段計費，所以較長的連結會讓大多數預設簡訊多出一個區段。自訂簡訊範本中的 `{{unsubscribeUrl}}` 遵循同樣的規則。來自私人狀態頁面的簡訊附的是取消訂閱連結。
+簡訊附的是同一個連結，無論來自公開狀態頁面還是私人狀態頁面，自訂簡訊範本中的 `{{unsubscribeUrl}}` 也一樣。只帶訂閱者 ID 的連結會更短，但每個能看到該訂閱者的專案成員都能讀到它的 ID，這樣的連結會讓他們能夠變更該訂閱。
 
-簡訊日誌（狀態頁面和專案設定中 **通知日誌** 的 **SMS** 分頁）會保存每則簡訊的文字，能讀取它的專案成員比能管理訂閱者的人更多。所以日誌顯示的取消訂閱連結中，權杖被替換為 `[redacted]`，例如 `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`。只有訂閱者自己的手機會收到可用的連結。API 也從不回傳新訂閱者的權杖，即使在建立它的請求的回應中也不會。
+簡訊日誌（狀態頁面和專案設定中 **通知日誌** 的 **SMS** 分頁）會保存每則簡訊的文字，能讀取它的專案成員比能管理訂閱者的人更多。所以日誌顯示的取消訂閱連結或訂閱管理連結中，權杖被替換為 `[redacted]`，例如 `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`。只有訂閱者自己的手機會收到可用的連結。API 也從不回傳新訂閱者的權杖，即使在建立它的請求的回應中也不會。
 
 **開啟連結不會改變任何事情。** 頁面會顯示狀態頁面的名稱和標誌，以及連結所屬的訂閱：完整的電子郵件地址、只顯示末四碼的電話號碼、Slack 或 Microsoft Teams 工作區名稱，或者 Webhook 的主機。它會詢問 *您要停止接收此狀態頁的通知嗎？* 只有按下 **取消訂閱** 才會取消訂閱，所以會開啟訊息中每個連結的郵件掃描程式和連結預覽程式無法取消任何人的訂閱。頁面上不會顯示其他任何內容，其中的自訂 JavaScript 也不會執行。確認兩次，或者開啟一個已經取消的訂閱的連結，只會顯示它已被取消。在公開狀態頁面上，取消訂閱頁面還會連結到訂閱者的 **更新訂閱** 頁面，以便改為選擇要接收哪些通知。
 
-**更新訂閱** 頁面 `{statusPageUrl}/update-subscription/{statusPageSubscriberId}` 的標題是 **更新訂閱**，並告訴訪客可以在那裡更新偏好設定或取消訂閱。它包含：
+**更新訂閱** 頁面 `{statusPageUrl}/update-subscription/{statusPageSubscriberId}-{token}` 同樣只憑訂閱的權杖才能開啟：只有訂閱者 ID 什麼也打不開。它的標題是 **更新訂閱**，並告訴訪客可以在那裡更新偏好設定或取消訂閱。它包含：
 
 - 頁面允許的任何資源和事件類型選擇器。
 - 一個 **取消訂閱** 開關，說明為取消訂閱所有資源。它會寫入 **已取消訂閱**（`isUnsubscribed`，預設 false）。
 - 一個寫著 **更新訂閱** 的提交按鈕；儲存後顯示 *您的變更已儲存。*
 
-在私人狀態頁面上，它和頁面的其他部分一樣需要已登入的訪客。遺失連結的人可以在 **訂閱** 頁面上使用 **管理現有訂閱**，然後按 **傳送管理連結**。連結會傳送到訂閱本身（它的電子郵件地址、電話號碼，或者它的 Slack 或 Microsoft Teams 頻道），絕不會傳送到請求中的地址，而且不論是否比對到訂閱，頁面的回應都相同，所以無法用它來查出誰訂閱了。該訊息會連結到 **更新訂閱** 頁面，並把兩個連結都交給自訂範本：`manageSubscriptionUrl` 和 `unsubscribeUrl`。
+在私人狀態頁面上，它和頁面的其他部分一樣需要已登入的訪客。和取消訂閱頁面一樣，它不會執行頁面的任何自訂 JavaScript，並且會顯示標準的頁首和頁尾，而不是自訂的標頭 HTML 或頁尾 HTML。遺失連結的人可以在 **訂閱** 頁面上使用 **管理現有訂閱**，然後按 **傳送管理連結**。連結會傳送到訂閱本身（它的電子郵件地址、電話號碼，或者它的 Slack 或 Microsoft Teams 頻道），絕不會傳送到請求中的地址，而且不論是否比對到訂閱，頁面的回應都相同，所以無法用它來查出誰訂閱了。該訊息會連結到 **更新訂閱** 頁面，並把兩個連結都交給自訂範本：`manageSubscriptionUrl` 和 `unsubscribeUrl`。
 
-支撐這一切的端點是 `POST .../subscribe/:statusPageId`、`POST .../manage-subscription/:statusPageId`、`POST .../get-subscription/:statusPageId/:subscriberId`、`PUT .../update-subscription/:statusPageId/:subscriberId`，以及 `GET` 和 `POST .../unsubscribe/:statusPageId/:subscriberId/:token`。取消訂閱的 `GET` 只會描述連結。`POST` 不論請求本文是什麼都會取消訂閱，包括一鍵取消訂閱請求的 `List-Unsubscribe=One-Click` 本文。對於錯誤的權杖、已刪除的訂閱者和另一個狀態頁面的訂閱者，兩者的回應都相同，所以無法用它們來查出誰訂閱了。
+支撐這一切的端點是 `POST .../subscribe/:statusPageId`、`POST .../manage-subscription/:statusPageId`、`POST .../get-subscription/:statusPageId/:subscriberId/:token`、`PUT .../update-subscription/:statusPageId/:subscriberId/:token`，以及 `GET` 和 `POST .../unsubscribe/:statusPageId/:subscriberId/:token`。取消訂閱的 `GET` 只會描述連結。`POST` 不論請求本文是什麼都會取消訂閱，包括一鍵取消訂閱請求的 `List-Unsubscribe=One-Click` 本文。每個接受權杖的端點，對於缺少或錯誤的權杖、已刪除的訂閱者和另一個狀態頁面的訂閱者，回應都相同，所以任何一個都無法用來查出誰訂閱了。
 
 取消訂閱是翻轉一個旗標，而不是刪除一列，所以記錄會以設定了 **已取消訂閱** 的狀態留在管道清單中，這在你之後需要解釋某個地址為什麼不再收到郵件時很有用。不論是誰取消了訂閱（訂閱者透過連結或 **更新訂閱** 頁面，或者隊友在儀表板上或透過 API），它還會記錄 **取消訂閱於**（`unsubscribedAt`）。每份訂閱者清單都有一個 **取消訂閱於** 欄位和篩選條件。再次關閉 **已取消訂閱** 會清除它。在 OneUptime 開始記錄這一點之前取消的訂閱沒有日期。
 
-在取消訂閱頁面出現之前寄出的訊息中的連結仍然可用：**更新訂閱** 連結仍然會開啟那個頁面。很舊的訊息中附有 `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`，它過去一開啟就會取消訂閱。現在它不再改變任何事情：它會進入取消訂閱頁面，頁面會說明該連結已過時，請使用最近一則訊息中的連結。
+只帶訂閱者 ID 的連結已經打不開任何東西。舊訊息中的 **更新訂閱** 連結 `{statusPageUrl}/update-subscription/{statusPageSubscriberId}` 會開啟一個說明連結已過期的頁面，頁面上的 **取得新連結** 會進入 **訂閱** 頁面。很舊的訊息中附有 `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`，它過去一開啟就會取消訂閱。現在它不再改變任何事情：它會進入取消訂閱頁面，頁面會說明該連結已過時，請使用最近一則訊息中的連結。
 
 ### 共用位址與郵寄清單
 

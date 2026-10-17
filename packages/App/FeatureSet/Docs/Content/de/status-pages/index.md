@@ -115,7 +115,7 @@ Die öffentliche Seite ist eine eigene App mit wenigen Routen:
 - `/announcements` und `/announcements/:id`.
 - `/scheduled-events` und `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` und `/unsubscribe/:token` – die Links in den Nachrichten, die Abonnenten bekommen.
+- `/confirm-subscription/:id`, `/update-subscription/:token` und `/unsubscribe/:token` – die Links in den Nachrichten, die Abonnenten bekommen.
 - `/rss` – der Feed.
 - `/login`, `/sso` und `/master-password` – nur auf einer privaten Seite relevant.
 

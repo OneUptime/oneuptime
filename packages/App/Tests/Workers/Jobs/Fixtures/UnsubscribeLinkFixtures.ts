@@ -7,7 +7,8 @@ import { expect } from "@jest/globals";
 /*
  * The unsubscribe link in the subscriber job tests.
  *
- * Every notification a job sends carries the subscriber's unsubscribe link,
+ * Every notification a job sends carries the subscriber's unsubscribe link -
+ * on every channel, an SMS from a public status page included -
  * {statusPageUrl}/unsubscribe/{subscriberId}-{token}, which only works if the
  * job hands StatusPageSubscriberService.getUnsubscribeLink the subscriber as
  * getSubscribersByStatusPage read it - token included. The job tests mock
@@ -46,20 +47,6 @@ export function unsubscribeLinkFor(
   return `${statusPageUrl}/unsubscribe/${subscriberId
     .toString()
     .toLowerCase()}-${unsubscribeTokenFor(subscriberId)}`;
-}
-
-/*
- * The link an SMS from a PUBLIC status page carries instead: the subscriber's
- * manage page, which works there without signing in and is 57 characters
- * shorter - an SMS is billed by the segment (see
- * StatusPageSubscriberUnsubscribe.buildSmsLink). The job fixtures' pages are
- * public. An SMS from a private page carries unsubscribeLinkFor.
- */
-export function smsManageLinkFor(
-  statusPageUrl: string,
-  subscriberId: { toString(): string },
-): string {
-  return `${statusPageUrl}/update-subscription/${subscriberId.toString()}`;
 }
 
 // Stands in for StatusPageSubscriberService.getUnsubscribeLink.

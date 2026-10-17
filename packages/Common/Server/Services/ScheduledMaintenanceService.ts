@@ -65,7 +65,6 @@ import SmsService from "../../Server/Services/SmsService";
 import AffectedStatusPageResources from "../Utils/StatusPage/AffectedStatusPageResources";
 import StatusPageService from "../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../Server/Services/StatusPageSubscriberService";
-import StatusPageSubscriberUnsubscribe from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import QueryHelper from "../../Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "../../Server/Types/Markdown";
 import logger, { LogAttributes } from "../../Server/Utils/Logger";
@@ -529,19 +528,6 @@ export class Service extends ProjectReferencesService<Model> {
           };
 
           if (subscriber.subscriberPhone) {
-            /*
-             * On a public status page the SMS keeps the shorter manage link,
-             * which works there without signing in: an SMS is billed by the
-             * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
-             */
-            const smsUnsubscribeUrl: string =
-              StatusPageSubscriberUnsubscribe.buildSmsLink({
-                isPublicStatusPage: statuspage.isPublicStatusPage,
-                statusPageUrl: statusPageURL,
-                subscriberId: subscriber.id!,
-                unsubscribeUrl: unsubscribeUrl,
-              });
-
             let smsMessage: string;
 
             if (
@@ -553,14 +539,11 @@ export class Service extends ProjectReferencesService<Model> {
               smsMessage =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   smsTemplate.templateBody,
-                  {
-                    ...plainTextTemplateVariables,
-                    unsubscribeUrl: smsUnsubscribeUrl,
-                  },
+                  plainTextTemplateVariables,
                 );
             } else {
               // Use default template
-              smsMessage = `Scheduled Maintenance: ${event.title || ""} on ${statusPageName}.${resourcesAffected ? ` Impact: ${resourcesAffected}.` : ""} Details: ${scheduledEventDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
+              smsMessage = `Scheduled Maintenance: ${event.title || ""} on ${statusPageName}.${resourcesAffected ? ` Impact: ${resourcesAffected}.` : ""} Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`;
             }
 
             const sms: SMS = {

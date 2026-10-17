@@ -275,7 +275,6 @@ import {
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
-  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -360,8 +359,8 @@ const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   "https://status.acme.com",
   SUBSCRIBER_ID,
 );
-// An SMS from this public page carries the manage link (see smsManageLinkFor).
-const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+// An SMS carries the same token link as every other message, on a public page too.
+const SMS_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   "https://status.acme.com",
   SUBSCRIBER_ID,
 );
@@ -1608,8 +1607,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom template variable
     /*
      * Subscribers are sent to a bounded number at a time, so their compiles
      * interleave; each still carries its own subscriber's link, on all five
-     * of its templates. An SMS from this public page carries the
-     * subscriber's manage link instead (see smsManageLinkFor).
+     * of its templates - the SMS one included, on this public page too.
      */
     const isSms: (call: CompileCall) => boolean = (
       call: CompileCall,
@@ -1626,7 +1624,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom template variable
     expect(linksCompiled).toEqual(
       [
         `sms ${SMS_UNSUBSCRIBE_URL}`,
-        `sms ${smsManageLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)}`,
+        `sms ${unsubscribeLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)}`,
         ...Array(4).fill(`other ${UNSUBSCRIBE_URL}`),
         ...Array(4).fill(`other ${SECOND_UNSUBSCRIBE_URL}`),
       ].sort(),
@@ -1641,7 +1639,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom template variable
     expect(
       sentSms().some((message: string): boolean => {
         return message.includes(
-          `unsubscribeUrl=[${smsManageLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)}]`,
+          `unsubscribeUrl=[${unsubscribeLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)}]`,
         );
       }),
     ).toBe(true);
@@ -1795,7 +1793,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom template variable
             ? descriptionByChannel[channel]!
             : expectedValues[name]!;
 
-        // An SMS from this public page carries the manage link.
+        // An SMS carries the same token link as every other message, on a public page too.
         if (name === "unsubscribeUrl" && channel === "sms") {
           value = SMS_UNSUBSCRIBE_URL;
         }
@@ -1927,7 +1925,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers custom templates with gr
     expect(sentMail()[0]!["subject"]).toBe(
       `${EPISODE_TITLE}: ${DESCRIPTION_TEXT} (${GROUPED_RESOURCES_TEXT})`,
     );
-    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    // An SMS carries the same token link as every other message, on a public page too.
     expect(sentSms()).toEqual([
       renderedEveryVariable("sms", {
         ...values.plainText,

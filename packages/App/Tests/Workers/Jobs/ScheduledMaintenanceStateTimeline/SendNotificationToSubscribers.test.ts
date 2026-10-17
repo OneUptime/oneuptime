@@ -258,7 +258,6 @@ import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
-  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -366,8 +365,8 @@ function unsubscribeUrlFor(page: PageFixture): string {
 const STATUS_PAGE_URL: string = MAIN_PAGE.url;
 const DETAILS_URL: string = detailsUrlFor(MAIN_PAGE);
 const UNSUBSCRIBE_URL: string = unsubscribeUrlFor(MAIN_PAGE);
-// An SMS from this public page carries the manage link (see smsManageLinkFor).
-const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+// An SMS carries the same token link as every other message, on a public page too.
+const SMS_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   MAIN_PAGE.url,
   SUBSCRIBER_ID,
 );
@@ -765,7 +764,7 @@ function expectedCustomMessages(data: {
   return [
     `Email|${data.emailBody ?? data.body}`,
     `Subject|${data.plainTextBody ?? data.body}`,
-    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    // An SMS carries the same token link as every other message, on a public page too.
     `SMS|${(data.plainTextBody ?? data.body)
       .split(UNSUBSCRIBE_URL)
       .join(SMS_UNSUBSCRIBE_URL)}`,
@@ -808,7 +807,7 @@ function expectedVariablesByChannel(): Record<string, Record<string, string>> {
   return {
     Email: emailBody,
     Subject: plainText,
-    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    // An SMS carries the same token link as every other message, on a public page too.
     SMS: { ...plainText, unsubscribeUrl: SMS_UNSUBSCRIBE_URL },
     Slack: markdown,
     "Microsoft Teams": markdown,
@@ -1373,7 +1372,7 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
               ? GROUPED_RESOURCES_HTML
               : GROUPED_RESOURCES_TEXT,
           scheduledMaintenanceDescription: descriptionForChannel(call.channel),
-          // An SMS from this public page carries the manage link.
+          // An SMS carries the same token link as every other message, on a public page too.
           unsubscribeUrl:
             call.channel === "SMS" ? SMS_UNSUBSCRIBE_URL : UNSUBSCRIBE_URL,
         },
@@ -1699,10 +1698,10 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
           statusPageName: page!.pageTitle,
           statusPageUrl: page!.url,
           detailsUrl: detailsUrlFor(page!),
-          // An SMS from a public page carries the manage link (see smsManageLinkFor).
+          // An SMS carries the same token link as every other message, on a public page too.
           unsubscribeUrl:
             call.channel === "SMS"
-              ? smsManageLinkFor(page!.url, SUBSCRIBER_ID)
+              ? unsubscribeLinkFor(page!.url, SUBSCRIBER_ID)
               : unsubscribeUrlFor(page!),
           resourcesAffected:
             call.channel === "Email"
