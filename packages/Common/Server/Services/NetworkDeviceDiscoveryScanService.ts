@@ -473,7 +473,7 @@ export class Service extends ProjectReferencesService<Model> {
        * Skipped entirely when the save is turning SNMP OFF, and that is not
        * merely an optimisation: this pass VALIDATES the credential list, and
        * the form posts every declared field whether or not it was visible. An
-       * operator who unticked Check SNMP would otherwise be refused their save
+       * operator who picked ICMP would otherwise be refused their save
        * over a half-finished credential set they had just told the product to
        * stop using. clearSnmpConfig nulls the list along with the flattened
        * columns, so there is nothing left to validate.

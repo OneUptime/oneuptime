@@ -215,7 +215,7 @@ const scans = [
     completedAt: new Date(),
     discoveredDevices: posRegisters,
     statusMessage:
-      "Swept 16384 hosts with ICMP ping only (Check SNMP is off for this scan): 514 answered ping. NetBIOS names were looked up for 514 hosts.",
+      "Swept 16384 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 514 answered ping. NetBIOS names were looked up for 514 hosts.",
   }),
   // A campus of 300 hosts: four vendors over SNMP, printers and phones by ping.
   scan(10, {
