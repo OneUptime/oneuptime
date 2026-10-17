@@ -103,7 +103,8 @@ export default class SamlServiceProviders {
    *
    * A query string or fragment is ignored: no provider address has one, and
    * the routes do not read them. Anything that is not an http(s) URL names
-   * nothing.
+   * nothing, and neither does one carrying a user name or password: no
+   * provider address has those either.
    */
   public static isSameAddress(candidate: string, expected: string): boolean {
     const candidateUrl: globalThis.URL | null =
@@ -112,6 +113,15 @@ export default class SamlServiceProviders {
       SamlServiceProviders.parseAddress(expected);
 
     if (!candidateUrl || !expectedUrl) {
+      return false;
+    }
+
+    if (
+      candidateUrl.username ||
+      candidateUrl.password ||
+      expectedUrl.username ||
+      expectedUrl.password
+    ) {
       return false;
     }
 
@@ -157,13 +167,15 @@ export default class SamlServiceProviders {
     return url;
   }
 
+  // The path in lower case, without trailing slashes ("/" becomes "").
   private static getComparablePath(url: globalThis.URL): string {
-    let path: string = url.pathname.toLowerCase();
+    const path: string = url.pathname.toLowerCase();
+    let end: number = path.length;
 
-    while (path.endsWith("/")) {
-      path = path.substring(0, path.length - 1);
+    while (end > 0 && path.charAt(end - 1) === "/") {
+      end--;
     }
 
-    return path;
+    return path.substring(0, end);
   }
 }

@@ -32,6 +32,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import zlib from "zlib";
 
 /*
  * ---------------------------------------------------------------------------
@@ -490,7 +491,9 @@ const GLOBAL_PROVIDER: ServiceProviderValues = {
 interface Flow {
   name: string;
   router: ExpressRouter;
+  // The Reply URL's route, and the route that starts a sign-in.
   path: string;
+  startPath: string;
   params: Record<string, string>;
   provider: ServiceProviderValues;
   // Another OneUptime provider that trusts the same identity provider.
@@ -503,6 +506,7 @@ const FLOWS: Array<Flow> = [
     name: "project SAML (/idp-login)",
     router: SSORouter,
     path: "/idp-login/:projectId/:projectSsoId",
+    startPath: "/sso/:projectId/:projectSsoId",
     params: { projectId: PROJECT_ID, projectSsoId: PROJECT_SSO_ID },
     provider: PROJECT_PROVIDER,
     neighbour: STATUS_PAGE_PROVIDER,
@@ -514,6 +518,7 @@ const FLOWS: Array<Flow> = [
     name: "Global SAML (/global-idp-login)",
     router: GlobalSSORouter,
     path: "/global-idp-login/:globalSsoId",
+    startPath: "/global-sso/:globalSsoId",
     params: { globalSsoId: GLOBAL_SSO_ID },
     provider: GLOBAL_PROVIDER,
     neighbour: PROJECT_PROVIDER,
@@ -525,6 +530,7 @@ const FLOWS: Array<Flow> = [
     name: "status page SAML (/status-page-idp-login)",
     router: StatusPageSSORouter,
     path: "/status-page-idp-login/:statusPageId/:statusPageSsoId",
+    startPath: "/status-page-sso/:statusPageId/:statusPageSsoId",
     params: {
       statusPageId: STATUS_PAGE_ID,
       statusPageSsoId: STATUS_PAGE_SSO_ID,
@@ -555,6 +561,7 @@ function signedResponse(data: {
   replyUrl: string;
   issuedMinutesAgo?: number | undefined;
   inResponseTo?: string | null | undefined;
+  issuer?: string | undefined;
 }): string {
   responseCounter++;
 
@@ -566,7 +573,7 @@ function signedResponse(data: {
   return toBase64(
     signElement(
       buildSamlResponse({
-        issuer: ISSUER,
+        issuer: data.issuer ?? ISSUER,
         email: USER_EMAIL,
         issuedAt,
         responseId: `_response_${responseCounter}`,
@@ -588,10 +595,20 @@ interface PostResult {
   status: number | null;
 }
 
-async function post(flow: Flow, samlResponse: string): Promise<PostResult> {
+// res.redirect: where the mobile flows send the app its deep link.
+const resRedirect: jest.Mock = jest.fn();
+
+async function post(
+  flow: Flow,
+  samlResponse: string,
+  options: { relayState?: string | undefined } = {},
+): Promise<PostResult> {
   const req: ExpressRequest = {
     params: flow.params,
-    body: { SAMLResponse: samlResponse },
+    body: {
+      SAMLResponse: samlResponse,
+      ...(options.relayState ? { RelayState: options.relayState } : {}),
+    },
     query: {},
     headers: {},
     cookies: {},
@@ -604,7 +621,7 @@ async function post(flow: Flow, samlResponse: string): Promise<PostResult> {
   let status: number | null = null;
 
   const res: ExpressResponse = {
-    redirect: jest.fn(),
+    redirect: resRedirect,
     status: jest.fn((code: number) => {
       status = code;
       return res;
@@ -735,6 +752,7 @@ beforeEach(() => {
     return Promise.resolve({
       ...provider,
       id: new ObjectID(STATUS_PAGE_SSO_ID),
+      statusPageId: new ObjectID(STATUS_PAGE_ID),
       projectId: new ObjectID(PROJECT_ID),
       publicCertificate: idpKeys.publicKey,
     });
@@ -906,5 +924,370 @@ describe.each(FLOWS)("$name", (flow: Flow) => {
     expectNobodySignedIn(flow);
     expect(refusalStatus()).toBe(503);
     expect(refusalMessage()).toBe(SAML_SIGN_IN_UNAVAILABLE_MESSAGE);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The request a sign-in starts with names the same Entity ID and Reply URL
+ * a response is then held to, and a response naming them is taken.
+ * ---------------------------------------------------------------------------
+ */
+
+// The AuthnRequest a start route redirected the browser to the IdP with.
+async function startSignIn(flow: Flow): Promise<string> {
+  const req: ExpressRequest = {
+    params: flow.params,
+    body: {},
+    query: {},
+    headers: {},
+    cookies: {},
+    socket: { remoteAddress: "127.0.0.1" },
+    get: (): undefined => {
+      return undefined;
+    },
+  } as unknown as ExpressRequest;
+
+  const res: ExpressResponse = {
+    redirect: jest.fn(),
+    status: jest.fn().mockReturnThis(),
+    send: jest.fn().mockReturnThis(),
+    cookie: jest.fn().mockReturnThis(),
+  } as unknown as ExpressResponse;
+
+  await (handlerFor(flow.router, "GET", flow.startPath)(req, res, (): void => {
+    throw new Error("The start route failed");
+  }) as unknown as Promise<void>);
+
+  expect(responseRedirect).toHaveBeenCalledTimes(1);
+
+  const redirectedTo: globalThis.URL = new globalThis.URL(
+    String(responseRedirect.mock.calls[0]![2]),
+  );
+
+  return zlib
+    .inflateRawSync(
+      Buffer.from(redirectedTo.searchParams.get("SAMLRequest") || "", "base64"),
+    )
+    .toString("utf8");
+}
+
+describe.each(FLOWS)("$name - the sign-in it starts", (flow: Flow) => {
+  test("asks the identity provider for a response to this provider's Reply URL, naming its Entity ID", async () => {
+    const authnRequest: string = await startSignIn(flow);
+
+    expect(authnRequest).toContain(
+      `AssertionConsumerServiceURL="${flow.provider.replyUrl}"`,
+    );
+    expect(authnRequest).toContain(
+      `<Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">${flow.provider.entityId}</Issuer>`,
+    );
+  });
+
+  test("the response to it, which names those two, signs in", async () => {
+    await startSignIn(flow);
+    jest.clearAllMocks();
+
+    await post(
+      flow,
+      signedResponse({
+        audience: flow.provider.entityId,
+        replyUrl: flow.provider.replyUrl,
+      }),
+    );
+
+    expect(refusalMessage()).toBeNull();
+    expect(flow.signedIn()).toBe(true);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Identity providers set up from older instructions keep signing people in.
+ * ---------------------------------------------------------------------------
+ */
+
+describe.each(FLOWS)("$name - Audiences older setups send", (flow: Flow) => {
+  test("signs in with the server's address as the Audience, the Entity ID shown before May 2024", async () => {
+    await post(
+      flow,
+      signedResponse({ audience: SERVER, replyUrl: flow.provider.replyUrl }),
+    );
+
+    expect(refusalMessage()).toBeNull();
+    expect(flow.signedIn()).toBe(true);
+  });
+
+  test("signs in with the Reply URL as the Audience", async () => {
+    await post(
+      flow,
+      signedResponse({
+        audience: flow.provider.replyUrl,
+        replyUrl: flow.provider.replyUrl,
+      }),
+    );
+
+    expect(refusalMessage()).toBeNull();
+    expect(flow.signedIn()).toBe(true);
+  });
+
+  /*
+   * The server's address names no provider in particular. A response
+   * carrying it is held to its provider by its Recipient, so one made for
+   * another provider of the same server is still refused.
+   */
+  test("the server's address as the Audience does not make another provider's response good here", async () => {
+    await post(
+      flow,
+      signedResponse({ audience: SERVER, replyUrl: flow.neighbour.replyUrl }),
+    );
+
+    expectNobodySignedIn(flow);
+    expect(refusalMessage()).toBe(SAML_RECIPIENT_MISMATCH_MESSAGE);
+  });
+
+  test("an address typed with http where the server knows itself as https still signs in", async () => {
+    await post(
+      flow,
+      signedResponse({
+        audience: flow.provider.entityId.replace("https://", "http://"),
+        replyUrl: flow.provider.replyUrl.replace("https://", "http://"),
+      }),
+    );
+
+    expect(refusalMessage()).toBeNull();
+    expect(flow.signedIn()).toBe(true);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The order of the steps: nothing is remembered for a response that is
+ * refused anyway, and nothing is looked up for a response used before.
+ * ---------------------------------------------------------------------------
+ */
+
+describe.each(FLOWS)("$name - the order of the steps", (flow: Flow) => {
+  test("a response refused for its time is not recorded as used", async () => {
+    await post(
+      flow,
+      signedResponse({
+        audience: flow.provider.entityId,
+        replyUrl: flow.provider.replyUrl,
+        issuedMinutesAgo: 120,
+      }),
+    );
+
+    expect(setStringIfNotExists).not.toHaveBeenCalled();
+  });
+
+  test("a response for another application is not recorded as used", async () => {
+    await post(
+      flow,
+      signedResponse({
+        audience: OTHER_APPLICATION.entityId,
+        replyUrl: OTHER_APPLICATION.replyUrl,
+      }),
+    );
+
+    expect(setStringIfNotExists).not.toHaveBeenCalled();
+  });
+
+  test("a response from another issuer is refused before it is recorded as used", async () => {
+    await post(
+      flow,
+      signedResponse({
+        audience: flow.provider.entityId,
+        replyUrl: flow.provider.replyUrl,
+        issuer: "https://idp.example.com/realms/someone-else",
+      }),
+    );
+
+    expectNobodySignedIn(flow);
+    expect(refusalMessage()).toBe("Issuer URL does not match");
+    expect(setStringIfNotExists).not.toHaveBeenCalled();
+  });
+
+  test("the use is recorded before anyone is looked up", async () => {
+    await post(
+      flow,
+      signedResponse({
+        audience: flow.provider.entityId,
+        replyUrl: flow.provider.replyUrl,
+      }),
+    );
+
+    const lookups: Array<number> = [
+      ...userFindOneBy.mock.invocationCallOrder,
+      ...privateUserFindOneBy.mock.invocationCallOrder,
+    ];
+
+    expect(setStringIfNotExists).toHaveBeenCalledTimes(1);
+    expect(lookups.length).toBeGreaterThan(0);
+    expect(setStringIfNotExists.mock.invocationCallOrder[0]!).toBeLessThan(
+      Math.min(...lookups),
+    );
+  });
+
+  test("a response posted again looks nobody up", async () => {
+    const response: string = signedResponse({
+      audience: flow.provider.entityId,
+      replyUrl: flow.provider.replyUrl,
+    });
+
+    await post(flow, response);
+    jest.clearAllMocks();
+    await post(flow, response);
+
+    expect(userFindOneBy).not.toHaveBeenCalled();
+    expect(privateUserFindOneBy).not.toHaveBeenCalled();
+  });
+
+  test("records the use under this provider, until the response could no longer be accepted", async () => {
+    await post(
+      flow,
+      signedResponse({
+        audience: flow.provider.entityId,
+        replyUrl: flow.provider.replyUrl,
+      }),
+    );
+
+    const [namespace, key, , options] = setStringIfNotExists.mock.calls[0] as [
+      string,
+      string,
+      string,
+      { expiresInSeconds: number },
+    ];
+
+    expect(namespace).toBe("saml-assertion-used");
+
+    const providerId: string =
+      flow.params["projectSsoId"] ||
+      flow.params["globalSsoId"] ||
+      flow.params["statusPageSsoId"] ||
+      "";
+
+    const kind: string = flow.name.startsWith("project")
+      ? "project-sso"
+      : flow.name.startsWith("Global")
+        ? "global-sso"
+        : "status-page-sso";
+
+    expect(key.split(":")[0]).toBe(kind);
+    expect(key.split(":")[1]).toBe(providerId);
+
+    /*
+     * Issued just now with five-minute windows: five minutes and the three
+     * of clock slack, plus three more for app servers' clocks.
+     */
+    expect(options.expiresInSeconds).toBeGreaterThan(10 * 60);
+    expect(options.expiresInSeconds).toBeLessThanOrEqual(11 * 60);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A sign-in the mobile app started ends on the app's deep link, refused or
+ * not, so the app can say why.
+ * ---------------------------------------------------------------------------
+ */
+
+describe("Global SAML from the mobile app", () => {
+  const flow: Flow = FLOWS.find((candidate: Flow): boolean => {
+    return candidate.name.startsWith("Global");
+  })!;
+
+  function deepLinkParams(): URLSearchParams {
+    expect(resRedirect).toHaveBeenCalledTimes(1);
+
+    const deepLink: string = resRedirect.mock.calls[0]![0] as string;
+
+    expect(deepLink.startsWith("oneuptime://sso-callback?")).toBe(true);
+
+    return new URLSearchParams(deepLink.split("?")[1] || "");
+  }
+
+  test("a response posted again sends the app back with the reason, and no tokens", async () => {
+    const response: string = signedResponse({
+      audience: flow.provider.entityId,
+      replyUrl: flow.provider.replyUrl,
+    });
+
+    await post(flow, response, { relayState: "mobile" });
+    jest.clearAllMocks();
+    await post(flow, response, { relayState: "mobile" });
+
+    const params: URLSearchParams = deepLinkParams();
+
+    expect(params.get("error")).toBe("invalid_assertion");
+    expect(params.get("errorDescription")).toBe(
+      SAML_RESPONSE_ALREADY_USED_MESSAGE,
+    );
+    expect(params.get("accessToken")).toBeNull();
+    expect(params.get("refreshToken")).toBeNull();
+    expectNobodySignedIn(flow);
+  });
+
+  test("a response for another application sends the app back as one that could not be verified", async () => {
+    await post(
+      flow,
+      signedResponse({
+        audience: OTHER_APPLICATION.entityId,
+        replyUrl: OTHER_APPLICATION.replyUrl,
+      }),
+      { relayState: "mobile" },
+    );
+
+    const params: URLSearchParams = deepLinkParams();
+
+    expect(params.get("error")).toBe("invalid_assertion");
+    expect(params.get("accessToken")).toBeNull();
+    expectNobodySignedIn(flow);
+  });
+
+  test("when used responses cannot be remembered, the app is told to try again", async () => {
+    cacheIsDown = true;
+
+    await post(
+      flow,
+      signedResponse({
+        audience: flow.provider.entityId,
+        replyUrl: flow.provider.replyUrl,
+      }),
+      { relayState: "mobile" },
+    );
+
+    const params: URLSearchParams = deepLinkParams();
+
+    expect(params.get("error")).toBe("invalid_assertion");
+    expect(params.get("errorDescription")).toBe(
+      SAML_SIGN_IN_UNAVAILABLE_MESSAGE,
+    );
+    expectNobodySignedIn(flow);
+  });
+});
+
+describe("project SAML from the mobile app", () => {
+  const flow: Flow = FLOWS.find((candidate: Flow): boolean => {
+    return candidate.name.startsWith("project");
+  })!;
+
+  test("a response posted again is refused and hands the app no tokens", async () => {
+    const response: string = signedResponse({
+      audience: flow.provider.entityId,
+      replyUrl: flow.provider.replyUrl,
+    });
+
+    await post(flow, response, { relayState: "mobile" });
+
+    // The first post handed the app its tokens on the deep link.
+    expect(String(resRedirect.mock.calls[0]![0])).toContain("accessToken=");
+
+    jest.clearAllMocks();
+    await post(flow, response, { relayState: "mobile" });
+
+    expect(resRedirect).not.toHaveBeenCalled();
+    expect(refusalMessage()).toBe(SAML_RESPONSE_ALREADY_USED_MESSAGE);
+    expectNobodySignedIn(flow);
   });
 });
