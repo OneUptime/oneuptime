@@ -13,6 +13,15 @@ import ResourceAiAgentService from "../../../Server/Services/ResourceAiAgentServ
 import RunnerJobService from "../../../Server/Services/RunnerJobService";
 import UserService from "../../../Server/Services/UserService";
 import KubectlJobRunner from "../../../Server/Utils/AI/ClusterAccess/KubectlJobRunner";
+import { ChatExtraTool } from "../../../Server/Utils/AI/Chat/ChatAgentRunner";
+import {
+  LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+  RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+} from "../../../Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
+import InvestigationThread, {
+  INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+  InvestigationThreadTurnContext,
+} from "../../../Server/Utils/AI/SRE/InvestigationThread";
 import CustomRoleSync from "../../../Server/Utils/CustomRole/CustomRoleSync";
 import {
   ExpressRequest,
@@ -41,6 +50,11 @@ import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  LIST_CLUSTER_ACCESS_TOOL_NAME,
+  RUN_KUBECTL_TOOL_NAME,
+} from "../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import { ResourceAiAccessStatus } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -1578,6 +1592,335 @@ describePostgres(
         await expect(
           assertMayApprove(props, productionClusterId),
         ).resolves.toBeUndefined();
+      });
+    });
+
+    /*
+     * An incident's shared AI conversation ("Ask OneUptime AI") runs
+     * read-only kubectl and infrastructure commands that the person asking
+     * steers, so it reaches only the linked clusters and resources that
+     * person may view - their own read, labels, owners, blocks and custom
+     * roles included - never one their read does not cover
+     * (InvestigationThread.buildTurnContext). Every linked cluster here has
+     * "Investigate with kubectl" on; only the person asking differs.
+     */
+    describe("the incident's AI conversation", () => {
+      const incidentId: ObjectID = ObjectID.generate();
+      const resourceAgentId: string = ObjectID.generate().toString();
+
+      const linkedCluster: (
+        clusterId: ObjectID,
+        name: string,
+      ) => KubernetesClusterAiAccessStatus = (
+        clusterId: ObjectID,
+        name: string,
+      ): KubernetesClusterAiAccessStatus => {
+        return {
+          ...readyStatus(clusterId),
+          clusterName: name,
+          clusterIdentifier: name,
+        } as KubernetesClusterAiAccessStatus;
+      };
+
+      const linkedHost: (
+        hostId: ObjectID,
+        name: string,
+      ) => ResourceAiAccessStatus = (
+        hostId: ObjectID,
+        name: string,
+      ): ResourceAiAccessStatus => {
+        return {
+          resourceType: AiResourceType.DockerHost,
+          resourceId: hostId.toString(),
+          resourceName: name,
+          isAiInvestigationEnabled: true,
+          aiRemediationMode: "Disabled",
+          aiCommandAllowlist: [],
+          agent: {
+            agentId: resourceAgentId,
+            connectionStatus: "Connected",
+            isOnline: true,
+          },
+          gaps: [],
+          isInvestigationReady: true,
+          isRemediationReady: false,
+        } as unknown as ResourceAiAccessStatus;
+      };
+
+      beforeEach(() => {
+        getJestSpyOn(
+          KubernetesClusterAiAccessService,
+          "getStatusesForSubject",
+        ).mockResolvedValue([
+          linkedCluster(productionClusterId, "prod-us"),
+          linkedCluster(stagingClusterId, "staging-us"),
+          linkedCluster(unlabelledClusterId, "sandbox"),
+          linkedCluster(memberOwnedClusterId, "owned-by-member"),
+          linkedCluster(teamOwnedClusterId, "owned-by-team"),
+        ] as never);
+        getJestSpyOn(
+          ResourceAiAccessService,
+          "getStatusesForSubject",
+        ).mockResolvedValue([
+          linkedHost(productionHostId, "prod-docker"),
+          linkedHost(stagingHostId, "staging-docker"),
+        ] as never);
+      });
+
+      // The turn's context, built for the member as their request carries them.
+      const askAsMember: () => Promise<InvestigationThreadTurnContext> =
+        async (): Promise<InvestigationThreadTurnContext> => {
+          return await InvestigationThread.buildTurnContext({
+            projectId: projectId,
+            subject: { type: "incident", id: incidentId },
+            aiRunId: ObjectID.generate(),
+            props: await propsOf(member),
+          });
+        };
+
+      const toolOf: (
+        context: InvestigationThreadTurnContext,
+        name: string,
+      ) => ChatExtraTool | undefined = (
+        context: InvestigationThreadTurnContext,
+        name: string,
+      ): ChatExtraTool | undefined => {
+        return context.extraTools.find((tool: ChatExtraTool): boolean => {
+          return tool.definition.name === name;
+        });
+      };
+
+      // The clusters the conversation offers kubectl on, by id.
+      const offeredClusters: (
+        context: InvestigationThreadTurnContext,
+      ) => Promise<Array<string>> = async (
+        context: InvestigationThreadTurnContext,
+      ): Promise<Array<string>> => {
+        const tool: ChatExtraTool | undefined = toolOf(
+          context,
+          LIST_CLUSTER_ACCESS_TOOL_NAME,
+        );
+
+        if (!tool) {
+          return [];
+        }
+
+        const text: string = (await tool.execute({})).result?.dataForLlm || "";
+
+        return [
+          productionClusterId,
+          stagingClusterId,
+          unlabelledClusterId,
+          memberOwnedClusterId,
+          teamOwnedClusterId,
+        ]
+          .map((id: ObjectID): string => {
+            return id.toString();
+          })
+          .filter((id: string): boolean => {
+            return text.includes(`clusterId: ${id} `);
+          });
+      };
+
+      // The Docker hosts the conversation offers commands on, by id.
+      const offeredHosts: (
+        context: InvestigationThreadTurnContext,
+      ) => Promise<Array<string>> = async (
+        context: InvestigationThreadTurnContext,
+      ): Promise<Array<string>> => {
+        const tool: ChatExtraTool | undefined = toolOf(
+          context,
+          LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+        );
+
+        if (!tool) {
+          return [];
+        }
+
+        const text: string = (await tool.execute({})).result?.dataForLlm || "";
+
+        return [productionHostId, stagingHostId]
+          .map((id: ObjectID): string => {
+            return id.toString();
+          })
+          .filter((id: string): boolean => {
+            return text.includes(`resourceId: ${id} `);
+          });
+      };
+
+      // Asks the conversation's run_kubectl for `auth can-i --list` on a cluster.
+      const runKubectlOn: (
+        context: InvestigationThreadTurnContext,
+        clusterId: ObjectID,
+      ) => Promise<boolean> = async (
+        context: InvestigationThreadTurnContext,
+        clusterId: ObjectID,
+      ): Promise<boolean> => {
+        const tool: ChatExtraTool | undefined = toolOf(
+          context,
+          RUN_KUBECTL_TOOL_NAME,
+        );
+
+        if (!tool) {
+          return false;
+        }
+
+        return (
+          await tool.execute({
+            clusterId: clusterId.toString(),
+            command: "kubectl auth can-i --list",
+            rationale: "What may the agent do here?",
+          })
+        ).success;
+      };
+
+      test("a member who may view only Staging clusters gets kubectl on Staging alone, and is told the rest is out of view", async () => {
+        await setTeamPermissions(memberTeamId, [
+          {
+            permission: Permission.ReadKubernetesCluster,
+            labelIds: [stagingLabelId],
+          },
+        ]);
+
+        const context: InvestigationThreadTurnContext = await askAsMember();
+
+        expect(await offeredClusters(context)).toEqual([
+          stagingClusterId.toString(),
+        ]);
+        expect(context.additionalSystemInstructions).toContain(
+          'Cluster "staging-us"',
+        );
+        expect(context.additionalSystemInstructions).not.toContain(
+          'Cluster "prod-us"',
+        );
+        expect(context.additionalSystemInstructions).toContain(
+          INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+        );
+
+        // Asked to run on Production anyway: refused, nothing ran.
+        expect(await runKubectlOn(context, productionClusterId)).toBe(false);
+        expect(kubectlRuns).toEqual([]);
+
+        expect(await runKubectlOn(context, stagingClusterId)).toBe(true);
+        expect(kubectlRuns).toEqual([
+          `${stagingClusterId.toString()} kubectl auth can-i --list`,
+        ]);
+      });
+
+      test("a Project Member blocked from viewing Production clusters gets every other one", async () => {
+        await setTeamPermissions(memberTeamId, [
+          { permission: Permission.ProjectMember },
+          {
+            permission: Permission.ReadKubernetesCluster,
+            labelIds: [productionLabelId],
+            isBlock: true,
+          },
+        ]);
+
+        const context: InvestigationThreadTurnContext = await askAsMember();
+
+        // The owned clusters carry the Production label too.
+        expect(await offeredClusters(context)).toEqual([
+          stagingClusterId.toString(),
+          unlabelledClusterId.toString(),
+        ]);
+        expect(await runKubectlOn(context, productionClusterId)).toBe(false);
+        expect(kubectlRuns).toEqual([]);
+      });
+
+      test("negative control: a member who may view every cluster gets every one, and nothing is out of view", async () => {
+        await setTeamPermissions(memberTeamId, [
+          { permission: Permission.ProjectMember },
+        ]);
+
+        const context: InvestigationThreadTurnContext = await askAsMember();
+
+        expect(await offeredClusters(context)).toEqual([
+          productionClusterId.toString(),
+          stagingClusterId.toString(),
+          unlabelledClusterId.toString(),
+          memberOwnedClusterId.toString(),
+          teamOwnedClusterId.toString(),
+        ]);
+        expect(await offeredHosts(context)).toEqual([
+          productionHostId.toString(),
+          stagingHostId.toString(),
+        ]);
+        expect(context.additionalSystemInstructions).not.toContain(
+          INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+        );
+        expect(await runKubectlOn(context, productionClusterId)).toBe(true);
+      });
+
+      test("a member who may view clusters they own gets those alone", async () => {
+        await setTeamPermissions(memberTeamId, [
+          {
+            permission: Permission.ReadKubernetesCluster,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const context: InvestigationThreadTurnContext = await askAsMember();
+
+        expect(await offeredClusters(context)).toEqual([
+          memberOwnedClusterId.toString(),
+          teamOwnedClusterId.toString(),
+        ]);
+      });
+
+      test("a custom role limited to Staging reaches Staging clusters alone, as the team's own does", async () => {
+        await giveCustomRole({
+          teamRows: [],
+          roleRows: [
+            {
+              permission: Permission.ReadKubernetesCluster,
+              labelIds: [stagingLabelId],
+            },
+          ],
+        });
+
+        const context: InvestigationThreadTurnContext = await askAsMember();
+
+        expect(await offeredClusters(context)).toEqual([
+          stagingClusterId.toString(),
+        ]);
+      });
+
+      test("a member who may view no cluster and no Docker host gets no commands at all", async () => {
+        await setTeamPermissions(memberTeamId, [
+          { permission: Permission.ReadProjectIncident },
+        ]);
+
+        const context: InvestigationThreadTurnContext = await askAsMember();
+
+        expect(toolOf(context, RUN_KUBECTL_TOOL_NAME)).toBeUndefined();
+        expect(
+          toolOf(context, RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME),
+        ).toBeUndefined();
+        expect(context.extraTools).toEqual([]);
+        expect(context.additionalSystemInstructions).not.toContain(
+          "read-only terminal",
+        );
+        expect(context.additionalSystemInstructions).toContain(
+          INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+        );
+      });
+
+      test("Docker hosts follow the same rule: a member who may view only Staging hosts gets the Staging one", async () => {
+        await setTeamPermissions(memberTeamId, [
+          {
+            permission: Permission.ReadDockerHost,
+            labelIds: [stagingLabelId],
+          },
+        ]);
+
+        const context: InvestigationThreadTurnContext = await askAsMember();
+
+        expect(await offeredHosts(context)).toEqual([stagingHostId.toString()]);
+        expect(await offeredClusters(context)).toEqual([]);
+        expect(context.additionalSystemInstructions).not.toContain(
+          "prod-docker",
+        );
       });
     });
   },

@@ -1,4 +1,5 @@
 import InvestigationThread, {
+  INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
   InvestigationThreadLatestInvestigation,
   InvestigationThreadSubject,
   InvestigationThreadSubjectDetails,
@@ -25,6 +26,10 @@ import AIChatPageContextType from "../../../../Types/AI/AIChatPageContext";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import { KubernetesClusterAiAccessStatus } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
+import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME } from "../../../../Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
@@ -51,6 +56,13 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 );
 const ALERT_ID: ObjectID = new ObjectID("cccccccc-cccc-4ccc-8ccc-cccccccccccc");
 const RUN_ID: ObjectID = new ObjectID("dddddddd-dddd-4ddd-8ddd-dddddddddddd");
+
+// The person asking: the turn's commands are theirs.
+const ASKER_PROPS: DatabaseCommonInteractionProps = {
+  userId: new ObjectID("eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"),
+  tenantId: PROJECT_ID,
+  isMultiTenantRequest: false,
+} as DatabaseCommonInteractionProps;
 
 const INCIDENT_SUBJECT: InvestigationThreadSubject = {
   type: "incident",
@@ -422,9 +434,13 @@ describe("InvestigationThread.buildTurnContext", () => {
   function installLookups(data: {
     clusters?: Array<KubernetesClusterAiAccessStatus>;
     clusterError?: boolean;
+    resources?: Array<ResourceAiAccessStatus>;
     resourceError?: boolean;
     run?: AIRun | null;
     report?: string | null;
+    // The linked clusters and resources the asker may view; all by default.
+    viewableClusterIds?: Array<string>;
+    viewableResourceIds?: Array<string>;
   }): void {
     jest
       .spyOn(IncidentService, "findOneById")
@@ -454,8 +470,38 @@ describe("InvestigationThread.buildTurnContext", () => {
     if (data.resourceError) {
       resources.mockRejectedValue(new Error("resource lookup failed") as never);
     } else {
-      resources.mockResolvedValue([] as never);
+      resources.mockResolvedValue((data.resources ?? []) as never);
     }
+
+    jest
+      .spyOn(KubernetesClusterAiAccessService, "getStatusesViewableBy")
+      .mockImplementation((async (args: {
+        statuses: Array<KubernetesClusterAiAccessStatus>;
+      }): Promise<Array<KubernetesClusterAiAccessStatus>> => {
+        return args.statuses.filter(
+          (status: KubernetesClusterAiAccessStatus): boolean => {
+            return (
+              !data.viewableClusterIds ||
+              data.viewableClusterIds.includes(status.clusterId)
+            );
+          },
+        );
+      }) as never);
+
+    jest
+      .spyOn(ResourceAiAccessService, "getStatusesViewableBy")
+      .mockImplementation((async (args: {
+        statuses: Array<ResourceAiAccessStatus>;
+      }): Promise<Array<ResourceAiAccessStatus>> => {
+        return args.statuses.filter(
+          (status: ResourceAiAccessStatus): boolean => {
+            return (
+              !data.viewableResourceIds ||
+              data.viewableResourceIds.includes(status.resourceId)
+            );
+          },
+        );
+      }) as never);
   }
 
   function completedRun(): AIRun {
@@ -476,6 +522,7 @@ describe("InvestigationThread.buildTurnContext", () => {
         projectId: PROJECT_ID,
         subject: INCIDENT_SUBJECT,
         aiRunId: ObjectID.generate(),
+        props: ASKER_PROPS,
       });
 
     expect(context.additionalSystemInstructions).toContain(
@@ -498,6 +545,7 @@ describe("InvestigationThread.buildTurnContext", () => {
       projectId: PROJECT_ID,
       subject: INCIDENT_SUBJECT,
       aiRunId: ObjectID.generate(),
+      props: ASKER_PROPS,
     });
 
     const query: JSONObject = (
@@ -518,6 +566,7 @@ describe("InvestigationThread.buildTurnContext", () => {
         projectId: PROJECT_ID,
         subject: INCIDENT_SUBJECT,
         aiRunId: ObjectID.generate(),
+        props: ASKER_PROPS,
       });
 
     const names: Array<string> = context.extraTools.map(
@@ -552,6 +601,7 @@ describe("InvestigationThread.buildTurnContext", () => {
         projectId: PROJECT_ID,
         subject: INCIDENT_SUBJECT,
         aiRunId: ObjectID.generate(),
+        props: ASKER_PROPS,
       });
 
     expect(context.extraTools).toEqual([]);
@@ -571,10 +621,241 @@ describe("InvestigationThread.buildTurnContext", () => {
         projectId: PROJECT_ID,
         subject: INCIDENT_SUBJECT,
         aiRunId: ObjectID.generate(),
+        props: ASKER_PROPS,
       });
 
     expect(context.additionalSystemInstructions).toContain(
       "No autonomous AI investigation has run",
     );
+  });
+
+  /*
+   * The commands are the person asking's: read-only kubectl and
+   * infrastructure commands reach only the linked clusters and resources
+   * that person may view (the services' getStatusesViewableBy, which the
+   * Postgres suite KubernetesClusterEditScopePostgres runs for real).
+   */
+  describe("commands reach only what the person asking may view", () => {
+    const OTHER_CLUSTER_ID: string = "33333333-3333-4333-8333-333333333333";
+    const HOST_ID: string = "44444444-4444-4444-8444-444444444444";
+    const OTHER_HOST_ID: string = "55555555-5555-4555-8555-555555555555";
+
+    function otherCluster(): KubernetesClusterAiAccessStatus {
+      return {
+        ...readyCluster(),
+        clusterId: OTHER_CLUSTER_ID,
+        clusterName: "payments-prod",
+        clusterIdentifier: "payments-prod",
+      } as KubernetesClusterAiAccessStatus;
+    }
+
+    function readyHost(id: string, name: string): ResourceAiAccessStatus {
+      return {
+        resourceType: AiResourceType.DockerHost,
+        resourceId: id,
+        resourceName: name,
+        isAiInvestigationEnabled: true,
+        aiCommandAllowlist: [],
+        agent: {
+          agentId: "66666666-6666-4666-8666-666666666666",
+          isOnline: true,
+        },
+        gaps: [],
+        isInvestigationReady: true,
+        isRemediationReady: false,
+      } as unknown as ResourceAiAccessStatus;
+    }
+
+    async function listed(
+      context: InvestigationThreadTurnContext,
+      toolName: string,
+    ): Promise<string> {
+      const tool: ChatExtraTool | undefined = context.extraTools.find(
+        (candidate: ChatExtraTool): boolean => {
+          return candidate.definition.name === toolName;
+        },
+      );
+
+      return tool ? (await tool.execute({})).result?.dataForLlm || "" : "";
+    }
+
+    test("asks which linked clusters and resources the person asking may view, with that person's props, in this project", async () => {
+      installLookups({
+        clusters: [readyCluster(), otherCluster()],
+        resources: [readyHost(HOST_ID, "web-host")],
+      });
+
+      await InvestigationThread.buildTurnContext({
+        projectId: PROJECT_ID,
+        subject: INCIDENT_SUBJECT,
+        aiRunId: ObjectID.generate(),
+        props: ASKER_PROPS,
+      });
+
+      const clusterCheck: jest.SpyInstance =
+        KubernetesClusterAiAccessService.getStatusesViewableBy as unknown as jest.SpyInstance;
+      const resourceCheck: jest.SpyInstance =
+        ResourceAiAccessService.getStatusesViewableBy as unknown as jest.SpyInstance;
+
+      expect(clusterCheck).toHaveBeenCalledTimes(1);
+      expect(clusterCheck.mock.calls[0]![0]).toEqual({
+        props: ASKER_PROPS,
+        projectId: PROJECT_ID,
+        statuses: [readyCluster(), otherCluster()],
+      });
+      expect(resourceCheck).toHaveBeenCalledTimes(1);
+      expect(resourceCheck.mock.calls[0]![0]).toEqual({
+        props: ASKER_PROPS,
+        projectId: PROJECT_ID,
+        statuses: [readyHost(HOST_ID, "web-host")],
+      });
+    });
+
+    test("offers kubectl only on the clusters the person asking may view, and names none of the others", async () => {
+      installLookups({
+        clusters: [readyCluster(), otherCluster()],
+        viewableClusterIds: [readyCluster().clusterId],
+      });
+
+      const context: InvestigationThreadTurnContext =
+        await InvestigationThread.buildTurnContext({
+          projectId: PROJECT_ID,
+          subject: INCIDENT_SUBJECT,
+          aiRunId: ObjectID.generate(),
+          props: ASKER_PROPS,
+        });
+
+      const clusters: string = await listed(context, "list_cluster_access");
+
+      expect(clusters).toContain(readyCluster().clusterId);
+      expect(clusters).not.toContain(OTHER_CLUSTER_ID);
+      expect(context.additionalSystemInstructions).toContain(
+        'Cluster "gke-test-cluster"',
+      );
+      expect(context.additionalSystemInstructions).not.toContain(
+        "payments-prod",
+      );
+      expect(context.additionalSystemInstructions).not.toContain(
+        OTHER_CLUSTER_ID,
+      );
+      expect(context.additionalSystemInstructions).toContain(
+        INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+      );
+
+      const runKubectl: ChatExtraTool | undefined = context.extraTools.find(
+        (tool: ChatExtraTool): boolean => {
+          return tool.definition.name === "run_kubectl";
+        },
+      );
+
+      // Asked to run on the other cluster anyway: refused before anything runs.
+      const outcome: { success: boolean; textForLlm?: string | undefined } =
+        await runKubectl!.execute({
+          clusterId: OTHER_CLUSTER_ID,
+          command: "kubectl auth can-i --list",
+          rationale: "What may the agent do?",
+        });
+
+      expect(outcome.success).toBe(false);
+      expect(outcome.textForLlm).toContain(
+        "is not one of the clusters OneUptime AI may inspect",
+      );
+    });
+
+    test("a person who may view none of the linked clusters gets no terminal, and the answer can say why", async () => {
+      installLookups({
+        clusters: [readyCluster(), otherCluster()],
+        viewableClusterIds: [],
+      });
+
+      const context: InvestigationThreadTurnContext =
+        await InvestigationThread.buildTurnContext({
+          projectId: PROJECT_ID,
+          subject: INCIDENT_SUBJECT,
+          aiRunId: ObjectID.generate(),
+          props: ASKER_PROPS,
+        });
+
+      expect(context.extraTools).toEqual([]);
+      expect(context.additionalSystemInstructions).not.toContain(
+        "read-only terminal",
+      );
+      expect(context.additionalSystemInstructions).not.toContain(
+        "# Cluster access",
+      );
+      expect(context.additionalSystemInstructions).toContain(
+        INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+      );
+    });
+
+    test("infrastructure resources follow the same rule", async () => {
+      installLookups({
+        resources: [
+          readyHost(HOST_ID, "web-host"),
+          readyHost(OTHER_HOST_ID, "payments-host"),
+        ],
+        viewableResourceIds: [HOST_ID],
+      });
+
+      const context: InvestigationThreadTurnContext =
+        await InvestigationThread.buildTurnContext({
+          projectId: PROJECT_ID,
+          subject: INCIDENT_SUBJECT,
+          aiRunId: ObjectID.generate(),
+          props: ASKER_PROPS,
+        });
+
+      const hosts: string = await listed(
+        context,
+        LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
+      );
+
+      expect(hosts).toContain(HOST_ID);
+      expect(hosts).not.toContain(OTHER_HOST_ID);
+      expect(context.additionalSystemInstructions).not.toContain(
+        "payments-host",
+      );
+      expect(context.additionalSystemInstructions).toContain(
+        INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+      );
+    });
+
+    test("with everything in view, nothing is said to be out of view", async () => {
+      installLookups({
+        clusters: [readyCluster(), otherCluster()],
+        resources: [readyHost(HOST_ID, "web-host")],
+      });
+
+      const context: InvestigationThreadTurnContext =
+        await InvestigationThread.buildTurnContext({
+          projectId: PROJECT_ID,
+          subject: INCIDENT_SUBJECT,
+          aiRunId: ObjectID.generate(),
+          props: ASKER_PROPS,
+        });
+
+      expect(await listed(context, "list_cluster_access")).toContain(
+        OTHER_CLUSTER_ID,
+      );
+      expect(context.additionalSystemInstructions).not.toContain(
+        INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+      );
+    });
+
+    test("a view check that fails fails the context, so the turn answers without commands", async () => {
+      installLookups({ clusters: [readyCluster()] });
+      (
+        KubernetesClusterAiAccessService.getStatusesViewableBy as unknown as jest.SpyInstance
+      ).mockRejectedValue(new Error("permission read failed") as never);
+
+      await expect(
+        InvestigationThread.buildTurnContext({
+          projectId: PROJECT_ID,
+          subject: INCIDENT_SUBJECT,
+          aiRunId: ObjectID.generate(),
+          props: ASKER_PROPS,
+        }),
+      ).rejects.toThrow("permission read failed");
+    });
   });
 });

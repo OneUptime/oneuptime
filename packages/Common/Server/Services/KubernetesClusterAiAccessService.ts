@@ -2651,6 +2651,99 @@ class KubernetesClusterAiAccessServiceClass {
   }
 
   /*
+   * The statuses of the clusters the caller may VIEW, in the order given:
+   * decided by the model layer under the caller's own props, pinned to the
+   * project - exactly a read of the cluster through the API, so a read
+   * limited to some labels or to owned clusters reaches only those, and a
+   * block on a label a cluster carries takes it away. Root and master
+   * admins view every one.
+   *
+   * For an incident's or alert's shared AI conversation, where the person
+   * asking steers what OneUptime AI runs: its read-only kubectl reaches
+   * only the linked clusters that person may view
+   * (InvestigationThread.buildTurnContext), never one their own read does
+   * not cover. A caller the read refuses outright views none, and any
+   * other failure is answered the same way (logged): this decides what
+   * runs for the caller, so it fails closed.
+   */
+  @CaptureSpan()
+  public async getStatusesViewableBy(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    statuses: Array<KubernetesClusterAiAccessStatus>;
+  }): Promise<Array<KubernetesClusterAiAccessStatus>> {
+    if (data.statuses.length === 0) {
+      return [];
+    }
+
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return data.statuses;
+    }
+
+    const clusterIds: Array<string> = Array.from(
+      new Set(
+        data.statuses
+          .map((status: KubernetesClusterAiAccessStatus): string => {
+            return (status.clusterId || "").toLowerCase();
+          })
+          .filter((clusterId: string): boolean => {
+            return ObjectID.isValidUUID(clusterId);
+          }),
+      ),
+    );
+
+    if (clusterIds.length === 0) {
+      return [];
+    }
+
+    let viewable: Set<string> = new Set<string>();
+
+    try {
+      const clusters: Array<KubernetesCluster> =
+        await KubernetesClusterService.findBy({
+          query: {
+            _id: QueryHelper.any(clusterIds),
+            projectId: data.projectId,
+          },
+          select: { _id: true },
+          limit: clusterIds.length,
+          skip: 0,
+          props: {
+            ...data.props,
+            tenantId: data.projectId,
+            isMultiTenantRequest: false,
+          },
+        });
+
+      viewable = new Set<string>(
+        clusters
+          .map((cluster: KubernetesCluster): string => {
+            return cluster.id?.toString().toLowerCase() || "";
+          })
+          .filter(Boolean),
+      );
+    } catch (error) {
+      if (
+        !(error instanceof NotAuthorizedException) &&
+        !(error instanceof NotAuthenticatedException) &&
+        !(error instanceof NotFoundException)
+      ) {
+        logger.error(
+          `KubernetesClusterAiAccess: could not check which clusters the caller may view; offering none: ${error}`,
+        );
+      }
+
+      return [];
+    }
+
+    return data.statuses.filter(
+      (status: KubernetesClusterAiAccessStatus): boolean => {
+        return viewable.has((status.clusterId || "").toLowerCase());
+      },
+    );
+  }
+
+  /*
    * ------------------------------------------------------------------
    * Bookkeeping
    * ------------------------------------------------------------------
