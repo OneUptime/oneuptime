@@ -32,7 +32,9 @@ import Navigation from "Common/UI/Utils/Navigation";
  * copy to the clipboard.
  *
  *   /status-page/<id>/scheduled-events          the list (Subscribe to calendar)
- *   /status-page/<id>/scheduled-events/<event>  an event (Add to calendar)
+ *   /status-page/<id>/scheduled-events/<event>  an event (Add to calendar):
+ *       ...0100 Database upgrade (Scheduled), ...0101 Network switch
+ *       firmware (Ongoing), ...0102 Old cluster retirement (Completed)
  *   /scheduled-events...                         the same on the page's own domain
  *   ?private=1    a private page (no Subscribe to calendar)
  *   ?lang=de|ja|fa   ?theme=dark
@@ -99,6 +101,14 @@ const EVENTS = [
     startsAt: new Date("2026-10-15T09:00:00.000Z"),
     endsAt: new Date("2026-10-15T11:00:00.000Z"),
     state: STATES[1],
+  },
+  {
+    _id: id(102),
+    title: "Old cluster retirement",
+    description: "",
+    startsAt: new Date("2026-10-02T14:00:00.000Z"),
+    endsAt: new Date("2026-10-02T16:00:00.000Z"),
+    state: STATES[3],
   },
 ].map((event) => {
   return Object.assign(new ScheduledMaintenance(), {

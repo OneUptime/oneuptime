@@ -229,7 +229,8 @@ const state = {
   calendarFailuresLeft: eventsScenario === "error" ? 1 : 0,
   // How long a calendar read takes, as a slow network would.
   calendarDelayMilliseconds: Number(params.get("delay") || 0),
-  tokenSequence: 0,
+  // A published link holds the first token; the next one minted is the second.
+  tokenSequence: store.feed.exists ? 1 : 0,
 };
 
 function nextToken() {

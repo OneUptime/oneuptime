@@ -63,21 +63,13 @@ calendarLocalizer.getTotalMin = (start: Date, end: Date): number => {
  * next day has nothing of it to show (see CalendarDayLayout), so it gets its
  * end time here instead, "7:26 PM – 12:00 AM".
  */
-export const formatEventTimeRangeStart: (
+const formatTimeRangeStart: (
   range: DateRange,
-  culture?: Culture,
-  local?: DateLocalizer,
+  formatTime: (date: Date) => string,
 ) => string = (
   range: DateRange,
-  culture?: Culture,
-  local?: DateLocalizer,
+  formatTime: (date: Date) => string,
 ): string => {
-  const formatTime: (date: Date) => string = (date: Date): string => {
-    return local
-      ? local.format(date, "LT", culture)
-      : moment(date).format("LT");
-  };
-
   const followingMidnight: moment.Moment = moment(range.start)
     .startOf("day")
     .add(1, "day");
@@ -90,8 +82,118 @@ export const formatEventTimeRangeStart: (
   return `${formatTime(range.start)} – `;
 };
 
+export const formatEventTimeRangeStart: (
+  range: DateRange,
+  culture?: Culture,
+  local?: DateLocalizer,
+) => string = (
+  range: DateRange,
+  culture?: Culture,
+  local?: DateLocalizer,
+): string => {
+  return formatTimeRangeStart(range, (date: Date): string => {
+    return local
+      ? local.format(date, "LT", culture)
+      : moment(date).format("LT");
+  });
+};
+
 const CALENDAR_FORMATS: Formats = {
   eventTimeRangeStartFormat: formatEventTimeRangeStart,
+};
+
+const ENGLISH_LANGUAGE: string = "en";
+
+/*
+ * The dates and times the views write - the month's and the week's titles,
+ * the day names, the hours down the side, an event's times - in the
+ * reader's language. English keeps react-big-calendar's own wording (the
+ * moment localizer's). Another language gets the browser's (Intl), always
+ * on the Gregorian calendar the grid is laid out in and with the digits of
+ * the grid's day numbers: Persian would otherwise name the month of its own
+ * calendar above a Gregorian grid.
+ */
+export const getCalendarFormats: (language: string | undefined) => Formats = (
+  language: string | undefined,
+): Formats => {
+  const code: string = (language || ENGLISH_LANGUAGE).trim();
+
+  if (
+    !code ||
+    code === ENGLISH_LANGUAGE ||
+    code.startsWith(`${ENGLISH_LANGUAGE}-`)
+  ) {
+    return CALENDAR_FORMATS;
+  }
+
+  const formatter: (
+    options: Intl.DateTimeFormatOptions,
+  ) => (date: Date) => string = (
+    options: Intl.DateTimeFormatOptions,
+  ): ((date: Date) => string) => {
+    let format: Intl.DateTimeFormat;
+
+    try {
+      format = new Intl.DateTimeFormat(code, {
+        calendar: "gregory",
+        numberingSystem: "latn",
+        ...options,
+      } as Intl.DateTimeFormatOptions);
+    } catch {
+      // A language Intl does not know: English, as the grid would be.
+      format = new Intl.DateTimeFormat(ENGLISH_LANGUAGE, options);
+    }
+
+    return (date: Date): string => {
+      return format.format(date);
+    };
+  };
+
+  const between: (
+    first: (date: Date) => string,
+  ) => (range: DateRange) => string = (
+    first: (date: Date) => string,
+  ): ((range: DateRange) => string) => {
+    return (range: DateRange): string => {
+      return `${first(range.start)} – ${first(range.end)}`;
+    };
+  };
+
+  // Two-digit hours: a German or Japanese grid says 00:00 and 08:00.
+  const time: (date: Date) => string = formatter({
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return {
+    weekdayFormat: formatter({ weekday: "short" }),
+    dayFormat: formatter({ weekday: "short", day: "2-digit" }),
+    dayHeaderFormat: formatter({
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    }),
+    monthHeaderFormat: formatter({ month: "long", year: "numeric" }),
+    dayRangeHeaderFormat: between(formatter({ month: "long", day: "numeric" })),
+    agendaHeaderFormat: between(
+      formatter({ year: "numeric", month: "numeric", day: "numeric" }),
+    ),
+    agendaDateFormat: formatter({
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }),
+    agendaTimeFormat: time,
+    agendaTimeRangeFormat: between(time),
+    timeGutterFormat: time,
+    eventTimeRangeFormat: between(time),
+    eventTimeRangeStartFormat: (range: DateRange): string => {
+      return formatTimeRangeStart(range, time);
+    },
+    eventTimeRangeEndFormat: (range: DateRange): string => {
+      return ` – ${time(range.end)}`;
+    },
+  };
 };
 
 const dayLayoutAlgorithm: DayLayoutFunction<CalendarEvent> = (
@@ -203,6 +305,10 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
   const messages: Messages<CalendarEvent> = useMemo(() => {
     return getCalendarMessages(translator);
   }, [translator]);
+
+  const formats: Formats = useMemo(() => {
+    return getCalendarFormats(translator.language);
+  }, [translator.language]);
 
   /*
    * The pieces a caller replaces: an event's content, and the header of a
@@ -367,7 +473,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         events={props.events}
         backgroundEvents={props.backgroundEvents || []}
         localizer={calendarLocalizer}
-        formats={CALENDAR_FORMATS}
+        formats={formats}
         dayLayoutAlgorithm={dayLayoutAlgorithm}
         {...(props.getNow ? { getNow: props.getNow } : {})}
         {...(props.onEventClick

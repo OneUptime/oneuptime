@@ -12,9 +12,10 @@ import {
 import fs from "fs";
 import path from "path";
 import React, { ReactElement } from "react";
-import { Messages } from "react-big-calendar";
+import { DateRange, Formats, Messages } from "react-big-calendar";
 import CalendarElement, {
   DefaultCalendarView,
+  getCalendarFormats,
   getCalendarMessages,
 } from "../../../../UI/Components/Calendar/Calendar";
 import CalendarEvent from "../../../../Types/Calendar/CalendarEvent";
@@ -243,5 +244,86 @@ describe("Calendar: the toolbar's words in the reader's language", () => {
     expect((english.showMore as unknown as (count: number) => string)(2)).toBe(
       "+2 more",
     );
+  });
+});
+
+describe("Calendar: the dates and times in the reader's language", () => {
+  const THURSDAY: Date = new Date(2026, 9, 15, 10, 20);
+
+  function format(formats: Formats, name: keyof Formats, date: Date): string {
+    return (formats[name] as (date: Date) => string)(date);
+  }
+
+  function formatRange(
+    formats: Formats,
+    name: keyof Formats,
+    range: DateRange,
+  ): string {
+    return (formats[name] as (range: DateRange) => string)(range);
+  }
+
+  test("English keeps react-big-calendar's own wording", () => {
+    const english: Formats = getCalendarFormats("en");
+
+    expect(Object.keys(english)).toEqual(["eventTimeRangeStartFormat"]);
+    expect(getCalendarFormats(undefined)).toBe(english);
+    expect(getCalendarFormats("en-GB")).toBe(english);
+  });
+
+  test("German: the month, the day names and the hours as a German reader writes them", () => {
+    const german: Formats = getCalendarFormats("de");
+
+    expect(format(german, "monthHeaderFormat", THURSDAY)).toBe("Oktober 2026");
+    expect(format(german, "weekdayFormat", THURSDAY)).toBe("Do");
+    expect(format(german, "timeGutterFormat", THURSDAY)).toBe("10:20");
+    expect(
+      formatRange(german, "eventTimeRangeFormat", {
+        start: THURSDAY,
+        end: new Date(2026, 9, 15, 13, 0),
+      }),
+    ).toBe("10:20 – 13:00");
+    expect(
+      formatRange(german, "dayRangeHeaderFormat", {
+        start: new Date(2026, 9, 11),
+        end: new Date(2026, 9, 17),
+      }),
+    ).toBe("11. Oktober – 17. Oktober");
+  });
+
+  test("a block that ends at the midnight closing its day still says so", () => {
+    const german: Formats = getCalendarFormats("de");
+
+    expect(
+      formatRange(german, "eventTimeRangeStartFormat", {
+        start: new Date(2026, 9, 15, 19, 26),
+        end: new Date(2026, 9, 16, 0, 0),
+      }),
+    ).toBe("19:26 – 00:00");
+    expect(
+      formatRange(german, "eventTimeRangeStartFormat", {
+        start: new Date(2026, 9, 15, 19, 26),
+        end: new Date(2026, 9, 17, 3, 0),
+      }),
+    ).toBe("19:26 – ");
+  });
+
+  test("Persian names the Gregorian month the grid shows, in the grid's digits", () => {
+    const persian: Formats = getCalendarFormats("fa");
+    const month: string = format(persian, "monthHeaderFormat", THURSDAY);
+
+    // October, not the Solar Hijri month (Mehr) a Persian date names by default.
+    expect(month).toContain("2026");
+    expect(month).toContain("اکتبر");
+    expect(month).not.toContain("مهر");
+  });
+
+  test("a language Intl does not know falls back to English words", () => {
+    expect(
+      format(
+        getCalendarFormats("xx-not-a-language-tag-"),
+        "monthHeaderFormat",
+        THURSDAY,
+      ),
+    ).toBe("October 2026");
   });
 });
