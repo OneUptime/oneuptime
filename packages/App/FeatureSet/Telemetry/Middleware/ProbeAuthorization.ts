@@ -151,8 +151,11 @@ export default class ProbeAuthorization {
       });
 
       /*
-       * Handlers only ever read req.probe.id (verified: DiscoveryScan,
-       * NetworkDevicePoll, Monitor routes), so hand them exactly that
+       * From here on the request is this probe's, and req.probe is how a
+       * handler knows which probe it is (Utils/ProbeRequest). A handler
+       * never reads a probe id from the body: what the body says, inside a
+       * result especially, names nobody on its own (ProbeReportIdentity).
+       * Handlers only ever read req.probe.id, so hand them exactly that
        * instead of a fetched row.
        */
       const probe: Probe = new Probe();

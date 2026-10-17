@@ -25,6 +25,12 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  * same pattern ProcessProbeIngest uses), which also means a missing payload
  * finally gets the 400 the guard always intended instead of a 200 plus a
  * doomed queue job.
+ *
+ * What is queued is the result as the probe sent it - the very object, not a
+ * copy - beside the probe that sent it, as the probe-auth middleware
+ * authenticated it (req.probe). The request body is not queued: it carries
+ * the probe's key, and its probeId is read only by the middleware. The
+ * result's own probeId is held to the sender (ProbeIngestReportsAsItself).
  */
 
 jest.mock("Common/Server/Utils/Express", () => {
@@ -194,6 +200,9 @@ const deserializeSpy: jest.Mock = jest.spyOn(
 
 const mockResponse: ExpressResponse = {} as ExpressResponse;
 
+// The probe the probe-auth middleware authenticated for every request here.
+const PROBE_ID: ObjectID = ObjectID.generate();
+
 function makeRequest(data: {
   body?: JSONObject | undefined;
   params?: Record<string, string> | undefined;
@@ -201,6 +210,8 @@ function makeRequest(data: {
   return {
     body: data.body || {},
     params: data.params || {},
+    // What ProbeAuthorization.isAuthorizedServiceMiddleware sets.
+    probe: { id: PROBE_ID },
   } as unknown as ExpressRequest;
 }
 
@@ -227,7 +238,8 @@ function makeProbeMonitorResponsePayload(): JSONObject {
   return {
     _type: "ProbeMonitorResponse",
     monitorId: { _type: "ObjectID", value: ObjectID.generate().toString() },
-    probeId: { _type: "ObjectID", value: ObjectID.generate().toString() },
+    // A probe repeats its own id in every result it sends.
+    probeId: { _type: "ObjectID", value: PROBE_ID.toString() },
     responseBody: "x".repeat(2048),
     screenshots: { "home-page": "data:image/png;base64,AAAA" },
     monitoredAt: { _type: "DateTime", value: "2026-08-18T00:00:00.000Z" },
@@ -271,12 +283,13 @@ describe("POST /probe/response/ingest", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  test("valid payload: processing response and the RAW req.body enqueued untouched", async () => {
+  test("valid payload: processing response and the RAW result enqueued untouched, beside its probe", async () => {
     const body: JSONObject = {
       probeMonitorResponse: makeProbeMonitorResponsePayload(),
-      probeId: "some-probe",
+      probeId: PROBE_ID.toString(),
+      probeKey: "the-probe-key",
     };
-    const bodySnapshot: string = JSON.stringify(body);
+    const resultSnapshot: string = JSON.stringify(body["probeMonitorResponse"]);
     const req: ExpressRequest = makeRequest({ body });
 
     const { next } = await callEndpoint(path, req);
@@ -294,10 +307,19 @@ describe("POST /probe/response/ingest", () => {
     const jobArg: JSONObject = queueService.addProbeIngestJob.mock
       .calls[0]![0] as JSONObject;
     // The very same object — no copy, no re-shaping.
-    expect(jobArg["probeMonitorResponse"]).toBe(req.body);
+    expect(jobArg["probeMonitorResponse"]).toBe(
+      req.body["probeMonitorResponse"],
+    );
     expect(jobArg["jobType"]).toBe("probe-response");
     // ...and byte-identical to what the probe sent (still serialized form).
-    expect(JSON.stringify(jobArg["probeMonitorResponse"])).toBe(bodySnapshot);
+    expect(JSON.stringify(jobArg["probeMonitorResponse"])).toBe(
+      resultSnapshot,
+    );
+    // The probe that sent it, as it authenticated; the body (and key) stay behind.
+    expect((jobArg["probeId"] as ObjectID).toString()).toBe(
+      PROBE_ID.toString(),
+    );
+    expect(JSON.stringify(jobArg)).not.toContain("the-probe-key");
   });
 
   test("never deserializes the payload — the worker owns that", async () => {
@@ -389,11 +411,12 @@ describe("POST /probe/response/monitor-test-ingest/:testId", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  test("valid payload: empty success and the RAW req.body enqueued with the testId", async () => {
+  test("valid payload: empty success and the RAW result enqueued with the testId, beside its probe", async () => {
     const body: JSONObject = {
       probeMonitorResponse: makeProbeMonitorResponsePayload(),
+      probeKey: "the-probe-key",
     };
-    const bodySnapshot: string = JSON.stringify(body);
+    const resultSnapshot: string = JSON.stringify(body["probeMonitorResponse"]);
     const req: ExpressRequest = makeRequest({
       body,
       params: { testId: testId.toString() },
@@ -412,10 +435,18 @@ describe("POST /probe/response/monitor-test-ingest/:testId", () => {
     expect(queueService.addProbeIngestJob).toHaveBeenCalledTimes(1);
     const jobArg: JSONObject = queueService.addProbeIngestJob.mock
       .calls[0]![0] as JSONObject;
-    expect(jobArg["probeMonitorResponse"]).toBe(req.body);
+    expect(jobArg["probeMonitorResponse"]).toBe(
+      req.body["probeMonitorResponse"],
+    );
     expect(jobArg["jobType"]).toBe("monitor-test");
     expect(jobArg["testId"]).toBe(testId.toString());
-    expect(JSON.stringify(jobArg["probeMonitorResponse"])).toBe(bodySnapshot);
+    expect(JSON.stringify(jobArg["probeMonitorResponse"])).toBe(
+      resultSnapshot,
+    );
+    expect((jobArg["probeId"] as ObjectID).toString()).toBe(
+      PROBE_ID.toString(),
+    );
+    expect(JSON.stringify(jobArg)).not.toContain("the-probe-key");
   });
 
   test("never deserializes the payload — the worker owns that", async () => {
