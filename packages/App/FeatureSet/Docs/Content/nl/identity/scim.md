@@ -18,12 +18,12 @@ Uw identiteitsprovider roept het SCIM-eindpunt van OneUptime aan, geverifieerd m
 
 ```mermaid title="Wat SCIM in OneUptime verandert"
 flowchart TB
-    IdP["Uw identiteitsprovider"] -->|"SCIM-verzoeken,<br/>bearer-token"| P["SCIM-verbinding van het project"]
-    IdP -->|"SCIM-verzoeken,<br/>bearer-token"| S["SCIM-verbinding van de statuspagina"]
+    IdP["Uw identiteitsprovider"] -->|"SCIM-verzoeken,<br/>bearer-token"| P["SCIM-verbinding<br/>van het project"]
+    IdP -->|"SCIM-verzoeken,<br/>bearer-token"| S["SCIM-verbinding<br/>van de statuspagina"]
     P --> Q{"Push-groepen aan?"}
-    Q -->|"Nee"| T["Gebruikers komen in en verlaten<br/>de standaardteams"]
-    Q -->|"Ja"| G["Groepen worden teams,<br/>het lidmaatschap volgt ze"]
-    S --> U["Privégebruikers toegevoegd<br/>en verwijderd"]
+    Q -->|"Nee"| T["Gebruikers komen<br/>in en verlaten<br/>de standaardteams"]
+    Q -->|"Ja"| G["Groepen worden teams,<br/>het lidmaatschap<br/>volgt ze"]
+    S --> U["Privégebruikers<br/>toegevoegd<br/>en verwijderd"]
 ```
 
 De SCIM-integratie biedt deze voordelen:
@@ -69,11 +69,11 @@ Om de URL's opnieuw te zien, kiest u **SCIM-URL's bekijken** in de rij van de ve
 sequenceDiagram
     participant IdP as Identiteitsprovider
     participant O as OneUptime
-    IdP->>O: Gebruiker aanmaken, wanneer u hem toewijst
-    Note over O: Toegevoegd aan de standaardteams.<br/>Op OneUptime Cloud wordt een bestaand<br/>account in plaats daarvan uitgenodigd
-    IdP->>O: Gebruiker bijwerken, wanneer zijn profiel verandert
-    IdP->>O: Verwijderen of deactiveren, wanneer u de toewijzing intrekt
-    Note over O: Verwijderd uit de standaardteams
+    IdP->>O: Gebruiker aanmaken,<br/>wanneer u hem toewijst
+    Note over O: Toegevoegd aan de<br/>standaardteams.<br/>Op OneUptime Cloud<br/>wordt een bestaand<br/>account in plaats<br/>daarvan uitgenodigd
+    IdP->>O: Gebruiker bijwerken, wanneer<br/>zijn profiel verandert
+    IdP->>O: Verwijderen of<br/>deactiveren, wanneer u<br/>de toewijzing intrekt
+    Note over O: Verwijderd uit<br/>de standaardteams
 ```
 
 Wie al een OneUptime-account had, wordt op OneUptime Cloud lid zodra hij de uitnodiging accepteert (zie de [veelgestelde vragen](#veelgestelde-vragen)). Toegang via andere teams dan de standaardteams van de verbinding blijft ongemoeid.

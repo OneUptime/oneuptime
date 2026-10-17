@@ -54,10 +54,10 @@ Une image dans la description ou le message de remerciement du formulaire est mo
 sequenceDiagram
     participant V as Navigateur du visiteur
     participant O as OneUptime
-    V->>O: Ouvrir le formulaire, depuis sa propre page
-    O-->>V: Questions, modèles et image de marque
+    V->>O: Ouvrir le formulaire,<br/>depuis sa propre page
+    O-->>V: Questions, modèles<br/>et image de marque
     V->>O: Soumettre les réponses
-    O->>O: Chaque vérification ci-dessous, dans l'ordre
+    O->>O: Chaque vérification<br/>ci-dessous, dans l'ordre
     O-->>V: Le numéro de ce qui a été créé
 ```
 

@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as Arbeidsflyt
     participant C as Vaktlag
     H->>W: incident_report.created
-    W->>W: Kontroller signaturen, åpne én hendelse
-    opt Rapporten er høy eller kritisk
-        W->>C: Varsle vaktretningslinjen
+    W->>W: Kontroller signaturen,<br/>åpne én hendelse
+    opt Rapporten er høy<br/>eller kritisk
+        W->>C: Varsle<br/>vaktretningslinjen
     end
     H->>W: incident_report.comment_added
-    W->>W: Legg til kommentaren som et privat notat
+    W->>W: Legg til kommentaren<br/>som et privat notat
     H->>W: incident_report.closed
     W->>W: Løs hendelsen
 ```

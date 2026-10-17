@@ -19,15 +19,15 @@ stateDiagram-v2
     state "Slutförd" as Completed
     state "Misslyckades" as Failed
     state "Avbruten" as Cancelled
-    [*] --> Scheduled: körning startad
-    Scheduled --> Running: en Worker tar den
-    Running --> WaitingForManualStep: Manual-steg eller godkännande
-    WaitingForManualStep --> Scheduled: slutfört, godkänt eller överhoppat
+    [*] --> Scheduled: körning<br/>startad
+    Scheduled --> Running: en Worker<br/>tar den
+    Running --> WaitingForManualStep: Manual-steg<br/>eller godkännande
+    WaitingForManualStep --> Scheduled: slutfört,<br/>godkänt eller<br/>överhoppat
     Running --> Completed: alla steg klara
-    Running --> Failed: ett steg misslyckas
-    Scheduled --> Cancelled: Avbryt körning
-    Running --> Cancelled: Avbryt körning
-    WaitingForManualStep --> Cancelled: Avbryt körning
+    Running --> Failed: ett steg<br/>misslyckas
+    Scheduled --> Cancelled: Avbryt<br/>körning
+    Running --> Cancelled: Avbryt<br/>körning
+    WaitingForManualStep --> Cancelled: Avbryt<br/>körning
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]

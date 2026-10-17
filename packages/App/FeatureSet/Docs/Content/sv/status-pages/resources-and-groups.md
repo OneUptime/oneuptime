@@ -75,7 +75,7 @@ Klicka på **Lägg till monitor**. Raden visas i gruppen och på statussidan.
 I en rutnätsgrupp ber dialogrutan också om raden och kolumnen som monitorn ska stå i, ovanför **Fler fält**; se [Listlayout eller rutnätslayout](#listlayout-eller-rutnätslayout).
 
 > [!TIP]
-> För att visa flera kontroller som en rad lägger du till en monitorgrupp. Med reglaget **Monitorgrupper** aktiverat (**Projektinställningar** > **Avancerad** > **Funktionsflaggor**, som sparas så snart du slår om det) står det en länk under listrutan: **Add a Monitor Group instead.** Klicka på den så blir **Övervakning** till **Monitor Grupp** (**Välj övervakningsgrupp**); **Add a Monitor instead.** växlar tillbaka.
+> För att visa flera kontroller som en rad lägger du till en [monitorgrupp](/docs/monitor/monitor-groups). Med reglaget **Monitorgrupper** aktiverat (**Projektinställningar** > **Avancerad** > **Funktionsflaggor**, som sparas så snart du slår om det) står det en länk under listrutan: **Add a Monitor Group instead.** Klicka på den så blir **Övervakning** till **Monitor Grupp** (**Välj övervakningsgrupp**); **Add a Monitor instead.** växlar tillbaka.
 
 ### Lägg till flera på en gång
 

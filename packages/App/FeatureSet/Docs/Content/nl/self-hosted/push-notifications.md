@@ -14,7 +14,7 @@ OneUptime waarschuwt mensen op hun telefoon via de mobiele app **OneUptime On-Ca
 ```mermaid title="Hoe een push een telefoon of browser bereikt"
 flowchart TB
     Server["Uw OneUptime-server"]
-    Relay["Push-relay van OneUptime"]
+    Relay["Push-relay<br/>van OneUptime"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
@@ -22,13 +22,13 @@ flowchart TB
     PushService["De pushdienst<br/>van de browser"]
     Browser["Browser"]
     Server -->|"geen EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN ingesteld"| Expo
+    Server -->|"EXPO_ACCESS_TOKEN<br/>ingesteld"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 

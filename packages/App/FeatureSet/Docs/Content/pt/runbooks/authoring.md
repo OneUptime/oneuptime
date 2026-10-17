@@ -188,14 +188,14 @@ As etapas de IA são medidas e cobradas como qualquer outro recurso de IA. A eta
 
 ```mermaid title="O que acontece depois de uma etapa automatizada"
 flowchart TB
-    run["Uma etapa automatizada roda"] --> ok{"Deu certo?"}
-    ok -->|"sim"| approval{"Exigir aprovação ligado?"}
-    approval -->|"sim"| wait["A execução espera a aprovação de uma pessoa"]
+    run["Uma etapa<br/>automatizada roda"] --> ok{"Deu certo?"}
+    ok -->|"sim"| approval{"Exigir aprovação<br/>ligado?"}
+    approval -->|"sim"| wait["A execução espera<br/>a aprovação<br/>de uma pessoa"]
     approval -->|"não"| next["A próxima etapa roda"]
     wait --> next
-    ok -->|"não"| cont{"Continuar em caso de falha ligado?"}
+    ok -->|"não"| cont{"Continuar em caso<br/>de falha ligado?"}
     cont -->|"sim"| next
-    cont -->|"não"| failed["A execução para como falha"]
+    cont -->|"não"| failed["A execução<br/>para como falha"]
 ```
 
 Por padrão, uma etapa que falha interrompe a execução e a marca como `Failed`, com o erro da etapa como motivo. Com **Continuar em caso de falha** ligado, a falha é registrada e a próxima etapa roda, o que combina com runbooks do tipo "tente estas três coisas e depois avise". **Exigir aprovação** vale depois que uma etapa dá certo: a execução espera nessa etapa até alguém clicar em **Approve & continue** ou **Pular**.

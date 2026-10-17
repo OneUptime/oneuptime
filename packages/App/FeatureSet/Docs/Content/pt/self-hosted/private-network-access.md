@@ -15,19 +15,19 @@ Esta página explica como permitir isso, de forma deliberada e restrita. Três c
 | **Monitores** API, Website, External Status Page e Custom JavaScript Code | O ambiente próprio da **sonda** | Endereços privados recusados |
 
 ```mermaid title="Três chaves, cada uma para o seu tipo de conexão"
-flowchart TB
+flowchart LR
     subgraph Server["O servidor do OneUptime"]
         direction TB
-        Webhooks["Workflows e webhooks"]
-        Outbound["Fontes de dados, provedores de LLM,<br/>SMTP e outras conexões"]
+        Webhooks["Workflows<br/>e webhooks"]
+        Outbound["Fontes de dados,<br/>provedores de LLM,<br/>SMTP e outras<br/>conexões"]
     end
     subgraph Probe["Cada sonda"]
-        Monitors["Monitores API, Website,<br/>External Status Page e<br/>Custom JavaScript Code"]
+        Monitors["Monitores<br/>API, Website,<br/>External<br/>Status Page e<br/>Custom<br/>JavaScript Code"]
     end
     Private["Sua rede privada"]
-    Webhooks -->|"desligado por padrão"| Private
-    Outbound -->|"ligado por padrão"| Private
-    Monitors -->|"desligado por padrão"| Private
+    Webhooks -->|"desligado<br/>por padrão"| Private
+    Outbound -->|"ligado<br/>por padrão"| Private
+    Monitors -->|"desligado<br/>por padrão"| Private
 ```
 
 Os tipos de monitor nativos de rede, como Ping, Port, Certificado SSL, DNS, DNSSEC, SNMP / Dispositivo de rede, Consulta SQL, Saúde do banco de dados, Synthetic e Network Path, usam os seus próprios transportes. A configuração desta página rege os transportes HTTP que devolvem conteúdo de resposta arbitrário a um projeto: os monitores API, Website, External Status Page e Custom JavaScript Code.

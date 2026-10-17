@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as Workflow
     participant C as On-call team
     H->>W: incident_report.created
-    W->>W: Check the signature, open one incident
-    opt Report is high or critical
-        W->>C: Page the on-call policy
+    W->>W: Check the signature,<br/>open one incident
+    opt Report is high<br/>or critical
+        W->>C: Page the<br/>on-call policy
     end
     H->>W: incident_report.comment_added
-    W->>W: Add the comment as a private note
+    W->>W: Add the comment<br/>as a private note
     H->>W: incident_report.closed
     W->>W: Resolve the incident
 ```

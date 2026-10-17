@@ -15,16 +15,16 @@ This page explains how to allow it, deliberately and narrowly. Three switches de
 | API, Website, External Status Page and Custom JavaScript Code **monitors** | The **probe**'s own environment | Private addresses refused |
 
 ```mermaid title="Three switches, each for its own kind of connection"
-flowchart TB
+flowchart LR
     subgraph Server["The OneUptime server"]
         direction TB
-        Webhooks["Workflows and webhooks"]
-        Outbound["Data sources, LLM providers,<br/>SMTP and other connections"]
+        Webhooks["Workflows<br/>and webhooks"]
+        Outbound["Data sources,<br/>LLM providers,<br/>SMTP and other<br/>connections"]
     end
     subgraph Probe["Each probe"]
-        Monitors["API, Website, External Status<br/>Page and Custom JavaScript<br/>Code monitors"]
+        Monitors["API, Website,<br/>External Status<br/>Page and Custom<br/>JavaScript<br/>Code monitors"]
     end
-    Private["Your private network"]
+    Private["Your private<br/>network"]
     Webhooks -->|"off by default"| Private
     Outbound -->|"on by default"| Private
     Monitors -->|"off by default"| Private

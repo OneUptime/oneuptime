@@ -15,13 +15,13 @@ Sempre que um monitor é verificado, seus critérios julgam o resultado do topo 
 
 ```mermaid title="Como cada verificação é julgada"
 flowchart TB
-    R["O resultado de<br/>uma verificação"] --> C1{"Primeiro critério:<br/>os filtros correspondem?"}
+    R["O resultado de<br/>uma verificação"] --> C1{"Primeiro<br/>critério:<br/>os filtros<br/>correspondem?"}
     C1 -->|"Sim"| A["Esse critério age"]
-    C1 -->|"Não"| C2{"Próximo critério:<br/>os filtros correspondem?"}
+    C1 -->|"Não"| C2{"Próximo<br/>critério:<br/>os filtros<br/>correspondem?"}
     C2 -->|"Sim"| A
-    C2 -->|"Nenhum correspondeu"| D["O monitor vai para seu<br/>status padrão"]
-    A --> S["Altera o status"]
-    A --> I["Declara um incidente"]
+    C2 -->|"Nenhum<br/>correspondeu"| D["O monitor<br/>vai para seu<br/>status padrão"]
+    A --> S["Altera<br/>o status"]
+    A --> I["Declara um<br/>incidente"]
     A --> L["Cria um alerta"]
 ```
 

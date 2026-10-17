@@ -70,7 +70,7 @@ flowchart TB
     end
 ```
 
-Vorfälle und Warnungen, die sich automatisch auflösen sollen, wie die der Standardkriterien, lösen sich von selbst auf, sobald ihr Kriterium nicht mehr zutrifft. Ein Monitor, den mehr als eine Sonde prüft, ändert sich nur, wenn seine Sonden übereinstimmen: Standardmäßig muss jede eingeschaltete und verbundene Sonde zum selben Ergebnis kommen. Um weniger zu verlangen, stellen Sie **Sondenübereinstimmung** auf der Seite **Konfiguration → Sonden & Intervall** des Monitors ein.
+Vorfälle und Warnungen, die sich automatisch auflösen sollen, wie die der Standardkriterien, lösen sich von selbst auf, sobald ihr Kriterium nicht mehr zutrifft. Ein Monitor, den mehr als eine Sonde prüft, ändert sich nur, wenn seine Sonden übereinstimmen: Standardmäßig muss jede eingeschaltete und verbundene Sonde zum selben Ergebnis kommen. Um weniger zu verlangen, stellen Sie **Sondenübereinstimmung** auf der Seite **Konfiguration → Sonden & Intervall** des Monitors ein. Alles, was ein Kriterium enthalten kann, und die Status, die ein Monitor zeigen kann, finden Sie unter [Monitorkriterien & Status](/docs/monitor/criteria-and-statuses).
 
 ## Sonden & Intervall
 
@@ -101,6 +101,8 @@ Jeder Monitortyp hat eine eigene Seite mit seinen Einstellungen, seinen Standard
 :::cards
 - [Website-Überwachung](/docs/monitor/website-monitor): Prüfen, ob eine Seite lädt und was sie antwortet.
 - [API-Überwachung](/docs/monitor/api-monitor): Einen Endpunkt mit Methode, Headern und Body aufrufen.
+- [Monitorkriterien & Status](/docs/monitor/criteria-and-statuses): Was den Status jedes Monitors setzt.
 - [Monitorvorlagen](/docs/monitor/monitor-templates): Viele Monitore aus einer Konfiguration erstellen und gleich halten.
+- [Monitor-Gruppen](/docs/monitor/monitor-groups): Mehrere Monitore zu einem Status zusammenfassen.
 - [Vorfälle](/docs/incidents/index): Was passiert, nachdem ein Monitor einen Vorfall gemeldet hat.
 :::

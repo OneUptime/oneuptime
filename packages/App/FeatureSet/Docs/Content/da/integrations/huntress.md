@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as Workflow
     participant C as Vagthold
     H->>W: incident_report.created
-    W->>W: Kontrollér signaturen, åbn én hændelse
-    opt Rapporten er høj eller kritisk
-        W->>C: Tilkald vagtpolitikken
+    W->>W: Kontrollér signaturen,<br/>åbn én hændelse
+    opt Rapporten er høj<br/>eller kritisk
+        W->>C: Tilkald<br/>vagtpolitikken
     end
     H->>W: incident_report.comment_added
-    W->>W: Tilføj kommentaren som en privat note
+    W->>W: Tilføj kommentaren<br/>som en privat note
     H->>W: incident_report.closed
     W->>W: Løs hændelsen
 ```

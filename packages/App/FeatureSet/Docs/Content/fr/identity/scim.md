@@ -18,12 +18,12 @@ Votre fournisseur d'identité appelle le point de terminaison SCIM d'OneUptime, 
 
 ```mermaid title="Ce que SCIM modifie dans OneUptime"
 flowchart TB
-    IdP["Votre fournisseur d'identité"] -->|"requêtes SCIM,<br/>jeton bearer"| P["Connexion SCIM du projet"]
-    IdP -->|"requêtes SCIM,<br/>jeton bearer"| S["Connexion SCIM de la page de statut"]
-    P --> Q{"Groupes Push activés ?"}
-    Q -->|"Non"| T["Les utilisateurs rejoignent et quittent<br/>les équipes par défaut"]
-    Q -->|"Oui"| G["Les groupes deviennent des équipes,<br/>l'appartenance les suit"]
-    S --> U["Utilisateurs privés ajoutés<br/>et supprimés"]
+    IdP["Votre fournisseur<br/>d'identité"] -->|"requêtes SCIM,<br/>jeton bearer"| P["Connexion<br/>SCIM du projet"]
+    IdP -->|"requêtes SCIM,<br/>jeton bearer"| S["Connexion SCIM de<br/>la page de statut"]
+    P --> Q{"Groupes Push<br/>activés ?"}
+    Q -->|"Non"| T["Les utilisateurs<br/>rejoignent<br/>et quittent<br/>les équipes<br/>par défaut"]
+    Q -->|"Oui"| G["Les groupes<br/>deviennent<br/>des équipes,<br/>l'appartenance<br/>les suit"]
+    S --> U["Utilisateurs<br/>privés ajoutés<br/>et supprimés"]
 ```
 
 L'intégration SCIM apporte les avantages suivants :
@@ -69,10 +69,10 @@ Pour revoir les URL, sélectionnez **Voir les URL SCIM** sur la ligne de la conn
 sequenceDiagram
     participant IdP as Fournisseur d'identité
     participant O as OneUptime
-    IdP->>O: Créer l'utilisateur, quand vous l'attribuez
-    Note over O: Ajouté aux équipes par défaut.<br/>Sur OneUptime Cloud, un compte existant<br/>est invité à la place
-    IdP->>O: Mettre à jour l'utilisateur, quand son profil change
-    IdP->>O: Supprimer ou désactiver, quand vous retirez l'attribution
+    IdP->>O: Créer l'utilisateur,<br/>quand vous l'attribuez
+    Note over O: Ajouté aux équipes par défaut.<br/>Sur OneUptime Cloud,<br/>un compte existant<br/>est invité à la place
+    IdP->>O: Mettre à jour l'utilisateur,<br/>quand son profil change
+    IdP->>O: Supprimer ou désactiver, quand<br/>vous retirez l'attribution
     Note over O: Retiré des équipes par défaut
 ```
 

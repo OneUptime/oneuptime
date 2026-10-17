@@ -29,7 +29,7 @@ flowchart TB
 
 Las páginas de estado están en **Páginas de estado**, en el menú **Productos** de la barra superior, entre los esenciales. Todo lo que hay en esta página es por página de estado: un proyecto puede tener tantas como quiera — una pública para clientes, una privada para un público interno, una por región para un mercado concreto.
 
-La página muestra como recursos los monitores que colocas en ella. Los incidentes y el mantenimiento programado llegan a ella a través de esos monitores, y los anuncios se publican directamente en ella. Los visitantes leen la página, y los suscriptores reciben aviso de cada cambio por los canales que eligieron.
+La página muestra como recursos los monitores que colocas en ella, y los incidentes llegan a ella a través de esos monitores. Los [eventos de mantenimiento programado](/docs/scheduled-maintenance/index) y los anuncios llegan a ella directamente: cada uno indica las páginas de estado en las que se muestra. Los visitantes leen la página, y los suscriptores reciben aviso de cada cambio por los canales que eligieron.
 
 ## De un vistazo
 
@@ -163,7 +163,7 @@ Si la página muestra un elemento **Suscribirse** (**Mostrar página de suscript
 
 Debajo de la tarjeta están **Exportar como JSON: Página de estado**, que descarga los ajustes propios de la página de estado en un archivo que puedes volver a importar, y **Archive status page** (consulta [Archivar una página de estado](#archivar-una-página-de-estado)). El porcentaje de tiempo de actividad general y los estados de inactividad eran antes dos tarjetas propias aquí, cada una tras un botón **Editar**; ahora son filas de la tarjeta.
 
-**Dónde están los colores.** Los colores de las barras de tiempo de actividad no están aquí: el **Color de barra predeterminado** y las reglas de color de las barras están en **Más ajustes** en **Páginas de estado → tu página → Marca → Marca**. No hay ningún ajuste de tema ni de color de marca en ninguna parte; todo lo que vaya más allá de esos controles se hace con **CSS personalizado**.
+**Dónde están los colores.** Los colores de las barras de tiempo de actividad no están aquí: el **Color de barra predeterminado** y las reglas de color de las barras están en **Más ajustes** en **Páginas de estado → tu página → Marca → Marca**. El **Tema** de la página (claro, oscuro o según el dispositivo de cada visitante) es una tarjeta cerca del principio de esa misma página. No hay ningún ajuste de color de marca; todo lo que vaya más allá de esos controles se hace con **CSS personalizado**.
 
 ## Previsualizar antes de publicar
 

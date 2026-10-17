@@ -29,7 +29,7 @@ flowchart TB
 
 Le pagine di stato si trovano in **Pagine di stato**, nel menu **Prodotti** della barra superiore, tra gli elementi essenziali. Tutto ciò che è in questa pagina vale per singola pagina di stato: un progetto può averne quante ne vuole — una pubblica per i clienti, una privata per un pubblico interno, una per regione per un mercato specifico.
 
-La pagina mostra come risorse i monitor che vi inserite. Gli incidenti e la manutenzione programmata vi arrivano attraverso quei monitor, mentre gli annunci vi vengono pubblicati direttamente. I visitatori leggono la pagina, e gli iscritti ricevono notizia di ogni cambiamento sui canali che hanno scelto.
+La pagina mostra come risorse i monitor che vi inserite, e gli incidenti vi arrivano attraverso quei monitor. Gli [eventi di manutenzione pianificata](/docs/scheduled-maintenance/index) e gli annunci vi arrivano direttamente: ognuno indica le pagine di stato su cui viene mostrato. I visitatori leggono la pagina, e gli iscritti ricevono notizia di ogni cambiamento sui canali che hanno scelto.
 
 ## In sintesi
 
@@ -163,7 +163,7 @@ Se la pagina mostra una voce **Iscriviti** (**Mostra pagina iscritti**, `showSub
 
 Sotto la scheda ci sono **Esporta come JSON: Pagina di stato**, che scarica le impostazioni proprie della pagina di stato in un file che potete importare di nuovo, e **Archive status page** (vedete [Archiviare una pagina di stato](#archiviare-una-pagina-di-stato)). La percentuale di uptime complessiva e gli stati di inattività erano prima due schede a sé qui, ciascuna dietro un pulsante **Modifica**; ora sono righe della scheda.
 
-**Dove sono i colori.** I colori delle barre di uptime non sono qui: il **Colore predefinito della barra** e le regole di colore delle barre si trovano in **Altre impostazioni** in **Pagine di stato → la vostra pagina → Branding → Branding**. Non esiste alcuna impostazione di tema o di colore del marchio; tutto ciò che va oltre quei controlli si fa con il **CSS personalizzato**.
+**Dove sono i colori.** I colori delle barre di uptime non sono qui: il **Colore predefinito della barra** e le regole di colore delle barre si trovano in **Altre impostazioni** in **Pagine di stato → la vostra pagina → Branding → Branding**. Il **Tema** della pagina (chiaro, scuro o come è impostato il dispositivo di ogni visitatore) è una scheda in alto nella stessa pagina. Non esiste alcuna impostazione di colore del marchio; tutto ciò che va oltre quei controlli si fa con il **CSS personalizzato**.
 
 ## Vedere l'anteprima prima di andare in produzione
 

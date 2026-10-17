@@ -250,14 +250,7 @@ API 密钥不能从模板声明：发送 `createdIncidentTemplateId` 的请求�
 flowchart TB
     request["创建请求"] --> fill["服务器补全空缺"]
     fill --> template["如有模板则应用"]
-    template --> rules
-    subgraph rules["规则，按此顺序"]
-        direction LR
-        privacy["隐私"] --> owner["所有者"]
-        owner --> label["标签"]
-        label --> oncall["值班"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["规则，按此顺序：<br/>隐私、所有者、标签、<br/>值班、Runbook"]
     rules --> policies["执行值班策略"]
     policies --> subscribers["订阅者通知排队"]
     subscribers --> workflows["触发工作流"]
@@ -284,10 +277,10 @@ flowchart TB
 
 ```mermaid title="新事件会引发什么，取决于它的起始状态"
 flowchart TB
-    start{"起始状态"} -->|"创建状态（默认）"| live["视为新事件：呼叫值班"]
-    start -->|"处于或越过确认状态"| acked["仅记录：不呼叫任何人"]
-    start -->|"处于或越过解决状态"| over["记录为已结束"]
-    over --> quiet["无分组、Runbook、AI、频道或 SLA"]
+    start{"起始状态"} -->|"创建状态<br/>（默认）"| live["视为新事件：<br/>呼叫值班"]
+    start -->|"处于或<br/>越过确认状态"| acked["仅记录：<br/>不呼叫任何人"]
+    start -->|"处于或<br/>越过解决状态"| over["记录为已结束"]
+    over --> quiet["无分组、Runbook、<br/>AI、频道或 SLA"]
 ```
 
 - **处于或越过确认状态** —— **已确认**，或在 **事件 → 设置 → 事件状态** 中放在它下面的任何状态——不会运行任何值班策略，因此不会呼叫任何人。事件仍会列出它的策略，包括你选择的和值班规则添加的，它的信息流会用一行说明原因：_No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ 如果有规则为它设置了 SLA，该 SLA 会以已响应的状态开始。下文中的其他一切照常运行，和任何新事件一样。

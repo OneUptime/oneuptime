@@ -3,7 +3,7 @@
 Le sonde di OneUptime Cloud controllano i tuoi siti web, le API e i server da un insieme fisso di indirizzi IP. Se davanti a ciò che monitori c'è un firewall o una allowlist, consenti questi indirizzi perché i controlli passino.
 
 ```mermaid title="Dove si applica la allowlist"
-flowchart LR
+flowchart TB
     P["Sonde di OneUptime"] -->|"controllano dagli IP elencati"| F["Il tuo firewall"]
     F -->|"consentito"| S["Il tuo sito web, API o server"]
 ```

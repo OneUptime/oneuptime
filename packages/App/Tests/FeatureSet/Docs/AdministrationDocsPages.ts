@@ -162,10 +162,15 @@ export const SERVER_MESSAGES: Readonly<Record<string, ReadonlyArray<string>>> =
     ],
   };
 
-// The kind of diagram each page draws: each reads top to bottom, to fit the column.
+/*
+ * The kind of diagram each page draws, each laid out to fit the column. Most
+ * read top to bottom; Project Settings fans out to its four areas, which
+ * stood in a row 1,000px wide top to bottom and stack beside it left to
+ * right (the docs overhaul's final pass).
+ */
 export const DIAGRAM_KINDS: Readonly<Record<string, string>> = {
   [INVITING_PEOPLE]: "flowchart TB",
-  [PROJECT_SETTINGS]: "flowchart TB",
+  [PROJECT_SETTINGS]: "flowchart LR",
   [BILLING]: "flowchart TB",
   [AUDIT_LOGS]: "flowchart TB",
 };

@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Person
     participant O as OneUptime
     participant I as Identitetsleverandør
-    U->>O: Logg inn med SSO, velg prosjektet
-    O->>I: SAML-forespørsel til påloggings-URL-en
+    U->>O: Logg inn med SSO,<br/>velg prosjektet
+    O->>I: SAML-forespørsel til<br/>påloggings-URL-en
     I->>U: Påloggingsside
     U->>I: Påloggingsinformasjon og MFA
-    I->>O: Signert assertion til Reply URL
-    Note over O: Kontrollerer signaturen og utstederen,<br/>leser e-posten fra Name ID
+    I->>O: Signert assertion<br/>til Reply URL
+    Note over O: Kontrollerer signaturen<br/>og utstederen,<br/>leser e-posten fra Name ID
     O->>U: Logget inn i prosjektet
 ```
 

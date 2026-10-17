@@ -19,15 +19,15 @@ Runbook ルールは、 **インシデント** 、 **アラート** 、 **定期
 
 ```mermaid title="新しいインシデントから Runbook の開始まで"
 flowchart TB
-    created["インシデント、アラート、イベントを作成"] --> labels["ラベルルールがラベルを追加"]
-    labels --> rules["その製品の有効な Runbook ルール"]
+    created["インシデント、<br/>アラート、<br/>イベントを作成"] --> labels["ラベルルールが<br/>ラベルを追加"]
+    labels --> rules["その製品の有効な<br/>Runbook ルール"]
     rules --> match{"条件に一致？"}
-    match -->|"いいえ"| nothing["ルールは何も開始しない"]
-    match -->|"はい"| union["一致したすべてのルールの Runbook を各 1 回"]
-    union --> runnable{"Runbook が有効でステップがある？"}
-    runnable -->|"いいえ"| skipped["その Runbook はスキップ"]
-    runnable -->|"はい"| execution["実行を作成してキューに追加"]
-    execution --> attached["イベントの Runbook ページに表示"]
+    match -->|"いいえ"| nothing["ルールは何も<br/>開始しない"]
+    match -->|"はい"| union["一致したすべての<br/>ルールの<br/>Runbook を各 1 回"]
+    union --> runnable{"Runbook が有効で<br/>ステップがある？"}
+    runnable -->|"いいえ"| skipped["その Runbook は<br/>スキップ"]
+    runnable -->|"はい"| execution["実行を作成して<br/>キューに追加"]
+    execution --> attached["イベントの Runbook<br/>ページに表示"]
 ```
 
 ルールが発火すると、指定された各 Runbook について次のことが起きます。

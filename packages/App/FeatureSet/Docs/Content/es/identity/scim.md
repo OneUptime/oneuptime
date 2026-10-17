@@ -18,12 +18,12 @@ Tu proveedor de identidad llama al endpoint SCIM de OneUptime, autenticado con u
 
 ```mermaid title="Qué cambia SCIM en OneUptime"
 flowchart TB
-    IdP["Tu proveedor de identidad"] -->|"solicitudes SCIM,<br/>token bearer"| P["Conexión SCIM del proyecto"]
-    IdP -->|"solicitudes SCIM,<br/>token bearer"| S["Conexión SCIM de la página de estado"]
-    P --> Q{"¿Grupos push activados?"}
-    Q -->|"No"| T["Los usuarios entran y salen<br/>de los equipos predeterminados"]
-    Q -->|"Sí"| G["Los grupos se convierten en equipos,<br/>la membresía los sigue"]
-    S --> U["Usuarios privados añadidos<br/>y eliminados"]
+    IdP["Tu proveedor<br/>de identidad"] -->|"solicitudes SCIM,<br/>token bearer"| P["Conexión SCIM<br/>del proyecto"]
+    IdP -->|"solicitudes SCIM,<br/>token bearer"| S["Conexión SCIM de<br/>la página de estado"]
+    P --> Q{"¿Grupos push<br/>activados?"}
+    Q -->|"No"| T["Los usuarios<br/>entran y salen<br/>de los equipos<br/>predeterminados"]
+    Q -->|"Sí"| G["Los grupos se<br/>convierten en equipos,<br/>la membresía los sigue"]
+    S --> U["Usuarios<br/>privados añadidos<br/>y eliminados"]
 ```
 
 La integración de SCIM ofrece estas ventajas:
@@ -69,11 +69,11 @@ Para volver a ver las URL, selecciona **Ver URLs de SCIM** en la fila de la cone
 sequenceDiagram
     participant IdP as Proveedor de identidad
     participant O as OneUptime
-    IdP->>O: Crear el usuario, cuando lo asignas
-    Note over O: Añadido a los equipos predeterminados.<br/>En OneUptime Cloud, una cuenta existente<br/>recibe una invitación en su lugar
-    IdP->>O: Actualizar el usuario, cuando cambia su perfil
-    IdP->>O: Eliminar o desactivar, cuando retiras la asignación
-    Note over O: Quitado de los equipos predeterminados
+    IdP->>O: Crear el usuario,<br/>cuando lo asignas
+    Note over O: Añadido a los equipos<br/>predeterminados.<br/>En OneUptime Cloud,<br/>una cuenta existente<br/>recibe una invitación<br/>en su lugar
+    IdP->>O: Actualizar el usuario,<br/>cuando cambia su perfil
+    IdP->>O: Eliminar o desactivar,<br/>cuando retiras la asignación
+    Note over O: Quitado de los equipos<br/>predeterminados
 ```
 
 Quien ya tenía una cuenta de OneUptime se une cuando acepta la invitación en OneUptime Cloud (consulta las [preguntas frecuentes](#preguntas-frecuentes)). El acceso concedido por equipos ajenos a los equipos predeterminados de la conexión no se toca.

@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### Workflows
 
-Formulieren hebben de gegenereerde workflowcomponenten: **On Create Form**, **On Update Form** enzovoort. Gebruik **On Create Incident** of **On Create Scheduled Maintenance** om te reageren op wat een formulier heeft aangemaakt.
+Formulieren hebben de gegenereerde workflowcomponenten: **On Create Form**, **On Update Form** enzovoort. Gebruik **On Create Incident** of **On Create Scheduled Maintenance Event** om te reageren op wat een formulier heeft aangemaakt.
 
 ### De eigen eindpunten van de openbare pagina
 

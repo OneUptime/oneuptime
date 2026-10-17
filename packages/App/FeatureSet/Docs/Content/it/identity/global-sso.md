@@ -73,11 +73,11 @@ Il comportamento di un provider globale dipende dal fatto che tu gli colleghi de
 flowchart TB
     S["Qualcuno accede"] --> A{"Progetti collegati?"}
     A -->|"No"| K{"Ha un account?"}
-    K -->|"No"| R["Rifiutato: invitalo prima"]
-    K -->|"Sì"| E["Accesso ai suoi progetti"]
-    A -->|"Sì"| D{"Nuovo, con la registrazione<br/>disattivata?"}
+    K -->|"No"| R["Rifiutato:<br/>invitalo prima"]
+    K -->|"Sì"| E["Accesso ai<br/>suoi progetti"]
+    A -->|"Sì"| D{"Nuovo, con la<br/>registrazione<br/>disattivata?"}
     D -->|"Sì"| R
-    D -->|"No"| P["Aggiunto ai progetti collegati<br/>in cui non è ancora"]
+    D -->|"No"| P["Aggiunto ai<br/>progetti collegati<br/>in cui non è ancora"]
     P --> E
 ```
 

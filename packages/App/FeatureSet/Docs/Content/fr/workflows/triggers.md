@@ -77,13 +77,13 @@ L'URL accepte à la fois `GET` et `POST`. L'appelant reçoit un accusé de réce
 sequenceDiagram
     participant Caller as Votre outil
     participant OneUptime
-    participant Runner as Moteur d'exécution des workflows
-    Caller->>OneUptime: GET ou POST vers l'URL du webhook
+    participant Runner as Moteur d'exécution<br/>des workflows
+    Caller->>OneUptime: GET ou POST vers<br/>l'URL du webhook
     alt Le workflow est activé
         OneUptime-->>Caller: 200, statut Scheduled
-        OneUptime->>Runner: Met en file une exécution avec en-têtes, requête et corps
-        Runner->>Runner: Exécute les blocs qui suivent le déclencheur
-    else Le workflow est désactivé ou archivé
+        OneUptime->>Runner: Met en file une<br/>exécution avec en-têtes,<br/>requête et corps
+        Runner->>Runner: Exécute les blocs qui<br/>suivent le déclencheur
+    else Le workflow est<br/>désactivé ou archivé
         OneUptime-->>Caller: 400 avec la raison
     end
 ```

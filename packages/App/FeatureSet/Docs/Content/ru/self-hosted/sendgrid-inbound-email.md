@@ -17,12 +17,12 @@
 
 ```mermaid title="Как письмо попадает в монитор"
 sequenceDiagram
-    participant Sender as Почтовый сервер отправителя
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as Почтовый сервер<br/>отправителя
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: Письмо на адрес монитора (ваша MX-запись)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Сопоставить адрес с монитором или рабочим процессом
+    Sender->>SendGrid: Письмо<br/>на адрес<br/>монитора (ваша<br/>MX-запись)
+    SendGrid->>OneUptime: POST<br/>…/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: Сопоставить<br/>адрес<br/>с монитором<br/>или рабочим<br/>процессом
     OneUptime-->>SendGrid: 200 OK
 ```
 

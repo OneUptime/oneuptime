@@ -16,21 +16,21 @@ Un runbook est une procédure de réponse réutilisable : une liste ordonnée d'
 flowchart TB
     subgraph triggers["Ce qui lance une exécution"]
         direction LR
-        rule["Règle de runbook"]
-        manual["Exécuter le Runbook sur un événement"]
-        runnow["Run Now sur le runbook"]
+        rule["Règle de<br/>runbook"]
+        manual["Exécuter le<br/>Runbook sur<br/>un événement"]
+        runnow["Run Now sur<br/>le runbook"]
     end
-    rule --> execution["Exécution : un instantané des étapes"]
+    rule --> execution["Exécution :<br/>un instantané<br/>des étapes"]
     manual --> execution
     runnow --> execution
-    execution --> worker["Le Worker OneUptime traite les étapes dans l'ordre"]
-    worker -->|"Étape Manual ou approbation"| person["Attend une personne"]
-    worker -->|"Étapes HTTP et IA"| onworker["S'exécute sur le Worker"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Agent Runbook dans votre infrastructure"]
-    person --> record["Statut, sortie et erreurs enregistrés"]
+    execution --> worker["Le Worker<br/>OneUptime<br/>traite les<br/>étapes dans<br/>l'ordre"]
+    worker -->|"Étape Manual<br/>ou approbation"| person["Attend une<br/>personne"]
+    worker -->|"Étapes<br/>HTTP et IA"| onworker["S'exécute<br/>sur le Worker"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Agent Runbook<br/>dans votre<br/>infrastructure"]
+    person --> record["Statut, sortie<br/>et erreurs<br/>enregistrés"]
     onworker --> record
     runner --> record
-    record --> history["Page Runbooks de l'événement et Exécutions du runbook"]
+    record --> history["Page Runbooks<br/>de l'événement<br/>et Exécutions<br/>du runbook"]
 ```
 
 Chaque exécution d'un runbook est une **exécution**. Au démarrage, les étapes du runbook y sont copiées, et OneUptime les traite dans l'ordre. Une étape Manual, ou une étape qui exige une approbation, met l'exécution en pause jusqu'à ce que quelqu'un agisse.

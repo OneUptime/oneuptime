@@ -14,7 +14,7 @@ Projectinstellingen bevat wat voor het hele project geldt: de naam, de tools waa
 Ga naar **Producten → Instellingen → Projectinstellingen**. Het zijmenu groepeert de pagina's in secties, en alleen **Basis** staat open bij het begin: klik op de titel van een sectie om die te openen. Een sectie opent vanzelf op elke pagina erin.
 
 ```mermaid title="Wat Projectinstellingen bevat"
-flowchart TB
+flowchart LR
     settings["Projectinstellingen"] --> project["Het project: details,<br/>labels, importen"]
     settings --> connect["Waarmee het verbindt:<br/>chat, telemetrie, AI"]
     settings --> access["Wie erin komt: sleutels,<br/>domeinen, inloggen"]

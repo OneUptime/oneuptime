@@ -78,12 +78,12 @@ sequenceDiagram
     participant Caller as Ditt verktyg
     participant OneUptime
     participant Runner as Arbetsflödets körmotor
-    Caller->>OneUptime: GET eller POST till webhook-URL:en
-    alt Arbetsflödet är påslaget
+    Caller->>OneUptime: GET eller POST<br/>till webhook-URL:en
+    alt Arbetsflödet<br/>är påslaget
         OneUptime-->>Caller: 200, status Scheduled
-        OneUptime->>Runner: Köar en körning med headers, frågeparametrar och body
-        Runner->>Runner: Kör blocken efter utlösaren
-    else Arbetsflödet är avstängt eller arkiverat
+        OneUptime->>Runner: Köar en körning<br/>med headers,<br/>frågeparametrar<br/>och body
+        Runner->>Runner: Kör blocken<br/>efter utlösaren
+    else Arbetsflödet<br/>är avstängt<br/>eller arkiverat
         OneUptime-->>Caller: 400 med orsaken
     end
 ```

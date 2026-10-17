@@ -12,14 +12,14 @@ OneUptime のすべては**プロジェクト**の中にあります。そのプ
 ```mermaid title="人と API キーがアクセスを得る仕組み"
 flowchart TB
     User["ユーザー<br/>(1 つのアカウント)"]
-    Key["API キー"]
     subgraph Project["プロジェクト"]
         direction TB
+        Key["API キー"]
         Team["チーム"]
-        Allow["許可権限<br/>(それぞれにスコープ:<br/>すべて、所有、ラベル)"]
+        Allow["許可権限<br/>(それぞれに<br/>スコープ:<br/>すべて、<br/>所有、ラベル)"]
         Block["ブロック権限<br/>(常に優先される)"]
-        KeyRules["キー自身の<br/>許可権限とブロック権限"]
-        Resources["モニター、インシデント、<br/>ステータスページなど"]
+        KeyRules["キー自身の<br/>許可権限と<br/>ブロック権限"]
+        Resources["モニター、<br/>インシデント、<br/>ステータス<br/>ページなど"]
     end
     User -->|"メンバー"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"届く"| Resources
     KeyRules -->|"届く"| Resources
     Block -.->|"取り除く"| Resources
+    Allow ~~~ Block
 ```
 
 | 概念 | 内容 |

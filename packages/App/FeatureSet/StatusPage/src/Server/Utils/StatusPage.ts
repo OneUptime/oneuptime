@@ -15,6 +15,10 @@ import {
   isSearchEngineIndexingAllowed,
   isStatusPagePreviewPath,
 } from "Common/Types/StatusPage/SearchEngineIndexing";
+import StatusPageTheme, {
+  parseStatusPageTheme,
+  STATUS_PAGE_THEME_COLUMN,
+} from "Common/Types/StatusPage/StatusPageTheme";
 
 export interface StatusPageData {
   id: string;
@@ -29,6 +33,12 @@ export interface StatusPageData {
    * indexable on a custom domain.
    */
   isSearchEngineIndexingEnabled: boolean;
+  /*
+   * Light, Dark or System, as the /seo API reads the page's column; Light
+   * when it did not say (Types/StatusPage/StatusPageTheme). The page's HTML
+   * is sent in it, so a dark page is dark before its first paint.
+   */
+  theme: StatusPageTheme;
 }
 
 /*
@@ -160,6 +170,7 @@ export const getStatusPageData: (
         path,
         indexingFlag: seoData?.[SEARCH_ENGINE_INDEXING_FLAG_NAME],
       }),
+      theme: parseStatusPageTheme(seoData?.[STATUS_PAGE_THEME_COLUMN]),
     };
   } catch (err) {
     logger.error("Error getting status page data:", { service: "status-page" });

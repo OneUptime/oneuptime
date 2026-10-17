@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as वर्कफ़्लो
     participant C as ऑन-कॉल टीम
     H->>W: incident_report.created
-    W->>W: हस्ताक्षर जांचें, एक घटना खोलें
-    opt रिपोर्ट उच्च या गंभीर है
-        W->>C: ऑन-कॉल नीति को पेज करें
+    W->>W: हस्ताक्षर जांचें,<br/>एक घटना खोलें
+    opt रिपोर्ट उच्च या<br/>गंभीर है
+        W->>C: ऑन-कॉल नीति<br/>को पेज करें
     end
     H->>W: incident_report.comment_added
-    W->>W: टिप्पणी को निजी नोट के रूप में जोड़ें
+    W->>W: टिप्पणी को निजी नोट<br/>के रूप में जोड़ें
     H->>W: incident_report.closed
     W->>W: घटना सुलझाएं
 ```

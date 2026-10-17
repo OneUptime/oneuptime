@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as Flujo de trabajo
     participant C as Equipo de guardia
     H->>W: incident_report.created
-    W->>W: Comprobar la firma, abrir un único incidente
-    opt Informe alto o crítico
-        W->>C: Avisar a la política de guardia
+    W->>W: Comprobar la firma,<br/>abrir un único incidente
+    opt Informe alto<br/>o crítico
+        W->>C: Avisar a la política<br/>de guardia
     end
     H->>W: incident_report.comment_added
-    W->>W: Añadir el comentario como nota privada
+    W->>W: Añadir el comentario<br/>como nota privada
     H->>W: incident_report.closed
     W->>W: Resolver el incidente
 ```

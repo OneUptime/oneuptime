@@ -19,16 +19,16 @@ Huntress stuurt een gebeurtenis over een incidentmelding wanneer de melding word
 sequenceDiagram
     participant H as Huntress
     participant W as Workflow
-    participant C as Bereikbaarheidsteam
+    participant C as Bereikbaarheids-<br/>team
     H->>W: incident_report.created
-    W->>W: Handtekening controleren, één incident openen
-    opt Melding is hoog of kritiek
-        W->>C: Het bereikbaarheidsbeleid oproepen
+    W->>W: Handtekening<br/>controleren, één<br/>incident openen
+    opt Melding is hoog<br/>of kritiek
+        W->>C: Het bereikbaarheids-<br/>beleid oproepen
     end
     H->>W: incident_report.comment_added
-    W->>W: De opmerking als privénotitie toevoegen
+    W->>W: De opmerking<br/>als privénotitie<br/>toevoegen
     H->>W: incident_report.closed
-    W->>W: Het incident oplossen
+    W->>W: Het incident<br/>oplossen
 ```
 
 1. **Controleren.** Een verzoek moet ondertekend zijn met het ondertekeningsgeheim van het endpoint, niet meer dan vijf minuten voordat het aankomt. Al het andere wordt geweigerd, en de instellingen van de trigger zeggen waarom.

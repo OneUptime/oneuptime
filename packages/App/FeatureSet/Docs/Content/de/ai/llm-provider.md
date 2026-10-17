@@ -23,11 +23,11 @@ KI-Funktionen verwenden den Standardanbieter des Projekts. Ein Projekt ohne Stan
 
 ```mermaid title="Welchen Anbieter eine KI-Funktion verwendet"
 flowchart TB
-    F["Eine KI-Funktion<br/>braucht ein Modell"] --> D{"Hat das Projekt<br/>einen Standard-<br/>anbieter?"}
+    F["Eine KI-Funktion<br/>braucht<br/>ein Modell"] --> D{"Hat das Projekt<br/>einen Standard-<br/>anbieter?"}
     D -->|"ja"| P["Der Standardanbieter<br/>des Projekts"]
-    D -->|"nein"| G{"Gibt es einen<br/>globalen Anbieter?"}
-    G -->|"ja"| GP["Der globale Anbieter:<br/>KI-Guthaben in<br/>OneUptime Cloud"]
-    G -->|"nein"| N["Nichts läuft, und die<br/>KI-Seiten melden einen<br/>fehlenden Anbieter"]
+    D -->|"nein"| G{"Gibt es einen<br/>globalen<br/>Anbieter?"}
+    G -->|"ja"| GP["Der globale<br/>Anbieter:<br/>KI-Guthaben in<br/>OneUptime Cloud"]
+    G -->|"nein"| N["Nichts läuft,<br/>und die<br/>KI-Seiten<br/>melden einen<br/>fehlenden<br/>Anbieter"]
 ```
 
 Ein Anbieter ist der Standard eines Projekts, wenn **Als Standard festlegen** eingeschaltet ist, was bei jedem neuen Anbieter der Fall ist. Ein Projekt, bei dessen Anbietern der Standard überall ausgeschaltet ist, weicht auf den globalen Anbieter aus, als hätte es keinen.

@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonde
     participant D as Databasen din
-    O->>P: Monitorinnstillinger, hemmeligheter løst opp
-    P->>D: Spørringen din, skrivebeskyttet
+    O->>P: Monitorinnstillinger,<br/>hemmeligheter løst opp
+    P->>D: Spørringen din,<br/>skrivebeskyttet
     D-->>P: Opptil Max Rows + 1 rader
-    P->>O: Antall rader, skalar, første rad, tid, feil
+    P->>O: Antall rader, skalar,<br/>første rad, tid, feil
     O->>O: Evaluer kriteriene
 ```
 

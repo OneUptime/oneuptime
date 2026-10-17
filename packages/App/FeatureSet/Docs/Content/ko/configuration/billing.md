@@ -14,7 +14,7 @@ OneUptime Cloud에서 프로젝트는 사용자당 요금제 비용과 사용한
 ```mermaid title="OneUptime Cloud 프로젝트가 내는 비용"
 flowchart TB
     project["내 프로젝트"] --> plan["요금제: 사용자당<br/>월별 가격"]
-    project --> usage["사용한 만큼:<br/>텔레메트리와 모니터"]
+    project --> usage["사용한 만큼:<br/>텔레메트리와<br/>모니터"]
     project --> balances["선불 잔액:<br/>메시지와 AI"]
     plan --> invoices["청구서:<br/>결제 방법으로 청구"]
     usage --> invoices

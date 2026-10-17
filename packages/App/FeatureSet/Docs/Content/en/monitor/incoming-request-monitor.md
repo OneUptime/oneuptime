@@ -29,7 +29,7 @@ sequenceDiagram
     O-->>J: 200 at once
     O->>O: Evaluate the criteria
     Note over O: Every 30 seconds, check<br/>for missing requests
-    O->>T: Incident, if a criteria matches
+    O->>T: Incident, if a<br/>criteria matches
 ```
 
 Use it to:

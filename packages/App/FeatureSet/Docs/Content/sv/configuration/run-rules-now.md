@@ -4,12 +4,12 @@ Etikettregler, ägarregler och sekretessregler körs automatiskt när en resurs 
 
 ```mermaid title="Vad en körning gör"
 flowchart TB
-    S["Run Now"] --> E["Varje resurs i projektet"]
+    S["Run Now"] --> E["Varje resurs<br/>i projektet"]
     E --> M{"Matchar regeln?"}
     M -->|"Nej"| K["Lämnas som den är"]
-    M -->|"Ja"| H{"Har den redan det<br/>som regeln lägger till?"}
-    H -->|"Ja"| A["Räknas som redan tillämpad"]
-    H -->|"Nej"| C["Etiketter eller ägare tillagda,<br/>eller görs privat"]
+    M -->|"Ja"| H{"Har den redan det<br/>som regeln<br/>lägger till?"}
+    H -->|"Ja"| A["Räknas som<br/>redan tillämpad"]
+    H -->|"Nej"| C["Etiketter eller<br/>ägare tillagda,<br/>eller görs privat"]
 ```
 
 ## Vilka regler kan köras

@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as گردش کاری
     participant C as تیم آنکال
     H->>W: incident_report.created
-    W->>W: بررسی امضا، باز کردن یک حادثه
-    opt گزارش بالا یا بحرانی است
-        W->>C: فراخواندن سیاست آنکال
+    W->>W: بررسی امضا، باز<br/>کردن یک حادثه
+    opt گزارش بالا یا<br/>بحرانی است
+        W->>C: فراخواندن<br/>سیاست آنکال
     end
     H->>W: incident_report.comment_added
-    W->>W: افزودن نظر به عنوان یادداشت خصوصی
+    W->>W: افزودن نظر به<br/>عنوان یادداشت خصوصی
     H->>W: incident_report.closed
     W->>W: برطرف کردن حادثه
 ```

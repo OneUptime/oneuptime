@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as ワークフロー
     participant C as オンコールチーム
     H->>W: incident_report.created
-    W->>W: 署名を確認し、インシデントを 1 件作成
-    opt レポートが高または重大
-        W->>C: オンコールポリシーを呼び出す
+    W->>W: 署名を確認し、<br/>インシデントを<br/>1 件作成
+    opt レポートが<br/>高または重大
+        W->>C: オンコールポリシーを<br/>呼び出す
     end
     H->>W: incident_report.comment_added
-    W->>W: コメントを非公開メモとして追加
+    W->>W: コメントを非公開<br/>メモとして追加
     H->>W: incident_report.closed
     W->>W: インシデントを解決
 ```

@@ -32,6 +32,7 @@ flowchart TB
 
 - **Services are created for you.** The `service.name` resource attribute (set with `OTEL_SERVICE_NAME`) names the service your data belongs to. OneUptime creates the service the first time it sends, and lists it under **Products → Services**.
 - **Errors become exceptions.** Exception events on spans, and exceptions recorded in logs, are grouped into issues under **Exceptions** — see [Exceptions from logs](#exceptions-from-logs).
+- **Rules act on data as it arrives.** [Drop filters and scrub rules](/docs/telemetry/drop-filters-and-scrub-rules) discard or mask what you never want stored, and [data retention](/docs/telemetry/data-retention) decides how long the rest is kept.
 
 ## Before you begin
 
@@ -407,7 +408,7 @@ Each key's page, under **Project Settings → Telemetry & APM → Ingestion Keys
 | **Requests Per Minute Limit** | The most OTLP/HTTP requests per minute the key is accepted for, across every client that uses it. Empty means no limit on a Server key, and 6,000 on a Browser key. |
 | **Last Used At** | When data was last accepted with the key. Use it to find keys that are safe to rotate or delete. |
 
-**Reset Secret Key** on the key's page replaces the secret. Every application and collector that sends with the old one is refused until you update it.
+**Reset Secret Key** on the key's page replaces the secret. Every application and collector that sends with the old one is refused until you update it. For Browser keys, rotating a key safely and what each refusal means, see [Ingestion Keys](/docs/telemetry/ingestion-keys).
 
 ## Self-hosted OneUptime
 

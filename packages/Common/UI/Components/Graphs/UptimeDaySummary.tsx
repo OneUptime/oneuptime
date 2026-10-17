@@ -4,6 +4,7 @@ import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
 } from "../../../Types/Monitor/UptimeHistoryLabels";
 import React, { FunctionComponent, ReactElement } from "react";
+import { getStatusTextProps } from "../../Utils/StatusColorStyle";
 
 export interface StatusDuration {
   label: string;
@@ -112,27 +113,25 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
             </span>
             <div style={{ display: "flex", alignItems: "baseline" }}>
               <span
-                style={{
+                {...getStatusTextProps(uptimeColor, {
                   fontSize: "14px",
                   fontWeight: 600,
-                  color: uptimeColor,
                   fontVariantNumeric: "tabular-nums",
                   lineHeight: 1,
                   letterSpacing: "-0.03em",
-                }}
+                })}
               >
                 {props.uptimePercent >= 100
                   ? "100"
                   : props.uptimePercent.toFixed(2)}
               </span>
               <span
-                style={{
+                {...getStatusTextProps(uptimeColor, {
                   fontSize: "11px",
                   fontWeight: 600,
-                  color: uptimeColor,
                   marginLeft: "1px",
                   opacity: 0.7,
-                }}
+                })}
               >
                 %
               </span>

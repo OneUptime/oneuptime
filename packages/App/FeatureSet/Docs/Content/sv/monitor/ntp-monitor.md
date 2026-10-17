@@ -19,8 +19,8 @@ sequenceDiagram
     participant S as NTP-server
     Note over P: T1: sonden skickar
     P->>S: Klientbegäran
-    Note over S: T2: servern tar emot, T3: servern svarar
-    S-->>P: Svar: stratum, skottsekundsindikator, referens, T2, T3
+    Note over S: T2: servern tar emot,<br/>T3: servern svarar
+    S-->>P: Svar: stratum,<br/>skottsekundsindikator,<br/>referens, T2, T3
     Note over P: T4: sonden tar emot
 ```
 

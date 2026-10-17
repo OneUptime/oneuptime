@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonde
     participant D as Uw database
-    O->>P: Monitorinstellingen, geheimen opgelost
+    O->>P: Monitorinstellingen,<br/>geheimen opgelost
     P->>D: Uw query, alleen-lezen
     D-->>P: Tot Max Rows + 1 rijen
-    P->>O: Aantal rijen, scalair, eerste rij, tijd, fout
+    P->>O: Aantal rijen, scalair,<br/>eerste rij, tijd, fout
     O->>O: Criteria toetsen
 ```
 

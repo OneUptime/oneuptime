@@ -125,7 +125,7 @@ Varje underhållsmodell har arbetsflödesutlösare och åtgärder som är namngi
 | **Scheduled Maintenance Member**  | Skapar, ändrar och tar bort händelser med deras anteckningar, tillståndstidslinjer och ägare, och båda slagen av mallar. |
 | **Scheduled Maintenance Admin**   | Allt en medlem gör, och skapar, ändrar och tar dessutom bort underhållstillstånd.                    |
 
-Regler, anpassade fält och mätningar kräver **Project Owner** eller **Project Admin**, eller en anpassad roll med den sidans egen behörighet, till exempel **Create Scheduled Maintenance Owner Rule**. **Project Member** arbetar med händelser och mallar, som **Scheduled Maintenance Member**. Se [Användare, team och behörigheter](/docs/permissions/index).
+Regler, anpassade fält och mätningar kräver **Project Owner** eller **Project Admin**, eller en anpassad roll med den sidans egen behörighet, till exempel **Create Scheduled Maintenance Owner Rule**. Runbook-regler godtar även **Runbook Admin**. **Project Member** arbetar med händelser och mallar, som **Scheduled Maintenance Member**. Se [Användare, team och behörigheter](/docs/permissions/index).
 
 ## Felsökning
 

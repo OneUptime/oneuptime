@@ -250,14 +250,7 @@ API 金鑰不能從範本宣告：傳送 `createdIncidentTemplateId` 的請求�
 flowchart TB
     request["建立請求"] --> fill["伺服器補齊空缺"]
     fill --> template["如有範本則套用"]
-    template --> rules
-    subgraph rules["規則，依此順序"]
-        direction LR
-        privacy["隱私"] --> owner["擁有者"]
-        owner --> label["標籤"]
-        label --> oncall["待命"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["規則，依此順序：<br/>隱私、擁有者、標籤、<br/>待命、Runbook"]
     rules --> policies["執行待命策略"]
     policies --> subscribers["訂閱者通知排入佇列"]
     subscribers --> workflows["觸發工作流程"]
@@ -284,10 +277,10 @@ flowchart TB
 
 ```mermaid title="新事件會引發什麼，取決於它的起始狀態"
 flowchart TB
-    start{"起始狀態"} -->|"建立狀態（預設）"| live["視為新事件：呼叫待命"]
-    start -->|"處於或越過確認狀態"| acked["僅記錄：不呼叫任何人"]
-    start -->|"處於或越過解決狀態"| over["記錄為已結束"]
-    over --> quiet["無分組、Runbook、AI、頻道或 SLA"]
+    start{"起始狀態"} -->|"建立狀態<br/>（預設）"| live["視為新事件：<br/>呼叫待命"]
+    start -->|"處於或<br/>越過確認狀態"| acked["僅記錄：<br/>不呼叫任何人"]
+    start -->|"處於或<br/>越過解決狀態"| over["記錄為已結束"]
+    over --> quiet["無分組、Runbook、<br/>AI、頻道或 SLA"]
 ```
 
 - **處於或越過確認狀態** —— **已確認**，或在 **事件 → 設定 → 事件狀態** 中放在它下面的任何狀態——不會執行任何待命策略，因此不會呼叫任何人。事件仍會列出它的策略，包括你選擇的和待命規則新增的，它的動態會用一行說明原因：_No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ 如果有規則為它設定了 SLA，該 SLA 會以已回應的狀態開始。下文中的其他一切照常執行，和任何新事件一樣。

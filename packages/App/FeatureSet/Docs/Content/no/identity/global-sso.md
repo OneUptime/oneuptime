@@ -71,13 +71,13 @@ Hvordan en global leverandør oppfører seg, avhenger av om du knytter prosjekte
 
 ```mermaid title="Hva en global leverandør gjør ved pålogging"
 flowchart TB
-    S["Noen logger inn"] --> A{"Prosjekter tilknyttet?"}
+    S["Noen logger inn"] --> A{"Prosjekter<br/>tilknyttet?"}
     A -->|"Nei"| K{"Har en konto?"}
-    K -->|"Nei"| R["Avvist: inviter først"]
-    K -->|"Ja"| E["Logget inn i egne prosjekter"]
-    A -->|"Ja"| D{"Ny, med registrering<br/>slått av?"}
+    K -->|"Nei"| R["Avvist:<br/>inviter først"]
+    K -->|"Ja"| E["Logget inn i<br/>egne prosjekter"]
+    A -->|"Ja"| D{"Ny, med<br/>registrering<br/>slått av?"}
     D -->|"Ja"| R
-    D -->|"Nei"| P["Lagt til i tilknyttede prosjekter<br/>personen ikke er med i ennå"]
+    D -->|"Nei"| P["Lagt til i<br/>tilknyttede<br/>prosjekter<br/>personen ikke<br/>er med i ennå"]
     P --> E
 ```
 

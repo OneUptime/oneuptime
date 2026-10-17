@@ -25,7 +25,7 @@ sequenceDiagram
     participant J as 여러분의 작업
     participant O as OneUptime
     participant T as 온콜 팀
-    J->>O: /heartbeat/KEY로 GET 또는 POST
+    J->>O: /heartbeat/KEY로<br/>GET 또는 POST
     O-->>J: 즉시 200
     O->>O: 기준 평가
     Note over O: 30초마다<br/>누락된 요청 확인

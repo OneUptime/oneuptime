@@ -93,15 +93,15 @@ Cada pessoa que um nível aciona é contatada do jeito que as próprias regras d
 flowchart TB
     subgraph notify["Notificar"]
         direction LR
-        schedule["Agendamento de plantão"]
+        schedule["Agendamento<br/>de plantão"]
         team["Equipe"]
         user["Pessoa"]
     end
-    schedule -->|"quem está de plantão"| person["Pessoa acionada"]
+    schedule -->|"quem está<br/>de plantão"| person["Pessoa acionada"]
     team -->|"cada membro"| person
     user -->|"diretamente"| person
-    person --> rules["As regras de plantão dela"]
-    rules --> methods["Os métodos de notificação dela"]
+    person --> rules["As regras de<br/>plantão dela"]
+    rules --> methods["Os métodos de<br/>notificação dela"]
 ```
 
 Uma substituição de usuário em vigor para uma pessoa envia os acionamentos dela para quem a cobre. Uma que não nomeia ninguém para cobrir pula a pessoa: ela não é acionada, a execução da política informa que ela está ausente e até quando, e em um agendamento de plantão cada um dos turnos dela vai para a próxima pessoa da rotação. Veja [Substituições de usuário](/docs/on-call/user-overrides).

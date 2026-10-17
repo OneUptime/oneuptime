@@ -7,6 +7,8 @@ Un incident est l'enregistrement à partir duquel votre équipe travaille quand 
 - [États et sévérités des incidents](/docs/incidents/states-and-severities): Le cycle de vie, et ce que font la prise en compte et la résolution.
 - [Notes, propriétaires et fil d'incident](/docs/incidents/notes-owners-and-feed): Les mises à jour pour les clients et pour votre équipe, et qui en est informé.
 - [Alertes liées](/docs/incidents/linked-alerts): Rattacher les alertes qu'une panne a levées à l'incident qui les explique.
+- [Épisodes](/docs/incidents/episodes): Regrouper des incidents liés et les traiter comme un seul.
+- [Post-mortems](/docs/incidents/postmortems): Rédiger ce qui s'est passé, et le publier sur votre page de statut.
 - [Paramètres et automatisation des incidents](/docs/incidents/settings): Modèles, champs personnalisés, rôles, mesures et règles.
 :::
 
@@ -34,13 +36,15 @@ flowchart TB
         monitor["Moniteur"]
         api["API"]
         form["Formulaire"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Nouvel incident"]
-    incident --> rules["Les règles d'incident s'exécutent"]
-    rules --> oncall["Les politiques d'astreinte alertent"]
-    rules --> owners["Les propriétaires sont notifiés"]
-    rules --> pages["Les pages de statut sont mises à jour"]
-    oncall --> feed["Fil d'activité de l'incident"]
+    incident --> rules["Les règles<br/>d'incident<br/>s'exécutent"]
+    rules --> oncall["Les politiques<br/>d'astreinte<br/>alertent"]
+    rules --> owners["Les propriétaires<br/>sont notifiés"]
+    rules --> pages["Les pages de<br/>statut sont<br/>mises à jour"]
+    oncall --> feed["Fil d'activité<br/>de l'incident"]
     owners --> feed
     pages --> feed
 ```
@@ -77,7 +81,7 @@ Les intervenants prennent l'incident en compte, rattachent les ressources affect
 
 Cliquer sur **Résoudre** fait passer l'incident à l'état résolu, horodate la chronologie des états, arrête le compteur de durée, rend les moniteurs qu'il retient, et retire l'incident de la section active de toute page de statut où il apparaissait. Rien d'autre n'a besoin de changer pour cela — une page de statut n'affiche que les incidents dans un état situé au-dessus de l'état résolu. Voir [Ce que fait la résolution](/docs/incidents/states-and-severities#ce-que-fait-la-résolution).
 
-Ensuite, vous pouvez rédiger un post-mortem et, si vous le souhaitez, le publier sur la page de statut.
+Ensuite, vous pouvez rédiger un [post-mortem](/docs/incidents/postmortems) et, si vous le souhaitez, le publier sur la page de statut.
 
 ## Termes clés
 
@@ -103,7 +107,7 @@ Une poignée de mots revient sur toutes les autres pages de cette section. Clari
 
 ```mermaid title="Les états avec lesquels démarre chaque nouveau projet"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: déclaré
     Identified --> Acknowledged: Prendre en compte
     Identified --> Resolved: Résoudre

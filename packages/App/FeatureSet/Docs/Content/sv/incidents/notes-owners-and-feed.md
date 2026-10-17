@@ -17,10 +17,10 @@ En del av det du skriver är för dina kunder — uppdateringen som går ut på 
 flowchart TB
     subgraph write["Det du skriver"]
         direction LR
-        public["Offentlig anteckning"]
+        public["Offentlig<br/>anteckning"]
         private["Privat anteckning"]
     end
-    public --> page["Statussida och prenumeranter"]
+    public --> page["Statussida och<br/>prenumeranter"]
     public --> owners["Incidentens ägare"]
     private --> owners
     public --> feed["Incident Flöde"]

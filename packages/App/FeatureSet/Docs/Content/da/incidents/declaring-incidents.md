@@ -250,14 +250,7 @@ Oprettelseskaldet gør mere end at skrive en række:
 flowchart TB
     request["Oprettelsesanmodning"] --> fill["Serveren udfylder hullerne"]
     fill --> template["Skabelon anvendt, hvis der er en"]
-    template --> rules
-    subgraph rules["Regler, i denne rækkefølge"]
-        direction LR
-        privacy["Privatliv"] --> owner["Ejer"]
-        owner --> label["Etiket"]
-        label --> oncall["Vagt"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Regler, i denne rækkefølge:<br/>Privatliv, Ejer, Etiket,<br/>Vagt, Runbook"]
     rules --> policies["Vagtpolitikker udføres"]
     policies --> subscribers["Abonnenter sat i kø"]
     subscribers --> workflows["Workflows udløses"]
@@ -284,10 +277,10 @@ At vælge en senere **Indledende tilstand** — på formularen, via en skabelons
 
 ```mermaid title="Hvad en ny hændelse sætter i gang, efter den tilstand den starter i"
 flowchart TB
-    start{"Starttilstand"} -->|"Oprettelsestilstanden, standarden"| live["Behandlet som ny: tilkalder vagten"]
-    start -->|"Ved eller efter bekræftet"| acked["Registreret: tilkalder ingen"]
-    start -->|"Ved eller efter løst"| over["Registreret som overstået"]
-    over --> quiet["Ingen gruppering, runbooks, AI, kanal eller SLA"]
+    start{"Starttilstand"} -->|"Oprettelsestilstanden,<br/>standarden"| live["Behandlet<br/>som ny:<br/>tilkalder<br/>vagten"]
+    start -->|"Ved eller<br/>efter bekræftet"| acked["Registreret:<br/>tilkalder ingen"]
+    start -->|"Ved eller<br/>efter løst"| over["Registreret<br/>som overstået"]
+    over --> quiet["Ingen gruppering,<br/>runbooks, AI,<br/>kanal eller SLA"]
 ```
 
 - **Ved eller efter din bekræftede tilstand** — **Bekræftet**, eller enhver tilstand, der står under den i **Hændelser → Indstillinger → Hændelsesstatus** — kører ingen vagtpolitik, så ingen tilkaldes. Hændelsen nævner stadig sine politikker, dem du valgte, og dem vagtregler tilføjer, og dens feed siger hvorfor på én linje: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Dens SLA, hvis en regel giver den en, starter allerede som besvaret. Alt andet nedenfor kører som for enhver ny hændelse.

@@ -78,12 +78,12 @@ sequenceDiagram
     participant Caller as Jouw tool
     participant OneUptime
     participant Runner as Workflow-uitvoerder
-    Caller->>OneUptime: GET of POST naar de webhook-URL
+    Caller->>OneUptime: GET of POST naar<br/>de webhook-URL
     alt De workflow staat aan
         OneUptime-->>Caller: 200, status Scheduled
-        OneUptime->>Runner: Zet een uitvoering in de wachtrij met headers, query en body
-        Runner->>Runner: Voert de blokken na de trigger uit
-    else De workflow staat uit of is gearchiveerd
+        OneUptime->>Runner: Zet een uitvoering<br/>in de wachtrij met<br/>headers, query en body
+        Runner->>Runner: Voert de blokken<br/>na de trigger uit
+    else De workflow staat uit<br/>of is gearchiveerd
         OneUptime-->>Caller: 400 met de reden
     end
 ```

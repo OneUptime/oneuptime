@@ -15,13 +15,13 @@ Un runbook peut démarrer de lui-même : selon une planification, ou quand un au
 flowchart TB
     subgraph starts["Ce qui démarre l'exécution"]
         direction LR
-        schedule["La planification : une heure arrive"]
-        webhook["Le webhook : un POST vers son URL"]
+        schedule["La planification<br/>: une heure arrive"]
+        webhook["Le webhook : un<br/>POST vers son URL"]
     end
-    schedule --> checks["Le runbook est activé et a des étapes"]
+    schedule --> checks["Le runbook est activé<br/>et a des étapes"]
     webhook --> checks
-    checks --> execution["Exécution, marquée Schedule ou Webhook"]
-    execution --> worker["Le Worker OneUptime exécute les étapes"]
+    checks --> execution["Exécution, marquée<br/>Schedule ou Webhook"]
+    execution --> worker["Le Worker OneUptime<br/>exécute les étapes"]
 ```
 
 Un déclencheur démarre une exécution comme le fait **Run Now** : l'exécution porte sur les étapes actuelles du runbook et n'est rattachée à aucun incident, aucune alerte ni aucun événement de maintenance planifiée. Chaque exécution enregistre ce qui l'a démarrée. Les **Exécutions** du runbook et **Runbooks → Exécutions** l'affichent sous **Déclenché par**, avec l'heure prévue d'une exécution planifiée ou l'adresse qui a appelé le webhook, et les deux listes peuvent être filtrées sur ce critère.

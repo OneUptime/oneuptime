@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as 프로브
     participant D as 여러분의 데이터베이스
-    O->>P: 시크릿을 해석한 모니터 설정
+    O->>P: 시크릿을 해석한<br/>모니터 설정
     P->>D: 읽기 전용 쿼리
     D-->>P: 최대 Max Rows + 1개 행
-    P->>O: 행 수, 스칼라, 첫 행, 시간, 오류
+    P->>O: 행 수, 스칼라,<br/>첫 행, 시간, 오류
     O->>O: 기준 평가
 ```
 

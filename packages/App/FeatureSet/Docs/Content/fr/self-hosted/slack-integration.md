@@ -20,15 +20,15 @@ sequenceDiagram
     participant B as Votre navigateur
     participant O as OneUptime
     participant S as Slack
-    B->>O: Se connecter avec Slack
+    B->>O: Se connecter<br/>avec Slack
     O-->>B: Redirection vers Slack
-    B->>S: Autoriser l'application
-    S-->>B: Redirection vers /api/slack/auth
+    B->>S: Autoriser<br/>l'application
+    S-->>B: Redirection vers<br/>/api/slack/auth
     B->>O: Code à usage unique
-    O->>S: Échanger le code contre un jeton de bot
+    O->>S: Échanger le code<br/>contre un jeton de bot
     Note over O,S: Une fois connecté
-    O->>S: Publier des messages, HTTPS sortant
-    S->>O: Événements, clics, commandes, HTTPS entrant
+    O->>S: Publier des messages,<br/>HTTPS sortant
+    S->>O: Événements,<br/>clics, commandes,<br/>HTTPS entrant
 ```
 
 - **Sortant** : OneUptime appelle la Web API de Slack pour publier des messages, créer des canaux et téléverser des images.
@@ -196,7 +196,7 @@ OAuth est une [redirection du navigateur suivie d'un échange de jeton côté se
 ### Déploiements privés et sécurité des callbacks
 
 ```mermaid title="Publier les callbacks Slack depuis un déploiement privé"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["Passerelle publique"]
     GW -->|"/api/slack/* POST uniquement"| ING["Ingress OneUptime"]
     Users["Employés sur le VPN"] --> ING

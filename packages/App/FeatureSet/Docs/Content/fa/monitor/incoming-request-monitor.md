@@ -25,7 +25,7 @@ sequenceDiagram
     participant J as کار شما
     participant O as OneUptime
     participant T as تیم کشیک
-    J->>O: ‏GET یا POST به ‎/heartbeat/KEY
+    J->>O: ‏GET یا POST<br/>به ‎/heartbeat/KEY
     O-->>J: ‏200 بی‌درنگ
     O->>O: ارزیابی معیارها
     Note over O: هر ۳۰ ثانیه، بررسی<br/>درخواست‌های نرسیده

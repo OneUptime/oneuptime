@@ -78,12 +78,12 @@ sequenceDiagram
     participant Caller as 사용하는 도구
     participant OneUptime
     participant Runner as 워크플로 실행기
-    Caller->>OneUptime: 웹훅 URL로 GET 또는 POST
+    Caller->>OneUptime: 웹훅 URL로<br/>GET 또는 POST
     alt 워크플로가 켜져 있음
         OneUptime-->>Caller: 200, 상태 Scheduled
-        OneUptime->>Runner: 헤더, 쿼리, 본문과 함께 실행을 대기열에 넣음
-        Runner->>Runner: 트리거 다음의 블록을 실행함
-    else 워크플로가 꺼져 있거나 보관됨
+        OneUptime->>Runner: 헤더, 쿼리,<br/>본문과 함께 실행을<br/>대기열에 넣음
+        Runner->>Runner: 트리거 다음의<br/>블록을 실행함
+    else 워크플로가 꺼져<br/>있거나 보관됨
         OneUptime-->>Caller: 이유와 함께 400
     end
 ```

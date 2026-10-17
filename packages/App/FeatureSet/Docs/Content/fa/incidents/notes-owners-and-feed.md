@@ -20,7 +20,7 @@ flowchart TB
         public["یادداشت عمومی"]
         private["یادداشت خصوصی"]
     end
-    public --> page["صفحه وضعیت و مشترکان"]
+    public --> page["صفحه وضعیت<br/>و مشترکان"]
     public --> owners["مالکان حادثه"]
     private --> owners
     public --> feed["خوراک حادثه"]

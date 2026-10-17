@@ -14,7 +14,7 @@
 前往**产品 → 设置 → 项目设置**。侧边菜单把页面分成若干部分，默认只展开**基础**：点击某个部分的标题即可展开。在某个部分的任意页面上，该部分会自动展开。
 
 ```mermaid title="项目设置包含什么"
-flowchart TB
+flowchart LR
     settings["项目设置"] --> project["项目: 详情、<br/>标签、导入"]
     settings --> connect["连接对象: 聊天、<br/>遥测、AI"]
     settings --> access["谁能进入: 密钥、<br/>域名、登录"]

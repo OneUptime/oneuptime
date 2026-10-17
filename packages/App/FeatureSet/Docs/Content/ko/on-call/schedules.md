@@ -27,7 +27,7 @@
 사람들은 한 명씩 교대하며, 스케줄을 만들자마자 첫 번째 사람이 온콜이 됩니다.
 
 ```mermaid title="세 사람이 1주씩 담당하는 Layer 1"
-flowchart LR
+flowchart TB
     alice["Alice<br/>1주차"] -->|"인계"| bob["Bob<br/>2주차"]
     bob -->|"인계"| carol["Carol<br/>3주차"]
     carol -->|"첫 번째 사람으로 돌아감"| alice

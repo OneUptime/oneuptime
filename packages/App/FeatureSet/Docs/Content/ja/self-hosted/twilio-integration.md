@@ -63,11 +63,11 @@ sequenceDiagram
     participant O as OneUptime
     participant T as Twilio
     participant P as 対応者の電話
-    O->>T: SMS を送信、または通話を開始
+    O->>T: SMS を送信、<br/>または通話を開始
     T->>P: SMS または音声通話
-    T-->>O: SMS の配信ステータスのコールバック
+    T-->>O: SMS の配信ステータスの<br/>コールバック
     P->>T: 1 を押して確認応答
-    T-->>O: キーパッド入力のコールバック
+    T-->>O: キーパッド入力の<br/>コールバック
 ```
 
 プライベートなデプロイでは、SMS と通話を送るために DNS の名前解決と、Twilio への TCP 443 経由の外向き HTTPS が必要です。Twilio は API のアドレスが動的なため、`*.twilio.com` への外向き HTTPS を許可するよう推奨しています。[Twilio の IP アドレス](https://help.twilio.com/articles/115015934048-All-About-Twilio-IP-Addresses)を参照してください。これは Kubernetes の NetworkPolicy や外部のファイアウォールも含め、OneUptime アプリケーションのワークロードの外向き通信に適用します。

@@ -93,14 +93,14 @@ Ogni persona avvisata da un livello viene raggiunta come indicano le sue regole 
 flowchart TB
     subgraph notify["Notifica"]
         direction LR
-        schedule["Pianificazione di reperibilità"]
+        schedule["Pianificazione<br/>di reperibilità"]
         team["Team"]
         user["Persona"]
     end
     schedule -->|"chi è reperibile"| person["Persona avvisata"]
     team -->|"ogni membro"| person
     user -->|"direttamente"| person
-    person --> rules["Le sue regole di reperibilità"]
+    person --> rules["Le sue regole<br/>di reperibilità"]
     rules --> methods["I suoi metodi di notifica"]
 ```
 

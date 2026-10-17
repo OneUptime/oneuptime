@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as Workflow
     participant C as Bereitschaft
     H->>W: incident_report.created
-    W->>W: Signatur prüfen, genau einen Vorfall öffnen
-    opt Meldung ist hoch oder kritisch
-        W->>C: Die Bereitschaftsrichtlinie alarmieren
+    W->>W: Signatur prüfen, genau<br/>einen Vorfall öffnen
+    opt Meldung ist hoch<br/>oder kritisch
+        W->>C: Die Bereitschafts-<br/>richtlinie<br/>alarmieren
     end
     H->>W: incident_report.comment_added
-    W->>W: Den Kommentar als private Notiz hinzufügen
+    W->>W: Den Kommentar<br/>als private<br/>Notiz hinzufügen
     H->>W: incident_report.closed
     W->>W: Den Vorfall beheben
 ```

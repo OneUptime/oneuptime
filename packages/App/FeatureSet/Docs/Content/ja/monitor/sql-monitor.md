@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as プローブ
     participant D as あなたのデータベース
-    O->>P: シークレットを解決したモニター設定
+    O->>P: シークレットを<br/>解決したモニター設定
     P->>D: 読み取り専用のクエリ
     D-->>P: 最大行数 + 1 行まで
-    P->>O: 行数、スカラー、最初の行、時間、エラー
+    P->>O: 行数、スカラー、<br/>最初の行、時間、エラー
     O->>O: 条件を評価
 ```
 

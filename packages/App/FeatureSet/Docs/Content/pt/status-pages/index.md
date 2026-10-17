@@ -29,7 +29,7 @@ flowchart TB
 
 As páginas de status ficam em **Páginas de status**, no menu **Produtos** da barra superior, entre os essenciais. Tudo nesta página vale por página de status: um projeto pode ter quantas quiser — uma pública para clientes, uma privada para um público interno, uma por região para um mercado específico.
 
-A página mostra como recursos os monitores que você coloca nela. Incidentes e manutenção programada chegam a ela por meio desses monitores, e os anúncios são publicados diretamente nela. Os visitantes leem a página, e os assinantes são avisados de cada mudança pelos canais que escolheram.
+A página mostra como recursos os monitores que você coloca nela, e os incidentes chegam a ela por meio desses monitores. Os [eventos de manutenção agendada](/docs/scheduled-maintenance/index) e os anúncios chegam a ela diretamente: cada um indica as páginas de status em que é exibido. Os visitantes leem a página, e os assinantes são avisados de cada mudança pelos canais que escolheram.
 
 ## Em resumo
 
@@ -163,7 +163,7 @@ Se a página mostra um item **Inscrever-se** (**Mostrar página de assinantes**,
 
 Abaixo do cartão ficam **Exportar como JSON: Página de status**, que baixa as configurações da própria página de status em um arquivo que você pode importar de novo, e **Archive status page** (veja [Arquivar uma página de status](#arquivar-uma-página-de-status)). O percentual geral de tempo de atividade e os status de indisponibilidade eram antes dois cartões próprios aqui, cada um atrás de um botão **Editar**; agora são linhas do cartão.
 
-**Onde ficam as cores.** As cores das barras de tempo de atividade não ficam aqui: a **Cor Padrão da Barra** e as regras de cor das barras ficam em **Mais configurações** em **Páginas de status → sua página → Marca → Marca**. Não existe nenhuma configuração de tema ou de cor da marca; tudo o que vai além desses controles é feito com **CSS Personalizado**.
+**Onde ficam as cores.** As cores das barras de tempo de atividade não ficam aqui: a **Cor Padrão da Barra** e as regras de cor das barras ficam em **Mais configurações** em **Páginas de status → sua página → Marca → Marca**. O **Tema** da página (claro, escuro ou conforme o dispositivo de cada visitante) é um cartão perto do topo dessa mesma página. Não existe nenhuma configuração de cor da marca; tudo o que vai além desses controles é feito com **CSS Personalizado**.
 
 ## Ver como ficou antes de publicar
 

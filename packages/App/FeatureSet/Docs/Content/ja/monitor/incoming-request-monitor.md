@@ -25,11 +25,11 @@ sequenceDiagram
     participant J as あなたのジョブ
     participant O as OneUptime
     participant T as オンコールチーム
-    J->>O: /heartbeat/KEY への GET または POST
+    J->>O: /heartbeat/KEY への<br/>GET または POST
     O-->>J: すぐに 200
     O->>O: 条件を評価
     Note over O: 30 秒ごとに<br/>届かないリクエストを確認
-    O->>T: 条件が一致したらインシデント
+    O->>T: 条件が一致したら<br/>インシデント
 ```
 
 次の用途に使えます。

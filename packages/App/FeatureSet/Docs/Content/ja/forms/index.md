@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### ワークフロー
 
-フォームには自動生成されたワークフローのコンポーネント (**On Create Form**、**On Update Form** など) があります。フォームが作成したものに対して処理を行うには、**On Create Incident** または **On Create Scheduled Maintenance** を使います。
+フォームには自動生成されたワークフローのコンポーネント (**On Create Form**、**On Update Form** など) があります。フォームが作成したものに対して処理を行うには、**On Create Incident** または **On Create Scheduled Maintenance Event** を使います。
 
 ### 公開ページ専用のエンドポイント
 

@@ -11,7 +11,7 @@
 - 追趕：當等待處理的資料佇列落後超過一分鐘時，從佇列中仍在等待的最早資料算起的時間。
 
 ```mermaid title="OneUptime 排除的時間"
-flowchart LR
+flowchart TB
     receiving["接收中"] -->|"90 秒沒有記錄"| down["未接收"]
     down -->|"有程序重新記錄"| grace["重新連線 2 分鐘"]
     grace --> again["接收中"]

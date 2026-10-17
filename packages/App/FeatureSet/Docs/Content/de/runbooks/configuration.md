@@ -14,24 +14,18 @@ Dies ist die Referenz für Betreiber und Sicherheitsprüfer: wo jede Art von Sch
 ```mermaid title="Welche Schritte wo laufen"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["HTTP-Anfrage-Schritte"]
-        ai["KI-Schritte"]
+        onworker["HTTP-Anfrage-<br/>Schritte<br/>KI-Schritte"]
     end
     subgraph yours["Ihre Infrastruktur"]
-        direction LR
         runner["Runner"]
-        scripts["JavaScript- und Bash-Schritte"]
-        remote["SSH- und Kubernetes-Schritte"]
+        onrunner["JavaScript- und<br/>Bash-Schritte<br/>SSH- und<br/>Kubernetes-<br/>Schritte"]
     end
     person["Eine Person"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual-Schritte und Freigaben"| person
-    worker -->|"reiht einen Job für den Runner des Schritts ein"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual-<br/>Schritte und<br/>Freigaben"| person
+    worker --->|"reiht einen<br/>Job für den<br/>Runner des<br/>Schritts ein"| runner
+    runner --> onrunner
 ```
 
 | Schritttyp | Läuft auf | Wie |

@@ -54,11 +54,11 @@ Ein Bild in der Beschreibung oder der Dankesnachricht des Formulars wird allen g
 sequenceDiagram
     participant V as Browser der besuchenden Person
     participant O as OneUptime
-    V->>O: Formular öffnen, von seiner eigenen Seite
+    V->>O: Formular öffnen, von<br/>seiner eigenen Seite
     O-->>V: Fragen, Vorlagen und Branding
     V->>O: Die Antworten einreichen
-    O->>O: Jede Prüfung unten, in Reihenfolge
-    O-->>V: Die Nummer dessen, was erstellt wurde
+    O->>O: Jede Prüfung unten,<br/>in Reihenfolge
+    O-->>V: Die Nummer dessen,<br/>was erstellt wurde
 ```
 
 Jede Anfrage besteht diese Prüfungen, in dieser Reihenfolge:

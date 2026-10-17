@@ -29,7 +29,7 @@ flowchart TB
 
 Statusseiten liegen unter **Statusseiten** im Menü **Produkte** der oberen Leiste, bei den wichtigsten Produkten. Alles auf dieser Seite gilt pro Statusseite: Ein Projekt darf beliebig viele davon betreiben – eine öffentliche für Kunden, eine private für ein internes Publikum, eine pro Region für einen bestimmten Markt.
 
-Die Seite zeigt die Monitore, die Sie darauf setzen, als ihre Ressourcen. Vorfälle und geplante Wartungen erreichen sie über diese Monitore, Ankündigungen veröffentlichen Sie direkt darauf. Besucher lesen die Seite, und Abonnenten werden über jede Änderung auf den Kanälen informiert, die sie gewählt haben.
+Die Seite zeigt die Monitore, die Sie darauf setzen, als ihre Ressourcen, und Vorfälle erreichen sie über diese Monitore. [Geplante Wartungsereignisse](/docs/scheduled-maintenance/index) und Ankündigungen erreichen sie direkt: Jedes davon nennt die Statusseiten, auf denen es angezeigt wird. Besucher lesen die Seite, und Abonnenten werden über jede Änderung auf den Kanälen informiert, die sie gewählt haben.
 
 ## Auf einen Blick
 
@@ -163,7 +163,7 @@ Ob die Seite einen Eintrag **Abonnieren** zeigt (**Abonnentenseite anzeigen**, `
 
 Unter der Karte stehen **Statusseite als JSON exportieren**, das die eigenen Einstellungen der Statusseite als Datei herunterlädt, die Sie wieder importieren können, und **Archive status page** (siehe [Eine Statusseite archivieren](#eine-statusseite-archivieren)). Der Gesamtprozentsatz der Verfügbarkeit und die Ausfallzeit-Status waren hier früher zwei eigene Karten, jede hinter einer Schaltfläche **Bearbeiten**; jetzt sind sie Zeilen der Karte.
 
-**Wo die Farben sind.** Die Farben der Verfügbarkeitsbalken stehen nicht hier – die **Standard-Balkenfarbe** und die Balkenfarbregeln liegen unter **Weitere Einstellungen** auf **Statusseiten → Ihre Seite → Branding → Branding**. Eine Theme- oder Markenfarbeinstellung gibt es nirgends; alles, was über diese Steuerelemente hinausgeht, erledigen Sie mit **Benutzerdefiniertes CSS**.
+**Wo die Farben sind.** Die Farben der Verfügbarkeitsbalken stehen nicht hier – die **Standard-Balkenfarbe** und die Balkenfarbregeln liegen unter **Weitere Einstellungen** auf **Statusseiten → Ihre Seite → Branding → Branding**. Das **Design** der Seite (hell, dunkel oder wie das Gerät jedes Besuchers eingestellt ist) ist eine Karte weit oben auf derselben Seite. Eine Markenfarbeinstellung gibt es nicht; alles, was über diese Steuerelemente hinausgeht, erledigen Sie mit **Benutzerdefiniertes CSS**.
 
 ## Vorschau, bevor Sie live gehen
 

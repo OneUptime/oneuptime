@@ -29,7 +29,7 @@ flowchart TB
 
 Statussidor finns under **Statussidor** i menyn **Produkter** i det översta fältet, bland de viktigaste. Allt på den här sidan gäller per statussida: ett projekt kan ha hur många som helst — en offentlig för kunder, en privat för en intern publik, en per region för en viss marknad.
 
-Sidan visar monitorerna du lägger på den som resurser. Incidenter och schemalagt underhåll når sidan via de monitorerna, och meddelanden publiceras direkt på den. Besökare läser sidan, och prenumeranter aviseras om varje ändring i de kanaler de har valt.
+Sidan visar monitorerna du lägger på den som resurser, och incidenter når sidan via de monitorerna. [Planerade underhållshändelser](/docs/scheduled-maintenance/index) och meddelanden når den direkt: var och en anger de statussidor den visas på. Besökare läser sidan, och prenumeranter aviseras om varje ändring i de kanaler de har valt.
 
 ## I korthet
 
@@ -163,7 +163,7 @@ Om sidan visar ett objekt **Prenumerera** (**Visa prenumerantsida**, `showSubscr
 
 Under kortet finns **Exportera Statussida som JSON**, som laddar ned statussidans egna inställningar till en fil du kan importera igen, och **Archive status page** (se [Arkivera en statussida](#arkivera-en-statussida)). Den totala upptidsprocenten och driftstoppsstatusarna var tidigare två egna kort här, vart och ett bakom en knapp **Redigera**; nu är de rader på kortet.
 
-**Var färgerna finns.** Upptidsstaplarnas färger finns inte här: **Standardfärg för stapel** och färgreglerna för staplarna finns under **Fler inställningar** i **Statussidor → din sida → Varumärke → Varumärke**. Det finns ingen inställning för tema eller varumärkesfärg någonstans; allt utöver de kontrollerna gör du med **Anpassad CSS**.
+**Var färgerna finns.** Upptidsstaplarnas färger finns inte här: **Standardfärg för stapel** och färgreglerna för staplarna finns under **Fler inställningar** i **Statussidor → din sida → Varumärke → Varumärke**. Sidans **Tema** (ljust, mörkt eller som varje besökares enhet är inställd) är ett kort högt upp på samma sida. Det finns ingen inställning för varumärkesfärg; allt utöver de kontrollerna gör du med **Anpassad CSS**.
 
 ## Förhandsgranska innan du går live
 

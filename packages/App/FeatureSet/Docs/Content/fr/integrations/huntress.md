@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as Workflow
     participant C as Équipe d'astreinte
     H->>W: incident_report.created
-    W->>W: Vérifier la signature, ouvrir un seul incident
-    opt Rapport élevé ou critique
-        W->>C: Alerter la politique d'astreinte
+    W->>W: Vérifier la<br/>signature, ouvrir<br/>un seul incident
+    opt Rapport élevé<br/>ou critique
+        W->>C: Alerter la politique<br/>d'astreinte
     end
     H->>W: incident_report.comment_added
-    W->>W: Ajouter le commentaire comme note privée
+    W->>W: Ajouter le<br/>commentaire<br/>comme note privée
     H->>W: incident_report.closed
     W->>W: Résoudre l'incident
 ```

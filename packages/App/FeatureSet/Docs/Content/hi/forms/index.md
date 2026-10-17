@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### वर्कफ़्लो
 
-फ़ॉर्म में अपने आप बने वर्कफ़्लो कंपोनेंट होते हैं: **On Create Form**, **On Update Form** आदि। फ़ॉर्म ने जो बनाया उस पर कार्रवाई करने के लिए **On Create Incident** या **On Create Scheduled Maintenance** इस्तेमाल करें।
+फ़ॉर्म में अपने आप बने वर्कफ़्लो कंपोनेंट होते हैं: **On Create Form**, **On Update Form** आदि। फ़ॉर्म ने जो बनाया उस पर कार्रवाई करने के लिए **On Create Incident** या **On Create Scheduled Maintenance Event** इस्तेमाल करें।
 
 ### सार्वजनिक पेज के अपने एंडपॉइंट
 

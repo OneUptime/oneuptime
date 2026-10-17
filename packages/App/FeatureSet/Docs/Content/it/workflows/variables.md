@@ -100,12 +100,12 @@ sequenceDiagram
     participant Variable as Variabile OAuth 2.0
     participant IdP as Provider di identità
     Runner->>Variable: Legge il token in cache
-    alt Scaduto, o scade entro un minuto
+    alt Scaduto, o scade<br/>entro un minuto
         Runner->>IdP: Richiesta del token
         IdP-->>Runner: Nuovo token di accesso
         Runner->>Variable: Conserva il nuovo token
     end
-    Runner->>Runner: Esegue il passaggio con un token non scaduto
+    Runner->>Runner: Esegue il passaggio con<br/>un token non scaduto
 ```
 
 - La prima volta che un workflow usa la variabile, OneUptime chiede un token di accesso all'endpoint dei token del tuo provider di identità e lo conserva.

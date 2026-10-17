@@ -188,14 +188,14 @@ AI-trin måles og faktureres som enhver anden AI-funktion. Trinnet fejler med en
 
 ```mermaid title="Hvad der sker efter et automatiseret trin"
 flowchart TB
-    run["Et automatiseret trin kører"] --> ok{"Lykkedes?"}
-    ok -->|"ja"| approval{"Kræv godkendelse slået til?"}
-    approval -->|"ja"| wait["Kørslen venter på, at en person godkender"]
+    run["Et automatiseret<br/>trin kører"] --> ok{"Lykkedes?"}
+    ok -->|"ja"| approval{"Kræv godkendelse<br/>slået til?"}
+    approval -->|"ja"| wait["Kørslen venter på, at<br/>en person godkender"]
     approval -->|"nej"| next["Det næste trin kører"]
     wait --> next
-    ok -->|"nej"| cont{"Fortsæt ved fejl slået til?"}
+    ok -->|"nej"| cont{"Fortsæt ved<br/>fejl slået til?"}
     cont -->|"ja"| next
-    cont -->|"nej"| failed["Kørslen stopper som mislykket"]
+    cont -->|"nej"| failed["Kørslen stopper<br/>som mislykket"]
 ```
 
 Som standard standser et fejlende trin kørslen og markerer udførelsen som `Failed` med trinnets fejl som årsag. Med **Fortsæt ved fejl** slået til registreres fejlen, og det næste trin kører, hvilket passer til runbooks af typen "prøv disse tre ting, og giv så besked". **Kræv godkendelse** gælder, efter at et trin er lykkedes: kørslen venter på det trin, indtil nogen klikker på **Approve & continue** eller **Spring over**.

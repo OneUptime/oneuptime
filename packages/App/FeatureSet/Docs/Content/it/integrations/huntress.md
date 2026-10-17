@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as Workflow
     participant C as Team di reperibilità
     H->>W: incident_report.created
-    W->>W: Verificare la firma, aprire un solo incidente
-    opt Report alto o critico
-        W->>C: Avvisare la policy di reperibilità
+    W->>W: Verificare la firma,<br/>aprire un solo incidente
+    opt Report alto<br/>o critico
+        W->>C: Avvisare la policy<br/>di reperibilità
     end
     H->>W: incident_report.comment_added
-    W->>W: Aggiungere il commento come nota privata
+    W->>W: Aggiungere il commento<br/>come nota privata
     H->>W: incident_report.closed
     W->>W: Risolvere l'incidente
 ```

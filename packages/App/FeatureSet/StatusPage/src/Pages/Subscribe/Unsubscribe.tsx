@@ -1,3 +1,4 @@
+import LogoPlate from "../../Components/Logo/LogoPlate";
 import API from "../../Utils/API";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import PageMap from "../../Utils/PageMap";
@@ -357,11 +358,13 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {logoUrl ? (
-          <img
-            style={{ height: "70px", margin: "auto" }}
-            src={logoUrl}
-            alt={props.statusPageName || ""}
-          />
+          <LogoPlate className="mx-auto w-fit">
+            <img
+              style={{ height: "70px", margin: "auto" }}
+              src={logoUrl}
+              alt={props.statusPageName || ""}
+            />
+          </LogoPlate>
         ) : null}
         <h2 className="mt-6 text-center text-2xl tracking-tight text-gray-900">
           {props.statusPageName

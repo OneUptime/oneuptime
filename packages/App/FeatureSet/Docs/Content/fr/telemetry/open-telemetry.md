@@ -32,6 +32,7 @@ flowchart TB
 
 - **Les services sont créés pour vous.** L'attribut de ressource `service.name` (défini par `OTEL_SERVICE_NAME`) nomme le service auquel appartiennent vos données. OneUptime crée le service au premier envoi et l'affiche sous **Produits → Services**.
 - **Les erreurs deviennent des exceptions.** Les événements d'exception des spans, et les exceptions enregistrées dans les logs, sont regroupés en problèmes sous **Exceptions** — voir [Exceptions issues des logs](#exceptions-issues-des-logs).
+- **Les règles agissent sur les données à leur arrivée.** Les [filtres de suppression et les règles de masquage](/docs/telemetry/drop-filters-and-scrub-rules) écartent ou masquent ce que vous ne voulez jamais stocker, et la [rétention des données](/docs/telemetry/data-retention) décide combien de temps le reste est conservé.
 
 ## Avant de commencer
 
@@ -407,7 +408,7 @@ La page de chaque clé, sous **Paramètres du projet → Télémétrie & APM →
 | **Requests Per Minute Limit** | Le nombre maximal de requêtes OTLP/HTTP par minute acceptées avec la clé, pour l'ensemble des clients qui l'utilisent. Vide signifie aucune limite sur une clé Serveur, et 6 000 sur une clé Navigateur. |
 | **Dernière utilisation le** | Quand des données ont été acceptées pour la dernière fois avec la clé. Utilisez-le pour repérer les clés que vous pouvez renouveler ou supprimer sans risque. |
 
-**Réinitialiser la clé secrète** sur la page de la clé remplace le secret. Toute application et tout collector qui envoie avec l'ancien est refusé jusqu'à ce que vous le mettiez à jour.
+**Réinitialiser la clé secrète** sur la page de la clé remplace le secret. Toute application et tout collector qui envoie avec l'ancien est refusé jusqu'à ce que vous le mettiez à jour. Pour les clés de navigateur, la rotation sûre d'une clé et ce que signifie chaque refus, voir [Clés d'ingestion](/docs/telemetry/ingestion-keys).
 
 ## OneUptime auto-hébergé
 

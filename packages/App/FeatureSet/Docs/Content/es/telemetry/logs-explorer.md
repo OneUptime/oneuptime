@@ -29,7 +29,7 @@ El explorador tiene cuatro pestañas:
 | --- | --- |
 | **Visor** | Buscar, filtrar y leer registros. Se abre con la última hora, los más recientes primero, 100 registros por página. |
 | **Análisis** | Lo que sus servicios registraron en un intervalo de tiempo y lo que salió mal. |
-| **Guía de configuración** | Cómo enviar registros con OpenTelemetry, Fluent Bit o Fluentd, usando una de sus claves de ingesta. |
+| **Guía de configuración** | Cómo enviar registros con OpenTelemetry, Fluent Bit o Fluentd, usando una de sus [claves de ingesta](/docs/telemetry/ingestion-keys). |
 | **Ajustes** | Lo que les pasa a los registros al llegar: **Canalizaciones**, **Filtros de descarte**, **Reglas de depuración** y **Reglas de grabación**. |
 
 ## Antes de empezar
@@ -132,12 +132,12 @@ Seleccione un error principal para ver qué ocurría a su alrededor: cuándo pas
 
 ## Qué les pasa a los registros al llegar
 
-La pestaña **Ajustes** contiene las reglas que OneUptime aplica a cada registro antes de almacenarlo. Actúan sobre los registros que llegan después, no sobre los ya almacenados.
+La pestaña **Ajustes** contiene las reglas que OneUptime aplica a cada registro antes de almacenarlo. Actúan sobre los registros que llegan después, no sobre los ya almacenados. Cuánto tiempo se conserva cada registro también se decide cuando llega: consulte [Retención de datos](/docs/telemetry/data-retention).
 
 | Regla | Qué hace |
 | --- | --- |
-| **Filtros de descarte** | Descartar los registros que no quiere conservar, o conservar solo una muestra. |
-| **Reglas de depuración** | Ocultar datos sensibles, como direcciones de correo y números de tarjeta. |
+| **Filtros de descarte** | Descartar los registros que no quiere conservar, o conservar solo una muestra. Consulte [Descartar o muestrear entradas](/docs/telemetry/drop-filters-and-scrub-rules#descartar-o-muestrear-entradas). |
+| **Reglas de depuración** | Ocultar datos sensibles, como direcciones de correo y números de tarjeta. Consulte [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles). |
 | **Canalizaciones** | Extraer campos del mensaje, corregir la gravedad, renombrar atributos. Consulte [Canalizaciones de registros](/docs/telemetry/log-pipelines). |
 | **Reglas de grabación** | Convertir los registros coincidentes en métricas. Consulte [Reglas de grabación de registros](/docs/telemetry/log-recording-rules). |
 

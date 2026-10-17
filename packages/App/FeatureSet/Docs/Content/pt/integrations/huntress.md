@@ -19,16 +19,16 @@ O Huntress envia um evento sobre um relatório de incidente quando o relatório 
 sequenceDiagram
     participant H as Huntress
     participant W as Workflow
-    participant C as Equipe de plantão
+    participant C as Equipe de<br/>plantão
     H->>W: incident_report.created
-    W->>W: Verificar a assinatura, abrir um único incidente
-    opt Relatório alto ou crítico
-        W->>C: Acionar a política de plantão
+    W->>W: Verificar a<br/>assinatura,<br/>abrir um único<br/>incidente
+    opt Relatório alto<br/>ou crítico
+        W->>C: Acionar a política<br/>de plantão
     end
     H->>W: incident_report.comment_added
-    W->>W: Adicionar o comentário como nota privada
+    W->>W: Adicionar o<br/>comentário como<br/>nota privada
     H->>W: incident_report.closed
-    W->>W: Resolver o incidente
+    W->>W: Resolver o<br/>incidente
 ```
 
 1. **Verificar.** Uma solicitação precisa estar assinada com o segredo de assinatura do endpoint, no máximo cinco minutos antes de chegar. Todo o resto é recusado, e as configurações do gatilho dizem por quê.

@@ -11,7 +11,7 @@ Cada processo do OneUptime que recebe dados registra a cada 30 segundos que est�
 - Recuperação do atraso: enquanto a fila de dados aguardando processamento está mais de um minuto atrasada, o tempo desde os dados mais antigos que ainda aguardam nela.
 
 ```mermaid title="O tempo que o OneUptime deixa de fora"
-flowchart LR
+flowchart TB
     receiving["Recebendo"] -->|"nenhum registro por 90 segundos"| down["Sem recepção"]
     down -->|"um processo volta a registrar"| grace["Reconexão por 2 minutos"]
     grace --> again["Recebendo"]

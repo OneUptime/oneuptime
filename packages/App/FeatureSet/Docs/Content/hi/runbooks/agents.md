@@ -13,15 +13,15 @@
 
 ```mermaid title="Runner और OneUptime के बीच नेटवर्क पर क्या जाता है"
 flowchart TB
-    subgraph yours["आपका इंफ्रास्ट्रक्चर"]
-        direction LR
-        runner["Runner कंटेनर"]
-        targets["होस्ट, क्लस्टर, आंतरिक सेवाएँ"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Worker चरण को कतार में डालता है"]
         ingest["Runner API"]
+    end
+    subgraph yours["आपका इंफ्रास्ट्रक्चर"]
+        direction LR
+        runner["Runner कंटेनर"]
+        targets["होस्ट, क्लस्टर, आंतरिक सेवाएँ"]
     end
     worker --> ingest
     runner -->|"आउटबाउंड HTTPS, Runner ID और कुंजी"| ingest

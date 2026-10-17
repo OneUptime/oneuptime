@@ -223,12 +223,12 @@ API와 Terraform에서 순서는 `order` 열입니다. 작은 번호가 먼저 �
 
 ```mermaid title="상태 변경이 구독자에게 닿는가?"
 flowchart TB
-    change["상태 변경 저장"] --> box{"알림 확인란이 켜져 있나요?"}
+    change["상태 변경 저장"] --> box{"알림 확인란이<br/>켜져 있나요?"}
     box -->|아니요| skipped["건너뜀"]
-    box -->|예| note{"공개 노트가 함께 있나요?"}
+    box -->|예| note{"공개 노트가<br/>함께 있나요?"}
     note -->|예| carried["노트가 메시지가 됨"]
-    note -->|아니요| queued["행이 대기열에 들어감"]
-    queued --> gates{"모든 관문을 통과하나요?"}
+    note -->|아니요| queued["행이 대기열에<br/>들어감"]
+    queued --> gates{"모든 관문을<br/>통과하나요?"}
     gates -->|아니요| reason["건너뜀, 이유 기록"]
     gates -->|예| sent["구독자에게 알림"]
 ```

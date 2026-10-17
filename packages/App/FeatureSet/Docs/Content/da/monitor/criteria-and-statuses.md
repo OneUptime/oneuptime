@@ -15,14 +15,14 @@ Hver gang en monitor kontrolleres, vurderer dens kriterier resultatet fra toppen
 
 ```mermaid title="Sådan vurderes hver kontrol"
 flowchart TB
-    R["Resultatet af<br/>en kontrol"] --> C1{"Første kriterium:<br/>matcher dets filtre?"}
-    C1 -->|"Ja"| A["Det kriterium handler"]
-    C1 -->|"Nej"| C2{"Næste kriterium:<br/>matcher dets filtre?"}
+    R["Resultatet af<br/>en kontrol"] --> C1{"Første<br/>kriterium:<br/>matcher<br/>dets filtre?"}
+    C1 -->|"Ja"| A["Det kriterium<br/>handler"]
+    C1 -->|"Nej"| C2{"Næste kriterium:<br/>matcher<br/>dets filtre?"}
     C2 -->|"Ja"| A
-    C2 -->|"Intet matchede"| D["Monitoren går til<br/>sin standardstatus"]
-    A --> S["Ændrer status"]
-    A --> I["Erklærer en hændelse"]
-    A --> L["Opretter en advarsel"]
+    C2 -->|"Intet matchede"| D["Monitoren<br/>går til<br/>sin standardstatus"]
+    A --> S["Ændrer<br/>status"]
+    A --> I["Erklærer<br/>en hændelse"]
+    A --> L["Opretter<br/>en advarsel"]
 ```
 
 Rækkefølgen er en del af reglen. En ny monitor viser sine kriterier fra det værste tilfælde: offline, så en advarsel, hvor dens type har en (et certifikat eller et domæne, der snart udløber), så online. Et bredt sundt kriterium, som **Is Online** sat til **Sand**, matcher næsten alle kontroller, så det kommer sidst: over de andre ville det matche først hver gang, og de andre ville aldrig handle.

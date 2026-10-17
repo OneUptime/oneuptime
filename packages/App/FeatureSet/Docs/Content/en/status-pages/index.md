@@ -29,7 +29,7 @@ flowchart TB
 
 Status pages live under **Status Pages** in the **Products** menu of the top bar, among the essentials. Everything on this page is per-status-page: a project can run as many of them as it likes — a public one for customers, a private one for an internal audience, a per-region one for a specific market.
 
-The page shows the monitors you put on it as its resources. Incidents and scheduled maintenance reach it through those monitors, and announcements are posted to it directly. Visitors read the page, and subscribers are told about each change on the channels they picked.
+The page shows the monitors you put on it as its resources, and incidents reach it through those monitors. [Scheduled maintenance events](/docs/scheduled-maintenance/index) and announcements reach it directly: each one names the status pages it is shown on. Visitors read the page, and subscribers are told about each change on the channels they picked.
 
 ## At a glance
 
@@ -163,7 +163,7 @@ Whether the page shows a **Subscribe** item (**Show Subscriber Page**, `showSubs
 
 Below the card are **Export Status Page as JSON**, which downloads the status page's own settings as a file you can import again, and **Archive status page** (see [Archiving a status page](#archiving-a-status-page)). The overall uptime percent and the downtime statuses used to be two cards of their own here, each behind an **Edit** button; they are rows of the card now.
 
-**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color** and the bar-color rules are under **More settings** on **Status Pages → your page → Branding → Branding**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
+**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color** and the bar-color rules are under **More settings** on **Status Pages → your page → Branding → Branding**. The page's **Theme** (light, dark, or as each visitor's device is set) is a card near the top of that same page. There is no brand-color setting; anything beyond those controls is done with **Custom CSS**.
 
 ## Previewing before you go live
 

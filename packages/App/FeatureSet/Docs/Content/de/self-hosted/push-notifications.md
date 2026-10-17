@@ -14,7 +14,7 @@ OneUptime alarmiert Menschen auf ihrem Telefon über die mobile App **OneUptime 
 ```mermaid title="Wie ein Push ein Telefon oder einen Browser erreicht"
 flowchart TB
     Server["Ihr OneUptime-Server"]
-    Relay["Push-Relay von OneUptime"]
+    Relay["Push-Relay<br/>von OneUptime"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
@@ -22,13 +22,13 @@ flowchart TB
     PushService["Der Push-Dienst<br/>des Browsers"]
     Browser["Browser"]
     Server -->|"kein EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN gesetzt"| Expo
+    Server -->|"EXPO_ACCESS_TOKEN<br/>gesetzt"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 

@@ -11,7 +11,7 @@ Hver OneUptime-prosess som tar imot data, registrerer hvert 30. sekund at den mo
 - Innhenting: så lenge køen med data som venter på behandling er mer enn ett minutt bak, tiden siden de eldste dataene som fortsatt venter i den.
 
 ```mermaid title="Tid som OneUptime utelater"
-flowchart LR
+flowchart TB
     receiving["Mottar"] -->|"ingen registrering på 90 sekunder"| down["Ingen mottak"]
     down -->|"en prosess registrerer igjen"| grace["Gjenoppkobling i 2 minutter"]
     grace --> again["Mottar"]

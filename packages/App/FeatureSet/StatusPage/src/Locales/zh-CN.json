@@ -22,6 +22,10 @@
     "label": "语言",
     "switchLanguage": "切换语言"
   },
+  "theme": {
+    "switchToDark": "切换到深色主题",
+    "switchToLight": "切换到浅色主题"
+  },
   "nav": {
     "overview": "概览",
     "incidents": "事件",

@@ -20,14 +20,14 @@ stateDiagram-v2
     state "Fehlgeschlagen" as Failed
     state "Abgebrochen" as Cancelled
     [*] --> Scheduled: Lauf gestartet
-    Scheduled --> Running: ein Worker übernimmt ihn
-    Running --> WaitingForManualStep: Manual-Schritt oder Freigabe
-    WaitingForManualStep --> Scheduled: abgeschlossen, genehmigt oder übersprungen
-    Running --> Completed: alle Schritte erledigt
-    Running --> Failed: ein Schritt schlägt fehl
-    Scheduled --> Cancelled: Ausführung abbrechen
-    Running --> Cancelled: Ausführung abbrechen
-    WaitingForManualStep --> Cancelled: Ausführung abbrechen
+    Scheduled --> Running: ein Worker<br/>übernimmt ihn
+    Running --> WaitingForManualStep: Manual-Schritt<br/>oder Freigabe
+    WaitingForManualStep --> Scheduled: abgeschlossen,<br/>genehmigt oder<br/>übersprungen
+    Running --> Completed: alle Schritte<br/>erledigt
+    Running --> Failed: ein Schritt<br/>schlägt fehl
+    Scheduled --> Cancelled: Ausführung<br/>abbrechen
+    Running --> Cancelled: Ausführung<br/>abbrechen
+    WaitingForManualStep --> Cancelled: Ausführung<br/>abbrechen
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]

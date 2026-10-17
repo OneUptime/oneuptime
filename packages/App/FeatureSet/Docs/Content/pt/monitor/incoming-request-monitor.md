@@ -25,11 +25,11 @@ sequenceDiagram
     participant J as Seu job
     participant O as OneUptime
     participant T as Equipe de plantão
-    J->>O: GET ou POST /heartbeat/KEY
+    J->>O: GET ou<br/>POST /heartbeat/KEY
     O-->>J: 200 na hora
     O->>O: Avaliar os critérios
-    Note over O: A cada 30 segundos, procurar<br/>requisições que faltam
-    O->>T: Incidente, se um critério corresponder
+    Note over O: A cada 30 segundos,<br/>procurar<br/>requisições que faltam
+    O->>T: Incidente, se um<br/>critério corresponder
 ```
 
 Use-o para:

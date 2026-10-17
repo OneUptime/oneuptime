@@ -32,6 +32,7 @@ flowchart TB
 
 - **Tjenester opprettes for deg.** Ressursattributtet `service.name` (satt med `OTEL_SERVICE_NAME`) gir navn til tjenesten dataene dine hører til. OneUptime oppretter tjenesten første gang den sender, og viser den under **Produkter → Tjenester**.
 - **Feil blir til unntak.** Unntakshendelser på spans, og unntak som er registrert i logger, grupperes i saker under **Unntak** — se [Unntak fra logger](#unntak-fra-logger).
+- **Regler virker på data når de kommer inn.** [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules) forkaster eller maskerer det du aldri vil ha lagret, og [dataoppbevaring](/docs/telemetry/data-retention) avgjør hvor lenge resten beholdes.
 
 ## Før du begynner
 
@@ -407,7 +408,7 @@ Siden til hver nøkkel, under **Prosjektinnstillinger → Telemetri og APM → I
 | **Requests Per Minute Limit** | Det høyeste antallet OTLP/HTTP-forespørsler per minutt som godtas med nøkkelen, på tvers av alle klienter som bruker den. Tom betyr ingen grense på en servernøkkel og 6 000 på en nettlesernøkkel. |
 | **Last Used At** | Når data sist ble godtatt med nøkkelen. Bruk den til å finne nøkler som trygt kan roteres eller slettes. |
 
-**Tilbakestill hemmelig nøkkel** på nøkkelens side erstatter hemmeligheten. Alle applikasjoner og collectorer som sender med den gamle, avvises til du oppdaterer dem.
+**Tilbakestill hemmelig nøkkel** på nøkkelens side erstatter hemmeligheten. Alle applikasjoner og collectorer som sender med den gamle, avvises til du oppdaterer dem. Om nettlesernøkler, trygg utskifting av en nøkkel og hva hver avvisning betyr, se [Inntaksnøkler](/docs/telemetry/ingestion-keys).
 
 ## Selvhostet OneUptime
 

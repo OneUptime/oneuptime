@@ -184,6 +184,8 @@ describe("StatusPageAPI /seo search engine indexing flag", () => {
       _id: statusPageId.toString(),
       defaultLanguage: "de",
       enableSearchEngineIndexing: false,
+      // The page's theme, Light for a page with none (StatusPageThemeRoutes).
+      theme: "Light",
     });
   });
 });

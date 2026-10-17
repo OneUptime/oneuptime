@@ -32,6 +32,7 @@ flowchart TB
 
 - **Services worden voor je aangemaakt.** Het resource-attribuut `service.name` (ingesteld met `OTEL_SERVICE_NAME`) geeft de service een naam waartoe je gegevens horen. OneUptime maakt de service aan zodra die voor het eerst stuurt, en toont hem onder **Producten → Services**.
 - **Fouten worden uitzonderingen.** Uitzonderingsgebeurtenissen op spans, en uitzonderingen die in logs zijn vastgelegd, worden onder **Uitzonderingen** gegroepeerd in issues — zie [Uitzonderingen uit logs](#uitzonderingen-uit-logs).
+- **Regels werken op gegevens zodra ze binnenkomen.** [Drop-filters en scrub-regels](/docs/telemetry/drop-filters-and-scrub-rules) gooien weg of maskeren wat je nooit wilt opslaan, en [gegevensbewaring](/docs/telemetry/data-retention) bepaalt hoe lang de rest wordt bewaard.
 
 ## Voordat je begint
 
@@ -407,7 +408,7 @@ De pagina van elke sleutel, onder **Projectinstellingen → Telemetrie & APM →
 | **Requests Per Minute Limit** | Het maximale aantal OTLP/HTTP-verzoeken per minuut dat met de sleutel wordt geaccepteerd, over alle clients die hem gebruiken. Leeg betekent geen limiet bij een serversleutel, en 6.000 bij een browsersleutel. |
 | **Last Used At** | Wanneer voor het laatst gegevens met de sleutel zijn geaccepteerd. Gebruik dit om sleutels te vinden die je veilig kunt roteren of verwijderen. |
 
-**Geheime sleutel opnieuw instellen** op de pagina van de sleutel vervangt het geheim. Elke applicatie en collector die met het oude stuurt, wordt geweigerd tot je hem bijwerkt.
+**Geheime sleutel opnieuw instellen** op de pagina van de sleutel vervangt het geheim. Elke applicatie en collector die met het oude stuurt, wordt geweigerd tot je hem bijwerkt. Voor browsersleutels, het veilig vervangen van een sleutel en wat elke weigering betekent, zie [Ingestiesleutels](/docs/telemetry/ingestion-keys).
 
 ## Zelf gehoste OneUptime
 

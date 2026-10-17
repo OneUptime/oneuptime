@@ -9,13 +9,13 @@ flowchart TB
     subgraph setup["Cada agendamento"]
         direction LR
         layers["Camadas e rotações"]
-        overrides["Substituições de usuário"]
+        overrides["Substituições<br/>de usuário"]
     end
-    layers --> shifts["Quem está de plantão, e quando"]
+    layers --> shifts["Quem está de<br/>plantão, e quando"]
     overrides --> shifts
-    shifts --> timeline["Linha do tempo de plantões"]
-    shifts --> paging["As regras de escalonamento os acionam"]
-    shifts --> feeds["Feeds de calendário"]
+    shifts --> timeline["Linha do tempo<br/>de plantões"]
+    shifts --> paging["As regras de<br/>escalonamento<br/>os acionam"]
+    shifts --> feeds["Feeds de<br/>calendário"]
 ```
 
 ## Abra a linha do tempo

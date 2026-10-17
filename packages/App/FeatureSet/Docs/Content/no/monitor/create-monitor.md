@@ -70,7 +70,7 @@ flowchart TB
     end
 ```
 
-Hendelser og varsler som er satt til å løses automatisk, slik standardkriterienes er, løser seg selv så snart kriteriet deres ikke lenger samsvarer. En monitor som sjekkes av mer enn én sonde, endres bare når sondene er enige: som standard må hver sonde som er slått på og tilkoblet, komme til samme resultat. For å kreve færre setter du **Sondeenighet** på monitorens side **Konfigurasjon → Sonder og intervall**.
+Hendelser og varsler som er satt til å løses automatisk, slik standardkriterienes er, løser seg selv så snart kriteriet deres ikke lenger samsvarer. En monitor som sjekkes av mer enn én sonde, endres bare når sondene er enige: som standard må hver sonde som er slått på og tilkoblet, komme til samme resultat. For å kreve færre setter du **Sondeenighet** på monitorens side **Konfigurasjon → Sonder og intervall**. Alt et kriterium kan inneholde, og statusene en monitor kan vise, finner du i [Monitorkriterier og statuser](/docs/monitor/criteria-and-statuses).
 
 ## Sonder og intervall
 
@@ -101,6 +101,8 @@ Hver monitortype har sin egen side med innstillingene sine, standardkriteriene o
 :::cards
 - [Nettsted-overvåking](/docs/monitor/website-monitor): Sjekk at en side lastes, og hva den svarer.
 - [API-overvåking](/docs/monitor/api-monitor): Kall et endepunkt med en metode, hoder og en brødtekst.
+- [Monitorkriterier og statuser](/docs/monitor/criteria-and-statuses): Hva som setter statusen til hver monitor.
 - [Monitormaler](/docs/monitor/monitor-templates): Opprett mange monitorer fra én konfigurasjon, og hold dem like.
+- [Monitorgrupper](/docs/monitor/monitor-groups): Samle flere monitorer i én status.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at en monitor har erklært en hendelse.
 :::

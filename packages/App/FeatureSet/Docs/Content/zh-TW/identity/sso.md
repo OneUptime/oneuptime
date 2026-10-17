@@ -25,7 +25,7 @@ sequenceDiagram
     O->>I: 向登入 URL 傳送 SAML 請求
     I->>U: 登入頁面
     U->>I: 認證資料和 MFA
-    I->>O: 向 Reply URL 傳送已簽章的斷言
+    I->>O: 向 Reply URL<br/>傳送已簽章的斷言
     Note over O: 檢查簽章和簽發者，<br/>從 Name ID 讀取電子郵件
     O->>U: 已登入專案
 ```

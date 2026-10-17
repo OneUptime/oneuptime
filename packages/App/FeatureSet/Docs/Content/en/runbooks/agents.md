@@ -13,15 +13,15 @@ A **Runbook Agent**, called a **Runner** in the dashboard, is a small self-hoste
 
 ```mermaid title="What crosses the network between a Runner and OneUptime"
 flowchart TB
-    subgraph yours["Your infrastructure"]
-        direction LR
-        runner["Runner container"]
-        targets["Hosts, clusters, internal services"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Worker queues the step"]
         ingest["Runner API"]
+    end
+    subgraph yours["Your infrastructure"]
+        direction LR
+        runner["Runner container"]
+        targets["Hosts, clusters, internal services"]
     end
     worker --> ingest
     runner -->|"Outbound HTTPS, Runner ID and key"| ingest

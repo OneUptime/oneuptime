@@ -223,14 +223,14 @@ Uma mudança de estado pode notificar os assinantes da sua página de status, ma
 
 ```mermaid title="Uma mudança de estado chega aos assinantes?"
 flowchart TB
-    change["Mudança de estado salva"] --> box{"Caixa Notificar marcada?"}
+    change["Mudança de<br/>estado salva"] --> box{"Caixa Notificar<br/>marcada?"}
     box -->|Não| skipped["Ignorado"]
-    box -->|Sim| note{"Com uma nota pública?"}
-    note -->|Sim| carried["A nota é a mensagem"]
+    box -->|Sim| note{"Com uma nota<br/>pública?"}
+    note -->|Sim| carried["A nota é<br/>a mensagem"]
     note -->|Não| queued["Linha na fila"]
-    queued --> gates{"Passa por todas as barreiras?"}
-    gates -->|Não| reason["Ignorado, motivo registrado"]
-    gates -->|Sim| sent["Assinantes notificados"]
+    queued --> gates{"Passa por todas<br/>as barreiras?"}
+    gates -->|Não| reason["Ignorado, motivo<br/>registrado"]
+    gates -->|Sim| sent["Assinantes<br/>notificados"]
 ```
 
 A notificação é solicitada por linha da linha do tempo por **Notificar assinantes da página de status** (`shouldStatusPageSubscribersBeNotified`), a caixa de seleção da caixa de diálogo de mudança de estado e do formulário manual da linha do tempo. Na caixa de diálogo de mudança de estado, ela começa desmarcada quando o incidente foi declarado sem notificar os assinantes. A mesma caixa também decide se a nota pública da caixa de diálogo notifica alguém. Quando ela está desmarcada, a linha é gravada com um status de ignorado e uma explicação. Quando está marcada, a linha entra na fila e uma tarefa em segundo plano a pega — a tarefa roda a cada minuto, então a entrega é rápida, mas não instantânea.

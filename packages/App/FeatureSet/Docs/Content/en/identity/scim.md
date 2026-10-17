@@ -18,12 +18,12 @@ Your identity provider calls OneUptime's SCIM endpoint, authenticated with a bea
 
 ```mermaid title="What SCIM changes in OneUptime"
 flowchart TB
-    IdP["Your identity provider"] -->|"SCIM requests,<br/>bearer token"| P["Project SCIM connection"]
-    IdP -->|"SCIM requests,<br/>bearer token"| S["Status page SCIM connection"]
+    IdP["Your identity<br/>provider"] -->|"SCIM requests,<br/>bearer token"| P["Project SCIM<br/>connection"]
+    IdP -->|"SCIM requests,<br/>bearer token"| S["Status page<br/>SCIM connection"]
     P --> Q{"Push Groups on?"}
-    Q -->|"No"| T["Users join and leave<br/>the default teams"]
-    Q -->|"Yes"| G["Groups become teams,<br/>membership follows them"]
-    S --> U["Private users added<br/>and deleted"]
+    Q -->|"No"| T["Users join<br/>and leave<br/>the default teams"]
+    Q -->|"Yes"| G["Groups<br/>become teams,<br/>membership<br/>follows them"]
+    S --> U["Private<br/>users added<br/>and deleted"]
 ```
 
 SCIM integration provides the following benefits:

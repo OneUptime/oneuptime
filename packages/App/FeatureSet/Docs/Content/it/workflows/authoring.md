@@ -57,7 +57,7 @@ Trascina da un punto sul fondo di un blocco fino al punto in cima al blocco succ
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Niente collegato, quindi l'esecuzione finisce"])
+    check -->|"No"| ends(["Niente collegato, quindi<br/>l'esecuzione finisce"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```

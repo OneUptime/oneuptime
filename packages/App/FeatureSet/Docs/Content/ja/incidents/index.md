@@ -7,6 +7,8 @@
 - [インシデントの状態と重大度](/docs/incidents/states-and-severities): ライフサイクルと、確認と解決が何をするか。
 - [インシデントのメモ、オーナー、フィード](/docs/incidents/notes-owners-and-feed): 顧客向けとチーム向けの更新、そしてそれが誰に届くか。
 - [リンクされたアラート](/docs/incidents/linked-alerts): 障害で発生したアラートを、それを説明するインシデントに結び付けます。
+- [エピソード](/docs/incidents/episodes): 関連するインシデントをまとめ、ひとつとして対応します。
+- [ポストモーテム](/docs/incidents/postmortems): 何が起きたかをまとめ、ステータスページに公開します。
 - [インシデントの設定と自動化](/docs/incidents/settings): テンプレート、カスタムフィールド、ロール、測定値、ルール。
 :::
 
@@ -34,13 +36,15 @@ flowchart TB
         monitor["モニター"]
         api["API"]
         form["フォーム"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
-    ways --> incident["新しいインシデント"]
-    incident --> rules["インシデントのルールが実行される"]
-    rules --> oncall["オンコールポリシーが呼び出す"]
-    rules --> owners["所有者に通知される"]
-    rules --> pages["ステータスページが更新される"]
-    oncall --> feed["インシデントのフィード"]
+    ways --> incident["新しい<br/>インシデント"]
+    incident --> rules["インシデントの<br/>ルールが<br/>実行される"]
+    rules --> oncall["オンコールポリシーが<br/>呼び出す"]
+    rules --> owners["所有者に<br/>通知される"]
+    rules --> pages["ステータスページが<br/>更新される"]
+    oncall --> feed["インシデントの<br/>フィード"]
     owners --> feed
     pages --> feed
 ```
@@ -77,7 +81,7 @@ flowchart TB
 
 **解決** をクリックすると、インシデントは解決状態に移り、状態タイムラインに記録され、経過時間の計測が止まり、インシデントが保持しているモニターが返され、表示されていたすべてのステータスページのアクティブなセクションからインシデントが外れます。そのために他に変更する必要はありません。ステータスページには、解決状態より上の状態にあるインシデントしか表示されないからです。[解決が行うこと](/docs/incidents/states-and-severities#解決が行うこと) を参照してください。
 
-その後、ポストモーテムを書き、必要に応じてステータスページに公開できます。
+その後、 [ポストモーテム](/docs/incidents/postmortems) を書き、必要に応じてステータスページに公開できます。
 
 ## 主要な用語
 
@@ -103,7 +107,7 @@ flowchart TB
 
 ```mermaid title="新しいプロジェクトが最初に持つ状態"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: 宣言
     Identified --> Acknowledged: 確認
     Identified --> Resolved: 解決

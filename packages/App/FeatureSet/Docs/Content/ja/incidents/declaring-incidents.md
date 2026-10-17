@@ -250,14 +250,7 @@ API キーはテンプレートから宣言できません。`createdIncidentTem
 flowchart TB
     request["作成リクエスト"] --> fill["サーバーが空欄を埋める"]
     fill --> template["テンプレートがあれば適用"]
-    template --> rules
-    subgraph rules["ルール（この順序で）"]
-        direction LR
-        privacy["プライバシー"] --> owner["所有者"]
-        owner --> label["ラベル"]
-        label --> oncall["オンコール"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["ルール（この順序で）：<br/>プライバシー、所有者、ラベル、<br/>オンコール、Runbook"]
     rules --> policies["オンコールポリシーを実行"]
     policies --> subscribers["購読者への通知をキューに追加"]
     subscribers --> workflows["ワークフローが起動"]
@@ -284,10 +277,10 @@ flowchart TB
 
 ```mermaid title="開始時の状態によって、新しいインシデントが起こすこと"
 flowchart TB
-    start{"開始時の状態"} -->|"作成状態（既定）"| live["新規として扱う: オンコールを呼び出す"]
-    start -->|"確認状態かそれ以降"| acked["記録のみ: 誰も呼び出さない"]
-    start -->|"解決状態かそれ以降"| over["終了済みとして記録"]
-    over --> quiet["グループ化、Runbook、AI、チャネル、SLA なし"]
+    start{"開始時の状態"} -->|"作成状態<br/>（既定）"| live["新規として扱う:<br/>オンコールを<br/>呼び出す"]
+    start -->|"確認状態か<br/>それ以降"| acked["記録のみ:<br/>誰も呼び出さない"]
+    start -->|"解決状態か<br/>それ以降"| over["終了済みと<br/>して記録"]
+    over --> quiet["グループ化、<br/>Runbook、AI、<br/>チャネル、<br/>SLA なし"]
 ```
 
 - **確認状態かそれより後の状態** — **確認済み**、または **インシデント → 設定 → インシデントの状態** でそれより下に置いた状態。オンコールポリシーはどれも実行されないので、誰も呼び出されません。インシデントには選んだポリシーとオンコールルールが追加したポリシーが引き続き表示され、フィードには理由が 1 行で記録されます: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ ルールによって SLA が付く場合、その SLA は応答済みの状態で始まります。それ以外は、下記のとおり新しいインシデントと同じように実行されます。

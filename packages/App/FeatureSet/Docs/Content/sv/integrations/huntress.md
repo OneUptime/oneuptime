@@ -21,12 +21,12 @@ sequenceDiagram
     participant W as Arbetsflöde
     participant C as Jourteam
     H->>W: incident_report.created
-    W->>W: Kontrollera signaturen, öppna en enda incident
-    opt Rapporten är hög eller kritisk
+    W->>W: Kontrollera signaturen,<br/>öppna en enda incident
+    opt Rapporten är hög<br/>eller kritisk
         W->>C: Larma jourpolicyn
     end
     H->>W: incident_report.comment_added
-    W->>W: Lägg till kommentaren som en privat anteckning
+    W->>W: Lägg till kommentaren<br/>som en privat anteckning
     H->>W: incident_report.closed
     W->>W: Lös incidenten
 ```

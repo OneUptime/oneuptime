@@ -57,7 +57,7 @@ Arrastra desde un punto de la parte inferior de un bloque hasta el punto de la p
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Nada conectado, así que la ejecución termina"])
+    check -->|"No"| ends(["Nada conectado, así que<br/>la ejecución termina"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```

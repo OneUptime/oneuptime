@@ -223,14 +223,14 @@ En tilstandsændring kan give dine statussideabonnenter besked, men den går gen
 
 ```mermaid title="Når en tilstandsændring abonnenterne?"
 flowchart TB
-    change["Tilstandsændring gemt"] --> box{"Notifikationsfelt slået til?"}
+    change["Tilstandsændring gemt"] --> box{"Notifikationsfelt<br/>slået til?"}
     box -->|Nej| skipped["Sprunget over"]
-    box -->|Ja| note{"Offentlig note med?"}
-    note -->|Ja| carried["Noten er beskeden"]
+    box -->|Ja| note{"Offentlig<br/>note med?"}
+    note -->|Ja| carried["Noten er<br/>beskeden"]
     note -->|Nej| queued["Række sat i kø"]
-    queued --> gates{"Kommer gennem alle porte?"}
-    gates -->|Nej| reason["Sprunget over, årsag registreret"]
-    gates -->|Ja| sent["Abonnenterne har fået besked"]
+    queued --> gates{"Kommer gennem<br/>alle porte?"}
+    gates -->|Nej| reason["Sprunget<br/>over, årsag<br/>registreret"]
+    gates -->|Ja| sent["Abonnenterne<br/>har fået besked"]
 ```
 
 Notifikation bestilles pr. tidslinjerække med **Underret statussideabonnenter** (`shouldStatusPageSubscribersBeNotified`), afkrydsningsfeltet i dialogen til tilstandsændringer og på den manuelle tidslinjeformular. I dialogen til tilstandsændringer starter det slået fra, når hændelsen blev erklæret uden at give abonnenterne besked. Det samme afkrydsningsfelt afgør også, om dialogens offentlige note giver nogen besked. Når det er slået fra, gemmes rækken med status sprunget over og en forklaring. Når det er slået til, sættes rækken i kø, og et baggrundsjob tager den op — jobbet kører hvert minut, så leveringen er hurtig, men ikke øjeblikkelig.

@@ -13,15 +13,15 @@
 
 ```mermaid title="Runner 与 OneUptime 之间的网络往来"
 flowchart TB
-    subgraph yours["你的基础设施"]
-        direction LR
-        runner["Runner 容器"]
-        targets["主机、集群、内部服务"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Worker 将步骤放入队列"]
         ingest["Runner API"]
+    end
+    subgraph yours["你的基础设施"]
+        direction LR
+        runner["Runner 容器"]
+        targets["主机、集群、内部服务"]
     end
     worker --> ingest
     runner -->|"出站 HTTPS，Runner ID 和密钥"| ingest

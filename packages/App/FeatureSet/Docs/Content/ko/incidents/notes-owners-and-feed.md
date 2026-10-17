@@ -20,7 +20,7 @@ flowchart TB
         public["공개 노트"]
         private["비공개 노트"]
     end
-    public --> page["상태 페이지와 구독자"]
+    public --> page["상태 페이지와<br/>구독자"]
     public --> owners["인시던트 소유자"]
     private --> owners
     public --> feed["인시던트 피드"]
@@ -180,11 +180,11 @@ API, Terraform, 워크플로우로 노트를 읽으면 읽는 사람이 열 수 
 flowchart TB
     note["공개 노트 게시"] --> box{"알림 확인란이 켜져 있나요?"}
     box -->|아니요| skipped["구독자에게 알리지 않음"]
-    box -->|예| incident{"인시던트가 상태 페이지에 있나요?"}
+    box -->|예| incident{"인시던트가 상태<br/>페이지에 있나요?"}
     incident -->|아니요| skipped
     incident -->|예| pages{"페이지가 범위 안에 있나요?"}
     pages -->|아니요| skipped
-    pages -->|예| prefs{"구독자가 수신을 선택했나요?"}
+    pages -->|예| prefs{"구독자가 수신을<br/>선택했나요?"}
     prefs -->|예| sent["메시지 전송"]
 ```
 

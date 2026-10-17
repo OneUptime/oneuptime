@@ -29,7 +29,7 @@ flowchart TB
 
 Les pages de statut se trouvent sous **Pages de statut** dans le menu **Produits** de la barre du haut, parmi l'essentiel. Tout ce qui figure sur cette page s'applique par page de statut : un projet peut en exploiter autant qu'il le souhaite — une page publique pour les clients, une page privée pour un public interne, une page par région pour un marché donné.
 
-La page montre les moniteurs que vous y placez comme ses ressources. Les incidents et la maintenance planifiée l'atteignent par ces moniteurs, et vous y publiez les annonces directement. Les visiteurs lisent la page, et les abonnés sont informés de chaque changement sur les canaux qu'ils ont choisis.
+La page montre les moniteurs que vous y placez comme ses ressources, et les incidents l'atteignent par ces moniteurs. Les [événements de maintenance planifiée](/docs/scheduled-maintenance/index) et les annonces l'atteignent directement : chacun nomme les pages de statut où il s'affiche. Les visiteurs lisent la page, et les abonnés sont informés de chaque changement sur les canaux qu'ils ont choisis.
 
 ## En un coup d'œil
 
@@ -163,7 +163,7 @@ Le fait que la page affiche un élément **S'abonner** (**Afficher la page des a
 
 Sous la carte se trouvent **Exporter au format JSON : Page de statut**, qui télécharge les paramètres propres de la page de statut dans un fichier que vous pouvez réimporter, et **Archive status page** (voir [Archiver une page de statut](#archiver-une-page-de-statut)). Le pourcentage de disponibilité global et les statuts d'indisponibilité étaient autrefois deux cartes à part ici, chacune derrière un bouton **Modifier** ; ce sont désormais des lignes de la carte.
 
-**Où sont les couleurs.** Les couleurs des barres de disponibilité ne sont pas ici — la **Couleur de barre par défaut** et les règles de couleur des barres se trouvent sous **Plus de paramètres** sur **Pages de statut → votre page → Image de marque → Image de marque**. Il n'y a de réglage de thème ou de couleur de marque nulle part ; tout ce qui va au-delà de ces contrôles se fait avec **CSS personnalisé**.
+**Où sont les couleurs.** Les couleurs des barres de disponibilité ne sont pas ici — la **Couleur de barre par défaut** et les règles de couleur des barres se trouvent sous **Plus de paramètres** sur **Pages de statut → votre page → Image de marque → Image de marque**. Le **Thème** de la page (clair, sombre, ou selon le réglage de l'appareil de chaque visiteur) est une carte en haut de cette même page. Il n'y a de réglage de couleur de marque nulle part ; tout ce qui va au-delà de ces contrôles se fait avec **CSS personnalisé**.
 
 ## Prévisualiser avant la mise en ligne
 

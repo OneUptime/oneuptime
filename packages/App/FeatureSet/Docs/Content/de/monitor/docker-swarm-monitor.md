@@ -21,10 +21,10 @@ Ein Docker-Swarm-Monitor ist an einen Cluster gebunden. Jede Minute führt er se
 flowchart TB
     subgraph cluster["Ihr Swarm-Cluster"]
         direction LR
-        manager["Agent auf einem Manager"]
-        others["Collectors auf anderen Knoten"]
+        manager["Agent auf<br/>einem Manager"]
+        others["Collectors auf<br/>anderen Knoten"]
     end
-    manager -->|"Metriken und Inventar"| oneuptime["OneUptime"]
+    manager -->|"Metriken<br/>und Inventar"| oneuptime["OneUptime"]
     others -->|"Metriken"| oneuptime
     oneuptime -->|"erste Daten"| registered["Cluster registriert"]
     oneuptime --> monitor["Docker-Swarm-Monitor"]
