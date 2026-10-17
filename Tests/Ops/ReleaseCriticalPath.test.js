@@ -454,9 +454,13 @@ describe(`${RELEASE}: push-release-tags moves every image's tags in one job`, ()
         'if [ "$count" -le "${FAKE_DOCKER_FAIL_FIRST:-0}" ]; then',
         '  echo "denied: You have exceeded a secondary rate limit" >&2; exit 1',
         "fi",
-        'if [ -n "${FAKE_DOCKER_FAIL_ON:-}" ] && [[ " $* " == *" $FAKE_DOCKER_FAIL_ON "* ]]; then',
-        '  echo "MANIFEST_UNKNOWN: $FAKE_DOCKER_FAIL_ON" >&2; exit 1',
-        "fi",
+        // FAKE_DOCKER_FAIL_ON: one run of words per line; a call whose
+        // arguments contain one of them fails.
+        "while IFS= read -r fail_on; do",
+        '  if [ -n "$fail_on" ] && [[ " $* " == *" $fail_on "* ]]; then',
+        '    echo "MANIFEST_UNKNOWN: $fail_on" >&2; exit 1',
+        "  fi",
+        'done <<<"${FAKE_DOCKER_FAIL_ON:-}"',
         "exit 0",
         "",
       ].join("\n"),
@@ -472,7 +476,11 @@ describe(`${RELEASE}: push-release-tags moves every image's tags in one job`, ()
 
   let runs = 0;
 
-  function runStep({ failOn = "", failFirst = 0 } = {}) {
+  function runStep({
+    failOn = [],
+    failFirst = 0,
+    images = job.env.RELEASE_TAG_IMAGES,
+  } = {}) {
     runs += 1;
     const log = path.join(workDir, `calls-${runs}`);
     fs.writeFileSync(log, "");
@@ -483,11 +491,11 @@ describe(`${RELEASE}: push-release-tags moves every image's tags in one job`, ()
       env: {
         ...process.env,
         PATH: `${path.join(workDir, "bin")}${path.delimiter}${process.env.PATH}`,
-        RELEASE_TAG_IMAGES: job.env.RELEASE_TAG_IMAGES,
+        RELEASE_TAG_IMAGES: images,
         VERSION: "9.9.9",
         RETRY_WITH_BACKOFF_DELAYS: "0 0 0",
         FAKE_DOCKER_LOG: log,
-        FAKE_DOCKER_FAIL_ON: failOn,
+        FAKE_DOCKER_FAIL_ON: [].concat(failOn).join("\n"),
         FAKE_DOCKER_FAIL_FIRST: String(failFirst),
       },
     });
@@ -572,15 +580,36 @@ describe(`${RELEASE}: push-release-tags moves every image's tags in one job`, ()
   });
 
   test("names the failing images, all of them", () => {
-    const run = runStep({ failOn: "--tag oneuptime/app:enterprise-release" });
+    const run = runStep({
+      failOn: [
+        "ghcr.io/oneuptime/probe:9.9.9",
+        "--tag oneuptime/app:enterprise-release",
+      ],
+    });
 
     expect(run.status).not.toBe(0);
-    expect(run.output).toContain("::error title=Release tags not moved::app");
+    expect(run.output).toContain(
+      "::error title=Release tags not moved::probe app",
+    );
+    // app's release tags moved; its enterprise-release tags did not.
+    expect(
+      run.calls.filter((call) => {
+        return call.includes("oneuptime/app:");
+      }),
+    ).toEqual([moves("app")[0], ...Array(4).fill(moves("app")[1])]);
     expect(
       run.calls.filter((call) => {
         return call.includes("oneuptime/nginx:");
       }),
     ).toEqual(moves("nginx"));
+  });
+
+  test("refuses to run with no image to move, rather than succeed doing nothing", () => {
+    const run = runStep({ images: " \n " });
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain("RELEASE_TAG_IMAGES names no image");
+    expect(run.calls).toEqual([]);
   });
 });
 

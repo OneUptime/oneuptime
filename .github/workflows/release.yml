@@ -1709,6 +1709,10 @@ jobs:
         run: |
           set -uo pipefail
           source ./Scripts/GHA/retry.sh
+          if [ -z "${RELEASE_TAG_IMAGES//[[:space:]]/}" ]; then
+            echo "::error title=Release tags not moved::RELEASE_TAG_IMAGES names no image"
+            exit 1
+          fi
           failed=()
           for image in $RELEASE_TAG_IMAGES; do
             echo "::group::${image}"
@@ -2514,7 +2518,7 @@ jobs:
   # created only by the corresponding *-docker-image-merge job, so it names the
   # merge of every image it scans. Without one, a failure in that merge would
   # let this job run against a tag that was never pushed and fail on
-  # MANIFEST_UNKNOWN. Tests/Ops/ReleaseE2ePipeline.test.js holds the list to
+  # MANIFEST_UNKNOWN. Tests/Ops/ReleaseCriticalPath.test.js holds the list to
   # generate_sboms.sh's IMAGES.
   generate-sboms:
     name: Generate CycloneDX SBOMs
@@ -2859,7 +2863,8 @@ jobs:
   # the job before the publish, an app's included: its file is kept as an
   # artifact, so `gh run rerun <run> --failed` attaches it and publishes,
   # where a published release could no longer take it.
-  # Tests/Ops/ReleaseE2ePipeline.test.js holds all of this.
+  # Tests/Ops/ReleaseE2ePipeline.test.js and ReleaseCriticalPath.test.js hold
+  # all of this.
   finalize-github-release:
     name: Publish GitHub release
     needs: [draft-github-release, helm-chart-deploy, generate-sboms, infrastructure-agent-build, mobile-app-android-build, mobile-app-ios-build, generate-build-number, read-version]
