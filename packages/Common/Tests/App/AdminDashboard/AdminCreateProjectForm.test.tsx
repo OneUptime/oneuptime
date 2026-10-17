@@ -99,6 +99,17 @@ import { getCreateProjectFormFields } from "../../../UI/Components/Project/Creat
 import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import Navigation from "../../../UI/Utils/Navigation";
 import Project from "../../../Models/DatabaseModels/Project";
+import {
+  CUSTOM_TRIAL_TERMS,
+  PlanPickerCopy,
+  TRIAL_BADGE,
+  TRIAL_TERMS,
+  getPlanAudience,
+} from "../../../UI/Components/Billing/PlanPicker/PlanPickerCopy";
+import { NEW_TAB_DESCRIPTION } from "../../../UI/Components/Markdown.tsx/MarkdownLink";
+import { PluralTemplate } from "../../../UI/Utils/TranslateTemplate";
+import fs from "fs";
+import path from "path";
 
 interface FieldShape {
   key: string;
@@ -230,4 +241,129 @@ describe("Admin > Projects > Create Project", () => {
 
     expect(capturedTableProps!.formFields).toBe(first);
   });
+});
+
+/*
+ * The Admin Dashboard looks every string up in its own locale files, not the
+ * Dashboard's. The shared form's strings were translated for the Dashboard
+ * only, so in German the Admin's create dialog read "Neues Projekt
+ * erstellen" over "Such as your company or team name...", "Plan", "Monthly |
+ * Yearly" and every plan's line in English. Each string the form draws is in
+ * every Admin locale, worded as the Dashboard words it, so the two dialogs
+ * say the same thing.
+ */
+describe("Admin > Projects > Create Project, in every Admin Dashboard language", () => {
+  const LANGUAGES: Array<string> = [
+    "en",
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ];
+
+  const FEATURE_SETS: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "App",
+    "FeatureSet",
+  );
+
+  function readLocale(
+    app: "AdminDashboard" | "Dashboard",
+    code: string,
+  ): Record<string, unknown> {
+    return JSON.parse(
+      fs.readFileSync(
+        path.join(FEATURE_SETS, app, "src", "Locales", `${code}.json`),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+  }
+
+  const plans: Array<SubscriptionPlan> =
+    SubscriptionPlan.getSubscriptionPlans(CLOUD_PLAN_ENV);
+
+  // What the form's fields say: titles, hints and the placeholder.
+  const fieldStrings: Array<string> = getCreateProjectFormFields({
+    isBillingEnabled: true,
+    plans: plans,
+  }).flatMap((field: Field<Project>): Array<string> => {
+    return [field.title, field.description, field.placeholder].filter(
+      (text: unknown): text is string => {
+        return typeof text === "string" && text.length > 0;
+      },
+    );
+  });
+
+  // What the plan picker says (PlanPicker, PlanPickerCopy).
+  const pickerStrings: Array<string> = [
+    ...Object.values(PlanPickerCopy),
+    ...plans
+      .map((plan: SubscriptionPlan): string | null => {
+        return getPlanAudience(plan);
+      })
+      .filter((line: string | null): line is string => {
+        return Boolean(line);
+      }),
+    ...[TRIAL_BADGE, TRIAL_TERMS, CUSTOM_TRIAL_TERMS].flatMap(
+      (plural: PluralTemplate): Array<string> => {
+        return [plural.other, `${plural.other}_one`];
+      },
+    ),
+    NEW_TAB_DESCRIPTION,
+  ];
+
+  const keys: Array<string> = Array.from(
+    new Set<string>([...fieldStrings, ...pickerStrings]),
+  );
+
+  test("draws strings the Dashboard translates: the Admin carries each one", () => {
+    // Every plan has its line, and the folded promo code its hint.
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        "Project Name",
+        "Such as your company or team name. You can change it later.",
+        "My Project",
+        "Plan",
+        "Promo Code",
+        "If you have one, from an offer or a reseller.",
+        "For one person getting started.",
+        "Custom terms, a dedicated engineer and phone support.",
+        "{{count}}-day free trial_one",
+        "Compare plans",
+      ]),
+    );
+  });
+
+  test.each(LANGUAGES)(
+    "%s: every string the form draws is in the Admin locale, as the Dashboard words it",
+    (code: string) => {
+      const admin: Record<string, unknown> = readLocale("AdminDashboard", code);
+      const dashboard: Record<string, unknown> = readLocale("Dashboard", code);
+
+      for (const key of keys) {
+        expect({ code, key, admin: admin[key] }).toEqual({
+          code,
+          key,
+          admin: dashboard[key],
+        });
+        expect(typeof admin[key]).toBe("string");
+      }
+    },
+  );
 });

@@ -14,6 +14,8 @@ import PlanPicker from "../../../../UI/Components/Billing/PlanPicker/PlanPicker"
 import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
 import { BillingPeriod } from "../../../../Types/Billing/SubscriptionPlanPricing";
 import { PRICING_PAGE_URL } from "../../../../Types/Billing/PayAsYouGoPricing";
+import Input from "../../../../UI/Components/Input/Input";
+import { NEW_TAB_DESCRIPTION } from "../../../../UI/Components/Markdown.tsx/MarkdownLink";
 
 /*
  * The plan picker of the Create New Project dialog (PlanPicker): one radio
@@ -173,8 +175,9 @@ describe("PlanPicker", () => {
   it("reads each plan's trial, who it is for and its price with its radio", () => {
     render(<Controlled />);
 
+    // Real spaces between the price's pieces: "$20 per user", not "$20per user".
     expect(describedText(radio("Growth"))).toBe(
-      "14-day free trial | For teams. On-call, workflows, integrations and API access. | $20per user / month · billed yearly",
+      "14-day free trial | For teams. On-call, workflows, integrations and API access. | $20 per user / month billed yearly",
     );
     expect(describedText(radio("Free"))).toBe(
       "For one person getting started. | $0",
@@ -323,6 +326,20 @@ describe("PlanPicker", () => {
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
+  it("marks the link as opening a new tab, and keeps it whole on one line", () => {
+    render(<Controlled initialValue="price_growth_year" />);
+
+    const link: HTMLElement = screen.getByTestId("plan-picker-compare-plans");
+
+    // What a screen reader is told, as every link to a tab of its own says.
+    expect(link).toHaveAttribute("aria-description", NEW_TAB_DESCRIPTION);
+    // The mark a sighted reader sees for the same thing.
+    expect(link.querySelector("svg")).not.toBeNull();
+    // "Compare / plans" broke over two lines at the end of a long note.
+    expect(link).toHaveClass("whitespace-nowrap");
+    expect(link).toHaveTextContent("Compare plans");
+  });
+
   it("shows what yearly saves, worked out from the prices", () => {
     render(<Controlled />);
 
@@ -356,6 +373,71 @@ describe("PlanPicker", () => {
       "aria-invalid",
       "true",
     );
+  });
+
+  it("reads the error with the group, and outlines the plans in red", () => {
+    render(<Controlled error="Plan is required." />);
+
+    const group: HTMLElement = screen.getByRole("radiogroup", {
+      name: "Plan",
+    });
+
+    expect(group).toHaveAccessibleDescription("Plan is required.");
+    expect(group).toHaveAttribute("data-invalid", "true");
+    expect(group).toHaveClass("ring-red-300");
+  });
+
+  it("writes its error as the dialog's text fields write theirs", () => {
+    /*
+     * The Create New Project dialog can show "Project Name is required."
+     * (Input) and "Plan is required." at once: they were two reds at two
+     * gaps.
+     */
+    const { container } = render(
+      <Input value="" onChange={() => {}} error="Project Name is required." />,
+    );
+    const inputError: HTMLElement = within(container).getByRole("alert");
+
+    render(<Controlled error="Plan is required." />);
+
+    const planError: HTMLElement | undefined = screen
+      .getAllByRole("alert")
+      .find((element: HTMLElement): boolean => {
+        return element.textContent === "Plan is required.";
+      });
+
+    expect(planError).toBeDefined();
+    expect(planError?.className).toBe(inputError.className);
+  });
+
+  it("has no red outline without an error", () => {
+    render(<Controlled />);
+
+    const group: HTMLElement = screen.getByRole("radiogroup", {
+      name: "Plan",
+    });
+
+    expect(group).not.toHaveAttribute("data-invalid");
+    expect(group).not.toHaveAttribute("aria-describedby");
+    expect(group.className).not.toContain("red");
+  });
+
+  it("keeps each piece of a price whole, with how it is billed on a line of its own", () => {
+    render(<Controlled />);
+
+    const price: HTMLElement = within(row("Growth")).getByText("$20")
+      .parentElement as HTMLElement;
+    const unit: HTMLElement = within(price).getByText("per user / month");
+    const caption: HTMLElement = within(price).getByText("billed yearly");
+
+    /*
+     * "оплата / ежегодно": a 360px phone in Russian broke the caption in
+     * two, and put the dot that led it at the start of a line.
+     */
+    expect(unit).toHaveClass("whitespace-nowrap");
+    expect(caption).toHaveClass("whitespace-nowrap");
+    expect(caption).toHaveClass("block");
+    expect(price.textContent).not.toContain("·");
   });
 
   it("is not invalid without an error", () => {

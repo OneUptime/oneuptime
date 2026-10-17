@@ -12,6 +12,7 @@ import IconProp from "../../../../Types/Icon/IconProp";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import Icon from "../../Icon/Icon";
+import { NEW_TAB_DESCRIPTION } from "../../Markdown.tsx/MarkdownLink";
 import {
   PlanPickerCopy,
   PlanPickerOptionText,
@@ -75,6 +76,7 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const id: string = `plan-picker-${useId()}`;
   const labelId: string = `${id}-label`;
+  const errorId: string = `${id}-error`;
 
   const [period, setPeriod] = useState<BillingPeriod>(() => {
     return (
@@ -231,6 +233,17 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
               </span>
             )}
           </span>
+          {/*
+           * The price with its unit, and under it how it is billed - on a
+           * phone too, where the price sits under the plan's line. Each piece
+           * stays whole: a narrow phone, or a long language, never breaks
+           * inside "billed yearly". It used to follow the unit after a dot on
+           * a phone, and on a 360px phone in Russian the line broke inside it
+           * ("· оплата / ежегодно"), or put the dot first on a line of its
+           * own. The spaces between the pieces are real text, so a screen
+           * reader reading the radio's description hears "$20 per user /
+           * month billed yearly", not "$20per user".
+           */}
           <span
             id={`${optionId}-price`}
             className="block flex-shrink-0 sm:text-right"
@@ -239,23 +252,17 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
               {text.price}
             </span>
             {text.priceUnit && (
-              <span className="ml-1 text-xs text-gray-500">
-                {text.priceUnit}
-              </span>
+              <>
+                {" "}
+                <span className="whitespace-nowrap text-xs text-gray-500">
+                  {text.priceUnit}
+                </span>
+              </>
             )}
-            {/*
-             * Under the price from sm up; on a phone, where the price sits
-             * under the plan's name, on the same line after a dot.
-             */}
             {text.priceCaption && (
               <>
-                <span
-                  aria-hidden="true"
-                  className="text-xs text-gray-500 sm:hidden"
-                >
-                  {" · "}
-                </span>
-                <span className="text-xs text-gray-500 sm:block">
+                {" "}
+                <span className="block whitespace-nowrap text-xs text-gray-500">
                   {text.priceCaption}
                 </span>
               </>
@@ -300,20 +307,31 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
+      {/*
+       * With an error ("Plan is required."), the plans are outlined in red
+       * and the error is written under them as the form's text fields write
+       * theirs (Input): the same red, the same gap, read with the group by a
+       * screen reader - so the dialog's two errors read as one kind of thing.
+       */}
       <div
         role="radiogroup"
         aria-labelledby={labelId}
         aria-invalid={props.error ? true : undefined}
-        className="mt-2 -space-y-px rounded-lg"
+        aria-describedby={props.error ? errorId : undefined}
+        data-invalid={props.error ? "true" : undefined}
+        className={`mt-2 -space-y-px rounded-lg ${
+          props.error ? "ring-1 ring-red-300" : ""
+        }`}
       >
         {props.plans.map(renderOption)}
       </div>
 
       {props.error && (
         <p
+          id={errorId}
           role="alert"
           data-testid="error-message"
-          className="mt-2 text-sm text-red-600"
+          className="mt-1 text-sm text-red-400"
         >
           {props.error}
         </p>
@@ -336,21 +354,35 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
             >
               {terms.headline}
             </p>
-            <p data-testid="plan-picker-terms-details" className="mt-0.5">
+            {/*
+             * A div, not a p: the link's icon (Icon) is drawn in a div, which
+             * a paragraph may not hold.
+             */}
+            <div data-testid="plan-picker-terms-details" className="mt-0.5">
               {joinSentences(terms.details)}
               {terms.details.length > 0
                 ? getSentenceSeparator(joinSentences(terms.details))
                 : ""}
+              {/*
+               * One unit, never broken over two lines ("Compare / plans"),
+               * with the mark the product puts on a link that opens a tab of
+               * its own - and says so to a screen reader (MarkdownLink).
+               */}
               <a
                 href={PRICING_PAGE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-description={translator.translateText(NEW_TAB_DESCRIPTION)}
                 data-testid="plan-picker-compare-plans"
-                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                className="inline-flex items-center gap-1 whitespace-nowrap font-medium text-indigo-600 underline-offset-2 hover:underline"
               >
                 {translator.translateText(PlanPickerCopy.comparePlans)}
+                <Icon
+                  icon={IconProp.ExternalLink}
+                  className="h-3.5 w-3.5 flex-shrink-0"
+                />
               </a>
-            </p>
+            </div>
           </div>
         </div>
       )}
