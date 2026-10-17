@@ -1144,8 +1144,8 @@ describe("every job that builds from the dev compose file warms the base images 
    * file, once in every job. They now run the e2e image the workflow's own
    * e2e-docker-image-build pushed, as release.yml's E2E jobs do, so there is
    * nothing for them to build or warm here. They must wait for that image's
-   * merge, or they would run the previous push's suite against this push's
-   * stack.
+   * build, whose amd64 leg pushes the -amd64 tag they run, or they would run
+   * the previous push's suite against this push's stack.
    */
   test("test-release.yaml's E2E jobs build nothing from it: they run the e2e image the workflow pushed", () => {
     const jobs = readYaml(TEST_RELEASE_WORKFLOW).jobs;
@@ -1167,7 +1167,7 @@ describe("every job that builds from the dev compose file warms the base images 
       }).toEqual({ job, built: [] });
       expect({ job, needs: needsOf(jobs[job]) }).toEqual({
         job,
-        needs: expect.arrayContaining(["e2e-docker-image-merge"]),
+        needs: expect.arrayContaining(["e2e-docker-image-build"]),
       });
       expect({
         job,
