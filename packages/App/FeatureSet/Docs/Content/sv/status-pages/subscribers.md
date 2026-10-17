@@ -47,6 +47,8 @@ Varje kanal har också en egen lista i statussidans sidomeny under **Prenumerant
 
 **Ett reglage räcker inte.** Objektet **Prenumerera** i statussidans navigeringsfält visas bara när **Visa prenumerantsida** är på *och* minst en kanal är på. Om du slår på **E-post** men låter **Visa prenumerantsida** vara av har besökarna inget sätt att nå formuläret.
 
+**En kalender i stället.** Besökare som bara vill ha ditt planerade underhåll i sin egen kalender behöver inte prenumerera: **Prenumerera på kalender** på sidans sida **Planerade händelser** lägger till det i Google Kalender, Apple Kalender eller Outlook, och kalendern håller sig själv uppdaterad. Den skickar ingenting och beror inte på kanalerna ovan, och en privat sida erbjuder den inte. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
+
 ## Stänga av alla aviseringar
 
 Det första kortet på **Prenumerantinställningar**, **Aviseringar**, innehåller **Skicka aviseringar till prenumeranter** (`sendSubscriberNotifications`), på som standard, som sparas så fort du slår om det. När det är av skickar statussidan ingenting till sina prenumeranter: inga aviseringar om incidenter, episoder, schemalagt underhåll eller meddelanden, inga anteckningar eller efteranalyser och inga e-postrapporter, oavsett vad dess kanaler och händelsetyper anger. Dess prenumeranter behålls, och besökare kan fortfarande prenumerera så länge sidan **Prenumerera** och en kanal är på; en ny e-postprenumerant får fortfarande e-postmeddelandet som bekräftar prenumerationen. Inget hålls kvar för att skickas senare: när det slås på igen berättar sidan för sina prenumeranter om det som händer från och med då.

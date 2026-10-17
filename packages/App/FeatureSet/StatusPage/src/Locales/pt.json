@@ -129,7 +129,27 @@
     "noneDescription": "Nenhum evento agendado publicado para esta página de status.",
     "scheduledAt": "Agendado para ",
     "report": "Relatório de evento agendado",
-    "notFound": "Nenhum evento agendado encontrado para esta página de status."
+    "notFound": "Nenhum evento agendado encontrado para esta página de status.",
+    "calendar": {
+      "subscribe": "Subscrever o calendário",
+      "subscribeTitle": "Subscrever a manutenção agendada",
+      "subscribeDescription": "Receba a manutenção agendada desta página na sua aplicação de calendário. Mantém-se atualizada sozinha.",
+      "eventTitle": "Adicionar ao calendário",
+      "eventDescription": "Adicione esta manutenção à sua aplicação de calendário.",
+      "addToCalendar": "Adicionar ao calendário",
+      "addHeading": "Adicionar ao seu calendário",
+      "google": "Google Agenda",
+      "googleHint": "Abre o Google Agenda num novo separador",
+      "device": "Calendário da Apple / Outlook",
+      "deviceHint": "Abre a aplicação de calendário deste dispositivo",
+      "deviceFileHint": "Transfere a manutenção para a aplicação de calendário deste dispositivo",
+      "copyHeading": "Ou copie o link",
+      "copyHint": "Cole-o em qualquer aplicação de calendário que consiga subscrever um calendário por URL.",
+      "copy": "Copiar link",
+      "copied": "Copiado!",
+      "done": "Concluído",
+      "refreshNote": "As aplicações de calendário procuram alterações segundo o seu próprio horário, por isso uma atualização pode demorar algumas horas a aparecer."
+    }
   },
   "subscribe": {
     "title": "Inscrever-se",

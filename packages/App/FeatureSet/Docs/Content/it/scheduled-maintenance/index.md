@@ -63,6 +63,8 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 
 L'elenco mostra **Numero della manutenzione programmata**, **Titolo**, **Stato attuale**, **Risorse interessate**, **Mostrato sulla pagina di stato**, **Inizia il**, **Durata**, **Termina il**, **Etichette** e **Proprietari**. Selezionate degli eventi per agire su più eventi alla volta: **Cambia stato**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** o **Elimina**.
 
+**Elenco** e **Calendario**, all'estremità destra della barra dei filtri dell'elenco, mostrano gli stessi eventi come tabella oppure su un mese, una settimana o un giorno. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar).
+
 ## Cosa influenza un evento
 
 Mentre un evento è in corso, OneUptime tratta come previsto il fermo che pianifica:

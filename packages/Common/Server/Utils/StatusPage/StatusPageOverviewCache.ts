@@ -349,6 +349,21 @@ export default class StatusPageOverviewCache {
     );
   }
 
+  /*
+   * The current generation of a project's status page caches: what anything
+   * else a status page serves from a cache keeps its entries under, so a
+   * record taken off a page is gone from it at once there too - the page's
+   * maintenance calendar does (StatusPageMaintenanceCalendarFeed). Never
+   * throws (CacheGenerations).
+   */
+  public static async getProjectGeneration(
+    projectId: ObjectID | string,
+  ): Promise<string> {
+    return await this.generations.get(
+      this.generationKey(projectId.toString().toLowerCase()),
+    );
+  }
+
   // Drops everything this process keeps. For tests.
   public static clear(): void {
     this.responses.clear();

@@ -47,6 +47,8 @@ Hver kanal har også sin egen liste i statussidens sidemenu under **Abonnenter**
 
 **Én kontakt er ikke nok.** Punktet **Abonner** i statussidens navigationsbjælke vises kun, når **Vis abonnentside** er slået til, *og* mindst én kanal er slået til. Hvis du slår **E-mail** til, men lader **Vis abonnentside** være slået fra, har besøgende ingen mulighed for at nå formularen.
 
+**En kalender i stedet.** Besøgende, der kun vil have din planlagte vedligeholdelse i deres egen kalender, behøver ikke at abonnere: **Abonner på kalender** på sidens side **Planlagte hændelser** føjer den til Google Kalender, Apple Kalender eller Outlook, og kalenderen holder sig selv opdateret. Den sender intet og afhænger ikke af kanalerne ovenfor, og en privat side tilbyder den ikke. Se [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#en-statussides-kalender).
+
 ## Slå alle notifikationer fra
 
 Det første kort på **Abonnementsindstillinger**, **Notifikationer**, indeholder **Send notifikationer til abonnenter** (`sendSubscriberNotifications`), slået til som standard, som gemmes, så snart du slår den om. Er den slået fra, sender statussiden intet til sine abonnenter: ingen notifikation om en hændelse, en episode, planlagt vedligeholdelse eller en meddelelse, ingen note eller postmortem og ingen e-mailrapport, uanset hvad dens kanaler og hændelsestyper siger. Dens abonnenter bevares, og besøgende kan stadig abonnere, så længe siden **Abonner** og en kanal er slået til; en ny e-mailabonnent får stadig den e-mail, der bekræfter abonnementet. Intet holdes tilbage for at blive sendt senere: slås den til igen, fortæller siden sine abonnenter om det, der sker fra da af.

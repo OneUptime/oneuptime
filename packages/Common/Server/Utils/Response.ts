@@ -54,7 +54,25 @@ export interface CalendarResponseData {
   body: string;
   etag: string;
   lastModified: Date;
+  /*
+   * The name an app or a browser saves the body under. The on-call feeds'
+   * (CALENDAR_RESPONSE_FILE_NAME) unless a feed names its own.
+   */
+  fileName?: string | undefined;
+  /*
+   * "inline" for a feed a calendar app subscribes to; "attachment" for a
+   * file a reader's browser downloads and opens (one maintenance event).
+   */
+  disposition?: CalendarResponseDisposition | undefined;
 }
+
+export enum CalendarResponseDisposition {
+  Inline = "inline",
+  Attachment = "attachment",
+}
+
+// A file name a Content-Disposition header can carry as it is.
+const CALENDAR_FILE_NAME_PATTERN: RegExp = /^[A-Za-z0-9._-]{1,100}$/;
 
 /*
  * Raster image types, which is to say the types that cannot carry script and
@@ -606,10 +624,15 @@ export default class Response {
       Date.now() + CALENDAR_RESPONSE_MAX_AGE_SECONDS * 1000,
     );
 
+    const fileName: string =
+      data.fileName && CALENDAR_FILE_NAME_PATTERN.test(data.fileName)
+        ? data.fileName
+        : CALENDAR_RESPONSE_FILE_NAME;
+
     oneUptimeResponse.set("Content-Type", CALENDAR_RESPONSE_CONTENT_TYPE);
     oneUptimeResponse.set(
       "Content-Disposition",
-      `inline; filename="${CALENDAR_RESPONSE_FILE_NAME}"`,
+      `${data.disposition || CalendarResponseDisposition.Inline}; filename="${fileName}"`,
     );
     oneUptimeResponse.set(
       "Cache-Control",

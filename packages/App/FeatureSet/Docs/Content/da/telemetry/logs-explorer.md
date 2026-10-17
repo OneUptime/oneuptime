@@ -111,7 +111,7 @@ Gemte visninger hører til projektet, så alle i det ser den samme liste. Et rul
 
 Skift listen til **Analytics** for at tælle protokoller i stedet for at læse dem. Vælg en tidsserie, en topliste eller en tabel; tæl hver protokol eller de unikke værdier i ét felt; og gruppér efter alvorlighed, tjeneste, spor, span eller en vilkårlig attribut og derefter efter et andet felt. En topliste eller en tabel viser de øverste 5, 10, 25 eller 50 grupper.
 
-Klik på **List** for at gå tilbage til selve linjerne.
+Klik på **Liste** for at gå tilbage til selve linjerne.
 
 ## Åbn tilhørende spor og metrikker
 

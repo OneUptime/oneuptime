@@ -117,6 +117,7 @@ export const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
   "/browserconfig.xml",
   "/rss",
   "/llms.txt",
+  "/maintenance.ics",
 ];
 
 export const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
@@ -143,6 +144,7 @@ export const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
   "/.well-known",
   "/rss",
   "/llms.txt",
+  "/maintenance.ics",
 ];
 
 /*

@@ -182,9 +182,10 @@ server {
         }
     }
 
-    # On-call calendar feeds. The URL IS the credential: a subscribed calendar
+    # Calendar feeds. The URL IS the credential: a subscribed calendar
     # client (Google, Outlook, Apple) polls
     #   /api/on-call-calendar/{user,schedule,project}/<43-char token>/...
+    #   /api/scheduled-maintenance-calendar/project/<43-char token>/...
     # with no other authentication, so a log line for one of these requests is
     # a bearer token written to disk in plain text, with the client's address
     # next to it. This location exists only so those lines are not written. It
@@ -215,7 +216,7 @@ server {
     #     near the 5000-event cap is that big (text/calendar is deliberately
     #     kept out of gzip_types). 0 keeps what fits in memory and streams the
     #     rest straight to the client.
-    location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+    location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
         access_log off;
         error_log /dev/null crit;
         proxy_max_temp_file_size 0;
@@ -479,9 +480,10 @@ server {
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
-    # On-call calendar feeds. The URL IS the credential: a subscribed calendar
+    # Calendar feeds. The URL IS the credential: a subscribed calendar
     # client (Google, Outlook, Apple) polls
     #   /api/on-call-calendar/{user,schedule,project}/<43-char token>/...
+    #   /api/scheduled-maintenance-calendar/project/<43-char token>/...
     # with no other authentication, so a log line for one of these requests is
     # a bearer token written to disk in plain text, with the client's address
     # next to it. This location exists only so those lines are not written. It
@@ -512,7 +514,7 @@ server {
     #     near the 5000-event cap is that big (text/calendar is deliberately
     #     kept out of gzip_types). 0 keeps what fits in memory and streams the
     #     rest straight to the client.
-    location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+    location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
         access_log off;
         error_log /dev/null crit;
         proxy_max_temp_file_size 0;
@@ -1583,9 +1585,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         client_max_body_size 50M;
     }
 
-    # On-call calendar feeds. The URL IS the credential: a subscribed calendar
+    # Calendar feeds. The URL IS the credential: a subscribed calendar
     # client (Google, Outlook, Apple) polls
     #   /api/on-call-calendar/{user,schedule,project}/<43-char token>/...
+    #   /api/scheduled-maintenance-calendar/project/<43-char token>/...
     # with no other authentication, so a log line for one of these requests is
     # a bearer token written to disk in plain text, with the client's address
     # next to it. This location exists only so those lines are not written. It
@@ -1616,7 +1619,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     #     near the 5000-event cap is that big (text/calendar is deliberately
     #     kept out of gzip_types). 0 keeps what fits in memory and streams the
     #     rest straight to the client.
-    location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+    location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
         access_log off;
         error_log /dev/null crit;
         proxy_max_temp_file_size 0;

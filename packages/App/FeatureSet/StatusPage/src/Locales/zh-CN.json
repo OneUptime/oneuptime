@@ -129,7 +129,27 @@
     "noneDescription": "此状态页未发布任何计划事件。",
     "scheduledAt": "计划于 ",
     "report": "计划事件报告",
-    "notFound": "在此状态页上未找到计划事件。"
+    "notFound": "在此状态页上未找到计划事件。",
+    "calendar": {
+      "subscribe": "订阅日历",
+      "subscribeTitle": "订阅计划维护",
+      "subscribeDescription": "在您的日历应用中获取此页面的计划维护。它会自动保持最新。",
+      "eventTitle": "添加到日历",
+      "eventDescription": "将此维护添加到您的日历应用。",
+      "addToCalendar": "添加到日历",
+      "addHeading": "添加到您的日历",
+      "google": "Google 日历",
+      "googleHint": "在新标签页中打开 Google 日历",
+      "device": "Apple 日历 / Outlook",
+      "deviceHint": "打开此设备上的日历应用",
+      "deviceFileHint": "为此设备上的日历应用下载该事件",
+      "copyHeading": "或复制链接",
+      "copyHint": "将它粘贴到任何可以通过 URL 订阅日历的日历应用中。",
+      "copy": "复制链接",
+      "copied": "已复制！",
+      "done": "完成",
+      "refreshNote": "日历应用会按照自己的时间安排检查更改，因此更新可能需要几个小时才会出现。"
+    }
   },
   "subscribe": {
     "title": "订阅",

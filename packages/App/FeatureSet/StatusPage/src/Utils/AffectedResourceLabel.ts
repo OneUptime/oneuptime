@@ -1,25 +1,8 @@
-import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
-import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import { getAffectedResourceLabel } from "Common/Types/StatusPage/StatusPageAffectedResources";
 
-const getAffectedResourceLabel: (resource: StatusPageResource) => string = (
-  resource: StatusPageResource,
-): string => {
-  const groupName: string = resource.statusPageGroup?.name || "";
-  const isGrid: boolean =
-    resource.statusPageGroup?.viewMode === StatusPageGroupViewMode.Grid;
-  const rowValue: string = resource.rowAxisValue || "";
-  const columnValue: string = resource.columnAxisValue || "";
-
-  if (isGrid && (rowValue || columnValue)) {
-    const cellLabel: string =
-      rowValue && columnValue
-        ? `${rowValue} × ${columnValue}`
-        : rowValue || columnValue;
-    return groupName ? `${groupName} — ${cellLabel}` : cellLabel;
-  }
-
-  const displayName: string = resource.displayName || "";
-  return groupName ? `${groupName}: ${displayName}` : displayName;
-};
-
+/*
+ * A resource's name on the page. Kept in Common, so the page's maintenance
+ * calendar, which the server renders, names resources exactly as the page
+ * does (StatusPageAffectedResources).
+ */
 export default getAffectedResourceLabel;

@@ -129,7 +129,27 @@
     "noneDescription": "Ingen planlagte hendelser er publisert for denne statussiden.",
     "scheduledAt": "Planlagt til ",
     "report": "Rapport for planlagt hendelse",
-    "notFound": "Ingen planlagt hendelse funnet for denne statussiden."
+    "notFound": "Ingen planlagt hendelse funnet for denne statussiden.",
+    "calendar": {
+      "subscribe": "Abonner på kalender",
+      "subscribeTitle": "Abonner på planlagt vedlikehold",
+      "subscribeDescription": "Få denne sidens planlagte vedlikehold i kalenderappen din. Den holder seg oppdatert av seg selv.",
+      "eventTitle": "Legg til i kalender",
+      "eventDescription": "Legg dette vedlikeholdet til i kalenderappen din.",
+      "addToCalendar": "Legg til i kalender",
+      "addHeading": "Legg til i kalenderen din",
+      "google": "Google Kalender",
+      "googleHint": "Åpner Google Kalender i en ny fane",
+      "device": "Apple Kalender / Outlook",
+      "deviceHint": "Åpner kalenderappen på denne enheten",
+      "deviceFileHint": "Laster ned vedlikeholdet til kalenderappen på denne enheten",
+      "copyHeading": "Eller kopier lenken",
+      "copyHint": "Lim den inn i en hvilken som helst kalenderapp som kan abonnere på en kalender via URL.",
+      "copy": "Kopier lenke",
+      "copied": "Kopiert!",
+      "done": "Ferdig",
+      "refreshNote": "Kalenderapper ser etter endringer etter sin egen plan, så det kan ta noen timer før en oppdatering vises."
+    }
   },
   "subscribe": {
     "title": "Abonner",

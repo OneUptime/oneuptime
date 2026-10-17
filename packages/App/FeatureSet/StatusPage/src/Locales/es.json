@@ -129,7 +129,27 @@
     "noneDescription": "No se han publicado eventos programados para esta página de estado.",
     "scheduledAt": "Programado para ",
     "report": "Informe de evento programado",
-    "notFound": "No se encontraron eventos programados para esta página de estado."
+    "notFound": "No se encontraron eventos programados para esta página de estado.",
+    "calendar": {
+      "subscribe": "Suscribirse al calendario",
+      "subscribeTitle": "Suscribirse al mantenimiento programado",
+      "subscribeDescription": "Recibe el mantenimiento programado de esta página en tu aplicación de calendario. Se mantiene actualizado solo.",
+      "eventTitle": "Añadir al calendario",
+      "eventDescription": "Añade este mantenimiento a tu aplicación de calendario.",
+      "addToCalendar": "Añadir al calendario",
+      "addHeading": "Añadir a tu calendario",
+      "google": "Google Calendar",
+      "googleHint": "Abre Google Calendar en una pestaña nueva",
+      "device": "Calendario de Apple / Outlook",
+      "deviceHint": "Abre la aplicación de calendario de este dispositivo",
+      "deviceFileHint": "Descarga el mantenimiento para la aplicación de calendario de este dispositivo",
+      "copyHeading": "O copia el enlace",
+      "copyHint": "Pégalo en cualquier aplicación de calendario que pueda suscribirse a un calendario por URL.",
+      "copy": "Copiar enlace",
+      "copied": "¡Copiado!",
+      "done": "Hecho",
+      "refreshNote": "Las aplicaciones de calendario buscan cambios según su propio horario, así que una actualización puede tardar unas horas en aparecer."
+    }
   },
   "subscribe": {
     "title": "Suscribirse",

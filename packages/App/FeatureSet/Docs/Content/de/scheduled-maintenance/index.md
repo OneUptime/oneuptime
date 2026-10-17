@@ -63,6 +63,8 @@ Ankündigungen werden unter [Abonnenten & Ankündigungen](/docs/status-pages/sub
 
 Die Liste zeigt **Nummer der geplanten Wartung**, **Titel**, **Aktueller Status**, **Betroffene Ressourcen**, **Auf Statusseite angezeigt**, **Beginnt am**, **Dauer**, **Endet am**, **Beschriftungen** und **Eigentümer**. Wählen Sie Ereignisse aus, um mehrere auf einmal zu bearbeiten: **Status ändern**, **Beschriftungen hinzufügen**, **Beschriftungen entfernen**, **Eigentümer hinzufügen**, **Eigentümer entfernen** oder **Löschen**.
 
+**Liste** und **Kalender** am rechten Ende der Filterleiste der Liste zeigen dieselben Ereignisse als Tabelle oder auf einem Monat, einer Woche oder einem Tag. Siehe [Wartungskalender](/docs/scheduled-maintenance/calendar).
+
 ## Was ein Ereignis beeinflusst
 
 Solange ein Ereignis läuft, behandelt OneUptime den geplanten Ausfall als erwartet:

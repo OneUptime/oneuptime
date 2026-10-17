@@ -160,6 +160,31 @@ describe("the stepped footer detector", () => {
       ).toEqual([]);
     });
 
+    test("as a calendar toolbar's Next passes: it moves the calendar on a page", () => {
+      // Calendar's getCalendarMessages, the words react-big-calendar draws.
+      expect(
+        rulesOf(`
+          const messages = {
+            today: t("Today"),
+            previous: t("Back"),
+            next: t("Next"),
+            month: t("Month"),
+            week: t("Week"),
+            day: t("Day"),
+          };`),
+      ).toEqual([]);
+
+      // An object that only has a next is not a calendar's toolbar.
+      expect(rulesOf(`const step = { next: t("Next"), onClick: go };`)).toEqual(
+        ["next-label"],
+      );
+      expect(
+        rulesOf(
+          `const messages = { today: t("Today"), next: t("Next"), month: t("Month") };`,
+        ),
+      ).toEqual(["next-label"]);
+    });
+
     test("as a native button's text passes when plain and is a problem in the primary colour", () => {
       expect(
         rulesOf(
