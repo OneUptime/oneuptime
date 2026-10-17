@@ -7646,7 +7646,7 @@ const HUNTRESS_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     teaches:
       "How one workflow follows a report from start to end: a Switch / Case takes a path for each Huntress event. Open the trigger for its URL, and the Page step to pick who to page.",
     setUpInBuilder:
-      "An on-call policy to page, and the signing secret from Huntress. You add both in the Builder.",
+      "An on-call policy and Huntress's signing secret. You add both in the Builder.",
     category: WorkflowTemplateCategory.Huntress,
     icon: IconProp.ShieldCheck,
     workflowName: "Huntress incident reports",

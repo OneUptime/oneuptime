@@ -371,7 +371,11 @@ describe("every sentence the panel says, in every dashboard language", () => {
   });
 
   // English reads these the same, so every other language must word them.
-  test.each(LOCALES.filter((locale: string): boolean => locale !== "en"))(
+  test.each(
+    LOCALES.filter((locale: string): boolean => {
+      return locale !== "en";
+    }),
+  )(
     "%s words the turn-on step and the read error in its own language",
     (locale: string) => {
       const words: Record<string, string> = readLocale(locale);
