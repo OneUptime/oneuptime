@@ -381,6 +381,13 @@ function readsCanFail(table: InMemoryTable, statement: string): void {
 
 beforeAll(async () => {
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false as never);
+
+  // The server admin's account says they are one still; the member's does not.
+  jest.spyOn(UserService, "isUserMasterAdmin").mockImplementation((async (
+    userId: ObjectID,
+  ): Promise<boolean> => {
+    return userId.toString() === SERVER_ADMIN_ID.toString();
+  }) as never);
   jest
     .spyOn(UserService, "updateLastActive")
     .mockResolvedValue(undefined as never);

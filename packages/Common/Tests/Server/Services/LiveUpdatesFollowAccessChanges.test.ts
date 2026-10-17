@@ -322,9 +322,9 @@ describe("live updates follow every change of access", () => {
         OTHER_USER,
         OTHER_SESSION,
       );
-      const forgetBlockedStatus: jest.SpyInstance = jest.spyOn(
+      const forgetAccountStanding: jest.SpyInstance = jest.spyOn(
         UserService,
-        "forgetBlockedStatus",
+        "forgetAccountStanding",
       );
 
       await RealtimeReaders.getReader(
@@ -355,7 +355,7 @@ describe("live updates follow every change of access", () => {
       expect(blockedTab.hearsLiveUpdates()).toBe(false);
       expect(someoneElse.hearsLiveUpdates()).toBe(true);
       expect(RealtimeReaders.size()).toBe(0);
-      expect(forgetBlockedStatus).toHaveBeenCalledWith(USER);
+      expect(forgetAccountStanding).toHaveBeenCalledWith(USER);
     });
 
     test("an unblock forgets whether they are blocked, and ends nothing", async () => {
@@ -436,16 +436,30 @@ describe("live updates follow every change of access", () => {
 
     test("a deleted account's live updates end at once", async () => {
       const socket: ListeningSocket = new ListeningSocket(USER, SESSION);
+      const forgetAccountStanding: jest.SpyInstance = jest.spyOn(
+        UserService,
+        "forgetAccountStanding",
+      );
 
       await hooksOf(UserService).onDeleteSuccess(deleteOf(), [USER]);
 
+      /*
+       * Every server forgets what it read about the account (whether it is
+       * blocked or a master admin) as well: an account that is gone is no
+       * master admin from the next request of a session it had.
+       */
       expect(announced).toEqual([
+        {
+          kind: RealtimeAccessChangeKind.AccountChanged,
+          userId: USER.toString(),
+        },
         {
           kind: RealtimeAccessChangeKind.SessionsEnded,
           userId: USER.toString(),
         },
       ]);
       expect(socket.hearsLiveUpdates()).toBe(false);
+      expect(forgetAccountStanding).toHaveBeenCalledWith(USER);
     });
   });
 

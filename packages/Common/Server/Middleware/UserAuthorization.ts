@@ -58,7 +58,7 @@ import { PermissionOperation } from "../../Types/HeldPermissions";
 /*
  * What a request's session is, as every route reads it (readRequestSession):
  * no session at all, a token that does not verify or has expired, a blocked
- * user's, or a user's.
+ * user's, or a user's - a master admin's only while they still are one.
  */
 export type RequestSession =
   | { kind: "none" }
@@ -128,10 +128,12 @@ export default class UserMiddleware {
   /**
    * The session a request carries, read the one way every route reads it:
    * the access token (cookie or bearer), verified, of a user who is not
-   * blocked. resolveRequestUser answers each kind for the API; routes that
-   * only need to know who is asking use getSessionUser. Throws when whether
-   * the user is blocked cannot be looked up: a lookup that fails is an
-   * error, not a pass.
+   * blocked, and a master admin's only while their account still is one.
+   * resolveRequestUser answers each kind for the API, the master-admin gates
+   * (MasterAdminAuthorization, the Admin Dashboard's page) ask it too, and
+   * routes that only need to know who is asking use getSessionUser. Throws
+   * when whether the user is blocked, or still a master admin, cannot be
+   * looked up: a lookup that fails is an error, not a pass.
    *
    * Only a session's own access token is a session
    * (JsonWebTokenPurpose.UserSession). Any other token OneUptime signed is
@@ -170,6 +172,27 @@ export default class UserMiddleware {
      */
     if (await UserService.isUserBlocked(session.userId)) {
       return { kind: "blocked", session: session };
+    }
+
+    /*
+     * The token says whether its person was a master admin when it was
+     * signed, up to 15 minutes ago. Another master admin may have removed
+     * the access since (Admin Dashboard > Users > Master Admin Access), and
+     * from then on the session is the member's they are: the master-admin
+     * routes refuse it, so do the projects they are not a member of, the
+     * server's Require SSO holds it - and it cannot give the access back.
+     * Nobody is signed out. Read with whether they are blocked, by the same
+     * row read and from the same cache (UserService.isUserMasterAdmin).
+     *
+     * Only ever taken away here: a token that does not say master admin is
+     * never made one, so someone made a master admin is one from their next
+     * sign-in, or from the session's next renewal.
+     */
+    if (
+      session.isMasterAdmin &&
+      !(await UserService.isUserMasterAdmin(session.userId))
+    ) {
+      return { kind: "user", session: { ...session, isMasterAdmin: false } };
     }
 
     return { kind: "user", session: session };
