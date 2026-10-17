@@ -59,14 +59,14 @@ describe("an empty Endpoints page says where endpoints come from", () => {
    */
   test("the network's list names the device setting and where it is", () => {
     expect(ENDPOINTS).toContain(
-      'noItemsMessage={ "No endpoints yet. Turn on Collect Connected Endpoints on a switch or router - its Settings page, Edit Polling - and what is plugged into it appears here after its next poll." }',
+      'noItemsMessage={ "No endpoints yet. Turn on Collect Connected Endpoints in a switch or router\'s polling settings to see what is plugged into it." }',
     );
     expect(ENDPOINTS).not.toContain("monitors");
   });
 
   test("a site's list does too", () => {
     expect(SITE_ENDPOINTS).toContain(
-      'noItemsMessage="No endpoints at this site yet. Turn on Collect Connected Endpoints on one of its switches or routers - its Settings page, Edit Polling - and what is plugged into it appears here after its next poll."',
+      'noItemsMessage="No endpoints at this site yet. Turn on Collect Connected Endpoints in a switch or router\'s polling settings to see what is plugged in."',
     );
     expect(SITE_ENDPOINTS).not.toContain("monitors");
   });
@@ -357,11 +357,12 @@ describe("words that say what they mean", () => {
   });
 
   /*
-   * The confirmation names what it adds by the names they will be found
+   * The confirmation names the policy it adds by the name it will be found
    * under. Unquoted, "This adds an Alert on every device policy" read as a
-   * sentence that had lost its grammar.
+   * sentence that had lost its grammar. The template it uses is named in the
+   * policy's row, under Monitor Template, once it is added.
    */
-  test("the recommended policy's confirmation quotes the names of what it adds", () => {
+  test("the recommended policy's confirmation quotes the name of the policy it adds", () => {
     const policies: string = readCode(
       "Pages",
       "NetworkDevice",
@@ -370,7 +371,7 @@ describe("words that say what they mean", () => {
     );
 
     expect(policies).toContain(
-      `'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses`,
+      `'This adds the "Alert on every device" policy and its monitor template:`,
     );
     expect(policies).not.toContain("This adds an Alert on every device policy");
   });

@@ -350,7 +350,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: '["ResizeObserver loop", "third-party-tag\\\\.js"]',
               description:
-                'A JSON array of regexes for errors that should not trigger an upload, such as a noisy third-party script. They are still recorded.',
+                "A JSON array of regexes for errors that should not trigger an upload, such as a noisy third-party script. They are still recorded.",
             },
 
             {
@@ -488,7 +488,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               dropdownOptions: SESSION_REPLAY_RETENTION_OPTIONS,
               required: true,
               description:
-                "How long recordings are kept, 7 days by default. A short retention protects your users' privacy.",
+                "How long recordings and their session rows are kept, 7 days by default. A session's logs, spans and exceptions follow the telemetry retention.",
             },
             {
               field: { sessionReplayMonthlyBudgetInGB: true },

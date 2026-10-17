@@ -102,7 +102,7 @@ const BUILDER_FILE: string = path.join(
 );
 
 const REQUIRE_TLS_HELP: string =
-  "Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted.";
+  "Send mail only over an encrypted connection with a valid certificate. Port 465 is always encrypted.";
 
 function server(port: number, secure: boolean | null | undefined): EmailServer {
   return {

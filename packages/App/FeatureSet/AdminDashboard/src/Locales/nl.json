@@ -847,7 +847,6 @@
   "Single Sign-On (SSO)": "Single sign-on (SSO)",
   "Control whether users must sign in with SSO across this server.": "Bepaal of gebruikers zich op deze hele server met SSO moeten aanmelden.",
   "Require SSO for Login": "SSO vereisen voor inloggen",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "Wanneer ingeschakeld, moeten alle gebruikers zich met SSO aanmelden om toegang te krijgen tot een project op deze server. Hoofdbeheerders zijn uitgezonderd, zodat ze een verkeerd geconfigureerde SSO altijd kunnen herstellen. De eigen SSO-instellingen van een project blijven daarnaast gelden.",
   "Everyone except master admins must sign in with SSO to open any project on this server.": "Iedereen behalve hoofdbeheerders moet met SSO inloggen om een project op deze server te openen.",
   "Require SSO for everyone?": "SSO voor iedereen vereisen?",
   "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.": "Wie met een wachtwoord inlogt, wordt buitengesloten tot hij SSO gebruikt, dus controleer eerst of een SSO-provider voor iedereen werkt.",

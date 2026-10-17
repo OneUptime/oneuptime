@@ -200,8 +200,7 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         defaultValue: true,
-        description:
-          "Also add monitors that get one of these labels later.",
+        description: "Also add monitors that get one of these labels later.",
         showIf: (): boolean => {
           return syncLabels.length > 0 && !props.gridPlacement;
         },

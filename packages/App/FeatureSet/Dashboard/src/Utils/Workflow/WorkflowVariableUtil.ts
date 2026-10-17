@@ -317,7 +317,7 @@ export function getVariableDescriptionFormField(data?: {
  * exposure.
  */
 export const SECRET_TOGGLE_DESCRIPTION: string =
-  "Replace this value with [REDACTED] in workflow run logs. It cannot be turned off once saved.";
+  "Replace this value with [REDACTED] in future workflow run logs. It cannot be turned off once saved.";
 
 export function getSecretFormField(data?: {
   stepId?: string | undefined;
@@ -566,7 +566,7 @@ export function getOAuthClientSecretFormField(data?: {
     title: "Client Secret",
     stepId: data?.stepId,
     description:
-      "Never shown again once saved; use Update Credentials to replace it. Optional for a public client's Refresh Token grant.",
+      "Never shown again once saved: open the variable and use Update Credentials to replace it. Optional for a public client's Refresh Token grant.",
     fieldType: FormFieldSchemaType.EncryptedText,
     required: (values: FormValues<WorkflowVariable>): boolean => {
       return values["oauthGrantType"] !== OAuth2GrantType.RefreshToken;
@@ -631,7 +631,7 @@ export function getOAuthAdditionalParametersFormField(data?: {
     title: "Additional Parameters",
     stepId: data?.stepId,
     description:
-      "Extra parameters for the token request, such as audience for Auth0. Anyone who can read this variable sees them: no secrets.",
+      "Extra parameters for the token request, such as audience for Auth0. Anyone who can read this variable sees them, so do not put secrets here.",
     fieldType: FormFieldSchemaType.Dictionary,
     required: false,
     customValidation: (values: FormValues<WorkflowVariable>): string | null => {

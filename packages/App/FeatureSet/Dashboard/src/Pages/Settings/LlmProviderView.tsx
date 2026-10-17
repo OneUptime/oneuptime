@@ -155,7 +155,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "sk-...",
             description:
-              "Required for OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq and Mistral. Optional for Ollama and OpenAI-compatible servers.",
+              "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq and Mistral.",
           },
           {
             field: {
@@ -183,7 +183,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
               maxLength: ColumnLength.ShortURL,
             },
             description:
-              "Needed for Azure OpenAI / Microsoft Foundry, Ollama and OpenAI-compatible servers. Keep keys out: anyone who sees these settings can read it.",
+              "On Azure: https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude. Never put keys here.",
           },
           {
             field: {

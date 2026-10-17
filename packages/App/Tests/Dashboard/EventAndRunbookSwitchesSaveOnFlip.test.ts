@@ -382,7 +382,7 @@ describe("what the switches say", () => {
 
   test("turning evaluation off says it resolves the open burn rate alerts and incidents", () => {
     expect(SloEvaluationSwitchCopy.turnOffConfirmDescription).toContain(
-      "resolves the burn rate alerts and incidents it has open",
+      "resolves its open burn rate alerts and incidents",
     );
   });
 

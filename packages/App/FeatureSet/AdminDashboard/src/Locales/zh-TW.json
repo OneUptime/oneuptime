@@ -847,7 +847,6 @@
   "Single Sign-On (SSO)": "單一登入 (SSO)",
   "Control whether users must sign in with SSO across this server.": "控制此伺服器上的所有使用者是否都必須使用 SSO 登入。",
   "Require SSO for Login": "登入時要求使用 SSO",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "啟用時，所有使用者都必須使用 SSO 登入才能存取此伺服器上的任何專案。主管理員不受此限制，以便隨時能從設定錯誤的 SSO 中復原。專案本身的 SSO 設定仍會在此基礎上生效。",
   "Everyone except master admins must sign in with SSO to open any project on this server.": "除主管理員外，所有人都必須透過 SSO 登入才能開啟此伺服器上的任何專案。",
   "Require SSO for everyone?": "要求所有人使用 SSO 嗎？",
   "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.": "使用密碼登入的人在使用 SSO 之前都會被鎖定，因此請先確認 SSO 提供者對所有人都可用。",

@@ -40,11 +40,11 @@ export default class RuleRunSummary {
 
     switch (meta.action) {
       case RuleRunAction.AddLabels:
-        return `Attach this rule's labels to the ${meta.resourcePlural} it matches that already exist. Labels are only added, never removed, so running it again is safe.`;
+        return `Attach this rule's labels to the existing ${meta.resourcePlural} it matches. Labels are only added, never removed, so running this more than once is safe.`;
       case RuleRunAction.AddOwners:
-        return `Add this rule's owners to the ${meta.resourcePlural} it matches that already exist. Owners are only added, never removed, so running it again is safe.`;
+        return `Add this rule's owners to the existing ${meta.resourcePlural} it matches. Owners are only added, never removed, so running this more than once is safe.`;
       case RuleRunAction.MarkPrivate:
-        return `Make the ${meta.resourcePlural} this rule matches that already exist private. Nothing is made public again, so running it again is safe.`;
+        return `Make the existing ${meta.resourcePlural} this rule matches private. Nothing is made public again, so running this more than once is safe.`;
       case RuleRunAction.SyncStatusPageMonitors:
         return "Add the monitors this rule matches to this status page, and remove the ones it added that no longer match. Monitors added by hand are never touched.";
       case RuleRunAction.SyncSloMonitors:
@@ -69,7 +69,7 @@ export default class RuleRunSummary {
       return "Re-sync this SLO's monitors now with its enabled rules. Monitors attached by hand are left alone.";
     }
 
-    return `This rule runs when a ${meta.resourceSingular} is created. Run it now for the ${meta.resourcePlural} that already exist.`;
+    return `This rule runs only when a ${meta.resourceSingular} is created. Run it now for the ${meta.resourcePlural} that already exist.`;
   }
 
   /*

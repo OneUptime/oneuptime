@@ -240,7 +240,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Microsoft Teams Chats"
-      description="Group and one-on-one chats your notification rules can post to. Add the OneUptime app to a chat in Microsoft Teams to list it here."
+      description="Group and one-on-one chats your notification rules can post to. Add the OneUptime app to a chat in Microsoft Teams to list it here. Use Send Test to confirm OneUptime can post to a chat."
       buttons={[
         {
           title: "Refresh Chats",

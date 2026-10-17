@@ -1092,7 +1092,7 @@ describe("a criteria's settings", () => {
 
   it("open one incident per value found in an incoming request when grouping is on", () => {
     expect(CRITERIA_INSTANCE_FORM).toContain(
-      "this criteria opens a separate incident and alert per distinct value extracted from the request body, so a single webhook endpoint (e.g. Grafana) can keep multiple incidents active at once.",
+      "Open a separate incident and alert for each value of a field in the request body, so one webhook can keep several open.",
     );
     expect(settings).toContain(
       "**Group incidents and alerts by a payload field** opens one incident per value found in an incoming request, so one webhook address can keep several incidents open.",

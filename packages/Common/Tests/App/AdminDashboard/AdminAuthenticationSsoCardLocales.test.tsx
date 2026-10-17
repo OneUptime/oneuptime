@@ -127,10 +127,10 @@ const CARD_DESCRIPTION: string =
   "Control whether users must sign in with SSO across this server.";
 const SWITCH_TITLE: string = "Require SSO for Login";
 const SWITCH_NOTE: string =
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.";
+  "Everyone except master admins must sign in with SSO to open any project on this server.";
 const CONFIRM_TITLE: string = "Require SSO for everyone?";
 const CONFIRM_DESCRIPTION: string =
-  "Everyone except master admins will have to sign in with SSO to open any project on this server. Anyone who signs in with a password is locked out of their projects until they sign in with SSO, so check that an SSO provider works for them first.";
+  "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.";
 const CONFIRM_BUTTON: string = "Require SSO";
 
 const CARD_STRINGS: Array<string> = [

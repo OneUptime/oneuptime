@@ -103,6 +103,6 @@ export const NETWORK_SITE_METRIC_DESCRIPTIONS: Record<
 
   // Network Map site cards (SiteCard.tsx), under Pages/NetworkSite/NetworkMap.tsx.
   siteCards: translationKey(
-    "Units are unit-level sites, such as single stores. Uptime covers 30 days and 'today' the last 24 hours. Devices include every site below.",
+    "Units are unit-level sites such as stores; any not operational, even with no data yet, count as down. Uptime covers 30 days and 'today' the last 24 hours, maintenance left out. Devices span every site below.",
   ),
 };

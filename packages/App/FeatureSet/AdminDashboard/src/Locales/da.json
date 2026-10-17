@@ -847,7 +847,6 @@
   "Single Sign-On (SSO)": "Single sign-on (SSO)",
   "Control whether users must sign in with SSO across this server.": "Styr, om brugerne skal logge ind med SSO på hele denne server.",
   "Require SSO for Login": "Kræv SSO til login",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "Når dette er aktiveret, skal alle brugere logge ind med SSO for at få adgang til projekter på denne server. Masteradministratorer er undtaget, så de altid kan rette op på en fejlkonfigureret SSO. Et projekts egne SSO-indstillinger gælder stadig oven i dette.",
   "Everyone except master admins must sign in with SSO to open any project on this server.": "Alle undtagen masteradministratorer skal logge ind med SSO for at åbne et projekt på denne server.",
   "Require SSO for everyone?": "Kræv SSO for alle?",
   "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.": "Alle, der logger ind med adgangskode, er låst ude, indtil de bruger SSO, så tjek først, at en SSO-udbyder virker for alle.",

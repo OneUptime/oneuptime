@@ -445,7 +445,7 @@ describe("Project Settings > Slack", () => {
     ).toBeInTheDocument();
     expect(
       within(dialog).getByText(
-        "OneUptime stops posting to Slack, and every member's Slack account is disconnected from this project, along with their Slack notification method. The Slack notification rules and summaries are kept for when you connect again.",
+        "OneUptime stops posting to Slack and every member's account is disconnected. Rules and summaries are kept for when you reconnect.",
       ),
     ).toBeInTheDocument();
     expect(deleteItemMock).not.toHaveBeenCalled();
@@ -542,7 +542,7 @@ describe("User Settings > Slack", () => {
 const TEAMS_PROJECT_CARD: DrawnCard = {
   title: "Admin Consent Completed",
   description:
-    "Admin consent is granted for your Microsoft 365 organization. OneUptime posts what your notification rules send to your teams' channels. Each member connects their own Microsoft Teams account to act as themselves.",
+    "Consent is granted for your Microsoft 365 organization, so OneUptime can post your notification rules to channels.",
   buttons: [],
   moreMenu: "Manage the Microsoft Teams connection",
 };
@@ -638,7 +638,7 @@ describe("Project Settings > Microsoft Teams", () => {
     expect(cardIn("microsoft-teams-project-connection")).toEqual({
       title: "Grant Admin Consent",
       description:
-        "Grant tenant-wide admin consent for the OneUptime Microsoft Teams app. This step is required to enable application permissions (e.g., posting to channels) without per-user consent. You must be a Microsoft 365 admin.",
+        "A Microsoft 365 admin grants the OneUptime app consent for your whole organization, so it can post to channels.",
       buttons: ["Grant Admin Consent"],
     });
     expect(screen.queryByTestId("microsoft-teams-your-account")).toBeNull();

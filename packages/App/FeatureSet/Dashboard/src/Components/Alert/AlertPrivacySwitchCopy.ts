@@ -43,7 +43,7 @@ export const AlertPrivacySwitchCopy: {
   ),
   makePrivateConfirmTitle: translationKey("Make this alert private?"),
   makePrivateConfirmDescription: translationKey(
-    "Only its owners, project admins and project owners will see it. If you are none of these, you lose access too.",
+    "Only its owner users, members of its owner teams, project admins and project owners will see it. If you are none of these, you lose access too.",
   ),
   makePrivateConfirmButton: translationKey("Make private"),
 };

@@ -45,7 +45,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
       cardProps={{
         title: "LLM Cost Budgets",
         description:
-          "Daily USD budgets for LLM spend. Spend is published as metrics every 15 minutes: alert on them with a Metrics monitor.",
+          "Daily USD budgets for LLM spend. Spend is published as metrics every 15 minutes: alert on them from a Metrics monitor with a 30-minute rolling window.",
       }}
       noItemsMessage={"No LLM cost budgets found."}
       formSteps={[
@@ -87,8 +87,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           fieldType: FormFieldSchemaType.Number,
           required: true,
           placeholder: "100",
-          description:
-            "The daily budget in USD, over the UTC day.",
+          description: "The daily budget in USD, over the UTC day.",
         },
         {
           field: { service: true },

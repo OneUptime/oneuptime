@@ -540,7 +540,7 @@ describe("creating a workspace summary: the time zone", () => {
     ).toBeVisible();
     expect(
       within(dialog()).getByText(
-        /Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month\./,
+        /Leave empty to start at 09:00 at the start of the next period\./,
       ),
     ).toBeVisible();
   });

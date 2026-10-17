@@ -151,7 +151,7 @@ const SOURCE_STRINGS: Array<SourceString> = [
 
   // Incidents > Settings > Linked Alerts
   {
-    text: "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are on for new projects. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.",
+    text: "Whether alerts linked to an incident follow it when it is acknowledged or resolved. Both are on for new projects. Alerts never move back to an earlier state.",
     sources: [SETTINGS_PAGE],
   },
   {
@@ -159,7 +159,7 @@ const SOURCE_STRINGS: Array<SourceString> = [
     sources: [SETTINGS_PAGE],
   },
   {
-    text: "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations. It stops their reminders only when the alert reminder rule is set to stop reminders on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+    text: "Acknowledging the incident acknowledges its linked alerts and stops their on-call escalations.",
     sources: [SETTINGS_PAGE],
   },
   {
@@ -167,7 +167,7 @@ const SOURCE_STRINGS: Array<SourceString> = [
     sources: [SETTINGS_PAGE],
   },
   {
-    text: "When the incident is resolved, resolve every alert linked to it - except alerts that are still linked to another incident that is not resolved yet. Alerts linked to an incident that is already resolved are resolved as they are linked.",
+    text: "Resolving the incident resolves its linked alerts, unless an alert is linked to another open incident.",
     sources: [SETTINGS_PAGE],
   },
 ];

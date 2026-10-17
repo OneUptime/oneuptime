@@ -74,10 +74,10 @@ export const MESSAGE_QUEUE_METRIC_DESCRIPTIONS: Record<
     "p95 means the 95th percentile: in each interval, 95% of this queue's consumer spans finished faster than the line, leaving out receives that returned nothing and SQS receive calls. A spike in one interval can come from a handful of slow messages.",
   ),
   producers: translationKey(
-    "Services that published to this queue in the selected range, busiest first: messages sent, failure rate and p95 publish time.",
+    "Services that published to this queue in the selected range, busiest first: messages sent, failure rate and p95 publish time (95% finished faster).",
   ),
   consumers: translationKey(
-    "Services that consumed from this queue in the selected range, busiest first: messages taken, failure rate and p95 processing time.",
+    "Services that consumed from this queue in the selected range, busiest first: messages taken, failure rate and p95 processing time (95% finished faster).",
   ),
   brokerHealth: translationKey(
     "What the broker reports about this queue: backlog, consumer lag, dead letters and message age.",

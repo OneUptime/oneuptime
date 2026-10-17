@@ -61,7 +61,7 @@ Estos son los ajustes de **Más campos**:
 | Campo | Qué hace |
 | --- | --- |
 | **Transporte** | `SMTP` (el predeterminado), o `Microsoft Graph` para un inquilino de Microsoft 365 que tiene SMTP AUTH desactivado. Elegir Microsoft Graph oculta el nombre de host, el puerto, el nombre de usuario y la contraseña, y muestra los campos de OAuth. |
-| **Exigir TLS** | Activado en una configuración de proyecto nueva. El correo solo se envía por una conexión cifrada con un certificado válido. Si esta opción está desactivada, el correo solo se cifra si el servidor lo ofrece y el certificado no se comprueba. El puerto 465 siempre está cifrado. |
+| **Exigir TLS** | Activado en una configuración de proyecto nueva. Enviar correo solo por una conexión cifrada con un certificado válido. El puerto 465 siempre está cifrado. Si esta opción está desactivada, el correo solo se cifra si el servidor lo ofrece y el certificado no se comprueba. |
 | **Tipo de autenticación** | `Username and Password` (el predeterminado), `OAuth`, o `None` para un relay que no necesita iniciar sesión. |
 | **Campos de OAuth** | **Tipo de proveedor de OAuth**, **ID de cliente de OAuth**, **Secreto de cliente de OAuth**, **URL del token de OAuth** y **Ámbito de OAuth**, que aparecen al elegir OAuth o Microsoft Graph. |
 | **Descripción** | Una nota para tu equipo (solo configuraciones de proyecto). |

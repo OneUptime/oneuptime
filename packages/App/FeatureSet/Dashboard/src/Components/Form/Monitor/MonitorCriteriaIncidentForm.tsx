@@ -417,7 +417,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             <Checkbox
               value={criteriaIncident.isPrivate === true}
               title="Private Incident"
-              description="Only the incident's owners, project admins and project owners can see it. It never shows on status pages."
+              description="Only the incident's owners, project admins and project owners can see it. It never shows on status pages and takes no public notes."
               onChange={(value: boolean) => {
                 updateField("isPrivate", value);
               }}

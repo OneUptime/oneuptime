@@ -249,7 +249,7 @@ export const IncidentCustomFieldSettingsCopy: {
     "Incidents declared from the dashboard must fill this in (a Boolean field must be ticked). Other ways to create incidents can leave it empty.",
   includeInSubscriberNotificationsTitle: "Include in Subscriber Notifications",
   includeInSubscriberNotificationsDescription:
-    "Show this field in the messages status page subscribers get about an incident. Subscribers are often outside your team, so share only safe fields.",
+    "Show this field in subscribers' incident messages (email, Slack, Microsoft Teams, webhooks; not the default SMS). They are often outside your team.",
   requiredBooleanMustBeChecked: CUSTOM_FIELD_MUST_BE_CHECKED_MESSAGE,
 };
 

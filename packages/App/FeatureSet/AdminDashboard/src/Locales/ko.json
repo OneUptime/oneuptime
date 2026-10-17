@@ -847,7 +847,6 @@
   "Single Sign-On (SSO)": "싱글 사인온(SSO)",
   "Control whether users must sign in with SSO across this server.": "이 서버 전체에서 사용자가 SSO로 로그인해야 하는지 제어합니다.",
   "Require SSO for Login": "로그인에 SSO 필수",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "활성화하면 모든 사용자가 이 서버의 프로젝트에 액세스하려면 SSO로 로그인해야 합니다. 마스터 관리자는 잘못 구성된 SSO를 언제든지 복구할 수 있도록 예외입니다. 프로젝트 자체의 SSO 설정도 여기에 더해 계속 적용됩니다.",
   "Everyone except master admins must sign in with SSO to open any project on this server.": "마스터 관리자를 제외한 모든 사람이 이 서버의 프로젝트를 열려면 SSO로 로그인해야 합니다.",
   "Require SSO for everyone?": "모든 사용자에게 SSO를 필수로 설정하시겠습니까?",
   "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.": "비밀번호로 로그인하는 사람은 SSO를 사용할 때까지 잠기므로, 먼저 SSO 공급자가 모두에게 작동하는지 확인하세요.",

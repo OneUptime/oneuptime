@@ -483,7 +483,7 @@ describe("every translation names the path as its language's Dashboard draws it"
     expect(keys).toEqual(
       expect.arrayContaining([
         "No Slack account added. Connect your Slack account under User Settings > Workspace > Slack, then click 'Add Slack Account'.",
-        "No Microsoft Teams account added. Connect your Microsoft Teams account under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'.",
+        "No Microsoft Teams account added. Connect yours under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'.",
         "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.",
         "You'll now receive OneUptime notifications in Telegram. You can manage event-level toggles under User Settings → Notification Settings.",
         "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.",

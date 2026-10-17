@@ -847,7 +847,6 @@
   "Single Sign-On (SSO)": "Single Sign-On (SSO)",
   "Control whether users must sign in with SSO across this server.": "Controlla se gli utenti devono accedere con l'SSO su tutto questo server.",
   "Require SSO for Login": "Richiedi l'SSO per l'accesso",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "Quando abilitato, tutti gli utenti devono autenticarsi con l'SSO per accedere a qualsiasi progetto su questo server. Gli amministratori principali sono esentati, così possono sempre rimediare a un SSO configurato in modo errato. Le impostazioni SSO di ciascun progetto continuano ad applicarsi in aggiunta.",
   "Everyone except master admins must sign in with SSO to open any project on this server.": "Tutti tranne gli amministratori principali devono accedere con SSO per aprire qualsiasi progetto su questo server.",
   "Require SSO for everyone?": "Richiedere l'SSO per tutti?",
   "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.": "Chi accede con una password resta bloccato finché non usa l'SSO, quindi verifica prima che un provider SSO funzioni per tutti.",

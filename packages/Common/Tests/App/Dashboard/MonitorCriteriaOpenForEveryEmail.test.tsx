@@ -58,11 +58,11 @@ const EVERY_EMAIL_BOTH: string =
 
 // The switch's help, which names what the criteria opens as its label does.
 const HELP_INCIDENT: string =
-  "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.";
+  "Each matching email opens its own incident. Replies are added to it as notes until it is resolved.";
 const HELP_ALERT: string =
-  "Each email that matches opens its own alert, even while earlier ones are open. Replies are added to that alert as notes until it is resolved.";
+  "Each matching email opens its own alert. Replies are added to it as notes until it is resolved.";
 const HELP_BOTH: string =
-  "Each email that matches opens its own incident and alert, even while earlier ones are open. Replies are added to them as notes until they are resolved.";
+  "Each matching email opens its own incident and alert. Replies are added as notes until they are resolved.";
 
 const LOCALES_DIR: string = path.join(
   __dirname,

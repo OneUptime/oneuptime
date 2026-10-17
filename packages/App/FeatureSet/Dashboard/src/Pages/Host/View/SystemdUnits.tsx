@@ -47,7 +47,6 @@ import FilterChipDropdown, {
 } from "../../../Components/ResourceOwners/FilterChipDropdown";
 import {
   HOST_NAME_ATTR,
-  MIN_OTELCOL_CONTRIB_VERSION,
   SYSTEMD_UNIT_STATE_METRIC_NAME,
   SystemdMetricDatapoint,
   SystemdStateMeta,

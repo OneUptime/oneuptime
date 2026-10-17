@@ -82,7 +82,7 @@ export const MESSAGE_QUEUE_OTHER_SYSTEM_LABEL: string =
 export const MESSAGE_QUEUE_OTHER_SYSTEM_FIELD: string = "otherMessagingSystem";
 
 export const MESSAGE_QUEUE_OTHER_SYSTEM_DESCRIPTION: string =
-  'The messaging.system value your spans report for this broker, exactly as written.';
+  "The messaging.system value your spans report for this broker, exactly as written.";
 
 /**
  * The create form's System dropdown: every catalog system, then the "Other

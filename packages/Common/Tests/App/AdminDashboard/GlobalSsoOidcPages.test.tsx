@@ -901,7 +901,7 @@ describe("the provider lists", () => {
       expect(screen.getByText(bannerTitle)).toBeInTheDocument();
       expect(
         screen.getByText(
-          /it works for ALL projects a user is already a member of/,
+          /signs people in to the projects they already belong to/,
         ),
       ).toBeInTheDocument();
       expect(

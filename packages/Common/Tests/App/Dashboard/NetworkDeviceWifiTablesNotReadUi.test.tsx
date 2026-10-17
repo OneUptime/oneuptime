@@ -249,14 +249,9 @@ describe("the Wi-Fi tab of an access point whose probe does not walk tables", ()
       screen.getByText("Update the probe to read Wi-Fi"),
     ).toBeInTheDocument();
     expect(description).toHaveTextContent(
-      "Customer site probe, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables.",
+      "Customer site probe, the probe that polls this device, is older than 14.0.18 and cannot read Wi-Fi tables.",
     );
-    expect(description).toHaveTextContent(
-      "Probes released before version 14.0.18 do not walk SNMP tables.",
-    );
-    expect(description).toHaveTextContent(
-      "Update the probe to the latest version",
-    );
+    expect(description).toHaveTextContent("Update it to see the radios.");
 
     // Not the promise the customer saw.
     expect(
@@ -400,7 +395,7 @@ describe("the Wi-Fi tab of an access point whose tables were polled and hold not
       screen.getByText("The device reported no Wi-Fi radios"),
     ).toBeInTheDocument();
     expect(description).toHaveTextContent(
-      "The device answered the walk of its Wi-Fi tables, but they hold no rows.",
+      "The device's Wi-Fi tables are empty.",
     );
 
     const tablesLink: HTMLElement =

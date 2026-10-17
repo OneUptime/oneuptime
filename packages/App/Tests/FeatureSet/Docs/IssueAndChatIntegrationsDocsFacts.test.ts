@@ -428,7 +428,7 @@ describe("GitHub and GitLab: an issue for every incident", () => {
       'translator.translateText("Connect with GitHub App")',
     );
     expect(repositories).toContain(
-      "They stay in sync as repositories are added to or removed from the installation.",
+      "Install the GitHub App to import every repository in the installation and keep them in sync.",
     );
     expect(new CodeRepository().getCreateBillingPlan()).toBe(PlanType.Growth);
     expect(text).toContain(

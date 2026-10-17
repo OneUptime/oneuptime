@@ -320,7 +320,7 @@ describe("Reset address", () => {
     expect(
       within(dialog).getByTestId("confirm-modal-description"),
     ).toHaveTextContent(
-      "The workflow gets a new address, and the current one stops working at once. Email sent to the current address will be ignored, so give the new one to everything that emails the workflow.",
+      "The workflow gets a new address and the current one stops working at once. Give the new one to everything that emails the workflow.",
     );
     expect(onResetAddress).not.toHaveBeenCalled();
   });

@@ -111,7 +111,7 @@ export const SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION: string = translationKey(
  * the old wording said in capitals; it still says so.
  */
 export const SSO_GLOBAL_RESTRICT_DESCRIPTION: string = translationKey(
-  "Signing in with this provider then meets SSO enforcement only in its attached projects, so people can lose access to the others.",
+  "When on, signing in with this provider meets SSO enforcement only in its attached projects, so people already signed in can lose access to the others.",
 );
 
 export interface SsoProviderFieldOptions {

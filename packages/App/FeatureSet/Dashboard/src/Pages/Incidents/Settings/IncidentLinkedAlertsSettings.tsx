@@ -54,7 +54,7 @@ const IncidentLinkedAlertsSettings: FunctionComponent<ComponentProps> = (
       modelId={projectId}
       cardTitle={translationKey("Linked Alerts")}
       cardDescription={translationKey(
-        "Whether alerts linked to an incident follow it when it is acknowledged or resolved. Alerts never move back to an earlier state.",
+        "Whether alerts linked to an incident follow it when it is acknowledged or resolved. Both are on for new projects. Alerts never move back to an earlier state.",
       )}
       switches={[
         {

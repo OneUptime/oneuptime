@@ -1114,7 +1114,7 @@ describe("Mobile Setup", () => {
       "app://com.example.storefront",
     );
     expect(source("ingestionKeyForm")).toContain(
-      "exact app:// identities authorize mobile replay only",
+      "app:// identities for React Native session replay; app entries cannot use wildcards",
     );
     expect(replay).toContain(
       "**Allowed Origins** list your app as `app://` followed by its Android application ID or iOS bundle ID",

@@ -154,9 +154,9 @@ import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../../Types/ObjectID";
 import UserUtil from "../../../UI/Utils/User";
 
-// What the switch says it does, in every edition (GlobalConfig's own column description).
+// What the switch says it does, in every edition.
 const TOGGLE_DESCRIPTION: string =
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.";
+  "Everyone except master admins must sign in with SSO to open any project on this server.";
 
 // Nothing about the setting depends on an edition or a license.
 const EDITION_OR_LICENSE_WORDING: RegExp =
@@ -311,12 +311,16 @@ describe("Admin Dashboard authentication settings: Require SSO for Login", () =>
     });
   });
 
-  test("the switch says what GlobalConfig documents for the column", () => {
+  /*
+   * The switch says it in one short sentence; GlobalConfig's column, written
+   * for the API reference, keeps the whole story.
+   */
+  test("the switch says who is exempt, as GlobalConfig documents for the column", () => {
+    expect(REQUIRE_SSO_COPY.note).toBe(TOGGLE_DESCRIPTION);
     expect(
       new GlobalConfig().getTableColumnMetadata("requireSsoForLogin")
         .description,
-    ).toBe(TOGGLE_DESCRIPTION);
-    expect(REQUIRE_SSO_COPY.note).toBe(TOGGLE_DESCRIPTION);
+    ).toContain("Master admins are exempt");
   });
 
   // The checks above would catch the retired copy if it came back.

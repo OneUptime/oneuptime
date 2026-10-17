@@ -1235,7 +1235,7 @@ describe("the notify box on the summary step", () => {
     await renderCreate();
 
     expect(fieldFor("isPrivate").description).toContain(
-      "Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.",
+      "It never shows on status pages and takes no public notes.",
     );
   });
 });

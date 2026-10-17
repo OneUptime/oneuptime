@@ -61,7 +61,7 @@ Das sind die Einstellungen unter **Weitere Felder**:
 | Feld | Was es bewirkt |
 | --- | --- |
 | **Transport** | `SMTP` (Standard) oder `Microsoft Graph` für einen Microsoft-365-Mandanten, in dem SMTP AUTH ausgeschaltet ist. Mit Microsoft Graph werden Hostname, Port, Benutzername und Passwort ausgeblendet und die OAuth-Felder angezeigt. |
-| **TLS erzwingen** | Bei einer neuen Projektkonfiguration an. E-Mails werden nur über eine verschlüsselte Verbindung mit gültigem Zertifikat gesendet. Ist dies aus, werden E-Mails nur verschlüsselt, wenn der Server es anbietet, und das Zertifikat wird nicht geprüft. Port 465 ist immer verschlüsselt. |
+| **TLS erzwingen** | Bei einer neuen Projektkonfiguration an. E-Mails nur über eine verschlüsselte Verbindung mit gültigem Zertifikat senden. Port 465 ist immer verschlüsselt. Ist dies aus, werden E-Mails nur verschlüsselt, wenn der Server es anbietet, und das Zertifikat wird nicht geprüft. |
 | **Authentifizierungstyp** | `Username and Password` (Standard), `OAuth` oder `None` für ein Relay, das keine Anmeldung braucht. |
 | **OAuth-Felder** | **OAuth-Anbietertyp**, **OAuth-Client-ID**, **OAuth-Client-Secret**, **OAuth-Token-URL** und **OAuth-Scope**; sie erscheinen, sobald OAuth oder Microsoft Graph gewählt ist. |
 | **Beschreibung** | Eine Notiz für Ihr Team (nur bei Projektkonfigurationen). |

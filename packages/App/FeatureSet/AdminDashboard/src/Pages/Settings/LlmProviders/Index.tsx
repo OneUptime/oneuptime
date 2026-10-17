@@ -164,7 +164,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             placeholder: "sk-...",
             description:
-              "Required for OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq and Mistral. Optional for Ollama and OpenAI-compatible servers.",
+              "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq and Mistral.",
           },
           {
             field: {
@@ -196,7 +196,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               maxLength: ColumnLength.ShortURL,
             },
             description:
-              "Your Azure resource's endpoint, or your server's /v1 endpoint. Required for Azure OpenAI / Microsoft Foundry, Ollama and OpenAI-compatible servers.",
+              "On Azure: https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude. Never put keys here.",
           },
           {
             field: {

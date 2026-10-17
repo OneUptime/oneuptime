@@ -180,7 +180,7 @@ const CARDS: Array<AccountCard> = [
     addButton: "Add Microsoft Teams Account",
     emptyTitle: "No Microsoft Teams account added",
     emptyMessage:
-      "Connect your Microsoft Teams account under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'.",
+      "Connect yours under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'.",
     errorButton: "Open Microsoft Teams Settings",
   },
 ];

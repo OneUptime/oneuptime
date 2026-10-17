@@ -16,7 +16,7 @@ const ProjectBlocked: FunctionComponent = (): ReactElement => {
       id="project-blocked"
       icon={IconProp.Lock}
       title="This project has been blocked"
-      description="An administrator has blocked this project: its monitors, workflows, notifications and API keys are stopped. Contact your administrator."
+      description="An administrator blocked this project and stopped everything in it. Contact them, or switch to another project with the project picker above."
     />
   );
 };

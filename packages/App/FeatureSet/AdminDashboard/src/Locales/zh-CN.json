@@ -847,7 +847,6 @@
   "Single Sign-On (SSO)": "单点登录 (SSO)",
   "Control whether users must sign in with SSO across this server.": "控制此服务器上的所有用户是否都必须使用 SSO 登录。",
   "Require SSO for Login": "登录时要求使用 SSO",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "启用后，所有用户都必须使用 SSO 登录才能访问此服务器上的任何项目。主管理员不受此限制，以便始终能够从错误配置的 SSO 中恢复。项目自身的 SSO 设置仍会在此基础上生效。",
   "Everyone except master admins must sign in with SSO to open any project on this server.": "除主管理员外，所有人都必须通过 SSO 登录才能打开此服务器上的任何项目。",
   "Require SSO for everyone?": "要求所有人使用 SSO 吗？",
   "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.": "使用密码登录的人在使用 SSO 之前都会被锁定，因此请先确认 SSO 提供商对所有人都可用。",

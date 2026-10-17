@@ -436,7 +436,7 @@ describe.each(
       /Leave unset to investigate every (alert|incident), whatever its severity\./,
     );
     expect(dialog.textContent || "").toMatch(
-      /Leave empty for no cooldown, so every (alert|incident) is investigated\./,
+      /Leave empty to investigate every (alert|incident)\./,
     );
     expectNoRetiredDefault(dialog.textContent || "");
     fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
@@ -445,7 +445,7 @@ describe.each(
     dialog = await openEditForm(INVESTIGATION_LIMITS);
     expect(placeholdersIn(dialog)).toEqual(["No limit", "No time limit"]);
     expect(dialog.textContent || "").toMatch(
-      /Leave empty for no limit — every (alert|incident) investigation starts right away\./,
+      /Leave empty for no limit\. Queued ones wait for a free slot for up to 30 minutes\./,
     );
     expectNoRetiredDefault(dialog.textContent || "");
     fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
@@ -454,7 +454,7 @@ describe.each(
     dialog = await openEditForm(DAILY_LIMITS);
     expect(placeholdersIn(dialog)).toEqual(["No limit", "No limit"]);
     expect(dialog.textContent || "").toContain(
-      "Leave empty for no limit, or set 0 to pause",
+      "Leave empty for no limit, or 0 to pause them.",
     );
     expectNoRetiredDefault(dialog.textContent || "");
   });

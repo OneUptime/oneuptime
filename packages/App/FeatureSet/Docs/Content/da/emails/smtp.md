@@ -61,7 +61,7 @@ Det er indstillingerne under **Flere felter**:
 | Felt | Hvad det gør |
 | --- | --- |
 | **Transport** | `SMTP` (standarden) eller `Microsoft Graph` til en Microsoft 365-lejer, hvor SMTP AUTH er slået fra. Valg af Microsoft Graph skjuler værtsnavn, port, brugernavn og adgangskode og viser OAuth-felterne. |
-| **Kræv TLS** | Slået til for en ny projektkonfiguration. Mail sendes kun over en krypteret forbindelse med et gyldigt certifikat. Når dette er slået fra, krypteres mail kun, hvis serveren tilbyder det, og certifikatet kontrolleres ikke. Port 465 er altid krypteret. |
+| **Kræv TLS** | Slået til for en ny projektkonfiguration. Send kun mail over en krypteret forbindelse med et gyldigt certifikat. Port 465 er altid krypteret. Når dette er slået fra, krypteres mail kun, hvis serveren tilbyder det, og certifikatet kontrolleres ikke. |
 | **Godkendelsestype** | `Username and Password` (standarden), `OAuth` eller `None` til et relay, der ikke kræver login. |
 | **OAuth-felter** | **OAuth-udbydertype**, **OAuth-klient-ID**, **OAuth-klienthemmelighed**, **OAuth-token-URL** og **OAuth-omfang**, som vises, når OAuth eller Microsoft Graph er valgt. |
 | **Beskrivelse** | En note til dit team (kun projektkonfigurationer). |

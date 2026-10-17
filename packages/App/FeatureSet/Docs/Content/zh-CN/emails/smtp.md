@@ -61,7 +61,7 @@ flowchart TB
 | 字段 | 作用 |
 | --- | --- |
 | **传输** | `SMTP`（默认），或用于已关闭 SMTP AUTH 的 Microsoft 365 租户的 `Microsoft Graph`。选择 Microsoft Graph 会隐藏主机名、端口、用户名和密码，并显示 OAuth 字段。 |
-| **要求 TLS** | 在新项目配置中默认开启。邮件仅通过使用有效证书的加密连接发送。关闭后，仅在服务器支持时才加密邮件，且不检查证书。端口 465 始终加密。 |
+| **要求 TLS** | 在新项目配置中默认开启。仅通过带有效证书的加密连接发送邮件。465 端口始终加密。关闭后，仅在服务器支持时才加密邮件，且不检查证书。 |
 | **认证类型** | `Username and Password`（默认）、`OAuth`，或用于无需登录的中继的 `None`。 |
 | **OAuth 字段** | **OAuth 提供商类型**、**OAuth 客户端 ID**、**OAuth 客户端密钥**、**OAuth 令牌 URL** 和 **OAuth 范围**，在选择 OAuth 或 Microsoft Graph 后显示。 |
 | **描述** | 给团队的备注（仅项目配置）。 |

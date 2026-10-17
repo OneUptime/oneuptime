@@ -92,7 +92,9 @@ To brytere på leverandøren endrer dette. Begge starter avslått, foldet sammen
 | Bryter | Hva den gjør når den er slått på |
 | --- | --- |
 | **Disable Sign Up with SSO** | Personer må være invitert til et prosjekt før de kan logge inn med denne leverandøren, også når prosjekter er tilknyttet. Ingen nye opprettes ved første pålogging. |
-| **Restrict to Attached Projects** | Pålogging med denne leverandøren oppfyller SSO-kravet bare i prosjektene som er knyttet til den, så personer som allerede er logget inn, kan miste tilgangen til andre prosjekter. Når den er slått av, oppfyller påloggingen kravet i alle prosjekter personen hører til, og tilknyttede prosjekter avgjør bare hvor nye personer legges til. |
+| **Restrict to Attached Projects** | Pålogging med denne leverandøren oppfyller SSO-kravet bare i prosjektene som er knyttet til den, så personer som allerede er logget inn, kan miste tilgangen til andre prosjekter. |
+
+Når **Restrict to Attached Projects** er slått av, oppfyller pålogging med leverandøren SSO-kravet i alle prosjekter personen hører til, og tilknyttede prosjekter avgjør bare hvor nye personer legges til.
 
 ## Håndhev SSO
 

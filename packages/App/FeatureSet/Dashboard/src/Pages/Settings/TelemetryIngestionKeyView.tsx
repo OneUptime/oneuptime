@@ -157,7 +157,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             placeholder:
               '["https://app.example.com", "app://com.example.mobile"]',
             description:
-              'A JSON array of web origins and app:// identities this key may be used from. Required on a Browser key.',
+              "A JSON array of web origins and app:// identities this key may be used from; app entries cannot use wildcards. Required on a Browser key.",
           },
           {
             field: {

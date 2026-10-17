@@ -876,7 +876,7 @@ describe("SharedCalendarFeedCard empty state", () => {
     ).toHaveTextContent(SHARED_FEED_EMPTY_TITLE);
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-empty-description"),
-    ).toHaveTextContent("anyone with the link sees everyone's shifts on it");
+    ).toHaveTextContent("Anyone with the link sees everyone's shifts");
 
     expect(
       within(
@@ -979,7 +979,7 @@ describe("SharedCalendarFeedCard empty state", () => {
     // The panel still explains the feature; only the action is withheld.
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-empty-description"),
-    ).toHaveTextContent("anyone with the link sees everyone's shifts on it");
+    ).toHaveTextContent("Anyone with the link sees everyone's shifts");
   });
 
   test("a reader with no permissions at all gets the 'ask an editor' note there instead", async () => {

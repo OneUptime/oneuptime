@@ -847,7 +847,6 @@
   "Single Sign-On (SSO)": "ورود یکپارچه (SSO)",
   "Control whether users must sign in with SSO across this server.": "تعیین کنید که آیا کاربران باید در سراسر این سرور با SSO وارد شوند یا نه.",
   "Require SSO for Login": "الزامی کردن SSO برای ورود",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "وقتی فعال باشد، همه کاربران برای دسترسی به هر پروژه‌ای در این سرور باید با SSO وارد شوند. مدیران ارشد مستثنا هستند تا همیشه بتوانند یک SSO با پیکربندی نادرست را اصلاح کنند. تنظیمات SSO خود هر پروژه همچنان علاوه بر این اعمال می‌شود.",
   "Everyone except master admins must sign in with SSO to open any project on this server.": "همه به‌جز مدیران ارشد برای باز کردن هر پروژه‌ای در این سرور باید با SSO وارد شوند.",
   "Require SSO for everyone?": "SSO برای همه الزامی شود؟",
   "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.": "هر کسی که با گذرواژه وارد شود تا زمانی که از SSO استفاده نکند قفل می‌ماند، پس ابتدا بررسی کنید که یک ارائه‌دهنده SSO برای همه کار کند.",

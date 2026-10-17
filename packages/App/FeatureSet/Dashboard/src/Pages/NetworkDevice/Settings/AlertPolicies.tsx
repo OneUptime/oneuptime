@@ -284,13 +284,13 @@ export const RECOMMENDED_POLICY_EMPTY_STATE: string = translationKey(
 );
 
 export const RECOMMENDED_POLICY_CONFIRM: string = translationKey(
-  'This adds the "Alert on every device" policy and its monitor template. It adds one monitor per device, each counted towards your plan.',
+  'This adds the "Alert on every device" policy and its monitor template: one monitor per device, each counted towards your plan.',
 );
 
 export const RECOMMENDED_POLICY_CONFIRM_COUNTED: PluralTemplate = {
-  one: 'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitor today. You can narrow the policy to some devices afterwards.',
+  one: 'This adds the "Alert on every device" policy and its monitor template: up to {{count}} monitor today, one per device, each counted towards your plan.',
   other:
-    'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards.',
+    'This adds the "Alert on every device" policy and its monitor template: up to {{count}} monitors today, one per device, each counted towards your plan.',
 };
 
 export interface RecommendedPolicyEmptyStateProps {

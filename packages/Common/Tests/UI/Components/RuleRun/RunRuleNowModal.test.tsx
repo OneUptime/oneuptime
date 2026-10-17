@@ -70,7 +70,7 @@ describe("RunRuleNowModal", () => {
       'Run "Tag production" Now',
     );
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-      "attach its labels to the ones it matches",
+      "Attach this rule's labels to the existing monitors it matches",
     );
     expect(
       screen.queryByTestId("run-rule-notify-owners-checkbox"),

@@ -311,7 +311,7 @@ const MessageQueues: FunctionComponent<
         cardProps={{
           title: "Queues",
           description:
-            "Every queue, topic and subscription your applications use, discovered from their messaging spans and your brokers' metrics, or added by hand.",
+            "Every queue, topic and subscription your applications use, discovered from their OpenTelemetry messaging spans and your brokers' metrics, or added by hand.",
         }}
         formSteps={[
           { title: "Messaging System", id: "messaging-system" },
@@ -662,7 +662,7 @@ const MessageQueues: FunctionComponent<
       {count === 0 && (
         <MessageQueueDocumentationCard
           title="Getting Started with Queues"
-          description="No queues yet. They appear when your instrumented apps send or receive messages, or your broker's metrics arrive. Pick your messaging system below to set it up."
+          description="No queues yet. They appear once your apps use them or your broker's metrics arrive. Add one by hand above, or pick your messaging system below."
         />
       )}
       {labelBulkActionModals}

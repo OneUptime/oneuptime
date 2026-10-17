@@ -50,7 +50,7 @@ const GERMAN: Record<string, string> = {
   "Project Settings → Advanced → API Keys":
     "Projekteinstellungen → Erweitert → API-Schlüssel",
   "Connected {{date}}": "Verbunden am {{date}}",
-  'Disconnect "{{name}}"? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.':
+  'Disconnect "{{name}}"? It is signed out at once and must connect again to work here. Nothing it created is deleted.':
     "„{{name}}“ trennen? Er wird sofort abgemeldet und muss neu verbunden werden. Nichts, was er erstellt hat, wird gelöscht.",
   "Add the server, then run {{command}} inside Claude Code and choose OneUptime to sign in:":
     "Fügen Sie den Server hinzu, führen Sie in Claude Code {{command}} aus und wählen Sie OneUptime zum Anmelden:",
@@ -390,7 +390,7 @@ describe("Settings > MCP Server in German", () => {
       await mockTableProps!.getDeleteConfirmation!(unnamed);
 
     expect(confirmation.description).toBe(
-      "Disconnect this MCP client? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.",
+      "Disconnect this MCP client? It is signed out at once and must connect again to work here. Nothing it created is deleted.",
     );
   });
 });

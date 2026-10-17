@@ -236,7 +236,7 @@ const getAllowedOriginsField: GetAllowedOriginsFieldFunction = (data: {
     },
     placeholder: '["https://app.example.com", "app://com.example.mobile"]',
     description:
-      'A JSON array of web origins (with scheme and port) and app:// identities for React Native session replay.',
+      "A JSON array of web origins (with scheme and port) and app:// identities for React Native session replay; app entries cannot use wildcards.",
   };
 };
 

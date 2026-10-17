@@ -847,7 +847,6 @@
   "Single Sign-On (SSO)": "सिंगल साइन-ऑन (SSO)",
   "Control whether users must sign in with SSO across this server.": "नियंत्रित करें कि इस पूरे सर्वर पर उपयोगकर्ताओं को SSO से साइन इन करना होगा या नहीं।",
   "Require SSO for Login": "लॉगिन के लिए SSO अनिवार्य करें",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "सक्षम होने पर, इस सर्वर के किसी भी प्रोजेक्ट तक पहुँचने के लिए सभी उपयोगकर्ताओं को SSO से साइन इन करना होगा। मास्टर एडमिन को छूट है, ताकि वे गलत तरीके से कॉन्फ़िगर किए गए SSO को हमेशा ठीक कर सकें। किसी प्रोजेक्ट की अपनी SSO सेटिंग्स इसके अतिरिक्त भी लागू रहती हैं।",
   "Everyone except master admins must sign in with SSO to open any project on this server.": "मास्टर एडमिन को छोड़कर सभी को इस सर्वर पर कोई भी प्रोजेक्ट खोलने के लिए SSO से साइन इन करना होगा।",
   "Require SSO for everyone?": "सभी के लिए SSO अनिवार्य करें?",
   "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.": "पासवर्ड से साइन इन करने वाला हर व्यक्ति SSO इस्तेमाल करने तक लॉक रहता है, इसलिए पहले जाँचें कि SSO प्रदाता सबके लिए काम करता है।",

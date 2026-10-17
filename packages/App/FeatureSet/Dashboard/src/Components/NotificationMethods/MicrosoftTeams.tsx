@@ -168,7 +168,7 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
           ],
         }}
         noItemsMessage={
-          "No Microsoft Teams account yet. Connect yours in User Settings > Workspace > Microsoft Teams first."
+          "No Microsoft Teams account added. Connect yours under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'."
         }
         showRefreshButton={true}
         filters={[]}

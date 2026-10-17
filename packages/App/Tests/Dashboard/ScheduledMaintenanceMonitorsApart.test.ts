@@ -92,7 +92,7 @@ const TEMPLATE_OTHER_TYPES: Array<string> = [
 ];
 
 const TEMPLATE_STATUS_DESCRIPTION: string =
-  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.";
+  "The status the event's monitors change to while it is ongoing, including monitors picked when it is scheduled.";
 
 const EVENT_STATUS_DESCRIPTION: string =
   "When the event starts, its monitors change to this status, and back to operational when it ends.";
@@ -700,7 +700,7 @@ describe("the split's copy, in every language", () => {
     "Change Monitor Status to",
     "Search monitors...",
     "Search and attach the monitors affected by this scheduled maintenance.",
-    "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
+    "Hosts, clusters, databases, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
     EVENT_STATUS_DESCRIPTION,
     STARTED_DESCRIPTION,
     "No monitors affected by this scheduled maintenance event.",

@@ -847,7 +847,6 @@
   "Single Sign-On (SSO)": "シングルサインオン（SSO）",
   "Control whether users must sign in with SSO across this server.": "このサーバー全体で、ユーザーに SSO でのサインインを必須にするかどうかを設定します。",
   "Require SSO for Login": "ログインに SSO を必須にする",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "有効にすると、このサーバー上のプロジェクトにアクセスするには、すべてのユーザーが SSO でサインインする必要があります。マスター管理者は、誤って構成された SSO からいつでも復旧できるよう対象外です。各プロジェクト独自の SSO 設定も引き続き追加で適用されます。",
   "Everyone except master admins must sign in with SSO to open any project on this server.": "マスター管理者以外の全員が、このサーバーのプロジェクトを開くには SSO でサインインする必要があります。",
   "Require SSO for everyone?": "すべてのユーザーに SSO を必須にしますか？",
   "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.": "パスワードでサインインする人は SSO を使うまでロックアウトされるため、先に SSO プロバイダーが全員に使えることを確認してください。",

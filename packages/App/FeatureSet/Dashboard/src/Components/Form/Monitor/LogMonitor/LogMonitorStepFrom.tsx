@@ -158,7 +158,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.CustomComponent,
             title: "Group by Attributes",
             description:
-              "Open a separate alert or incident for each combination of these values, such as one per IPsec tunnel.",
+              "Open a separate alert or incident per combination of these values, such as one per IPsec tunnel. Leave empty to count every matching log together.",
             hideOptionalLabel: true,
             getCustomElement: (
               values: FormValues<MonitorStepLogMonitor>,
@@ -191,7 +191,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Dictionary,
             title: "Resolved by Attributes",
             description:
-              "Keep a group's alert or incident open until a log with these attributes arrives, such as event.name = interface.up.",
+              "Keep a group's alert or incident open until a log with these attributes arrives. Leave empty to resolve a group when its logs stop.",
             jsonKeysForDictionary: props.attributeKeys,
             isLoadingDictionaryKeys: props.isLoadingAttributeKeys,
             dictionaryValueSuggestions: props.attributeValueSuggestions,

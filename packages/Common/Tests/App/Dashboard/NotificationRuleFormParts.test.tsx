@@ -732,7 +732,7 @@ describe("the Destination step, as a reader meets it", () => {
     // Which chats are listed, and what to do about a missing or old one.
     expect(
       screen.getByText(
-        "Chats the OneUptime app was added to. To list another chat, add the OneUptime app to it in Microsoft Teams. If a group chat shows its members' names or an old name, click Refresh Chats in Project Settings > Workspace > Microsoft Teams.",
+        "Chats the OneUptime app was added to in Microsoft Teams. Wrong names? Click Refresh Chats in Project Settings > Workspace > Microsoft Teams.",
       ),
     ).toBeVisible();
   });

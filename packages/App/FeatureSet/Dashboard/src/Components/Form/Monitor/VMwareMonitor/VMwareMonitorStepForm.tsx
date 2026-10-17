@@ -426,9 +426,7 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="VMware Metric"
-            description={
-              "A vCenter metric, grouped by vSphere object."
-            }
+            description={"A vCenter metric, grouped by vSphere object."}
             required={true}
           />
           <VMwareMetricPicker

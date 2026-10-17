@@ -159,7 +159,7 @@ const HOST_ID: string = "44444444-4444-4444-8444-000000000001";
 const SERVICE_ID: string = "45444444-4444-4444-8444-000000000001";
 
 const TEMPLATE_STATUS_DESCRIPTION: string =
-  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.";
+  "The status the incident's monitors change to, including monitors picked when it is declared.";
 
 // The template's own relations: a template holds these five besides monitors.
 const TEMPLATE_OTHER_TYPES: Array<string> = [

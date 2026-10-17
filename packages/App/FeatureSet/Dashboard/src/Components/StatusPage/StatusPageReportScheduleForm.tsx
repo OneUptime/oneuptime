@@ -190,8 +190,7 @@ export const getReportScheduleFormFields: () => Fields<StatusPage> =
           reportDataInDays: true,
         },
         title: "How many days of data should the report cover?",
-        description:
-          "Counted back from when the report is sent.",
+        description: "Counted back from when the report is sent.",
         fieldType: FormFieldSchemaType.Number,
         required: true,
         validation: {

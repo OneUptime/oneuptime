@@ -847,7 +847,6 @@
   "Single Sign-On (SSO)": "Единый вход (SSO)",
   "Control whether users must sign in with SSO across this server.": "Определите, должны ли пользователи входить через SSO на всём этом сервере.",
   "Require SSO for Login": "Требовать SSO для входа",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "Если включено, все пользователи должны входить через SSO, чтобы получить доступ к любому проекту на этом сервере. Главные администраторы освобождены от этого требования, чтобы всегда могли исправить неправильно настроенный SSO. Собственные настройки SSO проекта по-прежнему применяются дополнительно.",
   "Everyone except master admins must sign in with SSO to open any project on this server.": "Все, кроме главных администраторов, должны входить через SSO, чтобы открыть любой проект на этом сервере.",
   "Require SSO for everyone?": "Требовать SSO для всех?",
   "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.": "Любой, кто входит по паролю, будет заблокирован, пока не воспользуется SSO, поэтому сначала убедитесь, что поставщик SSO работает для всех.",

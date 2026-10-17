@@ -52,8 +52,8 @@ const NEW_STRINGS: Array<string> = [
   "The port your provider gives you, usually 587. Port 465 is always encrypted.",
   "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.",
   "The account's password, or the API key your provider gives you for SMTP.",
-  "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.",
-  "Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted.",
+  "SMTP works with most mail servers. Pick Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off.",
+  "Send mail only over an encrypted connection with a valid certificate. Port 465 is always encrypted.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.",
   // What the folded Advanced header says.
   "Mail is sent over SMTP, signing in with the username and password.",
