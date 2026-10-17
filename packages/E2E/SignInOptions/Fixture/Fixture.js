@@ -181,6 +181,11 @@ const loadAccountsPage = async () => {
       return import("../../../App/FeatureSet/Accounts/src/Pages/Register");
     },
   };
+  // The name comes from the address: only the pages above are loaded.
+  if (!Object.prototype.hasOwnProperty.call(pages, page)) {
+    throw new Error(`No such page in this fixture: ${page}`);
+  }
+
   const [i18nModule, pageModule] = await Promise.all([
     import("../../../App/FeatureSet/Accounts/src/Utils/i18n"),
     pages[page](),

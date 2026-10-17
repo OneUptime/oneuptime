@@ -4129,14 +4129,16 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Telegram's HTML parse_mode supports <b>, <i>, <a>, <code>. Only <, >, and &
-   * need escaping inside those tags' text content.
+   * Telegram's HTML parse_mode supports <b>, <i>, <a>, <code>. <, > and &
+   * need escaping in those tags' text content; a value also goes inside an
+   * <a href="..."> attribute, so " is escaped as well (Telegram reads &quot;).
    */
   private escapeTelegramHtml(value: string): string {
     return value
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   @CaptureSpan()
