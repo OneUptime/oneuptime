@@ -31,6 +31,8 @@ interface SamlRoute {
   file: string;
   builder: string;
   providerKind: string;
+  // The provider record the route's lookup found, which the use is kept under.
+  storedProviderId: string;
   // What the route looks the signing-in person up with.
   firstLookup: string;
   // The route that starts a sign-in, and the one the IdP posts to.
@@ -43,6 +45,7 @@ const SAML_ROUTES: Array<SamlRoute> = [
     file: "SSO.ts",
     builder: "SamlServiceProviders.forProjectSso(",
     providerKind: "SamlProviderKind.ProjectSso",
+    storedProviderId: "projectSSO.id!",
     firstLookup: "UserService.findOneBy(",
     startRoute: '"/sso/:projectId/:projectSsoId"',
     replyRoute: '"/idp-login/:projectId/:projectSsoId"',
@@ -51,6 +54,7 @@ const SAML_ROUTES: Array<SamlRoute> = [
     file: "GlobalSSO.ts",
     builder: "SamlServiceProviders.forGlobalSso(",
     providerKind: "SamlProviderKind.GlobalSso",
+    storedProviderId: "globalSso.id!",
     firstLookup: "GlobalSSOProjectService.findBy(",
     startRoute: '"/global-sso/:globalSsoId"',
     replyRoute: '"/global-idp-login/:globalSsoId"',
@@ -59,11 +63,15 @@ const SAML_ROUTES: Array<SamlRoute> = [
     file: "StatusPageSSO.ts",
     builder: "SamlServiceProviders.forStatusPageSso(",
     providerKind: "SamlProviderKind.StatusPageSso",
+    storedProviderId: "statusPageSSO.id!",
     firstLookup: "StatusPagePrivateUserService.findOneBy(",
     startRoute: '"/status-page-sso/:statusPageId/:statusPageSsoId"',
     replyRoute: '"/status-page-idp-login/:statusPageId/:statusPageSsoId"',
   },
 ];
+
+// A select whose first column is the record's own id.
+const SELECT_STARTS_WITH_ID: RegExp = /^_id: true,/;
 
 function read(file: string): string {
   return fs.readFileSync(file, "utf8");
@@ -203,6 +211,44 @@ describe.each(SAML_ROUTES)("$file", (route: SamlRoute) => {
 
     // Exactly once.
     expect(source.split("SamlAssertionOneTimeUse.claim(").length).toBe(2);
+  });
+
+  /*
+   * A Reply URL can spell its ids in more than one way that finds the same
+   * provider (upper case, no hyphens, braces: Postgres reads them all as
+   * the same uuid). The use is kept under the provider record the lookup
+   * found, so that however the URL was written there is one record per
+   * provider - never under the URL's own text.
+   */
+  test("keeps the use under the provider record its lookup found, not the URL's spelling of the id", () => {
+    const claim: string = between(
+      source,
+      "SamlAssertionOneTimeUse.claim(",
+      "});",
+    );
+
+    expect(claim).toContain(`providerId: ${route.storedProviderId},`);
+    expect(claim).not.toContain("req.params");
+  });
+
+  test("reads the provider record's id in the lookup that finds it for a response", () => {
+    const verifiedAt: number = source.indexOf(
+      "SSOUtil.getSamlResponseFromXML(",
+    );
+    const lookupAt: number = source.lastIndexOf("findOneBy({", verifiedAt);
+
+    expect(lookupAt).toBeGreaterThan(0);
+
+    const select: string = between(
+      source.substring(lookupAt, verifiedAt),
+      "select: {",
+      "}",
+    );
+
+    // The record's own id, not only a relation's (teams: { _id: true }).
+    expect(select.substring("select: {".length).trim()).toMatch(
+      SELECT_STARTS_WITH_ID,
+    );
   });
 
   test("starts a sign-in with the Entity ID and Reply URL from the same builder", () => {

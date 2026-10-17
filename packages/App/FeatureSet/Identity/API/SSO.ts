@@ -385,6 +385,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         isEnabled: true,
       },
       select: {
+        _id: true,
         signOnURL: true,
         issuerURL: true,
         publicCertificate: true,
@@ -478,12 +479,14 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     /*
      * One sign-in per response: a response posted again - kept from an
      * earlier sign-in, or sent twice - is refused before anyone is looked
-     * up, created or signed in.
+     * up, created or signed in. Remembered under the provider the lookup
+     * found, not under the Reply URL's spelling of its id, so no other way
+     * of writing that URL starts a second record.
      */
     try {
       await SamlAssertionOneTimeUse.claim({
         providerKind: SamlProviderKind.ProjectSso,
-        providerId: req.params["projectSsoId"],
+        providerId: projectSSO.id!,
         assertion: verifiedSaml,
       });
     } catch (err: unknown) {

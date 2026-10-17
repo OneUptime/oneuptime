@@ -325,6 +325,7 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         isEnabled: true,
       },
       select: {
+        _id: true,
         signOnURL: true,
         issuerURL: true,
         publicCertificate: true,
@@ -473,12 +474,14 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     /*
      * One sign-in per response: a response posted again - kept from an
      * earlier sign-in, or sent twice - is refused before anyone is looked
-     * up, created, added to a project or signed in.
+     * up, created, added to a project or signed in. Remembered under the
+     * provider the lookup found, not under the Reply URL's spelling of its
+     * id, so no other way of writing that URL starts a second record.
      */
     try {
       await SamlAssertionOneTimeUse.claim({
         providerKind: SamlProviderKind.GlobalSso,
-        providerId: globalSsoId,
+        providerId: globalSso.id!,
         assertion: verifiedSaml,
       });
     } catch (err: unknown) {

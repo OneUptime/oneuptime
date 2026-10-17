@@ -271,12 +271,14 @@ router.post(
       /*
        * One sign-in per response: a response posted again - kept from an
        * earlier sign-in, or sent twice - is refused before any private user
-       * is looked up, created or signed in.
+       * is looked up, created or signed in. Remembered under the provider
+       * the lookup found, not under the Reply URL's spelling of its id, so
+       * no other way of writing that URL starts a second record.
        */
       try {
         await SamlAssertionOneTimeUse.claim({
           providerKind: SamlProviderKind.StatusPageSso,
-          providerId: req.params["statusPageSsoId"],
+          providerId: statusPageSSO.id!,
           assertion: verifiedSaml,
         });
       } catch (err: unknown) {

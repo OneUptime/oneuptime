@@ -31,6 +31,7 @@ import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import UUIDColumnFilter from "Common/Server/Types/Database/UUIDColumnFilter";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 import zlib from "zlib";
 
@@ -619,10 +620,16 @@ const resRedirect: jest.Mock = jest.fn();
 async function post(
   flow: Flow,
   samlResponse: string,
-  options: { relayState?: string | undefined } = {},
+  options: {
+    relayState?: string | undefined;
+    // The Reply URL's ids as this request spells them (default: the flow's).
+    params?: Record<string, string> | undefined;
+    // The Reply URL's GET route takes a response too (project and Global).
+    method?: "POST" | "GET" | undefined;
+  } = {},
 ): Promise<PostResult> {
   const req: ExpressRequest = {
-    params: flow.params,
+    params: options.params || flow.params,
     body: {
       SAMLResponse: samlResponse,
       ...(options.relayState ? { RelayState: options.relayState } : {}),
@@ -652,7 +659,7 @@ async function post(
 
   let nextError: unknown = undefined;
 
-  await (handlerFor(flow.router, "POST", flow.path)(
+  await (handlerFor(flow.router, options.method || "POST", flow.path)(
     req,
     res,
     (err?: unknown): void => {
@@ -1325,3 +1332,515 @@ describe("project SAML from the mobile app", () => {
     expectNobodySignedIn(flow);
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * WAYS AROUND "ONCE": THE SAME RESPONSE, PRESENTED ANOTHER WAY.
+ *
+ * A used response is remembered by its assertion's ID, under the provider
+ * that took it. Nothing below changes either, so none of it signs anyone in
+ * a second time:
+ *
+ *   - the Reply URL with the provider's id spelled another way that still
+ *     finds the same provider: upper case, without hyphens, in braces, with
+ *     hyphens elsewhere - every spelling Postgres reads as the same uuid;
+ *   - the project's or status page's id spelled another way;
+ *   - the same signed assertion in a re-made Response: another Response ID,
+ *     no Destination or InResponseTo, other whitespace around the assertion;
+ *   - the same document base64-encoded another way;
+ *   - the Reply URL's GET route after its POST route, or the other way round;
+ *   - several posts of it at once.
+ *
+ * The provider lookups here answer as the database does: for any spelling
+ * of the stored provider's ids, and for nothing else.
+ * ---------------------------------------------------------------------------
+ */
+
+// The uuid Postgres reads `text` as (lower case, no hyphens), or null.
+function uuidPostgresReads(text: unknown): string | null {
+  const value: string = String(text);
+
+  // What the API lets through to Postgres as an id at all.
+  if (!UUIDColumnFilter.isUUIDText(value)) {
+    return null;
+  }
+
+  const unbraced: string =
+    value.startsWith("{") && value.endsWith("}") ? value.slice(1, -1) : value;
+
+  return unbraced.split("-").join("").toLowerCase();
+}
+
+function namesStoredId(value: unknown, storedId: string): boolean {
+  const read: string | null = uuidPostgresReads(value);
+
+  return read !== null && read === uuidPostgresReads(storedId);
+}
+
+interface IdSpelling {
+  name: string;
+  spell: (id: string) => string;
+}
+
+const ID_SPELLINGS: Array<IdSpelling> = [
+  {
+    name: "in upper case",
+    spell: (id: string): string => {
+      return id.toUpperCase();
+    },
+  },
+  {
+    name: "without hyphens",
+    spell: (id: string): string => {
+      return id.split("-").join("");
+    },
+  },
+  {
+    name: "in braces",
+    spell: (id: string): string => {
+      return `{${id}}`;
+    },
+  },
+  {
+    name: "with a hyphen after every four digits",
+    spell: (id: string): string => {
+      const digits: string = id.split("-").join("");
+      const groups: Array<string> = [];
+
+      for (let at: number = 0; at < digits.length; at += 4) {
+        groups.push(digits.substring(at, at + 4));
+      }
+
+      return groups.join("-");
+    },
+  },
+  {
+    name: "in braces and upper case",
+    spell: (id: string): string => {
+      return `{${id.toUpperCase()}}`;
+    },
+  },
+];
+
+interface Encoding {
+  name: string;
+  encode: (base64: string) => string;
+}
+
+// The same document, base64-encoded the other ways a decoder takes.
+const ENCODINGS: Array<Encoding> = [
+  {
+    name: "in 76-character lines",
+    encode: (base64: string): string => {
+      const lines: Array<string> = [];
+
+      for (let at: number = 0; at < base64.length; at += 76) {
+        lines.push(base64.substring(at, at + 76));
+      }
+
+      return lines.join("\r\n");
+    },
+  },
+  {
+    name: "in the URL-safe alphabet, unpadded",
+    encode: (base64: string): string => {
+      return base64
+        .split("+")
+        .join("-")
+        .split("/")
+        .join("_")
+        .split("=")
+        .join("");
+    },
+  },
+];
+
+// The Reply URL's own provider id, and its project's or status page's id.
+function providerIdParam(flow: Flow): string {
+  return Object.keys(flow.params).find((name: string): boolean => {
+    return name.endsWith("SsoId");
+  })!;
+}
+
+function parentIdParam(flow: Flow): string | null {
+  return (
+    Object.keys(flow.params).find((name: string): boolean => {
+      return !name.endsWith("SsoId");
+    }) || null
+  );
+}
+
+function withParam(
+  flow: Flow,
+  name: string,
+  spell: (id: string) => string,
+): Record<string, string> {
+  return { ...flow.params, [name]: spell(flow.params[name]!) };
+}
+
+function hasGetReplyRoute(flow: Flow): boolean {
+  try {
+    handlerFor(flow.router, "GET", flow.path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// How many sign-ins have been made since the mocks were last cleared.
+function signInCount(): number {
+  return (
+    createSession.mock.calls.length + createLoginCodeSession.mock.calls.length
+  );
+}
+
+function alreadyUsedRefusals(): number {
+  return sendErrorResponse.mock.calls.filter(
+    (call: Array<unknown>): boolean => {
+      return (
+        (call[2] as Exception).message === SAML_RESPONSE_ALREADY_USED_MESSAGE
+      );
+    },
+  ).length;
+}
+
+// Edits a document; the text must be in it exactly once.
+function replaceOnce(
+  text: string,
+  search: string,
+  replacement: string,
+): string {
+  const at: number = text.indexOf(search);
+
+  if (at < 0 || text.indexOf(search, at + 1) >= 0) {
+    throw new Error(`Test setup error: ${search} is not in the text once`);
+  }
+
+  return (
+    text.substring(0, at) + replacement + text.substring(at + search.length)
+  );
+}
+
+/*
+ * The same signed assertion, in a Response re-made around it: another
+ * Response ID, no Destination or InResponseTo, a line break before the
+ * assertion. Only the assertion is signed, so all of that is the sender's to
+ * change, and the result is a valid response in its own right.
+ */
+function remade(response: string, replyUrl: string): string {
+  const xml: string = Buffer.from(response, "base64").toString("utf8");
+  const startTagEnd: number = xml.indexOf(">");
+  let startTag: string = xml.substring(0, startTagEnd);
+
+  const idAt: number = startTag.indexOf(' ID="');
+  const idEnd: number = startTag.indexOf('"', idAt + ' ID="'.length);
+
+  startTag =
+    startTag.substring(0, idAt) +
+    ' ID="_response_made_again"' +
+    startTag.substring(idEnd + 1);
+  startTag = replaceOnce(startTag, ` Destination="${replyUrl}"`, "");
+  startTag = replaceOnce(startTag, ' InResponseTo="_request_1"', "");
+
+  return toBase64(
+    replaceOnce(
+      startTag + xml.substring(startTagEnd),
+      "</samlp:Status><saml:Assertion",
+      "</samlp:Status>\n  <saml:Assertion",
+    ),
+  );
+}
+
+describe.each(FLOWS)(
+  "$name - the same response presented another way",
+  (flow: Flow) => {
+    // Whether the last provider lookup found the stored provider.
+    let providerFound: boolean = false;
+
+    beforeEach(() => {
+      setTestBillingEnabled(flow.billing);
+      providerFound = false;
+
+      const answer: (
+        stored: (...args: Array<unknown>) => unknown,
+        findBy: { query: JSONObject },
+        ids: Record<string, string>,
+      ) => Promise<unknown> = (
+        stored: (...args: Array<unknown>) => unknown,
+        findBy: { query: JSONObject },
+        ids: Record<string, string>,
+      ): Promise<unknown> => {
+        providerFound = Object.keys(ids).every((column: string): boolean => {
+          return namesStoredId(findBy.query[column], ids[column]!);
+        });
+
+        return providerFound
+          ? (stored(findBy) as Promise<unknown>)
+          : Promise.resolve(null);
+      };
+
+      const storedProjectSso: (...args: Array<unknown>) => unknown =
+        projectSsoFindOneBy.getMockImplementation()!;
+
+      projectSsoFindOneBy.mockImplementation(
+        (findBy: { query: JSONObject }): Promise<unknown> => {
+          return answer(storedProjectSso, findBy, {
+            _id: PROJECT_SSO_ID,
+            projectId: PROJECT_ID,
+          });
+        },
+      );
+
+      const storedGlobalSso: (...args: Array<unknown>) => unknown =
+        globalSsoFindOneBy.getMockImplementation()!;
+
+      globalSsoFindOneBy.mockImplementation(
+        (findBy: { query: JSONObject }): Promise<unknown> => {
+          return answer(storedGlobalSso, findBy, { _id: GLOBAL_SSO_ID });
+        },
+      );
+
+      const storedStatusPageSso: (...args: Array<unknown>) => unknown =
+        statusPageSsoFindOneBy.getMockImplementation()!;
+
+      statusPageSsoFindOneBy.mockImplementation(
+        (findBy: { query: JSONObject }): Promise<unknown> => {
+          return answer(storedStatusPageSso, findBy, {
+            _id: STATUS_PAGE_SSO_ID,
+            statusPageId: STATUS_PAGE_ID,
+          });
+        },
+      );
+    });
+
+    function freshResponse(): string {
+      return signedResponse({
+        audience: flow.provider.entityId,
+        replyUrl: flow.provider.replyUrl,
+      });
+    }
+
+    test.each(ID_SPELLINGS)(
+      "posted again with the provider's id $name, it finds the provider and signs nobody in",
+      async (spelling: IdSpelling) => {
+        const response: string = freshResponse();
+
+        await post(flow, response);
+        expect(flow.signedIn()).toBe(true);
+
+        jest.clearAllMocks();
+
+        await post(flow, response, {
+          params: withParam(flow, providerIdParam(flow), spelling.spell),
+        });
+
+        expect(providerFound).toBe(true);
+        expectNobodySignedIn(flow);
+        expect(refusalMessage()).not.toBeNull();
+      },
+    );
+
+    test.each(ID_SPELLINGS)(
+      "posted with the provider's id $name and then as given, it signs in once between them",
+      async (spelling: IdSpelling) => {
+        const response: string = freshResponse();
+
+        await post(flow, response, {
+          params: withParam(flow, providerIdParam(flow), spelling.spell),
+        });
+
+        expect(providerFound).toBe(true);
+
+        await post(flow, response);
+
+        expect(signInCount()).toBe(1);
+      },
+    );
+
+    if (parentIdParam(flow)) {
+      test.each(ID_SPELLINGS)(
+        "posted again with the parent id $name, it signs nobody in",
+        async (spelling: IdSpelling) => {
+          const response: string = freshResponse();
+
+          await post(flow, response);
+          expect(flow.signedIn()).toBe(true);
+
+          jest.clearAllMocks();
+
+          await post(flow, response, {
+            params: withParam(flow, parentIdParam(flow)!, spelling.spell),
+          });
+
+          expect(providerFound).toBe(true);
+          expectNobodySignedIn(flow);
+          expect(refusalMessage()).not.toBeNull();
+        },
+      );
+    }
+
+    test("the same signed assertion in a re-made Response signs in on its own", async () => {
+      await post(flow, remade(freshResponse(), flow.provider.replyUrl));
+
+      expect(refusalMessage()).toBeNull();
+      expect(flow.signedIn()).toBe(true);
+    });
+
+    test("the same signed assertion in a re-made Response, posted after the original, signs nobody in", async () => {
+      const response: string = freshResponse();
+
+      await post(flow, response);
+      expect(flow.signedIn()).toBe(true);
+
+      jest.clearAllMocks();
+
+      await post(flow, remade(response, flow.provider.replyUrl));
+
+      expectNobodySignedIn(flow);
+      expect(refusalMessage()).toBe(SAML_RESPONSE_ALREADY_USED_MESSAGE);
+    });
+
+    test.each(ENCODINGS)(
+      "the document base64-encoded $name signs in on its own",
+      async (encoding: Encoding) => {
+        await post(flow, encoding.encode(freshResponse()));
+
+        expect(refusalMessage()).toBeNull();
+        expect(flow.signedIn()).toBe(true);
+      },
+    );
+
+    test.each(ENCODINGS)(
+      "the document base64-encoded $name, posted after the original, signs nobody in",
+      async (encoding: Encoding) => {
+        const response: string = freshResponse();
+
+        await post(flow, response);
+        expect(flow.signedIn()).toBe(true);
+
+        jest.clearAllMocks();
+
+        await post(flow, encoding.encode(response));
+
+        expectNobodySignedIn(flow);
+        expect(refusalMessage()).toBe(SAML_RESPONSE_ALREADY_USED_MESSAGE);
+      },
+    );
+
+    if (hasGetReplyRoute(flow)) {
+      test("posted, then sent to the Reply URL's GET route, it signs nobody in", async () => {
+        const response: string = freshResponse();
+
+        await post(flow, response);
+        expect(flow.signedIn()).toBe(true);
+
+        jest.clearAllMocks();
+
+        await post(flow, response, { method: "GET" });
+
+        expectNobodySignedIn(flow);
+        expect(refusalMessage()).toBe(SAML_RESPONSE_ALREADY_USED_MESSAGE);
+      });
+
+      test("sent to the Reply URL's GET route, then posted, it signs nobody in the second time", async () => {
+        const response: string = freshResponse();
+
+        await post(flow, response, { method: "GET" });
+        expect(flow.signedIn()).toBe(true);
+
+        jest.clearAllMocks();
+
+        await post(flow, response);
+
+        expectNobodySignedIn(flow);
+        expect(refusalMessage()).toBe(SAML_RESPONSE_ALREADY_USED_MESSAGE);
+      });
+    }
+
+    /*
+     * An identity provider can be given the Reply URL with the provider's id
+     * spelled another way, and then signs people in through that spelling:
+     * the response names the URL it is posted to. Its use is still recorded
+     * under the provider the lookup found, so the record is one per provider
+     * whatever the spelling, rather than one per spelling that happens to
+     * agree.
+     */
+    test("a provider whose identity provider was given its Reply URL without hyphens has its responses remembered under the stored provider", async () => {
+      const idParam: string = providerIdParam(flow);
+      const storedId: string = flow.params[idParam]!;
+      const spelledId: string = storedId.split("-").join("");
+      const params: Record<string, string> = {
+        ...flow.params,
+        [idParam]: spelledId,
+      };
+
+      const response: string = signedResponse({
+        audience: flow.provider.entityId.split(storedId).join(spelledId),
+        replyUrl: flow.provider.replyUrl.split(storedId).join(spelledId),
+      });
+
+      await post(flow, response, { params });
+
+      expect(providerFound).toBe(true);
+      expect(refusalMessage()).toBeNull();
+      expect(flow.signedIn()).toBe(true);
+
+      const key: string = setStringIfNotExists.mock.calls[0]![1] as string;
+
+      expect(key.split(":")[1]).toBe(storedId);
+
+      jest.clearAllMocks();
+
+      await post(flow, response, {
+        params: { ...params, [idParam]: spelledId.toUpperCase() },
+      });
+
+      expectNobodySignedIn(flow);
+      expect(refusalMessage()).toBe(SAML_RESPONSE_ALREADY_USED_MESSAGE);
+    });
+
+    test("posted five times at once, it signs in once and the other four are told it was used", async () => {
+      const response: string = freshResponse();
+
+      await Promise.all(
+        [1, 2, 3, 4, 5].map((): Promise<PostResult> => {
+          return post(flow, response);
+        }),
+      );
+
+      expect(signInCount()).toBe(1);
+      expect(alreadyUsedRefusals()).toBe(4);
+    });
+
+    test("presented every way above, one after another, it signs in once", async () => {
+      const response: string = freshResponse();
+
+      const presentations: Array<() => Promise<PostResult>> = [
+        (): Promise<PostResult> => {
+          return post(flow, response);
+        },
+        ...ID_SPELLINGS.map((spelling: IdSpelling) => {
+          return (): Promise<PostResult> => {
+            return post(flow, response, {
+              params: withParam(flow, providerIdParam(flow), spelling.spell),
+            });
+          };
+        }),
+        (): Promise<PostResult> => {
+          return post(flow, remade(response, flow.provider.replyUrl));
+        },
+        ...ENCODINGS.map((encoding: Encoding) => {
+          return (): Promise<PostResult> => {
+            return post(flow, encoding.encode(response));
+          };
+        }),
+      ];
+
+      for (const present of presentations) {
+        await present();
+      }
+
+      expect(signInCount()).toBe(1);
+    });
+  },
+);
