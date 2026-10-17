@@ -13,15 +13,18 @@ import PlaceholderText, {
 import FieldType from "../../../../UI/Components/Types/FieldType";
 
 /*
- * The dashed chip a detail card shows for a value that is not set ("No logo
- * uploaded."). It used to be one line whatever its length
- * (whitespace-nowrap), so a long one ran past its card on a phone - the
- * status page cards' "No Header HTML found. Please edit this Status Page to
- * add some." and the subscriber settings' two-sentence timezone note among
- * them. It wraps now, inside whatever it sits in, and still looks the same.
+ * What a detail card shows for a value that is not set, in the field's own
+ * words ("No logo uploaded."): quiet grey text where the value would be.
+ *
+ * It was a dashed, grey-filled chip - read as a button or a drop zone
+ * rather than as "nothing here yet" - and before that it was one line
+ * whatever its length (whitespace-nowrap), so a long one ran past its card
+ * on a phone: the status page cards' "No Header HTML found. Please edit
+ * this Status Page to add some." and the subscriber settings' two-sentence
+ * timezone note among them. It wraps, inside whatever it sits in.
  *
  * jsdom lays nothing out, so what is checked is what the browser is told:
- * the classes, and where the chip sits in a detail card.
+ * the classes, and where the text sits in a detail card.
  */
 
 const LONG_PLACEHOLDER: string =
@@ -74,7 +77,7 @@ function classesOf(element: HTMLElement): Array<string> {
   });
 }
 
-describe("the placeholder chip", () => {
+describe("the placeholder text", () => {
   test("wraps, and breaks a word too long for its line", () => {
     render(<PlaceholderText text={LONG_PLACEHOLDER} />);
 
@@ -105,32 +108,48 @@ describe("the placeholder chip", () => {
     expect(classes).not.toContain("inline-flex");
   });
 
-  test("keeps the chip's look: dashed grey border, rounded, light fill, small grey text", () => {
+  test("is quiet grey text in the value's size - not a chip with a dashed border and a fill", () => {
     render(<PlaceholderText text="No logo uploaded." />);
 
     const classes: Array<string> = classesOf(
       screen.getByText("No logo uploaded."),
     );
 
-    for (const look of [
-      "rounded-md",
+    /*
+     * On a detail value's own 24px line (leading-6; text-sm alone sets 20px),
+     * top to top with it (align-top): the words sit level with a set value
+     * beside them in the row. Centred on a line (align-middle) they hung a
+     * pixel lower than the values beside them.
+     */
+    for (const look of ["align-top", "text-sm", "leading-6", "font-normal"]) {
+      expect([look, classes.includes(look)]).toEqual([look, true]);
+    }
+
+    expect(classes).not.toContain("align-middle");
+
+    // Grey enough to read as "not a value", dark enough to read (WCAG AA).
+    expect(classes).toContain("text-gray-500");
+
+    for (const chip of [
       "border",
       "border-dashed",
       "border-gray-300",
       "bg-gray-50",
+      "rounded-md",
       "px-2",
       "py-0.5",
-      "align-middle",
-      "text-sm",
-      "font-normal",
-      "text-gray-500",
-      "select-none",
     ]) {
-      expect([look, classes.includes(look)]).toEqual([look, true]);
+      expect([chip, classes.includes(chip)]).toEqual([chip, false]);
     }
+
+    expect(
+      classes.some((name: string): boolean => {
+        return name.startsWith("bg-") || name.startsWith("border");
+      }),
+    ).toBe(false);
   });
 
-  test("draws exactly the exported classes, so a test can hold any chip to them", () => {
+  test("draws exactly the exported classes, so a test can hold any placeholder to them", () => {
     render(<PlaceholderText text="No logo uploaded." />);
 
     const chip: HTMLElement = screen.getByTestId("placeholder-text");
@@ -140,14 +159,14 @@ describe("the placeholder chip", () => {
     expect(chip).toHaveTextContent("No logo uploaded.");
   });
 
-  test("shows a short placeholder as it always did, as one chip with its text", () => {
+  test("shows a short placeholder as one piece of text", () => {
     render(<PlaceholderText text="No favicon uploaded." />);
 
     const chips: Array<HTMLElement> = screen.getAllByTestId("placeholder-text");
 
     expect(chips).toHaveLength(1);
     expect(chips[0]!.textContent).toBe("No favicon uploaded.");
-    // Text only: nothing inside the chip but its words.
+    // Text only: nothing inside it but its words.
     expect(chips[0]!.children).toHaveLength(0);
   });
 
@@ -186,7 +205,7 @@ describe("in a detail card", () => {
     timezones?: string | undefined;
   }
 
-  test("an unset value shows the wrapping chip in its place, inside the value's row", () => {
+  test("an unset value shows the wrapping text in its place, inside the value's row", () => {
     const { container } = render(
       <Detail<Item>
         id="placeholder-detail"
@@ -219,14 +238,14 @@ describe("in a detail card", () => {
 
     for (const chip of chips) {
       expect(chip.className).toBe(PLACEHOLDER_TEXT_CLASS_NAME);
-      // A detail value is a flex row: the chip is its item, and can shrink.
+      // A detail value is a flex row: the text is its item, and can shrink.
       expect(chip.parentElement!.className.split(/\s+/)).toContain("flex");
     }
 
     expect(container.innerHTML).not.toContain("whitespace-nowrap");
   });
 
-  test("a set value shows the value, and no chip", () => {
+  test("a set value shows the value, and no placeholder", () => {
     render(
       <Detail<Item>
         id="placeholder-detail"
