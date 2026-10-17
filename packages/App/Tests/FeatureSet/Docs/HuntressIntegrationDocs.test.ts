@@ -647,7 +647,24 @@ describe("every translation of the Huntress page keeps the English page's shape"
     expect(steps).toContain(HuntressTriggerPanelCopy.stepEndpointTitle);
     expect(steps).toContain(HuntressTriggerPanelCopy.stepSecretTitle);
     expect(HuntressTriggerPanelCopy.stepTestTitle).toBe("Send a test");
-    expect(steps).toContain("Turn the workflow on, and send a test");
+    // The panel's last step while the workflow is off, as the template creates it.
+    expect(steps).toContain(HuntressTriggerPanelCopy.stepTurnOnTitle);
+  });
+
+  test("the turn-on step opens with the panel's own words for it", () => {
+    // "Switch {{switch}} on at the top of the Builder." - the switch in bold.
+    const panelSentence: string = `${
+      HuntressTriggerPanelCopy.stepTurnOnBody.split(". ")[0]
+    }.`;
+
+    expect(panelSentence).toBe(
+      "Switch {{switch}} on at the top of the Builder.",
+    );
+    expect(sectionOf("en", "Set up the integration")).toContain(
+      panelSentence
+        .replace("{{switch}}", `**${WORKFLOW_ENABLED_SWITCH_LABEL}**`)
+        .replace("the Builder", "the **Builder**"),
+    );
   });
 
   test.each(TRANSLATIONS)(

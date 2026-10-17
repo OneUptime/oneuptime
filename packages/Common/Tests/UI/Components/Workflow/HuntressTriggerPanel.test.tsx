@@ -31,6 +31,7 @@ import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -47,7 +48,11 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import fs from "fs";
+import { createInstance, i18n } from "i18next";
+import path from "path";
 import React from "react";
+import { I18nextProvider } from "react-i18next";
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "6ba7b810-9dad-41d1-80b4-00c04fd430c8",
@@ -855,5 +860,103 @@ describe("what it cannot show", () => {
     expect(
       screen.getByTestId("huntress-trigger-signing-secret-button"),
     ).toBeDisabled();
+  });
+});
+
+/*
+ * In the reader's language: the Dashboard's own German, read from its
+ * locale file. The steps, the switch's name in the turn-on step and the
+ * times are German - "vor 2 Minuten", never moment's "2 minutes ago".
+ */
+describe("in German", () => {
+  const german: i18n = createInstance();
+
+  beforeAll(async () => {
+    const words: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "..",
+          "App",
+          "FeatureSet",
+          "Dashboard",
+          "src",
+          "Locales",
+          "de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+
+    await german.init({
+      lng: "de",
+      resources: { de: { translation: words } },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  function renderInGerman(overrides: Partial<ComponentProps> = {}): void {
+    render(
+      <I18nextProvider i18n={german}>
+        <HuntressTriggerPanel
+          workflowId={WORKFLOW_ID}
+          url={URL}
+          canSeeUrl={true}
+          {...overrides}
+        />
+      </I18nextProvider>,
+    );
+  }
+
+  test("the turn-on step names the switch as the German Builder draws it", async () => {
+    facts = { isWebhookSigningSecretSet: true };
+
+    renderInGerman({ isWorkflowOff: true });
+    await loaded();
+
+    expect(screen.getByTestId("huntress-trigger-step-test")).toHaveTextContent(
+      "Arbeitsablauf einschalten und Test senden",
+    );
+    expect(
+      screen.getByTestId("huntress-trigger-enabled-switch-name"),
+    ).toHaveTextContent("Aktiviert");
+    expect(
+      screen.getByTestId("huntress-trigger-step-test-body"),
+    ).toHaveTextContent(
+      "Schalten Sie Aktiviert oben im Editor ein. Wählen Sie dann in Huntress beim Endpunkt „Send Test“. Der Test erscheint hier innerhalb weniger Sekunden.",
+    );
+  });
+
+  test("how long ago a request came is German too", async () => {
+    facts = {
+      isWebhookSigningSecretSet: true,
+      lastWebhookRequestAt: new Date(Date.now() - 60 * 60 * 1000),
+      lastWebhookError:
+        "The request's signature does not match the signing secret.",
+      lastWebhookErrorAt: new Date(Date.now() - 2 * 60 * 1000),
+    };
+
+    renderInGerman();
+    await loaded();
+
+    const times: Array<string> = screen
+      .getAllByTestId("huntress-trigger-time")
+      .map((time: HTMLElement): string => {
+        return time.textContent || "";
+      });
+
+    expect(times).toEqual(["vor 1 Stunde", "vor 2 Minuten"]);
+    expect(screen.getByTestId("huntress-trigger-status")).toHaveTextContent(
+      "Letztes Ereignis vor 1 Stunde",
+    );
+    expect(screen.getByTestId("huntress-trigger-last-error")).toHaveTextContent(
+      "Die letzte Anfrage wurde abgelehnt · vor 2 Minuten",
+    );
   });
 });

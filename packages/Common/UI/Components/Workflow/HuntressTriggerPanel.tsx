@@ -1,6 +1,12 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import CompactLoader from "../ComponentLoader/CompactLoader";
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
+import {
+  FeedClock,
+  formatFeedFullTime,
+  formatFeedTimeAgo,
+  getFeedClock,
+} from "../Feed/FeedTime";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
@@ -169,18 +175,24 @@ const SetupStep: FunctionComponent<SetupStepProps> = (
   );
 };
 
-// "5 minutes ago", with the exact time on hover.
+/*
+ * "5 minutes ago", with the exact time on hover - both in the reader's
+ * language and time zone (FeedTime), never moment's English.
+ */
 const When: FunctionComponent<{ date: Date | string }> = (props: {
   date: Date | string;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const date: Date = OneUptimeDate.fromString(props.date);
+  const clock: FeedClock = getFeedClock({ language: translator.language });
 
   return (
     <time
       dateTime={date.toISOString()}
-      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date)}
+      title={formatFeedFullTime(date, clock)}
+      data-testid="huntress-trigger-time"
     >
-      {OneUptimeDate.fromNow(date)}
+      {formatFeedTimeAgo(date, clock) || OneUptimeDate.fromNow(date)}
     </time>
   );
 };
