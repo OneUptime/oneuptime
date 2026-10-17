@@ -350,6 +350,7 @@ describe("a table's header controls on a phone", () => {
 
     // Folded only while the search is open: the ⋯ menu opens out of them.
     expect(buttons).not.toHaveClass("overflow-hidden");
+    expect(buttons).not.toHaveClass("invisible");
     expect(buttons).toHaveClass("max-w-[600px]");
 
     act(() => {
@@ -377,6 +378,8 @@ describe("a table's header controls on a phone", () => {
       "whitespace-nowrap",
       "pointer-events-none",
     );
+    // Out of the keyboard's way too, as of a screen reader's.
+    expect(buttons).toHaveClass("invisible");
     expect(buttons).toHaveAttribute("aria-hidden", "true");
   });
 });

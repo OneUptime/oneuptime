@@ -1491,6 +1491,27 @@ test.describe("the header's search, opened on a wide screen", () => {
     expect(Math.round((await box(header)).height)).toBe(
       Math.round(before.height),
     );
+
+    // Tab from the opened search skips the buttons folded out of sight.
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("button", { name: "Create Monitor" }),
+    ).not.toBeFocused();
+    expect(
+      await page.evaluate((): boolean => {
+        const focused: Element | null = document.activeElement;
+        const toolbar: Element | null = document.querySelector(
+          '[data-testid="model-table-header-toolbar"]',
+        );
+
+        return Boolean(
+          focused &&
+            toolbar &&
+            toolbar.lastElementChild &&
+            toolbar.lastElementChild.contains(focused),
+        );
+      }),
+    ).toBe(false);
     expect(
       await page.evaluate((): number => {
         return (

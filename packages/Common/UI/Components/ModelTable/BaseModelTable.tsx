@@ -233,10 +233,12 @@ export const MODEL_TABLE_EXPANDED_SEARCH_CLASS_NAME: string =
  * sideways. Only while folded - the ⋯ menu opens out of them otherwise.
  * And their words keep to one line: squeezed to no width, "Create
  * Monitor" broke over two, the folded box stood 58px tall, and the opened
- * search dropped 10px below the card's title.
+ * search dropped 10px below the card's title. Hidden from the keyboard too
+ * (invisible, once their fold has run): Tab from the opened search went on
+ * to buttons nobody could see.
  */
 export const MODEL_TABLE_FOLDED_BUTTONS_CLASS_NAME: string =
-  "max-w-0 -ml-3 gap-0 opacity-0 pointer-events-none overflow-hidden whitespace-nowrap";
+  "max-w-0 -ml-3 gap-0 opacity-0 pointer-events-none overflow-hidden whitespace-nowrap invisible";
 
 /*
  * The frame of a table drawn without a card of its own (no cardProps),
