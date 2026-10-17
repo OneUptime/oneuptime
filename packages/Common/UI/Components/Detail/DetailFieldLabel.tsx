@@ -59,7 +59,7 @@ const DetailFieldLabel: FunctionComponent<ComponentProps> = (
       {translatedTitle && (
         <label
           className={`${alignClassName} ${labelClassName}`}
-          data-testid="detail-field-label"
+          data-testid="detail-label"
         >
           <span>{translatedTitle}</span>
           {props.sideLink && translatedSideLinkText && props.sideLink.url && (
@@ -80,7 +80,7 @@ const DetailFieldLabel: FunctionComponent<ComponentProps> = (
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   aria-hidden="true"
-                  data-testid="detail-field-side-link-new-tab"
+                  data-testid="detail-side-link-new-tab"
                 >
                   <path
                     strokeLinecap="round"
@@ -99,7 +99,7 @@ const DetailFieldLabel: FunctionComponent<ComponentProps> = (
       {translatedDescription && (
         <div
           className={`${alignClassName} ${DETAIL_FIELD_DESCRIPTION_CLASS_NAME}`}
-          data-testid="detail-field-description"
+          data-testid="detail-description"
         >
           {translatedDescription}
         </div>

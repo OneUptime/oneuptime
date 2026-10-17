@@ -499,7 +499,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
         {isCopyable ? (
           <div
             className="flex h-6 flex-none items-center"
-            data-testid="detail-field-copy"
+            data-testid="detail-value-copy"
           >
             <CopyableButton textToBeCopied={copyText || ""} />
           </div>
@@ -582,7 +582,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
         <div
           className={`mt-1 text-sm text-gray-900 ${alignClassName}`}
-          data-testid="detail-field-value"
+          data-testid="detail-value"
         >
           {getFieldValueContent(field, data, copyText)}
         </div>
@@ -993,7 +993,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
           <div
             className={`${DETAIL_VALUE_CLASS_NAME} ${alignClassName}`}
-            data-testid="detail-field-value"
+            data-testid="detail-value"
           >
             {getFieldValueContent(field, data, copyText)}
           </div>
@@ -1026,7 +1026,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
         <div
           className={`${DETAIL_VALUE_CLASS_NAME} ${alignClassName}`}
-          data-testid="detail-field-value"
+          data-testid="detail-value"
         >
           {getFieldValueContent(field, data, copyText)}
         </div>

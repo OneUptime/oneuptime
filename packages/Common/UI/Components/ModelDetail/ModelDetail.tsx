@@ -224,8 +224,9 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 
   /*
    * One skeleton cell for each field the grid will draw: not a field without
-   * a column (it draws nothing), nor the record's ID or its created and
-   * updated times (they go on the line under the fields).
+   * a column (it draws nothing), nor one its reader may not read (the grid
+   * leaves it out), nor the record's ID or its created and updated times
+   * (they go on the line under the fields).
    */
   const getSkeletonSpans: GetSkeletonSpansFunction = (): Array<
     number | undefined
@@ -236,6 +237,10 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       const key: string | undefined = Object.keys(field.field || {})[0];
 
       if (!key) {
+        continue;
+      }
+
+      if (!hasPermissionToReadField(key) && !User.isMasterAdmin()) {
         continue;
       }
 

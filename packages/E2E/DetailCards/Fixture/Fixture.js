@@ -110,7 +110,7 @@ const LONG_URL =
   "https://status.acme-commerce.example/incidents/2026/checkout-latency-in-eu-west-one-and-retries-on-the-payments-gateway-callback-queue";
 // A made-up value with nowhere to break, as long as a real key.
 const LONG_TOKEN =
-  "example-signing-value-0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff";
+  "examplesigningvalue0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff";
 
 function waitFor(ms) {
   return new Promise((resolve) => {
@@ -272,7 +272,7 @@ const STATUS_PAGES = [
   }),
   statusPage(GALLERY.keys, {
     slug: isLong ? LONG_TOKEN : "acme-status",
-    masterPasswordSalt: LONG_TOKEN,
+    logoAltText: LONG_TOKEN,
     copyrightText: LONG_URL,
   }),
   statusPage(GALLERY.notes, {
@@ -314,6 +314,8 @@ const RECORDS = {
   Team: () => [makeTeam()],
   StatusPage: () => STATUS_PAGES,
   StatusPageCustomField: () => STATUS_PAGE_CUSTOM_FIELDS,
+  // A team page's Custom Fields card: none defined, so it hides itself.
+  TeamCustomField: () => [],
   Label: () => LABELS,
 };
 
@@ -324,7 +326,7 @@ const RECORDS = {
 const heldPermissions =
   role === "viewer"
     ? [
-        Permission.ProjectMember,
+        Permission.Viewer,
         Permission.ReadStatusPage,
         Permission.ReadProjectTeam,
         Permission.ReadProject,
@@ -664,7 +666,7 @@ function Gallery() {
             opts: { isCopyable: true },
           },
           {
-            field: { masterPasswordSalt: true },
+            field: { logoAltText: true },
             title: "Signing key",
             fieldType: FieldType.HiddenText,
             opts: { isCopyable: true },

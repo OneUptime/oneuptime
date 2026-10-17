@@ -197,19 +197,37 @@ function monitorCard(): ReactElement {
 }
 
 describe("a detail card's fields", () => {
-  test("on a page they sit under a rule across the card, as they always did", async () => {
+  test("on a page they sit under a rule across the card, padded as the card is", async () => {
     render(monitorCard());
 
     await screen.findByText("Checkout API");
 
     const body: HTMLElement = screen.getByTestId("card-model-detail-body");
 
+    /*
+     * The ruled body a switch card has, padded as the card is (px-5, md:px-6),
+     * so the fields' left edge is the title's at every width. It used to pull
+     * itself out by 24px whatever the card's padding and pad its fields 16px:
+     * on a phone the rule ran past the card and the fields sat 8px left of
+     * the title.
+     */
     expect(CARD_MODEL_DETAIL_BODY_CLASS_NAME).toBe(
-      "border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2",
+      `${CARD_RULED_BODY_CLASS_NAME} px-5 py-5 md:px-6`,
     );
     expect(classTokens(body)).toEqual(
       CARD_MODEL_DETAIL_BODY_CLASS_NAME.split(" "),
     );
+    expect(classTokens(body)).toEqual(
+      expect.arrayContaining([
+        "border-t",
+        "border-gray-200",
+        "-mx-5",
+        "md:-mx-6",
+        "px-5",
+        "md:px-6",
+      ]),
+    );
+    expect(classTokens(body)).not.toContain("-m-6");
   });
 
   test("in a section they follow the header: no rule across the card, no box of their own", async () => {
