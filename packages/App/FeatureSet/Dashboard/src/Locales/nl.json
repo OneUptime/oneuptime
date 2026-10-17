@@ -30319,5 +30319,15 @@
   "{{count}}-day free trial": "{{count}} dagen gratis proberen",
   "{{count}}-day free trial_one": "{{count}} dag gratis proberen",
   "{{price}} per user, billed monthly from today.": "{{price}} per gebruiker, vanaf vandaag maandelijks gefactureerd.",
-  "{{price}} per user, billed yearly from today.": "{{price}} per gebruiker, vanaf vandaag jaarlijks gefactureerd."
+  "{{price}} per user, billed yearly from today.": "{{price}} per gebruiker, vanaf vandaag jaarlijks gefactureerd.",
+  "Dark": "Donker",
+  "Every visitor sees the dark page. Use a logo made for a dark background.": "Elke bezoeker ziet de donkere pagina. Gebruik een logo dat gemaakt is voor een donkere achtergrond.",
+  "Every visitor sees the light page.": "Elke bezoeker ziet de lichte pagina.",
+  "How your status page looks to visitors.": "Hoe bezoekers uw statuspagina zien.",
+  "Light": "Licht",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "Licht of donker, zoals het apparaat van elke bezoeker is ingesteld. Bezoekers kunnen het wisselen in de voettekst van de pagina, en uw logo krijgt een lichte achtergrond op de donkere pagina.",
+  "Match each visitor's device": "Zoals het apparaat van elke bezoeker",
+  "Status page theme": "Thema van de statuspagina",
+  "Theme": "Thema",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Uw eigen CSS en HTML gelden in beide thema's. Begin een CSS-regel met html.dark om alleen het donkere thema op te maken."
 }

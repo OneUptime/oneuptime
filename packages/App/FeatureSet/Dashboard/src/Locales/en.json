@@ -30319,5 +30319,15 @@
   "{{count}}-day free trial": "{{count}}-day free trial",
   "{{count}}-day free trial_one": "{{count}}-day free trial",
   "{{price}} per user, billed monthly from today.": "{{price}} per user, billed monthly from today.",
-  "{{price}} per user, billed yearly from today.": "{{price}} per user, billed yearly from today."
+  "{{price}} per user, billed yearly from today.": "{{price}} per user, billed yearly from today.",
+  "Dark": "Dark",
+  "Every visitor sees the dark page. Use a logo made for a dark background.": "Every visitor sees the dark page. Use a logo made for a dark background.",
+  "Every visitor sees the light page.": "Every visitor sees the light page.",
+  "How your status page looks to visitors.": "How your status page looks to visitors.",
+  "Light": "Light",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.",
+  "Match each visitor's device": "Match each visitor's device",
+  "Status page theme": "Status page theme",
+  "Theme": "Theme",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme."
 }

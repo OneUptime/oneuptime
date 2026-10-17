@@ -30319,5 +30319,15 @@
   "{{count}}-day free trial": "{{count}} 天免費試用",
   "{{count}}-day free trial_one": "{{count}} 天免費試用",
   "{{price}} per user, billed monthly from today.": "每位使用者 {{price}}，自今日起按月計費。",
-  "{{price}} per user, billed yearly from today.": "每位使用者 {{price}}，自今日起按年計費。"
+  "{{price}} per user, billed yearly from today.": "每位使用者 {{price}}，自今日起按年計費。",
+  "Dark": "深色",
+  "Every visitor sees the dark page. Use a logo made for a dark background.": "所有訪客都看到深色頁面。請使用為深色背景設計的標誌。",
+  "Every visitor sees the light page.": "所有訪客都看到淺色頁面。",
+  "How your status page looks to visitors.": "訪客看到的狀態頁面外觀。",
+  "Light": "淺色",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "依每位訪客的裝置設定顯示淺色或深色。訪客可以在頁面底部切換，深色頁面上的標誌會加上淺色襯底。",
+  "Match each visitor's device": "跟隨訪客的裝置",
+  "Status page theme": "狀態頁面主題",
+  "Theme": "主題",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "你的自訂 CSS 和 HTML 在兩種主題下都會生效。以 html.dark 開頭的 CSS 規則只套用於深色主題。"
 }

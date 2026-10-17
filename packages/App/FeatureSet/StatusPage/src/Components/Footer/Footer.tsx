@@ -48,21 +48,22 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
     }
   }
 
+  /*
+   * On a page that follows each visitor's device, the visitor's light / dark
+   * switch sits beside the language switcher, as one group: the two ways a
+   * visitor can make the page their own. A Light or Dark page's footer is as
+   * it was.
+   */
   links.push({
-    content: (
+    content: doesStatusPageThemeFollowDevice(theme) ? (
+      <div className="flex items-center justify-center gap-4 md:justify-start">
+        <LanguageSwitcher enabledLanguages={props.enabledLanguages || null} />
+        <ThemeSwitch />
+      </div>
+    ) : (
       <LanguageSwitcher enabledLanguages={props.enabledLanguages || null} />
     ),
   });
-
-  /*
-   * The visitor's light / dark switch, only on a page that follows their
-   * device: a Light or Dark page's footer is as it was, with no empty slot.
-   */
-  if (doesStatusPageThemeFollowDevice(theme)) {
-    links.push({
-      content: <ThemeSwitch />,
-    });
-  }
 
   return (
     <Footer

@@ -30319,5 +30319,15 @@
   "{{count}}-day free trial": "Пробный период {{count}} дн.",
   "{{count}}-day free trial_one": "Пробный период {{count}} день",
   "{{price}} per user, billed monthly from today.": "{{price}} за пользователя, оплата ежемесячно с сегодняшнего дня.",
-  "{{price}} per user, billed yearly from today.": "{{price}} за пользователя, оплата ежегодно с сегодняшнего дня."
+  "{{price}} per user, billed yearly from today.": "{{price}} за пользователя, оплата ежегодно с сегодняшнего дня.",
+  "Dark": "Тёмная",
+  "Every visitor sees the dark page. Use a logo made for a dark background.": "Все посетители видят тёмную страницу. Используйте логотип, рассчитанный на тёмный фон.",
+  "Every visitor sees the light page.": "Все посетители видят светлую страницу.",
+  "How your status page looks to visitors.": "Как ваша страница статуса выглядит для посетителей.",
+  "Light": "Светлая",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "Светлая или тёмная, как настроено устройство каждого посетителя. Посетители могут переключить её внизу страницы, а ваш логотип получает светлую подложку на тёмной странице.",
+  "Match each visitor's device": "Как на устройстве посетителя",
+  "Status page theme": "Тема страницы статуса",
+  "Theme": "Тема",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Ваши собственные CSS и HTML действуют в обеих темах. Начните правило CSS с html.dark, чтобы оформить только тёмную тему."
 }

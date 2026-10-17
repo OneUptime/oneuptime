@@ -30319,5 +30319,15 @@
   "{{count}}-day free trial": "{{count}} दिन का मुफ़्त ट्रायल",
   "{{count}}-day free trial_one": "{{count}} दिन का मुफ़्त ट्रायल",
   "{{price}} per user, billed monthly from today.": "प्रति उपयोगकर्ता {{price}}, आज से मासिक बिलिंग।",
-  "{{price}} per user, billed yearly from today.": "प्रति उपयोगकर्ता {{price}}, आज से वार्षिक बिलिंग।"
+  "{{price}} per user, billed yearly from today.": "प्रति उपयोगकर्ता {{price}}, आज से वार्षिक बिलिंग।",
+  "Dark": "गहरी",
+  "Every visitor sees the dark page. Use a logo made for a dark background.": "हर आगंतुक को गहरा पृष्ठ दिखता है। गहरी पृष्ठभूमि के लिए बना लोगो इस्तेमाल करें।",
+  "Every visitor sees the light page.": "हर आगंतुक को हल्का पृष्ठ दिखता है।",
+  "How your status page looks to visitors.": "आपका स्थिति पृष्ठ आगंतुकों को कैसा दिखता है।",
+  "Light": "हल्की",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "हर आगंतुक के डिवाइस की सेटिंग के अनुसार हल्का या गहरा। आगंतुक पृष्ठ के फ़ुटर में इसे बदल सकते हैं, और गहरे पृष्ठ पर आपके लोगो के पीछे हल्की पृष्ठभूमि रहती है।",
+  "Match each visitor's device": "हर आगंतुक के डिवाइस के अनुसार",
+  "Status page theme": "स्थिति पृष्ठ की थीम",
+  "Theme": "थीम",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "आपका कस्टम CSS और HTML दोनों थीम में लागू होता है। केवल गहरी थीम को स्टाइल करने के लिए CSS नियम को html.dark से शुरू करें।"
 }

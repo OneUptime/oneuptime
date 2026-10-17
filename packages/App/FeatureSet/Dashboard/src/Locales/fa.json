@@ -30319,5 +30319,15 @@
   "{{count}}-day free trial": "{{count}} روز آزمایش رایگان",
   "{{count}}-day free trial_one": "{{count}} روز آزمایش رایگان",
   "{{price}} per user, billed monthly from today.": "{{price}} برای هر کاربر، با صورت‌حساب ماهانه از امروز.",
-  "{{price}} per user, billed yearly from today.": "{{price}} برای هر کاربر، با صورت‌حساب سالانه از امروز."
+  "{{price}} per user, billed yearly from today.": "{{price}} برای هر کاربر، با صورت‌حساب سالانه از امروز.",
+  "Dark": "تیره",
+  "Every visitor sees the dark page. Use a logo made for a dark background.": "همه بازدیدکنندگان صفحه تیره را می‌بینند. از لوگویی استفاده کنید که برای پس‌زمینه تیره ساخته شده است.",
+  "Every visitor sees the light page.": "همه بازدیدکنندگان صفحه روشن را می‌بینند.",
+  "How your status page looks to visitors.": "ظاهر صفحه وضعیت شما برای بازدیدکنندگان.",
+  "Light": "روشن",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "روشن یا تیره، مطابق تنظیم دستگاه هر بازدیدکننده. بازدیدکنندگان می‌توانند آن را در پانویس صفحه عوض کنند و لوگوی شما در صفحه تیره یک پس‌زمینه روشن می‌گیرد.",
+  "Match each visitor's device": "مطابق دستگاه هر بازدیدکننده",
+  "Status page theme": "پوسته صفحه وضعیت",
+  "Theme": "پوسته",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "CSS و HTML سفارشی شما در هر دو پوسته اعمال می‌شود. برای استایل دادن فقط به پوسته تیره، قاعده CSS را با html.dark شروع کنید."
 }

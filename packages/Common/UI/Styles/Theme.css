@@ -1494,6 +1494,26 @@ html.dark [data-ou-bar-edge] {
 }
 
 /*
+ * A day with no data (Graphs/DayUptimeGraph.css): on the light theme a pale
+ * grey, hatched in white, that sits back behind the days that were
+ * measured. The same grey on a dark card is the brightest thing in the
+ * strip, so the dark theme draws it a step darker, hatched in the page's own
+ * colour: still told apart from every measured day by its stripes, and
+ * still back where it belongs. Important, because the grey is the bar's
+ * inline background colour.
+ */
+html.dark .uptime-bar-no-data {
+  background-color: #64748b !important;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(15 23 42 / 45%) 0,
+    rgb(15 23 42 / 45%) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+}
+
+/*
  * A status page's logo, on a page that follows each visitor's device
  * (StatusPage/src/Components/Logo/LogoPlate). That one logo is also the
  * light page's, so it is made for a light background - dark lettering on

@@ -30319,5 +30319,15 @@
   "{{count}}-day free trial": "{{count}} Tage kostenlos testen",
   "{{count}}-day free trial_one": "{{count}} Tag kostenlos testen",
   "{{price}} per user, billed monthly from today.": "{{price}} pro Benutzer, ab heute monatlich abgerechnet.",
-  "{{price}} per user, billed yearly from today.": "{{price}} pro Benutzer, ab heute jährlich abgerechnet."
+  "{{price}} per user, billed yearly from today.": "{{price}} pro Benutzer, ab heute jährlich abgerechnet.",
+  "Dark": "Dunkel",
+  "Every visitor sees the dark page. Use a logo made for a dark background.": "Alle Besucher sehen die dunkle Seite. Verwenden Sie ein Logo, das für einen dunklen Hintergrund gemacht ist.",
+  "Every visitor sees the light page.": "Alle Besucher sehen die helle Seite.",
+  "How your status page looks to visitors.": "So sieht Ihre Statusseite für Besucher aus.",
+  "Light": "Hell",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.": "Hell oder dunkel, je nachdem, wie das Gerät jedes Besuchers eingestellt ist. Besucher können es in der Fußzeile der Seite umschalten, und Ihr Logo erhält auf der dunklen Seite einen hellen Hintergrund.",
+  "Match each visitor's device": "Wie das Gerät des Besuchers",
+  "Status page theme": "Design der Statusseite",
+  "Theme": "Design",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Ihr eigenes CSS und HTML gilt in beiden Designs. Beginnen Sie eine CSS-Regel mit html.dark, um nur das dunkle Design zu gestalten."
 }
