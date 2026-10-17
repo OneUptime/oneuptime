@@ -51,6 +51,7 @@ import Permission, {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import {
@@ -352,6 +353,15 @@ beforeAll(async () => {
   jest
     .spyOn(GlobalConfigService, "getRequireSsoForLogin")
     .mockResolvedValue(false as never);
+
+  /*
+   * With billing on (as CI runs), a request in a project carries its plan:
+   * the highest one, paid, so that no plan decides what is asked here.
+   */
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  } as never);
 
   // Every provider is on, never turned off, and belongs where it says.
   jest

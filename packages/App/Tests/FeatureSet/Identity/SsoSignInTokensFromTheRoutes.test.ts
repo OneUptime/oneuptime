@@ -722,93 +722,114 @@ beforeEach(() => {
   });
 });
 
-describe.each(FLOWS)("$name", (flow: Flow) => {
-  test("from a browser, sets a session the API takes as the person", async () => {
-    const { cookies } = await signIn(flow, "browser");
-    const session: string | undefined = cookies[CookieUtil.getUserTokenKey()];
-
-    expect(session).toBeDefined();
-    expect(JSONWebToken.decodeJsonPayload(session!)).toEqual(
-      expect.objectContaining({
-        [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession,
-        userId: USER_ID,
-        sessionId: SESSION_ID,
-      }),
-    );
-    expect(await readAsSession(session!)).toEqual(["user", "user"]);
-  });
-
-  test("from a browser, sets an SSO sign-in that is no session, sent as the access-token cookie or a bearer token", async () => {
-    const { cookies } = await signIn(flow, "browser");
-    const ssoSignIn: string | undefined = cookies[flow.ssoCookieName];
-
-    expect(ssoSignIn).toBeDefined();
-    expect(JSONWebToken.decodeJsonPayload(ssoSignIn!)).toEqual(
-      expect.objectContaining({
-        [PURPOSE_CLAIM]: JsonWebTokenPurpose.SsoSignIn,
-        userId: USER_ID,
-        ssoProviderId: flow.providerId,
-        ssoProviderType: flow.providerType,
-      }),
-    );
-    expect(await readAsSession(ssoSignIn!)).toEqual(["invalid", "invalid"]);
-  });
-
-  test("from a browser, the SSO sign-in is read as one next to the person's session, in its own cookie", async () => {
-    const { cookies } = await signIn(flow, "browser");
-
-    const req: ExpressRequest = requestCarrying(
-      cookies[CookieUtil.getUserTokenKey()]!,
-      "cookie",
-      { cookies: { [flow.ssoCookieName]: cookies[flow.ssoCookieName]! } },
-    );
-
-    expect(
-      UserMiddleware.doesSsoTokenForProjectExist(
-        req,
-        new ObjectID(PROJECT_ID),
-        new ObjectID(USER_ID),
-        new ObjectID(flow.providerId),
-      ),
-    ).toBe(true);
-  });
-
-  test("from the mobile app, hands it a session on its deep link that the API takes as the person", async () => {
-    const { deepLink } = await signIn(flow, "mobile app");
-    const accessToken: string | null = deepLink!.get("accessToken");
-
-    expect(accessToken).not.toBeNull();
-    expect(JSONWebToken.decodeJsonPayload(accessToken!)[PURPOSE_CLAIM]).toBe(
-      JsonWebTokenPurpose.UserSession,
-    );
-    expect(await readAsSession(accessToken!)).toEqual(["user", "user"]);
-  });
-
-  test("from the mobile app, hands it an SSO sign-in that is no session, and that its header carries as one", async () => {
-    const { deepLink } = await signIn(flow, "mobile app");
-    const ssoSignIn: string | null = deepLink!.get(flow.deepLinkParameter);
-    const accessToken: string = deepLink!.get("accessToken")!;
-
-    expect(ssoSignIn).not.toBeNull();
-    expect(JSONWebToken.decodeJsonPayload(ssoSignIn!)[PURPOSE_CLAIM]).toBe(
-      JsonWebTokenPurpose.SsoSignIn,
-    );
-    expect(await readAsSession(ssoSignIn!)).toEqual(["invalid", "invalid"]);
-
-    // The headers the mobile app sends it in (api/client.ts).
-    const header: Dictionary<string> =
-      flow.providerType === SsoProviderType.GlobalSSO ||
-      flow.providerType === SsoProviderType.GlobalOIDC
-        ? { "x-global-sso-token": ssoSignIn! }
-        : { "x-sso-tokens": JSON.stringify({ [PROJECT_ID]: ssoSignIn! }) };
-
-    expect(
-      UserMiddleware.doesSsoTokenForProjectExist(
-        requestCarrying(accessToken, "bearer", { headers: header }),
-        new ObjectID(PROJECT_ID),
-        new ObjectID(USER_ID),
-        new ObjectID(flow.providerId),
-      ),
-    ).toBe(true);
+/*
+ * Every sign-in, on a self-hosted server (billing off) and on the hosted
+ * service (billing on, where a project's own provider also needs the
+ * account's consent - given here).
+ */
+const RUNS: Array<{ name: string; flow: Flow; billing: boolean }> = [
+  false,
+  true,
+].flatMap((billing: boolean) => {
+  return FLOWS.map((flow: Flow) => {
+    return { name: `${flow.name}, billing=${billing}`, flow, billing };
   });
 });
+
+describe.each(RUNS)(
+  "$name",
+  ({ flow, billing }: { flow: Flow; billing: boolean }) => {
+    beforeEach(() => {
+      setTestBillingEnabled(billing);
+    });
+
+    test("from a browser, sets a session the API takes as the person", async () => {
+      const { cookies } = await signIn(flow, "browser");
+      const session: string | undefined = cookies[CookieUtil.getUserTokenKey()];
+
+      expect(session).toBeDefined();
+      expect(JSONWebToken.decodeJsonPayload(session!)).toEqual(
+        expect.objectContaining({
+          [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession,
+          userId: USER_ID,
+          sessionId: SESSION_ID,
+        }),
+      );
+      expect(await readAsSession(session!)).toEqual(["user", "user"]);
+    });
+
+    test("from a browser, sets an SSO sign-in that is no session, sent as the access-token cookie or a bearer token", async () => {
+      const { cookies } = await signIn(flow, "browser");
+      const ssoSignIn: string | undefined = cookies[flow.ssoCookieName];
+
+      expect(ssoSignIn).toBeDefined();
+      expect(JSONWebToken.decodeJsonPayload(ssoSignIn!)).toEqual(
+        expect.objectContaining({
+          [PURPOSE_CLAIM]: JsonWebTokenPurpose.SsoSignIn,
+          userId: USER_ID,
+          ssoProviderId: flow.providerId,
+          ssoProviderType: flow.providerType,
+        }),
+      );
+      expect(await readAsSession(ssoSignIn!)).toEqual(["invalid", "invalid"]);
+    });
+
+    test("from a browser, the SSO sign-in is read as one next to the person's session, in its own cookie", async () => {
+      const { cookies } = await signIn(flow, "browser");
+
+      const req: ExpressRequest = requestCarrying(
+        cookies[CookieUtil.getUserTokenKey()]!,
+        "cookie",
+        { cookies: { [flow.ssoCookieName]: cookies[flow.ssoCookieName]! } },
+      );
+
+      expect(
+        UserMiddleware.doesSsoTokenForProjectExist(
+          req,
+          new ObjectID(PROJECT_ID),
+          new ObjectID(USER_ID),
+          new ObjectID(flow.providerId),
+        ),
+      ).toBe(true);
+    });
+
+    test("from the mobile app, hands it a session on its deep link that the API takes as the person", async () => {
+      const { deepLink } = await signIn(flow, "mobile app");
+      const accessToken: string | null = deepLink!.get("accessToken");
+
+      expect(accessToken).not.toBeNull();
+      expect(JSONWebToken.decodeJsonPayload(accessToken!)[PURPOSE_CLAIM]).toBe(
+        JsonWebTokenPurpose.UserSession,
+      );
+      expect(await readAsSession(accessToken!)).toEqual(["user", "user"]);
+    });
+
+    test("from the mobile app, hands it an SSO sign-in that is no session, and that its header carries as one", async () => {
+      const { deepLink } = await signIn(flow, "mobile app");
+      const ssoSignIn: string | null = deepLink!.get(flow.deepLinkParameter);
+      const accessToken: string = deepLink!.get("accessToken")!;
+
+      expect(ssoSignIn).not.toBeNull();
+      expect(JSONWebToken.decodeJsonPayload(ssoSignIn!)[PURPOSE_CLAIM]).toBe(
+        JsonWebTokenPurpose.SsoSignIn,
+      );
+      expect(await readAsSession(ssoSignIn!)).toEqual(["invalid", "invalid"]);
+
+      // The headers the mobile app sends it in (api/client.ts).
+      const header: Dictionary<string> =
+        flow.providerType === SsoProviderType.GlobalSSO ||
+        flow.providerType === SsoProviderType.GlobalOIDC
+          ? { "x-global-sso-token": ssoSignIn! }
+          : { "x-sso-tokens": JSON.stringify({ [PROJECT_ID]: ssoSignIn! }) };
+
+      expect(
+        UserMiddleware.doesSsoTokenForProjectExist(
+          requestCarrying(accessToken, "bearer", { headers: header }),
+          new ObjectID(PROJECT_ID),
+          new ObjectID(USER_ID),
+          new ObjectID(flow.providerId),
+        ),
+      ).toBe(true);
+    });
+  },
+);

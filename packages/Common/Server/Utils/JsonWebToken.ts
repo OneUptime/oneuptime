@@ -170,12 +170,12 @@ class JSONWebToken {
    *
    *   - a session names the user and the UserSession it belongs to, and no
    *     status page or SSO provider. It says it is one, or is an access
-   *     token an earlier release signed: no purpose, and fifteen minutes
-   *     long. Those are still taken, so that nobody is signed out while an
-   *     upgrade rolls out - a server of the release before signs them until
-   *     it stops - and nothing signs one now (sign). An SSO sign-in never
-   *     names a session and lives thirty days, and a status page's session
-   *     names its status page, so neither is ever one;
+   *     token an earlier release signed: no purpose, and signed for fifteen
+   *     minutes at most. Those are still taken, so that nobody is signed out
+   *     while an upgrade rolls out - a server of the release before signs
+   *     them until it stops - and nothing signs one now (sign). An SSO
+   *     sign-in never names a session and lives thirty days, and a status
+   *     page's session names its status page, so neither is ever one;
    *   - an SSO sign-in says so, or is one an earlier release gave: no
    *     purpose, the kind of provider that gave it, and no session or status
    *     page of its own. Those lasted thirty days, so they are still read as
