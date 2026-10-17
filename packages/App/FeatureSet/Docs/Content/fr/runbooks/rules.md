@@ -57,7 +57,7 @@ Sous **Informations de base**, saisissez un **Nom**, par exemple « Lancer la ba
 
 ### Ajouter des conditions
 
-Sous **Critères de correspondance**, cliquez sur **Ajouter une condition**, choisissez un critère et un opérateur, puis saisissez ou choisissez la valeur. Ajoutez d'autres conditions si besoin et choisissez **Toutes requises** ou **Au moins une requise**. N'en ajoutez aucune pour lancer les runbooks à chaque nouvel événement de ce type.
+Sous **Critères de correspondance**, **S'applique à** démarre sur chaque nouvel événement de ce type, par exemple **Tous les incidents**, et la règle lance ses runbooks pour chacun. Pour la restreindre, choisissez l'autre réponse, par exemple **Uniquement les incidents qui correspondent aux conditions**, puis choisissez un critère et un opérateur, et saisissez ou choisissez la valeur. Cliquez sur **Ajouter une condition** pour d'autres conditions et choisissez **Toutes requises** ou **Au moins une requise**.
 
 ### Choisir les runbooks
 
@@ -71,7 +71,7 @@ Sous **Runbooks**, choisissez un ou plusieurs **Runbooks à démarrer**, puis cl
 | **Nom** | Un libellé court et parlant pour la règle. |
 | **Description** | Contexte facultatif pour l'équipe. |
 | **Activé** | Activé pour une nouvelle règle. Désactivez-le dans le formulaire de modification de la règle pour la suspendre sans la supprimer. |
-| **Conditions** | Ce que la règle fait correspondre, à l'étape **Critères de correspondance**. Laissez vide pour correspondre à chaque événement de son type. |
+| **Conditions** | Ce que la règle fait correspondre, à l'étape **Critères de correspondance**. Une règle sans condition, par exemple sur **Tous les incidents**, correspond à chaque événement de son type. |
 | **Runbooks à démarrer** | Un ou plusieurs runbooks à lancer quand la règle se déclenche. |
 
 ## Conditions

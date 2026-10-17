@@ -349,6 +349,17 @@ describe.each(ENGINES)("the $noun grouping engine", (engine: EngineCase) => {
     feed = [];
     let created: number = 0;
 
+    /*
+     * No record here is in an episode before the engine groups it, so no
+     * episode keeps it out of the others (EpisodeSingleMembership).
+     */
+    jest
+      .spyOn(
+        engine.memberService as Record<string, AnyFunction>,
+        "findHoldingEpisodeId",
+      )
+      .mockResolvedValue(null as never);
+
     jest
       .spyOn(engine.episodeService as Record<string, AnyFunction>, "create")
       .mockImplementation((async (data: {

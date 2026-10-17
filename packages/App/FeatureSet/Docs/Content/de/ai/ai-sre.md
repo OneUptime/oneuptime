@@ -293,7 +293,7 @@ Zwei Schalter auf der KI-Einstellungsseite jedes Signaltyps entscheiden, was One
 
 Eine Regel für automatische Behebung stellt drei Fragen:
 
-1. **Bedingungen** – auf welche Vorfälle sie passt: Monitore, Schweregrade, Labels, Monitor-Labels, Titel und Beschreibung, dieselben Bedingungen wie bei den anderen Vorfall- und Warnungsregeln des Projekts. Eine Regel ohne Bedingung passt auf jeden Vorfall.
+1. **Bedingungen** – auf welche Vorfälle sie passt: **Alle Vorfälle**, womit eine neue Regel beginnt, oder **Nur Vorfälle, die den Bedingungen entsprechen** zu Monitoren, Schweregraden, Labels, Monitor-Labels, Titel und Beschreibung, dieselben Bedingungen wie bei den anderen Vorfall- und Warnungsregeln des Projekts.
 2. **Beheben mit** – **OneUptime AI** behebt den Vorfall über den KI-Agenten auf dem Cluster oder Host, den er betrifft; **Runbooks** führt die Runbooks aus, die die Regel nennt, jedes Mal auf dieselbe Weise.
 3. **Genehmigung** – **Vor dem Beheben fragen**: Nichts läuft, bis jemand die Korrektur mit einem Klick genehmigt. **Ohne Nachfrage beheben**: Runbooks starten sofort, und OneUptime AI behebt ohne Genehmigung, wo immer die Einstellungen des KI-Agenten es erlauben – ein Cluster oder Host, der auf Genehmigung eingestellt ist, fragt trotzdem.
 

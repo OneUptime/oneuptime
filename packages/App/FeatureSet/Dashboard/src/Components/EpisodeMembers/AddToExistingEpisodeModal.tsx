@@ -24,10 +24,12 @@ import {
   EpisodeRow,
   EpisodeRows,
   fetchEpisodeRows,
+  fetchIsLimitedToOneEpisode,
   fetchRecordsForNewEpisode,
 } from "./EpisodeMembersApi";
 import EpisodePickerList, { EpisodePickerItem } from "./EpisodePickerList";
 import { EPISODE_MEMBER_SEARCH_DEBOUNCE_MS } from "./AddEpisodeMembersModal";
+import { NothingToAddToEpisodeNotice } from "./NothingToAddToEpisode";
 
 /*
  * "Add to Existing Episode" on an alerts or incidents list: pick the one
@@ -38,6 +40,13 @@ import { EPISODE_MEMBER_SEARCH_DEBOUNCE_MS } from "./AddEpisodeMembersModal";
  * episode already - left as they are when it is this one, kept there too
  * when it is another - and that adding does not reopen a resolved episode,
  * in a note right above the button that adds them.
+ *
+ * In a project that allows one in only one episode (EpisodeSingleMembership,
+ * read when the dialog opens), the note says instead that those in another
+ * episode are not added. When every selected one is in an episode already,
+ * there is nothing to pick an episode for: the dialog says so, and why
+ * (NothingToAddToEpisodeNotice), with only Close. Until it knows, the list
+ * shows its skeleton, so it never flashes up first.
  *
  * Picking is all this does: the list's bulk action adds them, in one
  * request, and reports what happened to each.
@@ -59,6 +68,8 @@ export interface ComponentProps {
 interface RecordEpisodes {
   // Each selected record's latest episode, by the record's id.
   episodeIdByRecordId: Map<string, string>;
+  // The selected records that were read, by id: none until they are.
+  readRecordIds: Set<string>;
 }
 
 const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
@@ -89,7 +100,18 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
   const [selectedId, setSelectedId] = useState<string>("");
   const [recordEpisodes, setRecordEpisodes] = useState<RecordEpisodes>({
     episodeIdByRecordId: new Map(),
+    readRecordIds: new Set(),
   });
+  /*
+   * Whether the project allows one in only one episode
+   * (EpisodeSingleMembership): false until read, as it is for every project
+   * that has not turned it on.
+   */
+  const [isLimitedToOneEpisode, setIsLimitedToOneEpisode] =
+    useState<boolean>(false);
+  // Whether the switch, and then the selected ones, have been read.
+  const [isSettingRead, setIsSettingRead] = useState<boolean>(false);
+  const [areRecordsRead, setAreRecordsRead] = useState<boolean>(false);
 
   // Only the latest request may write the list.
   const requestIdRef: MutableRefObject<number> = useRef<number>(0);
@@ -116,19 +138,39 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
           }
 
           const episodeIdByRecordId: Map<string, string> = new Map();
+          const readRecordIds: Set<string> = new Set();
 
           for (const record of records) {
+            readRecordIds.add(record.id);
+
             if (record.otherEpisodeId) {
               episodeIdByRecordId.set(record.id, record.otherEpisodeId);
             }
           }
 
-          setRecordEpisodes({ episodeIdByRecordId: episodeIdByRecordId });
+          setRecordEpisodes({
+            episodeIdByRecordId: episodeIdByRecordId,
+            readRecordIds: readRecordIds,
+          });
+          setAreRecordsRead(true);
         },
       )
       .catch(() => {
         // Only the note is lost: the server says what happened anyway.
+        if (!isCancelled) {
+          setAreRecordsRead(true);
+        }
       });
+
+    // Never rejects: a project it cannot read allows several.
+    fetchIsLimitedToOneEpisode({ config: config }).then(
+      (isLimited: boolean) => {
+        if (!isCancelled) {
+          setIsLimitedToOneEpisode(isLimited);
+          setIsSettingRead(true);
+        }
+      },
+    );
 
     return () => {
       isCancelled = true;
@@ -249,15 +291,20 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
     if (inAnotherEpisode > 0) {
       notes.push(
         <p key="in-another" data-testid="add-to-existing-episode-in-another">
-          {translator.translatePlural(
-            {
-              one: "{{count}} of them is already in another episode. It stays there too: {{itemsName}} can be in more than one episode.",
-              other:
-                "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.",
-            },
-            inAnotherEpisode,
-            { itemsName },
-          )}
+          {isLimitedToOneEpisode
+            ? translator.translatePlural(
+                config.singleMembershipCopy.pickNoteInAnotherEpisode,
+                inAnotherEpisode,
+              )
+            : translator.translatePlural(
+                {
+                  one: "{{count}} of them is already in another episode. It stays there too: {{itemsName}} can be in more than one episode.",
+                  other:
+                    "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.",
+                },
+                inAnotherEpisode,
+                { itemsName },
+              )}
         </p>,
       );
     }
@@ -307,16 +354,60 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  const title: string = translator.translatePlural(
+    {
+      one: "Add {{count}} {{itemName}} to an Episode",
+      other: "Add {{count}} {{itemsName}} to an Episode",
+    },
+    count,
+    { itemName: itemTitle, itemsName: itemsTitle },
+  );
+
+  /*
+   * Allowed in only one episode, and every selected one is in an episode
+   * already - each one read, so nothing is assumed: no episode could take
+   * any of them.
+   */
+  const isEverySelectedOneInAnEpisode: boolean =
+    isLimitedToOneEpisode &&
+    count > 0 &&
+    props.recordIds.every((recordId: string): boolean => {
+      const id: string = recordId.toLowerCase();
+
+      return (
+        recordEpisodes.readRecordIds.has(id) &&
+        recordEpisodes.episodeIdByRecordId.has(id)
+      );
+    });
+
+  /*
+   * Still finding out whether there is anything to add: the switch, and -
+   * when it is on - which episodes the selected ones are in.
+   */
+  const isChecking: boolean =
+    !isSettingRead || (isLimitedToOneEpisode && !areRecordsRead);
+
+  if (isEverySelectedOneInAnEpisode) {
+    // The same dialog, with nothing to pick: why, and Close.
+    return (
+      <Modal
+        title={title}
+        modalWidth={ModalWidth.Medium}
+        onClose={props.onClose}
+        closeButtonText="Close"
+      >
+        <NothingToAddToEpisodeNotice
+          config={config}
+          count={count}
+          dataTestId="add-to-existing-episode-nothing-to-add"
+        />
+      </Modal>
+    );
+  }
+
   return (
     <Modal
-      title={translator.translatePlural(
-        {
-          one: "Add {{count}} {{itemName}} to an Episode",
-          other: "Add {{count}} {{itemsName}} to an Episode",
-        },
-        count,
-        { itemName: itemTitle, itemsName: itemsTitle },
-      )}
+      title={title}
       description={translator.translateTemplate(
         "Pick the episode to add the selected {{itemsName}} to.",
         { itemsName },
@@ -357,7 +448,7 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
           searchPlaceholder={translator.translateTemplate(
             "Search episodes by title or number",
           )}
-          isLoading={isLoading}
+          isLoading={isLoading || isChecking}
           error={error}
           onRetry={() => {
             setReloadToken((token: number): number => {

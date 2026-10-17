@@ -149,6 +149,14 @@ Personen har en konto, men hører ikke til noe prosjekt, og leverandøren har in
 For en SAML-leverandør er issuer i svaret fra identitetsleverandøren din ikke den **Issuer** som er lagret på leverandøren. Kopier den på nytt fra identitetsleverandøren din; de to må samsvare nøyaktig.
 :::
 
+:::details "SAML Audience does not match"
+For en SAML-leverandør er svarets audience ikke leverandørens **Issuer (Entity ID)**: identitetsleverandøren din laget svaret for en annen applikasjon. Sett applikasjonens entity ID i identitetsleverandøren din til **Issuer (Entity ID)** på leverandørens side. "SAML Recipient does not match" og "SAML Destination does not match" betyr det samme for applikasjonens reply URL: sett den til **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Hvert svar fra identitetsleverandøren din logger inn bare én gang, og bare innen noen minutter etter at det ble utstedt: deretter avvises det med "SAML response has expired". Logg inn på nytt. Hvis svarene fortsetter å utløpe, kontroller klokkene på denne serveren og hos identitetsleverandøren din.
+:::
+
 ## Neste steg
 
 :::cards

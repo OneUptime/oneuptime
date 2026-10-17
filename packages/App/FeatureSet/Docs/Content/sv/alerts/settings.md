@@ -6,7 +6,7 @@ Konfigurationen av larm finns i **Varningar**, inte i **Projektinställningar**:
 - [Reglerna som ett nytt larm passerar](#reglerna-som-ett-nytt-larm-passerar): I ordning, och vad var och en gör.
 - [Jourregler](#jourregler): Larma rätt personer utan att välja en policy varje gång.
 - [Påminnelseregler](#påminnelseregler): Påminn ägare så länge ett larm är öppet.
-- [Inställningar](#inställningar): Anteckningsmallar, anpassade fält, mätningar och numrering.
+- [Inställningar](#inställningar): Anteckningsmallar, anpassade fält, mätningar, medlemskap i episoder och numrering.
 :::
 
 ## Var larminställningarna finns
@@ -23,7 +23,7 @@ Konfigurationen av larm finns i **Varningar**, inte i **Projektinställningar**:
 | **Etikettregler**     | Lägger till etiketter på matchande larm och episoder.                                          |
 | **Reminder Rules**    | Påminner ägare med ett intervall så länge ett larm är öppet.                                   |
 
-Avsnittet **Inställningar** innehåller **Varningsstatus** och **Varningsallvar**, som beskrivs på [Larmstatusar och allvarlighetsgrader](/docs/alerts/states-and-severities), och sedan **Anteckningsmallar**, **Anpassade fält**, **Mätningar** och **Numrering**, som beskrivs nedan.
+Avsnittet **Inställningar** innehåller **Varningsstatus** och **Varningsallvar**, som beskrivs på [Larmstatusar och allvarlighetsgrader](/docs/alerts/states-and-severities), och sedan **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder** och **Numrering**, som beskrivs nedan.
 
 Två avsnitt till verkar på larm. **Varningar → AI → Inställningar** avgör vad OneUptime AI gör på egen hand: **Utred nya larm**, påslaget för nya projekt, och **Åtgärda nya larm automatiskt**, avslaget tills du slår på det. Se [AI SRE](/docs/ai/ai-sre). **Varningar → Arbetsyta** innehåller Slack- och Microsoft Teams-reglerna som publicerar larm och episoder i kanaler, och dess flik **Summary**. Se [Slack](/docs/workspace-connections/slack).
 
@@ -83,7 +83,7 @@ Klicka på **Skapa Alert On-Call Rule**. I **Grundläggande information** ger du
 
 ### Välj larmen
 
-I **Matchningskriterier** lägger du till de villkor som ett larm måste uppfylla. Lämna dem tomma för att matcha varje nytt larm.
+I **Matchningskriterier** matchar **Alla varningar**, som en ny regel börjar på, varje nytt larm. För att snäva in regeln väljer du **Endast varningar som uppfyller villkoren** och lägger till de villkor som ett larm måste uppfylla.
 
 ### Välj policyerna
 
@@ -119,7 +119,7 @@ Klicka på **Skapa Alert Reminder Rule**. I **Rule Info** ger du den ett **Namn*
 
 ### Välj vilka larm som ska påminnas om
 
-I **Matchningskriterier** väljer du de **Larm Allvarligheter** och **Etiketter** som den gäller för. Lämna dem tomma för att påminna om varje larm.
+I **Matchningskriterier** låter du **Alla varningar** vara valt för att påminna om varje larm, eller väljer **Endast varningar som uppfyller villkoren** och sedan de **Larm Allvarligheter** och **Etiketter** som den gäller för.
 
 ### Ställ in intervallet
 
@@ -141,6 +141,10 @@ I **Reminder Settings** ställer du in **Reminder Interval (minutes)**, hur ofta
 ### Mätningar
 
 **Varningar → Inställningar → Mätningar** mäter hur lång tid saker tar för varje larm. Välj **Tid till bekräftelse** eller **Tid till lösning**, eller två egna tidpunkter, till exempel när **Larmet skapas** och när det går in i ett tillstånd som du väljer. Varje mätning visas på larmets sida och i diagram som `oneuptime.alert.measurement.<key>`. Se [Mätningar](/docs/incidents/settings#mätningar), som fungerar på samma sätt för larm.
+
+### Medlemskap i episoder
+
+**Varningar → Inställningar → Medlemskap i episoder** avgör om ett larm kan ingå i mer än en episod. Slå på **Ett larm kan bara ingå i en episod**, så läggs ett larm som finns i en episod inte till i någon annan, varken från instrumentpanelen eller via API:t, ett arbetsflöde eller en grupperingsregel, förrän det har tagits ut ur den episoden. Reglaget är avslaget tills du slår på det, och bara Project Owners och Project Admins kan ändra det. Att slå på det tar inte ut något larm ur en episod. Se [En episod per incident](/docs/incidents/episodes#en-episod-per-incident), som fungerar på samma sätt för larm.
 
 ### Numrering
 

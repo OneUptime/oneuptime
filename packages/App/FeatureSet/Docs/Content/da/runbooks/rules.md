@@ -57,7 +57,7 @@ Under **Grundlæggende oplysninger** angiver du et **Navn**, f.eks. "Start DB-fa
 
 ### Tilføj betingelser
 
-Under **Matchkriterier** klikker du på **Tilføj betingelse**, vælger et kriterium og en operator og indtaster eller vælger værdien. Tilføj flere betingelser, hvis du har brug for det, og vælg **Alle skal matche** eller **Én skal matche**. Tilføj ingen for at starte runbooks ved hver ny begivenhed af denne slags.
+Under **Matchkriterier** starter **Gælder for** på hver ny begivenhed af denne slags, for eksempel **Alle hændelser**, og reglen starter sine runbooks for hver af dem. For at indsnævre reglen vælger du det andet svar, for eksempel **Kun hændelser, der opfylder betingelserne**, og derefter et kriterium og en operator, og du indtaster eller vælger værdien. Klik på **Tilføj betingelse** for flere betingelser, og vælg **Alle skal matche** eller **Én skal matche**.
 
 ### Vælg runbooks
 
@@ -71,7 +71,7 @@ Under **Runbooks** vælger du et eller flere **Driftsmanualer til at starte** og
 | **Navn** | En kort, forståelig betegnelse for reglen. |
 | **Beskrivelse** | Valgfri kontekst til holdkammerater. |
 | **Aktiveret** | Slået til for en ny regel. Slå den fra i reglens redigeringsformular for at sætte den på pause uden at slette den. |
-| **Betingelser** | Hvad reglen matcher, i trinnet **Matchkriterier**. Lad den være tom for at matche hver begivenhed af dens type. |
+| **Betingelser** | Hvad reglen matcher, i trinnet **Matchkriterier**. En regel uden betingelser, for eksempel på **Alle hændelser**, matcher hver begivenhed af dens type. |
 | **Driftsmanualer til at starte** | Et eller flere runbooks, der startes, når reglen udløses. |
 
 ## Betingelser

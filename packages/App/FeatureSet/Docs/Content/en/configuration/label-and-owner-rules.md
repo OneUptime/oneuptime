@@ -40,7 +40,7 @@ Open the product's **Label Rules** or **Owner Rules** page and click its create 
 
 ### Choose what the rule matches
 
-On the **Match** step, click **Add condition** for each condition the resource must meet. With two or more, choose **Match all** or **Match any**. A rule with no conditions matches every new resource.
+On the **Match** step, **Applies to** starts on every new resource, such as **All hosts** on a host rule. To narrow it down, pick **Only hosts that match conditions** and fill in the condition that opens; click **Add condition** for each other condition the resource must meet. With two or more, choose **Match all** or **Match any**.
 
 ### Choose what the rule adds
 

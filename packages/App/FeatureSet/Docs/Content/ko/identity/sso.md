@@ -36,8 +36,13 @@ OneUptime은 IdP가 보내는 어설션에서 몇 가지만 읽습니다.
 | --- | --- |
 | 서명 | 공급자의 **공개 인증서**와 대조합니다. 응답은 서명되어 있어야 하며 암호화되어 있으면 안 됩니다. |
 | Issuer | 공급자의 **발급자**와 정확히 일치해야 합니다. |
+| Audience | 공급자의 **Identifier (Entity ID)** 값이어야 합니다. IdP가 다른 애플리케이션용으로 만든 응답은 거부됩니다. |
+| Recipient 및 Destination | 공급자의 **Reply URL**, 곧 응답을 보낸 주소여야 합니다. |
+| `NotBefore` 및 `NotOnOrAfter` | 응답은 이 값들이 허용하는 동안에만, 그리고 발급 후 10분 이내에만 받아들여지며, 서로 맞지 않는 시계를 위해 3분의 여유가 있습니다. |
 | Name ID | 그 사람의 이메일 주소입니다. 유효한 이메일 주소여야 합니다. |
 | `http://schemas.microsoft.com/identity/claims/displayname` | 그 사람의 이름으로, OneUptime이 계정을 만들 때 사용합니다. 선택 사항입니다. |
+
+각 응답으로는 한 번만 로그인할 수 있습니다. 로그인한 뒤 브라우저에서 뒤로 가는 등으로 다시 보낸 응답은 거부됩니다. 다시 로그인하세요.
 
 처음 로그인하는 사람은 공급자의 **팀**에 합류하며, 이 팀이 그 사람이 할 수 있는 일을 결정합니다. [SSO 사용자의 역할과 팀](#sso-사용자의-역할과-팀)을 참고하세요.
 
@@ -326,6 +331,22 @@ SAML 또는 OIDC 공급자를 끄거나 삭제하면 그 공급자로 이루어�
 
 :::details "Issuer URL does not match"
 IdP 어설션의 발급자가 공급자의 **발급자**와 다릅니다. IdP에서 다시 복사하세요(Keycloak 렐름 URL, **Microsoft Entra Identifier** 또는 Okta의 Identity Provider Issuer). 두 값이 정확히 일치해야 합니다.
+:::
+
+:::details "SAML Audience does not match"
+응답의 audience가 이 공급자의 **Identifier (Entity ID)** 값이 아닙니다. IdP가 다른 애플리케이션용으로 응답을 만들었습니다. IdP에서 애플리케이션의 entity ID를 **SSO 구성 보기**의 **Identifier (Entity ID)** 값으로 설정하세요. Keycloak에서는 **Client ID**, Entra ID에서는 **Identifier (Entity ID)** 항목, Okta에서는 **Audience URI (SP Entity ID)** 항목입니다. OneUptime 주소만(예: `https://oneuptime.com`) entity ID로 설정된 IdP는 계속 작동합니다.
+:::
+
+:::details "SAML Recipient does not match"
+응답의 recipient가 이 공급자의 **Reply URL**이 아닙니다. 응답이 다른 주소로 보내졌습니다. IdP에서 애플리케이션의 reply URL을 **SSO 구성 보기**의 **Reply URL (Assertion Consumer Service URL)** 값으로 설정하세요. Keycloak에서는 **Assertion Consumer Service POST Binding URL**, Entra ID에서는 **Reply URL (Assertion Consumer Service URL)** 항목, Okta에서는 **Single sign-on URL** 항목입니다. "SAML Destination does not match"도 원인과 해결 방법이 같습니다.
+:::
+
+:::details "SAML response has expired"
+응답이 IdP가 허용하는 것보다 늦게, 또는 발급 후 10분이 넘어서 OneUptime에 도착했습니다. 다시 로그인하세요. 계속 반복된다면 IdP나 OneUptime 서버의 시계가 틀린 것입니다. OneUptime은 둘 사이에 3분까지의 차이를 허용합니다. "SAML response is not valid yet"은 같은 문제가 반대 방향으로 생긴 것입니다.
+:::
+
+:::details "SAML response was already used"
+IdP의 각 응답으로는 한 번만 로그인할 수 있습니다. 로그인한 뒤 브라우저에서 뒤로 가거나, IdP가 거쳐 보낸 페이지를 새로 고치면 같은 응답이 다시 전송됩니다. OneUptime에서 또는 IdP에서 다시 로그인하세요.
 :::
 
 :::details 서명 또는 인증서 오류로 로그인에 실패함

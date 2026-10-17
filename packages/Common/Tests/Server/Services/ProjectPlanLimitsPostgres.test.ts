@@ -1027,15 +1027,17 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
     /*
      * A first sign-in through the project's SSO: hooks skipped, as SSO.ts
      * does, in the project its sign-in address names - by `namedAs`, when
-     * the address spells the id another way.
+     * the address spells the id another way - onto the provider's team
+     * (`toTeamId`, the first team by default).
      */
     async function joinThroughSso(
       userId: ObjectID,
       namedAs?: ObjectID | undefined,
+      toTeamId?: ObjectID | undefined,
     ): Promise<TeamMember> {
       const member: TeamMember = new TeamMember();
       member.projectId = namedAs || projectId;
-      member.teamId = teamId;
+      member.teamId = toTeamId || teamId;
       member.userId = userId;
       member.hasAcceptedInvitation = true;
       member.invitationAcceptedAt = new Date();
@@ -1320,6 +1322,121 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
         refusal: Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
       });
       expect(await peopleInProject()).toBe(1);
+    }, 120000);
+
+    /*
+     * A server admin adds someone from the Admin Dashboard: no tenant, no
+     * plan on the request (a server admin is held to no plan), the project
+     * named on the membership.
+     */
+    async function serverAdminAdds(userId: ObjectID): Promise<TeamMember> {
+      const member: TeamMember = new TeamMember();
+      member.projectId = projectId;
+      member.teamId = teamId;
+      member.userId = userId;
+
+      return await TeamMemberService.create({
+        data: member,
+        props: {
+          isMasterAdmin: true,
+          userId: ObjectID.generate(),
+        } as DatabaseCommonInteractionProps,
+      });
+    }
+
+    test("the Free plan's one person holds first SSO sign-ins too: its owner joins another team, and nobody new joins", async () => {
+      await insertProject({ plan: "free" });
+      await insertTeam();
+      await insertPeople(1);
+      const people: Array<ObjectID> = [];
+      for (let index: number = 0; index < RACING_CREATES - 1; index++) {
+        people.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        create: (index: number) => {
+          return index === 0
+            ? joinThroughSso(adminId, undefined, secondTeamId)
+            : joinThroughSso(people[index - 1]!);
+        },
+      });
+
+      expectOutcome(outcome, {
+        created: 1,
+        refusal: Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+      });
+      expect(await peopleInProject()).toBe(1);
+      expect(await membershipsInProject()).toBe(2);
+    }, 120000);
+
+    test("a Free plan project with nobody in it yet: of twelve first SSO sign-ins at the same moment, exactly one joins", async () => {
+      await insertProject({ plan: "free" });
+      await insertTeam();
+      const people: Array<ObjectID> = [];
+      for (let index: number = 0; index < RACING_CREATES; index++) {
+        people.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        create: (index: number) => {
+          return joinThroughSso(people[index]!);
+        },
+      });
+
+      expectOutcome(outcome, {
+        created: 1,
+        refusal: Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+      });
+      expect(await peopleInProject()).toBe(1);
+    }, 120000);
+
+    test("first SSO sign-ins in a Free plan project, each naming the project by another spelling of its id, add its one person only", async () => {
+      projectId = generateIdWithLetters();
+      await insertProject({ plan: "free" });
+      await insertTeam();
+      const spellings: Array<ObjectID> = spellingsOf(projectId);
+      const people: Array<ObjectID> = [];
+      for (let index: number = 0; index < RACING_CREATES; index++) {
+        people.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        create: (index: number) => {
+          return joinThroughSso(people[index]!, spellings[index]);
+        },
+      });
+
+      expectOutcome(outcome, {
+        created: 1,
+        refusal: Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+      });
+      expect(await peopleInProject()).toBe(1);
+    }, 120000);
+
+    test("a server admin is held to no plan: they add people to a Free plan project that has its one person", async () => {
+      await insertProject({ plan: "free" });
+      await insertTeam();
+      await insertPeople(1);
+
+      for (let index: number = 0; index < 3; index++) {
+        await serverAdminAdds(await newPerson(index));
+      }
+
+      expect(await peopleInProject()).toBe(4);
+    }, 120000);
+
+    test("a server admin is still held to a plan's seats", async () => {
+      await insertProject({ plan: "growth", seatLimit: 2 });
+      await insertTeam();
+      await insertPeople(2);
+
+      await expect(serverAdminAdds(await newPerson(0))).rejects.toThrow(
+        new BadDataException(Errors.TeamMemberService.LIMIT_REACHED),
+      );
+      expect(await peopleInProject()).toBe(2);
     }, 120000);
 
     test("a plan's seat limit with room for one: of twelve invitations that each name the project by another spelling of its id, exactly one is added", async () => {

@@ -73,7 +73,7 @@ Click **Create Scheduled Maintenance Reminder Rule**. On **Rule Info**, give it 
 
 ### Choose which events to remind about
 
-On **Match Criteria**, pick the **Labels** it applies to. Leave them empty to remind about every event.
+On **Match Criteria**, leave **All scheduled maintenance events** picked to remind about every event, or pick **Only scheduled maintenance events that match conditions** and choose the **Labels** it applies to.
 
 ### Set the interval
 

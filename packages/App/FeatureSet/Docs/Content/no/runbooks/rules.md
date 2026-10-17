@@ -57,7 +57,7 @@ Under **Grunnleggende informasjon** skriver du inn et **Navn**, for eksempel "St
 
 ### Legg til betingelser
 
-Under **Treffkriterier** klikker du **Legg til betingelse**, velger et kriterium og en operator og skriver inn eller velger verdien. Legg til flere betingelser om du trenger det, og velg **Samsvar med alle** eller **Samsvar med én**. Legg ikke til noen for å starte runbooks ved hver ny begivenhet av denne typen.
+Under **Treffkriterier** starter **Gjelder for** på hver ny begivenhet av denne typen, for eksempel **Alle hendelser**, og regelen starter sine runbooks for hver av dem. For å snevre inn regelen velger du det andre svaret, for eksempel **Bare hendelser som oppfyller betingelsene**, og deretter et kriterium og en operator, og du skriver inn eller velger verdien. Klikk **Legg til betingelse** for flere betingelser, og velg **Samsvar med alle** eller **Samsvar med én**.
 
 ### Velg runbooks
 
@@ -71,7 +71,7 @@ Under **Runbooks** velger du ett eller flere **Runbooks å starte** og klikker *
 | **Navn** | En kort, lesbar etikett for regelen. |
 | **Beskrivelse** | Valgfri kontekst for kolleger. |
 | **Aktivert** | Slått på for en ny regel. Slå den av i regelens redigeringsskjema for å sette den på pause uten å slette den. |
-| **Betingelser** | Hva regelen treffer, i trinnet **Treffkriterier**. La det stå tomt for å treffe hver begivenhet av sin type. |
+| **Betingelser** | Hva regelen treffer, i trinnet **Treffkriterier**. En regel uten betingelser, for eksempel på **Alle hendelser**, treffer hver begivenhet av sin type. |
 | **Runbooks å starte** | Ett eller flere runbooks som startes når regelen utløses. |
 
 ## Betingelser

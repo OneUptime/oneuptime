@@ -8,8 +8,10 @@ import ServiceLevelObjectiveMonitorRule from "../../../../Models/DatabaseModels/
 import NetworkSiteAssignmentRule from "../../../../Models/DatabaseModels/NetworkSiteAssignmentRule";
 import NetworkDeviceAutoImportRule from "../../../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import IncidentPrivacyRule from "../../../../Models/DatabaseModels/IncidentPrivacyRule";
+import RunbookRule from "../../../../Models/DatabaseModels/RunbookRule";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION } from "../../../../Types/Rules/RuleCriteriaFieldRegistry";
+import { RuleCriteriaSubject } from "../../../../Types/Rules/RuleCriteriaSubject";
 import type Field from "../../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -250,7 +252,7 @@ describe("ModelForm rule criteria integration", () => {
     ).toBe("Rule criteria schemaVersion must be 1.");
   });
 
-  test("names the field Conditions, on the match-criteria step, in plain words", () => {
+  test("asks what the rule applies to, under a label the choice draws itself", () => {
     const criteriaField: Field<any> | undefined =
       replaceLegacyRuleCriteriaFields(new RuleBaseModel(), ruleFields()).find(
         (field: Field<any>): boolean => {
@@ -258,12 +260,69 @@ describe("ModelForm rule criteria integration", () => {
         },
       );
 
+    expect(criteriaField?.title).toBe("Applies to");
+    /*
+     * The choice draws "Applies to" itself (RuleAppliesToChoice), so the
+     * form draws no label - nor the API column's description, which it
+     * would fall back to under one.
+     */
+    expect(criteriaField?.customElementDrawsOwnLabel).toBe(true);
+    // Always answered ("All ..." or "Only ..."), so never "(Optional)".
+    expect(criteriaField?.hideOptionalLabel).toBe(true);
+    expect(criteriaField?.description).toBeUndefined();
+    expect(criteriaField?.required).toBe(false);
+  });
+
+  test("a rule kind that needs a condition keeps its Conditions label and help", () => {
+    const criteriaField: Field<any> | undefined =
+      replaceLegacyRuleCriteriaFields(
+        new StatusPageMonitorRule(),
+        ruleFields(),
+      ).find((field: Field<any>): boolean => {
+        return fieldName(field) === RULE_CRITERIA_FIELD_NAME;
+      });
+
     expect(criteriaField?.title).toBe("Conditions");
     // Its own words: without them the form falls back to the API column's.
     expect(criteriaField?.description).toBe(
       "Choose what this rule applies to.",
     );
-    expect(criteriaField?.required).toBe(false);
+    expect(criteriaField?.customElementDrawsOwnLabel).toBeUndefined();
+    expect(criteriaField?.hideOptionalLabel).toBeUndefined();
+  });
+
+  test("names the records the choice is about: by the model, or by the table for a rule of several kinds", () => {
+    const elementFor: (
+      model: BaseModel,
+      subject?: RuleCriteriaSubject,
+    ) => { subject?: unknown } = (
+      model: BaseModel,
+      subject?: RuleCriteriaSubject,
+    ): { subject?: unknown } => {
+      const criteriaField: Field<any> | undefined =
+        replaceLegacyRuleCriteriaFields(model, ruleFields(), {
+          subject: subject,
+        }).find((field: Field<any>): boolean => {
+          return fieldName(field) === RULE_CRITERIA_FIELD_NAME;
+        });
+
+      return criteriaField!.getCustomElement!({}, { onChange: jest.fn() })!
+        .props as { subject?: unknown };
+    };
+
+    expect(elementFor(new IncidentPrivacyRule()).subject).toBe(
+      RuleCriteriaSubject.Incidents,
+    );
+    expect(elementFor(new AlertReminderRule()).subject).toBe(
+      RuleCriteriaSubject.Alerts,
+    );
+    // A runbook rule is about what its table lists.
+    expect(
+      elementFor(new RunbookRule(), RuleCriteriaSubject.Alerts).subject,
+    ).toBe(RuleCriteriaSubject.Alerts);
+    expect(elementFor(new RunbookRule()).subject).toBeNull();
+    // A rule kind that needs a condition has no "All" to name.
+    expect(elementFor(new StatusPageMonitorRule()).subject).toBeNull();
   });
 
   test("lists exactly the rule kinds whose services refuse an empty condition list", () => {

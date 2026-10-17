@@ -177,7 +177,7 @@ Pipeline rules run **at metric ingest time**, after the OTel data point has been
 
 ### Match Criteria
 
-Add one or more **Filters** to decide which data points the rule fires on:
+A new rule fires on **All data points**. Pick **Only data points that match filters** to decide which ones, with one or more filters:
 
 - **Metric Name** — match on the metric name with conditions like Equal To, Contains, Starts With, Matches Regex, etc.
 - **Attribute** — match on a specific attribute key. Choose Is Present / Is Not Present / Is Empty / Is Not Empty for key-based checks, or Equal To / Contains / Matches Regex (etc.) to compare the attribute value.
@@ -186,8 +186,6 @@ Once a rule has two or more filters, **Match Condition** decides how they are co
 
 - **All** (AND) — the data point must match every filter.
 - **Any** (OR) — the data point matches if at least one filter matches.
-
-If no filters are added, the rule applies to every metric data point.
 
 ### Scope
 
@@ -305,10 +303,16 @@ const MetricPipelineRules: FunctionComponent<
         },
         {
           field: { filters: true },
-          title: "Filters",
+          /*
+           * "All data points" or "Only data points that match filters": the
+           * editor draws that choice under its own "Applies to" label, as
+           * every rule's conditions are asked (RuleAppliesToChoice). Always
+           * answered, so never "(Optional)".
+           */
+          title: "Applies to",
+          customElementDrawsOwnLabel: true,
+          hideOptionalLabel: true,
           stepId: "match",
-          description:
-            "Add filters to decide which metric data points this rule fires on. Leave empty to match every data point.",
           fieldType: FormFieldSchemaType.CustomComponent,
           required: false,
           customValidation: (values: FormValues<MetricPipelineRule>) => {

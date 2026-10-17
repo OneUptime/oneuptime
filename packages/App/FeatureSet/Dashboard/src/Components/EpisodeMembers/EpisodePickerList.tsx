@@ -83,6 +83,12 @@ export interface ComponentProps {
   footer?: ReactElement | undefined;
 }
 
+/*
+ * How a row that cannot be picked fades: its box, its title and its line of
+ * facts - never its note, which says why.
+ */
+export const EPISODE_PICKER_DISABLED_CLASS_NAME: string = "opacity-60";
+
 // A pill on a row's line of facts: a state, a severity, Private.
 const PILL_CLASS_NAME: string =
   "inline-flex max-w-full items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";
@@ -185,10 +191,20 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
     if (isSelected) {
       rowClassName += " bg-indigo-50";
     } else if (isDisabled) {
-      rowClassName += " cursor-not-allowed opacity-60";
+      rowClassName += " cursor-not-allowed";
     } else {
       rowClassName += " cursor-pointer hover:bg-gray-50";
     }
+
+    /*
+     * A row that cannot be picked is drawn faded - its box, its title and
+     * its facts - but not its note: the note is why it cannot be picked
+     * ("Already in episode AE-11"), and has to stay as easy to read as any
+     * other line.
+     */
+    const fadedClassName: string = isDisabled
+      ? ` ${EPISODE_PICKER_DISABLED_CLASS_NAME}`
+      : "";
 
     return (
       <li key={`${sectionKey}-${item.id}`}>
@@ -205,7 +221,7 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
             name={props.selectionMode === "single" ? baseId : undefined}
             className={`accent-indigo-600 mt-1 h-4 w-4 flex-shrink-0 border-gray-300 text-indigo-600 focus:ring-indigo-600 ${
               props.selectionMode === "single" ? "" : "rounded"
-            }`}
+            }${fadedClassName}`}
             checked={isSelected}
             disabled={isDisabled}
             aria-describedby={item.note ? noteId : undefined}
@@ -219,7 +235,10 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
             }}
           />
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 items-start gap-2">
+            <div
+              data-testid={`${props.testId}-option-heading`}
+              className={`flex min-w-0 items-start gap-2${fadedClassName}`}
+            >
               {item.number && (
                 <span
                   data-testid={`${props.testId}-option-number`}
@@ -243,7 +262,7 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
               item.date) && (
               <div
                 data-testid={`${props.testId}-option-facts`}
-                className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1"
+                className={`mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1${fadedClassName}`}
               >
                 {item.state && (
                   <EpisodePickerPillBadge

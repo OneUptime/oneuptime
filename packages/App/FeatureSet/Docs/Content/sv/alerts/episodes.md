@@ -64,7 +64,7 @@ Klicka på **Skapa anpassad regel** under mallarna, eller på **Skapa gruppering
 
 #### Avgränsa den
 
-I **Vilka larm** lägger du till villkor för monitorer, allvarlighetsgrader, etiketter, titlar och beskrivningar. Lämna det tomt för att gruppera varje nytt larm. Klicka sedan på **Skapa grupperingsregel för larm**.
+I **Vilka larm** grupperar **Alla varningar**, som en ny regel börjar på, varje nytt larm. För att snäva in regeln väljer du **Endast varningar som uppfyller villkoren** och lägger till villkor för monitorer, allvarlighetsgrader, etiketter, titlar och beskrivningar. Klicka sedan på **Skapa grupperingsregel för larm**.
 :::
 
 Allt annat som en regel kan göra är hopfällt under **Fler fält** i slutet av steget **Gruppering**, i tre grupper. Hopfälld anger dess rubrik vad den innehåller och visar varje inställning som regeln använder som en etikett, så att redigering av en regel aldrig döljer vad den gör.

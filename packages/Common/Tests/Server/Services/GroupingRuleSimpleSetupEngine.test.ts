@@ -9,8 +9,10 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
+import AlertEpisodeMemberService from "../../../Server/Services/AlertEpisodeMemberService";
 import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
 import AlertGroupingEngineService from "../../../Server/Services/AlertGroupingEngineService";
+import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
 import MonitorService from "../../../Server/Services/MonitorService";
@@ -422,6 +424,10 @@ describe("the time window an episode is looked for in", () => {
       .spyOn(Semaphore, "lock")
       .mockResolvedValue({} as unknown as SemaphoreMutex);
     jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+    // In no episode yet (EpisodeSingleMembership).
+    jest
+      .spyOn(IncidentEpisodeMemberService, "findHoldingEpisodeId")
+      .mockResolvedValue(null);
     jest
       .spyOn(incidentEngine, "addIncidentToEpisode")
       .mockResolvedValue(undefined);
@@ -444,6 +450,10 @@ describe("the time window an episode is looked for in", () => {
       .spyOn(Semaphore, "lock")
       .mockResolvedValue({} as unknown as SemaphoreMutex);
     jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+    // In no episode yet (EpisodeSingleMembership).
+    jest
+      .spyOn(AlertEpisodeMemberService, "findHoldingEpisodeId")
+      .mockResolvedValue(null);
     jest.spyOn(alertEngine, "addAlertToEpisode").mockResolvedValue(undefined);
     jest
       .spyOn(AlertEpisodeService, "updateEpisodeSeverity")

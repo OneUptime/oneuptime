@@ -94,7 +94,8 @@ const USER_KEYS: Array<string> = ["userId", "user"];
 /*
  * THE LIMITS ON HOW MANY PEOPLE A PROJECT MAY HAVE: the seats of a plan
  * bought from a reseller (Project.seatLimit; none when it is empty or 0),
- * and the Free plan's one person. Both count people, not memberships - the
+ * and the Free plan's one person. Both are the project's, whoever adds the
+ * person (readPeopleLimits), and both count people, not memberships - the
  * distinct users with any membership in the project, a pending invitation
  * included (getUniqueTeamMemberCountInProject) - so someone already in the
  * project joins another of its teams whatever the count.
@@ -595,9 +596,13 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   /*
    * The limits on people a membership create in `projectId` is held to
    * (ProjectPeopleLimits), or null when it is held to none: without
-   * billing, or when the project has no seat limit and the caller is not on
-   * the Free plan (the plan CommonAPI read for the request; OneUptime itself
-   * and a server admin carry none).
+   * billing, or when the project has no seat limit and is not on the Free
+   * plan. Both are read from the project's row, whoever adds the person: a
+   * teammate's invitation, an import, and OneUptime adding someone who signs
+   * in through the project's SSO for the first time - who carries no plan,
+   * and joins like anyone invited. A server admin is held to no plan
+   * (CallerPlan), so not to the Free plan's one person; a plan's seats hold
+   * them too.
    */
   public async readPeopleLimits(data: {
     projectId: ObjectID;
@@ -611,6 +616,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       id: data.projectId,
       select: {
         seatLimit: true,
+        paymentProviderPlanId: true,
       },
       props: {
         isRoot: true,
@@ -623,7 +629,10 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
 
     const limits: ProjectPeopleLimits = {
       seatLimit: project.seatLimit || null,
-      isFreePlan: data.props.currentPlan === PlanType.Free,
+      isFreePlan: this.isHeldToFreePlanPerson({
+        project: project,
+        props: data.props,
+      }),
     };
 
     if (!limits.seatLimit && !limits.isFreePlan) {
@@ -631,6 +640,37 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     }
 
     return limits;
+  }
+
+  /*
+   * Whether the Free plan's one person holds a membership create in
+   * `project`: the project is on the Free plan - as its row names its plan,
+   * or as the plan CommonAPI read for the request says (read from the same
+   * row, kept for a minute) - and the create is not a server admin's, whom
+   * no plan holds (CallerPlan).
+   */
+  private isHeldToFreePlanPerson(data: {
+    project: Project;
+    props: DatabaseCommonInteractionProps;
+  }): boolean {
+    if (data.props.isMasterAdmin) {
+      return false;
+    }
+
+    if (data.props.currentPlan === PlanType.Free) {
+      return true;
+    }
+
+    const planId: string | undefined = data.project.paymentProviderPlanId;
+
+    if (!planId) {
+      return false;
+    }
+
+    return (
+      SubscriptionPlan.getSubscriptionPlanById(planId)?.getName() ===
+      PlanType.Free
+    );
   }
 
   /*

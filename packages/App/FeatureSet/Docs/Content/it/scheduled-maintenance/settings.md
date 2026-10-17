@@ -73,7 +73,7 @@ Fate clic su **Crea: Scheduled Maintenance Reminder Rule**. In **Rule Info**, da
 
 ### Scegliere su quali eventi ricordare
 
-In **Criteri di corrispondenza**, scegliete le **Etichette** a cui si applica. Lasciatele vuote per ricordare ogni evento.
+In **Criteri di corrispondenza**, lasciate selezionato **Tutti gli eventi di manutenzione programmata** per ricordare ogni evento, oppure scegliete **Solo gli eventi di manutenzione programmata che soddisfano le condizioni** e poi le **Etichette** a cui si applica.
 
 ### Impostare l'intervallo
 

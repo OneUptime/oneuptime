@@ -57,7 +57,7 @@ En **Información básica**, escribe un **Nombre**, como «Iniciar el failover d
 
 ### Añadir condiciones
 
-En **Criterios de coincidencia**, haz clic en **Añadir condición**, elige un criterio y un operador, y escribe o elige el valor. Añade más condiciones si las necesitas y elige **Coincidir con todas** o **Coincidir con cualquiera**. No añadas ninguna para iniciar los runbooks en cada evento nuevo de este tipo.
+En **Criterios de coincidencia**, **Se aplica a** empieza en cada evento nuevo de este tipo, por ejemplo **Todos los incidentes**, y la regla inicia sus runbooks en cada uno. Para acotarla, elige la otra respuesta, por ejemplo **Solo los incidentes que cumplen las condiciones**, luego elige un criterio y un operador, y escribe o elige el valor. Haz clic en **Añadir condición** para más condiciones y elige **Coincidir con todas** o **Coincidir con cualquiera**.
 
 ### Elegir los runbooks
 
@@ -71,7 +71,7 @@ En **Runbooks**, elige uno o más **Runbooks para iniciar** y haz clic en **Crea
 | **Nombre** | Una etiqueta corta y comprensible para la regla. |
 | **Descripción** | Contexto opcional para el equipo. |
 | **Habilitado** | Activado en una regla nueva. Desactívalo en el formulario de edición de la regla para suspenderla sin eliminarla. |
-| **Condiciones** | Lo que la regla compara, en el paso **Criterios de coincidencia**. Déjalo vacío para que coincida con cada evento de su tipo. |
+| **Condiciones** | Lo que la regla compara, en el paso **Criterios de coincidencia**. Una regla sin condiciones, por ejemplo en **Todos los incidentes**, coincide con cada evento de su tipo. |
 | **Runbooks para iniciar** | Uno o más runbooks que se lanzan cuando la regla se activa. |
 
 ## Condiciones

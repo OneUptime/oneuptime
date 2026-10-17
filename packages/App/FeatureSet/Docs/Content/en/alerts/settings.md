@@ -6,7 +6,7 @@ Alert configuration lives inside **Alerts**, not in **Project Settings**: the ru
 - [The rules a new alert passes through](#the-rules-a-new-alert-passes-through): In order, and what each one does.
 - [On-call rules](#on-call-rules): Page the right people without picking a policy each time.
 - [Reminder rules](#reminder-rules): Remind owners while an alert stays open.
-- [Settings](#settings): Note templates, custom fields, measurements and numbering.
+- [Settings](#settings): Note templates, custom fields, measurements, episode membership and numbering.
 :::
 
 ## Where alert settings live
@@ -23,7 +23,7 @@ Open **Alerts** from the **Products** menu in the top bar. The **Rules** and **S
 | **Label Rules**     | Adds labels to matching alerts and episodes.                                                   |
 | **Reminder Rules**  | Reminds owners at an interval while an alert is open.                                          |
 
-The **Settings** section holds **Alert State** and **Alert Severity**, covered on [Alert States & Severities](/docs/alerts/states-and-severities), then **Note Templates**, **Custom Fields**, **Measurements** and **Numbering**, covered below.
+The **Settings** section holds **Alert State** and **Alert Severity**, covered on [Alert States & Severities](/docs/alerts/states-and-severities), then **Note Templates**, **Custom Fields**, **Measurements**, **Episode Membership** and **Numbering**, covered below.
 
 Two more sections act on alerts. **Alerts → AI → Settings** decides what OneUptime AI does on its own: **Investigate new alerts**, on for new projects, and **Fix new alerts automatically**, off until you turn it on. See [AI SRE](/docs/ai/ai-sre). **Alerts → Workspace** holds the Slack and Microsoft Teams rules that post alerts and episodes to channels, and its **Summary** tab. See [Slack](/docs/workspace-connections/slack).
 
@@ -83,7 +83,7 @@ Click **Create Alert On-Call Rule**. On **Basic Info**, give it a **Name**, such
 
 ### Choose the alerts
 
-On **Match Criteria**, add the conditions an alert must meet. Leave them empty to match every new alert.
+On **Match Criteria**, **All alerts**, where a new rule starts, matches every new alert. To narrow it down, pick **Only alerts that match conditions** and add the conditions an alert must meet.
 
 ### Pick the policies
 
@@ -119,7 +119,7 @@ Click **Create Alert Reminder Rule**. On **Rule Info**, give it a **Name**, such
 
 ### Choose which alerts to remind about
 
-On **Match Criteria**, pick the **Alert Severities** and **Labels** it applies to. Leave them empty to remind about every alert.
+On **Match Criteria**, leave **All alerts** picked to remind about every alert, or pick **Only alerts that match conditions** and choose the **Alert Severities** and **Labels** it applies to.
 
 ### Set the interval
 
@@ -141,6 +141,10 @@ Owners get each reminder as **Alert reminder**, which is on by email by default.
 ### Measurements
 
 **Alerts → Settings → Measurements** times how long things take on every alert. Pick **Time to acknowledge** or **Time to resolve**, or two moments of your own, such as when **The alert is created** and when it enters a state you pick. Each measurement is shown on the alert's page and charted as `oneuptime.alert.measurement.<key>`. See [Measurements](/docs/incidents/settings#measurements), which works the same way for alerts.
+
+### Episode membership
+
+**Alerts → Settings → Episode Membership** decides whether an alert can be in more than one episode. Turn on **An alert can be in only one episode**, and an alert that is in an episode is not added to another one, from the dashboard, the API, a workflow or a grouping rule, until it is removed from that episode. It is off until you turn it on, and only Project Owners and Project Admins can change it. Turning it on takes no alert out of an episode. See [One episode per incident](/docs/incidents/episodes#one-episode-per-incident), which works the same way for alerts.
 
 ### Numbering
 

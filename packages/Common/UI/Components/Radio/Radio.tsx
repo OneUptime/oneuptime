@@ -74,7 +74,14 @@ const Radio: FunctionComponent<ComponentProps> = (
               }}
               name={groupName}
               type="radio"
-              className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
+              /*
+               * accent-indigo-600 is what colours the browser's own radio:
+               * the text- and ring- classes are for the Tailwind forms
+               * plugin, which the product does not load, so a checked radio
+               * was the browser's blue beside the indigo ones of the same
+               * form ("All incidents" over a rule's Match Condition).
+               */
+              className="h-4 w-4 border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-600"
             />
             <label
               htmlFor={optionId}

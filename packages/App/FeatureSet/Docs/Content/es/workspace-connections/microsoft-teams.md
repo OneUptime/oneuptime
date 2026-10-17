@@ -84,7 +84,7 @@ Crear una regla recorre cuatro pasos:
 | Paso | Lo que defines |
 | --- | --- |
 | **Básico** | **Nombre de la regla** y **Descripción de la regla**. |
-| **Condiciones** | A qué eventos se aplica la regla, por ejemplo por gravedad, estado, etiqueta, monitor o palabras del título. Se comprueban al crear un evento y de nuevo con cada actualización que OneUptime publica sobre él, así que una regla para incidentes reconocidos actúa cuando se reconoce un incidente. Sin condiciones, la regla se aplica a todos los eventos. Con dos o más, **Condición de coincidencia** indica si deben coincidir todas o basta con una. |
+| **Condiciones** | A qué eventos se aplica la regla, por ejemplo por gravedad, estado, etiqueta, monitor o palabras del título. Se comprueban al crear un evento y de nuevo con cada actualización que OneUptime publica sobre él, así que una regla para incidentes reconocidos actúa cuando se reconoce un incidente. Una regla nueva se aplica a todos los eventos, por ejemplo **Todos los incidentes**. Para acotarla, elige **Solo los incidentes que cumplen las condiciones** y añade las condiciones. Con dos o más, **Condición de coincidencia** indica si deben coincidir todas o basta con una. |
 | **Destino** | Dónde publica: en un canal existente de un equipo que elijas, en los chats que elijas, en un canal para cada incidente (o alerta, episodio, evento, monitor o política de guardia) creado en un equipo que elijas, o en varios de ellos a la vez. Bajo el paso, **Qué hace esta regla** lo dice en frases, como la tarjeta de la regla. |
 | **Videollamada** | Solo incidentes y alertas: iniciar una llamada para cada uno. Consulta [Videollamadas](/docs/workspace-connections/video-calls). |
 

@@ -162,7 +162,7 @@ stateDiagram-v2
 | **Workspace** | فضاهای کاری گفتگویی که این پروژه وصل کرده: **Slack**، **Microsoft Teams** یا هر دو، هر کدام با قواعد اعلانش برای حادثه‌ها. وقتی هیچ‌کدام وصل نباشد، **Connect Slack or Teams** را نگه می‌دارد، صفحه‌ای که هر دو و چگونگی وصل کردنشان را نشان می‌دهد. |
 | **Integrations** | ابزارهایی که خودشان حادثه باز می‌کنند: **Huntress**، که گزارش‌های حادثه‌اش به حادثه‌هایی تبدیل می‌شوند که کشیک را فرا می‌خوانند. [Huntress](/docs/integrations/huntress) را ببینید. |
 | **Rules** | موتورهای قاعده: **Grouping Rules**، **On-Call Rules**، **Owner Rules**، **Runbook Rules**، **Privacy Rules**، **Label Rules**، **SLA Rules**، **Reminder Rules**. |
-| **Settings** | **Incident State**، **Incident Severity**، **Incident Templates**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **Measurements**، **Linked Alerts**، **Numbering**. |
+| **Settings** | **Incident State**، **Incident Severity**، **Incident Templates**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **Measurements**، **Linked Alerts**، **Episode Membership**، **Numbering**. |
 
 **Overview** و **Episodes** باز هستند؛ **AI**، **Workspace**، **Integrations**، **Rules**، **Settings** و **Developer** به‌طور پیش‌فرض جمع‌اند، تا منو روی فهرست‌هایی باز شود که هر روز به کار می‌برید. روی عنوان یک بخش کلیک کنید تا باز شود و صفحه‌هایی را که باقی این مستندات به آن‌ها ارجاع می‌دهند بیابید؛ هر بخش وقتی روی یکی از صفحه‌هایش باشید خودبه‌خود هم باز می‌شود. پیکربندی حادثه زیر Project Settings نیست؛ همه‌اش اینجاست.
 

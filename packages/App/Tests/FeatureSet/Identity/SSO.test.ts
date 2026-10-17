@@ -1,6 +1,7 @@
 import SSOUtil, {
   VerifiedSamlResponse,
 } from "../../../FeatureSet/Identity/Utils/SSO";
+import { SamlServiceProvider } from "../../../FeatureSet/Identity/Utils/SamlServiceProvider";
 import Email from "Common/Types/Email";
 import URL from "Common/Types/API/URL";
 import { describe, expect, test, beforeAll } from "@jest/globals";
@@ -64,6 +65,56 @@ const DISPLAY_NAME_CLAIM: string =
   "http://schemas.microsoft.com/identity/claims/displayname";
 
 const STATUS_SUCCESS: string = "urn:oasis:names:tc:SAML:2.0:status:Success";
+
+/*
+ * The provider every document here is made for, and the moment each is
+ * checked at: a minute after the identity provider issued it (every
+ * IssueInstant below is 2024-01-01T00:00:00Z). Who a response is for and
+ * when it may be used have a suite of their own
+ * (SamlResponseConditions.test.ts); here they only have to be right, so that
+ * each test is decided by the rule it is about.
+ */
+const SERVICE_PROVIDER: SamlServiceProvider = {
+  entityId:
+    "https://oneuptime.example.com/11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222",
+  replyUrl:
+    "https://oneuptime.example.com/identity/idp-login/11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222",
+  serverAddress: "https://oneuptime.example.com",
+};
+
+const NOW: Date = new Date("2024-01-01T00:01:00Z");
+
+/*
+ * The bearer confirmation and the conditions of an assertion for
+ * SERVICE_PROVIDER, valid from five minutes before it was issued to five
+ * minutes after - the shape Okta and Entra ID send. `prefix` is the SAML
+ * assertion namespace prefix the assertion uses ("" for a default namespace).
+ */
+function confirmationXml(prefix: string = "saml"): string {
+  const p: string = prefix ? `${prefix}:` : "";
+
+  return `<${p}SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer"><${p}SubjectConfirmationData NotOnOrAfter="2024-01-01T00:05:00Z" Recipient="${SERVICE_PROVIDER.replyUrl}"/></${p}SubjectConfirmation>`;
+}
+
+function conditionsXml(prefix: string = "saml"): string {
+  const p: string = prefix ? `${prefix}:` : "";
+
+  return `<${p}Conditions NotBefore="2023-12-31T23:55:00Z" NotOnOrAfter="2024-01-01T00:05:00Z"><${p}AudienceRestriction><${p}Audience>${SERVICE_PROVIDER.entityId}</${p}Audience></${p}AudienceRestriction></${p}Conditions>`;
+}
+
+// SSOUtil's two entry points, for SERVICE_PROVIDER at NOW.
+function verify(xml: string, certificate: string): VerifiedSamlResponse {
+  return SSOUtil.getSamlResponseFromXML(
+    xml,
+    certificate,
+    SERVICE_PROVIDER,
+    NOW,
+  );
+}
+
+function isValid(xml: string, certificate: string): boolean {
+  return SSOUtil.isSignatureValid(xml, certificate, SERVICE_PROVIDER, NOW);
+}
 const STATUS_REQUESTER: string = "urn:oasis:names:tc:SAML:2.0:status:Requester";
 const STATUS_RESPONDER: string = "urn:oasis:names:tc:SAML:2.0:status:Responder";
 const STATUS_AUTHN_FAILED: string =
@@ -246,7 +297,7 @@ function buildAssertion(options: AssertionOptions = {}): string {
           options.displayName ?? "Alice Example"
         }</saml:AttributeValue></saml:Attribute></saml:AttributeStatement>`;
 
-  return `<saml:Assertion ID="${assertionId}" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><saml:Issuer>${issuer}</saml:Issuer><saml:Subject><saml:NameID>${nameIdInner}</saml:NameID></saml:Subject>${attributeStatement}${
+  return `<saml:Assertion ID="${assertionId}" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><saml:Issuer>${issuer}</saml:Issuer><saml:Subject><saml:NameID>${nameIdInner}</saml:NameID>${confirmationXml()}</saml:Subject>${conditionsXml()}${attributeStatement}${
     options.extraInner ?? ""
   }</saml:Assertion>`;
 }
@@ -465,17 +516,17 @@ function hidden(text: string): string {
 
 // Assert that both entry points reject a document.
 function expectRejected(xml: string, messageFragment?: string): void {
-  expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(false);
+  expect(isValid(xml, idpKeys.publicKey)).toBe(false);
 
   if (messageFragment) {
     expect(() => {
-      return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+      return verify(xml, idpKeys.publicKey);
     }).toThrow(messageFragment);
     return;
   }
 
   expect(() => {
-    return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+    return verify(xml, idpKeys.publicKey);
   }).toThrow();
 }
 
@@ -489,12 +540,9 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
   test("accepts a genuinely assertion-signed response and extracts identity", () => {
     const xml: string = genuineAssertionSignedResponse();
 
-    expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(true);
+    expect(isValid(xml, idpKeys.publicKey)).toBe(true);
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("alice@example.com");
     expect(result.issuerUrl).toBe(ISSUER);
@@ -504,12 +552,9 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
   test("accepts a genuinely response-signed (whole Response) response", () => {
     const xml: string = genuineResponseSignedResponse();
 
-    expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(true);
+    expect(isValid(xml, idpKeys.publicKey)).toBe(true);
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("alice@example.com");
     expect(result.issuerUrl).toBe(ISSUER);
@@ -528,12 +573,9 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
       },
     });
 
-    expect(SSOUtil.isSignatureValid(bothSigned, idpKeys.publicKey)).toBe(true);
+    expect(isValid(bothSigned, idpKeys.publicKey)).toBe(true);
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      bothSigned,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(bothSigned, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("alice@example.com");
   });
@@ -547,10 +589,7 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
       },
     });
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("alice@example.com");
   });
@@ -563,10 +602,7 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
 
     expect(xml).toContain('URI=""');
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("alice@example.com");
   });
@@ -579,10 +615,7 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
       "Assertion",
     );
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("alice@example.com");
   });
@@ -595,10 +628,7 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
       "Assertion",
     );
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("alice@example.com");
   });
@@ -609,10 +639,7 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
       "Assertion",
     );
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("alice@example.com");
     expect(result.name).toBeNull();
@@ -636,10 +663,10 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
     (declaration: string) => {
       const xml: string = declaration + genuineAssertionSignedResponse();
 
-      expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(true);
-      expect(
-        SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey).email.toString(),
-      ).toBe("alice@example.com");
+      expect(isValid(xml, idpKeys.publicKey)).toBe(true);
+      expect(verify(xml, idpKeys.publicKey).email.toString()).toBe(
+        "alice@example.com",
+      );
     },
   );
 
@@ -650,7 +677,7 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
     );
 
     expect(xml.startsWith("<?xml ")).toBe(true);
-    expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(true);
+    expect(isValid(xml, idpKeys.publicKey)).toBe(true);
   });
 
   test("accepts a Response-signed document introduced by an XML declaration", () => {
@@ -658,7 +685,7 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
       '<?xml version="1.0" encoding="UTF-8"?>' +
       genuineResponseSignedResponse();
 
-    expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(true);
+    expect(isValid(xml, idpKeys.publicKey)).toBe(true);
   });
 
   test("accepts a display-name AttributeValue carrying xsi:type", () => {
@@ -668,9 +695,9 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
      */
     const attributeStatement: string = `<saml:AttributeStatement><saml:Attribute Name="${DISPLAY_NAME_CLAIM}"><saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">Alice Example</saml:AttributeValue></saml:Attribute></saml:AttributeStatement>`;
 
-    const assertion: string = `<saml:Assertion ID="_a" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><saml:Issuer>${ISSUER}</saml:Issuer><saml:Subject><saml:NameID>alice@example.com</saml:NameID></saml:Subject>${attributeStatement}</saml:Assertion>`;
+    const assertion: string = `<saml:Assertion ID="_a" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><saml:Issuer>${ISSUER}</saml:Issuer><saml:Subject><saml:NameID>alice@example.com</saml:NameID>${confirmationXml()}</saml:Subject>${conditionsXml()}${attributeStatement}</saml:Assertion>`;
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
+    const result: VerifiedSamlResponse = verify(
       sign(buildResponse(assertion), "Assertion"),
       idpKeys.publicKey,
     );
@@ -685,10 +712,7 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
       "base64",
     ).toString();
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
     expect(result.email.toString()).toBe("alice@example.com");
   });
 });
@@ -730,10 +754,7 @@ describe("SSOUtil - signed error Response cannot smuggle an assertion (issue #29
     // And under no circumstances may the attacker's identity come back.
     let extracted: string = "";
     try {
-      extracted = SSOUtil.getSamlResponseFromXML(
-        attack,
-        idpKeys.publicKey,
-      ).email.toString();
+      extracted = verify(attack, idpKeys.publicKey).email.toString();
     } catch {
       extracted = "";
     }
@@ -904,11 +925,11 @@ describe("SSOUtil - signed error Response cannot smuggle an assertion (issue #29
     );
 
     expect(() => {
-      return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+      return verify(xml, idpKeys.publicKey);
     }).toThrow("SAML Response was not successful");
 
     try {
-      SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+      verify(xml, idpKeys.publicKey);
     } catch (err) {
       expect((err as Error).message).not.toContain("script");
     }
@@ -945,12 +966,9 @@ describe("SSOUtil - processing instructions cannot rewrite signed values (issue 
       "Assertion",
     );
 
-    expect(
-      SSOUtil.getSamlResponseFromXML(
-        genuine,
-        idpKeys.publicKey,
-      ).email.toString(),
-    ).toBe("not-an-admin@example.com");
+    expect(verify(genuine, idpKeys.publicKey).email.toString()).toBe(
+      "not-an-admin@example.com",
+    );
 
     // The attacker hides the "not-an-" prefix inside a processing instruction.
     const attack: string = replaceOnce(
@@ -1244,10 +1262,7 @@ describe("SSOUtil - processing instructions are rejected anywhere in the documen
 
 describe("SSOUtil - identity comes from the signed canonical bytes", () => {
   function expectIdentity(xml: string): void {
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("alice@example.com");
     expect(result.issuerUrl).toBe(ISSUER);
@@ -1262,13 +1277,17 @@ describe("SSOUtil - identity comes from the signed canonical bytes", () => {
   });
 
   test("works when SAML uses a default namespace instead of a prefix", () => {
-    const assertion: string = `<Assertion xmlns="urn:oasis:names:tc:SAML:2.0:assertion" ID="_a" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><Issuer>${ISSUER}</Issuer><Subject><NameID>alice@example.com</NameID></Subject></Assertion>`;
+    const assertion: string = `<Assertion xmlns="urn:oasis:names:tc:SAML:2.0:assertion" ID="_a" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><Issuer>${ISSUER}</Issuer><Subject><NameID>alice@example.com</NameID>${confirmationXml(
+      "",
+    )}</Subject>${conditionsXml("")}</Assertion>`;
 
     expectIdentity(sign(buildResponse(assertion), "Assertion"));
   });
 
   test("works with an unusual namespace prefix", () => {
-    const assertion: string = `<a:Assertion xmlns:a="urn:oasis:names:tc:SAML:2.0:assertion" ID="_a" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><a:Issuer>${ISSUER}</a:Issuer><a:Subject><a:NameID>alice@example.com</a:NameID></a:Subject></a:Assertion>`;
+    const assertion: string = `<a:Assertion xmlns:a="urn:oasis:names:tc:SAML:2.0:assertion" ID="_a" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><a:Issuer>${ISSUER}</a:Issuer><a:Subject><a:NameID>alice@example.com</a:NameID>${confirmationXml(
+      "a",
+    )}</a:Subject>${conditionsXml("a")}</a:Assertion>`;
 
     expectIdentity(sign(buildResponse(assertion), "Assertion"));
   });
@@ -1322,7 +1341,7 @@ describe("SSOUtil - identity comes from the signed canonical bytes", () => {
   });
 
   test("still extracts the display name through the canonical bytes", () => {
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
+    const result: VerifiedSamlResponse = verify(
       genuineAssertionSignedResponse(),
       idpKeys.publicKey,
     );
@@ -1671,12 +1690,9 @@ describe("SSOUtil - signature placement rules", () => {
         )}\n</SignatureValue>`,
       );
 
-      expect(
-        SSOUtil.getSamlResponseFromXML(
-          wrapped,
-          idpKeys.publicKey,
-        ).email.toString(),
-      ).toBe("alice@example.com");
+      expect(verify(wrapped, idpKeys.publicKey).email.toString()).toBe(
+        "alice@example.com",
+      );
     });
   });
 
@@ -1932,14 +1948,14 @@ describe("SSOUtil - malformed and abusive input is rejected", () => {
   });
 
   test("rejects an empty SAML response", () => {
-    expect(SSOUtil.isSignatureValid("", idpKeys.publicKey)).toBe(false);
+    expect(isValid("", idpKeys.publicKey)).toBe(false);
     expect(() => {
-      return SSOUtil.getSamlResponseFromXML("", idpKeys.publicKey);
+      return verify("", idpKeys.publicKey);
     }).toThrow("SAML Response is empty");
   });
 
   test("rejects a whitespace-only SAML response", () => {
-    expect(SSOUtil.isSignatureValid("   \n  ", idpKeys.publicKey)).toBe(false);
+    expect(isValid("   \n  ", idpKeys.publicKey)).toBe(false);
   });
 
   test("rejects a signed Response with no assertion at all", () => {
@@ -1962,7 +1978,7 @@ describe("SSOUtil - malformed and abusive input is rejected", () => {
     );
 
     expect(() => {
-      return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+      return verify(xml, idpKeys.publicKey);
     }).toThrow("SAML Subject not found");
   });
 
@@ -1973,7 +1989,7 @@ describe("SSOUtil - malformed and abusive input is rejected", () => {
     );
 
     expect(() => {
-      return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+      return verify(xml, idpKeys.publicKey);
     }).toThrow("SAML Email not found");
   });
 
@@ -1988,7 +2004,7 @@ describe("SSOUtil - malformed and abusive input is rejected", () => {
       );
 
       expect(() => {
-        return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+        return verify(xml, idpKeys.publicKey);
       }).toThrow(/^SAML response did not include a valid email address$/);
     },
   );
@@ -2002,23 +2018,23 @@ describe("SSOUtil - malformed and abusive input is rejected", () => {
     );
 
     expect(() => {
-      return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+      return verify(xml, idpKeys.publicKey);
     }).toThrow("Issuer not found in SAML Assertion");
   });
 
   test("rejects when the certificate is missing", () => {
     const xml: string = genuineAssertionSignedResponse();
 
-    expect(SSOUtil.isSignatureValid(xml, "")).toBe(false);
+    expect(isValid(xml, "")).toBe(false);
     expect(() => {
-      return SSOUtil.getSamlResponseFromXML(xml, "");
+      return verify(xml, "");
     }).toThrow("Public Certificate not found");
   });
 
   test("rejects a response verified against a different certificate", () => {
     const xml: string = genuineAssertionSignedResponse();
 
-    expect(SSOUtil.isSignatureValid(xml, attackerKeys.publicKey)).toBe(false);
+    expect(isValid(xml, attackerKeys.publicKey)).toBe(false);
   });
 });
 
@@ -2115,9 +2131,9 @@ describe("SSOUtil - the verification key never comes from the document", () => {
       )}</X509Certificate></X509Data>`,
     });
 
-    expect(
-      SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey).email.toString(),
-    ).toBe("alice@example.com");
+    expect(verify(xml, idpKeys.publicKey).email.toString()).toBe(
+      "alice@example.com",
+    );
   });
 });
 
@@ -2143,7 +2159,7 @@ describe("SSOUtil - createSAMLRequestUrl", () => {
 // Sanity check that the Email type is what we assert against above.
 describe("SSOUtil - sanity", () => {
   test("extracted email is a Common Email instance", () => {
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
+    const result: VerifiedSamlResponse = verify(
       genuineAssertionSignedResponse(),
       idpKeys.publicKey,
     );
@@ -2189,12 +2205,12 @@ describe("SSOUtil - sanity", () => {
       let extracted: boolean = true;
 
       try {
-        SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+        verify(xml, idpKeys.publicKey);
       } catch {
         extracted = false;
       }
 
-      expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(extracted);
+      expect(isValid(xml, idpKeys.publicKey)).toBe(extracted);
     }
   });
 });

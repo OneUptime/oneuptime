@@ -464,16 +464,61 @@ describe("escalation rules: the Free plan's limit, per on-call policy", () => {
 });
 
 describe("people: the plan's seats and the Free plan's one person", () => {
-  function readsSeatLimit(seatLimit: number | null | undefined): void {
+  /*
+   * The plans this install sells, as config.env names them; ids of their
+   * own, so whatever plans the environment already names are left alone.
+   */
+  const PEOPLE_PLAN_ENVIRONMENT: Record<string, string> = {
+    SUBSCRIPTION_PLAN_PEOPLE_FREE:
+      "Free,price_people_free_month,price_people_free_year,0,0,1,0",
+    SUBSCRIPTION_PLAN_PEOPLE_GROWTH:
+      "Growth,price_people_growth_month,price_people_growth_year,22,20,2,14",
+  };
+
+  const savedPlanEnvironment: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const [key, value] of Object.entries(PEOPLE_PLAN_ENVIRONMENT)) {
+      savedPlanEnvironment[key] = process.env[key];
+      process.env[key] = value;
+    }
+  });
+
+  afterEach(() => {
+    for (const key of Object.keys(PEOPLE_PLAN_ENVIRONMENT)) {
+      if (savedPlanEnvironment[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = savedPlanEnvironment[key];
+      }
+    }
+  });
+
+  /*
+   * The project's row: its seats, and the plan it is on - one the install
+   * sells, one it does not, or none named.
+   */
+  function readsProject(data: {
+    seatLimit?: number | null | undefined;
+    plan?: "free" | "growth" | "unsold" | undefined;
+  }): void {
     jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
       const project: Project = new Project(PROJECT_ID);
 
-      if (seatLimit !== undefined) {
-        project.seatLimit = seatLimit as number;
+      if (data.seatLimit !== undefined) {
+        project.seatLimit = data.seatLimit as number;
+      }
+
+      if (data.plan) {
+        project.paymentProviderPlanId = `price_people_${data.plan}_month`;
       }
 
       return project;
     }) as never);
+  }
+
+  function readsSeatLimit(seatLimit: number | null | undefined): void {
+    readsProject({ seatLimit: seatLimit });
   }
 
   function createBy(
@@ -703,7 +748,7 @@ describe("people: the plan's seats and the Free plan's one person", () => {
     ).resolves.toBeNull();
   });
 
-  test("reads the limits the early check reads: the project's seats, the caller's plan", async () => {
+  test("reads the limits the early check reads: the project's seats and plan, from its row, and the plan read for the request", async () => {
     readsSeatLimit(7);
 
     await expect(
@@ -719,11 +764,133 @@ describe("people: the plan's seats and the Free plan's one person", () => {
       }),
     ).resolves.toEqual({ seatLimit: 7, isFreePlan: false });
 
+    readsProject({ seatLimit: 7, plan: "free" });
+    await expect(
+      TeamMemberService.readPeopleLimits({
+        projectId: PROJECT_ID,
+        props: { isRoot: true } as DatabaseCommonInteractionProps,
+      }),
+    ).resolves.toEqual({ seatLimit: 7, isFreePlan: true });
+
     expect(ProjectService.findOneById).toHaveBeenCalledWith({
       id: PROJECT_ID,
-      select: { seatLimit: true },
+      select: { seatLimit: true, paymentProviderPlanId: true },
       props: { isRoot: true },
     });
+  });
+
+  test("the Free plan's one person is the project's: OneUptime adding someone who signs in through its SSO for the first time is held to it, as an invitation is", async () => {
+    readsProject({ plan: "free" });
+
+    for (const props of [
+      { isRoot: true, ignoreHooks: true } as DatabaseCommonInteractionProps,
+      { isRoot: true } as DatabaseCommonInteractionProps,
+      // A request whose plan was not read: the row names it.
+      memberProps(),
+      memberProps(PlanType.Free),
+      // A plan read for the request a moment before the project moved to Free.
+      memberProps(PlanType.Growth),
+    ]) {
+      const limit: CreateLimit | null = await createLimitOf(
+        TeamMemberService,
+        createBy(props),
+      );
+
+      expect(limit).not.toBeNull();
+      expect(limit!.limitName).toBe(SEAT_LIMIT_NAME);
+
+      // Nobody in it yet: the first person joins.
+      await expect(
+        limit!.check(
+          transactionCounting(counts({ people: 0, membershipsOfPerson: 0 }))
+            .manager,
+        ),
+      ).resolves.toBeUndefined();
+
+      // Its one person is there: nobody new joins, however they come in.
+      for (const people of [1, 4]) {
+        await expect(
+          limit!.check(
+            transactionCounting(
+              counts({ people: people, membershipsOfPerson: 0 }),
+            ).manager,
+          ),
+        ).rejects.toThrow(
+          new BadDataException(
+            Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+          ),
+        );
+      }
+
+      // Someone already in it joins another team.
+      await expect(
+        limit!.check(
+          transactionCounting(counts({ people: 4, membershipsOfPerson: 1 }))
+            .manager,
+        ),
+      ).resolves.toBeUndefined();
+    }
+  });
+
+  test("a server admin is held to no plan: not to a Free plan project's one person, even with a plan on the request, but still to a plan's seats", async () => {
+    readsProject({ plan: "free" });
+
+    for (const props of [
+      { isMasterAdmin: true } as DatabaseCommonInteractionProps,
+      {
+        isMasterAdmin: true,
+        currentPlan: PlanType.Free,
+      } as DatabaseCommonInteractionProps,
+    ]) {
+      await expect(
+        createLimitOf(TeamMemberService, createBy(props)),
+      ).resolves.toBeNull();
+      await expect(
+        TeamMemberService.readPeopleLimits({
+          projectId: PROJECT_ID,
+          props: props,
+        }),
+      ).resolves.toBeNull();
+    }
+
+    readsProject({ plan: "free", seatLimit: 3 });
+
+    const limit: CreateLimit | null = await createLimitOf(
+      TeamMemberService,
+      createBy({ isMasterAdmin: true } as DatabaseCommonInteractionProps),
+    );
+
+    // Past the Free plan's one person, short of the seats: through.
+    await expect(
+      limit!.check(
+        transactionCounting(counts({ people: 2, membershipsOfPerson: 0 }))
+          .manager,
+      ),
+    ).resolves.toBeUndefined();
+    await expect(
+      limit!.check(
+        transactionCounting(counts({ people: 3, membershipsOfPerson: 0 }))
+          .manager,
+      ),
+    ).rejects.toThrow(
+      new BadDataException(Errors.TeamMemberService.LIMIT_REACHED),
+    );
+  });
+
+  test("a project on a paid plan, or on a plan this install does not sell, holds nobody to one person", async () => {
+    for (const plan of ["growth", "unsold"] as const) {
+      readsProject({ plan: plan });
+
+      for (const props of [
+        { isRoot: true, ignoreHooks: true } as DatabaseCommonInteractionProps,
+        memberProps(),
+        memberProps(PlanType.Growth),
+      ]) {
+        await expect(
+          createLimitOf(TeamMemberService, createBy(props)),
+        ).resolves.toBeNull();
+      }
+    }
   });
 
   test("counts people, not memberships: the distinct people with any membership, a pending invitation included", () => {

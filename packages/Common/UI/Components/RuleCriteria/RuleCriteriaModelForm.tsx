@@ -6,6 +6,10 @@ import RuleCriteria, {
   RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
 } from "../../../Types/Rules/RuleCriteria";
 import { isRuleCriteriaConditionRequired } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
+import {
+  resolveRuleCriteriaSubject,
+  RuleCriteriaSubject,
+} from "../../../Types/Rules/RuleCriteriaSubject";
 import SelectFormFields from "../../Types/SelectEntityField";
 import React, { ReactElement } from "react";
 import Field, { CustomElementProps } from "../Forms/Types/Field";
@@ -137,9 +141,19 @@ export function applyRuleCriteriaLegacySafetyShadow<
   data.values[safetyPatternField] = RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN;
 }
 
+export interface RuleCriteriaFormOptions {
+  /*
+   * The records the rule is for, for a table of rules about several kinds
+   * of record (RULE_CRITERIA_MODELS_NAMED_BY_THEIR_TABLE). Other rules are
+   * named by their model.
+   */
+  subject?: RuleCriteriaSubject | null | undefined;
+}
+
 export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
   model: BaseModel,
   fields: Fields<TEntity>,
+  options: RuleCriteriaFormOptions = {},
 ): Fields<TEntity> {
   if (!shouldUseRuleCriteriaBuilder(model, fields)) {
     return fields;
@@ -171,16 +185,39 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
     model.tableName,
   );
 
+  const subject: RuleCriteriaSubject | null = resolveRuleCriteriaSubject({
+    modelName: model.tableName,
+    subject: options.subject,
+  });
+
+  /*
+   * Every other rule kind applies to all of its records until it has a
+   * condition, and asks which first: "Applies to" over "All incidents" /
+   * "Only incidents that match conditions". The choice draws that label
+   * itself (RuleAppliesToChoice), so the field draws none - nor the
+   * criteria column's own description, which is written for the API. It is
+   * always answered, so it is never "(Optional)".
+   */
+  const ownLabel: Partial<Field<TEntity>> = requiresCondition
+    ? {
+        title: "Conditions",
+        /*
+         * Said here so the form does not fall back to the criteria column's
+         * own description, which is written for the API.
+         */
+        description: RuleCriteriaCopy.fieldDescription,
+      }
+    : {
+        title: RuleCriteriaCopy.appliesToTitle,
+        customElementDrawsOwnLabel: true,
+        hideOptionalLabel: true,
+      };
+
   const criteriaField: Field<TEntity> = {
     field: {
       [RULE_CRITERIA_FIELD_NAME]: true,
     } as SelectFormFields<TEntity>,
-    title: "Conditions",
-    /*
-     * Said here so the form does not fall back to the criteria column's own
-     * description, which is written for the API.
-     */
-    description: RuleCriteriaCopy.fieldDescription,
+    ...ownLabel,
     stepId: MATCH_CRITERIA_STEP_ID,
     fieldType: FormFieldSchemaType.CustomComponent,
     required: requiresCondition
@@ -221,6 +258,7 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
           value={(values as { criteria?: RuleCriteria }).criteria}
           error={customElementProps.error}
           requiresCondition={requiresCondition}
+          subject={subject}
           onChange={(criteria: RuleCriteria): void => {
             customElementProps.onChange?.(criteria);
           }}

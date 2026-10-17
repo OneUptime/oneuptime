@@ -185,6 +185,24 @@ describe("getRuleDetailFields", () => {
     ).toHaveTextContent(expected);
   });
 
+  it("says a rule with no conditions applies to all of its records, as its form's choice does", () => {
+    const detail: RuleDetailFields<MonitorOwnerRule> = getRuleDetailFields({
+      model: new MonitorOwnerRule(),
+      formFields: OWNER_FORM,
+    });
+
+    const rule: MonitorOwnerRule = new MonitorOwnerRule();
+    rule.criteria = {
+      schemaVersion: 1,
+      filterCondition: "All",
+      filters: [],
+    } as never;
+
+    expect(
+      renderElement(fieldTitled(detail, "Match Criteria"), rule),
+    ).toHaveTextContent(/^All monitors$/);
+  });
+
   it("names every owner in one list, people then teams, a user by email when unnamed, and None for none", () => {
     const detail: RuleDetailFields<MonitorOwnerRule> = getRuleDetailFields({
       model: new MonitorOwnerRule(),

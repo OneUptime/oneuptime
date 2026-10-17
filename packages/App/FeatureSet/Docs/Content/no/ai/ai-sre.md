@@ -293,7 +293,7 @@ To brytere på hver signaltypes side for KI-innstillinger avgjør hva OneUptime 
 
 En regel for automatisk utbedring stiller tre spørsmål:
 
-1. **Betingelser**: hvilke hendelser den samsvarer med: monitorer, alvorlighetsgrader, labels, monitorlabels, tittel og beskrivelse, de samme betingelsene som prosjektets andre regler for hendelser og varsler. En regel uten betingelser samsvarer med alle hendelser.
+1. **Betingelser**: hvilke hendelser den samsvarer med: **Alle hendelser**, som en ny regel starter på, eller **Bare hendelser som oppfyller betingelsene** på monitorer, alvorlighetsgrader, labels, monitorlabels, tittel og beskrivelse, de samme betingelsene som prosjektets andre regler for hendelser og varsler.
 2. **Rett med**: **OneUptime AI** retter hendelsen gjennom AI-agenten på klyngen eller verten den berører; **Runbooks** kjører runbookene regelen nevner, på samme måte hver gang.
 3. **Godkjenning**: **Spør før retting**: ingenting kjører før noen godkjenner rettelsen med ett klikk. **Rett uten å spørre**: runbooks starter med en gang, og OneUptime AI retter uten godkjenning overalt der AI-agentens innstillinger tillater det; en klynge eller vert som er satt til å be om godkjenning, spør fortsatt.
 

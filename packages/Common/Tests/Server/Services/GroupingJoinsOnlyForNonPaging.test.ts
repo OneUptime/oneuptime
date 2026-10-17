@@ -1,7 +1,9 @@
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
+import AlertEpisodeMemberService from "../../../Server/Services/AlertEpisodeMemberService";
 import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
 import AlertGroupingEngineService from "../../../Server/Services/AlertGroupingEngineService";
 import AlertGroupingRuleService from "../../../Server/Services/AlertGroupingRuleService";
+import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
 import IncidentGroupingRuleService from "../../../Server/Services/IncidentGroupingRuleService";
@@ -159,6 +161,16 @@ function stubEngine(
   engine: Engine,
   episodes: { open: boolean; recentlyResolved: boolean },
 ): void {
+  /*
+   * The record is in no episode yet, so no episode keeps it out of the
+   * others (EpisodeSingleMembership).
+   */
+  jest
+    .spyOn(IncidentEpisodeMemberService, "findHoldingEpisodeId")
+    .mockResolvedValue(null);
+  jest
+    .spyOn(AlertEpisodeMemberService, "findHoldingEpisodeId")
+    .mockResolvedValue(null);
   jest
     .spyOn(engine.ruleService as Record<string, AnyFunction>, "findBy")
     .mockResolvedValue([engine.newRule()] as never);

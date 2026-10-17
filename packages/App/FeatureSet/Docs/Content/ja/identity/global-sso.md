@@ -149,6 +149,14 @@ flowchart TB
 SAML プロバイダーの場合、アイデンティティプロバイダーのレスポンスに含まれる発行者が、プロバイダーに保存された **Issuer** と一致していません。アイデンティティプロバイダーからコピーし直してください。2 つは完全に一致している必要があります。
 :::
 
+:::details "SAML Audience does not match"
+SAML プロバイダーの場合、レスポンスの audience がプロバイダーの **Issuer (Entity ID)** ではありません。アイデンティティプロバイダーが別のアプリケーション向けにレスポンスを作成しています。アイデンティティプロバイダーで、アプリケーションの entity ID をプロバイダーのページにある **Issuer (Entity ID)** に設定してください。"SAML Recipient does not match" と "SAML Destination does not match" は、その reply URL について同じ意味です。**ACS URL (Assertion Consumer Service / Reply URL)** に設定してください。
+:::
+
+:::details "SAML response was already used"
+アイデンティティプロバイダーの各レスポンスでサインインできるのは 1 回だけで、それも発行から数分以内に限られます。それを過ぎると "SAML response has expired" で拒否されます。もう一度サインインしてください。レスポンスの期限切れが続く場合は、このサーバーとアイデンティティプロバイダーの時計を確認してください。
+:::
+
 ## 次のステップ
 
 :::cards

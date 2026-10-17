@@ -40,7 +40,7 @@ Alle etikett- og eierregler opprettes på samme måte, i to trinn.
 
 ### Velg hva regelen treffer
 
-I trinnet **Treff** klikker du på **Legg til betingelse** for hver betingelse ressursen må oppfylle. Med to eller flere velger du **Samsvar med alle** eller **Samsvar med én**. En regel uten betingelser treffer alle nye ressurser.
+I trinnet **Treff** starter **Gjelder for** på alle nye ressurser, for eksempel **Alle verter** i en vertsregel. For å snevre inn regelen velger du **Bare verter som oppfyller betingelsene** og fyller ut betingelsen som åpnes; klikk på **Legg til betingelse** for hver annen betingelse ressursen må oppfylle. Med to eller flere velger du **Samsvar med alle** eller **Samsvar med én**.
 
 ### Velg hva regelen legger til
 
