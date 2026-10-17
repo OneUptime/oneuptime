@@ -23,7 +23,9 @@ import ts from "typescript";
  *   - every read of the rules is listed below, by file and function, so a
  *     new reader fails here until it is looked at - and added to the suites
  *     that make each read fail (SsoRequirementUnreadableOverHttp,
- *     UserAuthorizationSsoEnforcement, McpOAuthSso, McpOAuthGrantAccess);
+ *     UserAuthorizationSsoEnforcement, RealtimeJoinGuard,
+ *     FileImageRouteViewers, McpOAuthSso, McpOAuthGrantAccess and the MCP
+ *     server's OAuthFlow);
  *   - no read is handed to a .catch, or sits in a try whose catch, can end
  *     as a value: each ends by throwing, and the one failure it may answer
  *     on the way is the project not existing
