@@ -838,6 +838,15 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * Without a transcript, and without permission to add one, there is
+   * nothing to read and nothing to do: no "Add it after the call" for a
+   * reader who cannot, and no hairline over an empty block.
+   */
+  if (!view.hasTranscript && !props.canManage) {
+    return <></>;
+  }
+
   return (
     <Fragment>
       <div

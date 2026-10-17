@@ -235,6 +235,15 @@ describe("a call without a transcript", () => {
 
     expect(screen.queryByTestId("call-transcript-get")).toBeNull();
     expect(screen.queryByTestId("call-transcript-add")).toBeNull();
+    // Nor a word on adding one they cannot add: no transcript block at all.
+    expect(screen.queryByTestId("call-transcript-block")).toBeNull();
+    expect(
+      screen.queryByText(
+        "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
+      ),
+    ).toBeNull();
+    // The call itself is still there to join.
+    expect(screen.getByTestId("event-video-call-join")).toBeVisible();
   });
 
   test("an alert's call keeps no transcript", () => {
@@ -549,7 +558,7 @@ describe("a call with a transcript", () => {
     expect(screen.queryByTestId("call-transcript-add")).toBeNull();
   });
 
-  test("the word Transcript has its line to itself: View transcript and the menu sit under what is said about it", () => {
+  test("the word Transcript shares its line with the menu's mark only: View transcript sits under what is said about it", () => {
     renderCard({ calls: [suggestedCall()] });
 
     const heading: HTMLElement = screen.getByTestId("call-transcript-heading");
@@ -559,22 +568,26 @@ describe("a call with a transcript", () => {
 
     /*
      * In the page's narrow column, "Transkription" beside two buttons was
-     * cut to "Tran…": nothing shares the heading's line now, and it is
-     * never truncated.
+     * cut to "Tran…": only the menu's narrow mark shares the heading's line
+     * now, and the heading is never truncated.
      */
     expect(heading).toHaveTextContent(/^Transcript$/);
     expect(heading).not.toHaveClass("truncate");
+
+    const headingLine: HTMLElement = heading.parentElement!;
+
     expect(
-      heading.parentElement!.querySelector(
-        "[data-testid='call-transcript-view']",
-      ),
+      within(headingLine).getByTestId("call-transcript-menu-button"),
+    ).toBeVisible();
+    expect(
+      within(headingLine).queryByTestId("call-transcript-view"),
     ).toBeNull();
+
+    // View transcript has a row of its own.
     expect(
       within(actions).getByTestId("call-transcript-view"),
     ).toHaveTextContent("View transcript");
-    expect(
-      within(actions).getByTestId("call-transcript-menu-button"),
-    ).toBeVisible();
+    expect(within(actions).getAllByRole("button")).toHaveLength(1);
 
     // Read top to bottom: the heading, its facts, the reading, what to do.
     const order: Array<HTMLElement> = [heading, facts, read, actions];
