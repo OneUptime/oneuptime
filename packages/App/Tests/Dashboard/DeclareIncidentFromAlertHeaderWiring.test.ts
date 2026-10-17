@@ -423,7 +423,7 @@ describe("Declare Incident in the alert header", () => {
      */
     expect(countOf(dense(ALERT_OVERVIEW_PAGE), "secondaryActions=")).toBe(1);
     expect(dense(ALERT_OVERVIEW_PAGE)).toContain(
-      "secondaryActions={[...(joinVideoCallAction?[joinVideoCallAction]:[]),...getOpenInChatActions(channelLinks),]}",
+      "secondaryActions={[...passOn.actions,...(joinVideoCallAction?[joinVideoCallAction]:[]),...getOpenInChatActions(channelLinks),]}",
     );
   });
 
