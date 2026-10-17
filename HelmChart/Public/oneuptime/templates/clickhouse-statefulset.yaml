@@ -60,7 +60,7 @@ spec:
       {{- end }}
       initContainers:
       - name: clickhouse-config-init
-        image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
+        image: {{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "clickhouse" "Default" (printf "%s:%s" .Values.clickhouse.image.repository (toString .Values.clickhouse.image.tag))) | quote }}
         imagePullPolicy: {{ .Values.clickhouse.image.pullPolicy }}
         command:
         - /bin/sh
@@ -89,7 +89,7 @@ spec:
           mountPath: /etc/clickhouse-server/config-output
       containers:
       - name: clickhouse
-        image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
+        image: {{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "clickhouse" "Default" (printf "%s:%s" .Values.clickhouse.image.repository (toString .Values.clickhouse.image.tag))) | quote }}
         imagePullPolicy: {{ .Values.clickhouse.image.pullPolicy }}
         {{- if .Values.clickhouse.containerSecurityContext }}
         securityContext:
