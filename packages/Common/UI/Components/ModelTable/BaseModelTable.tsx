@@ -3956,10 +3956,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         /*
          * A table outside a card is framed as a card is - one hairline,
          * rounded, white - with the padding the table's rows and footer
-         * reach out to (-mx-5 md:-mx-6, -mb-6). It was a 2px border whose footer ran
-         * 4px past its bottom edge. overflow-clip rounds the header band's
-         * corners without making a scroll box, so the header row can still
-         * stick to the page.
+         * reach out to (-mx-5 md:-mx-6, -mb-6). It was a 2px border whose
+         * footer ran 4px past its bottom edge. overflow-clip rounds the
+         * header band's corners without making a scroll box, so the header
+         * row can still stick to the page.
          */
         className={props.cardProps ? "" : MODEL_TABLE_FRAME_CLASS_NAME}
         onFilterRefreshClick={async () => {
@@ -5111,8 +5111,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * instead of the row running off the card's left edge.
      *
      * On a phone the row takes the card's width, and the search the whole
-     * of its line (MODEL_TABLE_PHONE_SEARCH_CLASS_NAME) - a 176px search
-     * pill hung at the right edge on a line of its own, over the buttons.
+     * of its line (MODEL_TABLE_PHONE_SEARCH_CLASS_NAME). It was a 176px
+     * pill hung at the right edge, on a line of its own over the buttons.
      */
     const wrapped: ReactElement = (
       <div
