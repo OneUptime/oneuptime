@@ -313,8 +313,8 @@ const RESOURCE: JSONObject = {
 };
 
 // Nanosecond strings around TIME_NANO, as a protobuf decode writes them.
-function nanoAt(offsetNanos: bigint): string {
-  return (BigInt(TIME_NANO) + offsetNanos).toString();
+function nanoAt(offsetNanos: number): string {
+  return (BigInt(TIME_NANO) + BigInt(offsetNanos)).toString();
 }
 
 function idBytes(seed: number, length: number): Buffer {
@@ -329,8 +329,8 @@ function metricsPayload(): JSONObject {
   const gaugePoints: Array<JSONObject> = [];
   for (let i: number = 0; i < 40; i++) {
     gaugePoints.push({
-      timeUnixNano: nanoAt(BigInt(i) * 250_000_000n),
-      startTimeUnixNano: nanoAt(-60_000_000_000n),
+      timeUnixNano: nanoAt(i * 250_000_000),
+      startTimeUnixNano: nanoAt(-60_000_000_000),
       asDouble: i * 1.25,
       attributes: [attribute("cpu", String(i % 4)), attribute("state", "user")],
     });
@@ -363,7 +363,7 @@ function metricsPayload(): JSONObject {
                       attributes: [attribute("http.route", "/api/orders")],
                     },
                     {
-                      timeUnixNano: nanoAt(999_999_999n),
+                      timeUnixNano: nanoAt(999_999_999),
                       startTimeUnixNano: "0",
                       asInt: 7,
                     },
@@ -378,7 +378,7 @@ function metricsPayload(): JSONObject {
                   dataPoints: [
                     {
                       timeUnixNano: TIME_NANO,
-                      startTimeUnixNano: nanoAt(-10_000_000_000n),
+                      startTimeUnixNano: nanoAt(-10_000_000_000),
                       count: 6,
                       sum: 2.5,
                       min: 0.01,
@@ -405,7 +405,7 @@ function metricsPayload(): JSONObject {
                   dataPoints: [
                     {
                       timeUnixNano: TIME_NANO,
-                      startTimeUnixNano: nanoAt(-5_000_000_000n),
+                      startTimeUnixNano: nanoAt(-5_000_000_000),
                       count: 4,
                       sum: 40,
                       scale: 2,
@@ -422,7 +422,7 @@ function metricsPayload(): JSONObject {
                 summary: {
                   dataPoints: [
                     {
-                      timeUnixNano: nanoAt(-1n),
+                      timeUnixNano: nanoAt(-1),
                       count: 10,
                       sum: 1.25,
                       quantileValues: [
@@ -451,8 +451,8 @@ function tracesPayload(): JSONObject {
       parentSpanId: i % 3 === 0 ? Buffer.alloc(0) : idBytes(100 + i - 1, 8),
       name: i % 3 === 0 ? "GET /api/orders/{id}" : "SELECT orders",
       kind: (i % 5) + 1,
-      startTimeUnixNano: nanoAt(BigInt(i) * 1_000_000_000n),
-      endTimeUnixNano: nanoAt(BigInt(i) * 1_000_000_000n + 2_345_678n),
+      startTimeUnixNano: nanoAt(i * 1_000_000_000),
+      endTimeUnixNano: nanoAt(i * 1_000_000_000 + 2_345_678),
       attributes: [
         attribute("http.method", "GET"),
         attribute("http.status_code", i % 7 === 0 ? 500 : 200),
@@ -463,7 +463,7 @@ function tracesPayload(): JSONObject {
         i % 4 === 0
           ? [
               {
-                timeUnixNano: nanoAt(BigInt(i) * 1_000_000_000n + 1_000n),
+                timeUnixNano: nanoAt(i * 1_000_000_000 + 1_000),
                 name: "exception",
                 attributes: [
                   attribute("exception.type", "TypeError"),
@@ -480,7 +480,7 @@ function tracesPayload(): JSONObject {
             ]
           : [
               {
-                timeUnixNano: nanoAt(BigInt(i) * 1_000_000_000n + 5n),
+                timeUnixNano: nanoAt(i * 1_000_000_000 + 5),
                 name: "cache.miss",
               },
             ],
@@ -511,8 +511,8 @@ function logsPayload(): JSONObject {
   for (let i: number = 0; i < 36; i++) {
     const severity: number = severities[i % severities.length] as number;
     logRecords.push({
-      timeUnixNano: nanoAt(BigInt(i) * 333_333_333n),
-      observedTimeUnixNano: nanoAt(BigInt(i) * 333_333_333n + 7n),
+      timeUnixNano: nanoAt(i * 333_333_333),
+      observedTimeUnixNano: nanoAt(i * 333_333_333 + 7),
       severityNumber: severity,
       severityText: "",
       body:
