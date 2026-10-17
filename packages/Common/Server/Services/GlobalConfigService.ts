@@ -47,6 +47,12 @@ export const ROOT_ONLY_LICENSE_COLUMNS: ReadonlyArray<keyof Model> = [
   "enterpriseLicenseUserCountUpdatedAt",
   "enterpriseLicenseInstances",
   "enterpriseEditionFirstSeenAt",
+  /*
+   * A self-hosted installation billed through a cloud marketplace is
+   * licensed by the marketplace's answers recorded here (verifiedAt): a
+   * forged one would license the installation for free.
+   */
+  "enterpriseMarketplaceBilling",
 ];
 
 /*

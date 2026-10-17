@@ -64,6 +64,7 @@ const makeInputs: MakeInputsFunction = (
     instanceId: INSTANCE_ID,
     currentUserCount: 4,
     instances: [],
+    marketplaceBilling: null,
     ...(overrides || {}),
   };
 };

@@ -130,6 +130,9 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "telemetry-writer")) | nindent 12 }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release "DatabaseMaxOpenConnections" ($.Values.telemetryWriter.databaseMaxOpenConnections | default $.Values.deployment.databaseMaxOpenConnections)) | nindent 12 }}
+            {{- if (($.Values.enterpriseMarketplace).provider) }}
+            {{- include "oneuptime.env.enterpriseMarketplace" (dict "Values" $.Values "Reporter" false) | nindent 12 }}
+            {{- end }}
             - name: PORT
               value: {{ $.Values.telemetryWriter.ports.http | quote }}
             # Writer pods never consume BullMQ queues — they only serve the

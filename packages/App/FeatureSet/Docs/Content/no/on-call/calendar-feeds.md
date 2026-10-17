@@ -246,7 +246,7 @@ Feeden viser rotasjonen **slik den er satt opp nå**, også for tidligere dager:
 OneUptimes egen Nginx holder feedforespørsler utenfor loggene sine:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;

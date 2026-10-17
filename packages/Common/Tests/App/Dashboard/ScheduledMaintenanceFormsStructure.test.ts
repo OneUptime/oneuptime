@@ -132,6 +132,9 @@ interface FormShape {
   placements: Array<Placement>;
 }
 
+// Every run of whitespace, line breaks included, for reading code as one line.
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
 function readSource(file: string): string {
   return fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8");
 }
@@ -339,7 +342,13 @@ describe("the scheduled maintenance forms", () => {
 
     const source: string = readSource(CREATE_FILE);
 
-    expect(source).toContain("return getDefaultMaintenanceStartsAt();");
+    /*
+     * The calendar's + on a day asks for its start in the address
+     * (?startsAt=); without one it is the next full hour.
+     */
+    expect(source.replace(WHITESPACE_RUN, " ")).toContain(
+      'return getDefaultMaintenanceStartsAt( Navigation.getQueryStringByName("startsAt"), );',
+    );
     expect(source).toContain("return getDefaultMaintenanceEndsAt(values);");
     expect(source).toContain("onChange: moveMaintenanceEndWithStart,");
     expect(source).toContain("return getMaintenanceEndsAtError(values);");

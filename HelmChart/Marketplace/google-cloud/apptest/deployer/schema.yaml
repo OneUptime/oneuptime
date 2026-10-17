@@ -1,0 +1,7 @@
+# The tester runs in the app's own image (it has Node), so no extra image ships.
+properties:
+  testerImage:
+    type: string
+    default: $REGISTRY:$TAG
+    x-google-property:
+      type: IMAGE

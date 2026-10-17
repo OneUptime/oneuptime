@@ -47,6 +47,8 @@ Each channel also gets its own list in the status page side menu under **Subscri
 
 **One switch is not enough.** The **Subscribe** item in the status page nav bar only appears when **Show Subscriber Page** is on *and* at least one channel is on. If you turn on **Email** but leave **Show Subscriber Page** off, visitors have no way to reach the form.
 
+**A calendar instead.** Visitors who only want your planned maintenance in their own calendar do not need to subscribe: **Subscribe to calendar** on the page's **Scheduled Events** page adds it to Google Calendar, Apple Calendar or Outlook, and the calendar keeps itself up to date. It sends nothing and does not depend on the channels above, and a private page does not offer it. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar#a-status-pages-calendar).
+
 ## Turning every notification off
 
 The first card on **Subscriber Settings**, **Notifications**, holds **Send Notifications to Subscribers** (`sendSubscriberNotifications`), on by default, which saves the moment you flip it. Off, the status page sends its subscribers nothing: no incident, episode, scheduled maintenance or announcement notification, no note or postmortem, and no email report, whatever its channels and event types say. Its subscribers are kept, and visitors can still subscribe while the **Subscribe** page and a channel are on; a new email subscriber still gets the email that confirms the subscription. Nothing is held back to be sent later: turned on again, the page tells its subscribers about what happens from then on.

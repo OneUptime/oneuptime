@@ -27,7 +27,7 @@ spec:
             {{- include "oneuptime.nodeSelector" (dict) | nindent 12 }}
           containers:
           - name: cleanup
-            image: bitnami/kubectl:latest
+            image: {{ include "oneuptime.imageReference" (dict "Values" $.Values "Key" "kubectl" "Default" "bitnami/kubectl:latest") | quote }}
             imagePullPolicy: {{ $.Values.image.pullPolicy }}
             env:
             - name: namespace
@@ -79,7 +79,7 @@ spec:
             {{- include "oneuptime.nodeSelector" (dict) | nindent 12 }}
           containers:
           - name: cleanup
-            image: bitnami/kubectl:latest
+            image: {{ include "oneuptime.imageReference" (dict "Values" $.Values "Key" "kubectl" "Default" "bitnami/kubectl:latest") | quote }}
             imagePullPolicy: {{ $.Values.image.pullPolicy }}
             env:
             - name: namespace

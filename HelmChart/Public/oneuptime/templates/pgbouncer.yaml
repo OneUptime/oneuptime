@@ -134,7 +134,7 @@ spec:
       {{- end }}
       containers:
       - name: pgbouncer
-        image: "{{ .Values.pgbouncer.image.repository }}:{{ .Values.pgbouncer.image.tag }}"
+        image: {{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "pgbouncer" "Default" (printf "%s:%s" .Values.pgbouncer.image.repository (toString .Values.pgbouncer.image.tag))) | quote }}
         imagePullPolicy: {{ .Values.pgbouncer.image.pullPolicy }}
         {{- if .Values.pgbouncer.containerSecurityContext }}
         securityContext:

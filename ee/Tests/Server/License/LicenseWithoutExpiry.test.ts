@@ -90,6 +90,7 @@ const storedInputs: (overrides?: Partial<LicenseInputs>) => LicenseInputs = (
     instanceId: "11111111-2222-3333-4444-555555555555",
     currentUserCount: 12,
     instances: [],
+    marketplaceBilling: null,
     ...(overrides || {}),
   };
 };

@@ -1,12 +1,13 @@
 {
   "baseline": {
-    "keys": 30172,
-    "untranslated": 17270
+    "keys": 30339,
+    "untranslated": 17259
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "1 week",
     "AI / LLM",
+    "Agenda",
     "Agent",
     "Alarm",
     "App",
@@ -53,6 +54,7 @@
     "Tunnel",
     "VMware vCenter",
     "Website",
+    "Week",
     "agent {{version}}",
     "cluster",
     "host",

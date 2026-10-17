@@ -505,6 +505,8 @@ describe("the tables put the record into every create button", () => {
       navigations: [
         "RouteUtil.getPageRoute(PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,{query:createQuery},)",
         "RouteUtil.getPageRoute(PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,{query:{...createQuery,scheduledMaintenanceTemplateId:scheduledMaintenanceTemplateId.toString(),},},)",
+        // The calendar's + on a day to come: the same record, and that day.
+        "RouteUtil.getPageRoute(PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,{query:{...createQuery,startsAt:startsAt.toISOString(),},},)",
       ],
     },
   ];

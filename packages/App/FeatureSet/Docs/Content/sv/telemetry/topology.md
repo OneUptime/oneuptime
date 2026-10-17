@@ -77,7 +77,7 @@ Klicka på en pil för att se dess begärandefrekvens, felfrekvens och genomsnit
 
 **Infrastruktur** visar var dina tjänster körs: kluster, värdar, poddar, containrar och de andra resurser som skickar data. Repliker av samma arbetsbelastning grupperas i en post, och du kan öppna vad som helst för att se inuti.
 
-- **Bläddra på ditt sätt.** Visa den som **List** eller **Map**, från hela din infrastruktur ned till en enda podd. Siffrorna ovanför säger hur många resurser och arbetsbelastningar den ritar, hur många tjänster den kan placera och hur många tysta resurser den utelämnar.
+- **Bläddra på ditt sätt.** Visa den som **Lista** eller **Map**, från hela din infrastruktur ned till en enda podd. Siffrorna ovanför säger hur många resurser och arbetsbelastningar den ritar, hur många tjänster den kan placera och hur många tysta resurser den utelämnar.
 - **Hitta en resurs.** Sök efter den med namn och klicka på **View details** för att öppna dess sida.
 - **Växla mellan vyer.** En tjänst som listas på en resurs öppnas på **Service Map**, och de resurser som en tjänst körs på öppnas på **Infrastruktur**.
 

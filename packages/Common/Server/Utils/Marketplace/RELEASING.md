@@ -6,9 +6,11 @@ This is the runbook for maintainers and AI agents who list **OneUptime Cloud**
 needs, and keep it running. Follow the repository's
 [AGENTS.md](../../../../../AGENTS.md) as well.
 
-It does not cover self-hosted installations, which are not sold through
-marketplaces: every marketplace setting is ignored unless billing is enabled
-(`BILLING_ENABLED=true`, OneUptime Cloud only).
+It does not cover self-hosted OneUptime Enterprise, which the same
+marketplaces sell as a Kubernetes application billed per user-hour: see
+[SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md). Every setting in this
+guide is ignored unless billing is enabled (`BILLING_ENABLED=true`, OneUptime
+Cloud only).
 
 Written on **16 October 2026**, together with the integration code, before any
 listing existed. Nothing in this guide had been submitted to any marketplace

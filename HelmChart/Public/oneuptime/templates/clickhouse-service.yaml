@@ -82,6 +82,7 @@ spec:
     app.kubernetes.io/component: clickhouse
     app.kubernetes.io/part-of: clickhouse
 
+{{- if ne ((.Values.clickhouse.serviceAccount).create) false }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -94,4 +95,5 @@ metadata:
     app.kubernetes.io/component: clickhouse
     app.kubernetes.io/part-of: clickhouse
     app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
 {{- end }}

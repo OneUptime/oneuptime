@@ -63,6 +63,8 @@ Meddelelser beskrives i [Abonnenter og meddelelser](/docs/status-pages/subscribe
 
 Listen viser **Nummer for planlagt vedligeholdelse**, **Titel**, **Aktuel tilstand**, **Berørte ressourcer**, **Vist på statusside**, **Begynder den**, **Varighed**, **Slutter den**, **Etiketter** og **Ejere**. Vælg begivenheder for at handle på flere ad gangen: **Skift tilstand**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** eller **Slet**.
 
+**Liste** og **Kalender** i højre ende af listens filterlinje viser de samme begivenheder som en tabel eller på en måned, en uge eller en dag. Se [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar).
+
 ## Hvad en begivenhed påvirker
 
 Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, som forventet:

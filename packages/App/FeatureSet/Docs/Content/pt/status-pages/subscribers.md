@@ -47,6 +47,8 @@ Cada canal também tem sua própria lista no menu lateral da página de status, 
 
 **Um interruptor não basta.** O item **Inscrever-se** na barra de navegação da página de status só aparece quando **Mostrar página de assinantes** está ligado *e* pelo menos um canal está ligado. Se você ligar **E-mail** mas deixar **Mostrar página de assinantes** desligado, os visitantes não têm como chegar ao formulário.
 
+**Um calendário no lugar.** Visitantes que só querem a sua manutenção planejada no próprio calendário não precisam se inscrever: **Subscrever o calendário** na página **Eventos agendados** a adiciona ao Google Agenda, ao Calendário da Apple ou ao Outlook, e o calendário se mantém atualizado sozinho. Ele não envia nada e não depende dos canais acima, e uma página privada não o oferece. Veja [Calendário de manutenção](/docs/scheduled-maintenance/calendar#o-calendário-de-uma-página-de-status).
+
 ## Desligar todas as notificações
 
 O primeiro cartão de **Configurações de assinantes**, **Notificações**, contém **Enviar notificações aos assinantes** (`sendSubscriberNotifications`), ligado por padrão, que é salvo assim que você o muda. Com ele desligado, a página de status não envia nada aos seus assinantes: nenhuma notificação de incidente, episódio, manutenção programada ou anúncio, nenhuma nota ou post-mortem e nenhum relatório por e-mail, digam o que disserem os canais e os tipos de evento dela. Os assinantes dela são mantidos, e os visitantes ainda podem se inscrever enquanto a página **Inscrever-se** e um canal estiverem ligados; um novo assinante de e-mail ainda recebe o e-mail que confirma a inscrição. Nada fica guardado para ser enviado depois: quando ele é ligado de novo, a página avisa os assinantes sobre o que acontecer a partir de então.

@@ -2439,6 +2439,33 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
+    return await StatusPageAPI.readShownScheduledMaintenanceEvents({
+      statusPageId: statusPageId,
+      scheduledMaintenanceId: scheduledMaintenanceId,
+    });
+  }
+
+  /*
+   * The scheduled maintenance events a status page shows, as its Scheduled
+   * Maintenance page reads them: the events of its history window, every
+   * event still to come and every event in progress - or the one event
+   * asked for - with their public notes, state timelines, the page's
+   * resources and the project's states. Everything a page shows goes
+   * through StatusPageVisibilityQuery here.
+   *
+   * It does not ask who is reading: a caller checks the reader may read the
+   * page first, as getScheduledMaintenanceEvents above does, and the status
+   * page's maintenance calendar (StatusPageMaintenanceCalendarFeed) does
+   * with the same StatusPageService.hasReadAccess - so the calendar holds
+   * exactly what the page shows, and nothing it does not.
+   */
+  public static async readShownScheduledMaintenanceEvents(data: {
+    statusPageId: ObjectID;
+    scheduledMaintenanceId: ObjectID | null;
+  }): Promise<JSONObject> {
+    const statusPageId: ObjectID = data.statusPageId;
+    const scheduledMaintenanceId: ObjectID | null = data.scheduledMaintenanceId;
+
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
         _id: statusPageId.toString(),
@@ -2500,6 +2527,12 @@ export default class StatusPageAPI extends BaseAPI<
 
     let scheduledEventsSelect: Select<ScheduledMaintenance> = {
       createdAt: true,
+      /*
+       * When the event was last written, and how many times: what tells a
+       * calendar app holding it that it changed (MaintenanceCalendar).
+       */
+      updatedAt: true,
+      version: true,
       title: true,
       description: true,
       _id: true,
