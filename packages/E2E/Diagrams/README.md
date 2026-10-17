@@ -82,4 +82,5 @@ and the blog page script and diagram module in
 stand-in for mermaid.
 
 CI's Dashboard Offline UI job lists the suites it runs in
-`.github/workflows/test.app.yaml`; `test-diagrams-ui` is in group 3.
+`.github/workflows/test.app.yaml`; `test-diagrams-ui` also runs in Firefox, so it
+belongs in a group that installs Chromium and Firefox (group 2).
