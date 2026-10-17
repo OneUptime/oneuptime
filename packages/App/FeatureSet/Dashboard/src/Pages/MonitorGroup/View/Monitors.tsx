@@ -305,10 +305,11 @@ const MonitorGroupMonitors: FunctionComponent<
    * Nothing to pick: the project has no monitor yet, or the group holds
    * every one. The dialog then says which, in place of an empty picker,
    * and offers Create Monitor (to whoever may create one). A pick kept
-   * after a refusal is still something to add.
+   * after a refusal is still something to add, and adding the last ones
+   * closes the dialog rather than saying there is nothing left.
    */
   const nothingToAddMessage: string | undefined =
-    offerState === "loaded" && pickedMonitorIds.length === 0
+    offerState === "loaded" && pickedMonitorIds.length === 0 && !isAddLoading
       ? getNothingToAddMessage({
           projectMonitors: projectMonitors,
           monitorsToOffer: monitorsToOffer,

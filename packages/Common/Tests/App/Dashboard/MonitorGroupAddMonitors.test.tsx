@@ -591,6 +591,43 @@ describe("the group's Monitors page: Add Monitors", () => {
     expect(JSON.stringify(mockTableProps?.query?._id)).toContain(STOREFRONT_ID);
   });
 
+  test("adding the last monitors closes the dialog: it never says there is nothing left to add", async () => {
+    let noticesDrawn: number = 0;
+    const observer: MutationObserver = new MutationObserver(
+      (records: Array<MutationRecord>): void => {
+        for (const record of records) {
+          for (const node of Array.from(record.addedNodes)) {
+            if ((node.textContent || "").includes(EVERY_MONITOR_IN_GROUP)) {
+              noticesDrawn++;
+            }
+          }
+        }
+      },
+    );
+
+    await renderMonitorsPage();
+    await openAddMonitors();
+
+    pick("Storefront");
+    pick("Payments");
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    await submitAddMonitors();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+    observer.disconnect();
+
+    // The group now holds every monitor, and nothing said so on the way out.
+    expect(createdRows()).toHaveLength(2);
+    expect(noticesDrawn).toBe(0);
+  });
+
   test("one refused monitor does not lose the others: how many were added, why the rest were not, and the refused one still picked", async () => {
     mockCreate.mockImplementation((...args: Array<unknown>) => {
       const request: CreateRequest = args[0] as CreateRequest;

@@ -262,7 +262,7 @@ describe("the Monitors page", () => {
     expect(page).toContain("getNothingToAddMessage({");
     // Only once the monitors are read, and never over a pick kept for a retry.
     expect(page).toContain(
-      'offerState === "loaded" && pickedMonitorIds.length === 0',
+      'offerState === "loaded" && pickedMonitorIds.length === 0 && !isAddLoading',
     );
     expect(page).toContain(
       "submitButtonText={MonitorGroupMonitorsCopy.createMonitorButton}",
