@@ -4,12 +4,16 @@ import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPagePrivateUserSessionService from "../../../Server/Services/StatusPagePrivateUserSessionService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../Server/Utils/Express";
-import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import JSONWebToken, { PURPOSE_CLAIM } from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
+import User from "../../../Models/DatabaseModels/User";
 import Email from "../../../Types/Email";
 import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
+import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import { MASTER_PASSWORD_COOKIE_IDENTIFIER } from "../../../Types/StatusPage/MasterPassword";
 import { SelectQueryBuilder } from "typeorm";
 
@@ -93,6 +97,103 @@ describe("private status page access requires a live session", () => {
     getOne.mockResolvedValue(null);
     expect(await hasAccess()).toBe(false);
   });
+
+  /*
+   * The page's cookie takes only the page's own sessions. Anything else
+   * OneUptime signs with the same key - a dashboard session, an SSO
+   * sign-in, a token naming this page and a session that says it is
+   * something else - is refused before any session is read.
+   */
+  function dashboardUser(): User {
+    const user: User = new User();
+    user.id = userId;
+    user.email = new Email("private-user@example.com");
+    user.name = new Name("Private User");
+    return user;
+  }
+
+  function withPageCookie(token: string): ExpressRequest {
+    return {
+      cookies: { [CookieUtil.getUserTokenKey(statusPageId)]: token },
+    } as ExpressRequest;
+  }
+
+  // A token naming this page, its private user and its session, saying it is `purpose`.
+  function signedForThisPage(purpose: string): string {
+    return JSONWebToken.signJsonPayload(
+      {
+        userId: userId.toString(),
+        email: "private-user@example.com",
+        statusPageId: statusPageId.toString(),
+        sessionId: sessionId.toString(),
+        [PURPOSE_CLAIM]: purpose,
+      },
+      900,
+    );
+  }
+
+  test("accepts the page's session as this release signs it, saying what it is", async () => {
+    expect(
+      await hasAccess(
+        withPageCookie(
+          signedForThisPage(JsonWebTokenPurpose.StatusPageSession),
+        ),
+      ),
+    ).toBe(true);
+    expect(getOne).toHaveBeenCalledTimes(1);
+  });
+
+  test("rejects a dashboard session in the page's cookie before reading sessions", async () => {
+    const dashboardSession: string = JSONWebToken.signUserLoginToken({
+      tokenData: {
+        userId: userId,
+        email: new Email("private-user@example.com"),
+        name: new Name("Private User"),
+        timezone: null,
+        isMasterAdmin: false,
+        isGlobalLogin: true,
+        sessionId: sessionId,
+      },
+      expiresInSeconds: 900,
+    });
+
+    expect(await hasAccess(withPageCookie(dashboardSession))).toBe(false);
+    expect(getOne).not.toHaveBeenCalled();
+  });
+
+  test("rejects an SSO sign-in in the page's cookie before reading sessions", async () => {
+    for (const ssoSignIn of [
+      CookieUtil.getSSOToken({
+        user: dashboardUser(),
+        projectId: ObjectID.generate(),
+        ssoProviderId: ObjectID.generate(),
+        ssoProviderType: SsoProviderType.ProjectSSO,
+      }),
+      CookieUtil.getGlobalSSOToken({
+        user: dashboardUser(),
+        ssoProviderId: ObjectID.generate(),
+        ssoProviderType: SsoProviderType.GlobalOIDC,
+      }),
+    ]) {
+      expect(await hasAccess(withPageCookie(ssoSignIn))).toBe(false);
+    }
+
+    expect(getOne).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    JsonWebTokenPurpose.UserSession,
+    JsonWebTokenPurpose.SsoSignIn,
+    "on-call-page",
+  ])(
+    "rejects a token naming this page and a session that says it is a %s, before reading sessions",
+    async (purpose: string) => {
+      expect(await hasAccess(withPageCookie(signedForThisPage(purpose)))).toBe(
+        false,
+      );
+      expect(getOne).not.toHaveBeenCalled();
+    },
+  );
 
   test("reads the session under its sign-in rule, with the page's Require SSO for Login", async () => {
     /*
