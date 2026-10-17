@@ -171,12 +171,18 @@ const NetworkDeviceLinkRulesPage: FunctionComponent<
           description:
             "Disable to take this rule's links off the map without deleting it.",
         },
+        /*
+         * Each label field says its rule itself, and the section only names
+         * the side: a field with no description of its own shows the
+         * column's, written for the API reference and two lines longer, under
+         * the section's sentence that already said the same.
+         */
         {
           field: { childDeviceLabels: true },
           title: "Child Device Labels",
           stepId: "devices",
           sectionTitle: "The devices that get an uplink",
-          sectionDescription:
+          description:
             "Every device carrying ALL of these labels gets one link drawn to the parent device below.",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
@@ -192,7 +198,7 @@ const NetworkDeviceLinkRulesPage: FunctionComponent<
           title: "Parent Device Labels",
           stepId: "devices",
           sectionTitle: "The device they uplink to",
-          sectionDescription:
+          description:
             "These labels must pick out exactly one device, or the rule draws nothing.",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
