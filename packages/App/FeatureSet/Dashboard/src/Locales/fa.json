@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "افزوده به مانیتورهای جدید",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "performance_schema را هم روشن کنید (performance_schema = ON در my.cnf). MySQL استاندارد شمارنده بن‌بست ندارد، پس بن‌بست‌ها هرگز جمع‌آوری نمی‌شوند.",
   "Check the redirect response itself, not the page it leads to.": "خود پاسخ تغییر مسیر را بررسی کن، نه صفحه‌ای که به آن می‌برد.",
-  "Every monitor in this project is in the group.": "همه مانیتورهای این پروژه در گروه هستند.",
   "GET unless the endpoint needs another method.": "GET، مگر اینکه نقطه پایانی روش دیگری بخواهد.",
   "How long to wait for each attempt, up to 60 seconds.": "مدت انتظار برای هر تلاش، تا ۶۰ ثانیه.",
   "How many times to run the script again when it fails. Up to 5.": "اینکه اسکریپت پس از شکست چند بار دوباره اجرا شود. حداکثر ۵.",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "اعتبارسنجی گواهی برای این میزبان را رد کن تا گواهی‌های خودامضا کار کنند.",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "عامل روی سرور شما با {{key}} وارد می‌شود. پس از بازنشانی، تا کلید جدید را به آن ندهید گزارشی نمی‌فرستد.",
   "The browsers to run the script in.": "مرورگرهایی که اسکریپت در آن‌ها اجرا می‌شود.",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "نسخه کپی با پایش خاموش شروع می‌شود تا دو بار هشدار ندهد. آن را از تنظیماتش روشن کنید.",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "کلید موجود در URL این مانیتور {{key}} است. اگر URL لو رفت آن را بازنشانی کنید: URL قدیمی دیگر کار نمی‌کند، پس همه فرستنده‌ها را به‌روز کنید.",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "کلید قدیمی فوراً از کار می‌افتد. کلید جدید را به‌عنوان PROBE_KEY تنظیم کنید و پراب را دوباره راه‌اندازی کنید.",
   "The probes that check this monitor. Add one to check it from another location.": "پراب‌هایی که این مانیتور را بررسی می‌کنند. برای بررسی از جای دیگر، یکی اضافه کنید.",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "برای رمزگذاری‌شده ماندن آن، از یک راز مانیتور مانند {{secret}} استفاده کنید.",
   "Username and password": "نام کاربری و رمز عبور",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "بدون pg_monitor، PostgreSQL فقط نشست پایش را نشان می‌دهد، پس گروه‌هایی که به آن نیاز دارند ناموجود گزارش می‌شوند.",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{added}} از {{total}} مانیتور اضافه شد. بقیه نه: {{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} از این گروه خارج می‌شود. خود مانیتور تغییری نمی‌کند.",
-  "A host the probe can reach, like db.internal.": "میزبانی که پراب به آن دسترسی دارد، مانند db.internal.",
   "The database engine to connect to.": "موتور پایگاه داده‌ای که باید به آن وصل شد.",
   "The database to run the query against.": "پایگاه داده‌ای که پرس‌وجو روی آن اجرا می‌شود.",
   "Headers, body, redirect, TLS, timeout and retry settings": "تنظیمات هدرها، بدنه، تغییر مسیر، TLS، وقفه و تلاش مجدد",
-  "Redirect, TLS, timeout and retry settings": "تنظیمات تغییر مسیر، TLS، وقفه و تلاش مجدد"
+  "Redirect, TLS, timeout and retry settings": "تنظیمات تغییر مسیر، TLS، وقفه و تلاش مجدد",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "{{added}} از {{total}} مانیتور اضافه شد. مانیتورهایی که هنوز انتخاب شده‌اند اضافه نشدند: {{reason}}",
+  "Every monitor in this project is already in this group.": "همه مانیتورهای این پروژه از قبل در این گروه هستند.",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "تا نسخه کپی برای یک مشکل دو بار هشدار ندهد. پایش را بعداً از تنظیماتش روشن کنید.",
+  "Start with monitoring off": "شروع با پایش خاموش",
+  "This project has no monitors yet. Create one, then add it to this group.": "این پروژه هنوز مانیتوری ندارد. یکی بسازید و سپس آن را به این گروه اضافه کنید."
 }

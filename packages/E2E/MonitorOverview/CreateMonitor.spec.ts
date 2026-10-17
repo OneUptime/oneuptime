@@ -634,6 +634,89 @@ test.describe("Create Monitor's plainer fields", () => {
     );
   }
 
+  /*
+   * The step list beside the form is as wide as its titles. Only a step not
+   * reached yet kept its title on one line, so on the last step "Probes &
+   * Interval" and "Monitor Info" wrapped and the form beside them moved, and
+   * a two-step form wrapped "Monitor Info" from the start.
+   */
+  async function stepList(page: Page): Promise<{
+    width: number;
+    titleHeights: Array<number>;
+  }> {
+    const list: Locator = page.getByRole("navigation", { name: "Progress" });
+    await expect(list).toBeVisible({ timeout: 30000 });
+
+    const titleHeights: Array<number> = [];
+    for (const step of await list.getByRole("listitem").all()) {
+      titleHeights.push((await boxOf(step)).height);
+    }
+
+    return { width: (await boxOf(list)).width, titleHeights: titleHeights };
+  }
+
+  test("the step list keeps every title on one line, and its width, on every step", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+
+    const form: Locator = await openCreate(page, "?monitorType=Website");
+    await nameInput(form).fill("Storefront");
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(
+      form.getByPlaceholder("https://example.com", { exact: true }),
+    ).toBeVisible({ timeout: 60000 });
+
+    const onCriteria: { width: number; titleHeights: Array<number> } =
+      await stepList(page);
+    expect(onCriteria.titleHeights).toHaveLength(3);
+
+    await form
+      .getByPlaceholder("https://example.com", { exact: true })
+      .fill("https://storefront.acme-commerce.example");
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(page.getByRole("combobox", { name: /^Probes/ })).toBeVisible({
+      timeout: 30000,
+    });
+
+    const onLastStep: { width: number; titleHeights: Array<number> } =
+      await stepList(page);
+
+    // One line each (a two-line title is about 40px tall).
+    for (const height of [
+      ...onCriteria.titleHeights,
+      ...onLastStep.titleHeights,
+    ]) {
+      expect(height).toBeLessThan(28);
+    }
+    // The list, and so the form beside it, did not move.
+    expect(Math.abs(onLastStep.width - onCriteria.width)).toBeLessThan(1);
+  });
+
+  test("a two-step form keeps Monitor Info on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(120000);
+
+    const form: Locator = await openCreate(
+      page,
+      "?monitorType=Incoming%20Request",
+    );
+    await nameInput(form).fill("Nightly billing export");
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+
+    const list: { width: number; titleHeights: Array<number> } =
+      await stepList(page);
+    expect(list.titleHeights).toHaveLength(2);
+    for (const height of list.titleHeights) {
+      expect(height).toBeLessThan(28);
+    }
+  });
+
   test("SQL Server asks how to sign in: two plain choices, and Windows Integrated Authentication drops the username and password", async ({
     page,
   }: {
@@ -655,6 +738,19 @@ test.describe("Create Monitor's plainer fields", () => {
       timeout: 60000,
     });
     await expect(authentication).toHaveCount(0);
+
+    /*
+     * Host and Port share a line, their boxes level: neither has a line of
+     * help (one under Host alone pushed its box below Port's), and the port
+     * takes a quarter of the line.
+     */
+    const hostBox: { x: number; y: number; width: number; height: number } =
+      await boxOf(form.getByPlaceholder("db.internal", { exact: true }));
+    const portBox: { x: number; y: number; width: number; height: number } =
+      await boxOf(form.getByPlaceholder("5432", { exact: true }));
+    expect(Math.abs(hostBox.y - portBox.y)).toBeLessThan(1);
+    expect(portBox.x).toBeGreaterThan(hostBox.x + hostBox.width);
+    expect(portBox.width).toBeLessThan(hostBox.width / 2);
 
     const databaseType: Locator = form
       .locator("div")

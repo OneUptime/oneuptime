@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "Läggs till på nya övervakare",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "Slå också på performance_schema (performance_schema = ON i my.cnf). Standard-MySQL har ingen räknare för dödlägen, så de samlas aldrig in.",
   "Check the redirect response itself, not the page it leads to.": "Kontrollera själva omdirigeringssvaret, inte sidan det leder till.",
-  "Every monitor in this project is in the group.": "Alla övervakare i det här projektet finns redan i gruppen.",
   "GET unless the endpoint needs another method.": "GET, om inte slutpunkten kräver en annan metod.",
   "How long to wait for each attempt, up to 60 seconds.": "Hur länge varje försök väntar, upp till 60 sekunder.",
   "How many times to run the script again when it fails. Up to 5.": "Hur många gånger skriptet körs igen när det misslyckas. Upp till 5.",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "Hoppa över certifikatvalidering för den här värden, så att självsignerade certifikat fungerar.",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "Agenten på din server loggar in med {{key}}. Efter en återställning slutar den rapportera tills du ger den den nya nyckeln.",
   "The browsers to run the script in.": "Webbläsarna som skriptet körs i.",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "Kopian börjar med övervakning avstängd, så att den inte larmar två gånger. Slå på den i dess inställningar.",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "Nyckeln i den här övervakarens URL är {{key}}. Återställ den om URL:en läcker: den gamla URL:en slutar fungera, så uppdatera alla avsändare.",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "Den gamla nyckeln slutar fungera direkt. Ange den nya som PROBE_KEY och starta om sonden.",
   "The probes that check this monitor. Add one to check it from another location.": "Sonderna som kontrollerar den här övervakaren. Lägg till en för att kontrollera den från en annan plats.",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "Använd en övervakarhemlighet, som {{secret}}, så att det förblir krypterat.",
   "Username and password": "Användarnamn och lösenord",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "Utan pg_monitor visar PostgreSQL bara övervakningssessionen, så grupperna som behöver den rapporteras som saknade.",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{added}} av {{total}} övervakare lades till. Resten inte: {{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} lämnar den här gruppen. Själva övervakaren ändras inte.",
-  "A host the probe can reach, like db.internal.": "En värd som sonden kan nå, till exempel db.internal.",
   "The database engine to connect to.": "Databasmotorn att ansluta till.",
   "The database to run the query against.": "Databasen som frågan körs mot.",
   "Headers, body, redirect, TLS, timeout and retry settings": "Inställningar för rubriker, body, omdirigering, TLS, tidsgräns och nya försök",
-  "Redirect, TLS, timeout and retry settings": "Inställningar för omdirigering, TLS, tidsgräns och nya försök"
+  "Redirect, TLS, timeout and retry settings": "Inställningar för omdirigering, TLS, tidsgräns och nya försök",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "{{added}} av {{total}} övervakare lades till. De som fortfarande är valda lades inte till: {{reason}}",
+  "Every monitor in this project is already in this group.": "Alla övervakare i det här projektet finns redan i den här gruppen.",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "Så att kopian inte larmar två gånger för samma problem. Slå på övervakningen senare i dess inställningar.",
+  "Start with monitoring off": "Starta med övervakning avstängd",
+  "This project has no monitors yet. Create one, then add it to this group.": "Det här projektet har inga övervakare än. Skapa en och lägg sedan till den i den här gruppen."
 }

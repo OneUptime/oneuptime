@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "已加入新監測器",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "也請開啟 performance_schema（在 my.cnf 中設定 performance_schema = ON）。標準 MySQL 沒有死結計數器，因此永遠不會收集死結。",
   "Check the redirect response itself, not the page it leads to.": "檢查重新導向回應本身，而不是它指向的頁面。",
-  "Every monitor in this project is in the group.": "此專案中的所有監測器都已在群組中。",
   "GET unless the endpoint needs another method.": "除非端點需要其他方法，否則使用 GET。",
   "How long to wait for each attempt, up to 60 seconds.": "每次嘗試的等待時間，最多 60 秒。",
   "How many times to run the script again when it fails. Up to 5.": "腳本失敗時重新執行的次數，最多 5 次。",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "略過此主機的憑證驗證，讓自簽憑證可以使用。",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "伺服器上的代理程式使用 {{key}} 登入。重設後，在你為它設定新金鑰之前，它會停止回報。",
   "The browsers to run the script in.": "執行腳本所用的瀏覽器。",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "副本建立時監測處於關閉狀態，以免重複警示。請在副本的設定中開啟。",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "此監測器 URL 中的金鑰是 {{key}}。如果 URL 外洩，請重設它：舊 URL 會失效，請更新所有傳送端。",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "舊金鑰會立即失效。請將新金鑰設為 PROBE_KEY 並重新啟動探測器。",
   "The probes that check this monitor. Add one to check it from another location.": "檢查此監測器的探測器。加入一個即可從另一個位置檢查它。",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "使用監測器密鑰（例如 {{secret}}），以保持其加密。",
   "Username and password": "使用者名稱與密碼",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "沒有 pg_monitor 時，PostgreSQL 只顯示監測工作階段，因此需要它的群組會被回報為缺少。",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "已加入 {{total}} 個監測器中的 {{added}} 個。其餘未加入：{{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} 將離開此群組。監測器本身不會改變。",
-  "A host the probe can reach, like db.internal.": "探測器能連到的主機，例如 db.internal。",
   "The database engine to connect to.": "要連線的資料庫引擎。",
   "The database to run the query against.": "要在其上執行查詢的資料庫。",
   "Headers, body, redirect, TLS, timeout and retry settings": "標頭、本文、重新導向、TLS、逾時與重試設定",
-  "Redirect, TLS, timeout and retry settings": "重新導向、TLS、逾時與重試設定"
+  "Redirect, TLS, timeout and retry settings": "重新導向、TLS、逾時與重試設定",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "已加入 {{total}} 個監測器中的 {{added}} 個。仍處於選取狀態的監測器未加入：{{reason}}",
+  "Every monitor in this project is already in this group.": "此專案中的所有監測器都已在此群組中。",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "這樣副本不會為同一問題重複警示。之後可在副本的設定中開啟監測。",
+  "Start with monitoring off": "以關閉監測的狀態開始",
+  "This project has no monitors yet. Create one, then add it to this group.": "此專案還沒有監測器。請先建立一個，再將其加入此群組。"
 }

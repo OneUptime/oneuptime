@@ -4,6 +4,7 @@ import MonitorGroupMonitorsCopy, {
 import {
   getAddMonitorsErrorMessage,
   getMonitorsToOffer,
+  getNothingToAddMessage,
   MonitorToOffer,
 } from "../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMembership";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -156,6 +157,34 @@ describe("Add Monitors offers the monitors the group does not hold", () => {
   });
 });
 
+describe("when Add Monitors has nothing to offer", () => {
+  test("a project with no monitor yet says so, and that one is created first", () => {
+    expect(
+      getNothingToAddMessage({ projectMonitors: [], monitorsToOffer: [] }),
+    ).toBe(
+      "This project has no monitors yet. Create one, then add it to this group.",
+    );
+  });
+
+  test("a group holding every monitor says so - not that the project has none", () => {
+    expect(
+      getNothingToAddMessage({
+        projectMonitors: [buildMonitor(API_ID, "Checkout API")],
+        monitorsToOffer: [],
+      }),
+    ).toBe("Every monitor in this project is already in this group.");
+  });
+
+  test("says nothing while there is a monitor to pick", () => {
+    expect(
+      getNothingToAddMessage({
+        projectMonitors: [buildMonitor(API_ID, "Checkout API")],
+        monitorsToOffer: [{ value: API_ID, label: "Checkout API" }],
+      }),
+    ).toBeUndefined();
+  });
+});
+
 describe("what Add Monitors says afterwards", () => {
   test("nothing, when every picked monitor was added", () => {
     expect(
@@ -175,13 +204,15 @@ describe("what Add Monitors says afterwards", () => {
     ).toBe("No monitor was added: You do not have permission.");
   });
 
-  test("how many were, and the reason the rest were not", () => {
+  test("how many were, and that the ones still picked were not, with the reason", () => {
     expect(
       getAddMonitorsErrorMessage(
         { added: 2, total: 5, firstError: "Monitor not found." },
         ENGLISH,
       ),
-    ).toBe("2 of 5 monitors were added. The rest were not: Monitor not found.");
+    ).toBe(
+      "Added 2 of 5 monitors. Those still picked were not added: Monitor not found.",
+    );
   });
 
   test("in the reader's language", () => {
@@ -225,6 +256,38 @@ describe("the Monitors page", () => {
     // The picks that were not added wait in the picker for another try.
     expect(page).toContain("setPickedMonitorIds(notAddedIds);");
     expect(page).toContain("monitors: pickedMonitorIds,");
+  });
+
+  test("with nothing to pick, says why and offers Create Monitor instead of an empty picker", () => {
+    expect(page).toContain("getNothingToAddMessage({");
+    // Only once the monitors are read, and never over a pick kept for a retry.
+    expect(page).toContain(
+      'offerState === "loaded" && pickedMonitorIds.length === 0',
+    );
+    expect(page).toContain(
+      "submitButtonText={MonitorGroupMonitorsCopy.createMonitorButton}",
+    );
+    expect(page).toContain("RouteMap[PageMap.MONITOR_CREATE] as Route");
+    // Create Monitor only for whoever may create one; a notice for the rest.
+    expect(page).toContain(
+      "const canCreateMonitor: boolean = PermissionGate.check(\n    new Monitor(),\n    ModelAction.Create,",
+    );
+    expect(page).toContain('submitButtonText="Close"');
+    // The empty picker's old line is gone.
+    expect(page).not.toContain("MonitorGroupMonitorsCopy.nothingToAdd");
+  });
+
+  test("when the monitors cannot be read, says why and offers Try again", () => {
+    expect(page).toContain('if (offerState === "failed") {');
+    expect(page).toContain("error={offerError}");
+    expect(page).toContain('submitButtonText="Try again"');
+  });
+
+  test("reads the members again in place after an add or a remove, so nothing flashes", () => {
+    expect(page).toContain("fetchMonitorsInGroup({ showPageLoader: false })");
+    expect(
+      page.split("fetchMonitorsInGroup({ showPageLoader: false })").length - 1,
+    ).toBe(2);
   });
 
   test("opens Add Monitors as the page opens when the Overview sent the reader here", () => {
@@ -293,6 +356,15 @@ describe("the Overview of an empty group", () => {
       "const canAddMonitors: boolean = PermissionGate.check(",
     );
     expect(page).toContain("canAddMonitors ? (");
+  });
+
+  test("its Current Status, like the list's, says it has no monitors yet", () => {
+    expect(page).toContain("return <NoMonitorsStatus />;");
+    const list: string = readDashboard(
+      "Components/MonitorGroup/CurrentStatus.tsx",
+    );
+    expect(list).toContain("return <NoMonitorsStatus />;");
+    expect(list).toContain("modelType: MonitorGroupResource,");
   });
 
   test("its button is centred: Button's dialog margin is cleared", () => {

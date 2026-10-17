@@ -134,15 +134,45 @@ describe("SqlMonitorStepForm - how it signs in", () => {
   });
 });
 
-describe("SqlMonitorStepForm - on a phone", () => {
-  test("Host and Port sit side by side only from the sm width", () => {
+describe("SqlMonitorStepForm - Host and Port", () => {
+  /*
+   * One line from the sm width, the port a quarter of it, and neither with
+   * a line of help: a line under Host alone pushed its box below Port's.
+   */
+  test("share a line from the sm width, Host three quarters of it, one per line on a phone", () => {
     const view: RenderResult = renderForm({
       databaseType: SqlDatabaseType.PostgreSQL,
     });
 
     const host: HTMLElement = view.getByPlaceholderText("db.internal");
+    const port: HTMLElement = view.getByPlaceholderText("5432");
     const row: HTMLElement | null = host.closest(".grid");
 
-    expect(row).toHaveClass("grid-cols-1", "sm:grid-cols-2");
+    expect(row).toHaveClass("grid-cols-1", "sm:grid-cols-4");
+    expect(row).not.toHaveClass("sm:grid-cols-2");
+    expect(row).toContainElement(port);
+    expect(row?.children[0]).toHaveClass("sm:col-span-3");
+    expect(row?.children[0]).toContainElement(host);
+    expect(row?.children[1]).toContainElement(port);
+    expect(row?.children[1]?.className || "").not.toContain("col-span");
+  });
+
+  test("ask with their titles alone, so their boxes line up", () => {
+    const view: RenderResult = renderForm({
+      databaseType: SqlDatabaseType.PostgreSQL,
+    });
+
+    const row: HTMLElement = view
+      .getByPlaceholderText("db.internal")
+      .closest(".grid") as HTMLElement;
+
+    // Each cell: its label, then its box - no line of help between.
+    for (const cell of Array.from(row.children)) {
+      expect(cell.querySelectorAll("label")).toHaveLength(1);
+      expect(cell.querySelectorAll(".text-gray-500")).toHaveLength(0);
+    }
+    expect(view.container.textContent).not.toContain(
+      "A host the probe can reach",
+    );
   });
 });

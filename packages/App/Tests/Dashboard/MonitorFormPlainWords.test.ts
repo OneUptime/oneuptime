@@ -324,6 +324,12 @@ describe("a monitor's pages", () => {
   test("the reset-key cards say what a reset breaks", () => {
     const page: string = readDashboard("Pages/Monitor/View/Settings.tsx");
 
+    /*
+     * Each in a <span>: a card draws its description in a <p>, and a <p>
+     * inside one is invalid HTML (React's validateDOMNesting warning).
+     */
+    expect(page).not.toContain('<p className="mt-2">');
+
     expect(page).toContain('title={"Reset Incoming Request Secret Key"}');
     expect(page).toContain(
       "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.",
@@ -337,18 +343,26 @@ describe("a monitor's pages", () => {
     );
   });
 
-  test("Duplicate says why the copy starts turned off", () => {
+  test("Duplicate's switch is named for what on does, and says why it starts on", () => {
     const page: string = readDashboard("Pages/Monitor/View/Settings.tsx");
 
     expect(page).not.toContain(
       "Should the new monitor be disabled when it is duplicated?",
     );
-    expect(page).toContain(
-      "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.",
+    /*
+     * "Disable Monitor", explained as "The copy starts with monitoring
+     * off", read wrong once the switch was turned off.
+     */
+    expect(page).not.toContain('title: "Disable Monitor"');
+    expect(page).not.toContain(
+      "The copy starts with monitoring off, so it does not alert twice.",
     );
-    // Still on by default.
+    expect(page).toContain(
+      '"So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings."',
+    );
+    // Still the same field, and still on by default.
     expect(page).toMatch(
-      /title: "Disable Monitor",[\s\S]{0,800}defaultValue: true,/,
+      /disableActiveMonitoring: true,\s*\},[\s\S]{0,400}title: "Start with monitoring off",[\s\S]{0,400}defaultValue: true,/,
     );
   });
 
@@ -373,6 +387,13 @@ describe("a monitor's pages", () => {
     expect(page).toMatch(
       /title: "Suppress When Parent Status Is",[\s\S]{0,400}collapsibleSection: DEPENDENCY_MORE_FIELDS,/,
     );
+  });
+
+  test("Edit Dependencies opens a dialog of the same name, not Edit Monitor", () => {
+    const page: string = readDashboard("Pages/Monitor/View/Dependencies.tsx");
+
+    expect(page).toContain('editButtonText="Edit Dependencies"');
+    expect(page).toContain('editModalTitle="Edit Dependencies"');
   });
 });
 
@@ -402,7 +423,8 @@ describe("translations", () => {
     "A manual monitor has no criteria: you set its status yourself, from the ⋯ menu on its overview.",
     "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.",
     "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.",
-    "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.",
+    "Start with monitoring off",
+    "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.",
     "The probes that check this monitor. Add one to check it from another location.",
     "No probes check this monitor. Add a probe to start checking it.",
     "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.",

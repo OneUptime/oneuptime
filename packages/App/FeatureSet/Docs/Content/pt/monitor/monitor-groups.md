@@ -27,7 +27,7 @@ flowchart TB
 ```
 
 - **Monitores arquivados não contam.** Um monitor arquivado não é verificado, então o status dele fica congelado; o grupo o deixa de fora.
-- **Um grupo vazio está operacional.** Um grupo sem monitores, ou só com monitores arquivados, mostra o seu status operacional.
+- **Um grupo vazio está operacional.** Um grupo sem monitores, ou só com monitores arquivados, mostra o seu status operacional. Até você adicionar um monitor, o painel mostra **Nenhum monitor ainda** no lugar do status dele.
 - **A ordem é sua.** Qual status é o pior segue a ordem de **Monitores → Configurações → Status do monitor**. Veja [Status de monitor](/docs/monitor/criteria-and-statuses#status-de-monitor).
 
 Um grupo de monitores não é um grupo de página de status. Um grupo de página de status é um título em uma página de status que reúne linhas. Um grupo de monitores é uma linha que representa vários monitores, e qualquer página de status pode mostrá-lo.

@@ -66,6 +66,24 @@ afterEach(() => {
   cleanup();
 });
 
+describe("DatabaseMonitorStepForm - Host and Port", () => {
+  test("share a line from the sm width, Host three quarters of it, both without a line of help", () => {
+    const view: RenderResult = renderForm(SqlDatabaseType.PostgreSQL);
+
+    const row: HTMLElement = view
+      .getByPlaceholderText("db.internal")
+      .closest(".grid") as HTMLElement;
+
+    expect(row).toHaveClass("grid-cols-1", "sm:grid-cols-4");
+    expect(row.children[0]).toHaveClass("sm:col-span-3");
+    expect(row.children[1]).toContainElement(view.getByPlaceholderText("5432"));
+    for (const cell of Array.from(row.children)) {
+      expect(cell.querySelectorAll("label")).toHaveLength(1);
+      expect(cell.querySelectorAll(".text-gray-500")).toHaveLength(0);
+    }
+  });
+});
+
 describe("DatabaseMonitorStepForm - Microsoft SQL Server privileges (issue #3913)", () => {
   test("prints the SQL Server grant AND both Azure SQL Database grants", () => {
     const text: string = grantBlock(
@@ -385,6 +403,18 @@ describe("DatabaseMonitorStepForm - Metric Groups wait under More fields", () =>
     });
 
     expect(header.textContent).toContain("Metric Groups");
+  });
+
+  test("its title has no (Optional): a switch is never required", () => {
+    const view: RenderResult = renderForm(SqlDatabaseType.PostgreSQL);
+
+    const groups: HTMLElement = view.getByTestId(
+      "database-monitor-metric-groups",
+    );
+    const title: HTMLElement = groups.querySelector("label") as HTMLElement;
+
+    expect(title).toHaveTextContent("Metric Groups");
+    expect(title.textContent).not.toContain("(Optional)");
   });
 
   test("every group starts on, as before", () => {

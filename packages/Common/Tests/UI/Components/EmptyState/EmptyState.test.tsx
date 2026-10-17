@@ -126,6 +126,26 @@ describe("EmptyState", () => {
     );
   });
 
+  /*
+   * Centred text just over one line wrapped into a full line and an orphan
+   * word ("... the worst status among / them."). Balanced, the two lines are
+   * about even.
+   */
+  test("balances the description's lines", () => {
+    render(
+      <EmptyState
+        id="empty-state"
+        icon={IconProp.User}
+        title="Title"
+        description="Add the monitors that make up this service. The group shows the worst status among them."
+      />,
+    );
+
+    expect(screen.getByTestId("empty-state-description")).toHaveClass(
+      "text-balance",
+    );
+  });
+
   test("the content column spans the full width and centres its text", () => {
     render(
       <EmptyState

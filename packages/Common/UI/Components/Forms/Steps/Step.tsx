@@ -30,6 +30,14 @@ const Step: <T extends GenericObject>(
   const isClickable: boolean =
     props.isClickable ?? props.state === FormStepState.COMPLETED;
 
+  /*
+   * A title is one line whatever its state (w-max). Only a step not reached
+   * yet was: the list's column is as wide as its titles, so on a form's
+   * last step - every title done or current - it shrank, wrapping "Probes &
+   * Interval" and "Monitor Info" onto two lines and moving the form beside
+   * it, and on a two-step form "Monitor Info" wrapped from the start.
+   */
+
   return (
     <li
       onClick={() => {
@@ -60,7 +68,7 @@ const Step: <T extends GenericObject>(
                 />
               </svg>
             </span>
-            <span className="ml-3 text-sm font-medium text-gray-500 group-hover:text-gray-900">
+            <span className="ml-3 w-max text-sm font-medium text-gray-500 group-hover:text-gray-900">
               {title}
             </span>
           </span>
@@ -76,7 +84,7 @@ const Step: <T extends GenericObject>(
             <span className="absolute h-4 w-4 rounded-full bg-indigo-200"></span>
             <span className="relative block h-2 w-2 rounded-full bg-indigo-600"></span>
           </span>
-          <span className="ml-3 text-sm font-medium text-indigo-600">
+          <span className="ml-3 w-max text-sm font-medium text-indigo-600">
             {title}
           </span>
         </div>

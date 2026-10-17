@@ -40,7 +40,13 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
  *     says how many were added and why the rest were not, and keeps the
  *     picks that were not;
  *   - Remove asks first, names the monitor, and deletes only the row that
- *     pairs it with the group - never the monitor.
+ *     pairs it with the group - never the monitor;
+ *   - with nothing to pick - a project with no monitor yet, or a group that
+ *     holds every one - the dialog says which, in place of an empty picker,
+ *     and offers Create Monitor; when the monitors cannot be read it says
+ *     why and offers Try again;
+ *   - after an add or a remove the table is read again in place: the page
+ *     is not swapped for its loader, so an open dialog does not flash away.
  *
  * The monitors table is a stand-in that draws the page's own card buttons
  * and row actions; the dialogs, the form and its picker are the real ones.
@@ -77,6 +83,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 let mockTableProps: MonitorTableProps | undefined;
 let mockRows: Array<Monitor> = [];
+// How many times the table was mounted: once, unless the page was swapped out.
+let mockTableMounts: number = 0;
+// The members the table was first drawn with.
+let mockFirstTableQuery: string | undefined;
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorTable",
@@ -85,6 +95,14 @@ jest.mock(
       __esModule: true,
       default: (props: MonitorTableProps): React.ReactElement => {
         mockTableProps = props;
+
+        if (mockFirstTableQuery === undefined) {
+          mockFirstTableQuery = JSON.stringify(props.query?._id);
+        }
+
+        React.useEffect(() => {
+          mockTableMounts++;
+        }, []);
 
         return (
           <section data-testid="monitors-table">
@@ -226,7 +244,10 @@ let pairingRows: Array<string> = [];
 // The project's live monitors, by name.
 let projectMonitors: Array<{ id: string; name: string }> = [];
 let addMonitorsQuery: string | null = null;
+// May the reader put a monitor in a group?
 let permission: PermissionGateResult = { isAllowed: true };
+// May the reader create a monitor?
+let createMonitorPermission: PermissionGateResult = { isAllowed: true };
 let navigateSpy: ReturnType<typeof jest.spyOn>;
 let setQueryStringSpy: ReturnType<typeof jest.spyOn>;
 
@@ -283,6 +304,8 @@ beforeEach(() => {
   mockDeleteItem.mockReset();
   mockTableProps = undefined;
   mockRows = [];
+  mockTableMounts = 0;
+  mockFirstTableQuery = undefined;
 
   groupMonitorIds = [CHECKOUT_ID];
   pairingRows = [PAIRING_ID];
@@ -293,6 +316,7 @@ beforeEach(() => {
   ];
   addMonitorsQuery = null;
   permission = { isAllowed: true };
+  createMonitorPermission = { isAllowed: true };
 
   const operational: MonitorStatus = new MonitorStatus();
   operational.id = new ObjectID("22222222-2222-4222-8222-222222222222");
@@ -377,9 +401,11 @@ beforeEach(() => {
     .mockImplementation(() => {
       return undefined;
     });
-  jest.spyOn(PermissionGate, "check").mockImplementation(() => {
-    return permission;
-  });
+  jest
+    .spyOn(PermissionGate, "check")
+    .mockImplementation((model: unknown): PermissionGateResult => {
+      return model instanceof Monitor ? createMonitorPermission : permission;
+    });
 });
 
 afterEach(() => {
@@ -436,7 +462,8 @@ function picked(): Array<string> {
   });
 }
 
-async function openAddMonitors(): Promise<void> {
+// Opens Add Monitors and waits for the project's monitors to be read.
+async function openAddMonitorsDialog(): Promise<void> {
   fireEvent.click(screen.getByTestId("table-card-button"));
   await waitFor(() => {
     expect(within(dialog()).getByText("Add Monitors to Group")).toBeVisible();
@@ -445,7 +472,25 @@ async function openAddMonitors(): Promise<void> {
   await waitFor(() => {
     expect(listRequests(Monitor)).toHaveLength(1);
   });
+}
+
+// ...and waits for its picker.
+async function openAddMonitors(): Promise<void> {
+  await openAddMonitorsDialog();
   await within(dialog()).findByRole("combobox");
+}
+
+const NO_MONITORS_IN_PROJECT: string =
+  "This project has no monitors yet. Create one, then add it to this group.";
+const EVERY_MONITOR_IN_GROUP: string =
+  "Every monitor in this project is already in this group.";
+
+function footerButtons(): Array<string> {
+  return within(within(dialog()).getByTestId("modal-footer"))
+    .getAllByRole("button")
+    .map((button: HTMLElement): string => {
+      return button.textContent || "";
+    });
 }
 
 async function submitAddMonitors(): Promise<void> {
@@ -474,6 +519,14 @@ describe("the group's Monitors page: Add Monitors", () => {
     );
     expect(screen.getByTestId("table-card-button")).toBeEnabled();
     expect(screen.queryByTestId("modal")).toBeNull();
+  });
+
+  test("draws the table once, with the group's members: never an empty group first", async () => {
+    await renderMonitorsPage();
+
+    // Drawn before the members were read, it said the group had none.
+    expect(mockFirstTableQuery).toContain(CHECKOUT_ID);
+    expect(mockTableMounts).toBe(1);
   });
 
   test("offers the project's live monitors the group does not hold, by name", async () => {
@@ -561,7 +614,7 @@ describe("the group's Monitors page: Add Monitors", () => {
     await waitFor(() => {
       expect(
         within(dialog()).getByText(
-          `1 of 2 monitors were added. The rest were not: ${REFUSAL}`,
+          `Added 1 of 2 monitors. Those still picked were not added: ${REFUSAL}`,
         ),
       ).toBeVisible();
     });
@@ -579,11 +632,12 @@ describe("the group's Monitors page: Add Monitors", () => {
      * now, and the menu leaves out Payments, which is picked.
      */
     expect(offered()).toEqual([]);
-    expect(
-      within(dialog()).queryByText(
-        "Every monitor in this project is in the group.",
-      ),
-    ).toBeNull();
+    // A pick kept for another try is still something to add: no notice.
+    expect(within(dialog()).queryByText(EVERY_MONITOR_IN_GROUP)).toBeNull();
+    expect(within(dialog()).getByRole("combobox")).toBeInTheDocument();
+
+    // The page was never swapped for its loader: the table stayed mounted.
+    expect(mockTableMounts).toBe(1);
 
     // Trying again adds the one left - and only it, not Storefront twice.
     mockCreate.mockImplementation((...args: Array<unknown>) => {
@@ -626,18 +680,191 @@ describe("the group's Monitors page: Add Monitors", () => {
     });
   });
 
-  test("a group that holds every monitor says there is nothing left to add", async () => {
+  test("a group that holds every monitor says so in place of an empty picker, and offers Create Monitor", async () => {
     groupMonitorIds = [CHECKOUT_ID, PAYMENTS_ID, STOREFRONT_ID];
 
     await renderMonitorsPage();
+    await openAddMonitorsDialog();
+
+    await waitFor(() => {
+      expect(within(dialog()).getByText(EVERY_MONITOR_IN_GROUP)).toBeVisible();
+    });
+    expect(within(dialog()).queryByText(NO_MONITORS_IN_PROJECT)).toBeNull();
+    expect(within(dialog()).queryByRole("combobox")).toBeNull();
+    expect(footerButtons()).toEqual(["Cancel", "Create Monitor"]);
+
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect((navigateSpy.mock.calls[0]![0] as Route).toString()).toBe(
+      `/dashboard/${PROJECT_ID}/monitors/create`,
+    );
+    expect(setQueryStringSpy).toHaveBeenCalledWith({ addMonitors: null });
+    expect(createdRows()).toHaveLength(0);
+  });
+
+  test("a project with no monitor yet says so - not that the group holds them all - and offers Create Monitor", async () => {
+    groupMonitorIds = [];
+    projectMonitors = [];
+
+    await renderMonitorsPage();
+    await openAddMonitorsDialog();
+
+    await waitFor(() => {
+      expect(within(dialog()).getByText(NO_MONITORS_IN_PROJECT)).toBeVisible();
+    });
+    expect(within(dialog()).queryByText(EVERY_MONITOR_IN_GROUP)).toBeNull();
+    expect(within(dialog()).queryByRole("combobox")).toBeNull();
+    expect(
+      within(dialog()).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Create Monitor");
+
+    // Cancel closes it, and goes nowhere.
+    fireEvent.click(within(dialog()).getByText("Cancel"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  test("for whoever may not create a monitor, nothing to pick is a notice with one way out", async () => {
+    groupMonitorIds = [];
+    projectMonitors = [];
+    createMonitorPermission = {
+      isAllowed: false,
+      disabledReason: "You need the Create Monitor permission to do this.",
+    };
+
+    await renderMonitorsPage();
+    await openAddMonitorsDialog();
+
+    await waitFor(() => {
+      expect(within(dialog()).getByText(NO_MONITORS_IN_PROJECT)).toBeVisible();
+    });
+    expect(footerButtons()).toEqual(["Close"]);
+
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  test("when the monitors cannot be read, it says why - not that there is nothing to add - and Try again reads them again", async () => {
+    const READ_FAILURE: string = "The monitors could not be read.";
+    let failedOnce: boolean = false;
+    const listImplementation: (...args: Array<unknown>) => unknown =
+      mockGetList.getMockImplementation() as (
+        ...args: Array<unknown>
+      ) => unknown;
+
+    mockGetList.mockImplementation((...args: Array<unknown>) => {
+      const request: ListRequest = args[0] as ListRequest;
+
+      if (request.modelType === Monitor && !failedOnce) {
+        failedOnce = true;
+        return Promise.reject(new Error(READ_FAILURE));
+      }
+
+      return listImplementation(...args);
+    });
+
+    await renderMonitorsPage();
+    await openAddMonitorsDialog();
+
+    await waitFor(() => {
+      expect(within(dialog()).getByText(READ_FAILURE)).toBeVisible();
+    });
+    expect(within(dialog()).queryByText(EVERY_MONITOR_IN_GROUP)).toBeNull();
+    expect(within(dialog()).queryByText(NO_MONITORS_IN_PROJECT)).toBeNull();
+    expect(within(dialog()).queryByRole("combobox")).toBeNull();
+    expect(footerButtons()).toEqual(["Cancel", "Try again"]);
+
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+
+    await within(dialog()).findByRole("combobox");
+    expect(listRequests(Monitor)).toHaveLength(2);
+    expect(within(dialog()).queryByText(READ_FAILURE)).toBeNull();
+    expect(offered()).toEqual(["Payments", "Storefront"]);
+  });
+
+  test("opens afresh: closed and opened again, it reads the monitors again before it offers any", async () => {
+    await renderMonitorsPage();
     await openAddMonitors();
 
-    expect(
-      within(dialog()).getByText(
-        "Every monitor in this project is in the group.",
-      ),
-    ).toBeVisible();
-    expect(offered()).toEqual([]);
+    fireEvent.click(within(dialog()).getByText("Cancel"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+
+    // Someone created a monitor meanwhile.
+    projectMonitors.push({
+      id: "c0ffee00-0000-4000-8000-00000000c004",
+      name: "Search API",
+    });
+
+    // The second read waits until the test lets it answer.
+    let answerRead: () => void = (): void => {};
+    const listImplementation: (...args: Array<unknown>) => unknown =
+      mockGetList.getMockImplementation() as (
+        ...args: Array<unknown>
+      ) => unknown;
+    mockGetList.mockImplementation((...args: Array<unknown>) => {
+      const request: ListRequest = args[0] as ListRequest;
+
+      if (request.modelType === Monitor) {
+        return new Promise((resolve: (value: unknown) => void) => {
+          answerRead = (): void => {
+            resolve(listImplementation(...args));
+          };
+        });
+      }
+
+      return listImplementation(...args);
+    });
+
+    /*
+     * Every picker drawn from here on, even for a moment: opened on its old
+     * answer, the dialog would draw the old picker before it reads again.
+     */
+    let pickersDrawn: number = 0;
+    const observer: MutationObserver = new MutationObserver(
+      (records: Array<MutationRecord>): void => {
+        for (const record of records) {
+          for (const node of Array.from(record.addedNodes)) {
+            if (
+              node instanceof Element &&
+              (node.matches("[role='combobox']") ||
+                node.querySelector("[role='combobox']"))
+            ) {
+              pickersDrawn++;
+            }
+          }
+        }
+      },
+    );
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    fireEvent.click(screen.getByTestId("table-card-button"));
+    await waitFor(() => {
+      expect(listRequests(Monitor)).toHaveLength(2);
+    });
+
+    // While it reads, no picker - and none was drawn on the old answer.
+    expect(within(dialog()).getByText("Add Monitors to Group")).toBeVisible();
+    expect(within(dialog()).queryByRole("combobox")).toBeNull();
+    observer.disconnect();
+    expect(pickersDrawn).toBe(0);
+
+    await act(async () => {
+      answerRead();
+    });
+
+    await within(dialog()).findByRole("combobox");
+    expect(offered()).toEqual(["Payments", "Storefront", "Search API"]);
   });
 
   test("opens with the page when the Overview sent the reader here to add monitors", async () => {
@@ -713,6 +940,19 @@ describe("the group's Monitors page: Remove", () => {
     });
 
     expect(mockDeleteItem).toHaveBeenCalledTimes(1);
+
+    // The table is read again in place: the page was not swapped out.
+    await waitFor(() => {
+      expect(
+        listRequests(MonitorGroupResource).filter(
+          (request: ListRequest): boolean => {
+            return Boolean(request.select["monitorId"]);
+          },
+        ),
+      ).toHaveLength(2);
+    });
+    expect(mockTableMounts).toBe(1);
+
     const removed: { modelType: unknown; id: ObjectID } = mockDeleteItem.mock
       .calls[0]![0] as { modelType: unknown; id: ObjectID };
     expect(removed.modelType).toBe(MonitorGroupResource);

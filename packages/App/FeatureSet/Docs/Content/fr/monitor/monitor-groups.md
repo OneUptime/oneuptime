@@ -27,7 +27,7 @@ flowchart TB
 ```
 
 - **Les moniteurs archivés ne comptent pas.** Un moniteur archivé n'est pas vérifié, son statut est donc figé ; le groupe l'écarte.
-- **Un groupe vide est opérationnel.** Un groupe sans moniteur, ou avec seulement des moniteurs archivés, affiche votre statut opérationnel.
+- **Un groupe vide est opérationnel.** Un groupe sans moniteur, ou avec seulement des moniteurs archivés, affiche votre statut opérationnel. Tant que vous n'ajoutez pas de moniteur, le tableau de bord affiche **Aucun moniteur pour l'instant** à la place de son statut.
 - **L'ordre est le vôtre.** Le pire statut suit l'ordre de **Moniteurs → Paramètres → Statut du moniteur**. Voir [Statuts de moniteur](/docs/monitor/criteria-and-statuses#statuts-de-moniteur).
 
 Un groupe de moniteurs n'est pas un groupe de page de statut. Un groupe de page de statut est un titre sur une page de statut qui contient des lignes. Un groupe de moniteurs est une ligne qui représente plusieurs moniteurs, et n'importe quelle page de statut peut l'afficher.

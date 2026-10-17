@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "Добавляется к новым мониторам",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "Также включите performance_schema (performance_schema = ON в my.cnf). В стандартном MySQL нет счётчика взаимоблокировок, поэтому они никогда не собираются.",
   "Check the redirect response itself, not the page it leads to.": "Проверять сам ответ с перенаправлением, а не страницу, на которую он ведёт.",
-  "Every monitor in this project is in the group.": "Все мониторы этого проекта уже в группе.",
   "GET unless the endpoint needs another method.": "GET, если конечной точке не нужен другой метод.",
   "How long to wait for each attempt, up to 60 seconds.": "Сколько ждать каждую попытку, до 60 секунд.",
   "How many times to run the script again when it fails. Up to 5.": "Сколько раз снова запускать скрипт при сбое. До 5.",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "Пропускать проверку сертификата для этого хоста, чтобы работали самоподписанные сертификаты.",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "Агент на вашем сервере входит с ключом {{key}}. После сброса он перестаёт отправлять данные, пока вы не передадите ему новый ключ.",
   "The browsers to run the script in.": "Браузеры, в которых запускается скрипт.",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "Копия начинает работу с выключенным мониторингом, чтобы не оповещать дважды. Включите его в её настройках.",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "Ключ в URL этого монитора: {{key}}. Сбросьте его, если URL утёк: старый URL перестанет работать, поэтому обновите всех отправителей.",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "Старый ключ сразу перестаёт работать. Укажите новый как PROBE_KEY и перезапустите зонд.",
   "The probes that check this monitor. Add one to check it from another location.": "Зонды, которые проверяют этот монитор. Добавьте зонд, чтобы проверять его из другого места.",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "Используйте секрет монитора, например {{secret}}, чтобы пароль оставался зашифрованным.",
   "Username and password": "Имя пользователя и пароль",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "Без pg_monitor PostgreSQL показывает только сеанс мониторинга, поэтому группы, которым он нужен, отмечаются как отсутствующие.",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "Добавлено мониторов: {{added}} из {{total}}. Остальные не добавлены: {{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} выходит из этой группы. Сам монитор не меняется.",
-  "A host the probe can reach, like db.internal.": "Хост, доступный зонду, например db.internal.",
   "The database engine to connect to.": "Движок базы данных, к которому нужно подключиться.",
   "The database to run the query against.": "База данных, к которой выполняется запрос.",
   "Headers, body, redirect, TLS, timeout and retry settings": "Настройки заголовков, тела, перенаправления, TLS, тайм-аута и повторных попыток",
-  "Redirect, TLS, timeout and retry settings": "Настройки перенаправления, TLS, тайм-аута и повторных попыток"
+  "Redirect, TLS, timeout and retry settings": "Настройки перенаправления, TLS, тайм-аута и повторных попыток",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "Добавлено мониторов: {{added}} из {{total}}. Те, что ещё выбраны, не добавлены: {{reason}}",
+  "Every monitor in this project is already in this group.": "Все мониторы этого проекта уже в этой группе.",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "Чтобы копия не оповещала дважды об одной и той же проблеме. Включите мониторинг позже в её настройках.",
+  "Start with monitoring off": "Начать с выключенным мониторингом",
+  "This project has no monitors yet. Create one, then add it to this group.": "В этом проекте пока нет мониторов. Создайте монитор, затем добавьте его в эту группу."
 }

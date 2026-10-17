@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "Tilføjet til nye overvågninger",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "Slå også performance_schema til (performance_schema = ON i my.cnf). Standard-MySQL har ingen deadlock-tæller, så deadlocks indsamles aldrig.",
   "Check the redirect response itself, not the page it leads to.": "Tjek selve omdirigeringssvaret, ikke den side, det fører til.",
-  "Every monitor in this project is in the group.": "Alle overvågninger i dette projekt er allerede i gruppen.",
   "GET unless the endpoint needs another method.": "GET, medmindre endpointet kræver en anden metode.",
   "How long to wait for each attempt, up to 60 seconds.": "Hvor længe der ventes på hvert forsøg, op til 60 sekunder.",
   "How many times to run the script again when it fails. Up to 5.": "Hvor mange gange scriptet køres igen, når det fejler. Op til 5.",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "Spring certifikatvalidering over for denne vært, så selvsignerede certifikater virker.",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "Agenten på din server logger ind med {{key}}. Efter en nulstilling holder den op med at rapportere, indtil du giver den den nye nøgle.",
   "The browsers to run the script in.": "De browsere, scriptet køres i.",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "Kopien starter med overvågning slået fra, så den ikke advarer to gange. Slå den til i dens indstillinger.",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "Nøglen i denne overvågnings URL er {{key}}. Nulstil den, hvis URL'en slipper ud: Den gamle URL holder op med at virke, så opdater alle afsendere.",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "Den gamle nøgle holder op med at virke med det samme. Sæt den nye som PROBE_KEY, og genstart sonden.",
   "The probes that check this monitor. Add one to check it from another location.": "De sonder, der tjekker denne overvågning. Tilføj en for at tjekke den fra et andet sted.",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "Brug en overvågningshemmelighed, som {{secret}}, så den forbliver krypteret.",
   "Username and password": "Brugernavn og adgangskode",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "Uden pg_monitor viser PostgreSQL kun overvågningssessionen, så de grupper, der kræver den, meldes som manglende.",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{added}} af {{total}} overvågninger blev tilføjet. Resten blev ikke: {{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} forlader denne gruppe. Selve overvågningen ændres ikke.",
-  "A host the probe can reach, like db.internal.": "En vært, som sonden kan nå, f.eks. db.internal.",
   "The database engine to connect to.": "Den databasemotor, der skal oprettes forbindelse til.",
   "The database to run the query against.": "Den database, forespørgslen skal køres mod.",
   "Headers, body, redirect, TLS, timeout and retry settings": "Indstillinger for headers, body, omdirigering, TLS, timeout og genforsøg",
-  "Redirect, TLS, timeout and retry settings": "Indstillinger for omdirigering, TLS, timeout og genforsøg"
+  "Redirect, TLS, timeout and retry settings": "Indstillinger for omdirigering, TLS, timeout og genforsøg",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "{{added}} af {{total}} overvågninger blev tilføjet. De, der stadig er valgt, blev ikke tilføjet: {{reason}}",
+  "Every monitor in this project is already in this group.": "Alle overvågninger i dette projekt er allerede i denne gruppe.",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "Så kopien ikke advarer to gange om det samme problem. Slå overvågningen til senere i dens indstillinger.",
+  "Start with monitoring off": "Start med overvågning slået fra",
+  "This project has no monitors yet. Create one, then add it to this group.": "Dette projekt har endnu ingen overvågninger. Opret en, og tilføj den så til denne gruppe."
 }

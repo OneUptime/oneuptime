@@ -27,7 +27,7 @@ flowchart TB
 ```
 
 - **Archived monitors do not count.** An archived monitor is not checked, so its status is frozen; the group leaves it out.
-- **An empty group is operational.** A group with no monitors, or with only archived ones, shows your operational status.
+- **An empty group is operational.** A group with no monitors, or with only archived ones, shows your operational status. Until you add a monitor, the Dashboard shows **No monitors yet** in place of its status.
 - **The order is yours.** Which status is worst is the order of **Monitors → Settings → Monitor Status**. See [Monitor statuses](/docs/monitor/criteria-and-statuses#monitor-statuses).
 
 A monitor group is not a status page group. A status page group is a heading on one status page that holds rows. A monitor group is one row that stands for several monitors, and any status page can show it.

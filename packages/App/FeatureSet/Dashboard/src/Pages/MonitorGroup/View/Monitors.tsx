@@ -35,10 +35,20 @@ import MonitorGroupMonitorsCopy, {
 } from "../../../Components/MonitorGroup/MonitorGroupMonitorsCopy";
 import {
   getMonitorsToOffer,
+  getNothingToAddMessage,
   MonitorGroupAddResult,
   MonitorToOffer,
   getAddMonitorsErrorMessage,
 } from "../../../Components/MonitorGroup/MonitorGroupMembership";
+import Route from "Common/Types/API/Route";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageMap from "../../../Utils/PageMap";
+
+/*
+ * Where Add Monitors stands with the project's monitors: still reading them,
+ * could not read them (it says why and offers Try again), or read.
+ */
+type MonitorsToOfferState = "loading" | "failed" | "loaded";
 
 interface AddMonitorsFormValues {
   monitors: Array<string>;
@@ -51,7 +61,12 @@ const MonitorGroupMonitors: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [monitorIds, setMonitorIds] = useState<Array<ObjectID> | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  /*
+   * Loading from the start: the table is drawn once the group's members are
+   * read. Drawn before, it read "No monitors in this group yet" for a moment
+   * on a group that has monitors.
+   */
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
   const [selectedMonitor, setSelectedMonitor] = useState<Monitor | null>(null);
@@ -70,6 +85,9 @@ const MonitorGroupMonitors: FunctionComponent<
         .isAllowed,
   );
   const [projectMonitors, setProjectMonitors] = useState<Array<Monitor>>([]);
+  const [offerState, setOfferState] = useState<MonitorsToOfferState>("loading");
+  // Why the project's monitors could not be read.
+  const [offerError, setOfferError] = useState<string>("");
   const [isAddLoading, setIsAddLoading] = useState<boolean>(false);
   const [addError, setAddError] = useState<string>("");
 
@@ -80,9 +98,22 @@ const MonitorGroupMonitors: FunctionComponent<
    */
   const [pickedMonitorIds, setPickedMonitorIds] = useState<Array<string>>([]);
 
-  const fetchMonitorsInGroup: PromiseVoidFunction = async (): Promise<void> => {
+  /*
+   * The group's members. The page shows its loader on the first read only:
+   * after an add or a remove the table is read again in place, so the page,
+   * and a dialog still open on it, do not flash away.
+   */
+  const fetchMonitorsInGroup: (options?: {
+    showPageLoader?: boolean;
+  }) => Promise<void> = async (options?: {
+    showPageLoader?: boolean;
+  }): Promise<void> => {
+    const showPageLoader: boolean = options?.showPageLoader ?? true;
+
     try {
-      setIsLoading(true);
+      if (showPageLoader) {
+        setIsLoading(true);
+      }
       const monitorGroupMonitors: ListResult<MonitorGroupResource> =
         await ModelAPI.getList<MonitorGroupResource>({
           modelType: MonitorGroupResource,
@@ -117,7 +148,8 @@ const MonitorGroupMonitors: FunctionComponent<
    * since the page opened is there.
    */
   const fetchProjectMonitors: PromiseVoidFunction = async (): Promise<void> => {
-    setIsAddLoading(true);
+    setOfferState("loading");
+    setOfferError("");
     setAddError("");
 
     try {
@@ -139,11 +171,11 @@ const MonitorGroupMonitors: FunctionComponent<
       });
 
       setProjectMonitors(result.data);
+      setOfferState("loaded");
     } catch (err) {
-      setAddError(API.getFriendlyMessage(err));
+      setOfferError(API.getFriendlyMessage(err));
+      setOfferState("failed");
     }
-
-    setIsAddLoading(false);
   };
 
   useEffect(() => {
@@ -155,7 +187,8 @@ const MonitorGroupMonitors: FunctionComponent<
   useEffect(() => {
     if (showAddModal) {
       fetchProjectMonitors().catch((error: Error) => {
-        setAddError(API.getFriendlyMessage(error));
+        setOfferError(API.getFriendlyMessage(error));
+        setOfferState("failed");
       });
     }
   }, [showAddModal]);
@@ -163,6 +196,9 @@ const MonitorGroupMonitors: FunctionComponent<
   const closeAddModal: () => void = (): void => {
     setShowAddModal(false);
     setAddError("");
+    setOfferError("");
+    // Read afresh when it opens again, so it never opens on an old answer.
+    setOfferState("loading");
     setPickedMonitorIds([]);
     // So a reload does not open the dialog again.
     Navigation.setQueryString({ [ADD_MONITORS_QUERY_PARAM]: null });
@@ -209,12 +245,16 @@ const MonitorGroupMonitors: FunctionComponent<
       }
     }
 
+    /*
+     * The members first, so the picker no longer offers the ones just
+     * added when it is drawn again with the picks that were not.
+     */
+    if (result.added > 0) {
+      await fetchMonitorsInGroup({ showPageLoader: false });
+    }
+
     setPickedMonitorIds(notAddedIds);
     setIsAddLoading(false);
-
-    if (result.added > 0) {
-      await fetchMonitorsInGroup();
-    }
 
     const message: string | null = getAddMonitorsErrorMessage(
       result,
@@ -260,6 +300,110 @@ const MonitorGroupMonitors: FunctionComponent<
     projectMonitors: projectMonitors,
     monitorIdsInGroup: monitorIds || [],
   });
+
+  /*
+   * Nothing to pick: the project has no monitor yet, or the group holds
+   * every one. The dialog then says which, in place of an empty picker,
+   * and offers Create Monitor (to whoever may create one). A pick kept
+   * after a refusal is still something to add.
+   */
+  const nothingToAddMessage: string | undefined =
+    offerState === "loaded" && pickedMonitorIds.length === 0
+      ? getNothingToAddMessage({
+          projectMonitors: projectMonitors,
+          monitorsToOffer: monitorsToOffer,
+        })
+      : undefined;
+
+  const canCreateMonitor: boolean = PermissionGate.check(
+    new Monitor(),
+    ModelAction.Create,
+  ).isAllowed;
+
+  const renderAddModal: () => ReactElement = (): ReactElement => {
+    // The project's monitors could not be read: why, and Try again.
+    if (offerState === "failed") {
+      return (
+        <ConfirmModal
+          title={MonitorGroupMonitorsCopy.addDialogTitle}
+          description={MonitorGroupMonitorsCopy.addDialogDescription}
+          error={offerError}
+          submitButtonText="Try again"
+          onClose={closeAddModal}
+          onSubmit={() => {
+            fetchProjectMonitors().catch((error: Error) => {
+              setOfferError(API.getFriendlyMessage(error));
+              setOfferState("failed");
+            });
+          }}
+        />
+      );
+    }
+
+    if (nothingToAddMessage) {
+      if (!canCreateMonitor) {
+        // A notice: its one button closes it.
+        return (
+          <ConfirmModal
+            title={MonitorGroupMonitorsCopy.addDialogTitle}
+            description={nothingToAddMessage}
+            submitButtonText="Close"
+            onSubmit={closeAddModal}
+          />
+        );
+      }
+
+      return (
+        <ConfirmModal
+          title={MonitorGroupMonitorsCopy.addDialogTitle}
+          description={nothingToAddMessage}
+          submitButtonText={MonitorGroupMonitorsCopy.createMonitorButton}
+          onClose={closeAddModal}
+          onSubmit={() => {
+            closeAddModal();
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_CREATE] as Route,
+              ),
+            );
+          }}
+        />
+      );
+    }
+
+    return (
+      <BasicFormModal<AddMonitorsFormValues>
+        title={MonitorGroupMonitorsCopy.addDialogTitle}
+        name="Add Monitors to Group"
+        description={MonitorGroupMonitorsCopy.addDialogDescription}
+        isLoading={offerState === "loading" || isAddLoading}
+        error={addError || undefined}
+        submitButtonText={MonitorGroupMonitorsCopy.addButton}
+        onClose={closeAddModal}
+        onSubmit={async (values: AddMonitorsFormValues) => {
+          await addMonitors(values.monitors || []);
+        }}
+        formProps={{
+          id: "add-monitors-to-group",
+          initialValues: {
+            monitors: pickedMonitorIds,
+          },
+          fields: [
+            {
+              field: {
+                monitors: true,
+              },
+              title: MonitorGroupMonitorsCopy.monitorsField,
+              fieldType: FormFieldSchemaType.MultiSelectDropdown,
+              dropdownOptions: monitorsToOffer,
+              required: true,
+              placeholder: MonitorGroupMonitorsCopy.monitorsPlaceholder,
+            },
+          ],
+        }}
+      />
+    );
+  };
 
   return (
     <Fragment>
@@ -357,9 +501,11 @@ const MonitorGroupMonitors: FunctionComponent<
               setSelectedMonitor(null);
               setShowRemoveModal(false);
               setRemoveError(null);
-              fetchMonitorsInGroup().catch((error: Error) => {
-                setError(API.getFriendlyMessage(error));
-              });
+              fetchMonitorsInGroup({ showPageLoader: false }).catch(
+                (error: Error) => {
+                  setError(API.getFriendlyMessage(error));
+                },
+              );
             } catch (err) {
               setIsRemoveLoading(false);
               setRemoveError(API.getFriendlyMessage(err));
@@ -370,44 +516,7 @@ const MonitorGroupMonitors: FunctionComponent<
         <></>
       )}
 
-      {showAddModal ? (
-        <BasicFormModal<AddMonitorsFormValues>
-          title={MonitorGroupMonitorsCopy.addDialogTitle}
-          name="Add Monitors to Group"
-          description={MonitorGroupMonitorsCopy.addDialogDescription}
-          isLoading={isAddLoading}
-          error={addError || undefined}
-          submitButtonText={MonitorGroupMonitorsCopy.addButton}
-          onClose={closeAddModal}
-          onSubmit={async (values: AddMonitorsFormValues) => {
-            await addMonitors(values.monitors || []);
-          }}
-          formProps={{
-            id: "add-monitors-to-group",
-            initialValues: {
-              monitors: pickedMonitorIds,
-            },
-            fields: [
-              {
-                field: {
-                  monitors: true,
-                },
-                title: MonitorGroupMonitorsCopy.monitorsField,
-                // Said only when there is nothing left to pick.
-                ...(monitorsToOffer.length === 0
-                  ? { description: MonitorGroupMonitorsCopy.nothingToAdd }
-                  : {}),
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownOptions: monitorsToOffer,
-                required: true,
-                placeholder: MonitorGroupMonitorsCopy.monitorsPlaceholder,
-              },
-            ],
-          }}
-        />
-      ) : (
-        <></>
-      )}
+      {showAddModal ? renderAddModal() : <></>}
     </Fragment>
   );
 };

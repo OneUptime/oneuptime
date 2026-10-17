@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "नए मॉनिटर में जोड़ा जाता है",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "performance_schema भी चालू करें (my.cnf में performance_schema = ON)। सामान्य MySQL में डेडलॉक काउंटर नहीं होता, इसलिए डेडलॉक कभी एकत्र नहीं होते।",
   "Check the redirect response itself, not the page it leads to.": "रीडायरेक्ट जिस पेज पर ले जाता है उसे नहीं, खुद रीडायरेक्ट प्रतिक्रिया को जाँचें।",
-  "Every monitor in this project is in the group.": "इस प्रोजेक्ट का हर मॉनिटर पहले से समूह में है।",
   "GET unless the endpoint needs another method.": "GET, जब तक एंडपॉइंट को कोई और मेथड न चाहिए।",
   "How long to wait for each attempt, up to 60 seconds.": "हर प्रयास के लिए कितनी देर प्रतीक्षा करनी है, अधिकतम 60 सेकंड।",
   "How many times to run the script again when it fails. Up to 5.": "स्क्रिप्ट विफल होने पर उसे कितनी बार फिर चलाना है। अधिकतम 5।",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "इस होस्ट के लिए प्रमाणपत्र सत्यापन छोड़ें, ताकि स्व-हस्ताक्षरित प्रमाणपत्र काम करें।",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "आपके सर्वर पर एजेंट {{key}} से साइन इन करता है। रीसेट के बाद यह तब तक रिपोर्ट करना बंद रखता है जब तक आप इसे नई कुंजी न दें।",
   "The browsers to run the script in.": "वे ब्राउज़र जिनमें स्क्रिप्ट चलती है।",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "प्रति निगरानी बंद रखकर शुरू होती है, ताकि दो बार अलर्ट न आए। इसे इसकी सेटिंग्स से चालू करें।",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "इस मॉनिटर के URL में कुंजी {{key}} है। URL लीक हो जाए तो इसे रीसेट करें: पुराना URL काम करना बंद कर देता है, इसलिए हर भेजने वाले को अपडेट करें।",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "पुरानी कुंजी तुरंत काम करना बंद कर देती है। नई कुंजी को PROBE_KEY के रूप में सेट करें और प्रोब फिर से चालू करें।",
   "The probes that check this monitor. Add one to check it from another location.": "वे प्रोब जो इस मॉनिटर की जाँच करते हैं। किसी और जगह से जाँचने के लिए एक जोड़ें।",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "इसे एन्क्रिप्टेड रखने के लिए {{secret}} जैसा मॉनिटर सीक्रेट इस्तेमाल करें।",
   "Username and password": "उपयोगकर्ता नाम और पासवर्ड",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "pg_monitor के बिना PostgreSQL केवल निगरानी सत्र दिखाता है, इसलिए जिन समूहों को इसकी ज़रूरत है वे अनुपलब्ध बताए जाते हैं।",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{total}} में से {{added}} मॉनिटर जोड़े गए। बाकी नहीं जुड़े: {{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} इस समूह से हट जाता है। मॉनिटर खुद नहीं बदलता।",
-  "A host the probe can reach, like db.internal.": "ऐसा होस्ट जिस तक प्रोब पहुँच सके, जैसे db.internal।",
   "The database engine to connect to.": "वह डेटाबेस इंजन जिससे कनेक्ट करना है।",
   "The database to run the query against.": "वह डेटाबेस जिस पर क्वेरी चलानी है।",
   "Headers, body, redirect, TLS, timeout and retry settings": "हेडर, बॉडी, रीडायरेक्ट, TLS, टाइमआउट और पुनः प्रयास सेटिंग्स",
-  "Redirect, TLS, timeout and retry settings": "रीडायरेक्ट, TLS, टाइमआउट और पुनः प्रयास सेटिंग्स"
+  "Redirect, TLS, timeout and retry settings": "रीडायरेक्ट, TLS, टाइमआउट और पुनः प्रयास सेटिंग्स",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "{{total}} में से {{added}} मॉनिटर जोड़े गए। जो अभी भी चुने हुए हैं, वे नहीं जुड़े: {{reason}}",
+  "Every monitor in this project is already in this group.": "इस प्रोजेक्ट का हर मॉनिटर पहले से इस समूह में है।",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "ताकि प्रति एक ही समस्या के लिए दो बार अलर्ट न दे। निगरानी बाद में इसकी सेटिंग्स से चालू करें।",
+  "Start with monitoring off": "निगरानी बंद रखकर शुरू करें",
+  "This project has no monitors yet. Create one, then add it to this group.": "इस प्रोजेक्ट में अभी कोई मॉनिटर नहीं है। एक बनाएं, फिर उसे इस समूह में जोड़ें।"
 }

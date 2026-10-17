@@ -118,7 +118,11 @@ const MonitorCriteria: FunctionComponent<
               fieldName={"incomingRequestSecretKey"}
               title={"Reset Incoming Request Secret Key"}
               description={
-                <p className="mt-2">
+                /*
+                 * A span: the card draws its description in a <p>, and a
+                 * <p> inside one is invalid HTML (React warns of it).
+                 */
+                <span>
                   <TranslatedSentence
                     template="The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender."
                     slots={{
@@ -132,7 +136,7 @@ const MonitorCriteria: FunctionComponent<
                       ),
                     }}
                   />
-                </p>
+                </span>
               }
               modelId={modelId}
             />
@@ -166,7 +170,7 @@ const MonitorCriteria: FunctionComponent<
               fieldName={"serverMonitorSecretKey"}
               title={"Reset Server Monitor Secret Key"}
               description={
-                <p className="mt-2">
+                <span>
                   <TranslatedSentence
                     template="The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key."
                     slots={{
@@ -180,7 +184,7 @@ const MonitorCriteria: FunctionComponent<
                       ),
                     }}
                   />
-                </p>
+                </span>
               }
               modelId={modelId}
             />
@@ -221,13 +225,15 @@ const MonitorCriteria: FunctionComponent<
                 field: {
                   disableActiveMonitoring: true,
                 },
-                title: "Disable Monitor",
                 /*
                  * On by default: a copy checks what the original checks,
                  * so it would otherwise alert on the same problem twice.
+                 * Named for what "on" does, so it reads right either way
+                 * (it was "Disable Monitor", explained as if always on).
                  */
+                title: "Start with monitoring off",
                 description:
-                  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.",
+                  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.",
                 fieldType: FormFieldSchemaType.Toggle,
                 defaultValue: true,
                 required: false,

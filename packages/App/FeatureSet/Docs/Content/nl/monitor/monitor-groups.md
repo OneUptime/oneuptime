@@ -27,7 +27,7 @@ flowchart TB
 ```
 
 - **Gearchiveerde monitoren tellen niet mee.** Een gearchiveerde monitor wordt niet gecontroleerd, dus zijn status is bevroren; de groep laat hem weg.
-- **Een lege groep is operationeel.** Een groep zonder monitoren, of met alleen gearchiveerde, toont uw operationele status.
+- **Een lege groep is operationeel.** Een groep zonder monitoren, of met alleen gearchiveerde, toont uw operationele status. Tot u een monitor toevoegt, toont het dashboard **Nog geen monitoren** in plaats van de status.
 - **De volgorde bepaalt u.** Welke status de slechtste is, volgt de volgorde onder **Monitoren → Instellingen → Monitorstatus**. Zie [Monitorstatussen](/docs/monitor/criteria-and-statuses#monitorstatussen).
 
 Een monitorgroep is geen statuspaginagroep. Een statuspaginagroep is een kop op één statuspagina die rijen bevat. Een monitorgroep is één rij die voor meerdere monitoren staat, en elke statuspagina kan haar tonen.

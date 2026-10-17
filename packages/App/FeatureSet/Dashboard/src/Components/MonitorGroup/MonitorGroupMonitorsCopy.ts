@@ -22,7 +22,9 @@ export const MonitorGroupMonitorsCopy: {
   addDialogDescription: string;
   monitorsField: string;
   monitorsPlaceholder: string;
-  nothingToAdd: string;
+  noMonitorsInProject: string;
+  everyMonitorInGroup: string;
+  createMonitorButton: string;
   noneAddedError: string;
   someNotAddedError: string;
   removeButton: string;
@@ -42,12 +44,22 @@ export const MonitorGroupMonitorsCopy: {
   ),
   monitorsField: translationKey("Monitors"),
   monitorsPlaceholder: translationKey("Select Monitors"),
-  nothingToAdd: translationKey(
-    "Every monitor in this project is in the group.",
+  /*
+   * Add Monitors with nothing to pick: the project has no monitor yet, or
+   * the group holds every one. Said in place of an empty picker, with
+   * Create Monitor as the way on.
+   */
+  noMonitorsInProject: translationKey(
+    "This project has no monitors yet. Create one, then add it to this group.",
   ),
+  everyMonitorInGroup: translationKey(
+    "Every monitor in this project is already in this group.",
+  ),
+  createMonitorButton: translationKey("Create Monitor"),
   noneAddedError: translationKey("No monitor was added: {{reason}}"),
+  // The picks that were not added stay in the picker, ready to try again.
   someNotAddedError: translationKey(
-    "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}",
+    "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}",
   ),
   // The pages write it as the literal "Remove" (ListDeletePolicy reads it).
   removeButton: translationKey("Remove"),

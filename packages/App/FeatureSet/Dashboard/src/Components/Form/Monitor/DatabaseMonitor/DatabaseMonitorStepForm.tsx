@@ -311,13 +311,15 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <FieldLabelElement
-            title="Host"
-            description="A host the probe can reach, like db.internal."
-            required={true}
-          />
+      {/*
+       * Host and Port on one line from the sm width, the port a quarter of
+       * it. Neither needs a line of help: the placeholder shows a host, and
+       * the card says the probe must reach the database. A line under Host
+       * alone pushed its box below Port's.
+       */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="sm:col-span-3">
+          <FieldLabelElement title="Host" required={true} />
           <Input
             initialValue={props.monitorStepDatabaseMonitor.host}
             placeholder="db.internal"
@@ -527,10 +529,15 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
       >
         <div className="space-y-4">
           <div data-testid="database-monitor-metric-groups">
+            {/*
+             * Switches are never required, so "(Optional)" would only add
+             * noise beside the title.
+             */}
             <FieldLabelElement
               title="Metric Groups"
               description="Turn a group off to stop querying it. A group whose grant is missing is left blank, and the monitor stays online."
               required={false}
+              hideOptionalLabel={true}
             />
             <div className="space-y-4 border rounded-md p-4">
               {DEFAULT_DATABASE_METRIC_GROUPS.map(

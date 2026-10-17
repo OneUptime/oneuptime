@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "已添加到新监视器",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "还需开启 performance_schema（在 my.cnf 中设置 performance_schema = ON）。标准 MySQL 没有死锁计数器，因此永远不会收集死锁。",
   "Check the redirect response itself, not the page it leads to.": "检查重定向响应本身，而不是它指向的页面。",
-  "Every monitor in this project is in the group.": "此项目中的所有监视器都已在组中。",
   "GET unless the endpoint needs another method.": "除非端点需要其他方法，否则使用 GET。",
   "How long to wait for each attempt, up to 60 seconds.": "每次尝试的等待时间，最多 60 秒。",
   "How many times to run the script again when it fails. Up to 5.": "脚本失败时重新运行的次数，最多 5 次。",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "跳过此主机的证书验证，使自签名证书可以使用。",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "服务器上的代理使用 {{key}} 登录。重置后，在你为它配置新密钥之前，它会停止上报。",
   "The browsers to run the script in.": "运行脚本所用的浏览器。",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "副本创建时监控处于关闭状态，以免重复告警。请在副本的设置中开启。",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "此监视器 URL 中的密钥是 {{key}}。如果 URL 泄露，请重置它：旧 URL 会失效，请更新所有发送方。",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "旧密钥会立即失效。请将新密钥设为 PROBE_KEY 并重启探测器。",
   "The probes that check this monitor. Add one to check it from another location.": "检查此监视器的探测器。添加一个即可从另一个位置检查它。",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "使用监视器密钥（例如 {{secret}}），以保持其加密。",
   "Username and password": "用户名和密码",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "没有 pg_monitor 时，PostgreSQL 只显示监控会话，因此需要它的组会被报告为缺失。",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "已添加 {{total}} 个监视器中的 {{added}} 个。其余未添加：{{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} 将离开此组。监视器本身不会改变。",
-  "A host the probe can reach, like db.internal.": "探测器能访问到的主机，例如 db.internal。",
   "The database engine to connect to.": "要连接的数据库引擎。",
   "The database to run the query against.": "要在其上运行查询的数据库。",
   "Headers, body, redirect, TLS, timeout and retry settings": "标头、正文、重定向、TLS、超时和重试设置",
-  "Redirect, TLS, timeout and retry settings": "重定向、TLS、超时和重试设置"
+  "Redirect, TLS, timeout and retry settings": "重定向、TLS、超时和重试设置",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "已添加 {{total}} 个监视器中的 {{added}} 个。仍处于选中状态的监视器未添加：{{reason}}",
+  "Every monitor in this project is already in this group.": "此项目中的所有监视器都已在此组中。",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "这样副本不会为同一问题重复告警。之后可在副本的设置中开启监控。",
+  "Start with monitoring off": "以关闭监控的状态开始",
+  "This project has no monitors yet. Create one, then add it to this group.": "此项目还没有监视器。请先创建一个，再将其添加到此组。"
 }

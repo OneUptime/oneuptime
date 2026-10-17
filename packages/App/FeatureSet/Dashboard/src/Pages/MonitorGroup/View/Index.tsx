@@ -37,6 +37,7 @@ import PageMap from "../../../Utils/PageMap";
 import MonitorGroupMonitorsCopy, {
   ADD_MONITORS_QUERY_PARAM,
 } from "../../../Components/MonitorGroup/MonitorGroupMonitorsCopy";
+import NoMonitorsStatus from "../../../Components/MonitorGroup/NoMonitorsStatus";
 import React, {
   Fragment,
   FunctionComponent,
@@ -118,16 +119,7 @@ const MonitorGroupView: FunctionComponent<
      * Operational, in green, beside the card that asks for its monitors.
      */
     if (monitorCount === 0) {
-      return (
-        <span
-          className="text-sm text-gray-500"
-          data-testid="monitor-group-status-no-monitors"
-        >
-          {translator.translateText(
-            MonitorGroupMonitorsCopy.emptyGroupStatus,
-          ) || MonitorGroupMonitorsCopy.emptyGroupStatus}
-        </span>
-      );
+      return <NoMonitorsStatus />;
     }
 
     return (

@@ -27,7 +27,7 @@ flowchart TB
 ```
 
 - **Arkiverede monitorer tæller ikke.** En arkiveret monitor kontrolleres ikke, så dens status er frosset; gruppen udelader den.
-- **En tom gruppe er driftsklar.** En gruppe uden monitorer, eller kun med arkiverede, viser din driftsklare status.
+- **En tom gruppe er driftsklar.** En gruppe uden monitorer, eller kun med arkiverede, viser din driftsklare status. Indtil du tilføjer en monitor, viser dashboardet **Ingen monitorer endnu** i stedet for gruppens status.
 - **Rækkefølgen er din.** Hvilken status der er den værste, følger rækkefølgen under **Overvågninger → Indstillinger → Monitorstatus**. Se [Monitorstatusser](/docs/monitor/criteria-and-statuses#monitorstatusser).
 
 En monitorgruppe er ikke en statussidegruppe. En statussidegruppe er en overskrift på én statusside, der rummer rækker. En monitorgruppe er én række, der står for flere monitorer, og enhver statusside kan vise den.

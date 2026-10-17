@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "Added to New Monitors",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.",
   "Check the redirect response itself, not the page it leads to.": "Check the redirect response itself, not the page it leads to.",
-  "Every monitor in this project is in the group.": "Every monitor in this project is in the group.",
   "GET unless the endpoint needs another method.": "GET unless the endpoint needs another method.",
   "How long to wait for each attempt, up to 60 seconds.": "How long to wait for each attempt, up to 60 seconds.",
   "How many times to run the script again when it fails. Up to 5.": "How many times to run the script again when it fails. Up to 5.",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "Skip certificate validation for this host, so self-signed certificates work.",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.",
   "The browsers to run the script in.": "The browsers to run the script in.",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.",
   "The probes that check this monitor. Add one to check it from another location.": "The probes that check this monitor. Add one to check it from another location.",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "Use a monitor secret, such as {{secret}}, to keep it encrypted.",
   "Username and password": "Username and password",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} leaves this group. The monitor itself does not change.",
-  "A host the probe can reach, like db.internal.": "A host the probe can reach, like db.internal.",
   "The database engine to connect to.": "The database engine to connect to.",
   "The database to run the query against.": "The database to run the query against.",
   "Headers, body, redirect, TLS, timeout and retry settings": "Headers, body, redirect, TLS, timeout and retry settings",
-  "Redirect, TLS, timeout and retry settings": "Redirect, TLS, timeout and retry settings"
+  "Redirect, TLS, timeout and retry settings": "Redirect, TLS, timeout and retry settings",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}",
+  "Every monitor in this project is already in this group.": "Every monitor in this project is already in this group.",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.",
+  "Start with monitoring off": "Start with monitoring off",
+  "This project has no monitors yet. Create one, then add it to this group.": "This project has no monitors yet. Create one, then add it to this group."
 }

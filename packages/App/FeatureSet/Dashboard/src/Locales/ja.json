@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "新しいモニターに追加",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "performance_schema もオンにしてください（my.cnf で performance_schema = ON）。標準の MySQL にはデッドロックのカウンターがないため、デッドロックは収集されません。",
   "Check the redirect response itself, not the page it leads to.": "リダイレクト先のページではなく、リダイレクトの応答そのものをチェックします。",
-  "Every monitor in this project is in the group.": "このプロジェクトのモニターはすべてグループに入っています。",
   "GET unless the endpoint needs another method.": "エンドポイントが別のメソッドを必要としない限り GET です。",
   "How long to wait for each attempt, up to 60 seconds.": "各試行の待ち時間です（最大 60 秒）。",
   "How many times to run the script again when it fails. Up to 5.": "スクリプトが失敗したときに再実行する回数です。最大 5 回。",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "このホストの証明書検証をスキップし、自己署名証明書が使えるようにします。",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "サーバー上のエージェントは {{key}} でサインインします。リセットすると、新しいキーを渡すまでレポートが止まります。",
   "The browsers to run the script in.": "スクリプトを実行するブラウザーです。",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "コピーは監視がオフの状態で始まるため、二重に通知しません。オンにするにはコピーの設定を開きます。",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "このモニターの URL に含まれるキーは {{key}} です。URL が漏れたらリセットしてください。古い URL は使えなくなるため、送信元をすべて更新します。",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "古いキーはすぐに使えなくなります。新しいキーを PROBE_KEY に設定し、プローブを再起動してください。",
   "The probes that check this monitor. Add one to check it from another location.": "このモニターをチェックするプローブです。別の場所からチェックするにはプローブを追加します。",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "暗号化したまま保つには、{{secret}} のようなモニターシークレットを使ってください。",
   "Username and password": "ユーザー名とパスワード",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "pg_monitor がないと PostgreSQL は監視セッションしか見せないため、それを必要とするグループは欠落として報告されます。",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{total}} 件中 {{added}} 件のモニターを追加しました。残りは追加されませんでした: {{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} はこのグループから外れます。モニター自体は変わりません。",
-  "A host the probe can reach, like db.internal.": "プローブから到達できるホスト（例: db.internal）。",
   "The database engine to connect to.": "接続するデータベースエンジン。",
   "The database to run the query against.": "クエリを実行するデータベース。",
   "Headers, body, redirect, TLS, timeout and retry settings": "ヘッダー、本文、リダイレクト、TLS、タイムアウト、再試行の設定",
-  "Redirect, TLS, timeout and retry settings": "リダイレクト、TLS、タイムアウト、再試行の設定"
+  "Redirect, TLS, timeout and retry settings": "リダイレクト、TLS、タイムアウト、再試行の設定",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "{{total}} 件中 {{added}} 件のモニターを追加しました。まだ選択されているモニターは追加されませんでした: {{reason}}",
+  "Every monitor in this project is already in this group.": "このプロジェクトのモニターはすべて、すでにこのグループに入っています。",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "同じ問題についてコピーが二重に通知しないようにします。監視は後でコピーの設定からオンにできます。",
+  "Start with monitoring off": "監視をオフにして開始",
+  "This project has no monitors yet. Create one, then add it to this group.": "このプロジェクトにはまだモニターがありません。モニターを作成してから、このグループに追加してください。"
 }

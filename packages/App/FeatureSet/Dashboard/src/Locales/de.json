@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "Zu neuen Monitoren hinzugefügt",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "Schalten Sie außerdem performance_schema ein (performance_schema = ON in my.cnf). Standard-MySQL hat keinen Deadlock-Zähler, daher werden Deadlocks nie erfasst.",
   "Check the redirect response itself, not the page it leads to.": "Die Weiterleitungsantwort selbst prüfen, nicht die Seite, zu der sie führt.",
-  "Every monitor in this project is in the group.": "Jeder Monitor dieses Projekts ist bereits in der Gruppe.",
   "GET unless the endpoint needs another method.": "GET, sofern der Endpunkt keine andere Methode braucht.",
   "How long to wait for each attempt, up to 60 seconds.": "Wie lange auf jeden Versuch gewartet wird, bis zu 60 Sekunden.",
   "How many times to run the script again when it fails. Up to 5.": "Wie oft das Skript erneut ausgeführt wird, wenn es fehlschlägt. Bis zu 5.",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "Die Zertifikatsprüfung für diesen Host überspringen, damit selbstsignierte Zertifikate funktionieren.",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "Der Agent auf Ihrem Server meldet sich mit {{key}} an. Nach einem Zurücksetzen meldet er nichts mehr, bis Sie ihm den neuen Schlüssel geben.",
   "The browsers to run the script in.": "Die Browser, in denen das Skript läuft.",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "Die Kopie startet mit ausgeschalteter Überwachung, damit sie nicht doppelt alarmiert. Schalten Sie sie in ihren Einstellungen ein.",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "Der Schlüssel in der URL dieses Monitors ist {{key}}. Setzen Sie ihn zurück, wenn die URL bekannt wird: Die alte URL funktioniert dann nicht mehr, also aktualisieren Sie jeden Absender.",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "Der alte Schlüssel funktioniert sofort nicht mehr. Setzen Sie den neuen als PROBE_KEY und starten Sie die Sonde neu.",
   "The probes that check this monitor. Add one to check it from another location.": "Die Sonden, die diesen Monitor prüfen. Fügen Sie eine hinzu, um ihn von einem weiteren Standort aus zu prüfen.",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "Verwenden Sie ein Monitor-Geheimnis wie {{secret}}, damit es verschlüsselt bleibt.",
   "Username and password": "Benutzername und Passwort",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "Ohne pg_monitor zeigt PostgreSQL nur die Überwachungssitzung, daher werden die Gruppen, die sie brauchen, als fehlend gemeldet.",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{added}} von {{total}} Monitoren wurden hinzugefügt. Die übrigen nicht: {{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} verlässt diese Gruppe. Der Monitor selbst ändert sich nicht.",
-  "A host the probe can reach, like db.internal.": "Ein Host, den die Sonde erreichen kann, z. B. db.internal.",
   "The database engine to connect to.": "Die Datenbank-Engine, zu der eine Verbindung hergestellt wird.",
   "The database to run the query against.": "Die Datenbank, auf der die Abfrage ausgeführt wird.",
   "Headers, body, redirect, TLS, timeout and retry settings": "Einstellungen für Header, Body, Weiterleitung, TLS, Zeitüberschreitung und Wiederholung",
-  "Redirect, TLS, timeout and retry settings": "Einstellungen für Weiterleitung, TLS, Zeitüberschreitung und Wiederholung"
+  "Redirect, TLS, timeout and retry settings": "Einstellungen für Weiterleitung, TLS, Zeitüberschreitung und Wiederholung",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "{{added}} von {{total}} Monitoren hinzugefügt. Die noch ausgewählten wurden nicht hinzugefügt: {{reason}}",
+  "Every monitor in this project is already in this group.": "Jeder Monitor dieses Projekts ist bereits in dieser Gruppe.",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "Damit die Kopie nicht doppelt für dasselbe Problem alarmiert. Schalten Sie die Überwachung später in ihren Einstellungen ein.",
+  "Start with monitoring off": "Mit ausgeschalteter Überwachung starten",
+  "This project has no monitors yet. Create one, then add it to this group.": "Dieses Projekt hat noch keine Monitore. Erstellen Sie einen und fügen Sie ihn dann dieser Gruppe hinzu."
 }

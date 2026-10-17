@@ -88,13 +88,15 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <FieldLabelElement
-            title="Host"
-            description="A host the probe can reach, like db.internal."
-            required={true}
-          />
+      {/*
+       * Host and Port on one line from the sm width, the port a quarter of
+       * it. Neither needs a line of help: the placeholder shows a host, and
+       * the card says the probe must reach the database. A line under Host
+       * alone pushed its box below Port's.
+       */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="sm:col-span-3">
+          <FieldLabelElement title="Host" required={true} />
           <Input
             initialValue={props.monitorStepSqlMonitor.host}
             placeholder="db.internal"

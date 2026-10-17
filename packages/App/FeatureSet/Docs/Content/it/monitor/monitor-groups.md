@@ -27,7 +27,7 @@ flowchart TB
 ```
 
 - **I monitor archiviati non contano.** Un monitor archiviato non viene controllato, quindi il suo stato è congelato; il gruppo lo esclude.
-- **Un gruppo vuoto è operativo.** Un gruppo senza monitor, o con soli monitor archiviati, mostra il vostro stato operativo.
+- **Un gruppo vuoto è operativo.** Un gruppo senza monitor, o con soli monitor archiviati, mostra il vostro stato operativo. Finché non aggiungete un monitor, la dashboard mostra **Nessun monitor ancora** al posto del suo stato.
 - **L'ordine lo decidete voi.** Quale stato sia il peggiore segue l'ordine di **Monitor → Impostazioni → Stato del monitor**. Vedere [Stati dei monitor](/docs/monitor/criteria-and-statuses#stati-dei-monitor).
 
 Un gruppo di monitor non è un gruppo di una pagina di stato. Un gruppo di una pagina di stato è un'intestazione su una pagina di stato che contiene righe. Un gruppo di monitor è una riga che rappresenta più monitor, e qualsiasi pagina di stato può mostrarla.

@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "Adicionada aos novos monitores",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "Ative também o performance_schema (performance_schema = ON no my.cnf). O MySQL padrão não tem contador de deadlocks, então eles nunca são coletados.",
   "Check the redirect response itself, not the page it leads to.": "Verifica a própria resposta de redirecionamento, não a página para onde ela leva.",
-  "Every monitor in this project is in the group.": "Todos os monitores deste projeto já estão no grupo.",
   "GET unless the endpoint needs another method.": "GET, a menos que o endpoint precise de outro método.",
   "How long to wait for each attempt, up to 60 seconds.": "Quanto tempo esperar em cada tentativa, até 60 segundos.",
   "How many times to run the script again when it fails. Up to 5.": "Quantas vezes executar o script novamente quando ele falhar. Até 5.",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "Ignora a validação do certificado para este host, para que certificados autoassinados funcionem.",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "O agente no seu servidor entra com {{key}}. Depois de uma redefinição, ele para de enviar dados até você lhe dar a nova chave.",
   "The browsers to run the script in.": "Os navegadores em que o script é executado.",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "A cópia começa com o monitoramento desligado, para não alertar em dobro. Ligue-o nas configurações dela.",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "A chave na URL deste monitor é {{key}}. Redefina-a se a URL vazar: a URL antiga deixa de funcionar, então atualize cada remetente.",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "A chave antiga deixa de funcionar na hora. Defina a nova como PROBE_KEY e reinicie a sonda.",
   "The probes that check this monitor. Add one to check it from another location.": "As sondas que verificam este monitor. Adicione uma para verificá-lo de outro local.",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "Use um segredo de monitor, como {{secret}}, para mantê-la criptografada.",
   "Username and password": "Usuário e senha",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "Sem pg_monitor, o PostgreSQL mostra só a sessão de monitoramento, então os grupos que precisam dele aparecem como ausentes.",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{added}} de {{total}} monitores foram adicionados. O restante não: {{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} sai deste grupo. O monitor em si não muda.",
-  "A host the probe can reach, like db.internal.": "Um host que a sonda consiga alcançar, como db.internal.",
   "The database engine to connect to.": "O mecanismo de banco de dados ao qual se conectar.",
   "The database to run the query against.": "O banco de dados no qual executar a consulta.",
   "Headers, body, redirect, TLS, timeout and retry settings": "Configurações de cabeçalhos, corpo, redirecionamento, TLS, tempo limite e novas tentativas",
-  "Redirect, TLS, timeout and retry settings": "Configurações de redirecionamento, TLS, tempo limite e novas tentativas"
+  "Redirect, TLS, timeout and retry settings": "Configurações de redirecionamento, TLS, tempo limite e novas tentativas",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "{{added}} de {{total}} monitores adicionados. Os que continuam selecionados não foram adicionados: {{reason}}",
+  "Every monitor in this project is already in this group.": "Todos os monitores deste projeto já estão neste grupo.",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "Assim a cópia não alerta duas vezes pelo mesmo problema. Ligue o monitoramento depois nas configurações dela.",
+  "Start with monitoring off": "Começar com o monitoramento desligado",
+  "This project has no monitors yet. Create one, then add it to this group.": "Este projeto ainda não tem monitores. Crie um e depois adicione-o a este grupo."
 }

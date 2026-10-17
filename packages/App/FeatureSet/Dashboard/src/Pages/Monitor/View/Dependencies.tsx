@@ -50,6 +50,7 @@ const MonitorDependencies: FunctionComponent<
       <CardModelDetail<Monitor>
         name="Monitor Dependencies"
         editButtonText="Edit Dependencies"
+        editModalTitle="Edit Dependencies"
         cardProps={{
           title: "Monitor Dependencies",
           description:

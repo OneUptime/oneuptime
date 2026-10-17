@@ -364,7 +364,12 @@ describe.each(RESOURCES)("$name Settings", (resource: ResourceSettingsCase) => {
 
     await renderMenu(<resource.SideMenu modelId={MODEL_ID} />);
 
-    expect(mobileSummaryText()).toContain("Settings / Settings");
+    /*
+     * The page is named like its section, so the button names it once: it
+     * read "Settings / Settings".
+     */
+    expect(mobileSummaryText()).toContain("Settings");
+    expect(mobileSummaryText()).not.toContain("Settings / Settings");
   });
 
   test("has concrete breadcrumbs back to the resource and its product", () => {

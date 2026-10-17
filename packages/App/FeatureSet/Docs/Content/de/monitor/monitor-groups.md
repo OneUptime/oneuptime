@@ -27,7 +27,7 @@ flowchart TB
 ```
 
 - **Archivierte Monitore zählen nicht.** Ein archivierter Monitor wird nicht geprüft, sein Status ist also eingefroren; die Gruppe lässt ihn aus.
-- **Eine leere Gruppe ist betriebsbereit.** Eine Gruppe ohne Monitore, oder nur mit archivierten, zeigt Ihren betriebsbereiten Status.
+- **Eine leere Gruppe ist betriebsbereit.** Eine Gruppe ohne Monitore, oder nur mit archivierten, zeigt Ihren betriebsbereiten Status. Bis Sie einen Monitor hinzufügen, zeigt das Dashboard an Stelle ihres Status **Noch keine Monitore**.
 - **Die Reihenfolge bestimmen Sie.** Welcher Status der schlimmste ist, folgt der Reihenfolge unter **Monitore → Einstellungen → Monitor-Status**. Siehe [Monitorstatus](/docs/monitor/criteria-and-statuses#monitorstatus).
 
 Eine Monitor-Gruppe ist keine Statusseitengruppe. Eine Statusseitengruppe ist eine Überschrift auf einer Statusseite, die Zeilen enthält. Eine Monitor-Gruppe ist eine Zeile, die für mehrere Monitore steht, und jede Statusseite kann sie anzeigen.

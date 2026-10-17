@@ -5,8 +5,9 @@ import MonitorGroupMonitorsCopy from "./MonitorGroupMonitorsCopy";
 
 /*
  * The decisions behind a monitor group's Add Monitors, kept free of React so
- * App/Tests can hold them: which monitors the dialog offers, and what it says
- * when some of the picked ones could not be added.
+ * App/Tests can hold them: which monitors the dialog offers, what it says
+ * when it has none to offer, and what it says when some of the picked ones
+ * could not be added.
  */
 
 /*
@@ -53,6 +54,29 @@ export const getMonitorsToOffer: (data: {
   }
 
   return options;
+};
+
+/*
+ * Why Add Monitors has nothing to offer, once the project's monitors are
+ * read: the project has none yet, or the group holds every one. Undefined
+ * while there is something to pick.
+ */
+export const getNothingToAddMessage: (data: {
+  projectMonitors: Array<Monitor>;
+  monitorsToOffer: Array<MonitorToOffer>;
+}) => string | undefined = (data: {
+  projectMonitors: Array<Monitor>;
+  monitorsToOffer: Array<MonitorToOffer>;
+}): string | undefined => {
+  if (data.projectMonitors.length === 0) {
+    return MonitorGroupMonitorsCopy.noMonitorsInProject;
+  }
+
+  if (data.monitorsToOffer.length === 0) {
+    return MonitorGroupMonitorsCopy.everyMonitorInGroup;
+  }
+
+  return undefined;
 };
 
 export interface MonitorGroupAddResult {

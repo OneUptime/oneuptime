@@ -475,6 +475,13 @@ const GROUP_OVERVIEW_PAGE: string = readDashboardSource(
 const GROUP_MONITORS_PAGE: string = readDashboardSource(
   "Pages/MonitorGroup/View/Monitors.tsx",
 );
+// The list's Current Status, and the line it and the Overview draw for an empty group.
+const GROUP_CURRENT_STATUS: string = readDashboardSource(
+  "Components/MonitorGroup/CurrentStatus.tsx",
+);
+const NO_MONITORS_STATUS: string = readDashboardSource(
+  "Components/MonitorGroup/NoMonitorsStatus.tsx",
+);
 const GROUP_MENU: string = readDashboardSource(
   "Pages/MonitorGroup/View/SideMenu.tsx",
 );
@@ -1906,7 +1913,19 @@ describe("a monitor group's status", () => {
       "- **Archived monitors do not count.** An archived monitor is not checked, so its status is frozen; the group leaves it out.",
     );
     expect(groupsPage).toContain(
-      "- **An empty group is operational.** A group with no monitors, or with only archived ones, shows your operational status.",
+      "- **An empty group is operational.** A group with no monitors, or with only archived ones, shows your operational status. Until you add a monitor, the Dashboard shows **No monitors yet** in place of its status.",
+    );
+  });
+
+  it("says No monitors yet in the Dashboard for a group with no monitors at all, on its Overview and in the list", () => {
+    expect(MonitorGroupMonitorsCopy.emptyGroupStatus).toBe("No monitors yet");
+    // Both count the group's rows - archived monitors included - and draw it.
+    expect(GROUP_OVERVIEW_PAGE).toContain("modelType: MonitorGroupResource,");
+    expect(GROUP_OVERVIEW_PAGE).toContain("return <NoMonitorsStatus />;");
+    expect(GROUP_CURRENT_STATUS).toContain("modelType: MonitorGroupResource,");
+    expect(GROUP_CURRENT_STATUS).toContain("return <NoMonitorsStatus />;");
+    expect(NO_MONITORS_STATUS).toContain(
+      "translator.translateText(MonitorGroupMonitorsCopy.emptyGroupStatus)",
     );
   });
 

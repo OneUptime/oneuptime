@@ -30558,7 +30558,6 @@
   "Added to New Monitors": "Toegevoegd aan nieuwe monitoren",
   "Also switch performance_schema on (performance_schema = ON in my.cnf). Stock MySQL has no deadlock counter, so deadlocks are never collected.": "Zet ook performance_schema aan (performance_schema = ON in my.cnf). Standaard-MySQL heeft geen deadlockteller, dus deadlocks worden nooit verzameld.",
   "Check the redirect response itself, not the page it leads to.": "Controleer het omleidingsantwoord zelf, niet de pagina waar het naartoe leidt.",
-  "Every monitor in this project is in the group.": "Elke monitor in dit project zit al in de groep.",
   "GET unless the endpoint needs another method.": "GET, tenzij het endpoint een andere methode nodig heeft.",
   "How long to wait for each attempt, up to 60 seconds.": "Hoe lang er per poging wordt gewacht, tot 60 seconden.",
   "How many times to run the script again when it fails. Up to 5.": "Hoe vaak het script opnieuw draait als het mislukt. Tot 5.",
@@ -30585,7 +30584,6 @@
   "Skip certificate validation for this host, so self-signed certificates work.": "Sla de certificaatvalidatie voor deze host over, zodat zelfondertekende certificaten werken.",
   "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.": "De agent op je server meldt zich aan met {{key}}. Na een reset stopt hij met rapporteren tot je hem de nieuwe sleutel geeft.",
   "The browsers to run the script in.": "De browsers waarin het script draait.",
-  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.": "De kopie start met bewaking uit, zodat er niet dubbel wordt gewaarschuwd. Zet de bewaking aan in de instellingen.",
   "The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender.": "De sleutel in de URL van deze monitor is {{key}}. Reset hem als de URL uitlekt: de oude URL werkt dan niet meer, dus werk elke afzender bij.",
   "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.": "De oude sleutel werkt meteen niet meer. Stel de nieuwe in als PROBE_KEY en start de sonde opnieuw.",
   "The probes that check this monitor. Add one to check it from another location.": "De sondes die deze monitor controleren. Voeg er een toe om hem vanaf een andere locatie te controleren.",
@@ -30595,11 +30593,14 @@
   "Use a monitor secret, such as {{secret}}, to keep it encrypted.": "Gebruik een monitorgeheim, zoals {{secret}}, zodat het versleuteld blijft.",
   "Username and password": "Gebruikersnaam en wachtwoord",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "Zonder pg_monitor toont PostgreSQL alleen de bewakingssessie, dus de groepen die het nodig hebben worden als ontbrekend gemeld.",
-  "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{added}} van {{total}} monitoren zijn toegevoegd. De rest niet: {{reason}}",
   "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} verlaat deze groep. De monitor zelf verandert niet.",
-  "A host the probe can reach, like db.internal.": "Een host die de sonde kan bereiken, zoals db.internal.",
   "The database engine to connect to.": "De database-engine waarmee verbinding wordt gemaakt.",
   "The database to run the query against.": "De database waarop de query wordt uitgevoerd.",
   "Headers, body, redirect, TLS, timeout and retry settings": "Instellingen voor headers, body, omleiding, TLS, time-out en nieuwe pogingen",
-  "Redirect, TLS, timeout and retry settings": "Instellingen voor omleiding, TLS, time-out en nieuwe pogingen"
+  "Redirect, TLS, timeout and retry settings": "Instellingen voor omleiding, TLS, time-out en nieuwe pogingen",
+  "Added {{added}} of {{total}} monitors. Those still picked were not added: {{reason}}": "{{added}} van {{total}} monitoren toegevoegd. De monitoren die nog geselecteerd zijn, zijn niet toegevoegd: {{reason}}",
+  "Every monitor in this project is already in this group.": "Elke monitor in dit project zit al in deze groep.",
+  "So the copy does not alert twice for the same problem. Turn monitoring on later from its Settings.": "Zodat de kopie niet twee keer waarschuwt voor hetzelfde probleem. Zet de bewaking later aan in de instellingen.",
+  "Start with monitoring off": "Starten met bewaking uit",
+  "This project has no monitors yet. Create one, then add it to this group.": "Dit project heeft nog geen monitoren. Maak er een en voeg die daarna aan deze groep toe."
 }
