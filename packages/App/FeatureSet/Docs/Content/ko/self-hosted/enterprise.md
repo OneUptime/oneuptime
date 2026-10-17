@@ -110,6 +110,8 @@ Community 이미지에서 `IS_ENTERPRISE_EDITION=true`를 설정해도 엔터프
 
 라이선스는 **에디션 라벨** 에서 관리합니다. 마스터 관리자는 관리자 대시보드 헤더와 Dashboard 바닥글에서 이 라벨을 봅니다. 라벨은 라이선스 상태와 좌석 사용량을 보여 주고, 마스터 관리자에게는 인스턴스 ID도 보여 줍니다.
 
+AWS Marketplace, Microsoft Marketplace 또는 Google Cloud Marketplace에서 구매한 OneUptime Enterprise에는 라이선스 키가 필요하지 않습니다. 마켓플레이스 구독이 라이선스가 되며, 사용자마다 시간 단위로 요금이 청구됩니다. [클라우드 마켓플레이스](/docs/installation/cloud-marketplaces)를 참조하세요.
+
 ### 온라인 활성화(라이선스 키)
 
 :::steps

@@ -388,6 +388,8 @@ export default class IncidentAPI extends BaseAPI<
         incidentId,
         includeWorkspaceMessages,
         workspaceMessageLimit: 500,
+        // What was said on the incident's calls, cause marked confirmed or not.
+        includeCalls: true,
       });
 
     // Format context for postmortem generation

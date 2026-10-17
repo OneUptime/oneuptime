@@ -174,6 +174,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "The recorded root cause as a field of MAX_ROOT_CAUSE_CHARS.",
   "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts":
     "The coding agent's own messages: source files, sent as they are (keepEmbeddedData).",
+  "packages/Common/Server/Utils/AI/CallSummary/IncidentCallSummary.ts":
+    "An incident call's transcript: CallSummaryPrompt, each line redacted through redactAndOmitEmbeddedData, the incident's title and description as fields.",
 };
 
 // The one caller that may keep embedded data (rule C).

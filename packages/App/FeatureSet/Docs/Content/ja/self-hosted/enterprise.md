@@ -110,6 +110,8 @@ Community のイメージで `IS_ENTERPRISE_EDITION=true` を設定しても、�
 
 ライセンスは **エディションラベル** から管理します。マスター管理者には、管理者ダッシュボードのヘッダーと Dashboard のフッターに表示されます。ラベルにはライセンスの状態とシートの使用状況が表示され、マスター管理者にはインスタンス ID も表示されます。
 
+AWS Marketplace、Microsoft Marketplace、Google Cloud Marketplace で購入した OneUptime Enterprise には、ライセンスキーは不要です。マーケットプレイスのサブスクリプションがライセンスとなり、ユーザーごとに時間単位で課金されます。[クラウドマーケットプレイス](/docs/installation/cloud-marketplaces) を参照してください。
+
 ### オンラインでの有効化 (ライセンスキー)
 
 :::steps

@@ -2510,9 +2510,13 @@ describe("starting a postmortem from a template or an AI draft", () => {
     );
   });
 
-  it("writes from the incident: its description, root cause, remediation, timeline, notes and chat messages", () => {
+  it("writes from the incident: its description, root cause, remediation, timeline, notes, chat messages and calls", () => {
     expect(INCIDENT_AI_CONTEXT).toContain(
-      "export interface IncidentContextData {\n  incident: Incident;\n  stateTimeline: Array<IncidentStateTimeline>;\n  internalNotes: Array<IncidentInternalNote>;\n  publicNotes: Array<IncidentPublicNote>;\n  workspaceMessages: Array<WorkspaceChannelMessage>;\n}",
+      "export interface IncidentContextData {\n  incident: Incident;\n  stateTimeline: Array<IncidentStateTimeline>;\n  internalNotes: Array<IncidentInternalNote>;\n  publicNotes: Array<IncidentPublicNote>;\n  workspaceMessages: Array<WorkspaceChannelMessage>;\n",
+    );
+    // What was said on its calls (issue #4875), which the draft asks for.
+    expect(INCIDENT_AI_CONTEXT).toContain(
+      "  calls?: Array<IncidentCallForPrompt> | undefined;\n}",
     );
 
     for (const column of [
@@ -2526,8 +2530,15 @@ describe("starting a postmortem from a template or an AI draft", () => {
     expect(INCIDENT_API).toContain(
       "const includeWorkspaceMessages: boolean = true;",
     );
+    expect(
+      between(
+        INCIDENT_API,
+        "private async generatePostmortemFromAI(",
+        "private async generateNoteFromAI(",
+      ),
+    ).toContain("includeCalls: true,");
     expect(starting).toContain(
-      "OneUptime AI reads the incident (its description, root cause and remediation, its state timeline, its public and private notes, and the messages in its Slack or Microsoft Teams channel) and writes the postmortem in your outline. The editor then opens on it.",
+      "OneUptime AI reads the incident (its description, root cause and remediation, its state timeline, its public and private notes, the messages in its Slack or Microsoft Teams channel, and what was said on [its calls](/docs/workspace-connections/video-calls#call-transcripts)) and writes the postmortem in your outline. The editor then opens on it.",
     );
   });
 

@@ -110,6 +110,8 @@ A new Enterprise Edition install runs as a **14-day trial**, counted from the fi
 
 The license is managed from the **edition label**, which master admins see in the Admin Dashboard header and in the footer of the Dashboard. It shows the license status, the seat usage and, for master admins, the instance ID.
 
+OneUptime Enterprise bought on AWS Marketplace, Microsoft Marketplace or Google Cloud Marketplace needs no license key: the marketplace subscription licenses it, and bills each user by the hour. See [Cloud Marketplaces](/docs/installation/cloud-marketplaces).
+
 ### Online activation (license key)
 
 :::steps

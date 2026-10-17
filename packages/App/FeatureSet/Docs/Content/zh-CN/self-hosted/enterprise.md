@@ -110,6 +110,8 @@ npm run update
 
 许可证通过 **版本标签** 管理，主管理员可以在管理员仪表板的页眉和 Dashboard 的页脚看到它。它显示许可证状态、席位使用情况，并向主管理员显示实例 ID。
 
+在 AWS Marketplace、Microsoft Marketplace 或 Google Cloud Marketplace 上购买的 OneUptime Enterprise 无需许可证密钥：市场订阅即是许可证，并按小时为每位用户计费。请参阅[云市场](/docs/installation/cloud-marketplaces)。
+
 ### 在线激活（许可证密钥）
 
 :::steps
