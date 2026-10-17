@@ -29,10 +29,11 @@ import HuntressWebhookHandler, {
   HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
   HUNTRESS_NO_WORKFLOW_MESSAGE,
   HUNTRESS_ORGANIZATION_NOT_WATCHED_MESSAGE,
-  HUNTRESS_UNAVAILABLE_MESSAGE,
+  getHuntressUnavailableMessage,
   HUNTRESS_WORKFLOW_OFF_MESSAGE,
   HuntressWebhookAnswer,
 } from "../../../../Server/Utils/Huntress/HuntressWebhookHandler";
+import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
 import StandardWebhookSignature from "../../../../Server/Utils/Webhook/StandardWebhookSignature";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ProjectBlockedException from "../../../../Types/Exception/ProjectBlockedException";
@@ -807,8 +808,12 @@ describe("an event Huntress sends again", () => {
 
     expect(answer).toEqual({
       statusCode: 503,
-      body: { message: HUNTRESS_UNAVAILABLE_MESSAGE },
+      body: { message: getHuntressUnavailableMessage() },
     });
+    // In the installation's own name.
+    expect(getHuntressUnavailableMessage()).toBe(
+      `${ProductBrandingText.getProductName()} cannot take Huntress events right now. Huntress sends this one again.`,
+    );
     expect(runs).toHaveLength(0);
 
     cacheConnected = true;

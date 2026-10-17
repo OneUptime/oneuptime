@@ -24,6 +24,7 @@ import GlobalCache from "../../Infrastructure/GlobalCache";
 import WorkflowService from "../../Services/WorkflowService";
 import { ExecuteWorkflowType } from "../../Types/Workflow/TriggerCode";
 import logger from "../Logger";
+import ProductBrandingText from "../ProductBrandingText";
 import StandardWebhookSignature, {
   StandardWebhookVerification,
 } from "../Webhook/StandardWebhookSignature";
@@ -104,8 +105,10 @@ export const HUNTRESS_ORGANIZATION_NOT_WATCHED_MESSAGE: string =
 export const HUNTRESS_DUPLICATE_MESSAGE: string =
   "Received before. This event already started the workflow, so it starts nothing more.";
 
-export const HUNTRESS_UNAVAILABLE_MESSAGE: string =
-  "OneUptime cannot take Huntress events right now. Huntress sends this one again.";
+// Said in the installation's own name (ProductBrandingText), as everything the server writes.
+export function getHuntressUnavailableMessage(): string {
+  return `${ProductBrandingText.getProductName()} cannot take Huntress events right now. Huntress sends this one again.`;
+}
 
 export const HUNTRESS_NOT_STARTED_MESSAGE: string =
   "The workflow could not be started. Huntress sends the event again.";
@@ -294,7 +297,7 @@ export default class HuntressWebhookHandler {
         `HuntressWebhookHandler: could not check whether workflow ${workflow.id.toString()} already received event ${verification.messageId}: ${err}`,
       );
 
-      return answer(503, { message: HUNTRESS_UNAVAILABLE_MESSAGE });
+      return answer(503, { message: getHuntressUnavailableMessage() });
     }
 
     if (!isFirstDelivery) {
