@@ -55,6 +55,9 @@ import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import SnmpTableCriteria from "./Criteria/SnmpTableCriteria";
 import SnmpTransceiverCriteria from "./Criteria/SnmpTransceiverCriteria";
+import ProbeStatusMonitorCriteria from "./Criteria/ProbeStatusMonitorCriteria";
+import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
+import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
 
 // A sentence's closing period, dropped where it is quoted mid-sentence.
 const TRAILING_PERIOD: RegExp = /\.$/;
@@ -277,9 +280,54 @@ export default class MonitorCriteriaObservationBuilder {
       case CheckOn.NtpResponseTime:
       case CheckOn.NtpRootDispersion:
         return MonitorCriteriaObservationBuilder.describeNtpObservation(input);
+      case CheckOn.ConnectedProbes:
+      case CheckOn.DisconnectedProbes:
+        return MonitorCriteriaObservationBuilder.describeProbeStatusObservation(
+          input,
+        );
       default:
         return null;
     }
+  }
+
+  /*
+   * What a Probe Status evaluation found, for the check being explained:
+   * the count it compared, and which probes it counted, so "Disconnected
+   * Probes was 1" also says which one. The names follow a colon, not
+   * parentheses: probe names often carry their own ("Singapore
+   * (ap-southeast-1)").
+   */
+  public static describeProbeStatusObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const response: ProbeStatusMonitorResponse | null =
+      ProbeStatusMonitorCriteria.getResponse(input.dataToProcess);
+
+    if (!response) {
+      return null;
+    }
+
+    const total: number =
+      response.connectedProbeCount + response.disconnectedProbeCount;
+
+    if (input.criteriaFilter.checkOn === CheckOn.ConnectedProbes) {
+      const connected: string = ProbeStatusMonitorUtil.joinProbeNames(
+        ProbeStatusMonitorUtil.getConnectedProbes(response),
+      );
+
+      return `${response.connectedProbeCount} of ${ProbeStatusMonitorUtil.getProbeCountLabel(
+        total,
+      )} connected${connected ? `: ${connected}` : ""}.`;
+    }
+
+    const disconnected: string = ProbeStatusMonitorUtil.joinProbeNames(
+      ProbeStatusMonitorUtil.getDisconnectedProbes(response),
+    );
+
+    return `${response.disconnectedProbeCount} of ${ProbeStatusMonitorUtil.getProbeCountLabel(
+      total,
+    )} disconnected${disconnected ? `: ${disconnected}` : ""}.`;
   }
 
   /*

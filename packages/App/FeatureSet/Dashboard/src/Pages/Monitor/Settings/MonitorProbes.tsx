@@ -6,7 +6,9 @@ import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -32,7 +34,16 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import GlobalProbesOnNewMonitorsCard from "../../../Components/Probe/GlobalProbesOnNewMonitorsCard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import PermissionGate from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import {
+  getMonitorThisProbeRoute,
+  MONITOR_THIS_PROBE_ICON,
+  MONITOR_THIS_PROBE_TITLE,
+} from "../../../Utils/MonitorThisProbe";
 
 const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -63,6 +74,49 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     new Probe(),
     "key",
   );
+
+  /*
+   * "Monitor this probe": Create Monitor on a Probe Status monitor that
+   * opens an incident when this probe disconnects. In both tables, in the
+   * row's menu: the global probes are the ones a self-hosted installation
+   * runs every monitor on. Locked, with the reason, for whoever may not
+   * create monitors; left out when there is no honest reason to give.
+   */
+  const createMonitorGate: PermissionGateResult = PermissionGate.check(
+    new Monitor(),
+    ModelAction.Create,
+  );
+
+  const monitorThisProbeAction: ActionButtonSchema<Probe> = {
+    title: MONITOR_THIS_PROBE_TITLE,
+    icon: MONITOR_THIS_PROBE_ICON,
+    buttonStyleType: ButtonStyleType.NORMAL,
+    placement: ActionButtonPlacement.MoreMenu,
+    isVisible: (): boolean => {
+      return (
+        createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason)
+      );
+    },
+    disabled: !createMonitorGate.isAllowed,
+    tooltip: createMonitorGate.isAllowed
+      ? undefined
+      : createMonitorGate.disabledReason,
+    onClick: async (
+      item: Probe,
+      onCompleteAction: VoidFunction,
+      onError: ErrorFunction,
+    ) => {
+      try {
+        onCompleteAction();
+        Navigation.navigate(
+          getMonitorThisProbeRoute(item._id?.toString() || ""),
+        );
+      } catch (err) {
+        onCompleteAction();
+        onError(err as Error);
+      }
+    },
+  };
 
   return (
     <Fragment>
@@ -95,6 +149,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             // The Name cell renders the probe logo, which no column declares.
             iconFileId: true,
           }}
+          actionButtons={[monitorThisProbeAction]}
           filters={[
             {
               field: {
@@ -232,6 +287,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           showRefreshButton={true}
           searchableFields={["name", "description"]}
           actionButtons={[
+            monitorThisProbeAction,
             {
               title: canReadProbeKey ? "Show ID and Key" : "Show ID",
               icon: canReadProbeKey ? IconProp.Key : IconProp.Identification,

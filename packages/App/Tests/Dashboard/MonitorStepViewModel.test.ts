@@ -451,6 +451,15 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
           rollingTime: RollingTime.Past10Minutes,
         },
       });
+    case MonitorType.ProbeStatus:
+      return buildStep({
+        probeStatusMonitor: {
+          probeIds: [
+            "77000000-0000-4000-8000-000000000001",
+            "77000000-0000-4000-8000-000000000002",
+          ],
+        },
+      });
     default:
       return buildStep({});
   }
@@ -955,6 +964,62 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
 
     expect(row?.valueType).toBe(MonitorStepViewValueType.NetworkDevice);
     expect(row?.value).toBe("44444444-4444-4444-8444-444444444444");
+  });
+});
+
+describe("MonitorStepViewModel.getRows — Probe Status monitors", () => {
+  it("shows the probes it watches, as ids for the viewer to name", () => {
+    const rows: Array<MonitorStepViewRow> = getRows(MonitorType.ProbeStatus);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({
+      key: "probeIds",
+      title: "Probes to Watch",
+      description:
+        "This monitor goes offline when one of these probes disconnects.",
+      valueType: MonitorStepViewValueType.Probes,
+      value: [
+        "77000000-0000-4000-8000-000000000001",
+        "77000000-0000-4000-8000-000000000002",
+      ],
+      placeholder: "No probes picked",
+    });
+  });
+
+  it("keeps the row when it watches nothing: that is the thing worth saying", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({ probeStatusMonitor: { probeIds: [] } }),
+      monitorType: MonitorType.ProbeStatus,
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.value).toEqual([]);
+    expect(rows[0]?.placeholder).toBe("No probes picked");
+
+    // A step saved without the field at all reads the same way.
+    expect(
+      MonitorStepViewModel.getRows({
+        monitorStep: buildStep({}),
+        monitorType: MonitorType.ProbeStatus,
+      })[0]?.value,
+    ).toEqual([]);
+  });
+
+  it("lists each probe once, whatever the step was written with", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({
+        probeStatusMonitor: {
+          probeIds: [
+            " 77000000-0000-4000-8000-000000000001 ",
+            "77000000-0000-4000-8000-000000000001".toUpperCase(),
+            "",
+          ],
+        },
+      }),
+      monitorType: MonitorType.ProbeStatus,
+    });
+
+    expect(rows[0]?.value).toEqual(["77000000-0000-4000-8000-000000000001"]);
   });
 });
 

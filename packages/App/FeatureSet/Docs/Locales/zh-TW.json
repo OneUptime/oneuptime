@@ -194,6 +194,7 @@
     "Exceptions Monitor": "例外狀況監控",
     "Profiles Monitor": "效能剖析監控",
     "Manual Monitor": "手動監控",
+    "Probe Status Monitor": "探針狀態監控",
     "JavaScript Expressions": "JavaScript 運算式",
     "Incident & Alert Templating": "事件與警示範本",
     "Monitor Secrets": "監控密鑰",

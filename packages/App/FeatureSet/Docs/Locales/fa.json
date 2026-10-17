@@ -194,6 +194,7 @@
     "Exceptions Monitor": "مانیتور استثناها",
     "Profiles Monitor": "مانیتور پروفایل‌ها",
     "Manual Monitor": "مانیتور دستی",
+    "Probe Status Monitor": "مانیتور وضعیت پراب",
     "JavaScript Expressions": "عبارت‌های JavaScript",
     "Incident & Alert Templating": "قالب‌بندی حادثه و هشدار",
     "Monitor Secrets": "اسرار مانیتور",

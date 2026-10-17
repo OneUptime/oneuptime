@@ -180,7 +180,7 @@ Varje element i `monitor_steps` är en sak att kontrollera:
 
 ### Inställningar för varje monitortyp
 
-Monitortyper med mer att ange än en adress har sina inställningar (en loggfråga, en databasanslutning, ett kluster att bevaka) i ett eget attribut, som rå JSON skriven med `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor` och `iot_monitor`.
+Monitortyper med mer att ange än en adress har sina inställningar (en loggfråga, en databasanslutning, ett kluster att bevaka) i ett eget attribut, som rå JSON skriven med `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` och `probe_status_monitor`.
 
 Deras JSON är densamma som instrumentpanelens, med nycklar i camelCase. Ett ID i den skrivs som API:et skriver det: `{ _type = "ObjectID", value = "..." }`. En Logs-monitor som räknar fel från en tjänst:
 

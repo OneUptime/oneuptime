@@ -157,6 +157,7 @@ Utelämna arrayen eller sätt den till `[]` för att synkronisera alla steginst�
 | Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Loggar, Security Events, Spår, AI / LLM, Mätvärden, Undantag | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (monitorns hela konfiguration) |
+| Sondstatus | `probeStatusMonitor.probeIds` |
 
 Infrastrukturmonitorer (Kubernetes, Docker Container, Värd, Podman Container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) erbjuder sin resursväljare, filter (alla utom Värd), mätvärdesfrågor och frågans tidsfönster. Deras namn listas under **Template sync settings** på en mall av den typen.
 :::

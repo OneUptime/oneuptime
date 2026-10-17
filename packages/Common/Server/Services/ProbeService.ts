@@ -29,6 +29,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import UpdateBy from "../Types/Database/UpdateBy";
 import MonitorService from "./MonitorService";
+import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import FileService from "./FileService";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
@@ -667,6 +668,16 @@ export class Service extends ProjectReferencesService<Model> {
       onUpdate.carryForward.probesToNotifyOwners.length > 0
     ) {
       for (const probe of onUpdate.carryForward.probesToNotifyOwners) {
+        /*
+         * The Probe Status monitors watching this probe first: they are
+         * what opens the incident and pages on-call for the outage, so they
+         * hear of it with the flip, not on the next minute's sweep. Never
+         * throws, so the notifications below go out as they always did.
+         */
+        await ProbeStatusMonitorEvaluator.evaluateMonitorsWatchingProbe(
+          probe.id!,
+        );
+
         await MonitorService.refreshProbeStatus(probe.id!);
 
         await this.notifyOwnersOnStatusChange({

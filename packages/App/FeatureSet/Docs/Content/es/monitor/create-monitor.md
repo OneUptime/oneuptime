@@ -19,7 +19,7 @@ Vaya a **Monitores** y haga clic en **Crear monitor**. El formulario se abre en 
 La primera pregunta es el **Tipo de monitor**: ¿qué quiere monitorear?
 
 - Los seis tipos que más se crean aparecen primero: **Sitio web**, **API**, **Ping**, **Puerto**, **Certificado SSL** y **Solicitud entrante**, para los heartbeats de tareas cron y webhooks.
-- **Más tipos de monitor** lista todos los demás tipos bajo su categoría, como **Infraestructura** (Kubernetes, Docker, host) y **Telemetría** (registros, métricas, trazas). **Manual**, un monitor cuyo estado usted establece, está en **Otro**.
+- **Más tipos de monitor** lista todos los demás tipos bajo su categoría, como **Infraestructura** (Kubernetes, Docker, host) y **Telemetría** (registros, métricas, trazas). **Manual**, un monitor cuyo estado usted establece, y **Estado de la sonda**, que le avisa cuando una sonda se desconecta, están en **Otro**.
 - O escriba en el cuadro de búsqueda. Conoce las palabras que usted ya usa, como `k8s`, `postgres`, `heartbeat` o `tls`, e **Intro** elige la primera coincidencia.
 
 El tipo elegido se reduce a una línea. Haga clic en **Cambiar** para elegir otro; pulse **Escape** mientras elige para conservar el tipo que tenía.

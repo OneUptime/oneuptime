@@ -234,6 +234,9 @@ import "./Jobs/ToolImport/SweepStaleToolImports";
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
 
+// Probe Status monitors: one incident when a probe a project watches goes offline.
+import "./Jobs/ProbeStatusMonitor/CheckProbeStatus";
+
 /*
  * Packet captures: fail the ones no probe will finish, and delete them with
  * their files after the retention period.
