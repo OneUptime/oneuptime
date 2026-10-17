@@ -45,6 +45,7 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import OneUptimeDate from "Common/Types/Date";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import ProbeStatusMonitorUtil from "Common/Utils/Monitor/ProbeStatusMonitorUtil";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -369,6 +370,17 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               probeMonitorResponses={probeData?.attached.probeResponses}
               evaluationSummariesByProbeId={evaluation?.byProbeId}
               evaluationSummary={evaluation?.latest?.summary}
+              /*
+               * A Probe Status monitor's summary is the probes its newest
+               * evaluation found, from the same log row as the verdict.
+               */
+              probeStatusMonitorResponse={
+                monitorType === MonitorType.ProbeStatus
+                  ? ProbeStatusMonitorUtil.parseResponse(
+                      evaluation?.latestLogBody,
+                    ) || undefined
+                  : undefined
+              }
               incomingMonitorRequest={monitor.incomingMonitorRequest}
               incomingRequestMonitorHeartbeatCheckedAt={
                 monitor.incomingRequestMonitorHeartbeatCheckedAt

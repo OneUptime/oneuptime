@@ -195,6 +195,7 @@
     "Exceptions Monitor": "Мониторинг исключений",
     "Profiles Monitor": "Мониторинг профилей",
     "Manual Monitor": "Ручной мониторинг",
+    "Probe Status Monitor": "Мониторинг состояния зондов",
     "JavaScript Expressions": "Выражения JavaScript",
     "Incident & Alert Templating": "Шаблоны инцидентов и оповещений",
     "Monitor Secrets": "Секреты мониторинга",

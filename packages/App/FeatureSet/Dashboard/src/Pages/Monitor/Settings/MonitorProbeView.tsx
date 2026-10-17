@@ -28,6 +28,15 @@ import CustomProbeDocumentation from "../../../Components/Probe/CustomProbeDocum
 import ProbePacketCaptures from "../../../Components/PacketCapture/ProbePacketCaptures";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import {
+  getMonitorThisProbeRoute,
+  MONITOR_THIS_PROBE_ICON,
+  MONITOR_THIS_PROBE_TITLE,
+} from "../../../Utils/MonitorThisProbe";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -44,6 +53,24 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
 
   const [probeKey, setProbeKey] = useState<string | null>(null);
+
+  /*
+   * Beside the probe's status: the way to be told, once, when it goes
+   * offline - a Probe Status monitor watching this probe.
+   */
+  const monitorThisProbeButton: CardButtonSchema | null =
+    PermissionGate.gateCardButton(
+      {
+        title: MONITOR_THIS_PROBE_TITLE,
+        icon: MONITOR_THIS_PROBE_ICON,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: () => {
+          Navigation.navigate(getMonitorThisProbeRoute(modelId.toString()));
+        },
+      },
+      new Monitor(),
+      ModelAction.Create,
+    );
 
   return (
     <Fragment>
@@ -186,7 +213,9 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
       <CardModelDetail<Probe>
         name="Probe Status"
         cardProps={{
+          // The title says it all; the button is how to be told it went down.
           title: "Probe Status",
+          buttons: monitorThisProbeButton ? [monitorThisProbeButton] : [],
         }}
         isEditable={false}
         modelDetailProps={{

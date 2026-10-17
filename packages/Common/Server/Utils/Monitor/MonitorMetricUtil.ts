@@ -34,6 +34,7 @@ import {
 } from "../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import { SnmpOidResponse } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import { CheckOn } from "../../../Types/Monitor/CriteriaFilter";
@@ -1488,6 +1489,52 @@ export default class MonitorMetricUtil {
 
       metricNameServiceNameMap[MonitorMetricType.ResponseStatusCode] =
         metricType;
+    }
+
+    /*
+     * A Probe Status monitor's two counts, once per evaluation (every
+     * minute): the "online probes" series issue #2733 asked for, kept by
+     * the monitor that watches the probes, so a project pays for the
+     * series only by creating one. It charts on the monitor's Metrics page
+     * and can feed a dashboard or a Metrics monitor like any other series.
+     */
+    const probeStatusResponse: ProbeStatusMonitorResponse =
+      data.dataToProcess as ProbeStatusMonitorResponse;
+
+    if (
+      Array.isArray(probeStatusResponse.probes) &&
+      typeof probeStatusResponse.connectedProbeCount === "number" &&
+      typeof probeStatusResponse.disconnectedProbeCount === "number"
+    ) {
+      await this.pushMonitorMetric({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        monitorName: data.monitorName,
+        probeName: undefined,
+        metricName: MonitorMetricType.ConnectedProbes,
+        value: probeStatusResponse.connectedProbeCount,
+        description:
+          "How many of the probes this monitor watches are connected",
+        unit: "probes",
+        metricPointType: MetricPointType.Gauge,
+        metricRows: metricRows,
+        metricNameServiceNameMap: metricNameServiceNameMap,
+      });
+
+      await this.pushMonitorMetric({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        monitorName: data.monitorName,
+        probeName: undefined,
+        metricName: MonitorMetricType.DisconnectedProbes,
+        value: probeStatusResponse.disconnectedProbeCount,
+        description:
+          "How many of the probes this monitor watches are disconnected",
+        unit: "probes",
+        metricPointType: MetricPointType.Gauge,
+        metricRows: metricRows,
+        metricNameServiceNameMap: metricNameServiceNameMap,
+      });
     }
 
     // Process custom metrics from Custom Code and Synthetic Monitor responses

@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **Sonden ansluter utåt.** Varje förfrågan går från sonden till `ONEUPTIME_URL` över HTTPS. Ingenting utifrån behöver nå sonden.
 - **Den kontrollerar bara sina egna övervakare.** Sonden ber OneUptime om de övervakare den är tillagd i, kontrollerar var och en när det är dags och skickar tillbaka resultatet. OneUptime avgör utifrån resultaten om en övervakares status ändras.
-- **OneUptime håller koll på att den körs.** Varje förfrågan från sonden räknas som ett livstecken, och sonden skickar minst en per minut. Efter ungefär tre minuter utan någon visar sonden **Frånkopplad**, och dess ägare får besked. Har en sond inga ägare får projektets ägare besked.
+- **OneUptime håller koll på att den körs.** Varje förfrågan från sonden räknas som ett livstecken, och sonden skickar minst en per minut. Efter ungefär tre minuter utan någon visar sonden **Frånkopplad**, och dess ägare får besked. Har en sond inga ägare får projektets ägare besked. För att larmas som vid vilket avbrott som helst, med en incident tills sonden är tillbaka, lägger du till en [probstatusmonitor](/docs/monitor/probe-status-monitor): **Övervaka den här proben** på sondens sida skapar en.
 
 ## Innan du börjar
 

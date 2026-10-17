@@ -224,6 +224,17 @@ export enum CheckOn {
   ExternalStatusPageComponentStatus = "External Status Page Component Status",
   ExternalStatusPageActiveIncidents = "External Status Page Active Incidents",
   ExternalStatusPageResponseTime = "External Status Page Response Time (in ms)",
+
+  /*
+   * Probe Status monitors: how many of the probes a monitor watches are
+   * Connected, and how many are Disconnected - nothing heard from them for
+   * three minutes (Probe:UpdateConnectionStatus). Counts rather than a
+   * yes/no, so one monitor can watch several probes and alert when any of
+   * them, or more than you can spare, is gone. Stored in monitor criteria;
+   * never rename one.
+   */
+  ConnectedProbes = "Connected Probes",
+  DisconnectedProbes = "Disconnected Probes",
 }
 
 export interface ServerMonitorOptions {
@@ -876,7 +887,14 @@ export class CriteriaFilterUtil {
        * an incident.
        */
       checkOn === CheckOn.DatabaseIsOnline ||
-      checkOn === CheckOn.DatabaseMetric
+      checkOn === CheckOn.DatabaseMetric ||
+      /*
+       * Recorded every minute, so a window is the hold-down: "a probe has
+       * been disconnected for 5 minutes" rides out a slow restart that the
+       * three-minute connection cutoff alone would call an outage.
+       */
+      checkOn === CheckOn.ConnectedProbes ||
+      checkOn === CheckOn.DisconnectedProbes
     );
   }
 }

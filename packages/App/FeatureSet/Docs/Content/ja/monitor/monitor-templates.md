@@ -157,6 +157,7 @@ flowchart TB
 | データベースのヘルス | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
 | 外部ステータスページ | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | ログ、セキュリティイベント、トレース、AI / LLM、メトリクス、例外 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`（モニターの構成全体） |
+| プローブステータス | `probeStatusMonitor.probeIds` |
 
 インフラストラクチャのモニター（Kubernetes、Docker Container、ホスト、Podman Container、Proxmox、Docker Swarm、Ceph、ストレージアレイ、IoT デバイス）では、リソースセレクター、フィルター（ホストを除く）、メトリクスのクエリ、クエリの時間枠を保護できます。その名前は、その種類のテンプレートの **テンプレートの同期設定** に一覧表示されます。
 :::

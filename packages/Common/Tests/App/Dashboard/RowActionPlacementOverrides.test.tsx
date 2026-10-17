@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { MockInstance } from "jest-mock";
 import {
   cleanup,
   fireEvent,
@@ -119,6 +120,7 @@ import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
+import Navigation from "../../../UI/Utils/Navigation";
 import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -574,11 +576,51 @@ describe("Custom probes: Show ID and Key is never the row's button", () => {
     expect(
       within(rowActions).queryByRole("button", { name: "Show ID and Key" }),
     ).toBeNull();
-    // Delete last, below the utilities: custom probes are deleted from here.
+    /*
+     * Monitor this probe first, then the utilities, and Delete last: custom
+     * probes are deleted from here.
+     */
     expect(menuLabels(openMenuIn(rowActions))).toEqual([
+      "Monitor this probe",
       "Show ID and Key",
       "Delete",
     ]);
+  });
+
+  /*
+   * The one obvious next step for "tell me when this probe goes offline":
+   * Create Monitor, on a Probe Status monitor watching this probe.
+   */
+  test("Monitor this probe opens Create Monitor on a Probe Status monitor watching that probe", async () => {
+    signInAsOwner();
+
+    const navigate: MockInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation(() => {
+        return undefined;
+      });
+
+    try {
+      const rowActions: HTMLElement = await renderMonitorProbes();
+
+      fireEvent.click(
+        within(openMenuIn(rowActions)).getByRole("menuitem", {
+          name: "Monitor this probe",
+        }),
+      );
+
+      await waitFor(() => {
+        expect(navigate).toHaveBeenCalledTimes(1);
+      });
+
+      const route: string = (navigate.mock.calls[0]![0] as Route).toString();
+
+      expect(route).toContain("/monitors/create?");
+      expect(route).toContain("monitorType=Probe%20Status");
+      expect(route).toContain(`watchProbeId=${PROBE_ID}`);
+    } finally {
+      navigate.mockRestore();
+    }
   });
 
   /*
@@ -616,7 +658,12 @@ describe("Custom probes: Show ID and Key is never the row's button", () => {
 
     const menu: HTMLElement = openMenuIn(rowActions);
 
-    expect(menuLabels(menu)).toEqual(["Show ID", "Delete"]);
+    // A member may create monitors, so Monitor this probe is theirs too.
+    expect(menuLabels(menu)).toEqual([
+      "Monitor this probe",
+      "Show ID",
+      "Delete",
+    ]);
 
     fireEvent.click(within(menu).getByRole("menuitem", { name: "Show ID" }));
 

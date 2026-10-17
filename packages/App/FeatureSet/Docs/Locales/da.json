@@ -195,6 +195,7 @@
     "Exceptions Monitor": "Undtagelse-monitor",
     "Profiles Monitor": "Profil-monitor",
     "Manual Monitor": "Manuel monitor",
+    "Probe Status Monitor": "Probestatusmonitor",
     "JavaScript Expressions": "JavaScript-udtryk",
     "Incident & Alert Templating": "Hændelse- og advarselsskabeloner",
     "Monitor Secrets": "Monitorhemmeligheder",

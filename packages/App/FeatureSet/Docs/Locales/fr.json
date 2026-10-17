@@ -195,6 +195,7 @@
     "Exceptions Monitor": "Surveillance des exceptions",
     "Profiles Monitor": "Surveillance des profils",
     "Manual Monitor": "Surveillance manuelle",
+    "Probe Status Monitor": "Moniteur d'état des sondes",
     "JavaScript Expressions": "Expressions JavaScript",
     "Incident & Alert Templating": "Modèles d'incident et d'alerte",
     "Monitor Secrets": "Secrets de surveillance",

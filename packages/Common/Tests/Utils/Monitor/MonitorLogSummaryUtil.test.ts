@@ -8,6 +8,8 @@ import MonitorType, {
 } from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
+import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
 import { redactForPersistence } from "../../../Server/Utils/Monitor/MonitorPayloadRedaction";
 import IncomingEmailMonitorRequestUtil from "../../../Utils/Monitor/IncomingEmailMonitorRequestUtil";
 import MonitorLogSummaryUtil, {
@@ -83,11 +85,15 @@ enum Slot {
   IncomingRequest = "IncomingRequest",
   IncomingEmail = "IncomingEmail",
   Telemetry = "Telemetry",
+  ProbeStatus = "ProbeStatus",
   None = "None",
 }
 
 const EXPECTED_SLOT: Record<MonitorType, Slot> = {
   [MonitorType.Manual]: Slot.None,
+
+  // The probes it watched; ProbeStatusMonitorView reads them.
+  [MonitorType.ProbeStatus]: Slot.ProbeStatus,
 
   [MonitorType.Website]: Slot.Probe,
   [MonitorType.API]: Slot.Probe,
@@ -266,10 +272,47 @@ function telemetryResult(monitorType: MonitorType): JSONObject {
   };
 }
 
+/*
+ * A Probe Status monitor's evaluation, as the server writes it every minute
+ * (ProbeStatusMonitorEvaluator): the probes the step watches, as the project
+ * may see them.
+ */
+function probeStatusEvaluation(overrides?: JSONObject): JSONObject {
+  return {
+    projectId: PROJECT_ID,
+    monitorId: MONITOR_ID,
+    monitorStepId: MONITOR_STEP_ID,
+    probes: [
+      {
+        probeId: "44444444-4444-4444-8444-444444444445",
+        probeName: "Frankfurt",
+        isGlobalProbe: false,
+        isConnected: true,
+        lastAliveAt: MONITORED_AT,
+      },
+      {
+        probeId: PROBE_ID.toString(),
+        probeName: "Singapore",
+        isGlobalProbe: true,
+        isConnected: false,
+        lastAliveAt: OneUptimeDate.addRemoveMinutes(MONITORED_AT, -4),
+      },
+    ],
+    connectedProbeCount: 1,
+    disconnectedProbeCount: 1,
+    missingProbeIds: [],
+    checkedAt: MONITORED_AT,
+    evaluationSummary: EVALUATION_SUMMARY,
+    ...(overrides || {}),
+  } as unknown as JSONObject;
+}
+
 function bodyFor(monitorType: MonitorType): JSONObject {
   switch (EXPECTED_SLOT[monitorType]) {
     case Slot.Probe:
       return probeCheck();
+    case Slot.ProbeStatus:
+      return probeStatusEvaluation();
     case Slot.Server:
       return serverReport();
     case Slot.IncomingRequest:
@@ -313,6 +356,10 @@ function slotsOf(props: MonitorSummaryInfoProps): Array<Slot> {
 
   if (props.telemetryMonitorSummary) {
     slots.push(Slot.Telemetry);
+  }
+
+  if (props.probeStatusMonitorResponse) {
+    slots.push(Slot.ProbeStatus);
   }
 
   return slots;
@@ -482,6 +529,66 @@ describe("MonitorLogSummaryUtil.toSummaryInfoProps - Incoming Email rows", () =>
     expect(props.incomingEmailMonitorRequest).toBeUndefined();
     expect(props.probeMonitorResponses).toBeUndefined();
     // The evaluation still explains the row.
+    expect(props.evaluationSummary).toBeDefined();
+  });
+});
+
+describe("MonitorLogSummaryUtil.toSummaryInfoProps - Probe Status rows", () => {
+  it("gives the modal every probe the evaluation saw, with its times", () => {
+    const props: MonitorSummaryInfoProps = summaryOf({
+      monitorType: MonitorType.ProbeStatus,
+      logBody: storeAsMonitorLog(probeStatusEvaluation()),
+      monitoredAt: MONITORED_AT,
+    });
+
+    expect(props.probeStatusMonitorResponse).toBeDefined();
+    expect(props.probeStatusMonitorResponse!.connectedProbeCount).toBe(1);
+    expect(props.probeStatusMonitorResponse!.disconnectedProbeCount).toBe(1);
+    expect(
+      props.probeStatusMonitorResponse!.probes.map(
+        (probe: { probeName: string; isConnected: boolean }) => {
+          return `${probe.probeName}: ${probe.isConnected}`;
+        },
+      ),
+    ).toEqual(["Frankfurt: true", "Singapore: false"]);
+    /*
+     * Stored as ISO strings and handed on as them; SummaryInfo reads the
+     * evaluation through parseResponse, which makes them dates again.
+     */
+    const parsed: ProbeStatusMonitorResponse | null =
+      ProbeStatusMonitorUtil.parseResponse(props.probeStatusMonitorResponse);
+
+    expect(parsed!.checkedAt).toEqual(MONITORED_AT);
+    expect(parsed!.probes[1]!.lastAliveAt).toEqual(
+      OneUptimeDate.addRemoveMinutes(MONITORED_AT, -4),
+    );
+    expect(parsed!.probes[1]!.probeId).toBe(PROBE_ID.toString());
+    expect(props.evaluationSummary?.criteriaResults[0]?.criteriaName).toBe(
+      "Email Body Has Error",
+    );
+  });
+
+  it("names no probe for the row: no probe ran it", () => {
+    const props: MonitorSummaryInfoProps = summaryOf({
+      monitorType: MonitorType.ProbeStatus,
+      logBody: storeAsMonitorLog(probeStatusEvaluation()),
+      monitoredAt: MONITORED_AT,
+    });
+
+    expect(props.probeMonitorResponses).toBeUndefined();
+    expect(props.probeName).toBeUndefined();
+  });
+
+  it("keeps only the evaluation of a row written before the monitor became one", () => {
+    // A row of the probe check this monitor was before its type changed.
+    const props: MonitorSummaryInfoProps = summaryOf({
+      monitorType: MonitorType.ProbeStatus,
+      logBody: storeAsMonitorLog(probeCheck()),
+      monitoredAt: MONITORED_AT,
+    });
+
+    expect(props.probeStatusMonitorResponse).toBeUndefined();
+    expect(props.probeMonitorResponses).toBeUndefined();
     expect(props.evaluationSummary).toBeDefined();
   });
 });

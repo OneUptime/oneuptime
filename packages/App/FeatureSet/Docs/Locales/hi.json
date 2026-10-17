@@ -195,6 +195,7 @@
     "Exceptions Monitor": "अपवाद मॉनिटर",
     "Profiles Monitor": "प्रोफ़ाइल मॉनिटर",
     "Manual Monitor": "मैन्युअल मॉनिटर",
+    "Probe Status Monitor": "प्रोब स्थिति मॉनिटर",
     "JavaScript Expressions": "JavaScript अभिव्यक्तियाँ",
     "Incident & Alert Templating": "घटना और अलर्ट टेम्पलेट",
     "Monitor Secrets": "मॉनिटर रहस्य",
