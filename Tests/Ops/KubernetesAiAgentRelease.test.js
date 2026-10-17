@@ -977,7 +977,10 @@ describe("release.yml: the Kubernetes AI agent image", () => {
   test("push-release-tags moves its release and enterprise-release tags, with the App's, after the three e2e jobs", () => {
     const push = jobs["push-release-tags"];
 
-    expect(push.strategy.matrix.image).toEqual(
+    // One job loops over RELEASE_TAG_IMAGES; it was a matrix of one job per
+    // image (see ReleaseCriticalPath.test.js).
+    expect(push.strategy).toBeUndefined();
+    expect(String(push.env.RELEASE_TAG_IMAGES).split(/\s+/)).toEqual(
       expect.arrayContaining([IMAGE, "app"]),
     );
     expect(needsOf(push)).toEqual(
@@ -990,10 +993,8 @@ describe("release.yml: the Kubernetes AI agent image", () => {
 
     const commands = commandsMentioning(push, "imagetools create").join("\n");
     for (const tag of ["release", "enterprise-release"]) {
-      expect(commands).toContain(`--tag oneuptime/\${{ matrix.image }}:${tag}`);
-      expect(commands).toContain(
-        `--tag ghcr.io/oneuptime/\${{ matrix.image }}:${tag}`,
-      );
+      expect(commands).toContain(`--tag "oneuptime/\${image}:${tag}"`);
+      expect(commands).toContain(`--tag "ghcr.io/oneuptime/\${image}:${tag}"`);
     }
   });
 
