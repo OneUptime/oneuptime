@@ -1,62 +1,132 @@
-import HuntressConnection from "../../../Models/DatabaseModels/HuntressConnection";
+import Workflow from "../../../Models/DatabaseModels/Workflow";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import {
+  isHuntressOrganizationWatched,
+  parseHuntressOrganizationFilter,
+} from "../../../Types/Huntress/HuntressOrganizationFilter";
+import {
+  HuntressIncidentReportEvent,
   ParsedHuntressWebhook,
   parseHuntressWebhook,
 } from "../../../Types/Huntress/HuntressWebhook";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import HuntressConnectionService from "../../Services/HuntressConnectionService";
+import ComponentID from "../../../Types/Workflow/ComponentID";
+import {
+  HuntressTriggerEvent,
+  HuntressTriggerSetting,
+  getHuntressDeliveryValues,
+  getHuntressTriggerEvent,
+} from "../../../Types/Workflow/HuntressTrigger";
+import GlobalCache from "../../Infrastructure/GlobalCache";
+import WorkflowService from "../../Services/WorkflowService";
+import { ExecuteWorkflowType } from "../../Types/Workflow/TriggerCode";
 import logger from "../Logger";
+import ProductBrandingText from "../ProductBrandingText";
 import StandardWebhookSignature, {
   StandardWebhookVerification,
 } from "../Webhook/StandardWebhookSignature";
-import HuntressIncidentReportProcessor, {
-  HuntressReportBusyException,
-  HuntressReportResult,
-} from "./HuntressIncidentReportProcessor";
 
 /*
- * One request to a Huntress connection's webhook URL
- * (POST /api/huntress/webhook/<connection id>), answered the way Svix reads
- * answers: a 2xx is delivered, anything else is retried - in 5 seconds,
+ * One request to a Huntress workflow's URL - POST
+ * <workflow service>/huntress/<key>, or, for a Huntress connection made
+ * before Huntress became a workflow trigger, POST /api/huntress/webhook/<key>
+ * - answered the way Svix, which delivers Huntress's webhooks, reads
+ * answers: a 2xx is delivered, anything else is sent again - in 5 seconds,
  * 5 minutes, 30 minutes, then hours apart, for about a day.
  *
- *   404  no connection has this address (deleted, or a typo in Huntress)
+ *   404  no workflow with a Huntress trigger has this address
  *   401  no signing secret is saved yet, or the signature does not verify;
- *        a delivery refused before the secret is saved goes through on a
+ *        a request refused before the secret is saved goes through on a
  *        retry once it is
  *   400  the body is not a Huntress event
  *   413  the body is larger than any Huntress event
- *   503  another delivery of the same report is being handled
- *   500  the report could not be handled (no incident severity in the
- *        project, the database unavailable): retried
- *   200  handled, or an event that is not about an incident report
- *        (escalations, platform actions, account notices), acknowledged
+ *   503  the workflow is off (Huntress sends the event again, and it gets
+ *        through once the workflow is on), or OneUptime cannot accept
+ *        events right now
+ *   403  the project is blocked
+ *   500  the run could not be started: retried
+ *   200  the run is started, or nothing is to be done: an event that is not
+ *        about an incident report (escalations, platform actions, account
+ *        notices), a report from an organization the workflow leaves out,
+ *        or an event that already started the workflow
  *
- * Only the bytes that were signed are acted on: the body is parsed from
- * the raw request text the signature covers, never from what the JSON
- * parser in front of the route made of it.
+ * Only the bytes that were signed are acted on: the body is parsed from the
+ * raw request text the signature covers, never from what the JSON parser in
+ * front of the route made of it.
  *
- * Why a request was refused is kept on the connection (lastError), at most
- * once a minute for the same reason, so a stream of bad requests cannot
- * keep the row busy; the connection's page shows it.
+ * Each event starts one run. Svix sends an event again when it was not
+ * answered in time, and Huntress can resend one by hand: the event's id
+ * (svix-id) is remembered for a week, so a second delivery of it starts
+ * nothing more.
+ *
+ * What the last request did is kept on the workflow - when one was last
+ * accepted, and why one was refused (at most once a minute for the same
+ * reason, so a stream of bad requests cannot keep the row busy) - so the
+ * trigger's settings in the Builder can say whether Huntress reaches it.
  */
 
 export const HUNTRESS_MAX_BODY_LENGTH: number = 5 * 1024 * 1024;
 export const HUNTRESS_ERROR_RECORD_INTERVAL_MS: number = 60 * 1000;
+export const HUNTRESS_DELIVERY_REMEMBERED_FOR_SECONDS: number =
+  OneUptimeDate.getSecondsInDays(7);
+export const HUNTRESS_DELIVERY_CACHE_NAMESPACE: string =
+  "huntress-workflow-delivery";
+
+// The longest key looked up: a webhook secret key is a uuid.
+const MAX_KEY_LENGTH: number = 500;
+
+export const HUNTRESS_NO_WORKFLOW_MESSAGE: string =
+  "No Huntress workflow has this address.";
 
 export const HUNTRESS_NO_SIGNING_SECRET_MESSAGE: string =
-  "A request arrived but was refused, because no signing secret is saved for this connection yet. In Huntress, open the endpoint's menu (⋯), choose View Signing Secret, and save it here. Huntress sends the refused request again.";
+  "A request arrived but was refused, because no signing secret is saved for this workflow yet. In Huntress, open the endpoint's menu (⋯), choose View Signing Secret, and save it in the workflow's Huntress trigger. Huntress sends the refused request again.";
+
+export const HUNTRESS_WORKFLOW_OFF_MESSAGE: string =
+  "A request arrived while this workflow is off, so it started nothing. Turn the workflow on: Huntress sends the request again.";
+
+export const HUNTRESS_NO_BODY_MESSAGE: string =
+  "The request has no JSON body. Huntress sends every event as JSON.";
+
+export const HUNTRESS_BODY_TOO_LARGE_MESSAGE: string =
+  "The request body is larger than any Huntress event, so it was refused.";
+
+export const HUNTRESS_INVALID_JSON_MESSAGE: string =
+  "The request body is not valid JSON.";
+
+export const HUNTRESS_NOT_AN_INCIDENT_REPORT_MESSAGE: string =
+  "Received. Only incident report events start this workflow, so this event changes nothing.";
+
+export const HUNTRESS_ORGANIZATION_NOT_WATCHED_MESSAGE: string =
+  "Received. The report's organization is not in this workflow's Only These Organizations, so it started nothing.";
+
+export const HUNTRESS_DUPLICATE_MESSAGE: string =
+  "Received before. This event already started the workflow, so it starts nothing more.";
+
+// Said in the installation's own name (ProductBrandingText), as everything the server writes.
+export function getHuntressUnavailableMessage(): string {
+  return `${ProductBrandingText.getProductName()} cannot take Huntress events right now. Huntress sends this one again.`;
+}
+
+export const HUNTRESS_NOT_STARTED_MESSAGE: string =
+  "The workflow could not be started. Huntress sends the event again.";
 
 type HeaderValue = string | Array<string> | undefined;
 
+export type ExecuteHuntressWorkflowFunction = (
+  executeWorkflow: ExecuteWorkflowType,
+) => Promise<void>;
+
 export interface HuntressWebhookRequest {
-  connectionId: string | undefined;
+  // The last part of the URL: the workflow's webhook secret key.
+  secretKey: string | undefined;
   headers: Record<string, HeaderValue>;
   // The request body exactly as it was sent.
   rawBody: string | undefined;
+  // Starts the run: the workflow service's queue.
+  executeWorkflow: ExecuteHuntressWorkflowFunction;
   now?: Date | undefined;
 }
 
@@ -69,79 +139,88 @@ function answer(statusCode: number, body: JSONObject): HuntressWebhookAnswer {
   return { statusCode, body };
 }
 
+/*
+ * The workflow as the handler reads it: its id and project, whether it
+ * runs, its trigger and that trigger's settings, its signing secret
+ * (decrypted) and what the last request left on it.
+ */
+const WORKFLOW_SELECT: Record<string, boolean> = {
+  _id: true,
+  projectId: true,
+  isEnabled: true,
+  isArchived: true,
+  triggerId: true,
+  triggerArguments: true,
+  webhookSigningSecret: true,
+  lastWebhookError: true,
+  lastWebhookErrorAt: true,
+};
+
 export default class HuntressWebhookHandler {
   public static async handle(
     request: HuntressWebhookRequest,
   ): Promise<HuntressWebhookAnswer> {
     const now: Date = request.now || OneUptimeDate.getCurrentDate();
-    const connectionId: string = (request.connectionId || "").trim();
+    const secretKey: string = (request.secretKey || "").trim();
 
-    if (!connectionId || !ObjectID.isValidUUID(connectionId)) {
-      return answer(404, {
-        message: "No Huntress connection has this address.",
-      });
+    if (!secretKey || secretKey.length > MAX_KEY_LENGTH) {
+      return answer(404, { message: HUNTRESS_NO_WORKFLOW_MESSAGE });
     }
 
-    const connection: HuntressConnection | null =
-      await HuntressConnectionService.findOneById({
-        id: new ObjectID(connectionId),
-        select: {
-          ...HuntressIncidentReportProcessor.CONNECTION_SELECT,
-          signingSecret: true,
-          lastError: true,
-          lastErrorAt: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const workflow: Workflow | null = await WorkflowService.findOneBy({
+      query: {
+        webhookSecretKey: secretKey,
+      },
+      select: WORKFLOW_SELECT as never,
+      props: {
+        isRoot: true,
+      },
+    });
 
-    if (!connection || !connection.id) {
-      return answer(404, {
-        message: "No Huntress connection has this address.",
-      });
+    if (
+      !workflow ||
+      !workflow.id ||
+      !workflow.projectId ||
+      workflow.isArchived ||
+      workflow.triggerId !== ComponentID.HuntressIncidentReport
+    ) {
+      return answer(404, { message: HUNTRESS_NO_WORKFLOW_MESSAGE });
     }
 
-    if (!connection.signingSecret) {
-      await this.recordError(
-        connection,
+    if (!workflow.webhookSigningSecret) {
+      return await this.refuse(
+        workflow,
+        401,
         HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
         now,
       );
-
-      return answer(401, { message: HUNTRESS_NO_SIGNING_SECRET_MESSAGE });
     }
 
     const rawBody: string | undefined = request.rawBody;
 
     if (!rawBody) {
-      const message: string =
-        "The request has no JSON body. Huntress sends every event as JSON.";
-      await this.recordError(connection, message, now);
-
-      return answer(400, { message });
+      return await this.refuse(workflow, 400, HUNTRESS_NO_BODY_MESSAGE, now);
     }
 
     if (rawBody.length > HUNTRESS_MAX_BODY_LENGTH) {
-      const message: string =
-        "The request body is larger than any Huntress event, so it was refused.";
-      await this.recordError(connection, message, now);
-
-      return answer(413, { message });
+      return await this.refuse(
+        workflow,
+        413,
+        HUNTRESS_BODY_TOO_LARGE_MESSAGE,
+        now,
+      );
     }
 
     const verification: StandardWebhookVerification =
       StandardWebhookSignature.verify({
-        secret: connection.signingSecret,
+        secret: workflow.webhookSigningSecret,
         headers: StandardWebhookSignature.readHeaders(request.headers),
         body: rawBody,
         now,
       });
 
     if (!verification.verified) {
-      await this.recordError(connection, verification.message, now);
-
-      return answer(401, { message: verification.message });
+      return await this.refuse(workflow, 401, verification.message, now);
     }
 
     let body: unknown;
@@ -149,96 +228,189 @@ export default class HuntressWebhookHandler {
     try {
       body = JSON.parse(rawBody);
     } catch {
-      const message: string = "The request body is not valid JSON.";
-      await this.recordError(connection, message, now);
-
-      return answer(400, { message });
+      return await this.refuse(
+        workflow,
+        400,
+        HUNTRESS_INVALID_JSON_MESSAGE,
+        now,
+      );
     }
 
     const parsed: ParsedHuntressWebhook = parseHuntressWebhook(body);
 
     if (parsed.kind === "invalid") {
-      await this.recordError(connection, parsed.reason, now);
-
-      return answer(400, { message: parsed.reason });
+      return await this.refuse(workflow, 400, parsed.reason, now);
     }
 
     if (parsed.kind === "not-an-incident-report") {
-      await this.recordEvent(connection, parsed.eventType, now);
+      await this.recordAccepted(workflow, now);
 
       return answer(200, {
         received: true,
         eventType: parsed.eventType,
-        message:
-          "Received. Only incident report events open incidents, so this event changes nothing.",
+        message: HUNTRESS_NOT_AN_INCIDENT_REPORT_MESSAGE,
       });
     }
 
-    let result: HuntressReportResult;
+    const event: HuntressIncidentReportEvent = parsed.event;
+    const triggerEvent: HuntressTriggerEvent = getHuntressTriggerEvent(event);
+
+    if (!this.isOrganizationWatched(workflow, event)) {
+      await this.recordAccepted(workflow, now);
+
+      return answer(200, {
+        received: true,
+        event: triggerEvent,
+        reportId: event.reportId,
+        skipped: true,
+        message: HUNTRESS_ORGANIZATION_NOT_WATCHED_MESSAGE,
+      });
+    }
+
+    /*
+     * Off pauses the trigger: the event is refused, so Huntress sends it
+     * again, and it gets through once the workflow is turned on. Checked
+     * after the signature, so a request that is not Huntress's learns
+     * nothing about the workflow.
+     */
+    if (!workflow.isEnabled) {
+      return await this.refuse(
+        workflow,
+        503,
+        HUNTRESS_WORKFLOW_OFF_MESSAGE,
+        now,
+      );
+    }
+
+    const deliveryKey: string = `${workflow.id.toString()}:${verification.messageId}`;
+    let isFirstDelivery: boolean;
 
     try {
-      result = await HuntressIncidentReportProcessor.process({
-        settings: HuntressIncidentReportProcessor.getSettings(connection),
-        event: parsed.event,
-        messageId: verification.messageId,
-        now,
+      isFirstDelivery = await GlobalCache.setStringIfNotExists(
+        HUNTRESS_DELIVERY_CACHE_NAMESPACE,
+        deliveryKey,
+        now.toISOString(),
+        { expiresInSeconds: HUNTRESS_DELIVERY_REMEMBERED_FOR_SECONDS },
+      );
+    } catch (err) {
+      logger.error(
+        `HuntressWebhookHandler: could not check whether workflow ${workflow.id.toString()} already received event ${verification.messageId}: ${err}`,
+      );
+
+      return answer(503, { message: getHuntressUnavailableMessage() });
+    }
+
+    if (!isFirstDelivery) {
+      await this.recordAccepted(workflow, now);
+
+      return answer(200, {
+        received: true,
+        event: triggerEvent,
+        reportId: event.reportId,
+        duplicate: true,
+        message: HUNTRESS_DUPLICATE_MESSAGE,
+      });
+    }
+
+    try {
+      await request.executeWorkflow({
+        workflowId: new ObjectID(workflow.id.toString()),
+        returnValues: getHuntressDeliveryValues({ event, receivedAt: now }),
       });
     } catch (err) {
-      if (err instanceof HuntressReportBusyException) {
-        return answer(503, { message: err.message });
+      // Not started: the next delivery of this event must be able to start it.
+      await this.forgetDelivery(deliveryKey);
+
+      if (err instanceof ProjectBlockedException) {
+        return answer(403, { message: err.message });
       }
 
       logger.error(
-        `HuntressWebhookHandler: connection ${connection.id.toString()} could not handle incident report ${parsed.event.reportId}:`,
+        `HuntressWebhookHandler: could not start workflow ${workflow.id.toString()} for incident report ${event.reportId}:`,
       );
       logger.error(err);
 
       const message: string =
         err instanceof BadDataException
           ? err.message
-          : `Incident report ${parsed.event.reportId} could not be handled. Huntress will send it again.`;
+          : HUNTRESS_NOT_STARTED_MESSAGE;
 
-      await this.recordError(connection, message, now);
-
-      return answer(500, { message });
+      return await this.refuse(workflow, 500, message, now);
     }
 
-    await this.recordEvent(connection, parsed.event.eventType, now);
+    await this.recordAccepted(workflow, now);
 
     return answer(200, {
       received: true,
-      eventType: parsed.event.eventType,
-      reportId: parsed.event.reportId,
-      action: result.action,
-      outcome: result.outcome,
-      incidentId: result.incidentId ? result.incidentId.toString() : null,
+      event: triggerEvent,
+      reportId: event.reportId,
+      status: "Scheduled",
     });
   }
 
-  // A request that verified: when, what, and nothing wrong any more.
-  private static async recordEvent(
-    connection: HuntressConnection,
-    eventType: string,
+  /*
+   * Whether the trigger's Only These Organizations lets the report through.
+   * Empty lets every organization's reports through.
+   */
+  public static isOrganizationWatched(
+    workflow: Pick<Workflow, "triggerArguments">,
+    event: HuntressIncidentReportEvent,
+  ): boolean {
+    const setting: unknown =
+      workflow.triggerArguments?.[HuntressTriggerSetting.Organizations];
+
+    return isHuntressOrganizationWatched({
+      filter: parseHuntressOrganizationFilter(
+        typeof setting === "string" ? setting : "",
+      ),
+      organization: event.organization,
+    });
+  }
+
+  private static async forgetDelivery(deliveryKey: string): Promise<void> {
+    try {
+      await GlobalCache.deleteKey(
+        HUNTRESS_DELIVERY_CACHE_NAMESPACE,
+        deliveryKey,
+      );
+    } catch (err) {
+      logger.error(
+        `HuntressWebhookHandler: could not forget a delivery that started nothing: ${err}`,
+      );
+    }
+  }
+
+  // Refuse the request, and say why on the workflow.
+  private static async refuse(
+    workflow: Workflow,
+    statusCode: number,
+    message: string,
+    now: Date,
+  ): Promise<HuntressWebhookAnswer> {
+    await this.recordError(workflow, message, now);
+
+    return answer(statusCode, { message });
+  }
+
+  // A request that verified: when, and nothing wrong any more.
+  private static async recordAccepted(
+    workflow: Workflow,
     now: Date,
   ): Promise<void> {
     try {
-      await HuntressConnectionService.updateOneById({
-        id: connection.id!,
+      await WorkflowService.updateColumnsByIdWithoutHooks({
+        id: workflow.id!,
         data: {
-          lastEventReceivedAt: now,
-          lastEventType: eventType.slice(0, 100),
-          lastError: null,
-          lastErrorAt: null,
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
+          lastWebhookRequestAt: now,
+          lastWebhookError: null,
+          lastWebhookErrorAt: null,
+        } as never,
+        skipUpdateDateColumn: true,
       });
     } catch (err) {
       // The event was handled; failing to note when is not worth a retry.
       logger.error(
-        `HuntressWebhookHandler: could not record the last event of connection ${connection.id?.toString()}: ${err}`,
+        `HuntressWebhookHandler: could not record the last request of workflow ${workflow.id?.toString()}: ${err}`,
       );
     }
   }
@@ -248,16 +420,16 @@ export default class HuntressWebhookHandler {
    * minute.
    */
   private static async recordError(
-    connection: HuntressConnection,
+    workflow: Workflow,
     message: string,
     now: Date,
   ): Promise<void> {
-    const lastErrorAt: Date | undefined = connection.lastErrorAt
-      ? new Date(connection.lastErrorAt)
+    const lastErrorAt: Date | undefined = workflow.lastWebhookErrorAt
+      ? new Date(workflow.lastWebhookErrorAt)
       : undefined;
 
     if (
-      connection.lastError === message &&
+      workflow.lastWebhookError === message &&
       lastErrorAt &&
       now.getTime() - lastErrorAt.getTime() < HUNTRESS_ERROR_RECORD_INTERVAL_MS
     ) {
@@ -265,20 +437,17 @@ export default class HuntressWebhookHandler {
     }
 
     try {
-      await HuntressConnectionService.updateOneById({
-        id: connection.id!,
+      await WorkflowService.updateColumnsByIdWithoutHooks({
+        id: workflow.id!,
         data: {
-          lastError: message,
-          lastErrorAt: now,
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
+          lastWebhookError: message,
+          lastWebhookErrorAt: now,
+        } as never,
+        skipUpdateDateColumn: true,
       });
     } catch (err) {
       logger.error(
-        `HuntressWebhookHandler: could not record an error on connection ${connection.id?.toString()}: ${err}`,
+        `HuntressWebhookHandler: could not record an error on workflow ${workflow.id?.toString()}: ${err}`,
       );
     }
   }

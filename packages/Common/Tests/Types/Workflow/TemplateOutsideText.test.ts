@@ -39,19 +39,38 @@
  */
 
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
+import HuntressSeverity from "../../../Types/Huntress/HuntressSeverity";
+import {
+  HuntressIncidentReportEvent,
+  ParsedHuntressWebhook,
+  parseHuntressWebhook,
+} from "../../../Types/Huntress/HuntressWebhook";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import {
+  HuntressTriggerValue,
+  getHuntressTriggerEvent,
+  getHuntressTriggerValues,
+} from "../../../Types/Workflow/HuntressTrigger";
+import {
+  HUNTRESS_INCIDENT_TEMPLATE_ID,
+  HUNTRESS_TRIGGER_COMPONENT_ID,
   ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER,
   ONEUPTIME_SYNCED_FROM_JIRA_MARKER,
   getTemplateGraphSpec,
   getWorkflowTemplates,
 } from "../../../Types/Workflow/Templates";
+import { getHuntressReportPortalUrl } from "../../../Utils/Huntress/HuntressIncidentReportText";
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { decodeHtmlEntities } from "../../Helpers/HtmlText";
 import { renderAsDashboard } from "../../Utils/Markdown/DashboardMarkdownRenderer";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
+import {
+  getHuntressClosedBody,
+  getHuntressCommentBody,
+  getHuntressIncidentReportBody,
+} from "../Huntress/HuntressWebhookFixtures";
 import {
   CASE_ID,
   CASE_NUMBER,
@@ -945,6 +964,31 @@ const DATA_OUTPUTS: Record<string, string> = {
   "stateId -> alertStateId": "the id of one of the project's own states",
 };
 
+/*
+ * Every output a template writes into a record that its trigger handed it.
+ * The Huntress trigger places what came from Huntress before any step reads
+ * it (Utils/Huntress/HuntressIncidentReportText: names as text with mdText,
+ * the analyst's summary and comments as outside Markdown), checked below;
+ * the rest is data the trigger reads or works out.
+ */
+const HUNTRESS_TRIGGER: string = `${HUNTRESS_INCIDENT_TEMPLATE_ID} ${HUNTRESS_TRIGGER_COMPONENT_ID}`;
+
+const TRIGGER_PLACED_OUTPUTS: Array<string> = [
+  `${HUNTRESS_TRIGGER} incident-title -> title`,
+  `${HUNTRESS_TRIGGER} incident-description -> description`,
+  `${HUNTRESS_TRIGGER} note -> note`,
+  `${HUNTRESS_TRIGGER} note -> rootCause`,
+];
+
+const TRIGGER_DATA_OUTPUTS: Record<string, string> = {
+  [`${HUNTRESS_TRIGGER} incident-severity-id -> incidentSeverityId`]:
+    "the id of one of the project's own severities, which the trigger picks",
+  [`${HUNTRESS_TRIGGER} organization-label-id -> labels._id`]:
+    "the id of the project's label the trigger finds or makes",
+  [`${HUNTRESS_TRIGGER} report-id -> customFields.huntressReportId`]:
+    "the report's number, which the payload reader takes as digits only",
+};
+
 // A reference to another step's output: its component and the path of the value.
 const STEP_OUTPUT_REFERENCE: RegExp =
   /\{\{local\.components\.([A-Za-z0-9-]+)\.returnValues\.([A-Za-z0-9_.-]+)\}\}/g;
@@ -1044,6 +1088,16 @@ describe("every output a template writes into a record", () => {
           );
         }
 
+        const writtenByTrigger: string = `${entry.templateId} ${entry.component} ${entry.output} -> ${entry.column}`;
+
+        // What the trigger placed, or read, itself.
+        if (
+          TRIGGER_PLACED_OUTPUTS.includes(writtenByTrigger) ||
+          TRIGGER_DATA_OUTPUTS[writtenByTrigger] !== undefined
+        ) {
+          return false;
+        }
+
         // A record a find step read back from OneUptime.
         return entry.output !== "model._id";
       })
@@ -1065,6 +1119,22 @@ describe("every output a template writes into a record", () => {
       PLACED_OUTPUTS.filter((output: string): boolean => {
         return !writtenText.includes(output);
       }),
+    ).toEqual([]);
+  });
+
+  test("every trigger output these tests place or read is written by its template", () => {
+    const writtenByTriggers: Array<string> = written.map(
+      (entry: WrittenOutput): string => {
+        return `${entry.templateId} ${entry.component} ${entry.output} -> ${entry.column}`;
+      },
+    );
+
+    expect(
+      [...TRIGGER_PLACED_OUTPUTS, ...Object.keys(TRIGGER_DATA_OUTPUTS)].filter(
+        (output: string): boolean => {
+          return !writtenByTriggers.includes(output);
+        },
+      ),
     ).toEqual([]);
   });
 
@@ -1929,6 +1999,107 @@ describe("no text written from outside holds anything a renderer acts on", () =>
         return reading.dashboardImage && reading.dashboardDiagram;
       }).length,
     ).toBeGreaterThanOrEqual(6);
+  });
+});
+
+/* ------------------------------ Huntress -> OneUptime ------------------------------ */
+
+/*
+ * What the Huntress trigger hands its template to write, given the outside
+ * text above in every part of a report that came from outside: the
+ * subject, the summary, the organization's and the account's names, the
+ * platform, a comment and the status a report is closed with.
+ */
+function huntressEvent(body: JSONObject): HuntressIncidentReportEvent {
+  const parsed: ParsedHuntressWebhook = parseHuntressWebhook(body);
+
+  if (parsed.kind !== "incident-report") {
+    throw new Error(`Not an incident report: ${JSON.stringify(parsed)}`);
+  }
+
+  return parsed.event;
+}
+
+function huntressValues(event: HuntressIncidentReportEvent): JSONObject {
+  return getHuntressTriggerValues({
+    event: event,
+    triggerEvent: getHuntressTriggerEvent(event),
+    severity: HuntressSeverity.Critical,
+    receivedAt: new Date("2026-10-09T04:30:00.000Z"),
+  });
+}
+
+describe("no text a Huntress report brings holds anything a renderer acts on", () => {
+  const outside: JSONObject = {
+    subject: `CRITICAL - Incident on ${HOSTILE_LINE} (${HOSTILE_LINE})`,
+    summary: HOSTILE_TEXT,
+    organization: { id: 4, name: HOSTILE_LINE },
+    account: { id: 5, name: HOSTILE_LINE },
+    platform: HOSTILE_LINE,
+  };
+
+  const report: HuntressIncidentReportEvent = huntressEvent(
+    getHuntressIncidentReportBody(outside),
+  );
+  const comment: HuntressIncidentReportEvent = huntressEvent(
+    getHuntressCommentBody(HOSTILE_TEXT, outside),
+  );
+  const closed: HuntressIncidentReportEvent = huntressEvent(
+    getHuntressClosedBody({ ...outside, status: HOSTILE_LINE }),
+  );
+
+  const reportValues: JSONObject = huntressValues(report);
+  const ownLinks: Array<string> = [getHuntressReportPortalUrl(report) || ""];
+
+  const written: Array<[string, string]> = [
+    ["title", textOf(reportValues, HuntressTriggerValue.IncidentTitle)],
+    [
+      "description",
+      textOf(reportValues, HuntressTriggerValue.IncidentDescription),
+    ],
+    [
+      "the note of a comment",
+      textOf(huntressValues(comment), HuntressTriggerValue.Note),
+    ],
+    [
+      "the note of a close",
+      textOf(huntressValues(closed), HuntressTriggerValue.Note),
+    ],
+  ];
+
+  test("each part a text is made from was given outside markup", () => {
+    // So the check below is not passing on text that never held any.
+    for (const value of [
+      report.subject,
+      report.summary,
+      report.organization.name,
+      comment.comment,
+      closed.status,
+    ]) {
+      const reading: Reading = readingsOf([value || ""], [])[0]!;
+
+      expect({ value, acted: reading.tagStart || reading.images > 0 }).toEqual({
+        value,
+        acted: true,
+      });
+    }
+  });
+
+  test("marked, the dashboard and Slack read no HTML, image, diagram, mention or link that hides where it goes, and no '<' starts anything", () => {
+    const readings: Array<Reading> = readingsOf(
+      written.map((entry: [string, string]): string => {
+        return entry[1];
+      }),
+      ownLinks,
+    );
+
+    readings.forEach((reading: Reading, index: number): void => {
+      expect({ name: written[index]![0], ...reading }).toEqual({
+        name: written[index]![0],
+        text: reading.text,
+        ...NOTHING_ACTS,
+      });
+    });
   });
 });
 

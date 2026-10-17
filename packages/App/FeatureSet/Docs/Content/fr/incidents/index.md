@@ -60,7 +60,7 @@ Cinq chemins mènent au même objet :
 - **Par l'API** — `POST /api/incident` avec une clé d'API. Le serveur renseigne pour vous `declaredAt`, l'état de création et le numéro d'incident.
 - **Via un formulaire** — une personne extérieure à votre équipe remplit un formulaire que vous avez partagé sous forme de lien, sans compte OneUptime. L'incident est déclaré masqué sur les pages de statut, à partir du modèle d'incident du formulaire s'il en a un. Voir [Formulaires](/docs/forms/index).
 
-Les intégrations ouvrent aussi des incidents : [Huntress](/docs/integrations/huntress) transforme chaque rapport d'incident envoyé par son SOC en un incident, qui alerte les politiques d'astreinte que vous choisissez. Voir [Déclarer un incident](/docs/incidents/declaring-incidents) pour le détail champ par champ.
+Les workflows ouvrent aussi des incidents : le workflow [Huntress](/docs/integrations/huntress) transforme chaque rapport d'incident envoyé par son SOC en un incident, qui alerte la politique d'astreinte que vous choisissez. Voir [Déclarer un incident](/docs/incidents/declaring-incidents) pour le détail champ par champ.
 
 ### 2. Les bonnes personnes sont informées
 
@@ -160,11 +160,10 @@ Ouvrez **Incidents** depuis le menu **Produits** de la barre supérieure. Son me
 | **Épisodes**       | Les épisodes d'incident, une fonctionnalité de regroupement distincte avec ses propres pages.                                                                             |
 | **IA**             | **Analyses**, **Journaux**, **Paramètres** : ce que OneUptime AI a appris de vos incidents et tout ce qu'elle a fait pour eux, et ce qu'elle peut faire d'elle-même — avec les règles qui décident des incidents qu'elle examine et corrige. Voir [AI SRE](/docs/ai/ai-sre). |
 | **Espace de travail** | Les espaces de discussion que ce projet a connectés : **Slack**, **Microsoft Teams** ou les deux, chacun avec ses règles de notification pour les incidents. Si aucun n'est connecté, la section contient **Connecter Slack ou Teams**, une page qui présente les deux et explique comment les connecter. |
-| **Intégrations**   | Les outils qui ouvrent des incidents d'eux-mêmes : **Huntress**, dont les rapports d'incident deviennent des incidents qui alertent l'astreinte. Voir [Huntress](/docs/integrations/huntress). |
 | **Règles**         | Les moteurs de règles : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA**, **Reminder Rules**. |
 | **Paramètres**     | **État de l'incident**, **Gravité de l'incident**, **Modèles d'incident**, **Modèles de notes**, **Modèles de post-mortem**, **Champs personnalisés**, **Rôles d'incident**, **Mesures**, **Alertes liées**, **Appartenance aux épisodes**, **Numérotation**. |
 
-**Vue d'ensemble** et **Épisodes** sont ouvertes ; **IA**, **Espace de travail**, **Intégrations**, **Règles**, **Paramètres** et **Développeurs** sont repliées par défaut, pour que le menu s'ouvre sur les listes dont vous vous servez chaque jour. Cliquez sur le titre d'une section pour la déplier et trouver les pages dont parle le reste de cette documentation ; une section s'ouvre aussi d'elle-même dès que vous êtes sur l'une de ses pages. La configuration des incidents ne se trouve pas dans les paramètres du projet ; elle vit entièrement ici.
+**Vue d'ensemble** et **Épisodes** sont ouvertes ; **IA**, **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** sont repliées par défaut, pour que le menu s'ouvre sur les listes dont vous vous servez chaque jour. Cliquez sur le titre d'une section pour la déplier et trouver les pages dont parle le reste de cette documentation ; une section s'ouvre aussi d'elle-même dès que vous êtes sur l'une de ses pages. La configuration des incidents ne se trouve pas dans les paramètres du projet ; elle vit entièrement ici.
 
 La liste des incidents elle-même affiche **Numéro d'incident**, **Titre**, **État**, **Gravité**, **Ressources affectées**, **Déclaré**, **Durée**, **Étiquettes** et **Propriétaires**, avec une action groupée **Modifier l'état** pour en clore plusieurs d'un coup.
 

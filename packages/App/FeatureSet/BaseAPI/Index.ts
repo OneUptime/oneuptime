@@ -585,11 +585,6 @@ import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
-import HuntressConnectionAPI from "Common/Server/API/HuntressConnectionAPI";
-import HuntressIncidentReportService, {
-  Service as HuntressIncidentReportServiceType,
-} from "Common/Server/Services/HuntressIncidentReportService";
-import HuntressIncidentReport from "Common/Models/DatabaseModels/HuntressIncidentReport";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
 } from "Common/Server/Services/SecurityEventConnectionRunService";
@@ -3932,19 +3927,6 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityPlaybookRunAPI().getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new HuntressConnectionAPI().getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<HuntressIncidentReport, HuntressIncidentReportServiceType>(
-        HuntressIncidentReport,
-        HuntressIncidentReportService,
-      ).getRouter(),
     );
 
     app.use(

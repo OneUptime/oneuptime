@@ -1,3 +1,4 @@
+import HuntressTriggerPanel from "./HuntressTriggerPanel";
 import IncomingEmailTriggerPanel from "./IncomingEmailTriggerPanel";
 import ManualTriggerPanel from "./ManualTriggerPanel";
 import WebhookTriggerPanel from "./WebhookTriggerPanel";
@@ -12,6 +13,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { NodeDataProp } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import { WorkflowDocsPaths } from "../../../Types/Workflow/Documentation/DocumentationLinks";
+import { getHuntressTriggerUrl } from "../../../Types/Workflow/HuntressTrigger";
 import IncomingEmailTrigger from "../../../Types/Workflow/IncomingEmailTrigger";
 import {
   getWebhookTriggerUrl,
@@ -70,6 +72,10 @@ export type GetComponentPrimaryPanelFunction = (
  * The Incoming Email trigger has no settings either: it is opened for its
  * email address, which is shown, copied and reset the way the Webhook
  * trigger's URL is.
+ *
+ * The Huntress Incident Report trigger is opened to connect Huntress: its
+ * URL, the endpoint's signing secret, and whether Huntress reaches it. Its
+ * few settings are folded below.
  *
  * Every other step opens on its settings, so this returns null for it. A new
  * trigger whose address is the point of it adds a case here.
@@ -168,6 +174,31 @@ export const getComponentPrimaryPanel: GetComponentPrimaryPanelFunction = (
               : undefined
           }
           setupGuideUrl={`${DOCS_URL.toString()}${WorkflowDocsPaths.inboundEmailSetup}`}
+          isWorkflowOff={context.isWorkflowOff}
+        />
+      );
+    }
+    case ComponentID.HuntressIncidentReport: {
+      /*
+       * Its URL ends in the workflow's webhook secret key, so it is shown to
+       * the same people, but it starts nothing unless Huntress signed the
+       * request: no masking, and no reset to offer.
+       */
+      const canSeeUrl: boolean = context.canSeeWebhookSecretKey !== false;
+      const secretKey: string = canSeeUrl ? context.webhookSecretKey || "" : "";
+
+      return (
+        <HuntressTriggerPanel
+          workflowId={context.workflowId}
+          url={
+            secretKey
+              ? getHuntressTriggerUrl({
+                  workflowServiceUrl: WORKFLOW_URL.toString(),
+                  secretKey: secretKey,
+                })
+              : null
+          }
+          canSeeUrl={canSeeUrl}
           isWorkflowOff={context.isWorkflowOff}
         />
       );

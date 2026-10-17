@@ -52,7 +52,7 @@ import React, { ReactElement, useState } from "react";
  */
 const CREATE_NEW_TEMPLATES: Record<string, string> = {
   Add: translationKey("Add New {{itemName}}"),
-  // Connecting another product makes nothing new: "Connect Huntress".
+  // Connecting another product makes nothing new: "Connect vCenter".
   Connect: translationKey("Connect {{itemName}}"),
   Create: translationKey("Create New {{itemName}}"),
   Declare: translationKey("Declare New {{itemName}}"),
