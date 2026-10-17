@@ -30438,5 +30438,6 @@
   "The system this data source connects to.": "वह सिस्टम जिससे यह डेटा स्रोत जुड़ता है।",
   "The timezone the schedule's times are in.": "शेड्यूल के समय किस समय क्षेत्र में हैं।",
   "Whether each fix waits for someone to approve it.": "क्या हर सुधार किसी के अनुमोदन का इंतज़ार करता है।",
-  "Who fixes what this rule matches.": "इस नियम से मेल खाने वाली चीज़ें कौन ठीक करता है।"
+  "Who fixes what this rule matches.": "इस नियम से मेल खाने वाली चीज़ें कौन ठीक करता है।",
+  "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.": "अधूरा कटा का मतलब है कि वह टोकन सीमा तक पहुँच गया। फ़्लैग किया गया का मतलब है कि आपके ऐप की भेजी गई किसी जाँच ने उसे खराब बताया।"
 }

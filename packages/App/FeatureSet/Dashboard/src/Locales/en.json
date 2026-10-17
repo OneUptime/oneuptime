@@ -30438,5 +30438,6 @@
   "The system this data source connects to.": "The system this data source connects to.",
   "The timezone the schedule's times are in.": "The timezone the schedule's times are in.",
   "Whether each fix waits for someone to approve it.": "Whether each fix waits for someone to approve it.",
-  "Who fixes what this rule matches.": "Who fixes what this rule matches."
+  "Who fixes what this rule matches.": "Who fixes what this rule matches.",
+  "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.": "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad."
 }

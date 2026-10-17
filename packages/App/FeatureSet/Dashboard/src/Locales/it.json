@@ -30438,5 +30438,6 @@
   "The system this data source connects to.": "Il sistema a cui si collega questa origine dati.",
   "The timezone the schedule's times are in.": "Il fuso orario degli orari della pianificazione.",
   "Whether each fix waits for someone to approve it.": "Se ogni correzione attende l'approvazione di qualcuno.",
-  "Who fixes what this rule matches.": "Chi risolve ciò che questa regola individua."
+  "Who fixes what this rule matches.": "Chi risolve ciò che questa regola individua.",
+  "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.": "Troncato significa che ha raggiunto il limite di token. Segnalato significa che una valutazione inviata dalla tua app l'ha giudicata problematica."
 }

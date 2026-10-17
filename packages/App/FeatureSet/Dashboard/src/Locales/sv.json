@@ -30438,5 +30438,6 @@
   "The system this data source connects to.": "Systemet som den här datakällan ansluter till.",
   "The timezone the schedule's times are in.": "Tidszonen som schemats tider anges i.",
   "Whether each fix waits for someone to approve it.": "Om varje korrigering väntar på att någon godkänner den.",
-  "Who fixes what this rule matches.": "Vem som åtgärdar det regeln matchar."
+  "Who fixes what this rule matches.": "Vem som åtgärdar det regeln matchar.",
+  "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.": "Avkortad betyder att det nådde tokengränsen. Flaggad betyder att en utvärdering som din app skickade markerade det som dåligt."
 }

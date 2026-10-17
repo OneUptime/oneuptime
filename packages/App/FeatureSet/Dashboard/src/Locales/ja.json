@@ -30438,5 +30438,6 @@
   "The system this data source connects to.": "このデータソースが接続するシステム。",
   "The timezone the schedule's times are in.": "スケジュールの時刻のタイムゾーン。",
   "Whether each fix waits for someone to approve it.": "各修正が誰かの承認を待つかどうか。",
-  "Who fixes what this rule matches.": "このルールに一致したものを誰が修正するか。"
+  "Who fixes what this rule matches.": "このルールに一致したものを誰が修正するか。",
+  "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.": "「途切れ」はトークン上限に達したこと、「フラグ付き」はアプリが送った評価で不適切とされたことを表します。"
 }

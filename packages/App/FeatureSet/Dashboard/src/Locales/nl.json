@@ -30438,5 +30438,6 @@
   "The system this data source connects to.": "Het systeem waarmee deze gegevensbron verbinding maakt.",
   "The timezone the schedule's times are in.": "De tijdzone van de tijden in het rooster.",
   "Whether each fix waits for someone to approve it.": "Of elke fix wacht tot iemand die goedkeurt.",
-  "Who fixes what this rule matches.": "Wie oplost wat deze regel vindt."
+  "Who fixes what this rule matches.": "Wie oplost wat deze regel vindt.",
+  "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.": "Afgekapt betekent dat het de tokenlimiet bereikte. Gemarkeerd betekent dat een evaluatie die uw app stuurde het als slecht markeerde."
 }

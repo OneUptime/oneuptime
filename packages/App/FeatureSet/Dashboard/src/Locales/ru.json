@@ -30438,5 +30438,6 @@
   "The system this data source connects to.": "Система, к которой подключается этот источник данных.",
   "The timezone the schedule's times are in.": "Часовой пояс, в котором указано время расписания.",
   "Whether each fix waits for someone to approve it.": "Ждёт ли каждое исправление чьего-то одобрения.",
-  "Who fixes what this rule matches.": "Кто исправляет то, что находит это правило."
+  "Who fixes what this rule matches.": "Кто исправляет то, что находит это правило.",
+  "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.": "«Оборван» — ответ достиг лимита токенов. «Помечен» — оценка, которую прислало ваше приложение, отметила его как плохой."
 }

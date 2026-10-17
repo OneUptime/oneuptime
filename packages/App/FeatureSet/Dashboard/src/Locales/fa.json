@@ -30438,5 +30438,6 @@
   "The system this data source connects to.": "سامانه‌ای که این منبع داده به آن متصل می‌شود.",
   "The timezone the schedule's times are in.": "منطقه زمانی که زمان‌های برنامه به آن هستند.",
   "Whether each fix waits for someone to approve it.": "اینکه هر اصلاح منتظر تأیید کسی بماند یا نه.",
-  "Who fixes what this rule matches.": "چه کسی آنچه را این قاعده پیدا می‌کند اصلاح می‌کند."
+  "Who fixes what this rule matches.": "چه کسی آنچه را این قاعده پیدا می‌کند اصلاح می‌کند.",
+  "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.": "نیمه‌کاره یعنی به سقف توکن رسیده است. علامت‌خورده یعنی ارزیابی‌ای که برنامه شما فرستاده آن را بد علامت زده است."
 }

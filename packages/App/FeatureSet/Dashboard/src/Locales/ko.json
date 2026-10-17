@@ -30438,5 +30438,6 @@
   "The system this data source connects to.": "이 데이터 소스가 연결하는 시스템입니다.",
   "The timezone the schedule's times are in.": "일정 시간이 표시되는 시간대입니다.",
   "Whether each fix waits for someone to approve it.": "각 수정이 누군가의 승인을 기다릴지 여부입니다.",
-  "Who fixes what this rule matches.": "이 규칙에 일치하는 항목을 누가 해결할지입니다."
+  "Who fixes what this rule matches.": "이 규칙에 일치하는 항목을 누가 해결할지입니다.",
+  "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.": "잘림은 토큰 한도에 도달했다는 뜻이고, 플래그됨은 앱이 보낸 평가에서 나쁜 답변으로 표시되었다는 뜻입니다."
 }

@@ -30438,5 +30438,6 @@
   "The system this data source connects to.": "此資料來源連線的系統。",
   "The timezone the schedule's times are in.": "排班時間所用的時區。",
   "Whether each fix waits for someone to approve it.": "每個修復是否需要等待有人核准。",
-  "Who fixes what this rule matches.": "由誰修復此規則符合到的問題。"
+  "Who fixes what this rule matches.": "由誰修復此規則符合到的問題。",
+  "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.": "「截斷」表示回答達到了 token 上限；「已標記」表示你的應用程式傳送的評估將其標為不佳。"
 }
