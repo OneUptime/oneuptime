@@ -776,22 +776,6 @@ const bucketAggregatedResultBySeries: (input: {
 };
 
 /**
- * Per-series aggregation path: fetch raw metric rows and bucket them
- * by (series fingerprint, minute bucket) in code. Returns an
- * AggregatedResult shaped identically to what `MetricService.aggregateBy`
- * would have produced with `GROUP BY time, attributes`.
- *
- * Why in-code instead of SQL GROUP BY: ClickHouse's parameterized
- * query returns 0 rows when the GROUP BY clause includes the nested
- * `attributes` Map column, even though running the exact same SQL
- * directly returns rows. This is a quirk of the @clickhouse/client
- * parameter binding for Map columns. Rather than work around the
- * library bug we fetch raw rows (just like the Kubernetes monitor
- * already does for its per-resource breakdown) and aggregate in JS.
- * For the realistic monitor shape — hundreds of hosts × ~60 samples
- * per minute — the extra work is negligible compared to a cron tick.
- */
-/**
  * When the UTC minute `time` falls in begins, in epoch milliseconds: the
  * instant `Date.UTC(year, month, day, hours, minutes)` of its UTC fields
  * names. From 1970 on that is the time floored to a multiple of 60,000 ms
@@ -828,6 +812,22 @@ export const getUtcMinuteStartMs: (time: Date) => number = (
   return bucketDate.getTime();
 };
 
+/**
+ * Per-series aggregation path: fetch raw metric rows and bucket them
+ * by (series fingerprint, minute bucket) in code. Returns an
+ * AggregatedResult shaped identically to what `MetricService.aggregateBy`
+ * would have produced with `GROUP BY time, attributes`.
+ *
+ * Why in-code instead of SQL GROUP BY: ClickHouse's parameterized
+ * query returns 0 rows when the GROUP BY clause includes the nested
+ * `attributes` Map column, even though running the exact same SQL
+ * directly returns rows. This is a quirk of the @clickhouse/client
+ * parameter binding for Map columns. Rather than work around the
+ * library bug we fetch raw rows (just like the Kubernetes monitor
+ * already does for its per-resource breakdown) and aggregate in JS.
+ * For the realistic monitor shape — hundreds of hosts × ~60 samples
+ * per minute — the extra work is negligible compared to a cron tick.
+ */
 export const aggregatePerSeriesFromRawMetrics: (input: {
   rawMetrics: Array<Metric>;
   attributeKeys: Array<string>;
