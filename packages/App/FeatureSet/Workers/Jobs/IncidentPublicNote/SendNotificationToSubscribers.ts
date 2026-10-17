@@ -17,7 +17,6 @@ import ProjectSmtpConfigService from "Common/Server/Services/ProjectSmtpConfigSe
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
-import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
@@ -735,29 +734,13 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                 logAttributes,
               );
 
-              /*
-               * On a public status page the SMS keeps the shorter manage link,
-               * which works there without signing in: an SMS is billed by the
-               * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
-               */
-              const smsUnsubscribeUrl: string =
-                StatusPageSubscriberUnsubscribe.buildSmsLink({
-                  isPublicStatusPage: statuspage.isPublicStatusPage,
-                  statusPageUrl: statusPageURL,
-                  subscriberId: subscriber.id!,
-                  unsubscribeUrl: unsubscribeUrl,
-                });
-
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                 // Use custom template only when custom Twilio is configured
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     smsTemplate.templateBody,
-                    {
-                      ...subscriberPlainTextTemplateVariables,
-                      unsubscribeUrl: smsUnsubscribeUrl,
-                    },
+                    subscriberPlainTextTemplateVariables,
                   );
                 await incidentTemplateVariables.recordFieldsUsedBy([
                   smsTemplate.templateBody,
@@ -772,7 +755,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                     })
                   : `Incident update: ${incident.title || "-"} on ${statusPageName}.`;
 
-                smsMessage = `${smsHeadline} ${copy.smsNoteSentence} Details: ${incidentDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
+                smsMessage = `${smsHeadline} ${copy.smsNoteSentence} Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
               }
 
               const sms: SMS = {

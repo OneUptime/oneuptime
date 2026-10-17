@@ -236,7 +236,10 @@
       "saved": "Your changes have been saved.",
       "submit": "Update Subscription",
       "unsubscribe": "Unsubscribe",
-      "unsubscribeDescription": "Please select this if you would like to unsubscribe from all resources."
+      "unsubscribeDescription": "Please select this if you would like to unsubscribe from all resources.",
+      "linkNotValid": "This link to manage your subscription has expired or is not valid. To get a new one, use Manage Existing Subscription on the Subscribe page.",
+      "getNewLink": "Get a new link",
+      "loadFailed": "We could not load this link. Please try again later."
     },
     "confirm": {
       "title": "Confirm Subscription",

@@ -296,6 +296,8 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
     { english: "Preferences", key: "subscribe.preferences.title" },
     { english: "Update Subscription", key: "subscribe.update.title" },
     { english: "Update Subscription", key: "subscribe.update.submit" },
+    // The manage page's way on from a link that has expired.
+    { english: "Get a new link", key: "subscribe.update.getNewLink" },
     { english: "Unsubscribe", key: "subscribe.update.unsubscribe" },
     { english: "Unsubscribe", key: "subscribe.unsubscribe.confirmButton" },
     { english: "Confirm Subscription", key: "subscribe.confirm.title" },
@@ -445,7 +447,6 @@ const PROSE: Record<string, Array<string>> = {
     "Maintenance calendar.",
   ],
   [SUBSCRIBERS]: [
-    "public",
     "Status",
     "One switch is not enough.",
     "A calendar instead.",

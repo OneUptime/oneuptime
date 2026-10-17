@@ -148,12 +148,11 @@ Go to **Settings > Secrets and variables > Actions** in your GitHub repository a
 
 Once all secrets are configured, push to the `release` branch. The workflow will:
 
-1. Build Docker images and run E2E tests (existing steps)
-2. Create a draft GitHub Release
-3. Build the Android APK (`mobile-app-android-deploy` job)
-4. Build the iOS IPA (`mobile-app-ios-deploy` job)
-5. Upload both binaries to the draft release
-6. Publish the release once both app jobs have finished. A failed app build does not hold the release back: it is published without that app, and the failed job shows in the run.
+1. Build the Android APK (`mobile-app-android-build` job) and the iOS IPA (`mobile-app-ios-build` job) as soon as the run starts, and keep them as artifacts of the run
+2. Build Docker images and run E2E tests (existing steps)
+3. Create a draft GitHub Release
+4. Attach both binaries to the draft release (`finalize-github-release` job)
+5. Publish the release, in the same job, once both app jobs have finished. A failed app build does not hold the release back: it is published without that app, and the failed job shows in the run. A binary that was built but could not be attached does hold it back, as a draft: re-run the failed jobs and it is attached and published.
 
 Check the **Actions** tab in GitHub to monitor each job. If a signing job fails, the error logs will usually indicate whether the issue is with the certificate, provisioning profile, or keystore.
 
