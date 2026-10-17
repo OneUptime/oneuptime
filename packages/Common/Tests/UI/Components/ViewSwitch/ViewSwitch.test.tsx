@@ -123,6 +123,56 @@ describe("ViewSwitch", () => {
     fireEvent.click(screen.getByTestId("switch-calendar"));
     expect(onChange).toHaveBeenCalledWith("calendar");
   });
+
+  test("options without an icon are words alone: Month | Week | Day in a calendar's toolbar", () => {
+    type Range = "month" | "week" | "day";
+
+    const ranges: ReadonlyArray<ViewSwitchOption<Range>> = [
+      { value: "month", label: "Month" },
+      { value: "week", label: "Week" },
+      { value: "day", label: "Day" },
+    ];
+
+    render(
+      <ViewSwitch<Range>
+        options={ranges}
+        value="week"
+        onChange={() => {}}
+        ariaLabel="Calendar range"
+        dataTestId="range"
+      />,
+    );
+
+    const group: HTMLElement = screen.getByRole("group", {
+      name: "Calendar range",
+    });
+
+    expect(group.querySelectorAll("svg")).toHaveLength(0);
+    expect(screen.getByTestId("range-week")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByTestId("range-week").className).toContain(
+      VIEW_SWITCH_ACTIVE_CLASS_NAME,
+    );
+    expect(screen.getByTestId("range-day")).toHaveTextContent("Day");
+
+    // The icons of the options that have one are still drawn.
+    cleanup();
+    render(
+      <ViewSwitch
+        options={OPTIONS}
+        value="list"
+        onChange={() => {}}
+        ariaLabel="Show the events as"
+        dataTestId="switch"
+      />,
+    );
+
+    expect(
+      screen.getByTestId("switch-list").querySelectorAll("svg"),
+    ).toHaveLength(1);
+  });
 });
 
 describe("RememberedView", () => {

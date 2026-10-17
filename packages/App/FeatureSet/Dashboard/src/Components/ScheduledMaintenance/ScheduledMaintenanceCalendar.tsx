@@ -1,4 +1,5 @@
 import {
+  MAINTENANCE_CALENDAR_FALLBACK_COLOR,
   MAINTENANCE_CALENDAR_VIEW_LIMIT,
   MaintenanceCalendarEvent,
   getInitialMonthRange,
@@ -26,8 +27,13 @@ import Button, {
 import Calendar, {
   DefaultCalendarView,
 } from "Common/UI/Components/Calendar/Calendar";
+import { CalendarEventAppearance } from "Common/UI/Components/Calendar/CalendarEventTone";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  getPillColors,
+  getPillDotStyle,
+} from "Common/UI/Components/Pill/PillColors";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -50,9 +56,11 @@ import { Link } from "react-router-dom";
  *
  * What a reader sees, and why:
  *
- *   - The month, every event a block in its state's colour, so what is
- *     coming up and what is under way stand apart at a glance; Week and Day
- *     for a closer look. Times are in the reader's own timezone.
+ *   - The month, every event a block in its state's colour - drawn soft, a
+ *     pale wash with a stripe of the colour, the way the list's state pills
+ *     are, so a month of black Scheduled blocks is not mostly black - so
+ *     what is coming up and what is under way stand apart at a glance; Week
+ *     and Day for a closer look. Times are in the reader's own timezone.
  *   - A block opens its event (a link a keyboard reaches); its tooltip says
  *     its state and when it runs.
  *   - A day still to come has a + in its corner, on hover, for whoever may
@@ -313,11 +321,20 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
             key={state.id?.toString() || state.name}
             className="flex items-center gap-1.5 text-xs text-gray-600"
           >
+            {/*
+             * The colour as a block's stripe draws it, in either theme:
+             * the Pill's dot (a black state's is lightened on the dark
+             * theme, where black would not show).
+             */}
             <span
               className="oneuptime-calendar-legend-dot h-2.5 w-2.5 flex-none rounded-full"
-              style={{
-                backgroundColor: state.color?.toString() || "#6b7280",
-              }}
+              data-ou-pill-dot=""
+              style={getPillDotStyle(
+                getPillColors(
+                  state.color?.toString() ||
+                    MAINTENANCE_CALENDAR_FALLBACK_COLOR,
+                ),
+              )}
               aria-hidden="true"
             ></span>
             {state.name}
@@ -355,14 +372,31 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div
-          className="relative"
-          aria-busy={isLoading}
-          data-loading={isLoading ? "true" : "false"}
-        >
+        <div aria-busy={isLoading} data-loading={isLoading ? "true" : "false"}>
           <Calendar
             id={`${SCHEDULED_MAINTENANCE_CALENDAR_ID}-grid`}
             events={calendarEvents}
+            eventAppearance={CalendarEventAppearance.Soft}
+            toolbarStatus={
+              isLoading ? (
+                /*
+                 * Beside the period's name, where the reader who just moved
+                 * to it looks; the grid stays as it was until the period's
+                 * events arrive.
+                 */
+                <span
+                  className="inline-flex items-center gap-1.5 text-xs text-gray-500"
+                  data-testid="scheduled-maintenance-calendar-loading"
+                  role="status"
+                >
+                  <Icon
+                    icon={IconProp.Spinner}
+                    className="h-3.5 w-3.5 animate-spin"
+                  />
+                  {translator.translateText("Loading events...")}
+                </span>
+              ) : undefined
+            }
             defaultCalendarView={DefaultCalendarView.Month}
             views={[
               DefaultCalendarView.Month,
@@ -378,19 +412,6 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
             renderEventContent={renderEventContent}
             renderDayAction={renderDayAction}
           />
-
-          {isLoading ? (
-            <div
-              className="pointer-events-none absolute right-3 top-16 flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600 shadow-sm ring-1 ring-gray-200"
-              data-testid="scheduled-maintenance-calendar-loading"
-              role="status"
-            >
-              <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-500"></span>
-              {translator.translateText("Loading events...")}
-            </div>
-          ) : (
-            <></>
-          )}
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">

@@ -30334,8 +30334,6 @@
   "The team's calendar link that puts every scheduled maintenance event of the project in a calendar app.": "The team's calendar link that puts every scheduled maintenance event of the project in a calendar app.",
   "There are no events in this range.": "There are no events in this range.",
   "This server does not offer calendar links for scheduled maintenance yet. Ask whoever runs it to upgrade OneUptime.": "This server does not offer calendar links for scheduled maintenance yet. Ask whoever runs it to upgrade OneUptime.",
-  "Turn off link": "Turn off link",
-  "Turn on link": "Turn on link",
   "What the colours mean": "What the colours mean",
   "maintenance calendar link": "maintenance calendar link",
   "{{start}} to {{end}}": "{{start}} to {{end}}",
@@ -30358,5 +30356,8 @@
   "Only requests signed with the endpoint's signing secret start this workflow.": "Only requests signed with the endpoint's signing secret start this workflow.",
   "Could not read what Huntress last sent.": "Could not read what Huntress last sent.",
   "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.",
-  "Turn the workflow on, and send a test": "Turn the workflow on, and send a test"
+  "Turn the workflow on, and send a test": "Turn the workflow on, and send a test",
+  "Calendar range": "Calendar range",
+  "Next day": "Next day",
+  "Previous day": "Previous day"
 }

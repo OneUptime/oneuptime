@@ -19,6 +19,7 @@ import CalendarElement, {
   getCalendarFormats,
   getCalendarMessages,
 } from "../../../../UI/Components/Calendar/Calendar";
+import { CALENDAR_VIEW_SWITCH_TEST_ID } from "../../../../UI/Components/Calendar/CalendarToolbar";
 import CalendarEvent from "../../../../Types/Calendar/CalendarEvent";
 import { createTranslator } from "../../../../UI/Utils/TranslateTemplate";
 
@@ -66,6 +67,10 @@ function renderMonth(props: {
 }
 
 describe("Calendar: the views the toolbar offers", () => {
+  function viewSwitch(): HTMLElement {
+    return screen.getByTestId(CALENDAR_VIEW_SWITCH_TEST_ID);
+  }
+
   test("only the views asked for, in their order", () => {
     renderMonth({
       views: [
@@ -75,14 +80,11 @@ describe("Calendar: the views the toolbar offers", () => {
       ],
     });
 
-    const toolbar: HTMLElement = document.querySelector(
-      ".rbc-toolbar",
-    ) as HTMLElement;
-    const viewButtons: Array<string> = Array.from(
-      toolbar.querySelectorAll(".rbc-btn-group:last-child button"),
-    ).map((button: Element) => {
-      return button.textContent || "";
-    });
+    const viewButtons: Array<string> = within(viewSwitch())
+      .getAllByRole("button")
+      .map((button: HTMLElement) => {
+        return button.textContent || "";
+      });
 
     expect(viewButtons).toEqual(["Month", "Week", "Day"]);
   });
@@ -90,11 +92,7 @@ describe("Calendar: the views the toolbar offers", () => {
   test("every view when none is asked for, as before", () => {
     renderMonth({});
 
-    expect(
-      within(document.querySelector(".rbc-toolbar") as HTMLElement).getByText(
-        "Agenda",
-      ),
-    ).toBeInTheDocument();
+    expect(within(viewSwitch()).getByText("Agenda")).toBeInTheDocument();
   });
 });
 

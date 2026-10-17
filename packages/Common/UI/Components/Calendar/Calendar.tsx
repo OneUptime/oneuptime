@@ -6,6 +6,15 @@ import StartAndEndTime from "../../../Types/Time/StartAndEndTime";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { StyledDayEvent, layoutDayEvents } from "./CalendarDayLayout";
+import {
+  CalendarEventAppearance,
+  getSoftEventStyle,
+  SOFT_EVENT_CLASS_NAME,
+} from "./CalendarEventTone";
+import {
+  CalendarToolbarStatusContext,
+  ConnectedCalendarToolbar,
+} from "./CalendarToolbar";
 import moment from "moment-timezone";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
@@ -253,6 +262,17 @@ export interface ComponentProps {
    * schedules something on that day. Null for a day without one.
    */
   renderDayAction?: ((date: Date) => ReactElement | null) | undefined;
+  /*
+   * How the blocks are painted (CalendarEventTone): solid in their colour,
+   * as people are on the on-call schedules (the default), or soft - a pale
+   * wash with a stripe of the colour - for colours that are states.
+   */
+  eventAppearance?: CalendarEventAppearance | undefined;
+  /*
+   * Drawn in the toolbar after the period's name: what the calendar is
+   * doing, such as "Loading events..." while a period is read.
+   */
+  toolbarStatus?: ReactElement | undefined;
 }
 
 export enum DefaultCalendarView {
@@ -316,7 +336,16 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
    * react-big-calendar does not remount every cell on each render.
    */
   const components: Components<CalendarEvent> = useMemo(() => {
-    const replaced: Components<CalendarEvent> = {};
+    /*
+     * The toolbar is always the product's own (CalendarToolbar). It is one
+     * component for the calendar's life, and reads what to say beside the
+     * period from a context: a new component whenever that changed would
+     * remount the toolbar, and take the focus off the arrow a keyboard just
+     * pressed.
+     */
+    const replaced: Components<CalendarEvent> = {
+      toolbar: ConnectedCalendarToolbar,
+    };
 
     const renderEventContent:
       | ((event: CalendarEvent) => ReactElement)
@@ -422,6 +451,22 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
     const backgroundColor: string =
       event.color?.toString() || Blue500.toString();
 
+    if (props.eventAppearance === CalendarEventAppearance.Soft) {
+      const softStyle: React.CSSProperties = {
+        ...getSoftEventStyle(backgroundColor),
+        borderRadius: "0.375rem",
+        border: "0px",
+        display: "block",
+      };
+
+      return {
+        style: softStyle,
+        className: className
+          ? `${className} ${SOFT_EVENT_CLASS_NAME}`
+          : SOFT_EVENT_CLASS_NAME,
+      };
+    }
+
     const computedTextColor: string =
       event.textColor?.toString() ||
       (Color.shouldUseDarkText(new Color(backgroundColor))
@@ -468,45 +513,47 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         hasAllDayEvents ? "" : " oneuptime-calendar--no-all-day"
       }`}
     >
-      <Calendar
-        defaultDate={defaultDate}
-        events={props.events}
-        backgroundEvents={props.backgroundEvents || []}
-        localizer={calendarLocalizer}
-        formats={formats}
-        dayLayoutAlgorithm={dayLayoutAlgorithm}
-        {...(props.getNow ? { getNow: props.getNow } : {})}
-        {...(props.onEventClick
-          ? {
-              onSelectEvent: (event: CalendarEvent): void => {
-                props.onEventClick?.(event);
-              },
+      <CalendarToolbarStatusContext.Provider value={props.toolbarStatus}>
+        <Calendar
+          defaultDate={defaultDate}
+          events={props.events}
+          backgroundEvents={props.backgroundEvents || []}
+          localizer={calendarLocalizer}
+          formats={formats}
+          dayLayoutAlgorithm={dayLayoutAlgorithm}
+          {...(props.getNow ? { getNow: props.getNow } : {})}
+          {...(props.onEventClick
+            ? {
+                onSelectEvent: (event: CalendarEvent): void => {
+                  props.onEventClick?.(event);
+                },
+              }
+            : {})}
+          components={components}
+          messages={messages}
+          showMultiDayTimes
+          views={views}
+          defaultView={props.defaultCalendarView || "week"}
+          eventPropGetter={eventStyleGetter}
+          tooltipAccessor={eventTooltipGetter}
+          popup
+          onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
+            if (Array.isArray(range)) {
+              return props.onRangeChange({
+                startTime: range[0] as Date,
+                endTime: OneUptimeDate.getEndOfDay(
+                  range[range.length - 1] as Date,
+                ),
+              });
             }
-          : {})}
-        components={components}
-        messages={messages}
-        showMultiDayTimes
-        views={views}
-        defaultView={props.defaultCalendarView || "week"}
-        eventPropGetter={eventStyleGetter}
-        tooltipAccessor={eventTooltipGetter}
-        popup
-        onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
-          if (Array.isArray(range)) {
-            return props.onRangeChange({
-              startTime: range[0] as Date,
-              endTime: OneUptimeDate.getEndOfDay(
-                range[range.length - 1] as Date,
-              ),
-            });
-          }
 
-          props.onRangeChange({
-            startTime: range.start,
-            endTime: range.end,
-          });
-        }}
-      />
+            props.onRangeChange({
+              startTime: range.start,
+              endTime: range.end,
+            });
+          }}
+        />
+      </CalendarToolbarStatusContext.Provider>
     </div>
   );
 };

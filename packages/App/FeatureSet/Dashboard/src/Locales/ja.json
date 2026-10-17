@@ -30334,8 +30334,6 @@
   "The team's calendar link that puts every scheduled maintenance event of the project in a calendar app.": "プロジェクトのすべての定期メンテナンスイベントをカレンダーアプリに表示する、チームのカレンダーリンクです。",
   "There are no events in this range.": "この期間にイベントはありません。",
   "This server does not offer calendar links for scheduled maintenance yet. Ask whoever runs it to upgrade OneUptime.": "このサーバーはまだ定期メンテナンスのカレンダーリンクに対応していません。管理者に OneUptime のアップグレードを依頼してください。",
-  "Turn off link": "リンクをオフにする",
-  "Turn on link": "リンクをオンにする",
   "What the colours mean": "色の意味",
   "maintenance calendar link": "メンテナンスのカレンダーリンク",
   "{{start}} to {{end}}": "{{start}} から {{end}}",
@@ -30358,5 +30356,8 @@
   "Only requests signed with the endpoint's signing secret start this workflow.": "このワークフローを開始できるのは、エンドポイントの署名シークレットで署名されたリクエストだけです。",
   "Could not read what Huntress last sent.": "Huntress が最後に送信した内容を読み込めませんでした。",
   "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "ビルダーの上部で {{switch}} をオンにします。次に、Huntress でエンドポイントの「Send Test」を選びます。数秒以内にここに表示されます。",
-  "Turn the workflow on, and send a test": "ワークフローをオンにして、テストを送信する"
+  "Turn the workflow on, and send a test": "ワークフローをオンにして、テストを送信する",
+  "Calendar range": "カレンダーの範囲",
+  "Next day": "翌日",
+  "Previous day": "前日"
 }

@@ -341,14 +341,14 @@ describe("MaintenanceCalendarSubscribeModal: a published link", () => {
     });
   });
 
-  test("an editor turns the link off through the model's own update", async () => {
+  test("an editor disables the link through the model's own update", async () => {
     getMock.mockResolvedValue(ok(statusJson()));
 
     renderDialog();
     await screen.findByTestId("maintenance-calendar-feed-active");
 
     fireEvent.click(
-      within(openManageMenu()).getByText("Turn off link").closest("button")!,
+      within(openManageMenu()).getByText("Disable link").closest("button")!,
     );
 
     await waitFor(() => {
@@ -377,7 +377,7 @@ describe("MaintenanceCalendarSubscribeModal: a published link", () => {
 
     const menu: HTMLElement = openManageMenu();
 
-    for (const label of ["Regenerate link", "Turn off link"]) {
+    for (const label of ["Regenerate link", "Disable link"]) {
       const item: HTMLElement = within(menu)
         .getByText(label)
         .closest("button")!;
@@ -390,8 +390,43 @@ describe("MaintenanceCalendarSubscribeModal: a published link", () => {
     }
 
     // A locked item does nothing.
-    fireEvent.click(within(menu).getByText("Turn off link").closest("button")!);
+    fireEvent.click(within(menu).getByText("Disable link").closest("button")!);
     expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("a disabled link: the menu and the Status panel offer it back in the same words, Enable link", async () => {
+    getMock.mockResolvedValue(ok(statusJson({ isEnabled: false })));
+
+    renderDialog();
+    await screen.findByTestId("maintenance-calendar-feed-active");
+
+    // The panel's own button, under its Disabled badge.
+    expect(
+      screen.getByTestId("maintenance-calendar-feed-status-pill"),
+    ).toHaveAttribute("data-health", "disabled");
+    expect(
+      screen.getByRole("button", { name: "Enable link" }),
+    ).toBeInTheDocument();
+
+    /*
+     * The menu's item reads the same: the on-call links' words, not a
+     * second pair of its own.
+     */
+    const menu: HTMLElement = openManageMenu();
+
+    expect(within(menu).getByText("Enable link")).toBeInTheDocument();
+    expect(within(menu).queryByText("Disable link")).not.toBeInTheDocument();
+    expect(within(menu).queryByText("Turn on link")).not.toBeInTheDocument();
+
+    fireEvent.click(within(menu).getByText("Enable link").closest("button")!);
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(
+      (updateByIdMock.mock.calls[0]![0] as Record<string, any>)["data"],
+    ).toEqual({ isEnabled: true });
   });
 
   test("Done closes the dialog", async () => {

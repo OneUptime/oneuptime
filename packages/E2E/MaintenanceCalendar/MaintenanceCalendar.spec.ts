@@ -9,13 +9,15 @@ import path from "path";
  * The maintainer's ask: "We currently do not have calendar views and
  * calendar feeds for scheduling events." What only a browser shows is
  * pinned here: List | Calendar at the end of the filter bar and the choice
- * kept across a reload; the month grid with each event a link in its
- * state's colour and today marked; a busy day's "+N more"; Week; moving
- * through the months; the + that schedules maintenance on a day still to
- * come (and nowhere else); a slow or failing read; the Subscribe to
- * calendar dialog - publish, copy, regenerate, turn off, a reader held to
- * some events; a phone's width with nothing scrolling sideways; the dark
- * theme; German and Japanese.
+ * kept across a reload; the month grid with each event a link drawn soft in
+ * its state's colour (a pale wash and a stripe, as the list's state pills)
+ * and today marked; a busy day's "+N more" and the list it opens; Week;
+ * the toolbar's Today and arrows moving through the months, by mouse and by
+ * keyboard; the + that schedules maintenance on a day still to come (and
+ * nowhere else); a slow or failing read; the Subscribe to calendar dialog -
+ * publish, copy, regenerate, disable, a reader held to some events; a
+ * phone's width with nothing scrolling sideways; the dark theme; German and
+ * Japanese.
  *
  * The screenshots under output/playwright/maintenance-calendar-ui are for
  * the people who review the page.
@@ -35,6 +37,12 @@ const FIRST_TOKEN: string = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCd0";
 const NEXT_TOKEN: string = "Zz9Yy8Xx7Ww6Vv5Uu4Tt3Ss2Rr1Qq0Pp-_OoNnMmLlK";
 
 const SHOW_MORE_PATTERN: RegExp = /^\+\d+ more$/;
+
+// A block drawn soft (Common's CalendarEventTone).
+const SOFT_BLOCK_PATTERN: RegExp = /oneuptime-calendar-event--soft/;
+
+// An event's own page.
+const EVENT_PAGE_PATTERN: RegExp = /\/scheduled-maintenance-events\//;
 
 // The + of 20 October, named for what it does.
 const SCHEDULE_ON_THE_20TH_PATTERN: RegExp = /^Schedule maintenance on .*20/;
@@ -93,6 +101,16 @@ async function calendarReads(page: Page): Promise<Array<FixtureRequest>> {
 
 function calendar(page: Page): Locator {
   return page.getByTestId("scheduled-maintenance-calendar");
+}
+
+// The period the toolbar names, beside its arrows (Common's CalendarToolbar).
+function periodLabel(page: Page): Locator {
+  return calendar(page).getByTestId("calendar-toolbar-label");
+}
+
+// A computed box-shadow's first shadow: "rgb(r, g, b) 3px 0px 0px 0px inset".
+function stripeOf(shadow: string): string {
+  return shadow.split(" inset,")[0]!.trim();
 }
 
 function eventLink(page: Page, title: string): Locator {
@@ -240,9 +258,7 @@ test.describe("the month", () => {
     await expect(calendar(page)).toBeVisible();
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
-    await expect(calendar(page).locator(".rbc-toolbar-label")).toHaveText(
-      "October 2026",
-    );
+    await expect(periodLabel(page)).toHaveText("October 2026");
 
     const reads: Array<FixtureRequest> = await calendarReads(page);
 
@@ -254,24 +270,35 @@ test.describe("the month", () => {
     });
     expect(reads[0]!.limit).toBe(500);
 
-    // An event in progress is drawn in Ongoing's amber, one coming up in Scheduled's black.
+    /*
+     * An event in progress is drawn in Ongoing's amber, one coming up in
+     * Scheduled's black - soft, as the list's state pills are: a pale wash
+     * of the colour, and a stripe of the colour itself down the left edge.
+     */
     const ongoing: Locator = eventBlock(page, "Network switch firmware");
     const scheduled: Locator = eventBlock(page, "Database upgrade");
 
-    expect(
-      channels(
-        await ongoing.evaluate((element: Element) => {
-          return getComputedStyle(element).backgroundColor;
-        }),
-      ),
-    ).toEqual([255, 191, 83]);
-    expect(
-      channels(
-        await scheduled.evaluate((element: Element) => {
-          return getComputedStyle(element).backgroundColor;
-        }),
-      ),
-    ).toEqual([0, 0, 0]);
+    for (const [block, stripe] of [
+      [ongoing, "rgb(255, 191, 83) 3px 0px 0px 0px"],
+      [scheduled, "rgb(0, 0, 0) 3px 0px 0px 0px"],
+    ] as Array<[Locator, string]>) {
+      await expect(block).toHaveClass(SOFT_BLOCK_PATTERN);
+
+      const style: { background: string; shadow: string } =
+        await block.evaluate((element: Element) => {
+          return {
+            background: getComputedStyle(element).backgroundColor,
+            shadow: getComputedStyle(element).boxShadow,
+          };
+        });
+
+      expect(stripeOf(style.shadow)).toBe(stripe);
+
+      // A pale block, whatever its colour: never a solid black or amber one.
+      for (const channel of channels(style.background)) {
+        expect(channel).toBeGreaterThan(200);
+      }
+    }
 
     // The event that started in September and ended in October is there too.
     await expect(eventLink(page, "Certificate rotation")).toBeVisible();
@@ -340,9 +367,52 @@ test.describe("the month", () => {
     await expect(more).toHaveText(SHOW_MORE_PATTERN);
 
     await shot(page, "month-busy-day");
+
+    /*
+     * The list it opens - drawn by react-big-calendar at the end of the
+     * page's body, outside the calendar - is a small card of the day's
+     * events as the grid draws them, and a day of sixty scrolls inside it
+     * rather than running off the top of the page.
+     */
+    await more.click();
+
+    const list: Locator = page.locator(".rbc-overlay");
+
+    await expect(list).toBeVisible();
+    await expect(list.locator(".rbc-overlay-header")).toHaveText(
+      "Thursday Oct 22",
+    );
+
+    const box: { y: number; height: number } | null = await list.boundingBox();
+
+    expect(box!.y).toBeGreaterThanOrEqual(0);
+    expect(box!.height).toBeLessThanOrEqual(321);
+    expect(
+      await list.evaluate((element: Element) => {
+        return {
+          overflowY: getComputedStyle(element).overflowY,
+          scrolls: element.scrollHeight > element.clientHeight,
+        };
+      }),
+    ).toEqual({ overflowY: "auto", scrolls: true });
+
+    // Its events are the grid's soft blocks, and links to their events.
+    const first: Locator = list.locator(".rbc-event").first();
+
+    await expect(first).toHaveClass(SOFT_BLOCK_PATTERN);
+    expect(
+      await first.evaluate((element: Element) => {
+        return getComputedStyle(element).fontSize;
+      }),
+    ).toBe("12px");
+    await expect(
+      first.getByTestId("scheduled-maintenance-calendar-event"),
+    ).toHaveAttribute("href", EVENT_PAGE_PATTERN);
+
+    await shot(page, "month-busy-day-list");
   });
 
-  test("Next and Back move through the months, asking for each", async ({
+  test("the arrows move through the months, asking for each, and Today comes back", async ({
     page,
   }: {
     page: Page;
@@ -350,11 +420,16 @@ test.describe("the month", () => {
     await open(page, "view=calendar");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
-    await calendar(page).getByRole("button", { name: "Next" }).click();
+    const next: Locator = calendar(page).getByRole("button", {
+      name: "Next month",
+    });
 
-    await expect(calendar(page).locator(".rbc-toolbar-label")).toHaveText(
-      "November 2026",
-    );
+    // Named on hover too.
+    await expect(next).toHaveAttribute("title", "Next month");
+
+    await next.click();
+
+    await expect(periodLabel(page)).toHaveText("November 2026");
     await expect(eventLink(page, "Kernel update")).toBeVisible();
 
     const reads: Array<FixtureRequest> = await calendarReads(page);
@@ -363,8 +438,98 @@ test.describe("the month", () => {
       greaterThanOrEqual: "2026-11-01T00:00:00.000Z",
     });
 
-    await calendar(page).getByRole("button", { name: "Back" }).click();
+    await calendar(page)
+      .getByRole("button", { name: "Previous month" })
+      .click();
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
+
+    await next.click();
+    await next.click();
+    await expect(periodLabel(page)).toHaveText("December 2026");
+
+    await calendar(page).getByRole("button", { name: "Today" }).click();
+    await expect(periodLabel(page)).toHaveText("October 2026");
+  });
+
+  test("a keyboard moves through the months with the arrow it is on, which keeps the focus while each month loads", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "view=calendar&delay=400");
+    await expect(eventLink(page, "Database upgrade")).toBeVisible({
+      timeout: 10000,
+    });
+
+    const next: Locator = calendar(page).getByRole("button", {
+      name: "Next month",
+    });
+
+    await next.focus();
+    await page.keyboard.press("Enter");
+
+    // Loading the month is said beside it, and the arrow still has the focus.
+    await expect(
+      calendar(page).getByTestId("scheduled-maintenance-calendar-loading"),
+    ).toBeVisible();
+    await expect(next).toBeFocused();
+
+    await page.keyboard.press("Enter");
+
+    await expect(periodLabel(page)).toHaveText("December 2026");
+    await expect(next).toBeFocused();
+    await expect(
+      page.getByTestId("scheduled-maintenance-calendar-loading"),
+    ).toHaveCount(0, { timeout: 10000 });
+    await expect(next).toBeFocused();
+  });
+
+  test("the toolbar is the product's own: Today and the arrows on the left, Month | Week | Day as the page's view switch", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "view=calendar");
+    await expect(eventLink(page, "Database upgrade")).toBeVisible();
+
+    const toolbar: Locator = calendar(page).getByTestId("calendar-toolbar");
+    const views: Locator = toolbar.getByRole("group", {
+      name: "Calendar range",
+    });
+
+    await expect(views.getByRole("button")).toHaveText([
+      "Month",
+      "Week",
+      "Day",
+    ]);
+    await expect(views.getByRole("button", { name: "Month" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    // react-big-calendar's own "Today | Back | Next" box is gone.
+    await expect(calendar(page).locator(".rbc-toolbar")).toHaveCount(0);
+
+    // Today, the arrows and the month read left to right on one line.
+    const today: { x: number; y: number } | null = await toolbar
+      .getByRole("button", { name: "Today" })
+      .boundingBox();
+    const label: { x: number; y: number } | null =
+      await periodLabel(page).boundingBox();
+    const switchBox: { x: number; y: number; width: number } | null =
+      await views.boundingBox();
+    const toolbarBox: { x: number; width: number } | null =
+      await toolbar.boundingBox();
+
+    expect(today!.x).toBeLessThan(label!.x);
+    expect(Math.abs(today!.y - label!.y)).toBeLessThan(12);
+
+    // The switch at the right end.
+    expect(
+      Math.abs(
+        switchBox!.x + switchBox!.width - (toolbarBox!.x + toolbarBox!.width),
+      ),
+    ).toBeLessThan(2);
   });
 
   test("Week shows the week's days hour by hour", async ({
@@ -588,7 +753,7 @@ test.describe("Subscribe to calendar", () => {
     ).toContain(`/project/${NEXT_TOKEN}/maintenance.ics`);
   });
 
-  test("an editor turns the link off, and the dialog says it is off", async ({
+  test("an editor disables the link, and the dialog says it is disabled", async ({
     page,
   }: {
     page: Page;
@@ -597,7 +762,7 @@ test.describe("Subscribe to calendar", () => {
     await openSubscribe(page);
 
     await page.getByRole("button", { name: "Manage link" }).click();
-    await page.getByRole("menu").getByText("Turn off link").click();
+    await page.getByRole("menu").getByText("Disable link").click();
 
     await expect
       .poll(async () => {
@@ -746,22 +911,75 @@ test.describe("in the dark theme", () => {
 
     const scheduledBlock: Locator = eventBlock(page, "Database upgrade");
 
-    expect(
+    const block: { background: string; text: string; shadow: string } =
       await scheduledBlock.evaluate((element: Element) => {
-        return getComputedStyle(element).boxShadow;
-      }),
-    ).not.toBe("none");
+        return {
+          background: getComputedStyle(element).backgroundColor,
+          text: getComputedStyle(element).color,
+          shadow: getComputedStyle(element).boxShadow,
+        };
+      });
 
-    expect(
-      await page
-        .locator(".oneuptime-calendar-legend-dot")
-        .first()
-        .evaluate((element: Element) => {
-          return getComputedStyle(element).boxShadow;
-        }),
-    ).not.toBe("none");
+    expect(block.shadow).not.toBe("none");
+
+    /*
+     * The dark theme's tone, swapped in by Theme.css: a dark block, not the
+     * light theme's pale one, with light text, and a stripe that is no
+     * longer black - black would not show on the dark card.
+     */
+    expect(Math.max(...channels(block.background))).toBeLessThan(80);
+    expect(Math.min(...channels(block.text))).toBeGreaterThan(150);
+    expect(Math.max(...channels(stripeOf(block.shadow)))).toBeGreaterThan(90);
+
+    const legendDot: { background: string; shadow: string } = await page
+      .locator(".oneuptime-calendar-legend-dot")
+      .first()
+      .evaluate((element: Element) => {
+        return {
+          background: getComputedStyle(element).backgroundColor,
+          shadow: getComputedStyle(element).boxShadow,
+        };
+      });
+
+    expect(legendDot.shadow).not.toBe("none");
+    // Scheduled's dot is the stripe's shade: lighter than black here too.
+    expect(Math.max(...channels(legendDot.background))).toBeGreaterThan(90);
 
     await shot(page, "dark-month");
+  });
+
+  test("the week's grid is quiet on the dark theme: dark day names, and only the hours' lines", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "view=calendar&theme=dark");
+    await expect(eventLink(page, "Database upgrade")).toBeVisible();
+
+    await calendar(page).getByRole("button", { name: "Week" }).click();
+    await expect(calendar(page).locator(".rbc-time-view")).toBeVisible();
+
+    // The day names are on a dark band, not the light theme's grey one.
+    const header: string = await calendar(page)
+      .locator(".rbc-time-header-content .rbc-header")
+      .first()
+      .evaluate((element: Element) => {
+        return getComputedStyle(element).backgroundColor;
+      });
+
+    expect(Math.max(...channels(header))).toBeLessThan(80);
+
+    // The half hours draw no line of their own.
+    const halfHour: string = await calendar(page)
+      .locator(".rbc-day-slot .rbc-time-slot")
+      .nth(1)
+      .evaluate((element: Element) => {
+        return getComputedStyle(element).borderTopColor;
+      });
+
+    expect(halfHour).toBe("rgba(0, 0, 0, 0)");
+
+    await shot(page, "dark-week");
   });
 
   test("the Subscribe dialog reads on the dark theme", async ({
@@ -815,10 +1033,16 @@ test.describe("in other languages", () => {
       calendar(page).getByRole("button", { name: "Heute" }),
     ).toBeVisible();
 
+    // The arrows are named in German, for a screen reader and on hover.
+    await expect(
+      calendar(page).getByRole("button", { name: "Nächster Monat" }),
+    ).toHaveAttribute("title", "Nächster Monat");
+    await expect(
+      calendar(page).getByRole("group", { name: "Kalenderzeitraum" }),
+    ).toBeVisible();
+
     // The month and the day names are German too, not the grid's English.
-    await expect(calendar(page).locator(".rbc-toolbar-label")).toHaveText(
-      "Oktober 2026",
-    );
+    await expect(periodLabel(page)).toHaveText("Oktober 2026");
     await expect(
       calendar(page).locator(".rbc-month-view .rbc-header").first(),
     ).toHaveText("So");
@@ -839,8 +1063,6 @@ test.describe("in other languages", () => {
     await expect(
       page.getByTestId("scheduled-maintenance-calendar-empty"),
     ).toHaveText("この期間に定期メンテナンスはありません。");
-    await expect(calendar(page).locator(".rbc-toolbar-label")).toHaveText(
-      "2026年10月",
-    );
+    await expect(periodLabel(page)).toHaveText("2026年10月");
   });
 });

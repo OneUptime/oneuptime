@@ -13,7 +13,8 @@ import path from "path";
  * colour in the dark theme and nothing fails - a pale pill on a dark card.
  * So this holds every colour class these modules use to what Theme.css
  * remaps, and pins the calendar's own dark rules: today's cell in the month
- * grid, the edge that keeps a black state's block and legend dot visible.
+ * grid, the edge that keeps a black state's block and legend dot visible,
+ * the soft blocks' dark tone, the "+N more" list, and the week's lines.
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
@@ -25,6 +26,9 @@ const MODULES: Array<string> = [
   "FeatureSet/Dashboard/src/Components/ScheduledMaintenance/MaintenanceCalendarView.ts",
   "FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceViewChoice.ts",
   "../Common/UI/Components/ViewSwitch/ViewSwitch.tsx",
+  // The calendar's toolbar and the soft blocks' colours.
+  "../Common/UI/Components/Calendar/CalendarToolbar.tsx",
+  "../Common/UI/Components/Calendar/CalendarEventTone.ts",
 ];
 
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
@@ -170,6 +174,67 @@ describe("the scheduled maintenance calendar in the dark theme", () => {
     expect(THEME_CSS).toContain("html.dark .oneuptime-calendar .rbc-event {");
     expect(THEME_CSS).toContain("html.dark .oneuptime-calendar-legend-dot {");
     expect(CALENDAR_CSS).toContain(".oneuptime-calendar-legend-dot {");
+  });
+
+  test("a soft block takes its dark tone from the custom properties its style carries", () => {
+    const toneModule: string = readCode(
+      "../Common/UI/Components/Calendar/CalendarEventTone.ts",
+    );
+
+    expect(toneModule).toContain('"oneuptime-calendar-event--soft"');
+
+    // Not scoped to the calendar's wrapper: the "+N more" list is outside it.
+    const rule: string =
+      "html.dark .rbc-event.oneuptime-calendar-event--soft {";
+
+    expect(THEME_CSS).toContain(rule);
+
+    const body: string = THEME_CSS.slice(
+      THEME_CSS.indexOf(rule),
+      THEME_CSS.indexOf("}", THEME_CSS.indexOf(rule)),
+    );
+
+    for (const property of [
+      "--ou-calendar-event-dark-bg",
+      "--ou-calendar-event-dark-text",
+      "--ou-calendar-event-dark-shadow",
+    ]) {
+      expect(toneModule).toContain(`"${property}"`);
+      // Important: what it replaces is the light tone's inline style.
+      expect(body).toContain(`var(${property}) !important`);
+    }
+  });
+
+  test('the "+N more" list, drawn at the end of the body, is a dark card on the dark theme', () => {
+    expect(CALENDAR_CSS).toContain(".rbc-overlay {");
+    expect(CALENDAR_CSS).toContain("max-height: 20rem;");
+    expect(THEME_CSS).toContain("html.dark .rbc-overlay {");
+    expect(THEME_CSS).toContain("html.dark .rbc-overlay .rbc-overlay-header {");
+  });
+
+  test("the week's lines between days and hours are the subtle border on the dark theme, without the half hours", () => {
+    expect(THEME_CSS).toContain(
+      "html.dark .oneuptime-calendar .rbc-time-content > * + * > * {",
+    );
+    expect(THEME_CSS).toContain(
+      "html.dark .oneuptime-calendar .rbc-day-slot .rbc-time-slot {",
+    );
+    expect(THEME_CSS).toContain(
+      "html.dark .oneuptime-calendar .rbc-time-view .rbc-timeslot-group {",
+    );
+  });
+
+  test("the day names of the week and the agenda's column titles are dark on the dark theme", () => {
+    /*
+     * Calendar.css paints the week's day names with a selector four classes
+     * deep; the dark rule outranks it only with .rbc-calendar in it.
+     */
+    expect(CALENDAR_CSS).toContain(
+      ".oneuptime-calendar .rbc-time-header-content > .rbc-row > .rbc-header",
+    );
+    expect(THEME_CSS).toContain(
+      "html.dark .oneuptime-calendar .rbc-calendar :is(\n    .rbc-header,",
+    );
   });
 
   test("an event's link reads as its block's label in either theme", () => {

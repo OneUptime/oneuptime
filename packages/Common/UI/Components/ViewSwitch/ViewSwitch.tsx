@@ -5,11 +5,12 @@ import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement } from "react";
 
 /*
- * Two or three ways to see the same records, side by side in a card's header:
- * List | Calendar on the scheduled maintenance events. The control the status
- * timelines' Timeline | Table switch draws (StatusTimelineView), for any set
- * of views: a grey track, the chosen view raised in white with its icon in
- * the accent colour, the others plain until hovered.
+ * Two or more ways to see the same records, side by side: List | Calendar on
+ * the scheduled maintenance events, and Month | Week | Day in a calendar's
+ * toolbar (Calendar/CalendarToolbar). The control the status timelines'
+ * Timeline | Table switch draws (StatusTimelineView), for any set of views: a
+ * grey track, the chosen view raised in white with its icon, when it has
+ * one, in the accent colour, the others plain until hovered.
  *
  * Each option is a button with aria-pressed, in a group a screen reader
  * names; pressing the chosen one does nothing. Labels and the group's name
@@ -18,7 +19,8 @@ import React, { ReactElement } from "react";
 export interface ViewSwitchOption<T extends string> {
   value: T;
   label: string;
-  icon: IconProp;
+  // A picture of the view; a word alone is enough for Month | Week | Day.
+  icon?: IconProp | undefined;
 }
 
 export interface ComponentProps<T extends string> {
@@ -73,10 +75,14 @@ function ViewSwitch<T extends string>(props: ComponentProps<T>): ReactElement {
               }
             }}
           >
-            <Icon
-              icon={option.icon}
-              className={`h-4 w-4 ${isActive ? "text-indigo-600" : ""}`}
-            />
+            {option.icon ? (
+              <Icon
+                icon={option.icon}
+                className={`h-4 w-4 ${isActive ? "text-indigo-600" : ""}`}
+              />
+            ) : (
+              <></>
+            )}
             {translator.translateText(option.label)}
           </button>
         );

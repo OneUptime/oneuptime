@@ -50,8 +50,10 @@ import React, {
  * built from the same pieces (OnCallPolicy/CalendarFeed): the subscribe
  * options - Google Calendar, Apple Calendar / Outlook, or the link to copy -
  * whether an app has read it, and in the header's ⋯ what is done rarely:
- * Regenerate link, Turn off link. A project with no link yet shows what one
- * is, and Publish link to whoever may create maintenance events.
+ * Regenerate link, Disable link - the on-call links' words, and the ones
+ * the Status panel answers with (Disabled, Enable link). A project with no
+ * link yet shows what one is, and Publish link to whoever may create
+ * maintenance events.
  *
  * Who may see it: whoever reads every maintenance event of the project - the
  * link shows them all. The server refuses anyone else with a sentence saying
@@ -196,7 +198,7 @@ const MaintenanceCalendarSubscribeModal: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * The ⋯ in the dialog's header: Regenerate link and Turn off / Turn on
+   * The ⋯ in the dialog's header: Regenerate link and Disable / Enable
    * link, locked with the permission they need for a reader who may only
    * copy the link.
    */
@@ -223,7 +225,7 @@ const MaintenanceCalendarSubscribeModal: FunctionComponent<ComponentProps> = (
 
     manageActions.push({
       key: "toggle",
-      text: status.isEnabled ? "Turn off link" : "Turn on link",
+      text: status.isEnabled ? "Disable link" : "Enable link",
       icon: status.isEnabled ? IconProp.BellSlash : IconProp.Bell,
       isDisabled: isBusy,
       disabledReason: lockedReason,

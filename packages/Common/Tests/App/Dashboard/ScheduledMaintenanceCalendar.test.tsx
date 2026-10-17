@@ -75,6 +75,18 @@ import Query from "../../../Types/BaseDatabase/Query";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import {
+  CALENDAR_TOOLBAR_LABEL_TEST_ID,
+  CALENDAR_TOOLBAR_TEST_ID,
+} from "../../../UI/Components/Calendar/CalendarToolbar";
+import {
+  getSoftEventStyle,
+  SOFT_EVENT_CLASS_NAME,
+} from "../../../UI/Components/Calendar/CalendarEventTone";
+import {
+  getPillColors,
+  PillColors,
+} from "../../../UI/Components/Pill/PillColors";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "79500000-0000-4000-8000-000000000001",
@@ -276,7 +288,7 @@ describe("ScheduledMaintenanceCalendar: what it asks for", () => {
       expect(getListMock).toHaveBeenCalledTimes(1);
     });
 
-    fireEvent.click(screen.getByText("Next"));
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
 
     await waitFor(() => {
       expect(getListMock).toHaveBeenCalledTimes(2);
@@ -376,6 +388,58 @@ describe("ScheduledMaintenanceCalendar: what it draws", () => {
           return item.textContent;
         }),
     ).toEqual(["Scheduled", "Ongoing", "Ended", "Completed"]);
+
+    /*
+     * Each dot is the pill's dot of its state - the colour a block's stripe
+     * is drawn in - and carries the attribute Theme.css swaps the dark
+     * theme's shade in by, so a black state's dot shows on a dark card.
+     */
+    const dots: Array<Element> = Array.from(
+      legend.querySelectorAll(".oneuptime-calendar-legend-dot"),
+    );
+
+    expect(dots).toHaveLength(4);
+
+    for (const [index, dot] of dots.entries()) {
+      const colors: PillColors = getPillColors(
+        STATES[index]!.color!.toString(),
+      );
+      const probe: HTMLSpanElement = document.createElement("span");
+
+      probe.style.backgroundColor = colors.light.dotColor;
+
+      expect(dot).toHaveAttribute("data-ou-pill-dot");
+      expect((dot as HTMLElement).style.backgroundColor).toBe(
+        probe.style.backgroundColor,
+      );
+      expect(
+        (dot as HTMLElement).style.getPropertyValue("--ou-pill-dark-dot"),
+      ).toBe(colors.dark.dotColor);
+    }
+  });
+
+  test("draws each event soft: a pale wash of its state's colour, with a stripe of it, as the list's state pills", async () => {
+    answer([UPGRADE]);
+    renderCalendar();
+
+    const link: HTMLElement = await screen.findByTestId(
+      "scheduled-maintenance-calendar-event",
+    );
+    const block: HTMLElement = link.closest(".rbc-event") as HTMLElement;
+
+    expect(block).toHaveClass(SOFT_EVENT_CLASS_NAME);
+
+    // Scheduled is black: the block is not.
+    expect(block.style.backgroundColor).not.toBe("rgb(0, 0, 0)");
+
+    const probe: HTMLDivElement = document.createElement("div");
+
+    probe.style.backgroundColor = String(
+      getSoftEventStyle("#000000").backgroundColor,
+    );
+
+    expect(block.style.backgroundColor).toBe(probe.style.backgroundColor);
+    expect(block.style.boxShadow).toContain("inset 3px 0 0");
   });
 
   test("with nothing in the period, says so instead of the colours", async () => {
@@ -513,7 +577,7 @@ describe("ScheduledMaintenanceCalendar: errors and slow answers", () => {
     });
 
     // The reader moves on before October is answered.
-    fireEvent.click(screen.getByText("Next"));
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
 
     await waitFor(() => {
       expect(held).toHaveLength(2);
@@ -535,12 +599,37 @@ describe("ScheduledMaintenanceCalendar: errors and slow answers", () => {
     ).toBeInTheDocument();
   });
 
-  test("says it is loading while a request is under way", async () => {
+  test("says it is loading while a request is under way, beside the period's name", async () => {
     holdRequests();
     renderCalendar();
 
+    const loading: HTMLElement = await screen.findByTestId(
+      "scheduled-maintenance-calendar-loading",
+    );
+
+    expect(loading).toHaveTextContent("Loading events...");
+    expect(loading).toHaveAttribute("role", "status");
+
+    /*
+     * In the toolbar, after the month's name - where the reader who just
+     * moved to the month looks - not floating over the grid's day names.
+     */
+    const toolbar: HTMLElement = screen.getByTestId(CALENDAR_TOOLBAR_TEST_ID);
+
+    expect(toolbar).toContainElement(loading);
     expect(
-      await screen.findByTestId("scheduled-maintenance-calendar-loading"),
-    ).toHaveTextContent("Loading events...");
+      within(toolbar).getByTestId(CALENDAR_TOOLBAR_LABEL_TEST_ID),
+    ).toHaveTextContent("October 2026");
+  });
+
+  test("the toolbar says nothing once the period's events are in", async () => {
+    answer([UPGRADE]);
+    renderCalendar();
+
+    await screen.findByTestId("scheduled-maintenance-calendar-event");
+
+    expect(
+      screen.queryByTestId("scheduled-maintenance-calendar-loading"),
+    ).not.toBeInTheDocument();
   });
 });
