@@ -20,7 +20,13 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { JSONObject } from "../../Types/JSON";
+import {
+  CallSummaryStatus,
+  RootCauseSuggestionStatus,
+} from "../../Types/VideoCall/CallSummary";
 import VideoCallProvider from "../../Types/VideoCall/VideoCallProvider";
+import { VideoCallTranscriptSource } from "../../Types/VideoCall/VideoCallTranscript";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 const createPermissions: Array<Permission> = [
@@ -59,8 +65,13 @@ const deletePermissions: Array<Permission> = [
  * incident page; its join link is posted wherever the incident's updates
  * go.
  *
- * A call is never edited - a different call is a new row - so it can be
- * trusted as the record of what was posted.
+ * A call's meeting is never edited - a different call is a new row - so it
+ * can be trusted as the record of what was posted. What is added to a call
+ * later is its transcript and what OneUptime AI read in it, and only
+ * OneUptime writes those, through the call's transcript routes
+ * (IncidentVideoCallAPI): read from Zoom or Google Meet, or added by a
+ * person, then read by OneUptime AI, whose suggested root cause stays a
+ * suggestion until a person uses it or dismisses it (CallSummary).
  */
 @EnableDocumentation()
 @CanAccessIfCanReadOn("incident")
@@ -356,6 +367,306 @@ export default class IncidentVideoCall extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public workspaceNotificationRuleId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    computed: true,
+    title: "Transcript",
+    description:
+      "What was said on the call, one remark a line: how far into the call (HH:MM:SS, empty when unknown), a tab, who spoke (empty when unknown), a tab, and the words. Read from Zoom or Google Meet, or added by a person, through the call's transcript routes.",
+    example: "00:12:03\tPriya Shah\tThe pool maxes at 50 and we just went to 100 workers.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public transcript?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Transcript Source",
+    description:
+      "Where the transcript came from: Provider when OneUptime read it from Zoom or Google Meet, Upload when a person added it.",
+    example: "Provider",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public transcriptSource?: VideoCallTranscriptSource = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    computed: true,
+    title: "Transcript Info",
+    description:
+      "How long the transcript is - remarks, speakers, characters and how many seconds it spans - and the name of the file it was added from, so the call can be described without reading the transcript.",
+    example: {
+      lineCount: 312,
+      speakerCount: 6,
+      characterCount: 48210,
+      durationInSeconds: 3120,
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public transcriptInfo?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Transcript Added At",
+    description: "When the transcript was added to the call.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public transcriptAddedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "transcriptAddedByUserId",
+    type: TableColumnType.Entity,
+    computed: true,
+    modelType: User,
+    title: "Transcript Added by User",
+    description:
+      "The person who added the transcript, or had OneUptime read it from the provider. Empty when an API key added it.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "transcriptAddedByUserId" })
+  public transcriptAddedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    title: "Transcript Added by User ID",
+    description: "ID of the person who added the transcript.",
+    example: "7c8d9e0f-a1b2-3c4d-9e5f-8a9b0c1d2e3f",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public transcriptAddedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    computed: true,
+    title: "Call Summary",
+    description:
+      "What OneUptime AI read in the transcript: the root cause the call points at (a suggestion, or that the call did not discuss it enough), what was found, tried, decided and left to do, and open questions - each with the transcript lines it rests on.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public callSummary?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Call Summary Status",
+    description:
+      "Where OneUptime AI's reading of the transcript stands: Pending while it reads, Ready, Failed (Call Summary Status Message says why), or Skipped when AI is off for the project.",
+    example: "Ready",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public callSummaryStatus?: CallSummaryStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    computed: true,
+    title: "Call Summary Status Message",
+    description:
+      "Why OneUptime AI did not read the transcript, or could not finish reading it.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public callSummaryStatusMessage?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Call Summary Updated At",
+    description:
+      "When the Call Summary Status last changed: when OneUptime AI started reading the transcript, or finished.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public callSummaryUpdatedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Root Cause Suggestion Status",
+    description:
+      "What a person did with the root cause OneUptime AI suggested from the call: Suggested while it waits, Accepted once used as the incident's root cause, Dismissed. Empty when nothing was suggested.",
+    example: "Suggested",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public rootCauseSuggestionStatus?: RootCauseSuggestionStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Root Cause Suggestion Reviewed At",
+    description:
+      "When a person accepted or dismissed the root cause suggested from the call.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public rootCauseSuggestionReviewedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "rootCauseSuggestionReviewedByUserId",
+    type: TableColumnType.Entity,
+    computed: true,
+    modelType: User,
+    title: "Root Cause Suggestion Reviewed by User",
+    description:
+      "The person who accepted or dismissed the root cause suggested from the call.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "rootCauseSuggestionReviewedByUserId" })
+  public rootCauseSuggestionReviewedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    title: "Root Cause Suggestion Reviewed by User ID",
+    description:
+      "ID of the person who accepted or dismissed the root cause suggested from the call.",
+    example: "7c8d9e0f-a1b2-3c4d-9e5f-8a9b0c1d2e3f",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public rootCauseSuggestionReviewedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,

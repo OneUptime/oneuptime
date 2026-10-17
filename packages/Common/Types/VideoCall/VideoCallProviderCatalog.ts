@@ -124,6 +124,30 @@ export const ZOOM_OAUTH_USER_SCOPE: string = "user:read:user";
 export const MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION: string =
   "OnlineMeetings.ReadWrite";
 
+/*
+ * What reading a call's transcript asks of Zoom: the audio transcript of
+ * the meeting's cloud recording, and the transcript AI Companion's meeting
+ * summary keeps. Optional - a connection without them starts calls all the
+ * same, and says what to add when someone asks for a transcript. A
+ * Server-to-Server OAuth app adds the :admin scopes (or the classic
+ * recording:read:admin); this server's Zoom app, the user ones.
+ *
+ * Google Meet needs nothing more: meetings.space.created lets OneUptime
+ * read the transcripts of the meetings it created. Microsoft Graph has no
+ * transcripts for meetings created as OneUptime creates them (an online
+ * meeting with no calendar event), so a Teams call's transcript is added
+ * by a person.
+ */
+export const ZOOM_RECORDING_FILES_SCOPE: string =
+  "cloud_recording:read:list_recording_files:admin";
+export const ZOOM_MEETING_TRANSCRIPT_SCOPE: string =
+  "cloud_recording:read:meeting_transcript:admin";
+export const ZOOM_CLASSIC_RECORDING_SCOPE: string = "recording:read:admin";
+export const ZOOM_OAUTH_RECORDING_FILES_SCOPE: string =
+  "cloud_recording:read:list_recording_files";
+export const ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE: string =
+  "cloud_recording:read:meeting_transcript";
+
 export const GOOGLE_MEET_ACCESS_TYPE_OPTIONS: Array<VideoCallConnectionFieldOption> =
   [
     {
@@ -219,7 +243,7 @@ export const VideoCallProviderCatalog: Array<VideoCallProviderDefinition> = [
     ],
     setupSteps: [
       "In the [Zoom App Marketplace](https://marketplace.zoom.us/), choose **Develop → Build App** and create a **Server-to-Server OAuth** app. Creating one needs a Zoom account admin, or a role that allows Server-to-Server OAuth apps.",
-      `On the app's **Scopes** page, add **${ZOOM_MEETING_SCOPE}** (create a meeting for a user). An app created before granular scopes can use **${ZOOM_CLASSIC_MEETING_SCOPE}** instead.`,
+      `On the app's **Scopes** page, add **${ZOOM_MEETING_SCOPE}** (create a meeting for a user). An app created before granular scopes can use **${ZOOM_CLASSIC_MEETING_SCOPE}** instead. To let OneUptime read call transcripts too, add **${ZOOM_RECORDING_FILES_SCOPE}** and **${ZOOM_MEETING_TRANSCRIPT_SCOPE}** (or **${ZOOM_CLASSIC_RECORDING_SCOPE}**).`,
       "**Activate** the app, then copy the **Account ID**, **Client ID** and **Client secret** from its **App Credentials** page into this form.",
       "Pick the meeting host: a licensed Zoom user, ideally a service account such as incidents@example.com, so meetings keep working when people leave.",
       "Responders join without waiting for the host - the host is a service account that never joins. Make sure your account's **Waiting room** setting is not locked on, or nobody can get in.",

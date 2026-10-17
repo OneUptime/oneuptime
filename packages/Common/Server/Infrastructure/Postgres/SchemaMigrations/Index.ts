@@ -114,6 +114,7 @@ import { AddStatusPageTheme1803250000000 } from "./1803250000000-AddStatusPageTh
 import { AddEnterpriseMarketplaceBilling1803300000000 } from "./1803300000000-AddEnterpriseMarketplaceBilling";
 import { AddWorkflowWebhookSigningSecret1803400000000 } from "./1803400000000-AddWorkflowWebhookSigningSecret";
 import { AddScheduledMaintenanceCalendarFeed1803450000000 } from "./1803450000000-AddScheduledMaintenanceCalendarFeed";
+import { AddIncidentVideoCallTranscript1803500000000 } from "./1803500000000-AddIncidentVideoCallTranscript";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1430,4 +1431,5 @@ export default [
   AddEnterpriseMarketplaceBilling1803300000000,
   AddWorkflowWebhookSigningSecret1803400000000,
   AddScheduledMaintenanceCalendarFeed1803450000000,
+  AddIncidentVideoCallTranscript1803500000000,
 ];
