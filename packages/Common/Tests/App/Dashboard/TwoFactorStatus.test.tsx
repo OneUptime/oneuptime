@@ -187,7 +187,7 @@ describe("two-factor authentication status", () => {
     render(<TwoFactorStatus />);
     const dialog: HTMLElement = await openConfirmation();
 
-    expect(dialog).toHaveTextContent("finish setup at your next sign-in");
+    expect(dialog).toHaveTextContent("you set it up at your next sign-in");
     expect(dialog).not.toHaveTextContent(/administrator/i);
     expect(updateStatus).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
@@ -209,7 +209,7 @@ describe("two-factor authentication status", () => {
         "You will no longer be asked for a second step when signing in with a password.",
       );
       expect(dialog).toHaveTextContent(
-        "Your authenticator apps and security keys will stay saved so you can enable it again.",
+        "Your authenticator apps and security keys stay saved.",
       );
       expect(dialog).not.toHaveTextContent(/administrator/i);
       expect(updateStatus).not.toHaveBeenCalled();
@@ -388,7 +388,9 @@ describe("two-factor authentication status", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     const enableDialog: HTMLElement = await openConfirmation();
-    expect(enableDialog).toHaveTextContent("finish setup at your next sign-in");
+    expect(enableDialog).toHaveTextContent(
+      "you set it up at your next sign-in",
+    );
     expect(enableDialog).not.toHaveTextContent(/administrator/i);
     fireEvent.click(
       within(enableDialog).getByRole("button", {

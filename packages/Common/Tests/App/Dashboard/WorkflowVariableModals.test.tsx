@@ -750,7 +750,6 @@ describe("UpdateWorkflowVariableCredentialsModal", () => {
       expect(modal().description).toContain(
         "Leave a field empty to keep what is saved",
       );
-      expect(modal().description).toContain("as soon as you save");
     });
 
     test("falls back to 'this variable' when the variable has no name", () => {

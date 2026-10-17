@@ -409,7 +409,7 @@ const Telegram: () => JSX.Element = (): ReactElement => {
           title={`Rotate Verification Code`}
           error={resendError}
           description={
-            "This generates a new verification code. Any QR or deep link you opened previously will stop working — you'll need to re-open the verify screen after rotating."
+            "This makes a new verification code. Earlier QR codes and links stop working, so open the verify screen again."
           }
           submitButtonText={"Rotate Code"}
           onClose={() => {

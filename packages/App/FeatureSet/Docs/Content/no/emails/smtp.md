@@ -61,7 +61,7 @@ Dette er innstillingene under **Flere felt**:
 | Felt | Hva det gjør |
 | --- | --- |
 | **Transport** | `SMTP` (standard), eller `Microsoft Graph` for en Microsoft 365-leietaker der SMTP AUTH er slått av. Når du velger Microsoft Graph, skjules vertsnavn, port, brukernavn og passord, og OAuth-feltene vises. |
-| **Krev TLS** | På for en ny prosjektkonfigurasjon. E-post sendes bare over en kryptert tilkobling med et gyldig sertifikat. Når dette er av, krypteres e-post bare hvis serveren tilbyr det, og sertifikatet kontrolleres ikke. Port 465 er alltid kryptert. |
+| **Krev TLS** | På for en ny prosjektkonfigurasjon. Send e-post bare over en kryptert tilkobling med et gyldig sertifikat. Når dette er av, kontrolleres ikke sertifikatet. Port 465 er alltid kryptert. Når dette er av, krypteres e-post på andre porter bare hvis serveren tilbyr det. |
 | **Autentiseringstype** | `Username and Password` (standard), `OAuth`, eller `None` for et relé som ikke krever pålogging. |
 | **OAuth-felt** | **OAuth-leverandørtype**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** og **OAuth-omfang**, som vises når OAuth eller Microsoft Graph er valgt. |
 | **Beskrivelse** | Et notat til teamet ditt (bare prosjektkonfigurasjoner). |

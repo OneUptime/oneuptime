@@ -148,7 +148,7 @@ const KubernetesClusterPVCs: FunctionComponent<
           },
         );
       }}
-      emptyMessage="No PVCs found. PVC data will appear here once the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and includes persistentvolumeclaims."
+      emptyMessage="No PVCs yet. They appear once the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and includes persistentvolumeclaims."
     />
   );
 };

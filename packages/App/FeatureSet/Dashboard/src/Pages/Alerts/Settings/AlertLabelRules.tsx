@@ -100,7 +100,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
       cardProps={{
         title: "Alert Label Rules",
         description:
-          "Auto-attach labels to alerts — including labels inherited from the alert's monitor, hosts, Kubernetes clusters, Docker hosts, and Podman hosts — when matching alerts are created.",
+          "Auto-attach labels to new alerts that match, including labels from their monitor and infrastructure.",
       }}
       helpContent={{
         title: "How Alert Label Rules Work",

@@ -92,10 +92,10 @@ const IoTFleetDeviceRegistry: FunctionComponent<
         cardProps={{
           title: "Device Registry",
           description:
-            "Registered devices get their own MQTT credential (row ID as username, secret as password), individual revocation, and offline alerts when they go silent. The Device ID must match the device.id the device reports.",
+            "Registered devices get their own MQTT credentials and offline alerts. The Device ID must match the device.id the device reports.",
         }}
         noItemsMessage={
-          "No registered devices. Devices can still report with the project-wide ingestion key — register them here for per-device credentials and silent-death offline detection."
+          "No registered devices. Devices can still report with the project's ingestion key; register them for their own credentials and offline alerts."
         }
         formFields={[
           {

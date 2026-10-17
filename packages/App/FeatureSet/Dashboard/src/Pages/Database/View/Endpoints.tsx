@@ -95,7 +95,7 @@ const DatabaseServerEndpoints: FunctionComponent<
         cardProps={{
           title: "Endpoints",
           description:
-            "The host:port names this database is reached by. Queries your applications send to any of them, and engine metrics collected under any of them, show on this database's pages. Add an alias for a name OneUptime could not connect on its own — a second DNS name, an IP address or a connection pooler.",
+            "The host:port names this database is reached by. Add another name OneUptime cannot connect on its own, such as an IP or a pooler.",
         }}
         noItemsMessage="This database has no endpoints yet. Add the host:port your applications connect to."
         formFields={[
@@ -108,7 +108,7 @@ const DatabaseServerEndpoints: FunctionComponent<
             required: true,
             placeholder: "db-replica.prod.internal:5432",
             description:
-              "host:port as your applications connect to it. The engine's default port is used when you leave the port out; Kubernetes names are completed with this database's namespace.",
+              "host:port as your applications connect to it. Without a port, the engine's default is used.",
           },
         ]}
         filters={[]}

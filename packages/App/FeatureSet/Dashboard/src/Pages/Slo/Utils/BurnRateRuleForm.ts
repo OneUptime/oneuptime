@@ -564,7 +564,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Re-fire Suppression (Minutes)",
     description:
-      "Quiet period after an alert or incident resolves before this rule may declare that same record again. Each output is suppressed independently. Defaults to the long window.",
+      "How long after an alert or incident resolves before this rule may open another. Defaults to the long window.",
     fieldType: FormFieldSchemaType.Number,
     required: false,
     placeholder: "60",
@@ -625,7 +625,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Add SLO Owners as Owners",
     description:
-      "Also add this SLO's owners - its owner users and the members of its owner teams - as owners of every alert and incident this rule creates. SLO owners are already notified when the SLO's status changes, so turning this on can notify them twice.",
+      "Add this SLO's owners as owners of every alert and incident this rule creates. They may be notified twice.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     stepId: "declares",
@@ -746,7 +746,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Auto Resolve Alert",
     description:
-      "Resolve the alert automatically when the burn rate over the long window drops back below the threshold. Turn this off to keep the alert open until someone resolves it - the rule will not raise another alert while it is open.",
+      "Resolve the alert when the long window's burn rate drops below the threshold.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     /*
@@ -899,7 +899,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Auto Resolve Incident",
     description:
-      "Resolve the incident automatically when the burn rate over the long window drops back below the threshold. Turn this off to keep the incident open until someone resolves it - the rule will not declare another incident while it is open.",
+      "Resolve the incident when the long window's burn rate drops below the threshold.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     // TRUE, as on the alert toggle above.

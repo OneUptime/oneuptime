@@ -1596,7 +1596,7 @@ describe("MicrosoftTeamsChatsCard Send Test", () => {
       "Use Send Test to confirm OneUptime can post to a chat.",
     );
     expect(description).toHaveTextContent(
-      "Send notifications straight into group chats and one-on-one chats.",
+      "Group and one-on-one chats your notification rules can post to.",
     );
   });
 

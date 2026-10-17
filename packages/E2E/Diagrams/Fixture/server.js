@@ -363,7 +363,11 @@ function docsPage(url) {
       ? ' lang="en" dir="ltr"'
       : "";
 
-  return `<!doctype html><html lang="${lang}" dir="${dir}" class="h-full antialiased"><head>${head}</head><body class="docs-body min-h-full"><article class="docs-article"${column}><div class="docs-content"${englishCopy}><h1>Diagrams</h1><p>Text before the diagrams.</p>${diagrams}<p>Text after them.</p></div></article></body></html>`;
+  /*
+   * The request handler serves only a known ?source= language, but the page
+   * escapes it all the same: it comes from the address.
+   */
+  return `<!doctype html><html lang="${escapeHtml(lang)}" dir="${dir}" class="h-full antialiased"><head>${head}</head><body class="docs-body min-h-full"><article class="docs-article"${column}><div class="docs-content"${englishCopy}><h1>Diagrams</h1><p>Text before the diagrams.</p>${diagrams}<p>Text after them.</p></div></article></body></html>`;
 }
 
 /*

@@ -92,7 +92,9 @@ Due interruttori del provider cambiano questo comportamento. Partono entrambi di
 | Interruttore | Che cosa fa quando è attivo |
 | --- | --- |
 | **Disable Sign Up with SSO** | Le persone devono essere invitate in un progetto prima di poter accedere con questo provider, anche se ci sono progetti collegati. Al primo accesso non viene creato nessuno. |
-| **Restrict to Attached Projects** | Accedere con questo provider soddisfa l'obbligo di SSO solo nei progetti collegati a esso, quindi chi ha già eseguito l'accesso può perdere l'accesso ad altri progetti. Quando è disattivato, lo soddisfa in ogni progetto di cui la persona fa parte, e i progetti collegati decidono solo dove vengono aggiunti i nuovi arrivati. |
+| **Restrict to Attached Projects** | Accedere con questo provider soddisfa l'obbligo di SSO solo nei progetti collegati a esso, quindi chi ha già eseguito l'accesso può perdere l'accesso ad altri progetti. |
+
+Con **Restrict to Attached Projects** disattivato, accedere con il provider soddisfa l'obbligo di SSO in ogni progetto di cui la persona fa parte, e i progetti collegati decidono solo dove vengono aggiunti i nuovi arrivati.
 
 ## Imporre l'SSO
 

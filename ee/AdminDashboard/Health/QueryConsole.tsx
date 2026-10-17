@@ -819,7 +819,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
 
       <Card
         title="Query console"
-        description="Run ad-hoc queries against the datastores backing this instance. Queries run with the instance's own credentials. Read-only mode (on by default) prevents database mutations, but it is not a full sandbox — treat this as direct database access."
+        description="Run queries against this instance's datastores with its own credentials. Read-only mode (on by default) blocks writes but is not a sandbox: treat this as direct database access."
       >
         <div>
           {renderEngineSelector()}

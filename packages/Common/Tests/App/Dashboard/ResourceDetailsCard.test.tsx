@@ -346,7 +346,7 @@ describe("a Kubernetes cluster's details card", () => {
     expect(isFolded(dialog, "Cluster Name (clusterName)")).toBe(true);
     openAdvanced(dialog);
     expect(dialog).toHaveTextContent(
-      "telemetry that still reports the old name creates a new cluster",
+      "Change it only when that changes: telemetry that still reports the old name creates a new cluster.",
     );
   });
 });

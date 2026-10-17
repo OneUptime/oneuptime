@@ -268,7 +268,7 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
       {showRegenerateTokenModal && (
         <ConfirmModal
           title="Regenerate Security Token"
-          description="Are you sure you want to regenerate the security token? This will invalidate the current token and any existing embedded badges will stop working until you update them with the new token."
+          description="The current token stops working, and embedded badges break until you update them with the new one."
           onClose={() => {
             setShowRegenerateTokenModal(false);
           }}

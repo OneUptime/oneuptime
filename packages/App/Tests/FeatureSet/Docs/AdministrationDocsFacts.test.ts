@@ -1377,9 +1377,7 @@ describe("Billing & Usage", () => {
       "Total Cost",
     ]);
     expect(usage).toContain('title: "Telemetry Usage History"');
-    expect(usage).toContain(
-      "Please wait until the end of the day for usage to show up.",
-    );
+    expect(usage).toContain("Each day's usage shows up after the day ends.");
 
     const rows: Array<string> = tableRows(
       section(page, "## Usage history"),

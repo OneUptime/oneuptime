@@ -194,7 +194,7 @@ const SecurityPlaybooksPage: FunctionComponent<
           headerLayout: "stacked",
           title: "Playbooks",
           description:
-            "A playbook is a response that runs on a case: assign it, check threat intel, notify, page on-call, declare an incident, contain a user or host. It runs by itself when a case opens or grows, or when someone runs it from a case.",
+            "Responses that run on a case, such as notifying, paging on-call or containing a host. They run when a case opens or grows, or by hand.",
         }}
         noItemsMessage="No playbooks yet. Start from a template above, or create one."
         createInitialValues={{

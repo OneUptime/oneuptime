@@ -604,7 +604,7 @@ describe("Resources Affected: the monitors apart, and the status they change to 
     ).toBeVisible();
     expect(
       within(fieldOf(others)).getByText(
-        "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
+        "Hosts, clusters, databases, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
       ),
     ).toBeVisible();
 

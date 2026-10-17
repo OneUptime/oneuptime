@@ -198,7 +198,7 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               getNameFromIdentityField<PodmanHost>("hostIdentifier"),
             placeholder: "Production Podman host",
             description:
-              "Starts as the host name, the way discovered hosts are named. Type a name of your own to show it instead. Telemetry is still matched by the host name.",
+              "Starts as the host name. Type your own name to show instead; telemetry is still matched by the host name.",
             collapsibleSection: advancedSection,
           }),
           {

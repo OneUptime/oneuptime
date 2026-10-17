@@ -45,7 +45,7 @@ const NetworkSiteEndpoints: FunctionComponent<
           description:
             "What is plugged into this site's switches and routers, read from their address tables.",
         }}
-        noItemsMessage="No endpoints at this site yet. Turn on Collect Connected Endpoints on one of its switches or routers - its Settings page, Edit Polling - and what is plugged into it appears here after its next poll."
+        noItemsMessage="No endpoints at this site yet. Turn on Collect Connected Endpoints in a switch or router's polling settings to see what is plugged in."
         formFields={[
           {
             field: {

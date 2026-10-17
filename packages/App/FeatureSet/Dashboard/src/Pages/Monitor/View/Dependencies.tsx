@@ -73,7 +73,7 @@ const MonitorDependencies: FunctionComponent<
             },
             title: "Suppress When Parent Status Is",
             description:
-              "Parent monitor statuses that suppress this monitor's alerts and incidents. Leave empty to suppress when a parent is in any status flagged offline (the default).",
+              "Parent statuses that silence this monitor's alerts and incidents. Leave empty for any offline status.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: MonitorStatus,

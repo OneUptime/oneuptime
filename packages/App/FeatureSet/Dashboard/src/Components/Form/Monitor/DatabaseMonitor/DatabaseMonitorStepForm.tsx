@@ -534,7 +534,7 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="Metric Groups"
-          description="Each group is one set of statistics queries and one unit of failure: if its grant is missing, that group's metrics are left blank and the monitor stays online. Turn a group off to stop querying for it — summing table sizes is the one that costs real work on a large schema. Turning every group off is the same as leaving them all on."
+          description="Turn a group off to stop querying it. A group whose grant is missing is left blank, and the monitor stays online."
           required={false}
         />
         <div className="space-y-4 border rounded-md p-4">

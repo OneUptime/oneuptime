@@ -167,8 +167,8 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
           }
           description={
             pendingStatus
-              ? "You will need an authenticator app or security key when signing in with a password. If you have not added one yet, you will finish setup at your next sign-in."
-              : "You will no longer be asked for a second step when signing in with a password. Your authenticator apps and security keys will stay saved so you can enable it again."
+              ? "Signing in with a password will need an authenticator app or security key. Without one, you set it up at your next sign-in."
+              : "You will no longer be asked for a second step when signing in with a password. Your authenticator apps and security keys stay saved."
           }
           submitButtonText={
             pendingStatus

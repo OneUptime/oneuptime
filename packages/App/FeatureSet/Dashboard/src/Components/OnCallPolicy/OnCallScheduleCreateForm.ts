@@ -244,6 +244,7 @@ const getScheduleAdvancedValueFields: () => Array<
     },
     {
       field: { timezone: true },
+      description: "The timezone the schedule's times are in.",
       fieldType: FormFieldSchemaType.Dropdown,
       defaultValue: OneUptimeDate.getCurrentTimezone(),
     },

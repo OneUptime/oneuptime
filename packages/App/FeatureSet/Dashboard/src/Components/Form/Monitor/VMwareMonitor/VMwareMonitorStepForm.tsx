@@ -426,9 +426,7 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="VMware Metric"
-            description={
-              "Select a vCenter metric to monitor. Metrics are organized by vSphere object — datacenter, cluster, ESXi host, virtual machine, datastore, resource pool and vSAN."
-            }
+            description={"A vCenter metric, grouped by vSphere object."}
             required={true}
           />
           <VMwareMetricPicker
@@ -554,7 +552,7 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title="Select Metrics"
             description={
-              "Select the vCenter metrics to monitor. Use the query builder for full control over metric selection, attribute filters (for example `disk_state`, `power_state`, `status`) and grouping."
+              "The vCenter metrics to monitor, with attribute filters and grouping."
             }
             required={true}
           />

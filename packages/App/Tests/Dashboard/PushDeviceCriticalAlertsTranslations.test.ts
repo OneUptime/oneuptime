@@ -89,7 +89,7 @@ const CARD_STRINGS: Array<string> = [
   // The steps.
   "Turn on critical alerts",
   "Critical alerts make on-call pages ring this phone even on silent or in Do Not Disturb. They are turned on in the app, on the phone itself.",
-  "Get push notifications on your phone with the OneUptime On-Call app. Its critical alerts ring on-call pages through silent mode and Do Not Disturb, which a browser can't.",
+  "Get push notifications on your phone with the OneUptime On-Call app. Its critical alerts ring even on silent.",
   "Open {{app}} on this iPhone or iPad and tap {{settings}}.",
   "Open {{app}} on this phone and tap {{settings}}.",
   "Under {{notifications}}, turn on {{criticalAlerts}}.",

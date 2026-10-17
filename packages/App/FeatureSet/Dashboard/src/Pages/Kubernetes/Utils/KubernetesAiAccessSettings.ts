@@ -188,13 +188,13 @@ export const REMEDIATION_MODE_OPTION_DESCRIPTIONS: Record<
 
 /*
  * The kubectl allowlist field's help text: what a pattern does and how it
- * is matched, with an example. The rest is said where it applies — a
+ * is matched (the field's placeholder is an example). The rest is said where it applies — a
  * broken pattern by its validation error (validateKubectlAllowlistText), a
  * broad one by the confirmation before saving, and what never runs
  * unattended by the modal's every-mode protections.
  */
 export const KUBECTL_ALLOWLIST_FIELD_DESCRIPTION: string = translationKey(
-  'One pattern per line. A riskier kubectl command that matches a pattern runs without approval. Patterns are matched word by word: * matches exactly one word, flags must be written out, and a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web.',
+  'One pattern per line; a match runs without approval. * matches exactly one word, flags must be written out, and a leading "kubectl" is optional.',
 );
 
 /*

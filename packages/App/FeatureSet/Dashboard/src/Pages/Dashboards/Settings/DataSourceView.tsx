@@ -145,6 +145,7 @@ const DataSourceView: FunctionComponent<PageComponentProps> = (
               dataSourceType: true,
             },
             title: "Data Source Type",
+            description: "The system this data source connects to.",
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -352,7 +353,7 @@ const DataSourceView: FunctionComponent<PageComponentProps> = (
         <BasicFormModal
           title={"Update Credentials"}
           description={
-            "Credentials are write-only: they are encrypted at rest and can never be read back. Fill only the fields you want to replace — empty fields are left unchanged."
+            "Saved credentials are never shown. Fill in only the ones to replace; empty fields stay as they are."
           }
           isLoading={isUpdatingCredentials}
           error={credentialsError}

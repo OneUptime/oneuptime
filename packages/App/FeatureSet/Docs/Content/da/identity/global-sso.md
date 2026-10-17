@@ -92,7 +92,9 @@ To kontakter på udbyderen ændrer dette. Begge starter slået fra, foldet samme
 | Kontakt | Hvad den gør, når den er slået til |
 | --- | --- |
 | **Disable Sign Up with SSO** | Personer skal være inviteret til et projekt, før de kan logge ind med denne udbyder, også når der er tilknyttede projekter. Ingen nye oprettes ved deres første login. |
-| **Restrict to Attached Projects** | Login med denne udbyder opfylder kun SSO-kravet i de projekter, der er tilknyttet den, så personer, der allerede er logget ind, kan miste adgangen til andre projekter. Når den er slået fra, opfylder den kravet i alle projekter, personen hører til, og tilknyttede projekter afgør kun, hvor nye personer tilføjes. |
+| **Restrict to Attached Projects** | Login med denne udbyder opfylder kun SSO-kravet i de projekter, der er tilknyttet den, så personer, der allerede er logget ind, kan miste adgangen til andre projekter. |
+
+Når **Restrict to Attached Projects** er slået fra, opfylder login med udbyderen SSO-kravet i alle projekter, personen hører til, og tilknyttede projekter afgør kun, hvor nye personer tilføjes.
 
 ## Gennemtving SSO
 

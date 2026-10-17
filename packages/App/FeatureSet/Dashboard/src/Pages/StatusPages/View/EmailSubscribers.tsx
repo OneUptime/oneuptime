@@ -659,7 +659,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     description: (
                       <>
                         {translator.translateText(
-                          "One email per line (or separated by commas, semicolons, or spaces). Invalid or duplicate entries will be skipped.",
+                          "One email per line. Invalid and duplicate ones are skipped.",
                         )}{" "}
                         {translator.translateText(
                           SubscriberUnsubscribeCopy.sharedAddressAdvice,

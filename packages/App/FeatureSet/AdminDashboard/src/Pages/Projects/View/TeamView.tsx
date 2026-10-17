@@ -210,7 +210,7 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
               },
               title: "Accept the invitation automatically",
               description:
-                "Add this user as a member right away instead of leaving them as invited until they accept. Only a master admin can do this - use it when you are setting a project up on someone's behalf.",
+                "Add this user as a member now, without waiting for them to accept.",
               fieldType: FormFieldSchemaType.Checkbox,
               required: false,
               defaultValue: false,

@@ -946,7 +946,7 @@ describe("Locales", () => {
       "Shifts you cover for someone else, when an override names you.",
       "Private to you. Anyone who has the link can read your shifts, so treat it like a password.",
       "No shared link yet",
-      "Every app subscribed to the current link stops updating and shows an empty calendar. For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working - paste the new link into every app you subscribed with.",
+      "Apps subscribed to the current link stop getting shifts and show an empty calendar. Paste the new link into every app you subscribed with.",
       "Your previous link returns an empty calendar until {{date}}, then stops working.",
       "The previous link returns an empty calendar until {{date}}, then stops working.",
       "{{count}} weeks",
@@ -1000,11 +1000,12 @@ describe("Locales", () => {
       const json: Record<string, unknown> = readLocale(locale);
 
       /*
-       * The three sentences that describe the rotated-out link, by their key.
+       * The two sentences that describe the rotated-out link, by their key.
        * Each says what the old link serves - an empty calendar - which is also
        * what tells them apart from other features' sentences about an old
        * link of their own (an incident form's Reset Link, whose old link
-       * stops working at once).
+       * stops working at once). The rotate dialog itself only says that
+       * subscribed apps go empty and need the new link.
        */
       const previousLinkKeys: Array<string> = Object.keys(json).filter(
         (key: string): boolean => {
@@ -1015,7 +1016,7 @@ describe("Locales", () => {
         },
       );
 
-      expect(previousLinkKeys.length).toBe(3);
+      expect(previousLinkKeys.length).toBe(2);
 
       for (const key of previousLinkKeys) {
         expect(String(json[key])).not.toContain(phrase);

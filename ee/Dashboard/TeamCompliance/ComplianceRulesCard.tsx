@@ -850,8 +850,8 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             title="No compliance rules yet"
             description={
               canCreate
-                ? "A rule says what everyone on this team must have set up before they can be relied on - a phone call for critical incidents, say, or a verified push device. Start from a recommendation below or build your own."
-                : "A rule says what everyone on this team must have set up before they can be relied on. Nobody has added one to this team yet - ask a project admin to add one."
+                ? "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own."
+                : "A rule says what everyone on this team must set up. Ask a project admin to add one."
             }
             footer={
               canCreate ? (

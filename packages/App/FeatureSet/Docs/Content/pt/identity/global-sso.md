@@ -92,7 +92,9 @@ Dois interruptores do provedor mudam isso. Os dois começam desligados, recolhid
 | Interruptor | O que faz quando ligado |
 | --- | --- |
 | **Disable Sign Up with SSO** | As pessoas precisam ser convidadas para um projeto antes de poderem fazer login com este provedor, mesmo quando há projetos anexados. Ninguém novo é criado no primeiro login. |
-| **Restrict to Attached Projects** | Fazer login com este provedor atende à exigência de SSO apenas nos projetos anexados a ele, então pessoas que já fizeram login podem perder o acesso a outros projetos. Quando desligado, atende à exigência em todos os projetos de que a pessoa faz parte, e os projetos anexados só decidem onde os recém-chegados são adicionados. |
+| **Restrict to Attached Projects** | Fazer login com este provedor atende à exigência de SSO apenas nos projetos anexados a ele, então pessoas que já fizeram login podem perder o acesso a outros projetos. |
+
+Com **Restrict to Attached Projects** desligado, fazer login com o provedor atende à exigência de SSO em todos os projetos de que a pessoa faz parte, e os projetos anexados só decidem onde os recém-chegados são adicionados.
 
 ## Impor o SSO
 

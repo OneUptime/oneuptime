@@ -89,7 +89,7 @@ const WifiTablesNotReadState: FunctionComponent<ComponentProps> = (
           <>
             {props.probeName
               ? translator.translateTemplate(
-                  "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
+                  "{{probe}}, the probe that polls this device, is older than {{version}} and cannot read Wi-Fi tables. Update it to see the radios.",
                   {
                     probe: props.probeName,
                     version: FIRST_PROBE_VERSION_WITH_SNMP_TABLES,
@@ -157,7 +157,7 @@ const WifiTablesNotReadState: FunctionComponent<ComponentProps> = (
       title="The device reported no Wi-Fi radios"
       description={
         <TranslatedSentence
-          template="The device answered the walk of its Wi-Fi tables, but they hold no rows. Check that its firmware reports them, and that the SNMP view its credentials use includes them. The {{tables}} page shows each table as it was walked."
+          template="The device's Wi-Fi tables are empty. Check that its firmware fills them and its SNMP view includes them; {{tables}} shows each table."
           slots={{
             tables: (
               <AppLink

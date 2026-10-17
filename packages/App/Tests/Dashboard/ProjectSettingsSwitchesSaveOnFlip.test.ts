@@ -378,7 +378,7 @@ describe("what the switches say", () => {
 
     expect(sentence).toContain("Everyone in this project, you included");
     expect(sentence).toContain("locked out of the project");
-    expect(sentence).toContain("test SSO with the link above first");
+    expect(sentence).toContain("Test SSO with the link above first");
   });
 
   test("turning Monitor Groups off deletes nothing, and the switch says so", () => {

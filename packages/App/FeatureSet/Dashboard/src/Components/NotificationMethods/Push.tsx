@@ -839,7 +839,7 @@ const Push: () => JSX.Element = (): ReactElement => {
           description={
             registeredBrowser.alreadyRegistered
               ? "This browser already receives push notifications for this project. Send a test notification to check that they still arrive."
-              : "This browser will now receive push notifications for alerts, incidents and on-call pages in this project. Send a test notification to check that they arrive."
+              : "This browser now gets push notifications for this project's alerts, incidents and on-call pages. Send a test to check."
           }
           submitButtonText="Send Test Notification"
           submitButtonType={ButtonStyleType.PRIMARY}

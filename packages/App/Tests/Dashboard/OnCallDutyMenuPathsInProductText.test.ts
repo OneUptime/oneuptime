@@ -125,11 +125,11 @@ const LANGUAGES: ReadonlyArray<string> = fs
 
 // The texts this task rewrote, as the Dashboard's English locale keys them.
 const POLICY_CARD: string =
-  "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > Advanced > User Overrides.";
+  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call Duty > Advanced > User Overrides.";
 const SKIP_DIALOG: string =
-  "This applies to every on-call policy. When it ends, they are back in their usual place in the rotation. To end it early, delete it under On-Call Duty > Advanced > User Overrides.";
+  "This applies to every on-call policy. To end it early, delete it under On-Call Duty > Advanced > User Overrides.";
 const GLOBAL_CARD: string =
-  "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page, under Advanced.";
+  "While someone is away, their pages from every on-call policy go to whoever covers for them, or to the next person in the rotation. For one policy only, use that policy's User Overrides page, under Advanced.";
 const READINESS_NOTE: string =
   "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call Duty > Readiness for the full list.";
 

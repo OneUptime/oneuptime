@@ -129,10 +129,11 @@ const DatabaseServerOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         {
           field: { databaseServerNamePattern: true },
           title: "Database Name",
+          description: "Leave empty to match any name.",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
-            "Case-insensitive regex matched against the database name and description. Names start with the engine, so ^PostgreSQL matches every PostgreSQL database.",
+            "Case-insensitive regexes. Database names start with the engine, so ^PostgreSQL matches every PostgreSQL database.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "^PostgreSQL",

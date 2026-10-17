@@ -550,6 +550,7 @@ describe("translations", () => {
     "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.",
     "Report Timezone",
     "Reporting period",
+    "For a monthly report sent in August, the previous whole calendar period is Jul 1 to Jul 31. A rolling number of days ends when the email is sent.",
     ...REPORT_PERIOD_TYPE_OPTIONS.map((option: { label: string }) => {
       return option.label;
     }),
@@ -607,6 +608,52 @@ describe("translations", () => {
       expect(translations[StatusPageReportsCopy.previewTimezone]).toEqual(
         expect.stringContaining("{{timezone}}"),
       );
+    },
+  );
+});
+
+/*
+ * The Reporting period dropdown offers "The previous whole calendar period"
+ * and "A rolling number of days". Its description says what each covers by
+ * those names - it once said "Calendar" and "Rolling", words the dropdown
+ * never shows - and does so in every language, with the names that
+ * language's dropdown draws.
+ */
+describe("the reporting period's description", () => {
+  const description: string =
+    "For a monthly report sent in August, the previous whole calendar period is Jul 1 to Jul 31. A rolling number of days ends when the email is sent.";
+
+  test("is the one the schedule dialog draws under Reporting period", () => {
+    const form: string = readSource(path.join(DASHBOARD_SRC, FORM_FILE));
+
+    expect(form).toContain(
+      `title: "Reporting period", description: "${description}"`,
+    );
+  });
+
+  test("names each choice as the dropdown does", () => {
+    for (const option of REPORT_PERIOD_TYPE_OPTIONS) {
+      expect(description.toLowerCase()).toContain(option.label.toLowerCase());
+    }
+  });
+
+  test.each(OTHER_LOCALES)(
+    "%s names each choice as its dropdown does",
+    (locale: string) => {
+      const translations: Record<string, unknown> = readLocale(locale);
+      const translated: unknown = translations[description];
+
+      expect(typeof translated).toBe("string");
+
+      for (const option of REPORT_PERIOD_TYPE_OPTIONS) {
+        const label: unknown = translations[option.label];
+
+        expect(typeof label).toBe("string");
+        expect([option.label, (translated as string).toLowerCase()]).toEqual([
+          option.label,
+          expect.stringContaining((label as string).toLowerCase()),
+        ]);
+      }
     },
   );
 });

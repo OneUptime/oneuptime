@@ -443,7 +443,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Add Processor"
-      description="Processors transform logs as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the log before it is stored."
+      description="Processors change logs before they are stored. They run in order, after the pipeline's filter matches."
       modalWidth={ModalWidth.Large}
       submitButtonText="Create Processor"
       onSubmit={handleSave}
@@ -914,7 +914,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
             <div className="mb-4">
               <Toggle
                 title="Override on Conflict"
-                description="Overwrite an attribute the log already has under the same key. Off by default, so a line cannot replace attributes set at ingest, such as the device it came from."
+                description="Overwrite an attribute the log already has under the same key, including ones set at ingest."
                 value={keyValueOverrideOnConflict}
                 onChange={setKeyValueOverrideOnConflict}
               />

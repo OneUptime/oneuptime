@@ -124,7 +124,7 @@ const RumApplications: FunctionComponent<
               getNameFromIdentityField<RumApplication>("appIdentifier"),
             placeholder: "Storefront",
             description:
-              "Starts as the app name, the way discovered applications are named. Type a name of your own to show it instead. Telemetry is still matched by the app name.",
+              "Starts as the app name. Type your own name to show instead; telemetry is still matched by the app name.",
             collapsibleSection: advancedSection,
           }),
           {

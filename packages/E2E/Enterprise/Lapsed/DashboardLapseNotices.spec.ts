@@ -135,7 +135,7 @@ const LAPSED_SCREENS: ReadonlyArray<LapsedScreen> = [
     noticeTitle: READ_ONLY_TITLE,
     actionsNoticeTitle: SCIM_ACTIONS_TITLE,
     enterpriseCopy:
-      "SCIM is an open standard for automating the exchange of user identity information",
+      "Let your identity provider add and remove the people in this project.",
     graceNoticeTestId: GRACE_BANNER_TEST_ID,
   },
 ];

@@ -119,10 +119,10 @@ export const CustomFieldFormCopy: {
   fieldTypeDescription:
     "Choose how data is entered for this field. Dropdown types also need a list of options below.",
   dropdownOptionsDescription:
-    "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.",
+    "The options to choose from, each with an optional color. Drag an option by its handle to reorder it.",
   mapValueFromTitle: "Map Value From",
   mapValueFromDescription:
-    "Copy this field's value from a related resource instead of typing it in on every record. The value is filled in when a record is created and refreshed whenever the source changes.",
+    "Copy this field's value from a related resource instead of typing it on every record. It stays in step with the source.",
   mapValueByHand: "Enter values by hand",
   fieldToCopyFromTitle: "Field To Copy From",
   fieldToCopyFromDescription:
@@ -246,10 +246,10 @@ export const IncidentCustomFieldSettingsCopy: {
     "Ask for this field in a Details step when an incident is declared from the dashboard. Incident templates can fill it in.",
   isRequiredOnCreateTitle: "Required on Create",
   isRequiredOnCreateDescription:
-    "An incident cannot be declared from the dashboard until this field is filled in. For a Boolean field this means the box must be ticked. Incidents created by monitors, the API, Slack, Microsoft Teams or AI can still leave it empty, and it stays optional when an incident is edited later.",
+    "Incidents declared from the dashboard must fill this in (a Boolean field must be ticked). Other ways to create incidents can leave it empty.",
   includeInSubscriberNotificationsTitle: "Include in Subscriber Notifications",
   includeInSubscriberNotificationsDescription:
-    "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.",
+    "Show this field in subscribers' incident messages (email, Slack, Microsoft Teams, webhooks; not the default SMS). They are often outside your team.",
   requiredBooleanMustBeChecked: CUSTOM_FIELD_MUST_BE_CHECKED_MESSAGE,
 };
 

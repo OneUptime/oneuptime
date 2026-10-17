@@ -177,7 +177,7 @@ const UNDER_MAINTENANCE_ID: string = "55555555-5555-4555-8555-000000000001";
 const FORM_ID: string = "create-template-form";
 
 const TEMPLATE_STATUS_DESCRIPTION: string =
-  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.";
+  "The status the event's monitors change to while it is ongoing, including monitors picked when it is scheduled.";
 
 // The template's own relations: a template holds these five besides monitors.
 const TEMPLATE_OTHER_TYPES: Array<string> = [

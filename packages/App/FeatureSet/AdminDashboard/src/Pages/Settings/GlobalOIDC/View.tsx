@@ -207,13 +207,9 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           title={"Test this OIDC provider"}
           description={
             <span>
-              Use this link to test the OIDC login end-to-end. You do not need
-              to attach any projects first — it signs you in through the
-              identity provider and into the projects you already belong to. The
-              provider must be enabled for the link to work; enabling a global
-              provider only adds a &quot;Sign in with SSO&quot; option and never
-              forces SSO or locks anyone out, so it is safe to enable, test, and
-              disable again if needed.{" "}
+              Open this link to test the provider. It must be enabled, which
+              only adds a &quot;Sign in with SSO&quot; option and locks no one
+              out.{" "}
               <Link openInNewTab={true} to={testLoginURL}>
                 <span>{testLoginURL.toString()}</span>
               </Link>
@@ -242,7 +238,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           cardProps={{
             title: "Attached Projects",
             description:
-              "Attach this provider to a project and pick that project's default teams. Add one project + teams at a time to build the list. If no projects are attached, the provider works for all projects a user is already a member of (invite-first). To change an attachment, delete it and add it again.",
+              "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.",
           }}
           noItemsMessage={"No projects attached to this provider."}
           showRefreshButton={true}

@@ -55,7 +55,7 @@ export const SubscriberRestrictionsCopy: {
   ),
   privateUsersOnlyTitle: translationKey("Only Private Users Can Subscribe"),
   privateUsersOnlyOnDescription: translationKey(
-    "On: only people who can sign in to this status page can subscribe, by email, with the address they sign in with. Subscribers who are not private users of this page are sent nothing.",
+    "On: only people who can sign in to this page can subscribe, by email. Other subscribers are sent nothing.",
   ),
   privateUsersOnlyOffDescription: translationKey(
     "Off: anyone who can see this status page can subscribe.",

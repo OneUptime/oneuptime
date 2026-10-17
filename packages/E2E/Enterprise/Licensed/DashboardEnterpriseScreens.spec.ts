@@ -79,7 +79,7 @@ const ENTERPRISE_SCREENS: ReadonlyArray<DashboardScreen> = [
   {
     label: "Settings > SCIM",
     route: "settings/scim",
-    copy: "SCIM is an open standard for automating the exchange of user identity information",
+    copy: "Let your identity provider add and remove the people in this project.",
   },
   {
     label: "Settings > Audit Logs",
@@ -252,7 +252,7 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
     await expect(
       page
         .getByText(
-          "SCIM is an open standard for automating the exchange of user identity information",
+          "Let your identity provider add and remove the people in this project.",
         )
         .first(),
     ).toBeVisible({ timeout: 60000 });

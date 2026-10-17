@@ -131,7 +131,7 @@ export const getSloDowntimeSettingsFormFields: GetSloSettingsFormFieldsFunction 
          * time (ServiceLevelObjectiveService.onBeforeCreate).
          */
         description:
-          "Time a monitor spends in any of these statuses spends error budget. Leave empty to always count every non-operational status, including ones added later.",
+          "Time in these statuses spends error budget. Leave empty to count every non-operational status.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         dropdownModal: {
           type: MonitorStatus,

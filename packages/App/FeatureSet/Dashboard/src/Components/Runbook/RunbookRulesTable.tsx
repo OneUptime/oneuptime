@@ -271,6 +271,8 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitors: true },
           title: "Monitors",
+          description:
+            "Only match incidents, alerts and maintenance events of these monitors.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
@@ -337,6 +339,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitorLabels: true },
           title: "Monitor Labels",
+          description: "Only match when a monitor has one of these labels.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
@@ -366,6 +369,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitorNamePattern: true },
           title: "Monitor Name",
+          description: "A case-insensitive regex for monitor names.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -374,6 +378,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitorDescriptionPattern: true },
           title: "Monitor Description",
+          description: "A case-insensitive regex for monitor descriptions.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

@@ -916,7 +916,7 @@ const HostSystemdUnitView: FunctionComponent<
       <Card
         title="No unit metrics in range"
         description={translator.translateTemplate(
-          'No "{{unitName}}" samples were found on this host during the selected time window. Pick a wider time range, or verify the OTel collector\'s systemd receiver is enabled on this host and that "{{unitName}}" matches its "units" patterns — the Documentation tab has setup steps, and the receiver needs otelcol-contrib {{version}} or newer.',
+          'No "{{unitName}}" samples in this time range. Pick a wider range, or check that the collector\'s systemd receiver includes "{{unitName}}": see the Documentation tab.',
           { unitName: unitName, version: MIN_OTELCOL_CONTRIB_VERSION },
         )}
       >
