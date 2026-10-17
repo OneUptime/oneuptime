@@ -319,6 +319,7 @@ describe("UserMiddleware.doesSsoTokenForProjectExist - global token expiry", () 
         ssoProviderType: SsoProviderType.GlobalSSO.toString(),
       },
       expiresInSeconds: -60,
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     });
   };
 

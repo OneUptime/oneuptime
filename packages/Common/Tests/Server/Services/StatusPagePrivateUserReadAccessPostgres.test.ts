@@ -9,6 +9,7 @@ import { ExpressRequest } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
 import Email from "../../../Types/Email";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import { DataSource } from "typeorm";
@@ -80,6 +81,7 @@ describePostgres("private status page authorization against Postgres", () => {
             email: new Email("synthetic@example.com"),
           },
           expiresInSeconds: 900,
+          purpose: JsonWebTokenPurpose.StatusPageSession,
         }),
       },
     } as ExpressRequest;

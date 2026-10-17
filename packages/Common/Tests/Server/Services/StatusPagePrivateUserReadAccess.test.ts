@@ -41,6 +41,7 @@ describe("private status page access requires a live session", () => {
         ...claims,
       },
       expiresInSeconds,
+      purpose: JsonWebTokenPurpose.StatusPageSession,
     });
     return {
       cookies: { [CookieUtil.getUserTokenKey(statusPageId)]: token },

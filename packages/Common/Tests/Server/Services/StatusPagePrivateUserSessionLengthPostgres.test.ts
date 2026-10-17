@@ -8,6 +8,7 @@ import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import Email from "../../../Types/Email";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import { DataSource } from "typeorm";
 
@@ -113,6 +114,7 @@ describePostgres("status page Sign Readers Out After against Postgres", () => {
             email: new Email("synthetic@example.com"),
           },
           expiresInSeconds: 900,
+          purpose: JsonWebTokenPurpose.StatusPageSession,
         }),
       },
     } as ExpressRequest;

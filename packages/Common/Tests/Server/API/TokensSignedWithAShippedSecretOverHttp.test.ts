@@ -71,9 +71,9 @@ import { AddressInfo } from "net";
  * signed itself still gets through, so the refusal is the signature's, not
  * the route's: every forged session says it is one (JsonWebTokenPurpose), as
  * the server's own do. And an installation whose operator set
- * ENCRYPTION_SECRET still takes the sessions it signs with it, while an
- * access token from before tokens said what they were for is answered as an
- * expired one, which the client renews.
+ * ENCRYPTION_SECRET still takes the sessions it signs with it, and the access
+ * tokens it signed before tokens said what they were for, so nobody is
+ * signed out.
  */
 
 const VICTIM_USER_ID: string = "7e7e7e7e-7e7e-4e7e-8e7e-7e7e7e7e7e7e";
@@ -637,11 +637,12 @@ describe("over HTTP, an installation whose operator set ENCRYPTION_SECRET", () =
 
   /*
    * An access token from before tokens said what they were for lived fifteen
-   * minutes. It is a 401, as one that expired, and the client renews it with
-   * its refresh token, which the upgrade does not touch.
+   * minutes, and while the upgrade rolls out a server of the release before
+   * signs more of them. Each is still the session it is, so nobody is
+   * signed out - and only for the fifteen minutes such a token lived.
    */
   test.each(CARRIERS)(
-    "answers a session an earlier release signed with that secret 401, sent as a %s, so the client renews it",
+    "still takes a master admin's session an earlier release signed with that secret, sent as a %s, so nobody is signed out",
     async (carrier: Carrier) => {
       const server: Installation = started();
 
@@ -656,6 +657,32 @@ describe("over HTTP, an installation whose operator set ENCRYPTION_SECRET", () =
         method: "GET",
         path: `/api/user/${VICTIM_USER_ID}/authentication-status`,
         token: issuedBeforeTheUpgrade,
+        carrier,
+      });
+
+      expect(result.status).toBe(200);
+      expect(server.reached).toEqual([
+        `authentication-status ${VICTIM_USER_ID}`,
+      ]);
+    },
+  );
+
+  test.each(CARRIERS)(
+    "answers the same claims signed for longer than an access token lived 401, sent as a %s",
+    async (carrier: Carrier) => {
+      const server: Installation = started();
+
+      const signedForThirtyDays: string = jwt.sign(
+        masterAdminClaimsBeforeTheUpgrade(),
+        OPERATOR_ENCRYPTION_SECRET,
+        { expiresIn: 30 * 24 * 60 * 60 },
+      );
+
+      const result: HttpResult = await send({
+        installation: server,
+        method: "GET",
+        path: `/api/user/${VICTIM_USER_ID}/authentication-status`,
+        token: signedForThirtyDays,
         carrier,
       });
 

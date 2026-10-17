@@ -46,9 +46,9 @@ import jwt from "jsonwebtoken";
  *
  * Each has a control in the same configuration: the token the server signs
  * itself still works. And an installation whose operator set ENCRYPTION_SECRET
- * keeps accepting what it signs with it, and the SSO sign-ins it gave before
- * the upgrade; an access token from before tokens said what they were for is
- * renewed by the client, as one that expired.
+ * keeps accepting what it signs with it, and what it signed before the
+ * upgrade: the access tokens from before tokens said what they were for, so
+ * nobody is signed out, and the SSO sign-ins it gave.
  *
  * Every forged token says what it is for (JsonWebTokenPurpose), as the
  * server's own do, so the signature is the only thing wrong with it.
@@ -703,13 +703,44 @@ describe("an installation whose operator set ENCRYPTION_SECRET", () => {
 
   /*
    * An access token from before tokens said what they were for lived fifteen
-   * minutes. It is answered 401, as one that expired, and the client renews
-   * it with its refresh token, which the upgrade does not touch.
+   * minutes, and while the upgrade rolls out a server of the release before
+   * signs more of them. Each is still the session it is, so nobody is
+   * signed out - and only for the fifteen minutes such a token lived.
    */
-  test("answers an access token it signed before the upgrade 401, so the client renews it", async () => {
+  test("keeps accepting the access tokens it signed before the upgrade, so nobody is signed out", async () => {
     const server: Server = startedServer();
     const req: Request = bearerRequest(
       signWith(OPERATOR_ENCRYPTION_SECRET, masterAdminClaimsBeforeTheUpgrade()),
+    );
+
+    expectPassed(
+      await run(server, server.UserMiddleware.getUserMiddleware, req),
+    );
+    expect(req.userType).toBe(server.UserType["MasterAdmin"]);
+    expectPassed(
+      await run(
+        server,
+        server.MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+        bearerRequest(
+          signWith(
+            OPERATOR_ENCRYPTION_SECRET,
+            masterAdminClaimsBeforeTheUpgrade(),
+          ),
+        ),
+      ),
+    );
+  });
+
+  test("answers the same claims signed for longer than an access token lived 401", async () => {
+    const server: Server = startedServer();
+    const req: Request = bearerRequest(
+      jwt.sign(
+        masterAdminClaimsBeforeTheUpgrade(),
+        OPERATOR_ENCRYPTION_SECRET,
+        {
+          expiresIn: 30 * 24 * 60 * 60,
+        },
+      ),
     );
     const result: MiddlewareRun = await run(
       server,
