@@ -30,8 +30,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * {statusPageUrl}/unsubscribe/{subscriberId}-{token} - a link without its
  * token only leads to the "this link is out of date" page - including for a
  * subscriber read before the backfill gave it a token, which the sender tops
- * up first. An SMS from a public status page keeps the manage link instead
- * (StatusPageSubscriberUnsubscribe.buildSmsLink).
+ * up first. An SMS carries the same link on a public status page as on a
+ * private one: the manage page asks for the token too, so a link keyed by
+ * the subscriber id alone would open nothing.
  *
  * The database is stubbed: the loaders are faked, and the token top-up's SQL
  * is recorded.
@@ -393,20 +394,19 @@ describe("the SMS a new SMS subscriber gets", () => {
       .message;
   }
 
-  test("on a private status page, links to the unsubscribe page: its manage page needs a signed-in visitor", async () => {
-    const message: string = await createdOn(statusPage({ isPublic: false }));
+  test.each([
+    ["a private status page", false],
+    ["a public status page", true],
+  ])(
+    "on %s, links to the unsubscribe page with the subscription's token",
+    async (_label: string, isPublic: boolean) => {
+      const message: string = await createdOn(statusPage({ isPublic }));
 
-    expect(message).toBe(
-      `You have been subscribed to Site 03 Status. To unsubscribe, click on the link: ${linkFor(SUBSCRIBER_ID, TOKEN)}`,
-    );
-  });
-
-  test("on a public status page, keeps the shorter manage link, and never the token", async () => {
-    const message: string = await createdOn(statusPage({ isPublic: true }));
-
-    expect(message).toBe(
-      `You have been subscribed to Site 03 Status. To unsubscribe, click on the link: ${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`,
-    );
-    expect(message).not.toContain(TOKEN);
-  });
+      expect(message).toBe(
+        `You have been subscribed to Site 03 Status. To unsubscribe, click on the link: ${linkFor(SUBSCRIBER_ID, TOKEN)}`,
+      );
+      // Never a manage link keyed by the subscriber id alone.
+      expect(message).not.toContain("/update-subscription/");
+    },
+  );
 });

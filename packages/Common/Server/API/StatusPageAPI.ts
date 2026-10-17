@@ -146,7 +146,8 @@ import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQ
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
-import StatusPageSubscriberUnsubscribe, {
+import {
+  MANAGE_SUBSCRIPTION_LINK_NOT_VALID_MESSAGE,
   StatusPageSubscriberUnsubscribeDetails,
   StatusPageSubscriberUnsubscribeState,
 } from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
@@ -2025,10 +2026,21 @@ export default class StatusPageAPI extends BaseAPI<
       overviewHandler,
     );
 
+    /*
+     * The subscriber's manage page (Update Subscription) reads and changes a
+     * subscription through these two routes. They take the credential of the
+     * link the page was opened from - {subscriberId}-{token}, split into its
+     * two parts - and answer only for the subscription that token belongs to
+     * (StatusPageSubscriberService.findSubscriberForManagePage): the
+     * subscriber id is no secret, as every project member who may read
+     * subscribers sees it, and it must not let them change one. The page's
+     * own read check still comes first, so a private page also needs a
+     * signed-in visitor.
+     */
     this.router.put(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/update-subscription/:statusPageId/:subscriberId`,
+        ?.toString()}/update-subscription/:statusPageId/:subscriberId/:token`,
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -2043,12 +2055,15 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/get-subscription/:statusPageId/:subscriberId`,
+        ?.toString()}/get-subscription/:statusPageId/:subscriberId/:token`,
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const subscriber: StatusPageSubscriber =
             await this.getSubscriber(req);
+
+          // A token-bearing answer: never let a shared cache keep it.
+          Response.setNoCacheHeaders(res);
 
           return Response.sendEntityResponse(
             req,
@@ -3370,19 +3385,20 @@ export default class StatusPageAPI extends BaseAPI<
         const microsoftTeamsIncomingWebhookUrl: URL | undefined =
           statusPageSubscriber.microsoftTeamsIncomingWebhookUrl;
 
+        /*
+         * The visitor asked to manage their subscription, so the message
+         * links to its Update Subscription page - with the subscription's
+         * token, which that page asks for, so only this message's recipient
+         * can open it. It also hands templates the unsubscribe link every
+         * other sender passes as unsubscribeUrl: that one works without
+         * signing in, which the manage page on a private status page does not.
+         */
         const manageUrlink: string =
           StatusPageSubscriberService.getManageSubscriptionLink(
             URL.fromString(statusPageURL),
-            statusPageSubscriber.id!,
+            statusPageSubscriber,
           ).toString();
 
-        /*
-         * The visitor asked to manage their subscription, so the message
-         * links to its Update Subscription page. It also hands templates the
-         * unsubscribe link every other sender passes as unsubscribeUrl: that
-         * one works without signing in, which the manage page on a private
-         * status page does not.
-         */
         const unsubscribeUrl: string =
           StatusPageSubscriberService.getUnsubscribeLink(
             URL.fromString(statusPageURL),
@@ -3475,24 +3491,10 @@ export default class StatusPageAPI extends BaseAPI<
         if (subscriberPhone) {
           let smsMessage: string;
           if (manageSmsTemplate?.templateBody && statusPage.callSmsConfig) {
-            /*
-             * On a public status page an SMS carries the shorter manage link
-             * where other messages carry the unsubscribe link: an SMS is
-             * billed by the segment (see
-             * StatusPageSubscriberUnsubscribe.buildSmsLink).
-             */
             smsMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 manageSmsTemplate.templateBody,
-                {
-                  ...manageTemplateVariables,
-                  unsubscribeUrl: StatusPageSubscriberUnsubscribe.buildSmsLink({
-                    isPublicStatusPage: statusPage.isPublicStatusPage,
-                    statusPageUrl: statusPageURL,
-                    subscriberId: statusPageSubscriber.id!,
-                    unsubscribeUrl: unsubscribeUrl,
-                  }),
-                },
+                manageTemplateVariables,
               );
           } else {
             smsMessage = defaultChatMessage;
@@ -3814,40 +3816,15 @@ export default class StatusPageAPI extends BaseAPI<
       );
       statusPageSubscriber = new StatusPageSubscriber();
     } else {
-      const subscriberId: ObjectID = new ObjectID(
-        req.params["subscriberId"] as string,
-      );
-
       logger.debug(
-        `Updating existing subscriber with ID: ${subscriberId} for status page with ID: ${objectId}`,
+        `Updating an existing subscriber for status page with ID: ${objectId}`,
         getLogAttributesFromRequest(req as any),
       );
-      /*
-       * Scope the lookup to the status page in the route. This endpoint only
-       * checks read access on that status page, so without the statusPageId
-       * clause anyone holding a subscriber UUID could pass any status page they
-       * can read and edit a subscriber belonging to a different — possibly
-       * private — status page. A subscriber on another page must be
-       * indistinguishable from one that does not exist, so that the shared
-       * "Subscriber not found" below cannot be used to probe for valid UUIDs.
-       */
-      statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
-        query: {
-          _id: subscriberId.toString(),
-          statusPageId: objectId,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
 
-      if (!statusPageSubscriber) {
-        logger.debug(
-          `Subscriber not found with ID: ${subscriberId} on status page with ID: ${objectId}`,
-          getLogAttributesFromRequest(req as any),
-        );
-        throw new BadDataException("Subscriber not found");
-      }
+      statusPageSubscriber = await this.findSubscriberForManageLink({
+        statusPageId: objectId,
+        req: req,
+      });
 
       isUpdate = true;
     }
@@ -4093,37 +4070,43 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException("Status Page not found");
     }
 
-    const subscriberId: ObjectID = new ObjectID(
-      req.params["subscriberId"] as string,
-    );
+    return await this.findSubscriberForManageLink({
+      statusPageId: statusPage.id!,
+      req: req,
+    });
+  }
 
-    const statusPageSubscriber: StatusPageSubscriber | null =
-      await StatusPageSubscriberService.findOneBy({
-        query: {
-          _id: subscriberId.toString(),
-          statusPageId: statusPage.id!,
-        },
-        select: {
-          isUnsubscribed: true,
-          subscriberEmail: true,
-          subscriberPhone: true,
-          slackWorkspaceName: true,
-          statusPageId: true,
-          statusPageResources: true,
-          isSubscribedToAllResources: true,
-          statusPageEventTypes: true,
-          isSubscribedToAllEventTypes: true,
-        },
-        props: {
-          isRoot: true,
-        },
+  /*
+   * The subscription the manage page's link names, for its two routes
+   * (get-subscription and update-subscription): the subscriber id and the
+   * token from the route, checked together on the status page in the route.
+   * Every link that does not open a subscription - no token, a wrong one, a
+   * subscriber that does not exist, was deleted or belongs to another status
+   * page, a malformed id - gets the same answer, so neither route can be used
+   * to find out which subscriptions exist, and the subscriber id alone opens
+   * nothing.
+   */
+  private async findSubscriberForManageLink(data: {
+    statusPageId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<StatusPageSubscriber> {
+    const subscriber: StatusPageSubscriber | null =
+      await StatusPageSubscriberService.findSubscriberForManagePage({
+        statusPageId: data.statusPageId.toString(),
+        subscriberId: data.req.params["subscriberId"] as string,
+        token: data.req.params["token"] as string,
       });
 
-    if (!statusPageSubscriber) {
-      throw new BadDataException("Subscriber not found");
+    if (!subscriber) {
+      logger.debug(
+        `A manage subscription link on status page ${data.statusPageId.toString()} did not open a subscription.`,
+        getLogAttributesFromRequest(data.req as any),
+      );
+
+      throw new BadDataException(MANAGE_SUBSCRIPTION_LINK_NOT_VALID_MESSAGE);
     }
 
-    return statusPageSubscriber;
+    return subscriber;
   }
 
   /*

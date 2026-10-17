@@ -236,7 +236,10 @@
       "saved": "Dina ändringar har sparats.",
       "submit": "Uppdatera prenumeration",
       "unsubscribe": "Avsluta prenumeration",
-      "unsubscribeDescription": "Välj det här om du vill avsluta prenumerationen på alla resurser."
+      "unsubscribeDescription": "Välj det här om du vill avsluta prenumerationen på alla resurser.",
+      "linkNotValid": "Den här länken för att hantera din prenumeration har gått ut eller är ogiltig. Använd ”Hantera befintlig prenumeration” på sidan ”Prenumerera” för att få en ny.",
+      "getNewLink": "Få en ny länk",
+      "loadFailed": "Det gick inte att läsa in den här länken. Försök igen senare."
     },
     "confirm": {
       "title": "Bekräfta prenumeration",

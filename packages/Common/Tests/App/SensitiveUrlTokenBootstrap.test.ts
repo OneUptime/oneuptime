@@ -179,6 +179,8 @@ describe("the sensitive-URL-token partial", () => {
       "verify-email",
       // A status page subscriber's unsubscribe link: .../unsubscribe/<id>-<token>.
       "unsubscribe",
+      // Its manage link, with the same credential: .../update-subscription/<id>-<token>.
+      "update-subscription",
     ];
 
     expect(routeListOf(PARTIAL_PATH)).toEqual(expectedRoutes);
@@ -357,6 +359,62 @@ describe("status page: unsubscribe links", () => {
       `/status-page/${TOKEN}/unsubscribe`,
     );
     expect(page.window.sessionStorage.getItem(STORAGE_KEY)).toBe(CREDENTIAL);
+
+    page.window.close();
+  });
+});
+
+describe("status page: manage subscription links", () => {
+  const statusPage: Origin = ORIGINS[1]!;
+
+  /*
+   * The link in the "manage your subscription" message carries the same
+   * credential as the unsubscribe link, and its token lets the holder change
+   * or cancel the subscription - so it leaves the address bar the same way,
+   * before any tag a status page loads can report it.
+   */
+  const CREDENTIAL: string = `${TOKEN}-${"cd".repeat(32)}`;
+
+  it("strips the credential from a custom-domain manage link", () => {
+    const page: JSDOM = loadPage(
+      statusPage,
+      `https://status.example/update-subscription/${CREDENTIAL}`,
+    );
+
+    expect(page.window.location.pathname).toBe("/update-subscription");
+    expect(page.window.location.href).not.toContain(CREDENTIAL);
+    expect(page.window.sessionStorage.getItem(STORAGE_KEY)).toBe(CREDENTIAL);
+    expect((page.window as any).__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__).toBe(
+      false,
+    );
+
+    page.window.close();
+  });
+
+  it("strips it from a status page's own address too", () => {
+    const page: JSDOM = loadPage(
+      statusPage,
+      `https://oneuptime.com/status-page/${TOKEN}/update-subscription/${CREDENTIAL}`,
+    );
+
+    expect(page.window.location.pathname).toBe(
+      `/status-page/${TOKEN}/update-subscription`,
+    );
+    expect(page.window.location.href).not.toContain(CREDENTIAL);
+    expect(page.window.sessionStorage.getItem(STORAGE_KEY)).toBe(CREDENTIAL);
+
+    page.window.close();
+  });
+
+  it("an old manage link that carries only the subscriber id leaves the address bar too", () => {
+    const page: JSDOM = loadPage(
+      statusPage,
+      `https://status.example/update-subscription/${TOKEN}`,
+    );
+
+    expect(page.window.location.pathname).toBe("/update-subscription");
+    // The page reads it back and says the link has expired.
+    expect(page.window.sessionStorage.getItem(STORAGE_KEY)).toBe(TOKEN);
 
     page.window.close();
   });

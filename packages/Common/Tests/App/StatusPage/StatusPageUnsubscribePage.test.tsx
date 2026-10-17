@@ -28,6 +28,7 @@ import {
 import API from "../../../../App/FeatureSet/StatusPage/src/Utils/API";
 import StatusPageUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage";
 import UnsubscribePage from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/Unsubscribe";
+import { ManageLinkChannels } from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/ManageLinkRequestPage";
 import { getJestSpyOn } from "../../Spy";
 
 /*
@@ -113,6 +114,7 @@ let postAnswer: JSONObject | Error;
 let gets: Array<string>;
 let posts: Array<string>;
 let isPrivate: boolean;
+let manageLinkChannels: ManageLinkChannels | undefined;
 
 async function renderPage(): Promise<void> {
   await act(async () => {
@@ -120,6 +122,7 @@ async function renderPage(): Promise<void> {
       <UnsubscribePage
         statusPageName="Site 03"
         logoFileId={new ObjectID(STATUS_PAGE_ID.toString())}
+        manageLinkChannels={manageLinkChannels}
       />,
     );
   });
@@ -135,6 +138,12 @@ function stash(credential: string | null): void {
 
 beforeEach(() => {
   isPrivate = true;
+  manageLinkChannels = {
+    enableEmailSubscribers: true,
+    enableSMSSubscribers: true,
+    enableSlackSubscribers: false,
+    enableMicrosoftTeamsSubscribers: false,
+  };
   details = {
     state: StatusPageSubscriberUnsubscribeState.Subscribed,
     channel: StatusPageSubscriberUnsubscribeChannel.Email,
@@ -262,10 +271,21 @@ describe("Status page unsubscribe page", () => {
     isPrivate = false;
     await renderPage();
 
+    /*
+     * The manage page asks for the same credential, and it reaches that page
+     * through the tab's session: the link is the token-free route, never one
+     * that names the subscriber or carries the token.
+     */
     const manage: HTMLElement = await screen.findByText(COPY["manageInstead"]!);
     expect(manage.closest("a")).toHaveAttribute(
       "href",
-      `/update-subscription/${SUBSCRIBER_ID}`,
+      "/update-subscription",
+    );
+    expect(manage.closest("a")!.getAttribute("href")).not.toContain(
+      SUBSCRIBER_ID,
+    );
+    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe(
+      `${SUBSCRIBER_ID}-${TOKEN}`,
     );
 
     cleanup();
@@ -274,6 +294,22 @@ describe("Status page unsubscribe page", () => {
 
     await screen.findByText(COPY["confirmPrompt"]!);
     expect(screen.queryByText(COPY["manageInstead"]!)).not.toBeInTheDocument();
+  });
+
+  test("on a status page's own address, the manage page is the preview route, token-free too", async () => {
+    isPrivate = false;
+    getJestSpyOn(StatusPageUtil, "isPreviewPage").mockReturnValue(true);
+    window.localStorage.setItem("statusPageId", STATUS_PAGE_ID.toString());
+
+    await renderPage();
+
+    const manage: HTMLElement = await screen.findByText(COPY["manageInstead"]!);
+    expect(manage.closest("a")).toHaveAttribute(
+      "href",
+      `/status-page/${STATUS_PAGE_ID.toString()}/update-subscription`,
+    );
+
+    window.localStorage.removeItem("statusPageId");
   });
 
   test("a subscription already cancelled says so and offers nothing to press", async () => {
@@ -306,11 +342,63 @@ describe("Status page unsubscribe page", () => {
     await renderPage();
 
     expect(await screen.findByText(COPY["outOfDateLink"]!)).toBeInTheDocument();
+    /*
+     * The id alone opens no manage page either: the way on is the Subscribe
+     * page, whose Manage Existing Subscription tab sends a new link to the
+     * subscription's own contact.
+     */
     expect(
       screen.getByText(COPY["manageSubscription"]!).closest("a"),
-    ).toHaveAttribute("href", `/update-subscription/${SUBSCRIBER_ID}`);
+    ).toHaveAttribute("href", "/subscribe/email");
+    expect(
+      document.querySelector(`a[href*="${SUBSCRIBER_ID}"]`),
+    ).not.toBeInTheDocument();
     expect(gets).toEqual([]);
     expect(posts).toEqual([]);
+  });
+
+  test("an out-of-date link sends the reader to the first channel the page offers with a manage tab", async () => {
+    stash(SUBSCRIBER_ID);
+    isPrivate = false;
+    manageLinkChannels = {
+      enableEmailSubscribers: false,
+      enableSMSSubscribers: false,
+      enableSlackSubscribers: true,
+      enableMicrosoftTeamsSubscribers: true,
+    };
+
+    await renderPage();
+
+    expect(
+      (await screen.findByText(COPY["manageSubscription"]!)).closest("a"),
+    ).toHaveAttribute("href", "/subscribe/slack");
+  });
+
+  test("an out-of-date link offers no way on where there is none to offer", async () => {
+    stash(SUBSCRIBER_ID);
+
+    // A private page: the reader may not be able to sign in.
+    isPrivate = true;
+    await renderPage();
+    expect(await screen.findByText(COPY["outOfDateLink"]!)).toBeInTheDocument();
+    expect(
+      screen.queryByText(COPY["manageSubscription"]!),
+    ).not.toBeInTheDocument();
+
+    // A public page that offers no channel with a Manage Existing Subscription tab.
+    cleanup();
+    isPrivate = false;
+    manageLinkChannels = {
+      enableEmailSubscribers: false,
+      enableSMSSubscribers: false,
+      enableSlackSubscribers: false,
+      enableMicrosoftTeamsSubscribers: false,
+    };
+    await renderPage();
+    expect(await screen.findByText(COPY["outOfDateLink"]!)).toBeInTheDocument();
+    expect(
+      screen.queryByText(COPY["manageSubscription"]!),
+    ).not.toBeInTheDocument();
   });
 
   test("no credential, or a stale one from another flow, is an invalid link", async () => {

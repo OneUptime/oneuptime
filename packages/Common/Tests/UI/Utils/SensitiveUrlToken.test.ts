@@ -40,6 +40,21 @@ describe("SensitiveUrlToken.readFromPath", () => {
     ).toBe("abc-123");
   });
 
+  it("reads a status page subscriber's credential out of its unsubscribe and manage links", () => {
+    const credential: string = `6392f2a1-0000-4000-8000-000000000001-${"ab".repeat(32)}`;
+
+    for (const route of ["unsubscribe", "update-subscription"]) {
+      expect(SensitiveUrlToken.readFromPath(`/${route}/${credential}`)).toBe(
+        credential,
+      );
+      expect(
+        SensitiveUrlToken.readFromPath(
+          `/status-page/6392f2a1/${route}/${credential}`,
+        ),
+      ).toBe(credential);
+    }
+  });
+
   it("returns nothing for the cleaned form of the same route", () => {
     /*
      * This is the ordinary case after the bootstrap has run. Returning
@@ -47,6 +62,10 @@ describe("SensitiveUrlToken.readFromPath", () => {
      */
     expect(SensitiveUrlToken.readFromPath("/accounts/reset-password")).toBe("");
     expect(SensitiveUrlToken.readFromPath("/reset-password")).toBe("");
+    expect(SensitiveUrlToken.readFromPath("/update-subscription")).toBe("");
+    expect(
+      SensitiveUrlToken.readFromPath("/status-page/6392f2a1/update-subscription"),
+    ).toBe("");
   });
 
   it("returns nothing for unrelated routes", () => {

@@ -20,7 +20,6 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
-import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
@@ -755,18 +754,6 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                 },
               );
 
-              /*
-               * On a public status page the SMS keeps the shorter manage link,
-               * which works there without signing in: an SMS is billed by the
-               * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
-               */
-              const smsUnsubscribeUrl: string =
-                StatusPageSubscriberUnsubscribe.buildSmsLink({
-                  isPublicStatusPage: statuspage.isPublicStatusPage,
-                  statusPageUrl: statusPageURL,
-                  subscriberId: subscriber.id!,
-                  unsubscribeUrl: unsubscribeUrl,
-                });
 
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
@@ -774,14 +761,11 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     smsTemplate.templateBody,
-                    {
-                      ...subscriberPlainTextTemplateVariables,
-                      unsubscribeUrl: smsUnsubscribeUrl,
-                    },
+                    subscriberPlainTextTemplateVariables,
                   );
               } else {
                 // Use default hard-coded template
-                smsMessage = `Incident update: ${episode.title || "-"} on ${statusPageName}. ${copy.smsNoteSentence} Details: ${episodeDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
+                smsMessage = `Incident update: ${episode.title || "-"} on ${statusPageName}. ${copy.smsNoteSentence} Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`;
               }
 
               const sms: SMS = {
