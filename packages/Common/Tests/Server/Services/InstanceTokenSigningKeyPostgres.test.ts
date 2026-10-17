@@ -25,6 +25,7 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 jest.mock("../../../Server/Utils/Logger");
 
 import Entities from "../../../Models/DatabaseModels/Index";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import {
   OPERATOR_ENCRYPTION_SECRET,
@@ -137,7 +138,7 @@ describePostgres("The installation's token signing key on Postgres", () => {
 
   function verifies(appProcess: AppProcess, token: string): boolean {
     try {
-      appProcess.JSONWebToken.decode(token);
+      appProcess.JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession);
       return true;
     } catch {
       return false;
@@ -153,6 +154,7 @@ describePostgres("The installation's token signing key on Postgres", () => {
         isMasterAdmin: true,
         isGlobalLogin: true,
         sessionId: ZERO_ID,
+        purpose: JsonWebTokenPurpose.UserSession,
       },
       key,
       { expiresIn: 15 * 60 },
@@ -263,6 +265,8 @@ describePostgres("The installation's token signing key on Postgres", () => {
       {
         userId: "11111111-1111-4111-8111-111111111111",
         email: "member@example.com",
+        sessionId: ZERO_ID,
+        purpose: JsonWebTokenPurpose.UserSession,
       },
       60,
     );

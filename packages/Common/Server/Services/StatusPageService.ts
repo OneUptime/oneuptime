@@ -30,6 +30,7 @@ import { Green } from "../../Types/BrandColors";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
@@ -1306,7 +1307,10 @@ export class Service extends ProjectReferencesService<StatusPage> {
       return null;
     }
 
-    const decoded: JSONWebTokenData = JSONWebToken.decode(token as string);
+    const decoded: JSONWebTokenData = JSONWebToken.decode(
+      token as string,
+      JsonWebTokenPurpose.StatusPageSession,
+    );
 
     if (
       decoded.statusPageId?.toString() !== statusPageId.toString() ||

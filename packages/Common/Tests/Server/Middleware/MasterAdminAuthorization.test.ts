@@ -16,6 +16,7 @@ import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
@@ -210,7 +211,10 @@ describe("MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware", () => {
 
       expect(next).not.toHaveBeenCalled();
       expect(decodeSpy).toHaveBeenCalledTimes(1);
-      expect(decodeSpy).toHaveBeenCalledWith("expired.jwt");
+      expect(decodeSpy).toHaveBeenCalledWith(
+        "expired.jwt",
+        JsonWebTokenPurpose.UserSession,
+      );
       expectNotAuthenticated(sentError(), INVALID_ACCESS_TOKEN_MESSAGE);
     });
 
@@ -296,7 +300,10 @@ describe("MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware", () => {
         cookies: { [CookieUtil.getUserTokenKey()]: "cookie.admin.jwt" },
       } as unknown as ExpressRequest);
 
-      expect(decodeSpy).toHaveBeenCalledWith("cookie.admin.jwt");
+      expect(decodeSpy).toHaveBeenCalledWith(
+        "cookie.admin.jwt",
+        JsonWebTokenPurpose.UserSession,
+      );
       expect(next).toHaveBeenCalledTimes(1);
       expect(Response.sendErrorResponse).not.toHaveBeenCalled();
     });

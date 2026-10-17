@@ -13,6 +13,7 @@ import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../Types/ObjectID";
 
 export default class MasterAdminAuthorization {
@@ -44,7 +45,11 @@ export default class MasterAdminAuthorization {
         return;
       }
 
-      const authData: JSONWebTokenData = JSONWebToken.decode(accessToken);
+      // A session's own access token, and nothing else OneUptime signs.
+      const authData: JSONWebTokenData = JSONWebToken.decode(
+        accessToken,
+        JsonWebTokenPurpose.UserSession,
+      );
 
       if (!authData.isMasterAdmin) {
         Response.sendErrorResponse(

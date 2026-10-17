@@ -10,10 +10,11 @@ import { JSONObject } from "../../../Types/JSON";
  *
  * WHY THESE ARE NOT JWTS
  *
- * JSONWebToken.decode accepts any JWT signed with TokenSigningKey that
- * carries a user id and an email as a full dashboard session. Both tokens
- * here name a user, so minted as such a JWT either one would BE a session -
- * for every project the user belongs to, with none of the limits an MCP grant
+ * Both tokens here name a user, and every JWT OneUptime signs is signed with
+ * the same key. The JWT readers take a token only for what it says it is for
+ * (JsonWebTokenPurpose), so a JWT that does not say it is a session is none -
+ * but one of these minted as a JWT would be one claim away from a session for
+ * every project the user belongs to, with none of the limits an MCP grant
  * carries. So, like the verification-email resend token, they use a format no
  * JWT parser accepts ("v1.<payload>.<signature>") and a key that signs
  * nothing else: an HMAC key derived from TokenSigningKey under a label that

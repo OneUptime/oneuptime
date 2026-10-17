@@ -6,6 +6,7 @@ import Response from "./Response";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../Types/JSON";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 
 export const NOT_A_MASTER_ADMIN_MESSAGE: string =
   "Unauthorized: Only master admins can access the admin dashboard.";
@@ -42,7 +43,10 @@ export const ensureMasterAdminPageAccess: (data: {
   let authData: JSONWebTokenData;
 
   try {
-    authData = JSONWebToken.decode(accessToken);
+    authData = JSONWebToken.decode(
+      accessToken,
+      JsonWebTokenPurpose.UserSession,
+    );
   } catch (error) {
     // Expired or unreadable: let the app load and refresh it.
     logger.debug(error, { service: data.service });
