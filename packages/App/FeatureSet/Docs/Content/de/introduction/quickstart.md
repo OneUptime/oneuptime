@@ -28,7 +28,7 @@ Bei Ihrer ersten Anmeldung zeigt OneUptime **Keine Projekte**. Klicken Sie auf *
 
 ### Einen Namen vergeben
 
-Geben Sie einen **Projektname** ein, etwa den Namen Ihres Unternehmens. Bei OneUptime Cloud wählen Sie im nächsten Schritt einen Tarif.
+Geben Sie einen **Projektname** ein, etwa den Namen Ihres Unternehmens. Bei OneUptime Cloud wählen Sie darunter auch einen Tarif: Free ist bereits ausgewählt, und die kostenpflichtigen Tarife beginnen mit einer kostenlosen Testphase.
 
 ### Das Projekt anlegen
 

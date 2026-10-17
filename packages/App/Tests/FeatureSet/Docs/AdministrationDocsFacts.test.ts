@@ -1154,7 +1154,11 @@ describe("Billing & Usage", () => {
     expect(billingPage).toContain('editButtonText={"Change Plan"}');
     expect(billingPage).toContain('title: "Seats"');
     expect(billingPage).toContain('title="Yearly Plan"');
-    expect(billingPage).toContain('description="(Save 20%)"');
+    // What yearly saves is worked out from the prices, never written in.
+    expect(billingPage).toContain(
+      "description={yearlySavingText || undefined}",
+    );
+    expect(billingPage).not.toContain('description="(Save 20%)"');
     // Yearly starts on, unless a marketplace bills the project.
     expect(billingPage).toContain(
       "const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =\n    useState<boolean>(true);",
