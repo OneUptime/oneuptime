@@ -45,6 +45,31 @@ function spyOnHashes(): HashSpy {
   return jest.spyOn(crypto, "createHash") as unknown as HashSpy;
 }
 
+// Fills the memo to the brim with label sets no other test uses.
+let fillerCount: number = 0;
+
+function fillTheMemo(): void {
+  while (MetricSeriesFingerprint.getMemoSize() < FINGERPRINT_MEMO_MAX_ENTRIES) {
+    MetricSeriesFingerprint.computeFingerprint({
+      "memo.filler": `filler-${fillerCount++}`,
+    });
+  }
+}
+
+/*
+ * Leaves the memo holding one throwaway label set, through what it does
+ * anyway: filled to the brim, the next new label set starts it over. The
+ * memo is shared by the whole file, so a test that counts digests starts
+ * from here.
+ */
+function emptyTheMemo(): void {
+  fillTheMemo();
+  MetricSeriesFingerprint.computeFingerprint({
+    "memo.filler": `start-over-${fillerCount++}`,
+  });
+  expect(MetricSeriesFingerprint.getMemoSize()).toBe(1);
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -162,10 +187,15 @@ describe("hashed once, kept within bounds", () => {
     expect(MetricSeriesFingerprint.getMemoSize()).toBe(sizeBefore);
   });
 
-  test("the memo never holds more than FINGERPRINT_MEMO_MAX_ENTRIES label sets, and lets the oldest go first", () => {
-    for (let i: number = 0; i < FINGERPRINT_MEMO_MAX_ENTRIES + 500; i++) {
-      MetricSeriesFingerprint.computeFingerprint({ "host.name": `bound-${i}` });
-    }
+  test("the memo never holds more than FINGERPRINT_MEMO_MAX_ENTRIES label sets: a full memo starts over", () => {
+    const kept: JSONObject = { "host.name": "kept-before-the-brim" };
+    const oneMore: JSONObject = { "host.name": "one-more" };
+    const keptFingerprint: string = referenceFingerprint(kept);
+    const oneMoreFingerprint: string = referenceFingerprint(oneMore);
+
+    emptyTheMemo();
+    MetricSeriesFingerprint.computeFingerprint(kept);
+    fillTheMemo();
 
     expect(MetricSeriesFingerprint.getMemoSize()).toBe(
       FINGERPRINT_MEMO_MAX_ENTRIES,
@@ -173,18 +203,74 @@ describe("hashed once, kept within bounds", () => {
 
     const hashes: HashSpy = spyOnHashes();
 
-    // The newest are still kept...
-    MetricSeriesFingerprint.computeFingerprint({
-      "host.name": `bound-${FINGERPRINT_MEMO_MAX_ENTRIES + 499}`,
-    });
+    // A label set it already holds is read back; the memo stays full.
+    expect(MetricSeriesFingerprint.computeFingerprint(kept)).toBe(
+      keptFingerprint,
+    );
     expect(hashes.mock.calls).toHaveLength(0);
+    expect(MetricSeriesFingerprint.getMemoSize()).toBe(
+      FINGERPRINT_MEMO_MAX_ENTRIES,
+    );
 
-    // ...the oldest were let go, and come back with the same fingerprint.
-    const first: string = MetricSeriesFingerprint.computeFingerprint({
-      "host.name": "bound-0",
-    });
+    /*
+     * A new one empties it first, rather than trimming the oldest entry one
+     * at a time (a Map walks past the slots of deleted entries to find its
+     * oldest, so that trimming slowed down with every row).
+     */
+    expect(MetricSeriesFingerprint.computeFingerprint(oneMore)).toBe(
+      oneMoreFingerprint,
+    );
     expect(hashes.mock.calls).toHaveLength(1);
-    expect(first).toBe(referenceFingerprint({ "host.name": "bound-0" }));
+    expect(MetricSeriesFingerprint.getMemoSize()).toBe(1);
+
+    // What was let go comes back with the same fingerprint, hashed once more.
+    expect(MetricSeriesFingerprint.computeFingerprint(kept)).toBe(
+      keptFingerprint,
+    );
+    expect(hashes.mock.calls).toHaveLength(2);
+    expect(MetricSeriesFingerprint.getMemoSize()).toBe(2);
+  });
+
+  test("more series than the memo holds, read round-robin, never cost more digests than master's one a row, with the same fingerprints", () => {
+    const series: number = FINGERPRINT_MEMO_MAX_ENTRIES + 904;
+    const rows: number = 2 * series + 1000;
+
+    const labelsOf: (row: number) => JSONObject = (row: number): JSONObject => {
+      return {
+        "k8s.pod.name": `checkout-7c9d8f-${row % series}`,
+        "k8s.namespace.name": "prod",
+      };
+    };
+
+    // Master's fingerprint of every series, worked out before counting.
+    const expected: Array<string> = [];
+    for (let s: number = 0; s < series; s++) {
+      expected.push(referenceFingerprint(labelsOf(s)));
+    }
+
+    const hashes: HashSpy = spyOnHashes();
+
+    for (let i: number = 0; i < rows; i++) {
+      const fingerprint: string = MetricSeriesFingerprint.computeFingerprint(
+        labelsOf(i),
+      );
+
+      if (fingerprint !== expected[i % series]) {
+        throw new Error(
+          `row ${i}: ${fingerprint} where master gave ${expected[i % series]}`,
+        );
+      }
+
+      if (
+        MetricSeriesFingerprint.getMemoSize() > FINGERPRINT_MEMO_MAX_ENTRIES
+      ) {
+        throw new Error(
+          `${MetricSeriesFingerprint.getMemoSize()} label sets kept after row ${i}`,
+        );
+      }
+    }
+
+    expect(hashes.mock.calls.length).toBeLessThanOrEqual(rows);
   });
 
   test("memory stays small: at most a few megabytes of label text", () => {
@@ -205,6 +291,8 @@ describe("speed", () => {
         "k8s.namespace.name": "prod",
       });
     }
+
+    emptyTheMemo();
 
     const hashes: HashSpy = spyOnHashes();
 

@@ -9,8 +9,14 @@ import { JSONObject, JSONValue } from "../../Types/JSON";
  * was nine tenths of the work, so each series is hashed once and read back
  * after. Bounded both ways: a text longer than
  * FINGERPRINT_MEMO_MAX_TEXT_LENGTH is hashed every time and never kept, and
- * past FINGERPRINT_MEMO_MAX_ENTRIES texts the oldest is let go, so the memo
- * holds a few megabytes at most.
+ * a full memo (FINGERPRINT_MEMO_MAX_ENTRIES texts) is emptied before the
+ * next text goes in, so it holds a few megabytes at most.
+ *
+ * Emptied, not trimmed one entry at a time: a Map keeps the slots of deleted
+ * entries until it is rebuilt, so finding the oldest entry over and over
+ * walks past more and more of them. With more series than the memo holds -
+ * a large cluster grouped by pod - that walk made every row cost twice
+ * master's hash. Starting over costs one hash per series at most.
  */
 export const FINGERPRINT_MEMO_MAX_ENTRIES: number = 4096;
 export const FINGERPRINT_MEMO_MAX_TEXT_LENGTH: number = 512;
@@ -69,12 +75,7 @@ export default class MetricSeriesFingerprint {
 
     if (canonical.length <= FINGERPRINT_MEMO_MAX_TEXT_LENGTH) {
       if (fingerprintMemo.size >= FINGERPRINT_MEMO_MAX_ENTRIES) {
-        // Map iteration is insertion order, so the first key is the oldest.
-        const oldest: string | undefined = fingerprintMemo.keys().next().value;
-
-        if (oldest !== undefined) {
-          fingerprintMemo.delete(oldest);
-        }
+        fingerprintMemo.clear();
       }
 
       fingerprintMemo.set(canonical, fingerprint);
