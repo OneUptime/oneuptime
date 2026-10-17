@@ -64,7 +64,10 @@ describe(WORKFLOW, () => {
   });
 
   test("runs on nothing else but by hand, and by hand it is a dry run unless asked", () => {
-    expect(Object.keys(workflow.on).sort()).toEqual(["workflow_dispatch", "workflow_run"]);
+    expect(Object.keys(workflow.on).sort()).toEqual([
+      "workflow_dispatch",
+      "workflow_run",
+    ]);
     const inputs = workflow.on.workflow_dispatch.inputs;
     expect(inputs.dry_run).toMatchObject({ type: "boolean", default: true });
     expect(inputs.action.options).toEqual(["release", "azure-go-live"]);
@@ -72,9 +75,13 @@ describe(WORKFLOW, () => {
   });
 
   test("starts after a release only once it succeeded and releases are enabled", () => {
-    expect(jobs.prepare.if).toContain("github.event.workflow_run.conclusion == 'success'");
+    expect(jobs.prepare.if).toContain(
+      "github.event.workflow_run.conclusion == 'success'",
+    );
     expect(jobs.prepare.if).toContain("vars.MARKETPLACE_RELEASES == 'enabled'");
-    expect(jobs.prepare.if).toContain("github.event_name == 'workflow_dispatch'");
+    expect(jobs.prepare.if).toContain(
+      "github.event_name == 'workflow_dispatch'",
+    );
   });
 
   test("runs one at a time, and never cancels a run halfway", () => {
@@ -104,9 +111,13 @@ describe(WORKFLOW, () => {
     for (const [name, job] of Object.entries(jobs)) {
       const scripts = scriptsOf(job);
       const publishes =
-        /aws_catalog\.py submit|partner_center\.py (update-bundle|publish)/.test(scripts);
+        /aws_catalog\.py submit|partner_center\.py (update-bundle|publish)/.test(
+          scripts,
+        );
       const pushes =
-        /mirror-images\.sh "\$OUT\/images\.json"$|helm push|cpa buildbundle|--push/m.test(scripts);
+        /mirror-images\.sh "\$OUT\/images\.json"$|helm push|cpa buildbundle|--push/m.test(
+          scripts,
+        );
 
       if (PUBLISHING_JOBS.includes(name)) {
         expect({ job: name, publishes, environment: job.environment }).toEqual({
@@ -115,14 +126,24 @@ describe(WORKFLOW, () => {
           environment: "marketplace-publish",
         });
       } else if (PUSHING_JOBS.includes(name)) {
-        expect({ job: name, publishes, pushes, environment: job.environment }).toEqual({
+        expect({
+          job: name,
+          publishes,
+          pushes,
+          environment: job.environment,
+        }).toEqual({
           job: name,
           publishes: false,
           pushes: true,
           environment: "marketplace-push",
         });
       } else {
-        expect({ job: name, publishes, pushes, environment: job.environment }).toEqual({
+        expect({
+          job: name,
+          publishes,
+          pushes,
+          environment: job.environment,
+        }).toEqual({
           job: name,
           publishes: false,
           pushes: false,
@@ -134,26 +155,38 @@ describe(WORKFLOW, () => {
 
   test("signs in only through the environments the one-time setup trusts", () => {
     const setup = read(SETUP_SCRIPT);
-    expect(setup).toContain('ENVIRONMENTS = ("marketplace-push", "marketplace-publish")');
+    expect(setup).toContain(
+      'ENVIRONMENTS = ("marketplace-push", "marketplace-publish")',
+    );
   });
 
   test("pushes and publishes only on a real run of a release", () => {
     for (const name of PUSHING_JOBS) {
-      expect(jobs[name].if).toContain("needs.prepare.outputs.dry_run == 'false'");
-      expect(jobs[name].if).toContain("needs.prepare.outputs.release == 'true'");
+      expect(jobs[name].if).toContain(
+        "needs.prepare.outputs.dry_run == 'false'",
+      );
+      expect(jobs[name].if).toContain(
+        "needs.prepare.outputs.release == 'true'",
+      );
       expect(jobs[name].needs).toEqual(["prepare", "test"]);
     }
 
     expect(jobs["aws-publish"].needs).toEqual(["prepare", "aws-push"]);
     expect(jobs["azure-publish"].needs).toEqual(["prepare", "azure-push"]);
-    expect(jobs["azure-go-live"].if).toContain("needs.prepare.outputs.action == 'azure-go-live'");
+    expect(jobs["azure-go-live"].if).toContain(
+      "needs.prepare.outputs.action == 'azure-go-live'",
+    );
   });
 
   test("pastes no expression into a script: values reach scripts through env", () => {
     for (const [name, job] of Object.entries(jobs)) {
       for (const step of job.steps || []) {
         if (step.run) {
-          expect({ job: name, step: step.name, expression: step.run.includes("${{") }).toEqual({
+          expect({
+            job: name,
+            step: step.name,
+            expression: step.run.includes("${{"),
+          }).toEqual({
             job: name,
             step: step.name,
             expression: false,
@@ -164,14 +197,21 @@ describe(WORKFLOW, () => {
   });
 
   test("builds every edition from the released chart, after the marketplace suite passed", () => {
-    expect(scriptsOf(jobs.test)).toContain("bash ./HelmChart/Tests/run.sh marketplace");
+    expect(scriptsOf(jobs.test)).toContain(
+      "bash ./HelmChart/Tests/run.sh marketplace",
+    );
 
     for (const name of ["test", "dry-run", ...PUSHING_JOBS]) {
       const uses = jobs[name].steps.filter((step) => {
         return step.uses === "./.github/actions/marketplace-edition";
       });
-      expect({ job: name, count: uses.length }).toEqual({ job: name, count: 1 });
-      expect(uses[0].with["release-sha"]).toBe("${{ needs.prepare.outputs.release_sha }}");
+      expect({ job: name, count: uses.length }).toEqual({
+        job: name,
+        count: 1,
+      });
+      expect(uses[0].with["release-sha"]).toBe(
+        "${{ needs.prepare.outputs.release_sha }}",
+      );
       expect(uses[0].with.version).toBe("${{ needs.prepare.outputs.version }}");
     }
   });
@@ -182,7 +222,10 @@ describe(WORKFLOW, () => {
     expect(scripts.size).toBeGreaterThan(4);
 
     for (const script of scripts) {
-      expect({ script, exists: fs.existsSync(path.join(REPO_ROOT, script)) }).toEqual({
+      expect({
+        script,
+        exists: fs.existsSync(path.join(REPO_ROOT, script)),
+      }).toEqual({
         script,
         exists: true,
       });
@@ -198,15 +241,17 @@ describe(EDITION_ACTION, () => {
     expect(install.env.CRANE_SHA256).toMatch(/^[0-9a-f]{64}$/);
     expect(install.env.CRANE_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
     expect(install.run).toContain("Scripts/GHA/fetch_pinned_artifact.sh");
-    expect(install.run).toContain("--sha256 \"$CRANE_SHA256\"");
+    expect(install.run).toContain('--sha256 "$CRANE_SHA256"');
   });
 
   test("takes the chart as it was released, whole", () => {
     const take = action.runs.steps.find((step) => {
       return step.name === "Take the released chart";
     });
-    expect(take.run).toContain('rm -rf HelmChart/Public/oneuptime');
-    expect(take.run).toContain("git checkout FETCH_HEAD -- HelmChart/Public/oneuptime");
+    expect(take.run).toContain("rm -rf HelmChart/Public/oneuptime");
+    expect(take.run).toContain(
+      "git checkout FETCH_HEAD -- HelmChart/Public/oneuptime",
+    );
     expect(take.run).not.toContain("${{");
   });
 });
