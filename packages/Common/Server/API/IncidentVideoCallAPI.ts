@@ -334,7 +334,9 @@ export default class IncidentVideoCallAPI extends BaseAPI<
       !call.rootCauseSuggestionStatus
     ) {
       throw new BadDataException(
-        "OneUptime AI did not suggest a root cause from this call.",
+        ProductBrandingText.brandText(
+          "OneUptime AI did not suggest a root cause from this call.",
+        ),
       );
     }
 
