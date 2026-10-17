@@ -222,8 +222,9 @@ beforeEach(() => {
 
   jest
     .spyOn(IncidentVideoCallService, "updateOneById")
-    .mockImplementation(async (data: { data: unknown }) => {
+    .mockImplementation(async (data: { data: unknown }): Promise<number> => {
       writes.push(data.data as JSONObject);
+      return 1;
     });
 
   jest.spyOn(IncidentCallSummary, "start").mockResolvedValue({
@@ -232,7 +233,7 @@ beforeEach(() => {
   });
 
   jest.spyOn(IncidentFeedService, "createIncidentFeedItem").mockResolvedValue();
-  jest.spyOn(IncidentService, "updateOneById").mockResolvedValue();
+  jest.spyOn(IncidentService, "updateOneById").mockResolvedValue(1);
   jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined as never;
   });

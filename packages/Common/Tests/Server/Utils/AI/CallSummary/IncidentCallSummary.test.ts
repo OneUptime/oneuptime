@@ -130,7 +130,7 @@ beforeEach(() => {
 
   jest
     .spyOn(IncidentVideoCallService, "updateOneById")
-    .mockImplementation(async (data: { data: unknown }) => {
+    .mockImplementation(async (data: { data: unknown }): Promise<number> => {
       const written: JSONObject = data.data as JSONObject;
       writes.push(written);
 
@@ -142,6 +142,8 @@ beforeEach(() => {
       if (Object.prototype.hasOwnProperty.call(written, "transcript")) {
         stored.transcript = (written["transcript"] as string | null) || null;
       }
+
+      return 1;
     });
 
   jest.spyOn(IncidentService, "findOneById").mockImplementation(async () => {

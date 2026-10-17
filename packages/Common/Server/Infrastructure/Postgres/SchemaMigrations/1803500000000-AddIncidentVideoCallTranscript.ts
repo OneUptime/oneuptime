@@ -13,8 +13,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Generated with `typeorm migration:generate` against a fully migrated
  * throwaway database; only the file/class name and this comment are
- * hand-written. The two foreign keys are on columns this migration adds,
- * which hold NULL on every existing row, so checking them reads nothing.
+ * hand-written. The foreign keys of the two user columns were generated
+ * with it and moved to AddIncidentVideoCallTranscriptUserLinks1803550000000,
+ * which adds them online.
  */
 export class AddIncidentVideoCallTranscript1803500000000
   implements MigrationInterface
@@ -58,21 +59,9 @@ export class AddIncidentVideoCallTranscript1803500000000
     await queryRunner.query(
       `ALTER TABLE "IncidentVideoCall" ADD "rootCauseSuggestionReviewedByUserId" uuid`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "IncidentVideoCall" ADD CONSTRAINT "FK_a266b1ee7d197f69c0ff4b5d069" FOREIGN KEY ("transcriptAddedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "IncidentVideoCall" ADD CONSTRAINT "FK_77c2a11e31a23826f7d1d65dd4c" FOREIGN KEY ("rootCauseSuggestionReviewedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "IncidentVideoCall" DROP CONSTRAINT "FK_77c2a11e31a23826f7d1d65dd4c"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "IncidentVideoCall" DROP CONSTRAINT "FK_a266b1ee7d197f69c0ff4b5d069"`,
-    );
     await queryRunner.query(
       `ALTER TABLE "IncidentVideoCall" DROP COLUMN "rootCauseSuggestionReviewedByUserId"`,
     );
