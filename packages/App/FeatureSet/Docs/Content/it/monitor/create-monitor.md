@@ -19,7 +19,7 @@ Andate in **Monitor** e fate clic su **Crea monitor**. Il modulo si apre sul pri
 La prima domanda è il **Tipo di monitor**: cosa volete monitorare?
 
 - I sei tipi che si creano più spesso vengono per primi: **Sito web**, **API**, **Ping**, **Porta**, **SSL Certificate** e **Incoming Request**, per gli heartbeat di cron job e webhook.
-- **Altri tipi di monitor** elenca tutti gli altri tipi sotto la loro categoria, come **Infrastruttura** (Kubernetes, Docker, host) e **Telemetria** (registri, metriche, tracce). **Manual**, un monitor di cui impostate voi lo stato, si trova sotto **Altro**.
+- **Altri tipi di monitor** elenca tutti gli altri tipi sotto la loro categoria, come **Infrastruttura** (Kubernetes, Docker, host) e **Telemetria** (registri, metriche, tracce). **Manual**, un monitor di cui impostate voi lo stato, e **Stato della sonda**, che vi avvisa quando una sonda si disconnette, si trovano sotto **Altro**.
 - Oppure digitate nella casella di ricerca. Conosce le parole che già usate, come `k8s`, `postgres`, `heartbeat` o `tls`, e **Enter** sceglie il primo risultato.
 
 Il tipo scelto si riduce a una riga. Fate clic su **Cambia** per sceglierne un altro; premete **Escape** durante la scelta per mantenere il tipo che avevate.

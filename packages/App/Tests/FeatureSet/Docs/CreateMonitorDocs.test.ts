@@ -324,7 +324,7 @@ describe("the Creating a Monitor docs page", () => {
       }
     });
 
-    it("says Manual is under Other, and is created from Monitor Info", () => {
+    it("says Manual and Probe Status are under Other, and Manual is created from Monitor Info", () => {
       const other: MonitorTypeCategory | undefined =
         MonitorTypeHelper.getMonitorTypeCategories().find(
           (category: MonitorTypeCategory): boolean => {
@@ -332,11 +332,14 @@ describe("the Creating a Monitor docs page", () => {
           },
         );
 
-      expect(other?.monitorTypes).toEqual([MonitorType.Manual]);
+      expect(other?.monitorTypes).toEqual([
+        MonitorType.Manual,
+        MonitorType.ProbeStatus,
+      ]);
 
       const first: string = pageSections[0]!.body;
       expect(first).toContain(
-        "**Manual**, a monitor whose status you set yourself, is under **Other**.",
+        `**Manual**, a monitor whose status you set yourself, and **${MonitorTypeHelper.getTitle(MonitorType.ProbeStatus)}**, which tells you when a probe disconnects, are under **Other**.`,
       );
       expect(first).toContain(
         "A **Manual** monitor needs nothing more, so **Create Monitor** is on this step.",

@@ -233,6 +233,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/manual-monitor",
       },
       {
+        title: "Probe Status Monitor",
+        url: "/docs/monitor/probe-status-monitor",
+      },
+      {
         title: "JavaScript Expressions",
         url: "/docs/monitor/javascript-expression",
       },

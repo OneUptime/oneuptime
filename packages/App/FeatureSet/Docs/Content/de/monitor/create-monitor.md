@@ -19,7 +19,7 @@ Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Das Formula
 Die erste Frage ist der **Monitortyp**: Was möchten Sie überwachen?
 
 - Die sechs Typen, die am häufigsten erstellt werden, stehen ganz oben: **Website**, **API**, **Ping**, **Port**, **SSL-Zertifikat** und **Eingehende Anfrage** für Heartbeats von Cronjobs und Webhooks.
-- **Weitere Monitortypen** listet alle anderen Typen unter ihrer Kategorie auf, etwa **Infrastruktur** (Kubernetes, Docker, Host) und **Telemetrie** (Protokolle, Metriken, Traces). **Manuell**, ein Monitor, dessen Status Sie selbst setzen, steht unter **Sonstige**.
+- **Weitere Monitortypen** listet alle anderen Typen unter ihrer Kategorie auf, etwa **Infrastruktur** (Kubernetes, Docker, Host) und **Telemetrie** (Protokolle, Metriken, Traces). **Manuell**, ein Monitor, dessen Status Sie selbst setzen, und **Sondenstatus**, der Ihnen meldet, wenn eine Sonde getrennt wird, stehen unter **Sonstige**.
 - Oder tippen Sie in das Suchfeld. Es kennt die Wörter, die Sie ohnehin verwenden, etwa `k8s`, `postgres`, `heartbeat` oder `tls`, und **Enter** wählt den ersten Treffer.
 
 Der gewählte Typ schrumpft auf eine Zeile. Klicken Sie auf **Ändern**, um einen anderen zu wählen; drücken Sie während der Auswahl **Escape**, um den bisherigen Typ zu behalten.
