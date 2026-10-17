@@ -124,10 +124,7 @@ describe("the status page app in the dark theme", () => {
 
   test("each class it keeps the same in both themes is still one it uses", () => {
     for (const token of SAME_IN_BOTH_THEMES) {
-      expect([token, scan.colorTokens.includes(token)]).toEqual([
-        token,
-        true,
-      ]);
+      expect([token, scan.colorTokens.includes(token)]).toEqual([token, true]);
     }
   });
 

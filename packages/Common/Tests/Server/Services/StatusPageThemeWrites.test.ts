@@ -196,15 +196,16 @@ describe("what a write may hold", () => {
     }
   };
 
-  test.each(STATUS_PAGE_THEMES.map((theme: StatusPageTheme) => [theme]))(
-    "%s is saved as it was sent",
-    (theme: StatusPageTheme) => {
-      const data: Record<string, unknown> = { theme };
+  test.each(
+    STATUS_PAGE_THEMES.map((theme: StatusPageTheme): Array<StatusPageTheme> => {
+      return [theme];
+    }),
+  )("%s is saved as it was sent", (theme: StatusPageTheme) => {
+    const data: Record<string, unknown> = { theme };
 
-      expect(refusal(data)).toBeNull();
-      expect(data["theme"]).toBe(theme);
-    },
-  );
+    expect(refusal(data)).toBeNull();
+    expect(data["theme"]).toBe(theme);
+  });
 
   test("no theme, or an emptied one, is saved: the page is the light one", () => {
     expect(refusal({ theme: null })).toBeNull();
@@ -316,7 +317,11 @@ describe("a status page created from now on", () => {
     expect((await create(page)).theme).toBe(StatusPageTheme.System);
   });
 
-  test.each(STATUS_PAGE_THEMES.map((theme: StatusPageTheme) => [theme]))(
+  test.each(
+    STATUS_PAGE_THEMES.map((theme: StatusPageTheme): Array<StatusPageTheme> => {
+      return [theme];
+    }),
+  )(
     "with %s in its create - what Terraform sends, Light included - keeps it",
     async (theme: StatusPageTheme) => {
       const page: StatusPage = new StatusPage();

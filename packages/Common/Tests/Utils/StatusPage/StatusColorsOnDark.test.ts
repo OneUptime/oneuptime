@@ -16,10 +16,7 @@
 
 import { Moroon500, Red, Yellow, Green } from "../../../Types/BrandColors";
 import Color, { RGB } from "../../../Types/Color";
-import {
-  getContrastRatio,
-  parseColor,
-} from "../../../Utils/ColorContrast";
+import { getContrastRatio, parseColor } from "../../../Utils/ColorContrast";
 import {
   DARK_THEME_CARD,
   DARK_THEME_PAGE,
@@ -123,9 +120,7 @@ describe("text in a status colour on the dark theme", () => {
       const dark: string = getStatusTextColorOnDark(color)!;
 
       expect(contrastOnCard(dark)).toBeGreaterThanOrEqual(4.5);
-      expect(getContrastRatio(rgb(dark), DARK_THEME_PAGE)).toBeGreaterThan(
-        4.5,
-      );
+      expect(getContrastRatio(rgb(dark), DARK_THEME_PAGE)).toBeGreaterThan(4.5);
     },
   );
 
@@ -144,9 +139,7 @@ describe("text in a status colour on the dark theme", () => {
     expect(contrastOnCard(picked)).toBeLessThan(4.5);
     expect(dark).not.toBe(picked);
     expect(contrastOnCard(dark)).toBeGreaterThanOrEqual(4.5);
-    expect(hueDistance(hueOf(rgb(dark)), hueOf(rgb(picked)))).toBeLessThan(
-      4,
-    );
+    expect(hueDistance(hueOf(rgb(dark)), hueOf(rgb(picked)))).toBeLessThan(4);
   });
 
   test("hundreds of picked colours all read on the dark card, and the ones that read already are kept", () => {
@@ -215,9 +208,9 @@ describe("an uptime bar on the dark theme", () => {
 
     expect(contrastOnCard("#7f1d1d")).toBeLessThan(2);
     expect(contrastOnCard(edge)).toBeGreaterThanOrEqual(3);
-    expect(
-      hueDistance(hueOf(rgb(edge)), hueOf(rgb("#7f1d1d"))),
-    ).toBeLessThan(4);
+    expect(hueDistance(hueOf(rgb(edge)), hueOf(rgb("#7f1d1d")))).toBeLessThan(
+      4,
+    );
   });
 
   test("the edge is only as light as it must be, so the bar keeps its lightness among the others", () => {

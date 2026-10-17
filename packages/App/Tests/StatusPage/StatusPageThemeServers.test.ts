@@ -141,9 +141,9 @@ describe.each(IMPLEMENTATIONS)(
           [PAGE_ID]: seoAnswer(answered),
         });
 
-        await expect(getStatusPageData(onCustomDomain())).resolves.toMatchObject(
-          { theme: read },
-        );
+        await expect(
+          getStatusPageData(onCustomDomain()),
+        ).resolves.toMatchObject({ theme: read });
         await expect(
           getStatusPageData(onPreviewUrl(PAGE_ID)),
         ).resolves.toMatchObject({ theme: read });

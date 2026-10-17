@@ -71,7 +71,11 @@ const STORED_VALUES: Array<[string, StatusPageTheme, unknown]> = [
   ["Light", StatusPageTheme.Light, StatusPageTheme.Light],
   ["Dark", StatusPageTheme.Dark, StatusPageTheme.Dark],
   ["System", StatusPageTheme.System, StatusPageTheme.System],
-  ["no theme (a page made before the setting)", StatusPageTheme.Light, undefined],
+  [
+    "no theme (a page made before the setting)",
+    StatusPageTheme.Light,
+    undefined,
+  ],
   ["an emptied column", StatusPageTheme.Light, null],
   ["a value no reader knows", StatusPageTheme.Light, "Sepia"],
 ];
@@ -99,9 +103,7 @@ describe("StatusPageAPI: the page's theme on its public routes", () => {
       .spyOn(StatusPageService, "resolveStatusPageIdOrNull")
       .mockResolvedValue(statusPageId);
     jest.spyOn(StatusPageService, "findOneBy").mockResolvedValue(statusPage);
-    jest
-      .spyOn(StatusPageService, "findOneById")
-      .mockResolvedValue(statusPage);
+    jest.spyOn(StatusPageService, "findOneById").mockResolvedValue(statusPage);
     jest
       .spyOn(StatusPageSsoService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
@@ -200,7 +202,14 @@ describe("StatusPageAPI: the page's theme on its public routes", () => {
     );
 
     it("only ever answers one of the three themes", async () => {
-      for (const stored of [undefined, null, "", "dark", 0, ...STATUS_PAGE_THEMES]) {
+      for (const stored of [
+        undefined,
+        null,
+        "",
+        "dark",
+        0,
+        ...STATUS_PAGE_THEMES,
+      ]) {
         jest.clearAllMocks();
         statusPage.theme = stored as StatusPageTheme;
 
@@ -228,16 +237,19 @@ describe("StatusPageAPI: the page's theme on its public routes", () => {
       expect(selectOf(StatusPageService.findOneById)["theme"]).toBe(true);
     });
 
-    it.each(STATUS_PAGE_THEMES.map((theme: StatusPageTheme) => [theme]))(
-      "hands the app the page's theme, %s",
-      async (theme: StatusPageTheme) => {
-        statusPage.theme = theme;
+    it.each(
+      STATUS_PAGE_THEMES.map(
+        (theme: StatusPageTheme): Array<StatusPageTheme> => {
+          return [theme];
+        },
+      ),
+    )("hands the app the page's theme, %s", async (theme: StatusPageTheme) => {
+      statusPage.theme = theme;
 
-        const body: JSONObject = await callMasterPage();
+      const body: JSONObject = await callMasterPage();
 
-        expect((body["statusPage"] as JSONObject)["theme"]).toBe(theme);
-      },
-    );
+      expect((body["statusPage"] as JSONObject)["theme"]).toBe(theme);
+    });
 
     it("sends the theme on the shared host too, where the page's custom code is held back", async () => {
       /*

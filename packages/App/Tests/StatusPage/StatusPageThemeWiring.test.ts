@@ -69,7 +69,9 @@ describe("the app's entry", () => {
   });
 
   test("keeps the page in the theme the first script drew, before it renders anything", () => {
-    const initialize: number = entry.indexOf("StatusPageThemeUtil.initialize();");
+    const initialize: number = entry.indexOf(
+      "StatusPageThemeUtil.initialize();",
+    );
     const render: number = entry.indexOf("ReactDOM.createRoot(");
 
     expect(initialize).toBeGreaterThan(-1);

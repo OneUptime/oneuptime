@@ -168,16 +168,35 @@ const gridGroup = Object.assign(new StatusPageGroup(), {
  * which have no data and are drawn hatched.
  */
 const LIST_RESOURCES = [
-  { name: "API", outages: [] , statusNow: OPERATIONAL },
+  { name: "API", outages: [], statusNow: OPERATIONAL },
   { name: "Dashboard", outages: [[6, 10 * 60 * 1000]], statusNow: OPERATIONAL },
-  { name: "Webhooks", outages: [[12, HOUR], [30, 3 * HOUR]], statusNow: DEGRADED },
-  { name: "Email delivery", outages: [[3, 3 * HOUR], [45, 10 * 60 * 1000]], statusNow: OFFLINE },
+  {
+    name: "Webhooks",
+    outages: [
+      [12, HOUR],
+      [30, 3 * HOUR],
+    ],
+    statusNow: DEGRADED,
+  },
+  {
+    name: "Email delivery",
+    outages: [
+      [3, 3 * HOUR],
+      [45, 10 * 60 * 1000],
+    ],
+    statusNow: OFFLINE,
+  },
 ];
 
 const GRID_RESOURCES = [
   { name: "API in US", row: "API", column: "US", statusNow: OPERATIONAL },
   { name: "API in EU", row: "API", column: "EU", statusNow: DEGRADED },
-  { name: "Dashboard in US", row: "Dashboard", column: "US", statusNow: OPERATIONAL },
+  {
+    name: "Dashboard in US",
+    row: "Dashboard",
+    column: "US",
+    statusNow: OPERATIONAL,
+  },
 ];
 
 export const buildFixture = (data) => {
@@ -303,7 +322,8 @@ export const buildFixture = (data) => {
     (rule, index) => {
       return Object.assign(new StatusPageHistoryChartBarColorRule(), {
         _id: id(300 + index),
-        uptimePercentGreaterThanOrEqualTo: rule.uptimePercentGreaterThanOrEqualTo,
+        uptimePercentGreaterThanOrEqualTo:
+          rule.uptimePercentGreaterThanOrEqualTo,
         barColor: rule.barColor,
         order: index + 1,
       });
@@ -350,7 +370,8 @@ export const buildFixture = (data) => {
   const maintenance = Object.assign(new ScheduledMaintenance(), {
     _id: MAINTENANCE_ID,
     title: "Database upgrade",
-    description: "The dashboard is read-only for a few minutes while we upgrade.",
+    description:
+      "The dashboard is read-only for a few minutes while we upgrade.",
     startsAt: new Date(now - HOUR),
     endsAt: new Date(now + 2 * HOUR),
     createdAt: new Date(now - DAY),

@@ -34,7 +34,10 @@ const tailwind = path.join(
   common,
   "Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
-const inter = path.join(common, "Server/Static/Vendor/fonts/InterVariable.woff2");
+const inter = path.join(
+  common,
+  "Server/Static/Vendor/fonts/InterVariable.woff2",
+);
 const logo = path.join(__dirname, "logo.svg");
 
 /*
@@ -165,9 +168,7 @@ async function main() {
 
     if (url.pathname === "/status-page/env.js") {
       response.setHeader("Content-Type", "application/javascript");
-      response.end(
-        `window.process = { env: ${JSON.stringify(environment)} };`,
-      );
+      response.end(`window.process = { env: ${JSON.stringify(environment)} };`);
       return;
     }
 

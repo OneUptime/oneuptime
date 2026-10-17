@@ -200,9 +200,7 @@ describe("reading the status page", () => {
       });
 
       expect(option).toBe(radio(choice.value));
-      expect(
-        within(card).getByText(choice.description),
-      ).toBeInTheDocument();
+      expect(within(card).getByText(choice.description)).toBeInTheDocument();
     }
 
     // No Edit button and no dialog: a pick is the whole change.
@@ -275,10 +273,7 @@ describe("reading the status page", () => {
 });
 
 describe("picking a theme", () => {
-  test.each([
-    [StatusPageTheme.Dark],
-    [StatusPageTheme.System],
-  ])(
+  test.each([[StatusPageTheme.Dark], [StatusPageTheme.System]])(
     "%s is saved at once, for this page, and nothing else is sent",
     async (theme: StatusPageTheme) => {
       await renderCard();
@@ -404,9 +399,8 @@ describe("someone who may not edit the status page", () => {
     await renderCard();
     await loaded();
 
-    const call: Array<unknown> = (
-      PermissionGate.check as unknown as jest.Mock
-    ).mock.calls[0] as Array<unknown>;
+    const call: Array<unknown> = (PermissionGate.check as unknown as jest.Mock)
+      .mock.calls[0] as Array<unknown>;
 
     expect(call[0]).toBeInstanceOf(StatusPage);
     expect(call[1]).toBe(ModelAction.Update);

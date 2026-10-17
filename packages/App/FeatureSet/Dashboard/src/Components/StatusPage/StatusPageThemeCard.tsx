@@ -101,9 +101,7 @@ const ThemeSetting: FunctionComponent<ThemeSettingProps> = (
 
   const options: Array<ChoiceRowOption<StatusPageTheme>> =
     STATUS_PAGE_THEME_CHOICES.map(
-      (
-        choice: StatusPageThemeChoice,
-      ): ChoiceRowOption<StatusPageTheme> => {
+      (choice: StatusPageThemeChoice): ChoiceRowOption<StatusPageTheme> => {
         return {
           value: choice.value,
           title: choice.title,

@@ -126,13 +126,20 @@ const openPage: (
   });
 };
 
-const shoot: (page: Page, testInfo: TestInfo, name: string) => Promise<void> =
-  async (page: Page, testInfo: TestInfo, name: string): Promise<void> => {
-    await page.screenshot({
-      path: `${SCREENSHOTS}/${testInfo.project.name}-${name}.png`,
-      fullPage: true,
-    });
-  };
+const shoot: (
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+) => Promise<void> = async (
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+): Promise<void> => {
+  await page.screenshot({
+    path: `${SCREENSHOTS}/${testInfo.project.name}-${name}.png`,
+    fullPage: true,
+  });
+};
 
 /*
  * Every box drawn in a light colour on the page: a background whose
@@ -143,7 +150,8 @@ const lightBoxes: (page: Page) => Promise<Array<string>> = async (
   page: Page,
 ): Promise<Array<string>> => {
   return page.evaluate((): Array<string> => {
-    const RGB: RegExp = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/;
+    const RGB: RegExp =
+      /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/;
     const linear: (channel: number) => number = (channel: number): number => {
       const value: number = channel / 255;
       return value <= 0.03928
@@ -203,7 +211,8 @@ const statusTextContrasts: (page: Page) => Promise<Array<number>> = async (
   page: Page,
 ): Promise<Array<number>> => {
   return page.evaluate((): Array<number> => {
-    const RGB: RegExp = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/;
+    const RGB: RegExp =
+      /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/;
     const parse: (value: string) => Array<number> | null = (
       value: string,
     ): Array<number> | null => {
@@ -242,9 +251,7 @@ const statusTextContrasts: (page: Page) => Promise<Array<number>> = async (
     for (const element of Array.from(
       document.querySelectorAll("[data-ou-status-text]"),
     )) {
-      const text: Array<number> | null = parse(
-        getComputedStyle(element).color,
-      );
+      const text: Array<number> | null = parse(getComputedStyle(element).color);
       let ground: Array<number> | null = null;
       let ancestor: Element | null = element;
 
@@ -289,7 +296,9 @@ test.afterEach(async ({ page }: { page: Page }) => {
 });
 
 test.describe("each theme, as a visitor first sees it", () => {
-  test("Light is light, on a dark device too", async ({ page }: { page: Page }, testInfo: TestInfo) => {
+  test("Light is light, on a dark device too", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await openPage(page, PAGE, "theme=Light");
 
@@ -298,7 +307,9 @@ test.describe("each theme, as a visitor first sees it", () => {
     await shoot(page, testInfo, "overview-light");
   });
 
-  test("Dark is dark, on a light device too", async ({ page }: { page: Page }, testInfo: TestInfo) => {
+  test("Dark is dark, on a light device too", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
     await page.emulateMedia({ colorScheme: "light" });
     await openPage(page, PAGE, "theme=Dark");
 
@@ -307,7 +318,9 @@ test.describe("each theme, as a visitor first sees it", () => {
     await shoot(page, testInfo, "overview-dark");
   });
 
-  test("System follows a dark device, and a light one", async ({ page }: { page: Page }, testInfo: TestInfo) => {
+  test("System follows a dark device, and a light one", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await openPage(page, PAGE, "theme=System");
     await expectScheme(page, "dark");
@@ -417,7 +430,11 @@ test.describe("before the first paint", () => {
 });
 
 test.describe("a page that follows the visitor's device", () => {
-  test("changes with the device while it is open", async ({ page }: { page: Page }) => {
+  test("changes with the device while it is open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.emulateMedia({ colorScheme: "light" });
     await openPage(page, PAGE, "theme=System");
     await expectScheme(page, "light");
@@ -429,7 +446,9 @@ test.describe("a page that follows the visitor's device", () => {
     await expectScheme(page, "light");
   });
 
-  test("offers the visitor a switch that their browser remembers", async ({ page }: { page: Page }, testInfo: TestInfo) => {
+  test("offers the visitor a switch that their browser remembers", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
     await page.emulateMedia({ colorScheme: "light" });
     await openPage(page, PAGE, "theme=System");
 
@@ -468,7 +487,11 @@ test.describe("a page that follows the visitor's device", () => {
     await expectScheme(page, "dark");
   });
 
-  test("sits beside the language switcher, in the footer's one row", async ({ page }: { page: Page }) => {
+  test("sits beside the language switcher, in the footer's one row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openPage(page, PAGE, "theme=System");
 
     const themeSwitch: Locator = page.getByTestId("status-page-theme-switch");
@@ -487,7 +510,8 @@ test.describe("a page that follows the visitor's device", () => {
     // On one line: their middles within a few pixels of each other.
     expect(
       Math.abs(
-        switchBox!.y + switchBox!.height / 2 -
+        switchBox!.y +
+          switchBox!.height / 2 -
           (languageBox!.y + languageBox!.height / 2),
       ),
     ).toBeLessThan(6);
@@ -521,20 +545,39 @@ test.describe("the dark theme on every surface", () => {
   // A surface, where it is, its page's query, and words it shows once drawn.
   const SURFACES: Array<[string, string, string, string]> = [
     ["overview", PAGE, "theme=Dark", "Core services"],
-    ["incidents", `${PAGE}/incidents`, "theme=Dark", "Webhook deliveries are delayed"],
+    [
+      "incidents",
+      `${PAGE}/incidents`,
+      "theme=Dark",
+      "Webhook deliveries are delayed",
+    ],
     ["incident", INCIDENT, "theme=Dark", "Webhook deliveries are delayed"],
     ["announcement", ANNOUNCEMENT, "theme=Dark", "New EU region"],
-    ["scheduled-events", `${PAGE}/scheduled-events`, "theme=Dark", "Database upgrade"],
+    [
+      "scheduled-events",
+      `${PAGE}/scheduled-events`,
+      "theme=Dark",
+      "Database upgrade",
+    ],
     ["maintenance", MAINTENANCE, "theme=Dark", "Database upgrade"],
-    ["subscribe", `${PAGE}/subscribe/email`, "theme=Dark", "Subscribe by Email"],
+    [
+      "subscribe",
+      `${PAGE}/subscribe/email`,
+      "theme=Dark",
+      "Subscribe by Email",
+    ],
     ["sign-in", `${PAGE}/login`, "theme=Dark&private=1&sso=1", "Welcome back!"],
     ["not-found", `${PAGE}/no-such-page`, "theme=Dark", "Page not found."],
   ];
 
   for (const [name, path, query, words] of SURFACES) {
-    test(`${name}: no light box anywhere`, async ({ page }: { page: Page }, testInfo: TestInfo) => {
+    test(`${name}: no light box anywhere`, async ({
+      page,
+    }: { page: Page }, testInfo: TestInfo) => {
       await openPage(page, path, query, "");
-      await expect(page.getByText(words, { exact: true }).first()).toBeVisible();
+      await expect(
+        page.getByText(words, { exact: true }).first(),
+      ).toBeVisible();
       await page.waitForLoadState("networkidle");
       await expectScheme(page, "dark");
 
@@ -543,7 +586,11 @@ test.describe("the dark theme on every surface", () => {
     });
   }
 
-  test("status text reads at 4.5:1 on its ground", async ({ page }: { page: Page }) => {
+  test("status text reads at 4.5:1 on its ground", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openPage(page, PAGE, "theme=Dark");
 
     const contrasts: Array<number> = await statusTextContrasts(page);
@@ -592,7 +639,11 @@ test.describe("the dark theme on every surface", () => {
     expect(lightShadow).toBe("none");
   });
 
-  test("the cards are the dark card, under light text", async ({ page }: { page: Page }) => {
+  test("the cards are the dark card, under light text", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openPage(page, PAGE, "theme=Dark");
 
     const card: Locator = page.locator("#status-page-description");
@@ -645,7 +696,11 @@ test.describe("the logo", () => {
     expect(await plateOf(page)).toBe("rgba(0, 0, 0, 0)");
   });
 
-  test("sits on the backdrop on a sign-in page too", async ({ page }: { page: Page }) => {
+  test("sits on the backdrop on a sign-in page too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await openPage(page, `${PAGE}/login`, "theme=System&private=1", "");
     await expectScheme(page, "dark");

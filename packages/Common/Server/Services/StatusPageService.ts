@@ -661,10 +661,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
      * Terraform provider sends for a configuration that names no theme
      * (StatusPage.theme).
      */
-    if (
-      createBy.data.theme === undefined ||
-      createBy.data.theme === null
-    ) {
+    if (createBy.data.theme === undefined || createBy.data.theme === null) {
       createBy.data.theme = NEW_STATUS_PAGE_THEME;
     }
 

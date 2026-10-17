@@ -158,7 +158,11 @@ const darkPage: (setting: string) => DrawnPage = (
 };
 
 describe("the HTML each theme is sent as, before any script runs", () => {
-  it.each(STATUS_PAGE_THEMES.map((theme: StatusPageTheme) => [theme]))(
+  it.each(
+    STATUS_PAGE_THEMES.map((theme: StatusPageTheme): Array<StatusPageTheme> => {
+      return [theme];
+    }),
+  )(
     "%s: <html> carries the theme, and its head the color-scheme and theme-color the server worked out",
     (theme: StatusPageTheme) => {
       const head: StatusPageThemeHead = getStatusPageThemeHead(theme);
@@ -244,12 +248,8 @@ describe("the order of the page's <head>: the theme before anything that paints"
   });
 
   it("names the meta tags before the script that sets them", () => {
-    expect(head.indexOf('<meta name="theme-color"')).toBeLessThan(
-      themeScript,
-    );
-    expect(head.indexOf('<meta name="color-scheme"')).toBeLessThan(
-      themeScript,
-    );
+    expect(head.indexOf('<meta name="theme-color"')).toBeLessThan(themeScript);
+    expect(head.indexOf('<meta name="color-scheme"')).toBeLessThan(themeScript);
   });
 
   it("runs before every stylesheet, every external script and the body", () => {

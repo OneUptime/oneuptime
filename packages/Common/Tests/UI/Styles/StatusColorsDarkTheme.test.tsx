@@ -29,7 +29,12 @@ import {
   getStatusTextColorOnDark,
   getUptimeBarEdgeOnDark,
 } from "../../../Utils/StatusPage/StatusColorsOnDark";
-import { declaredValue, rulesFor, StyleRule, THEME_RULES } from "./ThemeStylesheet";
+import {
+  declaredValue,
+  rulesFor,
+  StyleRule,
+  THEME_RULES,
+} from "./ThemeStylesheet";
 
 /*
  * Status colours in the dark theme (Common/UI/Utils/StatusColorStyle).
@@ -76,9 +81,7 @@ describe("the dark theme's rules for status colours", () => {
     expect(declaredValue(LOGO_PLATE_SELECTOR, "background-color")).toBe(
       "#f8fafc",
     );
-    expect(declaredValue(LOGO_PLATE_SELECTOR, "border-radius")).toBe(
-      "0.5rem",
-    );
+    expect(declaredValue(LOGO_PLATE_SELECTOR, "border-radius")).toBe("0.5rem");
     expect(declaredValue(LOGO_PLATE_SELECTOR, "padding")).toBe(
       "0.375rem 0.625rem",
     );
@@ -171,15 +174,16 @@ describe("the uptime strip draws its bars with them", () => {
   const END_DATE: Date = OneUptimeDate.getCurrentDate();
   const START_DATE: Date = OneUptimeDate.getSomeDaysAgoFromDate(END_DATE, 9);
 
-  const RULES: Array<BarChartRule> = RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES.map(
-    (rule: HistoryChartBarColorRuleValues): BarChartRule => {
-      return {
-        uptimePercentGreaterThanOrEqualTo:
-          rule.uptimePercentGreaterThanOrEqualTo,
-        barColor: rule.barColor,
-      };
-    },
-  );
+  const RULES: Array<BarChartRule> =
+    RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES.map(
+      (rule: HistoryChartBarColorRuleValues): BarChartRule => {
+        return {
+          uptimePercentGreaterThanOrEqualTo:
+            rule.uptimePercentGreaterThanOrEqualTo,
+          barColor: rule.barColor,
+        };
+      },
+    );
 
   const duration: (
     label: string,

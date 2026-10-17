@@ -8,7 +8,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React from "react";
 import { I18nextProvider, initReactI18next } from "react-i18next";
@@ -19,6 +25,7 @@ import StatusPageTheme, {
 } from "../../../Types/StatusPage/StatusPageTheme";
 import { THEME_CHANGE_EVENT } from "../../../UI/Utils/Theme";
 import File from "../../../Models/DatabaseModels/File";
+import MimeType from "../../../Types/File/MimeType";
 import StatusPageThemeUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPageTheme";
 import ThemeSwitch, {
   THEME_SWITCH_TEST_ID,
@@ -625,8 +632,10 @@ describe("the logo's backdrop", () => {
     });
 
     const logo: File = new File();
-    logo.file = new Uint8Array([60, 115, 118, 103, 47, 62]) as unknown as Buffer;
-    logo.fileType = "image/svg+xml";
+    logo.file = new Uint8Array([
+      60, 115, 118, 103, 47, 62,
+    ]) as unknown as Buffer;
+    logo.fileType = MimeType.svg;
 
     // jsdom has no object URLs; the header draws the logo from one.
     Object.defineProperty(URL, "createObjectURL", {

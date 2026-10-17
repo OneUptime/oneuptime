@@ -1,5 +1,9 @@
 import Color, { RGB } from "../../Types/Color";
-import { getContrastRatio, getReadableShade, parseColor } from "../ColorContrast";
+import {
+  getContrastRatio,
+  getReadableShade,
+  parseColor,
+} from "../ColorContrast";
 
 /*
  * What a status colour - a monitor status, a group's rollup, an uptime bar's

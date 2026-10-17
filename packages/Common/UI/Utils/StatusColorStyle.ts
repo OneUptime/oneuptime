@@ -21,14 +21,22 @@ export type ThemedStyle = CSSProperties & {
   [customProperty: `--${string}`]: string;
 };
 
-export const STATUS_TEXT_ATTRIBUTE: "data-ou-status-text" =
-  "data-ou-status-text";
-export const STATUS_TEXT_DARK_PROPERTY: "--ou-status-text-dark" =
+/*
+ * Each name has a type of its own, the one string it is, so a style or a
+ * props object keyed by it keeps its exact key.
+ */
+export type StatusTextAttribute = "data-ou-status-text";
+export type StatusTextDarkProperty = "--ou-status-text-dark";
+export type UptimeBarEdgeAttribute = "data-ou-bar-edge";
+export type UptimeBarEdgeDarkProperty = "--ou-bar-edge-dark";
+
+export const STATUS_TEXT_ATTRIBUTE: StatusTextAttribute = "data-ou-status-text";
+export const STATUS_TEXT_DARK_PROPERTY: StatusTextDarkProperty =
   "--ou-status-text-dark";
 
-export const UPTIME_BAR_EDGE_ATTRIBUTE: "data-ou-bar-edge" =
+export const UPTIME_BAR_EDGE_ATTRIBUTE: UptimeBarEdgeAttribute =
   "data-ou-bar-edge";
-export const UPTIME_BAR_EDGE_DARK_PROPERTY: "--ou-bar-edge-dark" =
+export const UPTIME_BAR_EDGE_DARK_PROPERTY: UptimeBarEdgeDarkProperty =
   "--ou-bar-edge-dark";
 
 export interface ThemedProps {

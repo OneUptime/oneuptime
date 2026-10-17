@@ -9,10 +9,7 @@ import StatusPageTheme, {
   STATUS_PAGE_VISITOR_THEME_STORAGE_KEY,
   StatusPageColorScheme,
 } from "Common/Types/StatusPage/StatusPageTheme";
-import ThemeUtil, {
-  THEME_CHANGE_EVENT,
-  Theme,
-} from "Common/UI/Utils/Theme";
+import ThemeUtil, { THEME_CHANGE_EVENT, Theme } from "Common/UI/Utils/Theme";
 import React from "react";
 
 /*
@@ -211,9 +208,7 @@ export default class StatusPageThemeUtil {
     StatusPageThemeUtil.isFollowingDevice = true;
 
     const onChange: () => void = (): void => {
-      if (
-        doesStatusPageThemeFollowDevice(StatusPageThemeUtil.getPageTheme())
-      ) {
+      if (doesStatusPageThemeFollowDevice(StatusPageThemeUtil.getPageTheme())) {
         StatusPageThemeUtil.apply();
       }
     };

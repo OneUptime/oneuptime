@@ -62,13 +62,14 @@ describe("the three themes", () => {
 });
 
 describe("reading a stored or sent theme", () => {
-  test.each(STATUS_PAGE_THEMES.map((theme: StatusPageTheme) => [theme]))(
-    "%s reads as itself",
-    (theme: StatusPageTheme) => {
-      expect(isStatusPageTheme(theme)).toBe(true);
-      expect(parseStatusPageTheme(theme)).toBe(theme);
-    },
-  );
+  test.each(
+    STATUS_PAGE_THEMES.map((theme: StatusPageTheme): Array<StatusPageTheme> => {
+      return [theme];
+    }),
+  )("%s reads as itself", (theme: StatusPageTheme) => {
+    expect(isStatusPageTheme(theme)).toBe(true);
+    expect(parseStatusPageTheme(theme)).toBe(theme);
+  });
 
   test.each([
     ["nothing", undefined],
@@ -93,12 +94,13 @@ describe("reading a stored or sent theme", () => {
 });
 
 describe("what a write may hold", () => {
-  test.each(STATUS_PAGE_THEMES.map((theme: StatusPageTheme) => [theme]))(
-    "%s is saved",
-    (theme: StatusPageTheme) => {
-      expect(getStatusPageThemeProblem(theme)).toBeNull();
-    },
-  );
+  test.each(
+    STATUS_PAGE_THEMES.map((theme: StatusPageTheme): Array<StatusPageTheme> => {
+      return [theme];
+    }),
+  )("%s is saved", (theme: StatusPageTheme) => {
+    expect(getStatusPageThemeProblem(theme)).toBeNull();
+  });
 
   test("no theme at all is saved: the page is the light one", () => {
     expect(getStatusPageThemeProblem(undefined)).toBeNull();
@@ -106,7 +108,10 @@ describe("what a write may hold", () => {
   });
 
   test.each([
-    ["another case, which a Terraform plan would read back as a change", "dark"],
+    [
+      "another case, which a Terraform plan would read back as a change",
+      "dark",
+    ],
     ["an empty string", ""],
     ["a padded value", " Light"],
     ["an unknown theme", "Sepia"],

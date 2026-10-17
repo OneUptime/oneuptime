@@ -126,12 +126,13 @@ describe("the three choices", () => {
 });
 
 describe("what the card shows as checked", () => {
-  test.each(STATUS_PAGE_THEMES.map((theme: StatusPageTheme) => [theme]))(
-    "a page with %s shows it",
-    (theme: StatusPageTheme) => {
-      expect(getShownStatusPageTheme(theme)).toBe(theme);
-    },
-  );
+  test.each(
+    STATUS_PAGE_THEMES.map((theme: StatusPageTheme): Array<StatusPageTheme> => {
+      return [theme];
+    }),
+  )("a page with %s shows it", (theme: StatusPageTheme) => {
+    expect(getShownStatusPageTheme(theme)).toBe(theme);
+  });
 
   test.each([undefined, null, "", "dark", "Sepia"])(
     "a page with %p shows Light, the page it is drawn as",

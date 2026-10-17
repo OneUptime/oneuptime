@@ -49,28 +49,27 @@ export interface StatusPageThemeChoice {
  * made for a dark background; a page that follows the visitor puts it on a
  * light backdrop on the dark page (StatusPage's LogoPlate).
  */
-export const STATUS_PAGE_THEME_CHOICES: ReadonlyArray<StatusPageThemeChoice> =
-  [
-    {
-      value: StatusPageTheme.Light,
-      title: translationKey("Light"),
-      description: translationKey("Every visitor sees the light page."),
-    },
-    {
-      value: StatusPageTheme.Dark,
-      title: translationKey("Dark"),
-      description: translationKey(
-        "Every visitor sees the dark page. Use a logo made for a dark background.",
-      ),
-    },
-    {
-      value: StatusPageTheme.System,
-      title: translationKey("Match each visitor's device"),
-      description: translationKey(
-        "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.",
-      ),
-    },
-  ];
+export const STATUS_PAGE_THEME_CHOICES: ReadonlyArray<StatusPageThemeChoice> = [
+  {
+    value: StatusPageTheme.Light,
+    title: translationKey("Light"),
+    description: translationKey("Every visitor sees the light page."),
+  },
+  {
+    value: StatusPageTheme.Dark,
+    title: translationKey("Dark"),
+    description: translationKey(
+      "Every visitor sees the dark page. Use a logo made for a dark background.",
+    ),
+  },
+  {
+    value: StatusPageTheme.System,
+    title: translationKey("Match each visitor's device"),
+    description: translationKey(
+      "Light or dark, as each visitor's device is set. Visitors can switch it in the page's footer, and your logo gets a light backdrop on the dark page.",
+    ),
+  },
+];
 
 // The card's data-testid.
 export const STATUS_PAGE_THEME_CARD_TEST_ID: string = "status-page-theme";
