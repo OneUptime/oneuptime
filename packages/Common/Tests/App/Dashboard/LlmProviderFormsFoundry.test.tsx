@@ -223,7 +223,7 @@ describe.each(FORMS)("$name", (form: ProviderForm) => {
 
   test("the Model Name asks for the deployment's name", () => {
     expect(fieldOf(form.fields(), "modelName").description).toContain(
-      `your deployment's name for ${FOUNDRY_LABEL}`,
+      `For ${FOUNDRY_LABEL}, your deployment's name.`,
     );
   });
 
@@ -232,7 +232,7 @@ describe.each(FORMS)("$name", (form: ProviderForm) => {
       (fieldOf(form.fields(), "baseUrl").description as string) || "";
 
     expect(description).toContain(
-      `For ${FOUNDRY_LABEL} use your resource's endpoint, e.g. https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude.`,
+      "On Azure: https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude.",
     );
     expect(description).not.toContain("/openai/deployments/");
     expect(description).not.toContain("api-version");
@@ -296,7 +296,7 @@ describe("the three forms say the same thing about Azure", () => {
 
         const baseUrl: string =
           (fieldOf(fields, "baseUrl").description as string) || "";
-        const start: number = baseUrl.indexOf(`For ${FOUNDRY_LABEL}`);
+        const start: number = baseUrl.indexOf("On Azure:");
         const end: number = baseUrl.indexOf("for Claude.");
 
         return {

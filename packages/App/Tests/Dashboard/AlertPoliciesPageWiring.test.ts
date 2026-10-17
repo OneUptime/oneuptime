@@ -355,7 +355,8 @@ describe("the policies page is where policies are managed", () => {
    * The ping-only device: four of the pack's five items read an SNMP walk,
    * and a device with no credentials is pinged rather than walked, so those
    * four are never evaluated on it. Copy that lists interface alerting
-   * without that caveat promises alerting the device cannot produce.
+   * without that caveat promises alerting the device cannot produce, so the
+   * page's help says it (the empty state stays one short sentence).
    *
    * The delete: it takes the policy's provisioned monitors with it, and the
    * row's delete confirmation is the table's generic one — it cannot be given
@@ -369,16 +370,18 @@ describe("the policies page is where policies are managed", () => {
     expect(source).toContain("adds one monitor to every device it covers");
     expect(source).toContain("each monitor counts towards your plan");
     expect(source).toContain(
-      "adds one monitor per covered device, each counted towards your plan",
+      "one monitor per device, each counted towards your plan",
     );
     // The reach, as an upper bound, in a sentence a language can word whole.
-    expect(source).toContain("up to {{count}} monitors today");
+    expect(source).toContain(
+      "up to {{count}} monitors today, one per device, each counted towards your plan",
+    );
     expect(source).toContain("up to {{count}} monitor today");
     expect(source).toMatch(COUNTED_CONFIRMATION_CALL);
     expect(source).not.toContain("which is the most this can provision");
-    // The ping-only device.
+    // The ping-only device, in the page's help.
     expect(source).toContain(
-      "A device without SNMP credentials is only pinged, so only the stops-answering check can fire on it.",
+      "On a device with no SNMP credentials only the reachability item can ever fire.",
     );
     // The delete.
     expect(source).toContain("Deleting a policy deletes its monitors.");

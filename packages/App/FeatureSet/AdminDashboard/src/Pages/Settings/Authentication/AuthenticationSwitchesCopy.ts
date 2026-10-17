@@ -26,10 +26,10 @@ export const REQUIRE_SSO_COPY: {
   cardDescription:
     "Control whether users must sign in with SSO across this server.",
   switchTitle: "Require SSO for Login",
-  note: "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.",
+  note: "Everyone except master admins must sign in with SSO to open any project on this server.",
   confirmTitle: "Require SSO for everyone?",
   confirmDescription:
-    "Everyone except master admins will have to sign in with SSO to open any project on this server. Anyone who signs in with a password is locked out of their projects until they sign in with SSO, so check that an SSO provider works for them first.",
+    "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.",
   confirmButton: "Require SSO",
 };
 

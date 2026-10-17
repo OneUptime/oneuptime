@@ -60,7 +60,7 @@ const CloudResourceInstances: FunctionComponent<
         cardProps={{
           title: "Instances",
           description: translator.translateTemplate(
-            "Running tasks, replicas and instances of this cloud environment, as last reported via OpenTelemetry. An instance is named from the first of these resource attributes its telemetry carries, platform identities first: {{attributes}}. Instances not seen in the last {{minutes}} minutes are shown as Stale.",
+            "Running tasks and instances of this environment, as last reported. Those not seen in the last {{minutes}} minutes are Stale.",
             {
               attributes: IDENTITY_ATTRIBUTE_LIST,
               minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,

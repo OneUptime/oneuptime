@@ -1000,7 +1000,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             description={
               selectedOwnedNumber.voiceUrl
                 ? translator.translateTemplate(
-                    "Are you sure you want to use {{phoneNumber}} for this policy? This number currently has a webhook configured which will be updated to point to OneUptime.",
+                    "Use {{phoneNumber}} for this policy? Its current webhook will be pointed at OneUptime.",
                     { phoneNumber: selectedOwnedNumber.friendlyName },
                   )
                 : translator.translateTemplate(

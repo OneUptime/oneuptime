@@ -37,7 +37,7 @@ const KubernetesClusterSettings: FunctionComponent<
             column: "clusterIdentifier",
             title: "Cluster Name (clusterName)",
             description:
-              "Telemetry is matched by this cluster name: the clusterName the kubernetes-agent Helm chart was installed with. Change it only when the chart's clusterName changes: telemetry that still reports the old name creates a new cluster.",
+              "Must match the kubernetes-agent clusterName. Change it only when that changes: telemetry that still reports the old name creates a new cluster.",
             placeholder: "production-us-east-1",
           },
         ]}

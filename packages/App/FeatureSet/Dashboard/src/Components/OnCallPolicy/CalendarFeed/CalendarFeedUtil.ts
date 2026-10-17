@@ -174,7 +174,7 @@ export const SHARED_NEEDS_REGENERATION_COPY: string = translationKey(
  * would contradict the sentence before it.
  */
 export const REGENERATE_WARNING_COPY: string =
-  "Every app subscribed to the current link stops updating and shows an empty calendar. For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working - paste the new link into every app you subscribed with.";
+  "Apps subscribed to the current link stop getting shifts and show an empty calendar. Paste the new link into every app you subscribed with.";
 
 /** Placeholder is the date the grace ends. */
 export const PERSONAL_PREVIOUS_LINK_COPY: string =
@@ -215,7 +215,7 @@ export const PERSONAL_FEED_EMPTY_POINT_PRIVATE: string =
 export const SHARED_FEED_EMPTY_TITLE: string = "No shared link yet";
 
 export const COVERAGE_GAPS_DESCRIPTION: string =
-  "Adds an event for every stretch where the schedule intends coverage but nobody is on call. Off-hours outside every layer's active time are never counted as a gap.";
+  "Adds an event for every stretch where the schedule should be covered but nobody is on call.";
 
 /*
  * i18n interpolation.

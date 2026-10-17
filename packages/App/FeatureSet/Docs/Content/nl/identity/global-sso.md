@@ -92,7 +92,9 @@ Twee schakelaars op de provider veranderen dit. Beide staan eerst uit, ingeklapt
 | Schakelaar | Wat hij doet als hij aanstaat |
 | --- | --- |
 | **Disable Sign Up with SSO** | Mensen moeten voor een project zijn uitgenodigd voordat ze zich met deze provider kunnen aanmelden, ook als er projecten zijn gekoppeld. Bij de eerste aanmelding wordt niemand nieuw aangemaakt. |
-| **Restrict to Attached Projects** | Aanmelden met deze provider voldoet alleen in de eraan gekoppelde projecten aan de SSO-plicht, dus mensen die al zijn aangemeld kunnen de toegang tot andere projecten verliezen. Staat hij uit, dan voldoet het in elk project waar de persoon bij hoort, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd. |
+| **Restrict to Attached Projects** | Aanmelden met deze provider voldoet alleen in de eraan gekoppelde projecten aan de SSO-plicht, dus mensen die al zijn aangemeld kunnen de toegang tot andere projecten verliezen. |
+
+Staat **Restrict to Attached Projects** uit, dan voldoet aanmelden met de provider in elk project waar de persoon bij hoort aan de SSO-plicht, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd.
 
 ## SSO afdwingen
 

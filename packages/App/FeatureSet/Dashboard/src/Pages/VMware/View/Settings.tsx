@@ -27,7 +27,7 @@ const VMwareVCenterSettings: FunctionComponent<
         nameField={{
           title: "Name",
           description:
-            "Must match the vmware.vcenter.name the VMware Agent reports (its VMWARE_VCENTER_NAME), for a vCenter the agent sends: rename it on the agent too, or the agent's next report creates a new vCenter. A vCenter a probe collects can be renamed freely.",
+            "Must match the vmware.vcenter.name the VMware Agent reports, if it sends this vCenter. Rename it there too, or its next report creates a new one.",
           placeholder: "prod-vcenter",
         }}
         descriptionField={{

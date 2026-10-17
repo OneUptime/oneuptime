@@ -127,7 +127,7 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
     <ModelFormModal<OnCallDutyPolicyUserOverride>
       title={skipText || "Skip until…"}
       name="Skip in the rotation"
-      description="This applies to every on-call policy. When it ends, they are back in their usual place in the rotation. To end it early, delete it under On-Call Duty > Advanced > User Overrides."
+      description="This applies to every on-call policy. To end it early, delete it under On-Call Duty > Advanced > User Overrides."
       modelType={OnCallDutyPolicyUserOverride}
       submitButtonText={skipText || "Save"}
       onClose={props.onClose}

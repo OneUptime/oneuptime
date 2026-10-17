@@ -145,7 +145,7 @@ describe("the Resolved By field on the Logs monitor form", () => {
 
     expect(field).not.toBeNull();
     expect(field).toHaveTextContent(
-      "stays open until a log with these attributes arrives for the same group",
+      "Keep a group's alert or incident open until a log with these attributes arrives.",
     );
     expect(field).toHaveTextContent(
       "Leave empty to resolve a group when its logs stop.",

@@ -697,7 +697,9 @@ describe("Integrations Overview", () => {
     expect(variableForm).toContain('title: "Content"');
     expect(variableForm).toContain('title: "Secret"');
     expect(variableForm).toContain('title: "Value"');
-    expect(variableForm).toContain("every run replaces it with [REDACTED]");
+    expect(variableForm).toContain(
+      "Replace this value with [REDACTED] in future workflow run logs.",
+    );
     expect(steps).toContain(
       `Paste the key into ${bold("Content")}, turn on ${bold("Secret")}, and click ${bold("Create Workflow Variable")}.`,
     );

@@ -341,6 +341,8 @@ const IncidentSlaRulesPage: FunctionComponent<
               monitorLabels: true,
             },
             title: "Monitor Labels",
+            description:
+              "Only match incidents whose monitor has one of these labels.",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
@@ -356,6 +358,7 @@ const IncidentSlaRulesPage: FunctionComponent<
               incidentTitlePattern: true,
             },
             title: "Incident Title",
+            description: "Leave empty to match any title.",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -380,6 +383,8 @@ const IncidentSlaRulesPage: FunctionComponent<
               internalNoteReminderIntervalInMinutes: true,
             },
             title: "Internal Note Reminder Interval (minutes)",
+            description:
+              "Post an internal note this often while the incident is open. Leave empty for none.",
             stepId: "note-reminders",
             sectionTitle: "Internal Reminders",
             sectionDescription:
@@ -409,6 +414,8 @@ const IncidentSlaRulesPage: FunctionComponent<
               publicNoteReminderIntervalInMinutes: true,
             },
             title: "Public Note Reminder Interval (minutes)",
+            description:
+              "Post a public status update this often while the incident is open. Leave empty for none.",
             stepId: "note-reminders",
             sectionTitle: "Public Reminders",
             sectionDescription:

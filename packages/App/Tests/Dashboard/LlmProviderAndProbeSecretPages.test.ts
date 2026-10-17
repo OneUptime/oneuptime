@@ -38,8 +38,7 @@ function readSource(...relativeParts: Array<string>): string {
   );
 }
 
-const CREDENTIALS_WARNING: string =
-  "Everyone who can see this project's settings can read it, so never put a key, a token or a password in it: use the API Key.";
+const CREDENTIALS_WARNING: string = "Never put keys here.";
 
 describe("Settings → AI → LLM Providers", () => {
   const source: string = readSource("Pages", "Settings", "LlmProviders.tsx");

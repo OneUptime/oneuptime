@@ -79,7 +79,7 @@ export const IncomingEmailTriggerPanelCopy: {
   resetAddress: "Reset address",
   resetConfirmTitle: "Reset the email address?",
   resetConfirmDescription:
-    "The workflow gets a new address, and the current one stops working at once. Email sent to the current address will be ignored, so give the new one to everything that emails the workflow.",
+    "The workflow gets a new address and the current one stops working at once. Give the new one to everything that emails the workflow.",
   resetDone:
     "Address reset. The old one no longer works, so give this one to anything that should email the workflow.",
   creating: "Creating this workflow's email address...",

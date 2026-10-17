@@ -44,7 +44,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.",
         }}
         noItemsMessage={
-          "No usage history found. Maybe you have not used Telemetry features yet or you're checking this before the end of the day. Please wait until the end of the day for usage to show up."
+          "No usage yet. Each day's usage shows up after the day ends."
         }
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

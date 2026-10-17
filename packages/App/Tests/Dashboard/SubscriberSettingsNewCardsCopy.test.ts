@@ -159,7 +159,7 @@ describe("the Notifications card's words", () => {
 
   test("off keeps the subscribers and says so", () => {
     expect(SubscriberNotificationsCopy.switchOffDescription).toContain(
-      "Its subscribers are kept",
+      "They are kept",
     );
   });
 

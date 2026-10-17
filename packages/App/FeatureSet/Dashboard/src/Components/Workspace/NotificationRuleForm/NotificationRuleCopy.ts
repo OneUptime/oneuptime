@@ -463,7 +463,7 @@ export const CHATS_PLACEHOLDER: string = translationKey("Select chats");
  * old name. It was a paragraph of four clauses under the field.
  */
 export const CHATS_DESCRIPTION: string = translationKey(
-  "Chats the OneUptime app was added to. To list another chat, add the OneUptime app to it in Microsoft Teams. If a group chat shows its members' names or an old name, click Refresh Chats in Project Settings > Workspace > Microsoft Teams.",
+  "Chats the OneUptime app was added to in Microsoft Teams. Wrong names? Click Refresh Chats in Project Settings > Workspace > Microsoft Teams.",
 );
 
 export const NO_CHATS_DESCRIPTION: string = translationKey(

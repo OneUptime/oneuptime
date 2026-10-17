@@ -28,7 +28,7 @@ const StorageArrayDirectories: FunctionComponent<
       pluralName="Directories"
       title="Directories"
       description="Managed directories of this FlashArray's file services, with the flash they use and their latest performance. Directory space is read every 30 minutes."
-      noItemsMessage="No directories found in the inventory yet. Directories appear here once the array serves files and the Storage Array Agent has read its directories, which it does every 30 minutes."
+      noItemsMessage="No directories yet. They appear once the array serves files and the agent reads them, every 30 minutes."
       columns={[
         StorageArrayResourceColumns.getPhysicalColumn({
           description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.directorySpaceColumn,

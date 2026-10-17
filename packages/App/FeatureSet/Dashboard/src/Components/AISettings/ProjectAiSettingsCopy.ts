@@ -145,7 +145,7 @@ const CODE_FIX_TITLE: string = translationKey(
   "Open a fix pull request when an investigation finds a code change",
 );
 const CODE_FIX_DESCRIPTION: string = translationKey(
-  "When an investigation is confident the cause is in your code, OneUptime AI opens a pull request with the fix for your team to review. Nothing is merged automatically.",
+  "When an investigation finds the cause in your code, OneUptime AI opens a pull request with the fix for review. Nothing is merged.",
 );
 const CODE_FIX_NOTE: string = translationKey(
   "Needs a repository connected through the GitHub App and a Runner that can fix code.",
@@ -154,7 +154,7 @@ const TELEMETRY_FIX_TITLE: string = translationKey(
   "Open a pull request that adds missing telemetry",
 );
 const TELEMETRY_FIX_DESCRIPTION: string = translationKey(
-  "When an investigation cannot find the cause because logs, traces or metrics are missing, OneUptime AI opens a pull request that adds them, for your team to review.",
+  "When missing logs, traces or metrics stop an investigation, OneUptime AI opens a pull request that adds them, for review.",
 );
 const GITHUB_APP_NOTE: string = translationKey(
   "Needs a repository connected through the GitHub App.",
@@ -241,14 +241,14 @@ export const AI_LANE_SWITCHES: Record<
       signal: AutoRemediationTriggerEntity.Incident,
       title: translationKey("Fix new incidents automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new incident through the AI agent on the cluster or host it affects, and can open pull requests for your team to review. Whether a fix waits for someone to approve it is up to that agent's settings.",
+        "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host. That agent's settings decide if a fix waits for approval.",
       ),
     }),
     {
       column: "enableAutomaticPostmortemDraft",
       title: translationKey("Draft a postmortem when an incident resolves"),
       description: translationKey(
-        "OneUptime AI writes a draft from the incident's timeline and telemetry for your team to review. It never replaces a postmortem that already exists.",
+        "OneUptime AI drafts a postmortem from the incident's timeline and telemetry for review. It never replaces an existing one.",
       ),
     },
   ],
@@ -264,7 +264,7 @@ export const AI_LANE_SWITCHES: Record<
       signal: AutoRemediationTriggerEntity.Alert,
       title: translationKey("Fix new alerts automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new alert through the AI agent on the cluster or host it affects, and can open pull requests for your team to review. Whether a fix waits for someone to approve it is up to that agent's settings.",
+        "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host. That agent's settings decide if a fix waits for approval.",
       ),
     }),
   ],
@@ -728,7 +728,7 @@ export const AI_INSIGHTS_SWITCHES: Array<
     column: "enableAiInsights",
     title: translationKey("Watch telemetry for problems"),
     description: translationKey(
-      "Every 15 minutes, OneUptime checks your logs, exceptions, traces and metrics for spikes, new errors, slowdowns and drift, and files what it finds as an insight. With an LLM provider, OneUptime AI also triages each new insight.",
+      "Every 15 minutes, OneUptime looks for spikes, new errors, slowdowns and drift in your telemetry and files each one as an insight.",
     ),
   },
   {
@@ -745,7 +745,7 @@ export const AI_INSIGHTS_SWITCHES: Array<
     column: "autoArchiveNonActionableExceptions",
     title: translationKey("Archive exceptions that are expected"),
     description: translationKey(
-      "When OneUptime AI finds that an exception is expected, such as a refused sign-in or a plan limit, it archives it so it stops showing as unresolved. You can bring it back from the Archived tab.",
+      "OneUptime AI archives exceptions that are expected, such as a refused sign-in, so they stop showing as unresolved.",
     ),
   },
 ];
@@ -793,11 +793,11 @@ export const EnableAiCopy: {
    * page, off until a project turns it on.
    */
   switchDescription: translationKey(
-    "The master switch. When off, every AI feature in this project stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners.",
+    "The master switch for every AI feature in this project: Ask AI, investigations, postmortem drafts, auto-remediation and more.",
   ),
   turnOffConfirmTitle: translationKey("Turn off AI for this project?"),
   turnOffConfirmDescription: translationKey(
-    "Every AI feature in this project stops at once: Ask AI, investigations, postmortem drafts, fix pull requests, insight triage, auto-remediation and AI commands on Runners. Each one keeps its own setting, so turning AI back on brings back what was on.",
+    "Every AI feature in this project stops at once. Each keeps its own setting, so turning AI back on brings back what was on.",
   ),
   turnOffConfirmButton: translationKey("Turn off AI"),
   whoCanTurnOn: translationKey(

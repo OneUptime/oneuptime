@@ -252,7 +252,7 @@ describe("incident custom field settings", () => {
       formField("includeInSubscriberNotifications")!.description,
     ).toContain("outside your team");
     expect(formField("isRequiredOnCreate")!.description).toContain(
-      "monitors, the API, Slack, Microsoft Teams or AI",
+      "Other ways to create incidents can leave it empty.",
     );
   });
 

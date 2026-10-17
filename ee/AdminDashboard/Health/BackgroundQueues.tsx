@@ -423,7 +423,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
   return (
     <Modal
       title={`Failed jobs · ${props.queueName} queue`}
-      description="The most recent jobs this queue's workers failed to process, with full detail. Use the failure reason, stack trace, job body and logs to diagnose what is wedging the worker."
+      description="The latest jobs this queue failed to process, with the reason, stack trace, job body and logs of each."
       modalWidth={ModalWidth.Large}
       isBodyLoading={isLoading}
       /*

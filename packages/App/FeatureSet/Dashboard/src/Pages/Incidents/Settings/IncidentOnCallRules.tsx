@@ -224,6 +224,7 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
         {
           field: { incidentTitlePattern: true },
           title: "Incident Title",
+          description: "Leave empty to match any title.",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:

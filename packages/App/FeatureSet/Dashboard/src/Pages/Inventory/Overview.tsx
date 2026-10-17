@@ -98,7 +98,7 @@ const InventoryOverview: FunctionComponent<
         icon={IconProp.Cube}
         showSolidBackground={true}
         title="Your inventory is empty"
-        description="Send OpenTelemetry data or connect infrastructure and everything OneUptime finds shows up here automatically. You can also add something by hand for things that will never report on their own."
+        description="Send OpenTelemetry data or connect infrastructure, and what OneUptime finds shows up here. You can also add things by hand."
         footer={
           <Button
             title="Read the setup guide"

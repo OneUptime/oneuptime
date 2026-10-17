@@ -12,36 +12,31 @@ import { getDatabaseEndpointSourceLabel } from "../../../../App/FeatureSet/Dashb
 /*
  * The Databases pages' form helpers.
  *
- * The create form's Server Address: its help text documents the forms the
- * identity rules accept (`@<cluster>` for an address that only resolves
- * inside one cluster or private network, `host\INSTANCE` for a SQL Server
- * named instance, never `user@host`), its validation refuses what could
- * never become an endpoint with a message that says what to change, and its
- * hint offers the `@<cluster>` form — saying, for a Kubernetes Service name,
- * that the server requires it once the project has a Kubernetes cluster.
+ * The create form's Server Address: its help text says what to enter and
+ * offers the `@<cluster>` form, with an example, for an address that only
+ * resolves inside one cluster or private network. Its validation refuses
+ * what could never become an endpoint (`user@host`, loopback, a qualifier
+ * on a public name) with a message that says what to change, and its hint
+ * offers the `@<cluster>` form as it is typed — saying, for a Kubernetes
+ * Service name, that the server requires it once the project has a
+ * Kubernetes cluster. A SQL Server named instance is `host\INSTANCE`.
  *
  * The Endpoints tab's "Added by" pill: which of discovery's claims an
  * endpoint is.
  */
 
 describe("the create form's Server Address help", () => {
-  test("documents the cluster qualifier, the named instance and the user@host rule", () => {
+  test("says what to enter, and the cluster qualifier with an example", () => {
+    expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain("server.address");
+    expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain("@<cluster>");
     expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain(
-      "pg.shop.svc.cluster.local:5432@prod-eu",
+      "pg.shop.svc:5432@prod-eu",
     );
-    expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain(
-      "(pg.shop.svc.cluster.local, pg.shop.svc)",
-    );
-    expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain("private IP");
-    expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain("host\\INSTANCE");
-    expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain(
-      "Do not include a user name (user@host)",
-    );
-    expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain("Never localhost");
   });
 
   test("every example the help gives is accepted as written", () => {
     for (const example of [
+      "pg.shop.svc:5432@prod-eu",
       "pg.shop.svc.cluster.local:5432@prod-eu",
       "pg.shop@prod-eu",
       "10.0.0.5:5432@prod-eu",
@@ -63,16 +58,16 @@ describe("the create form's Server Address help", () => {
    * ordinary two-label domain — no cluster advice, and a database no pod's
    * calls would match.
    */
-  test("every cluster-only example the help gives is read as cluster-only on the create form", () => {
-    const examples: Array<string> = (
+  test("the cluster-only example the help gives is read as cluster-only on the create form", () => {
+    const example: string = (
       DATABASE_SERVER_ADDRESS_DESCRIPTION.match(
-        /one Kubernetes cluster \(([^)]+)\)/,
+        /add @<cluster>: (\S+)\.$/,
       ) as RegExpMatchArray
-    )[1]!.split(", ");
+    )[1]!;
 
-    expect(examples).toEqual(["pg.shop.svc.cluster.local", "pg.shop.svc"]);
+    expect(example).toBe("pg.shop.svc:5432@prod-eu");
 
-    for (const serverAddress of examples) {
+    for (const serverAddress of ["pg.shop.svc", "pg.shop.svc.cluster.local"]) {
       expect({
         serverAddress,
         advises: Boolean(

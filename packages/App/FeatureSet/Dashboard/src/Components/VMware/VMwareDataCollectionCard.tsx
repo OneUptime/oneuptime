@@ -301,7 +301,7 @@ const VMwareDataCollectionCard: FunctionComponent<ComponentProps> = (
           }
           description={
             isSwitchingToProbe
-              ? "Enter vCenter's address and a read-only account, and pick the probe that reaches it. Stop the VMware agent once the first collection succeeds, or every metric arrives twice."
+              ? "Enter vCenter's address, a read-only account and a probe that reaches it. Stop the VMware agent after the first collection."
               : "Changing the address, the probe or the trusted certificate needs the password again: a saved password is only sent where it was entered for."
           }
           modalWidth={ModalWidth.Medium}
@@ -393,7 +393,7 @@ const VMwareDataCollectionCard: FunctionComponent<ComponentProps> = (
       {isConfirmingAgent ? (
         <ConfirmModal
           title="Use the VMware Agent"
-          description="The probe stops collecting this vCenter and OneUptime forgets its saved password. Its data then comes from the VMware agent you run - install and start it first, so nothing is missed."
+          description="The probe stops collecting this vCenter and its saved password is deleted. Start the VMware agent first, so nothing is missed."
           submitButtonText="Use the VMware Agent"
           isLoading={isSaving}
           error={saveError || undefined}

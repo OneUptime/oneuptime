@@ -275,7 +275,7 @@ describe("every AI behaviour is a switch", () => {
       // What it needs: an AI agent that may fix things where it happens.
       expect(fix.note).toContain("AI agent");
       // Who decides whether a fix waits: that agent's settings.
-      expect(fix.description).toContain("approve");
+      expect(fix.description).toContain("waits for approval");
     }
   });
 
@@ -433,9 +433,7 @@ describe("every AI behaviour is a switch", () => {
           },
         );
 
-      expect(codeFix?.description).toContain(
-        "Nothing is merged automatically.",
-      );
+      expect(codeFix?.description).toContain("Nothing is merged.");
       expect(codeFix?.note).toContain("a Runner that can fix code");
     }
   });
@@ -1073,8 +1071,8 @@ describe("translations", () => {
       "How much alert AI work may run each day (UTC). Ask AI is never limited.",
       "The most tokens incident AI work may use each day: investigations, remediation and fix tasks. Leave empty for no limit, or set 0 to pause it.",
       "The most tokens alert AI work may use each day: investigations, remediation and fix tasks. Leave empty for no limit, or set 0 to pause it.",
-      "How many fix pull requests OneUptime AI may start on for incidents each day, whether someone asked for one or not. Leave empty for no limit, or set 0 to pause them.",
-      "How many fix pull requests OneUptime AI may start on for alerts each day, whether someone asked for one or not. Leave empty for no limit, or set 0 to pause them.",
+      "How many fix pull requests OneUptime AI may start for incidents each day. Leave empty for no limit, or 0 to pause them.",
+      "How many fix pull requests OneUptime AI may start for alerts each day. Leave empty for no limit, or 0 to pause them.",
     ]),
   );
 

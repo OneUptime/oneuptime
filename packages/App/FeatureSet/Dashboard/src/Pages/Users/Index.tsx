@@ -511,7 +511,7 @@ const Users: FunctionComponent<PageComponentProps> = (
                 },
                 title: "Email",
                 description:
-                  "Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to team you have selected.",
+                  "We email them an invitation to the team you pick.",
                 fieldType: FormFieldSchemaType.Email,
                 required: true,
                 placeholder: "member@company.com",
@@ -566,7 +566,7 @@ const Users: FunctionComponent<PageComponentProps> = (
       {showScimErrorModal && (
         <ConfirmModal
           title="Users are managed by SCIM Push Groups"
-          description="Team membership is being managed by your identity provider. Disable Push Groups in Project Settings > Security > SCIM if you need to invite or promote users from OneUptime."
+          description="Your identity provider manages team membership. Turn off Push Groups in Project Settings > Security > SCIM to invite people here."
           onSubmit={() => {
             setShowScimErrorModal(false);
           }}

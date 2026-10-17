@@ -26,7 +26,7 @@ const NetworkDeviceMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="Network Device"
-          description="The registered device to alert on. The device is polled by its assigned probe on the device's own schedule — this monitor evaluates its criteria against every poll result and incoming trap."
+          description="The device to alert on. Its criteria are checked against every poll result and trap."
           required={true}
         />
         <EntityDropdown

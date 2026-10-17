@@ -214,7 +214,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       },
       title: "Scope",
       description:
-        "Which resources it reaches. All (recommended): every resource in the project. Owned: the resources the team given this role, or one of its members, owns. Labels: the resources carrying one of the labels you pick.",
+        "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.",
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: SCOPE_OPTIONS,
       defaultValue: PermissionScope.All,

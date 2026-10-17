@@ -46,7 +46,7 @@ const CloudArchivedPage: FunctionComponent<
         cardProps={{
           title: "Archived Cloud Environments and Resources",
           description:
-            "Cloud environments and resources that are archived: hidden from their lists, but still collecting telemetry. A resource whose provider stopped reporting on it for a week is archived automatically, and comes back by itself when it reports again. Select rows to unarchive them.",
+            "Archived cloud environments and resources: hidden from their lists but still collecting telemetry. Select rows to unarchive them.",
         }}
         showViewIdButton={true}
         noItemsMessage={"No archived cloud environments or resources."}

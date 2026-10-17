@@ -768,7 +768,7 @@ describe("every translation names the path as its language's Dashboard draws it"
     "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or recharge the balance now.",
     "Project Settings > Telemetry & APM > Ingestion Keys",
     "Invite or remove users from your identity provider or disable Push Groups in Project Settings > Security > SCIM to manage them here.",
-    "Select SMTP Config to use for this status page to send email to subscribers. You can add SMTP Config in Project Settings > Notifications > Notification Settings > Custom SMTP Configs.",
+    "The SMTP server this page sends subscriber email from. Add one in Project Settings > Notifications.",
   ];
 
   test("the Dashboard's texts with a Project Settings path include the ones this sweep rewrote, and every one walks the menu", () => {

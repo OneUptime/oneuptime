@@ -84,7 +84,7 @@ const RunbookSecrets: FunctionComponent<
             stepId: "secret",
             fieldType: FormFieldSchemaType.Text,
             description:
-              "Name of the secret. This is a unique identifier and can only contain letters, numbers, hyphens (-), and underscores (_). You can then use this name to access the secret in your runbook agents.",
+              "Letters, numbers, hyphens and underscores. Runbook agents use this name to read the secret.",
             required: true,
             placeholder: "Secret Name",
             validation: {

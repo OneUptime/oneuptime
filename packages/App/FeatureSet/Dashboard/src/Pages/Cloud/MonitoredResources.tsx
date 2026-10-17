@@ -136,7 +136,7 @@ const CloudMonitoredResources: FunctionComponent<
         cardProps={{
           title: "Cloud Resources",
           description:
-            "IaaS and PaaS resources discovered from the metrics your cloud provider publishes about them: Azure Monitor, Amazon CloudWatch and Google Cloud Monitoring, read by an OpenTelemetry Collector. Virtual machines, load balancers, buckets, managed databases, caches and queues each get their own page.",
+            "Virtual machines, load balancers, buckets, databases and more, discovered from your cloud provider's metrics through an OpenTelemetry Collector.",
         }}
         noItemsMessage="No cloud resources discovered yet."
         filters={[

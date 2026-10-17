@@ -104,7 +104,7 @@ export const DASHBOARD_ACCESS_CONFIRMATION_COPY: Record<
   [DashboardAccess.AnyoneWithPassword]: {
     title: translationKey("Require a password?"),
     description: translationKey(
-      "Anyone with the link who enters the password will see this dashboard and every widget on it. Share the password only with the people who should see it.",
+      "Anyone with the link and the password will see this dashboard and every widget on it.",
     ),
     submitButtonText: translationKey("Require Password"),
   },

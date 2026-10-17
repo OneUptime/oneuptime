@@ -415,11 +415,8 @@ describe("the confirm dialog", () => {
     expect(description).toContain(
       "Only remove pve2 if it has been removed from the Proxmox cluster.",
     );
-    expect(description).toContain(
-      "OneUptime cannot tell a node that was removed from one that is down",
-    );
-    expect(description).toContain("its Node Offline alert resolves");
-    expect(description).toContain("If pve2 reports again, it comes back.");
+    expect(description).toContain("Its Node Offline alert then resolves.");
+    expect(description).toContain("If it reports again, it comes back.");
     expect(apiPostMock).not.toHaveBeenCalled();
   });
 

@@ -60,6 +60,7 @@ export function getLlmIssueOptions(): Array<DropdownOption> {
       return {
         label: LLM_ISSUE_STYLES[issue].title,
         value: issue,
+        description: LLM_ISSUE_STYLES[issue].description,
       };
     },
   );
@@ -138,8 +139,14 @@ const LlmMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownOptions: getLlmIssueOptions(),
             title: "Count an answer as bad when it",
+            /*
+             * Every problem is picked on a new monitor, and a picked option
+             * leaves the menu, so the options' own descriptions are seldom
+             * seen: the two chips whose word does not say it are explained
+             * here.
+             */
             description:
-              "Failed: the call ended in an error. Refused: the AI declined, or a safety filter blocked the answer. Cut off: it hit the token limit. Empty: no text and no tool call. Flagged: an evaluation your app sent said it was bad.",
+              "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.",
             hideOptionalLabel: true,
           },
           {

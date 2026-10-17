@@ -555,7 +555,7 @@ const AIInsightsPage: FunctionComponent<
           icon={IconProp.LightBulb}
           showSolidBackground={true}
           title="No insights yet"
-          description="When AI Insights is enabled, OneUptime AI continuously watches this project's telemetry and files a quiet insight whenever a deterministic sensor finds something — without paging anyone or opening incidents."
+          description="OneUptime AI watches this project's telemetry and files a quiet insight when something looks off. It never pages anyone."
           footer={
             <Button
               title="Go to Insights Settings"

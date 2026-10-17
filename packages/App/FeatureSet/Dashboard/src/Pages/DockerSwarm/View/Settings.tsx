@@ -26,7 +26,7 @@ const DockerSwarmClusterSettings: FunctionComponent<
         nameField={{
           title: "Name",
           description:
-            "Must match the docker.swarm.cluster.name the Docker Swarm Agent reports. Telemetry is matched to this cluster by it: rename it on the agent too, or the agent's next report creates a new cluster.",
+            "Must match the docker.swarm.cluster.name the Docker Swarm Agent reports. Rename it there too, or its next report creates a new cluster.",
           placeholder: "swarm-production",
         }}
         descriptionField={{

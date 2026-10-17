@@ -570,7 +570,7 @@ const NetworkEventsView: FunctionComponent<ComponentProps> = (
             : "Syslog is arriving, but none of it is an event yet"
         }
         description={translator.translateTemplate(
-          "Nothing in the last {{days}} days was something OneUptime reads as an event: a link, a tunnel, a failover, a restart, a sign-in. Every message is still stored. See them in Logs, or name the events of a format OneUptime does not know in a log pipeline.",
+          "Nothing in the last {{days}} days looked like an event, such as a link going down. Every message is still in Logs.",
           { days: NETWORK_EVENTS_LOOKBACK_IN_DAYS },
         )}
         // Real links, so they open in a new tab like any other.

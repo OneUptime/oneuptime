@@ -43,7 +43,7 @@ export const SubscriberNotificationsCopy: {
     "On: subscribers are told about incidents, scheduled maintenance and announcements, each on the channel they chose.",
   ),
   switchOffDescription: translationKey(
-    "Off: this status page sends its subscribers nothing - no message about incidents, scheduled maintenance or announcements, and no reports. Its subscribers are kept, and visitors can still subscribe while the Subscribe page and a channel are on.",
+    "Off: subscribers are sent nothing, not even reports. They are kept, and visitors can still subscribe.",
   ),
   offWarningTitle: translationKey(
     "This status page sends its subscribers nothing",

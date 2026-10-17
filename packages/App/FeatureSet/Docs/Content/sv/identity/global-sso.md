@@ -92,7 +92,9 @@ Två reglage på leverantören ändrar detta. Båda börjar avstängda, hopfäll
 | Reglage | Vad det gör när det är påslaget |
 | --- | --- |
 | **Disable Sign Up with SSO** | Personer måste vara inbjudna till ett projekt innan de kan logga in med den här leverantören, även när projekt är anslutna. Ingen ny skapas vid första inloggningen. |
-| **Restrict to Attached Projects** | Inloggning med den här leverantören uppfyller SSO-kravet bara i de projekt som är anslutna till den, så personer som redan är inloggade kan förlora åtkomsten till andra projekt. När det är avstängt uppfyller inloggningen kravet i alla projekt personen tillhör, och anslutna projekt avgör bara var nya personer läggs till. |
+| **Restrict to Attached Projects** | Inloggning med den här leverantören uppfyller SSO-kravet bara i de projekt som är anslutna till den, så personer som redan är inloggade kan förlora åtkomsten till andra projekt. |
+
+När **Restrict to Attached Projects** är avstängt uppfyller inloggning med leverantören SSO-kravet i alla projekt personen tillhör, och anslutna projekt avgör bara var nya personer läggs till.
 
 ## Kräv SSO
 

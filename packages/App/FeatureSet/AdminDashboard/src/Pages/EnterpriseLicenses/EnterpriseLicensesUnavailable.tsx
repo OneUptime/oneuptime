@@ -44,7 +44,7 @@ const EnterpriseLicensesUnavailable: FunctionComponent<ComponentProps> = (
           id="enterprise-licenses-not-available"
           icon={IconProp.Lock}
           title="Requires the OneUptime Enterprise Edition"
-          description="License management is part of the OneUptime Enterprise Edition, and this Admin Dashboard was built without it. Deploy the Enterprise Edition image to issue and track enterprise licenses."
+          description="License management is part of the OneUptime Enterprise Edition. Deploy the Enterprise Edition image to issue and track licenses."
         />
       ) : (
         <EmptyState

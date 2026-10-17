@@ -1034,15 +1034,12 @@ describe("the create form", () => {
       })?.queueIdentifier,
     ).toBe("servicebus||orders");
 
-    // The field says when to leave it empty, and what that costs.
+    // The field says when to leave it empty.
     expect(field("Namespace").description).toBe(
       MESSAGE_QUEUE_NAMESPACE_DESCRIPTION,
     );
     expect(MESSAGE_QUEUE_NAMESPACE_DESCRIPTION).toContain(
-      "Leave it empty only for a queue your applications reach through the emulator or a custom domain",
-    );
-    expect(MESSAGE_QUEUE_NAMESPACE_DESCRIPTION).toContain(
-      "Azure Monitor's metrics never reach such a queue",
+      "Leave empty only for the emulator or a custom domain.",
     );
   });
 

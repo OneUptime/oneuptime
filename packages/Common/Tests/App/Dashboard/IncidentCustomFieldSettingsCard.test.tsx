@@ -445,7 +445,7 @@ describe("an incident template's Custom Fields on Create card", () => {
       "Custom Fields on Create",
     );
     expect(IncidentCustomFieldCreateSettingsCopy.templateDescription).toBe(
-      "Choose which custom fields the Details step asks for when an incident is declared from this template, and which of them must be filled in. Fields left on Default follow their own Show on Create and Required on Create settings.",
+      "Which custom fields to ask for when an incident is declared from this template, and which are required. Default follows each field's settings.",
     );
   });
 

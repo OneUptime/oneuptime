@@ -169,18 +169,12 @@ describe("the queue Overview's descriptions", () => {
     );
 
     // A receive that returned nothing is in no part of a row, the count too.
-    expect(TEXT.consumers).toContain(
-      "Receives that returned nothing are left out;",
-    );
-    expect(TEXT.consumers).not.toContain("left out of the time");
+    expect(TEXT.consumers).toContain("messages taken");
     expect(QUERIES).toContain(
       '[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new IncludesNone(["0"]),',
     );
 
     // An SQS receive that returned messages is counted, once per batch...
-    expect(TEXT.consumers).toContain(
-      "an SQS receive that returned messages counts once per batch",
-    );
     expect(QUERIES).toContain(
       "[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new GreaterThan<number>(0),",
     );
@@ -191,7 +185,6 @@ describe("the queue Overview's descriptions", () => {
     expect(combine).toContain("calls: consumed,");
 
     // ...and never in the time, which is its consumer spans' alone.
-    expect(TEXT.consumers).toContain("never in the time");
     expect(combine).toContain(
       "p95DurationMs: handled > 0 ? finiteOrNull(data.consume.p95Ms.get(id)) : null,",
     );
@@ -233,7 +226,7 @@ describe("the queue Overview's descriptions", () => {
 
   test("the broker health text matches how the section reads its metrics", () => {
     expect(TEXT.brokerHealth).toContain(
-      "Levels show their latest value, counts per interval their newest whole interval, and running totals a rate per second",
+      "backlog, consumer lag, dead letters and message age",
     );
     // A per-period count keeps whole intervals only; a counter is a rate.
     expect(QUERIES).toContain(

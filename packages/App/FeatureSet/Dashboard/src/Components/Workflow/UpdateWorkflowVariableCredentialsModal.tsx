@@ -69,7 +69,7 @@ const UpdateWorkflowVariableCredentialsModal: FunctionComponent<
       error={error || undefined}
       description={`Replace the credentials "${
         props.variable.name || "this variable"
-      }" uses to get access tokens. Leave a field empty to keep what is saved. OneUptime fetches a new token with them as soon as you save.`}
+      }" uses to get access tokens. Leave a field empty to keep what is saved.`}
       submitButtonText="Save and Refresh Token"
       onClose={() => {
         setIsLoading(false);

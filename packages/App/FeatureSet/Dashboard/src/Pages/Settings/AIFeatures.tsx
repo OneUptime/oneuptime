@@ -93,7 +93,7 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
       title: "Daily AI Token Limit",
       description:
-        "The most tokens OneUptime AI may use in this project each day, whatever it is doing: Ask AI, investigations, fix pull requests, workflows, runbooks and the rest. Leave empty for no limit.",
+        "The most tokens OneUptime AI may use in this project each day, for everything. Leave empty for no limit.",
       required: false,
       fieldType: FormFieldSchemaType.Number,
       placeholder: "No limit",
@@ -128,7 +128,7 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
       title: "Daily AI Spend Limit (USD)",
       description:
-        "The most AI credits, in US dollars, OneUptime AI may spend in this project each day. Only AI billed to your AI credits counts, so AI on your own LLM provider is never stopped by it. Leave empty for no limit.",
+        "The most AI credits, in US dollars, OneUptime AI may spend here each day. Your own LLM provider is not counted. Leave empty for no limit.",
       required: false,
       fieldType: FormFieldSchemaType.Number,
       placeholder: "No limit",

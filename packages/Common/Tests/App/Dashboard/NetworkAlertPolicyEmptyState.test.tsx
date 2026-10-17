@@ -129,12 +129,12 @@ describe("the Alert Policies page with no policy yet", () => {
     expect(
       within(empty).getByTestId("network-alert-policies-empty-description"),
     ).toHaveTextContent(
-      "One policy alerts on many devices: the ones you have and the ones you add later.",
+      "One policy covers every device, including ones added later.",
     );
     expect(
       within(empty).getByTestId("network-alert-policies-empty-description"),
     ).toHaveTextContent(
-      "A device without SNMP credentials is only pinged, so only the stops-answering check can fire on it.",
+      "The recommended one opens an incident when a device stops answering or a port goes down.",
     );
   });
 
@@ -155,7 +155,7 @@ describe("the Alert Policies page with no policy yet", () => {
     ).toHaveLength(1);
   });
 
-  test("confirms first, naming the policy and the template it adds, and how many monitors at most", async () => {
+  test("confirms first, naming the policy it adds and how many monitors at most", async () => {
     render(<RecommendedPolicyEmptyState onCreated={() => {}} />);
 
     fireEvent.click(screen.getByTestId("create-recommended-alert-policy"));
@@ -165,10 +165,10 @@ describe("the Alert Policies page with no policy yet", () => {
 
     expect(dialog).toHaveTextContent("Create the recommended policy?");
     expect(dialog).toHaveTextContent(
-      'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet.',
+      'This adds the "Alert on every device" policy and its monitor template:',
     );
     expect(dialog).toHaveTextContent(
-      "each counted towards your plan: up to 11 monitors today.",
+      "up to 11 monitors today, one per device, each counted towards your plan.",
     );
     // The names are said as names: never run into the sentence around them.
     expect(dialog).not.toHaveTextContent("an Alert on every device policy");
@@ -182,7 +182,7 @@ describe("the Alert Policies page with no policy yet", () => {
     await flush();
 
     expect(screen.getByTestId("modal")).toHaveTextContent(
-      "up to 1 monitor today.",
+      "up to 1 monitor today, one per device,",
     );
   });
 
@@ -198,7 +198,7 @@ describe("the Alert Policies page with no policy yet", () => {
       'This adds the "Alert on every device" policy',
     );
     expect(dialog).toHaveTextContent(
-      "each counted towards your plan. You can narrow the policy to some devices afterwards.",
+      "one monitor per device, each counted towards your plan.",
     );
     expect(dialog).not.toHaveTextContent("up to");
   });

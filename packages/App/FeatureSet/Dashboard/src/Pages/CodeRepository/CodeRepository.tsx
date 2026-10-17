@@ -331,7 +331,7 @@ const CodeRepositoryPage: FunctionComponent<
         description={
           <span>
             <TranslatedSentence
-              template="Install the GitHub App and all repositories in the installation are imported automatically — no need to pick them one at a time. They stay in sync as repositories are added to or removed from the installation. Connected repositories are what the {{aiAgent}} opens fix pull requests against."
+              template="Install the GitHub App to import every repository in the installation and keep them in sync. The {{aiAgent}} opens fix pull requests against them."
               slots={{
                 aiAgent: (
                   <Link to={aiAgentsRoute} className="underline">

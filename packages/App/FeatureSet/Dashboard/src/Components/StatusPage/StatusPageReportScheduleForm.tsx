@@ -171,7 +171,7 @@ export const getReportScheduleFormFields: () => Fields<StatusPage> =
         },
         title: "Reporting period",
         description:
-          "A calendar period is the last whole period before the email goes out, sized by how often you send - a monthly report covers Jul 1 to Jul 31. A rolling period always ends the moment the email is sent.",
+          "For a monthly report sent in August, the previous whole calendar period is Jul 1 to Jul 31. A rolling number of days ends when the email is sent.",
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownOptions: REPORT_PERIOD_TYPE_OPTIONS.map(
           (option: {
@@ -190,8 +190,7 @@ export const getReportScheduleFormFields: () => Fields<StatusPage> =
           reportDataInDays: true,
         },
         title: "How many days of data should the report cover?",
-        description:
-          "Counted back from the moment the report is sent. Consecutive reports overlap when this is longer than the send frequency, and leave gaps when it is shorter.",
+        description: "Counted back from when the report is sent.",
         fieldType: FormFieldSchemaType.Number,
         required: true,
         validation: {

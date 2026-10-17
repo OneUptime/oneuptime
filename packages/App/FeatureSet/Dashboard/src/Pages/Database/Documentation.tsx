@@ -16,7 +16,7 @@ const DatabaseDocumentation: FunctionComponent<
     <Fragment>
       <DatabaseDocumentationCard
         title="Connect Database Engine Metrics"
-        description="Databases appear on their own from your application traces and from Kubernetes, Docker and Podman. Install the OneUptime Database Agent next to a database to add its engine metrics: pick the engine, then follow the steps."
+        description="Install the OneUptime Database Agent next to a database to add its engine metrics: pick the engine, then follow the steps."
       />
     </Fragment>
   );

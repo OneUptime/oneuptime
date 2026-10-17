@@ -464,7 +464,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={isEditMode ? "Edit Processor" : "Add Processor"}
-      description="Processors transform spans as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the span before it is stored."
+      description="Processors change spans before they are stored. They run in order, after the pipeline's filter matches."
       modalWidth={ModalWidth.Large}
       submitButtonText={isEditMode ? "Save Processor" : "Create Processor"}
       onSubmit={handleSave}

@@ -411,7 +411,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             title: "Environments",
             description:
-              "Comma-separated deployment environments to monitor (the deployment.environment resource attribute). Matched exactly and case-sensitively, like env: in the Exceptions explorer. Leave empty to monitor every environment.",
+              "Comma-separated deployment.environment values, matched exactly. Leave empty to monitor every environment.",
             placeholder: "production, staging",
             hideOptionalLabel: true,
           },
@@ -476,7 +476,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Checkbox,
             title: "Include Resolved Exceptions",
             description:
-              "By default, exceptions marked as resolved are not counted (an exception that occurs again is automatically un-resolved and counted). Enable this to count resolved exceptions too.",
+              "Count exceptions marked as resolved too. A resolved exception that happens again is always counted.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_EXCEPTION_FILTERS,
           },

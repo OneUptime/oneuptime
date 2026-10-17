@@ -2934,10 +2934,7 @@ describe("the mode copy follows the canonical description", () => {
     );
   });
 
-  test("the kubectl allowlist help gives an example and the matcher's rules, and stays short", () => {
-    expect(KUBECTL_ALLOWLIST_FIELD_DESCRIPTION).toContain(
-      "for example: kubectl set image deployment/web * -n web",
-    );
+  test("the kubectl allowlist help gives the matcher's rules, and stays short", () => {
     expect(KUBECTL_ALLOWLIST_FIELD_DESCRIPTION).toContain(
       "* matches exactly one word",
     );

@@ -122,7 +122,7 @@ const SloMonitorRules: FunctionComponent<RuleSettingsPageProps> = (
         cardProps={{
           title: "Monitor Rules",
           description:
-            "Attach monitors to this SLO by matching them, instead of picking each one by hand. Every monitor an enabled rule matches is attached, and detached again once no enabled rule matches it. While any rule is enabled, the rules manage this SLO's monitors.",
+            "Attach monitors that match a rule instead of picking each by hand. While a rule is enabled, the rules manage this SLO's monitors.",
           buttons: [
             {
               title: "View Monitors",

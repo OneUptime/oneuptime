@@ -311,7 +311,7 @@ const MessageQueues: FunctionComponent<
         cardProps={{
           title: "Queues",
           description:
-            "Every message queue, topic and subscription your applications publish to and consume from — discovered from their OpenTelemetry messaging spans and from your brokers' metrics, for Kafka, RabbitMQ, ActiveMQ, Amazon SQS and SNS, Google Pub/Sub, Azure Service Bus and Event Hubs, Pulsar, RocketMQ, NATS, BullMQ and more — or added by hand.",
+            "Every queue, topic and subscription your applications use, discovered from their OpenTelemetry messaging spans and your brokers' metrics, or added by hand.",
         }}
         formSteps={[
           { title: "Messaging System", id: "messaging-system" },
@@ -662,7 +662,7 @@ const MessageQueues: FunctionComponent<
       {count === 0 && (
         <MessageQueueDocumentationCard
           title="Getting Started with Queues"
-          description="No queues yet. Queues appear here on their own as soon as your instrumented applications publish or consume messages, or when your broker's metrics reach OneUptime. Add one by hand above, or pick your messaging system below for its setup."
+          description="No queues yet. They appear once your apps use them or your broker's metrics arrive. Add one by hand above, or pick your messaging system below."
         />
       )}
       {labelBulkActionModals}

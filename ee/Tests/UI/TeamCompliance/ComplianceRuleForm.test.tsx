@@ -399,7 +399,7 @@ describe("the rule form's fields", () => {
       .description as string;
 
     expect(description).toBe(
-      "Members need a rule that notifies them on each channel you pick - Call and Push notification, say, so a critical page rings their phone and reaches the app. Leave empty to accept any channel.",
+      "Members need a notification rule on each channel you pick, such as Call and Push notification. Leave empty to accept any channel.",
     );
     expect(description).toContain("each channel you pick");
     expect(description).toContain("Leave empty to accept any channel.");

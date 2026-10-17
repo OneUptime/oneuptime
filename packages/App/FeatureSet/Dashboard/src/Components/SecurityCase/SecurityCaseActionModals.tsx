@@ -217,7 +217,7 @@ export const DeclareIncidentFromCaseModal: FunctionComponent<
   return (
     <BasicFormModal<JSONObject>
       title="Declare Incident"
-      description="Open a OneUptime incident for this case. The incident links back to the case, and the case to the incident, so on-call, status pages and the postmortem pick up from here."
+      description="Declare an incident linked to this case, so on-call, status pages and the postmortem take it from here."
       submitButtonText="Declare Incident"
       isLoading={isLoading}
       error={error}

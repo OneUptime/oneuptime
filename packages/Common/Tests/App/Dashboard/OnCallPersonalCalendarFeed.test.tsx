@@ -808,7 +808,7 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
         "confirm-modal-description",
       );
       expect(description).toHaveTextContent(
-        "For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working",
+        "stop getting shifts and show an empty calendar",
       );
       expect(description).not.toHaveTextContent("keeps working for 30 days");
       // Nothing is posted until the reader confirms.

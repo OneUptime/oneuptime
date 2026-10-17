@@ -146,11 +146,11 @@ export const LABEL_RULE_LABELS_DESCRIPTION: string = translationKey(
 
 // The same, on a rule that can inherit its labels instead.
 export const LABEL_RULE_INHERITING_LABELS_DESCRIPTION: string = translationKey(
-  "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.",
+  "When this rule matches, these labels are attached. Leave it empty if the rule only inherits labels.",
 );
 
 export const OWNER_RULE_INHERITING_OWNERS_DESCRIPTION: string = translationKey(
-  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.",
+  "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.",
 );
 
 export const LABEL_RULE_NAME_DESCRIPTION: string = translationKey(
@@ -175,7 +175,7 @@ export const RULE_ENABLED_DESCRIPTION: string = translationKey(
 );
 
 export const OWNER_RULE_NOTIFY_OWNERS_DESCRIPTION: string = translationKey(
-  "Notify owners when they are added by this rule. Disable to add silently.",
+  "Tell people when this rule makes them owners.",
 );
 
 /*

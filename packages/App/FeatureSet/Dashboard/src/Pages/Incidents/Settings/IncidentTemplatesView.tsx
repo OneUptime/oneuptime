@@ -170,7 +170,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Initial Incident State",
             stepId: "incident-details",
             description:
-              "Incidents declared from this template start in this state. Leave it empty for the usual starting state. An incident that starts acknowledged or resolved pages no one.",
+              "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.",
             fieldType: FormFieldSchemaType.Dropdown,
             // In the same order, with the same colours, as on create.
             dropdownModal: {
@@ -409,7 +409,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Change Monitor Status to",
             description:
-              "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.",
+              "The status the incident's monitors change to, including monitors picked when it is declared.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: MonitorStatus,

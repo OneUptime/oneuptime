@@ -224,6 +224,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
         {
           field: { alertTitlePattern: true },
           title: "Alert Title",
+          description: "Leave empty to match any title.",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:

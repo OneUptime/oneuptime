@@ -467,7 +467,7 @@ describe("the Connected MCP Clients table", () => {
       expect(confirmation.title).toBe("Disconnect MCP Client");
       expect(confirmation.submitButtonText).toBe("Disconnect");
       expect(confirmation.description).toBe(
-        'Disconnect "Claude"? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.',
+        'Disconnect "Claude"? It is signed out at once and must connect again to work here. Nothing it created is deleted.',
       );
 
       /*
@@ -487,7 +487,7 @@ describe("the Connected MCP Clients table", () => {
         await tableProps().getDeleteConfirmation!(BARE);
 
       expect(confirmation.description).toBe(
-        "Disconnect this MCP client? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.",
+        "Disconnect this MCP client? It is signed out at once and must connect again to work here. Nothing it created is deleted.",
       );
     });
 

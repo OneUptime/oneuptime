@@ -374,7 +374,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             description:
-              "If you have multiple phone numbers, add them here. These numbers will be used to send SMS and make calls if the country code matches instead of primary phone number. If the country code does not match, then primary phone number will be used.",
+              "Numbers to use instead of the primary one when they match the recipient's country code.",
             placeholder: "+441234567890, +461234567890",
             validation: {
               minLength: 2,

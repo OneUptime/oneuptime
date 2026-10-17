@@ -1123,10 +1123,7 @@ describe("Network Map card texts match the children endpoint", () => {
       ),
     ).toBe("degraded");
 
-    expect(SITE.siteCards).toContain("Devices span every site below");
-    expect(SITE.siteCards).toContain(
-      "a degraded one answers but has a port down",
-    );
+    expect(SITE.siteCards).toContain("Devices span every site below.");
   });
 
   test("uptime is 30 days and 'today' is the last 24 hours, maintenance left out", () => {

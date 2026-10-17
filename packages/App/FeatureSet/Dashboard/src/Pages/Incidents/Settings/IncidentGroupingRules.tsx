@@ -452,7 +452,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             required: false,
             spanFullRow: true,
             description:
-              "Automatically assign users to specific roles when episodes are created with this rule. These role assignments will be applied to all new episodes that match this grouping rule.",
+              "People to assign to roles on every new episode this rule creates.",
             getCustomElement: (
               values: FormValues<IncidentGroupingRule>,
               props: CustomElementProps,
@@ -579,7 +579,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
-              "When enabled, incidents from different monitors will be grouped into separate episodes. When disabled, incidents from any monitor can be grouped together.",
+              "Incidents from different monitors go into separate episodes.",
           },
           {
             field: {
@@ -590,7 +590,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
-              "When enabled, incidents with different severities will be grouped into separate episodes. When disabled, incidents of any severity can be grouped together.",
+              "Incidents with different severities go into separate episodes.",
           },
           {
             field: {
@@ -601,7 +601,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
-              "When enabled, incidents with different titles will be grouped into separate episodes. When disabled, incidents with any title can be grouped together.",
+              "Incidents with different titles go into separate episodes.",
           },
           {
             field: {
@@ -612,7 +612,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
-              "When enabled, incidents with different sets of labels will be grouped into separate episodes (exact set match). When disabled, incident labels are ignored for grouping.",
+              "Incidents with different sets of labels go into separate episodes.",
           },
           {
             field: {
@@ -623,7 +623,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
-              "When enabled, incidents whose monitors have different sets of labels will be grouped into separate episodes (exact set match). When disabled, monitor labels are ignored for grouping.",
+              "Incidents whose monitors have different sets of labels go into separate episodes.",
           },
           // Which incidents - drawn as one conditions builder
           {
@@ -697,6 +697,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
               incidentTitlePattern: true,
             },
             title: "Incident Title",
+            description: "Leave empty to match any title.",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:

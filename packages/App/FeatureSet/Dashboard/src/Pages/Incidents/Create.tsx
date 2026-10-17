@@ -1666,7 +1666,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Private Incident",
                   stepId: "incident-details",
                   description:
-                    "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.",
+                    "Only the incident's owners, project admins and project owners can see it. It never shows on status pages and takes no public notes.",
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: false,
                   required: false,

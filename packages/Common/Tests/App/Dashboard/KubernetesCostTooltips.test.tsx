@@ -365,7 +365,7 @@ describe("Right-Sizing card", () => {
 
     expect(
       screen.getByText(
-        "Recommended CPU and memory requests per container, derived from observed demand: the 95th percentile of hourly CPU usage (95% of hourly readings were lower) and the peak memory working set, each with 25% headroom.",
+        "Recommended CPU and memory requests per container: the 95th percentile of hourly CPU usage (95% of hourly readings were lower) and the peak memory, each with 25% headroom.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(new RegExp("\\bP95\\b"))).not.toBeInTheDocument();

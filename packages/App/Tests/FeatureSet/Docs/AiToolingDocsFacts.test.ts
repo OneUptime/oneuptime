@@ -807,7 +807,7 @@ describe("the AI Agent Circuit Breakers page", () => {
     expect(variables).toContain('title: "Content",');
     expect(variables).toContain('title: "Secret",');
     expect(flat(variables)).toContain(
-      "Keep this variable's content out of workflow run logs - every run replaces it with [REDACTED]",
+      "Replace this value with [REDACTED] in future workflow run logs.",
     );
     expect(source("stepTrace")).toContain(
       'const TRACE_REDACTED_MARKER: string = "[REDACTED]";',
