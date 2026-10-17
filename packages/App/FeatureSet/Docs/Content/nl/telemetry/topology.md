@@ -77,7 +77,7 @@ Klik op een pijl voor het aantal verzoeken, het foutpercentage en de gemiddelde 
 
 **Infrastructuur** toont waar uw services draaien: clusters, hosts, pods, containers en de andere resources die gegevens sturen. Replica's van één workload zijn gegroepeerd tot één item, en u kunt alles openen om erin te kijken.
 
-- **Blader er op uw manier door.** Toon haar als **List** of als **Map**, van uw hele infrastructuur tot één pod. De aantallen erboven zeggen hoeveel resources en workloads ze tekent, hoeveel services ze kan plaatsen en hoeveel stille resources ze weglaat.
+- **Blader er op uw manier door.** Toon haar als **Lijst** of als **Map**, van uw hele infrastructuur tot één pod. De aantallen erboven zeggen hoeveel resources en workloads ze tekent, hoeveel services ze kan plaatsen en hoeveel stille resources ze weglaat.
 - **Zoek een resource.** Zoek er op naam naar, en klik op **View details** om de pagina ervan te openen.
 - **Wissel tussen weergaven.** Een service die bij een resource staat, opent op de **Service Map**, en de resources waarop een service draait, openen op **Infrastructuur**.
 

@@ -63,6 +63,8 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The li
 
 The list shows **Scheduled Maintenance Number**, **Title**, **Current State**, **Resources Affected**, **Shown on Status Page**, **Starts At**, **Duration**, **Ends At**, **Labels** and **Owners**. Select events to act on several at once: **Change State**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** or **Delete**.
 
+**List** and **Calendar**, at the right end of the list's filter bar, show the same events as a table or on a month, a week or a day. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar).
+
 ## What an event affects
 
 While an event is in progress, OneUptime treats the outage it plans as expected:

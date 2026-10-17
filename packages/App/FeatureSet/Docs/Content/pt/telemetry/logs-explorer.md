@@ -111,7 +111,7 @@ As visualizações salvas pertencem ao projeto, então todos nele veem a mesma l
 
 Mude a lista para **Analytics** para contar registros em vez de lê-los. Escolha uma série temporal, uma lista dos principais ou uma tabela; conte cada registro, ou os valores únicos de um campo; e agrupe por gravidade, serviço, traço, span ou qualquer atributo, e depois por um segundo campo. Uma lista dos principais ou uma tabela mostra os 5, 10, 25 ou 50 primeiros grupos.
 
-Clique em **List** para voltar às próprias linhas.
+Clique em **Lista** para voltar às próprias linhas.
 
 ## Abrir traços e métricas relacionados
 

@@ -213,11 +213,13 @@ Under **Fler inställningar** på **Åtkomst** begränsar sektionen **IP-tillåt
 
 ## Den inbäddbara brickan och RSS-flödet
 
-Två sätt att visa status någon annanstans än på själva sidan.
+Tre sätt att visa status någon annanstans än på själva sidan.
 
 **Inbäddad statusbricka.** Under **Statussidor → din sida → Avancerad → Inbäddad status** slår du på **Aktivera inbäddad statusbricka** (`enableEmbeddedOverallStatus`, av som standard) och klickar sedan på **Generera om token** på kortet **Säkerhetstoken** för att ge brickan dess token (`embeddedOverallStatusToken`). Brickan levereras från `/api/status-page/badge/<status-page-id>?token=<token>`, och skärmen visar den i **Märkesförhandsgranskning** med kodsnuttar att kopiera, så att du kan lägga in den aktuella övergripande statusen i din dokumentation, i sidfoten i din app eller på en marknadsföringssida.
 
 **RSS-flöde.** Varje statussida levererar `/rss`: ett flöde med titeln "{sidtitel} Updates", med den **Sidtitel** som anges under **Varumärke**, eller sidans namn om den inte har någon, och vars poster börjar med `Incident: `, `Announcement: ` och `Scheduled Maintenance: `. Användbart för den som hellre hämtar dina uppdateringar till en flödesläsare eller en chattbot än prenumererar via e-post.
+
+**Underhållskalender.** Varje statussida levererar också `/maintenance.ics`: det schemalagda underhåll den visar, som en kalender som Google Kalender, Apple Kalender eller Outlook kan prenumerera på. Besökare lägger till den med **Prenumerera på kalender** på sidans sida **Planerade händelser**, och en enskild händelse med **Lägg till i kalender** på händelsens egen sida. En privat sidas kalender är tom, eftersom en kalenderapp inte kan logga in. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
 
 Om du hellre hämtar data själv bygger statussidan på offentliga lässlutpunkter för översikten, incidenterna, de schemalagda underhållshändelserna, meddelandena och episoderna: se [Offentligt API](/docs/status-pages/public-api).
 

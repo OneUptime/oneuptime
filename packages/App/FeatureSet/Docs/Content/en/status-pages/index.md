@@ -213,11 +213,13 @@ Under **More settings** on **Access**, the **IP Allowlist** section (the `ipWhit
 
 ## The embeddable badge and the RSS feed
 
-Two ways to surface status somewhere other than the page itself.
+Three ways to surface status somewhere other than the page itself.
 
 **Embedded status badge.** On **Status Pages → your page → Advanced → Embedded Status**, turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default), then click **Regenerate Token** on the **Security Token** card to give the badge its token (`embeddedOverallStatusToken`). The badge is served from `/api/status-page/badge/<status-page-id>?token=<token>`, and the screen shows it under **Badge Preview** with snippets to copy, so you can drop the current overall status into your docs, your app's footer or a marketing page.
 
 **RSS feed.** Every status page serves `/rss` — a feed titled "{page title} Updates", with the page's **Page Title** from **Branding**, or its name when it has none, and whose items are prefixed `Incident: `, `Announcement: ` and `Scheduled Maintenance: `. Handy for people who would rather pipe your updates into a reader or a chat bot than subscribe by email.
+
+**Maintenance calendar.** Every status page also serves `/maintenance.ics`: the scheduled maintenance it shows, as a calendar that Google Calendar, Apple Calendar or Outlook can subscribe to. Visitors add it with **Subscribe to calendar** on the page's **Scheduled Events** page, and a single event with **Add to calendar** on the event's own page. A private page's calendar is empty, since a calendar app cannot sign in. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar#a-status-pages-calendar).
 
 If you'd rather pull the data yourself, the status page is backed by public read endpoints for the overview, incidents, scheduled maintenance events, announcements and episodes — see [Public API](/docs/status-pages/public-api).
 

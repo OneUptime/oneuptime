@@ -213,11 +213,13 @@ Onder **Meer instellingen** van **Toegang** beperkt de sectie **IP-toelatingslij
 
 ## De insluitbare badge en de RSS-feed
 
-Twee manieren om de status ergens anders te tonen dan op de pagina zelf.
+Drie manieren om de status ergens anders te tonen dan op de pagina zelf.
 
 **Ingesloten statusbadge.** Zet onder **Statuspagina's → uw pagina → Geavanceerd → Ingesloten status** de optie **Ingesloten statusbadge inschakelen** aan (`enableEmbeddedOverallStatus`, standaard uit) en klik daarna op **Token opnieuw genereren** in de kaart **Beveiligingstoken** om de badge zijn token te geven (`embeddedOverallStatusToken`). De badge wordt geserveerd vanaf `/api/status-page/badge/<status-page-id>?token=<token>`, en het scherm toont hem in **Badge-voorbeeld** met fragmenten om te kopiëren, zodat u de huidige algemene status in uw documentatie, de voettekst van uw app of een marketingpagina kunt zetten.
 
 **RSS-feed.** Elke statuspagina serveert `/rss`: een feed met de titel "{paginatitel} Updates", met de **Paginatitel** die onder **Huisstijl** is ingesteld, of de naam van de pagina als ze er geen heeft, en waarvan de items beginnen met `Incident: `, `Announcement: ` en `Scheduled Maintenance: `. Handig voor wie uw updates liever in een feedlezer of een chatbot binnenhaalt dan zich per e-mail te abonneren.
+
+**Onderhoudsagenda.** Elke statuspagina serveert ook `/maintenance.ics`: het geplande onderhoud dat ze toont, als een agenda waarop Google Agenda, Apple Agenda of Outlook zich kan abonneren. Bezoekers voegen hem toe met **Abonneren op agenda** op de pagina **Geplande gebeurtenissen**, en één gebeurtenis met **Toevoegen aan agenda** op de pagina van die gebeurtenis. De agenda van een privépagina is leeg, omdat een agenda-app niet kan inloggen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#de-agenda-van-een-statuspagina).
 
 Als u de gegevens liever zelf ophaalt: de statuspagina steunt op openbare lees-endpoints voor het overzicht, de incidenten, de geplande onderhoudsgebeurtenissen, de aankondigingen en de episoden; zie [Publieke API](/docs/status-pages/public-api).
 

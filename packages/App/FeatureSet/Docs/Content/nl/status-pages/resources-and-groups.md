@@ -139,7 +139,7 @@ Klik op **Create Status Page Group**. De groep verschijnt in de navigator, klaar
 
 De twee velden zijn **Groepsnaam** (`name`) en **Parent Group** (`parentStatusPageGroupId`). De twee ingeklapte secties bevatten de rest:
 
-- **Indeling**: de ingeklapte kop zegt **List** of **Grid**. Ze bevat **Weergavemodus** en de assen van een raster (zie [Lijstindeling of rasterindeling](#lijstindeling-of-rasterindeling)), en ze klapt bij een rastergroep vanzelf open.
+- **Indeling**: de ingeklapte kop zegt **Lijst** of **Grid**. Ze bevat **Weergavemodus** en de assen van een raster (zie [Lijstindeling of rasterindeling](#lijstindeling-of-rasterindeling)), en ze klapt bij een rastergroep vanzelf open.
 - **Meer velden**: de exemplaren op groepsniveau van de resource-opties:
   - **Groepsbeschrijving** (`description`): optionele markdown, onder de kop getoond. Een afbeelding erin wordt aan elke bezoeker getoond.
   - **Standaard uitvouwen op statuspagina** (`isExpandedByDefault`): standaard aan; bepaalt of de sectie voor bezoekers open of ingeklapt begint.
@@ -171,7 +171,7 @@ De sectie **Indeling** van het groepsformulier stelt de **Weergavemodus** (`view
 
 | Als u… wilt | Kies |
 | --------------- | ---- |
-| Een eenvoudige verticale lijst van services wilt tonen, één per rij | **List** (de standaard) |
+| Een eenvoudige verticale lijst van services wilt tonen, één per rij | **Lijst** (de standaard) |
 | Dezelfde service in meerdere regio's of tenants als matrix wilt tonen | **Grid** |
 
 Kies **Grid** en er verschijnen nog vier velden:

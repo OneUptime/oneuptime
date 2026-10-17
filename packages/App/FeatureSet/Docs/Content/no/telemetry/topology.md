@@ -77,7 +77,7 @@ Klikk på en pil for å se forespørselsraten, feilraten og gjennomsnittlig vent
 
 **Infrastruktur** viser hvor tjenestene dine kjører: klynger, verter, poder, containere og de andre ressursene som sender data. Replikaer av samme arbeidslast samles i én oppføring, og du kan åpne hva som helst for å se inni.
 
-- **Bla gjennom den på din måte.** Vis den som **List** eller **Map**, fra hele infrastrukturen ned til én pod. Tallene over den sier hvor mange ressurser og arbeidslaster den tegner, hvor mange tjenester den kan plassere, og hvor mange stille ressurser den utelater.
+- **Bla gjennom den på din måte.** Vis den som **Liste** eller **Map**, fra hele infrastrukturen ned til én pod. Tallene over den sier hvor mange ressurser og arbeidslaster den tegner, hvor mange tjenester den kan plassere, og hvor mange stille ressurser den utelater.
 - **Finn en ressurs.** Søk etter den med navn, og klikk på **View details** for å åpne siden dens.
 - **Bytt mellom visninger.** En tjeneste som står på en ressurs, åpnes på **Service Map**, og ressursene en tjeneste kjører på, åpnes på **Infrastruktur**.
 

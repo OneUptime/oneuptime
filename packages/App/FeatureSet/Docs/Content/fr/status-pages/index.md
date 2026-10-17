@@ -213,11 +213,13 @@ Sous **Plus de paramètres** sur **Accès**, la section **Liste d'autorisation I
 
 ## Le badge intégrable et le flux RSS
 
-Deux façons d'afficher le statut ailleurs que sur la page elle-même.
+Trois façons d'afficher le statut ailleurs que sur la page elle-même.
 
 **Badge de statut intégré.** Sur **Pages de statut → votre page → Avancé → Statut intégré**, activez **Activer le badge de statut intégré** (`enableEmbeddedOverallStatus`, désactivé par défaut), puis cliquez sur **Regénérer le jeton** sur la carte **Jeton de sécurité** pour donner au badge son jeton (`embeddedOverallStatusToken`). Le badge est servi depuis `/api/status-page/badge/<status-page-id>?token=<token>`, et l'écran l'affiche sous **Aperçu du badge** avec des extraits à copier, pour que vous puissiez placer le statut global actuel dans votre documentation, le pied de page de votre application ou une page marketing.
 
 **Flux RSS.** Chaque page de statut sert `/rss` — un flux intitulé « {titre de la page} Updates », avec le **Titre de la page** défini dans **Image de marque**, ou son nom si elle n'en a pas, et dont les éléments commencent par `Incident: `, `Announcement: ` et `Scheduled Maintenance: `. Pratique pour ceux qui préfèrent faire passer vos mises à jour par un lecteur ou un chatbot plutôt que s'abonner par e-mail.
+
+**Calendrier de maintenance.** Chaque page de statut sert aussi `/maintenance.ics` : la maintenance planifiée qu'elle affiche, sous forme d'un calendrier auquel Google Agenda, Apple Calendrier ou Outlook peuvent s'abonner. Les visiteurs l'ajoutent avec **S'abonner au calendrier** sur la page **Événements planifiés**, et un seul événement avec **Ajouter au calendrier** sur la page de cet événement. Le calendrier d'une page privée est vide, car une application de calendrier ne peut pas se connecter. Voir [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#le-calendrier-dune-page-de-statut).
 
 Si vous préférez récupérer les données vous-même, la page de statut s'appuie sur des points de terminaison publics en lecture pour la vue d'ensemble, les incidents, les événements de maintenance planifiée, les annonces et les épisodes — voir [API publique](/docs/status-pages/public-api).
 

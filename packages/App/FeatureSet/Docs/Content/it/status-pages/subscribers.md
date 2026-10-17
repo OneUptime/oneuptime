@@ -47,6 +47,8 @@ Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, 
 
 **Un interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** è attivo *e* almeno un canale è attivo. Se attivate **E-mail** ma lasciate disattivato **Mostra pagina iscritti**, i visitatori non hanno modo di raggiungere il modulo.
 
+**Un calendario, invece.** I visitatori che vogliono solo la vostra manutenzione pianificata nel proprio calendario non hanno bisogno di iscriversi: **Iscriviti al calendario** nella pagina **Eventi pianificati** la aggiunge a Google Calendar, Calendario Apple o Outlook, e il calendario si aggiorna da solo. Non invia nulla e non dipende dai canali qui sopra, e una pagina privata non lo offre. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#il-calendario-di-una-pagina-di-stato).
+
 ## Disattivare tutte le notifiche
 
 La prima scheda di **Impostazioni iscritti**, **Notifiche**, contiene **Invia notifiche agli iscritti** (`sendSubscriberNotifications`), attivo per impostazione predefinita, che si salva appena lo cambiate. Se è disattivato, la pagina di stato non invia nulla ai suoi iscritti: nessuna notifica di incidenti, episodi, manutenzione programmata o annunci, nessuna nota né post-mortem, e nessun report via email, qualunque cosa dicano i suoi canali e tipi di evento. I suoi iscritti vengono mantenuti, e i visitatori possono ancora iscriversi finché la pagina **Iscriviti** e un canale sono attivi; un nuovo iscritto email riceve comunque l'email che conferma l'iscrizione. Nulla viene trattenuto per essere inviato più tardi: quando lo riattivate, la pagina avvisa i suoi iscritti di ciò che succede da quel momento in poi.

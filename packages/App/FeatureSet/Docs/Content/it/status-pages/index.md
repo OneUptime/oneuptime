@@ -213,11 +213,13 @@ In **Altre impostazioni** di **Accesso**, la sezione **Lista IP consentiti** (la
 
 ## Il badge incorporabile e il feed RSS
 
-Due modi per mostrare lo stato altrove rispetto alla pagina stessa.
+Tre modi per mostrare lo stato altrove rispetto alla pagina stessa.
 
 **Badge di stato incorporato.** In **Pagine di stato → la vostra pagina → Avanzato → Stato incorporato**, attivate **Abilita badge di stato incorporato** (`enableEmbeddedOverallStatus`, disattivato per impostazione predefinita), poi fate clic su **Rigenera token** nella scheda **Token di sicurezza** per dare al badge il suo token (`embeddedOverallStatusToken`). Il badge è servito da `/api/status-page/badge/<status-page-id>?token=<token>`, e la schermata lo mostra in **Anteprima del badge** con frammenti da copiare, così potete mettere lo stato generale attuale nella vostra documentazione, nel piè di pagina della vostra app o in una pagina di marketing.
 
 **Feed RSS.** Ogni pagina di stato serve `/rss`: un feed intitolato "{titolo della pagina} Updates", con il **Titolo della pagina** impostato in **Branding**, o il suo nome se non ne ha uno, e le cui voci iniziano con `Incident: `, `Announcement: ` e `Scheduled Maintenance: `. Utile per chi preferisce portare i vostri aggiornamenti in un lettore o in un chatbot invece di iscriversi via email.
+
+**Calendario della manutenzione.** Ogni pagina di stato serve anche `/maintenance.ics`: la manutenzione programmata che mostra, come un calendario a cui Google Calendar, Calendario Apple o Outlook possono iscriversi. I visitatori lo aggiungono con **Iscriviti al calendario** nella pagina **Eventi pianificati**, e un singolo evento con **Aggiungi al calendario** nella pagina dell'evento stesso. Il calendario di una pagina privata è vuoto, perché un'app di calendario non può accedere. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#il-calendario-di-una-pagina-di-stato).
 
 Se preferite recuperare i dati voi stessi, la pagina di stato si basa su endpoint pubblici di lettura per la panoramica, gli incidenti, gli eventi di manutenzione programmata, gli annunci e gli episodi: vedete [API pubblica](/docs/status-pages/public-api).
 

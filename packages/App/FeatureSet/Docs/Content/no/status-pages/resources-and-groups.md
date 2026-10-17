@@ -139,7 +139,7 @@ Klikk på **Create Status Page Group**. Gruppen vises i navigatoren, klar for mo
 
 De to feltene er **Gruppenavn** (`name`) og **Parent Group** (`parentStatusPageGroupId`). De to sammenslåtte seksjonene inneholder resten:
 
-- **Oppsett**: den sammenslåtte overskriften sier **List** eller **Grid**. Den inneholder **Visningsmodus** og aksene til et rutenett (se [Listeoppsett eller rutenettoppsett](#listeoppsett-eller-rutenettoppsett)), og den åpner seg selv på en rutenettgruppe.
+- **Oppsett**: den sammenslåtte overskriften sier **Liste** eller **Grid**. Den inneholder **Visningsmodus** og aksene til et rutenett (se [Listeoppsett eller rutenettoppsett](#listeoppsett-eller-rutenettoppsett)), og den åpner seg selv på en rutenettgruppe.
 - **Flere felt**: gruppenivåets utgaver av ressursalternativene:
   - **Gruppebeskrivelse** (`description`): valgfri markdown, vist under overskriften. Et bilde i den vises til alle besøkende.
   - **Utvid på statusside som standard** (`isExpandedByDefault`): på som standard; avgjør om seksjonen starter åpen eller sammenslått for besøkende.
@@ -171,7 +171,7 @@ Seksjonen **Oppsett** i gruppeskjemaet angir gruppens **Visningsmodus** (`viewMo
 
 | Hvis du vil… | Velg |
 | --------------- | ---- |
-| Vise en enkel loddrett liste over tjenester, én per rad | **List** (standard) |
+| Vise en enkel loddrett liste over tjenester, én per rad | **Liste** (standard) |
 | Vise den samme tjenesten i flere regioner eller leietakere som en matrise | **Grid** |
 
 Velg **Grid**, så vises fire felt til:
