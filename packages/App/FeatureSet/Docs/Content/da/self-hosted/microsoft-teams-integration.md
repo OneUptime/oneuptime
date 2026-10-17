@@ -218,7 +218,7 @@ App-registreringens omdirigeringer til `/api/microsoft-teams/auth` og `/api/micr
 ### Udgiv bot-endpointet fra en privat udrulning
 
 ```mermaid title="Udgiv bot-endpointet fra en privat udrulning"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Offentlig gateway"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime-ingress"]
     Users["Medarbejdere på VPN"] --> ING

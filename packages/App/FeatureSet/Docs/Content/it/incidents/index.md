@@ -31,17 +31,19 @@ Potete dichiarare un incidente a mano alle 3 del mattino, oppure lasciare che un
 flowchart TB
     subgraph ways["Cinque vie d'accesso"]
         direction LR
-        wizard["Procedura guidata"]
+        wizard["Procedura<br/>guidata"]
         template["Modello"]
         monitor["Monitor"]
         api["API"]
         form["Modulo"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Nuovo incidente"]
-    incident --> rules["Vengono eseguite le regole degli incidenti"]
-    rules --> oncall["Le policy di reperibilità avvisano"]
-    rules --> owners["I proprietari vengono informati"]
-    rules --> pages["Le pagine di stato vengono aggiornate"]
+    incident --> rules["Vengono eseguite<br/>le regole<br/>degli incidenti"]
+    rules --> oncall["Le policy di<br/>reperibilità<br/>avvisano"]
+    rules --> owners["I proprietari<br/>vengono<br/>informati"]
+    rules --> pages["Le pagine di<br/>stato vengono<br/>aggiornate"]
     oncall --> feed["Incidente Feed"]
     owners --> feed
     pages --> feed
@@ -105,7 +107,7 @@ Quando viene creato un progetto, OneUptime crea esattamente tre stati dell'incid
 
 ```mermaid title="Gli stati con cui parte ogni nuovo progetto"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: dichiarato
     Identified --> Acknowledged: Riconosci
     Identified --> Resolved: Risolvi

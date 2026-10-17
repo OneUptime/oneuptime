@@ -231,12 +231,12 @@ A state change can notify your status page subscribers, but it goes through seve
 flowchart TB
     change["State change saved"] --> box{"Notify box on?"}
     box -->|No| skipped["Skipped"]
-    box -->|Yes| note{"Public note with it?"}
-    note -->|Yes| carried["The note is the message"]
+    box -->|Yes| note{"Public note<br/>with it?"}
+    note -->|Yes| carried["The note is<br/>the message"]
     note -->|No| queued["Row queued"]
     queued --> gates{"Clears every gate?"}
-    gates -->|No| reason["Skipped, reason recorded"]
-    gates -->|Yes| sent["Subscribers notified"]
+    gates -->|No| reason["Skipped,<br/>reason recorded"]
+    gates -->|Yes| sent["Subscribers<br/>notified"]
 ```
 
 Notification is requested per timeline row by **Notify Status Page Subscribers** (`shouldStatusPageSubscribersBeNotified`), the checkbox on the state-change modal and on the manual timeline form. On the state-change modal it starts off when the incident was declared without notifying subscribers. The same checkbox also decides whether the modal's public note notifies anyone. When it is off, the row is stored with a skipped status and an explanation. When it is on, the row is queued and a background job picks it up — the job runs every minute, so delivery is quick but not instantaneous.

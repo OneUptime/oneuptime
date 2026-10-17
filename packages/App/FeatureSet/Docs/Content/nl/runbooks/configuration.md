@@ -14,24 +14,18 @@ Dit is het naslagwerk voor beheerders en securityreviewers: waar elk soort stap 
 ```mermaid title="Welke stappen waar lopen"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["HTTP-verzoekstappen"]
-        ai["AI-stappen"]
+        onworker["HTTP-verzoekstappen<br/>AI-stappen"]
     end
     subgraph yours["Uw infrastructuur"]
-        direction LR
         runner["Runner"]
-        scripts["JavaScript- en Bash-stappen"]
-        remote["SSH- en Kubernetes-stappen"]
+        onrunner["JavaScript- en<br/>Bash-stappen<br/>SSH- en Kubernetes-stappen"]
     end
     person["Een persoon"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual-stappen en goedkeuringen"| person
-    worker -->|"zet een taak in de wachtrij voor de Runner van de stap"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual-<br/>stappen en<br/>goedkeuringen"| person
+    worker --->|"zet een taak<br/>in de wachtrij<br/>voor de Runner<br/>van de stap"| runner
+    runner --> onrunner
 ```
 
 | Staptype | Loopt op | Hoe |

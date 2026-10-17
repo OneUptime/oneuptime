@@ -21,12 +21,12 @@ flowchart TB
         direction LR
         pve["API Proxmox VE"] --> agent["Агент Proxmox<br/>от OneUptime"]
     end
-    agent -->|"метрики pve по OTLP"| oneuptime["OneUptime"]
-    native["Встроенная отправка<br/>Proxmox VE 9"] -.->|"альтернатива"| oneuptime
+    agent -->|"метрики<br/>pve по OTLP"| oneuptime["OneUptime"]
+    native["Встроенная<br/>отправка<br/>Proxmox VE 9"] -.->|"альтернатива"| oneuptime
     oneuptime -->|"первые данные"| registered["Кластер<br/>зарегистрирован"]
     oneuptime --> monitor["Монитор Proxmox"]
-    monitor -->|"каждую минуту"| criteria{"Критерии выполнены?"}
-    criteria -->|"да"| incident["Инцидент или оповещение"]
+    monitor -->|"каждую минуту"| criteria{"Критерии<br/>выполнены?"}
+    criteria -->|"да"| incident["Инцидент или<br/>оповещение"]
     criteria -->|"нет"| online["Монитор в сети"]
 ```
 

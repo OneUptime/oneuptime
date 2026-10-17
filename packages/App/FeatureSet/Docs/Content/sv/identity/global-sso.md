@@ -73,11 +73,11 @@ Hur en global leverantör beter sig beror på om du ansluter några projekt till
 flowchart TB
     S["Någon loggar in"] --> A{"Projekt anslutna?"}
     A -->|"Nej"| K{"Har ett konto?"}
-    K -->|"Nej"| R["Avvisad: bjud in först"]
-    K -->|"Ja"| E["Inloggad i sina projekt"]
-    A -->|"Ja"| D{"Ny, med registrering<br/>avstängd?"}
+    K -->|"Nej"| R["Avvisad:<br/>bjud in först"]
+    K -->|"Ja"| E["Inloggad i<br/>sina projekt"]
+    A -->|"Ja"| D{"Ny, med<br/>registrering<br/>avstängd?"}
     D -->|"Ja"| R
-    D -->|"Nej"| P["Läggs till i anslutna projekt<br/>som personen inte är med i ännu"]
+    D -->|"Nej"| P["Läggs till i<br/>anslutna projekt<br/>som personen inte<br/>är med i ännu"]
     P --> E
 ```
 

@@ -196,7 +196,7 @@ OAuth is a [browser redirect followed by a server-side token exchange](https://d
 ### Private deployments and callback security
 
 ```mermaid title="Publishing the Slack callbacks from a private deployment"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["Public gateway"]
     GW -->|"/api/slack/* POST only"| ING["OneUptime ingress"]
     Users["Employees on VPN"] --> ING

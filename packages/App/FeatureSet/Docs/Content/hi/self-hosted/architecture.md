@@ -5,14 +5,14 @@
 ```mermaid title="एक सेल्फ-होस्टेड OneUptime इंस्टॉल"
 flowchart TB
     People["लोग और ब्राउज़र"]
-    Senders["टेलीमेट्री भेजने वाले:<br/>OpenTelemetry, Fluent Bit,<br/>syslog, एजेंट"]
-    Targets["जिसकी आप निगरानी करते हैं:<br/>आंतरिक और सार्वजनिक"]
+    Senders["टेलीमेट्री भेजने वाले:<br/>OpenTelemetry,<br/>Fluent Bit,<br/>syslog, एजेंट"]
+    Targets["जिसकी आप निगरानी<br/>करते हैं:<br/>आंतरिक और सार्वजनिक"]
     subgraph Install["आपका नेटवर्क"]
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
-        App["ऐप<br/>डैशबोर्ड, स्टेटस पेज,<br/>API, इनजेस्ट, बैकग्राउंड जॉब"]
-        Probe["प्रोब"]
+        App["ऐप<br/>डैशबोर्ड, स्टेटस पेज,<br/>API, इनजेस्ट,<br/>बैकग्राउंड जॉब"]
         Runner["Runner"]
+        Probe["प्रोब"]
         subgraph Data["डेटा स्टोर"]
             direction LR
             Postgres[("PostgreSQL<br/>कॉन्फ़िगरेशन<br/>और स्थिति")]
@@ -23,12 +23,13 @@ flowchart TB
     People -->|"HTTPS"| Ingress
     Senders -->|"OTLP, HTTPS"| Ingress
     Ingress --> App
-    Probe -->|"काम लेना,<br/>नतीजे भेजना"| App
     Runner -->|"जॉब लेना,<br/>नतीजे भेजना"| App
+    Probe -->|"काम लेना,<br/>नतीजे भेजना"| App
     Probe -->|"HTTP, TCP, ping,<br/>DNS, SNMP"| Targets
     App --> Postgres
     App --> ClickHouse
     App --> Valkey
+    Targets ~~~ Probe
 ```
 
 ## यह क्या दिखाता है

@@ -36,12 +36,14 @@ flowchart TB
         monitor["모니터"]
         api["API"]
         form["양식"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["새 인시던트"]
     incident --> rules["인시던트 규칙 실행"]
     rules --> oncall["온콜 정책이 호출"]
     rules --> owners["소유자에게 알림"]
-    rules --> pages["상태 페이지 업데이트"]
+    rules --> pages["상태 페이지<br/>업데이트"]
     oncall --> feed["인시던트 피드"]
     owners --> feed
     pages --> feed
@@ -105,7 +107,7 @@ flowchart TB
 
 ```mermaid title="모든 새 프로젝트가 처음 갖는 상태"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: 선언
     Identified --> Acknowledged: 인지
     Identified --> Resolved: 해결

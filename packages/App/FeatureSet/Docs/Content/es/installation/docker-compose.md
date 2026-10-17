@@ -15,9 +15,9 @@ Docker Compose ejecuta cada parte de OneUptime como un contenedor en tu servidor
 
 ```mermaid title="El despliegue con Docker Compose"
 flowchart TB
-    Users["Usuarios y agentes"]
-    Proxy["Tu proxy inverso, opcional"]
-    Targets["Sitios que monitorizas"]
+    Users["Usuarios<br/>y agentes"]
+    Proxy["Tu proxy<br/>inverso,<br/>opcional"]
+    Targets["Sitios que<br/>monitorizas"]
     subgraph Server["Tu servidor"]
         Ingress["ingress"]
         App["app"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|resultados| Ingress
     Runner -->|trabajos| Ingress
     Probe -->|comprobaciones| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | Servicio | Imagen | Qué hace |

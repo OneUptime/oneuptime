@@ -52,10 +52,10 @@ A ogni controllo, una sonda:
 flowchart TB
     connect["Connessione al database"] --> probe{"Query di prova OK?"}
     probe -->|"No"| offline["Monitor offline"]
-    probe -->|"Sì"| groups["Esegui ogni gruppo di metriche"]
+    probe -->|"Sì"| groups["Esegui ogni<br/>gruppo di metriche"]
     groups --> group{"Gruppo raccolto?"}
     group -->|"Sì"| metrics["Metriche riportate"]
-    group -->|"No"| issue["Metriche assenti, problema annotato"]
+    group -->|"No"| issue["Metriche assenti,<br/>problema annotato"]
     metrics --> criteria["Criteri valutati"]
     issue --> criteria
 ```

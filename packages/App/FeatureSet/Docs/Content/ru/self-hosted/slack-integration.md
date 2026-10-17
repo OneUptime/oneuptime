@@ -196,7 +196,7 @@ OAuth — это [перенаправление в браузере, за ко�
 ### Частные установки и безопасность обратных вызовов
 
 ```mermaid title="Публикация обратных вызовов Slack из частной установки"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["Публичный шлюз"]
     GW -->|"/api/slack/* только POST"| ING["Ingress OneUptime"]
     Users["Сотрудники в VPN"] --> ING

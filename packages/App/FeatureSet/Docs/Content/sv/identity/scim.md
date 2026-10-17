@@ -18,12 +18,12 @@ Din identitetsleverantör anropar OneUptimes SCIM-slutpunkt, autentiserad med en
 
 ```mermaid title="Vad SCIM ändrar i OneUptime"
 flowchart TB
-    IdP["Din identitetsleverantör"] -->|"SCIM-förfrågningar,<br/>bearer-token"| P["Projektets SCIM-anslutning"]
-    IdP -->|"SCIM-förfrågningar,<br/>bearer-token"| S["Statussidans SCIM-anslutning"]
+    IdP["Din identitetsleverantör"] -->|"SCIM-förfrågningar,<br/>bearer-token"| P["Projektets<br/>SCIM-anslutning"]
+    IdP -->|"SCIM-förfrågningar,<br/>bearer-token"| S["Statussidans<br/>SCIM-anslutning"]
     P --> Q{"Push-grupper påslagna?"}
-    Q -->|"Nej"| T["Användare går med i och lämnar<br/>standardteamen"]
-    Q -->|"Ja"| G["Grupper blir team,<br/>medlemskapet följer dem"]
-    S --> U["Privata användare läggs till<br/>och tas bort"]
+    Q -->|"Nej"| T["Användare går<br/>med i och lämnar<br/>standardteamen"]
+    Q -->|"Ja"| G["Grupper blir team,<br/>medlemskapet<br/>följer dem"]
+    S --> U["Privata användare<br/>läggs till<br/>och tas bort"]
 ```
 
 SCIM-integrationen ger följande fördelar:

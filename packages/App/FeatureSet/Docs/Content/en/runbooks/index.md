@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["What starts a run"]
         direction LR
         rule["Runbook rule"]
-        manual["Run Runbook on an event"]
-        runnow["Run Now on the runbook"]
+        manual["Run Runbook<br/>on an event"]
+        runnow["Run Now on<br/>the runbook"]
     end
-    rule --> execution["Execution: a snapshot of the steps"]
+    rule --> execution["Execution:<br/>a snapshot<br/>of the steps"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker takes the steps in order"]
-    worker -->|"Manual step or approval"| person["Waits for a person"]
-    worker -->|"HTTP and AI steps"| onworker["Runs on the Worker"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner in your infrastructure"]
-    person --> record["Status, output and errors recorded"]
+    execution --> worker["OneUptime<br/>Worker takes the<br/>steps in order"]
+    worker -->|"Manual step<br/>or approval"| person["Waits for<br/>a person"]
+    worker -->|"HTTP and<br/>AI steps"| onworker["Runs on<br/>the Worker"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner in your<br/>infrastructure"]
+    person --> record["Status, output<br/>and errors<br/>recorded"]
     onworker --> record
     runner --> record
-    record --> history["The event's Runbooks page and the runbook's Executions"]
+    record --> history["The event's<br/>Runbooks<br/>page and the<br/>runbook's<br/>Executions"]
 ```
 
 Every run is an **execution**. When it starts, the runbook's steps are copied onto it, and OneUptime works through them in order. A Manual step, or a step that needs approval, pauses the run until someone acts on it.

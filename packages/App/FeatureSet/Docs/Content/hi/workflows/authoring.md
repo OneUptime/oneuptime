@@ -57,7 +57,7 @@
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["कुछ भी जुड़ा नहीं, इसलिए रन खत्म होता है"])
+    check -->|"No"| ends(["कुछ भी जुड़ा नहीं,<br/>इसलिए रन खत्म होता है"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```

@@ -71,13 +71,13 @@ Hvordan en global udbyder opfører sig, afhænger af, om du tilknytter projekter
 
 ```mermaid title="Hvad en global udbyder gør ved login"
 flowchart TB
-    S["Nogen logger ind"] --> A{"Projekter tilknyttet?"}
+    S["Nogen logger ind"] --> A{"Projekter<br/>tilknyttet?"}
     A -->|"Nej"| K{"Har en konto?"}
-    K -->|"Nej"| R["Afvist: invitér først"]
-    K -->|"Ja"| E["Logget ind i sine projekter"]
+    K -->|"Nej"| R["Afvist:<br/>invitér først"]
+    K -->|"Ja"| E["Logget ind i<br/>sine projekter"]
     A -->|"Ja"| D{"Ny, med tilmelding<br/>slået fra?"}
     D -->|"Ja"| R
-    D -->|"Nej"| P["Føjet til tilknyttede projekter,<br/>vedkommende ikke er med i endnu"]
+    D -->|"Nej"| P["Føjet til<br/>tilknyttede<br/>projekter,<br/>vedkommende ikke<br/>er med i endnu"]
     P --> E
 ```
 

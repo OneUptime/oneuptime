@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["Vad som startar en körning"]
         direction LR
         rule["Runbook-regel"]
-        manual["Kör Runbook på en händelse"]
-        runnow["Run Now på runbooket"]
+        manual["Kör Runbook<br/>på en händelse"]
+        runnow["Run Now på<br/>runbooket"]
     end
-    rule --> execution["Körning: en ögonblicksbild av stegen"]
+    rule --> execution["Körning: en<br/>ögonblicksbild<br/>av stegen"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker tar stegen i ordning"]
-    worker -->|"Manual-steg eller godkännande"| person["Väntar på en person"]
-    worker -->|"HTTP- och AI-steg"| onworker["Körs på Workern"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner i din infrastruktur"]
-    person --> record["Status, output och fel registreras"]
+    execution --> worker["OneUptime<br/>Worker tar<br/>stegen i ordning"]
+    worker -->|"Manual-steg<br/>eller godkännande"| person["Väntar på<br/>en person"]
+    worker -->|"HTTP- och<br/>AI-steg"| onworker["Körs på Workern"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner i din<br/>infrastruktur"]
+    person --> record["Status, output och<br/>fel registreras"]
     onworker --> record
     runner --> record
-    record --> history["Händelsens Runbooks-sida och runbookets Körningar"]
+    record --> history["Händelsens<br/>Runbooks-sida<br/>och runbookets<br/>Körningar"]
 ```
 
 Varje gång ett runbook körs skapas en **körning**. När den startar kopieras runbookets steg över till den, och OneUptime går igenom dem i ordning. Ett Manual-steg, eller ett steg som kräver godkännande, pausar körningen tills någon agerar.

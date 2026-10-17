@@ -15,16 +15,16 @@ OneUptime은 프라이빗, 루프백 또는 링크 로컬 범위로 확인되는
 | API, Website, External Status Page, Custom JavaScript Code **모니터** | **프로브** 자체의 환경 | 프라이빗 주소 거부 |
 
 ```mermaid title="세 개의 스위치, 각각 자기 종류의 연결을 담당"
-flowchart TB
+flowchart LR
     subgraph Server["OneUptime 서버"]
         direction TB
-        Webhooks["워크플로와 웹후크"]
-        Outbound["데이터 소스, LLM 공급자,<br/>SMTP 및 기타 연결"]
+        Webhooks["워크플로와<br/>웹후크"]
+        Outbound["데이터 소스,<br/>LLM 공급자,<br/>SMTP 및<br/>기타 연결"]
     end
     subgraph Probe["각 프로브"]
-        Monitors["API, Website,<br/>External Status Page,<br/>Custom JavaScript Code 모니터"]
+        Monitors["API, Website,<br/>External<br/>Status Page,<br/>Custom<br/>JavaScript<br/>Code 모니터"]
     end
-    Private["사용자의 프라이빗 네트워크"]
+    Private["사용자의<br/>프라이빗<br/>네트워크"]
     Webhooks -->|"기본값은 꺼짐"| Private
     Outbound -->|"기본값은 켜짐"| Private
     Monitors -->|"기본값은 꺼짐"| Private

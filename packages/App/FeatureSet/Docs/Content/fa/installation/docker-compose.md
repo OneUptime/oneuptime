@@ -16,8 +16,8 @@ Docker Compose هر بخش از OneUptime را به‌صورت یک کانتین
 ```mermaid title="استقرار با Docker Compose"
 flowchart TB
     Users["کاربران و عامل‌ها"]
-    Proxy["پراکسی معکوس شما، اختیاری"]
-    Targets["سایت‌هایی که پایش می‌کنید"]
+    Proxy["پراکسی معکوس<br/>شما، اختیاری"]
+    Targets["سایت‌هایی که<br/>پایش می‌کنید"]
     subgraph Server["سرور شما"]
         Ingress["ingress"]
         App["app"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|نتیجه‌ها| Ingress
     Runner -->|کارها| Ingress
     Probe -->|بررسی‌ها| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | سرویس | ایمیج | چه می‌کند |

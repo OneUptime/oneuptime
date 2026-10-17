@@ -4,16 +4,16 @@ Une politique d'appels entrants donne à votre équipe un numéro de téléphone
 
 ```mermaid title="D'un appel téléphonique à la personne d'astreinte"
 flowchart TB
-    caller["L'appelant compose le numéro de la politique"] --> twilio["Twilio reçoit l'appel"]
-    twilio --> greeting["OneUptime diffuse le message d'accueil"]
-    greeting --> ring["Faire sonner la personne de la règle suivante"]
+    caller["L'appelant compose le<br/>numéro de la politique"] --> twilio["Twilio reçoit l'appel"]
+    twilio --> greeting["OneUptime diffuse<br/>le message d'accueil"]
+    greeting --> ring["Faire sonner la personne<br/>de la règle suivante"]
     ring --> answered{"Décroché<br/>à temps ?"}
-    answered -->|"Oui"| connected["L'appelant est mis en relation"]
+    answered -->|"Oui"| connected["L'appelant est<br/>mis en relation"]
     answered -->|"Non"| more{"Une autre règle ?"}
     more -->|"Oui"| ring
     more -->|"Non"| repeat{"Répéter la politique ?"}
     repeat -->|"Oui"| ring
-    repeat -->|"Non"| missed["Message en cas de non-réponse,<br/>puis raccrochage"]
+    repeat -->|"Non"| missed["Message en cas<br/>de non-réponse,<br/>puis raccrochage"]
 ```
 
 :::cards

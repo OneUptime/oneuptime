@@ -21,9 +21,9 @@ stateDiagram-v2
     state "キャンセル済み" as Cancelled
     [*] --> Scheduled: 実行を開始
     Scheduled --> Running: Worker が取得
-    Running --> WaitingForManualStep: 手動ステップまたは承認
-    WaitingForManualStep --> Scheduled: 完了、承認、スキップ
-    Running --> Completed: すべてのステップが完了
+    Running --> WaitingForManualStep: 手動ステッ<br/>プまたは承認
+    WaitingForManualStep --> Scheduled: 完了、承認、<br/>スキップ
+    Running --> Completed: すべての<br/>ステップが完了
     Running --> Failed: ステップが失敗
     Scheduled --> Cancelled: 実行をキャンセル
     Running --> Cancelled: 実行をキャンセル

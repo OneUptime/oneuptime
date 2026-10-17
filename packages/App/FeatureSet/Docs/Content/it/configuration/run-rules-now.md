@@ -9,7 +9,7 @@ flowchart TB
     M -->|"No"| K["Lasciata com'è"]
     M -->|"Sì"| H{"Ha già ciò che<br/>la regola aggiunge?"}
     H -->|"Sì"| A["Contata come già applicata"]
-    H -->|"No"| C["Etichette o proprietari aggiunti,<br/>oppure resa privata"]
+    H -->|"No"| C["Etichette o<br/>proprietari aggiunti,<br/>oppure resa privata"]
 ```
 
 ## Quali regole si possono eseguire

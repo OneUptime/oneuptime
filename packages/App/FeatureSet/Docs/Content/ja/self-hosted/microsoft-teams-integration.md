@@ -218,7 +218,7 @@ Microsoft は [セルフホストのボットに公開されたアクセス可�
 ### プライベートなデプロイからボットのエンドポイントを公開する
 
 ```mermaid title="プライベートなデプロイからボットのエンドポイントを公開する"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["公開ゲートウェイ"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime の ingress"]
     Users["VPN 上の従業員"] --> ING

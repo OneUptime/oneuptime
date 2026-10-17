@@ -8,7 +8,7 @@ Envie o e-mail do OneUptime pelo seu próprio servidor de e-mail. Um projeto adi
 
 ```mermaid title="Qual servidor de e-mail envia o quê"
 flowchart TB
-    SP["E-mail de uma página de status"] --> Q{"Configuração SMTP personalizada<br/>escolhida para a página?"}
+    SP["E-mail de uma<br/>página de status"] --> Q{"Configuração SMTP<br/>personalizada<br/>escolhida para a página?"}
     Q -->|"Sim"| P["A configuração SMTP<br/>do projeto"]
     Q -->|"Não"| D["O servidor de e-mail<br/>do OneUptime"]
     E["Todos os outros e-mails<br/>do OneUptime"] --> D

@@ -12,10 +12,10 @@ Supervise un vCenter Server, o un host ESXi independiente, sin instalar nada: in
 
 ```mermaid
 flowchart TB
-    OU["OneUptime"] -->|"recopilar ahora, cada pocos minutos"| P["Su sonda"]
-    P -->|"HTTPS 443, API de vSphere de solo lectura"| VC["vCenter Server o host ESXi"]
-    P -->|"métricas, tal como las envía el agente de VMware"| OU
-    OU --> V["Páginas de VMware, monitores, alertas e IA"]
+    OU["OneUptime"] -->|"recopilar<br/>ahora, cada<br/>pocos minutos"| P["Su sonda"]
+    P -->|"HTTPS 443, API<br/>de vSphere de<br/>solo lectura"| VC["vCenter Server o host ESXi"]
+    P -->|"métricas, tal<br/>como las envía<br/>el agente<br/>de VMware"| OU
+    OU --> V["Páginas de VMware,<br/>monitores, alertas e IA"]
 ```
 
 Cada pocos minutos la sonda inicia sesión en vCenter con la cuenta que guardó, lee el inventario, los contadores de rendimiento y las estadísticas de vSAN, y los envía a OneUptime. Llegan exactamente igual que los del agente de VMware, así que cada página de VMware, cada [monitor de VMware](/docs/monitor/vmware-monitor), cada plantilla de alerta y OneUptime AI los leen de la misma manera. La sonda mantiene su sesión de vCenter entre recopilaciones, para que el registro de eventos de vCenter no se llene de inicios de sesión.

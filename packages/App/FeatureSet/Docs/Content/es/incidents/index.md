@@ -36,13 +36,15 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Formulario"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Nuevo incidente"]
-    incident --> rules["Se ejecutan las reglas de incidentes"]
-    rules --> oncall["Las políticas de guardia avisan"]
-    rules --> owners["Se notifica a los propietarios"]
-    rules --> pages["Se actualizan las páginas de estado"]
-    oncall --> feed["Feed del incidente"]
+    incident --> rules["Se ejecutan<br/>las reglas<br/>de incidentes"]
+    rules --> oncall["Las políticas de<br/>guardia avisan"]
+    rules --> owners["Se notifica a<br/>los propietarios"]
+    rules --> pages["Se actualizan<br/>las páginas<br/>de estado"]
+    oncall --> feed["Feed del<br/>incidente"]
     owners --> feed
     pages --> feed
 ```
@@ -105,7 +107,7 @@ Al crear un proyecto, OneUptime crea exactamente tres estados de incidente, en e
 
 ```mermaid title="Los estados con los que empieza todo proyecto nuevo"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: declarado
     Identified --> Acknowledged: Reconocer
     Identified --> Resolved: Resolver

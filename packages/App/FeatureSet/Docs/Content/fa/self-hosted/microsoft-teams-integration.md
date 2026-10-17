@@ -218,7 +218,7 @@ Microsoft برای [ربات خودمیزبان یک نقطهٔ پایانی HTT
 ### انتشار نقطهٔ پایانی ربات از یک استقرار خصوصی
 
 ```mermaid title="انتشار نقطهٔ پایانی ربات از یک استقرار خصوصی"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["دروازهٔ عمومی"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["ingress در OneUptime"]
     Users["کارکنان روی VPN"] --> ING

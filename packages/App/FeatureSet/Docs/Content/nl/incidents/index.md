@@ -36,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Formulier"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Nieuw incident"]
-    incident --> rules["Incidentregels worden uitgevoerd"]
-    rules --> oncall["Bereikbaarheidsbeleid roept op"]
-    rules --> owners["Eigenaren krijgen een melding"]
-    rules --> pages["Statuspagina's worden bijgewerkt"]
+    incident --> rules["Incidentregels<br/>worden<br/>uitgevoerd"]
+    rules --> oncall["Bereikbaarheidsbeleid<br/>roept op"]
+    rules --> owners["Eigenaren<br/>krijgen<br/>een melding"]
+    rules --> pages["Statuspagina's<br/>worden<br/>bijgewerkt"]
     oncall --> feed["Incidentfeed"]
     owners --> feed
     pages --> feed
@@ -105,7 +107,7 @@ Bij het aanmaken van een project maakt OneUptime precies drie incidentstatussen 
 
 ```mermaid title="De statussen waarmee elk nieuw project begint"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: gemeld
     Identified --> Acknowledged: Bevestigen
     Identified --> Resolved: Oplossen

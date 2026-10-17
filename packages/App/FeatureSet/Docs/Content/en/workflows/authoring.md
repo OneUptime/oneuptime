@@ -57,7 +57,7 @@ Drag from a dot on the bottom of one block down to the dot on the top of the nex
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Nothing connected, so the run ends"])
+    check -->|"No"| ends(["Nothing connected,<br/>so the run ends"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```

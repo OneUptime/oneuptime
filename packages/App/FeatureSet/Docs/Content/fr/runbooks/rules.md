@@ -19,15 +19,15 @@ Les trois pages modifient le même type de règle, filtré sur les règles de ce
 
 ```mermaid title="D'un nouvel incident aux runbooks lancés"
 flowchart TB
-    created["Incident, alerte ou événement créé"] --> labels["Les règles d'étiquettes ajoutent leurs étiquettes"]
-    labels --> rules["Règles de runbook activées de ce produit"]
-    rules --> match{"Les conditions correspondent ?"}
+    created["Incident, alerte<br/>ou événement créé"] --> labels["Les règles<br/>d'étiquettes ajoutent<br/>leurs étiquettes"]
+    labels --> rules["Règles de runbook<br/>activées de ce produit"]
+    rules --> match{"Les conditions<br/>correspondent ?"}
     match -->|"non"| nothing["La règle ne lance rien"]
-    match -->|"oui"| union["Runbooks de toutes les règles correspondantes, chacun une fois"]
-    union --> runnable{"Runbook activé et avec des étapes ?"}
+    match -->|"oui"| union["Runbooks de<br/>toutes les règles<br/>correspondantes,<br/>chacun une fois"]
+    union --> runnable{"Runbook activé et<br/>avec des étapes ?"}
     runnable -->|"non"| skipped["Ce runbook est ignoré"]
-    runnable -->|"oui"| execution["Exécution créée et mise en file"]
-    execution --> attached["Affichée sur la page Runbooks de l'événement"]
+    runnable -->|"oui"| execution["Exécution créée<br/>et mise en file"]
+    execution --> attached["Affichée sur la<br/>page Runbooks<br/>de l'événement"]
 ```
 
 Quand une règle se déclenche, pour chaque runbook qu'elle désigne :

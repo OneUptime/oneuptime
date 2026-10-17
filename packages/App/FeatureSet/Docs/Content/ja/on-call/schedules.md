@@ -27,7 +27,7 @@
 担当者は 1 人ずつ交代し、スケジュールを作成するとすぐに最初の人がオンコールになります。
 
 ```mermaid title="3 人が 1 週間ずつ担当する Layer 1"
-flowchart LR
+flowchart TB
     alice["Alice<br/>1 週目"] -->|"引き継ぎ"| bob["Bob<br/>2 週目"]
     bob -->|"引き継ぎ"| carol["Carol<br/>3 週目"]
     carol -->|"最初の人に戻る"| alice
@@ -52,9 +52,9 @@ flowchart LR
 
 ```mermaid title="オンコール担当者がいる最も上のレイヤーが呼び出す"
 flowchart TB
-    start["レベルがスケジュールを呼び出す"] --> first{"最上位のレイヤーに<br/>オンコール担当者がいる？"}
+    start["レベルが<br/>スケジュールを呼び出す"] --> first{"最上位のレイヤーに<br/>オンコール<br/>担当者がいる？"}
     first -->|"はい"| pageTop["その人を呼び出す"]
-    first -->|"いいえ"| next{"次のレイヤーに<br/>オンコール担当者がいる？"}
+    first -->|"いいえ"| next{"次のレイヤーに<br/>オンコール<br/>担当者がいる？"}
     next -->|"はい"| pageNext["その人を呼び出す"]
     next -->|"いいえ"| gap["誰も呼び出されない<br/>カバレッジの空白"]
 ```

@@ -19,15 +19,15 @@ Le tre pagine modificano lo stesso tipo di regola, filtrato sulle regole di quel
 
 ```mermaid title="Da un nuovo incidente ai runbook avviati"
 flowchart TB
-    created["Incidente, avviso o evento creato"] --> labels["Le regole sulle etichette aggiungono le loro etichette"]
-    labels --> rules["Regole di runbook abilitate di quel prodotto"]
-    rules --> match{"Le condizioni corrispondono?"}
-    match -->|"no"| nothing["La regola non avvia nulla"]
-    match -->|"sì"| union["Runbook di tutte le regole corrispondenti, ciascuno una volta"]
-    union --> runnable{"Runbook attivo e con passaggi?"}
-    runnable -->|"no"| skipped["Quel runbook viene saltato"]
-    runnable -->|"sì"| execution["Esecuzione creata e messa in coda"]
-    execution --> attached["Mostrata nella pagina Runbook dell'evento"]
+    created["Incidente, avviso<br/>o evento creato"] --> labels["Le regole sulle<br/>etichette aggiungono<br/>le loro etichette"]
+    labels --> rules["Regole di<br/>runbook abilitate<br/>di quel prodotto"]
+    rules --> match{"Le condizioni<br/>corrispondono?"}
+    match -->|"no"| nothing["La regola non<br/>avvia nulla"]
+    match -->|"sì"| union["Runbook di tutte le<br/>regole corrispondenti,<br/>ciascuno una volta"]
+    union --> runnable{"Runbook attivo<br/>e con passaggi?"}
+    runnable -->|"no"| skipped["Quel runbook<br/>viene saltato"]
+    runnable -->|"sì"| execution["Esecuzione creata<br/>e messa in coda"]
+    execution --> attached["Mostrata nella pagina<br/>Runbook dell'evento"]
 ```
 
 Quando una regola scatta, per ogni runbook che indica:

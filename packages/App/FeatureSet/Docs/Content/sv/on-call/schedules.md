@@ -27,7 +27,7 @@ När du skapar ett schema på sidan **Jourscheman** frågar formuläret efter de
 Personerna turas om en i taget, och den första har jour så snart schemat har skapats:
 
 ```mermaid title="Layer 1 med tre personer och pass på 1 vecka"
-flowchart LR
+flowchart TB
     alice["Alice<br/>vecka 1"] -->|"överlämning"| bob["Bob<br/>vecka 2"]
     bob -->|"överlämning"| carol["Carol<br/>vecka 3"]
     carol -->|"tillbaka till den första"| alice

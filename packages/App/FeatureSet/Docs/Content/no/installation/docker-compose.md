@@ -16,8 +16,8 @@ Docker Compose kjører hver del av OneUptime som en container på serveren din. 
 ```mermaid title="Installasjonen med Docker Compose"
 flowchart TB
     Users["Brukere og agenter"]
-    Proxy["Din reverse proxy, valgfri"]
-    Targets["Nettsteder du overvåker"]
+    Proxy["Din reverse<br/>proxy, valgfri"]
+    Targets["Nettsteder<br/>du overvåker"]
     subgraph Server["Serveren din"]
         Ingress["ingress"]
         App["app"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|resultater| Ingress
     Runner -->|jobber| Ingress
     Probe -->|sjekker| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | Tjeneste | Image | Hva den gjør |

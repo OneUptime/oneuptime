@@ -15,14 +15,14 @@ Use a form when the people who notice a problem — or who need a change — are
 
 ```mermaid title="From a filled-in form to an incident or a maintenance event"
 flowchart TB
-    submitter["Someone with the link, no account"] --> page["The form's page"]
-    page -->|Submit| checks["Protections and answer checks"]
-    checks --> submission["Submission, kept with the form"]
+    submitter["Someone with the<br/>link, no account"] --> page["The form's page"]
+    page -->|Submit| checks["Protections and<br/>answer checks"]
+    checks --> submission["Submission, kept<br/>with the form"]
     submission --> target{"Each Submission Creates"}
-    target -->|Incident| incident["Incident, hidden from status pages"]
-    target -->|Scheduled Maintenance| event["Maintenance event, hidden unless set"]
-    incident --> response["On-call policies and rules run"]
-    incident --> note["Private note: who sent it, other answers"]
+    target -->|Incident| incident["Incident, hidden<br/>from status pages"]
+    target -->|Scheduled Maintenance| event["Maintenance event,<br/>hidden unless set"]
+    incident --> response["On-call policies<br/>and rules run"]
+    incident --> note["Private note: who<br/>sent it, other answers"]
     event --> note
 ```
 

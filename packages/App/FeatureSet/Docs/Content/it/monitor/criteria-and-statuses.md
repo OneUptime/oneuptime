@@ -15,13 +15,13 @@ Ogni volta che un monitor viene controllato, i suoi criteri giudicano il risulta
 
 ```mermaid title="Come viene giudicato ogni controllo"
 flowchart TB
-    R["Il risultato di<br/>un controllo"] --> C1{"Primo criterio:<br/>i filtri corrispondono?"}
-    C1 -->|"Sì"| A["Quel criterio agisce"]
-    C1 -->|"No"| C2{"Criterio successivo:<br/>i filtri corrispondono?"}
+    R["Il risultato di<br/>un controllo"] --> C1{"Primo criterio:<br/>i filtri<br/>corrispondono?"}
+    C1 -->|"Sì"| A["Quel criterio<br/>agisce"]
+    C1 -->|"No"| C2{"Criterio<br/>successivo:<br/>i filtri<br/>corrispondono?"}
     C2 -->|"Sì"| A
-    C2 -->|"Nessuno corrispondeva"| D["Il monitor passa al suo<br/>stato predefinito"]
-    A --> S["Cambia lo stato"]
-    A --> I["Dichiara un incidente"]
+    C2 -->|"Nessuno<br/>corrispondeva"| D["Il monitor<br/>passa al suo<br/>stato predefinito"]
+    A --> S["Cambia<br/>lo stato"]
+    A --> I["Dichiara un<br/>incidente"]
     A --> L["Crea un avviso"]
 ```
 

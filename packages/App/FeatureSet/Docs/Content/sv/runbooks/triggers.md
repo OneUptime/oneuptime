@@ -15,13 +15,13 @@ Ett runbook kan starta av sig själv: enligt ett schema, eller när ett annat ve
 flowchart TB
     subgraph starts["Vad som startar körningen"]
         direction LR
-        schedule["Schemat: en tidpunkt kommer"]
-        webhook["Webhooken: en POST till dess URL"]
+        schedule["Schemat: en<br/>tidpunkt kommer"]
+        webhook["Webhooken: en<br/>POST till dess URL"]
     end
-    schedule --> checks["Runbooket är påslaget och har steg"]
+    schedule --> checks["Runbooket är<br/>påslaget och har steg"]
     webhook --> checks
-    checks --> execution["Körning, märkt Schedule eller Webhook"]
-    execution --> worker["OneUptime Worker kör stegen"]
+    checks --> execution["Körning, märkt<br/>Schedule eller Webhook"]
+    execution --> worker["OneUptime Worker<br/>kör stegen"]
 ```
 
 En utlösare startar en körning så som **Run Now** gör: körningen går igenom runbookets nuvarande steg och är inte kopplad till någon incident, något larm eller någon planerad underhållshändelse. Varje körning registrerar vad som startade den. Runbookets **Körningar** och **Runbooks → Körningar** visar det under **Utlöst av**, med när en schemalagd körning skulle ske eller adressen som anropade webhooken, och båda listorna kan filtreras på det.

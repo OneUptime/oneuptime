@@ -14,7 +14,7 @@ Los ajustes del proyecto contienen lo que se aplica al proyecto entero: su nombr
 Vaya a **Productos → Ajustes → Ajustes del proyecto**. El menú lateral agrupa las páginas en secciones, y solo **Básico** empieza abierta: haga clic en el título de una sección para abrirla. Una sección se abre sola en cualquier página que contenga.
 
 ```mermaid title="Qué contienen los ajustes del proyecto"
-flowchart TB
+flowchart LR
     settings["Ajustes del proyecto"] --> project["El proyecto: detalles,<br/>etiquetas, importaciones"]
     settings --> connect["Lo que conecta:<br/>chat, telemetría, IA"]
     settings --> access["Quién entra: claves,<br/>dominios, inicio de sesión"]

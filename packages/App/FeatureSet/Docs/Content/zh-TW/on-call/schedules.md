@@ -27,7 +27,7 @@
 人員一次一個輪流待命，排程建立後第一個人立即開始待命：
 
 ```mermaid title="三人各待命 1 週的 Layer 1"
-flowchart LR
+flowchart TB
     alice["Alice<br/>第 1 週"] -->|"交接"| bob["Bob<br/>第 2 週"]
     bob -->|"交接"| carol["Carol<br/>第 3 週"]
     carol -->|"回到第一個人"| alice

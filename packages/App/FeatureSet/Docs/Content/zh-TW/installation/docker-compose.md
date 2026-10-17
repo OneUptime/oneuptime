@@ -16,7 +16,7 @@ Docker Compose 會把 OneUptime 的每個部分當作容器在你的伺服器上
 ```mermaid title="Docker Compose 部署"
 flowchart TB
     Users["使用者與代理程式"]
-    Proxy["你的反向代理（選用）"]
+    Proxy["你的反向代理<br/>（選用）"]
     Targets["你監控的網站"]
     subgraph Server["你的伺服器"]
         Ingress["ingress"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|結果| Ingress
     Runner -->|工作| Ingress
     Probe -->|檢查| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | 服務 | 映像檔 | 作用 |

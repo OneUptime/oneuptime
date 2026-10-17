@@ -11,7 +11,7 @@ Ogni processo di OneUptime che riceve dati registra ogni 30 secondi che sta rice
 - Recupero: finché la coda dei dati in attesa di elaborazione è indietro di più di un minuto, il tempo trascorso dai dati più vecchi che vi attendono ancora.
 
 ```mermaid title="Il tempo che OneUptime lascia fuori"
-flowchart LR
+flowchart TB
     receiving["Ricezione"] -->|"nessuna registrazione per 90 secondi"| down["Nessuna ricezione"]
     down -->|"un processo registra di nuovo"| grace["Riconnessione per 2 minuti"]
     grace --> again["Ricezione"]

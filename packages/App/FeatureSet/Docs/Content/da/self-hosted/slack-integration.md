@@ -196,7 +196,7 @@ OAuth er en [omdirigering i browseren efterfulgt af en tokenudveksling på serve
 ### Private installationer og sikkerhed for callbacks
 
 ```mermaid title="Udgiv Slack-callbacks fra en privat installation"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["Offentlig gateway"]
     GW -->|"/api/slack/* kun POST"| ING["OneUptime-ingress"]
     Users["Medarbejdere på VPN"] --> ING

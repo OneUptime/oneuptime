@@ -71,13 +71,13 @@ Hoe een globale provider zich gedraagt, hangt ervan af of u er projecten aan kop
 
 ```mermaid title="Wat een globale provider bij het aanmelden doet"
 flowchart TB
-    S["Iemand meldt zich aan"] --> A{"Projecten gekoppeld?"}
+    S["Iemand meldt<br/>zich aan"] --> A{"Projecten<br/>gekoppeld?"}
     A -->|"Nee"| K{"Heeft een account?"}
-    K -->|"Nee"| R["Geweigerd: eerst uitnodigen"]
-    K -->|"Ja"| E["Aangemeld in de eigen projecten"]
-    A -->|"Ja"| D{"Nieuw, met registratie<br/>uitgeschakeld?"}
+    K -->|"Nee"| R["Geweigerd:<br/>eerst uitnodigen"]
+    K -->|"Ja"| E["Aangemeld in de<br/>eigen projecten"]
+    A -->|"Ja"| D{"Nieuw, met<br/>registratie<br/>uitgeschakeld?"}
     D -->|"Ja"| R
-    D -->|"Nee"| P["Toegevoegd aan gekoppelde projecten<br/>waar hij nog niet in zit"]
+    D -->|"Nee"| P["Toegevoegd<br/>aan gekoppelde<br/>projecten<br/>waar hij nog<br/>niet in zit"]
     P --> E
 ```
 

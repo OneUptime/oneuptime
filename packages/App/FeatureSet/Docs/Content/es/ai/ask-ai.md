@@ -16,10 +16,10 @@ Preguntar a la IA responde solo con lo que devuelven sus herramientas: ejecuta c
 ```mermaid title="De una pregunta a una respuesta con citas"
 flowchart TB
     Q["Tu pregunta, con<br/>la página en la<br/>que estás"] --> A["Preguntar a la IA"]
-    A -->|"herramientas de lectura"| D["Los datos de tu<br/>proyecto, consultados<br/>en directo"]
+    A -->|"herramientas<br/>de lectura"| D["Los datos de tu<br/>proyecto,<br/>consultados<br/>en directo"]
     D --> R["Una respuesta con<br/>una cita por cada<br/>afirmación"]
     A -->|"una acción"| M{"El modo de<br/>permiso"}
-    M -->|"Ask to act"| C["Una tarjeta de<br/>aprobación: permites<br/>u omites"]
+    M -->|"Ask to act"| C["Una tarjeta de<br/>aprobación:<br/>permites<br/>u omites"]
     M -->|"Auto-run"| X["Se ejecuta, en<br/>tu nombre"]
     C -->|"permitida"| X
 ```

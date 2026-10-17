@@ -30,9 +30,9 @@ OneUptime needs three datastores in production. Each grows with something differ
 
 ```mermaid title="What each datastore grows with"
 flowchart TB
-    Tel["Logs, metrics, traces"] -->|"ingest rate × retention"| CH[("ClickHouse")]
-    State["Monitors, incidents, users"] -->|"entity count and history"| PG[("PostgreSQL")]
-    Work["Queues, cache, sessions"] -->|"queue depth"| VK[("Valkey")]
+    Tel["Logs, metrics,<br/>traces"] -->|"ingest rate<br/>× retention"| CH[("ClickHouse")]
+    State["Monitors,<br/>incidents, users"] -->|"entity count<br/>and history"| PG[("PostgreSQL")]
+    Work["Queues,<br/>cache,<br/>sessions"] -->|"queue depth"| VK[("Valkey")]
 ```
 
 | Datastore      | What it stores                                                                                                     | What drives its size                                                                       |

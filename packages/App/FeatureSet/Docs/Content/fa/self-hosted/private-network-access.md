@@ -15,19 +15,19 @@
 | **مانیتورهای** API، ‏Website، ‏External Status Page و Custom JavaScript Code | محیط خودِ **پراب** | نشانی‌های خصوصی رد می‌شوند |
 
 ```mermaid title="سه کلید، هر کدام برای نوع اتصال خودش"
-flowchart TB
+flowchart LR
     subgraph Server["سرور OneUptime"]
         direction TB
-        Webhooks["گردش‌های کاری و وب‌هوک‌ها"]
-        Outbound["منابع داده، ارائه‌دهندگان LLM،<br/>SMTP و اتصال‌های دیگر"]
+        Webhooks["گردش‌های کاری<br/>و وب‌هوک‌ها"]
+        Outbound["منابع داده،<br/>ارائه‌دهندگان LLM،<br/>SMTP و<br/>اتصال‌های دیگر"]
     end
     subgraph Probe["هر پراب"]
-        Monitors["مانیتورهای API، Website،<br/>External Status Page و<br/>Custom JavaScript Code"]
+        Monitors["مانیتورهای<br/>API، Website،<br/>External<br/>Status Page و<br/>Custom<br/>JavaScript Code"]
     end
     Private["شبکه خصوصی شما"]
-    Webhooks -->|"به‌طور پیش‌فرض خاموش"| Private
-    Outbound -->|"به‌طور پیش‌فرض روشن"| Private
-    Monitors -->|"به‌طور پیش‌فرض خاموش"| Private
+    Webhooks -->|"به‌طور<br/>پیش‌فرض خاموش"| Private
+    Outbound -->|"به‌طور<br/>پیش‌فرض روشن"| Private
+    Monitors -->|"به‌طور<br/>پیش‌فرض خاموش"| Private
 ```
 
 نوع‌های مانیتور شبکه‌بومی مانند Ping، ‏Port، ‏SSL Certificate، ‏DNS، ‏DNSSEC، ‏SNMP / Network Device، ‏SQL Query، ‏Database Health، ‏Synthetic و Network Path حامل‌های خودشان را به کار می‌برند. تنظیم این صفحه حامل‌های HTTPای را اداره می‌کند که محتوای دلخواه پاسخ را به پروژه برمی‌گردانند: مانیتورهای API، ‏Website، ‏External Status Page و Custom JavaScript Code.

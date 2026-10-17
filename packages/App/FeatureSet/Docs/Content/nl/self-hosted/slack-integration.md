@@ -196,7 +196,7 @@ OAuth is een [omleiding in de browser, gevolgd door een tokenuitwisseling op de 
 ### Privé-installaties en beveiliging van callbacks
 
 ```mermaid title="De Slack-callbacks publiceren vanuit een privé-installatie"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["Openbare gateway"]
     GW -->|"/api/slack/* alleen POST"| ING["OneUptime-ingress"]
     Users["Medewerkers via VPN"] --> ING

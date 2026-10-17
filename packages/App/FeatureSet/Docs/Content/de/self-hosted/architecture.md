@@ -4,15 +4,15 @@ Eine selbst gehostete OneUptime-Installation besteht aus einer Handvoll Containe
 
 ```mermaid title="Eine selbst gehostete OneUptime-Installation"
 flowchart TB
-    People["Menschen und Browser"]
-    Senders["Telemetrie-Sender:<br/>OpenTelemetry, Fluent Bit,<br/>Syslog, Agenten"]
-    Targets["Was Sie überwachen:<br/>intern und öffentlich"]
+    People["Menschen<br/>und Browser"]
+    Senders["Telemetrie-Sender:<br/>OpenTelemetry,<br/>Fluent Bit,<br/>Syslog, Agenten"]
+    Targets["Was Sie<br/>überwachen:<br/>intern und<br/>öffentlich"]
     subgraph Install["Ihr Netzwerk"]
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
-        App["App<br/>Dashboards, Statusseiten,<br/>API, Ingest, Hintergrundjobs"]
-        Probe["Probes"]
+        App["App<br/>Dashboards,<br/>Statusseiten,<br/>API, Ingest,<br/>Hintergrundjobs"]
         Runner["Runner"]
+        Probe["Probes"]
         subgraph Data["Datenspeicher"]
             direction LR
             Postgres[("PostgreSQL<br/>Konfiguration<br/>und Zustand")]
@@ -23,12 +23,13 @@ flowchart TB
     People -->|"HTTPS"| Ingress
     Senders -->|"OTLP, HTTPS"| Ingress
     Ingress --> App
-    Probe -->|"Arbeit abholen,<br/>Ergebnisse senden"| App
-    Runner -->|"Jobs übernehmen,<br/>Ergebnisse senden"| App
+    Runner -->|"Jobs übernehmen,<br/>Ergebnisse<br/>senden"| App
+    Probe -->|"Arbeit<br/>abholen,<br/>Ergebnisse<br/>senden"| App
     Probe -->|"HTTP, TCP, Ping,<br/>DNS, SNMP"| Targets
     App --> Postgres
     App --> ClickHouse
     App --> Valkey
+    Targets ~~~ Probe
 ```
 
 ## Was das zeigt

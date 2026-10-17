@@ -13,12 +13,12 @@ flowchart TB
     subgraph saved["Guardadas una vez"]
         direction LR
         global["Variables globales"]
-        local["Variables del flujo de trabajo"]
+        local["Variables del<br/>flujo de trabajo"]
     end
     trigger["Disparador"] -->|"devuelve"| earlier["Bloques anteriores"]
     saved --> settings["Los ajustes del bloque"]
     earlier -->|"devuelven"| settings
-    settings --> block["El bloque se ejecuta con los valores rellenados"]
+    settings --> block["El bloque se ejecuta con<br/>los valores rellenados"]
 ```
 
 Rara vez escribes una referencia. Haz clic en **{ }** al final de un ajuste, o escribe `{{` en él, y elige el valor de una lista. Consulta [Usar valores de bloques anteriores](/docs/workflows/authoring#usar-valores-de-bloques-anteriores).

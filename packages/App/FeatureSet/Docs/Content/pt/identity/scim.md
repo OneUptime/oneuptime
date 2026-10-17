@@ -18,12 +18,12 @@ Seu provedor de identidade chama o endpoint SCIM do OneUptime, autenticado com u
 
 ```mermaid title="O que o SCIM altera no OneUptime"
 flowchart TB
-    IdP["Seu provedor de identidade"] -->|"solicitações SCIM,<br/>token bearer"| P["Conexão SCIM do projeto"]
-    IdP -->|"solicitações SCIM,<br/>token bearer"| S["Conexão SCIM da página de status"]
-    P --> Q{"Grupos de Push ligados?"}
-    Q -->|"Não"| T["Os usuários entram e saem<br/>das equipes padrão"]
-    Q -->|"Sim"| G["Os grupos viram equipes,<br/>a participação os acompanha"]
-    S --> U["Usuários privados adicionados<br/>e excluídos"]
+    IdP["Seu provedor<br/>de identidade"] -->|"solicitações SCIM,<br/>token bearer"| P["Conexão SCIM<br/>do projeto"]
+    IdP -->|"solicitações SCIM,<br/>token bearer"| S["Conexão SCIM da<br/>página de status"]
+    P --> Q{"Grupos de<br/>Push ligados?"}
+    Q -->|"Não"| T["Os usuários<br/>entram e saem<br/>das equipes padrão"]
+    Q -->|"Sim"| G["Os grupos<br/>viram equipes,<br/>a participação<br/>os acompanha"]
+    S --> U["Usuários privados<br/>adicionados<br/>e excluídos"]
 ```
 
 A integração com o SCIM oferece estes benefícios:

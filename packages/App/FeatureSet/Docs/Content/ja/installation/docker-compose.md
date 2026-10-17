@@ -15,8 +15,8 @@ Docker Compose は OneUptime の各部分をサーバー上のコンテナーと
 
 ```mermaid title="Docker Compose によるデプロイ"
 flowchart TB
-    Users["ユーザーとエージェント"]
-    Proxy["独自のリバースプロキシ (任意)"]
+    Users["ユーザーと<br/>エージェント"]
+    Proxy["独自の<br/>リバースプロキシ<br/>(任意)"]
     Targets["監視対象のサイト"]
     subgraph Server["あなたのサーバー"]
         Ingress["ingress"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|結果| Ingress
     Runner -->|ジョブ| Ingress
     Probe -->|チェック| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | サービス | イメージ | 役割 |

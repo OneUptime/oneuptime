@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["چه چیزی اجرا را شروع می‌کند"]
         direction LR
         rule["قاعده رانبوک"]
-        manual["اجرای رانبوک روی یک رویداد"]
-        runnow["Run Now روی رانبوک"]
+        manual["اجرای رانبوک<br/>روی یک رویداد"]
+        runnow["Run Now<br/>روی رانبوک"]
     end
-    rule --> execution["اجرا: تصویر لحظه‌ای گام‌ها"]
+    rule --> execution["اجرا: تصویر<br/>لحظه‌ای گام‌ها"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker گام‌ها را به ترتیب پیش می‌برد"]
-    worker -->|"گام Manual یا تأیید"| person["منتظر یک نفر"]
-    worker -->|"گام‌های HTTP و AI"| onworker["روی Worker اجرا می‌شوند"]
-    worker -->|"JavaScript، Bash، SSH، Kubernetes"| runner["Runner در زیرساخت شما"]
-    person --> record["وضعیت، خروجی و خطاها ثبت می‌شوند"]
+    execution --> worker["OneUptime Worker<br/>گام‌ها را به<br/>ترتیب پیش می‌برد"]
+    worker -->|"گام Manual<br/>یا تأیید"| person["منتظر یک نفر"]
+    worker -->|"گام‌های<br/>HTTP و AI"| onworker["روی Worker<br/>اجرا می‌شوند"]
+    worker -->|"JavaScript،<br/>Bash، SSH،<br/>Kubernetes"| runner["Runner در<br/>زیرساخت شما"]
+    person --> record["وضعیت، خروجی<br/>و خطاها<br/>ثبت می‌شوند"]
     onworker --> record
     runner --> record
-    record --> history["صفحه رانبوک‌های رویداد و اجراهای رانبوک"]
+    record --> history["صفحه رانبوک‌های<br/>رویداد و<br/>اجراهای رانبوک"]
 ```
 
 هر اجرای رانبوک یک **اجرا** است. وقتی شروع می‌شود، گام‌های رانبوک روی آن کپی می‌شوند و OneUptime آن‌ها را به ترتیب پیش می‌برد. یک گام Manual، یا گامی که به تأیید نیاز دارد، اجرا را تا وقتی کسی اقدام کند متوقف می‌کند.

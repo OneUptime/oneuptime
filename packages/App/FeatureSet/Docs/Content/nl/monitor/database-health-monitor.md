@@ -50,12 +50,12 @@ Bij elke controle doet een sonde het volgende:
 
 ```mermaid title="Eén controle, en de enige stap die de monitor offline kan halen"
 flowchart TB
-    connect["Verbinding maken met de database"] --> probe{"Testquery OK?"}
+    connect["Verbinding maken<br/>met de database"] --> probe{"Testquery OK?"}
     probe -->|"Nee"| offline["Monitor offline"]
     probe -->|"Ja"| groups["Elke metricgroep uitvoeren"]
     groups --> group{"Groep verzameld?"}
     group -->|"Ja"| metrics["Metrics gerapporteerd"]
-    group -->|"Nee"| issue["Metrics ontbreken, probleem genoteerd"]
+    group -->|"Nee"| issue["Metrics ontbreken,<br/>probleem genoteerd"]
     metrics --> criteria["Criteria geëvalueerd"]
     issue --> criteria
 ```

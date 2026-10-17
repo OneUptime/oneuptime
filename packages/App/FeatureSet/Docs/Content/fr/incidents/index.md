@@ -36,13 +36,15 @@ flowchart TB
         monitor["Moniteur"]
         api["API"]
         form["Formulaire"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Nouvel incident"]
-    incident --> rules["Les règles d'incident s'exécutent"]
-    rules --> oncall["Les politiques d'astreinte alertent"]
-    rules --> owners["Les propriétaires sont notifiés"]
-    rules --> pages["Les pages de statut sont mises à jour"]
-    oncall --> feed["Fil d'activité de l'incident"]
+    incident --> rules["Les règles<br/>d'incident<br/>s'exécutent"]
+    rules --> oncall["Les politiques<br/>d'astreinte<br/>alertent"]
+    rules --> owners["Les propriétaires<br/>sont notifiés"]
+    rules --> pages["Les pages de<br/>statut sont<br/>mises à jour"]
+    oncall --> feed["Fil d'activité<br/>de l'incident"]
     owners --> feed
     pages --> feed
 ```
@@ -105,7 +107,7 @@ Une poignée de mots revient sur toutes les autres pages de cette section. Clari
 
 ```mermaid title="Les états avec lesquels démarre chaque nouveau projet"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: déclaré
     Identified --> Acknowledged: Prendre en compte
     Identified --> Resolved: Résoudre

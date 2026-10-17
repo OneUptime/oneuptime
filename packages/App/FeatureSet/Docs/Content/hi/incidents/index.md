@@ -36,12 +36,14 @@ flowchart TB
         monitor["मॉनिटर"]
         api["API"]
         form["फ़ॉर्म"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["नई घटना"]
     incident --> rules["घटना नियम चलते हैं"]
-    rules --> oncall["ऑन-कॉल नीतियाँ पेज करती हैं"]
-    rules --> owners["स्वामियों को सूचित किया जाता है"]
-    rules --> pages["स्थिति पृष्ठ अपडेट होते हैं"]
+    rules --> oncall["ऑन-कॉल नीतियाँ<br/>पेज करती हैं"]
+    rules --> owners["स्वामियों को<br/>सूचित किया जाता है"]
+    rules --> pages["स्थिति पृष्ठ<br/>अपडेट होते हैं"]
     oncall --> feed["घटना फ़ीड"]
     owners --> feed
     pages --> feed
@@ -105,7 +107,7 @@ flowchart TB
 
 ```mermaid title="वे स्थितियाँ जिनसे हर नया प्रोजेक्ट शुरू होता है"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: घोषित
     Identified --> Acknowledged: स्वीकार करें
     Identified --> Resolved: सुलझाएं

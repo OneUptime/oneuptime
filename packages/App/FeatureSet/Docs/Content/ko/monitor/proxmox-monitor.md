@@ -19,9 +19,9 @@ Proxmox 모니터는 클러스터 하나에 연결됩니다. 매분 그 클러�
 flowchart TB
     subgraph site["사용자의 네트워크"]
         direction LR
-        pve["Proxmox VE API"] --> agent["OneUptime Proxmox 에이전트"]
+        pve["Proxmox VE API"] --> agent["OneUptime<br/>Proxmox 에이전트"]
     end
-    agent -->|"OTLP로 pve 메트릭"| oneuptime["OneUptime"]
+    agent -->|"OTLP로<br/>pve 메트릭"| oneuptime["OneUptime"]
     native["Proxmox VE 9<br/>기본 푸시"] -.->|"대안"| oneuptime
     oneuptime -->|"첫 데이터"| registered["클러스터 등록됨"]
     oneuptime --> monitor["Proxmox 모니터"]

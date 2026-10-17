@@ -21,15 +21,15 @@ En Docker Swarm-monitor är knuten till ett kluster. Varje minut kör den sin fr
 flowchart TB
     subgraph cluster["Ditt Swarm-kluster"]
         direction LR
-        manager["Agent på en manager"]
-        others["Insamlare på andra noder"]
+        manager["Agent på<br/>en manager"]
+        others["Insamlare på<br/>andra noder"]
     end
-    manager -->|"mått och inventering"| oneuptime["OneUptime"]
+    manager -->|"mått och<br/>inventering"| oneuptime["OneUptime"]
     others -->|"mått"| oneuptime
-    oneuptime -->|"första data"| registered["Kluster registrerat"]
-    oneuptime --> monitor["Docker Swarm-monitor"]
-    monitor -->|"varje minut"| criteria{"Kriterier uppfyllda?"}
-    criteria -->|"ja"| incident["Incident eller varning"]
+    oneuptime -->|"första data"| registered["Kluster<br/>registrerat"]
+    oneuptime --> monitor["Docker<br/>Swarm-monitor"]
+    monitor -->|"varje minut"| criteria{"Kriterier<br/>uppfyllda?"}
+    criteria -->|"ja"| incident["Incident<br/>eller varning"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 

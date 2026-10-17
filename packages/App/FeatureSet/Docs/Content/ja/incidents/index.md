@@ -36,13 +36,15 @@ flowchart TB
         monitor["モニター"]
         api["API"]
         form["フォーム"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
-    ways --> incident["新しいインシデント"]
-    incident --> rules["インシデントのルールが実行される"]
-    rules --> oncall["オンコールポリシーが呼び出す"]
-    rules --> owners["所有者に通知される"]
-    rules --> pages["ステータスページが更新される"]
-    oncall --> feed["インシデントのフィード"]
+    ways --> incident["新しい<br/>インシデント"]
+    incident --> rules["インシデントの<br/>ルールが<br/>実行される"]
+    rules --> oncall["オンコールポリシーが<br/>呼び出す"]
+    rules --> owners["所有者に<br/>通知される"]
+    rules --> pages["ステータスページが<br/>更新される"]
+    oncall --> feed["インシデントの<br/>フィード"]
     owners --> feed
     pages --> feed
 ```
@@ -105,7 +107,7 @@ flowchart TB
 
 ```mermaid title="新しいプロジェクトが最初に持つ状態"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: 宣言
     Identified --> Acknowledged: 確認
     Identified --> Resolved: 解決

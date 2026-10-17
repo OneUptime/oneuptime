@@ -4,16 +4,16 @@ Una policy chiamate in entrata dà al tuo team un numero di telefono che raggiun
 
 ```mermaid title="Da una telefonata a chi è reperibile"
 flowchart TB
-    caller["Chi chiama compone il numero della policy"] --> twilio["Twilio riceve la chiamata"]
-    twilio --> greeting["OneUptime riproduce il saluto"]
-    greeting --> ring["Far squillare la persona della regola successiva"]
+    caller["Chi chiama compone il<br/>numero della policy"] --> twilio["Twilio riceve la chiamata"]
+    twilio --> greeting["OneUptime<br/>riproduce il saluto"]
+    greeting --> ring["Far squillare la persona<br/>della regola successiva"]
     ring --> answered{"Risponde<br/>in tempo?"}
-    answered -->|"Sì"| connected["Chi chiama viene messo in contatto"]
+    answered -->|"Sì"| connected["Chi chiama viene<br/>messo in contatto"]
     answered -->|"No"| more{"Un'altra regola?"}
     more -->|"Sì"| ring
     more -->|"No"| repeat{"Ripetere la policy?"}
     repeat -->|"Sì"| ring
-    repeat -->|"No"| missed["Messaggio di mancata risposta,<br/>poi riaggancio"]
+    repeat -->|"No"| missed["Messaggio di<br/>mancata risposta,<br/>poi riaggancio"]
 ```
 
 :::cards

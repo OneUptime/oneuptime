@@ -14,7 +14,7 @@ As configurações do projeto reúnem o que vale para o projeto inteiro: o nome 
 Acesse **Produtos → Configurações → Configurações do projeto**. O menu lateral agrupa as páginas em seções, e só **Básico** começa aberta: clique no título de uma seção para abri-la. Uma seção se abre sozinha em qualquer página dela.
 
 ```mermaid title="O que as configurações do projeto reúnem"
-flowchart TB
+flowchart LR
     settings["Configurações do projeto"] --> project["O projeto: detalhes,<br/>rótulos, importações"]
     settings --> connect["O que ele conecta:<br/>chat, telemetria, IA"]
     settings --> access["Quem entra: chaves,<br/>domínios, login"]

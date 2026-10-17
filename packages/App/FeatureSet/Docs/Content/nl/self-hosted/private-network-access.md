@@ -15,14 +15,14 @@ Deze pagina legt uit hoe u dat bewust en beperkt toestaat. Drie schakelaars bepa
 | **Monitors** van het type API, Website, External Status Page en Custom JavaScript Code | De eigen omgeving van de **probe** | Privéadressen geweigerd |
 
 ```mermaid title="Drie schakelaars, elk voor een eigen soort verbinding"
-flowchart TB
+flowchart LR
     subgraph Server["De OneUptime-server"]
         direction TB
-        Webhooks["Workflows en webhooks"]
-        Outbound["Gegevensbronnen, LLM-providers,<br/>SMTP en andere verbindingen"]
+        Webhooks["Workflows<br/>en webhooks"]
+        Outbound["Gegevensbronnen,<br/>LLM-providers,<br/>SMTP en andere<br/>verbindingen"]
     end
     subgraph Probe["Elke probe"]
-        Monitors["Monitors van het type API, Website,<br/>External Status Page en<br/>Custom JavaScript Code"]
+        Monitors["Monitors van het<br/>type API, Website,<br/>External<br/>Status Page en<br/>Custom<br/>JavaScript Code"]
     end
     Private["Uw privénetwerk"]
     Webhooks -->|"standaard uit"| Private

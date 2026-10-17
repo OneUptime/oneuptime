@@ -164,12 +164,12 @@ stateDiagram-v2
     state "Льготный период" as Grace
     state "Истекла" as Lapsed
     [*] --> Trial: первый запуск
-    Trial --> Valid: лицензия активирована
-    Trial --> Lapsed: пробный период закончился
+    Trial --> Valid: лицензия<br/>активирована
+    Trial --> Lapsed: пробный период<br/>закончился
     Valid --> Grace: лицензия истекла
     Grace --> Valid: лицензия продлена
-    Grace --> Lapsed: льготный период закончился
-    Lapsed --> Valid: лицензия активирована
+    Grace --> Lapsed: льготный период<br/>закончился
+    Lapsed --> Valid: лицензия<br/>активирована
 ```
 
 | Состояние | Что происходит |

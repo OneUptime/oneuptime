@@ -13,15 +13,15 @@ Un **agente di runbook**, chiamato **Runner** nella dashboard, è un piccolo pro
 
 ```mermaid title="Cosa passa sulla rete tra un Runner e OneUptime"
 flowchart TB
-    subgraph yours["La tua infrastruttura"]
-        direction LR
-        runner["Container del Runner"]
-        targets["Host, cluster, servizi interni"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Il Worker mette in coda il passaggio"]
         ingest["API dei Runner"]
+    end
+    subgraph yours["La tua infrastruttura"]
+        direction LR
+        runner["Container del Runner"]
+        targets["Host, cluster, servizi interni"]
     end
     worker --> ingest
     runner -->|"HTTPS in uscita, ID e chiave del Runner"| ingest

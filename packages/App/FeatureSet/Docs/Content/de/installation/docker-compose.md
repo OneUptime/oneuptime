@@ -16,7 +16,7 @@ Docker Compose betreibt jeden Teil von OneUptime als Container auf Ihrem Server.
 ```mermaid title="Die Bereitstellung mit Docker Compose"
 flowchart TB
     Users["Nutzer und Agents"]
-    Proxy["Ihr Reverse Proxy, optional"]
+    Proxy["Ihr Reverse<br/>Proxy, optional"]
     Targets["Überwachte Websites"]
     subgraph Server["Ihr Server"]
         Ingress["ingress"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|Ergebnisse| Ingress
     Runner -->|Aufträge| Ingress
     Probe -->|Prüfungen| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | Dienst | Image | Was er tut |

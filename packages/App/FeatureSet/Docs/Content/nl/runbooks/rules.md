@@ -19,15 +19,15 @@ Alle drie de pagina's bewerken hetzelfde soort regel, gefilterd op de regels van
 
 ```mermaid title="Van een nieuw incident naar gestarte runbooks"
 flowchart TB
-    created["Incident, waarschuwing of evenement ontstaat"] --> labels["Labelregels voegen hun labels toe"]
-    labels --> rules["Ingeschakelde runbook-regels van dat product"]
-    rules --> match{"Voldoen de voorwaarden?"}
-    match -->|"nee"| nothing["De regel start niets"]
-    match -->|"ja"| union["Runbooks van alle overeenkomende regels, elk één keer"]
-    union --> runnable{"Runbook ingeschakeld en met stappen?"}
-    runnable -->|"nee"| skipped["Dat runbook wordt overgeslagen"]
-    runnable -->|"ja"| execution["Uitvoering gemaakt en in de wachtrij gezet"]
-    execution --> attached["Getoond op de Runbooks-pagina van het evenement"]
+    created["Incident,<br/>waarschuwing of<br/>evenement ontstaat"] --> labels["Labelregels voegen<br/>hun labels toe"]
+    labels --> rules["Ingeschakelde<br/>runbook-regels<br/>van dat product"]
+    rules --> match{"Voldoen de<br/>voorwaarden?"}
+    match -->|"nee"| nothing["De regel<br/>start niets"]
+    match -->|"ja"| union["Runbooks van alle<br/>overeenkomende<br/>regels,<br/>elk één keer"]
+    union --> runnable{"Runbook<br/>ingeschakeld<br/>en met stappen?"}
+    runnable -->|"nee"| skipped["Dat runbook wordt<br/>overgeslagen"]
+    runnable -->|"ja"| execution["Uitvoering<br/>gemaakt en in de<br/>wachtrij gezet"]
+    execution --> attached["Getoond op de<br/>Runbooks-pagina<br/>van het evenement"]
 ```
 
 Wanneer een regel afgaat, gebeurt voor elk runbook dat hij noemt het volgende:

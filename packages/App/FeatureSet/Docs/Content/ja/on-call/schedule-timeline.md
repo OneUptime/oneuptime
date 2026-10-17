@@ -8,14 +8,14 @@
 flowchart TB
     subgraph setup["各スケジュール"]
         direction LR
-        layers["レイヤーとローテーション"]
-        overrides["ユーザーオーバーライド"]
+        layers["レイヤーと<br/>ローテーション"]
+        overrides["ユーザーオー<br/>バーライド"]
     end
-    layers --> shifts["誰がいつオンコールか"]
+    layers --> shifts["誰がいつ<br/>オンコールか"]
     overrides --> shifts
-    shifts --> timeline["スケジュールタイムライン"]
-    shifts --> paging["エスカレーションルールが呼び出す"]
-    shifts --> feeds["カレンダーフィード"]
+    shifts --> timeline["スケジュール<br/>タイムライン"]
+    shifts --> paging["エスカレーション<br/>ルールが呼び出す"]
+    shifts --> feeds["カレンダー<br/>フィード"]
 ```
 
 ## タイムラインを開く

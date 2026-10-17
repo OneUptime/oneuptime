@@ -15,9 +15,9 @@ Docker Compose запускает каждую часть OneUptime в виде 
 
 ```mermaid title="Развёртывание с Docker Compose"
 flowchart TB
-    Users["Пользователи и агенты"]
-    Proxy["Ваш обратный прокси, необязательно"]
-    Targets["Сайты, которые вы мониторите"]
+    Users["Пользователи<br/>и агенты"]
+    Proxy["Ваш обратный<br/>прокси,<br/>необязательно"]
+    Targets["Сайты, которые<br/>вы мониторите"]
     subgraph Server["Ваш сервер"]
         Ingress["ingress"]
         App["app"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|результаты| Ingress
     Runner -->|задания| Ingress
     Probe -->|проверки| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | Сервис | Образ | Что он делает |

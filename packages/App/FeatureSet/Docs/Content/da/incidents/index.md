@@ -36,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Formular"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Ny hændelse"]
     incident --> rules["Hændelsesregler kører"]
-    rules --> oncall["Vagtpolitikker tilkalder"]
+    rules --> oncall["Vagtpolitikker<br/>tilkalder"]
     rules --> owners["Ejerne får besked"]
-    rules --> pages["Statussider opdateres"]
+    rules --> pages["Statussider<br/>opdateres"]
     oncall --> feed["Hændelse Feed"]
     owners --> feed
     pages --> feed
@@ -105,7 +107,7 @@ Når et projekt oprettes, opretter OneUptime præcis tre hændelsestilstande, i 
 
 ```mermaid title="De tilstande, hvert nyt projekt starter med"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: erklæret
     Identified --> Acknowledged: Bekræft
     Identified --> Resolved: Løs

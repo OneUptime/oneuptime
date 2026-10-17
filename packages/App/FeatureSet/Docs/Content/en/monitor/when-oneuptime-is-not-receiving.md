@@ -11,7 +11,7 @@ Every OneUptime process that takes in data records every 30 seconds that it is r
 - Catching up: while the queue of data waiting to be processed is more than a minute behind, the time since the oldest data still in it.
 
 ```mermaid title="Time OneUptime leaves out"
-flowchart LR
+flowchart TB
     receiving["Receiving"] -->|"no record for 90 seconds"| down["Not receiving"]
     down -->|"a process records again"| grace["Reconnecting for 2 minutes"]
     grace --> again["Receiving"]

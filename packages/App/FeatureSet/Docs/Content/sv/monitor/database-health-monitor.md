@@ -55,7 +55,7 @@ flowchart TB
     probe -->|"Ja"| groups["Kör varje mätvärdesgrupp"]
     groups --> group{"Grupp insamlad?"}
     group -->|"Ja"| metrics["Mätvärden rapporterade"]
-    group -->|"Nej"| issue["Mätvärden saknas, problem noterat"]
+    group -->|"Nej"| issue["Mätvärden saknas,<br/>problem noterat"]
     metrics --> criteria["Kriterier utvärderade"]
     issue --> criteria
 ```

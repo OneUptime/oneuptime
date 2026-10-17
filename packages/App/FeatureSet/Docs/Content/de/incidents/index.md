@@ -36,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Formular"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Neuer Vorfall"]
-    incident --> rules["Vorfallsregeln laufen"]
-    rules --> oncall["Bereitschaftsrichtlinien alarmieren"]
-    rules --> owners["Eigentümer werden benachrichtigt"]
-    rules --> pages["Statusseiten werden aktualisiert"]
+    incident --> rules["Vorfallsregeln<br/>laufen"]
+    rules --> oncall["Bereitschafts-<br/>richtlinien<br/>alarmieren"]
+    rules --> owners["Eigentümer werden<br/>benachrichtigt"]
+    rules --> pages["Statusseiten<br/>werden<br/>aktualisiert"]
     oncall --> feed["Vorfalls-Feed"]
     owners --> feed
     pages --> feed
@@ -105,7 +107,7 @@ Beim Anlegen eines Projekts erzeugt OneUptime genau drei Vorfallsstatus, in dies
 
 ```mermaid title="Die Status, mit denen jedes neue Projekt beginnt"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: gemeldet
     Identified --> Acknowledged: Bestätigen
     Identified --> Resolved: Beheben

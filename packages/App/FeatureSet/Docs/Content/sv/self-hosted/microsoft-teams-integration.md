@@ -218,7 +218,7 @@ Appregistreringens omdirigeringar till `/api/microsoft-teams/auth` och `/api/mic
 ### Publicera botslutpunkten från en privat distribution
 
 ```mermaid title="Publicera botslutpunkten från en privat distribution"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Offentlig gateway"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime-ingress"]
     Users["Anställda på VPN"] --> ING

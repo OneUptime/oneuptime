@@ -16,21 +16,21 @@ Runbook — это многоразовая процедура реагиров�
 flowchart TB
     subgraph triggers["Что запускает выполнение"]
         direction LR
-        rule["Правило runbook-а"]
-        manual["Запустить сценарий на событии"]
-        runnow["Run Now на runbook-е"]
+        rule["Правило<br/>runbook-а"]
+        manual["Запустить<br/>сценарий<br/>на событии"]
+        runnow["Run Now на<br/>runbook-е"]
     end
-    rule --> execution["Выполнение: снимок шагов"]
+    rule --> execution["Выполнение:<br/>снимок шагов"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker проходит шаги по порядку"]
-    worker -->|"Manual-шаг или подтверждение"| person["Ожидает человека"]
-    worker -->|"HTTP- и AI-шаги"| onworker["Выполняются на Worker"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner в вашей инфраструктуре"]
-    person --> record["Статус, вывод и ошибки записаны"]
+    execution --> worker["OneUptime<br/>Worker<br/>проходит шаги<br/>по порядку"]
+    worker -->|"Manual-шаг или<br/>подтверждение"| person["Ожидает<br/>человека"]
+    worker -->|"HTTP- и<br/>AI-шаги"| onworker["Выполняются<br/>на Worker"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner в вашей<br/>инфраструктуре"]
+    person --> record["Статус, вывод<br/>и ошибки<br/>записаны"]
     onworker --> record
     runner --> record
-    record --> history["Страница Runbooks события и Выполнения runbook-а"]
+    record --> history["Страница<br/>Runbooks<br/>события и<br/>Выполнения<br/>runbook-а"]
 ```
 
 Каждый запуск runbook-а — это **выполнение**. Когда оно начинается, шаги runbook-а копируются в него, и OneUptime проходит их по порядку. Manual-шаг или шаг, требующий подтверждения, приостанавливает выполнение, пока кто-нибудь не отреагирует.

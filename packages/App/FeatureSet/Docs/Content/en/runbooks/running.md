@@ -20,14 +20,14 @@ stateDiagram-v2
     state "Failed" as Failed
     state "Cancelled" as Cancelled
     [*] --> Scheduled: run started
-    Scheduled --> Running: a Worker picks it up
-    Running --> WaitingForManualStep: Manual step or approval
-    WaitingForManualStep --> Scheduled: completed, approved or skipped
+    Scheduled --> Running: a Worker<br/>picks it up
+    Running --> WaitingForManualStep: Manual step<br/>or approval
+    WaitingForManualStep --> Scheduled: completed,<br/>approved<br/>or skipped
     Running --> Completed: every step done
     Running --> Failed: a step fails
-    Scheduled --> Cancelled: Cancel Execution
-    Running --> Cancelled: Cancel Execution
-    WaitingForManualStep --> Cancelled: Cancel Execution
+    Scheduled --> Cancelled: Cancel<br/>Execution
+    Running --> Cancelled: Cancel<br/>Execution
+    WaitingForManualStep --> Cancelled: Cancel<br/>Execution
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]

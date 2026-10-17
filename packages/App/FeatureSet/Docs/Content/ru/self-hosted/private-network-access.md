@@ -15,19 +15,19 @@ OneUptime отказывается отправлять некоторые ис�
 | **Мониторы** API, Website, External Status Page и Custom JavaScript Code | Собственное окружение **пробы** | Частные адреса запрещены |
 
 ```mermaid title="Три переключателя, каждый для своего вида соединений"
-flowchart TB
+flowchart LR
     subgraph Server["Сервер OneUptime"]
         direction TB
-        Webhooks["Рабочие процессы и вебхуки"]
-        Outbound["Источники данных, поставщики LLM,<br/>SMTP и другие соединения"]
+        Webhooks["Рабочие процессы<br/>и вебхуки"]
+        Outbound["Источники данных,<br/>поставщики LLM,<br/>SMTP и другие<br/>соединения"]
     end
     subgraph Probe["Каждая проба"]
-        Monitors["Мониторы API, Website,<br/>External Status Page и<br/>Custom JavaScript Code"]
+        Monitors["Мониторы<br/>API, Website,<br/>External<br/>Status Page и<br/>Custom<br/>JavaScript Code"]
     end
     Private["Ваша частная сеть"]
-    Webhooks -->|"по умолчанию выключено"| Private
-    Outbound -->|"по умолчанию включено"| Private
-    Monitors -->|"по умолчанию выключено"| Private
+    Webhooks -->|"по умолчанию<br/>выключено"| Private
+    Outbound -->|"по умолчанию<br/>включено"| Private
+    Monitors -->|"по умолчанию<br/>выключено"| Private
 ```
 
 Сетевые типы мониторов, такие как Ping, Port, SSL-сертификат, DNS, DNSSEC, SNMP / Сетевое устройство, SQL-запрос, Состояние базы данных, Synthetic и Network Path, используют собственные транспорты. Настройка на этой странице управляет HTTP-транспортами, которые возвращают проекту произвольное содержимое ответа: мониторами API, Website, External Status Page и Custom JavaScript Code.

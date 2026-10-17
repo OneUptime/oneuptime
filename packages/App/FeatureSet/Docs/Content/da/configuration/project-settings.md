@@ -14,7 +14,7 @@ Projektindstillinger rummer det, der gælder for hele projektet: navnet, de vær
 Gå til **Produkter → Indstillinger → Projektindstillinger**. Sidemenuen grupperer siderne i afsnit, og kun **Grundlæggende** er åbent fra start: klik på et afsnits titel for at åbne det. Et afsnit åbner af sig selv på enhver side i det.
 
 ```mermaid title="Hvad projektindstillinger rummer"
-flowchart TB
+flowchart LR
     settings["Projektindstillinger"] --> project["Projektet: detaljer,<br/>etiketter, importer"]
     settings --> connect["Det, det forbinder til:<br/>chat, telemetri, AI"]
     settings --> access["Hvem der kommer ind:<br/>nøgler, domæner, login"]

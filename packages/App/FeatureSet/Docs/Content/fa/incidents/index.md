@@ -36,12 +36,14 @@ flowchart TB
         monitor["مانیتور"]
         api["API"]
         form["فرم"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["حادثه تازه"]
-    incident --> rules["قواعد حادثه اجرا می‌شوند"]
-    rules --> oncall["سیاست‌های کشیک فرا می‌خوانند"]
-    rules --> owners["به مالکان خبر داده می‌شود"]
-    rules --> pages["صفحه‌های وضعیت به‌روز می‌شوند"]
+    incident --> rules["قواعد حادثه<br/>اجرا می‌شوند"]
+    rules --> oncall["سیاست‌های<br/>کشیک فرا<br/>می‌خوانند"]
+    rules --> owners["به مالکان<br/>خبر داده<br/>می‌شود"]
+    rules --> pages["صفحه‌های<br/>وضعیت به‌روز<br/>می‌شوند"]
     oncall --> feed["خوراک حادثه"]
     owners --> feed
     pages --> feed
@@ -105,7 +107,7 @@ flowchart TB
 
 ```mermaid title="وضعیت‌هایی که هر پروژه تازه با آن‌ها آغاز می‌شود"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: اعلام شد
     Identified --> Acknowledged: Acknowledge
     Identified --> Resolved: Resolve

@@ -218,7 +218,7 @@ Microsoft требует [публично доступную конечную �
 ### Публикация конечной точки бота из частного развёртывания
 
 ```mermaid title="Публикация конечной точки бота из частного развёртывания"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Публичный шлюз"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["Ingress OneUptime"]
     Users["Сотрудники в VPN"] --> ING

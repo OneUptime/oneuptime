@@ -19,15 +19,15 @@ Alle tre sidene redigerer samme slags regel, filtrert til reglene for det aktuel
 
 ```mermaid title="Fra en ny hendelse til startede runbooks"
 flowchart TB
-    created["Hendelse, varsel eller begivenhet opprettet"] --> labels["Etikettregler legger til etikettene sine"]
-    labels --> rules["Aktiverte runbook-regler for det produktet"]
+    created["Hendelse, varsel eller<br/>begivenhet opprettet"] --> labels["Etikettregler legger<br/>til etikettene sine"]
+    labels --> rules["Aktiverte<br/>runbook-regler<br/>for det produktet"]
     rules --> match{"Treffer betingelsene?"}
-    match -->|"nei"| nothing["Regelen starter ingenting"]
-    match -->|"ja"| union["Runbooks fra alle regler som treffer, hvert én gang"]
-    union --> runnable{"Runbook slått på og med trinn?"}
-    runnable -->|"nei"| skipped["Det runbooket hoppes over"]
-    runnable -->|"ja"| execution["Kjøring opprettet og satt i kø"]
-    execution --> attached["Vises på begivenhetens Runbooks-side"]
+    match -->|"nei"| nothing["Regelen starter<br/>ingenting"]
+    match -->|"ja"| union["Runbooks fra alle<br/>regler som treffer,<br/>hvert én gang"]
+    union --> runnable{"Runbook slått<br/>på og med trinn?"}
+    runnable -->|"nei"| skipped["Det runbooket<br/>hoppes over"]
+    runnable -->|"ja"| execution["Kjøring opprettet<br/>og satt i kø"]
+    execution --> attached["Vises på begivenhetens<br/>Runbooks-side"]
 ```
 
 Når en regel utløses, skjer dette for hvert runbook den peker på:

@@ -3,7 +3,7 @@
 Probene til OneUptime Cloud sjekker nettstedene, API-ene og serverne dine fra et fast sett IP-adresser. Står det en brannmur eller en tillatelsesliste foran det du overvåker, må du tillate disse adressene så sjekkene kommer gjennom.
 
 ```mermaid title="Hvor tillatelseslisten gjelder"
-flowchart LR
+flowchart TB
     P["OneUptime-prober"] -->|"sjekker fra de oppførte IP-ene"| F["Brannmuren din"]
     F -->|"tillatt"| S["Nettstedet, API-et eller serveren din"]
 ```

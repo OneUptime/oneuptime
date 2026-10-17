@@ -196,7 +196,7 @@ OAuth ist eine [Weiterleitung im Browser, gefolgt von einem serverseitigen Token
 ### Private Installationen und Callback-Sicherheit
 
 ```mermaid title="Die Slack-Callbacks aus einer privaten Installation veröffentlichen"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["Öffentliches Gateway"]
     GW -->|"/api/slack/* nur POST"| ING["OneUptime-Ingress"]
     Users["Mitarbeitende im VPN"] --> ING

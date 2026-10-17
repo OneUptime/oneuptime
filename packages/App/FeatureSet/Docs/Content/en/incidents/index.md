@@ -36,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Form"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["New incident"]
     incident --> rules["Incident rules run"]
-    rules --> oncall["On-call policies page"]
-    rules --> owners["Owners are notified"]
-    rules --> pages["Status pages updated"]
+    rules --> oncall["On-call<br/>policies page"]
+    rules --> owners["Owners are<br/>notified"]
+    rules --> pages["Status pages<br/>updated"]
     oncall --> feed["Incident Feed"]
     owners --> feed
     pages --> feed
@@ -105,7 +107,7 @@ When a project is created, OneUptime seeds exactly three incident states, in thi
 
 ```mermaid title="The states every new project starts with"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: declared
     Identified --> Acknowledged: Acknowledge
     Identified --> Resolved: Resolve

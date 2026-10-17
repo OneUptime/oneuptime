@@ -22,10 +22,10 @@ flowchart TB
         device["Dispositivo"] --> gateway["Gateway o<br/>SDK OpenTelemetry"]
         device2["Dispositivo"] --> mqtt["MQTT di OneUptime"]
     end
-    gateway -->|"metriche IoT via OTLP"| oneuptime["OneUptime"]
+    gateway -->|"metriche<br/>IoT via OTLP"| oneuptime["OneUptime"]
     mqtt --> oneuptime
     oneuptime -->|"primi dati"| registered["Flotta registrata"]
-    oneuptime --> monitor["Monitor dispositivi IoT"]
+    oneuptime --> monitor["Monitor<br/>dispositivi IoT"]
     monitor -->|"ogni minuto,<br/>per dispositivo"| criteria{"Criteri<br/>soddisfatti?"}
     criteria -->|"sì"| incident["Incidente o<br/>avviso per quel<br/>dispositivo"]
     criteria -->|"no"| online["Monitor online"]

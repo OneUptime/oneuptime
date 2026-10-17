@@ -36,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Formulär"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Ny incident"]
     incident --> rules["Incidentregler körs"]
-    rules --> oncall["Jourpolicyer larmar"]
+    rules --> oncall["Jourpolicyer<br/>larmar"]
     rules --> owners["Ägarna meddelas"]
-    rules --> pages["Statussidor uppdateras"]
+    rules --> pages["Statussidor<br/>uppdateras"]
     oncall --> feed["Incident Flöde"]
     owners --> feed
     pages --> feed
@@ -105,7 +107,7 @@ När ett projekt skapas, skapar OneUptime exakt tre incidenttillstånd, i den h�
 
 ```mermaid title="Tillstånden som varje nytt projekt börjar med"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: deklarerad
     Identified --> Acknowledged: Bekräfta
     Identified --> Resolved: Lös

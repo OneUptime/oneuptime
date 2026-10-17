@@ -196,7 +196,7 @@ OAuth est une [redirection du navigateur suivie d'un échange de jeton côté se
 ### Déploiements privés et sécurité des callbacks
 
 ```mermaid title="Publier les callbacks Slack depuis un déploiement privé"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["Passerelle publique"]
     GW -->|"/api/slack/* POST uniquement"| ING["Ingress OneUptime"]
     Users["Employés sur le VPN"] --> ING

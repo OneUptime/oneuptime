@@ -29,13 +29,13 @@ stateDiagram-v2
     state "त्रुटि" as Failed
     state "Timeout" as TimedOut
     [*] --> Scheduled: ट्रिगर चलता है
-    Scheduled --> Running: कोई रनर उसे उठाता है
-    Scheduled --> Failed: 5 मिनट में नहीं उठाया गया
+    Scheduled --> Running: कोई रनर उसे<br/>उठाता है
+    Scheduled --> Failed: 5 मिनट में<br/>नहीं उठाया गया
     Running --> Waiting: एक Sleep ब्लॉक
     Waiting --> Running: समय पूरा हुआ
     Running --> Executed: यह अंत तक पहुँचा
-    Running --> Failed: किसी ब्लॉक ने रन रोका
-    Running --> TimedOut: इसका समय खत्म हुआ
+    Running --> Failed: किसी ब्लॉक<br/>ने रन रोका
+    Running --> TimedOut: इसका समय<br/>खत्म हुआ
     Executed --> [*]
     Failed --> [*]
     TimedOut --> [*]

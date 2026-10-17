@@ -16,7 +16,7 @@ Docker Compose runs every part of OneUptime as a container on your server. All t
 ```mermaid title="The Docker Compose deployment"
 flowchart TB
     Users["Users and agents"]
-    Proxy["Your reverse proxy, optional"]
+    Proxy["Your reverse<br/>proxy, optional"]
     Targets["Sites you monitor"]
     subgraph Server["Your server"]
         Ingress["ingress"]
@@ -32,7 +32,7 @@ flowchart TB
     end
     Users -->|HTTPS| Proxy
     Proxy -->|HTTP| Ingress
-    Users -.->|"without a proxy"| Ingress
+    Users -.->|"without<br/>a proxy"| Ingress
     Ingress --> App
     App --> PG
     App --> CH
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|results| Ingress
     Runner -->|jobs| Ingress
     Probe -->|checks| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | Service | Image | What it does |

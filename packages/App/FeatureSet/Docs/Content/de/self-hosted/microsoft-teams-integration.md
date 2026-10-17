@@ -218,7 +218,7 @@ Die Weiterleitungen der App-Registrierung zu `/api/microsoft-teams/auth` und `/a
 ### Den Bot-Endpunkt aus einer privaten Installation veröffentlichen
 
 ```mermaid title="Den Bot-Endpunkt aus einer privaten Installation veröffentlichen"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Öffentliches Gateway"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime-Ingress"]
     Users["Mitarbeitende im VPN"] --> ING

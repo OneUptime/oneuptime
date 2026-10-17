@@ -19,14 +19,14 @@ Een Proxmox-monitor is aan één cluster gebonden. Elke minuut voert hij zijn qu
 flowchart TB
     subgraph site["Uw netwerk"]
         direction LR
-        pve["Proxmox VE-API"] --> agent["OneUptime-Proxmox-agent"]
+        pve["Proxmox VE-API"] --> agent["OneUptime-<br/>Proxmox-agent"]
     end
-    agent -->|"pve-metrieken via OTLP"| oneuptime["OneUptime"]
+    agent -->|"pve-metrieken<br/>via OTLP"| oneuptime["OneUptime"]
     native["Native push van<br/>Proxmox VE 9"] -.->|"alternatief"| oneuptime
-    oneuptime -->|"eerste gegevens"| registered["Cluster geregistreerd"]
+    oneuptime -->|"eerste<br/>gegevens"| registered["Cluster geregistreerd"]
     oneuptime --> monitor["Proxmox-monitor"]
     monitor -->|"elke minuut"| criteria{"Criteria voldaan?"}
-    criteria -->|"ja"| incident["Incident of waarschuwing"]
+    criteria -->|"ja"| incident["Incident of<br/>waarschuwing"]
     criteria -->|"nee"| online["Monitor online"]
 ```
 

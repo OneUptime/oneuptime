@@ -12,12 +12,12 @@ Ett formulärs sida **Bygg** är där du bestämmer vad det frågar och hur dess
 ## Vart varje svar tar vägen
 
 ```mermaid title="Vart varje typ av svar tar vägen"
-flowchart TB
-    answer["Ett inlämnat svar"] --> kind{"Vad frågan är"}
-    kind -->|"Ett fält på posten"| field["Det fältet på den nya<br/>incidenten eller händelsen"]
-    kind -->|"Ett anpassat fält"| custom["Värdet på det<br/>anpassade fältet"]
-    kind -->|"En av formulärets<br/>egna frågor"| note["En rad i den<br/>privata anteckningen"]
-    kind -->|"Ditt namn, din e-post"| who["Vem som lämnade in,<br/>i den privata anteckningen"]
+flowchart LR
+    answer["Ett inlämnat svar"]
+    answer -->|"Ett fält<br/>på posten"| field["Det fältet på den nya<br/>incidenten<br/>eller händelsen"]
+    answer -->|"Ett anpassat fält"| custom["Värdet på det<br/>anpassade fältet"]
+    answer -->|"En av formulärets<br/>egna frågor"| note["En rad i den<br/>privata anteckningen"]
+    answer -->|"Ditt namn,<br/>din e-post"| who["Vem som lämnade in,<br/>i den privata<br/>anteckningen"]
 ```
 
 Varje svar sparas också med inlämningen, på formulärets sida **Inlämningar**. Ett fält som formuläret inte frågar efter, eller som lämnas tomt, fylls i från formulärets [inställningar Vid inlämning](/docs/forms/on-submit).

@@ -30,9 +30,9 @@ OneUptime heeft in productie drie gegevensopslagen nodig. Elk groeit met iets an
 
 ```mermaid title="Waarmee elke gegevensopslag groeit"
 flowchart TB
-    Tel["Logs, metrics, traces"] -->|"ingestiesnelheid × bewaartermijn"| CH[("ClickHouse")]
-    State["Monitors, incidenten, gebruikers"] -->|"aantal entiteiten en geschiedenis"| PG[("PostgreSQL")]
-    Work["Wachtrijen, cache, sessies"] -->|"wachtrijdiepte"| VK[("Valkey")]
+    Tel["Logs, metrics,<br/>traces"] -->|"ingestiesnelheid<br/>× bewaartermijn"| CH[("ClickHouse")]
+    State["Monitors,<br/>incidenten,<br/>gebruikers"] -->|"aantal<br/>entiteiten en<br/>geschiedenis"| PG[("PostgreSQL")]
+    Work["Wachtrijen,<br/>cache, sessies"] -->|"wachtrijdiepte"| VK[("Valkey")]
 ```
 
 | Gegevensopslag | Wat erin staat | Wat de omvang bepaalt |

@@ -4,31 +4,32 @@ En selvhostet OneUptime-installasjon er en håndfull containere: én ingress som
 
 ```mermaid title="En selvhostet OneUptime-installasjon"
 flowchart TB
-    People["Personer og nettlesere"]
-    Senders["Telemetriavsendere:<br/>OpenTelemetry, Fluent Bit,<br/>syslog, agenter"]
-    Targets["Det du overvåker:<br/>internt og offentlig"]
+    People["Personer og<br/>nettlesere"]
+    Senders["Telemetriavsendere:<br/>OpenTelemetry,<br/>Fluent Bit,<br/>syslog, agenter"]
+    Targets["Det du<br/>overvåker:<br/>internt og<br/>offentlig"]
     subgraph Install["Nettverket ditt"]
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
-        App["App<br/>dashbord, statussider,<br/>API, inntak, bakgrunnsjobber"]
-        Probe["Prober"]
+        App["App<br/>dashbord,<br/>statussider,<br/>API, inntak,<br/>bakgrunnsjobber"]
         Runner["Runner"]
+        Probe["Prober"]
         subgraph Data["Datalagre"]
             direction LR
             Postgres[("PostgreSQL<br/>konfigurasjon<br/>og tilstand")]
-            ClickHouse[("ClickHouse<br/>logger, metrikker,<br/>traces")]
+            ClickHouse[("ClickHouse<br/>logger,<br/>metrikker,<br/>traces")]
             Valkey[("Valkey<br/>hurtigbuffer og<br/>køer")]
         end
     end
     People -->|"HTTPS"| Ingress
     Senders -->|"OTLP, HTTPS"| Ingress
     Ingress --> App
-    Probe -->|"hente arbeid,<br/>sende resultater"| App
     Runner -->|"ta jobber,<br/>sende resultater"| App
+    Probe -->|"hente arbeid,<br/>sende resultater"| App
     Probe -->|"HTTP, TCP, ping,<br/>DNS, SNMP"| Targets
     App --> Postgres
     App --> ClickHouse
     App --> Valkey
+    Targets ~~~ Probe
 ```
 
 ## Hva dette viser

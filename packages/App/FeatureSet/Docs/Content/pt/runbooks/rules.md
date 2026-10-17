@@ -19,15 +19,15 @@ As três páginas editam o mesmo tipo de regra, filtrado para as regras daquele 
 
 ```mermaid title="De um novo incidente a runbooks iniciados"
 flowchart TB
-    created["Incidente, alerta ou evento criado"] --> labels["As regras de rótulos adicionam seus rótulos"]
-    labels --> rules["Regras de runbook habilitadas desse produto"]
-    rules --> match{"As condições correspondem?"}
-    match -->|"não"| nothing["A regra não inicia nada"]
-    match -->|"sim"| union["Runbooks de todas as regras correspondentes, cada um uma vez"]
-    union --> runnable{"Runbook ligado e com etapas?"}
-    runnable -->|"não"| skipped["Esse runbook é ignorado"]
-    runnable -->|"sim"| execution["Execução criada e colocada na fila"]
-    execution --> attached["Mostrada na página Runbooks do evento"]
+    created["Incidente, alerta<br/>ou evento criado"] --> labels["As regras de rótulos<br/>adicionam seus rótulos"]
+    labels --> rules["Regras de runbook<br/>habilitadas<br/>desse produto"]
+    rules --> match{"As condições<br/>correspondem?"}
+    match -->|"não"| nothing["A regra não<br/>inicia nada"]
+    match -->|"sim"| union["Runbooks de<br/>todas as regras<br/>correspondentes,<br/>cada um uma vez"]
+    union --> runnable{"Runbook ligado<br/>e com etapas?"}
+    runnable -->|"não"| skipped["Esse runbook<br/>é ignorado"]
+    runnable -->|"sim"| execution["Execução criada e<br/>colocada na fila"]
+    execution --> attached["Mostrada na página<br/>Runbooks do evento"]
 ```
 
 Quando uma regra dispara, para cada runbook que ela indica:

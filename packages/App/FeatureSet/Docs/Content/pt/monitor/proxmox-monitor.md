@@ -19,14 +19,14 @@ Um monitor de Proxmox está vinculado a um cluster. A cada minuto, ele executa s
 flowchart TB
     subgraph site["Sua rede"]
         direction LR
-        pve["API do Proxmox VE"] --> agent["Agente Proxmox do OneUptime"]
+        pve["API do Proxmox VE"] --> agent["Agente Proxmox<br/>do OneUptime"]
     end
-    agent -->|"métricas pve via OTLP"| oneuptime["OneUptime"]
+    agent -->|"métricas<br/>pve via OTLP"| oneuptime["OneUptime"]
     native["Envio nativo do<br/>Proxmox VE 9"] -.->|"alternativa"| oneuptime
     oneuptime -->|"primeiros dados"| registered["Cluster registrado"]
     oneuptime --> monitor["Monitor de Proxmox"]
-    monitor -->|"a cada minuto"| criteria{"Critérios atendidos?"}
-    criteria -->|"sim"| incident["Incidente ou alerta"]
+    monitor -->|"a cada minuto"| criteria{"Critérios<br/>atendidos?"}
+    criteria -->|"sim"| incident["Incidente<br/>ou alerta"]
     criteria -->|"não"| online["Monitor online"]
 ```
 

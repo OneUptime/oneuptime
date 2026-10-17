@@ -218,7 +218,7 @@ Las redirecciones del registro de aplicación a `/api/microsoft-teams/auth` y `/
 ### Publicar el endpoint del bot desde un despliegue privado
 
 ```mermaid title="Publicar el endpoint del bot desde un despliegue privado"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Pasarela pública"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["Ingress de OneUptime"]
     Users["Empleados en la VPN"] --> ING

@@ -36,6 +36,8 @@ flowchart TB
         monitor["监视器"]
         api["API"]
         form["表单"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["新事件"]
     incident --> rules["运行事件规则"]
@@ -105,7 +107,7 @@ flowchart TB
 
 ```mermaid title="每个新项目一开始拥有的状态"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: 声明
     Identified --> Acknowledged: 确认
     Identified --> Resolved: 解决

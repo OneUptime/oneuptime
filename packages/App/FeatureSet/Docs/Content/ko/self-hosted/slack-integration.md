@@ -196,7 +196,7 @@ OAuth는 [브라우저 리디렉션 뒤에 서버 측 토큰 교환이 이어지
 ### 비공개 배포와 콜백 보안
 
 ```mermaid title="비공개 배포에서 Slack 콜백 공개하기"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["공개 게이트웨이"]
     GW -->|"/api/slack/* POST만"| ING["OneUptime ingress"]
     Users["VPN의 직원"] --> ING

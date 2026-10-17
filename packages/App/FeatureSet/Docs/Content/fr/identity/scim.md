@@ -18,12 +18,12 @@ Votre fournisseur d'identité appelle le point de terminaison SCIM d'OneUptime, 
 
 ```mermaid title="Ce que SCIM modifie dans OneUptime"
 flowchart TB
-    IdP["Votre fournisseur d'identité"] -->|"requêtes SCIM,<br/>jeton bearer"| P["Connexion SCIM du projet"]
-    IdP -->|"requêtes SCIM,<br/>jeton bearer"| S["Connexion SCIM de la page de statut"]
-    P --> Q{"Groupes Push activés ?"}
-    Q -->|"Non"| T["Les utilisateurs rejoignent et quittent<br/>les équipes par défaut"]
-    Q -->|"Oui"| G["Les groupes deviennent des équipes,<br/>l'appartenance les suit"]
-    S --> U["Utilisateurs privés ajoutés<br/>et supprimés"]
+    IdP["Votre fournisseur<br/>d'identité"] -->|"requêtes SCIM,<br/>jeton bearer"| P["Connexion<br/>SCIM du projet"]
+    IdP -->|"requêtes SCIM,<br/>jeton bearer"| S["Connexion SCIM de<br/>la page de statut"]
+    P --> Q{"Groupes Push<br/>activés ?"}
+    Q -->|"Non"| T["Les utilisateurs<br/>rejoignent<br/>et quittent<br/>les équipes<br/>par défaut"]
+    Q -->|"Oui"| G["Les groupes<br/>deviennent<br/>des équipes,<br/>l'appartenance<br/>les suit"]
+    S --> U["Utilisateurs<br/>privés ajoutés<br/>et supprimés"]
 ```
 
 L'intégration SCIM apporte les avantages suivants :

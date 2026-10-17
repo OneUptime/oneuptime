@@ -218,7 +218,7 @@ De doorverwijzingen van de app-registratie naar `/api/microsoft-teams/auth` en `
 ### Het bot-endpoint publiceren vanuit een privé-implementatie
 
 ```mermaid title="Het bot-endpoint publiceren vanuit een privé-implementatie"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Openbare gateway"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime-ingress"]
     Users["Medewerkers op de VPN"] --> ING

@@ -196,7 +196,7 @@ OAuth は [ブラウザーのリダイレクトと、それに続くサーバー
 ### プライベートな環境とコールバックのセキュリティ
 
 ```mermaid title="プライベートな環境から Slack のコールバックを公開する"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["公開ゲートウェイ"]
     GW -->|"/api/slack/* POST のみ"| ING["OneUptime の ingress"]
     Users["VPN 上の従業員"] --> ING

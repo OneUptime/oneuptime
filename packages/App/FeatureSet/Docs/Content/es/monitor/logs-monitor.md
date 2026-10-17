@@ -155,16 +155,17 @@ Con Group By en el nombre del túnel, la terminación del túnel `HQ-Branch1` ab
 ```mermaid title="Sin y con Group By"
 flowchart TB
     subgraph Without["Sin Group By"]
-        direction LR
+        direction TB
         A1["HQ-Branch1 cae"] --> M1["Un solo recuento"]
         B1["Branch2 cae"] --> M1
         M1 --> X1["Una sola alerta"]
     end
     subgraph With["Agrupado por con_name"]
-        direction LR
+        direction TB
         A2["HQ-Branch1 cae"] --> X2["Alerta de HQ-Branch1"]
         B2["Branch2 cae"] --> Y2["Alerta de Branch2"]
     end
+    Without ~~~ With
 ```
 
 ### Resolución independiente

@@ -196,7 +196,7 @@ OAuth یک [هدایت در مرورگر است که پس از آن مبادله
 ### استقرارهای خصوصی و امنیت فراخوان‌های بازگشتی
 
 ```mermaid title="انتشار فراخوان‌های بازگشتی Slack از یک استقرار خصوصی"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["دروازهٔ عمومی"]
     GW -->|"/api/slack/* فقط POST"| ING["ingress در OneUptime"]
     Users["کارکنان روی VPN"] --> ING

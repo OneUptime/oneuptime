@@ -218,7 +218,7 @@ Microsoft 要求 [自行託管的機器人提供可公開存取的 HTTPS 端點]
 ### 從私人部署發布機器人端點
 
 ```mermaid title="從私人部署發布機器人端點"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["公開閘道"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime ingress"]
     Users["VPN 上的員工"] --> ING

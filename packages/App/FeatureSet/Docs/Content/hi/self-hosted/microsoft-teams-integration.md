@@ -218,7 +218,7 @@ Microsoft को [सेल्फ-होस्टेड बॉट के लि�
 ### निजी डिप्लॉयमेंट से बॉट एंडपॉइंट प्रकाशित करें
 
 ```mermaid title="निजी डिप्लॉयमेंट से बॉट एंडपॉइंट प्रकाशित करें"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["सार्वजनिक गेटवे"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime ingress"]
     Users["VPN पर कर्मचारी"] --> ING

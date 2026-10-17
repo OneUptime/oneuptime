@@ -50,12 +50,12 @@ En cada comprobación, una sonda:
 
 ```mermaid title="Una comprobación, y el único paso que puede dejar el monitor sin conexión"
 flowchart TB
-    connect["Conectarse a la base de datos"] --> probe{"¿Consulta de prueba OK?"}
+    connect["Conectarse a la<br/>base de datos"] --> probe{"¿Consulta de prueba OK?"}
     probe -->|"No"| offline["Monitor sin conexión"]
-    probe -->|"Sí"| groups["Ejecutar cada grupo de métricas"]
+    probe -->|"Sí"| groups["Ejecutar cada<br/>grupo de métricas"]
     groups --> group{"¿Grupo recopilado?"}
     group -->|"Sí"| metrics["Métricas informadas"]
-    group -->|"No"| issue["Métricas ausentes, problema anotado"]
+    group -->|"No"| issue["Métricas ausentes,<br/>problema anotado"]
     metrics --> criteria["Criterios evaluados"]
     issue --> criteria
 ```

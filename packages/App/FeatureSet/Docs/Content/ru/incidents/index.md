@@ -36,12 +36,14 @@ flowchart TB
         monitor["Монитор"]
         api["API"]
         form["Форма"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Новый инцидент"]
-    incident --> rules["Срабатывают правила инцидентов"]
-    rules --> oncall["Политики дежурства вызывают людей"]
-    rules --> owners["Владельцы получают уведомления"]
-    rules --> pages["Страницы статуса обновляются"]
+    incident --> rules["Срабатывают<br/>правила<br/>инцидентов"]
+    rules --> oncall["Политики<br/>дежурства<br/>вызывают людей"]
+    rules --> owners["Владельцы<br/>получают<br/>уведомления"]
+    rules --> pages["Страницы<br/>статуса<br/>обновляются"]
     oncall --> feed["Инцидент Лента"]
     owners --> feed
     pages --> feed
@@ -105,7 +107,7 @@ flowchart TB
 
 ```mermaid title="Состояния, с которых начинается каждый новый проект"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: объявлен
     Identified --> Acknowledged: Подтвердить
     Identified --> Resolved: Устранить

@@ -73,11 +73,11 @@ How a global provider behaves depends on whether you attach any projects to it:
 flowchart TB
     S["Someone signs in"] --> A{"Projects attached?"}
     A -->|"No"| K{"Has an account?"}
-    K -->|"No"| R["Refused: invite them first"]
-    K -->|"Yes"| E["Signed in to their projects"]
+    K -->|"No"| R["Refused: invite<br/>them first"]
+    K -->|"Yes"| E["Signed in to<br/>their projects"]
     A -->|"Yes"| D{"New, with sign-up<br/>disabled?"}
     D -->|"Yes"| R
-    D -->|"No"| P["Added to attached projects<br/>they are not in yet"]
+    D -->|"No"| P["Added to<br/>attached projects<br/>they are not in yet"]
     P --> E
 ```
 

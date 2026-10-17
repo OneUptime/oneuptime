@@ -196,7 +196,7 @@ OAuth es una [redirección del navegador seguida de un canje del token en el ser
 ### Despliegues privados y seguridad de los callbacks
 
 ```mermaid title="Publicar los callbacks de Slack desde un despliegue privado"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["Pasarela pública"]
     GW -->|"/api/slack/* solo POST"| ING["Ingress de OneUptime"]
     Users["Empleados en la VPN"] --> ING

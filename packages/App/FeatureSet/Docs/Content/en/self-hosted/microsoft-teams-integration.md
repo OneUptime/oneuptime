@@ -218,7 +218,7 @@ The app registration's redirects to `/api/microsoft-teams/auth` and `/api/micros
 ### Publish the bot endpoint from a private deployment
 
 ```mermaid title="Publishing the bot endpoint from a private deployment"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Public gateway"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime ingress"]
     Users["Employees on VPN"] --> ING

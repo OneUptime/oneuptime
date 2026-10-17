@@ -73,11 +73,11 @@ Le comportement d'un fournisseur global dépend des projets que vous lui attache
 flowchart TB
     S["Quelqu'un se connecte"] --> A{"Projets attachés ?"}
     A -->|"Non"| K{"A un compte ?"}
-    K -->|"Non"| R["Refusé : l'inviter d'abord"]
+    K -->|"Non"| R["Refusé :<br/>l'inviter d'abord"]
     K -->|"Oui"| E["Connecté à ses projets"]
     A -->|"Oui"| D{"Nouveau, inscription<br/>désactivée ?"}
     D -->|"Oui"| R
-    D -->|"Non"| P["Ajouté aux projets attachés<br/>dont il ne fait pas encore partie"]
+    D -->|"Non"| P["Ajouté aux<br/>projets attachés<br/>dont il ne fait<br/>pas encore partie"]
     P --> E
 ```
 

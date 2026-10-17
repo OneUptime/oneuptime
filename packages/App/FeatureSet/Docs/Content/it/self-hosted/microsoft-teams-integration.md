@@ -218,7 +218,7 @@ I reindirizzamenti della registrazione dell'app verso `/api/microsoft-teams/auth
 ### Pubblicare l'endpoint del bot da una distribuzione privata
 
 ```mermaid title="Pubblicare l'endpoint del bot da una distribuzione privata"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Gateway pubblico"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["Ingress di OneUptime"]
     Users["Dipendenti sulla VPN"] --> ING

@@ -16,8 +16,8 @@ Docker Compose는 OneUptime의 모든 부분을 서버의 컨테이너로 실행
 ```mermaid title="Docker Compose 배포"
 flowchart TB
     Users["사용자와 에이전트"]
-    Proxy["직접 운영하는 리버스 프록시(선택)"]
-    Targets["모니터링하는 사이트"]
+    Proxy["직접 운영하는<br/>리버스<br/>프록시(선택)"]
+    Targets["모니터링하는<br/>사이트"]
     subgraph Server["서버"]
         Ingress["ingress"]
         App["app"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|결과| Ingress
     Runner -->|작업| Ingress
     Probe -->|검사| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | 서비스 | 이미지 | 하는 일 |

@@ -19,15 +19,15 @@ All three pages edit the same kind of rule, filtered to the rules for that produ
 
 ```mermaid title="From a new incident to started runbooks"
 flowchart TB
-    created["Incident, alert or event created"] --> labels["Label rules add their labels"]
-    labels --> rules["Enabled runbook rules of that product"]
+    created["Incident, alert<br/>or event created"] --> labels["Label rules add<br/>their labels"]
+    labels --> rules["Enabled runbook<br/>rules of that product"]
     rules --> match{"Conditions match?"}
     match -->|no| nothing["Rule starts nothing"]
-    match -->|yes| union["Runbooks of every matching rule, each once"]
-    union --> runnable{"Runbook switched on and has steps?"}
-    runnable -->|no| skipped["That runbook is skipped"]
-    runnable -->|yes| execution["Execution created and queued"]
-    execution --> attached["Shown on the event's Runbooks page"]
+    match -->|yes| union["Runbooks of<br/>every matching<br/>rule, each once"]
+    union --> runnable{"Runbook switched<br/>on and has steps?"}
+    runnable -->|no| skipped["That runbook<br/>is skipped"]
+    runnable -->|yes| execution["Execution created<br/>and queued"]
+    execution --> attached["Shown on the event's<br/>Runbooks page"]
 ```
 
 When a rule fires, for each runbook it names:

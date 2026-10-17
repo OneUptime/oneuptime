@@ -14,24 +14,18 @@
 ```mermaid title="कौन-से चरण कहाँ चलते हैं"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["HTTP request चरण"]
-        ai["AI चरण"]
+        onworker["HTTP request चरण<br/>AI चरण"]
     end
     subgraph yours["आपका इंफ्रास्ट्रक्चर"]
-        direction LR
         runner["Runner"]
-        scripts["JavaScript और Bash चरण"]
-        remote["SSH और Kubernetes चरण"]
+        onrunner["JavaScript और Bash चरण<br/>SSH और Kubernetes चरण"]
     end
     person["एक व्यक्ति"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual चरण और अनुमोदन"| person
-    worker -->|"चरण के Runner के लिए जॉब कतार में डालता है"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual चरण<br/>और अनुमोदन"| person
+    worker --->|"चरण के<br/>Runner के<br/>लिए जॉब कतार<br/>में डालता है"| runner
+    runner --> onrunner
 ```
 
 | चरण का प्रकार | कहाँ चलता है | कैसे |

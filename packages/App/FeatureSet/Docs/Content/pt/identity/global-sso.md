@@ -73,11 +73,11 @@ O comportamento de um provedor global depende de você anexar projetos a ele ou 
 flowchart TB
     S["Alguém faz login"] --> A{"Projetos anexados?"}
     A -->|"Não"| K{"Tem uma conta?"}
-    K -->|"Não"| R["Recusado: convide primeiro"]
-    K -->|"Sim"| E["Login feito nos projetos dele"]
-    A -->|"Sim"| D{"Novo, com o cadastro<br/>desativado?"}
+    K -->|"Não"| R["Recusado:<br/>convide primeiro"]
+    K -->|"Sim"| E["Login feito nos<br/>projetos dele"]
+    A -->|"Sim"| D{"Novo, com<br/>o cadastro<br/>desativado?"}
     D -->|"Sim"| R
-    D -->|"Não"| P["Adicionado aos projetos anexados<br/>em que ainda não está"]
+    D -->|"Não"| P["Adicionado aos<br/>projetos anexados<br/>em que ainda<br/>não está"]
     P --> E
 ```
 

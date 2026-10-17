@@ -14,15 +14,15 @@
 ```mermaid title="یک پوش چگونه به گوشی یا مرورگر می‌رسد"
 flowchart TB
     Server["سرور OneUptime شما"]
-    Relay["رلهٔ پوش OneUptime"]
+    Relay["رلهٔ پوش<br/>OneUptime"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["برنامهٔ OneUptime On-Call"]
+    Phone["برنامهٔ<br/>OneUptime<br/>On-Call"]
     PushService["سرویس پوشِ<br/>مرورگر"]
     Browser["مرورگر"]
     Server -->|"بدون EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN تنظیم شده"| Expo
+    Server -->|"EXPO_ACCESS_TOKEN<br/>تنظیم شده"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM

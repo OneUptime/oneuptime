@@ -16,16 +16,16 @@ OneUptime は、利用者のブラウザーからではなく、OneUptime サー
 ```mermaid title="OneUptime の AI リクエストの行き先"
 flowchart TB
     subgraph OU["OneUptime サーバー"]
-        F["AI 調査、メモ、ポストモーテム、修正タスク"]
+        F["AI 調査、メモ、<br/>ポストモーテム、修正タスク"]
     end
     subgraph AZ["お使いの Azure サブスクリプション"]
-        R["Foundry リソース contoso-ai"]
-        V1["OpenAI v1 API: /openai/v1/chat/completions"]
-        AN["Anthropic API: /anthropic/v1/messages"]
+        R["Foundry リソース<br/>contoso-ai"]
+        V1["OpenAI v1 API:<br/>/openai/v1/chat/completions"]
+        AN["Anthropic API:<br/>/anthropic/v1/messages"]
         D1["デプロイ gpt-5.1"]
         D2["デプロイ claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API キー"| R
+    F -->|"HTTPS +<br/>API キー"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```

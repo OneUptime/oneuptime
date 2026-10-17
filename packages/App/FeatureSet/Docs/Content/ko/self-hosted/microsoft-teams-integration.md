@@ -218,7 +218,7 @@ Microsoft는 [자체 호스팅 봇에 공개적으로 접근 가능한 HTTPS 엔
 ### 비공개 배포에서 봇 엔드포인트 게시하기
 
 ```mermaid title="비공개 배포에서 봇 엔드포인트 게시하기"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["공개 게이트웨이"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime ingress"]
     Users["VPN의 직원"] --> ING

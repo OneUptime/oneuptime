@@ -12,12 +12,12 @@ La page **Construire** d'un formulaire est l'endroit où vous décidez ce qu'il 
 ## Où va chaque réponse
 
 ```mermaid title="Où va chaque type de réponse"
-flowchart TB
-    answer["Une réponse soumise"] --> kind{"Ce qu'est la question"}
-    kind -->|"Un champ de l'enregistrement"| field["Ce champ du nouvel<br/>incident ou événement"]
-    kind -->|"Un champ personnalisé"| custom["La valeur de ce<br/>champ personnalisé"]
-    kind -->|"Une question propre<br/>au formulaire"| note["Une ligne de la<br/>note privée"]
-    kind -->|"Votre nom, votre e-mail"| who["Qui a soumis,<br/>sur la note privée"]
+flowchart LR
+    answer["Une réponse<br/>soumise"]
+    answer -->|"Un champ de<br/>l'enregistrement"| field["Ce champ du nouvel<br/>incident ou<br/>événement"]
+    answer -->|"Un champ<br/>personnalisé"| custom["La valeur de ce<br/>champ personnalisé"]
+    answer -->|"Une question<br/>propre<br/>au formulaire"| note["Une ligne de la<br/>note privée"]
+    answer -->|"Votre nom,<br/>votre e-mail"| who["Qui a soumis,<br/>sur la note privée"]
 ```
 
 Chaque réponse est aussi conservée avec la soumission, sur la page **Soumissions** du formulaire. Un champ que le formulaire ne demande pas, ou laissé vide, est rempli à partir des [paramètres À la soumission](/docs/forms/on-submit) du formulaire.

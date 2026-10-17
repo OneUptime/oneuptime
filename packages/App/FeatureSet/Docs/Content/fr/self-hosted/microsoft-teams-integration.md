@@ -218,7 +218,7 @@ Les redirections de l'inscription d'application vers `/api/microsoft-teams/auth`
 ### Publier le point de terminaison du bot depuis un déploiement privé
 
 ```mermaid title="Publier le point de terminaison du bot depuis un déploiement privé"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Passerelle publique"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["Ingress OneUptime"]
     Users["Employés sur le VPN"] --> ING

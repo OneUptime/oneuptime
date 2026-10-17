@@ -19,15 +19,15 @@ Alle drei Seiten bearbeiten dieselbe Art von Regel, gefiltert auf die Regeln die
 
 ```mermaid title="Von einem neuen Vorfall zu gestarteten Runbooks"
 flowchart TB
-    created["Vorfall, Warnung oder Ereignis entsteht"] --> labels["Beschriftungsregeln fügen ihre Beschriftungen hinzu"]
-    labels --> rules["Aktivierte Runbook-Regeln dieses Produkts"]
-    rules --> match{"Bedingungen erfüllt?"}
-    match -->|"nein"| nothing["Regel startet nichts"]
-    match -->|"ja"| union["Runbooks aller passenden Regeln, jedes einmal"]
-    union --> runnable{"Runbook eingeschaltet und mit Schritten?"}
-    runnable -->|"nein"| skipped["Dieses Runbook wird übersprungen"]
-    runnable -->|"ja"| execution["Ausführung erstellt und eingereiht"]
-    execution --> attached["Auf der Runbooks-Seite des Ereignisses angezeigt"]
+    created["Vorfall, Warnung<br/>oder Ereignis<br/>entsteht"] --> labels["Beschriftungsregeln<br/>fügen ihre<br/>Beschriftungen hinzu"]
+    labels --> rules["Aktivierte<br/>Runbook-Regeln<br/>dieses Produkts"]
+    rules --> match{"Bedingungen<br/>erfüllt?"}
+    match -->|"nein"| nothing["Regel startet<br/>nichts"]
+    match -->|"ja"| union["Runbooks aller<br/>passenden Regeln,<br/>jedes einmal"]
+    union --> runnable{"Runbook<br/>eingeschaltet und<br/>mit Schritten?"}
+    runnable -->|"nein"| skipped["Dieses Runbook<br/>wird übersprungen"]
+    runnable -->|"ja"| execution["Ausführung<br/>erstellt und<br/>eingereiht"]
+    execution --> attached["Auf der<br/>Runbooks-Seite<br/>des Ereignisses<br/>angezeigt"]
 ```
 
 Wenn eine Regel greift, geschieht für jedes Runbook, das sie nennt, Folgendes:

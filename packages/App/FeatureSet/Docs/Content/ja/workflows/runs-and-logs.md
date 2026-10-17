@@ -29,12 +29,12 @@ stateDiagram-v2
     state "エラー" as Failed
     state "Timeout" as TimedOut
     [*] --> Scheduled: トリガーが発火する
-    Scheduled --> Running: ランナーが引き受ける
-    Scheduled --> Failed: 5 分以内に引き受けられない
+    Scheduled --> Running: ランナーが<br/>引き受ける
+    Scheduled --> Failed: 5 分以内に引き<br/>受けられない
     Running --> Waiting: Sleep ブロック
     Waiting --> Running: 時間が来る
     Running --> Executed: 最後まで到達した
-    Running --> Failed: ブロックが実行を止めた
+    Running --> Failed: ブロックが<br/>実行を止めた
     Running --> TimedOut: 時間切れになった
     Executed --> [*]
     Failed --> [*]

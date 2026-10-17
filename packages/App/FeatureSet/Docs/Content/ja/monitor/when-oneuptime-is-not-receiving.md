@@ -11,7 +11,7 @@ OneUptime の再起動中、アップグレード中、または滞留したデ�
 - 追い付き: 処理待ちのデータのキューが一分を超えて遅れている間、キューにまだ残っている最も古いデータ以降の時間。
 
 ```mermaid title="OneUptime が除外する時間"
-flowchart LR
+flowchart TB
     receiving["受信中"] -->|"90 秒間記録なし"| down["受信停止"]
     down -->|"プロセスが再び記録"| grace["2 分間の再接続"]
     grace --> again["受信中"]

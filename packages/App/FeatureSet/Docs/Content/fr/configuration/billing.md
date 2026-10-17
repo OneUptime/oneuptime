@@ -13,10 +13,10 @@ Sur OneUptime Cloud, un projet paie son forfait, par utilisateur, et ce qu'il co
 
 ```mermaid title="Ce que paie un projet sur OneUptime Cloud"
 flowchart TB
-    project["Votre projet"] --> plan["Le forfait : un prix par<br/>utilisateur et par mois"]
-    project --> usage["À l'usage :<br/>télémétrie et moniteurs"]
-    project --> balances["Soldes prépayés :<br/>messages et IA"]
-    plan --> invoices["Factures, prélevées sur<br/>votre moyen de paiement"]
+    project["Votre projet"] --> plan["Le forfait :<br/>un prix par<br/>utilisateur<br/>et par mois"]
+    project --> usage["À l'usage :<br/>télémétrie<br/>et moniteurs"]
+    project --> balances["Soldes<br/>prépayés :<br/>messages et IA"]
+    plan --> invoices["Factures,<br/>prélevées sur<br/>votre moyen<br/>de paiement"]
     usage --> invoices
     balances --> recharge["Rechargés depuis<br/>la même carte"]
 ```

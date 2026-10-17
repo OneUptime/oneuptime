@@ -13,12 +13,12 @@ OneUptime は、スマートフォンでは **OneUptime On-Call** モバイル�
 
 ```mermaid title="プッシュがスマートフォンやブラウザーに届くまで"
 flowchart TB
-    Server["あなたの OneUptime サーバー"]
-    Relay["OneUptime のプッシュリレー"]
+    Server["あなたの<br/>OneUptime サーバー"]
+    Relay["OneUptime の<br/>プッシュリレー"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["OneUptime On-Call アプリ"]
+    Phone["OneUptime<br/>On-Call アプリ"]
     PushService["ブラウザーの<br/>プッシュサービス"]
     Browser["ブラウザー"]
     Server -->|"EXPO_ACCESS_TOKEN なし"| Relay
@@ -28,7 +28,7 @@ flowchart TB
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -106,9 +106,9 @@ Web Push では、チームが使うブラウザーの実際の購読エンド�
 flowchart TB
     Page["オンコールの呼び出し"]
     Rule{"そのオンコールルールが<br/>「重大アラート」か？"}
-    Device{"このデバイスで Critical On-Call<br/>Alerts がオンか？"}
-    OS{"スマートフォンのシステムが<br/>重大なアラートを許可しているか？"}
-    Loud["サイレントモードとおやすみモードを<br/>越えて音を鳴らす"]
+    Device{"このデバイスで<br/>Critical On-Call<br/>Alerts がオンか？"}
+    OS{"スマートフォンの<br/>システムが<br/>重大なアラートを<br/>許可しているか？"}
+    Loud["サイレントモードと<br/>おやすみモードを<br/>越えて音を鳴らす"]
     Quiet["ほかのプッシュと同じく<br/>静かに配信"]
     Page --> Rule
     Rule -->|"はい"| Device

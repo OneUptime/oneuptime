@@ -14,7 +14,7 @@ Project Settings holds what applies to the whole project: its name, the tools it
 Go to **Products → Settings → Project Settings**. The side menu groups the pages into sections, and only **Basic** starts open: click a section's title to open it. A section opens by itself on any page inside it.
 
 ```mermaid title="What Project Settings holds"
-flowchart TB
+flowchart LR
     settings["Project Settings"] --> project["The project:<br/>details, labels, imports"]
     settings --> connect["What it connects to:<br/>chat, telemetry, AI"]
     settings --> access["Who gets in:<br/>keys, domains, sign-in"]

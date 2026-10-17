@@ -12,12 +12,12 @@ Auf der Seite **Erstellen** eines Formulars legen Sie fest, was es fragt und wie
 ## Wohin jede Antwort geht
 
 ```mermaid title="Wohin jede Art von Antwort geht"
-flowchart TB
-    answer["Eine eingereichte Antwort"] --> kind{"Was die Frage ist"}
-    kind -->|"Ein Feld des Datensatzes"| field["Dieses Feld des neuen<br/>Vorfalls oder Ereignisses"]
-    kind -->|"Ein benutzerdefiniertes Feld"| custom["Der Wert dieses<br/>benutzerdefinierten Felds"]
-    kind -->|"Eine eigene Frage<br/>des Formulars"| note["Eine Zeile der<br/>privaten Notiz"]
-    kind -->|"Ihr Name, Ihre E-Mail"| who["Wer eingereicht hat,<br/>auf der privaten Notiz"]
+flowchart LR
+    answer["Eine eingereichte<br/>Antwort"]
+    answer -->|"Ein Feld des<br/>Datensatzes"| field["Dieses Feld des neuen<br/>Vorfalls oder<br/>Ereignisses"]
+    answer -->|"Ein benutzerdefiniertes Feld"| custom["Der Wert dieses<br/>benutzerdefinierten Felds"]
+    answer -->|"Eine eigene Frage<br/>des Formulars"| note["Eine Zeile der<br/>privaten Notiz"]
+    answer -->|"Ihr Name,<br/>Ihre E-Mail"| who["Wer eingereicht hat,<br/>auf der privaten Notiz"]
 ```
 
 Jede Antwort bleibt außerdem bei der Einreichung erhalten, auf der Seite **Einreichungen** des Formulars. Ein Feld, das das Formular nicht fragt oder das leer bleibt, wird aus den [Einstellungen Beim Absenden](/docs/forms/on-submit) des Formulars gefüllt.
