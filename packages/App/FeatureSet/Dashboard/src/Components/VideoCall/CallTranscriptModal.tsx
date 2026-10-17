@@ -229,7 +229,12 @@ const CallTranscriptModal: FunctionComponent<ComponentProps> = (
                     data-highlighted={isHighlighted ? "true" : undefined}
                     className={`flex gap-3 px-2 py-2 ${isHighlighted ? "bg-amber-50" : ""}`}
                   >
-                    <span className="w-16 flex-shrink-0 pt-0.5 font-mono text-xs tabular-nums text-gray-500">
+                    {/*
+                      The page's own type, with figures of one width: the
+                      times line up, and read like the quoted lines' times
+                      on the AI Investigation card.
+                    */}
+                    <span className="w-14 flex-shrink-0 pt-0.5 text-xs tabular-nums text-gray-500">
                       {entry.line.offsetInSeconds === undefined
                         ? ""
                         : TranscriptText.formatOffset(

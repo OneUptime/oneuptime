@@ -172,6 +172,24 @@ describe("Add transcript", () => {
     expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
   });
 
+  test("the box to paste into has a name a screen reader says, not its example text", () => {
+    renderAdd({});
+
+    const box: HTMLElement = screen.getByRole("textbox", {
+      name: "Transcript",
+    });
+
+    expect(box).toBe(screen.getByTestId("add-call-transcript-text"));
+    // The example transcript stays a placeholder, never the box's name.
+    expect(box).toHaveAttribute(
+      "placeholder",
+      "[00:12:03] Priya Shah: The pool maxes at 50 and we just went to 100 workers.",
+    );
+    expect(screen.getByLabelText("Transcript file")).toBe(
+      screen.getByTestId("add-call-transcript-file-input"),
+    );
+  });
+
   test("each provider's hint says where its transcript is", () => {
     expect(getTranscriptSourceHint(VideoCallProvider.Zoom)).toContain(
       "Recordings and Transcripts",
@@ -401,6 +419,17 @@ describe("the transcript dialog", () => {
     expect(screen.getByText("Transcript of the Zoom meeting")).toBeVisible();
     // Nothing is highlighted when nothing is quoted.
     expect(screen.queryByTestId("call-transcript-highlight-legend")).toBeNull();
+
+    /*
+     * A row's time in the page's own type, with figures of one width, as
+     * the quoted lines' times read on the AI Investigation card - not in a
+     * monospace face of its own.
+     */
+    const time: HTMLElement = sixth.firstElementChild as HTMLElement;
+
+    expect(time).toHaveTextContent(/^00:04:03$/);
+    expect(time).toHaveClass("tabular-nums");
+    expect(time).not.toHaveClass("font-mono");
   });
 
   test("the find box narrows it to the remarks holding a word, a speaker's too, in any case", async () => {

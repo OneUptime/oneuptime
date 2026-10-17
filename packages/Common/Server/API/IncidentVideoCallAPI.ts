@@ -423,7 +423,27 @@ export default class IncidentVideoCallAPI extends BaseAPI<
     };
   }
 
-  // A line in the incident's feed, kept to the dashboard: never posted to its channels.
+  /*
+   * A line in the incident's feed, kept to the dashboard: never posted to
+   * its channels. It opens with "added", as the entries written for
+   * someone's action do, so the feed puts the person first ("Maya Chen
+   * added the call's transcript from Zoom: ..."), and an API key's reads
+   * "Added ..." (FeedEntryText).
+   */
+  public static getTranscriptFeedMarkdown(data: {
+    call: IncidentVideoCall;
+    info: VideoCallTranscriptInfo;
+    source: VideoCallTranscriptSource;
+  }): string {
+    const details: string = TranscriptText.describeInfo(data.info);
+
+    if (data.source === VideoCallTranscriptSource.Provider) {
+      return mdText`📝 added the call's transcript from **${getVideoCallProviderDisplayName(data.call.provider)}**: ${details}.`.toString();
+    }
+
+    return mdText`📝 added a transcript of the **${getVideoCallNoun(data.call.provider)}**: ${details}.`.toString();
+  }
+
   private async announceTranscript(data: {
     call: IncidentVideoCall;
     props: DatabaseCommonInteractionProps;
@@ -431,13 +451,8 @@ export default class IncidentVideoCallAPI extends BaseAPI<
     source: VideoCallTranscriptSource;
   }): Promise<void> {
     try {
-      const callNoun: string = getVideoCallNoun(data.call.provider);
-      const details: string = TranscriptText.describeInfo(data.info);
-
       const feedInfoInMarkdown: string =
-        data.source === VideoCallTranscriptSource.Provider
-          ? mdText`📝 The transcript of the **${callNoun}** was read from ${getVideoCallProviderDisplayName(data.call.provider)}: ${details}.`.toString()
-          : mdText`📝 A transcript of the **${callNoun}** was added: ${details}.`.toString();
+        IncidentVideoCallAPI.getTranscriptFeedMarkdown(data);
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: data.call.incidentId!,

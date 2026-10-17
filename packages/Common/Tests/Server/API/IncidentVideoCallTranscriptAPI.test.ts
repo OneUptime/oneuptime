@@ -30,10 +30,15 @@ import {
 } from "../../../Types/VideoCall/CallSummary";
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
 import {
+  VideoCallTranscriptInfo,
   VideoCallTranscriptSource,
   VideoCallTranscriptUnavailableReason,
 } from "../../../Types/VideoCall/VideoCallTranscript";
 import TranscriptText from "../../../Utils/VideoCall/TranscriptText";
+import {
+  FeedEntryLead,
+  getFeedEntryText,
+} from "../../../UI/Components/Feed/FeedEntryText";
 
 /*
  * The routes of an incident call's transcript (issue #4875).
@@ -325,8 +330,13 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
     );
     expect(item["incidentId"]).toEqual(INCIDENT);
     expect(item["userId"]).toEqual(USER);
+    /*
+     * Written for the person's action - "added", the verb the feed leads
+     * with the person's name - so it reads "Maya Chen added a transcript
+     * of the Zoom meeting: ..." in the feed.
+     */
     expect(item["feedInfoInMarkdown"]).toBe(
-      "📝 A transcript of the **Zoom meeting** was added: 12 minutes, 2 speakers, 2 remarks.",
+      "📝 added a transcript of the **Zoom meeting**: 12 minutes, 2 speakers, 2 remarks.",
     );
     // Never posted to the incident's Slack or Teams channels.
     expect(item["workspaceNotification"]).toBeUndefined();
@@ -521,8 +531,9 @@ describe("POST /incident-video-call/:callId/transcript/from-provider", () => {
     const item: JSONObject = (
       IncidentFeedService.createIncidentFeedItem as unknown as jest.Mock
     ).mock.calls[0]![0] as JSONObject;
+    // The provider named once: "added the call's transcript from Zoom".
     expect(item["feedInfoInMarkdown"]).toBe(
-      "📝 The transcript of the **Zoom meeting** was read from Zoom: 1 speaker, 1 remark.",
+      "📝 added the call's transcript from **Zoom**: 1 speaker, 1 remark.",
     );
     expect(sentJson()).toEqual(
       expect.objectContaining({
@@ -812,4 +823,83 @@ describe("POST /incident-video-call/:callId/root-cause-suggestion", () => {
     expect(IncidentService.updateOneById).not.toHaveBeenCalled();
     expect(writes).toHaveLength(0);
   });
+});
+
+/*
+ * The feed entry an added transcript writes, as the incident's feed draws
+ * it (FeedEntryText): the person who added it leads the sentence, as on
+ * every entry written for someone's action, and an API key's entry reads as
+ * a sentence of its own. The provider is named once.
+ */
+describe("the feed entry an added transcript writes", () => {
+  function callOf(provider: VideoCallProvider): IncidentVideoCall {
+    const feedCall: IncidentVideoCall = new IncidentVideoCall();
+    feedCall.provider = provider;
+    return feedCall;
+  }
+
+  const INFO: VideoCallTranscriptInfo = {
+    lineCount: 312,
+    speakerCount: 6,
+    characterCount: 40_000,
+    durationInSeconds: 52 * 60,
+  };
+
+  test.each<[string, VideoCallProvider, VideoCallTranscriptSource, string]>([
+    [
+      "read from Zoom",
+      VideoCallProvider.Zoom,
+      VideoCallTranscriptSource.Provider,
+      "added the call's transcript from **Zoom**: 52 minutes, 6 speakers, 312 remarks.",
+    ],
+    [
+      "read from Google Meet",
+      VideoCallProvider.GoogleMeet,
+      VideoCallTranscriptSource.Provider,
+      "added the call's transcript from **Google Meet**: 52 minutes, 6 speakers, 312 remarks.",
+    ],
+    [
+      "a Microsoft Teams meeting's, added by hand",
+      VideoCallProvider.MicrosoftTeams,
+      VideoCallTranscriptSource.Upload,
+      "added a transcript of the **Microsoft Teams meeting**: 52 minutes, 6 speakers, 312 remarks.",
+    ],
+    [
+      "a Slack huddle's, added by hand",
+      VideoCallProvider.SlackHuddle,
+      VideoCallTranscriptSource.Upload,
+      "added a transcript of the **Slack huddle**: 52 minutes, 6 speakers, 312 remarks.",
+    ],
+  ])(
+    "%s: the person's name leads it",
+    (
+      _name: string,
+      provider: VideoCallProvider,
+      source: VideoCallTranscriptSource,
+      sentence: string,
+    ) => {
+      const markdown: string = IncidentVideoCallAPI.getTranscriptFeedMarkdown({
+        call: callOf(provider),
+        info: INFO,
+        source,
+      });
+
+      const withPerson: FeedEntryLead = getFeedEntryText({
+        markdown,
+        actorName: "Maya Chen",
+      });
+
+      // "Maya Chen added the call's transcript from Zoom: ..."
+      expect(withPerson.lead).toBe(sentence);
+      expect(withPerson.body).toBe("");
+
+      // Added with an API key: no one to lead it, so it starts a sentence.
+      const withoutPerson: FeedEntryLead = getFeedEntryText({ markdown });
+
+      expect(withoutPerson.lead).toBeUndefined();
+      expect(withoutPerson.body).toBe(
+        sentence.charAt(0).toUpperCase() + sentence.slice(1),
+      );
+    },
+  );
 });

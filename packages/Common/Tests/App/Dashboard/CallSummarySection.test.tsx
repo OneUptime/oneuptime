@@ -96,8 +96,10 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  CallSummary,
   CallSummaryBasis,
   CallSummaryStatus,
+  MAX_CALL_SUMMARY_CITATIONS,
   RootCauseSuggestionStatus,
 } from "../../../Types/VideoCall/CallSummary";
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
@@ -233,11 +235,14 @@ describe("which calls it speaks of", () => {
 
     expect(section).toHaveAttribute("id", `call-summary-${CALL_ID}`);
     expect(within(section).getByText("From the incident's call")).toBeVisible();
+    /*
+     * Under the heading, what was read and the way to read it, in one short
+     * line: the card's Not confirmed mark already says who wrote the rest.
+     */
     expect(
-      within(section).getByText(
-        /What OneUptime AI read in the transcript of the Zoom meeting\. 11 minutes · 3 speakers\./,
-      ),
-    ).toBeVisible();
+      within(section).getByTestId("call-summary-transcript-line"),
+    ).toHaveTextContent(/^11 minutes · 3 speakers · View transcript$/);
+    expect(within(section).queryByText(/What OneUptime AI read/)).toBeNull();
 
     fireEvent.click(
       within(section).getByTestId("call-summary-view-transcript"),
@@ -356,6 +361,26 @@ describe("a suggested root cause", () => {
     );
     // Nothing is written by opening it.
     expect(post).not.toHaveBeenCalled();
+  });
+
+  test("the editor has the focus when the dialog opens, ready to change the suggestion", async () => {
+    renderSection([suggestedCall()]);
+
+    fireEvent.click(screen.getByTestId("call-summary-use"));
+
+    const editor: HTMLElement = await screen.findByTestId(
+      "use-call-root-cause-editor",
+    );
+
+    /*
+     * Not the dialog's first button - in the real editor, its Bold - whose
+     * focus ring read as Bold being on.
+     */
+    expect(editor).toHaveFocus();
+    // The editor's name for a screen reader: what it holds.
+    expect(
+      document.getElementById("use-call-root-cause-label"),
+    ).toHaveTextContent("Root Cause");
   });
 
   test("saving writes what the person kept, as their decision, and the page reads the calls again", async () => {
@@ -516,6 +541,22 @@ describe("once a person decided", () => {
     );
     expect(screen.getByText(/Jordan Patel dismissed it/)).toBeVisible();
 
+    /*
+     * Set aside, it keeps its one sentence, quieter, and lets the rest go:
+     * no quoted lines, no word on what it rests on, nothing to press but
+     * Undo.
+     */
+    expect(screen.getByTestId("call-summary-root-cause-text")).toHaveClass(
+      "text-gray-500",
+    );
+    expect(
+      screen.getByTestId("call-summary-root-cause-text"),
+    ).toHaveTextContent(SUGGESTED_CAUSE);
+    expect(screen.queryAllByTestId("call-summary-quote")).toHaveLength(0);
+    expect(screen.queryByTestId("call-summary-basis")).toBeNull();
+    expect(screen.queryByTestId("call-summary-use")).toBeNull();
+    expect(screen.queryByTestId("call-summary-dismiss")).toBeNull();
+
     fireEvent.click(screen.getByTestId("call-summary-undo-dismiss"));
 
     await waitFor(() => {
@@ -547,7 +588,7 @@ describe("a call that did not settle the cause", () => {
 });
 
 describe("everything else the call said", () => {
-  test("is folded under the cause, findings marked confirmed on the call or a hypothesis", () => {
+  test("is folded under the cause: what the call confirmed and the hypotheses as two lists, never tags on one", () => {
     renderSection([suggestedCall()]);
 
     const details: HTMLElement = screen.getByTestId("call-summary-details");
@@ -557,16 +598,44 @@ describe("everything else the call said", () => {
       within(details).getByText("5 more points from the call"),
     ).toBeVisible();
 
-    const findings: HTMLElement = within(details).getByTestId(
-      "call-summary-findings",
+    const confirmed: HTMLElement = within(details).getByTestId(
+      "call-summary-confirmed",
+    );
+    const hypotheses: HTMLElement = within(details).getByTestId(
+      "call-summary-hypotheses",
     );
 
-    expect(findings).toHaveTextContent(
-      "The orders database itself was healthy.Confirmed on the call00:00:31",
-    );
-    expect(findings).toHaveTextContent(
-      "A cold cache may have added to the latency.Hypothesis",
-    );
+    expect(
+      within(confirmed).getByRole("heading", { level: 5 }),
+    ).toHaveTextContent("Confirmed on the call");
+    expect(
+      within(hypotheses).getByRole("heading", { level: 5 }),
+    ).toHaveTextContent("Hypotheses");
+
+    const pointsOf: (list: HTMLElement) => Array<string> = (
+      list: HTMLElement,
+    ): Array<string> => {
+      return within(list)
+        .getAllByTestId("call-summary-point")
+        .map((point: HTMLElement): string => {
+          return point.textContent || "";
+        });
+    };
+
+    // Each point is its words, then when they were said.
+    expect(pointsOf(confirmed)).toEqual([
+      "The orders database itself was healthy. 00:00:31",
+    ]);
+    expect(pointsOf(hypotheses)).toEqual([
+      "A cold cache may have added to the latency.",
+    ]);
+    // The confirmed list is the first of the two, and neither carries a tag.
+    expect(
+      confirmed.compareDocumentPosition(hypotheses) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(within(details).queryByText("Hypothesis")).toBeNull();
+    expect(within(details).queryByTestId("call-summary-findings")).toBeNull();
     expect(
       within(details).getByTestId("call-summary-actions"),
     ).toHaveTextContent("Add an alert on pool usage. (Jordan Patel)");
@@ -578,6 +647,58 @@ describe("everything else the call said", () => {
     ).toHaveTextContent("Keep the rollback until the pool size is fixed.");
     // An empty kind is left out.
     expect(within(details).queryByTestId("call-summary-questions")).toBeNull();
+  });
+});
+
+describe("when a point was said", () => {
+  test("its times follow its words in small print; a long list of them wraps between times, never inside one", () => {
+    const summary: CallSummary = suggestedSummary();
+
+    summary.decisions = [
+      {
+        text: "Roll checkout-api back to 2026.09.14-1.",
+        // As many lines as a point may cite.
+        citations: [3, 5, 6, 9, 10].map((line: number) => {
+          return {
+            line,
+            time: `00:0${line % 10}:15`,
+            speaker: "Sam Rivera",
+            text: "Rolling back.",
+          };
+        }),
+      },
+    ];
+
+    renderSection([suggestedCall({ summary })]);
+
+    const times: HTMLElement = within(
+      screen.getByTestId("call-summary-decisions"),
+    ).getByTestId("call-summary-point-times");
+
+    expect(times).toHaveTextContent(
+      "00:03:15, 00:05:15, 00:06:15, 00:09:15, 00:00:15",
+    );
+    expect(times).toHaveClass("tabular-nums");
+    // The list may wrap: only each time is kept whole.
+    expect(times).not.toHaveClass("whitespace-nowrap");
+
+    const each: Array<Element> = Array.from(times.children);
+
+    expect(each).toHaveLength(MAX_CALL_SUMMARY_CITATIONS);
+
+    for (const time of each) {
+      expect(time).toHaveClass("whitespace-nowrap");
+    }
+  });
+
+  test("a point without a line to point at has no times", () => {
+    renderSection([suggestedCall()]);
+
+    expect(
+      within(screen.getByTestId("call-summary-hypotheses")).queryByTestId(
+        "call-summary-point-times",
+      ),
+    ).toBeNull();
   });
 });
 

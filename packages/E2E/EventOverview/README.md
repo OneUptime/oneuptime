@@ -261,17 +261,22 @@ Query parameters, parsed once per page load:
   `?fail=channel-links` hiding the buttons with nothing broken; a phone with all three.
 - **An incident call's transcript** (`?calls=`, `?transcriptFetch=`): Get from Zoom reads it,
   the Video Call card says OneUptime AI is reading it, and the AI card's section becomes the
-  suggestion without a reload; Review focuses that section. Zoom's not-ready, permission and
-  not-transcribed answers in words, the last two with How to set it up opening the docs in a
-  new tab, each dismissable, and no sideways scroll on a phone. A Teams meeting's transcript
-  pasted, sent as written and described. The suggestion marked Not confirmed, its quotes in
-  the order they were said, its other points folded (confirmed findings and hypotheses), and
-  nothing written to the incident. View transcript starting on the quoted lines, highlighted,
-  with its find box. Use as root cause showing DB_POOL_MAX=10 as code, never italic, and the
-  quotes as quotes; Cancel saving nothing and Save sending the decision with the text; a
-  refused save. Dismiss and Undo, a decision already made, not enough said, a failed and a
-  stuck reading offered again, AI off, Remove asking first, two calls, and both cards at
-  1280px in both themes and on a phone, View and the menu beside it as tall as each other.
+  suggestion without a reload; Review it focuses that section, and the feed reads "Maya Chen
+  added the call's transcript from Zoom: ...". Zoom's not-ready, permission and
+  not-transcribed answers each as one sentence of the card's own, Zoom's words behind Show
+  details, the last two with How to set it up opening the docs in a new tab, each dismissable,
+  and no sideways scroll on a phone. A Teams meeting's transcript pasted, sent as written,
+  described, and in the feed. The suggestion marked Not confirmed, its quotes in the order
+  they were said, its other points folded as two lists (Confirmed on the call, then
+  Hypotheses), and nothing written to the incident. View transcript starting on the quoted
+  lines, highlighted, with its find box. Use as root cause opening in the editor, showing
+  DB_POOL_MAX=10 as code, never italic, and the quotes as quotes; Cancel saving nothing and
+  Save sending the decision with the text; a refused save. Dismiss folding the suggestion to
+  its sentence and Undo bringing its quotes back, a decision already made, not enough said, a
+  failed and a stuck reading offered again, AI off (with Open AI Features), Remove asking
+  first, two calls, and both cards at 1280px in both themes and on a phone: the transcript's
+  heading on a line of its own with the menu's mark, View transcript under the reading, and
+  Copy link and Remove under Join call together.
 
 Two tests are marked `test.fail` because they pin known layout bugs and pass (as expected
 failures) until the bugs are fixed, when Playwright reports them so the mark can go: on a

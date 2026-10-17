@@ -272,8 +272,16 @@ const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
               <span className="h-px flex-1 bg-gray-200" />
             </div>
 
+            {/*
+              The box's name for a screen reader: the divider above it is
+              drawn only, and a placeholder is no name.
+            */}
+            <span id="add-call-transcript-text-label" className="sr-only">
+              {translator.translateText("Transcript")}
+            </span>
             <TextArea
               id="add-call-transcript-text"
+              ariaLabelledby="add-call-transcript-text-label"
               dataTestId="add-call-transcript-text"
               value={pasted}
               rows={6}

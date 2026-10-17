@@ -111,7 +111,7 @@ No card **Video Call** do incidente, **Obter do Zoom** ou **Obter do Google Meet
 
 ### A OneUptime AI a lê
 
-Em um ou dois minutos, o card **AI Investigation** do incidente mostra a **Causa raiz sugerida**, marcada como **Não confirmada**, com as linhas da transcrição em que se baseia, citadas com horário e quem falou. Abaixo, recolhido, está o resto do que a chamada disse: as descobertas, cada uma **Confirmado na chamada** ou uma **Hipótese**, depois o que foi tentado, as decisões, os acompanhamentos e as perguntas em aberto.
+Em um ou dois minutos, o card **AI Investigation** do incidente mostra a **Causa raiz sugerida**, marcada como **Não confirmada**, com as linhas da transcrição em que se baseia, citadas com horário e quem falou. Abaixo, recolhido, está o resto do que a chamada disse: as descobertas, separadas em **Confirmado na chamada** e **Hipóteses**, depois o que foi tentado, as decisões, os acompanhamentos e as perguntas em aberto.
 
 ### Use ou dispense
 

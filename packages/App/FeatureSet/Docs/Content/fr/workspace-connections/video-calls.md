@@ -111,7 +111,7 @@ Sur la carte **Appel vidéo** de l'incident, **Récupérer depuis Zoom** ou **R�
 
 ### L'IA de OneUptime la lit
 
-En une ou deux minutes, la carte **Investigation IA** de l'incident affiche la **Cause racine suggérée**, marquée **Non confirmée**, avec les lignes de la transcription sur lesquelles elle repose, citées avec leur heure et leur intervenant. En dessous, repliée, se trouve la suite de ce que l'appel a dit : les constats, chacun **Confirmé pendant l'appel** ou une **Hypothèse**, puis ce qui a été essayé, les décisions, les suivis et les questions ouvertes.
+En une ou deux minutes, la carte **Investigation IA** de l'incident affiche la **Cause racine suggérée**, marquée **Non confirmée**, avec les lignes de la transcription sur lesquelles elle repose, citées avec leur heure et leur intervenant. En dessous, repliée, se trouve la suite de ce que l'appel a dit : les constats, répartis entre **Confirmé pendant l'appel** et **Hypothèses**, puis ce qui a été essayé, les décisions, les suivis et les questions ouvertes.
 
 ### L'utiliser, ou la masquer
 

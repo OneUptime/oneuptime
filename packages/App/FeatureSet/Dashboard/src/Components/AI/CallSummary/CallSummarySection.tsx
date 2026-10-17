@@ -43,6 +43,7 @@ import CallTranscriptModal from "../../VideoCall/CallTranscriptModal";
 import {
   CallTranscriptReading,
   CallTranscriptView,
+  formatCallTranscriptTime,
   getCallSummarySectionId,
   getCallsWithReadings,
 } from "../../VideoCall/CallTranscriptState";
@@ -58,14 +59,15 @@ import UseCallRootCauseModal from "./UseCallRootCauseModal";
  * For each call whose transcript it read: the root cause the call points
  * at, marked as a suggestion until somebody uses it - with the transcript
  * lines it rests on, quoted - or that the call did not discuss the cause
- * enough to suggest one; then, folded, everything else it found: findings
- * (confirmed on the call, or a hypothesis), what was tried, decisions,
- * follow-ups and open questions.
+ * enough to suggest one; then, folded, everything else it found: what the
+ * call confirmed and the hypotheses, as two lists, then what was tried,
+ * decisions, follow-ups and open questions.
  *
  * Use as root cause opens the suggestion in the root cause's editor; only
- * saving it there writes the incident's root cause. Dismiss sets it aside
- * (Undo brings it back). The section is flat, like the rest of the card:
- * headings, hairlines and quotes, never a box inside the card.
+ * saving it there writes the incident's root cause. Dismiss sets it aside -
+ * its sentence stays, quieter, its quotes go - and Undo brings it back. The
+ * section is flat, like the rest of the card: headings, hairlines and
+ * quotes, never a box or a pill row inside the card.
  *
  * Nothing renders for an incident whose calls have no transcript read.
  */
@@ -77,14 +79,21 @@ export interface ComponentProps {
   onChanged: () => void;
 }
 
+/*
+ * The lists under "N more points from the call". Findings come in two -
+ * what the call confirmed, then what was only supposed - so the two never
+ * read as one list with a tag on each line.
+ */
 const SECTION_TITLES: {
-  findings: string;
+  confirmed: string;
+  hypotheses: string;
   stepsTried: string;
   decisions: string;
   actions: string;
   openQuestions: string;
 } = {
-  findings: translationKey("What was found"),
+  confirmed: translationKey("Confirmed on the call"),
+  hypotheses: translationKey("Hypotheses"),
   stepsTried: translationKey("What was tried"),
   decisions: translationKey("Decisions"),
   actions: translationKey("Follow-ups"),
@@ -127,12 +136,10 @@ const PointList: FunctionComponent<{
   title: string;
   points: Array<CallSummaryPoint>;
   testId: string;
-  renderTag?: ((point: CallSummaryPoint) => ReactElement) | undefined;
 }> = (props: {
   title: string;
   points: Array<CallSummaryPoint>;
   testId: string;
-  renderTag?: ((point: CallSummaryPoint) => ReactElement) | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
@@ -150,10 +157,19 @@ const PointList: FunctionComponent<{
           const owner: string | undefined = (
             point as CallSummaryPoint & { owner?: string | undefined }
           ).owner;
+          const times: Array<string> = point.citations.map(
+            (citation: CallSummaryCitation): string => {
+              return citation.time || `#${citation.line}`;
+            },
+          );
 
           return (
-            <li key={index} className="text-sm leading-6 text-gray-800">
-              <span className="break-words">{point.text}</span>
+            <li
+              key={index}
+              data-testid="call-summary-point"
+              className="break-words text-sm leading-6 text-gray-800"
+            >
+              {point.text}
               {owner ? (
                 <span className="text-gray-500">
                   {" "}
@@ -162,15 +178,28 @@ const PointList: FunctionComponent<{
               ) : (
                 <></>
               )}
-              {props.renderTag ? props.renderTag(point) : <></>}
-              {point.citations.length > 0 ? (
-                <span className="ml-2 text-xs text-gray-500">
-                  {point.citations
-                    .map((citation: CallSummaryCitation): string => {
-                      return citation.time || `#${citation.line}`;
-                    })
-                    .join(", ")}
-                </span>
+              {/*
+                When it was said, in small print after the words: a time is
+                never split across two lines, and a long list of them wraps
+                between times.
+              */}
+              {times.length > 0 ? (
+                <>
+                  {" "}
+                  <span
+                    data-testid="call-summary-point-times"
+                    className="text-xs tabular-nums text-gray-500"
+                  >
+                    {times.map((time: string, timeIndex: number) => {
+                      return (
+                        <Fragment key={timeIndex}>
+                          {timeIndex > 0 ? ", " : ""}
+                          <span className="whitespace-nowrap">{time}</span>
+                        </Fragment>
+                      );
+                    })}
+                  </span>
+                </>
               ) : (
                 <></>
               )}
@@ -244,6 +273,25 @@ const CallSummaryOfCall: FunctionComponent<{
 
   const length: string = describeTranscriptLength(props.view.info, translator);
 
+  // "5 minutes ago" in the reader's language.
+  const when: (date: Date | undefined) => string = (
+    date: Date | undefined,
+  ): string => {
+    return date
+      ? formatCallTranscriptTime({
+          date,
+          language: translator.language,
+          now: OneUptimeDate.getCurrentDate(),
+        })
+      : "";
+  };
+
+  /*
+   * The heading names the call; the line under it says what was read - the
+   * transcript's length - with the way to read it too. The section sits in
+   * the AI Investigation card, under the Not confirmed mark, so it needs no
+   * sentence saying OneUptime AI wrote it.
+   */
   const heading: ReactElement = (
     <div>
       <h3 className="text-sm font-semibold text-gray-900">
@@ -253,12 +301,11 @@ const CallSummaryOfCall: FunctionComponent<{
               call: callLabel,
             })}
       </h3>
-      <p className="mt-1 text-sm leading-6 text-gray-500">
-        {translator.translateTemplate(
-          "What OneUptime AI read in the transcript of the {{call}}.",
-          { call: callLabel },
-        )}
-        {length ? ` ${length}.` : ""}{" "}
+      <p
+        data-testid="call-summary-transcript-line"
+        className="mt-1 text-sm leading-6 text-gray-500"
+      >
+        {length ? `${length} · ` : ""}
         <button
           type="button"
           data-testid="call-summary-view-transcript"
@@ -354,6 +401,8 @@ const CallSummaryOfCall: FunctionComponent<{
     const rootCause: CallSummary["rootCause"] = summary.rootCause;
     const isSuggested: boolean =
       rootCause.outcome === CallSummaryRootCauseOutcome.Suggested;
+    const isDismissed: boolean =
+      props.view.suggestion === RootCauseSuggestionStatus.Dismissed;
     const otherPoints: number = getCallSummaryPointCount(summary);
 
     body = (
@@ -401,28 +450,45 @@ const CallSummaryOfCall: FunctionComponent<{
             >
               {rootCause.summary}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
-              {rootCause.basis === CallSummaryBasis.StatedOnCall
-                ? translator.translateText(
-                    "Said on the call: someone found or confirmed it.",
-                  )
-                : translator.translateText(
-                    "OneUptime AI's reading of what was said: nobody on the call confirmed it.",
-                  )}
-            </p>
+            {/*
+              What the suggestion rests on - said on the call or only read
+              into it - and the lines themselves, in the order they were
+              said, as the transcript has them. A dismissed suggestion keeps
+              its one sentence, quieter, and lets the rest go: Undo brings
+              it back.
+            */}
+            {isDismissed ? (
+              <></>
+            ) : (
+              <p
+                data-testid="call-summary-basis"
+                className="mt-1 text-xs text-gray-500"
+              >
+                {rootCause.basis === CallSummaryBasis.StatedOnCall
+                  ? translator.translateText(
+                      "Said on the call: someone found or confirmed it.",
+                    )
+                  : translator.translateText(
+                      "OneUptime AI's reading of what was said: nobody on the call confirmed it.",
+                    )}
+              </p>
+            )}
 
-            {/* In the order they were said, as the transcript has them. */}
-            <ul className="mt-3 space-y-2">
-              {[...rootCause.citations]
-                .sort(
-                  (left: CallSummaryCitation, right: CallSummaryCitation) => {
-                    return left.line - right.line;
-                  },
-                )
-                .map((citation: CallSummaryCitation) => {
-                  return <Quote key={citation.line} citation={citation} />;
-                })}
-            </ul>
+            {isDismissed ? (
+              <></>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {[...rootCause.citations]
+                  .sort(
+                    (left: CallSummaryCitation, right: CallSummaryCitation) => {
+                      return left.line - right.line;
+                    },
+                  )
+                  .map((citation: CallSummaryCitation) => {
+                    return <Quote key={citation.line} citation={citation} />;
+                  })}
+              </ul>
+            )}
 
             <div className="mt-4 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0">
               {props.view.suggestion === RootCauseSuggestionStatus.Suggested ? (
@@ -464,9 +530,7 @@ const CallSummaryOfCall: FunctionComponent<{
                         "{{name}} used it as the incident's root cause {{when}}.",
                         {
                           name: props.view.reviewedByName,
-                          when: props.view.reviewedAt
-                            ? OneUptimeDate.fromNow(props.view.reviewedAt)
-                            : "",
+                          when: when(props.view.reviewedAt),
                         },
                       )
                     : translator.translateText(
@@ -491,9 +555,7 @@ const CallSummaryOfCall: FunctionComponent<{
                         "{{name}} dismissed it {{when}}.",
                         {
                           name: props.view.reviewedByName,
-                          when: props.view.reviewedAt
-                            ? OneUptimeDate.fromNow(props.view.reviewedAt)
-                            : "",
+                          when: when(props.view.reviewedAt),
                         },
                       )
                     : translator.translateText("It was dismissed.")}{" "}
@@ -571,27 +633,22 @@ const CallSummaryOfCall: FunctionComponent<{
             </summary>
             <div className="mt-4 space-y-5 pl-5">
               <PointList
-                title={SECTION_TITLES.findings}
-                points={summary.findings}
-                testId="call-summary-findings"
-                renderTag={(point: CallSummaryPoint): ReactElement => {
-                  const finding: CallSummaryFinding =
-                    point as CallSummaryFinding;
-
-                  return (
-                    <span
-                      className={`ml-2 inline-flex rounded-full px-1.5 py-0.5 align-middle text-[11px] font-medium ring-1 ring-inset ${
-                        finding.kind === CallSummaryFindingKind.Confirmed
-                          ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                          : "bg-amber-50 text-amber-700 ring-amber-200"
-                      }`}
-                    >
-                      {finding.kind === CallSummaryFindingKind.Confirmed
-                        ? translator.translateText("Confirmed on the call")
-                        : translator.translateText("Hypothesis")}
-                    </span>
-                  );
-                }}
+                title={SECTION_TITLES.confirmed}
+                points={summary.findings.filter(
+                  (finding: CallSummaryFinding): boolean => {
+                    return finding.kind === CallSummaryFindingKind.Confirmed;
+                  },
+                )}
+                testId="call-summary-confirmed"
+              />
+              <PointList
+                title={SECTION_TITLES.hypotheses}
+                points={summary.findings.filter(
+                  (finding: CallSummaryFinding): boolean => {
+                    return finding.kind !== CallSummaryFindingKind.Confirmed;
+                  },
+                )}
+                testId="call-summary-hypotheses"
               />
               <PointList
                 title={SECTION_TITLES.stepsTried}

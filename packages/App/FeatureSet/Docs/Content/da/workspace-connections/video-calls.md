@@ -111,7 +111,7 @@ På hændelsens kort **Video Call** læser **Hent fra Zoom** eller **Hent fra Go
 
 ### OneUptime AI læser den
 
-Inden for et minut eller to viser hændelsens kort **AI Investigation** den **Foreslået grundårsag**, markeret **Ikke bekræftet**, med de linjer i transskriptionen, den bygger på, citeret med tid og taler. Herunder, foldet sammen, står resten af det, opkaldet sagde: fund, hvert **Bekræftet i opkaldet** eller en **Hypotese**, derefter hvad der blev prøvet, beslutninger, opfølgninger og åbne spørgsmål.
+Inden for et minut eller to viser hændelsens kort **AI Investigation** den **Foreslået grundårsag**, markeret **Ikke bekræftet**, med de linjer i transskriptionen, den bygger på, citeret med tid og taler. Herunder, foldet sammen, står resten af det, opkaldet sagde: fund, delt op i **Bekræftet i opkaldet** og **Hypoteser**, derefter hvad der blev prøvet, beslutninger, opfølgninger og åbne spørgsmål.
 
 ### Brug den, eller afvis den
 

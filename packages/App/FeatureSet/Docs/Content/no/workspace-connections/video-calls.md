@@ -111,7 +111,7 @@ På hendelsens kort **Video Call** leser **Hent fra Zoom** eller **Hent fra Goog
 
 ### OneUptime AI leser den
 
-I løpet av et minutt eller to viser hendelsens kort **AI Investigation** **Foreslått rotårsak**, merket **Ikke bekreftet**, med linjene i transkripsjonen den bygger på, sitert med tid og taler. Under, slått sammen, står resten av det samtalen sa: funn, hvert **Bekreftet i samtalen** eller en **Hypotese**, deretter hva som ble prøvd, beslutninger, oppfølginger og åpne spørsmål.
+I løpet av et minutt eller to viser hendelsens kort **AI Investigation** **Foreslått rotårsak**, merket **Ikke bekreftet**, med linjene i transkripsjonen den bygger på, sitert med tid og taler. Under, slått sammen, står resten av det samtalen sa: funn, delt opp i **Bekreftet i samtalen** og **Hypoteser**, deretter hva som ble prøvd, beslutninger, oppfølginger og åpne spørsmål.
 
 ### Bruk den, eller avvis den
 

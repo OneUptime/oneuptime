@@ -111,7 +111,7 @@ En la tarjeta **Videollamada** del incidente, **Obtener de Zoom** o **Obtener de
 
 ### La IA de OneUptime la lee
 
-En uno o dos minutos, la tarjeta **Investigación de IA** del incidente muestra la **Causa raíz sugerida**, marcada como **Sin confirmar**, con las líneas de la transcripción en las que se basa, citadas con su hora y quién habló. Debajo, plegado, está el resto de lo que dijo la llamada: los hallazgos, cada uno **Confirmado en la llamada** o una **Hipótesis**, y luego lo que se intentó, las decisiones, los seguimientos y las preguntas abiertas.
+En uno o dos minutos, la tarjeta **Investigación de IA** del incidente muestra la **Causa raíz sugerida**, marcada como **Sin confirmar**, con las líneas de la transcripción en las que se basa, citadas con su hora y quién habló. Debajo, plegado, está el resto de lo que dijo la llamada: los hallazgos, separados en **Confirmado en la llamada** e **Hipótesis**, y luego lo que se intentó, las decisiones, los seguimientos y las preguntas abiertas.
 
 ### Úsala o descártala
 

@@ -5495,6 +5495,29 @@ function advanceCallReadings() {
   }
 }
 
+/*
+ * The feed entry the server writes when a transcript is added
+ * (IncidentVideoCallAPI.getTranscriptFeedMarkdown): opening with "added",
+ * so the feed puts the person who added it first.
+ */
+function announceCallTranscript(record, source, info) {
+  const details = TranscriptText.describeInfo(info);
+  const feedInfoInMarkdown =
+    source === "Provider"
+      ? `📝 added the call's transcript from **Zoom**: ${details}.`
+      : `📝 added a transcript of the **${record.provider === "MicrosoftTeams" ? "Microsoft Teams meeting" : "Zoom meeting"}**: ${details}.`;
+
+  insert(IncidentFeed, {
+    incidentId: record.incidentId,
+    incidentFeedEventType: IncidentFeedEventType.VideoCallTranscriptAdded,
+    feedInfoInMarkdown,
+    displayColor: new Color("#3b82f6"),
+    postedAt: NOW,
+    createdAt: NOW,
+    user: people.maya,
+  });
+}
+
 function startCallReading(record) {
   record.callSummary = { runId: `fixture-reading-${Date.now()}` };
   record.callSummaryStatus = "Pending";
@@ -5556,6 +5579,7 @@ function handleCallTranscriptApi(method, url, body) {
 
     Object.assign(record, withTranscript({ transcriptAddedAt: NOW }));
     startCallReading(record);
+    announceCallTranscript(record, "Provider", CALL_TRANSCRIPT_INFO);
     return ok({
       added: true,
       transcriptSource: "Provider",
@@ -5578,6 +5602,7 @@ function handleCallTranscriptApi(method, url, body) {
       transcriptAddedByUser: people.maya,
     });
     startCallReading(record);
+    announceCallTranscript(record, "Upload", prepared.info);
     return ok({
       transcriptSource: "Upload",
       transcriptInfo: prepared.info,

@@ -16,6 +16,10 @@ import {
   isVideoCallTranscriptSource,
 } from "Common/Types/VideoCall/VideoCallTranscript";
 import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
+import {
+  formatFeedTimeAgo,
+  getFeedClock,
+} from "Common/UI/Components/Feed/FeedTime";
 
 /*
  * WHERE AN INCIDENT CALL'S TRANSCRIPT STANDS, for the page (issue #4875).
@@ -163,6 +167,27 @@ export function getCallsWithReadings(
         entry.view.reading === CallTranscriptReading.Failed
       );
     });
+}
+
+/*
+ * When something happened to a call or its transcript - started, read from
+ * the provider, added, used, dismissed - as the sentences around it say it:
+ * "5 minutes ago" in English, "vor 5 Minuten" in German, from the browser's
+ * own words (formatFeedTimeAgo), not moment's fromNow, which is English on
+ * every page. Never "now": under a minute and a half is a minute ago, so
+ * "Read from Zoom {{when}}" always reads as a sentence.
+ */
+export function formatCallTranscriptTime(data: {
+  date: Date;
+  language: string;
+  now: Date;
+}): string {
+  return (
+    formatFeedTimeAgo(
+      data.date,
+      getFeedClock({ language: data.language, now: data.now }),
+    ) || OneUptimeDate.fromNow(data.date)
+  );
 }
 
 // The DOM id of a call's section in the AI Investigation card.

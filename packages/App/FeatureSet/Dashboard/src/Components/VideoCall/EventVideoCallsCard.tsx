@@ -35,7 +35,10 @@ import React, {
 } from "react";
 import { scrollToAIInvestigationPanel } from "../AI/AIInvestigationStatus";
 import CallTranscriptBlock from "./CallTranscriptBlock";
-import { getCallSummarySectionId } from "./CallTranscriptState";
+import {
+  formatCallTranscriptTime,
+  getCallSummarySectionId,
+} from "./CallTranscriptState";
 import StartVideoCallModal from "./StartVideoCallModal";
 import { EventVideoCall, VideoCallEventKind } from "./useEventVideoCalls";
 import VideoCallProviderLogo, {
@@ -157,8 +160,13 @@ const CallRow: FunctionComponent<CallRowProps> = (
         })
       : translator.translateText("Started from the API") || "";
 
+  // "5 minutes ago" in the reader's language, as the transcript's line says it.
   const startedAt: string = call.createdAt
-    ? OneUptimeDate.fromNow(OneUptimeDate.fromString(call.createdAt))
+    ? formatCallTranscriptTime({
+        date: OneUptimeDate.fromString(call.createdAt),
+        language: translator.language,
+        now: OneUptimeDate.getCurrentDate(),
+      })
     : "";
 
   const isHuddle: boolean = call.provider === VideoCallProvider.SlackHuddle;
@@ -234,25 +242,35 @@ const CallRow: FunctionComponent<CallRowProps> = (
             <Icon icon={IconProp.VideoCamera} className="h-4 w-4" />
             {translator.translateText(isHuddle ? "Join huddle" : "Join call")}
           </a>
-          <CopyTextButton
-            textToBeCopied={joinUrl}
-            label="Copy link"
-            size="md"
-            variant="soft"
-          />
-          {props.canRemove && (
-            <Button
-              title="Remove"
-              icon={IconProp.Trash}
-              buttonStyle={ButtonStyleType.ICON}
-              buttonSize={ButtonSize.Small}
-              ariaLabel={translator.translateText("Remove this call")}
-              tooltip={translator.translateText(
-                "Remove this call from the page. The meeting itself is not deleted.",
-              )}
-              onClick={props.onRemove}
+          {/*
+            Copy link and Remove wrap as one: when the row is too narrow
+            for all three, Join call takes its line and the two go under
+            it, never Remove on a line of its own.
+          */}
+          <div
+            data-testid="event-video-call-secondary-actions"
+            className="flex flex-shrink-0 items-center gap-2"
+          >
+            <CopyTextButton
+              textToBeCopied={joinUrl}
+              label="Copy link"
+              size="md"
+              variant="soft"
             />
-          )}
+            {props.canRemove && (
+              <Button
+                title="Remove"
+                icon={IconProp.Trash}
+                buttonStyle={ButtonStyleType.ICON}
+                buttonSize={ButtonSize.Small}
+                ariaLabel={translator.translateText("Remove this call")}
+                tooltip={translator.translateText(
+                  "Remove this call from the page. The meeting itself is not deleted.",
+                )}
+                onClick={props.onRemove}
+              />
+            )}
+          </div>
         </div>
       )}
 

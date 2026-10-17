@@ -49,6 +49,7 @@ jest.mock("../../../UI/Utils/Translation", () => {
 });
 
 import EventVideoCallsCard from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/EventVideoCallsCard";
+import { getTranscriptUnavailableHeadline } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/CallTranscriptBlock";
 import {
   EventVideoCall,
   VideoCallEventKind,
@@ -273,7 +274,7 @@ describe("Get from Zoom", () => {
     expect(screen.queryByTestId("call-transcript-outcome")).toBeNull();
   });
 
-  test("not there yet is an answer, said as Zoom said it, and can be put away", async () => {
+  test("not there yet is an answer, in the card's own words, with Zoom's behind Show details, and can be put away", async () => {
     postAnswer = (): HTTPResponse<JSONObject> => {
       return new HTTPResponse<JSONObject>(
         200,
@@ -296,8 +297,11 @@ describe("Get from Zoom", () => {
     );
 
     expect(outcome).toHaveAttribute("data-reason", "NotReady");
-    expect(outcome).toHaveTextContent(
-      "Zoom is still preparing this meeting's transcript. Try again later.",
+    // One short sentence of the card's own, looked up in the reader's language.
+    expect(
+      within(outcome).getByTestId("call-transcript-outcome-headline"),
+    ).toHaveTextContent(
+      "Zoom is still preparing this meeting's transcript. Try again in a few minutes.",
     );
     // Nothing to set up: waiting is the answer.
     expect(
@@ -305,12 +309,37 @@ describe("Get from Zoom", () => {
     ).toBeNull();
     expect(onChanged).not.toHaveBeenCalled();
 
+    // What Zoom said is there for whoever wants it, and only then.
+    const toggle: HTMLElement = within(outcome).getByTestId(
+      "call-transcript-outcome-details-toggle",
+    );
+
+    expect(toggle).toHaveTextContent("Show details");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(
+      within(outcome).queryByTestId("call-transcript-outcome-details"),
+    ).toBeNull();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveTextContent("Hide details");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    const details: HTMLElement = within(outcome).getByTestId(
+      "call-transcript-outcome-details",
+    );
+
+    expect(toggle).toHaveAttribute("aria-controls", details.id);
+    expect(details).toHaveTextContent(
+      "Zoom is still preparing this meeting's transcript. Try again later.",
+    );
+
     fireEvent.click(within(outcome).getByRole("button", { name: "Dismiss" }));
 
     expect(screen.queryByTestId("call-transcript-outcome")).toBeNull();
   });
 
-  test("a scope the connection lacks: says which, with the docs on setting it up in a new tab", async () => {
+  test("a scope the connection lacks: says so in a sentence, with the docs on setting it up in a new tab and the scopes behind Show details", async () => {
     postAnswer = (): HTTPResponse<JSONObject> => {
       return new HTTPResponse<JSONObject>(
         200,
@@ -332,11 +361,27 @@ describe("Get from Zoom", () => {
       "call-transcript-outcome",
     );
 
-    // The scope may break after each colon, and reads whole.
-    expect(outcome).toHaveTextContent(
+    // No scope names on the card: a sentence anyone on the incident can read.
+    expect(
+      within(outcome).getByTestId("call-transcript-outcome-headline"),
+    ).toHaveTextContent(
+      /^The Zoom connection is not allowed to read transcripts yet\.$/,
+    );
+    expect(outcome).not.toHaveTextContent("cloud_recording");
+
+    fireEvent.click(
+      within(outcome).getByTestId("call-transcript-outcome-details-toggle"),
+    );
+
+    // For whoever sets the connection up: the scope, which may break after each colon.
+    const details: HTMLElement = within(outcome).getByTestId(
+      "call-transcript-outcome-details",
+    );
+
+    expect(details).toHaveTextContent(
       "This connection's Zoom app cannot read transcripts. Add cloud_recording:read:list_recording_files:admin.",
     );
-    expect(outcome.querySelectorAll("wbr").length).toBeGreaterThanOrEqual(3);
+    expect(details.querySelectorAll("wbr").length).toBeGreaterThanOrEqual(3);
 
     const docs: HTMLElement = within(outcome).getByTestId(
       "call-transcript-set-up-docs",
@@ -391,22 +436,167 @@ describe("Get from Zoom", () => {
 
     expect(outcome).toHaveAttribute("data-reason", "error");
     expect(outcome).toHaveTextContent("Zoom did not answer in time.");
+    // An error is said whole: there is nothing more behind it.
+    expect(
+      within(outcome).queryByTestId("call-transcript-outcome-details-toggle"),
+    ).toBeNull();
+  });
+
+  test.each<[VideoCallTranscriptUnavailableReason, string, boolean]>([
+    [
+      VideoCallTranscriptUnavailableReason.NotReady,
+      "Zoom is still preparing this meeting's transcript. Try again in a few minutes.",
+      false,
+    ],
+    [
+      VideoCallTranscriptUnavailableReason.NotTranscribed,
+      "Zoom kept no transcript of this meeting. Add it yourself, or turn transcripts on for the next call.",
+      true,
+    ],
+    [
+      VideoCallTranscriptUnavailableReason.NoMeeting,
+      "Zoom has no record of this meeting. If the call just ended, try again in a few minutes.",
+      false,
+    ],
+    [
+      VideoCallTranscriptUnavailableReason.Expired,
+      "Zoom no longer keeps this meeting's transcript. If you saved a copy, add it yourself.",
+      false,
+    ],
+    [
+      VideoCallTranscriptUnavailableReason.PermissionMissing,
+      "The Zoom connection is not allowed to read transcripts yet.",
+      true,
+    ],
+    [
+      VideoCallTranscriptUnavailableReason.ConnectionProblem,
+      "The Zoom connection stopped working. Reconnect it in Project Settings > Workspace > Video Calls.",
+      false,
+    ],
+    [
+      VideoCallTranscriptUnavailableReason.NotSupported,
+      "OneUptime cannot ask Zoom for this meeting's transcript. Add it yourself.",
+      false,
+    ],
+  ])(
+    "%s is said in one sentence of the card's own",
+    async (
+      reason: VideoCallTranscriptUnavailableReason,
+      headline: string,
+      hasSetUpDocs: boolean,
+    ) => {
+      postAnswer = (): HTTPResponse<JSONObject> => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { added: false, reason, message: "What Zoom answered." },
+          {},
+        );
+      };
+
+      renderCard({ calls: [transcriptCall()] });
+
+      fireEvent.click(screen.getByTestId("call-transcript-get"));
+
+      const outcome: HTMLElement = await screen.findByTestId(
+        "call-transcript-outcome",
+      );
+
+      expect(outcome).toHaveAttribute("data-reason", reason);
+      expect(
+        within(outcome).getByTestId("call-transcript-outcome-headline"),
+      ).toHaveTextContent(headline);
+      expect(
+        Boolean(within(outcome).queryByTestId("call-transcript-set-up-docs")),
+      ).toBe(hasSetUpDocs);
+      expect(
+        within(outcome).queryByTestId("call-transcript-outcome-details"),
+      ).toBeNull();
+    },
+  );
+
+  test("each answer's sentence is in the reader's language: every reason has one of its own", () => {
+    const headlines: Array<string> = Object.values(
+      VideoCallTranscriptUnavailableReason,
+    ).map((reason: VideoCallTranscriptUnavailableReason): string => {
+      return getTranscriptUnavailableHeadline(reason);
+    });
+
+    // A template naming the provider, and no two alike.
+    for (const headline of headlines) {
+      expect(headline).toContain("{{provider}}");
+    }
+
+    expect(new Set(headlines).size).toBe(headlines.length);
   });
 });
 
 describe("a call with a transcript", () => {
-  test("says how long it is and where it came from, with View", () => {
+  test("says how long it is and where it came from, with View transcript", () => {
     renderCard({
       calls: [transcriptCall({ info: TRANSCRIPT_INFO, addedMinutesAgo: 5 })],
     });
 
     const facts: HTMLElement = screen.getByTestId("call-transcript-facts");
 
-    expect(facts).toHaveTextContent("11 minutes · 3 speakers · Read from Zoom");
-    expect(screen.getByTestId("call-transcript-view")).toBeVisible();
+    expect(facts).toHaveTextContent(
+      "11 minutes · 3 speakers · Read from Zoom 5 minutes ago",
+    );
+    expect(screen.getByTestId("call-transcript-view")).toHaveTextContent(
+      "View transcript",
+    );
     // It has one: nothing offers to get or add another but the menu.
     expect(screen.queryByTestId("call-transcript-get")).toBeNull();
     expect(screen.queryByTestId("call-transcript-add")).toBeNull();
+  });
+
+  test("the word Transcript has its line to itself: View transcript and the menu sit under what is said about it", () => {
+    renderCard({ calls: [suggestedCall()] });
+
+    const heading: HTMLElement = screen.getByTestId("call-transcript-heading");
+    const facts: HTMLElement = screen.getByTestId("call-transcript-facts");
+    const read: HTMLElement = screen.getByTestId("call-transcript-read");
+    const actions: HTMLElement = screen.getByTestId("call-transcript-actions");
+
+    /*
+     * In the page's narrow column, "Transkription" beside two buttons was
+     * cut to "Tran…": nothing shares the heading's line now, and it is
+     * never truncated.
+     */
+    expect(heading).toHaveTextContent(/^Transcript$/);
+    expect(heading).not.toHaveClass("truncate");
+    expect(
+      heading.parentElement!.querySelector(
+        "[data-testid='call-transcript-view']",
+      ),
+    ).toBeNull();
+    expect(
+      within(actions).getByTestId("call-transcript-view"),
+    ).toHaveTextContent("View transcript");
+    expect(
+      within(actions).getByTestId("call-transcript-menu-button"),
+    ).toBeVisible();
+
+    // Read top to bottom: the heading, its facts, the reading, what to do.
+    const order: Array<HTMLElement> = [heading, facts, read, actions];
+
+    for (let index: number = 1; index < order.length; index++) {
+      expect(
+        order[index - 1]!.compareDocumentPosition(order[index]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+  });
+
+  test("without a transcript, the same heading opens the block, then what it is for, then the buttons", () => {
+    renderCard({ calls: [transcriptCall()] });
+
+    const block: HTMLElement = screen.getByTestId("call-transcript-block");
+
+    expect(
+      within(block).getByTestId("call-transcript-heading"),
+    ).toHaveTextContent(/^Transcript$/);
+    expect(within(block).queryByTestId("call-transcript-actions")).toBeNull();
+    expect(within(block).getByTestId("call-transcript-get")).toBeVisible();
   });
 
   test("a transcript a person added says who added it", () => {
@@ -490,11 +680,19 @@ describe("where OneUptime AI's reading stands", () => {
 
     const read: HTMLElement = screen.getByTestId("call-transcript-read");
 
+    // The sentence and its action, read as one: "... a root cause. Review it"
     expect(read).toHaveTextContent(
-      "OneUptime AI suggested a root cause for you to review.",
+      /^OneUptime AI suggested a root cause\. Review it$/,
     );
 
-    fireEvent.click(within(read).getByTestId("call-transcript-review"));
+    const review: HTMLElement = within(read).getByTestId(
+      "call-transcript-review",
+    );
+
+    // In the sentence's own line, never on a line of its own under the mark.
+    expect(review.closest("p")).toBe(read.querySelector("p"));
+
+    fireEvent.click(review);
 
     expect(onReview).toHaveBeenCalledWith(CALL_ID);
   });
@@ -594,20 +792,34 @@ describe("where OneUptime AI's reading stands", () => {
     expect(screen.queryByTestId("call-transcript-read-again")).toBeNull();
   });
 
-  test("AI being off is said as the server said it", () => {
+  test("AI being off is said in the reader's language, with the page that turns it on", () => {
     renderCard({
       calls: [
         transcriptCall({
           info: TRANSCRIPT_INFO,
           status: CallSummaryStatus.Skipped,
-          statusMessage: "AI features are disabled for this project.",
+          statusMessage:
+            "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features.",
         }),
       ],
     });
 
-    expect(
-      screen.getByTestId("call-transcript-read-skipped"),
-    ).toHaveTextContent("AI features are disabled for this project.");
+    const skipped: HTMLElement = screen.getByTestId(
+      "call-transcript-read-skipped",
+    );
+
+    // The server's English sentence is not shown: Skipped means AI is off.
+    expect(skipped).toHaveTextContent(
+      /^AI is off for this project, so OneUptime AI did not read it\. Open AI Features$/,
+    );
+
+    const settings: HTMLElement = within(skipped).getByTestId(
+      "call-transcript-ai-settings",
+    );
+
+    expect(settings.getAttribute("href")).toContain(
+      `/dashboard/${PROJECT_ID}/settings/ai-features`,
+    );
   });
 });
 

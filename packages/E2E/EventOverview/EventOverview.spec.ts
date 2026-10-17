@@ -11879,6 +11879,17 @@ test.describe("an incident call's transcript (?calls=)", () => {
     return page.getByTestId("call-summary");
   }
 
+  // The Incident Feed card (the tests below name the Video Call card "card").
+  function incidentFeed(page: Page): Locator {
+    return page.getByTestId("card").filter({
+      has: page.getByRole("heading", {
+        level: 2,
+        name: "Incident Feed",
+        exact: true,
+      }),
+    });
+  }
+
   async function transcriptRequests(
     page: Page,
     method: string,
@@ -11919,12 +11930,22 @@ test.describe("an incident call's transcript (?calls=)", () => {
 
     // The page looks again while it reads.
     await expect(card.getByTestId("call-transcript-read")).toContainText(
-      "OneUptime AI suggested a root cause for you to review.",
+      "OneUptime AI suggested a root cause. Review it",
       { timeout: 30000 },
     );
     expect(
       await transcriptRequests(page, "POST", "transcript/from-provider"),
     ).toHaveLength(1);
+
+    // The feed says who added it, as it says who did anything else.
+    const added: Locator = feedEntry(incidentFeed(page), "transcript");
+    await expect(added).toHaveAttribute(
+      "data-event-type",
+      "VideoCallTranscriptAdded",
+    );
+    expect(await plainText(added.getByTestId("feed-entry-lead"))).toBe(
+      "Maya Chen added the call's transcript from Zoom: 11 minutes, 3 speakers, 12 remarks.",
+    );
 
     await card.getByTestId("call-transcript-review").click();
 
@@ -11941,20 +11962,32 @@ test.describe("an incident call's transcript (?calls=)", () => {
   }: {
     page: Page;
   }) => {
-    const answers: Array<{ mode: string; text: string; docs: boolean }> = [
+    /*
+     * One short sentence of the card's own for each answer, in the reader's
+     * language; what Zoom said - scope names and all - behind Show details.
+     */
+    const answers: Array<{
+      mode: string;
+      text: string;
+      zoomSaid: string;
+      docs: boolean;
+    }> = [
       {
         mode: "not-ready",
-        text: "Zoom is still preparing this meeting's transcript.",
+        text: "Zoom is still preparing this meeting's transcript. Try again in a few minutes.",
+        zoomSaid: "It is usually ready within twice the length of the call.",
         docs: false,
       },
       {
         mode: "permission",
-        text: "This connection's Zoom app cannot read transcripts.",
+        text: "The Zoom connection is not allowed to read transcripts yet.",
+        zoomSaid: "cloud_recording:read:list_recording_files:admin",
         docs: true,
       },
       {
         mode: "not-transcribed",
-        text: "Zoom has no transcript of this meeting.",
+        text: "Zoom kept no transcript of this meeting. Add it yourself, or turn transcripts on for the next call.",
+        zoomSaid: "Audio transcript on",
         docs: true,
       },
     ];
@@ -11970,7 +12003,22 @@ test.describe("an incident call's transcript (?calls=)", () => {
       await card.getByRole("button", { name: "Get from Zoom" }).click();
 
       const outcome: Locator = card.getByTestId("call-transcript-outcome");
-      await expect(outcome).toContainText(answer.text);
+      await expect(
+        outcome.getByTestId("call-transcript-outcome-headline"),
+      ).toHaveText(answer.text);
+      await expect(outcome).not.toContainText(answer.zoomSaid);
+
+      const toggle: Locator = outcome.getByRole("button", {
+        name: "Show details",
+      });
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await toggle.click();
+      await expect(
+        outcome.getByTestId("call-transcript-outcome-details"),
+      ).toContainText(answer.zoomSaid);
+      await expect(
+        outcome.getByRole("button", { name: "Hide details" }),
+      ).toHaveAttribute("aria-expanded", "true");
 
       const docs: Locator = outcome.getByRole("link", {
         name: "How to set it up",
@@ -12005,6 +12053,10 @@ test.describe("an incident call's transcript (?calls=)", () => {
       .click();
     await expect(
       callsCard(page).getByTestId("call-transcript-outcome"),
+    ).toBeVisible();
+    await callsCard(page).getByRole("button", { name: "Show details" }).click();
+    await expect(
+      callsCard(page).getByTestId("call-transcript-outcome-details"),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
@@ -12041,7 +12093,16 @@ test.describe("an incident call's transcript (?calls=)", () => {
     expect(added?.body).toEqual({ text });
 
     await expect(card.getByTestId("call-transcript-facts")).toContainText(
-      "12 minutes · 2 speakers · Added by Maya Chen",
+      "12 minutes · 2 speakers · Added by Maya Chen 1 minute ago",
+    );
+    expect(
+      await plainText(
+        feedEntry(incidentFeed(page), "transcript").getByTestId(
+          "feed-entry-lead",
+        ),
+      ),
+    ).toBe(
+      "Maya Chen added a transcript of the Microsoft Teams meeting: 12 minutes, 2 speakers, 2 remarks.",
     );
     await expect(card.getByTestId("call-transcript-read")).toBeVisible({
       timeout: 30000,
@@ -12088,12 +12149,26 @@ test.describe("an incident call's transcript (?calls=)", () => {
     const details: Locator = section.getByTestId("call-summary-details");
     await expect(details).not.toHaveAttribute("open", "");
     await details.locator("summary").click();
-    await expect(details.getByTestId("call-summary-findings")).toContainText(
+
+    // What the call confirmed, then the hypotheses: two lists, no tags.
+    const confirmed: Locator = details.getByTestId("call-summary-confirmed");
+    const hypotheses: Locator = details.getByTestId("call-summary-hypotheses");
+    await expect(confirmed.getByRole("heading", { level: 5 })).toHaveText(
       "Confirmed on the call",
     );
-    await expect(details.getByTestId("call-summary-findings")).toContainText(
-      "Hypothesis",
+    await expect(confirmed.getByTestId("call-summary-point")).toHaveText([
+      "The orders database itself was healthy. 00:00:31",
+      "Requests waited about two seconds in pg.pool.connect. 00:01:12",
+    ]);
+    await expect(hypotheses.getByRole("heading", { level: 5 })).toHaveText(
+      "Hypotheses",
     );
+    await expect(hypotheses.getByTestId("call-summary-point")).toHaveText([
+      "A cold cache may have added to it. 00:05:02",
+    ]);
+    expect(
+      (await confirmed.boundingBox())!.y < (await hypotheses.boundingBox())!.y,
+    ).toBe(true);
     await expect(details.getByTestId("call-summary-actions")).toContainText(
       "Add an alert on database pool usage. (Jordan Patel)",
     );
@@ -12142,6 +12217,12 @@ test.describe("an incident call's transcript (?calls=)", () => {
       name: "Use as root cause",
     });
     const editor: Locator = dialog.locator('[contenteditable="true"]').first();
+
+    // It opens in the editor, named for what it holds - not on its Bold button.
+    await expect(editor).toBeFocused();
+    await expect(
+      dialog.getByRole("textbox", { name: "Root Cause" }),
+    ).toBeVisible();
 
     // An identifier stays as written: code, never italic.
     await expect(editor.locator("code").first()).toHaveText("DB_POOL_MAX=10");
@@ -12231,12 +12312,19 @@ test.describe("an incident call's transcript (?calls=)", () => {
     await expect(section.getByTestId("call-summary-status")).toHaveText(
       "Dismissed",
     );
-    await expect(section).toContainText("Maya Chen dismissed it");
+    await expect(section).toContainText("Maya Chen dismissed it 1 minute ago");
+    // Set aside: its one sentence stays, its quotes and its basis go.
+    await expect(section.getByTestId("call-summary-quote")).toHaveCount(0);
+    await expect(section.getByTestId("call-summary-basis")).toHaveCount(0);
+    await expect(
+      section.getByTestId("call-summary-root-cause-text"),
+    ).toBeVisible();
 
     await section.getByRole("button", { name: "Undo" }).click();
     await expect(section.getByTestId("call-summary-status")).toHaveText(
       "Not confirmed",
     );
+    await expect(section.getByTestId("call-summary-quote")).toHaveCount(3);
 
     expect(
       (await transcriptRequests(page, "POST", "root-cause-suggestion")).map(
@@ -12327,9 +12415,18 @@ test.describe("an incident call's transcript (?calls=)", () => {
   }) => {
     await openReady(page, INCIDENT_PAGE, "calls=skipped");
 
+    const skipped: Locator = callsCard(page).getByTestId(
+      "call-transcript-read-skipped",
+    );
+    await expect(skipped).toHaveText(
+      "AI is off for this project, so OneUptime AI did not read it. Open AI Features",
+    );
     await expect(
-      callsCard(page).getByTestId("call-transcript-read-skipped"),
-    ).toContainText("AI features are disabled for this project.");
+      skipped.getByRole("link", { name: "Open AI Features" }),
+    ).toHaveAttribute(
+      "href",
+      "/dashboard/10000000-0000-4000-8000-000000000001/settings/ai-features",
+    );
     await expect(page.getByTestId("call-summaries")).toHaveCount(0);
   });
 
@@ -12405,14 +12502,36 @@ test.describe("an incident call's transcript (?calls=)", () => {
     await openReady(page, INCIDENT_PAGE, "calls=transcript");
     await expectNoHorizontalOverflow(page);
 
-    // The View button and the menu beside it are as tall as each other.
-    const view: { height: number } | null = await callsCard(page)
-      .getByTestId("call-transcript-view")
-      .boundingBox();
-    const menu: { height: number } | null = await callsCard(page)
-      .getByTestId("call-transcript-menu-button")
-      .boundingBox();
-    expect(Math.abs(view!.height - menu!.height)).toBeLessThanOrEqual(2);
+    /*
+     * The heading shares its line with the menu's mark alone, and View
+     * transcript has a row of its own under the reading, as wide as the
+     * card on a phone; Copy link and Remove go under Join call together.
+     */
+    const heading: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-heading"),
+    );
+    const menu: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-menu-button"),
+    );
+    const read: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-read"),
+    );
+    const view: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-view"),
+    );
+    expect(
+      Math.abs(menu.y + menu.height / 2 - (heading.y + heading.height / 2)),
+    ).toBeLessThanOrEqual(2);
+    expect(view.y).toBeGreaterThanOrEqual(read.y + read.height);
+    expect(view.width).toBeGreaterThan(menu.x - heading.x);
+
+    const join: Box = await documentBox(
+      callsCard(page).getByTestId("event-video-call-join"),
+    );
+    const secondary: Box = await documentBox(
+      callsCard(page).getByTestId("event-video-call-secondary-actions"),
+    );
+    expect(secondary.y).toBeGreaterThanOrEqual(join.y + join.height);
 
     await screenshotElement(
       page.getByTestId("call-summaries"),

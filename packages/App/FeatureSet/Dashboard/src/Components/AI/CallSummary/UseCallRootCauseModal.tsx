@@ -12,6 +12,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { reviewCallRootCauseSuggestion } from "../../VideoCall/CallTranscriptApi";
@@ -45,6 +46,24 @@ const UseCallRootCauseModal: FunctionComponent<ComponentProps> = (
   const [current, setCurrent] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
+  const editorRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+
+  /*
+   * The dialog starts in the editor, at the start of the suggestion, ready
+   * to be read and changed. The dialog would otherwise start on the first
+   * button it holds, the editor's Bold, whose focus ring reads as Bold being
+   * on. This runs after the dialog's own first focus: a parent's effects
+   * run after its children's.
+   */
+  useEffect(() => {
+    const textbox: HTMLElement | null | undefined =
+      editorRef.current?.querySelector<HTMLElement>(
+        "[role='textbox'], textarea",
+      );
+
+    textbox?.focus();
+  }, []);
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -110,15 +129,22 @@ const UseCallRootCauseModal: FunctionComponent<ComponentProps> = (
       }}
     >
       <div className="space-y-4" data-testid="use-call-root-cause">
-        <MarkdownEditor
-          dataTestId="use-call-root-cause-editor"
-          initialValue={props.initialRootCause}
-          allowImageUpload={false}
-          onChange={(value: string) => {
-            setRootCause(value);
-            setError(undefined);
-          }}
-        />
+        {/* What a screen reader calls the editor: the dialog's title is the action. */}
+        <span id="use-call-root-cause-label" className="sr-only">
+          {translator.translateText("Root Cause")}
+        </span>
+        <div ref={editorRef}>
+          <MarkdownEditor
+            dataTestId="use-call-root-cause-editor"
+            ariaLabelledby="use-call-root-cause-label"
+            initialValue={props.initialRootCause}
+            allowImageUpload={false}
+            onChange={(value: string) => {
+              setRootCause(value);
+              setError(undefined);
+            }}
+          />
+        </div>
 
         {current ? (
           <details

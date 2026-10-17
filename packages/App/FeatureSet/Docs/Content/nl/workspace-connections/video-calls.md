@@ -111,7 +111,7 @@ Op de kaart **Video Call** van het incident leest **Ophalen uit Zoom** of **Opha
 
 ### OneUptime AI leest het
 
-Binnen een à twee minuten toont de kaart **AI Investigation** van het incident de **Voorgestelde hoofdoorzaak**, gemarkeerd als **Niet bevestigd**, met de regels uit de transcriptie waarop die berust, geciteerd met tijd en spreker. Daaronder, ingeklapt, staat de rest van wat het gesprek zei: bevindingen, elk **Bevestigd in het gesprek** of een **Hypothese**, dan wat er is geprobeerd, besluiten, vervolgacties en open vragen.
+Binnen een à twee minuten toont de kaart **AI Investigation** van het incident de **Voorgestelde hoofdoorzaak**, gemarkeerd als **Niet bevestigd**, met de regels uit de transcriptie waarop die berust, geciteerd met tijd en spreker. Daaronder, ingeklapt, staat de rest van wat het gesprek zei: bevindingen, verdeeld over **Bevestigd in het gesprek** en **Hypothesen**, dan wat er is geprobeerd, besluiten, vervolgacties en open vragen.
 
 ### Gebruik het, of wijs het af
 
