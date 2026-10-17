@@ -42,6 +42,10 @@ const tailwind = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
+const blankProfilePicture = path.join(
+  repository,
+  "packages/Common/UI/Images/users/blank-profile.svg",
+);
 // The Dashboard's own font, so the tables are measured as they are drawn.
 const font = path.join(
   repository,
@@ -105,6 +109,12 @@ async function main() {
     }
     if (url.pathname === "/favicon.ico") {
       response.writeHead(204).end();
+      return;
+    }
+    // A person's picture (the people gallery): the Dashboard's blank one.
+    if (url.pathname.startsWith("/api/user/profile-picture/")) {
+      response.setHeader("Content-Type", "image/svg+xml");
+      fs.createReadStream(blankProfilePicture).pipe(response);
       return;
     }
     response.setHeader("Content-Type", "text/html");

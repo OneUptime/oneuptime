@@ -19,9 +19,12 @@
  *   /dashboard/<project>/tables                 the gallery: every kind of
  *                                                column (?table=kinds), a
  *                                                table with many columns
- *                                                (?table=wide), and a table
+ *                                                (?table=wide), a table
  *                                                drawn outside a card
- *                                                (?table=plain)
+ *                                                (?table=plain), and people,
+ *                                                each name drawn beside a
+ *                                                picture and over an email
+ *                                                (?table=people)
  *
  * Steered by the query string:
  *   - data=rich       more incidents, monitors and status pages: labels,
@@ -65,6 +68,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import UserElement from "../../../App/FeatureSet/Dashboard/src/Components/User/User";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -187,6 +191,16 @@ const PEOPLE = [
   user(1, "Ada Lovelace", "ada@acme-commerce.example"),
   user(2, "Grace Hopper", "grace@acme-commerce.example"),
   user(3, "Alan Turing", "alan@acme-commerce.example"),
+  // A name longer than its column's 20rem, for the people gallery.
+  ...(isLong
+    ? [
+        user(
+          4,
+          "Maximiliana Alexandrina Featherstonehaugh-Cholmondeley of the Platform Reliability Guild",
+          "maximiliana@acme-commerce.example",
+        ),
+      ]
+    : []),
 ];
 
 function team(index, name, description, isTeamDeleteable) {
@@ -308,9 +322,7 @@ const MONITORS = isEmpty
         MonitorType.Ping,
         isRich ? OFFLINE : OPERATIONAL,
         {
-          labels: isRich
-            ? [LABELS[0], LABELS[2], LABELS[3], LABELS[4]]
-            : [],
+          labels: isRich ? [LABELS[0], LABELS[2], LABELS[3], LABELS[4]] : [],
         },
       ),
     ];
@@ -471,14 +483,40 @@ function ownerUser(ModelType, resourceIdField, index, resourceId, person) {
 
 const INCIDENT_OWNERS = isRich
   ? [
-      ownerUser(IncidentOwnerUser, "incidentId", 1, uuid("40000000", 5), PEOPLE[0]),
-      ownerUser(IncidentOwnerUser, "incidentId", 2, uuid("40000000", 5), PEOPLE[1]),
-      ownerUser(IncidentOwnerUser, "incidentId", 3, uuid("40000000", 4), PEOPLE[2]),
+      ownerUser(
+        IncidentOwnerUser,
+        "incidentId",
+        1,
+        uuid("40000000", 5),
+        PEOPLE[0],
+      ),
+      ownerUser(
+        IncidentOwnerUser,
+        "incidentId",
+        2,
+        uuid("40000000", 5),
+        PEOPLE[1],
+      ),
+      ownerUser(
+        IncidentOwnerUser,
+        "incidentId",
+        3,
+        uuid("40000000", 4),
+        PEOPLE[2],
+      ),
     ]
   : [];
 
 const MONITOR_OWNERS = isRich
-  ? [ownerUser(MonitorOwnerUser, "monitorId", 11, uuid("60000000", 2), PEOPLE[0])]
+  ? [
+      ownerUser(
+        MonitorOwnerUser,
+        "monitorId",
+        11,
+        uuid("60000000", 2),
+        PEOPLE[0],
+      ),
+    ]
   : [];
 
 // ----------------------------------------------------------- status pages
@@ -497,9 +535,14 @@ function statusPage(index, name, description, extra) {
 const STATUS_PAGES = isEmpty
   ? []
   : [
-      statusPage(1, "Acme Status", "What customers see at status.acme.example", {
-        labels: isRich ? [LABELS[3]] : [],
-      }),
+      statusPage(
+        1,
+        "Acme Status",
+        "What customers see at status.acme.example",
+        {
+          labels: isRich ? [LABELS[3]] : [],
+        },
+      ),
       statusPage(2, "Internal Platform", "For the platform team"),
       statusPage(
         3,
@@ -691,7 +734,14 @@ const heldPermission =
 
 UserUtil.isMasterAdmin = () => false;
 UserUtil.getUserId = () => new ObjectID(USER_ID);
-PermissionUtil.getAllPermissions = () => [heldPermission];
+/*
+ * The people gallery lists users, whom a signed-in member may read
+ * (Logged in User); every other page holds only the member's role.
+ */
+PermissionUtil.getAllPermissions = () =>
+  galleryTable === "people" && window.location.pathname.endsWith("/tables")
+    ? [heldPermission, Permission.CurrentUser]
+    : [heldPermission];
 PermissionUtil.getProjectPermissions = () => ({
   _type: "UserTenantAccessPermission",
   projectId: new ObjectID(PROJECT_ID),
@@ -774,15 +824,18 @@ ModelAPI.getItem = async (options) => {
   window.__fixture.itemRequests.push({ tableName, id });
   await waitFor(delay);
   return (
-    (RECORDS[tableName] || []).find((record) => idOf(record._id) === id) ||
-    null
+    (RECORDS[tableName] || []).find((record) => idOf(record._id) === id) || null
   );
 };
 
 ModelAPI.updateById = async (options) => {
   const tableName = new options.modelType().tableName;
   const id = idOf(options.id);
-  window.__fixture.updates.push({ tableName, id, data: serialize(options.data) });
+  window.__fixture.updates.push({
+    tableName,
+    id,
+    data: serialize(options.data),
+  });
   const record = (RECORDS[tableName] || []).find((candidate) => {
     return idOf(candidate._id) === id;
   });
@@ -1037,10 +1090,48 @@ function GalleryPlain() {
   );
 }
 
+/*
+ * A list whose rows' names are not a line of text: the Dashboard's own
+ * person, a picture beside a name over an email (a team's members, a
+ * project's people). Such a name keeps its 20rem cap even in a table with
+ * room to spare - set free, it would wrap inside itself.
+ */
+function GalleryPeople() {
+  return (
+    <ModelTable
+      modelType={UserModel}
+      id="gallery-people"
+      name="Gallery: people"
+      userPreferencesKey="gallery-people"
+      isDeleteable={false}
+      isEditable={false}
+      isCreateable={false}
+      isViewable={false}
+      filters={[]}
+      cardProps={{
+        title: "People",
+        description: "Each name drawn beside a picture, over an email.",
+      }}
+      columns={[
+        {
+          field: { name: true, email: true },
+          title: "Person",
+          type: FieldType.Element,
+          getElement: (item) => {
+            return <UserElement user={item} />;
+          },
+        },
+        { field: { email: true }, title: "Email", type: FieldType.Email },
+      ]}
+    />
+  );
+}
+
 const GALLERY = {
   kinds: GalleryKinds,
   wide: GalleryWide,
   plain: GalleryPlain,
+  people: GalleryPeople,
 };
 
 /*
