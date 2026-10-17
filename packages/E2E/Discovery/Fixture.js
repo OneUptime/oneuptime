@@ -324,6 +324,8 @@ window.__discoveryFixture = {
   // Every device write and every device created by an import, in order.
   updates: [],
   creates: [],
+  // Every scan Start New Scan (or a scan's Edit) sends, as the form posts it.
+  scanWrites: [],
   // A device whose update the server refuses, by id; none unless a test sets it.
   refuseUpdateOf: "",
   fail: false,
@@ -497,6 +499,28 @@ ModelAPI.create = async ({ model, modelType }) => {
     dnsName: model.dnsName || null,
     discoveredName: model.discoveredName || null,
     discoveredNameSource: model.discoveredNameSource || null,
+  });
+  return { data: model };
+};
+/*
+ * Start New Scan and a scan's Edit dialog save through createOrUpdate: what
+ * each sends is recorded - its method above all, which the form posts even
+ * for ICMP because the column itself defaults to SNMP.
+ */
+const originalCreateOrUpdate = ModelAPI.createOrUpdate.bind(ModelAPI);
+ModelAPI.createOrUpdate = async (args) => {
+  if (args.modelType !== NetworkDeviceDiscoveryScan) {
+    return originalCreateOrUpdate(args);
+  }
+  const model = args.model;
+  window.__discoveryFixture.scanWrites.push({
+    formType: String(args.formType),
+    cidr: model.cidr || null,
+    isSnmpEnabled:
+      model.isSnmpEnabled === undefined ? null : model.isSnmpEnabled,
+    snmpConfigCount: Array.isArray(model.snmpConfigs)
+      ? model.snmpConfigs.length
+      : null,
   });
   return { data: model };
 };

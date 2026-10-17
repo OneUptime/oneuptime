@@ -203,7 +203,9 @@ test("the Start New Scan form names the Windows-name lookup and the naming order
   await expect(lookup).toBeVisible();
   await expect(lookup).toHaveAttribute("aria-checked", "true");
   await expect(
-    modal.getByText(/A host is named by its own name first/),
+    modal.getByText(
+      "A device is named by its SNMP name, then its Windows (NetBIOS) name, then its reverse-DNS name, then its address.",
+    ),
   ).toBeVisible();
 
   await lookup.scrollIntoViewIfNeeded();
