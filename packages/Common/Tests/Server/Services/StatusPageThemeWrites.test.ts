@@ -57,7 +57,15 @@ const MIGRATIONS_DIR: string = path.join(
   "SchemaMigrations",
 );
 
-const MIGRATION_FILE: string = "1803200000000-AddStatusPageTheme.ts";
+// The migration's timestamp: later than every migration on master when it merged.
+const MIGRATION_TIMESTAMP: number = 1803250000000;
+
+const MIGRATION_NAME: string = "AddStatusPageTheme";
+
+const MIGRATION_FILE: string = `${MIGRATION_TIMESTAMP}-${MIGRATION_NAME}.ts`;
+
+// A class registered in Index.ts's migration list: "  AddStatusPageTheme1803250000000,".
+const REGISTERED_MIGRATION_ENTRY: RegExp = /^\s{2}(\w+?(\d{13})),$/gm;
 
 const metadata: () => TableColumnMetadata = (): TableColumnMetadata => {
   return new StatusPage().getTableColumnMetadata(STATUS_PAGE_THEME_COLUMN);
@@ -139,14 +147,14 @@ describe("the migration that adds it", () => {
   });
 
   test("is registered, after every migration before it", () => {
-    const className: string = "AddStatusPageTheme1803200000000";
+    const className: string = `${MIGRATION_NAME}${MIGRATION_TIMESTAMP}`;
 
     expect(index).toContain(
-      `import { ${className} } from "./1803200000000-AddStatusPageTheme";`,
+      `import { ${className} } from "./${MIGRATION_TIMESTAMP}-${MIGRATION_NAME}";`,
     );
 
     const registered: Array<string> = Array.from(
-      index.matchAll(/^\s{2}(\w+?(\d{13})),$/gm),
+      index.matchAll(REGISTERED_MIGRATION_ENTRY),
       (match: RegExpMatchArray): string => {
         return match[1]!;
       },
@@ -164,7 +172,14 @@ describe("the migration that adds it", () => {
     });
 
     // The newest migration this change knew of is older than it.
-    expect(Math.max(...timestamps)).toBeGreaterThanOrEqual(1803200000000);
+    expect(Math.max(...timestamps)).toBeGreaterThanOrEqual(MIGRATION_TIMESTAMP);
+
+    // No other migration shares its timestamp.
+    expect(
+      timestamps.filter((timestamp: number): boolean => {
+        return timestamp === MIGRATION_TIMESTAMP;
+      }),
+    ).toHaveLength(1);
   });
 });
 

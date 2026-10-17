@@ -34,9 +34,14 @@ import {
   addToEpisode,
   fetchEpisodeLabels,
   fetchEpisodeMemberIds,
+  fetchIsLimitedToOneEpisode,
   fetchRecordRows,
 } from "./EpisodeMembersApi";
 import EpisodePickerList, { EpisodePickerItem } from "./EpisodePickerList";
+import {
+  LOCKED_NOTE,
+  LOCKED_NOTE_UNNAMED,
+} from "./EpisodeSingleMembershipCopy";
 
 /*
  * An episode's "Add Alerts" (or "Add Incidents"): several at once, picked
@@ -48,6 +53,12 @@ import EpisodePickerList, { EpisodePickerItem } from "./EpisodePickerList";
  * could not be added stays listed in it, with why - drawn as the dialog
  * draws any refusal (the danger Alert), each name on its line and the
  * reason under the names it applies to, as a bulk action's result does.
+ *
+ * In a project that allows one in only one episode (EpisodeSingleMembership,
+ * read when the dialog opens), the list offers only what can be added: the
+ * ones in no episode at all. A search still finds any, and one in another
+ * episode is drawn locked, its note naming that episode and its hover saying
+ * how to move it. A line under the list says the rule once.
  */
 
 // How long typing has to pause before the list is searched.
@@ -79,6 +90,20 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
 
   // What the episode holds already: null until read.
   const [memberIds, setMemberIds] = useState<Array<string> | null>(null);
+  /*
+   * Whether the project allows one in only one episode
+   * (EpisodeSingleMembership): null until read.
+   */
+  const [isLimitedToOneEpisode, setIsLimitedToOneEpisode] = useState<
+    boolean | null
+  >(null);
+  /*
+   * With nothing listed while that is on: whether there are others the
+   * person can see, all of them in another episode - so the empty list says
+   * why, rather than that there are none.
+   */
+  const [hasOthersInEpisodes, setHasOthersInEpisodes] =
+    useState<boolean>(false);
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [rows, setRows] = useState<Array<EpisodeRecordRow>>([]);
@@ -116,9 +141,14 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     let isCancelled: boolean = false;
 
-    fetchEpisodeMemberIds({ config: config, episodeId: props.episodeId })
-      .then((ids: Array<string>) => {
+    Promise.all([
+      fetchEpisodeMemberIds({ config: config, episodeId: props.episodeId }),
+      // Never rejects: a project it cannot read allows several.
+      fetchIsLimitedToOneEpisode({ config: config }),
+    ])
+      .then(([ids, isLimited]: [Array<string>, boolean]) => {
         if (!isCancelled) {
+          setIsLimitedToOneEpisode(isLimited);
           setMemberIds(ids);
         }
       })
@@ -136,7 +166,7 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
   }, [episodeIdString, reloadToken]);
 
   useEffect(() => {
-    if (memberIds === null) {
+    if (memberIds === null || isLimitedToOneEpisode === null) {
       return;
     }
 
@@ -146,11 +176,19 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
     setLoadError("");
 
+    /*
+     * Allowed in only one episode, and nothing typed: only the ones that
+     * can be added - in no episode at all. A search finds any.
+     */
+    const onlyOutsideEpisodes: boolean =
+      isLimitedToOneEpisode && !debouncedSearch.trim();
+
     const load: () => Promise<void> = async (): Promise<void> => {
       const loadedRows: Array<EpisodeRecordRow> = await fetchRecordRows({
         config: config,
         searchText: debouncedSearch,
         excludedIds: memberIds,
+        onlyOutsideEpisodes: onlyOutsideEpisodes,
       });
 
       // An episode with more members than one read holds: still left out.
@@ -159,6 +197,29 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
           return !memberIds.includes(row.id);
         },
       );
+
+      /*
+       * Nothing in no episode: whether there are others at all, to word the
+       * empty list. One row is enough to know.
+       */
+      let othersInEpisodes: boolean = false;
+
+      if (onlyOutsideEpisodes && visibleRows.length === 0) {
+        try {
+          const others: Array<EpisodeRecordRow> = await fetchRecordRows({
+            config: config,
+            searchText: "",
+            excludedIds: memberIds,
+            limit: 1,
+          });
+
+          othersInEpisodes = others.some((row: EpisodeRecordRow): boolean => {
+            return !memberIds.includes(row.id);
+          });
+        } catch {
+          // The empty list then says what it says when there are none.
+        }
+      }
 
       const otherEpisodeIds: Array<string> = visibleRows
         .map((row: EpisodeRecordRow): string => {
@@ -185,6 +246,7 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
 
       setRows(visibleRows);
       setEpisodeLabels(labels);
+      setHasOthersInEpisodes(othersInEpisodes);
       setIsLoading(false);
     };
 
@@ -196,7 +258,7 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
       setLoadError(API.getFriendlyMessage(err as Exception));
       setIsLoading(false);
     });
-  }, [memberIds, debouncedSearch]);
+  }, [memberIds, debouncedSearch, isLimitedToOneEpisode]);
 
   const retry: () => void = (): void => {
     setLoadError("");
@@ -215,6 +277,31 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
 
   const isAtLimit: boolean = selectedIds.length >= MAX_EPISODE_MEMBERS_PER_ADD;
 
+  // Is in another episode, and so stays there too.
+  const isInAnotherEpisode: (row: EpisodeRecordRow) => boolean = (
+    row: EpisodeRecordRow,
+  ): boolean => {
+    return (
+      Boolean(row.otherEpisodeId) && row.otherEpisodeId !== episodeIdString
+    );
+  };
+
+  /*
+   * Is in another episode, in a project that allows one in only one: it
+   * cannot be picked (EpisodeSingleMembership).
+   */
+  const isLocked: (row: EpisodeRecordRow) => boolean = (
+    row: EpisodeRecordRow,
+  ): boolean => {
+    return isLimitedToOneEpisode === true && isInAnotherEpisode(row);
+  };
+
+  const lockedIds: Set<string> = new Set(
+    rows.filter(isLocked).map((row: EpisodeRecordRow): string => {
+      return row.id;
+    }),
+  );
+
   const toggle: (id: string) => void = (id: string): void => {
     setSubmitError("");
 
@@ -227,7 +314,7 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    if (isAtLimit) {
+    if (isAtLimit || lockedIds.has(id)) {
       return;
     }
 
@@ -246,15 +333,6 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
     }
   };
 
-  // Is in another episode, and so stays there too.
-  const isInAnotherEpisode: (row: EpisodeRecordRow) => boolean = (
-    row: EpisodeRecordRow,
-  ): boolean => {
-    return (
-      Boolean(row.otherEpisodeId) && row.otherEpisodeId !== episodeIdString
-    );
-  };
-
   const toItem: (row: EpisodeRecordRow) => EpisodePickerItem = (
     row: EpisodeRecordRow,
   ): EpisodePickerItem => {
@@ -268,7 +346,26 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
       date: row.date,
     };
 
-    if (isInAnotherEpisode(row)) {
+    if (isLocked(row)) {
+      const label: EpisodeLabel | undefined = episodeLabels.get(
+        row.otherEpisodeId || "",
+      );
+
+      if (label?.number) {
+        item.note = translator.translateTemplate(LOCKED_NOTE, {
+          number: label.number,
+        });
+        item.noteTooltip = translator.translateTemplate(
+          config.singleMembershipCopy.lockedNoteTooltip,
+          { number: label.number },
+        );
+      } else {
+        item.note = translator.translateText(LOCKED_NOTE_UNNAMED);
+        item.noteTooltip = translator.translateText(
+          config.singleMembershipCopy.lockedNoteTooltipUnnamed,
+        );
+      }
+    } else if (isInAnotherEpisode(row)) {
       const label: EpisodeLabel | undefined = episodeLabels.get(
         row.otherEpisodeId || "",
       );
@@ -392,15 +489,39 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
                 "Showing the first {{count}} matches. Type more to narrow them down.",
                 { count: translator.formatNumber(rows.length) },
               )
-            : translator.translateTemplate(
-                "Showing the {{count}} most recent {{itemsName}} that are not in this episode. Search to find others.",
-                { count: translator.formatNumber(rows.length), itemsName },
-              )}
+            : isLimitedToOneEpisode
+              ? translator.translateTemplate(
+                  config.singleMembershipCopy.shownOutsideEpisodes,
+                  { count: translator.formatNumber(rows.length) },
+                )
+              : translator.translateTemplate(
+                  "Showing the {{count}} most recent {{itemsName}} that are not in this episode. Search to find others.",
+                  { count: translator.formatNumber(rows.length), itemsName },
+                )}
         </p>,
       );
     }
 
-    if (selectedInAnotherEpisode) {
+    /*
+     * The rule, once, and how to add one that is held: under a list that
+     * shows some, or that is empty because every other one is in another
+     * episode. Not under an empty list that holds nothing the rule kept out
+     * (a project with none yet, an episode that has them all, a search
+     * that matched nothing): there it would explain nothing.
+     */
+    const isRuleShown: boolean =
+      isLimitedToOneEpisode === true &&
+      (rows.length > 0 || (!hasSearch && hasOthersInEpisodes));
+
+    if (isRuleShown) {
+      lines.push(
+        <p key="one-episode" data-testid="add-episode-members-one-episode">
+          {translator.translateText(config.singleMembershipCopy.listRule)}
+        </p>,
+      );
+    }
+
+    if (selectedInAnotherEpisode && !isLimitedToOneEpisode) {
       lines.push(
         <p key="other-episode" data-testid="add-episode-members-other-note">
           {translator.translateTemplate(
@@ -440,15 +561,19 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
         })}
       </div>
       <div className="mt-1 text-xs leading-5 text-gray-500">
-        {memberIds && memberIds.length > 0
-          ? translator.translateTemplate(
-              "All the {{itemsName}} you can see are in this episode already.",
-              { itemsName },
+        {isLimitedToOneEpisode && hasOthersInEpisodes
+          ? translator.translateText(
+              config.singleMembershipCopy.emptyAllInOtherEpisodes,
             )
-          : translator.translateTemplate(
-              "There are no {{itemsName}} in this project yet.",
-              { itemsName },
-            )}
+          : memberIds && memberIds.length > 0
+            ? translator.translateTemplate(
+                "All the {{itemsName}} you can see are in this episode already.",
+                { itemsName },
+              )
+            : translator.translateTemplate(
+                "There are no {{itemsName}} in this project yet.",
+                { itemsName },
+              )}
       </div>
     </div>
   );
@@ -542,8 +667,8 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
           ]}
           selectedIds={selectedIds}
           onToggle={toggle}
-          isItemDisabled={() => {
-            return isAtLimit;
+          isItemDisabled={(id: string) => {
+            return isAtLimit || lockedIds.has(id);
           }}
           searchText={searchText}
           onSearchTextChange={setSearchText}

@@ -24,6 +24,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Incident Roles**       | Define the roles you assign responders to, such as Incident Commander.                       |
 | **Measurements**         | Time how long things take, like time to acknowledge or time to resolve, on every incident.    |
 | **Linked Alerts**        | Choose whether the alerts linked to an incident are acknowledged and resolved along with it. Both are on for new projects. |
+| **Episode Membership**   | Choose whether an incident can be in only one episode. Off by default. |
 | **Numbering**            | The text in front of incident and episode numbers, such as `INC-` in `INC-42`, and the number the next one gets. |
 
 What OneUptime AI does on its own is not set here: it has a section of its own, **Incidents → AI**, at routes beginning `/dashboard/{projectId}/incidents/ai/`. Its **Settings** page switches investigating new incidents, fixing them automatically (off until you turn it on), with the fix and missing-telemetry pull requests that are part of fixing drawn under it, and drafting postmortems on or off, each saving as soon as you flip it; the investigation rules and auto remediation rules that narrow which incidents are investigated and fixed, and the optional limits AI works under, are folded under **More settings**, and none apply until you set them. **Insights** and **Logs** are next to it: what AI learned from your incidents, and everything it did. See [AI SRE](/docs/ai/ai-sre).
@@ -525,6 +526,10 @@ Linking alerts to an incident never changes their state on its own. Two project 
 - **Resolve Linked Alerts When Incident Is Resolved** — resolving the incident resolves every linked alert that is not resolved yet, except an alert that is still linked to another incident that is not resolved.
 
 Both are on for new projects; a project created before they were on by default keeps the setting it had. Each is a switch that saves as soon as you flip it. Only Project Owners and Project Admins can change them; for everyone else the switches are locked and say which permission they need. States are compared by their order, so custom states count; alerts never move backwards, reopening an incident does not reopen its alerts, and an alert linked to an incident that is already acknowledged or resolved is brought in line as it is linked. Turning a switch on hands the linked alerts' states to the incident: whoever can change an incident's state, or link an alert to an incident that is already acknowledged or resolved, moves the alerts too, without needing permission to edit alerts. [Linked Alerts](/docs/incidents/linked-alerts) has the full rules, including why resolving an alert whose monitor is still failing makes the monitor raise a fresh one.
+
+## Episode membership
+
+An incident can be in several episodes at once. **Incidents → Settings → Episode Membership** (`/dashboard/{projectId}/incidents/settings/episode-membership`) has one switch, **An incident can be in only one episode**: while it is on, an incident that is in an episode is not added to another one, from the dashboard, the API, a workflow or a grouping rule, until it is removed from that episode. It is off until you turn it on, and it saves as soon as you flip it. Only Project Owners and Project Admins can change it; for everyone else the switch is locked and says which permission it needs. Turning it on takes no incident out of an episode. [One episode per incident](/docs/incidents/episodes#one-episode-per-incident) has what each way of adding does while it is on.
 
 ## Rules that run when an incident is created
 

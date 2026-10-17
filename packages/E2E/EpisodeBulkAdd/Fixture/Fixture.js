@@ -19,6 +19,9 @@
  *                                  (.../alerts/episodes/<id>/alerts)
  *   - page=incident-episode        an incident episode's Incidents page
  *                                  (.../incidents/episodes/<id>/incidents)
+ *   - page=incident-settings       Incidents > Settings > Episode
+ *                                  Membership: the one-episode switch
+ *   - page=alert-settings          Alerts > Settings > Episode Membership
  *   - role=viewer                  may read alerts, incidents and episodes,
  *                                  may add to none (Viewer)
  *   - role=adder                   may add to an episode but may not create
@@ -41,12 +44,22 @@
  *   - long=1                       long titles, the way some are written
  *   - onlyMembers=1                every alert and incident is in episode
  *                                  12 already: nothing left to add
+ *   - heldElsewhere=1              every alert and incident that is in no
+ *                                  episode is put in episode 11: with
+ *                                  oneEpisode=1, nothing episode 12 could
+ *                                  still take
+ *   - oneEpisode=1                 the project allows an alert (and an
+ *                                  incident) in only one episode
+ *                                  (EpisodeSingleMembership): the server
+ *                                  leaves out one in another episode, and
+ *                                  refuses a new episode created with one
  *   - lang=de|ja                   the Dashboard's German or Japanese words
  *   - theme=dark                   the dark theme
  *
  * Every add request is recorded on `window.__fixture.adds`, every episode
  * created on `window.__fixture.creates`, every delete on
- * `window.__fixture.deletes` and every list request on
+ * `window.__fixture.deletes`, every update (a settings switch saving) on
+ * `window.__fixture.updates` and every list request on
  * `window.__fixture.listRequests`, so the spec checks what the page sent,
  * not only what it drew.
  */
@@ -65,6 +78,8 @@ import AlertsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Alert
 import IncidentsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Incidents";
 import AlertEpisodeAlertsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeView/Alerts";
 import IncidentEpisodeIncidentsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/EpisodeView/Incidents";
+import IncidentEpisodeMembershipSettings from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentEpisodeMembershipSettings";
+import AlertEpisodeMembershipSettings from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertEpisodeMembershipSettings";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -90,6 +105,13 @@ import {
   ALERT_NOT_FOUND_REASON,
   INCIDENT_NOT_FOUND_REASON,
 } from "Common/Types/Episode/EpisodeMembersAdd";
+import EpisodeSingleMembership, {
+  ALERT_IN_ANOTHER_EPISODE_REASON,
+  ALERT_SINGLE_MEMBERSHIP,
+  INCIDENT_IN_ANOTHER_EPISODE_REASON,
+  INCIDENT_SINGLE_MEMBERSHIP,
+} from "Common/Types/Episode/EpisodeSingleMembership";
+import Project from "Common/Models/DatabaseModels/Project";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -122,6 +144,8 @@ const failTables = listTables("fail");
 const many = Math.min(400, Math.max(0, Number(params.get("many") || 0)));
 const long = params.get("long") === "1";
 const onlyMembers = params.get("onlyMembers") === "1";
+const heldElsewhere = params.get("heldElsewhere") === "1";
+const oneEpisode = params.get("oneEpisode") === "1";
 const LONG_TITLE =
   "Checkout API returns 502 for card payments in eu-west-1 while the payment provider's webhook queue is backed up";
 const language = ["de", "ja"].includes(params.get("lang"))
@@ -334,6 +358,15 @@ function makeKind(kind) {
     addMember(episodes[2], records[7], 95);
   }
 
+  // Every one in no episode joins episode 11: none is free any more.
+  if (heldElsewhere && !noEpisodes) {
+    for (const candidate of records) {
+      if (!candidate[episodeIdField]) {
+        addMember(episodes[1], candidate, 30);
+      }
+    }
+  }
+
   // Nothing left to add to episode 12: every other one is gone.
   if (onlyMembers) {
     const kept = records.filter(
@@ -368,6 +401,13 @@ function makeKind(kind) {
     notFoundReason: isAlert
       ? ALERT_NOT_FOUND_REASON
       : INCIDENT_NOT_FOUND_REASON,
+    inAnotherEpisodeReason: isAlert
+      ? ALERT_IN_ANOTHER_EPISODE_REASON
+      : INCIDENT_IN_ANOTHER_EPISODE_REASON,
+    singleMembership: isAlert
+      ? ALERT_SINGLE_MEMBERSHIP
+      : INCIDENT_SINGLE_MEMBERSHIP,
+    numberWithPrefixField,
     nextEpisodeNumber: 13,
   };
 }
@@ -386,6 +426,13 @@ window.__fixture = {
   adds: [],
   creates: [],
   deletes: [],
+  updates: [],
+};
+
+// The project's switches as saved: one episode per alert and per incident.
+const projectSwitches = {
+  limitAlertsToOneEpisode: oneEpisode,
+  limitIncidentsToOneEpisode: oneEpisode,
 };
 
 function idOf(value) {
@@ -554,8 +601,45 @@ ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
 ModelAPI.getItem = async (options) => {
   const tableName = new options.modelType().tableName;
   const id = idOf(options.id);
+
+  // The project's switches: one episode per alert and per incident.
+  if (tableName === "Project") {
+    return model(Project, { _id: PROJECT_ID, ...projectSwitches });
+  }
+
   return recordsOf(tableName).find((record) => idOf(record._id) === id) || null;
 };
+
+/*
+ * A settings switch saving: the project's column, kept for the next read,
+ * as the server stores it.
+ */
+ModelAPI.updateById = async (options) => {
+  const tableName = new options.modelType().tableName;
+  window.__fixture.updates.push({
+    tableName,
+    id: idOf(options.id),
+    data: serialize(options.data),
+  });
+
+  await wait();
+
+  if (tableName === "Project") {
+    Object.assign(projectSwitches, options.data);
+  }
+
+  return { data: {} };
+};
+
+// Whether a record is in some episode other than this one.
+function isInAnotherEpisode(kind, recordId, episodeId) {
+  return kind.members.some(
+    (member) =>
+      idOf(member[kind.memberRecordIdField]) === recordId &&
+      idOf(member[kind.isAlert ? "alertEpisodeId" : "incidentEpisodeId"]) !==
+        episodeId,
+  );
+}
 
 ModelAPI.getList = async (options) => {
   const tableName = new options.modelType().tableName;
@@ -679,6 +763,29 @@ ModelAPI.create = async (options) => {
     );
   }
 
+  // One in an episode already refuses the whole create, as the server does.
+  const held = oneEpisode
+    ? ids.filter((id) => isInAnotherEpisode(kind, id, ""))
+    : [];
+
+  if (held.length > 0) {
+    throw new HTTPErrorResponse(
+      400,
+      {
+        message: EpisodeSingleMembership.getNewEpisodeRefusal({
+          kind: kind.singleMembership,
+          recordLabels: held.map((id) => {
+            const record = kind.records.find(
+              (candidate) => idOf(candidate._id) === id,
+            );
+            return record ? record[kind.numberWithPrefixField] : null;
+          }),
+        }),
+      },
+      {},
+    );
+  }
+
   const number = kind.nextEpisodeNumber++;
   const severity = kind.severities.find(
     (candidate) => idOf(candidate._id) === idOf(values[kind.severityIdField]),
@@ -788,6 +895,11 @@ API.post = async (options) => {
       continue;
     }
 
+    if (oneEpisode && isInAnotherEpisode(kind, id, episodeId)) {
+      result.notAdded.push({ id, reason: kind.inAnotherEpisodeReason });
+      continue;
+    }
+
     addMembers(kind, episodeRecord, [id]);
     result.added.push(id);
   }
@@ -824,6 +936,14 @@ const PAGES = {
   "incident-episode": {
     component: IncidentEpisodeIncidentsPage,
     trail: ["Incidents", "Episodes", "IE-12", "Incidents"],
+  },
+  "incident-settings": {
+    component: IncidentEpisodeMembershipSettings,
+    trail: ["Incidents", "Settings", "Episode Membership"],
+  },
+  "alert-settings": {
+    component: AlertEpisodeMembershipSettings,
+    trail: ["Alerts", "Settings", "Episode Membership"],
   },
 };
 

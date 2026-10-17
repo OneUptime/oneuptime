@@ -78,6 +78,13 @@ export const EPISODE_MEMBERS_ADD_REASON_KEYS: Array<string> = [
   translationKey(
     "This incident does not exist in this project, or you do not have access to it.",
   ),
+  // In another episode, in a project that allows one in only one.
+  translationKey(
+    "Already in another episode. An alert can be in only one episode in this project.",
+  ),
+  translationKey(
+    "Already in another episode. An incident can be in only one episode in this project.",
+  ),
 ];
 
 export const EPISODE_ADD_CAP_TOOLTIP_KEY: string = translationKey(
@@ -331,7 +338,23 @@ function useBulkAddToEpisodeActions<T extends BaseModel>(
       return;
     }
 
-    const ids: Array<string> = getSelectedIds(props.items);
+    /*
+     * In a project that allows one in only one episode, the ones in an
+     * episode already are left out of the new one (the dialog said so):
+     * not asked for, and each reported as not added, with the reason the
+     * server gives for one (EpisodeSingleMembership).
+     */
+    const leftOutIds: Set<string> = new Set(
+      (values.leftOutIds || []).map((id: string): string => {
+        return EpisodeMembersAdd.normalizeId(id);
+      }),
+    );
+
+    const ids: Array<string> = getSelectedIds(props.items).filter(
+      (id: string): boolean => {
+        return !leftOutIds.has(id);
+      },
+    );
     resultEpisodeRef.current = null;
 
     /*
@@ -344,7 +367,15 @@ function useBulkAddToEpisodeActions<T extends BaseModel>(
     await runBulkAction<T>({
       actionProps: props,
       concurrency: Math.max(1, props.items.length),
-      step: async (): Promise<BulkItemOutcome> => {
+      step: async (item: T): Promise<BulkItemOutcome> => {
+        const id: string = EpisodeMembersAdd.normalizeId(
+          item._id?.toString() || "",
+        );
+
+        if (leftOutIds.has(id) || ids.length === 0) {
+          throw new Error(config.inAnotherEpisodeReason);
+        }
+
         if (!request) {
           request = createEpisodeWith({
             config: config,

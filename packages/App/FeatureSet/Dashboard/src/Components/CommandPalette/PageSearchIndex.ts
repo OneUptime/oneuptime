@@ -858,6 +858,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Link,
           },
           {
+            page: PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
+            title: "Episode Membership",
+            icon: IconProp.SquareStack3D,
+            keywords: [
+              "episode settings",
+              "one episode",
+              "only one episode",
+              "several episodes",
+            ],
+          },
+          {
             page: PageMap.INCIDENTS_SETTINGS_NUMBERING,
             title: "Numbering",
             icon: IconProp.Hashtag,
@@ -984,6 +995,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Measurements",
             icon: IconProp.Clock,
             keywords: ["mtta", "time to resolve"],
+          },
+          {
+            page: PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP,
+            title: "Episode Membership",
+            icon: IconProp.SquareStack,
+            keywords: [
+              "episode settings",
+              "one episode",
+              "only one episode",
+              "several episodes",
+            ],
           },
           {
             page: PageMap.ALERTS_SETTINGS_NUMBERING,

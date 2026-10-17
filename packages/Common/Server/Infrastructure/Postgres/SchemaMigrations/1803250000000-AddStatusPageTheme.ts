@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * theme; the column's default stays Light, which is also the default the
  * Terraform provider sends.
  */
-export class AddStatusPageTheme1803200000000 implements MigrationInterface {
-  public name: string = "AddStatusPageTheme1803200000000";
+export class AddStatusPageTheme1803250000000 implements MigrationInterface {
+  public name: string = "AddStatusPageTheme1803250000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

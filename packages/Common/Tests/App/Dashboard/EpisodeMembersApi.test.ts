@@ -78,6 +78,11 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
+import Project from "../../../Models/DatabaseModels/Project";
+import {
+  ALERT_IN_ANOTHER_EPISODE_REASON,
+  INCIDENT_IN_ANOTHER_EPISODE_REASON,
+} from "../../../Types/Episode/EpisodeSingleMembership";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -275,6 +280,39 @@ describe("what the add dialog lists", () => {
         alertSeverity: { _id: true, name: true, color: true },
       }),
     );
+  });
+
+  /*
+   * A project that allows one in only one episode (EpisodeSingleMembership):
+   * the list asks for the ones that can be added - in no episode at all.
+   */
+  test.each([ALERT_EPISODE_MEMBER_KIND, INCIDENT_EPISODE_MEMBER_KIND])(
+    "only the ones in no episode, when asked: the $kind's own episode column is empty",
+    async (config: EpisodeMemberKindConfig) => {
+      await fetchRecordRows({
+        config: config,
+        searchText: "",
+        excludedIds: [id(1)],
+        onlyOutsideEpisodes: true,
+      });
+
+      const call: Record<string, any> = lastListCall();
+
+      expect(call["query"][config.recordEpisodeIdField]).toBeInstanceOf(IsNull);
+      // Still leaving out what the episode holds.
+      expect((call["query"]["_id"] as IncludesNone).values).toEqual([id(1)]);
+    },
+  );
+
+  test("unasked, the episode column is not filtered: one in another episode is listed", async () => {
+    await fetchRecordRows({
+      config: ALERT_EPISODE_MEMBER_KIND,
+      searchText: "",
+      excludedIds: [],
+      onlyOutsideEpisodes: false,
+    });
+
+    expect(lastListCall()["query"]["alertEpisodeId"]).toBeUndefined();
   });
 
   test("a search looks at the title and the number, with or without its prefix", async () => {
@@ -700,5 +738,39 @@ describe("the two kinds", () => {
         expect(membership.getTableColumnMetadata(column)).toBeTruthy();
       }
     }
+  });
+
+  test("name the Project switch that allows one in only one episode, and the reason the server gives", () => {
+    const project: Project = new Project();
+
+    expect(ALERT_EPISODE_MEMBER_KIND.singleMembershipColumn).toBe(
+      "limitAlertsToOneEpisode",
+    );
+    expect(INCIDENT_EPISODE_MEMBER_KIND.singleMembershipColumn).toBe(
+      "limitIncidentsToOneEpisode",
+    );
+
+    for (const config of [
+      ALERT_EPISODE_MEMBER_KIND,
+      INCIDENT_EPISODE_MEMBER_KIND,
+    ]) {
+      expect(
+        project.getTableColumnMetadata(config.singleMembershipColumn),
+      ).toBeTruthy();
+    }
+
+    expect(ALERT_EPISODE_MEMBER_KIND.inAnotherEpisodeReason).toBe(
+      ALERT_IN_ANOTHER_EPISODE_REASON,
+    );
+    expect(INCIDENT_EPISODE_MEMBER_KIND.inAnotherEpisodeReason).toBe(
+      INCIDENT_IN_ANOTHER_EPISODE_REASON,
+    );
+    // Each kind words the dialogs for its own records.
+    expect(ALERT_EPISODE_MEMBER_KIND.singleMembershipCopy.listRule).toContain(
+      "An alert can be in only one episode",
+    );
+    expect(
+      INCIDENT_EPISODE_MEMBER_KIND.singleMembershipCopy.listRule,
+    ).toContain("An incident can be in only one episode");
   });
 });
