@@ -1159,7 +1159,11 @@ jobs:
   # e2e evidence (run 38996994440) the merges queued 34 to 49 minutes between
   # the last build and the e2e jobs. The merges still run, beside the e2e
   # jobs, and test-helm-chart, which installs the multi-arch `test` tags,
-  # waits for them; a failed merge still fails the run.
+  # waits for them; a failed merge still fails the run. A need on a build
+  # job waits for both of its legs, arm64's too, so a failed arm64 build
+  # still holds the e2e jobs back, as it did through the merge. No step here
+  # may name a tag a merge pushes: until the merge runs, it still names the
+  # previous push's image (TestReleaseE2eImages.test.js).
   #
   # The SaaS and self-hosted jobs each run one shard of the default suite
   # (E2E_SHARD; packages/E2E/Sharding/Sharding.ts): whole spec files, balanced

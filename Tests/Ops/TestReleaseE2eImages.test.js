@@ -320,6 +320,65 @@ describe(`${TEST_RELEASE}: the e2e jobs run the amd64 images this run's builds p
       }
     });
 
+    /*
+     * The tags a merge pushes - <version>-test, enterprise-<version>-test and
+     * the build's extra tags, test and enterprise-test - are moved only once
+     * the merge has run, and this job does not wait for it: until then they
+     * still name the previous push's images. So no step of the job may name
+     * one, wherever it names an image: a run line, a step's or the job's env,
+     * an action's inputs. The pin step builds its tag in the shell and is run
+     * above; every other step must spell the arch suffix out.
+     */
+    test("names no tag a merge pushes, in any step: every image it names is an -amd64 tag", () => {
+      const pin = (job.steps || []).find((step) => {
+        return /^Pin APP_TAG/.test(step.name || "");
+      });
+      const texts = [
+        { where: "the job's env", text: JSON.stringify(job.env || {}) },
+        ...(job.steps || [])
+          .filter((step) => {
+            return step !== pin;
+          })
+          .map((step) => {
+            return {
+              where: step.name || step.uses || "a step",
+              text: JSON.stringify(step),
+            };
+          }),
+      ];
+      const unsuffixed = [];
+      let images = 0;
+
+      for (const { where, text } of texts) {
+        const filled = withVersion(text);
+        // The run's version, as a merge's tags carry it: never on its own.
+        for (const match of filled.matchAll(/\b9\.9\.9-test(?!-amd64)/g)) {
+          unsuffixed.push(`${where}: ${match[0]}`);
+        }
+        // An image by name and tag, other than the pinned ${APP_TAG}.
+        for (const match of filled.matchAll(
+          /(?:ghcr\.io\/)?oneuptime\/[a-z0-9-]+:([A-Za-z0-9_.{}$-]+)/g,
+        )) {
+          images += 1;
+          if (match[1] !== "${APP_TAG}" && !match[1].endsWith("-amd64")) {
+            unsuffixed.push(`${where}: ${match[0]}`);
+          }
+        }
+        // APP_TAG set to a literal anywhere: an env entry or an assignment.
+        for (const match of filled.matchAll(
+          /\bAPP_TAG"?\s*[:=]\s*"?([A-Za-z0-9_.-]+)/g,
+        )) {
+          if (!match[1].endsWith("-amd64")) {
+            unsuffixed.push(`${where}: ${match[0]}`);
+          }
+        }
+      }
+
+      // The App image its edition check pulls, at least.
+      expect(images).toBeGreaterThan(0);
+      expect(unsuffixed).toEqual([]);
+    });
+
     test("waits for each of those builds, whose matrix has the amd64 leg", () => {
       for (const image of images) {
         const build = `${imageName(image)}-docker-image-build`;

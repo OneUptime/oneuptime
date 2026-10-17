@@ -855,7 +855,11 @@ its own, and the merges used to stand between the last build and the e2e jobs
 amd64 leg, with a fake `docker` on PATH that records every call, and holds the
 tag each e2e job boots - the same in every step that names it, the pin step's
 included, which it runs - to the tags that leg pushes, for every image of the
-job's stack and in the job's edition. It also pins that the merges still run
+job's stack and in the job's edition. No step of an e2e job, and no job env,
+may name a tag a merge pushes (`<version>-test`, `enterprise-<version>-test`,
+`test`, `enterprise-test`), in a run line, an env entry or an action's input:
+the job does not wait for the merges, so until they run those tags still name
+the previous push's images. It also pins that the merges still run
 for every image built, that `test-helm-chart` (which installs the multi-arch
 `test` tags) still waits for them, and that nothing in the workflow lets a
 failed job end the run green (no `continue-on-error`, no `always()`).
