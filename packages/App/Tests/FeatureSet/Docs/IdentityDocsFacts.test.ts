@@ -67,6 +67,10 @@ const SOURCES: Record<string, string> = {
   ssoApi: `${IDENTITY}/API/SSO.ts`,
   oidcApi: `${IDENTITY}/API/OIDC.ts`,
   ssoUtil: `${IDENTITY}/Utils/SSO.ts`,
+  ssoOneTimeUse: `${IDENTITY}/Utils/SamlAssertionOneTimeUse.ts`,
+  ssoServiceProvider: `${IDENTITY}/Utils/SamlServiceProvider.ts`,
+  globalSsoApi: `${IDENTITY}/API/GlobalSSO.ts`,
+  statusPageSsoApi: `${IDENTITY}/API/StatusPageSSO.ts`,
   oidcUtil: `${IDENTITY}/Utils/OIDC.ts`,
   ssoConfirmation: `${IDENTITY}/Utils/ProjectSsoSignInConfirmation.ts`,
   ssoConsent: "packages/Common/Server/Services/UserProjectSsoConsentService.ts",
@@ -501,7 +505,10 @@ describe("the SSO guide", () => {
   });
 
   it("quotes the messages the SAML sign-in answers with, as the server words them", () => {
-    const server: string = readSource("ssoApi") + readSource("ssoUtil");
+    const server: string =
+      readSource("ssoApi") +
+      readSource("ssoUtil") +
+      readSource("ssoOneTimeUse");
     const page: string = english(SSO);
 
     for (const message of [
@@ -510,6 +517,10 @@ describe("the SSO guide", () => {
       "Issuer URL does not match",
       "Encrypted SAML Responses are not supported",
       "SAML response did not include a valid email address",
+      "SAML Audience does not match",
+      "SAML Recipient does not match",
+      "SAML response has expired",
+      "SAML response was already used",
     ]) {
       expect({ message, sent: server.includes(`"${message}`) }).toEqual({
         message,
@@ -545,6 +556,67 @@ describe("the SSO guide", () => {
     );
     expect(page).toContain(
       "The person is not in the project yet, and the provider has no **Teams** to add them to.",
+    );
+  });
+
+  /*
+   * Who a response is for and when it may be used: the rows of the table of
+   * what OneUptime reads, held to SSOUtil (SamlResponseConditions.test.ts
+   * runs every rule) and to the one-time use the Reply URLs claim.
+   */
+  it("says what a SAML response is held to, as the server holds it", () => {
+    expect(SSOUtil.MAX_ASSERTION_AGE_IN_MS).toBe(10 * 60 * 1000);
+    expect(SSOUtil.CLOCK_SKEW_IN_MS).toBe(3 * 60 * 1000);
+
+    const util: string = readSource("ssoUtil");
+
+    expect(util).toContain("SSOUtil.assertAudienceIsThisProvider(");
+    expect(util).toContain("SSOUtil.getBearerConfirmationsForThisProvider(");
+    expect(util).toContain("SSOUtil.assertDestinationIsThisProvider(");
+    expect(util).toContain('"NotOnOrAfter"');
+    expect(util).toContain('"NotBefore"');
+
+    const page: string = english(SSO);
+
+    for (const row of [
+      "| Audience | Must be the provider's **Identifier (Entity ID)**. A response your IdP made for another application is refused. |",
+      "| Recipient and Destination | Must be the provider's **Reply URL**, the address the response was sent to. |",
+      "| `NotBefore` and `NotOnOrAfter` | The response is accepted only while they allow it, and no later than 10 minutes after it was issued, with 3 minutes of leeway for clocks that disagree. |",
+    ]) {
+      expect({ row, stated: page.includes(row) }).toEqual({
+        row,
+        stated: true,
+      });
+    }
+  });
+
+  it("says each response signs someone in once, at every SAML Reply URL", () => {
+    for (const key of ["ssoApi", "globalSsoApi", "statusPageSsoApi"]) {
+      expect({
+        key,
+        claims: readSource(key).includes("SamlAssertionOneTimeUse.claim("),
+      }).toEqual({ key, claims: true });
+    }
+
+    expect(readSource("ssoOneTimeUse")).toContain(
+      "GlobalCache.setStringIfNotExists(",
+    );
+    expect(english(SSO)).toContain(
+      "Each response signs someone in once. Sent again, for example by going back in the browser after signing in, it is refused: sign in again.",
+    );
+    expect(english(GLOBAL_SSO)).toContain(
+      "Each response from your identity provider signs someone in once, and only within minutes of being issued",
+    );
+  });
+
+  it("says an identity provider that names OneUptime's address alone as the entity ID keeps working", () => {
+    // The Entity ID the screens showed before May 2024, still accepted.
+    expect(readSource("ssoServiceProvider")).toContain(
+      "serverAddress: SamlServiceProviders.getServerAddress(),",
+    );
+    expect(readSource("ssoUtil")).toContain("serviceProvider.serverAddress,");
+    expect(english(SSO)).toContain(
+      "An IdP set up with OneUptime's address alone as the entity ID, such as `https://oneuptime.com`, keeps working.",
     );
   });
 
