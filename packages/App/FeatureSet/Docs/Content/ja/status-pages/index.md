@@ -115,7 +115,7 @@ API または Terraform で作成したページにも、以下の設定と同�
 - `/announcements` と `/announcements/:id`。
 - `/scheduled-events` と `/scheduled-events/:id`。
 - `/subscribe/email`、`/subscribe/sms`、`/subscribe/slack`、`/subscribe/microsoft-teams`、`/subscribe/webhooks`。
-- `/confirm-subscription/:id`、`/update-subscription/:id`、`/unsubscribe/:token`: 購読者が受け取るメッセージ内のリンク。
+- `/confirm-subscription/:id`、`/update-subscription/:token`、`/unsubscribe/:token`: 購読者が受け取るメッセージ内のリンク。
 - `/rss`: フィード。
 - `/login`、`/sso`、`/master-password`: プライベートページでのみ意味があります。
 

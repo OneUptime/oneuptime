@@ -4,6 +4,10 @@ import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
+import {
+  getManageLinkRequestPage,
+  ManageLinkChannels,
+} from "./ManageLinkRequestPage";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -48,6 +52,11 @@ import { useTranslation } from "react-i18next";
 export interface ComponentProps {
   statusPageName: string;
   logoFileId: ObjectID;
+  /*
+   * The channels the page offers, for the link an out-of-date link's reader
+   * gets to the Subscribe page (see ManageLinkRequestPage).
+   */
+  manageLinkChannels?: ManageLinkChannels | undefined;
 }
 
 enum PageState {
@@ -203,19 +212,44 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
       : null;
 
   /*
-   * The subscriber's Update Subscription page. It is only offered on a
-   * public status page: on a private one it needs a signed-in visitor, which
-   * the reader of this page may not be.
+   * The subscriber's Update Subscription page, for a link that carries its
+   * token: the manage page asks for the same credential, and it reaches the
+   * page through the tab's session (SensitiveUrlToken), never the address -
+   * so the route is the token-free one. It is only offered on a public
+   * status page: on a private one it needs a signed-in visitor, which the
+   * reader of this page may not be.
    */
   const manageSubscriptionRoute: Route | null =
-    credential && !StatusPageUtil.isPrivateStatusPage()
+    credential && credential.token && !StatusPageUtil.isPrivateStatusPage()
       ? RouteUtil.populateRouteParams(
-          StatusPageUtil.isPreviewPage()
-            ? (RouteMap[PageMap.PREVIEW_UPDATE_SUBSCRIPTION] as Route)
-            : (RouteMap[PageMap.UPDATE_SUBSCRIPTION] as Route),
-          new ObjectID(credential.subscriberId),
+          new Route(
+            RouteUtil.tokenFreeRoute(
+              (StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_UPDATE_SUBSCRIPTION] as Route)
+                : (RouteMap[PageMap.UPDATE_SUBSCRIPTION] as Route)
+              ).toString(),
+            ),
+          ),
         )
       : null;
+
+  /*
+   * An out-of-date link carries only the subscriber id, which opens neither
+   * this page nor the manage page. Its reader can ask for a new link on the
+   * Subscribe page (Manage Existing Subscription) - on a public status page,
+   * as above, and when the page offers a channel with that tab.
+   */
+  const newLinkPage: PageMap | null =
+    props.manageLinkChannels && !StatusPageUtil.isPrivateStatusPage()
+      ? getManageLinkRequestPage({
+          channels: props.manageLinkChannels,
+          isPreview: Boolean(StatusPageUtil.isPreviewPage()),
+        })
+      : null;
+
+  const newLinkRoute: Route | null = newLinkPage
+    ? RouteUtil.populateRouteParams(RouteMap[newLinkPage] as Route)
+    : null;
 
   const renderContact: () => ReactElement | null = (): ReactElement | null => {
     if (!details?.channel) {
@@ -240,17 +274,21 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderManageLink: (text: string) => ReactElement | null = (
+  const renderManageLink: (
     text: string,
+    route: Route | null,
+  ) => ReactElement | null = (
+    text: string,
+    route: Route | null,
   ): ReactElement | null => {
-    if (!manageSubscriptionRoute) {
+    if (!route) {
       return null;
     }
 
     return (
       <p className="mt-6 text-center text-sm">
         <Link
-          to={manageSubscriptionRoute}
+          to={route}
           className="font-medium text-indigo-600 hover:text-indigo-500"
         >
           {text}
@@ -303,7 +341,10 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
                 }}
               />
             </div>
-            {renderManageLink(t("subscribe.unsubscribe.manageInstead"))}
+            {renderManageLink(
+              t("subscribe.unsubscribe.manageInstead"),
+              manageSubscriptionRoute,
+            )}
           </div>
         );
 
@@ -333,7 +374,10 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
             <p className="text-sm text-gray-700">
               {t("subscribe.unsubscribe.outOfDateLink")}
             </p>
-            {renderManageLink(t("subscribe.unsubscribe.manageSubscription"))}
+            {renderManageLink(
+              t("subscribe.unsubscribe.manageSubscription"),
+              newLinkRoute,
+            )}
           </div>
         );
 

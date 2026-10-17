@@ -271,7 +271,6 @@ import { Blue500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
-  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -377,8 +376,8 @@ const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
-// An SMS from this public page carries the manage link (see smsManageLinkFor).
-const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+// An SMS carries the same token link as every other message, on a public page too.
+const SMS_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -759,16 +758,17 @@ describe("Incident:SendNotificationToSubscribers", () => {
 
   /*
    * Which link each message carries: the unsubscribe page's token link on
-   * every channel, except an SMS from a public status page, which keeps the
-   * manage link - 57 characters shorter, and an SMS is billed by the segment
-   * (StatusPageSubscriberUnsubscribe.buildSmsLink).
+   * every channel, an SMS from a public status page included. The manage
+   * page asks for the same token, so a link keyed by the subscriber id alone
+   * - which an SMS from a public page used to carry, and the SMS log kept for
+   * every member who may read it - would open nothing.
    */
-  test("a public page: the SMS keeps the manage link, every other channel carries the token link", async () => {
+  test("a public page: every channel, the SMS included, carries the token link", async () => {
     await runJob();
 
-    expect(sentSms()[0]).toContain(`Unsub: ${SMS_UNSUBSCRIBE_URL}`);
-    expect(sentSms()[0]).not.toContain("/unsubscribe/");
-    expect(SMS_UNSUBSCRIBE_URL.length).toBe(UNSUBSCRIBE_URL.length - 57);
+    expect(SMS_UNSUBSCRIBE_URL).toBe(UNSUBSCRIBE_URL);
+    expect(sentSms()[0]).toContain(`Unsub: ${UNSUBSCRIBE_URL}`);
+    expect(sentSms()[0]).not.toContain("/update-subscription/");
 
     expect(sentMail()[0]!["vars"]).toEqual(
       expect.objectContaining({ unsubscribeUrl: UNSUBSCRIBE_URL }),
@@ -915,7 +915,7 @@ describe("Incident:SendNotificationToSubscribers, with custom templates and grou
 
     expect(variablesCompiledInto(CUSTOM_EMAIL_BODY)).toEqual(html);
     expect(variablesCompiledInto(CUSTOM_EMAIL_SUBJECT)).toEqual(plainText);
-    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    // An SMS carries the same token link as every other message, on a public page too.
     expect(variablesCompiledInto(CUSTOM_SMS_BODY)).toEqual({
       ...plainText,
       unsubscribeUrl: SMS_UNSUBSCRIBE_URL,

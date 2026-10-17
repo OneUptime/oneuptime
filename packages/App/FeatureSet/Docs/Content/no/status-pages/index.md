@@ -115,7 +115,7 @@ Den offentlige siden er en egen applikasjon, med et lite sett ruter:
 - `/announcements` og `/announcements/:id`.
 - `/scheduled-events` og `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` og `/unsubscribe/:token`: lenkene i meldingene abonnentene får.
+- `/confirm-subscription/:id`, `/update-subscription/:token` og `/unsubscribe/:token`: lenkene i meldingene abonnentene får.
 - `/rss`: strømmen.
 - `/login`, `/sso` og `/master-password`: bare relevante på en privat side.
 

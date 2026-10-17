@@ -37,9 +37,10 @@ export default class StatusPageSubscriberAPI extends BaseAPI<
      * It no longer changes anything. An old link still leads somewhere
      * useful: the status page's unsubscribe page, told only the id, which
      * says the link is out of date and to use the one in a recent message
-     * (and, on a public page, offers the subscriber's manage page). It never
-     * hands out the subscriber's unsubscribe token - that would make the id
-     * alone enough to unsubscribe again. Notifications now carry
+     * (and, on a public page, leads to the Subscribe page, where a new link
+     * can be asked for: the manage page opens only with the token too). It
+     * never hands out the subscriber's unsubscribe token - that would make
+     * the id alone enough to unsubscribe again. Notifications now carry
      * {statusPageUrl}/unsubscribe/{id}-{token}, which asks before it acts.
      */
     this.router.get(

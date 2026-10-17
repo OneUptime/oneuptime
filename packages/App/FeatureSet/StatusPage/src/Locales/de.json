@@ -236,7 +236,10 @@
       "saved": "Ihre Änderungen wurden gespeichert.",
       "submit": "Abonnement aktualisieren",
       "unsubscribe": "Abbestellen",
-      "unsubscribeDescription": "Bitte wählen Sie diese Option, wenn Sie alle Ressourcen abbestellen möchten."
+      "unsubscribeDescription": "Bitte wählen Sie diese Option, wenn Sie alle Ressourcen abbestellen möchten.",
+      "linkNotValid": "Dieser Link zum Verwalten Ihres Abonnements ist abgelaufen oder ungültig. Einen neuen erhalten Sie über „Bestehendes Abonnement verwalten“ auf der Seite „Abonnieren“.",
+      "getNewLink": "Neuen Link anfordern",
+      "loadFailed": "Dieser Link konnte nicht geladen werden. Bitte versuchen Sie es später erneut."
     },
     "confirm": {
       "title": "Abonnement bestätigen",
