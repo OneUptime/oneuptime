@@ -2,6 +2,21 @@ import { createHash } from "crypto";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 
+/*
+ * The fingerprints of label sets seen lately, by their canonical text
+ * ("key=value|key=value"). A grouped metric monitor fingerprints every raw
+ * row it reads - 10,000 a query, over a few hundred series - and the SHA-256
+ * was nine tenths of the work, so each series is hashed once and read back
+ * after. Bounded both ways: a text longer than
+ * FINGERPRINT_MEMO_MAX_TEXT_LENGTH is hashed every time and never kept, and
+ * past FINGERPRINT_MEMO_MAX_ENTRIES texts the oldest is let go, so the memo
+ * holds a few megabytes at most.
+ */
+export const FINGERPRINT_MEMO_MAX_ENTRIES: number = 4096;
+export const FINGERPRINT_MEMO_MAX_TEXT_LENGTH: number = 512;
+
+const fingerprintMemo: Map<string, string> = new Map<string, string>();
+
 /**
  * Canonicalize a label dictionary (key/value string pairs identifying a
  * metric series) into a stable short hash. Used to key incidents/alerts
@@ -40,10 +55,37 @@ export default class MetricSeriesFingerprint {
       parts.push(`${key}=${value}`);
     }
 
-    return createHash("sha256")
-      .update(parts.join("|"))
+    const canonical: string = parts.join("|");
+    const kept: string | undefined = fingerprintMemo.get(canonical);
+
+    if (kept !== undefined) {
+      return kept;
+    }
+
+    const fingerprint: string = createHash("sha256")
+      .update(canonical)
       .digest("hex")
       .slice(0, 16);
+
+    if (canonical.length <= FINGERPRINT_MEMO_MAX_TEXT_LENGTH) {
+      if (fingerprintMemo.size >= FINGERPRINT_MEMO_MAX_ENTRIES) {
+        // Map iteration is insertion order, so the first key is the oldest.
+        const oldest: string | undefined = fingerprintMemo.keys().next().value;
+
+        if (oldest !== undefined) {
+          fingerprintMemo.delete(oldest);
+        }
+      }
+
+      fingerprintMemo.set(canonical, fingerprint);
+    }
+
+    return fingerprint;
+  }
+
+  // How many label sets the fingerprint memo holds now (for tests).
+  public static getMemoSize(): number {
+    return fingerprintMemo.size;
   }
 
   /**
