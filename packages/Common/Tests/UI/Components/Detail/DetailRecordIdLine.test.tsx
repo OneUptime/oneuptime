@@ -347,13 +347,14 @@ describe("the line sits in each style's rhythm", () => {
 });
 
 describe("no line", () => {
-  test("a detail without the record's ID renders exactly as before", () => {
+  test("a detail without the record's ID is the grid alone, with no line", () => {
     const grid: HTMLElement = renderDetail({
       fields: [NAME_FIELD, DESCRIPTION_FIELD],
     });
 
     expect(grid).toHaveAttribute("id", "status-page-detail");
-    expect(grid.className).toBe("grid grid-cols-1 gap-0 sm:grid-cols-1 w-full");
+    // The grid alone: one column, no line under it (DetailGridLayout).
+    expect(grid.className).toBe("grid grid-cols-1 w-full");
     expect(screen.queryByTestId("detail-id-line")).toBeNull();
     expect(screen.queryByTestId("detail-record-line")).toBeNull();
   });

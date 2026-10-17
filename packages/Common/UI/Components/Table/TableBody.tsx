@@ -1,4 +1,5 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import { DetailValueContext } from "../Detail/DetailValueContext";
 import TableRow from "./TableRow";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
@@ -206,16 +207,24 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
     );
   };
 
-  if (props.enableDragAndDrop) {
-    return (
-      <Droppable droppableId={props.dragAndDropScope || ""}>
-        {(provided: DroppableProvided) => {
-          return getBody(provided);
-        }}
-      </Droppable>
-    );
-  }
-  return getBody();
+  /*
+   * A table's rows draw their cells as a table does - a record's labels one
+   * per line, the first three and "N more" - even where the table itself is
+   * drawn inside a detail card's value (DetailValueContext).
+   */
+  return (
+    <DetailValueContext.Provider value={false}>
+      {props.enableDragAndDrop ? (
+        <Droppable droppableId={props.dragAndDropScope || ""}>
+          {(provided: DroppableProvided) => {
+            return getBody(provided);
+          }}
+        </Droppable>
+      ) : (
+        getBody()
+      )}
+    </DetailValueContext.Provider>
+  );
 };
 
 export default TableBody;

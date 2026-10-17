@@ -386,7 +386,10 @@ function cards(): Array<HTMLElement> {
 // A card's field, by its label: the text drawn under it.
 function cardField(card: HTMLElement, label: string): string {
   const labelElement: HTMLElement = within(card).getByText(label);
-  const field: HTMLElement = labelElement.closest(".group") as HTMLElement;
+  // The field's own box, which Detail marks for tests (detail-field).
+  const field: HTMLElement = labelElement.closest(
+    "[data-testid='detail-field']",
+  ) as HTMLElement;
 
   return (field.textContent || "").replace(label, "").trim();
 }

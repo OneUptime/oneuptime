@@ -1,4 +1,6 @@
 import Button, { ButtonStyleType } from "../Button/Button";
+import { useIsDetailValue } from "../Detail/DetailValueContext";
+import PlaceholderText from "../Detail/PlaceholderText";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 import useTranslateValue from "../../Utils/Translation";
@@ -26,8 +28,18 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
    * React throws instead of drawing the table.
    */
   const [showMoreItems, setShowMoreItems] = React.useState<boolean>(false);
+  const isDetailValue: boolean = useIsDetailValue();
 
   if (!props.items || props.items.length === 0) {
+    /*
+     * Under a detail card's field name, nothing to list reads as every
+     * empty field there does - its own words in quiet grey - not as dark
+     * as a value beside fields that say "No copyright text yet." in grey.
+     */
+    if (isDetailValue && props.noItemsMessage) {
+      return <PlaceholderText text={props.noItemsMessage} />;
+    }
+
     return <p>{translateString(props.noItemsMessage)}</p>;
   }
 
