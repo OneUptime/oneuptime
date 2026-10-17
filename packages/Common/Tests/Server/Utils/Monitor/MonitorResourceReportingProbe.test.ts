@@ -122,6 +122,7 @@ import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../../../Types/Monitor/MonitorType";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
@@ -439,11 +440,11 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
   });
 
   test("a monitor type probes do not check takes no probe's result, before it is locked", async () => {
-    const unprobedTypes: Array<MonitorType> = Object.values(
-      MonitorType,
-    ).filter((monitorType: MonitorType) => {
-      return !MonitorTypeHelper.isProbableMonitor(monitorType);
-    });
+    const unprobedTypes: Array<MonitorType> = Object.values(MonitorType).filter(
+      (monitorType: MonitorType) => {
+        return !MonitorTypeHelper.isProbableMonitor(monitorType);
+      },
+    );
 
     expect(unprobedTypes).toContain(MonitorType.IncomingRequest);
     expect(unprobedTypes).toContain(MonitorType.Server);
@@ -542,7 +543,8 @@ describe("MonitorResourceUtil.monitorResource with results OneUptime builds itse
     expect(updateMonitorColumnsMock).toHaveBeenCalledTimes(1);
     expect(
       Object.keys(
-        (updateMonitorColumnsMock.mock.calls[0]![0] as { data: object }).data,
+        (updateMonitorColumnsMock.mock.calls[0]![0] as { data: JSONObject })
+          .data,
       ),
     ).toContain("incomingMonitorRequest");
   });

@@ -111,9 +111,7 @@ describe("ProbeReportIdentity.isResultOf", () => {
 
   test("a result that names no probe is the sender's", () => {
     expect(ProbeReportIdentity.isResultOf(makeResult(), SENDER)).toBe(true);
-    expect(ProbeReportIdentity.isResultOf(makeResult(null), SENDER)).toBe(
-      true,
-    );
+    expect(ProbeReportIdentity.isResultOf(makeResult(null), SENDER)).toBe(true);
     expect(ProbeReportIdentity.isResultOf(makeResult(""), SENDER)).toBe(true);
   });
 
@@ -189,7 +187,9 @@ describe("ProbeReportIdentity.bindResultToSender", () => {
 
     expect(() => {
       ProbeReportIdentity.bindResultToSender(result, SENDER);
-    }).toThrow(new BadDataException(PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE));
+    }).toThrow(
+      new BadDataException(PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE),
+    );
 
     expect(JSON.stringify(result)).toBe(before);
   });
@@ -209,9 +209,7 @@ describe("ProbeReportIdentity.bindResultToSender", () => {
     ProbeReportIdentity.bindResultToSender(wire, SENDER);
 
     // Queued as JSON, it reads back exactly as the probe wrote it.
-    expect(JSON.parse(JSON.stringify(wire))["probeId"]).toEqual(
-      asJson(SENDER),
-    );
+    expect(JSON.parse(JSON.stringify(wire))["probeId"]).toEqual(asJson(SENDER));
 
     // ...and the worker deserializes it to the sender's ObjectID.
     const deserialized: ProbeMonitorResponse = JSONFunctions.deserialize(

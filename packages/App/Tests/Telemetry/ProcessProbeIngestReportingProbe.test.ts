@@ -83,7 +83,14 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 
 type AnyMock = jest.Mock<(...args: Array<any>) => any>;
 
@@ -240,7 +247,9 @@ describe("a queued check result", () => {
             result: wireResult(asJson(SENDER)),
           }),
         ),
-      ).rejects.toThrow(new BadDataException(REPORTING_PROBE_NOT_KNOWN_MESSAGE));
+      ).rejects.toThrow(
+        new BadDataException(REPORTING_PROBE_NOT_KNOWN_MESSAGE),
+      );
 
       expect(monitorResource).not.toHaveBeenCalled();
     }
@@ -425,9 +434,9 @@ describe("a queued SNMP trap", () => {
   });
 
   it("that does not say which probe received it is refused", async () => {
-    await expect(processSnmpTrapFromQueue(trapJob({ snmpTrap }))).rejects.toThrow(
-      "Probe ID not found on SNMP trap request",
-    );
+    await expect(
+      processSnmpTrapFromQueue(trapJob({ snmpTrap })),
+    ).rejects.toThrow("Probe ID not found on SNMP trap request");
 
     await expect(
       processSnmpTrapFromQueue(trapJob({ probeId: "some-probe", snmpTrap })),

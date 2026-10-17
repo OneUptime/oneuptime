@@ -198,9 +198,13 @@ function bodyProbeIdReads(sourceFile: ts.SourceFile): Array<string> {
     const readsBody: boolean =
       isRequestBody(sourceFile, bare) ||
       (ts.isIdentifier(bare) &&
-        bodyVariables.some((variable: { name: string; scope: ts.Node | null }) => {
-          return variable.name === bare.text && isWithin(node, variable.scope);
-        }));
+        bodyVariables.some(
+          (variable: { name: string; scope: ts.Node | null }) => {
+            return (
+              variable.name === bare.text && isWithin(node, variable.scope)
+            );
+          },
+        ));
 
     if (readsBody) {
       reads.push(
@@ -291,11 +295,9 @@ function enclosingFunctionText(
 
 describe("probe ingest: the request is the authenticated probe's", () => {
   test("the routes are where this guard looks", () => {
-    const files: Array<string> = probeIngestRouteFiles().map(
-      (file: string) => {
-        return path.basename(file);
-      },
-    );
+    const files: Array<string> = probeIngestRouteFiles().map((file: string) => {
+      return path.basename(file);
+    });
 
     // The routes a probe posts results, traps, logs and flows to.
     for (const expected of [
@@ -424,7 +426,9 @@ describe("probe ingest: the request is the authenticated probe's", () => {
     for (const file of probeIngestRouteFiles()) {
       const source: string = fs.readFileSync(file, "utf8");
 
-      if (!source.includes("ProbeAuthorization.isAuthorizedServiceMiddleware")) {
+      if (
+        !source.includes("ProbeAuthorization.isAuthorizedServiceMiddleware")
+      ) {
         continue;
       }
 
@@ -451,9 +455,7 @@ describe("probe ingest worker: a job is the sender's", () => {
     expect(body.replace(WHITESPACE, "")).toContain(
       "MonitorResourceUtil.monitorResource(probeResponse,{reportingProbeId:reportingProbeId,})",
     );
-    expect(body.replace(WHITESPACE, "")).toContain(
-      "probeId:reportingProbeId,",
-    );
+    expect(body.replace(WHITESPACE, "")).toContain("probeId:reportingProbeId,");
   });
 
   test("a trap is matched as the probe's that received it", () => {

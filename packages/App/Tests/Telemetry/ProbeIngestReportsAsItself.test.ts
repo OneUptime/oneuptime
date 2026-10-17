@@ -180,14 +180,17 @@ jest.mock("Common/Server/Services/MonitorService", () => {
   };
 });
 
-jest.mock("../../FeatureSet/Telemetry/Services/ProbeSyslogIngestService", () => {
-  return {
-    __esModule: true,
-    default: {
-      processSyslogMessages: jest.fn(),
-    },
-  };
-});
+jest.mock(
+  "../../FeatureSet/Telemetry/Services/ProbeSyslogIngestService",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        processSyslogMessages: jest.fn(),
+      },
+    };
+  },
+);
 
 jest.mock("Common/Server/Utils/NetworkFlow/NetworkFlowDeviceMatcher", () => {
   return {
@@ -256,8 +259,9 @@ const probeService: { findOneBy: AnyMock } = ProbeService as unknown as {
   findOneBy: AnyMock;
 };
 
-const projectService: { getOwners: AnyMock } =
-  ProjectService as unknown as { getOwners: AnyMock };
+const projectService: { getOwners: AnyMock } = ProjectService as unknown as {
+  getOwners: AnyMock;
+};
 
 const monitorProbeService: { countBy: AnyMock } =
   MonitorProbeService as unknown as { countBy: AnyMock };

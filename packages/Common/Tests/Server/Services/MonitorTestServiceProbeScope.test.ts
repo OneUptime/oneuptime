@@ -107,9 +107,9 @@ describe("MonitorTestService.mergeStepProbeResponse", () => {
 
   test("says it wrote when Postgres says a row was written", async () => {
     // How TypeORM's postgres driver answers an UPDATE: [rows, rowCount].
-    expect((await mergeAnswered([[{ _id: TEST_ID.toString() }], 1])).written).toBe(
-      true,
-    );
+    expect(
+      (await mergeAnswered([[{ _id: TEST_ID.toString() }], 1])).written,
+    ).toBe(true);
 
     // A driver that hands back the RETURNING rows alone.
     expect((await mergeAnswered([{ _id: TEST_ID.toString() }])).written).toBe(

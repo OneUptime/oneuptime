@@ -82,7 +82,8 @@ export default class ProbeReportIdentity {
    * probe, or no probe at all.
    */
   public static isResultOf(result: unknown, senderProbeId: ObjectID): boolean {
-    const named: NamedProbe = ProbeReportIdentity.readProbeNamedByResult(result);
+    const named: NamedProbe =
+      ProbeReportIdentity.readProbeNamedByResult(result);
 
     if (named.kind === "none") {
       return true;
@@ -101,9 +102,10 @@ export default class ProbeReportIdentity {
    * downstream - the MonitorProbe row it is stored under, probe agreement,
    * the stored test result - reads the sender and nobody else. Works on a
    * result as the probe put it on the wire and on a deserialized one alike:
-   * an ObjectID is written back as JSON writes it.
+   * the id written is an ObjectID, which JSON writes in the probe's own form
+   * ({ _type: "ObjectID", value }).
    */
-  public static bindResultToSender<TResult extends object>(
+  public static bindResultToSender<TResult extends { probeId?: unknown }>(
     result: TResult,
     senderProbeId: ObjectID,
   ): TResult {

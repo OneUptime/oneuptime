@@ -312,9 +312,7 @@ describe("POST /probe/response/ingest", () => {
     );
     expect(jobArg["jobType"]).toBe("probe-response");
     // ...and byte-identical to what the probe sent (still serialized form).
-    expect(JSON.stringify(jobArg["probeMonitorResponse"])).toBe(
-      resultSnapshot,
-    );
+    expect(JSON.stringify(jobArg["probeMonitorResponse"])).toBe(resultSnapshot);
     // The probe that sent it, as it authenticated; the body (and key) stay behind.
     expect((jobArg["probeId"] as ObjectID).toString()).toBe(
       PROBE_ID.toString(),
@@ -440,9 +438,7 @@ describe("POST /probe/response/monitor-test-ingest/:testId", () => {
     );
     expect(jobArg["jobType"]).toBe("monitor-test");
     expect(jobArg["testId"]).toBe(testId.toString());
-    expect(JSON.stringify(jobArg["probeMonitorResponse"])).toBe(
-      resultSnapshot,
-    );
+    expect(JSON.stringify(jobArg["probeMonitorResponse"])).toBe(resultSnapshot);
     expect((jobArg["probeId"] as ObjectID).toString()).toBe(
       PROBE_ID.toString(),
     );

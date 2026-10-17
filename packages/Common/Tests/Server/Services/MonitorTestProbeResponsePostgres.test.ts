@@ -312,9 +312,7 @@ describePostgres("monitor test results on Postgres", () => {
       }),
     ).toBe(false);
 
-    expect(
-      (await readTest(deletedTestId)).monitorStepProbeResponse,
-    ).toBeNull();
+    expect((await readTest(deletedTestId)).monitorStepProbeResponse).toBeNull();
 
     expect(
       await MonitorTestService.mergeStepProbeResponse({

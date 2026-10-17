@@ -447,7 +447,9 @@ describePostgres("a probe reports as itself (Postgres)", () => {
      * The recording evaluator: a result whose check failed meets the
      * monitor's one criteria, as an "Offline" criteria would.
      */
-    (MonitorCriteriaEvaluator.processMonitorStep as jest.Mock).mockImplementation(
+    (
+      MonitorCriteriaEvaluator.processMonitorStep as jest.Mock
+    ).mockImplementation(
       async (input: {
         dataToProcess: JSONObject;
         monitor: Monitor;
@@ -476,7 +478,10 @@ describePostgres("a probe reports as itself (Postgres)", () => {
     (
       MonitorStatusTimelineUtil.updateMonitorStatusTimeline as jest.Mock
     ).mockImplementation(
-      async (input: { monitor: Monitor; rootCause: string }): Promise<never> => {
+      async (input: {
+        monitor: Monitor;
+        rootCause: string;
+      }): Promise<never> => {
         statusChanges.push({
           monitorId: input.monitor.id!.toString(),
           rootCause: input.rootCause,
@@ -785,9 +790,11 @@ describePostgres("a probe reports as itself (Postgres)", () => {
     );
     expect(resultFor(stored, globalProbe, monitorA)).toBeUndefined();
 
-    expect(evaluated.map((e: { monitorId: string }) => e.monitorId)).toEqual([
-      monitorA.id.toString(),
-    ]);
+    expect(
+      evaluated.map((e: { monitorId: string }) => {
+        return e.monitorId;
+      }),
+    ).toEqual([monitorA.id.toString()]);
     expect(metricsSaved).toEqual([monitorA.id.toString()]);
   });
 
@@ -989,19 +996,75 @@ describePostgres("a probe reports as itself (Postgres)", () => {
     ]);
   });
 
-  test("a wrong key is refused before anything is read or queued", async () => {
-    const answer: HttpResult = await post(
-      "/probe/response/ingest",
-      {
-        ...probeBody(probeA, {
-          probeMonitorResponse: checkResult({
-            monitor: monitorA,
-            namedProbe: probeA.id,
-          }),
+  test("a request that is no probe's - no key, or a probe that does not exist - is refused", async () => {
+    const withoutKey: JSONObject = probeBody(probeA, {
+      probeMonitorResponse: checkResult({
+        monitor: monitorA,
+        namedProbe: probeA.id,
+      }),
+    });
+    delete withoutKey["probeKey"];
+
+    const noKey: HttpResult = await post("/probe/response/ingest", withoutKey);
+
+    expect(noKey.status).toBe(400);
+    expect(noKey.body["message"]).toBe("ProbeId or ProbeKey is missing");
+
+    const unknownProbe: HttpResult = await post("/probe/response/ingest", {
+      ...probeBody(probeA, {
+        probeMonitorResponse: checkResult({ monitor: monitorA }),
+      }),
+      probeId: ObjectID.generate().toString(),
+    });
+
+    expect(unknownProbe.status).toBe(400);
+    expect(unknownProbe.body["message"]).toBe("Invalid Probe ID or Probe Key");
+
+    expect(queuedJobs).toHaveLength(0);
+    expect(await storedResults(monitorA)).toEqual({
+      [probeA.id.toString()]: null,
+      [globalProbe.id.toString()]: null,
+    });
+  });
+
+  test("a global probe reports for the monitors of every project that run on it", async () => {
+    for (const monitor of [monitorA, monitorB]) {
+      const answer: HttpResult = await post(
+        "/probe/response/ingest",
+        probeBody(globalProbe, {
+          probeMonitorResponse: checkResult({ monitor: monitor }),
         }),
-        probeKey: probeB.key,
-      },
-    );
+      );
+
+      expect(answer.status).toBe(200);
+    }
+
+    const outcomes: Array<JobOutcome> = await runQueuedJobs();
+
+    expect(
+      outcomes.map((outcome: JobOutcome) => {
+        return outcome.error;
+      }),
+    ).toEqual([null, null]);
+
+    expect(
+      resultFor(await storedResults(monitorA), globalProbe, monitorA),
+    ).toBeTruthy();
+    expect(
+      resultFor(await storedResults(monitorB), globalProbe, monitorB),
+    ).toBeTruthy();
+  });
+
+  test("a wrong key is refused before anything is read or queued", async () => {
+    const answer: HttpResult = await post("/probe/response/ingest", {
+      ...probeBody(probeA, {
+        probeMonitorResponse: checkResult({
+          monitor: monitorA,
+          namedProbe: probeA.id,
+        }),
+      }),
+      probeKey: probeB.key,
+    });
 
     expect(answer.status).toBe(400);
     expect(answer.body["message"]).toBe("Invalid Probe ID or Probe Key");

@@ -103,9 +103,9 @@ describe("a probe's results name the probe that sends them", () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expectNamesItself(posted(0));
-    expect(
-      (posted(0)["probeMonitorResponse"] as JSONObject)["isOnline"],
-    ).toBe(false);
+    expect((posted(0)["probeMonitorResponse"] as JSONObject)["isOnline"]).toBe(
+      false,
+    );
   });
 
   test("a monitor test it ran", async () => {
