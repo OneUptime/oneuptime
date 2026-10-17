@@ -211,7 +211,7 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
     <div className="space-y-5" data-testid="probe-status-monitor-step-form">
       <div>
         <FieldLabelElement
-          title="Probes to watch"
+          title="Probes"
           description="A probe is disconnected when it has not reported for three minutes, so a quick restart is not an outage."
           required={true}
         />

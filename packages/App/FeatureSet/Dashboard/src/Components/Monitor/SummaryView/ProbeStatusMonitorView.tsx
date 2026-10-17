@@ -20,7 +20,10 @@ export interface ComponentProps {
  * the monitor's overview (its newest evaluation), on an incident or alert it
  * opened (the evaluation that opened it) and in its Monitoring Logs.
  *
- * Disconnected probes are listed first: they are why anyone is looking.
+ * Disconnected probes are listed first: they are why anyone is looking. The
+ * counts stack and each probe is one wrapping row, so the card fits a phone
+ * without scrolling sideways, where the other summaries' quarter-width tiles
+ * do not.
  */
 const ProbeStatusMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -46,9 +49,9 @@ const ProbeStatusMonitorView: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="space-y-5" data-testid="probe-status-monitor-summary">
-      <div className="flex space-x-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+          className="shadow-none border-2 border-gray-100"
           title="Connected"
           value={translator.translateTemplate("{{connected}} of {{total}}", {
             connected: response.connectedProbeCount.toString(),
@@ -56,12 +59,12 @@ const ProbeStatusMonitorView: FunctionComponent<ComponentProps> = (
           })}
         />
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+          className="shadow-none border-2 border-gray-100"
           title="Disconnected"
           value={response.disconnectedProbeCount.toString()}
         />
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+          className="shadow-none border-2 border-gray-100"
           title="Checked At"
           value={
             hasCheckedAt
@@ -74,61 +77,49 @@ const ProbeStatusMonitorView: FunctionComponent<ComponentProps> = (
       </div>
 
       {probes.length > 0 ? (
-        <div className="border rounded-md overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {translator.translateText("Probe")}
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {translator.translateText("Status")}
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {translator.translateText("Last Heard From")}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {probes.map((probe: ProbeStatusMonitorProbe): ReactElement => {
-                return (
-                  <tr
-                    key={probe.probeId}
-                    data-testid="probe-status-monitor-probe-row"
-                  >
-                    <td className="px-4 py-2 text-sm text-gray-900">
-                      <span className="inline-flex flex-wrap items-center gap-2">
-                        <span>{probe.probeName}</span>
-                        {probe.isGlobalProbe ? (
-                          <Pill
-                            text="Global"
-                            color={Gray500}
-                            size={PillSize.Small}
-                            isMinimal={true}
-                          />
-                        ) : (
-                          <></>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-sm">
-                      <Statusbubble
-                        text={probe.isConnected ? "Connected" : "Disconnected"}
-                        color={probe.isConnected ? Green : Red}
-                        shouldAnimate={probe.isConnected}
+        <ul
+          className="divide-y divide-gray-200 rounded-md border border-gray-200"
+          aria-label={translator.translateText("Probes")}
+        >
+          {probes.map((probe: ProbeStatusMonitorProbe): ReactElement => {
+            return (
+              <li
+                key={probe.probeId}
+                data-testid="probe-status-monitor-probe-row"
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900">
+                    <span className="break-words">{probe.probeName}</span>
+                    {probe.isGlobalProbe ? (
+                      <Pill
+                        text="Global"
+                        color={Gray500}
+                        size={PillSize.Small}
+                        isMinimal={true}
                       />
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-500">
-                      {probe.lastAliveAt
-                        ? OneUptimeDate.fromNow(probe.lastAliveAt)
-                        : translator.translateText("Never")}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+                  <div className="mt-0.5 text-xs text-gray-500">
+                    {probe.lastAliveAt
+                      ? translator.translateTemplate(
+                          "Last heard from {{time}}",
+                          { time: OneUptimeDate.fromNow(probe.lastAliveAt) },
+                        )
+                      : translator.translateText("Never heard from")}
+                  </div>
+                </div>
+                <Statusbubble
+                  text={probe.isConnected ? "Connected" : "Disconnected"}
+                  color={probe.isConnected ? Green : Red}
+                  shouldAnimate={probe.isConnected}
+                />
+              </li>
+            );
+          })}
+        </ul>
       ) : (
         <></>
       )}

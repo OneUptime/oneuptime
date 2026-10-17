@@ -19,7 +19,7 @@
  *
  *   ?type=     api (default) | website | ssl | incoming-request
  *              | incoming-email | server | kubernetes | network-device
- *              | manual
+ *              | manual | probe-status
  *   ?state=    comma separated. The status: operational (default) |
  *              offline | degraded. Plus any of: disabled, maintenance,
  *              no-probes, probes-off, disconnected, one-disconnected,
@@ -54,6 +54,11 @@
  *              Create Monitor then shows its pricing card. Any other value,
  *              or none, is no plan the page can name, as before.
  *   ?theme=    dark adds html.dark (handled by server.js).
+ *   ?probes=   which probes ProbeUtil.getAllProbes finds: custom (default,
+ *              the workspace's three probes, no global one) | self-hosted
+ *              (no custom probe, one global probe: an installation's
+ *              bundled probe) | both (the three and the global one). The
+ *              Probe Status monitor's picker starts from these.
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
  * listRequests (analytics lists carry analytics: true), aggregateRequests,
@@ -186,6 +191,7 @@ const TYPE_KEYS = [
   "kubernetes",
   "network-device",
   "manual",
+  "probe-status",
 ];
 const subjectType = TYPE_KEYS.includes(params.get("type"))
   ? params.get("type")
@@ -206,6 +212,9 @@ const roleMode = ROLE_KEYS.includes(params.get("role"))
 const failures = listParam("fail");
 const showNav = params.get("nav") === "1";
 const planMode = params.get("plan") === "free" ? "free" : "none";
+const probesMode = ["self-hosted", "both"].includes(params.get("probes"))
+  ? params.get("probes")
+  : "custom";
 
 /*
  * The project's limit on active monitors (Types/Monitor/ActiveMonitorLimit),
@@ -308,6 +317,7 @@ const fixture = {
     fail: Array.from(failures),
     monitorLimit: monitorLimitMode,
     plan: planMode,
+    probes: probesMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -650,6 +660,17 @@ for (const definition of PROBE_DEFINITIONS) {
   });
 }
 
+/*
+ * The one global probe, served by GET /probe/global-probes with ?probes=
+ * self-hosted or both: the probe an installation run on its own servers
+ * bundles. Not a row of the project's Probe table.
+ */
+const GLOBAL_PROBE = {
+  _id: ID.probe(4),
+  name: "Self-hosted probe",
+  connectionStatus: ProbeConnectionStatus.Connected,
+};
+
 function eventStates(modelType, prefixId) {
   return {
     created: insert(modelType, {
@@ -846,6 +867,22 @@ const MONITOR_DEFINITIONS = {
     interval: "* * * * *",
     labels: [labels.checkout],
   },
+  /*
+   * Watches two of the workspace's probes. Offline: Singapore stopped
+   * reporting 15 minutes ago (the monitor went Offline 12 minutes ago, once
+   * the probe had been silent for three).
+   */
+  "probe-status": {
+    number: 10,
+    name: "Probe health",
+    description: "Opens an incident when a probe our monitors run on goes offline.",
+    monitorType: MonitorType.ProbeStatus,
+    interval: undefined,
+    labels: [labels.platform],
+    watchedProbeNumbers: [1, 3],
+    openIncidentTitle: "Probe disconnected: Singapore (ap-southeast-1)",
+    openAlertTitle: "Probe disconnected: Singapore (ap-southeast-1)",
+  },
 };
 
 const PROBE_CHECK_TYPES = ["api", "website", "ssl"];
@@ -888,7 +925,34 @@ function criteriaInstance(data) {
 function criteriaFor(typeKey) {
   const criteria = new MonitorCriteria();
   let instances = [];
-  if (typeKey === "incoming-request" || typeKey === "incoming-email") {
+  if (typeKey === "probe-status") {
+    instances = [
+      criteriaInstance({
+        id: "criteria-offline",
+        name: "Check if a probe is disconnected",
+        status: "offline",
+        filters: [
+          {
+            checkOn: CheckOn.DisconnectedProbes,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
+      }),
+      criteriaInstance({
+        id: "criteria-online",
+        name: "Check if every probe is connected",
+        status: "operational",
+        filters: [
+          {
+            checkOn: CheckOn.DisconnectedProbes,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
+        ],
+      }),
+    ];
+  } else if (typeKey === "incoming-request" || typeKey === "incoming-email") {
     const checkOn =
       typeKey === "incoming-email"
         ? CheckOn.EmailReceivedAt
@@ -973,7 +1037,81 @@ function stepFor(typeKey, definition, stepNumber) {
       networkDeviceId: ID.networkDevice(1),
     };
   }
+  if (typeKey === "probe-status") {
+    step.data.probeStatusMonitor = {
+      probeIds: definition.watchedProbeNumbers.map((number) => {
+        return ID.probe(number);
+      }),
+    };
+  }
   return step;
+}
+
+/*
+ * A Probe Status evaluation, as ProbeStatusMonitorEvaluator hands it to the
+ * pipeline and MonitorLogUtil writes it (a plain JSON round trip): the
+ * watched probes, Singapore disconnected while the monitor is Offline.
+ */
+function probeStatusLogBody(data) {
+  const { monitorId, steps, current, at } = data;
+  const isDown = current.status === "offline";
+  const definition = MONITOR_DEFINITIONS["probe-status"];
+  const probes = definition.watchedProbeNumbers.map((number) => {
+    const probeDefinition = PROBE_DEFINITIONS.find((item) => {
+      return item.number === number;
+    });
+    const isConnected = !(isDown && number === 3);
+    return {
+      probeId: ID.probe(number),
+      probeName: probeDefinition.name,
+      isGlobalProbe: false,
+      isConnected,
+      lastAliveAt: (isConnected ? ago(20 * SECOND) : ago(15 * MINUTE))
+        .toISOString(),
+    };
+  });
+  const connectedProbeCount = probes.filter((probe) => {
+    return probe.isConnected;
+  }).length;
+  const disconnectedProbeCount = probes.length - connectedProbeCount;
+
+  return {
+    projectId: PROJECT_ID,
+    monitorId,
+    monitorStepId: steps.data.monitorStepsInstanceArray[0].data.id,
+    probes,
+    connectedProbeCount,
+    disconnectedProbeCount,
+    missingProbeIds: [],
+    checkedAt: at.toISOString(),
+    evaluationSummary: {
+      evaluatedAt: at.toISOString(),
+      criteriaResults: [
+        {
+          criteriaId: isDown ? "criteria-offline" : "criteria-online",
+          criteriaName: isDown
+            ? "Check if a probe is disconnected"
+            : "Check if every probe is connected",
+          filterCondition: FilterCondition.Any,
+          met: true,
+          message: isDown
+            ? "Disconnected Probes is 1 which is greater than 0. Singapore (ap-southeast-1) is disconnected."
+            : "Disconnected Probes is 0 which is equal to 0. All 2 probes are connected.",
+          filters: [
+            {
+              checkOn: CheckOn.DisconnectedProbes,
+              filterType: isDown ? FilterType.GreaterThan : FilterType.EqualTo,
+              message: isDown
+                ? "1 of 2 probes disconnected (Singapore (ap-southeast-1))."
+                : "0 of 2 probes disconnected.",
+              met: true,
+            },
+          ],
+        },
+      ],
+      events: [],
+    },
+  };
 }
 
 function stepsFor(typeKey, definition) {
@@ -1403,14 +1541,22 @@ function defineMonitor(typeKey) {
     insert(MonitorLog, {
       monitorId: new ObjectID(monitorId),
       time: new Date(at),
-      logBody: {
-        monitorId,
-        evaluationSummary: evaluationSummary({
-          status: current.status,
-          at: new Date(at),
-          withEvents: false,
-        }),
-      },
+      logBody:
+        typeKey === "probe-status"
+          ? probeStatusLogBody({
+              monitorId,
+              steps,
+              current,
+              at: new Date(at),
+            })
+          : {
+              monitorId,
+              evaluationSummary: evaluationSummary({
+                status: current.status,
+                at: new Date(at),
+                withEvents: false,
+              }),
+            },
     });
   }
 
@@ -1699,7 +1845,9 @@ function defineIncidents(typeKey, monitorId, segments) {
   // Offline right now: one incident and one alert are still open.
   insert(Incident, {
     _id: ID.incident(1042),
-    title: `${name} is returning 503s`,
+    title:
+      MONITOR_DEFINITIONS[typeKey].openIncidentTitle ||
+      `${name} is returning 503s`,
     declaredAt: ago(11 * MINUTE),
     createdAt: ago(11 * MINUTE),
     incidentSeverity: incidentSeverities.sev1,
@@ -1709,7 +1857,9 @@ function defineIncidents(typeKey, monitorId, segments) {
   });
   insert(Alert, {
     _id: ID.alert(311),
-    title: `${name} health check failing`,
+    title:
+      MONITOR_DEFINITIONS[typeKey].openAlertTitle ||
+      `${name} health check failing`,
     createdAt: ago(12 * MINUTE),
     alertSeverity: alertSeverities.critical,
     currentAlertState: alertStates.acknowledged,
@@ -2080,6 +2230,14 @@ ModelAPI.getList = async (options) => {
       "/probe/global-probes",
     )
   ) {
+    const globalProbes =
+      probesMode === "custom"
+        ? []
+        : [projectRecord(Probe, GLOBAL_PROBE, options.select)];
+    return { data: globalProbes, count: globalProbes.length, skip, limit };
+  }
+  // ?probes=self-hosted: an installation with no probe of its own.
+  if (modelName === tableName(Probe) && probesMode === "self-hosted") {
     return { data: [], count: 0, skip, limit };
   }
   if (failures.has("probes") && modelName === "MonitorProbe") {
