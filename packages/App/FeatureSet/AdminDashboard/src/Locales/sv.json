@@ -355,7 +355,7 @@
       "adjustBalanceStepBalance": "Saldo",
       "adjustBalanceStepAmount": "Belopp och orsak",
       "monitorLimitCardTitle": "Aktiva monitorer",
-      "monitorLimitCardDescription": "Alla monitorer utom manuella räknas, på eller av. Vid gränsen kan projektet inte lägga till fler; befintliga monitorer fortsätter. En återförsäljares nästa nivåändring skriver över den.",
+      "monitorLimitCardDescription": "Alla monitorer utom manuella räknas, på eller av. Vid gränsen kan projektet inte lägga till fler; befintliga monitorer fortsätter. En återförsäljares nästa nivåändring skriver över den. Projekt på abonnemanget Free omfattas även av gränsen för Free.",
       "monitorLimitEditButton": "Redigera monitorgräns",
       "fieldActiveMonitors": "Aktiva monitorer",
       "fieldMonitorLimit": "Gräns för aktiva monitorer",

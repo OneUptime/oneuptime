@@ -355,7 +355,7 @@
       "adjustBalanceStepBalance": "Saldo",
       "adjustBalanceStepAmount": "Bedrag en reden",
       "monitorLimitCardTitle": "Actieve monitoren",
-      "monitorLimitCardDescription": "Elke monitor behalve handmatige telt mee, aan of uit. Bij de limiet kan het project er geen meer toevoegen; bestaande monitoren blijven draaien. De volgende niveauwijziging van een reseller overschrijft het.",
+      "monitorLimitCardDescription": "Elke monitor behalve handmatige telt mee, aan of uit. Bij de limiet kan het project er geen meer toevoegen; bestaande monitoren blijven draaien. De volgende niveauwijziging van een reseller overschrijft het. Voor projecten op het Free-abonnement geldt ook de limiet van het Free-abonnement.",
       "monitorLimitEditButton": "Monitorlimiet bewerken",
       "fieldActiveMonitors": "Actieve monitoren",
       "fieldMonitorLimit": "Limiet voor actieve monitoren",
