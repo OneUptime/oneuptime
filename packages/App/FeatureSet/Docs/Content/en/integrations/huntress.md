@@ -1,141 +1,159 @@
 # Huntress Integration
 
-Page your on-call team for Huntress incident reports. When the Huntress SOC sends an incident report about an endpoint or an identity, OneUptime opens one incident for it, at the severity you choose, pages the on-call policies you pick, and resolves the incident when the report is closed in Huntress.
+Page your on-call team for Huntress incident reports, with a workflow. When the Huntress SOC sends an incident report about an endpoint or an identity, the workflow opens one incident for it, pages the on-call policy you pick, adds comments made in Huntress as private notes, and resolves the incident when the report is closed in Huntress.
 
-This integration is **inbound**: Huntress sends every event about an incident report to a webhook URL that OneUptime gives you, signed with the endpoint's signing secret. OneUptime never calls Huntress, so it needs no Huntress API key.
+This integration is **inbound**: Huntress sends every event about an incident report to the workflow's own URL, signed with the endpoint's signing secret. OneUptime never calls Huntress, so it needs no Huntress API key.
 
 :::cards
-- [How it works](#how-it-works): What OneUptime does with each event about a report.
-- [Set it up](#set-up-the-integration): Connect in OneUptime, add the endpoint in Huntress, save its signing secret, send a test.
-- [Settings](#settings): Paging, severities, organizations, labels and resolving.
-- [Troubleshooting](#troubleshooting): What the connection's errors mean, and what to change.
+- [How it works](#how-it-works): What the workflow does with each event about a report.
+- [Set it up](#set-up-the-integration): Create the workflow, add the endpoint in Huntress, save its signing secret, send a test.
+- [The trigger](#the-huntress-incident-report-trigger): The values a report hands the workflow, and the trigger's settings.
+- [Troubleshooting](#troubleshooting): What the trigger's errors mean, and what to change.
 :::
 
 ## How it works
 
-Huntress sends an event about an incident report when the report is sent, when someone comments on it and when it is closed. Each event carries the whole report.
+Huntress sends an event about an incident report when the report is sent, when someone comments on it and when it is closed. The **Huntress Incident Report** trigger starts the workflow once for each event, and its **Event** says which one it was: `created`, `comment-added` or `closed`.
 
-```mermaid title="One Huntress incident report in OneUptime"
+```mermaid title="One Huntress incident report in a workflow"
 sequenceDiagram
     participant H as Huntress
-    participant O as OneUptime
+    participant W as Workflow
     participant C as On-call team
-    H->>O: incident_report.created
-    O->>O: Check the signature, open one incident
-    opt Severity at or above Page On-Call For
-        O->>C: Execute the connection's on-call policies
+    H->>W: incident_report.created
+    W->>W: Check the signature, open one incident
+    opt Report is high or critical
+        W->>C: Page the on-call policy
     end
-    H->>O: incident_report.comment_added
-    O->>O: Add the comment as a private note
-    H->>O: incident_report.closed
-    O->>O: Resolve the incident
+    H->>W: incident_report.comment_added
+    W->>W: Add the comment as a private note
+    H->>W: incident_report.closed
+    W->>W: Resolve the incident
 ```
 
-1. **Check.** A request must be signed with the endpoint's signing secret, no more than five minutes before it arrives. Anything else is refused, and the connection's page says why.
-2. **Open one incident.** The first event about a report opens an incident titled after the report, such as `Huntress: Incident on DESKTOP-01 (Acme Corp)`. Its description holds the report's summary, its severity in Huntress, the organization, the affected host or identity, the indicators Huntress found, and a link to the report in Huntress. Later events about the same report, and deliveries Huntress sends again, find that incident: a report never opens two.
-3. **Page.** The incident opens at the incident severity the connection gives the report's Huntress severity. When that severity is at or above **Page On-Call For**, the connection's **On-Call Policies** are executed.
-4. **Follow the report.** A comment added in Huntress becomes a private note on the incident. When the report is closed or dismissed, the incident is resolved.
+1. **Check.** A request must be signed with the endpoint's signing secret, no more than five minutes before it arrives. Anything else is refused, and the trigger's settings say why.
+2. **Start the workflow.** Each event starts one run, with the report's fields as the trigger's values. An event Huntress sends again starts nothing more.
+3. **Open one incident.** On `created`, the workflow opens an incident titled after the report, such as `Huntress: Incident on DESKTOP-01 (Acme Corp)`. Its description holds the report's summary, its severity in Huntress, the organization, the affected host or identity, the indicators Huntress found, and a link to the report in Huntress. The incident is labelled with the report's organization, and pages the on-call policy you pick when the report is high or critical.
+4. **Follow the report.** On `comment-added`, the comment becomes a private note on the incident. On `closed`, the incident is resolved, with why on its timeline.
 
-Incidents opened this way are never shown on a status page. Your incident rules (on-call, owner, label and privacy rules) apply to them like to any other incident.
+The incident keeps the report's number in its custom fields, as `huntressReportId`: that is how the workflow finds it again when Huntress comments on or closes the report. Incidents opened this way are never shown on a status page, and your incident rules (on-call, owner, label and privacy rules) apply to them like to any other incident.
 
 ## Before you begin
 
-- In OneUptime, the **Project Owner** or **Project Admin** role. Members, viewers and the incident roles can see the connection and the reports it received, but not change it.
+- In OneUptime, a role that can create and edit workflows, such as **Project Owner**, **Project Admin** or **Workflow Admin**.
 - In Huntress, the **Account Admin** role: only account admins can add webhooks.
-- An on-call policy to page. Without one, reports open incidents and page nobody, unless an incident on-call rule matches them.
+- An on-call policy to page.
+- On OneUptime Cloud, a plan with workflows: Growth or above. Each event Huntress sends is one workflow run.
 - On a self-hosted installation, a OneUptime that Huntress can reach from the internet over HTTPS: Huntress sends webhooks only to `https://` URLs.
 
 ## Set up the integration
 
 :::steps
-### Connect Huntress in OneUptime
+### Create the workflow
 
-Open **Incidents → Integrations → Huntress** (`/dashboard/{projectId}/incidents/integrations/huntress`). The **Integrations** section of the Incidents side menu is collapsed by default, so expand it first. Click **Connect Huntress**.
+Open **Workflows** and click **Create Workflow**. Under **Or start from a template**, choose **Huntress** as the category, pick **Open an incident for each Huntress incident report**, click **Use this template**, and create the workflow. It opens in the **Builder**, switched off.
 
-Pick the **On-Call Policies** to page. **Page On-Call For** then asks which reports page them, and starts on **High and critical reports**. Everything else waits under **More fields** with a default (see [Settings](#settings)). Click **Connect Huntress**. The connection's page opens, with a **Connect Huntress** card that walks you through the next three steps.
+### Pick who to page
+
+Click the **Page an On-Call Policy** step, pick the **On-Call Policies** to page, and save the step.
 
 ### Add a webhook endpoint in Huntress
 
-On the connection's page, click **Copy webhook URL**. The URL looks like `https://oneuptime.com/api/huntress/webhook/<connection-id>`; on a self-hosted installation it starts with your own host.
+Click the **Huntress Incident Report** trigger, and click **Copy URL** under **Add a webhook endpoint in Huntress**. The URL looks like `https://oneuptime.com/workflow/huntress/<key>`; on a self-hosted installation it starts with your own host.
 
-In Huntress, open the menu at the top right and choose **Integrations**. Click **Add an Integration**, choose **Webhooks**, and click **Add Endpoint**. Paste the URL, turn on **Incident Reports**, and save. Leave **Escalations**, **Platform Actions** and **Account Notices** off: OneUptime accepts those events and does nothing with them.
+In Huntress, open the menu at the top right and choose **Integrations**. Click **Add an Integration**, choose **Webhooks**, and click **Add Endpoint**. Paste the URL, turn on **Incident Reports**, and save. Leave **Escalations**, **Platform Actions** and **Account Notices** off: the trigger accepts those events and starts nothing for them.
 
 ### Save the endpoint's signing secret
 
-In Huntress, open the endpoint's menu (⋯) and choose **View Signing Secret**. Copy all of it: it starts with `whsec_`. On the connection's page, click **Save Signing Secret**, paste it, and click **Save Signing Secret**. The secret is encrypted, and never shown again.
+In Huntress, open the endpoint's menu (⋯) and choose **View Signing Secret**. Copy all of it: it starts with `whsec_`. In the trigger, click **Save Signing Secret**, paste it, and click **Save Signing Secret**. The secret is encrypted, and never shown again.
 
-Until the secret is saved, OneUptime refuses every request to the URL. Huntress sends a refused event again later, so an event refused now still arrives.
+Until the secret is saved, the trigger refuses every request. Huntress sends a refused event again later, so an event refused now still arrives.
 
-### Send a test
+### Turn the workflow on, and send a test
 
-In Huntress, open the endpoint's menu (⋯) and choose **Send Test**. Within a few seconds, the card on the connection's page becomes **Connection**, with the state **Receiving reports**.
+Switch **Enabled** on at the top of the **Builder**. In Huntress, open the endpoint's menu (⋯) and choose **Send Test**. Within a few seconds, the trigger shows **Receiving reports**.
 
 > [!NOTE]
-> Whatever the test carries, the connection shows that it arrived. A test that carries an incident report opens an incident like any other report, and pages on-call if it is severe enough.
+> Whatever the test carries, the trigger shows that it arrived. A test that carries an incident report starts the workflow like any other report.
 :::
 
-## Settings
+## What the workflow does
 
-**Connect Huntress** asks only who is paged, and for which reports. Everything else waits under **More fields**, with a default that suits most teams. To change a setting later, click **Edit Settings** on the connection's **Settings** card.
+The template takes a path for each **Event**, with a **Switch / Case** after the trigger:
 
-| Setting | What it does | Default |
-| --- | --- | --- |
-| **On-Call Policies** | The policies executed when a report is severe enough. Leave it empty to open incidents without paging anyone. | None |
-| **Page On-Call For** | Which reports page the policies: **Critical reports only**, **High and critical reports** or **Every report**. Every report opens an incident either way. | **High and critical reports** |
-| **Name** | What the connection is called in OneUptime. | `Huntress` |
-| **Severity For Critical Reports**, **Severity For High Reports**, **Severity For Low Reports** | The incident severity each Huntress severity opens at. | Your three most severe incident severities, in rank order |
-| **Only These Organizations** | The Huntress organizations whose reports open incidents, one organization name or ID per line. Names ignore case. | Empty: every organization |
-| **Labels** | Labels added to every incident, besides the one named after the report's organization. | None |
-| **Resolve When Huntress Closes The Report** | Resolve the incident when its report is closed or dismissed in Huntress. When it is off, a private note on the incident says so instead. | On |
+| Event | What the workflow does |
+| --- | --- |
+| `created` | Opens an incident at the trigger's **Incident Severity ID**, labelled with its **Organization Label ID**. For a high or critical report, **Page an On-Call Policy** pages your policy; a low report pages nobody. A report that has an incident already opens no other. |
+| `comment-added` | Finds the report's incident and adds the comment to it as a private note. |
+| `closed` | Finds the report's incident and resolves it, unless it is resolved already. Why is on its timeline: Huntress closed the report. |
+
+It is a workflow like any other, so you can change what it does: page for critical reports only by changing what the **If / Else** after **Create One Incident** compares, post each report to a chat channel with a Slack or Microsoft Teams step, or route each organization to its own on-call policy with a **Switch / Case** on **Organization**. Every run is listed under the workflow's runs, with what each step did.
 
 ### Severities
 
-Huntress gives every incident report one of three severities. Unless you pick an incident severity for one, it opens at your incident severities' rank order, as **Incidents → Settings → Incident Severity** lists them:
+Huntress gives every incident report one of three severities. The trigger's **Incident Severity ID** is the incident severity the report opens at: the one its setting picks, or else your incident severities' rank order, as **Incidents → Settings → Incident Severity** lists them:
 
-| Huntress severity | What Huntress means by it | Incident severity |
-| --- | --- | --- |
-| Critical | Hands-on-keyboard attackers, dangerous malware or active compromise, to contain immediately. | The most severe |
-| High | Confirmed malware that needs urgent remediation, or actionable identity compromise. | The second |
-| Low | Potentially unwanted programs, malware artifacts and older identity findings. | The third |
+| Huntress severity | What Huntress means by it | Setting | Incident severity when the setting is empty |
+| --- | --- | --- | --- |
+| Critical | Hands-on-keyboard attackers, dangerous malware or active compromise, to contain immediately. | **Severity For Critical Reports** | The most severe |
+| High | Confirmed malware that needs urgent remediation, or actionable identity compromise. | **Severity For High Reports** | The second |
+| Low | Potentially unwanted programs, malware artifacts and older identity findings. | **Severity For Low Reports** | The third |
 
 A project with fewer severities uses its least severe one for the rest. A report that names no severity is handled as high. If a severity you picked is deleted, the rank order decides again.
 
 ### Organizations
 
-Every incident gets a label named after the report's Huntress organization, such as _Acme Corp_. One connection receives the reports of every organization in your Huntress account, and **Only These Organizations** narrows that down.
+The trigger's **Organization Label ID** is a label named after the report's Huntress organization, such as _Acme Corp_, which it makes the first time a report from that organization arrives. One workflow receives the reports of every organization in your Huntress account, and the trigger's **Only These Organizations** narrows that down: one organization name or ID per line, names ignoring case.
 
 > [!TIP]
-> To page each customer's own team, leave the connection's **On-Call Policies** empty and add an incident on-call rule per organization, such as "If **Incident Labels** has any of _Acme Corp_", that executes that customer's policy. See [Incident on-call rules](/docs/incidents/settings#incident-on-call-rules).
+> To page each customer's own team, add an incident on-call rule per organization, such as "If **Incident Labels** has any of _Acme Corp_", that executes that customer's policy. See [Incident on-call rules](/docs/incidents/settings#incident-on-call-rules).
 
-## Reports on the connection's page
+## The Huntress Incident Report trigger
 
-The connection's **Incident Reports** list shows every report Huntress sent, newest first: the affected host or identity, its severity and status in Huntress, and its **Outcome**.
+The trigger opens on Huntress: its URL, a check beside each setup step that is done, and what Huntress last sent. Its settings, all optional, are folded under **More fields**: **Only These Organizations**, **Severity For Critical Reports**, **Severity For High Reports** and **Severity For Low Reports**.
 
-| Outcome | What happened |
+| Value | What it holds |
 | --- | --- |
-| **Incident opened** | The report opened an incident. **View incident** opens it; **Paged on-call** says the connection paged its policies. |
-| **Incident resolved** | Huntress closed the report, and its incident was resolved. |
-| **Skipped: organization not watched** | The report's organization is not in **Only These Organizations**. |
-| **Skipped: already closed in Huntress** | The report was already closed the first time OneUptime heard of it. |
+| **Event** | `created`, `comment-added` or `closed`. A report that is already closed or dismissed is `closed`, whichever event carried it. |
+| **Report ID** | The report's number in Huntress. |
+| **Severity** | `critical`, `high` or `low`. |
+| **Status** | The report's status in Huntress, such as `sent`, `closed` or `dismissed`. |
+| **Subject** | The report's subject, as Huntress writes it. |
+| **Summary** | What the SOC analyst wrote. |
+| **Organization**, **Organization ID** | The Huntress organization the report is about. |
+| **Affected** | The host or identity the report is about. |
+| **Platform**, **Indicators** | Where Huntress found it, and what it found. |
+| **Comment** | The comment someone added, on `comment-added`. |
+| **Report URL** | Where the report opens in Huntress. |
+| **Incident Title**, **Incident Description** | A title and a Markdown description for an incident about the report. |
+| **Note** | Markdown for a note about the event: the comment, or that Huntress closed the report. |
+| **Incident Severity ID**, **Organization Label ID** | The incident severity and the label, as above. |
+| **Received At** | When OneUptime received the event. |
 
-A skipped report stays skipped when you change the settings later. When **Resolve When Huntress Closes The Report** is off, a closed report keeps its **Incident opened** outcome.
+**Summary** and **Comment** are text Huntress's analysts wrote. To put them in an incident or a note, use **Incident Description** and **Note**: they keep the formatting, and nothing in them fetches an image or mentions anyone.
+
+To try the workflow without Huntress, click **Run Workflow** on the **Builder** and type an **Event**, a **Report ID** and the fields you need. Use the same **Report ID** to follow one report from `created` to `closed`.
+
+## Huntress connections made before
+
+Huntress used to be set up under **Incidents → Integrations → Huntress**. Each Huntress connection became a workflow of the same name, switched on, that does what the connection did: it pages the same on-call policies for the same reports, adds the same labels, and resolves (or only notes) the same way. Its URL is still the connection's, `https://oneuptime.com/api/huntress/webhook/<connection-id>`, and its signing secret is the same, so there is nothing to change in Huntress. The incidents the connection opened keep their report's number, so the workflow finds them when Huntress comments on or closes those reports.
 
 ## Security
 
-- **Signed requests only.** OneUptime checks the `svix-id`, `svix-timestamp` and `svix-signature` headers Huntress sends against the request body exactly as it arrived. A request that is not signed with the saved secret, or was signed more than five minutes earlier or later, is refused.
-- **The secret stays secret.** It is encrypted at rest, never returned by the API, and never shown again. **Replace Signing Secret** on the connection's page saves another one, such as the secret of a new endpoint.
-- **The URL is an address, not a password.** It names the connection; only a request signed with the endpoint's secret is acted on.
-- **One endpoint per connection.** Each connection has its own URL and secret. To receive the reports of a second Huntress account, connect again.
+- **Signed requests only.** The trigger checks the `svix-id`, `svix-timestamp` and `svix-signature` headers Huntress sends against the request body exactly as it arrived. A request that is not signed with the saved secret, or was signed more than five minutes earlier or later, is refused.
+- **The secret stays secret.** It is encrypted at rest, never returned by the API, and never shown again. **Replace Signing Secret** in the trigger saves another one, such as the secret of a new endpoint.
+- **The URL is an address, not a password.** It ends in the workflow's key; only a request signed with the endpoint's secret starts the workflow.
+- **One endpoint per workflow.** Each workflow has its own URL and secret. To receive the reports of a second Huntress account, create a second workflow.
 
 ## Using email instead
 
-Huntress also emails incident reports, and an [Incoming Email monitor](/docs/monitor/incoming-email-monitor) can open incidents from those emails, for example when the subject contains `Critical Incident Report`. It treats the emails as one monitor's status, though: while its incident is open, the next report opens none, and the incident is resolved by the monitor's criteria rather than when Huntress closes the report. The Huntress connection opens one incident per report and resolves each with its report, so prefer it. Once the connection receives reports, stop sending the emails to the monitor, or each report pages twice.
+Huntress also emails incident reports, and an [Incoming Email monitor](/docs/monitor/incoming-email-monitor) can open incidents from those emails, for example when the subject contains `Critical Incident Report`. It treats the emails as one monitor's status, though: while its incident is open, the next report opens none, and the incident is resolved by the monitor's criteria rather than when Huntress closes the report. The workflow opens one incident per report and resolves each with its report, so prefer it. Once the workflow receives reports, stop sending the emails to the monitor, or each report pages twice.
 
 ## Troubleshooting
 
-When OneUptime refuses a request, the connection's page shows the reason under **The last request was refused**. In Huntress, **View Delivery Attempts** in the endpoint's menu (⋯) lists every delivery with OneUptime's answer.
+When the trigger refuses a request, its settings show the reason under **The last request was refused**. In Huntress, **View Delivery Attempts** in the endpoint's menu (⋯) lists every delivery with OneUptime's answer.
 
-:::details "A request arrived but was refused, because no signing secret is saved for this connection yet"
+:::details "A request arrived but was refused, because no signing secret is saved for this workflow yet"
 Save the endpoint's signing secret: see [Set up the integration](#set-up-the-integration). Huntress sends the refused request again.
 :::
 
@@ -147,23 +165,27 @@ The saved secret is not this endpoint's. Each endpoint has its own: in Huntress,
 The clocks of Huntress and your OneUptime server are more than five minutes apart, or the request is a replay. On a self-hosted installation, check that the server's clock is right.
 :::
 
-:::details "No Huntress connection has this address."
-The connection was deleted, or the endpoint's URL in Huntress is not the connection's. Click **Copy webhook URL** on the connection's page and paste the URL into the endpoint in Huntress again.
+:::details "A request arrived while this workflow is off"
+Switch **Enabled** on at the top of the **Builder**. Huntress sends the refused request again, and it starts the workflow then.
 :::
 
-:::details "This project has no incident severities, so a Huntress report cannot open an incident"
-Add one under **Incidents → Settings → Incident Severity**. Huntress sends the report again.
+:::details "No Huntress workflow has this address."
+The workflow was deleted or archived, its trigger is no longer **Huntress Incident Report**, or the endpoint's URL in Huntress is not the workflow's. Copy the URL from the trigger and paste it into the endpoint in Huntress again.
+:::
+
+:::details No incident was opened
+Open the workflow's runs and the run of the report. If **Create One Incident** failed because the incident severity is empty, the project has no incident severities: add one under **Incidents → Settings → Incident Severity**.
 :::
 
 :::details Nobody was paged
-A report below **Page On-Call For** opens an incident without paging. In the **Incident Reports** list, **Paged on-call** under a report's outcome says that the connection paged. The incident's **On-Call Executions** page shows what each policy did.
+A low report opens an incident without paging. Otherwise, the run of the report says what **Page an On-Call Policy** did, and the incident's **On-Call Executions** page shows what each policy did.
 :::
 
 ## Next steps
 
 :::cards
+- [Workflow Triggers](/docs/workflows/triggers): The other ways to start a workflow.
 - [Incident on-call rules](/docs/incidents/settings#incident-on-call-rules): Page each organization's own team, by its label.
 - [Incident States & Severities](/docs/incidents/states-and-severities): Rank the severities Huntress reports open at.
-- [Escalation Rules](/docs/on-call/escalation-rules): Decide who is paged, and when the page moves on.
 - [Integrations Overview](/docs/integrations/index): The other tools you can connect.
 :::

@@ -210,7 +210,8 @@ const components: Array<ComponentMetadata> = [
       {
         id: HuntressTriggerValue.Platform,
         name: "Platform",
-        description: "Where Huntress found it, such as Windows or Microsoft 365.",
+        description:
+          "Where Huntress found it, such as Windows or Microsoft 365.",
         type: ComponentInputType.Text,
         required: false,
         placeholder: "Windows",

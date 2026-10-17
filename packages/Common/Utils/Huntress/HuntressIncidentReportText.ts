@@ -314,8 +314,10 @@ export function getHuntressCommentNote(comment: string): string {
 }
 
 /*
- * The note added when Huntress closes a report whose incident the
- * connection does not resolve on its own.
+ * That Huntress closed the report: the Huntress trigger's Note when its
+ * Event is closed. The Huntress template writes it as why the incident was
+ * resolved, on its timeline - or as a private note, in a workflow that only
+ * notes the close.
  */
 export function getHuntressClosedNote(
   event: Pick<HuntressIncidentReportEvent, "reportId" | "status">,
@@ -325,15 +327,4 @@ export function getHuntressClosedNote(
   }
 
   return mdText`Huntress closed incident report ${event.reportId}.`.toString();
-}
-
-// Why the incident was resolved, on its state timeline.
-export function getHuntressResolvedReason(
-  event: Pick<HuntressIncidentReportEvent, "reportId" | "status">,
-): string {
-  if (event.status) {
-    return mdText`Resolved because Huntress closed incident report ${event.reportId} (status: ${event.status}).`.toString();
-  }
-
-  return mdText`Resolved because Huntress closed incident report ${event.reportId}.`.toString();
 }

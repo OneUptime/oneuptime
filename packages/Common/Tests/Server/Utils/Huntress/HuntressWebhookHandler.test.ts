@@ -11,29 +11,44 @@ jest.mock("../../../../Server/Utils/Logger", () => {
   };
 });
 
-import HuntressConnection from "../../../../Models/DatabaseModels/HuntressConnection";
-import HuntressConnectionService from "../../../../Server/Services/HuntressConnectionService";
-import HuntressIncidentReportProcessor, {
-  HuntressConnectionSettings,
-  HuntressReportAction,
-  HuntressReportBusyException,
-  HuntressReportResult,
-} from "../../../../Server/Utils/Huntress/HuntressIncidentReportProcessor";
+import Workflow from "../../../../Models/DatabaseModels/Workflow";
+import Redis from "../../../../Server/Infrastructure/Redis";
+import WorkflowService from "../../../../Server/Services/WorkflowService";
+import { ExecuteWorkflowType } from "../../../../Server/Types/Workflow/TriggerCode";
 import HuntressWebhookHandler, {
+  HUNTRESS_BODY_TOO_LARGE_MESSAGE,
+  HUNTRESS_DELIVERY_CACHE_NAMESPACE,
+  HUNTRESS_DELIVERY_REMEMBERED_FOR_SECONDS,
+  HUNTRESS_DUPLICATE_MESSAGE,
   HUNTRESS_ERROR_RECORD_INTERVAL_MS,
+  HUNTRESS_INVALID_JSON_MESSAGE,
   HUNTRESS_MAX_BODY_LENGTH,
+  HUNTRESS_NOT_AN_INCIDENT_REPORT_MESSAGE,
+  HUNTRESS_NOT_STARTED_MESSAGE,
+  HUNTRESS_NO_BODY_MESSAGE,
   HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
+  HUNTRESS_NO_WORKFLOW_MESSAGE,
+  HUNTRESS_ORGANIZATION_NOT_WATCHED_MESSAGE,
+  HUNTRESS_UNAVAILABLE_MESSAGE,
+  HUNTRESS_WORKFLOW_OFF_MESSAGE,
   HuntressWebhookAnswer,
 } from "../../../../Server/Utils/Huntress/HuntressWebhookHandler";
 import StandardWebhookSignature from "../../../../Server/Utils/Webhook/StandardWebhookSignature";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import HuntressIncidentReportOutcome from "../../../../Types/Huntress/HuntressIncidentReportOutcome";
-import HuntressSeverity from "../../../../Types/Huntress/HuntressSeverity";
-import { HuntressIncidentReportEvent } from "../../../../Types/Huntress/HuntressWebhook";
+import ProjectBlockedException from "../../../../Types/Exception/ProjectBlockedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import ComponentID from "../../../../Types/Workflow/ComponentID";
+import {
+  HUNTRESS_DELIVERY_INDICATOR_COUNTS,
+  HuntressTriggerEvent,
+  HuntressTriggerSetting,
+  HuntressTriggerValue,
+} from "../../../../Types/Workflow/HuntressTrigger";
 import {
   getHuntressAccountNoticeBody,
+  getHuntressClosedBody,
+  getHuntressCommentBody,
   getHuntressEscalationBody,
   getHuntressIncidentReportBody,
 } from "../../../Types/Huntress/HuntressWebhookFixtures";
@@ -49,50 +64,62 @@ import {
 } from "@jest/globals";
 
 /*
- * One request to a Huntress connection's webhook URL, from its id to its
- * answer: which requests are refused and with which status (Svix retries
- * anything but a 2xx), that only a body signed with the connection's secret
- * is acted on, what is handed to the processor, and what is recorded on the
- * connection for its page to show.
+ * One request to a Huntress workflow's URL, from its key to its answer:
+ * which requests are refused and with which status (Svix sends anything but
+ * a 2xx again), that only a body signed with the workflow's secret starts
+ * anything, what the run is started with, that an event Huntress sends
+ * again starts nothing more, and what is kept on the workflow for its
+ * trigger's panel to show.
+ *
+ * The workflow is read and written through WorkflowService (stubbed), and
+ * the deliveries already seen through GlobalCache, over a stand-in for
+ * Valkey that answers SET ... NX and DEL as Valkey does.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "10000000-0000-4000-8000-000000000001",
 );
-const CONNECTION_ID: string = "20000000-0000-4000-8000-000000000001";
-const INCIDENT_ID: ObjectID = new ObjectID(
-  "30000000-0000-4000-8000-000000000001",
-);
+const WORKFLOW_ID: string = "20000000-0000-4000-8000-000000000001";
+const OTHER_WORKFLOW_ID: string = "20000000-0000-4000-8000-000000000002";
+const SECRET_KEY: string = "40000000-0000-4000-8000-000000000001";
+const OTHER_SECRET_KEY: string = "40000000-0000-4000-8000-000000000002";
 const SECRET: string = `whsec_${crypto.randomBytes(24).toString("base64")}`;
 const NOW: Date = new Date("2026-10-09T10:00:00.000Z");
 const TIMESTAMP: string = String(Math.floor(NOW.getTime() / 1000));
 
-let connection: HuntressConnection | null;
-let connectionUpdates: Array<JSONObject> = [];
-let processed: Array<{
-  settings: HuntressConnectionSettings;
-  event: HuntressIncidentReportEvent;
-  messageId: string;
-  now?: Date | undefined;
-}> = [];
-let processResult: HuntressReportResult | Error;
+// The workflows by webhook secret key: what WorkflowService.findOneBy finds.
+let workflows: Map<string, Workflow>;
+let updates: Array<{ id: string; data: JSONObject }>;
+let runs: Array<ExecuteWorkflowType>;
+let runFailure: Error | null;
+let updateFailure: Error | null;
+let lookups: Array<{
+  query: JSONObject;
+  select: JSONObject;
+  props: JSONObject;
+}>;
 
-// Column values to set; undefined clears one (a connection with no secret).
-type ConnectionOverrides = {
-  [Key in keyof HuntressConnection]?: HuntressConnection[Key] | undefined;
+// A stand-in for Valkey: SET key value EX seconds NX, and DEL.
+let cache: Map<string, { value: string; expiresInSeconds: number }>;
+let cacheConnected: boolean;
+let cacheFailure: Error | null;
+
+type WorkflowOverrides = {
+  [Key in keyof Workflow]?: Workflow[Key] | undefined;
 };
 
-function makeConnection(
-  overrides: ConnectionOverrides = {},
-): HuntressConnection {
-  const model: HuntressConnection = new HuntressConnection();
-  model._id = CONNECTION_ID;
+function makeWorkflow(
+  overrides: WorkflowOverrides = {},
+  id: string = WORKFLOW_ID,
+): Workflow {
+  const model: Workflow = new Workflow();
+  model._id = id;
   model.projectId = PROJECT_ID;
-  model.signingSecret = SECRET;
-  model.pageOnCallFor = HuntressSeverity.High;
-  model.resolveIncidentWhenReportCloses = true;
-  model.onCallDutyPolicies = [];
-  model.labels = [];
+  model.isEnabled = true;
+  model.isArchived = false;
+  model.triggerId = ComponentID.HuntressIncidentReport;
+  model.triggerArguments = {};
+  model.webhookSigningSecret = SECRET;
   Object.assign(model, overrides);
   return model;
 }
@@ -119,490 +146,815 @@ function signedHeaders(
 
 async function deliver(
   body: string | undefined,
-  headers: Record<string, string> = body ? signedHeaders(body) : {},
-  connectionId: string | undefined = CONNECTION_ID,
-  now: Date = NOW,
+  data: {
+    headers?: Record<string, string>;
+    secretKey?: string | undefined;
+    now?: Date;
+  } = {},
 ): Promise<HuntressWebhookAnswer> {
   return await HuntressWebhookHandler.handle({
-    connectionId,
-    headers,
+    secretKey: "secretKey" in data ? data.secretKey : SECRET_KEY,
+    headers: data.headers || (body ? signedHeaders(body) : {}),
     rawBody: body,
-    now,
+    executeWorkflow: async (
+      executeWorkflow: ExecuteWorkflowType,
+    ): Promise<void> => {
+      if (runFailure) {
+        throw runFailure;
+      }
+
+      runs.push(executeWorkflow);
+    },
+    now: data.now || NOW,
   });
 }
 
+function reportBody(overrides: JSONObject = {}): string {
+  return JSON.stringify(getHuntressIncidentReportBody(overrides));
+}
+
+// What the workflow was last left with: its last request, or why it was refused.
+function lastUpdate(): JSONObject | undefined {
+  return updates[updates.length - 1]?.data;
+}
+
 beforeEach(() => {
-  connection = makeConnection();
-  connectionUpdates = [];
-  processed = [];
-  processResult = {
-    action: HuntressReportAction.IncidentOpened,
-    outcome: HuntressIncidentReportOutcome.IncidentOpened,
-    incidentId: INCIDENT_ID,
-  };
+  workflows = new Map<string, Workflow>([[SECRET_KEY, makeWorkflow()]]);
+  updates = [];
+  runs = [];
+  runFailure = null;
+  updateFailure = null;
+  lookups = [];
+  cache = new Map();
+  cacheConnected = true;
+  cacheFailure = null;
+
+  jest.spyOn(WorkflowService, "findOneBy").mockImplementation((async (findBy: {
+    query: JSONObject;
+    select: JSONObject;
+    props: JSONObject;
+  }): Promise<Workflow | null> => {
+    lookups.push(findBy);
+
+    return workflows.get(String(findBy.query["webhookSecretKey"])) || null;
+  }) as never);
 
   jest
-    .spyOn(HuntressConnectionService, "findOneById")
-    .mockImplementation((async (findBy: {
-      id: ObjectID;
-      select: JSONObject;
-      props: JSONObject;
-    }): Promise<HuntressConnection | null> => {
-      // The webhook reads as OneUptime, with the secret and the error columns.
-      expect(findBy.props["isRoot"]).toBe(true);
-      expect(findBy.select["signingSecret"]).toBe(true);
-      expect(findBy.select["lastErrorAt"]).toBe(true);
-
-      if (!connection || findBy.id.toString() !== connection.id?.toString()) {
-        return null;
-      }
-
-      return connection;
-    }) as never);
-
-  jest
-    .spyOn(HuntressConnectionService, "updateOneById")
+    .spyOn(WorkflowService, "updateColumnsByIdWithoutHooks")
     .mockImplementation((async (updateBy: {
+      id: ObjectID;
       data: JSONObject;
-      props: JSONObject;
-    }): Promise<number> => {
-      // Its own bookkeeping: no hooks, no permission checks.
-      expect(updateBy.props).toEqual({ isRoot: true, ignoreHooks: true });
-      connectionUpdates.push(updateBy.data);
-      return 1;
-    }) as never);
+      skipUpdateDateColumn?: boolean;
+    }): Promise<void> => {
+      // Bookkeeping: the workflow's Updated At stays the time someone edited it.
+      expect(updateBy.skipUpdateDateColumn).toBe(true);
 
-  jest
-    .spyOn(HuntressIncidentReportProcessor, "process")
-    .mockImplementation((async (data: {
-      settings: HuntressConnectionSettings;
-      event: HuntressIncidentReportEvent;
-      messageId: string;
-      now?: Date;
-    }): Promise<HuntressReportResult> => {
-      processed.push(data);
-
-      if (processResult instanceof Error) {
-        throw processResult;
+      if (updateFailure) {
+        throw updateFailure;
       }
 
-      return processResult;
+      updates.push({ id: updateBy.id.toString(), data: updateBy.data });
     }) as never);
+
+  jest.spyOn(Redis, "isConnected").mockImplementation((): boolean => {
+    return cacheConnected;
+  });
+
+  jest.spyOn(Redis, "getClient").mockImplementation((() => {
+    return {
+      set: async (
+        key: string,
+        value: string,
+        expiry: string,
+        seconds: number,
+        mode: string,
+      ): Promise<string | null> => {
+        if (cacheFailure) {
+          throw cacheFailure;
+        }
+
+        expect(expiry).toBe("EX");
+        expect(mode).toBe("NX");
+
+        if (cache.has(key)) {
+          return null;
+        }
+
+        cache.set(key, { value, expiresInSeconds: seconds });
+        return "OK";
+      },
+      del: async (key: string): Promise<number> => {
+        return cache.delete(key) ? 1 : 0;
+      },
+    };
+  }) as never);
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("a signed incident report", () => {
-  test("is handed to the processor and answered 200 with what was done", async () => {
-    const body: string = JSON.stringify(getHuntressIncidentReportBody());
-
-    const answer: HuntressWebhookAnswer = await deliver(body);
-
-    expect(answer).toEqual({
-      statusCode: 200,
-      body: {
-        received: true,
-        eventType: "incident_report.created",
-        reportId: "1234",
-        action: HuntressReportAction.IncidentOpened,
-        outcome: HuntressIncidentReportOutcome.IncidentOpened,
-        incidentId: INCIDENT_ID.toString(),
-      },
-    });
-
-    expect(processed).toHaveLength(1);
-    expect(processed[0]!.messageId).toBe("msg_1");
-    expect(processed[0]!.now).toEqual(NOW);
-    expect(processed[0]!.event.reportId).toBe("1234");
-    expect(processed[0]!.settings.id.toString()).toBe(CONNECTION_ID);
-    expect(processed[0]!.settings.projectId.toString()).toBe(
-      PROJECT_ID.toString(),
-    );
-  });
-
-  test("records when the last event arrived, and clears the last error", async () => {
-    await deliver(JSON.stringify(getHuntressIncidentReportBody()));
-
-    expect(connectionUpdates).toEqual([
-      {
-        lastEventReceivedAt: NOW,
-        lastEventType: "incident_report.created",
-        lastError: null,
-        lastErrorAt: null,
-      },
-    ]);
-  });
-
-  test("acts on the bytes that were signed, whitespace and all", async () => {
-    const body: string = JSON.stringify(
-      getHuntressIncidentReportBody(),
-      null,
-      4,
-    );
-
-    expect((await deliver(body)).statusCode).toBe(200);
-    expect(processed[0]!.event.subject).toBe(
-      "CRITICAL - Incident on DESKTOP-ARL0EQ1 (Acme Corp)",
-    );
-  });
-
-  test("an answer still goes out when recording the event fails", async () => {
-    jest
-      .spyOn(HuntressConnectionService, "updateOneById")
-      .mockImplementation(async (): Promise<number> => {
-        throw new Error("database unavailable");
+describe("the address", () => {
+  test("no key, or one longer than any key, is no workflow's - without a lookup", async () => {
+    for (const secretKey of [undefined, "", "   ", "k".repeat(501)]) {
+      const answer: HuntressWebhookAnswer = await deliver(reportBody(), {
+        secretKey,
       });
-
-    expect(
-      (await deliver(JSON.stringify(getHuntressIncidentReportBody())))
-        .statusCode,
-    ).toBe(200);
-  });
-
-  test("a report with no incident is answered with a null incident id", async () => {
-    processResult = {
-      action: HuntressReportAction.Skipped,
-      outcome: HuntressIncidentReportOutcome.OrganizationNotWatched,
-      incidentId: null,
-    };
-
-    const answer: HuntressWebhookAnswer = await deliver(
-      JSON.stringify(getHuntressIncidentReportBody()),
-    );
-
-    expect(answer.statusCode).toBe(200);
-    expect(answer.body["incidentId"]).toBeNull();
-    expect(answer.body["outcome"]).toBe(
-      HuntressIncidentReportOutcome.OrganizationNotWatched,
-    );
-  });
-});
-
-describe("events that are not about an incident report", () => {
-  test.each([
-    ["escalation.created", getHuntressEscalationBody("escalation.created")],
-    ["account_notice.notification", getHuntressAccountNoticeBody()],
-  ])(
-    "%s is acknowledged and changes nothing",
-    async (eventType: string, payload: JSONObject) => {
-      const answer: HuntressWebhookAnswer = await deliver(
-        JSON.stringify(payload),
-      );
-
-      expect(answer).toEqual({
-        statusCode: 200,
-        body: {
-          received: true,
-          eventType,
-          message:
-            "Received. Only incident report events open incidents, so this event changes nothing.",
-        },
-      });
-      expect(processed).toHaveLength(0);
-      // Still proof that Huntress reaches the connection.
-      expect(connectionUpdates).toEqual([
-        {
-          lastEventReceivedAt: NOW,
-          lastEventType: eventType,
-          lastError: null,
-          lastErrorAt: null,
-        },
-      ]);
-    },
-  );
-});
-
-describe("requests that are refused", () => {
-  test.each([
-    ["no id", undefined],
-    ["an empty id", "  "],
-    ["an id that is not one", "not-an-id"],
-    ["an unknown id", "20000000-0000-4000-8000-000000000999"],
-  ])(
-    "a connection address with %s is answered 404",
-    async (_name: string, id: string | undefined) => {
-      const body: string = JSON.stringify(getHuntressIncidentReportBody());
-      const answer: HuntressWebhookAnswer = await HuntressWebhookHandler.handle(
-        {
-          connectionId: id,
-          headers: signedHeaders(body),
-          rawBody: body,
-          now: NOW,
-        },
-      );
 
       expect(answer).toEqual({
         statusCode: 404,
-        body: { message: "No Huntress connection has this address." },
+        body: { message: HUNTRESS_NO_WORKFLOW_MESSAGE },
       });
-      expect(processed).toHaveLength(0);
-      expect(connectionUpdates).toHaveLength(0);
-    },
-  );
+    }
 
-  test("a deleted connection is answered 404", async () => {
-    connection = null;
-
-    expect(
-      (await deliver(JSON.stringify(getHuntressIncidentReportBody())))
-        .statusCode,
-    ).toBe(404);
+    expect(lookups).toHaveLength(0);
+    expect(runs).toHaveLength(0);
   });
 
-  test("before a signing secret is saved, requests are refused with 401 and the page says why", async () => {
-    connection = makeConnection({ signingSecret: undefined });
+  test("an unknown key is answered 404, and nothing is written", async () => {
+    const answer: HuntressWebhookAnswer = await deliver(reportBody(), {
+      secretKey: "40000000-0000-4000-8000-000000000999",
+    });
 
-    const answer: HuntressWebhookAnswer = await deliver(
-      JSON.stringify(getHuntressIncidentReportBody()),
+    expect(answer.statusCode).toBe(404);
+    expect(answer.body).toEqual({ message: HUNTRESS_NO_WORKFLOW_MESSAGE });
+    expect(updates).toHaveLength(0);
+  });
+
+  test("the workflow is read as OneUptime, with its secret, its trigger and its last error", async () => {
+    await deliver(reportBody());
+
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]!.query).toEqual({ webhookSecretKey: SECRET_KEY });
+    expect(lookups[0]!.props).toEqual({ isRoot: true });
+
+    for (const column of [
+      "_id",
+      "projectId",
+      "isEnabled",
+      "isArchived",
+      "triggerId",
+      "triggerArguments",
+      "webhookSigningSecret",
+      "lastWebhookError",
+      "lastWebhookErrorAt",
+    ]) {
+      expect({ column, selected: lookups[0]!.select[column] }).toEqual({
+        column,
+        selected: true,
+      });
+    }
+  });
+
+  test("a workflow whose trigger is not Huntress's does not answer Huntress", async () => {
+    for (const triggerId of [
+      ComponentID.Webhook,
+      ComponentID.Manual,
+      undefined,
+    ]) {
+      workflows.set(SECRET_KEY, makeWorkflow({ triggerId }));
+
+      const answer: HuntressWebhookAnswer = await deliver(reportBody());
+
+      expect({ triggerId, statusCode: answer.statusCode }).toEqual({
+        triggerId,
+        statusCode: 404,
+      });
+    }
+
+    expect(runs).toHaveLength(0);
+    expect(updates).toHaveLength(0);
+  });
+
+  test("an archived workflow does not answer Huntress", async () => {
+    workflows.set(SECRET_KEY, makeWorkflow({ isArchived: true }));
+
+    const answer: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(answer.statusCode).toBe(404);
+    expect(runs).toHaveLength(0);
+  });
+});
+
+describe("the signature", () => {
+  test("with no signing secret saved, every request is refused 401 - and the trigger says how to fix it", async () => {
+    workflows.set(
+      SECRET_KEY,
+      makeWorkflow({ webhookSigningSecret: undefined }),
     );
+
+    const answer: HuntressWebhookAnswer = await deliver(reportBody());
 
     expect(answer).toEqual({
       statusCode: 401,
       body: { message: HUNTRESS_NO_SIGNING_SECRET_MESSAGE },
     });
-    expect(processed).toHaveLength(0);
-    expect(connectionUpdates).toEqual([
-      { lastError: HUNTRESS_NO_SIGNING_SECRET_MESSAGE, lastErrorAt: NOW },
+    expect(HUNTRESS_NO_SIGNING_SECRET_MESSAGE).toContain("View Signing Secret");
+    expect(updates).toEqual([
+      {
+        id: WORKFLOW_ID,
+        data: {
+          lastWebhookError: HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
+          lastWebhookErrorAt: NOW,
+        },
+      },
     ]);
+    expect(runs).toHaveLength(0);
   });
 
-  test("a request without a signature is refused with 401", async () => {
-    const answer: HuntressWebhookAnswer = await deliver(
-      JSON.stringify(getHuntressIncidentReportBody()),
-      { "content-type": "application/json" },
-    );
-
-    expect(answer.statusCode).toBe(401);
-    expect(answer.body["message"]).toBe(
-      "The request has no webhook signature. Its svix-id, svix-timestamp and svix-signature headers are missing.",
-    );
-    expect(processed).toHaveLength(0);
-  });
-
-  test("a request signed with another secret is refused with 401", async () => {
-    const body: string = JSON.stringify(getHuntressIncidentReportBody());
-    const answer: HuntressWebhookAnswer = await deliver(
-      body,
-      signedHeaders(body, {
+  test("a request signed with another secret is refused 401, and says so", async () => {
+    const body: string = reportBody();
+    const answer: HuntressWebhookAnswer = await deliver(body, {
+      headers: signedHeaders(body, {
         secret: `whsec_${crypto.randomBytes(24).toString("base64")}`,
       }),
-    );
+    });
 
     expect(answer.statusCode).toBe(401);
-    expect(answer.body["message"]).toBe(
-      "The request's signature does not match the signing secret. Copy the endpoint's signing secret from Huntress again.",
+    expect(String(answer.body["message"])).toMatch(
+      /^The request's signature does not match the signing secret/,
     );
-    expect(connectionUpdates).toEqual([
-      { lastError: answer.body["message"], lastErrorAt: NOW },
-    ]);
-    expect(processed).toHaveLength(0);
+    expect(lastUpdate()?.["lastWebhookError"]).toBe(answer.body["message"]);
+    expect(runs).toHaveLength(0);
   });
 
-  test("a signed body changed on the way is refused with 401", async () => {
-    const body: string = JSON.stringify(getHuntressIncidentReportBody());
-    const tampered: string = body.replace('"critical"', '"low"');
+  test("a request without Huntress's headers is refused 401", async () => {
+    const answer: HuntressWebhookAnswer = await deliver(reportBody(), {
+      headers: { "content-type": "application/json" },
+    });
+
+    expect(answer.statusCode).toBe(401);
+    expect(runs).toHaveLength(0);
+  });
+
+  test("a request signed more than five minutes away is refused 401, either way", async () => {
+    for (const minutes of [-6, 6]) {
+      const body: string = reportBody();
+      const answer: HuntressWebhookAnswer = await deliver(body, {
+        headers: signedHeaders(body, {
+          timestamp: String(Math.floor(NOW.getTime() / 1000) + minutes * 60),
+        }),
+      });
+
+      expect({ minutes, statusCode: answer.statusCode }).toEqual({
+        minutes,
+        statusCode: 401,
+      });
+      expect(String(answer.body["message"])).toMatch(
+        /^The request was signed more than five minutes from now/,
+      );
+    }
+
+    expect(runs).toHaveLength(0);
+  });
+
+  test("a report changed after it was signed is refused, and starts nothing", async () => {
+    const body: string = reportBody();
+    const headers: Record<string, string> = signedHeaders(body);
 
     const answer: HuntressWebhookAnswer = await deliver(
-      tampered,
-      signedHeaders(body),
+      body.replace("Acme Corp", "Evil Corp"),
+      { headers },
     );
 
     expect(answer.statusCode).toBe(401);
-    expect(processed).toHaveLength(0);
+    expect(runs).toHaveLength(0);
   });
 
-  test("a request replayed an hour later is refused with 401", async () => {
-    const body: string = JSON.stringify(getHuntressIncidentReportBody());
+  test("the bytes that were signed are the ones read: pretty-printed JSON with unicode escapes", async () => {
+    const body: string = JSON.stringify(
+      getHuntressIncidentReportBody({ summary: 'Café — "quoted"' }),
+      null,
+      3,
+    ).replace("Café", "Caf\\u00e9");
 
-    const answer: HuntressWebhookAnswer = await deliver(
-      body,
-      signedHeaders(body),
-      CONNECTION_ID,
-      new Date(NOW.getTime() + 60 * 60 * 1000),
+    const answer: HuntressWebhookAnswer = await deliver(body);
+
+    expect(answer.statusCode).toBe(200);
+    expect(runs[0]!.returnValues[HuntressTriggerValue.Summary]).toBe(
+      'Café — "quoted"',
     );
-
-    expect(answer.statusCode).toBe(401);
-    expect(processed).toHaveLength(0);
   });
+});
 
-  test("a request without a body is refused with 400", async () => {
+describe("the body", () => {
+  test("no body is refused 400 once the secret is saved", async () => {
     const answer: HuntressWebhookAnswer = await deliver(undefined, {
-      "content-type": "application/json",
+      headers: signedHeaders(""),
     });
 
     expect(answer).toEqual({
       statusCode: 400,
-      body: {
-        message:
-          "The request has no JSON body. Huntress sends every event as JSON.",
-      },
+      body: { message: HUNTRESS_NO_BODY_MESSAGE },
     });
   });
 
-  test("a body larger than any Huntress event is refused with 413, before its signature is checked", async () => {
-    const body: string = "x".repeat(HUNTRESS_MAX_BODY_LENGTH + 1);
+  test("a body larger than any Huntress event is refused 413, before its signature is checked", async () => {
     const verify: SpyInstance<typeof StandardWebhookSignature.verify> =
       jest.spyOn(StandardWebhookSignature, "verify");
+    const body: string = "x".repeat(HUNTRESS_MAX_BODY_LENGTH + 1);
 
     const answer: HuntressWebhookAnswer = await deliver(body, {
-      "content-type": "application/json",
+      headers: signedHeaders("{}"),
     });
 
-    expect(answer.statusCode).toBe(413);
+    expect(answer).toEqual({
+      statusCode: 413,
+      body: { message: HUNTRESS_BODY_TOO_LARGE_MESSAGE },
+    });
     expect(verify).not.toHaveBeenCalled();
   });
 
-  test("a signed body that is not JSON is refused with 400", async () => {
-    const body: string = "{not json";
+  test("a signed body that is not JSON is refused 400", async () => {
+    const answer: HuntressWebhookAnswer = await deliver("not json");
 
-    expect(await deliver(body)).toEqual({
+    expect(answer).toEqual({
       statusCode: 400,
-      body: { message: "The request body is not valid JSON." },
+      body: { message: HUNTRESS_INVALID_JSON_MESSAGE },
     });
   });
 
-  test("a signed body that is not a Huntress event is refused with 400", async () => {
-    const body: string = JSON.stringify({ hello: "world" });
-
-    expect(await deliver(body)).toEqual({
-      statusCode: 400,
-      body: { message: "The request body has no event_type." },
-    });
-    expect(connectionUpdates).toEqual([
-      { lastError: "The request body has no event_type.", lastErrorAt: NOW },
-    ]);
-  });
-
-  test("an incident report without an id is refused with 400", async () => {
-    const payload: JSONObject = getHuntressIncidentReportBody();
-    delete payload["id"];
-
+  test("signed JSON that is no Huntress event is refused 400, saying what is wrong", async () => {
     const answer: HuntressWebhookAnswer = await deliver(
-      JSON.stringify(payload),
+      JSON.stringify({ hello: "world" }),
     );
 
     expect(answer.statusCode).toBe(400);
-    expect(answer.body["message"]).toBe(
-      "The incident_report.created event has no incident report id.",
-    );
+    expect(String(answer.body["message"]).length).toBeGreaterThan(0);
+    expect(lastUpdate()?.["lastWebhookError"]).toBe(answer.body["message"]);
+    expect(runs).toHaveLength(0);
   });
 });
 
-describe("recording why requests are refused", () => {
-  test("the same reason is written at most once a minute", async () => {
-    connection = makeConnection({
-      signingSecret: undefined,
-      lastError: HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
-      lastErrorAt: new Date(
-        NOW.getTime() - HUNTRESS_ERROR_RECORD_INTERVAL_MS + 1000,
-      ),
+describe("events that are not incident reports", () => {
+  test.each([
+    ["an escalation", getHuntressEscalationBody()],
+    ["a platform action", getHuntressEscalationBody("platform_action.created")],
+    ["an account notice", getHuntressAccountNoticeBody()],
+  ])(
+    "%s is received 200 and starts nothing",
+    async (_name: string, payload: JSONObject) => {
+      const answer: HuntressWebhookAnswer = await deliver(
+        JSON.stringify(payload),
+      );
+
+      expect(answer.statusCode).toBe(200);
+      expect(answer.body).toEqual({
+        received: true,
+        eventType: payload["event_type"],
+        message: HUNTRESS_NOT_AN_INCIDENT_REPORT_MESSAGE,
+      });
+      expect(runs).toHaveLength(0);
+      // Huntress reached the workflow: the panel says so.
+      expect(lastUpdate()).toEqual({
+        lastWebhookRequestAt: NOW,
+        lastWebhookError: null,
+        lastWebhookErrorAt: null,
+      });
+    },
+  );
+});
+
+describe("an incident report event starts one run", () => {
+  test("a new report starts the workflow with the report's values, and is answered 200", async () => {
+    const answer: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(answer).toEqual({
+      statusCode: 200,
+      body: {
+        received: true,
+        event: HuntressTriggerEvent.Created,
+        reportId: "1234",
+        status: "Scheduled",
+      },
     });
 
-    await deliver(JSON.stringify(getHuntressIncidentReportBody()));
+    expect(runs).toHaveLength(1);
+    expect(runs[0]!.workflowId.toString()).toBe(WORKFLOW_ID);
+    expect(runs[0]!.returnValues).toEqual({
+      [HuntressTriggerValue.Event]: HuntressTriggerEvent.Created,
+      [HuntressTriggerValue.ReportId]: "1234",
+      [HuntressTriggerValue.Severity]: "critical",
+      [HuntressTriggerValue.Status]: "sent",
+      [HuntressTriggerValue.Subject]:
+        "CRITICAL - Incident on DESKTOP-ARL0EQ1 (Acme Corp)",
+      [HuntressTriggerValue.Summary]:
+        "Huntress detected a malicious scheduled task on this host. We recommend removing the file and scheduled task listed in the remediation steps below.",
+      [HuntressTriggerValue.Organization]: "Acme Corp",
+      [HuntressTriggerValue.OrganizationId]: "4",
+      [HuntressTriggerValue.Platform]: "windows",
+      [HuntressTriggerValue.Comment]: "",
+      [HUNTRESS_DELIVERY_INDICATOR_COUNTS]: {
+        footholds: 1,
+        process_detections: 2,
+      },
+      [HuntressTriggerValue.ReceivedAt]: NOW.toISOString(),
+    });
 
-    expect(connectionUpdates).toHaveLength(0);
+    expect(lastUpdate()).toEqual({
+      lastWebhookRequestAt: NOW,
+      lastWebhookError: null,
+      lastWebhookErrorAt: null,
+    });
   });
 
-  test("the same reason is written again after a minute", async () => {
-    const later: Date = new Date(NOW.getTime() + 1000);
-    connection = makeConnection({
-      signingSecret: undefined,
-      lastError: HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
-      lastErrorAt: new Date(
-        later.getTime() - HUNTRESS_ERROR_RECORD_INTERVAL_MS,
-      ),
-    });
-
-    await deliver(
-      JSON.stringify(getHuntressIncidentReportBody()),
-      undefined,
-      CONNECTION_ID,
-      later,
+  test("a comment starts it as comment-added, with the comment", async () => {
+    const answer: HuntressWebhookAnswer = await deliver(
+      JSON.stringify(getHuntressCommentBody("Isolated the host.")),
     );
 
-    expect(connectionUpdates).toEqual([
-      { lastError: HUNTRESS_NO_SIGNING_SECRET_MESSAGE, lastErrorAt: later },
-    ]);
+    expect(answer.body["event"]).toBe(HuntressTriggerEvent.CommentAdded);
+    expect(runs[0]!.returnValues[HuntressTriggerValue.Event]).toBe(
+      HuntressTriggerEvent.CommentAdded,
+    );
+    expect(runs[0]!.returnValues[HuntressTriggerValue.Comment]).toBe(
+      "Isolated the host.",
+    );
   });
 
-  test("a different reason is written at once", async () => {
-    connection = makeConnection({
-      lastError: HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
-      lastErrorAt: NOW,
+  test("a close starts it as closed", async () => {
+    await deliver(JSON.stringify(getHuntressClosedBody()));
+
+    expect(runs[0]!.returnValues[HuntressTriggerValue.Event]).toBe(
+      HuntressTriggerEvent.Closed,
+    );
+    expect(runs[0]!.returnValues[HuntressTriggerValue.Status]).toBe("closed");
+  });
+
+  test.each(["closed", "dismissed"])(
+    "a report first seen already %s starts it as closed, whichever event carried it",
+    async (status: string) => {
+      await deliver(reportBody({ status }));
+
+      expect(runs[0]!.returnValues[HuntressTriggerValue.Event]).toBe(
+        HuntressTriggerEvent.Closed,
+      );
+    },
+  );
+
+  test("a comment on a closed report is still a comment", async () => {
+    await deliver(
+      JSON.stringify(
+        getHuntressCommentBody("For the record.", { status: "closed" }),
+      ),
+    );
+
+    expect(runs[0]!.returnValues[HuntressTriggerValue.Event]).toBe(
+      HuntressTriggerEvent.CommentAdded,
+    );
+  });
+
+  test("each event of a report starts its own run", async () => {
+    const created: string = reportBody();
+    const comment: string = JSON.stringify(getHuntressCommentBody("Looking."));
+    const closed: string = JSON.stringify(getHuntressClosedBody());
+
+    await deliver(created, {
+      headers: signedHeaders(created, { messageId: "msg_1" }),
     });
-
-    await deliver("{not json");
-
-    expect(connectionUpdates).toEqual([
-      { lastError: "The request body is not valid JSON.", lastErrorAt: NOW },
-    ]);
-  });
-
-  test("a failure to record does not change the answer", async () => {
-    connection = makeConnection({ signingSecret: undefined });
-    jest
-      .spyOn(HuntressConnectionService, "updateOneById")
-      .mockImplementation(async (): Promise<number> => {
-        throw new Error("database unavailable");
-      });
+    await deliver(comment, {
+      headers: signedHeaders(comment, { messageId: "msg_2" }),
+    });
+    await deliver(closed, {
+      headers: signedHeaders(closed, { messageId: "msg_3" }),
+    });
 
     expect(
-      (await deliver(JSON.stringify(getHuntressIncidentReportBody())))
-        .statusCode,
-    ).toBe(401);
+      runs.map((run: ExecuteWorkflowType): unknown => {
+        return run.returnValues[HuntressTriggerValue.Event];
+      }),
+    ).toEqual([
+      HuntressTriggerEvent.Created,
+      HuntressTriggerEvent.CommentAdded,
+      HuntressTriggerEvent.Closed,
+    ]);
   });
 });
 
-describe("reports that could not be handled", () => {
-  test("another delivery of the same report at work is answered 503, not recorded", async () => {
-    processResult = new HuntressReportBusyException();
-
-    const answer: HuntressWebhookAnswer = await deliver(
-      JSON.stringify(getHuntressIncidentReportBody()),
+describe("Only These Organizations", () => {
+  function watching(organizations: string): void {
+    workflows.set(
+      SECRET_KEY,
+      makeWorkflow({
+        triggerArguments: {
+          [HuntressTriggerSetting.Organizations]: organizations,
+        },
+      }),
     );
+  }
+
+  test("a report from an organization the trigger leaves out is received 200, and starts nothing", async () => {
+    watching("Globex\nInitech");
+
+    const answer: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(answer).toEqual({
+      statusCode: 200,
+      body: {
+        received: true,
+        event: HuntressTriggerEvent.Created,
+        reportId: "1234",
+        skipped: true,
+        message: HUNTRESS_ORGANIZATION_NOT_WATCHED_MESSAGE,
+      },
+    });
+    expect(runs).toHaveLength(0);
+    expect(lastUpdate()?.["lastWebhookRequestAt"]).toEqual(NOW);
+  });
+
+  test.each([
+    ["by name, whatever its case", "globex\nACME CORP"],
+    ["by id", "Globex\n4"],
+  ])(
+    "a listed organization's report starts it: %s",
+    async (_how: string, list: string) => {
+      watching(list);
+
+      await deliver(reportBody());
+
+      expect(runs).toHaveLength(1);
+    },
+  );
+
+  test("an empty list lets every organization's reports through", async () => {
+    watching("  \n ");
+
+    await deliver(reportBody());
+
+    expect(runs).toHaveLength(1);
+  });
+
+  test("the list is read as a check of the report, not of the request: a forged report from a listed organization is still refused", async () => {
+    watching("Acme Corp");
+
+    const body: string = reportBody();
+    const answer: HuntressWebhookAnswer = await deliver(body, {
+      headers: signedHeaders(body, {
+        secret: `whsec_${crypto.randomBytes(24).toString("base64")}`,
+      }),
+    });
+
+    expect(answer.statusCode).toBe(401);
+    expect(runs).toHaveLength(0);
+  });
+});
+
+describe("a workflow that is off", () => {
+  test("refuses a report 503, so Huntress sends it again, and says to turn it on", async () => {
+    workflows.set(SECRET_KEY, makeWorkflow({ isEnabled: false }));
+
+    const answer: HuntressWebhookAnswer = await deliver(reportBody());
 
     expect(answer).toEqual({
       statusCode: 503,
+      body: { message: HUNTRESS_WORKFLOW_OFF_MESSAGE },
+    });
+    expect(runs).toHaveLength(0);
+    expect(lastUpdate()).toEqual({
+      lastWebhookError: HUNTRESS_WORKFLOW_OFF_MESSAGE,
+      lastWebhookErrorAt: NOW,
+    });
+    // Not remembered: once it is on, the same event goes through.
+    expect(cache.size).toBe(0);
+
+    workflows.set(SECRET_KEY, makeWorkflow({ isEnabled: true }));
+
+    const again: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(again.statusCode).toBe(200);
+    expect(runs).toHaveLength(1);
+  });
+
+  test("tells a request that is not Huntress's nothing about the workflow: the signature is checked first", async () => {
+    workflows.set(SECRET_KEY, makeWorkflow({ isEnabled: false }));
+
+    const answer: HuntressWebhookAnswer = await deliver(reportBody(), {
+      headers: { "content-type": "application/json" },
+    });
+
+    expect(answer.statusCode).toBe(401);
+  });
+
+  test("still answers 200 for events that would start nothing anyway", async () => {
+    workflows.set(SECRET_KEY, makeWorkflow({ isEnabled: false }));
+
+    const answer: HuntressWebhookAnswer = await deliver(
+      JSON.stringify(getHuntressEscalationBody()),
+    );
+
+    expect(answer.statusCode).toBe(200);
+  });
+});
+
+describe("an event Huntress sends again", () => {
+  test("starts nothing more: the same svix-id is received 200 as a duplicate", async () => {
+    const body: string = reportBody();
+
+    const first: HuntressWebhookAnswer = await deliver(body);
+    const second: HuntressWebhookAnswer = await deliver(body);
+
+    expect(first.statusCode).toBe(200);
+    expect(second).toEqual({
+      statusCode: 200,
       body: {
-        message:
-          "Another delivery of this incident report is being handled. Huntress will send it again shortly.",
+        received: true,
+        event: HuntressTriggerEvent.Created,
+        reportId: "1234",
+        duplicate: true,
+        message: HUNTRESS_DUPLICATE_MESSAGE,
       },
     });
-    expect(connectionUpdates).toHaveLength(0);
+    expect(runs).toHaveLength(1);
   });
 
-  test("a reason the project can fix is answered 500 and shown on the connection", async () => {
-    processResult = new BadDataException(
-      "This project has no incident severities, so a Huntress report cannot open an incident. Add one under Incidents > Settings > Incident Severity.",
-    );
+  test("is remembered for a week, per workflow", async () => {
+    await deliver(reportBody());
 
-    const answer: HuntressWebhookAnswer = await deliver(
-      JSON.stringify(getHuntressIncidentReportBody()),
-    );
-
-    expect(answer.statusCode).toBe(500);
-    expect(answer.body["message"]).toBe(processResult.message);
-    expect(connectionUpdates).toEqual([
-      { lastError: processResult.message, lastErrorAt: NOW },
+    expect(Array.from(cache.entries())).toEqual([
+      [
+        `${HUNTRESS_DELIVERY_CACHE_NAMESPACE}-${WORKFLOW_ID}:msg_1`,
+        {
+          value: NOW.toISOString(),
+          expiresInSeconds: HUNTRESS_DELIVERY_REMEMBERED_FOR_SECONDS,
+        },
+      ],
     ]);
+    expect(HUNTRESS_DELIVERY_REMEMBERED_FOR_SECONDS).toBe(7 * 24 * 60 * 60);
   });
 
-  test("anything else is answered 500 without its internals", async () => {
-    processResult = new Error('relation "Incident" does not exist');
+  test("the same event sent to two workflows starts each of them", async () => {
+    workflows.set(OTHER_SECRET_KEY, makeWorkflow({}, OTHER_WORKFLOW_ID));
 
-    const answer: HuntressWebhookAnswer = await deliver(
-      JSON.stringify(getHuntressIncidentReportBody()),
+    const body: string = reportBody();
+
+    await deliver(body);
+    await deliver(body, { secretKey: OTHER_SECRET_KEY });
+
+    expect(
+      runs.map((run: ExecuteWorkflowType): string => {
+        return run.workflowId.toString();
+      }),
+    ).toEqual([WORKFLOW_ID, OTHER_WORKFLOW_ID]);
+  });
+
+  test("when OneUptime cannot tell whether it saw the event, nothing starts and Huntress is asked to send it again", async () => {
+    cacheConnected = false;
+
+    const answer: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(answer).toEqual({
+      statusCode: 503,
+      body: { message: HUNTRESS_UNAVAILABLE_MESSAGE },
+    });
+    expect(runs).toHaveLength(0);
+
+    cacheConnected = true;
+    cacheFailure = new Error(
+      "READONLY You can't write against a read only replica.",
     );
+
+    const again: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(again.statusCode).toBe(503);
+    expect(runs).toHaveLength(0);
+  });
+});
+
+describe("a run that could not be started", () => {
+  test("in a blocked project is answered 403, and the event is forgotten", async () => {
+    runFailure = new ProjectBlockedException();
+
+    const answer: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(answer.statusCode).toBe(403);
+    expect(answer.body).toEqual({ message: runFailure.message });
+    expect(cache.size).toBe(0);
+  });
+
+  test("for a reason the queue gives is answered 500 with that reason, recorded, and the event forgotten", async () => {
+    runFailure = new BadDataException(
+      "This project's plan allows no more workflow runs this month.",
+    );
+
+    const answer: HuntressWebhookAnswer = await deliver(reportBody());
 
     expect(answer).toEqual({
       statusCode: 500,
       body: {
-        message:
-          "Incident report 1234 could not be handled. Huntress will send it again.",
+        message: "This project's plan allows no more workflow runs this month.",
       },
     });
-    expect(JSON.stringify(connectionUpdates)).not.toContain("relation");
+    expect(lastUpdate()?.["lastWebhookError"]).toBe(
+      "This project's plan allows no more workflow runs this month.",
+    );
+    expect(cache.size).toBe(0);
+  });
+
+  test("for any other reason is answered 500 without the details, and the next delivery starts it", async () => {
+    runFailure = new Error("connect ECONNREFUSED 10.0.0.12:6379");
+
+    const answer: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(answer).toEqual({
+      statusCode: 500,
+      body: { message: HUNTRESS_NOT_STARTED_MESSAGE },
+    });
+    expect(JSON.stringify(answer.body)).not.toContain("ECONNREFUSED");
+
+    runFailure = null;
+
+    const again: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(again.statusCode).toBe(200);
+    expect(runs).toHaveLength(1);
+  });
+});
+
+describe("what the workflow keeps of the last request", () => {
+  test("the same refusal is written at most once a minute", async () => {
+    workflows.set(
+      SECRET_KEY,
+      makeWorkflow({
+        webhookSigningSecret: undefined,
+        lastWebhookError: HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
+        lastWebhookErrorAt: new Date(
+          NOW.getTime() - HUNTRESS_ERROR_RECORD_INTERVAL_MS + 1000,
+        ),
+      }),
+    );
+
+    await deliver(reportBody());
+
+    expect(updates).toHaveLength(0);
+
+    await deliver(reportBody(), {
+      now: new Date(NOW.getTime() + 2000),
+    });
+
+    expect(updates).toHaveLength(1);
+  });
+
+  test("a different refusal is written at once", async () => {
+    workflows.set(
+      SECRET_KEY,
+      makeWorkflow({
+        isEnabled: false,
+        lastWebhookError: HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
+        lastWebhookErrorAt: NOW,
+      }),
+    );
+
+    await deliver(reportBody());
+
+    expect(lastUpdate()?.["lastWebhookError"]).toBe(
+      HUNTRESS_WORKFLOW_OFF_MESSAGE,
+    );
+  });
+
+  test("failing to write it changes nothing about the answer", async () => {
+    updateFailure = new Error("the database is busy");
+
+    const answer: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(answer.statusCode).toBe(200);
+    expect(runs).toHaveLength(1);
+
+    workflows.set(SECRET_KEY, makeWorkflow({ isEnabled: false }));
+
+    const refused: HuntressWebhookAnswer = await deliver(reportBody());
+
+    expect(refused.statusCode).toBe(503);
+  });
+});
+
+describe("isOrganizationWatched", () => {
+  test("reads the trigger's setting, and an unset or odd one watches everything", () => {
+    const event: { organization: { id: string | null; name: string | null } } =
+      { organization: { id: "4", name: "Acme Corp" } };
+
+    for (const triggerArguments of [
+      undefined,
+      {},
+      { [HuntressTriggerSetting.Organizations]: 42 },
+      { [HuntressTriggerSetting.Organizations]: "" },
+    ]) {
+      expect(
+        HuntressWebhookHandler.isOrganizationWatched(
+          { triggerArguments: triggerArguments as JSONObject | undefined },
+          event as never,
+        ),
+      ).toBe(true);
+    }
+
+    expect(
+      HuntressWebhookHandler.isOrganizationWatched(
+        {
+          triggerArguments: {
+            [HuntressTriggerSetting.Organizations]: "Globex",
+          },
+        },
+        event as never,
+      ),
+    ).toBe(false);
   });
 });

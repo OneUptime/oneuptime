@@ -56,7 +56,7 @@ Cinco caminos llevan al mismo objeto:
 - **Por la API** — `POST /api/incident` con una clave de API. El servidor rellena por ti `declaredAt`, el estado de creación y el número de incidente.
 - **Mediante un formulario** — alguien ajeno a tu equipo rellena un formulario que compartiste como enlace, sin cuenta de OneUptime. El incidente se declara oculto en las páginas de estado, a partir de la plantilla de incidente del formulario si tiene una. Consulta [Formularios](/docs/forms/index).
 
-Las integraciones también abren incidentes: [Huntress](/docs/integrations/huntress) convierte cada informe de incidente que envía su SOC en un incidente, que avisa a las políticas de guardia que elijas. Consulta [Declarar un incidente](/docs/incidents/declaring-incidents) para el recorrido campo por campo.
+Los flujos de trabajo también abren incidentes: el flujo de trabajo de [Huntress](/docs/integrations/huntress) convierte cada informe de incidente que envía su SOC en un incidente, que avisa a la política de guardia que elijas. Consulta [Declarar un incidente](/docs/incidents/declaring-incidents) para el recorrido campo por campo.
 
 ### 2. Se enteran las personas adecuadas
 
@@ -156,11 +156,10 @@ Abre **Incidentes** desde el menú **Productos** de la barra superior. Su menú 
 | **Episodios**            | Los episodios de incidente, una función de agrupación aparte con sus propias páginas.                                                                                      |
 | **IA**                   | **Análisis**, **Registros**, **Ajustes**: lo que OneUptime AI aprendió de tus incidentes y todo lo que hizo por ellos, y lo que puede hacer por su cuenta, con las reglas de qué incidentes investiga y corrige. Consulta [AI SRE](/docs/ai/ai-sre). |
 | **Espacio de trabajo**   | Los espacios de chat que este proyecto ha conectado: **Slack**, **Microsoft Teams** o ambos, cada uno con sus reglas de notificación para incidentes. Si no hay ninguno conectado, contiene **Conectar Slack o Teams**, una página que muestra ambos y cómo conectarlos. |
-| **Integraciones**        | Herramientas que abren incidentes por su cuenta: **Huntress**, cuyos informes de incidente se convierten en incidentes que avisan a la guardia. Consulta [Huntress](/docs/integrations/huntress). |
 | **Reglas**               | Los motores de reglas: **Reglas de agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reglas de recordatorio**. |
 | **Ajustes**              | **Estado del incidente**, **Gravedad del incidente**, **Plantillas de incidente**, **Plantillas de notas**, **Plantillas de post mortem**, **Campos personalizados**, **Roles de incidente**, **Mediciones**, **Alertas vinculadas**, **Numeración**. |
 
-**Vista general** y **Episodios** están abiertas; **IA**, **Espacio de trabajo**, **Integraciones**, **Reglas**, **Ajustes** y **Desarrolladores** están plegadas por defecto, para que el menú se abra con las listas que usas cada día. Haz clic en el título de una sección para desplegarla y encontrar las páginas a las que se refiere el resto de esta documentación; una sección también se abre sola siempre que estás en una de sus páginas. La configuración de incidentes no está en los ajustes del proyecto; vive toda aquí.
+**Vista general** y **Episodios** están abiertas; **IA**, **Espacio de trabajo**, **Reglas**, **Ajustes** y **Desarrolladores** están plegadas por defecto, para que el menú se abra con las listas que usas cada día. Haz clic en el título de una sección para desplegarla y encontrar las páginas a las que se refiere el resto de esta documentación; una sección también se abre sola siempre que estás en una de sus páginas. La configuración de incidentes no está en los ajustes del proyecto; vive toda aquí.
 
 La lista de incidentes muestra **Número de incidente**, **Título**, **Estado**, **Gravedad**, **Recursos afectados**, **Declarado**, **Duración**, **Etiquetas** y **Propietarios**, con una acción masiva **Cambiar estado** para cerrar varios a la vez.
 

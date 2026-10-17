@@ -27,8 +27,8 @@ flowchart TB
 
 | Способ | Лучше всего подходит для | Примеры |
 | --- | --- | --- |
-| Встроенное подключение | Инструментов, к которым OneUptime подключается сам. Вы заполняете форму, и ничего не нужно создавать. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), подключения [Событий безопасности](/docs/telemetry/security-events) |
-| Шаблон рабочего процесса | Тикет-систем, синхронизируемых в обе стороны, и сообщений в чатах. Вы выбираете шаблон и заполняете несколько настроек. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| Встроенное подключение | Инструментов, к которым OneUptime подключается сам. Вы заполняете форму, и ничего не нужно создавать. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), подключения [Событий безопасности](/docs/telemetry/security-events) |
+| Шаблон рабочего процесса | Тикет-систем, синхронизируемых в обе стороны, отчётов об инцидентах безопасности и сообщений в чатах. Вы выбираете шаблон и заполняете несколько настроек. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
 | Монитор Incoming Request | Инструментов оповещения, которые отправляют вебхук. Вы получаете один инцидент на оповещение, переданный дежурным и устранённый, когда оповещение восстанавливается, без рабочего процесса. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Рабочий процесс, который вы создаёте | Любого инструмента с вебхуком или REST API и любой собственной логики. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 

@@ -19,8 +19,9 @@ import path from "path";
  *
  * The AI section is listed the same way: the overview's AI row names the
  * section's pages in the menu's order, and none of them is in Settings.
- * So are the Rules section and the Integrations section, which holds the
- * tools that open incidents on their own.
+ * So is the Rules section. The menu has no Integrations section any more:
+ * tools that open incidents on their own, such as Huntress, are workflows,
+ * so the overview has no row for one either.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -192,13 +193,15 @@ describe("Incident docs list the Settings menu's pages", () => {
     expect(aiMenuTitles()).toEqual(["Insights", "Logs", "Settings"]);
   });
 
-  it("reads the menu's Rules and Integrations pages", () => {
+  it("reads the menu's Rules pages, and finds no Integrations section", () => {
     const rules: Array<string> = sectionMenuTitles("Rules");
 
     expect(rules).toHaveLength(8);
     expect(rules).toContain("On-Call Rules");
     expect(rules).not.toContain("Auto Remediation Rules");
-    expect(sectionMenuTitles("Integrations")).toEqual(["Huntress"]);
+    expect(fs.readFileSync(INCIDENTS_SIDE_MENU_FILE, "utf8")).not.toMatch(
+      /\n {6}title: "Integrations",\n/,
+    );
   });
 
   it("checks every docs language", () => {
@@ -247,15 +250,18 @@ describe("Incident docs list the Settings menu's pages", () => {
   );
 
   it.each(LANGUAGES)(
-    "%s: the overview's Integrations row names every integration, in menu order",
+    "%s: the overview has no Integrations row, as the menu has no such section",
     (language: string) => {
+      const pattern: RegExp = sectionRow(language, "Integrations");
+
       expect({
         language: language,
-        pages: overviewRow(language, sectionRow(language, "Integrations")),
-      }).toEqual({
-        language: language,
-        pages: named(language, sectionMenuTitles("Integrations")),
-      });
+        rows: readPage(OVERVIEW_PAGE, language)
+          .split("\n")
+          .filter((line: string): boolean => {
+            return pattern.test(line);
+          }),
+      }).toEqual({ language: language, rows: [] });
     },
   );
 

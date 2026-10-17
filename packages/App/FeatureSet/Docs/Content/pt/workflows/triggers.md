@@ -1,12 +1,13 @@
 # Gatilhos de workflow
 
-Um gatilho é o primeiro bloco de um workflow: ele decide quando o workflow roda. Todo workflow tem exatamente um gatilho. Você escolhe entre cinco tipos.
+Um gatilho é o primeiro bloco de um workflow: ele decide quando o workflow roda. Todo workflow tem exatamente um gatilho. Você escolhe entre seis tipos.
 
 :::cards
 - [Manual](#manual): Inicie o workflow pelo Construtor ou a partir de outro workflow.
 - [Agendamento](#schedule): Rode-o em um agendamento recorrente, escrito como expressão cron.
 - [Webhook](#webhook): Deixe outro sistema iniciá-lo chamando uma URL.
 - [E-mail recebido](#incoming-email): Inicie-o com cada e-mail enviado ao endereço dele.
+- [Huntress](#huntress): Inicie-o para cada evento que o Huntress envia sobre um relatório de incidente.
 - [Gatilhos de eventos do OneUptime](#gatilhos-de-eventos-do-oneuptime): Reaja quando um registro é criado, atualizado ou excluído.
 :::
 
@@ -20,6 +21,7 @@ Para adicionar o gatilho, clique no bloco tracejado **Choose what starts this wo
 | Rodar em um agendamento recorrente             | **Agendamento**             |
 | Que outro sistema envie dados                  | **Webhook**                 |
 | Iniciar a partir de um e-mail                  | **Incoming Email**          |
+| Agir sobre os relatórios de incidente do Huntress | **Huntress Incident Report** |
 | Reagir a algo dentro do OneUptime              | **Evento do OneUptime**     |
 
 Um workflow só pode ter um gatilho. Se você precisa de duas formas de iniciar a mesma automação, monte a lógica compartilhada em um workflow com um gatilho **Manual** e inicie-o a partir de dois workflows «invólucro» leves com um bloco **Execute Workflow**.
@@ -150,6 +152,14 @@ Se o endereço vazar, clique em **Redefinir endereço** no mesmo lugar: o workfl
 
 > [!NOTE]
 > Em uma instalação self-hosted, o OneUptime recebe e-mails por meio de um provedor de e-mail de entrada que o seu administrador configura — veja [E-mail de entrada do SendGrid](/docs/self-hosted/sendgrid-inbound-email). Até lá, o gatilho não tem endereço, e as configurações dele avisam.
+
+## Huntress
+
+O OneUptime dá ao workflow uma URL própria para o Huntress, o serviço de detecção e resposta gerenciadas. O Huntress envia para ela cada evento sobre um relatório de incidente, assinado com o segredo de assinatura do endpoint, e cada evento inicia o workflow uma vez: quando seu SOC envia um relatório, quando alguém o comenta e quando ele é fechado.
+
+Bom para: abrir um incidente para cada relatório de incidente do Huntress, acionar o plantão e acompanhar o relatório até o fechamento. O modelo **Open an incident for each Huntress incident report** faz as três coisas.
+
+Para conectar o Huntress, clique no gatilho **Huntress Incident Report** no canvas: ele mostra a URL a passar para o Huntress, salva o segredo de assinatura do endpoint e diz quando o Huntress alcançou o workflow pela última vez. Uma solicitação que não está assinada com esse segredo não inicia nada, então a URL não é uma senha. Veja [Huntress](/docs/integrations/huntress) para a configuração no Huntress, os valores que o gatilho retorna e suas configurações.
 
 ## Gatilhos de eventos do OneUptime
 

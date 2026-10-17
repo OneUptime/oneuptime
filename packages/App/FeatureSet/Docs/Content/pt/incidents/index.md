@@ -56,7 +56,7 @@ Cinco caminhos levam ao mesmo objeto:
 - **Pela API** — `POST /api/incident` com uma chave de API. O servidor preenche para você `declaredAt`, o estado de criação e o número do incidente.
 - **Por um formulário** — alguém de fora da sua equipe preenche um formulário que você compartilhou como link, sem uma conta do OneUptime. O incidente é declarado oculto das páginas de status, a partir do modelo de incidente do formulário, se ele tiver um. Veja [Formulários](/docs/forms/index).
 
-As integrações também abrem incidentes: o [Huntress](/docs/integrations/huntress) transforma cada relatório de incidente que seu SOC envia em um incidente, que aciona as políticas de plantão que você escolher. Veja [Declarar um incidente](/docs/incidents/declaring-incidents) para o passo a passo campo a campo.
+Os workflows também abrem incidentes: o workflow do [Huntress](/docs/integrations/huntress) transforma cada relatório de incidente que seu SOC envia em um incidente, que aciona a política de plantão que você escolher. Veja [Declarar um incidente](/docs/incidents/declaring-incidents) para o passo a passo campo a campo.
 
 ### 2. As pessoas certas ficam sabendo
 
@@ -156,11 +156,10 @@ Abra **Incidentes** no menu **Produtos** da barra superior. Seu menu lateral é 
 | **Episódios**             | Os episódios de incidente, um recurso de agrupamento separado com suas próprias páginas.                                                                                   |
 | **IA**                    | **Insights**, **Registros**, **Configurações**: o que o OneUptime AI aprendeu com seus incidentes e tudo o que fez por eles, e o que pode fazer por conta própria — com as regras sobre quais incidentes investiga e corrige. Veja [AI SRE](/docs/ai/ai-sre). |
 | **Espaço de trabalho**    | Os espaços de chat que este projeto conectou: **Slack**, **Microsoft Teams** ou ambos, cada um com suas regras de notificação para incidentes. Se nenhum estiver conectado, contém **Conectar Slack ou Teams**, uma página que mostra os dois e como conectá-los. |
-| **Integrações**           | Ferramentas que abrem incidentes por conta própria: **Huntress**, cujos relatórios de incidente viram incidentes que acionam o plantão. Veja [Huntress](/docs/integrations/huntress). |
 | **Regras**                | Os mecanismos de regras: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA**, **Reminder Rules**. |
 | **Configurações**         | **Estado do incidente**, **Severidade do incidente**, **Modelos de incidentes**, **Modelos de notas**, **Modelos de post-mortem**, **Campos personalizados**, **Funções de incidente**, **Medições**, **Alertas vinculados**, **Numeração**. |
 
-**Visão geral** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Integrações**, **Regras**, **Configurações** e **Desenvolvedores** ficam recolhidas por padrão, para que o menu abra nas listas que você usa todos os dias. Clique no título de uma seção para expandi-la e encontrar as páginas a que o resto desta documentação se refere; uma seção também se abre sozinha sempre que você está em uma de suas páginas. A configuração de incidentes não fica nas configurações do projeto; ela vive toda aqui.
+**Visão geral** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** ficam recolhidas por padrão, para que o menu abra nas listas que você usa todos os dias. Clique no título de uma seção para expandi-la e encontrar as páginas a que o resto desta documentação se refere; uma seção também se abre sozinha sempre que você está em uma de suas páginas. A configuração de incidentes não fica nas configurações do projeto; ela vive toda aqui.
 
 A lista de incidentes mostra **Número do incidente**, **Título**, **Estado**, **Gravidade**, **Recursos afetados**, **Declarado**, **Duração**, **Rótulos** e **Proprietários**, com uma ação em massa **Alterar estado** para encerrar vários de uma vez.
 

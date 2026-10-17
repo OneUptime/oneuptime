@@ -78,15 +78,17 @@ export function isWaitingForHuntress(state: HuntressTriggerState): boolean {
   return state !== HuntressTriggerState.Receiving;
 }
 
-export const HUNTRESS_TRIGGER_STATE_LABELS: Record<HuntressTriggerState, string> =
-  {
-    [HuntressTriggerState.NeedsSigningSecret]: translationKey(
-      "Signing secret needed",
-    ),
-    [HuntressTriggerState.Waiting]: translationKey("Waiting for Huntress"),
-    [HuntressTriggerState.Receiving]: translationKey("Receiving reports"),
-    [HuntressTriggerState.Failing]: translationKey("Refusing requests"),
-  };
+export const HUNTRESS_TRIGGER_STATE_LABELS: Record<
+  HuntressTriggerState,
+  string
+> = {
+  [HuntressTriggerState.NeedsSigningSecret]: translationKey(
+    "Signing secret needed",
+  ),
+  [HuntressTriggerState.Waiting]: translationKey("Waiting for Huntress"),
+  [HuntressTriggerState.Receiving]: translationKey("Receiving reports"),
+  [HuntressTriggerState.Failing]: translationKey("Refusing requests"),
+};
 
 /*
  * A first look at a pasted signing secret, before it is sent: Huntress's

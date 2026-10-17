@@ -21,7 +21,7 @@ Det finns fem sätt som en incident kommer in i OneUptime på, och alla hamnar p
 | Öppna en från din egen kod, ett skript eller ett annat verktyg | `POST /api/incident`                                                      |
 | Låta folk utanför ditt team rapportera ett problem via en länk | Ett [formulär](/docs/forms/index)                                         |
 
-Alla fem skriver samma modell, så en incident som en sond öppnade ser exakt ut som en som en jourhavande öppnade för hand — bortsett från några administrativa kolumner som servern sätter på de automatiska. Integrationer skriver den också: [Huntress](/docs/integrations/huntress) öppnar en incident för varje incidentrapport som dess SOC skickar.
+Alla fem skriver samma modell, så en incident som en sond öppnade ser exakt ut som en som en jourhavande öppnade för hand — bortsett från några administrativa kolumner som servern sätter på de automatiska. Arbetsflöden skriver den också: arbetsflödet för [Huntress](/docs/integrations/huntress) öppnar en incident för varje incidentrapport som dess SOC skickar.
 
 > [!TIP]
 > Du kan också deklarera en incident från larm: **Deklarera incident** på en larmlista, i ett larms rubrik eller på ett larms sida **Länkade incidenter** öppnar samma guide, förifylld från larmen, och länkar dem till den nya incidenten. En kryssruta på formuläret, ikryssad som standard, bekräftar också larmen, så att de slutar eskalera. Se [Länkade larm](/docs/incidents/linked-alerts).

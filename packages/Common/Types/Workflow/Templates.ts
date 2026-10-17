@@ -6962,7 +6962,9 @@ const DYNAMICS_365_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
  *   created        open an incident - titled after the report, at the
  *                  incident severity the trigger works out, labelled with
  *                  the report's organization, kept off status pages - and
- *                  page on-call for high and critical reports;
+ *                  page on-call for high and critical reports; unless the
+ *                  report has an incident already, so one report never
+ *                  opens two;
  *   comment-added  add the comment to the report's incident, as a private
  *                  note;
  *   closed         resolve the report's incident, saying why.
@@ -7188,15 +7190,46 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
 
     connect(HUNTRESS_TRIGGER_COMPONENT_ID, "out", "switch-1");
 
-    /* ---- created: open the incident, and page ---- */
+    /* ---- created: open the incident, unless the report has one, and page ---- */
 
     const labelIds: Array<string> = options.labelIds || [];
+
+    /*
+     * One incident per report: a report that already has one - a created
+     * event sent again after Huntress stopped retrying it, or the same
+     * Report ID typed twice into Run Workflow - opens no other.
+     */
+    addNode({
+      componentId: "find-incident-0",
+      metadataId: "incident-find-one",
+      componentType: ComponentType.Component,
+      position: { x: -1050, y: 540 },
+      args: huntressFindIncidentArgs(),
+    });
+    connect("switch-1", "case-1", "find-incident-0");
+
+    addNode({
+      componentId: "if-found-0",
+      metadataId: ComponentID.IfElse,
+      componentType: ComponentType.Component,
+      position: { x: -1050, y: 740 },
+      args: huntressFoundCondition("find-incident-0"),
+    });
+    connect("find-incident-0", "success", "if-found-0");
+
+    // Yes is the If / Else's left output, so the step it leads to is on the left.
+    log(
+      "log-already-open",
+      { x: -1350, y: 940 },
+      `ℹ️ ${HUNTRESS_REPORT} has an incident already, {{local.components.find-incident-0.returnValues.model.incidentNumberWithPrefix}}, so no other was opened.`,
+    );
+    connect("if-found-0", "yes", "log-already-open");
 
     addNode({
       componentId: "create-incident-1",
       metadataId: "incident-create-one",
       componentType: ComponentType.Component,
-      position: { x: -750, y: 540 },
+      position: { x: -1050, y: 940 },
       args: {
         /*
          * The report's number in customFields is what the comment-added
@@ -7225,11 +7258,25 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
       },
     });
 
-    connect("switch-1", "case-1", "create-incident-1");
+    connect("if-found-0", "no", "create-incident-1");
+
+    /*
+     * A lookup that fails still opens the incident: a report that pages
+     * nobody is worse than a report with two incidents. The log says so,
+     * for whoever finds two, and keeps the line around the If / Else
+     * instead of under it.
+     */
+    log(
+      "log-lookup-failed",
+      { x: -750, y: 740 },
+      `⚠️ Could not look for an incident ${HUNTRESS_REPORT} has already, so one is opened. Why the lookup failed is in the run log above.`,
+    );
+    connect("find-incident-0", "error", "log-lookup-failed");
+    connect("log-lookup-failed", "out", "create-incident-1");
 
     log(
       "log-create-failed",
-      { x: -450, y: 740 },
+      { x: -750, y: 1140 },
       `❌ Could not open an incident for ${HUNTRESS_REPORT}. Why is in the run log above.`,
     );
     connect("create-incident-1", "error", "log-create-failed");
@@ -7237,7 +7284,7 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
     if (!options.pages) {
       log(
         "log-opened",
-        { x: -750, y: 740 },
+        { x: -1050, y: 1140 },
         `✅ Opened an incident for ${HUNTRESS_REPORT}.`,
       );
       connect("create-incident-1", "success", "log-opened");
@@ -7245,13 +7292,13 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
       const condition: JSONObject | null = huntressPageCondition(
         options.pageOnCallFor,
       );
-      const pageY: number = condition ? 940 : 740;
+      const pageY: number = condition ? 1340 : 1140;
 
       addNode({
         componentId: "page-on-call-policy-1",
         metadataId: ComponentID.PageOnCallPolicy,
         componentType: ComponentType.Component,
-        position: { x: condition ? -900 : -750, y: pageY },
+        position: { x: condition ? -1200 : -1050, y: pageY },
         args: {
           ...(options.onCallPolicyIds && options.onCallPolicyIds.length > 0
             ? { [PAGE_ARGUMENT_IDS.onCallPolicies]: options.onCallPolicyIds }
@@ -7267,7 +7314,7 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
           componentId: "if-page-1",
           metadataId: ComponentID.IfElse,
           componentType: ComponentType.Component,
-          position: { x: -750, y: 740 },
+          position: { x: -1050, y: 1140 },
           args: condition,
         });
         connect("create-incident-1", "success", "if-page-1");
@@ -7275,7 +7322,7 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
 
         log(
           "log-not-paged",
-          { x: -600, y: 940 },
+          { x: -900, y: 1340 },
           `ℹ️ Opened an incident for ${HUNTRESS_REPORT}. It is ${huntressValue(HuntressTriggerValue.Severity)}, so nobody was paged.`,
         );
         connect("if-page-1", "no", "log-not-paged");
@@ -7285,14 +7332,14 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
 
       log(
         "log-paged",
-        { x: condition ? -1050 : -900, y: pageY + 200 },
+        { x: condition ? -1350 : -1200, y: pageY + 200 },
         `📟 Opened an incident for ${HUNTRESS_REPORT}. {{local.components.page-on-call-policy-1.returnValues.summary}}`,
       );
       connect("page-on-call-policy-1", PAGE_SUCCESS_PORT_ID, "log-paged");
 
       log(
         "log-nobody-paged",
-        { x: condition ? -750 : -600, y: pageY + 200 },
+        { x: condition ? -1050 : -900, y: pageY + 200 },
         `❌ Opened an incident for ${HUNTRESS_REPORT}, but nobody was paged: {{local.components.page-on-call-policy-1.returnValues.error}}`,
       );
       connect("page-on-call-policy-1", PAGE_ERROR_PORT_ID, "log-nobody-paged");

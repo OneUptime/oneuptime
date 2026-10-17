@@ -472,9 +472,10 @@ export function getHuntressTriggerValues(data: {
     [HuntressTriggerValue.Comment]: event.comment || "",
     [HuntressTriggerValue.ReportUrl]: getHuntressReportPortalUrl(event) || "",
     [HuntressTriggerValue.IncidentTitle]: getHuntressIncidentTitle(event),
-    [HuntressTriggerValue.IncidentDescription]: getHuntressIncidentDescription(
-      { event, severity: data.severity },
-    ),
+    [HuntressTriggerValue.IncidentDescription]: getHuntressIncidentDescription({
+      event,
+      severity: data.severity,
+    }),
     [HuntressTriggerValue.Note]: getHuntressEventNote({
       event,
       triggerEvent: data.triggerEvent,
@@ -489,7 +490,8 @@ export function getHuntressTriggerValues(data: {
 export function getHuntressOrganizationLabelName(
   event: Pick<HuntressIncidentReportEvent, "organization">,
 ): string {
-  return (
-    event.organization.name || HUNTRESS_LABEL_WHEN_NO_ORGANIZATION
-  ).slice(0, HUNTRESS_MAX_LABEL_NAME_LENGTH);
+  return (event.organization.name || HUNTRESS_LABEL_WHEN_NO_ORGANIZATION).slice(
+    0,
+    HUNTRESS_MAX_LABEL_NAME_LENGTH,
+  );
 }

@@ -16,7 +16,6 @@ import {
   getHuntressIndicatorTitle,
   getHuntressPlatformTitle,
   getHuntressReportPortalUrl,
-  getHuntressResolvedReason,
 } from "../../../Utils/Huntress/HuntressIncidentReportText";
 import {
   getHuntressCommentBody,
@@ -379,17 +378,6 @@ describe("notes and the resolution reason", () => {
     );
     expect(getHuntressClosedNote({ reportId: "1234", status: null })).toBe(
       "Huntress closed incident report 1234.",
-    );
-  });
-
-  test("the resolution reason names the report and its status", () => {
-    expect(
-      getHuntressResolvedReason({ reportId: "1234", status: "closed" }),
-    ).toBe(
-      "Resolved because Huntress closed incident report 1234 (status: closed).",
-    );
-    expect(getHuntressResolvedReason({ reportId: "1234", status: null })).toBe(
-      "Resolved because Huntress closed incident report 1234.",
     );
   });
 });

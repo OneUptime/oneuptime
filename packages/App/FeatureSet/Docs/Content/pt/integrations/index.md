@@ -27,8 +27,8 @@ Uma integração bidirecional, como Jira ou Dynamics 365, usa os dois sentidos: 
 
 | Forma | Ideal para | Exemplos |
 | --- | --- | --- |
-| Uma conexão integrada | Ferramentas às quais o OneUptime se conecta sozinho. Você preenche um formulário e não há nada a montar. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), as conexões de [Eventos de segurança](/docs/telemetry/security-events) |
-| Um modelo de workflow | Ferramentas de tickets, sincronizadas nos dois sentidos, e mensagens de chat. Você escolhe um modelo e preenche algumas configurações. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| Uma conexão integrada | Ferramentas às quais o OneUptime se conecta sozinho. Você preenche um formulário e não há nada a montar. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), as conexões de [Eventos de segurança](/docs/telemetry/security-events) |
+| Um modelo de workflow | Ferramentas de tickets, sincronizadas nos dois sentidos, relatórios de incidentes de segurança e mensagens de chat. Você escolhe um modelo e preenche algumas configurações. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
 | Um monitor Incoming Request | Ferramentas de alerta que enviam um webhook. Você recebe um incidente por alerta, encaminhado ao plantão e resolvido quando o alerta se recupera, sem workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Um workflow que você monta | Qualquer ferramenta com um webhook ou uma API REST, e qualquer lógica sua. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 

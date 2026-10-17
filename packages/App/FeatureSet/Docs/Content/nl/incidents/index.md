@@ -56,7 +56,7 @@ Vijf routes leiden naar hetzelfde object:
 - **Via de API** — `POST /api/incident` met een API-sleutel. De server vult `declaredAt`, de aanmaakstatus en het incidentnummer voor je in.
 - **Via een formulier** — iemand buiten je team vult een formulier in dat je als link hebt gedeeld, zonder OneUptime-account. Het incident wordt gemeld verborgen voor statuspagina's, vanuit het incidentsjabloon van het formulier als het er een heeft. Zie [Formulieren](/docs/forms/index).
 
-Integraties openen ook incidenten: [Huntress](/docs/integrations/huntress) maakt van elk incidentrapport dat zijn SOC stuurt één incident, dat het bereikbaarheidsbeleid oproept dat je kiest. Zie [Een incident melden](/docs/incidents/declaring-incidents) voor de doorloop veld voor veld.
+Workflows openen ook incidenten: de [Huntress](/docs/integrations/huntress)-workflow maakt van elk incidentrapport dat zijn SOC stuurt één incident, dat het bereikbaarheidsbeleid oproept dat je kiest. Zie [Een incident melden](/docs/incidents/declaring-incidents) voor de doorloop veld voor veld.
 
 ### 2. De juiste mensen horen het
 
@@ -156,11 +156,10 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk. Het zijmenu i
 | **Episoden**   | Incidentepisodes, een aparte groeperingsfunctie met eigen pagina's.                                                                                                       |
 | **AI**         | **Inzichten**, **Logboeken**, **Instellingen**: wat OneUptime AI van je incidenten heeft geleerd en alles wat het ervoor heeft gedaan, en wat het zelf mag doen — met de regels voor welke incidenten het onderzoekt en herstelt. Zie [AI SRE](/docs/ai/ai-sre). |
 | **Werkruimte** | De chatwerkruimten die dit project heeft gekoppeld: **Slack**, **Microsoft Teams** of allebei, elk met zijn meldingsregels voor incidenten. Is geen van beide gekoppeld, dan staat hier **Slack of Teams koppelen**, een pagina die beide toont en hoe je ze koppelt. |
-| **Integraties** | Tools die zelf incidenten openen: **Huntress**, waarvan de incidentrapporten incidenten worden die de bereikbaarheidsdienst oproepen. Zie [Huntress](/docs/integrations/huntress). |
 | **Regels**     | De regelmotoren: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **SLA-regels**, **Reminder Rules**. |
 | **Instellingen** | **Status incident**, **Ernst van incident**, **Incident-sjablonen**, **Notitie-sjablonen**, **Postmortem-sjablonen**, **Aangepaste velden**, **Incidentrollen**, **Metingen**, **Gekoppelde waarschuwingen**, **Nummering**. |
 
-**Overzicht** en **Episoden** staan open; **AI**, **Werkruimte**, **Integraties**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn standaard ingeklapt, zodat het menu opent op de lijsten die je elke dag gebruikt. Klik op de titel van een sectie om die uit te klappen en de pagina's te vinden waar de rest van deze documentatie naar verwijst; een sectie gaat ook vanzelf open wanneer je op een van haar pagina's bent. De incidentconfiguratie staat niet onder de projectinstellingen; die staat helemaal hier.
+**Overzicht** en **Episoden** staan open; **AI**, **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn standaard ingeklapt, zodat het menu opent op de lijsten die je elke dag gebruikt. Klik op de titel van een sectie om die uit te klappen en de pagina's te vinden waar de rest van deze documentatie naar verwijst; een sectie gaat ook vanzelf open wanneer je op een van haar pagina's bent. De incidentconfiguratie staat niet onder de projectinstellingen; die staat helemaal hier.
 
 De incidentenlijst zelf toont **Incidentnummer**, **Titel**, **Status**, **Ernst**, **Getroffen middelen**, **Verklaard**, **Duur**, **Labels** en **Eigenaren**, met een bulkactie **Status wijzigen** om er meerdere tegelijk af te sluiten.
 

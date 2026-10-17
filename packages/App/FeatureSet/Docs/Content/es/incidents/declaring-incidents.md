@@ -21,7 +21,7 @@ Un incidente entra en OneUptime de cinco formas, y todas acaban en el mismo siti
 | Abrir uno desde tu propio código, un script u otra herramienta           | `POST /api/incident`                                                        |
 | Dejar que personas ajenas a tu equipo informen de un problema mediante un enlace | Un [formulario](/docs/forms/index)                                   |
 
-Las cinco escriben el mismo modelo, así que un incidente abierto por una sonda es exactamente igual que uno abierto a mano por un respondedor, salvo por algunas columnas de control que el servidor rellena en los automáticos. Las integraciones también lo escriben: [Huntress](/docs/integrations/huntress) abre un incidente por cada informe de incidente que envía su SOC.
+Las cinco escriben el mismo modelo, así que un incidente abierto por una sonda es exactamente igual que uno abierto a mano por un respondedor, salvo por algunas columnas de control que el servidor rellena en los automáticos. Los flujos de trabajo también lo escriben: el flujo de trabajo de [Huntress](/docs/integrations/huntress) abre un incidente por cada informe de incidente que envía su SOC.
 
 > [!TIP]
 > También puedes declarar un incidente a partir de alertas: **Declarar incidente** en una lista de alertas, en la cabecera de una alerta o en la página **Incidentes vinculados** de una alerta abre el mismo asistente, rellenado a partir de las alertas, y las vincula al nuevo incidente. Una casilla del formulario, marcada por defecto, también reconoce las alertas, para que dejen de escalar. Consulta [Alertas vinculadas](/docs/incidents/linked-alerts).

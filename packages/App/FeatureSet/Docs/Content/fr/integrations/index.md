@@ -27,8 +27,8 @@ Une intégration bidirectionnelle, comme Jira ou Dynamics 365, utilise les deux 
 
 | Façon | Idéale pour | Exemples |
 | --- | --- | --- |
-| Une connexion intégrée | Les outils auxquels OneUptime se connecte lui-même. Vous remplissez un formulaire, et il n'y a rien à construire. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), les connexions des [Événements de sécurité](/docs/telemetry/security-events) |
-| Un modèle de workflow | Les outils de tickets, synchronisés dans les deux sens, et les messages de chat. Vous choisissez un modèle et remplissez quelques paramètres. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| Une connexion intégrée | Les outils auxquels OneUptime se connecte lui-même. Vous remplissez un formulaire, et il n'y a rien à construire. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), les connexions des [Événements de sécurité](/docs/telemetry/security-events) |
+| Un modèle de workflow | Les outils de tickets, synchronisés dans les deux sens, les rapports d'incident de sécurité et les messages de chat. Vous choisissez un modèle et remplissez quelques paramètres. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
 | Un moniteur de requêtes entrantes | Les outils d'alerte qui envoient un webhook. Vous obtenez un incident par alerte, transmis à l'astreinte et résolu quand l'alerte se rétablit, sans workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Un workflow que vous construisez | Tout outil doté d'un webhook ou d'une API REST, et toute logique qui vous est propre. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 

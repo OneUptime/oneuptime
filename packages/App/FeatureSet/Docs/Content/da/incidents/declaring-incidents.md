@@ -21,7 +21,7 @@ Der er fem måder, en hændelse kommer ind i OneUptime på, og de ender alle sam
 | Åbne en fra din egen kode, et script eller et andet værktøj   | `POST /api/incident`                                                        |
 | Lade folk uden for dit team melde et problem via et link     | En [formular](/docs/forms/index)                                            |
 
-Alle fem skriver den samme model, så en hændelse, som en probe åbnede, ser præcis ud som en, en vagthavende åbnede i hånden — bortset fra nogle få administrative kolonner, serveren sætter på de automatiske. Integrationer skriver den også: [Huntress](/docs/integrations/huntress) åbner én hændelse for hver hændelsesrapport, dens SOC sender.
+Alle fem skriver den samme model, så en hændelse, som en probe åbnede, ser præcis ud som en, en vagthavende åbnede i hånden — bortset fra nogle få administrative kolonner, serveren sætter på de automatiske. Workflows skriver den også: [Huntress](/docs/integrations/huntress)-workflowet åbner én hændelse for hver hændelsesrapport, dens SOC sender.
 
 > [!TIP]
 > Du kan også erklære en hændelse fra advarsler: **Erklær hændelse** på en advarselsliste, i en advarsels hoved eller på en advarsels side **Tilknyttede hændelser** åbner den samme guide, udfyldt på forhånd fra advarslerne, og knytter dem til den nye hændelse. Et afkrydsningsfelt på formularen, markeret som standard, bekræfter også advarslerne, så de holder op med at eskalere. Se [Tilknyttede advarsler](/docs/incidents/linked-alerts).

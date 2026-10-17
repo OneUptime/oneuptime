@@ -30,9 +30,9 @@ export const AllHuntressSeverities: Array<HuntressSeverity> = [
 /*
  * A report whose severity Huntress left out, or wrote as something it does
  * not document, is handled as High: it still opens an incident at the
- * severity the connection gives High reports, and it pages on-call under the
- * default setting. Treating an unreadable severity as Low would let a real
- * security incident through without anyone being woken up.
+ * severity the Huntress trigger gives High reports, and the Huntress
+ * template pages on-call for it. Treating an unreadable severity as Low
+ * would let a real security incident through without anyone being woken up.
  */
 export const HUNTRESS_SEVERITY_WHEN_UNKNOWN: HuntressSeverity =
   HuntressSeverity.High;
@@ -71,9 +71,12 @@ export function getHuntressSeverityRank(severity: HuntressSeverity): number {
 }
 
 /*
- * Whether a report of `severity` is at or above `threshold` - how a
- * connection's "Page on-call for" setting is read: "high" pages for high and
- * critical reports, "low" for every report.
+ * Whether a report of `severity` is at or above `threshold` - which reports
+ * page in a Huntress workflow that pages from `threshold` up: "high" pages
+ * for high and critical reports, "low" for every report. The workflow's If /
+ * Else before its Page step compares the way this does (Types/Workflow/
+ * Templates.ts, getHuntressIncidentWorkflowGraphSpec), which is how a
+ * Huntress connection's "Page on-call for" setting moved into its workflow.
  */
 export function isHuntressSeverityAtOrAbove(
   severity: HuntressSeverity,

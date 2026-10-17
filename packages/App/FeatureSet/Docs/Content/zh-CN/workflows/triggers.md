@@ -1,12 +1,13 @@
 # 工作流触发器
 
-触发器是工作流的第一个块——它决定工作流何时运行。每个工作流恰好有一个触发器。你可以从五种类型中选择。
+触发器是工作流的第一个块——它决定工作流何时运行。每个工作流恰好有一个触发器。你可以从六种类型中选择。
 
 :::cards
 - [手动](#manual): 从生成器或另一个工作流启动工作流。
 - [计划](#schedule): 按用 cron 表达式写成的循环计划运行它。
 - [Webhook](#webhook): 让另一个系统通过调用一个 URL 来启动它。
 - [收到的邮件](#incoming-email): 每封发到它专属地址的邮件都会启动它。
+- [Huntress](#huntress): Huntress 每发来一个关于事件报告的事件，就启动它一次。
 - [OneUptime 事件触发器](#oneuptime-事件触发器): 在记录被创建、更新或删除时做出反应。
 :::
 
@@ -20,6 +21,7 @@
 | 按循环计划运行                                 | **计划**                    |
 | 让另一个系统把数据送进来                       | **Webhook**                 |
 | 从一封邮件开始                                 | **Incoming Email**          |
+| 处理 Huntress 的事件报告                       | **Huntress Incident Report** |
 | 对 OneUptime 中的事做出反应                    | **OneUptime 事件**          |
 
 一个工作流只能有一个触发器。如果你需要两种方式启动同一段自动化，就把共用的逻辑搭建在一个带 **Manual** 触发器的工作流中，再从两个很薄的“包装”工作流里用 **Execute Workflow** 块启动它。
@@ -150,6 +152,14 @@ OneUptime 会给工作流一个专属的邮件地址。每封发到这个地址�
 
 > [!NOTE]
 > 在自托管安装上，OneUptime 通过管理员配置的入站邮件服务商接收邮件——参见 [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email)。在此之前，触发器没有地址，它的设置会说明这一点。
+
+## Huntress
+
+OneUptime 会为工作流提供一个专用于 Huntress（托管检测与响应服务）的 URL。Huntress 会把每个关于事件报告的事件发到这里，并用该端点的签名密钥签名；每个事件都会启动一次工作流：在其 SOC 发送报告时、有人评论时，以及报告关闭时。
+
+适用于：为每份 Huntress 事件报告创建一个事件、呼叫值班人员，并跟进报告直到关闭。**Open an incident for each Huntress incident report** 模板会完成这三件事。
+
+要连接 Huntress，点击画布上的 **Huntress Incident Report** 触发器：它会显示要提供给 Huntress 的 URL，保存端点的签名密钥，并显示 Huntress 最近一次到达工作流的时间。未用该密钥签名的请求不会启动任何内容，因此这个 URL 不是密码。有关在 Huntress 中的设置、触发器返回的值及其设置，参见 [Huntress](/docs/integrations/huntress)。
 
 ## OneUptime 事件触发器
 

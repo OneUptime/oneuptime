@@ -1,12 +1,13 @@
 # Workflow-triggere
 
-En trigger er den første blok i et workflow — den afgør, hvornår workflowet kører. Hvert workflow har præcis én trigger. Du vælger mellem fem typer.
+En trigger er den første blok i et workflow — den afgør, hvornår workflowet kører. Hvert workflow har præcis én trigger. Du vælger mellem seks typer.
 
 :::cards
 - [Manuel](#manual): Start workflowet fra Bygger eller fra et andet workflow.
 - [Tidsplan](#schedule): Kør det efter en tilbagevendende tidsplan, skrevet som et cron-udtryk.
 - [Webhook](#webhook): Lad et andet system starte det ved at kalde en URL.
 - [Indgående e-mail](#incoming-email): Start det med hver e-mail, der sendes til dets egen adresse.
+- [Huntress](#huntress): Start det for hver begivenhed, Huntress sender om en hændelsesrapport.
 - [OneUptime-begivenhedstriggere](#oneuptime-begivenhedstriggere): Reager, når en post oprettes, opdateres eller slettes.
 :::
 
@@ -20,6 +21,7 @@ For at tilføje triggeren klikker du på den stiplede blok **Choose what starts 
 | Køre efter en tilbagevendende tidsplan         | **Tidsplan**                |
 | Lade et andet system sende data ind            | **Webhook**                 |
 | Starte ud fra en e-mail                        | **Incoming Email**          |
+| Handle på hændelsesrapporter fra Huntress      | **Huntress Incident Report** |
 | Reagere på noget i OneUptime                   | **OneUptime-begivenhed**    |
 
 Et workflow kan kun have én trigger. Har du brug for to måder at starte den samme automatik på, så byg den fælles logik i et workflow med en **Manual**-trigger, og start den fra to tynde «indpaknings»-workflows med en **Execute Workflow**-blok.
@@ -150,6 +152,14 @@ Lækker adressen, så klik på **Nulstil adresse** samme sted: workflowet får e
 
 > [!NOTE]
 > På en selvhostet installation modtager OneUptime e-mail gennem en udbyder af indgående e-mail, som din administrator konfigurerer — se [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Indtil da har triggeren ingen adresse, og dens indstillinger siger det.
+
+## Huntress
+
+OneUptime giver workflowet sin egen URL til Huntress, tjenesten til managed detection and response. Huntress sender hver begivenhed om en hændelsesrapport dertil, signeret med endpointets signeringshemmelighed, og hver begivenhed starter workflowet én gang: når dens SOC sender en rapport, når nogen kommenterer den, og når den lukkes.
+
+God til: at åbne en hændelse for hver hændelsesrapport fra Huntress, tilkalde vagten og følge rapporten, til den lukkes. Skabelonen **Open an incident for each Huntress incident report** gør alle tre.
+
+For at forbinde Huntress klikker du på triggeren **Huntress Incident Report** på lærredet: den viser den URL, du giver Huntress, gemmer endpointets signeringshemmelighed og fortæller, hvornår Huntress sidst nåede workflowet. En anmodning, der ikke er signeret med den hemmelighed, starter intet, så URL'en er ikke en adgangskode. Se [Huntress](/docs/integrations/huntress) for opsætningen i Huntress, de værdier, triggeren returnerer, og dens indstillinger.
 
 ## OneUptime-begivenhedstriggere
 

@@ -29,7 +29,12 @@ import PermissionGate, {
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
-import { Gray500, Green500, Red500, Yellow500 } from "../../../Types/BrandColors";
+import {
+  Gray500,
+  Green500,
+  Red500,
+  Yellow500,
+} from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -248,14 +253,10 @@ const HuntressTriggerPanel: FunctionComponent<ComponentProps> = (
           <CopyTextButton
             textToBeCopied={props.url}
             label={translate(HuntressTriggerPanelCopy.copyUrl)}
-            copiedLabel={translate(
-              HuntressTriggerPanelCopy.copied,
-            )}
+            copiedLabel={translate(HuntressTriggerPanelCopy.copied)}
             size="md"
             variant="soft"
-            title={translate(
-              HuntressTriggerPanelCopy.copyUrlTitle,
-            )}
+            title={translate(HuntressTriggerPanelCopy.copyUrlTitle)}
           />
         </div>
       </div>
@@ -293,6 +294,8 @@ const HuntressTriggerPanel: FunctionComponent<ComponentProps> = (
         }
         buttonSize={ButtonSize.Small}
         icon={IconProp.Lock}
+        // In line with the step's text, and as wide as its words, on a phone too.
+        className="!w-auto md:!ml-0"
         disabled={!updateGate.isAllowed || !workflowId}
         tooltip={updateGate.disabledReason}
         dataTestId="huntress-trigger-signing-secret-button"
@@ -498,9 +501,7 @@ const HuntressTriggerPanel: FunctionComponent<ComponentProps> = (
             dataTestId="huntress-trigger-step-endpoint"
           >
             <p className="text-sm text-gray-500">
-              {translate(
-                HuntressTriggerPanelCopy.stepEndpointBody,
-              )}
+              {translate(HuntressTriggerPanelCopy.stepEndpointBody)}
             </p>
             {urlRow}
           </SetupStep>

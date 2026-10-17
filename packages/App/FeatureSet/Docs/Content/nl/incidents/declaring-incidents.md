@@ -21,7 +21,7 @@ Er zijn vijf manieren waarop een incident in OneUptime terechtkomt, en ze komen 
 | Er een openen vanuit je eigen code, een script of een andere tool | `POST /api/incident`                                                    |
 | Mensen buiten je team via een link een probleem laten melden | Een [formulier](/docs/forms/index)                                           |
 
-Alle vijf schrijven hetzelfde model, dus een incident dat een probe opende, ziet er precies zo uit als een incident dat een responder met de hand opende — op een paar administratieve kolommen na die de server bij automatische incidenten invult. Integraties schrijven het ook: [Huntress](/docs/integrations/huntress) opent één incident voor elk incidentrapport dat zijn SOC stuurt.
+Alle vijf schrijven hetzelfde model, dus een incident dat een probe opende, ziet er precies zo uit als een incident dat een responder met de hand opende — op een paar administratieve kolommen na die de server bij automatische incidenten invult. Workflows schrijven het ook: de [Huntress](/docs/integrations/huntress)-workflow opent één incident voor elk incidentrapport dat zijn SOC stuurt.
 
 > [!TIP]
 > Je kunt een incident ook vanuit waarschuwingen melden: **Incident melden** in een lijst met waarschuwingen, in de kop van een waarschuwing of op de pagina **Gekoppelde incidenten** van een waarschuwing opent dezelfde wizard, vooraf ingevuld vanuit de waarschuwingen, en koppelt ze aan het nieuwe incident. Een vakje op het formulier, standaard aangevinkt, bevestigt de waarschuwingen ook, zodat ze niet verder escaleren. Zie [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts).

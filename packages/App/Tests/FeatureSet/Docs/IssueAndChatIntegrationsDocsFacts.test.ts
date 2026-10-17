@@ -1063,6 +1063,31 @@ const RUN_PAGES: Array<RunPage> = [
   ),
 ];
 
+/*
+ * Integrations pages whose workflow starts from a trigger that runs without
+ * a record: Run Workflow asks there for the trigger's own values - the
+ * Huntress Incident Report trigger's Event and Report ID - rather than a
+ * record to pick, and the page's own suite holds what it says to type
+ * (HuntressIntegrationDocs).
+ */
+const RUN_WITHOUT_RECORD_PAGES: ReadonlyArray<{
+  page: string;
+  trigger: string;
+}> = [
+  {
+    page: "integrations/huntress",
+    trigger: ComponentID.HuntressIncidentReport,
+  },
+];
+
+function runsWithoutRecord(page: string): boolean {
+  return RUN_WITHOUT_RECORD_PAGES.some(
+    (entry: { page: string; trigger: string }): boolean => {
+      return entry.page === page;
+    },
+  );
+}
+
 describe("Run Workflow: the trigger's record, picked rather than typed", () => {
   it.each(RUN_PAGES)(
     "$page picks the record under its name, as the Run panel asks for it",
@@ -1158,8 +1183,8 @@ const TRIGGER_TITLES: ReadonlyArray<string> = catalog.components
  * A Dashboard label as a page in a language names it. The pages tasks 28a
  * to 28c rewrote (INTEGRATIONS_PAGES) name every label as that language's
  * Dashboard draws it, Persian included, which IntegrationsDocsTranslations
- * holds. The integrations pages with suites of their own, IRC and Huntress,
- * keep the Persian page's labels in English, which IrcIntegrationDocs holds
+ * holds. The integrations page with a suite of its own, IRC, keeps the
+ * Persian page's labels in English, which IrcIntegrationDocs holds
  * (dashboardLabel).
  */
 function labelOnPage(page: string, language: string, english: string): string {
@@ -1193,6 +1218,10 @@ function runWorkflowProblems(language: string): {
   const pagesThatRun: Array<string> = [];
 
   for (const page of integrationsPages(language)) {
+    if (runsWithoutRecord(page)) {
+      continue;
+    }
+
     const entry: RunPage | undefined = RUN_PAGES.find(
       (candidate: RunPage): boolean => {
         return candidate.page === page;
@@ -1269,10 +1298,25 @@ describe("Run Workflow on every integrations page, in every language", () => {
     expect(labelOnPage(IRC, "de", "Incident")).toBe("Vorfall");
   });
 
+  it("the pages left out run a trigger that asks for no record", () => {
+    for (const entry of RUN_WITHOUT_RECORD_PAGES) {
+      expect({
+        page: entry.page,
+        record: getRunRecordTriggerInfo(component(entry.trigger)),
+        namesRunWorkflow: englishPage(entry.page).includes(
+          bold("Run Workflow"),
+        ),
+      }).toEqual({ page: entry.page, record: null, namesRunWorkflow: true });
+    }
+  });
+
   it("lists every integrations page that names Run Workflow, and only those", () => {
     const naming: Array<string> = integrationsPages("en").filter(
       (page: string): boolean => {
-        return englishPage(page).includes(bold("Run Workflow"));
+        return (
+          englishPage(page).includes(bold("Run Workflow")) &&
+          !runsWithoutRecord(page)
+        );
       },
     );
 

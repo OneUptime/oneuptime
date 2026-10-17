@@ -369,7 +369,12 @@ describe("the overview's side menu table is the Incidents side menu", () => {
     return boldNames(tableCells(row || "")[1] || "");
   }
 
-  it("reads the menu: Integrations holds Huntress, and Developer comes last", () => {
+  /*
+   * Huntress used to have a section of its own, Integrations. It is a
+   * workflow trigger now, like every other tool OneUptime connects to, so
+   * the menu has no Integrations section to send anyone to.
+   */
+  it("reads the menu: no Integrations section, and Developer comes last", () => {
     const titles: Array<string> = incidentsMenu().map(
       (menuSection: MenuSection): string => {
         return menuSection.title;
@@ -381,13 +386,9 @@ describe("the overview's side menu table is the Incidents side menu", () => {
       "Episodes",
       "AI",
       "Workspace",
-      "Integrations",
       "Rules",
       "Settings",
       "Developer",
-    ]);
-    expect(sectionByTitle(incidentsMenu(), "Integrations").items).toEqual([
-      "Huntress",
     ]);
   });
 
@@ -403,13 +404,8 @@ describe("the overview's side menu table is the Incidents side menu", () => {
     );
   });
 
-  it("names every page of the Overview, Integrations, Rules and Settings sections, in order", () => {
-    for (const sectionTitle of [
-      "Overview",
-      "Integrations",
-      "Rules",
-      "Settings",
-    ]) {
+  it("names every page of the Overview, Rules and Settings sections, in order", () => {
+    for (const sectionTitle of ["Overview", "Rules", "Settings"]) {
       expect({ section: sectionTitle, names: rowFor(sectionTitle) }).toEqual({
         section: sectionTitle,
         names: sectionByTitle(incidentsMenu(), sectionTitle).items,
@@ -436,14 +432,7 @@ describe("the overview's side menu table is the Incidents side menu", () => {
 
     expect(open).toEqual(["Overview", "Episodes"]);
     expect([...folded].sort()).toEqual(
-      [
-        "AI",
-        "Workspace",
-        "Integrations",
-        "Rules",
-        "Settings",
-        "Developer",
-      ].sort(),
+      ["AI", "Workspace", "Rules", "Settings", "Developer"].sort(),
     );
 
     for (const title of open) {
@@ -467,15 +456,18 @@ describe("the overview's side menu table is the Incidents side menu", () => {
     }
   });
 
-  it("the settings page says integrations are set up under Incidents → Integrations, which holds Huntress", () => {
+  it("the settings page says tools that open incidents, such as Huntress, are set up as workflows", () => {
     const settings: string = readPage("settings");
 
     expect(settings).toContain(
-      "such as [Huntress](/docs/integrations/huntress), are set up under **Incidents → Integrations**.",
+      "such as [Huntress](/docs/integrations/huntress), are set up as workflows.",
     );
-    expect(sectionByTitle(incidentsMenu(), "Integrations").items).toContain(
-      "Huntress",
-    );
+    expect(settings).not.toContain("**Incidents → Integrations**");
+    expect(
+      incidentsMenu().some((menuSection: MenuSection): boolean => {
+        return menuSection.title === "Integrations";
+      }),
+    ).toBe(false);
   });
 });
 
@@ -705,7 +697,8 @@ describe("every dashboard address the incident pages give is a route", () => {
 
   it("reads the Incidents routes", () => {
     expect(routes).toContain("settings/templates");
-    expect(routes).toContain("integrations/huntress");
+    // Huntress's pages moved to Workflows: their old addresses only redirect.
+    expect(routes).not.toContain("integrations/huntress");
     expect(routes).toContain("ai/insights");
     expect(routes).toContain("{id}/postmortem");
     expect(addresses().length).toBeGreaterThan(15);
@@ -734,7 +727,7 @@ describe("every dashboard address the incident pages give is a route", () => {
     expect(unknown).toEqual([]);
   });
 
-  it("puts the AI section and Huntress at the routes the pages say", () => {
+  it("puts the AI section at the routes the pages say", () => {
     const settings: string = readPage("settings");
 
     expect(settings).toContain(
