@@ -4,8 +4,11 @@ import Column from "./Types/Column";
 import { getTableCellClassName } from "./CellClassName";
 import {
   TABLE_DRAG_HANDLE_CELL_CLASS_NAME,
+  TABLE_MOBILE_ROW_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
   TABLE_SELECT_CELL_CLASS_NAME,
+  TABLE_STICKY_END_BODY_CELL_CLASS_NAME,
+  TABLE_STUCK_END_CELL_CLASS_NAME,
   getTableCellPaddingClassName,
 } from "./TableLayout";
 import Columns from "./Types/Columns";
@@ -30,6 +33,12 @@ export interface ComponentProps<T extends GenericObject> {
    * columns, same as TableHeader and TableRow do.
    */
   isMobile: boolean;
+  /*
+   * The table is wider than its card: the Actions column's placeholder
+   * sticks at the card's edge, ruled off, as the real one will and as the
+   * header's Actions cell above it already does.
+   */
+  isOverflowing?: boolean | undefined;
 }
 
 type TableSkeletonRowsFunction = <T extends GenericObject>(
@@ -69,7 +78,7 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
         </span>
         {rowIndexes.map((rowIndex: number) => {
           return (
-            <div key={rowIndex} className="bg-white px-4 py-4">
+            <div key={rowIndex} className={TABLE_MOBILE_ROW_CLASS_NAME}>
               <div className="space-y-3">
                 {visibleColumns.map(
                   (_column: Column<T>, columnIndex: number) => {
@@ -146,8 +155,25 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
                 isPrimaryColumn: columnIndex === 0,
               });
 
+              /*
+               * The Actions placeholder sticks at the card's edge as the real
+               * Actions cell does (TableRow), so the header's stuck cell has
+               * the rows' under it while the first page loads.
+               */
+              const stickyClassName: string =
+                column.type === FieldType.Actions
+                  ? ` ${TABLE_STICKY_END_BODY_CELL_CLASS_NAME}${
+                      props.isOverflowing
+                        ? ` ${TABLE_STUCK_END_CELL_CLASS_NAME}`
+                        : ""
+                    }`
+                  : "";
+
               return (
-                <td key={columnIndex} className={className}>
+                <td
+                  key={columnIndex}
+                  className={`${className}${stickyClassName}`}
+                >
                   {rowIndex === 0 && columnIndex === 0 && (
                     <span className="sr-only">
                       {translator.translateText("Loading...")}

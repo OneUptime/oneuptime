@@ -28,7 +28,11 @@ import TableBody from "./TableBody";
 import { useIsCardSection } from "../Card/CardSurface";
 import TableHeader from "./TableHeader";
 import TableSkeletonRows from "./TableSkeletonRows";
-import { TABLE_CLASS_NAME } from "./TableLayout";
+import {
+  TABLE_CLASS_NAME,
+  TABLE_FOOTER_BLEED_CLASS_NAME,
+  TABLE_SCROLL_BOX_CLASS_NAME,
+} from "./TableLayout";
 import useTableScrollState, { TableScrollState } from "./useTableScrollState";
 import Columns from "./Types/Columns";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -451,6 +455,7 @@ const Table: TableFunction = <T extends GenericObject>(
           isBulkActionsEnabled={isBulkActionsEnabled}
           itemsOnPage={props.itemsOnPage}
           isMobile={isMobile}
+          isOverflowing={scrollState.isOverflowing}
         />
       );
     }
@@ -653,24 +658,18 @@ const Table: TableFunction = <T extends GenericObject>(
         }}
       >
         {/*
-         * The table runs to the card's edges (md:-mx-6). When its columns
-         * are wider than the card it scrolls sideways in this box, its
-         * Actions column stuck at the box's right edge; when they fit there
-         * is no scroll box at all, so the header row can stick to the page
-         * (useTableScrollState).
+         * The table runs to the card's edges (TABLE_SCROLL_BOX_CLASS_NAME),
+         * on a phone too. When its columns are wider than the card it
+         * scrolls sideways in this box, its Actions column stuck at the
+         * box's right edge; when they fit there is no scroll box at all, so
+         * the header row can stick to the page (useTableScrollState).
          */}
         <div
           ref={scrollBoxRef}
           data-testid="table-scroll"
           data-overflowing={scrollState.isOverflowing ? "true" : "false"}
           className={[
-            /*
-             * relative: the box is the containing block of what is
-             * positioned absolutely inside it - a screen reader's words
-             * (sr-only) in a cell scrolled out of sight - so its scroll clips
-             * them; without it they widened the whole page.
-             */
-            "relative md:-mx-6",
+            TABLE_SCROLL_BOX_CLASS_NAME,
             scrollState.isOverflowing ? "overflow-x-auto" : "",
             props.tableContainerClassName || "",
           ]
@@ -738,7 +737,7 @@ const Table: TableFunction = <T extends GenericObject>(
          * straight: its footer is square too.
          */}
         <div
-          className={`bg-gray-50 text-right md:-mx-6 -mb-6 overflow-hidden${
+          className={`bg-gray-50 text-right ${TABLE_FOOTER_BLEED_CLASS_NAME} overflow-hidden${
             isCardSection ? "" : " rounded-b-xl"
           }`}
           data-testid="table-footer"

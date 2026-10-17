@@ -9,11 +9,13 @@ import {
   TABLE_CELL_INNER_PADDING_LEFT_CLASS_NAME,
   TABLE_CELL_INNER_PADDING_RIGHT_CLASS_NAME,
   TABLE_CELL_MAX_WIDTH_CLASS_NAME,
+  TABLE_CELL_PART_LINE_CLASS_NAME,
   TABLE_CELL_TEXT_CLASS_NAME,
   TABLE_CELL_TRUNCATE_CLASS_NAMES,
   TABLE_CLASS_NAME,
   TABLE_CLICKABLE_ROW_CLASS_NAME,
   TABLE_DRAG_HANDLE_CELL_CLASS_NAME,
+  TABLE_FOOTER_BLEED_CLASS_NAME,
   TABLE_HEADER_CELL_CLASS_NAME,
   TABLE_HEADER_CONTENT_CLASS_NAME,
   TABLE_HEADER_SELECT_CELL_CLASS_NAME,
@@ -25,6 +27,7 @@ import {
   TABLE_PRIMARY_CELL_TEXT_CLASS_NAME,
   TABLE_ROW_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
+  TABLE_SCROLL_BOX_CLASS_NAME,
   TABLE_SELECT_CELL_CLASS_NAME,
   TABLE_SELECTED_ROW_CLASS_NAME,
   TABLE_SORT_ARROW_CLASS_NAME,
@@ -345,6 +348,21 @@ describe("a value too long for its column", () => {
     );
   });
 
+  test("a one-line value's own text-sm span sits on the row's 24px line; a pill or an avatar keeps its own height", () => {
+    /*
+     * <span className="text-sm font-mono">router</span> brought text-sm's
+     * 20px line into the row's 24px one, and set at its top stood 2px above
+     * the values beside it. Only a part laid out as text gets the row's
+     * line: an inline-flex pill or an inline-block avatar is left out.
+     */
+    expect(TABLE_CELL_PART_LINE_CLASS_NAME).toBe(
+      "[&>:is(span,p,div,a):not([class*=inline-])]:leading-6",
+    );
+    expect(tokens(TABLE_CELL_TRUNCATE_CLASS_NAMES)).toContain(
+      TABLE_CELL_PART_LINE_CLASS_NAME,
+    );
+  });
+
   test("an item of a list in a cell keeps to its line, with the same link layout", () => {
     expect(tokens(TABLE_LIST_ITEM_CLASS_NAME)).toEqual([
       "truncate",
@@ -447,7 +465,7 @@ describe("a row on a phone", () => {
 
   test("is a card of names over values, as a detail card writes its fields", () => {
     expect(tokens(TABLE_MOBILE_ROW_CLASS_NAME)).toEqual(
-      expect.arrayContaining(["bg-white", "px-4", "py-4"]),
+      expect.arrayContaining(["bg-white", "px-5", "py-4"]),
     );
     expect(tokens(TABLE_MOBILE_FIELD_NAME_CLASS_NAME)).toEqual([
       "text-xs",
@@ -462,6 +480,41 @@ describe("a row on a phone", () => {
         "break-words",
         "min-w-0",
       ]),
+    );
+  });
+});
+
+describe("the table reaches its card's edges, on a phone too", () => {
+  /*
+   * A phone's cards were inset 16px inside the card's padding: their names
+   * stood 16px right of the card's title and filters, their rules and a
+   * ticked card's wash stopped short of the card's edges, and their values
+   * had 32px less room. The table's box and its footer reach through the
+   * card's padding - 20px on a phone, 24px from md up, as a card's ruled body
+   * does - and a row pads its text back to where the card's own starts.
+   */
+  test("the box reaches through a card's padding at every width", () => {
+    expect(tokens(TABLE_SCROLL_BOX_CLASS_NAME)).toEqual([
+      "relative",
+      "-mx-5",
+      "md:-mx-6",
+    ]);
+  });
+
+  test("so does the footer, to the card's bottom edge", () => {
+    expect(tokens(TABLE_FOOTER_BLEED_CLASS_NAME)).toEqual([
+      "-mx-5",
+      "-mb-6",
+      "md:-mx-6",
+    ]);
+  });
+
+  test("a phone's card pads its text back to the card's own 20px", () => {
+    expect(tokens(TABLE_MOBILE_ROW_CLASS_NAME)).toContain("px-5");
+    expect(tokens(TABLE_MOBILE_ROW_CLASS_NAME)).not.toContain("px-4");
+    // From md up the row's first cell does so at 24px, as before.
+    expect(getTableCellPaddingClassName({ isFirst: true, isLast: false })).toBe(
+      "pl-6 pr-3",
     );
   });
 });

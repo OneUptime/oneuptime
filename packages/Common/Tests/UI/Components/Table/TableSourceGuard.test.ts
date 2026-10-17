@@ -122,9 +122,14 @@ describe("the table's rules are its cells' own", () => {
 describe("the header can stick, and nothing escapes the scroll box", () => {
   test("the scroll box is relative and hides nothing", () => {
     const table: string = readCode("Components/Table/Table.tsx");
+    const layout: string = readCode("Components/Table/TableLayout.ts");
 
     expect(table).toContain('data-testid="table-scroll"');
-    expect(table).toContain('"relative md:-mx-6"');
+    // Relative, reaching the card's edges at every width (TableLayout).
+    expect(table).toContain("TABLE_SCROLL_BOX_CLASS_NAME,");
+    expect(layout).toContain(
+      'TABLE_SCROLL_BOX_CLASS_NAME: string = "relative -mx-5 md:-mx-6"',
+    );
     // Its sideways scroll comes only when the rows are wider than the card.
     expect(table).toContain(
       'scrollState.isOverflowing ? "overflow-x-auto" : ""',
@@ -155,7 +160,7 @@ describe("the header can stick, and nothing escapes the scroll box", () => {
 
     expect(uses).toBe(1);
     expect(table).toContain(
-      "bg-gray-50 text-right md:-mx-6 -mb-6 overflow-hidden",
+      "bg-gray-50 text-right ${TABLE_FOOTER_BLEED_CLASS_NAME} overflow-hidden",
     );
   });
 
@@ -165,7 +170,7 @@ describe("the header can stick, and nothing escapes the scroll box", () => {
     );
 
     expect(baseModelTable).toContain(
-      '"overflow-clip rounded-xl border border-gray-200 bg-white px-6 pb-6 shadow-sm"',
+      '"overflow-clip rounded-xl border border-gray-200 bg-white px-5 pb-6 shadow-sm md:px-6"',
     );
     expect(baseModelTable).not.toContain('"overflow-hidden rounded"');
   });

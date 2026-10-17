@@ -258,7 +258,19 @@ export const TABLE_CELL_MAX_WIDTH_CLASS_NAME: string = "max-w-[20rem]";
 export const TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES: string =
   "[&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle";
 
-export const TABLE_CELL_TRUNCATE_CLASS_NAMES: string = `overflow-x-clip text-ellipsis ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES}`;
+/*
+ * A one-line value's parts on the row's 24px line. A page that draws its
+ * value as <span className="text-sm ...">router</span> - a key in a mono
+ * font, a count, a status word, some thirty columns - brings text-sm's 20px
+ * line with it, and set at the top of the row's 24px line its words stood
+ * 2px above the values beside them. Its line is the row's again; a part
+ * laid out as a box of its own (a pill, a label, an avatar: inline-flex,
+ * inline-block) keeps its own height.
+ */
+export const TABLE_CELL_PART_LINE_CLASS_NAME: string =
+  "[&>:is(span,p,div,a):not([class*=inline-])]:leading-6";
+
+export const TABLE_CELL_TRUNCATE_CLASS_NAMES: string = `overflow-x-clip text-ellipsis ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES} ${TABLE_CELL_PART_LINE_CLASS_NAME}`;
 
 /*
  * The narrowest a column of prose (Column.wrapContent) is drawn. When the
@@ -344,9 +356,33 @@ export const TABLE_LIST_ITEM_CLASS_NAME: string = `truncate ${TABLE_CELL_INLINE_
  * On a phone a row is a card: the column names over their values, as a
  * detail card writes its fields (the same quiet name, the same reading
  * value), with the row's controls at its top.
+ *
+ * The rows run to the card's edges there too (TABLE_SCROLL_BOX_CLASS_NAME),
+ * their rules and a ticked row's wash across the whole card, and their text
+ * starts where the card's own does: 20px in, the card's padding on a phone.
+ * They were inset another 16px inside the card's padding - a list in a box,
+ * its names 16px right of the card's title and filters, and 32px narrower.
  */
 export const TABLE_MOBILE_ROW_CLASS_NAME: string =
-  "bg-white px-4 py-4 transition-colors duration-150";
+  "bg-white px-5 py-4 transition-colors duration-150";
+
+/*
+ * The box the table is drawn in reaches the card's edges, as a card's ruled
+ * body does (Card/CardSurface's CARD_RULED_BODY_CLASS_NAME): through the
+ * card's padding, 20px on a phone and 24px from md up. Its rows' ends pad
+ * their text back to where the card's own text starts. relative: the box
+ * is the containing block of what is positioned absolutely inside it - a
+ * screen reader's words (sr-only) in a cell scrolled out of sight - so its
+ * scroll clips them; without it they widened the whole page.
+ */
+export const TABLE_SCROLL_BOX_CLASS_NAME: string = "relative -mx-5 md:-mx-6";
+
+/*
+ * The footer under the rows reaches the card's edges and its bottom the
+ * same way, its pagination bar padded to the card's text
+ * (Pagination's DefaultPaginationSize).
+ */
+export const TABLE_FOOTER_BLEED_CLASS_NAME: string = "-mx-5 -mb-6 md:-mx-6";
 
 /*
  * A field of a card: its name over its value. A field whose value is only

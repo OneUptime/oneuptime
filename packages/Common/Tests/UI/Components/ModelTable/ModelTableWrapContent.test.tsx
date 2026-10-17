@@ -171,10 +171,12 @@ const WRAP_CELL_CLASS_NAME: string =
  * A one-line value's wrapper: capped at 20rem, always together with the clip
  * and the ellipsis that keep a line that does not wrap inside its box - never
  * the bare cap #3585 was - with a record's link laid out as a line of text
- * so its name can end in "...", and what it holds on the row's line.
+ * so its name can end in "...", and what it holds on the row's line: a
+ * page's own text-sm span (a key in a mono font) on the row's 24px line
+ * too, not text-sm's 20px one 2px above its neighbours.
  */
 const ONE_LINE_CONTENT_CLASS_NAME: string =
-  "max-w-[20rem] overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>*]:align-top";
+  "max-w-[20rem] overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
 
 /*
  * The row's name - its first column - has the same wrapper, and while its
@@ -183,7 +185,7 @@ const ONE_LINE_CONTENT_CLASS_NAME: string =
  * measuring, only its first line shows, and it never narrows below 10rem.
  */
 const NAME_ONE_LINE_CONTENT_CLASS_NAME: string =
-  "max-w-[20rem] data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:[overflow-wrap:anywhere] data-[fill=true]:line-clamp-1 overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>*]:align-top";
+  "max-w-[20rem] data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:[overflow-wrap:anywhere] data-[fill=true]:line-clamp-1 overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
 
 /*
  * The default cap a wrapping column gets when it names no width of its own.

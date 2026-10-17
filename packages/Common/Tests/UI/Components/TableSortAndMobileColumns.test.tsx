@@ -268,7 +268,8 @@ describe("optional table row attributes", () => {
       expect(row.tagName).toBe(width < 768 ? "DIV" : "TR");
       expect(row).toHaveClass("custom-row");
       if (width < 768) {
-        expect(row).toHaveClass("px-4", "py-4", "bg-white");
+        // Padded as the card is, its text where the card's own starts.
+        expect(row).toHaveClass("px-5", "py-4", "bg-white");
       }
       row.focus();
       expect(row).toHaveFocus();

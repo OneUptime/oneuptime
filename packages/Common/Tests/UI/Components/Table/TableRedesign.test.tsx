@@ -381,6 +381,36 @@ describe("a table wider than its card", () => {
     }
   });
 
+  test("while its first page loads, the Actions placeholder sticks at the card's edge too, under the header's stuck cell", () => {
+    widen();
+    renderTable({ isLoading: true, data: [] });
+
+    const stuck: Array<string> = TABLE_STUCK_END_CELL_CLASS_NAME.split(" ");
+
+    expect(headerCell("Actions")).toHaveClass(...stuck);
+
+    const rows: NodeListOf<Element> = screen
+      .getByTestId("table-skeleton-loader")
+      .querySelectorAll("tr");
+
+    expect(rows.length).toBeGreaterThan(0);
+
+    for (const row of Array.from(rows)) {
+      const placeholder: Element = row.lastElementChild!;
+
+      // The row's white is what the stuck cell inherits over passing cells.
+      expect(row).toHaveClass("bg-white");
+      expect(placeholder).toHaveClass(
+        ...TABLE_STICKY_END_BODY_CELL_CLASS_NAME.split(" "),
+      );
+      expect(placeholder).toHaveClass(...stuck);
+      expect(placeholder.querySelector(".w-24.h-6.rounded-md")).not.toBeNull();
+    }
+
+    // The other placeholders scroll with the rows.
+    expect(rows[0]!.firstElementChild).not.toHaveClass("sticky");
+  });
+
   test("does not stick its header: it would not scroll sideways with the rows", () => {
     widen();
     renderTable();
@@ -631,6 +661,108 @@ describe("a value too long for its column", () => {
     expect(wrapper).not.toHaveAttribute("title");
   });
 
+  test("a part of the value that ends in an ellipsis of its own - a person's name beside their picture - shows the whole value under the pointer", () => {
+    renderTable({
+      data: [
+        { _id: "1", name: LONG_NAME },
+        { _id: "2", name: "Ada Lovelace" },
+      ],
+      columns: [
+        {
+          title: "Person",
+          type: FieldType.Element,
+          key: "name",
+          getElement: (row: Row): ReactElement => {
+            // UserElement's shape: a picture, and a name line that truncates.
+            return (
+              <div className="flex">
+                <div className="shrink-0">picture</div>
+                <div className="min-w-0">
+                  <div
+                    data-testid={`name-line-${row._id}`}
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {row.name}
+                  </div>
+                </div>
+              </div>
+            );
+          },
+        },
+      ],
+    });
+
+    const [longRow, shortRow] = bodyRows();
+    const longWrapper: HTMLElement = longRow!.children[0]!
+      .firstElementChild as HTMLElement;
+    const shortWrapper: HTMLElement = shortRow!.children[0]!
+      .firstElementChild as HTMLElement;
+
+    // The value's own box fits; its name line is what is cut short.
+    for (const wrapper of [longWrapper, shortWrapper]) {
+      Object.defineProperty(wrapper, "scrollWidth", { value: 320 });
+      Object.defineProperty(wrapper, "clientWidth", { value: 320 });
+    }
+    Object.defineProperty(screen.getByTestId("name-line-1"), "scrollWidth", {
+      value: 700,
+    });
+    Object.defineProperty(screen.getByTestId("name-line-1"), "clientWidth", {
+      value: 270,
+    });
+    Object.defineProperty(screen.getByTestId("name-line-2"), "scrollWidth", {
+      value: 90,
+    });
+    Object.defineProperty(screen.getByTestId("name-line-2"), "clientWidth", {
+      value: 270,
+    });
+
+    fireEvent.mouseEnter(longWrapper);
+    fireEvent.mouseEnter(shortWrapper);
+
+    expect(longWrapper.getAttribute("title")).toContain(LONG_NAME);
+    expect(shortWrapper).not.toHaveAttribute("title");
+  });
+
+  test("a part that only runs past its box, with no ellipsis of its own, is left to the value's own clip", () => {
+    renderTable({
+      data: [{ _id: "1", name: LONG_NAME }],
+      columns: [
+        {
+          title: "Person",
+          type: FieldType.Element,
+          key: "name",
+          getElement: (row: Row): ReactElement => {
+            return (
+              <div className="flex">
+                <div data-testid="plain-part">{row.name}</div>
+              </div>
+            );
+          },
+        },
+      ],
+    });
+
+    const wrapper: HTMLElement = bodyRows()[0]!.children[0]!
+      .firstElementChild as HTMLElement;
+
+    Object.defineProperty(wrapper, "scrollWidth", { value: 320 });
+    Object.defineProperty(wrapper, "clientWidth", { value: 320 });
+    Object.defineProperty(screen.getByTestId("plain-part"), "scrollWidth", {
+      value: 700,
+    });
+    Object.defineProperty(screen.getByTestId("plain-part"), "clientWidth", {
+      value: 320,
+    });
+
+    fireEvent.mouseEnter(wrapper);
+
+    expect(wrapper).not.toHaveAttribute("title");
+  });
+
   test("a column of prose wraps instead, and gets no tooltip", () => {
     renderTable({
       data: [{ _id: "1", name: "A", note: LONG_NAME }],
@@ -801,6 +933,14 @@ describe("while the first page loads", () => {
     expect(actionsCell).toHaveClass("text-end");
     expect(actionsCell.firstElementChild).toHaveClass("justify-end");
     expect(actionsCell.querySelector(".w-24.h-6.rounded-md")).not.toBeNull();
+    /*
+     * At the table's end, as the real Actions cell is; in a table that fits
+     * there is nothing passing under it, so no rule beside it.
+     */
+    expect(actionsCell).toHaveClass(
+      ...TABLE_STICKY_END_BODY_CELL_CLASS_NAME.split(" "),
+    );
+    expect(actionsCell).not.toHaveClass("border-l");
   });
 
   test("every placeholder sits on the row's 24px line", () => {

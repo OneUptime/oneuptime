@@ -68,7 +68,11 @@ export interface ComponentProps {
  * the logs and traces views, whose own rows are denser than a table's.
  */
 export interface PaginationSize {
-  // The bar's padding. The default lines its text up with a table's cells.
+  /*
+   * The bar's padding. The default lines its text up with a table's cells
+   * and its card's text: 20px in on a phone, 24px from md up, as a card's
+   * padding is (the table's footer reaches the card's edges).
+   */
   barClassName: string;
   // How tall every control on the bar is.
   heightClassName: string;
@@ -85,7 +89,7 @@ export interface PaginationSize {
 }
 
 export const DefaultPaginationSize: PaginationSize = {
-  barClassName: "px-4 py-2.5 sm:px-6",
+  barClassName: "px-5 py-2.5 md:px-6",
   heightClassName: "h-7",
   squareClassName: "h-7 w-7",
   pageClassName: "h-7 min-w-7 px-1.5",
