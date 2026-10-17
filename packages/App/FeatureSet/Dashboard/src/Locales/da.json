@@ -30407,6 +30407,6 @@
   "What this monitor watches, and the settings it uses.": "Hvad denne monitor overvåger, og hvilke indstillinger den bruger.",
   "{{marketplace}} is not accepting usage reports": "{{marketplace}} is not accepting usage reports",
   "{{marketplace}} no longer licenses this installation": "{{marketplace}} no longer licenses this installation",
-  "Show {{count}} more labels": "Show {{count}} more labels",
-  "Show {{count}} more labels_one": "Show {{count}} more label"
+  "Show {{count}} more labels": "Vis {{count}} flere mærkater",
+  "Show {{count}} more labels_one": "Vis {{count}} mærkat mere"
 }

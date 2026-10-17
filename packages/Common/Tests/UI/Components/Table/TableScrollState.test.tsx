@@ -1,0 +1,332 @@
+import "@testing-library/jest-dom";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import React, { ReactElement, useRef } from "react";
+import useTableScrollState, {
+  TableScrollState,
+  isInsideScrollingBox,
+  isTableOverflowing,
+} from "../../../../UI/Components/Table/useTableScrollState";
+
+/*
+ * Whether a table's rows are wider than its card (they scroll sideways and
+ * the Actions column sticks at the right edge), and whether its header row
+ * can stick under the page's top bar (Common/UI/Components/Table/
+ * useTableScrollState.ts). jsdom lays nothing out, so the widths are handed
+ * to the elements here; the Chromium half is the ModelTables offline suite.
+ */
+
+type SetWidthFunction = (element: Element, width: number) => void;
+
+const setWidth: SetWidthFunction = (element: Element, width: number): void => {
+  (element as HTMLElement).getBoundingClientRect = (): DOMRect => {
+    return {
+      width: width,
+      height: 40,
+      top: 0,
+      left: 0,
+      right: width,
+      bottom: 40,
+      x: 0,
+      y: 0,
+      toJSON: (): unknown => {
+        return {};
+      },
+    } as DOMRect;
+  };
+};
+
+afterEach(() => {
+  cleanup();
+  document.body.innerHTML = "";
+});
+
+describe("isTableOverflowing", () => {
+  const CASES: Array<[string, number, number, boolean]> = [
+    ["as wide as its box", 1200, 1200, false],
+    ["narrower (min-w-full stretches it)", 800, 1200, false],
+    ["wider", 1986, 1214, true],
+    ["a pixel wider", 1215, 1214, true],
+    ["a fraction of a pixel wider (sub-pixel layout)", 1214.6, 1214.2, false],
+    ["no box yet", 900, 0, false],
+    ["no table yet", 0, 1200, false],
+  ];
+
+  test.each(CASES)(
+    "%s",
+    (_label: string, tableWidth: number, boxWidth: number, expected: boolean) => {
+      expect(isTableOverflowing({ tableWidth, boxWidth })).toBe(expected);
+    },
+  );
+});
+
+describe("isInsideScrollingBox", () => {
+  type NestFunction = (styles: Array<Partial<CSSStyleDeclaration>>) => HTMLElement;
+
+  // The innermost element of a chain of boxes, outermost first.
+  const nest: NestFunction = (
+    styles: Array<Partial<CSSStyleDeclaration>>,
+  ): HTMLElement => {
+    let parent: HTMLElement = document.body;
+
+    for (const style of styles) {
+      const box: HTMLDivElement = document.createElement("div");
+      Object.assign(box.style, style);
+      parent.appendChild(box);
+      parent = box;
+    }
+
+    return parent;
+  };
+
+  test("a table on the page: nothing scrolls between it and the page", () => {
+    expect(isInsideScrollingBox(nest([{}, {}, {}]))).toBe(false);
+  });
+
+  const SCROLLERS: Array<[string, Partial<CSSStyleDeclaration>]> = [
+    ["a dialog's scrolling body", { overflowY: "auto" }],
+    ["a side panel", { overflow: "scroll" }],
+    ["a box that hides its overflow", { overflow: "hidden" }],
+    ["a box that scrolls sideways", { overflowX: "auto" }],
+  ];
+
+  test.each(SCROLLERS)(
+    "inside %s",
+    (_label: string, style: Partial<CSSStyleDeclaration>) => {
+      expect(isInsideScrollingBox(nest([{}, style, {}]))).toBe(true);
+    },
+  );
+
+  test("the table's own box counts too", () => {
+    expect(isInsideScrollingBox(nest([{}, { overflowX: "auto" }]))).toBe(true);
+  });
+
+  test("a box that clips without scrolling (overflow: clip) leaves the header free to stick", () => {
+    expect(isInsideScrollingBox(nest([{ overflow: "clip" }, {}]))).toBe(false);
+  });
+
+  test("no element", () => {
+    expect(isInsideScrollingBox(null)).toBe(false);
+  });
+});
+
+interface ProbeProps {
+  tableWidth: number;
+  boxWidth: number;
+  boxStyle?: React.CSSProperties | undefined;
+  onState: (state: TableScrollState) => void;
+}
+
+/*
+ * A box and a table whose widths are set before the hook measures them
+ * (ref callbacks run before layout effects).
+ */
+function Probe(props: ProbeProps): ReactElement {
+  const scrollRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const tableRef: React.MutableRefObject<HTMLTableElement | null> =
+    useRef<HTMLTableElement | null>(null);
+
+  const state: TableScrollState = useTableScrollState({
+    scrollRef: scrollRef as React.RefObject<HTMLElement>,
+    tableRef: tableRef as React.RefObject<HTMLElement>,
+    watch: [props.tableWidth, props.boxWidth],
+  });
+
+  props.onState(state);
+
+  return (
+    <div
+      data-testid="box"
+      style={props.boxStyle}
+      ref={(element: HTMLDivElement | null) => {
+        scrollRef.current = element;
+        if (element) {
+          setWidth(element, props.boxWidth);
+        }
+      }}
+    >
+      <table
+        ref={(element: HTMLTableElement | null) => {
+          tableRef.current = element;
+          if (element) {
+            setWidth(element, props.tableWidth);
+          }
+        }}
+      >
+        <tbody>
+          <tr>
+            <td>{state.isOverflowing ? "overflowing" : "fits"}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+describe("useTableScrollState", () => {
+  test("a table that fits: no sideways scroll, and the header can stick", () => {
+    const states: Array<TableScrollState> = [];
+
+    render(
+      <Probe
+        tableWidth={1200}
+        boxWidth={1200}
+        onState={(state: TableScrollState) => {
+          states.push(state);
+        }}
+      />,
+    );
+
+    expect(states[states.length - 1]).toEqual({
+      isOverflowing: false,
+      canStickHeader: true,
+    });
+    expect(screen.getByText("fits")).toBeInTheDocument();
+  });
+
+  test("a table wider than its card scrolls sideways, and its header does not stick", () => {
+    const states: Array<TableScrollState> = [];
+
+    render(
+      <Probe
+        tableWidth={1986}
+        boxWidth={1214}
+        onState={(state: TableScrollState) => {
+          states.push(state);
+        }}
+      />,
+    );
+
+    expect(states[states.length - 1]).toEqual({
+      isOverflowing: true,
+      canStickHeader: false,
+    });
+    expect(screen.getByText("overflowing")).toBeInTheDocument();
+  });
+
+  test("a table that fits inside a scrolling box (a dialog) does not stick its header", () => {
+    const states: Array<TableScrollState> = [];
+
+    render(
+      <div style={{ overflowY: "auto" }}>
+        <Probe
+          tableWidth={600}
+          boxWidth={600}
+          onState={(state: TableScrollState) => {
+            states.push(state);
+          }}
+        />
+      </div>,
+    );
+
+    expect(states[states.length - 1]).toEqual({
+      isOverflowing: false,
+      canStickHeader: false,
+    });
+  });
+
+  test("measures again when the window changes size (where ResizeObserver is missing, as in jsdom)", () => {
+    const states: Array<TableScrollState> = [];
+
+    render(
+      <Probe
+        tableWidth={1000}
+        boxWidth={1200}
+        onState={(state: TableScrollState) => {
+          states.push(state);
+        }}
+      />,
+    );
+
+    expect(states[states.length - 1]?.isOverflowing).toBe(false);
+
+    // The window narrows: the card does too, under the table's width.
+    setWidth(screen.getByTestId("box"), 900);
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    expect(states[states.length - 1]).toEqual({
+      isOverflowing: true,
+      canStickHeader: false,
+    });
+  });
+
+  test("a measurement that changes nothing does not draw the table again", () => {
+    const onState: jest.Mock<(state: TableScrollState) => void> = jest.fn();
+
+    render(<Probe tableWidth={1000} boxWidth={1200} onState={onState} />);
+
+    const drawn: number = onState.mock.calls.length;
+
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    expect(onState.mock.calls.length).toBe(drawn);
+  });
+
+  test("with ResizeObserver, both the box and the table are watched, and let go of on unmount", () => {
+    const observed: Array<Element> = [];
+    const disconnect: jest.Mock<() => void> = jest.fn();
+    let callback: (() => void) | null = null;
+
+    class FakeResizeObserver {
+      public constructor(onResize: () => void) {
+        callback = onResize;
+      }
+
+      public observe(element: Element): void {
+        observed.push(element);
+      }
+
+      public disconnect(): void {
+        disconnect();
+      }
+
+      public unobserve(): void {}
+    }
+
+    const original: unknown = (window as unknown as { ResizeObserver?: unknown })
+      .ResizeObserver;
+    (window as unknown as { ResizeObserver: unknown }).ResizeObserver =
+      FakeResizeObserver;
+    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+      FakeResizeObserver;
+
+    try {
+      const states: Array<TableScrollState> = [];
+      const { unmount } = render(
+        <Probe
+          tableWidth={1000}
+          boxWidth={1200}
+          onState={(state: TableScrollState) => {
+            states.push(state);
+          }}
+        />,
+      );
+
+      expect(observed.map((element: Element) => element.tagName)).toEqual([
+        "DIV",
+        "TABLE",
+      ]);
+
+      // The table grows past its card: the observer's call measures again.
+      setWidth(observed[1]!, 1500);
+      act(() => {
+        callback?.();
+      });
+
+      expect(states[states.length - 1]?.isOverflowing).toBe(true);
+
+      unmount();
+      expect(disconnect).toHaveBeenCalled();
+    } finally {
+      (window as unknown as { ResizeObserver: unknown }).ResizeObserver =
+        original;
+      (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+        original;
+    }
+  });
+});

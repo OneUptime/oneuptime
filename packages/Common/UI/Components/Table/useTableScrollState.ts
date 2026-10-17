@@ -55,9 +55,17 @@ export const isInsideScrollingBox: (element: Element | null) => boolean = (
   ) {
     const style: CSSStyleDeclaration = window.getComputedStyle(node);
 
+    // Each axis, and the shorthand ("hidden auto") where only it is set.
+    const values: Array<string> = [
+      style.overflowX,
+      style.overflowY,
+      ...(style.overflow || "").split(" "),
+    ];
+
     if (
-      SCROLLING_OVERFLOW_VALUES.includes(style.overflowX) ||
-      SCROLLING_OVERFLOW_VALUES.includes(style.overflowY)
+      values.some((value: string): boolean => {
+        return SCROLLING_OVERFLOW_VALUES.includes(value);
+      })
     ) {
       return true;
     }
