@@ -19,16 +19,13 @@ import {
   readFormBody,
   scriptedFetch,
 } from "../VideoCallTestFetch";
-import {
-  afterEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock } from "jest-mock";
 
-type ZoomTokenGetter = () => Promise<{ accessToken: string; apiBaseUrl: string }>;
+type ZoomTokenGetter = () => Promise<{
+  accessToken: string;
+  apiBaseUrl: string;
+}>;
 
 /*
  * A call's transcript is read with the connection that started the call -
@@ -165,7 +162,10 @@ describe("VideoCallTranscriptReader - calls whose transcript a person adds", () 
   });
 
   test("a link of one's own, or a pasted Zoom link: OneUptime did not start the meeting", async () => {
-    for (const provider of [VideoCallProvider.CustomLink, VideoCallProvider.Zoom]) {
+    for (const provider of [
+      VideoCallProvider.CustomLink,
+      VideoCallProvider.Zoom,
+    ]) {
       const { result } = await read({ provider }, []);
 
       expect(unavailable(result)).toEqual({
@@ -178,7 +178,9 @@ describe("VideoCallTranscriptReader - calls whose transcript a person adds", () 
   test("the connection that started the call was deleted", async () => {
     jest
       .spyOn(VideoCallConnectionService, "getSettings")
-      .mockRejectedValue(new BadDataException("The video call connection no longer exists."));
+      .mockRejectedValue(
+        new BadDataException("The video call connection no longer exists."),
+      );
 
     const { result } = await read(
       {
@@ -232,11 +234,15 @@ describe("VideoCallTranscriptReader - Zoom", () => {
       VideoCallTranscriptUnavailableReason.NotTranscribed,
     );
     expect(fetcher.requests[0]!.url).toBe(ZOOM_TOKEN_URL);
-    expect(readFormBody(fetcher.requests[0]!).get("account_id")).toBe("acct_123");
+    expect(readFormBody(fetcher.requests[0]!).get("account_id")).toBe(
+      "acct_123",
+    );
     expect(fetcher.requests[1]!.url).toBe(
       "https://api.zoom.us/v2/meetings/85746065432/recordings",
     );
-    expect(fetcher.requests[1]!.init.headers["Authorization"]).toBe("Bearer s2s-token");
+    expect(fetcher.requests[1]!.init.headers["Authorization"]).toBe(
+      "Bearer s2s-token",
+    );
   });
 
   test("an app Zoom refuses is the connection's problem, in Zoom's words", async () => {
@@ -251,7 +257,13 @@ describe("VideoCallTranscriptReader - Zoom", () => {
     });
 
     const { result, fetcher } = await read(ZOOM_CALL, [
-      { status: 401, body: { reason: "Invalid client_id or client_secret", error: "invalid_client" } },
+      {
+        status: 401,
+        body: {
+          reason: "Invalid client_id or client_secret",
+          error: "invalid_client",
+        },
+      },
     ]);
 
     expect(unavailable(result)).toEqual({
@@ -331,7 +343,10 @@ describe("VideoCallTranscriptReader - Zoom", () => {
 
     try {
       await read(ZOOM_CALL, [
-        { status: 200, body: { access_token: "s2s-token", api_url: "https://api.zoom.us" } },
+        {
+          status: 200,
+          body: { access_token: "s2s-token", api_url: "https://api.zoom.us" },
+        },
         { status: 502, body: "Bad Gateway" },
       ]);
     } catch (error) {
@@ -356,7 +371,10 @@ describe("VideoCallTranscriptReader - Google Meet", () => {
   test("a service account: its delegated token for the scope it creates meetings with", async () => {
     useSettings({
       provider: VideoCallProvider.GoogleMeet,
-      config: { impersonatedUserEmail: "incidents@acme.com", accessType: "TRUSTED" },
+      config: {
+        impersonatedUserEmail: "incidents@acme.com",
+        accessType: "TRUSTED",
+      },
       secrets: {
         serviceAccountJson: JSON.stringify({
           type: "service_account",
@@ -369,7 +387,10 @@ describe("VideoCallTranscriptReader - Google Meet", () => {
     });
 
     const { result, fetcher } = await read(MEET_CALL, [
-      { status: 200, body: { access_token: "delegated-token", expires_in: 3599 } },
+      {
+        status: 200,
+        body: { access_token: "delegated-token", expires_in: 3599 },
+      },
       { status: 200, body: { conferenceRecords: [] } },
     ]);
 
@@ -398,20 +419,30 @@ describe("VideoCallTranscriptReader - Google Meet", () => {
     });
 
     const { result, fetcher } = await read(MEET_CALL, [
-      { status: 401, body: { error: { code: 401, message: "Invalid credentials" } } },
+      {
+        status: 401,
+        body: { error: { code: 401, message: "Invalid credentials" } },
+      },
     ]);
 
     expect(unavailable(result)).toEqual({
       reason: VideoCallTranscriptUnavailableReason.ConnectionProblem,
-      message: expect.stringMatching(/sign-in for incidents@acme\.com\. Reconnect Google Meet/),
+      message: expect.stringMatching(
+        /sign-in for incidents@acme\.com\. Reconnect Google Meet/,
+      ),
     });
-    expect(fetcher.requests[0]!.init.headers["Authorization"]).toBe("Bearer user-token");
+    expect(fetcher.requests[0]!.init.headers["Authorization"]).toBe(
+      "Bearer user-token",
+    );
   });
 
   test("a service account key that does not parse is the connection's problem", async () => {
     useSettings({
       provider: VideoCallProvider.GoogleMeet,
-      config: { impersonatedUserEmail: "incidents@acme.com", accessType: "TRUSTED" },
+      config: {
+        impersonatedUserEmail: "incidents@acme.com",
+        accessType: "TRUSTED",
+      },
       secrets: { serviceAccountJson: "{not json" },
     });
 

@@ -47,7 +47,8 @@ export interface GoogleMeetTranscriptRequest {
   now?: Date | undefined;
 }
 
-export const GOOGLE_MEET_API_BASE_URL: string = "https://meet.googleapis.com/v2";
+export const GOOGLE_MEET_API_BASE_URL: string =
+  "https://meet.googleapis.com/v2";
 
 // How long Google keeps a conference's transcript entries.
 export const GOOGLE_MEET_ENTRY_RETENTION_IN_DAYS: number = 30;
@@ -88,7 +89,9 @@ export default class GoogleMeetTranscriptClient {
       );
     }
 
-    const conferencesOrRefusal: Array<ConferenceRecord> | VideoCallTranscriptRead =
+    const conferencesOrRefusal:
+      | Array<ConferenceRecord>
+      | VideoCallTranscriptRead =
       await GoogleMeetTranscriptClient.listConferences(request, spaceName);
 
     if (!Array.isArray(conferencesOrRefusal)) {
@@ -112,16 +115,15 @@ export default class GoogleMeetTranscriptClient {
     for (const conference of conferences) {
       const transcriptsOrRefusal:
         | Array<TranscriptRecord>
-        | VideoCallTranscriptRead = await GoogleMeetTranscriptClient.listAll<
-        TranscriptRecord
-      >({
-        request,
-        url: `${GOOGLE_MEET_API_BASE_URL}/${conference.name}/transcripts`,
-        pageSize: LIST_PAGE_SIZE,
-        listKey: "transcripts",
-        stepLabel: "Google Meet transcripts request",
-        read: GoogleMeetTranscriptClient.readTranscriptRecord,
-      });
+        | VideoCallTranscriptRead =
+        await GoogleMeetTranscriptClient.listAll<TranscriptRecord>({
+          request,
+          url: `${GOOGLE_MEET_API_BASE_URL}/${conference.name}/transcripts`,
+          pageSize: LIST_PAGE_SIZE,
+          listKey: "transcripts",
+          stepLabel: "Google Meet transcripts request",
+          read: GoogleMeetTranscriptClient.readTranscriptRecord,
+        });
 
       if (!Array.isArray(transcriptsOrRefusal)) {
         return transcriptsOrRefusal;
@@ -159,23 +161,22 @@ export default class GoogleMeetTranscriptClient {
       for (const transcript of finished) {
         const entriesOrRefusal:
           | Array<TranscriptLine>
-          | VideoCallTranscriptRead = await GoogleMeetTranscriptClient.listAll<
-          TranscriptLine
-        >({
-          request,
-          url: `${GOOGLE_MEET_API_BASE_URL}/${transcript.name}/entries`,
-          pageSize: ENTRIES_PAGE_SIZE,
-          listKey: "transcriptEntries",
-          stepLabel: "Google Meet transcript entries request",
-          read: (entry: JSONObject): TranscriptLine | null => {
-            return GoogleMeetTranscriptClient.readEntry({
-              entry,
-              names,
-              firstStart,
-            });
-          },
-          maxItems: MAX_ENTRIES - lines.length,
-        });
+          | VideoCallTranscriptRead =
+          await GoogleMeetTranscriptClient.listAll<TranscriptLine>({
+            request,
+            url: `${GOOGLE_MEET_API_BASE_URL}/${transcript.name}/entries`,
+            pageSize: ENTRIES_PAGE_SIZE,
+            listKey: "transcriptEntries",
+            stepLabel: "Google Meet transcript entries request",
+            read: (entry: JSONObject): TranscriptLine | null => {
+              return GoogleMeetTranscriptClient.readEntry({
+                entry,
+                names,
+                firstStart,
+              });
+            },
+            maxItems: MAX_ENTRIES - lines.length,
+          });
 
         if (!Array.isArray(entriesOrRefusal)) {
           return entriesOrRefusal;
@@ -222,8 +223,7 @@ export default class GoogleMeetTranscriptClient {
 
     if (
       lastEnd &&
-      now - lastEnd >
-        GOOGLE_MEET_ENTRY_RETENTION_IN_DAYS * 24 * 60 * 60 * 1000
+      now - lastEnd > GOOGLE_MEET_ENTRY_RETENTION_IN_DAYS * 24 * 60 * 60 * 1000
     ) {
       return transcriptUnavailable(
         VideoCallTranscriptUnavailableReason.Expired,
@@ -256,7 +256,10 @@ export default class GoogleMeetTranscriptClient {
         read: (record: JSONObject): ConferenceRecord | null => {
           const name: JSONValue | undefined = record["name"];
 
-          if (typeof name !== "string" || !name.startsWith("conferenceRecords/")) {
+          if (
+            typeof name !== "string" ||
+            !name.startsWith("conferenceRecords/")
+          ) {
             return null;
           }
 

@@ -380,7 +380,8 @@ export default class IncidentVideoCall extends BaseModel {
     title: "Transcript",
     description:
       "What was said on the call, one remark a line: how far into the call (HH:MM:SS, empty when unknown), a tab, who spoke (empty when unknown), a tab, and the words. Read from Zoom or Google Meet, or added by a person, through the call's transcript routes.",
-    example: "00:12:03\tPriya Shah\tThe pool maxes at 50 and we just went to 100 workers.",
+    example:
+      "00:12:03\tPriya Shah\tThe pool maxes at 50 and we just went to 100 workers.",
   })
   @Column({
     nullable: true,

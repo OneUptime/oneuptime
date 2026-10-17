@@ -112,9 +112,9 @@ export async function getCallTranscriptFromProvider(data: {
 
   return {
     added: false,
-    reason: (Object.values(VideoCallTranscriptUnavailableReason) as Array<string>).includes(
-      String(reason),
-    )
+    reason: (
+      Object.values(VideoCallTranscriptUnavailableReason) as Array<string>
+    ).includes(String(reason))
       ? (reason as VideoCallTranscriptUnavailableReason)
       : VideoCallTranscriptUnavailableReason.NotSupported,
     message: typeof message === "string" ? message : "",

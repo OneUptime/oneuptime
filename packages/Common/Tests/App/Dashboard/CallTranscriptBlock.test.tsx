@@ -300,7 +300,9 @@ describe("Get from Zoom", () => {
       "Zoom is still preparing this meeting's transcript. Try again later.",
     );
     // Nothing to set up: waiting is the answer.
-    expect(within(outcome).queryByTestId("call-transcript-set-up-docs")).toBeNull();
+    expect(
+      within(outcome).queryByTestId("call-transcript-set-up-docs"),
+    ).toBeNull();
     expect(onChanged).not.toHaveBeenCalled();
 
     fireEvent.click(within(outcome).getByRole("button", { name: "Dismiss" }));
@@ -512,9 +514,9 @@ describe("where OneUptime AI's reading stands", () => {
     expect(screen.getByTestId("call-transcript-read")).toHaveTextContent(
       "Used as the incident's root cause.",
     );
-    expect(screen.getAllByTestId("call-transcript-review")[0]).toHaveTextContent(
-      "See what it found",
-    );
+    expect(
+      screen.getAllByTestId("call-transcript-review")[0],
+    ).toHaveTextContent("See what it found");
   });
 
   test("a call that did not settle the cause says so", () => {
@@ -536,7 +538,9 @@ describe("where OneUptime AI's reading stands", () => {
       ],
     });
 
-    const failed: HTMLElement = screen.getByTestId("call-transcript-read-failed");
+    const failed: HTMLElement = screen.getByTestId(
+      "call-transcript-read-failed",
+    );
 
     expect(failed).toHaveTextContent(
       "OneUptime AI could not read it. This project reached its daily AI token limit.",
@@ -563,10 +567,14 @@ describe("where OneUptime AI's reading stands", () => {
       ],
     });
 
-    const failed: HTMLElement = screen.getByTestId("call-transcript-read-failed");
+    const failed: HTMLElement = screen.getByTestId(
+      "call-transcript-read-failed",
+    );
 
     expect(failed).toHaveTextContent("OneUptime AI took too long to read it.");
-    expect(within(failed).getByTestId("call-transcript-read-again")).toBeVisible();
+    expect(
+      within(failed).getByTestId("call-transcript-read-again"),
+    ).toBeVisible();
   });
 
   test("without permission, a failed reading is said without Try again", () => {
@@ -597,9 +605,9 @@ describe("where OneUptime AI's reading stands", () => {
       ],
     });
 
-    expect(screen.getByTestId("call-transcript-read-skipped")).toHaveTextContent(
-      "AI features are disabled for this project.",
-    );
+    expect(
+      screen.getByTestId("call-transcript-read-skipped"),
+    ).toHaveTextContent("AI features are disabled for this project.");
   });
 });
 
@@ -611,9 +619,9 @@ describe("the transcript's menu", () => {
     fireEvent.click(screen.getByTestId("call-transcript-replace"));
 
     expect(screen.getByText("Replace the call's transcript")).toBeVisible();
-    expect(
-      screen.getByTestId("modal-footer-submit-button"),
-    ).toHaveTextContent("Replace transcript");
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Replace transcript",
+    );
   });
 
   test("Read it again is offered once a reading finished, not while one runs", async () => {
@@ -663,9 +671,9 @@ describe("the transcript's menu", () => {
     await waitFor(() => {
       expect(onChanged).toHaveBeenCalledTimes(1);
     });
-    expect(
-      (remove.mock.calls[0]![0] as SentRequest).url.toString(),
-    ).toContain(`/incident-video-call/${CALL_ID}/transcript`);
+    expect((remove.mock.calls[0]![0] as SentRequest).url.toString()).toContain(
+      `/incident-video-call/${CALL_ID}/transcript`,
+    );
   });
 
   test("is not there without permission to work on the incident's calls", () => {
@@ -694,11 +702,13 @@ describe("an earlier call", () => {
     const rows: Array<HTMLElement> = screen.getAllByTestId("event-video-call");
     const earlier: HTMLElement = rows[1]!;
 
-    expect(within(earlier).getByText(/Transcript · 11 minutes · 3 speakers/)).toBeVisible();
+    expect(
+      within(earlier).getByText(/Transcript · 11 minutes · 3 speakers/),
+    ).toBeVisible();
     expect(within(earlier).getByTestId("call-transcript-view")).toBeVisible();
-    expect(within(earlier).getByTestId("call-transcript-review")).toHaveTextContent(
-      "See what it found",
-    );
+    expect(
+      within(earlier).getByTestId("call-transcript-review"),
+    ).toHaveTextContent("See what it found");
   });
 
   test("without one, offers to get or add it as links", () => {
@@ -711,11 +721,11 @@ describe("an earlier call", () => {
 
     const earlier: HTMLElement = screen.getAllByTestId("event-video-call")[1]!;
 
-    expect(within(earlier).getByTestId("call-transcript-get")).toHaveTextContent(
-      "Get from Zoom",
-    );
-    expect(within(earlier).getByTestId("call-transcript-add")).toHaveTextContent(
-      "Add transcript",
-    );
+    expect(
+      within(earlier).getByTestId("call-transcript-get"),
+    ).toHaveTextContent("Get from Zoom");
+    expect(
+      within(earlier).getByTestId("call-transcript-add"),
+    ).toHaveTextContent("Add transcript");
   });
 });

@@ -216,37 +216,41 @@ const CallTranscriptModal: FunctionComponent<ComponentProps> = (
             aria-label={translator.translateText("Transcript")}
             className="max-h-[60vh] divide-y divide-gray-100 overflow-y-auto"
           >
-            {matching.slice(0, shown).map((entry: NumberedLine): ReactElement => {
-              const isHighlighted: boolean = highlighted.has(entry.number);
+            {matching
+              .slice(0, shown)
+              .map((entry: NumberedLine): ReactElement => {
+                const isHighlighted: boolean = highlighted.has(entry.number);
 
-              return (
-                <li
-                  key={entry.number}
-                  data-testid="call-transcript-line"
-                  data-line={entry.number}
-                  data-highlighted={isHighlighted ? "true" : undefined}
-                  className={`flex gap-3 px-2 py-2 ${isHighlighted ? "bg-amber-50" : ""}`}
-                >
-                  <span className="w-16 flex-shrink-0 pt-0.5 font-mono text-xs tabular-nums text-gray-500">
-                    {entry.line.offsetInSeconds === undefined
-                      ? ""
-                      : TranscriptText.formatOffset(entry.line.offsetInSeconds)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    {entry.line.speaker ? (
-                      <p className="text-xs font-semibold text-gray-700">
-                        {entry.line.speaker}
+                return (
+                  <li
+                    key={entry.number}
+                    data-testid="call-transcript-line"
+                    data-line={entry.number}
+                    data-highlighted={isHighlighted ? "true" : undefined}
+                    className={`flex gap-3 px-2 py-2 ${isHighlighted ? "bg-amber-50" : ""}`}
+                  >
+                    <span className="w-16 flex-shrink-0 pt-0.5 font-mono text-xs tabular-nums text-gray-500">
+                      {entry.line.offsetInSeconds === undefined
+                        ? ""
+                        : TranscriptText.formatOffset(
+                            entry.line.offsetInSeconds,
+                          )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      {entry.line.speaker ? (
+                        <p className="text-xs font-semibold text-gray-700">
+                          {entry.line.speaker}
+                        </p>
+                      ) : (
+                        <></>
+                      )}
+                      <p className="whitespace-pre-wrap break-words text-sm text-gray-900">
+                        {entry.line.text}
                       </p>
-                    ) : (
-                      <></>
-                    )}
-                    <p className="whitespace-pre-wrap break-words text-sm text-gray-900">
-                      {entry.line.text}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
+                    </div>
+                  </li>
+                );
+              })}
           </ol>
         )}
 

@@ -35,7 +35,11 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 const LINES: Array<TranscriptLine> = [
-  { offsetInSeconds: 5, speaker: "Priya Shah", text: "Checkout is timing out." },
+  {
+    offsetInSeconds: 5,
+    speaker: "Priya Shah",
+    text: "Checkout is timing out.",
+  },
   { offsetInSeconds: 70, speaker: "Sam Lee", text: "The DB pool is at 100%." },
   {
     offsetInSeconds: 723,
@@ -159,18 +163,29 @@ describe("CallSummaryPrompt", () => {
     const many: Array<TranscriptLine> = Array.from(
       { length: 50 },
       (_: unknown, index: number): TranscriptLine => {
-        return { offsetInSeconds: index, speaker: "A", text: `remark ${index} `.repeat(10) };
+        return {
+          offsetInSeconds: index,
+          speaker: "A",
+          text: `remark ${index} `.repeat(10),
+        };
       },
     );
 
-    const parts: Array<TranscriptPart> = CallSummaryPrompt.splitIntoParts(many, 2_000);
+    const parts: Array<TranscriptPart> = CallSummaryPrompt.splitIntoParts(
+      many,
+      2_000,
+    );
 
     expect(parts.length).toBeGreaterThan(1);
-    expect(parts.map((part: TranscriptPart) => {
-      return part.count;
-    })).toEqual(parts.map(() => {
-      return parts.length;
-    }));
+    expect(
+      parts.map((part: TranscriptPart) => {
+        return part.count;
+      }),
+    ).toEqual(
+      parts.map(() => {
+        return parts.length;
+      }),
+    );
 
     let expectedFirst: number = 1;
 
@@ -180,7 +195,10 @@ describe("CallSummaryPrompt", () => {
 
       const length: number = part.lines
         .map((line: TranscriptLine, offset: number) => {
-          return CallSummaryPrompt.formatLine(part.firstLineNumber + offset, line).length + 1;
+          return (
+            CallSummaryPrompt.formatLine(part.firstLineNumber + offset, line)
+              .length + 1
+          );
         })
         .reduce((total: number, value: number) => {
           return total + value;
@@ -203,17 +221,28 @@ describe("CallSummaryAnswer.readPart", () => {
       answer({
         rootCause: {
           outcome: "suggested",
-          summary: "The 14:05 deploy doubled the workers and exhausted the DB pool.",
+          summary:
+            "The 14:05 deploy doubled the workers and exhausted the DB pool.",
           basis: "stated_on_call",
           lines: ["L3", "L2"],
         },
         findings: [
-          { text: "The DB pool was at 100%.", kind: "confirmed", lines: ["L2"] },
-          { text: "The cache may have been cold.", kind: "hypothesis", lines: [] },
+          {
+            text: "The DB pool was at 100%.",
+            kind: "confirmed",
+            lines: ["L2"],
+          },
+          {
+            text: "The cache may have been cold.",
+            kind: "hypothesis",
+            lines: [],
+          },
         ],
         stepsTried: [{ text: "Checked the DB pool.", lines: ["L2"] }],
         decisions: [{ text: "Roll back the worker change.", lines: ["L4"] }],
-        actions: [{ text: "Alert on pool usage.", owner: "Sam Lee", lines: [] }],
+        actions: [
+          { text: "Alert on pool usage.", owner: "Sam Lee", lines: [] },
+        ],
         openQuestions: [{ text: "Why did staging not catch it?", lines: [] }],
       }),
       citable,
@@ -221,7 +250,8 @@ describe("CallSummaryAnswer.readPart", () => {
 
     expect(read.rootCause).toEqual({
       outcome: CallSummaryRootCauseOutcome.Suggested,
-      summary: "The 14:05 deploy doubled the workers and exhausted the DB pool.",
+      summary:
+        "The 14:05 deploy doubled the workers and exhausted the DB pool.",
       basis: CallSummaryBasis.StatedOnCall,
       citations: [
         {
@@ -230,16 +260,28 @@ describe("CallSummaryAnswer.readPart", () => {
           speaker: "Priya Shah",
           text: "The pool maxes at 50 and the 14:05 deploy went to 100 workers.",
         },
-        { line: 2, time: "00:01:10", speaker: "Sam Lee", text: "The DB pool is at 100%." },
+        {
+          line: 2,
+          time: "00:01:10",
+          speaker: "Sam Lee",
+          text: "The DB pool is at 100%.",
+        },
       ],
     });
-    expect(read.findings.map((finding: { kind: CallSummaryFindingKind }) => {
-      return finding.kind;
-    })).toEqual([CallSummaryFindingKind.Confirmed, CallSummaryFindingKind.Hypothesis]);
+    expect(
+      read.findings.map((finding: { kind: CallSummaryFindingKind }) => {
+        return finding.kind;
+      }),
+    ).toEqual([
+      CallSummaryFindingKind.Confirmed,
+      CallSummaryFindingKind.Hypothesis,
+    ]);
     expect(read.actions).toEqual([
       { text: "Alert on pool usage.", owner: "Sam Lee", citations: [] },
     ]);
-    expect(read.decisions[0]!.citations[0]!.text).toBe("Rolling back fixed it.");
+    expect(read.decisions[0]!.citations[0]!.text).toBe(
+      "Rolling back fixed it.",
+    );
     expect(read.openQuestions).toHaveLength(1);
   });
 
@@ -290,16 +332,20 @@ describe("CallSummaryAnswer.readPart", () => {
       { lines: LINES, allowed: new Set<number>([3, 4]) },
     );
 
-    expect(read.rootCause.citations.map((citation: { line: number }) => {
-      return citation.line;
-    })).toEqual([3]);
+    expect(
+      read.rootCause.citations.map((citation: { line: number }) => {
+        return citation.line;
+      }),
+    ).toEqual([3]);
   });
 
   test("a finding called confirmed with no line it can cite is a hypothesis", () => {
     const read: CallSummaryPartAnswer = CallSummaryAnswer.readPart(
       answer({
         rootCause: { outcome: "not_enough_discussion" },
-        findings: [{ text: "We verified the logs.", kind: "confirmed", lines: ["L77"] }],
+        findings: [
+          { text: "We verified the logs.", kind: "confirmed", lines: ["L77"] },
+        ],
       }),
       citable,
     );
@@ -308,9 +354,12 @@ describe("CallSummaryAnswer.readPart", () => {
   });
 
   test("line ids however the model writes them, each once, at most five", () => {
-    const many: Array<TranscriptLine> = Array.from({ length: 10 }, (_: unknown, index: number) => {
-      return { text: `line ${index + 1}` };
-    });
+    const many: Array<TranscriptLine> = Array.from(
+      { length: 10 },
+      (_: unknown, index: number) => {
+        return { text: `line ${index + 1}` };
+      },
+    );
     const read: CallSummaryPartAnswer = CallSummaryAnswer.readPart(
       answer({
         rootCause: {
@@ -324,16 +373,21 @@ describe("CallSummaryAnswer.readPart", () => {
     );
 
     expect(read.rootCause.basis).toBe(CallSummaryBasis.StatedOnCall);
-    expect(read.rootCause.citations.map((citation: { line: number }) => {
-      return citation.line;
-    })).toEqual([2, 3, 4, 5, 6]);
+    expect(
+      read.rootCause.citations.map((citation: { line: number }) => {
+        return citation.line;
+      }),
+    ).toEqual([2, 3, 4, 5, 6]);
     expect(read.rootCause.citations).toHaveLength(MAX_CALL_SUMMARY_CITATIONS);
   });
 
   test("an answer wrapped in a code fence or a sentence is read", () => {
     const read: CallSummaryPartAnswer = CallSummaryAnswer.readPart(
       "Here is the summary:\n```json\n" +
-        answer({ rootCause: { outcome: "not_enough_discussion" }, decisions: [{ text: "Roll back.", lines: ["L4"] }] }) +
+        answer({
+          rootCause: { outcome: "not_enough_discussion" },
+          decisions: [{ text: "Roll back.", lines: ["L4"] }],
+        }) +
         "\n```",
       citable,
     );
@@ -359,10 +413,14 @@ describe("CallSummaryAnswer.readPart", () => {
 
     expect(read.stepsTried[0]!.text).toBe("Checked the pool.");
     expect(read.stepsTried).toHaveLength(MAX_CALL_SUMMARY_POINTS);
-    expect(read.stepsTried.filter((point: { text: string }) => {
-      return point.text.toLowerCase() === "checked the pool.";
-    })).toHaveLength(1);
-    expect(read.openQuestions[0]!.text.length).toBe(MAX_CALL_SUMMARY_POINT_LENGTH);
+    expect(
+      read.stepsTried.filter((point: { text: string }) => {
+        return point.text.toLowerCase() === "checked the pool.";
+      }),
+    ).toHaveLength(1);
+    expect(read.openQuestions[0]!.text.length).toBe(
+      MAX_CALL_SUMMARY_POINT_LENGTH,
+    );
   });
 
   test.each([
@@ -370,18 +428,21 @@ describe("CallSummaryAnswer.readPart", () => {
     ["broken JSON", '{"rootCause": {"outcome": "suggested",'],
     ["a list, not an object", "[1, 2, 3]"],
     ["nothing", ""],
-  ])("an answer that is %s cannot be read", (_name: string, content: string) => {
-    let thrown: unknown = null;
+  ])(
+    "an answer that is %s cannot be read",
+    (_name: string, content: string) => {
+      let thrown: unknown = null;
 
-    try {
-      CallSummaryAnswer.readPart(content, citable);
-    } catch (error) {
-      thrown = error;
-    }
+      try {
+        CallSummaryAnswer.readPart(content, citable);
+      } catch (error) {
+        thrown = error;
+      }
 
-    expect(thrown).toBeInstanceOf(BadDataException);
-    expect((thrown as Error).message).toBe(UNREADABLE_ANSWER_MESSAGE);
-  });
+      expect(thrown).toBeInstanceOf(BadDataException);
+      expect((thrown as Error).message).toBe(UNREADABLE_ANSWER_MESSAGE);
+    },
+  );
 });
 
 describe("CallSummaryAnswer.readCombined", () => {
@@ -399,14 +460,21 @@ describe("CallSummaryAnswer.readCombined", () => {
     );
 
     expect(cause.outcome).toBe(CallSummaryRootCauseOutcome.Suggested);
-    expect(cause.citations.map((citation: { line: number }) => {
-      return citation.line;
-    })).toEqual([3]);
+    expect(
+      cause.citations.map((citation: { line: number }) => {
+        return citation.line;
+      }),
+    ).toEqual([3]);
   });
 
   test("a bare cause object, without the wrapper, is read too", () => {
     const cause: CallSummaryRootCause = CallSummaryAnswer.readCombined(
-      answer({ outcome: "suggested", summary: "The pool.", basis: "inferred", lines: ["L2"] }),
+      answer({
+        outcome: "suggested",
+        summary: "The pool.",
+        basis: "inferred",
+        lines: ["L2"],
+      }),
       { lines: LINES },
     );
 

@@ -209,7 +209,11 @@ describe("CallSummaryMarkdown.buildRootCause", () => {
         blocks: [asSeen(text), asSeen(text)],
       });
       for (const name of elementNamesIn(fragment)) {
-        expect({ text, name, allowed: ["p", "blockquote", "code"].includes(name) }).toEqual({
+        expect({
+          text,
+          name,
+          allowed: ["p", "blockquote", "code"].includes(name),
+        }).toEqual({
           text,
           name,
           allowed: true,
@@ -235,7 +239,11 @@ describe("CallSummaryMarkdown.buildRootCause", () => {
         blocks: [asSeen(text), asSeen(text)],
       });
       for (const name of elementNamesIn(fragment)) {
-        expect({ text, name, allowed: ["p", "blockquote", "code", "a"].includes(name) }).toEqual({
+        expect({
+          text,
+          name,
+          allowed: ["p", "blockquote", "code", "a"].includes(name),
+        }).toEqual({
           text,
           name,
           allowed: true,
@@ -244,7 +252,11 @@ describe("CallSummaryMarkdown.buildRootCause", () => {
       for (const link of Array.from(fragment.querySelectorAll("a"))) {
         const address: string = link.getAttribute("href") || "";
 
-        expect({ text, address, showsItself: address.endsWith(link.textContent || "-") }).toEqual({
+        expect({
+          text,
+          address,
+          showsItself: address.endsWith(link.textContent || "-"),
+        }).toEqual({
           text,
           address,
           showsItself: true,
@@ -254,14 +266,26 @@ describe("CallSummaryMarkdown.buildRootCause", () => {
   });
 
   test("a first word that would make the line a heading, list, quote or rule is written as code", () => {
-    expect(CallSummaryMarkdown.asEditorText("# not a heading")).toBe("`#` not a heading");
-    expect(CallSummaryMarkdown.asEditorText("- not a list")).toBe("`-` not a list");
-    expect(CallSummaryMarkdown.asEditorText("1. not a list")).toBe("`1.` not a list");
-    expect(CallSummaryMarkdown.asEditorText("1) not a list")).toBe("`1)` not a list");
-    expect(CallSummaryMarkdown.asEditorText(">not a quote")).toBe("`>not` a quote");
+    expect(CallSummaryMarkdown.asEditorText("# not a heading")).toBe(
+      "`#` not a heading",
+    );
+    expect(CallSummaryMarkdown.asEditorText("- not a list")).toBe(
+      "`-` not a list",
+    );
+    expect(CallSummaryMarkdown.asEditorText("1. not a list")).toBe(
+      "`1.` not a list",
+    );
+    expect(CallSummaryMarkdown.asEditorText("1) not a list")).toBe(
+      "`1)` not a list",
+    );
+    expect(CallSummaryMarkdown.asEditorText(">not a quote")).toBe(
+      "`>not` a quote",
+    );
     expect(CallSummaryMarkdown.asEditorText("---")).toBe("`---`");
     // Anywhere else in the line they are plain words.
-    expect(CallSummaryMarkdown.asEditorText("a - b # c 1. d > e")).toBe("a - b # c 1. d > e");
+    expect(CallSummaryMarkdown.asEditorText("a - b # c 1. d > e")).toBe(
+      "a - b # c 1. d > e",
+    );
   });
 
   test("punctuation around a word written as code stays outside it, and a backtick cannot end the code", () => {
@@ -286,23 +310,38 @@ describe("CallSummaryMarkdown.buildRootCause", () => {
     // Not a tag the editor keeps: the word is code as it is.
     expect(CallSummaryMarkdown.asEditorText("x <ul>")).toBe("x `<ul>`");
     // An address in angle brackets, which the page would show as a bare link.
-    expect(CallSummaryMarkdown.asEditorText("see <https://evil.example>.")).toBe(
-      "see `<https://evil.example>`.",
-    );
+    expect(
+      CallSummaryMarkdown.asEditorText("see <https://evil.example>."),
+    ).toBe("see `<https://evil.example>`.");
     // A < that closes nothing in its word stays a <, as both show it.
-    expect(CallSummaryMarkdown.asEditorText("p99 <200ms, a<b")).toBe("p99 <200ms, a<b");
+    expect(CallSummaryMarkdown.asEditorText("p99 <200ms, a<b")).toBe(
+      "p99 <200ms, a<b",
+    );
   });
 
   test("a quote names the time and the speaker it has, and reads as a quote, never as a callout", () => {
     expect(
-      CallSummaryMarkdown.quote({ line: 3, speaker: " Priya Shah ", text: "Restarting." }),
+      CallSummaryMarkdown.quote({
+        line: 3,
+        speaker: " Priya Shah ",
+        text: "Restarting.",
+      }),
     ).toBe("> Priya Shah: Restarting.");
     expect(
-      CallSummaryMarkdown.quote({ line: 3, time: "00:01:02", text: "Restarting." }),
+      CallSummaryMarkdown.quote({
+        line: 3,
+        time: "00:01:02",
+        text: "Restarting.",
+      }),
     ).toBe("> 00:01:02: Restarting.");
-    expect(CallSummaryMarkdown.quote({ line: 3, time: " ", speaker: "", text: "Restarting." })).toBe(
-      "> Restarting.",
-    );
+    expect(
+      CallSummaryMarkdown.quote({
+        line: 3,
+        time: " ",
+        speaker: "",
+        text: "Restarting.",
+      }),
+    ).toBe("> Restarting.");
 
     const markdown: string = CallSummaryMarkdown.buildRootCause(
       rootCauseFrom("**Note:** the cache", [
@@ -319,8 +358,10 @@ describe("CallSummaryMarkdown.buildRootCause", () => {
     expect(markdown).toContain("> `[!WARNING]`: the pool");
   });
 
-  test("control characters are dropped and line breaks become spaces, so the text stays one line", () => {
-    expect(CallSummaryMarkdown.asEditorText("a\u0000b\u0007c\u007F")).toBe("abc");
+  test("control characters and line breaks become spaces, so the text stays one line", () => {
+    expect(CallSummaryMarkdown.asEditorText("a\u0000b\u0007c\u007F")).toBe(
+      "a b c",
+    );
     expect(CallSummaryMarkdown.asEditorText(" line\nbreak\r\n\ttab  ")).toBe(
       "line break tab",
     );

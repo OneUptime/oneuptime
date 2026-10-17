@@ -3,6 +3,7 @@ import {
   CallSummaryRootCause,
   CallSummaryRootCauseOutcome,
 } from "../../Types/VideoCall/CallSummary";
+import TranscriptText from "./TranscriptText";
 
 /*
  * THE ROOT CAUSE A PERSON STARTS FROM, when they use what OneUptime AI
@@ -38,7 +39,13 @@ const RESTYLING_CHARACTERS: ReadonlyArray<string> = ["_", "*", "~", "[", "\\"];
 const BLOCK_MARKER: RegExp = /^(?:#{1,6}|[-+]+|\d{1,9}[.)])$/;
 
 // The HTML tags the editor keeps as tags wherever they stand, inside code too.
-const EDITOR_TAG_NAMES: ReadonlyArray<string> = ["u", "sub", "sup", "kbd", "br"];
+const EDITOR_TAG_NAMES: ReadonlyArray<string> = [
+  "u",
+  "sub",
+  "sup",
+  "kbd",
+  "br",
+];
 
 // Punctuation around a word that stays outside it when it is written as code.
 const LEADING_PUNCTUATION: ReadonlyArray<string> = ["(", '"', "'", "“", "‘"];
@@ -56,8 +63,6 @@ const TRAILING_PUNCTUATION: ReadonlyArray<string> = [
   "’",
 ];
 
-// Control characters, which neither shows; line breaks and tabs are spaces here.
-const CONTROL_CHARACTERS: RegExp = /[\u0000-\u0008\u000E-\u001F\u007F]/g;
 const WHITESPACE_RUN: RegExp = /\s+/;
 
 export default class CallSummaryMarkdown {
@@ -103,8 +108,8 @@ export default class CallSummaryMarkdown {
    * word that would be restyled, hidden or turned into something, as code.
    */
   public static asEditorText(text: string): string {
-    return text
-      .replace(CONTROL_CHARACTERS, "")
+    // Control characters, which neither shows, and line breaks are spaces.
+    return TranscriptText.removeControlCharacters(text)
       .split(WHITESPACE_RUN)
       .filter((word: string): boolean => {
         return word.length > 0;
@@ -195,7 +200,8 @@ export default class CallSummaryMarkdown {
       index >= 0;
       index = word.indexOf("<", index + 1)
     ) {
-      const nameAt: number = word.charAt(index + 1) === "/" ? index + 2 : index + 1;
+      const nameAt: number =
+        word.charAt(index + 1) === "/" ? index + 2 : index + 1;
 
       const opensTag: boolean = EDITOR_TAG_NAMES.some(
         (name: string): boolean => {
@@ -221,11 +227,17 @@ export default class CallSummaryMarkdown {
     let start: number = 0;
     let end: number = word.length;
 
-    while (start < end - 1 && LEADING_PUNCTUATION.includes(word.charAt(start))) {
+    while (
+      start < end - 1 &&
+      LEADING_PUNCTUATION.includes(word.charAt(start))
+    ) {
       start++;
     }
 
-    while (end - 1 > start && TRAILING_PUNCTUATION.includes(word.charAt(end - 1))) {
+    while (
+      end - 1 > start &&
+      TRAILING_PUNCTUATION.includes(word.charAt(end - 1))
+    ) {
       end--;
     }
 

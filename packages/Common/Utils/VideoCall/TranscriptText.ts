@@ -272,11 +272,9 @@ export default class TranscriptText {
       );
 
       if (!isNonCueBlock) {
-        const timingIndex: number = block.findIndex(
-          (line: string): boolean => {
-            return TranscriptText.readCueTiming(line.trim()) !== null;
-          },
-        );
+        const timingIndex: number = block.findIndex((line: string): boolean => {
+          return TranscriptText.readCueTiming(line.trim()) !== null;
+        });
 
         if (timingIndex !== -1) {
           const offset: number | null = TranscriptText.readCueTiming(
@@ -336,7 +334,8 @@ export default class TranscriptText {
         continue;
       }
 
-      const standalone: number | null = TranscriptText.readStandaloneClock(rest);
+      const standalone: number | null =
+        TranscriptText.readStandaloneClock(rest);
 
       if (standalone !== null) {
         currentOffset = standalone;
@@ -1106,7 +1105,7 @@ export default class TranscriptText {
   }
 
   // Tabs, line breaks and the other control characters, as spaces.
-  private static removeControlCharacters(text: string): string {
+  public static removeControlCharacters(text: string): string {
     let result: string = "";
     let start: number = 0;
 

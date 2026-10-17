@@ -5,9 +5,7 @@ import {
   CallSummaryRootCauseOutcome,
   RootCauseSuggestionStatus,
 } from "Common/Types/VideoCall/CallSummary";
-import {
-  getVideoCallProviderDisplayName,
-} from "Common/Types/VideoCall/VideoCallProvider";
+import { getVideoCallProviderDisplayName } from "Common/Types/VideoCall/VideoCallProvider";
 import {
   VideoCallTranscriptInfo,
   VideoCallTranscriptSource,
@@ -25,7 +23,12 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import AddCallTranscriptModal from "./AddCallTranscriptModal";
 import {
   CALL_TRANSCRIPTS_DOCS_PATH,

@@ -59,7 +59,9 @@ const recordedRoutes: Array<{
 }> = [];
 
 jest.mock("../../../Server/Utils/Express", () => {
-  const record: (method: string) => (uri: string, ...handlers: Array<Handler>) => void = (
+  const record: (
+    method: string,
+  ) => (uri: string, ...handlers: Array<Handler>) => void = (
     method: string,
   ) => {
     return (uri: string, ...handlers: Array<Handler>): void => {
@@ -158,7 +160,10 @@ function handlerOf(method: string, uri: string): Handler {
   return found!.handlers[found!.handlers.length - 1]!;
 }
 
-function request(body: JSONObject = {}, callId: string = CALL.toString()): ExpressRequest {
+function request(
+  body: JSONObject = {},
+  callId: string = CALL.toString(),
+): ExpressRequest {
   return { body, params: { callId } } as unknown as ExpressRequest;
 }
 
@@ -179,7 +184,8 @@ function thrownBy(): unknown {
 }
 
 function sentJson(): JSONObject {
-  const send: jest.Mock = Response.sendJsonObjectResponse as unknown as jest.Mock;
+  const send: jest.Mock =
+    Response.sendJsonObjectResponse as unknown as jest.Mock;
   expect(send).toHaveBeenCalledTimes(1);
   return send.mock.calls[0]![2] as JSONObject;
 }
@@ -244,20 +250,22 @@ describe("the routes", () => {
     ["delete", TRANSCRIPT_ROUTE],
     ["post", SUMMARY_ROUTE],
     ["post", SUGGESTION_ROUTE],
-  ])("%s %s resolves the caller and requires authentication first", (method: string, uri: string) => {
-    const route: { handlers: Array<Handler> } | undefined = recordedRoutes.find(
-      (candidate: { method: string; uri: string }) => {
-        return candidate.method === method && candidate.uri === uri;
-      },
-    );
+  ])(
+    "%s %s resolves the caller and requires authentication first",
+    (method: string, uri: string) => {
+      const route: { handlers: Array<Handler> } | undefined =
+        recordedRoutes.find((candidate: { method: string; uri: string }) => {
+          return candidate.method === method && candidate.uri === uri;
+        });
 
-    expect(route).toBeDefined();
-    expect(route!.handlers.slice(0, 2)).toEqual([
-      UserMiddleware.getUserMiddleware,
-      UserMiddleware.requireUserAuthentication,
-    ]);
-    expect(route!.handlers).toHaveLength(3);
-  });
+      expect(route).toBeDefined();
+      expect(route!.handlers.slice(0, 2)).toEqual([
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+      ]);
+      expect(route!.handlers).toHaveLength(3);
+    },
+  );
 });
 
 describe("POST /incident-video-call/:callId/transcript - adding one", () => {
@@ -275,8 +283,16 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
 
     expect(written["transcript"]).toBe(
       TranscriptText.serialize([
-        { offsetInSeconds: 5, speaker: "Priya Shah", text: "Checkout is timing out." },
-        { offsetInSeconds: 723, speaker: "Sam Lee", text: "The pool maxes at 50." },
+        {
+          offsetInSeconds: 5,
+          speaker: "Priya Shah",
+          text: "Checkout is timing out.",
+        },
+        {
+          offsetInSeconds: 723,
+          speaker: "Sam Lee",
+          text: "The pool maxes at 50.",
+        },
       ]),
     );
     expect(written["transcriptSource"]).toBe(VideoCallTranscriptSource.Upload);
@@ -299,7 +315,8 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
       userId: USER,
     });
 
-    const feed: jest.Mock = IncidentFeedService.createIncidentFeedItem as unknown as jest.Mock;
+    const feed: jest.Mock =
+      IncidentFeedService.createIncidentFeedItem as unknown as jest.Mock;
     expect(feed).toHaveBeenCalledTimes(1);
     const item: JSONObject = feed.mock.calls[0]![0] as JSONObject;
     expect(item["incidentFeedEventType"]).toBe(
@@ -327,13 +344,19 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
         "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features.",
     });
 
-    await handlerOf("post", TRANSCRIPT_ROUTE)(request({ text: ZOOM_VTT }), res, next);
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT }),
+      res,
+      next,
+    );
 
     expect(writes).toHaveLength(1);
     expect(sentJson()).toEqual(
       expect.objectContaining({
         callSummaryStatus: CallSummaryStatus.Skipped,
-        callSummaryStatusMessage: expect.stringMatching(/AI features are disabled/),
+        callSummaryStatusMessage: expect.stringMatching(
+          /AI features are disabled/,
+        ),
       }),
     );
   });
@@ -342,14 +365,22 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
     props = { tenantId: PROJECT, userType: UserType.API };
     setPermissions([Permission.IncidentMember]);
 
-    await handlerOf("post", TRANSCRIPT_ROUTE)(request({ text: ZOOM_VTT }), res, next);
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT }),
+      res,
+      next,
+    );
 
     expect(next).not.toHaveBeenCalled();
     expect(writes[0]!["transcriptAddedByUserId"]).toBeNull();
   });
 
   test("no text: says what to add", async () => {
-    await handlerOf("post", TRANSCRIPT_ROUTE)(request({ text: "  " }), res, next);
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: "  " }),
+      res,
+      next,
+    );
 
     expect(thrownBy()).toBeInstanceOf(BadDataException);
     expect((thrownBy() as Error).message).toMatch(/\.vtt, \.srt or \.txt/);
@@ -371,7 +402,11 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
   test("someone who can only read incidents may not add one: refused before anything is read", async () => {
     setPermissions([Permission.IncidentViewer]);
 
-    await handlerOf("post", TRANSCRIPT_ROUTE)(request({ text: ZOOM_VTT }), res, next);
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT }),
+      res,
+      next,
+    );
 
     expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
     expect(IncidentVideoCallService.findOneBy).not.toHaveBeenCalled();
@@ -379,9 +414,16 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
   });
 
   test("a custom role with Create Incident Video Call may", async () => {
-    setPermissions([Permission.CreateIncidentVideoCall, Permission.ReadIncidentVideoCall]);
+    setPermissions([
+      Permission.CreateIncidentVideoCall,
+      Permission.ReadIncidentVideoCall,
+    ]);
 
-    await handlerOf("post", TRANSCRIPT_ROUTE)(request({ text: ZOOM_VTT }), res, next);
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT }),
+      res,
+      next,
+    );
 
     expect(next).not.toHaveBeenCalled();
     expect(writes).toHaveLength(1);
@@ -395,7 +437,11 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
   test("the call is read with the caller's permissions: a private incident's call is not found", async () => {
     call = null;
 
-    await handlerOf("post", TRANSCRIPT_ROUTE)(request({ text: ZOOM_VTT }), res, next);
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT }),
+      res,
+      next,
+    );
 
     expect(thrownBy()).toBeInstanceOf(NotFoundException);
     expect(IncidentVideoCallService.findOneBy).toHaveBeenCalledWith(
@@ -410,14 +456,22 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
   test("a call of another project is refused", async () => {
     call!.projectId = new ObjectID("99999999-9999-4999-8999-999999999999");
 
-    await handlerOf("post", TRANSCRIPT_ROUTE)(request({ text: ZOOM_VTT }), res, next);
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT }),
+      res,
+      next,
+    );
 
     expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
     expect(writes).toHaveLength(0);
   });
 
   test("a call id that is not one is refused", async () => {
-    await handlerOf("post", TRANSCRIPT_ROUTE)(request({ text: ZOOM_VTT }, "1"), res, next);
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT }, "1"),
+      res,
+      next,
+    );
 
     expect((thrownBy() as Error).message).toMatch(/valid video call ID/);
   });
@@ -427,7 +481,11 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockRejectedValue(new Error("feed down"));
 
-    await handlerOf("post", TRANSCRIPT_ROUTE)(request({ text: ZOOM_VTT }), res, next);
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT }),
+      res,
+      next,
+    );
 
     expect(next).not.toHaveBeenCalled();
     expect(writes).toHaveLength(1);
@@ -454,7 +512,9 @@ describe("POST /incident-video-call/:callId/transcript/from-provider", () => {
       },
       projectId: PROJECT,
     });
-    expect(writes[0]!["transcriptSource"]).toBe(VideoCallTranscriptSource.Provider);
+    expect(writes[0]!["transcriptSource"]).toBe(
+      VideoCallTranscriptSource.Provider,
+    );
     expect(IncidentCallSummary.start).toHaveBeenCalled();
 
     const item: JSONObject = (
@@ -464,7 +524,10 @@ describe("POST /incident-video-call/:callId/transcript/from-provider", () => {
       "📝 The transcript of the **Zoom meeting** was read from Zoom: 1 speaker, 1 remark.",
     );
     expect(sentJson()).toEqual(
-      expect.objectContaining({ added: true, callSummaryStatus: CallSummaryStatus.Pending }),
+      expect.objectContaining({
+        added: true,
+        callSummaryStatus: CallSummaryStatus.Pending,
+      }),
     );
   });
 
@@ -502,7 +565,10 @@ describe("POST /incident-video-call/:callId/transcript/from-provider", () => {
 
   test("the call is found before the provider is asked", async () => {
     call = null;
-    const read: ReturnType<typeof jest.spyOn> = jest.spyOn(VideoCallTranscriptReader, "read");
+    const read: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      VideoCallTranscriptReader,
+      "read",
+    );
 
     await handlerOf("post", PROVIDER_ROUTE)(request(), res, next);
 
@@ -551,8 +617,13 @@ describe("POST /incident-video-call/:callId/call-summary - reading it again", ()
 
     await handlerOf("post", SUMMARY_ROUTE)(request(), res, next);
 
-    expect(IncidentCallSummary.start).toHaveBeenCalledWith({ callId: CALL, userId: USER });
-    expect(sentJson()).toEqual({ callSummaryStatus: CallSummaryStatus.Pending });
+    expect(IncidentCallSummary.start).toHaveBeenCalledWith({
+      callId: CALL,
+      userId: USER,
+    });
+    expect(sentJson()).toEqual({
+      callSummaryStatus: CallSummaryStatus.Pending,
+    });
   });
 
   test("a call with no transcript has nothing to read", async () => {
@@ -576,7 +647,8 @@ describe("POST /incident-video-call/:callId/root-cause-suggestion", () => {
     await handlerOf("post", SUGGESTION_ROUTE)(
       request({
         decision: "Accepted",
-        rootCause: "  The 14:05 deploy exhausted the DB pool.\n\n> [00:12:03] Sam Lee: The pool maxes at 50.  ",
+        rootCause:
+          "  The 14:05 deploy exhausted the DB pool.\n\n> [00:12:03] Sam Lee: The pool maxes at 50.  ",
       }),
       res,
       next,
@@ -607,7 +679,11 @@ describe("POST /incident-video-call/:callId/root-cause-suggestion", () => {
   test("Accepted by someone the incident's edit refuses: nothing is marked accepted", async () => {
     jest
       .spyOn(IncidentService, "updateOneById")
-      .mockRejectedValue(new NotAuthorizedException("You do not have permission to edit this incident."));
+      .mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permission to edit this incident.",
+        ),
+      );
 
     await handlerOf("post", SUGGESTION_ROUTE)(
       request({ decision: "Accepted", rootCause: "The pool." }),
@@ -620,9 +696,15 @@ describe("POST /incident-video-call/:callId/root-cause-suggestion", () => {
   });
 
   test("Accepted needs the root cause to save", async () => {
-    await handlerOf("post", SUGGESTION_ROUTE)(request({ decision: "Accepted" }), res, next);
+    await handlerOf("post", SUGGESTION_ROUTE)(
+      request({ decision: "Accepted" }),
+      res,
+      next,
+    );
 
-    expect((thrownBy() as Error).message).toMatch(/Write the root cause to save/);
+    expect((thrownBy() as Error).message).toMatch(
+      /Write the root cause to save/,
+    );
     expect(IncidentService.updateOneById).not.toHaveBeenCalled();
   });
 
@@ -638,7 +720,11 @@ describe("POST /incident-video-call/:callId/root-cause-suggestion", () => {
   });
 
   test("Dismissed: the incident is untouched", async () => {
-    await handlerOf("post", SUGGESTION_ROUTE)(request({ decision: "Dismissed" }), res, next);
+    await handlerOf("post", SUGGESTION_ROUTE)(
+      request({ decision: "Dismissed" }),
+      res,
+      next,
+    );
 
     expect(next).not.toHaveBeenCalled();
     expect(IncidentService.updateOneById).not.toHaveBeenCalled();
@@ -654,7 +740,11 @@ describe("POST /incident-video-call/:callId/root-cause-suggestion", () => {
   test("Suggested again undoes a dismissal, and forgets who dismissed it", async () => {
     call!.rootCauseSuggestionStatus = RootCauseSuggestionStatus.Dismissed;
 
-    await handlerOf("post", SUGGESTION_ROUTE)(request({ decision: "Suggested" }), res, next);
+    await handlerOf("post", SUGGESTION_ROUTE)(
+      request({ decision: "Suggested" }),
+      res,
+      next,
+    );
 
     expect(writes).toEqual([
       {
@@ -668,20 +758,33 @@ describe("POST /incident-video-call/:callId/root-cause-suggestion", () => {
   test("dismissing needs what working on the calls needs", async () => {
     setPermissions([Permission.IncidentViewer]);
 
-    await handlerOf("post", SUGGESTION_ROUTE)(request({ decision: "Dismissed" }), res, next);
+    await handlerOf("post", SUGGESTION_ROUTE)(
+      request({ decision: "Dismissed" }),
+      res,
+      next,
+    );
 
     expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
     expect(writes).toHaveLength(0);
   });
 
   test("a decision that is not one is refused", async () => {
-    await handlerOf("post", SUGGESTION_ROUTE)(request({ decision: "Maybe" }), res, next);
+    await handlerOf("post", SUGGESTION_ROUTE)(
+      request({ decision: "Maybe" }),
+      res,
+      next,
+    );
 
-    expect((thrownBy() as Error).message).toMatch(/Accepted, Dismissed or Suggested/);
+    expect((thrownBy() as Error).message).toMatch(
+      /Accepted, Dismissed or Suggested/,
+    );
   });
 
   test.each([
-    ["the reading is still running", { callSummaryStatus: CallSummaryStatus.Pending }],
+    [
+      "the reading is still running",
+      { callSummaryStatus: CallSummaryStatus.Pending },
+    ],
     [
       "the call did not discuss the cause enough",
       {
@@ -702,7 +805,9 @@ describe("POST /incident-video-call/:callId/root-cause-suggestion", () => {
     );
 
     expect(thrownBy()).toBeInstanceOf(BadDataException);
-    expect((thrownBy() as Error).message).toMatch(/did not suggest a root cause/);
+    expect((thrownBy() as Error).message).toMatch(
+      /did not suggest a root cause/,
+    );
     expect(IncidentService.updateOneById).not.toHaveBeenCalled();
     expect(writes).toHaveLength(0);
   });

@@ -216,16 +216,14 @@ export default class IncidentVideoCallAPI extends BaseAPI<
       await this.authorizeCallWork(req);
     const call: IncidentVideoCall = await this.getCall(req, props);
 
-    const read: VideoCallTranscriptRead = await VideoCallTranscriptReader.read(
-      {
-        call: {
-          provider: call.provider,
-          videoCallConnectionId: call.videoCallConnectionId,
-          externalMeetingId: call.externalMeetingId,
-        },
-        projectId: call.projectId!,
+    const read: VideoCallTranscriptRead = await VideoCallTranscriptReader.read({
+      call: {
+        provider: call.provider,
+        videoCallConnectionId: call.videoCallConnectionId,
+        externalMeetingId: call.externalMeetingId,
       },
-    );
+      projectId: call.projectId!,
+    });
 
     if (!read.found) {
       return Response.sendJsonObjectResponse(req, res, {

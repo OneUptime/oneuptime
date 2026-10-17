@@ -70,7 +70,11 @@ import TranscriptText, {
 } from "../../../Utils/VideoCall/TranscriptText";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
-import { CALL_ID, TRANSCRIPT_LINES, storedTranscript } from "./CallTranscriptFixtures";
+import {
+  CALL_ID,
+  TRANSCRIPT_LINES,
+  storedTranscript,
+} from "./CallTranscriptFixtures";
 
 const VTT: string = [
   "WEBVTT",
@@ -162,7 +166,9 @@ describe("Add transcript", () => {
     expect(screen.getByTestId("add-call-transcript-hint")).toHaveTextContent(
       "In Microsoft Teams, open the meeting's Recap, then Transcript, and download it as a .vtt file.",
     );
-    expect(screen.getByText("or drop it here: .vtt, .srt or .txt, up to 5 MB")).toBeVisible();
+    expect(
+      screen.getByText("or drop it here: .vtt, .srt or .txt, up to 5 MB"),
+    ).toBeVisible();
     expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
   });
 
@@ -199,7 +205,9 @@ describe("Add transcript", () => {
       text: "[00:12:03] Priya Shah: The pool maxes at 50.",
     });
     expect(
-      (post.mock.calls[0]![0] as { url: { toString: () => string } }).url.toString(),
+      (
+        post.mock.calls[0]![0] as { url: { toString: () => string } }
+      ).url.toString(),
     ).toContain(`/incident-video-call/${CALL_ID}/transcript`);
   });
 
@@ -228,7 +236,9 @@ describe("Add transcript", () => {
     renderAdd({});
 
     chooseFile(transcriptFile(VTT, "checkout-call.vtt"));
-    fireEvent.click(await screen.findByTestId("add-call-transcript-file-remove"));
+    fireEvent.click(
+      await screen.findByTestId("add-call-transcript-file-remove"),
+    );
 
     expect(screen.queryByTestId("add-call-transcript-file")).toBeNull();
     expect(screen.getByTestId("add-call-transcript-text")).toBeVisible();
@@ -282,7 +292,9 @@ describe("Add transcript", () => {
     postAnswer = (): HTTPErrorResponse => {
       return new HTTPErrorResponse(
         400,
-        { message: "This call's transcript is being replaced by someone else." },
+        {
+          message: "This call's transcript is being replaced by someone else.",
+        },
         {},
       );
     };
@@ -420,7 +432,9 @@ describe("the transcript dialog", () => {
   });
 
   test("a long call is drawn a few hundred rows at a time", async () => {
-    renderTranscript({ transcript: longTranscript(TRANSCRIPT_ROWS_SHOWN_AT_ONCE + 30) });
+    renderTranscript({
+      transcript: longTranscript(TRANSCRIPT_ROWS_SHOWN_AT_ONCE + 30),
+    });
 
     await screen.findByTestId("call-transcript-lines");
 
@@ -472,13 +486,16 @@ describe("the transcript dialog", () => {
     await screen.findByTestId("call-transcript-lines");
 
     expect(shownLines()).toHaveLength(TRANSCRIPT_ROWS_SHOWN_AT_ONCE * 2);
-    expect(
-      shownLines()[TRANSCRIPT_ROWS_SHOWN_AT_ONCE + 6]!,
-    ).toHaveAttribute("data-highlighted", "true");
+    expect(shownLines()[TRANSCRIPT_ROWS_SHOWN_AT_ONCE + 6]!).toHaveAttribute(
+      "data-highlighted",
+      "true",
+    );
   });
 
   test("a transcript that could not be read says why, and reads it again", async () => {
-    const { getItem } = renderTranscript({ failWith: "The database is asleep." });
+    const { getItem } = renderTranscript({
+      failWith: "The database is asleep.",
+    });
 
     expect(await screen.findByText("The database is asleep.")).toBeVisible();
 
@@ -491,7 +508,9 @@ describe("the transcript dialog", () => {
   test("a call whose transcript was removed meanwhile says it has none", async () => {
     renderTranscript({ transcript: "" });
 
-    expect(await screen.findByText("This call has no transcript.")).toBeVisible();
+    expect(
+      await screen.findByText("This call has no transcript."),
+    ).toBeVisible();
   });
 
   test("filterTranscriptLines keeps every remark's number in the whole transcript", () => {

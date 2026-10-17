@@ -139,12 +139,16 @@ export default class CallSummaryReader {
     callLabel: string;
     complete: CallSummaryCompletion;
   }): Promise<CallSummaryRootCause> {
-    const suggested: Array<{ partIndex: number; rootCause: CallSummaryRootCause }> =
-      [];
+    const suggested: Array<{
+      partIndex: number;
+      rootCause: CallSummaryRootCause;
+    }> = [];
 
     data.answers.forEach(
       (answer: CallSummaryPartAnswer, partIndex: number): void => {
-        if (answer.rootCause.outcome === CallSummaryRootCauseOutcome.Suggested) {
+        if (
+          answer.rootCause.outcome === CallSummaryRootCauseOutcome.Suggested
+        ) {
           suggested.push({ partIndex, rootCause: answer.rootCause });
         }
       },

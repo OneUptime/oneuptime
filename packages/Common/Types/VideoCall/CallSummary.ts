@@ -134,7 +134,9 @@ export const MAX_CALL_SUMMARY_OWNER_LENGTH: number = 120;
  */
 export const CALL_SUMMARY_STALE_AFTER_MS: number = 15 * 60 * 1000;
 
-export function isCallSummaryStatus(value: unknown): value is CallSummaryStatus {
+export function isCallSummaryStatus(
+  value: unknown,
+): value is CallSummaryStatus {
   return (
     typeof value === "string" &&
     (Object.values(CallSummaryStatus) as Array<string>).includes(value)
@@ -257,7 +259,9 @@ export function readCallSummary(value: unknown): CallSummary | null {
   };
 }
 
-function readRootCause(value: JSONValue | undefined): CallSummaryRootCause | null {
+function readRootCause(
+  value: JSONValue | undefined,
+): CallSummaryRootCause | null {
   const json: JSONObject | null = asObject(value);
 
   if (!json) {

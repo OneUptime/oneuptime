@@ -119,10 +119,7 @@ export default class CallSummaryAnswer {
   ): CallSummaryRootCause {
     const json: JSONObject = CallSummaryAnswer.parseObject(content);
 
-    return CallSummaryAnswer.readRootCause(
-      json["rootCause"] ?? json,
-      citable,
-    );
+    return CallSummaryAnswer.readRootCause(json["rootCause"] ?? json, citable);
   }
 
   /*
@@ -222,7 +219,10 @@ export default class CallSummaryAnswer {
 
       seen.add(lineNumber);
       citations.push(
-        CallSummaryAnswer.toCitation(lineNumber, citable.lines[lineNumber - 1]!),
+        CallSummaryAnswer.toCitation(
+          lineNumber,
+          citable.lines[lineNumber - 1]!,
+        ),
       );
 
       if (citations.length >= MAX_CALL_SUMMARY_CITATIONS) {
@@ -328,7 +328,10 @@ export default class CallSummaryAnswer {
    * A sentence the model wrote, as plain text on one line: line breaks
    * become spaces, and it is held to `maxLength`.
    */
-  public static readText(value: JSONValue | undefined, maxLength: number): string {
+  public static readText(
+    value: JSONValue | undefined,
+    maxLength: number,
+  ): string {
     if (typeof value !== "string") {
       return "";
     }

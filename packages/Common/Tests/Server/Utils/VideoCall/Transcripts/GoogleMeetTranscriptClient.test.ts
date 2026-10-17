@@ -40,7 +40,10 @@ const CONFERENCE_RECORD: JSONObject = {
   space: SPACE,
 };
 
-function transcripts(states: Array<string>, conference: string = CONFERENCE): ScriptedResponse {
+function transcripts(
+  states: Array<string>,
+  conference: string = CONFERENCE,
+): ScriptedResponse {
   return {
     status: 200,
     body: {
@@ -83,7 +86,11 @@ const PARTICIPANTS: ScriptedResponse = {
 
 let entryCount: number = 0;
 
-function entry(participant: string, text: string, startTime: string): JSONObject {
+function entry(
+  participant: string,
+  text: string,
+  startTime: string,
+): JSONObject {
   entryCount++;
 
   return {
@@ -149,8 +156,16 @@ describe("GoogleMeetTranscriptClient - reading the transcript", () => {
         status: 200,
         body: {
           transcriptEntries: [
-            entry("p-3", "Calling in from the car.", "2026-10-17T14:20:00.000Z"),
-            entry("p-9", "Someone who left before the list was read.", "2026-10-17T14:21:00.000Z"),
+            entry(
+              "p-3",
+              "Calling in from the car.",
+              "2026-10-17T14:20:00.000Z",
+            ),
+            entry(
+              "p-9",
+              "Someone who left before the list was read.",
+              "2026-10-17T14:21:00.000Z",
+            ),
           ],
         },
       },
@@ -164,12 +179,17 @@ describe("GoogleMeetTranscriptClient - reading the transcript", () => {
         speaker: "+1 555-***-**12",
         text: "Calling in from the car.",
       },
-      { offsetInSeconds: 960, text: "Someone who left before the list was read." },
+      {
+        offsetInSeconds: 960,
+        text: "Someone who left before the list was read.",
+      },
     ]);
 
-    const urls: Array<URL> = fetcher.requests.map((request: { url: string }) => {
-      return new URL(request.url);
-    });
+    const urls: Array<URL> = fetcher.requests.map(
+      (request: { url: string }) => {
+        return new URL(request.url);
+      },
+    );
 
     expect(urls[0]!.origin + urls[0]!.pathname).toBe(
       `${GOOGLE_MEET_API_BASE_URL}/conferenceRecords`,
@@ -241,7 +261,11 @@ describe("GoogleMeetTranscriptClient - reading the transcript", () => {
 
     expect(linesOf(result)).toEqual([
       { offsetInSeconds: 60, speaker: "Priya Shah", text: "First call." },
-      { offsetInSeconds: 3360, speaker: "Sam Lee", text: "Back after the rollback." },
+      {
+        offsetInSeconds: 3360,
+        speaker: "Sam Lee",
+        text: "Back after the rollback.",
+      },
     ]);
   });
 
@@ -253,7 +277,9 @@ describe("GoogleMeetTranscriptClient - reading the transcript", () => {
       {
         status: 200,
         body: {
-          transcriptEntries: [entry("p-1", "Finished part.", "2026-10-17T14:05:10.000Z")],
+          transcriptEntries: [
+            entry("p-1", "Finished part.", "2026-10-17T14:05:10.000Z"),
+          ],
         },
       },
     ]);
@@ -326,12 +352,16 @@ describe("GoogleMeetTranscriptClient - when there is nothing to read", () => {
 
     expect(unavailable(result)).toEqual({
       reason: VideoCallTranscriptUnavailableReason.Expired,
-      message: expect.stringMatching(/for 30 days after it ends.*organizer's Google Drive/),
+      message: expect.stringMatching(
+        /for 30 days after it ends.*organizer's Google Drive/,
+      ),
     });
   });
 
   test("a space name that is not one: no request", async () => {
-    const { result, fetcher } = await read([], { spaceName: 'spaces/a" OR "1' });
+    const { result, fetcher } = await read([], {
+      spaceName: 'spaces/a" OR "1',
+    });
 
     expect(unavailable(result).reason).toBe(
       VideoCallTranscriptUnavailableReason.NotSupported,
@@ -348,7 +378,8 @@ describe("GoogleMeetTranscriptClient - Google refusing", () => {
         body: {
           error: {
             code: 403,
-            message: "Google Meet REST API has not been used in project 1234 before or it is disabled.",
+            message:
+              "Google Meet REST API has not been used in project 1234 before or it is disabled.",
             status: "PERMISSION_DENIED",
             details: [{ reason: "SERVICE_DISABLED" }],
           },
@@ -363,12 +394,13 @@ describe("GoogleMeetTranscriptClient - Google refusing", () => {
   });
 
   test("the Meet API not enabled for this server's Google app: the server administrator's to fix", async () => {
-    const { result } = await read(
-      [{ status: 403, body: "SERVICE_DISABLED" }],
-      { isSignIn: true },
-    );
+    const { result } = await read([{ status: 403, body: "SERVICE_DISABLED" }], {
+      isSignIn: true,
+    });
 
-    expect(unavailable(result).message).toMatch(/Ask your server administrator/);
+    expect(unavailable(result).message).toMatch(
+      /Ask your server administrator/,
+    );
   });
 
   test("a sign-in Google no longer accepts: reconnect", async () => {
@@ -376,7 +408,13 @@ describe("GoogleMeetTranscriptClient - Google refusing", () => {
       [
         {
           status: 401,
-          body: { error: { code: 401, message: "Request had invalid authentication credentials.", status: "UNAUTHENTICATED" } },
+          body: {
+            error: {
+              code: 401,
+              message: "Request had invalid authentication credentials.",
+              status: "UNAUTHENTICATED",
+            },
+          },
         },
       ],
       { isSignIn: true },
@@ -393,7 +431,13 @@ describe("GoogleMeetTranscriptClient - Google refusing", () => {
       conferences([CONFERENCE_RECORD]),
       {
         status: 403,
-        body: { error: { code: 403, message: "The caller does not have permission", status: "PERMISSION_DENIED" } },
+        body: {
+          error: {
+            code: 403,
+            message: "The caller does not have permission",
+            status: "PERMISSION_DENIED",
+          },
+        },
       },
     ]);
 
@@ -404,7 +448,16 @@ describe("GoogleMeetTranscriptClient - Google refusing", () => {
 
   test("the space is gone", async () => {
     const { result } = await read([
-      { status: 404, body: { error: { code: 404, message: "Requested entity was not found.", status: "NOT_FOUND" } } },
+      {
+        status: 404,
+        body: {
+          error: {
+            code: 404,
+            message: "Requested entity was not found.",
+            status: "NOT_FOUND",
+          },
+        },
+      },
     ]);
 
     expect(unavailable(result).reason).toBe(
@@ -417,7 +470,9 @@ describe("GoogleMeetTranscriptClient - Google refusing", () => {
       let thrown: unknown = null;
 
       try {
-        await read([{ status, body: { error: { code: status, message: "busy" } } }]);
+        await read([
+          { status, body: { error: { code: status, message: "busy" } } },
+        ]);
       } catch (error) {
         thrown = error;
       }

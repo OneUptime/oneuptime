@@ -581,7 +581,9 @@ describe("Video Calls docs - call transcripts", () => {
         .map((extension: string): string => {
           return `\`${extension}\``;
         })
-        .join(", ")} or \`${VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS[VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS.length - 1]}\`, up to ${megabytes![1]} MB)`,
+        .join(
+          ", ",
+        )} or \`${VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS[VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS.length - 1]}\`, up to ${megabytes![1]} MB)`,
     );
   });
 

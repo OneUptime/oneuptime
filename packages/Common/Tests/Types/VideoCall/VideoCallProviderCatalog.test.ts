@@ -152,8 +152,9 @@ describe("VideoCallProviderCatalog", () => {
    * and classic, and nothing more is asked of Google or Microsoft.
    */
   test("the Zoom guide names the optional transcript scopes on its Scopes step", () => {
-    const zoom: VideoCallProviderDefinition =
-      getVideoCallProviderDefinition(VideoCallProvider.Zoom)!;
+    const zoom: VideoCallProviderDefinition = getVideoCallProviderDefinition(
+      VideoCallProvider.Zoom,
+    )!;
     const scopesStep: string | undefined = zoom.setupSteps.find(
       (step: string): boolean => {
         return step.includes(ZOOM_MEETING_SCOPE);

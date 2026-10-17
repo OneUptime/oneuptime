@@ -199,9 +199,11 @@ describe("ZoomTranscriptClient - finding the transcript", () => {
     ]);
     expect(result.found && result.format).toBe(TranscriptSourceFormat.WebVTT);
 
-    expect(fetcher.requests.map((request: { url: string }) => {
-      return request.url;
-    })).toEqual([
+    expect(
+      fetcher.requests.map((request: { url: string }) => {
+        return request.url;
+      }),
+    ).toEqual([
       `${API_BASE}/meetings/${MEETING_ID}/recordings`,
       RECORDING_DOWNLOAD_URL,
     ]);
@@ -215,10 +217,9 @@ describe("ZoomTranscriptClient - finding the transcript", () => {
   });
 
   test("the meeting's id is encoded into the path", async () => {
-    const { fetcher } = await read(
-      [NO_RECORDING, NO_MEETING_TRANSCRIPT],
-      { meetingId: "/ajXp112QmuoKj4854875==" },
-    );
+    const { fetcher } = await read([NO_RECORDING, NO_MEETING_TRANSCRIPT], {
+      meetingId: "/ajXp112QmuoKj4854875==",
+    });
 
     expect(fetcher.requests[0]!.url).toBe(
       `${API_BASE}/meetings/%2FajXp112QmuoKj4854875%3D%3D/recordings`,
@@ -243,20 +244,27 @@ describe("ZoomTranscriptClient - finding the transcript", () => {
     ]);
 
     expect(linesOf(result)).toHaveLength(2);
-    expect(fetcher.requests[1]!.url).toBe("https://us05web.zoom.us/rec/download/cc");
+    expect(fetcher.requests[1]!.url).toBe(
+      "https://us05web.zoom.us/rec/download/cc",
+    );
   });
 
   test("with no cloud recording, reads the transcript AI Companion's meeting summary kept", async () => {
     const { result, fetcher } = await read([
       NO_RECORDING,
-      meetingTranscript({ can_download: true, download_url: SUMMARY_DOWNLOAD_URL }),
+      meetingTranscript({
+        can_download: true,
+        download_url: SUMMARY_DOWNLOAD_URL,
+      }),
       { status: 200, body: VTT },
     ]);
 
     expect(linesOf(result)).toHaveLength(2);
-    expect(fetcher.requests.map((request: { url: string }) => {
-      return request.url;
-    })).toEqual([
+    expect(
+      fetcher.requests.map((request: { url: string }) => {
+        return request.url;
+      }),
+    ).toEqual([
       `${API_BASE}/meetings/${MEETING_ID}/recordings`,
       `${API_BASE}/meetings/${MEETING_ID}/transcript`,
       SUMMARY_DOWNLOAD_URL,
@@ -266,7 +274,10 @@ describe("ZoomTranscriptClient - finding the transcript", () => {
   test("a recording with no transcript among its files looks for the meeting summary's", async () => {
     const { result } = await read([
       { status: 200, body: recording([MP4_FILE]) },
-      meetingTranscript({ can_download: true, download_url: SUMMARY_DOWNLOAD_URL }),
+      meetingTranscript({
+        can_download: true,
+        download_url: SUMMARY_DOWNLOAD_URL,
+      }),
       { status: 200, body: VTT },
     ]);
 
@@ -276,7 +287,10 @@ describe("ZoomTranscriptClient - finding the transcript", () => {
 
 describe("ZoomTranscriptClient - when there is no transcript to read", () => {
   test("neither place has one: says how Zoom keeps a transcript, and that a person can add it", async () => {
-    const { result, fetcher } = await read([NO_RECORDING, NO_MEETING_TRANSCRIPT]);
+    const { result, fetcher } = await read([
+      NO_RECORDING,
+      NO_MEETING_TRANSCRIPT,
+    ]);
 
     expect(unavailable(result)).toEqual({
       reason: VideoCallTranscriptUnavailableReason.NotTranscribed,
@@ -292,7 +306,11 @@ describe("ZoomTranscriptClient - when there is no transcript to read", () => {
       {
         status: 200,
         body: recording([
-          { ...TRANSCRIPT_FILE, status: "processing", download_url: undefined } as unknown as JSONObject,
+          {
+            ...TRANSCRIPT_FILE,
+            status: "processing",
+            download_url: undefined,
+          } as unknown as JSONObject,
         ]),
       },
       NO_MEETING_TRANSCRIPT,
@@ -300,7 +318,9 @@ describe("ZoomTranscriptClient - when there is no transcript to read", () => {
 
     expect(unavailable(result)).toEqual({
       reason: VideoCallTranscriptUnavailableReason.NotReady,
-      message: expect.stringMatching(/still preparing.*twice the length of the call/),
+      message: expect.stringMatching(
+        /still preparing.*twice the length of the call/,
+      ),
     });
   });
 
@@ -396,7 +416,9 @@ describe("ZoomTranscriptClient - a connection that cannot read transcripts", () 
     const { reason, message } = unavailable(result);
 
     expect(reason).toBe(VideoCallTranscriptUnavailableReason.PermissionMissing);
-    expect(message).toMatch(/Reconnect Zoom in Project Settings > Workspace > Video Calls/);
+    expect(message).toMatch(
+      /Reconnect Zoom in Project Settings > Workspace > Video Calls/,
+    );
     expect(message).toContain(ZOOM_OAUTH_RECORDING_FILES_SCOPE);
     expect(message).toContain(ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE);
   });
@@ -414,13 +436,10 @@ describe("ZoomTranscriptClient - a connection that cannot read transcripts", () 
   });
 
   test("a sign-in granted a transcript scope asks Zoom", async () => {
-    const { fetcher } = await read(
-      [NO_RECORDING, NO_MEETING_TRANSCRIPT],
-      {
-        isSignIn: true,
-        grantedScope: `meeting:write:meeting user:read:user ${ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE}`,
-      },
-    );
+    const { fetcher } = await read([NO_RECORDING, NO_MEETING_TRANSCRIPT], {
+      isSignIn: true,
+      grantedScope: `meeting:write:meeting user:read:user ${ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE}`,
+    });
 
     expect(fetcher.requests).toHaveLength(2);
   });
@@ -428,7 +447,10 @@ describe("ZoomTranscriptClient - a connection that cannot read transcripts", () 
   test("one scope of two still finds the transcript where it looks", async () => {
     const { result } = await read([
       missingScope(ZOOM_RECORDING_FILES_SCOPE),
-      meetingTranscript({ can_download: true, download_url: SUMMARY_DOWNLOAD_URL }),
+      meetingTranscript({
+        can_download: true,
+        download_url: SUMMARY_DOWNLOAD_URL,
+      }),
       { status: 200, body: VTT },
     ]);
 
@@ -442,7 +464,9 @@ describe("ZoomTranscriptClient - a connection that cannot read transcripts", () 
 
     expect(unavailable(result)).toEqual({
       reason: VideoCallTranscriptUnavailableReason.ConnectionProblem,
-      message: expect.stringMatching(/Server-to-Server OAuth app is still activated/),
+      message: expect.stringMatching(
+        /Server-to-Server OAuth app is still activated/,
+      ),
     });
     expect(fetcher.requests).toHaveLength(1);
   });
@@ -463,7 +487,9 @@ describe("ZoomTranscriptClient - a connection that cannot read transcripts", () 
 describe("ZoomTranscriptClient - Zoom not answering is an error", () => {
   test("a rate limit throws, asking to try again", async () => {
     await expectThrows(
-      read([{ status: 429, body: { code: 429, message: "Too many requests" } }]),
+      read([
+        { status: 429, body: { code: 429, message: "Too many requests" } },
+      ]),
       APIException,
       /limiting requests .* Try again in a minute/,
     );
@@ -482,7 +508,10 @@ describe("ZoomTranscriptClient - Zoom not answering is an error", () => {
       {
         status: 200,
         body: recording([
-          { ...TRANSCRIPT_FILE, download_url: "https://zoom.us.evil.example/rec/download/x" },
+          {
+            ...TRANSCRIPT_FILE,
+            download_url: "https://zoom.us.evil.example/rec/download/x",
+          },
         ]),
       },
     ]);
@@ -504,7 +533,10 @@ describe("ZoomTranscriptClient - Zoom not answering is an error", () => {
     await expectThrows(
       read([
         { status: 200, body: recording([TRANSCRIPT_FILE]) },
-        { status: 200, body: "a".repeat(MAX_VIDEO_CALL_TRANSCRIPT_INPUT_CHARACTERS + 1) },
+        {
+          status: 200,
+          body: "a".repeat(MAX_VIDEO_CALL_TRANSCRIPT_INPUT_CHARACTERS + 1),
+        },
       ]),
       BadDataException,
       /too long to add/,

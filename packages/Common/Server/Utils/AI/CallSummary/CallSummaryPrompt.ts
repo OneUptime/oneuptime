@@ -104,8 +104,10 @@ export default class CallSummaryPrompt {
     lines: Array<TranscriptLine>,
     partCharacters: number = CALL_SUMMARY_PART_CHARACTERS,
   ): Array<TranscriptPart> {
-    const parts: Array<{ firstLineNumber: number; lines: Array<TranscriptLine> }> =
-      [];
+    const parts: Array<{
+      firstLineNumber: number;
+      lines: Array<TranscriptLine>;
+    }> = [];
     let current: Array<TranscriptLine> = [];
     let currentFirst: number = 1;
     let currentLength: number = 0;
@@ -218,11 +220,15 @@ export default class CallSummaryPrompt {
     ];
 
     if (incident.severity) {
-      lines.push(`Severity: ${PromptText.field(incident.severity, { maxLength: 100 })}`);
+      lines.push(
+        `Severity: ${PromptText.field(incident.severity, { maxLength: 100 })}`,
+      );
     }
 
     if (incident.state) {
-      lines.push(`State: ${PromptText.field(incident.state, { maxLength: 100 })}`);
+      lines.push(
+        `State: ${PromptText.field(incident.state, { maxLength: 100 })}`,
+      );
     }
 
     if (incident.declaredAt) {

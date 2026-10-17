@@ -167,13 +167,19 @@ const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
 
   return (
     <Modal
-      title={props.isReplacing ? "Replace the call's transcript" : "Add the call's transcript"}
+      title={
+        props.isReplacing
+          ? "Replace the call's transcript"
+          : "Add the call's transcript"
+      }
       description={translator.translateTemplate(
         "Upload the transcript of the {{call}} or paste it. OneUptime AI reads it and suggests what caused the incident, for you to review.",
         { call: props.callLabel },
       )}
       modalWidth={ModalWidth.Medium}
-      submitButtonText={props.isReplacing ? "Replace transcript" : "Add transcript"}
+      submitButtonText={
+        props.isReplacing ? "Replace transcript" : "Add transcript"
+      }
       isLoading={isSaving || isReading}
       disableSubmitButton={!file && !pasted.trim()}
       error={error}
@@ -210,7 +216,9 @@ const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
               <p className="truncate text-sm font-medium text-gray-900">
                 {file.name}
               </p>
-              <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+              <p className="text-xs text-gray-500">
+                {formatFileSize(file.size)}
+              </p>
             </div>
             <button
               type="button"
@@ -278,7 +286,10 @@ const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
           </>
         )}
 
-        <p className="text-xs text-gray-500" data-testid="add-call-transcript-hint">
+        <p
+          className="text-xs text-gray-500"
+          data-testid="add-call-transcript-hint"
+        >
           {translator.translateText(getTranscriptSourceHint(props.provider))}
         </p>
       </div>

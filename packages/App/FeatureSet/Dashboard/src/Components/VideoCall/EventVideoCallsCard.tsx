@@ -293,9 +293,7 @@ const EventVideoCallsCard: FunctionComponent<ComponentProps> = (
   const [primary, ...earlier] = props.calls;
 
   // An incident's calls keep their transcripts; an alert's do not (yet).
-  const transcriptOf: (
-    call: EventVideoCall,
-  ) => CallRowProps["transcript"] = (
+  const transcriptOf: (call: EventVideoCall) => CallRowProps["transcript"] = (
     call: EventVideoCall,
   ): CallRowProps["transcript"] => {
     if (props.kind !== VideoCallEventKind.Incident) {

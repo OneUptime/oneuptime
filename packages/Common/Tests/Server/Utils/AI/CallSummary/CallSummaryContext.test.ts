@@ -21,13 +21,7 @@ import VideoCallProvider from "../../../../../Types/VideoCall/VideoCallProvider"
 import TranscriptText, {
   TranscriptLine,
 } from "../../../../../Utils/VideoCall/TranscriptText";
-import {
-  afterEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * The postmortem OneUptime AI drafts reads the incident's calls: for each,
@@ -47,12 +41,25 @@ const SUMMARY: JSONObject = {
     summary: "The deploy doubled the workers and exhausted the DB pool.",
     basis: "StatedOnCall",
     citations: [
-      { line: 3, time: "00:12:03", speaker: "Priya Shah", text: "The pool maxes at 50." },
+      {
+        line: 3,
+        time: "00:12:03",
+        speaker: "Priya Shah",
+        text: "The pool maxes at 50.",
+      },
     ],
   },
   findings: [
-    { text: "The pool was at 100%.", kind: "Confirmed", citations: [{ line: 2, text: "Pool at 100%." }] },
-    { text: "The cache may have been cold.", kind: "Hypothesis", citations: [] },
+    {
+      text: "The pool was at 100%.",
+      kind: "Confirmed",
+      citations: [{ line: 2, text: "Pool at 100%." }],
+    },
+    {
+      text: "The cache may have been cold.",
+      kind: "Hypothesis",
+      citations: [],
+    },
   ],
   stepsTried: [{ text: "Restarted the pods.", citations: [] }],
   decisions: [{ text: "Roll back the worker change.", citations: [] }],
@@ -70,7 +77,8 @@ function callFor(data: {
   const forPrompt: IncidentCallForPrompt = {
     callLabel: "Zoom meeting",
     details: "52 minutes, 6 speakers, 312 remarks",
-    summary: data.summary === undefined ? readCallSummary(SUMMARY) : data.summary,
+    summary:
+      data.summary === undefined ? readCallSummary(SUMMARY) : data.summary,
     suggestionStatus: data.status,
   };
 
@@ -96,7 +104,9 @@ describe("CallSummaryContext.formatForPrompt", () => {
     ]);
 
     expect(text).toContain("# Incident Calls");
-    expect(text).toContain("## Zoom meeting (52 minutes, 6 speakers, 312 remarks)");
+    expect(text).toContain(
+      "## Zoom meeting (52 minutes, 6 speakers, 312 remarks)",
+    );
     expect(text).toContain(
       "- Root cause from the call (suggested by AI, not confirmed by a responder: a hypothesis; stated on the call): The deploy doubled the workers and exhausted the DB pool.",
     );
@@ -105,8 +115,12 @@ describe("CallSummaryContext.formatForPrompt", () => {
     expect(text).toContain("  - (hypothesis) The cache may have been cold.");
     expect(text).toContain("- Steps tried:\n  - Restarted the pods.");
     expect(text).toContain("- Decisions:\n  - Roll back the worker change.");
-    expect(text).toContain("- Follow-up actions:\n  - Alert on pool usage. (owner: Sam Lee)");
-    expect(text).toContain("- Open questions:\n  - Why did staging not catch it?");
+    expect(text).toContain(
+      "- Follow-up actions:\n  - Alert on pool usage. (owner: Sam Lee)",
+    );
+    expect(text).toContain(
+      "- Open questions:\n  - Why did staging not catch it?",
+    );
   });
 
   test("a cause a responder used is said to be theirs; a dismissed one is not to be presented", () => {
@@ -140,26 +154,43 @@ describe("CallSummaryContext.formatForPrompt", () => {
 
   test("a transcript nothing read: the transcript itself, redacted, held to the channel's length", () => {
     const longLine: string = "word ".repeat(200).trim();
-    const lines: Array<TranscriptLine> = Array.from({ length: 100 }, (_: unknown, index: number) => {
-      return { offsetInSeconds: index * 30, speaker: "Sam Lee", text: `${index}: ${longLine}` };
+    const lines: Array<TranscriptLine> = Array.from(
+      { length: 100 },
+      (_: unknown, index: number) => {
+        return {
+          offsetInSeconds: index * 30,
+          speaker: "Sam Lee",
+          text: `${index}: ${longLine}`,
+        };
+      },
+    );
+    lines.unshift({
+      speaker: "Sam Lee",
+      text: "the header was Bearer abcdefghijklmnopqrstuvwxyz123456",
     });
-    lines.unshift({ speaker: "Sam Lee", text: "the header was Bearer abcdefghijklmnopqrstuvwxyz123456" });
 
     const text: string = CallSummaryContext.formatForPrompt([
       callFor({ summary: null, lines }),
     ]);
 
-    expect(text).toContain("The call's transcript (OneUptime AI has not read it):");
+    expect(text).toContain(
+      "The call's transcript (OneUptime AI has not read it):",
+    );
     expect(text).not.toContain("abcdefghijklmnopqrstuvwxyz123456");
     expect(text).toContain("[00:00:30] Sam Lee: 1: word");
     expect(text).toMatch(/lines are left out\.\)/);
-    expect(text.length).toBeLessThan(MAX_TRANSCRIPT_IN_POSTMORTEM_CHARACTERS + 2_000);
+    expect(text.length).toBeLessThan(
+      MAX_TRANSCRIPT_IN_POSTMORTEM_CHARACTERS + 2_000,
+    );
   });
 
   test("the transcripts of several unread calls share the one budget", () => {
-    const lines: Array<TranscriptLine> = Array.from({ length: 200 }, (_: unknown, index: number) => {
-      return { text: `line ${index} ${"x".repeat(300)}` };
-    });
+    const lines: Array<TranscriptLine> = Array.from(
+      { length: 200 },
+      (_: unknown, index: number) => {
+        return { text: `line ${index} ${"x".repeat(300)}` };
+      },
+    );
 
     const text: string = CallSummaryContext.formatForPrompt([
       callFor({ summary: null, lines }),
@@ -174,8 +205,14 @@ describe("CallSummaryContext.readForIncident", () => {
   test("reads the incident's calls that have a transcript, as root, oldest first", async () => {
     const withSummary: IncidentVideoCall = new IncidentVideoCall();
     withSummary.provider = VideoCallProvider.Zoom;
-    withSummary.transcript = TranscriptText.serialize([{ speaker: "A", text: "hello" }]);
-    withSummary.transcriptInfo = { lineCount: 1, speakerCount: 1, characterCount: 5 };
+    withSummary.transcript = TranscriptText.serialize([
+      { speaker: "A", text: "hello" },
+    ]);
+    withSummary.transcriptInfo = {
+      lineCount: 1,
+      speakerCount: 1,
+      characterCount: 5,
+    };
     withSummary.callSummary = SUMMARY;
     withSummary.callSummaryStatus = CallSummaryStatus.Ready;
     withSummary.rootCauseSuggestionStatus = RootCauseSuggestionStatus.Accepted;
@@ -225,7 +262,9 @@ describe("CallSummaryContext.readForIncident", () => {
 });
 
 describe("the postmortem draft reads the calls", () => {
-  function contextWith(calls: Array<IncidentCallForPrompt> | undefined): IncidentContextData {
+  function contextWith(
+    calls: Array<IncidentCallForPrompt> | undefined,
+  ): IncidentContextData {
     const incident: Incident = new Incident();
     incident.title = "Checkout API is down";
 
@@ -251,7 +290,9 @@ describe("the postmortem draft reads the calls", () => {
       );
 
     expect(context.contextText).toContain("# Incident Calls");
-    expect(context.contextText).toContain("not confirmed by a responder: a hypothesis");
+    expect(context.contextText).toContain(
+      "not confirmed by a responder: a hypothesis",
+    );
     expect(context.systemPrompt).toContain(
       "A root cause marked as suggested by AI and not confirmed by a responder is a hypothesis",
     );
@@ -272,7 +313,9 @@ describe("the postmortem draft reads the calls", () => {
 
   test("an incident with no calls has no calls section", () => {
     const context: AIGenerationContext =
-      IncidentAIContextBuilder.formatIncidentContextForPostmortem(contextWith(undefined));
+      IncidentAIContextBuilder.formatIncidentContextForPostmortem(
+        contextWith(undefined),
+      );
 
     expect(context.contextText).not.toContain("# Incident Calls");
   });

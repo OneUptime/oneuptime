@@ -234,7 +234,9 @@ export default class CallSummaryContext {
     return text;
   }
 
-  private static formatCitations(citations: Array<CallSummaryCitation>): string {
+  private static formatCitations(
+    citations: Array<CallSummaryCitation>,
+  ): string {
     return citations
       .map((citation: CallSummaryCitation): string => {
         const line: string = TranscriptText.toReadableLine({
@@ -262,7 +264,8 @@ export default class CallSummaryContext {
       return leftOut;
     }
 
-    let text: string = "The call's transcript (OneUptime AI has not read it):\n\n";
+    let text: string =
+      "The call's transcript (OneUptime AI has not read it):\n\n";
     let used: number = 0;
     let included: number = 0;
 

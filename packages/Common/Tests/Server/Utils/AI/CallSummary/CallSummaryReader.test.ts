@@ -43,7 +43,9 @@ function fakeModel(answers: Array<unknown>): {
 
       // An answer that depends on what the model was asked.
       if (typeof next === "function") {
-        next = (next as (messages: Array<LLMMessage>) => unknown)(data.messages);
+        next = (next as (messages: Array<LLMMessage>) => unknown)(
+          data.messages,
+        );
       }
 
       if (next instanceof Error) {
@@ -51,7 +53,9 @@ function fakeModel(answers: Array<unknown>): {
       }
 
       if (next === undefined) {
-        throw new Error("The fake model was asked more than it was scripted for.");
+        throw new Error(
+          "The fake model was asked more than it was scripted for.",
+        );
       }
 
       return typeof next === "string" ? next : JSON.stringify(next);
@@ -82,14 +86,22 @@ function line(index: number, speaker: string, text: string): TranscriptLine {
 const SHORT_CALL: Array<TranscriptLine> = [
   line(0, "Priya Shah", "Checkout is timing out."),
   line(1, "Sam Lee", "The DB pool is at 100%."),
-  line(2, "Priya Shah", "The pool maxes at 50 and the deploy went to 100 workers."),
+  line(
+    2,
+    "Priya Shah",
+    "The pool maxes at 50 and the deploy went to 100 workers.",
+  ),
   line(3, "Sam Lee", "Rolling back fixed it."),
 ];
 
 // Long enough to need several parts at a small part size.
 function longCall(count: number): Array<TranscriptLine> {
   return Array.from({ length: count }, (_: unknown, index: number) => {
-    return line(index, index % 2 ? "Sam Lee" : "Priya Shah", `remark number ${index} `.repeat(6).trim());
+    return line(
+      index,
+      index % 2 ? "Sam Lee" : "Priya Shah",
+      `remark number ${index} `.repeat(6).trim(),
+    );
   });
 }
 
@@ -103,7 +115,9 @@ describe("CallSummaryReader - one part", () => {
           basis: "stated_on_call",
           lines: ["L3"],
         },
-        findings: [{ text: "The pool was at 100%.", kind: "confirmed", lines: ["L2"] }],
+        findings: [
+          { text: "The pool was at 100%.", kind: "confirmed", lines: ["L2"] },
+        ],
         decisions: [{ text: "Roll back.", lines: ["L4"] }],
       },
     ]);
@@ -135,7 +149,9 @@ describe("CallSummaryReader - one part", () => {
       ],
     });
     expect(content.findings[0]!.citations[0]!.line).toBe(2);
-    expect(content.decisions[0]!.citations[0]!.text).toBe("Rolling back fixed it.");
+    expect(content.decisions[0]!.citations[0]!.text).toBe(
+      "Rolling back fixed it.",
+    );
     expect(content.linesRead).toBe(4);
     expect(content.partsRead).toBe(1);
   });
@@ -163,7 +179,9 @@ describe("CallSummaryReader - one part", () => {
   });
 
   test("an answer that cannot be read fails the reading: no summary is invented", async () => {
-    const model: ReturnType<typeof fakeModel> = fakeModel(["I could not find JSON."]);
+    const model: ReturnType<typeof fakeModel> = fakeModel([
+      "I could not find JSON.",
+    ]);
     let thrown: unknown = null;
 
     try {
@@ -211,7 +229,10 @@ describe("CallSummaryReader - a long call, read in parts", () => {
           rootCause: { outcome: "not_enough_discussion" },
           stepsTried: [
             // Each part tries to cite line 1 and one of its own.
-            { text: `Step from part ${index + 1}`, lines: ["L1", `L${index * 6 + 2}`] },
+            {
+              text: `Step from part ${index + 1}`,
+              lines: ["L1", `L${index * 6 + 2}`],
+            },
             { text: "Checked the pool.", lines: [] },
           ],
         };
@@ -234,23 +255,29 @@ describe("CallSummaryReader - a long call, read in parts", () => {
     expect(content.partsRead).toBe(partCalls.length);
     expect(content.linesRead).toBe(60);
     // No cause in any part: nothing to weigh.
-    expect(model.calls.some((call: Call) => {
-      return call.purpose === "combine";
-    })).toBe(false);
+    expect(
+      model.calls.some((call: Call) => {
+        return call.purpose === "combine";
+      }),
+    ).toBe(false);
     expect(content.rootCause.outcome).toBe(
       CallSummaryRootCauseOutcome.NotEnoughDiscussion,
     );
 
     // "Checked the pool." once, the parts' own steps in order.
-    expect(content.stepsTried.filter((point: { text: string }) => {
-      return point.text === "Checked the pool.";
-    })).toHaveLength(1);
+    expect(
+      content.stepsTried.filter((point: { text: string }) => {
+        return point.text === "Checked the pool.";
+      }),
+    ).toHaveLength(1);
     expect(content.stepsTried[0]!.text).toBe("Step from part 1");
 
     // The first part may cite L1; no other part may.
-    expect(content.stepsTried[0]!.citations.map((citation: { line: number }) => {
-      return citation.line;
-    })).toContain(1);
+    expect(
+      content.stepsTried[0]!.citations.map((citation: { line: number }) => {
+        return citation.line;
+      }),
+    ).toContain(1);
 
     for (const point of content.stepsTried.slice(1)) {
       for (const citation of point.citations) {
@@ -286,10 +313,14 @@ describe("CallSummaryReader - a long call, read in parts", () => {
       partCharacters: PART_CHARACTERS,
     });
 
-    expect(content.rootCause.outcome).toBe(CallSummaryRootCauseOutcome.Suggested);
-    expect(model.calls.every((call: Call) => {
-      return call.purpose === "part";
-    })).toBe(true);
+    expect(content.rootCause.outcome).toBe(
+      CallSummaryRootCauseOutcome.Suggested,
+    );
+    expect(
+      model.calls.every((call: Call) => {
+        return call.purpose === "part";
+      }),
+    ).toBe(true);
   });
 
   /*
@@ -325,24 +356,27 @@ describe("CallSummaryReader - a long call, read in parts", () => {
     expect(parts).toBeGreaterThanOrEqual(partCount);
 
     const lastLine: number = lines.length;
-    const answers: Array<unknown> = Array.from({ length: parts }, (_: unknown, index: number) => {
-      if (index === 0) {
-        return firstPartCause;
-      }
+    const answers: Array<unknown> = Array.from(
+      { length: parts },
+      (_: unknown, index: number) => {
+        if (index === 0) {
+          return firstPartCause;
+        }
 
-      if (index === parts - 1) {
-        return {
-          rootCause: {
-            outcome: "suggested",
-            summary: "The deploy exhausted the pool.",
-            basis: "stated_on_call",
-            lines: [`L${lastLine}`],
-          },
-        };
-      }
+        if (index === parts - 1) {
+          return {
+            rootCause: {
+              outcome: "suggested",
+              summary: "The deploy exhausted the pool.",
+              basis: "stated_on_call",
+              lines: [`L${lastLine}`],
+            },
+          };
+        }
 
-      return { rootCause: { outcome: "not_enough_discussion" } };
-    });
+        return { rootCause: { outcome: "not_enough_discussion" } };
+      },
+    );
 
     answers.push({
       rootCause: {
@@ -367,7 +401,9 @@ describe("CallSummaryReader - a long call, read in parts", () => {
     });
 
     expect(combine).toBeDefined();
-    expect(combine!.messages[1]!.content).toContain("Part 1 pointed at (inferred): Maybe DNS.");
+    expect(combine!.messages[1]!.content).toContain(
+      "Part 1 pointed at (inferred): Maybe DNS.",
+    );
     expect(combine!.messages[1]!.content).toContain(
       `Part ${parts} pointed at (stated on the call): The deploy exhausted the pool.`,
     );
@@ -377,9 +413,11 @@ describe("CallSummaryReader - a long call, read in parts", () => {
       "The deploy exhausted the pool; DNS was ruled out.",
     );
     // L5 was not among the candidates' lines: dropped.
-    expect(content.rootCause.citations.map((citation: { line: number }) => {
-      return citation.line;
-    })).toEqual([lastLine, 2]);
+    expect(
+      content.rootCause.citations.map((citation: { line: number }) => {
+        return citation.line;
+      }),
+    ).toEqual([lastLine, 2]);
   });
 
   test("a weighing that cannot be read keeps the latest part's cause", async () => {
@@ -398,16 +436,19 @@ describe("CallSummaryReader - a long call, read in parts", () => {
     });
     const parts: number = probe.calls.length;
 
-    const answers: Array<unknown> = Array.from({ length: parts }, (_: unknown, index: number) => {
-      return {
-        rootCause: {
-          outcome: "suggested",
-          summary: `Cause from part ${index + 1}.`,
-          basis: "inferred",
-          lines: [`L${lines.length - (parts - 1 - index)}`],
-        },
-      };
-    });
+    const answers: Array<unknown> = Array.from(
+      { length: parts },
+      (_: unknown, index: number) => {
+        return {
+          rootCause: {
+            outcome: "suggested",
+            summary: `Cause from part ${index + 1}.`,
+            basis: "inferred",
+            lines: [`L${lines.length - (parts - 1 - index)}`],
+          },
+        };
+      },
+    );
     answers.push("not json");
 
     const model: ReturnType<typeof fakeModel> = fakeModel(answers);
@@ -457,9 +498,11 @@ describe("CallSummaryReader.joinPoints", () => {
         ],
       ]);
 
-    expect(joined.map((point: { text: string }) => {
-      return point.text;
-    })).toEqual(["A", "b", "C"]);
+    expect(
+      joined.map((point: { text: string }) => {
+        return point.text;
+      }),
+    ).toEqual(["A", "b", "C"]);
 
     expect(
       CallSummaryReader.joinPoints([

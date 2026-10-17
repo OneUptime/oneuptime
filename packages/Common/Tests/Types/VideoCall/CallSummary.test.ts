@@ -54,11 +54,17 @@ function storedSummary(overrides: JSONObject = {}): JSONObject {
       citations: [CITATION],
     },
     findings: [
-      { text: "The pool was at 100%.", kind: "Confirmed", citations: [CITATION] },
+      {
+        text: "The pool was at 100%.",
+        kind: "Confirmed",
+        citations: [CITATION],
+      },
       { text: "Maybe the cache too.", kind: "Hypothesis", citations: [] },
     ],
     stepsTried: [{ text: "Restarted the pods.", citations: [] }],
-    decisions: [{ text: "Roll back the worker change.", citations: [CITATION] }],
+    decisions: [
+      { text: "Roll back the worker change.", citations: [CITATION] },
+    ],
     actions: [
       {
         text: "Add a pool size alert.",
@@ -88,7 +94,10 @@ describe("readCallSummary", () => {
       summary!.findings.map((finding: { kind: CallSummaryFindingKind }) => {
         return finding.kind;
       }),
-    ).toEqual([CallSummaryFindingKind.Confirmed, CallSummaryFindingKind.Hypothesis]);
+    ).toEqual([
+      CallSummaryFindingKind.Confirmed,
+      CallSummaryFindingKind.Hypothesis,
+    ]);
     expect(summary!.actions[0]!.owner).toBe("Sam Lee");
     expect(summary!.linesRead).toBe(312);
     expect(summary!.partsRead).toBe(1);
@@ -117,7 +126,11 @@ describe("readCallSummary", () => {
     expect(
       readCallSummary(
         storedSummary({
-          rootCause: { outcome: "Suggested", summary: "  ", citations: [CITATION] },
+          rootCause: {
+            outcome: "Suggested",
+            summary: "  ",
+            citations: [CITATION],
+          },
         }),
       )!.rootCause.outcome,
     ).toBe(CallSummaryRootCauseOutcome.NotEnoughDiscussion);
@@ -126,7 +139,9 @@ describe("readCallSummary", () => {
   test("a finding called confirmed with no line under it is a hypothesis", () => {
     const summary: CallSummary | null = readCallSummary(
       storedSummary({
-        findings: [{ text: "We checked the logs.", kind: "Confirmed", citations: [] }],
+        findings: [
+          { text: "We checked the logs.", kind: "Confirmed", citations: [] },
+        ],
       }),
     );
 
@@ -154,7 +169,15 @@ describe("readCallSummary", () => {
         decisions: [
           "not an object",
           { text: "" },
-          { text: "Keep this one.", citations: [{ line: 0, text: "x" }, { line: 2.5, text: "y" }, { line: 3 }, { line: 4, text: "kept" }] },
+          {
+            text: "Keep this one.",
+            citations: [
+              { line: 0, text: "x" },
+              { line: 2.5, text: "y" },
+              { line: 3 },
+              { line: 4, text: "kept" },
+            ],
+          },
         ],
       }),
     );
@@ -165,9 +188,12 @@ describe("readCallSummary", () => {
   });
 
   test("lists, citations and words are held to their limits", () => {
-    const manyCitations: Array<JSONObject> = Array.from({ length: 9 }, (_: unknown, index: number) => {
-      return { line: index + 1, text: `line ${index + 1}` };
-    });
+    const manyCitations: Array<JSONObject> = Array.from(
+      { length: 9 },
+      (_: unknown, index: number) => {
+        return { line: index + 1, text: `line ${index + 1}` };
+      },
+    );
     const summary: CallSummary | null = readCallSummary(
       storedSummary({
         stepsTried: Array.from({ length: 30 }, (_: unknown, index: number) => {
@@ -178,8 +204,12 @@ describe("readCallSummary", () => {
     );
 
     expect(summary!.stepsTried).toHaveLength(MAX_CALL_SUMMARY_POINTS);
-    expect(summary!.stepsTried[0]!.citations).toHaveLength(MAX_CALL_SUMMARY_CITATIONS);
-    expect(summary!.openQuestions[0]!.text.length).toBe(MAX_CALL_SUMMARY_POINT_LENGTH);
+    expect(summary!.stepsTried[0]!.citations).toHaveLength(
+      MAX_CALL_SUMMARY_CITATIONS,
+    );
+    expect(summary!.openQuestions[0]!.text.length).toBe(
+      MAX_CALL_SUMMARY_POINT_LENGTH,
+    );
     expect(summary!.openQuestions[0]!.text.endsWith("…")).toBe(true);
   });
 
@@ -195,19 +225,65 @@ describe("isCallSummaryStale", () => {
   const now: Date = new Date("2026-10-17T15:00:00.000Z");
 
   test("only a reading still pending past its time is stale", () => {
-    const fresh: Date = new Date(now.getTime() - CALL_SUMMARY_STALE_AFTER_MS + 1_000);
-    const old: Date = new Date(now.getTime() - CALL_SUMMARY_STALE_AFTER_MS - 1_000);
+    const fresh: Date = new Date(
+      now.getTime() - CALL_SUMMARY_STALE_AFTER_MS + 1_000,
+    );
+    const old: Date = new Date(
+      now.getTime() - CALL_SUMMARY_STALE_AFTER_MS - 1_000,
+    );
 
-    expect(isCallSummaryStale({ status: CallSummaryStatus.Pending, updatedAt: fresh, now })).toBe(false);
-    expect(isCallSummaryStale({ status: CallSummaryStatus.Pending, updatedAt: old, now })).toBe(true);
-    expect(isCallSummaryStale({ status: CallSummaryStatus.Pending, updatedAt: old.toISOString(), now })).toBe(true);
-    expect(isCallSummaryStale({ status: CallSummaryStatus.Ready, updatedAt: old, now })).toBe(false);
-    expect(isCallSummaryStale({ status: CallSummaryStatus.Failed, updatedAt: old, now })).toBe(false);
+    expect(
+      isCallSummaryStale({
+        status: CallSummaryStatus.Pending,
+        updatedAt: fresh,
+        now,
+      }),
+    ).toBe(false);
+    expect(
+      isCallSummaryStale({
+        status: CallSummaryStatus.Pending,
+        updatedAt: old,
+        now,
+      }),
+    ).toBe(true);
+    expect(
+      isCallSummaryStale({
+        status: CallSummaryStatus.Pending,
+        updatedAt: old.toISOString(),
+        now,
+      }),
+    ).toBe(true);
+    expect(
+      isCallSummaryStale({
+        status: CallSummaryStatus.Ready,
+        updatedAt: old,
+        now,
+      }),
+    ).toBe(false);
+    expect(
+      isCallSummaryStale({
+        status: CallSummaryStatus.Failed,
+        updatedAt: old,
+        now,
+      }),
+    ).toBe(false);
   });
 
   test("a pending reading with no time, or an unreadable one, is stale", () => {
-    expect(isCallSummaryStale({ status: CallSummaryStatus.Pending, updatedAt: null, now })).toBe(true);
-    expect(isCallSummaryStale({ status: CallSummaryStatus.Pending, updatedAt: "not a date", now })).toBe(true);
+    expect(
+      isCallSummaryStale({
+        status: CallSummaryStatus.Pending,
+        updatedAt: null,
+        now,
+      }),
+    ).toBe(true);
+    expect(
+      isCallSummaryStale({
+        status: CallSummaryStatus.Pending,
+        updatedAt: "not a date",
+        now,
+      }),
+    ).toBe(true);
   });
 });
 
@@ -215,9 +291,13 @@ describe("the call's transcript and summary values", () => {
   test("statuses are recognised by value", () => {
     expect(isCallSummaryStatus("Pending")).toBe(true);
     expect(isCallSummaryStatus("Done")).toBe(false);
-    expect(isRootCauseSuggestionStatus(RootCauseSuggestionStatus.Dismissed)).toBe(true);
+    expect(
+      isRootCauseSuggestionStatus(RootCauseSuggestionStatus.Dismissed),
+    ).toBe(true);
     expect(isRootCauseSuggestionStatus("Rejected")).toBe(false);
-    expect(isVideoCallTranscriptSource(VideoCallTranscriptSource.Upload)).toBe(true);
+    expect(isVideoCallTranscriptSource(VideoCallTranscriptSource.Upload)).toBe(
+      true,
+    );
     expect(isVideoCallTranscriptSource("File")).toBe(false);
   });
 
@@ -274,12 +354,26 @@ describe("the call's transcript and summary values", () => {
   });
 
   test("a call is called by its provider, or a link by its own name", () => {
-    expect(getVideoCallLabel({ provider: VideoCallProvider.Zoom, title: "INC-1" })).toBe("Zoom meeting");
-    expect(getVideoCallLabel({ provider: VideoCallProvider.GoogleMeet })).toBe("Google Meet call");
-    expect(getVideoCallLabel({ provider: VideoCallProvider.CustomLink, title: " War room " })).toBe("War room");
     expect(
-      getVideoCallLabel({ provider: VideoCallProvider.CustomLink, connectionName: "Standing bridge" }),
+      getVideoCallLabel({ provider: VideoCallProvider.Zoom, title: "INC-1" }),
+    ).toBe("Zoom meeting");
+    expect(getVideoCallLabel({ provider: VideoCallProvider.GoogleMeet })).toBe(
+      "Google Meet call",
+    );
+    expect(
+      getVideoCallLabel({
+        provider: VideoCallProvider.CustomLink,
+        title: " War room ",
+      }),
+    ).toBe("War room");
+    expect(
+      getVideoCallLabel({
+        provider: VideoCallProvider.CustomLink,
+        connectionName: "Standing bridge",
+      }),
     ).toBe("Standing bridge");
-    expect(getVideoCallLabel({ provider: VideoCallProvider.CustomLink })).toBe("video call");
+    expect(getVideoCallLabel({ provider: VideoCallProvider.CustomLink })).toBe(
+      "video call",
+    );
   });
 });

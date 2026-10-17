@@ -135,9 +135,11 @@ describe("TranscriptText.parse - WebVTT", () => {
   test("Microsoft Teams' cues: the speaker from the voice span, the cue ids dropped", () => {
     const lines: Array<TranscriptLine> = TranscriptText.parse(TEAMS_VTT);
 
-    expect(lines.map((line: TranscriptLine) => {
-      return [line.speaker, line.text];
-    })).toEqual([
+    expect(
+      lines.map((line: TranscriptLine) => {
+        return [line.speaker, line.text];
+      }),
+    ).toEqual([
       ["Priya Shah", "Okay, checkout is down."],
       ["Priya Shah", "Who is looking at the database?"],
       ["Sam Lee", "I am. The pool is full."],
@@ -200,7 +202,11 @@ describe("TranscriptText.parse - WebVTT", () => {
     );
 
     expect(lines).toEqual([
-      { offsetInSeconds: 62.5, speaker: "Sam Lee", text: "Restarting the pods." },
+      {
+        offsetInSeconds: 62.5,
+        speaker: "Sam Lee",
+        text: "Restarting the pods.",
+      },
     ]);
   });
 
@@ -237,7 +243,11 @@ describe("TranscriptText.parse - pasted text", () => {
         "[00:12:03] Priya Shah: The pool is full.\n00:13:10 Sam Lee: Rolling back.",
       ),
     ).toEqual([
-      { offsetInSeconds: 723, speaker: "Priya Shah", text: "The pool is full." },
+      {
+        offsetInSeconds: 723,
+        speaker: "Priya Shah",
+        text: "The pool is full.",
+      },
       { offsetInSeconds: 790, speaker: "Sam Lee", text: "Rolling back." },
     ]);
   });
@@ -361,7 +371,11 @@ describe("TranscriptText - remarks", () => {
         speaker: "Priya Shah",
         text: "Okay, checkout is down. Who is looking at the database?",
       },
-      { offsetInSeconds: 9, speaker: "Sam Lee", text: "I am. The pool is full." },
+      {
+        offsetInSeconds: 9,
+        speaker: "Sam Lee",
+        text: "I am. The pool is full.",
+      },
     ]);
   });
 
@@ -391,9 +405,12 @@ describe("TranscriptText - remarks", () => {
   });
 
   test("a remark longer than the longest kept is cut at words into several", () => {
-    const words: string = Array.from({ length: 900 }, (_: unknown, index: number) => {
-      return `w${index}`;
-    }).join(" ");
+    const words: string = Array.from(
+      { length: 900 },
+      (_: unknown, index: number) => {
+        return `w${index}`;
+      },
+    ).join(" ");
 
     const split: Array<TranscriptLine> = TranscriptText.splitLongRemarks([
       { offsetInSeconds: 3, speaker: "A", text: words },
@@ -422,7 +439,11 @@ describe("TranscriptText - remarks", () => {
 describe("TranscriptText - the stored format", () => {
   test("reads back exactly: time, speaker and words", () => {
     const lines: Array<TranscriptLine> = [
-      { offsetInSeconds: 723, speaker: "Priya Shah", text: "The pool is full." },
+      {
+        offsetInSeconds: 723,
+        speaker: "Priya Shah",
+        text: "The pool is full.",
+      },
       { speaker: "Sam Lee", text: "Note: this has a colon" },
       { text: "No speaker: and a colon" },
       { offsetInSeconds: 3600, text: "An hour in" },
@@ -474,7 +495,8 @@ describe("TranscriptText.prepare", () => {
   test("a Zoom file: remarks, what to store, and its info", () => {
     const prepared: PreparedTranscript = TranscriptText.prepare({
       text: ZOOM_VTT,
-      fileName: "C:\\Users\\priya\\Downloads\\GMT20261017-140512_Recording.transcript.vtt",
+      fileName:
+        "C:\\Users\\priya\\Downloads\\GMT20261017-140512_Recording.transcript.vtt",
     });
 
     expect(prepared.format).toBe(TranscriptSourceFormat.WebVTT);
@@ -628,7 +650,11 @@ describe("TranscriptText - reads hostile text in linear time", () => {
     ["references", "&amp;".repeat(SIZE / 5)],
     ["inline timestamps", "<00:00:01.000".repeat(SIZE / 13)],
     ["timing lines", "00:00:01.000 --> 00:00:02.000\n".repeat(SIZE / 30)],
-    ["blank-line cues", "WEBVTT\n\n" + "1\n00:00:01.000 --> 00:00:02.000\nA: b\n\n".repeat(SIZE / 40)],
+    [
+      "blank-line cues",
+      "WEBVTT\n\n" +
+        "1\n00:00:01.000 --> 00:00:02.000\nA: b\n\n".repeat(SIZE / 40),
+    ],
     ["tags inside tags", "<b<i<u".repeat(SIZE / 6)],
   ];
 

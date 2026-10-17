@@ -51,7 +51,11 @@ const CALL: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 const USER: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 
 const TRANSCRIPT: string = TranscriptText.serialize([
-  { offsetInSeconds: 5, speaker: "Priya Shah", text: "Checkout is timing out." },
+  {
+    offsetInSeconds: 5,
+    speaker: "Priya Shah",
+    text: "Checkout is timing out.",
+  },
   { offsetInSeconds: 70, speaker: "Sam Lee", text: "The DB pool is at 100%." },
   {
     offsetInSeconds: 723,
@@ -67,7 +71,9 @@ const SUGGESTED_ANSWER: JSONObject = {
     basis: "stated_on_call",
     lines: ["L3"],
   },
-  findings: [{ text: "The pool was at 100%.", kind: "confirmed", lines: ["L2"] }],
+  findings: [
+    { text: "The pool was at 100%.", kind: "confirmed", lines: ["L2"] },
+  ],
 };
 
 // The call as stored: what the reading's own writes leave in it.
@@ -129,7 +135,8 @@ beforeEach(() => {
       writes.push(written);
 
       if (Object.prototype.hasOwnProperty.call(written, "callSummary")) {
-        stored.callSummary = (written["callSummary"] as JSONObject | null) || null;
+        stored.callSummary =
+          (written["callSummary"] as JSONObject | null) || null;
       }
 
       if (Object.prototype.hasOwnProperty.call(written, "transcript")) {
@@ -168,7 +175,10 @@ afterEach(() => {
 describe("IncidentCallSummary.start", () => {
   test("AI off for the project: Skipped, saying where to turn it on - and nothing sent", async () => {
     jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(false);
-    const run: ReturnType<typeof jest.spyOn> = jest.spyOn(IncidentCallSummary, "run");
+    const run: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      IncidentCallSummary,
+      "run",
+    );
 
     const started: CallSummaryStart = await IncidentCallSummary.start({
       callId: CALL,
@@ -239,8 +249,12 @@ describe("IncidentCallSummary.start", () => {
   test("every reading gets its own id", async () => {
     jest.spyOn(IncidentCallSummary, "run").mockResolvedValue(undefined);
 
-    const first: CallSummaryStart = await IncidentCallSummary.start({ callId: CALL });
-    const second: CallSummaryStart = await IncidentCallSummary.start({ callId: CALL });
+    const first: CallSummaryStart = await IncidentCallSummary.start({
+      callId: CALL,
+    });
+    const second: CallSummaryStart = await IncidentCallSummary.start({
+      callId: CALL,
+    });
 
     expect(first.runId).not.toBe(second.runId);
   });
@@ -258,7 +272,8 @@ describe("IncidentCallSummary.run", () => {
 
     expect(executeWithLogging).toHaveBeenCalledTimes(1);
 
-    const request: AILogRequest = executeWithLogging.mock.calls[0]![0] as AILogRequest;
+    const request: AILogRequest = executeWithLogging.mock
+      .calls[0]![0] as AILogRequest;
 
     expect(request).toEqual(
       expect.objectContaining({
@@ -272,7 +287,9 @@ describe("IncidentCallSummary.run", () => {
       }),
     );
     expect(AI_INCIDENT_CALL_SUMMARY_FEATURE).toBe("Incident Call Summary");
-    expect(request.messages[1]!.content).toContain("Incident INC-42: Checkout API is down");
+    expect(request.messages[1]!.content).toContain(
+      "Incident INC-42: Checkout API is down",
+    );
     expect(request.messages[1]!.content).toContain("Call: Zoom meeting.");
     expect(request.messages[1]!.content).toContain(
       "L3 [00:12:03] Priya Shah: The pool maxes at 50 and the deploy went to 100 workers.",
@@ -286,7 +303,9 @@ describe("IncidentCallSummary.run", () => {
 
     expect(written["callSummaryStatus"]).toBe(CallSummaryStatus.Ready);
     expect(written["callSummaryStatusMessage"]).toBeNull();
-    expect(written["rootCauseSuggestionStatus"]).toBe(RootCauseSuggestionStatus.Suggested);
+    expect(written["rootCauseSuggestionStatus"]).toBe(
+      RootCauseSuggestionStatus.Suggested,
+    );
     expect(written["rootCauseSuggestionReviewedAt"]).toBeNull();
 
     const summary: CallSummary | null = readCallSummary(written["callSummary"]);
@@ -295,7 +314,9 @@ describe("IncidentCallSummary.run", () => {
     expect(summary!.runId).toBe(RUN);
     expect(Number.isNaN(Date.parse(summary!.generatedAt))).toBe(false);
     expect(summary!.linesRead).toBe(3);
-    expect(summary!.rootCause.outcome).toBe(CallSummaryRootCauseOutcome.Suggested);
+    expect(summary!.rootCause.outcome).toBe(
+      CallSummaryRootCauseOutcome.Suggested,
+    );
     expect(summary!.rootCause.citations).toEqual([
       {
         line: 3,
@@ -307,7 +328,9 @@ describe("IncidentCallSummary.run", () => {
   });
 
   test("not enough discussion suggests nothing to review", async () => {
-    answerWith(JSON.stringify({ rootCause: { outcome: "not_enough_discussion" } }));
+    answerWith(
+      JSON.stringify({ rootCause: { outcome: "not_enough_discussion" } }),
+    );
 
     await IncidentCallSummary.run({ callId: CALL, runId: RUN });
 
@@ -328,7 +351,10 @@ describe("IncidentCallSummary.run", () => {
     executeWithLogging.mockImplementation(async (): Promise<AILogResponse> => {
       // Someone added another transcript meanwhile.
       stored.callSummary = { runId: "a-newer-reading" };
-      return { content: JSON.stringify(SUGGESTED_ANSWER), llmLog: new LlmLog() };
+      return {
+        content: JSON.stringify(SUGGESTED_ANSWER),
+        llmLog: new LlmLog(),
+      };
     });
 
     await IncidentCallSummary.run({ callId: CALL, runId: RUN });
@@ -363,7 +389,9 @@ describe("IncidentCallSummary.run", () => {
     await IncidentCallSummary.run({ callId: CALL, runId: RUN });
 
     expect(lastWrite()["callSummaryStatus"]).toBe(CallSummaryStatus.Failed);
-    expect(lastWrite()["callSummaryStatusMessage"]).toMatch(/could not be read/);
+    expect(lastWrite()["callSummaryStatusMessage"]).toMatch(
+      /could not be read/,
+    );
   });
 
   test("a failure replaced by a newer reading is not stored", async () => {

@@ -98,9 +98,8 @@ export default class IncidentCallSummary {
     }
 
     if (!(await AIService.isProjectAIEnabled(call.projectId))) {
-      const message: string = ProductBrandingText.brandText(
-        AI_DISABLED_MESSAGE,
-      );
+      const message: string =
+        ProductBrandingText.brandText(AI_DISABLED_MESSAGE);
 
       await IncidentVideoCallTranscriptWrite.write(data.callId, {
         callSummary: null,
@@ -185,9 +184,7 @@ export default class IncidentCallSummary {
 
       const complete: CallSummaryCompletion =
         data.complete ||
-        (async (request: {
-          messages: Array<LLMMessage>;
-        }): Promise<string> => {
+        (async (request: { messages: Array<LLMMessage> }): Promise<string> => {
           const response: AILogResponse = await AIService.executeWithLogging({
             projectId,
             userId: data.userId,
@@ -348,5 +345,4 @@ export default class IncidentCallSummary {
       declaredAt: incident.declaredAt || incident.createdAt,
     };
   }
-
 }

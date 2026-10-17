@@ -164,20 +164,20 @@ beforeEach(() => {
   canEditRootCause = true;
   currentRootCause = "Checkout API p95 above 2s for 5 minutes (monitor).";
 
-  jest.spyOn(PermissionGate, "check").mockImplementation(
-    (): PermissionGateResult => {
+  jest
+    .spyOn(PermissionGate, "check")
+    .mockImplementation((): PermissionGateResult => {
       return canWorkOnCalls
         ? { isAllowed: true }
         : { isAllowed: false, disabledReason: "No permission." };
-    },
-  );
-  jest.spyOn(PermissionGate, "checkColumnUpdate").mockImplementation(
-    (): PermissionGateResult => {
+    });
+  jest
+    .spyOn(PermissionGate, "checkColumnUpdate")
+    .mockImplementation((): PermissionGateResult => {
       return canEditRootCause
         ? { isAllowed: true }
         : { isAllowed: false, disabledReason: "No permission." };
-    },
-  );
+    });
 
   jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({
     tenantid: PROJECT_ID,
@@ -239,10 +239,14 @@ describe("which calls it speaks of", () => {
       ),
     ).toBeVisible();
 
-    fireEvent.click(within(section).getByTestId("call-summary-view-transcript"));
+    fireEvent.click(
+      within(section).getByTestId("call-summary-view-transcript"),
+    );
 
     // The dialog starts on the quoted lines, highlighted.
-    const lines: HTMLElement = await screen.findByTestId("call-transcript-lines");
+    const lines: HTMLElement = await screen.findByTestId(
+      "call-transcript-lines",
+    );
     const highlighted: Array<string> = within(lines)
       .getAllByTestId("call-transcript-line")
       .filter((line: HTMLElement): boolean => {
@@ -255,7 +259,9 @@ describe("which calls it speaks of", () => {
     expect(highlighted).toEqual(["6", "11"]);
     expect(
       screen.getByTestId("call-transcript-highlight-legend"),
-    ).toHaveTextContent("Highlighted: the lines the suggested root cause quotes.");
+    ).toHaveTextContent(
+      "Highlighted: the lines the suggested root cause quotes.",
+    );
   });
 
   test("with more than one call, each is named for its own", () => {
@@ -277,11 +283,13 @@ describe("a suggested root cause", () => {
   test("is marked Not confirmed, says it was said on the call, and quotes its lines in the order they were said", () => {
     renderSection([suggestedCall()]);
 
-    const rootCause: HTMLElement = screen.getByTestId("call-summary-root-cause");
-
-    expect(within(rootCause).getByTestId("call-summary-status")).toHaveTextContent(
-      "Not confirmed",
+    const rootCause: HTMLElement = screen.getByTestId(
+      "call-summary-root-cause",
     );
+
+    expect(
+      within(rootCause).getByTestId("call-summary-status"),
+    ).toHaveTextContent("Not confirmed");
     expect(
       within(rootCause).getByTestId("call-summary-root-cause-text"),
     ).toHaveTextContent(SUGGESTED_CAUSE);
@@ -437,7 +445,11 @@ describe("a suggested root cause", () => {
 
   test("a decision that could not be saved says so", async () => {
     postAnswer = (): HTTPErrorResponse => {
-      return new HTTPErrorResponse(500, { message: "The database is asleep." }, {});
+      return new HTTPErrorResponse(
+        500,
+        { message: "The database is asleep." },
+        {},
+      );
     };
 
     renderSection([suggestedCall()]);
@@ -528,9 +540,9 @@ describe("a call that did not settle the cause", () => {
     const details: HTMLElement = screen.getByTestId("call-summary-details");
 
     expect(details).toHaveAttribute("open");
-    expect(within(details).getByTestId("call-summary-questions")).toHaveTextContent(
-      "What changed in checkout-api today?",
-    );
+    expect(
+      within(details).getByTestId("call-summary-questions"),
+    ).toHaveTextContent("What changed in checkout-api today?");
   });
 });
 
@@ -541,7 +553,9 @@ describe("everything else the call said", () => {
     const details: HTMLElement = screen.getByTestId("call-summary-details");
 
     expect(details).not.toHaveAttribute("open");
-    expect(within(details).getByText("5 more points from the call")).toBeVisible();
+    expect(
+      within(details).getByText("5 more points from the call"),
+    ).toBeVisible();
 
     const findings: HTMLElement = within(details).getByTestId(
       "call-summary-findings",
@@ -553,15 +567,15 @@ describe("everything else the call said", () => {
     expect(findings).toHaveTextContent(
       "A cold cache may have added to the latency.Hypothesis",
     );
-    expect(within(details).getByTestId("call-summary-actions")).toHaveTextContent(
-      "Add an alert on pool usage. (Jordan Patel)",
-    );
+    expect(
+      within(details).getByTestId("call-summary-actions"),
+    ).toHaveTextContent("Add an alert on pool usage. (Jordan Patel)");
     expect(within(details).getByTestId("call-summary-steps")).toHaveTextContent(
       "Rolled checkout-api back to 2026.09.14-1.",
     );
-    expect(within(details).getByTestId("call-summary-decisions")).toHaveTextContent(
-      "Keep the rollback until the pool size is fixed.",
-    );
+    expect(
+      within(details).getByTestId("call-summary-decisions"),
+    ).toHaveTextContent("Keep the rollback until the pool size is fixed.");
     // An empty kind is left out.
     expect(within(details).queryByTestId("call-summary-questions")).toBeNull();
   });
@@ -570,7 +584,10 @@ describe("everything else the call said", () => {
 describe("while it reads, and when it could not", () => {
   test("reading: says the suggestion appears here when it is done", () => {
     renderSection([
-      transcriptCall({ info: TRANSCRIPT_INFO, status: CallSummaryStatus.Pending }),
+      transcriptCall({
+        info: TRANSCRIPT_INFO,
+        status: CallSummaryStatus.Pending,
+      }),
     ]);
 
     expect(screen.getByTestId("call-summary-reading")).toHaveTextContent(
@@ -638,7 +655,9 @@ describe("while it reads, and when it could not", () => {
     const error: HTMLElement = await screen.findByTestId("call-summary-error");
 
     expect(error).toHaveTextContent("Could not start reading it again");
-    expect(error).toHaveTextContent("AI features are disabled for this project.");
+    expect(error).toHaveTextContent(
+      "AI features are disabled for this project.",
+    );
   });
 
   test("without permission to work on calls, there is no Try again", () => {

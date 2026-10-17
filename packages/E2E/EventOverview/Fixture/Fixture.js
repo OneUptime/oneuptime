@@ -5197,18 +5197,66 @@ function addToChannel(body) {
  * CALL_SUMMARY) on the next, as the page's polling would see it.
  */
 const CALL_TRANSCRIPT_LINES = [
-  { offsetInSeconds: 8, speaker: "Sam Rivera", text: "I'm on. Checkout p95 is at 2.4 seconds and climbing." },
-  { offsetInSeconds: 31, speaker: "Jordan Patel", text: "Orders DB looks healthy from its side, CPU is at 30%." },
-  { offsetInSeconds: 72, speaker: "Sam Rivera", text: "The app side is waiting on pg.pool.connect, most requests wait about two seconds." },
-  { offsetInSeconds: 160, speaker: "Maya Chen", text: "Did anything ship in the last hour?" },
-  { offsetInSeconds: 175, speaker: "Jordan Patel", text: "checkout-api 2026.09.14-2 went out at 17:52." },
-  { offsetInSeconds: 243, speaker: "Sam Rivera", text: "The new release has DB_POOL_MAX=10, it was 40 before." },
-  { offsetInSeconds: 270, speaker: "Maya Chen", text: "That would explain the queueing. Can we roll back?" },
-  { offsetInSeconds: 302, speaker: "Jordan Patel", text: "Maybe the cache is cold too, I'm not sure." },
-  { offsetInSeconds: 375, speaker: "Sam Rivera", text: "Rolling checkout-api back to 2026.09.14-1 now." },
-  { offsetInSeconds: 588, speaker: "Sam Rivera", text: "Rollback done, p95 is back under 300 milliseconds." },
-  { offsetInSeconds: 620, speaker: "Maya Chen", text: "So the pool size change caused it. Jordan, can you add an alert on pool usage?" },
-  { offsetInSeconds: 641, speaker: "Jordan Patel", text: "Yes, I'll add the alert today." },
+  {
+    offsetInSeconds: 8,
+    speaker: "Sam Rivera",
+    text: "I'm on. Checkout p95 is at 2.4 seconds and climbing.",
+  },
+  {
+    offsetInSeconds: 31,
+    speaker: "Jordan Patel",
+    text: "Orders DB looks healthy from its side, CPU is at 30%.",
+  },
+  {
+    offsetInSeconds: 72,
+    speaker: "Sam Rivera",
+    text: "The app side is waiting on pg.pool.connect, most requests wait about two seconds.",
+  },
+  {
+    offsetInSeconds: 160,
+    speaker: "Maya Chen",
+    text: "Did anything ship in the last hour?",
+  },
+  {
+    offsetInSeconds: 175,
+    speaker: "Jordan Patel",
+    text: "checkout-api 2026.09.14-2 went out at 17:52.",
+  },
+  {
+    offsetInSeconds: 243,
+    speaker: "Sam Rivera",
+    text: "The new release has DB_POOL_MAX=10, it was 40 before.",
+  },
+  {
+    offsetInSeconds: 270,
+    speaker: "Maya Chen",
+    text: "That would explain the queueing. Can we roll back?",
+  },
+  {
+    offsetInSeconds: 302,
+    speaker: "Jordan Patel",
+    text: "Maybe the cache is cold too, I'm not sure.",
+  },
+  {
+    offsetInSeconds: 375,
+    speaker: "Sam Rivera",
+    text: "Rolling checkout-api back to 2026.09.14-1 now.",
+  },
+  {
+    offsetInSeconds: 588,
+    speaker: "Sam Rivera",
+    text: "Rollback done, p95 is back under 300 milliseconds.",
+  },
+  {
+    offsetInSeconds: 620,
+    speaker: "Maya Chen",
+    text: "So the pool size change caused it. Jordan, can you add an alert on pool usage?",
+  },
+  {
+    offsetInSeconds: 641,
+    speaker: "Jordan Patel",
+    text: "Yes, I'll add the alert today.",
+  },
 ];
 
 function callCitation(lineNumber) {
@@ -5238,9 +5286,20 @@ const CALL_SUMMARY = {
     citations: [callCitation(6), callCitation(11), callCitation(10)],
   },
   findings: [
-    { ...callPoint("The orders database itself was healthy.", [2]), kind: "Confirmed" },
-    { ...callPoint("Requests waited about two seconds in pg.pool.connect.", [3]), kind: "Confirmed" },
-    { ...callPoint("A cold cache may have added to it.", [8]), kind: "Hypothesis" },
+    {
+      ...callPoint("The orders database itself was healthy.", [2]),
+      kind: "Confirmed",
+    },
+    {
+      ...callPoint("Requests waited about two seconds in pg.pool.connect.", [
+        3,
+      ]),
+      kind: "Confirmed",
+    },
+    {
+      ...callPoint("A cold cache may have added to it.", [8]),
+      kind: "Hypothesis",
+    },
   ],
   stepsTried: [
     callPoint("Checked the orders database's own health.", [2]),
@@ -5248,7 +5307,10 @@ const CALL_SUMMARY = {
   ],
   decisions: [callPoint("Roll checkout-api back to 2026.09.14-1.", [7, 9])],
   actions: [
-    { ...callPoint("Add an alert on database pool usage.", [11, 12]), owner: "Jordan Patel" },
+    {
+      ...callPoint("Add an alert on database pool usage.", [11, 12]),
+      owner: "Jordan Patel",
+    },
   ],
   openQuestions: [callPoint("Why the release changed DB_POOL_MAX.", [])],
   linesRead: CALL_TRANSCRIPT_LINES.length,
@@ -5338,9 +5400,7 @@ if (callsMode === "stuck") {
   });
 }
 
-if (
-  ["transcript", "accepted", "dismissed", "two"].includes(callsMode)
-) {
+if (["transcript", "accepted", "dismissed", "two"].includes(callsMode)) {
   incidentCall(callsMode === "two" ? 2 : 1, {
     ...ZOOM_CALL,
     createdAt: callsMode === "two" ? at("18:06") : at("18:02"),
@@ -5354,10 +5414,14 @@ if (
           : callsMode === "dismissed"
             ? "Dismissed"
             : "Suggested",
-      rootCauseSuggestionReviewedAt: ["accepted", "dismissed"].includes(callsMode)
+      rootCauseSuggestionReviewedAt: ["accepted", "dismissed"].includes(
+        callsMode,
+      )
         ? at("18:18")
         : undefined,
-      rootCauseSuggestionReviewedByUser: ["accepted", "dismissed"].includes(callsMode)
+      rootCauseSuggestionReviewedByUser: ["accepted", "dismissed"].includes(
+        callsMode,
+      )
         ? people.jordan
         : undefined,
     }),
@@ -5549,7 +5613,10 @@ function handleCallTranscriptApi(method, url, body) {
 
   if (route === "root-cause-suggestion" && method === "POST") {
     if (failures.has("suggestion")) {
-      throw fail(403, "You do not have permission to edit this incident's root cause.");
+      throw fail(
+        403,
+        "You do not have permission to edit this incident's root cause.",
+      );
     }
 
     record.rootCauseSuggestionStatus = body.decision;

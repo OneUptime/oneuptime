@@ -132,9 +132,11 @@ export default class ZoomTranscriptClient {
       return settled;
     }
 
-    const fromSummary: Look = await ZoomTranscriptClient.lookInMeetingTranscript(
-      { ...request, meetingId },
-    );
+    const fromSummary: Look =
+      await ZoomTranscriptClient.lookInMeetingTranscript({
+        ...request,
+        meetingId,
+      });
 
     const settledBySummary: VideoCallTranscriptRead | null =
       ZoomTranscriptClient.settle(fromSummary);
@@ -269,14 +271,16 @@ export default class ZoomTranscriptClient {
      * Recorded, but with no transcript yet: the files are still being
      * processed, and the transcript comes after them.
      */
-    const isProcessing: boolean = files.some((candidate: JSONValue): boolean => {
-      return (
-        Boolean(candidate) &&
-        typeof candidate === "object" &&
-        !Array.isArray(candidate) &&
-        (candidate as JSONObject)["status"] === "processing"
-      );
-    });
+    const isProcessing: boolean = files.some(
+      (candidate: JSONValue): boolean => {
+        return (
+          Boolean(candidate) &&
+          typeof candidate === "object" &&
+          !Array.isArray(candidate) &&
+          (candidate as JSONObject)["status"] === "processing"
+        );
+      },
+    );
 
     return { outcome: isProcessing ? LookOutcome.NotReady : LookOutcome.None };
   }
@@ -299,7 +303,11 @@ export default class ZoomTranscriptClient {
     const canDownload: JSONValue | undefined = response.json?.["can_download"];
     const downloadUrl: JSONValue | undefined = response.json?.["download_url"];
 
-    if (canDownload === true && typeof downloadUrl === "string" && downloadUrl) {
+    if (
+      canDownload === true &&
+      typeof downloadUrl === "string" &&
+      downloadUrl
+    ) {
       return await ZoomTranscriptClient.download({ request, downloadUrl });
     }
 

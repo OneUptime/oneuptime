@@ -23,9 +23,7 @@ import Button, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
-import PermissionGate, {
-  ModelAction,
-} from "Common/UI/Utils/PermissionGate";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -244,10 +242,7 @@ const CallSummaryOfCall: FunctionComponent<{
     }
   };
 
-  const length: string = describeTranscriptLength(
-    props.view.info,
-    translator,
-  );
+  const length: string = describeTranscriptLength(props.view.info, translator);
 
   const heading: ReactElement = (
     <div>
@@ -419,9 +414,11 @@ const CallSummaryOfCall: FunctionComponent<{
             {/* In the order they were said, as the transcript has them. */}
             <ul className="mt-3 space-y-2">
               {[...rootCause.citations]
-                .sort((left: CallSummaryCitation, right: CallSummaryCitation) => {
-                  return left.line - right.line;
-                })
+                .sort(
+                  (left: CallSummaryCitation, right: CallSummaryCitation) => {
+                    return left.line - right.line;
+                  },
+                )
                 .map((citation: CallSummaryCitation) => {
                   return <Quote key={citation.line} citation={citation} />;
                 })}

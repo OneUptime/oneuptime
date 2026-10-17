@@ -21,7 +21,10 @@ import VideoCallConnectionSettingsUtil, {
 } from "../VideoCallConnectionSettings";
 import VideoCallHttpClient from "../VideoCallHttpClient";
 import GoogleMeetTranscriptClient from "./GoogleMeetTranscriptClient";
-import { VideoCallTranscriptRead, transcriptUnavailable } from "./VideoCallTranscriptRead";
+import {
+  VideoCallTranscriptRead,
+  transcriptUnavailable,
+} from "./VideoCallTranscriptRead";
 import ZoomTranscriptClient from "./ZoomTranscriptClient";
 
 /*
@@ -126,8 +129,12 @@ export default class VideoCallTranscriptReader {
 
       if (settings.provider === VideoCallProvider.GoogleMeet) {
         const accessToken: string = isSignIn
-          ? (await VideoCallTranscriptReader.getSignInToken({ connection, http }))
-              .accessToken
+          ? (
+              await VideoCallTranscriptReader.getSignInToken({
+                connection,
+                http,
+              })
+            ).accessToken
           : await new GoogleMeetClient(
               {
                 serviceAccountJson: VideoCallConnectionSettingsUtil.readSecret(

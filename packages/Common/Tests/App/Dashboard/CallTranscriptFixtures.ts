@@ -143,7 +143,14 @@ export function notEnoughSummary(): CallSummary {
     openQuestions: [
       {
         text: "What changed in checkout-api today?",
-        citations: [citation(4, "00:02:40", "Maya Chen", "Did anything ship in the last hour?")],
+        citations: [
+          citation(
+            4,
+            "00:02:40",
+            "Maya Chen",
+            "Did anything ship in the last hour?",
+          ),
+        ],
       },
     ],
   };
@@ -153,7 +160,11 @@ export function notEnoughSummary(): CallSummary {
 export const TRANSCRIPT_LINES: Array<TranscriptLine> = [
   [8, "Sam Rivera", "I'm on. Checkout p95 is at 2.4 seconds and climbing."],
   [31, "Jordan Patel", "Orders DB looks healthy from its side, CPU is at 30%."],
-  [72, "Sam Rivera", "The app side is waiting on pg.pool.connect, most requests wait about two seconds."],
+  [
+    72,
+    "Sam Rivera",
+    "The app side is waiting on pg.pool.connect, most requests wait about two seconds.",
+  ],
   [160, "Maya Chen", "Did anything ship in the last hour?"],
   [175, "Jordan Patel", "checkout-api 2026.09.14-2 went out at 17:52."],
   [243, "Sam Rivera", "The new release has DB_POOL_MAX=10, it was 40 before."],
@@ -161,8 +172,16 @@ export const TRANSCRIPT_LINES: Array<TranscriptLine> = [
   [302, "Jordan Patel", "Maybe the cache is cold too, I'm not sure."],
   [375, "Sam Rivera", "Rolling checkout-api back to 2026.09.14-1 now."],
   [588, "Sam Rivera", "Rollback done, p95 is back under 300 milliseconds."],
-  [620, "Maya Chen", "So the pool size change caused it. Jordan, can you add an alert on pool usage?"],
-  [641, "Jordan Patel", "On it. I'll also fix the default in the release config."],
+  [
+    620,
+    "Maya Chen",
+    "So the pool size change caused it. Jordan, can you add an alert on pool usage?",
+  ],
+  [
+    641,
+    "Jordan Patel",
+    "On it. I'll also fix the default in the release config.",
+  ],
 ].map((entry: Array<string | number>): TranscriptLine => {
   return {
     offsetInSeconds: entry[0] as number,
@@ -214,7 +233,9 @@ export interface TranscriptCallData {
  * An incident's call. With `info`, it has a transcript; with `status`,
  * OneUptime AI is reading it, has read it, or did not.
  */
-export function transcriptCall(data: TranscriptCallData = {}): IncidentVideoCall {
+export function transcriptCall(
+  data: TranscriptCallData = {},
+): IncidentVideoCall {
   const call: IncidentVideoCall = new IncidentVideoCall();
   call.id = new ObjectID(data.id || CALL_ID);
   call.provider = data.provider || VideoCallProvider.Zoom;
@@ -226,7 +247,10 @@ export function transcriptCall(data: TranscriptCallData = {}): IncidentVideoCall
   call.workspaceNotificationRuleId = ObjectID.generate();
   call.createdAt = minutesAgo(data.createdMinutesAgo ?? 40);
 
-  if (data.withConnection !== false && call.provider !== VideoCallProvider.MicrosoftTeams) {
+  if (
+    data.withConnection !== false &&
+    call.provider !== VideoCallProvider.MicrosoftTeams
+  ) {
     call.videoCallConnectionId = ObjectID.generate();
     call.externalMeetingId = "81234567890";
   }
@@ -260,7 +284,9 @@ export function transcriptCall(data: TranscriptCallData = {}): IncidentVideoCall
 
   if (data.reviewedBy) {
     call.rootCauseSuggestionReviewedByUser = userNamed(data.reviewedBy);
-    call.rootCauseSuggestionReviewedAt = minutesAgo(data.reviewedMinutesAgo ?? 2);
+    call.rootCauseSuggestionReviewedAt = minutesAgo(
+      data.reviewedMinutesAgo ?? 2,
+    );
   }
 
   return call;

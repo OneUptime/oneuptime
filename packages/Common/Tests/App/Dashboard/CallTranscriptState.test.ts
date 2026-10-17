@@ -217,7 +217,10 @@ describe("getCallTranscriptView - where OneUptime AI's reading stands", () => {
 
   test("a status without a transcript is not a reading: a removed transcript leaves none", () => {
     const view: CallTranscriptView = getCallTranscriptView(
-      transcriptCall({ status: CallSummaryStatus.Ready, summary: suggestedSummary() }),
+      transcriptCall({
+        status: CallSummaryStatus.Ready,
+        summary: suggestedSummary(),
+      }),
       NOW,
     );
 
@@ -410,9 +413,7 @@ describe("the transcript routes", () => {
       {},
     );
 
-    expect(
-      await addCallTranscript({ callId: CALL_ID, text: "x" }),
-    ).toEqual({
+    expect(await addCallTranscript({ callId: CALL_ID, text: "x" })).toEqual({
       callSummaryStatus: null,
       callSummaryStatusMessage: "AI features are disabled for this project.",
     });

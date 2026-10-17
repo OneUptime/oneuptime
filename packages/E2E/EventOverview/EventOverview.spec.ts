@@ -11930,9 +11930,9 @@ test.describe("an incident call's transcript (?calls=)", () => {
 
     await expect(callSummary(page)).toBeFocused();
     await expect(callSummary(page)).toBeInViewport();
-    await expect(callSummary(page).getByTestId("call-summary-status")).toHaveText(
-      "Not confirmed",
-    );
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed");
     await expectNoErrorStates(page);
   });
 
@@ -11960,7 +11960,11 @@ test.describe("an incident call's transcript (?calls=)", () => {
     ];
 
     for (const answer of answers) {
-      await openReady(page, INCIDENT_PAGE, `calls=zoom&transcriptFetch=${answer.mode}`);
+      await openReady(
+        page,
+        INCIDENT_PAGE,
+        `calls=zoom&transcriptFetch=${answer.mode}`,
+      );
 
       const card: Locator = callsCard(page);
       await card.getByRole("button", { name: "Get from Zoom" }).click();
@@ -11968,7 +11972,9 @@ test.describe("an incident call's transcript (?calls=)", () => {
       const outcome: Locator = card.getByTestId("call-transcript-outcome");
       await expect(outcome).toContainText(answer.text);
 
-      const docs: Locator = outcome.getByRole("link", { name: "How to set it up" });
+      const docs: Locator = outcome.getByRole("link", {
+        name: "How to set it up",
+      });
 
       if (answer.docs) {
         await expect(docs).toHaveAttribute(
@@ -11989,9 +11995,17 @@ test.describe("an incident call's transcript (?calls=)", () => {
     }
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await openReady(page, INCIDENT_PAGE, "calls=zoom&transcriptFetch=permission");
-    await callsCard(page).getByRole("button", { name: "Get from Zoom" }).click();
-    await expect(callsCard(page).getByTestId("call-transcript-outcome")).toBeVisible();
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "calls=zoom&transcriptFetch=permission",
+    );
+    await callsCard(page)
+      .getByRole("button", { name: "Get from Zoom" })
+      .click();
+    await expect(
+      callsCard(page).getByTestId("call-transcript-outcome"),
+    ).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 
@@ -12053,11 +12067,13 @@ test.describe("an incident call's transcript (?calls=)", () => {
     const quotes: Locator = section.getByTestId("call-summary-quote");
     await expect(quotes).toHaveCount(3);
     expect(
-      await quotes.evaluateAll((items: Array<Element>): Array<string | null> => {
-        return items.map((item: Element): string | null => {
-          return item.getAttribute("data-line");
-        });
-      }),
+      await quotes.evaluateAll(
+        (items: Array<Element>): Array<string | null> => {
+          return items.map((item: Element): string | null => {
+            return item.getAttribute("data-line");
+          });
+        },
+      ),
     ).toEqual(["6", "10", "11"]);
     await expect(quotes.first()).toContainText("00:04:03 · Sam Rivera");
 
@@ -12099,7 +12115,9 @@ test.describe("an incident call's transcript (?calls=)", () => {
     });
     const lines: Locator = dialog.getByTestId("call-transcript-line");
     await expect(lines).toHaveCount(12);
-    await expect(dialog.getByTestId("call-transcript-highlight-legend")).toBeVisible();
+    await expect(
+      dialog.getByTestId("call-transcript-highlight-legend"),
+    ).toBeVisible();
     await expect(dialog.locator("[data-highlighted='true']")).toHaveCount(3);
     await expect(lines.nth(5)).toHaveAttribute("data-highlighted", "true");
 
@@ -12120,7 +12138,9 @@ test.describe("an incident call's transcript (?calls=)", () => {
     const section: Locator = callSummary(page);
     await section.getByRole("button", { name: "Use as root cause" }).click();
 
-    const dialog: Locator = page.getByRole("dialog", { name: "Use as root cause" });
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Use as root cause",
+    });
     const editor: Locator = dialog.locator('[contenteditable="true"]').first();
 
     // An identifier stays as written: code, never italic.
@@ -12170,9 +12190,9 @@ test.describe("an incident call's transcript (?calls=)", () => {
     await expect(
       section.getByRole("link", { name: "View root cause" }),
     ).toBeVisible();
-    await expect(callsCard(page).getByTestId("call-transcript-read")).toContainText(
-      "Used as the incident's root cause.",
-    );
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read"),
+    ).toContainText("Used as the incident's root cause.");
   });
 
   test("a save the server refuses keeps the dialog open and says why", async ({
@@ -12185,15 +12205,17 @@ test.describe("an incident call's transcript (?calls=)", () => {
     await callSummary(page)
       .getByRole("button", { name: "Use as root cause" })
       .click();
-    const dialog: Locator = page.getByRole("dialog", { name: "Use as root cause" });
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Use as root cause",
+    });
     await dialog.getByRole("button", { name: "Save as root cause" }).click();
 
     await expect(dialog).toContainText(
       "You do not have permission to edit this incident's root cause.",
     );
-    await expect(callSummary(page).getByTestId("call-summary-status")).toHaveText(
-      "Not confirmed",
-    );
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed");
   });
 
   test("Dismiss sets the suggestion aside, and Undo brings it back", async ({
@@ -12261,9 +12283,9 @@ test.describe("an incident call's transcript (?calls=)", () => {
       "open",
       "",
     );
-    await expect(callsCard(page).getByTestId("call-transcript-read")).toContainText(
-      "not enough was said to suggest a root cause",
-    );
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read"),
+    ).toContainText("not enough was said to suggest a root cause");
   });
 
   test("a reading that failed, or stopped part-way, is offered again from either card", async ({
@@ -12282,10 +12304,9 @@ test.describe("an incident call's transcript (?calls=)", () => {
 
     await page.getByTestId("call-summary-read-again").click();
     await expect(page.getByTestId("call-summary-reading")).toBeVisible();
-    await expect(callSummary(page).getByTestId("call-summary-status")).toHaveText(
-      "Not confirmed",
-      { timeout: 30000 },
-    );
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed", { timeout: 30000 });
     expect(await transcriptRequests(page, "POST", "call-summary")).toHaveLength(
       1,
     );
@@ -12371,7 +12392,10 @@ test.describe("an incident call's transcript (?calls=)", () => {
 
     await openReady(page, INCIDENT_PAGE, "calls=transcript&theme=dark");
     await page.mouse.move(0, 0);
-    await screenshotElement(callsCard(page), "incident-call-transcript-card-dark");
+    await screenshotElement(
+      callsCard(page),
+      "incident-call-transcript-card-dark",
+    );
     await screenshotElement(
       page.getByTestId("call-summaries"),
       "incident-call-summary-dark",
