@@ -30406,5 +30406,7 @@
   "Opens one incident when one of these probes goes three minutes without a heartbeat. It resolves itself when the probe is back.": "其中任一探针连续三分钟没有心跳时，创建一个事件。探针恢复后，该事件会自动解决。",
   "What this monitor watches, and the settings it uses.": "此监视器关注的对象及其使用的设置。",
   "{{marketplace}} is not accepting usage reports": "{{marketplace}} is not accepting usage reports",
-  "{{marketplace}} no longer licenses this installation": "{{marketplace}} no longer licenses this installation"
+  "{{marketplace}} no longer licenses this installation": "{{marketplace}} no longer licenses this installation",
+  "Show {{count}} more labels": "Show {{count}} more labels",
+  "Show {{count}} more labels_one": "Show {{count}} more label"
 }

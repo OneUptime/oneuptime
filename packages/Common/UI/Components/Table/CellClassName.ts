@@ -83,8 +83,12 @@ export function getTableCellClassName<T extends GenericObject>(
       : TABLE_CELL_TEXT_CLASS_NAME,
   ];
 
+  /*
+   * The row's buttons sit at its end: the right in a left-to-right page,
+   * the left in a right-to-left one (Persian).
+   */
   if (options.column.type === FieldType.Actions) {
-    classNames.push("text-right");
+    classNames.push("text-end");
   }
 
   if (!options.isLastRow) {

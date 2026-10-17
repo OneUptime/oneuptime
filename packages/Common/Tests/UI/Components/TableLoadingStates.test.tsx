@@ -186,8 +186,19 @@ describe("first load (nothing to show yet)", () => {
       .querySelectorAll("tr")[0]!
       .querySelectorAll("td");
 
-    // Same classes as TableRow's cells: last cell gets pr-6, the rest pr-3.
-    expect(cells[0]).toHaveClass("py-4", "pl-4", "pr-3", "whitespace-nowrap");
+    /*
+     * Same classes as TableRow's cells: the first starts 24px in (pl-6),
+     * the last ends as far in (pr-6), 12px either side of the rest; and a
+     * row with another under it draws the hairline between them.
+     */
+    expect(cells[0]).toHaveClass(
+      "py-3",
+      "pl-6",
+      "pr-3",
+      "whitespace-nowrap",
+      "border-b",
+      "border-gray-100",
+    );
     expect(cells[cells.length - 1]).toHaveClass("pr-6");
   });
 });
@@ -412,13 +423,13 @@ describe("skeleton cells honour a column's wrapContent flag", () => {
      * a wrapping placeholder keeps the same rhythm as the rows around it.
      */
     expect(cells[1]).toHaveClass(
-      "py-4",
-      "pl-4",
-      "sm:pl-6",
+      "py-3",
+      "pl-3",
       "align-top",
       "text-sm",
-      "font-medium",
-      "text-gray-500",
+      "leading-6",
+      "font-normal",
+      "text-gray-700",
     );
   });
 
@@ -458,8 +469,15 @@ describe("skeleton cells honour a column's wrapContent flag", () => {
    */
   test("a wrapping column's skeleton cell and real cell carry the same classes", () => {
     renderWrappingTable({ isLoading: true, data: [] });
+    /*
+     * The skeleton's last row against the real table's only (so last) row:
+     * a last row draws no rule under itself, in both.
+     */
+    const skeletonRows: NodeListOf<Element> = screen
+      .getByTestId("table-skeleton-loader")
+      .querySelectorAll("tr");
     const skeletonClassNames: Array<string> = Array.from(
-      getSkeletonCells(),
+      skeletonRows[skeletonRows.length - 1]!.querySelectorAll("td"),
     ).map((cell: Element): string => {
       return cell.className;
     });

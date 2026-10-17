@@ -12,6 +12,8 @@ import {
   TABLE_SORT_HINT_CLASS_NAME,
   TABLE_SORTED_COLUMN_CLASS_NAME,
   TABLE_UNSORTED_COLUMN_CLASS_NAME,
+  TABLE_CELL_EDGE_PADDING_LEFT_CLASS_NAME,
+  TABLE_CELL_INNER_PADDING_LEFT_CLASS_NAME,
   TABLE_STICKY_END_HEADER_CELL_CLASS_NAME,
   TABLE_STICKY_HEADER_CELL_CLASS_NAME,
   TABLE_STICKY_HEADER_TOP_CLASS_NAME,
@@ -172,9 +174,12 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
             props.onSortChanged(column.key, sortOrder);
           };
 
+          const isFirstCell: boolean = leadingCellCount === 0 && i === 0;
+          const isLastCell: boolean = i === renderedColumns.length - 1;
+
           const paddingClassName: string = getTableCellPaddingClassName({
-            isFirst: leadingCellCount === 0 && i === 0,
-            isLast: i === renderedColumns.length - 1,
+            isFirst: isFirstCell,
+            isLast: isLastCell,
           });
 
           const contentClassName: string = `${TABLE_HEADER_CONTENT_CLASS_NAME} ${paddingClassName} ${
@@ -263,11 +268,20 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                * button shrinks to its content and the (i) follows it.
                */}
               {canSort && column.headerTooltip?.trim() ? (
-                <div className={contentClassName}>
+                /*
+                 * The sort button keeps the cell's left padding and its
+                 * height, so it is as easy to hit as a full-cell one; the
+                 * (i) takes the cell's right padding as its margin.
+                 */
+                <div className="flex w-full items-center whitespace-nowrap">
                   <button
                     type="button"
                     onClick={sortColumn}
-                    className={`inline-flex items-center gap-1 ${TABLE_SORT_BUTTON_CLASS_NAME} ${sortColourClassName}`}
+                    className={`inline-flex items-center gap-1 py-2.5 pr-1 ${
+                      isFirstCell
+                        ? TABLE_CELL_EDGE_PADDING_LEFT_CLASS_NAME
+                        : TABLE_CELL_INNER_PADDING_LEFT_CLASS_NAME
+                    } ${TABLE_SORT_BUTTON_CLASS_NAME} ${sortColourClassName}`}
                   >
                     {titleElement}
                     {sortIndicator}
@@ -275,7 +289,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                   <InfoTooltip
                     label={title}
                     text={column.headerTooltip}
-                    className="font-normal"
+                    className={`${isLastCell ? "mr-6" : "mr-3"} font-normal`}
                   />
                 </div>
               ) : canSort ? (

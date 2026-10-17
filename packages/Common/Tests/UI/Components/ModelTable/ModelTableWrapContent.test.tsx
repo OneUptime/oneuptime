@@ -136,20 +136,45 @@ import IconProp from "../../../../Types/Icon/IconProp";
 const PREFS_KEY: string = "monitors-wrap-content-table";
 
 /*
- * The exact <td> class string every non-wrapping body cell had BEFORE the fix,
- * character for character, and still has after it. Spelled out as a literal
- * rather than imported from CellClassName.ts on purpose: importing the helper
- * would only prove the helper agrees with itself, while this literal is the
- * frozen "no column asked for anything, so nothing changed" contract that
- * roughly two hundred column declarations with no layout coverage of their
- * own are relying on.
+ * The exact <td> class strings of the table's one-line cells, character for
+ * character. Spelled out as literals rather than imported from
+ * CellClassName.ts on purpose: importing the helper would only prove the
+ * helper agrees with itself, while these literals are the frozen "no column
+ * asked for anything" contract that roughly two hundred column declarations
+ * with no layout coverage of their own are relying on.
+ *
+ * The table redesign (model-table-ui) gave every row the reading size on a
+ * 24px line, the record's name (the first column) a step heavier, 24px
+ * between columns and at the row's ends; the fixture's only row is its last,
+ * so no cell draws the rule under it.
  */
-const NOWRAP_CELL_CLASS_NAME: string =
-  "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top";
+const NOWRAP_FIRST_CELL_CLASS_NAME: string =
+  "whitespace-nowrap pl-6 pr-3 py-3 align-top text-sm leading-6 font-medium text-gray-900";
 
-// Same, for the last rendered column, which takes the wider right padding.
+// A one-line cell between the first and the last.
+const NOWRAP_CELL_CLASS_NAME: string =
+  "whitespace-nowrap pl-3 pr-3 py-3 align-top text-sm leading-6 font-normal text-gray-700";
+
+/*
+ * The last rendered column - the generated Actions one - takes the wider
+ * right padding, right-aligns, and sticks at the table's right edge with its
+ * row's own background (TableLayout).
+ */
 const NOWRAP_LAST_CELL_CLASS_NAME: string =
-  "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top";
+  "whitespace-nowrap pl-3 pr-6 py-3 align-top text-sm leading-6 font-normal text-gray-700 text-end sticky right-0 z-[1] bg-inherit";
+
+// A wrapping cell: the same rhythm, only the white-space pair differs.
+const WRAP_CELL_CLASS_NAME: string =
+  "whitespace-normal break-words pl-3 pr-3 py-3 align-top text-sm leading-6 font-normal text-gray-700";
+
+/*
+ * A one-line value's wrapper: capped at 20rem, always together with the clip
+ * and the ellipsis that keep a line that does not wrap inside its box - never
+ * the bare cap #3585 was - with a record's link laid out as a line of text
+ * so its name can end in "...", and what it holds on the row's line.
+ */
+const ONE_LINE_CONTENT_CLASS_NAME: string =
+  "max-w-[20rem] overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>*]:align-top";
 
 /*
  * The default cap a wrapping column gets when it names no width of its own.
@@ -158,6 +183,12 @@ const NOWRAP_LAST_CELL_CLASS_NAME: string =
  * changing it should have to be a deliberate edit here too.
  */
 const DEFAULT_WRAP_WIDTH_CLASS_NAME: string = "max-w-md";
+
+/*
+ * The narrowest a wrapping column is drawn, so a description is never
+ * squeezed to a word or two a line when the table is wider than its card.
+ */
+const WRAP_MIN_WIDTH_CLASS_NAME: string = "min-w-[10rem]";
 
 const FILTERS: Array<Filter<Monitor>> = [
   { title: "Name", type: FieldType.Text, field: { name: true } },
@@ -410,9 +441,7 @@ describe("ModelTable column wrapping options (OneUptime issue #3585)", () => {
        * right whitespace classes while dropping those would look fine here
        * and wrong on screen.
        */
-      expect(cell.className).toBe(
-        "whitespace-normal break-words py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top",
-      );
+      expect(cell.className).toBe(WRAP_CELL_CLASS_NAME);
     });
 
     /*
@@ -427,7 +456,11 @@ describe("ModelTable column wrapping options (OneUptime issue #3585)", () => {
       await waitForRow();
 
       expect(getContentWrapper("cell-status-message").className).toBe(
-        DEFAULT_WRAP_WIDTH_CLASS_NAME,
+        `${DEFAULT_WRAP_WIDTH_CLASS_NAME} ${WRAP_MIN_WIDTH_CLASS_NAME} [&>*]:align-top`,
+      );
+      // A wrapping value is never cut short: no clip, no ellipsis.
+      expect(getContentWrapper("cell-status-message")).not.toHaveClass(
+        "overflow-x-clip",
       );
 
       expect(getCell("cell-status-message").className).not.toMatch(/max-w-/);
@@ -448,7 +481,9 @@ describe("ModelTable column wrapping options (OneUptime issue #3585)", () => {
 
       const wrapper: HTMLElement = getContentWrapper("cell-exception-message");
 
-      expect(wrapper.className).toBe("max-w-3xl");
+      expect(wrapper.className).toBe(
+        `max-w-3xl ${WRAP_MIN_WIDTH_CLASS_NAME} [&>*]:align-top`,
+      );
       // The named width replaces the default rather than stacking with it.
       expect(wrapper).not.toHaveClass(DEFAULT_WRAP_WIDTH_CLASS_NAME);
 
@@ -479,40 +514,44 @@ describe("ModelTable column wrapping options (OneUptime issue #3585)", () => {
       // Same row - so this really is per column, not per table.
       expect(plainCell.parentElement).toBe(wrappingCell.parentElement);
 
-      expect(plainCell.className).toBe(NOWRAP_CELL_CLASS_NAME);
+      expect(plainCell.className).toBe(NOWRAP_FIRST_CELL_CLASS_NAME);
     });
 
     /*
-     * A column that declares neither option must produce the DOM it produced
-     * before the options existed - down to an empty wrapper className, so
-     * that not one class shifts for the columns nobody touched.
+     * A column that declares neither option is one line, capped only with
+     * its clip and ellipsis - the same wrapper for every such column.
      */
-    test("a column that declares neither option gets an empty content wrapper", async () => {
+    test("a column that declares neither option gets the one-line wrapper", async () => {
       renderTable();
 
       await waitForRow();
 
-      expect(getContentWrapper("cell-name").className).toBe("");
+      expect(getContentWrapper("cell-name").className).toBe(
+        ONE_LINE_CONTENT_CLASS_NAME,
+      );
     });
 
     /*
      * `contentClassName` predates this work and is a different thing: styling
-     * for the content, with no opinion on wrapping. It has to pass through
-     * untouched, and - the important half - must NOT acquire a width cap,
-     * because a max-width on a still-nowrap cell is exactly the overlap
-     * generator #3585 was.
+     * for the content, with no opinion on wrapping. It passes through, after
+     * the one-line wrapper's own classes - and the cap it gets comes with the
+     * clip, because a max-width on a still-nowrap cell WITHOUT one is
+     * exactly the overlap generator #3585 was.
      */
-    test("a contentClassName-only column keeps its exact string, with no width injected", async () => {
+    test("a contentClassName-only column keeps its classes after the one-line wrapper's", async () => {
       renderTable();
 
       await waitForRow();
 
       expect(getContentWrapper("cell-note").className).toBe(
-        "text-xs text-gray-500",
+        `${ONE_LINE_CONTENT_CLASS_NAME} text-xs text-gray-500`,
       );
-      expect(getContentWrapper("cell-note").className).not.toMatch(/max-w-/);
+      expect(getContentWrapper("cell-note")).toHaveClass(
+        "overflow-x-clip",
+        "text-ellipsis",
+      );
 
-      // And the cell itself is untouched: no opt-in, no wrapping.
+      // And the cell itself: no opt-in, no wrapping.
       expect(getCell("cell-note").className).toBe(NOWRAP_CELL_CLASS_NAME);
     });
   });
@@ -543,7 +582,7 @@ describe("ModelTable column wrapping options (OneUptime issue #3585)", () => {
        * here as extra classes.
        */
       expect(actionsContainer.className).toBe(
-        "flex items-center justify-end gap-2",
+        "flex items-center justify-end gap-2 -my-[3px] leading-none",
       );
 
       const actionsCell: HTMLElement = actionsContainer.closest(

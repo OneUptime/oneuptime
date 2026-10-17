@@ -30406,5 +30406,7 @@
   "Opens one incident when one of these probes goes three minutes without a heartbeat. It resolves itself when the probe is back.": "Åpner én hendelse når en av disse probene går tre minutter uten hjerteslag. Den løses av seg selv når proben er tilbake.",
   "What this monitor watches, and the settings it uses.": "Hva denne monitoren overvåker, og hvilke innstillinger den bruker.",
   "{{marketplace}} is not accepting usage reports": "{{marketplace}} is not accepting usage reports",
-  "{{marketplace}} no longer licenses this installation": "{{marketplace}} no longer licenses this installation"
+  "{{marketplace}} no longer licenses this installation": "{{marketplace}} no longer licenses this installation",
+  "Show {{count}} more labels": "Show {{count}} more labels",
+  "Show {{count}} more labels_one": "Show {{count}} more label"
 }

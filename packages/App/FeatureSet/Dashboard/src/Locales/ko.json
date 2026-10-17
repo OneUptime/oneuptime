@@ -30406,5 +30406,7 @@
   "Opens one incident when one of these probes goes three minutes without a heartbeat. It resolves itself when the probe is back.": "이 프로브 중 하나가 3분 동안 하트비트를 보내지 않으면 인시던트를 하나 엽니다. 프로브가 돌아오면 자동으로 해결됩니다.",
   "What this monitor watches, and the settings it uses.": "이 모니터가 감시하는 대상과 사용하는 설정.",
   "{{marketplace}} is not accepting usage reports": "{{marketplace}} is not accepting usage reports",
-  "{{marketplace}} no longer licenses this installation": "{{marketplace}} no longer licenses this installation"
+  "{{marketplace}} no longer licenses this installation": "{{marketplace}} no longer licenses this installation",
+  "Show {{count}} more labels": "Show {{count}} more labels",
+  "Show {{count}} more labels_one": "Show {{count}} more label"
 }

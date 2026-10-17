@@ -5,6 +5,7 @@ import Card, {
   CARD_HEADER_LAYOUTS,
   CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME,
   CARD_HEADER_TITLE_BLOCK_CLASS_NAME,
+  CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME,
   CardButtonSchema,
   CardHeaderLayout,
   ComponentProps,
@@ -134,6 +135,16 @@ const SHAPES: Array<HeaderShape> = [
   },
 ];
 
+/*
+ * The title's block in each layout. A Record, so a layout added to Card
+ * cannot be left out of the rule below.
+ */
+const TITLE_BLOCK_CLASS_NAME_BY_LAYOUT: Record<CardHeaderLayout, string> = {
+  default: CARD_HEADER_TITLE_BLOCK_CLASS_NAME,
+  stacked: CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME,
+  toolbar: CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME,
+};
+
 function classOf(element: Element): string {
   return element.getAttribute("class") || "";
 }
@@ -234,9 +245,7 @@ describe.each([...CARD_HEADER_LAYOUTS] as Array<CardHeaderLayout>)(
       );
 
       expect(titleBlockClassName).toBe(
-        headerLayout === "stacked"
-          ? CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME
-          : CARD_HEADER_TITLE_BLOCK_CLASS_NAME,
+        TITLE_BLOCK_CLASS_NAME_BY_LAYOUT[headerLayout],
       );
       /*
        * Below md no utility lets the title grow into, or shrink for, the

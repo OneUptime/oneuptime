@@ -30406,5 +30406,7 @@
   "Opens one incident when one of these probes goes three minutes without a heartbeat. It resolves itself when the probe is back.": "これらのプローブのいずれかが 3 分間ハートビートを送らないと、インシデントを 1 件作成します。プローブが戻ると自動的に解決されます。",
   "What this monitor watches, and the settings it uses.": "このモニターが監視する対象と、使用する設定。",
   "{{marketplace}} is not accepting usage reports": "{{marketplace}} が使用状況レポートを受け付けていません",
-  "{{marketplace}} no longer licenses this installation": "{{marketplace}} はこのインストールのライセンスを提供しなくなりました"
+  "{{marketplace}} no longer licenses this installation": "{{marketplace}} はこのインストールのライセンスを提供しなくなりました",
+  "Show {{count}} more labels": "Show {{count}} more labels",
+  "Show {{count}} more labels_one": "Show {{count}} more label"
 }
