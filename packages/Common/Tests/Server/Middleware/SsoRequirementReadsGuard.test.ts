@@ -23,9 +23,11 @@ import ts from "typescript";
  *   - every read of the rules is listed below, by file and function, so a
  *     new reader fails here until it is looked at - and added to the suites
  *     that make each read fail (SsoRequirementUnreadableOverHttp,
- *     UserAuthorizationSsoEnforcement, RealtimeJoinGuard,
+ *     UserAuthorizationSsoEnforcement, RealtimeJoinGuard, Realtime,
  *     FileImageRouteViewers, McpOAuthSso, McpOAuthGrantAccess and the MCP
- *     server's OAuthFlow);
+ *     server's OAuthFlow) - and the getters themselves keep nothing a read
+ *     that failed, or that a change overtook, answered
+ *     (ProjectSignInRuleCache, ServerSignInRuleCache);
  *   - no read is handed to a .catch, or sits in a try whose catch, can end
  *     as a value: each ends by throwing, and the one failure it may answer
  *     on the way is the project not existing
