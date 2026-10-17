@@ -236,7 +236,10 @@
       "saved": "Le tue modifiche sono state salvate.",
       "submit": "Aggiorna iscrizione",
       "unsubscribe": "Annulla iscrizione",
-      "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse."
+      "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse.",
+      "linkNotValid": "Questo link per gestire la tua iscrizione è scaduto o non è valido. Per riceverne uno nuovo, usa «Gestisci iscrizione esistente» nella pagina «Iscriviti».",
+      "getNewLink": "Ricevi un nuovo link",
+      "loadFailed": "Impossibile caricare questo link. Riprova più tardi."
     },
     "confirm": {
       "title": "Conferma iscrizione",

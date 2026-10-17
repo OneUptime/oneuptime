@@ -93,6 +93,50 @@ describe.each(LANGUAGES)("%s: status-pages/subscribers", (language: string) => {
     ).toBe(`22222222-2222-4222-8222-222222222222-${"ab".repeat(32)}`);
   });
 
+  test("describes the manage page's link with the same credential, and its routes with the token", () => {
+    const shape: string = `{statusPageUrl}/${StatusPageSubscriberUnsubscribe.MANAGE_PAGE_ROUTE_SEGMENT}/{statusPageSubscriberId}-{token}`;
+
+    expect(markdown).toContain(`\`${shape}\``);
+
+    // The link the builder makes has the shape the page describes.
+    expect(
+      StatusPageSubscriberUnsubscribe.buildManageSubscriptionLink({
+        statusPageUrl: "https://status.acme.com",
+        subscriberId: "22222222-2222-4222-8222-222222222222",
+        unsubscribeToken: "ab".repeat(32),
+      }).toString(),
+    ).toBe(
+      `https://status.acme.com/update-subscription/22222222-2222-4222-8222-222222222222-${"ab".repeat(32)}`,
+    );
+
+    expect(markdown).toContain(
+      "`POST .../get-subscription/:statusPageId/:subscriberId/:token`",
+    );
+    expect(markdown).toContain(
+      "`PUT .../update-subscription/:statusPageId/:subscriberId/:token`",
+    );
+    // Never the routes as they were, by the subscriber id alone.
+    expect(markdown).not.toContain(
+      "`POST .../get-subscription/:statusPageId/:subscriberId`",
+    );
+    expect(markdown).not.toContain(
+      "`PUT .../update-subscription/:statusPageId/:subscriberId`",
+    );
+  });
+
+  test("names the way on from a manage link that has expired, as the page draws it", () => {
+    const copy: Record<string, string> = (
+      JSON.parse(
+        fs.readFileSync(
+          path.join(STATUS_PAGE_LOCALES_DIR, `${language}.json`),
+          "utf8",
+        ),
+      ) as Record<string, any>
+    )["subscribe"]["update"];
+
+    expect(markdown).toContain(`**${copy["getNewLink"]}**`);
+  });
+
   test("names the unsubscribe endpoints and quotes the page's own words", () => {
     expect(markdown).toContain(
       "`POST .../unsubscribe/:statusPageId/:subscriberId/:token`",

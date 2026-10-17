@@ -237,7 +237,6 @@ import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
-  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -325,8 +324,8 @@ const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
-// An SMS from this public page carries the manage link (see smsManageLinkFor).
-const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+// An SMS carries the same token link as every other message, on a public page too.
+const SMS_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -1628,7 +1627,7 @@ describe.each(TRIGGERS)(
         }),
       );
 
-      // An SMS from this public page carries the manage link (see smsManageLinkFor).
+      // An SMS carries the same token link as every other message, on a public page too.
       expect(sentSms()).toEqual([
         `SMS|${plainTextRendering.replace(UNSUBSCRIBE_URL, SMS_UNSUBSCRIBE_URL)}`,
       ]);
@@ -1684,7 +1683,7 @@ describe.each(TRIGGERS)(
         }).toEqual({
           statusPageName: "Acme Status",
           statusPageUrl: STATUS_PAGE_URL,
-          // An SMS from this public page carries the manage link (see smsManageLinkFor).
+          // An SMS carries the same token link as every other message, on a public page too.
           unsubscribeUrl: call.template.startsWith(
             `${StatusPageSubscriberNotificationMethod.SMS}|`,
           )
@@ -1787,7 +1786,7 @@ describe.each(TRIGGERS)(
           ...shared,
           announcementDescription: DESCRIPTION_TEXT,
           resourcesAffected: RESOURCES_AFFECTED_TEXT,
-          // An SMS from this public page carries the manage link (see smsManageLinkFor).
+          // An SMS carries the same token link as every other message, on a public page too.
           unsubscribeUrl: SMS_UNSUBSCRIBE_URL,
         },
         [StatusPageSubscriberNotificationMethod.Slack]: {

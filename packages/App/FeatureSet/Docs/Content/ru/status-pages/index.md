@@ -115,7 +115,7 @@ flowchart TB
 - `/announcements` и `/announcements/:id`.
 - `/scheduled-events` и `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` и `/unsubscribe/:token`: ссылки в сообщениях, которые получают подписчики.
+- `/confirm-subscription/:id`, `/update-subscription/:token` и `/unsubscribe/:token`: ссылки в сообщениях, которые получают подписчики.
 - `/rss`: лента.
 - `/login`, `/sso` и `/master-password`: имеют значение только на приватной странице.
 

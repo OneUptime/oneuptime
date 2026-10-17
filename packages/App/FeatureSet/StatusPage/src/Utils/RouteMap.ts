@@ -19,7 +19,15 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SUBSCRIBE_SLACK]: new Route(`/subscribe/slack`),
   [PageMap.SUBSCRIBE_MICROSOFT_TEAMS]: new Route(`/subscribe/microsoft-teams`),
   [PageMap.SUBSCRIBE_WEBHOOKS]: new Route(`/subscribe/webhooks`),
-  [PageMap.UPDATE_SUBSCRIPTION]: new Route(`/update-subscription/:id`),
+  /*
+   * The subscriber's manage page. Its link carries the same credential as the
+   * unsubscribe link ({subscriberId}-{token}), which SensitiveUrlToken takes
+   * out of the address bar before the page loads, so App also routes the
+   * token-free /update-subscription here - which is also where the
+   * unsubscribe page's "manage instead" link goes, the credential staying in
+   * the tab's session.
+   */
+  [PageMap.UPDATE_SUBSCRIPTION]: new Route(`/update-subscription/:token`),
   [PageMap.CONFIRM_SUBSCRIPTION]: new Route(`/confirm-subscription/:id`),
   /*
    * The unsubscribe link in every subscriber notification. Its last segment
@@ -112,7 +120,7 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   [PageMap.PREVIEW_UPDATE_SUBSCRIPTION]: new Route(
-    `/status-page/${RouteParams.StatusPageId}/update-subscription/:id`,
+    `/status-page/${RouteParams.StatusPageId}/update-subscription/:token`,
   ),
 
   [PageMap.PREVIEW_CONFIRM_SUBSCRIPTION]: new Route(
@@ -124,7 +132,25 @@ const RouteMap: Dictionary<Route> = {
   ),
 };
 
+// A route's trailing ":token" parameter.
+const TOKEN_PARAM_PATTERN: RegExp = /\/:token$/;
+
 export class RouteUtil {
+  /*
+   * The token-free form of a token-bearing route.
+   *
+   * Common/Server/Views/Partials/SensitiveUrlToken.ejs takes the token out of
+   * the path in <head>, before any third-party tag can report the URL, so by
+   * the time the router runs the visitor is on /reset-password rather than
+   * /reset-password/<token>. Both forms have to resolve to the same page: the
+   * :token form is what remains when that bootstrap could not run. The
+   * token-free form is also how one page hands another the credential it was
+   * opened with - it stays in the tab's session, never in the address.
+   */
+  public static tokenFreeRoute(route: string): string {
+    return route.replace(TOKEN_PARAM_PATTERN, "");
+  }
+
   public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
     const tempRoute: Route = new Route(route.toString());
 

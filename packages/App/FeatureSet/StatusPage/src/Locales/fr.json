@@ -236,7 +236,10 @@
       "saved": "Vos modifications ont été enregistrées.",
       "submit": "Mettre à jour l'abonnement",
       "unsubscribe": "Se désabonner",
-      "unsubscribeDescription": "Sélectionnez cette option si vous souhaitez vous désabonner de toutes les ressources."
+      "unsubscribeDescription": "Sélectionnez cette option si vous souhaitez vous désabonner de toutes les ressources.",
+      "linkNotValid": "Ce lien de gestion de votre abonnement a expiré ou n'est pas valide. Pour en obtenir un nouveau, utilisez « Gérer l'abonnement existant » sur la page « S'abonner ».",
+      "getNewLink": "Obtenir un nouveau lien",
+      "loadFailed": "Impossible de charger ce lien. Veuillez réessayer plus tard."
     },
     "confirm": {
       "title": "Confirmer l'abonnement",

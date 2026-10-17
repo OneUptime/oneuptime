@@ -236,7 +236,10 @@
       "saved": "您的更改已保存。",
       "submit": "更新订阅",
       "unsubscribe": "取消订阅",
-      "unsubscribeDescription": "如果您想取消订阅所有资源，请选择此选项。"
+      "unsubscribeDescription": "如果您想取消订阅所有资源，请选择此选项。",
+      "linkNotValid": "此订阅管理链接已过期或无效。要获取新链接，请使用“订阅”页面上的“管理现有订阅”。",
+      "getNewLink": "获取新链接",
+      "loadFailed": "无法加载此链接，请稍后重试。"
     },
     "confirm": {
       "title": "确认订阅",

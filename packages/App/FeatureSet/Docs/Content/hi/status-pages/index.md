@@ -115,7 +115,7 @@ API या Terraform से बनाए गए पृष्ठ पर भी �
 - `/announcements` और `/announcements/:id`।
 - `/scheduled-events` और `/scheduled-events/:id`।
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`।
-- `/confirm-subscription/:id`, `/update-subscription/:id` और `/unsubscribe/:token`: सब्सक्राइबर को मिलने वाले संदेशों में दिए लिंक।
+- `/confirm-subscription/:id`, `/update-subscription/:token` और `/unsubscribe/:token`: सब्सक्राइबर को मिलने वाले संदेशों में दिए लिंक।
 - `/rss`: फ़ीड।
 - `/login`, `/sso` और `/master-password`: केवल निजी पृष्ठ पर प्रासंगिक।
 
