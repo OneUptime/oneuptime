@@ -17,7 +17,6 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
-import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
@@ -487,19 +486,6 @@ const notifySubscribersOfAnnouncement: (data: {
                 `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for announcement ${announcement.id}.`,
               );
 
-              /*
-               * On a public status page the SMS keeps the shorter manage link,
-               * which works there without signing in: an SMS is billed by the
-               * segment (see StatusPageSubscriberUnsubscribe.buildSmsLink).
-               */
-              const smsUnsubscribeUrl: string =
-                StatusPageSubscriberUnsubscribe.buildSmsLink({
-                  isPublicStatusPage: statuspage.isPublicStatusPage,
-                  statusPageUrl: statusPageURL,
-                  subscriberId: subscriber.id!,
-                  unsubscribeUrl: unsubscribeUrl,
-                });
-
               // Build SMS message - use custom template if available and custom Twilio is configured
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
@@ -507,13 +493,10 @@ const notifySubscribersOfAnnouncement: (data: {
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     smsTemplate.templateBody,
-                    {
-                      ...subscriberPlainTextTemplateVariables,
-                      unsubscribeUrl: smsUnsubscribeUrl,
-                    },
+                    subscriberPlainTextTemplateVariables,
                   );
               } else {
-                smsMessage = `${copy.smsPrefix} ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
+                smsMessage = `${copy.smsPrefix} ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${unsubscribeUrl}`;
               }
 
               const sms: SMS = {

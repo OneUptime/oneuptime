@@ -42,8 +42,13 @@ import {
  * one on an edit keeps the saved one (a form never has it to send back);
  * and a new one clears the refusal the old one left.
  *
- * The hooks are called as DatabaseService calls them; the database itself
- * is HuntressPostgres.test.ts's.
+ * Nobody may write isWebhookSigningSecretSet, so the server writes it in
+ * onCreatePermitted / onUpdatePermitted, after the caller's column checks:
+ * what onBeforeCreate / onBeforeUpdate leave is never held against them.
+ *
+ * The hooks are called as DatabaseService calls them, in its order;
+ * WorkflowSigningSecretAsMember.test.ts runs the whole write as the members
+ * who make it, and the database itself is HuntressPostgres.test.ts's.
  */
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
@@ -58,7 +63,9 @@ function svixSecret(): string {
 
 interface Hooks {
   onBeforeCreate: (createBy: CreateBy<Workflow>) => Promise<OnCreate<Workflow>>;
+  onCreatePermitted: (onCreate: OnCreate<Workflow>) => Promise<void>;
   onBeforeUpdate: (updateBy: UpdateBy<Workflow>) => Promise<OnUpdate<Workflow>>;
+  onUpdatePermitted: (updateBy: UpdateBy<Workflow>) => Promise<void>;
   onUpdateSuccess: (
     onUpdate: OnUpdate<Workflow>,
     updatedItemIds: Array<ObjectID>,
@@ -115,6 +122,16 @@ async function create(secret: unknown): Promise<Workflow> {
     data: workflow,
     props: { isRoot: true },
   });
+
+  // What the caller's column checks are held to: no word of the flag.
+  expect(
+    Object.prototype.hasOwnProperty.call(
+      result.createBy.data,
+      "isWebhookSigningSecretSet",
+    ),
+  ).toBe(false);
+
+  await hooks.onCreatePermitted(result);
 
   return result.createBy.data;
 }
@@ -196,11 +213,17 @@ describe("a workflow edited", () => {
       webhookSigningSecret: secret,
     });
 
+    // What the caller's column checks are held to: the secret alone.
+    expect(result.updateBy.data).toEqual({ webhookSigningSecret: secret });
+    expect(result.carryForward).toEqual({ signingSecretSaved: true });
+
+    // Then, once they have passed, the server says it is saved.
+    await hooks.onUpdatePermitted(result.updateBy);
+
     expect(result.updateBy.data).toEqual({
       webhookSigningSecret: secret,
       isWebhookSigningSecretSet: true,
     });
-    expect(result.carryForward).toEqual({ signingSecretSaved: true });
   });
 
   test("with an empty secret and other changes keeps the saved secret", async () => {
@@ -211,6 +234,10 @@ describe("a workflow edited", () => {
 
     expect(result.updateBy.data).toEqual({ description: "Pages the SOC." });
     expect(result.carryForward).toEqual({ signingSecretSaved: false });
+
+    await hooks.onUpdatePermitted(result.updateBy);
+
+    expect(result.updateBy.data).toEqual({ description: "Pages the SOC." });
   });
 
   test("with only an empty secret says to paste one, rather than that nothing changed", async () => {
@@ -224,6 +251,10 @@ describe("a workflow edited", () => {
       isWebhookSigningSecretSet: true,
       name: "Renamed",
     });
+
+    expect(result.updateBy.data).toEqual({ name: "Renamed" });
+
+    await hooks.onUpdatePermitted(result.updateBy);
 
     expect(result.updateBy.data).toEqual({ name: "Renamed" });
 
@@ -300,7 +331,14 @@ describe("who may touch it", () => {
       }).toEqual({ column, readers });
     }
 
+    /*
+     * Whether one is saved too, as VMwareVCenter.isVCenterPasswordSet is:
+     * so the API reference, the MCP tools and the Terraform provider show it
+     * read-only, and a configuration never sets what only the secret
+     * decides.
+     */
     for (const column of [
+      "isWebhookSigningSecretSet",
       "lastWebhookRequestAt",
       "lastWebhookError",
       "lastWebhookErrorAt",

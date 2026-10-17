@@ -244,8 +244,8 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import { incidentScopeFindBy } from "../Fixtures/IncidentStatusPageScopeFixtures";
 import {
   fakeGetUnsubscribeLink,
-  smsManageLinkFor,
   withUnsubscribeToken,
+  unsubscribeLinkFor,
 } from "../Fixtures/UnsubscribeLinkFixtures";
 import "../../../../FeatureSet/Workers/Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
 import "../../../../FeatureSet/Workers/Jobs/IncidentPublicNote/SendNotificationToSubscribers";
@@ -287,7 +287,7 @@ const USER_ID: ObjectID = new ObjectID("6a000000-0000-4000-8000-000000000007");
 
 const STATUS_PAGE_URL: string = "https://status.acme.com";
 const DETAILS_URL: string = `${STATUS_PAGE_URL}/incidents/${INCIDENT_ID.toString()}`;
-const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+const SMS_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );

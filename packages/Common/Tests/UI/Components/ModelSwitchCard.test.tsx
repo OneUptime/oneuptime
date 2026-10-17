@@ -755,8 +755,18 @@ describe("ModelSwitchCard with lines under its switch", () => {
   test("a save of the column elsewhere on the screen is read again too", async () => {
     incidentStored = { enableReminders: true };
 
-    render(remindersCard());
+    const view: RenderResult = render(remindersCard());
     await loaded();
+
+    /*
+     * Run the switch's effects (its subscription) first. findByTestId returns
+     * once the switch is drawn, and a busy runner can run its effects a frame
+     * later: the save below then went unheard by the switch (Common Test on
+     * master, run 39038391418).
+     */
+    await act(async () => {
+      view.rerender(remindersCard());
+    });
 
     incidentStored = {
       enableReminders: false,

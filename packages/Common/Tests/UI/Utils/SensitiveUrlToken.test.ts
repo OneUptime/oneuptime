@@ -40,6 +40,21 @@ describe("SensitiveUrlToken.readFromPath", () => {
     ).toBe("abc-123");
   });
 
+  it("reads a status page subscriber's credential out of its unsubscribe and manage links", () => {
+    const credential: string = `6392f2a1-0000-4000-8000-000000000001-${"ab".repeat(32)}`;
+
+    for (const route of ["unsubscribe", "update-subscription"]) {
+      expect(SensitiveUrlToken.readFromPath(`/${route}/${credential}`)).toBe(
+        credential,
+      );
+      expect(
+        SensitiveUrlToken.readFromPath(
+          `/status-page/6392f2a1/${route}/${credential}`,
+        ),
+      ).toBe(credential);
+    }
+  });
+
   it("returns nothing for the cleaned form of the same route", () => {
     /*
      * This is the ordinary case after the bootstrap has run. Returning
@@ -47,6 +62,12 @@ describe("SensitiveUrlToken.readFromPath", () => {
      */
     expect(SensitiveUrlToken.readFromPath("/accounts/reset-password")).toBe("");
     expect(SensitiveUrlToken.readFromPath("/reset-password")).toBe("");
+    expect(SensitiveUrlToken.readFromPath("/update-subscription")).toBe("");
+    expect(
+      SensitiveUrlToken.readFromPath(
+        "/status-page/6392f2a1/update-subscription",
+      ),
+    ).toBe("");
   });
 
   it("returns nothing for unrelated routes", () => {
@@ -136,5 +157,59 @@ describe("SensitiveUrlToken.clear", () => {
     expect(() => {
       return SensitiveUrlToken.clear();
     }).not.toThrow();
+  });
+});
+
+/*
+ * Which pages work with a credential from a link: a status page shows none
+ * of its custom code on them (StatusPage/src/Utils/StatusPageCustomizations).
+ */
+describe("SensitiveUrlToken.isTokenRoute", () => {
+  const CREDENTIAL: string = `6392f2a1-0000-4000-8000-000000000001-${"ab".repeat(32)}`;
+
+  it("is true for every token route, with its token and in the token-free form the bootstrap leaves", () => {
+    for (const route of [
+      "reset-password",
+      "verify-email",
+      "unsubscribe",
+      "update-subscription",
+    ]) {
+      for (const path of [
+        `/${route}/${CREDENTIAL}`,
+        `/${route}`,
+        `/${route}/`,
+        `/status-page/6392f2a1/${route}/${CREDENTIAL}`,
+        `/status-page/6392f2a1/${route}`,
+        `/accounts/${route}/abc-123`,
+      ]) {
+        expect([path, SensitiveUrlToken.isTokenRoute(path)]).toEqual([
+          path,
+          true,
+        ]);
+      }
+    }
+  });
+
+  it("is false for every other page", () => {
+    for (const path of [
+      "",
+      "/",
+      "/incidents",
+      "/incidents/6392f2a1-0000-4000-8000-000000000001",
+      "/announcements",
+      "/subscribe/email",
+      "/confirm-subscription/6392f2a1-0000-4000-8000-000000000001",
+      "/status-page/6392f2a1",
+      "/status-page/6392f2a1/subscribe/sms",
+      // A token route further up the path is not this page's.
+      `/update-subscription/${CREDENTIAL}/more`,
+      "/unsubscribe-later",
+      "/my-update-subscription",
+    ]) {
+      expect([path, SensitiveUrlToken.isTokenRoute(path)]).toEqual([
+        path,
+        false,
+      ]);
+    }
   });
 });

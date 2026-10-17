@@ -115,7 +115,7 @@ The public page is its own app, with a small set of routes:
 - `/announcements` and `/announcements/:id`.
 - `/scheduled-events` and `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` and `/unsubscribe/:token` — the links in the messages subscribers get.
+- `/confirm-subscription/:id`, `/update-subscription/:token` and `/unsubscribe/:token` — the links in the messages subscribers get.
 - `/rss` — the feed.
 - `/login`, `/sso` and `/master-password` — only relevant on a private page.
 

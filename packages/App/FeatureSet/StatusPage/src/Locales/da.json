@@ -236,7 +236,10 @@
       "saved": "Dine ændringer er blevet gemt.",
       "submit": "Opdater abonnement",
       "unsubscribe": "Afmeld",
-      "unsubscribeDescription": "Vælg dette, hvis du vil afmelde dig alle ressourcer."
+      "unsubscribeDescription": "Vælg dette, hvis du vil afmelde dig alle ressourcer.",
+      "linkNotValid": "Dette link til at administrere dit abonnement er udløbet eller ugyldigt. Brug »Administrer eksisterende abonnement« på siden »Abonner« for at få et nyt.",
+      "getNewLink": "Få et nyt link",
+      "loadFailed": "Vi kunne ikke indlæse dette link. Prøv igen senere."
     },
     "confirm": {
       "title": "Bekræft abonnement",

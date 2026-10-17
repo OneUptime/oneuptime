@@ -4,8 +4,9 @@
 
     Password reset and email verification links carry their token in the URL
     *path* — /accounts/reset-password/<token>, /accounts/verify-email/<token>,
-    /reset-password/<token> on a status page — and so does the unsubscribe
-    link in every status page notification, /unsubscribe/<subscriberId>-<token>. Every analytics and advertising
+    /reset-password/<token> on a status page — and so do the unsubscribe
+    link in every status page notification, /unsubscribe/<subscriberId>-<token>,
+    and a subscriber's manage link, /update-subscription/<subscriberId>-<token>. Every analytics and advertising
     tag on the page reports the page URL as a matter of course, so the token
     left the browser to whoever the container happened to be loading. Measured
     on production before this partial existed, a single visit to
@@ -57,10 +58,16 @@
          * against the second-to-last segment, so this covers
          * /accounts/reset-password/<token>, /reset-password/<token> and
          * /status-page/<id>/reset-password/<token> alike. "unsubscribe" is a
-         * status page subscriber's unsubscribe link, whose last segment is
-         * <subscriberId>-<token> (Common/Types/StatusPage/StatusPageSubscriberUnsubscribe).
+         * status page subscriber's unsubscribe link and "update-subscription"
+         * its manage link; the last segment of both is <subscriberId>-<token>
+         * (Common/Types/StatusPage/StatusPageSubscriberUnsubscribe).
          */
-        var TOKEN_ROUTES = ["reset-password", "verify-email", "unsubscribe"];
+        var TOKEN_ROUTES = [
+            "reset-password",
+            "verify-email",
+            "unsubscribe",
+            "update-subscription"
+        ];
 
         function segmentsOf(pathname) {
             var parts = String(pathname || "").split("/");

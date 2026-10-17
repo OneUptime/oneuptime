@@ -96,30 +96,19 @@ const INTERNAL_NAME: string = "acme-prod-internal-page";
 
 const STATUS_PAGE_URL: string = "https://status.acme-example.com";
 
-// Where the subscriber manages (or cancels) their subscription.
-const MANAGE_URL: string =
-  "https://status.acme-example.com/update-subscription/c47d2e19-5b8a-4e36-a0f2-7d91b3c56e28";
-
 /*
- * The subscription's unsubscribe token, and the link that works without
- * signing in - which the manage page on a private status page does not.
+ * The subscription's token, and the link that works without signing in -
+ * which the manage page on a private status page does not.
  */
 const UNSUBSCRIBE_TOKEN: string = "5d".repeat(32);
 const UNSUBSCRIBE_URL: string = `https://status.acme-example.com/unsubscribe/c47d2e19-5b8a-4e36-a0f2-7d91b3c56e28-${UNSUBSCRIBE_TOKEN}`;
 
 /*
- * The unsubscribeUrl a channel's template is given. An SMS from a public
- * status page gets the (shorter) manage link, as every other SMS from one
- * does - an SMS is billed by the segment (see
- * StatusPageSubscriberUnsubscribe.buildSmsLink); the fixture page is public.
+ * Where the subscriber manages (or cancels) their subscription. The manage
+ * page asks for the subscription's token as the unsubscribe page does, so
+ * the link carries the same credential: the subscriber id alone opens nothing.
  */
-function unsubscribeUrlOnPublicPage(
-  method: StatusPageSubscriberNotificationMethod,
-): string {
-  return method === StatusPageSubscriberNotificationMethod.SMS
-    ? MANAGE_URL
-    : UNSUBSCRIBE_URL;
-}
+const MANAGE_URL: string = `https://status.acme-example.com/update-subscription/c47d2e19-5b8a-4e36-a0f2-7d91b3c56e28-${UNSUBSCRIBE_TOKEN}`;
 
 const SUBSCRIBER_EMAIL: string = "manage.subscriber@acme-example.com";
 const SUBSCRIBER_PHONE: string = "+15550100123";
@@ -840,7 +829,10 @@ describe("StatusPageAPI manage-subscription templates", () => {
 
         await callManageSubscription(channel.requestData);
 
-        // Built by the real helpers from the page URL and this subscriber.
+        /*
+         * Built by the real helpers from the page URL and the subscriber row
+         * the lookup read - token included, as for the unsubscribe link.
+         */
         const manageCalls: Array<Array<unknown>> = mockOf(
           StatusPageSubscriberService.getManageSubscriptionLink,
         ).mock.calls as Array<Array<unknown>>;
@@ -848,7 +840,12 @@ describe("StatusPageAPI manage-subscription templates", () => {
         expect((manageCalls[0]![0] as URL).toString()).toBe(
           URL.fromString(STATUS_PAGE_URL).toString(),
         );
-        expect((manageCalls[0]![1] as ObjectID).toString()).toBe(SUBSCRIBER_ID);
+        expect(
+          (manageCalls[0]![1] as StatusPageSubscriber).id!.toString(),
+        ).toBe(SUBSCRIBER_ID);
+        expect(
+          (manageCalls[0]![1] as StatusPageSubscriber).unsubscribeToken,
+        ).toBe(UNSUBSCRIBE_TOKEN);
 
         /*
          * The unsubscribe link is built from the subscriber row the lookup
@@ -863,25 +860,30 @@ describe("StatusPageAPI manage-subscription templates", () => {
         ).toBe(UNSUBSCRIBE_TOKEN);
 
         expect(MANAGE_URL).toContain(SUBSCRIBER_ID);
+        expect(MANAGE_URL).toContain(UNSUBSCRIBE_TOKEN);
         expect(UNSUBSCRIBE_URL).toContain(UNSUBSCRIBE_TOKEN);
 
+        /*
+         * Every channel, an SMS from this public page included, gets the
+         * same two links: there is no shorter SMS-only link keyed by the
+         * subscriber id any more.
+         */
         const calls: Array<CompileCall> = compileCalls();
         expect(calls).toHaveLength(channel.compileCallsPerRequest);
         for (const call of calls) {
-          expect(call.variables["unsubscribeUrl"]).toBe(
-            unsubscribeUrlOnPublicPage(channel.method),
-          );
+          expect(call.variables["unsubscribeUrl"]).toBe(UNSUBSCRIBE_URL);
           expect(call.variables["manageSubscriptionUrl"]).toBe(MANAGE_URL);
           expect(call.variables["statusPageUrl"]).toBe(STATUS_PAGE_URL);
         }
 
-        expect(renderedMessage(channel)).toContain(
-          `unsubscribeUrl=[${unsubscribeUrlOnPublicPage(channel.method)}]`,
-        );
+        const message: string = renderedMessage(channel);
+        expect(message).toContain(`unsubscribeUrl=[${UNSUBSCRIBE_URL}]`);
+        expect(message).toContain(`manageSubscriptionUrl=[${MANAGE_URL}]`);
+        expect(message).not.toContain(`/update-subscription/${SUBSCRIBER_ID}]`);
       },
     );
 
-    it("sms from a private status page: unsubscribeUrl is the token link, since its manage page needs a signed-in visitor", async () => {
+    it("sms from a private status page gets the same links as from a public one", async () => {
       const smsChannel: ChannelCase = CHANNELS.find(
         (channel: ChannelCase): boolean => {
           return channel.method === StatusPageSubscriberNotificationMethod.SMS;
@@ -958,6 +960,10 @@ describe("StatusPageAPI manage-subscription templates", () => {
       for (const call of calls) {
         expect(call.variables["unsubscribeUrl"]).toBe(
           `${STATUS_PAGE_URL}/unsubscribe/${SUBSCRIBER_ID}-${toppedUpToken}`,
+        );
+        // The manage link gets the same topped-up token: never an id-only link.
+        expect(call.variables["manageSubscriptionUrl"]).toBe(
+          `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID}-${toppedUpToken}`,
         );
       }
     });
@@ -1090,7 +1096,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
         const expectedValues: Record<string, string> = {
           statusPageName: PAGE_TITLE,
           statusPageUrl: STATUS_PAGE_URL,
-          unsubscribeUrl: unsubscribeUrlOnPublicPage(channel.method),
+          unsubscribeUrl: UNSUBSCRIBE_URL,
           manageSubscriptionUrl: MANAGE_URL,
         };
 

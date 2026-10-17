@@ -236,7 +236,10 @@
       "saved": "Suas alterações foram salvas.",
       "submit": "Atualizar inscrição",
       "unsubscribe": "Cancelar inscrição",
-      "unsubscribeDescription": "Selecione esta opção se desejar cancelar a inscrição em todos os recursos."
+      "unsubscribeDescription": "Selecione esta opção se desejar cancelar a inscrição em todos os recursos.",
+      "linkNotValid": "Este link para gerenciar sua inscrição expirou ou não é válido. Para receber um novo, use “Gerenciar inscrição existente” na página “Inscrever-se”.",
+      "getNewLink": "Receber um novo link",
+      "loadFailed": "Não foi possível carregar este link. Tente novamente mais tarde."
     },
     "confirm": {
       "title": "Confirmar inscrição",
