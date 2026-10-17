@@ -31,11 +31,12 @@ import { listedNames } from "../../UI/Components/FoldedSection/FoldedSectionQuer
  * Start a scan, drawn for real.
  *
  * Discovering devices was a three-step wizard - target, credentials,
- * schedule - with a name to think of first. It is two steps now, and one
- * for a ping sweep: what to scan (the range, the probe, and whether to read
- * SNMP), then the credentials only when SNMP is on. The name, the naming
- * rules and the schedule fold under More fields on the first step, and the
- * button says what it does: Start Scan.
+ * schedule - with a name to think of first. It asks three things now: the
+ * range, the probe and the scan method, ICMP or SNMP, picked from two cards.
+ * ICMP is picked for a new scan and needs nothing else, so Start New Scan
+ * opens on one page; picking SNMP adds the credentials as a second step. The
+ * name, the naming rules and the schedule fold under More fields on the
+ * first step, and the button says what it does: Start Scan.
  *
  * The production page builds the wizard; only the table around it is
  * replaced, by the create dialog the real table opens. Saving goes through
@@ -192,7 +193,6 @@ import DiscoveryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Networ
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 const TARGET_PLACEHOLDER: string = "192.168.1.0/24";
-const SNMP_SWITCH_NAME: string = "Check SNMP on hosts that answer";
 
 function dialog(): HTMLElement {
   return screen.getByTestId("modal");
@@ -225,8 +225,16 @@ function progress(): HTMLElement | null {
   return within(dialog()).queryByRole("navigation", { name: "Progress" });
 }
 
-function snmpSwitch(): HTMLElement {
-  return within(dialog()).getByRole("switch", { name: SNMP_SWITCH_NAME });
+// The scan method's card for ICMP or SNMP (CardSelect's test ids).
+function methodCard(method: "icmp" | "snmp"): HTMLElement {
+  return within(dialog()).getByTestId(`card-select-option-${method}`);
+}
+
+async function pickMethod(method: "icmp" | "snmp"): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(methodCard(method));
+  });
+  await settle();
 }
 
 function moreFields(): HTMLElement {
@@ -285,8 +293,53 @@ afterEach(() => {
 });
 
 describe("Start New Scan", () => {
-  test("walks two steps: what to scan, then the credentials", async () => {
+  test("opens on one page with ICMP picked: no steps, no Next, Start Scan", async () => {
     await openStartScan();
+
+    expect(methodCard("icmp")).toHaveAttribute("aria-checked", "true");
+    expect(methodCard("snmp")).toHaveAttribute("aria-checked", "false");
+    expect(progress()).toBeNull();
+    expect(
+      within(dialog()).queryByTestId("modal-footer-next-button"),
+    ).toBeNull();
+    expect(
+      within(dialog()).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Start Scan");
+  });
+
+  test("asks three things: the range, the probe, and the scan method", async () => {
+    await openStartScan();
+
+    expect(
+      within(dialog()).getByPlaceholderText(TARGET_PLACEHOLDER),
+    ).toBeVisible();
+    expect(within(dialog()).getByText("Branch Probe")).toBeVisible();
+
+    // The two cards are one group, named by the field's label.
+    const method: HTMLElement = within(dialog()).getByRole("radiogroup", {
+      name: "Scan method",
+    });
+
+    expect(within(method).getAllByRole("radio")).toHaveLength(2);
+    expect(within(method).getByText("ICMP (ping)")).toBeVisible();
+    expect(within(method).getByText("SNMP")).toBeVisible();
+    expect(
+      within(dialog()).getByText("You can change this at any time."),
+    ).toBeVisible();
+    // The old switch and its five lines of help are gone.
+    expect(within(dialog()).queryByRole("switch", { name: /SNMP/ })).toBeNull();
+    expect(
+      within(dialog()).queryByText(/Every scan pings each address/),
+    ).toBeNull();
+  });
+
+  test("picking SNMP brings the credentials step: two steps, and Next", async () => {
+    await openStartScan();
+
+    await pickMethod("snmp");
+
+    expect(methodCard("snmp")).toHaveAttribute("aria-checked", "true");
+    expect(methodCard("icmp")).toHaveAttribute("aria-checked", "false");
 
     const steps: HTMLElement | null = progress();
 
@@ -295,16 +348,12 @@ describe("Start New Scan", () => {
     expect(within(steps!).getByText("SNMP Credentials")).toBeInTheDocument();
     // The schedule is no longer a step of its own.
     expect(within(steps!).queryByText("Schedule")).toBeNull();
-  });
-
-  test("asks three things first: the range, the probe, and whether to read SNMP", async () => {
-    await openStartScan();
-
     expect(
-      within(dialog()).getByPlaceholderText(TARGET_PLACEHOLDER),
-    ).toBeVisible();
-    expect(within(dialog()).getByText("Branch Probe")).toBeVisible();
-    expect(snmpSwitch()).toHaveAttribute("aria-checked", "true");
+      within(dialog()).getByTestId("modal-footer-next-button"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog()).queryByTestId("modal-footer-submit-button"),
+    ).toBeNull();
   });
 
   test("starts on the project's only custom probe", async () => {
@@ -330,8 +379,10 @@ describe("Start New Scan", () => {
     ).not.toBeVisible();
   });
 
-  test("Next goes to the credentials, where the button reads Start Scan", async () => {
+  test("with SNMP, Next goes to the credentials, where the button reads Start Scan", async () => {
     await openStartScan();
+
+    await pickMethod("snmp");
 
     expect(
       within(dialog()).queryByTestId("modal-footer-submit-button"),
@@ -351,7 +402,7 @@ describe("Start New Scan", () => {
   test("an empty range is asked for on the first step, and nothing is sent", async () => {
     await openStartScan();
 
-    await clickNext();
+    await submit();
 
     await waitFor(() => {
       expect(
@@ -365,14 +416,36 @@ describe("Start New Scan", () => {
   });
 });
 
-describe("a ping sweep (SNMP off) is one page", () => {
-  test("turning SNMP off drops the credentials step: no step list, no Next", async () => {
+describe("an ICMP scan - the default - is one page", () => {
+  test("an untouched form starts an ICMP scan of the range from the probe", async () => {
     await openStartScan();
 
-    fireEvent.click(snmpSwitch());
-    await settle();
+    typeTarget("10.0.0.0/24");
+    await submit();
 
-    expect(snmpSwitch()).toHaveAttribute("aria-checked", "false");
+    await waitFor(() => {
+      expect(capturedModels).toHaveLength(1);
+    });
+
+    const model: JSONObject = capturedModels[0]!;
+
+    expect(model["cidr"]).toBe("10.0.0.0/24");
+    // Posted, not left out: the column itself defaults to SNMP.
+    expect(model["isSnmpEnabled"]).toBe(false);
+    expect(idOf(model["probe"])).toBe(PROBE_ID);
+    // No credentials ride along on a scan that sends no SNMP.
+    expect(model["snmpConfigs"] ?? null).toBeNull();
+  });
+
+  test("picking SNMP and then ICMP again drops the credentials step", async () => {
+    await openStartScan();
+
+    await pickMethod("snmp");
+    expect(progress()).not.toBeNull();
+
+    await pickMethod("icmp");
+
+    expect(methodCard("icmp")).toHaveAttribute("aria-checked", "true");
     expect(progress()).toBeNull();
     expect(
       within(dialog()).queryByTestId("modal-footer-next-button"),
@@ -382,12 +455,39 @@ describe("a ping sweep (SNMP off) is one page", () => {
     ).toHaveTextContent("Start Scan");
   });
 
-  test("starts the sweep with the range and the probe, and SNMP off", async () => {
+  test("picking the card already chosen changes nothing", async () => {
     await openStartScan();
 
-    typeTarget("10.0.0.0/24");
-    fireEvent.click(snmpSwitch());
+    await pickMethod("icmp");
+
+    expect(methodCard("icmp")).toHaveAttribute("aria-checked", "true");
+    expect(progress()).toBeNull();
+  });
+
+  test("the cards answer to the keyboard: Enter on SNMP picks it", async () => {
+    await openStartScan();
+
+    await act(async (): Promise<void> => {
+      fireEvent.keyDown(methodCard("snmp"), { key: "Enter" });
+    });
     await settle();
+
+    expect(methodCard("snmp")).toHaveAttribute("aria-checked", "true");
+    expect(progress()).not.toBeNull();
+  });
+});
+
+describe("an SNMP scan asks for its credentials, then starts", () => {
+  test("posts the SNMP method with the credential list it was given", async () => {
+    await openStartScan();
+
+    await pickMethod("snmp");
+    typeTarget("10.0.0.0/24");
+    await clickNext();
+
+    expect(
+      within(dialog()).getByText("Credentials to try"),
+    ).toBeInTheDocument();
 
     await submit();
 
@@ -398,21 +498,8 @@ describe("a ping sweep (SNMP off) is one page", () => {
     const model: JSONObject = capturedModels[0]!;
 
     expect(model["cidr"]).toBe("10.0.0.0/24");
-    expect(model["isSnmpEnabled"]).toBe(false);
-    expect(idOf(model["probe"])).toBe(PROBE_ID);
-  });
-
-  test("turning SNMP back on brings the credentials step back", async () => {
-    await openStartScan();
-
-    fireEvent.click(snmpSwitch());
-    await settle();
-    fireEvent.click(snmpSwitch());
-    await settle();
-
-    expect(progress()).not.toBeNull();
-    expect(
-      within(dialog()).getByTestId("modal-footer-next-button"),
-    ).toBeInTheDocument();
+    expect(model["isSnmpEnabled"]).toBe(true);
+    expect(Array.isArray(model["snmpConfigs"])).toBe(true);
+    expect((model["snmpConfigs"] as Array<unknown>).length).toBe(1);
   });
 });

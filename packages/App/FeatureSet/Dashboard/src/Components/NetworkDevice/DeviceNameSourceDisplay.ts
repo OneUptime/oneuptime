@@ -43,7 +43,7 @@ export const DEVICE_NAME_SOURCE_FIELD_TITLE: string =
  * that a better name will replace this one, and how to stop that.
  */
 export const DEVICE_NAME_SOURCE_FIELD_DESCRIPTION: string = translationKey(
-  "A discovery scan named this device. A later scan that finds a better name, such as the device's own name instead of its DNS name or IP address, renames it. Rename it yourself to keep a name of your own.",
+  "Set by a discovery scan. A later scan that finds a better name renames the device, unless you rename it.",
 );
 
 /**

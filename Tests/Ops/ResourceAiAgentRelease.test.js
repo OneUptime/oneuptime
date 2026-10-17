@@ -56,6 +56,8 @@ const {
   callsFor,
   mergedTags,
   matrixPlatforms,
+  releaseTagImages,
+  retagsImage,
   dockerfileSteps,
   warmUpProblems,
   readBashArray,
@@ -459,11 +461,13 @@ describe("release.yml: the resource AI agent image", () => {
     expect(flagValue(builds[0].command, "--version")).toBe(RELEASE_VERSION);
   });
 
+  /*
+   * It used to need generate-build-number as well, which it does not read:
+   * on 14.0.65 (run 39000188317) that counter sat 24.5 minutes in the runner
+   * queue, and every image build waited with it.
+   */
   test("the build starts with the other images, and waits for nothing that could move a release tag", () => {
-    expect([...needsOf(jobs[BUILD_JOB])].sort()).toEqual([
-      "generate-build-number",
-      "read-version",
-    ]);
+    expect([...needsOf(jobs[BUILD_JOB])].sort()).toEqual(["read-version"]);
   });
 
   test("the build publishes version tags only: no release tag moves before the e2e jobs pass", () => {
@@ -492,7 +496,9 @@ describe("release.yml: the resource AI agent image", () => {
   test("push-release-tags moves its release and enterprise-release tags, with the App's, after the three e2e jobs", () => {
     const push = jobs["push-release-tags"];
 
-    expect(push.strategy.matrix.image).toEqual(
+    // One job for every image (see ReleaseCriticalPath.test.js), not a matrix.
+    expect(push.strategy).toBeUndefined();
+    expect(releaseTagImages(push)).toEqual(
       expect.arrayContaining([IMAGE, "app"]),
     );
     expect(needsOf(push)).toEqual(
@@ -505,10 +511,8 @@ describe("release.yml: the resource AI agent image", () => {
 
     const commands = commandsMentioning(push, "imagetools create").join("\n");
     for (const tag of ["release", "enterprise-release"]) {
-      expect(commands).toContain(`--tag oneuptime/\${{ matrix.image }}:${tag}`);
-      expect(commands).toContain(
-        `--tag ghcr.io/oneuptime/\${{ matrix.image }}:${tag}`,
-      );
+      expect(commands).toContain(`--tag "oneuptime/\${image}:${tag}"`);
+      expect(commands).toContain(`--tag "ghcr.io/oneuptime/\${image}:${tag}"`);
     }
   });
 
@@ -518,14 +522,7 @@ describe("release.yml: the resource AI agent image", () => {
     // place `release` could move from.
     const movers = Object.entries(jobs)
       .filter(([, job]) => {
-        const commands = commandsMentioning(job, "imagetools create").join(
-          "\n",
-        );
-        const matrixImages = ((job.strategy || {}).matrix || {}).image || [];
-        return (
-          commands.includes(IMAGE) ||
-          (commands.includes("matrix.image") && matrixImages.includes(IMAGE))
-        );
+        return retagsImage(job, IMAGE);
       })
       .map(([name]) => {
         return name;

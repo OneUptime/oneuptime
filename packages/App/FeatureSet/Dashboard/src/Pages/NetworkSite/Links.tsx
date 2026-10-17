@@ -28,7 +28,7 @@ const NetworkSiteLinks: FunctionComponent<
         cardProps={{
           title: "Site Links",
           description:
-            "WAN links between sites, drawn as edges on the network map. Bind a monitor to a link and the edge takes the monitor's status color.",
+            "WAN links between sites, drawn on the network map. A monitor bound to a link colors it.",
         }}
         noItemsMessage="No site links yet. Add one to draw a WAN connection between two sites on the network map."
         filters={[

@@ -570,7 +570,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
            * that the monitors go with the policy before they click it.
            */
           description:
-            "Alert on many devices at once. A policy adds one monitor to every device it covers, including devices added later, and each monitor counts towards your plan. Turning a policy off stands its monitors down; deleting one deletes them.",
+            "A policy adds one monitor to every device it covers, and each monitor counts towards your plan. Deleting a policy deletes its monitors.",
         }}
         helpContent={{
           title: "How Alert Policies Work",
@@ -794,13 +794,13 @@ const NetworkAlertPoliciesPage: FunctionComponent<
                   stepId: "template",
                   sectionTitle: "What every covered device is alerted on",
                   sectionDescription:
-                    "Every matching device gets a monitor cloned from this template, and is re-synced from it when the template changes.",
+                    "Every device in scope gets a monitor made from this template, kept in step with it.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   fetchDropdownOptions: fetchNetworkDeviceMonitorTemplates,
                   required: true,
                   placeholder: "Select a Network Device template",
                   description:
-                    "Only Network Device monitor templates are listed. A template can back one policy, and cannot also be selected by an auto-import rule — the save is refused with the reason if it is.",
+                    "A template can back one policy, and cannot also be used by an auto import rule.",
                 },
               ]
             : []),
@@ -811,7 +811,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             description:
-              "Which devices this policy covers. Leave every picker empty to cover every device in the project — the widest scope, and the one that provisions the most monitors.",
+              "Leave every picker empty to cover every device in the project.",
             getCustomElement: (
               values: FormValues<NetworkAlertPolicy>,
               elementProps: CustomElementProps,

@@ -672,7 +672,7 @@ describe("SubnetScanner.scan with no SNMP config at all", () => {
      * way the operator has to be told about.
      */
     await expect(SubnetScanner.scan(emptyScan)).rejects.toThrow(
-      /add at least one SNMP config/i,
+      /add at least one set, or choose ICMP/i,
     );
 
     // And nothing was put on the wire on the way to that rejection.

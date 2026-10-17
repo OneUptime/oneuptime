@@ -125,7 +125,7 @@ describe.each([
 
     test("describes the parent picker as a suggestion, not a filter", () => {
       expect(source).toContain(
-        "Any site that is not below this one in your site type hierarchy can be the parent",
+        "Any site not below this one can be the parent. Sites of the type directly above are listed first.",
       );
       expect(source).not.toContain(
         "Only sites whose type is the configured parent",
@@ -152,7 +152,7 @@ describe("Child Sites creation respects the known parent's type", () => {
   test("offers every child type the hierarchy does not place above this site", () => {
     expect(source).toContain("fetchChildNetworkSiteTypeOptions(modelId)");
     expect(source).toContain(
-      "Any type except the ones above this site's own type in the hierarchy",
+      "Any type except the ones above this site's type.",
     );
     expect(source).not.toContain(
       "Only types configured directly beneath this site's type are available",

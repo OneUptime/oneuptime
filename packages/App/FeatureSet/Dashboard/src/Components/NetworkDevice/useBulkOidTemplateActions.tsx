@@ -338,7 +338,7 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
         (hasNoTemplates ? (
           <Modal
             title="No OID Collection Templates Yet"
-            description="An OID Collection Template is a named list of health OIDs — CPU, memory, temperature, fans, power supplies — shared by every device of one type. Create one first, then come back and link these devices to it."
+            description="An OID Collection Template is a shared list of health OIDs. Create one first, then link these devices to it."
             onClose={closeSetModal}
             closeButtonText="Close"
           >
@@ -353,7 +353,7 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
         ) : (
           <BasicFormModal<SetOidTemplateFormData>
             title="Set OID Collection Template"
-            description="Every selected device collects this template's OIDs on its next poll, on top of its own Device-Specific Health OIDs. The link is live: editing the template later changes all of them, with nothing to re-apply."
+            description="These devices collect the template's OIDs from their next poll. Editing the template later changes them all."
             isLoading={isLoadingTemplates}
             onClose={closeSetModal}
             submitButtonText="Set Template"
@@ -404,7 +404,7 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
                   },
                   title: "OID Collection Template",
                   description:
-                    "The template these devices collect. Per-port counters — bits in and out, oper status, errors — are already collected automatically by the interface walk, so a template is for what is not per-port: CPU, memory, temperature, fans and power supplies.",
+                    "For health values such as CPU, memory and temperature. Port counters are collected without one.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   required: true,
                   dropdownOptions: oidTemplateDropdownOptions,
@@ -417,7 +417,7 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
                   title:
                     "Also clear device-specific Health OIDs on these devices",
                   description:
-                    "Recommended when adopting a template. An auto-imported device already had a handful of vendor OIDs written into its own list by its first poll, and on a duplicate the device's copy wins — so that leftover would quietly override the template's naming for the same OID. Clearing is how a device moves onto the template cleanly. Leave it off to keep genuinely device-specific additions.",
+                    "Recommended. A device's own copy of an OID overrides the template's. Leave it off to keep OIDs added by hand.",
                   fieldType: FormFieldSchemaType.Checkbox,
                   required: false,
                   defaultValue: false,
