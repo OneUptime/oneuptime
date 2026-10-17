@@ -36,7 +36,9 @@ spec:
         # init container (keeper_server is not hot-reloadable).
         checksum/config: {{ include (print $.Template.BasePath "/clickhouse-configmap.yaml") . | sha256sum }}
     spec:
+      {{- if ne ((.Values.clickhouse.serviceAccount).create) false }}
       serviceAccountName: {{ .Release.Name }}-clickhouse
+      {{- end }}
       nodeSelector:
         {{- include "oneuptime.nodeSelector" .Values.clickhouse.nodeSelector | nindent 8 }}
       {{- with .Values.clickhouse.affinity }}

@@ -1,0 +1,40 @@
+{
+  "_comment": "The images every marketplace edition ships, by the key the chart resolves them by (oneuptime.imageReference). {version} is the OneUptime release. Third-party images are pinned to exact versions: marketplaces refuse floating tags, and scan every layer - the alpine variants carry the fewest vulnerabilities. Keep postgres on the major version docker-compose.base.yml runs.",
+  "images": {
+    "app": {
+      "source": "docker.io/oneuptime/app:enterprise-{version}",
+      "name": "app",
+      "oneuptime": true
+    },
+    "nginx": {
+      "source": "docker.io/oneuptime/nginx:enterprise-{version}",
+      "name": "nginx",
+      "oneuptime": true
+    },
+    "probe": {
+      "source": "docker.io/oneuptime/probe:enterprise-{version}",
+      "name": "probe",
+      "oneuptime": true
+    },
+    "runner": {
+      "source": "docker.io/oneuptime/runner:enterprise-{version}",
+      "name": "runner",
+      "oneuptime": true
+    },
+    "postgres": {
+      "source": "docker.io/library/postgres:15.19-alpine",
+      "name": "postgres",
+      "oneuptime": false
+    },
+    "clickhouse": {
+      "source": "docker.io/clickhouse/clickhouse-server:26.7.32.7-alpine",
+      "name": "clickhouse-server",
+      "oneuptime": false
+    },
+    "valkey": {
+      "source": "docker.io/valkey/valkey:9.1.2-alpine",
+      "name": "valkey",
+      "oneuptime": false
+    }
+  }
+}

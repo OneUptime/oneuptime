@@ -427,6 +427,12 @@ postgresOperator:
 
 clickhouse:
   enabled: true
+  # The service account the ClickHouse pods run as. Set create to false to run
+  # them as the namespace's default service account instead, for a platform
+  # that does not let a chart create service accounts (the Google Cloud
+  # Marketplace edition).
+  serviceAccount:
+    create: true
   auth:
     username: oneuptime
     # Will be auto-generated if not provided

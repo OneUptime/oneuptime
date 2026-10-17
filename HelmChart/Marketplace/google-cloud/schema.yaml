@@ -1,0 +1,93 @@
+# The Google Cloud Marketplace schema of OneUptime Enterprise (Kubernetes app,
+# schema v2). The deployer's build fills in $REGISTRY (the app's path in
+# Artifact Registry) and $TAG (the release); Marketplace passes the image it
+# copied for each entry under `images` into the value it names - every one a
+# full reference in image.overrides (oneuptime.imageReference in the chart).
+x-google-marketplace:
+  schemaVersion: v2
+  applicationApiVersion: v1beta1
+  publishedVersion: "$TAG"
+  publishedVersionMetadata:
+    releaseNote: >-
+      OneUptime Enterprise $TAG, billed per user by the hour through Google
+      Cloud Marketplace.
+    releaseTypes:
+      - Feature
+    recommended: false
+
+  clusterConstraints:
+    resources:
+      - replicas: 3
+        requests:
+          cpu: 2000m
+          memory: 8Gi
+
+  images:
+    '':
+      properties:
+        image.overrides.app:
+          type: FULL
+    nginx:
+      properties:
+        image.overrides.nginx:
+          type: FULL
+    probe:
+      properties:
+        image.overrides.probe:
+          type: FULL
+    runner:
+      properties:
+        image.overrides.runner:
+          type: FULL
+    postgres:
+      properties:
+        image.overrides.postgres:
+          type: FULL
+    clickhouse-server:
+      properties:
+        image.overrides.clickhouse:
+          type: FULL
+    valkey:
+      properties:
+        image.overrides.valkey:
+          type: FULL
+
+properties:
+  name:
+    type: string
+    x-google-marketplace:
+      type: NAME
+  namespace:
+    type: string
+    x-google-marketplace:
+      type: NAMESPACE
+  # The Secret Marketplace creates for the deployment: consumer-id,
+  # entitlement-id and reporting-key, with which OneUptime reports its users
+  # to Service Control every hour (and is licensed by doing so).
+  enterpriseMarketplace.googleCloud.reportingSecret:
+    type: string
+    x-google-marketplace:
+      type: REPORTING_SECRET
+  host:
+    type: string
+    title: Domain name
+    description: >-
+      Where people will open OneUptime, for example oneuptime.example.com.
+      Point it at the external IP of the OneUptime load balancer once it is
+      installed.
+    default: localhost
+  httpProtocol:
+    type: string
+    title: Protocol
+    description: HTTPS if the domain name has a certificate in front of OneUptime.
+    default: http
+    enum:
+      - http
+      - https
+
+required:
+  - name
+  - namespace
+  - enterpriseMarketplace.googleCloud.reportingSecret
+  - host
+  - httpProtocol

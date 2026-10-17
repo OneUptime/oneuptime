@@ -985,6 +985,16 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
+                },
+                "serviceAccount": {
+                    "type": "object",
+                    "description": "The service account the ClickHouse pods run as; create false runs them as the namespace's default one.",
+                    "properties": {
+                        "create": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
