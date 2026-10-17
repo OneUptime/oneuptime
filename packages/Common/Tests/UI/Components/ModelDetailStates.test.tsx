@@ -405,8 +405,6 @@ describe("a read that fails", () => {
     expect(error).toHaveTextContent(
       "Cannot load probe. It could be because you don't have enough permissions to read this probe.",
     );
-    expect(within(error).getByTestId("refresh-button").tagName).toBe(
-      "BUTTON",
-    );
+    expect(within(error).getByTestId("refresh-button").tagName).toBe("BUTTON");
   });
 });

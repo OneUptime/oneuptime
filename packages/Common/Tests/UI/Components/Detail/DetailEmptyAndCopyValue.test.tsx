@@ -152,12 +152,10 @@ describe("what the copy button copies", () => {
       "https://runbook.example",
     );
     expect(getDetailCopyText(element, 7)).toBe("7");
-    expect(
-      getDetailCopyText(element, new Email("test@oneuptime.com")),
-    ).toBe("test@oneuptime.com");
-    expect(getDetailCopyText(element, new Name("Test User"))).toBe(
-      "Test User",
+    expect(getDetailCopyText(element, new Email("test@oneuptime.com"))).toBe(
+      "test@oneuptime.com",
     );
+    expect(getDetailCopyText(element, new Name("Test User"))).toBe("Test User");
     expect(
       getDetailCopyText(
         element,

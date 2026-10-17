@@ -7,7 +7,6 @@ import { isRecordTimeField } from "../Detail/DetailRecordTime";
 import DetailSkeleton from "../Detail/DetailSkeleton";
 import DetailField from "../Detail/Field";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import FieldType from "../Types/FieldType";
 import Field from "./Field";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dictionary from "../../../Types/Dictionary";
@@ -244,19 +243,13 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         continue;
       }
 
-      const fieldLike: {
-        key: string;
-        fieldType?: FieldType | undefined;
-        getElement?: unknown;
-        showIdAsField?: boolean | undefined;
-      } = {
+      // The field as Detail will see it: keyed on its column.
+      const detailField: Field<TBaseModel> & { key: string } = {
+        ...field,
         key: key,
-        fieldType: field.fieldType,
-        getElement: field.getElement,
-        showIdAsField: field.showIdAsField,
       };
 
-      if (isRecordIdField(fieldLike) || isRecordTimeField(fieldLike)) {
+      if (isRecordIdField(detailField) || isRecordTimeField(detailField)) {
         continue;
       }
 

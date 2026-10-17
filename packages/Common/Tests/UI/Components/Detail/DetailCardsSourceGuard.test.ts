@@ -40,7 +40,7 @@ const MODEL_DETAIL: string = readCode("Components/ModelDetail/ModelDetail.tsx");
 
 describe("Detail", () => {
   test("sizes no field with an inline width", () => {
-    expect(DETAIL).not.toContain("showDetailsInNumberOfColumns + \"%\"");
+    expect(DETAIL).not.toContain('showDetailsInNumberOfColumns + "%"');
     expect(DETAIL).not.toMatch(/width:\s*100\s*\//);
 
     // The only inline style left is an uploaded image's height.

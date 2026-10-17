@@ -229,7 +229,9 @@ const STATUS_PAGES = [
   }),
   statusPage(GALLERY.one, {
     name: "Acme Status",
-    description: isEmpty ? undefined : `Incidents are posted here first: ${LONG_URL}`,
+    description: isEmpty
+      ? undefined
+      : `Incidents are posted here first: ${LONG_URL}`,
     labels: isEmpty ? [] : LABELS,
     isPublicStatusPage: !isEmpty,
     enableSearchEngineIndexing: false,
@@ -262,7 +264,9 @@ const STATUS_PAGES = [
     slug: "acme-status",
     pageTitle: "Acme Commerce status",
     isPublicStatusPage: true,
-    description: isLong ? `Incidents are posted here first: ${LONG_URL}` : "Public status for checkout, payments and the API.",
+    description: isLong
+      ? `Incidents are posted here first: ${LONG_URL}`
+      : "Public status for checkout, payments and the API.",
     showIncidentHistoryInDays: 14,
   }),
   statusPage(GALLERY.code, {
@@ -518,7 +522,11 @@ function Gallery() {
         modelId: GALLERY.one,
         columns: 1,
         fields: [
-          { field: { _id: true }, title: "Status Page ID", fieldType: FieldType.ObjectID },
+          {
+            field: { _id: true },
+            title: "Status Page ID",
+            fieldType: FieldType.ObjectID,
+          },
           { field: { name: true }, title: "Name" },
           { field: { description: true }, title: "Description" },
           {
@@ -561,7 +569,11 @@ function Gallery() {
         columns: 2,
         editButtonText: "Edit User",
         fields: [
-          { field: { name: true }, title: "Name", placeholder: "No name added" },
+          {
+            field: { name: true },
+            title: "Name",
+            placeholder: "No name added",
+          },
           {
             field: { pageTitle: true },
             title: "Email",
@@ -638,7 +650,11 @@ function Gallery() {
             title: "Description",
             fieldType: FieldType.Markdown,
           },
-          { field: { customCSS: true }, title: "Custom CSS", fieldType: FieldType.CSS },
+          {
+            field: { customCSS: true },
+            title: "Custom CSS",
+            fieldType: FieldType.CSS,
+          },
           {
             field: { headerHTML: true },
             title: "Header HTML",
@@ -693,7 +709,8 @@ function Gallery() {
           {
             field: { pageTitle: true },
             title: "Page title",
-            description: "The browser tab's title. The name is used when empty.",
+            description:
+              "The browser tab's title. The name is used when empty.",
           },
           {
             field: { showIncidentHistoryInDays: true },

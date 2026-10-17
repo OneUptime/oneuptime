@@ -65,8 +65,7 @@ export interface DetailCellPlacement {
  * of the last row is padded above the next rule; and a cell with a column
  * after it keeps a gutter on its right.
  */
-export const DETAIL_CELL_BASE_CLASS_NAME: string =
-  "min-w-0 border-gray-100";
+export const DETAIL_CELL_BASE_CLASS_NAME: string = "min-w-0 border-gray-100";
 
 export const DETAIL_CELL_RULED_CLASS_NAMES: ReadonlyArray<string> = [
   "border-t",
@@ -80,9 +79,7 @@ export const DETAIL_CELL_FIRST_ROW_CLASS_NAMES: ReadonlyArray<string> = [
 
 export const DETAIL_CELL_SPACED_CLASS_NAMES: ReadonlyArray<string> = ["pb-4"];
 
-export const DETAIL_CELL_LAST_ROW_CLASS_NAMES: ReadonlyArray<string> = [
-  "pb-0",
-];
+export const DETAIL_CELL_LAST_ROW_CLASS_NAMES: ReadonlyArray<string> = ["pb-0"];
 
 export const DETAIL_CELL_GUTTER_CLASS_NAMES: ReadonlyArray<string> = ["pr-6"];
 
@@ -123,9 +120,9 @@ export const getDetailGridTiers: (
 };
 
 // The grid's own classes: its columns at each tier, and no gap.
-export const getDetailGridClassName: (columns?: number | undefined) => string = (
+export const getDetailGridClassName: (
   columns?: number | undefined,
-): string => {
+) => string = (columns?: number | undefined): string => {
   const tierClassNames: Array<string> = getDetailGridTiers(columns).map(
     (tier: DetailGridTier): string => {
       return `${tier.prefix}grid-cols-${tier.columns}`;

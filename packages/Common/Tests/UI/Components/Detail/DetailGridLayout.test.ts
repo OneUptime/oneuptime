@@ -12,7 +12,10 @@ import {
   placeDetailCells,
 } from "../../../../UI/Components/Detail/DetailGridLayout";
 import { resolvePadding } from "../../../ResponsiveSpacing";
-import { mediaPrecedenceOf, splitVariants } from "../../../ResponsiveVisibility";
+import {
+  mediaPrecedenceOf,
+  splitVariants,
+} from "../../../ResponsiveVisibility";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
 /*
@@ -509,7 +512,9 @@ describe("placing the cells", () => {
 
 describe("each cell's classes", () => {
   test("one column: a rule above every field but the first, and no padding under the last", () => {
-    expect(getDetailCellClassNames([undefined, undefined, undefined], 1)).toEqual([
+    expect(
+      getDetailCellClassNames([undefined, undefined, undefined], 1),
+    ).toEqual([
       `${DETAIL_CELL_BASE_CLASS_NAME} pt-0 pb-4`,
       `${DETAIL_CELL_BASE_CLASS_NAME} border-t pt-4 pb-4`,
       `${DETAIL_CELL_BASE_CLASS_NAME} border-t pt-4 pb-0`,
@@ -517,7 +522,9 @@ describe("each cell's classes", () => {
   });
 
   test("the screenshot's card: Name and Email level from sm up, Timezone across the second row", () => {
-    expect(getDetailCellClassNames([undefined, undefined, undefined], 2)).toEqual([
+    expect(
+      getDetailCellClassNames([undefined, undefined, undefined], 2),
+    ).toEqual([
       `${DETAIL_CELL_BASE_CLASS_NAME} pt-0 pb-4 sm:pr-6`,
       `${DETAIL_CELL_BASE_CLASS_NAME} border-t pt-4 pb-4 sm:border-t-0 sm:pt-0`,
       `${DETAIL_CELL_BASE_CLASS_NAME} border-t pt-4 pb-0 sm:col-span-2`,

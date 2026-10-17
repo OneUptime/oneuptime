@@ -51,7 +51,10 @@ const DetailFieldLabel: FunctionComponent<ComponentProps> = (
   const alignClassName: string = props.alignClassName || "flex justify-start";
 
   const labelClassName: string = props.sizeClassName
-    ? DETAIL_FIELD_LABEL_CLASS_NAME.replace("text-sm ", `${props.sizeClassName} `)
+    ? DETAIL_FIELD_LABEL_CLASS_NAME.replace(
+        "text-sm ",
+        `${props.sizeClassName} `,
+      )
     : DETAIL_FIELD_LABEL_CLASS_NAME;
 
   return (

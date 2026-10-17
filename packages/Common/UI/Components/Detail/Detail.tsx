@@ -119,7 +119,19 @@ const Detail: DetailFunction = <T extends GenericObject>(
       return <></>;
     }
 
-    return <MarkdownViewer text={text} />;
+    /*
+     * The viewer spaces its paragraphs and lists apart; the first's space
+     * above and the last's below would put the text further from its name
+     * than any other value is, and leave a gap before the next row.
+     */
+    return (
+      <div
+        className="[&>div>*:first-child]:mt-0 [&>div>*:last-child]:mb-0"
+        data-testid="detail-markdown-value"
+      >
+        <MarkdownViewer text={text} />
+      </div>
+    );
   };
 
   type GetDropdownViewerFunction = (

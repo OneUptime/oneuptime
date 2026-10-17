@@ -197,9 +197,9 @@ describe("the fields' box", () => {
     const body: HTMLElement = screen.getByTestId("card-model-detail-body");
 
     expect(body.className).toBe(CARD_MODEL_DETAIL_BODY_CLASS_NAME);
-    expect(CARD_MODEL_DETAIL_BODY_CLASS_NAME.startsWith(
-      CARD_RULED_BODY_CLASS_NAME,
-    )).toBe(true);
+    expect(
+      CARD_MODEL_DETAIL_BODY_CLASS_NAME.startsWith(CARD_RULED_BODY_CLASS_NAME),
+    ).toBe(true);
     expect(body).toHaveClass("border-t", "border-gray-200");
   });
 
@@ -275,9 +275,9 @@ describe("the header's actions", () => {
     ).toHaveAccessibleName("More options");
 
     // No header action is drawn in the outline style, which has no CSS.
-    expect(
-      screen.getByTestId("card-header-actions").innerHTML,
-    ).not.toContain("btn-outline-secondary");
+    expect(screen.getByTestId("card-header-actions").innerHTML).not.toContain(
+      "btn-outline-secondary",
+    );
   });
 
   test("the ⋯ opens the documentation and the demo in a new tab", async () => {
@@ -304,7 +304,9 @@ describe("the header's actions", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("card-model-detail-more-menu"));
     });
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Watch Demo" }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Watch Demo" }),
+    );
 
     expect(navigate).toHaveBeenCalledTimes(2);
     expect(String(navigate.mock.calls[0]![0])).toBe("/docs/probe/custom-probe");

@@ -132,9 +132,7 @@ describe("Detail dropdown colors", () => {
     );
 
     expect(requireElement(badge).textContent).toContain("Legacy");
-    expect(requireElement(badge).classList.contains("bg-indigo-50")).toBe(
-      true,
-    );
+    expect(requireElement(badge).classList.contains("bg-indigo-50")).toBe(true);
     expect(container.textContent).not.toContain("No selection");
   });
 
@@ -157,8 +155,7 @@ describe("Detail dropdown colors", () => {
     );
 
     expect(
-      container.querySelector('[data-testid="placeholder-text"]')
-        ?.textContent,
+      container.querySelector('[data-testid="placeholder-text"]')?.textContent,
     ).toBe("No selection");
     expect(
       container.querySelector('[data-dropdown-value-badge="true"]'),

@@ -159,9 +159,9 @@ describe("the name", () => {
       </I18nextProvider>,
     );
 
-    expect(screen.getByTestId("detail-label").firstElementChild).toHaveTextContent(
-      GERMAN_FILE["Timezone"] as string,
-    );
+    expect(
+      screen.getByTestId("detail-label").firstElementChild,
+    ).toHaveTextContent(GERMAN_FILE["Timezone"] as string);
     expect(screen.getByTestId("detail-description")).toHaveTextContent(
       GERMAN_FILE["Description"] as string,
     );

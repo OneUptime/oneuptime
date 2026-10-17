@@ -1,10 +1,4 @@
-import {
-  BrowserContext,
-  expect,
-  Locator,
-  Page,
-  test,
-} from "@playwright/test";
+import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 
@@ -261,8 +255,10 @@ async function expectAlignedRows(card: Locator, where: string): Promise<void> {
     for (let index: number = 1; index < row.length; index++) {
       const previous: FieldMeasure = row[index - 1] as FieldMeasure;
       expect(
-        Math.abs((row[index] as FieldMeasure).cell.x -
-          (previous.cell.x + previous.cell.width)),
+        Math.abs(
+          (row[index] as FieldMeasure).cell.x -
+            (previous.cell.x + previous.cell.width),
+        ),
         `${where}: row ${rowIndex} has no gap between cells`,
       ).toBeLessThanOrEqual(1);
     }
@@ -376,7 +372,11 @@ test.describe("the maintainer's screenshot: User Settings > Profile", () => {
     await screenshot(page, "profile-1280");
   });
 
-  test("no field is sized by an inline width", async ({ page }: { page: Page }) => {
+  test("no field is sized by an inline width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, PROFILE, 1280);
 
     const styled: Array<string> = await page
@@ -419,9 +419,12 @@ test.describe("the maintainer's screenshot: User Settings > Profile", () => {
 
     const background: string = await cardBackground(label);
     expect(
-      contrast(await label.evaluate((element: Element): string => {
-        return getComputedStyle(element).color;
-      }), background),
+      contrast(
+        await label.evaluate((element: Element): string => {
+          return getComputedStyle(element).color;
+        }),
+        background,
+      ),
     ).toBeGreaterThanOrEqual(4.5);
   });
 
@@ -697,6 +700,14 @@ test.describe("values", () => {
     await expect(card.getByRole("link", { name: "runbook" })).toBeVisible();
     await expect(card.getByText("font-weight").first()).toBeVisible();
     await expectAlignedRows(card, "code at 1280");
+
+    // The first paragraph sits as close to its name as any value does.
+    const description: Locator = card
+      .getByTestId("detail-field")
+      .filter({ hasText: "Description" });
+    const valueBox: Box = await box(description.getByTestId("detail-value"));
+    const firstParagraph: Box = await box(description.locator("p").first());
+    expect(Math.abs(firstParagraph.y - valueBox.y)).toBeLessThanOrEqual(1);
   });
 });
 
@@ -713,9 +724,9 @@ test.describe("the card's header", () => {
     await expect(
       actions.getByRole("button", { name: "View Documentation" }),
     ).toHaveCount(0);
-    await expect(actions.getByRole("button", { name: "Watch Demo" })).toHaveCount(
-      0,
-    );
+    await expect(
+      actions.getByRole("button", { name: "Watch Demo" }),
+    ).toHaveCount(0);
 
     const edit: Locator = actions.getByRole("button", {
       name: "Edit Status Page",
@@ -780,12 +791,16 @@ test.describe("the card's header", () => {
     expect(Math.abs(editBox.height - moreBox.height)).toBeLessThanOrEqual(1);
 
     const cardBox: Box = await box(card);
-    expect(cardBox.x + cardBox.width - (moreBox.x + moreBox.width)).toBeLessThan(
-      30,
-    );
+    expect(
+      cardBox.x + cardBox.width - (moreBox.x + moreBox.width),
+    ).toBeLessThan(30);
   });
 
-  test("the team page's Watch Demo is in its ⋯", async ({ page }: { page: Page }) => {
+  test("the team page's Watch Demo is in its ⋯", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, TEAM, 1280);
     const card: Locator = cardTitled(page, "Team Details");
 
@@ -893,9 +908,7 @@ test.describe("the dark theme", () => {
           });
         });
       for (const color of colors) {
-        expect(contrast(color, background), testId).toBeGreaterThanOrEqual(
-          4.5,
-        );
+        expect(contrast(color, background), testId).toBeGreaterThanOrEqual(4.5);
       }
     }
 

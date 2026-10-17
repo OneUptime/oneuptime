@@ -308,7 +308,14 @@ describe("rows in every column count", () => {
         cells(grid).map((cell: HTMLElement): string => {
           return cell.className;
         }),
-      ).toEqual(getDetailCellClassNames(fields.map(() => undefined), columns));
+      ).toEqual(
+        getDetailCellClassNames(
+          fields.map(() => {
+            return undefined;
+          }),
+          columns,
+        ),
+      );
     },
   );
 
@@ -438,9 +445,7 @@ describe("a field's name", () => {
     );
     expect(description).toHaveClass("text-xs", "text-gray-500");
     // Part of the name's block, not of the value.
-    expect(
-      fieldBox("Email").children[0]?.contains(description),
-    ).toBe(true);
+    expect(fieldBox("Email").children[0]?.contains(description)).toBe(true);
     expect(valueOf("Email")).toHaveTextContent("test@oneuptime.com");
     expect(screen.getByTestId("rich").closest("p")).toBeNull();
   });
@@ -463,9 +468,7 @@ describe("a field's name", () => {
     });
 
     const preview: HTMLElement = screen.getByRole("link", { name: "Preview" });
-    expect(screen.getByText("Name").closest("label")).toContainElement(
-      preview,
-    );
+    expect(screen.getByText("Name").closest("label")).toContainElement(preview);
     expect(preview).toHaveAttribute("target", "_blank");
     expect(
       within(preview).getByTestId("detail-side-link-new-tab"),
@@ -539,9 +542,10 @@ describe("an empty value", () => {
     );
 
     expect(empty).toHaveTextContent(`${EMPTY_VALUE_MARK}Not set`);
-    expect(
-      within(empty).getByText(EMPTY_VALUE_MARK),
-    ).toHaveAttribute("aria-hidden", "true");
+    expect(within(empty).getByText(EMPTY_VALUE_MARK)).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
     expect(within(empty).getByText("Not set")).toHaveClass("sr-only");
     // The name no longer hangs over a blank line.
     expect(valueOf("Notes").textContent).not.toBe("");
@@ -891,6 +895,17 @@ describe("rich values", () => {
 
     expect(viewer).toHaveTextContent("Public status for **checkout**.");
     expect(valueOf("Description")).toContainElement(viewer);
+
+    /*
+     * The first paragraph's space above and the last's below are trimmed, so
+     * the text sits as close to its name as any other value does.
+     */
+    const frame: HTMLElement = screen.getByTestId("detail-markdown-value");
+    expect(frame).toContainElement(viewer);
+    expect(frame.className.split(" ")).toEqual([
+      "[&>div>*:first-child]:mt-0",
+      "[&>div>*:last-child]:mb-0",
+    ]);
   });
 
   test("empty markdown is an empty value, not an empty viewer", () => {
