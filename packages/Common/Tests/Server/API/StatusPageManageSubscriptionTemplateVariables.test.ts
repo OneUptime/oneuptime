@@ -879,9 +879,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
         const message: string = renderedMessage(channel);
         expect(message).toContain(`unsubscribeUrl=[${UNSUBSCRIBE_URL}]`);
         expect(message).toContain(`manageSubscriptionUrl=[${MANAGE_URL}]`);
-        expect(message).not.toContain(
-          `/update-subscription/${SUBSCRIBER_ID}]`,
-        );
+        expect(message).not.toContain(`/update-subscription/${SUBSCRIBER_ID}]`);
       },
     );
 

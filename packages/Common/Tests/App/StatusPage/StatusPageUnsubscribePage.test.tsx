@@ -277,10 +277,7 @@ describe("Status page unsubscribe page", () => {
      * that names the subscriber or carries the token.
      */
     const manage: HTMLElement = await screen.findByText(COPY["manageInstead"]!);
-    expect(manage.closest("a")).toHaveAttribute(
-      "href",
-      "/update-subscription",
-    );
+    expect(manage.closest("a")).toHaveAttribute("href", "/update-subscription");
     expect(manage.closest("a")!.getAttribute("href")).not.toContain(
       SUBSCRIBER_ID,
     );

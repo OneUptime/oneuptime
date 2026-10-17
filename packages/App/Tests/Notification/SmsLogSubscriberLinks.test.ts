@@ -418,21 +418,19 @@ beforeEach(() => {
    * The worker hands an SMS to the notification service over HTTP; here it
    * goes straight to the service that sends and logs it.
    */
-  jest
-    .spyOn(CommonSmsService, "sendSms")
-    .mockImplementation(((
-      sms: SMS,
-      options: { projectId?: ObjectID; statusPageId?: ObjectID },
-    ): Promise<void> => {
-      const sending: Promise<void> = SmsService.sendSms(sms.to, sms.message, {
-        projectId: options.projectId,
-        statusPageId: options.statusPageId,
-        customTwilioConfig: TWILIO_CONFIG,
-      });
+  jest.spyOn(CommonSmsService, "sendSms").mockImplementation(((
+    sms: SMS,
+    options: { projectId?: ObjectID; statusPageId?: ObjectID },
+  ): Promise<void> => {
+    const sending: Promise<void> = SmsService.sendSms(sms.to, sms.message, {
+      projectId: options.projectId,
+      statusPageId: options.statusPageId,
+      customTwilioConfig: TWILIO_CONFIG,
+    });
 
-      pendingSends.push(sending);
-      return sending;
-    }) as never);
+    pendingSends.push(sending);
+    return sending;
+  }) as never);
 
   // The cancellation's own SQL is run by its Postgres suites.
   jest

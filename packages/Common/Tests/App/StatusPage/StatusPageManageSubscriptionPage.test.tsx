@@ -7,6 +7,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import React, { ReactElement } from "react";
 import {
   afterEach,
@@ -472,9 +474,6 @@ describe("a link that does not open a subscription", () => {
 
 describe("the manage page's words", () => {
   test("are in every status page language", () => {
-    const fs: typeof import("fs") = jest.requireActual("fs");
-    const path: typeof import("path") = jest.requireActual("path");
-
     const localesDir: string = path.resolve(
       __dirname,
       "../../../../App/FeatureSet/StatusPage/src/Locales",

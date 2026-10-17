@@ -481,7 +481,6 @@ RunCron(
               };
 
             if (subscriber.subscriberPhone) {
-
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                 // Use custom template only when custom Twilio is configured

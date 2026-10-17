@@ -876,7 +876,6 @@ RunCron(
                       unsubscribeUrl: unsubscribeUrl,
                     };
 
-
                     // Use custom template if available and custom Twilio is configured, otherwise use default
                     let smsMessage: string;
                     if (smsTemplate?.templateBody && statuspage.callSmsConfig) {

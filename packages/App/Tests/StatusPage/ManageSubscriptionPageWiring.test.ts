@@ -1,5 +1,7 @@
 import PageMap from "../../FeatureSet/StatusPage/src/Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../FeatureSet/StatusPage/src/Utils/RouteMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../FeatureSet/StatusPage/src/Utils/RouteMap";
 import {
   getManageLinkRequestPage,
   ManageLinkChannels,
@@ -149,9 +151,7 @@ describe("the manage page", () => {
 
     expect(unsubscribe).toContain("RouteUtil.tokenFreeRoute(");
     // Never a manage link that names the subscriber.
-    expect(unsubscribe).not.toContain(
-      "new ObjectID(credential.subscriberId)",
-    );
+    expect(unsubscribe).not.toContain("new ObjectID(credential.subscriberId)");
   });
 });
 
@@ -229,9 +229,10 @@ describe("where a visitor asks for a new manage link", () => {
         file,
         true,
       ]);
-      expect([file, source.includes('t("subscribe.manageExisting")')]).toEqual(
-        [file, true],
-      );
+      expect([file, source.includes('t("subscribe.manageExisting")')]).toEqual([
+        file,
+        true,
+      ]);
     }
 
     // Webhooks have no such tab: no page sends a visitor there for a link.

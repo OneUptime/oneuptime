@@ -754,7 +754,6 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                 },
               );
 
-
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                 // Use custom template only when custom Twilio is configured

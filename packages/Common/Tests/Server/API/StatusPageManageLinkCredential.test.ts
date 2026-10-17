@@ -267,11 +267,11 @@ async function cancelSubscription(data: {
 }
 
 function sentSubscribers(): Array<StatusPageSubscriber> {
-  return (
-    Response.sendEntityResponse as unknown as MockedFn
-  ).mock.calls.map((call: Array<unknown>): StatusPageSubscriber => {
-    return call[2] as StatusPageSubscriber;
-  });
+  return (Response.sendEntityResponse as unknown as MockedFn).mock.calls.map(
+    (call: Array<unknown>): StatusPageSubscriber => {
+      return call[2] as StatusPageSubscriber;
+    },
+  );
 }
 
 function isCancelled(subscriberId: string): boolean {

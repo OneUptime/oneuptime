@@ -705,7 +705,6 @@ RunCron(
                       `Sending SMS notification to subscriber ${subscriber._id} at ${phoneMasked}.`,
                     );
 
-
                     let smsMessage: string;
                     if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                       // Use custom template only when custom Twilio is configured

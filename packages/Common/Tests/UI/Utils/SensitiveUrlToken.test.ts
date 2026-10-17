@@ -64,7 +64,9 @@ describe("SensitiveUrlToken.readFromPath", () => {
     expect(SensitiveUrlToken.readFromPath("/reset-password")).toBe("");
     expect(SensitiveUrlToken.readFromPath("/update-subscription")).toBe("");
     expect(
-      SensitiveUrlToken.readFromPath("/status-page/6392f2a1/update-subscription"),
+      SensitiveUrlToken.readFromPath(
+        "/status-page/6392f2a1/update-subscription",
+      ),
     ).toBe("");
   });
 

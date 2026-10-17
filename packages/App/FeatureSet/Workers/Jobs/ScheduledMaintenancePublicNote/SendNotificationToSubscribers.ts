@@ -577,7 +577,6 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${publicNote.id}.`,
           );
 
-
           let smsMessage: string;
           if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
             // Use custom template only when custom Twilio is configured

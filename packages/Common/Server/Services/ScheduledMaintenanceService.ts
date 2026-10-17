@@ -528,7 +528,6 @@ export class Service extends ProjectReferencesService<Model> {
           };
 
           if (subscriber.subscriberPhone) {
-
             let smsMessage: string;
 
             if (

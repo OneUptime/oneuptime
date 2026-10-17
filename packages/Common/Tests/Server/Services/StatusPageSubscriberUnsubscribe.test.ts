@@ -1142,9 +1142,7 @@ describe("opening an unsubscribe link (GET) changes nothing", () => {
 describe("opening a manage link reads the subscription only with its token", () => {
   test("a good link reads the subscription's contact and choices, never its token", async () => {
     const subscriber: StatusPageSubscriber | null =
-      await StatusPageSubscriberService.findSubscriberForManagePage(
-        linkData(),
-      );
+      await StatusPageSubscriberService.findSubscriberForManagePage(linkData());
 
     expect(subscriber).not.toBeNull();
     expect(subscriber!.id!.toString()).toBe(SUBSCRIBER_ID.toString());
@@ -1160,13 +1158,13 @@ describe("opening a manage link reads the subscription only with its token", () 
   test("looks the subscriber up by id and its own status page, never by the token", async () => {
     await StatusPageSubscriberService.findSubscriberForManagePage(linkData());
 
-    const read: { query: JSONObject; select: JSONObject; props: JSONObject } =
-      (StatusPageSubscriberService.findOneBy as unknown as jest.Mock).mock
-        .calls[0]![0] as {
-        query: JSONObject;
-        select: JSONObject;
-        props: JSONObject;
-      };
+    const read: { query: JSONObject; select: JSONObject; props: JSONObject } = (
+      StatusPageSubscriberService.findOneBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as {
+      query: JSONObject;
+      select: JSONObject;
+      props: JSONObject;
+    };
 
     expect(Object.keys(read.query).sort()).toEqual(["_id", "statusPageId"]);
     expect(read.query["_id"]).toBe(SUBSCRIBER_ID.toString());
@@ -1217,16 +1215,12 @@ describe("opening a manage link reads the subscription only with its token", () 
 
     storedSubscriber = subscriberRow({ statusPageId: OTHER_STATUS_PAGE_ID });
     answers.push(
-      await StatusPageSubscriberService.findSubscriberForManagePage(
-        linkData(),
-      ),
+      await StatusPageSubscriberService.findSubscriberForManagePage(linkData()),
     );
 
     storedSubscriber = null;
     answers.push(
-      await StatusPageSubscriberService.findSubscriberForManagePage(
-        linkData(),
-      ),
+      await StatusPageSubscriberService.findSubscriberForManagePage(linkData()),
     );
 
     expect(answers).toEqual([null, null, null, null, null, null]);
@@ -1236,9 +1230,7 @@ describe("opening a manage link reads the subscription only with its token", () 
     storedSubscriber = subscriberRow({ unsubscribeToken: null });
 
     expect(
-      await StatusPageSubscriberService.findSubscriberForManagePage(
-        linkData(),
-      ),
+      await StatusPageSubscriberService.findSubscriberForManagePage(linkData()),
     ).toBeNull();
     expect(
       await StatusPageSubscriberService.findSubscriberForManagePage(
@@ -1294,9 +1286,7 @@ describe("opening a manage link reads the subscription only with its token", () 
       await StatusPageSubscriberService.getUnsubscribeLinkDetails(linkData());
     storedSubscriber = subscriberRow();
     const subscriber: StatusPageSubscriber | null =
-      await StatusPageSubscriberService.findSubscriberForManagePage(
-        linkData(),
-      );
+      await StatusPageSubscriberService.findSubscriberForManagePage(linkData());
 
     expect(details.state).toBe(StatusPageSubscriberUnsubscribeState.Subscribed);
     expect(subscriber).not.toBeNull();

@@ -486,7 +486,6 @@ const notifySubscribersOfAnnouncement: (data: {
                 `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for announcement ${announcement.id}.`,
               );
 
-
               // Build SMS message - use custom template if available and custom Twilio is configured
               let smsMessage: string;
               if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
