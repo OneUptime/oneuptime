@@ -8,6 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
+import type { SpyInstance } from "jest-mock";
 import {
   afterEach,
   beforeEach,
@@ -119,7 +120,7 @@ type TableOptions = {
 type NavigateCall = [Route | URL, { openInNewTab?: boolean } | undefined];
 
 describe("a row opens its record", () => {
-  let navigateSpy: jest.SpiedFunction<typeof Navigation.navigate>;
+  let navigateSpy: SpyInstance<typeof Navigation.navigate>;
 
   const makeProps: (options: TableOptions) => BaseModelTableProps<Monitor> = (
     options: TableOptions,

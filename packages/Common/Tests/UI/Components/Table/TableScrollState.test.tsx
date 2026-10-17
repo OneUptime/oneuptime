@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import React, { ReactElement, useRef } from "react";
 import useTableScrollState, {
@@ -261,7 +262,8 @@ describe("useTableScrollState", () => {
   });
 
   test("a measurement that changes nothing does not draw the table again", () => {
-    const onState: jest.Mock<(state: TableScrollState) => void> = jest.fn();
+    const onState: Mock<(state: TableScrollState) => void> =
+      jest.fn<(state: TableScrollState) => void>();
 
     render(<Probe tableWidth={1000} boxWidth={1200} onState={onState} />);
 
@@ -280,7 +282,7 @@ describe("useTableScrollState", () => {
    */
   interface FakeBrowser {
     observed: Array<Element>;
-    disconnect: jest.Mock<() => void>;
+    disconnect: Mock<() => void>;
     resize: () => void;
     pendingFrames: () => number;
     runFrames: () => void;
@@ -292,7 +294,7 @@ describe("useTableScrollState", () => {
     run: (browser: FakeBrowser) => void,
   ): void => {
     const observed: Array<Element> = [];
-    const disconnect: jest.Mock<() => void> = jest.fn();
+    const disconnect: Mock<() => void> = jest.fn<() => void>();
     let onResize: (() => void) | null = null;
     const frames: Map<number, FrameRequestCallback> = new Map();
     let nextFrame: number = 1;
