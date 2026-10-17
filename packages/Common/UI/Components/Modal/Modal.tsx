@@ -591,11 +591,16 @@ const Modal: FunctionComponent<ComponentProps> = (
                 >
                   {translatedTitle}
                 </h3>
+                {/*
+                 * text-pretty: a description that runs onto a second line
+                 * takes a few words with it, never leaves one alone there
+                 * ("... status pages and / team.").
+                 */}
                 {translatedDescription && (
                   <p
                     id={descriptionId}
                     data-testid="modal-description"
-                    className="mt-0.5 text-sm leading-5 text-gray-500"
+                    className="mt-0.5 text-pretty text-sm leading-5 text-gray-500"
                   >
                     {translatedDescription}
                   </p>
