@@ -168,10 +168,10 @@ const MonitorProbes: FunctionComponent<
         cardProps={{
           title: "Probes",
           description:
-            "Probes that check this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.",
+            "The probes that check this monitor. Add one to check it from another location.",
         }}
         noItemsMessage={
-          "No probes found for this resource. However, you can add some probes to monitor this resource."
+          "No probes check this monitor. Add a probe to start checking it."
         }
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{

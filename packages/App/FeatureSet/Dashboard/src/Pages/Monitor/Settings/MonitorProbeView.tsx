@@ -37,6 +37,7 @@ import {
   MONITOR_THIS_PROBE_ICON,
   MONITOR_THIS_PROBE_TITLE,
 } from "../../../Utils/MonitorThisProbe";
+import { PROBE_ON_NEW_MONITORS_COPY } from "../../../Components/Probe/ProbeOnNewMonitorsCopy";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -127,9 +128,8 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
             field: {
               shouldAutoEnableProbeOnNewMonitors: true,
             },
-            title: "Enable monitoring automatically on new monitors",
-            description:
-              "When on, this probe is pre-selected for every new monitor you create.",
+            title: PROBE_ON_NEW_MONITORS_COPY.switchTitle,
+            description: PROBE_ON_NEW_MONITORS_COPY.description,
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             collapsibleSection: advancedSection,
@@ -187,9 +187,8 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
-              title: "Enable Monitoring on New Monitors",
-              description:
-                "When on, this probe is pre-selected for every new monitor you create.",
+              title: PROBE_ON_NEW_MONITORS_COPY.columnTitle,
+              description: PROBE_ON_NEW_MONITORS_COPY.description,
               fieldType: FieldType.Boolean,
             },
             {
@@ -278,7 +277,7 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         description={
           <p className="mt-2">
             {translator.translateText(
-              "Resetting the secret key will generate a new key. Secret is used to authenticate probe requests.",
+              "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.",
             )}
           </p>
         }

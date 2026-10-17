@@ -17,17 +17,32 @@ import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
-import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import MonitorGroupMonitorsCopy, {
+  ADD_MONITORS_QUERY_PARAM,
+} from "../../../Components/MonitorGroup/MonitorGroupMonitorsCopy";
+import {
+  getMonitorsToOffer,
+  MonitorGroupAddResult,
+  MonitorToOffer,
+  getAddMonitorsErrorMessage,
+} from "../../../Components/MonitorGroup/MonitorGroupMembership";
+
+interface AddMonitorsFormValues {
+  monitors: Array<string>;
+}
 
 const MonitorGroupMonitors: FunctionComponent<
   PageComponentProps
@@ -38,14 +53,34 @@ const MonitorGroupMonitors: FunctionComponent<
   const [monitorIds, setMonitorIds] = useState<Array<ObjectID> | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [showUnassignModal, setShowUnassignModal] = useState<boolean>(false);
+  const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
   const [selectedMonitor, setSelectedMonitor] = useState<Monitor | null>(null);
-  const [isUnassignLoading, setIsUnassignLoading] = useState<boolean>(false);
-  const [unassignError, setUnassignError] = useState<string | null>(null);
-  const [showModelForm, setShowModelForm] = useState<boolean>(false);
+  const [isRemoveLoading, setIsRemoveLoading] = useState<boolean>(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  /*
+   * Add Monitors: every monitor of the project that is not in the group yet,
+   * picked together in one dialog. Opened by its card button, or as the page
+   * opens when the group's Overview sent the reader here to add its first
+   * monitors (?addMonitors=true).
+   */
+  const [showAddModal, setShowAddModal] = useState<boolean>(
+    Navigation.getQueryStringByName(ADD_MONITORS_QUERY_PARAM) === "true" &&
+      PermissionGate.check(new MonitorGroupResource(), ModelAction.Create)
+        .isAllowed,
+  );
+  const [projectMonitors, setProjectMonitors] = useState<Array<Monitor>>([]);
+  const [isAddLoading, setIsAddLoading] = useState<boolean>(false);
+  const [addError, setAddError] = useState<string>("");
+
+  /*
+   * What the dialog's picker holds when it (re)draws: nothing when it opens,
+   * and the picks that were not added after a partial failure - the form is
+   * drawn again once the adding is done, and would otherwise lose them.
+   */
+  const [pickedMonitorIds, setPickedMonitorIds] = useState<Array<string>>([]);
 
   const fetchMonitorsInGroup: PromiseVoidFunction = async (): Promise<void> => {
-    // Fetch MonitorStatus by ID
     try {
       setIsLoading(true);
       const monitorGroupMonitors: ListResult<MonitorGroupResource> =
@@ -76,11 +111,121 @@ const MonitorGroupMonitors: FunctionComponent<
     }
   };
 
+  /*
+   * The project's live monitors, for Add Monitors to offer the ones the
+   * group does not hold. Read when the dialog opens, so a monitor created
+   * since the page opened is there.
+   */
+  const fetchProjectMonitors: PromiseVoidFunction = async (): Promise<void> => {
+    setIsAddLoading(true);
+    setAddError("");
+
+    try {
+      const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+        modelType: Monitor,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          isArchived: false,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      });
+
+      setProjectMonitors(result.data);
+    } catch (err) {
+      setAddError(API.getFriendlyMessage(err));
+    }
+
+    setIsAddLoading(false);
+  };
+
   useEffect(() => {
     fetchMonitorsInGroup().catch((error: Error) => {
       setError(API.getFriendlyMessage(error));
     });
   }, []);
+
+  useEffect(() => {
+    if (showAddModal) {
+      fetchProjectMonitors().catch((error: Error) => {
+        setAddError(API.getFriendlyMessage(error));
+      });
+    }
+  }, [showAddModal]);
+
+  const closeAddModal: () => void = (): void => {
+    setShowAddModal(false);
+    setAddError("");
+    setPickedMonitorIds([]);
+  };
+
+  /*
+   * One row per picked monitor. Each is created on its own, so one refusal
+   * does not lose the others: the dialog stays open and says how many were
+   * added, and why the rest were not.
+   */
+  const addMonitors: (pickedIds: Array<string>) => Promise<void> = async (
+    pickedIds: Array<string>,
+  ): Promise<void> => {
+    setIsAddLoading(true);
+    setAddError("");
+
+    const result: MonitorGroupAddResult = {
+      added: 0,
+      total: pickedIds.length,
+      firstError: undefined,
+    };
+
+    const notAddedIds: Array<string> = [];
+
+    for (const monitorId of pickedIds) {
+      try {
+        const resource: MonitorGroupResource = new MonitorGroupResource();
+        resource.monitorGroupId = modelId;
+        resource.monitorId = new ObjectID(monitorId);
+        resource.projectId = ProjectUtil.getCurrentProjectId()!;
+
+        await ModelAPI.create<MonitorGroupResource>({
+          model: resource,
+          modelType: MonitorGroupResource,
+        });
+
+        result.added++;
+      } catch (err) {
+        notAddedIds.push(monitorId);
+
+        if (!result.firstError) {
+          result.firstError = API.getFriendlyMessage(err);
+        }
+      }
+    }
+
+    setPickedMonitorIds(notAddedIds);
+    setIsAddLoading(false);
+
+    if (result.added > 0) {
+      await fetchMonitorsInGroup();
+    }
+
+    const message: string | null = getAddMonitorsErrorMessage(
+      result,
+      translator,
+    );
+
+    if (message) {
+      setAddError(message);
+      return;
+    }
+
+    closeAddModal();
+  };
 
   if (error) {
     return <ErrorMessage message={error} />;
@@ -90,12 +235,36 @@ const MonitorGroupMonitors: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
+  /*
+   * Add Monitors for whoever may put a monitor in a group; locked, with the
+   * reason, for anyone else - who used to find out only when Assign failed.
+   */
+  const addMonitorsButton: CardButtonSchema | null =
+    PermissionGate.gateCardButton(
+      {
+        title: MonitorGroupMonitorsCopy.addButton,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: () => {
+          setShowAddModal(true);
+        },
+        icon: IconProp.Add,
+        isLoading: false,
+      },
+      new MonitorGroupResource(),
+      ModelAction.Create,
+    );
+
+  const monitorsToOffer: Array<MonitorToOffer> = getMonitorsToOffer({
+    projectMonitors: projectMonitors,
+    monitorIdsInGroup: monitorIds || [],
+  });
+
   return (
     <Fragment>
       <MonitorsTable
         disableCreate={true}
         /*
-         * The group's members: the row's action is Unassign. Deleting a
+         * The group's members: the row's action is Remove. Deleting a
          * monitor from here would delete it everywhere, not take it out of
          * this group - that belongs on the Monitors list.
          */
@@ -106,54 +275,47 @@ const MonitorGroupMonitors: FunctionComponent<
         actionButtons={[
           {
             buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
-            title: "Unassign",
+            title: MonitorGroupMonitorsCopy.removeButton,
             icon: IconProp.Close,
             onClick: (monitor: Monitor, onCompleteAction: VoidFunction) => {
               setSelectedMonitor(monitor);
-              setShowUnassignModal(true);
+              setShowRemoveModal(true);
               onCompleteAction();
             },
           },
         ]}
-        cardButtons={[
-          {
-            title: "Assign Monitor",
-            buttonStyle: ButtonStyleType.NORMAL,
-            onClick: () => {
-              setShowModelForm(true);
-            },
-            icon: IconProp.Add,
-            isLoading: false,
-          },
-        ]}
+        cardButtons={addMonitorsButton ? [addMonitorsButton] : []}
         title={"Monitors in Group"}
         description="The monitors in this group. The group shows the worst status among them."
-        noItemsMessage={"No monitors added to this monitor group."}
+        noItemsMessage={MonitorGroupMonitorsCopy.tableNoItems}
       />
 
-      {showUnassignModal ? (
+      {showRemoveModal ? (
         <ConfirmModal
-          title={`Unassign Monitor from Monitor Group`}
+          title={MonitorGroupMonitorsCopy.removeDialogTitle}
           description={
             <div>
-              {translator.translateText(
-                "Are you sure you want to unassign the monitor from this monitor group?",
+              {translator.translateTemplate(
+                MonitorGroupMonitorsCopy.removeDialogDescription,
+                {
+                  monitorName: selectedMonitor?.name || "",
+                },
               )}
             </div>
           }
-          error={unassignError || ""}
-          isLoading={isUnassignLoading}
+          error={removeError || ""}
+          isLoading={isRemoveLoading}
           submitButtonType={ButtonStyleType.DANGER}
-          submitButtonText={"Unassign"}
+          submitButtonText={MonitorGroupMonitorsCopy.removeButton}
           onClose={() => {
-            setShowUnassignModal(false);
-            setUnassignError(null);
+            setShowRemoveModal(false);
+            setRemoveError(null);
             setSelectedMonitor(null);
           }}
           onSubmit={async () => {
             try {
-              setIsUnassignLoading(true);
-              // get MonitorGroupMonitorId
+              setIsRemoveLoading(true);
+              // The row that pairs this monitor with this group.
               const monitorGroupMonitor: ListResult<MonitorGroupResource> =
                 await ModelAPI.getList<MonitorGroupResource>({
                   modelType: MonitorGroupResource,
@@ -170,8 +332,12 @@ const MonitorGroupMonitors: FunctionComponent<
                 });
 
               if (monitorGroupMonitor.data.length === 0) {
-                setUnassignError("Service monitor not found");
-                setIsUnassignLoading(false);
+                setRemoveError(
+                  translator.translateText(
+                    MonitorGroupMonitorsCopy.alreadyRemovedError,
+                  ) || MonitorGroupMonitorsCopy.alreadyRemovedError,
+                );
+                setIsRemoveLoading(false);
                 return;
               }
 
@@ -180,16 +346,16 @@ const MonitorGroupMonitors: FunctionComponent<
                 id: monitorGroupMonitor.data[0]!.id!,
               });
 
-              setIsUnassignLoading(false);
+              setIsRemoveLoading(false);
               setSelectedMonitor(null);
-              setShowUnassignModal(false);
-              setUnassignError(null);
+              setShowRemoveModal(false);
+              setRemoveError(null);
               fetchMonitorsInGroup().catch((error: Error) => {
                 setError(API.getFriendlyMessage(error));
               });
             } catch (err) {
-              setIsUnassignLoading(false);
-              setUnassignError(API.getFriendlyMessage(err));
+              setIsRemoveLoading(false);
+              setRemoveError(API.getFriendlyMessage(err));
             }
           }}
         />
@@ -197,49 +363,39 @@ const MonitorGroupMonitors: FunctionComponent<
         <></>
       )}
 
-      {showModelForm ? (
-        <ModelFormModal<MonitorGroupResource>
-          modelType={MonitorGroupResource}
-          name="Assign Monitor to Group"
-          title="Assign Monitor to Group"
-          description="Assign a monitor to this group. This is helpful for determining the health of the group."
-          onClose={() => {
-            setShowModelForm(false);
-          }}
-          submitButtonText="Assign"
-          onSuccess={() => {
-            setShowModelForm(false);
-            fetchMonitorsInGroup().catch((error: Error) => {
-              setError(API.getFriendlyMessage(error));
-            });
-          }}
-          onBeforeCreate={(monitorGroupMonitor: MonitorGroupResource) => {
-            monitorGroupMonitor.monitorGroupId = modelId;
-            monitorGroupMonitor.projectId = ProjectUtil.getCurrentProjectId()!;
-            return Promise.resolve(monitorGroupMonitor);
+      {showAddModal ? (
+        <BasicFormModal<AddMonitorsFormValues>
+          title={MonitorGroupMonitorsCopy.addDialogTitle}
+          name="Add Monitors to Group"
+          description={MonitorGroupMonitorsCopy.addDialogDescription}
+          isLoading={isAddLoading}
+          error={addError || undefined}
+          submitButtonText={MonitorGroupMonitorsCopy.addButton}
+          onClose={closeAddModal}
+          onSubmit={async (values: AddMonitorsFormValues) => {
+            await addMonitors(values.monitors || []);
           }}
           formProps={{
-            name: "Assign Monitor",
-            modelType: MonitorGroupResource,
-            id: "create-monitor-group-resource",
+            id: "add-monitors-to-group",
+            initialValues: {
+              monitors: pickedMonitorIds,
+            },
             fields: [
               {
                 field: {
-                  monitor: true,
+                  monitors: true,
                 },
-                title: "Select Monitor",
-                description: "Select monitor to assign to this group.",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownModal: {
-                  type: Monitor,
-                  labelField: "name",
-                  valueField: "_id",
-                },
+                title: MonitorGroupMonitorsCopy.monitorsField,
+                // Said only when there is nothing left to pick.
+                ...(monitorsToOffer.length === 0
+                  ? { description: MonitorGroupMonitorsCopy.nothingToAdd }
+                  : {}),
+                fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                dropdownOptions: monitorsToOffer,
                 required: true,
-                placeholder: "Select Monitor",
+                placeholder: MonitorGroupMonitorsCopy.monitorsPlaceholder,
               },
             ],
-            formType: FormType.Create,
           }}
         />
       ) : (

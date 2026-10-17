@@ -28,7 +28,10 @@ import Radio from "Common/UI/Components/Radio/Radio";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import React, {
@@ -301,7 +304,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     filterCondition: monitorCriteriaInstance?.data?.filterCondition,
   });
 
-  // Calculate actions summary
+  /*
+   * What the folded Actions section says it does: "Status: Offline, 1
+   * incident". Each piece in the reader's language - the section draws its
+   * badge as given, so English pieces glued together read English everywhere.
+   */
   const getActionsSummary: () => string = (): string => {
     const actions: Array<string> = [];
     if (showMonitorStatusChangeControl) {
@@ -313,22 +320,32 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           );
         });
       if (statusOption) {
-        actions.push(`Status: ${statusOption.label}`);
+        actions.push(
+          translator.translateTemplate("Status: {{status}}", {
+            status: translatableTerm(statusOption.label),
+          }),
+        );
       }
     }
     if (showAlertControl) {
-      const alertCount: number =
-        monitorCriteriaInstance?.data?.alerts?.length || 0;
-      actions.push(`${alertCount} alert${alertCount !== 1 ? "s" : ""}`);
-    }
-    if (showIncidentControl) {
-      const incidentCount: number =
-        monitorCriteriaInstance?.data?.incidents?.length || 0;
       actions.push(
-        `${incidentCount} incident${incidentCount !== 1 ? "s" : ""}`,
+        translator.translatePlural(
+          { one: "{{count}} alert", other: "{{count}} alerts" },
+          monitorCriteriaInstance?.data?.alerts?.length || 0,
+        ),
       );
     }
-    return actions.length > 0 ? actions.join(", ") : "No actions";
+    if (showIncidentControl) {
+      actions.push(
+        translator.translatePlural(
+          { one: "{{count}} incident", other: "{{count}} incidents" },
+          monitorCriteriaInstance?.data?.incidents?.length || 0,
+        ),
+      );
+    }
+    return actions.length > 0
+      ? actions.join(", ")
+      : translator.translateText("No actions") || "No actions";
   };
 
   const hasActions: boolean =
@@ -741,7 +758,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       <CollapsibleSection
         title="Settings"
         description="Configure additional settings for this criteria."
-        badge={isEnabled ? "Enabled" : "Disabled"}
+        badge={
+          translator.translateText(isEnabled ? "Enabled" : "Disabled") ||
+          (isEnabled ? "Enabled" : "Disabled")
+        }
         variant="bordered"
         defaultCollapsed={!showIncidentGrouping}
         className="mb-4"

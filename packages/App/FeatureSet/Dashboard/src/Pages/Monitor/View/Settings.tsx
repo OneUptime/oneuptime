@@ -120,7 +120,7 @@ const MonitorCriteria: FunctionComponent<
               description={
                 <p className="mt-2">
                   <TranslatedSentence
-                    template="Your current incoming request secret key is {{key}} Resetting the secret key will generate a new key. Secret is used to authenticate incoming requests."
+                    template="The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender."
                     slots={{
                       key: (
                         <InlineCode
@@ -168,7 +168,7 @@ const MonitorCriteria: FunctionComponent<
               description={
                 <p className="mt-2">
                   <TranslatedSentence
-                    template="Your current server monitor secret key is {{key}} Resetting the secret key will generate a new key. Secret is used to authenticate monitoring agents deployed on the server."
+                    template="The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key."
                     slots={{
                       key: (
                         <InlineCode
@@ -222,8 +222,12 @@ const MonitorCriteria: FunctionComponent<
                   disableActiveMonitoring: true,
                 },
                 title: "Disable Monitor",
+                /*
+                 * On by default: a copy checks what the original checks,
+                 * so it would otherwise alert on the same problem twice.
+                 */
                 description:
-                  "Should the new monitor be disabled when it is duplicated?",
+                  "The copy starts with monitoring off, so it does not alert twice. Turn it on from its Settings.",
                 fieldType: FormFieldSchemaType.Toggle,
                 defaultValue: true,
                 required: false,

@@ -20,6 +20,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -39,6 +40,13 @@ const MonitorSecrets: FunctionComponent<
     useState<MonitorSecret | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  /*
+   * Why a new secret value was not saved. It used to be dropped: the dialog
+   * stopped spinning and stayed open with no word of what went wrong, so
+   * the secret looked updated when it was not.
+   */
+  const [updateError, setUpdateError] = useState<string>("");
 
   const { translateString } = useTranslateValue();
 
@@ -239,13 +247,16 @@ const MonitorSecrets: FunctionComponent<
           title={"Update Secret Value"}
           name="Monitor > Update Secret Value"
           isLoading={isLoading}
+          error={updateError || undefined}
           onClose={() => {
             setIsLoading(false);
+            setUpdateError("");
             return setCurrentlyEditingItem(null);
           }}
           onSubmit={async (data: JSONObject) => {
             try {
               setIsLoading(true);
+              setUpdateError("");
 
               await ModelAPI.updateById<MonitorSecret>({
                 modelType: MonitorSecret,
@@ -256,8 +267,9 @@ const MonitorSecrets: FunctionComponent<
               });
 
               setCurrentlyEditingItem(null);
-            } catch {
-              // do nothing
+            } catch (err) {
+              // Said in the dialog, which stays open to try again.
+              setUpdateError(API.getFriendlyMessage(err));
             }
 
             setIsLoading(false);
