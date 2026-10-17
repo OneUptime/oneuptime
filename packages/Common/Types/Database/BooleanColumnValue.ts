@@ -55,7 +55,35 @@ const FALSE_WORDS: ReadonlyArray<string> = ["false", "no"];
  * literal wrapped in a non-breaking space is refused by the database, so it
  * is refused here too, never read as a switch.
  */
-const SPACE_AROUND_LITERAL: RegExp = /^[ \t\n\v\f\r]+|[ \t\n\v\f\r]+$/g;
+const SPACE_AROUND_LITERAL: ReadonlySet<string> = new Set<string>([
+  " ",
+  "\t",
+  "\n",
+  "\v",
+  "\f",
+  "\r",
+]);
+
+/*
+ * The text without the whitespace around it, in one pass from each end. A
+ * pattern ending in a repeated class and `$` starts again at every place
+ * inside a run of whitespace that is not at the end, so a long value took
+ * time that grew with the square of its length.
+ */
+function withoutSpaceAroundLiteral(text: string): string {
+  let start: number = 0;
+  let end: number = text.length;
+
+  while (start < end && SPACE_AROUND_LITERAL.has(text.charAt(start))) {
+    start++;
+  }
+
+  while (end > start && SPACE_AROUND_LITERAL.has(text.charAt(end - 1))) {
+    end--;
+  }
+
+  return text.slice(start, end);
+}
 
 /*
  * A value written to a boolean column as Postgres stores it: true and false
@@ -86,7 +114,7 @@ export function toStoredBoolean(value: unknown): unknown {
     return value;
   }
 
-  const text: string = value.replace(SPACE_AROUND_LITERAL, "").toLowerCase();
+  const text: string = withoutSpaceAroundLiteral(value).toLowerCase();
 
   if (text.length === 0) {
     return value;

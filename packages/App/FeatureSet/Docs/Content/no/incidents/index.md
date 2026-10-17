@@ -60,7 +60,7 @@ Fem veier fører til det samme objektet:
 - **Via API-et** — `POST /api/incident` med en API-nøkkel. Serveren fyller ut `declaredAt`, opprettelsestilstanden og hendelsesnummeret for deg.
 - **Via et skjema** — noen utenfor teamet ditt fyller ut et skjema du har delt som en lenke, uten en OneUptime-konto. Hendelsen erklæres skjult for statussider, fra skjemaets hendelsesmal hvis det har en. Se [Skjemaer](/docs/forms/index).
 
-Integrasjoner åpner også hendelser: [Huntress](/docs/integrations/huntress) gjør hver hendelsesrapport som SOC-en sender, til én hendelse, som tilkaller vaktpolicyene du velger. Se [Opprette en hendelse](/docs/incidents/declaring-incidents) for gjennomgangen felt for felt.
+Arbeidsflyter åpner også hendelser: [Huntress](/docs/integrations/huntress)-arbeidsflyten gjør hver hendelsesrapport som SOC-en sender, til én hendelse, som tilkaller vaktpolicyen du velger. Se [Opprette en hendelse](/docs/incidents/declaring-incidents) for gjennomgangen felt for felt.
 
 ### 2. De riktige personene får vite det
 
@@ -160,11 +160,10 @@ Rediger eller legg til alvorlighetsgrader under **Hendelser → Innstillinger �
 | **Episoder**  | Hendelsesepisoder, en egen grupperingsfunksjon med egne sider.                                                                                                            |
 | **KI**        | **Innsikt**, **Logger**, **Innstillinger**: hva OneUptime AI har lært av hendelsene dine og alt den har gjort for dem, og hva den kan gjøre på egen hånd — med reglene for hvilke hendelser den undersøker og retter. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbeidsområde** | Chatarbeidsområdene prosjektet har koblet til: **Slack**, **Microsoft Teams** eller begge, hver med sine varselregler for hendelser. Er ingen av dem koblet til, inneholder den **Koble til Slack eller Teams**, en side som viser begge og hvordan de kobles til. |
-| **Integrasjoner** | Verktøy som selv åpner hendelser: **Huntress**, der hendelsesrapportene blir hendelser som tilkaller vakten. Se [Huntress](/docs/integrations/huntress). |
 | **Regler**    | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
 | **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Målinger**, **Tilknyttede varsler**, **Medlemskap i episoder**, **Nummerering**. |
 
-**Oversikt** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Integrasjoner**, **Regler**, **Innstillinger** og **Utvikler** er brettet sammen som standard, slik at menyen åpner på listene du bruker hver dag. Klikk på tittelen til en seksjon for å brette den ut og finne sidene resten av denne dokumentasjonen viser til; en seksjon åpner seg også av seg selv når du er på en av sidene i den. Konfigurasjonen av hendelser ligger ikke under prosjektinnstillingene; den ligger helt her.
+**Oversikt** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** er brettet sammen som standard, slik at menyen åpner på listene du bruker hver dag. Klikk på tittelen til en seksjon for å brette den ut og finne sidene resten av denne dokumentasjonen viser til; en seksjon åpner seg også av seg selv når du er på en av sidene i den. Konfigurasjonen av hendelser ligger ikke under prosjektinnstillingene; den ligger helt her.
 
 Selve listen over hendelser viser **Hendelsesnummer**, **Tittel**, **Tilstand**, **Alvorlighetsgrad**, **Berørte ressurser**, **Erklært**, **Varighet**, **Etiketter** og **Eiere**, med en massehandling **Endre tilstand** for å lukke flere på én gang.
 

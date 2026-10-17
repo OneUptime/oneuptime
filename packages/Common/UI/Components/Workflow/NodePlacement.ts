@@ -289,3 +289,62 @@ export const getViewportToRevealNode: GetViewportToRevealNodeFunction = (
     zoom: params.viewport.zoom || 1,
   };
 };
+
+/** A step as react-flow measured it: where it is, how big, and whether it is the trigger. */
+export interface WorkflowCanvasNode {
+  position: XYPosition;
+  width?: number | null | undefined;
+  height?: number | null | undefined;
+  isTrigger: boolean;
+}
+
+type GetViewportToRevealTriggerFunction = (params: {
+  nodes: Array<WorkflowCanvasNode>;
+  viewport: WorkflowCanvasViewport;
+  canvasSize: WorkflowCanvasSize;
+  overlays?: Array<WorkflowCanvasRect> | undefined;
+}) => WorkflowCanvasViewport | null;
+
+/**
+ * Where to move the canvas once it has opened, and fitted the workflow, so
+ * the trigger is on screen - or null when it is already, or there is none.
+ *
+ * A workflow reads from its trigger down. One too big to fit even at the
+ * smallest zoom - a template such as Huntress's, Jira's or Dynamics 365's,
+ * on a laptop - is fitted on its middle, with the trigger above the top
+ * edge; and the trigger is often what the workflow was opened for: its URL,
+ * its signing secret. So the canvas moves, at the zoom the fit chose and
+ * only as far as it must (getViewportToRevealNode), until the trigger is in
+ * view. A workflow that fits stays as it was fitted.
+ */
+export const getViewportToRevealTrigger: GetViewportToRevealTriggerFunction =
+  (params: {
+    nodes: Array<WorkflowCanvasNode>;
+    viewport: WorkflowCanvasViewport;
+    canvasSize: WorkflowCanvasSize;
+    overlays?: Array<WorkflowCanvasRect> | undefined;
+  }): WorkflowCanvasViewport | null => {
+    const trigger: WorkflowCanvasNode | undefined = params.nodes.find(
+      (node: WorkflowCanvasNode): boolean => {
+        return node.isTrigger;
+      },
+    );
+
+    // Nothing measured yet, or no canvas: nothing to bring into view.
+    if (
+      !trigger ||
+      params.canvasSize.width <= 0 ||
+      params.canvasSize.height <= 0
+    ) {
+      return null;
+    }
+
+    return getViewportToRevealNode({
+      position: trigger.position,
+      width: trigger.width || undefined,
+      height: trigger.height || undefined,
+      viewport: params.viewport,
+      canvasSize: params.canvasSize,
+      overlays: params.overlays,
+    });
+  };

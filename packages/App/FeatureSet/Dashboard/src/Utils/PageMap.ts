@@ -155,9 +155,6 @@ enum PageMap {
   // Whether an incident can be in only one episode.
   INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP = "INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP",
   INCIDENTS_SETTINGS_NUMBERING = "INCIDENTS_SETTINGS_NUMBERING",
-  // The Incidents menu's Integrations section: Huntress connections.
-  INCIDENTS_INTEGRATIONS_HUNTRESS = "INCIDENTS_INTEGRATIONS_HUNTRESS",
-  INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW = "INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW",
   /*
    * The Incidents menu's AI section: Insights, Logs, then
    * INCIDENTS_SETTINGS_AI (its Settings), whose key kept its name when the

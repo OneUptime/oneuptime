@@ -1,12 +1,13 @@
 # Arbeidsflyt-triggere
 
-En trigger er den første blokken i en arbeidsflyt — den avgjør når arbeidsflyten kjører. Hver arbeidsflyt har nøyaktig én trigger. Du velger mellom fem typer.
+En trigger er den første blokken i en arbeidsflyt — den avgjør når arbeidsflyten kjører. Hver arbeidsflyt har nøyaktig én trigger. Du velger mellom seks typer.
 
 :::cards
 - [Manuell](#manual): Start arbeidsflyten fra Bygger eller fra en annen arbeidsflyt.
 - [Tidsplan](#schedule): Kjør den etter en gjentakende tidsplan, skrevet som et cron-uttrykk.
 - [Webhook](#webhook): La et annet system starte den ved å kalle en URL.
 - [Innkommende e-post](#incoming-email): Start den med hver e-post som sendes til dens egen adresse.
+- [Huntress](#huntress): Start den for hver begivenhet Huntress sender om en hendelsesrapport.
 - [OneUptime-begivenhetstriggere](#oneuptime-begivenhetstriggere): Reager når en post opprettes, oppdateres eller slettes.
 :::
 
@@ -20,6 +21,7 @@ For å legge til triggeren klikker du på den stiplede blokken **Choose what sta
 | Kjøre etter en gjentakende tidsplan            | **Tidsplan**                |
 | La et annet system sende inn data              | **Webhook**                 |
 | Starte ut fra en e-post                        | **Incoming Email**          |
+| Handle på hendelsesrapporter fra Huntress      | **Huntress Incident Report** |
 | Reagere på noe i OneUptime                     | **OneUptime-begivenhet**    |
 
 En arbeidsflyt kan bare ha én trigger. Trenger du to måter å starte den samme automatiseringen på, bygger du den felles logikken i en arbeidsflyt med en **Manual**-trigger og starter den fra to tynne «innpaknings»-arbeidsflyter med en **Execute Workflow**-blokk.
@@ -150,6 +152,14 @@ Lekker adressen, klikker du på **Tilbakestill adresse** på samme sted: arbeids
 
 > [!NOTE]
 > På en selvhostet installasjon mottar OneUptime e-post gjennom en leverandør av innkommende e-post som administratoren din konfigurerer — se [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Inntil da har triggeren ingen adresse, og innstillingene sier det.
+
+## Huntress
+
+OneUptime gir arbeidsflyten sin egen URL for Huntress, tjenesten for managed detection and response. Huntress sender hver begivenhet om en hendelsesrapport dit, signert med endepunktets signeringshemmelighet, og hver begivenhet starter arbeidsflyten én gang: når SOC-en sender en rapport, når noen kommenterer den, og når den lukkes.
+
+Bra for: å åpne en hendelse for hver hendelsesrapport fra Huntress, tilkalle vakten og følge rapporten til den lukkes. Malen **Open an incident for each Huntress incident report** gjør alle tre.
+
+For å koble til Huntress klikker du på triggeren **Huntress Incident Report** på lerretet: den viser URL-en du gir Huntress, lagrer endepunktets signeringshemmelighet og sier når Huntress sist nådde arbeidsflyten. En forespørsel som ikke er signert med den hemmeligheten, starter ingenting, så URL-en er ikke et passord. Se [Huntress](/docs/integrations/huntress) for oppsettet i Huntress, verdiene triggeren returnerer, og innstillingene.
 
 ## OneUptime-begivenhetstriggere
 

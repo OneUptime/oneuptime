@@ -1,4 +1,5 @@
 import { JSONObject } from "../../../Types/JSON";
+import { SeededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * Huntress webhook bodies in the shapes Huntress documents
@@ -24,6 +25,24 @@ import { JSONObject } from "../../../Types/JSON";
 export const HUNTRESS_ACCOUNT_ID: number = 5;
 export const HUNTRESS_ORGANIZATION_ID: number = 4;
 export const HUNTRESS_REPORT_ID: number = 1234;
+
+/*
+ * A signing secret as Huntress issues one, "whsec_" and base64: `bytes`
+ * bytes drawn from `random`, so a suite gets as many different secrets as
+ * it asks for, and the same ones on every run.
+ */
+export function drawHuntressSigningSecret(
+  random: SeededRandom,
+  bytes: number = 24,
+): string {
+  const key: Buffer = Buffer.alloc(bytes);
+
+  for (let index: number = 0; index < bytes; index++) {
+    key[index] = random(256);
+  }
+
+  return `whsec_${key.toString("base64")}`;
+}
 
 export function getHuntressIncidentReportBody(
   overrides: JSONObject = {},

@@ -27,8 +27,8 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 
 | तरीका | किसके लिए सबसे अच्छा | उदाहरण |
 | --- | --- | --- |
-| बिल्ट-इन कनेक्शन | ऐसे टूल जिनसे OneUptime खुद जुड़ता है। आप एक फ़ॉर्म भरते हैं, और बनाने को कुछ नहीं होता। | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), [सुरक्षा इवेंट](/docs/telemetry/security-events) कनेक्शन |
-| वर्कफ़्लो टेम्पलेट | टिकटिंग टूल, जो दोनों ओर से तालमेल में रहते हैं, और चैट संदेश। आप एक टेम्पलेट चुनते हैं और कुछ सेटिंग भरते हैं। | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| बिल्ट-इन कनेक्शन | ऐसे टूल जिनसे OneUptime खुद जुड़ता है। आप एक फ़ॉर्म भरते हैं, और बनाने को कुछ नहीं होता। | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [सुरक्षा इवेंट](/docs/telemetry/security-events) कनेक्शन |
+| वर्कफ़्लो टेम्पलेट | टिकटिंग टूल, जो दोनों ओर से तालमेल में रहते हैं, सुरक्षा घटना रिपोर्ट और चैट संदेश। आप एक टेम्पलेट चुनते हैं और कुछ सेटिंग भरते हैं। | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
 | Incoming Request मॉनिटर | वेबहुक भेजने वाले अलर्टिंग टूल। हर अलर्ट पर एक घटना मिलती है, जो ऑन-कॉल को पेज होती है और अलर्ट ठीक होने पर सुलझ जाती है, बिना किसी वर्कफ़्लो के। | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | आपका बनाया वर्कफ़्लो | वेबहुक या REST API वाला कोई भी टूल, और आपका अपना कोई भी लॉजिक। | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 

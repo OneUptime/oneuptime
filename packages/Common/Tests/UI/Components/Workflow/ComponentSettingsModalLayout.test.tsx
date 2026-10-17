@@ -78,6 +78,8 @@ const PRIMARY_SECTION_BY_COMPONENT: Record<string, string> = {
   [ComponentID.Webhook]: "webhook-url",
   [ComponentID.IncomingEmail]: "email-address",
   [ComponentID.Manual]: "how-to-run",
+  // Its URL, its signing secret and what Huntress last sent.
+  [ComponentID.HuntressIncidentReport]: "huntress",
 };
 
 const COMPACT_ROW_SECTIONS: Array<string> = ["id", "inputs", "outputs"];

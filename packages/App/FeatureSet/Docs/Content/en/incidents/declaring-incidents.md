@@ -21,7 +21,7 @@ There are five ways an incident gets into OneUptime, and they all end up in the 
 | Open one from your own code, a script, or another tool       | `POST /api/incident`                                                        |
 | Let people outside your team report a problem through a link | A [form](/docs/forms/index)                                                 |
 
-All five write the same model, so an incident opened by a probe looks exactly like one a responder opened by hand — apart from a few bookkeeping columns the server sets on automatic ones. Integrations write it too: [Huntress](/docs/integrations/huntress) opens one incident for each incident report its SOC sends.
+All five write the same model, so an incident opened by a probe looks exactly like one a responder opened by hand — apart from a few bookkeeping columns the server sets on automatic ones. Workflows write it too: the [Huntress](/docs/integrations/huntress) workflow opens one incident for each incident report its SOC sends.
 
 > [!TIP]
 > You can also declare an incident from alerts: **Declare Incident** on an alerts list, in an alert's header or on an alert's **Linked Incidents** page opens the same wizard, prefilled from the alerts, and links them to the new incident. A box on the form, ticked by default, also acknowledges the alerts, so they stop escalating. See [Linked Alerts](/docs/incidents/linked-alerts).

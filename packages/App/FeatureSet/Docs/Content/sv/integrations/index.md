@@ -27,8 +27,8 @@ En dubbelriktad integration, som Jira eller Dynamics 365, använder båda riktni
 
 | Sätt | Passar bäst för | Exempel |
 | --- | --- | --- |
-| En inbyggd anslutning | Verktyg som OneUptime ansluter till själv. Du fyller i ett formulär, och det finns inget att bygga. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), anslutningarna för [Säkerhetshändelser](/docs/telemetry/security-events) |
-| En arbetsflödesmall | Ärendeverktyg, synkade åt båda hållen, och chattmeddelanden. Du väljer en mall och fyller i några inställningar. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| En inbyggd anslutning | Verktyg som OneUptime ansluter till själv. Du fyller i ett formulär, och det finns inget att bygga. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), anslutningarna för [Säkerhetshändelser](/docs/telemetry/security-events) |
+| En arbetsflödesmall | Ärendeverktyg, synkade åt båda hållen, säkerhetsincidentrapporter och chattmeddelanden. Du väljer en mall och fyller i några inställningar. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
 | En Incoming Request-monitor | Larmverktyg som skickar en webhook. Du får en incident per larm, skickad till jouren och löst när larmet återhämtar sig, utan arbetsflöde. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Ett arbetsflöde som du bygger | Alla verktyg med en webhook eller ett REST API, och all egen logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 

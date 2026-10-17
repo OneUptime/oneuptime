@@ -60,7 +60,7 @@ Fünf Wege führen zum selben Objekt:
 - **Über die API** – `POST /api/incident` mit einem API-Schlüssel. Der Server füllt `declaredAt`, den Erstellungsstatus und die Vorfallnummer für Sie aus.
 - **Per Formular** – jemand außerhalb Ihres Teams füllt ein Formular aus, das Sie als Link geteilt haben, ohne OneUptime-Konto. Der Vorfall wird vor Statusseiten verborgen gemeldet, aus der Vorfallsvorlage des Formulars, falls es eine hat. Siehe [Formulare](/docs/forms/index).
 
-Auch Integrationen öffnen Vorfälle: [Huntress](/docs/integrations/huntress) macht aus jedem Vorfallbericht, den sein SOC sendet, einen Vorfall, der die von Ihnen gewählten Bereitschaftsrichtlinien alarmiert. Die Schritt-für-Schritt-Beschreibung aller Felder finden Sie unter [Einen Vorfall melden](/docs/incidents/declaring-incidents).
+Auch Workflows öffnen Vorfälle: Der [Huntress](/docs/integrations/huntress)-Workflow macht aus jedem Vorfallbericht, den sein SOC sendet, einen Vorfall, der die von Ihnen gewählte Bereitschaftsrichtlinie alarmiert. Die Schritt-für-Schritt-Beschreibung aller Felder finden Sie unter [Einen Vorfall melden](/docs/incidents/declaring-incidents).
 
 ### 2. Die richtigen Leute erfahren davon
 
@@ -160,11 +160,10 @@ Schweregrade bearbeiten oder ergänzen Sie unter **Vorfälle → Einstellungen �
 | **Episoden** | Vorfallsepisoden, eine eigene Funktion zur Gruppierung mit eigenen Seiten. |
 | **KI** | **Einblicke**, **Protokolle**, **Einstellungen**: was die OneUptime-KI aus Ihren Vorfällen gelernt und alles, was sie für sie getan hat, und was sie selbstständig tun darf – mit den Regeln, welche Vorfälle sie untersucht und behebt. Siehe [AI SRE](/docs/ai/ai-sre). |
 | **Arbeitsbereich** | Die Chat-Arbeitsbereiche, die dieses Projekt verbunden hat: **Slack**, **Microsoft Teams** oder beide, jeweils mit ihren Benachrichtigungsregeln für Vorfälle. Ist keiner verbunden, enthält er **Slack oder Teams verbinden**, eine Seite, die beide zeigt und erklärt, wie man sie verbindet. |
-| **Integrationen** | Werkzeuge, die selbst Vorfälle öffnen: **Huntress**, dessen Vorfallberichte zu Vorfällen werden, die die Bereitschaft alarmieren. Siehe [Huntress](/docs/integrations/huntress). |
 | **Regeln** | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Erinnerungsregeln**. |
 | **Einstellungen** | **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Messungen**, **Verknüpfte Warnungen**, **Episodenzugehörigkeit**, **Nummerierung**. |
 
-**Übersicht** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Integrationen**, **Regeln**, **Einstellungen** und **Entwickler** sind standardmäßig eingeklappt, damit das Menü mit den Listen beginnt, die Sie täglich nutzen. Klicken Sie auf den Titel eines Abschnitts, um ihn aufzuklappen und die Seiten zu finden, auf die sich der Rest dieser Doku bezieht; ein Abschnitt öffnet sich auch von selbst, wenn Sie auf einer seiner Seiten sind. Die Vorfallskonfiguration liegt nicht in den Projekteinstellungen, sondern vollständig hier.
+**Übersicht** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind standardmäßig eingeklappt, damit das Menü mit den Listen beginnt, die Sie täglich nutzen. Klicken Sie auf den Titel eines Abschnitts, um ihn aufzuklappen und die Seiten zu finden, auf die sich der Rest dieser Doku bezieht; ein Abschnitt öffnet sich auch von selbst, wenn Sie auf einer seiner Seiten sind. Die Vorfallskonfiguration liegt nicht in den Projekteinstellungen, sondern vollständig hier.
 
 Die Vorfallliste selbst zeigt **Vorfallnummer**, **Titel**, **Status**, **Schweregrad**, **Betroffene Ressourcen**, **Erklärt**, **Dauer**, **Beschriftungen** und **Eigentümer**, mit der Massenaktion **Status ändern**, um mehrere auf einmal zu schließen.
 
