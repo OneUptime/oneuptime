@@ -355,7 +355,7 @@
       "adjustBalanceStepBalance": "余额",
       "adjustBalanceStepAmount": "金额和原因",
       "monitorLimitCardTitle": "活动监视器",
-      "monitorLimitCardDescription": "除手动监视器外的所有监视器都计数，无论开启与否。达到上限后项目无法再添加；现有监视器继续运行。经销商下次更改等级时会覆盖此值。",
+      "monitorLimitCardDescription": "除手动监视器外的所有监视器都计数，无论开启与否。达到上限后项目无法再添加；现有监视器继续运行。经销商下次更改等级时会覆盖此值。Free 套餐的项目同样受 Free 套餐上限的约束。",
       "monitorLimitEditButton": "编辑监视器限额",
       "fieldActiveMonitors": "活动监视器",
       "fieldMonitorLimit": "活动监视器限额",

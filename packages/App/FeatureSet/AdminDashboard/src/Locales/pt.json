@@ -355,7 +355,7 @@
       "adjustBalanceStepBalance": "Saldo",
       "adjustBalanceStepAmount": "Valor e motivo",
       "monitorLimitCardTitle": "Monitores ativos",
-      "monitorLimitCardDescription": "Todo monitor, exceto os manuais, conta, ativado ou não. No limite o projeto não pode adicionar mais; os monitores existentes continuam funcionando. A próxima mudança de nível de um revendedor o substitui.",
+      "monitorLimitCardDescription": "Todo monitor, exceto os manuais, conta, ativado ou não. No limite o projeto não pode adicionar mais; os monitores existentes continuam funcionando. A próxima mudança de nível de um revendedor o substitui. Projetos no plano Free também estão sujeitos ao limite do plano Free.",
       "monitorLimitEditButton": "Editar limite de monitores",
       "fieldActiveMonitors": "Monitores ativos",
       "fieldMonitorLimit": "Limite de monitores ativos",
