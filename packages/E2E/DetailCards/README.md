@@ -22,8 +22,10 @@ The pages:
 - `/dashboard/<project>/detail-cards` - the gallery: one, two, three and four
   columns, every kind of value (text, long URLs, labels, yes/no, dates,
   markdown, code, an ID, hidden text, copyable values), empty values with and
-  without the field's own words, descriptions and side links, the compact
-  style, and two detail cards drawn as sections of a "More settings" card.
+  without the field's own words, descriptions and side links, one-line values
+  of every kind side by side (text, a yes/no, a choice, a colour, labels,
+  related records, a dash and a placeholder), the compact style, and two
+  detail cards drawn as sections of a "More settings" card.
 
 The suite (`DetailCards.spec.ts`) measures in Chromium what jsdom cannot:
 
@@ -39,6 +41,11 @@ The suite (`DetailCards.spec.ts`) measures in Chromium what jsdom cannot:
   between rows in the dark theme's subtle border;
 - an empty value is a dash read out as "Not set", or the field's own words as
   quiet text (not a chip); a date is plain text;
+- every one-line value of a row sits on one line, whatever it is - text, a
+  yes/no, a choice, a colour, labels, related records, a dash or the field's
+  own words - and is the value's 24px line tall;
+- a record's labels sit side by side, every one of them, wrapping in their
+  column; no labels reads as quiet text, as any empty field does;
 - a copyable value's copy button is in view without a hover and copies;
 - the documentation and the demo are in the card's bordered ⋯ beside Edit,
   and open in a new tab; a reader who may not edit sees Edit locked;

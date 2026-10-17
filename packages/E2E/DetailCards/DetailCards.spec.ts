@@ -49,6 +49,7 @@ const GRID_CARDS: ReadonlyArray<string> = [
   "code",
   "keys",
   "notes",
+  "mixed",
 ];
 
 interface Box {
@@ -268,6 +269,67 @@ async function expectAlignedRows(card: Locator, where: string): Promise<void> {
       `${where}: row ${rowIndex} ends at the grid's edge`,
     ).toBeLessThanOrEqual(1);
   });
+}
+
+interface ValueLine {
+  title: string;
+  cellTop: number;
+  valueHeight: number;
+  // The middle of the value's first line of words, as drawn.
+  wordsMiddle: number;
+}
+
+/*
+ * Where each value's words sit: the middle of the first run of text a
+ * reader sees in it (not the words only a screen reader hears), and the
+ * height of the value's box.
+ */
+async function measureValueLines(card: Locator): Promise<Array<ValueLine>> {
+  return await card
+    .getByTestId("detail-field")
+    .evaluateAll((cells: Array<Element>): Array<ValueLine> => {
+      return cells.map((cell: Element): ValueLine => {
+        const value: Element = cell.querySelector(
+          "[data-testid='detail-value']",
+        ) as Element;
+        const walker: TreeWalker = document.createTreeWalker(
+          value,
+          NodeFilter.SHOW_TEXT,
+          {
+            acceptNode: (node: Node): number => {
+              const parent: Element | null = node.parentElement;
+              if (
+                !node.textContent ||
+                !node.textContent.trim() ||
+                (parent && parent.closest(".sr-only"))
+              ) {
+                return NodeFilter.FILTER_SKIP;
+              }
+              return NodeFilter.FILTER_ACCEPT;
+            },
+          },
+        );
+        const words: Node | null = walker.nextNode();
+        let wordsMiddle: number = Number.NaN;
+        if (words) {
+          const range: Range = document.createRange();
+          range.selectNodeContents(words);
+          const first: DOMRect | undefined = range.getClientRects()[0];
+          if (first) {
+            wordsMiddle = first.top + first.height / 2;
+          }
+        }
+        const label: Element | null = cell.querySelector(
+          "[data-testid='detail-label']",
+        );
+        return {
+          title: label ? (label.textContent || "").trim() : "",
+          cellTop: cell.getBoundingClientRect().top,
+          valueHeight: value.getBoundingClientRect().height,
+          wordsMiddle: wordsMiddle,
+        };
+      });
+    });
 }
 
 async function expectNothingRunsOff(page: Page, where: string): Promise<void> {
@@ -641,6 +703,122 @@ test.describe("values", () => {
     // Not a chip: no border, no fill.
     await expect(words).toHaveCSS("border-top-width", "0px");
     await expect(words).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  });
+
+  test("every one-line value in a row sits on one line: text, a yes/no, a choice, a colour, labels, related records, a dash and the field's own words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 768, 390]) {
+      await open(page, GALLERY, width);
+      const lines: Array<ValueLine> = await measureValueLines(
+        galleryCard(page, "mixed"),
+      );
+
+      expect(
+        lines.map((line: ValueLine): string => {
+          return line.title;
+        }),
+      ).toEqual([
+        "Name",
+        "Public",
+        "Theme",
+        "Bar color",
+        "Labels",
+        "Downtime statuses",
+        "Page title",
+        "Copyright text",
+      ]);
+
+      const rows: Map<number, Array<ValueLine>> = new Map();
+      for (const line of lines) {
+        const top: number = Math.round(line.cellTop);
+        rows.set(top, [...(rows.get(top) || []), line]);
+      }
+
+      for (const row of rows.values()) {
+        const first: ValueLine = row[0] as ValueLine;
+        for (const line of row) {
+          // Level to the pixel: a pill sat 2px low on the line's baseline.
+          expect(
+            Math.abs(line.wordsMiddle - first.wordsMiddle),
+            `${line.title} level with ${first.title} at ${width}`,
+          ).toBeLessThanOrEqual(1);
+        }
+      }
+
+      // One line of any kind is the value's 24px line: no row stands taller.
+      for (const line of lines) {
+        if (line.title === "Labels" && width === 1280) {
+          // Four columns of a 1024px page: the labels wrap, as they should.
+          continue;
+        }
+        expect(
+          Math.abs(line.valueHeight - 24),
+          `${line.title} is one 24px line at ${width}`,
+        ).toBeLessThanOrEqual(0.5);
+      }
+    }
+    await screenshot(page, "mixed-values-390");
+  });
+
+  test("a record's labels sit side by side, all of them, wrapping in their column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 390]) {
+      await open(page, GALLERY, width);
+      const labels: Locator = galleryCard(page, "one")
+        .getByTestId("detail-field")
+        .filter({ hasText: "Labels" });
+      const row: Locator = labels.getByTestId("detail-labels");
+      const pills: Locator = row.getByTestId("pill");
+
+      await expect(pills).toHaveText(["Production", "Customer facing", "EU"]);
+      // Every label shown: nothing folded behind "N more".
+      await expect(labels.getByRole("button")).toHaveCount(0);
+
+      // One line: every pill shares the first one's top.
+      const tops: Array<number> = await pills.evaluateAll(
+        (elements: Array<Element>): Array<number> => {
+          return elements.map((element: Element): number => {
+            return element.getBoundingClientRect().top;
+          });
+        },
+      );
+      for (const top of tops) {
+        expect(
+          Math.abs(top - (tops[0] as number)),
+          `labels on one line at ${width}`,
+        ).toBeLessThanOrEqual(0.5);
+      }
+
+      // Inside their column.
+      const cell: Box = await box(labels);
+      const rowBox: Box = await box(row);
+      expect(rowBox.x + rowBox.width).toBeLessThanOrEqual(
+        cell.x + cell.width + 0.5,
+      );
+    }
+  });
+
+  test("a record with no labels says so as quiet text, like every empty field", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${GALLERY}?data=empty`, 1280);
+    const labels: Locator = galleryCard(page, "one")
+      .getByTestId("detail-field")
+      .filter({ hasText: "Labels" });
+    const words: Locator = labels.getByTestId("placeholder-text");
+
+    await expect(words).toHaveText("No labels attached.");
+    // The grey of the field's own words, not a value's near-black.
+    await expect(words).toHaveCSS("color", "rgb(107, 114, 128)");
+    await expect(labels.locator("p")).toHaveCount(0);
   });
 
   test("a date reads as plain text, in the value's weight, with no icon", async ({

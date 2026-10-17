@@ -391,8 +391,9 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
   type GetColorFieldFunction = (color: Color) => ReactElement;
 
+  // The swatch centred on the value's line, beside the colour's code.
   const getColorField: GetColorFieldFunction = (color: Color): ReactElement => {
-    return <ColorViewer value={color} />;
+    return <ColorViewer value={color} className="items-center" />;
   };
 
   type GetUSDCentsFieldFunction = (

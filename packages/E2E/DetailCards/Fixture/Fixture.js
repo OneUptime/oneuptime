@@ -60,6 +60,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Project from "Common/Models/DatabaseModels/Project";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
@@ -206,7 +207,17 @@ const GALLERY = {
   compact: "31000000-0000-4000-8000-000000000008",
   sectionA: "31000000-0000-4000-8000-000000000009",
   sectionB: "31000000-0000-4000-8000-00000000000a",
+  mixed: "31000000-0000-4000-8000-00000000000b",
 };
+
+function monitorStatus(id, name, color) {
+  const record = new MonitorStatus();
+  record._id = id;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.name = name;
+  record.color = new Color(color);
+  return record;
+}
 
 const MARKDOWN = [
   "Public status for **checkout**, payments and the API.",
@@ -296,6 +307,32 @@ const STATUS_PAGES = [
   statusPage(GALLERY.sectionB, {
     showIncidentHistoryInDays: 14,
     showAnnouncementHistoryInDays: 30,
+  }),
+  /*
+   * Every kind of one-line value side by side - text, a yes/no, a choice, a
+   * colour, labels, related records, a dash and the field's own words - to
+   * hold them all to one line in each row.
+   */
+  statusPage(GALLERY.mixed, {
+    name: "Acme Status",
+    isPublicStatusPage: true,
+    theme: "Dark",
+    defaultBarColor: new Color("#10b981"),
+    labels: LABELS,
+    downtimeMonitorStatuses: [
+      monitorStatus(
+        "21000000-0000-4000-8000-000000000001",
+        "Offline",
+        "#ef4444",
+      ),
+      monitorStatus(
+        "21000000-0000-4000-8000-000000000002",
+        "Degraded",
+        "#f59e0b",
+      ),
+    ],
+    pageTitle: undefined,
+    copyrightText: undefined,
   }),
 ];
 
@@ -716,6 +753,55 @@ function Gallery() {
             field: { showIncidentHistoryInDays: true },
             title: "Incident history (days)",
             fieldType: FieldType.Number,
+          },
+        ],
+      })}
+      {galleryCard({
+        testId: "mixed",
+        title: "Mixed values",
+        description: "One-line values of every kind, side by side.",
+        modelId: GALLERY.mixed,
+        columns: 4,
+        fields: [
+          { field: { name: true }, title: "Name" },
+          {
+            field: { isPublicStatusPage: true },
+            title: "Public",
+            fieldType: FieldType.Boolean,
+          },
+          {
+            field: { theme: true },
+            title: "Theme",
+            fieldType: FieldType.Dropdown,
+            dropdownOptions: [
+              { value: "Light", label: "Light" },
+              { value: "Dark", label: "Dark", color: new Color("#4f46e5") },
+              { value: "System", label: "System" },
+            ],
+          },
+          {
+            field: { defaultBarColor: true },
+            title: "Bar color",
+            fieldType: FieldType.Color,
+          },
+          {
+            field: { labels: { name: true, color: true } },
+            title: "Labels",
+            fieldType: FieldType.Element,
+            getElement: (item) => {
+              return <LabelsElement labels={item.labels || []} />;
+            },
+          },
+          {
+            field: { downtimeMonitorStatuses: { name: true, color: true } },
+            title: "Downtime statuses",
+            fieldType: FieldType.EntityArray,
+          },
+          { field: { pageTitle: true }, title: "Page title" },
+          {
+            field: { copyrightText: true },
+            title: "Copyright text",
+            placeholder: "No copyright text yet.",
           },
         ],
       })}
