@@ -13,7 +13,13 @@ export const Moment: typeof moment = moment;
 // A whole number of nanoseconds, as fromUnixNano reads one exactly.
 const UNIX_NANO_INTEGER_PATTERN: RegExp = /^[+-]?\d+$/;
 
-const NANOS_PER_MILLISECOND: bigint = BigInt(1000000);
+/*
+ * BigInt(1000000), made the first time fromUnixNano reads an integer string
+ * rather than when this module loads: every frontend bundle loads Date.ts,
+ * and a browser without BigInt must still load it. Only that one read needs
+ * BigInt, as before.
+ */
+let nanosPerMillisecond: bigint | undefined;
 
 /*
  * How many seconds OneUptimeDate.toClickhouseDateTime keeps the text of,
@@ -937,7 +943,10 @@ export default class OneUptimeDate {
     if (typeof timestamp === "string") {
       const trimmed: string = timestamp.trim();
       if (UNIX_NANO_INTEGER_PATTERN.test(trimmed)) {
-        return new Date(Number(BigInt(trimmed) / NANOS_PER_MILLISECOND));
+        if (nanosPerMillisecond === undefined) {
+          nanosPerMillisecond = BigInt(1000000);
+        }
+        return new Date(Number(BigInt(trimmed) / nanosPerMillisecond));
       }
       return new Date(Number(trimmed) / 1000000);
     }
