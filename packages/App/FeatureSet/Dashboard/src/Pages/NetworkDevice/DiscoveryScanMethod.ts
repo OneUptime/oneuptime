@@ -162,10 +162,12 @@ export const readDiscoveryScanMethod: ReadDiscoveryScanMethodFunction = (
 
 /*
  * What Start New Scan opens with: ICMP picked. Handed to the scans table as
- * its create form's initial values - not only left to the field's default -
- * so the form holds ICMP from its very first render: a default is filled in
- * by an effect, and until it ran the SNMP card and the SNMP Credentials step
- * would show for a frame.
+ * its create form's initial values, so the form holds ICMP from its very
+ * first render (a field default is filled in by an effect, and until it ran
+ * the SNMP card and the SNMP Credentials step would show for a frame) - and
+ * so it reaches the create form only: a field default would fill the Edit
+ * dialog as well, wherever a scan arrived without the column, and saving
+ * would turn that scan into a ping sweep.
  */
 export const NEW_DISCOVERY_SCAN_FORM_VALUES: FormValues<NetworkDeviceDiscoveryScan> =
   {

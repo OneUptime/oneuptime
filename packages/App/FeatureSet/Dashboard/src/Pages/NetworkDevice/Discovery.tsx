@@ -338,13 +338,14 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       fieldType: FormFieldSchemaType.CustomComponent,
       required: false,
       /*
-       * ICMP for a scan the form starts. The table hands the same value in
-       * as the create form's initial values, so it is there from the first
-       * render; this default speaks for any other way the form is opened.
-       * An Edit dialog shows the scan's own method: a default only fills a
-       * value that is undefined.
+       * No defaultValue on purpose. A new scan starts on ICMP from the scans
+       * table's create values (NEW_DISCOVERY_SCAN_FORM_VALUES, below), there
+       * from the form's first render. A field default would ALSO fill the
+       * Edit dialog wherever a scan arrived without the column, and saving
+       * would quietly turn that scan into a ping sweep: the Edit dialog shows
+       * the method a scan has, and an absent one reads as SNMP, the sweep
+       * every scan ran before the choice existed.
        */
-      defaultValue: NEW_DISCOVERY_SCAN_FORM_VALUES.isSnmpEnabled as boolean,
       /*
        * A choice between two cards always has an answer, and FieldLabel
        * appends "(Optional)" to every non-required field.
