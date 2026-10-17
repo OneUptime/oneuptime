@@ -18,12 +18,12 @@ De MCP-server maakt deel uit van elke OneUptime-instantie, op `/mcp` op hetzelfd
 
 ```mermaid title="Hoe een client je project bereikt"
 flowchart TB
-    C["Je MCP-client:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP naar /mcp"| M["De MCP-server<br/>van OneUptime"]
+    C["Je MCP-client:<br/>Claude,<br/>Cursor,<br/>VS Code"] -->|"HTTP naar /mcp"| M["De MCP-server<br/>van OneUptime"]
     M --> W{"Hoe identificeert<br/>de client zich?"}
-    W -->|"hij heeft zich aangemeld"| P["Als jij, in het<br/>gekozen project"]
-    W -->|"een API-sleutel"| K["Als de sleutel, in<br/>het project ervan"]
-    W -->|"geen van beide"| U["Alleen tools voor<br/>openbare statuspagina's"]
-    P --> A["De API van OneUptime,<br/>met precies die<br/>machtigingen"]
+    W -->|"hij heeft<br/>zich aangemeld"| P["Als jij,<br/>in het<br/>gekozen<br/>project"]
+    W -->|"een API-sleutel"| K["Als de<br/>sleutel, in<br/>het project ervan"]
+    W -->|"geen van beide"| U["Alleen<br/>tools voor<br/>openbare<br/>statuspagina's"]
+    P --> A["De API van<br/>OneUptime,<br/>met precies die<br/>machtigingen"]
     K --> A
 ```
 

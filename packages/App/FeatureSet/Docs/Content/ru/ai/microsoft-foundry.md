@@ -16,16 +16,16 @@ OneUptime обращается к вашему ресурсу Foundry по HTTPS
 ```mermaid title="Куда уходят запросы ИИ из OneUptime"
 flowchart TB
     subgraph OU["Сервер OneUptime"]
-        F["Расследования ИИ, заметки, постмортемы, задачи исправления"]
+        F["Расследования ИИ,<br/>заметки, постмортемы,<br/>задачи исправления"]
     end
     subgraph AZ["Ваша подписка Azure"]
         R["Ресурс Foundry contoso-ai"]
-        V1["API OpenAI v1: /openai/v1/chat/completions"]
-        AN["API Anthropic: /anthropic/v1/messages"]
+        V1["API OpenAI v1:<br/>/openai/v1/chat/completions"]
+        AN["API Anthropic:<br/>/anthropic/v1/messages"]
         D1["Развёртывание gpt-5.1"]
-        D2["Развёртывание claude-sonnet-5-5"]
+        D2["Развёртывание<br/>claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API-ключ"| R
+    F -->|"HTTPS +<br/>API-ключ"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```

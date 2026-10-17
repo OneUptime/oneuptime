@@ -19,16 +19,16 @@ O Huntress envia um evento sobre um relatório de incidente quando o relatório 
 sequenceDiagram
     participant H as Huntress
     participant O as OneUptime
-    participant C as Equipe de plantão
+    participant C as Equipe de<br/>plantão
     H->>O: incident_report.created
-    O->>O: Verificar a assinatura, abrir um único incidente
-    opt Severidade igual ou acima de Acionar o plantão para
-        O->>C: Executar as políticas de plantão da conexão
+    O->>O: Verificar a<br/>assinatura,<br/>abrir um único<br/>incidente
+    opt Severidade<br/>igual ou acima<br/>de Acionar<br/>o plantão para
+        O->>C: Executar as<br/>políticas<br/>de plantão<br/>da conexão
     end
     H->>O: incident_report.comment_added
-    O->>O: Adicionar o comentário como nota privada
+    O->>O: Adicionar o<br/>comentário como<br/>nota privada
     H->>O: incident_report.closed
-    O->>O: Resolver o incidente
+    O->>O: Resolver o<br/>incidente
 ```
 
 1. **Verificar.** Uma solicitação precisa estar assinada com o segredo de assinatura do endpoint, no máximo cinco minutos antes de chegar. Todo o resto é recusado, e a página da conexão diz por quê.

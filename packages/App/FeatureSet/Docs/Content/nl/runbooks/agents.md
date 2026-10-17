@@ -13,15 +13,15 @@ Een **runbook-agent**, in het dashboard **Runner** genoemd, is een klein zelf ge
 
 ```mermaid title="Wat er over het netwerk gaat tussen een Runner en OneUptime"
 flowchart TB
-    subgraph yours["Uw infrastructuur"]
-        direction LR
-        runner["Runner-container"]
-        targets["Hosts, clusters, interne diensten"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Worker zet de stap in de wachtrij"]
         ingest["Runner-API"]
+    end
+    subgraph yours["Uw infrastructuur"]
+        direction LR
+        runner["Runner-container"]
+        targets["Hosts, clusters, interne diensten"]
     end
     worker --> ingest
     runner -->|"Uitgaand HTTPS, Runner-ID en sleutel"| ingest

@@ -14,11 +14,11 @@ OneUptime вызывает людей на телефоне через моби�
 ```mermaid title="Как push-уведомление попадает на телефон или в браузер"
 flowchart TB
     Server["Ваш сервер OneUptime"]
-    Relay["Push-ретранслятор OneUptime"]
+    Relay["Push-ретранслятор<br/>OneUptime"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["Приложение OneUptime On-Call"]
+    Phone["Приложение<br/>OneUptime On-Call"]
     PushService["Push-сервис<br/>браузера"]
     Browser["Браузер"]
     Server -->|"нет EXPO_ACCESS_TOKEN"| Relay
@@ -28,7 +28,7 @@ flowchart TB
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -105,11 +105,11 @@ expo:
 ```mermaid title="Когда вызов дежурного звучит в беззвучном режиме"
 flowchart TB
     Page["Вызов дежурного"]
-    Rule{"Его правило дежурства в режиме<br/>«Критическое оповещение»?"}
-    Device{"Critical On-Call Alerts<br/>включены на этом устройстве?"}
-    OS{"Система телефона<br/>разрешает критические оповещения?"}
-    Loud["Звучит в обход беззвучного<br/>режима и «Не беспокоить»"]
-    Quiet["Доставляется беззвучно,<br/>как любое другое push-уведомление"]
+    Rule{"Его правило<br/>дежурства в режиме<br/>«Критическое оповещение»?"}
+    Device{"Critical On-Call Alerts<br/>включены на<br/>этом устройстве?"}
+    OS{"Система телефона<br/>разрешает критические<br/>оповещения?"}
+    Loud["Звучит в обход<br/>беззвучного<br/>режима и<br/>«Не беспокоить»"]
+    Quiet["Доставляется<br/>беззвучно,<br/>как любое другое<br/>push-уведомление"]
     Page --> Rule
     Rule -->|"да"| Device
     Rule -->|"нет"| Quiet

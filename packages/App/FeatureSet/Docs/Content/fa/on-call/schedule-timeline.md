@@ -11,10 +11,10 @@ flowchart TB
         layers["لایه‌ها و چرخش‌ها"]
         overrides["بازنویسی‌های کاربر"]
     end
-    layers --> shifts["چه کسی و کی آنکال است"]
+    layers --> shifts["چه کسی و کی<br/>آنکال است"]
     overrides --> shifts
-    shifts --> timeline["خط زمانی زمان‌بندی‌ها"]
-    shifts --> paging["قواعد تشدید آن‌ها را خبر می‌کنند"]
+    shifts --> timeline["خط زمانی<br/>زمان‌بندی‌ها"]
+    shifts --> paging["قواعد تشدید آن‌ها<br/>را خبر می‌کنند"]
     shifts --> feeds["فیدهای تقویم"]
 ```
 

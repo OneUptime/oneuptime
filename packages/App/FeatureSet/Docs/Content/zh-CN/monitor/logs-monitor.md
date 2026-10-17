@@ -155,16 +155,17 @@ OneUptime 每分钟统计一次与监视器过滤器匹配、且在其时间窗�
 ```mermaid title="不使用和使用 Group By"
 flowchart TB
     subgraph Without["不使用 Group By"]
-        direction LR
+        direction TB
         A1["HQ-Branch1 断开"] --> M1["一个计数"]
         B1["Branch2 断开"] --> M1
         M1 --> X1["一个告警"]
     end
     subgraph With["按 con_name 分组"]
-        direction LR
+        direction TB
         A2["HQ-Branch1 断开"] --> X2["HQ-Branch1 告警"]
         B2["Branch2 断开"] --> Y2["Branch2 告警"]
     end
+    Without ~~~ With
 ```
 
 ### 独立解决

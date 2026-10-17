@@ -123,7 +123,7 @@ For at arkivere elementer markerer du dem i **All Items** og arkiverer dem på �
 
 ## Relationer og topologi
 
-OneUptime forbinder elementer med rettede relationer, efterhånden som det observerer dem. **Inventar → Topology Map** tegner dem, og et elements side **Connections** viser dets egne.
+OneUptime forbinder elementer med rettede relationer, efterhånden som det observerer dem. **Inventar → Topology Map** tegner dem, og et elements side **Connections** viser dets egne. Se [Topologi](/docs/telemetry/topology).
 
 | Relation | For eksempel |
 | --- | --- |

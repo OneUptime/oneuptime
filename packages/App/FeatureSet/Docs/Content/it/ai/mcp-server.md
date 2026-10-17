@@ -18,12 +18,12 @@ Il server MCP fa parte di ogni istanza OneUptime, su `/mcp` allo stesso indirizz
 
 ```mermaid title="Come un client raggiunge il tuo progetto"
 flowchart TB
-    C["Il tuo client MCP:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP a /mcp"| M["Il server MCP<br/>di OneUptime"]
-    M --> W{"Come si identifica<br/>il client?"}
-    W -->|"ha effettuato l'accesso"| P["Come te, nel<br/>progetto scelto"]
-    W -->|"una chiave API"| K["Come la chiave,<br/>nel suo progetto"]
-    W -->|"nessuno dei due"| U["Solo gli strumenti<br/>delle pagine di<br/>stato pubbliche"]
-    P --> A["L'API di OneUptime,<br/>con esattamente<br/>quei permessi"]
+    C["Il tuo<br/>client MCP:<br/>Claude,<br/>Cursor,<br/>VS Code"] -->|"HTTP a /mcp"| M["Il server MCP<br/>di OneUptime"]
+    M --> W{"Come si<br/>identifica<br/>il client?"}
+    W -->|"ha effettuato<br/>l'accesso"| P["Come te, nel<br/>progetto<br/>scelto"]
+    W -->|"una chiave API"| K["Come la<br/>chiave,<br/>nel suo<br/>progetto"]
+    W -->|"nessuno<br/>dei due"| U["Solo gli<br/>strumenti<br/>delle pagine di<br/>stato pubbliche"]
+    P --> A["L'API di<br/>OneUptime,<br/>con esattamente<br/>quei permessi"]
     K --> A
 ```
 

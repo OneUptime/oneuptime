@@ -19,15 +19,15 @@ Runbook नियम किसी **घटना**, **अलर्ट** या *
 
 ```mermaid title="नई घटना से शुरू हुए Runbook तक"
 flowchart TB
-    created["घटना, अलर्ट या इवेंट बना"] --> labels["लेबल नियम अपने लेबल जोड़ते हैं"]
-    labels --> rules["उस उत्पाद के सक्षम Runbook नियम"]
+    created["घटना, अलर्ट या इवेंट बना"] --> labels["लेबल नियम अपने<br/>लेबल जोड़ते हैं"]
+    labels --> rules["उस उत्पाद के<br/>सक्षम Runbook नियम"]
     rules --> match{"शर्तें मेल खाती हैं?"}
     match -->|"नहीं"| nothing["नियम कुछ शुरू नहीं करता"]
-    match -->|"हाँ"| union["सभी मेल खाने वाले नियमों के Runbook, हर एक एक बार"]
-    union --> runnable{"Runbook सक्षम है और उसमें चरण हैं?"}
-    runnable -->|"नहीं"| skipped["वह Runbook छोड़ दिया जाता है"]
-    runnable -->|"हाँ"| execution["निष्पादन बना और कतार में गया"]
-    execution --> attached["इवेंट के रनबुक पेज पर दिखता है"]
+    match -->|"हाँ"| union["सभी मेल खाने वाले नियमों<br/>के Runbook, हर एक एक बार"]
+    union --> runnable{"Runbook सक्षम है<br/>और उसमें चरण हैं?"}
+    runnable -->|"नहीं"| skipped["वह Runbook छोड़<br/>दिया जाता है"]
+    runnable -->|"हाँ"| execution["निष्पादन बना<br/>और कतार में गया"]
+    execution --> attached["इवेंट के रनबुक<br/>पेज पर दिखता है"]
 ```
 
 जब कोई नियम ट्रिगर होता है, तो उसमें नामित हर Runbook के लिए:

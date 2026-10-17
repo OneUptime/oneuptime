@@ -9,12 +9,12 @@ flowchart TB
     subgraph setup["Каждое расписание"]
         direction LR
         layers["Слои и ротации"]
-        overrides["Переопределения пользователей"]
+        overrides["Переопределения<br/>пользователей"]
     end
-    layers --> shifts["Кто дежурит и когда"]
+    layers --> shifts["Кто дежурит<br/>и когда"]
     overrides --> shifts
-    shifts --> timeline["Хронология дежурств"]
-    shifts --> paging["Правила эскалации оповещают их"]
+    shifts --> timeline["Хронология<br/>дежурств"]
+    shifts --> paging["Правила<br/>эскалации<br/>оповещают их"]
     shifts --> feeds["Календарные ленты"]
 ```
 

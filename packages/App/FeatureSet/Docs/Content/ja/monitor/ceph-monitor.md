@@ -22,14 +22,14 @@ flowchart TB
         active["アクティブな mgr"]
         standby["スタンバイの mgr"]
     end
-    active -->|"ポート 9283 のメトリクス"| agent["OneUptime Ceph Agent"]
-    standby -.->|"フェイルオーバー後"| agent
-    agent -->|"OTLP で送る Ceph メトリクス"| oneuptime["OneUptime"]
+    active -->|"ポート 9283 の<br/>メトリクス"| agent["OneUptime Ceph Agent"]
+    standby -.->|"フェイル<br/>オーバー後"| agent
+    agent -->|"OTLP で<br/>送る Ceph<br/>メトリクス"| oneuptime["OneUptime"]
     oneuptime -->|"最初のデータ"| registered["クラスターを登録"]
     oneuptime --> monitor["Ceph モニター"]
     monitor -->|"毎分"| criteria{"条件を満たす?"}
-    criteria -->|"はい"| incident["インシデントまたはアラート"]
-    criteria -->|"いいえ"| online["モニターはオンライン"]
+    criteria -->|"はい"| incident["インシデントまたは<br/>アラート"]
+    criteria -->|"いいえ"| online["モニターは<br/>オンライン"]
 ```
 
 ## 始める前に

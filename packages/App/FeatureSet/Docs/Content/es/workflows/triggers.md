@@ -75,13 +75,13 @@ La URL acepta tanto `GET` como `POST`. Quien llama recibe una confirmación ráp
 sequenceDiagram
     participant Caller as Tu herramienta
     participant OneUptime
-    participant Runner as Ejecutor de flujos de trabajo
-    Caller->>OneUptime: GET o POST a la URL del webhook
-    alt El flujo de trabajo está activado
+    participant Runner as Ejecutor de<br/>flujos de trabajo
+    Caller->>OneUptime: GET o POST a la<br/>URL del webhook
+    alt El flujo de trabajo<br/>está activado
         OneUptime-->>Caller: 200, estado Scheduled
-        OneUptime->>Runner: Pone en cola una ejecución con cabeceras, consulta y cuerpo
-        Runner->>Runner: Ejecuta los bloques que siguen al disparador
-    else El flujo de trabajo está desactivado o archivado
+        OneUptime->>Runner: Pone en cola<br/>una ejecución<br/>con cabeceras,<br/>consulta y cuerpo
+        Runner->>Runner: Ejecuta los<br/>bloques que siguen<br/>al disparador
+    else El flujo de trabajo<br/>está desactivado<br/>o archivado
         OneUptime-->>Caller: 400 con el motivo
     end
 ```

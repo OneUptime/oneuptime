@@ -18,11 +18,11 @@ sequenceDiagram
     participant P as Probe
     participant A as Your API
     participant O as OneUptime
-    P->>A: Request with your method, headers and body
+    P->>A: Request with your<br/>method, headers and body
     A-->>P: Status code, headers and body
-    Note over P: Retries a failure, a 4xx or 5xx,<br/>or an answer slower than 10 s
+    Note over P: Retries a failure,<br/>a 4xx or 5xx,<br/>or an answer slower than 10 s
     P->>O: Result of the check
-    O->>O: Check the criteria, top to bottom
+    O->>O: Check the criteria,<br/>top to bottom
 ```
 
 A probe that has lost its own network connection reports no result, so it cannot mark your API offline.

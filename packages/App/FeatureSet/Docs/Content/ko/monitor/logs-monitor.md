@@ -155,16 +155,17 @@ Group By가 없으면 종료된 IPsec 터널을 지켜보는 모니터는 모니
 ```mermaid title="Group By 없이와 함께"
 flowchart TB
     subgraph Without["Group By 없음"]
-        direction LR
+        direction TB
         A1["HQ-Branch1 끊김"] --> M1["개수 하나"]
         B1["Branch2 끊김"] --> M1
         M1 --> X1["알림 하나"]
     end
     subgraph With["con_name으로 그룹화"]
-        direction LR
+        direction TB
         A2["HQ-Branch1 끊김"] --> X2["HQ-Branch1 알림"]
         B2["Branch2 끊김"] --> Y2["Branch2 알림"]
     end
+    Without ~~~ With
 ```
 
 ### 독립적인 해결

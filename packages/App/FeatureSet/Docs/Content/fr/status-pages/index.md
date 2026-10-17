@@ -29,7 +29,7 @@ flowchart TB
 
 Les pages de statut se trouvent sous **Pages de statut** dans le menu **Produits** de la barre du haut, parmi l'essentiel. Tout ce qui figure sur cette page s'applique par page de statut : un projet peut en exploiter autant qu'il le souhaite — une page publique pour les clients, une page privée pour un public interne, une page par région pour un marché donné.
 
-La page montre les moniteurs que vous y placez comme ses ressources. Les incidents et la maintenance planifiée l'atteignent par ces moniteurs, et vous y publiez les annonces directement. Les visiteurs lisent la page, et les abonnés sont informés de chaque changement sur les canaux qu'ils ont choisis.
+La page montre les moniteurs que vous y placez comme ses ressources, et les incidents l'atteignent par ces moniteurs. Les [événements de maintenance planifiée](/docs/scheduled-maintenance/index) et les annonces l'atteignent directement : chacun nomme les pages de statut où il s'affiche. Les visiteurs lisent la page, et les abonnés sont informés de chaque changement sur les canaux qu'ils ont choisis.
 
 ## En un coup d'œil
 

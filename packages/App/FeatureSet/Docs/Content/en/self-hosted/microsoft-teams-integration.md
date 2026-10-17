@@ -19,16 +19,16 @@ OneUptime uses an Azure Bot for its Teams integration. Traffic flows both ways, 
 sequenceDiagram
     participant B as Admin's browser
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
-    B->>O: Grant Admin Consent
-    O-->>B: Redirect to Microsoft
-    B->>E: Consent, then sign in
-    E-->>B: Redirect to the admin-consent callback
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
+    B->>O: Grant Admin<br/>Consent
+    O-->>B: Redirect to<br/>Microsoft
+    B->>E: Consent,<br/>then sign in
+    E-->>B: Redirect to the<br/>admin-consent<br/>callback
     B->>O: Callback
-    O->>E: Get a Microsoft Graph token
+    O->>E: Get a Microsoft<br/>Graph token
     Note over O,AB: Once connected
-    O->>AB: Post alert cards, outbound HTTPS
+    O->>AB: Post alert<br/>cards,<br/>outbound HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
@@ -218,7 +218,7 @@ The app registration's redirects to `/api/microsoft-teams/auth` and `/api/micros
 ### Publish the bot endpoint from a private deployment
 
 ```mermaid title="Publishing the bot endpoint from a private deployment"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Public gateway"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime ingress"]
     Users["Employees on VPN"] --> ING

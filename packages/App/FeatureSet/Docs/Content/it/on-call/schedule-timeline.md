@@ -8,13 +8,13 @@ I turni della cronologia sono quelli con cui OneUptime avvisa le persone, sostit
 flowchart TB
     subgraph setup["Ogni pianificazione"]
         direction LR
-        layers["Livelli e rotazioni"]
-        overrides["Sostituzioni utente"]
+        layers["Livelli e<br/>rotazioni"]
+        overrides["Sostituzioni<br/>utente"]
     end
-    layers --> shifts["Chi è reperibile, e quando"]
+    layers --> shifts["Chi è reperibile,<br/>e quando"]
     overrides --> shifts
-    shifts --> timeline["Cronologia delle reperibilità"]
-    shifts --> paging["Le regole di escalation li avvisano"]
+    shifts --> timeline["Cronologia delle<br/>reperibilità"]
+    shifts --> paging["Le regole di<br/>escalation<br/>li avvisano"]
     shifts --> feeds["Feed calendario"]
 ```
 

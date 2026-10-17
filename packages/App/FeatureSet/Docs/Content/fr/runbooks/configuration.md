@@ -14,24 +14,18 @@ Voici la référence pour les opérateurs et les responsables de la sécurité :
 ```mermaid title="Quelles étapes s'exécutent où"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["Étapes de requête HTTP"]
-        ai["Étapes IA"]
+        onworker["Étapes de<br/>requête HTTP<br/>Étapes IA"]
     end
     subgraph yours["Votre infrastructure"]
-        direction LR
         runner["Agent Runbook"]
-        scripts["Étapes JavaScript et Bash"]
-        remote["Étapes SSH et Kubernetes"]
+        onrunner["Étapes JavaScript<br/>et Bash<br/>Étapes SSH<br/>et Kubernetes"]
     end
     person["Une personne"]
-    worker --> http
-    worker --> ai
-    worker -->|"Étapes Manual et approbations"| person
-    worker -->|"met en file une tâche pour l'agent de l'étape"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Étapes<br/>Manual et<br/>approbations"| person
+    worker --->|"met en file<br/>une tâche<br/>pour l'agent<br/>de l'étape"| runner
+    runner --> onrunner
 ```
 
 | Type d'étape | S'exécute sur | Comment |

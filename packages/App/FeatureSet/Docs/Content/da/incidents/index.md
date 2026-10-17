@@ -7,6 +7,8 @@ En hændelse er den optegnelse, dit team arbejder ud fra, når noget går i styk
 - [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities): Livscyklussen, og hvad bekræftelse og løsning gør.
 - [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed): Opdateringer til kunder og til dit team, og hvem der hører om dem.
 - [Tilknyttede advarsler](/docs/incidents/linked-alerts): Knyt de advarsler, et udfald udløste, til den hændelse, der forklarer dem.
+- [Episoder](/docs/incidents/episodes): Saml relaterede hændelser, og arbejd med dem som én.
+- [Postmortem-analyser](/docs/incidents/postmortems): Skriv ned, hvad der skete, og offentliggør det på din statusside.
 - [Hændelsesindstillinger og automatisering](/docs/incidents/settings): Skabeloner, brugerdefinerede felter, roller, målinger og regler.
 :::
 
@@ -34,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Formular"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Ny hændelse"]
     incident --> rules["Hændelsesregler kører"]
-    rules --> oncall["Vagtpolitikker tilkalder"]
+    rules --> oncall["Vagtpolitikker<br/>tilkalder"]
     rules --> owners["Ejerne får besked"]
-    rules --> pages["Statussider opdateres"]
+    rules --> pages["Statussider<br/>opdateres"]
     oncall --> feed["Hændelse Feed"]
     owners --> feed
     pages --> feed
@@ -77,7 +81,7 @@ Dem, der reagerer, bekræfter hændelsen, tilføjer berørte ressourcer, knytter
 
 Et klik på **Løs** flytter hændelsen til den løste tilstand, registrerer det i tilstandstidslinjen, stopper varighedsuret, giver de monitorer fri, den holder, og fjerner hændelsen fra den aktive del af enhver statusside, den blev vist på. Intet andet behøver at ændre sig — en statusside viser kun hændelser i en tilstand over den løste tilstand. Se [Hvad løsning gør](/docs/incidents/states-and-severities#hvad-løsning-gør).
 
-Derefter kan du skrive en postmortem og eventuelt offentliggøre den på statussiden.
+Derefter kan du skrive en [postmortem](/docs/incidents/postmortems) og eventuelt offentliggøre den på statussiden.
 
 ## Nøglebegreber
 
@@ -103,7 +107,7 @@ Når et projekt oprettes, opretter OneUptime præcis tre hændelsestilstande, i 
 
 ```mermaid title="De tilstande, hvert nyt projekt starter med"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: erklæret
     Identified --> Acknowledged: Bekræft
     Identified --> Resolved: Løs

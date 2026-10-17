@@ -11,7 +11,7 @@ OneUptime이 재시작하거나, 업그레이드되거나, 밀린 데이터를 �
 - 따라잡기: 처리를 기다리는 데이터 큐가 일 분 넘게 밀려 있는 동안, 큐에 아직 남아 있는 가장 오래된 데이터 이후의 시간.
 
 ```mermaid title="OneUptime이 제외하는 시간"
-flowchart LR
+flowchart TB
     receiving["수신 중"] -->|"90초 동안 기록 없음"| down["수신 중단"]
     down -->|"프로세스가 다시 기록"| grace["2분 동안 재연결"]
     grace --> again["수신 중"]

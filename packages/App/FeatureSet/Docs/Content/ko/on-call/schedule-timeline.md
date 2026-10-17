@@ -14,7 +14,7 @@ flowchart TB
     layers --> shifts["누가 언제 온콜인지"]
     overrides --> shifts
     shifts --> timeline["스케줄 타임라인"]
-    shifts --> paging["에스컬레이션 규칙이 호출"]
+    shifts --> paging["에스컬레이션<br/>규칙이 호출"]
     shifts --> feeds["캘린더 피드"]
 ```
 

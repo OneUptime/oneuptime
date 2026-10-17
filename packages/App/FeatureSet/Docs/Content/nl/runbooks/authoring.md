@@ -188,14 +188,14 @@ AI-stappen worden gemeten en gefactureerd zoals elke andere AI-functie. De stap 
 
 ```mermaid title="Wat er gebeurt na een geautomatiseerde stap"
 flowchart TB
-    run["Een geautomatiseerde stap loopt"] --> ok{"Geslaagd?"}
+    run["Een geautomatiseerde<br/>stap loopt"] --> ok{"Geslaagd?"}
     ok -->|"ja"| approval{"Goedkeuring vereisen aan?"}
-    approval -->|"ja"| wait["De uitvoering wacht op goedkeuring van een persoon"]
+    approval -->|"ja"| wait["De uitvoering wacht<br/>op goedkeuring<br/>van een persoon"]
     approval -->|"nee"| next["De volgende stap loopt"]
     wait --> next
     ok -->|"nee"| cont{"Doorgaan bij fout aan?"}
     cont -->|"ja"| next
-    cont -->|"nee"| failed["De uitvoering stopt als mislukt"]
+    cont -->|"nee"| failed["De uitvoering<br/>stopt als mislukt"]
 ```
 
 Standaard stopt een mislukte stap de uitvoering en markeert die als `Failed`, met de fout van de stap als reden. Met **Doorgaan bij fout** aan wordt de fout vastgelegd en loopt de volgende stap, wat past bij runbooks van het type "probeer deze drie dingen en waarschuw dan". **Goedkeuring vereisen** geldt nadat een stap slaagt: de uitvoering wacht op die stap tot iemand op **Approve & continue** of **Overslaan** klikt.

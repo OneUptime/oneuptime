@@ -196,7 +196,7 @@ OAuth एक [ब्राउज़र रीडायरेक्ट है, �
 ### निजी डिप्लॉयमेंट और कॉलबैक की सुरक्षा
 
 ```mermaid title="निजी डिप्लॉयमेंट से Slack कॉलबैक प्रकाशित करना"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["सार्वजनिक गेटवे"]
     GW -->|"/api/slack/* सिर्फ़ POST"| ING["OneUptime ingress"]
     Users["VPN पर कर्मचारी"] --> ING

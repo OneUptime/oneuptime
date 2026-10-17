@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Una cuenta de Twilio, con su Account SID y su Auth Token | Los números y las llamadas de la política funcionan con ella, y Twilio se los cobra. |
 | El plan **Growth**, en OneUptime Cloud | Un proyecto lo necesita para tener su propia configuración de Twilio. |
-| Un servidor de OneUptime al que Twilio pueda llegar, si lo alojas tú | Twilio envía cada llamada a `https://<your host>/notification/incoming-call/voice`. |
+| Un servidor de OneUptime al que Twilio pueda llegar, si lo alojas tú | Twilio envía cada llamada a `https://<your host>/notification/incoming-call/voice`, y cómo terminó cada timbrado a `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** activado en el proyecto | El número de cada persona se verifica con un código enviado por SMS. |
 | Un número verificado para cada persona | Una regla solo hace sonar a quienes añadieron y verificaron un número para llamadas entrantes en el proyecto. |
 
@@ -85,15 +85,15 @@ sequenceDiagram
     participant Caller as Quien llama
     participant Twilio
     participant OneUptime
-    participant Engineer as Persona de guardia
-    Caller->>Twilio: Marca el número de la política
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Saludo, y después hacer sonar a la persona de la primera regla
-    Twilio->>Engineer: Suena durante la duración del timbre de la regla
-    Note over Twilio,Engineer: Nadie contesta a tiempo
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Hacer sonar a la persona de la siguiente regla
-    Twilio->>Engineer: Hace sonar a la siguiente persona
+    participant Engineer as Persona<br/>de guardia
+    Caller->>Twilio: Marca el número<br/>de la política
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Saludo, y<br/>después hacer<br/>sonar a la<br/>persona de la<br/>primera regla
+    Twilio->>Engineer: Suena durante<br/>la duración<br/>del timbre<br/>de la regla
+    Note over Twilio,Engineer: Nadie contesta<br/>a tiempo
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Hacer sonar a<br/>la persona de la<br/>siguiente regla
+    Twilio->>Engineer: Hace sonar a<br/>la siguiente<br/>persona
     Engineer-->>Twilio: Contesta
     Twilio-->>Caller: Pasa la llamada
 ```

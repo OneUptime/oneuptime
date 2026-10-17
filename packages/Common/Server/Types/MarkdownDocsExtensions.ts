@@ -657,9 +657,17 @@ export const docsMarkdownExtensions: MarkedExtension = {
           case "cards":
             return renderCards(this.parser, token.tokens);
           case "details":
-            return `<details class="docs-details"><summary class="docs-details__summary">${
+            /*
+             * The summary is a flex row: its marker, then its title. The
+             * title's words and inline code sit in one element, so they wrap
+             * as one paragraph; as the summary's own children, each run of
+             * text and each code span was a flex item that could not wrap
+             * around the others, and a summary with code in it pushed a
+             * phone-width page sideways.
+             */
+            return `<details class="docs-details"><summary class="docs-details__summary"><span class="docs-details__title">${
               argumentHtml || '<span data-docs-label="details">Details</span>'
-            }</summary><div class="docs-details__body">${this.parser.parse(token.tokens)}</div></details>`;
+            }</span></summary><div class="docs-details__body">${this.parser.parse(token.tokens)}</div></details>`;
           default:
             return renderDocsCallout({
               type: token.name,

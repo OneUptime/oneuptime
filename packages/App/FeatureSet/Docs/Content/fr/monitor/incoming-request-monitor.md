@@ -28,8 +28,8 @@ sequenceDiagram
     J->>O: GET ou POST /heartbeat/KEY
     O-->>J: 200 immédiatement
     O->>O: Évaluer les critères
-    Note over O: Toutes les 30 secondes, vérifier<br/>les requêtes manquantes
-    O->>T: Incident, si un critère correspond
+    Note over O: Toutes les 30 secondes,<br/>vérifier<br/>les requêtes manquantes
+    O->>T: Incident, si un<br/>critère correspond
 ```
 
 Utilisez-le pour :

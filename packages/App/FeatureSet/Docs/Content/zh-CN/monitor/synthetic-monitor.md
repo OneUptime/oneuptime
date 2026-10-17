@@ -19,14 +19,14 @@ sequenceDiagram
     participant P as 探测器
     participant B as 浏览器
     participant A as 你的 Web 应用
-    O->>P: 已填入密钥的脚本
-    loop 每种浏览器和屏幕尺寸
+    O->>P: 已填入密钥的<br/>脚本
+    loop 每种浏览器和<br/>屏幕尺寸
         P->>B: 运行脚本
-        B->>A: 加载页面、点击、输入
+        B->>A: 加载页面、<br/>点击、输入
         A-->>B: 页面
-        B-->>P: 结果、截图、日志
+        B-->>P: 结果、<br/>截图、日志
     end
-    P->>O: 每次运行一个响应
+    P->>O: 每次运行<br/>一个响应
     O->>O: 评估条件
 ```
 

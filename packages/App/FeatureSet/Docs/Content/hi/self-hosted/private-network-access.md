@@ -15,19 +15,19 @@ OneUptime कुछ आउटबाउंड अनुरोधों को उ
 | API, Website, External Status Page और Custom JavaScript Code **मॉनिटर** | **प्रोब** का अपना एनवायरनमेंट | निजी पते अस्वीकृत |
 
 ```mermaid title="तीन स्विच, हर एक अपने तरह के कनेक्शन के लिए"
-flowchart TB
+flowchart LR
     subgraph Server["OneUptime सर्वर"]
         direction TB
-        Webhooks["वर्कफ़्लो और वेबहुक"]
-        Outbound["डेटा स्रोत, LLM प्रदाता,<br/>SMTP और अन्य कनेक्शन"]
+        Webhooks["वर्कफ़्लो<br/>और वेबहुक"]
+        Outbound["डेटा स्रोत,<br/>LLM प्रदाता,<br/>SMTP और<br/>अन्य कनेक्शन"]
     end
     subgraph Probe["हर प्रोब"]
-        Monitors["API, Website,<br/>External Status Page और<br/>Custom JavaScript Code मॉनिटर"]
+        Monitors["API, Website,<br/>External Status Page और<br/>Custom JavaScript Code<br/>मॉनिटर"]
     end
-    Private["आपका निजी नेटवर्क"]
-    Webhooks -->|"डिफ़ॉल्ट रूप से बंद"| Private
-    Outbound -->|"डिफ़ॉल्ट रूप से चालू"| Private
-    Monitors -->|"डिफ़ॉल्ट रूप से बंद"| Private
+    Private["आपका निजी<br/>नेटवर्क"]
+    Webhooks -->|"डिफ़ॉल्ट<br/>रूप से बंद"| Private
+    Outbound -->|"डिफ़ॉल्ट<br/>रूप से चालू"| Private
+    Monitors -->|"डिफ़ॉल्ट<br/>रूप से बंद"| Private
 ```
 
 Ping, Port, SSL प्रमाणपत्र, DNS, DNSSEC, SNMP / नेटवर्क डिवाइस, SQL क्वेरी, डेटाबेस स्वास्थ्य, Synthetic और Network Path जैसे नेटवर्क-नेटिव मॉनिटर प्रकार अपने अलग ट्रांसपोर्ट इस्तेमाल करते हैं। इस पृष्ठ की सेटिंग उन HTTP ट्रांसपोर्ट को नियंत्रित करती है जो किसी प्रोजेक्ट को मनमाना रिस्पॉन्स कंटेंट लौटाते हैं: API, Website, External Status Page और Custom JavaScript Code मॉनिटर।

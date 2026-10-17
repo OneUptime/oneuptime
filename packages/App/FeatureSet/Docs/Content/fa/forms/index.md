@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### گردش‌های کاری
 
-فرم‌ها اجزای گردش کاری خودکار ساخته‌شده را دارند: **On Create Form**، **On Update Form** و مانند آن. برای انجام کاری روی آنچه یک فرم ساخته، از **On Create Incident** یا **On Create Scheduled Maintenance** استفاده کنید.
+فرم‌ها اجزای گردش کاری خودکار ساخته‌شده را دارند: **On Create Form**، **On Update Form** و مانند آن. برای انجام کاری روی آنچه یک فرم ساخته، از **On Create Incident** یا **On Create Scheduled Maintenance Event** استفاده کنید.
 
 ### نقطه‌های پایانی خود صفحهٔ عمومی
 

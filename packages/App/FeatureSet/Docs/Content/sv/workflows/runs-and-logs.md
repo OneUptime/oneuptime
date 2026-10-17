@@ -28,14 +28,14 @@ stateDiagram-v2
     state "Executed" as Executed
     state "Fel" as Failed
     state "Timeout" as TimedOut
-    [*] --> Scheduled: utlösaren aktiveras
-    Scheduled --> Running: körmotorn plockar upp den
-    Scheduled --> Failed: inte upplockad inom 5 minuter
+    [*] --> Scheduled: utlösaren<br/>aktiveras
+    Scheduled --> Running: körmotorn<br/>plockar upp den
+    Scheduled --> Failed: inte upplockad<br/>inom 5 minuter
     Running --> Waiting: ett Sleep-block
     Waiting --> Running: tiden har gått
     Running --> Executed: den nådde slutet
-    Running --> Failed: ett block stoppade körningen
-    Running --> TimedOut: den fick slut på tid
+    Running --> Failed: ett block<br/>stoppade<br/>körningen
+    Running --> TimedOut: den fick<br/>slut på tid
     Executed --> [*]
     Failed --> [*]
     TimedOut --> [*]

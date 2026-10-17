@@ -13,8 +13,8 @@ flowchart TB
     end
     layers --> shifts["Wer wann Bereitschaft hat"]
     overrides --> shifts
-    shifts --> timeline["Zeitachse der Bereitschaftspläne"]
-    shifts --> paging["Eskalationsregeln alarmieren sie"]
+    shifts --> timeline["Zeitachse der<br/>Bereitschaftspläne"]
+    shifts --> paging["Eskalationsregeln<br/>alarmieren sie"]
     shifts --> feeds["Kalender-Feeds"]
 ```
 

@@ -3,7 +3,7 @@
 As sondas do OneUptime Cloud verificam seus sites, APIs e servidores a partir de um conjunto fixo de endereços IP. Se houver um firewall ou uma lista de permissões na frente do que você monitora, libere esses endereços para que as verificações cheguem.
 
 ```mermaid title="Onde a lista de permissões se aplica"
-flowchart LR
+flowchart TB
     P["Sondas do OneUptime"] -->|"verificam a partir dos IPs listados"| F["Seu firewall"]
     F -->|"liberado"| S["Seu site, API ou servidor"]
 ```

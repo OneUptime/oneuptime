@@ -13,12 +13,12 @@ OneUptime larmar personer i telefonen via mobilappen **OneUptime On-Call**, och 
 
 ```mermaid title="Så når en push en telefon eller en webbläsare"
 flowchart TB
-    Server["Din OneUptime-server"]
-    Relay["OneUptimes push-relä"]
+    Server["Din OneUptime-<br/>server"]
+    Relay["OneUptimes<br/>push-relä"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["Appen OneUptime On-Call"]
+    Phone["Appen OneUptime<br/>On-Call"]
     PushService["Webbläsarens<br/>push-tjänst"]
     Browser["Webbläsare"]
     Server -->|"ingen EXPO_ACCESS_TOKEN"| Relay
@@ -28,7 +28,7 @@ flowchart TB
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 

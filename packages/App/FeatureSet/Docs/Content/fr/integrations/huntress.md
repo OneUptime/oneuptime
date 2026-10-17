@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as Équipe d'astreinte
     H->>O: incident_report.created
-    O->>O: Vérifier la signature, ouvrir un seul incident
-    opt Gravité au moins égale à Alerter l'astreinte pour
-        O->>C: Exécuter les politiques d'astreinte de la connexion
+    O->>O: Vérifier la<br/>signature, ouvrir<br/>un seul incident
+    opt Gravité au moins<br/>égale à Alerter<br/>l'astreinte pour
+        O->>C: Exécuter les<br/>politiques<br/>d'astreinte de<br/>la connexion
     end
     H->>O: incident_report.comment_added
-    O->>O: Ajouter le commentaire comme note privée
+    O->>O: Ajouter le<br/>commentaire<br/>comme note privée
     H->>O: incident_report.closed
     O->>O: Résoudre l'incident
 ```

@@ -57,7 +57,7 @@ Dra fra et punkt nederst på én blokk ned til punktet øverst på den neste. Li
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Ingenting er koblet til, så kjøringen slutter"])
+    check -->|"No"| ends(["Ingenting er koblet til,<br/>så kjøringen slutter"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```

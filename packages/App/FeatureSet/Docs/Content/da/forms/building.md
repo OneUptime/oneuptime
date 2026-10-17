@@ -12,12 +12,12 @@ En formulars side **Byg** er der, hvor du bestemmer, hvad den spørger om, og hv
 ## Hvor hvert svar ender
 
 ```mermaid title="Hvor hver slags svar ender"
-flowchart TB
-    answer["Et indsendt svar"] --> kind{"Hvad spørgsmålet er"}
-    kind -->|"Et felt på posten"| field["Det felt på den nye<br/>hændelse eller begivenhed"]
-    kind -->|"Et brugerdefineret felt"| custom["Værdien af det<br/>brugerdefinerede felt"]
-    kind -->|"Et af formularens<br/>egne spørgsmål"| note["En linje i den<br/>private note"]
-    kind -->|"Dit navn, din e-mail"| who["Hvem der indsendte,<br/>i den private note"]
+flowchart LR
+    answer["Et indsendt svar"]
+    answer -->|"Et felt<br/>på posten"| field["Det felt på den nye<br/>hændelse eller<br/>begivenhed"]
+    answer -->|"Et brugerdefineret felt"| custom["Værdien af det<br/>brugerdefinerede felt"]
+    answer -->|"Et af formularens<br/>egne spørgsmål"| note["En linje i den<br/>private note"]
+    answer -->|"Dit navn,<br/>din e-mail"| who["Hvem der indsendte,<br/>i den private note"]
 ```
 
 Hvert svar gemmes også med indsendelsen, på formularens side **Indsendelser**. Et felt, formularen ikke spørger om, eller som efterlades tomt, udfyldes fra formularens [indstillinger Ved indsendelse](/docs/forms/on-submit).

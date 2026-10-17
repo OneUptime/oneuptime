@@ -99,7 +99,7 @@ Abra a página **Execuções de plantão** do incidente. Se estiver vazia, o inc
 :::
 
 :::details Alguém foi acionado pelo canal errado, ou não foi acionado
-Abra **Plantão → Prontidão** e clique em **Coverage** na linha da pessoa. Ali aparecem os métodos que ela verificou e cada gravidade para a qual não tem regra. Só ela pode corrigir isso, em **Configurações do usuário**: envie a ela um lembrete de configuração pela mesma página. Veja [Prontidão e relatórios](/docs/on-call/readiness).
+Abra **Plantão → Prontidão** e clique em **Coverage** na linha da pessoa. Ali aparecem os métodos que ela verificou e cada gravidade para a qual não tem regra. Só ela pode corrigir isso, em **Configurações do usuário**: envie a ela um lembrete de configuração pela mesma página. Veja [Prontidão e relatórios](/docs/on-call/readiness). No OneUptime Cloud, um telefone que bloqueia chamadas desconhecidas pode silenciar um acionamento: adicione [os números do OneUptime](/docs/on-call/phone-number-whitelist) à lista de permitidos dele.
 :::
 
 :::details Uma pessoa de férias continua sendo acionada

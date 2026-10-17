@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["실행을 시작하는 것"]
         direction LR
         rule["Runbook 규칙"]
-        manual["이벤트에서 런북 실행"]
-        runnow["Runbook에서 Run Now"]
+        manual["이벤트에서<br/>런북 실행"]
+        runnow["Runbook에서<br/>Run Now"]
     end
-    rule --> execution["실행: 단계의 스냅샷"]
+    rule --> execution["실행: 단계의<br/>스냅샷"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker가 단계를 순서대로 처리"]
-    worker -->|"Manual 단계 또는 승인"| person["사람을 기다림"]
+    execution --> worker["OneUptime<br/>Worker가 단계를<br/>순서대로 처리"]
+    worker -->|"Manual 단계<br/>또는 승인"| person["사람을 기다림"]
     worker -->|"HTTP와 AI 단계"| onworker["Worker에서 실행"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["자체 인프라의 Runner"]
-    person --> record["상태, 출력, 오류 기록"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["자체 인프라의<br/>Runner"]
+    person --> record["상태, 출력,<br/>오류 기록"]
     onworker --> record
     runner --> record
-    record --> history["이벤트의 런북 페이지와 Runbook의 실행 목록"]
+    record --> history["이벤트의 런북<br/>페이지와 Runbook의<br/>실행 목록"]
 ```
 
 Runbook을 실행할 때마다 **실행**이 만들어집니다. 실행이 시작되면 Runbook의 단계가 복사되고, OneUptime이 단계를 순서대로 처리합니다. Manual 단계나 승인이 필요한 단계는 누군가 조치할 때까지 실행을 일시 중지합니다.

@@ -22,7 +22,7 @@ sequenceDiagram
     S->>O: E-post till monitorns adress
     O->>O: Lagra den på monitorn
     O->>O: Kontrollera kriterierna
-    O->>T: Larm eller incident, om något matchar
+    O->>T: Larm eller incident,<br/>om något matchar
     Note over O: Var 30:e sekund, kontrollera<br/>kriterier med Email Received
 ```
 

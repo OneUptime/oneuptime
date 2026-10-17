@@ -14,7 +14,7 @@ const port: string = process.env["DIAGRAMS_FIXTURE_PORT"] || "4271";
 
 export default defineConfig({
   testDir: "./Diagrams",
-  testMatch: "Diagrams.spec.ts",
+  testMatch: ["Diagrams.spec.ts", "DocsDiagramSizes.spec.ts"],
   timeout: 60000,
   expect: { timeout: 20000 },
   workers: 1,

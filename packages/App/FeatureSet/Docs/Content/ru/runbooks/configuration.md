@@ -14,24 +14,18 @@
 ```mermaid title="Какие шаги где выполняются"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["Шаги HTTP request"]
-        ai["Шаги AI"]
+        onworker["Шаги HTTP<br/>request<br/>Шаги AI"]
     end
     subgraph yours["Ваша инфраструктура"]
-        direction LR
         runner["Runner"]
-        scripts["Шаги JavaScript и Bash"]
-        remote["Шаги SSH и Kubernetes"]
+        onrunner["Шаги JavaScript<br/>и Bash<br/>Шаги SSH и<br/>Kubernetes"]
     end
     person["Человек"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual-шаги и подтверждения"| person
-    worker -->|"ставит задание в очередь для Runner-а шага"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual-шаги и<br/>подтверждения"| person
+    worker --->|"ставит задание<br/>в очередь для<br/>Runner-а шага"| runner
+    runner --> onrunner
 ```
 
 | Тип шага | Где выполняется | Как |

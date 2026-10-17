@@ -96,16 +96,16 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 
 ```mermaid title="Avant une étape qui utilise la variable"
 sequenceDiagram
-    participant Runner as Moteur d'exécution des workflows
+    participant Runner as Moteur d'exécution<br/>des workflows
     participant Variable as Variable OAuth 2.0
     participant IdP as Fournisseur d'identité
     Runner->>Variable: Lit le jeton en cache
-    alt Expiré, ou expire dans la minute
+    alt Expiré, ou expire<br/>dans la minute
         Runner->>IdP: Demande de jeton
         IdP-->>Runner: Nouveau jeton d'accès
-        Runner->>Variable: Conserve le nouveau jeton
+        Runner->>Variable: Conserve le<br/>nouveau jeton
     end
-    Runner->>Runner: Exécute l'étape avec un jeton qui n'a pas expiré
+    Runner->>Runner: Exécute l'étape avec un<br/>jeton qui n'a pas expiré
 ```
 
 - La première fois qu'un workflow utilise la variable, OneUptime demande un jeton d'accès au point de terminaison de jetons de votre fournisseur d'identité et le conserve.

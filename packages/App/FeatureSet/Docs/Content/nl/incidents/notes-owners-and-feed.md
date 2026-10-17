@@ -17,11 +17,11 @@ Een deel van wat je schrijft, is voor je klanten — de update die om 02:14 op d
 flowchart TB
     subgraph write["Wat je schrijft"]
         direction LR
-        public["Openbare notitie"]
+        public["Openbare<br/>notitie"]
         private["Privénotitie"]
     end
-    public --> page["Statuspagina en abonnees"]
-    public --> owners["Eigenaren van het incident"]
+    public --> page["Statuspagina<br/>en abonnees"]
+    public --> owners["Eigenaren<br/>van het<br/>incident"]
     private --> owners
     public --> feed["Incidentfeed"]
     private --> feed

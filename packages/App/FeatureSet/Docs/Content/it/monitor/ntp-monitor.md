@@ -19,8 +19,8 @@ sequenceDiagram
     participant S as Server NTP
     Note over P: T1: la sonda invia
     P->>S: Richiesta client
-    Note over S: T2: il server riceve, T3: il server risponde
-    S-->>P: Risposta: stratum, indicatore di secondo intercalare, riferimento, T2, T3
+    Note over S: T2: il server riceve,<br/>T3: il server risponde
+    S-->>P: Risposta: stratum, indicatore<br/>di secondo intercalare,<br/>riferimento, T2, T3
     Note over P: T4: la sonda riceve
 ```
 

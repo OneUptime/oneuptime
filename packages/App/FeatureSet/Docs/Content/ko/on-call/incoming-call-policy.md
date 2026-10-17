@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Account SID와 Auth Token이 있는 Twilio 계정 | 정책의 번호와 통화가 이 계정으로 운영되며, Twilio가 이 계정에 요금을 청구합니다. |
 | OneUptime Cloud의 **Growth** 요금제 | 프로젝트가 자체 Twilio 구성을 가지려면 필요합니다. |
-| 직접 호스팅한다면 Twilio가 접근할 수 있는 OneUptime 서버 | Twilio는 모든 통화를 `https://<your host>/notification/incoming-call/voice` 로 보냅니다. |
+| 직접 호스팅한다면 Twilio가 접근할 수 있는 OneUptime 서버 | Twilio는 모든 통화를 `https://<your host>/notification/incoming-call/voice` 로, 각 호출의 결과를 `https://<your host>/notification/incoming-call/dial-status/...` 로 보냅니다. |
 | 프로젝트에서 켜진 **SMS** | 각 엔지니어의 번호는 SMS로 보낸 코드로 인증합니다. |
 | 각 엔지니어의 인증된 번호 | 규칙은 프로젝트에서 수신 전화용 번호를 추가하고 인증한 사람에게만 전화합니다. |
 
@@ -87,12 +87,12 @@ sequenceDiagram
     participant OneUptime
     participant Engineer as 엔지니어
     Caller->>Twilio: 정책 번호로 전화
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: 인사말 후 첫 번째 규칙의 담당자에게 전화
-    Twilio->>Engineer: 규칙의 벨 울림 시간 동안 울림
-    Note over Twilio,Engineer: 제시간에 아무도 받지 않음
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: 다음 규칙의 담당자에게 전화
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: 인사말 후 첫<br/>번째 규칙의<br/>담당자에게 전화
+    Twilio->>Engineer: 규칙의 벨 울림<br/>시간 동안 울림
+    Note over Twilio,Engineer: 제시간에 아무도<br/>받지 않음
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: 다음 규칙의<br/>담당자에게 전화
     Twilio->>Engineer: 다음 사람에게 전화
     Engineer-->>Twilio: 받음
     Twilio-->>Caller: 발신자 연결

@@ -366,6 +366,31 @@ describe("what the page asks", () => {
     );
   });
 
+  // Every word the viewer looks up is one the Accounts locales are held to.
+  test("the viewer's words are the ones its link and callouts look up", () => {
+    const viewerSource: string = ["MarkdownLink.tsx", "MarkdownQuote.tsx"]
+      .map((fileName: string): string => {
+        return readCode(
+          nodePath.join(
+            PACKAGES_DIR,
+            "Common",
+            "UI",
+            "Components",
+            "Markdown.tsx",
+            fileName,
+          ),
+        );
+      })
+      .join(" ");
+    const looked: Array<string> = Array.from(
+      viewerSource.matchAll(/translationKey\("([^"]+)"\)/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect([...looked].sort()).toEqual([...MARKDOWN_VIEWER_WORDS].sort());
+  });
+
   test("the captcha shows only when the server wants one and this install can draw one", () => {
     expect(pageSource).toContain(
       "form && form.isCaptchaRequired && CAPTCHA_ENABLED && CAPTCHA_SITE_KEY",
@@ -460,20 +485,40 @@ const MARKDOWN_TOOLBAR_WORDS: Array<string> = [
   "Switch to visual editor",
 ];
 
+/*
+ * The Markdown viewer's words on the form's description and thank-you
+ * message, which it looks up in the page's locale: that a link opens in a
+ * new tab, for a screen reader, and each callout's name.
+ */
+const MARKDOWN_VIEWER_WORDS: Array<string> = [
+  "Opens in a new tab",
+  "Note",
+  "Tip",
+  "Info",
+  "Important",
+  "Warning",
+  "Caution",
+  "Danger",
+];
+
 const FLAT_SENTENCES: Array<string> = [
   ...(Object.values(FormMessage) as Array<string>),
   ...SHARED_FORM_SENTENCES,
   ...MARKDOWN_EDITOR_SENTENCES,
   ...MARKDOWN_TOOLBAR_WORDS,
+  ...MARKDOWN_VIEWER_WORDS,
 ];
 
 // Words a language genuinely shares with English, and nothing else.
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
-  de: ["(Optional)", "Link", "Code"],
-  fr: ["Code"],
+  de: ["(Optional)", "Link", "Code", "Info"],
+  fr: ["Code", "Info", "Important", "Danger"],
   pt: ["Link"],
-  nl: ["Code"],
-  da: ["Link"],
+  nl: ["Code", "Tip", "Info"],
+  da: ["Link", "Tip", "Info"],
+  it: ["Info"],
+  no: ["Info"],
+  sv: ["Info"],
 };
 
 const PLACEHOLDER: RegExp = /\{\{[^}]+\}\}/g;

@@ -14,7 +14,7 @@
 前往**產品 → 設定 → 專案設定**。側邊選單把頁面分成若干區段，預設只展開**基礎**：點選某個區段的標題即可展開。在某個區段的任意頁面上，該區段會自動展開。
 
 ```mermaid title="專案設定包含什麼"
-flowchart TB
+flowchart LR
     settings["專案設定"] --> project["專案: 詳細資訊、<br/>標籤、匯入"]
     settings --> connect["連接對象: 聊天、<br/>遙測、AI"]
     settings --> access["誰能進入: 金鑰、<br/>網域、登入"]

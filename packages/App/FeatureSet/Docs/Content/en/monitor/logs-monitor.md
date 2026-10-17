@@ -155,16 +155,17 @@ With Group By set to the tunnel name, tunnel `HQ-Branch1` terminating opens its 
 ```mermaid title="Without and with Group By"
 flowchart TB
     subgraph Without["Without Group By"]
-        direction LR
+        direction TB
         A1["HQ-Branch1 down"] --> M1["One count"]
         B1["Branch2 down"] --> M1
         M1 --> X1["One alert"]
     end
     subgraph With["Group by con_name"]
-        direction LR
+        direction TB
         A2["HQ-Branch1 down"] --> X2["Alert for HQ-Branch1"]
         B2["Branch2 down"] --> Y2["Alert for Branch2"]
     end
+    Without ~~~ With
 ```
 
 ### Independent resolution

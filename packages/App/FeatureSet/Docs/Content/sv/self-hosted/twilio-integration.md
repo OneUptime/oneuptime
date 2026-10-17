@@ -63,11 +63,11 @@ sequenceDiagram
     participant O as OneUptime
     participant T as Twilio
     participant P as Jourhavandes telefon
-    O->>T: Skickar ett SMS eller startar ett samtal
+    O->>T: Skickar ett SMS eller<br/>startar ett samtal
     T->>P: SMS eller röstsamtal
-    T-->>O: Återanrop med SMS-leveransstatus
+    T-->>O: Återanrop med<br/>SMS-leveransstatus
     P->>T: Trycker 1 för att kvittera
-    T-->>O: Återanrop med knappsatsinmatning
+    T-->>O: Återanrop med<br/>knappsatsinmatning
 ```
 
 En privat installation behöver DNS-uppslag och utgående HTTPS över TCP 443 till Twilio för att skicka SMS och samtal. Twilio rekommenderar att tillåta utgående HTTPS till `*.twilio.com` eftersom API-adresserna är dynamiska; se [Twilios IP-adresser](https://help.twilio.com/articles/115015934048-All-About-Twilio-IP-Addresses). Tillämpa det på utgående trafik från OneUptime-applikationens arbetslast, inklusive Kubernetes NetworkPolicies och externa brandväggar.

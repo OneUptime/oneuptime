@@ -27,7 +27,7 @@ Wenn Sie auf der Seite **Bereitschaftspläne** einen Plan anlegen, fragt das For
 Die Personen wechseln sich einzeln ab, und die erste hat Bereitschaft, sobald der Plan angelegt ist:
 
 ```mermaid title="Layer 1 mit drei Personen und Schichten von 1 Woche"
-flowchart LR
+flowchart TB
     alice["Alice<br/>Woche 1"] -->|"Übergabe"| bob["Bob<br/>Woche 2"]
     bob -->|"Übergabe"| carol["Carol<br/>Woche 3"]
     carol -->|"zurück zur ersten"| alice
@@ -52,10 +52,10 @@ Die Rotation eines Plans besteht aus Ebenen, auf seiner Seite **Ebenen**. Die Eb
 
 ```mermaid title="Die oberste Ebene, in der jemand Bereitschaft hat, alarmiert"
 flowchart TB
-    start["Eine Stufe alarmiert den Plan"] --> first{"Hat in der obersten<br/>Ebene jemand Bereitschaft?"}
-    first -->|"Ja"| pageTop["Diese Person alarmieren"]
-    first -->|"Nein"| next{"Hat in der nächsten<br/>Ebene jemand Bereitschaft?"}
-    next -->|"Ja"| pageNext["Diese Person alarmieren"]
+    start["Eine Stufe<br/>alarmiert den Plan"] --> first{"Hat in der obersten<br/>Ebene jemand<br/>Bereitschaft?"}
+    first -->|"Ja"| pageTop["Diese Person<br/>alarmieren"]
+    first -->|"Nein"| next{"Hat in der nächsten<br/>Ebene jemand<br/>Bereitschaft?"}
+    next -->|"Ja"| pageNext["Diese Person<br/>alarmieren"]
     next -->|"Nein"| gap["Niemand wird alarmiert<br/>eine Abdeckungslücke"]
 ```
 

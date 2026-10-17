@@ -14,7 +14,7 @@ Kubernetes 모니터는 OneUptime Kubernetes 에이전트가 클러스터에서 
 에이전트는 클러스터의 메트릭을 OTLP로 OneUptime에 보내며, 각 메트릭에 클러스터 이름(`k8s.cluster.name`, 차트의 `clusterName`)을 붙입니다. 새 이름에서 온 첫 데이터가 클러스터를 **Kubernetes** 에 등록하고, 그때부터 Kubernetes 모니터에서 그 클러스터를 고를 수 있습니다. 모니터는 매분 자신의 **시간 범위** 동안 그 메트릭을 조회하고 집계해, 결과를 기준과 비교합니다.
 
 ```mermaid title="클러스터 메트릭에서 인시던트까지"
-flowchart LR
+flowchart TB
     agent["Kubernetes 에이전트"] -->|"OTLP 메트릭"| metrics["클러스터 메트릭"]
     metrics --> monitor["Kubernetes 모니터"]
     monitor -->|"기준 충족"| incident["알림 또는 인시던트"]

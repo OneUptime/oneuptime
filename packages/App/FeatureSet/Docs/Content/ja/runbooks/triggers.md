@@ -15,13 +15,13 @@ Runbook は自動で開始できます。スケジュールに従って、また
 flowchart TB
     subgraph starts["実行を開始するもの"]
         direction LR
-        schedule["スケジュール: 時刻になる"]
+        schedule["スケジュール:<br/>時刻になる"]
         webhook["Webhook: URL への POST"]
     end
-    schedule --> checks["Runbook がオンでステップがある"]
+    schedule --> checks["Runbook がオンで<br/>ステップがある"]
     webhook --> checks
-    checks --> execution["Schedule または Webhook と記録された実行"]
-    execution --> worker["OneUptime Worker がステップを実行"]
+    checks --> execution["Schedule または<br/>Webhook と<br/>記録された実行"]
+    execution --> worker["OneUptime Worker が<br/>ステップを実行"]
 ```
 
 トリガーは **今すぐ実行** と同じように実行を開始します。実行は Runbook の現在のステップを対象にし、インシデント、アラート、定期メンテナンスイベントのどれにも関連付けられません。各実行は何が開始したかを記録します。Runbook の **実行** と **Runbook → 実行** は、それを **トリガー元** に表示し、スケジュール実行の予定時刻や Webhook を呼び出したアドレスも示します。どちらの一覧もそれで絞り込めます。

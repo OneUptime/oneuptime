@@ -1424,10 +1424,11 @@ const DocsNav: NavGroup[] = [
     title: "Installation",
     section: "Self-Hosting",
     links: [
-      {
-        title: "Local Development",
-        url: "/docs/installation/local-development",
-      },
+      /*
+       * Docker Compose first: /docs/installation opens a category's first
+       * page, and people who type it want to install OneUptime. Running it
+       * from source, to work on it, comes last.
+       */
       {
         title: "Docker Compose",
         url: "/docs/installation/docker-compose",
@@ -1443,6 +1444,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Sizing & Capacity Planning",
         url: "/docs/installation/sizing",
+      },
+      {
+        title: "Local Development",
+        url: "/docs/installation/local-development",
       },
     ],
   },

@@ -3,7 +3,7 @@
 OneUptime Cloud's probes check your websites, APIs and servers from a fixed set of IP addresses. If a firewall or an allowlist sits in front of what you monitor, allow these addresses so the checks get through.
 
 ```mermaid title="Where the allowlist applies"
-flowchart LR
+flowchart TB
     P["OneUptime probes"] -->|"checks from the listed IPs"| F["Your firewall"]
     F -->|"allowed"| S["Your website, API or server"]
 ```

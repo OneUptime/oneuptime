@@ -57,7 +57,7 @@ Faites glisser depuis un point au bas d'un bloc jusqu'au point en haut du bloc s
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Rien n'est relié, l'exécution s'arrête"])
+    check -->|"No"| ends(["Rien n'est relié,<br/>l'exécution s'arrête"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```

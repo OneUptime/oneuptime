@@ -29,7 +29,7 @@ L'explorateur a quatre onglets :
 | --- | --- |
 | **Lecteur** | Chercher, filtrer et lire les journaux. Il s'ouvre sur la dernière heure, les plus récents d'abord, 100 journaux par page. |
 | **Analyses** | Ce que vos services ont journalisé sur une plage de temps, et ce qui a mal tourné. |
-| **Guide de configuration** | Comment envoyer des journaux avec OpenTelemetry, Fluent Bit ou Fluentd, avec l'une de vos clés d'ingestion. |
+| **Guide de configuration** | Comment envoyer des journaux avec OpenTelemetry, Fluent Bit ou Fluentd, avec l'une de vos [clés d'ingestion](/docs/telemetry/ingestion-keys). |
 | **Paramètres** | Ce qui arrive aux journaux à leur arrivée : **Pipelines**, **Filtres de suppression**, **Règles de masquage** et **Règles d'enregistrement**. |
 
 ## Avant de commencer
@@ -132,12 +132,12 @@ Sélectionnez une erreur principale pour voir ce qui se passait autour : quand e
 
 ## Ce qui arrive aux journaux à leur arrivée
 
-L'onglet **Paramètres** contient les règles que OneUptime applique à chaque journal avant de le stocker. Elles agissent sur les journaux qui arrivent ensuite, pas sur ceux déjà stockés.
+L'onglet **Paramètres** contient les règles que OneUptime applique à chaque journal avant de le stocker. Elles agissent sur les journaux qui arrivent ensuite, pas sur ceux déjà stockés. La durée de conservation de chaque journal est elle aussi décidée à son arrivée : voir [Rétention des données](/docs/telemetry/data-retention).
 
 | Règle | Ce qu'elle fait |
 | --- | --- |
-| **Filtres de suppression** | Écarter les journaux que vous ne voulez pas garder, ou n'en garder qu'un échantillon. |
-| **Règles de masquage** | Masquer les données sensibles, comme les adresses e-mail et les numéros de carte. |
+| **Filtres de suppression** | Écarter les journaux que vous ne voulez pas garder, ou n'en garder qu'un échantillon. Voir [Supprimer ou échantillonner des enregistrements](/docs/telemetry/drop-filters-and-scrub-rules#supprimer-ou-échantillonner-des-enregistrements). |
+| **Règles de masquage** | Masquer les données sensibles, comme les adresses e-mail et les numéros de carte. Voir [Masquer les données sensibles](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles). |
 | **Pipelines** | Extraire des champs du message, corriger la gravité, renommer des attributs. Voir [Pipelines de journaux](/docs/telemetry/log-pipelines). |
 | **Règles d'enregistrement** | Transformer les journaux correspondants en métriques. Voir [Règles d'enregistrement de journaux](/docs/telemetry/log-recording-rules). |
 

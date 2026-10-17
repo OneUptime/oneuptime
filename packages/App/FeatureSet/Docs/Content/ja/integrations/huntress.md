@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as オンコールチーム
     H->>O: incident_report.created
-    O->>O: 署名を確認し、インシデントを 1 件作成
-    opt 重大度がオンコールを呼び出す対象以上
-        O->>C: 接続のオンコールポリシーを実行
+    O->>O: 署名を確認し、<br/>インシデントを<br/>1 件作成
+    opt 重大度が<br/>オンコールを<br/>呼び出す対象以上
+        O->>C: 接続のオンコー<br/>ルポリシーを実行
     end
     H->>O: incident_report.comment_added
-    O->>O: コメントを非公開メモとして追加
+    O->>O: コメントを非公開<br/>メモとして追加
     H->>O: incident_report.closed
     O->>O: インシデントを解決
 ```

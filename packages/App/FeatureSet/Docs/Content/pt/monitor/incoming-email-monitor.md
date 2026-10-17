@@ -19,10 +19,10 @@ sequenceDiagram
     participant S as Seu sistema
     participant O as OneUptime
     participant T as Equipe de plantão
-    S->>O: E-mail para o endereço do monitor
+    S->>O: E-mail para o<br/>endereço do monitor
     O->>O: Armazená-lo no monitor
     O->>O: Verificar os critérios
-    O->>T: Alerta ou incidente, se algum corresponder
+    O->>T: Alerta ou incidente,<br/>se algum corresponder
     Note over O: A cada 30 segundos, verificar<br/>os critérios Email Received
 ```
 

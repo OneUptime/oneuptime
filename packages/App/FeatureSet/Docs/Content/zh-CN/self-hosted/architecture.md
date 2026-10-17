@@ -5,14 +5,14 @@
 ```mermaid title="自托管的 OneUptime"
 flowchart TB
     People["用户和浏览器"]
-    Senders["遥测发送方：<br/>OpenTelemetry、Fluent Bit、<br/>syslog、代理"]
+    Senders["遥测发送方：<br/>OpenTelemetry、<br/>Fluent Bit、<br/>syslog、代理"]
     Targets["你监控的对象：<br/>内部和公开"]
     subgraph Install["你的网络"]
         direction TB
         Ingress["Ingress<br/>（Nginx、TLS）"]
         App["应用<br/>仪表板、状态页、<br/>API、采集、后台任务"]
-        Probe["探针"]
         Runner["Runner"]
+        Probe["探针"]
         subgraph Data["数据存储"]
             direction LR
             Postgres[("PostgreSQL<br/>配置<br/>和状态")]
@@ -23,12 +23,13 @@ flowchart TB
     People -->|"HTTPS"| Ingress
     Senders -->|"OTLP, HTTPS"| Ingress
     Ingress --> App
-    Probe -->|"领取工作，<br/>发送结果"| App
     Runner -->|"认领任务，<br/>发送结果"| App
-    Probe -->|"HTTP、TCP、ping、<br/>DNS、SNMP"| Targets
+    Probe -->|"领取工作，<br/>发送结果"| App
+    Probe -->|"HTTP、<br/>TCP、ping、<br/>DNS、SNMP"| Targets
     App --> Postgres
     App --> ClickHouse
     App --> Valkey
+    Targets ~~~ Probe
 ```
 
 ## 图中展示了什么

@@ -29,7 +29,7 @@ The explorer has four tabs:
 | --- | --- |
 | **Viewer** | Search, filter and read logs. It opens on the past hour, newest first, 100 logs per page. |
 | **Insights** | What your services logged in a time range, and what went wrong. |
-| **Setup Guide** | How to send logs with OpenTelemetry, Fluent Bit or Fluentd, using one of your ingestion keys. |
+| **Setup Guide** | How to send logs with OpenTelemetry, Fluent Bit or Fluentd, using one of your [ingestion keys](/docs/telemetry/ingestion-keys). |
 | **Settings** | What happens to logs as they arrive: **Pipelines**, **Drop Filters**, **Scrub Rules** and **Recording Rules**. |
 
 ## Before you begin
@@ -132,12 +132,12 @@ Select a top error to see what was happening around it: when it happened, what i
 
 ## What happens to logs as they arrive
 
-The **Settings** tab holds the rules OneUptime applies to every log before it is stored. They act on the logs that arrive afterwards, not on stored ones.
+The **Settings** tab holds the rules OneUptime applies to every log before it is stored. They act on the logs that arrive afterwards, not on stored ones. How long each log is kept is decided as it arrives too: see [Data Retention](/docs/telemetry/data-retention).
 
 | Rule | What it does |
 | --- | --- |
-| **Drop Filters** | Discard logs you do not want to keep, or keep a sample of them. |
-| **Scrub Rules** | Mask sensitive data, such as email addresses and card numbers. |
+| **Drop Filters** | Discard logs you do not want to keep, or keep a sample of them. See [Drop or sample records](/docs/telemetry/drop-filters-and-scrub-rules#drop-or-sample-records). |
+| **Scrub Rules** | Mask sensitive data, such as email addresses and card numbers. See [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data). |
 | **Pipelines** | Parse fields out of the message, fix the severity, rename attributes. See [Log Pipelines](/docs/telemetry/log-pipelines). |
 | **Recording Rules** | Turn matching logs into metrics. See [Log Recording Rules](/docs/telemetry/log-recording-rules). |
 

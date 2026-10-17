@@ -29,13 +29,13 @@ stateDiagram-v2
     state "Errore" as Failed
     state "Timeout" as TimedOut
     [*] --> Scheduled: scatta il trigger
-    Scheduled --> Running: un esecutore la prende in carico
-    Scheduled --> Failed: non presa in carico entro 5 minuti
+    Scheduled --> Running: un esecutore la<br/>prende in carico
+    Scheduled --> Failed: non presa<br/>in carico<br/>entro 5 minuti
     Running --> Waiting: un blocco Sleep
     Waiting --> Running: il tempo è scaduto
-    Running --> Executed: è arrivata alla fine
-    Running --> Failed: un blocco ha fermato l'esecuzione
-    Running --> TimedOut: ha esaurito il tempo
+    Running --> Executed: è arrivata<br/>alla fine
+    Running --> Failed: un blocco<br/>ha fermato<br/>l'esecuzione
+    Running --> TimedOut: ha esaurito<br/>il tempo
     Executed --> [*]
     Failed --> [*]
     TimedOut --> [*]

@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Persoon
     participant O as OneUptime
     participant I as Identiteitsprovider
-    U->>O: Inloggen met SSO, project kiezen
-    O->>I: SAML-verzoek naar de aanmeldings-URL
+    U->>O: Inloggen met SSO,<br/>project kiezen
+    O->>I: SAML-verzoek naar<br/>de aanmeldings-URL
     I->>U: Aanmeldpagina
     U->>I: Inloggegevens en MFA
-    I->>O: Ondertekende assertion naar de Reply URL
-    Note over O: Controleert de handtekening en de uitgever,<br/>leest het e-mailadres uit de Name ID
+    I->>O: Ondertekende assertion<br/>naar de Reply URL
+    Note over O: Controleert de handtekening<br/>en de uitgever,<br/>leest het e-mailadres<br/>uit de Name ID
     O->>U: Aangemeld in het project
 ```
 

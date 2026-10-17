@@ -99,7 +99,7 @@ Aprite la pagina **Esecuzioni di reperibilità** dell'incidente. Se è vuota, l'
 :::
 
 :::details Qualcuno è stato avvisato sul canale sbagliato, o per niente
-Aprite **Reperibilità → Prontezza** e fate clic su **Coverage** nella sua riga. Vedrete i metodi che ha verificato e ogni gravità per cui non ha una regola. Solo quella persona può sistemare la cosa, in **Impostazioni utente**: inviatele un promemoria di configurazione dalla stessa pagina. Vedi [Prontezza e report](/docs/on-call/readiness).
+Aprite **Reperibilità → Prontezza** e fate clic su **Coverage** nella sua riga. Vedrete i metodi che ha verificato e ogni gravità per cui non ha una regola. Solo quella persona può sistemare la cosa, in **Impostazioni utente**: inviatele un promemoria di configurazione dalla stessa pagina. Vedi [Prontezza e report](/docs/on-call/readiness). Su OneUptime Cloud, un telefono che blocca i chiamanti sconosciuti può silenziare una chiamata: aggiungete [i numeri di OneUptime](/docs/on-call/phone-number-whitelist) al suo elenco consentiti.
 :::
 
 :::details Una persona in ferie viene ancora avvisata

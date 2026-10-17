@@ -76,10 +76,10 @@ sequenceDiagram
     participant Caller as 你的工具
     participant OneUptime
     participant Runner as 工作流程執行器
-    Caller->>OneUptime: 對 Webhook URL 發出 GET 或 POST
+    Caller->>OneUptime: 對 Webhook URL<br/>發出 GET 或 POST
     alt 工作流程已開啟
         OneUptime-->>Caller: 200，狀態 Scheduled
-        OneUptime->>Runner: 將帶有標頭、查詢參數和內文的執行加入佇列
+        OneUptime->>Runner: 將帶有標頭、查詢參數和<br/>內文的執行加入佇列
         Runner->>Runner: 執行觸發器之後的區塊
     else 工作流程已關閉或已封存
         OneUptime-->>Caller: 400 及原因

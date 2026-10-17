@@ -27,7 +27,7 @@ Ao criar um agendamento na página **Agendamentos de plantão**, o formulário p
 As pessoas se revezam uma de cada vez, e a primeira fica de plantão assim que o agendamento é criado:
 
 ```mermaid title="Layer 1 com três pessoas e turnos de 1 semana"
-flowchart LR
+flowchart TB
     alice["Alice<br/>semana 1"] -->|"passagem"| bob["Bob<br/>semana 2"]
     bob -->|"passagem"| carol["Carol<br/>semana 3"]
     carol -->|"volta para a primeira"| alice
@@ -52,11 +52,11 @@ A rotação de um agendamento é feita de camadas, na página **Camadas** dele. 
 
 ```mermaid title="A camada mais alta com alguém de plantão é a que aciona"
 flowchart TB
-    start["Um nível aciona o agendamento"] --> first{"Alguém de plantão<br/>na camada do topo?"}
-    first -->|"Sim"| pageTop["Acionar essa pessoa"]
+    start["Um nível aciona<br/>o agendamento"] --> first{"Alguém de plantão<br/>na camada do topo?"}
+    first -->|"Sim"| pageTop["Acionar<br/>essa pessoa"]
     first -->|"Não"| next{"Alguém de plantão<br/>na próxima camada?"}
-    next -->|"Sim"| pageNext["Acionar essa pessoa"]
-    next -->|"Não"| gap["Ninguém é acionado<br/>uma lacuna de cobertura"]
+    next -->|"Sim"| pageNext["Acionar<br/>essa pessoa"]
+    next -->|"Não"| gap["Ninguém é acionado<br/>uma lacuna<br/>de cobertura"]
 ```
 
 **Adicionar camada** adiciona uma camada que começa como a primeira: de plantão a partir de agora, cada pessoa por uma semana, 24 horas por dia. Expanda uma camada para adicionar pessoas a ela e para mudar quando começa, com que frequência passa o turno, quando faz a primeira passagem e os horários de plantão:

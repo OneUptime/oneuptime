@@ -12,14 +12,14 @@ Alles in OneUptime leeft binnen een **project**. Wie wat mag doen binnen dat pro
 ```mermaid title="Hoe een persoon en een API-sleutel toegang krijgen"
 flowchart TB
     User["Een gebruiker<br/>(één account)"]
-    Key["Een API-sleutel"]
     subgraph Project["Een project"]
         direction TB
+        Key["Een API-sleutel"]
         Team["Team"]
-        Allow["Toegestane machtigingen,<br/>elk met een bereik:<br/>Alle, Eigen of Labels"]
-        Block["Geblokkeerde machtigingen,<br/>die altijd winnen"]
-        KeyRules["De eigen toegestane en<br/>geblokkeerde machtigingen van de sleutel"]
-        Resources["Monitors, incidenten,<br/>statuspagina's en meer"]
+        Allow["Toegestane<br/>machtigingen,<br/>elk met<br/>een bereik:<br/>Alle, Eigen<br/>of Labels"]
+        Block["Geblokkeerde<br/>machtigingen,<br/>die altijd winnen"]
+        KeyRules["De eigen<br/>toegestane en<br/>geblokkeerde<br/>machtigingen<br/>van de sleutel"]
+        Resources["Monitors,<br/>incidenten,<br/>statuspagina's<br/>en meer"]
     end
     User -->|"lid van"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"bereiken"| Resources
     KeyRules -->|"bereiken"| Resources
     Block -.->|"nemen weg"| Resources
+    Allow ~~~ Block
 ```
 
 | Begrip | Wat het is |

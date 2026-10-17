@@ -57,7 +57,7 @@
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["چیزی وصل نیست، پس اجرا تمام می‌شود"])
+    check -->|"No"| ends(["چیزی وصل نیست، پس<br/>اجرا تمام می‌شود"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```

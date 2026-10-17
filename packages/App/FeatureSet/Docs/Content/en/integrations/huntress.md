@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as On-call team
     H->>O: incident_report.created
-    O->>O: Check the signature, open one incident
-    opt Severity at or above Page On-Call For
-        O->>C: Execute the connection's on-call policies
+    O->>O: Check the signature,<br/>open one incident
+    opt Severity at or above<br/>Page On-Call For
+        O->>C: Execute the<br/>connection's<br/>on-call policies
     end
     H->>O: incident_report.comment_added
-    O->>O: Add the comment as a private note
+    O->>O: Add the comment<br/>as a private note
     H->>O: incident_report.closed
     O->>O: Resolve the incident
 ```

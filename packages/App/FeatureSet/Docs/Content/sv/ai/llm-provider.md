@@ -25,9 +25,9 @@ AI-funktioner använder projektets standardleverantör. Ett projekt utan standar
 flowchart TB
     F["En AI-funktion<br/>behöver en modell"] --> D{"Har projektet<br/>en standard-<br/>leverantör?"}
     D -->|"ja"| P["Projektets<br/>standardleverantör"]
-    D -->|"nej"| G{"Finns det en global<br/>leverantör?"}
-    G -->|"ja"| GP["Den globala leverantören:<br/>AI-krediter på<br/>OneUptime Cloud"]
-    G -->|"nej"| N["Inget körs, och<br/>AI-sidorna säger att<br/>en leverantör saknas"]
+    D -->|"nej"| G{"Finns det<br/>en global<br/>leverantör?"}
+    G -->|"ja"| GP["Den globala<br/>leverantören:<br/>AI-krediter på<br/>OneUptime Cloud"]
+    G -->|"nej"| N["Inget körs, och<br/>AI-sidorna<br/>säger att<br/>en leverantör<br/>saknas"]
 ```
 
 En leverantör är ett projekts standard när **Ange som standard** är påslaget, vilket det är för varje ny leverantör. Ett projekt där alla leverantörer har standard avslaget faller tillbaka på den globala leverantören, som om det inte hade någon.

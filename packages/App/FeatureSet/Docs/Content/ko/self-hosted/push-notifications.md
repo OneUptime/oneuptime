@@ -14,7 +14,7 @@ OneUptime은 휴대폰에서는 **OneUptime On-Call** 모바일 앱을 통해, �
 ```mermaid title="푸시가 휴대폰이나 브라우저에 도달하는 과정"
 flowchart TB
     Server["내 OneUptime 서버"]
-    Relay["OneUptime 푸시 릴레이"]
+    Relay["OneUptime<br/>푸시 릴레이"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
@@ -22,13 +22,13 @@ flowchart TB
     PushService["브라우저의<br/>푸시 서비스"]
     Browser["브라우저"]
     Server -->|"EXPO_ACCESS_TOKEN 없음"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN 설정됨"| Expo
+    Server -->|"EXPO_ACCESS_TOKEN<br/>설정됨"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 

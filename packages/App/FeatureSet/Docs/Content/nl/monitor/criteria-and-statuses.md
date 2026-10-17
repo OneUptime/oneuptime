@@ -15,14 +15,14 @@ Telkens wanneer een monitor wordt gecontroleerd, beoordelen zijn criteria het re
 
 ```mermaid title="Hoe elke controle wordt beoordeeld"
 flowchart TB
-    R["Het resultaat<br/>van een controle"] --> C1{"Eerste criterium:<br/>komen de filters overeen?"}
-    C1 -->|"Ja"| A["Dat criterium handelt"]
-    C1 -->|"Nee"| C2{"Volgende criterium:<br/>komen de filters overeen?"}
+    R["Het resultaat<br/>van een controle"] --> C1{"Eerste<br/>criterium:<br/>komen de<br/>filters overeen?"}
+    C1 -->|"Ja"| A["Dat criterium<br/>handelt"]
+    C1 -->|"Nee"| C2{"Volgende<br/>criterium:<br/>komen de<br/>filters overeen?"}
     C2 -->|"Ja"| A
-    C2 -->|"Geen enkele kwam overeen"| D["De monitor gaat naar<br/>zijn standaardstatus"]
-    A --> S["Wijzigt de status"]
-    A --> I["Meldt een incident"]
-    A --> L["Maakt een waarschuwing"]
+    C2 -->|"Geen enkele<br/>kwam overeen"| D["De monitor<br/>gaat naar<br/>zijn standaardstatus"]
+    A --> S["Wijzigt<br/>de status"]
+    A --> I["Meldt een<br/>incident"]
+    A --> L["Maakt een<br/>waarschuwing"]
 ```
 
 De volgorde hoort bij de regel. Een nieuwe monitor zet zijn criteria van slechtste naar beste: offline, dan een waarschuwing als zijn type er een heeft (een certificaat of een domein dat binnenkort verloopt), dan online. Een breed gezond criterium, zoals **Is Online** op **Waar**, komt overeen met bijna elke controle, dus het staat als laatste: boven de andere zou het elke keer als eerste overeenkomen en zouden de andere nooit handelen.

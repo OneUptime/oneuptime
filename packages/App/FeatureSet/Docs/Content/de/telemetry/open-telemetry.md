@@ -32,6 +32,7 @@ flowchart TB
 
 - **Dienste werden für Sie angelegt.** Das Ressourcenattribut `service.name` (gesetzt mit `OTEL_SERVICE_NAME`) benennt den Dienst, zu dem Ihre Daten gehören. OneUptime legt den Dienst beim ersten Senden an und führt ihn unter **Produkte → Dienste**.
 - **Fehler werden zu Ausnahmen.** Ausnahme-Ereignisse an Spans und in Logs aufgezeichnete Ausnahmen werden unter **Ausnahmen** zu Issues gruppiert — siehe [Ausnahmen aus Logs](#ausnahmen-aus-logs).
+- **Regeln wirken auf Daten, sobald sie eintreffen.** [Drop-Filter und Scrub-Regeln](/docs/telemetry/drop-filters-and-scrub-rules) verwerfen oder maskieren, was Sie nie speichern möchten, und die [Datenaufbewahrung](/docs/telemetry/data-retention) legt fest, wie lange der Rest bleibt.
 
 ## Bevor Sie beginnen
 
@@ -407,7 +408,7 @@ Die Seite jedes Schlüssels unter **Projekteinstellungen → Telemetrie & APM �
 | **Limit für Anfragen pro Minute** | Die höchste Zahl an OTLP/HTTP-Anfragen pro Minute, die mit dem Schlüssel angenommen wird, über alle Clients hinweg, die ihn nutzen. Leer bedeutet bei einem Server-Schlüssel kein Limit und bei einem Browser-Schlüssel 6.000. |
 | **Zuletzt verwendet am** | Wann zuletzt Daten mit dem Schlüssel angenommen wurden. Damit finden Sie Schlüssel, die sich gefahrlos rotieren oder löschen lassen. |
 
-**Geheimen Schlüssel zurücksetzen** auf der Seite des Schlüssels ersetzt das Geheimnis. Jede Anwendung und jeder Collector, der mit dem alten sendet, wird abgelehnt, bis Sie ihn aktualisieren.
+**Geheimen Schlüssel zurücksetzen** auf der Seite des Schlüssels ersetzt das Geheimnis. Jede Anwendung und jeder Collector, der mit dem alten sendet, wird abgelehnt, bis Sie ihn aktualisieren. Zu Browser-Schlüsseln, dem sicheren Austausch eines Schlüssels und der Bedeutung jeder Ablehnung siehe [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys).
 
 ## Selbst gehostetes OneUptime
 

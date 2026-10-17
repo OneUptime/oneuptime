@@ -8,13 +8,13 @@ The shifts on the timeline are the ones OneUptime pages people with, user overri
 flowchart TB
     subgraph setup["Each schedule"]
         direction LR
-        layers["Layers and rotations"]
+        layers["Layers and<br/>rotations"]
         overrides["User overrides"]
     end
-    layers --> shifts["Who is on call, and when"]
+    layers --> shifts["Who is on<br/>call, and when"]
     overrides --> shifts
-    shifts --> timeline["Schedule Timeline"]
-    shifts --> paging["Escalation rules page them"]
+    shifts --> timeline["Schedule<br/>Timeline"]
+    shifts --> paging["Escalation<br/>rules page them"]
     shifts --> feeds["Calendar feeds"]
 ```
 

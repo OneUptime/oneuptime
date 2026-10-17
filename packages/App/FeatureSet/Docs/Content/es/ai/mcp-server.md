@@ -20,10 +20,10 @@ El servidor MCP forma parte de cada instancia de OneUptime, en `/mcp` en la mism
 flowchart TB
     C["Tu cliente MCP:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP a /mcp"| M["El servidor MCP<br/>de OneUptime"]
     M --> W{"¿Cómo se<br/>identifica<br/>el cliente?"}
-    W -->|"inició sesión"| P["Como tú, en el<br/>proyecto que elegiste"]
-    W -->|"una clave de API"| K["Como la clave, en<br/>el proyecto de la clave"]
-    W -->|"ninguna de las dos"| U["Solo herramientas<br/>de páginas de<br/>estado públicas"]
-    P --> A["La API de OneUptime,<br/>con exactamente<br/>esos permisos"]
+    W -->|"inició sesión"| P["Como tú, en el<br/>proyecto<br/>que elegiste"]
+    W -->|"una clave<br/>de API"| K["Como la<br/>clave, en<br/>el proyecto<br/>de la clave"]
+    W -->|"ninguna<br/>de las dos"| U["Solo herramientas<br/>de páginas de<br/>estado públicas"]
+    P --> A["La API de<br/>OneUptime,<br/>con exactamente<br/>esos permisos"]
     K --> A
 ```
 

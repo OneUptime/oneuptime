@@ -75,7 +75,7 @@ Haz clic en **Añadir monitor**. La fila aparece en el grupo y en la página de 
 En un grupo de cuadrícula, el cuadro de diálogo también pide la fila y la columna donde va el monitor, por encima de **Más campos**; consulta [Diseño de lista o de cuadrícula](#diseño-de-lista-o-de-cuadrícula).
 
 > [!TIP]
-> Para mostrar varias comprobaciones como una sola fila, añade un grupo de monitores. Con el interruptor **Grupos de monitores** activado (**Ajustes del proyecto** > **Avanzado** > **Feature flags**, que se guarda en cuanto lo cambias), un enlace bajo la lista desplegable dice **Añade un grupo de monitores en su lugar.** Haz clic en él y **Monitor** pasa a ser **Grupo de monitores** (**Seleccionar grupo de monitores**); **Añade un monitor en su lugar.** vuelve atrás.
+> Para mostrar varias comprobaciones como una sola fila, añade un [grupo de monitores](/docs/monitor/monitor-groups). Con el interruptor **Grupos de monitores** activado (**Ajustes del proyecto** > **Avanzado** > **Feature flags**, que se guarda en cuanto lo cambias), un enlace bajo la lista desplegable dice **Añade un grupo de monitores en su lugar.** Haz clic en él y **Monitor** pasa a ser **Grupo de monitores** (**Seleccionar grupo de monitores**); **Añade un monitor en su lugar.** vuelve atrás.
 
 ### Añadir varios a la vez
 

@@ -75,13 +75,13 @@ URL принимает и `GET`, и `POST`. Вызывающая сторона 
 sequenceDiagram
     participant Caller as Ваш инструмент
     participant OneUptime
-    participant Runner as Исполнитель рабочих процессов
-    Caller->>OneUptime: GET или POST на URL вебхука
-    alt Рабочий процесс включён
-        OneUptime-->>Caller: 200, статус Scheduled
-        OneUptime->>Runner: Ставит в очередь запуск с заголовками, параметрами и телом
-        Runner->>Runner: Выполняет блоки после триггера
-    else Рабочий процесс выключен или архивирован
+    participant Runner as Исполнитель<br/>рабочих процессов
+    Caller->>OneUptime: GET или POST<br/>на URL вебхука
+    alt Рабочий<br/>процесс включён
+        OneUptime-->>Caller: 200, статус<br/>Scheduled
+        OneUptime->>Runner: Ставит в<br/>очередь запуск<br/>с заголовками,<br/>параметрами и телом
+        Runner->>Runner: Выполняет блоки<br/>после триггера
+    else Рабочий процесс<br/>выключен<br/>или архивирован
         OneUptime-->>Caller: 400 с причиной
     end
 ```
@@ -166,11 +166,11 @@ OneUptime выдаёт рабочему процессу собственный 
 
 ```mermaid title="Когда срабатывает триггер On Update"
 flowchart TB
-    save["Запись сохраняется"] --> changed{"Изменилось ли какое-то значение?"}
+    save["Запись сохраняется"] --> changed{"Изменилось ли<br/>какое-то значение?"}
     changed -->|"Нет"| nothing["Ничего не срабатывает"]
     changed -->|"Да"| listen{"Задан ли Fields to watch?"}
-    listen -->|"Нет"| fires["Рабочий процесс выполняется"]
-    listen -->|"Да"| field{"Изменилось ли одно из его полей?"}
+    listen -->|"Нет"| fires["Рабочий процесс<br/>выполняется"]
+    listen -->|"Да"| field{"Изменилось ли<br/>одно из его полей?"}
     field -->|"Да"| fires
     field -->|"Нет"| nothing
 ```

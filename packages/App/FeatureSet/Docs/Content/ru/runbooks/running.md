@@ -19,15 +19,15 @@ stateDiagram-v2
     state "Завершено" as Completed
     state "Не удалось" as Failed
     state "Отменено" as Cancelled
-    [*] --> Scheduled: выполнение запущено
-    Scheduled --> Running: его забирает Worker
-    Running --> WaitingForManualStep: Manual-шаг или подтверждение
-    WaitingForManualStep --> Scheduled: завершено, подтверждено или пропущено
-    Running --> Completed: все шаги готовы
+    [*] --> Scheduled: выполнение<br/>запущено
+    Scheduled --> Running: его забирает<br/>Worker
+    Running --> WaitingForManualStep: Manual-шаг или<br/>подтверждение
+    WaitingForManualStep --> Scheduled: завершено,<br/>подтверждено<br/>или пропущено
+    Running --> Completed: все шаги<br/>готовы
     Running --> Failed: шаг завершился сбоем
-    Scheduled --> Cancelled: Отменить выполнение
-    Running --> Cancelled: Отменить выполнение
-    WaitingForManualStep --> Cancelled: Отменить выполнение
+    Scheduled --> Cancelled: Отменить<br/>выполнение
+    Running --> Cancelled: Отменить<br/>выполнение
+    WaitingForManualStep --> Cancelled: Отменить<br/>выполнение
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]

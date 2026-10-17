@@ -190,7 +190,7 @@ AI steps are metered and billed like any other AI feature. The step fails, with 
 flowchart TB
     run["Automated step runs"] --> ok{"Succeeded?"}
     ok -->|yes| approval{"Require approval on?"}
-    approval -->|yes| wait["Run waits for a person to approve"]
+    approval -->|yes| wait["Run waits for a<br/>person to approve"]
     approval -->|no| next["Next step runs"]
     wait --> next
     ok -->|no| cont{"Continue on failure on?"}

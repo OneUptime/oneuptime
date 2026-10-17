@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as Bereitschaft
     H->>O: incident_report.created
-    O->>O: Signatur prüfen, genau einen Vorfall öffnen
-    opt Schweregrad mindestens Bereitschaft alarmieren bei
-        O->>C: Die Bereitschaftsrichtlinien der Verbindung ausführen
+    O->>O: Signatur prüfen, genau<br/>einen Vorfall öffnen
+    opt Schweregrad mindestens<br/>Bereitschaft<br/>alarmieren bei
+        O->>C: Die Bereitschafts-<br/>richtlinien der<br/>Verbindung ausführen
     end
     H->>O: incident_report.comment_added
-    O->>O: Den Kommentar als private Notiz hinzufügen
+    O->>O: Den Kommentar<br/>als private<br/>Notiz hinzufügen
     H->>O: incident_report.closed
     O->>O: Den Vorfall beheben
 ```

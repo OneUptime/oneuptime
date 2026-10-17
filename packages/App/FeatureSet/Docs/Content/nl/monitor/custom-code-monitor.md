@@ -21,7 +21,7 @@ sequenceDiagram
     O->>P: Script, geheimen ingevuld
     P->>A: Verzoeken van het script
     A-->>P: Antwoorden
-    P->>O: Resultaat, logs, tijd, metrieken
+    P->>O: Resultaat, logs,<br/>tijd, metrieken
     O->>O: De criteria toetsen
 ```
 

@@ -15,13 +15,13 @@ Een runbook kan vanzelf starten: volgens een schema, of wanneer een ander hulpmi
 flowchart TB
     subgraph starts["Wat de uitvoering start"]
         direction LR
-        schedule["Het schema: een tijdstip komt"]
-        webhook["De webhook: een POST naar zijn URL"]
+        schedule["Het schema: een<br/>tijdstip komt"]
+        webhook["De webhook: een<br/>POST naar zijn URL"]
     end
-    schedule --> checks["Het runbook staat aan en heeft stappen"]
+    schedule --> checks["Het runbook staat<br/>aan en heeft stappen"]
     webhook --> checks
-    checks --> execution["Uitvoering, gemarkeerd als Schedule of Webhook"]
-    execution --> worker["De OneUptime Worker voert de stappen uit"]
+    checks --> execution["Uitvoering, gemarkeerd<br/>als Schedule of Webhook"]
+    execution --> worker["De OneUptime Worker<br/>voert de stappen uit"]
 ```
 
 Een trigger start een uitvoering zoals **Run Now** dat doet: de uitvoering loopt door de huidige stappen van het runbook en hangt aan geen enkel incident, geen waarschuwing en geen gepland onderhoudsevenement. Elke uitvoering legt vast wat haar startte. De **Uitvoeringen** van het runbook en **Runbooks → Uitvoeringen** tonen dat onder **Geactiveerd door**, met wanneer een geplande uitvoering gepland stond of het adres dat de webhook aanriep, en op beide lijsten kun je erop filteren.

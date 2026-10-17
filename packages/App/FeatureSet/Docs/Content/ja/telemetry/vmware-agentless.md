@@ -12,10 +12,10 @@
 
 ```mermaid
 flowchart TB
-    OU["OneUptime"] -->|"今すぐ収集、数分ごと"| P["お使いのプローブ"]
-    P -->|"HTTPS 443、読み取り専用の vSphere API"| VC["vCenter Server または ESXi ホスト"]
-    P -->|"メトリクス、VMware エージェントと同じ形式"| OU
-    OU --> V["VMware のページ、モニター、アラート、AI"]
+    OU["OneUptime"] -->|"今すぐ収集、<br/>数分ごと"| P["お使いのプローブ"]
+    P -->|"HTTPS 443、<br/>読み取り専用の<br/>vSphere API"| VC["vCenter Server または<br/>ESXi ホスト"]
+    P -->|"メトリクス、<br/>VMware<br/>エージェントと<br/>同じ形式"| OU
+    OU --> V["VMware のページ、<br/>モニター、アラート、AI"]
 ```
 
 プローブは数分ごとに、保存したアカウントで vCenter にログインし、インベントリ、パフォーマンスカウンター、vSAN の統計を読み取って OneUptime に送信します。データは VMware エージェントのものとまったく同じ形で届くため、すべての VMware のページ、[VMware モニター](/docs/monitor/vmware-monitor)、アラートテンプレート、OneUptime AI が同じように読み取ります。プローブは収集の間も vCenter のセッションを維持するため、vCenter のイベントログがログインで埋まることはありません。

@@ -29,7 +29,7 @@ flowchart TB
 
 Statuspagina's staan onder **Statuspagina's**, in het menu **Producten** in de bovenste balk, bij de essentiële onderdelen. Alles op deze pagina geldt per statuspagina: een project kan er zoveel hebben als het wil — een openbare voor klanten, een privé voor een intern publiek, een per regio voor een specifieke markt.
 
-De pagina toont de monitoren die u erop zet als resources. Incidenten en gepland onderhoud komen via die monitoren op de pagina, en aankondigingen worden er rechtstreeks op geplaatst. Bezoekers lezen de pagina, en abonnees krijgen bericht van elke wijziging via de kanalen die ze hebben gekozen.
+De pagina toont de monitoren die u erop zet als resources, en incidenten komen via die monitoren op de pagina. [Geplande onderhoudsgebeurtenissen](/docs/scheduled-maintenance/index) en aankondigingen komen er rechtstreeks op: elk ervan noemt de statuspagina's waarop het wordt getoond. Bezoekers lezen de pagina, en abonnees krijgen bericht van elke wijziging via de kanalen die ze hebben gekozen.
 
 ## In het kort
 

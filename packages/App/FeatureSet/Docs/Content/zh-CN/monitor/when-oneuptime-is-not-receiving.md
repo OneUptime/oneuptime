@@ -11,7 +11,7 @@
 - 追赶：当等待处理的数据队列落后超过一分钟时，从队列中仍在等待的最早数据算起的时间。
 
 ```mermaid title="OneUptime 排除的时间"
-flowchart LR
+flowchart TB
     receiving["接收中"] -->|"90 秒没有记录"| down["未接收"]
     down -->|"有进程重新记录"| grace["重新连接 2 分钟"]
     grace --> again["接收中"]

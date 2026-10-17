@@ -155,16 +155,17 @@ flowchart TB
 ```mermaid title="Без Group By и с ним"
 flowchart TB
     subgraph Without["Без Group By"]
-        direction LR
+        direction TB
         A1["HQ-Branch1 падает"] --> M1["Один подсчёт"]
         B1["Branch2 падает"] --> M1
         M1 --> X1["Одно оповещение"]
     end
     subgraph With["Группировка по con_name"]
-        direction LR
-        A2["HQ-Branch1 падает"] --> X2["Оповещение HQ-Branch1"]
+        direction TB
+        A2["HQ-Branch1 падает"] --> X2["Оповещение<br/>HQ-Branch1"]
         B2["Branch2 падает"] --> Y2["Оповещение Branch2"]
     end
+    Without ~~~ With
 ```
 
 ### Независимое устранение

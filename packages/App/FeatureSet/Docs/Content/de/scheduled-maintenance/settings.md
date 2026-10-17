@@ -125,7 +125,7 @@ Jedes Wartungsmodell hat Workflow-Trigger und -Aktionen, nach ihm benannt: **On 
 | **Scheduled Maintenance Member**  | Erstellt, ändert und löscht Ereignisse mit ihren Notizen, Zustands-Zeitachsen und Eigentümern sowie beide Arten von Vorlagen. |
 | **Scheduled Maintenance Admin**   | Alles, was ein Mitglied darf, und erstellt, ändert und löscht zusätzlich Wartungsstatus.             |
 
-Regeln, benutzerdefinierte Felder und Messungen erfordern **Project Owner** oder **Project Admin** oder eine benutzerdefinierte Rolle mit der eigenen Berechtigung dieser Seite, etwa **Create Scheduled Maintenance Owner Rule**. **Project Member** arbeitet mit Ereignissen und Vorlagen, wie **Scheduled Maintenance Member**. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
+Regeln, benutzerdefinierte Felder und Messungen erfordern **Project Owner** oder **Project Admin** oder eine benutzerdefinierte Rolle mit der eigenen Berechtigung dieser Seite, etwa **Create Scheduled Maintenance Owner Rule**. Runbook-Regeln akzeptieren auch **Runbook Admin**. **Project Member** arbeitet mit Ereignissen und Vorlagen, wie **Scheduled Maintenance Member**. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
 ## Fehlerbehebung
 

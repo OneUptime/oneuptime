@@ -29,7 +29,7 @@ Utforskaren har fyra flikar:
 | --- | --- |
 | **Tittare** | Sök i och filtrera spans, och öppna deras spår. Den öppnas på den senaste timmen, nyaste först, 50 spans per sida. |
 | **Insikter** | Antal förfrågningar, felfrekvenser och latens per tjänst, och de förfrågningar som är värda en titt. |
-| **Installationsguide** | Hur du skickar spår med OpenTelemetry med en av dina inmatningsnycklar. |
+| **Installationsguide** | Hur du skickar spår med OpenTelemetry med en av dina [inmatningsnycklar](/docs/telemetry/ingestion-keys). |
 | **Inställningar** | Vad som händer med spans när de kommer in: **Pipelines**, **Drop-filter**, **Scrub-regler** och **Inspelningsregler**. |
 
 ## Innan du börjar
@@ -115,12 +115,12 @@ Begränsa den till vissa tjänster med listrutan bredvid tidsväljaren.
 
 ## Vad som händer med spans när de kommer in
 
-Fliken **Inställningar** innehåller reglerna som OneUptime tillämpar på spans när de kommer in, som för loggar. De gäller de spans som kommer in efteråt, inte de som redan är lagrade.
+Fliken **Inställningar** innehåller reglerna som OneUptime tillämpar på spans när de kommer in, som för loggar. De gäller de spans som kommer in efteråt, inte de som redan är lagrade. Hur länge varje span sparas avgörs också när den kommer in: se [Datalagring](/docs/telemetry/data-retention).
 
 | Regel | Vad den gör |
 | --- | --- |
-| **Drop-filter** | Kasta spans som du inte vill behålla, eller behåll ett stickprov av dem. |
-| **Scrub-regler** | Maskera känsliga data i span-attribut. |
+| **Drop-filter** | Kasta spans som du inte vill behålla, eller behåll ett stickprov av dem. Se [Kassera poster eller ta stickprov](/docs/telemetry/drop-filters-and-scrub-rules#kassera-poster-eller-ta-stickprov). |
+| **Scrub-regler** | Maskera känsliga data i span-attribut. Se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data). |
 | **Pipelines** | Ändra och berika spans: varje pipeline väljer ut spans med ett filter och kör sedan sina processorer i ordning. |
 | **Inspelningsregler** | Gör om antal spans, antal fel och varaktigheter till nya mätvärden, varje minut. Se [Inspelningsregler för loggar](/docs/telemetry/log-recording-rules). |
 

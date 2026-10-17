@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 工作流
 
-表单拥有自动生成的工作流组件，例如 **On Create Form**、**On Update Form** 等。要对表单创建的内容执行操作，请使用 **On Create Incident** 或 **On Create Scheduled Maintenance**。
+表单拥有自动生成的工作流组件，例如 **On Create Form**、**On Update Form** 等。要对表单创建的内容执行操作，请使用 **On Create Incident** 或 **On Create Scheduled Maintenance Event**。
 
 ### 公开页面自己的端点
 

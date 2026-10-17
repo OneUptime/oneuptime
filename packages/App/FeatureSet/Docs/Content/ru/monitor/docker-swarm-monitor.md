@@ -24,12 +24,12 @@ flowchart TB
         manager["Агент на<br/>управляющем узле"]
         others["Коллекторы на<br/>других узлах"]
     end
-    manager -->|"метрики и инвентарь"| oneuptime["OneUptime"]
+    manager -->|"метрики и<br/>инвентарь"| oneuptime["OneUptime"]
     others -->|"метрики"| oneuptime
     oneuptime -->|"первые данные"| registered["Кластер<br/>зарегистрирован"]
-    oneuptime --> monitor["Монитор Docker Swarm"]
-    monitor -->|"каждую минуту"| criteria{"Критерии выполнены?"}
-    criteria -->|"да"| incident["Инцидент или оповещение"]
+    oneuptime --> monitor["Монитор<br/>Docker Swarm"]
+    monitor -->|"каждую минуту"| criteria{"Критерии<br/>выполнены?"}
+    criteria -->|"да"| incident["Инцидент или<br/>оповещение"]
     criteria -->|"нет"| online["Монитор в сети"]
 ```
 

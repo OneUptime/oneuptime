@@ -109,6 +109,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Project Admin",
       "Project Member",
       "Create Scheduled Maintenance Owner Rule",
+      "Runbook Admin",
     ],
     // The + a day of the calendar shows, and the list's menu.
     [MAINTENANCE_CALENDAR]: ["+", "⋯"],

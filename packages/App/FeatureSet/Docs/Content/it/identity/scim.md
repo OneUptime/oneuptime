@@ -18,12 +18,12 @@ Il tuo provider di identità chiama l'endpoint SCIM di OneUptime, autenticato co
 
 ```mermaid title="Che cosa cambia SCIM in OneUptime"
 flowchart TB
-    IdP["Il tuo provider di identità"] -->|"richieste SCIM,<br/>token bearer"| P["Connessione SCIM del progetto"]
-    IdP -->|"richieste SCIM,<br/>token bearer"| S["Connessione SCIM della pagina di stato"]
+    IdP["Il tuo provider<br/>di identità"] -->|"richieste SCIM,<br/>token bearer"| P["Connessione SCIM<br/>del progetto"]
+    IdP -->|"richieste SCIM,<br/>token bearer"| S["Connessione SCIM<br/>della pagina di stato"]
     P --> Q{"Gruppi push attivi?"}
-    Q -->|"No"| T["Gli utenti entrano ed escono<br/>dai team predefiniti"]
-    Q -->|"Sì"| G["I gruppi diventano team,<br/>l'appartenenza li segue"]
-    S --> U["Utenti privati aggiunti<br/>ed eliminati"]
+    Q -->|"No"| T["Gli utenti<br/>entrano ed escono<br/>dai team predefiniti"]
+    Q -->|"Sì"| G["I gruppi<br/>diventano team,<br/>l'appartenenza<br/>li segue"]
+    S --> U["Utenti privati<br/>aggiunti<br/>ed eliminati"]
 ```
 
 L'integrazione SCIM offre questi vantaggi:
@@ -69,10 +69,10 @@ Per rivedere gli URL, seleziona **Visualizza URL SCIM** nella riga della conness
 sequenceDiagram
     participant IdP as Provider di identità
     participant O as OneUptime
-    IdP->>O: Creare l'utente, quando lo assegni
-    Note over O: Aggiunto ai team predefiniti.<br/>Su OneUptime Cloud, un account esistente<br/>riceve invece un invito
-    IdP->>O: Aggiornare l'utente, quando cambia il suo profilo
-    IdP->>O: Eliminare o disattivare, quando togli l'assegnazione
+    IdP->>O: Creare l'utente,<br/>quando lo assegni
+    Note over O: Aggiunto ai team predefiniti.<br/>Su OneUptime Cloud,<br/>un account esistente<br/>riceve invece un invito
+    IdP->>O: Aggiornare l'utente, quando<br/>cambia il suo profilo
+    IdP->>O: Eliminare o disattivare,<br/>quando togli l'assegnazione
     Note over O: Rimosso dai team predefiniti
 ```
 

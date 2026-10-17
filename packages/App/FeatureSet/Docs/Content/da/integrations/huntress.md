@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as Vagthold
     H->>O: incident_report.created
-    O->>O: Kontrollér signaturen, åbn én hændelse
-    opt Alvorlighed på eller over Tilkald vagten ved
-        O->>C: Udfør forbindelsens vagtpolitikker
+    O->>O: Kontrollér signaturen,<br/>åbn én hændelse
+    opt Alvorlighed på eller<br/>over Tilkald vagten ved
+        O->>C: Udfør forbindelsens<br/>vagtpolitikker
     end
     H->>O: incident_report.comment_added
-    O->>O: Tilføj kommentaren som en privat note
+    O->>O: Tilføj kommentaren<br/>som en privat note
     H->>O: incident_report.closed
     O->>O: Løs hændelsen
 ```

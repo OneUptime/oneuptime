@@ -29,7 +29,7 @@ flowchart TB
 
 Statussidor finns under **Statussidor** i menyn **Produkter** i det översta fältet, bland de viktigaste. Allt på den här sidan gäller per statussida: ett projekt kan ha hur många som helst — en offentlig för kunder, en privat för en intern publik, en per region för en viss marknad.
 
-Sidan visar monitorerna du lägger på den som resurser. Incidenter och schemalagt underhåll når sidan via de monitorerna, och meddelanden publiceras direkt på den. Besökare läser sidan, och prenumeranter aviseras om varje ändring i de kanaler de har valt.
+Sidan visar monitorerna du lägger på den som resurser, och incidenter når sidan via de monitorerna. [Planerade underhållshändelser](/docs/scheduled-maintenance/index) och meddelanden når den direkt: var och en anger de statussidor den visas på. Besökare läser sidan, och prenumeranter aviseras om varje ändring i de kanaler de har valt.
 
 ## I korthet
 

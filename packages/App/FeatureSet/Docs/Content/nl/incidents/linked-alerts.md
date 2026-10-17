@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Jij
     participant OneUptime
     participant Alerts as Waarschuwingen
-    You->>OneUptime: Incident melden, met maximaal 50 waarschuwingen
-    OneUptime->>OneUptime: Elke waarschuwing en je machtigingen controleren
-    OneUptime->>OneUptime: Het incident aanmaken en zijn privacyregels uitvoeren
-    OneUptime->>Alerts: Elke waarschuwing koppelen
-    OneUptime-->>You: Het nieuwe incident, waarschuwingen al gekoppeld
-    OneUptime->>Alerts: Ze op de achtergrond bevestigen, als het vakje is aangevinkt
+    You->>OneUptime: Incident melden,<br/>met maximaal<br/>50 waarschuwingen
+    OneUptime->>OneUptime: Elke waarschuwing en je<br/>machtigingen controleren
+    OneUptime->>OneUptime: Het incident aanmaken<br/>en zijn privacyregels<br/>uitvoeren
+    OneUptime->>Alerts: Elke waarschuwing<br/>koppelen
+    OneUptime-->>You: Het nieuwe incident,<br/>waarschuwingen<br/>al gekoppeld
+    OneUptime->>Alerts: Ze op de achtergrond<br/>bevestigen, als het<br/>vakje is aangevinkt
 ```
 
 Als je verstuurt, controleert de server de waarschuwingen voordat hij iets aanmaakt: maximaal 50, elk een waarschuwing in dit project die je mag zien, en je moet waarschuwingen aan incidenten mogen koppelen. Mislukt een controle, dan wordt het verzoek geweigerd en wordt er geen incident aangemaakt — een verkeerde waarschuwings-id verbruikt dus nooit een incidentnummer. Zodra het incident bestaat — en zodra zijn privacyregels zijn uitgevoerd, zodat de koppelingen weten of het privé is — wordt elke waarschuwing gekoppeld voordat het verzoek terugkeert, zodat de pagina **Gekoppelde waarschuwingen** van het incident ze al toont. Mislukt één koppeling — omdat de waarschuwing een moment eerder werd verwijderd bijvoorbeeld — dan wordt het incident toch gemeld en worden de andere waarschuwingen toch gekoppeld.

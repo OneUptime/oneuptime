@@ -29,7 +29,7 @@ sequenceDiagram
     O-->>J: 200 sofort
     O->>O: Die Kriterien prüfen
     Note over O: Alle 30 Sekunden auf<br/>fehlende Anfragen prüfen
-    O->>T: Vorfall, wenn ein Kriterium zutrifft
+    O->>T: Vorfall, wenn ein<br/>Kriterium zutrifft
 ```
 
 Verwenden Sie ihn, um:

@@ -15,14 +15,14 @@ Varje gång en monitor kontrolleras bedömer dess kriterier resultatet uppifrån
 
 ```mermaid title="Hur varje kontroll bedöms"
 flowchart TB
-    R["Resultatet av<br/>en kontroll"] --> C1{"Första kriteriet:<br/>matchar dess filter?"}
-    C1 -->|"Ja"| A["Det kriteriet agerar"]
-    C1 -->|"Nej"| C2{"Nästa kriterium:<br/>matchar dess filter?"}
+    R["Resultatet av<br/>en kontroll"] --> C1{"Första<br/>kriteriet:<br/>matchar<br/>dess filter?"}
+    C1 -->|"Ja"| A["Det kriteriet<br/>agerar"]
+    C1 -->|"Nej"| C2{"Nästa kriterium:<br/>matchar<br/>dess filter?"}
     C2 -->|"Ja"| A
-    C2 -->|"Inget matchade"| D["Monitorn går till<br/>sin standardstatus"]
-    A --> S["Ändrar statusen"]
-    A --> I["Deklarerar en incident"]
-    A --> L["Skapar en varning"]
+    C2 -->|"Inget matchade"| D["Monitorn<br/>går till<br/>sin standardstatus"]
+    A --> S["Ändrar<br/>statusen"]
+    A --> I["Deklarerar<br/>en incident"]
+    A --> L["Skapar en<br/>varning"]
 ```
 
 Ordningen är en del av regeln. En ny monitor listar sina kriterier från det värsta fallet: offline, sedan en varning där typen har en (ett certifikat eller en domän som snart går ut), sedan online. Ett brett friskt kriterium, som **Is Online** satt till **Sant**, matchar nästan varje kontroll, så det kommer sist: ovanför de andra skulle det matcha först varje gång, och de andra skulle aldrig agera.

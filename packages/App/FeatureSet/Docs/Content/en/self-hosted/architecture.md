@@ -4,15 +4,15 @@ A self-hosted OneUptime install is a handful of containers: one ingress that eve
 
 ```mermaid title="A self-hosted OneUptime install"
 flowchart TB
-    People["People and browsers"]
-    Senders["Telemetry senders:<br/>OpenTelemetry, Fluent Bit,<br/>syslog, agents"]
-    Targets["What you monitor:<br/>internal and public"]
+    People["People and<br/>browsers"]
+    Senders["Telemetry senders:<br/>OpenTelemetry,<br/>Fluent Bit,<br/>syslog, agents"]
+    Targets["What you monitor:<br/>internal<br/>and public"]
     subgraph Install["Your network"]
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
-        App["App<br/>dashboards, status pages,<br/>API, ingest, background jobs"]
-        Probe["Probes"]
+        App["App<br/>dashboards,<br/>status pages,<br/>API, ingest,<br/>background jobs"]
         Runner["Runner"]
+        Probe["Probes"]
         subgraph Data["Data stores"]
             direction LR
             Postgres[("PostgreSQL<br/>configuration<br/>and state")]
@@ -23,12 +23,13 @@ flowchart TB
     People -->|"HTTPS"| Ingress
     Senders -->|"OTLP, HTTPS"| Ingress
     Ingress --> App
-    Probe -->|"fetch work,<br/>send results"| App
     Runner -->|"claim jobs,<br/>send results"| App
+    Probe -->|"fetch work,<br/>send results"| App
     Probe -->|"HTTP, TCP, ping,<br/>DNS, SNMP"| Targets
     App --> Postgres
     App --> ClickHouse
     App --> Valkey
+    Targets ~~~ Probe
 ```
 
 ## What this shows

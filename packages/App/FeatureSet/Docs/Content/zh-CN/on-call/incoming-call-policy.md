@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | 一个 Twilio 账户，及其 Account SID 和 Auth Token | 策略的号码和通话都使用它，Twilio 也向它计费。 |
 | OneUptime Cloud 上的 **Growth** 套餐 | 项目需要它才能拥有自己的 Twilio 配置。 |
-| 如果自行托管，需要一台 Twilio 能访问的 OneUptime 服务器 | Twilio 会把每通来电发送到 `https://<your host>/notification/incoming-call/voice` 。 |
+| 如果自行托管，需要一台 Twilio 能访问的 OneUptime 服务器 | Twilio 会把每通来电发送到 `https://<your host>/notification/incoming-call/voice` ，并把每次振铃的结果发送到 `https://<your host>/notification/incoming-call/dial-status/...` 。 |
 | 项目中已开启 **SMS** | 每位工程师的号码都通过短信发送的验证码进行验证。 |
 | 每位工程师都有已验证的号码 | 规则只会呼叫在项目中添加并验证了来电号码的人。 |
 
@@ -87,11 +87,11 @@ sequenceDiagram
     participant OneUptime
     participant Engineer as 工程师
     Caller->>Twilio: 拨打策略的号码
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: 问候语，然后呼叫第一条规则的人员
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: 问候语，<br/>然后呼叫第一条规则的<br/>人员
     Twilio->>Engineer: 按规则的响铃时长响铃
     Note over Twilio,Engineer: 无人按时接听
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
+    Twilio->>OneUptime: POST …/dial-status
     OneUptime-->>Twilio: 呼叫下一条规则的人员
     Twilio->>Engineer: 呼叫下一个人
     Engineer-->>Twilio: 接听

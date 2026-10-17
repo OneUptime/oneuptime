@@ -12,11 +12,11 @@ OneUptime 中的一切都存在于**项目**之内。谁能在项目里做什么
 ```mermaid title="人和 API 密钥如何获得访问权限"
 flowchart TB
     User["一个用户<br/>（一个账号）"]
-    Key["一把 API 密钥"]
     subgraph Project["一个项目"]
         direction TB
+        Key["一把 API 密钥"]
         Team["团队"]
-        Allow["允许权限，<br/>每条都带一个范围：<br/>全部、拥有或标签"]
+        Allow["允许权限，<br/>每条都带<br/>一个范围：<br/>全部、拥有或标签"]
         Block["阻止权限，<br/>始终获胜"]
         KeyRules["密钥自身的<br/>允许与阻止权限"]
         Resources["监视器、事件、<br/>状态页等"]
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"触及"| Resources
     KeyRules -->|"触及"| Resources
     Block -.->|"移除"| Resources
+    Allow ~~~ Block
 ```
 
 | 概念 | 含义 |

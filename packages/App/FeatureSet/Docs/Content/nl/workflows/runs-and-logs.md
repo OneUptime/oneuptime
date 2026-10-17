@@ -28,13 +28,13 @@ stateDiagram-v2
     state "Executed" as Executed
     state "Fout" as Failed
     state "Timeout" as TimedOut
-    [*] --> Scheduled: de trigger gaat af
-    Scheduled --> Running: een uitvoerder pakt haar op
-    Scheduled --> Failed: niet binnen 5 minuten opgepakt
+    [*] --> Scheduled: de trigger<br/>gaat af
+    Scheduled --> Running: een uitvoerder<br/>pakt haar op
+    Scheduled --> Failed: niet binnen<br/>5 minuten<br/>opgepakt
     Running --> Waiting: een Sleep-blok
     Waiting --> Running: de tijd is om
-    Running --> Executed: ze bereikte het einde
-    Running --> Failed: een blok stopte de uitvoering
+    Running --> Executed: ze bereikte<br/>het einde
+    Running --> Failed: een blok stopte<br/>de uitvoering
     Running --> TimedOut: haar tijd was op
     Executed --> [*]
     Failed --> [*]

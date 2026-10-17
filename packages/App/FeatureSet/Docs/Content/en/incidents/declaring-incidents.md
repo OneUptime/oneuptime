@@ -250,14 +250,7 @@ The create call does more than write a row:
 flowchart TB
     request["Create request"] --> fill["Server fills the gaps"]
     fill --> template["Template applied, if any"]
-    template --> rules
-    subgraph rules["Rules, in this order"]
-        direction LR
-        privacy["Privacy"] --> owner["Owner"]
-        owner --> label["Label"]
-        label --> oncall["On-call"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Rules, in this order:<br/>Privacy, Owner, Label,<br/>On-call, Runbook"]
     rules --> policies["On-call policies execute"]
     policies --> subscribers["Subscribers queued"]
     subscribers --> workflows["Workflows fire"]
@@ -284,10 +277,10 @@ Picking a later **Initial State** — on the form, through a template's **Initia
 
 ```mermaid title="What a new incident sets off, by the state it starts in"
 flowchart TB
-    start{"Starting state"} -->|"Created state, the default"| live["Treated as new: pages on-call"]
-    start -->|"At or past acknowledged"| acked["Recorded: pages no one"]
-    start -->|"At or past resolved"| over["Recorded as over"]
-    over --> quiet["No grouping, runbooks, AI, channel or SLA"]
+    start{"Starting state"} -->|"Created state,<br/>the default"| live["Treated as<br/>new: pages<br/>on-call"]
+    start -->|"At or past<br/>acknowledged"| acked["Recorded:<br/>pages no one"]
+    start -->|"At or past<br/>resolved"| over["Recorded<br/>as over"]
+    over --> quiet["No grouping,<br/>runbooks, AI,<br/>channel or SLA"]
 ```
 
 - **At or past your acknowledged state** — **Acknowledged**, or any state placed below it at **Incidents → Settings → Incident State** — no on-call policy runs, so no one is paged. The incident still lists its policies, the ones you picked and the ones on-call rules add, and its feed says why in one line: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Its SLA, if a rule gives it one, starts already responded to. Everything else below runs as for any new incident.

@@ -10,8 +10,8 @@ OneUptime의 메일을 자체 메일 서버를 통해 보냅니다. 프로젝트
 flowchart TB
     SP["상태 페이지의 메일"] --> Q{"페이지에 사용자 지정<br/>SMTP 구성을 골랐는가?"}
     Q -->|"예"| P["프로젝트의 SMTP 구성"]
-    Q -->|"아니요"| D["OneUptime 자체 메일 서버"]
-    E["OneUptime의 다른 모든 메일"] --> D
+    Q -->|"아니요"| D["OneUptime<br/>자체 메일 서버"]
+    E["OneUptime의<br/>다른 모든 메일"] --> D
 ```
 
 자체 호스팅 설치에서 OneUptime 자체 메일 서버는 Admin Dashboard에서 설정한 서버입니다. 상태 페이지는 자신의 **구독자 설정** 페이지에 있는 **사용자 지정 SMTP** 카드에서 SMTP 구성을 고릅니다.

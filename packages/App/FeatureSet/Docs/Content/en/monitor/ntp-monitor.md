@@ -19,8 +19,8 @@ sequenceDiagram
     participant S as NTP server
     Note over P: T1: probe sends
     P->>S: Client request
-    Note over S: T2: server receives, T3: server replies
-    S-->>P: Reply: stratum, leap indicator, reference, T2, T3
+    Note over S: T2: server receives,<br/>T3: server replies
+    S-->>P: Reply: stratum, leap<br/>indicator, reference, T2, T3
     Note over P: T4: probe receives
 ```
 

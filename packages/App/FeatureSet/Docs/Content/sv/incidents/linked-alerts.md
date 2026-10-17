@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Du
     participant OneUptime
     participant Alerts as Larm
-    You->>OneUptime: Deklarera incident, med upp till 50 larm
-    OneUptime->>OneUptime: Kontrollera varje larm och dina behörigheter
-    OneUptime->>OneUptime: Skapa incidenten och kör dess sekretessregler
+    You->>OneUptime: Deklarera incident,<br/>med upp till 50 larm
+    OneUptime->>OneUptime: Kontrollera varje larm<br/>och dina behörigheter
+    OneUptime->>OneUptime: Skapa incidenten och<br/>kör dess sekretessregler
     OneUptime->>Alerts: Länka varje larm
-    OneUptime-->>You: Den nya incidenten, med larmen redan länkade
-    OneUptime->>Alerts: Bekräfta dem i bakgrunden, om rutan är ikryssad
+    OneUptime-->>You: Den nya incidenten, med<br/>larmen redan länkade
+    OneUptime->>Alerts: Bekräfta dem i bakgrunden,<br/>om rutan är ikryssad
 ```
 
 När du skickar kontrollerar servern larmen innan den skapar något: högst 50 av dem, vart och ett ett larm i det här projektet som du får se, och du måste få länka larm till incidenter. Misslyckas en kontroll avvisas begäran och ingen incident skapas — så ett felaktigt larm-ID förbrukar aldrig ett incidentnummer. När incidenten finns — och när dess sekretessregler har körts, så att länkarna vet om den är privat — länkas varje larm innan begäran returneras, så att incidentens sida **Länkade larm** redan listar dem. Misslyckas en enskild länk — för att larmet togs bort ett ögonblick tidigare, till exempel — deklareras incidenten ändå och de andra larmen länkas ändå.

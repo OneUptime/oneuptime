@@ -12,12 +12,12 @@ Et skjemas side **Bygg** er der du bestemmer hva det spør om, og hvordan siden 
 ## Hvor hvert svar havner
 
 ```mermaid title="Hvor hver type svar havner"
-flowchart TB
-    answer["Et innsendt svar"] --> kind{"Hva spørsmålet er"}
-    kind -->|"Et felt på posten"| field["Det feltet på den nye<br/>hendelsen eller begivenheten"]
-    kind -->|"Et egendefinert felt"| custom["Verdien til det<br/>egendefinerte feltet"]
-    kind -->|"Et av skjemaets<br/>egne spørsmål"| note["En linje i det<br/>private notatet"]
-    kind -->|"Navnet ditt, e-posten din"| who["Hvem som sendte inn,<br/>i det private notatet"]
+flowchart LR
+    answer["Et innsendt svar"]
+    answer -->|"Et felt<br/>på posten"| field["Det feltet<br/>på den nye<br/>hendelsen eller<br/>begivenheten"]
+    answer -->|"Et egendefinert felt"| custom["Verdien til det<br/>egendefinerte<br/>feltet"]
+    answer -->|"Et av skjemaets<br/>egne spørsmål"| note["En linje i det<br/>private notatet"]
+    answer -->|"Navnet ditt,<br/>e-posten din"| who["Hvem som<br/>sendte inn,<br/>i det private<br/>notatet"]
 ```
 
 Hvert svar lagres også med innsendingen, på skjemaets side **Innsendinger**. Et felt skjemaet ikke spør om, eller som står tomt, fylles ut fra skjemaets [innstillinger Ved innsending](/docs/forms/on-submit).

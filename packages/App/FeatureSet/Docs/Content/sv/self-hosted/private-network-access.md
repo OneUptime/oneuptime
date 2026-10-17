@@ -15,19 +15,19 @@ Den här sidan förklarar hur du tillåter det, medvetet och snävt. Tre reglage
 | **Övervakare** av typen API, Website, External Status Page och Custom JavaScript Code | **Probens** egen miljö | Privata adresser nekas |
 
 ```mermaid title="Tre reglage, vart och ett för sin typ av anslutning"
-flowchart TB
+flowchart LR
     subgraph Server["OneUptime-servern"]
         direction TB
-        Webhooks["Arbetsflöden och webhooks"]
-        Outbound["Datakällor, LLM-leverantörer,<br/>SMTP och andra anslutningar"]
+        Webhooks["Arbetsflöden<br/>och webhooks"]
+        Outbound["Datakällor,<br/>LLM-leverantörer,<br/>SMTP och andra<br/>anslutningar"]
     end
     subgraph Probe["Varje prob"]
-        Monitors["Övervakare av typen API, Website,<br/>External Status Page och<br/>Custom JavaScript Code"]
+        Monitors["Övervakare<br/>av typen<br/>API, Website,<br/>External<br/>Status Page och<br/>Custom<br/>JavaScript Code"]
     end
-    Private["Ditt privata nätverk"]
-    Webhooks -->|"av som standard"| Private
-    Outbound -->|"på som standard"| Private
-    Monitors -->|"av som standard"| Private
+    Private["Ditt privata<br/>nätverk"]
+    Webhooks -->|"av som<br/>standard"| Private
+    Outbound -->|"på som<br/>standard"| Private
+    Monitors -->|"av som<br/>standard"| Private
 ```
 
 Nätverksnära övervakartyper som Ping, Port, SSL-certifikat, DNS, DNSSEC, SNMP / Nätverksenhet, SQL-fråga, Databashälsa, Synthetic och Network Path använder sina egna transporter. Inställningen på den här sidan styr de HTTP-transporter som returnerar godtyckligt svarsinnehåll till ett projekt: övervakare av typen API, Website, External Status Page och Custom JavaScript Code.

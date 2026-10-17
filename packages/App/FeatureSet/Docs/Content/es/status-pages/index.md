@@ -29,7 +29,7 @@ flowchart TB
 
 Las páginas de estado están en **Páginas de estado**, en el menú **Productos** de la barra superior, entre los esenciales. Todo lo que hay en esta página es por página de estado: un proyecto puede tener tantas como quiera — una pública para clientes, una privada para un público interno, una por región para un mercado concreto.
 
-La página muestra como recursos los monitores que colocas en ella. Los incidentes y el mantenimiento programado llegan a ella a través de esos monitores, y los anuncios se publican directamente en ella. Los visitantes leen la página, y los suscriptores reciben aviso de cada cambio por los canales que eligieron.
+La página muestra como recursos los monitores que colocas en ella, y los incidentes llegan a ella a través de esos monitores. Los [eventos de mantenimiento programado](/docs/scheduled-maintenance/index) y los anuncios llegan a ella directamente: cada uno indica las páginas de estado en las que se muestra. Los visitantes leen la página, y los suscriptores reciben aviso de cada cambio por los canales que eligieron.
 
 ## De un vistazo
 

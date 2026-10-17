@@ -13,15 +13,15 @@ En **runbook-agent**, som heter **Runner** i instrumentpanelen, är en liten sj�
 
 ```mermaid title="Vad som går över nätverket mellan en Runner och OneUptime"
 flowchart TB
-    subgraph yours["Din infrastruktur"]
-        direction LR
-        runner["Runner-container"]
-        targets["Värdar, kluster, interna tjänster"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Workern köar steget"]
         ingest["Runner-API"]
+    end
+    subgraph yours["Din infrastruktur"]
+        direction LR
+        runner["Runner-container"]
+        targets["Värdar, kluster, interna tjänster"]
     end
     worker --> ingest
     runner -->|"Utgående HTTPS, Runner-ID och nyckel"| ingest
