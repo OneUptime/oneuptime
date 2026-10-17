@@ -60,6 +60,7 @@ export const WorkflowDocsPaths: {
   readonly webhookTrigger: string;
   readonly incomingEmailTrigger: string;
   readonly inboundEmailSetup: string;
+  readonly huntress: string;
   readonly scheduleTrigger: string;
   readonly manualTrigger: string;
   readonly eventTriggers: string;
@@ -93,6 +94,7 @@ export const WorkflowDocsPaths: {
   webhookTrigger: "/workflows/triggers#webhook",
   incomingEmailTrigger: "/workflows/triggers#incoming-email",
   inboundEmailSetup: "/self-hosted/sendgrid-inbound-email",
+  huntress: "/integrations/huntress",
   scheduleTrigger: "/workflows/triggers#schedule",
   manualTrigger: "/workflows/triggers#manual",
   eventTriggers: "/workflows/triggers#oneuptime-event-triggers",

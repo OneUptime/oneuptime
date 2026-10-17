@@ -22,6 +22,7 @@ import IfElse from "./Conditions/IfElse";
 import Switch from "./Conditions/Switch";
 import DiscordSendMessageToChannel from "./Discord/SendMessageToChannel";
 import Email from "./Email";
+import HuntressWorkflowTrigger from "./Huntress";
 import IncomingEmailWorkflowTrigger from "./IncomingEmail";
 import IRCSendMessageToChannel from "./IRC/SendMessageToChannel";
 import JsonToText from "./JSON/JsonToText";
@@ -53,6 +54,7 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.AIGenerateText]: new GenerateText(),
   [ComponentID.Webhook]: new WebhookTrigger(),
   [ComponentID.IncomingEmail]: new IncomingEmailWorkflowTrigger(),
+  [ComponentID.HuntressIncidentReport]: new HuntressWorkflowTrigger(),
   [ComponentID.SlackSendMessageToChannel]: new SlackSendMessageToChannel(),
   [ComponentID.DiscordSendMessageToChannel]: new DiscordSendMessageToChannel(),
   [ComponentID.MicrosoftTeamsSendMessageToChannel]:

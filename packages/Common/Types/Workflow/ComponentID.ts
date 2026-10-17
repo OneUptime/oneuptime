@@ -1,6 +1,8 @@
 enum ComponentID {
   Webhook = "webhook",
   IncomingEmail = "incoming-email",
+  // Huntress incident reports, as signed webhooks (Components/Huntress).
+  HuntressIncidentReport = "huntress-incident-report",
   Log = "log",
   SlackSendMessageToChannel = "slack-send-message-to-channel",
   MicrosoftTeamsSendMessageToChannel = "microsoft-teams-send-message-to-channel",

@@ -41,6 +41,20 @@ export const MOVED_INCIDENT_FORM_PATHS: { forms: string; formView: string } = {
  * Relative to …/incidents/ and to …/alerts/: both products used the same
  * paths.
  */
+/*
+ * Huntress connections (Incidents > Integrations > Huntress) became
+ * workflows with a Huntress Incident Report trigger, each keeping its
+ * connection's id: the list forwards to Workflows, and a connection's page
+ * to its workflow. Relative to …/incidents/.
+ */
+export const MOVED_HUNTRESS_PATHS: {
+  connections: string;
+  connectionView: string;
+} = {
+  connections: "integrations/huntress",
+  connectionView: `integrations/huntress/${RouteParams.ModelID}`,
+};
+
 export const MOVED_AI_SECTION_PATHS: {
   aiSettings: string;
   autoRemediationRules: string;

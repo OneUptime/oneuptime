@@ -750,23 +750,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       }),
       {
-        title: "Integrations",
-        pages: [
-          {
-            page: PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS,
-            title: "Huntress",
-            icon: IconProp.ShieldCheck,
-            keywords: [
-              "edr",
-              "itdr",
-              "mdr",
-              "security incidents",
-              "incident reports",
-            ],
-          },
-        ],
-      },
-      {
         title: "Rules",
         pages: [
           {
@@ -2396,6 +2379,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.WORKFLOWS,
             title: "Workflows",
             icon: IconProp.Workflow,
+            // Huntress is set up with a workflow (the Huntress trigger).
+            keywords: ["integrations", "huntress"],
           },
           {
             page: PageMap.WORKFLOWS_VARIABLES,

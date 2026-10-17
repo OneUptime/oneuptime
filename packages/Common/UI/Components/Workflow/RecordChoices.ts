@@ -2,6 +2,7 @@ import { DropdownOption } from "../Dropdown/Dropdown";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import Select from "../../../Types/BaseDatabase/Select";
@@ -17,8 +18,9 @@ import {
 /*
  * THE SETTINGS WHOSE VALUE IS ONE OF THE PROJECT'S RECORDS, PICKED FROM A LIST.
  *
- * Execute Workflow's Workflow, Create One Incident's Incident Template and a
- * Page step's Severity are dropdowns of the project's records, listed
+ * Execute Workflow's Workflow, Create One Incident's Incident Template, a
+ * Page step's Severity and the Huntress trigger's incident severities are
+ * dropdowns of the project's records, listed
  * through the API as the person editing the workflow: a record they may not
  * read is not offered, and where they may read none - or their plan includes
  * none - the list is empty. Each type names the model it lists, the column a
@@ -49,6 +51,13 @@ const SOURCES: Partial<Record<ComponentInputType, RecordChoiceSource>> = {
   },
   [ComponentInputType.AlertSeveritySelect]: {
     modelType: AlertSeverity,
+    labelColumn: "name",
+    // The project's own order: the most severe first.
+    sortColumn: "order",
+    excludesCurrentWorkflow: false,
+  },
+  [ComponentInputType.IncidentSeveritySelect]: {
+    modelType: IncidentSeverity,
     labelColumn: "name",
     // The project's own order: the most severe first.
     sortColumn: "order",
