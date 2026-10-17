@@ -319,6 +319,25 @@ describe("the Branding page", () => {
     ]);
   });
 
+  test("draws the theme right under the logo and cover image, before the title and description", () => {
+    const logo: number = main.indexOf(
+      'name="Status Page > Branding > Header Style"',
+    );
+    const theme: number = main.indexOf(
+      "<StatusPageThemeCard statusPageId={modelId} />",
+    );
+    const title: number = main.indexOf(
+      'name="Status Page > Branding > Title and Description"',
+    );
+
+    expect(logo).toBeGreaterThan(-1);
+    expect(theme).toBeGreaterThan(logo);
+    expect(title).toBeGreaterThan(theme);
+    // Once: it is not folded away, nor drawn twice.
+    expect(branding.split("<StatusPageThemeCard").length - 1).toBe(1);
+    expect(advanced).not.toContain("<StatusPageThemeCard");
+  });
+
   test("folds the history chart's colors, the languages and search engine indexing under Advanced, last", () => {
     expect(advancedStart).toBeGreaterThan(-1);
     expect(namesIn(advanced)).toEqual([
@@ -464,6 +483,11 @@ describe("one place for each branding setting", () => {
       "Components/StatusPage/SearchEngineIndexingCard.tsx",
       "Components/StatusPage/StatusPageBrandingCopy.ts",
       "Pages/StatusPages/View/Branding.tsx",
+    ],
+    // Light, Dark or the visitor's device: its card, and the card's copy.
+    theme: [
+      "Components/StatusPage/StatusPageThemeCard.tsx",
+      "Components/StatusPage/StatusPageThemeCopy.ts",
     ],
   };
 
