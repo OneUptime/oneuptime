@@ -293,7 +293,7 @@ Två reglage på varje signaltyps sida med AI-inställningar avgör vad OneUptim
 
 En regel för automatisk åtgärd ställer tre frågor:
 
-1. **Villkor**: vilka incidenter den matchar: monitorer, allvarlighetsgrader, etiketter, monitoretiketter, rubrik och beskrivning, samma villkor som projektets andra regler för incidenter och larm. En regel utan villkor matchar alla incidenter.
+1. **Villkor**: vilka incidenter den matchar: **Alla incidenter**, som en ny regel börjar på, eller **Endast incidenter som uppfyller villkoren** på monitorer, allvarlighetsgrader, etiketter, monitoretiketter, rubrik och beskrivning, samma villkor som projektets andra regler för incidenter och larm.
 2. **Åtgärda med**: **OneUptime AI** åtgärdar incidenten genom AI-agenten i det kluster eller på den värd som den påverkar; **Runbooks** kör de runbooks som regeln nämner, på samma sätt varje gång.
 3. **Godkännande**: **Fråga innan något åtgärdas**: ingenting körs förrän någon godkänner åtgärden med ett klick. **Åtgärda utan att fråga**: runbooks startar direkt, och OneUptime AI åtgärdar utan godkännande överallt där AI-agentens inställningar tillåter det; ett kluster eller en värd som är inställd på att be om godkännande frågar fortfarande.
 

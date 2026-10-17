@@ -45,6 +45,7 @@ import RuleCriteria, {
   RULE_CRITERIA_SCHEMA_VERSION,
   RuleCriteriaOperator,
 } from "../../../../Types/Rules/RuleCriteria";
+import { RuleCriteriaSubject } from "../../../../Types/Rules/RuleCriteriaSubject";
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import RuleCriteriaBuilder from "../../../../UI/Components/RuleCriteria/RuleCriteriaBuilder";
@@ -68,7 +69,11 @@ const FIELDS: Array<Field<Entity>> = [
 
 function renderBuilder(
   value: RuleCriteria | undefined,
-  extra: { error?: string; requiresCondition?: boolean } = {},
+  extra: {
+    error?: string;
+    requiresCondition?: boolean;
+    subject?: RuleCriteriaSubject;
+  } = {},
 ): void {
   render(
     <RuleCriteriaBuilder
@@ -77,6 +82,7 @@ function renderBuilder(
       onChange={jest.fn()}
       error={extra.error}
       requiresCondition={extra.requiresCondition}
+      subject={extra.subject}
     />,
   );
 }
@@ -124,26 +130,45 @@ afterEach(() => {
 });
 
 describe("the conditions builder speaks through the translation", () => {
-  test("its empty state", () => {
+  test("its choice: the label and both answers, named for the rule's records", () => {
+    renderBuilder(undefined, { subject: RuleCriteriaSubject.Incidents });
+
+    const choice: HTMLElement = screen.getByTestId("rule-criteria-applies-to");
+    expect(choice).toHaveTextContent("«Applies to»");
+    expect(
+      screen.getByRole("radiogroup", { name: /«Applies to»/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("radio", { name: "«All incidents»" }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole("radio", {
+        name: "«Only incidents that match conditions»",
+      }),
+    ).not.toBeChecked();
+  });
+
+  test("its choice for a rule nothing names", () => {
     renderBuilder(undefined);
 
-    const empty: HTMLElement = screen.getByTestId("rule-criteria-empty");
-    expect(empty).toHaveTextContent("«No conditions yet»");
-    expect(empty).toHaveTextContent(
-      "«Without conditions, this rule applies to everything. Add a condition to narrow it down.»",
-    );
-    expect(within(empty).getByRole("button")).toHaveTextContent(
-      "«Add condition»",
-    );
+    expect(screen.getByRole("radio", { name: "«Everything»" })).toBeChecked();
+    expect(
+      screen.getByRole("radio", { name: "«Only what matches conditions»" }),
+    ).toBeInTheDocument();
   });
 
   test("the empty state of a rule that needs a condition", () => {
     renderBuilder(undefined, { requiresCondition: true });
 
+    const empty: HTMLElement = screen.getByTestId("rule-criteria-empty");
+    expect(empty).toHaveTextContent("«No conditions yet»");
     expect(
       screen.getByTestId("rule-criteria-empty-description"),
     ).toHaveTextContent(
       "«Add at least one condition. This rule only applies to what its conditions match.»",
+    );
+    expect(within(empty).getByRole("button")).toHaveTextContent(
+      "«Add condition»",
     );
   });
 

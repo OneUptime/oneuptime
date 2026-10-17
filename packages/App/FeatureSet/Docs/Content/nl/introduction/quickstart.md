@@ -68,7 +68,7 @@ Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikb
 
 ### Het bij elk incident activeren
 
-Open **Incidenten** vanuit het menu **Producten**, klap **Regels** open in het zijmenu en kies **Bereikbaarheidsregels**. Klik op **Incident On-Call Rule aanmaken**, voer een **Naam** in en klik op **Volgende**. Laat **Overeenkomstcriteria** leeg, zodat de regel bij elk incident past, en klik op **Volgende**. Kies uw beleid onder **Bereikbaarheidsbeleid** en klik op **Incident On-Call Rule aanmaken**.
+Open **Incidenten** vanuit het menu **Producten**, klap **Regels** open in het zijmenu en kies **Bereikbaarheidsregels**. Klik op **Incident On-Call Rule aanmaken**, voer een **Naam** in en klik op **Volgende**. Laat bij **Overeenkomstcriteria** de keuze **Alle incidenten** staan, zodat de regel bij elk incident past, en klik op **Volgende**. Kies uw beleid onder **Bereikbaarheidsbeleid** en klik op **Incident On-Call Rule aanmaken**.
 
 ### Kiezen hoe u bereikt wordt
 

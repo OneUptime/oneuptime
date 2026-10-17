@@ -64,7 +64,7 @@ Klik på **Opret brugerdefineret regel** under skabelonerne eller på **Opret gr
 
 #### Afgræns den
 
-På **Hvilke advarsler** tilføjer du betingelser for monitorer, alvorsgrader, etiketter, titler og beskrivelser. Lad det være tomt for at gruppere hver ny advarsel. Klik derefter på **Opret grupperingsregel for advarsler**.
+På **Hvilke advarsler** grupperer **Alle advarsler**, som en ny regel starter på, hver ny advarsel. For at indsnævre reglen vælger du **Kun advarsler, der opfylder betingelserne** og tilføjer betingelser for monitorer, alvorsgrader, etiketter, titler og beskrivelser. Klik derefter på **Opret grupperingsregel for advarsler**.
 :::
 
 Alt andet, en regel kan gøre, er foldet sammen under **Flere felter** sidst på trinnet **Gruppering**, i tre grupper. Sammenfoldet nævner dets overskrift, hvad det rummer, og viser hver indstilling, reglen bruger, som en chip, så det aldrig skjules, hvad en regel gør, når du redigerer den.

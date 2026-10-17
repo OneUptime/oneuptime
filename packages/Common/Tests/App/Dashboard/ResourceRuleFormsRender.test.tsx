@@ -629,8 +629,22 @@ describe.each(PAGES)("$name", (page: PageCase) => {
     ]);
     expect(within(dialog()).queryByText("Basic Info")).toBeNull();
 
-    // The first step is the conditions builder; nothing is asked of the name.
-    expect(within(dialog()).getByText("Conditions")).toBeInTheDocument();
+    /*
+     * The first step asks what the rule applies to, and starts on all of the
+     * resources ("All hosts"): a condition is a choice, never a blank to
+     * fill in. Nothing is asked of the name.
+     */
+    const appliesTo: HTMLElement = within(dialog()).getByRole("radiogroup", {
+      name: /Applies to/,
+    });
+    const answers: Array<HTMLElement> = within(appliesTo).getAllByRole("radio");
+    expect(answers).toHaveLength(2);
+    expect(answers[0]).toBeChecked();
+    expect(answers[0]).toHaveAccessibleName(/^All /);
+    expect(answers[1]).toHaveAccessibleName(/^Only .+ that match conditions$/);
+    expect(
+      within(dialog()).queryByTestId("rule-criteria-row-0"),
+    ).not.toBeInTheDocument();
     expect(
       within(dialog()).queryByRole("textbox", { name: "Name" }),
     ).toBeNull();

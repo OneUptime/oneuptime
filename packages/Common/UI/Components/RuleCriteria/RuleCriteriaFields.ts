@@ -12,6 +12,7 @@ import {
   RULE_CRITERIA_MAX_STRING_LENGTH,
 } from "../../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../../Utils/Rules/RulePatternMatchUtil";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import type Field from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import type FormValues from "../Forms/Types/FormValues";
@@ -105,9 +106,12 @@ export const RULE_CRITERIA_ADDRESS_RANGE_OPERATOR_LABELS: Partial<
  * Every sentence the builder and its validation can show, in English. The
  * dashboard looks each one up in its locale files by this text, so the i18n
  * test holds the whole list to all seventeen of them. "{{max}}" and
- * "{{number}}" are filled in after the lookup.
+ * "{{number}}" are filled in after the lookup. The answers to "Applies to"
+ * name the rule's records, so they are a list of their own
+ * (RuleCriteriaSubjectCopy).
  */
 export const RuleCriteriaCopy: {
+  readonly appliesToTitle: string;
   readonly fieldDescription: string;
   readonly ifConnector: string;
   readonly andConnector: string;
@@ -118,7 +122,6 @@ export const RuleCriteriaCopy: {
   readonly matchAllHint: string;
   readonly matchAnyHint: string;
   readonly emptyTitle: string;
-  readonly emptyMatchesEverything: string;
   readonly emptyNeedsCondition: string;
   readonly addCondition: string;
   readonly removeCondition: string;
@@ -142,6 +145,12 @@ export const RuleCriteriaCopy: {
   readonly tooManyConditionsProblem: string;
   readonly conditionProblem: string;
 } = {
+  /*
+   * The field's label over "All incidents" / "Only incidents that match
+   * conditions": always answered, so never "(Optional)".
+   */
+  appliesToTitle: translationKey("Applies to"),
+  // The field's help on a rule that needs a condition: it has no choice.
   fieldDescription: "Choose what this rule applies to.",
   ifConnector: "If",
   andConnector: "And",
@@ -152,8 +161,6 @@ export const RuleCriteriaCopy: {
   matchAllHint: "Every condition must be true.",
   matchAnyHint: "At least one condition must be true.",
   emptyTitle: "No conditions yet",
-  emptyMatchesEverything:
-    "Without conditions, this rule applies to everything. Add a condition to narrow it down.",
   emptyNeedsCondition:
     "Add at least one condition. This rule only applies to what its conditions match.",
   addCondition: "Add condition",

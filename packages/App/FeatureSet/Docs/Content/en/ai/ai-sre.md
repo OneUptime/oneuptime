@@ -293,7 +293,7 @@ Two switches on each signal type's AI settings page decide what OneUptime AI doe
 
 An auto remediation rule asks three questions:
 
-1. **Conditions** — which incidents it matches: monitors, severities, labels, monitor labels, title and description, the same conditions as the project's other incident and alert rules. A rule with no condition matches every incident.
+1. **Conditions** — which incidents it matches: **All incidents**, where a new rule starts, or **Only incidents that match conditions** on monitors, severities, labels, monitor labels, title and description, the same conditions as the project's other incident and alert rules.
 2. **Fix With** — **OneUptime AI** fixes the incident through the AI agent on the cluster or host it affects; **Runbooks** runs the runbooks the rule names, the same way every time.
 3. **Approval** — **Ask before fixing**: nothing runs until someone approves the fix with one click. **Fix without asking**: runbooks start right away, and OneUptime AI fixes without approval wherever the AI agent's settings allow it — a cluster or host set to ask for approval still asks.
 

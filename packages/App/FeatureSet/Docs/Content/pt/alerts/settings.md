@@ -83,7 +83,7 @@ Clique em **Criar: Alert On-Call Rule**. Em **Informações básicas**, dê a el
 
 ### Escolher os alertas
 
-Em **Critérios de Correspondência**, adicione as condições que um alerta precisa atender. Deixe-as vazias para corresponder a todo alerta novo.
+Em **Critérios de Correspondência**, **Todos os alertas**, onde uma regra nova começa, corresponde a todo alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione as condições que um alerta precisa atender.
 
 ### Escolher as políticas
 
@@ -119,7 +119,7 @@ Clique em **Criar: Alert Reminder Rule**. Em **Rule Info**, dê a ela um **Nome*
 
 ### Escolher sobre quais alertas lembrar
 
-Em **Critérios de Correspondência**, escolha as **Alerta Severidades** e os **Rótulos** aos quais ela se aplica. Deixe-os vazios para lembrar sobre todo alerta.
+Em **Critérios de Correspondência**, deixe **Todos os alertas** selecionado para lembrar sobre todo alerta, ou escolha **Somente os alertas que atendem às condições** e depois as **Alerta Severidades** e os **Rótulos** aos quais ela se aplica.
 
 ### Definir o intervalo
 

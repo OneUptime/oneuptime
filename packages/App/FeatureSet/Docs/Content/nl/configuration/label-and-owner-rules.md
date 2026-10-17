@@ -40,7 +40,7 @@ Open de pagina **Labelregels** of **Eigenaarsregels** van het product en klik op
 
 ### Kiezen waarop de regel van toepassing is
 
-Klik in de stap **Overeenkomst** op **Voorwaarde toevoegen** voor elke voorwaarde waaraan de resource moet voldoen. Kies bij twee of meer voorwaarden **Voldoet aan alle** of **Voldoet aan één**. Een regel zonder voorwaarden is van toepassing op elke nieuwe resource.
+In de stap **Overeenkomst** begint **Geldt voor** bij elke nieuwe resource, bijvoorbeeld **Alle hosts** bij een hostregel. Om de regel in te perken, kies **Alleen hosts die aan de voorwaarden voldoen** en vul de voorwaarde in die opent; klik op **Voorwaarde toevoegen** voor elke andere voorwaarde waaraan de resource moet voldoen. Kies bij twee of meer voorwaarden **Voldoet aan alle** of **Voldoet aan één**.
 
 ### Kiezen wat de regel toevoegt
 

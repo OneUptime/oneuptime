@@ -26,7 +26,7 @@ Begge slags gælder for hele projektet. Du finder dem i SLO-listens sidemenu und
 
 ### Vælg, hvad reglen matcher
 
-I trinnet **Match** klikker du på **Tilføj betingelse** for hver betingelse, et SLO skal opfylde (se [Matchkriterier](#matchkriterier)). Med to eller flere vælger du **Alle skal matche** eller **Én skal matche**. En regel uden betingelser matcher hvert nyt SLO.
+I trinnet **Match** starter **Gælder for** på **Alle SLO'er**, hvert nyt SLO. For at indsnævre reglen vælger du **Kun SLO'er, der opfylder betingelserne** og udfylder den betingelse, der åbnes (se [Matchkriterier](#matchkriterier)); klik på **Tilføj betingelse** for hver anden betingelse, et SLO skal opfylde. Med to eller flere vælger du **Alle skal matche** eller **Én skal matche**.
 
 ### Vælg, hvad reglen tilføjer
 

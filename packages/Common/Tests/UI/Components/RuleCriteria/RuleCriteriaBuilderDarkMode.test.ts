@@ -17,6 +17,8 @@ const UI_DIR: string = path.join(__dirname, "..", "..", "..", "..", "UI");
 
 const FILES: Array<string> = [
   "Components/RuleCriteria/RuleCriteriaBuilder.tsx",
+  "Components/RuleCriteria/RuleAppliesToChoice.tsx",
+  "Components/RuleCriteria/RuleCriteriaSubjectCopy.ts",
   "Components/RuleCriteria/RuleCriteriaSummary.tsx",
   "Components/RuleCriteria/RuleCriteriaModelForm.tsx",
   "Components/RuleCriteria/RuleCriteriaModelTable.tsx",

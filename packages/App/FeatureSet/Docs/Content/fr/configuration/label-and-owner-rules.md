@@ -40,7 +40,7 @@ Ouvrez la page **Règles d'étiquettes** ou **Règles de propriétaire** du prod
 
 ### Choisir ce à quoi la règle correspond
 
-À l'étape **Correspondance**, cliquez sur **Ajouter une condition** pour chaque condition que la ressource doit remplir. Avec deux conditions ou plus, choisissez **Toutes requises** ou **Au moins une requise**. Une règle sans condition correspond à toute nouvelle ressource.
+À l'étape **Correspondance**, **S'applique à** démarre sur toute nouvelle ressource, par exemple **Tous les hôtes** pour une règle d'hôte. Pour restreindre la règle, choisissez **Uniquement les hôtes qui correspondent aux conditions** et remplissez la condition qui s'ouvre ; cliquez sur **Ajouter une condition** pour chaque autre condition que la ressource doit remplir. Avec deux conditions ou plus, choisissez **Toutes requises** ou **Au moins une requise**.
 
 ### Choisir ce que la règle ajoute
 

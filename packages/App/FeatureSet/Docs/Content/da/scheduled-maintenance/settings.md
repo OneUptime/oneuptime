@@ -73,7 +73,7 @@ Klik på **Opret Scheduled Maintenance Reminder Rule**. Under **Rule Info** give
 
 ### Vælg, hvilke begivenheder der mindes om
 
-Under **Matchkriterier** vælger du de **Etiketter**, den gælder for. Lad dem stå tomme for at minde om hver begivenhed.
+Under **Matchkriterier** lader du **Alle planlagte vedligeholdelsesbegivenheder** være valgt for at minde om hver begivenhed, eller du vælger **Kun planlagte vedligeholdelsesbegivenheder, der opfylder betingelserne** og derefter de **Etiketter**, den gælder for.
 
 ### Indstil intervallet
 

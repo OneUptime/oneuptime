@@ -83,7 +83,7 @@ Klik op **Alert On-Call Rule aanmaken**. Geef haar bij **Basisinformatie** een *
 
 ### De waarschuwingen kiezen
 
-Voeg bij **Overeenkomstcriteria** de voorwaarden toe waaraan een waarschuwing moet voldoen. Laat ze leeg om op elke nieuwe waarschuwing overeen te komen.
+Bij **Overeenkomstcriteria** komt **Alle waarschuwingen**, waar een nieuwe regel mee begint, overeen met elke nieuwe waarschuwing. Om de regel in te perken, kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg de voorwaarden toe waaraan een waarschuwing moet voldoen.
 
 ### Het beleid kiezen
 
@@ -119,7 +119,7 @@ Klik op **Alert Reminder Rule aanmaken**. Geef haar bij **Rule Info** een **Naam
 
 ### Kiezen voor welke waarschuwingen je herinnert
 
-Kies bij **Overeenkomstcriteria** de **Waarschuwing Ernsten** en **Labels** waarvoor ze geldt. Laat ze leeg om voor elke waarschuwing te herinneren.
+Laat bij **Overeenkomstcriteria** de keuze **Alle waarschuwingen** staan om voor elke waarschuwing te herinneren, of kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en dan de **Waarschuwing Ernsten** en **Labels** waarvoor ze geldt.
 
 ### Het interval instellen
 

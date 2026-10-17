@@ -83,7 +83,7 @@ Klicken Sie auf **Bereitschaftsregel für Warnungen erstellen**. Geben Sie unter
 
 ### Die Warnungen wählen
 
-Fügen Sie unter **Übereinstimmungskriterien** die Bedingungen hinzu, die eine Warnung erfüllen muss. Lassen Sie sie leer, damit die Regel auf jede neue Warnung zutrifft.
+Unter **Übereinstimmungskriterien** trifft **Alle Warnungen**, womit eine neue Regel beginnt, auf jede neue Warnung zu. Um sie einzugrenzen, wählen Sie **Nur Warnungen, die den Bedingungen entsprechen** und fügen die Bedingungen hinzu, die eine Warnung erfüllen muss.
 
 ### Die Richtlinien wählen
 
@@ -119,7 +119,7 @@ Klicken Sie auf **Erinnerungsregel für Warnungen erstellen**. Geben Sie unter *
 
 ### Wählen, an welche Warnungen erinnert wird
 
-Wählen Sie unter **Übereinstimmungskriterien** die **Warnungsschweregrade** und **Beschriftungen**, für die sie gilt. Lassen Sie sie leer, um an jede Warnung zu erinnern.
+Lassen Sie unter **Übereinstimmungskriterien** die Auswahl **Alle Warnungen** stehen, um an jede Warnung zu erinnern, oder wählen Sie **Nur Warnungen, die den Bedingungen entsprechen** und dann die **Warnungsschweregrade** und **Beschriftungen**, für die sie gilt.
 
 ### Das Intervall festlegen
 

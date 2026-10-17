@@ -83,7 +83,7 @@ Fate clic su **Crea: Alert On-Call Rule**. In **Informazioni di base**, dategli 
 
 ### Scegliere gli avvisi
 
-In **Criteri di corrispondenza**, aggiungete le condizioni che un avviso deve soddisfare. Lasciatele vuote per corrispondere a ogni nuovo avviso.
+In **Criteri di corrispondenza**, **Tutti gli avvisi**, da cui parte una nuova regola, corrisponde a ogni nuovo avviso. Per restringerla, scegliete **Solo gli avvisi che soddisfano le condizioni** e aggiungete le condizioni che un avviso deve soddisfare.
 
 ### Scegliere le policy
 
@@ -119,7 +119,7 @@ Fate clic su **Crea: Alert Reminder Rule**. In **Rule Info**, dategli un **Nome*
 
 ### Scegliere gli avvisi da ricordare
 
-In **Criteri di corrispondenza**, scegliete le **Avviso Gravità** e le **Etichette** a cui si applica. Lasciatele vuote per ricordare ogni avviso.
+In **Criteri di corrispondenza**, lasciate selezionato **Tutti gli avvisi** per ricordare ogni avviso, oppure scegliete **Solo gli avvisi che soddisfano le condizioni** e poi le **Avviso Gravità** e le **Etichette** a cui si applica.
 
 ### Impostare l'intervallo
 
