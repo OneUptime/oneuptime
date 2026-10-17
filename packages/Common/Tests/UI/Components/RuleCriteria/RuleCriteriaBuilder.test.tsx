@@ -560,6 +560,11 @@ describe("RuleCriteriaBuilder", () => {
 
       expect(allAnswer()).toBeChecked();
       expect(latestCriteria(onChange).filters).toEqual([]);
+      /*
+       * The remove button went with the conditions, and the focus with it:
+       * it is on the answer now picked, not lost to the page.
+       */
+      expect(allAnswer()).toHaveFocus();
 
       // A condition removed on purpose is not brought back.
       await chooseConditions(user);

@@ -58,11 +58,16 @@ const HELP_COMBINE_LINES: string = `Add one or more conditions, then choose how 
 
 ${HELP_MATCH_LINES}`;
 
+/*
+ * Each answer says what it does for the rule, not what it stores: the first
+ * one is the point - no condition is needed for a rule to apply to every
+ * record - and the second says what to do next.
+ */
 function getHelpChoiceLines(copy: RuleCriteriaSubjectCopy): string {
   return `Choose what the rule applies to:
 
-- **${copy.all}** — the rule has no conditions. A new rule starts here.
-- **${copy.matching}** — the rule has one or more conditions.
+- **${copy.all}** — the rule applies to every one, with no conditions to fill in. A new rule starts here.
+- **${copy.matching}** — add one or more conditions to narrow the rule down.
 
 With two or more conditions, choose how they are combined:
 

@@ -19,6 +19,7 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import ObjectID from "Common/Types/ObjectID";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import {
   APPLIES_TO_ALL_ANSWERS,
   APPLIES_TO_MATCHING_ANSWERS,
@@ -37,6 +38,12 @@ export interface ComponentProps {
   incidentStates: Array<IncidentState>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
   monitorStatus: Array<MonitorStatus>;
+  /*
+   * When the conditions are checked, in English: drawn over them while
+   * "Only ... that match conditions" is picked, and left out while the rule
+   * is for every record (NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS).
+   */
+  conditionsDescription?: string | undefined;
 }
 
 /*
@@ -79,6 +86,11 @@ const toRows: (
  * last condition goes back to "All". Going back to "All" takes the
  * conditions out of the rule and keeps them aside while the step is open:
  * "Only ..." again puts them back as they were.
+ *
+ * The divider under it separates the conditions from Match Condition, the
+ * form's next field, which only appears with two or more conditions
+ * (isFilterConditionNeeded): with fewer it would close off nothing, so it is
+ * drawn only then.
  */
 const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -161,6 +173,7 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
         isMatchingUnavailable={checkOnByEventType.length === 0}
         // The step's heading names it: "Which incidents".
         ariaLabel={NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType]}
+        matchingDescription={props.conditionsDescription}
         dataTestId="notification-rule-applies-to"
       >
         <div data-testid="notification-rule-conditions">
@@ -189,18 +202,24 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
               />
             );
           })}
-          <div className="mt-3 -ml-3">
+          {/*
+           * From md up a Button sits 12px in (md:ml-3, for a dialog's
+           * footer), taken back here so it lines up with the conditions.
+           * Below md it has no such margin and is as wide as they are.
+           */}
+          <div className="mt-3 md:-ml-3">
             <Button
               title="Add Condition"
               buttonSize={ButtonSize.Small}
               icon={IconProp.Add}
               disabled={checkOnByEventType.length === 0}
               onClick={addCondition}
+              dataTestId="notification-rule-add-condition"
             />
           </div>
         </div>
       </RuleAppliesToChoice>
-      <HorizontalRule />
+      {isFilterConditionNeeded(rows) ? <HorizontalRule /> : <></>}
     </div>
   );
 };

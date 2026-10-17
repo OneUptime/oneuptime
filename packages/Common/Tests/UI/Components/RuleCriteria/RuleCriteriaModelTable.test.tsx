@@ -401,13 +401,35 @@ describe("the help panel's Match Criteria section", () => {
       "**Lists** — Has any of, Has all of or Has none of the selected values.",
       // The choice, named as the form names it.
       "Choose what the rule applies to:",
-      "**Everything** — the rule has no conditions. A new rule starts here.",
-      "**Only what matches conditions** — the rule has one or more conditions.",
+      "**Everything** — the rule applies to every one, with no conditions to fill in. A new rule starts here.",
+      "**Only what matches conditions** — add one or more conditions to narrow the rule down.",
       "With two or more conditions, choose how they are combined:",
     ]) {
       expect(body).toContain(line);
     }
     expect(body).not.toContain("applies to everything");
+  });
+
+  /*
+   * Each answer says what it does for the rule, in the words of someone
+   * setting one up: the first one that no condition is needed - the point
+   * people missed - and the second what to do next. They said what the rule
+   * stores ("the rule has no conditions").
+   */
+  test("says what each answer does, not what the rule stores", () => {
+    const body: string = getRuleCriteriaHelpSectionBody({
+      fields: [NAME_FIELD],
+      subject: RuleCriteriaSubject.Hosts,
+    });
+
+    expect(body).toContain(
+      "**All hosts** — the rule applies to every one, with no conditions to fill in.",
+    );
+    expect(body).toContain(
+      "**Only hosts that match conditions** — add one or more conditions to narrow the rule down.",
+    );
+    expect(body).not.toContain("the rule has no conditions");
+    expect(body).not.toContain("the rule has one or more conditions");
   });
 
   test("names the choice for the rule's records", () => {
@@ -417,10 +439,10 @@ describe("the help panel's Match Criteria section", () => {
     });
 
     expect(body).toContain(
-      "**All incidents** — the rule has no conditions. A new rule starts here.",
+      "**All incidents** — the rule applies to every one, with no conditions to fill in. A new rule starts here.",
     );
     expect(body).toContain(
-      "**Only incidents that match conditions** — the rule has one or more conditions.",
+      "**Only incidents that match conditions** — add one or more conditions to narrow the rule down.",
     );
     expect(body).not.toContain("**Everything**");
   });

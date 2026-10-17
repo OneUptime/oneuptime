@@ -2,9 +2,12 @@ import useTranslateValue from "../../Utils/Translation";
 import FieldLabelElement from "../Forms/Fields/FieldLabel";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   ReactNode,
+  useEffect,
   useId,
+  useRef,
 } from "react";
 
 /*
@@ -28,6 +31,12 @@ import React, {
  * what is stored: picking an answer calls onChooseAll / onChooseMatching,
  * and isMatching says which one is picked. Every text prop is English,
  * looked up here, as every shared component's text props are.
+ *
+ * - A long answer wraps under its own first word, and its radio stays level
+ *   with the first line (a German or Persian answer wraps on a phone).
+ * - When the conditions go while the focus was in them - the last one
+ *   removed with its own button - the focus moves to the first answer, the
+ *   one now picked, instead of falling out of the dialog.
  */
 export interface ComponentProps {
   // "All incidents".
@@ -40,6 +49,13 @@ export interface ComponentProps {
   onChooseMatching: () => void;
   // The conditions, drawn under the second answer while it is picked.
   children?: ReactNode | undefined;
+  /*
+   * A line about the conditions, drawn over them while the second answer is
+   * picked, and read with that answer: when they are checked, say. It is
+   * left out while the rule applies to everything, where it is not about
+   * anything on the screen.
+   */
+  matchingDescription?: string | undefined;
   disabled?: boolean | undefined;
   // Nothing the conditions could be about: the second answer is off.
   isMatchingUnavailable?: boolean | undefined;
@@ -65,7 +81,39 @@ const RuleAppliesToChoice: FunctionComponent<ComponentProps> = (
   const id: string = useId();
   const groupName: string = `rule-applies-choice-${id}`;
   const labelId: string = `rule-applies-label-${id}`;
+  const matchingDescriptionId: string = `rule-applies-matching-description-${id}`;
   const testId: string = props.dataTestId || "rule-applies-to";
+
+  const allAnswerRef: MutableRefObject<HTMLInputElement | null> =
+    useRef<HTMLInputElement | null>(null);
+  const wasMatching: MutableRefObject<boolean> = useRef<boolean>(
+    props.isMatching,
+  );
+
+  const isShowingConditions: boolean = Boolean(
+    props.isMatching && props.children,
+  );
+  const isShowingMatchingDescription: boolean = Boolean(
+    isShowingConditions && props.matchingDescription,
+  );
+
+  /*
+   * The conditions closed. If the focus was in them, it went with them (the
+   * remove button of the last condition, pressed from the keyboard too):
+   * put it on the answer that is now picked, so it is never lost.
+   */
+  useEffect(() => {
+    if (wasMatching.current && !props.isMatching) {
+      const focused: Element | null =
+        typeof document === "undefined" ? null : document.activeElement;
+
+      if (!focused || focused === document.body) {
+        allAnswerRef.current?.focus();
+      }
+    }
+
+    wasMatching.current = props.isMatching;
+  }, [props.isMatching]);
 
   const renderAnswer: (data: {
     label: string;
@@ -73,30 +121,38 @@ const RuleAppliesToChoice: FunctionComponent<ComponentProps> = (
     disabled: boolean;
     testIdSuffix: string;
     onChoose: () => void;
+    inputRef?: MutableRefObject<HTMLInputElement | null> | undefined;
+    describedBy?: string | undefined;
   }) => ReactElement = (data: {
     label: string;
     checked: boolean;
     disabled: boolean;
     testIdSuffix: string;
     onChoose: () => void;
+    inputRef?: MutableRefObject<HTMLInputElement | null> | undefined;
+    describedBy?: string | undefined;
   }): ReactElement => {
     return (
       <label
-        className={`flex w-fit max-w-full items-center gap-3 ${
+        className={`flex w-fit max-w-full items-start gap-3 ${
           data.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
         }`}
       >
         {/*
          * The browser's own radio in the product's indigo, as ChoiceRows
-         * draws one: it follows the page's light or dark colour scheme.
+         * draws one: it follows the page's light or dark colour scheme. The
+         * text is 24px a line, so 4px down puts the 16px radio level with
+         * its first line however many lines the answer wraps to.
          */}
         <input
+          ref={data.inputRef}
           type="radio"
           name={groupName}
           checked={data.checked}
           disabled={data.disabled}
+          aria-describedby={data.describedBy}
           data-testid={`${testId}-${data.testIdSuffix}`}
-          className={`h-4 w-4 shrink-0 accent-indigo-600 ${
+          className={`mt-1 h-4 w-4 shrink-0 accent-indigo-600 ${
             data.disabled ? "cursor-not-allowed" : "cursor-pointer"
           }`}
           onChange={(): void => {
@@ -105,7 +161,7 @@ const RuleAppliesToChoice: FunctionComponent<ComponentProps> = (
             }
           }}
         />
-        <span className="text-sm font-medium leading-6 text-gray-900">
+        <span className="min-w-0 text-sm font-medium leading-6 text-gray-900">
           {tx(data.label)}
         </span>
       </label>
@@ -138,6 +194,7 @@ const RuleAppliesToChoice: FunctionComponent<ComponentProps> = (
           disabled: Boolean(props.disabled),
           testIdSuffix: "all",
           onChoose: props.onChooseAll,
+          inputRef: allAnswerRef,
         })}
         {renderAnswer({
           label: props.matchingLabel,
@@ -145,11 +202,25 @@ const RuleAppliesToChoice: FunctionComponent<ComponentProps> = (
           disabled: Boolean(props.disabled || props.isMatchingUnavailable),
           testIdSuffix: "matching",
           onChoose: props.onChooseMatching,
+          describedBy: isShowingMatchingDescription
+            ? matchingDescriptionId
+            : undefined,
         })}
       </div>
 
-      {props.isMatching && props.children ? (
+      {isShowingConditions ? (
         <div className="mt-3 sm:pl-7" data-testid={`${testId}-conditions`}>
+          {isShowingMatchingDescription ? (
+            <p
+              id={matchingDescriptionId}
+              className="mb-3 text-sm text-gray-500"
+              data-testid={`${testId}-matching-description`}
+            >
+              {tx(props.matchingDescription || "")}
+            </p>
+          ) : (
+            <></>
+          )}
           {props.children}
         </div>
       ) : (

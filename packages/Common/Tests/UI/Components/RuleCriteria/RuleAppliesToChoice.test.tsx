@@ -47,12 +47,18 @@ interface HarnessProps {
   isMatchingUnavailable?: boolean | undefined;
   label?: string | undefined;
   ariaLabel?: string | undefined;
+  matchingDescription?: string | undefined;
   dataTestId?: string | undefined;
   onChooseAll?: (() => void) | undefined;
   onChooseMatching?: (() => void) | undefined;
 }
 
-// Keeps what is picked the way a rule keeps its conditions: in the caller.
+/*
+ * Keeps what is picked the way a rule keeps its conditions: in the caller.
+ * The conditions hold a remove button, which - like a rule's last
+ * condition's - takes the rule back to everything; a button outside them
+ * does the same from elsewhere on the page.
+ */
 const Harness: React.FunctionComponent<HarnessProps> = (
   props: HarnessProps,
 ): ReactElement => {
@@ -61,26 +67,47 @@ const Harness: React.FunctionComponent<HarnessProps> = (
   );
 
   return (
-    <RuleAppliesToChoice
-      allLabel="All incidents"
-      matchingLabel="Only incidents that match conditions"
-      isMatching={isMatching}
-      onChooseAll={(): void => {
-        props.onChooseAll?.();
-        setIsMatching(false);
-      }}
-      onChooseMatching={(): void => {
-        props.onChooseMatching?.();
-        setIsMatching(true);
-      }}
-      disabled={props.disabled}
-      isMatchingUnavailable={props.isMatchingUnavailable}
-      label={props.label}
-      ariaLabel={props.ariaLabel}
-      dataTestId={props.dataTestId}
-    >
-      <p data-testid="the-conditions">If Incident Title contains database</p>
-    </RuleAppliesToChoice>
+    <div>
+      <RuleAppliesToChoice
+        allLabel="All incidents"
+        matchingLabel="Only incidents that match conditions"
+        isMatching={isMatching}
+        onChooseAll={(): void => {
+          props.onChooseAll?.();
+          setIsMatching(false);
+        }}
+        onChooseMatching={(): void => {
+          props.onChooseMatching?.();
+          setIsMatching(true);
+        }}
+        disabled={props.disabled}
+        isMatchingUnavailable={props.isMatchingUnavailable}
+        label={props.label}
+        ariaLabel={props.ariaLabel}
+        matchingDescription={props.matchingDescription}
+        dataTestId={props.dataTestId}
+      >
+        <p data-testid="the-conditions">If Incident Title contains database</p>
+        <button
+          type="button"
+          data-testid="remove-last-condition"
+          onClick={(): void => {
+            setIsMatching(false);
+          }}
+        >
+          Remove condition
+        </button>
+      </RuleAppliesToChoice>
+      <button
+        type="button"
+        data-testid="elsewhere"
+        onClick={(): void => {
+          setIsMatching(false);
+        }}
+      >
+        Somewhere else
+      </button>
+    </div>
   );
 };
 
@@ -247,6 +274,151 @@ describe("RuleAppliesToChoice", () => {
     expect(
       screen.getByTestId("notification-rule-applies-to-matching"),
     ).not.toBeChecked();
+  });
+
+  /*
+   * A German or Persian answer wraps on a phone. Centred against two lines,
+   * the radio sat between them, next to neither; it belongs level with the
+   * first line, as ChoiceRows draws its radios.
+   */
+  test("a long answer wraps under its own words, with the radio level with its first line", () => {
+    render(<Harness />);
+
+    for (const answer of [allAnswer(), matchingAnswer()]) {
+      const row: HTMLElement = answer.closest("label") as HTMLElement;
+
+      expect(row.className.split(/\s+/)).toEqual(
+        expect.arrayContaining(["flex", "items-start", "gap-3"]),
+      );
+      expect(row.className).not.toMatch(/\bitems-center\b/);
+      // 24px lines (leading-6), a 16px radio: 4px down is the first line.
+      expect(answer.className.split(/\s+/)).toEqual(
+        expect.arrayContaining(["mt-1", "h-4", "w-4", "shrink-0"]),
+      );
+      const words: HTMLElement = row.querySelector("span") as HTMLElement;
+      expect(words.className.split(/\s+/)).toEqual(
+        expect.arrayContaining(["min-w-0", "leading-6"]),
+      );
+    }
+  });
+
+  test("the radios are the product's indigo, not the browser's blue", () => {
+    render(<Harness />);
+
+    expect(allAnswer()).toHaveClass("accent-indigo-600");
+    expect(matchingAnswer()).toHaveClass("accent-indigo-600");
+  });
+
+  /*
+   * Removing the last condition takes the rule back to everything, and its
+   * remove button goes with the conditions. The focus was on that button:
+   * left alone it falls out of the dialog to the page, and someone on a
+   * keyboard has to find their way back. It goes to the answer now picked.
+   */
+  test("when the conditions close with the focus in them, the focus moves to the answer now picked", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    render(<Harness initiallyMatching={true} />);
+
+    await user.click(screen.getByTestId("remove-last-condition"));
+
+    expect(screen.queryByTestId("the-conditions")).toBeNull();
+    expect(allAnswer()).toBeChecked();
+    expect(allAnswer()).toHaveFocus();
+  });
+
+  test("from the keyboard too: Enter on the last remove button leaves the focus on the first answer", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    render(<Harness initiallyMatching={true} />);
+
+    screen.getByTestId("remove-last-condition").focus();
+    await user.keyboard("{Enter}");
+
+    expect(allAnswer()).toBeChecked();
+    expect(allAnswer()).toHaveFocus();
+  });
+
+  test("the focus is never taken from somewhere else on the page", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    render(<Harness initiallyMatching={true} />);
+
+    await user.click(screen.getByTestId("elsewhere"));
+
+    expect(allAnswer()).toBeChecked();
+    expect(screen.getByTestId("elsewhere")).toHaveFocus();
+    expect(allAnswer()).not.toHaveFocus();
+  });
+
+  test("picking the first answer keeps the focus on it", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    render(<Harness initiallyMatching={true} />);
+
+    await user.click(allAnswer());
+
+    expect(allAnswer()).toHaveFocus();
+  });
+
+  test("a choice that opens on the first answer takes no focus as it is drawn", () => {
+    render(<Harness />);
+
+    expect(allAnswer()).not.toHaveFocus();
+    expect(document.body).toHaveFocus();
+  });
+
+  /*
+   * A line about the conditions - when they are checked - is about nothing
+   * on the screen while the rule is for every record, so it waits for the
+   * second answer, and is read with it.
+   */
+  test("the line about the conditions shows only with them, read with the second answer, in the reader's language", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    render(
+      <Harness matchingDescription="Conditions are checked when an incident is created and again each time it changes." />,
+    );
+
+    expect(
+      screen.queryByTestId("rule-applies-to-matching-description"),
+    ).toBeNull();
+    expect(
+      screen.queryByText(/Conditions are checked when/),
+    ).not.toBeInTheDocument();
+    expect(matchingAnswer()).not.toHaveAttribute("aria-describedby");
+
+    await user.click(matchingAnswer());
+
+    const line: HTMLElement = screen.getByTestId(
+      "rule-applies-to-matching-description",
+    );
+    expect(line).toHaveTextContent(
+      "«Conditions are checked when an incident is created and again each time it changes.»",
+    );
+    // Over the conditions, inside what the second answer opens.
+    const conditions: HTMLElement = screen.getByTestId(
+      "rule-applies-to-conditions",
+    );
+    expect(conditions.firstElementChild).toBe(line);
+    expect(matchingAnswer()).toHaveAccessibleDescription(
+      "«Conditions are checked when an incident is created and again each time it changes.»",
+    );
+    expect(allAnswer()).not.toHaveAttribute("aria-describedby");
+
+    await user.click(allAnswer());
+
+    expect(
+      screen.queryByTestId("rule-applies-to-matching-description"),
+    ).toBeNull();
+    expect(matchingAnswer()).not.toHaveAttribute("aria-describedby");
+  });
+
+  test("without a line about the conditions, the second answer has no description", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    render(<Harness />);
+
+    await user.click(matchingAnswer());
+
+    expect(
+      screen.queryByTestId("rule-applies-to-matching-description"),
+    ).toBeNull();
+    expect(matchingAnswer()).not.toHaveAttribute("aria-describedby");
   });
 
   test("each choice on a page is a radio group of its own", () => {

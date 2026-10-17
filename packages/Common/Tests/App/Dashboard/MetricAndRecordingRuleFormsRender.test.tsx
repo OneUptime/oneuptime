@@ -322,6 +322,21 @@ function appliesToAnswer(name: string): HTMLElement {
   return within(dialog()).getByRole("radio", { name: name });
 }
 
+/*
+ * The divider the filters editor draws after its choice, over Match
+ * Condition: the editor's own last child, after "Applies to".
+ */
+function filtersDivider(): Element | null {
+  const choice: HTMLElement = within(dialog()).getByTestId(
+    "metric-pipeline-rule-applies-to",
+  );
+  const last: Element | null = choice.parentElement?.lastElementChild || null;
+
+  return last && last !== choice && last.className.includes("border-b")
+    ? last
+    : null;
+}
+
 async function addFilter(value: string): Promise<void> {
   const before: number = filterValueBoxes().length;
 
@@ -496,15 +511,20 @@ describe("Metrics > Settings > Pipeline Rules", () => {
   test("asks how to combine filters only once there are two of them", async () => {
     await openCreateForm();
 
-    // None: nothing to combine.
+    /*
+     * None: nothing to combine - and no divider over the folded More
+     * fields, which would close off nothing.
+     */
     expect(filterConditionGroup()).toBeNull();
     expect(within(dialog()).queryByText("Match Condition")).toBeNull();
+    expect(filtersDivider()).toBeNull();
 
     // One: All and Any would match the same data points.
     await addFilter("http.server.duration");
     expect(filterConditionGroup()).toBeNull();
+    expect(filtersDivider()).toBeNull();
 
-    // Two: now it is a choice, starting on All.
+    // Two: now it is a choice, starting on All, under a divider.
     await addFilter("http.client.duration");
 
     const group: HTMLElement = await waitFor((): HTMLElement => {
@@ -512,6 +532,11 @@ describe("Metrics > Settings > Pipeline Rules", () => {
       expect(found).not.toBeNull();
       return found!;
     });
+    expect(filtersDivider()).not.toBeNull();
+    expect(
+      filtersDivider()!.compareDocumentPosition(group) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     expect(within(group).getByRole("radio", { name: "All" })).toBeChecked();
     expect(within(group).getByRole("radio", { name: "Any" })).not.toBeChecked();
@@ -533,6 +558,24 @@ describe("Metrics > Settings > Pipeline Rules", () => {
     await waitFor(() => {
       expect(filterConditionGroup()).toBeNull();
     });
+    expect(filtersDivider()).toBeNull();
+  });
+
+  /*
+   * A Button is full width under md, and only from md up sits 12px in
+   * (md:ml-3). Taking those 12px back at every width pushed the full-width
+   * Add Filter 12px out of line with the filters on a phone.
+   */
+  test("Add Filter lines up with the filters at every width", async () => {
+    await openCreateForm();
+    await addFilter("http.server.duration");
+
+    const wrapper: HTMLElement = within(dialog()).getByTestId(
+      "metric-pipeline-rule-add-filter",
+    ).parentElement as HTMLElement;
+    const classes: Array<string> = wrapper.className.split(/\s+/);
+    expect(classes).toContain("md:-ml-3");
+    expect(classes).not.toContain("-ml-3");
   });
 
   test("creates a rule from Action, on, for every service, combining with All", async () => {

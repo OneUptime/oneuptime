@@ -4,6 +4,7 @@ import MetricPipelineRuleFilterCondition, {
   MetricPipelineRuleFilterConditionType,
   MetricPipelineRuleFilterConditionUtil,
 } from "Common/Types/Metrics/MetricPipelineRuleFilterCondition";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import RuleAppliesToChoice from "Common/UI/Components/RuleCriteria/RuleAppliesToChoice";
@@ -140,6 +141,9 @@ const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
   /*
    * "Only ..." is picked exactly while there are filters: a saved rule opens
    * on whichever it is, and deleting the last filter is going back to "All".
+   * The divider under it separates the filters from Match Condition, which
+   * only appears with two or more (isFilterConditionNeeded): with fewer it
+   * would close off nothing, over the folded More fields.
    */
   return (
     <div>
@@ -190,17 +194,23 @@ const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
             );
           })}
 
-          <div className="mt-3 -ml-3">
+          {/*
+           * From md up a Button sits 12px in (md:ml-3, for a dialog's
+           * footer), taken back here so it lines up with the filters. Below
+           * md it has no such margin and is as wide as they are.
+           */}
+          <div className="mt-3 md:-ml-3">
             <Button
               title="Add Filter"
               buttonSize={ButtonSize.Small}
               icon={IconProp.Add}
               onClick={addFilter}
+              dataTestId="metric-pipeline-rule-add-filter"
             />
           </div>
         </div>
       </RuleAppliesToChoice>
-      <HorizontalRule />
+      {isFilterConditionNeeded(rows) ? <HorizontalRule /> : <></>}
     </div>
   );
 };

@@ -73,7 +73,6 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 import NotificationRuleInvites from "Common/Types/Workspace/NotificationRules/NotificationRuleInvites";
 import {
-  NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS,
   NOTIFICATION_RULE_CONDITIONS_TITLES,
   NOTIFICATION_RULE_DESTINATION_DESCRIPTION,
   NOTIFICATION_RULE_DESTINATION_TITLES,
@@ -794,15 +793,18 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
               notificationRule: true,
             },
             /*
-             * Which records the rule is for, and when that is checked: when
-             * a record is created and each time it changes. Each step opens
-             * with its question as a heading, as the Destination step's
-             * sections are headed (STEP_HEADING).
+             * Which records the rule is for. Each step opens with its
+             * question as a heading, as the Destination step's sections are
+             * headed (STEP_HEADING), and its two answers under it: "All
+             * incidents" or "Only incidents that match conditions". When
+             * conditions are checked - when a record is created and each
+             * time it changes - is said over the conditions, once there are
+             * some (NotificationRuleConditions): over "All incidents" it was
+             * a paragraph about conditions the rule did not have, the first
+             * thing the step said.
              */
             title: NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType],
             sectionTitle: NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType],
-            sectionDescription:
-              NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[props.eventType],
             ...STEP_HEADING,
             fieldType: FormFieldSchemaType.CustomComponent,
             /*
