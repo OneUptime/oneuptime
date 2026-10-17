@@ -776,6 +776,43 @@ const bucketAggregatedResultBySeries: (input: {
 };
 
 /**
+ * When the UTC minute `time` falls in begins, in epoch milliseconds: the
+ * instant `Date.UTC(year, month, day, hours, minutes)` of its UTC fields
+ * names. From 1970 on that is the time floored to a multiple of 60,000 ms
+ * (an ECMAScript day is exactly 86,400,000 ms), which costs a fraction of
+ * reading five fields and building two Dates for every raw row. Earlier
+ * instants keep the field-by-field computation (Date.UTC reads the years
+ * 0-99 as 1900-1999), and an invalid time still throws the RangeError the
+ * bucket's ISO key threw.
+ */
+export const getUtcMinuteStartMs: (time: Date) => number = (
+  time: Date,
+): number => {
+  const ms: number = time.getTime();
+
+  if (ms >= 0) {
+    return ms - (ms % 60000);
+  }
+
+  const bucketDate: Date = new Date(
+    Date.UTC(
+      time.getUTCFullYear(),
+      time.getUTCMonth(),
+      time.getUTCDate(),
+      time.getUTCHours(),
+      time.getUTCMinutes(),
+      0,
+      0,
+    ),
+  );
+
+  // Throws "Invalid time value" for an invalid time, as before.
+  bucketDate.toISOString();
+
+  return bucketDate.getTime();
+};
+
+/**
  * Per-series aggregation path: fetch raw metric rows and bucket them
  * by (series fingerprint, minute bucket) in code. Returns an
  * AggregatedResult shaped identically to what `MetricService.aggregateBy`
@@ -791,7 +828,7 @@ const bucketAggregatedResultBySeries: (input: {
  * For the realistic monitor shape — hundreds of hosts × ~60 samples
  * per minute — the extra work is negligible compared to a cron tick.
  */
-const aggregatePerSeriesFromRawMetrics: (input: {
+export const aggregatePerSeriesFromRawMetrics: (input: {
   rawMetrics: Array<Metric>;
   attributeKeys: Array<string>;
   aggregationType: MetricsAggregationType;
@@ -800,6 +837,11 @@ const aggregatePerSeriesFromRawMetrics: (input: {
   attributeKeys: Array<string>;
   aggregationType: MetricsAggregationType;
 }): AggregatedResult => {
+  /*
+   * Keyed by the series' fingerprint and the minute's start in epoch
+   * milliseconds: the same buckets, met in the same order, as the
+   * fingerprint and the minute's ISO text the key used to be.
+   */
   const buckets: Map<
     string,
     {
@@ -822,19 +864,9 @@ const aggregatePerSeriesFromRawMetrics: (input: {
       MetricSeriesFingerprint.computeFingerprint(labels);
 
     const metricTime: Date = metric.time ? new Date(metric.time) : new Date();
-    const bucketDate: Date = new Date(
-      Date.UTC(
-        metricTime.getUTCFullYear(),
-        metricTime.getUTCMonth(),
-        metricTime.getUTCDate(),
-        metricTime.getUTCHours(),
-        metricTime.getUTCMinutes(),
-        0,
-        0,
-      ),
-    );
+    const minuteStartMs: number = getUtcMinuteStartMs(metricTime);
 
-    const bucketKey: string = `${fingerprint}|${bucketDate.toISOString()}`;
+    const bucketKey: string = `${fingerprint}|${minuteStartMs}`;
 
     const value: number =
       typeof metric.value === "number" ? metric.value : Number(metric.value);
@@ -857,7 +889,7 @@ const aggregatePerSeriesFromRawMetrics: (input: {
     } else {
       buckets.set(bucketKey, {
         labels,
-        timestamp: bucketDate,
+        timestamp: new Date(minuteStartMs),
         values: [value],
         attributes: attrs,
       });
