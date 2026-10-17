@@ -2876,6 +2876,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Each artifact is downloaded into release-assets/ in the workspace (this
+      # job checks nothing out, so the directory is its own).
+      #
       # target_commitish, on every attach: softprops/action-gh-release's lookup
       # by tag skips drafts, so it creates a draft of its own, then switches to
       # the oldest draft for the tag - draft-github-release's, which it leaves
@@ -2888,12 +2891,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-sboms
-          path: ${{ runner.temp }}/release-sboms
+          path: release-assets/sboms
 
       - name: Attach SBOMs to release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ runner.temp }}/release-sboms/*.cdx.json
+          files: release-assets/sboms/*.cdx.json
           fail_on_unmatched_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
@@ -2905,12 +2908,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-infrastructure-agent
-          path: ${{ runner.temp }}/release-infrastructure-agent
+          path: release-assets/infrastructure-agent
 
       - name: Attach the infrastructure agent to release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ runner.temp }}/release-infrastructure-agent/*
+          files: release-assets/infrastructure-agent/*
           fail_on_unmatched_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
@@ -2923,13 +2926,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-android-app
-          path: ${{ runner.temp }}/release-android-app
+          path: release-assets/android-app
 
       - name: Upload APK to GitHub Release
         if: needs.mobile-app-android-build.result == 'success'
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ runner.temp }}/release-android-app/oneuptime-on-call-android-app.apk
+          files: release-assets/android-app/oneuptime-on-call-android-app.apk
           fail_on_unmatched_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
@@ -2942,13 +2945,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-ios-app
-          path: ${{ runner.temp }}/release-ios-app
+          path: release-assets/ios-app
 
       - name: Upload IPA to GitHub Release
         if: needs.mobile-app-ios-build.result == 'success'
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ runner.temp }}/release-ios-app/oneuptime-on-call-ios-app.ipa
+          files: release-assets/ios-app/oneuptime-on-call-ios-app.ipa
           fail_on_unmatched_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true

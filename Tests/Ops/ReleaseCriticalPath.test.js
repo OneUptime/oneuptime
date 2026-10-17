@@ -605,30 +605,33 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
     {
       job: "generate-sboms",
       artifact: "release-sboms",
+      directory: "release-assets/sboms",
       attach: "Attach SBOMs to release",
-      files: "${{ runner.temp }}/release-sboms/*.cdx.json",
+      files: "release-assets/sboms/*.cdx.json",
       required: true,
     },
     {
       job: "infrastructure-agent-build",
       artifact: "release-infrastructure-agent",
+      directory: "release-assets/infrastructure-agent",
       attach: "Attach the infrastructure agent to release",
-      files: "${{ runner.temp }}/release-infrastructure-agent/*",
+      files: "release-assets/infrastructure-agent/*",
       required: true,
     },
     {
       job: "mobile-app-android-build",
       artifact: "release-android-app",
+      directory: "release-assets/android-app",
       attach: "Upload APK to GitHub Release",
-      files:
-        "${{ runner.temp }}/release-android-app/oneuptime-on-call-android-app.apk",
+      files: "release-assets/android-app/oneuptime-on-call-android-app.apk",
       required: false,
     },
     {
       job: "mobile-app-ios-build",
       artifact: "release-ios-app",
+      directory: "release-assets/ios-app",
       attach: "Upload IPA to GitHub Release",
-      files: "${{ runner.temp }}/release-ios-app/oneuptime-on-call-ios-app.ipa",
+      files: "release-assets/ios-app/oneuptime-on-call-ios-app.ipa",
       required: false,
     },
   ];
@@ -646,7 +649,7 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
 
   describe.each(ASSETS)(
     "$job",
-    ({ job, artifact, attach, files, required }) => {
+    ({ job, artifact, directory, attach, files, required }) => {
       const definition = jobs[job];
       const uploads = stepsUsing(definition, "actions/upload-artifact");
       const download = publishSteps.findIndex((step) => {
@@ -699,9 +702,8 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
         expect(download).toBeGreaterThan(-1);
         expect(attachIndex).toBeGreaterThan(download);
         expect(attachIndex).toBeLessThan(publishIndex);
-        expect(publishSteps[download].with.path).toBe(
-          `\${{ runner.temp }}/${artifact}`,
-        );
+        expect(publishSteps[download].with.path).toBe(directory);
+        expect(files.startsWith(`${directory}/`)).toBe(true);
         expect(attachStep.uses).toBe("softprops/action-gh-release@v2");
         expect(attachStep.with).toEqual(
           expect.objectContaining({
