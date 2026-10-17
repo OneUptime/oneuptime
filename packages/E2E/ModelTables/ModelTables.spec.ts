@@ -172,6 +172,44 @@ async function rowHeights(rows: Locator): Promise<Array<number>> {
   });
 }
 
+/*
+ * The buttons beside an opened search fold away over 300ms (their max-width
+ * runs down to none): measured before that, the header has not settled.
+ */
+async function waitForFoldedButtons(page: Page): Promise<void> {
+  const buttons: Locator = page
+    .getByTestId("model-table-header-toolbar")
+    .locator("> div")
+    .last();
+
+  await expect
+    .poll(async (): Promise<number> => {
+      return Math.round((await box(buttons)).width);
+    })
+    .toBe(0);
+  // And a frame more, for whatever the fold moved.
+  await page.waitForTimeout(100);
+}
+
+/*
+ * The alpha of a computed colour: "rgba(r, g, b, a)", "color(srgb r g b / a)"
+ * (a color-mix()), or 1 for one written without it.
+ */
+function alphaOf(colour: string): number {
+  const slash: number = colour.indexOf("/");
+
+  if (slash !== -1) {
+    return Number.parseFloat(colour.slice(slash + 1));
+  }
+
+  if (colour.startsWith("rgba(")) {
+    const parts: Array<string> = colour.slice(5, -1).split(",");
+    return Number.parseFloat(parts[3] || "1");
+  }
+
+  return 1;
+}
+
 // WCAG contrast of two "rgb(r, g, b)" colours.
 function contrast(foreground: string, background: string): number {
   const channels: (colour: string) => Array<number> = (
@@ -755,7 +793,7 @@ test.describe("a row's name uses the room its row has", () => {
     ).toBe(before);
   });
 
-  test("a person - a picture beside a name over an email - keeps its cap and its lines", async ({
+  test("a person - a picture beside a name over an email - keeps its cap and its lines; a long name ends in an ellipsis, whole under the pointer", async ({
     page,
   }: {
     page: Page;
@@ -773,19 +811,70 @@ test.describe("a row's name uses the room its row has", () => {
     expect(measure.fill).toBe("false");
     expect(measure.width).toBeLessThanOrEqual(320);
 
-    // The long name is still one line, and as tall as a short one.
-    const nameLines: number = await rows
-      .nth(3)
-      .getByText(/^Maximiliana Alexandrina/)
-      .evaluate((element: Element): number => {
-        return element.getClientRects().length;
-      });
-    expect(nameLines).toBe(1);
+    /*
+     * The long name is still one line, and as tall as a short one. An
+     * ellipsis splits a line's text into fragments of its own, so the
+     * lines are counted by where their fragments sit, not how many there
+     * are.
+     */
+    const nameLine: Locator = rows.nth(3).getByTestId("user-name-line");
+    const nameLineTops: Array<number> = await nameLine.evaluate(
+      (element: Element): Array<number> => {
+        const range: Range = document.createRange();
+        range.selectNodeContents(element);
+
+        return Array.from(range.getClientRects())
+          .filter((rect: DOMRect): boolean => {
+            return rect.width > 0;
+          })
+          .map((rect: DOMRect): number => {
+            return Math.round(rect.top);
+          });
+      },
+    );
+    expect(new Set(nameLineTops).size).toBe(1);
 
     const short: NameMeasure = await measureName(
       rows.nth(0).locator("td").nth(1).locator("> div"),
     );
     expect(Math.round(measure.height)).toBe(Math.round(short.height));
+
+    /*
+     * It used to be cut off mid-letter by the cell's clip, no sign there
+     * was more: the name line ends in an ellipsis inside its cell now.
+     */
+    const cut: { textOverflow: string; isCut: boolean; right: number } =
+      await nameLine.evaluate(
+        (
+          element: Element,
+        ): { textOverflow: string; isCut: boolean; right: number } => {
+          return {
+            textOverflow: getComputedStyle(element).textOverflow,
+            isCut: element.scrollWidth > element.clientWidth,
+            right: element.getBoundingClientRect().right,
+          };
+        },
+      );
+    expect(cut.textOverflow).toBe("ellipsis");
+    expect(cut.isCut).toBe(true);
+    const cell: Box = await box(person);
+    expect(cut.right).toBeLessThanOrEqual(cell.x + cell.width + 1);
+
+    // The whole name - and the email under it - under the pointer.
+    await person.hover();
+    await expect(person).toHaveAttribute(
+      "title",
+      /^Maximiliana Alexandrina Featherstonehaugh-Cholmondeley of the Platform Reliability Guild\s+maximiliana@acme-commerce\.example$/,
+    );
+
+    // A short name is not cut, and gets no tooltip repeating it.
+    const shortPerson: Locator = rows
+      .nth(0)
+      .locator("td")
+      .nth(1)
+      .locator("> div");
+    await shortPerson.hover();
+    await expect(shortPerson).not.toHaveAttribute("title", /.+/);
 
     await screenshot(page, "gallery-people-1280");
   });
@@ -941,6 +1030,39 @@ test.describe("the header row stays in sight", () => {
       });
 
     expect(position).toBe("static");
+  });
+
+  test("a table that scrolled sideways and fits again - the window made wider - sticks its header again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${STATUS_PAGES}?data=long`, 900);
+
+    const scrollBox: Locator = page.getByTestId("table-scroll");
+    const nameHeader: Locator = page.getByRole("columnheader", {
+      name: "Name",
+    });
+    const positionOf: (cell: Locator) => Promise<string> = async (
+      cell: Locator,
+    ): Promise<string> => {
+      return await cell.evaluate((element: Element): string => {
+        return getComputedStyle(element).position;
+      });
+    };
+
+    await expect(scrollBox).toHaveAttribute("data-overflowing", "true");
+    expect(await positionOf(nameHeader)).toBe("static");
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    await expect(scrollBox).toHaveAttribute("data-overflowing", "false");
+    // Its own box's sideways scroll, left from a moment ago, is not a box around it.
+    await expect
+      .poll(async (): Promise<string> => {
+        return await positionOf(nameHeader);
+      })
+      .toBe("sticky");
   });
 });
 
@@ -1149,6 +1271,169 @@ test.describe("on a phone", () => {
 
     await screenshot(page, "gallery-kinds-rich-390");
   });
+
+  test("the cards, their rules and the footer reach the card's edges; their words start where the card's title does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${MONITORS}?data=rich`, 390, 900);
+
+    const card: Box = await box(page.getByTestId("card").first());
+    const title: Box = await box(
+      page.getByTestId("card-details-heading").first(),
+    );
+    const cards: Locator = page.locator("#Monitors-table-body > div");
+
+    await expect(cards).toHaveCount(4);
+
+    // A card runs from the card's left border to its right one.
+    const first: Box = await box(cards.first());
+    expect(Math.round(first.x)).toBe(Math.round(card.x) + 1);
+    expect(Math.round(first.x + first.width)).toBe(
+      Math.round(card.x + card.width) - 1,
+    );
+
+    // Its words start where the card's title does - not 16px in.
+    const name: Box = await box(cards.first().locator("dt").first());
+    expect(Math.abs(name.x - title.x)).toBeLessThanOrEqual(1);
+
+    // So does the footer's summary.
+    const summary: Box = await box(page.getByTestId("pagination-summary"));
+    expect(Math.abs(summary.x - title.x)).toBeLessThanOrEqual(1);
+
+    // A ticked card's wash reaches the card's edges too.
+    await cards.first().locator("input[type=checkbox]").check();
+    await expect(cards.first()).toHaveClass(/bg-indigo-50/);
+    const ticked: Box = await box(cards.first());
+    expect(Math.round(ticked.width)).toBe(Math.round(card.width) - 2);
+
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    await screenshot(page, "monitors-rich-ticked-390");
+  });
+
+  test("the header's search fills its line; opened, it is the card's width, and nothing passes the screen's edge", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${MONITORS}?data=rich`, 390, 900);
+
+    const title: Box = await box(
+      page.getByTestId("card-details-heading").first(),
+    );
+    const card: Box = await box(page.getByTestId("card").first());
+    // The card's text runs from its title's start to as far from its right edge.
+    const textRight: number = card.x + card.width - (title.x - card.x);
+    const slot: Locator = page.getByTestId("model-table-search-slot");
+
+    // Folded: the "Search..." pill fills its line, not 176px at the right.
+    let search: Box = await box(slot);
+    expect(Math.abs(search.x - title.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(search.x + search.width - textRight)).toBeLessThanOrEqual(
+      1,
+    );
+
+    // The buttons on the next line, at the right edge.
+    const create: Box = await box(
+      page.getByRole("button", { name: "Create Monitor" }),
+    );
+    expect(create.y).toBeGreaterThan(search.y + search.height - 1);
+    expect(Math.round(create.height)).toBeLessThanOrEqual(42);
+
+    // Opened: the card's width, the folded buttons clipped to nothing.
+    await page.getByRole("button", { name: "Open search" }).click();
+    await expect(
+      page.getByPlaceholder("Search monitors by name, description…"),
+    ).toBeFocused();
+    await waitForFoldedButtons(page);
+
+    search = await box(slot);
+    expect(Math.abs(search.x - title.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(search.x + search.width - textRight)).toBeLessThanOrEqual(
+      1,
+    );
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    await screenshot(page, "monitors-search-open-390");
+  });
+
+  test("at 640px the search fills what the buttons leave on their line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?data=rich`, 640, 900);
+
+    const title: Box = await box(
+      page.getByTestId("card-details-heading").first(),
+    );
+    const search: Box = await box(page.getByTestId("model-table-search-slot"));
+    const declare: Box = await box(
+      page.getByRole("button", { name: "Declare Incident" }),
+    );
+
+    expect(Math.abs(search.x - title.x)).toBeLessThanOrEqual(1);
+    // On one line with the buttons, up to them.
+    expect(
+      Math.abs(search.y + search.height / 2 - (declare.y + declare.height / 2)),
+    ).toBeLessThanOrEqual(1);
+    expect(declare.x - (search.x + search.width)).toBeLessThanOrEqual(13);
+  });
+});
+
+test.describe("the header's search, opened on a wide screen", () => {
+  test("stays level with the card's title: the buttons folded beside it keep to one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${MONITORS}?data=rich`, 1280, 900);
+
+    const header: Locator = page.getByTestId("card-header").first();
+    const before: Box = await box(header);
+    const title: Box = await box(
+      page.getByTestId("card-details-heading").first(),
+    );
+
+    await page.getByRole("button", { name: "Open search" }).click();
+    await expect(
+      page.getByPlaceholder("Search monitors by name, description…"),
+    ).toBeFocused();
+    await waitForFoldedButtons(page);
+
+    const search: Box = await box(page.getByTestId("model-table-search-slot"));
+
+    // Squeezed to no width, "Create Monitor" broke over two lines and the
+    // opened search dropped 10px below the title.
+    expect(Math.abs(search.y - title.y)).toBeLessThanOrEqual(2);
+    expect(Math.round((await box(header)).height)).toBe(
+      Math.round(before.height),
+    );
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+  });
 });
 
 test.describe("the dark theme", () => {
@@ -1209,6 +1494,78 @@ test.describe("the dark theme", () => {
 
     // --ou-border-subtle: #334155.
     expect(rule).toBe("rgb(51, 65, 85)");
+  });
+
+  test("a ticked row's Actions cell, stuck at the card's edge, is opaque: the cells scrolling under it do not show through", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?data=rich&theme=dark`);
+
+    await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+      "data-overflowing",
+      "true",
+    );
+
+    const rows: Locator = bodyRows(page, "incidents-table");
+
+    await rows.first().locator("input[type=checkbox]").check();
+    await expect(rows.first()).toHaveAttribute("data-selected", "true");
+
+    const backgroundOf: (row: Locator) => Promise<{
+      row: string;
+      actions: string;
+    }> = async (row: Locator): Promise<{ row: string; actions: string }> => {
+      return await row.evaluate(
+        (element: Element): { row: string; actions: string } => {
+          return {
+            row: getComputedStyle(element).backgroundColor,
+            actions: getComputedStyle(element.lastElementChild as Element)
+              .backgroundColor,
+          };
+        },
+      );
+    };
+
+    const ticked: { row: string; actions: string } = await backgroundOf(
+      rows.first(),
+    );
+    const plain: { row: string; actions: string } = await backgroundOf(
+      rows.nth(1),
+    );
+
+    // The stuck cell takes its row's ground, and that ground has no alpha.
+    expect(ticked.actions).toBe(ticked.row);
+    expect(alphaOf(ticked.actions)).toBe(1);
+    // And it is still the ticked wash, not the plain row's ground.
+    expect(ticked.actions).not.toBe(plain.actions);
+
+    await screenshot(page, "incidents-rich-ticked-1280-dark");
+  });
+
+  test("on a phone a ticked card shows its wash", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${MONITORS}?data=rich&theme=dark`, 390, 900);
+
+    const cards: Locator = page.locator("#Monitors-table-body > div");
+
+    await cards.first().locator("input[type=checkbox]").check();
+
+    const backgrounds: Array<string> = await cards.evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return getComputedStyle(element).backgroundColor;
+        });
+      },
+    );
+
+    // The white's dark ground, painted with !important, hid it.
+    expect(backgrounds[0]).not.toBe(backgrounds[1]);
+    expect(backgrounds[1]).toBe(backgrounds[2]);
   });
 });
 
