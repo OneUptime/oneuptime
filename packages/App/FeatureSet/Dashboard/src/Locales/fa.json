@@ -30384,5 +30384,15 @@
   "Turn on link": "روشن کردن پیوند",
   "What the colours mean": "معنای رنگ‌ها",
   "maintenance calendar link": "پیوند تقویم تعمیر و نگهداری",
-  "{{start}} to {{end}}": "از {{start}} تا {{end}}"
+  "{{start}} to {{end}}": "از {{start}} تا {{end}}",
+  "Dark": "تیره",
+  "Every visitor sees the dark page.": "همه بازدیدکنندگان صفحه تیره را می‌بینند.",
+  "Every visitor sees the light page.": "همه بازدیدکنندگان صفحه روشن را می‌بینند.",
+  "How your status page looks to visitors.": "ظاهر صفحه وضعیت شما برای بازدیدکنندگان.",
+  "Light": "روشن",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "روشن یا تیره، مطابق تنظیم دستگاه هر بازدیدکننده. بازدیدکنندگان می‌توانند آن را در پانویس عوض کنند.",
+  "Match each visitor's device": "مطابق دستگاه هر بازدیدکننده",
+  "Status page theme": "پوسته صفحه وضعیت",
+  "Theme": "پوسته",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "CSS و HTML سفارشی شما در هر دو پوسته اعمال می‌شود. برای استایل دادن فقط به پوسته تیره، قاعده CSS را با html.dark شروع کنید."
 }

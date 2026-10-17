@@ -3,7 +3,7 @@
 Your status page is the one OneUptime screen your customers look at, so it should look like yours and live on your own domain, such as `status.yourcompany.com`. This page walks the **Branding** page card by card, then puts the page on your domain: add the domain, add one DNS record, and the free SSL certificate follows on its own.
 
 :::cards
-- [The Branding page](#the-branding-page): Logo, title, favicon, links, footer, colors and languages.
+- [The Branding page](#the-branding-page): Logo, theme, title, favicon, links, footer, colors and languages.
 - [Custom HTML, CSS and JavaScript](#custom-html-css-and-javascript): Anything the built-in controls do not cover.
 - [Custom domains](#custom-domains): Your own hostname, with a free certificate.
 - [The Status column](#reading-the-domain-status-column): Where each domain is on its way to HTTPS.
@@ -15,7 +15,7 @@ Open a status page, and the side menu's **Branding** section has three items:
 
 | Page | What you set there |
 | ---- | ------------------ |
-| **Branding** | Logo and cover image, page title and description, favicon, header links, the overview page description, the copyright line and footer links. Folded under **More settings**: history chart colors, languages and search engine indexing. |
+| **Branding** | Logo and cover image, the theme (light, dark, or as each visitor's device is set), page title and description, favicon, header links, the overview page description, the copyright line and footer links. Folded under **More settings**: history chart colors, languages and search engine indexing. |
 | **Custom Domains** | Your own domain, its DNS record, and its free SSL certificate. |
 | **HTML, CSS & JavaScript** | Header HTML, footer HTML, custom CSS, custom JavaScript. |
 
@@ -25,7 +25,7 @@ Branding used to be split across separate **Essential Branding**, **Header**, **
 
 ## The Branding page
 
-**Status Pages → your page → Branding → Branding** (`{id}/branding`). Each card saves on its own. After the logo, the title and the favicon, the cards follow your status page from top to bottom: the header's links, the text at the top of the overview, then the footer. What few people change is folded under **More settings**, at the bottom.
+**Status Pages → your page → Branding → Branding** (`{id}/branding`). Each card saves on its own. After the logo, the theme, the title and the favicon, the cards follow your status page from top to bottom: the header's links, the text at the top of the overview, then the footer. What few people change is folded under **More settings**, at the bottom.
 
 ### Logo and cover image
 
@@ -39,6 +39,24 @@ The first card, **Logo and Cover Image**, has an **Edit Images** button that ope
 The logo, the cover image and the favicon are files uploaded in the status page's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." or "The favicon's file could not be found. Upload the favicon again." Uploading the image again from the page fixes it.
 
 Your status page shows only images of its own project; an image it cannot show is left out, as if the page had none. The dashboard, the API and Terraform read the page's images the same way: an image of another project comes back as no image at all. The emails the page sends — to subscribers, and to private users about their sign-in — show its logo the same way: a logo the page cannot show is left out of them too, rather than shown as a broken image.
+
+### Theme
+
+The **Theme** card, right under the logo, sets how the page looks to its visitors. Pick one of its three choices and it is saved at once; there is no **Edit** button.
+
+| Choice | What visitors see |
+| ------ | ----------------- |
+| **Light** | The light page, whatever their device is set to. Status pages made before the setting existed are **Light**, so they look as they always have. |
+| **Dark** | The dark page, whatever their device is set to. |
+| **Match each visitor's device** | Light or dark, as their device is set, changing with it while the page is open. A sun or moon button in the page's footer lets a visitor switch, and their browser remembers the choice. |
+
+On the dark page the logo sits on a light backdrop, so a logo made for a white page still reads.
+
+A status page made from now on starts with **Match each visitor's device**. Through the API and Terraform the field is `theme`, one of `Light`, `Dark` or `System` (**Match each visitor's device**), written exactly so; any other value is refused. A Terraform configuration that sets no `theme` gets `Light`, so a configuration written before the setting never plans a change on a page it manages.
+
+The theme is in the page's HTML, so the page is drawn in it from the start: a dark page does not flash white while it loads, and the browser draws its scrollbars, its form fields and, on phones, its address bar to match. Every surface follows it, the sign-in page of a private status page included. The uptime bars keep the colors you picked. On the dark page, text in a status color takes a lighter shade of that color where the color itself would be hard to read, and a bar too dark to see gets a lighter edge.
+
+Your custom CSS and HTML apply in both themes; [Custom HTML, CSS and JavaScript](#custom-html-css-and-javascript) says how to style the dark one.
 
 ### Title, description and favicon
 
@@ -64,7 +82,7 @@ Header links are for navigation; footer links are for the fine print, such as le
 
 The last section of the page is folded under **More settings**, because few people ever change what is in it. Folded, its header names its four sections — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with: a default bar color other than the green every page starts with, bar color rules other than the recommended ones, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it: it is one card, its sections one under the other, each with its own title, separated by dividers.
 
-**History chart colors.** These are the only built-in color controls on a status page. Each bar of the uptime history is one day.
+**History chart colors.** Besides the **Theme**, these are the only built-in color controls on a status page. Each bar of the uptime history is one day.
 
 - **Default Bar Color** — **Edit Default Bar Color** opens the **Default Bar Color** picker. It is the color of a day no bar color rule matches. Every new status page starts with green.
 - **Bar Color Rules** — an ordered table of rules you sort by dragging. Each rule has **When uptime % is greater than or equal to** and **Then, use this bar color**; the table's columns read `When Uptime Percent >=` and `Then, Bar Color is`. Rules are checked from the top, and the first one a day's uptime reaches sets its color, so keep higher percentages above lower ones: a rule below one with the same or a lower percentage never colors a day. A new rule's color is already picked, one the other rules do not use yet; pick the one you want instead.
@@ -122,7 +140,9 @@ They used to be two cards of their own, **Overall Uptime Percent** and **Downtim
 
 On OneUptime Cloud, adding or changing any of them needs the **Growth** plan. Emptying one works on every plan, so custom code a trial added can always be removed.
 
-**There is no theme picker.** OneUptime status pages have no theme or brand-color setting: the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **More settings** on the **Branding** page. Fonts, background colors, accent colors and layout tweaks all go through **Custom CSS**. If you have been looking for a "brand color" field, this is the answer: there isn't one, and this box is the way to do it.
+**There is no brand-color picker.** Besides the **Theme**, which makes the page light or dark, the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **More settings** on the **Branding** page. Fonts, background colors, accent colors and layout tweaks all go through **Custom CSS**. If you have been looking for a "brand color" field, this is the answer: there isn't one, and this box is the way to do it.
+
+**Custom code in the dark theme.** Your custom CSS and HTML apply in both themes. While the page is dark, its `<html>` element has the class `dark`, so a CSS rule that starts with `html.dark` styles only the dark theme: `html.dark .my-banner { background: #1e293b; }`. A rule without it applies in both, so a background or text color you set for the light page is kept on the dark one too: check your custom CSS in both themes. With custom CSS or header or footer HTML on the page, the **Theme** card says so under its choices.
 
 > [!WARNING]
 > Custom JavaScript runs in your visitors' browsers, on a page people open precisely when they think something is broken. Keep it small, host what it loads yourself where you can, and test it before you rely on it.

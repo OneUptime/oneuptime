@@ -544,3 +544,26 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
     });
   });
 });
+
+/*
+ * The Telegram messages put links in <a href="..."> attributes through the
+ * same escape as their text, so it escapes double quotes too: whatever a
+ * value holds, it cannot close the attribute.
+ */
+describe("the Telegram HTML escape", () => {
+  const escape: (value: string) => string = (value: string): string => {
+    return (
+      service as unknown as { escapeTelegramHtml: (value: string) => string }
+    ).escapeTelegramHtml(value);
+  };
+
+  test("escapes a double quote along with <, > and &", () => {
+    expect(escape('a"b<c>&d')).toBe("a&quot;b&lt;c&gt;&amp;d");
+  });
+
+  test("leaves a link as it was when it holds nothing to escape", () => {
+    expect(escape("https://oneuptime.example.com/a/b?c=1")).toBe(
+      "https://oneuptime.example.com/a/b?c=1",
+    );
+  });
+});

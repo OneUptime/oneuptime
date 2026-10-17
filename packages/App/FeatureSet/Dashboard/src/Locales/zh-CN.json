@@ -30384,5 +30384,15 @@
   "Turn on link": "开启链接",
   "What the colours mean": "颜色的含义",
   "maintenance calendar link": "维护日历链接",
-  "{{start}} to {{end}}": "{{start}} 至 {{end}}"
+  "{{start}} to {{end}}": "{{start}} 至 {{end}}",
+  "Dark": "深色",
+  "Every visitor sees the dark page.": "所有访问者都看到深色页面。",
+  "Every visitor sees the light page.": "所有访问者都看到浅色页面。",
+  "How your status page looks to visitors.": "访问者看到的状态页外观。",
+  "Light": "浅色",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "按每位访问者的设备设置显示浅色或深色。访问者可以在页面底部切换。",
+  "Match each visitor's device": "跟随访问者的设备",
+  "Status page theme": "状态页主题",
+  "Theme": "主题",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "你的自定义 CSS 和 HTML 在两种主题下都会生效。以 html.dark 开头的 CSS 规则只作用于深色主题。"
 }

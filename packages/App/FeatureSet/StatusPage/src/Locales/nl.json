@@ -22,6 +22,10 @@
     "label": "Taal",
     "switchLanguage": "Taal wijzigen"
   },
+  "theme": {
+    "switchToDark": "Overschakelen naar donker thema",
+    "switchToLight": "Overschakelen naar licht thema"
+  },
   "nav": {
     "overview": "Overzicht",
     "incidents": "Incidenten",

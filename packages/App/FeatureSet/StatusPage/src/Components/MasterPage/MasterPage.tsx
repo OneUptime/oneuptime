@@ -40,6 +40,8 @@ import { useTranslation } from "react-i18next";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import { applyStatusPageLanguageSettings } from "../../Utils/i18n";
+import StatusPageThemeUtil from "../../Utils/StatusPageTheme";
+import { parseStatusPageTheme } from "Common/Types/StatusPage/StatusPageTheme";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -225,6 +227,12 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       );
 
       setStatusPage(statusPage);
+
+      /*
+       * The page's theme, from its settings: what the server sent the page's
+       * HTML in when it could read them, and the light page otherwise.
+       */
+      StatusPageThemeUtil.setPageTheme(parseStatusPageTheme(statusPage.theme));
 
       // Apply language settings (default language + enabled languages).
       applyStatusPageLanguageSettings({

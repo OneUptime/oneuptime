@@ -30384,5 +30384,15 @@
   "Turn on link": "開啟連結",
   "What the colours mean": "顏色的含義",
   "maintenance calendar link": "維護行事曆連結",
-  "{{start}} to {{end}}": "{{start}} 至 {{end}}"
+  "{{start}} to {{end}}": "{{start}} 至 {{end}}",
+  "Dark": "深色",
+  "Every visitor sees the dark page.": "所有訪客都看到深色頁面。",
+  "Every visitor sees the light page.": "所有訪客都看到淺色頁面。",
+  "How your status page looks to visitors.": "訪客看到的狀態頁面外觀。",
+  "Light": "淺色",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "依每位訪客的裝置設定顯示淺色或深色。訪客可以在頁面底部切換。",
+  "Match each visitor's device": "跟隨訪客的裝置",
+  "Status page theme": "狀態頁面主題",
+  "Theme": "主題",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "你的自訂 CSS 和 HTML 在兩種主題下都會生效。以 html.dark 開頭的 CSS 規則只套用於深色主題。"
 }

@@ -30384,5 +30384,15 @@
   "Turn on link": "लिंक चालू करें",
   "What the colours mean": "रंगों का अर्थ",
   "maintenance calendar link": "रखरखाव कैलेंडर लिंक",
-  "{{start}} to {{end}}": "{{start}} से {{end}} तक"
+  "{{start}} to {{end}}": "{{start}} से {{end}} तक",
+  "Dark": "गहरी",
+  "Every visitor sees the dark page.": "हर आगंतुक को गहरा पृष्ठ दिखता है।",
+  "Every visitor sees the light page.": "हर आगंतुक को हल्का पृष्ठ दिखता है।",
+  "How your status page looks to visitors.": "आपका स्थिति पृष्ठ आगंतुकों को कैसा दिखता है।",
+  "Light": "हल्की",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "हर आगंतुक के डिवाइस की सेटिंग के अनुसार हल्का या गहरा। आगंतुक फ़ुटर में इसे बदल सकते हैं।",
+  "Match each visitor's device": "हर आगंतुक के डिवाइस के अनुसार",
+  "Status page theme": "स्थिति पृष्ठ की थीम",
+  "Theme": "थीम",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "आपका कस्टम CSS और HTML दोनों थीम में लागू होता है। केवल गहरी थीम को स्टाइल करने के लिए CSS नियम को html.dark से शुरू करें।"
 }

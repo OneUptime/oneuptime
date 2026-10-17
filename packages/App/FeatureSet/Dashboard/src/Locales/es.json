@@ -30384,5 +30384,15 @@
   "Turn on link": "Activar enlace",
   "What the colours mean": "Qué significan los colores",
   "maintenance calendar link": "enlace de calendario de mantenimiento",
-  "{{start}} to {{end}}": "{{start}} a {{end}}"
+  "{{start}} to {{end}}": "{{start}} a {{end}}",
+  "Dark": "Oscuro",
+  "Every visitor sees the dark page.": "Todos los visitantes ven la página oscura.",
+  "Every visitor sees the light page.": "Todos los visitantes ven la página clara.",
+  "How your status page looks to visitors.": "Cómo ven los visitantes su página de estado.",
+  "Light": "Claro",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "Claro u oscuro, según la configuración del dispositivo de cada visitante. Los visitantes pueden cambiarlo en el pie de página.",
+  "Match each visitor's device": "Según el dispositivo de cada visitante",
+  "Status page theme": "Tema de la página de estado",
+  "Theme": "Tema",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Su CSS y HTML personalizados se aplican en ambos temas. Empiece una regla CSS con html.dark para dar estilo solo al tema oscuro."
 }

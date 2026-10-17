@@ -1,3 +1,4 @@
+import LogoPlate from "../../Components/Logo/LogoPlate";
 import { FORGOT_PASSWORD_API_URL } from "../../Utils/ApiPaths";
 import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
@@ -80,7 +81,9 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {logoUrl ? (
-          <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
+          <LogoPlate className="mx-auto w-fit">
+            <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
+          </LogoPlate>
         ) : (
           <></>
         )}

@@ -22,6 +22,10 @@
     "label": "언어",
     "switchLanguage": "언어 변경"
   },
+  "theme": {
+    "switchToDark": "다크 테마로 전환",
+    "switchToLight": "라이트 테마로 전환"
+  },
   "nav": {
     "overview": "개요",
     "incidents": "사고",

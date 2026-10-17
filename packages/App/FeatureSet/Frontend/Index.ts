@@ -32,6 +32,10 @@ import {
   isStatusPagePreviewPath,
 } from "Common/Types/StatusPage/SearchEngineIndexing";
 import {
+  getStatusPageThemeHead,
+  STATUS_PAGE_THEME_FALLBACK,
+} from "Common/Types/StatusPage/StatusPageTheme";
+import {
   getPublicDashboardData,
   handlePublicDashboardLlmsTxt,
   PublicDashboardData,
@@ -146,6 +150,8 @@ const StatusPageFrontendConfig: FrontendConfig = {
         rssFeedPath: rssFeedPath,
         isSearchEngineIndexingEnabled:
           statusPageData.isSearchEngineIndexingEnabled,
+        // The page's theme, applied before its first paint.
+        statusPageTheme: getStatusPageThemeHead(statusPageData.theme),
       };
     }
 
@@ -173,6 +179,11 @@ const StatusPageFrontendConfig: FrontendConfig = {
         "/status-page-api/favicon/" + ObjectID.getZeroObjectID().toString(),
       rssFeedPath: rssFeedPath,
       isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled,
+      /*
+       * No page to read a theme from: the light page every status page
+       * starts from. The app reads the page's own theme once it loads.
+       */
+      statusPageTheme: getStatusPageThemeHead(STATUS_PAGE_THEME_FALLBACK),
     };
   },
 };

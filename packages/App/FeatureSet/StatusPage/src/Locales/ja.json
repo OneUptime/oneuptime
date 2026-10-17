@@ -22,6 +22,10 @@
     "label": "言語",
     "switchLanguage": "言語を切り替える"
   },
+  "theme": {
+    "switchToDark": "ダークテーマに切り替え",
+    "switchToLight": "ライトテーマに切り替え"
+  },
   "nav": {
     "overview": "概要",
     "incidents": "インシデント",

@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * hand-written. The foreign keys are on the table this migration creates,
  * so they hold no lock on rows anyone writes.
  */
-export class AddScheduledMaintenanceCalendarFeed1803250000000
+export class AddScheduledMaintenanceCalendarFeed1803300000000
   implements MigrationInterface
 {
-  public name: string = "AddScheduledMaintenanceCalendarFeed1803250000000";
+  public name: string = "AddScheduledMaintenanceCalendarFeed1803300000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

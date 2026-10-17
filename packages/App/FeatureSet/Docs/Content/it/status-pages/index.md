@@ -163,7 +163,7 @@ Se la pagina mostra una voce **Iscriviti** (**Mostra pagina iscritti**, `showSub
 
 Sotto la scheda ci sono **Esporta come JSON: Pagina di stato**, che scarica le impostazioni proprie della pagina di stato in un file che potete importare di nuovo, e **Archive status page** (vedete [Archiviare una pagina di stato](#archiviare-una-pagina-di-stato)). La percentuale di uptime complessiva e gli stati di inattività erano prima due schede a sé qui, ciascuna dietro un pulsante **Modifica**; ora sono righe della scheda.
 
-**Dove sono i colori.** I colori delle barre di uptime non sono qui: il **Colore predefinito della barra** e le regole di colore delle barre si trovano in **Altre impostazioni** in **Pagine di stato → la vostra pagina → Branding → Branding**. Non esiste alcuna impostazione di tema o di colore del marchio; tutto ciò che va oltre quei controlli si fa con il **CSS personalizzato**.
+**Dove sono i colori.** I colori delle barre di uptime non sono qui: il **Colore predefinito della barra** e le regole di colore delle barre si trovano in **Altre impostazioni** in **Pagine di stato → la vostra pagina → Branding → Branding**. Il **Tema** della pagina (chiaro, scuro o come è impostato il dispositivo di ogni visitatore) è una scheda in alto nella stessa pagina. Non esiste alcuna impostazione di colore del marchio; tutto ciò che va oltre quei controlli si fa con il **CSS personalizzato**.
 
 ## Vedere l'anteprima prima di andare in produzione
 

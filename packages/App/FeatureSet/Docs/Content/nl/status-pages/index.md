@@ -163,7 +163,7 @@ Of de pagina een item **Abonneren** toont (**Abonneepagina weergeven**, `showSub
 
 Onder de kaart staan **Statuspagina exporteren als JSON**, dat de eigen instellingen van de statuspagina downloadt naar een bestand dat u opnieuw kunt importeren, en **Archive status page** (zie [Een statuspagina archiveren](#een-statuspagina-archiveren)). Het totale uptimepercentage en de downtimestatussen waren hier vroeger twee eigen kaarten, elk achter een knop **Bewerken**; nu zijn het rijen van de kaart.
 
-**Waar de kleuren staan.** De kleuren van de uptimebalken staan hier niet: de **Standaard balkkleur** en de kleurregels voor de balken staan onder **Meer instellingen** in **Statuspagina's → uw pagina → Huisstijl → Huisstijl**. Er bestaat nergens een instelling voor een thema of een merkkleur; alles wat verder gaat dan die bedieningselementen doet u met **Aangepaste CSS**.
+**Waar de kleuren staan.** De kleuren van de uptimebalken staan hier niet: de **Standaard balkkleur** en de kleurregels voor de balken staan onder **Meer instellingen** in **Statuspagina's → uw pagina → Huisstijl → Huisstijl**. Het **Thema** van de pagina (licht, donker, of zoals het apparaat van elke bezoeker is ingesteld) is een kaart bovenaan diezelfde pagina. Er bestaat geen instelling voor een merkkleur; alles wat verder gaat dan die bedieningselementen doet u met **Aangepaste CSS**.
 
 ## Vooraf bekijken voordat u live gaat
 

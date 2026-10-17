@@ -536,12 +536,23 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     ':::details "Issuer URL does not match"',
     ':::details "Encrypted SAML Responses are not supported"',
     ':::details "SAML response did not include a valid email address"',
+    ':::details "SAML Audience does not match"',
+    ':::details "SAML Recipient does not match"',
+    ':::details "SAML response has expired"',
+    ':::details "SAML response was already used"',
+    '"SAML Destination does not match"',
+    '"SAML response is not valid yet"',
   ],
   [GLOBAL_SSO]: [
     ':::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"',
     ':::details "This SSO provider does not grant access to any project you are a member of"',
     ':::details "You are not a member of any project on this OneUptime instance"',
     ':::details "Issuer URL does not match"',
+    ':::details "SAML Audience does not match"',
+    ':::details "SAML response was already used"',
+    '"SAML Recipient does not match"',
+    '"SAML Destination does not match"',
+    '"SAML response has expired"',
     '"Another change to who can sign in with SSO is being saved. Try again in a moment."',
     '"The server\'s SSO settings are being changed. Create the project again in a moment."',
   ],
@@ -552,7 +563,7 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
  * with Persian digits as Latin ones and thousands separators dropped.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  [SSO]: ["24", "17", "700016", "404"],
+  [SSO]: ["24", "17", "700016", "404", "10", "3"],
   [SCIM]: ["14", "30", "40", "200", "1000", "400", "401", "402"],
 };
 

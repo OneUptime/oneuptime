@@ -1,4 +1,4 @@
-import { AddScheduledMaintenanceCalendarFeed1803250000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1803250000000-AddScheduledMaintenanceCalendarFeed";
+import { AddScheduledMaintenanceCalendarFeed1803300000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1803300000000-AddScheduledMaintenanceCalendarFeed";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import fs from "fs";
@@ -15,8 +15,8 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  */
 
 const MIGRATION_NAME: string =
-  "AddScheduledMaintenanceCalendarFeed1803250000000";
-const TIMESTAMP: number = 1803250000000;
+  "AddScheduledMaintenanceCalendarFeed1803300000000";
+const TIMESTAMP: number = 1803300000000;
 const TABLE: string = "ScheduledMaintenanceCalendarFeed";
 
 const CREATE_TABLE_PATTERN: RegExp = /^CREATE TABLE "([A-Za-z]+)"/;
@@ -39,8 +39,8 @@ async function run(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  const migration: AddScheduledMaintenanceCalendarFeed1803250000000 =
-    new AddScheduledMaintenanceCalendarFeed1803250000000();
+  const migration: AddScheduledMaintenanceCalendarFeed1803300000000 =
+    new AddScheduledMaintenanceCalendarFeed1803300000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -73,10 +73,10 @@ function createTable(): string {
 
 describe("AddScheduledMaintenanceCalendarFeed migration", () => {
   test("names itself after its timestamp", () => {
-    expect(AddScheduledMaintenanceCalendarFeed1803250000000.name).toBe(
+    expect(AddScheduledMaintenanceCalendarFeed1803300000000.name).toBe(
       MIGRATION_NAME,
     );
-    expect(new AddScheduledMaintenanceCalendarFeed1803250000000().name).toBe(
+    expect(new AddScheduledMaintenanceCalendarFeed1803300000000().name).toBe(
       MIGRATION_NAME,
     );
   });
@@ -87,12 +87,12 @@ describe("AddScheduledMaintenanceCalendarFeed migration", () => {
 
     expect(
       registered.filter((migration: MigrationClass) => {
-        return migration === AddScheduledMaintenanceCalendarFeed1803250000000;
+        return migration === AddScheduledMaintenanceCalendarFeed1803300000000;
       }),
     ).toHaveLength(1);
 
     const index: number = registered.indexOf(
-      AddScheduledMaintenanceCalendarFeed1803250000000,
+      AddScheduledMaintenanceCalendarFeed1803300000000,
     );
 
     for (let before: number = 0; before < index; before++) {

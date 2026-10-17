@@ -30384,5 +30384,15 @@
   "Turn on link": "링크 켜기",
   "What the colours mean": "색상의 의미",
   "maintenance calendar link": "유지 관리 캘린더 링크",
-  "{{start}} to {{end}}": "{{start}}부터 {{end}}까지"
+  "{{start}} to {{end}}": "{{start}}부터 {{end}}까지",
+  "Dark": "다크",
+  "Every visitor sees the dark page.": "모든 방문자에게 다크 페이지가 표시됩니다.",
+  "Every visitor sees the light page.": "모든 방문자에게 라이트 페이지가 표시됩니다.",
+  "How your status page looks to visitors.": "방문자에게 보이는 상태 페이지의 모습입니다.",
+  "Light": "라이트",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "방문자마다 기기 설정에 따라 라이트 또는 다크로 표시됩니다. 방문자는 페이지 하단에서 전환할 수 있습니다.",
+  "Match each visitor's device": "방문자의 기기 설정에 맞춤",
+  "Status page theme": "상태 페이지 테마",
+  "Theme": "테마",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "사용자 지정 CSS와 HTML은 두 테마 모두에 적용됩니다. 다크 테마에만 스타일을 적용하려면 CSS 규칙을 html.dark로 시작하세요."
 }

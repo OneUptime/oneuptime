@@ -30384,5 +30384,15 @@
   "Turn on link": "Turn on link",
   "What the colours mean": "What the colours mean",
   "maintenance calendar link": "maintenance calendar link",
-  "{{start}} to {{end}}": "{{start}} to {{end}}"
+  "{{start}} to {{end}}": "{{start}} to {{end}}",
+  "Dark": "Dark",
+  "Every visitor sees the dark page.": "Every visitor sees the dark page.",
+  "Every visitor sees the light page.": "Every visitor sees the light page.",
+  "How your status page looks to visitors.": "How your status page looks to visitors.",
+  "Light": "Light",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.",
+  "Match each visitor's device": "Match each visitor's device",
+  "Status page theme": "Status page theme",
+  "Theme": "Theme",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme."
 }

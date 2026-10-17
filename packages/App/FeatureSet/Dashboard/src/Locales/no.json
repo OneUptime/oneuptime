@@ -30384,5 +30384,15 @@
   "Turn on link": "Slå på lenke",
   "What the colours mean": "Hva fargene betyr",
   "maintenance calendar link": "kalenderlenke for vedlikehold",
-  "{{start}} to {{end}}": "{{start}} til {{end}}"
+  "{{start}} to {{end}}": "{{start}} til {{end}}",
+  "Dark": "Mørkt",
+  "Every visitor sees the dark page.": "Alle besøkende ser den mørke siden.",
+  "Every visitor sees the light page.": "Alle besøkende ser den lyse siden.",
+  "How your status page looks to visitors.": "Slik ser statussiden din ut for besøkende.",
+  "Light": "Lyst",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "Lyst eller mørkt, slik hver besøkendes enhet er innstilt. Besøkende kan bytte i bunnteksten.",
+  "Match each visitor's device": "Som hver besøkendes enhet",
+  "Status page theme": "Statussidens tema",
+  "Theme": "Tema",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Din egen CSS og HTML gjelder i begge temaene. Start en CSS-regel med html.dark for å style bare det mørke temaet."
 }

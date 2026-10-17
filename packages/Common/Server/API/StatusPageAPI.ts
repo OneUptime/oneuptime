@@ -49,6 +49,10 @@ import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
   isSearchEngineIndexingEnabled,
 } from "../../Types/StatusPage/SearchEngineIndexing";
+import {
+  parseStatusPageTheme,
+  STATUS_PAGE_THEME_COLUMN,
+} from "../../Types/StatusPage/StatusPageTheme";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
@@ -321,6 +325,7 @@ export default class StatusPageAPI extends BaseAPI<
               name: true,
               defaultLanguage: true,
               enableSearchEngineIndexing: true,
+              theme: true,
               isArchived: true,
             },
             props: {
@@ -351,6 +356,13 @@ export default class StatusPageAPI extends BaseAPI<
           [SEARCH_ENGINE_INDEXING_FLAG_NAME]: isSearchEngineIndexingEnabled(
             statusPage.enableSearchEngineIndexing,
           ),
+          /*
+           * Light, Dark or System, for the theme the page's HTML is sent
+           * with, so a dark page is dark before its first paint. Read here
+           * the way the app reads it, so the two servers that render the
+           * page never decide what an empty column means.
+           */
+          [STATUS_PAGE_THEME_COLUMN]: parseStatusPageTheme(statusPage.theme),
         });
       },
     );
@@ -1160,6 +1172,8 @@ export default class StatusPageAPI extends BaseAPI<
             showSubscriberPageOnStatusPage: true,
             defaultLanguage: true,
             enabledLanguages: true,
+            // Light, Dark or System: how the page looks to its visitors.
+            theme: true,
             isArchived: true,
           };
 

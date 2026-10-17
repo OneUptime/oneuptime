@@ -30384,5 +30384,15 @@
   "Turn on link": "Link inschakelen",
   "What the colours mean": "Wat de kleuren betekenen",
   "maintenance calendar link": "agendalink voor onderhoud",
-  "{{start}} to {{end}}": "{{start}} tot {{end}}"
+  "{{start}} to {{end}}": "{{start}} tot {{end}}",
+  "Dark": "Donker",
+  "Every visitor sees the dark page.": "Elke bezoeker ziet de donkere pagina.",
+  "Every visitor sees the light page.": "Elke bezoeker ziet de lichte pagina.",
+  "How your status page looks to visitors.": "Hoe bezoekers uw statuspagina zien.",
+  "Light": "Licht",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "Licht of donker, zoals het apparaat van elke bezoeker is ingesteld. Bezoekers kunnen het wisselen in de voettekst.",
+  "Match each visitor's device": "Zoals het apparaat van elke bezoeker",
+  "Status page theme": "Thema van de statuspagina",
+  "Theme": "Thema",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Uw eigen CSS en HTML gelden in beide thema's. Begin een CSS-regel met html.dark om alleen het donkere thema op te maken."
 }
