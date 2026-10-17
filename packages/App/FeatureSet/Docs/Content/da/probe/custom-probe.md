@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Opret sonden
 
-Åbn **Overvågninger → Indstillinger → Sonder**, og klik på **Opret Sonde**. Giv den et **Navn** og en **Beskrivelse**: begge er påkrævede. **Flere felter** rummer **Sondelogo**, **Aktivér overvågning automatisk på nye overvågninger**, som vælger denne sonde til hver ny overvågning, du opretter, og **Etiketter**.
+Åbn **Overvågninger → Indstillinger → Sonder**, og klik på **Opret Sonde**. Giv den et **Navn** og en **Beskrivelse**: begge er påkrævede. **Flere felter** rummer **Sondelogo**, **Tilføj til nye overvågninger**, som får hver ny overvågning til at starte med denne sonde valgt, og **Etiketter**.
 
 ### Kopiér dens ID og nøgle
 

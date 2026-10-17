@@ -23,6 +23,29 @@ import MonitorType from "./MonitorType";
 import BrowserType from "./SyntheticMonitors//BrowserType";
 import ScreenSizeType from "./SyntheticMonitors/ScreenSizeType";
 import { FindOperator } from "typeorm";
+
+/*
+ * What a new Synthetic monitor runs its script in: one browser at one screen
+ * size. A Synthetic step runs once for each browser and screen size picked,
+ * and with none picked it runs nothing at all - the probe loops over both
+ * lists - while the form asked for them with every box empty. Chromium on a
+ * desktop screen is what most people want first; more is a tick away.
+ */
+export const SYNTHETIC_MONITOR_DEFAULT_BROWSER_TYPES: Array<BrowserType> = [
+  BrowserType.Chromium,
+];
+export const SYNTHETIC_MONITOR_DEFAULT_SCREEN_SIZE_TYPES: Array<ScreenSizeType> =
+  [ScreenSizeType.Desktop];
+
+/*
+ * Why a Synthetic step cannot be saved without a browser or a screen size:
+ * it would run nothing. The Dashboard translates these (the same words are
+ * keys in its locale files: Utils/Form/Monitor/SyntheticMonitorCopy.ts).
+ */
+export const SYNTHETIC_MONITOR_BROWSER_REQUIRED_MESSAGE: string =
+  "Pick at least one browser to run the script in.";
+export const SYNTHETIC_MONITOR_SCREEN_SIZE_REQUIRED_MESSAGE: string =
+  "Pick at least one screen size to run the script at.";
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "./MonitorStepTraceMonitor";
@@ -348,8 +371,19 @@ export default class MonitorStep extends DatabaseProperty {
       requestHeaders: undefined,
       requestBody: undefined,
       customCode: undefined,
-      screenSizeTypes: undefined,
-      browserTypes: undefined,
+      /*
+       * A new Synthetic monitor starts in Chromium at a desktop size, so
+       * its script runs somewhere (see SYNTHETIC_MONITOR_DEFAULT_BROWSER_TYPES).
+       * Every other type has neither.
+       */
+      screenSizeTypes:
+        arg.monitorType === MonitorType.SyntheticMonitor
+          ? [...SYNTHETIC_MONITOR_DEFAULT_SCREEN_SIZE_TYPES]
+          : undefined,
+      browserTypes:
+        arg.monitorType === MonitorType.SyntheticMonitor
+          ? [...SYNTHETIC_MONITOR_DEFAULT_BROWSER_TYPES]
+          : undefined,
       retryCountOnError: undefined,
       requestTimeoutInMs: undefined,
       retryCount: undefined,
@@ -881,6 +915,24 @@ export default class MonitorStep extends DatabaseProperty {
         return "Custom Code is required";
       }
       return "Playwright code is required.";
+    }
+
+    /*
+     * A Synthetic step runs its script once per browser and screen size
+     * picked, so with either list empty it runs nothing and never fails -
+     * a monitor that looks healthy forever.
+     */
+    if (monitorType === MonitorType.SyntheticMonitor) {
+      if (!value.data.browserTypes || value.data.browserTypes.length === 0) {
+        return SYNTHETIC_MONITOR_BROWSER_REQUIRED_MESSAGE;
+      }
+
+      if (
+        !value.data.screenSizeTypes ||
+        value.data.screenSizeTypes.length === 0
+      ) {
+        return SYNTHETIC_MONITOR_SCREEN_SIZE_REQUIRED_MESSAGE;
+      }
     }
 
     if (!value.data.monitorCriteria) {

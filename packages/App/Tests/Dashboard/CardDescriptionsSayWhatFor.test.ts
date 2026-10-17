@@ -139,7 +139,7 @@ const LIST_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Pages/Monitor/View/Probes.tsx",
-    "Probes that check this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.",
+    "The probes that check this monitor. Add one to check it from another location.",
   ],
   [
     "Pages/MonitorGroup/View/Monitors.tsx",

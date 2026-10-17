@@ -374,8 +374,19 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const translatedItemTitle: string | undefined = translateString(
     activeItem.itemTitle,
   );
+  /*
+   * "Section / Page" names where the reader is - except when the page is
+   * named like its section (a monitor's Overview, under Overview), which
+   * read "Overview / Overview".
+   */
+  const isPageNamedLikeSection: boolean = Boolean(
+    translatedSectionTitle &&
+      translatedItemTitle &&
+      translatedSectionTitle.trim().toLocaleLowerCase() ===
+        translatedItemTitle.trim().toLocaleLowerCase(),
+  );
   const displayText: string =
-    translatedSectionTitle && translatedItemTitle
+    translatedSectionTitle && translatedItemTitle && !isPageNamedLikeSection
       ? `${translatedSectionTitle} / ${translatedItemTitle}`
       : translatedItemTitle || translateString("Navigation") || "Navigation";
 

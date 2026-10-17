@@ -408,6 +408,40 @@ export const DATABASE_MONITOR_MORE_FIELDS: Array<MonitorOptionSpec> = [
   },
 ];
 
+export const METRIC_GROUPS_TITLE: string = translationKey("Metric Groups");
+
+/*
+ * A Database Health monitor's More fields: its Metric Groups first, then its
+ * timeouts. Every group is on for a new monitor, and few turn one off, so
+ * the groups wait here with the timeouts. The chip says how many are on once
+ * one is off ("5/7"): a count reads the same in every language.
+ */
+export const getDatabaseMonitorMoreFieldsItems: (data: {
+  config: unknown;
+  enabledMetricGroupCount: number;
+  metricGroupCount: number;
+}) => Array<FoldedSectionItem> = (data: {
+  config: unknown;
+  enabledMetricGroupCount: number;
+  metricGroupCount: number;
+}): Array<FoldedSectionItem> => {
+  const isSet: boolean = data.enabledMetricGroupCount !== data.metricGroupCount;
+
+  return [
+    foldedSectionItem(METRIC_GROUPS_TITLE, {
+      key: "enabledMetricGroups",
+      isSet: isSet,
+      value: isSet
+        ? `${data.enabledMetricGroupCount}/${data.metricGroupCount}`
+        : undefined,
+    }),
+    ...getMonitorOptionsMoreFieldsItems(
+      data.config,
+      DATABASE_MONITOR_MORE_FIELDS,
+    ),
+  ];
+};
+
 export const EXTERNAL_STATUS_PAGE_MONITOR_MORE_FIELDS: Array<MonitorOptionSpec> =
   [
     {

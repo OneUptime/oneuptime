@@ -44,6 +44,7 @@ import {
   MONITOR_THIS_PROBE_ICON,
   MONITOR_THIS_PROBE_TITLE,
 } from "../../../Utils/MonitorThisProbe";
+import { PROBE_ON_NEW_MONITORS_COPY } from "../../../Components/Probe/ProbeOnNewMonitorsCopy";
 
 const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -135,7 +136,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Global Probes",
             description:
-              "Global Probes help you monitor external resources from different locations around the world.",
+              "OneUptime's probes around the world. They check what is reachable from the internet.",
           }}
           fetchRequestOptions={{
             overrideRequestUrl: URL.fromString(APP_API_URL.toString()).addRoute(
@@ -225,7 +226,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Custom Probes",
             description:
-              "Custom Probes help you monitor internal resources that is behind your firewall.",
+              "Probes you install in your own network, to check what is behind your firewall.",
           }}
           documentationLink={Route.fromString("/docs/probe/custom-probe")}
           selectMoreFields={{
@@ -273,9 +274,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
-              title: "Enable monitoring automatically on new monitors",
-              description:
-                "When on, this probe is pre-selected for every new monitor you create.",
+              title: PROBE_ON_NEW_MONITORS_COPY.switchTitle,
+              description: PROBE_ON_NEW_MONITORS_COPY.description,
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               collapsibleSection: advancedSection,
@@ -348,7 +348,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
-              title: "Enable Monitoring by Default",
+              title: PROBE_ON_NEW_MONITORS_COPY.columnTitle,
               type: FieldType.Boolean,
             },
           ]}
@@ -375,7 +375,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
-              title: "Enable Monitoring by Default",
+              title: PROBE_ON_NEW_MONITORS_COPY.columnTitle,
               type: FieldType.Boolean,
             },
             {

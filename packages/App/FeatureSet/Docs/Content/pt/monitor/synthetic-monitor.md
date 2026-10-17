@@ -56,7 +56,7 @@ Escreva seu script no editor **Playwright Code**. Comece pelo [exemplo abaixo](#
 
 ### Escolher navegadores e tamanhos de tela
 
-Marque os navegadores em **Tipo de navegador** e os tamanhos em **Tipo de tela**. O script roda uma vez para cada combinação, então dois navegadores e três tamanhos dão seis execuções por verificação. Em **Mais campos**, **Contagem de tentativas em caso de erro** repete uma execução que falhou até 5 vezes.
+Um novo monitor começa com **Chromium** em **Tipo de navegador** e **Desktop** em **Tipo de tela**; marque mais para cobrir mais. O script roda uma vez para cada combinação, então dois navegadores e três tamanhos dão seis execuções por verificação, e ele precisa de pelo menos um navegador e um tamanho. Em **Mais campos**, **Contagem de tentativas em caso de erro** repete uma execução que falhou até 5 vezes.
 
 ### Testar
 
