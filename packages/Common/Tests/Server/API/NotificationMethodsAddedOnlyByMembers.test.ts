@@ -48,7 +48,6 @@ import UserWhatsAppAPI from "../../../Server/API/UserWhatsAppAPI";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import Redis from "../../../Server/Infrastructure/Redis";
 import CreatePermission from "../../../Server/Types/Database/Permissions/CreatePermission";
-import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import CallService from "../../../Server/Services/CallService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";

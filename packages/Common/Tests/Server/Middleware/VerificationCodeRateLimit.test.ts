@@ -865,7 +865,7 @@ describe("VerificationCodeRateLimit", () => {
       let allowed: number = 0;
 
       for (let i: number = 0; i < ADD_PER_USER_LIMIT + 5; i++) {
-        if (!(await add({ channel: channels[i % channels.length] }))) {
+        if (!(await add({ channel: channels[i % channels.length]! }))) {
           allowed++;
         }
       }

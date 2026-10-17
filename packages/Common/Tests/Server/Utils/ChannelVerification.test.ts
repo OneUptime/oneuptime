@@ -13,6 +13,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Logger", () => {
   return {
@@ -159,7 +160,7 @@ describe("ChannelVerification", () => {
    * person verifying their own number in the dashboard is; the membership
    * block below turns it off.
    */
-  let isMember: jest.SpiedFunction<typeof ProjectMembership.isMember>;
+  let isMember: SpyInstance<typeof ProjectMembership.isMember>;
 
   beforeEach(() => {
     jest.restoreAllMocks();
