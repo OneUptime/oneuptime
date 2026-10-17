@@ -498,14 +498,16 @@ describe("Monitor overview data flow", () => {
     );
   });
 
-  test("no module lists every monitor status, or reads the whole status timeline", () => {
+  test("only the hero's Change status menu lists the monitor statuses, and no module reads the whole status timeline", () => {
+    const listers: Array<string> = [];
+
     for (const [moduleKey, code] of getAllOverviewCode()) {
-      expect({
-        moduleKey,
-        listsStatuses:
-          code.includes("ModelAPI.getList<MonitorStatus>(") ||
-          code.includes("modelType: MonitorStatus,"),
-      }).toEqual({ moduleKey, listsStatuses: false });
+      if (
+        code.includes("ModelAPI.getList<MonitorStatus>(") ||
+        code.includes("modelType: MonitorStatus,")
+      ) {
+        listers.push(moduleKey);
+      }
 
       for (const call of getCallArguments(
         code,
@@ -519,6 +521,32 @@ describe("Monitor overview data flow", () => {
       }
     }
 
+    /*
+     * One list of the project's statuses: the choices of a manual monitor's
+     * Change status menu (a handful of rows, by priority, read once per
+     * monitor). Nothing builds uptime from statuses in the browser.
+     */
+    expect(listers).toEqual(["Overview/MonitorChangeStatusMenu"]);
+
+    const menu: string = getModuleCode("Overview/MonitorChangeStatusMenu");
+    const statusReads: Array<string> = getCallArguments(
+      menu,
+      "ModelAPI.getList<MonitorStatus>(",
+    );
+
+    expect(statusReads).toHaveLength(1);
+    expect(statusReads[0]).toContain(
+      "select: { _id: true, name: true, color: true, }",
+    );
+    expect(statusReads[0]).toContain(
+      "sort: { priority: SortOrder.Ascending, }",
+    );
+    expect(statusReads[0]).toContain("limit: LIMIT_PER_PROJECT,");
+    // Read when the menu mounts for a monitor, never on the poll.
+    expect(menu).toContain("}, [monitorIdString]);");
+    expect(menu).not.toContain("ModelAPI.getList<MonitorStatusTimeline>(");
+    expect(menu).not.toContain("uptime");
+
     // The uptime history comes from the server's daily aggregate instead.
     expect(getModuleCode("Overview/useMonitorUptimeSummary")).toContain(
       '"/monitor/uptime-summary/"',
@@ -526,6 +554,52 @@ describe("Monitor overview data flow", () => {
     expect(getModuleCode("Overview/MonitorOverviewSelect")).toContain(
       "export const MONITOR_OVERVIEW_STATUS_ROW_LIMIT: number = 5;",
     );
+  });
+
+  test("the hero's actions: Refresh re-reads the page, and a manual monitor's status changes from its More actions menu", () => {
+    const hero: string = getModuleCode("Overview/MonitorOverviewHero");
+    const actions: string = getModuleCode("Overview/MonitorOverviewActions");
+    const menu: string = getModuleCode("Overview/MonitorChangeStatusMenu");
+
+    // The page hands the hero what the menu needs, and is told of a change.
+    expect(INDEX_CODE).toContain(
+      "currentStatusId={presentationInput.currentStatus?.id}",
+    );
+    expect(INDEX_CODE).toContain("onStatusChanged={onDetailsSaved}");
+    // Refresh is the data hook's manual refresh, nothing else.
+    expect(INDEX_CODE).toContain("onRefresh={() => { data.refresh(); }}");
+
+    // The hero draws the actions per monitor, with the presentation's menu.
+    expect(hero).toContain(
+      "<MonitorOverviewActions key={props.monitorId.toString()}",
+    );
+    expect(hero).toContain("moreActions={presentation.moreActions}");
+    expect(actions).toContain('props.moreActions.includes("changeStatus")');
+    expect(actions).toContain(
+      "<MonitorChangeStatusMenu key={props.monitorId.toString()}",
+    );
+
+    // A change is a status event the server starts at its own now.
+    expect(menu).toContain(
+      "await ModelAPI.create<MonitorStatusTimeline>({ model: event, modelType: MonitorStatusTimeline, });",
+    );
+    expect(menu).not.toContain("startsAt");
+    expect(menu).toContain(
+      "PermissionGate.check( statusEvent, ModelAction.Create, )",
+    );
+
+    // Refresh runs no check: the hero's actions call nothing but onRefresh.
+    for (const forbidden of [
+      "/monitor/refresh-status/",
+      "ModelAPI.getItem",
+      "setInterval(",
+      "test-monitor",
+    ]) {
+      expect({ forbidden, present: actions.includes(forbidden) }).toEqual({
+        forbidden,
+        present: false,
+      });
+    }
   });
 
   test("every reload token is derived from the one poll", () => {

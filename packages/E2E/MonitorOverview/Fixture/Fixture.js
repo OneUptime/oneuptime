@@ -2136,12 +2136,100 @@ ModelAPI.createOrUpdate = async (options) => {
     data,
     miscDataProps: serialize(options.miscDataProps),
   });
+  if (modelName === tableName(MonitorStatusTimeline)) {
+    return createStatusEvent(options.model, data);
+  }
   if (modelName !== tableName(Monitor)) {
     fixture.unhandled.push({ kind: "createOrUpdate", modelName });
     throw fail(400, `Creating a ${modelName} is not modelled.`);
   }
   return new HTTPResponse(200, { ...data, _id: CREATED_MONITOR_ID }, {});
 };
+
+/*
+ * A status event - a manual monitor's Change status, from the hero's ⋯ -
+ * recorded the way MonitorStatusTimelineService records one: refused for a
+ * role that may not create one, and for the status the monitor already has;
+ * otherwise the open event ends now, the new one starts now, the monitor's
+ * current status moves, and the feed says so. The uptime history and the
+ * status changes card read the same segments, so they move with it.
+ * `?fail=change-status` refuses every one as an API restart would.
+ */
+function createStatusEvent(model, data) {
+  if (
+    !PermissionGate.check(new MonitorStatusTimeline(), ModelAction.Create, {
+      permissions: rolePermissions,
+    }).isAllowed
+  ) {
+    throw fail(
+      422,
+      "You do not have permission to create this Monitor Status Event.",
+    );
+  }
+  if (failures.has("change-status")) {
+    throw fail(503, "The status could not be changed. The API is restarting.");
+  }
+
+  const monitorId = String(model.monitorId);
+  const statusId = String(model.monitorStatusId);
+  const monitorRecord = table(Monitor).find((record) => {
+    return String(record._id) === monitorId;
+  });
+  const statusKey = Object.keys(statuses).find((key) => {
+    return String(statuses[key].id) === statusId;
+  });
+
+  if (!monitorRecord || !statusKey) {
+    fixture.unhandled.push({
+      kind: "createOrUpdate",
+      modelName: tableName(MonitorStatusTimeline),
+      missing: true,
+    });
+    throw fail(400, "Monitor or monitor status not found.");
+  }
+  if (String(monitorRecord.currentMonitorStatusId) === statusId) {
+    throw fail(400, "Monitor Status cannot be same as previous status.");
+  }
+
+  const now = OneUptimeDate.getCurrentDate();
+
+  for (const row of table(MonitorStatusTimeline)) {
+    if (String(row.monitorId) === monitorId && !row.endsAt) {
+      row.endsAt = now;
+    }
+  }
+  const event = insert(MonitorStatusTimeline, {
+    monitorId: new ObjectID(monitorId),
+    monitorStatusId: statuses[statusKey].id,
+    monitorStatus: statuses[statusKey],
+    startsAt: now,
+    createdAt: now,
+    rootCause: "Monitor status created by **Maya Chen**",
+  });
+
+  monitorRecord.currentMonitorStatusId = statuses[statusKey].id;
+  monitorRecord.currentMonitorStatus = statuses[statusKey];
+
+  const segments = segmentsByMonitorId[monitorId] || [];
+  const open = segments[segments.length - 1];
+  if (open) {
+    open.end = now;
+  }
+  segments.push({ status: statusKey, start: now, end: undefined });
+
+  const definition = STATUS_DEFINITIONS[statusKey];
+  insert(MonitorFeed, {
+    monitorId: new ObjectID(monitorId),
+    monitorFeedEventType: MonitorFeedEventType.MonitorStatusChanged,
+    feedInfoInMarkdown: `Status changed to **${definition.name}**.`,
+    displayColor: new Color(definition.color),
+    user: people.maya,
+    postedAt: now,
+    createdAt: now,
+  });
+
+  return new HTTPResponse(200, { ...data, _id: String(event._id) }, {});
+}
 
 ModelAPI.updateById = async (options) => {
   const modelName = tableName(options.modelType);

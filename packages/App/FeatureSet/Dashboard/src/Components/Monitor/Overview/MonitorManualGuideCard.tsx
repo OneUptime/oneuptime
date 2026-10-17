@@ -13,7 +13,10 @@ export interface ComponentProps {
 
 /*
  * A manual monitor has no checks, no probes and no pulse, so the side column
- * explains how its status does change, and links to where to change it.
+ * explains how its status does change: from the menu (⋯, More actions)
+ * beside Refresh at the top of the page, with every change kept on the
+ * status timeline, which it links to. "The menu (⋯)", as the product names
+ * a ⋯ in a sentence elsewhere: a bare "from ⋯" read as a typo.
  */
 const MonitorManualGuideCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -29,7 +32,7 @@ const MonitorManualGuideCard: FunctionComponent<ComponentProps> = (
         <li>
           <p>
             {translator.translateText(
-              "Change the status from the status timeline.",
+              "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.",
             )}
           </p>
           <SloOverviewActionLink

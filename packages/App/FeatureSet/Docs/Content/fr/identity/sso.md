@@ -44,6 +44,8 @@ Les personnes qui se connectent pour la première fois rejoignent les **Équipes
 > [!NOTE]
 > Sur OneUptime Cloud, la première fois qu'une personne se connecte au projet avec l'un de ses fournisseurs SAML ou OIDC, OneUptime lui envoie un lien par e-mail au lieu de la connecter. Elle l'ouvre, confirme que l'authentification unique du projet peut la connecter, puis poursuit la connexion. Le lien est valable 24 heures. Cela se produit une fois par projet, et de nouveau si la personne quitte le projet puis revient. Les installations auto-hébergées connectent les personnes immédiatement.
 
+Sur OneUptime Cloud, une personne qui rejoint le projet via le SSO occupe un siège, comme une personne que vous invitez. Si votre plan comprend un nombre fixe de sièges et qu'ils sont tous pris, les nouvelles personnes ne peuvent pas rejoindre le projet via le SSO tant qu'aucun siège ne s'est libéré.
+
 ## Configurer le SSO
 
 Vous avez besoin de l'autorisation d'ajouter des fournisseurs SSO — **Project Owner**, **Project Admin** ou **Create Project SSO** — et, sur OneUptime Cloud, du plan **Scale**. Pour le côté de votre fournisseur d'identité, consultez les [guides des fournisseurs d'identité](#guides-des-fournisseurs-didentité).

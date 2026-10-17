@@ -1,5 +1,6 @@
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
@@ -25,6 +26,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { getDefaultEscalationRuleName } from "../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -244,6 +246,27 @@ const ON_CALL_DUTY_POLICY_KEYS: Array<string> = [
   "onCallDutyPolicyId",
   "onCallDutyPolicy",
 ];
+
+/*
+ * THE FREE PLAN'S LIMIT ON ESCALATION RULES: one for each on-call policy.
+ *
+ * Asked twice: early, in onBeforeCreate, and again with the INSERT, in its
+ * own transaction under the limit's lock in the project (getCreateLimit,
+ * ProjectCountLimit), so rules added to a policy at the same moment cannot
+ * all pass. How many the Free plan allows a policy, the lock's name, what it
+ * counts - the rules of the policy, as the early check counts them - and
+ * the refusal both checks give.
+ */
+export const ALLOWED_ESCALATION_RULES_PER_POLICY_IN_FREE_PLAN: number = 1;
+
+export const FREE_PLAN_ESCALATION_RULE_LIMIT_NAME: string =
+  "free-plan-escalation-rules";
+
+export const ESCALATION_RULE_COUNT_STATEMENT: string =
+  'SELECT COUNT(*)::int AS "count" FROM "OnCallDutyPolicyEscalationRule" WHERE "projectId" = $1 AND "onCallDutyPolicyId" = $2 AND "deletedAt" IS NULL';
+
+export const FREE_PLAN_ESCALATION_RULE_LIMIT_MESSAGE: string =
+  "You can only create one escalation rule in free plan.";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   /*
@@ -1881,8 +1904,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
      */
     readNextInRotationScheduleIds(createBy.miscDataProps);
 
-    if (IsBillingEnabled && createBy.props.currentPlan === PlanType.Free) {
-      // then check no of policies and if it is more than one, return error
+    // On the Free plan, an on-call policy may only have one escalation rule.
+    if (this.isHeldToFreePlanLimit(createBy.props)) {
       const count: PositiveNumber = await this.countBy({
         query: {
           projectId: createBy.data.projectId!,
@@ -1893,10 +1916,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         },
       });
 
-      if (count.toNumber() >= 1) {
-        throw new BadDataException(
-          "You can only create one escalation rule in free plan.",
-        );
+      if (
+        count.toNumber() >= ALLOWED_ESCALATION_RULES_PER_POLICY_IN_FREE_PLAN
+      ) {
+        throw new BadDataException(FREE_PLAN_ESCALATION_RULE_LIMIT_MESSAGE);
       }
     }
 
@@ -1936,6 +1959,54 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * Whether the Free plan's limit on escalation rules holds this create:
+   * billing on, and a caller on the Free plan (the plan CommonAPI read for
+   * the request). OneUptime itself and a server admin carry no plan.
+   */
+  private isHeldToFreePlanLimit(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return IsBillingEnabled && props.currentPlan === PlanType.Free;
+  }
+
+  /*
+   * The Free plan's limit on escalation rules, decided again with the
+   * INSERT: the policy's rules are counted in the INSERT's own transaction,
+   * under the limit's lock in the project, so rules added to a policy at
+   * the same moment - each of which passed the early count in
+   * onBeforeCreate - cannot all be added. Every create is asked, one that
+   * skips its hooks too. Null when the create is held to no such limit.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<Model>,
+  ): Promise<CreateLimit | null> {
+    const projectId: ObjectID | undefined = createBy.data.projectId;
+
+    if (!projectId || !this.isHeldToFreePlanLimit(createBy.props)) {
+      return null;
+    }
+
+    const onCallDutyPolicyId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ON_CALL_DUTY_POLICY_KEYS,
+      "On-Call Policy",
+    );
+
+    if (!onCallDutyPolicyId) {
+      return null;
+    }
+
+    return ProjectCountLimit.getCreateLimit({
+      limitName: FREE_PLAN_ESCALATION_RULE_LIMIT_NAME,
+      projectId: projectId,
+      allowed: ALLOWED_ESCALATION_RULES_PER_POLICY_IN_FREE_PLAN,
+      statement: ESCALATION_RULE_COUNT_STATEMENT,
+      parameters: [projectId.toString(), onCallDutyPolicyId.toString()],
+      refusal: FREE_PLAN_ESCALATION_RULE_LIMIT_MESSAGE,
+    });
   }
 
   /*
