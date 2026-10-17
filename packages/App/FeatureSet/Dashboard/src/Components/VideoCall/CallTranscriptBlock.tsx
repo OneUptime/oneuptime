@@ -57,11 +57,13 @@ import { videoCallDocsUrl } from "./VideoCallApi";
  * Laid out the same way with or without one: the word Transcript, a line
  * about it, then what can be done. Without one: what a transcript is for,
  * then Get from Zoom or Get from Google Meet for a meeting OneUptime started
- * there (the provider is asked), and Add transcript for any call. With one:
- * how long it is and where it came from, where OneUptime AI's reading of it
- * stands - with that state's one action at the end of its sentence - then
- * View and a menu to replace, read again or remove it. What OneUptime AI
- * found is on the AI Investigation card, which Review opens.
+ * there (the provider is asked), and Add transcript for any call; nothing
+ * at all for a reader who may not add one. With one: how long it is and
+ * where it came from, where OneUptime AI's reading of it stands - with that
+ * state's one action at the end of its sentence - then View transcript; the
+ * menu to replace, read again or remove it is a mark beside the heading.
+ * What OneUptime AI found is on the AI Investigation card, which Review it
+ * opens.
  *
  * When the provider has no transcript to give - not ready yet, never
  * turned on, a permission the connection lacks - the card says so in one
