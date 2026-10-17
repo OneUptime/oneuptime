@@ -1,10 +1,12 @@
 import DatabaseService from "../Services/DatabaseService";
 import Select from "../Types/Database/Select";
+import CreatePermission from "../Types/Database/Permissions/CreatePermission";
 import logger from "./Logger";
 import ProjectMembership from "./TeamMember/ProjectMembership";
 import VerificationCode from "./VerificationCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../Types/JSON";
 import VerificationCodeStatusJSON, {
   VerificationCodeState,
@@ -244,17 +246,18 @@ export default class ChannelVerification {
   /*
    * For a resend (each channel service's resendVerificationCode, whoever
    * asks - the person, or an administrator for them): refuses a row whose
-   * owner is not a member of its project (isOwnerProjectMember), in the
-   * words a missing row is refused with, before anything about the project
-   * - whether it can send, its balance - is read.
+   * owner is not a member of its project (isOwnerProjectMember) before
+   * anything about the project - whether it can send, its balance - is
+   * read, in the words the resend, verify and status routes refuse a row
+   * that does not exist with ("Item not found").
    */
   public static async assertOwnerIsProjectMember(data: {
     item: VerifiableChannelFields;
     itemId: ObjectID;
   }): Promise<void> {
     if (!(await ChannelVerification.isOwnerProjectMember(data.item))) {
-      throw new BadDataException(
-        "Item with ID " + data.itemId.toString() + " not found",
+      throw ChannelVerification.getFailureException(
+        ChannelVerificationOutcome.NotProjectMember,
       );
     }
   }
@@ -494,15 +497,31 @@ export default class ChannelVerification {
    * the add is refused with the reason - the add form shows it - and the row
    * is taken out again. Adding it once whatever was missing is fixed sends
    * the code then.
+   *
+   * And like every other code, the first one goes out only for a member of
+   * the row's project (isOwnerProjectMember), read from the database as the
+   * code is sent: the add was let through for a member
+   * (CreatePermission.checkCreateInMemberProject), and somebody removed from
+   * the project in between has their add refused and the row taken out,
+   * with nothing sent on the project's account.
    */
   public static async sendFirstCodeOrRemoveItem<
     TModel extends VerifiableChannelModel,
   >(data: {
     service: DatabaseService<TModel>;
     itemId: ObjectID;
+    // The row as it was added: whose it is, and the project it is in.
+    item: VerifiableChannelFields;
     issueAndSend: () => Promise<void>;
   }): Promise<void> {
     try {
+      if (!(await ChannelVerification.isOwnerProjectMember(data.item))) {
+        // In the words the add itself is refused with for them.
+        throw new NotAuthorizedException(
+          CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
+        );
+      }
+
       await data.issueAndSend();
     } catch (error) {
       try {

@@ -154,7 +154,7 @@ export default class UserEmailAPI extends BaseAPI<
     await VerificationCodeRateLimit.checkAddAllowed({
       req: req,
       res: res,
-      channel: "/user-email",
+      channel: new this.entityType().getCrudApiPath()?.toString() || "",
     });
   }
 }

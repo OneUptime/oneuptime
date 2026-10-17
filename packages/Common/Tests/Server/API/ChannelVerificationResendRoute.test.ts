@@ -240,9 +240,7 @@ describe("ChannelVerificationResendRoute.register", () => {
   });
 
   it("hands a refusal of the channel's resend - not a member any more, say - to the error handler", async () => {
-    const refusal: BadDataException = new BadDataException(
-      "Item with ID " + ITEM_ID + " not found",
-    );
+    const refusal: BadDataException = new BadDataException("Item not found");
     service["resendVerificationCode"]!.mockRejectedValue(refusal);
 
     await call({ itemId: ITEM_ID });

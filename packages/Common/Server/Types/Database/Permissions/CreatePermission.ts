@@ -191,10 +191,6 @@ export default class CreatePermission {
   public static readonly PROJECT_MISMATCH_MESSAGE: string =
     "The project ID in the request body does not match the project in the 'tenantid' header.";
 
-  // Why such a create whose row names two projects is refused.
-  public static readonly PROJECTS_DISAGREE_MESSAGE: string =
-    "The project ID and the project in the request body name different projects.";
-
   /*
    * A ROW SOMEBODY ADDS FOR THEMSELVES GOES INTO A PROJECT THEY ARE A MEMBER
    * OF.
@@ -218,10 +214,12 @@ export default class CreatePermission {
    *
    *   - the caller is a person (a user session);
    *   - the row names no project other than the one the request is made in,
-   *     under either of its names: a create's hooks read the row's project
-   *     before DatabaseService stamps the request's onto it, and a hook that
-   *     answers with that project's SMS setting or balance would describe a
-   *     project that is not the caller's;
+   *     under either of its names (`projectId` and `project`, read as every
+   *     reference check reads them: RelationIdUtil.readConsistent, which
+   *     refuses two names that disagree): a create's hooks read the row's
+   *     project before DatabaseService stamps the request's onto it, and a
+   *     hook that answers with that project's SMS setting or balance would
+   *     describe a project that is not the caller's;
    *   - the caller is a member of that project: the request was authorized
    *     for it (CallerPermission.isProjectMember - an accepted invitation, the
    *     project's sign-in rules met, the project not blocked). An invitation
@@ -275,16 +273,18 @@ export default class CreatePermission {
       );
     }
 
-    // The projects the row names, under either of its names, each once.
-    const namedProjectIds: Array<string> = data
-      ? CreatePermission.getNamedProjectIds(model, data, tenantColumn)
-      : [];
+    // The project the row names, under either of its names. See the helper.
+    const namedProject: ObjectID | null = data
+      ? RelationIdUtil.readConsistent(
+          data as unknown as Record<string, unknown>,
+          CreatePermission.getTenantKeys(model, tenantColumn),
+          "Project",
+        )
+      : null;
 
-    if (namedProjectIds.length > 1) {
-      throw new BadDataException(CreatePermission.PROJECTS_DISAGREE_MESSAGE);
-    }
-
-    const namedProjectId: string | null = namedProjectIds[0] || null;
+    const namedProjectId: string | null = namedProject
+      ? CreatePermission.normalizeProjectId(namedProject)
+      : null;
 
     if (props.tenantId) {
       if (
@@ -331,21 +331,13 @@ export default class CreatePermission {
   }
 
   /*
-   * The projects a create's row names, each once, as normalizeProjectId
-   * writes it: under its tenant column and under the relation that joins on
-   * it (a notification method's `projectId` and `project`), as the caller
-   * wrote them. Empty for a row that names none.
+   * The names a row gives its project: the tenant column, then the relation
+   * that joins on it (a notification method's `projectId` and `project`).
    */
-  private static getNamedProjectIds(
+  private static getTenantKeys(
     model: BaseModel,
-    data: BaseModel,
     tenantColumn: string,
   ): Array<string> {
-    const record: Record<string, unknown> = data as unknown as Record<
-      string,
-      unknown
-    >;
-
     const keys: Array<string> = [tenantColumn];
 
     for (const columnName of model.getTableColumns().columns) {
@@ -361,20 +353,7 @@ export default class CreatePermission {
       }
     }
 
-    const ids: Set<string> = new Set<string>();
-
-    for (const key of keys) {
-      const id: ObjectID | null = RelationIdUtil.read(record, [key]);
-      const normalized: string = id
-        ? CreatePermission.normalizeProjectId(id)
-        : "";
-
-      if (normalized) {
-        ids.add(normalized);
-      }
-    }
-
-    return Array.from(ids);
+    return keys;
   }
 
   /**

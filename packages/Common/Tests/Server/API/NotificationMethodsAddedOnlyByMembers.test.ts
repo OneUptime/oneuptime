@@ -81,6 +81,7 @@ import TwilioAccountAvailability from "../../../Server/Utils/TwilioAccountAvaila
 import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
 import VerificationCode from "../../../Server/Utils/VerificationCode";
 import ChannelVerification from "../../../Server/Utils/ChannelVerification";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectUserProfile from "../../../Models/DatabaseModels/ProjectUserProfile";
 import UserNotificationEmailRollupSetting from "../../../Models/DatabaseModels/UserNotificationEmailRollupSetting";
@@ -904,6 +905,36 @@ describe.each(CODE_CHANNELS)("adding $name", (channel: CodeChannel) => {
     expect(sent).toEqual([]);
     expect(projectWasRead()).toBe(false);
   });
+
+  /*
+   * The request still carried the member's permission set, but by the time
+   * the first code is sent they are no longer in the project (removed while
+   * the add was on its way, or a permission set read before the removal
+   * reached every server). The code goes out only for a member, read from
+   * the database as it is sent: nothing is sent and the row is taken out.
+   */
+  test("a member removed while their add is on its way: nothing sent, and no row kept", async () => {
+    const isMember: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ProjectMembership, "isMember")
+      .mockResolvedValue(false as never);
+
+    const result: HttpResult = await post({
+      path: channel.path,
+      as: MEMBER,
+      tenant: PROJECT_ID,
+      body: addBody(channel, 7),
+    });
+    await settle();
+
+    expect(result.status).toBe(422);
+    expect(errorOf(result)).toBe(CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE);
+    expect(sent).toEqual([]);
+
+    const table: InMemoryTable = tables.get(channel.path)!;
+    expect(table.inserts).toHaveLength(1);
+    expect(table.rows).toEqual([]);
+    expect(isMember).toHaveBeenCalled();
+  });
 });
 
 describe.each(OTHER_OWN_ROWS)("adding $name", (model: OwnRowModel) => {
@@ -972,7 +1003,7 @@ describe("a row its owner holds in a project they are not a member of", () => {
     });
 
     expect(result.status).toBe(400);
-    expect(errorOf(result)).toBe("Item with ID " + ROW_ID + " not found");
+    expect(errorOf(result)).toBe("Item not found");
     expect(sent).toEqual([]);
     expect(incoming.updates).toEqual([]);
     // Nothing about the project is read for them either.

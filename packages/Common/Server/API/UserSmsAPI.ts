@@ -189,7 +189,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
     await VerificationCodeRateLimit.checkAddAllowed({
       req: req,
       res: res,
-      channel: "/user-sms",
+      channel: new this.entityType().getCrudApiPath()?.toString() || "",
     });
   }
 }

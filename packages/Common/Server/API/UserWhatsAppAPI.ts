@@ -154,7 +154,7 @@ export default class UserWhatsAppAPI extends BaseAPI<
     await VerificationCodeRateLimit.checkAddAllowed({
       req: req,
       res: res,
-      channel: "/user-whatsapp",
+      channel: new this.entityType().getCrudApiPath()?.toString() || "",
     });
   }
 }

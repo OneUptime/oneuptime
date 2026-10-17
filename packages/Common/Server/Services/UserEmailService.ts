@@ -99,9 +99,21 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.isVerified) {
-      // issue and send the first verification code
-      const plainCode: string =
-        await this.issueAndSendVerificationCode(createdItem);
+      /*
+       * Issue and send the first verification code - for a member of the
+       * address's project only, as every code is, or no address
+       * (ChannelVerification.sendFirstCodeOrRemoveItem).
+       */
+      let plainCode: string = "";
+
+      await ChannelVerification.sendFirstCodeOrRemoveItem({
+        service: this,
+        itemId: createdItem.id!,
+        item: createdItem,
+        issueAndSend: async (): Promise<void> => {
+          plainCode = await this.issueAndSendVerificationCode(createdItem);
+        },
+      });
 
       /*
        * TEST-ONLY seam, OFF unless explicitly switched on.

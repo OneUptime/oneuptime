@@ -6,10 +6,13 @@ import ChannelVerification, {
   VerificationCodeState,
 } from "../../../Server/Utils/ChannelVerification";
 import VerificationCode from "../../../Server/Utils/VerificationCode";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
+import CreatePermission from "../../../Server/Types/Database/Permissions/CreatePermission";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ErrorClass, {
@@ -17,7 +20,14 @@ import ErrorClass, {
 } from "../../../Types/Telemetry/ErrorClass";
 import VerificationCodeStatusJSON from "../../../Types/UserNotification/VerificationCodeStatus";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger", () => {
   return {
@@ -53,6 +63,12 @@ jest.mock("../../../Server/Utils/Logger", () => {
  */
 
 const ITEM_ID: ObjectID = new ObjectID("6d2f0a1b-1111-4111-8111-111111111111");
+
+// Whose a number is, and the project it is in.
+const OWNED_ROW: VerifiableChannelFields = {
+  projectId: new ObjectID("6d2f0a1b-2222-4222-8222-222222222222"),
+  userId: new ObjectID("6d2f0a1b-3333-4333-8333-333333333333"),
+};
 const DESTINATION: string = "+15551230100";
 const NOW: Date = new Date("2026-10-08T10:00:00.000Z");
 
@@ -268,20 +284,95 @@ describe("issueAndSendCode", () => {
 
 describe("sendFirstCodeOrRemoveItem", () => {
   let fake: FakeChannelService;
+  let isMember: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     fake = new FakeChannelService();
+
+    // The number's owner is a member of its project, as an add is let in for.
+    isMember = jest
+      .spyOn(ProjectMembership, "isMember")
+      .mockResolvedValue(true as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("keeps a number whose first code went out", async () => {
     await ChannelVerification.sendFirstCodeOrRemoveItem({
       service: asService(fake),
       itemId: ITEM_ID,
+      item: OWNED_ROW,
       issueAndSend: async (): Promise<void> => {},
     });
 
     expect(fake.deleteCalls).toHaveLength(0);
     expect(fake.row).not.toBeNull();
+  });
+
+  /*
+   * The first code, like every other, goes out only for a member of the
+   * number's project, read from the database as it is sent. Somebody removed
+   * from the project after their add was let in has it refused in the words
+   * the add itself is refused with, and the number taken out, with nothing
+   * sent on the project's account.
+   */
+  it("sends nothing for an owner who is no longer a member, and takes the number out", async () => {
+    isMember.mockResolvedValue(false as never);
+    const issueAndSend: ReturnType<typeof jest.fn> = jest.fn();
+
+    const refusal: unknown = await ChannelVerification.sendFirstCodeOrRemoveItem(
+      {
+        service: asService(fake),
+        itemId: ITEM_ID,
+        item: OWNED_ROW,
+        issueAndSend: issueAndSend as unknown as () => Promise<void>,
+      },
+    ).catch((error: unknown) => {
+      return error;
+    });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as Error).message).toBe(
+      CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
+    );
+    expect(issueAndSend).not.toHaveBeenCalled();
+    expect(fake.updateCalls).toEqual([]);
+    expect(fake.deleteCalls).toHaveLength(1);
+    expect(fake.deleteCalls[0]!.props.isRoot).toBe(true);
+    expect(fake.row).toBeNull();
+  });
+
+  it("asks about the number's own project and owner", async () => {
+    await ChannelVerification.sendFirstCodeOrRemoveItem({
+      service: asService(fake),
+      itemId: ITEM_ID,
+      item: OWNED_ROW,
+      issueAndSend: async (): Promise<void> => {},
+    });
+
+    const asked: { projectId: ObjectID; userId: ObjectID } = isMember.mock
+      .calls[0]![0] as { projectId: ObjectID; userId: ObjectID };
+
+    expect(asked.projectId.toString()).toBe(OWNED_ROW.projectId!.toString());
+    expect(asked.userId.toString()).toBe(OWNED_ROW.userId!.toString());
+  });
+
+  it("sends nothing for a number with no owner or no project", async () => {
+    const issueAndSend: ReturnType<typeof jest.fn> = jest.fn();
+
+    await expect(
+      ChannelVerification.sendFirstCodeOrRemoveItem({
+        service: asService(fake),
+        itemId: ITEM_ID,
+        item: { projectId: OWNED_ROW.projectId },
+        issueAndSend: issueAndSend as unknown as () => Promise<void>,
+      }),
+    ).rejects.toThrow(CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE);
+
+    expect(issueAndSend).not.toHaveBeenCalled();
+    expect(isMember).not.toHaveBeenCalled();
   });
 
   it("takes out a number whose first code could not be sent, and refuses the add with the reason", async () => {
@@ -293,6 +384,7 @@ describe("sendFirstCodeOrRemoveItem", () => {
       ChannelVerification.sendFirstCodeOrRemoveItem({
         service: asService(fake),
         itemId: ITEM_ID,
+        item: OWNED_ROW,
         issueAndSend: async (): Promise<void> => {
           throw failure;
         },
@@ -315,6 +407,7 @@ describe("sendFirstCodeOrRemoveItem", () => {
       ChannelVerification.sendFirstCodeOrRemoveItem({
         service: asService(fake),
         itemId: ITEM_ID,
+        item: OWNED_ROW,
         issueAndSend: async (): Promise<void> => {
           throw new BadDataException("The verification code was not sent.");
         },

@@ -192,11 +192,13 @@ const RESEND_BUCKET: BucketConfig = {
  * WhatsApp number or an incoming call number sends its code at once - a
  * message on somebody's phone and a line on the project's bill, like a
  * resend, but from a new row, which has no cooldown of its own. An add's
- * "item" is the kind of method a person adds (the channel): five numbers of
- * one kind in a quarter of an hour is more than anyone sets up, and lets a
- * person mistype one several times. Per person, ten covers adding every
- * kind at once; per address it is the verify budget's, because a whole
- * office behind one NAT sets up its phones together.
+ * "item" is the kind of method a person adds in one project (the channel
+ * and the project): five numbers of one kind in a quarter of an hour is
+ * more than anyone sets up, and lets a person mistype one several times.
+ * Per person, twenty covers setting up every kind in several projects at
+ * once - somebody on call for a handful of teams; per address it is the
+ * verify budget's, because a whole office behind one NAT sets up its phones
+ * together.
  */
 const ADD_BUCKET: BucketConfig = {
   windowSeconds: parsePositiveIntFromEnv(
@@ -209,7 +211,7 @@ const ADD_BUCKET: BucketConfig = {
   ),
   perUserLimit: parsePositiveIntFromEnv(
     "NOTIFICATION_VERIFICATION_ADD_RATE_LIMIT_PER_USER_PER_WINDOW",
-    10,
+    20,
   ),
   perIpLimit: parsePositiveIntFromEnv(
     "NOTIFICATION_VERIFICATION_ADD_RATE_LIMIT_PER_IP_PER_WINDOW",
@@ -316,13 +318,20 @@ export default class VerificationCodeRateLimit {
   }
 
   /*
-   * The key an add is counted under for its channel: the channel's own path
-   * ("/user-sms"), so each kind of method has its own allowance.
+   * The key an add is counted under: the channel's own path ("/user-sms")
+   * and the project the request is made in, so each kind of method has its
+   * own allowance in each project. Each part is bounded on its own, so a
+   * long path never cuts the project id short.
    */
-  public static resolveChannelKey(channel: string): string {
-    return VerificationCodeRateLimit.sanitizeKeySegment(
+  public static resolveChannelKey(
+    channel: string,
+    projectId?: ObjectID | string | null | undefined,
+  ): string {
+    const project: string = projectId?.toString().trim().toLowerCase() || "";
+
+    return `${VerificationCodeRateLimit.sanitizeKeySegment(
       `add${channel.trim().toLowerCase()}`,
-    );
+    )}:${VerificationCodeRateLimit.sanitizeKeySegment(project || "none")}`;
   }
 
   private static sanitizeKeySegment(value: string): string {
@@ -570,8 +579,9 @@ export default class VerificationCodeRateLimit {
    * For adding a method of a channel that sends a code - the create route
    * of the email, SMS, call, WhatsApp and incoming call number APIs, through
    * their BaseAPI.onBeforeCreate: counts the add in the add bucket, under
-   * the person, the channel (resolveChannelKey) and the client address, and
-   * throws a TooManyRequestsException over the limit, with Retry-After set.
+   * the person, the channel in the request's project (resolveChannelKey) and
+   * the client address, and throws a TooManyRequestsException over the
+   * limit, with Retry-After set.
    *
    * The create route has no requireUserAuthentication of its own, so a
    * request that names no person is not counted at all: its create is
@@ -596,7 +606,10 @@ export default class VerificationCodeRateLimit {
         req: data.req,
         res: data.res,
         bucket: VerificationCodeRateLimitBucket.Add,
-        itemKey: VerificationCodeRateLimit.resolveChannelKey(data.channel),
+        itemKey: VerificationCodeRateLimit.resolveChannelKey(
+          data.channel,
+          (data.req as OneUptimeRequest).tenantId,
+        ),
       });
 
     if (refusal) {

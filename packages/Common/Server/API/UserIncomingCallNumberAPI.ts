@@ -134,7 +134,7 @@ export default class UserIncomingCallNumberAPI extends BaseAPI<
     await VerificationCodeRateLimit.checkAddAllowed({
       req: req,
       res: res,
-      channel: "/user-incoming-call-number",
+      channel: new this.entityType().getCrudApiPath()?.toString() || "",
     });
   }
 }

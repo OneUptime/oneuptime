@@ -152,6 +152,7 @@ export class Service extends DatabaseService<Model> {
       await ChannelVerification.sendFirstCodeOrRemoveItem({
         service: this,
         itemId: createdItem.id!,
+        item: createdItem,
         issueAndSend: async (): Promise<void> => {
           await this.issueAndSendVerificationCode(createdItem);
         },

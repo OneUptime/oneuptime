@@ -88,7 +88,7 @@ const RESEND_PER_USER_LIMIT: number = 15;
 const RESEND_PER_IP_LIMIT: number = 45;
 const ADD_WINDOW_SECONDS: number = 15 * 60;
 const ADD_PER_CHANNEL_LIMIT: number = 5;
-const ADD_PER_USER_LIMIT: number = 10;
+const ADD_PER_USER_LIMIT: number = 20;
 const ADD_PER_IP_LIMIT: number = 150;
 
 const ITEM_A: string = "1a2b3c4d-1111-4111-8111-111111111111";
@@ -783,32 +783,49 @@ describe("VerificationCodeRateLimit", () => {
    * and a line on the project's bill, from a new row with no cooldown of its
    * own. Removing the number and adding it again was a resend with no limit
    * at all. Adds are counted in a budget of their own: per kind of method a
-   * person adds, per person, and per client address.
+   * person adds in a project, per person, and per client address.
    */
   describe("adds", () => {
+    const PROJECT_A: string = "1a2b3c4d-5555-4555-8555-555555555555";
+    const PROJECT_B: string = "1a2b3c4d-6666-4666-8666-666666666666";
+
     const addRequest: (data?: {
       userId?: string | undefined;
       ip?: string | undefined;
+      projectId?: string | undefined;
     }) => ExpressRequest = (
-      data: { userId?: string | undefined; ip?: string | undefined } = {},
+      data: {
+        userId?: string | undefined;
+        ip?: string | undefined;
+        projectId?: string | undefined;
+      } = {},
     ) => {
-      return buildRequest({
+      const request: ExpressRequest = buildRequest({
         body: { data: { phone: "+15550100009" } },
         userId: "userId" in data ? data.userId : USER_A,
         headers: { "x-forwarded-for": data.ip || "203.0.113.7" },
       });
+
+      // The project the request is made in, as getUserMiddleware sets it.
+      (request as unknown as { tenantId: ObjectID }).tenantId = new ObjectID(
+        data.projectId || PROJECT_A,
+      );
+
+      return request;
     };
 
     const add: (data?: {
       channel?: string;
       userId?: string | undefined;
       ip?: string | undefined;
+      projectId?: string | undefined;
       response?: ExpressResponse;
     }) => Promise<Exception | null> = async (
       data: {
         channel?: string;
         userId?: string | undefined;
         ip?: string | undefined;
+        projectId?: string | undefined;
         response?: ExpressResponse;
       } = {},
     ): Promise<Exception | null> => {
@@ -851,6 +868,41 @@ describe("VerificationCodeRateLimit", () => {
 
       // Another kind of method still has its own.
       expect(await add({ channel: "/user-email" })).toBeNull();
+    });
+
+    /*
+     * Somebody on call for several teams adds the same phone number to each
+     * of their projects: each project is an allowance of its own.
+     */
+    it("gives the same kind of method in another project its own allowance", async () => {
+      for (let i: number = 0; i < ADD_PER_CHANNEL_LIMIT; i++) {
+        expect(
+          await add({ channel: "/user-sms", projectId: PROJECT_A }),
+        ).toBeNull();
+      }
+
+      expect(
+        await add({ channel: "/user-sms", projectId: PROJECT_A }),
+      ).not.toBeNull();
+      expect(
+        await add({ channel: "/user-sms", projectId: PROJECT_B }),
+      ).toBeNull();
+    });
+
+    it("still holds the person to one allowance across their projects", async () => {
+      let allowed: number = 0;
+
+      for (let i: number = 0; i < ADD_PER_USER_LIMIT + 5; i++) {
+        const projectId: string = `1a2b3c4d-7777-4777-8777-${i
+          .toString()
+          .padStart(12, "0")}`;
+
+        if (!(await add({ channel: "/user-sms", projectId }))) {
+          allowed++;
+        }
+      }
+
+      expect(allowed).toBe(ADD_PER_USER_LIMIT);
     });
 
     it("holds a person to one allowance across every kind of method", async () => {
@@ -953,20 +1005,38 @@ describe("VerificationCodeRateLimit", () => {
       }
     });
 
-    it("keys each kind of method apart, in a key safe to store", () => {
+    it("keys each kind of method in each project apart, in a key safe to store", () => {
+      expect(
+        VerificationCodeRateLimit.resolveChannelKey("/user-sms", PROJECT_A),
+      ).toBe(`add_user-sms:${PROJECT_A}`);
+      expect(
+        VerificationCodeRateLimit.resolveChannelKey(
+          "/USER-SMS ",
+          PROJECT_A.toUpperCase(),
+        ),
+      ).toBe(VerificationCodeRateLimit.resolveChannelKey("/user-sms", PROJECT_A));
+      expect(
+        VerificationCodeRateLimit.resolveChannelKey("/user-call", PROJECT_A),
+      ).not.toBe(
+        VerificationCodeRateLimit.resolveChannelKey("/user-sms", PROJECT_A),
+      );
+      expect(
+        VerificationCodeRateLimit.resolveChannelKey("/user-sms", PROJECT_B),
+      ).not.toBe(
+        VerificationCodeRateLimit.resolveChannelKey("/user-sms", PROJECT_A),
+      );
+      // A request that names no project shares one key per kind of method.
       expect(VerificationCodeRateLimit.resolveChannelKey("/user-sms")).toBe(
-        "add_user-sms",
+        "add_user-sms:none",
       );
-      expect(VerificationCodeRateLimit.resolveChannelKey("/USER-SMS ")).toBe(
-        VerificationCodeRateLimit.resolveChannelKey("/user-sms"),
+
+      // Each part is bounded on its own: a long path never cuts the project short.
+      const long: string = VerificationCodeRateLimit.resolveChannelKey(
+        "/user-" + "x".repeat(200),
+        PROJECT_A,
       );
-      expect(
-        VerificationCodeRateLimit.resolveChannelKey("/user-call"),
-      ).not.toBe(VerificationCodeRateLimit.resolveChannelKey("/user-sms"));
-      expect(
-        VerificationCodeRateLimit.resolveChannelKey("/user-" + "x".repeat(200))
-          .length,
-      ).toBeLessThanOrEqual(64);
+      expect(long.endsWith(`:${PROJECT_A}`)).toBe(true);
+      expect(long.length).toBeLessThanOrEqual(64 + 1 + PROJECT_A.length);
     });
 
     it("has the add budget's defaults", () => {

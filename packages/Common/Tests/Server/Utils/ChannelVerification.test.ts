@@ -796,9 +796,7 @@ describe("ChannelVerification", () => {
           itemId: ITEM_ID,
         }),
       ).rejects.toThrow(
-        new BadDataException(
-          "Item with ID " + ITEM_ID.toString() + " not found",
-        ),
+        new BadDataException("Item not found"),
       );
     });
   });

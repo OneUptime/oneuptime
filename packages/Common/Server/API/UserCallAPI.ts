@@ -154,7 +154,7 @@ export default class UserCallAPI extends BaseAPI<
     await VerificationCodeRateLimit.checkAddAllowed({
       req: req,
       res: res,
-      channel: "/user-call",
+      channel: new this.entityType().getCrudApiPath()?.toString() || "",
     });
   }
 }

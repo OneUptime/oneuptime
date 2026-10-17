@@ -12,6 +12,7 @@ import UserIncomingCallNumberService from "../../../../../Server/Services/UserIn
 import UserSmsService from "../../../../../Server/Services/UserSmsService";
 import CreatePermission from "../../../../../Server/Types/Database/Permissions/CreatePermission";
 import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
+import RelationIdUtil from "../../../../../Server/Utils/Database/RelationIdUtil";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import Dictionary from "../../../../../Types/Dictionary";
@@ -456,21 +457,59 @@ describe("the project a row is added to is the request's", () => {
     ).toBe(CreatePermission.PROJECT_MISMATCH_MESSAGE);
   });
 
+  /*
+   * The two names are read as every reference check reads them
+   * (RelationIdUtil.readConsistent): which of two disagreeing names TypeORM
+   * stores depends on the shape of the write, so the rule could otherwise
+   * check one project and the database keep another.
+   */
   test("a row whose project ID and project relation disagree is refused", () => {
     const row: BaseModel = rowOf(UserSMS, { projectId: PROJECT_ID });
     row.setColumnValue("project", {
       _id: OTHER_PROJECT_ID.toString(),
     } as never);
 
+    const refusal: Error | null = refusalOf(() => {
+      CreatePermission.checkCreateInMemberProject(UserSMS, row, memberProps());
+    });
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal?.message).toBe(
+      RelationIdUtil.getConflictMessage("Project", ["projectId", "project"]),
+    );
+  });
+
+  test("a row that clears its project under one name and names it under the other is refused", () => {
+    const row: BaseModel = rowOf(UserSMS);
+    (row as unknown as Record<string, unknown>)["projectId"] = null;
+    row.setColumnValue("project", { _id: PROJECT_ID.toString() } as never);
+
+    const refusal: Error | null = refusalOf(() => {
+      CreatePermission.checkCreateInMemberProject(UserSMS, row, memberProps());
+    });
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal?.message).toBe(
+      RelationIdUtil.getConflictMessage("Project", ["projectId", "project"]),
+    );
+  });
+
+  test("so is one doing that across the caller's own projects, with no project in the request", () => {
+    const row: BaseModel = rowOf(UserSMS);
+    (row as unknown as Record<string, unknown>)["projectId"] = null;
+    row.setColumnValue("project", { _id: PROJECT_ID.toString() } as never);
+
+    const props: DatabaseCommonInteractionProps = {
+      ...memberProps(),
+      isMultiTenantRequest: true,
+    };
+    delete props.tenantId;
+
     expect(
       refusalOf(() => {
-        CreatePermission.checkCreateInMemberProject(
-          UserSMS,
-          row,
-          memberProps(),
-        );
-      })?.message,
-    ).toBe(CreatePermission.PROJECTS_DISAGREE_MESSAGE);
+        CreatePermission.checkCreateInMemberProject(UserSMS, row, props);
+      }),
+    ).toBeInstanceOf(BadDataException);
   });
 
   test("the request's own project, in another case or under both names, is the same project", () => {

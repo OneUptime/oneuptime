@@ -166,9 +166,7 @@ describe.each(SERVICES)(
 
     test("refuses an owner who is not a member of the row's project as if the row did not exist", async () => {
       await expect(resend()).rejects.toThrow(
-        new BadDataException(
-          "Item with ID " + ITEM_ID.toString() + " not found",
-        ),
+        new BadDataException("Item not found"),
       );
     });
 
@@ -332,4 +330,38 @@ describe("every resend asks the membership of the row's project", () => {
       body.indexOf("TelegramVerificationToken.mint()"),
     );
   });
+
+  /*
+   * The first code too: every channel sends it from its create success
+   * hook through ChannelVerification.sendFirstCodeOrRemoveItem, which asks
+   * the membership of the row's project before anything is issued or sent
+   * and takes the row out when the answer is no.
+   */
+  test.each(
+    resending.filter(([name]: [string, string]): boolean => {
+      return name !== "UserTelegramService.ts";
+    }),
+  )(
+    "%s sends the first code only through the check for members",
+    (_name: string, source: string) => {
+      const body: string = methodBody(
+        source,
+        "protected override async onCreateSuccess(",
+      );
+      const guarded: number = body.indexOf(
+        "ChannelVerification.sendFirstCodeOrRemoveItem(",
+      );
+      const sends: number = body.indexOf(
+        "this.issueAndSendVerificationCode(",
+      );
+
+      expect(guarded).toBeGreaterThan(-1);
+      expect(sends).toBeGreaterThan(guarded);
+      // The row it asks about is the one just added.
+      expect(body.indexOf("item: createdItem", guarded)).toBeGreaterThan(
+        guarded,
+      );
+      expect(body.indexOf("item: createdItem", guarded)).toBeLessThan(sends);
+    },
+  );
 });
