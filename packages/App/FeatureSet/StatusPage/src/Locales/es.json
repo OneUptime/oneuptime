@@ -236,7 +236,10 @@
       "saved": "Sus cambios se han guardado.",
       "submit": "Actualizar suscripción",
       "unsubscribe": "Cancelar suscripción",
-      "unsubscribeDescription": "Seleccione esta opción si desea cancelar la suscripción a todos los recursos."
+      "unsubscribeDescription": "Seleccione esta opción si desea cancelar la suscripción a todos los recursos.",
+      "linkNotValid": "Este enlace para gestionar su suscripción ha caducado o no es válido. Para obtener uno nuevo, use «Gestionar suscripción existente» en la página «Suscribirse».",
+      "getNewLink": "Obtener un enlace nuevo",
+      "loadFailed": "No se pudo cargar este enlace. Inténtelo de nuevo más tarde."
     },
     "confirm": {
       "title": "Confirmar suscripción",

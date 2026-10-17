@@ -115,7 +115,7 @@ flowchart TB
 - `/announcements` و `/announcements/:id`.
 - `/scheduled-events` و `/scheduled-events/:id`.
 - `/subscribe/email`، `/subscribe/sms`، `/subscribe/slack`، `/subscribe/microsoft-teams`، `/subscribe/webhooks`.
-- `/confirm-subscription/:id`، `/update-subscription/:id` و `/unsubscribe/:token` — پیوندهایی که در پیام‌های مشترکان می‌آیند.
+- `/confirm-subscription/:id`، `/update-subscription/:token` و `/unsubscribe/:token` — پیوندهایی که در پیام‌های مشترکان می‌آیند.
 - `/rss` — خوراک.
 - `/login`، `/sso` و `/master-password` — فقط روی صفحه‌ای خصوصی مرتبط‌اند.
 

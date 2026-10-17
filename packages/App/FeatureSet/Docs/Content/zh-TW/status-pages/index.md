@@ -115,7 +115,7 @@ flowchart TB
 - `/announcements` 和 `/announcements/:id`。
 - `/scheduled-events` 和 `/scheduled-events/:id`。
 - `/subscribe/email`、`/subscribe/sms`、`/subscribe/slack`、`/subscribe/microsoft-teams`、`/subscribe/webhooks`。
-- `/confirm-subscription/:id`、`/update-subscription/:id` 和 `/unsubscribe/:token`：訂閱者收到的訊息中的連結。
+- `/confirm-subscription/:id`、`/update-subscription/:token` 和 `/unsubscribe/:token`：訂閱者收到的訊息中的連結。
 - `/rss`：訂閱來源。
 - `/login`、`/sso` 和 `/master-password`：只在私人頁面上才有意義。
 

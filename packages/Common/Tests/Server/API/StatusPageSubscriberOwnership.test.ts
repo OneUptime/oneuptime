@@ -42,19 +42,23 @@ jest.mock("../../../Server/Utils/Response", () => {
 });
 
 const UPDATE_SUBSCRIPTION_ROUTE: string =
-  "/status-page/update-subscription/:statusPageId/:subscriberId";
+  "/status-page/update-subscription/:statusPageId/:subscriberId/:token";
 const GET_SUBSCRIPTION_ROUTE: string =
-  "/status-page/get-subscription/:statusPageId/:subscriberId";
+  "/status-page/get-subscription/:statusPageId/:subscriberId/:token";
 const SUBSCRIBE_ROUTE: string = "/status-page/subscribe/:statusPageId";
+
+// The victim subscription's own token, as its manage link carries it.
+const TOKEN: string = "5c".repeat(32);
 
 /*
  * The subscription endpoints authorize the caller against the status page named
  * in the URL, but the subscriber is addressed by its own UUID. If the lookup is
- * not also scoped to that status page, holding a subscriber UUID is enough to
+ * not also scoped to that status page, holding a subscriber's link is enough to
  * edit a subscriber belonging to any other status page — including a private
  * one the caller cannot read. These routes are reachable without
  * authentication (getUserMiddleware attaches a user but does not require one),
- * so the scope on the query is the whole access control.
+ * so the scope on the query and the subscription's token are the whole access
+ * control (StatusPageManageLinkCredential.test.ts holds the token).
  */
 
 describe("StatusPageAPI subscriber ownership", () => {
@@ -93,7 +97,15 @@ describe("StatusPageAPI subscriber ownership", () => {
       return Promise.resolve(null);
     }
 
-    return Promise.resolve(victimSubscriber);
+    // A fresh row per read, as the database hands back, token included.
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row.id = victimSubscriber.id!;
+    row.statusPageId = victimSubscriber.statusPageId!;
+    row.projectId = victimSubscriber.projectId!;
+    row.isUnsubscribed = victimSubscriber.isUnsubscribed!;
+    row.unsubscribeToken = TOKEN;
+
+    return Promise.resolve(row);
   };
 
   const callUpdateSubscription: (data: {
@@ -107,6 +119,7 @@ describe("StatusPageAPI subscriber ownership", () => {
       params: {
         statusPageId: data.statusPageId.toString(),
         subscriberId: subscriberId.toString(),
+        token: TOKEN,
       },
       body: {
         data: {
@@ -135,6 +148,7 @@ describe("StatusPageAPI subscriber ownership", () => {
       params: {
         statusPageId: data.statusPageId.toString(),
         subscriberId: subscriberId.toString(),
+        token: TOKEN,
       },
       body: { data: {} },
       query: {},
