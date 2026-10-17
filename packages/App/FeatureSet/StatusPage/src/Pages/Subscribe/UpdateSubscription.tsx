@@ -337,9 +337,14 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           </p>
           {newLinkPage ? (
             <div className="mt-6">
+              {/*
+               * As wide as the card, like the form's Update Subscription
+               * button this card stands in for (maxPrimaryButtonWidth).
+               */}
               <Button
                 title={t("subscribe.update.getNewLink")}
                 buttonStyle={ButtonStyleType.PRIMARY}
+                style={{ marginLeft: "0px", width: "100%" }}
                 dataTestId="update-subscription-get-new-link"
                 onClick={() => {
                   Navigation.navigate(
