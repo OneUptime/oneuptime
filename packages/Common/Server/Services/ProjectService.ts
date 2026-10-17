@@ -384,10 +384,23 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * unset) - so middleware can skip a Postgres findOneById on every
    * authenticated request. Both are one entry, read by one query: neither
    * is ever kept without the other, so a project's pinned provider is never
-   * forgotten while the rule that requires it is still remembered.
+   * forgotten while the rule that requires it is still remembered. Keyed by
+   * the project id in lower case, as every request and every forget names
+   * it, whatever case the request wrote it in.
    */
   private signInRuleCache: InMemoryTTLCache<ProjectSignInRule> =
     new InMemoryTTLCache(10_000);
+
+  /*
+   * One read of a project's sign-in rule in flight per project: a page fires
+   * a burst of requests at once, and a forgotten rule would otherwise turn
+   * the burst into as many identical reads. A read is kept only while it is
+   * still the project's current one: a forget clears the slot, so a read
+   * that was on the wire when the rule changed answers its own callers but
+   * never puts the old rule back.
+   */
+  private signInRuleLookups: Map<string, Promise<ProjectSignInRule>> =
+    new Map();
   /*
    * Caches the current billing plan per project. `getCurrentPlan` is hit
    * by `CommonAPI.getDatabaseCommonInteractionProps` on every
@@ -1154,11 +1167,15 @@ export class ProjectService extends ProjectReferencesService<Model> {
   public forgetSignInRules(projectId?: ObjectID): void {
     if (!projectId) {
       this.signInRuleCache.clear();
+      this.signInRuleLookups.clear();
       ProjectSsoProviderStanding.forget();
       return;
     }
 
-    this.signInRuleCache.delete(projectId.toString());
+    const key: string = projectId.toString().toLowerCase();
+
+    this.signInRuleCache.delete(key);
+    this.signInRuleLookups.delete(key);
     ProjectSsoProviderStanding.forget(projectId);
   }
 
@@ -1201,6 +1218,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       updateBy.data.requireSsoWithSsoProviderId !== undefined
     ) {
       this.signInRuleCache.clear();
+      this.signInRuleLookups.clear();
     }
 
     this.applyDataResidencyRules(updateBy.data);
@@ -3696,36 +3714,60 @@ export class ProjectService extends ProjectReferencesService<Model> {
     return requiredProviderId ? new ObjectID(requiredProviderId) : null;
   }
 
-  // A project's sign-in rule, kept for 60s, or read from its row.
-  private async getSignInRule(projectId: ObjectID): Promise<ProjectSignInRule> {
-    const key: string = projectId.toString();
+  /*
+   * A project's sign-in rule, kept for 60s, or read from its row - by one
+   * read for every caller asking at once. A read that fails, or finds no
+   * project, throws to each of them and keeps nothing.
+   */
+  private getSignInRule(projectId: ObjectID): Promise<ProjectSignInRule> {
+    const key: string = projectId.toString().toLowerCase();
     const cached: ProjectSignInRule | undefined = this.signInRuleCache.get(key);
 
     if (cached) {
-      return cached;
+      return Promise.resolve(cached);
     }
 
-    const project: Model | null = await this.findOneById({
+    const inFlight: Promise<ProjectSignInRule> | undefined =
+      this.signInRuleLookups.get(key);
+
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const lookup: Promise<ProjectSignInRule> = this.findOneById({
       id: projectId,
       select: { requireSsoForLogin: true, requireSsoWithSsoProviderId: true },
       props: { isRoot: true },
-    });
+    })
+      .then((project: Model | null): ProjectSignInRule => {
+        if (!project) {
+          // Don't cache "not found" — let the caller decide how to handle it.
+          throw new BadDataException("Project not found");
+        }
 
-    if (!project) {
-      // Don't cache "not found" — let the caller decide how to handle it.
-      throw new BadDataException("Project not found");
-    }
+        const rule: ProjectSignInRule = {
+          requireSsoForLogin: Boolean(project.requireSsoForLogin),
+          requireSsoWithSsoProviderId: project.requireSsoWithSsoProviderId
+            ? project.requireSsoWithSsoProviderId.toString()
+            : null,
+        };
 
-    const rule: ProjectSignInRule = {
-      requireSsoForLogin: Boolean(project.requireSsoForLogin),
-      requireSsoWithSsoProviderId: project.requireSsoWithSsoProviderId
-        ? project.requireSsoWithSsoProviderId.toString()
-        : null,
-    };
+        // Only while this read is still the current one (see signInRuleLookups).
+        if (this.signInRuleLookups.get(key) === lookup) {
+          this.signInRuleCache.set(key, rule, 60_000);
+        }
 
-    this.signInRuleCache.set(key, rule, 60_000);
+        return rule;
+      })
+      .finally((): void => {
+        if (this.signInRuleLookups.get(key) === lookup) {
+          this.signInRuleLookups.delete(key);
+        }
+      });
 
-    return rule;
+    this.signInRuleLookups.set(key, lookup);
+
+    return lookup;
   }
 
   /*

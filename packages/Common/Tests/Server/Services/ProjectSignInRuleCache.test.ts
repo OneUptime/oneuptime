@@ -10,6 +10,7 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
+import AuditLogService from "../../../Server/Services/AuditLogService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import GlobalOidcProjectService from "../../../Server/Services/GlobalOidcProjectService";
 import GlobalOidcService from "../../../Server/Services/GlobalOidcService";
@@ -114,6 +115,26 @@ const rowReads: Map<string, number> = new Map();
 
 // What the next read of the project table fails with, when it fails.
 let nextProjectReadFails: Error | null = null;
+
+/*
+ * Holds the next read of the project table once it has read its rows, until
+ * the test lets it answer: a read that was on the wire while something
+ * changed.
+ */
+let holdNextRead: Promise<void> | null = null;
+
+// Waits, a tick at a time, for something the code under test does without being awaited.
+const until: (condition: () => boolean) => Promise<void> = async (
+  condition: () => boolean,
+): Promise<void> => {
+  for (let tick: number = 0; tick < 1000 && !condition(); tick++) {
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 1);
+    });
+  }
+
+  expect(condition()).toBe(true);
+};
 
 const projectRow: (
   projectId: string,
@@ -240,6 +261,7 @@ beforeEach(() => {
   setTestBillingEnabled(false);
   rowReads.clear();
   nextProjectReadFails = null;
+  holdNextRead = null;
 
   for (const silenced of ["debug", "info", "warn", "error"]) {
     getJestSpyOn(logger, silenced).mockImplementation((): void => {
@@ -293,7 +315,16 @@ beforeEach(() => {
         throw failure;
       }
 
-      return await read(...args);
+      // The rows as they are now, answered when the test lets the read answer.
+      const rows: Promise<unknown> = read(...args) as Promise<unknown>;
+
+      if (holdNextRead) {
+        const hold: Promise<void> = holdNextRead;
+        holdNextRead = null;
+        await hold;
+      }
+
+      return await rows;
     },
   );
 
@@ -307,12 +338,7 @@ beforeEach(() => {
   } as unknown as UserTenantAccessPermission);
   getJestSpyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
-  const auditLogService: {
-    recordUpdate: () => Promise<void>;
-  } =
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-    require("../../../Server/Services/AuditLogService").default;
-  getJestSpyOn(auditLogService, "recordUpdate").mockResolvedValue(undefined);
+  getJestSpyOn(AuditLogService, "recordUpdate").mockResolvedValue(undefined);
 
   // Each test starts as a server whose minute has run out.
   ProjectService.forgetSignInRules();
@@ -405,6 +431,92 @@ describe("a project's sign-in rule, as a server keeps it", () => {
 
     expect(rowReads.get(ACME)).toBe(2);
     expect(rowReads.get(BETA)).toBe(1);
+  });
+
+  test("questions asked at once about a rule that is not kept read its row once, and share its answer", async () => {
+    const answers: Array<unknown> = await Promise.all([
+      ProjectService.getRequireSsoForLogin(new ObjectID(ACME)),
+      pinnedProviderOf(ACME),
+      ProjectService.getRequireSsoForLogin(new ObjectID(ACME)),
+      pinnedProviderOf(ACME),
+    ]);
+
+    expect(answers).toEqual([true, ACME_SAML, true, ACME_SAML]);
+    expect(rowReads.get(ACME)).toBe(1);
+  });
+
+  test("a read that fails fails every question that waited on it, and keeps nothing", async () => {
+    nextProjectReadFails = clientTimeout();
+
+    const answers: Array<PromiseSettledResult<unknown>> =
+      await Promise.allSettled([
+        ProjectService.getRequireSsoForLogin(new ObjectID(ACME)),
+        pinnedProviderOf(ACME),
+      ]);
+
+    expect(
+      answers.map((answer: PromiseSettledResult<unknown>): string => {
+        return answer.status;
+      }),
+    ).toEqual(["rejected", "rejected"]);
+    expect(rowReads.get(ACME)).toBe(1);
+
+    await expect(pinnedProviderOf(ACME)).resolves.toBe(ACME_SAML);
+    expect(rowReads.get(ACME)).toBe(2);
+  });
+
+  test("a project named in capitals is kept, and forgotten, by the one id every server forgets it by", async () => {
+    const inCapitals: ObjectID = new ObjectID(ACME.toUpperCase());
+
+    await expect(
+      ProjectService.getRequireSsoForLogin(inCapitals),
+    ).resolves.toBe(true);
+    // The same rule, kept once, whichever case it is asked in.
+    await expect(pinnedProviderOf(ACME)).resolves.toBe(ACME_SAML);
+    expect(rowReads.get(ACME)).toBe(1);
+
+    // Acme's owner turns Require SSO for Login off; the announcement names Acme as the database does.
+    projects.get(ACME)!["requireSsoForLogin"] = false;
+    ProjectService.forgetSignInRules(new ObjectID(ACME));
+
+    await expect(
+      ProjectService.getRequireSsoForLogin(inCapitals),
+    ).resolves.toBe(false);
+    expect(rowReads.get(ACME)).toBe(2);
+  });
+
+  test("a read under way when the rule is forgotten answers its own caller, and is not kept: the next question reads the rule as it is now", async () => {
+    let letItAnswer: () => void = (): void => {
+      return undefined;
+    };
+
+    holdNextRead = new Promise<void>((resolve: () => void): void => {
+      letItAnswer = resolve;
+    });
+
+    // A request starts reading Beta's rule, which does not require SSO.
+    const underWay: Promise<boolean> = ProjectService.getRequireSsoForLogin(
+      new ObjectID(BETA),
+    );
+
+    await until((): boolean => {
+      return rowReads.get(BETA) === 1;
+    });
+
+    // Meanwhile Beta's owner turns Require SSO for Login on, and every server forgets Beta's rule.
+    projects.get(BETA)!["requireSsoForLogin"] = true;
+    ProjectService.forgetSignInRules(new ObjectID(BETA));
+
+    letItAnswer();
+
+    // The read answers its own caller with what it read...
+    await expect(underWay).resolves.toBe(false);
+
+    // ...but does not put the old rule back for the minute.
+    await expect(
+      ProjectService.getRequireSsoForLogin(new ObjectID(BETA)),
+    ).resolves.toBe(true);
+    expect(rowReads.get(BETA)).toBe(2);
   });
 
   test("forgetting every project's rule reads each row again", async () => {
