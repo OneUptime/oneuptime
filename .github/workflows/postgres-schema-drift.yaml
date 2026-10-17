@@ -1413,7 +1413,9 @@ jobs:
       # middleware: an edit of clusters limited to labels, to owned clusters
       # or blocked for a label reaches only the clusters it covers - through
       # a custom role too - and approving a plan's kubectl commands is held
-      # to the same rule.
+      # to the same rule. An incident's AI conversation runs its read-only
+      # commands only on the linked clusters and Docker hosts the person
+      # asking may view.
       - name: Test who may act on one Kubernetes cluster on migrated Postgres
         working-directory: packages/Common
         env:

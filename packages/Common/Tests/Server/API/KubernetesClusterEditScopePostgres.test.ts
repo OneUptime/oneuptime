@@ -95,7 +95,10 @@ import { DataSource } from "typeorm";
  *     signed-in person's.
  *
  * The same holds for an infrastructure resource's Reset agent (a Docker
- * host here). Every request goes through the route, the real user
+ * host here). And an incident's shared AI conversation, whose read-only
+ * kubectl and infrastructure commands the person asking steers, reaches
+ * only the linked clusters and Docker hosts that person may view.
+ * Every request goes through the route, the real user
  * middleware - which reads the member's teams, their permission rows and
  * labels (a custom role's copies included), or an API key and its
  * permission rows, from the tables below - and the real permission
@@ -1098,6 +1101,27 @@ describePostgres(
 
         expectKubectlRanOn(
           await testCluster(member, stagingClusterId),
+          stagingClusterId,
+        );
+      });
+
+      test("an id written in capitals names the same cluster, and is held to the same rule", async () => {
+        await setTeamPermissions(memberTeamId, stagingEditor);
+
+        expectRefused(
+          await send({
+            uri: TEST_ROUTE,
+            caller: member,
+            body: { clusterId: productionClusterId.toString().toUpperCase() },
+          }),
+          KUBERNETES_AI_ACCESS_TEST_EDIT_REFUSAL,
+        );
+        expectKubectlRanOn(
+          await send({
+            uri: TEST_ROUTE,
+            caller: member,
+            body: { clusterId: stagingClusterId.toString().toUpperCase() },
+          }),
           stagingClusterId,
         );
       });
