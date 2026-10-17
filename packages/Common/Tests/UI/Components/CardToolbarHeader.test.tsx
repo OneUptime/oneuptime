@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import Card, {
   CARD_HEADER_LAYOUTS,
   CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME,
+  CARD_HEADER_TOOLBAR_FILL_CLASS_NAME,
   CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME,
   ComponentProps,
 } from "../../../UI/Components/Card/Card";
@@ -129,7 +130,7 @@ describe("the toolbar header", () => {
     }
   });
 
-  test("its markup is the stacked header's but for its name and the title's share", () => {
+  test("its markup is the stacked header's but for its name, the title's share, and the line a filling control may take on a phone", () => {
     const toolbar: string = renderToStaticMarkup(
       <Card {...baseProps} headerLayout="toolbar" />,
     );
@@ -143,7 +144,50 @@ describe("the toolbar header", () => {
         .replace(
           CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME,
           CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME,
-        ),
+        )
+        .split(` ${CARD_HEADER_TOOLBAR_FILL_CLASS_NAME}`)
+        .join(""),
     ).toBe(stacked);
+  });
+});
+
+describe("a control that fills the toolbar's line on a phone (a table's search)", () => {
+  /*
+   * On a phone a table's search filled only its own measure, hung at the
+   * right edge; the toolbar's actions and the box the search is in take
+   * the card's width below md when they hold an element marked
+   * data-toolbar-fill (CARD_HEADER_TOOLBAR_FILL_ATTRIBUTE).
+   */
+  test("the toolbar's actions and each action's box may take the card's width, only when they hold such a control", () => {
+    expect(CARD_HEADER_TOOLBAR_FILL_CLASS_NAME).toBe(
+      "max-md:has-[[data-toolbar-fill]]:w-full",
+    );
+
+    render(<Card {...baseProps} headerLayout="toolbar" />);
+
+    const actions: HTMLElement = screen.getByTestId("card-header-actions");
+
+    expect(actions).toHaveClass(CARD_HEADER_TOOLBAR_FILL_CLASS_NAME);
+
+    for (const box of Array.from(actions.children)) {
+      expect(box).toHaveClass(CARD_HEADER_TOOLBAR_FILL_CLASS_NAME);
+    }
+  });
+
+  test("a default or stacked header never does: their buttons keep to their own width", () => {
+    for (const layout of ["default", "stacked"] as const) {
+      const markup: string = renderToStaticMarkup(
+        <Card {...baseProps} headerLayout={layout} />,
+      );
+
+      expect([layout, markup.includes("data-toolbar-fill")]).toEqual([
+        layout,
+        false,
+      ]);
+      expect([
+        layout,
+        markup.includes(CARD_HEADER_TOOLBAR_FILL_CLASS_NAME),
+      ]).toEqual([layout, false]);
+    }
   });
 });

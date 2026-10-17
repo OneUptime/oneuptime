@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import {
   afterEach,
@@ -72,9 +79,15 @@ jest.mock("../../../../UI/Utils/Translation", () => {
 import BaseModelTable, {
   BaseTableCallbacks,
   ComponentProps as BaseModelTableProps,
+  MODEL_TABLE_EXPANDED_SEARCH_CLASS_NAME,
+  MODEL_TABLE_FOLDED_BUTTONS_CLASS_NAME,
   MODEL_TABLE_FRAME_CLASS_NAME,
+  MODEL_TABLE_HEADER_TOOLBAR_CLASS_NAME,
+  MODEL_TABLE_PHONE_SEARCH_CLASS_NAME,
 } from "../../../../UI/Components/ModelTable/BaseModelTable";
 import {
+  CARD_HEADER_TOOLBAR_FILL_ATTRIBUTE,
+  CARD_HEADER_TOOLBAR_FILL_CLASS_NAME,
   CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME,
   ComponentProps as CardProps,
 } from "../../../../UI/Components/Card/Card";
@@ -253,11 +266,14 @@ describe("a table drawn without a card", () => {
         "border",
         "border-gray-200",
         "bg-white",
-        "px-6",
+        // A card's padding: 20px on a phone, 24px from md up.
+        "px-5",
+        "md:px-6",
         "pb-6",
         "overflow-clip",
       ]),
     );
+    expect(MODEL_TABLE_FRAME_CLASS_NAME.split(" ")).not.toContain("px-6");
     // Not the old 2px border, and nothing that would stop the header sticking.
     expect(frame).not.toHaveClass("border-2");
     expect(frame).not.toHaveClass("overflow-hidden");
@@ -266,5 +282,101 @@ describe("a table drawn without a card", () => {
       "overflow-hidden",
     );
     expect(frame).toContainElement(screen.getByTestId("table-footer"));
+  });
+});
+
+describe("a table's header controls on a phone", () => {
+  /*
+   * The search was a 176px pill hung at the right edge on a line of its
+   * own, over the buttons; opened, it stopped short of the card's left edge
+   * while the folded buttons beside it reached 31px past the screen and let
+   * the page scroll sideways. On a phone the controls take the card's width
+   * and the search fills its line.
+   */
+  const renderWithSearch: () => Promise<void> = async (): Promise<void> => {
+    render(
+      <BaseModelTable<Monitor>
+        {...makeProps({
+          title: "Monitors",
+          description: "Monitors check your websites and APIs.",
+        })}
+      />,
+    );
+
+    await screen.findByText("Checkout API");
+  };
+
+  test("the controls' row says it fills the toolbar's line, and Card lets it on a phone", async () => {
+    await renderWithSearch();
+
+    const toolbar: HTMLElement = screen.getByTestId(
+      "model-table-header-toolbar",
+    );
+
+    expect(CARD_HEADER_TOOLBAR_FILL_ATTRIBUTE).toBe("data-toolbar-fill");
+    expect(toolbar).toHaveAttribute(CARD_HEADER_TOOLBAR_FILL_ATTRIBUTE, "true");
+    expect(toolbar.className).toBe(MODEL_TABLE_HEADER_TOOLBAR_CLASS_NAME);
+    expect(toolbar).toHaveClass("max-md:w-full", "flex-wrap", "justify-end");
+
+    // The toolbar's actions, and the box the row is in, take the card's width.
+    const fill: Array<string> = CARD_HEADER_TOOLBAR_FILL_CLASS_NAME.split(" ");
+
+    expect(screen.getByTestId("card-header-actions")).toHaveClass(...fill);
+    expect(toolbar.parentElement).toHaveClass(...fill);
+  });
+
+  test("folded, the search fills its line on a phone, and is the 14rem pill from md up", async () => {
+    await renderWithSearch();
+
+    const slot: HTMLElement = screen.getByTestId("model-table-search-slot");
+
+    expect(slot).toHaveClass(...MODEL_TABLE_PHONE_SEARCH_CLASS_NAME.split(" "));
+    expect(MODEL_TABLE_PHONE_SEARCH_CLASS_NAME.split(" ")).toEqual([
+      "max-md:min-w-[11rem]",
+      "max-md:flex-1",
+      "md:w-56",
+    ]);
+    // No fixed phone width of its own any more.
+    expect(slot).not.toHaveClass("w-44");
+  });
+
+  test("opened, it is the card's width on a phone; the buttons beside it fold away without spilling past the card", async () => {
+    await renderWithSearch();
+
+    const toolbar: HTMLElement = screen.getByTestId(
+      "model-table-header-toolbar",
+    );
+    const buttons: HTMLElement = toolbar.lastElementChild as HTMLElement;
+
+    // Folded only while the search is open: the ⋯ menu opens out of them.
+    expect(buttons).not.toHaveClass("overflow-hidden");
+    expect(buttons).toHaveClass("max-w-[600px]");
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Open search" }));
+    });
+
+    const slot: HTMLElement = screen.getByTestId("model-table-search-slot");
+
+    expect(slot).toHaveClass(
+      ...MODEL_TABLE_EXPANDED_SEARCH_CLASS_NAME.split(" "),
+    );
+    expect(MODEL_TABLE_EXPANDED_SEARCH_CLASS_NAME.split(" ")).toEqual([
+      "w-full",
+      "md:w-[26rem]",
+      "lg:w-[32rem]",
+    ]);
+
+    expect(buttons).toHaveClass(
+      ...MODEL_TABLE_FOLDED_BUTTONS_CLASS_NAME.split(" "),
+    );
+    // Clipped, and on one line - squeezed, "Create Monitor" broke over two.
+    expect(buttons).toHaveClass(
+      "max-w-0",
+      "overflow-hidden",
+      "whitespace-nowrap",
+      "pointer-events-none",
+    );
+    expect(buttons).toHaveAttribute("aria-hidden", "true");
   });
 });

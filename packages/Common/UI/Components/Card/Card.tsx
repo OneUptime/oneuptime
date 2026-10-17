@@ -136,6 +136,21 @@ export const CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME: string =
   "min-w-0 md:grow md:basis-48";
 
 /*
+ * A control of a toolbar header that fills its line on a phone - a table's
+ * search - marks the element it is in with this attribute. Below md the
+ * toolbar's actions, and the action box that holds that element, then take
+ * the card's width (CARD_HEADER_TOOLBAR_FILL_CLASS_NAME), so the search can
+ * fill its line: as wide as the card, not hung at the right edge, and an
+ * opened search no wider than its text's own measure. A toolbar with no
+ * such control (a table without a search) keeps its buttons beside the
+ * title while they fit.
+ */
+export const CARD_HEADER_TOOLBAR_FILL_ATTRIBUTE: string = "data-toolbar-fill";
+
+export const CARD_HEADER_TOOLBAR_FILL_CLASS_NAME: string =
+  "max-md:has-[[data-toolbar-fill]]:w-full";
+
+/*
  * Each action's own box. Button carries a left margin meant for a dialog's
  * footer (md:ml-3 on a normal button, ml-1 on an outline one), which made
  * the gaps between a card's buttons uneven - 18px between two normal
@@ -209,7 +224,14 @@ const Card: FunctionComponent<ComponentProps> = (
     return (props.buttons || []).map(
       (button: CardButtonSchema | ReactElement, i: number) => {
         return (
-          <div key={i} className={CARD_HEADER_ACTION_CLASS_NAME}>
+          <div
+            key={i}
+            className={
+              isToolbar
+                ? `${CARD_HEADER_ACTION_CLASS_NAME} ${CARD_HEADER_TOOLBAR_FILL_CLASS_NAME}`
+                : CARD_HEADER_ACTION_CLASS_NAME
+            }
+          >
             {React.isValidElement(button) ? button : null}
             {React.isValidElement(button) ? null : (
               <Button
@@ -265,7 +287,7 @@ const Card: FunctionComponent<ComponentProps> = (
       data-testid="card-header-actions"
       className={`${CARD_HEADER_ACTIONS_CLASS_NAME}${
         isStacked ? "" : " md:flex-shrink-0"
-      }`}
+      }${isToolbar ? ` ${CARD_HEADER_TOOLBAR_FILL_CLASS_NAME}` : ""}`}
     >
       {props.rightElement && (
         <div className="flex items-center">{props.rightElement}</div>

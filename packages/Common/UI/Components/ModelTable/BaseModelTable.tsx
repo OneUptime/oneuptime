@@ -208,10 +208,43 @@ export enum ShowAs {
 export const BULK_SELECT_ALL_PAGE_SIZE: number = 1000;
 
 /*
- * The frame of a table drawn without a card of its own (no cardProps).
+ * The row of a table's header controls: its search, saved views, main
+ * button and ⋯. On a phone (below md) it takes the card's width.
+ */
+export const MODEL_TABLE_HEADER_TOOLBAR_CLASS_NAME: string =
+  "flex flex-wrap items-center justify-end gap-3 max-md:w-full";
+
+/*
+ * The search while it is folded to its "Search... /" pill: 14rem from md
+ * up. On a phone it fills its line - beside the buttons where they fit, on
+ * a line of its own where they do not - never narrower than 11rem.
+ */
+export const MODEL_TABLE_PHONE_SEARCH_CLASS_NAME: string =
+  "max-md:min-w-[11rem] max-md:flex-1 md:w-56";
+
+// The search opened: the card's width on a phone, a wide bar from md up.
+export const MODEL_TABLE_EXPANDED_SEARCH_CLASS_NAME: string =
+  "w-full md:w-[26rem] lg:w-[32rem]";
+
+/*
+ * The buttons beside an opened search, folded away to no width. They clip
+ * what they hold while folded: their buttons, drawn on past a box of no
+ * width, reached 31px past a phone's screen and let the whole page scroll
+ * sideways. Only while folded - the ⋯ menu opens out of them otherwise.
+ * And their words keep to one line: squeezed to no width, "Create
+ * Monitor" broke over two, the folded box stood 58px tall, and the opened
+ * search dropped 10px below the card's title.
+ */
+export const MODEL_TABLE_FOLDED_BUTTONS_CLASS_NAME: string =
+  "max-w-0 -ml-3 gap-0 opacity-0 pointer-events-none overflow-hidden whitespace-nowrap";
+
+/*
+ * The frame of a table drawn without a card of its own (no cardProps),
+ * padded as a card is - 20px on a phone, 24px from md up - since the
+ * table's rows and footer reach through that padding to its edges.
  */
 export const MODEL_TABLE_FRAME_CLASS_NAME: string =
-  "overflow-clip rounded-xl border border-gray-200 bg-white px-6 pb-6 shadow-sm";
+  "overflow-clip rounded-xl border border-gray-200 bg-white px-5 pb-6 shadow-sm md:px-6";
 
 export interface SaveFilterProps {
   tableId: string;
@@ -3923,7 +3956,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         /*
          * A table outside a card is framed as a card is - one hairline,
          * rounded, white - with the padding the table's rows and footer
-         * reach out to (-mx-6, -mb-6). It was a 2px border whose footer ran
+         * reach out to (-mx-5 md:-mx-6, -mb-6). It was a 2px border whose footer ran
          * 4px past its bottom edge. overflow-clip rounds the header band's
          * corners without making a scroll box, so the header row can still
          * stick to the page.
@@ -5076,11 +5109,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * One row while it fits; in a narrow card (a phone, or beside a product's
      * side menu) the buttons wrap under the search, at the right edge,
      * instead of the row running off the card's left edge.
+     *
+     * On a phone the row takes the card's width, and the search the whole
+     * of its line (MODEL_TABLE_PHONE_SEARCH_CLASS_NAME) - a 176px search
+     * pill hung at the right edge on a line of its own, over the buttons.
      */
     const wrapped: ReactElement = (
       <div
         key="model-table-header-actions"
-        className="flex flex-wrap items-center justify-end gap-3"
+        data-testid="model-table-header-toolbar"
+        // Card's CARD_HEADER_TOOLBAR_FILL_ATTRIBUTE: fill the line on a phone.
+        data-toolbar-fill="true"
+        className={MODEL_TABLE_HEADER_TOOLBAR_CLASS_NAME}
       >
         {/*
          * Search slot — a compact pill showing "Search …    /" by default,
@@ -5089,8 +5129,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          * polished search affordance, in line with Stripe / Linear / GitHub.
          */}
         <div
+          data-testid="model-table-search-slot"
           className={`relative max-w-full shrink-0 transition-[width] duration-300 ease-out ${
-            isExpanded ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]" : "w-44 sm:w-56"
+            isExpanded
+              ? MODEL_TABLE_EXPANDED_SEARCH_CLASS_NAME
+              : MODEL_TABLE_PHONE_SEARCH_CLASS_NAME
           }`}
         >
           {/* Trigger (collapsed state) */}
@@ -5148,7 +5191,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <div
           className={`flex items-center transition-all duration-300 ease-out [&_button]:md:ml-0 ${
             isExpanded
-              ? "max-w-0 -ml-3 gap-0 opacity-0 pointer-events-none"
+              ? MODEL_TABLE_FOLDED_BUTTONS_CLASS_NAME
               : "max-w-[600px] gap-3 opacity-100"
           }`}
           aria-hidden={isExpanded}
