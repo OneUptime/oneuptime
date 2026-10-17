@@ -86,6 +86,10 @@ const VERIFY_PER_IP_LIMIT: number = 150;
 const RESEND_PER_ITEM_LIMIT: number = 5;
 const RESEND_PER_USER_LIMIT: number = 15;
 const RESEND_PER_IP_LIMIT: number = 45;
+const ADD_WINDOW_SECONDS: number = 15 * 60;
+const ADD_PER_CHANNEL_LIMIT: number = 5;
+const ADD_PER_USER_LIMIT: number = 10;
+const ADD_PER_IP_LIMIT: number = 150;
 
 const ITEM_A: string = "1a2b3c4d-1111-4111-8111-111111111111";
 const ITEM_B: string = "1a2b3c4d-2222-4222-8222-222222222222";
@@ -770,6 +774,217 @@ describe("VerificationCodeRateLimit", () => {
       }
 
       expect(allowed).toBe(VERIFY_PER_ITEM_LIMIT);
+    });
+  });
+
+  /*
+   * Adding an email address, an SMS, call or WhatsApp number, or an incoming
+   * call number sends its first code at once - a message on somebody's phone
+   * and a line on the project's bill, from a new row with no cooldown of its
+   * own. Removing the number and adding it again was a resend with no limit
+   * at all. Adds are counted in a budget of their own: per kind of method a
+   * person adds, per person, and per client address.
+   */
+  describe("adds", () => {
+    const addRequest: (data?: {
+      userId?: string | undefined;
+      ip?: string | undefined;
+    }) => ExpressRequest = (
+      data: { userId?: string | undefined; ip?: string | undefined } = {},
+    ) => {
+      return buildRequest({
+        body: { data: { phone: "+15550100009" } },
+        userId: "userId" in data ? data.userId : USER_A,
+        headers: { "x-forwarded-for": data.ip || "203.0.113.7" },
+      });
+    };
+
+    const add: (data?: {
+      channel?: string;
+      userId?: string | undefined;
+      ip?: string | undefined;
+      response?: ExpressResponse;
+    }) => Promise<Exception | null> = async (
+      data: {
+        channel?: string;
+        userId?: string | undefined;
+        ip?: string | undefined;
+        response?: ExpressResponse;
+      } = {},
+    ): Promise<Exception | null> => {
+      try {
+        await VerificationCodeRateLimit.checkAddAllowed({
+          req: addRequest(data),
+          res: data.response || buildResponse().response,
+          channel: data.channel || "/user-sms",
+        });
+      } catch (error) {
+        return error as Exception;
+      }
+
+      return null;
+    };
+
+    it("lets a person add a number of each kind and a few more", async () => {
+      for (const channel of [
+        "/user-email",
+        "/user-sms",
+        "/user-call",
+        "/user-whatsapp",
+        "/user-incoming-call-number",
+      ]) {
+        expect(await add({ channel })).toBeNull();
+      }
+    });
+
+    it("holds one kind of method to its own allowance", async () => {
+      for (let i: number = 0; i < ADD_PER_CHANNEL_LIMIT; i++) {
+        expect(await add({ channel: "/user-sms" })).toBeNull();
+      }
+
+      const refusal: Exception | null = await add({ channel: "/user-sms" });
+
+      expect(refusal?.code).toBe(ExceptionCode.TooManyRequestsException);
+      expect(refusal?.message).toBe(
+        "Too many notification methods added. Please try again later.",
+      );
+
+      // Another kind of method still has its own.
+      expect(await add({ channel: "/user-email" })).toBeNull();
+    });
+
+    it("holds a person to one allowance across every kind of method", async () => {
+      const channels: Array<string> = [
+        "/user-email",
+        "/user-sms",
+        "/user-call",
+        "/user-whatsapp",
+        "/user-incoming-call-number",
+      ];
+
+      let allowed: number = 0;
+
+      for (let i: number = 0; i < ADD_PER_USER_LIMIT + 5; i++) {
+        if (!(await add({ channel: channels[i % channels.length] }))) {
+          allowed++;
+        }
+      }
+
+      expect(allowed).toBe(ADD_PER_USER_LIMIT);
+    });
+
+    it("holds an address to one allowance across accounts", async () => {
+      let allowed: number = 0;
+
+      for (let i: number = 0; i < ADD_PER_IP_LIMIT + 5; i++) {
+        const userId: string = `1a2b3c4d-0000-4000-8000-${i
+          .toString()
+          .padStart(12, "0")}`;
+
+        if (!(await add({ userId }))) {
+          allowed++;
+        }
+      }
+
+      expect(allowed).toBe(ADD_PER_IP_LIMIT);
+    });
+
+    it("keeps adds apart from resends and verifies", async () => {
+      for (let i: number = 0; i < ADD_PER_CHANNEL_LIMIT + 1; i++) {
+        await add({});
+      }
+
+      expect(
+        (await consume({ bucket: VerificationCodeRateLimitBucket.Resend }))
+          .outcome,
+      ).toBe(VerificationCodeRateLimitOutcome.Allowed);
+      expect(
+        (await consume({ bucket: VerificationCodeRateLimitBucket.Verify }))
+          .outcome,
+      ).toBe(VerificationCodeRateLimitOutcome.Allowed);
+    });
+
+    it("tells a refused add when the window rolls", async () => {
+      const built: BuiltResponse = buildResponse();
+
+      for (let i: number = 0; i < ADD_PER_CHANNEL_LIMIT; i++) {
+        await add({ response: built.response });
+      }
+
+      expect(await add({ response: built.response })).not.toBeNull();
+      expect(built.headers["Retry-After"]).toBe(String(ADD_WINDOW_SECONDS));
+    });
+
+    it("logs the first refused add of a window once", async () => {
+      for (let i: number = 0; i < ADD_PER_CHANNEL_LIMIT + 3; i++) {
+        await add({});
+      }
+
+      const rejections: Array<unknown> = loggerWarnMock.mock.calls.filter(
+        (call: Array<unknown>) => {
+          return String(call[0]).includes("rejected add request");
+        },
+      );
+
+      expect(rejections).toHaveLength(1);
+    });
+
+    /*
+     * The create route has no requireUserAuthentication of its own: a
+     * request with no person in it is refused by the create (a 401 for an
+     * expired session) before anything is sent, and is not counted - so it
+     * cannot spend the allowance everybody without a session, or behind the
+     * same address, shares.
+     */
+    it("does not count a request that names no person", async () => {
+      for (let i: number = 0; i < ADD_PER_IP_LIMIT + 5; i++) {
+        expect(await add({ userId: undefined })).toBeNull();
+      }
+
+      expect(client.counters.size).toBe(0);
+      expect(await add({})).toBeNull();
+    });
+
+    it("lets adds through while Redis is gone, as the other budgets do", async () => {
+      getClientMock.mockReturnValue(null);
+
+      for (let i: number = 0; i < ADD_PER_CHANNEL_LIMIT + 5; i++) {
+        expect(await add({})).toBeNull();
+      }
+    });
+
+    it("keys each kind of method apart, in a key safe to store", () => {
+      expect(VerificationCodeRateLimit.resolveChannelKey("/user-sms")).toBe(
+        "add_user-sms",
+      );
+      expect(
+        VerificationCodeRateLimit.resolveChannelKey("/USER-SMS "),
+      ).toBe(VerificationCodeRateLimit.resolveChannelKey("/user-sms"));
+      expect(VerificationCodeRateLimit.resolveChannelKey("/user-call")).not.toBe(
+        VerificationCodeRateLimit.resolveChannelKey("/user-sms"),
+      );
+      expect(
+        VerificationCodeRateLimit.resolveChannelKey("/user-" + "x".repeat(200))
+          .length,
+      ).toBeLessThanOrEqual(64);
+    });
+
+    it("has the add budget's defaults", () => {
+      const config: {
+        windowSeconds: number;
+        perItemLimit: number;
+        perUserLimit: number;
+        perIpLimit: number;
+      } = VerificationCodeRateLimit.getBucketConfig(
+        VerificationCodeRateLimitBucket.Add,
+      );
+
+      expect(config).toEqual({
+        windowSeconds: ADD_WINDOW_SECONDS,
+        perItemLimit: ADD_PER_CHANNEL_LIMIT,
+        perUserLimit: ADD_PER_USER_LIMIT,
+        perIpLimit: ADD_PER_IP_LIMIT,
+      });
     });
   });
 });

@@ -187,6 +187,14 @@ export default class CreatePermission {
   public static readonly PROJECT_REQUIRED_MESSAGE: string =
     "Project ID is required. Please pass the project ID in the 'tenantid' header.";
 
+  // Why such a create whose row names another project than the request is refused.
+  public static readonly PROJECT_MISMATCH_MESSAGE: string =
+    "The project ID in the request body does not match the project in the 'tenantid' header.";
+
+  // Why such a create whose row names two projects is refused.
+  public static readonly PROJECTS_DISAGREE_MESSAGE: string =
+    "The project ID and the project in the request body name different projects.";
+
   /*
    * A ROW SOMEBODY ADDS FOR THEMSELVES GOES INTO A PROJECT THEY ARE A MEMBER
    * OF.
@@ -274,7 +282,7 @@ export default class CreatePermission {
 
     if (namedProjectIds.length > 1) {
       throw new BadDataException(
-        `A ${model.singularName} belongs to one project, and this one names ${namedProjectIds.length}.`,
+        CreatePermission.PROJECTS_DISAGREE_MESSAGE,
       );
     }
 
@@ -286,7 +294,7 @@ export default class CreatePermission {
         namedProjectId !== CreatePermission.normalizeProjectId(props.tenantId)
       ) {
         throw new BadDataException(
-          `A ${model.singularName} is added to the project this request is made in, and the project it names is another one.`,
+          CreatePermission.PROJECT_MISMATCH_MESSAGE,
         );
       }
 
