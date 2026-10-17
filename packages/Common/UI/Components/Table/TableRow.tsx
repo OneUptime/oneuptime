@@ -16,6 +16,7 @@ import {
   TABLE_ACTIONS_CONTENT_CLASS_NAME,
   TABLE_CLICKABLE_ROW_CLASS_NAME,
   TABLE_DRAG_HANDLE_CELL_CLASS_NAME,
+  TABLE_MOBILE_FIELD_CLASS_NAME,
   TABLE_MOBILE_FIELD_NAME_CLASS_NAME,
   TABLE_MOBILE_FIELD_VALUE_CLASS_NAME,
   TABLE_MOBILE_ROW_CLASS_NAME,
@@ -409,7 +410,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 return (
                   <div
                     key={i}
-                    className="flex flex-col"
+                    className={TABLE_MOBILE_FIELD_CLASS_NAME}
                     onClick={() => {
                       if (column.tooltipText) {
                         setTooltipModalText(column.tooltipText(props.item));

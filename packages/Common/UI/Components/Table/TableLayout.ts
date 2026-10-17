@@ -331,6 +331,16 @@ export const TABLE_LIST_ITEM_CLASS_NAME: string = `truncate ${TABLE_CELL_INLINE_
 export const TABLE_MOBILE_ROW_CLASS_NAME: string =
   "bg-white px-4 py-4 transition-colors duration-150";
 
+/*
+ * A field of a card: its name over its value. A field whose value is only
+ * the quiet dash is left out - TableRow leaves out the empty values it can
+ * tell before they are drawn, and this the ones a page's own element draws
+ * (a record's labels, its owners), which say they are empty only once
+ * drawn.
+ */
+export const TABLE_MOBILE_FIELD_CLASS_NAME: string =
+  "flex flex-col [&:has(>dd>[data-testid=table-empty-value]:only-child)]:hidden";
+
 export const TABLE_MOBILE_FIELD_NAME_CLASS_NAME: string =
   "text-xs font-medium text-gray-500";
 

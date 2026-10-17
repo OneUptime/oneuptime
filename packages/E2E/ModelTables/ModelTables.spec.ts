@@ -1082,6 +1082,73 @@ test.describe("on a phone", () => {
 
     await screenshot(page, "incidents-rich-390");
   });
+
+  test("a field with nothing to say is left out, even one a page's own element draws empty", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${GALLERY}?data=rich`, 390, 900);
+
+    const cards: Locator = page.locator("#gallery-kinds-body > div");
+
+    await expect(cards).toHaveCount(4);
+
+    // The names of the fields each card shows, as a reader sees them.
+    const shownFields: Array<Array<string>> = await cards.evaluateAll(
+      (elements: Array<Element>): Array<Array<string>> => {
+        return elements.map((card: Element): Array<string> => {
+          return Array.from(card.querySelectorAll("dt"))
+            .filter((term: Element): boolean => {
+              return (term as HTMLElement).offsetParent !== null;
+            })
+            .map((term: Element): string => {
+              return (term.textContent || "").trim();
+            });
+        });
+      },
+    );
+
+    /*
+     * No card shows a field that is only a dash: Labels (LabelsElement)
+     * with none, a Description never written.
+     */
+    for (const fields of shownFields) {
+      expect(fields).toContain("Name");
+    }
+    expect(shownFields[0]).not.toContain("Labels");
+    expect(shownFields[1]).not.toContain("Description");
+    expect(shownFields[1]).not.toContain("Labels");
+    // A monitor with labels shows them.
+    expect(
+      shownFields.some((fields: Array<string>) => {
+        return fields.includes("Labels");
+      }),
+    ).toBe(true);
+
+    // And nothing in a card that is shown is a lone dash.
+    expect(
+      await cards.evaluateAll((elements: Array<Element>): number => {
+        return elements.reduce((count: number, card: Element): number => {
+          return (
+            count +
+            Array.from(card.querySelectorAll("dd")).filter(
+              (value: Element): boolean => {
+                return (
+                  (value as HTMLElement).offsetParent !== null &&
+                  value.children.length === 1 &&
+                  value.firstElementChild?.getAttribute("data-testid") ===
+                    "table-empty-value"
+                );
+              },
+            ).length
+          );
+        }, 0);
+      }),
+    ).toBe(0);
+
+    await screenshot(page, "gallery-kinds-rich-390");
+  });
 });
 
 test.describe("the dark theme", () => {

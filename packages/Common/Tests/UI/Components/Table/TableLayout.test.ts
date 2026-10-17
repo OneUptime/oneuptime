@@ -18,6 +18,7 @@ import {
   TABLE_HEADER_CONTENT_CLASS_NAME,
   TABLE_HEADER_SELECT_CELL_CLASS_NAME,
   TABLE_LIST_ITEM_CLASS_NAME,
+  TABLE_MOBILE_FIELD_CLASS_NAME,
   TABLE_MOBILE_FIELD_NAME_CLASS_NAME,
   TABLE_MOBILE_FIELD_VALUE_CLASS_NAME,
   TABLE_MOBILE_ROW_CLASS_NAME,
@@ -41,6 +42,7 @@ import {
   getTableCellPaddingClassName,
   hasMaxWidthClassName,
 } from "../../../../UI/Components/Table/TableLayout";
+import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
 
 /*
  * The table's look, held class by class (Common/UI/Components/Table/
@@ -409,6 +411,18 @@ describe("the Actions column", () => {
 });
 
 describe("a row on a phone", () => {
+  test("a field whose value is only the quiet dash is left out, whoever drew the dash", () => {
+    expect(tokens(TABLE_MOBILE_FIELD_CLASS_NAME)).toEqual([
+      "flex",
+      "flex-col",
+      "[&:has(>dd>[data-testid=table-empty-value]:only-child)]:hidden",
+    ]);
+    // The mark it looks for is the one TableEmptyValue draws.
+    expect(TABLE_MOBILE_FIELD_CLASS_NAME).toContain(
+      `[data-testid=${TABLE_EMPTY_VALUE_TEST_ID}]`,
+    );
+  });
+
   test("is a card of names over values, as a detail card writes its fields", () => {
     expect(tokens(TABLE_MOBILE_ROW_CLASS_NAME)).toEqual(
       expect.arrayContaining(["bg-white", "px-4", "py-4"]),

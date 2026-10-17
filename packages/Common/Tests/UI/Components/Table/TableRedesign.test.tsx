@@ -17,6 +17,7 @@ import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
 import {
   TABLE_CLASS_NAME,
   TABLE_CLICKABLE_ROW_CLASS_NAME,
+  TABLE_MOBILE_FIELD_CLASS_NAME,
   TABLE_HEADER_CELL_CLASS_NAME,
   TABLE_PRIMARY_CELL_TEXT_CLASS_NAME,
   TABLE_ROW_CLASS_NAME,
@@ -27,7 +28,9 @@ import {
   TABLE_STICKY_HEADER_CELL_CLASS_NAME,
   TABLE_STUCK_END_CELL_CLASS_NAME,
 } from "../../../../UI/Components/Table/TableLayout";
-import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  TABLE_EMPTY_VALUE_TEST_ID,
+} from "../../../../UI/Components/Table/TableEmptyValue";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import IconProp from "../../../../Types/Icon/IconProp";
 
@@ -649,6 +652,18 @@ describe("a value too long for its column", () => {
   });
 });
 
+/*
+ * The shape of LabelsElement: the record's labels, or - for a record with
+ * none - the quiet dash, drawn by the component itself.
+ */
+function NoteLabels(props: { note?: string | undefined }): ReactElement {
+  if (!props.note) {
+    return <TableEmptyValue screenReaderText="No labels attached." />;
+  }
+
+  return <span>{props.note}</span>;
+}
+
 describe("on a phone", () => {
   test("a row is a card of names over values, the name first and heavier, the empty ones left out", () => {
     setViewportWidth(390);
@@ -680,6 +695,66 @@ describe("on a phone", () => {
       }),
     ).toEqual(["Name"]);
     expect(within(second).queryByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeNull();
+  });
+
+  test("a page's own element that draws the dash - a record's labels - is a field the card leaves out", () => {
+    setViewportWidth(390);
+    renderTable({
+      columns: [
+        { title: "Name", type: FieldType.Text, key: "name" },
+        {
+          title: "Labels",
+          type: FieldType.Element,
+          key: "note",
+          getElement: (row: Row): ReactElement => {
+            /*
+             * A component of the page's, as LabelsElement is: whether it
+             * is empty is only known once it is drawn.
+             */
+            return <NoteLabels note={row.note} />;
+          },
+        },
+      ],
+    });
+
+    const cards: Array<HTMLElement> = Array.from(
+      document.querySelectorAll<HTMLElement>("#redesign-table-body > div"),
+    );
+    const fieldOf: (card: HTMLElement, name: string) => HTMLElement = (
+      card: HTMLElement,
+      name: string,
+    ): HTMLElement => {
+      const term: HTMLElement | undefined = Array.from(
+        card.querySelectorAll<HTMLElement>("dt"),
+      ).find((candidate: HTMLElement): boolean => {
+        return candidate.textContent === name;
+      });
+
+      if (!term) {
+        throw new Error(`No field "${name}".`);
+      }
+
+      return term.parentElement as HTMLElement;
+    };
+
+    // Checkout API has a note: its field is shown, and is no dash.
+    const shown: HTMLElement = fieldOf(cards[0]!, "Labels");
+    expect(within(shown).queryByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeNull();
+    expect(shown.className).toBe(TABLE_MOBILE_FIELD_CLASS_NAME);
+
+    /*
+     * Marketing Website has none: the dash is its field's only value, which
+     * the field's class leaves out (measured in Chromium by the offline
+     * suite).
+     */
+    const empty: HTMLElement = fieldOf(cards[1]!, "Labels");
+    const value: HTMLElement = empty.querySelector("dd") as HTMLElement;
+    expect(value.children).toHaveLength(1);
+    expect(value.firstElementChild).toHaveAttribute(
+      "data-testid",
+      TABLE_EMPTY_VALUE_TEST_ID,
+    );
+    expect(empty.className).toBe(TABLE_MOBILE_FIELD_CLASS_NAME);
   });
 
   test("a card that opens its record answers a tap", () => {
