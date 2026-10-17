@@ -7,13 +7,15 @@ import {
   respondToMobileSsoFailure,
   setMobileSsoIntentCookie,
 } from "../Utils/MobileSso";
+import SsoTeamMembership, {
+  SsoTeamMembershipOutcome,
+} from "../Utils/SsoTeamMembership";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
@@ -50,7 +52,6 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
 import GlobalOIDCProject from "Common/Models/DatabaseModels/GlobalOidcProject";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import { Client } from "openid-client";
 
@@ -649,18 +650,23 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
           continue;
         }
 
-        for (const team of attachment.teams) {
-          let teamMember: TeamMember = new TeamMember();
-          teamMember.projectId = attachment.projectId;
-          teamMember.userId = alreadySavedUser!.id!;
-          teamMember.hasAcceptedInvitation = true;
-          teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
-          teamMember.teamId = team.id!;
-
-          teamMember = await TeamMemberService.create({
-            data: teamMember,
-            props: { isRoot: true, ignoreHooks: true },
-          });
+        /*
+         * They take a seat in each project like anyone invited. A project
+         * with no room for one more person adds them nowhere, and is left
+         * out: they still sign in to every other project, and join this one
+         * on a later sign-in once it has room.
+         */
+        if (
+          (await SsoTeamMembership.addToTeams({
+            projectId: attachment.projectId,
+            userId: alreadySavedUser!.id!,
+            teams: attachment.teams,
+          })) === SsoTeamMembershipOutcome.NoRoom
+        ) {
+          logger.info(
+            `Global OIDC did not add ${result.email.toString()} to project ${attachment.projectId.toString()}: it has no room for another person.`,
+            getLogAttributesFromRequest(req as RequestLike),
+          );
         }
       }
     }
