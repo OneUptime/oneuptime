@@ -44,6 +44,7 @@ import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
 } from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
+import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
 import Label from "../../../Models/DatabaseModels/Label";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Dictionary from "../../../Types/Dictionary";
@@ -174,6 +175,8 @@ interface Reached {
   tenantId: string | undefined;
   isMasterAdmin: boolean;
   userType: string | undefined;
+  // In a request across projects: the permissions it held in each.
+  permissions: Dictionary<Array<string>> | undefined;
 }
 
 // What the requests that got through reached, and as whom.
@@ -182,13 +185,39 @@ const reached: Array<Reached> = [];
 let server: http.Server | null = null;
 let port: number = 0;
 
+function namesOf(permission: UserTenantAccessPermission): Array<string> {
+  return permission.permissions
+    .map((held: { permission: Permission }): string => {
+      return held.permission;
+    })
+    .sort();
+}
+
 function record(what: string, props: JSONObject | undefined): void {
+  const tenantPermissions: Dictionary<UserTenantAccessPermission> | undefined =
+    props?.["isMultiTenantRequest"]
+      ? (props["userTenantAccessPermission"] as
+          | Dictionary<UserTenantAccessPermission>
+          | undefined)
+      : undefined;
+
+  let permissions: Dictionary<Array<string>> | undefined = undefined;
+
+  if (tenantPermissions) {
+    permissions = {};
+
+    for (const projectId of Object.keys(tenantPermissions)) {
+      permissions[projectId] = namesOf(tenantPermissions[projectId]!);
+    }
+  }
+
   reached.push({
     what: what,
     userId: props?.["userId"] ? String(props["userId"]) : undefined,
     tenantId: props?.["tenantId"] ? String(props["tenantId"]) : undefined,
     isMasterAdmin: props?.["isMasterAdmin"] === true,
     userType: props?.["userType"] ? String(props["userType"]) : undefined,
+    permissions: permissions,
   });
 }
 
@@ -700,6 +729,17 @@ function listLabels(projectId: ObjectID, session: string): Promise<HttpResult> {
   });
 }
 
+// Lists the labels of all of a person's projects at once, as the dashboard's home page lists their records.
+function listLabelsAcrossProjects(session: string): Promise<HttpResult> {
+  return send({
+    method: "POST",
+    path: "/api/label/get-list",
+    token: session,
+    headers: { "is-multi-tenant-query": "true" },
+    body: { query: {}, select: { _id: true } },
+  });
+}
+
 function listUsers(session: string): Promise<HttpResult> {
   return send({
     method: "POST",
@@ -1010,6 +1050,58 @@ describe("a master admin whose access was removed, with the session they already
 
     expect(result.status).toBe(200);
     expect(reachedNames()).toEqual(["memberships of a user"]);
+  });
+});
+
+/*
+ * The dashboard's home page reads the records of all of a person's projects
+ * at once. A master admin is never held to the server's Require SSO there
+ * either; once their access is removed, each of their projects gives them
+ * no more than a member who has not signed in with SSO may have.
+ */
+describe("in a request across their projects", () => {
+  test("a master admin whose access was removed is held to the server's Require SSO in each one", async () => {
+    serverRequiresSso = true;
+
+    const formerSession: string = sessionOf(people.former, true);
+
+    expect((await listLabelsAcrossProjects(formerSession)).status).toBe(200);
+    expect(reached.length).toBeGreaterThan(0);
+
+    for (const entry of reached) {
+      expect(entry).toMatchObject({
+        userId: people.former.toString(),
+        isMasterAdmin: true,
+        userType: UserType.MasterAdmin,
+        permissions: {
+          [THEIR_PROJECT_ID.toString()]: [Permission.ProjectAdmin],
+        },
+      });
+    }
+
+    reached.length = 0;
+
+    await removeAccessOfFormer(sessionOf(people.admin, true));
+
+    await listLabelsAcrossProjects(formerSession);
+
+    const signedOut: Array<string> = namesOf(
+      UserPermissionUtil.getDefaultUserTenantAccessPermission(THEIR_PROJECT_ID),
+    );
+
+    expect(signedOut).not.toContain(Permission.ProjectAdmin);
+    expect(reached.length).toBeGreaterThan(0);
+
+    for (const entry of reached) {
+      expect(entry).toMatchObject({
+        userId: people.former.toString(),
+        isMasterAdmin: false,
+        userType: UserType.User,
+        permissions: {
+          [THEIR_PROJECT_ID.toString()]: signedOut,
+        },
+      });
+    }
   });
 });
 
