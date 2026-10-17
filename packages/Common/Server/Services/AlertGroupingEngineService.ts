@@ -39,6 +39,7 @@ import {
   replaceAllLiterally,
 } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { RecordInAnotherEpisodeException } from "../Utils/Episode/EpisodeSingleMembershipCheck";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -491,6 +492,28 @@ class AlertGroupingEngineServiceClass {
         `Acquired mutex for grouping key: ${mutexKey} for alert ${alert.id}`,
         { projectId: alert.projectId?.toString() } as LogAttributes,
       );
+
+      /*
+       * Put in an episode since it was created - by a workflow, or by
+       * someone - in a project that allows an alert in only one
+       * (EpisodeSingleMembership): no rule may put it in another. Read
+       * before an episode is found, reopened or opened, so none is reopened
+       * or opened - and nobody paged - for an alert that could not join it.
+       */
+      const holdingEpisodeId: ObjectID | null =
+        await AlertEpisodeMemberService.findHoldingEpisodeId({
+          projectId: alert.projectId!,
+          alertId: alert.id!,
+        });
+
+      if (holdingEpisodeId) {
+        logger.debug(
+          `Alert ${alert.id} is in episode ${holdingEpisodeId} already, and its project allows an alert in only one episode: not grouped`,
+          { projectId: alert.projectId?.toString() } as LogAttributes,
+        );
+
+        return { grouped: true, episodeId: holdingEpisodeId };
+      }
 
       // Calculate time window cutoff (only if time window is enabled)
       let timeWindowCutoff: Date | null = null;
@@ -1325,6 +1348,19 @@ class AlertGroupingEngineServiceClass {
         } as LogAttributes);
         return;
       }
+
+      /*
+       * Put in another episode a moment ago, in a project that allows an
+       * alert in only one (EpisodeSingleMembership): it stays there.
+       */
+      if (error instanceof RecordInAnotherEpisodeException) {
+        logger.debug(
+          `Alert ${alert.id} is in another episode, and its project allows an alert in only one episode: not added to episode ${episodeId}`,
+          { projectId: alert.projectId?.toString() } as LogAttributes,
+        );
+        return;
+      }
+
       throw error;
     }
   }

@@ -1063,6 +1063,8 @@ describe("the lists' Add to New Episode", () => {
     expect(onCreate.mock.calls[0]![0]).toEqual({
       title: "Checkout outage",
       severityId: MAJOR_ID,
+      // The project allows several episodes: none is left out.
+      leftOutIds: [],
     });
   });
 

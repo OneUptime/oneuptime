@@ -7,6 +7,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   ALERT_EPISODE_ID_KEY,
   ALERT_IDS_KEY,
@@ -15,7 +16,19 @@ import {
   INCIDENT_IDS_KEY,
   INCIDENT_IDS_TO_ADD_KEY,
 } from "Common/Types/Episode/EpisodeMembersAdd";
+import {
+  ALERT_IN_ANOTHER_EPISODE_REASON,
+  ALERT_SINGLE_MEMBERSHIP_COLUMN,
+  EpisodeSingleMembershipColumn,
+  INCIDENT_IN_ANOTHER_EPISODE_REASON,
+  INCIDENT_SINGLE_MEMBERSHIP_COLUMN,
+} from "Common/Types/Episode/EpisodeSingleMembership";
 import PageMap from "../../Utils/PageMap";
+import {
+  ALERT_SINGLE_MEMBERSHIP_DIALOG_COPY,
+  EpisodeSingleMembershipDialogCopy,
+  INCIDENT_SINGLE_MEMBERSHIP_DIALOG_COPY,
+} from "./EpisodeSingleMembershipCopy";
 
 /*
  * Adding incidents or alerts to an episode, by hand (EpisodeMembersAdd):
@@ -73,6 +86,23 @@ export interface EpisodeMemberKindConfig {
   membershipEpisodeIdField: string;
   membershipRecordIdField: string;
 
+  /*
+   * The Project column that allows one in only one episode
+   * (EpisodeSingleMembership), and why the server leaves out one that is in
+   * another episode while it is on.
+   */
+  singleMembershipColumn: EpisodeSingleMembershipColumn;
+  inAnotherEpisodeReason: string;
+  // What the dialogs say while it is on.
+  singleMembershipCopy: EpisodeSingleMembershipDialogCopy;
+
+  /*
+   * The icon its product draws episodes with - its side menu's All
+   * Episodes, its command palette - so what the dialogs and the Episode
+   * Membership page draw for an episode is the one people already know.
+   */
+  episodeIcon: IconProp;
+
   // "alert" / "alerts" in a sentence; "Alert" / "Alerts" in a title.
   singular: string;
   plural: string;
@@ -105,6 +135,10 @@ export const ALERT_EPISODE_MEMBER_KIND: EpisodeMemberKindConfig = {
   episodeCountField: "alertCount",
   membershipEpisodeIdField: "alertEpisodeId",
   membershipRecordIdField: "alertId",
+  singleMembershipColumn: ALERT_SINGLE_MEMBERSHIP_COLUMN,
+  inAnotherEpisodeReason: ALERT_IN_ANOTHER_EPISODE_REASON,
+  singleMembershipCopy: ALERT_SINGLE_MEMBERSHIP_DIALOG_COPY,
+  episodeIcon: IconProp.SquareStack,
   singular: "alert",
   plural: "alerts",
   singularTitle: "Alert",
@@ -135,6 +169,10 @@ export const INCIDENT_EPISODE_MEMBER_KIND: EpisodeMemberKindConfig = {
   episodeCountField: "incidentCount",
   membershipEpisodeIdField: "incidentEpisodeId",
   membershipRecordIdField: "incidentId",
+  singleMembershipColumn: INCIDENT_SINGLE_MEMBERSHIP_COLUMN,
+  inAnotherEpisodeReason: INCIDENT_IN_ANOTHER_EPISODE_REASON,
+  singleMembershipCopy: INCIDENT_SINGLE_MEMBERSHIP_DIALOG_COPY,
+  episodeIcon: IconProp.SquareStack3D,
   singular: "incident",
   plural: "incidents",
   singularTitle: "Incident",

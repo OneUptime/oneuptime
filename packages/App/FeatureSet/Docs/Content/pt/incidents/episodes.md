@@ -9,7 +9,7 @@ Tudo nesta página funciona do mesmo jeito para episódios de alertas: leia "ale
 Abra o episódio, escolha **Incidentes de membros** no menu lateral (`/dashboard/{projectId}/incidents/episodes/{episodeId}/incidents`) e clique em **Adicionar incidentes**. A caixa de diálogo lista os 50 incidentes mais recentes que você pode ver e que ainda não estão no episódio, cada um com número, título, estado e gravidade. Para encontrar um mais antigo, pesquise por título ou número: `INC-42`, `42` e `#42` encontram o incidente 42.
 
 - Marque quantos precisar, até 100 de uma vez. O botão conta todos: **Adicionar 3 itens (Incidentes)**.
-- Um incidente que já está em outro episódio avisa abaixo do título, com o número desse episódio. Adicioná-lo aqui o mantém lá também: um incidente pode estar em mais de um episódio.
+- Um incidente que já está em outro episódio avisa abaixo do título, com o número desse episódio. Adicioná-lo aqui o mantém lá também: um incidente pode estar em mais de um episódio. Em um projeto que permite um incidente em um só episódio, ele não pode ser escolhido: veja [Um só episódio por incidente](#um-só-episódio-por-incidente).
 - Se alguns não puderem ser adicionados, a caixa de diálogo continua aberta e os lista com o motivo; os demais são adicionados.
 
 ## Adicionar incidentes a partir das listas de incidentes
@@ -34,6 +34,20 @@ As duas aceitam até 100 incidentes selecionados. O resultado informa quantos fo
 ## Tirar um incidente
 
 Em **Incidentes de membros**, **Remover** em uma linha, ou nas linhas selecionadas em **Ações em massa**, tira o incidente apenas deste episódio. O incidente em si não é excluído e continua em qualquer outro episódio em que esteja.
+
+## Um só episódio por incidente
+
+Um incidente pode estar em vários episódios ao mesmo tempo. Para manter cada incidente em no máximo um episódio, ative **Um incidente só pode estar em um episódio** em **Incidentes → Configurações → Participação em episódios**. Para alertas, o interruptor é **Um alerta só pode estar em um episódio**, em **Alertas → Configurações → Participação em episódios**. Os dois ficam desativados até você ativá-los, e só Project Owners e Project Admins podem alterá-los.
+
+Enquanto ele está ativado, um incidente que está em um episódio não é adicionado a nenhum outro:
+
+- **Adicionar incidentes** lista só os incidentes que não estão em nenhum episódio. Uma busca também encontra os outros, mas um que está em outro episódio não pode ser marcado, e avisa isso.
+- **Adicionar a um episódio existente** informa quantos dos incidentes selecionados estão em outro episódio e adiciona só o restante. Quando todos já estão em um episódio, a caixa de diálogo informa que não há nada para adicionar.
+- **Adicionar a um novo episódio** deixa de fora os incidentes selecionados que já estão em um episódio e informa quantos. Quando todos estão, informa que não há nada para adicionar.
+- As **Regras de agrupamento** deixam onde está um incidente que já está em um episódio.
+- **A API, os fluxos de trabalho e o Terraform** seguem a mesma regra: adicionar um incidente que está em outro episódio é recusado, com o motivo.
+
+Ativá-lo não tira nenhum incidente de um episódio: um incidente que já está em vários continua neles. Para mover um incidente, tire-o com **Remover** na página **Incidentes de membros** do episódio dele e depois adicione-o ao outro episódio.
 
 ## Quem pode adicionar
 
@@ -67,5 +81,7 @@ A resposta nomeia cada incidente enviado, uma única vez: adicionado, já no epi
   ]
 }
 ```
+
+Em um projeto que permite um incidente em um só episódio, um incidente que está em outro episódio volta em `notAdded`, com `Already in another episode. An incident can be in only one episode in this project.` como motivo.
 
 Para alertas, envie `alertEpisodeId` e `alertIds` para `/api/alert-episode-member/add-alerts`. Para criar um episódio com incidentes dentro, envie os IDs deles com a requisição que cria o episódio, `POST /api/incident-episode`, como `{ "data": { "title": "Checkout outage" }, "miscDataProps": { "incidentIdsToAdd": ["<incident id>"] } }`; para um episódio de alertas, `POST /api/alert-episode` com `alertIdsToAdd`. Se algum deles não puder ser adicionado, nenhum episódio é criado.

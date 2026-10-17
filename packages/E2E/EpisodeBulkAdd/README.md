@@ -43,7 +43,20 @@ The suite drives it the way a person does:
 - nothing left to add (`?onlyMembers=1`): the empty state, without a search
   box that could find nothing;
 - long titles (`?long=1`) at a phone's width;
-- a phone-width screen and dark mode (`?theme=dark`).
+- a phone-width screen and dark mode (`?theme=dark`);
+- a project that allows an alert (and an incident) in only one episode
+  (`?oneEpisode=1`): Add Alerts lists only the alerts in no episode, says the
+  rule once under the list, and draws one found by a search locked, its note
+  never faded; Add to Existing Episode says which are not added; Add to New
+  Episode says first what it leaves out; with every selected one in an
+  episode, both say there is nothing to add, with Close focused;
+- every alert and incident in an episode already (`?heldElsewhere=1`, with
+  `?oneEpisode=1`): the episode's empty list says so, and the rule is said
+  once;
+- Incidents > Settings > Episode Membership (`?page=incident-settings`) and
+  Alerts > Settings > Episode Membership (`?page=alert-settings`): the switch
+  saving the project's column on a flip, and locked for a Viewer
+  (`?role=viewer`).
 
 Run it with:
 
