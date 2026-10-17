@@ -1,5 +1,11 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
+import SamlAssertionOneTimeUse, {
+  SamlProviderKind,
+} from "../Utils/SamlAssertionOneTimeUse";
+import SamlServiceProviders, {
+  SamlServiceProvider,
+} from "../Utils/SamlServiceProvider";
 import ProjectSsoSignInConfirmation, {
   PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
   PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
@@ -29,7 +35,6 @@ import ServerException from "Common/Types/Exception/ServerException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
-import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
@@ -267,14 +272,17 @@ router.get(
 
       const isMobileRequest: boolean = req.query["mobile"] === "true";
 
+      // The same Entity ID and Reply URL the response is held to.
+      const serviceProvider: SamlServiceProvider =
+        SamlServiceProviders.forProjectSso({
+          projectId: projectSSO.projectId!,
+          projectSsoId: projectSSO.id!,
+        });
+
       const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
-        acsUrl: URL.fromString(
-          `${HttpProtocol}${Host}/identity/idp-login/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`,
-        ),
+        acsUrl: URL.fromString(serviceProvider.replyUrl),
         signOnUrl: projectSSO.signOnURL!,
-        issuerUrl: URL.fromString(
-          `${HttpProtocol}${Host}/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`,
-        ),
+        issuerUrl: URL.fromString(serviceProvider.entityId),
       });
 
       if (isMobileRequest) {
@@ -349,6 +357,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       "base64",
     ).toString();
 
+    let verifiedSaml: VerifiedSamlResponse;
     let issuerUrl: string = "";
     let email: Email | null = null;
     let fullName: Name | null = null;
@@ -376,6 +385,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         isEnabled: true,
       },
       select: {
+        _id: true,
         signOnURL: true,
         issuerURL: true,
         publicCertificate: true,
@@ -429,11 +439,16 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
        * Verify the signature AND extract the identity from the SAME
        * cryptographically verified assertion. This single call defends against
        * XML Signature Wrapping - see SSOUtil.getSamlResponseFromXML and
-       * GitHub issues #2949 and #2981.
+       * GitHub issues #2949 and #2981 - and refuses a response made for
+       * anything but this provider, or outside its time.
        */
-      const verifiedSaml: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
+      verifiedSaml = SSOUtil.getSamlResponseFromXML(
         samlResponse,
         projectSSO.publicCertificate,
+        SamlServiceProviders.forProjectSso({
+          projectId: req.params["projectId"],
+          projectSsoId: req.params["projectSsoId"],
+        }),
       );
 
       issuerUrl = verifiedSaml.issuerUrl;
@@ -459,6 +474,26 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         res,
         new BadRequestException("Issuer URL does not match"),
       );
+    }
+
+    /*
+     * One sign-in per response: a response posted again - kept from an
+     * earlier sign-in, or sent twice - is refused before anyone is looked
+     * up, created or signed in. Remembered under the provider the lookup
+     * found, not under the Reply URL's spelling of its id, so no other way
+     * of writing that URL starts a second record.
+     */
+    try {
+      await SamlAssertionOneTimeUse.claim({
+        providerKind: SamlProviderKind.ProjectSso,
+        providerId: projectSSO.id!,
+        assertion: verifiedSaml,
+      });
+    } catch (err: unknown) {
+      if (err instanceof Exception) {
+        return Response.sendErrorResponse(req, res, err);
+      }
+      return Response.sendErrorResponse(req, res, new ServerException());
     }
 
     // Check if he already belongs to the project, If he does - then log in.

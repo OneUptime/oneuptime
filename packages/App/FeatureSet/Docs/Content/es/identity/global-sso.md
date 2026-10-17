@@ -149,6 +149,14 @@ La persona tiene cuenta, pero no pertenece a ningún proyecto, y el proveedor no
 En un proveedor SAML, el emisor de la respuesta de tu proveedor de identidad no es el **Issuer** guardado en el proveedor. Vuelve a copiarlo de tu proveedor de identidad; ambos deben coincidir exactamente.
 :::
 
+:::details "SAML Audience does not match"
+En un proveedor SAML, la respuesta se creó para otra aplicación: su audience no es el **Issuer (Entity ID)** del proveedor. En tu proveedor de identidad, establece el entity ID de la aplicación en el **Issuer (Entity ID)** de la página del proveedor. "SAML Recipient does not match" y "SAML Destination does not match" significan lo mismo para su URL de respuesta: establécela en la **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Cada respuesta de tu proveedor de identidad inicia sesión una sola vez, y solo durante unos minutos después de emitirse: después se rechaza con "SAML response has expired". Vuelve a iniciar sesión. Si las respuestas siguen caducando, comprueba los relojes de este servidor y de tu proveedor de identidad.
+:::
+
 ## Próximos pasos
 
 :::cards

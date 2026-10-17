@@ -13,6 +13,9 @@ import {
 } from "@xmldom/xmldom";
 import zlib from "zlib";
 import Name from "Common/Types/Name";
+import SamlServiceProviders, {
+  SamlServiceProvider,
+} from "./SamlServiceProvider";
 
 /*
  * Result of successfully verifying and parsing a SAML Response.
@@ -23,7 +26,46 @@ export interface VerifiedSamlResponse {
   issuerUrl: string;
   email: Email;
   name: Name | null;
+
+  /*
+   * The assertion's ID, which the identity provider makes unique to each
+   * assertion: what a second use of the same response is recognised by
+   * (SamlAssertionOneTimeUse).
+   */
+  assertionId: string;
+
+  /*
+   * The last moment this assertion could still be accepted. After it the
+   * time rules refuse it anyway, so its use need not be remembered longer.
+   */
+  acceptableUntil: Date;
 }
+
+/*
+ * What a SAML sign-in answers when a response is not for this provider, or
+ * not for now. Each says what to fix: an admin setting up a provider reads
+ * them while testing it, and the SSO docs page quotes them.
+ */
+export const SAML_AUDIENCE_MISMATCH_MESSAGE: string =
+  "SAML Audience does not match. In your identity provider, set the Entity ID (Audience URI) of this application to the Entity ID shown for this provider.";
+
+export const SAML_AUDIENCE_MISSING_MESSAGE: string =
+  "SAML Audience is missing. In your identity provider, set the Entity ID (Audience URI) of this application to the Entity ID shown for this provider.";
+
+export const SAML_RECIPIENT_MISMATCH_MESSAGE: string =
+  "SAML Recipient does not match. In your identity provider, set the Reply URL (Assertion Consumer Service URL) of this application to the Reply URL shown for this provider.";
+
+export const SAML_RECIPIENT_MISSING_MESSAGE: string =
+  "SAML Recipient is missing. In your identity provider, set the Reply URL (Assertion Consumer Service URL) of this application to the Reply URL shown for this provider.";
+
+export const SAML_DESTINATION_MISMATCH_MESSAGE: string =
+  "SAML Destination does not match. In your identity provider, set the Reply URL (Assertion Consumer Service URL) of this application to the Reply URL shown for this provider.";
+
+export const SAML_RESPONSE_EXPIRED_MESSAGE: string =
+  "SAML response has expired. Sign in again. If this keeps happening, check that the clocks of your identity provider and of this server are right.";
+
+export const SAML_RESPONSE_NOT_YET_VALID_MESSAGE: string =
+  "SAML response is not valid yet. Check that the clocks of your identity provider and of this server are right, then sign in again.";
 
 export default class SSOUtil {
   // Namespaces used across the SAML documents we consume.
@@ -37,6 +79,42 @@ export default class SSOUtil {
     "urn:oasis:names:tc:SAML:2.0:assertion",
     "urn:oasis:names:tc:SAML:1.0:assertion",
   ];
+
+  // Where <Conditions>, <Audience> and <SubjectConfirmation> live.
+  private static readonly SAML2_ASSERTION_NAMESPACE: string =
+    "urn:oasis:names:tc:SAML:2.0:assertion";
+
+  /*
+   * The confirmation method of a browser sign-in: whoever presents the
+   * assertion is its subject (SAML 2.0 Profiles 4.1.4.2).
+   */
+  private static readonly SAML_BEARER_METHOD: string =
+    "urn:oasis:names:tc:SAML:2.0:cm:bearer";
+
+  /*
+   * How far apart the identity provider's clock and this server's may be.
+   * Every time rule below gives this much either way.
+   */
+  public static readonly CLOCK_SKEW_IN_MS: number = 3 * 60 * 1000;
+
+  /*
+   * However long an identity provider says an assertion is good for, it is
+   * accepted only this soon after it was issued. A browser posts a response
+   * within seconds of getting it; what this bounds is a response that is
+   * kept back and posted later.
+   */
+  public static readonly MAX_ASSERTION_AGE_IN_MS: number = 10 * 60 * 1000;
+
+  /*
+   * An xs:dateTime as SAML writes them (SAML 2.0 Core 1.3.3): UTC, usually
+   * with milliseconds. Anchored, with every repeat bounded, so it runs in
+   * time proportional to its input.
+   */
+  private static readonly SAML_TIME: RegExp =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})?$/;
+
+  private static readonly SAML_TIME_ZONE_OFFSET: RegExp =
+    /^([+-])(\d{2}):(\d{2})$/;
 
   /*
    * The only top-level <StatusCode> value that means "the user authenticated".
@@ -171,21 +249,73 @@ export default class SSOUtil {
    *      disagreement, and xml-crypto still renders any node carrying a `data`
    *      property as plain text in 6.x.
    *
+   * Rules 1-9 establish WHO made the assertion and WHO it names. A genuine
+   * assertion is still not a sign-in for whoever holds it: it is made for one
+   * application, to be used once, soon. Without the rules below, a response
+   * the identity provider made for some other application it signs people in
+   * to - one that shares its issuer and signing certificate, as every
+   * application of a Keycloak realm, an AD FS farm or a Google Workspace
+   * does - signs its holder in here, and so does any response kept from an
+   * earlier sign-in, for as long as anyone likes, however the identity
+   * provider has changed its mind about the person since:
+   *
+   *  10. Who it is for. Every <AudienceRestriction> must name this provider:
+   *      its Entity ID, its Reply URL, or - for identity providers set up
+   *      before May 2024 - this server's address (see SamlServiceProvider).
+   *      At least one is required (SAML 2.0 Profiles 4.1.4.2).
+   *  11. Where it was sent. A bearer <SubjectConfirmation> must carry this
+   *      provider's Reply URL as its Recipient, and the Response's
+   *      Destination, when it has one, must be that Reply URL too.
+   *  12. When. The assertion must be inside every window it states -
+   *      <Conditions> NotBefore / NotOnOrAfter and its bearer confirmation's
+   *      - and issued no more than MAX_ASSERTION_AGE_IN_MS ago, each with
+   *      CLOCK_SKEW_IN_MS of slack for clocks that disagree.
+   *  13. Once. That is the caller's half, because it needs the cache:
+   *      SamlAssertionOneTimeUse.claim with the `assertionId` and
+   *      `acceptableUntil` returned here, before anything is created or
+   *      signed in.
+   *
+   * InResponseTo is not required to name a request OneUptime made. Sign-ins
+   * started at the identity provider (its app dashboard, a bookmark) carry
+   * none and are supported, and rules 10-13 already hold each assertion to
+   * this provider, a short window and a single sign-in.
+   *
    * Throws BadRequestException on any anomaly.
    */
   public static getSamlResponseFromXML(
     samlResponse: string,
     certificate: string,
+    serviceProvider: SamlServiceProvider,
+    now: Date = OneUptimeDate.getCurrentDate(),
   ): VerifiedSamlResponse {
-    const assertion: XmlElement = SSOUtil.verifyAndGetAssertion(
+    const { response, assertion } = SSOUtil.verifyAndGetAssertion(
       samlResponse,
       certificate,
     );
 
+    const issuerUrl: string = SSOUtil.getIssuerFromAssertion(assertion);
+    const email: Email = SSOUtil.getEmailFromAssertion(assertion);
+    const name: Name | null = SSOUtil.getNameFromAssertion(assertion);
+
+    const assertionId: string = SSOUtil.getIdAttribute(assertion).trim();
+
+    if (!assertionId) {
+      throw new BadRequestException("SAML Assertion has no ID");
+    }
+
+    const acceptableUntil: Date = SSOUtil.assertForThisProviderAndInTime({
+      response,
+      assertion,
+      serviceProvider,
+      now,
+    });
+
     return {
-      issuerUrl: SSOUtil.getIssuerFromAssertion(assertion),
-      email: SSOUtil.getEmailFromAssertion(assertion),
-      name: SSOUtil.getNameFromAssertion(assertion),
+      issuerUrl,
+      email,
+      name,
+      assertionId,
+      acceptableUntil,
     };
   }
 
@@ -198,14 +328,23 @@ export default class SSOUtil {
    * refuses - the rules that reject a NameID containing a comment, a processing
    * instruction or a child element live in the extraction step, and a caller
    * gating on "is this SAML response valid?" must not be told yes about a
-   * document whose identity we would then refuse to read.
+   * document whose identity we would then refuse to read. For the same reason
+   * it takes the provider and the time: a response for another provider, or
+   * one whose time is up, is not valid either.
    */
   public static isSignatureValid(
     samlResponse: string,
     certificate: string,
+    serviceProvider: SamlServiceProvider,
+    now: Date = OneUptimeDate.getCurrentDate(),
   ): boolean {
     try {
-      SSOUtil.getSamlResponseFromXML(samlResponse, certificate);
+      SSOUtil.getSamlResponseFromXML(
+        samlResponse,
+        certificate,
+        serviceProvider,
+        now,
+      );
       return true;
     } catch (err) {
       logger.error(err);
@@ -216,12 +355,12 @@ export default class SSOUtil {
   /*
    * The single verification pipeline. Returns the assertion that the signature
    * provably covers - parsed out of the canonical bytes the signature was
-   * actually verified over - or throws.
+   * actually verified over - and the document's root <Response>, or throws.
    */
   private static verifyAndGetAssertion(
     samlResponse: string,
     certificate: string,
-  ): XmlElement {
+  ): { response: XmlElement; assertion: XmlElement } {
     if (!certificate) {
       throw new BadRequestException("Public Certificate not found");
     }
@@ -253,7 +392,444 @@ export default class SSOUtil {
 
     SSOUtil.assertStatusIsSuccess(dom, response);
 
-    return SSOUtil.getAssertionFromSignedBytes(signedReferenceXml, assertion);
+    return {
+      response,
+      assertion: SSOUtil.getAssertionFromSignedBytes(
+        signedReferenceXml,
+        assertion,
+      ),
+    };
+  }
+
+  /*
+   * Rules 10-12: the assertion is for this provider, was sent to it, and is
+   * inside its time. Returns the last moment it could still be accepted.
+   *
+   * `assertion` is the one read back out of the signed bytes, so everything
+   * read from it is what the identity provider signed. `response` is the
+   * document's root: its Destination is signed only when the whole Response
+   * is, so it is checked when present but never relied on alone - the signed
+   * Recipient is what holds the assertion to this provider's Reply URL.
+   *
+   * Who it is for is checked before when, so an admin testing a provider
+   * whose identity provider has the wrong Entity ID or Reply URL is told
+   * that, rather than about a clock.
+   */
+  private static assertForThisProviderAndInTime(data: {
+    response: XmlElement;
+    assertion: XmlElement;
+    serviceProvider: SamlServiceProvider;
+    now: Date;
+  }): Date {
+    const conditions: XmlElement = SSOUtil.getConditions(data.assertion);
+
+    SSOUtil.assertAudienceIsThisProvider(conditions, data.serviceProvider);
+
+    const confirmations: Array<XmlElement> =
+      SSOUtil.getBearerConfirmationsForThisProvider(
+        data.assertion,
+        data.serviceProvider,
+      );
+
+    SSOUtil.assertDestinationIsThisProvider(
+      data.response,
+      data.serviceProvider,
+    );
+
+    const now: number = data.now.getTime();
+
+    // Issued: not in the future, and not long ago.
+    const issuedAt: number = SSOUtil.readTime(data.assertion, "IssueInstant", {
+      isRequired: true,
+    })!;
+
+    SSOUtil.assertWithinWindow({
+      now,
+      notBefore: issuedAt,
+      notOnOrAfter: issuedAt + SSOUtil.MAX_ASSERTION_AGE_IN_MS,
+    });
+
+    let acceptableUntil: number =
+      issuedAt + SSOUtil.MAX_ASSERTION_AGE_IN_MS + SSOUtil.CLOCK_SKEW_IN_MS;
+
+    // The window the assertion as a whole states.
+    const conditionsNotOnOrAfter: number | null = SSOUtil.readTime(
+      conditions,
+      "NotOnOrAfter",
+    );
+
+    SSOUtil.assertWithinWindow({
+      now,
+      notBefore: SSOUtil.readTime(conditions, "NotBefore"),
+      notOnOrAfter: conditionsNotOnOrAfter,
+    });
+
+    if (conditionsNotOnOrAfter !== null) {
+      acceptableUntil = Math.min(
+        acceptableUntil,
+        conditionsNotOnOrAfter + SSOUtil.CLOCK_SKEW_IN_MS,
+      );
+    }
+
+    /*
+     * The window of the bearer confirmation(s) naming this Reply URL: one of
+     * them has to be open now. The assertion stays acceptable for as long as
+     * the latest of those is.
+     */
+    let confirmationOpenUntil: number | null = null;
+    let firstRefusal: unknown = null;
+
+    for (const confirmationData of confirmations) {
+      const notBefore: number | null = SSOUtil.readTime(
+        confirmationData,
+        "NotBefore",
+      );
+      const notOnOrAfter: number | null = SSOUtil.readTime(
+        confirmationData,
+        "NotOnOrAfter",
+      );
+
+      try {
+        SSOUtil.assertWithinWindow({ now, notBefore, notOnOrAfter });
+      } catch (err) {
+        firstRefusal = firstRefusal || err;
+        continue;
+      }
+
+      const openUntil: number =
+        notOnOrAfter === null
+          ? Number.POSITIVE_INFINITY
+          : notOnOrAfter + SSOUtil.CLOCK_SKEW_IN_MS;
+
+      confirmationOpenUntil =
+        confirmationOpenUntil === null
+          ? openUntil
+          : Math.max(confirmationOpenUntil, openUntil);
+    }
+
+    if (confirmationOpenUntil === null) {
+      throw (
+        firstRefusal || new BadRequestException(SAML_RESPONSE_EXPIRED_MESSAGE)
+      );
+    }
+
+    acceptableUntil = Math.min(acceptableUntil, confirmationOpenUntil);
+
+    return new Date(acceptableUntil);
+  }
+
+  /*
+   * The assertion's one <Conditions>. It is required: the <AudienceRestriction>
+   * that says who the assertion is for lives inside it.
+   */
+  private static getConditions(assertion: XmlElement): XmlElement {
+    const conditions: Array<XmlElement> = SSOUtil.getSamlChildren(
+      assertion,
+      "Conditions",
+    );
+
+    if (conditions.length === 0) {
+      throw new BadRequestException(SAML_AUDIENCE_MISSING_MESSAGE);
+    }
+
+    if (conditions.length > 1) {
+      throw new BadRequestException(
+        "SAML Assertion must not contain more than one Conditions element",
+      );
+    }
+
+    return conditions[0]!;
+  }
+
+  /*
+   * Rule 10. SAML 2.0 Core 2.5.1.4: the audiences of one restriction are
+   * alternatives, and every restriction must be met, so each one has to name
+   * this provider.
+   */
+  private static assertAudienceIsThisProvider(
+    conditions: XmlElement,
+    serviceProvider: SamlServiceProvider,
+  ): void {
+    const restrictions: Array<XmlElement> = SSOUtil.getSamlChildren(
+      conditions,
+      "AudienceRestriction",
+    );
+
+    if (restrictions.length === 0) {
+      throw new BadRequestException(SAML_AUDIENCE_MISSING_MESSAGE);
+    }
+
+    const namesThisProvider: (audience: XmlElement) => boolean = (
+      audience: XmlElement,
+    ): boolean => {
+      const value: string = SSOUtil.getTrimmedText(audience);
+
+      return [
+        serviceProvider.entityId,
+        serviceProvider.replyUrl,
+        serviceProvider.serverAddress,
+      ].some((expected: string): boolean => {
+        return SamlServiceProviders.isSameAddress(value, expected);
+      });
+    };
+
+    for (const restriction of restrictions) {
+      if (
+        !SSOUtil.getSamlChildren(restriction, "Audience").some(
+          namesThisProvider,
+        )
+      ) {
+        throw new BadRequestException(SAML_AUDIENCE_MISMATCH_MESSAGE);
+      }
+    }
+  }
+
+  /*
+   * Rule 11, its signed half. The <SubjectConfirmationData> of each bearer
+   * <SubjectConfirmation> whose Recipient is this provider's Reply URL; at
+   * least one is required. Confirmations of other methods (holder-of-key,
+   * sender-vouches) cannot be met by a browser sign-in and are not counted.
+   */
+  private static getBearerConfirmationsForThisProvider(
+    assertion: XmlElement,
+    serviceProvider: SamlServiceProvider,
+  ): Array<XmlElement> {
+    const subject: XmlElement | null = SSOUtil.getDirectChildByLocalName(
+      assertion,
+      "Subject",
+    );
+
+    const bearerConfirmations: Array<XmlElement> = subject
+      ? SSOUtil.getSamlChildren(subject, "SubjectConfirmation").filter(
+          (confirmation: XmlElement): boolean => {
+            return (
+              (confirmation.getAttribute("Method") || "").trim() ===
+              SSOUtil.SAML_BEARER_METHOD
+            );
+          },
+        )
+      : [];
+
+    if (bearerConfirmations.length === 0) {
+      throw new BadRequestException(
+        "SAML Assertion has no bearer SubjectConfirmation",
+      );
+    }
+
+    let recipientSeen: boolean = false;
+    const forThisProvider: Array<XmlElement> = [];
+
+    for (const confirmation of bearerConfirmations) {
+      const confirmationData: Array<XmlElement> = SSOUtil.getSamlChildren(
+        confirmation,
+        "SubjectConfirmationData",
+      );
+
+      if (confirmationData.length > 1) {
+        throw new BadRequestException(
+          "SAML SubjectConfirmation must not contain more than one SubjectConfirmationData",
+        );
+      }
+
+      const data: XmlElement | undefined = confirmationData[0];
+
+      if (!data || !data.hasAttribute("Recipient")) {
+        continue;
+      }
+
+      recipientSeen = true;
+
+      if (
+        SamlServiceProviders.isSameAddress(
+          data.getAttribute("Recipient") || "",
+          serviceProvider.replyUrl,
+        )
+      ) {
+        forThisProvider.push(data);
+      }
+    }
+
+    if (forThisProvider.length > 0) {
+      return forThisProvider;
+    }
+
+    throw new BadRequestException(
+      recipientSeen
+        ? SAML_RECIPIENT_MISMATCH_MESSAGE
+        : SAML_RECIPIENT_MISSING_MESSAGE,
+    );
+  }
+
+  /*
+   * Rule 11, the Response's half. SAML 2.0 Bindings 3.5.5.2: a Destination
+   * names the URL the response was sent to, and the receiver checks it is
+   * where the response arrived. Identity providers send it, so one naming
+   * somewhere else is refused; a response without one is held to this
+   * provider by its Recipient alone.
+   */
+  private static assertDestinationIsThisProvider(
+    response: XmlElement,
+    serviceProvider: SamlServiceProvider,
+  ): void {
+    const destination: string = (
+      response.getAttribute("Destination") || ""
+    ).trim();
+
+    if (!destination) {
+      return;
+    }
+
+    if (
+      !SamlServiceProviders.isSameAddress(destination, serviceProvider.replyUrl)
+    ) {
+      throw new BadRequestException(SAML_DESTINATION_MISMATCH_MESSAGE);
+    }
+  }
+
+  /*
+   * Rule 12 for one window: `now` must not be before `notBefore` or at or
+   * after `notOnOrAfter` (either may be absent), give or take the clock skew.
+   */
+  private static assertWithinWindow(data: {
+    now: number;
+    notBefore: number | null;
+    notOnOrAfter: number | null;
+  }): void {
+    if (
+      data.notBefore !== null &&
+      data.now < data.notBefore - SSOUtil.CLOCK_SKEW_IN_MS
+    ) {
+      throw new BadRequestException(SAML_RESPONSE_NOT_YET_VALID_MESSAGE);
+    }
+
+    if (
+      data.notOnOrAfter !== null &&
+      data.now >= data.notOnOrAfter + SSOUtil.CLOCK_SKEW_IN_MS
+    ) {
+      throw new BadRequestException(SAML_RESPONSE_EXPIRED_MESSAGE);
+    }
+  }
+
+  /*
+   * A time attribute of a SAML element, in milliseconds since the epoch; null
+   * when it is absent. A value that is present but not a time is refused
+   * rather than read as absent: an unreadable NotOnOrAfter must not become no
+   * limit at all.
+   */
+  private static readTime(
+    element: XmlElement,
+    attributeName: string,
+    options?: { isRequired: boolean },
+  ): number | null {
+    if (!element.hasAttribute(attributeName)) {
+      if (options?.isRequired) {
+        throw new BadRequestException(
+          `SAML ${element.localName} has no ${attributeName}`,
+        );
+      }
+
+      return null;
+    }
+
+    const time: number | null = SSOUtil.parseSamlTime(
+      element.getAttribute(attributeName) || "",
+    );
+
+    if (time === null) {
+      throw new BadRequestException(
+        `SAML ${element.localName} has an invalid ${attributeName}`,
+      );
+    }
+
+    return time;
+  }
+
+  /*
+   * An xs:dateTime in milliseconds since the epoch, or null. SAML times are
+   * UTC (SAML 2.0 Core 1.3.3); one written with an offset is read with it,
+   * and one written with no zone at all is read as UTC. Fractions of a second
+   * beyond milliseconds are dropped. A date that does not exist (the 30th of
+   * February, hour 24) is not a time.
+   */
+  private static parseSamlTime(value: string): number | null {
+    const text: string = value.trim();
+
+    if (text.length === 0 || text.length > 64) {
+      return null;
+    }
+
+    const match: RegExpExecArray | null = SSOUtil.SAML_TIME.exec(text);
+
+    if (!match) {
+      return null;
+    }
+
+    const year: number = Number(match[1]);
+    const month: number = Number(match[2]);
+    const day: number = Number(match[3]);
+    const hour: number = Number(match[4]);
+    const minute: number = Number(match[5]);
+    const second: number = Number(match[6]);
+    const milliseconds: number = match[7]
+      ? Number(match[7].substring(0, 3).padEnd(3, "0"))
+      : 0;
+
+    const time: Date = new Date(
+      Date.UTC(year, month - 1, day, hour, minute, second, milliseconds),
+    );
+
+    // Date.UTC rolls an impossible date over, and reads years below 100 as 19xx.
+    if (
+      time.getUTCFullYear() !== year ||
+      time.getUTCMonth() !== month - 1 ||
+      time.getUTCDate() !== day ||
+      time.getUTCHours() !== hour ||
+      time.getUTCMinutes() !== minute ||
+      time.getUTCSeconds() !== second
+    ) {
+      return null;
+    }
+
+    const zone: string | undefined = match[8];
+
+    if (!zone || zone === "Z") {
+      return time.getTime();
+    }
+
+    const offset: RegExpExecArray | null =
+      SSOUtil.SAML_TIME_ZONE_OFFSET.exec(zone);
+
+    if (!offset) {
+      return null;
+    }
+
+    const offsetHours: number = Number(offset[2]);
+    const offsetMinutes: number = Number(offset[3]);
+
+    if (offsetHours > 14 || offsetMinutes > 59) {
+      return null;
+    }
+
+    const offsetInMs: number =
+      (offsetHours * 60 + offsetMinutes) *
+      60 *
+      1000 *
+      (offset[1] === "-" ? -1 : 1);
+
+    // 10:00+02:00 is 08:00 UTC.
+    return time.getTime() - offsetInMs;
+  }
+
+  // Direct children with this local name in the SAML 2.0 assertion namespace.
+  private static getSamlChildren(
+    parent: XmlElement,
+    localName: string,
+  ): Array<XmlElement> {
+    return SSOUtil.getDirectChildrenByLocalName(parent, localName).filter(
+      (element: XmlElement): boolean => {
+        return element.namespaceURI === SSOUtil.SAML2_ASSERTION_NAMESPACE;
+      },
+    );
   }
 
   /*

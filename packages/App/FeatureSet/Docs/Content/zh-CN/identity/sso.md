@@ -36,8 +36,13 @@ OneUptime 只从您的 IdP 发送的断言中读取少量内容：
 | --- | --- |
 | 签名 | 使用提供商的 **公开证书** 进行校验。响应必须已签名，且不得加密。 |
 | Issuer | 必须与提供商的 **签发者** 完全一致。 |
+| Audience | 必须是提供商的 **Identifier (Entity ID)**。您的 IdP 为其他应用程序创建的响应会被拒绝。 |
+| Recipient 和 Destination | 必须是提供商的 **Reply URL**，即响应被发送到的地址。 |
+| `NotBefore` 和 `NotOnOrAfter` | 只有在它们允许的时间内，且不晚于签发后 10 分钟，响应才会被接受；并为不一致的时钟留有 3 分钟的余量。 |
 | Name ID | 此人的电子邮件地址。必须是有效的电子邮件地址。 |
 | `http://schemas.microsoft.com/identity/claims/displayname` | 此人的姓名，在 OneUptime 创建其账号时使用。可选。 |
+
+每个响应只能登录一次。再次发送的响应（例如登录后在浏览器中后退）会被拒绝：请重新登录。
 
 首次登录的人会加入该提供商的 **团队**，这些团队决定了他们能做什么：请参阅 [SSO 用户的角色和团队](#sso-用户的角色和团队)。
 
@@ -326,6 +331,22 @@ OneUptime 不会映射身份提供商中的角色或组。一个人能做什么�
 
 :::details "Issuer URL does not match"
 IdP 断言中的签发者不是提供商的 **签发者**。请从 IdP 重新复制它（Keycloak 的 realm URL、**Microsoft Entra Identifier** 或 Okta 的 Identity Provider Issuer），使两者完全一致。
+:::
+
+:::details "SAML Audience does not match"
+响应的 audience 不是此提供商的 **Identifier (Entity ID)**：您的 IdP 是为其他应用程序创建的这个响应。请在 IdP 中把应用程序的 entity ID 设为 **查看 SSO 配置** 中的 **Identifier (Entity ID)**：在 Keycloak 中为 **Client ID**，在 Entra ID 中为 **Identifier (Entity ID)**，在 Okta 中为 **Audience URI (SP Entity ID)**。仅以 OneUptime 的地址（例如 `https://oneuptime.com`）作为 entity ID 设置的 IdP 仍可继续使用。
+:::
+
+:::details "SAML Recipient does not match"
+响应的 recipient 不是此提供商的 **Reply URL**：响应是发往另一个地址的。请在 IdP 中把应用程序的 reply URL 设为 **查看 SSO 配置** 中的 **Reply URL (Assertion Consumer Service URL)**：在 Keycloak 中为 **Assertion Consumer Service POST Binding URL**，在 Entra ID 中为 **Reply URL (Assertion Consumer Service URL)**，在 Okta 中为 **Single sign-on URL**。"SAML Destination does not match" 的原因和解决方法相同。
+:::
+
+:::details "SAML response has expired"
+响应到达 OneUptime 的时间晚于您的 IdP 允许的时间，或晚于签发后 10 分钟：请重新登录。如果反复出现，说明您的 IdP 或 OneUptime 服务器的时钟不准；OneUptime 允许两者相差最多 3 分钟。"SAML response is not valid yet" 是同一问题的反方向。
+:::
+
+:::details "SAML response was already used"
+您的 IdP 的每个响应只能登录一次。登录后在浏览器中后退，或重新加载 IdP 让您经过的页面，都会再次发送同一个响应：请从 OneUptime 或从您的 IdP 重新登录。
 :::
 
 :::details 登录因签名或证书错误而失败

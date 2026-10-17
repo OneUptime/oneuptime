@@ -36,8 +36,13 @@ sequenceDiagram
 | --- | --- |
 | हस्ताक्षर | इसे प्रदाता के **सार्वजनिक प्रमाणपत्र** से जाँचता है। प्रतिक्रिया हस्ताक्षरित होनी चाहिए, और एन्क्रिप्टेड नहीं होनी चाहिए। |
 | Issuer | प्रदाता के **जारीकर्ता** से बिल्कुल मेल खाना चाहिए। |
+| Audience | प्रदाता का **Identifier (Entity ID)** होना चाहिए। आपके IdP ने किसी दूसरे ऐप्लिकेशन के लिए जो प्रतिक्रिया बनाई है, वह अस्वीकार की जाती है। |
+| Recipient और Destination | प्रदाता का **Reply URL** होने चाहिए, यानी वह पता जिस पर प्रतिक्रिया भेजी गई थी। |
+| `NotBefore` और `NotOnOrAfter` | प्रतिक्रिया केवल तब तक स्वीकार की जाती है जब तक ये अनुमति दें, और जारी होने के 10 मिनट से ज़्यादा बाद नहीं, उन घड़ियों के लिए 3 मिनट की छूट के साथ जो आपस में मेल नहीं खातीं। |
 | Name ID | व्यक्ति का ईमेल पता। यह एक मान्य ईमेल पता होना चाहिए। |
 | `http://schemas.microsoft.com/identity/claims/displayname` | व्यक्ति का नाम, जिसका उपयोग OneUptime उसका खाता बनाते समय करता है। वैकल्पिक। |
+
+हर प्रतिक्रिया केवल एक बार साइन इन कराती है। उसे दोबारा भेजने पर, जैसे साइन इन के बाद ब्राउज़र में पीछे जाने पर, वह अस्वीकार हो जाती है: फिर से साइन इन करें।
 
 पहली बार साइन इन करने वाले लोग प्रदाता की **टीमें** में शामिल होते हैं, जो तय करती हैं कि वे क्या कर सकते हैं: देखें [SSO उपयोगकर्ताओं के लिए भूमिकाएँ और टीमें](#sso-उपयोगकर्ताओं-के-लिए-भूमिकाएँ-और-टीमें)।
 
@@ -326,6 +331,22 @@ OneUptime आपके पहचान प्रदाता की भूमि
 
 :::details "Issuer URL does not match"
 आपके IdP के assertion का जारीकर्ता प्रदाता का **जारीकर्ता** नहीं है। इसे अपने IdP से फिर से कॉपी करें — Keycloak का realm URL, **Microsoft Entra Identifier**, या Okta का Identity Provider Issuer — ताकि दोनों बिल्कुल मेल खाएँ।
+:::
+
+:::details "SAML Audience does not match"
+प्रतिक्रिया का audience इस प्रदाता का **Identifier (Entity ID)** नहीं है: आपके IdP ने इसे किसी दूसरे ऐप्लिकेशन के लिए बनाया है। अपने IdP में ऐप्लिकेशन का entity ID **SSO कॉन्फ़िग देखें** से मिले **Identifier (Entity ID)** पर सेट करें — Keycloak में **Client ID**, Entra ID में **Identifier (Entity ID)**, Okta में **Audience URI (SP Entity ID)**। जो IdP केवल OneUptime के पते को entity ID के रूप में लेकर सेट किया गया है, जैसे `https://oneuptime.com`, वह काम करता रहता है।
+:::
+
+:::details "SAML Recipient does not match"
+प्रतिक्रिया का recipient इस प्रदाता का **Reply URL** नहीं है: प्रतिक्रिया किसी दूसरे पते के लिए भेजी गई थी। अपने IdP में ऐप्लिकेशन का reply URL **SSO कॉन्फ़िग देखें** से मिले **Reply URL (Assertion Consumer Service URL)** पर सेट करें — Keycloak में **Assertion Consumer Service POST Binding URL**, Entra ID में **Reply URL (Assertion Consumer Service URL)**, Okta में **Single sign-on URL**। "SAML Destination does not match" का कारण और समाधान भी यही है।
+:::
+
+:::details "SAML response has expired"
+प्रतिक्रिया OneUptime तक आपके IdP की अनुमति से देर से पहुँची, या जारी होने के 10 मिनट से ज़्यादा बाद: फिर से साइन इन करें। अगर ऐसा बार-बार हो, तो आपके IdP की या OneUptime सर्वर की घड़ी गलत है; OneUptime इन दोनों में 3 मिनट तक का अंतर स्वीकार करता है। "SAML response is not valid yet" यही समस्या उलटी दिशा में है।
+:::
+
+:::details "SAML response was already used"
+आपके IdP की हर प्रतिक्रिया केवल एक बार साइन इन कराती है। साइन इन के बाद ब्राउज़र में पीछे जाने पर, या उस पेज को फिर से लोड करने पर जिससे होकर आपके IdP ने आपको भेजा था, वही प्रतिक्रिया दोबारा जाती है: फिर से साइन इन करें, OneUptime से या अपने IdP से।
 :::
 
 :::details साइन-इन हस्ताक्षर या प्रमाणपत्र त्रुटि के साथ विफल होता है
