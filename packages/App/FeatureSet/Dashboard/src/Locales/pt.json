@@ -30367,5 +30367,21 @@
   "Match each visitor's device": "Conforme o dispositivo de cada visitante",
   "Status page theme": "Tema da página de status",
   "Theme": "Tema",
-  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Seu CSS e seu HTML personalizados valem nos dois temas. Comece uma regra CSS com html.dark para estilizar apenas o tema escuro."
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Seu CSS e seu HTML personalizados valem nos dois temas. Comece uma regra CSS com html.dark para estilizar apenas o tema escuro.",
+  "Check billing": "Check billing",
+  "Check subscription": "Check subscription",
+  "Enterprise Edition (Marketplace Reports Failing)": "Enterprise Edition (Marketplace Reports Failing)",
+  "Enterprise Edition (Marketplace Subscription Ended)": "Enterprise Edition (Marketplace Subscription Ended)",
+  "Enterprise Marketplace Billing": "Enterprise Marketplace Billing",
+  "Every enterprise feature keeps working until {{date}}.": "Every enterprise feature keeps working until {{date}}.",
+  "Every user of this installation is billed by the hour on your {{marketplace}} account. Enterprise features stay licensed for as long as {{marketplace}} accepts the installation's hourly usage reports.": "Every user of this installation is billed by the hour on your {{marketplace}} account. Enterprise features stay licensed for as long as {{marketplace}} accepts the installation's hourly usage reports.",
+  "Last reporting problem: {{problem}}": "Last reporting problem: {{problem}}",
+  "Last usage report accepted {{date}}: {{quantity}} user-hours.": "Last usage report accepted {{date}}: {{quantity}} user-hours.",
+  "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Licensed through your cloud marketplace subscription: every user is billed by the hour.",
+  "Licensed through {{marketplace}}": "Licensed through {{marketplace}}",
+  "Make sure this installation can reach {{marketplace}} and is set up as the listing's instructions say.": "Make sure this installation can reach {{marketplace}} and is set up as the listing's instructions say.",
+  "Your cloud marketplace has not accepted this installation's usage reports lately. Enterprise features keep working during the grace period.": "Your cloud marketplace has not accepted this installation's usage reports lately. Enterprise features keep working during the grace period.",
+  "Your cloud marketplace subscription no longer licenses this installation.": "Your cloud marketplace subscription no longer licenses this installation.",
+  "{{marketplace}} is not accepting usage reports": "{{marketplace}} is not accepting usage reports",
+  "{{marketplace}} no longer licenses this installation": "{{marketplace}} no longer licenses this installation"
 }

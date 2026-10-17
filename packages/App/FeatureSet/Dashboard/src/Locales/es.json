@@ -30367,5 +30367,21 @@
   "Match each visitor's device": "Según el dispositivo de cada visitante",
   "Status page theme": "Tema de la página de estado",
   "Theme": "Tema",
-  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Su CSS y HTML personalizados se aplican en ambos temas. Empiece una regla CSS con html.dark para dar estilo solo al tema oscuro."
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Su CSS y HTML personalizados se aplican en ambos temas. Empiece una regla CSS con html.dark para dar estilo solo al tema oscuro.",
+  "Check billing": "Revisar facturación",
+  "Check subscription": "Revisar suscripción",
+  "Enterprise Edition (Marketplace Reports Failing)": "Enterprise Edition (fallan los informes al marketplace)",
+  "Enterprise Edition (Marketplace Subscription Ended)": "Enterprise Edition (suscripción del marketplace finalizada)",
+  "Enterprise Marketplace Billing": "Facturación de Enterprise en el marketplace",
+  "Every enterprise feature keeps working until {{date}}.": "Todas las funciones empresariales siguen funcionando hasta el {{date}}.",
+  "Every user of this installation is billed by the hour on your {{marketplace}} account. Enterprise features stay licensed for as long as {{marketplace}} accepts the installation's hourly usage reports.": "Cada usuario de esta instalación se factura por horas en tu cuenta de {{marketplace}}. Las funciones empresariales siguen con licencia mientras {{marketplace}} acepte los informes de uso por hora de la instalación.",
+  "Last reporting problem: {{problem}}": "Último problema al enviar informes: {{problem}}",
+  "Last usage report accepted {{date}}: {{quantity}} user-hours.": "Último informe de uso aceptado el {{date}}: {{quantity}} horas de usuario.",
+  "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Con licencia a través de tu suscripción del marketplace en la nube: cada usuario se factura por horas.",
+  "Licensed through {{marketplace}}": "Con licencia a través de {{marketplace}}",
+  "Make sure this installation can reach {{marketplace}} and is set up as the listing's instructions say.": "Asegúrate de que esta instalación puede conectarse con {{marketplace}} y está configurada como indican las instrucciones de la oferta.",
+  "Your cloud marketplace has not accepted this installation's usage reports lately. Enterprise features keep working during the grace period.": "Tu marketplace en la nube no ha aceptado últimamente los informes de uso de esta instalación. Las funciones empresariales siguen funcionando durante el periodo de gracia.",
+  "Your cloud marketplace subscription no longer licenses this installation.": "Tu suscripción del marketplace en la nube ya no cubre la licencia de esta instalación.",
+  "{{marketplace}} is not accepting usage reports": "{{marketplace}} no acepta los informes de uso",
+  "{{marketplace}} no longer licenses this installation": "{{marketplace}} ya no concede la licencia de esta instalación"
 }
