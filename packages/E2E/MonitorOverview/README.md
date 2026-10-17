@@ -190,6 +190,14 @@ Next; Probes & Interval opens on Every 5 Minutes; Create Monitor sends the type,
 interval, address and picked probe. A Manual monitor is created from its one step, with no
 interval.
 
+On the criteria step the fields are plain choices: SQL Server's **Authentication** offers
+Username and password (picked) or Windows Integrated Authentication, each with its one line
+under its label and the radio on the label's line, and the second takes the username and
+password away and is what the create sends; a Synthetic monitor starts on Chromium at
+Desktop, and with no browser picked Next says so by the button and goes nowhere; Retries on
+Failure and Request Timeout say what they are in one line, and the retry rule waits in the
+(i) by the title, wrapped inside the window.
+
 At the plan's limit on active monitors (`?billing=true&monitorLimit=`), a notice above the
 form says which limit, how many active monitors the project has, what to do (with the plan
 a click away) and what counts; past the limit it says the monitors keep running and when the

@@ -320,7 +320,7 @@ describe("Probe view page makes an edit saveable and visible", () => {
     // Otherwise a successful save is invisible and reads as "not applied".
     expect(source).toContain(
       squash(
-        'field: { shouldAutoEnableProbeOnNewMonitors: true, }, title: PROBE_ON_NEW_MONITORS_COPY.columnTitle,',
+        "field: { shouldAutoEnableProbeOnNewMonitors: true, }, title: PROBE_ON_NEW_MONITORS_COPY.columnTitle,",
       ),
     );
   });
@@ -328,7 +328,7 @@ describe("Probe view page makes an edit saveable and visible", () => {
   test("the form still edits the toggle", () => {
     expect(source).toContain(
       squash(
-        'field: { shouldAutoEnableProbeOnNewMonitors: true, }, title: PROBE_ON_NEW_MONITORS_COPY.switchTitle,',
+        "field: { shouldAutoEnableProbeOnNewMonitors: true, }, title: PROBE_ON_NEW_MONITORS_COPY.switchTitle,",
       ),
     );
   });

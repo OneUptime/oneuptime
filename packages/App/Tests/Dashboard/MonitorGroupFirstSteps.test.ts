@@ -149,10 +149,7 @@ describe("Add Monitors offers the monitors the group does not hold", () => {
   test("a monitor read without a name is offered by its id; one without an id is left out", () => {
     expect(
       getMonitorsToOffer({
-        projectMonitors: [
-          buildMonitor(API_ID, undefined),
-          new Monitor(),
-        ],
+        projectMonitors: [buildMonitor(API_ID, undefined), new Monitor()],
         monitorIdsInGroup: [],
       }),
     ).toEqual([{ value: API_ID, label: API_ID }]);
@@ -184,9 +181,7 @@ describe("what Add Monitors says afterwards", () => {
         { added: 2, total: 5, firstError: "Monitor not found." },
         ENGLISH,
       ),
-    ).toBe(
-      "2 of 5 monitors were added. The rest were not: Monitor not found.",
-    );
+    ).toBe("2 of 5 monitors were added. The rest were not: Monitor not found.");
   });
 
   test("in the reader's language", () => {
@@ -212,7 +207,9 @@ describe("the Monitors page", () => {
 
   test("adds several monitors in one dialog, with only the ones not in the group to pick from", () => {
     expect(page).toContain("<BasicFormModal<AddMonitorsFormValues>");
-    expect(page).toContain("fieldType: FormFieldSchemaType.MultiSelectDropdown");
+    expect(page).toContain(
+      "fieldType: FormFieldSchemaType.MultiSelectDropdown",
+    );
     expect(page).toContain("getMonitorsToOffer({");
     expect(page).toContain("dropdownOptions: monitorsToOffer");
     expect(page).toContain("title={MonitorGroupMonitorsCopy.addDialogTitle}");
@@ -239,7 +236,9 @@ describe("the Monitors page", () => {
 
   test("offers Add Monitors only to whoever may put a monitor in a group", () => {
     expect(page).toContain("PermissionGate.gateCardButton(");
-    expect(page).toContain("new MonitorGroupResource(),\n      ModelAction.Create,");
+    expect(page).toContain(
+      "new MonitorGroupResource(),\n      ModelAction.Create,",
+    );
     expect(page).toContain(
       "cardButtons={addMonitorsButton ? [addMonitorsButton] : []}",
     );
@@ -248,7 +247,9 @@ describe("the Monitors page", () => {
   test("takes a monitor out with Remove, in plain words", () => {
     expect(page).toContain('title: "Remove",');
     expect(page).toContain('submitButtonText="Remove"');
-    expect(page).toContain("title={MonitorGroupMonitorsCopy.removeDialogTitle}");
+    expect(page).toContain(
+      "title={MonitorGroupMonitorsCopy.removeDialogTitle}",
+    );
     expect(page).toContain("MonitorGroupMonitorsCopy.removeDialogDescription");
     expect(page).toContain("MonitorGroupMonitorsCopy.alreadyRemovedError");
   });
@@ -282,7 +283,7 @@ describe("the Overview of an empty group", () => {
       "description={MonitorGroupMonitorsCopy.emptyDescription}",
     );
     expect(page).toContain('dataTestId="monitor-group-add-monitors"');
-    expect(page).toContain("[ADD_MONITORS_QUERY_PARAM]: \"true\"");
+    expect(page).toContain('[ADD_MONITORS_QUERY_PARAM]: "true"');
     // The uptime bar is still there for a group with monitors.
     expect(page).toContain('title="Uptime Graph"');
   });
@@ -351,9 +352,13 @@ describe("translations", () => {
   const words: Array<string> = Object.values(MonitorGroupMonitorsCopy).filter(
     (word: string) => {
       // Already translated keys the pages reuse.
-      return !["Add Monitors", "Monitors", "Select Monitors", "Remove", "Monitors in Group"].includes(
-        word,
-      );
+      return ![
+        "Add Monitors",
+        "Monitors",
+        "Select Monitors",
+        "Remove",
+        "Monitors in Group",
+      ].includes(word);
     },
   );
 
@@ -365,12 +370,15 @@ describe("translations", () => {
     }
   });
 
-  test.each(OTHER_LOCALES)("%s.json translates every new word", (locale: string) => {
-    const json: Record<string, unknown> = readLocale(locale);
+  test.each(OTHER_LOCALES)(
+    "%s.json translates every new word",
+    (locale: string) => {
+      const json: Record<string, unknown> = readLocale(locale);
 
-    for (const word of words) {
-      expect(typeof json[word]).toBe("string");
-      expect(json[word]).not.toBe(word);
-    }
-  });
+      for (const word of words) {
+        expect(typeof json[word]).toBe("string");
+        expect(json[word]).not.toBe(word);
+      }
+    },
+  );
 });

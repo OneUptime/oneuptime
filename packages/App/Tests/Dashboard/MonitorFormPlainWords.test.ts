@@ -120,7 +120,9 @@ describe("the request fields of an API or Website monitor", () => {
     expect(STEP_FORM).not.toContain(
       "Verify your monitor configuration before saving",
     );
-    expect(STEP_FORM).toContain('description="Run one check now, before you save."');
+    expect(STEP_FORM).toContain(
+      'description="Run one check now, before you save."',
+    );
   });
 });
 
@@ -161,7 +163,9 @@ describe("a Database Health monitor", () => {
   );
 
   test("folds its Metric Groups under More fields, with the timeouts", () => {
-    const moreFields: number = form.indexOf("title={MORE_FIELDS_SECTION_TITLE}");
+    const moreFields: number = form.indexOf(
+      "title={MORE_FIELDS_SECTION_TITLE}",
+    );
     const groups: number = form.indexOf('title="Metric Groups"');
     const connectionTimeout: number = form.indexOf(
       'title="Connection Timeout (ms)"',
@@ -273,7 +277,9 @@ describe("the criteria editor", () => {
   test("its folded Actions section says what it does in the reader's language", () => {
     expect(instance).not.toContain("actions.push(`Status: ${");
     expect(instance).not.toContain('alert${alertCount !== 1 ? "s" : ""}');
-    expect(instance).toContain('translator.translateTemplate("Status: {{status}}"');
+    expect(instance).toContain(
+      'translator.translateTemplate("Status: {{status}}"',
+    );
     expect(instance).toContain(
       '{ one: "{{count}} alert", other: "{{count}} alerts" }',
     );
@@ -284,7 +290,9 @@ describe("the criteria editor", () => {
   });
 
   test("its Enabled badge is translated too", () => {
-    expect(instance).not.toContain('badge={isEnabled ? "Enabled" : "Disabled"}');
+    expect(instance).not.toContain(
+      'badge={isEnabled ? "Enabled" : "Disabled"}',
+    );
     expect(instance).toContain(
       'translator.translateText(isEnabled ? "Enabled" : "Disabled")',
     );
@@ -324,7 +332,9 @@ describe("a monitor's pages", () => {
     expect(page).toContain(
       "The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key.",
     );
-    expect(page).not.toContain("Resetting the secret key will generate a new key.");
+    expect(page).not.toContain(
+      "Resetting the secret key will generate a new key.",
+    );
   });
 
   test("Duplicate says why the copy starts turned off", () => {
@@ -368,7 +378,9 @@ describe("a monitor's pages", () => {
 
 describe("monitor secrets", () => {
   test("Update Secret Value says why a value was not saved, and stays open", () => {
-    const page: string = readDashboard("Pages/Monitor/Settings/MonitorSecrets.tsx");
+    const page: string = readDashboard(
+      "Pages/Monitor/Settings/MonitorSecrets.tsx",
+    );
 
     expect(page).not.toContain("// do nothing");
     expect(page).toContain("setUpdateError(API.getFriendlyMessage(err));");
@@ -405,14 +417,17 @@ describe("translations", () => {
     }
   });
 
-  test.each(OTHER_LOCALES)("%s.json translates every new sentence", (locale: string) => {
-    const json: Record<string, unknown> = readLocale(locale);
+  test.each(OTHER_LOCALES)(
+    "%s.json translates every new sentence",
+    (locale: string) => {
+      const json: Record<string, unknown> = readLocale(locale);
 
-    for (const word of words) {
-      expect(typeof json[word]).toBe("string");
-      expect(json[word]).not.toBe(word);
-    }
-  });
+      for (const word of words) {
+        expect(typeof json[word]).toBe("string");
+        expect(json[word]).not.toBe(word);
+      }
+    },
+  );
 
   test.each(OTHER_LOCALES)(
     "%s.json keeps every placeholder",

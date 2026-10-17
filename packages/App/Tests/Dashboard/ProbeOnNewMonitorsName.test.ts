@@ -172,7 +172,9 @@ describe("the probe pages say what each kind of probe is for", () => {
     expect(page).toContain(
       "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.",
     );
-    expect(page).not.toContain("Secret is used to authenticate probe requests.");
+    expect(page).not.toContain(
+      "Secret is used to authenticate probe requests.",
+    );
   });
 });
 
@@ -194,12 +196,15 @@ describe("translations", () => {
     }
   });
 
-  test.each(OTHER_LOCALES)("%s.json translates every word", (locale: string) => {
-    const json: Record<string, unknown> = readLocale(locale);
+  test.each(OTHER_LOCALES)(
+    "%s.json translates every word",
+    (locale: string) => {
+      const json: Record<string, unknown> = readLocale(locale);
 
-    for (const word of words) {
-      expect(typeof json[word]).toBe("string");
-      expect(json[word]).not.toBe(word);
-    }
-  });
+      for (const word of words) {
+        expect(typeof json[word]).toBe("string");
+        expect(json[word]).not.toBe(word);
+      }
+    },
+  );
 });

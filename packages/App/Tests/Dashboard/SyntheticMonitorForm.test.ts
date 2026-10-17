@@ -89,14 +89,17 @@ describe("the refusal says what to pick, in every language", () => {
     }
   });
 
-  test.each(OTHER_LOCALES)("%s.json translates every word", (locale: string) => {
-    const json: Record<string, unknown> = readLocale(locale);
+  test.each(OTHER_LOCALES)(
+    "%s.json translates every word",
+    (locale: string) => {
+      const json: Record<string, unknown> = readLocale(locale);
 
-    for (const word of WORDS) {
-      expect(typeof json[word]).toBe("string");
-      expect(json[word]).not.toBe(word);
-    }
-  });
+      for (const word of WORDS) {
+        expect(typeof json[word]).toBe("string");
+        expect(json[word]).not.toBe(word);
+      }
+    },
+  );
 });
 
 describe("the form", () => {
@@ -110,12 +113,20 @@ describe("the form", () => {
     expect(STEP_FORM).toContain(
       "description={SyntheticMonitorCopy.retryCountOnErrorDescription}",
     );
-    expect(STEP_FORM).toContain("SyntheticMonitorCopy.playwrightCodeDescription");
-    expect(STEP_FORM).toContain("SyntheticMonitorCopy.javaScriptCodeDescription");
+    expect(STEP_FORM).toContain(
+      "SyntheticMonitorCopy.playwrightCodeDescription",
+    );
+    expect(STEP_FORM).toContain(
+      "SyntheticMonitorCopy.javaScriptCodeDescription",
+    );
   });
 
   test("keeps the titles the docs name", () => {
-    for (const title of ["Browser Type", "Screen Type", "Retry Count on Error"]) {
+    for (const title of [
+      "Browser Type",
+      "Screen Type",
+      "Retry Count on Error",
+    ]) {
       expect(STEP_FORM).toContain(`title={"${title}"}`);
     }
   });

@@ -372,9 +372,10 @@ describe("DatabaseMonitorStepForm - Metric Groups wait under More fields", () =>
     );
 
     expect(section).toContainElement(groups);
-    expect(
-      view.getByRole("button", { name: /More fields/ }),
-    ).toHaveAttribute("aria-expanded", "false");
+    expect(view.getByRole("button", { name: /More fields/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
   test("the folded header names the groups first", () => {

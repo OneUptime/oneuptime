@@ -376,9 +376,7 @@ describe("Monitor step form", () => {
     expect(source).toMatch(
       /getRetriesOnFailureField\(\s*props\.monitorType,?\s*\)/,
     );
-    expect(source).toContain(
-      "description={retriesOnFailureField.description}",
-    );
+    expect(source).toContain("description={retriesOnFailureField.description}");
     expect(source).toContain("tooltip={retriesOnFailureField.tooltip}");
   });
 

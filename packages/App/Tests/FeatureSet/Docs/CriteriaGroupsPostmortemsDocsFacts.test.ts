@@ -2082,7 +2082,12 @@ describe("creating a monitor group", () => {
     expect(GROUP_OVERVIEW_PAGE).toContain(
       "title={MonitorGroupMonitorsCopy.addButton}",
     );
-    expect(GROUP_OVERVIEW_PAGE).toContain("RouteMap[PageMap.MONITOR_GROUP_VIEW_MONITORS]");
+    expect(GROUP_OVERVIEW_PAGE).toContain(
+      "PageMap.MONITOR_GROUP_VIEW_MONITORS",
+    );
+    expect(GROUP_OVERVIEW_PAGE).toContain(
+      '[ADD_MONITORS_QUERY_PARAM]: "true",',
+    );
     expect(creating).toContain(
       "### Add its monitors\n\nOpen the group: until it has a monitor, its **Overview** offers **Add Monitors**. Later, click **Monitors** in its side menu, then **Add Monitors**. Pick every monitor of the group under **Monitors** and click **Add Monitors**.",
     );
