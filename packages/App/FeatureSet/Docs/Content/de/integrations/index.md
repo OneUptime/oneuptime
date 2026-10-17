@@ -27,8 +27,8 @@ Eine Zwei-Wege-Integration wie Jira oder Dynamics 365 nutzt beide Richtungen: Ei
 
 | Weg | Am besten für | Beispiele |
 | --- | --- | --- |
-| Eine eingebaute Verbindung | Werkzeuge, mit denen sich OneUptime selbst verbindet. Sie füllen ein Formular aus, und es gibt nichts zu bauen. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), die Verbindungen der [Sicherheitsereignisse](/docs/telemetry/security-events) |
-| Eine Workflow-Vorlage | Ticketwerkzeuge, in beide Richtungen abgeglichen, und Chatnachrichten. Sie wählen eine Vorlage und füllen ein paar Einstellungen aus. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| Eine eingebaute Verbindung | Werkzeuge, mit denen sich OneUptime selbst verbindet. Sie füllen ein Formular aus, und es gibt nichts zu bauen. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), die Verbindungen der [Sicherheitsereignisse](/docs/telemetry/security-events) |
+| Eine Workflow-Vorlage | Ticketwerkzeuge, in beide Richtungen abgeglichen, Sicherheitsvorfallsmeldungen und Chatnachrichten. Sie wählen eine Vorlage und füllen ein paar Einstellungen aus. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
 | Ein Monitor für eingehende Anfragen | Alarmierungswerkzeuge, die einen Webhook senden. Sie bekommen einen Vorfall pro Alarm, an die Bereitschaft gemeldet und behoben, wenn sich der Alarm erholt, ganz ohne Workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Ein Workflow, den Sie bauen | Jedes Werkzeug mit einem Webhook oder einer REST-API, und jede eigene Logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 

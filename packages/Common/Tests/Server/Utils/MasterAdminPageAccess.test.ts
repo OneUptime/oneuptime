@@ -13,6 +13,7 @@ import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticated
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
@@ -146,7 +147,10 @@ describe("ensureMasterAdminPageAccess", () => {
       await expect(run()).resolves.toEqual({});
 
       expect(decodeSpy).toHaveBeenCalledTimes(1);
-      expect(decodeSpy).toHaveBeenCalledWith("expired.jwt.token");
+      expect(decodeSpy).toHaveBeenCalledWith(
+        "expired.jwt.token",
+        JsonWebTokenPurpose.UserSession,
+      );
       expect(sendErrorSpy).not.toHaveBeenCalled();
       expect(response.status).not.toHaveBeenCalled();
     });
@@ -236,7 +240,10 @@ describe("ensureMasterAdminPageAccess", () => {
 
       await expect(run()).resolves.toEqual({});
 
-      expect(decodeSpy).toHaveBeenCalledWith("valid.jwt.token");
+      expect(decodeSpy).toHaveBeenCalledWith(
+        "valid.jwt.token",
+        JsonWebTokenPurpose.UserSession,
+      );
       expect(sendErrorSpy).not.toHaveBeenCalled();
       expect(response.status).not.toHaveBeenCalled();
       expect(response.send).not.toHaveBeenCalled();

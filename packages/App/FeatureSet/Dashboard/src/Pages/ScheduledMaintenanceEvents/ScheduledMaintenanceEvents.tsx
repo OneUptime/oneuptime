@@ -19,6 +19,7 @@ const ScheduledMaintenancesPage: FunctionComponent<
       saveFilterProps={{
         tableId: "all-scheduled-maintenance-events-table",
       }}
+      showCalendarView={true}
     />
   );
 };

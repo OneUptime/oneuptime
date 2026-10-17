@@ -18,6 +18,7 @@ import { ExpressRequest } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import OneUptimeDate from "../../../Types/Date";
 import Email from "../../../Types/Email";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import { DataSource } from "typeorm";
 
@@ -129,6 +130,7 @@ describePostgres("status page SSO sessions against Postgres", () => {
             email: new Email("synthetic@example.com"),
           },
           expiresInSeconds: 900,
+          purpose: JsonWebTokenPurpose.StatusPageSession,
         }),
       },
     } as ExpressRequest;

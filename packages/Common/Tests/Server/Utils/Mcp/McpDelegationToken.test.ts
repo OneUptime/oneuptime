@@ -8,6 +8,7 @@ import McpOAuthSignedToken, {
 import JSONWebToken from "../../../../Server/Utils/JsonWebToken";
 import Email from "../../../../Types/Email";
 import { JSONObject } from "../../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../../Types/JsonWebTokenPurpose";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, jest, test } from "@jest/globals";
@@ -590,9 +591,11 @@ describe("McpDelegationToken is never a JWT, in either direction", () => {
   test("it is refused as a dashboard session", () => {
     const token: string = McpDelegationToken.sign(claimsWith(), NOW);
 
-    expect(() => {
-      return JSONWebToken.decode(token);
-    }).toThrow("AccessToken is invalid or expired");
+    for (const purpose of Object.values(JsonWebTokenPurpose)) {
+      expect(() => {
+        return JSONWebToken.decode(token, purpose);
+      }).toThrow("AccessToken is invalid or expired");
+    }
     expect(token.startsWith("eyJ")).toBe(false);
   });
 

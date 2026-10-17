@@ -130,7 +130,8 @@ describe("the Incoming Email section of the triggers page", () => {
   });
 
   test("the page counts the trigger among the kinds, and in the chooser", () => {
-    expect(triggers).toContain("You pick from five kinds.");
+    // Manual, Schedule, Webhook, Incoming Email, Huntress and OneUptime events.
+    expect(triggers).toContain("You pick from six kinds.");
     expect(triggers).toMatch(
       /\| Start from an email\s+\| \*\*Incoming Email\*\*/,
     );

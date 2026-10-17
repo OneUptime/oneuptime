@@ -1,4 +1,5 @@
 import ComponentCodeAPI from "./API/ComponentCode";
+import HuntressLegacyWebhookAPI from "./API/HuntressLegacyWebhook";
 import ManualAPI from "./API/Manual";
 import RunStepAPI from "./API/RunStep";
 import ModelSchemaAPI from "./API/ModelSchema";
@@ -52,6 +53,13 @@ const WorkflowFeatureSet: FeatureSet = {
       componentCodeAPI.init();
 
       app.use(`/${APP_NAME}`, componentCodeAPI.router);
+
+      /*
+       * The address Huntress connections had, before Huntress became a
+       * workflow trigger: POST /api/huntress/webhook/<key> still starts the
+       * workflow each connection became (API/HuntressLegacyWebhook).
+       */
+      app.use("/api", new HuntressLegacyWebhookAPI().router);
 
       /*
        * Job process. Skipped in the "api" role (DISABLE_QUEUE_WORKERS=true) —

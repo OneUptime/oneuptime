@@ -207,6 +207,8 @@ import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import UserOnCallCalendarFeedService from "./UserOnCallCalendarFeedService";
 import OnCallDutyPolicyScheduleCalendarFeedService from "./OnCallDutyPolicyScheduleCalendarFeedService";
 import ProjectOnCallCalendarFeedService from "./ProjectOnCallCalendarFeedService";
+// The team's calendar link for scheduled maintenance
+import ScheduledMaintenanceCalendarFeedService from "./ScheduledMaintenanceCalendarFeedService";
 import UserOnCallShiftReminderService from "./UserOnCallShiftReminderService";
 import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogService";
 // On-Call Duty
@@ -368,8 +370,6 @@ import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
-import HuntressConnectionService from "./HuntressConnectionService";
-import HuntressIncidentReportService from "./HuntressIncidentReportService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityCaseService from "./SecurityCaseService";
@@ -813,6 +813,7 @@ const services: Array<BaseService> = [
   UserOnCallCalendarFeedService,
   OnCallDutyPolicyScheduleCalendarFeedService,
   ProjectOnCallCalendarFeedService,
+  ScheduledMaintenanceCalendarFeedService,
   UserOnCallShiftReminderService,
   UserOnCallShiftReminderLogService,
   OnCallDutyPolicyScheduleLayerService,
@@ -854,8 +855,6 @@ const services: Array<BaseService> = [
   DetectionRuleService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
-  HuntressConnectionService,
-  HuntressIncidentReportService,
   ThreatIntelFeedService,
   SecurityCaseService,
   SecurityCaseFeedService,

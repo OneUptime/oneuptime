@@ -154,8 +154,6 @@ import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ToolImportRun from "./ToolImportRun";
 import ToolImportRecord from "./ToolImportRecord";
-import HuntressConnection from "./HuntressConnection";
-import HuntressIncidentReport from "./HuntressIncidentReport";
 import ThreatIntelFeed from "./ThreatIntelFeed";
 import SecurityCase from "./SecurityCase";
 import SecurityCaseFeed from "./SecurityCaseFeed";
@@ -214,6 +212,8 @@ import OnCallDutyPolicyScheduleOwnerUser from "./OnCallDutyPolicyScheduleOwnerUs
 import UserOnCallCalendarFeed from "./UserOnCallCalendarFeed";
 import OnCallDutyPolicyScheduleCalendarFeed from "./OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "./ProjectOnCallCalendarFeed";
+// The team's calendar link for scheduled maintenance
+import ScheduledMaintenanceCalendarFeed from "./ScheduledMaintenanceCalendarFeed";
 import UserOnCallShiftReminder from "./UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "./UserOnCallShiftReminderLog";
 
@@ -569,8 +569,6 @@ const AllModelTypes: Array<{
   SecurityEventConnectionRun,
   ToolImportRun,
   ToolImportRecord,
-  HuntressConnection,
-  HuntressIncidentReport,
   ThreatIntelFeed,
   SecurityCase,
   SecurityCaseFeed,
@@ -880,6 +878,7 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyScheduleOwnerUser,
   OnCallDutyPolicyScheduleCalendarFeed,
   ProjectOnCallCalendarFeed,
+  ScheduledMaintenanceCalendarFeed,
   UserOnCallCalendarFeed,
   UserOnCallShiftReminder,
   UserOnCallShiftReminderLog,

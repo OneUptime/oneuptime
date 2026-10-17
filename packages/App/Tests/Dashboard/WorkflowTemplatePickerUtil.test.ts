@@ -551,10 +551,14 @@ describe("what a search matches", () => {
   test("a search for what is paged finds the template that pages it", () => {
     expect(searchIds("page team")).toEqual(["incident-severity-page"]);
     expect(searchIds("page someone")).toEqual(["webhook-page-users"]);
-    // Both page for critical incidents; the one named for it comes first.
+    /*
+     * Both page for critical incidents; the one named for it comes first.
+     * Huntress's pages on-call for critical reports too, after them.
+     */
     expect(searchIds("on call critical")).toEqual([
       "incident-critical-page-on-call",
       "incident-severity-page",
+      "huntress-incident-report-to-incident",
     ]);
     expect(searchIds("severity").slice(0, 2)).toEqual([
       "incident-severity-slack",

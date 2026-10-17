@@ -60,7 +60,7 @@ Fem vägar leder till samma objekt:
 - **Via API:t** — `POST /api/incident` med en API-nyckel. Servern fyller i `declaredAt`, skapandetillståndet och incidentnumret åt dig.
 - **Via ett formulär** — någon utanför ditt team fyller i ett formulär som du har delat som en länk, utan ett OneUptime-konto. Incidenten deklareras dold för statussidor, från formulärets incidentmall om det har en. Se [Formulär](/docs/forms/index).
 
-Integrationer öppnar också incidenter: [Huntress](/docs/integrations/huntress) gör varje incidentrapport som dess SOC skickar till en incident, som larmar de jourpolicyer du väljer. Se [Deklarera en incident](/docs/incidents/declaring-incidents) för genomgången fält för fält.
+Arbetsflöden öppnar också incidenter: arbetsflödet för [Huntress](/docs/integrations/huntress) gör varje incidentrapport som dess SOC skickar till en incident, som larmar den jourpolicy du väljer. Se [Deklarera en incident](/docs/incidents/declaring-incidents) för genomgången fält för fält.
 
 ### 2. Rätt personer får veta
 
@@ -160,11 +160,10 @@ Redigera eller lägg till allvarlighetsgrader under **Incidenter → Inställnin
 | **Episoder**  | Incidentepisoder, en separat grupperingsfunktion med egna sidor.                                                                                                          |
 | **AI**        | **Insikter**, **Loggar**, **Inställningar**: vad OneUptime AI har lärt sig av dina incidenter och allt den har gjort för dem, och vad den får göra på egen hand — med reglerna för vilka incidenter den utreder och åtgärdar. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbetsyta** | Chattarbetsytorna som projektet har anslutit: **Slack**, **Microsoft Teams** eller båda, var och en med sina aviseringsregler för incidenter. Är ingen av dem ansluten innehåller den **Anslut Slack eller Teams**, en sida som visar båda och hur de ansluts. |
-| **Integrationer** | Verktyg som själva öppnar incidenter: **Huntress**, vars incidentrapporter blir incidenter som larmar jouren. Se [Huntress](/docs/integrations/huntress). |
 | **Regler**    | Regelmotorerna: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
 | **Inställningar** | **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Anpassade fält**, **Incidentroller**, **Mätningar**, **Länkade larm**, **Medlemskap i episoder**, **Numrering**. |
 
-**Översikt** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Integrationer**, **Regler**, **Inställningar** och **Utvecklare** är hopfällda som standard, så att menyn öppnas på listorna du använder varje dag. Klicka på ett avsnitts titel för att fälla ut det och hitta sidorna som resten av den här dokumentationen hänvisar till; ett avsnitt öppnas också av sig självt när du är på någon av dess sidor. Konfigurationen av incidenter finns inte under projektinställningarna; den finns helt här.
+**Översikt** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** är hopfällda som standard, så att menyn öppnas på listorna du använder varje dag. Klicka på ett avsnitts titel för att fälla ut det och hitta sidorna som resten av den här dokumentationen hänvisar till; ett avsnitt öppnas också av sig självt när du är på någon av dess sidor. Konfigurationen av incidenter finns inte under projektinställningarna; den finns helt här.
 
 Själva listan över incidenter visar **Incidentnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser**, **Deklarerad**, **Varaktighet**, **Etiketter** och **Ägare**, med en massåtgärd **Ändra tillstånd** för att stänga flera på en gång.
 

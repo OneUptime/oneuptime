@@ -360,12 +360,13 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Workflow/RunRecordSearchPostgres.test.ts --forceExit
 
-      # Clones the migrated HuntressConnection and HuntressIncidentReport tables
-      # into an isolated schema: the signing secret is written encrypted and a
-      # new one clears the last refusal, and of two deliveries racing to claim
-      # one Huntress report the unique index lets exactly one through - what
-      # "one incident per report" rests on.
-      - name: Test Huntress connections and report claims on migrated Postgres
+      # Clones the migrated Workflow, Incident and legacy Huntress connection
+      # tables into an isolated schema: a workflow's signing secret is written
+      # encrypted and a new one clears the last refusal, the Huntress webhook
+      # finds a workflow by its key and keeps what each request did, and every
+      # Huntress connection made before becomes the workflow that does what it
+      # did - answering at its old address, with its old secret.
+      - name: Test Huntress workflows and the move of Huntress connections on migrated Postgres
         working-directory: packages/Common
         env:
           RUN_POSTGRES_HUNTRESS_TESTS: "true"

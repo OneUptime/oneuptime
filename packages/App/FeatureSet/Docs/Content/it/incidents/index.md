@@ -60,7 +60,7 @@ Cinque strade portano allo stesso oggetto:
 - **Tramite l'API** — `POST /api/incident` con una chiave API. Il server compila per voi `declaredAt`, lo stato di creazione e il numero dell'incidente.
 - **Con un modulo** — qualcuno esterno al vostro team compila un modulo che avete condiviso come link, senza un account OneUptime. L'incidente viene dichiarato nascosto dalle pagine di stato, a partire dal modello di incidente del modulo, se ne ha uno. Vedete [Moduli](/docs/forms/index).
 
-Anche le integrazioni aprono incidenti: [Huntress](/docs/integrations/huntress) trasforma ogni rapporto di incidente inviato dal suo SOC in un incidente, che avvisa le policy di reperibilità che scegliete voi. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents) per la descrizione campo per campo.
+Anche i workflow aprono incidenti: il workflow di [Huntress](/docs/integrations/huntress) trasforma ogni rapporto di incidente inviato dal suo SOC in un incidente, che avvisa la policy di reperibilità che scegliete voi. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents) per la descrizione campo per campo.
 
 ### 2. Le persone giuste vengono informate
 
@@ -160,11 +160,10 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore. Il suo menu la
 | **Episodi**          | Gli episodi degli incidenti, una funzione di raggruppamento separata con le proprie pagine.                                                                                |
 | **IA**               | **Informazioni**, **Registri**, **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri incidenti e tutto ciò che ha fatto per loro, e che cosa può fare da sola — con le regole su quali incidenti esamina e corregge. Vedete [AI SRE](/docs/ai/ai-sre). |
 | **Area di lavoro**   | Gli spazi di chat che questo progetto ha collegato: **Slack**, **Microsoft Teams** o entrambi, ciascuno con le sue regole di notifica per gli incidenti. Se nessuno è collegato, contiene **Collega Slack o Teams**, una pagina che mostra entrambi e come collegarli. |
-| **Integrazioni**     | Strumenti che aprono incidenti da soli: **Huntress**, i cui rapporti di incidente diventano incidenti che avvisano la reperibilità. Vedete [Huntress](/docs/integrations/huntress). |
 | **Regole**           | I motori di regole: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Reminder Rules**. |
 | **Impostazioni**     | **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Modelli post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Misurazioni**, **Avvisi collegati**, **Appartenenza agli episodi**, **Numerazione**. |
 
-**Panoramica** ed **Episodi** sono aperte; **IA**, **Area di lavoro**, **Integrazioni**, **Regole**, **Impostazioni** e **Sviluppatori** sono ripiegate per impostazione predefinita, così il menu si apre sugli elenchi che usate ogni giorno. Fate clic sul titolo di una sezione per espanderla e trovare le pagine a cui fa riferimento il resto di questa documentazione; una sezione si apre anche da sola ogni volta che siete su una delle sue pagine. La configurazione degli incidenti non si trova nelle impostazioni del progetto; vive tutta qui.
+**Panoramica** ed **Episodi** sono aperte; **IA**, **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** sono ripiegate per impostazione predefinita, così il menu si apre sugli elenchi che usate ogni giorno. Fate clic sul titolo di una sezione per espanderla e trovare le pagine a cui fa riferimento il resto di questa documentazione; una sezione si apre anche da sola ogni volta che siete su una delle sue pagine. La configurazione degli incidenti non si trova nelle impostazioni del progetto; vive tutta qui.
 
 L'elenco degli incidenti mostra **Numero dell'incidente**, **Titolo**, **Stato**, **Gravità**, **Risorse interessate**, **Dichiarato**, **Durata**, **Etichette** e **Proprietari**, con un'azione di massa **Cambia stato** per chiuderne diversi in una volta.
 

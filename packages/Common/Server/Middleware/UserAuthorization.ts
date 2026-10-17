@@ -28,6 +28,7 @@ import HashedString from "../../Types/HashedString";
 import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../Types/ObjectID";
 import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import GlobalSsoService from "../Services/GlobalSsoService";
@@ -131,6 +132,12 @@ export default class UserMiddleware {
    * only need to know who is asking use getSessionUser. Throws when whether
    * the user is blocked cannot be looked up: a lookup that fails is an
    * error, not a pass.
+   *
+   * Only a session's own access token is a session
+   * (JsonWebTokenPurpose.UserSession). Any other token OneUptime signed is
+   * "invalid" here, as one that does not verify: an SSO sign-in, which is
+   * read only next to a session (getSsoTokens, getGlobalSsoTokenData), or a
+   * status page private user's session.
    */
   @CaptureSpan()
   public static async readRequestSession(
@@ -146,7 +153,10 @@ export default class UserMiddleware {
     let session: JSONWebTokenData;
 
     try {
-      session = JSONWebToken.decode(accessToken);
+      session = JSONWebToken.decode(
+        accessToken,
+        JsonWebTokenPurpose.UserSession,
+      );
     } catch (error) {
       return { kind: "invalid", error: error };
     }
@@ -200,6 +210,7 @@ export default class UserMiddleware {
         try {
           projectId = JSONWebToken.decode(
             value as string,
+            JsonWebTokenPurpose.SsoSignIn,
           ).projectId?.toString();
         } catch (err) {
           logger.error(
@@ -241,7 +252,10 @@ export default class UserMiddleware {
           }
 
           try {
-            const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+            const decoded: JSONWebTokenData = JSONWebToken.decode(
+              token,
+              JsonWebTokenPurpose.SsoSignIn,
+            );
 
             if (decoded.projectId?.toString() === projectId) {
               ssoTokens[projectId] = token;
@@ -316,7 +330,10 @@ export default class UserMiddleware {
     }
 
     try {
-      const decodedData: JSONWebTokenData = JSONWebToken.decode(rawToken);
+      const decodedData: JSONWebTokenData = JSONWebToken.decode(
+        rawToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
 
       if (
         decodedData.ssoProviderType === SsoProviderType.GlobalSSO ||
@@ -361,7 +378,10 @@ export default class UserMiddleware {
     }
 
     try {
-      const decodedData: JSONWebTokenData = JSONWebToken.decode(rawToken);
+      const decodedData: JSONWebTokenData = JSONWebToken.decode(
+        rawToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
 
       /*
        * A Global-typed credential is NEVER accepted here, whichever slot it

@@ -329,8 +329,9 @@ describe("Terraform, for one workflow", () => {
     expect(markdown).toContain('name        = "Send weekly report"');
     expect(markdown).toContain("is_enabled  = true");
     expect(markdown).toContain(`id = "${WORKFLOW_ID}"`);
+    // The Huntress trigger's signing secret is one too: write-only, encrypted.
     expect(markdown).toContain(
-      "Left out because they are secret: `webhook_secret_key`, `incoming_email_secret_key`.",
+      "Left out because they are secret: `webhook_secret_key`, `incoming_email_secret_key`, `webhook_signing_secret`.",
     );
   });
 

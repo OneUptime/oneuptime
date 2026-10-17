@@ -27,8 +27,8 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 
 | 方法 | 最適な用途 | 例 |
 | --- | --- | --- |
-| 組み込みの接続 | OneUptime が自ら接続するツール。フォームに入力するだけで、構築するものはありません。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Huntress](/docs/integrations/huntress)、[セキュリティイベント](/docs/telemetry/security-events) の接続 |
-| ワークフローテンプレート | 双方向で同期を保つチケットツールと、チャットメッセージ。テンプレートを選び、いくつかの設定を入力します。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| 組み込みの接続 | OneUptime が自ら接続するツール。フォームに入力するだけで、構築するものはありません。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[セキュリティイベント](/docs/telemetry/security-events) の接続 |
+| ワークフローテンプレート | 双方向で同期を保つチケットツール、セキュリティインシデントレポート、チャットメッセージ。テンプレートを選び、いくつかの設定を入力します。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress) |
 | 受信リクエストモニター | Webhook を送信するアラートツール。ワークフローなしで、アラートごとに個別のインシデントが作成され、オンコールが呼び出され、アラートが回復すると解決されます。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
 | 自分で構築するワークフロー | Webhook または REST API を持つあらゆるツールと、独自のロジック。 | [PagerDuty](/docs/integrations/pagerduty)、[Opsgenie](/docs/integrations/opsgenie)、[ServiceNow](/docs/integrations/servicenow) |
 

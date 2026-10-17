@@ -18,6 +18,7 @@ import RealtimeSessions from "../../../Server/Utils/Realtime/RealtimeSessions";
 import DatabaseType from "../../../Types/BaseDatabase/DatabaseType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../Types/Permission";
 import EventName from "../../../Types/Realtime/EventName";
@@ -232,6 +233,7 @@ const validToken: TokenFunction = (
       name: "Realtime Test",
       isMasterAdmin: false,
       sessionId: SESSION_ID,
+      purpose: JsonWebTokenPurpose.UserSession,
       ...claims,
     },
     expiresInSeconds,
@@ -246,6 +248,7 @@ const expiredToken: () => string = (): string => {
       name: "Realtime Test",
       isMasterAdmin: false,
       sessionId: SESSION_ID,
+      purpose: JsonWebTokenPurpose.UserSession,
       exp: Math.floor(Date.now() / 1000) - 60,
     },
     TokenSigningKey.get(),
@@ -277,6 +280,7 @@ const ssoToken: (data: {
       isMasterAdmin: false,
       ssoProviderId: data.providerId || SSO_PROVIDER_ID,
       ssoProviderType: SsoProviderType.ProjectSSO,
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     },
     data.expiresInSeconds !== undefined ? data.expiresInSeconds : 30 * 60,
   );

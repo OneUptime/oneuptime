@@ -63,6 +63,8 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 
 La liste affiche **Numéro de maintenance planifiée**, **Titre**, **État actuel**, **Ressources affectées**, **Affiché sur la page de statut**, **Commence le**, **Durée**, **Se termine le**, **Étiquettes** et **Propriétaires**. Sélectionnez des événements pour agir sur plusieurs à la fois : **Modifier l'état**, **Ajouter des étiquettes**, **Remove Labels**, **Ajouter un propriétaire**, **Remove Owner** ou **Supprimer**.
 
+**Liste** et **Calendrier**, à l'extrémité droite de la barre de filtres de la liste, affichent les mêmes événements sous forme de tableau ou sur un mois, une semaine ou un jour. Voir [Calendrier de maintenance](/docs/scheduled-maintenance/calendar).
+
 ## Ce qu'un événement affecte
 
 Pendant qu'un événement est en cours, OneUptime considère la panne qu'il prévoit comme attendue :

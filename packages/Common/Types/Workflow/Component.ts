@@ -59,6 +59,11 @@ export enum ComponentInputType {
   OnCallPolicyList = "On-Call Policy List",
   // One of the project's alert severities, picked from a list.
   AlertSeveritySelect = "Alert Severity Select",
+  /*
+   * One of the project's incident severities, picked from a list: the
+   * severity each Huntress severity opens at (Components/Huntress).
+   */
+  IncidentSeveritySelect = "Incident Severity Select",
 }
 
 /*

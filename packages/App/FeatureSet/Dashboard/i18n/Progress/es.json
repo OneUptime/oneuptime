@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30347,
-    "untranslated": 3785
+    "keys": 30339,
+    "untranslated": 3781
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -44,6 +44,7 @@
     "AWS Lambda",
     "Active + Clean",
     "Actor",
+    "Agenda",
     "Albania",
     "Alias",
     "Amazon EKS",

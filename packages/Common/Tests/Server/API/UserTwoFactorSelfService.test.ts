@@ -14,6 +14,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
@@ -438,6 +439,8 @@ describe("User two-factor self-service API integration", () => {
           name: "Self service test",
           isMasterAdmin,
           isGlobalLogin: true,
+          sessionId: ObjectID.generate().toString(),
+          purpose: JsonWebTokenPurpose.UserSession,
         },
         60,
       )}`;

@@ -77,7 +77,7 @@ Clique em uma seta para ver a taxa de requisições, a taxa de erro e a latênci
 
 **Infraestrutura** mostra onde os seus serviços rodam: clusters, hosts, pods, contêineres e os outros recursos que enviam dados. As réplicas de uma mesma carga de trabalho são agrupadas em uma só entrada, e você pode abrir qualquer coisa para ver o que há dentro.
 
-- **Navegue do seu jeito.** Mostre-a como **List** ou como **Map**, de toda a sua infraestrutura até um único pod. As contagens acima dela dizem quantos recursos e cargas de trabalho ela desenha, quantos serviços consegue posicionar e quantos recursos silenciosos deixa de fora.
+- **Navegue do seu jeito.** Mostre-a como **Lista** ou como **Map**, de toda a sua infraestrutura até um único pod. As contagens acima dela dizem quantos recursos e cargas de trabalho ela desenha, quantos serviços consegue posicionar e quantos recursos silenciosos deixa de fora.
 - **Encontre um recurso.** Pesquise-o pelo nome e clique em **View details** para abrir a página dele.
 - **Passe de uma visão a outra.** Um serviço listado em um recurso abre no **Service Map**, e os recursos em que um serviço roda abrem em **Infraestrutura**.
 

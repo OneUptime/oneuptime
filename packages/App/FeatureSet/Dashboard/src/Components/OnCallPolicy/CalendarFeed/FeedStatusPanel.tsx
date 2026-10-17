@@ -74,6 +74,17 @@ export interface ComponentProps {
   isBusy?: boolean | undefined;
   // Prefix for the data-testids, so two panels on one page stay distinct.
   idPrefix: string;
+  /*
+   * The docs page "Troubleshooting and per-app steps" opens: the on-call
+   * calendar feeds' unless the link is another's (the scheduled maintenance
+   * calendar's).
+   */
+  docsPath?: string | undefined;
+  /*
+   * What Google Calendar's slow refresh means for this link. The on-call
+   * links' sentence adds that reminders and pages still come on time.
+   */
+  refreshCadenceCopy?: string | undefined;
 }
 
 interface HealthTone {
@@ -320,7 +331,7 @@ const FeedStatusPanel: FunctionComponent<ComponentProps> = (
     : null;
 
   const docsUrl: URL = URL.fromString(DOCS_URL.toString()).addRoute(
-    CALENDAR_FEED_DOCS_PATH,
+    props.docsPath || CALENDAR_FEED_DOCS_PATH,
   );
 
   return (
@@ -434,7 +445,11 @@ const FeedStatusPanel: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Info}
                 className="mt-1 h-4 w-4 flex-none text-gray-400"
               />
-              <p>{translator.translateText(REFRESH_CADENCE_COPY)}</p>
+              <p>
+                {translator.translateText(
+                  props.refreshCadenceCopy || REFRESH_CADENCE_COPY,
+                )}
+              </p>
             </div>
           )}
           {showsReachability && (

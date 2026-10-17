@@ -27,8 +27,8 @@ En toveisintegrasjon, som Jira eller Dynamics 365, bruker begge retningene: én 
 
 | Måte | Best for | Eksempler |
 | --- | --- | --- |
-| En innebygd tilkobling | Verktøy OneUptime kobler seg til selv. Du fyller ut et skjema, og det er ingenting å bygge. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), tilkoblingene for [Sikkerhetshendelser](/docs/telemetry/security-events) |
-| En arbeidsflytmal | Saksverktøy, holdt i takt begge veier, og chatmeldinger. Du velger en mal og fyller ut noen få innstillinger. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| En innebygd tilkobling | Verktøy OneUptime kobler seg til selv. Du fyller ut et skjema, og det er ingenting å bygge. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), tilkoblingene for [Sikkerhetshendelser](/docs/telemetry/security-events) |
+| En arbeidsflytmal | Saksverktøy, holdt i takt begge veier, sikkerhetshendelsesrapporter og chatmeldinger. Du velger en mal og fyller ut noen få innstillinger. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
 | En Incoming Request-monitor | Varslingsverktøy som sender en webhook. Du får én hendelse per varsel, sendt til vakten og løst når varselet er over, uten arbeidsflyt. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | En arbeidsflyt du bygger selv | Alle verktøy med en webhook eller et REST API, og all logikk du trenger selv. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 

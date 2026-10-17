@@ -88,6 +88,16 @@ export interface OnCallCalendarFeedRateLimitConfig {
   perIpLimit: number;
 }
 
+export interface OnCallCalendarFeedRateLimitMiddlewareOptions {
+  /*
+   * The first counter's key for a route whose calendar is not named by a
+   * token in its path: a status page's maintenance calendar is named by the
+   * page (StatusPageMaintenanceCalendarFeed). Without it, the token in the
+   * path (resolveTokenKey). It must never return a secret as it is.
+   */
+  resolveTokenKey?: ((req: ExpressRequest) => string) | undefined;
+}
+
 /*
  * The token shape the feed routes accept: 32 random bytes as base64url, which
  * is always exactly 43 characters. Anything else is not a token that could
@@ -209,7 +219,7 @@ export default class OnCallCalendarFeedRateLimit {
       .slice(0, TOKEN_KEY_HASH_LENGTH)}`;
   }
 
-  private static sanitizeKeySegment(value: string): string {
+  public static sanitizeKeySegment(value: string): string {
     return (
       value
         .slice(0, MAX_KEY_SEGMENT_LENGTH)
@@ -387,7 +397,9 @@ export default class OnCallCalendarFeedRateLimit {
    * copy they have, but one that gets it repeatedly may drop the calendar --
    * is a worse outcome than an unbounded window for the duration of the blip.
    */
-  public static getMiddleware(): (
+  public static getMiddleware(
+    options?: OnCallCalendarFeedRateLimitMiddlewareOptions | undefined,
+  ): (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
@@ -397,7 +409,11 @@ export default class OnCallCalendarFeedRateLimit {
       res: ExpressResponse,
       next: NextFunction,
     ): Promise<void> => {
-      const tokenKey: string = OnCallCalendarFeedRateLimit.resolveTokenKey(req);
+      const tokenKey: string = options?.resolveTokenKey
+        ? OnCallCalendarFeedRateLimit.sanitizeKeySegment(
+            options.resolveTokenKey(req),
+          )
+        : OnCallCalendarFeedRateLimit.resolveTokenKey(req);
       const clientIp: string = OnCallCalendarFeedRateLimit.resolveClientIp(req);
 
       const decision: OnCallCalendarFeedRateLimitDecision =

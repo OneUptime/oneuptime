@@ -7,6 +7,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import PageComponentProps from "../PageComponentProps";
 import { getScheduledEventEventItem } from "./Detail";
+import { SubscribeToCalendarButton } from "../../Components/MaintenanceCalendar/MaintenanceCalendarButtons";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -320,6 +321,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return (
       <Page
         title={t("scheduledEvents.title")}
+        /*
+         * The page's maintenance in a calendar app: beside the title, where
+         * a reader looking at what is coming up looks for it.
+         */
+        headerRight={<SubscribeToCalendarButton />}
         breadcrumbLinks={[
           {
             title: t("nav.overview"),
