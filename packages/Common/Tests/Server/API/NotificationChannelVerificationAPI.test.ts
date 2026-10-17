@@ -616,8 +616,7 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
     });
 
     it("refuses a request with no authorization at all, before reading any row", async () => {
-      delete (mockRequest as { userAuthorization?: unknown })
-        .userAuthorization;
+      delete (mockRequest as { userAuthorization?: unknown }).userAuthorization;
 
       await callResend({ itemId: ITEM_ID });
 

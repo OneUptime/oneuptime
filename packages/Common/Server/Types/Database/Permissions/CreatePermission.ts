@@ -281,9 +281,7 @@ export default class CreatePermission {
       : [];
 
     if (namedProjectIds.length > 1) {
-      throw new BadDataException(
-        CreatePermission.PROJECTS_DISAGREE_MESSAGE,
-      );
+      throw new BadDataException(CreatePermission.PROJECTS_DISAGREE_MESSAGE);
     }
 
     const namedProjectId: string | null = namedProjectIds[0] || null;
@@ -293,9 +291,7 @@ export default class CreatePermission {
         namedProjectId &&
         namedProjectId !== CreatePermission.normalizeProjectId(props.tenantId)
       ) {
-        throw new BadDataException(
-          CreatePermission.PROJECT_MISMATCH_MESSAGE,
-        );
+        throw new BadDataException(CreatePermission.PROJECT_MISMATCH_MESSAGE);
       }
 
       // The caller's permissions for the project the request is made in.
@@ -320,7 +316,9 @@ export default class CreatePermission {
       throw new BadDataException(CreatePermission.PROJECT_REQUIRED_MESSAGE);
     }
 
-    if (!CallerPermission.isProjectMember(props, new ObjectID(namedProjectId))) {
+    if (
+      !CallerPermission.isProjectMember(props, new ObjectID(namedProjectId))
+    ) {
       throw new NotAuthorizedException(
         CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
       );

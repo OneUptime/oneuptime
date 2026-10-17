@@ -125,9 +125,7 @@ describe.each(SERVICES)(
 
     const resend: () => Promise<void> = (): Promise<void> => {
       return (
-        service["resendVerificationCode"] as (
-          itemId: ObjectID,
-        ) => Promise<void>
+        service["resendVerificationCode"] as (itemId: ObjectID) => Promise<void>
       ).call(service, ITEM_ID);
     };
 

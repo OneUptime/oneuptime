@@ -365,7 +365,8 @@ const OTHER_OWN_ROWS: Array<OwnRowModel> = [
   {
     name: "a notification rule",
     path: "/user-notification-rule",
-    service: UserNotificationRuleService as unknown as DatabaseService<BaseModel>,
+    service:
+      UserNotificationRuleService as unknown as DatabaseService<BaseModel>,
     data: { notifyAfterMinutes: 0 },
   },
   {
@@ -420,8 +421,7 @@ const OTHER_OWN_ROWS: Array<OwnRowModel> = [
   {
     name: "a Microsoft Teams account",
     path: "/user-microsoft-teams",
-    service:
-      UserMicrosoftTeamsService as unknown as DatabaseService<BaseModel>,
+    service: UserMicrosoftTeamsService as unknown as DatabaseService<BaseModel>,
     data: {},
   },
   {
@@ -691,20 +691,18 @@ beforeEach(() => {
     });
     return {};
   }) as never);
-  jest
-    .spyOn(WhatsAppService, "sendWhatsAppMessage")
-    .mockImplementation((async (
-      message: { to: Phone },
-      options: { projectId?: ObjectID },
-    ): Promise<JSONObject> => {
-      sent.push({
-        channel: "whatsapp",
-        to: message.to.toString(),
-        projectId: options?.projectId?.toString(),
-        viaTwilioAccountSid: undefined,
-      });
-      return {};
-    }) as never);
+  jest.spyOn(WhatsAppService, "sendWhatsAppMessage").mockImplementation((async (
+    message: { to: Phone },
+    options: { projectId?: ObjectID },
+  ): Promise<JSONObject> => {
+    sent.push({
+      channel: "whatsapp",
+      to: message.to.toString(),
+      projectId: options?.projectId?.toString(),
+      viaTwilioAccountSid: undefined,
+    });
+    return {};
+  }) as never);
   jest.spyOn(MailService, "sendMail").mockImplementation((async (
     mail: { toEmail: Email },
     options: { projectId?: ObjectID },
@@ -828,9 +826,7 @@ describe.each(CODE_CHANNELS)("adding $name", (channel: CodeChannel) => {
       await settle();
 
       expect(result.status).toBe(400);
-      expect(errorOf(result)).toBe(
-        CreatePermission.PROJECT_REQUIRED_MESSAGE,
-      );
+      expect(errorOf(result)).toBe(CreatePermission.PROJECT_REQUIRED_MESSAGE);
       expect(tables.get(channel.path)!.inserts).toEqual([]);
       expect(sent).toEqual([]);
       expect(anyCreateHookRan()).toBe(false);
@@ -847,9 +843,7 @@ describe.each(CODE_CHANNELS)("adding $name", (channel: CodeChannel) => {
     await settle();
 
     expect(result.status).toBe(400);
-    expect(errorOf(result)).toBe(
-      CreatePermission.PROJECT_MISMATCH_MESSAGE,
-    );
+    expect(errorOf(result)).toBe(CreatePermission.PROJECT_MISMATCH_MESSAGE);
     expect(tables.get(channel.path)!.inserts).toEqual([]);
     expect(sent).toEqual([]);
     // This project's settings are not described back to them.
@@ -873,9 +867,7 @@ describe.each(CODE_CHANNELS)("adding $name", (channel: CodeChannel) => {
     expect(String(inserts[0]!["projectId"]).toLowerCase()).toBe(
       PROJECT_ID.toString(),
     );
-    expect(String(inserts[0]!["userId"]).toLowerCase()).toBe(
-      MEMBER.toString(),
-    );
+    expect(String(inserts[0]!["userId"]).toLowerCase()).toBe(MEMBER.toString());
 
     expect(sent).toHaveLength(1);
     expect(sent[0]!.channel).toBe(channel.sendChannel);
@@ -907,9 +899,7 @@ describe.each(CODE_CHANNELS)("adding $name", (channel: CodeChannel) => {
     await settle();
 
     expect(result.status).toBe(400);
-    expect(errorOf(result)).toBe(
-      CreatePermission.PROJECT_MISMATCH_MESSAGE,
-    );
+    expect(errorOf(result)).toBe(CreatePermission.PROJECT_MISMATCH_MESSAGE);
     expect(tables.get(channel.path)!.inserts).toEqual([]);
     expect(sent).toEqual([]);
     expect(projectWasRead()).toBe(false);

@@ -957,12 +957,12 @@ describe("VerificationCodeRateLimit", () => {
       expect(VerificationCodeRateLimit.resolveChannelKey("/user-sms")).toBe(
         "add_user-sms",
       );
-      expect(
-        VerificationCodeRateLimit.resolveChannelKey("/USER-SMS "),
-      ).toBe(VerificationCodeRateLimit.resolveChannelKey("/user-sms"));
-      expect(VerificationCodeRateLimit.resolveChannelKey("/user-call")).not.toBe(
+      expect(VerificationCodeRateLimit.resolveChannelKey("/USER-SMS ")).toBe(
         VerificationCodeRateLimit.resolveChannelKey("/user-sms"),
       );
+      expect(
+        VerificationCodeRateLimit.resolveChannelKey("/user-call"),
+      ).not.toBe(VerificationCodeRateLimit.resolveChannelKey("/user-sms"));
       expect(
         VerificationCodeRateLimit.resolveChannelKey("/user-" + "x".repeat(200))
           .length,

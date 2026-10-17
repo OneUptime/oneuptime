@@ -210,7 +210,9 @@ describe("UserIncomingCallNumberAPI", () => {
           new BadDataException("Invalid user ID"),
         );
         // An ownerless row and a nameless session are never compared.
-        expect(UserIncomingCallNumberService.findOneById).not.toHaveBeenCalled();
+        expect(
+          UserIncomingCallNumberService.findOneById,
+        ).not.toHaveBeenCalled();
         expect(
           UserIncomingCallNumberService.resendVerificationCode,
         ).not.toHaveBeenCalled();

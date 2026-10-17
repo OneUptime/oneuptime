@@ -55,7 +55,9 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const OTHER_PROJECT_ID: ObjectID = new ObjectID(
   "6e000000-0000-4000-8000-0000000000a2",
 );
-const CALLER_ID: ObjectID = new ObjectID("6e000000-0000-4000-8000-0000000000b1");
+const CALLER_ID: ObjectID = new ObjectID(
+  "6e000000-0000-4000-8000-0000000000b1",
+);
 
 type ModelConstructor = { new (): BaseModel };
 
@@ -392,7 +394,9 @@ describe("what counts as being a member of the project", () => {
     });
 
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
-    expect(refusal?.message).toBe(CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE);
+    expect(refusal?.message).toBe(
+      CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
+    );
   });
 });
 
@@ -418,7 +422,9 @@ describe("the project a row is added to is the request's", () => {
 
   test("so is one naming it through the project relation instead", () => {
     const row: BaseModel = rowOf(UserIncomingCallNumber);
-    row.setColumnValue("project", { _id: OTHER_PROJECT_ID.toString() } as never);
+    row.setColumnValue("project", {
+      _id: OTHER_PROJECT_ID.toString(),
+    } as never);
 
     expect(
       refusalOf(() => {
@@ -433,11 +439,17 @@ describe("the project a row is added to is the request's", () => {
 
   test("a row whose project ID and project relation disagree is refused", () => {
     const row: BaseModel = rowOf(UserSMS, { projectId: PROJECT_ID });
-    row.setColumnValue("project", { _id: OTHER_PROJECT_ID.toString() } as never);
+    row.setColumnValue("project", {
+      _id: OTHER_PROJECT_ID.toString(),
+    } as never);
 
     expect(
       refusalOf(() => {
-        CreatePermission.checkCreateInMemberProject(UserSMS, row, memberProps());
+        CreatePermission.checkCreateInMemberProject(
+          UserSMS,
+          row,
+          memberProps(),
+        );
       })?.message,
     ).toBe(CreatePermission.PROJECTS_DISAGREE_MESSAGE);
   });
@@ -450,7 +462,11 @@ describe("the project a row is added to is the request's", () => {
 
     expect(
       refusalOf(() => {
-        CreatePermission.checkCreateInMemberProject(UserSMS, row, memberProps());
+        CreatePermission.checkCreateInMemberProject(
+          UserSMS,
+          row,
+          memberProps(),
+        );
       }),
     ).toBeNull();
   });
@@ -540,7 +556,9 @@ describe("a request that names no project", () => {
     });
 
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
-    expect(refusal?.message).toBe(CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE);
+    expect(refusal?.message).toBe(
+      CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
+    );
   });
 });
 
@@ -712,7 +730,11 @@ describe("asked before the create's hooks run", () => {
   });
 
   test.each([
-    ["UserSmsService", UserSmsService as unknown as Record<string, () => unknown>, UserSMS],
+    [
+      "UserSmsService",
+      UserSmsService as unknown as Record<string, () => unknown>,
+      UserSMS,
+    ],
     [
       "UserIncomingCallNumberService",
       UserIncomingCallNumberService as unknown as Record<string, () => unknown>,

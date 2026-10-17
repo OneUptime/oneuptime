@@ -259,7 +259,10 @@ describe("ChannelVerificationResendRoute.register", () => {
  */
 describe("the add of a method that sends a code is counted", () => {
   type ApiWithCreateHook = {
-    onBeforeCreate: (req: ExpressRequest, res: ExpressResponse) => Promise<void>;
+    onBeforeCreate: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+    ) => Promise<void>;
   };
 
   const APIS: Array<[string, () => unknown, string]> = [
@@ -395,7 +398,9 @@ describe("every channel's resend is the shared one", () => {
       expect({
         name,
         resend: source.includes("ChannelVerificationResendRoute.register("),
-        countsAdds: source.includes("VerificationCodeRateLimit.checkAddAllowed("),
+        countsAdds: source.includes(
+          "VerificationCodeRateLimit.checkAddAllowed(",
+        ),
       }).toEqual({ name, resend: true, countsAdds: true });
     }
   });
