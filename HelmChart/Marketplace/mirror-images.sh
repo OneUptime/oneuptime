@@ -5,8 +5,12 @@
 #
 #   HelmChart/Marketplace/mirror-images.sh <out>/images.json [--dry-run]
 #
-#   aws           every platform the source has (amd64 and arm64), into the
-#                 AWS Marketplace ECR repositories of the product;
+#   aws           linux/amd64 and linux/arm64 (EKS runs both), into the AWS
+#                 Marketplace ECR repositories of the product - and nothing
+#                 else from the source's index: AWS refuses images with layers
+#                 of architectures it does not run, which includes the build
+#                 attestations (unknown/unknown) Docker Hub images carry, and
+#                 the official images' other platforms (386, s390x...);
 #   azure         linux/amd64 only (the only platform Microsoft takes), into
 #                 the publisher's Azure Container Registry;
 #   google-cloud  linux/amd64 (GKE apps run on x86 nodes), into Artifact
@@ -75,7 +79,7 @@ SERVICE_NAME="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[
 while IFS=$'\t' read -r marketplace source target extra_tags; do
     case "$marketplace" in
         aws)
-            run crane copy "$source" "$target"
+            run crane index filter "$source" --platform linux/amd64 --platform linux/arm64 --tag "$target"
             ;;
         azure)
             run crane copy --platform linux/amd64 "$source" "$target"

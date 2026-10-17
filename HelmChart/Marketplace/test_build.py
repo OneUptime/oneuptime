@@ -330,7 +330,30 @@ class BuildTest(unittest.TestCase):
         manifest: str = (self.out / "manifest.yaml").read_text()
         self.assertIn("version: 1.2.3\n", manifest)
         self.assertIn('helmChart: "./oneuptime"', manifest)
+        self.assertIn('clusterARMTemplate: "./mainTemplate.json"', manifest)
+        self.assertIn('uiDefinition: "./createUIDefinition.json"', manifest)
         self.assertNotIn("{", manifest.replace("{}", ""))
+
+        # Microsoft's field names, spelled exactly as container-package-app reads them.
+        keys: set = {
+            line.split(":", 1)[0]
+            for line in manifest.splitlines()
+            if line and not line.startswith((" ", "#"))
+        }
+        self.assertEqual(
+            keys,
+            {
+                "applicationName",
+                "publisher",
+                "description",
+                "version",
+                "helmChart",
+                "clusterARMTemplate",
+                "uiDefinition",
+                "registryServer",
+                "extensionRegistrationParameters",
+            },
+        )
 
         for name in ("createUIDefinition.json", "mainTemplate.json"):
             json.loads((self.out / name).read_text())

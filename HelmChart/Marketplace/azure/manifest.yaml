@@ -8,7 +8,7 @@ publisher: "{publisher}"
 description: "OneUptime Enterprise, self-hosted on AKS: uptime monitoring, status pages, on-call, incidents, logs, traces and metrics. Billed per user by the hour through Microsoft Marketplace."
 version: {version}
 helmChart: "./oneuptime"
-clusterArmTemplate: "./mainTemplate.json"
+clusterARMTemplate: "./mainTemplate.json"
 uiDefinition: "./createUIDefinition.json"
 registryServer: "{registryServer}"
 extensionRegistrationParameters:

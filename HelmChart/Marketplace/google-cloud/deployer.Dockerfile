@@ -1,10 +1,13 @@
 # The deployer image of the Google Cloud Marketplace Kubernetes app, built
 # from the context build.py writes (chart/oneuptime, schema.yaml, apptest/):
 #
-#   docker buildx build --platform linux/amd64 \
-#     --build-arg REGISTRY=<registry>/oneuptime-enterprise --build-arg TAG=<version> \
-#     --annotation "manifest:com.googleapis.cloudmarketplace.product.service.name=<service name>" \
-#     --tag <registry>/oneuptime-enterprise/deployer:<version> --push .
+#   docker buildx build --platform linux/amd64 --provenance=false \
+#     --build-arg REGISTRY=<registry> --build-arg TAG=<version> \
+#     --annotation "manifest:com.googleapis.cloudmarketplace.product.service.name=services/<service name>" \
+#     --tag <registry>/deployer:<version> --tag <registry>/deployer:<track> --push .
+#
+# <registry> is the app's path in Artifact Registry and <service name> its
+# Service Control service (editions.json, google-cloud); <track> is major.minor.
 #
 # Laid out as Google's own click-to-deploy apps are: the chart and the tester
 # chart as tarballs, the schemas with REGISTRY and TAG filled in.

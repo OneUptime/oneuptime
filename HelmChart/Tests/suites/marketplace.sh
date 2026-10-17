@@ -174,6 +174,8 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace azure --version "$VERSION
     AZURE_MANIFEST="$(cat "${AZURE_OUT}/manifest.yaml")"
     assert_present "azure: the manifest version is the release" "$AZURE_MANIFEST" "version: ${VERSION}"
     assert_present "azure: the manifest points at the chart" "$AZURE_MANIFEST" 'helmChart: "./oneuptime"'
+    assert_present "azure: the manifest names the ARM template as Microsoft spells it" "$AZURE_MANIFEST" 'clusterARMTemplate: "./mainTemplate.json"'
+    assert_present "azure: the manifest names the create experience" "$AZURE_MANIFEST" 'uiDefinition: "./createUIDefinition.json"'
     assert_present "azure: one installation per cluster" "$AZURE_MANIFEST" 'defaultScope: "cluster"'
 
     # The UI definition's outputs must be exactly the ARM template's parameters,
@@ -337,12 +339,15 @@ for marketplace in aws azure google-cloud; do
     fi
 
     MIRROR="$(bash "${MARKETPLACE_DIR}/mirror-images.sh" "$PLAN" --dry-run 2>&1 || true)"
-    COPIES="$(grep -c '^+ crane copy ' <<<"$MIRROR" || true)"
+    COPIES="$(grep -cE '^\+ crane (copy|index filter) ' <<<"$MIRROR" || true)"
     assert_eq "${marketplace}: mirror-images.sh copies every image" "7" "$COPIES"
 
     case "$marketplace" in
         aws)
-            assert_absent "aws: mirrors every platform" "$MIRROR" "--platform"
+            # Only what EKS runs: no attestation manifests, no 386/s390x/... from the official images.
+            FILTERS="$(grep -c '^+ crane index filter .* --platform linux/amd64 --platform linux/arm64 --tag ' <<<"$MIRROR" || true)"
+            assert_eq "aws: keeps only linux/amd64 and linux/arm64 of every image" "7" "$FILTERS"
+            assert_absent "aws: never copies a whole index" "$MIRROR" "+ crane copy "
             ;;
         azure)
             assert_present "azure: mirrors linux/amd64 only" "$MIRROR" "crane copy --platform linux/amd64"
