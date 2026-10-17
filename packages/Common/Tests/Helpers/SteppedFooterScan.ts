@@ -205,7 +205,9 @@ const CALENDAR_TOOLBAR_MESSAGE_KEYS: ReadonlyArray<string> = [
   "day",
 ];
 
-function isCalendarToolbarMessages(object: ts.ObjectLiteralExpression): boolean {
+function isCalendarToolbarMessages(
+  object: ts.ObjectLiteralExpression,
+): boolean {
   const keys: Set<string> = new Set<string>();
 
   for (const element of object.properties) {

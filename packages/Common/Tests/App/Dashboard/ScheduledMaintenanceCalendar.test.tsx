@@ -150,14 +150,24 @@ function holdRequests(): Array<Deferred> {
   const held: Array<Deferred> = [];
 
   getListMock.mockImplementation(() => {
-    return new Promise((resolve: (value: unknown) => void, reject) => {
-      held.push({
-        resolve: (events: Array<ScheduledMaintenance>) => {
-          resolve({ data: events, count: events.length, skip: 0, limit: 500 });
-        },
-        reject: reject as (error: Error) => void,
-      });
-    });
+    return new Promise(
+      (
+        resolve: (value: unknown) => void,
+        reject: (reason: unknown) => void,
+      ) => {
+        held.push({
+          resolve: (events: Array<ScheduledMaintenance>) => {
+            resolve({
+              data: events,
+              count: events.length,
+              skip: 0,
+              limit: 500,
+            });
+          },
+          reject: reject as (error: Error) => void,
+        });
+      },
+    );
   });
 
   return held;

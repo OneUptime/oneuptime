@@ -250,7 +250,10 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
         return undefined;
       }
 
-      return (day: Date): ReactElement | null => {
+      // The + on a day still to come: Schedule maintenance on that day.
+      const renderScheduleButton: (day: Date) => ReactElement | null = (
+        day: Date,
+      ): ReactElement | null => {
         const startsAt: Date | null = getScheduleStartForDay({
           day: day,
           timezone: timezone,
@@ -287,6 +290,8 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
           </button>
         );
       };
+
+      return renderScheduleButton;
     }, [props.canCreate, props.now, timezone, translator, getCreateRoute]);
 
   const displayDefaultDate: Date = useMemo(() => {

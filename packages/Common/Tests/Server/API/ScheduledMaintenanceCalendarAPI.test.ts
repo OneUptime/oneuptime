@@ -263,9 +263,7 @@ let createSpy: SpyInstance<
 let rotateSpy: SpyInstance<
   typeof ScheduledMaintenanceCalendarFeedService.rotateTokenById
 >;
-let readEventsSpy: SpyInstance<
-  typeof TeamMaintenanceCalendar.readEvents
->;
+let readEventsSpy: SpyInstance<typeof TeamMaintenanceCalendar.readEvents>;
 let consumeSpy: SpyInstance<typeof OnCallCalendarFeedRateLimit.consume>;
 let lockSpy: SpyInstance<typeof Semaphore.lock>;
 let releaseSpy: SpyInstance<typeof Semaphore.release>;

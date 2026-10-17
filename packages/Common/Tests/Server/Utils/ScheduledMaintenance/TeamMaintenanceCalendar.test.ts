@@ -183,7 +183,9 @@ beforeEach(() => {
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project);
   jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
-    .mockResolvedValue(URL.fromString("https://oneuptime.example.com/dashboard"));
+    .mockResolvedValue(
+      URL.fromString("https://oneuptime.example.com/dashboard"),
+    );
 
   eventsFindBy = jest
     .spyOn(ScheduledMaintenanceService, "findBy")

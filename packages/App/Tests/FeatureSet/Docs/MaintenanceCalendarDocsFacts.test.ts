@@ -159,7 +159,9 @@ describe("the calendar view", () => {
     expect(VIEW_CHOICE).toContain(
       "defaultValue: ScheduledMaintenanceView.List",
     );
-    expect(VIEW_CHOICE).toContain("new RememberedView<ScheduledMaintenanceView>");
+    expect(VIEW_CHOICE).toContain(
+      "new RememberedView<ScheduledMaintenanceView>",
+    );
     // At the right end of the filter bar, where the page says.
     expect(PAGE).toContain("At the right end of the filter bar");
     expect(EVENTS_TABLE).toContain("filterBarEnd: viewSwitch");
@@ -276,9 +278,9 @@ describe("the team's calendar link", () => {
 
     expect(links).toContain('translateString("Google Calendar")');
     expect(links).toContain('translateString("Apple Calendar / Outlook")');
-    expect(
-      readDashboardSource(`${FEED_DIR}/FeedLinkField.tsx`),
-    ).toContain("Copy link");
+    expect(readDashboardSource(`${FEED_DIR}/FeedLinkField.tsx`)).toContain(
+      "Copy link",
+    );
 
     // The Status panel and its first state.
     expect(PAGE).toContain("**Waiting for first sync**");
@@ -479,9 +481,9 @@ describe("what a calendar event holds", () => {
 
 describe("how often calendars refresh", () => {
   it("keeps a calendar for at most the five minutes the page says", () => {
-    expect(
-      declaredNumber(RESPONSE, "CALENDAR_RESPONSE_MAX_AGE_SECONDS"),
-    ).toBe(5 * 60);
+    expect(declaredNumber(RESPONSE, "CALENDAR_RESPONSE_MAX_AGE_SECONDS")).toBe(
+      5 * 60,
+    );
     expect(FEED_CACHE).toContain(
       "MAINTENANCE_CALENDAR_CACHE_TTL_SECONDS: number =\n  CALENDAR_RESPONSE_MAX_AGE_SECONDS;",
     );

@@ -88,6 +88,8 @@ function origin(page: Page): string {
 test.describe("Subscribe to calendar, on the Scheduled Events page", () => {
   test("at the page's address under OneUptime: Google, the device's app and the link, all to the page's maintenance.ics", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, `${PREVIEW}/scheduled-events`);
 
@@ -133,7 +135,11 @@ test.describe("Subscribe to calendar, on the Scheduled Events page", () => {
     await shot(page, "status-page-subscribe", page.getByTestId("modal"));
   });
 
-  test("on the page's own domain: /maintenance.ics", async ({ page }) => {
+  test("on the page's own domain: /maintenance.ics", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "/scheduled-events");
 
     await page.getByTestId("maintenance-calendar-subscribe").click();
@@ -145,6 +151,8 @@ test.describe("Subscribe to calendar, on the Scheduled Events page", () => {
 
   test("is not offered on a private page, whose calendar no app could read", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, `${PREVIEW}/scheduled-events?private=1`);
 
@@ -154,7 +162,7 @@ test.describe("Subscribe to calendar, on the Scheduled Events page", () => {
     ).toHaveCount(0);
   });
 
-  test("Done closes it", async ({ page }) => {
+  test("Done closes it", async ({ page }: { page: Page }) => {
     await open(page, `${PREVIEW}/scheduled-events`);
 
     await page.getByTestId("maintenance-calendar-subscribe").click();
@@ -169,6 +177,8 @@ test.describe("Subscribe to calendar, on the Scheduled Events page", () => {
 test.describe("Add to calendar, on an event's page", () => {
   test("Google Calendar with the event filled in, or the event alone as a file", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, `${PREVIEW}/scheduled-events/${UPCOMING_ID}`);
 
@@ -206,7 +216,11 @@ test.describe("Add to calendar, on an event's page", () => {
     await shot(page, "status-page-add-event", page.getByTestId("modal"));
   });
 
-  test("an event under way can be added too", async ({ page }) => {
+  test("an event under way can be added too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, `${PREVIEW}/scheduled-events/${ONGOING_ID}`);
 
     await expect(
@@ -216,6 +230,8 @@ test.describe("Add to calendar, on an event's page", () => {
 
   test("an event that is over is history: no Add to calendar", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, `${PREVIEW}/scheduled-events/${OVER_ID}`);
 
@@ -229,6 +245,8 @@ test.describe("Add to calendar, on an event's page", () => {
 
   test("on the page's own domain the file is /maintenance.ics?event=", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, `/scheduled-events/${UPCOMING_ID}`);
 
@@ -243,6 +261,8 @@ test.describe("Add to calendar, on an event's page", () => {
 test.describe("the status page's calendar dialogs", () => {
   test("fit a phone, the two options stacked, with nothing scrolling sideways", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, `${PREVIEW}/scheduled-events`, 390);
 
@@ -266,7 +286,7 @@ test.describe("the status page's calendar dialogs", () => {
     await shot(page, "status-page-phone-subscribe", page.getByTestId("modal"));
   });
 
-  test("read in German", async ({ page }) => {
+  test("read in German", async ({ page }: { page: Page }) => {
     await open(page, `${PREVIEW}/scheduled-events?lang=de`);
 
     await expect(page.getByTestId("maintenance-calendar-subscribe")).toHaveText(
@@ -276,6 +296,8 @@ test.describe("the status page's calendar dialogs", () => {
 
   test("read in Persian, right to left, without spilling sideways", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, `${PREVIEW}/scheduled-events/${UPCOMING_ID}?lang=fa`);
 
@@ -292,7 +314,7 @@ test.describe("the status page's calendar dialogs", () => {
     );
   });
 
-  test("in the dark theme", async ({ page }) => {
+  test("in the dark theme", async ({ page }: { page: Page }) => {
     await open(page, `${PREVIEW}/scheduled-events?theme=dark`);
 
     await page.getByTestId("maintenance-calendar-subscribe").click();

@@ -83,10 +83,11 @@ afterEach(() => {
 describe("MaintenanceCalendarFeedCache.getOrRender", () => {
   test("renders a calendar it does not keep, and keeps it for 300 seconds", async () => {
     redisReachable();
-    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> =
-      jest.fn(async () => {
+    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> = jest.fn(
+      async () => {
         return calendar("BEGIN:VCALENDAR");
-      });
+      },
+    );
 
     const result: MaintenanceCalendarCacheResult =
       await MaintenanceCalendarFeedCache.getOrRender({ key: KEY, render });
@@ -107,10 +108,11 @@ describe("MaintenanceCalendarFeedCache.getOrRender", () => {
 
   test("answers the next request from what it keeps, without rendering", async () => {
     redisReachable();
-    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> =
-      jest.fn(async () => {
+    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> = jest.fn(
+      async () => {
         return calendar("BEGIN:VCALENDAR");
-      });
+      },
+    );
 
     await MaintenanceCalendarFeedCache.getOrRender({ key: KEY, render });
     await flush();
@@ -131,11 +133,12 @@ describe("MaintenanceCalendarFeedCache.getOrRender", () => {
     const gate: Promise<void> = new Promise<void>((resolve: () => void) => {
       release = resolve;
     });
-    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> =
-      jest.fn(async () => {
+    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> = jest.fn(
+      async () => {
         await gate;
         return calendar("shared");
-      });
+      },
+    );
 
     const all: Promise<Array<MaintenanceCalendarCacheResult>> = Promise.all([
       MaintenanceCalendarFeedCache.getOrRender({ key: KEY, render }),
@@ -158,10 +161,11 @@ describe("MaintenanceCalendarFeedCache.getOrRender", () => {
 
   test("keeps each key apart", async () => {
     redisReachable();
-    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> =
-      jest.fn(async () => {
+    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> = jest.fn(
+      async () => {
         return calendar("x");
-      });
+      },
+    );
 
     await MaintenanceCalendarFeedCache.getOrRender({ key: "a", render });
     await flush();
@@ -172,10 +176,11 @@ describe("MaintenanceCalendarFeedCache.getOrRender", () => {
 
   test("a render that fails is never kept: every request it reached sees the error, and the next renders again", async () => {
     redisReachable();
-    const failing: Mock<() => Promise<RenderedMaintenanceCalendar>> =
-      jest.fn(async () => {
+    const failing: Mock<() => Promise<RenderedMaintenanceCalendar>> = jest.fn(
+      async () => {
         throw new Error("database away");
-      });
+      },
+    );
 
     await expect(
       MaintenanceCalendarFeedCache.getOrRender({ key: KEY, render: failing }),
@@ -184,10 +189,11 @@ describe("MaintenanceCalendarFeedCache.getOrRender", () => {
 
     expect(writes).toHaveLength(0);
 
-    const working: Mock<() => Promise<RenderedMaintenanceCalendar>> =
-      jest.fn(async () => {
+    const working: Mock<() => Promise<RenderedMaintenanceCalendar>> = jest.fn(
+      async () => {
         return calendar("back");
-      });
+      },
+    );
 
     const result: MaintenanceCalendarCacheResult =
       await MaintenanceCalendarFeedCache.getOrRender({
@@ -202,10 +208,11 @@ describe("MaintenanceCalendarFeedCache.getOrRender", () => {
   test("a body over the limit is rendered every time rather than kept", async () => {
     redisReachable();
     const big: string = "x".repeat(MAX_CACHED_MAINTENANCE_CALENDAR_BYTES + 1);
-    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> =
-      jest.fn(async () => {
+    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> = jest.fn(
+      async () => {
         return calendar(big);
-      });
+      },
+    );
 
     await MaintenanceCalendarFeedCache.getOrRender({ key: KEY, render });
     await flush();
@@ -219,10 +226,11 @@ describe("MaintenanceCalendarFeedCache.getOrRender", () => {
     const startedAt: number = Date.parse("2026-10-15T10:20:00.000Z");
     jest.spyOn(Date, "now").mockReturnValue(startedAt + 10 * 60 * 1000);
 
-    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> =
-      jest.fn(async () => {
+    const render: Mock<() => Promise<RenderedMaintenanceCalendar>> = jest.fn(
+      async () => {
         return calendar("rendered");
-      });
+      },
+    );
 
     for (let request: number = 0; request < 3; request++) {
       const result: MaintenanceCalendarCacheResult =

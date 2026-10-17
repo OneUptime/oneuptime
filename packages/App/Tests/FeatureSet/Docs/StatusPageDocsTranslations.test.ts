@@ -237,7 +237,10 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
       english: "Subscribe to calendar",
       key: "scheduledEvents.calendar.subscribe",
     },
-    { english: "Add to calendar", key: "scheduledEvents.calendar.addToCalendar" },
+    {
+      english: "Add to calendar",
+      key: "scheduledEvents.calendar.addToCalendar",
+    },
   ],
   [SUBSCRIBERS]: [
     { english: "Subscribe", key: "nav.subscribe" },

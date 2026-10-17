@@ -161,6 +161,8 @@ function channels(color: string): Array<number> {
 test.describe("List | Calendar", () => {
   test("the list is what the page opens on, with the switch at the end of the filter bar", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "");
 
@@ -189,6 +191,8 @@ test.describe("List | Calendar", () => {
 
   test("the choice of Calendar is kept: the page opens on it again after a reload", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=list");
     await showCalendar(page);
@@ -212,6 +216,8 @@ test.describe("List | Calendar", () => {
 
   test("Subscribe to calendar is offered beside the list too", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=list");
 
@@ -227,6 +233,8 @@ test.describe("List | Calendar", () => {
 test.describe("the month", () => {
   test("opens on this month, asking for the days the grid shows, and draws each event as a link in its state's colour", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar");
     await expect(calendar(page)).toBeVisible();
@@ -286,6 +294,8 @@ test.describe("the month", () => {
 
   test("an event's link opens its page, and is named with its state", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar");
 
@@ -303,7 +313,11 @@ test.describe("the month", () => {
     );
   });
 
-  test("a keyboard reaches an event's link", async ({ page }) => {
+  test("a keyboard reaches an event's link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "view=calendar");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
@@ -312,7 +326,11 @@ test.describe("the month", () => {
     await expect(eventLink(page, "Database upgrade")).toBeFocused();
   });
 
-  test("a busy day says how many more it holds", async ({ page }) => {
+  test("a busy day says how many more it holds", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "view=calendar&events=many");
     await expect(eventLink(page, "Patch window 1")).toBeVisible();
 
@@ -326,6 +344,8 @@ test.describe("the month", () => {
 
   test("Next and Back move through the months, asking for each", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
@@ -347,7 +367,11 @@ test.describe("the month", () => {
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
   });
 
-  test("Week shows the week's days hour by hour", async ({ page }) => {
+  test("Week shows the week's days hour by hour", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "view=calendar");
 
     await calendar(page).getByRole("button", { name: "Week" }).click();
@@ -361,6 +385,8 @@ test.describe("the month", () => {
 
   test("with nothing in the period it says so, and still offers the calendar link", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar&events=none");
 
@@ -374,6 +400,8 @@ test.describe("the month", () => {
 
   test("a read that fails says so, and Try again reads the month", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar&events=error");
 
@@ -394,6 +422,8 @@ test.describe("the month", () => {
 
   test("a slow read says it is loading, and the grid stays where it is", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar&delay=1500");
 
@@ -413,6 +443,8 @@ test.describe("the month", () => {
 test.describe("schedule maintenance on a day", () => {
   test("a day still to come has a + that opens the create form on that day, at the hour the form would pick", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
@@ -444,7 +476,11 @@ test.describe("schedule maintenance on a day", () => {
     );
   });
 
-  test("today has one; a day that is over has none", async ({ page }) => {
+  test("today has one; a day that is over has none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "view=calendar");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
@@ -456,7 +492,11 @@ test.describe("schedule maintenance on a day", () => {
     await expect(buttons).toHaveCount(17);
   });
 
-  test("a reader who may not create events gets none", async ({ page }) => {
+  test("a reader who may not create events gets none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "view=calendar&role=viewer");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
@@ -469,6 +509,8 @@ test.describe("schedule maintenance on a day", () => {
 test.describe("Subscribe to calendar", () => {
   test("a published link: Google Calendar, Apple Calendar / Outlook, or the link to copy", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar");
     const dialog: Locator = await openSubscribe(page);
@@ -507,6 +549,8 @@ test.describe("Subscribe to calendar", () => {
 
   test("an editor regenerates the link from the dialog's menu, after confirming", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar");
     await openSubscribe(page);
@@ -546,6 +590,8 @@ test.describe("Subscribe to calendar", () => {
 
   test("an editor turns the link off, and the dialog says it is off", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar");
     await openSubscribe(page);
@@ -581,6 +627,8 @@ test.describe("Subscribe to calendar", () => {
 
   test("a project with no link yet: an editor publishes one", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar&feed=empty");
     const dialog: Locator = await openSubscribe(page);
@@ -604,6 +652,8 @@ test.describe("Subscribe to calendar", () => {
 
   test("a reader held to some events is told why the link is not theirs, with nothing to retry", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar&feed=restricted");
     const dialog: Locator = await openSubscribe(page);
@@ -621,7 +671,7 @@ test.describe("Subscribe to calendar", () => {
     await shot(page, "subscribe-restricted", page.getByTestId("modal"));
   });
 
-  test("Done closes the dialog", async ({ page }) => {
+  test("Done closes the dialog", async ({ page }: { page: Page }) => {
     await open(page, "view=calendar");
     await openSubscribe(page);
 
@@ -636,6 +686,8 @@ test.describe("Subscribe to calendar", () => {
 test.describe("on a phone", () => {
   test("the month fits the screen, without the day's +, and nothing scrolls sideways", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar", 390);
     await expect(eventLink(page, "Database upgrade")).toBeAttached();
@@ -656,7 +708,7 @@ test.describe("on a phone", () => {
     await shot(page, "phone-month");
   });
 
-  test("the Subscribe dialog fits too", async ({ page }) => {
+  test("the Subscribe dialog fits too", async ({ page }: { page: Page }) => {
     await open(page, "view=calendar", 390);
     await openSubscribe(page);
 
@@ -668,6 +720,8 @@ test.describe("on a phone", () => {
 test.describe("in the dark theme", () => {
   test("today keeps its accent, and a black state's block and legend dot keep an edge", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar&theme=dark");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
@@ -710,7 +764,11 @@ test.describe("in the dark theme", () => {
     await shot(page, "dark-month");
   });
 
-  test("the Subscribe dialog reads on the dark theme", async ({ page }) => {
+  test("the Subscribe dialog reads on the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "view=calendar&theme=dark");
     await openSubscribe(page);
 
@@ -741,6 +799,8 @@ test.describe("in the dark theme", () => {
 test.describe("in other languages", () => {
   test("German: the switch, the toolbar and the link's words", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await open(page, "view=calendar&lang=de");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
@@ -769,7 +829,11 @@ test.describe("in other languages", () => {
     await shot(page, "german-month");
   });
 
-  test("Japanese: the toolbar and the empty line", async ({ page }) => {
+  test("Japanese: the toolbar and the empty line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "view=calendar&events=none&lang=ja");
 
     await expect(

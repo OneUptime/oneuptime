@@ -271,9 +271,7 @@ let baseUrl: string;
 let cache: Map<string, string>;
 let page: StatusPage;
 
-let hasReadAccessSpy: SpyInstance<
-  typeof StatusPageService.hasReadAccess
->;
+let hasReadAccessSpy: SpyInstance<typeof StatusPageService.hasReadAccess>;
 let readShownSpy: SpyInstance<
   typeof StatusPageAPI.readShownScheduledMaintenanceEvents
 >;
