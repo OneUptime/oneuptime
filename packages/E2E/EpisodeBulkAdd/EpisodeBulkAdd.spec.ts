@@ -1199,10 +1199,13 @@ test.describe("a project that allows an alert in only one episode", () => {
     ).toHaveText(
       "Every selected alert is already in an episode. An alert can be in only one episode in this project. To move them, remove them from their episodes first.",
     );
-    // Only Close: nothing here adds.
+    // Only Close: nothing here adds - and the keyboard starts there.
     await expect(
       dialog(page).getByTestId("modal-footer-submit-button"),
     ).toHaveCount(0);
+    await expect(
+      dialog(page).getByTestId("modal-footer-close-button"),
+    ).toBeFocused();
 
     await screenshot(page, "one-episode-existing-nothing-to-add");
 

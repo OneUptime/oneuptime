@@ -2,7 +2,13 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import { EpisodeMemberKindConfig } from "./EpisodeMemberKinds";
 
 /*
@@ -12,7 +18,44 @@ import { EpisodeMemberKindConfig } from "./EpisodeMemberKinds";
  * so the dialog says that, and why, instead of asking for an episode - with
  * only Close. Drawn like the dialogs' other empty states (EpisodePickerList):
  * an icon, a short title, then the reason.
+ *
+ * Close is where the keyboard starts, as it is in any dialog with nothing to
+ * fill in (Modal's pickInitialFocusElement). Add to Existing Episode turns
+ * into this after its list has drawn, inside the same dialog, so the dialog
+ * never picks a starting point again: the notice moves focus to Close
+ * itself, or it stays wherever it was - outside the dialog, on a search box
+ * that is gone.
  */
+
+export const NOTHING_TO_ADD_CLOSE_BUTTON_TEST_ID: string =
+  "modal-footer-close-button";
+
+/*
+ * The dialog's Close, found from inside its body: the footer is the
+ * dialog's own child, so a dialog opened from this one never answers.
+ */
+export const findDialogCloseButton: (
+  element: HTMLElement | null,
+) => HTMLElement | null = (element: HTMLElement | null): HTMLElement | null => {
+  const dialog: Element | null | undefined =
+    element?.closest('[role="dialog"]');
+
+  if (!dialog) {
+    return null;
+  }
+
+  for (const child of Array.from(dialog.children)) {
+    if (child.getAttribute("data-testid") !== "modal-footer") {
+      continue;
+    }
+
+    return child.querySelector<HTMLElement>(
+      `[data-testid="${NOTHING_TO_ADD_CLOSE_BUTTON_TEST_ID}"]`,
+    );
+  }
+
+  return null;
+};
 
 export interface NoticeProps {
   config: EpisodeMemberKindConfig;
@@ -25,9 +68,17 @@ export const NothingToAddToEpisodeNotice: FunctionComponent<NoticeProps> = (
   props: NoticeProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const noticeRef: MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+
+  // The one thing left to do: start there.
+  useEffect(() => {
+    findDialogCloseButton(noticeRef.current)?.focus();
+  }, []);
 
   return (
     <div
+      ref={noticeRef}
       data-testid={props.dataTestId}
       role="status"
       className="flex flex-col items-center px-4 py-8 text-center"

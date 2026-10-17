@@ -971,6 +971,15 @@ describe("the lists' Add to Existing Episode, allowed in only one episode", () =
     expect(screen.queryByTestId(`${LIST}-list`)).not.toBeInTheDocument();
     expect(submitButton()).not.toBeInTheDocument();
 
+    /*
+     * The keyboard starts on Close, the one thing left to do - though the
+     * dialog drew its list first, with the search box focused, and that box
+     * is gone.
+     */
+    await waitFor(() => {
+      expect(screen.getByTestId("modal-footer-close-button")).toHaveFocus();
+    });
+
     fireEvent.click(screen.getByTestId("modal-footer-close-button"));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onPick).not.toHaveBeenCalled();
@@ -1149,6 +1158,11 @@ describe("the lists' Add to New Episode, allowed in only one episode", () => {
     // No form, nothing that creates.
     expect(screen.queryByDisplayValue(/./)).toBeNull();
     expect(submitButton()).not.toBeInTheDocument();
+
+    // The keyboard starts on Close, the one thing left to do.
+    await waitFor(() => {
+      expect(screen.getByTestId("modal-footer-close-button")).toHaveFocus();
+    });
 
     fireEvent.click(screen.getByTestId("modal-footer-close-button"));
     expect(onClose).toHaveBeenCalledTimes(1);
