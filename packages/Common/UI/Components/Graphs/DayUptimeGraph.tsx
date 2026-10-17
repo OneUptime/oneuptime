@@ -1,6 +1,7 @@
 import Tooltip from "../Tooltip/Tooltip";
 import UptimeBarTooltip, { StatusDuration } from "./UptimeBarTooltip";
 import "./DayUptimeGraph.css";
+import { getUptimeBarProps } from "../../Utils/StatusColorStyle";
 import { Green } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -656,9 +657,13 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             isClickable ? " cursor-pointer hover:opacity-80" : ""
           }${hasDataForTheDay ? "" : ` ${NO_DATA_BAR_CLASS_NAME}`}`}
           data-has-data={hasDataForTheDay ? "true" : "false"}
-          style={{
-            backgroundColor: color.toString(),
-          }}
+          /*
+           * The bar's colour exactly as picked, in both themes. On the dark
+           * theme a colour too dark to stand out from the card (the very dark
+           * red of the recommended rules) gets an edge in a lighter shade of
+           * itself (Utils/StatusColorStyle).
+           */
+          {...getUptimeBarProps(color)}
           onFocus={() => {
             setFocusedBarIndex(dayNumber);
           }}

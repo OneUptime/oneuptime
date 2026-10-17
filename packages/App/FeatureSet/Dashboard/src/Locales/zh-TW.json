@@ -30357,5 +30357,15 @@
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project.": "其中 {{count}} 個已在其他片段中，因此不會新增。在此專案中，一個警示只能屬於一個片段。",
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project._one": "其中 {{count}} 個已在其他片段中，因此不會新增。在此專案中，一個警示只能屬於一個片段。",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "其中 {{count}} 個已在其他片段中，因此不會新增。在此專案中，一個事件只能屬於一個片段。",
-  "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "其中 {{count}} 個已在其他片段中，因此不會新增。在此專案中，一個事件只能屬於一個片段。"
+  "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "其中 {{count}} 個已在其他片段中，因此不會新增。在此專案中，一個事件只能屬於一個片段。",
+  "Dark": "深色",
+  "Every visitor sees the dark page.": "所有訪客都看到深色頁面。",
+  "Every visitor sees the light page.": "所有訪客都看到淺色頁面。",
+  "How your status page looks to visitors.": "訪客看到的狀態頁面外觀。",
+  "Light": "淺色",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "依每位訪客的裝置設定顯示淺色或深色。訪客可以在頁面底部切換。",
+  "Match each visitor's device": "跟隨訪客的裝置",
+  "Status page theme": "狀態頁面主題",
+  "Theme": "主題",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "你的自訂 CSS 和 HTML 在兩種主題下都會生效。以 html.dark 開頭的 CSS 規則只套用於深色主題。"
 }

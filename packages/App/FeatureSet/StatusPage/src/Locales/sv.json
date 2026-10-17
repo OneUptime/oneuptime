@@ -22,6 +22,10 @@
     "label": "Språk",
     "switchLanguage": "Byt språk"
   },
+  "theme": {
+    "switchToDark": "Byt till mörkt tema",
+    "switchToLight": "Byt till ljust tema"
+  },
   "nav": {
     "overview": "Översikt",
     "incidents": "Incidenter",

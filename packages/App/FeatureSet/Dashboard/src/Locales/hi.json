@@ -30357,5 +30357,15 @@
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project.": "इनमें से {{count}} पहले से किसी दूसरे एपिसोड में हैं, इसलिए नहीं जोड़े जाएंगे। इस प्रोजेक्ट में एक अलर्ट केवल एक एपिसोड में हो सकता है।",
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project._one": "इनमें से {{count}} पहले से किसी दूसरे एपिसोड में है, इसलिए नहीं जोड़ा जाएगा। इस प्रोजेक्ट में एक अलर्ट केवल एक एपिसोड में हो सकता है।",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "इनमें से {{count}} पहले से किसी दूसरे एपिसोड में हैं, इसलिए नहीं जोड़ी जाएंगी। इस प्रोजेक्ट में एक घटना केवल एक एपिसोड में हो सकती है।",
-  "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "इनमें से {{count}} पहले से किसी दूसरे एपिसोड में है, इसलिए नहीं जोड़ी जाएगी। इस प्रोजेक्ट में एक घटना केवल एक एपिसोड में हो सकती है।"
+  "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "इनमें से {{count}} पहले से किसी दूसरे एपिसोड में है, इसलिए नहीं जोड़ी जाएगी। इस प्रोजेक्ट में एक घटना केवल एक एपिसोड में हो सकती है।",
+  "Dark": "गहरी",
+  "Every visitor sees the dark page.": "हर आगंतुक को गहरा पृष्ठ दिखता है।",
+  "Every visitor sees the light page.": "हर आगंतुक को हल्का पृष्ठ दिखता है।",
+  "How your status page looks to visitors.": "आपका स्थिति पृष्ठ आगंतुकों को कैसा दिखता है।",
+  "Light": "हल्की",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "हर आगंतुक के डिवाइस की सेटिंग के अनुसार हल्का या गहरा। आगंतुक फ़ुटर में इसे बदल सकते हैं।",
+  "Match each visitor's device": "हर आगंतुक के डिवाइस के अनुसार",
+  "Status page theme": "स्थिति पृष्ठ की थीम",
+  "Theme": "थीम",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "आपका कस्टम CSS और HTML दोनों थीम में लागू होता है। केवल गहरी थीम को स्टाइल करने के लिए CSS नियम को html.dark से शुरू करें।"
 }

@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import ChoiceRows, {
+  CHOICE_ROW_VISUAL_CLASS_NAME,
   ChoiceRowOption,
   ComponentProps,
 } from "../../../UI/Components/ChoiceRows/ChoiceRows";
@@ -361,5 +362,116 @@ describe("ChoiceRows", () => {
     expect(radios[0]!.getAttribute("name")).not.toBe(
       radios[1]!.getAttribute("name"),
     );
+  });
+
+  /*
+   * A small picture of a choice (a status page's theme, drawn light, dark
+   * or both), between its radio and its title.
+   */
+  describe("a choice with a picture", () => {
+    const withPictures: Array<ChoiceRowOption<Who>> = OPTIONS.map(
+      (option: ChoiceRowOption<Who>): ChoiceRowOption<Who> => {
+        return option.value === "password"
+          ? option
+          : {
+              ...option,
+              visual: (
+                <svg
+                  data-testid={`${option.value}-drawing`}
+                  viewBox="0 0 72 48"
+                />
+              ),
+            };
+      },
+    );
+
+    const slot: (value: Who) => HTMLElement = (value: Who): HTMLElement => {
+      return screen.getByTestId(`choice-${value}-visual`);
+    };
+
+    test("draws it between the radio and the title, in a slot of its own size", () => {
+      renderRows({ options: withPictures });
+
+      const row: HTMLElement = screen.getByTestId("choice-anyone-row");
+      const parts: Array<Element> = Array.from(
+        radio("Anyone with the link").parentElement!.children,
+      );
+
+      expect(parts[0]).toBe(radio("Anyone with the link"));
+      expect(parts[1]).toBe(slot("anyone"));
+      expect(
+        within(parts[2] as HTMLElement).getByText("Anyone with the link"),
+      ).toBeInTheDocument();
+      expect(within(row).getByTestId("anyone-drawing")).toBeInTheDocument();
+
+      for (const name of CHOICE_ROW_VISUAL_CLASS_NAME.split(" ")) {
+        expect(slot("anyone")).toHaveClass(name);
+      }
+    });
+
+    test("a choice without one has no slot", () => {
+      renderRows({ options: withPictures });
+
+      expect(screen.queryByTestId("choice-password-visual")).toBeNull();
+    });
+
+    test("is hidden from screen readers: the radio is still named by its title alone", () => {
+      renderRows({ options: withPictures });
+
+      expect(slot("anyone")).toHaveAttribute("aria-hidden", "true");
+      expect(radio("Anyone with the link")).toBeInTheDocument();
+      expect(radio("Anyone with the link")).toHaveAccessibleDescription(
+        "The page is public.",
+      );
+    });
+
+    test("pressing it picks the choice, as pressing the title does", () => {
+      const { onPick } = renderRows({ value: "anyone", options: withPictures });
+
+      expect(slot("sign-in").tagName).toBe("LABEL");
+      expect(slot("sign-in")).toHaveAttribute(
+        "for",
+        radio("Only people who sign in").id,
+      );
+
+      fireEvent.click(slot("sign-in"));
+
+      expect(onPick).toHaveBeenCalledTimes(1);
+      expect(onPick).toHaveBeenCalledWith("sign-in");
+    });
+
+    test("pressing it picks nothing while every choice is locked", () => {
+      const { onPick } = renderRows({
+        value: "anyone",
+        options: withPictures,
+        lockedReason: "You do not have permission to update this Status Page.",
+      });
+
+      fireEvent.click(slot("sign-in"));
+
+      expect(onPick).not.toHaveBeenCalled();
+      expect(slot("sign-in")).toHaveClass("cursor-not-allowed");
+    });
+
+    test("on a phone, the status under the words lines up with the title, past the picture", () => {
+      renderRows({
+        value: "anyone",
+        options: withPictures,
+        status: <span>Saved</span>,
+      });
+
+      // Radio 16px + 12px, picture 54px + 12px: the title starts 94px in.
+      expect(
+        screen.getByTestId("choice-anyone-status").parentElement,
+      ).toHaveClass("pl-[94px]", "sm:pl-0");
+
+      // A row without a picture keeps the radio's own 28px.
+      cleanup();
+      renderRows({ value: "password", status: <span>Saved</span> });
+
+      expect(
+        screen.getByTestId("choice-password-status").parentElement,
+      ).toHaveClass("pl-7", "sm:pl-0");
+    });
   });
 });

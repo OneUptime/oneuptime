@@ -86,7 +86,14 @@ export default class ThemeUtil {
     return theme;
   }
 
-  private static applyTheme(theme: Theme, notify: boolean = true): void {
+  /*
+   * Draws the document in a theme - the dark class, data-theme, the
+   * color-scheme and the theme-color tag - and tells useTheme. Without
+   * saving it: the dashboard saves the reader's pick (setTheme), and a
+   * status page draws the theme its owner set (StatusPage/src/Utils/
+   * StatusPageTheme.ts), which is not the dashboard's to remember.
+   */
+  public static applyTheme(theme: Theme, notify: boolean = true): void {
     if (typeof document === "undefined") {
       return;
     }
