@@ -72,9 +72,8 @@ function stepCard(page: Page, componentId: string): Locator {
 
 /*
  * The trigger's settings, once its panel has read the workflow. Opened with
- * Enter on the focused card, as the canvas lets any step be: on a phone the
- * canvas shows a slice of a workflow this big, and the trigger is outside
- * it. Clicking the card is checked where it is in view.
+ * Enter on the focused card, as the canvas lets any step be; clicking the
+ * card, which the canvas opens in view, is checked on its own.
  */
 async function openTrigger(page: Page): Promise<Locator> {
   await stepCard(page, TRIGGER).press("Enter");
@@ -341,18 +340,29 @@ test.describe("Workflow builder: the Huntress trigger", () => {
     await screenshot(page, testInfo, "canvas");
   });
 
-  test("clicking the trigger opens its settings on the Huntress panel", async ({
+  /*
+   * The template is too big to fit the canvas at the smallest zoom, on a
+   * phone and at a laptop's height alike, and the fit showed its middle,
+   * with the trigger above the top edge - the card the template is opened
+   * for. The canvas opens with the trigger in view, so it is clicked
+   * straight away.
+   */
+  test("the canvas opens with the trigger in view, and clicking it opens its settings on the Huntress panel", async ({
     page,
   }: {
     page: Page;
-  }, testInfo: TestInfo) => {
-    test.skip(
-      testInfo.project.name === "mobile",
-      "On a phone the canvas shows a slice of this workflow, without the trigger.",
-    );
-
+  }) => {
     await openBuilder(page);
-    await stepCard(page, TRIGGER).click();
+
+    const trigger: Locator = stepCard(page, TRIGGER);
+    const canvas: Box = await boxOf(page.locator(".react-flow"));
+    const card: Box = await boxOf(trigger);
+
+    expect(card.y).toBeGreaterThanOrEqual(canvas.y);
+    expect(card.y + card.height).toBeLessThanOrEqual(canvas.y + canvas.height);
+    expect(await isWithinViewport(page, trigger)).toBe(true);
+
+    await trigger.click();
 
     const dialog: Locator = page.locator(SETTINGS_DIALOG);
 
@@ -361,6 +371,36 @@ test.describe("Workflow builder: the Huntress trigger", () => {
     await expect(
       panel(dialog).getByTestId("huntress-trigger-state"),
     ).toBeVisible();
+  });
+
+  test("at a laptop's height too, the trigger opens in view, near the top, and the steps under it follow", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(
+      testInfo.project.name === "mobile",
+      "A window's height, on a laptop's screen.",
+    );
+
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await openBuilder(page);
+
+    const canvas: Box = await boxOf(page.locator(".react-flow"));
+    const trigger: Box = await boxOf(stepCard(page, TRIGGER));
+    const switchCase: Box = await boxOf(stepCard(page, "switch-1"));
+
+    // In view, at the top: the workflow reads down from it.
+    expect(trigger.y).toBeGreaterThanOrEqual(canvas.y);
+    expect(trigger.y - canvas.y).toBeLessThan(canvas.height / 4);
+    // The Switch / Case it leads to is right under it, in view.
+    expect(switchCase.y).toBeGreaterThan(trigger.y);
+    expect(switchCase.y + switchCase.height).toBeLessThanOrEqual(
+      canvas.y + canvas.height,
+    );
+
+    await stepCard(page, TRIGGER).click();
+    await expect(page.locator(SETTINGS_DIALOG)).toHaveCount(1);
   });
 
   test("opening the trigger walks the three things to do in Huntress, above its settings", async ({
