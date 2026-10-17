@@ -191,6 +191,35 @@ function isTrueAttribute(attribute: ts.JsxAttribute | undefined): boolean {
 }
 
 /*
+ * The words react-big-calendar's toolbar reads from its `messages` prop
+ * (Common/UI/Components/Calendar's getCalendarMessages). An object with all
+ * of them is that toolbar's, whose Next moves the calendar on by a page: a
+ * plain button in the toolbar's button group, never a form's action.
+ */
+const CALENDAR_TOOLBAR_MESSAGE_KEYS: ReadonlyArray<string> = [
+  "today",
+  "previous",
+  "next",
+  "month",
+  "week",
+  "day",
+];
+
+function isCalendarToolbarMessages(object: ts.ObjectLiteralExpression): boolean {
+  const keys: Set<string> = new Set<string>();
+
+  for (const element of object.properties) {
+    if (ts.isPropertyAssignment(element)) {
+      keys.add(element.name.getText());
+    }
+  }
+
+  return CALENDAR_TOOLBAR_MESSAGE_KEYS.every((key: string): boolean => {
+    return keys.has(key);
+  });
+}
+
+/*
  * The object literal's place: the value of a JSX attribute or of a property
  * named `name`, perhaps through a condition or parentheses.
  */
@@ -571,6 +600,13 @@ class FileScan {
 
     if (name === "title" && isValueOf(object, "secondaryButton")) {
       return { ok: true, where: "a dialog's secondaryButton (always plain)" };
+    }
+
+    if (name === "next" && isCalendarToolbarMessages(object)) {
+      return {
+        ok: true,
+        where: "a calendar toolbar's Next (react-big-calendar's plain button)",
+      };
     }
 
     if (
