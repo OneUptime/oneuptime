@@ -178,19 +178,14 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     };
 
   useEffect(() => {
-    // The page's resources are loaded only for a link that opens a subscription.
     if (!props.allowSubscribersToChooseResources) {
-      return;
-    }
-
-    if (linkState !== LinkState.Valid) {
       return;
     }
 
     fetchCheckboxOptionsAndCategories().catch((error: Error) => {
       setError(error.message);
     });
-  }, [props.allowSubscribersToChooseResources, linkState]);
+  }, [props.allowSubscribersToChooseResources]);
 
   if (!statusPageId) {
     throw new BadDataException("Status Page ID is required");
@@ -237,7 +232,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       },
       showEvenIfPermissionDoesNotExist: true,
       title: t("subscribe.sms.yourPhoneNumber"),
-      fieldType: FormFieldSchemaType.Email,
+      // A phone number: read as an email address, it never validated, so an SMS subscriber could not save.
+      fieldType: FormFieldSchemaType.Phone,
       required: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.subscriberPhone);
       },
@@ -363,16 +359,16 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
   };
 
   const renderBody: () => ReactElement = (): ReactElement => {
-    if (linkState === LinkState.Checking || isLaoding) {
-      return <FormSkeleton />;
-    }
-
     if (linkState === LinkState.NotValid) {
       return renderLinkNotValid();
     }
 
     if (linkState === LinkState.Error) {
       return <ErrorMessage message={t("subscribe.update.loadFailed")} />;
+    }
+
+    if (linkState === LinkState.Checking || isLaoding) {
+      return <FormSkeleton />;
     }
 
     if (error) {

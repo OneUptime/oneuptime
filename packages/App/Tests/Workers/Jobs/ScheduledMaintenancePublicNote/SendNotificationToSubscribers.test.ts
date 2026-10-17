@@ -256,7 +256,6 @@ import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
-  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -331,8 +330,8 @@ const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
-// An SMS from this public page carries the manage link (see smsManageLinkFor).
-const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+// An SMS carries the same token link as every other message, on a public page too.
+const SMS_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -730,7 +729,7 @@ function expectedCustomMessages(data: {
   return [
     `Email|${data.emailBody ?? data.body}`,
     `Subject|${data.plainTextBody ?? data.body}`,
-    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    // An SMS carries the same token link as every other message, on a public page too.
     `SMS|${(data.plainTextBody ?? data.body)
       .split(UNSUBSCRIBE_URL)
       .join(SMS_UNSUBSCRIBE_URL)}`,
@@ -1791,7 +1790,7 @@ describe("ScheduledMaintenancePublicNote custom templates, in each channel's for
       expect(compiledVariablesByChannel()).toEqual({
         Email: emailBody,
         Subject: plainText,
-        // An SMS from this public page carries the manage link (see smsManageLinkFor).
+        // An SMS carries the same token link as every other message, on a public page too.
         SMS: { ...plainText, unsubscribeUrl: SMS_UNSUBSCRIBE_URL },
         Slack: markdown,
         "Microsoft Teams": markdown,
