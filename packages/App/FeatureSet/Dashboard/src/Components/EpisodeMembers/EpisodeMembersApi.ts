@@ -1,4 +1,5 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -22,6 +23,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { RecordForNewEpisode } from "Common/Utils/Episode/EpisodeFromRecords";
 import { SeverityForMapping } from "Common/Utils/Incident/IncidentFromAlerts";
@@ -272,19 +274,26 @@ export const getEpisodeRow: (
 /*
  * The incidents or alerts the add dialog offers: newest first, those already
  * in the episode left out (`excludedIds`), narrowed by what was typed. Read
- * as the person, so what they cannot see is never offered.
+ * as the person, so what they cannot see is never offered. With
+ * `onlyOutsideEpisodes`, only the ones that are in no episode at all - what
+ * a project that allows one in only one episode can still add.
  */
 export async function fetchRecordRows(data: {
   config: EpisodeMemberKindConfig;
   searchText: string;
   excludedIds: Array<string>;
   limit?: number | undefined;
+  onlyOutsideEpisodes?: boolean | undefined;
 }): Promise<Array<EpisodeRecordRow>> {
   const config: EpisodeMemberKindConfig = data.config;
   const query: Record<string, unknown> = {};
 
   if (data.excludedIds.length > 0) {
     query["_id"] = new IncludesNone(data.excludedIds);
+  }
+
+  if (data.onlyOutsideEpisodes) {
+    query[config.recordEpisodeIdField] = new IsNull();
   }
 
   addSearch(
@@ -616,6 +625,42 @@ export async function fetchSeverities(data: {
     .filter((severity: SeverityForMapping): boolean => {
       return Boolean(severity.id);
     });
+}
+
+/*
+ * Whether the project allows an incident (or alert) in only one episode
+ * (EpisodeSingleMembership): its switch on Incidents -> Settings -> Episode
+ * Membership (or Alerts'). Read fresh each time a dialog opens, so a switch flipped a
+ * moment ago counts. Every project member may read it. When it cannot be
+ * read, the dialogs act as they always did - several episodes allowed - and
+ * the server, which decides, says why one was not added.
+ */
+export async function fetchIsLimitedToOneEpisode(data: {
+  config: EpisodeMemberKindConfig;
+}): Promise<boolean> {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  if (!projectId) {
+    return false;
+  }
+
+  const column: string = data.config.singleMembershipColumn;
+
+  try {
+    const project: Project | null = await ModelAPI.getItem<Project>({
+      modelType: Project,
+      id: projectId,
+      select: {
+        [column]: true,
+      } as Select<Project>,
+    });
+
+    return (
+      (project as unknown as Record<string, unknown> | null)?.[column] === true
+    );
+  } catch {
+    return false;
+  }
 }
 
 /*

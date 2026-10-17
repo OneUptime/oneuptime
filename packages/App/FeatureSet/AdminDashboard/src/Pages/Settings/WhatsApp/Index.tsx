@@ -208,7 +208,7 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "### Required WhatsApp Templates",
     templateSummaryTable,
     "### Template Bodies",
-    "> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.",
+    "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.",
     templateBodies,
   ]
     .filter(Boolean)

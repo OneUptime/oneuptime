@@ -7,7 +7,8 @@ import RuleCriteria, {
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "../../../Types/Filter/FilterConditionUtil";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { ReactElement, useEffect, useId } from "react";
+import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
+import React, { ReactElement, useEffect, useId, useState } from "react";
 import useTranslateValue from "../../Utils/Translation";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -44,6 +45,11 @@ import {
   RuleCriteriaCopy,
   RuleCriteriaMessage,
 } from "./RuleCriteriaFields";
+import RuleAppliesToChoice from "./RuleAppliesToChoice";
+import {
+  getRuleCriteriaSubjectCopy,
+  RuleCriteriaSubjectCopy,
+} from "./RuleCriteriaSubjectCopy";
 
 /*
  * The helpers the builder used to define itself. They live in
@@ -66,13 +72,39 @@ export interface ComponentProps<TEntity> {
   error?: string | undefined;
   /*
    * The rule matches nothing until it has a condition (its API refuses an
-   * empty list), so the empty state asks for one instead of saying the rule
-   * applies to everything.
+   * empty list), so there is no "All incidents" to offer: the builder is
+   * the conditions alone, and while it has none it asks for one.
    */
   requiresCondition?: boolean | undefined;
+  /*
+   * The records the rule is for, which word the choice above the
+   * conditions: "All incidents" / "Only incidents that match conditions".
+   * Without one, "Everything" / "Only what matches conditions". The choice
+   * draws its own label, "Applies to" (the form field draws none:
+   * customElementDrawsOwnLabel).
+   */
+  subject?: RuleCriteriaSubject | null | undefined;
 }
 
 /*
+ * What a rule applies to, then its conditions.
+ *
+ * A rule with no conditions applies to every record it sees, so the first
+ * thing the builder asks is which: "All incidents" - where a new rule
+ * starts, and all most rules need - or "Only incidents that match
+ * conditions", which opens the conditions with one ready to fill in
+ * (RuleAppliesToChoice). People took an empty list of conditions for a
+ * form they had to fill in, added a condition they did not want, and were
+ * stopped for leaving it blank.
+ *
+ * - What is stored is unchanged: "All incidents" is no conditions, and the
+ *   choice is read off the conditions - a rule saved with some opens on
+ *   "Only ...". Removing the last condition is going back to "All".
+ * - Going back to "All" takes the conditions out of the rule, and keeps
+ *   them aside while the builder is open: picking "Only ..." again puts
+ *   them back as they were, so a slip of the mouse loses nothing.
+ * - A rule kind that needs a condition (requiresCondition) has no choice.
+ *
  * The conditions of a rule, as a sentence per row: "If [Incident Title]
  * [Contains] [database]", "And [Monitor Labels] [Has any of] [Production]".
  *
@@ -166,6 +198,42 @@ const RuleCriteriaBuilder: <TEntity>(
         },
       ),
     });
+  };
+
+  /*
+   * The conditions "All" took out of the rule, kept until "Only ..." is
+   * picked again or the builder closes. Never stored: the rule holds what
+   * the choice says.
+   */
+  const [conditionsSetAside, setConditionsSetAside] = useState<
+    Array<RuleCriteriaFilter>
+  >([]);
+
+  const subjectCopy: RuleCriteriaSubjectCopy = getRuleCriteriaSubjectCopy(
+    props.subject,
+  );
+
+  // "Only ... that match conditions" is picked exactly while there are some.
+  const appliesToConditions: boolean = criteria.filters.length > 0;
+
+  const chooseAll: () => void = (): void => {
+    if (criteria.filters.length > 0) {
+      setConditionsSetAside(criteria.filters);
+    }
+
+    updateCriteria({ filters: [] });
+  };
+
+  const chooseConditions: () => void = (): void => {
+    if (conditionsSetAside.length > 0) {
+      const restored: Array<RuleCriteriaFilter> = conditionsSetAside;
+      setConditionsSetAside([]);
+      updateCriteria({ filters: restored });
+      return;
+    }
+
+    // One condition to fill in, on the first field: what was asked for.
+    addCondition();
   };
 
   const fieldOptions: Array<DropdownOption> = availableFields.map(
@@ -509,108 +577,140 @@ const RuleCriteriaBuilder: <TEntity>(
     );
   };
 
+  /*
+   * A rule that needs a condition, while it has none: what it needs, and
+   * the button that adds one.
+   */
+  const renderNeedsCondition: () => ReactElement = (): ReactElement => {
+    return (
+      <div
+        className="flex flex-col gap-4 rounded-lg border border-dashed border-gray-300 bg-white px-4 py-5 sm:flex-row sm:items-center sm:justify-between"
+        data-testid="rule-criteria-empty"
+      >
+        <div className="flex min-w-0 items-start gap-3">
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"
+            aria-hidden="true"
+          >
+            <Icon icon={IconProp.Filter} className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900">
+              {tx(RuleCriteriaCopy.emptyTitle)}
+            </p>
+            <p
+              className="mt-1 text-sm text-gray-500"
+              data-testid="rule-criteria-empty-description"
+            >
+              {tx(RuleCriteriaCopy.emptyNeedsCondition)}
+            </p>
+          </div>
+        </div>
+        <div className="shrink-0">{addButton}</div>
+      </div>
+    );
+  };
+
+  // The conditions, their rows and how they are combined.
+  const renderConditions: () => ReactElement = (): ReactElement => {
+    return (
+      <div
+        className="space-y-4 rounded-lg border border-gray-200 bg-white p-4"
+        data-testid="rule-criteria-conditions"
+      >
+        {isFilterConditionNeeded(criteria.filters) && (
+          <fieldset
+            className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2"
+            data-testid="rule-criteria-combine"
+          >
+            <legend className="sr-only">
+              {tx(RuleCriteriaCopy.combineLegend)}
+            </legend>
+            <div className="inline-flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+              {[FilterCondition.All, FilterCondition.Any].map(
+                (filterCondition: FilterCondition): ReactElement => {
+                  const isChecked: boolean =
+                    (filterCondition === FilterCondition.All) === matchesAll;
+
+                  return (
+                    <label
+                      key={filterCondition}
+                      className={`cursor-pointer rounded-md px-3 py-1 text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-indigo-500 ${
+                        isChecked
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        className="sr-only"
+                        name={radioGroupName}
+                        value={filterCondition}
+                        checked={isChecked}
+                        disabled={props.disabled}
+                        data-testid={
+                          filterCondition === FilterCondition.All
+                            ? "rule-criteria-match-all"
+                            : "rule-criteria-match-any"
+                        }
+                        onChange={(): void => {
+                          updateCriteria({
+                            filterCondition: filterCondition,
+                          });
+                        }}
+                      />
+                      {tx(
+                        filterCondition === FilterCondition.All
+                          ? RuleCriteriaCopy.matchAll
+                          : RuleCriteriaCopy.matchAny,
+                      )}
+                    </label>
+                  );
+                },
+              )}
+            </div>
+            <p
+              className="text-sm text-gray-500"
+              data-testid="rule-criteria-combine-hint"
+            >
+              {tx(
+                matchesAll
+                  ? RuleCriteriaCopy.matchAllHint
+                  : RuleCriteriaCopy.matchAnyHint,
+              )}
+            </p>
+          </fieldset>
+        )}
+
+        <ol className="space-y-3">{criteria.filters.map(renderRow)}</ol>
+
+        <div>{addButton}</div>
+      </div>
+    );
+  };
+
   return (
     <div data-testid="rule-criteria-builder" className="space-y-3">
-      {criteria.filters.length === 0 ? (
-        <div
-          className="flex flex-col gap-4 rounded-lg border border-dashed border-gray-300 bg-white px-4 py-5 sm:flex-row sm:items-center sm:justify-between"
-          data-testid="rule-criteria-empty"
-        >
-          <div className="flex min-w-0 items-start gap-3">
-            <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"
-              aria-hidden="true"
-            >
-              <Icon icon={IconProp.Filter} className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900">
-                {tx(RuleCriteriaCopy.emptyTitle)}
-              </p>
-              <p
-                className="mt-1 text-sm text-gray-500"
-                data-testid="rule-criteria-empty-description"
-              >
-                {tx(
-                  props.requiresCondition
-                    ? RuleCriteriaCopy.emptyNeedsCondition
-                    : RuleCriteriaCopy.emptyMatchesEverything,
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="shrink-0">{addButton}</div>
-        </div>
+      {props.requiresCondition ? (
+        criteria.filters.length === 0 ? (
+          renderNeedsCondition()
+        ) : (
+          renderConditions()
+        )
       ) : (
-        <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4">
-          {isFilterConditionNeeded(criteria.filters) && (
-            <fieldset
-              className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2"
-              data-testid="rule-criteria-combine"
-            >
-              <legend className="sr-only">
-                {tx(RuleCriteriaCopy.combineLegend)}
-              </legend>
-              <div className="inline-flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
-                {[FilterCondition.All, FilterCondition.Any].map(
-                  (filterCondition: FilterCondition): ReactElement => {
-                    const isChecked: boolean =
-                      (filterCondition === FilterCondition.All) === matchesAll;
-
-                    return (
-                      <label
-                        key={filterCondition}
-                        className={`cursor-pointer rounded-md px-3 py-1 text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-indigo-500 ${
-                          isChecked
-                            ? "bg-white text-gray-900 shadow-sm"
-                            : "text-gray-600 hover:text-gray-900"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          className="sr-only"
-                          name={radioGroupName}
-                          value={filterCondition}
-                          checked={isChecked}
-                          disabled={props.disabled}
-                          data-testid={
-                            filterCondition === FilterCondition.All
-                              ? "rule-criteria-match-all"
-                              : "rule-criteria-match-any"
-                          }
-                          onChange={(): void => {
-                            updateCriteria({
-                              filterCondition: filterCondition,
-                            });
-                          }}
-                        />
-                        {tx(
-                          filterCondition === FilterCondition.All
-                            ? RuleCriteriaCopy.matchAll
-                            : RuleCriteriaCopy.matchAny,
-                        )}
-                      </label>
-                    );
-                  },
-                )}
-              </div>
-              <p
-                className="text-sm text-gray-500"
-                data-testid="rule-criteria-combine-hint"
-              >
-                {tx(
-                  matchesAll
-                    ? RuleCriteriaCopy.matchAllHint
-                    : RuleCriteriaCopy.matchAnyHint,
-                )}
-              </p>
-            </fieldset>
-          )}
-
-          <ol className="space-y-3">{criteria.filters.map(renderRow)}</ol>
-
-          <div>{addButton}</div>
-        </div>
+        <RuleAppliesToChoice
+          allLabel={subjectCopy.all}
+          matchingLabel={subjectCopy.matching}
+          isMatching={appliesToConditions}
+          onChooseAll={chooseAll}
+          onChooseMatching={chooseConditions}
+          disabled={props.disabled}
+          isMatchingUnavailable={availableFields.length === 0}
+          label={RuleCriteriaCopy.appliesToTitle}
+          dataTestId="rule-criteria-applies-to"
+        >
+          {appliesToConditions ? renderConditions() : undefined}
+        </RuleAppliesToChoice>
       )}
 
       {props.error && !hasRowProblem && (

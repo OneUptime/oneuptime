@@ -97,7 +97,7 @@ describe("the API reference", () => {
 
   it("says where to see what stopped, that owners are told, and that owners already below the plans get one email", () => {
     expect(section).toContain(
-      "**Project Settings** > **Billing** names how many API keys a lower plan stops and how many SCIM connections it limits, on each plan you can pick, and what the project's plan has stopped; the project's owners get an email when a plan change stops them.",
+      "**Project Settings** > **Billing and Invoices** > **Billing** names how many API keys a lower plan stops and how many SCIM connections it limits, on each plan you can pick, and what the project's plan has stopped; the project's owners get an email when a plan change stops them.",
     );
     expect(section).toContain(
       "The owners of projects that were already below these plans when this started get one email saying what stopped and how to turn it back on.",

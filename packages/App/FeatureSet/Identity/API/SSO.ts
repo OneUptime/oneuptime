@@ -9,13 +9,18 @@ import ProjectSsoSignInConfirmation, {
   ProjectSsoKind,
 } from "../Utils/ProjectSsoSignInConfirmation";
 import { respondToMobileSsoFailure } from "../Utils/MobileSso";
+import SsoTeamMembership, {
+  SSO_NO_ROOM_ERROR,
+  SSO_NO_ROOM_MESSAGE,
+  SSO_NO_ROOM_TITLE,
+  SsoTeamMembershipOutcome,
+} from "../Utils/SsoTeamMembership";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
@@ -646,22 +651,37 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         );
       }
 
-      for (const team of projectSSO.teams) {
-        // add user to team
-        let teamMember: TeamMember = new TeamMember();
-        teamMember.projectId = new ObjectID(req.params["projectId"] as string);
-        teamMember.userId = alreadySavedUser.id!;
-        teamMember.hasAcceptedInvitation = true;
-        teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
-        teamMember.teamId = team.id!;
+      /*
+       * They take a seat like anyone invited: a project with no room for
+       * one more person adds them nowhere, and they are told so.
+       */
+      if (
+        (await SsoTeamMembership.addToTeams({
+          projectId: new ObjectID(req.params["projectId"] as string),
+          userId: alreadySavedUser.id!,
+          teams: projectSSO.teams,
+        })) === SsoTeamMembershipOutcome.NoRoom
+      ) {
+        if (
+          respondToMobileSsoFailure({
+            res,
+            isMobileRequest,
+            error: SSO_NO_ROOM_ERROR,
+            errorDescription: SSO_NO_ROOM_MESSAGE,
+          })
+        ) {
+          return;
+        }
 
-        teamMember = await TeamMemberService.create({
-          data: teamMember,
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
+        return Response.render(
+          req,
+          res,
+          "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+          {
+            title: SSO_NO_ROOM_TITLE,
+            message: SSO_NO_ROOM_MESSAGE,
           },
-        });
+        );
       }
     }
 

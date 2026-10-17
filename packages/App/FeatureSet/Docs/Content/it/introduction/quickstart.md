@@ -28,7 +28,7 @@ Al primo accesso, OneUptime mostra **Nessun progetto**. Fai clic su **Crea nuovo
 
 ### Dargli un nome
 
-Inserisci un **Nome del progetto**, per esempio il nome della tua azienda. Su OneUptime Cloud, il passaggio successivo ti chiede di scegliere un piano.
+Inserisci un **Nome del progetto**, per esempio il nome della tua azienda. Su OneUptime Cloud, scegli anche un piano subito sotto: Free è già selezionato, e i piani a pagamento iniziano con una prova gratuita.
 
 ### Crearlo
 
@@ -68,7 +68,7 @@ Nell'elenco, fai clic su **Configura una policy di reperibilità**, oppure apri 
 
 ### Attivarla per ogni incidente
 
-Apri **Incidenti** dal menu **Prodotti**, espandi **Regole** nel menu laterale e scegli **Regole di reperibilità**. Fai clic su **Crea: Incident On-Call Rule**, inserisci un **Nome** e fai clic su **Avanti**. Lascia vuoti i **Criteri di corrispondenza**, così la regola vale per ogni incidente, e fai clic su **Avanti**. Scegli la tua policy in **Policy di reperibilità** e fai clic su **Crea: Incident On-Call Rule**.
+Apri **Incidenti** dal menu **Prodotti**, espandi **Regole** nel menu laterale e scegli **Regole di reperibilità**. Fai clic su **Crea: Incident On-Call Rule**, inserisci un **Nome** e fai clic su **Avanti**. In **Criteri di corrispondenza**, lascia selezionato **Tutti gli incidenti**, così la regola vale per ogni incidente, e fai clic su **Avanti**. Scegli la tua policy in **Policy di reperibilità** e fai clic su **Crea: Incident On-Call Rule**.
 
 ### Scegliere come essere raggiunto
 

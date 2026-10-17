@@ -16,7 +16,12 @@ import DataSourceEgressGuard, {
 import { getTableColumn } from "Common/Types/Database/TableColumn";
 import MailTransportType from "Common/Types/Email/MailTransportType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
+import { getRuleCriteriaSubjectForModel } from "Common/Types/Rules/RuleCriteriaSubject";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  getRuleCriteriaSubjectCopy,
+  RuleCriteriaSubjectCopy,
+} from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 import {
   createTranslator,
   toSentenceTerm,
@@ -487,9 +492,25 @@ describe("Label and Owner Rules, against the Dashboard", () => {
     );
 
     expect(addOwner).not.toBeNull();
-    expect(page).toContain(
-      `On the **Match** step, click **${addCondition}** for each condition`,
+
+    /*
+     * The step asks what the rule applies to before any condition, in the
+     * words of the rule's records: "All hosts" on a host rule. The other
+     * answer opens the first condition; Add condition adds the rest.
+     */
+    const appliesTo: string = translationKeyOf(criteria, "appliesToTitle");
+    const hosts: RuleCriteriaSubjectCopy = getRuleCriteriaSubjectCopy(
+      getRuleCriteriaSubjectForModel("HostLabelRule"),
     );
+
+    expect(hosts.all).toBe("All hosts");
+    expect(page).toContain(
+      `On the **Match** step, **${appliesTo}** starts on every new resource, such as **${hosts.all}** on a host rule.`,
+    );
+    expect(page).toContain(
+      `pick **${hosts.matching}** and fill in the condition that opens; click **${addCondition}** for each other condition the resource must meet.`,
+    );
+    expect(page).not.toContain("A rule with no conditions matches every");
     expect(page).toContain(`choose **${matchAll}** or **${matchAny}**`);
     expect(page).toContain(
       "On the **Labels** step, pick the **Labels to Add**",

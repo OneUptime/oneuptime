@@ -107,7 +107,7 @@ describe("the link to the switches", () => {
         projectId: PROJECT_ID,
       }),
     ).toBe(
-      "SMS is off in this project. If it should be on, turn it on in Project Settings &gt; Notification Settings.",
+      "SMS is off in this project. If it should be on, turn it on in Project Settings &gt; Notifications &gt; Notification Settings.",
     );
 
     /*
@@ -135,7 +135,9 @@ describe("the notice", () => {
         `${SafeHtml.escape(getProjectNotificationChannelOffOwnerSentence(channel))} <br/> <br/> <a href="${LINK}">${LINK}</a>`,
       );
       expect(html).toContain("If ");
-      expect(html).toContain("Project Settings &gt; Notification Settings");
+      expect(html).toContain(
+        "Project Settings &gt; Notifications &gt; Notification Settings",
+      );
     },
   );
 
@@ -145,8 +147,10 @@ describe("the notice", () => {
       projectId: PROJECT_ID,
     });
 
-    // "Project Settings > Notification Settings" goes into the email as text.
-    expect(html).not.toContain("Project Settings > Notification Settings");
+    // "Project Settings > Notifications > Notification Settings" goes into the email as text.
+    expect(html).not.toContain(
+      "Project Settings > Notifications > Notification Settings",
+    );
     expect(html.match(/<a href=/g)).toHaveLength(1);
   });
 
@@ -159,7 +163,7 @@ describe("the notice", () => {
     });
 
     expect(html).toBe(
-      "Phone calls are off in this project. If they should be on, turn them on in Project Settings &gt; Notification Settings.",
+      "Phone calls are off in this project. If they should be on, turn them on in Project Settings &gt; Notifications &gt; Notification Settings.",
     );
     expect(html).not.toContain("<a ");
   });

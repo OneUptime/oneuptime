@@ -457,7 +457,7 @@ export default class Register {
     switch (data.statusCode) {
       case 401:
         explanation =
-          "The server rejected the ingestion key — check oneuptime.apiKey on the Kubernetes agent chart (it must be a server telemetry ingestion key from Project Settings > Telemetry Ingestion Keys).";
+          "The server rejected the ingestion key — check oneuptime.apiKey on the Kubernetes agent chart (it must be a server telemetry ingestion key from Project Settings > Telemetry & APM > Ingestion Keys).";
         break;
       case 403:
         explanation = Register.describeKubernetesAgentForbidden({

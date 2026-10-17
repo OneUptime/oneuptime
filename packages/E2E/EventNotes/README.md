@@ -43,7 +43,7 @@ Query parameters, parsed once per page load:
 
 | Parameter     | Values                                                                                                                               |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `?notes=`     | `full` (default), `empty` (no notes anywhere) or `many` (incident #1042 needs a second page)                                         |
+| `?notes=`     | `full` (default), `empty` (no notes anywhere), `many` (#1042 needs a second page) or `links-and-quotes` (see below)                  |
 | `?role=`      | `owner` (default, a master admin), `viewer` (reads, cannot write) or `member` (a Project Member, through the real permission checks) |
 | `?templates=` | `some` (default), `none` or `many`                                                                                                   |
 | `?quiet=1`    | incident #1042 was declared without notifying subscribers                                                                            |
@@ -61,5 +61,18 @@ fails a test whose page made a request the fixture does not model.
 cd packages/E2E && npm run test-event-notes-ui
 ```
 
+Another checkout's server on 4223 is reused outside CI; a run of your own picks another port:
+`EVENT_NOTES_FIXTURE_PORT=4719 CI=1 npm run test-event-notes-ui`.
+
 Screenshots of every page land in `output/playwright/event-notes-ui/` under `-synthetic`
 names.
+
+## Links and quotes in a note
+
+`?notes=links-and-quotes` is the full set plus the newest private note on incident #1042,
+written as a note saved from a Slack message: a quote, the message's file
+(`📎 [image.png](https://acme.slack.com/...)`), a `> [!WARNING]` callout, links to alert #311's
+notes and to the docs, and a long link. Its tests open the file in a new tab while the notes
+stay open, follow the link to alert #311's notes in the same tab, measure the quote's grey bar
+and the callout's panel in both themes, and check that the long link wraps inside its note on a
+phone. Screenshots: `incident-private-notes-links-and-quotes{,-dark,-mobile}`.

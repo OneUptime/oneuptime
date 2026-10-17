@@ -6,6 +6,7 @@ import {
 } from "../EnvironmentConfig";
 import ProjectSMTPConfigService from "../Services/ProjectSmtpConfigService";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -32,6 +33,7 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import Model from "../../Models/DatabaseModels/StatusPageSubscriber";
@@ -238,6 +240,26 @@ export interface StatusPageSubscriberUnsubscribeBackfillResult {
   markedAddedByTeam: number;
 }
 
+/*
+ * THE FREE PLAN'S LIMIT ON SUBSCRIBERS (AllowedSubscribersCountInFreePlan),
+ * over every status page of the project.
+ *
+ * Asked twice: early, in onBeforeCreate, and again with the INSERT, in its
+ * own transaction under the limit's lock in the project (getCreateLimit,
+ * ProjectCountLimit), so sign-ups and subscribers added at the same moment
+ * cannot all pass. The lock's name, what it counts - every subscriber of the
+ * project, as the early check counts them - and the refusal both checks
+ * give.
+ */
+export const FREE_PLAN_SUBSCRIBER_LIMIT_NAME: string =
+  "free-plan-status-page-subscribers";
+
+export const SUBSCRIBER_COUNT_STATEMENT: string =
+  'SELECT COUNT(*)::int AS "count" FROM "StatusPageSubscriber" WHERE "projectId" = $1 AND "deletedAt" IS NULL';
+
+export const FREE_PLAN_SUBSCRIBER_LIMIT_MESSAGE: string =
+  "You have reached the maximum allowed subscriber limit for the free plan. Please upgrade your plan to add more subscribers.";
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -274,6 +296,41 @@ export class Service extends ProjectReferencesService<Model> {
     row["subscriptionConfirmationToken"] = undefined;
 
     return created;
+  }
+
+  /*
+   * The Free plan's limit on subscribers, decided again with the INSERT:
+   * counted in the INSERT's own transaction, under the limit's lock in the
+   * project, so subscribers added at the same moment - visitors signing up
+   * on a public status page as much as the team - cannot all be added, each
+   * having passed the early count in onBeforeCreate. Every create is asked,
+   * one that skips its hooks too. Null on a plan with no such limit, and
+   * without billing.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<Model>,
+  ): Promise<CreateLimit | null> {
+    const projectId: ObjectID | undefined = createBy.data.projectId;
+
+    if (!IsBillingEnabled || !projectId) {
+      return null;
+    }
+
+    const currentPlan: CurrentPlan =
+      await ProjectService.getCurrentPlan(projectId);
+
+    if (currentPlan.plan !== PlanType.Free) {
+      return null;
+    }
+
+    return ProjectCountLimit.getCreateLimit({
+      limitName: FREE_PLAN_SUBSCRIBER_LIMIT_NAME,
+      projectId: projectId,
+      allowed: AllowedSubscribersCountInFreePlan,
+      statement: SUBSCRIBER_COUNT_STATEMENT,
+      parameters: [projectId.toString()],
+      refusal: FREE_PLAN_SUBSCRIBER_LIMIT_MESSAGE,
+    });
   }
 
   /*
@@ -453,9 +510,7 @@ export class Service extends ProjectReferencesService<Model> {
               statusPageId: data.data.statusPageId?.toString(),
             } as LogAttributes,
           );
-          throw new BadDataException(
-            `You have reached the maximum allowed subscriber limit for the free plan. Please upgrade your plan to add more subscribers.`,
-          );
+          throw new BadDataException(FREE_PLAN_SUBSCRIBER_LIMIT_MESSAGE);
         }
       }
     }

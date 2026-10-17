@@ -2,6 +2,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -28,6 +29,7 @@ import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
 import Route from "../../Types/API/Route";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
@@ -39,6 +41,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Project from "../../Models/DatabaseModels/Project";
 import Team from "../../Models/DatabaseModels/Team";
@@ -66,6 +69,7 @@ import ProjectLeaveNotificationCleanup from "../Utils/TeamMember/ProjectLeaveNot
 import { ProjectLeaveRemovalResult } from "../Utils/TeamMember/ProjectLeaveRows";
 import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCleanup";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
+import { EntityManager } from "typeorm";
 
 /*
  * What cleanupOnCallAssignmentsForUserLeavingProject did, for logging and
@@ -86,6 +90,42 @@ export interface OnCallLeaveCleanupResult {
 // The two names of a membership's team and person, ID column first.
 const TEAM_KEYS: Array<string> = ["teamId", "team"];
 const USER_KEYS: Array<string> = ["userId", "user"];
+
+/*
+ * THE LIMITS ON HOW MANY PEOPLE A PROJECT MAY HAVE: the seats of a plan
+ * bought from a reseller (Project.seatLimit; none when it is empty or 0),
+ * and the Free plan's one person. Both are the project's, whoever adds the
+ * person (readPeopleLimits), and both count people, not memberships - the
+ * distinct users with any membership in the project, a pending invitation
+ * included (getUniqueTeamMemberCountInProject) - so someone already in the
+ * project joins another of its teams whatever the count.
+ *
+ * Asked twice: early, in onBeforeCreate, before an account is made for
+ * an invitee or anyone is mailed, and again with the INSERT, in its own
+ * transaction under the limit's lock in the project (getCreateLimit), so
+ * people added at the same moment cannot all pass - on every path that adds
+ * someone: an invitation, a first sign-in through the project's SSO, SCIM,
+ * an import. The lock's name, and what it counts.
+ */
+export const SEAT_LIMIT_NAME: string = "seats";
+
+export const PEOPLE_IN_PROJECT_STATEMENT: string =
+  'SELECT COUNT(DISTINCT "userId")::int AS "count" FROM "TeamMember" WHERE "projectId" = $1 AND "deletedAt" IS NULL';
+
+// A person's memberships in the project: any one means they are counted.
+export const MEMBERSHIPS_OF_PERSON_STATEMENT: string =
+  'SELECT COUNT(*)::int AS "count" FROM "TeamMember" WHERE "projectId" = $1 AND "userId" = $2 AND "deletedAt" IS NULL';
+
+// How many people the Free plan allows: the project's owner.
+export const ALLOWED_PEOPLE_IN_FREE_PLAN: number = 1;
+
+// The limits on people a membership create is held to.
+export interface ProjectPeopleLimits {
+  // The plan's seats, when it has a number of them.
+  seatLimit: number | null;
+  // Whether the Free plan's one person holds it.
+  isFreePlan: boolean;
+}
 
 export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   /*
@@ -258,22 +298,18 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         })
       : null;
 
-    // check if this project can have more members.
+    /*
+     * Check if this project can have more people: early, so a project at
+     * its limit is refused before an account is made for the invitee or
+     * anyone is mailed. The INSERT asks again, under the limit's lock
+     * (getCreateLimit).
+     */
     if (IsBillingEnabled && createBy.data.projectId) {
-      const project: Project | null = await ProjectService.findOneById({
-        id: createBy.data.projectId!,
-        select: {
-          seatLimit: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      const hasMemberLimit: boolean = Boolean(
-        project &&
-          (project.seatLimit || createBy.props.currentPlan === PlanType.Free),
-      );
+      const peopleLimits: ProjectPeopleLimits | null =
+        await this.readPeopleLimits({
+          projectId: projectId,
+          props: createBy.props,
+        });
 
       const invitedUserId: ObjectID | null | undefined = invitedEmail
         ? userWithInvitedEmail?.id
@@ -287,7 +323,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
        * leaves it where it was, so neither limit applies to them.
        */
       const isInvitedUserAlreadyCounted: boolean = Boolean(
-        hasMemberLimit &&
+        peopleLimits &&
           invitedUserId &&
           (await this.hasMembershipInProject({
             projectId: projectId,
@@ -295,7 +331,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
           })),
       );
 
-      if (project && hasMemberLimit && !isInvitedUserAlreadyCounted) {
+      if (peopleLimits && !isInvitedUserAlreadyCounted) {
         /*
          * Billing can lag after a provider outage. Admission limits must use
          * persisted memberships, including pending invitations.
@@ -303,17 +339,13 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         const numberOfMembers: number =
           await this.getUniqueTeamMemberCountInProject(projectId);
 
-        if (project.seatLimit && numberOfMembers >= project.seatLimit) {
-          throw new BadDataException(Errors.TeamMemberService.LIMIT_REACHED);
-        }
+        const refusal: string | null = this.getPeopleLimitRefusal({
+          limits: peopleLimits,
+          people: numberOfMembers,
+        });
 
-        if (
-          createBy.props.currentPlan === PlanType.Free &&
-          numberOfMembers >= 1
-        ) {
-          throw new BadDataException(
-            Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
-          );
+        if (refusal) {
+          throw new BadDataException(refusal);
         }
       }
     }
@@ -559,6 +591,172 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * The limits on people a membership create in `projectId` is held to
+   * (ProjectPeopleLimits), or null when it is held to none: without
+   * billing, or when the project has no seat limit and is not on the Free
+   * plan. Both are read from the project's row, whoever adds the person: a
+   * teammate's invitation, an import, and OneUptime adding someone who signs
+   * in through the project's SSO for the first time - who carries no plan,
+   * and joins like anyone invited. A server admin is held to no plan
+   * (CallerPlan), so not to the Free plan's one person; a plan's seats hold
+   * them too.
+   */
+  public async readPeopleLimits(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<ProjectPeopleLimits | null> {
+    if (!IsBillingEnabled) {
+      return null;
+    }
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: {
+        seatLimit: true,
+        paymentProviderPlanId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      return null;
+    }
+
+    const limits: ProjectPeopleLimits = {
+      seatLimit: project.seatLimit || null,
+      isFreePlan: this.isHeldToFreePlanPerson({
+        project: project,
+        props: data.props,
+      }),
+    };
+
+    if (!limits.seatLimit && !limits.isFreePlan) {
+      return null;
+    }
+
+    return limits;
+  }
+
+  /*
+   * Whether the Free plan's one person holds a membership create in
+   * `project`: the project is on the Free plan - as its row names its plan,
+   * or as the plan CommonAPI read for the request says (read from the same
+   * row, kept for a minute) - and the create is not a server admin's, whom
+   * no plan holds (CallerPlan).
+   */
+  private isHeldToFreePlanPerson(data: {
+    project: Project;
+    props: DatabaseCommonInteractionProps;
+  }): boolean {
+    if (data.props.isMasterAdmin) {
+      return false;
+    }
+
+    if (data.props.currentPlan === PlanType.Free) {
+      return true;
+    }
+
+    const planId: string | undefined = data.project.paymentProviderPlanId;
+
+    if (!planId) {
+      return false;
+    }
+
+    return (
+      SubscriptionPlan.getSubscriptionPlanById(planId)?.getName() ===
+      PlanType.Free
+    );
+  }
+
+  /*
+   * The refusal of one more person in a project that has `people`, or null
+   * when the limits leave room for them. The plan's seats are asked first.
+   */
+  public getPeopleLimitRefusal(data: {
+    limits: ProjectPeopleLimits;
+    people: number;
+  }): string | null {
+    if (data.limits.seatLimit && data.people >= data.limits.seatLimit) {
+      return Errors.TeamMemberService.LIMIT_REACHED;
+    }
+
+    if (data.limits.isFreePlan && data.people >= ALLOWED_PEOPLE_IN_FREE_PLAN) {
+      return Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN;
+    }
+
+    return null;
+  }
+
+  /*
+   * The limits on people, decided again with the INSERT: the person is
+   * looked for and the project's people counted in the INSERT's own
+   * transaction, under the limit's lock in the project, so memberships
+   * created at the same moment - each of which passed the early count in
+   * onBeforeCreate - cannot all add someone new. Every create is asked, one
+   * that skips its hooks too: a first sign-in through the project's SSO
+   * adds people that way, and takes a seat like anyone invited. Null when
+   * the create is held to no limit.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<TeamMember>,
+  ): Promise<CreateLimit | null> {
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+
+    if (!projectId) {
+      return null;
+    }
+
+    const limits: ProjectPeopleLimits | null = await this.readPeopleLimits({
+      projectId: projectId,
+      props: createBy.props,
+    });
+
+    if (!limits) {
+      return null;
+    }
+
+    const userId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      USER_KEYS,
+      "User",
+    );
+
+    return {
+      limitName: SEAT_LIMIT_NAME,
+      projectId: projectId,
+      check: async (manager: EntityManager): Promise<void> => {
+        // Someone already in the project is counted already.
+        if (
+          userId &&
+          (await ProjectCountLimit.count({
+            manager: manager,
+            statement: MEMBERSHIPS_OF_PERSON_STATEMENT,
+            parameters: [projectId.toString(), userId.toString()],
+          })) > 0
+        ) {
+          return;
+        }
+
+        const refusal: string | null = this.getPeopleLimitRefusal({
+          limits: limits,
+          people: await ProjectCountLimit.count({
+            manager: manager,
+            statement: PEOPLE_IN_PROJECT_STATEMENT,
+            parameters: [projectId.toString()],
+          }),
+        });
+
+        if (refusal) {
+          throw new BadDataException(refusal);
+        }
+      },
+    };
   }
 
   @CaptureSpan()

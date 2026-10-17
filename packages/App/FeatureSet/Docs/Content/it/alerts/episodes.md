@@ -64,7 +64,7 @@ Fate clic su **Crea regola personalizzata** sotto i modelli, o su **Crea regola 
 
 #### Restringere il campo
 
-In **Quali avvisi**, aggiungete condizioni su monitor, gravità, etichette, titoli e descrizioni. Lasciatelo vuoto per raggruppare ogni nuovo avviso. Poi fate clic su **Crea regola di raggruppamento degli avvisi**.
+In **Quali avvisi**, **Tutti gli avvisi**, da cui parte una nuova regola, raggruppa ogni nuovo avviso. Per restringerla, scegliete **Solo gli avvisi che soddisfano le condizioni** e aggiungete condizioni su monitor, gravità, etichette, titoli e descrizioni. Poi fate clic su **Crea regola di raggruppamento degli avvisi**.
 :::
 
 Tutto il resto che una regola può fare è compresso sotto **Altri campi**, alla fine del passaggio **Raggruppamento**, in tre gruppi. Da compresso, la sua intestazione nomina ciò che contiene e mostra come chip ogni impostazione usata dalla regola, così modificare una regola non nasconde mai ciò che fa.

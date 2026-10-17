@@ -234,7 +234,7 @@ O texto das consultas na saída é normalizado (todo literal de string e de núm
 
 ## Como as correções funcionam
 
-As correções ficam desativadas até que você as ative, e isso exige duas configurações no agente: `ONEUPTIME_AI_FIXES` com um modo diferente de `off` (veja [O que a IA pode fazer, definido pelo agente](#o-que-a-ia-pode-fazer-definido-pelo-agente)) e `ONEUPTIME_AI_ALLOW_WRITES=true` (veja [Acesso de escrita no agente](#acesso-de-escrita-no-agente)). Qualquer uma delas sozinha não muda nada. Um agente anterior a `ONEUPTIME_AI_FIXES` usa em vez disso as **Correções** da página do agente de IA do recurso. As correções também precisam que a IA esteja habilitada para o projeto (**Habilitar IA** em Configurações do projeto → AI Features), o que acontece a menos que alguém a tenha desativado.
+As correções ficam desativadas até que você as ative, e isso exige duas configurações no agente: `ONEUPTIME_AI_FIXES` com um modo diferente de `off` (veja [O que a IA pode fazer, definido pelo agente](#o-que-a-ia-pode-fazer-definido-pelo-agente)) e `ONEUPTIME_AI_ALLOW_WRITES=true` (veja [Acesso de escrita no agente](#acesso-de-escrita-no-agente)). Qualquer uma delas sozinha não muda nada. Um agente anterior a `ONEUPTIME_AI_FIXES` usa em vez disso as **Correções** da página do agente de IA do recurso. As correções também precisam que a IA esteja habilitada para o projeto (**Habilitar IA** em Configurações do projeto → IA → AI Features), o que acontece a menos que alguém a tenha desativado.
 
 ### Modos de correção
 

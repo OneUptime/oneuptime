@@ -240,7 +240,7 @@
     "accessWriteDescription": "Visa data och göra ändringar: bekräfta och lösa incidenter och larm, lägga till anteckningar samt skapa, uppdatera eller ta bort resurser.",
     "accessReadTitle": "Endast läsåtkomst",
     "accessReadDescription": "Visa incidenter, larm, övervakare, statussidor och telemetri. Kan inte ändra något.",
-    "permissionsNote": "Klienten agerar i ditt namn och kan aldrig göra mer än vad dina egna behörigheter i det här projektet tillåter. Du kan när som helst koppla från den under Projektinställningar > MCP-server.",
+    "permissionsNote": "Klienten agerar i ditt namn och kan aldrig göra mer än vad dina egna behörigheter i det här projektet tillåter. Du kan när som helst koppla från den under Projektinställningar > AI > MCP-server.",
     "authorizeButton": "Godkänn",
     "denyButton": "Avbryt",
     "redirecting": "Skickar dig tillbaka till {{clientName}}...",
@@ -286,7 +286,7 @@
       "bought_from_reseller": "{{name}} – faktureras av en återförsäljare"
     },
     "nothingToChoose": "Inget av dina projekt kan ta emot det här köpet, och du kan inte skapa projekt på den här servern. Be ägaren till det projekt som köpet ska betala för att konfigurera köpet.",
-    "billingNote": "Din plan och användning faktureras via {{marketplace}} till priserna på oneuptime.com/pricing. Du kan när som helst byta plan under Projektinställningar → Fakturering.",
+    "billingNote": "Din plan och användning faktureras via {{marketplace}} till priserna på oneuptime.com/pricing. Du kan när som helst byta plan under Projektinställningar → Fakturering och fakturor → Fakturering.",
     "submitButton": "Konfigurera köp",
     "notNowButton": "Inte nu",
     "redirecting": "Ditt köp är konfigurerat. Du skickas till ditt projekt…",
@@ -359,5 +359,13 @@
   "Quote": "Citat",
   "Code Block": "Kodblock",
   "Switch to markdown source": "Byt till Markdown-källa",
-  "Switch to visual editor": "Byt till visuell redigerare"
+  "Switch to visual editor": "Byt till visuell redigerare",
+  "Opens in a new tab": "Öppnas i en ny flik",
+  "Note": "Obs",
+  "Tip": "Tips",
+  "Info": "Info",
+  "Important": "Viktigt",
+  "Warning": "Varning",
+  "Caution": "Försiktighet",
+  "Danger": "Fara"
 }

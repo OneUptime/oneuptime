@@ -343,5 +343,13 @@
   "{{field}} is required.": "{{field}} الزامی است.",
   "{{field}} should match {{matchField}}": "{{field}} باید با {{matchField}} مطابقت داشته باشد",
   "Email is not valid.": "ایمیل معتبر نیست.",
-  "Next": "بعدی"
+  "Next": "بعدی",
+  "Opens in a new tab": "در زبانه‌ای جدید باز می‌شود",
+  "Note": "نکته",
+  "Tip": "نکته کاربردی",
+  "Info": "اطلاعات",
+  "Important": "مهم",
+  "Warning": "هشدار",
+  "Caution": "احتیاط",
+  "Danger": "خطر"
 }

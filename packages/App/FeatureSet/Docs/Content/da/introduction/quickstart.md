@@ -28,7 +28,7 @@ Første gang du logger ind, viser OneUptime **Ingen projekter**. Klik på **Opre
 
 ### Giv det et navn
 
-Indtast et **Projektnavn**, for eksempel din virksomheds navn. På OneUptime Cloud beder det næste trin dig vælge en plan.
+Indtast et **Projektnavn**, for eksempel din virksomheds navn. På OneUptime Cloud vælger du også en plan lige nedenunder: Free er allerede valgt, og de betalte planer starter med en gratis prøveperiode.
 
 ### Opret det
 
@@ -68,7 +68,7 @@ Klik på **Opsæt en vagtpolitik** i tjeklisten, eller åbn **Vagtordning** fra 
 
 ### Udløs den for hver hændelse
 
-Åbn **Hændelser** fra menuen **Produkter**, fold **Regler** ud i sidemenuen, og vælg **Vagtregler**. Klik på **Opret Incident On-Call Rule**, indtast et **Navn**, og klik på **Næste**. Lad **Matchkriterier** stå tomt, så reglen gælder for alle hændelser, og klik på **Næste**. Vælg din politik under **Vagtpolitikker**, og klik på **Opret Incident On-Call Rule**.
+Åbn **Hændelser** fra menuen **Produkter**, fold **Regler** ud i sidemenuen, og vælg **Vagtregler**. Klik på **Opret Incident On-Call Rule**, indtast et **Navn**, og klik på **Næste**. Lad **Alle hændelser** være valgt under **Matchkriterier**, så reglen gælder for alle hændelser, og klik på **Næste**. Vælg din politik under **Vagtpolitikker**, og klik på **Opret Incident On-Call Rule**.
 
 ### Vælg, hvordan du bliver kontaktet
 

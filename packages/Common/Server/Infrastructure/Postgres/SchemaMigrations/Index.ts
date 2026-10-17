@@ -109,6 +109,7 @@ import { AddMarketplaceSubscriptions1803000000000 } from "./1803000000000-AddMar
 import { AddMarketplaceCharges1803050000000 } from "./1803050000000-AddMarketplaceCharges";
 import { AddCustomRoles1803100000000 } from "./1803100000000-AddCustomRoles";
 import { AddTeamPermissionCustomRoleLinks1803150000000 } from "./1803150000000-AddTeamPermissionCustomRoleLinks";
+import { AddLimitRecordsToOneEpisode1803200000000 } from "./1803200000000-AddLimitRecordsToOneEpisode";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1420,4 +1421,5 @@ export default [
   AddMarketplaceCharges1803050000000,
   AddCustomRoles1803100000000,
   AddTeamPermissionCustomRoleLinks1803150000000,
+  AddLimitRecordsToOneEpisode1803200000000,
 ];

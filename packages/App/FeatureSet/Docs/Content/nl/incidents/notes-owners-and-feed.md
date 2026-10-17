@@ -95,7 +95,7 @@ Dezelfde editor opent in een dialoogvenster vanuit **Add Public Note** in het me
 > [!TIP]
 > **De plaatsingstijd is het echte tijdstempel van de notitie.** Statuspagina's sorteren en tonen openbare notities op `postedAt`, niet op wanneer je ze typte — dus als je de statuspagina bijwerkt met een update die je 40 minuten geleden verstuurde, kies dan **Posted now** en stel in wanneer het echt gebeurde. Komt een notitie via de API (`/api/incident-public-note`) zonder tijdstip binnen, dan stempelt OneUptime de huidige tijd.
 
-Elke notitie toont wie haar schreef, haar plaatsingstijd, de weergegeven Markdown met haar bijlagen en, in haar kop, hoe het met haar melding aan abonnees staat. **Search notes…** vindt notities op wat ze zeggen, en de feed kan met de nieuwste of de oudste eerst worden gelezen.
+Elke notitie toont wie haar schreef, haar plaatsingstijd, de weergegeven Markdown met haar bijlagen en, in haar kop, hoe het met haar melding aan abonnees staat. **Search notes…** vindt notities op wat ze zeggen, en de feed kan met de nieuwste of de oudste eerst worden gelezen. Links naar andere sites en naar bijlagen openen in een nieuw tabblad. Regels die met `>` beginnen, worden als citaat getoond; begin het met een eigen regel, `> [!NOTE]`, `> [!TIP]` of `> [!WARNING]`, om het in plaats daarvan als opvallend kader te tonen.
 
 ## Een privénotitie plaatsen
 

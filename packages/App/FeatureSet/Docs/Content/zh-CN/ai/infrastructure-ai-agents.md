@@ -234,7 +234,7 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 
 ## 修复的工作方式
 
-在您开启之前，修复一直是关闭的，开启需要代理上的两项设置：将 `ONEUPTIME_AI_FIXES` 设为 `off` 以外的模式（参见 [AI 可以做什么，由代理设置](#ai-可以做什么由代理设置)），以及 `ONEUPTIME_AI_ALLOW_WRITES=true`（参见 [代理上的写入权限](#代理上的写入权限)）。只有其中一项不会改变任何东西。早于 `ONEUPTIME_AI_FIXES` 的代理会改为从资源的 AI 代理页面获取 **修复**。修复还需要为项目启用 AI（项目设置 → AI Features 下的 **启用 AI**），除非有人关闭了它，否则它是启用的。
+在您开启之前，修复一直是关闭的，开启需要代理上的两项设置：将 `ONEUPTIME_AI_FIXES` 设为 `off` 以外的模式（参见 [AI 可以做什么，由代理设置](#ai-可以做什么由代理设置)），以及 `ONEUPTIME_AI_ALLOW_WRITES=true`（参见 [代理上的写入权限](#代理上的写入权限)）。只有其中一项不会改变任何东西。早于 `ONEUPTIME_AI_FIXES` 的代理会改为从资源的 AI 代理页面获取 **修复**。修复还需要为项目启用 AI（项目设置 → 人工智能 → AI Features 下的 **启用 AI**），除非有人关闭了它，否则它是启用的。
 
 ### 修复模式
 

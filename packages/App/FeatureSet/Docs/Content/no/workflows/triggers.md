@@ -196,7 +196,7 @@ For å teste en begivenhetstrigger uten å vente på begivenheten klikker du på
 | **Statusside Abonnent**                   | Ønske velkommen en person som abonnerer på en statusside.                                 |
 | **Vaktpolicy**                            | Synkronisere endringer i policyen med et annet vaktsystem.                                |
 
-I panelet **Add Trigger** ligger de under **OneUptime resources**: klikk på ressursen og deretter på triggeren. **Browse all resources** har dem alle, og søkefeltet finner en trigger ut fra noen få ord, som `incident created`.
+I panelet **Legg til trigger** ligger de under **OneUptime resources**: klikk på ressursen og deretter på triggeren. **Browse all resources** har dem alle, og søkefeltet finner en trigger ut fra noen få ord, som `incident created`.
 
 ## Neste trinn
 

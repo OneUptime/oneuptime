@@ -130,6 +130,13 @@ interface RecordedUpdate {
   data: Record<string, unknown>;
 }
 
+// A create the fixture was sent: Create Monitor's, or a status event's.
+interface RecordedCreate {
+  modelName: string;
+  formType: string;
+  data: Record<string, unknown>;
+}
+
 interface FixtureState {
   now: string;
   scenario: Record<string, unknown>;
@@ -139,6 +146,7 @@ interface FixtureState {
   aggregateRequests: Array<RecordedAggregate>;
   apiRequests: Array<RecordedApiRequest>;
   updates: Array<RecordedUpdate>;
+  creates: Array<RecordedCreate>;
   unhandled: Array<UnhandledRequest>;
 }
 
@@ -396,6 +404,11 @@ async function expectHeaderActionsOnTheRight(
 
 function hero(page: Page): Locator {
   return page.getByTestId("monitor-overview-hero");
+}
+
+// The hero's top right: when the data was read, Refresh and the ⋯.
+function heroActions(page: Page): Locator {
+  return hero(page).getByRole("group", { name: "Monitor actions" });
 }
 
 function headline(page: Page): Locator {
@@ -1592,9 +1605,20 @@ test.describe("other monitor families", () => {
     await expect(page.getByTestId("monitor-overview-pulse")).toHaveText(
       /No automated checks/,
     );
+    // Change status is behind the ⋯ beside Refresh, not under the text.
+    await expect(
+      hero(page).getByRole("link", { name: "Change status" }),
+    ).toHaveCount(0);
+    await expect(
+      heroActions(page).getByRole("button", { name: "More actions" }),
+    ).toBeVisible();
     expect(await factLabels(page)).toEqual(["Checks", "Owners"]);
     const guide: Locator = card(sideColumn(page), "Manual monitor");
     await expect(guide).toBeVisible();
+    // The guide sends people to the ⋯ at the top, and the timeline keeps it.
+    await expect(guide).toContainText(
+      "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.",
+    );
     await expect(
       guide.getByRole("link", { name: "Open status timeline" }),
     ).toHaveAttribute("href", `${monitorPath("manual")}/status-timeline`);
@@ -2064,6 +2088,522 @@ test.describe("refresh and polling", () => {
       "MONITOR_VIEW_PROBES",
     );
     expect(new URL(page.url()).pathname).toBe(`${monitorPath("api")}/probes`);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The hero's actions: Refresh, and a manual monitor's Change status
+ *
+ * "Please move the change status button near the refresh button, and it
+ * should be hidden behind the more button (three dots). Can you please
+ * improve the refresh button as well? Make it a lot nicer and easier for
+ * people to understand."
+ * ---------------------------------------------------------------------------
+ */
+
+const MANUAL_STATUS_ID: Record<"operational" | "degraded" | "offline", string> =
+  {
+    operational: uuid("83000000", 1),
+    degraded: uuid("83000000", 2),
+    offline: uuid("83000000", 3),
+  };
+
+// An id as a create's JSON carries it: a string, or an ObjectID's JSON.
+function idOf(value: unknown): string {
+  if (value && typeof value === "object" && "value" in value) {
+    return String((value as { value: unknown }).value);
+  }
+  return String(value);
+}
+
+async function statusEventCreates(page: Page): Promise<Array<RecordedCreate>> {
+  return (await fixture(page)).creates.filter(
+    (create: RecordedCreate): boolean => {
+      return create.modelName === "MonitorStatusTimeline";
+    },
+  );
+}
+
+function moreActionsButton(page: Page): Locator {
+  return heroActions(page).getByRole("button", { name: "More actions" });
+}
+
+async function menuItemTexts(page: Page): Promise<Array<string>> {
+  return (
+    await page.getByRole("menu").getByRole("menuitem").allInnerTexts()
+  ).map((text: string): string => {
+    return text.trim();
+  });
+}
+
+async function openManual(page: Page, query?: string): Promise<void> {
+  await openReady(page, { type: "manual", query });
+  await expectSettled(page);
+}
+
+test.describe("the hero's actions", () => {
+  test("Refresh is an icon button that says what it does, beside when the data was read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+    await expectSettled(page);
+
+    const refresh: Locator = heroActions(page).getByRole("button", {
+      name: "Refresh",
+    });
+    await expect(refresh).toBeVisible();
+    // An icon, not a word: the tooltip and its name say what it is.
+    await expect(refresh).toHaveText("");
+    await expect(
+      heroActions(page).getByTestId("monitor-overview-refreshed-at"),
+    ).toHaveText(/^Refreshed at 12:00( PM)?$/);
+
+    await refresh.hover();
+    await expect(page.locator("[data-tippy-root]")).toContainText(
+      "Refresh now. This page also refreshes every minute.",
+    );
+
+    // A monitor that checks itself has no ⋯.
+    await expect(moreActionsButton(page)).toHaveCount(0);
+
+    // Refresh reads the page again, and runs no check.
+    const readsBefore: number = (await overviewMonitorReads(page)).length;
+    await refresh.click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await overviewMonitorReads(page)).length;
+      })
+      .toBe(readsBefore + 1);
+    await expect(refresh).toHaveAttribute("aria-disabled", "false");
+    expect(await apiRequestsTo(page, "/monitor/test")).toHaveLength(0);
+    expect(await apiRequestsTo(page, "/monitor/refresh-status/")).toHaveLength(
+      1,
+    );
+    await screenshot(page, "monitor-overview-refresh-control");
+  });
+
+  test("Refresh and the ⋯ keep to the top right, on the badges' line, at every width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page);
+
+    for (const width of [1440, 1280, 1024, 768, 640, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+
+      const heroBox: Box = await documentBox(hero(page));
+      const badge: Box = await documentBox(
+        page.getByTestId("monitor-overview-badge"),
+      );
+      const refresh: Box = await documentBox(
+        heroActions(page).getByRole("button", { name: "Refresh" }),
+      );
+      const more: Box = await documentBox(moreActionsButton(page));
+      const title: Box = await documentBox(headline(page));
+
+      // At the right edge of the hero, the ⋯ last, Refresh before it.
+      expect(
+        heroBox.x + heroBox.width - (more.x + more.width),
+        `${width}px: the ⋯ at the hero's right edge`,
+      ).toBeLessThanOrEqual(26);
+      expect(
+        refresh.x + refresh.width,
+        `${width}px: Refresh before the ⋯`,
+      ).toBeLessThanOrEqual(more.x);
+      // On the badges' line, above the headline.
+      expect(
+        Math.abs(refresh.y + refresh.height / 2 - (badge.y + badge.height / 2)),
+        `${width}px: Refresh on the badges' line`,
+      ).toBeLessThanOrEqual(6);
+      expect(
+        Math.abs(more.y - refresh.y),
+        `${width}px: Refresh and the ⋯ side by side`,
+      ).toBeLessThanOrEqual(1);
+      expect(
+        refresh.y + refresh.height,
+        `${width}px: the actions above the headline`,
+      ).toBeLessThanOrEqual(title.y + 4);
+
+      /*
+       * When the data was read: beside them from xl up, left out below,
+       * where the hero's text needs the room (beside the side menu at
+       * 1024px) or the hero is a tablet's or a phone's.
+       */
+      if (width >= 1280) {
+        await expect(
+          heroActions(page).getByTestId("monitor-overview-refreshed-at"),
+        ).toBeVisible();
+      } else {
+        await expect(
+          heroActions(page).getByTestId("monitor-overview-refreshed-at"),
+        ).toBeHidden();
+      }
+
+      /*
+       * So at 1024px the actions' column holds the buttons and the pulse
+       * only, and the text keeps most of the row: with the time in that
+       * column, it had less than half, and the explanation ran to five
+       * lines beside an empty column.
+       */
+      if (width === 1024) {
+        const layout: Box = await documentBox(
+          page.getByTestId("monitor-overview-layout"),
+        );
+        const state: Box = await documentBox(
+          page.getByTestId("monitor-overview-state-cell"),
+        );
+        expect(
+          state.width / layout.width,
+          "1024px: the text's share of the hero",
+        ).toBeGreaterThanOrEqual(0.6);
+      }
+
+      await expectNoHorizontalOverflow(page);
+
+      if (width === 1280 || width === 390) {
+        await screenshot(page, `monitor-overview-hero-actions-${width}`, {
+          fullPage: false,
+        });
+      }
+    }
+  });
+
+  test("the pulse sits under the actions from lg, and after the text below it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+    await expectSettled(page);
+
+    const pulse: Locator = page.getByTestId("monitor-overview-pulse");
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const wideRefresh: Box = await documentBox(
+      heroActions(page).getByRole("button", { name: "Refresh" }),
+    );
+    const widePulse: Box = await documentBox(pulse);
+    expect(widePulse.y).toBeGreaterThanOrEqual(
+      wideRefresh.y + wideRefresh.height,
+    );
+    expect(
+      Math.abs(
+        widePulse.x + widePulse.width - (wideRefresh.x + wideRefresh.width),
+      ),
+    ).toBeLessThanOrEqual(80);
+
+    await page.setViewportSize({ width: 768, height: 900 });
+    const target: Box = await documentBox(
+      page.getByTestId("monitor-overview-target"),
+    );
+    const narrowPulse: Box = await documentBox(pulse);
+    expect(narrowPulse.y).toBeGreaterThanOrEqual(target.y + target.height);
+    expect(Math.abs(narrowPulse.x - target.x)).toBeLessThanOrEqual(2);
+  });
+
+  test("the hero's call to action starts where its text does, a button or a link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Button carries a left margin meant for a dialog's footer (md:ml-3),
+     * which set "Turn monitoring on" 12px in from the headline above it
+     * from md up, while a link such as "Check probes" lined up.
+     */
+    const scenarios: Array<{
+      query: string;
+      role: "button" | "link";
+      name: string;
+    }> = [
+      { query: "state=disabled", role: "button", name: "Turn monitoring on" },
+      // Locked, the button sits in the span its tooltip needs.
+      {
+        query: "state=disabled&role=viewer",
+        role: "button",
+        name: "Turn monitoring on",
+      },
+      { query: "state=stale", role: "link", name: "Check probes" },
+    ];
+
+    for (const scenario of scenarios) {
+      await openReady(page, { query: scenario.query });
+
+      for (const width of [1440, 1024, 768, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+
+        const action: Box = await documentBox(
+          page
+            .getByTestId("monitor-overview-call-to-action")
+            .getByRole(scenario.role, { name: scenario.name }),
+        );
+        const title: Box = await documentBox(headline(page));
+
+        expect(
+          Math.abs(action.x - title.x),
+          `${scenario.query}, ${width}px: ${scenario.name} starts where the headline does`,
+        ).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  test("manual: a status picked from the ⋯ is recorded, and the hero shows it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page);
+
+    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
+      "Operational",
+    );
+
+    await moreActionsButton(page).click();
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu).toBeVisible();
+    await expect(menu).toContainText("CHANGE STATUS TO");
+    expect(await menuItemTexts(page)).toEqual(["Degraded", "Offline"]);
+
+    // Each status in its own colour, as the status pickers draw it.
+    const dots: Array<string> = await menu
+      .getByTestId("more-menu-item-color")
+      .locator(":scope > span")
+      .evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return getComputedStyle(element).backgroundColor;
+        });
+      });
+    expect(dots).toEqual(["rgb(245, 158, 11)", OFFLINE_RGB]);
+
+    await screenshot(page, "monitor-overview-change-status-menu", {
+      fullPage: false,
+    });
+
+    await menu.getByRole("menuitem", { name: "Offline" }).click();
+
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog.getByTestId("modal-title")).toHaveText(
+      "Change status to Offline?",
+    );
+    await expect(dialog.getByTestId("confirm-modal-description")).toHaveText(
+      "The monitor shows Offline from now on, here and on every status page that lists it.",
+    );
+    await screenshot(page, "monitor-overview-change-status-dialog", {
+      fullPage: false,
+    });
+
+    await dialog.getByRole("button", { name: "Change status" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    // The dialog is gone, so a screen reader is told in words.
+    const announcement: Locator = heroActions(page)
+      .getByRole("status")
+      .and(page.getByTestId("monitor-overview-change-status-announcement"));
+    await expect(announcement).toHaveText("Status changed to Offline.");
+    // The focus is back on the ⋯ the change started from.
+    await expect(moreActionsButton(page)).toBeFocused();
+
+    const creates: Array<RecordedCreate> = await statusEventCreates(page);
+    expect(creates).toHaveLength(1);
+    expect(idOf(creates[0]!.data["monitorId"])).toBe(monitorId("manual"));
+    expect(idOf(creates[0]!.data["monitorStatusId"])).toBe(
+      MANUAL_STATUS_ID.offline,
+    );
+    // The server starts it at its own now.
+    expect(creates[0]!.data["startsAt"]).toBeUndefined();
+
+    // The page reads the monitor again and shows the new status.
+    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
+      "Offline",
+    );
+    await expect(headline(page)).toHaveText(/^Offline/);
+    await expect(page.getByTestId("monitor-overview-icon")).toHaveClass(
+      /bg-red-50/,
+    );
+
+    // The menu now offers the status the monitor left.
+    await moreActionsButton(page).click();
+    expect(await menuItemTexts(page)).toEqual(["Operational", "Degraded"]);
+    await page.keyboard.press("Escape");
+
+    await screenshot(page, "monitor-overview-change-status-done", {
+      fullPage: false,
+    });
+  });
+
+  test("manual: Escape and Cancel change nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page);
+
+    await moreActionsButton(page).click();
+    await expect(page.getByRole("menu")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(moreActionsButton(page)).toBeFocused();
+
+    await moreActionsButton(page).click();
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Degraded" })
+      .click();
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Cancel" })
+      .click();
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+
+    expect(await statusEventCreates(page)).toHaveLength(0);
+    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
+      "Operational",
+    );
+  });
+
+  test("manual: the keyboard alone opens the menu, picks a status and backs out", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page);
+
+    await moreActionsButton(page).focus();
+    await page.keyboard.press("Enter");
+
+    const items: Locator = page.getByRole("menu").getByRole("menuitem");
+    await expect(items.nth(0)).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(items.nth(1)).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Change status to Offline?",
+    );
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+    expect(await statusEventCreates(page)).toHaveLength(0);
+  });
+
+  test("manual, role=viewer: the statuses are locked, and say why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page, "role=viewer");
+
+    await moreActionsButton(page).click();
+    const offline: Locator = page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Offline" });
+    await expect(offline).toHaveAttribute("aria-disabled", "true");
+
+    await offline.hover();
+    await expect(page.locator("[data-tippy-root]")).toContainText(
+      "You do not have permission to create this Monitor Status Event.",
+    );
+
+    await offline.click({ force: true });
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+    expect(await statusEventCreates(page)).toHaveLength(0);
+  });
+
+  test("manual, fail=change-status: the dialog says why and stays open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page, "fail=change-status");
+
+    await moreActionsButton(page).click();
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Offline" })
+      .click();
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Change status" })
+      .click();
+
+    await expect(page.getByTestId("modal-error")).toContainText(
+      "The status could not be changed. The API is restarting.",
+    );
+    await expect(page.getByTestId("modal")).toBeVisible();
+    await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
+      "Operational",
+    );
+  });
+
+  test("manual, 390: the menu and the dialog fit the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openManual(page);
+
+    await moreActionsButton(page).click();
+    const menu: Box = await documentBox(page.getByRole("menu"));
+    expect(menu.x).toBeGreaterThanOrEqual(0);
+    expect(menu.x + menu.width).toBeLessThanOrEqual(390);
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "monitor-overview-change-status-menu-390", {
+      fullPage: false,
+    });
+
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Degraded" })
+      .click();
+    const dialog: Box = await documentBox(
+      page.getByTestId("modal").getByTestId("modal-footer"),
+    );
+    expect(dialog.x).toBeGreaterThanOrEqual(0);
+    expect(dialog.x + dialog.width).toBeLessThanOrEqual(390);
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "monitor-overview-change-status-dialog-390", {
+      fullPage: false,
+    });
+  });
+
+  test("manual, dark theme: the buttons, the menu and the dialog are dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManual(page, "theme=dark");
+
+    for (const button of [
+      heroActions(page).getByRole("button", { name: "Refresh" }),
+      moreActionsButton(page),
+    ]) {
+      expect(await backgroundColor(button)).not.toBe(WHITE_RGB);
+    }
+
+    await moreActionsButton(page).click();
+    expect(await backgroundColor(page.getByRole("menu"))).not.toBe(WHITE_RGB);
+    expect(
+      luminance(
+        await textColor(
+          page.getByRole("menu").getByRole("menuitem", { name: "Offline" }),
+        ),
+      ),
+    ).toBeGreaterThan(0.3);
+    await screenshot(page, "monitor-overview-change-status-dark", {
+      fullPage: false,
+    });
+
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Offline" })
+      .click();
+    expect(await backgroundColor(page.getByTestId("modal"))).not.toBe(
+      WHITE_RGB,
+    );
   });
 });
 

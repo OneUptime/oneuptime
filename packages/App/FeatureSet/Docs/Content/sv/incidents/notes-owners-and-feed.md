@@ -95,7 +95,7 @@ Samma redigerare öppnas i en dialog från **Add Public Note** i menyn **Åtgär
 > [!TIP]
 > **Publiceringstiden är anteckningens verkliga tidsstämpel.** Statussidor sorterar och visar offentliga anteckningar efter `postedAt`, inte efter när du skrev dem — så om du uppdaterar statussidan med en uppdatering som du skickade för 40 minuter sedan väljer du **Posted now** och anger när det faktiskt hände. Kommer en anteckning in via API:t (`/api/incident-public-note`) utan en tidpunkt stämplar OneUptime aktuell tid.
 
-Varje anteckning visar vem som skrev den, dess publiceringstid, den återgivna Markdown-texten med dess bilagor och, i dess rubrik, hur det står till med aviseringen till prenumeranterna. **Search notes…** hittar anteckningar utifrån vad de säger, och flödet kan läsas med de senaste eller de äldsta först.
+Varje anteckning visar vem som skrev den, dess publiceringstid, den återgivna Markdown-texten med dess bilagor och, i dess rubrik, hur det står till med aviseringen till prenumeranterna. **Search notes…** hittar anteckningar utifrån vad de säger, och flödet kan läsas med de senaste eller de äldsta först. Länkar till andra webbplatser och till bilagor öppnas i en ny flik. Rader som börjar med `>` visas som ett citat; inled det med en egen rad, `> [!NOTE]`, `> [!TIP]` eller `> [!WARNING]`, för att i stället visa det som en framhävd ruta.
 
 ## Publicera en privat anteckning
 

@@ -375,6 +375,24 @@ describe("a project on Free with no trial - the reported case", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * The switch promised "(Save 20%)" whatever the prices were. On these
+   * plans - OneUptime Cloud's - yearly saves 9% on Growth ($22 or $20) and
+   * 15% on Scale ($99 or $84), so it says "up to 15%", worked out from them
+   * as the Create New Project dialog says it.
+   */
+  it("says what yearly saves from the plans' prices, not a flat 20%", async () => {
+    await renderBilling({
+      paymentProviderPlanId: "price_free_month",
+      trialEndsAt: null,
+    });
+
+    const footer: HTMLElement = screen.getByTestId("plan-footer");
+
+    expect(footer).toHaveTextContent("Save up to 15%");
+    expect(footer.textContent || "").not.toContain("20%");
+  });
+
   it("treats the trial end a plan change stamps on a project with no trial as no trial", async () => {
     /*
      * An upgrade from Free leaves this on the project row: with no trial on

@@ -6,7 +6,7 @@ Konfigurationen af advarsler ligger under **Advarsler**, ikke i **Projektindstil
 - [De regler, en ny advarsel passerer](#de-regler-en-ny-advarsel-passerer): I rækkefølge, og hvad hver af dem gør.
 - [Vagtregler](#vagtregler): Tilkald de rigtige personer uden at vælge en politik hver gang.
 - [Påmindelsesregler](#påmindelsesregler): Påmind ejere, mens en advarsel forbliver åben.
-- [Indstillinger](#indstillinger): Noteskabeloner, brugerdefinerede felter, målinger og nummerering.
+- [Indstillinger](#indstillinger): Noteskabeloner, brugerdefinerede felter, målinger, medlemskab af episoder og nummerering.
 :::
 
 ## Hvor advarselsindstillingerne ligger
@@ -23,7 +23,7 @@ Konfigurationen af advarsler ligger under **Advarsler**, ikke i **Projektindstil
 | **Etiketregler**      | Tilføjer etiketter til matchende advarsler og episoder.                                        |
 | **Reminder Rules**    | Påminder ejere med et interval, mens en advarsel er åben.                                      |
 
-Sektionen **Indstillinger** rummer **Advarselsstatus** og **Advarselsalvor**, som er beskrevet på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger** og **Nummerering**, som er beskrevet nedenfor.
+Sektionen **Indstillinger** rummer **Advarselsstatus** og **Advarselsalvor**, som er beskrevet på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder** og **Nummerering**, som er beskrevet nedenfor.
 
 To andre sektioner handler på advarsler. **Advarsler → AI → Indstillinger** afgør, hvad OneUptime AI gør af sig selv: **Undersøg nye advarsler**, slået til for nye projekter, og **Ret nye advarsler automatisk**, slået fra, indtil du slår det til. Se [AI SRE](/docs/ai/ai-sre). **Advarsler → Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der slår advarsler og episoder op i kanaler, og dens fane **Summary**. Se [Slack](/docs/workspace-connections/slack).
 
@@ -83,7 +83,7 @@ Klik på **Opret Alert On-Call Rule**. Under **Grundlæggende oplysninger** give
 
 ### Vælg advarslerne
 
-Under **Matchkriterier** tilføjer du de betingelser, en advarsel skal opfylde. Lad dem være tomme for at matche hver ny advarsel.
+Under **Matchkriterier** matcher **Alle advarsler**, som en ny regel starter på, hver ny advarsel. For at indsnævre reglen vælger du **Kun advarsler, der opfylder betingelserne** og tilføjer de betingelser, en advarsel skal opfylde.
 
 ### Vælg politikkerne
 
@@ -119,7 +119,7 @@ Klik på **Opret Alert Reminder Rule**. Under **Rule Info** giver du den et **Na
 
 ### Vælg, hvilke advarsler der skal påmindes om
 
-Under **Matchkriterier** vælger du de **Advarsel Alvorligheder** og **Etiketter**, den gælder for. Lad dem være tomme for at påminde om hver advarsel.
+Under **Matchkriterier** lader du **Alle advarsler** være valgt for at påminde om hver advarsel, eller du vælger **Kun advarsler, der opfylder betingelserne** og derefter de **Advarsel Alvorligheder** og **Etiketter**, den gælder for.
 
 ### Indstil intervallet
 
@@ -141,6 +141,10 @@ Ejere får hver påmindelse som **Alert reminder**, som er slået til via e-mail
 ### Målinger
 
 **Advarsler → Indstillinger → Målinger** tager tid på, hvor længe ting tager for hver advarsel. Vælg **Tid til bekræftelse** eller **Tid til løsning** eller to tidspunkter efter eget valg, for eksempel når **Advarslen bliver oprettet**, og når den går ind i en tilstand, du vælger. Hver måling vises på advarslens side og i diagrammer som `oneuptime.alert.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måde for advarsler.
+
+### Medlemskab af episoder
+
+**Advarsler → Indstillinger → Medlemskab af episoder** afgør, om en advarsel kan være i mere end én episode. Slå **En advarsel kan kun være i én episode** til, så bliver en advarsel, der er i en episode, ikke føjet til nogen anden, hverken fra dashboardet eller via API'et, en arbejdsgang eller en grupperingsregel, før den er taget ud af den episode. Kontakten er slået fra, indtil du slår den til, og kun Project Owners og Project Admins kan ændre den. At slå den til tager ingen advarsel ud af en episode. Se [Én episode pr. hændelse](/docs/incidents/episodes#én-episode-pr-hændelse), som fungerer på samme måde for advarsler.
 
 ### Nummerering
 

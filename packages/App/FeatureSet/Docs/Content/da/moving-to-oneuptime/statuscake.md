@@ -27,7 +27,7 @@ flowchart TB
 
 - **Et OneUptime-projekt og retten til at oprette det, du overfører.** Projektejere og projektadministratorer kan overføre alt. Andre roller kan også køre en import og overføre de typer poster, de må oprette. Resten vises som ikke overført, med årsagen.
 - **En StatusCake-API-nøgle.** Importen skriver aldrig til StatusCake.
-- **En betalingsmetode, i OneUptime Cloud.** Monitorer, der udfører kontroller, faktureres efter forbrug, også på Free-abonnementet, så tilføj en under **Projektindstillinger** > **Fakturering**, før du importerer. Uden en vises de monitorer som ikke overført.
+- **En betalingsmetode, i OneUptime Cloud.** Monitorer, der udfører kontroller, faktureres efter forbrug, også på Free-abonnementet, så tilføj en under **Projektindstillinger** > **Fakturering og fakturaer** > **Fakturering**, før du importerer. Uden en vises de monitorer som ikke overført.
 
 ## Importér din StatusCake-konto
 

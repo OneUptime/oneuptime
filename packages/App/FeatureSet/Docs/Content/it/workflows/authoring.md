@@ -25,8 +25,10 @@ Le modifiche vengono salvate automaticamente. Una pillola nella barra degli stru
 
 | Per aggiungere         | Fai clic su                                                    | Pannello che si apre          |
 | ---------------------- | -------------------------------------------------------------- | ----------------------------- |
-| Il trigger             | Il blocco segnaposto tratteggiato                              | **Add Trigger**               |
+| Il trigger             | Il blocco segnaposto tratteggiato, oppure **Aggiungi trigger** nella barra degli strumenti | **Aggiungi trigger**          |
 | Qualsiasi altro blocco | **Aggiungi componente**, nella barra degli strumenti sopra la tela | **Aggiungi componente**   |
+
+Il pulsante della barra degli strumenti mostra **Aggiungi trigger** finché il workflow non ha un trigger, e **Aggiungi componente** appena ne ha uno.
 
 Entrambi i pannelli si aprono sui blocchi che usano la maggior parte dei workflow, sotto **Popular**, seguiti dagli altri blocchi integrati. Sotto **OneUptime resources**, fai clic su una risorsa come **Incidente** per vedere cosa puoi farci; **Browse all resources** le elenca tutte. Oppure cerca: scrivi qualche parola, come `create incident`, e la corrispondenza più vicina compare per prima. Premi `/` per passare alla casella di ricerca, i tasti freccia per scorrere i risultati e **Enter** per aggiungere il blocco evidenziato. Facendo clic su un blocco lo aggiungi.
 
@@ -127,7 +129,7 @@ C'è una cosa che non può controllare: se il nome di una variabile esiste. Le i
 Il modo più rapido per prendere confidenza con la tela è un workflow di due blocchi che avvii a mano:
 
 :::steps
-1. Fai clic sul blocco segnaposto tratteggiato, poi su **Manual** nel pannello **Add Trigger**.
+1. Fai clic sul blocco segnaposto tratteggiato, poi su **Manual** nel pannello **Aggiungi trigger**.
 2. Fai clic su **Aggiungi componente**, poi su **Registro** sotto **Popular**. Il nuovo blocco compare sotto il trigger. Collega il punto **Execute** del trigger al punto di ingresso del blocco Log, più in basso.
 3. Fai clic sul blocco Log, che mostra **Click to set up**, e scrivi `Hello from ` nel suo **Value**. Fai clic su **{ }**, poi su **JSON** sotto **Manual**. L'impostazione mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` è l'**Identifier** del trigger, mostrato sul blocco del trigger. Fai clic su **Salva**.
 4. Di nuovo nel **Costruttore**, fai clic su **Esegui flusso di lavoro**, metti `{ "name": "Ada" }` nel campo **JSON**, fai clic su **Esegui manualmente il flusso di lavoro** e conferma con **Esegui**. Il workflow è ancora disattivato, e non serve che sia attivo: un'esecuzione che avvii tu stesso è un'**Esecuzione di prova**.

@@ -125,9 +125,10 @@ Restart your OneUptime server after adding these environment variables so they t
 
 ##### Step 8: Upload Teams App Manifest
 
+> [!WARNING]
 > **Do not install "OneUptime" from the Microsoft Teams store for a self-hosted deployment.** That package's bot belongs to OneUptime Cloud. Teams will install it happily and show it under **Manage team → Apps**, and every notification this deployment sends will then be refused with *"The bot is not part of the conversation roster."* Only the manifest you download below carries your \`MICROSOFT_TEAMS_APP_CLIENT_ID\` as its bot id.
 
-1. Go to project Settings -> Workspace -> Microsoft Teams
+1. Go to Project Settings -> Workspace -> Microsoft Teams
 2. Download the Teams app manifest from there
 3. Go to Microsoft Teams, click on "Apps" in the sidebar
 4. At the bottom, click "Manage your apps"

@@ -95,7 +95,7 @@ Le même éditeur s'ouvre dans une boîte de dialogue depuis **Ajouter une note 
 > [!TIP]
 > **L'heure de publication est le véritable horodatage de la note.** Les pages de statut trient et affichent les notes publiques par `postedAt`, pas selon le moment où vous les avez tapées — si vous rattrapez sur la page de statut une mise à jour envoyée il y a 40 minutes, choisissez **Posted now** et indiquez quand elle a réellement eu lieu. Si une note arrive par l'API (`/api/incident-public-note`) sans heure, OneUptime y met l'heure actuelle.
 
-Chaque note montre qui l'a écrite, son heure de publication, le Markdown rendu avec ses pièces jointes et, dans son en-tête, où en est sa notification aux abonnés. **Search notes…** trouve les notes d'après ce qu'elles disent, et le fil peut se lire du plus récent au plus ancien ou l'inverse.
+Chaque note montre qui l'a écrite, son heure de publication, le Markdown rendu avec ses pièces jointes et, dans son en-tête, où en est sa notification aux abonnés. **Search notes…** trouve les notes d'après ce qu'elles disent, et le fil peut se lire du plus récent au plus ancien ou l'inverse. Les liens vers d'autres sites et vers les pièces jointes s'ouvrent dans un nouvel onglet. Les lignes qui commencent par `>` s'affichent comme une citation ; commencez-la par une ligne à part, `> [!NOTE]`, `> [!TIP]` ou `> [!WARNING]`, pour l'afficher plutôt comme un encadré.
 
 ## Publier une note privée
 

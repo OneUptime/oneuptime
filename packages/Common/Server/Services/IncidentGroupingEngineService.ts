@@ -43,6 +43,7 @@ import {
   replaceAllLiterally,
 } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { RecordInAnotherEpisodeException } from "../Utils/Episode/EpisodeSingleMembershipCheck";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -565,6 +566,29 @@ class IncidentGroupingEngineServiceClass {
         `Acquired mutex for grouping key: ${mutexKey} for incident ${incident.id}`,
         { projectId: incident.projectId?.toString() } as LogAttributes,
       );
+
+      /*
+       * Put in an episode since it was created - by a workflow, or by
+       * someone - in a project that allows an incident in only one
+       * (EpisodeSingleMembership): no rule may put it in another. Read
+       * before an episode is found, reopened or opened, so none is reopened
+       * or opened - and nobody paged - for an incident that could not join
+       * it.
+       */
+      const holdingEpisodeId: ObjectID | null =
+        await IncidentEpisodeMemberService.findHoldingEpisodeId({
+          projectId: incident.projectId!,
+          incidentId: incident.id!,
+        });
+
+      if (holdingEpisodeId) {
+        logger.debug(
+          `Incident ${incident.id} is in episode ${holdingEpisodeId} already, and its project allows an incident in only one episode: not grouped`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
+        );
+
+        return { grouped: true, episodeId: holdingEpisodeId };
+      }
 
       // Calculate time window cutoff (only if time window is enabled)
       let timeWindowCutoff: Date | null = null;
@@ -1479,6 +1503,19 @@ class IncidentGroupingEngineServiceClass {
         );
         return;
       }
+
+      /*
+       * Put in another episode a moment ago, in a project that allows an
+       * incident in only one (EpisodeSingleMembership): it stays there.
+       */
+      if (error instanceof RecordInAnotherEpisodeException) {
+        logger.debug(
+          `Incident ${incident.id} is in another episode, and its project allows an incident in only one episode: not added to episode ${episodeId}`,
+          { projectId: incident.projectId?.toString() } as LogAttributes,
+        );
+        return;
+      }
+
       throw error;
     }
   }

@@ -122,7 +122,7 @@ Det nye workflow åbner i **Bygger**, slået fra.
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Choose what starts this workflow**, og klik så på **On Create Incident** under **Popular** i panelet **Add Trigger**.
+Klik på den stiplede blok **Choose what starts this workflow**, og klik så på **On Create Incident** under **Popular** i panelet **Tilføj trigger**.
 
 Triggeren tager den stiplede bloks plads. ID'et på den, `incident-on-create-1`, er det, senere blokke henviser til den med.
 

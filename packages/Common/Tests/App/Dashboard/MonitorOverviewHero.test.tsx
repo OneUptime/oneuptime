@@ -23,6 +23,9 @@ import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
+import Color from "../../../Types/Color";
 import {
   MODEL_SWITCH_SAVED_EVENT,
   ModelSwitchSaved,
@@ -264,6 +267,23 @@ const BADGE_TONE_CLASS: Record<string, string> = {
 };
 
 let columnGate: PermissionGateResult = { isAllowed: true };
+let statusEventGate: PermissionGateResult = { isAllowed: true };
+
+const OPERATIONAL_STATUS_ROW: MonitorStatus = (() => {
+  const status: MonitorStatus = new MonitorStatus();
+  status._id = OPERATIONAL.id;
+  status.name = OPERATIONAL.name;
+  status.color = new Color(OPERATIONAL.color!);
+  return status;
+})();
+
+const OFFLINE_STATUS_ROW: MonitorStatus = (() => {
+  const status: MonitorStatus = new MonitorStatus();
+  status._id = OFFLINE.id;
+  status.name = OFFLINE.name;
+  status.color = new Color(OFFLINE.color!);
+  return status;
+})();
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -274,6 +294,26 @@ beforeEach(() => {
   getJestSpyOn(PermissionGate, "checkColumnUpdate").mockImplementation(
     (): PermissionGateResult => {
       return columnGate;
+    },
+  );
+
+  // Whether the reader may change a manual monitor's status (a new event).
+  statusEventGate = { isAllowed: true };
+  getJestSpyOn(PermissionGate, "check").mockImplementation(
+    (): PermissionGateResult => {
+      return statusEventGate;
+    },
+  );
+
+  // The project's statuses, which a manual monitor's ⋯ menu offers.
+  getJestSpyOn(ModelAPI, "getList").mockImplementation(
+    async (): Promise<unknown> => {
+      return {
+        data: [OPERATIONAL_STATUS_ROW, OFFLINE_STATUS_ROW],
+        count: 2,
+        skip: 0,
+        limit: 10,
+      };
     },
   );
 });
@@ -298,6 +338,11 @@ interface RunStateCase {
   cta?: { text: string; page: PageMap } | undefined;
   // A call to action done in place: the button's name.
   ctaButton?: string | undefined;
+  /*
+   * The More actions (⋯) menu beside Refresh, with Change status in it:
+   * a manual monitor's, and no other's.
+   */
+  hasChangeStatusMenu?: boolean | undefined;
 }
 
 const RUN_STATE_CASES: Array<RunStateCase> = [
@@ -311,7 +356,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: ["Manual"],
     headline: "Operational for 3 days, 4 hours",
     hasExplanation: true,
-    cta: { text: "Change status", page: PageMap.MONITOR_VIEW_STATUS_TIMELINE },
+    hasChangeStatusMenu: true,
   },
   {
     name: "1b manual with no status",
@@ -323,7 +368,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: ["Manual"],
     headline: "No status recorded yet",
     hasExplanation: true,
-    cta: { text: "Change status", page: PageMap.MONITOR_VIEW_STATUS_TIMELINE },
+    hasChangeStatusMenu: true,
   },
   {
     name: "2a disabled with no probe enabled",
@@ -661,6 +706,24 @@ describe("MonitorOverviewHero run states", () => {
         expect(screen.queryByRole("link", { name: text })).toBeNull();
       }
     }
+
+    // Change status is never under the text, as a link or a button.
+    expect(screen.queryByRole("link", { name: "Change status" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change status" })).toBeNull();
+
+    // Refresh is at the top right of every hero; the ⋯ only on a manual one.
+    const actions: HTMLElement = screen.getByRole("group", {
+      name: "Monitor actions",
+    });
+    expect(
+      within(actions).getByRole("button", { name: "Refresh" }),
+    ).toBeInTheDocument();
+    expect(
+      within(actions).queryAllByRole("button", { name: "More actions" }),
+    ).toHaveLength(testCase.hasChangeStatusMenu ? 1 : 0);
+    expect(presentation.moreActions).toEqual(
+      testCase.hasChangeStatusMenu ? ["changeStatus"] : [],
+    );
 
     // The tile carries the hero's tone, whatever the badge says.
     const tileClass: Record<string, string> = {
@@ -1111,16 +1174,38 @@ describe("MonitorOverviewHero layout", () => {
     ).toHaveLength(0);
   });
 
-  test("Refresh calls back, and is disabled while refreshing", () => {
+  test("Refresh calls back, and takes no second press while a read is out", () => {
     const onRefresh: MockFunction = getJestMockFunction();
 
     renderHero({ onRefresh: onRefresh });
-    fireEvent.click(screen.getByTestId("monitor-overview-refresh"));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
     cleanup();
 
     renderHero({ onRefresh: onRefresh, isRefreshing: true });
-    expect(screen.getByTestId("monitor-overview-refresh")).toBeDisabled();
+
+    const refresh: HTMLElement = screen.getByTestId("monitor-overview-refresh");
+    expect(refresh).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(refresh);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("beside Refresh, the hero says when the data on screen was read", () => {
+    const prefers12Hour: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+
+    try {
+      renderHero({ lastLoadedAt: secondsAgo(30) });
+
+      expect(
+        within(
+          screen.getByRole("group", { name: "Monitor actions" }),
+        ).getByTestId("monitor-overview-refreshed-at"),
+      ).toHaveTextContent("Refreshed at 11:59");
+    } finally {
+      prefers12Hour.mockRestore();
+    }
   });
 
   test("a failed refresh is announced, and says what is on screen", () => {
@@ -1359,6 +1444,52 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
 
+  test("it starts where the text above it does: Button's dialog margin is cleared", () => {
+    /*
+     * Button carries md:ml-3 for a dialog's footer, which set this one 12px
+     * in from the headline from md up. The wrapper clears it on the button,
+     * or on the span a locked button's tooltip wraps it in.
+     */
+    const MARGIN_CLEARING: Array<string> = [
+      "[&>button]:ml-0",
+      "[&>button]:md:ml-0",
+      "[&>*>button]:ml-0",
+      "[&>*>button]:md:ml-0",
+    ];
+
+    renderDisabled();
+
+    const wrapper: HTMLElement = screen.getByTestId(
+      "monitor-overview-call-to-action",
+    );
+    const button: HTMLElement = screen.getByTestId(
+      TURN_MONITORING_ON_BUTTON_TEST_ID,
+    );
+
+    expect(wrapper).toHaveClass("mt-4", ...MARGIN_CLEARING);
+    expect(button.parentElement).toBe(wrapper);
+    cleanup();
+
+    columnGate = {
+      isAllowed: false,
+      disabledReason:
+        "You do not have permission to update this Monitor. You need one of these permissions: Project Owner.",
+    };
+
+    renderDisabled();
+
+    const lockedWrapper: HTMLElement = screen.getByTestId(
+      "monitor-overview-call-to-action",
+    );
+    const lockedButton: HTMLElement = screen.getByTestId(
+      TURN_MONITORING_ON_BUTTON_TEST_ID,
+    );
+
+    expect(lockedWrapper).toHaveClass(...MARGIN_CLEARING);
+    // One element between them: the span the [&>*>button] rule reaches.
+    expect(lockedButton.parentElement?.parentElement).toBe(lockedWrapper);
+  });
+
   test("while the permissions are still loading it offers nothing, rather than a lock it cannot explain", () => {
     columnGate = { isAllowed: false };
 
@@ -1385,6 +1516,10 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
       routeFor(PageMap.MONITOR_VIEW_SETTINGS),
     );
     expect(screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID)).toBeNull();
+    // A link call to action sits in the same wrapper as the button does.
+    expect(
+      screen.getByTestId("monitor-overview-call-to-action"),
+    ).toContainElement(screen.getByRole("link", { name: "Open settings" }));
     cleanup();
 
     renderHero({
@@ -1406,5 +1541,347 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
 
     expect(screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID)).toBeNull();
     expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Where the hero's actions sit. They used to be a "Refresh" button with the
+ * pulse under it in a right-hand column that dropped under the text below
+ * lg - on a phone, Refresh ended up at the left, after the explanation. Now
+ * Refresh (and a manual monitor's ⋯) keep to the top right at every width,
+ * on the badges' line, and the pulse sits under them from lg and after the
+ * text below it.
+ */
+describe("MonitorOverviewHero actions placement", () => {
+  // A stack that turns into a row from a screen up: `lg:flex-row`.
+  const RESPONSIVE_ROW: RegExp = /^(sm|md|lg|xl|2xl):flex-row$/;
+  const BREAKPOINT_VARIANT: RegExp = /^(sm|md|lg|xl|2xl):/;
+  const WHITESPACE: RegExp = /\s+/;
+
+  const classesOf: (element: Element | null) => Array<string> = (
+    element: Element | null,
+  ): Array<string> => {
+    return (element?.getAttribute("class") || "").split(WHITESPACE);
+  };
+
+  test("the layout is a grid of the state and a column sized to the actions", () => {
+    renderHero({});
+
+    expect(screen.getByTestId("monitor-overview-layout")).toHaveClass(
+      "grid",
+      "min-w-0",
+      "flex-1",
+      "grid-cols-[minmax(0,1fr)_auto]",
+    );
+  });
+
+  test("the actions sit on the badges' line, at the right, at every width", () => {
+    renderHero({});
+
+    const badges: HTMLElement = screen.getByTestId(
+      "monitor-overview-badges-cell",
+    );
+    const actionsCell: HTMLElement = screen.getByTestId(
+      "monitor-overview-actions-cell",
+    );
+
+    expect(badges).toHaveClass("col-start-1", "row-start-1", "self-center");
+    expect(badges).toContainElement(
+      screen.getByTestId("monitor-overview-badge"),
+    );
+    expect(actionsCell).toHaveClass("col-start-2", "row-start-1", "self-start");
+    expect(actionsCell).toContainElement(
+      screen.getByRole("group", { name: "Monitor actions" }),
+    );
+
+    // No breakpoint moves them: not a class of the cell names one.
+    for (const token of classesOf(actionsCell)) {
+      expect(token).not.toMatch(BREAKPOINT_VARIANT);
+    }
+  });
+
+  test("the state takes both columns until lg, and the first one from lg", () => {
+    renderHero({});
+
+    const state: HTMLElement = screen.getByTestId(
+      "monitor-overview-state-cell",
+    );
+
+    expect(state).toHaveClass(
+      "col-span-2",
+      "col-start-1",
+      "row-start-2",
+      "lg:col-span-1",
+    );
+    expect(state).toContainElement(
+      screen.getByTestId("monitor-overview-headline"),
+    );
+    expect(state).toContainElement(
+      screen.getByTestId("monitor-overview-target"),
+    );
+  });
+
+  test("the pulse follows the text until lg, then sits under the actions, right-aligned", () => {
+    renderHero({});
+
+    const pulseCell: HTMLElement = screen.getByTestId(
+      "monitor-overview-pulse-cell",
+    );
+
+    expect(pulseCell).toHaveClass(
+      "col-span-2",
+      "col-start-1",
+      "row-start-3",
+      "lg:col-span-1",
+      "lg:col-start-2",
+      "lg:row-start-2",
+    );
+    expect(pulseCell).toContainElement(
+      screen.getByTestId("monitor-overview-pulse"),
+    );
+    expect(screen.getByTestId("monitor-overview-pulse")).toHaveClass(
+      "text-left",
+      "lg:text-right",
+    );
+  });
+
+  test("the markup keeps the reading order: the state, its call to action, then the actions and the pulse", () => {
+    renderHero({
+      presentation: presentationFor(MonitorType.API, {
+        pause: {
+          isDisabled: true,
+          byManualIncident: false,
+          byScheduledMaintenance: false,
+        },
+      }),
+    });
+
+    const order: Array<string> = Array.from(
+      screen
+        .getByTestId("monitor-overview-hero")
+        .querySelectorAll("[data-testid]"),
+    )
+      .map((element: Element): string => {
+        return element.getAttribute("data-testid") || "";
+      })
+      .filter((testId: string): boolean => {
+        return [
+          "monitor-overview-badge",
+          "monitor-overview-headline",
+          TURN_MONITORING_ON_BUTTON_TEST_ID,
+          "monitor-overview-refresh",
+          "monitor-overview-pulse",
+        ].includes(testId);
+      });
+
+    expect(order).toEqual([
+      "monitor-overview-badge",
+      "monitor-overview-headline",
+      TURN_MONITORING_ON_BUTTON_TEST_ID,
+      "monitor-overview-refresh",
+      "monitor-overview-pulse",
+    ]);
+  });
+
+  test("nothing stacks the actions under the text any more", () => {
+    renderHero({});
+
+    let element: HTMLElement | null = screen.getByRole("group", {
+      name: "Monitor actions",
+    });
+
+    while (element && element !== document.body) {
+      const tokens: Array<string> = classesOf(element);
+      const isStackingRow: boolean =
+        tokens.includes("flex-col") &&
+        tokens.some((token: string): boolean => {
+          return RESPONSIVE_ROW.test(token);
+        });
+
+      expect({ isStackingRow }).toEqual({ isStackingRow: false });
+      element = element.parentElement;
+    }
+  });
+});
+
+/*
+ * A manual monitor's status is changed from the ⋯ beside Refresh. "Please
+ * move the change status button near the refresh button, and it should be
+ * hidden behind the more button (three dots)." It used to be a "Change
+ * status" link under the hero's text, to the Status Timeline page.
+ * MonitorChangeStatusMenu.test.tsx covers the menu itself.
+ */
+describe("MonitorOverviewHero changes a manual monitor's status", () => {
+  const renderManual: (overrides?: Partial<ComponentProps>) => RenderResult = (
+    overrides?: Partial<ComponentProps>,
+  ): RenderResult => {
+    return renderHero({
+      monitorType: MonitorType.Manual,
+      presentation: presentationFor(MonitorType.Manual),
+      currentStatusId: OPERATIONAL.id,
+      ...overrides,
+    });
+  };
+
+  const flush: () => Promise<void> = async (): Promise<void> => {
+    await act(async () => {
+      for (let i: number = 0; i < 5; i++) {
+        await Promise.resolve();
+      }
+    });
+  };
+
+  test("the ⋯ beside Refresh offers every status but the current one", async () => {
+    renderManual();
+    await flush();
+
+    const actions: HTMLElement = screen.getByRole("group", {
+      name: "Monitor actions",
+    });
+
+    fireEvent.click(
+      within(actions).getByRole("button", { name: "More actions" }),
+    );
+
+    const menu: HTMLElement = screen.getByRole("menu");
+
+    expect(menu).toHaveTextContent("CHANGE STATUS TO");
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return (item.textContent || "").trim();
+        }),
+    ).toEqual(["Offline"]);
+  });
+
+  test("a status picked there is recorded for this monitor, and the page is told", async () => {
+    const createMock: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      ModelAPI,
+      "create",
+    ).mockImplementation(async (): Promise<unknown> => {
+      return {};
+    });
+    const onStatusChanged: MockFunction = getJestMockFunction();
+
+    renderManual({ onStatusChanged });
+    await flush();
+
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Offline",
+      }),
+    );
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Change status to Offline?",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+    await flush();
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+
+    const call: { model: MonitorStatusTimeline; modelType: unknown } =
+      createMock.mock.calls[0]![0] as {
+        model: MonitorStatusTimeline;
+        modelType: unknown;
+      };
+
+    expect(call.modelType).toBe(MonitorStatusTimeline);
+    expect(call.model.monitorId?.toString()).toBe(MONITOR_ID.toString());
+    expect(call.model.monitorStatusId?.toString()).toBe(OFFLINE.id);
+    expect(onStatusChanged).toHaveBeenCalledTimes(1);
+  });
+
+  test("a monitor with no status recorded yet is offered every status", async () => {
+    renderManual({
+      presentation: presentationFor(MonitorType.Manual, {
+        currentStatus: undefined,
+        statusSince: undefined,
+      }),
+      currentStatusId: undefined,
+    });
+    await flush();
+
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+
+    expect(
+      within(screen.getByRole("menu"))
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return (item.textContent || "").trim();
+        }),
+    ).toEqual(["Operational", "Offline"]);
+  });
+
+  test("someone who may not change it finds the statuses locked, saying why", async () => {
+    statusEventGate = {
+      isAllowed: false,
+      disabledReason:
+        "You do not have permission to create this Monitor Status Event.",
+    };
+
+    renderManual();
+    await flush();
+
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+
+    const item: HTMLElement = within(screen.getByRole("menu")).getByRole(
+      "menuitem",
+      { name: "Offline" },
+    );
+
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(item);
+    expect(screen.queryByTestId("modal")).toBeNull();
+  });
+
+  test("an open dialog belongs to its monitor: moving to another monitor closes it", async () => {
+    const view: RenderResult = renderManual();
+    await flush();
+
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Offline",
+      }),
+    );
+    expect(screen.getByTestId("modal")).toBeInTheDocument();
+
+    view.rerender(
+      <MemoryRouter>
+        <MonitorOverviewHero
+          monitorId={new ObjectID("12121212-1212-4212-8212-121212121212")}
+          monitorType={MonitorType.Manual}
+          presentation={presentationFor(MonitorType.Manual)}
+          owners={LOADED_NO_OWNERS}
+          isRefreshing={false}
+          refreshError=""
+          lastLoadedAt={secondsAgo(30)}
+          onRefresh={() => {}}
+          currentStatusId={OPERATIONAL.id}
+        />
+      </MemoryRouter>,
+    );
+    await flush();
+
+    expect(screen.queryByTestId("modal")).toBeNull();
+  });
+
+  test("the status is changed from the menu only: the hero's text has no Change status", async () => {
+    renderManual();
+    await flush();
+
+    const state: HTMLElement = screen.getByTestId(
+      "monitor-overview-state-cell",
+    );
+
+    expect(within(state).queryByText("Change status")).toBeNull();
+    expect(within(state).queryByRole("link")).toBeNull();
+    expect(within(state).queryByRole("button")).toBeNull();
   });
 });

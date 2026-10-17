@@ -72,7 +72,7 @@ Eine Regel wird in vier Schritten angelegt:
 | Schritt | Was Sie festlegen |
 | --- | --- |
 | **Grundlegend** | **Regelname** und **Regelbeschreibung**. |
-| **Bedingungen** | Für welche Ereignisse die Regel gilt, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Sie werden geprüft, wenn ein Ereignis erstellt wird, und erneut bei jedem Update, das OneUptime dazu postet, sodass eine Regel für bestätigte Vorfälle greift, sobald ein Vorfall bestätigt wird. Ohne Bedingungen gilt die Regel für jedes Ereignis. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
+| **Bedingungen** | Für welche Ereignisse die Regel gilt, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Sie werden geprüft, wenn ein Ereignis erstellt wird, und erneut bei jedem Update, das OneUptime dazu postet, sodass eine Regel für bestätigte Vorfälle greift, sobald ein Vorfall bestätigt wird. Eine neue Regel gilt für jedes Ereignis, etwa **Alle Vorfälle**. Um sie einzugrenzen, wählen Sie **Nur Vorfälle, die den Bedingungen entsprechen** und fügen die Bedingungen hinzu. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
 | **Ziel** | Wohin sie postet: **In vorhandenen Kanälen posten** mit den Kanalnamen, **Einen Kanal für jeden Vorfall erstellen** (oder jede Warnung, Episode, jedes Ereignis, jeden Monitor oder jede Bereitschaftsrichtlinie) mit den Personen, die ihm beitreten, oder beides. Unter dem Schritt sagt **Was diese Regel tut** in Sätzen, was sie tut, wie die Karte der Regel. |
 | **Videoanruf** | Nur Vorfälle und Warnungen: für jeden einen Anruf starten. Siehe [Videoanrufe](/docs/workspace-connections/video-calls). |
 

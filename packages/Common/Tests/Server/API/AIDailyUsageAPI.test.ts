@@ -67,7 +67,7 @@ function setBillingEnabled(value: boolean): void {
 
 /*
  * POST /ai/daily-usage: what a project's AI used today, against its own
- * daily AI limits - the line under Project Settings → AI Features → More
+ * daily AI limits - the line under Project Settings → AI → AI Features → More
  * settings.
  *
  * The figures are sums of the project's AI Logs, so the caller must be

@@ -72,7 +72,7 @@ At oprette en regel går gennem fire trin:
 | Trin | Hvad du angiver |
 | --- | --- |
 | **Grundlæggende** | **Regelnavn** og **Regelbeskrivelse**. |
-| **Betingelser** | Hvilke begivenheder reglen gælder for, for eksempel efter alvorlighed, tilstand, etiket, monitor eller ord i titlen. De kontrolleres, når en begivenhed oprettes, og igen ved hver opdatering, OneUptime slår op om den, så en regel for bekræftede hændelser virker, når en hændelse bekræftes. Uden betingelser gælder reglen for hver begivenhed. Med to eller flere siger **Matchbetingelse**, om alle skal passe, eller om én er nok. |
+| **Betingelser** | Hvilke begivenheder reglen gælder for, for eksempel efter alvorlighed, tilstand, etiket, monitor eller ord i titlen. De kontrolleres, når en begivenhed oprettes, og igen ved hver opdatering, OneUptime slår op om den, så en regel for bekræftede hændelser virker, når en hændelse bekræftes. En ny regel gælder for hver begivenhed, for eksempel **Alle hændelser**. For at indsnævre den vælger du **Kun hændelser, der opfylder betingelserne** og tilføjer betingelserne. Med to eller flere siger **Matchbetingelse**, om alle skal passe, eller om én er nok. |
 | **Destination** | Hvor den slår op: **Skriv i eksisterende kanaler** med kanalnavnene, **Opret en kanal for hver hændelse** (eller advarsel, episode, begivenhed, monitor eller vagtpolitik) med hvem der kommer med i den, eller begge dele. Under trinnet siger **Hvad reglen gør** det i sætninger, ligesom reglens kort. |
 | **Video Call** | Kun hændelser og advarsler: start et opkald for hver. Se [Videoopkald](/docs/workspace-connections/video-calls). |
 

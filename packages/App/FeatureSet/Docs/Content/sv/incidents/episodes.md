@@ -9,7 +9,7 @@ Allt på den här sidan fungerar likadant för varningsepisoder: läs ”varning
 Öppna episoden, välj **Medlemsincidenter** i sidomenyn (`/dashboard/{projectId}/incidents/episodes/{episodeId}/incidents`) och klicka på **Lägg till incidenter**. Dialogen listar de 50 senaste incidenterna som du kan se och som ännu inte finns i episoden, var och en med nummer, titel, status och allvarlighetsgrad. Sök på titel eller nummer för att hitta en äldre: `INC-42`, `42` och `#42` hittar alla incident 42.
 
 - Markera så många du behöver, upp till 100 åt gången. Knappen räknar dem: **Lägg till 3 Incidenter**.
-- En incident som redan finns i en annan episod säger det under sin titel, med den episodens nummer. Lägger du till den här finns den kvar där också: en incident kan finnas i mer än en episod.
+- En incident som redan finns i en annan episod säger det under sin titel, med den episodens nummer. Lägger du till den här finns den kvar där också: en incident kan finnas i mer än en episod. I ett projekt där en incident bara kan ingå i en episod går den inte att välja: se [En episod per incident](#en-episod-per-incident).
 - Om några inte kan läggas till förblir dialogen öppen och listar dem med orsaken; resten läggs till.
 
 ## Lägga till incidenter från incidentlistorna
@@ -34,6 +34,20 @@ Båda tar upp till 100 markerade incidenter. Resultatet säger hur många som la
 ## Ta ut en incident
 
 Under **Medlemsincidenter** tar **Ta bort** på en rad, eller på de markerade raderna från **Massåtgärder**, ut incidenten ur just den här episoden. Själva incidenten tas inte bort, och den finns kvar i alla andra episoder den finns i.
+
+## En episod per incident
+
+En incident kan finnas i flera episoder samtidigt. För att hålla varje incident i högst en episod slår du på **En incident kan bara ingå i en episod** under **Incidenter → Inställningar → Medlemskap i episoder**. För larm heter reglaget **Ett larm kan bara ingå i en episod**, under **Varningar → Inställningar → Medlemskap i episoder**. Båda är avslagna tills du slår på dem, och bara Project Owners och Project Admins kan ändra dem.
+
+Så länge det är påslaget läggs en incident som finns i en episod inte till i någon annan:
+
+- **Lägg till incidenter** listar bara de incidenter som inte finns i någon episod. En sökning hittar även de andra, men en incident som finns i en annan episod går inte att kryssa i, och säger det.
+- **Lägg till i befintlig episod** säger hur många av de valda incidenterna som finns i en annan episod, och lägger bara till resten. Finns alla redan i en episod säger dialogen att det inte finns något att lägga till.
+- **Lägg till i ny episod** utelämnar de valda incidenter som redan finns i en episod, och säger hur många. Gäller det alla säger den att det inte finns något att lägga till.
+- **Grupperingsregler** låter en incident som redan finns i en episod stanna där den är.
+- **API:t, arbetsflöden och Terraform** följer samma regel: att lägga till en incident som finns i en annan episod avvisas, med skälet.
+
+Att slå på det tar inte ut någon incident ur en episod: en incident som redan finns i flera stannar i dem. För att flytta en incident tar du ut den med **Ta bort** på sidan **Medlemsincidenter** i dess episod och lägger sedan till den i den andra episoden.
 
 ## Vem kan lägga till
 
@@ -67,5 +81,7 @@ Svaret nämner varje skickad incident exakt en gång: tillagd, redan i episoden,
   ]
 }
 ```
+
+I ett projekt där en incident bara kan ingå i en episod kommer en incident som finns i en annan episod tillbaka under `notAdded` med `Already in another episode. An incident can be in only one episode in this project.` som skäl.
 
 För varningar skickar du `alertEpisodeId` och `alertIds` till `/api/alert-episode-member/add-alerts`. För att skapa en episod med incidenter i skickar du deras id:n med förfrågan som skapar episoden, `POST /api/incident-episode`, som `{ "data": { "title": "Checkout outage" }, "miscDataProps": { "incidentIdsToAdd": ["<incident id>"] } }`; för en varningsepisod `POST /api/alert-episode` med `alertIdsToAdd`. Om någon av dem inte kan läggas till skapas ingen episod.

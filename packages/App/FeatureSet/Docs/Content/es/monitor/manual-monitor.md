@@ -56,6 +56,14 @@ Introduzca un **Nombre** — y una **Descripción** en **Más campos**, si quier
 ### En el panel
 
 :::steps
+1. Abra el monitor. Arriba a la derecha de su vista general, junto a **Actualizar**, haga clic en **Más acciones** (⋯).
+2. En **Cambiar el estado a**, elija el nuevo estado.
+3. Haga clic en **Cambiar estado**. El nuevo estado empieza ahora y aparece al instante en el monitor y en cada página de estado que lo incluye.
+:::
+
+Un cambio que empezó antes se registra, en cambio, en la cronología de estados del monitor:
+
+:::steps
 1. Abra el monitor y haga clic en **Cronología de estados** en su menú lateral.
 2. Haga clic en **Crear Evento de estado del monitor**.
 3. Elija el **Estado del monitor**. **Comienza en** es ahora; ponga una hora anterior si el cambio ocurrió antes.

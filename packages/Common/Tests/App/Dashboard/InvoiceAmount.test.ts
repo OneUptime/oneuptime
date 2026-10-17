@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { formatInvoiceAmount } from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/InvoiceAmount";
 
 /*
- * An invoice's amount as Project Settings > Invoices lists it. The payment
+ * An invoice's amount as Project Settings > Billing and Invoices > Invoices lists it. The payment
  * provider keeps amounts in minor units (cents); the list used to divide by
  * 100 and print the result, so 125050 read "1250.5 USD" and 2200 read
  * "22 USD". Money reads with two decimals, grouped thousands and the

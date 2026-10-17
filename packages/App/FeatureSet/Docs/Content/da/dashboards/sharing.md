@@ -95,7 +95,7 @@ Når det er bekræftet, kan dashboardet nås på både dit brugerdefinerede dom�
 Klik på **Opret Dashboard Domæne**. Dialogen er én side:
 
 - **Underdomæne**: kun etiketten, med pladsholderen `dashboard (leave blank for root)`. Indtast blot `dashboard`, ikke hele værtsnavnet. Lad det være tomt, eller indtast `@` for at bruge roddomænet (apex).
-- **Domæne**: de domæner, der er bekræftet under **Projektindstillinger → Domæner**, hvor du med en TXT-post beviser, at et domæne er dit. Et domæne, du ikke har bekræftet, står ikke på listen, fordi det ville blive afvist. Linket **Tilføj et domæne** ved siden af feltet åbner den side i en ny fane.
+- **Domæne**: de domæner, der er bekræftet under **Projektindstillinger → Avanceret → Domæner**, hvor du med en TXT-post beviser, at et domæne er dit. Et domæne, du ikke har bekræftet, står ikke på listen, fordi det ville blive afvist. Linket **Tilføj et domæne** ved siden af feltet åbner den side i en ny fane.
 - **Flere felter**: foldet sammen. Så længe det er foldet sammen, siger overskriften, hvilket certifikat domænet vil bruge: "Vi udsteder et gratis SSL-certifikat til dette domæne og fornyer det automatisk." Åbn det kun for at bruge dit eget certifikat (se nedenfor).
 
 Klik på **Opret Dashboard Domæne**. Dialogen lukker, og det nye domænes **DNS-opsætning** åbner. Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge et andet underdomæne tilføjer du det domæne og sletter det gamle.

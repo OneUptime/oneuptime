@@ -28,7 +28,7 @@ Dans OneUptime, tout se trouve dans un projet : vos moniteurs, incidents, politi
 
 ### Lui donner un nom
 
-Saisissez un **Nom du projet**, par exemple le nom de votre entreprise. Sur OneUptime Cloud, l'étape suivante vous demande de choisir un forfait.
+Saisissez un **Nom du projet**, par exemple le nom de votre entreprise. Sur OneUptime Cloud, choisissez aussi un forfait juste en dessous : Free est déjà sélectionné, et les forfaits payants commencent par un essai gratuit.
 
 ### Le créer
 
@@ -68,7 +68,7 @@ Dans la liste de vérification, cliquez sur **Configurez une politique d'astrein
 
 ### La déclencher pour chaque incident
 
-Ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte**. Cliquez sur **Créer : Règle d'astreinte des incidents**, saisissez un **Nom** et cliquez sur **Suivant**. Laissez **Critères de correspondance** vide, pour que la règle s'applique à chaque incident, et cliquez sur **Suivant**. Choisissez votre politique sous **Politiques d'astreinte** et cliquez sur **Créer : Règle d'astreinte des incidents**.
+Ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte**. Cliquez sur **Créer : Règle d'astreinte des incidents**, saisissez un **Nom** et cliquez sur **Suivant**. Dans **Critères de correspondance**, laissez **Tous les incidents** sélectionné, pour que la règle s'applique à chaque incident, et cliquez sur **Suivant**. Choisissez votre politique sous **Politiques d'astreinte** et cliquez sur **Créer : Règle d'astreinte des incidents**.
 
 ### Choisir comment vous êtes joint
 

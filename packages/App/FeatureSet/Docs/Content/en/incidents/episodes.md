@@ -9,7 +9,7 @@ Everything on this page works the same way for alert episodes: read "alert" wher
 Open the episode and choose **Member Incidents** in its side menu (`/dashboard/{projectId}/incidents/episodes/{episodeId}/incidents`), then click **Add Incidents**. The dialog lists the 50 most recent incidents you can see that are not in the episode yet, each with its number, title, state and severity. To find an older one, search by title or by number: `INC-42`, `42` and `#42` all find incident 42.
 
 - Tick as many as you need, up to 100 at a time. The button counts them: **Add 3 Incidents**.
-- An incident that is already in another episode says so under its title, with that episode's number. Adding it here keeps it there too: an incident can be in more than one episode.
+- An incident that is already in another episode says so under its title, with that episode's number. Adding it here keeps it there too: an incident can be in more than one episode. In a project that allows an incident in only one episode, it cannot be picked: see [One episode per incident](#one-episode-per-incident).
 - If some cannot be added, the dialog stays open and lists them with the reason; the rest are added.
 
 ## Adding incidents from the incidents lists
@@ -34,6 +34,20 @@ Both take up to 100 selected incidents. The result says how many were added, how
 ## Taking an incident out
 
 On **Member Incidents**, **Remove** on a row, or on the selected rows from **Bulk Actions**, takes the incident out of this episode only. The incident itself is not deleted, and it stays in any other episode it is in.
+
+## One episode per incident
+
+An incident can be in several episodes at once. To keep each incident in one episode at most, turn on **An incident can be in only one episode** in **Incidents → Settings → Episode Membership**. For alerts, the switch is **An alert can be in only one episode**, in **Alerts → Settings → Episode Membership**. Both are off until you turn them on, and only Project Owners and Project Admins can change them.
+
+While it is on, an incident that is in an episode is not added to another one:
+
+- **Add Incidents** lists only the incidents that are in no episode. A search finds the others too, but one that is in another episode cannot be ticked, and says so.
+- **Add to Existing Episode** says how many of the selected incidents are in another episode, and adds only the rest. When every one is in an episode already, it says there is nothing to add.
+- **Add to New Episode** leaves out the selected incidents that are in an episode already, and says how many. When every one is, it says there is nothing to add.
+- **Grouping rules** leave an incident that is in an episode already where it is.
+- **The API, workflows and Terraform** are held to the same rule: adding an incident that is in another episode is refused, with the reason.
+
+Turning it on takes no incident out of an episode: an incident that is in several already stays in them. To move an incident, **Remove** it on its episode's **Member Incidents** page, then add it to the other episode.
 
 ## Who can add
 
@@ -67,5 +81,7 @@ The answer names each incident sent, once: added, already in the episode, or not
   ]
 }
 ```
+
+In a project that allows an incident in only one episode, an incident that is in another episode comes back in `notAdded`, with `Already in another episode. An incident can be in only one episode in this project.` as its reason.
 
 For alerts, send `alertEpisodeId` and `alertIds` to `/api/alert-episode-member/add-alerts`. To create an episode with incidents in it, send their ids with the episode's create request, `POST /api/incident-episode`, as `{ "data": { "title": "Checkout outage" }, "miscDataProps": { "incidentIdsToAdd": ["<incident id>"] } }`; for an alert episode, `POST /api/alert-episode` with `alertIdsToAdd`. If any of them cannot be added, no episode is created.

@@ -153,7 +153,7 @@ flowchart TB
 
 ### Før du starter
 
-- **Det overordnede domenet må være verifisert.** Nedtrekkslisten **Domene** viser bare domenene som er verifisert under **Prosjektinnstillinger → Domener**, der du med en TXT-post beviser at du eier et domene. Lenken **Legg til et domene** ved siden av feltet åpner den siden i en ny fane.
+- **Det overordnede domenet må være verifisert.** Nedtrekkslisten **Domene** viser bare domenene som er verifisert under **Prosjektinnstillinger → Avansert → Domener**, der du med en TXT-post beviser at du eier et domene. Lenken **Legg til et domene** ved siden av feltet åpner den siden i en ny fane.
 - **Installasjonen din trenger en CNAME-post for statussider.** OneUptime Cloud har en. På en egendriftet installasjon setter du den til et vertsnavn som peker på OneUptime-serveren din (en A-post), og sørger for at serveren svarer på port 80, der Let's Encrypt sjekker den. Uten den sier kortet og dialogen **DNS-oppsett** «Custom Domains not enabled for this OneUptime installation» i stedet for å vise en post.
 
 :::tabs

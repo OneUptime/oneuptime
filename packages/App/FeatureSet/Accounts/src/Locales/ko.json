@@ -240,7 +240,7 @@
     "accessWriteDescription": "데이터를 보고 변경할 수 있습니다. 인시던트와 경고를 인지하고 해결하며, 메모를 추가하고, 리소스를 생성, 업데이트 또는 삭제할 수 있습니다.",
     "accessReadTitle": "읽기 전용",
     "accessReadDescription": "인시던트, 경고, 모니터, 상태 페이지, 텔레메트리를 볼 수 있습니다. 아무것도 변경할 수 없습니다.",
-    "permissionsNote": "클라이언트는 사용자 본인의 자격으로 작업하며, 이 프로젝트에서 본인이 가진 권한을 넘어서는 작업은 절대 할 수 없습니다. 프로젝트 설정 > MCP 서버에서 언제든지 연결을 해제할 수 있습니다.",
+    "permissionsNote": "클라이언트는 사용자 본인의 자격으로 작업하며, 이 프로젝트에서 본인이 가진 권한을 넘어서는 작업은 절대 할 수 없습니다. 프로젝트 설정 > AI > MCP 서버에서 언제든지 연결을 해제할 수 있습니다.",
     "authorizeButton": "승인",
     "denyButton": "취소",
     "redirecting": "{{clientName}}(으)로 돌아가는 중...",
@@ -286,7 +286,7 @@
       "bought_from_reseller": "{{name}} – 리셀러가 청구함"
     },
     "nothingToChoose": "이 구매를 적용할 수 있는 프로젝트가 없으며, 이 서버에서는 프로젝트를 만들 수 없습니다. 이 구매로 요금을 낼 프로젝트의 소유자에게 설정을 요청하세요.",
-    "billingNote": "요금제와 사용량은 oneuptime.com/pricing의 가격으로 {{marketplace}}에서 청구됩니다. 요금제는 프로젝트 설정 → 결제에서 언제든지 변경할 수 있습니다.",
+    "billingNote": "요금제와 사용량은 oneuptime.com/pricing의 가격으로 {{marketplace}}에서 청구됩니다. 요금제는 프로젝트 설정 → 결제 및 청구서 → 결제에서 언제든지 변경할 수 있습니다.",
     "submitButton": "구매 설정",
     "notNowButton": "나중에",
     "redirecting": "구매 설정이 완료되었습니다. 프로젝트로 이동하는 중…",
@@ -359,5 +359,13 @@
   "Quote": "인용",
   "Code Block": "코드 블록",
   "Switch to markdown source": "Markdown 원본으로 전환",
-  "Switch to visual editor": "시각적 편집기로 전환"
+  "Switch to visual editor": "시각적 편집기로 전환",
+  "Opens in a new tab": "새 탭에서 열림",
+  "Note": "참고",
+  "Tip": "팁",
+  "Info": "정보",
+  "Important": "중요",
+  "Warning": "경고",
+  "Caution": "주의",
+  "Danger": "위험"
 }

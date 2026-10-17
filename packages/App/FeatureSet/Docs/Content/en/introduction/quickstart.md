@@ -28,7 +28,7 @@ The first time you sign in, OneUptime shows **No projects**. Click **Create New 
 
 ### Name it
 
-Enter a **Project Name**, such as your company's name. On OneUptime Cloud, the next step asks you to pick a plan.
+Enter a **Project Name**, such as your company's name. On OneUptime Cloud, pick a plan below it as well: Free is already picked, and the paid plans start with a free trial.
 
 ### Create it
 
@@ -68,7 +68,7 @@ In the checklist, click **Set up an on-call policy**, or open **On-Call Duty** f
 
 ### Page it for every incident
 
-Open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**. Click **Create Incident On-Call Rule**, enter a **Name** and click **Next**. Leave **Match Criteria** empty, so the rule matches every incident, and click **Next**. Pick your policy under **On-Call Duty Policies** and click **Create Incident On-Call Rule**.
+Open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**. Click **Create Incident On-Call Rule**, enter a **Name** and click **Next**. On **Match Criteria**, leave **All incidents** picked, so the rule matches every incident, and click **Next**. Pick your policy under **On-Call Duty Policies** and click **Create Incident On-Call Rule**.
 
 ### Choose how you are reached
 

@@ -122,7 +122,7 @@ Le nouveau workflow s'ouvre dans le **Constructeur**, désactivé.
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail**, puis cliquez sur **On Create Incident** sous **Popular** dans le panneau **Add Trigger**.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail**, puis cliquez sur **On Create Incident** sous **Popular** dans le panneau **Ajouter un déclencheur**.
 
 Le déclencheur prend la place du bloc en pointillés. L'ID qui y figure, `incident-on-create-1`, est le nom par lequel les blocs suivants s'y réfèrent.
 

@@ -343,5 +343,13 @@
   "{{field}} is required.": "{{field}}為必填項。",
   "{{field}} should match {{matchField}}": "{{field}}必須與 {{matchField}} 相符",
   "Email is not valid.": "電子郵件無效。",
-  "Next": "下一步"
+  "Next": "下一步",
+  "Opens in a new tab": "在新分頁中開啟",
+  "Note": "注意",
+  "Tip": "提示",
+  "Info": "資訊",
+  "Important": "重要",
+  "Warning": "警告",
+  "Caution": "小心",
+  "Danger": "危險"
 }

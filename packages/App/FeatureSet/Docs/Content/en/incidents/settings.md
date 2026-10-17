@@ -24,6 +24,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Incident Roles**       | Define the roles you assign responders to, such as Incident Commander.                       |
 | **Measurements**         | Time how long things take, like time to acknowledge or time to resolve, on every incident.    |
 | **Linked Alerts**        | Choose whether the alerts linked to an incident are acknowledged and resolved along with it. Both are on for new projects. |
+| **Episode Membership**   | Choose whether an incident can be in only one episode. Off by default. |
 | **Numbering**            | The text in front of incident and episode numbers, such as `INC-` in `INC-42`, and the number the next one gets. |
 
 What OneUptime AI does on its own is not set here: it has a section of its own, **Incidents → AI**, at routes beginning `/dashboard/{projectId}/incidents/ai/`. Its **Settings** page switches investigating new incidents, fixing them automatically (off until you turn it on), with the fix and missing-telemetry pull requests that are part of fixing drawn under it, and drafting postmortems on or off, each saving as soon as you flip it; the investigation rules and auto remediation rules that narrow which incidents are investigated and fixed, and the optional limits AI works under, are folded under **More settings**, and none apply until you set them. **Insights** and **Logs** are next to it: what AI learned from your incidents, and everything it did. See [AI SRE](/docs/ai/ai-sre).
@@ -526,6 +527,10 @@ Linking alerts to an incident never changes their state on its own. Two project 
 
 Both are on for new projects; a project created before they were on by default keeps the setting it had. Each is a switch that saves as soon as you flip it. Only Project Owners and Project Admins can change them; for everyone else the switches are locked and say which permission they need. States are compared by their order, so custom states count; alerts never move backwards, reopening an incident does not reopen its alerts, and an alert linked to an incident that is already acknowledged or resolved is brought in line as it is linked. Turning a switch on hands the linked alerts' states to the incident: whoever can change an incident's state, or link an alert to an incident that is already acknowledged or resolved, moves the alerts too, without needing permission to edit alerts. [Linked Alerts](/docs/incidents/linked-alerts) has the full rules, including why resolving an alert whose monitor is still failing makes the monitor raise a fresh one.
 
+## Episode membership
+
+An incident can be in several episodes at once. **Incidents → Settings → Episode Membership** (`/dashboard/{projectId}/incidents/settings/episode-membership`) has one switch, **An incident can be in only one episode**: while it is on, an incident that is in an episode is not added to another one, from the dashboard, the API, a workflow or a grouping rule, until it is removed from that episode. It is off until you turn it on, and it saves as soon as you flip it. Only Project Owners and Project Admins can change it; for everyone else the switch is locked and says which permission it needs. Turning it on takes no incident out of an episode. [One episode per incident](/docs/incidents/episodes#one-episode-per-incident) has what each way of adding does while it is on.
+
 ## Rules that run when an incident is created
 
 **Incidents → Rules** holds eight rule engines, and **Incidents → AI → Settings** two more, under **More settings**: **Auto Remediation Rules** and **Investigation Rules**. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
@@ -588,7 +593,7 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 **Or answer two questions.** **Create Custom Rule**, or the card's create button, opens a form that starts as a working rule:
 
 - **Grouping** — **Group incidents by**: **Monitor**, **Everything Together**, **Severity**, **Title** or **Custom**. Custom adds a **Group By** step with the five switches underneath the answers (monitor, severity, incident title, incident labels and monitor labels; labels group by their exact set). **Only group incidents that arrive close together** is on by default: an incident joins an episode only if it arrives within the time window of the episode's previous incident. Turned off, matching incidents keep joining the open episode until it is resolved. **Name** follows the answer until you type your own, and **Enabled** is on.
-- **Which Incidents** — conditions that narrow the rule down. Leave it empty to group every new incident.
+- **Which Incidents** — **All incidents**, where a new rule starts, groups every new incident. **Only incidents that match conditions** opens the conditions that narrow the rule down.
 
 Everything else a rule can do is folded under **More fields**, at the end of the **Grouping** step, in three groups: **On-Call & Ownership** (the on-call policies to run when the rule opens an episode, **Episode Owners**, and episode role assignments), **Episode Lifecycle** (reopen recently resolved episodes, wait before resolving an episode, and resolve quiet episodes — each a switch with its minutes) and **Details** (the rule's description, the episode title and description templates, showing episodes on status pages, and episode labels). Folded, its header names what it holds, and each setting a rule uses is a chip that says what it is set to — "On-Call Duty Policies: 2", "Reopen recently resolved episodes: 30 minutes" — so editing a rule never hides what it does. Opening it adds no step: **Create Incident Grouping Rule** is on **Which Incidents**, the last step. The alert form has no status page or episode role settings.
 
@@ -610,7 +615,7 @@ The create form has three steps:
 
 :::steps
 1. **Basic Info** — **Name** (the placeholder suggests something like paging the database team for any DB incident) and **Description**. The rule starts enabled; its edit form adds the **Enabled** switch, and the list renders a green **Enabled** or red **Disabled** pill per rule.
-2. **Match Criteria** — the rule's **Conditions**. Each condition picks a criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, **Incident Title**, **Incident Description**, **Monitor Name** or **Monitor Description** — an operator and a value, and reads like a sentence: "If **Incident Title** contains `database`", "And **Monitor Labels** has any of _Production_".
+2. **Match Criteria** — **All incidents**, where a new rule starts, or **Only incidents that match conditions**, which opens the rule's conditions. Each condition picks a criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, **Incident Title**, **Incident Description**, **Monitor Name** or **Monitor Description** — an operator and a value, and reads like a sentence: "If **Incident Title** contains `database`", "And **Monitor Labels** has any of _Production_".
 3. **On-Call Policies** — the policies this rule executes.
 :::
 

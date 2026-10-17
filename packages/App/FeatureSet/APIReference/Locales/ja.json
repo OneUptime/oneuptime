@@ -98,10 +98,10 @@
       "title": "認証",
       "intro": "OneUptime APIのいずれかのエンドポイントにアクセスするには、リクエストを認証する必要があります。このガイドでは、認証の仕組みについて見ていきます。OneUptimeはAPIリクエストを認証する方法として、API Keyを使用する方法を1つ提供しています。",
       "generateApiKey": "API Keyを生成する",
-      "generateApiKeyBody": "<strong>Project Settings</strong> > <strong>API Keys</strong>に移動してください。新しいAPI Keyを作成します。注意：新しいAPI Keyには権限が割り当てられていないため、使用する前に権限を割り当てる必要があります。",
+      "generateApiKeyBody": "<strong>プロジェクト設定</strong> > <strong>詳細</strong> > <strong>API キー</strong>に移動してください。新しいAPI Keyを作成します。注意：新しいAPI Keyには権限が割り当てられていないため、使用する前に権限を割り当てる必要があります。",
       "readMorePermissions": "権限について詳しく読む",
       "projectId": "プロジェクトID",
-      "projectIdBody": "<strong>Project Settings</strong> > <strong>Project</strong>に移動してください。そこにProject IDが表示されます。",
+      "projectIdBody": "<strong>プロジェクト設定</strong> > <strong>プロジェクト</strong>に移動してください。そこにProject IDが表示されます。",
       "authWithApiKey": "API Keyによる認証",
       "authWithApiKeyBody": "リクエストを行う際、Request HeaderでOneUptime API Keyを使用できます。リクエストを行う際は、API Keyとともに<code>ApiKey</code>ヘッダーを使用できます。",
       "exampleApiRequest": "API Keyを使用したリクエストの例",
@@ -132,7 +132,7 @@
       "metaDescription": "OneUptimeで権限がどのように機能するかを学びます",
       "badge": "ガイド",
       "title": "権限",
-      "intro": "API Tokenでリソースを作成、更新、読み取り、または削除するには権限が必要です。リクエストを行う権限がない場合、レスポンスとして<code>4xx</code>ステータスが送信されます。Project Settings > API KeysでAPI Keyの権限を管理できます。",
+      "intro": "API Tokenでリソースを作成、更新、読み取り、または削除するには権限が必要です。リクエストを行う権限がない場合、レスポンスとして<code>4xx</code>ステータスが送信されます。プロジェクト設定 > 詳細 > API キーでAPI Keyの権限を管理できます。",
       "jumpToCategory": "カテゴリにジャンプ"
     },
     "errors": {

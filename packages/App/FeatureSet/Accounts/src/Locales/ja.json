@@ -240,7 +240,7 @@
     "accessWriteDescription": "データを閲覧し、変更を加えることができます。インシデントとアラートの承認と解決、ノートの追加、リソースの作成・更新・削除が可能です。",
     "accessReadTitle": "読み取り専用",
     "accessReadDescription": "インシデント、アラート、モニター、ステータスページ、テレメトリを閲覧できます。変更は一切できません。",
-    "permissionsNote": "クライアントはあなたとして操作を行い、このプロジェクトであなた自身に与えられた権限を超えることは決してできません。「プロジェクト設定 > MCP サーバー」で、いつでも接続を解除できます。",
+    "permissionsNote": "クライアントはあなたとして操作を行い、このプロジェクトであなた自身に与えられた権限を超えることは決してできません。「プロジェクト設定 > AI > MCP サーバー」で、いつでも接続を解除できます。",
     "authorizeButton": "許可する",
     "denyButton": "キャンセル",
     "redirecting": "{{clientName}} に戻ります...",
@@ -286,7 +286,7 @@
       "bought_from_reseller": "{{name}} – リセラー経由で請求されています"
     },
     "nothingToChoose": "この購入を適用できるプロジェクトがなく、このサーバーでプロジェクトを作成することもできません。この購入で料金を支払うプロジェクトの所有者に、設定を依頼してください。",
-    "billingNote": "プランと使用量は、oneuptime.com/pricing に記載の価格で {{marketplace}} を通じて請求されます。プランは「プロジェクト設定 → 請求」でいつでも変更できます。",
+    "billingNote": "プランと使用量は、oneuptime.com/pricing に記載の価格で {{marketplace}} を通じて請求されます。プランは「プロジェクト設定 → 請求と請求書 → 請求」でいつでも変更できます。",
     "submitButton": "購入を設定",
     "notNowButton": "今はしない",
     "redirecting": "購入の設定が完了しました。プロジェクトに移動しています…",
@@ -359,5 +359,13 @@
   "Quote": "引用",
   "Code Block": "コードブロック",
   "Switch to markdown source": "Markdown ソースに切り替え",
-  "Switch to visual editor": "ビジュアルエディターに切り替え"
+  "Switch to visual editor": "ビジュアルエディターに切り替え",
+  "Opens in a new tab": "新しいタブで開きます",
+  "Note": "注記",
+  "Tip": "ヒント",
+  "Info": "情報",
+  "Important": "重要",
+  "Warning": "警告",
+  "Caution": "注意",
+  "Danger": "危険"
 }

@@ -1,8 +1,8 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * Which Twilio config the SMS and calls to a project's members go through,
- * on Project Settings -> Notification Settings -> Twilio Config.
+ * Which Twilio config the SMS and calls to a project's members go through, on
+ * Project Settings -> Notifications -> Notification Settings -> Twilio Config.
  *
  * SMS and calls to the people in a project (on-call alerts, notifications,
  * verification codes) go through the project's default Twilio config, the

@@ -28,7 +28,7 @@ Første gang du logger inn, viser OneUptime **Ingen prosjekter**. Klikk på **Op
 
 ### Gi det et navn
 
-Skriv inn et **Prosjektnavn**, for eksempel navnet på bedriften din. På OneUptime Cloud ber neste steg deg velge en plan.
+Skriv inn et **Prosjektnavn**, for eksempel navnet på bedriften din. På OneUptime Cloud velger du også en plan rett under: Free er allerede valgt, og de betalte planene starter med en gratis prøveperiode.
 
 ### Opprett det
 
@@ -68,7 +68,7 @@ Klikk på **Sett opp en vaktpolicy** i sjekklisten, eller åpne **Vakttjeneste**
 
 ### Utløs den for hver hendelse
 
-Åpne **Hendelser** fra menyen **Produkter**, utvid **Regler** i sidemenyen, og velg **Vaktregler**. Klikk på **Opprett Incident On-Call Rule**, skriv inn et **Navn**, og klikk på **Neste**. La **Treffkriterier** stå tomt, så regelen gjelder alle hendelser, og klikk på **Neste**. Velg policyen din under **Vaktpolicyer**, og klikk på **Opprett Incident On-Call Rule**.
+Åpne **Hendelser** fra menyen **Produkter**, utvid **Regler** i sidemenyen, og velg **Vaktregler**. Klikk på **Opprett Incident On-Call Rule**, skriv inn et **Navn**, og klikk på **Neste**. La **Alle hendelser** være valgt under **Treffkriterier**, så regelen gjelder alle hendelser, og klikk på **Neste**. Velg policyen din under **Vaktpolicyer**, og klikk på **Opprett Incident On-Call Rule**.
 
 ### Velg hvordan du nås
 

@@ -11,7 +11,10 @@ import BillingService from "../../../Server/Services/BillingService";
 import MailService from "../../../Server/Services/MailService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
-import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamMemberService, {
+  MEMBERSHIPS_OF_PERSON_STATEMENT,
+  PEOPLE_IN_PROJECT_STATEMENT,
+} from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
@@ -38,6 +41,10 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  LimitTransactions,
+  useInMemoryLimitTransactions,
+} from "../TestingUtils/LimitTransactionsInMemory";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -59,7 +66,10 @@ beforeEach(() => {
  * Everything runs through TeamMemberService.create. The memberships live in
  * an in-memory table behind the service's own reads, so the member count, the
  * new membership lookup, the duplicate-invite guard and the seat sync after
- * the write all see the same rows.
+ * the write all see the same rows - and so does the INSERT's own count, made
+ * in the transaction that takes the seat limit's lock
+ * (TeamMemberService.getCreateLimit), which holds the limits for creates
+ * made at the same moment.
  */
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
@@ -116,6 +126,7 @@ let accounts: Array<User>;
 
 let project: Project;
 let saveSpy: jest.Mock;
+let limitTransactions: LimitTransactions;
 let createUserSpy: jest.SpyInstance;
 let findUserSpy: jest.SpyInstance;
 let sendMailSpy: jest.SpyInstance;
@@ -283,6 +294,39 @@ beforeEach(() => {
   jest
     .spyOn(TeamMemberService, "getRepository")
     .mockReturnValue({ save: saveSpy } as never);
+
+  /*
+   * A create held to a limit is inserted in the limit's own transaction,
+   * which counts the same in-memory table.
+   */
+  limitTransactions = useInMemoryLimitTransactions({
+    count: (statement: string, parameters: Array<unknown>): number => {
+      const rows: Array<TeamMember> = memberships.filter(
+        (row: TeamMember): boolean => {
+          return row.projectId?.toString() === String(parameters[0]);
+        },
+      );
+
+      if (statement === MEMBERSHIPS_OF_PERSON_STATEMENT) {
+        return rows.filter((row: TeamMember): boolean => {
+          return row.userId?.toString() === String(parameters[1]);
+        }).length;
+      }
+
+      if (statement === PEOPLE_IN_PROJECT_STATEMENT) {
+        return new Set(
+          rows.map((row: TeamMember): string => {
+            return row.userId!.toString();
+          }),
+        ).size;
+      }
+
+      throw new Error(`Not a count the seat limit makes: ${statement}`);
+    },
+    save: async (_tableName: string, row: unknown): Promise<unknown> => {
+      return await saveSpy(row as TeamMember);
+    },
+  });
   jest
     .spyOn(TeamMemberService, "onTriggerRealtime")
     .mockResolvedValue(undefined);
@@ -411,6 +455,16 @@ describe("TeamMemberService.create - a project at its seat limit", () => {
       expect(saved.teamId?.toString()).toBe(ENGINEERING_TEAM_ID.toString());
       await expect(peopleInProject()).resolves.toBe(3);
 
+      /*
+       * The INSERT asked again, under the seat limit's lock, and found
+       * them in the project already: the people were not even counted.
+       */
+      expect(limitTransactions.events).toEqual([
+        "lock",
+        MEMBERSHIPS_OF_PERSON_STATEMENT,
+        "save TeamMember",
+      ]);
+
       // The seat sync after the write counted the same three people.
       expect(billingSpy).not.toHaveBeenCalled();
     },
@@ -424,6 +478,116 @@ describe("TeamMemberService.create - a project at its seat limit", () => {
     ).rejects.toThrow(Errors.TeamMemberService.LIMIT_REACHED);
 
     expect(saveSpy).not.toHaveBeenCalled();
+    await expect(peopleInProject()).resolves.toBe(3);
+  });
+
+  test("with a seat left, someone new is added, decided again under the seat limit's lock", async () => {
+    projectAtItsSeatLimit();
+    project.seatLimit = 4;
+
+    const saved: TeamMember = await TeamMemberService.create(
+      addToTeam(OUTSIDER_ID),
+    );
+
+    expect(saved.userId?.toString()).toBe(OUTSIDER_ID.toString());
+    await expect(peopleInProject()).resolves.toBe(4);
+    expect(limitTransactions.opened).toBe(1);
+    expect(limitTransactions.events).toEqual([
+      "lock",
+      MEMBERSHIPS_OF_PERSON_STATEMENT,
+      PEOPLE_IN_PROJECT_STATEMENT,
+      "save TeamMember",
+    ]);
+  });
+
+  /*
+   * Two people added at the same moment with one seat left: both pass the
+   * early count, and the one whose INSERT counts second finds the seat
+   * taken. Here the other invitation's row is written between this one's
+   * early count and its INSERT.
+   */
+  test("someone new who passed the early count is refused by the INSERT's own count once the last seat went to someone else, and nothing is written", async () => {
+    projectAtItsSeatLimit();
+    project.seatLimit = 4;
+
+    jest
+      .spyOn(
+        TeamMemberService as unknown as {
+          onCreatePermitted: () => Promise<void>;
+        },
+        "onCreatePermitted",
+      )
+      .mockImplementation(async (): Promise<void> => {
+        memberships.push(membership({ userId: ObjectID.generate() }));
+      });
+
+    await expect(
+      TeamMemberService.create(addToTeam(OUTSIDER_ID)),
+    ).rejects.toThrow(Errors.TeamMemberService.LIMIT_REACHED);
+
+    expect(saveSpy).not.toHaveBeenCalled();
+    await expect(peopleInProject()).resolves.toBe(4);
+    expect(limitTransactions.events).toEqual([
+      "lock",
+      MEMBERSHIPS_OF_PERSON_STATEMENT,
+      PEOPLE_IN_PROJECT_STATEMENT,
+    ]);
+  });
+
+  test("someone already in the project who passed the early count joins the other team even when the last seat went to someone else meanwhile", async () => {
+    projectAtItsSeatLimit();
+    project.seatLimit = 4;
+
+    jest
+      .spyOn(
+        TeamMemberService as unknown as {
+          onCreatePermitted: () => Promise<void>;
+        },
+        "onCreatePermitted",
+      )
+      .mockImplementation(async (): Promise<void> => {
+        memberships.push(membership({ userId: ObjectID.generate() }));
+      });
+
+    const saved: TeamMember = await TeamMemberService.create(
+      addToTeam(MEMBER_ID),
+    );
+
+    expect(saved.userId?.toString()).toBe(MEMBER_ID.toString());
+    await expect(peopleInProject()).resolves.toBe(4);
+  });
+
+  test("a first sign-in through the project's SSO, which skips the hooks, is held to the seat limit at the INSERT", async () => {
+    projectAtItsSeatLimit();
+
+    const member: TeamMember = new TeamMember();
+    member.projectId = PROJECT_ID;
+    member.teamId = ENGINEERING_TEAM_ID;
+    member.userId = OUTSIDER_ID;
+    member.hasAcceptedInvitation = true;
+    member.invitationAcceptedAt = new Date();
+
+    await expect(
+      TeamMemberService.create({
+        data: member,
+        props: { isRoot: true, ignoreHooks: true },
+      }),
+    ).rejects.toThrow(Errors.TeamMemberService.LIMIT_REACHED);
+    expect(saveSpy).not.toHaveBeenCalled();
+
+    // Someone in the project already is signed in to another of its teams.
+    const existing: TeamMember = new TeamMember();
+    existing.projectId = PROJECT_ID;
+    existing.teamId = ENGINEERING_TEAM_ID;
+    existing.userId = COLLEAGUE_ID;
+    existing.hasAcceptedInvitation = true;
+    existing.invitationAcceptedAt = new Date();
+
+    await TeamMemberService.create({
+      data: existing,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+    expect(saveSpy).toHaveBeenCalledTimes(1);
     await expect(peopleInProject()).resolves.toBe(3);
   });
 
@@ -457,6 +621,74 @@ describe("TeamMemberService.create - the free plan", () => {
 
   test("a second person is still refused", async () => {
     freeProjectWithItsOwner();
+
+    await expect(
+      TeamMemberService.create(
+        addToTeam(MEMBER_ID, { currentPlan: PlanType.Free }),
+      ),
+    ).rejects.toThrow(Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN);
+
+    expect(saveSpy).not.toHaveBeenCalled();
+    await expect(peopleInProject()).resolves.toBe(1);
+
+    // Refused before anything was prepared: no limit transaction opened.
+    expect(limitTransactions.opened).toBe(0);
+  });
+
+  test("a first sign-in through the project's SSO, which skips the hooks and carries no plan, is held to the one person by the project's own plan", async () => {
+    freeProjectWithItsOwner();
+
+    // The project's row names the Free plan.
+    jest
+      .spyOn(SubscriptionPlan, "getSubscriptionPlanById")
+      .mockReturnValue(
+        new SubscriptionPlan(PLAN_ID, "price_yearly", "Free", 0, 0, 1, 0),
+      );
+
+    const newcomer: TeamMember = new TeamMember();
+    newcomer.projectId = PROJECT_ID;
+    newcomer.teamId = ENGINEERING_TEAM_ID;
+    newcomer.userId = MEMBER_ID;
+    newcomer.hasAcceptedInvitation = true;
+    newcomer.invitationAcceptedAt = new Date();
+
+    await expect(
+      TeamMemberService.create({
+        data: newcomer,
+        props: { isRoot: true, ignoreHooks: true },
+      }),
+    ).rejects.toThrow(Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN);
+    expect(saveSpy).not.toHaveBeenCalled();
+    await expect(peopleInProject()).resolves.toBe(1);
+
+    // Its owner, signed in onto another of its teams, is in it already.
+    const owner: TeamMember = new TeamMember();
+    owner.projectId = PROJECT_ID;
+    owner.teamId = ENGINEERING_TEAM_ID;
+    owner.userId = OWNER_ID;
+    owner.hasAcceptedInvitation = true;
+    owner.invitationAcceptedAt = new Date();
+
+    await TeamMemberService.create({
+      data: owner,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    await expect(peopleInProject()).resolves.toBe(1);
+  });
+
+  test("a project with nobody in it yet takes one person, decided again at the INSERT", async () => {
+    jest
+      .spyOn(
+        TeamMemberService as unknown as {
+          onCreatePermitted: () => Promise<void>;
+        },
+        "onCreatePermitted",
+      )
+      .mockImplementation(async (): Promise<void> => {
+        // Someone else's create, made at the same moment, wrote first.
+        memberships.push(membership({ userId: OWNER_ID }));
+      });
 
     await expect(
       TeamMemberService.create(

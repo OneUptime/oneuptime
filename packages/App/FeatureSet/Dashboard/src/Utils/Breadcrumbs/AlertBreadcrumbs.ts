@@ -186,6 +186,10 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Measurements",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP,
+      ["Project", "Alerts", "Settings", "Episode Membership"],
+    ),
 
     /*
      * The trail names the side-menu section a page actually lives in —

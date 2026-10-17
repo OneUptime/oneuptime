@@ -104,7 +104,7 @@ Query parameters, parsed once per page load:
 | `?fail=`         | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `conversation` (the thread cannot be loaded), `conversation-send` (a question is refused: "AI is turned off for this project…"), `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused), `channel-links` (the record's Slack / Teams channels cannot be read)                                     |
 | `?channels=`     | the record's own chat channels, as `GET /workspace-channel-link/<type>/<id>` answers them for the header's Open in Slack / Open in Microsoft Teams: comma separated `slack` (one Slack channel), `slack2` (a second Slack channel, so Open in Slack becomes a menu) and `teams` (one Teams channel). None by default: no button. The links are built by the real `WorkspaceChannelLink` rules                       |
 | `?resources=`    | what Incident #1042 is attached to: `default`, `many` (five categories, one behind Show more, and a name too long for the sidebar) or `none` (#1042 and Scheduled Maintenance #58 have nothing attached, for the empty state)                                                                                                                                                                                       |
-| `?feed=`         | `oncall-run`: incident #1042's on-call run in full, as the run writes its feed entries now (who it paged, a rule that reached nobody, who acknowledged): four on-call entries within a minute, which the feed folds into the newest of them                                                                                                                                                                         |
+| `?feed=`         | `oncall-run`: incident #1042's on-call run in full, as the run writes its feed entries now (who it paged, a rule that reached nobody, who acknowledged): four on-call entries within a minute, which the feed folds into the newest of them. `links-and-quotes`: a private note on #1042 saved from a Slack message - a quote, the message's file, a `> [!WARNING]` callout, links to incident #1036 and to the docs, and the note's attachment                                                                                                                                                                         |
 | `?theme=`        | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
 | `?private=`      | `1`: incident #1042 and incident episode #12 are private. A private incident or episode takes no public notes: the incident's state change dialogs fold a private note and ask nothing about subscribers, and both feeds' Add Public Note is locked with why                                                                                                                                                        |
 | `?role=`         | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
@@ -235,6 +235,12 @@ Query parameters, parsed once per page load:
   created Scheduled Maintenance #58"; and with `?feed=oncall-run` the run folded into its
   newest entry, unfolding in place by keyboard with Show fewer under its last entry, focus
   moving to the first entry it unfolded and back to Show 3 more when it folds again.
+- **Links and quotes in a note** (`?feed=links-and-quotes`): the file a saved Slack message
+  carried opens in a new tab without an opener while the incident stays open; the note's
+  attachment opens in a new tab once the session is refreshed; a link to another incident
+  stays in the tab, one to the docs opens a new one; quoted text is a 3px grey bar with lighter
+  text and no icon; the `> [!WARNING]` callout is an amber panel named Warning with its sign,
+  its marker not shown; both take the dark theme's colours.
 - **The linked infrastructure and the follow-up check** (`?linked=`): a running
   investigation's line saying what it read about its linked infrastructure, its mark beside
   its first line when it wraps on a phone, and its steps' detail after their words; the
@@ -293,7 +299,8 @@ title-row tests add `{alert-hero-created,alert-hero-resolved,incident-hero-creat
 and the Affected Resources tests add
 `{incident,alert,scheduled-maintenance}-overview-affected-resources` and
 `incident-affected-resources-{many,mobile,empty,light,dark}`, the Measurements card
-`incident-measurements{,-dark,-mobile}`, the feed `incident-feed{,-mobile}`, and the hero's
+`incident-measurements{,-dark,-mobile}`, the feed `incident-feed{,-mobile}` and a note's links
+and quotes `feed-note-links-and-quotes{,-dark}`, and the hero's
 chat buttons `incident-hero-open-in-chat{,-mobile}` and `incident-hero-open-channel{,-menu}`.
 
 ## Poke at it by hand

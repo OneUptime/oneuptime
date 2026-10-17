@@ -866,7 +866,7 @@ Scherp verder aan als dat nodig is: verhoog `minSeverity` naar `ERROR`, voeg `me
 
 ### Het effect meten
 
-Telemetriegebruik wordt per dag geteld, dus bekijk de trend onder **Projectinstellingen → Gebruiksgeschiedenis** over een dag of twee: hij verandert niet op het moment dat je een wijziging toepast. Wijzig één instelling tegelijk (logs uit, dan het interval omhoog, dan eBPF ingeperkt), zodat je kunt zien wat elke instelling deed, in plaats van alles tegelijk terug te schroeven en een monitor kwijt te raken waarop je rekende.
+Telemetriegebruik wordt per dag geteld, dus bekijk de trend onder **Projectinstellingen → Facturering en facturen → Gebruiksgeschiedenis** over een dag of twee: hij verandert niet op het moment dat je een wijziging toepast. Wijzig één instelling tegelijk (logs uit, dan het interval omhoog, dan eBPF ingeperkt), zodat je kunt zien wat elke instelling deed, in plaats van alles tegelijk terug te schroeven en een monitor kwijt te raken waarop je rekende.
 
 ## Problemen oplossen
 

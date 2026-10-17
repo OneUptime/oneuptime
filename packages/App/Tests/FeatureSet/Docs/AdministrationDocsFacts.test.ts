@@ -660,7 +660,18 @@ describe("Inviting People", () => {
     );
 
     expect(service).toContain(
-      "createBy.props.currentPlan === PlanType.Free &&\n          numberOfMembers >= 1",
+      "export const ALLOWED_PEOPLE_IN_FREE_PLAN: number = 1;",
+    );
+    // A project on the Free plan, as the request or the project's row names it.
+    expect(service).toContain("isFreePlan: this.isHeldToFreePlanPerson({");
+    expect(service).toContain(
+      "if (data.props.currentPlan === PlanType.Free) {\n      return true;\n    }",
+    );
+    expect(service).toContain(
+      "SubscriptionPlan.getSubscriptionPlanById(planId)?.getName() ===\n      PlanType.Free",
+    );
+    expect(service).toContain(
+      "if (data.limits.isFreePlan && data.people >= ALLOWED_PEOPLE_IN_FREE_PLAN) {\n      return Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN;",
     );
     expect(page).toContain("The Free plan has room for one person.");
   });
@@ -1148,7 +1159,11 @@ describe("Billing & Usage", () => {
     expect(billingPage).toContain('editButtonText={"Change Plan"}');
     expect(billingPage).toContain('title: "Seats"');
     expect(billingPage).toContain('title="Yearly Plan"');
-    expect(billingPage).toContain('description="(Save 20%)"');
+    // What yearly saves is worked out from the prices, never written in.
+    expect(billingPage).toContain(
+      "description={yearlySavingText || undefined}",
+    );
+    expect(billingPage).not.toContain('description="(Save 20%)"');
     // Yearly starts on, unless a marketplace bills the project.
     expect(billingPage).toContain(
       "const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =\n    useState<boolean>(true);",

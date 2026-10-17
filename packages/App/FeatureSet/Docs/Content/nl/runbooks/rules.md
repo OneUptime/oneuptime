@@ -57,7 +57,7 @@ Voer onder **Basisinformatie** een **Naam** in, zoals "DB-failover starten voor 
 
 ### Voorwaarden toevoegen
 
-Klik onder **Overeenkomstcriteria** op **Voorwaarde toevoegen**, kies een criterium en een operator en voer de waarde in of kies die. Voeg zo nodig meer voorwaarden toe en kies **Voldoet aan alle** of **Voldoet aan één**. Voeg er geen toe om de runbooks bij elk nieuw evenement van deze soort te starten.
+Onder **Overeenkomstcriteria** begint **Geldt voor** bij elk nieuw evenement van deze soort, bijvoorbeeld **Alle incidenten**, en de regel start zijn runbooks voor elk ervan. Om de regel in te perken, kies het andere antwoord, bijvoorbeeld **Alleen incidenten die aan de voorwaarden voldoen**, kies dan een criterium en een operator en voer de waarde in of kies die. Klik op **Voorwaarde toevoegen** voor meer voorwaarden en kies **Voldoet aan alle** of **Voldoet aan één**.
 
 ### De runbooks kiezen
 
@@ -71,7 +71,7 @@ Kies onder **Runbooks** een of meer **Te starten runbooks** en klik op **Runbook
 | **Naam** | Een korte, duidelijke naam voor de regel. |
 | **Beschrijving** | Optionele context voor teamgenoten. |
 | **Ingeschakeld** | Aan voor een nieuwe regel. Zet het uit in het bewerkformulier van de regel om haar te pauzeren zonder haar te verwijderen. |
-| **Voorwaarden** | Waarop de regel matcht, in de stap **Overeenkomstcriteria**. Laat leeg om bij elk evenement van haar type te matchen. |
+| **Voorwaarden** | Waarop de regel matcht, in de stap **Overeenkomstcriteria**. Een regel zonder voorwaarden, bijvoorbeeld op **Alle incidenten**, matcht bij elk evenement van haar type. |
 | **Te starten runbooks** | Een of meer runbooks die starten wanneer de regel afgaat. |
 
 ## Voorwaarden

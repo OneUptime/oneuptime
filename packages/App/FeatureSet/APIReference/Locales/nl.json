@@ -98,7 +98,7 @@
       "title": "Authenticatie",
       "intro": "U moet uw verzoeken authenticeren om toegang te krijgen tot een van de endpoints in de OneUptime API. In deze handleiding bekijken we hoe authenticatie werkt. OneUptime biedt één manier om uw API-verzoeken te authenticeren - door een API-sleutel te gebruiken.",
       "generateApiKey": "Een API-sleutel genereren",
-      "generateApiKeyBody": "Ga naar <strong>Projectinstellingen</strong> > <strong>API-sleutels</strong>. Maak een nieuwe API-sleutel aan. Let op: nieuwe API-sleutels hebben geen machtigingen toegewezen, dus u moet een machtiging toewijzen voordat u ze kunt gebruiken.",
+      "generateApiKeyBody": "Ga naar <strong>Projectinstellingen</strong> > <strong>Geavanceerd</strong> > <strong>API-sleutels</strong>. Maak een nieuwe API-sleutel aan. Let op: nieuwe API-sleutels hebben geen machtigingen toegewezen, dus u moet een machtiging toewijzen voordat u ze kunt gebruiken.",
       "readMorePermissions": "Lees meer over machtigingen",
       "projectId": "Project-ID",
       "projectIdBody": "Ga naar <strong>Projectinstellingen</strong> > <strong>Project</strong>. Daar zou u uw Project-ID moeten zien.",
@@ -132,7 +132,7 @@
       "metaDescription": "Leer hoe machtigingen werken met OneUptime",
       "badge": "Handleiding",
       "title": "Machtigingen",
-      "intro": "Uw API-token heeft machtigingen nodig om een resource aan te maken, bij te werken, te lezen of te verwijderen. Als u geen machtigingen heeft om een verzoek te doen, wordt een <code>4xx</code>-status als antwoord verzonden. U kunt machtigingen voor uw API-sleutel beheren in Projectinstellingen > API-sleutels.",
+      "intro": "Uw API-token heeft machtigingen nodig om een resource aan te maken, bij te werken, te lezen of te verwijderen. Als u geen machtigingen heeft om een verzoek te doen, wordt een <code>4xx</code>-status als antwoord verzonden. U kunt machtigingen voor uw API-sleutel beheren in Projectinstellingen > Geavanceerd > API-sleutels.",
       "jumpToCategory": "Spring naar een categorie"
     },
     "errors": {

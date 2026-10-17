@@ -23,10 +23,12 @@ Changes save automatically. A pill in the toolbar tracks it: **Saving…** while
 
 ## Add blocks
 
-| To add          | Click                                              | Panel that opens  |
-| --------------- | -------------------------------------------------- | ----------------- |
-| The trigger     | The dashed placeholder block                       | **Add Trigger**   |
-| Any other block | **Add Component**, in the toolbar above the canvas | **Add Component** |
+| To add          | Click                                                           | Panel that opens  |
+| --------------- | --------------------------------------------------------------- | ----------------- |
+| The trigger     | The dashed placeholder block, or **Add Trigger** in the toolbar | **Add Trigger**   |
+| Any other block | **Add Component**, in the toolbar above the canvas              | **Add Component** |
+
+The toolbar's button says **Add Trigger** until the workflow has a trigger, and **Add Component** once it has one.
 
 Both panels open on the blocks most workflows use, under **Popular**, followed by the other built-in blocks. Under **OneUptime resources**, click a resource such as **Incident** to see what you can do with it; **Browse all resources** lists every one. Or search: type a few words, such as `create incident`, and the closest match comes first. Press `/` to jump to the search box, the arrow keys to move through the results, and **Enter** to add the highlighted block. Clicking a block adds it.
 

@@ -44,6 +44,8 @@ Chi accede per la prima volta entra nei **Team** del provider, che decidono che 
 > [!NOTE]
 > Su OneUptime Cloud, la prima volta che qualcuno accede al progetto con uno dei suoi provider SAML o OIDC, OneUptime gli invia un link via email invece di farlo entrare. La persona lo apre, conferma che il single sign-on del progetto può farla accedere e prosegue con l'accesso. Il link vale 24 ore. Succede una volta per progetto, e di nuovo se la persona lascia il progetto e poi torna. Le installazioni self-hosted fanno accedere subito.
 
+Su OneUptime Cloud, chi entra nel progetto tramite SSO occupa un posto, proprio come una persona che inviti. Se il tuo piano include un numero fisso di posti e sono tutti occupati, le nuove persone non possono entrare tramite SSO finché non si libera un posto.
+
 ## Configurare l'SSO
 
 Ti serve l'autorizzazione ad aggiungere provider SSO — **Project Owner**, **Project Admin** o **Create Project SSO** — e, su OneUptime Cloud, il piano **Scale**. Per la parte del tuo provider di identità, vedi le [guide dei provider di identità](#guide-dei-provider-di-identità).

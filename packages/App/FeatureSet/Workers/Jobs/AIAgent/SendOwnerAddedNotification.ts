@@ -169,10 +169,7 @@ RunCron(
         aiAgentDescription: aiAgent.description || "No description provided",
         projectName: aiAgent.project!.name!,
         viewAIAgentLink: (
-          await AIAgentService.getLinkInDashboard(
-            aiAgent.projectId!,
-            aiAgent.id!,
-          )
+          await AIAgentService.getLinkInDashboard(aiAgent.projectId!)
         ).toString(),
       };
 
@@ -201,10 +198,7 @@ RunCron(
             title: "Added as AI Agent Owner",
             body: `You have been added as the owner of the AI agent: ${aiAgent.name!}. Click to view details.`,
             clickAction: (
-              await AIAgentService.getLinkInDashboard(
-                aiAgent.projectId!,
-                aiAgent.id!,
-              )
+              await AIAgentService.getLinkInDashboard(aiAgent.projectId!)
             ).toString(),
             tag: "ai-agent-owner-added",
             requireInteraction: false,

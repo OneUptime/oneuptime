@@ -28,7 +28,7 @@ Första gången du loggar in visar OneUptime **Inga projekt**. Klicka på **Skap
 
 ### Ge det ett namn
 
-Ange ett **Projektnamn**, till exempel ditt företags namn. På OneUptime Cloud ber nästa steg dig välja en plan.
+Ange ett **Projektnamn**, till exempel ditt företags namn. På OneUptime Cloud väljer du också en plan precis nedanför: Free är redan valt, och de betalda planerna börjar med en gratis provperiod.
 
 ### Skapa det
 
@@ -68,7 +68,7 @@ Klicka på **Konfigurera en jourpolicy** i checklistan, eller öppna **Jourtjän
 
 ### Utlös den för varje incident
 
-Öppna **Incidenter** från menyn **Produkter**, fäll ut **Regler** i sidomenyn och välj **Jourregler**. Klicka på **Skapa Incident On-Call Rule**, ange ett **Namn** och klicka på **Nästa**. Lämna **Matchningskriterier** tomt, så att regeln gäller varje incident, och klicka på **Nästa**. Välj din policy under **Jourpolicyer** och klicka på **Skapa Incident On-Call Rule**.
+Öppna **Incidenter** från menyn **Produkter**, fäll ut **Regler** i sidomenyn och välj **Jourregler**. Klicka på **Skapa Incident On-Call Rule**, ange ett **Namn** och klicka på **Nästa**. Låt **Alla incidenter** vara valt under **Matchningskriterier**, så att regeln gäller varje incident, och klicka på **Nästa**. Välj din policy under **Jourpolicyer** och klicka på **Skapa Incident On-Call Rule**.
 
 ### Välj hur du nås
 

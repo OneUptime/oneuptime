@@ -493,10 +493,10 @@ describe("who may change the limits, and where", () => {
 
   test("the sentence said to whoever met the limit names them rather than telling the reader to", () => {
     expect(ProjectAiDailyLimits.getWhoCanChangeSentence()).toBe(
-      "A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.",
+      "A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
     );
     expect(PROJECT_AI_DAILY_LIMITS_LOCATION).toBe(
-      "Project Settings → AI Features → More settings",
+      "Project Settings → AI → AI Features → More settings",
     );
   });
 });

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { render, waitFor } from "@testing-library/react";
+import { RenderResult, render, waitFor } from "@testing-library/react";
 import React from "react";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { Location, MemoryRouter } from "react-router-dom";
@@ -10,10 +10,13 @@ import { Location, MemoryRouter } from "react-router-dom";
  * project. Search covers the project name only, so an ID was previously a dead
  * end.
  *
- * The Projects page has a second axis this file has to hold steady: it rebuilds
- * its form fields whenever the billing toggle flips, in an effect. The filters
- * must not be collateral damage of that re-render, so every assertion here runs
- * against the props captured after the effect has settled.
+ * The Projects page has a second axis this file has to hold steady: its create
+ * form. It used to rebuild its form fields in an effect whenever its billing
+ * toggle flipped, so the page drew itself twice; the form is now the shared
+ * one-page create-project form (CreateProjectFormFields), built once. The
+ * filters must not be collateral damage of a re-render either way, so every
+ * assertion here runs against the props captured once the page has drawn, and
+ * one re-renders it.
  */
 
 jest.mock("react-i18next", () => {
@@ -108,6 +111,8 @@ const filterTitled: FilterTitledFunction = (title: string): Filter<Project> => {
   return filter;
 };
 
+let rendered: RenderResult | null = null;
+
 describe("Admin > Projects page", () => {
   beforeEach(async () => {
     capturedTableProps = null;
@@ -125,15 +130,14 @@ describe("Admin > Projects page", () => {
       key: "test",
     } as Location);
 
-    render(
+    rendered = render(
       <MemoryRouter>
         <Projects />
       </MemoryRouter>,
     );
 
-    // The form-field effect renders a second time; wait it out.
     await waitFor(() => {
-      expect(renderCount).toBeGreaterThan(1);
+      expect(renderCount).toBeGreaterThan(0);
     });
   });
 
@@ -173,11 +177,16 @@ describe("Admin > Projects page", () => {
     });
 
     /*
-     * The page re-renders on its own whenever the billing toggle flips. The
-     * filter list is rebuilt inline on each of those renders, so this guards
-     * against it being tangled up with the form-field state that does change.
+     * The filter list is rebuilt inline on every render, so this guards
+     * against it being tangled up with anything a render changes.
      */
-    test("survives the page's own re-renders", () => {
+    test("survives the page's re-renders", () => {
+      rendered!.rerender(
+        <MemoryRouter>
+          <Projects />
+        </MemoryRouter>,
+      );
+
       expect(renderCount).toBeGreaterThan(1);
       expect(filterTitled("Project ID").field).toEqual({ _id: true });
     });

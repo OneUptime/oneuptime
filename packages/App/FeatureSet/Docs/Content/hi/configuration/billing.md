@@ -176,7 +176,7 @@ OneUptime Cloud पर, इन एडमिनिस्ट्रेशन से
 
 ## समस्या निवारण
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 Free प्लान वाले प्रोजेक्ट को सक्रिय मॉनिटर बनाने या टेलीमेट्री भेजने से पहले भुगतान विधि चाहिए, क्योंकि इनका भुगतान उपयोग के हिसाब से होता है। [भुगतान विधियां](#भुगतान-विधियां) में एक जोड़ें। मैनुअल मॉनिटर मुफ़्त रहते हैं।
 :::
 

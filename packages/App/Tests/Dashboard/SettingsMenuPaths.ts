@@ -6,6 +6,7 @@ import {
   startsCollapsed,
   workspaceSection,
 } from "../FeatureSet/Docs/DocsDashboardMenus";
+import { replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
 
 /*
  * MENU PATHS IN ONEUPTIME'S OWN WORDS.
@@ -30,11 +31,18 @@ import {
  *     Workspace > Slack", not "User Settings > Slack"); a section whose page
  *     has its name ("On-Call Logs") is named once;
  *   - nothing but OneUptime or its Dashboard comes before "User Settings",
- *     which is on the bar itself, not in a menu ("More").
+ *     which is on the bar itself, or before "Project Settings", where a path
+ *     through it starts ("More -> Project Settings" names a menu the bar has
+ *     not had for a long time);
+ *   - it calls Project Settings by its name: "Settings > Domains" sends the
+ *     reader looking for a menu called Settings, and every product's menu
+ *     has a Settings section of its own.
  *
- * What follows a page (a tab, a card) is not checked. Project Settings paths
- * are checked where they lead to the Slack or Microsoft Teams page, which
- * are in its folded Workspace section.
+ * What follows a page (a tab, a card) is not checked. Every Project Settings
+ * path is walked: all of its sections but Basic start folded, so nearly every
+ * page in it is named with its section ("Project Settings > Notifications >
+ * Notification Settings", "Project Settings > Billing and Invoices >
+ * Billing").
  *
  * A product's own menu is walked the same way, from the product's name on
  * the bar: On-Call Duty's ("On-Call Duty > Advanced > User Overrides",
@@ -46,17 +54,29 @@ import {
 
 export const USER_SETTINGS: string = "User Settings";
 export const PROJECT_SETTINGS: string = "Project Settings";
+/*
+ * What a text calls Project Settings when it leaves out "Project": "Settings
+ * > Domains". Every product menu has a Settings section, so the reader cannot
+ * tell which menu that is.
+ */
+export const BARE_SETTINGS: string = "Settings";
 
 /*
- * What a text may name before "User Settings": the product, or its
- * Dashboard ("OneUptime Dashboard > User Settings"), or a value a template
- * puts in.
+ * What a text may name before "User Settings" or "Project Settings": the
+ * product, or its Dashboard ("OneUptime Dashboard > User Settings"), or a
+ * value a template puts in.
  */
-export const ALLOWED_BEFORE_USER_SETTINGS: ReadonlyArray<string> = [
+export const ALLOWED_BEFORE_SETTINGS_MENU: ReadonlyArray<string> = [
   "Dashboard",
   "OneUptime",
   "}",
 ];
+
+// Where each settings menu is, said when a text puts a menu before it.
+const WHERE_THE_MENU_IS: Record<string, string> = {
+  [USER_SETTINGS]: "which is on the bar itself",
+  [PROJECT_SETTINGS]: "where a path through it starts",
+};
 
 export interface SettingsMenuSection extends MenuSection {
   // Whether the section starts folded, so that a path has to name it.
@@ -146,6 +166,11 @@ export function onCallDutyMenu(): SettingsMenu {
   };
 }
 
+/*
+ * Project Settings, with every section the menu can show: Billing and
+ * Invoices, and AI Credits in the AI section, only where billing is on,
+ * which is where a text sends people to them.
+ */
 export function projectSettingsMenu(): SettingsMenu {
   const source: string = readDashboardSource("Pages/Settings/SideMenu.tsx");
 
@@ -153,6 +178,26 @@ export function projectSettingsMenu(): SettingsMenu {
     name: PROJECT_SETTINGS,
     sections: withFolds(source, menuSections(source)),
   };
+}
+
+// A Project Settings page's breadcrumb: "Project", "Settings", its title.
+const PROJECT_SETTINGS_BREADCRUMB: RegExp =
+  /"Project",\s*"Settings",\s*"([^"]+)"/g;
+
+/*
+ * The titles Project Settings' pages go by in their breadcrumbs, some of
+ * them not the menu's ("Telemetry Ingestion Keys" for the Ingestion Keys
+ * entry): a text that names a page by one, after "Settings", still means
+ * Project Settings.
+ */
+export function projectSettingsBreadcrumbTitles(): Array<string> {
+  return Array.from(
+    readDashboardSource("Utils/Breadcrumbs/SettingsBreadcrumbs.ts").matchAll(
+      PROJECT_SETTINGS_BREADCRUMB,
+    ),
+  ).map((match: RegExpMatchArray): string => {
+    return match[1] as string;
+  });
 }
 
 // The chat workspaces' entries: "Slack", "Microsoft Teams".
@@ -168,22 +213,32 @@ export function chatWorkspaceTitles(): Array<string> {
 }
 
 /*
- * A text as a reader sees it: HTML's "&gt;" and "&amp;" as the characters
+ * A text as a reader sees it: its HTML tags gone ("<strong>Project
+ * Settings</strong> > <strong>API Keys</strong>"), with a "<" that starts no
+ * tag kept as text, HTML's "&gt;", "&rsaquo;" and "&amp;" as the characters
  * they stand for, and Markdown's bold markers gone.
  */
 export function readableText(text: string): string {
-  return text
+  return replaceHtmlMarkup(
+    text,
+    (): string => {
+      return "";
+    },
+    { lessThanAsText: true },
+  )
     .split("&gt;")
     .join(">")
+    .split("&rsaquo;")
+    .join("›")
     .split("&amp;")
     .join("&")
     .split("**")
     .join("");
 }
 
-// A separator between two steps of a path: ">", "→" or "->".
-const SEPARATOR_AHEAD: RegExp = /^\s*(?:->|>|→)\s*/;
-const SEPARATOR_BEHIND: RegExp = /\s*(?:->|>|→)\s*$/;
+// A separator between two steps of a path: ">", "→", "->" or "›".
+const SEPARATOR_AHEAD: RegExp = /^\s*(?:->|>|→|›)\s*/;
+const SEPARATOR_BEHIND: RegExp = /\s*(?:->|>|→|›)\s*$/;
 /*
  * A value a template puts in: "{value}" where the scan reads a template
  * literal, "{{workspace}}" in a translation.
@@ -255,16 +310,6 @@ function stepAt(text: string, titles: ReadonlyArray<string>): Step {
   }
 
   return { title: found };
-}
-
-// Whether `text` starts with one of `words`, as a word: "Slack Integration" does with "Slack".
-function startsWithWord(text: string, words: ReadonlyArray<string>): boolean {
-  return words.some((word: string): boolean => {
-    return (
-      text.startsWith(word) &&
-      !LETTER_OR_DIGIT.test(text.charAt(word.length) || " ")
-    );
-  });
 }
 
 function preview(text: string): string {
@@ -439,9 +484,11 @@ export function pathsStartingAt(text: string, name: string): Array<string> {
 export interface SettingsMenus {
   userSettings: SettingsMenu;
   projectSettings: SettingsMenu;
+  // The titles Project Settings' pages go by in their breadcrumbs.
+  projectSettingsBreadcrumbs: ReadonlyArray<string>;
   // The Workspace section's title, in both menus.
   workspace: string;
-  // The chat workspaces' pages, which Project Settings paths are held to.
+  // The chat workspaces' pages: "Slack", "Microsoft Teams".
   chatWorkspaces: ReadonlyArray<string>;
 }
 
@@ -449,15 +496,141 @@ export function settingsMenus(): SettingsMenus {
   return {
     userSettings: userSettingsMenu(),
     projectSettings: projectSettingsMenu(),
+    projectSettingsBreadcrumbs: projectSettingsBreadcrumbTitles(),
     workspace: workspaceSection().title,
     chatWorkspaces: chatWorkspaceTitles(),
   };
 }
 
 /*
- * Every path a text writes through User Settings, and every one through
- * Project Settings to its Workspace section or to a chat workspace's page,
- * with what is wrong with each.
+ * What is wrong with what a text names before a settings menu's name, if it
+ * names anything: "More > User Settings", "More -> Project Settings".
+ */
+function problemBefore(
+  readable: string,
+  index: number,
+  menu: string,
+): string | null {
+  const before: string = readable.slice(0, index);
+  const separatorBefore: RegExpExecArray | null = SEPARATOR_BEHIND.exec(before);
+
+  if (!separatorBefore) {
+    return null;
+  }
+
+  const named: string = before
+    .slice(0, before.length - separatorBefore[0].length)
+    .trimEnd();
+  const allowed: boolean = ALLOWED_BEFORE_SETTINGS_MENU.some(
+    (word: string): boolean => {
+      return named.endsWith(word);
+    },
+  );
+
+  return allowed
+    ? null
+    : `puts "${named.split(" ").pop()}" before ${menu}, ${WHERE_THE_MENU_IS[menu]}`;
+}
+
+// The word right before a name, as written: "in", "iOS", "phone's".
+const WORD_BEHIND: RegExp = /([\p{L}\p{N}'’]+)\s*$/u;
+const POSSESSIVE: RegExp = /['’]/;
+
+/*
+ * Capitalised words that start an instruction rather than a longer name:
+ * "Open Settings > SCIM" is a path from "Settings", "iOS Settings >
+ * Notifications" and "Business Settings → Accounts" are other menus.
+ */
+const INSTRUCTION_WORDS: ReadonlyArray<string> = [
+  "Check",
+  "From",
+  "Go",
+  "In",
+  "Open",
+  "See",
+  "Under",
+  "Use",
+  "Via",
+  "Visit",
+];
+
+/*
+ * Whether the "Settings" at `index` starts a path on its own, rather than
+ * ending a longer name ("User Settings", "Notification Settings", "iOS
+ * Settings", "the phone's Settings") or being a step of a longer path
+ * ("Audit Logs > Settings").
+ */
+function startsBareSettingsPath(readable: string, index: number): boolean {
+  const before: string = readable.slice(0, index);
+  const previous: string = before.slice(-1) || " ";
+
+  if (
+    SEPARATOR_BEHIND.test(before) ||
+    LETTER_OR_DIGIT.test(previous) ||
+    NAME_CONTINUES.test(previous)
+  ) {
+    return false;
+  }
+
+  const word: RegExpExecArray | null = WORD_BEHIND.exec(before);
+
+  if (!word) {
+    return true;
+  }
+
+  const written: string = word[1] as string;
+
+  if (POSSESSIVE.test(written)) {
+    return false;
+  }
+
+  return (
+    written === written.toLowerCase() || INSTRUCTION_WORDS.includes(written)
+  );
+}
+
+/*
+ * Whether the steps after a bare "Settings" are Project Settings': one of its
+ * pages (by its menu entry or its breadcrumb), or one of its sections and a
+ * page in it. A section alone ("Settings → Basic", Meta's app settings) is
+ * not enough to tell.
+ */
+function namesProjectSettingsPage(rest: string, menus: SettingsMenus): boolean {
+  const menu: SettingsMenu = menus.projectSettings;
+  const pages: Array<string> = [
+    ...menu.sections.flatMap((section: SettingsMenuSection): Array<string> => {
+      return section.items;
+    }),
+    ...menus.projectSettingsBreadcrumbs,
+  ];
+
+  if (stepAt(rest, pages).title) {
+    return true;
+  }
+
+  const section: SettingsMenuSection | undefined = menu.sections.find(
+    (candidate: SettingsMenuSection): boolean => {
+      return candidate.title === stepAt(rest, [candidate.title]).title;
+    },
+  );
+
+  if (!section) {
+    return false;
+  }
+
+  const afterSection: string = rest.slice(section.title.length);
+  const separator: RegExpExecArray | null = SEPARATOR_AHEAD.exec(afterSection);
+
+  return Boolean(
+    separator &&
+      stepAt(afterSection.slice(separator[0].length), section.items).title,
+  );
+}
+
+/*
+ * Every path a text writes through User Settings or Project Settings, with
+ * what is wrong with each - and every one it writes through Project Settings
+ * calling it "Settings", which is always wrong.
  */
 export function writtenPaths(
   text: string,
@@ -466,44 +639,31 @@ export function writtenPaths(
   const readable: string = readableText(text);
   const paths: Array<WrittenPath> = [];
 
-  for (const start of pathStarts(readable, USER_SETTINGS)) {
-    const walked: { steps: Array<string>; problems: Array<string> } = walk(
-      menus.userSettings,
-      start.rest,
-    );
-    const before: string = readable.slice(0, start.index);
-    const separatorBefore: RegExpExecArray | null =
-      SEPARATOR_BEHIND.exec(before);
-
-    if (separatorBefore) {
-      const named: string = before
-        .slice(0, before.length - separatorBefore[0].length)
-        .trimEnd();
-      const allowed: boolean = ALLOWED_BEFORE_USER_SETTINGS.some(
-        (word: string): boolean => {
-          return named.endsWith(word);
-        },
+  for (const menu of [menus.userSettings, menus.projectSettings]) {
+    for (const start of pathStarts(readable, menu.name)) {
+      const walked: { steps: Array<string>; problems: Array<string> } = walk(
+        menu,
+        start.rest,
+      );
+      const before: string | null = problemBefore(
+        readable,
+        start.index,
+        menu.name,
       );
 
-      if (!allowed) {
-        walked.problems.push(
-          `puts "${named.split(" ").pop()}" before ${USER_SETTINGS}, which is on the bar itself`,
-        );
-      }
+      paths.push({
+        menu: menu.name,
+        steps: walked.steps,
+        problems: before ? [...walked.problems, before] : walked.problems,
+        text: preview(readable.slice(start.index)),
+      });
     }
-
-    paths.push({
-      menu: USER_SETTINGS,
-      steps: walked.steps,
-      problems: walked.problems,
-      text: preview(readable.slice(start.index)),
-    });
   }
 
-  for (const start of pathStarts(readable, PROJECT_SETTINGS)) {
-    // Paths to other pages of Project Settings are not held here.
+  for (const start of pathStarts(readable, BARE_SETTINGS)) {
     if (
-      !startsWithWord(start.rest, [menus.workspace, ...menus.chatWorkspaces])
+      !startsBareSettingsPath(readable, start.index) ||
+      !namesProjectSettingsPage(start.rest, menus)
     ) {
       continue;
     }
@@ -516,7 +676,10 @@ export function writtenPaths(
     paths.push({
       menu: PROJECT_SETTINGS,
       steps: walked.steps,
-      problems: walked.problems,
+      problems: [
+        `calls ${PROJECT_SETTINGS} "${BARE_SETTINGS}", a section every product's menu has: write ${[PROJECT_SETTINGS, ...walked.steps].join(" > ")}`,
+        ...walked.problems,
+      ],
       text: preview(readable.slice(start.index)),
     });
   }

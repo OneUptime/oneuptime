@@ -110,7 +110,7 @@ jest.mock("net", () => {
 type MockFn = jest.Mock;
 const projectId: ObjectID = ObjectID.generate();
 const paymentError: PaymentRequiredException = new PaymentRequiredException(
-  "Add a payment method in Project Settings > Billing before sending telemetry.",
+  "Add a payment method in Project Settings > Billing and Invoices > Billing before sending telemetry.",
 );
 
 beforeEach(() => {

@@ -130,6 +130,7 @@ import RuleCriteria, {
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { RuleCriteriaSubject } from "../../../../Types/Rules/RuleCriteriaSubject";
 import RuleCriteriaBuilder, {
   convertLegacyValuesToRuleCriteria,
   getDefaultRuleCriteriaOperator,
@@ -138,6 +139,10 @@ import RuleCriteriaBuilder, {
   RULE_CRITERIA_OPERATOR_LABELS,
 } from "../../../../UI/Components/RuleCriteria/RuleCriteriaBuilder";
 import { RuleCriteriaCopy } from "../../../../UI/Components/RuleCriteria/RuleCriteriaFields";
+import {
+  RULE_CRITERIA_ANY_SUBJECT_COPY,
+  RULE_CRITERIA_SUBJECT_COPY,
+} from "../../../../UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 
 type TestEntity = Record<string, unknown>;
 
@@ -212,6 +217,7 @@ interface HarnessProps {
   error?: string | undefined;
   disabled?: boolean | undefined;
   requiresCondition?: boolean | undefined;
+  subject?: RuleCriteriaSubject | undefined;
 }
 
 const Harness: React.FunctionComponent<HarnessProps> = (
@@ -229,6 +235,7 @@ const Harness: React.FunctionComponent<HarnessProps> = (
       error={props.error}
       disabled={props.disabled}
       requiresCondition={props.requiresCondition}
+      subject={props.subject}
       onChange={(value: RuleCriteria): void => {
         props.onChange(value);
         setCriteria(value);
@@ -236,6 +243,24 @@ const Harness: React.FunctionComponent<HarnessProps> = (
     />
   );
 };
+
+const INCIDENTS: { all: string; matching: string } =
+  RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.Incidents];
+
+function allAnswer(): HTMLElement {
+  return screen.getByTestId("rule-criteria-applies-to-all");
+}
+
+function conditionsAnswer(): HTMLElement {
+  return screen.getByTestId("rule-criteria-applies-to-matching");
+}
+
+// "Only ... that match conditions": the conditions open with one to fill in.
+async function chooseConditions(
+  user: ReturnType<typeof userEvent.setup>,
+): Promise<void> {
+  await user.click(conditionsAnswer());
+}
 
 function latestCriteria(onChange: ReturnType<typeof jest.fn>): RuleCriteria {
   const lastCall: Array<unknown> | undefined =
@@ -285,40 +310,365 @@ describe("RuleCriteriaBuilder", () => {
     cleanup();
   });
 
-  describe("with no conditions", () => {
-    test("says the rule applies to everything and offers to add one", () => {
+  /*
+   * "We have customers who think they need to add at least one condition,
+   * but the idea is that if they don't add any condition, it matches all the
+   * incidents. ... We'd probably show two options: all incidents or
+   * conditions, and when we click on conditions, we show the conditions
+   * panel."
+   */
+  describe("what the rule applies to: all of its records, or those its conditions match", () => {
+    test("a new rule starts on 'All', with no condition on screen and nothing to fix", () => {
       const onChange: ReturnType<typeof jest.fn> = jest.fn();
+      render(
+        <Harness onChange={onChange} subject={RuleCriteriaSubject.Incidents} />,
+      );
+
+      // Stored as before: no conditions, combined with All.
+      expect(latestCriteria(onChange)).toEqual(criteriaOf([]));
+
+      expect(allAnswer()).toBeChecked();
+      expect(conditionsAnswer()).not.toBeChecked();
+      expect(screen.getByRole("radio", { name: INCIDENTS.all })).toBe(
+        allAnswer(),
+      );
+      expect(screen.getByRole("radio", { name: INCIDENTS.matching })).toBe(
+        conditionsAnswer(),
+      );
+
+      // No condition waits to be filled in, so nothing can be red.
+      expect(screen.queryByTestId("rule-criteria-row-0")).toBeNull();
+      expect(screen.queryByTestId("rule-criteria-add")).toBeNull();
+      expect(screen.queryByTestId("rule-criteria-conditions")).toBeNull();
+      expect(screen.queryByTestId("rule-criteria-empty")).toBeNull();
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(
+        screen.queryByText(RuleCriteriaCopy.chooseAtLeastOneValueProblem),
+      ).toBeNull();
+    });
+
+    test("REGRESSION: the step does not open on an empty condition to be marked 'Choose at least one value.'", () => {
+      /*
+       * The maintainer's screenshot: Match Criteria showed an "If
+       * [Monitors] [Has any of] [Select one or more]" row, red with
+       * "Choose at least one value.", on a rule that needs no condition at
+       * all. A new rule shows no condition, so there is none to be wrong
+       * about; the form-level twin (IncidentRuleConditions) walks past the
+       * step with Next.
+       */
+      const onChange: ReturnType<typeof jest.fn> = jest.fn();
+      render(
+        <Harness
+          onChange={onChange}
+          subject={RuleCriteriaSubject.Incidents}
+          fields={[MONITORS, LABELS]}
+        />,
+      );
+
+      expect(screen.queryByTestId("rule-criteria-row-0")).toBeNull();
+      expect(capturedEntityDropdowns["rule-criteria-value-0"]).toBeUndefined();
+      expect(allAnswer()).toBeChecked();
+      // What it holds is a rule the form accepts: no conditions at all.
+      expect(latestCriteria(onChange).filters).toEqual([]);
+    });
+
+    test("the choice is one radio group named 'Applies to', and never '(Optional)'", () => {
+      render(<Harness onChange={jest.fn()} />);
+
+      const group: HTMLElement = screen.getByRole("radiogroup", {
+        name: RuleCriteriaCopy.appliesToTitle,
+      });
+      expect(within(group).getAllByRole("radio")).toEqual([
+        allAnswer(),
+        conditionsAnswer(),
+      ]);
+      expect(allAnswer().getAttribute("name")).toBeTruthy();
+      expect(allAnswer().getAttribute("name")).toBe(
+        conditionsAnswer().getAttribute("name"),
+      );
+      expect(
+        screen.getByTestId("rule-criteria-applies-to"),
+      ).not.toHaveTextContent("(Optional)");
+    });
+
+    test("names the records of the rule's kind, or says 'Everything' without one", () => {
+      const { unmount } = render(
+        <Harness onChange={jest.fn()} subject={RuleCriteriaSubject.Hosts} />,
+      );
+
+      expect(screen.getByTestId("rule-criteria-applies-to")).toHaveTextContent(
+        "All hosts",
+      );
+      expect(screen.getByTestId("rule-criteria-applies-to")).toHaveTextContent(
+        "Only hosts that match conditions",
+      );
+      unmount();
+
+      render(<Harness onChange={jest.fn()} />);
+      expect(
+        screen.getByRole("radio", { name: RULE_CRITERIA_ANY_SUBJECT_COPY.all }),
+      ).toBeChecked();
+      expect(
+        screen.getByRole("radio", {
+          name: RULE_CRITERIA_ANY_SUBJECT_COPY.matching,
+        }),
+      ).not.toBeChecked();
+    });
+
+    test("'Only ... that match conditions' opens the conditions with one ready to fill in", async () => {
+      const onChange: ReturnType<typeof jest.fn> = jest.fn();
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+      render(
+        <Harness
+          onChange={onChange}
+          subject={RuleCriteriaSubject.Incidents}
+          fields={[MONITORS, NAME, LABELS]}
+        />,
+      );
+
+      await chooseConditions(user);
+
+      expect(conditionsAnswer()).toBeChecked();
+      expect(allAnswer()).not.toBeChecked();
+      // The first field the page offers, on its first operator.
+      expect(latestCriteria(onChange)).toEqual(
+        criteriaOf([filterOf("monitors", RuleCriteriaOperator.HasAnyOf, [])]),
+      );
+      const panel: HTMLElement = screen.getByTestId(
+        "rule-criteria-applies-to-conditions",
+      );
+      expect(
+        within(panel).getByTestId("rule-criteria-row-0"),
+      ).toHaveTextContent(RuleCriteriaCopy.ifConnector);
+      expect(within(panel).getByTestId("rule-criteria-add")).toBeEnabled();
+      // Not pointed out until the form asks for the conditions.
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    test("a rule saved with conditions opens on 'Only ...', its conditions shown", () => {
+      const onChange: ReturnType<typeof jest.fn> = jest.fn();
+      render(
+        <Harness
+          onChange={onChange}
+          subject={RuleCriteriaSubject.Incidents}
+          initialValue={criteriaOf([
+            filterOf("namePattern", RuleCriteriaOperator.Contains, "db"),
+          ])}
+        />,
+      );
+
+      expect(conditionsAnswer()).toBeChecked();
+      expect(screen.getByTestId("rule-criteria-row-0")).toBeInTheDocument();
+      // Opening it changes nothing.
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    test("a rule saved with no conditions opens on 'All'", () => {
+      const onChange: ReturnType<typeof jest.fn> = jest.fn();
+      render(
+        <Harness
+          onChange={onChange}
+          initialValue={criteriaOf([], FilterCondition.Any)}
+        />,
+      );
+
+      expect(allAnswer()).toBeChecked();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    test("a rule saved before conditions existed opens on 'Only ...' with its old columns", () => {
+      const onChange: ReturnType<typeof jest.fn> = jest.fn();
+      render(
+        <Harness onChange={onChange} legacyValues={{ namePattern: "^api-" }} />,
+      );
+
+      expect(conditionsAnswer()).toBeChecked();
+      expect(latestCriteria(onChange).filters).toEqual([
+        filterOf("namePattern", RuleCriteriaOperator.MatchesPattern, "^api-"),
+      ]);
+    });
+
+    test("going back to 'All' takes the conditions out of the rule", async () => {
+      const onChange: ReturnType<typeof jest.fn> = jest.fn();
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+      render(
+        <Harness
+          onChange={onChange}
+          initialValue={criteriaOf(
+            [
+              filterOf("namePattern", RuleCriteriaOperator.Contains, "api"),
+              filterOf("labels", RuleCriteriaOperator.HasAnyOf, [
+                "label-search",
+              ]),
+            ],
+            FilterCondition.Any,
+          )}
+        />,
+      );
+
+      await user.click(allAnswer());
+
+      expect(allAnswer()).toBeChecked();
+      expect(latestCriteria(onChange).filters).toEqual([]);
+      // How they were combined is kept, as removing them by hand keeps it.
+      expect(latestCriteria(onChange).filterCondition).toBe(
+        FilterCondition.Any,
+      );
+      expect(screen.queryByTestId("rule-criteria-row-0")).toBeNull();
+      expect(screen.queryByTestId("rule-criteria-combine")).toBeNull();
+    });
+
+    test("and 'Only ...' again puts them back as they were: a slip loses nothing", async () => {
+      const onChange: ReturnType<typeof jest.fn> = jest.fn();
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+      const conditions: Array<RuleCriteriaFilter> = [
+        filterOf("namePattern", RuleCriteriaOperator.EndsWith, "-prod"),
+        filterOf("labels", RuleCriteriaOperator.HasNoneOf, ["label-search"]),
+      ];
+      render(
+        <Harness
+          onChange={onChange}
+          initialValue={criteriaOf(conditions, FilterCondition.Any)}
+        />,
+      );
+
+      await user.click(allAnswer());
+      await chooseConditions(user);
+
+      expect(conditionsAnswer()).toBeChecked();
+      expect(latestCriteria(onChange)).toEqual(
+        criteriaOf(conditions, FilterCondition.Any),
+      );
+      expect(screen.getByTestId("rule-criteria-row-1")).toBeInTheDocument();
+
+      // Once back, they are no longer set aside: "All" and "Only" again.
+      await user.click(allAnswer());
+      await chooseConditions(user);
+      expect(latestCriteria(onChange).filters).toEqual(conditions);
+    });
+
+    test("removing the last condition is going back to 'All'", async () => {
+      const onChange: ReturnType<typeof jest.fn> = jest.fn();
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
       render(<Harness onChange={onChange} />);
 
-      expect(latestCriteria(onChange)).toEqual(criteriaOf([]));
+      await chooseConditions(user);
+      await user.type(screen.getByTestId("rule-criteria-value-0"), "gateway");
+      await user.click(
+        screen.getByRole("button", { name: "Remove condition 1" }),
+      );
+
+      expect(allAnswer()).toBeChecked();
+      expect(latestCriteria(onChange).filters).toEqual([]);
+      /*
+       * The remove button went with the conditions, and the focus with it:
+       * it is on the answer now picked, not lost to the page.
+       */
+      expect(allAnswer()).toHaveFocus();
+
+      // A condition removed on purpose is not brought back.
+      await chooseConditions(user);
+      expect(latestCriteria(onChange).filters).toEqual([
+        filterOf("namePattern", RuleCriteriaOperator.Contains, ""),
+      ]);
+    });
+
+    test("picking the answer already picked changes nothing", async () => {
+      const onChange: ReturnType<typeof jest.fn> = jest.fn();
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+      render(
+        <Harness
+          onChange={onChange}
+          initialValue={criteriaOf([
+            filterOf("namePattern", RuleCriteriaOperator.Contains, "api"),
+          ])}
+        />,
+      );
+
+      await chooseConditions(user);
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getAllByTestId(/^rule-criteria-row-/)).toHaveLength(1);
+    });
+
+    test("with nothing the conditions could be about, 'Only ...' cannot be picked", () => {
+      render(<Harness onChange={jest.fn()} fields={[]} />);
+
+      expect(conditionsAnswer()).toBeDisabled();
+      expect(allAnswer()).toBeEnabled();
+      expect(allAnswer()).toBeChecked();
+    });
+
+    test("a disabled builder disables both answers", () => {
+      render(<Harness onChange={jest.fn()} disabled={true} />);
+
+      expect(allAnswer()).toBeDisabled();
+      expect(conditionsAnswer()).toBeDisabled();
+    });
+
+    test("two builders on one page are two radio groups", () => {
+      render(
+        <div>
+          <Harness onChange={jest.fn()} />
+          <Harness onChange={jest.fn()} />
+        </div>,
+      );
+
+      const names: Array<string | null> = screen
+        .getAllByTestId("rule-criteria-applies-to-all")
+        .map((input: HTMLElement): string | null => {
+          return input.getAttribute("name");
+        });
+
+      expect(names[0]).not.toBe(names[1]);
+    });
+  });
+
+  describe("a rule kind that needs a condition", () => {
+    test("has no 'All' to offer: the conditions alone, asking for one", () => {
+      render(
+        <Harness
+          onChange={jest.fn()}
+          requiresCondition={true}
+          subject={RuleCriteriaSubject.Monitors}
+        />,
+      );
+
+      expect(screen.queryByTestId("rule-criteria-applies-to")).toBeNull();
+      expect(screen.queryByRole("radiogroup")).toBeNull();
+      expect(screen.queryByText("All monitors")).toBeNull();
 
       const empty: HTMLElement = screen.getByTestId("rule-criteria-empty");
       expect(empty).toHaveTextContent(RuleCriteriaCopy.emptyTitle);
       expect(
         screen.getByTestId("rule-criteria-empty-description"),
-      ).toHaveTextContent(RuleCriteriaCopy.emptyMatchesEverything);
+      ).toHaveTextContent(RuleCriteriaCopy.emptyNeedsCondition);
       expect(
         within(empty).getByRole("button", { name: "Add condition" }),
       ).toBeEnabled();
-      expect(screen.queryByTestId("rule-criteria-row-0")).toBeNull();
-      expect(screen.queryByTestId("rule-criteria-combine")).toBeNull();
-    });
-
-    test("asks for a condition when the rule matches nothing without one", () => {
-      render(<Harness onChange={jest.fn()} requiresCondition={true} />);
-
-      expect(
-        screen.getByTestId("rule-criteria-empty-description"),
-      ).toHaveTextContent(RuleCriteriaCopy.emptyNeedsCondition);
-      expect(
-        screen.getByTestId("rule-criteria-empty-description"),
-      ).not.toHaveTextContent("applies to everything");
     });
 
     test("cannot add a condition when the page offers no field", () => {
-      render(<Harness onChange={jest.fn()} fields={[]} />);
+      render(
+        <Harness onChange={jest.fn()} fields={[]} requiresCondition={true} />,
+      );
 
       expect(screen.getByTestId("rule-criteria-add")).toBeDisabled();
+    });
+
+    test("shows its conditions as every rule does once it has some", () => {
+      render(
+        <Harness
+          onChange={jest.fn()}
+          requiresCondition={true}
+          initialValue={criteriaOf([
+            filterOf("namePattern", RuleCriteriaOperator.Contains, "api"),
+          ])}
+        />,
+      );
+
+      expect(screen.getByTestId("rule-criteria-conditions")).toBeVisible();
+      expect(screen.getByTestId("rule-criteria-row-0")).toBeInTheDocument();
+      expect(screen.queryByRole("radiogroup")).toBeNull();
     });
   });
 
@@ -328,7 +678,7 @@ describe("RuleCriteriaBuilder", () => {
       const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
       render(<Harness onChange={onChange} />);
 
-      await user.click(screen.getByTestId("rule-criteria-add"));
+      await chooseConditions(user);
 
       expect(latestCriteria(onChange).filters).toEqual([
         filterOf("namePattern", RuleCriteriaOperator.Contains, ""),
@@ -345,7 +695,7 @@ describe("RuleCriteriaBuilder", () => {
       const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
       render(<Harness onChange={onChange} />);
 
-      await user.click(screen.getByTestId("rule-criteria-add"));
+      await chooseConditions(user);
       await user.click(screen.getByTestId("rule-criteria-add"));
       await user.click(screen.getByTestId("rule-criteria-add"));
 
@@ -400,7 +750,9 @@ describe("RuleCriteriaBuilder", () => {
         screen.getByRole("button", { name: "Remove condition 1" }),
       );
       expect(latestCriteria(onChange).filters).toEqual([]);
-      expect(screen.getByTestId("rule-criteria-empty")).toBeInTheDocument();
+      // No conditions left: the rule applies to all of its records again.
+      expect(allAnswer()).toBeChecked();
+      expect(screen.queryByTestId("rule-criteria-row-0")).toBeNull();
     });
   });
 
@@ -1050,6 +1402,8 @@ describe("RuleCriteriaBuilder", () => {
     expect(screen.getByTestId("rule-criteria-add")).toBeDisabled();
     expect(screen.getByTestId("rule-criteria-delete-0")).toBeDisabled();
     expect(screen.getByTestId("rule-criteria-match-any")).toBeDisabled();
+    expect(allAnswer()).toBeDisabled();
+    expect(conditionsAnswer()).toBeDisabled();
   });
 
   test("hydrates legacy values once but leaves stored criteria untouched", () => {
@@ -1113,7 +1467,7 @@ describe("RuleCriteriaBuilder", () => {
     ];
 
     render(<Harness onChange={onChange} fields={conditionalFields} />);
-    await user.click(screen.getByTestId("rule-criteria-add"));
+    await chooseConditions(user);
 
     expect(latestCriteria(onChange).filters[0]?.field).toBe("namePattern");
     expect(optionLabels("rule-criteria-field-0")).toEqual(["Name"]);

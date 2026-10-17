@@ -866,7 +866,7 @@ Resserrez davantage si besoin : passez `minSeverity` à `ERROR`, ajoutez `metric
 
 ### Mesurer l'effet
 
-L'utilisation de la télémétrie est comptée par jour : vérifiez donc la tendance sous **Paramètres du projet → Historique d'utilisation** sur un jour ou deux, car elle ne bouge pas au moment où vous appliquez un changement. Changez un réglage à la fois (journaux désactivés, puis intervalle allongé, puis eBPF allégé) pour savoir ce qu'a fait chacun, plutôt que de tout réduire d'un coup et de perdre un moniteur sur lequel vous comptiez.
+L'utilisation de la télémétrie est comptée par jour : vérifiez donc la tendance sous **Paramètres du projet → Facturation et factures → Historique d'utilisation** sur un jour ou deux, car elle ne bouge pas au moment où vous appliquez un changement. Changez un réglage à la fois (journaux désactivés, puis intervalle allongé, puis eBPF allégé) pour savoir ce qu'a fait chacun, plutôt que de tout réduire d'un coup et de perdre un moniteur sur lequel vous comptiez.
 
 ## Dépannage
 

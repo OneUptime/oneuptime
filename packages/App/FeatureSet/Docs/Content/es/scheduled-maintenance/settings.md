@@ -73,7 +73,7 @@ Haz clic en **Crear Regla de recordatorio de mantenimiento programado**. En **In
 
 ### Elegir sobre qué eventos recordar
 
-En **Criterios de coincidencia**, elige las **Etiquetas** a las que se aplica. Déjalas vacías para recordar todos los eventos.
+En **Criterios de coincidencia**, deja marcado **Todos los eventos de mantenimiento programado** para recordar todos los eventos, o elige **Solo los eventos de mantenimiento programado que cumplen las condiciones** y luego las **Etiquetas** a las que se aplica.
 
 ### Fijar el intervalo
 

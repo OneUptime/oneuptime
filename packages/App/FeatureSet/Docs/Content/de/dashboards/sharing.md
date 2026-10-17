@@ -95,7 +95,7 @@ Nach der Verifizierung ist das Dashboard sowohl unter Ihrer eigenen Domain als a
 Klicken Sie auf **Dashboard-Domain erstellen**. Der Dialog ist eine einzige Seite:
 
 - **Subdomain**: nur die Bezeichnung, Platzhalter `dashboard (leave blank for root)`. Geben Sie nur `dashboard` ein, nicht den ganzen Hostnamen. Lassen Sie sie leer oder geben Sie `@` ein, um die Stammdomain (Apex) zu verwenden.
-- **Domäne**: die unter **Projekteinstellungen → Domänen** verifizierten Domains, wo Sie mit einem TXT-Eintrag beweisen, dass Ihnen eine Domain gehört. Eine Domain, die Sie nicht verifiziert haben, wird nicht aufgeführt, weil sie abgelehnt würde. Der Link **Domain hinzufügen** neben dem Feld öffnet diese Seite in einem neuen Tab.
+- **Domäne**: die unter **Projekteinstellungen → Erweitert → Domänen** verifizierten Domains, wo Sie mit einem TXT-Eintrag beweisen, dass Ihnen eine Domain gehört. Eine Domain, die Sie nicht verifiziert haben, wird nicht aufgeführt, weil sie abgelehnt würde. Der Link **Domain hinzufügen** neben dem Feld öffnet diese Seite in einem neuen Tab.
 - **Weitere Felder**: eingeklappt. Solange es eingeklappt ist, sagt sein Kopf, welches Zertifikat die Domain verwenden wird: „Wir stellen ein kostenloses SSL-Zertifikat für diese Domain aus und erneuern es automatisch.“ Öffnen Sie es nur, um ein eigenes Zertifikat zu verwenden (siehe unten).
 
 Klicken Sie auf **Dashboard-Domain erstellen**. Der Dialog schließt sich, und die **DNS-Einrichtung** der neuen Domain öffnet sich. Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Subdomain zu verwenden, fügen Sie diese Domain hinzu und löschen die alte.

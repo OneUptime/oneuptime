@@ -28,7 +28,7 @@ Bei Ihrer ersten Anmeldung zeigt OneUptime **Keine Projekte**. Klicken Sie auf *
 
 ### Einen Namen vergeben
 
-Geben Sie einen **Projektname** ein, etwa den Namen Ihres Unternehmens. Bei OneUptime Cloud wählen Sie im nächsten Schritt einen Tarif.
+Geben Sie einen **Projektname** ein, etwa den Namen Ihres Unternehmens. Bei OneUptime Cloud wählen Sie darunter auch einen Tarif: Free ist bereits ausgewählt, und die kostenpflichtigen Tarife beginnen mit einer kostenlosen Testphase.
 
 ### Das Projekt anlegen
 
@@ -68,7 +68,7 @@ Klicken Sie in der Checkliste auf **Bereitschaftsrichtlinie einrichten**, oder �
 
 ### Sie für jeden Vorfall auslösen
 
-Öffnen Sie **Vorfälle** im Menü **Produkte**, klappen Sie **Regeln** im Seitenmenü auf und wählen Sie **Bereitschaftsregeln**. Klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**, geben Sie einen **Name** ein und klicken Sie auf **Weiter**. Lassen Sie **Übereinstimmungskriterien** leer, damit die Regel auf jeden Vorfall zutrifft, und klicken Sie auf **Weiter**. Wählen Sie Ihre Richtlinie unter **Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**.
+Öffnen Sie **Vorfälle** im Menü **Produkte**, klappen Sie **Regeln** im Seitenmenü auf und wählen Sie **Bereitschaftsregeln**. Klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**, geben Sie einen **Name** ein und klicken Sie auf **Weiter**. Lassen Sie unter **Übereinstimmungskriterien** die Auswahl **Alle Vorfälle** stehen, damit die Regel auf jeden Vorfall zutrifft, und klicken Sie auf **Weiter**. Wählen Sie Ihre Richtlinie unter **Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**.
 
 ### Festlegen, wie Sie erreicht werden
 

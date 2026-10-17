@@ -484,7 +484,7 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
     );
 
     expect(error.message).toBe(
-      "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.",
+      "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI → AI Features, or dismiss the suggestion.",
     );
     expect(statusSpy).not.toHaveBeenCalled();
     expect(runnerFindSpy).not.toHaveBeenCalled();
