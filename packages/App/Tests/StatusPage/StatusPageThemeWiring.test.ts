@@ -138,6 +138,13 @@ describe("the master page", () => {
 });
 
 describe("the page's logo", () => {
+  test("is plated on every page a visitor can see dark: Dark, and one that follows the device", () => {
+    const plate: string = readCode("Components", "Logo", "LogoPlate.tsx");
+
+    expect(plate).toContain("canStatusPageThemeBeDark(theme)");
+    expect(plate).not.toContain("doesStatusPageThemeFollowDevice");
+  });
+
   test("sits in a LogoPlate wherever the app draws it: the header and every page shown on its own", () => {
     const drawsLogo: Array<[string, string]> = [
       ["Components/Header/Header.tsx", "<LogoPlate"],
@@ -183,10 +190,22 @@ describe("the page's logo", () => {
 describe("the footer's switch", () => {
   const footer: string = readCode("Components", "Footer", "Footer.tsx");
 
-  test("is offered only on a page that follows the visitor's device, beside the language switcher", () => {
-    expect(footer).toContain("doesStatusPageThemeFollowDevice(theme) ?");
+  test("sits beside the language switcher in one footer entry, and is drawn only on a page that follows the visitor's device", () => {
+    // One entry on every page, centred on a phone like the footer's others.
+    expect(footer).toContain("className={FOOTER_VISITOR_CONTROLS_CLASS_NAME}");
     expect(footer).toContain(
       "<LanguageSwitcher enabledLanguages={props.enabledLanguages || null} /> <ThemeSwitch />",
+    );
+
+    // The switch decides for itself: nothing at all on a Light or Dark page.
+    const themeSwitch: string = readCode(
+      "Components",
+      "ThemeSwitch",
+      "ThemeSwitch.tsx",
+    );
+
+    expect(themeSwitch).toContain(
+      "if (!doesStatusPageThemeFollowDevice(theme)) { return <></>; }",
     );
   });
 
