@@ -23,6 +23,9 @@ import {
 import Field from "../../../../UI/Components/Detail/Field";
 import { PLACEHOLDER_TEXT_CLASS_NAME } from "../../../../UI/Components/Detail/PlaceholderText";
 import DropdownValueBadge from "../../../../UI/Components/Dropdown/DropdownValueBadge";
+import Modal from "../../../../UI/Components/Modal/Modal";
+import SideOver from "../../../../UI/Components/SideOver/SideOver";
+import TableBody from "../../../../UI/Components/Table/TableBody";
 import LabelsElement, {
   DETAIL_LABELS_CLASS_NAME,
   DETAIL_LABELS_TEST_ID,
@@ -409,6 +412,106 @@ describe("what an element can tell about where it is drawn", () => {
     expect(new Set(seen)).toEqual(
       new Set(["outside:false", "description:false", "value:true"]),
     );
+  });
+});
+
+/*
+ * A dialog, a side panel or a table drawn from inside a value starts again,
+ * as each starts a card's surface again (CardSurface): what it draws is not
+ * a detail card's value, so its labels are a table's or a form's.
+ */
+describe("a surface of its own drawn inside a value starts again", () => {
+  type FieldDrawingFunction = (
+    draw: (labels: Array<Label>) => ReactElement,
+  ) => Field<Item>;
+
+  const fieldDrawing: FieldDrawingFunction = (
+    draw: (labels: Array<Label>) => ReactElement,
+  ): Field<Item> => {
+    return {
+      key: "labels",
+      title: "Labels",
+      fieldType: FieldType.Element,
+      getElement: (item: Item): ReactElement => {
+        return draw(item.labels || []);
+      },
+    };
+  };
+
+  type ExpectTableListFunction = () => void;
+
+  // A table cell's list: the first three, then "N more".
+  const expectTableList: ExpectTableListFunction = (): void => {
+    expect(screen.queryByTestId(DETAIL_LABELS_TEST_ID)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "3 more labels" }),
+    ).toBeInTheDocument();
+  };
+
+  test("a dialog", () => {
+    renderDetail({ labels: makeLabels(LABEL_NAMES) }, [
+      fieldDrawing((labels: Array<Label>): ReactElement => {
+        return (
+          <Modal title="Labels" onClose={(): void => {}}>
+            <LabelsElement labels={labels} />
+          </Modal>
+        );
+      }),
+    ]);
+
+    expectTableList();
+  });
+
+  test("a side panel", () => {
+    renderDetail({ labels: makeLabels(LABEL_NAMES) }, [
+      fieldDrawing((labels: Array<Label>): ReactElement => {
+        return (
+          <SideOver
+            title="Labels"
+            description="Every label on the record."
+            onClose={(): void => {}}
+          >
+            <LabelsElement labels={labels} />
+          </SideOver>
+        );
+      }),
+    ]);
+
+    expectTableList();
+  });
+
+  test("a table's rows", () => {
+    interface Row {
+      labels: Array<Label>;
+    }
+
+    renderDetail({ labels: makeLabels(LABEL_NAMES) }, [
+      fieldDrawing((labels: Array<Label>): ReactElement => {
+        return (
+          <table>
+            <TableBody<Row>
+              id="labels-table"
+              data={[{ labels: labels }]}
+              columns={[
+                {
+                  title: "Labels",
+                  key: "labels",
+                  type: FieldType.Element,
+                  getElement: (row: Row): ReactElement => {
+                    return <LabelsElement labels={row.labels} />;
+                  },
+                },
+              ]}
+              selectedItems={[]}
+              matchBulkSelectedItemByField={undefined}
+              isMobile={false}
+            />
+          </table>
+        );
+      }),
+    ]);
+
+    expectTableList();
   });
 });
 
