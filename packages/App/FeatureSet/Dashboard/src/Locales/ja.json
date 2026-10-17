@@ -30472,6 +30472,8 @@
   "Said on the call: someone found or confirmed it.": "通話での発言: 誰かが見つけたか確認しました。",
   "Save as root cause": "根本原因として保存",
   "See what it found": "検出内容を見る",
+  "Show {{count}} more labels": "他のラベルを {{count}} 件表示",
+  "Show {{count}} more labels_one": "他のラベルを {{count}} 件表示",
   "Show {{count}} more remarks": "さらに {{count}} 件の発言を表示",
   "Show {{count}} more remarks_one": "さらに {{count}} 件の発言を表示",
   "Suggested root cause": "提案された根本原因",

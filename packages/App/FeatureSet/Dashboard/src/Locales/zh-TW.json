@@ -30472,6 +30472,8 @@
   "Said on the call: someone found or confirmed it.": "通話中所說：有人找到或確認了它。",
   "Save as root cause": "儲存為根本原因",
   "See what it found": "查看發現的內容",
+  "Show {{count}} more labels": "再顯示 {{count}} 個標籤",
+  "Show {{count}} more labels_one": "再顯示 {{count}} 個標籤",
   "Show {{count}} more remarks": "再顯示 {{count}} 則發言",
   "Show {{count}} more remarks_one": "再顯示 {{count}} 則發言",
   "Suggested root cause": "建議的根本原因",

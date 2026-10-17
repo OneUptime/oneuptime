@@ -30472,6 +30472,8 @@
   "Said on the call: someone found or confirmed it.": "Сказано на звонке: кто-то нашёл или подтвердил её.",
   "Save as root cause": "Сохранить как корневую причину",
   "See what it found": "Посмотреть, что найдено",
+  "Show {{count}} more labels": "Показать ещё меток: {{count}}",
+  "Show {{count}} more labels_one": "Показать ещё {{count}} метку",
   "Show {{count}} more remarks": "Показать ещё реплик: {{count}}",
   "Show {{count}} more remarks_one": "Показать ещё {{count}} реплику",
   "Suggested root cause": "Предложенная корневая причина",

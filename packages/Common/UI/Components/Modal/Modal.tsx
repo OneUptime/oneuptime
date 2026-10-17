@@ -5,6 +5,7 @@ import Loader, { LoaderType } from "../Loader/Loader";
 import ModalBody from "./ModalBody";
 import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
 import { DetailValueContext } from "../Detail/DetailValueContext";
+import { TableCellContext } from "../Table/TableCellContext";
 import ModalFooter from "./ModalFooter";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -647,11 +648,14 @@ const Modal: FunctionComponent<ComponentProps> = (
                      * A dialog is a surface of its own: a card drawn in it is
                      * never a section of the card it was opened from, nor is
                      * what it draws a value of the detail card it was opened
-                     * from (DetailValueContext).
+                     * from (DetailValueContext), nor a cell of the table it
+                     * was opened from (TableCellContext).
                      */
                     <CardSurfaceContext.Provider value={CardSurface.Page}>
                       <DetailValueContext.Provider value={false}>
-                        {props.children}
+                        <TableCellContext.Provider value={false}>
+                          {props.children}
+                        </TableCellContext.Provider>
                       </DetailValueContext.Provider>
                     </CardSurfaceContext.Provider>
                   ) : (

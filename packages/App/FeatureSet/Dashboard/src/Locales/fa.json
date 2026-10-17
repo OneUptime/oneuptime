@@ -30472,6 +30472,8 @@
   "Said on the call: someone found or confirmed it.": "در تماس گفته شد: کسی آن را پیدا یا تأیید کرد.",
   "Save as root cause": "ذخیره به‌عنوان علت ریشه‌ای",
   "See what it found": "دیدن یافته‌ها",
+  "Show {{count}} more labels": "نمایش {{count}} برچسب دیگر",
+  "Show {{count}} more labels_one": "نمایش {{count}} برچسب دیگر",
   "Show {{count}} more remarks": "نمایش {{count}} گفتهٔ دیگر",
   "Show {{count}} more remarks_one": "نمایش {{count}} گفتهٔ دیگر",
   "Suggested root cause": "علت ریشه‌ای پیشنهادی",

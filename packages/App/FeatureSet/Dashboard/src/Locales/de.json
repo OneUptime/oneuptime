@@ -30472,6 +30472,8 @@
   "Said on the call: someone found or confirmed it.": "Im Anruf gesagt: Jemand hat sie gefunden oder bestätigt.",
   "Save as root cause": "Als Grundursache speichern",
   "See what it found": "Ergebnisse ansehen",
+  "Show {{count}} more labels": "{{count}} weitere Labels anzeigen",
+  "Show {{count}} more labels_one": "{{count}} weiteres Label anzeigen",
   "Show {{count}} more remarks": "{{count}} weitere Äußerungen anzeigen",
   "Show {{count}} more remarks_one": "{{count}} weitere Äußerung anzeigen",
   "Suggested root cause": "Vorgeschlagene Grundursache",

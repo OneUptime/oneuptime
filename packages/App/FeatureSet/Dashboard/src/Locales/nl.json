@@ -30472,6 +30472,8 @@
   "Said on the call: someone found or confirmed it.": "Gezegd in het gesprek: iemand heeft het gevonden of bevestigd.",
   "Save as root cause": "Opslaan als hoofdoorzaak",
   "See what it found": "Bekijk wat het vond",
+  "Show {{count}} more labels": "{{count}} meer labels tonen",
+  "Show {{count}} more labels_one": "{{count}} meer label tonen",
   "Show {{count}} more remarks": "Nog {{count}} opmerkingen tonen",
   "Show {{count}} more remarks_one": "Nog {{count}} opmerking tonen",
   "Suggested root cause": "Voorgestelde hoofdoorzaak",
