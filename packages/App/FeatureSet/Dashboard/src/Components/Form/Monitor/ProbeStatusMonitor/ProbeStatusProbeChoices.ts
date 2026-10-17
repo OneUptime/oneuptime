@@ -23,6 +23,13 @@ export interface ProbeStatusProbeOptionGroup {
   options: Array<ProbeStatusProbeOption>;
 }
 
+/*
+ * Create Monitor's link from a probe ("Monitor this probe"):
+ * ?monitorType=Probe Status&watchProbeId=<probe id>. The monitor starts
+ * watching that probe alone.
+ */
+export const WATCH_PROBE_QUERY_PARAM: string = "watchProbeId";
+
 // The same words as the two tables under Monitors > Settings > Probes.
 export const CUSTOM_PROBES_GROUP_LABEL: string = "Custom Probes";
 export const GLOBAL_PROBES_GROUP_LABEL: string = "Global Probes";
@@ -49,7 +56,24 @@ export default class ProbeStatusProbeChoices {
   public static getDefaultProbeIds(data: {
     probes: Array<ProbeStatusProbeChoice>;
     isBillingEnabled: boolean;
+    /*
+     * The probe a "Monitor this probe" link named (WATCH_PROBE_QUERY_PARAM).
+     * It wins when it is one of the probes: that is what was asked for.
+     */
+    requestedProbeId?: string | null | undefined;
   }): Array<string> {
+    const requestedProbeId: string = (data.requestedProbeId || "").trim();
+
+    const requestedProbe: ProbeStatusProbeChoice | undefined = requestedProbeId
+      ? data.probes.find((probe: ProbeStatusProbeChoice): boolean => {
+          return probe.id.toLowerCase() === requestedProbeId.toLowerCase();
+        })
+      : undefined;
+
+    if (requestedProbe) {
+      return [requestedProbe.id];
+    }
+
     const customProbes: Array<ProbeStatusProbeChoice> = data.probes.filter(
       (probe: ProbeStatusProbeChoice): boolean => {
         return !probe.isGlobalProbe;
@@ -126,6 +150,17 @@ export default class ProbeStatusProbeChoices {
     return groups.filter((group: ProbeStatusProbeOptionGroup): boolean => {
       return group.options.length > 0;
     });
+  }
+
+  /*
+   * The name a monitor made from "Monitor this probe" starts with: the
+   * probe's own, so the monitor list and the incidents read "EU Probe
+   * status". Empty when the probe's name is not known.
+   */
+  public static getMonitorNameForProbe(probeName: string | undefined): string {
+    const name: string = (probeName || "").trim();
+
+    return name ? `${name} status` : "";
   }
 
   // The picked probes no option lists, each once, in the order picked.

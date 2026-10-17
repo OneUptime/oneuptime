@@ -29,7 +29,9 @@ import ProbeStatusProbeChoices, {
   ProbeStatusProbeChoice,
   ProbeStatusProbeOption,
   ProbeStatusProbeOptionGroup,
+  WATCH_PROBE_QUERY_PARAM,
 } from "./ProbeStatusProbeChoices";
+import Navigation from "Common/UI/Utils/Navigation";
 
 export interface ComponentProps {
   monitorStepProbeStatusMonitor: MonitorStepProbeStatusMonitor;
@@ -41,10 +43,10 @@ export interface ComponentProps {
  * else - what a disconnected probe means, who is told - is the criteria's,
  * which start as "open an incident when a probe disconnects".
  *
- * A new monitor starts watching the project's own probes, or on a
- * self-hosted installation with none, its global probes
- * (ProbeStatusProbeChoices.getDefaultProbeIds), so most people only check
- * the picker and move on.
+ * A new monitor starts watching the probe a "Monitor this probe" link
+ * named, else the project's own probes, or on a self-hosted installation
+ * with none, its global probes (ProbeStatusProbeChoices.getDefaultProbeIds),
+ * so most people only check the picker and move on.
  */
 const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -92,6 +94,9 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
             ProbeStatusProbeChoices.getDefaultProbeIds({
               probes: choices,
               isBillingEnabled: BILLING_ENABLED,
+              requestedProbeId: Navigation.getQueryStringByName(
+                WATCH_PROBE_QUERY_PARAM,
+              ),
             });
 
           if (defaultProbeIds.length > 0) {
