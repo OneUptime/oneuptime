@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -85,7 +86,7 @@ describe("which card is chosen", () => {
 
 describe("what a pick reports", () => {
   test("ICMP reports false", () => {
-    const onChange: jest.Mock<OnChange> = jest.fn<OnChange>();
+    const onChange: Mock<OnChange> = jest.fn<OnChange>();
     renderChoice(true, onChange);
 
     fireEvent.click(card("icmp"));
@@ -95,7 +96,7 @@ describe("what a pick reports", () => {
   });
 
   test("SNMP reports true", () => {
-    const onChange: jest.Mock<OnChange> = jest.fn<OnChange>();
+    const onChange: Mock<OnChange> = jest.fn<OnChange>();
     renderChoice(false, onChange);
 
     fireEvent.click(card("snmp"));
@@ -115,7 +116,7 @@ describe("what a pick reports", () => {
   ] as Array<[string, boolean, "icmp" | "snmp"]>)(
     "picking %s again reports nothing",
     (_label: string, value: boolean, method: "icmp" | "snmp") => {
-      const onChange: jest.Mock<OnChange> = jest.fn<OnChange>();
+      const onChange: Mock<OnChange> = jest.fn<OnChange>();
       renderChoice(value, onChange);
 
       fireEvent.click(card(method));
@@ -125,7 +126,7 @@ describe("what a pick reports", () => {
   );
 
   test("the keyboard picks too: Enter and Space on a card", () => {
-    const onChange: jest.Mock<OnChange> = jest.fn<OnChange>();
+    const onChange: Mock<OnChange> = jest.fn<OnChange>();
     renderChoice(false, onChange);
 
     fireEvent.keyDown(card("snmp"), { key: "Enter" });
@@ -138,7 +139,7 @@ describe("what a pick reports", () => {
 
   // It never writes on its own: the form's value is its starting point.
   test("drawing it reports nothing", () => {
-    const onChange: jest.Mock<OnChange> = jest.fn<OnChange>();
+    const onChange: Mock<OnChange> = jest.fn<OnChange>();
 
     renderChoice(false, onChange);
     renderChoice(true, onChange);
