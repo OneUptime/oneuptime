@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 /*
  * A choice of view a reader makes once and finds again: which of a page's
  * views it opens on (List | Calendar on the scheduled maintenance events),
- * remembered in their browser, and the same in every tab and every copy of
- * the switch on the page at once.
+ * remembered in their browser - a page opened later opens on it too - and
+ * the same in every copy of the switch on the page at once.
  *
  * Browser storage can be missing or refuse writes (a private window, blocked
  * site data), so every access is guarded and the choice still holds for the

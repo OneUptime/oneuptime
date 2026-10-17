@@ -166,9 +166,7 @@ export const toCalendarEvents: (data: {
       color:
         event.currentScheduledMaintenanceState?.color?.toString() ||
         MAINTENANCE_CALENDAR_FALLBACK_COLOR,
-      desc: [title, stateName ? `${stateName} · ${window}` : window].join(
-        "\n",
-      ),
+      desc: [title, stateName ? `${stateName} · ${window}` : window].join("\n"),
     });
   });
 

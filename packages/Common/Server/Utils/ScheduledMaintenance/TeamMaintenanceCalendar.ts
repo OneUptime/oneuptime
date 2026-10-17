@@ -44,10 +44,10 @@ export const TEAM_CALENDAR_PAST_DAYS: number = 90;
 export const TEAM_CALENDAR_FUTURE_DAYS: number = 365;
 
 export const TEAM_CALENDAR_TURNED_OFF_REASON: string =
-  "This calendar link is turned off, so it shows no events. Turn it on again from Scheduled Maintenance > Events > Subscribe.";
+  "This calendar link is turned off, so it shows no events. Turn it on again from Scheduled Maintenance > Events > Subscribe to calendar.";
 
 export const TEAM_CALENDAR_REPLACED_REASON: string =
-  "This calendar link was replaced by a new one, so it shows no events. Subscribe again with the new link from Scheduled Maintenance > Events > Subscribe.";
+  "This calendar link was replaced by a new one, so it shows no events. Subscribe again with the new link from Scheduled Maintenance > Events > Subscribe to calendar.";
 
 const MILLISECONDS_PER_DAY: number = 24 * 60 * 60 * 1000;
 
@@ -101,11 +101,12 @@ export default class TeamMaintenanceCalendar {
     projectId: ObjectID;
     now: Date;
   }): Promise<RenderedMaintenanceCalendar> {
-    const [projectName, read]: [string, TeamCalendarEvents] =
-      await Promise.all([
+    const [projectName, read]: [string, TeamCalendarEvents] = await Promise.all(
+      [
         TeamMaintenanceCalendar.getProjectName(data.projectId),
         TeamMaintenanceCalendar.readEvents(data),
-      ]);
+      ],
+    );
 
     const body: string = MaintenanceCalendar.render({
       audience: MaintenanceCalendarAudience.Team,
@@ -252,9 +253,7 @@ export default class TeamMaintenanceCalendar {
           return {
             id: eventId,
             title: event.title,
-            description: maintenanceDescriptionToPlainText(
-              event.description,
-            ),
+            description: maintenanceDescriptionToPlainText(event.description),
             startsAt: event.startsAt!,
             endsAt: event.endsAt,
             stateName: event.currentScheduledMaintenanceState?.name,
@@ -351,11 +350,14 @@ export default class TeamMaintenanceCalendar {
         },
       });
 
-    const timelines: Map<string, Array<ScheduledMaintenanceTimelineRow>> =
-      new Map<string, Array<ScheduledMaintenanceTimelineRow>>();
+    const timelines: Map<
+      string,
+      Array<ScheduledMaintenanceTimelineRow>
+    > = new Map<string, Array<ScheduledMaintenanceTimelineRow>>();
 
     for (const row of rows) {
-      const eventId: string | undefined = row.scheduledMaintenanceId?.toString();
+      const eventId: string | undefined =
+        row.scheduledMaintenanceId?.toString();
 
       if (!eventId) {
         continue;

@@ -48,10 +48,34 @@ const PAGE_ID = id(1);
 const MONITOR_ID = id(2);
 
 const STATES = [
-  { _id: id(10), name: "Scheduled", color: "#000000", order: 1, isScheduledState: true },
-  { _id: id(11), name: "Ongoing", color: "#ffbf53", order: 2, isOngoingState: true },
-  { _id: id(12), name: "Ended", color: "#4a4a4a", order: 3, isEndedState: true },
-  { _id: id(13), name: "Completed", color: "#2ab57d", order: 4, isResolvedState: true },
+  {
+    _id: id(10),
+    name: "Scheduled",
+    color: "#000000",
+    order: 1,
+    isScheduledState: true,
+  },
+  {
+    _id: id(11),
+    name: "Ongoing",
+    color: "#ffbf53",
+    order: 2,
+    isOngoingState: true,
+  },
+  {
+    _id: id(12),
+    name: "Ended",
+    color: "#4a4a4a",
+    order: 3,
+    isEndedState: true,
+  },
+  {
+    _id: id(13),
+    name: "Completed",
+    color: "#2ab57d",
+    order: 4,
+    isResolvedState: true,
+  },
 ].map((state) => {
   return Object.assign(new ScheduledMaintenanceState(), {
     ...state,
@@ -148,8 +172,7 @@ function answer(events) {
 }
 
 API.post = async (options) => {
-  const path = new URL(options.url.toString(), window.location.origin)
-    .pathname;
+  const path = new URL(options.url.toString(), window.location.origin).pathname;
   state.requests.push(path);
 
   const prefix = `/scheduled-maintenance-events/${PAGE_ID}`;
@@ -159,7 +182,10 @@ API.post = async (options) => {
     return new HTTPErrorResponse(404, { message: `No route for ${path}` }, {});
   }
 
-  const rest = path.slice(at + prefix.length).split("/").filter(Boolean);
+  const rest = path
+    .slice(at + prefix.length)
+    .split("/")
+    .filter(Boolean);
 
   if (rest.length === 0) {
     return answer(EVENTS);

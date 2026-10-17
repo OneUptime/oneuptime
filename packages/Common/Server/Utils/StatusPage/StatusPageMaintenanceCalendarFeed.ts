@@ -1,11 +1,7 @@
 import StatusPageAPI from "../../API/StatusPageAPI";
 import OnCallCalendarFeedRateLimit from "../../Middleware/OnCallCalendarFeedRateLimit";
 import StatusPageService from "../../Services/StatusPageService";
-import {
-  ExpressRequest,
-  ExpressResponse,
-  NextFunction,
-} from "../Express";
+import { ExpressRequest, ExpressResponse, NextFunction } from "../Express";
 import logger from "../Logger";
 import ProductBrandingText from "../ProductBrandingText";
 import applyPublicPageNotFound from "../PublicPageNotFound";
@@ -375,15 +371,13 @@ export default class StatusPageMaintenanceCalendarFeed {
   public static async render(
     page: StatusPageCalendarPage,
   ): Promise<RenderedMaintenanceCalendar> {
-    const [response, statusPageUrl]: [JSONObject, string] = await Promise.all(
-      [
-        StatusPageAPI.readShownScheduledMaintenanceEvents({
-          statusPageId: page.statusPageId,
-          scheduledMaintenanceId: null,
-        }),
-        StatusPageService.getStatusPageURL(page.statusPageId),
-      ],
-    );
+    const [response, statusPageUrl]: [JSONObject, string] = await Promise.all([
+      StatusPageAPI.readShownScheduledMaintenanceEvents({
+        statusPageId: page.statusPageId,
+        scheduledMaintenanceId: null,
+      }),
+      StatusPageService.getStatusPageURL(page.statusPageId),
+    ]);
 
     const built: {
       events: Array<MaintenanceCalendarEventInput>;
@@ -430,7 +424,8 @@ export default class StatusPageMaintenanceCalendarFeed {
     > = new Map<string, Array<ScheduledMaintenanceTimelineRow>>();
 
     for (const row of shown.timelines) {
-      const eventId: string | undefined = row.scheduledMaintenanceId?.toString();
+      const eventId: string | undefined =
+        row.scheduledMaintenanceId?.toString();
 
       if (!eventId) {
         continue;
@@ -503,7 +498,9 @@ export default class StatusPageMaintenanceCalendarFeed {
   }
 
   private static readShown(response: JSONObject): ShownEvents {
-    const readArray: (name: string) => JSONArray = (name: string): JSONArray => {
+    const readArray: (name: string) => JSONArray = (
+      name: string,
+    ): JSONArray => {
       const value: unknown = response[name];
       return Array.isArray(value) ? (value as JSONArray) : [];
     };
@@ -546,15 +543,13 @@ export default class StatusPageMaintenanceCalendarFeed {
       );
     }
 
-    const [response, statusPageUrl]: [JSONObject, string] = await Promise.all(
-      [
-        StatusPageAPI.readShownScheduledMaintenanceEvents({
-          statusPageId: data.page.statusPageId,
-          scheduledMaintenanceId: data.eventId,
-        }),
-        StatusPageService.getStatusPageURL(data.page.statusPageId),
-      ],
-    );
+    const [response, statusPageUrl]: [JSONObject, string] = await Promise.all([
+      StatusPageAPI.readShownScheduledMaintenanceEvents({
+        statusPageId: data.page.statusPageId,
+        scheduledMaintenanceId: data.eventId,
+      }),
+      StatusPageService.getStatusPageURL(data.page.statusPageId),
+    ]);
 
     const built: {
       events: Array<MaintenanceCalendarEventInput>;

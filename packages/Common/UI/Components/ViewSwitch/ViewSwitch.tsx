@@ -63,7 +63,9 @@ function ViewSwitch<T extends string>(props: ComponentProps<T>): ReactElement {
             aria-pressed={isActive}
             data-testid={`${props.dataTestId}-${option.value}`}
             className={`${VIEW_SWITCH_OPTION_CLASS_NAME} ${
-              isActive ? VIEW_SWITCH_ACTIVE_CLASS_NAME : VIEW_SWITCH_IDLE_CLASS_NAME
+              isActive
+                ? VIEW_SWITCH_ACTIVE_CLASS_NAME
+                : VIEW_SWITCH_IDLE_CLASS_NAME
             }`}
             onClick={() => {
               if (!isActive) {

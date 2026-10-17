@@ -8,7 +8,12 @@ import MaintenanceCalendarLinks, {
   StatusPageCalendarAddress,
 } from "Common/Types/ScheduledMaintenance/MaintenanceCalendarLinks";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 /*
@@ -35,46 +40,47 @@ export const getStatusPageCalendarAddress: () => StatusPageCalendarAddress =
     };
   };
 
-export const SubscribeToCalendarButton: FunctionComponent = (): ReactElement => {
-  const { t } = useTranslation();
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+export const SubscribeToCalendarButton: FunctionComponent =
+  (): ReactElement => {
+    const { t } = useTranslation();
+    const [isOpen, setIsOpen] = useState<boolean>(false);
 
-  if (StatusPageUtil.isPrivateStatusPage()) {
-    return <></>;
-  }
+    if (StatusPageUtil.isPrivateStatusPage()) {
+      return <></>;
+    }
 
-  const links: CalendarSubscriptionLinkSet =
-    MaintenanceCalendarLinks.getStatusPageSubscriptionLinks(
-      getStatusPageCalendarAddress(),
-    );
+    const links: CalendarSubscriptionLinkSet =
+      MaintenanceCalendarLinks.getStatusPageSubscriptionLinks(
+        getStatusPageCalendarAddress(),
+      );
 
-  return (
-    <Fragment>
-      <Button
-        title={t("scheduledEvents.calendar.subscribe")}
-        icon={IconProp.Calendar}
-        buttonStyle={ButtonStyleType.NORMAL}
-        dataTestId="maintenance-calendar-subscribe"
-        onClick={() => {
-          setIsOpen(true);
-        }}
-      />
-      {isOpen ? (
-        <MaintenanceCalendarModal
-          mode={MaintenanceCalendarModalMode.Subscribe}
-          googleUrl={links.googleAdd}
-          deviceUrl={links.webcal}
-          copyUrl={links.https}
-          onClose={() => {
-            setIsOpen(false);
+    return (
+      <Fragment>
+        <Button
+          title={t("scheduledEvents.calendar.subscribe")}
+          icon={IconProp.Calendar}
+          buttonStyle={ButtonStyleType.NORMAL}
+          dataTestId="maintenance-calendar-subscribe"
+          onClick={() => {
+            setIsOpen(true);
           }}
         />
-      ) : (
-        <></>
-      )}
-    </Fragment>
-  );
-};
+        {isOpen ? (
+          <MaintenanceCalendarModal
+            mode={MaintenanceCalendarModalMode.Subscribe}
+            googleUrl={links.googleAdd}
+            deviceUrl={links.webcal}
+            copyUrl={links.https}
+            onClose={() => {
+              setIsOpen(false);
+            }}
+          />
+        ) : (
+          <></>
+        )}
+      </Fragment>
+    );
+  };
 
 export interface AddEventToCalendarButtonProps {
   eventId: string;

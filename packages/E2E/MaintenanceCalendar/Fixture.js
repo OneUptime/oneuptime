@@ -353,7 +353,11 @@ PermissionUtil.getProjectPermissions = () => {
 PermissionUtil.getGlobalPermissions = () => {
   return {
     _type: "UserGlobalAccessPermission",
-    globalPermissions: [Permission.Public, Permission.User, Permission.CurrentUser],
+    globalPermissions: [
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+    ],
     projectIds: [new ObjectID(PROJECT_ID)],
   };
 };
@@ -405,7 +409,9 @@ function inRange(event, query) {
   const endsAt = query && query.endsAt;
 
   if (startsAt instanceof LessThanOrEqual) {
-    if (new Date(event.startsAt).getTime() > new Date(startsAt.value).getTime()) {
+    if (
+      new Date(event.startsAt).getTime() > new Date(startsAt.value).getTime()
+    ) {
       return false;
     }
   }

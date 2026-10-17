@@ -14,7 +14,7 @@ import ScheduledMaintenanceStartUtil, {
  * Scheduled maintenance events in a calendar app: the one place that decides
  * how an event looks there, whichever way it got there.
  *
- *   - The team's calendar link (Scheduled Maintenance > Events > Subscribe):
+ *   - The team's calendar link (Scheduled Maintenance > Events > Subscribe to calendar):
  *     every event of the project, each linked back to its Dashboard page.
  *   - A status page's calendar (Subscribe to calendar on its Scheduled
  *     Maintenance page): only the events that page shows, the resources by

@@ -83,8 +83,6 @@ export interface ComponentProps {
   getEventRoute: (maintenanceId: string) => Route;
   getCreateRoute: (startsAt: Date) => Route;
   onSubscribe: () => void;
-  // Changes when the page asks for the events again (Refresh, a bulk change).
-  refreshToggle?: string | undefined;
   // Injected by tests; the page passes nothing and gets the reader's.
   timezone?: string | undefined;
   now?: Date | undefined;
@@ -179,12 +177,13 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
         setError(API.getFriendlyMessage(err));
         setIsLoading(false);
       });
-  }, [rangeKey, queryKey, timezone, reloadCount, props.refreshToggle]);
+  }, [rangeKey, queryKey, timezone, reloadCount]);
 
   const describeWindow: (startsAt: Date, endsAt: Date) => string = useCallback(
     (startsAt: Date, endsAt: Date): string => {
       return translator.translateTemplate("{{start}} to {{end}}", {
-        start: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(startsAt),
+        start:
+          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(startsAt),
         end: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(endsAt),
       });
     },

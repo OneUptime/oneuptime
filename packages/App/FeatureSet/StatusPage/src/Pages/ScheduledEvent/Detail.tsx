@@ -518,9 +518,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
             state: scheduledMaintenanceEvent.currentScheduledMaintenanceState,
           }) !== ScheduledMaintenancePhaseOfState.Over ? (
             <AddEventToCalendarButton
-              eventId={(
-                scheduledMaintenanceEvent.id || scheduledMaintenanceEvent._id
-              )!.toString()}
+              eventId={(scheduledMaintenanceEvent.id ||
+                scheduledMaintenanceEvent._id)!.toString()}
               title={scheduledMaintenanceEvent.title || ""}
               startsAt={scheduledMaintenanceEvent.startsAt}
               endsAt={scheduledMaintenanceEvent.endsAt}

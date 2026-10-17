@@ -131,9 +131,7 @@ describe("MaintenanceCalendar.render: one event, byte for byte", () => {
     );
 
     expect(events).toHaveLength(1);
-    expect(events[0]!.uid).toBe(
-      `scheduled-maintenance-${EVENT_ID}@oneuptime`,
-    );
+    expect(events[0]!.uid).toBe(`scheduled-maintenance-${EVENT_ID}@oneuptime`);
     expect(events[0]!.start.toISOString()).toBe("2026-10-20T22:00:00.000Z");
     expect(events[0]!.end.toISOString()).toBe("2026-10-21T01:00:00.000Z");
     expect(events[0]!.summary).toBe("Database upgrade");
@@ -233,7 +231,9 @@ describe("MaintenanceCalendar: an event that was called off", () => {
       })?.value,
     ).toBe("CANCELLED");
     expect(
-      event.description.startsWith(`${MAINTENANCE_CALENDAR_CALLED_OFF_LINE}\n\n`),
+      event.description.startsWith(
+        `${MAINTENANCE_CALENDAR_CALLED_OFF_LINE}\n\n`,
+      ),
     ).toBe(true);
     expect(event.description).toContain("Status: Completed");
   });
@@ -302,10 +302,7 @@ function stateNamed(name: string): Record<string, unknown> {
   })!;
 }
 
-function row(
-  name: string,
-  iso: string,
-): { stateId: string; startsAt: Date } {
+function row(name: string, iso: string): { stateId: string; startsAt: Date } {
   return {
     stateId: stateNamed(name)["_id"] as string,
     startsAt: at(iso),
@@ -422,9 +419,7 @@ describe("MaintenanceCalendar: awkward text", () => {
 
     const unfolded: string = body.split(`${CRLF} `).join("");
 
-    expect(unfolded).toContain(
-      "SUMMARY:Upgrade\\; part 1\\, of 2 \\\\ final",
-    );
+    expect(unfolded).toContain("SUMMARY:Upgrade\\; part 1\\, of 2 \\\\ final");
     expect(unfolded).toContain(
       "DESCRIPTION:Step 1\\; drain traffic\\, then wait.\\nStep 2: run C:\\\\tools\\\\migrate.\\n\\nRollback\\, if needed\\; see the runbook.",
     );
@@ -511,7 +506,9 @@ describe("MaintenanceCalendar: awkward text", () => {
 
   test("blank lines are kept as paragraph breaks, runs of them as one", () => {
     expect(
-      MaintenanceCalendar.cleanParagraphs("One  \r\n\r\n\r\n\r\nTwo\n\n\nThree  "),
+      MaintenanceCalendar.cleanParagraphs(
+        "One  \r\n\r\n\r\n\r\nTwo\n\n\nThree  ",
+      ),
     ).toBe("One\n\nTwo\n\nThree");
   });
 });
@@ -561,7 +558,9 @@ describe("MaintenanceCalendar.buildDescription: what each reader is told", () =>
     ]);
 
     expect(listed.startsWith("Monitor 1, Monitor 2,")).toBe(true);
-    expect(listed).toContain(`Monitor ${MAINTENANCE_CALENDAR_MAX_LISTED_NAMES}`);
+    expect(listed).toContain(
+      `Monitor ${MAINTENANCE_CALENDAR_MAX_LISTED_NAMES}`,
+    );
     expect(listed).not.toContain(
       `Monitor ${MAINTENANCE_CALENDAR_MAX_LISTED_NAMES + 1},`,
     );

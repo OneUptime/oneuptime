@@ -136,7 +136,8 @@ describe("MaintenanceCalendarLinks: one event in Google Calendar", () => {
         title: "Database upgrade; part 1",
         startsAt: new Date("2026-10-20T22:00:00Z"),
         endsAt: new Date("2026-10-21T01:00:00Z"),
-        details: "Planned work.\n\nhttps://status.example.com/scheduled-events/1",
+        details:
+          "Planned work.\n\nhttps://status.example.com/scheduled-events/1",
       }),
     );
 

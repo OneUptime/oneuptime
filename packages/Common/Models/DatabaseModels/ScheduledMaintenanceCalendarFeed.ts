@@ -259,7 +259,8 @@ export default class ScheduledMaintenanceCalendarFeed extends BaseModel {
     computed: true,
     canReadOnRelationQuery: false,
     title: "Token Hint",
-    description: "Last four characters of the calendar link's token, for display",
+    description:
+      "Last four characters of the calendar link's token, for display",
     example: "k3Qx",
   })
   @Column({

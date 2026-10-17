@@ -111,7 +111,9 @@ async function main() {
     );
   });
   server.listen(port, "127.0.0.1", () => {
-    console.log(`Maintenance calendar fixture ready at http://127.0.0.1:${port}/`);
+    console.log(
+      `Maintenance calendar fixture ready at http://127.0.0.1:${port}/`,
+    );
   });
   process.on("SIGTERM", () => server.close());
   process.on("SIGINT", () => server.close());

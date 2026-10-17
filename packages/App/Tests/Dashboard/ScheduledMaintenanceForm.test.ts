@@ -13,6 +13,7 @@ import {
   getSubscriberNotificationSummary,
   getSubscriberNotificationsSection,
   moveMaintenanceEndWithStart,
+  readRequestedMaintenanceStartsAt,
   readSubscriberNotificationSettings,
 } from "../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceForm";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -274,6 +275,25 @@ describe("a new event's window", () => {
 
     // 14:50 in Kolkata: its next full hour, 15:00, is 09:30 UTC.
     expect(getDefaultMaintenanceStartsAt()).toBe("2026-10-03T09:30:00.000Z");
+  });
+
+  test("starts when the page's address asks (the Calendar view's + on a day), else at the next full hour", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    expect(getDefaultMaintenanceStartsAt("2026-10-20T11:00:00.000Z")).toBe(
+      "2026-10-20T11:00:00.000Z",
+    );
+    expect(readRequestedMaintenanceStartsAt("2026-10-20T11:00:00.000Z")).toBe(
+      "2026-10-20T11:00:00.000Z",
+    );
+
+    // Nothing asked for, or nothing that is an instant: the usual default.
+    for (const requested of [null, undefined, "", "tomorrow", "2026-13-45"]) {
+      expect(readRequestedMaintenanceStartsAt(requested)).toBeNull();
+      expect(getDefaultMaintenanceStartsAt(requested)).toBe(
+        "2026-10-03T10:00:00.000Z",
+      );
+    }
   });
 
   test("ends an hour after the start the form holds", () => {
