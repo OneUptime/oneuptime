@@ -22,7 +22,7 @@ sequenceDiagram
     participant C as Jourteam
     H->>W: incident_report.created
     W->>W: Kontrollera signaturen,<br/>öppna en enda incident
-    opt Rapporten är hög<br/>eller kritisk
+    opt Rapporten är<br/>hög eller kritisk
         W->>C: Larma jourpolicyn
     end
     H->>W: incident_report.comment_added

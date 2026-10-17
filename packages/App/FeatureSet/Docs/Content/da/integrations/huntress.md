@@ -23,7 +23,7 @@ sequenceDiagram
     H->>W: incident_report.created
     W->>W: Kontrollér signaturen,<br/>åbn én hændelse
     opt Rapporten er høj<br/>eller kritisk
-        W->>C: Tilkald<br/>vagtpolitikken
+        W->>C: Tilkald vagtpolitikken
     end
     H->>W: incident_report.comment_added
     W->>W: Tilføj kommentaren<br/>som en privat note

@@ -23,7 +23,7 @@ sequenceDiagram
     H->>W: incident_report.created
     W->>W: بررسی امضا، باز<br/>کردن یک حادثه
     opt گزارش بالا یا<br/>بحرانی است
-        W->>C: فراخواندن<br/>سیاست آنکال
+        W->>C: فراخواندن سیاست آنکال
     end
     H->>W: incident_report.comment_added
     W->>W: افزودن نظر به<br/>عنوان یادداشت خصوصی

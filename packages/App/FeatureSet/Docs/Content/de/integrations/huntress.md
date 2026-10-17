@@ -23,7 +23,7 @@ sequenceDiagram
     H->>W: incident_report.created
     W->>W: Signatur prüfen, genau<br/>einen Vorfall öffnen
     opt Meldung ist hoch<br/>oder kritisch
-        W->>C: Die Bereitschafts-<br/>richtlinie<br/>alarmieren
+        W->>C: Die Bereitschafts-<br/>richtlinie alarmieren
     end
     H->>W: incident_report.comment_added
     W->>W: Den Kommentar<br/>als private<br/>Notiz hinzufügen

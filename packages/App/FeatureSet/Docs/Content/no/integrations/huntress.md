@@ -23,7 +23,7 @@ sequenceDiagram
     H->>W: incident_report.created
     W->>W: Kontroller signaturen,<br/>åpne én hendelse
     opt Rapporten er høy<br/>eller kritisk
-        W->>C: Varsle<br/>vaktretningslinjen
+        W->>C: Varsle vaktretningslinjen
     end
     H->>W: incident_report.comment_added
     W->>W: Legg til kommentaren<br/>som et privat notat

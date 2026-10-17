@@ -23,7 +23,7 @@ sequenceDiagram
     H->>W: incident_report.created
     W->>W: Check the signature,<br/>open one incident
     opt Report is high<br/>or critical
-        W->>C: Page the<br/>on-call policy
+        W->>C: Page the on-call policy
     end
     H->>W: incident_report.comment_added
     W->>W: Add the comment<br/>as a private note
