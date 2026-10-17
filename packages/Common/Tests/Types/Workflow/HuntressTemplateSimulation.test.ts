@@ -454,7 +454,7 @@ describe("a new report", () => {
     expect(pagesAsked).toHaveLength(1);
     // Whoever finds two incidents for one report reads why in the run log.
     expect(trace.logs).toEqual([
-      "⚠️ Could not look for an incident Huntress incident report 1234 has already, so one is opened. Why the lookup failed is in the run log above.",
+      "⚠️ Could not check whether Huntress incident report 1234 has an incident already, so a new one is opened. Why the check failed is in the run log above.",
       "📟 Opened an incident for Huntress incident report 1234. Paged SOC about INC-42.",
     ]);
   });
@@ -530,7 +530,7 @@ describe("a comment on the report", () => {
 
     expect(callsTo(trace, "add-note-1")).toHaveLength(0);
     expect(trace.logs).toEqual([
-      "ℹ️ No incident is about Huntress incident report 1234, so its comment was not added.",
+      "ℹ️ Huntress incident report 1234 has no incident, so its comment was not added.",
     ]);
   });
 
@@ -638,7 +638,7 @@ describe("closing the report", () => {
 
     expect(callsTo(trace, "create-incident-1")).toHaveLength(0);
     expect(trace.logs).toEqual([
-      "ℹ️ No incident is about Huntress incident report 1234, so there was nothing to resolve when Huntress closed it.",
+      "ℹ️ Huntress incident report 1234 has no incident, so there was nothing to resolve when Huntress closed it.",
     ]);
   });
 

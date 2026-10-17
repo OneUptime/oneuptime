@@ -30312,12 +30312,14 @@
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project._one": "{{count}} ervan zit al in een andere episode en wordt dus niet toegevoegd. Een waarschuwing kan in dit project maar in één episode zitten.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "{{count}} ervan zitten al in een andere episode en worden dus niet toegevoegd. Een incident kan in dit project maar in één episode zitten.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "{{count}} ervan zit al in een andere episode en wordt dus niet toegevoegd. Een incident kan in dit project maar in één episode zitten.",
-  "Could not read what Huntress last sent. Close this dialog and open it again.": "Kon niet lezen wat Huntress het laatst heeft verzonden. Sluit dit dialoogvenster en open het opnieuw.",
-  "In Huntress, choose Send Test on the endpoint. This changes as soon as the test arrives.": "Kies in Huntress 'Send Test' bij het endpoint. Dit verandert zodra de test binnenkomt.",
   "Last Webhook Error": "Laatste webhookfout",
   "Last Webhook Error At": "Laatste webhookfout op",
   "Last Webhook Request At": "Laatste webhookverzoek op",
-  "The URL starts nothing on its own: Huntress signs every request with the endpoint's signing secret, and a request that is not signed with it is refused.": "De URL start op zichzelf niets: Huntress ondertekent elk verzoek met het ondertekeningsgeheim van het endpoint, en een verzoek dat daar niet mee is ondertekend, wordt geweigerd.",
   "Webhook Signing Secret": "Ondertekeningsgeheim van de webhook",
-  "Webhook Signing Secret Saved": "Ondertekeningsgeheim van de webhook opgeslagen"
+  "Webhook Signing Secret Saved": "Ondertekeningsgeheim van de webhook opgeslagen",
+  "In Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "Kies in Huntress 'Send Test' bij het endpoint. De test verschijnt hier binnen een paar seconden.",
+  "Only requests signed with the endpoint's signing secret start this workflow.": "Alleen verzoeken die zijn ondertekend met het ondertekeningsgeheim van het endpoint, starten deze workflow.",
+  "Could not read what Huntress last sent.": "Kon niet lezen wat Huntress het laatst heeft verzonden.",
+  "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "Zet {{switch}} aan bovenaan de Bouwer. Kies daarna in Huntress 'Send Test' bij het endpoint. De test verschijnt hier binnen een paar seconden.",
+  "Turn the workflow on, and send a test": "Zet de workflow aan en stuur een test"
 }

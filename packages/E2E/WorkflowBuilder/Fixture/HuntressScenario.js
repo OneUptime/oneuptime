@@ -8,8 +8,9 @@
  *   &facts=new         what the workflow keeps of Huntress's last request:
  *         =waiting     new (no signing secret, nothing received), waiting
  *         =receiving   (a secret, nothing yet), receiving (a request let in
- *         =failing     five minutes ago) or failing (a request refused
- *                      since the last one let in)
+ *         =failing     five minutes ago), failing (a request refused since
+ *         =refused     the last one let in) or refused (Huntress's test,
+ *                      refused a minute ago because no secret was saved yet)
  *   &secret=fail       saving the signing secret is refused, as the server
  *                      refuses one Huntress could not have issued
  *   &url=hidden        someone who may not see the workflow's webhook
@@ -92,6 +93,17 @@ function factsFor(name) {
     return {
       isWebhookSigningSecretSet: true,
       lastWebhookRequestAt: new Date(now - 5 * MINUTE),
+    };
+  }
+
+  // What most people meet first: Huntress sent its test before the secret.
+  if (name === "refused") {
+    return {
+      isWebhookSigningSecretSet: false,
+      // As HuntressWebhookHandler words it (HUNTRESS_NO_SIGNING_SECRET_MESSAGE).
+      lastWebhookError:
+        "A request arrived but was refused, because no signing secret is saved for this workflow yet. In Huntress, open the endpoint's menu (⋯), choose View Signing Secret, and save it in the workflow's Huntress trigger. Huntress sends the refused request again.",
+      lastWebhookErrorAt: new Date(now - MINUTE),
     };
   }
 

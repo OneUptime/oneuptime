@@ -30312,12 +30312,14 @@
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project._one": "इनमें से {{count}} पहले से किसी दूसरे एपिसोड में है, इसलिए नहीं जोड़ा जाएगा। इस प्रोजेक्ट में एक अलर्ट केवल एक एपिसोड में हो सकता है।",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "इनमें से {{count}} पहले से किसी दूसरे एपिसोड में हैं, इसलिए नहीं जोड़ी जाएंगी। इस प्रोजेक्ट में एक घटना केवल एक एपिसोड में हो सकती है।",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "इनमें से {{count}} पहले से किसी दूसरे एपिसोड में है, इसलिए नहीं जोड़ी जाएगी। इस प्रोजेक्ट में एक घटना केवल एक एपिसोड में हो सकती है।",
-  "Could not read what Huntress last sent. Close this dialog and open it again.": "Huntress ने आखिरी बार जो भेजा, उसे पढ़ा नहीं जा सका। यह डायलॉग बंद करें और फिर से खोलें।",
-  "In Huntress, choose Send Test on the endpoint. This changes as soon as the test arrives.": "Huntress में एंडपॉइंट पर \"Send Test\" चुनें। टेस्ट पहुंचते ही यह बदल जाएगा।",
   "Last Webhook Error": "अंतिम वेबहुक त्रुटि",
   "Last Webhook Error At": "अंतिम वेबहुक त्रुटि का समय",
   "Last Webhook Request At": "अंतिम वेबहुक अनुरोध का समय",
-  "The URL starts nothing on its own: Huntress signs every request with the endpoint's signing secret, and a request that is not signed with it is refused.": "यह URL अपने आप कुछ भी शुरू नहीं करता: Huntress हर अनुरोध पर एंडपॉइंट के साइनिंग सीक्रेट से हस्ताक्षर करता है, और जिस अनुरोध पर उससे हस्ताक्षर नहीं हैं, उसे अस्वीकार कर दिया जाता है।",
   "Webhook Signing Secret": "वेबहुक साइनिंग सीक्रेट",
-  "Webhook Signing Secret Saved": "वेबहुक साइनिंग सीक्रेट सहेजा गया"
+  "Webhook Signing Secret Saved": "वेबहुक साइनिंग सीक्रेट सहेजा गया",
+  "In Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "Huntress में एंडपॉइंट पर \"Send Test\" चुनें। टेस्ट कुछ ही सेकंड में यहां दिखेगा।",
+  "Only requests signed with the endpoint's signing secret start this workflow.": "केवल वे अनुरोध इस वर्कफ़्लो को शुरू करते हैं जिन पर एंडपॉइंट के साइनिंग सीक्रेट से हस्ताक्षर किए गए हैं।",
+  "Could not read what Huntress last sent.": "Huntress ने आखिरी बार जो भेजा, उसे पढ़ा नहीं जा सका।",
+  "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "बिल्डर में सबसे ऊपर {{switch}} चालू करें। फिर Huntress में एंडपॉइंट पर \"Send Test\" चुनें। टेस्ट कुछ ही सेकंड में यहां दिखेगा।",
+  "Turn the workflow on, and send a test": "वर्कफ़्लो चालू करें, और टेस्ट भेजें"
 }

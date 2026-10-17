@@ -1,14 +1,20 @@
 import {
+  HUNTRESS_SETUP_STEPS,
   HUNTRESS_SIGNING_SECRET_PROBLEM,
   HUNTRESS_TRIGGER_POLL_FOR_MS,
   HUNTRESS_TRIGGER_POLL_INTERVAL_MS,
   HUNTRESS_TRIGGER_STATE_LABELS,
+  HuntressSetupStep,
+  HuntressSetupStepStatus,
+  HuntressTriggerFacts,
   HuntressTriggerPanelCopy,
   HuntressTriggerState,
+  getHuntressSetupStepStatuses,
   getHuntressSigningSecretProblem,
   getHuntressTriggerState,
   isWaitingForHuntress,
 } from "../../../../UI/Components/Workflow/HuntressTriggerState";
+import { WORKFLOW_ENABLED_SWITCH_LABEL } from "../../../../Types/Workflow/WorkflowEnabled";
 import StandardWebhookSignature from "../../../../Server/Utils/Webhook/StandardWebhookSignature";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { drawHuntressSigningSecret } from "../../../Types/Huntress/HuntressWebhookFixtures";
@@ -146,6 +152,137 @@ describe("where the trigger stands", () => {
   });
 });
 
+/*
+ * The panel's three steps: which are done, and which one to do next. The
+ * next one is drawn filled in, so there is one obvious place to start.
+ */
+describe("which setup step is done, and which one is next", () => {
+  const { Done, Current, Upcoming } = HuntressSetupStepStatus;
+
+  function statuses(facts: HuntressTriggerFacts): Array<string> {
+    const byStep: Record<HuntressSetupStep, HuntressSetupStepStatus> =
+      getHuntressSetupStepStatuses(facts);
+
+    return HUNTRESS_SETUP_STEPS.map((step: HuntressSetupStep): string => {
+      return byStep[step];
+    });
+  }
+
+  test("in Huntress's order: the endpoint, its signing secret, a test", () => {
+    expect(HUNTRESS_SETUP_STEPS).toEqual([
+      HuntressSetupStep.Endpoint,
+      HuntressSetupStep.Secret,
+      HuntressSetupStep.Test,
+    ]);
+  });
+
+  test("nothing done: the endpoint is next, the rest after it", () => {
+    expect(statuses({})).toEqual([Current, Upcoming, Upcoming]);
+    expect(statuses({ isWebhookSigningSecretSet: false })).toEqual([
+      Current,
+      Upcoming,
+      Upcoming,
+    ]);
+  });
+
+  test("a request refused for want of a secret: Huntress reached the URL, so the secret is next", () => {
+    expect(
+      statuses({
+        isWebhookSigningSecretSet: false,
+        lastWebhookError: "No signing secret is saved.",
+        lastWebhookErrorAt: new Date(NOW),
+      }),
+    ).toEqual([Done, Current, Upcoming]);
+  });
+
+  /*
+   * Saving the secret clears the refusal it fixed (WorkflowService), which
+   * took away the only sign Huntress had reached the URL: the endpoint's
+   * step went back to undone the moment its secret was saved. Huntress
+   * issues a secret only for an endpoint it has, so the secret is that sign.
+   */
+  test("a saved secret means the endpoint exists: both are done, and the test is next", () => {
+    expect(statuses({ isWebhookSigningSecretSet: true })).toEqual([
+      Done,
+      Done,
+      Current,
+    ]);
+  });
+
+  test("a request let in: every step is done, none is next", () => {
+    expect(
+      statuses({
+        isWebhookSigningSecretSet: true,
+        lastWebhookRequestAt: new Date(NOW),
+      }),
+    ).toEqual([Done, Done, Done]);
+  });
+
+  test("a refusal after the secret, before any request let in: the test is still next", () => {
+    expect(
+      statuses({
+        isWebhookSigningSecretSet: true,
+        lastWebhookError: "A request arrived while this workflow is off.",
+        lastWebhookErrorAt: new Date(NOW),
+      }),
+    ).toEqual([Done, Done, Current]);
+  });
+
+  test("an unreadable date is no request let in", () => {
+    expect(
+      statuses({
+        isWebhookSigningSecretSet: true,
+        lastWebhookRequestAt: "not a date",
+      }),
+    ).toEqual([Done, Done, Current]);
+  });
+
+  test("in every case, one next step at most, every step before it done and none after it", () => {
+    const cases: Array<HuntressTriggerFacts> = [];
+
+    for (const isWebhookSigningSecretSet of [false, true]) {
+      for (const requestAt of [null, NOW - HOUR, NOW]) {
+        for (const errorAt of [null, NOW - HOUR, NOW]) {
+          cases.push({
+            isWebhookSigningSecretSet,
+            ...(requestAt === null
+              ? {}
+              : { lastWebhookRequestAt: new Date(requestAt) }),
+            ...(errorAt === null
+              ? {}
+              : {
+                  lastWebhookError: "Refused.",
+                  lastWebhookErrorAt: new Date(errorAt),
+                }),
+          });
+        }
+      }
+    }
+
+    expect(cases).toHaveLength(18);
+
+    for (const facts of cases) {
+      const drawn: Array<string> = statuses(facts);
+      const current: Array<number> = drawn
+        .map((status: string, index: number): number => {
+          return status === Current ? index : -1;
+        })
+        .filter((index: number): boolean => {
+          return index >= 0;
+        });
+
+      expect(current.length).toBeLessThanOrEqual(1);
+
+      if (current.length === 1) {
+        expect(drawn.slice(0, current[0])).not.toContain(Upcoming);
+        expect(drawn.slice(current[0]! + 1)).not.toContain(Current);
+      } else {
+        expect(drawn).not.toContain(Upcoming);
+      }
+    }
+  });
+});
+
 describe("a pasted signing secret, looked at before it is sent", () => {
   test("one Huntress issues passes, as the server would take it", () => {
     const random: SeededRandom = seededRandom(1510);
@@ -202,4 +339,54 @@ describe("every sentence the panel says, in every dashboard language", () => {
 
     expect({ locale, missing }).toEqual({ locale, missing: [] });
   });
+
+  /*
+   * The turn-on step names the Enabled switch through a slot, drawn in bold
+   * with the switch's own label: a translation that lost the slot would fall
+   * back to English, and one that wrote the label out would not be bold.
+   */
+  test.each(LOCALES)(
+    "%s keeps the switch's slot in the turn-on step, once",
+    (locale: string) => {
+      const sentence: string =
+        readLocale(locale)[HuntressTriggerPanelCopy.stepTurnOnBody] || "";
+
+      expect({
+        locale,
+        slots: sentence.split("{{switch}}").length - 1,
+        others: sentence.replace("{{switch}}", "").includes("{{"),
+      }).toEqual({ locale, slots: 1, others: false });
+    },
+  );
+
+  test("the turn-on step's slot is filled with the Enabled switch's label, which every language words", () => {
+    expect(WORKFLOW_ENABLED_SWITCH_LABEL).toBe("Enabled");
+
+    for (const locale of LOCALES) {
+      expect({
+        locale,
+        worded: Boolean(readLocale(locale)[WORKFLOW_ENABLED_SWITCH_LABEL]),
+      }).toEqual({ locale, worded: true });
+    }
+  });
+
+  // English reads these the same, so every other language must word them.
+  test.each(LOCALES.filter((locale: string): boolean => locale !== "en"))(
+    "%s words the turn-on step and the read error in its own language",
+    (locale: string) => {
+      const words: Record<string, string> = readLocale(locale);
+
+      for (const text of [
+        HuntressTriggerPanelCopy.stepTurnOnTitle,
+        HuntressTriggerPanelCopy.stepTurnOnBody,
+        HuntressTriggerPanelCopy.loadError,
+      ]) {
+        expect({ locale, text, translated: words[text] !== text }).toEqual({
+          locale,
+          text,
+          translated: true,
+        });
+      }
+    },
+  );
 });

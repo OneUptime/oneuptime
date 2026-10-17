@@ -1,19 +1,24 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import CompactLoader from "../ComponentLoader/CompactLoader";
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
 import Icon from "../Icon/Icon";
 import Pill from "../Pill/Pill";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import BreakableCode from "./BreakableCode";
 import ComponentSettingsSection from "./ComponentSettingsSection";
 import {
   HUNTRESS_TRIGGER_POLL_FOR_MS,
   HUNTRESS_TRIGGER_POLL_INTERVAL_MS,
   HUNTRESS_TRIGGER_STATE_LABELS,
+  HuntressSetupStep,
+  HuntressSetupStepStatus,
   HuntressTriggerFacts,
   HuntressTriggerPanelCopy,
   HuntressTriggerState,
+  getHuntressSetupStepStatuses,
   getHuntressSigningSecretProblem,
   getHuntressTriggerState,
   isWaitingForHuntress,
@@ -40,6 +45,7 @@ import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { WORKFLOW_ENABLED_SWITCH_LABEL } from "../../../Types/Workflow/WorkflowEnabled";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -76,38 +82,87 @@ const FACTS_SELECT: JSONObject = {
 
 interface SetupStepProps {
   number: number;
-  isDone: boolean;
+  status: HuntressSetupStepStatus;
   title: string;
-  children: ReactNode;
+  // What to do, in Huntress or here, translated: shown until the step is done.
+  body: ReactNode;
+  // What the step holds whether done or not: the URL, the secret's button.
+  children?: ReactNode;
   dataTestId: string;
 }
 
-// One numbered step: its number, or a check once it is done, beside what to do.
+// The circle beside a step: a check once done, the next step's number filled.
+const STEP_CIRCLE_CLASSES: Record<HuntressSetupStepStatus, string> = {
+  [HuntressSetupStepStatus.Done]: "bg-green-100 text-green-700",
+  [HuntressSetupStepStatus.Current]: "bg-indigo-600 text-white",
+  [HuntressSetupStepStatus.Upcoming]:
+    "bg-white text-gray-500 ring-1 ring-inset ring-gray-300",
+};
+
+/*
+ * One numbered step: its number, or a check once it is done, beside what to
+ * do. The step to do next has its number filled in, so there is one obvious
+ * place to start; a step that is done drops its instructions and keeps only
+ * what is still useful (the URL to copy, the button to replace the secret).
+ * The list numbers the steps for a screen reader, so the circle is drawn
+ * only: the step to do next is the list's current step, and a done step says
+ * so after its title.
+ */
 const SetupStep: FunctionComponent<SetupStepProps> = (
   props: SetupStepProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isDone: boolean = props.status === HuntressSetupStepStatus.Done;
 
   return (
-    <li className="flex gap-3" data-testid={props.dataTestId}>
+    <li
+      className="flex gap-3"
+      data-testid={props.dataTestId}
+      data-status={props.status}
+      aria-current={
+        props.status === HuntressSetupStepStatus.Current ? "step" : undefined
+      }
+    >
       <div
         className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-          props.isDone
-            ? "bg-green-50 text-green-700"
-            : "bg-gray-100 text-gray-700"
+          STEP_CIRCLE_CLASSES[props.status]
         }`}
-        data-testid={`${props.dataTestId}-${props.isDone ? "done" : "todo"}`}
+        aria-hidden="true"
+        data-testid={`${props.dataTestId}-${isDone ? "done" : "todo"}`}
       >
-        {props.isDone ? (
+        {isDone ? (
           <Icon icon={IconProp.Check} className="h-3.5 w-3.5" />
         ) : (
           props.number
         )}
       </div>
-      <div className="min-w-0 flex-1 space-y-2">
-        <p className="text-sm font-medium text-gray-900">
+      <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+        <p
+          className={`text-sm font-medium ${
+            isDone ? "text-gray-700" : "text-gray-900"
+          }`}
+        >
           {translator.translateText(props.title)}
+          {isDone ? (
+            <>
+              {" "}
+              <span
+                className="sr-only"
+                data-testid={`${props.dataTestId}-done-label`}
+              >
+                {translator.translateText(HuntressTriggerPanelCopy.stepDone)}
+              </span>
+            </>
+          ) : null}
         </p>
+        {isDone ? null : (
+          <p
+            className="text-sm text-gray-500"
+            data-testid={`${props.dataTestId}-body`}
+          >
+            {props.body}
+          </p>
+        )}
         {props.children}
       </div>
     </li>
@@ -224,14 +279,20 @@ const HuntressTriggerPanel: FunctionComponent<ComponentProps> = (
   );
 
   const isSecretSaved: boolean = Boolean(facts?.isWebhookSigningSecretSet);
-  // A refused request proves Huntress reaches the URL as much as one let in.
-  const hasReached: boolean = Boolean(
-    facts?.lastWebhookRequestAt || facts?.lastWebhookError,
-  );
   const hasReceived: boolean = Boolean(facts?.lastWebhookRequestAt);
+  const steps: Record<HuntressSetupStep, HuntressSetupStepStatus> =
+    getHuntressSetupStepStatuses(facts || {});
 
+  /*
+   * Read out when it changes - a test that arrives while the dialog is open -
+   * as it stays in place when the steps give way to the status.
+   */
   const statePill: ReactElement = (
-    <span data-testid="huntress-trigger-state" data-state={state}>
+    <span
+      data-testid="huntress-trigger-state"
+      data-state={state}
+      aria-live="polite"
+    >
       <Pill
         text={HUNTRESS_TRIGGER_STATE_LABELS[state]}
         color={STATE_COLORS[state]}
@@ -434,15 +495,45 @@ const HuntressTriggerPanel: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Until the first read answers, where it stands is not known: neither the
+   * steps nor the status, so a workflow Huntress already reaches never
+   * flashes the steps first.
+   */
+  if (workflowId && !facts && !loadError) {
+    return section(
+      <div data-testid="huntress-trigger-loading">
+        <CompactLoader />
+      </div>,
+    );
+  }
+
+  // Nothing to show where it stands from: say so, and read it again on a click.
   if (loadError && !facts) {
     return section(
-      <p
-        className="text-sm text-red-700"
-        role="alert"
+      <div
+        className="flex flex-wrap items-center gap-x-3 gap-y-2"
         data-testid="huntress-trigger-load-error"
       >
-        {translate(HuntressTriggerPanelCopy.loadError)}
-      </p>,
+        <p className="text-sm text-red-700" role="alert">
+          {translate(HuntressTriggerPanelCopy.loadError)}
+        </p>
+        <Button
+          title={HuntressTriggerPanelCopy.tryAgain}
+          buttonStyle={ButtonStyleType.NORMAL}
+          buttonSize={ButtonSize.Small}
+          icon={IconProp.Refresh}
+          className="!w-auto md:!ml-0"
+          dataTestId="huntress-trigger-load-retry"
+          onClick={() => {
+            // Back to the loader until the read answers.
+            setLoadError("");
+            loadFacts().catch(() => {
+              // loadFacts keeps every failure in loadError.
+            });
+          }}
+        />
+      </div>,
     );
   }
 
@@ -469,13 +560,14 @@ const HuntressTriggerPanel: FunctionComponent<ComponentProps> = (
             <div className="mt-1">{urlRow}</div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="flex items-center gap-1.5 text-sm text-gray-700">
+            {/* A div: the icon draws a div of its own, which no p may hold. */}
+            <div className="flex items-center gap-1.5 text-sm text-gray-700">
               <Icon
                 icon={IconProp.CheckCircle}
                 className="h-4 w-4 shrink-0 text-green-600"
               />
-              {translate(HuntressTriggerPanelCopy.secretSaved)}
-            </p>
+              <span>{translate(HuntressTriggerPanelCopy.secretSaved)}</span>
+            </div>
             {secretButton}
           </div>
           {footer}
@@ -485,55 +577,83 @@ const HuntressTriggerPanel: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * The steps. While the workflow is off - as the template creates it - the
+   * last one says to turn it on before sending the test, which is refused
+   * until it is: so the note the other views show above everything is not
+   * needed here, and the reader meets it at the step it belongs to.
+   */
   return section(
     <>
       <div className="space-y-4" data-testid="huntress-trigger-setup">
-        {offNote}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          {facts ? statePill : null}
-        </div>
+        {/* No workflow to read (a step not saved yet): no state to show. */}
+        {facts ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {statePill}
+          </div>
+        ) : null}
         {errorBox}
         <ol className="space-y-5">
           <SetupStep
             number={1}
-            isDone={hasReached}
+            status={steps[HuntressSetupStep.Endpoint]}
             title={HuntressTriggerPanelCopy.stepEndpointTitle}
+            body={translate(HuntressTriggerPanelCopy.stepEndpointBody)}
             dataTestId="huntress-trigger-step-endpoint"
           >
-            <p className="text-sm text-gray-500">
-              {translate(HuntressTriggerPanelCopy.stepEndpointBody)}
-            </p>
             {urlRow}
           </SetupStep>
           <SetupStep
             number={2}
-            isDone={isSecretSaved}
+            status={steps[HuntressSetupStep.Secret]}
             title={HuntressTriggerPanelCopy.stepSecretTitle}
+            body={translate(HuntressTriggerPanelCopy.stepSecretBody)}
             dataTestId="huntress-trigger-step-secret"
           >
-            <p className="text-sm text-gray-500">
-              {translate(HuntressTriggerPanelCopy.stepSecretBody)}
-            </p>
             {isSecretSaved ? (
-              <p
-                className="text-sm text-green-700"
-                data-testid="huntress-trigger-signing-secret-saved"
-              >
-                {translate(HuntressTriggerPanelCopy.secretSaved)}
-              </p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <p
+                  className="text-sm text-gray-500"
+                  data-testid="huntress-trigger-signing-secret-saved"
+                >
+                  {translate(HuntressTriggerPanelCopy.secretSaved)}
+                </p>
+                {secretButton}
+              </div>
+            ) : secretButton ? (
+              <div>{secretButton}</div>
             ) : null}
-            {secretButton ? <div>{secretButton}</div> : null}
           </SetupStep>
           <SetupStep
             number={3}
-            isDone={hasReceived}
-            title={HuntressTriggerPanelCopy.stepTestTitle}
+            status={steps[HuntressSetupStep.Test]}
+            title={
+              props.isWorkflowOff
+                ? HuntressTriggerPanelCopy.stepTurnOnTitle
+                : HuntressTriggerPanelCopy.stepTestTitle
+            }
+            body={
+              props.isWorkflowOff ? (
+                <TranslatedSentence
+                  template={HuntressTriggerPanelCopy.stepTurnOnBody}
+                  slots={{
+                    // The switch as the Builder's toolbar names it.
+                    switch: (
+                      <strong
+                        className="font-semibold text-gray-700"
+                        data-testid="huntress-trigger-enabled-switch-name"
+                      >
+                        {translate(WORKFLOW_ENABLED_SWITCH_LABEL)}
+                      </strong>
+                    ),
+                  }}
+                />
+              ) : (
+                translate(HuntressTriggerPanelCopy.stepTestBody)
+              )
+            }
             dataTestId="huntress-trigger-step-test"
-          >
-            <p className="text-sm text-gray-500">
-              {translate(HuntressTriggerPanelCopy.stepTestBody)}
-            </p>
-          </SetupStep>
+          />
         </ol>
         {footer}
       </div>

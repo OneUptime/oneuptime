@@ -1,3 +1,4 @@
+import Project from "../../../Models/DatabaseModels/Project";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import User from "../../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../../EnvironmentConfig";
@@ -6,6 +7,7 @@ import ProjectService from "../../Services/ProjectService";
 import WorkflowService, {
   Service as WorkflowServiceClass,
 } from "../../Services/WorkflowService";
+import PlanDowngradeOwnerNotice from "../Billing/PlanDowngradeOwnerNotice";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
 import Encryption from "../Encryption";
 import logger from "../Logger";
@@ -13,6 +15,7 @@ import {
   HUNTRESS_DELIVERY_CACHE_NAMESPACE,
   HUNTRESS_DELIVERY_REMEMBERED_FOR_SECONDS,
 } from "./HuntressWebhookHandler";
+import URL from "../../../Types/API/URL";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "../../../Types/Date";
 import HuntressSeverity, {
@@ -21,6 +24,7 @@ import HuntressSeverity, {
 import { parseHuntressOrganizationFilter } from "../../../Types/Huntress/HuntressOrganizationFilter";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import SafeHtml from "../../../Types/SafeHtml";
 import { HuntressTriggerSetting } from "../../../Types/Workflow/HuntressTrigger";
 import {
   HUNTRESS_REPORT_ID_CUSTOM_FIELD,
@@ -133,8 +137,18 @@ export const MOVED_WORKFLOW_DESCRIPTION: string =
 // The name a connection that had none is given.
 export const DEFAULT_WORKFLOW_NAME: string = "Huntress";
 
-export const HUNTRESS_PLAN_NOTICE_SUBJECT: string =
-  "Your Huntress connection is now a workflow";
+/*
+ * The owners' email says first what stopped, in the project's own name, so
+ * the owner of several projects knows which one it is about.
+ */
+export function getPlanNoticeSubject(projectName?: string | null): string {
+  return `Huntress reports stopped opening incidents in ${getProjectInSentence(projectName)}`;
+}
+
+// The project as a sentence names it: its name, or "your project".
+function getProjectInSentence(projectName?: string | null): string {
+  return projectName?.trim() || "your project";
+}
 
 export type ConnectionOutcome = "moved" | "already-moved" | "failed";
 
@@ -306,12 +320,47 @@ export function getFreeWorkflowName(data: {
   }
 }
 
-// What the owners of a project whose plan runs no workflows are told.
-export function getPlanNoticeMessage(workflowName: string): string {
+// The lowest plan whose projects run workflows (WorkflowPlan).
+export const HUNTRESS_WORKFLOW_PLAN: PlanType = PlanType.Growth;
+
+/*
+ * What the owners of a project whose plan runs no workflows are told, as the
+ * HTML their email places it in (SimpleMessage's info block, which writes it
+ * as it is): what stopped and why, where to upgrade - with the link to the
+ * project's Billing page when the dashboard's address is configured - and
+ * that nothing changes in Huntress. Every value is escaped: the workflow's
+ * name is the connection's, which a project member typed.
+ */
+export function getPlanNoticeHtml(data: {
+  projectId: ObjectID;
+  projectName?: string | null | undefined;
+  plan: PlanType;
+  workflowName: string;
+}): string {
+  const project: string = getProjectInSentence(data.projectName);
+
+  const upgrade: string = SafeHtml.escape(
+    "Upgrade the project in Project Settings > Billing and Invoices > Billing, and its Huntress reports open incidents again.",
+  );
+
+  const billingLink: URL | null = PlanDowngradeOwnerNotice.getSettingsLink(
+    data.projectId,
+  );
+
+  const link: string | null = billingLink
+    ? SafeHtml.escape(billingLink.toString())
+    : null;
+
   return [
-    `Huntress is now set up with a workflow, so your Huntress connection became the workflow "${workflowName}". It receives Huntress's reports at the same address, signed with the same secret, and does what the connection did.`,
-    "Workflows need the Growth plan or above, and this project is on a plan without them, so the workflow cannot run: Huntress incident reports open no incidents and page nobody until you change the project's plan under Project Settings > Billing and Invoices > Billing.",
-  ].join("\n\n");
+    SafeHtml.escape(
+      `Huntress incident reports no longer open incidents or page anyone in ${project}. Huntress is now set up with a workflow, and workflows need the ${HUNTRESS_WORKFLOW_PLAN} plan or above, but ${project} is on the ${data.plan} plan.`,
+    ),
+    link ? `${upgrade} <br/> <a href="${link}">${link}</a>` : upgrade,
+    SafeHtml.escape(
+      `There is nothing to change in Huntress: your Huntress connection became the workflow "${data.workflowName}", which receives Huntress's reports at the same address, signed with the same secret, and does what the connection did.`,
+    ),
+    SafeHtml.escape("Project owners get this email once."),
+  ].join(" <br/> <br/> ");
 }
 
 export default class HuntressConnectionsToWorkflows {
@@ -619,14 +668,50 @@ export default class HuntressConnectionsToWorkflows {
       return false;
     }
 
+    const projectName: string | null =
+      await HuntressConnectionsToWorkflows.readProjectName(data.projectId);
+
     const delivered: number = await ProjectService.sendEmailToOwnersAndWait({
       projectId: data.projectId,
       owners,
-      subject: HUNTRESS_PLAN_NOTICE_SUBJECT,
-      message: getPlanNoticeMessage(data.workflowName),
+      subject: getPlanNoticeSubject(projectName),
+      message: getPlanNoticeHtml({
+        projectId: data.projectId,
+        projectName: projectName,
+        plan: plan.plan,
+        workflowName: data.workflowName,
+      }),
     });
 
     return delivered > 0;
+  }
+
+  /*
+   * The project's name, for the owners' email; null when it cannot be read,
+   * and the email says "your project" instead - it is still sent.
+   */
+  private static async readProjectName(
+    projectId: ObjectID,
+  ): Promise<string | null> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return project?.name?.trim() || null;
+    } catch (err) {
+      logger.error(
+        `HuntressConnectionsToWorkflows: could not read the name of project ${projectId.toString()} for its owners' email: ${err}`,
+      );
+
+      return null;
+    }
   }
 
   private static countUpdated(result: unknown): number {

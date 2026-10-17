@@ -34,16 +34,18 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
   return mocked;
 });
 
+import Project from "../../../../Models/DatabaseModels/Project";
 import User from "../../../../Models/DatabaseModels/User";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import WorkflowService from "../../../../Server/Services/WorkflowService";
+import PlanDowngradeOwnerNotice from "../../../../Server/Utils/Billing/PlanDowngradeOwnerNotice";
 import Encryption from "../../../../Server/Utils/Encryption";
 import HuntressConnectionsToWorkflows, {
   BACKFILL_REPORT_ID_SQL,
   DEFAULT_WORKFLOW_NAME,
-  HUNTRESS_PLAN_NOTICE_SUBJECT,
+  HUNTRESS_WORKFLOW_PLAN,
   HuntressMoveSummary,
   LEGACY_CONNECTIONS_SQL,
   LEGACY_LABELS_SQL,
@@ -56,7 +58,8 @@ import HuntressConnectionsToWorkflows, {
   MOVED_WORKFLOW_DESCRIPTION,
   PROJECT_WORKFLOW_NAMES_SQL,
   getFreeWorkflowName,
-  getPlanNoticeMessage,
+  getPlanNoticeHtml,
+  getPlanNoticeSubject,
   getWorkflowOptions,
   readLegacySigningSecret,
 } from "../../../../Server/Utils/Huntress/HuntressConnectionsToWorkflows";
@@ -64,6 +67,7 @@ import {
   HUNTRESS_DELIVERY_CACHE_NAMESPACE,
   HUNTRESS_DELIVERY_REMEMBERED_FOR_SECONDS,
 } from "../../../../Server/Utils/Huntress/HuntressWebhookHandler";
+import URL from "../../../../Types/API/URL";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import HuntressSeverity from "../../../../Types/Huntress/HuntressSeverity";
 import { JSONObject } from "../../../../Types/JSON";
@@ -220,7 +224,14 @@ let columnUpdates: Array<{ id: string; data: JSONObject }>;
 let remembered: Array<{ key: string; value: string; seconds: number }>;
 let plans: Map<string, PlanType | null>;
 let owners: Map<string, Array<User>>;
+let projectNames: Map<string, string | Error>;
+let billingLinks: boolean;
 let emails: Array<{ projectId: string; subject: string; message: string }>;
+
+// Where the owners' email links to: the project's Billing page.
+function billingLinkOf(projectId: string): string {
+  return `https://oneuptime.example/dashboard/${projectId}/settings/billing`;
+}
 
 function owner(email: string): User {
   const user: User = new User();
@@ -277,6 +288,11 @@ beforeEach(() => {
   remembered = [];
   plans = new Map();
   owners = new Map();
+  projectNames = new Map([
+    [PROJECT_A, "Acme"],
+    [PROJECT_B, "Globex"],
+  ]);
+  billingLinks = true;
   emails = [];
 
   jest
@@ -356,6 +372,41 @@ beforeEach(() => {
   ): Promise<Array<User>> => {
     return owners.get(projectId.toString()) || [owner("owner@acme.example")];
   }) as never);
+
+  jest.spyOn(ProjectService, "findOneById").mockImplementation((async (findBy: {
+    id: ObjectID;
+    select: JSONObject;
+    props: JSONObject;
+  }): Promise<Project | null> => {
+    expect(findBy.select).toEqual({ name: true });
+    expect(findBy.props).toEqual({ isRoot: true });
+
+    const name: string | Error | undefined = projectNames.get(
+      findBy.id.toString(),
+    );
+
+    if (name instanceof Error) {
+      throw name;
+    }
+
+    if (name === undefined) {
+      return null;
+    }
+
+    const project: Project = new Project();
+    project._id = findBy.id.toString();
+    project.name = name;
+    return project;
+  }) as never);
+
+  // The dashboard's address is the server's; the link is built from it.
+  jest
+    .spyOn(PlanDowngradeOwnerNotice, "getSettingsLink")
+    .mockImplementation((projectId: ObjectID): URL | null => {
+      return billingLinks
+        ? URL.fromString(billingLinkOf(projectId.toString()))
+        : null;
+    });
 
   jest
     .spyOn(ProjectService, "sendEmailToOwnersAndWait")
@@ -853,16 +904,101 @@ describe("a project whose plan runs no workflows", () => {
     expect(emails).toEqual([
       {
         projectId: PROJECT_A,
-        subject: HUNTRESS_PLAN_NOTICE_SUBJECT,
-        message: getPlanNoticeMessage("First"),
+        subject: getPlanNoticeSubject("Acme"),
+        message: getPlanNoticeHtml({
+          projectId: new ObjectID(PROJECT_A),
+          projectName: "Acme",
+          plan: PlanType.Free,
+          workflowName: "First",
+        }),
       },
     ]);
-    expect(getPlanNoticeMessage("First")).toContain(
-      'became the workflow "First"',
+  });
+
+  /*
+   * Read as the owner who gets it: what stopped, in which project, comes
+   * first - in the subject and the first paragraph - then where to upgrade,
+   * with the link and the whole path to the page (folded section included),
+   * then that nothing changes in Huntress. Paragraphs are HTML breaks: the
+   * email's body is HTML, where a blank line is no break at all.
+   */
+  test("the email says what stopped and where first, then where to upgrade, then that Huntress needs nothing", async () => {
+    plans.set(PROJECT_A, PlanType.Free);
+    database.connections = [connectionRow({ name: "Acme SOC" })];
+
+    await moveAll();
+
+    expect(emails).toHaveLength(1);
+    expect(emails[0]!.subject).toBe(
+      "Huntress reports stopped opening incidents in Acme",
     );
-    // The whole path to the page, folded section included.
-    expect(getPlanNoticeMessage("First")).toContain(
-      "Project Settings > Billing and Invoices > Billing.",
+
+    const paragraphs: Array<string> = emails[0]!.message.split(" <br/> <br/> ");
+
+    expect(paragraphs).toEqual([
+      `Huntress incident reports no longer open incidents or page anyone in Acme. Huntress is now set up with a workflow, and workflows need the ${HUNTRESS_WORKFLOW_PLAN} plan or above, but Acme is on the Free plan.`,
+      `Upgrade the project in Project Settings &gt; Billing and Invoices &gt; Billing, and its Huntress reports open incidents again. <br/> <a href="${billingLinkOf(PROJECT_A)}">${billingLinkOf(PROJECT_A)}</a>`,
+      "There is nothing to change in Huntress: your Huntress connection became the workflow &quot;Acme SOC&quot;, which receives Huntress&#39;s reports at the same address, signed with the same secret, and does what the connection did.",
+      "Project owners get this email once.",
+    ]);
+    expect(emails[0]!.message).not.toContain("\n");
+    expect(HUNTRESS_WORKFLOW_PLAN).toBe(PlanType.Growth);
+  });
+
+  // The email's body is HTML, written as it is: the names in it are text.
+  test("a connection's name and the project's are text in the email, never markup", async () => {
+    plans.set(PROJECT_A, PlanType.Free);
+    projectNames.set(PROJECT_A, "<i>Acme</i>");
+    database.connections = [
+      connectionRow({ name: '<a href="https://evil.example">Reset</a> & co' }),
+    ];
+
+    await moveAll();
+
+    const message: string = emails[0]!.message;
+
+    expect(message).not.toContain('<a href="https://evil.example">');
+    expect(message).not.toContain("<i>");
+    expect(message).toContain(
+      "&lt;a href=&quot;https://evil.example&quot;&gt;Reset&lt;/a&gt; &amp; co",
+    );
+    expect(message).toContain("&lt;i&gt;Acme&lt;/i&gt;");
+    // Only the link this code builds is a link.
+    expect(message.split("<a ")).toHaveLength(2);
+    // The subject is sent as text, as it is.
+    expect(emails[0]!.subject).toBe(
+      "Huntress reports stopped opening incidents in <i>Acme</i>",
+    );
+  });
+
+  test("without the dashboard's address, the email names the page and links nowhere", async () => {
+    plans.set(PROJECT_A, PlanType.Free);
+    billingLinks = false;
+    database.connections = [connectionRow()];
+
+    await moveAll();
+
+    const message: string = emails[0]!.message;
+
+    expect(message).toContain(
+      "Upgrade the project in Project Settings &gt; Billing and Invoices &gt; Billing, and its Huntress reports open incidents again. <br/> <br/> ",
+    );
+    expect(message).not.toContain("<a ");
+  });
+
+  test("a project whose name cannot be read is your project, and its owners are still told", async () => {
+    plans.set(PROJECT_A, PlanType.Free);
+    projectNames.set(PROJECT_A, new Error("Database not connected"));
+    database.connections = [connectionRow()];
+
+    const summary: HuntressMoveSummary = await moveAll();
+
+    expect(summary.ownersTold).toBe(1);
+    expect(emails[0]!.subject).toBe(
+      "Huntress reports stopped opening incidents in your project",
+    );
+    expect(emails[0]!.message).toContain(
+      "or page anyone in your project. Huntress is now set up with a workflow, and workflows need the Growth plan or above, but your project is on the Free plan.",
     );
   });
 

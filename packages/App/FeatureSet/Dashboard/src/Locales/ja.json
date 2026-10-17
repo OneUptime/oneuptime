@@ -30312,12 +30312,14 @@
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project._one": "うち {{count}} 件はすでに別のエピソードに含まれているため、追加されません。このプロジェクトでは、アラートは 1 つのエピソードにしか含めることができません。",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "うち {{count}} 件はすでに別のエピソードに含まれているため、追加されません。このプロジェクトでは、インシデントは 1 つのエピソードにしか含めることができません。",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "うち {{count}} 件はすでに別のエピソードに含まれているため、追加されません。このプロジェクトでは、インシデントは 1 つのエピソードにしか含めることができません。",
-  "Could not read what Huntress last sent. Close this dialog and open it again.": "Huntress が最後に送信した内容を読み込めませんでした。このダイアログを閉じて、もう一度開いてください。",
-  "In Huntress, choose Send Test on the endpoint. This changes as soon as the test arrives.": "Huntress でエンドポイントの「Send Test」を選びます。テストが届くとすぐにここが変わります。",
   "Last Webhook Error": "最後の Webhook エラー",
   "Last Webhook Error At": "最後の Webhook エラーの日時",
   "Last Webhook Request At": "最後の Webhook リクエストの日時",
-  "The URL starts nothing on its own: Huntress signs every request with the endpoint's signing secret, and a request that is not signed with it is refused.": "この URL だけでは何も起動しません。Huntress はすべてのリクエストにエンドポイントの署名シークレットで署名し、それで署名されていないリクエストは拒否されます。",
   "Webhook Signing Secret": "Webhook 署名シークレット",
-  "Webhook Signing Secret Saved": "Webhook 署名シークレット保存済み"
+  "Webhook Signing Secret Saved": "Webhook 署名シークレット保存済み",
+  "In Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "Huntress でエンドポイントの「Send Test」を選びます。数秒以内にここに表示されます。",
+  "Only requests signed with the endpoint's signing secret start this workflow.": "このワークフローを開始できるのは、エンドポイントの署名シークレットで署名されたリクエストだけです。",
+  "Could not read what Huntress last sent.": "Huntress が最後に送信した内容を読み込めませんでした。",
+  "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "ビルダーの上部で {{switch}} をオンにします。次に、Huntress でエンドポイントの「Send Test」を選びます。数秒以内にここに表示されます。",
+  "Turn the workflow on, and send a test": "ワークフローをオンにして、テストを送信する"
 }

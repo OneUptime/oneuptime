@@ -30312,12 +30312,14 @@
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project._one": "{{count}} مورد از آن‌ها از قبل در اپیزود دیگری است، پس افزوده نمی‌شود. در این پروژه هر هشدار فقط می‌تواند در یک اپیزود باشد.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "{{count}} مورد از آن‌ها از قبل در اپیزود دیگری هستند، پس افزوده نمی‌شوند. در این پروژه هر حادثه فقط می‌تواند در یک اپیزود باشد.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "{{count}} مورد از آن‌ها از قبل در اپیزود دیگری است، پس افزوده نمی‌شود. در این پروژه هر حادثه فقط می‌تواند در یک اپیزود باشد.",
-  "Could not read what Huntress last sent. Close this dialog and open it again.": "آخرین چیزی که Huntress فرستاد خوانده نشد. این پنجره را ببندید و دوباره باز کنید.",
-  "In Huntress, choose Send Test on the endpoint. This changes as soon as the test arrives.": "در Huntress، برای نقطه پایانی «Send Test» را انتخاب کنید. به‌محض رسیدن آزمایش، این بخش تغییر می‌کند.",
   "Last Webhook Error": "آخرین خطای وب‌هوک",
   "Last Webhook Error At": "زمان آخرین خطای وب‌هوک",
   "Last Webhook Request At": "زمان آخرین درخواست وب‌هوک",
-  "The URL starts nothing on its own: Huntress signs every request with the endpoint's signing secret, and a request that is not signed with it is refused.": "این URL به‌تنهایی چیزی را شروع نمی‌کند: Huntress هر درخواست را با راز امضای نقطه پایانی امضا می‌کند و درخواستی که با آن امضا نشده باشد رد می‌شود.",
   "Webhook Signing Secret": "راز امضای وب‌هوک",
-  "Webhook Signing Secret Saved": "راز امضای وب‌هوک ذخیره شد"
+  "Webhook Signing Secret Saved": "راز امضای وب‌هوک ذخیره شد",
+  "In Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "در Huntress، برای نقطه پایانی «Send Test» را انتخاب کنید. آزمایش ظرف چند ثانیه در اینجا نمایش داده می‌شود.",
+  "Only requests signed with the endpoint's signing secret start this workflow.": "فقط درخواست‌هایی که با راز امضای نقطه پایانی امضا شده‌اند این گردش کاری را شروع می‌کنند.",
+  "Could not read what Huntress last sent.": "آخرین چیزی که Huntress فرستاد خوانده نشد.",
+  "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "{{switch}} را در بالای سازنده روشن کنید. سپس در Huntress، برای نقطه پایانی «Send Test» را انتخاب کنید. آزمایش ظرف چند ثانیه در اینجا نمایش داده می‌شود.",
+  "Turn the workflow on, and send a test": "گردش کاری را روشن کنید و یک آزمایش بفرستید"
 }

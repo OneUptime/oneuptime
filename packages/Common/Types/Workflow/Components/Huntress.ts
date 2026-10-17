@@ -32,7 +32,7 @@ const components: Array<ComponentMetadata> = [
     title: "Huntress Incident Report",
     category: HUNTRESS_COMPONENT_CATEGORY,
     description:
-      "Start this workflow when Huntress sends an incident report, a comment on one, or closes one.",
+      "Start this workflow when Huntress sends an incident report or an update.",
     iconProp: IconProp.ShieldCheck,
     componentType: ComponentType.Trigger,
     arguments: [
@@ -40,7 +40,7 @@ const components: Array<ComponentMetadata> = [
         id: HuntressTriggerSetting.Organizations,
         name: "Only These Organizations",
         description:
-          "The Huntress organizations whose reports start this workflow, one name or ID per line. Names ignore case. Empty: every organization.",
+          "The Huntress organizations whose reports start this workflow, one name or ID per line. Left empty, every organization's reports do.",
         type: ComponentInputType.LongText,
         required: false,
         placeholder: "Acme Corp",
@@ -50,7 +50,7 @@ const components: Array<ComponentMetadata> = [
         id: HuntressTriggerSetting.CriticalIncidentSeverity,
         name: "Severity For Critical Reports",
         description:
-          "The incident severity a critical report opens at, as Incident Severity ID says it.",
+          "The severity of the incidents that critical reports open. Left empty, it is the project's most severe.",
         type: ComponentInputType.IncidentSeveritySelect,
         required: false,
         placeholder: "The project's most severe",
@@ -60,7 +60,7 @@ const components: Array<ComponentMetadata> = [
         id: HuntressTriggerSetting.HighIncidentSeverity,
         name: "Severity For High Reports",
         description:
-          "The incident severity a high report opens at, as Incident Severity ID says it.",
+          "The severity of the incidents that high reports open. Left empty, it is the project's second most severe.",
         type: ComponentInputType.IncidentSeveritySelect,
         required: false,
         placeholder: "The project's second most severe",
@@ -70,7 +70,7 @@ const components: Array<ComponentMetadata> = [
         id: HuntressTriggerSetting.LowIncidentSeverity,
         name: "Severity For Low Reports",
         description:
-          "The incident severity a low report opens at, as Incident Severity ID says it.",
+          "The severity of the incidents that low reports open. Left empty, it is the project's third most severe.",
         type: ComponentInputType.IncidentSeveritySelect,
         required: false,
         placeholder: "The project's third most severe",

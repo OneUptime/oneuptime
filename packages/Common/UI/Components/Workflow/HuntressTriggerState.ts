@@ -78,6 +78,75 @@ export function isWaitingForHuntress(state: HuntressTriggerState): boolean {
   return state !== HuntressTriggerState.Receiving;
 }
 
+// The three things to do in Huntress, in the order Huntress asks for them.
+export enum HuntressSetupStep {
+  Endpoint = "endpoint",
+  Secret = "secret",
+  Test = "test",
+}
+
+export const HUNTRESS_SETUP_STEPS: Array<HuntressSetupStep> = [
+  HuntressSetupStep.Endpoint,
+  HuntressSetupStep.Secret,
+  HuntressSetupStep.Test,
+];
+
+/*
+ * Where a step stands: done, the one to do next (current - there is one at
+ * most), or one after it (upcoming).
+ */
+export enum HuntressSetupStepStatus {
+  Done = "done",
+  Current = "current",
+  Upcoming = "upcoming",
+}
+
+/*
+ * Which steps are done, from what the workflow keeps.
+ *
+ * - The endpoint is added once Huntress has reached the URL - a request let
+ *   in or refused - or once its signing secret is saved: Huntress issues a
+ *   secret only for an endpoint it has, so the secret proves the endpoint.
+ *   That keeps the step done after a request refused for want of a secret,
+ *   when saving the secret clears the refusal (WorkflowService).
+ * - The secret is saved once the workflow says so.
+ * - The test is done once a request is let in.
+ *
+ * The first step not done is the one to do next.
+ */
+export function getHuntressSetupStepStatuses(
+  facts: HuntressTriggerFacts,
+): Record<HuntressSetupStep, HuntressSetupStepStatus> {
+  const isSecretSaved: boolean = Boolean(facts.isWebhookSigningSecretSet);
+  const hasReceived: boolean = toTime(facts.lastWebhookRequestAt) !== null;
+
+  const isDone: Record<HuntressSetupStep, boolean> = {
+    [HuntressSetupStep.Endpoint]:
+      hasReceived || Boolean(facts.lastWebhookError) || isSecretSaved,
+    [HuntressSetupStep.Secret]: isSecretSaved,
+    [HuntressSetupStep.Test]: hasReceived,
+  };
+
+  const next: HuntressSetupStep | undefined = HUNTRESS_SETUP_STEPS.find(
+    (step: HuntressSetupStep): boolean => {
+      return !isDone[step];
+    },
+  );
+
+  const statuses: Partial<Record<HuntressSetupStep, HuntressSetupStepStatus>> =
+    {};
+
+  for (const step of HUNTRESS_SETUP_STEPS) {
+    statuses[step] = isDone[step]
+      ? HuntressSetupStepStatus.Done
+      : step === next
+        ? HuntressSetupStepStatus.Current
+        : HuntressSetupStepStatus.Upcoming;
+  }
+
+  return statuses as Record<HuntressSetupStep, HuntressSetupStepStatus>;
+}
+
 export const HUNTRESS_TRIGGER_STATE_LABELS: Record<
   HuntressTriggerState,
   string
@@ -135,6 +204,9 @@ export const HuntressTriggerPanelCopy: {
   readonly stepSecretBody: string;
   readonly stepTestTitle: string;
   readonly stepTestBody: string;
+  readonly stepTurnOnTitle: string;
+  readonly stepTurnOnBody: string;
+  readonly stepDone: string;
   readonly webhookUrl: string;
   readonly copyUrl: string;
   readonly copyUrlTitle: string;
@@ -148,6 +220,7 @@ export const HuntressTriggerPanelCopy: {
   readonly lastEvent: string;
   readonly urlStartsNothing: string;
   readonly loadError: string;
+  readonly tryAgain: string;
 } = {
   title: "Huntress",
   stepEndpointTitle: translationKey("Add a webhook endpoint in Huntress"),
@@ -159,9 +232,22 @@ export const HuntressTriggerPanelCopy: {
     "In Huntress, open the endpoint's menu (⋯) and choose View Signing Secret. Requests are refused until it is saved here.",
   ),
   stepTestTitle: translationKey("Send a test"),
+  // The panel reads the workflow again every few seconds while it waits.
   stepTestBody: translationKey(
-    "In Huntress, choose Send Test on the endpoint. This changes as soon as the test arrives.",
+    "In Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.",
   ),
+  /*
+   * The last step while the workflow is off, as the template creates it:
+   * Huntress's test is refused until it is on, so the step says to turn it
+   * on first, in the docs' words for the same step. {{switch}} is the
+   * switch's own name (WORKFLOW_ENABLED_SWITCH_LABEL), drawn in bold.
+   */
+  stepTurnOnTitle: translationKey("Turn the workflow on, and send a test"),
+  stepTurnOnBody: translationKey(
+    "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.",
+  ),
+  // Read out after a step's title once it is done: its check is drawn only.
+  stepDone: translationKey("Done"),
   webhookUrl: translationKey("Webhook URL"),
   copyUrl: translationKey("Copy URL"),
   copyUrlTitle: translationKey("Copy webhook URL"),
@@ -174,10 +260,14 @@ export const HuntressTriggerPanelCopy: {
   secretField: "Signing Secret",
   lastRefused: translationKey("The last request was refused"),
   lastEvent: translationKey("Last event"),
+  /*
+   * Under the URL, which is shown whole (the Webhook trigger masks its own):
+   * the URL is an address, not a password.
+   */
   urlStartsNothing: translationKey(
-    "The URL starts nothing on its own: Huntress signs every request with the endpoint's signing secret, and a request that is not signed with it is refused.",
+    "Only requests signed with the endpoint's signing secret start this workflow.",
   ),
-  loadError: translationKey(
-    "Could not read what Huntress last sent. Close this dialog and open it again.",
-  ),
+  // Beside Try again, which reads the workflow again.
+  loadError: translationKey("Could not read what Huntress last sent."),
+  tryAgain: translationKey("Try again"),
 };

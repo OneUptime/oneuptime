@@ -7307,7 +7307,7 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
     log(
       "log-lookup-failed",
       { x: -750, y: 740 },
-      `⚠️ Could not look for an incident ${HUNTRESS_REPORT} has already, so one is opened. Why the lookup failed is in the run log above.`,
+      `⚠️ Could not check whether ${HUNTRESS_REPORT} has an incident already, so a new one is opened. Why the check failed is in the run log above.`,
     );
     connect("find-incident-0", "error", "log-lookup-failed");
     connect("log-lookup-failed", "out", "create-incident-1");
@@ -7413,7 +7413,7 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
     log(
       "log-no-incident",
       { x: 50, y: 940 },
-      `ℹ️ No incident is about ${HUNTRESS_REPORT}, so its comment was not added.`,
+      `ℹ️ ${HUNTRESS_REPORT} has no incident, so its comment was not added.`,
     );
     connect("if-found-1", "no", "log-no-incident");
 
@@ -7476,7 +7476,7 @@ export const getHuntressIncidentWorkflowGraphSpec: HuntressIncidentWorkflowGraph
     log(
       "log-nothing-to-close",
       { x: 700, y: 940 },
-      `ℹ️ No incident is about ${HUNTRESS_REPORT}, so there was nothing to ${options.resolveWhenClosed ? "resolve" : "note"} when Huntress closed it.`,
+      `ℹ️ ${HUNTRESS_REPORT} has no incident, so there was nothing to ${options.resolveWhenClosed ? "resolve" : "note"} when Huntress closed it.`,
     );
     connect("if-found-2", "no", "log-nothing-to-close");
 
@@ -7646,12 +7646,16 @@ const HUNTRESS_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     teaches:
       "How one workflow follows a report from start to end: a Switch / Case takes a path for each Huntress event. Open the trigger for its URL, and the Page step to pick who to page.",
     setUpInBuilder:
-      "Huntress's signing secret and the policy to page. Both are in the Builder.",
+      "An on-call policy to page, and the signing secret from Huntress. You add both in the Builder.",
     category: WorkflowTemplateCategory.Huntress,
     icon: IconProp.ShieldCheck,
     workflowName: "Huntress incident reports",
+    /*
+     * What the workflow does, for as long as it exists: how to set it up is
+     * said where it is done (the trigger's panel, and teaches above).
+     */
     workflowDescription:
-      "Opens an incident for each Huntress incident report and pages the on-call policy you pick for high and critical ones. Comments made in Huntress become private notes, and closing the report in Huntress resolves the incident. Open the Huntress trigger for the URL to add in Huntress, and save the endpoint's signing secret there.",
+      "Opens an incident for each Huntress incident report and pages the on-call policy you pick for high and critical ones. Comments made in Huntress become private notes, and closing the report in Huntress resolves the incident.",
     variables: [],
     graph: getHuntressIncidentWorkflowGraphSpec(HUNTRESS_TEMPLATE_OPTIONS),
   },

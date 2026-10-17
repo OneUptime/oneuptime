@@ -231,10 +231,13 @@ async function paintBehind(locator: Locator): Promise<string> {
 test.describe("Workflow builder: the Huntress trigger", () => {
   let pageErrors: Array<string> = [];
   let reactFlowWarnings: Array<string> = [];
+  // React's word for an element drawn where no parent may hold it: a p in a p.
+  let nestingWarnings: Array<string> = [];
 
   test.beforeEach(async ({ page }: { page: Page }) => {
     pageErrors = [];
     reactFlowWarnings = [];
+    nestingWarnings = [];
     page.on("pageerror", (error: Error) => {
       pageErrors.push(error.message);
     });
@@ -242,12 +245,17 @@ test.describe("Workflow builder: the Huntress trigger", () => {
       if (message.text().includes("[React Flow]")) {
         reactFlowWarnings.push(message.text());
       }
+
+      if (message.text().includes("validateDOMNesting")) {
+        nestingWarnings.push(message.text());
+      }
     });
   });
 
   test.afterEach(() => {
     expect(pageErrors).toEqual([]);
     expect(reactFlowWarnings).toEqual([]);
+    expect(nestingWarnings).toEqual([]);
   });
 
   test("the template's workflow is drawn whole, the trigger on top, with nothing left to fix", async ({
@@ -585,6 +593,88 @@ test.describe("Workflow builder: the Huntress trigger", () => {
     await screenshot(page, testInfo, "failing");
   });
 
+  /*
+   * What most people meet first: Huntress sent its test before the secret
+   * was saved. Huntress reached the URL, so the first step is ticked; the
+   * reason is above the steps, and the secret's step is what is left.
+   */
+  test("a request refused before the secret is saved ticks the first step, and leaves the secret's", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openBuilder(page, "facts=refused");
+    const dialog: Locator = await openTrigger(page);
+
+    await expect(state(dialog)).toHaveAttribute("data-state", "failing");
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-step-endpoint-done"),
+    ).toBeVisible();
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-step-secret-todo"),
+    ).toBeVisible();
+
+    const refusal: Locator = panel(dialog).getByTestId(
+      "huntress-trigger-last-error",
+    );
+
+    await expect(refusal).toContainText(
+      "no signing secret is saved for this workflow yet",
+    );
+    expect((await boxOf(refusal)).y).toBeLessThan(
+      (await boxOf(panel(dialog).getByTestId("huntress-trigger-step-endpoint")))
+        .y,
+    );
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-signing-secret-button"),
+    ).toHaveText("Save Signing Secret");
+
+    // The secret's step is the one to do next, drawn filled in.
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-step-secret"),
+    ).toHaveAttribute("aria-current", "step");
+
+    await screenshot(page, testInfo, "refused");
+
+    /*
+     * Saving the secret clears the refusal it fixed, as the server does -
+     * and the endpoint's step stays done: Huntress issues a secret only for
+     * an endpoint it has. The test is what is left.
+     */
+    const secret: Locator = await openSecretDialog(page, dialog);
+
+    await secret.getByPlaceholder("whsec_…").fill(SECRET);
+    await secret.getByRole("button", { name: "Save Signing Secret" }).click();
+    await expect(secretDialog(page)).toHaveCount(0);
+
+    await expect(state(dialog)).toHaveAttribute("data-state", "waiting");
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-last-error"),
+    ).toHaveCount(0);
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-step-endpoint-done"),
+    ).toBeVisible();
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-step-secret-done"),
+    ).toBeVisible();
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-step-test"),
+    ).toHaveAttribute("aria-current", "step");
+
+    // Done steps drop their instructions; the URL stays to copy.
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-step-endpoint-body"),
+    ).toHaveCount(0);
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-step-secret-body"),
+    ).toHaveCount(0);
+    await expect(
+      panel(dialog)
+        .getByTestId("huntress-trigger-step-endpoint")
+        .getByTestId("huntress-trigger-url"),
+    ).toHaveText(HUNTRESS_URL);
+  });
+
   test("someone who may not see the workflow's key is told so, and shown no URL", async ({
     page,
   }: {
@@ -602,14 +692,47 @@ test.describe("Workflow builder: the Huntress trigger", () => {
     expect(await page.content()).not.toContain(WEBHOOK_KEY);
   });
 
-  test("a workflow that is off says so in the panel", async ({
+  /*
+   * The template creates the workflow off, and Huntress's test is refused
+   * until it is on: the last step says to turn it on first, naming the
+   * switch as the Builder draws it - where it matters, not above the steps.
+   */
+  test("a workflow that is off: the last step says to turn it on before the test", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openBuilder(page, "off=1");
+    const dialog: Locator = await openTrigger(page);
+    const step: Locator = panel(dialog).getByTestId(
+      "huntress-trigger-step-test",
+    );
+
+    await expect(step).toContainText("Turn the workflow on, and send a test");
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-step-test-body"),
+    ).toHaveText(
+      "Switch Enabled on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.",
+    );
+    await expect(step.locator("strong", { hasText: "Enabled" })).toBeVisible();
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-workflow-off"),
+    ).toHaveCount(0);
+
+    await screenshot(page, testInfo, "off");
+  });
+
+  test("a workflow Huntress reaches, turned off, says it refuses requests until it is on", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openBuilder(page, "off=1");
+    await openBuilder(page, "facts=receiving&off=1");
     const dialog: Locator = await openTrigger(page);
 
+    await expect(
+      panel(dialog).getByTestId("huntress-trigger-status"),
+    ).toBeVisible();
     await expect(
       panel(dialog).getByTestId("huntress-trigger-workflow-off"),
     ).toBeVisible();

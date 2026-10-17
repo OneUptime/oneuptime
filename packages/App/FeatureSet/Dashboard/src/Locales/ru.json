@@ -30312,12 +30312,14 @@
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project._one": "Уже входит в другой эпизод, поэтому не будет добавлено: {{count}}. В этом проекте оповещение может входить только в один эпизод.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "Уже входят в другой эпизод, поэтому не будут добавлены: {{count}}. В этом проекте инцидент может входить только в один эпизод.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "Уже входит в другой эпизод, поэтому не будет добавлен: {{count}}. В этом проекте инцидент может входить только в один эпизод.",
-  "Could not read what Huntress last sent. Close this dialog and open it again.": "Не удалось прочитать, что Huntress прислал последним. Закройте это окно и откройте его снова.",
-  "In Huntress, choose Send Test on the endpoint. This changes as soon as the test arrives.": "В Huntress выберите «Send Test» у конечной точки. Это изменится, как только придёт тест.",
   "Last Webhook Error": "Последняя ошибка вебхука",
   "Last Webhook Error At": "Время последней ошибки вебхука",
   "Last Webhook Request At": "Время последнего запроса вебхука",
-  "The URL starts nothing on its own: Huntress signs every request with the endpoint's signing secret, and a request that is not signed with it is refused.": "Сам по себе URL ничего не запускает: Huntress подписывает каждый запрос секретом подписи конечной точки, а запрос без этой подписи отклоняется.",
   "Webhook Signing Secret": "Секрет подписи вебхука",
-  "Webhook Signing Secret Saved": "Секрет подписи вебхука сохранён"
+  "Webhook Signing Secret Saved": "Секрет подписи вебхука сохранён",
+  "In Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "В Huntress выберите «Send Test» у конечной точки. Тест появится здесь в течение нескольких секунд.",
+  "Only requests signed with the endpoint's signing secret start this workflow.": "Этот рабочий процесс запускают только запросы, подписанные секретом подписи конечной точки.",
+  "Could not read what Huntress last sent.": "Не удалось прочитать, что Huntress прислал последним.",
+  "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "Включите переключатель {{switch}} в верхней части Конструктора. Затем в Huntress выберите «Send Test» у конечной точки. Тест появится здесь в течение нескольких секунд.",
+  "Turn the workflow on, and send a test": "Включите рабочий процесс и отправьте тест"
 }

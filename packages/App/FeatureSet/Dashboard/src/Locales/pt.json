@@ -30312,12 +30312,14 @@
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project._one": "{{count}} deles já está em outro episódio, então não será adicionado. Neste projeto, um alerta só pode estar em um episódio.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "{{count}} deles já estão em outro episódio, então não serão adicionados. Neste projeto, um incidente só pode estar em um episódio.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "{{count}} deles já está em outro episódio, então não será adicionado. Neste projeto, um incidente só pode estar em um episódio.",
-  "Could not read what Huntress last sent. Close this dialog and open it again.": "Não foi possível ler o que o Huntress enviou por último. Feche esta caixa de diálogo e abra-a novamente.",
-  "In Huntress, choose Send Test on the endpoint. This changes as soon as the test arrives.": "No Huntress, escolha \"Send Test\" no endpoint. Isto muda assim que o teste chega.",
   "Last Webhook Error": "Último erro do webhook",
   "Last Webhook Error At": "Último erro do webhook em",
   "Last Webhook Request At": "Última solicitação de webhook em",
-  "The URL starts nothing on its own: Huntress signs every request with the endpoint's signing secret, and a request that is not signed with it is refused.": "A URL sozinha não inicia nada: o Huntress assina cada solicitação com o segredo de assinatura do endpoint, e uma solicitação que não esteja assinada com ele é recusada.",
   "Webhook Signing Secret": "Segredo de assinatura do webhook",
-  "Webhook Signing Secret Saved": "Segredo de assinatura do webhook salvo"
+  "Webhook Signing Secret Saved": "Segredo de assinatura do webhook salvo",
+  "In Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "No Huntress, escolha \"Send Test\" no endpoint. O teste aparece aqui em poucos segundos.",
+  "Only requests signed with the endpoint's signing secret start this workflow.": "Somente solicitações assinadas com o segredo de assinatura do endpoint iniciam este fluxo de trabalho.",
+  "Could not read what Huntress last sent.": "Não foi possível ler o que o Huntress enviou por último.",
+  "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.": "Ative a opção {{switch}} no topo do Construtor. Depois, no Huntress, escolha \"Send Test\" no endpoint. O teste aparece aqui em poucos segundos.",
+  "Turn the workflow on, and send a test": "Ative o fluxo de trabalho e envie um teste"
 }
