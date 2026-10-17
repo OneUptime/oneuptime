@@ -26087,6 +26087,7 @@
   "Zoom, Google Meet, Microsoft Teams or a standing meeting link, used to start a dedicated video call for incidents and alerts.": "Zoom, Google Meet, Microsoft Teams or a standing meeting link, used to start a dedicated video call for incidents and alerts.",
   "Video Call Started": "Videogesprek gestart",
   "Video Call Failed": "Videogesprek mislukt",
+  "Video Call Transcript Added": "Transcriptie van gesprek toegevoegd",
   "A huddle is held in a Slack channel. Turn on Create Slack Channel or Post to Existing Slack Channel on the Destination step.": "A huddle is held in a Slack channel. Turn on Create Slack Channel or Post to Existing Slack Channel on the Destination step.",
   "A link of your own": "A link of your own",
   "A new {{provider}} meeting for every {{eventNoun}}.": "A new {{provider}} meeting for every {{eventNoun}}.",

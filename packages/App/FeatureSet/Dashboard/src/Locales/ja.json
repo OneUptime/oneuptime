@@ -26087,6 +26087,7 @@
   "Zoom, Google Meet, Microsoft Teams or a standing meeting link, used to start a dedicated video call for incidents and alerts.": "Zoom, Google Meet, Microsoft Teams or a standing meeting link, used to start a dedicated video call for incidents and alerts.",
   "Video Call Started": "ビデオ通話を開始",
   "Video Call Failed": "ビデオ通話の開始に失敗",
+  "Video Call Transcript Added": "通話の文字起こしを追加",
   "A huddle is held in a Slack channel. Turn on Create Slack Channel or Post to Existing Slack Channel on the Destination step.": "ハドルは Slack チャンネルで行われます。宛先ステップで「Slack チャンネルを作成」または「既存の Slack チャンネルに投稿」をオンにしてください。",
   "A link of your own": "独自のリンク",
   "A new {{provider}} meeting for every {{eventNoun}}.": "{{eventNoun}}ごとに新しい {{provider}} 会議を作成します。",
