@@ -39,6 +39,7 @@ const EXPECTED: Record<ComponentInputType, ArgumentControl> = {
   [ComponentInputType.WorkflowSelect]: ArgumentControl.Plain,
   [ComponentInputType.IncidentTemplateSelect]: ArgumentControl.Plain,
   [ComponentInputType.AlertSeveritySelect]: ArgumentControl.Plain,
+  [ComponentInputType.IncidentSeveritySelect]: ArgumentControl.Plain,
   [ComponentInputType.CronTab]: ArgumentControl.Plain,
   // A choice of a few answers, each with a line saying what it means.
   [ComponentInputType.Choice]: ArgumentControl.ChoiceRows,

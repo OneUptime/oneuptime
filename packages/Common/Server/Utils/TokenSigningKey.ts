@@ -14,7 +14,9 @@ import {
  *     SSO tokens, a status page private user's session, the master-password
  *     cookies of a status page or a public dashboard, a sign-in in flight
  *     through an identity provider, a phone call's keypad answer, a realtime
- *     subscription;
+ *     subscription. One key signs them all, so the ones that name a person
+ *     say what they are for (JsonWebTokenPurpose), and each is read only as
+ *     that;
  *   - the tokens that are deliberately not JWTs, each under a key derived
  *     from this one for its purpose alone: the MCP server's authorization
  *     requests and delegation tokens (McpOAuthSignedToken) and the

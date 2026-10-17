@@ -8,8 +8,8 @@ import {
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * Which of an MSP's Huntress organizations a connection opens incidents
- * for: all of them, or the ones listed by name or id, one per line.
+ * Which of an MSP's Huntress organizations start a Huntress workflow: all
+ * of them, or the ones its trigger lists by name or id, one per line.
  */
 describe("parseHuntressOrganizationFilter", () => {
   test("one organization per line, trimmed, without blank lines", () => {

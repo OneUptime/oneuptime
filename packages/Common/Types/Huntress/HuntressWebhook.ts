@@ -36,7 +36,14 @@ import HuntressSeverity, { parseHuntressSeverity } from "./HuntressSeverity";
  * Pure: no database, no network, no React.
  */
 
-// Where the webhook is received, under the API (`/api/huntress/webhook/<connection id>`).
+/*
+ * The address Huntress connections had, under the API
+ * (`/api/huntress/webhook/<connection id>`). Each connection became a
+ * workflow whose key is the connection's id, so the address still starts it
+ * (App/FeatureSet/Workflow/API/HuntressLegacyWebhook). A new Huntress
+ * workflow's own address is under the workflow service instead
+ * (Types/Workflow/HuntressTrigger, HUNTRESS_TRIGGER_PATH).
+ */
 export const HUNTRESS_WEBHOOK_ROUTE: string = "/huntress/webhook";
 
 export enum HuntressWebhookEventType {

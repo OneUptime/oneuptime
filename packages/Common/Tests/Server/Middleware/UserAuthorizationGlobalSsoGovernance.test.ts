@@ -12,6 +12,7 @@ import { ProjectSsoProviderStandingValue } from "../../../Server/Utils/ProjectSs
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import Email from "../../../Types/Email";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
@@ -162,10 +163,11 @@ const mintProjectToken: (data: {
   });
 };
 
+// An SSO sign-in's claims, read as the SSO readers read them.
 const decodeToken: (token: string) => JSONWebTokenData = (
   token: string,
 ): JSONWebTokenData => {
-  return JSONWebToken.decode(token);
+  return JSONWebToken.decode(token, JsonWebTokenPurpose.SsoSignIn);
 };
 
 interface RequestParts {
@@ -1010,18 +1012,20 @@ describe("isGlobalSsoTokenAuthorizedForProject - a token with no provider id", (
   const providerId: ObjectID = ObjectID.generate();
 
   const mintProviderlessGlobalToken: () => string = (): string => {
-    return JSONWebToken.sign({
-      data: {
-        userId: userId,
-        name: new Name("Global SSO User"),
-        email: new Email("global-sso@oneuptime.com"),
+    // As an earlier release signed it: no purpose either.
+    return JSONWebToken.signJsonPayload(
+      {
+        userId: userId.toString(),
+        name: "Global SSO User",
+        email: "global-sso@oneuptime.com",
+        projectId: "",
         isMasterAdmin: false,
         isGeneralLogin: false,
         // No ssoProviderId at all - the shape a pre-discriminator token had.
         ssoProviderType: SsoProviderType.GlobalSSO.toString(),
       },
-      expiresInSeconds: THIRTY_DAYS_IN_SECONDS,
-    });
+      THIRTY_DAYS_IN_SECONDS,
+    );
   };
 
   test("the fixture really is a Global token with no provider id", () => {
@@ -1452,6 +1456,7 @@ describe("isSsoSatisfiedForProject - stateless gates run before the database", (
         ssoProviderType: SsoProviderType.GlobalSSO.toString(),
       },
       expiresInSeconds: -60,
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     });
 
     await expect(

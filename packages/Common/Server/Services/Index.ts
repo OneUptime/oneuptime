@@ -370,8 +370,6 @@ import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
-import HuntressConnectionService from "./HuntressConnectionService";
-import HuntressIncidentReportService from "./HuntressIncidentReportService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityCaseService from "./SecurityCaseService";
@@ -857,8 +855,6 @@ const services: Array<BaseService> = [
   DetectionRuleService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
-  HuntressConnectionService,
-  HuntressIncidentReportService,
   ThreatIntelFeedService,
   SecurityCaseService,
   SecurityCaseFeedService,

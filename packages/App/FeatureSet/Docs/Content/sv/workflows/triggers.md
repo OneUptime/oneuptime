@@ -1,12 +1,13 @@
 # Arbetsflödesutlösare
 
-En utlösare är det första blocket i ett arbetsflöde — den avgör när arbetsflödet körs. Varje arbetsflöde har exakt en utlösare. Du väljer mellan fem typer.
+En utlösare är det första blocket i ett arbetsflöde — den avgör när arbetsflödet körs. Varje arbetsflöde har exakt en utlösare. Du väljer mellan sex typer.
 
 :::cards
 - [Manuell](#manual): Starta arbetsflödet från Byggare eller från ett annat arbetsflöde.
 - [Schema](#schedule): Kör det enligt ett återkommande schema, skrivet som ett cron-uttryck.
 - [Webhook](#webhook): Låt ett annat system starta det genom att anropa en URL.
 - [Inkommande e-post](#incoming-email): Starta det med varje e-postmeddelande som skickas till dess egen adress.
+- [Huntress](#huntress): Starta det för varje händelse som Huntress skickar om en incidentrapport.
 - [Utlösare för OneUptime-händelser](#utlösare-för-oneuptime-händelser): Reagera när en post skapas, uppdateras eller tas bort.
 :::
 
@@ -20,6 +21,7 @@ För att lägga till utlösaren klickar du på det streckade blocket **Choose wh
 | Köra enligt ett återkommande schema            | **Schema**                  |
 | Låta ett annat system skicka in data           | **Webhook**                 |
 | Börja från ett e-postmeddelande                | **Incoming Email**          |
+| Agera på incidentrapporter från Huntress       | **Huntress Incident Report** |
 | Reagera på något i OneUptime                   | **OneUptime-händelse**      |
 
 Ett arbetsflöde kan bara ha en utlösare. Behöver du två sätt att starta samma automatisering bygger du den gemensamma logiken i ett arbetsflöde med en **Manual**-utlösare och startar det från två tunna ”omslags”-arbetsflöden med ett **Execute Workflow**-block.
@@ -150,6 +152,14 @@ Om adressen läcker klickar du på **Återställ adress** på samma ställe: arb
 
 > [!NOTE]
 > På en självhostad installation tar OneUptime emot e-post via en leverantör av inkommande e-post som din administratör konfigurerar — se [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Fram till dess har utlösaren ingen adress, och dess inställningar säger det.
+
+## Huntress
+
+OneUptime ger arbetsflödet en egen URL för Huntress, tjänsten för managed detection and response. Huntress skickar varje händelse om en incidentrapport dit, signerad med slutpunktens signeringshemlighet, och varje händelse startar arbetsflödet en gång: när dess SOC skickar en rapport, när någon kommenterar den och när den stängs.
+
+Bra för: att öppna en incident för varje incidentrapport från Huntress, larma jouren och följa rapporten tills den stängs. Mallen **Open an incident for each Huntress incident report** gör alla tre.
+
+För att ansluta Huntress klickar du på utlösaren **Huntress Incident Report** på arbetsytan: den visar URL:en du ger Huntress, sparar slutpunktens signeringshemlighet och visar när Huntress senast nådde arbetsflödet. En förfrågan som inte är signerad med den hemligheten startar ingenting, så URL:en är inget lösenord. Se [Huntress](/docs/integrations/huntress) för konfigurationen i Huntress, värdena utlösaren returnerar och dess inställningar.
 
 ## Utlösare för OneUptime-händelser
 

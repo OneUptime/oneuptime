@@ -1,12 +1,13 @@
 # Workflow-Trigger
 
-Ein Trigger ist der erste Baustein eines Workflows – er entscheidet, wann der Workflow läuft. Jeder Workflow hat genau einen Trigger. Sie wählen aus fünf Arten.
+Ein Trigger ist der erste Baustein eines Workflows – er entscheidet, wann der Workflow läuft. Jeder Workflow hat genau einen Trigger. Sie wählen aus sechs Arten.
 
 :::cards
 - [Manuell](#manual): Den Workflow aus dem Editor oder aus einem anderen Workflow starten.
 - [Zeitplan](#schedule): Ihn nach einem wiederkehrenden Zeitplan ausführen, geschrieben als Cron-Ausdruck.
 - [Webhook](#webhook): Ein anderes System ihn starten lassen, indem es eine URL aufruft.
 - [Eingehende E-Mail](#incoming-email): Ihn mit jeder E-Mail an seine eigene Adresse starten.
+- [Huntress](#huntress): Ihn für jedes Ereignis starten, das Huntress zu einer Vorfallsmeldung sendet.
 - [OneUptime-Ereignis-Trigger](#oneuptime-ereignis-trigger): Reagieren, wenn ein Datensatz angelegt, geändert oder gelöscht wird.
 :::
 
@@ -20,6 +21,7 @@ Um den Trigger hinzuzufügen, klicken Sie auf der Arbeitsfläche eines neuen Wor
 | Nach einem wiederkehrenden Zeitplan ausführen möchten | **Zeitplan**    |
 | Ein anderes System Daten senden lassen möchten  | **Webhook**           |
 | Mit einer E-Mail starten möchten                | **Incoming Email**    |
+| Auf Huntress-Vorfallsmeldungen reagieren möchten | **Huntress Incident Report** |
 | Auf etwas in OneUptime reagieren möchten        | **OneUptime-Ereignis** |
 
 Ein Workflow kann nur einen Trigger haben. Brauchen Sie zwei Wege, dieselbe Automatisierung zu starten, bauen Sie die gemeinsame Logik in einen Workflow mit einem Trigger **Manuell** und starten ihn aus zwei schlanken "Hüllen"-Workflows mit einem **Execute Workflow**-Baustein.
@@ -150,6 +152,14 @@ Gelangt die Adresse nach außen, klicken Sie an derselben Stelle auf **Adresse z
 
 > [!NOTE]
 > Auf einer selbst gehosteten Installation empfängt OneUptime E-Mails über einen Anbieter für eingehende E-Mails, den Ihr Administrator einrichtet – siehe [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Bis dahin hat der Trigger keine Adresse, und seine Einstellungen sagen das.
+
+## Huntress
+
+OneUptime gibt dem Workflow eine eigene URL für Huntress, den Managed-Detection-and-Response-Dienst. Huntress sendet jedes Ereignis zu einer Vorfallsmeldung dorthin, signiert mit dem Signaturgeheimnis des Endpunkts, und jedes Ereignis startet den Workflow einmal: wenn sein SOC eine Meldung sendet, wenn jemand sie kommentiert und wenn sie geschlossen wird.
+
+Gut für: für jede Huntress-Vorfallsmeldung einen Vorfall öffnen, die Bereitschaft alarmieren und der Meldung bis zu ihrem Abschluss folgen. Die Vorlage **Open an incident for each Huntress incident report** erledigt alle drei.
+
+Um Huntress zu verbinden, klicken Sie auf der Arbeitsfläche auf den Trigger **Huntress Incident Report**: Er zeigt die URL, die Sie Huntress geben, speichert das Signaturgeheimnis des Endpunkts und sagt, wann Huntress den Workflow zuletzt erreicht hat. Eine Anfrage, die nicht mit diesem Geheimnis signiert ist, startet nichts, die URL ist also kein Passwort. Unter [Huntress](/docs/integrations/huntress) finden Sie die Einrichtung in Huntress, die Werte, die der Trigger liefert, und seine Einstellungen.
 
 ## OneUptime-Ereignis-Trigger
 

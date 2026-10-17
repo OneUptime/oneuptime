@@ -60,7 +60,7 @@ Five routes lead to the same object:
 - **Over the API** — `POST /api/incident` with an API key. The server fills in `declaredAt`, the created state, and the incident number for you.
 - **Through a form** — somebody outside your team fills in a form you shared as a link, without a OneUptime account. The incident is declared hidden from status pages, from the form's incident template if it has one. See [Forms](/docs/forms/index).
 
-Integrations open incidents too: [Huntress](/docs/integrations/huntress) turns each incident report its SOC sends into one incident, which pages the on-call policies you pick. See [Declaring an Incident](/docs/incidents/declaring-incidents) for the field-by-field walkthrough.
+Workflows open incidents too: the [Huntress](/docs/integrations/huntress) workflow turns each incident report its SOC sends into one incident, which pages the on-call policy you pick. See [Declaring an Incident](/docs/incidents/declaring-incidents) for the field-by-field walkthrough.
 
 ### 2. The right people find out
 
@@ -160,11 +160,10 @@ Open **Incidents** from the **Products** menu in the top bar. Its side menu is o
 | **Episodes**  | Incident episodes, a separate grouping feature with its own pages.                                                                                                         |
 | **AI**        | **Insights**, **Logs**, **Settings**: what OneUptime AI learned from your incidents and everything it did for them, and what it may do on its own — with the rules for which incidents it investigates and fixes. See [AI SRE](/docs/ai/ai-sre). |
 | **Workspace** | The chat workspaces this project has connected: **Slack**, **Microsoft Teams** or both, each with its notification rules for incidents. With neither connected, it holds **Connect Slack or Teams**, a page showing both and how to connect them. |
-| **Integrations** | Tools that open incidents on their own: **Huntress**, whose incident reports become incidents that page on-call. See [Huntress](/docs/integrations/huntress). |
 | **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
 | **Settings**  | **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Episode Membership**, **Numbering**. |
 
-**Overview** and **Episodes** are open; **AI**, **Workspace**, **Integrations**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
+**Overview** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
 
 The incidents list itself shows **Incident Number**, **Title**, **State**, **Severity**, **Resources Affected**, **Declared**, **Duration**, **Labels** and **Owners**, with a **Change State** bulk action for closing several at once.
 

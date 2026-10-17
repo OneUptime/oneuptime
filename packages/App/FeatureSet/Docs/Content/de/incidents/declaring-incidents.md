@@ -21,7 +21,7 @@ Es gibt fünf Wege, auf denen ein Vorfall in OneUptime entsteht, und alle enden 
 | einen aus eigenem Code, einem Skript oder einem anderen Werkzeug öffnen wollen | `POST /api/incident`                                           |
 | Personen außerhalb Ihres Teams Probleme über einen Link melden lassen wollen | ein [Formular](/docs/forms/index)                                |
 
-Alle fünf schreiben dasselbe Modell, ein von einer Probe geöffneter Vorfall sieht also genauso aus wie einer, den ein Responder von Hand geöffnet hat – bis auf ein paar Verwaltungsspalten, die der Server bei automatischen setzt. Auch Integrationen schreiben es: [Huntress](/docs/integrations/huntress) öffnet für jeden Vorfallbericht, den sein SOC sendet, einen Vorfall.
+Alle fünf schreiben dasselbe Modell, ein von einer Probe geöffneter Vorfall sieht also genauso aus wie einer, den ein Responder von Hand geöffnet hat – bis auf ein paar Verwaltungsspalten, die der Server bei automatischen setzt. Auch Workflows schreiben es: Der [Huntress](/docs/integrations/huntress)-Workflow öffnet für jeden Vorfallbericht, den sein SOC sendet, einen Vorfall.
 
 > [!TIP]
 > Sie können einen Vorfall auch aus Warnungen melden: **Vorfall melden** in einer Warnungsliste, in der Kopfzeile einer Warnung oder auf der Seite **Verknüpfte Vorfälle** einer Warnung öffnet denselben Assistenten, vorausgefüllt aus den Warnungen, und verknüpft sie mit dem neuen Vorfall. Ein standardmäßig angehaktes Kästchen im Formular bestätigt die Warnungen außerdem, damit ihre Eskalation stoppt. Siehe [Verknüpfte Warnungen](/docs/incidents/linked-alerts).

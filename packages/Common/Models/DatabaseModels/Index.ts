@@ -154,8 +154,6 @@ import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ToolImportRun from "./ToolImportRun";
 import ToolImportRecord from "./ToolImportRecord";
-import HuntressConnection from "./HuntressConnection";
-import HuntressIncidentReport from "./HuntressIncidentReport";
 import ThreatIntelFeed from "./ThreatIntelFeed";
 import SecurityCase from "./SecurityCase";
 import SecurityCaseFeed from "./SecurityCaseFeed";
@@ -571,8 +569,6 @@ const AllModelTypes: Array<{
   SecurityEventConnectionRun,
   ToolImportRun,
   ToolImportRecord,
-  HuntressConnection,
-  HuntressIncidentReport,
   ThreatIntelFeed,
   SecurityCase,
   SecurityCaseFeed,

@@ -1007,8 +1007,8 @@ describe("a picked template's details", () => {
       });
     }
 
-    // The three that page people.
-    expect(pickedInBuilder).toBe(3);
+    // The three that page people, and Huntress's: its signing secret and who to page.
+    expect(pickedInBuilder).toBe(4);
   });
 
   test("every template's details open, with its trigger and every setting it asks for", () => {

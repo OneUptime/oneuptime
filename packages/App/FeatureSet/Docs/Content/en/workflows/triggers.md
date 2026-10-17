@@ -1,12 +1,13 @@
 # Workflow Triggers
 
-A trigger is the first block in a workflow — it decides when the workflow runs. Every workflow has exactly one trigger. You pick from five kinds.
+A trigger is the first block in a workflow — it decides when the workflow runs. Every workflow has exactly one trigger. You pick from six kinds.
 
 :::cards
 - [Manual](#manual): Start the workflow from the Builder, or from another workflow.
 - [Schedule](#schedule): Run it on a repeating schedule, written as a cron expression.
 - [Webhook](#webhook): Let another system start it by calling a URL.
 - [Incoming Email](#incoming-email): Start it with every email sent to its own address.
+- [Huntress](#huntress): Start it for each event Huntress sends about an incident report.
 - [OneUptime event triggers](#oneuptime-event-triggers): React when a record is created, updated or deleted.
 :::
 
@@ -20,6 +21,7 @@ To add the trigger, click the dashed **Choose what starts this workflow** block 
 | Run on a repeating schedule         | **Schedule**        |
 | Have another system push data in    | **Webhook**         |
 | Start from an email                 | **Incoming Email**  |
+| Act on Huntress incident reports    | **Huntress Incident Report** |
 | React to something inside OneUptime | **OneUptime event** |
 
 A workflow can only have one trigger. If you need two ways to start the same automation, build the shared logic in one workflow with a **Manual** trigger, and start it from two thin "wrapper" workflows with an **Execute Workflow** block.
@@ -150,6 +152,14 @@ If the address leaks, click **Reset address** in the same place: the workflow ge
 
 > [!NOTE]
 > On a self-hosted installation, OneUptime receives email through an inbound email provider that your administrator sets up — see [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Until then the trigger has no address, and its settings say so.
+
+## Huntress
+
+OneUptime gives the workflow a URL of its own for Huntress, the managed detection and response service. Huntress sends every event about an incident report to it, signed with the endpoint's signing secret, and each event starts the workflow once: when its SOC sends a report, when someone comments on it, and when it is closed.
+
+Good for: opening an incident for each Huntress incident report, paging on-call, and following the report to its close. The **Open an incident for each Huntress incident report** template does all three.
+
+To connect Huntress, click the **Huntress Incident Report** trigger on the canvas: it shows the URL to give Huntress, saves the endpoint's signing secret, and says when Huntress last reached the workflow. A request that is not signed with that secret starts nothing, so the URL is not a password. See [Huntress](/docs/integrations/huntress) for the setup in Huntress, the values the trigger returns, and its settings.
 
 ## OneUptime event triggers
 

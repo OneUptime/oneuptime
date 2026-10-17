@@ -16,6 +16,19 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import WorkflowService from "../../../Services/WorkflowService";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 
+/*
+ * A workflow whose trigger checks the signature of every request (the
+ * Huntress trigger) is only ever started through its own URL, which checks
+ * it. Its webhook secret key is the last part of that URL too, so this
+ * route, which checks no signature, refuses it.
+ */
+export const SIGNED_WEBHOOK_TRIGGER_IDS: Array<string> = [
+  ComponentID.HuntressIncidentReport,
+];
+
+export const SIGNED_WEBHOOK_WORKFLOW_MESSAGE: string =
+  "This workflow starts from Huntress, which signs its requests. Send them to the URL its Huntress trigger shows.";
+
 export default class WebhookTrigger extends TriggerCode {
   public constructor() {
     super();
@@ -97,6 +110,7 @@ export default class WebhookTrigger extends TriggerCode {
       },
       select: {
         _id: true,
+        triggerId: true,
       },
       props: {
         isRoot: true,
@@ -107,6 +121,13 @@ export default class WebhookTrigger extends TriggerCode {
       throw new BadDataException(
         "Workflow not found for the provided secret key.",
       );
+    }
+
+    if (
+      workflow.triggerId &&
+      SIGNED_WEBHOOK_TRIGGER_IDS.includes(workflow.triggerId)
+    ) {
+      throw new BadDataException(SIGNED_WEBHOOK_WORKFLOW_MESSAGE);
     }
 
     const executeWorkflow: ExecuteWorkflowType = {

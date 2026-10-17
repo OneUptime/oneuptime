@@ -39,6 +39,7 @@ import {
   getPageUsersDocumentation,
 } from "./OnCallDocumentation";
 import {
+  getHuntressDocumentation,
   getIncomingEmailDocumentation,
   getManualDocumentation,
   getScheduleDocumentation,
@@ -62,6 +63,7 @@ export const BUILT_IN_COMPONENT_DOCUMENTATION: Record<
 > = {
   [ComponentID.Webhook]: getWebhookDocumentation,
   [ComponentID.IncomingEmail]: getIncomingEmailDocumentation,
+  [ComponentID.HuntressIncidentReport]: getHuntressDocumentation,
   [ComponentID.Schedule]: getScheduleDocumentation,
   [ComponentID.Manual]: getManualDocumentation,
   [ComponentID.Log]: getLogDocumentation,

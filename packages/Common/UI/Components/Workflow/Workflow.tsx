@@ -3,10 +3,12 @@ import ComponentSettingsModal from "./ComponentSettingsModal";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
 import {
+  WorkflowCanvasNode,
   WorkflowCanvasRect,
   WorkflowCanvasViewport,
   getNewWorkflowNodePosition,
   getViewportToRevealNode,
+  getViewportToRevealTrigger,
 } from "./NodePlacement";
 import {
   LintGraphEdge,
@@ -74,12 +76,16 @@ import ReactFlow, {
   OnConnect,
   ProOptions,
   ReactFlowInstance,
+  ReactFlowState,
   Viewport,
   addEdge,
   getConnectedEdges,
   updateEdge,
   useEdgesState,
   useNodesState,
+  useReactFlow,
+  useStore,
+  useStoreApi,
 } from "reactflow";
 // 👇 you need to import the reactflow styles
 import "reactflow/dist/style.css";
@@ -193,6 +199,61 @@ const getCanvasOverlays: GetCanvasOverlaysFunction = (
       height: box.height,
     };
   });
+};
+
+/*
+ * Once the canvas has opened and fitted the workflow, brings the trigger
+ * into view if the fit left it off screen (getViewportToRevealTrigger): a
+ * workflow too big to fit at the smallest zoom is fitted on its middle,
+ * with the trigger above the top edge. Drawn inside ReactFlow, whose store
+ * says when its first fit is done; it draws nothing.
+ */
+const RevealTriggerOnOpen: FunctionComponent<{
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>;
+}> = (props: {
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>;
+}): null => {
+  const isFitDone: boolean = useStore((state: ReactFlowState): boolean => {
+    return state.fitViewOnInitDone;
+  });
+  const store: ReturnType<typeof useStoreApi> = useStoreApi();
+  const { setViewport } = useReactFlow();
+  const hasRevealed: React.MutableRefObject<boolean> = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!isFitDone || hasRevealed.current) {
+      return;
+    }
+
+    hasRevealed.current = true;
+
+    const state: ReactFlowState = store.getState();
+    const [x, y, zoom] = state.transform;
+    const canvas: HTMLDivElement | null = props.canvasRef.current;
+
+    const nextViewport: WorkflowCanvasViewport | null =
+      getViewportToRevealTrigger({
+        nodes: state.getNodes().map((node: Node): WorkflowCanvasNode => {
+          return {
+            position: node.positionAbsolute || node.position,
+            width: node.width,
+            height: node.height,
+            isTrigger:
+              node.data?.metadata?.componentType === ComponentType.Trigger,
+          };
+        }),
+        viewport: { x: x, y: y, zoom: zoom },
+        canvasSize: { width: state.width, height: state.height },
+        overlays: canvas ? getCanvasOverlays(canvas) : [],
+      });
+
+    if (nextViewport) {
+      // On open, nothing to follow: no animation.
+      setViewport(nextViewport);
+    }
+  }, [isFitDone]);
+
+  return null;
 };
 
 export interface ComponentProps {
@@ -1145,6 +1206,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           size={1}
           color="var(--ou-chart-grid, #cbd5e1)"
         />
+        <RevealTriggerOnOpen canvasRef={canvasRef} />
       </ReactFlow>
 
       {showComponentsModal && (

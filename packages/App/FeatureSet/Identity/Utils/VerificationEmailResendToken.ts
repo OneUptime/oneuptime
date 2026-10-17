@@ -30,14 +30,16 @@ import ObjectID from "Common/Types/ObjectID";
  *
  * WHY IT IS NOT A JWT
  *
- * JSONWebToken.decode accepts any JWT signed with TokenSigningKey that carries
- * a valid `email` as a full user session. A resend token minted as such a JWT
- * would therefore be a session for an unverified account -- exactly what signup
- * refuses to issue. So this is a different format ("v1.<payload>.<signature>",
- * which no JWT parser accepts) signed with a different key: an HMAC key derived
- * from TokenSigningKey under a label used for nothing else, so a signature
- * made here verifies nowhere else and no signature made elsewhere verifies
- * here.
+ * It names an account, and every JWT OneUptime signs is signed with the same
+ * key. The JWT readers take a token only for what it says it is for
+ * (JsonWebTokenPurpose: a session, an SSO sign-in, a status page's session),
+ * so a JWT that says none of those is no session - but a resend token minted
+ * as a JWT would be one claim away from a session for an unverified account,
+ * exactly what signup refuses to issue. So this is a different format
+ * ("v1.<payload>.<signature>", which no JWT parser accepts) signed with a
+ * different key: an HMAC key derived from TokenSigningKey under a label used
+ * for nothing else, so a signature made here verifies nowhere else and no
+ * signature made elsewhere verifies here.
  *
  * ON AN INSTALLATION WHOSE ENCRYPTION_SECRET IS A SHIPPED PLACEHOLDER
  *

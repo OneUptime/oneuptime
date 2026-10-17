@@ -6,6 +6,7 @@ import {
 } from "../../../Types/Huntress/HuntressWebhook";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  HUNTRESS_MAX_INCIDENT_TITLE_LENGTH,
   HUNTRESS_PORTAL_ORIGIN,
   getHuntressAffectedLabel,
   getHuntressAffectedName,
@@ -16,40 +17,34 @@ import {
   getHuntressIndicatorTitle,
   getHuntressPlatformTitle,
   getHuntressReportPortalUrl,
-  getHuntressResolvedReason,
 } from "../../../Utils/Huntress/HuntressIncidentReportText";
 import {
   getHuntressCommentBody,
   getHuntressIdentityReportBody,
   getHuntressIncidentReportBody,
 } from "../../Types/Huntress/HuntressWebhookFixtures";
+import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test } from "@jest/globals";
 
 /*
  * The incident a Huntress report opens, as responders read it: the title a
  * page or a call says, the description (summary first, then the facts and
  * the way back to Huntress), and the notes for comments and closing. What
- * Huntress wrote is placed as text: a name or a summary never becomes a
- * link, an image or a chat mention of its own.
+ * Huntress wrote is placed as reported (FeedMarkdown.reportedValue): it
+ * reads as written, but a name, a subject or a summary never becomes a
+ * link, an image, HTML or a chat mention of its own. The breaks that takes
+ * are invisible word joiners. TemplateOutsideText.test.ts reads the same
+ * texts through the dashboard's parser, marked and Slack.
  */
 
-/*
- * Whether `needle` appears anywhere in `text` without a backslash right
- * before it - the escape every renderer turns back into the character, so
- * an escaped "](" or "<img" reads as typed and does nothing.
- */
-function hasUnescaped(text: string, needle: string): boolean {
-  let at: number = text.indexOf(needle);
+const WORD_JOINERS: RegExp = new RegExp(WORD_JOINER, "g");
 
-  while (at >= 0) {
-    if (at === 0 || text.charAt(at - 1) !== "\\") {
-      return true;
-    }
+// A "<" that starts something - a tag, a comment, a mention: placed text holds none.
+const TAG_START: RegExp = new RegExp(`<(?![\\s${WORD_JOINER}])`);
 
-    at = text.indexOf(needle, at + 1);
-  }
-
-  return false;
+// The text as a reader sees it: the invisible breaks taken out.
+function asRead(text: string): string {
+  return text.replace(WORD_JOINERS, "");
 }
 
 function event(body: JSONObject): HuntressIncidentReportEvent {
@@ -120,6 +115,63 @@ describe("getHuntressIncidentTitle", () => {
     );
 
     expect(title.length).toBeLessThanOrEqual(500);
+    expect(HUNTRESS_MAX_INCIDENT_TITLE_LENGTH).toBe(500);
+  });
+
+  test("a subject reads as written, and nothing in it acts: no link, image, HTML or chat mention", () => {
+    const subject: string =
+      "Incident on [Reset your password](https://login.example/reset) <img src=x> <!channel> ![x](https://tracker.example/p.png)";
+    const title: string = getHuntressIncidentTitle(
+      event(
+        getHuntressIncidentReportBody({ subject: `CRITICAL - ${subject}` }),
+      ),
+    );
+
+    expect(asRead(title)).toBe(`Huntress: ${subject}`);
+
+    for (const acting of [
+      "](https://login.example/reset)",
+      "<img",
+      "<!channel>",
+      "![x]",
+    ]) {
+      expect({ acting, found: title.includes(acting) }).toEqual({
+        acting,
+        found: false,
+      });
+    }
+  });
+
+  test("so does the organization a title names without a subject", () => {
+    const title: string = getHuntressIncidentTitle(
+      event(
+        getHuntressIncidentReportBody({
+          subject: null,
+          organization: { id: 4, name: "<!here> Acme" },
+        }),
+      ),
+    );
+
+    expect(asRead(title)).toBe("Huntress incident report 1234 (<!here> Acme)");
+    expect(title).not.toContain("<!here>");
+  });
+
+  test("a subject whose every character gets a break still fits the title's column, cut short with …", () => {
+    // Each "<" takes a word joiner after it: twice the subject, past the column.
+    const title: string = getHuntressIncidentTitle(
+      event(getHuntressIncidentReportBody({ subject: "<".repeat(300) })),
+    );
+
+    expect(title.length).toBeLessThanOrEqual(
+      HUNTRESS_MAX_INCIDENT_TITLE_LENGTH,
+    );
+    expect(title.length).toBeGreaterThan(
+      HUNTRESS_MAX_INCIDENT_TITLE_LENGTH - 5,
+    );
+    expect(asRead(title).startsWith("Huntress: <<<")).toBe(true);
+    expect(title.endsWith("…")).toBe(true);
+    // And no "<" in it starts anything.
+    expect(TAG_START.test(title)).toBe(false);
   });
 });
 
@@ -307,14 +359,13 @@ describe("getHuntressIncidentDescription", () => {
     );
   });
 
-  test("names Huntress wrote stay text: no link, image, HTML or chat mention", () => {
+  test("names Huntress wrote read as written, and none is a link, image, HTML or chat mention", () => {
+    const name: string =
+      "Acme](https://evil.example) <!channel> ![x](https://tracker.example/p.png)";
     const description: string = getHuntressIncidentDescription({
       event: event(
         getHuntressIncidentReportBody({
-          organization: {
-            id: 4,
-            name: "Acme](https://evil.example) <!channel> ![x](https://tracker.example/p.png)",
-          },
+          organization: { id: 4, name: name },
           subject: "CRITICAL - Incident on <img src=x onerror=alert(1)> (Acme)",
           summary: null,
         }),
@@ -322,32 +373,37 @@ describe("getHuntressIncidentDescription", () => {
       severity: HuntressSeverity.Critical,
     });
 
-    // The bracket that would end a link's words is escaped.
-    expect(description).toContain("Acme\\](https://evil.example)");
-    expect(hasUnescaped(description, "](https://evil.example)")).toBe(false);
-    // So is the image's bracket, and the tag's "<".
-    expect(hasUnescaped(description, "[x]")).toBe(false);
-    expect(hasUnescaped(description, "<img")).toBe(false);
-    // The chat mention is broken by an invisible word joiner.
-    expect(description).not.toContain("<!channel>");
-    expect(description).toContain("<\u2060!channel>");
+    expect(asRead(description)).toContain(`- **Organization:** ${name}`);
+    expect(asRead(description)).toContain(
+      "<img src=x onerror=alert(1)> (Windows)",
+    );
+
+    // Each is broken where it would act, invisibly.
+    for (const acting of [
+      "](https://evil.example)",
+      "<!channel>",
+      "![x]",
+      "<img",
+    ]) {
+      expect({ acting, found: description.includes(acting) }).toEqual({
+        acting,
+        found: false,
+      });
+    }
   });
 
-  test("the analyst's summary keeps its Markdown, but an image in it is only a link", () => {
+  test("the analyst's summary keeps its Markdown, and nothing in it acts", () => {
+    const summary: string =
+      "**Isolated** the host.\n\n![beacon](https://tracker.example/p.png)\n\n[Reset your password](https://login.example/reset) <!here> please look";
     const description: string = getHuntressIncidentDescription({
-      event: event(
-        getHuntressIncidentReportBody({
-          summary:
-            "**Isolated** the host.\n\n![beacon](https://tracker.example/p.png)\n\n<!here> please look",
-        }),
-      ),
+      event: event(getHuntressIncidentReportBody({ summary })),
       severity: HuntressSeverity.Critical,
     });
 
     expect(description).toContain("**Isolated** the host.");
-    // The "!" is escaped: the image is a plain link nobody's client fetches.
-    expect(description).toContain("\\![beacon](https://tracker.example/p.png)");
-    expect(hasUnescaped(description, "![beacon](")).toBe(false);
+    expect(asRead(description).startsWith(summary)).toBe(true);
+    expect(description).not.toContain("![beacon](");
+    expect(description).not.toContain("](https://login.example/reset)");
     expect(description).not.toContain("<!here>");
   });
 });
@@ -359,13 +415,24 @@ describe("notes and the resolution reason", () => {
     );
   });
 
-  test("a comment's image and chat mention do not act", () => {
-    const note: string = getHuntressCommentNote(
-      "![x](https://tracker.example/p.png) <!channel>",
-    );
+  test("a comment reads as written, and its image and chat mention do not act", () => {
+    const comment: string = "![x](https://tracker.example/p.png) <!channel>";
+    const note: string = getHuntressCommentNote(comment);
 
-    expect(note).toContain("\\![x](https://tracker.example/p.png)");
-    expect(hasUnescaped(note, "![x](")).toBe(false);
+    expect(asRead(note)).toBe(`**Comment added in Huntress**\n\n${comment}`);
+    expect(note).not.toContain("![x](");
+    expect(note).not.toContain("<!channel>");
+  });
+
+  test("a status Huntress wrote reads as written in the closed note, and does not act", () => {
+    const closed: HuntressIncidentReportEvent = event(
+      getHuntressCommentBody("", { status: "<!channel> closed" }),
+    );
+    const note: string = getHuntressClosedNote(closed);
+
+    expect(asRead(note)).toBe(
+      "Huntress closed incident report 1234 (status: <!channel> closed).",
+    );
     expect(note).not.toContain("<!channel>");
   });
 
@@ -379,17 +446,6 @@ describe("notes and the resolution reason", () => {
     );
     expect(getHuntressClosedNote({ reportId: "1234", status: null })).toBe(
       "Huntress closed incident report 1234.",
-    );
-  });
-
-  test("the resolution reason names the report and its status", () => {
-    expect(
-      getHuntressResolvedReason({ reportId: "1234", status: "closed" }),
-    ).toBe(
-      "Resolved because Huntress closed incident report 1234 (status: closed).",
-    );
-    expect(getHuntressResolvedReason({ reportId: "1234", status: null })).toBe(
-      "Resolved because Huntress closed incident report 1234.",
     );
   });
 });
