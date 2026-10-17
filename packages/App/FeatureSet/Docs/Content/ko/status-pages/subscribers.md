@@ -127,7 +127,7 @@ SMS 로그(상태 페이지와 프로젝트 설정의 **알림 로그**에 있�
 - 모든 리소스의 구독 취소로 설명되는 **구독 취소** 토글. **구독 취소 여부**(`isUnsubscribed`, 기본값 false)를 씁니다.
 - **구독 업데이트**라고 쓰인 제출 버튼. 저장하면 다음과 같이 표시됩니다: *변경 사항이 저장되었습니다.*
 
-비공개 상태 페이지에서는 페이지의 나머지 부분처럼 로그인한 방문자가 필요합니다. 링크를 잃어버린 사람은 **구독** 페이지의 **기존 구독 관리**를 사용해 **관리 링크 보내기**를 누릅니다. 링크는 구독 자체(그 이메일 주소, 전화번호, 또는 Slack이나 Microsoft Teams 채널)로 가며, 요청에 있는 주소로는 절대 가지 않습니다. 또한 구독이 일치했든 아니든 페이지는 같은 응답을 하므로, 누가 구독했는지 알아내는 데 쓸 수 없습니다. 그 메시지는 **구독 업데이트** 페이지로 연결되며, 사용자 지정 템플릿에 `manageSubscriptionUrl`과 `unsubscribeUrl` 두 링크를 모두 넘깁니다.
+비공개 상태 페이지에서는 페이지의 나머지 부분처럼 로그인한 방문자가 필요합니다. 구독 취소 페이지와 마찬가지로 페이지의 사용자 지정 JavaScript를 실행하지 않으며, 사용자 지정 헤더 HTML이나 푸터 HTML 대신 기본 헤더와 푸터를 표시합니다. 링크를 잃어버린 사람은 **구독** 페이지의 **기존 구독 관리**를 사용해 **관리 링크 보내기**를 누릅니다. 링크는 구독 자체(그 이메일 주소, 전화번호, 또는 Slack이나 Microsoft Teams 채널)로 가며, 요청에 있는 주소로는 절대 가지 않습니다. 또한 구독이 일치했든 아니든 페이지는 같은 응답을 하므로, 누가 구독했는지 알아내는 데 쓸 수 없습니다. 그 메시지는 **구독 업데이트** 페이지로 연결되며, 사용자 지정 템플릿에 `manageSubscriptionUrl`과 `unsubscribeUrl` 두 링크를 모두 넘깁니다.
 
 이 모든 것을 뒷받침하는 엔드포인트는 `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token`, 그리고 `GET` 및 `POST .../unsubscribe/:statusPageId/:subscriberId/:token`입니다. 구독 취소 `GET`은 링크를 설명하기만 합니다. `POST`는 원클릭 구독 취소 요청의 `List-Unsubscribe=One-Click` 본문을 포함해 본문과 관계없이 구독을 취소합니다. 토큰을 받는 엔드포인트는 모두 토큰이 없거나 잘못된 경우, 삭제된 구독자, 다른 상태 페이지의 구독자에 대해 같은 응답을 하므로, 어느 것으로도 누가 구독했는지 알아낼 수 없습니다.
 

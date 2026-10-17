@@ -127,7 +127,7 @@ flowchart TB
 - 一个 **取消订阅** 开关，说明为取消订阅所有资源。它写入 **已取消订阅**（`isUnsubscribed`，默认 false）。
 - 一个写着 **更新订阅** 的提交按钮；保存后显示 *您的更改已保存。*
 
-在私密状态页上，它和页面的其他部分一样需要已登录的访客。丢失了链接的人可以在 **订阅** 页面上使用 **管理现有订阅**，然后按 **发送管理链接**。链接会发送到订阅本身（它的电子邮件地址、电话号码，或者它的 Slack 或 Microsoft Teams 频道），绝不会发送到请求中的地址，而且无论是否匹配到订阅，页面的回答都相同，所以无法用它来查出谁订阅了。该消息链接到 **更新订阅** 页面，并把两个链接都交给自定义模板：`manageSubscriptionUrl` 和 `unsubscribeUrl`。
+在私密状态页上，它和页面的其他部分一样需要已登录的访客。和取消订阅页面一样，它不会运行页面的任何自定义 JavaScript，并且会显示标准的页眉和页脚，而不是自定义的页眉 HTML 或页脚 HTML。丢失了链接的人可以在 **订阅** 页面上使用 **管理现有订阅**，然后按 **发送管理链接**。链接会发送到订阅本身（它的电子邮件地址、电话号码，或者它的 Slack 或 Microsoft Teams 频道），绝不会发送到请求中的地址，而且无论是否匹配到订阅，页面的回答都相同，所以无法用它来查出谁订阅了。该消息链接到 **更新订阅** 页面，并把两个链接都交给自定义模板：`manageSubscriptionUrl` 和 `unsubscribeUrl`。
 
 支撑这一切的端点是 `POST .../subscribe/:statusPageId`、`POST .../manage-subscription/:statusPageId`、`POST .../get-subscription/:statusPageId/:subscriberId/:token`、`PUT .../update-subscription/:statusPageId/:subscriberId/:token`，以及 `GET` 和 `POST .../unsubscribe/:statusPageId/:subscriberId/:token`。取消订阅的 `GET` 只描述链接。`POST` 无论请求体是什么都会取消订阅，包括一键取消订阅请求的 `List-Unsubscribe=One-Click` 请求体。每个接受令牌的端点，对于缺失或错误的令牌、已删除的订阅者和另一个状态页的订阅者，给出的回答都相同，所以任何一个都无法用来查出谁订阅了。
 

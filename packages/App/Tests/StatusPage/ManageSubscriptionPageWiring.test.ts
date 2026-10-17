@@ -155,6 +155,80 @@ describe("the manage page", () => {
   });
 });
 
+/*
+ * The manage page works with the subscription's credential, so - like the
+ * unsubscribe and sign-in pages - none of the status page's custom code runs
+ * beside it: custom JavaScript runs only from the pages that call their
+ * onLoadComplete, and custom header and footer HTML (which can run script)
+ * is not shown on it. Leaving it for a page that runs custom code lets go of
+ * the credential first. (StatusPageCustomizations.test.ts holds the rules
+ * themselves.)
+ */
+describe("none of the status page's custom code runs beside the manage page's credential", () => {
+  test("the manage page never asks for the page's custom JavaScript", () => {
+    const page: string = readCode("Pages/Subscribe/UpdateSubscription.tsx");
+
+    expect(page).not.toContain("onLoadComplete(");
+    expect(page).not.toContain("executeStatusPageCustomJavaScript");
+  });
+
+  test("the master page shows custom header and footer HTML only where the rule allows, and lets go of the credential first", () => {
+    const masterPage: string = readCode("Components/MasterPage/MasterPage.tsx");
+
+    expect(masterPage).toContain(
+      "const canRenderCustomHtml: boolean = canRenderStatusPageCustomHtml({",
+    );
+    expect(masterPage).toContain(
+      "pathname: Navigation.getCurrentRoute().toString(),",
+    );
+    expect(masterPage).toContain("{!canRenderCustomHtml || !headerHtml ? (");
+    expect(masterPage).toContain("{!canRenderCustomHtml || !footerHtml ? (");
+    expect(masterPage).not.toContain(
+      "{!canRenderCustomizations || !headerHtml ? (",
+    );
+    expect(masterPage).not.toContain(
+      "{!canRenderCustomizations || !footerHtml ? (",
+    );
+
+    // Before the HTML can run anything: a layout effect, in the render's own task.
+    expect(masterPage).toContain(
+      "useLayoutEffect(() => { if (showsCustomHtml) { releaseCredentialsBeforeCustomCode(); } }, [showsCustomHtml]);",
+    );
+    expect(masterPage).toContain(
+      "const showsCustomHtml: boolean = !isShownOnItsOwn && canRenderCustomHtml && Boolean(headerHtml || footerHtml);",
+    );
+  });
+
+  test("the custom JavaScript runs only through the executor that lets go of the credential first", () => {
+    const app: string = readCode("App.tsx");
+    const customizations: string = readCode(
+      "Utils/StatusPageCustomizations.ts",
+    );
+
+    expect(app).toContain("executeStatusPageCustomJavaScript(javascript,");
+    expect(customizations).toContain(
+      "releaseCredentialsBeforeCustomCode(); new Function(permittedJavaScript)();",
+    );
+  });
+
+  test("both forms of the manage page's route are credential routes, on a custom domain and on the page's own address", () => {
+    for (const route of [
+      RouteMap[PageMap.UPDATE_SUBSCRIPTION]!.toString(),
+      RouteUtil.tokenFreeRoute(
+        RouteMap[PageMap.UPDATE_SUBSCRIPTION]!.toString(),
+      ),
+      `/update-subscription/${SUBSCRIBER_ID}-${TOKEN}`,
+      `/status-page/11111111-1111-4111-8111-111111111111/update-subscription/${SUBSCRIBER_ID}-${TOKEN}`,
+      "/status-page/11111111-1111-4111-8111-111111111111/update-subscription",
+    ]) {
+      expect([route, SensitiveUrlToken.isTokenRoute(route)]).toEqual([
+        route,
+        true,
+      ]);
+    }
+  });
+});
+
 describe("where a visitor asks for a new manage link", () => {
   const NONE: ManageLinkChannels = {
     enableEmailSubscribers: false,

@@ -95,13 +95,36 @@ export default class SensitiveUrlToken {
   }
 
   /*
+   * Whether a path is a token-bearing route, in either of its forms: with its
+   * token (".../unsubscribe/<token>") or the token-free form the bootstrap
+   * leaves in the address bar (".../unsubscribe"). The page on such a route
+   * works with a credential, so a status page shows none of its custom code
+   * there (StatusPage/src/Utils/StatusPageCustomizations).
+   */
+  public static isTokenRoute(pathname: string): boolean {
+    const segments: Array<string> = SensitiveUrlToken.segmentsOf(pathname);
+
+    return segments.slice(-2).some((segment: string): boolean => {
+      return TOKEN_ROUTES.includes(segment);
+    });
+  }
+
+  /*
    * Drop the stashed token once the flow that needed it has completed.
    *
    * Only call this on success. A failed reset (an expired token, a password the
    * server rejected) has to leave the stash intact, or the retry — and any
    * reload of the now token-free URL — has nothing to submit.
+   *
+   * A status page also drops it before its own custom code runs anywhere in
+   * the tab (StatusPage/src/Utils/StatusPageCustomizations): no custom code
+   * ever runs beside a credential.
    */
   public static clear(): void {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     try {
       window.sessionStorage.removeItem(STORAGE_KEY);
     } catch {
