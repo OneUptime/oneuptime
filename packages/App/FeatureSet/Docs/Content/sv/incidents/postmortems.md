@@ -67,7 +67,7 @@ Klicka på **Tillämpa mall**, välj en under **Välj mall** i dialogen **Tillä
 
 Klicka på **Generate with AI**. Dialogen **Generate Postmortem with AI** erbjuder en disposition under **Välj mall**: **Standard Postmortem**, **Detailed Technical Postmortem** eller **Brief Postmortem**, och sedan dina egna mallar för efteranalys. **Template Preview** visar dispositionen, och du kan ändra den innan du genererar.
 
-Klicka på **Generate with AI** längst ned i dialogen. OneUptime AI läser incidenten (dess beskrivning, grundorsak och åtgärd, dess statustidslinje, dess offentliga och privata anteckningar och meddelandena i dess Slack- eller Microsoft Teams-kanal) och skriver efteranalysen enligt din disposition. Sedan öppnas redigeraren med resultatet.
+Klicka på **Generate with AI** längst ned i dialogen. OneUptime AI läser incidenten (dess beskrivning, grundorsak och åtgärd, dess statustidslinje, dess offentliga och privata anteckningar, meddelandena i dess Slack- eller Microsoft Teams-kanal och vad som sades i [dess samtal](/docs/workspace-connections/video-calls#transkriptioner-av-samtal)) och skriver efteranalysen enligt din disposition. Sedan öppnas redigeraren med resultatet.
 
 Att generera kräver att AI är påslaget för projektet, under **Projektinställningar → AI → AI Features**, och en LLM-leverantör: se [LLM-leverantörer](/docs/ai/llm-provider). Det kräver också rollen Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Incident: andra roller kan skriva efteranalysen men inte generera den.
 

@@ -274,7 +274,7 @@ flowchart TB
 - **연결된 알림** — `AlertLinked`와 `AlertUnlinked`로, **경고 연결됨**과 **경고 연결 해제됨**으로 표시됩니다.
 - **알림** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **자동화** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
-- **화상 통화** — `VideoCallStarted`와 `VideoCallFailed`. 인시던트를 위해 시작한 통화와 참여 링크, 또는 제공자가 통화를 시작하지 못한 이유입니다. [화상 통화](/docs/workspace-connections/video-calls)를 참고하세요.
+- **화상 통화** — `VideoCallStarted`, `VideoCallFailed`, `VideoCallTranscriptAdded`. 인시던트를 위해 시작한 통화와 참여 링크, 제공자가 통화를 시작하지 못한 이유, 또는 누군가 추가했거나 제공자에게서 읽어 온 통화 녹취록입니다. [화상 통화](/docs/workspace-connections/video-calls)를 참고하세요.
 
 유형마다 고유한 아이콘이 있어, 긴 피드를 훑어보며 잡담 속에서 상태 변경을 골라낼 수 있습니다. AI가 생성한 근본 원인 분석은 따로 표시되며 제한된 Markdown 모드로 렌더링됩니다. **인시던트 생성됨** 항목, 새 제목을 기록하는 항목, 에피소드 합류나 이탈 항목은 제목을 입력한 그대로 보여 줍니다. 제목 안의 `\`, `[`, `]`, `*`, `_`, `~`, 백틱, \<를 이스케이프하므로, 제목이 이미지, 원시 HTML, \<!here\> 같은 Slack 멘션, 링크 대상을 숨기는 텍스트의 링크, 굵은 글씨, 기울임, 코드가 되는 일은 없습니다. 제목 안의 주소는 여전히 같은 주소로의 링크로 표시됩니다.
 

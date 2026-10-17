@@ -120,6 +120,16 @@ export const AI_CODE_FIX_FEATURE: string = "AI Code Fix";
 export const WORKFLOW_AI_FEATURE: string = "Workflow AI";
 
 /*
+ * The LlmLog feature name for OneUptime AI reading an incident call's
+ * transcript (IncidentCallSummary): one request per part of the transcript,
+ * started by a person adding it or asking for it to be read again. Not
+ * autonomous - a person is behind every reading - so the daily limits of
+ * the project cover it like any other request, and the autonomous budget
+ * does not.
+ */
+export const AI_INCIDENT_CALL_SUMMARY_FEATURE: string = "Incident Call Summary";
+
+/*
  * The LlmLog feature name for AI runbook steps. Runbooks are triggered by
  * incident/alert/maintenance rules, so these calls are storm-shaped: one
  * flapping monitor can start many executions.

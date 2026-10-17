@@ -159,8 +159,9 @@ jobs:
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
   # own fixture server on its own port - so they run here in groups balanced
-  # by measured duration, Event Overview (13 to 15.5 minutes) and the
-  # Workflow Builder suite each in a group of their own. Each suite still
+  # by measured duration (about 23 minutes each with the setup, on
+  # 2026-10-17's runners), Event Overview and the Workflow Builder suite (14
+  # to 19 minutes each) with one short suite beside them. Each suite still
   # runs exactly as before: same config, same browsers, one worker.
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, and
@@ -176,16 +177,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Event Overview runs on its own: with the thirteen shorter suites
-          # that shared its group (about 14 minutes together, now group 5) and
-          # the setup, the group passed the job's 30 minutes.
+          # Event Overview with Status Page Theme (about 2.5 minutes): with the
+          # thirteen shorter suites that shared its group (about 14 minutes
+          # together, now group 5) and the setup, the group passed the job's
+          # 30 minutes.
           - group: 1
             browsers: chromium
             suites: >-
               test-event-overview-ui
+              test-status-page-theme-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
-          # editor's text layers must line up in both) and Value Picker (the
-          # chip editor's caret handling differs in each).
+          # editor's text layers must line up in both) and Diagrams. Diagrams
+          # and Navigation Search (about 8 minutes together) moved here from
+          # group 3 when the Probe Status specs in Monitor Overview and the
+          # docs' diagrams took group 3 from 25.5 minutes past the job's 30.
           - group: 2
             browsers: chromium firefox
             suites: >-
@@ -195,10 +200,10 @@ jobs:
               test-alerts-ui
               test-pencil-button-ui
               test-color-picker-ui
-          # Navigation Search runs here since the Workflow Builder suite
-          # gained its field list, Run panel and value availability specs
-          # (about five minutes more in group 2): it keeps each group well
-          # under the job's cap.
+              test-diagrams-ui
+              test-navigation-search-ui
+          # Value Picker also runs in Firefox (the chip editor's caret handling
+          # differs in each).
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -210,21 +215,22 @@ jobs:
               test-security-events-empty-states-ui
               test-status-page-search-ui
               test-label-rule-transfer-ui
-              test-diagrams-ui
-              test-navigation-search-ui
               test-list-delete-ui
-          # The Workflow Builder suite runs on its own: it sat in group 2 near
-          # the job's 30 minutes, and its On Create or Update spec would take
-          # that group past them. Its two projects, a laptop and a phone, are
-          # both Chromium.
+          # The Workflow Builder suite with Calendar Feed (about 2.5 minutes):
+          # the suite sat in group 2 near the job's 30 minutes, and its On
+          # Create or Update spec would take that group past them. Its two
+          # projects, a laptop and a phone, are both Chromium.
           - group: 4
             browsers: chromium
             suites: >-
               test-workflow-builder-ui
+              test-calendar-feed-ui
           # The Chromium-only suites that ran after Event Overview in group 1.
           # Topology is one of them (about 2.5 minutes) since the Workflow
           # Builder suite grew again with its UI review: group 2 had reached
-          # 24.5 of the job's 30 minutes on a slow runner.
+          # 24.5 of the job's 30 minutes on a slow runner. Calendar Feed and
+          # Status Page Theme moved to groups 4 and 1 when this group reached
+          # 28.5 minutes.
           - group: 5
             browsers: chromium
             suites: >-
@@ -235,7 +241,6 @@ jobs:
               test-llm-provider-test-ui
               test-custom-field-options-ui
               test-pagination-ui
-              test-calendar-feed-ui
               test-topology-ui
               test-home-overview-ui
               test-security-operations-ui
@@ -245,7 +250,6 @@ jobs:
               test-network-first-run-ui
               test-custom-roles-ui
               test-sign-in-options-ui
-              test-status-page-theme-ui
               test-maintenance-calendar-ui
               test-detail-cards-ui
               test-model-tables-ui

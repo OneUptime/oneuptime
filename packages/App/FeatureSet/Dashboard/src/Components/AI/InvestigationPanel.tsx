@@ -124,6 +124,13 @@ export interface ComponentProps {
   renderConversation?:
     | ((slot: InvestigationConversationSlot) => ReactElement)
     | undefined;
+  /*
+   * What OneUptime AI read in the transcripts of the incident's calls
+   * (issue #4875), supplied by the page like the conversation: a flat
+   * section between the report and the conversation, rendering nothing
+   * while no call's transcript has been read.
+   */
+  renderCallSummaries?: (() => ReactElement) | undefined;
 }
 
 const POLL_INTERVAL_MS: number = 2500;
@@ -1655,6 +1662,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+
+        {/*
+          What the incident's calls said: one more thing OneUptime AI read,
+          after its own report and before the conversation.
+        */}
+        {props.renderCallSummaries ? props.renderCallSummaries() : <></>}
 
         {/*
           The conversation closes the card: whatever OneUptime AI did (or

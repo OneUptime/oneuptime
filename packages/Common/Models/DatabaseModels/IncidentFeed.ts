@@ -51,6 +51,8 @@ export enum IncidentFeedEventType {
   AutoRemediation = "AutoRemediation",
   VideoCallStarted = "VideoCallStarted",
   VideoCallFailed = "VideoCallFailed",
+  // A call's transcript added, or read from its provider (IncidentVideoCallAPI).
+  VideoCallTranscriptAdded = "VideoCallTranscriptAdded",
   ChannelMemberAdded = "ChannelMemberAdded",
 }
 

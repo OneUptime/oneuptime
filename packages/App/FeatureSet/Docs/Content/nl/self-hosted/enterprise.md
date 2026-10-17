@@ -110,6 +110,8 @@ Een nieuwe installatie van de Enterprise Edition draait als **proefperiode van 1
 
 De licentie wordt beheerd vanuit het **editielabel**, dat hoofdbeheerders zien in de kop van het Admin-dashboard en in de voettekst van het Dashboard. Het toont de licentiestatus, het gebruik van plaatsen en, voor hoofdbeheerders, de instantie-ID.
 
+OneUptime Enterprise dat via AWS Marketplace, Microsoft Marketplace of Google Cloud Marketplace is gekocht, heeft geen licentiesleutel nodig: het marketplace-abonnement is de licentie en rekent elke gebruiker per uur af. Zie [Cloudmarktplaatsen](/docs/installation/cloud-marketplaces).
+
 ### Online activeren (licentiesleutel)
 
 :::steps

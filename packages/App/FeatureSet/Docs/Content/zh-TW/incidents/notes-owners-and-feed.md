@@ -274,7 +274,7 @@ flowchart TB
 - **已連結的警示** —— `AlertLinked` 和 `AlertUnlinked`，顯示為 **警示已連結** 和 **警示已取消連結**。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自動化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
-- **視訊通話** —— `VideoCallStarted` 和 `VideoCallFailed`：為事件發起的通話及其加入連結，或提供者無法發起通話的原因。請參閱 [視訊通話](/docs/workspace-connections/video-calls)。
+- **視訊通話** —— `VideoCallStarted`、 `VideoCallFailed` 和 `VideoCallTranscriptAdded`：為事件發起的通話及其加入連結、提供者無法發起通話的原因，或由某人新增、或從提供者讀取的通話逐字稿。請參閱 [視訊通話](/docs/workspace-connections/video-calls)。
 
 每種類型都有自己的圖示，所以你可以快速瀏覽一條很長的動態，從閒聊中挑出狀態變更。AI 產生的根本原因分析會另外標記，並以受限的 Markdown 模式轉譯。**已建立事件** 項目、記錄新標題的項目，以及加入或離開片段的項目，會完全依輸入的樣子顯示標題：它們會跳脫其中的 `\`、`[`、`]`、`*`、`_`、`~`、反引號和 \<，因此標題不會變成圖片、原始 HTML、像 \<!here\> 這樣的 Slack 提及、隱藏了目的地的連結，或粗體、斜體或程式碼。標題中的位址仍會顯示為指向該位址的連結。
 
