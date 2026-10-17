@@ -7,6 +7,7 @@ import {
   TABLE_CELL_MAX_WIDTH_CLASS_NAME,
   TABLE_CELL_TRUNCATE_CLASS_NAMES,
   TABLE_PRIMARY_CELL_TEXT_CLASS_NAME,
+  TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
   TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
   getTableCellPaddingClassName,
@@ -77,8 +78,7 @@ export function getTableCellClassName<T extends GenericObject>(
       isLast: options.isLastRenderedColumn,
     }),
     TABLE_BODY_CELL_CLASS_NAME,
-    options.isPrimaryColumn &&
-    options.column.type !== FieldType.Actions
+    options.isPrimaryColumn && options.column.type !== FieldType.Actions
       ? TABLE_PRIMARY_CELL_TEXT_CLASS_NAME
       : TABLE_CELL_TEXT_CLASS_NAME,
   ];
@@ -96,6 +96,25 @@ export function getTableCellClassName<T extends GenericObject>(
   }
 
   return classNames.join(" ");
+}
+
+/*
+ * Whether this column is the row's name that may use the room of a table
+ * that fits (TableLayout's TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME): the
+ * row's first column, on one line, under the table's own cap - a page that
+ * measured its columns keeps its widths, and a column of prose wraps as it
+ * always does.
+ */
+export function isFillingNameColumn<T extends GenericObject>(
+  column: Column<T>,
+  isPrimaryColumn: boolean | undefined,
+): boolean {
+  return Boolean(
+    isPrimaryColumn &&
+      column.type !== FieldType.Actions &&
+      !column.wrapContent &&
+      !hasMaxWidthClassName(column.contentClassName),
+  );
 }
 
 /**
@@ -118,6 +137,7 @@ export function getTableCellClassName<T extends GenericObject>(
  */
 export function getTableCellContentClassName<T extends GenericObject>(
   column: Column<T>,
+  options?: { isPrimaryColumn?: boolean | undefined } | undefined,
 ): string {
   const classNames: Array<string> = [];
 
@@ -133,6 +153,14 @@ export function getTableCellContentClassName<T extends GenericObject>(
   } else {
     if (!hasMaxWidthClassName(column.contentClassName)) {
       classNames.push(TABLE_CELL_MAX_WIDTH_CLASS_NAME);
+
+      /*
+       * ...which the row's name loses while the table fits its card, taking
+       * the room the row has (TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME).
+       */
+      if (isFillingNameColumn(column, options?.isPrimaryColumn)) {
+        classNames.push(TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME);
+      }
     }
 
     classNames.push(TABLE_CELL_TRUNCATE_CLASS_NAMES);

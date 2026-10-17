@@ -19,7 +19,15 @@ export const showFullValueWhenCutShort: (
 ) => void = (event: React.MouseEvent<HTMLElement>): void => {
   const element: HTMLElement = event.currentTarget;
 
-  if (element.scrollWidth > element.clientWidth) {
+  /*
+   * Cut short on its line (an ellipsis at the column's end), or after its
+   * first line (a row's name, which may wrap where only one line shows).
+   */
+  const isCutShort: boolean =
+    element.scrollWidth > element.clientWidth ||
+    element.scrollHeight > element.clientHeight + 1;
+
+  if (isCutShort) {
     /*
      * innerText keeps a list's lines apart (a row's resources), so the
      * tooltip lists them one per line, as the cell does.

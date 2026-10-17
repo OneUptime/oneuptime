@@ -287,7 +287,8 @@ const Table: TableFunction = <T extends GenericObject>(
   const scrollState: TableScrollState = useTableScrollState({
     scrollRef: scrollBoxRef,
     tableRef: tableElementRef,
-    watch: [isMobile, props.data.length, props.columns.length],
+    // A new page of rows can hold longer names in as many rows.
+    watch: [isMobile, props.data, props.columns.length],
   });
 
   /*

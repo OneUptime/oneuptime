@@ -18,7 +18,31 @@ import React, { useLayoutEffect, useState } from "react";
  * scrolls - a dialog's body, a side panel, a box that hides its overflow:
  * the header would stick to that box at the page's top bar's height, and
  * hang in the middle of it.
+ *
+ * And a table that fits lets the row's name - its first column - use the
+ * room its row has, so a long name is cut short only where there is no
+ * more room for it, not at its 20rem cap with half the row empty. The
+ * name's value carries data-fill="true" then (TableLayout's
+ * TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME). Whether the table fits is always
+ * measured that way - the names set free for the reading, whatever they
+ * were - each able to give way down to 10rem; a table that does not fit
+ * even so scrolls, its names back at their 20rem cap. Every reading starts
+ * from the same place, so the two states cannot chase each other.
+ *
+ * Only a name drawn as a line of text is set free: a person's picture
+ * beside their name, or a name over its address, keeps its cap - it would
+ * wrap inside itself, and its row grow, where a line is cut short after its
+ * first line (isLineOfText).
  */
+
+// The attribute a row's name carries while it uses the room its row has.
+export const TABLE_FILL_ATTRIBUTE: string = "data-fill";
+
+/*
+ * The attribute on the value of a row's name that may use the room of a
+ * table that fits (TableRow, by CellClassName's isFillingNameColumn).
+ */
+export const TABLE_NAME_ATTRIBUTE: string = "data-table-name";
 
 export interface TableScrollState {
   // The rows are wider than the box: they scroll sideways.
@@ -48,11 +72,7 @@ export const isInsideScrollingBox: (element: Element | null) => boolean = (
 
   let node: Element | null = element;
 
-  while (
-    node &&
-    node !== document.body &&
-    node !== document.documentElement
-  ) {
+  while (node && node !== document.body && node !== document.documentElement) {
     const style: CSSStyleDeclaration = window.getComputedStyle(node);
 
     // Each axis, and the shorthand ("hidden auto") where only it is set.
@@ -74,6 +94,38 @@ export const isInsideScrollingBox: (element: Element | null) => boolean = (
   }
 
   return false;
+};
+
+/*
+ * How a line of text's parts are laid out: in the line, or not at all. An
+ * element no style has given a display is inline - the property's initial
+ * value - which a page without a stylesheet (jsdom) reads as "".
+ */
+const LINE_DISPLAY_VALUES: Array<string> = ["inline", "contents", "none", ""];
+
+/*
+ * Whether a value is a line of text - words, a link, an icon or a picture
+ * in it - that can be cut short after its first line. A part laid out as a
+ * box of its own with words in it (a block, a flex row, an inline-block)
+ * would wrap inside itself instead, and its row grow; a box with no words
+ * in it - an icon, an avatar, a colour's dot - cannot. Exported for its
+ * tests.
+ */
+export const isLineOfText: (element: Element) => boolean = (
+  element: Element,
+): boolean => {
+  if (typeof window === "undefined" || !window.getComputedStyle) {
+    return false;
+  }
+
+  return Array.from(element.children).every((part: Element): boolean => {
+    if (LINE_DISPLAY_VALUES.includes(window.getComputedStyle(part).display)) {
+      // In the line: so must be what it holds.
+      return isLineOfText(part);
+    }
+
+    return !(part.textContent || "").trim();
+  });
 };
 
 /*
@@ -115,10 +167,45 @@ const useTableScrollState: (data: {
         return;
       }
 
-      const isOverflowing: boolean = isTableOverflowing({
+      // The rows' names that may use the room of a table that fits.
+      const names: Array<HTMLElement> = Array.from(
+        table.querySelectorAll<HTMLElement>(`[${TABLE_NAME_ATTRIBUTE}]`),
+      );
+      const isLine: Array<boolean> = names.map(isLineOfText);
+
+      type SetFillFunction = (isFilling: boolean) => void;
+
+      const setFill: SetFillFunction = (isFilling: boolean): void => {
+        names.forEach((name: HTMLElement, index: number) => {
+          name.setAttribute(
+            TABLE_FILL_ATTRIBUTE,
+            isFilling && isLine[index] ? "true" : "false",
+          );
+        });
+      };
+
+      // The table as narrow as its names let it be.
+      setFill(true);
+
+      const fits: boolean = !isTableOverflowing({
         tableWidth: table.getBoundingClientRect().width,
         boxWidth: box.getBoundingClientRect().width,
       });
+
+      let isOverflowing: boolean = false;
+
+      if (!fits) {
+        /*
+         * It does not fit even so: its names go back to their cap, and the
+         * rows scroll - unless, the names being short ones, they fit so.
+         */
+        setFill(false);
+
+        isOverflowing = isTableOverflowing({
+          tableWidth: table.getBoundingClientRect().width,
+          boxWidth: box.getBoundingClientRect().width,
+        });
+      }
 
       const canStickHeader: boolean =
         !isOverflowing && !isInsideScrollingBox(box);

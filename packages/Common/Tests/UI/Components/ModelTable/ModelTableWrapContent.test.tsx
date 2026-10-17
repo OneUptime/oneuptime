@@ -177,6 +177,15 @@ const ONE_LINE_CONTENT_CLASS_NAME: string =
   "max-w-[20rem] overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>*]:align-top";
 
 /*
+ * The row's name - its first column - has the same wrapper, and while its
+ * table fits its card (data-fill="true", set on it by useTableScrollState)
+ * lifts the cap: the name may then break anywhere for the table's
+ * measuring, only its first line shows, and it never narrows below 10rem.
+ */
+const NAME_ONE_LINE_CONTENT_CLASS_NAME: string =
+  "max-w-[20rem] data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:[overflow-wrap:anywhere] data-[fill=true]:line-clamp-1 overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>*]:align-top";
+
+/*
  * The default cap a wrapping column gets when it names no width of its own.
  * Hard-coded rather than imported for the same reason as above: this is the
  * shipped value ("Responded Hosts" on the Discovery page relies on it), so
@@ -526,8 +535,13 @@ describe("ModelTable column wrapping options (OneUptime issue #3585)", () => {
 
       await waitForRow();
 
+      // The first column, the row's name: its wrapper lifts the cap to fill.
       expect(getContentWrapper("cell-name").className).toBe(
-        ONE_LINE_CONTENT_CLASS_NAME,
+        NAME_ONE_LINE_CONTENT_CLASS_NAME,
+      );
+      expect(getContentWrapper("cell-name")).toHaveAttribute(
+        "data-table-name",
+        "true",
       );
     });
 

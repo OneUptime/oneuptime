@@ -10,6 +10,7 @@ import Column from "./Types/Column";
 import {
   getTableCellClassName,
   getTableCellContentClassName,
+  isFillingNameColumn,
 } from "./CellClassName";
 import {
   TABLE_ACTIONS_CONTENT_CLASS_NAME,
@@ -286,11 +287,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
       case FieldType.Color:
         return value ? <ColorInput value={value as Color} /> : getNoValue();
       case FieldType.LongText:
-        return value ? (
-          <LongTextViewer text={value as string} />
-        ) : (
-          getNoValue()
-        );
+        return value ? <LongTextViewer text={value as string} /> : getNoValue();
       case FieldType.Boolean:
         /*
          * Yes is a tick; No is the quiet dash - a column of crosses down
@@ -307,9 +304,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
               className="h-5 w-5"
               thick={ThickProp.Thick}
             />
-            <span className="sr-only">
-              {translateString("Yes") ?? "Yes"}
-            </span>
+            <span className="sr-only">{translateString("Yes") ?? "Yes"}</span>
           </span>
         ) : (
           <TableEmptyValue screenReaderText="No" />
@@ -521,7 +516,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
               )}${ruleClassName}`}
               style={getLockedCellStyle()}
             >
-              {getDragHandle(provided)}
+              {/*
+               * In a flex box, not on a line of text: set on the cell's
+               * line, the 28px grip took the line's spacing under it too,
+               * and every row of a drag-ordered list stood 3px taller.
+               */}
+              <div className="flex">{getDragHandle(provided)}</div>
             </td>
           )}
           {props.isBulkActionsEnabled && (
@@ -580,7 +580,9 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                * is ignored on a table-cell box.
                */
               const contentWrapperClassName: string =
-                getTableCellContentClassName<T>(column);
+                getTableCellContentClassName<T>(column, {
+                  isPrimaryColumn: i === 0,
+                });
 
               return (
                 <td
@@ -601,6 +603,16 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     columnContent !== undefined && (
                       <div
                         className={contentWrapperClassName}
+                        /*
+                         * The row's name, which may use the room of a table
+                         * that fits (useTableScrollState's
+                         * TABLE_NAME_ATTRIBUTE).
+                         */
+                        data-table-name={
+                          isFillingNameColumn<T>(column, i === 0)
+                            ? "true"
+                            : undefined
+                        }
                         onMouseEnter={
                           column.wrapContent
                             ? undefined

@@ -10,6 +10,7 @@ import {
   DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME,
   getTableCellClassName,
   getTableCellContentClassName,
+  isFillingNameColumn,
 } from "../../../UI/Components/Table/CellClassName";
 import {
   TABLE_BODY_CELL_CLASS_NAME,
@@ -19,9 +20,11 @@ import {
   TABLE_CELL_TRUNCATE_CLASS_NAMES,
   TABLE_ACTIONS_CONTENT_CLASS_NAME,
   TABLE_PRIMARY_CELL_TEXT_CLASS_NAME,
+  TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
   TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
 } from "../../../UI/Components/Table/TableLayout";
+import { TABLE_NAME_ATTRIBUTE } from "../../../UI/Components/Table/useTableScrollState";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 
@@ -112,6 +115,18 @@ const LAST_CELL_CLASS_NAME: string =
 // A one-line value's wrapper: the cap, always with its clip and its ellipsis.
 const ONE_LINE_CONTENT_CLASS_NAME: string = [
   TABLE_CELL_MAX_WIDTH_CLASS_NAME,
+  TABLE_CELL_TRUNCATE_CLASS_NAMES,
+  TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
+].join(" ");
+
+/*
+ * The row's name - its first column - has the same wrapper, and lifts the
+ * cap while its table fits its card (TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
+ * written right after the cap it lifts). Its clip and ellipsis stay.
+ */
+const NAME_ONE_LINE_CONTENT_CLASS_NAME: string = [
+  TABLE_CELL_MAX_WIDTH_CLASS_NAME,
+  TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
   TABLE_CELL_TRUNCATE_CLASS_NAMES,
   TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
 ].join(" ");
@@ -321,8 +336,7 @@ describe("CellClassName helpers", () => {
       wrapMaxWidthClassName: "max-w-md",
     };
 
-    const contentClassName: string =
-      getTableCellContentClassName<Row>(column);
+    const contentClassName: string = getTableCellContentClassName<Row>(column);
 
     expect(contentClassName).toBe(ONE_LINE_CONTENT_CLASS_NAME);
     expect(contentClassName).not.toContain("max-w-md");
@@ -380,6 +394,107 @@ describe("CellClassName helpers", () => {
       }),
     ).toBe("");
   });
+
+  test("the row's name lifts its cap while its table fits, after the cap it lifts and with its clip", () => {
+    const contentClassName: string = getTableCellContentClassName<Row>(
+      { title: "Name", type: FieldType.Text },
+      { isPrimaryColumn: true },
+    );
+
+    expect(contentClassName).toBe(NAME_ONE_LINE_CONTENT_CLASS_NAME);
+    expect(writesUnclippedCap(contentClassName)).toBe(false);
+
+    // Any other column keeps the plain one-line wrapper.
+    expect(
+      getTableCellContentClassName<Row>(
+        { title: "Name", type: FieldType.Text },
+        { isPrimaryColumn: false },
+      ),
+    ).toBe(ONE_LINE_CONTENT_CLASS_NAME);
+  });
+
+  test("a first column of prose, one with a page's own cap, or the Actions column never lifts a cap", () => {
+    const prose: string = getTableCellContentClassName<Row>(
+      { title: "Message", type: FieldType.Text, wrapContent: true },
+      { isPrimaryColumn: true },
+    );
+    const measured: string = getTableCellContentClassName<Row>(
+      {
+        title: "Client",
+        type: FieldType.Element,
+        contentClassName: "max-w-[10rem] 2xl:max-w-[18rem]",
+      },
+      { isPrimaryColumn: true },
+    );
+    const actions: string = getTableCellContentClassName<Row>(
+      { title: "Actions", type: FieldType.Actions },
+      { isPrimaryColumn: true },
+    );
+
+    for (const className of [prose, measured, actions]) {
+      expect(className).not.toContain(TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME);
+      expect(className).not.toContain("data-[fill=true]");
+    }
+  });
+
+  /*
+   * Whether a page draws the name itself (an Element) does not matter here:
+   * whether it is a line of text is read off the page, where it is drawn
+   * (useTableScrollState's isLineOfText).
+   */
+  const FILLING_CASES: Array<
+    [string, Column<Row>, boolean | undefined, boolean]
+  > = [
+    ["a name", { title: "Name", type: FieldType.Text }, true, true],
+    [
+      "a name drawn by its page",
+      { title: "Name", type: FieldType.Element },
+      true,
+      true,
+    ],
+    [
+      "not the first column",
+      { title: "Name", type: FieldType.Text },
+      false,
+      false,
+    ],
+    [
+      "no position given",
+      { title: "Name", type: FieldType.Text },
+      undefined,
+      false,
+    ],
+    [
+      "prose",
+      { title: "Note", type: FieldType.Text, wrapContent: true },
+      true,
+      false,
+    ],
+    [
+      "a page's own cap",
+      { title: "Client", type: FieldType.Text, contentClassName: "max-w-xs" },
+      true,
+      false,
+    ],
+    [
+      "the Actions column",
+      { title: "Actions", type: FieldType.Actions },
+      true,
+      false,
+    ],
+  ];
+
+  test.each(FILLING_CASES)(
+    "isFillingNameColumn: %s",
+    (
+      _label: string,
+      column: Column<Row>,
+      isPrimaryColumn: boolean | undefined,
+      expected: boolean,
+    ) => {
+      expect(isFillingNameColumn<Row>(column, isPrimaryColumn)).toBe(expected);
+    },
+  );
 });
 
 /*
@@ -430,14 +545,23 @@ describe("columns that declare no wrapping", () => {
     const { container } = renderTable(columns);
     const cells: Array<HTMLElement> = getBodyCells(container);
 
-    for (const cell of cells) {
+    cells.forEach((cell: HTMLElement, index: number) => {
       const wrapper: HTMLElement = getContentWrapper(cell);
 
-      expect(wrapper.getAttribute("class")).toBe(ONE_LINE_CONTENT_CLASS_NAME);
+      /*
+       * The first column is the row's name: the same wrapper, which lifts
+       * its cap while the table fits, marked for useTableScrollState.
+       */
+      expect(wrapper.getAttribute("class")).toBe(
+        index === 0
+          ? NAME_ONE_LINE_CONTENT_CLASS_NAME
+          : ONE_LINE_CONTENT_CLASS_NAME,
+      );
+      expect(wrapper.hasAttribute(TABLE_NAME_ATTRIBUTE)).toBe(index === 0);
       expect(writesUnclippedCap(wrapper.getAttribute("class") || "")).toBe(
         false,
       );
-    }
+    });
 
     expect(cells[1]!.textContent).toBe(STATUS_MESSAGE);
   });
@@ -702,9 +826,7 @@ describe("what the shared helper must not disturb", () => {
     expect(wrapper.getAttribute("class")).toBe(
       `flex items-center justify-end gap-2 ${TABLE_ACTIONS_CONTENT_CLASS_NAME}`,
     );
-    expect(writesUnclippedCap(wrapper.getAttribute("class") || "")).toBe(
-      false,
-    );
+    expect(writesUnclippedCap(wrapper.getAttribute("class") || "")).toBe(false);
     expect(wrapper.getAttribute("class")).not.toContain("max-w-");
     expect(cell).toHaveClass("text-end");
   });

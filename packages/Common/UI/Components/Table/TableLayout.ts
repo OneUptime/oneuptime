@@ -277,6 +277,23 @@ export const TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME: string = "min-w-[10rem]";
 export const TABLE_CELL_CONTENT_ALIGN_CLASS_NAME: string = "[&>*]:align-top";
 
 /*
+ * The value of a row's name - its first column, drawn as a line of text -
+ * while its table fits its card (data-fill="true", set on the value by
+ * useTableScrollState): it loses the 20rem cap and may break anywhere for
+ * the table's measuring - so its column claims the room the whole name
+ * would take, and gives way where the room runs out - while only its first
+ * line is shown, ending in an ellipsis where it is cut short. So a long
+ * name uses the room its row has and is cut short only where its column
+ * ends, never at 20rem with half the row empty; and a column of prose
+ * beside it keeps its share. A long name gives way before the table
+ * scrolls sideways - down to 10rem, the floor a column of prose has; when
+ * even that does not fit, the rows scroll and the name keeps its 20rem cap,
+ * since the table is wider than the card anyway.
+ */
+export const TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME: string =
+  "data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:[overflow-wrap:anywhere] data-[fill=true]:line-clamp-1";
+
+/*
  * Whether a column's own content classes already name a width cap - a page
  * that measured its columns (McpServer's "max-w-[10rem] 2xl:max-w-[18rem]").
  * Two max-w-* utilities on one element are resolved by the stylesheet's
