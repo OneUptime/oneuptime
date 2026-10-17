@@ -195,7 +195,7 @@ export class Service extends DatabaseService<Model> {
    * about a failure is kept.
    */
   private async getAccountStanding(userId: ObjectID): Promise<AccountStanding> {
-    const key: string = userId.toString();
+    const key: string = this.getAccountStandingKey(userId);
 
     const cached: AccountStanding | undefined =
       this.accountStandingCache.get(key);
@@ -251,10 +251,19 @@ export class Service extends DatabaseService<Model> {
 
   // Drops what this node read about the account, so the next request reads the row.
   public forgetAccountStanding(userId: ObjectID): void {
-    const key: string = userId.toString();
+    const key: string = this.getAccountStandingKey(userId);
 
     this.accountStandingCache.delete(key);
     this.accountStandingLookups.delete(key);
+  }
+
+  /*
+   * One account, one entry: the database compares ids without regard to
+   * case, so an id written in capitals names the same account - and a write
+   * to it must drop what was read under either spelling.
+   */
+  private getAccountStandingKey(userId: ObjectID): string {
+    return userId.toString().toLowerCase();
   }
 
   /**
@@ -627,13 +636,26 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  // A deleted account's live updates end at once, on every server.
+  /*
+   * A deleted account's live updates end at once, on every server. So does
+   * whatever a server read about it: an account that is gone is no master
+   * admin, and the access token of a session it already had answers its
+   * next request as no master admin's - not when the minute a server keeps
+   * what it read (ACCOUNT_STANDING_CACHE_TTL_MS) runs out.
+   */
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     for (const userId of itemIdsBeforeDelete) {
+      this.forgetAccountStanding(userId);
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.AccountChanged,
+        userId: userId.toString(),
+      });
+
       RealtimeAccessChanges.announce({
         kind: RealtimeAccessChangeKind.SessionsEnded,
         userId: userId.toString(),

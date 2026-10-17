@@ -2,7 +2,8 @@ import UserService, {
   ACCOUNT_STANDING_CACHE_TTL_MS,
 } from "../../../Server/Services/UserService";
 import UserSessionService from "../../../Server/Services/UserSessionService";
-import { OnUpdate } from "../../../Server/Types/Database/Hooks";
+import DeleteBy from "../../../Server/Types/Database/DeleteBy";
+import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import RealtimeAccessChanges, {
   RealtimeAccessChange,
@@ -48,6 +49,10 @@ interface UserServiceInternals {
     onUpdate: OnUpdate<User>,
     updatedItemIds: Array<ObjectID>,
   ) => Promise<OnUpdate<User>>;
+  onDeleteSuccess: (
+    onDelete: OnDelete<User>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ) => Promise<OnDelete<User>>;
 }
 
 function hooks(): UserServiceInternals {
@@ -76,6 +81,17 @@ function updateOf(patch: Record<string, unknown>): OnUpdate<User> {
   };
 
   return { updateBy, carryForward: [] };
+}
+
+function deleteOfUser(): OnDelete<User> {
+  const deleteBy: DeleteBy<User> = {
+    query: { _id: USER_ID.toString() } as unknown as DeleteBy<User>["query"],
+    props: { isRoot: true },
+    limit: 1,
+    skip: 0,
+  };
+
+  return { deleteBy, carryForward: null };
 }
 
 type Deferred<T> = {
@@ -352,6 +368,51 @@ describe("removing someone's master admin access reaches the next request at onc
     await expect(UserService.isUserMasterAdmin(USER_ID)).resolves.toBe(false);
   });
 
+  /*
+   * Deleting the account (Admin Dashboard > Users > Delete) is the furthest
+   * removal of all: an account that is gone is no master admin, and a
+   * session it had is answered so from its next request - on this server
+   * at once, and on every other one when it hears of it.
+   */
+  test("deleting the account drops what this server read, and tells every other server", async () => {
+    await expect(UserService.isUserMasterAdmin(USER_ID)).resolves.toBe(true);
+
+    findOneById.mockResolvedValue(null as never);
+
+    await hooks().onDeleteSuccess(deleteOfUser(), [USER_ID]);
+
+    await expect(UserService.isUserMasterAdmin(USER_ID)).resolves.toBe(false);
+    await expect(UserService.isUserBlocked(USER_ID)).resolves.toBe(false);
+    expect(findOneById).toHaveBeenCalledTimes(2);
+
+    expect(
+      announced.filter((change: RealtimeAccessChange): boolean => {
+        return change.kind === RealtimeAccessChangeKind.AccountChanged;
+      }),
+    ).toEqual([
+      {
+        kind: RealtimeAccessChangeKind.AccountChanged,
+        userId: USER_ID.toString(),
+      },
+    ]);
+  });
+
+  test("a read in flight while the account is deleted does not keep its answer", async () => {
+    const staleRow: Deferred<User> = deferred<User>();
+    findOneById.mockReturnValueOnce(staleRow.promise as never);
+
+    const inFlight: Promise<boolean> = UserService.isUserMasterAdmin(USER_ID);
+
+    await hooks().onDeleteSuccess(deleteOfUser(), [USER_ID]);
+
+    staleRow.resolve(storedUser({ isMasterAdmin: true }));
+    await expect(inFlight).resolves.toBe(true);
+
+    findOneById.mockResolvedValue(null as never);
+
+    await expect(UserService.isUserMasterAdmin(USER_ID)).resolves.toBe(false);
+  });
+
   // Nobody is signed out: the person goes on as the member they are.
   test("ends nobody's sessions", async () => {
     await hooks().onUpdateSuccess(updateOf({ isMasterAdmin: false }), [
@@ -364,6 +425,64 @@ describe("removing someone's master admin access reaches the next request at onc
         return change.kind === RealtimeAccessChangeKind.SessionsEnded;
       }),
     ).toEqual([]);
+  });
+
+  /*
+   * The same account, whatever the case its id is written in: the database
+   * compares ids without regard to case, so what one spelling read, a write
+   * named in the other must drop.
+   */
+  test("an id written in capitals is the same account: read once, and dropped by a write under either spelling", async () => {
+    // An id with letters in it: in capitals, it is spelt differently.
+    const asStored: ObjectID = new ObjectID(
+      "5a5b5c5d-5e5f-4a5b-8c5d-5e5f5a5b5c5d",
+    );
+    const inCapitals: ObjectID = new ObjectID(
+      asStored.toString().toUpperCase(),
+    );
+
+    expect(inCapitals.toString()).not.toBe(asStored.toString());
+
+    UserService.forgetAccountStanding(asStored);
+
+    try {
+      await expect(UserService.isUserMasterAdmin(inCapitals)).resolves.toBe(
+        true,
+      );
+      await expect(UserService.isUserMasterAdmin(asStored)).resolves.toBe(true);
+      expect(findOneById).toHaveBeenCalledTimes(1);
+
+      findOneById.mockResolvedValue(
+        storedUser({ isMasterAdmin: false }) as never,
+      );
+
+      // The write names the account as the database hands it back.
+      await hooks().onUpdateSuccess(updateOf({ isMasterAdmin: false }), [
+        asStored,
+      ]);
+
+      await expect(UserService.isUserMasterAdmin(inCapitals)).resolves.toBe(
+        false,
+      );
+
+      // And the other way round: read as stored, dropped under capitals.
+      findOneById.mockResolvedValue(
+        storedUser({ isMasterAdmin: true }) as never,
+      );
+      UserService.forgetAccountStanding(asStored);
+      await expect(UserService.isUserMasterAdmin(asStored)).resolves.toBe(true);
+
+      findOneById.mockResolvedValue(
+        storedUser({ isMasterAdmin: false }) as never,
+      );
+      UserService.forgetAccountStanding(inCapitals);
+
+      await expect(UserService.isUserMasterAdmin(asStored)).resolves.toBe(
+        false,
+      );
+    } finally {
+      UserService.forgetAccountStanding(asStored);
+    }
   });
 
   test("a write that touches neither column keeps what was read, and announces nothing", async () => {
