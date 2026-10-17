@@ -300,7 +300,7 @@ let creates: Array<string>;
 // Every read of the member rows, with its query.
 let memberReads: Array<{
   query: Record<string, unknown>;
-  sort?: Record<string, unknown>;
+  sort?: Record<string, unknown> | undefined;
   props: DatabaseCommonInteractionProps;
 }>;
 

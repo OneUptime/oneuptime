@@ -19,6 +19,9 @@
  *                                  (.../alerts/episodes/<id>/alerts)
  *   - page=incident-episode        an incident episode's Incidents page
  *                                  (.../incidents/episodes/<id>/incidents)
+ *   - page=incident-settings       Incidents > Settings > Episode
+ *                                  Membership: the one-episode switch
+ *   - page=alert-settings          Alerts > Settings > Episode Membership
  *   - role=viewer                  may read alerts, incidents and episodes,
  *                                  may add to none (Viewer)
  *   - role=adder                   may add to an episode but may not create
@@ -51,7 +54,8 @@
  *
  * Every add request is recorded on `window.__fixture.adds`, every episode
  * created on `window.__fixture.creates`, every delete on
- * `window.__fixture.deletes` and every list request on
+ * `window.__fixture.deletes`, every update (a settings switch saving) on
+ * `window.__fixture.updates` and every list request on
  * `window.__fixture.listRequests`, so the spec checks what the page sent,
  * not only what it drew.
  */
@@ -70,6 +74,8 @@ import AlertsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Alert
 import IncidentsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Incidents";
 import AlertEpisodeAlertsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeView/Alerts";
 import IncidentEpisodeIncidentsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/EpisodeView/Incidents";
+import IncidentEpisodeMembershipSettings from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentEpisodeMembershipSettings";
+import AlertEpisodeMembershipSettings from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertEpisodeMembershipSettings";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -406,6 +412,13 @@ window.__fixture = {
   adds: [],
   creates: [],
   deletes: [],
+  updates: [],
+};
+
+// The project's switches as saved: one episode per alert and per incident.
+const projectSwitches = {
+  limitAlertsToOneEpisode: oneEpisode,
+  limitIncidentsToOneEpisode: oneEpisode,
 };
 
 function idOf(value) {
@@ -577,14 +590,31 @@ ModelAPI.getItem = async (options) => {
 
   // The project's switches: one episode per alert and per incident.
   if (tableName === "Project") {
-    return model(Project, {
-      _id: PROJECT_ID,
-      limitAlertsToOneEpisode: oneEpisode,
-      limitIncidentsToOneEpisode: oneEpisode,
-    });
+    return model(Project, { _id: PROJECT_ID, ...projectSwitches });
   }
 
   return recordsOf(tableName).find((record) => idOf(record._id) === id) || null;
+};
+
+/*
+ * A settings switch saving: the project's column, kept for the next read,
+ * as the server stores it.
+ */
+ModelAPI.updateById = async (options) => {
+  const tableName = new options.modelType().tableName;
+  window.__fixture.updates.push({
+    tableName,
+    id: idOf(options.id),
+    data: serialize(options.data),
+  });
+
+  await wait();
+
+  if (tableName === "Project") {
+    Object.assign(projectSwitches, options.data);
+  }
+
+  return { data: {} };
 };
 
 // Whether a record is in some episode other than this one.
@@ -892,6 +922,14 @@ const PAGES = {
   "incident-episode": {
     component: IncidentEpisodeIncidentsPage,
     trail: ["Incidents", "Episodes", "IE-12", "Incidents"],
+  },
+  "incident-settings": {
+    component: IncidentEpisodeMembershipSettings,
+    trail: ["Incidents", "Settings", "Episode Membership"],
+  },
+  "alert-settings": {
+    component: AlertEpisodeMembershipSettings,
+    trail: ["Alerts", "Settings", "Episode Membership"],
   },
 };
 

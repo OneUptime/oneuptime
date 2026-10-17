@@ -1324,3 +1324,142 @@ test.describe("a project that allows an alert in only one episode", () => {
     await screenshot(page, "one-episode-add-dark");
   });
 });
+
+/*
+ * Incidents -> Settings -> Episode Membership and Alerts -> Settings ->
+ * Episode Membership: the one switch, off for a project that never turned
+ * it on, saved the moment it is flipped (the project's own column, nothing
+ * else), and locked for someone who may not change it.
+ */
+interface RecordedUpdate {
+  tableName: string;
+  id: string;
+  data: Record<string, unknown>;
+}
+
+async function updatesSent(page: Page): Promise<Array<RecordedUpdate>> {
+  return await page.evaluate((): Array<RecordedUpdate> => {
+    return (
+      window as unknown as { __fixture: { updates: Array<RecordedUpdate> } }
+    ).__fixture.updates;
+  });
+}
+
+test.describe("the Episode Membership settings page", () => {
+  test("Incidents: the switch is off, and a flip saves the project's column at once, with no dialog", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${PROJECT}/incidents/settings/episode-membership?page=incident-settings`,
+    );
+
+    const control: Locator = page.getByRole("switch", {
+      name: "An incident can be in only one episode",
+    });
+    await expect(control).toHaveAttribute("aria-checked", "false");
+    await expect(
+      page.getByText(
+        "Choose whether an incident can be in more than one episode.",
+      ),
+    ).toBeVisible();
+
+    const row: Locator = page.getByTestId("incident-single-episode-switch-row");
+    await expect(row).toContainText(
+      "An incident can be in several episodes at once.",
+    );
+    await expect(row).toContainText(
+      "Turning this on takes no incident out of an episode: incidents already in several stay in them.",
+    );
+
+    await screenshot(page, "one-episode-settings-off");
+
+    await control.click();
+
+    await expect(control).toHaveAttribute("aria-checked", "true");
+    await expect(
+      page.getByTestId("incident-single-episode-switch-status"),
+    ).toContainText("Saved");
+    await expect(row).toContainText(
+      "An incident that is in an episode can't be added to another one. To move it, remove it from its episode first.",
+    );
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    expect(await updatesSent(page)).toEqual([
+      {
+        tableName: "Project",
+        id: "10000000-0000-4000-8000-000000000001",
+        data: { limitIncidentsToOneEpisode: true },
+      },
+    ]);
+
+    await screenshot(page, "one-episode-settings-on");
+  });
+
+  test("Alerts, for a Viewer: the switch is locked, says who may change it, and a press saves nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${PROJECT}/alerts/settings/episode-membership?page=alert-settings&role=viewer`,
+    );
+
+    const control: Locator = page.getByRole("switch", {
+      name: "An alert can be in only one episode",
+    });
+    await expect(control).toHaveAttribute("aria-checked", "false");
+    await expect(control).toHaveAttribute("aria-disabled", "true");
+    await expect(
+      page.getByTestId("alert-single-episode-switch-row"),
+    ).toContainText("Project Owner, Project Admin");
+
+    await control.click({ force: true });
+    await expect(control).toHaveAttribute("aria-checked", "false");
+    expect(await updatesSent(page)).toEqual([]);
+
+    await screenshot(page, "one-episode-settings-viewer");
+  });
+
+  test.describe("on a phone, in the dark theme", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("the card fits the screen, on the dark surface", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.goto(
+        `${PROJECT}/alerts/settings/episode-membership?page=alert-settings&oneEpisode=1&theme=dark`,
+      );
+
+      const control: Locator = page.getByRole("switch", {
+        name: "An alert can be in only one episode",
+      });
+      await expect(control).toHaveAttribute("aria-checked", "true");
+      await expect(
+        page.getByTestId("alert-single-episode-switch-row"),
+      ).toContainText(
+        "An alert that is in an episode can't be added to another one.",
+      );
+
+      // No sideways scroll.
+      expect(
+        await page.evaluate((): number => {
+          return document.documentElement.scrollWidth;
+        }),
+      ).toBeLessThanOrEqual(390);
+
+      const background: string = await page
+        .getByTestId("card")
+        .first()
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).backgroundColor;
+        });
+      expect(background).not.toBe("rgb(255, 255, 255)");
+
+      await screenshot(page, "one-episode-settings-phone-dark");
+    });
+  });
+});
