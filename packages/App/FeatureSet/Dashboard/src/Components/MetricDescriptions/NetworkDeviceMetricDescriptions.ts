@@ -194,6 +194,6 @@ export const NETWORK_DEVICE_METRIC_DESCRIPTIONS: Record<
 
   // Discovery Scans list (Pages/NetworkDevice/Discovery.tsx).
   discoveryRespondedHosts: translationKey(
-    "Hosts that answered SNMP out of the addresses swept, with hosts that answered only ping counted separately as alive without SNMP. On a ping-only scan it is the hosts that answered ping. While a scan runs, both cover only what has been swept so far.",
+    "Hosts that answered SNMP out of the addresses swept, with hosts that answered only ping counted separately as alive without SNMP. On an ICMP scan it is the hosts that answered ping. While a scan runs, both cover only what has been swept so far.",
   ),
 };

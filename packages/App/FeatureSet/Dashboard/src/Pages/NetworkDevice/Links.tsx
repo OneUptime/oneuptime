@@ -41,7 +41,7 @@ const NetworkDeviceLinks: FunctionComponent<
         cardProps={{
           title: "Device Links",
           description:
-            "Cables the map cannot see on its own. Devices read over SNMP are linked to the neighbours they report, so draw a link here only for a cable no switch reports. Bind a monitor to a link to color it by that monitor's status.",
+            "Cables the map cannot see on its own. A monitor bound to a link colors it.",
         }}
         noItemsMessage="No device links yet. Add one to connect two devices the discovery protocols cannot see between."
         filters={[
@@ -133,8 +133,7 @@ const NetworkDeviceLinks: FunctionComponent<
             },
             title: "From Port",
             stepId: "ports",
-            description:
-              "Optional. Free text — nothing resolves it to an interface, since a link is usually drawn by hand precisely because the port is not discoverable.",
+            description: "Free text, such as Gi1/0/24.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "Gi1/0/24",
@@ -157,7 +156,7 @@ const NetworkDeviceLinks: FunctionComponent<
             title: "Parent Device",
             stepId: "topology",
             description:
-              "Optional, and it must be one of the two devices above. Set it to say which end is upstream — the router in a router-to-switch link, the switch in a switch-to-access-point one — and the Parent-Child view on the topology map draws the other end beneath it. Left empty, the map works the hierarchy out from device roles and connection counts, which is a good guess on SNMP gear and no guess at all on a device that only answers ping.",
+              "Which end is upstream, such as the router. The map draws the other end beneath it.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkDevice,
@@ -174,7 +173,7 @@ const NetworkDeviceLinks: FunctionComponent<
             title: "Monitor",
             stepId: "topology",
             description:
-              "Optional. The monitor watching this link — its status colors the edge on the topology map. A discovered link's own interface counters always win over it, so this only ever supplies state nothing else measured.",
+              "Its status colors the link on the map, unless the link reports its own state.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Monitor,

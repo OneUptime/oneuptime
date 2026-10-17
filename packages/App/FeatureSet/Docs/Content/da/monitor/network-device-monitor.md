@@ -502,7 +502,7 @@ I stedet for at tilføje enheder én ad gangen kan du scanne et adresseområde f
 flowchart TB
     Scan["Discovery-scanning<br/>på en sonde"]
     Ping["Ping hver adresse<br/>i området"]
-    Check{"Tjek SNMP på<br/>værter, der svarer?"}
+    Check{"Scanningsmetode?"}
     Read["Læs hver værts navn og<br/>producent via SNMP"]
     Found["Fundne værter"]
     Review["Review Results:<br/>vælg og importér"]
@@ -510,8 +510,8 @@ flowchart TB
     Devices["Enheder, pollet af<br/>scanningens sonde"]
     Scan --> Ping
     Ping --> Check
-    Check -->|"Til"| Read
-    Check -->|"Fra"| Found
+    Check -->|"SNMP"| Read
+    Check -->|"ICMP"| Found
     Read --> Found
     Found --> Review
     Found --> Rules
@@ -524,13 +524,13 @@ flowchart TB
 Gå til **Netværk → Discovery**, og klik på **Start scanning**. **Discover Devices** på Netværk-**Oversigt** åbner den samme formular.
 
 ### Sig, hvad der skal scannes
-I trinnet **Scanmål** skriver du området, kontrollerer **Sonde** og beslutter, om du vil bruge **Check SNMP on hosts that answer**.
+Skriv området i **Scanmål**, kontrollér **Sonde**, og vælg **Scanningsmetode**: **ICMP (ping)**, som en ny scanning starter på, eller **SNMP**.
 
 ### Tilføj loginoplysninger at prøve
-Med SNMP slået til beder trinnet **SNMP-loginoplysninger** om de sæt loginoplysninger, der skal prøves. Med det slået fra er der intet andet trin: scanningen er en [scanning kun med ping](#scanninger-kun-med-ping), og **Start scanning** står på første side.
+Kun en SNMP-scanning beder om loginoplysninger: vælger du **SNMP**, kommer trinnet **SNMP-loginoplysninger** til, med de sæt loginoplysninger, der skal prøves. En [ICMP-scanning](#icmp-scanninger) har intet andet trin, og **Start scanning** står på første side.
 
 ### Start scanningen
-Klik på **Start scanning**. Sonden scanner området og rapporterer, hvor mange værter den scannede, og hvor mange der svarede: hvor mange der svarede på SNMP, eller, ved en scanning kun med ping, hvor mange der svarede på ping.
+Klik på **Start scanning**. Sonden scanner området og rapporterer, hvor mange værter den scannede, og hvor mange der svarede: hvor mange der svarede på SNMP, eller, ved en ICMP-scanning, hvor mange der svarede på ping.
 
 ### Importér det, den fandt
 Klik på **Review Results** på scanningen, vælg de værter, der skal importeres, og klik på **Næste**. Vælg, hvor ofte de tjekkes, og om hver får en monitor, og importér dem så; se [Import af det, en scanning fandt](#import-af-det-en-scanning-fandt).
@@ -540,8 +540,8 @@ Klik på **Review Results** på scanningen, vælg de værter, der skal importere
 | --- | --- | --- |
 | Scanmål | De adresser, der skal scannes, i [CIDR- eller oktetområdenotation](#notation-for-scanmål). | Ja |
 | Sonde | Den sonde, der kører scanningen. Den skal kunne nå området direkte. Et projekt med præcis én brugerdefineret sonde starter med den. Et projekt uden egen sonde får det at vide, med **Tilføj en sonde** ved siden af feltet. | Ja |
-| Check SNMP on hosts that answer | En scanning pinger først området; dette afgør, om de værter, der svarer, derefter spørges via SNMP om deres navn og producent. Slå det fra for en [scanning kun med ping](#scanninger-kun-med-ping). Vælges, når scanningen oprettes, og ligger fast derefter. Til som standard. | Nej |
-| Loginoplysninger, der skal prøves | Det andet trin: de sæt loginoplysninger, der skal prøves, i rækkefølge. Hver vært spørges med hvert sæt, indtil ét svarer, så tilføj ét sæt pr. gruppe af enheder, der deler version og community eller v3-bruger. **Tilføj flere loginoplysninger** tilføjer ét. | Når SNMP-tjek er slået til |
+| Scanningsmetode | **ICMP (ping)** pinger hver adresse i området og viser, hvad der svarer, uden loginoplysninger: en [ICMP-scanning](#icmp-scanninger). **SNMP** pinger også og spørger derefter hver vært, der svarer, om dens navn og producent. En ny scanning starter på **ICMP (ping)**; **Rediger** ændrer det senere, og scanningen kører igen. | Ja |
+| Loginoplysninger, der skal prøves | Det andet trin i en SNMP-scanning: de sæt loginoplysninger, der skal prøves, i rækkefølge. Hver vært spørges med hvert sæt, indtil ét svarer, så tilføj ét sæt pr. gruppe af enheder, der deler version og community eller v3-bruger. **Tilføj flere loginoplysninger** tilføjer ét. | Når metoden er SNMP |
 
 Foldet sammen under **Flere felter** på første trin, til de scanninger, der har brug for dem:
 
@@ -587,7 +587,7 @@ Oktetområder findes til netværk, der ikke er formet som CIDR-blokke. `10.16-22
 Hver vært, en scanning finder, importeres som en sonde-pollet enhed med scanningens sonde tildelt og polling slået til, så den har en status fra sin første polling. Det, der adskiller værterne, er det, de har med:
 
 - Værter, der svarede på SNMP, importeres med den adresse, der svarede, som værtsnavn, navnet valgt som beskrevet nedenfor, og de loginoplysninger, der svarede, så en v3-scanning importerer enheder, der er klar til v3-walk og straks begynder at indsamle interfaces og inventar.
-- Værter, der svarede på ping, men ikke på SNMP — hver vært, en [scanning kun med ping](#scanninger-kun-med-ping) finder, og de værter, en SNMP-scanning ikke kunne identificere — importeres uden loginoplysninger. Sonden pinger dem efter deres tidsplan; tilføj loginoplysninger senere, på enheden eller som en profil på den eller dens lokation, og den samme sonde begynder også at walke dem.
+- Værter, der svarede på ping, men ikke på SNMP — hver vært, en [ICMP-scanning](#icmp-scanninger) finder, og de værter, en SNMP-scanning ikke kunne identificere — importeres uden loginoplysninger. Sonden pinger dem efter deres tidsplan; tilføj loginoplysninger senere, på enheden eller som en profil på den eller dens lokation, og den samme sonde begynder også at walke dem.
 
 En vært, der allerede er registreret som enhed, er markeret **Allerede tilføjet** og importeres aldrig to gange. Polling giver hver importeret enhed en status; for at høre, når en går ned, giver du den en monitor: vælg **En overvågning for hver enhed**, når du importerer, eller lad en [advarselspolitik](#advarselspolitikker) give én til hver enhed, den dækker.
 
@@ -657,7 +657,7 @@ Et navn bliver kun bedre: en enhed beholder sit navn, når dens DNS-post ændres
 
 At gennemgå hver scanning i hånden skalerer ikke ud over de første par subnet. **Netværk → Regler → Auto Import Rules** er der, hvor du skriver importen ned én gang: en regel siger, hvilke fundne værter den gør krav på (et IP-område og valgfrie mønstre for systemnavn, beskrivelse og `sysObjectID`), og eventuelt hvilken monitorskabelon og hvilken [OID Collection Template](#oid-collection-templates) de enheder, den importerer, får. En regel, der er markeret som undtagelse, gør ikke krav på noget og nedlægger veto mod de andre: sådan skæres printere og telefoner ud af en bred subnetregel.
 
-I en regel bestemmer **Tjek hvert**, hvor ofte scanningens sonde poller hver enhed, reglen importerer, ligesom **Tjek hvert**, når du importerer fra **Review Results**; tomt er det hvert 5. minut. En regel, der også importerer værter, som kun svarede på ping, giver også dem sin monitorskabelon: sonden pinger dem, så skabelonens kontroller af, om en enhed er oppe, og af de traps, den sender, virker for dem med det samme, og dens kontroller, der læser et SNMP-walk, så snart enheden har loginoplysninger.
+I en regel bestemmer **Tjek hvert**, hvor ofte scanningens sonde poller hver enhed, reglen importerer, ligesom **Tjek hvert**, når du importerer fra **Review Results**; tomt er det hvert 5. minut. En regel med **Include Ping-Only Hosts** slået til importerer også værter, der kun svarede på ping, herunder hver vært en [ICMP-scanning](#icmp-scanninger) finder, og giver også dem sin monitorskabelon: sonden pinger dem, så skabelonens kontroller af, om en enhed er oppe, og af de traps, den sender, virker for dem med det samme, og dens kontroller, der læser et SNMP-walk, så snart enheden har loginoplysninger.
 
 Regler har ingen egen tidsplan og behøver ingen. Aktiverede regler kører af sig selv mod hver scannings resultater, efterhånden som de kommer, inklusive de delresultater, en lang scanning uploader, mens den stadig kører, så værter importeres inden for et minut efter at være fundet i stedet for ved slutningen af området. Slå **Repeat this scan** til på en discovery-scanning, og parret bliver en stående ordning: scanningen scanner sit område igen med dit interval, og hver ny vært, den finder, importeres, uden at nogen trykker på noget.
 
@@ -672,23 +672,23 @@ Store miljøer importeres i afmålte batches. At oprette en enhed eller en monit
 
 Enheder og monitorer er adskilt arbejde med adskilte grænser: en regel, der får en monitorskabelon, efter dens enheder er importeret, opretter slet ingen enheder, kun monitorer, og dens rapport siger det.
 
-### Scanninger kun med ping
+### ICMP-scanninger
 
-Slå **Check SNMP on hosts that answer** fra, og scanningen er en almindelig ICMP-scanning: den pinger hver adresse i området, rapporterer dem, der svarede, og sender slet ingen SNMP-pakker. Trinnet SNMP-loginoplysninger forsvinder fra formularen, så den er én side med **Start scanning** på, og der spørges ikke om, og gemmes ikke, nogen version, community string eller v3-loginoplysning på scanningen.
+Med **ICMP (ping)** som **Scanningsmetode**, som en ny scanning starter på, er en scanning en almindelig ICMP-scanning: den pinger hver adresse i området, rapporterer dem, der svarede, og sender slet ingen SNMP-pakker. Formularen har intet trin til SNMP-loginoplysninger, så den er én side med **Start scanning** på, og der spørges ikke om, og gemmes ikke, nogen version, community string eller v3-loginoplysning på scanningen.
 
-Valget træffes, når scanningen oprettes, og kan ikke ændres: en scanning, der er oprettet kun med ping, forbliver kun med ping, også ved hver kørsel af en gentaget scanning. For at scanne det samme område på den anden måde opretter du en anden scanning.
+Du kan ændre metoden senere, under scanningens **Rediger**. En ændret metode kører scanningen igen: de værter, dens seneste kørsel fandt, ryddes, og enheder, du allerede har importeret, forbliver, som de er.
 
 Grib til en, når:
 
-- Du ingen SNMP-loginoplysninger har til området: et laboratorium, en lejers netværk, et subnet, du har arvet. En scanning kun med ping fortæller dig, hvad der er i live dér, uden at du først skal gætte en community string.
+- Du ingen SNMP-loginoplysninger har til området: et laboratorium, en lejers netværk, et subnet, du har arvet. En ICMP-scanning fortæller dig, hvad der er i live dér, uden at du først skal gætte en community string.
 - Du vil have en inventarscanning snarere end et identitetstjek: hvad der svarer i dette område, ikke hvilken model det er. Den er også den hurtigste af de to, fordi den springer SNMP-forespørgslen og dens timeout pr. vært over på værter, der svarer på ping, men ikke vil tale SNMP med dig.
 
 To ting, du skal vide, før du kører en:
 
-- Sonden har brug for et runtime-miljø, der tillader ICMP. Scanningen kører operativsystemets `ping`, så sondens container har brug for kapabiliteten `NET_RAW` og programmet. OneUptimes egne udrulninger har begge: `docker-compose.base.yml` og Helm-chartets `probeContainerSecurityContext` tilføjer `NET_RAW`, og sondens image installerer `iputils-ping`. En fejl her betyder som regel, at en hærdet Kubernetes-`securityContext` har fjernet `NET_RAW`, eller at et brugerdefineret sonde-image har udeladt `ping`. En scanning kun med ping har så intet andet at prøve, så den fejler med en besked, der siger det, i stedet for at rapportere et tomt område. Hvis ping holder op med at virke undervejs, beholder scanningen de værter, den allerede har bekræftet, og siger, at området ikke blev fuldt tjekket.
+- Sonden har brug for et runtime-miljø, der tillader ICMP. Scanningen kører operativsystemets `ping`, så sondens container har brug for kapabiliteten `NET_RAW` og programmet. OneUptimes egne udrulninger har begge: `docker-compose.base.yml` og Helm-chartets `probeContainerSecurityContext` tilføjer `NET_RAW`, og sondens image installerer `iputils-ping`. En fejl her betyder som regel, at en hærdet Kubernetes-`securityContext` har fjernet `NET_RAW`, eller at et brugerdefineret sonde-image har udeladt `ping`. En ICMP-scanning har så intet andet at prøve, så den fejler med en besked, der siger det, i stedet for at rapportere et tomt område. Hvis ping holder op med at virke undervejs, beholder scanningen de værter, den allerede har bekræftet, og siger, at området ikke blev fuldt tjekket.
 - Alt, den finder, importeres som en sonde-pollet enhed uden loginoplysninger, som scanningens sonde pinger fra dens første polling. Tilføj loginoplysninger, på enheden eller som en profil på den eller dens lokation, når du har dem, og sonden begynder også at walke enheden.
 
-En scanning kun med ping finder kun værter, der svarer på ICMP-ekko. Værter, der smider ping væk (Windows-værter som standard og ofte administrations-VLAN'er), forbliver usynlige for den, også når de svarer på SNMP. En SNMP-scanning dækker det tilfælde: når dens ping-runde slet ikke finder nogen, der svarer på SNMP, går den tilbage og spørger også de tavse adresser via SNMP. Så hvis du forventer administrerede enheder i et område, og en scanning kun med ping kommer tom tilbage, så scan det igen med **Check SNMP on hosts that answer** slået til.
+En ICMP-scanning finder kun værter, der svarer på ICMP-ekko. Værter, der smider ping væk (Windows-værter som standard og ofte administrations-VLAN'er), forbliver usynlige for den, også når de svarer på SNMP. En SNMP-scanning dækker det tilfælde: når dens ping-runde slet ikke finder nogen, der svarer på SNMP, går den tilbage og spørger også de tavse adresser via SNMP. Så hvis du forventer administrerede enheder i et område, og en ICMP-scanning kommer tom tilbage, så skift dens **Scanningsmetode** til **SNMP**.
 
 ## Advarsler
 

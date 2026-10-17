@@ -39,10 +39,13 @@ import McpOAuthConfig from "../../../../Server/Utils/Mcp/McpOAuthConfig";
 import ProjectMembership from "../../../../Server/Utils/TeamMember/ProjectMembership";
 import McpOAuthGrantAccess, {
   McpOAuthGrantAccessResult,
+  McpOAuthGrantMember,
   McpOAuthGrantRefusal,
-  McpOAuthGrantUser,
   McpOAuthPrincipal,
 } from "../../../../Server/Utils/Mcp/McpOAuthGrantAccess";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import Email from "../../../../Types/Email";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../../../Types/JsonWebTokenData";
@@ -283,6 +286,7 @@ describe("McpOAuthGrantAccess", () => {
   let isEnabled: SpyInstance;
   let findUser: SpyInstance;
   let isUserBlocked: SpyInstance;
+  let isUserMasterAdmin: SpyInstance;
   let membershipLookup: SpyInstance;
   let tenantPermissionLookup: SpyInstance;
   let projectRequireSso: SpyInstance;
@@ -301,6 +305,14 @@ describe("McpOAuthGrantAccess", () => {
     isUserBlocked = getJestSpyOn(
       UserService,
       "isUserBlocked",
+    ).mockResolvedValue(false);
+    /*
+     * Whether the member is a master admin now, as every session's request
+     * reads it. Default: no. The cases about master admins say yes here.
+     */
+    isUserMasterAdmin = getJestSpyOn(
+      UserService,
+      "isUserMasterAdmin",
     ).mockResolvedValue(false);
     // A blocked project's refusal is BlockedProjectBackgroundWork.test.ts.
     getJestSpyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
@@ -447,7 +459,7 @@ describe("McpOAuthGrantAccess", () => {
     });
 
     test("a master admin's grant says so on the principal (it decides the instance-wide SSO exemption, nothing else)", async () => {
-      findUser.mockResolvedValue(userRow({ isMasterAdmin: true }));
+      isUserMasterAdmin.mockResolvedValue(true);
 
       const principal: McpOAuthPrincipal = principalOf(
         await evaluate(grantWith()),
@@ -1179,14 +1191,14 @@ describe("McpOAuthGrantAccess", () => {
 
       test("a master admin is exempt from the INSTANCE-wide requirement", async () => {
         globalRequireSso.mockResolvedValue(true);
-        findUser.mockResolvedValue(userRow({ isMasterAdmin: true }));
+        isUserMasterAdmin.mockResolvedValue(true);
 
         expect((await evaluate(grantWith())).isAllowed).toBe(true);
       });
 
       test("a master admin is NOT exempt from a project's own requirement", async () => {
         projectRequireSso.mockResolvedValue(true);
-        findUser.mockResolvedValue(userRow({ isMasterAdmin: true }));
+        isUserMasterAdmin.mockResolvedValue(true);
 
         expect(refusalOf(await evaluate(grantWith()))).toBe(
           McpOAuthGrantRefusal.SsoRequired,
@@ -1216,7 +1228,7 @@ describe("McpOAuthGrantAccess", () => {
 
       test("a master admin is not asked the instance-wide requirement, so it failing to read changes nothing for them", async () => {
         globalRequireSso.mockRejectedValue(new Error("database unavailable"));
-        findUser.mockResolvedValue(userRow({ isMasterAdmin: true }));
+        isUserMasterAdmin.mockResolvedValue(true);
 
         expect((await evaluate(grantWith())).isAllowed).toBe(true);
         expect(globalRequireSso).not.toHaveBeenCalled();
@@ -1594,23 +1606,27 @@ describe("McpOAuthGrantAccess", () => {
       };
 
       expect(call.id.toString()).toBe(USER_ID.toString());
+
+      /*
+       * Never whether they are a master admin: kept for a minute, a copy of
+       * it would outlive the removal of the access by up to that minute.
+       */
       expect(call.select).toEqual({
         _id: true,
         email: true,
         name: true,
-        isMasterAdmin: true,
       });
       expect(call.props).toEqual({ isRoot: true });
     });
 
     test("returns who the id is", async () => {
-      const user: McpOAuthGrantUser | null =
+      const user: McpOAuthGrantMember | null =
         await McpOAuthGrantAccess.getUser(USER_ID);
 
       expect(user?.id.toString()).toBe(USER_ID.toString());
       expect(user?.email.toString()).toBe("member@example.com");
       expect(user?.name).toBe("Mia Member");
-      expect(user?.isMasterAdmin).toBe(false);
+      expect(user).not.toHaveProperty("isMasterAdmin");
     });
 
     test("one database read per user per minute, however many requests", async () => {
@@ -1622,12 +1638,12 @@ describe("McpOAuthGrantAccess", () => {
     });
 
     test("the cached answer is the same answer", async () => {
-      const first: McpOAuthGrantUser | null =
+      const first: McpOAuthGrantMember | null =
         await McpOAuthGrantAccess.getUser(USER_ID);
 
       findUser.mockResolvedValue(userRow({ name: "Renamed Member" }));
 
-      const second: McpOAuthGrantUser | null =
+      const second: McpOAuthGrantMember | null =
         await McpOAuthGrantAccess.getUser(USER_ID);
 
       expect(second).toEqual(first);
@@ -1720,6 +1736,86 @@ describe("McpOAuthGrantAccess", () => {
 
       expect(findUser).toHaveBeenCalledTimes(1);
       expect(isUserBlocked).toHaveBeenCalledTimes(2);
+    });
+
+    /*
+     * Being a master admin exempts the member from the server's Require
+     * SSO. Another master admin may remove the access while the labels are
+     * warm: the grant's very next use is answered as the member they are.
+     */
+    test("being a MASTER ADMIN is never served from that cache either: a removal takes effect on the grant's next use", async () => {
+      const grant: McpOAuthGrant = grantWith();
+
+      globalRequireSso.mockResolvedValue(true);
+      isUserMasterAdmin.mockResolvedValue(true);
+
+      // Exempt, as a master admin; the user cache is now warm.
+      const allowed: McpOAuthGrantAccessResult = await evaluate(grant);
+      expect(principalOf(allowed).user.isMasterAdmin).toBe(true);
+
+      // The access is removed. No time passes; the user cache is still warm.
+      isUserMasterAdmin.mockResolvedValue(false);
+
+      expect(refusalOf(await evaluate(grant))).toBe(
+        McpOAuthGrantRefusal.SsoRequired,
+      );
+
+      expect(findUser).toHaveBeenCalledTimes(1);
+      expect(isUserMasterAdmin).toHaveBeenCalledTimes(2);
+
+      for (const call of isUserMasterAdmin.mock.calls) {
+        expect((call[0] as ObjectID).toString()).toBe(USER_ID.toString());
+      }
+    });
+
+    test("a read of whether they are a master admin that fails is an error, never the exemption", async () => {
+      globalRequireSso.mockResolvedValue(true);
+      isUserMasterAdmin.mockRejectedValue(new Error("database unavailable"));
+
+      await expect(evaluate(grantWith())).rejects.toThrow(
+        "database unavailable",
+      );
+    });
+
+    /*
+     * Through the account standing every request reads
+     * (UserService.isUserMasterAdmin, for real): the member's row says
+     * master admin, then another server removes the access and announces
+     * it. This server forgets what it read, and the grant's next use is
+     * held to the server's Require SSO at once - not when this server's
+     * minute of labels runs out.
+     */
+    test("a removal announced by another server reaches the grant's next use at once", async () => {
+      isUserMasterAdmin.mockRestore();
+      UserService.forgetAccountStanding(USER_ID);
+
+      try {
+        const grant: McpOAuthGrant = grantWith();
+
+        globalRequireSso.mockResolvedValue(true);
+        findUser.mockResolvedValue(userRow({ isMasterAdmin: true }));
+
+        expect((await evaluate(grant)).isAllowed).toBe(true);
+
+        // Another server removed the access: the row changed, and it says so.
+        findUser.mockResolvedValue(userRow({ isMasterAdmin: false }));
+
+        RealtimeAccessChanges.receive(
+          JSON.stringify({
+            origin: ObjectID.generate().toString(),
+            change: {
+              kind: RealtimeAccessChangeKind.AccountChanged,
+              userId: USER_ID.toString(),
+            },
+          }),
+        );
+
+        expect(refusalOf(await evaluate(grant))).toBe(
+          McpOAuthGrantRefusal.SsoRequired,
+        );
+      } finally {
+        UserService.forgetAccountStanding(USER_ID);
+      }
     });
 
     test("leaving the project is not served from the cache either", async () => {

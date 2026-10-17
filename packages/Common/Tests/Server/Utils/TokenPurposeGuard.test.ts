@@ -46,15 +46,14 @@ const COOKIE_MODULE: string = "packages/Common/Server/Utils/Cookie.ts";
 // Every product file that reads a person's token, and the kinds it reads.
 const READERS: Record<string, Array<string>> = {
   "packages/Common/Server/Middleware/UserAuthorization.ts": [
-    // readRequestSession: every API request, the image routes and the realtime join.
+    /*
+     * readRequestSession: every API request, both master-admin gates, the
+     * Admin Dashboard's page, the image routes and the realtime join.
+     */
     "UserSession",
     // getSsoTokens, getGlobalSsoTokenData, getStatelessValidProjectScopedSsoSignIn.
     "SsoSignIn",
   ],
-  "packages/Common/Server/Middleware/MasterAdminAuthorization.ts": [
-    "UserSession",
-  ],
-  "packages/Common/Server/Utils/MasterAdminPageAccess.ts": ["UserSession"],
   // Who extended a trial or adjusted a balance, behind the master-admin gate.
   "packages/Common/Server/API/ProjectAPI.ts": ["UserSession"],
   // findSignedInSession: the page's own sign-in, held to its live session.

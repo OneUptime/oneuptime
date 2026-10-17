@@ -55,13 +55,15 @@ export interface DiscoveryScanMode {
 }
 
 /*
- * How a scan describes itself in one short phrase — for a table cell, a badge,
- * or a log line. Deliberately names ICMP the way the wizard does ("Ping only")
- * rather than by protocol, because that is the word the operator chose.
+ * How a scan describes itself in one word — for a badge in the scan list, or a
+ * log line. The two words are the two choices the Start Scan form offers, ICMP
+ * or SNMP, so the list names a scan's method the way the person who started it
+ * chose it. An SNMP scan pings first too: "SNMP" names the choice, not every
+ * packet the sweep sends.
  */
 export enum ScanMethodLabel {
-  PingAndSnmp = "Ping + SNMP",
-  PingOnly = "Ping only",
+  Icmp = "ICMP",
+  Snmp = "SNMP",
 }
 
 export class ScanModeUtil {
@@ -92,13 +94,13 @@ export class ScanModeUtil {
     return !ScanModeUtil.isSnmpEnabled(scan);
   }
 
-  /** The scan's method as a short phrase for a badge or a log line. */
+  /** The scan's method in one word, for a badge or a log line. */
   public static getMethodLabel(
     scan: DiscoveryScanMode | null | undefined,
   ): ScanMethodLabel {
     return ScanModeUtil.isSnmpEnabled(scan)
-      ? ScanMethodLabel.PingAndSnmp
-      : ScanMethodLabel.PingOnly;
+      ? ScanMethodLabel.Snmp
+      : ScanMethodLabel.Icmp;
   }
 }
 

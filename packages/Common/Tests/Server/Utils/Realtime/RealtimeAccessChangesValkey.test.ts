@@ -5,6 +5,7 @@ import type RealtimeReadersType from "../../../../Server/Utils/Realtime/Realtime
 import type RealtimeSessionsType from "../../../../Server/Utils/Realtime/RealtimeSessions";
 import type { RealtimeSessionSocket } from "../../../../Server/Utils/Realtime/RealtimeSessions";
 import type RedisType from "../../../../Server/Infrastructure/Redis";
+import UserService from "../../../../Server/Services/UserService";
 import ObjectID from "../../../../Types/ObjectID";
 import getTestRedisConnectionOptions from "../../TestingUtils/Redis/TestRedisOptions";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -39,7 +40,7 @@ jest.mock("../../../../Server/Services/UserService", () => {
   return {
     __esModule: true,
     default: {
-      forgetBlockedStatus: jest.fn(),
+      forgetAccountStanding: jest.fn(),
     },
   };
 });
@@ -226,6 +227,53 @@ describe("access changes reach every server through Valkey", () => {
       new ObjectID(userId),
       new ObjectID(projectId),
     );
+  });
+
+  /*
+   * Another master admin removes someone's master admin access - or blocks
+   * them, or deletes the account - on server A. Server B forgets what it
+   * read about the account (UserService, which every API request there
+   * asks), so the next request of a session it serves is answered as the
+   * person is now. Both servers reach the one UserService the modules load
+   * when they need it: A's own forget comes first, at once; B's arrives
+   * through Valkey.
+   */
+  test("a change to an account on one server makes the other forget what it read about it", async () => {
+    const userId: string = ObjectID.generate().toString();
+    const forgetAccountStanding: jest.Mock =
+      UserService.forgetAccountStanding as unknown as jest.Mock;
+    const forgetUserOnB: jest.SpyInstance = jest.spyOn(
+      serverB.readers,
+      "forgetUser",
+    );
+
+    const forgottenTimes: () => number = (): number => {
+      return forgetAccountStanding.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return String(call[0]) === userId;
+        },
+      ).length;
+    };
+
+    serverA.changes.announce({
+      kind: RealtimeAccessChangeKind.AccountChanged,
+      userId: userId,
+    });
+
+    // Server A applies its own announcement at once.
+    expect(forgottenTimes()).toBe(1);
+
+    // Server B hears it through Valkey, and forgets the account as well.
+    await expect(
+      eventually((): boolean => {
+        return (
+          forgottenTimes() === 2 &&
+          forgetUserOnB.mock.calls.some((call: Array<unknown>): boolean => {
+            return call[0] === userId;
+          })
+        );
+      }),
+    ).resolves.toBe(true);
   });
 
   test("a server applies its own announcement once, not again when Valkey echoes it", async () => {

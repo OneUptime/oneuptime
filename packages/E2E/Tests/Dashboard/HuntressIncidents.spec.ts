@@ -352,6 +352,14 @@ test.describe("Huntress incident report -> workflow -> incident -> on-call -> re
 
     ctx.workflowId = toId(workflow["_id"]);
 
+    /*
+     * What the Dashboard reads of it. The trigger the server saves from the
+     * graph (triggerId) is the runner's own column, which the API never
+     * returns - a select of it is refused outright - and the trigger's URL
+     * answers 404 for a workflow whose trigger is not Huntress's: the 401
+     * below, for a delivery before the signing secret is saved, is the
+     * proof that it was saved.
+     */
     const saved: JSONish = await getItem({
       page: ctx.page,
       projectId: ctx.projectId,
@@ -360,7 +368,6 @@ test.describe("Huntress incident report -> workflow -> incident -> on-call -> re
       select: {
         _id: true,
         webhookSecretKey: true,
-        triggerId: true,
         isEnabled: true,
       },
     });
@@ -368,7 +375,6 @@ test.describe("Huntress incident report -> workflow -> incident -> on-call -> re
     ctx.secretKey = String(saved["webhookSecretKey"] || "");
 
     expect(ctx.secretKey).not.toBe("");
-    expect(saved["triggerId"]).toBe("huntress-incident-report");
     // New workflows start off.
     expect(Boolean(saved["isEnabled"])).toBe(false);
   });
@@ -413,9 +419,14 @@ test.describe("Huntress incident report -> workflow -> incident -> on-call -> re
 
     await section.getByTestId("huntress-trigger-signing-secret-button").click();
 
-    // The secret's own dialog, over the trigger's settings.
-    const dialog: Locator = ctx.page.getByTestId("modal").filter({
-      has: ctx.page.getByPlaceholder("whsec_…"),
+    /*
+     * The secret's own dialog, over the trigger's settings - which are a
+     * dialog too, and hold this one, so "the modal with the secret's field"
+     * is both. It goes by its title, as the offline Builder spec finds it
+     * (WorkflowBuilder/WorkflowBuilderHuntressTrigger.spec.ts).
+     */
+    const dialog: Locator = ctx.page.getByRole("dialog", {
+      name: /Signing Secret$/,
     });
 
     await expect(dialog).toContainText("View Signing Secret");

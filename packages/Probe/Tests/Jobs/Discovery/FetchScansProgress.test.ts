@@ -163,7 +163,7 @@ describe("buildScanProgressMessage", () => {
     );
 
     expect(message).toContain("12 answered ICMP ping");
-    expect(message).toContain("Check SNMP is off for this scan");
+    expect(message).toContain("Scan method is ICMP, so no SNMP");
     expect(message).not.toContain("answered SNMP");
   });
 

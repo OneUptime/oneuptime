@@ -203,6 +203,8 @@ async function boot(
   const listProps: Array<JSONObject> = [];
 
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false as never);
+  // The master admin a genuine session names is one still.
+  jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true as never);
   jest
     .spyOn(UserService, "updateLastActive")
     .mockResolvedValue(undefined as never);

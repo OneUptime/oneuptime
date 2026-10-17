@@ -429,6 +429,14 @@ describe("User two-factor self-service API integration", () => {
       expect(route.middleware).toBe(
         MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       );
+      /*
+       * The gate reads the session as every route does, asking the person's
+       * account whether they are blocked and still a master admin: here they
+       * are not blocked, and still are one (MasterAdminAuthorization.test.ts
+       * and MasterAdminRemovalOverHttp.test.ts cover the other answers).
+       */
+      getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+      getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
       const request: OneUptimeRequest = requestFor();
       request.params = { userId: OTHER_ID };
       request.body = { isRequired: false };

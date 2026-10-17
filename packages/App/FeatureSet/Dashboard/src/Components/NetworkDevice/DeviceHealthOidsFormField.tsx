@@ -146,7 +146,7 @@ const DeviceHealthOidsFormField: FunctionComponent<ComponentProps> = (
                     "Collected from the linked OID Collection Template",
                   )
             }
-            description="Collected on every poll because this device is linked to the template. Edit them on the template itself — the change reaches every device linked to it, with nothing to re-save here."
+            description="Collected because this device is linked to the template. Edit them on the template."
             required={false}
           />
           {templateOids && templateOids.length > 0 ? (
@@ -206,7 +206,7 @@ const DeviceHealthOidsFormField: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Vendor Health Template"
-            description="Apply a prebuilt set of CPU, memory, and temperature OIDs for your device's vendor. The OIDs are copied into the list below, where you can prune or extend them — this is a one-time copy, not a link."
+            description="Copies a vendor's CPU, memory and temperature OIDs into the list below, to edit as you like."
             required={false}
           />
           <Dropdown

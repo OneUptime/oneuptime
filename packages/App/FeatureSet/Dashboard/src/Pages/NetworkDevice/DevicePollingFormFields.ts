@@ -29,8 +29,7 @@ export function getDevicePollingFormFields(
         isPollingEnabled: true,
       },
       title: "Polling Enabled",
-      description:
-        "The assigned probe polls this device via SNMP on the schedule below. Disable to pause polling without deleting the device.",
+      description: "Turn it off to pause polling without deleting the device.",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
     },
@@ -51,7 +50,7 @@ export function getDevicePollingFormFields(
       },
       title: "Walk Interfaces",
       description:
-        "Walk the interface tables (IF-MIB) on each poll to inventory every port with status, bandwidth, utilization, and errors — plus LLDP/CDP neighbors for the topology map. Individual interfaces can be muted from the device's Interfaces tab.",
+        "Reads every port's status, traffic and errors, and the LLDP/CDP neighbors the map draws.",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
     },
@@ -61,7 +60,7 @@ export function getDevicePollingFormFields(
       },
       title: "Collect Connected Endpoints (ARP + FDB)",
       description:
-        "Off by default. When on, each poll also walks the device's ARP and bridge-forwarding tables to discover endpoints attached to it — POS terminals, printers, phones, laptops. On a router, or any device whose walk returns an ARP table, this also fills in the MAC address of devices registered at addresses in that table, which is what puts a ping-only device on its switch port on the map.",
+        "Finds what is plugged into this device, such as phones and printers, from its ARP and forwarding tables.",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
     },

@@ -682,7 +682,7 @@ export default class SubnetScanner {
      */
     if (isSnmpEnabled && snmpConfigs.length === 0) {
       throw new Error(
-        "This scan has no SNMP configuration to try. Open the scan and add at least one SNMP config, or turn Check SNMP off to run it as a ping sweep.",
+        "This scan has no SNMP credentials to try. Edit the scan and add at least one set, or choose ICMP to run it as a ping sweep.",
       );
     }
 
@@ -1064,7 +1064,7 @@ export default class SubnetScanner {
           throw new Error(
             "This scan checks ICMP only, but this probe could not send ICMP echo requests at all, so it has no way to find anything. " +
               "The probe needs the ping binary and the NET_RAW capability - OneUptime's own compose file and Helm chart grant both, so this usually means a hardened runtime dropped the capability, or a custom probe image left iputils-ping out. " +
-              "Create the scan with Check SNMP on if this probe cannot be given ICMP. " +
+              "Edit the scan and pick SNMP if this probe cannot be given ICMP at all. " +
               "Ping reported: " +
               (pingFailureReason || "unknown error"),
           );
