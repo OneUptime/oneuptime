@@ -179,7 +179,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 当 Kubernetes AI 代理设置调查和修复时，由能够更改集群上 chart 值的人来更改它们；OneUptime 会拒绝在其他地方所做的更改。下面的规则适用于留在 OneUptime 中的内容——kubectl 允许列表以及 Runner 和凭据的绑定——以及设置仍在 OneUptime 中的集群的调查和修复（参见 [AI 可以执行的操作——由代理设置](#ai-可以执行的操作由代理设置)）。
 
-开启修复——从 **关闭** 切换到任何其他模式——以及放宽修复——切换到 **自动** 或 **跳过批准**、编写 kubectl 允许列表、绑定 Runner 或凭据，或从拥有 Kubernetes AI 代理的集群中移除该绑定——需要 Project Owner、Project Admin 或 **Edit Auto Remediation Rule** 权限，也就是可以创建完全自动补救规则的那些人。绑定凭据还需要 **Read Runbook Credential** 权限，除非您是 Project Owner 或 Project Admin。**重置代理** 需要与开启修复相同的人员。收紧修复——**关闭**、改回 **请求批准**、清空允许列表——任何可以编辑该集群的人都能执行。
+开启修复——从 **关闭** 切换到任何其他模式——以及放宽修复——切换到 **自动** 或 **跳过批准**、编写 kubectl 允许列表、绑定 Runner 或凭据，或从拥有 Kubernetes AI 代理的集群中移除该绑定——需要 Project Owner、Project Admin 或 **Edit Auto Remediation Rule** 权限，也就是可以创建完全自动补救规则的那些人。绑定凭据还需要 **Read Runbook Credential** 权限，除非您是 Project Owner 或 Project Admin。**重置代理** 需要与开启修复相同的人员。收紧修复——**关闭**、改回 **请求批准**、清空允许列表——任何可以编辑该集群的人都能执行，**测试连接** 以及批准 OneUptime AI 为该集群提出的修复也是如此。所有这些都需要编辑该集群本身的权限：限制于某些标签、或限制于您或您的团队拥有的集群的权限，只能作用于这些集群，而带标签的阻止条目会取消对带有这些标签的集群的操作。
 
 ### 调查可以运行什么
 

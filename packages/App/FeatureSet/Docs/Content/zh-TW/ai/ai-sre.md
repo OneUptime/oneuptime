@@ -179,7 +179,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 當 Kubernetes AI 代理程式設定調查和修正時，由能夠變更叢集上 chart 值的人來變更它們；OneUptime 會拒絕在其他地方所做的變更。下面的規則適用於留在 OneUptime 中的內容——kubectl 允許清單以及 Runner 和憑證的繫結——以及設定仍在 OneUptime 中的叢集的調查和修正（請參閱 [AI 可以執行的操作——由代理程式設定](#ai-可以執行的操作由代理程式設定)）。
 
-開啟修正——從 **關閉** 切換到任何其他模式——以及放寬修正——切換到 **自動** 或 **略過核准**、撰寫 kubectl 允許清單、繫結 Runner 或憑證，或從擁有 Kubernetes AI 代理程式的叢集中移除該繫結——需要 Project Owner、Project Admin 或 **Edit Auto Remediation Rule** 權限，也就是可以建立完全自動補救規則的那些人。繫結憑證還需要 **Read Runbook Credential** 權限，除非您是 Project Owner 或 Project Admin。**重設代理程式** 需要與開啟修正相同的人員。收緊修正——**關閉**、改回 **請求核准**、清空允許清單——任何可以編輯該叢集的人都能執行。
+開啟修正——從 **關閉** 切換到任何其他模式——以及放寬修正——切換到 **自動** 或 **略過核准**、撰寫 kubectl 允許清單、繫結 Runner 或憑證，或從擁有 Kubernetes AI 代理程式的叢集中移除該繫結——需要 Project Owner、Project Admin 或 **Edit Auto Remediation Rule** 權限，也就是可以建立完全自動補救規則的那些人。繫結憑證還需要 **Read Runbook Credential** 權限，除非您是 Project Owner 或 Project Admin。**重設代理程式** 需要與開啟修正相同的人員。收緊修正——**關閉**、改回 **請求核准**、清空允許清單——任何可以編輯該叢集的人都能執行，**測試連線** 以及核准 OneUptime AI 為該叢集提出的修正也是如此。所有這些都需要編輯該叢集本身的權限：限制於某些標籤、或限制於您或您的團隊擁有的叢集的權限，只能作用於這些叢集，而帶標籤的封鎖項目會取消對帶有這些標籤的叢集的操作。
 
 ### 調查可以執行什麼
 
