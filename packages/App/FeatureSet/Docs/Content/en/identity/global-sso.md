@@ -149,6 +149,14 @@ The person has an account but belongs to no project, and the provider has nothin
 For a SAML provider, the issuer in your identity provider's response is not the **Issuer** saved on the provider. Copy it again from your identity provider; the two must match exactly.
 :::
 
+:::details "SAML Audience does not match"
+For a SAML provider, the response was made for another application: its audience is not the provider's **Issuer (Entity ID)**. In your identity provider, set the application's entity ID to the **Issuer (Entity ID)** on the provider's page. "SAML Recipient does not match" and "SAML Destination does not match" are the same for its reply URL: set it to the **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Each response from your identity provider signs someone in once, and only within minutes of being issued: after that it is refused with "SAML response has expired". Sign in again. If responses keep expiring, check the clocks of this server and of your identity provider.
+:::
+
 ## Next steps
 
 :::cards

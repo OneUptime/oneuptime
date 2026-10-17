@@ -36,8 +36,13 @@ OneUptime leser bare noen få ting fra assertionen som IdP-en din sender:
 | --- | --- |
 | Signatur | Kontrollerer den mot leverandørens **Offentlig sertifikat**. Svaret må være signert og må ikke være kryptert. |
 | Issuer | Må samsvare nøyaktig med leverandørens **Utsteder**. |
+| Audience | Må være leverandørens **Identifier (Entity ID)**. Et svar som IdP-en din laget for en annen applikasjon, avvises. |
+| Recipient og Destination | Må være leverandørens **Reply URL**, adressen svaret ble sendt til. |
+| `NotBefore` og `NotOnOrAfter` | Svaret godtas bare så lenge de tillater det, og senest 10 minutter etter at det ble utstedt, med 3 minutters slingringsmonn for klokker som går ulikt. |
 | Name ID | Personens e-postadresse. Den må være en gyldig e-postadresse. |
 | `http://schemas.microsoft.com/identity/claims/displayname` | Personens navn, som brukes når OneUptime oppretter kontoen. Valgfritt. |
+
+Hvert svar logger inn bare én gang. Sendes det på nytt, for eksempel når du går tilbake i nettleseren etter innloggingen, avvises det: logg inn på nytt.
 
 Personer som logger inn for første gang, blir med i leverandørens **Team**, og de avgjør hva personen kan gjøre: se [Roller og team for SSO-brukere](#roller-og-team-for-sso-brukere).
 
@@ -326,6 +331,22 @@ Personen er ikke med i prosjektet ennå, og leverandøren har ingen **Team** å 
 
 :::details "Issuer URL does not match"
 Issuer i assertionen fra IdP-en din er ikke leverandørens **Utsteder**. Kopier den på nytt fra IdP-en — realm-URL-en i Keycloak, **Microsoft Entra Identifier** eller Identity Provider Issuer i Okta — slik at de to samsvarer nøyaktig.
+:::
+
+:::details "SAML Audience does not match"
+Svarets audience er ikke denne leverandørens **Identifier (Entity ID)**: IdP-en din laget svaret for en annen applikasjon. Sett applikasjonens entity ID i IdP-en din til **Identifier (Entity ID)** fra **Vis SSO-konfigurasjon** – **Client ID** i Keycloak, **Identifier (Entity ID)** i Entra ID, **Audience URI (SP Entity ID)** i Okta. En IdP som er satt opp med bare OneUptimes adresse som entity ID, for eksempel `https://oneuptime.com`, fortsetter å virke.
+:::
+
+:::details "SAML Recipient does not match"
+Svarets recipient er ikke denne leverandørens **Reply URL**: svaret ble sendt til en annen adresse. Sett applikasjonens reply URL i IdP-en din til **Reply URL (Assertion Consumer Service URL)** fra **Vis SSO-konfigurasjon** – **Assertion Consumer Service POST Binding URL** i Keycloak, **Reply URL (Assertion Consumer Service URL)** i Entra ID, **Single sign-on URL** i Okta. "SAML Destination does not match" har samme årsak og samme løsning.
+:::
+
+:::details "SAML response has expired"
+Svaret kom fram til OneUptime senere enn IdP-en din tillater, eller mer enn 10 minutter etter at det ble utstedt: logg inn på nytt. Skjer det igjen og igjen, går klokken i IdP-en din eller på OneUptime-serveren feil; OneUptime tillater at de er 3 minutter fra hverandre. "SAML response is not valid yet" er samme problem den andre veien.
+:::
+
+:::details "SAML response was already used"
+Hvert svar fra IdP-en din logger inn bare én gang. Går du tilbake i nettleseren etter innloggingen, eller laster du inn på nytt siden IdP-en din sendte deg gjennom, sendes det samme svaret på nytt: logg inn på nytt, fra OneUptime eller fra IdP-en din.
 :::
 
 :::details Påloggingen mislykkes med en signatur- eller sertifikatfeil
