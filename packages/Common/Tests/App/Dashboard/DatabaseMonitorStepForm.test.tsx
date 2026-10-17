@@ -1,6 +1,11 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, RenderResult } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  RenderResult,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import DatabaseMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/DatabaseMonitor/DatabaseMonitorStepForm";
@@ -193,5 +198,219 @@ describe("DatabaseMonitorStepForm - the other engines are unchanged", () => {
     expect(
       view.getByText(/Needs the REPLICATION CLIENT privilege\./),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * The simplicity audit of the monitor forms. SQL Server's sign-in was a
+ * switch, "Use Windows Integrated Authentication", whose help explained the
+ * other mode too; it is an Authentication choice now, with the simpler
+ * answer - a username and a password - first. The seven Metric Groups
+ * (all on, rarely changed) wait under More fields.
+ */
+describe("DatabaseMonitorStepForm - how it signs in to SQL Server", () => {
+  const renderWith: (
+    config: Partial<MonitorStepDatabaseMonitor>,
+    onChange?: (value: MonitorStepDatabaseMonitor) => void,
+  ) => RenderResult = (
+    config: Partial<MonitorStepDatabaseMonitor>,
+    onChange?: (value: MonitorStepDatabaseMonitor) => void,
+  ): RenderResult => {
+    return render(
+      <MemoryRouter>
+        <DatabaseMonitorStepForm
+          monitorStepDatabaseMonitor={{
+            ...MonitorStepDatabaseMonitorUtil.getDefault(),
+            ...config,
+          }}
+          onChange={onChange || (() => {})}
+        />
+      </MemoryRouter>,
+    );
+  };
+
+  test("offers two plain choices, a username and a password picked for a new monitor", () => {
+    const view: RenderResult = renderWith({
+      databaseType: SqlDatabaseType.MicrosoftSqlServer,
+    });
+
+    const group: HTMLElement = view.getByTestId("database-authentication");
+    expect(group).toHaveAttribute("role", "radiogroup");
+
+    expect(
+      view.getByRole("radio", { name: "Username and password" }),
+    ).toBeChecked();
+    expect(
+      view.getByRole("radio", { name: "Windows Integrated Authentication" }),
+    ).not.toBeChecked();
+    expect(
+      view.getByRole("radio", { name: "Username and password" }),
+    ).toHaveAccessibleDescription("Sign in with a SQL Server login.");
+    expect(
+      view.getByRole("radio", { name: "Windows Integrated Authentication" }),
+    ).toHaveAccessibleDescription(
+      "Sign in as the account the probe runs as. No password needed.",
+    );
+  });
+
+  test("the switch that explained both modes is gone", () => {
+    const view: RenderResult = renderWith({
+      databaseType: SqlDatabaseType.MicrosoftSqlServer,
+    });
+
+    expect(
+      view.queryByRole("switch", {
+        name: "Use Windows Integrated Authentication",
+      }),
+    ).toBeNull();
+    expect(view.container.textContent).not.toContain(
+      "Username and password are ignored.",
+    );
+  });
+
+  test("picking Windows writes the stored boolean, and only that", () => {
+    const changes: Array<MonitorStepDatabaseMonitor> = [];
+    const view: RenderResult = renderWith(
+      { databaseType: SqlDatabaseType.MicrosoftSqlServer, username: "keep" },
+      (value: MonitorStepDatabaseMonitor) => {
+        changes.push(value);
+      },
+    );
+
+    fireEvent.click(
+      view.getByRole("radio", { name: "Windows Integrated Authentication" }),
+    );
+
+    expect(changes).toHaveLength(1);
+    expect(changes[0]?.useWindowsIntegratedAuthentication).toBe(true);
+    expect(changes[0]?.username).toBe("keep");
+    expect(changes[0]?.databaseType).toBe(SqlDatabaseType.MicrosoftSqlServer);
+  });
+
+  test("a step stored with Windows authentication opens on that choice, without the credentials", () => {
+    const view: RenderResult = renderWith({
+      databaseType: SqlDatabaseType.MicrosoftSqlServer,
+      useWindowsIntegratedAuthentication: true,
+    });
+
+    expect(
+      view.getByRole("radio", { name: "Windows Integrated Authentication" }),
+    ).toBeChecked();
+    expect(view.queryByPlaceholderText("oneuptime_monitor")).toBeNull();
+    expect(
+      view.queryByPlaceholderText("{{monitorSecrets.dbPassword}}"),
+    ).toBeNull();
+  });
+
+  test("a username and a password ask for both", () => {
+    const view: RenderResult = renderWith({
+      databaseType: SqlDatabaseType.MicrosoftSqlServer,
+    });
+
+    expect(view.getByPlaceholderText("oneuptime_monitor")).toBeInTheDocument();
+    expect(
+      view.getByPlaceholderText("{{monitorSecrets.dbPassword}}"),
+    ).toBeInTheDocument();
+  });
+
+  test("going back to a username and a password turns the boolean off", () => {
+    const changes: Array<MonitorStepDatabaseMonitor> = [];
+    const view: RenderResult = renderWith(
+      {
+        databaseType: SqlDatabaseType.MicrosoftSqlServer,
+        useWindowsIntegratedAuthentication: true,
+      },
+      (value: MonitorStepDatabaseMonitor) => {
+        changes.push(value);
+      },
+    );
+
+    fireEvent.click(view.getByRole("radio", { name: "Username and password" }));
+
+    expect(changes[0]?.useWindowsIntegratedAuthentication).toBe(false);
+  });
+
+  test.each([SqlDatabaseType.PostgreSQL, SqlDatabaseType.MySQL])(
+    "%s has no choice to make: it always signs in with a username and a password",
+    (databaseType: SqlDatabaseType) => {
+      const view: RenderResult = renderWith({
+        databaseType: databaseType,
+        // Even a stray boolean from an API call is not Windows sign-in here.
+        useWindowsIntegratedAuthentication: true,
+      });
+
+      expect(view.queryByTestId("database-authentication")).toBeNull();
+      expect(
+        view.getByPlaceholderText("oneuptime_monitor"),
+      ).toBeInTheDocument();
+    },
+  );
+
+  test("the password's help is one line on keeping it encrypted", () => {
+    const view: RenderResult = renderWith({
+      databaseType: SqlDatabaseType.PostgreSQL,
+    });
+
+    expect(view.container.textContent).toContain(
+      "Use a monitor secret, such as {{monitorSecrets.name}}, to keep it encrypted.",
+    );
+    expect(view.container.textContent).not.toContain(
+      "We recommend referencing a monitor secret",
+    );
+  });
+});
+
+describe("DatabaseMonitorStepForm - Metric Groups wait under More fields", () => {
+  test("the groups sit inside the folded More fields section, which starts closed", () => {
+    const view: RenderResult = renderForm(SqlDatabaseType.PostgreSQL);
+
+    const section: HTMLElement = view.getByTestId(
+      "database-monitor-more-fields",
+    );
+    const groups: HTMLElement = view.getByTestId(
+      "database-monitor-metric-groups",
+    );
+
+    expect(section).toContainElement(groups);
+    expect(
+      view.getByRole("button", { name: /More fields/ }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("the folded header names the groups first", () => {
+    const view: RenderResult = renderForm(SqlDatabaseType.PostgreSQL);
+    const header: HTMLElement = view.getByRole("button", {
+      name: /More fields/,
+    });
+
+    expect(header.textContent).toContain("Metric Groups");
+  });
+
+  test("every group starts on, as before", () => {
+    const view: RenderResult = renderForm(SqlDatabaseType.PostgreSQL);
+
+    const switches: Array<HTMLElement> = Array.from(
+      view
+        .getByTestId("database-monitor-metric-groups")
+        .querySelectorAll("[role='switch']"),
+    );
+
+    expect(switches).toHaveLength(7);
+    for (const groupSwitch of switches) {
+      expect(groupSwitch).toHaveAttribute("aria-checked", "true");
+    }
+  });
+
+  test("the privileges box says in one line what goes wrong without the grant", () => {
+    const postgres: RenderResult = renderForm(SqlDatabaseType.PostgreSQL);
+
+    expect(
+      postgres.getByText(
+        "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.",
+      ),
+    ).toBeInTheDocument();
+    expect(postgres.container.textContent).not.toContain(
+      "would read as one and zero forever",
+    );
   });
 });

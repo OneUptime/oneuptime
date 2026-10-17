@@ -275,7 +275,12 @@ const MonitorGroupMonitors: FunctionComponent<
         actionButtons={[
           {
             buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
-            title: MonitorGroupMonitorsCopy.removeButton,
+            /*
+             * A literal, as every member list's own action is: the list
+             * policy (App/Tests/Dashboard/ListDeletePolicy) knows a member
+             * list by it - Remove takes the row out, Delete stays off.
+             */
+            title: "Remove",
             icon: IconProp.Close,
             onClick: (monitor: Monitor, onCompleteAction: VoidFunction) => {
               setSelectedMonitor(monitor);
@@ -306,7 +311,7 @@ const MonitorGroupMonitors: FunctionComponent<
           error={removeError || ""}
           isLoading={isRemoveLoading}
           submitButtonType={ButtonStyleType.DANGER}
-          submitButtonText={MonitorGroupMonitorsCopy.removeButton}
+          submitButtonText="Remove"
           onClose={() => {
             setShowRemoveModal(false);
             setRemoveError(null);

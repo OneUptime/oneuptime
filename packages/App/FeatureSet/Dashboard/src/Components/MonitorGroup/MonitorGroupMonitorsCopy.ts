@@ -46,6 +46,7 @@ export const MonitorGroupMonitorsCopy: {
   someNotAddedError: translationKey(
     "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}",
   ),
+  // The pages write it as the literal "Remove" (ListDeletePolicy reads it).
   removeButton: translationKey("Remove"),
   removeDialogTitle: translationKey("Remove from Group"),
   removeDialogDescription: translationKey(

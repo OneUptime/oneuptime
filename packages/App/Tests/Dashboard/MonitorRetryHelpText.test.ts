@@ -192,7 +192,7 @@ describe("one line under the field, the rule in its (i)", () => {
     (mapping: { monitorType: MonitorType; description: string }) => {
       expect(getRetriesOnFailureField(mapping.monitorType)).toEqual({
         description: RETRIES_ON_FAILURE_DESCRIPTION,
-        info: mapping.description,
+        tooltip: mapping.description,
       });
     },
   );
@@ -200,12 +200,12 @@ describe("one line under the field, the rule in its (i)", () => {
   test("the timeout field says the line and keeps its rule, NTP's included, in the (i)", () => {
     expect(getRequestTimeoutField(MonitorType.Website)).toEqual({
       description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
-      info: REQUEST_TIMEOUT_DESCRIPTION,
+      tooltip: REQUEST_TIMEOUT_DESCRIPTION,
       defaultSeconds: 60,
     });
     expect(getRequestTimeoutField(MonitorType.NTP)).toEqual({
       description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
-      info: NTP_REQUEST_TIMEOUT_DESCRIPTION,
+      tooltip: NTP_REQUEST_TIMEOUT_DESCRIPTION,
       defaultSeconds: DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS / 1000,
     });
   });
@@ -336,7 +336,7 @@ describe("Request timeout description", () => {
   test("NTP says, and starts the field on, the 5 seconds the probe really waits", () => {
     expect(getRequestTimeoutField(MonitorType.NTP)).toEqual({
       description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
-      info: NTP_REQUEST_TIMEOUT_DESCRIPTION,
+      tooltip: NTP_REQUEST_TIMEOUT_DESCRIPTION,
       defaultSeconds: DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS / 1000,
     });
     expect(DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS).toBe(5000);
@@ -357,7 +357,7 @@ describe("Request timeout description", () => {
   ])("%s keeps the 60-second timeout field", (monitorType: MonitorType) => {
     expect(getRequestTimeoutField(monitorType)).toEqual({
       description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
-      info: REQUEST_TIMEOUT_DESCRIPTION,
+      tooltip: REQUEST_TIMEOUT_DESCRIPTION,
       defaultSeconds: 60,
     });
   });
@@ -379,7 +379,7 @@ describe("Monitor step form", () => {
     expect(source).toContain(
       "description={retriesOnFailureField.description}",
     );
-    expect(source).toContain("info={retriesOnFailureField.info}");
+    expect(source).toContain("tooltip={retriesOnFailureField.tooltip}");
   });
 
   test("the timeout field takes its line, (i) and default from the helper", () => {
@@ -387,7 +387,7 @@ describe("Monitor step form", () => {
       /getRequestTimeoutField\(\s*props\.monitorType,?\s*\)/,
     );
     expect(source).toContain("description={requestTimeoutField.description}");
-    expect(source).toContain("info={requestTimeoutField.info}");
+    expect(source).toContain("tooltip={requestTimeoutField.tooltip}");
     expect(source).toContain("requestTimeoutField.defaultSeconds.toString()");
     expect(source).not.toContain(REQUEST_TIMEOUT_DESCRIPTION);
     expect(source).not.toContain(NTP_REQUEST_TIMEOUT_DESCRIPTION);

@@ -5,7 +5,7 @@ A monitor group rolls several monitors up into one status. Group the monitors th
 :::cards
 - [How a group's status is worked out](#how-a-groups-status-is-worked-out): The worst status among its monitors.
 - [Turn on monitor groups](#turn-on-monitor-groups): One switch in Project Settings.
-- [Create a monitor group](#create-a-monitor-group): Name it, then assign its monitors.
+- [Create a monitor group](#create-a-monitor-group): Name it, then add its monitors.
 - [Show a group on a status page](#show-a-group-on-a-status-page): One row for the whole group.
 :::
 
@@ -63,16 +63,16 @@ Go to **Monitors → Monitor Groups**. The **Monitor Groups** card lists each gr
 
 Click **Create Monitor Group**, enter a **Name** and, if you like, a **Description**, and click **Create Monitor Group** at the bottom of the form. The group starts with no monitors.
 
-### Assign its monitors
+### Add its monitors
 
-Open the group and click **Monitors** in its side menu. Click **Assign Monitor**, pick a monitor in **Select Monitor** and click **Assign**. Do this for each monitor in the group.
+Open the group: until it has a monitor, its **Overview** offers **Add Monitors**. Later, click **Monitors** in its side menu, then **Add Monitors**. Pick every monitor of the group under **Monitors** and click **Add Monitors**.
 
 ### Check its status
 
 Click **Overview**. **Current Status** shows the group's status now, and **Uptime Graph** shows its last 90 days, one bar per day.
 :::
 
-To take a monitor out of the group, click **Unassign** on its row in **Monitors in Group**. The monitor itself does not change. A monitor can belong to more than one group.
+To take a monitor out of the group, click **Remove** on its row in **Monitors in Group**. The monitor itself does not change. A monitor can belong to more than one group.
 
 ## A group's pages
 
@@ -80,12 +80,12 @@ Open a group to see its pages in the side menu:
 
 | Page | What it shows |
 | --- | --- |
-| **Overview** | **Monitor Group Details**, **Current Status**, and **Uptime Graph** with the group's uptime percentage over the last 90 days. |
-| **Owners** | The people and teams responsible for the group. |
-| **Monitors** | **Monitors in Group**, with **Assign Monitor** and **Unassign**. |
+| **Overview** | **Monitor Group Details**, **Current Status**, and **Uptime Graph** with the group's uptime percentage over the last 90 days. A group with no monitors offers **Add Monitors** in place of the graph. |
+| **Monitors** | **Monitors in Group**, with **Add Monitors** and **Remove**. |
 | **Incidents** | The incidents on any monitor in the group. |
 | **Alerts** | The alerts on any monitor in the group. |
-| **Audit Logs** | Who changed the group, and when. It is under **Advanced**, which starts collapsed. |
+| **Owners** | The people and teams responsible for the group. It is under **Advanced**, which starts collapsed. |
+| **Audit Logs** | Who changed the group, and when, also under **Advanced**. |
 | **Delete Group** | Deletes the group, also under **Advanced**. |
 
 The uptime on **Overview** counts every status but the operational one as downtime. A status page counts only the statuses in its own **Counts as downtime** list: see [Choosing what shows on the page](/docs/status-pages/index#choosing-what-shows-on-the-page).
@@ -130,7 +130,7 @@ The **Monitor Groups** switch is off. Turn it on under **Project Settings → Ad
 :::
 
 :::details The group shows Offline, but most of its monitors are up
-That is the rule: the group shows its worst monitor. Open **Monitors** on the group to find the monitor that is down, or unassign a monitor that does not belong in the group.
+That is the rule: the group shows its worst monitor. Open **Monitors** on the group to find the monitor that is down, or remove a monitor that does not belong in the group.
 :::
 
 :::details A status page cannot add the group

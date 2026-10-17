@@ -10,7 +10,7 @@ export const PROBE_DEFAULT_RETRY_COUNT_LABEL: string =
  * rules - what counts as an attempt, what is retried and what is not, the
  * default - ran to four or five lines under the field (up to about 400
  * characters for Website and API), so they moved into the (i) beside the
- * title (FieldLabel's `info`), word for word: the variants below.
+ * title (FieldLabel's `tooltip`), word for word: the variants below.
  */
 export const RETRIES_ON_FAILURE_DESCRIPTION: string = translationKey(
   "How many times to try again before the check fails. Up to 3.",
@@ -126,7 +126,7 @@ export const getRetriesOnFailureDescription: (
 // What a field of the monitor step form says: one line, and the (i)'s rule.
 export interface MonitorStepFieldHelp {
   description: string;
-  info: string;
+  tooltip: string;
 }
 
 // The retries field's line, and the rule for the monitor's type in its (i).
@@ -137,7 +137,7 @@ export const getRetriesOnFailureField: (
 ): MonitorStepFieldHelp => {
   return {
     description: RETRIES_ON_FAILURE_DESCRIPTION,
-    info: getRetriesOnFailureDescription(monitorType),
+    tooltip: getRetriesOnFailureDescription(monitorType),
   };
 };
 
@@ -157,14 +157,14 @@ export const getRequestTimeoutField: (
   if (monitorType === MonitorType.NTP) {
     return {
       description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
-      info: NTP_REQUEST_TIMEOUT_DESCRIPTION,
+      tooltip: NTP_REQUEST_TIMEOUT_DESCRIPTION,
       defaultSeconds: DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS / 1000,
     };
   }
 
   return {
     description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
-    info: REQUEST_TIMEOUT_DESCRIPTION,
+    tooltip: REQUEST_TIMEOUT_DESCRIPTION,
     defaultSeconds: 60,
   };
 };

@@ -113,6 +113,15 @@ const CRITERIA_INSTANCE_FORM_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorCriteriaInstance.tsx";
 const SQL_FORM_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor/SqlMonitor/SqlMonitorStepForm.tsx";
+/*
+ * Fields the SQL form draws through components it shares with the Database
+ * Health form: the Password, and SQL Server's Authentication choice, whose
+ * words are in DatabaseAuthenticationChoice.
+ */
+const SQL_SHARED_FIELD_FILES: Array<string> = [
+  "App/FeatureSet/Dashboard/src/Components/Form/Monitor/DatabasePasswordField.tsx",
+  "App/FeatureSet/Dashboard/src/Utils/Form/Monitor/DatabaseAuthenticationChoice.ts",
+];
 const STATUS_PAGE_FORM_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorStepForm.tsx";
 const SQL_SUMMARY_FILE: string =
@@ -1261,16 +1270,33 @@ describe("SQL Query Monitor", () => {
 
   it("names every field as the form draws it", () => {
     const form: string = readRepoFile(SQL_FORM_FILE);
+    const shared: string = SQL_SHARED_FIELD_FILES.map(readRepoFile).join("\n");
     const fields: Array<string> = firstCells(
       tableRows(section(page, "## Configuration")),
     );
 
+    // The form draws the shared fields it names.
+    expect(form).toContain("<DatabasePasswordField");
+    expect(form).toContain("<DatabaseAuthenticationField");
+
     for (const field of fields) {
-      expect({ field, drawn: form.includes(`title="${field}"`) }).toEqual({
+      const drawn: boolean =
+        form.includes(`title="${field}"`) ||
+        shared.includes(`title="${field}"`) ||
+        shared.includes(`translationKey("${field}")`);
+
+      expect({ field, drawn }).toEqual({
         field,
         drawn: true,
       });
     }
+
+    // SQL Server's sign-in is a choice of two, not a switch.
+    expect(fields).toContain("Authentication");
+    expect(fields).not.toContain("Use Windows Integrated Authentication");
+    expect(page).toContain(
+      "| **Authentication** | Microsoft SQL Server only: **Username and password**, the default, or **Windows Integrated Authentication**, which signs in as the account running the probe.",
+    );
 
     expect(form).toContain('title="Verify server certificate"');
     expect(page).toContain("**Verify server certificate**");

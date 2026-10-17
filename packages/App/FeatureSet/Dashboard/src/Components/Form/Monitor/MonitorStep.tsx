@@ -773,7 +773,7 @@ return {
           <FieldLabelElement
             title={"Request Timeout (seconds)"}
             description={requestTimeoutField.description}
-            info={requestTimeoutField.info}
+            tooltip={requestTimeoutField.tooltip}
             required={false}
           />
           <Input
@@ -805,7 +805,7 @@ return {
           <FieldLabelElement
             title={"Retries on Failure"}
             description={retriesOnFailureField.description}
-            info={retriesOnFailureField.info}
+            tooltip={retriesOnFailureField.tooltip}
             required={false}
           />
           <Input
@@ -847,7 +847,7 @@ return {
       {/* Monitor Target Card */}
       {/*
        * The address field below says what to enter, so the card's title is
-       * all it needs ("Configure what you want to monitor" said nothing).
+       * all it needs: its old description said nothing the field does not.
        */}
       {hasMonitorDestination && (
         <Card title="Monitor Target">

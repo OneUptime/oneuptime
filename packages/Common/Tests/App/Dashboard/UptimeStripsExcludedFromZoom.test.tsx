@@ -42,6 +42,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const getListMock: MockFunction = getJestMockFunction();
 const postMock: MockFunction = getJestMockFunction();
+// How many monitors the group's Overview reads the group to hold.
+const countMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -52,6 +54,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       post: (...args: Array<unknown>) => {
         return postMock(...args);
+      },
+      count: (...args: Array<unknown>) => {
+        return countMock(...args);
       },
     },
   };
@@ -274,6 +279,7 @@ beforeEach(() => {
   mockPageZoom = null;
   getListMock.mockReset();
   postMock.mockReset();
+  countMock.mockReset();
 });
 
 afterEach(() => {
@@ -366,6 +372,8 @@ describe("the monitor group view's uptime graph stays out of the zoom", () => {
       });
     });
     postMock.mockResolvedValue(operational);
+    // A group with monitors draws its uptime graph (an empty one asks for monitors).
+    countMock.mockResolvedValue(3);
 
     render(
       <MemoryRouter>

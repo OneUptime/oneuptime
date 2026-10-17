@@ -14,18 +14,19 @@ export interface ComponentProps {
   /*
    * More about the field than its one-line description should hold - the
    * exact rule a probe follows, say. Shown in an (i) beside the title, on
-   * hover or keyboard focus, so the field itself reads in one line. The
-   * (i) sits outside the <label>: inside it, its "About <title>" would join
-   * the name the field is read out by.
+   * hover or keyboard focus, so the field itself reads in one line - the
+   * same prop, and the same (i), as a details card's FieldLabel. The (i)
+   * sits outside the <label>: inside it, its "About <title>" would join the
+   * name the field is read out by.
    */
-  info?: string | undefined;
+  tooltip?: string | undefined;
   isHeading?: boolean | undefined;
   hideOptionalLabel?: boolean | undefined;
   className?: string | undefined;
 }
 
 // The data-testid of the (i) beside a field's title.
-export const FIELD_LABEL_INFO_TEST_ID: string = "field-label-info";
+export const FIELD_LABEL_TOOLTIP_TEST_ID: string = "field-label-tooltip";
 
 const FieldLabelElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -73,7 +74,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
 
   return (
     <>
-      {props.info ? (
+      {props.tooltip ? (
         <div className="flex items-center gap-1">
           {label}
           {/*
@@ -81,9 +82,9 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
            * reader's language and translates the title within it.
            */}
           <InfoTooltip
-            text={props.info}
+            text={props.tooltip}
             label={props.title}
-            dataTestId={FIELD_LABEL_INFO_TEST_ID}
+            dataTestId={FIELD_LABEL_TOOLTIP_TEST_ID}
           />
         </div>
       ) : (
