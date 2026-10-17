@@ -452,6 +452,11 @@ describe("Alerts side menu", () => {
           title: "Measurements",
           href: routeFor(PageMap.ALERTS_SETTINGS_MEASUREMENTS),
         },
+        // Whether an alert can be in only one episode.
+        {
+          title: "Episodes",
+          href: routeFor(PageMap.ALERTS_SETTINGS_EPISODES),
+        },
         /*
          * How numbers look and which comes next, on a page named for them.
          * It was More Settings, then Number Prefix.
@@ -461,6 +466,39 @@ describe("Alerts side menu", () => {
           href: routeFor(PageMap.ALERTS_SETTINGS_NUMBERING),
         },
       ]);
+    });
+
+    test("lists Episodes at settings/episodes, apart from the Episodes section's own pages", async () => {
+      await renderAlertsMenu();
+
+      const episodes: Array<MenuLink> = linksIn("Settings").filter(
+        (link: MenuLink): boolean => {
+          return link.title === "Episodes";
+        },
+      );
+
+      expect(episodes).toEqual([
+        {
+          title: "Episodes",
+          href: `/dashboard/${PROJECT_ID}/alerts/settings/episodes`,
+        },
+      ]);
+      // The Episodes section still lists the episodes, not the setting.
+      expect(
+        linksIn("Episodes").map((link: MenuLink): string => {
+          return link.href;
+        }),
+      ).not.toContain(`/dashboard/${PROJECT_ID}/alerts/settings/episodes`);
+    });
+
+    // Settings is collapsed by default, so it must open itself on its pages.
+    test("opens itself on the Episodes settings page, and marks only it", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/episodes`);
+      await renderAlertsMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(isExpanded("Rules")).toBe(false);
+      expect(activeLinkTitles()).toEqual(["Episodes"]);
     });
 
     test("lists Numbering last, at settings/numbering", async () => {
@@ -637,6 +675,13 @@ describe("Alerts side menu", () => {
       await renderAlertsMenu();
 
       expect(mobileSummaryText()).toContain("Settings / Numbering");
+    });
+
+    test("names the Settings section on the Episodes settings page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/episodes`);
+      await renderAlertsMenu();
+
+      expect(mobileSummaryText()).toContain("Settings / Episodes");
     });
   });
 });

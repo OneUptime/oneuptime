@@ -500,6 +500,11 @@ describe("Incidents side menu", () => {
           title: "Linked Alerts",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS),
         },
+        // Whether an incident can be in only one episode.
+        {
+          title: "Episodes",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_EPISODES),
+        },
         /*
          * How numbers look and which comes next, on a page named for them.
          * It was More Settings, then Number Prefix.
@@ -569,6 +574,38 @@ describe("Incidents side menu", () => {
 
       expect(isExpanded("Settings")).toBe(true);
       expect(isExpanded("Rules")).toBe(false);
+    });
+
+    test("lists Episodes at settings/episodes, apart from the Episodes section's own pages", async () => {
+      await renderIncidentsMenu();
+
+      const episodes: Array<MenuLink> = linksIn("Settings").filter(
+        (link: MenuLink): boolean => {
+          return link.title === "Episodes";
+        },
+      );
+
+      expect(episodes).toEqual([
+        {
+          title: "Episodes",
+          href: `/dashboard/${PROJECT_ID}/incidents/settings/episodes`,
+        },
+      ]);
+      // The Episodes section still lists the episodes, not the setting.
+      expect(
+        linksIn("Episodes").map((link: MenuLink): string => {
+          return link.href;
+        }),
+      ).not.toContain(`/dashboard/${PROJECT_ID}/incidents/settings/episodes`);
+    });
+
+    test("opens itself on the Episodes settings page, and marks only it", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/episodes`);
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(isExpanded("Rules")).toBe(false);
+      expect(activeLinkTitles()).toEqual(["Episodes"]);
     });
 
     test("does not hold the AI settings page or the auto-remediation rules, which are in AI", async () => {
@@ -766,6 +803,13 @@ describe("Incidents side menu", () => {
       await renderIncidentsMenu();
 
       expect(mobileSummaryText()).toContain("Settings / Linked Alerts");
+    });
+
+    test("names the Settings section on the Episodes settings page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/episodes`);
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("Settings / Episodes");
     });
   });
 
