@@ -172,10 +172,12 @@ const RuleCriteriaSummary: <TEntity extends BaseModel>(
 ) => ReactElement = <TEntity extends BaseModel>(
   props: RuleCriteriaSummaryData<TEntity>,
 ): ReactElement => {
+  const { fields, item, subject } = props;
   const { translateString } = useTranslateValue();
-  const english: string = getRuleCriteriaSummaryText(props);
+  const data: RuleCriteriaSummaryData<TEntity> = { fields, item, subject };
+  const english: string = getRuleCriteriaSummaryText(data);
   // "All incidents" is the form's own answer, so it reads as the form does.
-  const summary: string = isEmptySummary(props)
+  const summary: string = isEmptySummary(data)
     ? translateString(english) ?? english
     : english;
 
