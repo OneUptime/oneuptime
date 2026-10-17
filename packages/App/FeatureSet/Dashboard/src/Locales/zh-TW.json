@@ -30216,8 +30216,18 @@
   "Nothing to pass on": "無需轉交",
   "Use Try again above to load it.": "請使用上方的「再試一次」載入此清單。",
   "Caution": "小心",
+  "Change status": "變更狀態",
+  "Change status to": "將狀態變更為",
+  "Change status to {{status}}?": "將狀態變更為 {{status}}？",
   "Danger": "危險",
   "Important": "重要",
+  "Monitor actions": "監測器動作",
+  "Monitor refreshed.": "監測器已重新整理。",
   "Opens in a new tab": "在新分頁中開啟",
+  "Refresh now. This page also refreshes every minute.": "立即重新整理。此頁面也會每分鐘自動重新整理。",
+  "Refreshed at {{time}}": "重新整理於 {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "從現在起，此監測器在這裡以及列出它的每個狀態頁面上都會顯示為 {{status}}。",
+  "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "在此頁面頂端的選單 (⋯) 中變更狀態。狀態時間軸會保留每次變更。",
+  "Status changed to {{status}}.": "狀態已變更為 {{status}}。",
   "Tip": "提示"
 }

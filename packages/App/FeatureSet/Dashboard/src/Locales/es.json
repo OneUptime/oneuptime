@@ -30216,8 +30216,18 @@
   "Nothing to pass on": "No hay nada que pasar",
   "Use Try again above to load it.": "Usa «Volver a intentar» arriba para cargarla.",
   "Caution": "Precaución",
+  "Change status": "Cambiar estado",
+  "Change status to": "Cambiar el estado a",
+  "Change status to {{status}}?": "¿Cambiar el estado a {{status}}?",
   "Danger": "Peligro",
   "Important": "Importante",
+  "Monitor actions": "Acciones del monitor",
+  "Monitor refreshed.": "Monitor actualizado.",
   "Opens in a new tab": "Se abre en una pestaña nueva",
+  "Refresh now. This page also refreshes every minute.": "Actualizar ahora. Esta página también se actualiza cada minuto.",
+  "Refreshed at {{time}}": "Actualizado a las {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "A partir de ahora, el monitor muestra {{status}}, aquí y en cada página de estado que lo incluye.",
+  "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "Cambia el estado desde el menú (⋯) en la parte superior de esta página. La cronología de estados guarda cada cambio.",
+  "Status changed to {{status}}.": "Estado cambiado a {{status}}.",
   "Tip": "Consejo"
 }

@@ -30216,8 +30216,18 @@
   "Nothing to pass on": "パスするものはありません",
   "Use Try again above to load it.": "上の「再試行」で読み込んでください。",
   "Caution": "注意",
+  "Change status": "ステータスを変更",
+  "Change status to": "変更後のステータス",
+  "Change status to {{status}}?": "ステータスを{{status}}に変更しますか？",
   "Danger": "危険",
   "Important": "重要",
+  "Monitor actions": "モニターのアクション",
+  "Monitor refreshed.": "モニターを更新しました。",
   "Opens in a new tab": "新しいタブで開きます",
+  "Refresh now. This page also refreshes every minute.": "今すぐ更新します。このページは 1 分ごとにも自動で更新されます。",
+  "Refreshed at {{time}}": "{{time}} に更新",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "このモニターは今後、このページと、このモニターを掲載しているすべてのステータスページで{{status}}と表示されます。",
+  "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "ステータスはこのページ上部のメニュー (⋯) から変更します。すべての変更はステータスタイムラインに残ります。",
+  "Status changed to {{status}}.": "ステータスを{{status}}に変更しました。",
   "Tip": "ヒント"
 }

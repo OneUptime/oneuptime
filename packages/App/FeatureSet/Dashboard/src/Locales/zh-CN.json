@@ -30216,8 +30216,18 @@
   "Nothing to pass on": "无需转交",
   "Use Try again above to load it.": "请使用上方的“重试”加载此列表。",
   "Caution": "小心",
+  "Change status": "更改状态",
+  "Change status to": "将状态更改为",
+  "Change status to {{status}}?": "将状态更改为 {{status}}？",
   "Danger": "危险",
   "Important": "重要",
+  "Monitor actions": "监视器操作",
+  "Monitor refreshed.": "监视器已刷新。",
   "Opens in a new tab": "在新标签页中打开",
+  "Refresh now. This page also refreshes every minute.": "立即刷新。此页面也会每分钟自动刷新。",
+  "Refreshed at {{time}}": "刷新于 {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "从现在起，此监视器在这里以及列出它的每个状态页面上都显示为 {{status}}。",
+  "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "在此页面顶部的菜单 (⋯) 中更改状态。状态时间线会保留每次更改。",
+  "Status changed to {{status}}.": "状态已更改为 {{status}}。",
   "Tip": "提示"
 }

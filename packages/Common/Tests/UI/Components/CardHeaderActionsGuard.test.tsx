@@ -313,12 +313,11 @@ const REPOSITORY_ROOT: string = path.resolve(
  * right or it is listed here; an entry that no longer matches fails too.
  */
 const NOT_A_CARD_HEADER: Record<string, { count: number; reason: string }> = {
-  "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewHero.tsx":
-    {
-      count: 1,
-      reason:
-        "The monitor overview's hero: its status, uptime and actions are the page's.",
-    },
+  /*
+   * The monitor overview's hero left this list when its Refresh and More
+   * actions moved to the top right at every width (a grid, not a stack):
+   * MonitorOverviewHero.test.tsx's placement tests hold it there.
+   */
   "packages/App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TraceHeader.tsx":
     {
       count: 1,

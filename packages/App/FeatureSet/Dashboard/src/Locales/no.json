@@ -30216,8 +30216,18 @@
   "Nothing to pass on": "Ingenting å sende videre",
   "Use Try again above to load it.": "Bruk Prøv igjen ovenfor for å laste den inn.",
   "Caution": "Forsiktig",
+  "Change status": "Endre status",
+  "Change status to": "Endre status til",
+  "Change status to {{status}}?": "Endre status til {{status}}?",
   "Danger": "Fare",
   "Important": "Viktig",
+  "Monitor actions": "Handlinger for overvåking",
+  "Monitor refreshed.": "Overvåkingen er oppdatert.",
   "Opens in a new tab": "Åpnes i en ny fane",
+  "Refresh now. This page also refreshes every minute.": "Oppdater nå. Siden oppdateres også hvert minutt.",
+  "Refreshed at {{time}}": "Oppdatert kl. {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Overvåkingen viser {{status}} fra nå av, her og på alle statussider som viser den.",
+  "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "Endre statusen fra menyen (⋯) øverst på denne siden. Statustidslinjen tar vare på hver endring.",
+  "Status changed to {{status}}.": "Status endret til {{status}}.",
   "Tip": "Tips"
 }
