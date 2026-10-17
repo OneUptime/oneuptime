@@ -373,6 +373,8 @@ describe("the image routes serve a file only to the people who may see it", () =
   let port: number;
   let blocked: Set<string> = new Set<string>();
   let failMembershipLookups: boolean = false;
+  // The server's Require SSO for Login: off, on, or a read of it that fails.
+  let serverRequiresSso: "off" | "on" | "unreadable" = "off";
   // When the announcement ANNOUNCEMENT_IMAGE is in is shown from.
   let announcementShownFrom: Date = new Date(Date.now() + 60 * 60 * 1000);
   // Each question the route asked of whether a record shows a file now.
@@ -481,7 +483,13 @@ describe("the image routes serve a file only to the people who may see it", () =
       .mockResolvedValue(null as never);
     jest
       .spyOn(GlobalConfigService, "getRequireSsoForLogin")
-      .mockResolvedValue(false as never);
+      .mockImplementation((async (): Promise<boolean> => {
+        if (serverRequiresSso === "unreadable") {
+          throw new Error("the database is unreachable");
+        }
+
+        return serverRequiresSso === "on";
+      }) as never);
     jest
       .spyOn(ProjectSsoService, "getSignInStanding")
       .mockImplementation((async (data: {
@@ -515,6 +523,7 @@ describe("the image routes serve a file only to the people who may see it", () =
     blocked = new Set<string>([BLOCKED_ID.toString()]);
     ssoProviderIsOn = true;
     failMembershipLookups = false;
+    serverRequiresSso = "off";
     (FileService.findOneBy as unknown as jest.Mock).mockClear();
     reads = [];
     ANNOUNCEMENT_IMAGE.isPublic = false;
@@ -876,6 +885,73 @@ describe("the image routes serve a file only to the people who may see it", () =
           },
         }),
         SSO_PROJECT_IMAGE,
+      );
+    });
+  });
+
+  describe("a private image of a project, while the server requires SSO", () => {
+    it("is answered like a missing file to a member who has not signed in with SSO", async () => {
+      serverRequiresSso = "on";
+
+      await expectRefusedLikeMissing(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          cookies: asSession(MEMBER_ID),
+        }),
+        PRIVATE_IMAGE,
+      );
+    });
+
+    it("is answered like a missing file when the server's Require SSO for Login cannot be read: never as though it were off", async () => {
+      serverRequiresSso = "unreadable";
+
+      await expectRefusedLikeMissing(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          cookies: asSession(MEMBER_ID),
+        }),
+        PRIVATE_IMAGE,
+      );
+
+      expect(readAnyBytes()).toBe(false);
+    });
+
+    it("is served to the member again once the rule reads as off", async () => {
+      serverRequiresSso = "unreadable";
+
+      await expectRefusedLikeMissing(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          cookies: asSession(MEMBER_ID),
+        }),
+        PRIVATE_IMAGE,
+      );
+
+      serverRequiresSso = "off";
+
+      expectServed(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          cookies: asSession(MEMBER_ID),
+        }),
+        PRIVATE_IMAGE,
+      );
+    });
+
+    it("is served to a server admin whatever the rule, as they are never held to it", async () => {
+      serverRequiresSso = "unreadable";
+
+      expectServed(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          cookies: asAdmin(),
+        }),
+        PRIVATE_IMAGE,
       );
     });
   });

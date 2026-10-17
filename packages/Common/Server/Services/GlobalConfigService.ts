@@ -120,7 +120,10 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Instance-wide: must every user sign in with SSO to access projects?
-   * (Master admins are exempted by the enforcement layer, not here.)
+   * (Master admins are exempted by the enforcement layer, not here.) Throws
+   * when it cannot be read, and keeps nothing: a read that fails is no
+   * answer, and callers refuse rather than take it for "not required"
+   * (UserMiddleware.getUserTenantAccessPermissionWithTenantId).
    */
   @CaptureSpan()
   public async getRequireSsoForLogin(): Promise<boolean> {

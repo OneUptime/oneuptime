@@ -179,6 +179,16 @@ export interface CurrentPlan {
   activeMonitorsLimit?: number | undefined;
 }
 
+/*
+ * What a project asks of the people who open it at sign-in, as kept for a
+ * minute per server: whether they must have signed in with SSO, and the
+ * one provider (its id) that sign-in must come from, or null for any.
+ */
+interface ProjectSignInRule {
+  requireSsoForLogin: boolean;
+  requireSsoWithSsoProviderId: string | null;
+}
+
 export interface ProjectBalanceAdjustmentResult {
   previousBalanceInUSDCents: number;
   newBalanceInUSDCents: number;
@@ -369,18 +379,14 @@ export class ProjectService extends ProjectReferencesService<Model> {
     10_000,
   );
   /*
-   * Caches the `requireSsoForLogin` flag per project so middleware can skip a
-   * Postgres findOneById on every authenticated request.
+   * Caches each project's sign-in rule - its `requireSsoForLogin` flag and
+   * the `requireSsoWithSsoProviderId` it pins (a string id, or null when
+   * unset) - so middleware can skip a Postgres findOneById on every
+   * authenticated request. Both are one entry, read by one query: neither
+   * is ever kept without the other, so a project's pinned provider is never
+   * forgotten while the rule that requires it is still remembered.
    */
-  private requireSsoForLoginCache: InMemoryTTLCache<boolean> =
-    new InMemoryTTLCache(10_000);
-  /*
-   * Caches the `requireSsoWithSsoProviderId` discriminator per project so the
-   * enforce-SSO middleware can require that the SSO token was issued by a
-   * specific provider. Stored as a string id (or null when unset). Populated
-   * alongside `getRequireSsoForLogin` so the common path stays a single query.
-   */
-  private requireSsoWithSsoProviderIdCache: InMemoryTTLCache<string | null> =
+  private signInRuleCache: InMemoryTTLCache<ProjectSignInRule> =
     new InMemoryTTLCache(10_000);
   /*
    * Caches the current billing plan per project. `getCurrentPlan` is hit
@@ -1147,14 +1153,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
    */
   public forgetSignInRules(projectId?: ObjectID): void {
     if (!projectId) {
-      this.requireSsoForLoginCache.clear();
-      this.requireSsoWithSsoProviderIdCache.clear();
+      this.signInRuleCache.clear();
       ProjectSsoProviderStanding.forget();
       return;
     }
 
-    this.requireSsoForLoginCache.delete(projectId.toString());
-    this.requireSsoWithSsoProviderIdCache.delete(projectId.toString());
+    this.signInRuleCache.delete(projectId.toString());
     ProjectSsoProviderStanding.forget(projectId);
   }
 
@@ -1190,14 +1194,13 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     /*
      * Any project field could have changed; invalidate the in-process cache
-     * of the SSO flag. Cheap to refetch on the next request.
+     * of the sign-in rules. Cheap to refetch on the next request.
      */
-    if (updateBy.data.requireSsoForLogin !== undefined) {
-      this.requireSsoForLoginCache.clear();
-    }
-
-    if (updateBy.data.requireSsoWithSsoProviderId !== undefined) {
-      this.requireSsoWithSsoProviderIdCache.clear();
+    if (
+      updateBy.data.requireSsoForLogin !== undefined ||
+      updateBy.data.requireSsoWithSsoProviderId !== undefined
+    ) {
+      this.signInRuleCache.clear();
     }
 
     this.applyDataResidencyRules(updateBy.data);
@@ -3667,12 +3670,38 @@ export class ProjectService extends ProjectReferencesService<Model> {
   /**
    * Returns whether the given project requires SSO for login. Cached for
    * 60s in-process — middleware calls this on every authenticated request.
+   * Throws when the project does not exist, and when it cannot be read.
    */
   @CaptureSpan()
   public async getRequireSsoForLogin(projectId: ObjectID): Promise<boolean> {
+    return (await this.getSignInRule(projectId)).requireSsoForLogin;
+  }
+
+  /**
+   * Returns the specific SSO provider id a project requires for SSO-enforced
+   * login, or null when any trusted provider is acceptable. Read with
+   * `getRequireSsoForLogin`, by the same query and kept with it for 60s, so
+   * the enforce path stays one query. Throws when the project does not
+   * exist, and when it cannot be read: null is only ever the project's
+   * answer.
+   */
+  @CaptureSpan()
+  public async getRequireSsoWithSsoProviderId(
+    projectId: ObjectID,
+  ): Promise<ObjectID | null> {
+    const requiredProviderId: string | null = (
+      await this.getSignInRule(projectId)
+    ).requireSsoWithSsoProviderId;
+
+    return requiredProviderId ? new ObjectID(requiredProviderId) : null;
+  }
+
+  // A project's sign-in rule, kept for 60s, or read from its row.
+  private async getSignInRule(projectId: ObjectID): Promise<ProjectSignInRule> {
     const key: string = projectId.toString();
-    const cached: boolean | undefined = this.requireSsoForLoginCache.get(key);
-    if (cached !== undefined) {
+    const cached: ProjectSignInRule | undefined = this.signInRuleCache.get(key);
+
+    if (cached) {
       return cached;
     }
 
@@ -3687,40 +3716,16 @@ export class ProjectService extends ProjectReferencesService<Model> {
       throw new BadDataException("Project not found");
     }
 
-    const value: boolean = Boolean(project.requireSsoForLogin);
-    this.requireSsoForLoginCache.set(key, value, 60_000);
-    this.requireSsoWithSsoProviderIdCache.set(
-      key,
-      project.requireSsoWithSsoProviderId
+    const rule: ProjectSignInRule = {
+      requireSsoForLogin: Boolean(project.requireSsoForLogin),
+      requireSsoWithSsoProviderId: project.requireSsoWithSsoProviderId
         ? project.requireSsoWithSsoProviderId.toString()
         : null,
-      60_000,
-    );
-    return value;
-  }
+    };
 
-  /**
-   * Returns the specific SSO provider id a project requires for SSO-enforced
-   * login, or null when any trusted provider is acceptable. Cached for 60s and
-   * populated by `getRequireSsoForLogin`, so the enforce path stays one query.
-   */
-  @CaptureSpan()
-  public async getRequireSsoWithSsoProviderId(
-    projectId: ObjectID,
-  ): Promise<ObjectID | null> {
-    const key: string = projectId.toString();
-    const cached: string | null | undefined =
-      this.requireSsoWithSsoProviderIdCache.get(key);
-    if (cached !== undefined) {
-      return cached ? new ObjectID(cached) : null;
-    }
+    this.signInRuleCache.set(key, rule, 60_000);
 
-    // Populate both caches via the existing single-query path.
-    await this.getRequireSsoForLogin(projectId);
-
-    const populated: string | null | undefined =
-      this.requireSsoWithSsoProviderIdCache.get(key);
-    return populated ? new ObjectID(populated) : null;
+    return rule;
   }
 
   /*
