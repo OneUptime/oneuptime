@@ -51,6 +51,7 @@ const ENTERPRISE_JOB_NAMES: Array<string> = [
   "EnterpriseLicense:ReconcileInstanceUsage",
   "InstanceHealth:EvaluatePostgresHealth",
   "InstanceHealth:EvaluateRedisHealth",
+  "EnterpriseMarketplace:ReportUsage",
 ];
 
 const fixture: (name: string) => string = (name: string): string => {
@@ -1078,7 +1079,7 @@ describe("EnterpriseLoader: the request and the edition default to the environme
 });
 
 describe("EnterpriseLoader worker jobs", () => {
-  test("the five ee-owned cron names are exactly the ones ee used to register from core", async () => {
+  test("the ee-owned cron names are the five ee used to register from core, and the marketplace usage job", async () => {
     const { loaderModule } = await loadFresh();
 
     expect([...loaderModule.ENTERPRISE_OWNED_JOB_NAMES]).toEqual(
@@ -1133,6 +1134,8 @@ describe("EnterpriseLoader worker jobs", () => {
       "EnterpriseLicense:SendLicenseNotificationEmails",
       "EnterpriseLicense:ReconcileInstanceUsage",
       "InstanceHealth:EvaluateRedisHealth",
+      // Registered by ee only where a marketplace is named.
+      "EnterpriseMarketplace:ReportUsage",
     ]);
     expect(getFixtureCalls()).toContain("DefaultExport:registerWorkerJobs");
 

@@ -65,6 +65,7 @@ const makeInputs: () => LicenseInputs = (): LicenseInputs => {
     instanceId: INSTANCE_ID.toString(),
     currentUserCount: 4,
     instances: [],
+    marketplaceBilling: null,
   };
 };
 

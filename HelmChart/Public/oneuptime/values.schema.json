@@ -985,6 +985,16 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
+                },
+                "serviceAccount": {
+                    "type": "object",
+                    "description": "The service account the ClickHouse pods run as; create false runs them as the namespace's default one.",
+                    "properties": {
+                        "create": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
@@ -1620,6 +1630,16 @@
                 },
                 "restartPolicy": {
                     "type": "string"
+                },
+                "overrides": {
+                    "type": "object",
+                    "description": "Full image references that replace the ones the chart builds, by image (app, nginx, probe, runner, home, test, postgres, clickhouse, clickhouseKeeper, valkey, pgbouncer, vllm, kubectl).",
+                    "additionalProperties": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
                 }
             },
             "additionalProperties": false
@@ -5044,6 +5064,91 @@
                 "array",
                 "null"
             ]
+        },
+        "serviceAccount": {
+            "type": "object",
+            "description": "The Kubernetes service account the OneUptime app and worker pods run as (IAM roles for service accounts on Amazon EKS).",
+            "properties": {
+                "create": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "annotations": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "enterpriseMarketplace": {
+            "type": "object",
+            "description": "Billing this Enterprise installation through the cloud marketplace it was bought on, by the user-hour. Set by the marketplace editions of the chart.",
+            "properties": {
+                "provider": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        "",
+                        "aws",
+                        "azure",
+                        "google-cloud",
+                        null
+                    ]
+                },
+                "aws": {
+                    "type": "object",
+                    "properties": {
+                        "region": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "googleCloud": {
+                    "type": "object",
+                    "properties": {
+                        "serviceName": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "reportingSecret": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "testHook": {
+            "type": "object",
+            "description": "The helm test hook pod.",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
         }
     },
     "additionalProperties": false
