@@ -188,18 +188,21 @@ describe("one sign-in per SAML response, in Valkey", () => {
       },
     );
 
-    const refused: Array<PromiseRejectedResult> = results.filter(
-      (result: PromiseSettledResult<void>): boolean => {
+    // Why each of the others was refused.
+    const refusals: Array<unknown> = results
+      .filter((result: PromiseSettledResult<void>): boolean => {
         return result.status === "rejected";
-      },
-    ) as Array<PromiseRejectedResult>;
+      })
+      .map((result: PromiseSettledResult<void>): unknown => {
+        return (result as { reason: unknown }).reason;
+      });
 
     expect(fulfilled).toHaveLength(1);
-    expect(refused).toHaveLength(24);
+    expect(refusals).toHaveLength(24);
 
-    for (const refusal of refused) {
-      expect(refusal.reason).toBeInstanceOf(BadRequestException);
-      expect((refusal.reason as BadRequestException).message).toBe(
+    for (const refusal of refusals) {
+      expect(refusal).toBeInstanceOf(BadRequestException);
+      expect((refusal as BadRequestException).message).toBe(
         SAML_RESPONSE_ALREADY_USED_MESSAGE,
       );
     }

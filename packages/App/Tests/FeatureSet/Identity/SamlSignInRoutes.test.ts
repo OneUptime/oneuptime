@@ -499,9 +499,14 @@ interface Flow {
   // Another OneUptime provider that trusts the same identity provider.
   neighbour: ServiceProviderValues;
   signedIn: () => boolean;
+  /*
+   * Self-hosted (billing off) or the hosted service (billing on, where a
+   * project's own SSO also asks for the account's consent).
+   */
+  billing: boolean;
 }
 
-const FLOWS: Array<Flow> = [
+const BASE_FLOWS: Array<Omit<Flow, "billing">> = [
   {
     name: "project SAML (/idp-login)",
     router: SSORouter,
@@ -542,6 +547,19 @@ const FLOWS: Array<Flow> = [
     },
   },
 ];
+
+// Every Reply URL, self-hosted and on the hosted service.
+const FLOWS: Array<Flow> = [false, true].flatMap(
+  (billing: boolean): Array<Flow> => {
+    return BASE_FLOWS.map((flow: Omit<Flow, "billing">): Flow => {
+      return {
+        ...flow,
+        name: `${flow.name}, billing ${billing ? "on" : "off"}`,
+        billing,
+      };
+    });
+  },
+);
 
 let idpKeys: SamlKeyPair;
 
@@ -784,6 +802,10 @@ beforeEach(() => {
 });
 
 describe.each(FLOWS)("$name", (flow: Flow) => {
+  beforeEach(() => {
+    setTestBillingEnabled(flow.billing);
+  });
+
   test("signs in with a fresh response made for this provider", async () => {
     const result: PostResult = await post(
       flow,
@@ -973,6 +995,10 @@ async function startSignIn(flow: Flow): Promise<string> {
 }
 
 describe.each(FLOWS)("$name - the sign-in it starts", (flow: Flow) => {
+  beforeEach(() => {
+    setTestBillingEnabled(flow.billing);
+  });
+
   test("asks the identity provider for a response to this provider's Reply URL, naming its Entity ID", async () => {
     const authnRequest: string = await startSignIn(flow);
 
@@ -1008,6 +1034,10 @@ describe.each(FLOWS)("$name - the sign-in it starts", (flow: Flow) => {
  */
 
 describe.each(FLOWS)("$name - Audiences older setups send", (flow: Flow) => {
+  beforeEach(() => {
+    setTestBillingEnabled(flow.billing);
+  });
+
   test("signs in with the server's address as the Audience, the Entity ID shown before May 2024", async () => {
     await post(
       flow,
@@ -1068,6 +1098,10 @@ describe.each(FLOWS)("$name - Audiences older setups send", (flow: Flow) => {
  */
 
 describe.each(FLOWS)("$name - the order of the steps", (flow: Flow) => {
+  beforeEach(() => {
+    setTestBillingEnabled(flow.billing);
+  });
+
   test("a response refused for its time is not recorded as used", async () => {
     await post(
       flow,
