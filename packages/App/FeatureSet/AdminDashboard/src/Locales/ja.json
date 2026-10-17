@@ -355,7 +355,7 @@
       "adjustBalanceStepBalance": "残高",
       "adjustBalanceStepAmount": "金額と理由",
       "monitorLimitCardTitle": "アクティブなモニター",
-      "monitorLimitCardDescription": "手動モニター以外のすべてのモニターが、オンかどうかに関係なく数えられます。上限に達すると追加できなくなりますが、既存のモニターは動作し続けます。リセラーが次にティアを変更すると上書きされます。",
+      "monitorLimitCardDescription": "手動モニター以外のすべてのモニターが、オンかどうかに関係なく数えられます。上限に達すると追加できなくなりますが、既存のモニターは動作し続けます。リセラーが次にティアを変更すると上書きされます。Free プランのプロジェクトには Free プランの上限も適用されます。",
       "monitorLimitEditButton": "モニター上限を編集",
       "fieldActiveMonitors": "アクティブなモニター",
       "fieldMonitorLimit": "アクティブなモニターの上限",

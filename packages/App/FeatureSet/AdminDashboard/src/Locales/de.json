@@ -355,7 +355,7 @@
       "adjustBalanceStepBalance": "Guthaben",
       "adjustBalanceStepAmount": "Betrag & Grund",
       "monitorLimitCardTitle": "Aktive Monitore",
-      "monitorLimitCardDescription": "Jeder Monitor außer manuellen zählt, ob aktiviert oder nicht. Am Limit kann das Projekt keine weiteren hinzufügen; vorhandene Monitore laufen weiter. Die nächste Tarifänderung eines Resellers überschreibt es.",
+      "monitorLimitCardDescription": "Jeder Monitor außer manuellen zählt, ob aktiviert oder nicht. Am Limit kann das Projekt keine weiteren hinzufügen; vorhandene Monitore laufen weiter. Die nächste Tarifänderung eines Resellers überschreibt es. Für Projekte im Free-Tarif gilt zusätzlich das Limit des Free-Tarifs.",
       "monitorLimitEditButton": "Monitor-Limit bearbeiten",
       "fieldActiveMonitors": "Aktive Monitore",
       "fieldMonitorLimit": "Limit für aktive Monitore",

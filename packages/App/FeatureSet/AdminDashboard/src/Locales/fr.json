@@ -355,7 +355,7 @@
       "adjustBalanceStepBalance": "Solde",
       "adjustBalanceStepAmount": "Montant et motif",
       "monitorLimitCardTitle": "Moniteurs actifs",
-      "monitorLimitCardDescription": "Tous les moniteurs sauf les manuels comptent, activés ou non. À la limite, le projet ne peut plus en ajouter ; les moniteurs existants continuent de fonctionner. Le prochain changement de palier d'un revendeur la remplace.",
+      "monitorLimitCardDescription": "Tous les moniteurs sauf les manuels comptent, activés ou non. À la limite, le projet ne peut plus en ajouter ; les moniteurs existants continuent de fonctionner. Le prochain changement de palier d'un revendeur la remplace. Les projets sur l'offre Free sont aussi soumis à la limite de l'offre Free.",
       "monitorLimitEditButton": "Modifier la limite de moniteurs",
       "fieldActiveMonitors": "Moniteurs actifs",
       "fieldMonitorLimit": "Limite de moniteurs actifs",
