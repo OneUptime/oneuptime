@@ -183,7 +183,10 @@ export default class CreatePermission {
   public static readonly NOT_A_PROJECT_MEMBER_MESSAGE: string =
     "You are not authorized to access this project's data.";
 
-  // Why such a create that names no project at all is refused.
+  /*
+   * Why such a create whose request names no project is refused - one across
+   * the caller's own projects included.
+   */
   public static readonly PROJECT_REQUIRED_MESSAGE: string =
     "Project ID is required. Please pass the project ID in the 'tenantid' header.";
 
@@ -216,17 +219,23 @@ export default class CreatePermission {
    *   - the row names no project other than the one the request is made in,
    *     under either of its names (`projectId` and `project`, read as every
    *     reference check reads them: RelationIdUtil.readConsistent, which
-   *     refuses two names that disagree): a create's hooks read the row's
-   *     project before DatabaseService stamps the request's onto it, and a
-   *     hook that answers with that project's SMS setting or balance would
-   *     describe a project that is not the caller's;
+   *     refuses two names that disagree): the create stamps the request's
+   *     project onto the row, so one that names another asks for something
+   *     the create would not do, and is told so before any hook runs;
+   *   - the request names its project (the tenantid header): a change is
+   *     made in one project at a time. One that names none - a row naming
+   *     its project alone, or a request across the caller's own projects
+   *     (is-multi-tenant-query) - is asked for it. Across projects, the
+   *     permission set a request carries for a project whose sign-in rules
+   *     the caller has not met (it requires SSO, and they signed in without
+   *     it) is the placeholder that lets them see how to sign in, not
+   *     membership, so it can never stand for one here;
    *   - the caller is a member of that project: the request was authorized
    *     for it (CallerPermission.isProjectMember - an accepted invitation, the
-   *     project's sign-in rules met, the project not blocked). An invitation
-   *     not accepted yet is not membership, and someone who left is not a
-   *     member any more. A request that names no project (no tenantid
-   *     header) is asked for one, unless it is a request across the caller's
-   *     own projects and the row names one of them.
+   *     project's sign-in rules met, the project not blocked, all asked by
+   *     the request middleware before a project the request names is
+   *     opened). An invitation not accepted yet is not membership, and
+   *     someone who left is not a member any more.
    *
    * Asked before a create's hooks run (DatabaseService
    * .checkCallerBeforeHooks), so no hook reads, sends or answers anything for
@@ -286,39 +295,25 @@ export default class CreatePermission {
       ? CreatePermission.normalizeProjectId(namedProject)
       : null;
 
-    if (props.tenantId) {
-      if (
-        namedProjectId &&
-        namedProjectId !== CreatePermission.normalizeProjectId(props.tenantId)
-      ) {
-        throw new BadDataException(CreatePermission.PROJECT_MISMATCH_MESSAGE);
-      }
-
-      // The caller's permissions for the project the request is made in.
-      if (!CallerPermission.isProjectMember(props)) {
-        throw new NotAuthorizedException(
-          CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
-        );
-      }
-
-      return;
-    }
-
     /*
-     * A request that names no project: the row must name one, and the
-     * request must carry the caller's permissions for it - which only a
-     * request across the caller's own projects does (getUserMiddleware reads
-     * them for every project they are a member of). Any other such request
-     * carries nobody's permissions for any project, so it is asked for the
-     * project rather than told that its caller is a stranger to it.
+     * A request that names no project is asked for it, whatever the row
+     * names - a request across the caller's own projects included: its
+     * permission set for a project whose sign-in rules they have not met is
+     * a placeholder, not membership (see above).
      */
-    if (!namedProjectId || !props.userTenantAccessPermission) {
+    if (!props.tenantId) {
       throw new BadDataException(CreatePermission.PROJECT_REQUIRED_MESSAGE);
     }
 
     if (
-      !CallerPermission.isProjectMember(props, new ObjectID(namedProjectId))
+      namedProjectId &&
+      namedProjectId !== CreatePermission.normalizeProjectId(props.tenantId)
     ) {
+      throw new BadDataException(CreatePermission.PROJECT_MISMATCH_MESSAGE);
+    }
+
+    // The caller's permissions for the project the request is made in.
+    if (!CallerPermission.isProjectMember(props)) {
       throw new NotAuthorizedException(
         CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
       );

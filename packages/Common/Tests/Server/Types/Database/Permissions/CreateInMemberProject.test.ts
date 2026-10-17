@@ -13,6 +13,7 @@ import UserSmsService from "../../../../../Server/Services/UserSmsService";
 import CreatePermission from "../../../../../Server/Types/Database/Permissions/CreatePermission";
 import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
 import RelationIdUtil from "../../../../../Server/Utils/Database/RelationIdUtil";
+import UserPermissionUtil from "../../../../../Server/Utils/UserPermission/UserPermission";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import Dictionary from "../../../../../Types/Dictionary";
@@ -580,25 +581,32 @@ describe("a request that names no project", () => {
     ).toBe(CreatePermission.PROJECT_REQUIRED_MESSAGE);
   });
 
-  test("across the caller's own projects, a row naming one of them is let through", () => {
+  /*
+   * A change is made in one project at a time: a request across the
+   * caller's own projects (is-multi-tenant-query) names none, so it is
+   * asked for one - even by a member of the project the row names, whose
+   * set the request carries.
+   */
+  test("across the caller's own projects, a row naming one of them is asked for the project", () => {
     const props: DatabaseCommonInteractionProps = {
       ...memberProps(),
       isMultiTenantRequest: true,
     };
     delete props.tenantId;
 
-    expect(
-      refusalOf(() => {
-        CreatePermission.checkCreateInMemberProject(
-          UserSMS,
-          rowOf(UserSMS, { projectId: PROJECT_ID }),
-          props,
-        );
-      }),
-    ).toBeNull();
+    const refusal: Error | null = refusalOf(() => {
+      CreatePermission.checkCreateInMemberProject(
+        UserSMS,
+        rowOf(UserSMS, { projectId: PROJECT_ID }),
+        props,
+      );
+    });
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal?.message).toBe(CreatePermission.PROJECT_REQUIRED_MESSAGE);
   });
 
-  test("across the caller's own projects, a row naming any other project is refused", () => {
+  test("across the caller's own projects, a row naming any other project is asked for the project too", () => {
     const props: DatabaseCommonInteractionProps = {
       ...memberOfAnotherProjectProps(),
       isMultiTenantRequest: true,
@@ -613,10 +621,47 @@ describe("a request that names no project", () => {
       );
     });
 
-    expect(refusal).toBeInstanceOf(NotAuthorizedException);
-    expect(refusal?.message).toBe(
-      CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
-    );
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal?.message).toBe(CreatePermission.PROJECT_REQUIRED_MESSAGE);
+  });
+
+  /*
+   * Across projects, a project whose sign-in rules the caller has not met
+   * (it requires SSO, and they signed in without it) comes with the
+   * placeholder set that lets them see how to sign in
+   * (UserPermissionUtil.getDefaultUserTenantAccessPermission) - CurrentUser
+   * and UnAuthorizedSsoUser, no Project User. That is not membership: the
+   * project would refuse the same person if the request named it.
+   */
+  test("across the caller's own projects, a project whose SSO they have not signed in with is not opened by its placeholder set", () => {
+    const props: DatabaseCommonInteractionProps = {
+      userId: CALLER_ID,
+      userType: UserType.User,
+      isMultiTenantRequest: true,
+      ...ON_HIGHEST_PLAN,
+      userGlobalAccessPermission: {
+        projectIds: [PROJECT_ID],
+        globalPermissions: [Permission.Public, Permission.User],
+        _type: "UserGlobalAccessPermission",
+      },
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]:
+          UserPermissionUtil.getDefaultUserTenantAccessPermission(PROJECT_ID),
+      },
+    };
+
+    for (const modelType of [UserSMS, UserIncomingCallNumber]) {
+      const refusal: Error | null = refusalOf(() => {
+        ModelPermission.checkCreateInMemberProject(
+          modelType,
+          rowOf(modelType, { projectId: PROJECT_ID, userId: CALLER_ID }),
+          props,
+        );
+      });
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect(refusal?.message).toBe(CreatePermission.PROJECT_REQUIRED_MESSAGE);
+    }
   });
 });
 
