@@ -125,7 +125,7 @@ flowchart TB
 | **Scheduled Maintenance Member**  | इवेंट को उनके नोट, स्थिति टाइमलाइन और मालिकों के साथ बनाती, बदलती और हटाती है, और दोनों तरह के टेम्पलेट भी। |
 | **Scheduled Maintenance Admin**   | सदस्य जो कुछ करता है वह सब, और रखरखाव स्थितियाँ भी बनाती, बदलती और हटाती है।                         |
 
-नियमों, कस्टम फ़ील्ड और माप के लिए **Project Owner** या **Project Admin**, या उस पेज की अपनी अनुमति वाली कस्टम भूमिका चाहिए, जैसे **Create Scheduled Maintenance Owner Rule**। **Project Member** **Scheduled Maintenance Member** की तरह इवेंट और टेम्पलेट के साथ काम करता है। देखें [उपयोगकर्ता, टीमें और अनुमतियाँ](/docs/permissions/index)।
+नियमों, कस्टम फ़ील्ड और माप के लिए **Project Owner** या **Project Admin**, या उस पेज की अपनी अनुमति वाली कस्टम भूमिका चाहिए, जैसे **Create Scheduled Maintenance Owner Rule**। Runbook नियम **Runbook Admin** को भी स्वीकार करते हैं। **Project Member** **Scheduled Maintenance Member** की तरह इवेंट और टेम्पलेट के साथ काम करता है। देखें [उपयोगकर्ता, टीमें और अनुमतियाँ](/docs/permissions/index)।
 
 ## समस्या निवारण
 

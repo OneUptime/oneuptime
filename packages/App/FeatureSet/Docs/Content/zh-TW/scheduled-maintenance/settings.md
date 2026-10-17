@@ -125,7 +125,7 @@ flowchart TB
 | **Scheduled Maintenance Member**  | 建立、變更和刪除事件及其備註、狀態時間軸和擁有者，以及兩類範本。                                     |
 | **Scheduled Maintenance Admin**   | 成員能做的一切，另外還能建立、變更和刪除維護狀態。                                                   |
 
-規則、自訂欄位和測量需要 **Project Owner** 或 **Project Admin** ，或擁有該頁面專屬權限（例如 **Create Scheduled Maintenance Owner Rule** ）的自訂角色。 **Project Member** 與 **Scheduled Maintenance Member** 一樣可以處理事件和範本。請參閱 [使用者、團隊與權限](/docs/permissions/index)。
+規則、自訂欄位和測量需要 **Project Owner** 或 **Project Admin** ，或擁有該頁面專屬權限（例如 **Create Scheduled Maintenance Owner Rule** ）的自訂角色。 Runbook 規則也可以由 **Runbook Admin** 管理。 **Project Member** 與 **Scheduled Maintenance Member** 一樣可以處理事件和範本。請參閱 [使用者、團隊與權限](/docs/permissions/index)。
 
 ## 疑難排解
 

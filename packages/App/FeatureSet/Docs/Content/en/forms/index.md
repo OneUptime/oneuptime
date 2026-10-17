@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### Workflows
 
-Forms have the generated workflow components — **On Create Form**, **On Update Form** and so on. To act on what a form created, use **On Create Incident** or **On Create Scheduled Maintenance**.
+Forms have the generated workflow components — **On Create Form**, **On Update Form** and so on. To act on what a form created, use **On Create Incident** or **On Create Scheduled Maintenance Event**.
 
 ### The public page's own endpoints
 

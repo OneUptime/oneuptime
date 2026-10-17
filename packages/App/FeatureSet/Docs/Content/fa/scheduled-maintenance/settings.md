@@ -125,7 +125,7 @@ flowchart TB
 | **Scheduled Maintenance Member**  | رویدادها را با یادداشت‌ها، خط‌های زمانی وضعیت و مالکانشان می‌سازد، تغییر می‌دهد و حذف می‌کند، و هر دو نوع قالب را هم. |
 | **Scheduled Maintenance Admin**   | هر کاری که عضو می‌کند، و افزون بر آن وضعیت‌های تعمیر و نگهداری را می‌سازد، تغییر می‌دهد و حذف می‌کند. |
 
-قواعد، فیلدهای سفارشی و اندازه‌گیری‌ها به **Project Owner** یا **Project Admin** نیاز دارند، یا به نقشی سفارشی با دسترسی مخصوص آن صفحه، مانند **Create Scheduled Maintenance Owner Rule**. **Project Member** مانند **Scheduled Maintenance Member** با رویدادها و قالب‌ها کار می‌کند. [کاربران، تیم‌ها و دسترسی‌ها](/docs/permissions/index) را ببینید.
+قواعد، فیلدهای سفارشی و اندازه‌گیری‌ها به **Project Owner** یا **Project Admin** نیاز دارند، یا به نقشی سفارشی با دسترسی مخصوص آن صفحه، مانند **Create Scheduled Maintenance Owner Rule**. قواعد رانبوک **Runbook Admin** را هم می‌پذیرند. **Project Member** مانند **Scheduled Maintenance Member** با رویدادها و قالب‌ها کار می‌کند. [کاربران، تیم‌ها و دسترسی‌ها](/docs/permissions/index) را ببینید.
 
 ## عیب‌یابی
 

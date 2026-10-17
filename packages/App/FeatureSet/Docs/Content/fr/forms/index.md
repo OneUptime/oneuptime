@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### Workflows
 
-Les formulaires ont les composants de workflow générés : **On Create Form**, **On Update Form**, etc. Pour agir sur ce qu'un formulaire a créé, utilisez **On Create Incident** ou **On Create Scheduled Maintenance**.
+Les formulaires ont les composants de workflow générés : **On Create Form**, **On Update Form**, etc. Pour agir sur ce qu'un formulaire a créé, utilisez **On Create Incident** ou **On Create Scheduled Maintenance Event**.
 
 ### Les points de terminaison propres à la page publique
 

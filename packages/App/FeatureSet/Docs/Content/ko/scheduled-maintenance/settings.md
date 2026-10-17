@@ -125,7 +125,7 @@ flowchart TB
 | **Scheduled Maintenance Member**  | 노트, 상태 타임라인, 소유자를 포함한 이벤트와 두 종류의 템플릿을 만들고, 바꾸고, 삭제합니다.         |
 | **Scheduled Maintenance Admin**   | 멤버가 하는 모든 일에 더해 유지 관리 상태를 만들고, 바꾸고, 삭제합니다.                              |
 
-규칙, 사용자 정의 필드, 측정에는 **Project Owner** 또는 **Project Admin**, 또는 **Create Scheduled Maintenance Owner Rule** 같은 해당 페이지 고유의 권한이 있는 사용자 지정 역할이 필요합니다. **Project Member** 는 **Scheduled Maintenance Member** 처럼 이벤트와 템플릿을 다룹니다. [사용자, 팀 및 권한](/docs/permissions/index) 을 참조하세요.
+규칙, 사용자 정의 필드, 측정에는 **Project Owner** 또는 **Project Admin**, 또는 **Create Scheduled Maintenance Owner Rule** 같은 해당 페이지 고유의 권한이 있는 사용자 지정 역할이 필요합니다. Runbook 규칙은 **Runbook Admin** 으로도 변경할 수 있습니다. **Project Member** 는 **Scheduled Maintenance Member** 처럼 이벤트와 템플릿을 다룹니다. [사용자, 팀 및 권한](/docs/permissions/index) 을 참조하세요.
 
 ## 문제 해결
 

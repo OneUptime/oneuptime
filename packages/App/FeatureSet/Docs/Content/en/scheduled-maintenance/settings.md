@@ -125,7 +125,7 @@ Every maintenance model has workflow triggers and actions, named after it: **On 
 | **Scheduled Maintenance Member**  | Creates, changes and deletes events with their notes, state timelines and owners, and both kinds of templates. |
 | **Scheduled Maintenance Admin**   | Everything a member does, and also creates, changes and deletes maintenance states.                  |
 
-Rules, custom fields and measurements take **Project Owner** or **Project Admin**, or a custom role with that page's own permission, such as **Create Scheduled Maintenance Owner Rule**. **Project Member** works with events and templates, like **Scheduled Maintenance Member**. See [Users, Teams & Permissions](/docs/permissions/index).
+Rules, custom fields and measurements take **Project Owner** or **Project Admin**, or a custom role with that page's own permission, such as **Create Scheduled Maintenance Owner Rule**. Runbook rules also take **Runbook Admin**. **Project Member** works with events and templates, like **Scheduled Maintenance Member**. See [Users, Teams & Permissions](/docs/permissions/index).
 
 ## Troubleshooting
 

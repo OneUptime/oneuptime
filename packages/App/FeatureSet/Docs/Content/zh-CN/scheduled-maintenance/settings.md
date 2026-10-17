@@ -125,7 +125,7 @@ flowchart TB
 | **Scheduled Maintenance Member**  | 创建、更改和删除事件及其备注、状态时间线和所有者，以及两类模板。                                     |
 | **Scheduled Maintenance Admin**   | 成员能做的一切，另外还能创建、更改和删除维护状态。                                                   |
 
-规则、自定义字段和测量需要 **Project Owner** 或 **Project Admin** ，或拥有该页面专属权限（例如 **Create Scheduled Maintenance Owner Rule** ）的自定义角色。 **Project Member** 与 **Scheduled Maintenance Member** 一样可以处理事件和模板。请参阅 [用户、团队与权限](/docs/permissions/index)。
+规则、自定义字段和测量需要 **Project Owner** 或 **Project Admin** ，或拥有该页面专属权限（例如 **Create Scheduled Maintenance Owner Rule** ）的自定义角色。 Runbook 规则还可以由 **Runbook Admin** 管理。 **Project Member** 与 **Scheduled Maintenance Member** 一样可以处理事件和模板。请参阅 [用户、团队与权限](/docs/permissions/index)。
 
 ## 故障排除
 

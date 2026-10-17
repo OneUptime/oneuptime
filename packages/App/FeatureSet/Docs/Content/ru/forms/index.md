@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### Рабочие процессы
 
-У форм есть сгенерированные компоненты рабочих процессов — **On Create Form**, **On Update Form** и так далее. Чтобы реагировать на то, что создала форма, используйте **On Create Incident** или **On Create Scheduled Maintenance**.
+У форм есть сгенерированные компоненты рабочих процессов — **On Create Form**, **On Update Form** и так далее. Чтобы реагировать на то, что создала форма, используйте **On Create Incident** или **On Create Scheduled Maintenance Event**.
 
 ### Собственные конечные точки публичной страницы
 

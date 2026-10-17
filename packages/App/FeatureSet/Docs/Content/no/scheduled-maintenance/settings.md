@@ -125,7 +125,7 @@ Hver vedlikeholdsmodell har arbeidsflytutløsere og -handlinger, oppkalt etter s
 | **Scheduled Maintenance Member**  | Oppretter, endrer og sletter hendelser med notatene, tilstandstidslinjene og eierne deres, og begge typer maler. |
 | **Scheduled Maintenance Admin**   | Alt et medlem gjør, og oppretter, endrer og sletter i tillegg vedlikeholdstilstander.                |
 
-Regler, egendefinerte felt og målinger krever **Project Owner** eller **Project Admin**, eller en egendefinert rolle med den sidens egen tillatelse, for eksempel **Create Scheduled Maintenance Owner Rule**. **Project Member** arbeider med hendelser og maler, som **Scheduled Maintenance Member**. Se [Brukere, team og tillatelser](/docs/permissions/index).
+Regler, egendefinerte felt og målinger krever **Project Owner** eller **Project Admin**, eller en egendefinert rolle med den sidens egen tillatelse, for eksempel **Create Scheduled Maintenance Owner Rule**. Runbook-regler godtar også **Runbook Admin**. **Project Member** arbeider med hendelser og maler, som **Scheduled Maintenance Member**. Se [Brukere, team og tillatelser](/docs/permissions/index).
 
 ## Feilsøking
 

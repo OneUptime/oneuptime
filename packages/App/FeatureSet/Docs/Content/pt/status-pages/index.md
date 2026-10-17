@@ -29,7 +29,7 @@ flowchart TB
 
 As páginas de status ficam em **Páginas de status**, no menu **Produtos** da barra superior, entre os essenciais. Tudo nesta página vale por página de status: um projeto pode ter quantas quiser — uma pública para clientes, uma privada para um público interno, uma por região para um mercado específico.
 
-A página mostra como recursos os monitores que você coloca nela. Incidentes e manutenção programada chegam a ela por meio desses monitores, e os anúncios são publicados diretamente nela. Os visitantes leem a página, e os assinantes são avisados de cada mudança pelos canais que escolheram.
+A página mostra como recursos os monitores que você coloca nela, e os incidentes chegam a ela por meio desses monitores. Os [eventos de manutenção agendada](/docs/scheduled-maintenance/index) e os anúncios chegam a ela diretamente: cada um indica as páginas de status em que é exibido. Os visitantes leem a página, e os assinantes são avisados de cada mudança pelos canais que escolheram.
 
 ## Em resumo
 

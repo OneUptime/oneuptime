@@ -125,7 +125,7 @@ flowchart TB
 | **Scheduled Maintenance Member**  | メモ、状態タイムライン、所有者を含むイベントと、両方の種類のテンプレートを作成、変更、削除します。   |
 | **Scheduled Maintenance Admin**   | メンバーができることすべてに加え、メンテナンスの状態を作成、変更、削除します。                       |
 
-ルール、カスタムフィールド、測定値には **Project Owner** または **Project Admin**、あるいは **Create Scheduled Maintenance Owner Rule** のような、そのページ固有の権限を持つカスタムロールが必要です。 **Project Member** は **Scheduled Maintenance Member** と同じく、イベントとテンプレートを扱えます。 [ユーザー、チーム、権限](/docs/permissions/index) を参照してください。
+ルール、カスタムフィールド、測定値には **Project Owner** または **Project Admin**、あるいは **Create Scheduled Maintenance Owner Rule** のような、そのページ固有の権限を持つカスタムロールが必要です。 Runbook ルールは **Runbook Admin** でも変更できます。 **Project Member** は **Scheduled Maintenance Member** と同じく、イベントとテンプレートを扱えます。 [ユーザー、チーム、権限](/docs/permissions/index) を参照してください。
 
 ## トラブルシューティング
 
