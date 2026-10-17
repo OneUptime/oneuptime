@@ -46,6 +46,12 @@ const setStringIfNotExists: jest.Mock =
   GlobalCache.setStringIfNotExists as unknown as jest.Mock;
 
 const PROVIDER_ID: string = "22222222-2222-4222-8222-222222222222";
+
+/*
+ * The margin a record is kept beyond the assertion's own time, written out
+ * rather than read from the class, so that shortening it fails here.
+ */
+const THREE_MINUTES: number = 3 * 60;
 const NOW: Date = new Date("2026-03-01T12:00:00.000Z");
 
 function assertion(
@@ -96,10 +102,30 @@ describe("claiming an assertion", () => {
       `project-sso:${PROVIDER_ID}:${sha256("_assertion_1")}`,
       NOW.toISOString(),
       {
-        expiresInSeconds:
-          7 * 60 + SamlAssertionOneTimeUse.CLOCK_MARGIN_IN_SECONDS,
+        expiresInSeconds: 7 * 60 + THREE_MINUTES,
       },
     );
+  });
+
+  /*
+   * Every app server checks an assertion's time by its own clock. A record
+   * that ended the moment the recording server's clock said the assertion
+   * expired would let a server whose clock runs behind take it again.
+   */
+  test("keeps the record three minutes past the assertion's own time, for app servers whose clocks run behind", async () => {
+    expect(SamlAssertionOneTimeUse.CLOCK_MARGIN_IN_SECONDS).toBe(THREE_MINUTES);
+
+    await SamlAssertionOneTimeUse.claim({
+      providerKind: SamlProviderKind.ProjectSso,
+      providerId: PROVIDER_ID,
+      assertion: assertion({ acceptableUntil: NOW }),
+      now: NOW,
+    });
+
+    expect(
+      (setStringIfNotExists.mock.calls[0]![3] as { expiresInSeconds: number })
+        .expiresInSeconds,
+    ).toBe(THREE_MINUTES);
   });
 
   test("rounds a part of a second up, so the record never ends before the assertion does", async () => {
@@ -115,7 +141,7 @@ describe("claiming an assertion", () => {
     expect(
       (setStringIfNotExists.mock.calls[0]![3] as { expiresInSeconds: number })
         .expiresInSeconds,
-    ).toBe(2 + SamlAssertionOneTimeUse.CLOCK_MARGIN_IN_SECONDS);
+    ).toBe(2 + THREE_MINUTES);
   });
 
   test("keeps a record of an assertion whose time is already up for the margin, never for no time at all", async () => {
@@ -131,7 +157,7 @@ describe("claiming an assertion", () => {
     expect(
       (setStringIfNotExists.mock.calls[0]![3] as { expiresInSeconds: number })
         .expiresInSeconds,
-    ).toBe(SamlAssertionOneTimeUse.CLOCK_MARGIN_IN_SECONDS);
+    ).toBe(THREE_MINUTES);
   });
 
   test("uses the current time when none is given", async () => {

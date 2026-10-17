@@ -161,8 +161,7 @@ describe("one sign-in per SAML response, in Valkey", () => {
       }),
     );
 
-    const expected: number =
-      5 * 60 + SamlAssertionOneTimeUse.CLOCK_MARGIN_IN_SECONDS;
+    const expected: number = 5 * 60 + 3 * 60;
 
     // Redis counts down from the moment it was written.
     expect(ttl).toBeGreaterThan(expected - 5);
