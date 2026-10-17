@@ -30323,7 +30323,6 @@
   "Theme": "テーマ",
   "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "カスタム CSS と HTML は両方のテーマに適用されます。ダークテーマだけにスタイルを適用するには、CSS ルールを html.dark で始めてください。",
   "A probe is disconnected when it has not reported for three minutes, so a quick restart is not an outage.": "プローブは 3 分間応答がないと切断とみなされるため、短時間の再起動は障害になりません。",
-  "A probe is disconnected when it has not reported for three minutes. Monitor it to get an incident when that happens.": "プローブは 3 分間応答がないと切断とみなされます。このプローブを監視すると、その際にインシデントを受け取れます。",
   "Array of {probeName, isConnected, isGlobalProbe, lastAliveAt}.": "{probeName, isConnected, isGlobalProbe, lastAliveAt} の配列。",
   "Checked At": "確認日時",
   "Get one incident when a probe disconnects, and see it resolve when the probe is back.": "プローブが切断されるとインシデントが 1 件作成され、プローブが戻ると解決されます。",

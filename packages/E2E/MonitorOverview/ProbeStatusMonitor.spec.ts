@@ -293,6 +293,33 @@ test.describe("a Probe Status monitor's overview", () => {
     );
   });
 
+  test("watching no probes: Not set up, and Pick probes leads to its criteria", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "&state=no-probes");
+
+    await expect(hero(page)).toContainText("Not set up");
+    await expect(page.getByTestId("monitor-overview-headline")).toHaveText(
+      "This monitor watches no probes",
+    );
+    await expect(page.getByTestId("monitor-overview-explanation")).toHaveText(
+      "Pick the probes it watches. It opens an incident when one of them disconnects.",
+    );
+    expect(await factValue(page, "Watches")).toBe("No probes picked");
+    // Nothing was evaluated, and there is nothing to summarise.
+    await expect(summary(page)).toHaveCount(0);
+    await expect(card(page, "Monitor Summary")).toHaveCount(0);
+    await screenshot(page, "probe-status-overview-not-set-up");
+
+    await hero(page).getByRole("link", { name: "Pick probes" }).click();
+    await expect(page.getByTestId("stub-page")).toHaveAttribute(
+      "data-page",
+      "MONITOR_VIEW_CRITERIA",
+    );
+  });
+
   test("fits a phone, and dark mode keeps the probes on a dark surface", async ({
     page,
   }: {

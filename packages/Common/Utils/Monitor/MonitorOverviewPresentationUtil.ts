@@ -2145,7 +2145,17 @@ export default class MonitorOverviewPresentationUtil {
       connection: isAwaiting ? null : layout.setupKind,
       summary: {
         isShown:
-          layout.summaryDescription !== null && !(isAwaiting && isPushFamily),
+          layout.summaryDescription !== null &&
+          !(isAwaiting && isPushFamily) &&
+          /*
+           * A Probe Status monitor that watches no probe has nothing to
+           * summarise: an older evaluation would list probes it no longer
+           * watches.
+           */
+          !(
+            context.family === MonitorOverviewFamily.ProbeStatus &&
+            context.runState === MonitorOverviewRunState.NotConfigured
+          ),
         description: layout.summaryDescription || "",
       },
       // The connection card only makes sense once something has connected.

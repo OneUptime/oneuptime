@@ -30323,7 +30323,6 @@
   "Theme": "테마",
   "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "사용자 지정 CSS와 HTML은 두 테마 모두에 적용됩니다. 다크 테마에만 스타일을 적용하려면 CSS 규칙을 html.dark로 시작하세요.",
   "A probe is disconnected when it has not reported for three minutes, so a quick restart is not an outage.": "프로브가 3분 동안 응답하지 않으면 연결 끊김으로 간주되므로, 짧은 재시작은 장애가 아닙니다.",
-  "A probe is disconnected when it has not reported for three minutes. Monitor it to get an incident when that happens.": "프로브가 3분 동안 응답하지 않으면 연결 끊김으로 간주됩니다. 이 프로브를 모니터링하면 그때 인시던트를 받을 수 있습니다.",
   "Array of {probeName, isConnected, isGlobalProbe, lastAliveAt}.": "{probeName, isConnected, isGlobalProbe, lastAliveAt}의 배열입니다.",
   "Checked At": "확인 시각",
   "Get one incident when a probe disconnects, and see it resolve when the probe is back.": "프로브 연결이 끊기면 인시던트 하나를 받고, 프로브가 돌아오면 해결되는 것을 확인하세요.",

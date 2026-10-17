@@ -30323,7 +30323,6 @@
   "Theme": "پوسته",
   "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "CSS و HTML سفارشی شما در هر دو پوسته اعمال می‌شود. برای استایل دادن فقط به پوسته تیره، قاعده CSS را با html.dark شروع کنید.",
   "A probe is disconnected when it has not reported for three minutes, so a quick restart is not an outage.": "پرابی که سه دقیقه گزارشی نداده باشد قطع‌شده به شمار می‌آید، پس یک راه‌اندازی مجدد کوتاه قطعی نیست.",
-  "A probe is disconnected when it has not reported for three minutes. Monitor it to get an incident when that happens.": "پرابی که سه دقیقه گزارشی نداده باشد قطع‌شده به شمار می‌آید. آن را پایش کنید تا در این صورت یک حادثه دریافت کنید.",
   "Array of {probeName, isConnected, isGlobalProbe, lastAliveAt}.": "آرایه‌ای از {probeName, isConnected, isGlobalProbe, lastAliveAt}.",
   "Checked At": "زمان بررسی",
   "Get one incident when a probe disconnects, and see it resolve when the probe is back.": "وقتی پرابی قطع می‌شود یک حادثه دریافت کنید و ببینید که با بازگشت پراب برطرف می‌شود.",

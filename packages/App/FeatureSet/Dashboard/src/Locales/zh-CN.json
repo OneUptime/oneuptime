@@ -30323,7 +30323,6 @@
   "Theme": "主题",
   "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "你的自定义 CSS 和 HTML 在两种主题下都会生效。以 html.dark 开头的 CSS 规则只作用于深色主题。",
   "A probe is disconnected when it has not reported for three minutes, so a quick restart is not an outage.": "探针在三分钟内没有上报即视为已断开，因此短暂重启不算故障。",
-  "A probe is disconnected when it has not reported for three minutes. Monitor it to get an incident when that happens.": "探针在三分钟内没有上报即视为已断开。监控此探针，即可在发生这种情况时收到事件。",
   "Array of {probeName, isConnected, isGlobalProbe, lastAliveAt}.": "{probeName, isConnected, isGlobalProbe, lastAliveAt} 的数组。",
   "Checked At": "检查时间",
   "Get one incident when a probe disconnects, and see it resolve when the probe is back.": "探针断开时只产生一个事件，探针恢复后该事件自动解决。",

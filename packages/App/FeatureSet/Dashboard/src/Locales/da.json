@@ -30323,7 +30323,6 @@
   "Theme": "Tema",
   "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Din egen CSS og HTML gælder i begge temaer. Start en CSS-regel med html.dark for kun at style det mørke tema.",
   "A probe is disconnected when it has not reported for three minutes, so a quick restart is not an outage.": "En probe er afbrudt, når den ikke har meldt sig i tre minutter, så en hurtig genstart er ikke et nedbrud.",
-  "A probe is disconnected when it has not reported for three minutes. Monitor it to get an incident when that happens.": "En probe er afbrudt, når den ikke har meldt sig i tre minutter. Overvåg den for at få en hændelse, når det sker.",
   "Array of {probeName, isConnected, isGlobalProbe, lastAliveAt}.": "Array af {probeName, isConnected, isGlobalProbe, lastAliveAt}.",
   "Checked At": "Kontrolleret",
   "Get one incident when a probe disconnects, and see it resolve when the probe is back.": "Få én hændelse, når en probe mister forbindelsen, og se den blive løst, når proben er tilbage.",

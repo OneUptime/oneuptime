@@ -3083,6 +3083,13 @@ describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
       isMuted: true,
       linkKey: "criteria",
     });
+    /*
+     * Nothing to summarise: an older evaluation would list probes it no
+     * longer watches.
+     */
+    expect(presentation.sections.summary.isShown).toBe(false);
+    // Watching probes again, the summary is back.
+    expect(build(probeStatus()).sections.summary.isShown).toBe(true);
   });
 
   it("with no step at all, it has no criteria yet, as any monitor", () => {

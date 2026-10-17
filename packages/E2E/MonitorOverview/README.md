@@ -164,7 +164,8 @@ that evaluation found; and Create Monitor: found by searching for probe, under O
 monitor starting on the project's own probes, and Create sending them with no interval; a
 self-hosted install with no probe of its own starting on its global probe; on OneUptime
 Cloud, nothing picked and saving saying to pick one; Monitor this probe's link watching that
-probe alone, named after it; the probes step at 390px.
+probe alone, named after it; the probes step at 390px. With `?state=no-probes` the monitor
+watches no probe and is never evaluated: its overview says Not set up, with Pick probes.
 
 `AdvancedMenuSection.spec.ts`, the monitor's side menu, where only a real browser can show
 it: the Advanced section starts folded on the overview with its rows hidden (visibility:

@@ -1039,10 +1039,13 @@ function stepFor(typeKey, definition, stepNumber) {
     };
   }
   if (typeKey === "probe-status") {
+    // ?state=no-probes: a Probe Status monitor that watches no probe.
     step.data.probeStatusMonitor = {
-      probeIds: definition.watchedProbeNumbers.map((number) => {
-        return ID.probe(number);
-      }),
+      probeIds: scenarioFor(typeKey).flags.has("no-probes")
+        ? []
+        : definition.watchedProbeNumbers.map((number) => {
+            return ID.probe(number);
+          }),
     };
   }
   return step;
@@ -1531,7 +1534,12 @@ function defineMonitor(typeKey) {
     defineProbes({ typeKey, definition, scenario, monitorId, steps, current });
   } else if (typeKey === "incoming-email" && !isAwaiting) {
     defineIncomingEmailLogs({ monitorId, record, current });
-  } else if (!isAwaiting && typeKey !== "manual") {
+  } else if (
+    !isAwaiting &&
+    typeKey !== "manual" &&
+    // A Probe Status monitor that watches no probe is never evaluated.
+    !(typeKey === "probe-status" && scenario.flags.has("no-probes"))
+  ) {
     // One evaluation per run for everything that is not a probe check.
     const at =
       typeKey === "kubernetes" && scenario.flags.has("stale")

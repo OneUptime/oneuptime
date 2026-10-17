@@ -213,9 +213,8 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
       <CardModelDetail<Probe>
         name="Probe Status"
         cardProps={{
+          // The title says it all; the button is how to be told it went down.
           title: "Probe Status",
-          description:
-            "A probe is disconnected when it has not reported for three minutes. Monitor it to get an incident when that happens.",
           buttons: monitorThisProbeButton ? [monitorThisProbeButton] : [],
         }}
         isEditable={false}

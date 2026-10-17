@@ -30323,7 +30323,6 @@
   "Theme": "Thema",
   "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Uw eigen CSS en HTML gelden in beide thema's. Begin een CSS-regel met html.dark om alleen het donkere thema op te maken.",
   "A probe is disconnected when it has not reported for three minutes, so a quick restart is not an outage.": "Een probe is losgekoppeld als hij drie minuten niets van zich heeft laten horen, dus een snelle herstart is geen storing.",
-  "A probe is disconnected when it has not reported for three minutes. Monitor it to get an incident when that happens.": "Een probe is losgekoppeld als hij drie minuten niets van zich heeft laten horen. Bewaak hem om dan een incident te krijgen.",
   "Array of {probeName, isConnected, isGlobalProbe, lastAliveAt}.": "Array van {probeName, isConnected, isGlobalProbe, lastAliveAt}.",
   "Checked At": "Gecontroleerd op",
   "Get one incident when a probe disconnects, and see it resolve when the probe is back.": "Krijg één incident wanneer een probe de verbinding verliest, en zie het oplossen zodra de probe terug is.",

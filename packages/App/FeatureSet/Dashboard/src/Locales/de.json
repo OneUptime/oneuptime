@@ -30323,7 +30323,6 @@
   "Theme": "Design",
   "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Ihr eigenes CSS und HTML gilt in beiden Designs. Beginnen Sie eine CSS-Regel mit html.dark, um nur das dunkle Design zu gestalten.",
   "A probe is disconnected when it has not reported for three minutes, so a quick restart is not an outage.": "Eine Sonde gilt als getrennt, wenn sie sich drei Minuten lang nicht gemeldet hat. Ein kurzer Neustart ist also kein Ausfall.",
-  "A probe is disconnected when it has not reported for three minutes. Monitor it to get an incident when that happens.": "Eine Sonde gilt als getrennt, wenn sie sich drei Minuten lang nicht gemeldet hat. Überwachen Sie sie, um dann einen Vorfall zu erhalten.",
   "Array of {probeName, isConnected, isGlobalProbe, lastAliveAt}.": "Array aus {probeName, isConnected, isGlobalProbe, lastAliveAt}.",
   "Checked At": "Geprüft am",
   "Get one incident when a probe disconnects, and see it resolve when the probe is back.": "Erhalten Sie einen Vorfall, wenn eine Sonde getrennt wird, und sehen Sie, wie er sich löst, sobald die Sonde zurück ist.",
