@@ -9,7 +9,7 @@ Tout ce qui est décrit sur cette page fonctionne de la même façon pour les é
 Ouvrez l'épisode, choisissez **Incidents des membres** dans son menu latéral (`/dashboard/{projectId}/incidents/episodes/{episodeId}/incidents`), puis cliquez sur **Ajouter des incidents**. La boîte de dialogue liste les 50 incidents les plus récents que vous pouvez voir et qui ne sont pas encore dans l'épisode, chacun avec son numéro, son titre, son état et sa gravité. Pour en trouver un plus ancien, cherchez par titre ou par numéro : `INC-42`, `42` et `#42` trouvent tous l'incident 42.
 
 - Cochez-en autant qu'il vous faut, jusqu'à 100 à la fois. Le bouton les compte : **Ajouter 3 éléments (Incidents)**.
-- Un incident qui est déjà dans un autre épisode le signale sous son titre, avec le numéro de cet épisode. L'ajouter ici le laisse aussi là-bas : un incident peut faire partie de plusieurs épisodes.
+- Un incident qui est déjà dans un autre épisode le signale sous son titre, avec le numéro de cet épisode. L'ajouter ici le laisse aussi là-bas : un incident peut faire partie de plusieurs épisodes. Dans un projet où un incident ne peut faire partie que d'un seul épisode, il ne peut pas être choisi : voir [Un seul épisode par incident](#un-seul-épisode-par-incident).
 - Si certains ne peuvent pas être ajoutés, la boîte de dialogue reste ouverte et les liste avec la raison ; les autres sont ajoutés.
 
 ## Ajouter des incidents depuis les listes d'incidents
@@ -34,6 +34,20 @@ Les deux acceptent jusqu'à 100 incidents sélectionnés. Le résultat indique c
 ## Retirer un incident
 
 Dans **Incidents des membres**, **Supprimer** sur une ligne, ou sur les lignes sélectionnées depuis **Actions groupées**, retire l'incident de cet épisode uniquement. L'incident lui-même n'est pas supprimé, et il reste dans tout autre épisode dont il fait partie.
+
+## Un seul épisode par incident
+
+Un incident peut faire partie de plusieurs épisodes à la fois. Pour que chaque incident fasse partie d'un seul épisode au plus, activez **Un incident ne peut faire partie que d'un seul épisode** dans **Incidents → Paramètres → Appartenance aux épisodes**. Pour les alertes, l'interrupteur s'appelle **Une alerte ne peut faire partie que d'un seul épisode**, dans **Alertes → Paramètres → Appartenance aux épisodes**. Les deux sont désactivés tant que vous ne les activez pas, et seuls les Project Owners et les Project Admins peuvent les changer.
+
+Tant qu'il est activé, un incident qui fait partie d'un épisode n'est ajouté à aucun autre :
+
+- **Ajouter des incidents** ne liste que les incidents qui ne font partie d'aucun épisode. Une recherche trouve aussi les autres, mais un incident qui fait partie d'un autre épisode ne peut pas être coché, et le signale.
+- **Ajouter à un épisode existant** indique combien des incidents sélectionnés font partie d'un autre épisode, et n'ajoute que les autres. Quand tous font déjà partie d'un épisode, la boîte de dialogue indique qu'il n'y a rien à ajouter.
+- **Ajouter à un nouvel épisode** laisse de côté les incidents sélectionnés qui font déjà partie d'un épisode, et indique combien. Quand c'est le cas de tous, elle indique qu'il n'y a rien à ajouter.
+- Les **Règles de regroupement** laissent un incident qui fait déjà partie d'un épisode là où il est.
+- **L'API, les workflows et Terraform** suivent la même règle : l'ajout d'un incident qui fait partie d'un autre épisode est refusé, avec la raison.
+
+L'activer ne retire aucun incident d'un épisode : un incident qui fait déjà partie de plusieurs y reste. Pour déplacer un incident, retirez-le avec **Supprimer** sur la page **Incidents des membres** de son épisode, puis ajoutez-le à l'autre épisode.
 
 ## Qui peut ajouter
 
@@ -67,5 +81,7 @@ La réponse nomme chaque incident envoyé, une seule fois : ajouté, déjà dans
   ]
 }
 ```
+
+Dans un projet où un incident ne peut faire partie que d'un seul épisode, un incident qui fait partie d'un autre épisode revient dans `notAdded`, avec `Already in another episode. An incident can be in only one episode in this project.` comme raison.
 
 Pour les alertes, envoyez `alertEpisodeId` et `alertIds` à `/api/alert-episode-member/add-alerts`. Pour créer un épisode qui contient des incidents, envoyez leurs identifiants avec la requête de création de l'épisode, `POST /api/incident-episode`, sous la forme `{ "data": { "title": "Checkout outage" }, "miscDataProps": { "incidentIdsToAdd": ["<incident id>"] } }` ; pour un épisode d'alertes, `POST /api/alert-episode` avec `alertIdsToAdd`. Si l'un d'eux ne peut pas être ajouté, aucun épisode n'est créé.

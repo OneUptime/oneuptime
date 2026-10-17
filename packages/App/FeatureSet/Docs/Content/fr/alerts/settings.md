@@ -6,7 +6,7 @@ La configuration des alertes se trouve dans **Alertes**, pas dans les **Paramèt
 - [Les règles que traverse une nouvelle alerte](#les-règles-que-traverse-une-nouvelle-alerte): Dans l'ordre, et ce que fait chacune.
 - [Règles d'astreinte](#règles-dastreinte): Alerter les bonnes personnes sans choisir une politique à chaque fois.
 - [Règles de rappel](#règles-de-rappel): Rappeler les propriétaires tant qu'une alerte reste ouverte.
-- [Paramètres](#paramètres): Modèles de notes, champs personnalisés, mesures et numérotation.
+- [Paramètres](#paramètres): Modèles de notes, champs personnalisés, mesures, appartenance aux épisodes et numérotation.
 :::
 
 ## Où se trouvent les paramètres des alertes
@@ -23,7 +23,7 @@ Ouvrez **Alertes** depuis le menu **Produits** de la barre supérieure. Les sect
 | **Règles d'étiquettes**         | Ajoute des étiquettes aux alertes et aux épisodes qui correspondent.                           |
 | **Reminder Rules**              | Rappelle aux propriétaires, à intervalle régulier, qu'une alerte est ouverte.                  |
 
-La section **Paramètres** contient **État de l'alerte** et **Gravité de l'alerte**, traités dans [États et sévérités des alertes](/docs/alerts/states-and-severities), puis **Modèles de notes**, **Champs personnalisés**, **Mesures** et **Numérotation**, traités ci-dessous.
+La section **Paramètres** contient **État de l'alerte** et **Gravité de l'alerte**, traités dans [États et sévérités des alertes](/docs/alerts/states-and-severities), puis **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Appartenance aux épisodes** et **Numérotation**, traités ci-dessous.
 
 Deux autres sections agissent sur les alertes. **Alertes → IA → Paramètres** décide de ce que OneUptime AI fait de lui-même : **Investiguer les nouvelles alertes**, activé pour les nouveaux projets, et **Corriger automatiquement les nouvelles alertes**, désactivé jusqu'à ce que vous l'activiez. Voir [AI SRE](/docs/ai/ai-sre). **Alertes → Espace de travail** contient les règles Slack et Microsoft Teams qui publient les alertes et les épisodes dans des canaux, ainsi que son onglet **Summary**. Voir [Slack](/docs/workspace-connections/slack).
 
@@ -141,6 +141,10 @@ Les propriétaires reçoivent chaque rappel sous la forme **Rappel d'alerte**, a
 ### Mesures
 
 **Alertes → Paramètres → Mesures** chronomètre le temps que prennent les choses sur chaque alerte. Choisissez **Délai de prise en compte** ou **Délai de résolution**, ou deux moments à vous, comme quand **L'alerte est créée** et quand elle entre dans un état que vous choisissez. Chaque mesure s'affiche sur la page de l'alerte et figure dans les graphiques sous `oneuptime.alert.measurement.<key>`. Voir [Mesures](/docs/incidents/settings#mesures), qui fonctionne de la même façon pour les alertes.
+
+### Appartenance aux épisodes
+
+**Alertes → Paramètres → Appartenance aux épisodes** décide si une alerte peut faire partie de plusieurs épisodes. Activez **Une alerte ne peut faire partie que d'un seul épisode**, et une alerte qui fait partie d'un épisode n'est ajoutée à aucun autre, ni depuis le tableau de bord, ni par l'API, un workflow ou une règle de regroupement, si elle n'est pas d'abord retirée de cet épisode. L'interrupteur est désactivé tant que vous ne l'activez pas, et seuls les Project Owners et les Project Admins peuvent le changer. L'activer ne retire aucune alerte d'un épisode. Voir [Un seul épisode par incident](/docs/incidents/episodes#un-seul-épisode-par-incident), qui fonctionne de la même façon pour les alertes.
 
 ### Numérotation
 

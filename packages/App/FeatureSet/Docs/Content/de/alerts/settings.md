@@ -6,7 +6,7 @@ Die Konfiguration von Warnungen liegt unter **Warnungen**, nicht in den **Projek
 - [Die Regeln, die eine neue Warnung durchläuft](#die-regeln-die-eine-neue-warnung-durchläuft): Der Reihe nach, und was jede bewirkt.
 - [Bereitschaftsregeln](#bereitschaftsregeln): Die richtigen Personen alarmieren, ohne jedes Mal eine Richtlinie zu wählen.
 - [Erinnerungsregeln](#erinnerungsregeln): Eigentümer erinnern, solange eine Warnung offen bleibt.
-- [Einstellungen](#einstellungen): Notiz-Vorlagen, benutzerdefinierte Felder, Messungen und Nummerierung.
+- [Einstellungen](#einstellungen): Notiz-Vorlagen, benutzerdefinierte Felder, Messungen, Episodenzugehörigkeit und Nummerierung.
 :::
 
 ## Wo die Warnungseinstellungen liegen
@@ -23,7 +23,7 @@ Die Konfiguration von Warnungen liegt unter **Warnungen**, nicht in den **Projek
 | **Beschriftungsregeln** | Fügt passenden Warnungen und Episoden Beschriftungen hinzu.                                     |
 | **Erinnerungsregeln**   | Erinnert Eigentümer in einem Intervall, solange eine Warnung offen ist.                         |
 
-Der Bereich **Einstellungen** enthält **Warnungsstatus** und **Warnungsschweregrad**, beschrieben unter [Warnungsstatus & Schweregrade](/docs/alerts/states-and-severities), dann **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen** und **Nummerierung**, beschrieben weiter unten.
+Der Bereich **Einstellungen** enthält **Warnungsstatus** und **Warnungsschweregrad**, beschrieben unter [Warnungsstatus & Schweregrade](/docs/alerts/states-and-severities), dann **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Episodenzugehörigkeit** und **Nummerierung**, beschrieben weiter unten.
 
 Zwei weitere Bereiche wirken auf Warnungen. **Warnungen → KI → Einstellungen** entscheidet, was OneUptime AI von selbst tut: **Neue Warnungen untersuchen**, in neuen Projekten eingeschaltet, und **Neue Warnungen automatisch beheben**, aus, bis Sie es einschalten. Siehe [AI SRE](/docs/ai/ai-sre). **Warnungen → Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln, die Warnungen und Episoden in Kanäle posten, und seinen Tab **Zusammenfassung**. Siehe [Slack](/docs/workspace-connections/slack).
 
@@ -141,6 +141,10 @@ Eigentümer erhalten jede Erinnerung als **Warnungserinnerung**, die standardmä
 ### Messungen
 
 **Warnungen → Einstellungen → Messungen** misst, wie lange Dinge bei jeder Warnung dauern. Wählen Sie **Zeit bis zur Bestätigung** oder **Zeit bis zur Behebung** oder zwei eigene Zeitpunkte, etwa wenn **Die Warnung wird erstellt** und wenn sie einen Status erreicht, den Sie wählen. Jede Messung wird auf der Seite der Warnung angezeigt und als `oneuptime.alert.measurement.<key>` in Diagrammen dargestellt. Siehe [Messungen](/docs/incidents/settings#messungen), was für Warnungen genauso funktioniert.
+
+### Episodenzugehörigkeit
+
+**Warnungen → Einstellungen → Episodenzugehörigkeit** legt fest, ob eine Warnung in mehr als einer Episode sein kann. Schalten Sie **Eine Warnung kann nur in einer Episode sein** ein, wird eine Warnung, die in einer Episode ist, keiner anderen hinzugefügt, weder im Dashboard noch über die API, einen Workflow oder eine Gruppierungsregel, bis sie aus dieser Episode entfernt ist. Der Schalter ist aus, bis Sie ihn einschalten, und nur Project Owners und Project Admins können ihn ändern. Das Einschalten nimmt keine Warnung aus einer Episode heraus. Siehe [Eine Episode pro Vorfall](/docs/incidents/episodes#eine-episode-pro-vorfall), was für Warnungen genauso funktioniert.
 
 ### Nummerierung
 

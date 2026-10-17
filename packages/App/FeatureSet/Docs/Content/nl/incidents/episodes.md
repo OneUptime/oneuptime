@@ -9,7 +9,7 @@ Alles op deze pagina werkt op dezelfde manier voor waarschuwingsepisodes: lees "
 Open de episode, kies **Lidincidenten** in het zijmenu (`/dashboard/{projectId}/incidents/episodes/{episodeId}/incidents`) en klik op **Incidenten toevoegen**. Het venster toont de 50 nieuwste incidenten die u kunt zien en die nog niet in de episode zitten, elk met nummer, titel, status en ernst. Zoek op titel of nummer om een ouder incident te vinden: `INC-42`, `42` en `#42` vinden allemaal incident 42.
 
 - Vink er zoveel aan als u nodig hebt, tot 100 tegelijk. De knop telt ze: **3 Incidenten toevoegen**.
-- Een incident dat al in een andere episode zit, meldt dat onder zijn titel, met het nummer van die episode. Voegt u het hier toe, dan blijft het daar ook: een incident kan in meer dan één episode zitten.
+- Een incident dat al in een andere episode zit, meldt dat onder zijn titel, met het nummer van die episode. Voegt u het hier toe, dan blijft het daar ook: een incident kan in meer dan één episode zitten. In een project waarin een incident maar in één episode kan zitten, kunt u het niet kiezen: zie [Eén episode per incident](#eén-episode-per-incident).
 - Kunnen sommige niet worden toegevoegd, dan blijft het venster open en toont het ze met de reden; de rest wordt toegevoegd.
 
 ## Incidenten toevoegen vanuit de incidentenlijsten
@@ -34,6 +34,20 @@ Beide nemen tot 100 geselecteerde incidenten. Het resultaat meldt hoeveel er zij
 ## Een incident eruit halen
 
 Onder **Lidincidenten** haalt **Verwijderen** op een rij, of op de geselecteerde rijen via **Bulkacties**, het incident alleen uit deze episode. Het incident zelf wordt niet verwijderd en blijft in elke andere episode waarin het zit.
+
+## Eén episode per incident
+
+Een incident kan tegelijk in meerdere episodes zitten. Om elk incident in hooguit één episode te houden, zet u **Een incident kan maar in één episode zitten** aan onder **Incidenten → Instellingen → Lidmaatschap van episodes**. Voor waarschuwingen heet de schakelaar **Een waarschuwing kan maar in één episode zitten**, onder **Waarschuwingen → Instellingen → Lidmaatschap van episodes**. Beide staan uit tot u ze aanzet, en alleen Project Owners en Project Admins kunnen ze wijzigen.
+
+Zolang hij aanstaat, wordt een incident dat in een episode zit aan geen andere toegevoegd:
+
+- **Incidenten toevoegen** toont alleen de incidenten die in geen enkele episode zitten. Zoeken vindt ook de andere, maar een incident dat in een andere episode zit, kunt u niet aanvinken, en het meldt dat.
+- **Aan bestaande episode toevoegen** meldt hoeveel van de geselecteerde incidenten in een andere episode zitten, en voegt alleen de rest toe. Zitten ze allemaal al in een episode, dan meldt het dialoogvenster dat er niets toe te voegen is.
+- **Aan nieuwe episode toevoegen** laat de geselecteerde incidenten weg die al in een episode zitten, en meldt hoeveel. Geldt dat voor allemaal, dan meldt het dat er niets toe te voegen is.
+- **Groeperingsregels** laten een incident dat al in een episode zit, waar het is.
+- **De API, workflows en Terraform** volgen dezelfde regel: een incident toevoegen dat in een andere episode zit, wordt geweigerd, met de reden.
+
+Aanzetten haalt geen enkel incident uit een episode: een incident dat al in meerdere zit, blijft daarin. Om een incident te verplaatsen, haalt u het met **Verwijderen** weg op de pagina **Lidincidenten** van zijn episode en voegt u het daarna aan de andere episode toe.
 
 ## Wie mag toevoegen
 
@@ -67,5 +81,7 @@ Het antwoord noemt elk verzonden incident precies één keer: toegevoegd, al in 
   ]
 }
 ```
+
+In een project waarin een incident maar in één episode kan zitten, komt een incident dat in een andere episode zit terug in `notAdded`, met `Already in another episode. An incident can be in only one episode in this project.` als reden.
 
 Voor waarschuwingen stuurt u `alertEpisodeId` en `alertIds` naar `/api/alert-episode-member/add-alerts`. Om een episode met incidenten erin aan te maken, stuurt u hun ID's mee met het verzoek dat de episode aanmaakt, `POST /api/incident-episode`, als `{ "data": { "title": "Checkout outage" }, "miscDataProps": { "incidentIdsToAdd": ["<incident id>"] } }`; voor een waarschuwingsepisode `POST /api/alert-episode` met `alertIdsToAdd`. Als een ervan niet kan worden toegevoegd, wordt er geen episode aangemaakt.
