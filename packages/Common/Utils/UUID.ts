@@ -1,13 +1,12 @@
-/*
- * The two lower-case hex digits of every byte value, so an id is written
- * with one table read per byte instead of a toString(16) and a padStart.
- */
-const BYTE_TO_HEX: ReadonlyArray<string> = Array.from(
-  { length: 256 },
-  (_value: unknown, byte: number) => {
-    return byte.toString(16).padStart(2, "0");
+// The character codes of the lower-case hex digits, by value.
+const HEX_DIGIT_CODES: ReadonlyArray<number> = Array.from(
+  "0123456789abcdef",
+  (digit: string) => {
+    return digit.charCodeAt(0);
   },
 );
+
+const HYPHEN_CODE: number = "-".charCodeAt(0);
 
 /*
  * A time-ordered id carries 10 random bytes (bytes 6..15; the version and
@@ -36,12 +35,22 @@ const randomPool: Uint8Array = new Uint8Array(
 let randomPoolOffset: number = randomPool.length;
 
 /*
- * The id text of the 48-bit timestamp prefix, for the last millisecond an id
- * was made in. Ids made in the same millisecond share it, so it is written
- * once per millisecond rather than once per id.
+ * The 36 character codes of the id being written, turned into the id by one
+ * String.fromCharCode: the id comes out as one flat string, where joining
+ * pieces would leave a chain of them for the runtime to flatten when the row
+ * is sent. The hyphens never move. The first 13 codes are the 48-bit
+ * timestamp prefix ("xxxxxxxx-xxxx") of prefixMillisecond, the last
+ * millisecond an id was made in: ids of the same millisecond share it, so
+ * it is written once per millisecond rather than once per id.
  */
+const idCharCodes: Array<number> = new Array<number>(36).fill(HYPHEN_CODE);
 let prefixMillisecond: number = Number.NaN;
-let prefixText: string = "";
+
+// Writes one byte as its two hex digits at `position` of idCharCodes.
+function writeHexByte(position: number, byte: number): void {
+  idCharCodes[position] = HEX_DIGIT_CODES[byte >> 4] as number;
+  idCharCodes[position + 1] = HEX_DIGIT_CODES[byte & 0x0f] as number;
+}
 
 export default class UUID {
   /**
@@ -55,15 +64,16 @@ export default class UUID {
    *
    * Every ingested log, span and metric data point takes one, so this is on
    * the telemetry hot path: the random bytes come from a block drawn once
-   * per TIME_ORDERED_IDS_PER_RANDOM_DRAW ids, the hex is read from a table
-   * and the timestamp prefix is written once per millisecond. The id is the
-   * same as it always was, byte for byte in its layout.
+   * per TIME_ORDERED_IDS_PER_RANDOM_DRAW ids, the hex digits from a table,
+   * the timestamp prefix is written once per millisecond and the id is
+   * built as one string. The id is the same as it always was, byte for byte
+   * in its layout.
    */
   public static generateTimeOrdered(): string {
     const now: number = Date.now();
 
     if (now !== prefixMillisecond) {
-      prefixText = UUID.formatTimestampPrefix(now);
+      UUID.writeTimestampPrefix(now);
       prefixMillisecond = now;
     }
 
@@ -79,31 +89,27 @@ export default class UUID {
     randomPoolOffset = at + RANDOM_BYTES_PER_TIME_ORDERED_ID;
 
     // Version 7 in the high nibble of byte 6; RFC 4122 variant on byte 8.
-    return (
-      prefixText +
-      "-" +
-      BYTE_TO_HEX[((pool[at] as number) & 0x0f) | 0x70] +
-      BYTE_TO_HEX[pool[at + 1] as number] +
-      "-" +
-      BYTE_TO_HEX[((pool[at + 2] as number) & 0x3f) | 0x80] +
-      BYTE_TO_HEX[pool[at + 3] as number] +
-      "-" +
-      BYTE_TO_HEX[pool[at + 4] as number] +
-      BYTE_TO_HEX[pool[at + 5] as number] +
-      BYTE_TO_HEX[pool[at + 6] as number] +
-      BYTE_TO_HEX[pool[at + 7] as number] +
-      BYTE_TO_HEX[pool[at + 8] as number] +
-      BYTE_TO_HEX[pool[at + 9] as number]
-    );
+    writeHexByte(14, ((pool[at] as number) & 0x0f) | 0x70);
+    writeHexByte(16, pool[at + 1] as number);
+    writeHexByte(19, ((pool[at + 2] as number) & 0x3f) | 0x80);
+    writeHexByte(21, pool[at + 3] as number);
+    writeHexByte(24, pool[at + 4] as number);
+    writeHexByte(26, pool[at + 5] as number);
+    writeHexByte(28, pool[at + 6] as number);
+    writeHexByte(30, pool[at + 7] as number);
+    writeHexByte(32, pool[at + 8] as number);
+    writeHexByte(34, pool[at + 9] as number);
+
+    return String.fromCharCode(...idCharCodes);
   }
 
   /*
-   * "xxxxxxxx-xxxx": the 48-bit timestamp, big-endian, in bytes 0..5. JS
-   * bitwise operators truncate to 32 bits, so the bytes are peeled off with
-   * division instead of shifts, into a Uint8Array as before (so a value
-   * outside 48 bits wraps exactly as it always did).
+   * The 48-bit timestamp, big-endian, as bytes 0..5 of the id
+   * ("xxxxxxxx-xxxx"). JS bitwise operators truncate to 32 bits, so the
+   * bytes are peeled off with division instead of shifts, into a Uint8Array
+   * as before (so a value outside 48 bits wraps exactly as it always did).
    */
-  private static formatTimestampPrefix(millisecond: number): string {
+  private static writeTimestampPrefix(millisecond: number): void {
     const bytes: Uint8Array = new Uint8Array(6);
     let timestamp: number = millisecond;
 
@@ -112,15 +118,12 @@ export default class UUID {
       timestamp = Math.floor(timestamp / 256);
     }
 
-    return (
-      (BYTE_TO_HEX[bytes[0] as number] as string) +
-      BYTE_TO_HEX[bytes[1] as number] +
-      BYTE_TO_HEX[bytes[2] as number] +
-      BYTE_TO_HEX[bytes[3] as number] +
-      "-" +
-      BYTE_TO_HEX[bytes[4] as number] +
-      BYTE_TO_HEX[bytes[5] as number]
-    );
+    writeHexByte(0, bytes[0] as number);
+    writeHexByte(2, bytes[1] as number);
+    writeHexByte(4, bytes[2] as number);
+    writeHexByte(6, bytes[3] as number);
+    writeHexByte(9, bytes[4] as number);
+    writeHexByte(11, bytes[5] as number);
   }
 
   private static fillRandomPool(): void {
