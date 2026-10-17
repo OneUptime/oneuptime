@@ -244,11 +244,14 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
            * ("· оплата / ежегодно"), or put the dot first on a line of its
            * own. The spaces between the pieces are real text, so a screen
            * reader reading the radio's description hears "$20 per user /
-           * month billed yearly", not "$20per user".
+           * month billed yearly", not "$20per user". text-sm on the block
+           * itself: its line is then as tall as the plan's name line, so
+           * "$20" sits level with "Growth" (in the dialog's 16px text it sat
+           * a few pixels lower).
            */}
           <span
             id={`${optionId}-price`}
-            className="block flex-shrink-0 sm:text-right"
+            className="block flex-shrink-0 text-sm sm:text-right"
           >
             <span className="text-sm font-semibold text-gray-900">
               {text.price}
