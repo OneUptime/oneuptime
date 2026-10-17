@@ -44,6 +44,8 @@ Wie zich voor het eerst aanmeldt, komt in de **Teams** van de provider, en die b
 > [!NOTE]
 > Op OneUptime Cloud meldt OneUptime iemand die zich voor het eerst met een SAML- of OIDC-provider van het project aanmeldt niet meteen aan, maar stuurt het een link per e-mail. De persoon opent die, bevestigt dat de single sign-on van het project hem mag aanmelden en gaat verder met aanmelden. De link is 24 uur geldig. Dit gebeurt één keer per project, en opnieuw als iemand het project verlaat en terugkomt. Zelf gehoste installaties melden mensen direct aan.
 
+Op OneUptime Cloud neemt iemand die via SSO bij het project komt een plaats in, net als iemand die u uitnodigt. Als uw abonnement een vast aantal plaatsen heeft en ze allemaal bezet zijn, kunnen nieuwe mensen pas via SSO deelnemen als er een plaats vrijkomt.
+
 ## SSO instellen
 
 U hebt toestemming nodig om SSO-providers toe te voegen — **Project Owner**, **Project Admin** of **Create Project SSO** — en op OneUptime Cloud het **Scale**-abonnement. Voor de kant van uw identiteitsprovider, zie de [handleidingen per identiteitsprovider](#handleidingen-per-identiteitsprovider).

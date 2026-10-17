@@ -660,7 +660,13 @@ describe("Inviting People", () => {
     );
 
     expect(service).toContain(
-      "createBy.props.currentPlan === PlanType.Free &&\n          numberOfMembers >= 1",
+      "export const ALLOWED_PEOPLE_IN_FREE_PLAN: number = 1;",
+    );
+    expect(service).toContain(
+      "isFreePlan: data.props.currentPlan === PlanType.Free,",
+    );
+    expect(service).toContain(
+      "if (data.limits.isFreePlan && data.people >= ALLOWED_PEOPLE_IN_FREE_PLAN) {\n      return Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN;",
     );
     expect(page).toContain("The Free plan has room for one person.");
   });

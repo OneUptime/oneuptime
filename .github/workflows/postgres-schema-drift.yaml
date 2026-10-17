@@ -906,6 +906,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ActiveMonitorLimitPostgres.test.ts --forceExit
 
+      # Clones every migrated table into an isolated schema and holds a
+      # project's other plan limits through the real services: its seats
+      # (a plan's seat limit and the Free plan's one person, for invitations
+      # and first SSO sign-ins alike) and the Free plan's status pages,
+      # subscribers, dashboards and escalation rules. Twelve creates made
+      # at the same moment add exactly as many records as the limit has
+      # room for (each INSERT is counted again in its own transaction under
+      # a per-project advisory lock). Billing is turned on inside the suite.
+      - name: Test a project's plan limits on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PLAN_LIMIT_TESTS: "true"
+          PLAN_LIMIT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PLAN_LIMIT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PLAN_LIMIT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProjectPlanLimitsPostgres.test.ts --forceExit
+
       # Clones the migrated McpOAuthClient / McpOAuthGrant / McpOAuthToken
       # tables into an isolated schema and rebuilds the token -> grant foreign
       # key from the migrated definition. Of several requests racing to claim
