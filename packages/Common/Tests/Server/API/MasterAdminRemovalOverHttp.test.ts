@@ -1091,7 +1091,7 @@ describe("removed on another app server", () => {
     users.get(people.former)!["isMasterAdmin"] = false;
 
     const startedAt: number = Date.now();
-    const now: jest.SpiedFunction<() => number> = jest.spyOn(Date, "now");
+    const now: ReturnType<typeof jest.spyOn> = jest.spyOn(Date, "now");
 
     try {
       // Within the minute, this server may still answer as it last read.

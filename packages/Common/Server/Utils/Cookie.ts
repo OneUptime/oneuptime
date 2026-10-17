@@ -252,8 +252,14 @@ export default class CookieUtil {
       );
     }
 
+    /*
+     * What the dashboards read to show a master admin's links and settings
+     * (UserUtil.isMasterAdmin); the server decides from the account itself.
+     * Taken away for everyone else, so a browser that last signed in as a
+     * master admin whose access was removed stops showing them at the
+     * session's next renewal, as the server already has.
+     */
     if (user.isMasterAdmin) {
-      // set user isMasterAdmin cookie
       CookieUtil.setCookie(
         res,
         CookieName.IsMasterAdmin,
@@ -263,6 +269,8 @@ export default class CookieUtil {
           httpOnly: false,
         },
       );
+    } else {
+      CookieUtil.removeCookie(res, CookieName.IsMasterAdmin);
     }
 
     if (user.profilePictureId) {
