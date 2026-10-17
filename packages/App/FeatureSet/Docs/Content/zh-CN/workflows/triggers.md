@@ -76,10 +76,10 @@ sequenceDiagram
     participant Caller as 你的工具
     participant OneUptime
     participant Runner as 工作流运行器
-    Caller->>OneUptime: 对 Webhook URL 发出 GET 或 POST
+    Caller->>OneUptime: 对 Webhook URL<br/>发出 GET 或 POST
     alt 工作流已开启
         OneUptime-->>Caller: 200，状态 Scheduled
-        OneUptime->>Runner: 将带有标头、查询参数和正文的运行加入队列
+        OneUptime->>Runner: 将带有标头、查询参数和<br/>正文的运行加入队列
         Runner->>Runner: 运行触发器之后的块
     else 工作流已关闭或已归档
         OneUptime-->>Caller: 400 及原因

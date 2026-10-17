@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as Equipo de guardia
     H->>O: incident_report.created
-    O->>O: Comprobar la firma, abrir un único incidente
-    opt Gravedad igual o superior a Avisar a la guardia por
-        O->>C: Ejecutar las políticas de guardia de la conexión
+    O->>O: Comprobar la firma,<br/>abrir un único incidente
+    opt Gravedad igual o<br/>superior a Avisar<br/>a la guardia por
+        O->>C: Ejecutar las<br/>políticas de guardia<br/>de la conexión
     end
     H->>O: incident_report.comment_added
-    O->>O: Añadir el comentario como nota privada
+    O->>O: Añadir el comentario<br/>como nota privada
     H->>O: incident_report.closed
     O->>O: Resolver el incidente
 ```

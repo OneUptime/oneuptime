@@ -29,7 +29,7 @@ sequenceDiagram
     O-->>J: 200 subito
     O->>O: Valutare i criteri
     Note over O: Ogni 30 secondi, cercare<br/>le richieste mancanti
-    O->>T: Incidente, se un criterio corrisponde
+    O->>T: Incidente, se un<br/>criterio corrisponde
 ```
 
 Usatelo per:

@@ -18,15 +18,15 @@ sequenceDiagram
     participant O as OneUptime
     participant P as プローブ
     participant B as ブラウザー
-    participant A as あなたの Web アプリ
-    O->>P: シークレットを<br/>埋め込んだスクリプト
-    loop ブラウザーと画面サイズごと
-        P->>B: スクリプトを実行
-        B->>A: ページの読み込み、<br/>クリック、入力
+    participant A as あなたの<br/>Web アプリ
+    O->>P: シークレットを<br/>埋め込んだ<br/>スクリプト
+    loop ブラウザーと<br/>画面サイズごと
+        P->>B: スクリプトを<br/>実行
+        B->>A: ページの<br/>読み込み、<br/>クリック、入力
         A-->>B: ページ
-        B-->>P: 結果、<br/>スクリーンショット、ログ
+        B-->>P: 結果、<br/>スクリーン<br/>ショット、ログ
     end
-    P->>O: 実行ごとに 1 つの応答
+    P->>O: 実行ごとに<br/>1 つの応答
     O->>O: 条件を評価
 ```
 

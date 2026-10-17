@@ -29,7 +29,7 @@ sequenceDiagram
     O-->>J: 200 meteen
     O->>O: De criteria toetsen
     Note over O: Elke 30 seconden controleren<br/>op ontbrekende verzoeken
-    O->>T: Incident, als een criterium overeenkomt
+    O->>T: Incident, als een<br/>criterium overeenkomt
 ```
 
 Gebruik hem om:

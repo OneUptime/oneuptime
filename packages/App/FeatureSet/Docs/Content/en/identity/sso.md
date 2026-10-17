@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Person
     participant O as OneUptime
     participant I as Identity provider
-    U->>O: Login with SSO, pick the project
-    O->>I: SAML request, to the Sign On URL
+    U->>O: Login with SSO,<br/>pick the project
+    O->>I: SAML request, to<br/>the Sign On URL
     I->>U: Sign-in page
     U->>I: Credentials and MFA
-    I->>O: Signed assertion, to the Reply URL
-    Note over O: Checks the signature and Issuer,<br/>reads the email from the Name ID
+    I->>O: Signed assertion,<br/>to the Reply URL
+    Note over O: Checks the signature<br/>and Issuer,<br/>reads the email<br/>from the Name ID
     O->>U: Signed in to the project
 ```
 

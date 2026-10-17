@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Uma conta do Twilio, com o Account SID e o Auth Token dela | Os números e as chamadas da política usam essa conta, e o Twilio cobra deles nela. |
 | O plano **Growth**, no OneUptime Cloud | Um projeto precisa dele para ter uma configuração do Twilio própria. |
-| Um servidor do OneUptime que o Twilio consiga alcançar, se você o hospeda | O Twilio envia cada chamada para `https://<your host>/notification/incoming-call/voice`. |
+| Um servidor do OneUptime que o Twilio consiga alcançar, se você o hospeda | O Twilio envia cada chamada para `https://<your host>/notification/incoming-call/voice`, e o resultado de cada toque para `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** ligado no projeto | O número de cada pessoa é verificado com um código enviado por SMS. |
 | Um número verificado para cada pessoa | Uma regra só faz tocar quem adicionou e verificou um número para chamadas recebidas no projeto. |
 
@@ -85,17 +85,17 @@ sequenceDiagram
     participant Caller as Quem liga
     participant Twilio
     participant OneUptime
-    participant Engineer as Pessoa de plantão
-    Caller->>Twilio: Disca o número da política
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Saudação, depois fazer tocar a pessoa da primeira regra
-    Twilio->>Engineer: Toca durante o tempo de toque da regra
-    Note over Twilio,Engineer: Ninguém atende a tempo
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Fazer tocar a pessoa da próxima regra
-    Twilio->>Engineer: Faz tocar a próxima pessoa
+    participant Engineer as Pessoa de<br/>plantão
+    Caller->>Twilio: Disca o número<br/>da política
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Saudação, depois<br/>fazer tocar<br/>a pessoa da<br/>primeira regra
+    Twilio->>Engineer: Toca durante<br/>o tempo de<br/>toque da regra
+    Note over Twilio,Engineer: Ninguém<br/>atende a tempo
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Fazer tocar<br/>a pessoa da<br/>próxima regra
+    Twilio->>Engineer: Faz tocar a<br/>próxima pessoa
     Engineer-->>Twilio: Atende
-    Twilio-->>Caller: Transfere a chamada
+    Twilio-->>Caller: Transfere<br/>a chamada
 ```
 
 Uma regra é pulada, sem tocar para ninguém, quando agora não há ninguém para chamar por ela: o agendamento dela não tem ninguém de plantão, a pessoa não tem um número verificado para chamadas recebidas neste projeto ou não é mais membro do projeto. Quando nenhuma regra tem alguém para tocar, quem liga ouve a **Mensagem de Ninguém Disponível**. Uma política desativada responde a toda chamada com "Sorry, this service is currently disabled." e desliga.

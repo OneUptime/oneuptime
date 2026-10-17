@@ -17,18 +17,18 @@ OneUptime अपने Teams एकीकरण के लिए एक Azure Bo
 
 ```mermaid title="किसी प्रोजेक्ट को Teams से जोड़ें, फिर उसका उपयोग करें"
 sequenceDiagram
-    participant B as एडमिन का ब्राउज़र
+    participant B as एडमिन का<br/>ब्राउज़र
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
-    B->>O: एडमिन सहमति प्रदान करें
-    O-->>B: Microsoft पर रीडायरेक्ट
-    B->>E: सहमति दें, फिर साइन इन करें
-    E-->>B: एडमिन सहमति कॉलबैक पर रीडायरेक्ट
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
+    B->>O: एडमिन सहमति<br/>प्रदान करें
+    O-->>B: Microsoft पर<br/>रीडायरेक्ट
+    B->>E: सहमति दें, फिर<br/>साइन इन करें
+    E-->>B: एडमिन सहमति<br/>कॉलबैक पर<br/>रीडायरेक्ट
     B->>O: कॉलबैक
-    O->>E: Microsoft Graph टोकन प्राप्त करें
-    Note over O,AB: कनेक्ट होने के बाद
-    O->>AB: अलर्ट कार्ड पोस्ट करें, आउटबाउंड HTTPS
+    O->>E: Microsoft<br/>Graph टोकन<br/>प्राप्त करें
+    Note over O,AB: कनेक्ट<br/>होने के बाद
+    O->>AB: अलर्ट कार्ड<br/>पोस्ट करें,<br/>आउटबाउंड HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 

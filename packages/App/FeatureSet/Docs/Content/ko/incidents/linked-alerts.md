@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as 나
     participant OneUptime
     participant Alerts as 알림
-    You->>OneUptime: 인시던트 선언, 알림 최대 50개
+    You->>OneUptime: 인시던트 선언,<br/>알림 최대 50개
     OneUptime->>OneUptime: 모든 알림과 내 권한 확인
-    OneUptime->>OneUptime: 인시던트를 만들고 개인정보 보호 규칙 실행
+    OneUptime->>OneUptime: 인시던트를 만들고<br/>개인정보 보호 규칙 실행
     OneUptime->>Alerts: 각 알림 연결
-    OneUptime-->>You: 알림이 이미 연결된 새 인시던트
-    OneUptime->>Alerts: 확인란이 선택되어 있으면 백그라운드에서 인지
+    OneUptime-->>You: 알림이 이미<br/>연결된 새 인시던트
+    OneUptime->>Alerts: 확인란이 선택되어 있으면<br/>백그라운드에서 인지
 ```
 
 제출하면 서버는 무엇이든 만들기 전에 알림을 확인합니다. 최대 50개이고, 각각이 이 프로젝트의 알림으로 볼 수 있도록 허용된 것이며, 알림을 인시던트에 연결할 권한이 있어야 합니다. 확인 중 하나라도 실패하면 요청이 거부되고 인시던트는 만들어지지 않습니다. 그래서 잘못된 알림 ID 때문에 인시던트 번호가 소모되는 일은 없습니다. 인시던트가 생기고 개인정보 보호 규칙이 실행된 뒤에(연결이 인시던트가 비공개인지 알 수 있도록), 요청이 반환되기 전에 모든 알림이 연결되므로, 인시던트의 **연결된 경고** 페이지에는 이미 목록이 나옵니다. 연결 하나가 실패해도(예를 들어 직전에 알림이 삭제된 경우) 인시던트는 선언되고 다른 알림도 연결됩니다.

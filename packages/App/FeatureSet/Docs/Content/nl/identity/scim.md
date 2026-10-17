@@ -69,11 +69,11 @@ Om de URL's opnieuw te zien, kiest u **SCIM-URL's bekijken** in de rij van de ve
 sequenceDiagram
     participant IdP as Identiteitsprovider
     participant O as OneUptime
-    IdP->>O: Gebruiker aanmaken, wanneer u hem toewijst
-    Note over O: Toegevoegd aan de standaardteams.<br/>Op OneUptime Cloud wordt een bestaand<br/>account in plaats daarvan uitgenodigd
-    IdP->>O: Gebruiker bijwerken, wanneer zijn profiel verandert
-    IdP->>O: Verwijderen of deactiveren, wanneer u de toewijzing intrekt
-    Note over O: Verwijderd uit de standaardteams
+    IdP->>O: Gebruiker aanmaken,<br/>wanneer u hem toewijst
+    Note over O: Toegevoegd aan de<br/>standaardteams.<br/>Op OneUptime Cloud<br/>wordt een bestaand<br/>account in plaats<br/>daarvan uitgenodigd
+    IdP->>O: Gebruiker bijwerken, wanneer<br/>zijn profiel verandert
+    IdP->>O: Verwijderen of<br/>deactiveren, wanneer u<br/>de toewijzing intrekt
+    Note over O: Verwijderd uit<br/>de standaardteams
 ```
 
 Wie al een OneUptime-account had, wordt op OneUptime Cloud lid zodra hij de uitnodiging accepteert (zie de [veelgestelde vragen](#veelgestelde-vragen)). Toegang via andere teams dan de standaardteams van de verbinding blijft ongemoeid.

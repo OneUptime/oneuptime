@@ -28,7 +28,7 @@ sequenceDiagram
     O->>S: 코드를 봇 토큰으로 교환
     Note over O,S: 연결된 후
     O->>S: 메시지 게시, 아웃바운드 HTTPS
-    S->>O: 이벤트, 클릭, 명령, 인바운드 HTTPS
+    S->>O: 이벤트, 클릭, 명령,<br/>인바운드 HTTPS
 ```
 
 - **아웃바운드**: OneUptime은 Slack의 Web API를 호출해 메시지를 게시하고, 채널을 만들고, 이미지를 업로드합니다.

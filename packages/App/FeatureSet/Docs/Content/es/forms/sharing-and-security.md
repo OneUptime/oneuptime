@@ -52,12 +52,12 @@ Una imagen en la descripción o el mensaje de agradecimiento del formulario se m
 
 ```mermaid title="Abrir un formulario y enviarlo"
 sequenceDiagram
-    participant V as Navegador de la persona visitante
+    participant V as Navegador de la<br/>persona visitante
     participant O as OneUptime
-    V->>O: Abrir el formulario, desde su propia página
+    V->>O: Abrir el formulario,<br/>desde su propia página
     O-->>V: Preguntas, plantillas y marca
     V->>O: Enviar las respuestas
-    O->>O: Cada comprobación de abajo, en orden
+    O->>O: Cada comprobación<br/>de abajo, en orden
     O-->>V: El número de lo que se creó
 ```
 

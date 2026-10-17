@@ -25,7 +25,7 @@ sequenceDiagram
     O->>I: 向登录 URL 发送 SAML 请求
     I->>U: 登录页面
     U->>I: 凭据和 MFA
-    I->>O: 向 Reply URL 发送已签名的断言
+    I->>O: 向 Reply URL<br/>发送已签名的断言
     Note over O: 检查签名和签发者，<br/>从 Name ID 读取电子邮件
     O->>U: 已登录到项目
 ```

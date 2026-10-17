@@ -22,7 +22,7 @@ sequenceDiagram
     S->>O: E-mail til monitorens adresse
     O->>O: Gem den på monitoren
     O->>O: Tjek kriterierne
-    O->>T: Advarsel eller hændelse, hvis et matcher
+    O->>T: Advarsel eller hændelse,<br/>hvis et matcher
     Note over O: Hvert 30. sekund, tjek<br/>kriterier med Email Received
 ```
 

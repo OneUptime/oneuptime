@@ -62,12 +62,12 @@ Sending fungerer med bare utgående tilgang. Leveringsoppdateringer, bekreftelse
 sequenceDiagram
     participant O as OneUptime
     participant T as Twilio
-    participant P as Telefonen til den som svarer
-    O->>T: Sender en SMS eller starter et anrop
+    participant P as Telefonen til<br/>den som svarer
+    O->>T: Sender en SMS eller<br/>starter et anrop
     T->>P: SMS eller taleanrop
-    T-->>O: Tilbakekall med leveringsstatus for SMS
+    T-->>O: Tilbakekall med<br/>leveringsstatus for SMS
     P->>T: Trykker 1 for å bekrefte
-    T-->>O: Tilbakekall med tasteinndata
+    T-->>O: Tilbakekall med<br/>tasteinndata
 ```
 
 En privat installasjon trenger DNS-oppslag og utgående HTTPS over TCP 443 til Twilio for å sende SMS og anrop. Twilio anbefaler å tillate utgående HTTPS til `*.twilio.com`, fordi API-adressene er dynamiske; se [Twilios IP-adresser](https://help.twilio.com/articles/115015934048-All-About-Twilio-IP-Addresses). Bruk dette på utgående trafikk fra arbeidslasten til OneUptime-applikasjonen, også Kubernetes-NetworkPolicies og eksterne brannmurer.

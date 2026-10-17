@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | En Twilio-konto, med Account SID og Auth Token | Policyens numre og anrop går gjennom den, og Twilio fakturerer dem til den. |
 | Planen **Growth** på OneUptime Cloud | Et prosjekt trenger den for å få sin egen Twilio-konfigurasjon. |
-| En OneUptime-server som Twilio kan nå, hvis du drifter den selv | Twilio sender hvert anrop til `https://<your host>/notification/incoming-call/voice`. |
+| En OneUptime-server som Twilio kan nå, hvis du drifter den selv | Twilio sender hvert anrop til `https://<your host>/notification/incoming-call/voice`, og utfallet av hver oppringning til `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** slått på i prosjektet | Nummeret til hver ingeniør verifiseres med en kode som sendes på SMS. |
 | Et verifisert nummer for hver ingeniør | En regel ringer bare personer som har lagt til og verifisert et nummer for innkommende anrop i prosjektet. |
 
@@ -86,16 +86,16 @@ sequenceDiagram
     participant Twilio
     participant OneUptime
     participant Engineer as Ingeniør
-    Caller->>Twilio: Ringer policyens nummer
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Hilsen, ring deretter personen i første regel
-    Twilio->>Engineer: Ringer i regelens ringetid
-    Note over Twilio,Engineer: Ingen svarer i tide
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Ring personen i neste regel
-    Twilio->>Engineer: Ringer neste person
+    Caller->>Twilio: Ringer<br/>policyens<br/>nummer
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Hilsen, ring<br/>deretter<br/>personen i<br/>første regel
+    Twilio->>Engineer: Ringer i<br/>regelens<br/>ringetid
+    Note over Twilio,Engineer: Ingen svarer<br/>i tide
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Ring personen<br/>i neste regel
+    Twilio->>Engineer: Ringer<br/>neste person
     Engineer-->>Twilio: Svarer
-    Twilio-->>Caller: Setter innringeren over
+    Twilio-->>Caller: Setter<br/>innringeren<br/>over
 ```
 
 En regel hoppes over, uten at noen ringes, når ingen kan ringes for den akkurat nå: vaktplanen har ingen på vakt, personen har ikke noe verifisert nummer for innkommende anrop i dette prosjektet, eller personen er ikke lenger medlem av prosjektet. Når ingen regel har noen å ringe, hører innringeren **Melding ved ingen tilgjengelige**. En deaktivert policy besvarer hvert anrop med "Sorry, this service is currently disabled." og legger på.

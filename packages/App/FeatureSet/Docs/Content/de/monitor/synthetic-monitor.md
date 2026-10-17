@@ -19,15 +19,15 @@ sequenceDiagram
     participant P as Sonde
     participant B as Browser
     participant A as Ihre Web-App
-    O->>P: Skript, Geheimnisse eingesetzt
-    loop Jeder Browser und jede Bildschirmgröße
-        P->>B: Das Skript ausführen
-        B->>A: Seiten laden, klicken, tippen
+    O->>P: Skript,<br/>Geheimnisse<br/>eingesetzt
+    loop Jeder Browser<br/>und jede<br/>Bildschirmgröße
+        P->>B: Das Skript<br/>ausführen
+        B->>A: Seiten laden,<br/>klicken, tippen
         A-->>B: Seiten
-        B-->>P: Ergebnis, Screenshots, Protokolle
+        B-->>P: Ergebnis,<br/>Screenshots,<br/>Protokolle
     end
-    P->>O: Eine Antwort pro Lauf
-    O->>O: Die Kriterien prüfen
+    P->>O: Eine Antwort<br/>pro Lauf
+    O->>O: Die Kriterien<br/>prüfen
 ```
 
 | Bildschirmtyp | Viewport |

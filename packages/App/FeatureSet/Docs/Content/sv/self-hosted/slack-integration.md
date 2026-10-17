@@ -23,12 +23,12 @@ sequenceDiagram
     B->>O: Connect with Slack
     O-->>B: Omdirigering till Slack
     B->>S: Tillåt appen
-    S-->>B: Omdirigering till /api/slack/auth
+    S-->>B: Omdirigering till<br/>/api/slack/auth
     B->>O: Engångskod
     O->>S: Byt koden mot en bot-token
     Note over O,S: När den är ansluten
-    O->>S: Publicera meddelanden, utgående HTTPS
-    S->>O: Händelser, klick, kommandon, inkommande HTTPS
+    O->>S: Publicera meddelanden,<br/>utgående HTTPS
+    S->>O: Händelser,<br/>klick, kommandon,<br/>inkommande HTTPS
 ```
 
 - **Utgående**: OneUptime anropar Slacks Web API för att publicera meddelanden, skapa kanaler och ladda upp bilder.

@@ -17,18 +17,18 @@ O OneUptime usa um Azure Bot para a integração com o Teams. O tráfego segue n
 
 ```mermaid title="Conectar um projeto ao Teams e depois usá-lo"
 sequenceDiagram
-    participant B as Navegador do administrador
+    participant B as Navegador do<br/>administrador
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
-    B->>O: Conceder consentimento de administrador
-    O-->>B: Redirecionamento para a Microsoft
-    B->>E: Consentir e depois entrar
-    E-->>B: Redirecionamento para o callback do consentimento de administrador
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
+    B->>O: Conceder<br/>consentimento<br/>de administrador
+    O-->>B: Redirecionamento<br/>para a Microsoft
+    B->>E: Consentir e<br/>depois entrar
+    E-->>B: Redirecionamento<br/>para o callback<br/>do consentimento<br/>de administrador
     B->>O: Callback
-    O->>E: Obter um token do Microsoft Graph
-    Note over O,AB: Depois de conectado
-    O->>AB: Publicar cartões de alerta, HTTPS de saída
+    O->>E: Obter um token<br/>do Microsoft<br/>Graph
+    Note over O,AB: Depois de<br/>conectado
+    O->>AB: Publicar cartões<br/>de alerta,<br/>HTTPS de saída
     AB->>O: POST /api/microsoft-bot/messages
 ```
 

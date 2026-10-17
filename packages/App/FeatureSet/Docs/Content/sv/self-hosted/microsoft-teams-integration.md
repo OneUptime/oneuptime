@@ -17,18 +17,18 @@ OneUptime använder en Azure Bot för Teams-integrationen. Trafiken går åt bå
 
 ```mermaid title="Anslut ett projekt till Teams och använd det sedan"
 sequenceDiagram
-    participant B as Administratörens webbläsare
+    participant B as Administratörens<br/>webbläsare
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
-    B->>O: Bevilja administratörssamtycke
-    O-->>B: Omdirigering till Microsoft
-    B->>E: Ge samtycke och logga sedan in
-    E-->>B: Omdirigering till callback för administratörssamtycke
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
+    B->>O: Bevilja<br/>administratörs-<br/>samtycke
+    O-->>B: Omdirigering<br/>till Microsoft
+    B->>E: Ge samtycke och<br/>logga sedan in
+    E-->>B: Omdirigering<br/>till<br/>callback för<br/>administratörs-<br/>samtycke
     B->>O: Callback
-    O->>E: Hämta en Microsoft Graph-token
-    Note over O,AB: När anslutningen är klar
-    O->>AB: Publicera larmkort, utgående HTTPS
+    O->>E: Hämta en<br/>Microsoft<br/>Graph-token
+    Note over O,AB: När anslutningen<br/>är klar
+    O->>AB: Publicera<br/>larmkort,<br/>utgående HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 

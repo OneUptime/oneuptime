@@ -69,10 +69,10 @@ Para ver as URLs de novo, selecione **Ver URLs do SCIM** na linha da conexão. *
 sequenceDiagram
     participant IdP as Provedor de identidade
     participant O as OneUptime
-    IdP->>O: Criar o usuário, quando você o atribui
-    Note over O: Adicionado às equipes padrão.<br/>No OneUptime Cloud, uma conta existente<br/>recebe um convite em vez disso
-    IdP->>O: Atualizar o usuário, quando o perfil dele muda
-    IdP->>O: Excluir ou desativar, quando você retira a atribuição
+    IdP->>O: Criar o usuário,<br/>quando você o atribui
+    Note over O: Adicionado às equipes padrão.<br/>No OneUptime Cloud,<br/>uma conta existente<br/>recebe um convite em vez disso
+    IdP->>O: Atualizar o usuário,<br/>quando o perfil dele muda
+    IdP->>O: Excluir ou desativar, quando<br/>você retira a atribuição
     Note over O: Removido das equipes padrão
 ```
 

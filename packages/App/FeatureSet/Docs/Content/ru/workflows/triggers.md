@@ -75,13 +75,13 @@ URL принимает и `GET`, и `POST`. Вызывающая сторона 
 sequenceDiagram
     participant Caller as Ваш инструмент
     participant OneUptime
-    participant Runner as Исполнитель рабочих процессов
-    Caller->>OneUptime: GET или POST на URL вебхука
-    alt Рабочий процесс включён
-        OneUptime-->>Caller: 200, статус Scheduled
-        OneUptime->>Runner: Ставит в очередь запуск с заголовками, параметрами и телом
-        Runner->>Runner: Выполняет блоки после триггера
-    else Рабочий процесс выключен или архивирован
+    participant Runner as Исполнитель<br/>рабочих процессов
+    Caller->>OneUptime: GET или POST<br/>на URL вебхука
+    alt Рабочий<br/>процесс включён
+        OneUptime-->>Caller: 200, статус<br/>Scheduled
+        OneUptime->>Runner: Ставит в<br/>очередь запуск<br/>с заголовками,<br/>параметрами и телом
+        Runner->>Runner: Выполняет блоки<br/>после триггера
+    else Рабочий процесс<br/>выключен<br/>или архивирован
         OneUptime-->>Caller: 400 с причиной
     end
 ```

@@ -151,14 +151,14 @@ Zwei Dinge sollten Sie beachten, wenn Sie das Übernahme-Timeout senken:
 sequenceDiagram
     participant O as OneUptime
     participant R as Runner
-    O->>O: Einen Job für diesen Runner einreihen
+    O->>O: Einen Job für diesen<br/>Runner einreihen
     R->>O: Den nächsten Job übernehmen
-    O-->>R: Der Job, mit einem Lease von 30 Sekunden
-    loop Alle 10 Sekunden, solange er läuft
+    O-->>R: Der Job, mit einem<br/>Lease von 30 Sekunden
+    loop Alle 10 Sekunden,<br/>solange er läuft
         R->>O: Das Lease erneuern
     end
     R->>O: Das Ergebnis melden
-    O->>O: Die Ausgabe aufzeichnen und den Lauf fortsetzen
+    O->>O: Die Ausgabe aufzeichnen<br/>und den Lauf fortsetzen
 ```
 
 Wenn ein Runner einen Job übernimmt, erhält er ein kurzes Lease (standardmäßig 30 Sekunden). Solange der Schritt läuft, erneuert der Runner das Lease alle 10 Sekunden. Stirbt der Runner oder verliert er mitten im Skript sein Netz, läuft das Lease ab, und der Worker markiert den Job als `TimedOut`, statt ewig zu warten.

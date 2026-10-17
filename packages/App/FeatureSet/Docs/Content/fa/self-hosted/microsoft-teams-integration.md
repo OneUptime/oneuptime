@@ -19,16 +19,16 @@ OneUptime برای یکپارچه‌سازی با Teams از یک Azure Bot اس
 sequenceDiagram
     participant B as مرورگر مدیر
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
     B->>O: اعطای رضایت مدیر
-    O-->>B: هدایت به Microsoft
-    B->>E: رضایت دادن و سپس ورود
-    E-->>B: هدایت به فراخوان بازگشتی رضایت مدیر
+    O-->>B: هدایت به<br/>Microsoft
+    B->>E: رضایت دادن<br/>و سپس ورود
+    E-->>B: هدایت به<br/>فراخوان بازگشتی<br/>رضایت مدیر
     B->>O: فراخوان بازگشتی
-    O->>E: گرفتن توکن Microsoft Graph
+    O->>E: گرفتن توکن<br/>Microsoft Graph
     Note over O,AB: پس از اتصال
-    O->>AB: انتشار کارت‌های هشدار، HTTPS خروجی
+    O->>AB: انتشار<br/>کارت‌های هشدار،<br/>HTTPS خروجی
     AB->>O: POST /api/microsoft-bot/messages
 ```
 

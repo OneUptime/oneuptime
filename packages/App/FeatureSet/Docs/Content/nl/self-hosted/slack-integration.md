@@ -23,12 +23,12 @@ sequenceDiagram
     B->>O: Connect with Slack
     O-->>B: Doorsturen naar Slack
     B->>S: De app toestaan
-    S-->>B: Doorsturen naar /api/slack/auth
+    S-->>B: Doorsturen naar<br/>/api/slack/auth
     B->>O: Eenmalige code
-    O->>S: Code inwisselen voor een bottoken
+    O->>S: Code inwisselen<br/>voor een bottoken
     Note over O,S: Eenmaal verbonden
-    O->>S: Berichten plaatsen, uitgaand HTTPS
-    S->>O: Events, klikken, opdrachten, inkomend HTTPS
+    O->>S: Berichten plaatsen,<br/>uitgaand HTTPS
+    S->>O: Events, klikken,<br/>opdrachten, inkomend HTTPS
 ```
 
 - **Uitgaand**: OneUptime roept de Web API van Slack aan om berichten te plaatsen, kanalen aan te maken en afbeeldingen te uploaden.

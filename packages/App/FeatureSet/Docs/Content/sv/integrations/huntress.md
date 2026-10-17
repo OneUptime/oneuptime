@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as Jourteam
     H->>O: incident_report.created
-    O->>O: Kontrollera signaturen, öppna en enda incident
-    opt Allvarlighetsgrad på eller över Larma jouren för
-        O->>C: Kör anslutningens jourpolicyer
+    O->>O: Kontrollera signaturen,<br/>öppna en enda incident
+    opt Allvarlighetsgrad på eller<br/>över Larma jouren för
+        O->>C: Kör anslutningens<br/>jourpolicyer
     end
     H->>O: incident_report.comment_added
-    O->>O: Lägg till kommentaren som en privat anteckning
+    O->>O: Lägg till kommentaren<br/>som en privat anteckning
     H->>O: incident_report.closed
     O->>O: Lös incidenten
 ```

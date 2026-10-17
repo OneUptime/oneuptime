@@ -29,7 +29,7 @@ sequenceDiagram
     O-->>J: 200 al instante
     O->>O: Evaluar los criterios
     Note over O: Cada 30 segundos, buscar<br/>solicitudes que faltan
-    O->>T: Incidente, si un criterio coincide
+    O->>T: Incidente, si un<br/>criterio coincide
 ```
 
 Úselo para:

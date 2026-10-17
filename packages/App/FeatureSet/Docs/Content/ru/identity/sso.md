@@ -20,13 +20,13 @@
 sequenceDiagram
     actor U as Человек
     participant O as OneUptime
-    participant I as Поставщик удостоверений
-    U->>O: Вход через SSO, выбор проекта
-    O->>I: Запрос SAML на URL входа
+    participant I as Поставщик<br/>удостоверений
+    U->>O: Вход через SSO,<br/>выбор проекта
+    O->>I: Запрос SAML<br/>на URL входа
     I->>U: Страница входа
     U->>I: Учётные данные и MFA
-    I->>O: Подписанное утверждение на Reply URL
-    Note over O: Проверяет подпись и издателя,<br/>читает адрес эл. почты из Name ID
+    I->>O: Подписанное<br/>утверждение<br/>на Reply URL
+    Note over O: Проверяет подпись<br/>и издателя,<br/>читает адрес эл.<br/>почты из Name ID
     O->>U: Вход в проект выполнен
 ```
 

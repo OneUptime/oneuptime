@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Voi
     participant OneUptime
     participant Alerts as Avvisi
-    You->>OneUptime: Dichiara incidente, con fino a 50 avvisi
-    OneUptime->>OneUptime: Controllare ogni avviso e i vostri permessi
-    OneUptime->>OneUptime: Creare l'incidente ed eseguire le sue regole di privacy
+    You->>OneUptime: Dichiara incidente,<br/>con fino a 50 avvisi
+    OneUptime->>OneUptime: Controllare ogni avviso<br/>e i vostri permessi
+    OneUptime->>OneUptime: Creare l'incidente ed eseguire<br/>le sue regole di privacy
     OneUptime->>Alerts: Collegare ogni avviso
-    OneUptime-->>You: Il nuovo incidente, avvisi già collegati
-    OneUptime->>Alerts: Riconoscerli in background, se la casella è spuntata
+    OneUptime-->>You: Il nuovo incidente,<br/>avvisi già collegati
+    OneUptime->>Alerts: Riconoscerli in background,<br/>se la casella è spuntata
 ```
 
 Quando inviate, il server controlla gli avvisi prima di creare qualsiasi cosa: al massimo 50, ciascuno un avviso di questo progetto che avete il permesso di vedere, e dovete avere il permesso di collegare avvisi agli incidenti. Se un controllo fallisce, la richiesta viene rifiutata e non viene creato alcun incidente — così un id di avviso sbagliato non consuma mai un numero di incidente. Una volta che l'incidente esiste — e una volta eseguite le sue regole di privacy, così i collegamenti sanno se è privato — ogni avviso viene collegato prima che la richiesta risponda, così la pagina **Avvisi collegati** dell'incidente li elenca già. Se un singolo collegamento fallisce — ad esempio perché l'avviso è stato eliminato un attimo prima — l'incidente viene comunque dichiarato e gli altri avvisi vengono comunque collegati.

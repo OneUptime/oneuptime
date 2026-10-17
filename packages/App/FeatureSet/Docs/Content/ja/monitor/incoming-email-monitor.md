@@ -19,11 +19,11 @@ sequenceDiagram
     participant S as あなたのシステム
     participant O as OneUptime
     participant T as オンコールチーム
-    S->>O: モニターのアドレスへのメール
+    S->>O: モニターの<br/>アドレスへのメール
     O->>O: モニターに保存
     O->>O: 条件をチェック
-    O->>T: 一致したらアラートまたはインシデント
-    Note over O: 30 秒ごとに<br/>Email Received の条件をチェック
+    O->>T: 一致したらアラートまたは<br/>インシデント
+    Note over O: 30 秒ごとに<br/>Email Received<br/>の条件をチェック
 ```
 
 1. 受信メール モニターを作成すると、OneUptime はそのモニターに固有のメールアドレスを割り当てます。

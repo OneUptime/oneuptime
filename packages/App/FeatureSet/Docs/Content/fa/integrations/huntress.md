@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as تیم آنکال
     H->>O: incident_report.created
-    O->>O: بررسی امضا، باز کردن یک حادثه
-    opt شدت برابر یا بالاتر از فراخوانی آنکال برای
-        O->>C: اجرای سیاست‌های آنکال اتصال
+    O->>O: بررسی امضا، باز<br/>کردن یک حادثه
+    opt شدت برابر یا بالاتر<br/>از فراخوانی آنکال برای
+        O->>C: اجرای سیاست‌های<br/>آنکال اتصال
     end
     H->>O: incident_report.comment_added
-    O->>O: افزودن نظر به عنوان یادداشت خصوصی
+    O->>O: افزودن نظر به<br/>عنوان یادداشت خصوصی
     H->>O: incident_report.closed
     O->>O: برطرف کردن حادثه
 ```

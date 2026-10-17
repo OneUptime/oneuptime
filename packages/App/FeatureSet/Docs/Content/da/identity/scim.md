@@ -69,10 +69,10 @@ For at se URL'erne igen skal du vælge **Vis SCIM-URL'er** i forbindelsens rækk
 sequenceDiagram
     participant IdP as Identitetsudbyder
     participant O as OneUptime
-    IdP->>O: Opret brugeren, når du tildeler vedkommende
-    Note over O: Føjet til standardteamene.<br/>På OneUptime Cloud bliver en eksisterende<br/>konto inviteret i stedet
-    IdP->>O: Opdater brugeren, når profilen ændres
-    IdP->>O: Slet eller deaktiver, når du fjerner tildelingen
+    IdP->>O: Opret brugeren, når du<br/>tildeler vedkommende
+    Note over O: Føjet til standardteamene.<br/>På OneUptime Cloud<br/>bliver en eksisterende<br/>konto inviteret i stedet
+    IdP->>O: Opdater brugeren,<br/>når profilen ændres
+    IdP->>O: Slet eller deaktiver, når<br/>du fjerner tildelingen
     Note over O: Fjernet fra standardteamene
 ```
 

@@ -18,10 +18,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonde
     participant A as Ihre APIs
-    O->>P: Skript, Geheimnisse eingesetzt
+    O->>P: Skript, Geheimnisse<br/>eingesetzt
     P->>A: Anfragen aus dem Skript
     A-->>P: Antworten
-    P->>O: Ergebnis, Protokolle, Zeit, Metriken
+    P->>O: Ergebnis, Protokolle,<br/>Zeit, Metriken
     O->>O: Die Kriterien prüfen
 ```
 

@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Un compte Twilio, avec son Account SID et son Auth Token | Les numéros et les appels de la politique passent par lui, et Twilio les lui facture. |
 | L'offre **Growth**, sur OneUptime Cloud | Un projet en a besoin pour sa propre configuration Twilio. |
-| Un serveur OneUptime que Twilio peut joindre, si vous l'hébergez vous-même | Twilio envoie chaque appel à `https://<your host>/notification/incoming-call/voice`. |
+| Un serveur OneUptime que Twilio peut joindre, si vous l'hébergez vous-même | Twilio envoie chaque appel à `https://<your host>/notification/incoming-call/voice`, et l'issue de chaque sonnerie à `https://<your host>/notification/incoming-call/dial-status/...`. |
 | Les **SMS** activés dans le projet | Le numéro de chaque personne est vérifié par un code envoyé par SMS. |
 | Un numéro vérifié pour chaque personne | Une règle ne fait sonner que les personnes qui ont ajouté et vérifié un numéro pour les appels entrants dans le projet. |
 
@@ -85,17 +85,17 @@ sequenceDiagram
     participant Caller as Appelant
     participant Twilio
     participant OneUptime
-    participant Engineer as Personne d'astreinte
-    Caller->>Twilio: Compose le numéro de la politique
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Message d'accueil, puis faire sonner la personne de la première règle
-    Twilio->>Engineer: Sonne pendant la durée de sonnerie de la règle
-    Note over Twilio,Engineer: Personne ne décroche à temps
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Faire sonner la personne de la règle suivante
-    Twilio->>Engineer: Fait sonner la personne suivante
+    participant Engineer as Personne<br/>d'astreinte
+    Caller->>Twilio: Compose le<br/>numéro de<br/>la politique
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Message<br/>d'accueil, puis<br/>faire sonner la<br/>personne de la<br/>première règle
+    Twilio->>Engineer: Sonne pendant<br/>la durée<br/>de sonnerie<br/>de la règle
+    Note over Twilio,Engineer: Personne ne<br/>décroche à temps
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Faire sonner la<br/>personne de la<br/>règle suivante
+    Twilio->>Engineer: Fait sonner<br/>la personne<br/>suivante
     Engineer-->>Twilio: Décroche
-    Twilio-->>Caller: Met l'appelant en relation
+    Twilio-->>Caller: Met l'appelant<br/>en relation
 ```
 
 Une règle est ignorée, sans rien faire sonner, quand personne ne peut être appelé pour elle à ce moment : son planning n'a personne d'astreinte, la personne n'a pas de numéro vérifié pour les appels entrants dans ce projet, ou elle n'est plus membre du projet. Quand aucune règle n'a quelqu'un à faire sonner, l'appelant entend le **Message lorsque personne n'est disponible**. Une politique désactivée répond à chaque appel par « Sorry, this service is currently disabled. » et raccroche.

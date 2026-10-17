@@ -96,16 +96,16 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 
 ```mermaid title="Antes de un paso que usa la variable"
 sequenceDiagram
-    participant Runner as Ejecutor de flujos de trabajo
+    participant Runner as Ejecutor de<br/>flujos de trabajo
     participant Variable as Variable OAuth 2.0
     participant IdP as Proveedor de identidad
     Runner->>Variable: Lee el token en caché
-    alt Caducado, o caduca en menos de un minuto
+    alt Caducado, o caduca<br/>en menos de un minuto
         Runner->>IdP: Solicitud de token
         IdP-->>Runner: Nuevo token de acceso
         Runner->>Variable: Guarda el token nuevo
     end
-    Runner->>Runner: Ejecuta el paso con un token que no ha caducado
+    Runner->>Runner: Ejecuta el paso<br/>con un token que<br/>no ha caducado
 ```
 
 - La primera vez que un flujo de trabajo usa la variable, OneUptime pide un token de acceso al endpoint de tokens de tu proveedor de identidad y lo guarda.

@@ -69,11 +69,11 @@ Para volver a ver las URL, selecciona **Ver URLs de SCIM** en la fila de la cone
 sequenceDiagram
     participant IdP as Proveedor de identidad
     participant O as OneUptime
-    IdP->>O: Crear el usuario, cuando lo asignas
-    Note over O: Añadido a los equipos predeterminados.<br/>En OneUptime Cloud, una cuenta existente<br/>recibe una invitación en su lugar
-    IdP->>O: Actualizar el usuario, cuando cambia su perfil
-    IdP->>O: Eliminar o desactivar, cuando retiras la asignación
-    Note over O: Quitado de los equipos predeterminados
+    IdP->>O: Crear el usuario,<br/>cuando lo asignas
+    Note over O: Añadido a los equipos<br/>predeterminados.<br/>En OneUptime Cloud,<br/>una cuenta existente<br/>recibe una invitación<br/>en su lugar
+    IdP->>O: Actualizar el usuario,<br/>cuando cambia su perfil
+    IdP->>O: Eliminar o desactivar,<br/>cuando retiras la asignación
+    Note over O: Quitado de los equipos<br/>predeterminados
 ```
 
 Quien ya tenía una cuenta de OneUptime se une cuando acepta la invitación en OneUptime Cloud (consulta las [preguntas frecuentes](#preguntas-frecuentes)). El acceso concedido por equipos ajenos a los equipos predeterminados de la conexión no se toca.

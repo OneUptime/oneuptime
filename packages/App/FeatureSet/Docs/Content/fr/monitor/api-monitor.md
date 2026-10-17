@@ -18,11 +18,11 @@ sequenceDiagram
     participant P as Sonde
     participant A as Votre API
     participant O as OneUptime
-    P->>A: Requête avec votre méthode, vos en-têtes et votre corps
-    A-->>P: Code de statut, en-têtes et corps
-    Note over P: Retente un échec, un 4xx ou 5xx,<br/>ou une réponse plus lente que 10 s
+    P->>A: Requête avec votre méthode,<br/>vos en-têtes et votre corps
+    A-->>P: Code de statut,<br/>en-têtes et corps
+    Note over P: Retente un échec,<br/>un 4xx ou 5xx,<br/>ou une réponse<br/>plus lente que 10 s
     P->>O: Résultat de la vérification
-    O->>O: Vérifier les critères, de haut en bas
+    O->>O: Vérifier les critères,<br/>de haut en bas
 ```
 
 Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, elle ne peut donc pas marquer votre API hors ligne.

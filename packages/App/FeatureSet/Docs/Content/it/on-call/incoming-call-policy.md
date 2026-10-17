@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Un account Twilio, con il suo Account SID e il suo Auth Token | I numeri e le chiamate della policy passano da lì, e Twilio li addebita a quell'account. |
 | Il piano **Growth**, su OneUptime Cloud | Un progetto ne ha bisogno per una propria configurazione Twilio. |
-| Un server OneUptime raggiungibile da Twilio, se lo ospiti tu | Twilio invia ogni chiamata a `https://<your host>/notification/incoming-call/voice`. |
+| Un server OneUptime raggiungibile da Twilio, se lo ospiti tu | Twilio invia ogni chiamata a `https://<your host>/notification/incoming-call/voice`, e l'esito di ogni squillo a `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** attivi nel progetto | Il numero di ogni persona viene verificato con un codice inviato via SMS. |
 | Un numero verificato per ogni persona | Una regola fa squillare solo chi ha aggiunto e verificato un numero per le chiamate in entrata nel progetto. |
 
@@ -85,17 +85,17 @@ sequenceDiagram
     participant Caller as Chi chiama
     participant Twilio
     participant OneUptime
-    participant Engineer as Persona reperibile
-    Caller->>Twilio: Compone il numero della policy
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Saluto, poi far squillare la persona della prima regola
-    Twilio->>Engineer: Squilla per la durata dello squillo della regola
-    Note over Twilio,Engineer: Nessuno risponde in tempo
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Far squillare la persona della regola successiva
-    Twilio->>Engineer: Fa squillare la persona successiva
+    participant Engineer as Persona<br/>reperibile
+    Caller->>Twilio: Compone<br/>il numero<br/>della policy
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Saluto, poi far<br/>squillare la<br/>persona della<br/>prima regola
+    Twilio->>Engineer: Squilla per<br/>la durata<br/>dello squillo<br/>della regola
+    Note over Twilio,Engineer: Nessuno risponde<br/>in tempo
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Far squillare<br/>la persona<br/>della regola<br/>successiva
+    Twilio->>Engineer: Fa squillare<br/>la persona<br/>successiva
     Engineer-->>Twilio: Risponde
-    Twilio-->>Caller: Mette in contatto chi chiama
+    Twilio-->>Caller: Mette in<br/>contatto<br/>chi chiama
 ```
 
 Una regola viene saltata, senza far squillare nessuno, quando in quel momento non c'è nessuno da chiamare per essa: la sua pianificazione non ha nessuno reperibile, la persona non ha un numero verificato per le chiamate in entrata in questo progetto, oppure non è più membro del progetto. Quando nessuna regola ha qualcuno da far squillare, chi chiama sente il **Messaggio di nessuno disponibile**. Una policy disattivata risponde a ogni chiamata con «Sorry, this service is currently disabled.» e riaggancia.

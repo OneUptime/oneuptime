@@ -25,7 +25,7 @@ sequenceDiagram
     participant J as आपका job
     participant O as OneUptime
     participant T as On-call टीम
-    J->>O: /heartbeat/KEY पर GET या POST
+    J->>O: /heartbeat/KEY<br/>पर GET या POST
     O-->>J: तुरंत 200
     O->>O: मानदंडों का मूल्यांकन
     Note over O: हर 30 सेकंड में<br/>गायब अनुरोधों की जाँच

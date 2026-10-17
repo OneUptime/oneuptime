@@ -151,14 +151,14 @@ Dos cosas a tener en cuenta si bajas el tiempo de espera de reclamación:
 sequenceDiagram
     participant O as OneUptime
     participant R as Runner
-    O->>O: Poner en cola un trabajo para este Runner
+    O->>O: Poner en cola un<br/>trabajo para este Runner
     R->>O: Reclamar el siguiente trabajo
-    O-->>R: El trabajo, con una concesión de 30 segundos
-    loop Cada 10 segundos mientras se ejecuta
+    O-->>R: El trabajo, con una<br/>concesión de 30 segundos
+    loop Cada 10 segundos<br/>mientras se ejecuta
         R->>O: Renovar la concesión
     end
     R->>O: Enviar el resultado
-    O->>O: Registrar la salida y continuar la ejecución
+    O->>O: Registrar la salida y<br/>continuar la ejecución
 ```
 
 Cuando un Runner reclama un trabajo, obtiene una concesión corta (30 segundos por defecto). Mientras el paso se ejecuta, el Runner renueva la concesión cada 10 segundos. Si el Runner muere o pierde la red a mitad de un script, la concesión vence y el Worker marca el trabajo como `TimedOut` en lugar de esperar para siempre.

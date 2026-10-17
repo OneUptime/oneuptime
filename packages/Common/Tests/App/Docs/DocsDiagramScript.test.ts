@@ -40,6 +40,12 @@ const SEQUENCE: string = "sequenceDiagram\n  Alice->>Bob: Hello Bob";
 // Does not parse.
 const BROKEN: string = "graph LR\n  A -->";
 const ENGLISH_NOTE: string = "This diagram could not be drawn.";
+// How the docs lay out a sequence diagram (Head.ejs).
+const SEQUENCE_LAYOUT: {
+  diagramMarginX: number;
+  actorMargin: number;
+  width: number;
+} = { diagramMarginX: 8, actorMargin: 20, width: 100 };
 
 type LocaleStrings = Record<string, Record<string, unknown>>;
 
@@ -367,7 +373,7 @@ describe("the docs' diagram script", () => {
     expect(page.notes()).toEqual([]);
   });
 
-  test("asks mermaid to draw no error graphic, in the page's theme", async () => {
+  test("asks mermaid to draw no error graphic, in the page's theme, with sequence diagrams laid out for the column", async () => {
     const page: DocsPage = await openDocsPage([FLOWCHART]);
 
     expect(page.initialized).toEqual([
@@ -375,8 +381,41 @@ describe("the docs' diagram script", () => {
         startOnLoad: false,
         suppressErrorRendering: true,
         theme: "default",
+        sequence: SEQUENCE_LAYOUT,
       },
     ]);
+  });
+
+  /*
+   * mermaid's own sequence spacing (50px margins, 50px between
+   * participants, boxes at least 150px wide) made three participants 650px
+   * wide before a word of their messages, past the article's 590px column:
+   * every sequence diagram of the docs scrolled sideways. The docs' layout
+   * is 8px margins, as a flowchart has, 20px between participants and 100px
+   * boxes - three participants in 356px, four in 476px.
+   */
+  test("lays out sequence diagrams so three participants fit the 590px column, on every draw", async () => {
+    const page: DocsPage = await openDocsPage([SEQUENCE]);
+
+    page.switchTheme(true);
+    await settle();
+
+    expect(page.initialized).toHaveLength(2);
+
+    for (const config of page.initialized) {
+      expect(config["sequence"]).toEqual(SEQUENCE_LAYOUT);
+    }
+
+    const layout: {
+      diagramMarginX: number;
+      actorMargin: number;
+      width: number;
+    } = SEQUENCE_LAYOUT;
+
+    expect(
+      2 * layout.diagramMarginX + 3 * layout.width + 2 * layout.actorMargin,
+    ).toBeLessThanOrEqual(590);
+    expect(page.initialized[1]?.["theme"]).toBe("dark");
   });
 
   test("shows a diagram that does not parse as its source, under one short note, and draws the rest", async () => {

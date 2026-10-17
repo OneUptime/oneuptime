@@ -96,16 +96,16 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 
 ```mermaid title="Перед шагом, который использует переменную"
 sequenceDiagram
-    participant Runner as Исполнитель рабочих процессов
+    participant Runner as Исполнитель<br/>рабочих процессов
     participant Variable as Переменная OAuth 2.0
-    participant IdP as Поставщик удостоверений
-    Runner->>Variable: Читает кешированный токен
-    alt Истёк или истекает в течение минуты
+    participant IdP as Поставщик<br/>удостоверений
+    Runner->>Variable: Читает<br/>кешированный токен
+    alt Истёк или истекает<br/>в течение минуты
         Runner->>IdP: Запрос токена
         IdP-->>Runner: Новый токен доступа
         Runner->>Variable: Сохраняет новый токен
     end
-    Runner->>Runner: Выполняет шаг с неистёкшим токеном
+    Runner->>Runner: Выполняет шаг с<br/>неистёкшим токеном
 ```
 
 - Когда рабочий процесс впервые использует переменную, OneUptime запрашивает токен доступа у конечной точки токенов вашего поставщика удостоверений и сохраняет его.

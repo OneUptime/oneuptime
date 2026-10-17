@@ -85,7 +85,7 @@ sequenceDiagram
     participant M as Servidor de e-mail
     O->>T: Pede um token de acesso
     T-->>O: Token de acesso
-    Note over O: Guardado em cache e renovado<br/>antes de expirar
+    Note over O: Guardado em<br/>cache e renovado<br/>antes de expirar
     O->>M: Faz login com o token
     O->>M: Envia o e-mail
 ```

@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as ऑन-कॉल टीम
     H->>O: incident_report.created
-    O->>O: हस्ताक्षर जांचें, एक घटना खोलें
-    opt गंभीरता ऑन-कॉल को पेज करें के बराबर या ऊपर
-        O->>C: कनेक्शन की ऑन-कॉल नीतियां चलाएं
+    O->>O: हस्ताक्षर जांचें,<br/>एक घटना खोलें
+    opt गंभीरता ऑन-कॉल को पेज<br/>करें के बराबर या ऊपर
+        O->>C: कनेक्शन की ऑन-कॉल<br/>नीतियां चलाएं
     end
     H->>O: incident_report.comment_added
-    O->>O: टिप्पणी को निजी नोट के रूप में जोड़ें
+    O->>O: टिप्पणी को निजी नोट<br/>के रूप में जोड़ें
     H->>O: incident_report.closed
     O->>O: घटना सुलझाएं
 ```

@@ -21,13 +21,13 @@ sequenceDiagram
     actor U as ユーザー
     participant O as OneUptime
     participant I as アイデンティティプロバイダー
-    U->>O: SSOでログイン、プロジェクトを選択
-    O->>I: サインオン URL への SAML リクエスト
+    U->>O: SSOでログイン、<br/>プロジェクトを選択
+    O->>I: サインオン URL への<br/>SAML リクエスト
     I->>U: サインインページ
     U->>I: 認証情報と MFA
-    I->>O: 署名付きアサーションを応答 URL へ
-    Note over O: 署名と発行者を確認し、<br/>Name ID からメールアドレスを読み取る
-    O->>U: プロジェクトにサインイン済み
+    I->>O: 署名付きアサーションを<br/>応答 URL へ
+    Note over O: 署名と発行者を確認し、<br/>Name ID から<br/>メールアドレスを読み取る
+    O->>U: プロジェクトに<br/>サインイン済み
 ```
 
 OneUptime は、IdP が送信するアサーションから次のものだけを読み取ります。

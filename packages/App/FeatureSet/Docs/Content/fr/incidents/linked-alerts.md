@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Vous
     participant OneUptime
     participant Alerts as Alertes
-    You->>OneUptime: Déclarer un incident, avec jusqu'à 50 alertes
-    OneUptime->>OneUptime: Vérifier chaque alerte et vos autorisations
-    OneUptime->>OneUptime: Créer l'incident et exécuter ses règles de confidentialité
+    You->>OneUptime: Déclarer un incident,<br/>avec jusqu'à 50 alertes
+    OneUptime->>OneUptime: Vérifier chaque alerte<br/>et vos autorisations
+    OneUptime->>OneUptime: Créer l'incident et exécuter<br/>ses règles de confidentialité
     OneUptime->>Alerts: Lier chaque alerte
-    OneUptime-->>You: Le nouvel incident, alertes déjà liées
-    OneUptime->>Alerts: Les prendre en compte en arrière-plan, si la case est cochée
+    OneUptime-->>You: Le nouvel incident,<br/>alertes déjà liées
+    OneUptime->>Alerts: Les prendre en compte<br/>en arrière-plan,<br/>si la case est cochée
 ```
 
 Quand vous envoyez le formulaire, le serveur vérifie les alertes avant de créer quoi que ce soit : 50 au plus, chacune une alerte de ce projet que vous avez le droit de voir, et vous devez avoir le droit de lier des alertes à des incidents. Si une vérification échoue, la requête est rejetée et aucun incident n'est créé — un mauvais identifiant d'alerte ne consomme donc jamais un numéro d'incident. Une fois l'incident créé — et ses règles de confidentialité exécutées, pour que les liens sachent s'il est privé — chaque alerte est liée avant que la requête ne réponde, si bien que la page **Alertes liées** de l'incident les liste déjà. Si un seul lien échoue — parce que l'alerte a été supprimée un instant plus tôt, par exemple — l'incident est tout de même déclaré et les autres alertes sont tout de même liées.

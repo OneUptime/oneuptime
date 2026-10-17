@@ -18,16 +18,16 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonda
     participant B as Navegador
-    participant A as Su aplicación web
-    O->>P: Script, secretos rellenados
-    loop Cada navegador y tamaño de pantalla
-        P->>B: Ejecutar el script
-        B->>A: Cargar páginas, hacer clic, escribir
+    participant A as Su aplicación<br/>web
+    O->>P: Script, secretos<br/>rellenados
+    loop Cada navegador<br/>y tamaño<br/>de pantalla
+        P->>B: Ejecutar<br/>el script
+        B->>A: Cargar<br/>páginas, hacer<br/>clic, escribir
         A-->>B: Páginas
-        B-->>P: Resultado, capturas, registros
+        B-->>P: Resultado,<br/>capturas,<br/>registros
     end
-    P->>O: Una respuesta por ejecución
-    O->>O: Evaluar los criterios
+    P->>O: Una respuesta<br/>por ejecución
+    O->>O: Evaluar los<br/>criterios
 ```
 
 | Tipo de pantalla | Ventana gráfica |

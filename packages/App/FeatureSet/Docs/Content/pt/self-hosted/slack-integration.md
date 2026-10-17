@@ -21,14 +21,14 @@ sequenceDiagram
     participant O as OneUptime
     participant S as Slack
     B->>O: Connect with Slack
-    O-->>B: Redirecionamento para o Slack
+    O-->>B: Redirecionamento<br/>para o Slack
     B->>S: Permitir o app
-    S-->>B: Redirecionamento para /api/slack/auth
+    S-->>B: Redirecionamento<br/>para /api/slack/auth
     B->>O: Código de uso único
-    O->>S: Trocar o código por um token de bot
+    O->>S: Trocar o código<br/>por um token de bot
     Note over O,S: Depois de conectado
-    O->>S: Publicar mensagens, HTTPS de saída
-    S->>O: Eventos, cliques, comandos, HTTPS de entrada
+    O->>S: Publicar mensagens,<br/>HTTPS de saída
+    S->>O: Eventos, cliques,<br/>comandos, HTTPS de entrada
 ```
 
 - **Saída**: o OneUptime chama a Web API do Slack para publicar mensagens, criar canais e enviar imagens.

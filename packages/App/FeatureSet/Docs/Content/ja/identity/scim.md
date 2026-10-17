@@ -71,8 +71,8 @@ sequenceDiagram
     participant O as OneUptime
     IdP->>O: ユーザーを割り当てたときに作成
     Note over O: デフォルトのチームに追加。<br/>OneUptime Cloud では既存の<br/>アカウントは招待される
-    IdP->>O: プロフィールが変わったときに更新
-    IdP->>O: 割り当てを解除したときに削除または無効化
+    IdP->>O: プロフィールが<br/>変わったときに更新
+    IdP->>O: 割り当てを解除したと<br/>きに削除または無効化
     Note over O: デフォルトのチームから削除
 ```
 
@@ -113,8 +113,8 @@ sequenceDiagram
     participant IdP as アイデンティティプロバイダー
     participant O as OneUptime
     IdP->>O: ユーザーを割り当てたときに作成
-    Note over O: プライベートユーザーが<br/>プライベートステータスページにアクセスできる
-    IdP->>O: 削除、または active を false に設定
+    Note over O: プライベートユーザーが<br/>プライベートステータスページに<br/>アクセスできる
+    IdP->>O: 削除、または active<br/>を false に設定
     Note over O: プライベートユーザーと<br/>そのセッションを削除
 ```
 

@@ -19,16 +19,16 @@ OneUptime 使用 Azure Bot 实现 Teams 集成。流量是双向的，而且两�
 sequenceDiagram
     participant B as 管理员的浏览器
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
     B->>O: 授予管理员许可
-    O-->>B: 重定向到 Microsoft
+    O-->>B: 重定向到<br/>Microsoft
     B->>E: 同意，然后登录
-    E-->>B: 重定向到管理员许可回调
+    E-->>B: 重定向到<br/>管理员许可回调
     B->>O: 回调
-    O->>E: 获取 Microsoft Graph 令牌
+    O->>E: 获取 Microsoft<br/>Graph 令牌
     Note over O,AB: 连接之后
-    O->>AB: 发布告警卡片，出站 HTTPS
+    O->>AB: 发布告警卡片，<br/>出站 HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
