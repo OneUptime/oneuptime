@@ -54,14 +54,21 @@ const CopyableButton: FunctionComponent<ComponentProps> = (
       {copiedToClipboard ? (
         translator.translateText("Copied to Clipboard")
       ) : (
+        /*
+         * The tooltip holds on to an element of its own: Icon is a function
+         * component that takes no ref, so handed the Icon the tooltip never
+         * showed (React warned "Function components cannot be given refs").
+         */
         <Tooltip text="Copy to Clipboard">
-          <Icon
-            className="h-4 w-4"
-            data-testid="copy-to-clipboard-icon"
-            icon={IconProp.Copy}
-            size={SizeProp.Small}
-            thick={ThickProp.Thick}
-          />
+          <div className="flex">
+            <Icon
+              className="h-4 w-4"
+              data-testid="copy-to-clipboard-icon"
+              icon={IconProp.Copy}
+              size={SizeProp.Small}
+              thick={ThickProp.Thick}
+            />
+          </div>
         </Tooltip>
       )}{" "}
     </div>

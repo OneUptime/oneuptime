@@ -2,12 +2,14 @@ import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import User from "../../Utils/User";
 import Detail, { DetailStyle } from "../Detail/Detail";
+import { isRecordIdField } from "../Detail/DetailRecordId";
+import { isRecordTimeField } from "../Detail/DetailRecordTime";
+import DetailSkeleton from "../Detail/DetailSkeleton";
 import DetailField from "../Detail/Field";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import Loader, { LoaderType } from "../Loader/Loader";
+import FieldType from "../Types/FieldType";
 import Field from "./Field";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { VeryLightGray } from "../../../Types/BrandColors";
 import Dictionary from "../../../Types/Dictionary";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONObject } from "../../../Types/JSON";
@@ -218,6 +220,47 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     return fieldsToSet;
   };
 
+  type GetSkeletonSpansFunction = () => Array<number | undefined>;
+
+  /*
+   * One skeleton cell for each field the grid will draw: not a field without
+   * a column (it draws nothing), nor the record's ID or its created and
+   * updated times (they go on the line under the fields).
+   */
+  const getSkeletonSpans: GetSkeletonSpansFunction = (): Array<
+    number | undefined
+  > => {
+    const spans: Array<number | undefined> = [];
+
+    for (const field of props.fields) {
+      const key: string | undefined = Object.keys(field.field || {})[0];
+
+      if (!key) {
+        continue;
+      }
+
+      const fieldLike: {
+        key: string;
+        fieldType?: FieldType | undefined;
+        getElement?: unknown;
+        showIdAsField?: boolean | undefined;
+      } = {
+        key: key,
+        fieldType: field.fieldType,
+        getElement: field.getElement,
+        showIdAsField: field.showIdAsField,
+      };
+
+      if (isRecordIdField(fieldLike) || isRecordTimeField(fieldLike)) {
+        continue;
+      }
+
+      spans.push(field.colSpan);
+    }
+
+    return spans;
+  };
+
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
     fetchGenerationRef.current++;
     const generation: number = fetchGenerationRef.current;
@@ -303,39 +346,40 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     }
   }, [props.modelId?.toString(), props.refresher, props.modelType]);
 
-  if (isLoading) {
+  /*
+   * A read of the record already on screen - after a save, or a field's own
+   * action asking for it - keeps it there until the new one lands, instead
+   * of blanking the card behind a loader and redrawing it. A first read, or
+   * a read of another record, shows the skeleton: the fields' rows in the
+   * shape they will fill, so the card does not jump when they arrive.
+   */
+  const isShowingThisRecord: boolean = Boolean(
+    item &&
+      props.modelId &&
+      item.id?.toString().toLowerCase() ===
+        props.modelId.toString().toLowerCase(),
+  );
+
+  if (error) {
     return (
-      <div
-        className="row text-center flex justify-center"
-        style={{
-          marginTop: "50px",
-          marginBottom: "50px",
-        }}
-      >
-        <Loader loaderType={LoaderType.Bar} color={VeryLightGray} size={200} />
+      <div data-testid="model-detail-error">
+        <ErrorMessage
+          message={error}
+          onRefreshClick={async () => {
+            await fetchItem();
+          }}
+        />
       </div>
     );
   }
 
-  if (error) {
+  if (isLoading && !isShowingThisRecord) {
     return (
-      <p
-        className="text-center color-light-Gray500"
-        style={{
-          marginTop: "50px",
-          marginBottom: "50px",
-        }}
-      >
-        {error} <br />{" "}
-        <span
-          onClick={async () => {
-            await fetchItem();
-          }}
-          className="underline primary-on-hover"
-        >
-          {translator.translateText("Refresh?")}
-        </span>
-      </p>
+      <DetailSkeleton
+        spans={getSkeletonSpans()}
+        columns={props.showDetailsInNumberOfColumns}
+        isCompact={props.style === DetailStyle.Compact}
+      />
     );
   }
 

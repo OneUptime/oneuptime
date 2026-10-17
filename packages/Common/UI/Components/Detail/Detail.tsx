@@ -16,6 +16,11 @@ import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import ObjectIDView from "../ObjectID/ObjectIDView";
 import FieldType from "../Types/FieldType";
 import BooleanValue from "./BooleanValue";
+import DetailFieldLabel from "./DetailFieldLabel";
+import {
+  getDetailCellClassNames,
+  getDetailGridClassName,
+} from "./DetailGridLayout";
 import DetailRecordLine from "./DetailRecordLine";
 import { getRecordIdText, isRecordIdField } from "./DetailRecordId";
 import {
@@ -23,9 +28,9 @@ import {
   isRecordTimeField,
   RecordTime,
 } from "./DetailRecordTime";
+import { getDetailCopyText, hasDetailValue } from "./DetailValue";
+import EmptyValue from "./EmptyValue";
 import Field from "./Field";
-import FieldLabelElement from "./FieldLabel";
-import PlaceholderText from "./PlaceholderText";
 import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import Color from "../../../Types/Color";
 import DatabaseProperty from "../../../Types/Database/DatabaseProperty";
@@ -36,8 +41,15 @@ import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export enum DetailStyle {
+  /*
+   * A detail card's fields: a muted name over each value, in rows that line
+   * up in every column count, with a hairline rule across the whole width
+   * between two rows (DetailGridLayout.ts).
+   */
   Default = "default",
+  // Bordered tiles. Nothing draws it today; kept for the API.
   Card = "card",
+  // Tighter rows. Nothing draws it today; kept for the API.
   Minimal = "minimal",
   /*
    * Dense label-over-value rows split by hairline dividers, for the narrow
@@ -46,6 +58,16 @@ export enum DetailStyle {
    */
   Compact = "compact",
 }
+
+/*
+ * A field's value under its name: the reading size, in the darkest grey, in
+ * the value's own weight - what the eye lands on. Long values wrap.
+ */
+export const DETAIL_VALUE_CLASS_NAME: string =
+  "mt-1 min-w-0 text-sm leading-6 text-gray-900";
+
+// A cell drawn on its own, with no grid placement to read.
+export const DETAIL_SINGLE_CELL_CLASS_NAME: string = "min-w-0";
 
 export interface ComponentProps<T extends GenericObject> {
   item: T;
@@ -111,15 +133,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     options: Array<DropdownOption | DropdownOptionGroup>,
     placeholder: string,
   ): ReactElement => {
-    if (!options) {
-      return (
-        <span className="text-gray-400 italic text-sm">
-          {translateString("No options found")}
-        </span>
-      );
-    }
-
-    const flatOptions: Array<DropdownOption> = options.flatMap(
+    const flatOptions: Array<DropdownOption> = (options || []).flatMap(
       (item: DropdownOption | DropdownOptionGroup) => {
         if ("options" in item && Array.isArray(item.options)) {
           return item.options;
@@ -135,9 +149,16 @@ const Detail: DetailFunction = <T extends GenericObject>(
     );
 
     if (!selectedOption) {
-      return (
-        <span className="text-gray-400 italic text-sm">{placeholder}</span>
-      );
+      /*
+       * A value the options no longer offer is still the record's value:
+       * shown as itself rather than as if nothing were set. Nothing set is
+       * the field's own words, or a dash - as every empty field is.
+       */
+      if (data !== undefined && data !== null && String(data) !== "") {
+        return <DropdownValueBadge label={String(data)} />;
+      }
+
+      return <EmptyValue placeholder={placeholder} />;
     }
 
     return (
@@ -166,9 +187,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
         : [];
 
     if (values.length === 0) {
-      return (
-        <span className="text-gray-400 italic text-sm">{placeholder}</span>
-      );
+      return <EmptyValue placeholder={placeholder} />;
     }
 
     const flatOptions: Array<DropdownOption> = (options || []).flatMap(
@@ -341,13 +360,21 @@ const Detail: DetailFunction = <T extends GenericObject>(
     return <ColorViewer value={color} />;
   };
 
-  type GetUSDCentsFieldFunction = (usdCents: number | null) => ReactElement;
+  type GetUSDCentsFieldFunction = (
+    usdCents: number | null,
+  ) => ReactElement | string;
 
+  /*
+   * An amount, read like the values around it: "$12.50 USD", the number in
+   * the value's weight and the currency after it in grey. It was a green box
+   * with a coin icon - louder than the card's name - and a zero balance
+   * showed a bare "0" outside it.
+   */
   const getUSDCentsField: GetUSDCentsFieldFunction = (
     usdCents: number | null,
-  ): ReactElement => {
-    if (usdCents === null) {
-      return <></>;
+  ): ReactElement | string => {
+    if (usdCents === null || !Number.isFinite(usdCents)) {
+      return "";
     }
 
     const formattedAmount: string = (usdCents / 100).toLocaleString("en-US", {
@@ -356,113 +383,130 @@ const Detail: DetailFunction = <T extends GenericObject>(
     });
 
     return (
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100">
-        <svg
-          className="w-4 h-4 text-emerald-600"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <span className="font-semibold text-emerald-700">
-          ${formattedAmount}
-        </span>
-        <span className="text-xs text-emerald-600 uppercase tracking-wide font-medium">
-          USD
-        </span>
-      </div>
+      <span
+        className="inline-flex items-baseline gap-1.5"
+        data-testid="detail-usd-value"
+      >
+        <span className="font-medium tabular-nums">${formattedAmount}</span>
+        <span className="text-xs font-medium text-gray-500">USD</span>
+      </span>
     );
   };
 
-  type GetMinutesFieldFunction = (minutes: number | null) => ReactElement;
+  type GetMinutesFieldFunction = (
+    minutes: number | null,
+  ) => ReactElement | string;
 
+  // "5 minutes", in the reader's words, read like the values around it.
   const getMinutesField: GetMinutesFieldFunction = (
     minutes: number | null,
-  ): ReactElement => {
-    if (minutes === null) {
-      return <></>;
+  ): ReactElement | string => {
+    if (minutes === null || !Number.isFinite(minutes)) {
+      return "";
     }
 
     return (
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100">
-        <svg
-          className="w-4 h-4 text-blue-600"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <TranslatedSentence
-          template={{ one: "{{count}} minute", other: "{{count}} minutes" }}
-          count={minutes}
-          slots={{
-            count: (
-              <span className="font-semibold text-blue-700">{minutes}</span>
-            ),
-          }}
-          renderText={(text: string): ReactElement => {
-            return (
-              <span className="text-xs text-blue-600 font-medium">
-                {text.trim()}
-              </span>
-            );
-          }}
-        />
-      </div>
+      <TranslatedSentence
+        template={{ one: "{{count}} minute", other: "{{count}} minutes" }}
+        count={minutes}
+        slots={{
+          count: <span className="font-medium tabular-nums">{minutes}</span>,
+        }}
+        renderText={(text: string): ReactElement => {
+          return <span>{text}</span>;
+        }}
+      />
     );
+  };
+
+  type GetDateValueFunction = (
+    value: unknown,
+    isDateOnly: boolean,
+  ) => ReactElement | string;
+
+  /*
+   * A date or a time, as plain text in the reader's time zone, in a <time>
+   * that gives it to a machine. It was bold, behind a calendar or a clock
+   * icon - the one value on a card drawn heavier than the others.
+   */
+  const getDateValue: GetDateValueFunction = (
+    value: unknown,
+    isDateOnly: boolean,
+  ): ReactElement | string => {
+    if (!value) {
+      return "";
+    }
+
+    const text: string =
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        value as string,
+        isDateOnly,
+      );
+
+    const date: Date = new Date(value as string);
+    const machineValue: string | undefined = Number.isNaN(date.getTime())
+      ? undefined
+      : date.toISOString();
+
+    return <time dateTime={machineValue}>{text}</time>;
   };
 
   type GetFieldValueContentFunction = (
     field: Field<T>,
     data: string | ReactElement,
+    copyText?: string | undefined,
   ) => ReactElement;
 
-  // The rendered value (or its placeholder), shared by every style.
+  /*
+   * The rendered value, shared by every style - or, for a field with no
+   * value, the field's own words for that, or a dash (EmptyValue).
+   *
+   * A long value - an email, a URL, a key - wraps inside its column and
+   * breaks where it has to (min-w-0 lets it shrink below its longest word).
+   * A copyable one keeps its copy button beside it, always in view: it was
+   * hidden until the row was hovered, so a keyboard, a touch screen or a
+   * reader who did not think to hover never saw it.
+   */
   const getFieldValueContent: GetFieldValueContentFunction = (
     field: Field<T>,
     data: string | ReactElement,
+    copyText?: string | undefined,
   ): ReactElement => {
-    return (
-      <>
-        {data && (
-          <div
-            className={`${field.contentClassName || ""} w-full ${
-              field.opts?.isCopyable
-                ? "flex items-center gap-3 group/copyable"
-                : ""
-            }`}
-          >
-            <div className="break-words leading-relaxed">{data}</div>
+    if (!hasDetailValue(data)) {
+      return <EmptyValue placeholder={field.placeholder} />;
+    }
 
-            {/*
-             * Hidden text and an ID bring their own copy control. A second
-             * one here was handed the rendered ID element rather than the ID,
-             * so it copied "[object Object]" (the project ID on an API key).
-             */}
-            {field.opts?.isCopyable &&
-              field.fieldType !== FieldType.HiddenText &&
-              field.fieldType !== FieldType.ObjectID && (
-                <div className="opacity-0 group-hover/copyable:opacity-100 transition-all duration-200 transform group-hover/copyable:translate-x-0 -translate-x-1">
-                  <CopyableButton textToBeCopied={data.toString()} />
-                </div>
-              )}
+    /*
+     * Hidden text and an ID bring their own copy control. A second one here
+     * was handed the rendered ID element rather than the ID, so it copied
+     * "[object Object]" (the project ID on an API key). It copies the value
+     * itself, never what was drawn for it.
+     */
+    const isCopyable: boolean =
+      Boolean(field.opts?.isCopyable) &&
+      field.fieldType !== FieldType.HiddenText &&
+      field.fieldType !== FieldType.ObjectID &&
+      Boolean(copyText);
+
+    return (
+      <div
+        className={`${field.contentClassName || ""} w-full min-w-0${
+          isCopyable ? " flex items-start gap-2" : ""
+        }`}
+      >
+        <div className="min-w-0 break-words">{data}</div>
+
+        {isCopyable ? (
+          <div
+            className="flex h-6 flex-none items-center"
+            data-testid="detail-field-copy"
+          >
+            <CopyableButton textToBeCopied={copyText || ""} />
           </div>
+        ) : (
+          <></>
         )}
-        {(data === null || data === undefined || data === "") &&
-          field.placeholder && <PlaceholderText text={field.placeholder} />}
-      </>
+      </div>
     );
   };
 
@@ -472,6 +516,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     data: string | ReactElement,
     colSpanClassName: string,
     alignClassName: string,
+    copyText: string | undefined,
   ) => ReactElement;
 
   /*
@@ -488,6 +533,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     data: string | ReactElement,
     colSpanClassName: string,
     alignClassName: string,
+    copyText: string | undefined,
   ): ReactElement => {
     const translatedTitle: string | undefined = translateString(field.title);
     const translatedDescription: string | ReactElement | undefined =
@@ -504,6 +550,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
           isSingleColumn ? " first:pt-0 last:pb-0" : ""
         }`}
         key={index}
+        data-testid="detail-field"
       >
         <div className="space-y-1">
           {translatedTitle && (
@@ -533,14 +580,21 @@ const Detail: DetailFunction = <T extends GenericObject>(
           )}
         </div>
 
-        <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
-          {getFieldValueContent(field, data)}
+        <div
+          className={`mt-1 text-sm text-gray-900 ${alignClassName}`}
+          data-testid="detail-field-value"
+        >
+          {getFieldValueContent(field, data, copyText)}
         </div>
       </div>
     );
   };
 
-  type GetFieldFunction = (field: Field<T>, index: number) => ReactElement;
+  type GetFieldFunction = (
+    field: Field<T>,
+    index: number,
+    cellClassName?: string | undefined,
+  ) => ReactElement;
 
   // Helper function to get nested property values using dot notation
   const getNestedValue: (obj: any, path: string) => any = (
@@ -555,6 +609,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
   const getField: GetFieldFunction = (
     field: Field<T>,
     index: number,
+    cellClassName?: string | undefined,
   ): ReactElement => {
     const fieldKey: keyof T | null = field.key;
 
@@ -575,34 +630,9 @@ const Detail: DetailFunction = <T extends GenericObject>(
       data = value;
     }
 
+    // No date is an empty value: the field's own words, or a dash.
     if (field.fieldType === FieldType.Date) {
-      if (data) {
-        const formattedDate: string =
-          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            data as string,
-            true,
-          );
-        data = (
-          <span className="inline-flex items-center gap-2 text-gray-700">
-            <svg
-              className="w-4 h-4 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            <span className="font-medium">{formattedDate}</span>
-          </span>
-        );
-      } else {
-        data = field.placeholder || "-";
-      }
+      data = getDateValue(data, true);
     }
 
     if (field.fieldType === FieldType.Boolean) {
@@ -610,33 +640,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     if (field.fieldType === FieldType.DateTime) {
-      if (data) {
-        const formattedDateTime: string =
-          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            data as string,
-            false,
-          );
-        data = (
-          <span className="inline-flex items-center gap-2 text-gray-700">
-            <svg
-              className="w-4 h-4 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span className="font-medium">{formattedDateTime}</span>
-          </span>
-        );
-      } else {
-        data = field.placeholder || "-";
-      }
+      data = getDateValue(data, false);
     }
 
     if (data && field.fieldType === FieldType.Color) {
@@ -645,7 +649,8 @@ const Detail: DetailFunction = <T extends GenericObject>(
       }
     }
 
-    if (data && field.fieldType === FieldType.USDCents) {
+    // Zero is an amount too: a balance of $0.00.
+    if (hasDetailValue(data) && field.fieldType === FieldType.USDCents) {
       let usdCents: number | null = null;
 
       if (typeof data === "string") {
@@ -659,7 +664,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
       data = getUSDCentsField(usdCents);
     }
 
-    if (data && field.fieldType === FieldType.Minutes) {
+    if (hasDetailValue(data) && field.fieldType === FieldType.Minutes) {
       let minutes: number | null = null;
 
       if (typeof data === "string") {
@@ -706,12 +711,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
         const url: string = URL.createObjectURL(blob);
 
+        // A plain frame: no shadow, and no zoom on hover.
         data = (
-          <div className="group/image relative inline-block">
-            <div className="overflow-hidden rounded-xl shadow-md border border-gray-200 bg-white p-1">
+          <div className="relative inline-block max-w-full">
+            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white p-1">
               <img
                 src={url}
-                className="rounded-lg object-cover transition-all duration-300 hover:scale-105"
+                className="max-w-full rounded-md object-contain"
                 style={{
                   height: "100px",
                 }}
@@ -904,7 +910,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
       className = "sm:col-span-" + field.colSpan;
     }
 
-    let alignClassName: string = "flex justify-left";
+    let alignClassName: string = "flex justify-start";
 
     if (field.alignItem === AlignItem.Right) {
       alignClassName = "flex justify-end";
@@ -943,57 +949,86 @@ const Detail: DetailFunction = <T extends GenericObject>(
         : getEntityLabel(data);
     }
 
+    // What a copy button beside this value copies (DetailValue.ts).
+    const copyText: string | undefined = getDetailCopyText(data, value);
+
     // Determine style-based classes
     const styleType: DetailStyle = props.style || DetailStyle.Default;
     const isCardStyle: boolean = styleType === DetailStyle.Card;
-    const isMinimalStyle: boolean = styleType === DetailStyle.Minimal;
 
     if (styleType === DetailStyle.Compact) {
-      return getCompactField(field, index, data, className, alignClassName);
+      return getCompactField(
+        field,
+        index,
+        data,
+        className,
+        alignClassName,
+        copyText,
+      );
     }
 
-    /* Container classes based on style - uses first:pt-0 to remove top padding from first field */
-    let containerClasses: string =
-      "group transition-all duration-200 ease-in-out";
+    /*
+     * The default style: the field's name over its value, in a cell whose
+     * padding, rule and gutter its place in the grid decides
+     * (DetailGridLayout.ts) - so the cells of one row share their top, and
+     * the rule above a row runs the whole row. No width of its own: the
+     * grid sizes the cell. It used to carry an inline width of 100/n
+     * percent, measured against its own grid column, so it filled 1/n of
+     * it.
+     */
+    if (styleType === DetailStyle.Default) {
+      return (
+        <div
+          className={cellClassName || DETAIL_SINGLE_CELL_CLASS_NAME}
+          key={index}
+          data-testid="detail-field"
+        >
+          <DetailFieldLabel
+            title={field.title}
+            description={field.description}
+            sideLink={field.sideLink}
+            alignClassName={alignClassName}
+            sizeClassName={field.fieldTitleSize}
+          />
 
-    if (isCardStyle) {
-      containerClasses +=
-        " bg-gradient-to-br from-white to-gray-50/50 rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md hover:border-gray-200";
-    } else if (isMinimalStyle) {
-      containerClasses +=
-        " py-3 first:pt-0 last:pb-0 border-b border-gray-50 last:border-b-0 hover:bg-gray-50/50 px-2 -mx-2 rounded-lg";
-    } else {
-      containerClasses +=
-        " py-5 first:pt-0 last:pb-0 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/30 px-3 -mx-3 rounded-lg";
+          <div
+            className={`${DETAIL_VALUE_CLASS_NAME} ${alignClassName}`}
+            data-testid="detail-field-value"
+          >
+            {getFieldValueContent(field, data, copyText)}
+          </div>
+        </div>
+      );
     }
+
+    /*
+     * The two styles nothing draws today keep their boxes - a tile each
+     * (Card), or tighter rows (Minimal) - with the default style's name and
+     * value, and the grid's own widths.
+     */
+    const containerClasses: string = isCardStyle
+      ? "bg-gradient-to-br from-white to-gray-50/50 rounded-xl border border-gray-100 p-4 shadow-sm"
+      : "py-3 first:pt-0 last:pb-0 border-b border-gray-50 last:border-b-0";
 
     return (
       <div
-        className={`${className} ${containerClasses}`}
+        className={`${className} min-w-0 ${containerClasses}`}
         key={index}
-        style={
-          props.showDetailsInNumberOfColumns
-            ? {
-                width: 100 / props.showDetailsInNumberOfColumns + "%",
-              }
-            : { width: "100%" }
-        }
+        data-testid="detail-field"
       >
-        <FieldLabelElement
-          size={field.fieldTitleSize}
+        <DetailFieldLabel
           title={field.title}
           description={field.description}
           sideLink={field.sideLink}
           alignClassName={alignClassName}
-          isCardStyle={isCardStyle}
+          sizeClassName={field.fieldTitleSize}
         />
 
         <div
-          className={`mt-3 text-sm leading-relaxed ${alignClassName} ${
-            isCardStyle ? "text-gray-800" : "text-gray-700"
-          }`}
+          className={`${DETAIL_VALUE_CLASS_NAME} ${alignClassName}`}
+          data-testid="detail-field-value"
         >
-          {getFieldValueContent(field, data)}
+          {getFieldValueContent(field, data, copyText)}
         </div>
       </div>
     );
@@ -1070,17 +1105,36 @@ const Detail: DetailFunction = <T extends GenericObject>(
         })
       : [];
 
+  /*
+   * The fields the grid draws: not the ones on the record line, and not one
+   * without a key, which draws nothing - a cell for it would leave a hole in
+   * a row.
+   */
   const gridFields: Array<Field<T>> = shownFields.filter((field: Field<T>) => {
-    return !isRecordLineField(field);
+    return !isRecordLineField(field) && Boolean(field.key);
   });
 
-  const gridClassName: string = `grid grid-cols-1 ${gapClasses} sm:grid-cols-${
-    props.showDetailsInNumberOfColumns || 1
-  } w-full`;
+  const isDefaultStyle: boolean = styleType === DetailStyle.Default;
+
+  // Each cell's place in the rows, at every width (DetailGridLayout.ts).
+  const cellClassNames: Array<string> = isDefaultStyle
+    ? getDetailCellClassNames(
+        gridFields.map((field: Field<T>): number | undefined => {
+          return field.colSpan;
+        }),
+        props.showDetailsInNumberOfColumns,
+      )
+    : [];
+
+  const gridClassName: string = isDefaultStyle
+    ? getDetailGridClassName(props.showDetailsInNumberOfColumns)
+    : `grid grid-cols-1 ${gapClasses} sm:grid-cols-${
+        props.showDetailsInNumberOfColumns || 1
+      } w-full`;
 
   const renderedFields: Array<ReactElement> = gridFields.map(
     (field: Field<T>, i: number) => {
-      return getField(field, i);
+      return getField(field, i, cellClassNames[i]);
     },
   );
 
@@ -1103,9 +1157,9 @@ const Detail: DetailFunction = <T extends GenericObject>(
   /*
    * With a record line the detail is the fields and the line under them, so
    * the id moves to the element that holds both. The grid inside keeps its
-   * own classes, and its rows their first/last trims; the line draws the one
-   * divider above it, in the rhythm of the rows: the compact style's rows
-   * are py-3 apart, the others' wider.
+   * own classes, and its last row no padding under it; the line draws the
+   * one divider above it, in the rhythm of the rows: the compact style's
+   * rows are py-3 apart, the others' wider.
    */
   const recordLineClassName: string =
     gridFields.length === 0

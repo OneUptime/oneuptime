@@ -6,22 +6,25 @@ export interface ComponentProps {
 }
 
 /*
- * The dashed chip a detail card shows in place of a value that is not set
- * ("No logo uploaded.").
+ * What a detail card shows in place of a value that is not set, in the
+ * field's own words ("No logo uploaded."): quiet grey text where the value
+ * would be.
  *
- * It wraps. It used to be one line whatever its length (whitespace-nowrap),
- * so a long one - "No subscriber timezones selected so far. Subscribers
- * will receive notifications with times shown in GMT, EST, PST, IST, ACT
- * timezones by default.", "No Custom SMTP Config selected so far for this
- * status page." - ran past the card's edge on a phone, and past a narrow
- * card's at any width. A short one still reads as the same one-line chip.
- * It is an inline block no wider than what it sits in (max-w-full), and as
- * a flex item (a detail value is a flex row) it may shrink below its
- * longest word (min-w-0), which break-words then breaks, so not even a long
- * URL in a placeholder can push it out.
+ * It was a dashed, grey-filled chip, which read as a button or a drop zone
+ * - something to press - rather than as "nothing here yet". The text is
+ * what tells the reader what is missing; the grey says it is not a value.
+ *
+ * It wraps, and breaks a word too long for its line: a long one - "No
+ * subscriber timezones selected so far. Subscribers will receive
+ * notifications with times shown in GMT, EST, PST, IST, ACT timezones by
+ * default." - used to run past the card's edge on a phone. It is an inline
+ * block no wider than what it sits in (max-w-full), and as a flex item (a
+ * detail value is a flex row) it may shrink below its longest word
+ * (min-w-0), which break-words then breaks, so not even a long URL in a
+ * placeholder can push it out.
  */
 export const PLACEHOLDER_TEXT_CLASS_NAME: string =
-  "inline-block max-w-full min-w-0 whitespace-normal break-words rounded-md border border-dashed border-gray-300 bg-gray-50 px-2 py-0.5 align-middle text-sm font-normal text-gray-500 select-none";
+  "inline-block max-w-full min-w-0 whitespace-normal break-words align-middle text-sm font-normal text-gray-500";
 
 const PlaceholderText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
