@@ -919,19 +919,28 @@ describe("Shared components under a foreign .hidden rule", () => {
     });
   });
 
-  describe("CardModelDetail documentation and demo buttons", () => {
-    const BUTTON_CHANGE: ClassChange = {
-      before: "hidden md:flex",
-      after: "max-md:hidden md:flex",
-    };
+  /*
+   * A detail card's documentation and demo links were buttons of their own,
+   * marked `max-md:hidden md:flex` (formerly `hidden md:flex`, which the
+   * foreign rule hid at every width). They are entries of the card's ⋯ menu
+   * now, as a table's are - and a menu entry carries no display class at
+   * all, so the rule has nothing to hide, at any width.
+   */
+  describe("CardModelDetail documentation and demo links", () => {
+    function moreOptionsButton(): HTMLElement {
+      return screen.getByRole("button", { name: "More options" });
+    }
 
-    function findButton(label: string): HTMLButtonElement | null {
+    function menuEntry(label: string): HTMLElement | null {
       return (
-        Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(
-          (button: HTMLButtonElement): boolean => {
-            return (button.textContent || "").trim() === label;
-          },
-        ) || null
+        screen
+          .queryAllByText(label)
+          .map((element: HTMLElement): HTMLElement | null => {
+            return element.closest('[role="menuitem"]');
+          })
+          .find((candidate: HTMLElement | null): boolean => {
+            return candidate !== null;
+          }) || null
       );
     }
 
@@ -962,7 +971,7 @@ describe("Shared components under a foreign .hidden rule", () => {
       );
 
       await waitFor(() => {
-        expect(findButton("Watch Demo")).not.toBeNull();
+        expect(moreOptionsButton()).toBeInTheDocument();
       });
     }
 
@@ -970,26 +979,33 @@ describe("Shared components under a foreign .hidden rule", () => {
       PermissionGate.clearPermissionPropsCache();
     });
 
-    test("are on screen from 768px up with the rule, and still off screen below it", async () => {
+    test("are entries of the ⋯ menu, on screen at every width with the rule", async () => {
       await renderCardModelDetail();
 
+      expectOnScreenAt(moreOptionsButton(), [
+        ...WIDTHS_BELOW_MD,
+        ...WIDTHS_FROM_MD,
+      ]);
+
+      fireEvent.click(moreOptionsButton());
+
       for (const label of ["View Documentation", "Watch Demo"]) {
-        expectOnScreenAt(findButton(label), WIDTHS_FROM_MD);
-        expectOffScreenAt(findButton(label), WIDTHS_BELOW_MD);
+        const entry: HTMLElement | null = menuEntry(label);
+
+        expect(entry).not.toBeNull();
+        expect(entry!.getAttribute("class") || "").not.toContain("md:flex");
+        expect(entry!.getAttribute("class") || "").not.toContain("hidden");
+        expectOnScreenAt(entry, [...WIDTHS_BELOW_MD, ...WIDTHS_FROM_MD]);
       }
 
       expect(elementsLostToForeignRule(document.body)).toEqual([]);
     });
 
-    test("control: the pre-fix button class is gone under the rule", async () => {
+    test("are no longer buttons of their own in the header", async () => {
       await renderCardModelDetail();
 
       for (const label of ["View Documentation", "Watch Demo"]) {
-        expectPreFixMarkupLostToForeignRule(
-          findButton(label)!,
-          BUTTON_CHANGE,
-          WIDTHS_FROM_MD,
-        );
+        expect(screen.queryByRole("button", { name: label })).toBeNull();
       }
     });
   });
