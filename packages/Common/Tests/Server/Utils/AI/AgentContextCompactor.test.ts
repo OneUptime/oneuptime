@@ -1,18 +1,23 @@
 import {
+  AgentContextBudget,
   buildElidedToolResult,
   buildSkippedToolCallText,
   buildWrapUpInstruction,
+  callWithContextOverflowRecovery,
   compactAgentContext,
   CompactionResult,
   CONTINUE_ANSWER_INSTRUCTION,
+  CONTEXT_OVERFLOW_SHRINK_FACTOR,
   DEFAULT_MAX_CONTEXT_CHARS,
   ELIDED_TOOL_RESULT_PREFIX,
+  isContextOverflowError,
   joinAnswerContinuation,
   MAX_ANSWER_CONTINUATIONS,
   MIN_KEEP_RECENT_TOOL_RESULTS,
   measureContextChars,
   measureMessageChars,
 } from "../../../../Server/Utils/AI/Chat/AgentContextCompactor";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import { LLMMessage } from "../../../../Server/Utils/LLM/LLMService";
 import { describe, expect, test } from "@jest/globals";
 
@@ -281,6 +286,144 @@ describe("compactAgentContext", () => {
       ).toBe(false);
     }
     expect(result.charsAfter).toBeLessThanOrEqual(DEFAULT_MAX_CONTEXT_CHARS);
+  });
+});
+
+/*
+ * The provider error a self-hosted vLLM model served at a 64k window
+ * returns, as LLMService wraps it — the failure this recovery exists for.
+ */
+const VLLM_OVERFLOW: string =
+  'OpenAICompatible API error: {"status_code":400,"error":{"type":"BadRequestError","code":"400","message":"You passed 57345 input tokens and requested 8192 output tokens. However, the model\'s context length is only 65536 tokens, resulting in a maximum input length of 57344 tokens. Please reduce the length of the input prompt. (parameter=input_tokens, value=57345)"}}';
+
+describe("isContextOverflowError", () => {
+  test("recognises how providers reject an oversized transcript", () => {
+    for (const message of [
+      VLLM_OVERFLOW,
+      "OpenAI API error: This model's maximum context length is 128000 tokens. However, your messages resulted in 130512 tokens.",
+      'Azure OpenAI API error: {"error":{"code":"context_length_exceeded"}}',
+      'Anthropic API error: {"type":"invalid_request_error","message":"prompt is too long: 210000 tokens > 200000 maximum"}',
+    ]) {
+      expect(isContextOverflowError(new BadDataException(message))).toBe(true);
+    }
+  });
+
+  test("leaves rate limits, other failures and our own elision note alone", () => {
+    for (const message of [
+      "token limited ... rate limit violated for vllm: [token limit exceeded (57801/54000, resets every 30s)]",
+      "OpenAICompatible API error: upstream timeout",
+      // A provider error can echo the request body, elided results included.
+      `OpenAICompatible API error: ${buildElidedToolResult('<tool_result citation="C1">x</tool_result>' + "x".repeat(500))}`,
+    ]) {
+      expect(isContextOverflowError(new BadDataException(message))).toBe(false);
+    }
+  });
+});
+
+describe("callWithContextOverflowRecovery", () => {
+  test("returns what the call returns, leaving transcript and budget alone", async () => {
+    const messages: Array<LLMMessage> = transcript(4, 1_000);
+    const before: string = JSON.stringify(messages);
+    const budget: AgentContextBudget = { maxChars: DEFAULT_MAX_CONTEXT_CHARS };
+
+    const result: string = await callWithContextOverflowRecovery({
+      messages,
+      budget,
+      call: async (): Promise<string> => {
+        return "answer";
+      },
+    });
+
+    expect(result).toBe("answer");
+    expect(budget.maxChars).toBe(DEFAULT_MAX_CONTEXT_CHARS);
+    expect(JSON.stringify(messages)).toBe(before);
+  });
+
+  test("on an overflow, lowers the budget below what was sent, compacts and retries", async () => {
+    const messages: Array<LLMMessage> = transcript(10, 10_000);
+    const sentChars: number = measureContextChars(messages);
+    const budget: AgentContextBudget = { maxChars: DEFAULT_MAX_CONTEXT_CHARS };
+    const sizesSent: Array<number> = [];
+
+    const result: string = await callWithContextOverflowRecovery({
+      messages,
+      budget,
+      call: async (): Promise<string> => {
+        sizesSent.push(measureContextChars(messages));
+        if (sizesSent.length === 1) {
+          throw new BadDataException(VLLM_OVERFLOW);
+        }
+        return "answer";
+      },
+    });
+
+    expect(result).toBe("answer");
+    expect(sizesSent).toHaveLength(2);
+    expect(budget.maxChars).toBe(
+      Math.floor(sentChars * CONTEXT_OVERFLOW_SHRINK_FACTOR),
+    );
+    expect(sizesSent[1]!).toBeLessThanOrEqual(budget.maxChars);
+    expect(messages[3]!.content.startsWith(ELIDED_TOOL_RESULT_PREFIX)).toBe(
+      true,
+    );
+  });
+
+  test("keeps shrinking while the model still rejects the transcript", async () => {
+    const messages: Array<LLMMessage> = transcript(10, 10_000);
+    let calls: number = 0;
+
+    await callWithContextOverflowRecovery({
+      messages,
+      budget: { maxChars: DEFAULT_MAX_CONTEXT_CHARS },
+      call: async (): Promise<void> => {
+        calls++;
+        if (measureContextChars(messages) > 40_000) {
+          throw new BadDataException(VLLM_OVERFLOW);
+        }
+      },
+    });
+
+    expect(calls).toBeGreaterThan(2);
+    expect(measureContextChars(messages)).toBeLessThanOrEqual(40_000);
+  });
+
+  test("rethrows an error that is not an overflow, without touching the transcript", async () => {
+    const messages: Array<LLMMessage> = transcript(10, 10_000);
+    const before: string = JSON.stringify(messages);
+    const failure: Error = new BadDataException("upstream timeout");
+
+    await expect(
+      callWithContextOverflowRecovery({
+        messages,
+        budget: { maxChars: DEFAULT_MAX_CONTEXT_CHARS },
+        call: async (): Promise<void> => {
+          throw failure;
+        },
+      }),
+    ).rejects.toBe(failure);
+    expect(JSON.stringify(messages)).toBe(before);
+  });
+
+  test("rethrows the overflow once nothing is left to elide", async () => {
+    // Only the newest results, which are never elided.
+    const messages: Array<LLMMessage> = transcript(
+      MIN_KEEP_RECENT_TOOL_RESULTS,
+      50_000,
+    );
+    const failure: Error = new BadDataException(VLLM_OVERFLOW);
+    let calls: number = 0;
+
+    await expect(
+      callWithContextOverflowRecovery({
+        messages,
+        budget: { maxChars: DEFAULT_MAX_CONTEXT_CHARS },
+        call: async (): Promise<void> => {
+          calls++;
+          throw failure;
+        },
+      }),
+    ).rejects.toBe(failure);
+    expect(calls).toBe(1);
   });
 });
 
