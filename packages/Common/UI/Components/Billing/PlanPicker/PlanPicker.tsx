@@ -190,7 +190,9 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
         } ${isLast ? "rounded-b-lg" : ""} ${
           isSelected
             ? "z-10 border-indigo-300 bg-indigo-50"
-            : "border-gray-200 bg-white hover:bg-gray-50"
+            : props.error
+              ? "border-red-300 bg-white hover:bg-gray-50"
+              : "border-gray-200 bg-white hover:bg-gray-50"
         }`}
       >
         <input
@@ -308,10 +310,12 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
       </div>
 
       {/*
-       * With an error ("Plan is required."), the plans are outlined in red
-       * and the error is written under them as the form's text fields write
-       * theirs (Input): the same red, the same gap, read with the group by a
-       * screen reader - so the dialog's two errors read as one kind of thing.
+       * With an error ("Plan is required."), the plans are drawn in the red
+       * border the form's text fields take (Input's border-red-300, which
+       * the dark theme softens too), and the error is written under them as
+       * those fields write theirs: the same red, the same gap, read with the
+       * group by a screen reader - so the dialog's two errors read as one
+       * kind of thing.
        */}
       <div
         role="radiogroup"
@@ -319,9 +323,7 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
         aria-invalid={props.error ? true : undefined}
         aria-describedby={props.error ? errorId : undefined}
         data-invalid={props.error ? "true" : undefined}
-        className={`mt-2 -space-y-px rounded-lg ${
-          props.error ? "ring-1 ring-red-300" : ""
-        }`}
+        className="mt-2 -space-y-px rounded-lg"
       >
         {props.plans.map(renderOption)}
       </div>

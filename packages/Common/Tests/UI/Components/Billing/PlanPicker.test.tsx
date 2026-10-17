@@ -375,7 +375,7 @@ describe("PlanPicker", () => {
     );
   });
 
-  it("reads the error with the group, and outlines the plans in red", () => {
+  it("reads the error with the group, and draws the plans in the red a text field takes", () => {
     render(<Controlled error="Plan is required." />);
 
     const group: HTMLElement = screen.getByRole("radiogroup", {
@@ -384,7 +384,12 @@ describe("PlanPicker", () => {
 
     expect(group).toHaveAccessibleDescription("Plan is required.");
     expect(group).toHaveAttribute("data-invalid", "true");
-    expect(group).toHaveClass("ring-red-300");
+
+    // Input's own error border, which the dark theme softens as well.
+    for (const planName of ["Free", "Growth", "Scale", "Enterprise"]) {
+      expect(row(planName)).toHaveClass("border-red-300");
+      expect(row(planName)).not.toHaveClass("border-gray-200");
+    }
   });
 
   it("writes its error as the dialog's text fields write theirs", () => {
@@ -411,7 +416,7 @@ describe("PlanPicker", () => {
   });
 
   it("has no red outline without an error", () => {
-    render(<Controlled />);
+    render(<Controlled initialValue="price_growth_year" />);
 
     const group: HTMLElement = screen.getByRole("radiogroup", {
       name: "Plan",
@@ -419,7 +424,13 @@ describe("PlanPicker", () => {
 
     expect(group).not.toHaveAttribute("data-invalid");
     expect(group).not.toHaveAttribute("aria-describedby");
-    expect(group.className).not.toContain("red");
+
+    for (const planName of ["Free", "Growth", "Scale", "Enterprise"]) {
+      expect(row(planName).className).not.toContain("red");
+    }
+
+    expect(row("Free")).toHaveClass("border-gray-200");
+    expect(row("Growth")).toHaveClass("border-indigo-300");
   });
 
   it("keeps each piece of a price whole, with how it is billed on a line of its own", () => {
