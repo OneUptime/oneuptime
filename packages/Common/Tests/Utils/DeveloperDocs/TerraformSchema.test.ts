@@ -141,6 +141,7 @@ describe("a workflow's attributes", () => {
       "labels",
       "webhook_secret_key",
       "incoming_email_secret_key",
+      "webhook_signing_secret",
     ]);
   });
 
@@ -175,6 +176,41 @@ describe("a workflow's attributes", () => {
       expect(descriptor.secretKind).toBe(TerraformSecretKind.Secret);
       expect(descriptor.inCreateSchema).toBe(false);
       expect(descriptor.inUpdateSchema).toBe(true);
+    }
+  });
+
+  /*
+   * The Huntress trigger's signing secret is the configuration's to give, as
+   * a vCenter's password is: write-only (nobody reads it back, so the
+   * provider keeps the value it was given) and a secret. Whether one is
+   * saved is the server's to say, so, like is_v_center_password_set, it is
+   * no attribute a configuration sets: the provider only reads it.
+   */
+  test("the signing secret is a write-only secret set on create or update; whether one is saved is not configuration", () => {
+    const secret: TerraformAttributeDescriptor = attribute(
+      Workflow,
+      "webhook_signing_secret",
+    );
+
+    expect(secret.secretKind).toBe(TerraformSecretKind.Secret);
+    expect(secret.readPermissions).toEqual([]);
+    expect(secret.inCreateSchema).toBe(true);
+    expect(secret.inUpdateSchema).toBe(true);
+    expect(secret.isRequired).toBe(false);
+
+    // isWebhookSigningSecretSet, isVCenterPasswordSet: the server's flags.
+    const savedFlag: RegExp = /^is\w+Set$/;
+
+    for (const modelType of [Workflow, VMwareVCenter]) {
+      expect(
+        getTerraformAttributes(modelType)
+          .map((descriptor: TerraformAttributeDescriptor): string => {
+            return descriptor.columnName;
+          })
+          .filter((columnName: string): boolean => {
+            return savedFlag.test(columnName);
+          }),
+      ).toEqual([]);
     }
   });
 

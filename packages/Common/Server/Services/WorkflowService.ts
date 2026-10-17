@@ -74,15 +74,18 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * The webhook signing secret is checked when it is written, so what is
-   * stored is a secret a request can be verified with, and
-   * isWebhookSigningSecretSet follows it whatever the request says: the
-   * secret is write-only, and the dashboard reads this instead.
+   * stored is a secret a request can be verified with. Whether one is saved
+   * (isWebhookSigningSecretSet) is the server's to say, never the
+   * request's: what a request sends for it is dropped here, and the server
+   * writes it from the secret once every check has passed
+   * (onCreatePermitted). The secret is write-only, and the dashboard reads
+   * the flag instead.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
+    await super.onBeforeCreate(createBy);
 
     const data: Model = createBy.data;
     const secret: string | null = Service.readWebhookSigningSecret(
@@ -95,15 +98,34 @@ export class Service extends ProjectReferencesService<Model> {
       delete data.webhookSigningSecret;
     }
 
-    data.isWebhookSigningSecretSet = Boolean(secret);
+    // Only the secret decides this, never the request.
+    delete data.isWebhookSigningSecretSet;
 
-    return onCreate;
+    return { createBy: createBy, carryForward: null };
+  }
+
+  /*
+   * Whether the workflow is created with a signing secret, written as it
+   * is created. Nobody may write the flag (its create list is empty), so it
+   * is written here, after the caller's column checks, rather than in
+   * onBeforeCreate, where it would be held against them and refuse every
+   * create. onBeforeCreate left the secret on the record only if one is
+   * saved.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const data: Model = onCreate.createBy.data;
+
+    data.isWebhookSigningSecretSet = Boolean(data.webhookSigningSecret);
   }
 
   /*
    * On an update, an empty secret keeps the saved one - a form never has
-   * the saved one to send back - and a new one clears the refusal the old
-   * one (or none) left, once it is written (onUpdateSuccess).
+   * the saved one to send back - and a new one is marked saved in the same
+   * write (onUpdatePermitted) and clears the refusal the old one (or none)
+   * left, once it is written (onUpdateSuccess).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -137,7 +159,6 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (secret) {
         data["webhookSigningSecret"] = secret;
-        data["isWebhookSigningSecretSet"] = true;
         signingSecretSaved = true;
       } else {
         delete data["webhookSigningSecret"];
@@ -158,6 +179,26 @@ export class Service extends ProjectReferencesService<Model> {
     };
 
     return { updateBy: updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * A new signing secret is marked saved in the write that saves it, so
+   * the flag never says otherwise for a moment. As for a create, the flag is
+   * written once the caller's column checks have passed: nobody may write
+   * it. onBeforeUpdate left the secret in the write only if one is saved.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    if (data["webhookSigningSecret"]) {
+      data["isWebhookSigningSecretSet"] = true;
+    }
   }
 
   @CaptureSpan()

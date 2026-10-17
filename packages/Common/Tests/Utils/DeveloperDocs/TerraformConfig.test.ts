@@ -191,7 +191,7 @@ describe("a workflow as Terraform", () => {
         '  description = "Mails the ops team every Monday"',
         "  is_enabled  = true",
         "",
-        "  # Secrets are not shown here: webhook_secret_key, incoming_email_secret_key.",
+        "  # Secrets are not shown here: webhook_secret_key, incoming_email_secret_key, webhook_signing_secret.",
         "  # Terraform leaves them as they are in OneUptime.",
         "}",
         "",
@@ -243,7 +243,23 @@ describe("a workflow as Terraform", () => {
         title: "Incoming Email Secret Key",
         reason: TerraformOmissionReason.Secret,
       },
+      // The Huntress trigger's: write-only, so never on the page.
+      {
+        attributeName: "webhook_signing_secret",
+        title: "Webhook Signing Secret",
+        reason: TerraformOmissionReason.Secret,
+      },
     ]);
+  });
+
+  test("a workflow with a signing secret saved says nothing of it: only the secret decides that", () => {
+    const config: TerraformResourceConfig = configFor(
+      workflow({ isWebhookSigningSecretSet: true }),
+      Workflow,
+    );
+
+    expect(config.hcl).not.toContain("is_webhook_signing_secret_set");
+    expect(config.resourceHcl).not.toMatch(/^\s*webhook_signing_secret\s*=/m);
   });
 
   test("labels are a set of ids", () => {
