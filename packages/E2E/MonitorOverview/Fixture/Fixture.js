@@ -1108,7 +1108,7 @@ function probeStatusLogBody(data) {
               checkOn: CheckOn.DisconnectedProbes,
               filterType: isDown ? FilterType.GreaterThan : FilterType.EqualTo,
               message: isDown
-                ? "1 of 2 probes disconnected (Singapore (ap-southeast-1))."
+                ? "1 of 2 probes disconnected: Singapore (ap-southeast-1)."
                 : "0 of 2 probes disconnected.",
               met: true,
             },

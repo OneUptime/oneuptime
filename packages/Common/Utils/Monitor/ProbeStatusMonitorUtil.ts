@@ -7,6 +7,20 @@ import ProbeStatusMonitorResponse, {
   ProbeStatusMonitorProbe,
 } from "../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 
+/*
+ * How long a probe had gone without a heartbeat, in the largest whole unit
+ * that fits: 15 minutes, 3 hours, 2 days.
+ */
+export interface ProbeSilence {
+  unit: "minute" | "hour" | "day";
+  count: number;
+}
+
+const MINUTES_PER_HOUR: number = 60;
+const MINUTES_PER_DAY: number = 24 * MINUTES_PER_HOUR;
+// Up to two days reads in hours ("47 hours"), then in days.
+const SILENCE_IN_HOURS_UNTIL_MINUTES: number = 2 * MINUTES_PER_DAY;
+
 // The fields of a probe a Probe Status monitor is judged from.
 export interface ProbeStatusSource {
   id: string;
@@ -282,6 +296,46 @@ export default class ProbeStatusMonitorUtil {
         return probe.probeName;
       })
       .join(", ");
+  }
+
+  /*
+   * How long the probe had gone without a heartbeat when the evaluation
+   * ran: measured to checkedAt, never to now, so an incident's stored
+   * summary and an old Monitoring Logs row say what was true then, not
+   * how long ago that was. Null without a heartbeat, without a time to
+   * measure to, or when the heartbeat is after it (clock skew).
+   */
+  public static getSilence(data: {
+    lastAliveAt?: Date | undefined;
+    checkedAt?: Date | undefined;
+  }): ProbeSilence | null {
+    const lastAliveAt: number | undefined = data.lastAliveAt?.getTime();
+    const checkedAt: number | undefined = data.checkedAt?.getTime();
+
+    if (
+      lastAliveAt === undefined ||
+      checkedAt === undefined ||
+      !Number.isFinite(lastAliveAt) ||
+      !Number.isFinite(checkedAt) ||
+      // new Date(0) is what parseResponse hands back without a time.
+      checkedAt <= 0 ||
+      checkedAt < lastAliveAt
+    ) {
+      return null;
+    }
+
+    const minutes: number = Math.floor((checkedAt - lastAliveAt) / 60000);
+
+    if (minutes < MINUTES_PER_HOUR) {
+      // A heartbeat seconds before the check still reads "1 minute".
+      return { unit: "minute", count: Math.max(1, minutes) };
+    }
+
+    if (minutes < SILENCE_IN_HOURS_UNTIL_MINUTES) {
+      return { unit: "hour", count: Math.floor(minutes / MINUTES_PER_HOUR) };
+    }
+
+    return { unit: "day", count: Math.floor(minutes / MINUTES_PER_DAY) };
   }
 
   // "1 probe", "3 probes".

@@ -385,11 +385,35 @@ describe("the criteria a new Probe Status monitor starts with", () => {
     expect(incident.title).toBe(
       "Probe disconnected: {{disconnectedProbeNames}}",
     );
-    expect(incident.description).toContain("{{probeStatusSummary}}");
-    expect(incident.description).toContain("three minutes");
-    expect(incident.description).toContain("Probe health");
+    /*
+     * The probes first, then what it means, what it costs and what happens
+     * next - read by whoever is paged, so no jargon and no guesswork.
+     */
+    expect(incident.description).toBe(
+      "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.",
+    );
+    expect(incident.description).toBe(
+      MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
+    );
+    /*
+     * It names no monitor: the incident is the monitor's own, a renamed
+     * monitor would keep its old name here, and "every probe Probe health
+     * watches" read as a typo.
+     */
+    expect(incident.description).not.toContain("Probe health");
     // A licence can rename the product; the stored default never names it.
     expect(incident.description).not.toContain("OneUptime");
+  });
+
+  test("the criteria describe themselves by this monitor, not by its name", () => {
+    const [offline, online]: Array<MonitorCriteriaInstance> = defaults();
+
+    expect(offline?.data?.description).toBe(
+      "This criteria checks if any probe this monitor watches is disconnected",
+    );
+    expect(online?.data?.description).toBe(
+      "This criteria checks if every probe this monitor watches is connected",
+    );
   });
 
   test("the alert it would open, once switched on, reads the same and resolves itself", () => {
@@ -400,6 +424,9 @@ describe("the criteria a new Probe Status monitor starts with", () => {
       "Probe disconnected: {{disconnectedProbeNames}}",
     );
     expect(offline.data?.alerts[0]?.autoResolveAlert).toBe(true);
+    expect(offline.data?.alerts[0]?.description).toBe(
+      offline.data?.incidents[0]?.description,
+    );
     expect(offline.data?.alerts[0]?.alertSeverityId?.toString()).toBe(
       alertSeverityId.toString(),
     );

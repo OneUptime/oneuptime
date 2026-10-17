@@ -3,6 +3,9 @@ import { CheckOn } from "../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
+import ProbeStatusMonitorResponse, {
+  ProbeStatusMonitorProbe,
+} from "../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import { formatDurationCompact } from "../Slo/SloDuration";
 import MonitorCheckScheduleUtil, {
   MonitorCheckFreshness,
@@ -255,6 +258,18 @@ export interface MonitorOverviewPresentationInput {
    */
   evaluationStatus?: MonitorOverviewEvaluationStatus | undefined;
   minimumProbeAgreement?: number | undefined;
+  /*
+   * A Probe Status monitor's newest evaluation, read from the same log row
+   * as latestEvaluationAt: the probes it watched and which were connected.
+   * The hero's "Latest result" says which probe is down. Unset for every
+   * other type, and while the log holds no evaluation.
+   */
+  probeStatus?:
+    | Pick<
+        ProbeStatusMonitorResponse,
+        "probes" | "connectedProbeCount" | "disconnectedProbeCount"
+      >
+    | undefined;
 }
 
 export interface MonitorOverviewBadge {
@@ -1902,16 +1917,26 @@ export default class MonitorOverviewPresentationUtil {
         break;
 
       case MonitorOverviewFamily.ProbeStatus: {
-        const watchedCount: number = ProbeStatusMonitorUtil.getWatchedProbeIds(
-          input.monitorSteps,
-        ).length;
+        /*
+         * Which probe is down comes first, as a probe check's latest result
+         * does. No "Evaluates" fact: the pulse above already says "Every
+         * minute". A monitor watching no probe has no result to give.
+         */
+        if (context.watchedProbeCount > 0) {
+          facts.push(
+            MonitorOverviewPresentationUtil.getProbeStatusResultFact(
+              input,
+              context,
+            ),
+          );
+        }
 
         facts.push(
-          watchedCount > 0
+          context.watchedProbeCount > 0
             ? {
                 key: "probes",
                 label: "Watches",
-                value: pluralize(watchedCount, "probe", "probes"),
+                value: pluralize(context.watchedProbeCount, "probe", "probes"),
                 linkKey: "criteria",
               }
             : {
@@ -1922,11 +1947,6 @@ export default class MonitorOverviewPresentationUtil {
                 linkKey: "criteria",
               },
         );
-        facts.push({
-          key: "evaluates",
-          label: "Evaluates",
-          value: "Every minute",
-        });
         break;
       }
 
@@ -1948,6 +1968,88 @@ export default class MonitorOverviewPresentationUtil {
       ...facts.slice(0, MAX_FACTS - 1),
       { key: "owners", label: "Owners", value: "" },
     ];
+  }
+
+  /*
+   * A Probe Status monitor's newest evaluation, in the hero: which of its
+   * probes are disconnected, by name, or that they all are connected. It
+   * reads the same log row as the pulse's "Last evaluated", so the two
+   * never describe different evaluations.
+   */
+  private static getProbeStatusResultFact(
+    input: MonitorOverviewPresentationInput,
+    context: MonitorOverviewContext,
+  ): MonitorOverviewFact {
+    const base: { key: MonitorOverviewFactKey; label: string } = {
+      key: "latest-result",
+      label: "Latest result",
+    };
+
+    if (
+      context.evaluationStatus === "error" ||
+      context.evaluationStatus === "forbidden"
+    ) {
+      return { ...base, value: "Unavailable", isMuted: true };
+    }
+
+    if (context.evaluationStatus === "loading") {
+      return { ...base, value: "Loading…", isMuted: true };
+    }
+
+    const result: MonitorOverviewPresentationInput["probeStatus"] =
+      input.probeStatus;
+
+    if (!result) {
+      return {
+        ...base,
+        value: "—",
+        secondary:
+          context.evaluationLog === "expired"
+            ? "None in the last day"
+            : "No results yet",
+        isMuted: true,
+      };
+    }
+
+    const probes: Array<ProbeStatusMonitorProbe> = Array.isArray(result.probes)
+      ? result.probes
+      : [];
+    const connected: number = result.connectedProbeCount || 0;
+    const disconnected: number = result.disconnectedProbeCount || 0;
+    const total: number = connected + disconnected;
+
+    // Every probe it watches was deleted: nothing was counted.
+    if (total === 0) {
+      return {
+        ...base,
+        value: "No probes found",
+        secondary: "Pick probes again",
+        tone: "warning",
+      };
+    }
+
+    if (disconnected > 0) {
+      return {
+        ...base,
+        value:
+          total === 1
+            ? "Disconnected"
+            : `${disconnected} of ${total} disconnected`,
+        secondary: ProbeStatusMonitorUtil.joinProbeNames(
+          ProbeStatusMonitorUtil.getDisconnectedProbes({ probes: probes }),
+        ),
+        tone: "danger",
+      };
+    }
+
+    return {
+      ...base,
+      value: total === 1 ? "Connected" : `${total} of ${total} connected`,
+      // One probe is named; several connected need no list.
+      secondary:
+        total === 1 ? ProbeStatusMonitorUtil.joinProbeNames(probes) : undefined,
+      tone: "good",
+    };
   }
 
   private static getLatestResultFact(
@@ -2150,11 +2252,13 @@ export default class MonitorOverviewPresentationUtil {
           /*
            * A Probe Status monitor that watches no probe has nothing to
            * summarise: an older evaluation would list probes it no longer
-           * watches.
+           * watches. Before its first evaluation the hero already says
+           * when one comes, so an empty card would only say it again.
            */
           !(
             context.family === MonitorOverviewFamily.ProbeStatus &&
-            context.runState === MonitorOverviewRunState.NotConfigured
+            (context.runState === MonitorOverviewRunState.NotConfigured ||
+              isAwaiting)
           ),
         description: layout.summaryDescription || "",
       },

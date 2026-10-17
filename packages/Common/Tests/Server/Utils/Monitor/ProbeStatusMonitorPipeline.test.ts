@@ -257,13 +257,36 @@ describe("explaining a Probe Status check", () => {
 
   test("Disconnected Probes: how many of how many, and which", () => {
     expect(explain(CheckOn.DisconnectedProbes)).toBe(
-      "1 of 2 probes disconnected (Singapore).",
+      "1 of 2 probes disconnected: Singapore.",
     );
   });
 
   test("Connected Probes: the same, the other way", () => {
     expect(explain(CheckOn.ConnectedProbes)).toBe(
-      "1 of 2 probes connected (Frankfurt).",
+      "1 of 2 probes connected: Frankfurt.",
+    );
+  });
+
+  /*
+   * Probe names often carry their region in parentheses; "(Singapore
+   * (ap-southeast-1))" nested them. A colon reads either way.
+   */
+  test("names a probe whose name has parentheses of its own after a colon", () => {
+    expect(
+      MonitorCriteriaObservationBuilder.describeProbeStatusObservation({
+        criteriaFilter: {
+          checkOn: CheckOn.DisconnectedProbes,
+          filterType: FilterType.GreaterThan,
+          value: 0,
+        },
+        dataToProcess: evaluation([
+          probe("Frankfurt (eu-central-1)", true),
+          probe("Singapore (ap-southeast-1)", false),
+          probe("Sydney (ap-southeast-2)", false),
+        ]),
+      }),
+    ).toBe(
+      "2 of 3 probes disconnected: Singapore (ap-southeast-1), Sydney (ap-southeast-2).",
     );
   });
 

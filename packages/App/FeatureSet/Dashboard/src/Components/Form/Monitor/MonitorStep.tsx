@@ -2071,7 +2071,7 @@ return {
       {props.monitorType === MonitorType.ProbeStatus && (
         <Card
           title="Probes to Watch"
-          description="Get one incident when a probe disconnects, and see it resolve when the probe is back."
+          description="Opens one incident when one of these probes goes three minutes without a heartbeat. It resolves itself when the probe is back."
         >
           <ProbeStatusMonitorStepForm
             monitorStepProbeStatusMonitor={

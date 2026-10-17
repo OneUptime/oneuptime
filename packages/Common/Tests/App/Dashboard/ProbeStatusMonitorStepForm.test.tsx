@@ -235,16 +235,42 @@ describe("ProbeStatusMonitorStepForm", () => {
     expect(changes).toEqual([]);
   });
 
-  test("tells whoever picks what a disconnected probe is", async () => {
+  test("a read that failed can be tried again, and a new monitor then gets its defaults", async () => {
+    mockGetAllProbes.mockRejectedValueOnce(
+      new Error("Network unreachable") as never,
+    );
+    mockGetAllProbes.mockResolvedValueOnce([OFFICE, DATA_CENTER] as never);
+
+    render(<Harness probeIds={[]} />);
+
+    await screen.findByText(/The probes could not be loaded\./);
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh?" }));
+
+    expect(await picked()).toEqual(["Data Center", "Office LAN"]);
+    expect(mockGetAllProbes).toHaveBeenCalledTimes(2);
+    expect(changes).toEqual([{ probeIds: [DATA_CENTER_ID, OFFICE_ID] }]);
+    expect(screen.queryByText(/The probes could not be loaded\./)).toBeNull();
+  });
+
+  test("the picker is its card's one field: no second label, the name is for screen readers", async () => {
     mockGetAllProbes.mockResolvedValue([OFFICE] as never);
 
     render(<Harness probeIds={[OFFICE_ID]} />);
 
-    expect(
-      screen.getByTestId("probe-status-monitor-step-form"),
-    ).toHaveTextContent(
-      "A probe is disconnected when it has not reported for three minutes, so a quick restart is not an outage.",
-    );
     await picked();
+
+    const form: HTMLElement = screen.getByTestId(
+      "probe-status-monitor-step-form",
+    );
+
+    /*
+     * The card above it says what it is and when a probe counts as
+     * disconnected ("Probes to Watch", three minutes without a heartbeat);
+     * a "Probes" label with a second description under it said it twice.
+     */
+    expect(form.querySelector("label")).toBeNull();
+    expect(form).not.toHaveTextContent("three minutes");
+    expect(picker()).toBeInTheDocument();
   });
 });

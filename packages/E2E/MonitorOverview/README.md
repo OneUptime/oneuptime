@@ -157,9 +157,11 @@ another monitor lands on a plain, healthy one.
   the Response time plot at least 150px tall at 390, 768 and 1440px, and dark mode.
 
 `ProbeStatusMonitor.spec.ts` covers the Probe Status monitor (issue #2733): its overview
-every probe connected (Operational, what it watches, evaluated every minute) and with a probe
-disconnected (Offline, that probe listed first, the incident it opened), before its first
-evaluation, at 390px and in dark mode; View Summary on its Monitoring Logs listing the probes
+every probe connected (Operational, a latest result of 2 of 2 connected, what it watches,
+evaluated every minute) and with a probe disconnected (Offline, the hero naming that probe,
+listed first with how long it went without a heartbeat, the incident it opened), before its
+first evaluation (no empty Summary card), at 390px and in dark mode; View Summary on its
+Monitoring Logs listing the probes
 that evaluation found; and Create Monitor: found by searching for probe, under Other; a new
 monitor starting on the project's own probes, and Create sending them with no interval; a
 self-hosted install with no probe of its own starting on its global probe; on OneUptime

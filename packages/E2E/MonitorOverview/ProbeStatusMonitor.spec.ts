@@ -198,7 +198,7 @@ async function noSidewaysScroll(page: Page): Promise<void> {
 }
 
 test.describe("a Probe Status monitor's overview", () => {
-  test("every probe connected: Operational, what it watches, evaluated every minute", async ({
+  test("every probe connected: Operational, its latest result, what it watches, evaluated every minute", async ({
     page,
   }: {
     page: Page;
@@ -208,8 +208,14 @@ test.describe("a Probe Status monitor's overview", () => {
     await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
       "Operational",
     );
+    await expect
+      .poll(() => {
+        return factValue(page, "Latest result");
+      })
+      .toBe("2 of 2 connected");
     expect(await factValue(page, "Watches")).toBe("2 probes");
-    expect(await factValue(page, "Evaluates")).toBe("Every minute");
+    // The pulse says "Every minute"; no fact says it again.
+    expect(await factValue(page, "Evaluates")).toBe("");
     await expect(
       hero(page).getByRole("link", { name: "2 probes" }),
     ).toHaveAttribute("href", `${MONITOR_PATH}/criteria`);
@@ -229,13 +235,17 @@ test.describe("a Probe Status monitor's overview", () => {
       "Each probe this monitor watches, as the latest evaluation found it.",
     );
     await expect(summary(page)).toBeVisible({ timeout: 30000 });
-    await expect(summary(page)).toContainText("2 of 2");
+    // No count tiles: the Evaluation Logs under the list count the probes.
+    await expect(summary(page)).not.toContainText("Checked At");
     await expect(probeRows(page)).toHaveCount(2);
     await expect(probeRows(page).nth(0)).toContainText(PROBES.frankfurt!.name);
     await expect(probeRows(page).nth(1)).toContainText(PROBES.singapore!.name);
     for (const row of await probeRows(page).all()) {
       await expect(row).toContainText("Connected");
-      await expect(row).toContainText("Last heard from a few seconds ago");
+      // Connected is a heartbeat in the last three minutes: no time to add.
+      await expect(
+        row.getByTestId("probe-status-monitor-probe-detail"),
+      ).toHaveCount(0);
     }
 
     // The evaluation that decided it, under the probes.
@@ -256,13 +266,28 @@ test.describe("a Probe Status monitor's overview", () => {
     await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
       "Offline",
     );
-    await expect(summary(page)).toContainText("1 of 2");
+    // The hero names the probe that is down.
+    await expect
+      .poll(() => {
+        return factValue(page, "Latest result");
+      })
+      .toBe(`1 of 2 disconnected${PROBES.singapore!.name}`);
+    // In the danger tone (text-red-700).
+    await expect(
+      page.getByTestId("monitor-overview-fact-latest-result").locator("dd"),
+    ).toHaveCSS("color", "rgb(185, 28, 28)");
 
     // Disconnected first: it is why anyone is looking.
     const first: Locator = probeRows(page).nth(0);
     await expect(first).toContainText(PROBES.singapore!.name);
     await expect(first).toContainText("Disconnected");
-    await expect(first).toContainText("Last heard from 15 minutes ago");
+    /*
+     * Silent since 11:45, evaluated at 11:59: measured to the evaluation,
+     * as an incident's stored summary is.
+     */
+    await expect(
+      first.getByTestId("probe-status-monitor-probe-detail"),
+    ).toHaveText("No heartbeat for 14 minutes");
     await expect(probeRows(page).nth(1)).toContainText(PROBES.frankfurt!.name);
     await expect(probeRows(page).nth(1)).toContainText("Connected");
 
@@ -291,6 +316,9 @@ test.describe("a Probe Status monitor's overview", () => {
     await expect(page.getByTestId("monitor-overview-explanation")).toHaveText(
       "This monitor checks the probes it watches every minute. The first result arrives within a minute or two.",
     );
+    expect(await factValue(page, "Latest result")).toBe("—No results yet");
+    // The hero says when the first result comes; no empty card says it again.
+    await expect(card(page, "Monitor Summary")).toHaveCount(0);
   });
 
   test("watching no probes: Not set up, and Pick probes leads to its criteria", async ({
@@ -308,6 +336,8 @@ test.describe("a Probe Status monitor's overview", () => {
       "Pick the probes it watches. It opens an incident when one of them disconnects.",
     );
     expect(await factValue(page, "Watches")).toBe("No probes picked");
+    // Nothing is evaluated: there is no latest result to give.
+    expect(await factValue(page, "Latest result")).toBe("");
     // Nothing was evaluated, and there is nothing to summarise.
     await expect(summary(page)).toHaveCount(0);
     await expect(card(page, "Monitor Summary")).toHaveCount(0);
@@ -496,6 +526,19 @@ test.describe("Create Monitor: Probe Status", () => {
         PROBES.virginia!.name,
         PROBES.singapore!.name,
       ]);
+
+    /*
+     * One description says what happens and after how long; the picker is
+     * the card's only field, named for screen readers, with no second label.
+     */
+    // The step's own card: the last of the cards that hold its heading.
+    await expect(card(page, "Probes to Watch").last()).toContainText(
+      "Opens one incident when one of these probes goes three minutes without a heartbeat. It resolves itself when the probe is back.",
+    );
+    await expect(probesPicker(page).locator("label")).toHaveCount(0);
+    await expect(
+      page.getByRole("combobox", { name: "Probes to watch" }),
+    ).toBeVisible();
 
     // The default criteria, folded: a probe down opens the incident.
     const headers: Locator = page.getByTestId("monitor-criteria-header");

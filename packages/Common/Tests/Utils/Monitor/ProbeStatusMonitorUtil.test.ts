@@ -317,6 +317,92 @@ describe("ProbeStatusMonitorUtil helpers", () => {
   });
 });
 
+/*
+ * How long a probe had gone without a heartbeat when an evaluation ran, as
+ * the summary card words it ("No heartbeat for 15 minutes"). Measured to
+ * the evaluation, so an incident's stored summary still says what was true
+ * when it opened.
+ */
+describe("ProbeStatusMonitorUtil.getSilence", () => {
+  // The check is CHECKED_AT unless one is passed (null: none at all).
+  function silence(
+    lastAliveAt: string | undefined,
+    checkedAt: Date | null = CHECKED_AT,
+  ): ReturnType<typeof ProbeStatusMonitorUtil.getSilence> {
+    return ProbeStatusMonitorUtil.getSilence({
+      lastAliveAt: lastAliveAt ? new Date(lastAliveAt) : undefined,
+      checkedAt: checkedAt || undefined,
+    });
+  }
+
+  test("minutes under an hour, whole minutes rounded down", () => {
+    expect(silence("2026-09-21T11:45:00.000Z")).toEqual({
+      unit: "minute",
+      count: 15,
+    });
+    expect(silence("2026-09-21T11:01:30.000Z")).toEqual({
+      unit: "minute",
+      count: 58,
+    });
+    expect(silence("2026-09-21T11:00:01.000Z")).toEqual({
+      unit: "minute",
+      count: 59,
+    });
+  });
+
+  test("a heartbeat seconds before the check still reads one minute, never zero", () => {
+    expect(silence("2026-09-21T11:59:40.000Z")).toEqual({
+      unit: "minute",
+      count: 1,
+    });
+    expect(silence("2026-09-21T12:00:00.000Z")).toEqual({
+      unit: "minute",
+      count: 1,
+    });
+  });
+
+  test("hours from one hour to just under two days", () => {
+    expect(silence("2026-09-21T11:00:00.000Z")).toEqual({
+      unit: "hour",
+      count: 1,
+    });
+    expect(silence("2026-09-21T09:30:00.000Z")).toEqual({
+      unit: "hour",
+      count: 2,
+    });
+    expect(silence("2026-09-19T12:01:00.000Z")).toEqual({
+      unit: "hour",
+      count: 47,
+    });
+  });
+
+  test("days from two days on", () => {
+    expect(silence("2026-09-19T12:00:00.000Z")).toEqual({
+      unit: "day",
+      count: 2,
+    });
+    expect(silence("2026-09-11T08:00:00.000Z")).toEqual({
+      unit: "day",
+      count: 10,
+    });
+  });
+
+  test("is measured to the check, whatever the clock says now", () => {
+    expect(
+      silence("2026-09-21T11:45:00.000Z", new Date("2026-09-21T11:50:00.000Z")),
+    ).toEqual({ unit: "minute", count: 5 });
+  });
+
+  test("nothing to say without a heartbeat, without a check time, or with the heartbeat after it", () => {
+    expect(silence(undefined)).toBeNull();
+    expect(silence("2026-09-21T11:45:00.000Z", null)).toBeNull();
+    // parseResponse's stand-in for a missing checkedAt.
+    expect(silence("2026-09-21T11:45:00.000Z", new Date(0))).toBeNull();
+    expect(silence("2026-09-21T12:05:00.000Z")).toBeNull();
+    expect(silence("not a date")).toBeNull();
+  });
+});
+
 describe("ProbeStatusMonitorUtil.parseResponse", () => {
   test("reads back an evaluation stored as JSON, dates and ids included", () => {
     const stored: ProbeStatusMonitorResponse = build(

@@ -41,7 +41,7 @@ Sous **Sondes à surveiller**, choisissez les sondes. Un nouveau moniteur commen
 
 ### Créer le moniteur
 
-Gardez les critères par défaut, décrits plus bas, et cliquez sur **Créer un moniteur**. Le moniteur est évalué aussitôt, et sa vue d'ensemble liste chaque sonde avec le moment où elle s'est manifestée pour la dernière fois.
+Gardez les critères par défaut, décrits plus bas, et cliquez sur **Créer un moniteur**. Le moniteur est évalué aussitôt, et sa vue d'ensemble liste chaque sonde qu'il surveille, les sondes déconnectées en premier.
 :::
 
 > [!TIP]

@@ -41,7 +41,7 @@ Under **Probes, der skal overvåges** skal du vælge proberne. En ny monitor sta
 
 ### Opret monitoren
 
-Behold standardkriterierne, der er beskrevet nedenfor, og klik på **Opret monitor**. Monitoren evalueres med det samme, og dens oversigt viser hver probe med, hvornår der sidst blev hørt fra den.
+Behold standardkriterierne, der er beskrevet nedenfor, og klik på **Opret monitor**. Monitoren evalueres med det samme, og dens oversigt viser hver probe, den overvåger, med de afbrudte først.
 :::
 
 > [!TIP]

@@ -293,7 +293,9 @@ export default class MonitorCriteriaObservationBuilder {
   /*
    * What a Probe Status evaluation found, for the check being explained:
    * the count it compared, and which probes it counted, so "Disconnected
-   * Probes was 1" also says which one.
+   * Probes was 1" also says which one. The names follow a colon, not
+   * parentheses: probe names often carry their own ("Singapore
+   * (ap-southeast-1)").
    */
   public static describeProbeStatusObservation(input: {
     criteriaFilter: CriteriaFilter;
@@ -316,7 +318,7 @@ export default class MonitorCriteriaObservationBuilder {
 
       return `${response.connectedProbeCount} of ${ProbeStatusMonitorUtil.getProbeCountLabel(
         total,
-      )} connected${connected ? ` (${connected})` : ""}.`;
+      )} connected${connected ? `: ${connected}` : ""}.`;
     }
 
     const disconnected: string = ProbeStatusMonitorUtil.joinProbeNames(
@@ -325,7 +327,7 @@ export default class MonitorCriteriaObservationBuilder {
 
     return `${response.disconnectedProbeCount} of ${ProbeStatusMonitorUtil.getProbeCountLabel(
       total,
-    )} disconnected${disconnected ? ` (${disconnected})` : ""}.`;
+    )} disconnected${disconnected ? `: ${disconnected}` : ""}.`;
   }
 
   /*

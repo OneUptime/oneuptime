@@ -10,6 +10,7 @@ import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import { ProbeStatusMonitorProbe } from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
 import CronTab from "../../../Utils/CronTab";
@@ -2860,6 +2861,35 @@ describe("MonitorOverviewPresentationUtil network device evaluations", () => {
  * a cadence that is always the server's minute.
  */
 describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
+  // An evaluation of probes "Probe 1", "Probe 2"... connected or not.
+  const evaluated: (
+    connected: Array<boolean>,
+  ) => NonNullable<MonitorOverviewPresentationInput["probeStatus"]> = (
+    connected: Array<boolean>,
+  ): NonNullable<MonitorOverviewPresentationInput["probeStatus"]> => {
+    const probes: Array<ProbeStatusMonitorProbe> = connected.map(
+      (isConnected: boolean, index: number): ProbeStatusMonitorProbe => {
+        return {
+          probeId: `7b000000-0000-4000-8000-00000000000${index + 1}`,
+          probeName: `Probe ${index + 1}`,
+          isGlobalProbe: false,
+          isConnected: isConnected,
+        };
+      },
+    );
+    const connectedCount: number = connected.filter(
+      (isConnected: boolean): boolean => {
+        return isConnected;
+      },
+    ).length;
+
+    return {
+      probes: probes,
+      connectedProbeCount: connectedCount,
+      disconnectedProbeCount: probes.length - connectedCount,
+    };
+  };
+
   const probeStatus: (
     overrides?: Partial<MonitorOverviewPresentationInput>,
   ) => MonitorOverviewPresentationInput = (
@@ -2872,8 +2902,10 @@ describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
     });
   };
 
-  it("running, it leads with its status and says what it watches", () => {
-    const presentation: MonitorOverviewPresentation = build(probeStatus());
+  it("running, it leads with its status, its latest result and what it watches", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      probeStatus({ probeStatus: evaluated([true, true]) }),
+    );
 
     expect(presentation.runState).toBe(MonitorOverviewRunState.Running);
     expect(presentation.badge).toEqual({
@@ -2883,18 +2915,159 @@ describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
     });
     expect(presentation.explanation).toBeUndefined();
     expect(presentation.callToAction).toBeUndefined();
+    expect(fact(presentation, "latest-result")).toEqual({
+      key: "latest-result",
+      label: "Latest result",
+      value: "2 of 2 connected",
+      secondary: undefined,
+      tone: "good",
+    });
     expect(fact(presentation, "probes")).toEqual({
       key: "probes",
       label: "Watches",
       value: "2 probes",
       linkKey: "criteria",
     });
-    expect(fact(presentation, "evaluates")).toEqual({
-      key: "evaluates",
-      label: "Evaluates",
-      value: "Every minute",
+    /*
+     * No "Evaluates: Every minute": the pulse above the facts already says
+     * it, as "Last evaluated ... Every minute".
+     */
+    expect(factKeys(presentation)).toEqual([
+      "latest-result",
+      "probes",
+      "owners",
+    ]);
+    expect(presentation.pulse.cadenceText).toBe("Every minute");
+  });
+
+  it("its latest result names the probes that are disconnected", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      probeStatus({
+        currentStatus: OFFLINE,
+        probeStatus: evaluated([true, false, false]),
+      }),
+    );
+
+    expect(fact(presentation, "latest-result")).toEqual({
+      key: "latest-result",
+      label: "Latest result",
+      value: "2 of 3 disconnected",
+      secondary: "Probe 2, Probe 3",
+      tone: "danger",
     });
-    expect(factKeys(presentation)).toEqual(["probes", "evaluates", "owners"]);
+  });
+
+  it("watching one probe, the latest result names it, connected or not", () => {
+    expect(
+      fact(
+        build(
+          probeStatus({
+            monitorSteps: watchingSteps([WATCHED_PROBE_IDS[0]!]),
+            probeStatus: evaluated([true]),
+          }),
+        ),
+        "latest-result",
+      ),
+    ).toMatchObject({ value: "Connected", secondary: "Probe 1", tone: "good" });
+
+    expect(
+      fact(
+        build(
+          probeStatus({
+            monitorSteps: watchingSteps([WATCHED_PROBE_IDS[0]!]),
+            currentStatus: OFFLINE,
+            probeStatus: evaluated([false]),
+          }),
+        ),
+        "latest-result",
+      ),
+    ).toMatchObject({
+      value: "Disconnected",
+      secondary: "Probe 1",
+      tone: "danger",
+    });
+  });
+
+  it("its latest result waits on the log, and never claims what it cannot read", () => {
+    expect(
+      fact(
+        build(
+          probeStatus({
+            latestEvaluationAt: undefined,
+            evaluationStatus: "loading",
+          }),
+        ),
+        "latest-result",
+      ),
+    ).toEqual({
+      key: "latest-result",
+      label: "Latest result",
+      value: "Loading…",
+      isMuted: true,
+    });
+
+    for (const evaluationStatus of ["error", "forbidden"] as const) {
+      expect(
+        fact(
+          build(
+            probeStatus({
+              latestEvaluationAt: undefined,
+              evaluationStatus: evaluationStatus,
+            }),
+          ),
+          "latest-result",
+        ),
+      ).toEqual({
+        key: "latest-result",
+        label: "Latest result",
+        value: "Unavailable",
+        isMuted: true,
+      });
+    }
+  });
+
+  it("with no evaluation in hand, its latest result says why: none yet, or none in the log's last day", () => {
+    expect(
+      fact(
+        build(
+          probeStatus({
+            createdAt: secondsAgo(30),
+            latestEvaluationAt: undefined,
+          }),
+        ),
+        "latest-result",
+      ),
+    ).toEqual({
+      key: "latest-result",
+      label: "Latest result",
+      value: "—",
+      secondary: "No results yet",
+      isMuted: true,
+    });
+
+    expect(
+      fact(
+        build(
+          probeStatus({
+            createdAt: secondsAgo(90 * DAY),
+            latestEvaluationAt: undefined,
+          }),
+        ),
+        "latest-result",
+      ),
+    ).toMatchObject({ value: "—", secondary: "None in the last day" });
+  });
+
+  it("an evaluation that found none of its probes says to pick them again", () => {
+    expect(
+      fact(build(probeStatus({ probeStatus: evaluated([]) })), "latest-result"),
+    ).toEqual({
+      key: "latest-result",
+      label: "Latest result",
+      value: "No probes found",
+      secondary: "Pick probes again",
+      tone: "warning",
+    });
   });
 
   it("one probe is one probe", () => {
@@ -3020,6 +3193,11 @@ describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
     // Nothing to set up: it needs no agent, address or heartbeat.
     expect(presentation.callToAction).toBeUndefined();
     expect(presentation.sections.showUptime).toBe(false);
+    /*
+     * No Summary card saying "No evaluation yet" under a hero that has just
+     * said when the first one comes.
+     */
+    expect(presentation.sections.summary.isShown).toBe(false);
   });
 
   it("it is not 'waiting' while its log is unknown or unreadable", () => {
@@ -3083,6 +3261,8 @@ describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
       isMuted: true,
       linkKey: "criteria",
     });
+    // Nothing is evaluated, so there is no latest result to give.
+    expect(factKeys(presentation)).toEqual(["probes", "owners"]);
     /*
      * Nothing to summarise: an older evaluation would list probes it no
      * longer watches.

@@ -41,7 +41,7 @@ Kies onder **Te bewaken probes** de probes. Een nieuwe monitor begint met de eig
 
 ### De monitor maken
 
-Houd de standaardcriteria aan, hieronder beschreven, en klik op **Monitor maken**. De monitor wordt direct geëvalueerd, en zijn overzicht toont elke probe met wanneer er voor het laatst iets van gehoord is.
+Houd de standaardcriteria aan, hieronder beschreven, en klik op **Monitor maken**. De monitor wordt direct geëvalueerd, en zijn overzicht toont elke probe die hij bewaakt, losgekoppelde eerst.
 :::
 
 > [!TIP]

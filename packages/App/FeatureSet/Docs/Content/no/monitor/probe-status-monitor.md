@@ -41,7 +41,7 @@ Under **Prober som skal overvåkes** velger du probene. En ny monitor starter me
 
 ### Opprett monitoren
 
-Behold standardkriteriene, som er beskrevet nedenfor, og klikk på **Opprett monitor**. Monitoren evalueres med en gang, og oversikten viser hver probe med når det sist ble hørt fra den.
+Behold standardkriteriene, som er beskrevet nedenfor, og klikk på **Opprett monitor**. Monitoren evalueres med en gang, og oversikten viser hver probe den overvåker, med de frakoblede først.
 :::
 
 > [!TIP]

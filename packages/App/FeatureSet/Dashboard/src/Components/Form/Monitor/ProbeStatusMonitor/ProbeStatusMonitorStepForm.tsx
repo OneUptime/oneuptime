@@ -14,7 +14,6 @@ import Dropdown, {
   DropdownOptionGroup,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
@@ -43,6 +42,11 @@ export interface ComponentProps {
  * else - what a disconnected probe means, who is told - is the criteria's,
  * which start as "open an incident when a probe disconnects".
  *
+ * The picker is the card's only field, so it has no label of its own: the
+ * card's title and description ("Probes to Watch", what happens and after
+ * how long) say what it is, and the picker carries the name for screen
+ * readers.
+ *
  * A new monitor starts watching the probe a "Monitor this probe" link
  * named, else the project's own probes, or on a self-hosted installation
  * with none, its global probes (ProbeStatusProbeChoices.getDefaultProbeIds),
@@ -56,6 +60,8 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
     null,
   );
   const [loadError, setLoadError] = useState<string>("");
+  // Moved on by "Refresh?" after a failed read, which reads the probes again.
+  const [loadAttempt, setLoadAttempt] = useState<number>(0);
 
   const selectedProbeIds: Array<string> =
     MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(
@@ -64,6 +70,9 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     let isMounted: boolean = true;
+
+    setLoadError("");
+    setProbes(null);
 
     ProbeUtil.getAllProbes()
       .then((allProbes: Array<Probe>): void => {
@@ -116,7 +125,7 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadAttempt]);
 
   const probesSettingsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
@@ -130,6 +139,11 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
             "The probes could not be loaded. {{error}}",
             { error: loadError },
           )}
+          onRefreshClick={() => {
+            setLoadAttempt((attempt: number): number => {
+              return attempt + 1;
+            });
+          }}
         />
       );
     }
@@ -147,7 +161,7 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
     if (groups.length === 0) {
       return (
         <p
-          className="mt-2 text-sm text-gray-500"
+          className="text-sm text-gray-500"
           data-testid="probe-status-monitor-no-probes"
         >
           {translator.translateText(
@@ -206,18 +220,7 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  return (
-    <div className="space-y-5" data-testid="probe-status-monitor-step-form">
-      <div>
-        <FieldLabelElement
-          title="Probes"
-          description="A probe is disconnected when it has not reported for three minutes, so a quick restart is not an outage."
-          required={true}
-        />
-        {getPicker()}
-      </div>
-    </div>
-  );
+  return <div data-testid="probe-status-monitor-step-form">{getPicker()}</div>;
 };
 
 export default ProbeStatusMonitorStepForm;

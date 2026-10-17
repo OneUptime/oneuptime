@@ -41,7 +41,7 @@ In **Sonde da sorvegliare**, scegli le sonde. Un nuovo monitor parte con le sond
 
 ### Creare il monitor
 
-Mantieni i criteri predefiniti, descritti più sotto, e fai clic su **Crea monitor**. Il monitor viene valutato subito, e la sua panoramica elenca ogni sonda con l'ultima volta in cui si è fatta sentire.
+Mantieni i criteri predefiniti, descritti più sotto, e fai clic su **Crea monitor**. Il monitor viene valutato subito, e la sua panoramica elenca ogni sonda che sorveglia, prima quelle disconnesse.
 :::
 
 > [!TIP]

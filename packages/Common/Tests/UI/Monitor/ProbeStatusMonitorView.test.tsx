@@ -28,16 +28,21 @@ import ProbeStatusMonitorView from "../../../../App/FeatureSet/Dashboard/src/Com
 import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
 
 /*
- * What a Probe Status monitor found: the counts, then each probe it watches
- * with whether it is connected and when it was last heard from -
- * disconnected first, since they are why anyone is looking. The same card is
+ * What a Probe Status monitor found: each probe it watches and whether it
+ * was connected - disconnected first, since they are why anyone is looking,
+ * each with how long it had gone without a heartbeat. The same card is
  * drawn on the monitor's overview, on an incident or alert the monitor
  * opened (from the snapshot stored with it) and in its Monitoring Logs, so
  * each of those paths is rendered here from the JSON it really reads.
+ *
+ * That silence is measured to the evaluation, never to now: an incident
+ * opened three days ago must not say its probe had been silent for three
+ * days. NOW is an hour after CHECKED_AT for that reason.
  */
 
-const NOW: Date = new Date("2026-10-17T12:00:00.000Z");
 const CHECKED_AT: Date = new Date("2026-10-17T11:59:00.000Z");
+// An hour after the evaluation: what the card says must not move with it.
+const NOW: Date = new Date("2026-10-17T12:59:00.000Z");
 
 const FRANKFURT: ProbeStatusMonitorProbe = {
   probeId: "79000000-0000-4000-8000-000000000001",
@@ -105,15 +110,14 @@ function rows(): Array<HTMLElement> {
 
 function rowNames(): Array<string> {
   return rows().map((row: HTMLElement): string => {
-    return within(row).getByText(
-      (_content: string, element: Element | null): boolean => {
-        return (
-          element?.tagName === "SPAN" &&
-          element.className.includes("break-words")
-        );
-      },
-    ).textContent as string;
+    return within(row).getByTestId("probe-status-monitor-probe-name")
+      .textContent as string;
   });
+}
+
+// The line under a probe's name, or null when it has none.
+function detailOf(row: HTMLElement): HTMLElement | null {
+  return within(row).queryByTestId("probe-status-monitor-probe-detail");
 }
 
 beforeEach(() => {
@@ -125,7 +129,7 @@ afterEach(() => {
 });
 
 describe("ProbeStatusMonitorView", () => {
-  it("counts the probes it watches, connected of all, and disconnected", () => {
+  it("lists the probes with no tiles above them: the Evaluation Logs under it count them and say when", () => {
     render(
       <ProbeStatusMonitorView
         probeStatusMonitorResponse={response([FRANKFURT, SINGAPORE, BASEMENT])}
@@ -136,10 +140,12 @@ describe("ProbeStatusMonitorView", () => {
       "probe-status-monitor-summary",
     );
 
-    expect(summary).toHaveTextContent("Connected");
-    expect(summary).toHaveTextContent("1 of 3");
-    expect(summary).toHaveTextContent("Disconnected");
-    expect(summary).toHaveTextContent("Checked At");
+    // The three tiles said "1 of 3", "2" and the time the logs say again.
+    expect(summary).not.toHaveTextContent("Checked At");
+    expect(summary).not.toHaveTextContent("1 of 3");
+    expect(summary.querySelectorAll("ul")).toHaveLength(1);
+    expect(rows()).toHaveLength(3);
+    expect(within(summary).getByRole("list")).toHaveAccessibleName("Probes");
   });
 
   it("lists the disconnected probes first, each set by name", () => {
@@ -154,7 +160,7 @@ describe("ProbeStatusMonitorView", () => {
     expect(within(rows()[2]!).getByText("Connected")).toBeInTheDocument();
   });
 
-  it("marks a global probe, and says when each probe was last heard from", () => {
+  it("marks a global probe, and says how long a disconnected one went without a heartbeat", () => {
     render(
       <ProbeStatusMonitorView
         probeStatusMonitorResponse={response([FRANKFURT, SINGAPORE, BASEMENT])}
@@ -167,12 +173,120 @@ describe("ProbeStatusMonitorView", () => {
 
     expect(within(singapore).getByText("Global")).toBeInTheDocument();
     expect(within(frankfurt).queryByText("Global")).toBeNull();
-    expect(singapore).toHaveTextContent(
-      `Last heard from ${OneUptimeDate.fromNow(SINGAPORE.lastAliveAt!)}`,
+    // 11:41 to the 11:59 evaluation - not to now, an hour later.
+    expect(detailOf(singapore)).toHaveTextContent(
+      "No heartbeat for 18 minutes",
     );
-    expect(singapore).toHaveTextContent("19 minutes ago");
     // A probe that never reported is not given a time it never had.
-    expect(basement).toHaveTextContent("Never heard from");
+    expect(detailOf(basement)).toHaveTextContent("No heartbeat yet");
+    // Connected means a heartbeat in the last three minutes: no time.
+    expect(detailOf(frankfurt)).toBeNull();
+  });
+
+  it("keeps the exact last heartbeat on the silence, for whoever hovers it", () => {
+    render(
+      <ProbeStatusMonitorView
+        probeStatusMonitorResponse={response([SINGAPORE])}
+      />,
+    );
+
+    const time: HTMLElement | null = detailOf(rows()[0]!)!.querySelector(
+      "time",
+    );
+
+    expect(time).not.toBeNull();
+    expect(time).toHaveAttribute(
+      "dateTime",
+      SINGAPORE.lastAliveAt!.toISOString(),
+    );
+    expect(time).toHaveAttribute(
+      "title",
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        SINGAPORE.lastAliveAt!,
+      ),
+    );
+  });
+
+  it.each([
+    [
+      "a single minute",
+      "2026-10-17T11:58:00.000Z",
+      "No heartbeat for 1 minute",
+    ],
+    ["minutes", "2026-10-17T11:44:30.000Z", "No heartbeat for 14 minutes"],
+    [
+      "hours, from an hour",
+      "2026-10-17T10:59:00.000Z",
+      "No heartbeat for 1 hour",
+    ],
+    ["hours", "2026-10-17T06:30:00.000Z", "No heartbeat for 5 hours"],
+    ["days, from two", "2026-10-15T11:59:00.000Z", "No heartbeat for 2 days"],
+  ])(
+    "words the silence in %s",
+    (_unit: string, lastAliveAt: string, expected: string) => {
+      render(
+        <ProbeStatusMonitorView
+          probeStatusMonitorResponse={response([
+            { ...SINGAPORE, lastAliveAt: new Date(lastAliveAt) },
+          ])}
+        />,
+      );
+
+      expect(detailOf(rows()[0]!)).toHaveTextContent(expected);
+    },
+  );
+
+  it("without a time to measure to, gives the last heartbeat itself", () => {
+    render(
+      <ProbeStatusMonitorView
+        probeStatusMonitorResponse={response([SINGAPORE], {
+          checkedAt: new Date(0),
+        })}
+      />,
+    );
+
+    expect(detailOf(rows()[0]!)).toHaveTextContent(
+      `Last heartbeat ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        SINGAPORE.lastAliveAt!,
+      )}`,
+    );
+  });
+
+  it("puts each status at the end from sm up, and under the name below it, by breakpoint", () => {
+    render(
+      <ProbeStatusMonitorView
+        probeStatusMonitorResponse={response([FRANKFURT, SINGAPORE])}
+      />,
+    );
+
+    for (const row of rows()) {
+      const classes: Array<string> = row.className.split(" ");
+
+      // Never flex-wrap: a long name would move its own status alone.
+      expect(classes).not.toContain("flex-wrap");
+      expect(classes).toEqual(
+        expect.arrayContaining([
+          "flex-col",
+          "sm:flex-row",
+          "sm:justify-between",
+        ]),
+      );
+    }
+  });
+
+  it("does not pulse: it is the record of one evaluation, not a live feed", () => {
+    render(
+      <ProbeStatusMonitorView
+        probeStatusMonitorResponse={response([FRANKFURT])}
+      />,
+    );
+
+    expect(
+      screen
+        .getByTestId("probe-status-monitor-summary")
+        // StatusBubble pulses with motion-safe:animate-ping.
+        .querySelector("[class*='animate-']"),
+    ).toBeNull();
   });
 
   it("says how many watched probes no longer exist, and where to fix it", () => {
@@ -293,9 +407,10 @@ describe("SummaryInfo for a Probe Status monitor", () => {
     render(<SummaryInfo {...props} />);
 
     expect(rowNames()).toEqual(["Singapore", "Frankfurt"]);
-    expect(
-      screen.getByTestId("probe-status-monitor-summary"),
-    ).toHaveTextContent("1 of 2");
+    // As it was when the incident opened, not as long ago as that is now.
+    expect(detailOf(rows()[0]!)).toHaveTextContent(
+      "No heartbeat for 18 minutes",
+    );
   });
 
   it("a Monitoring Logs row shows the probes it evaluated, from the stored body", () => {
@@ -315,8 +430,33 @@ describe("SummaryInfo for a Probe Status monitor", () => {
     render(<SummaryInfo {...props} />);
 
     expect(rowNames()).toEqual(["Basement", "Frankfurt"]);
-    expect(rows()[1]!).toHaveTextContent(
-      `Last heard from ${OneUptimeDate.fromNow(FRANKFURT.lastAliveAt!)}`,
+    expect(detailOf(rows()[0]!)).toHaveTextContent("No heartbeat yet");
+    expect(detailOf(rows()[1]!)).toBeNull();
+  });
+
+  it("an old Monitoring Logs row says how long the probe had been silent then, not since", () => {
+    const props: MonitorSummaryInfoProps =
+      MonitorLogSummaryUtil.toSummaryInfoProps({
+        monitorType: MonitorType.ProbeStatus,
+        logBody: JSON.parse(
+          JSON.stringify({
+            ...response([SINGAPORE]),
+            evaluationSummary: EVALUATION_SUMMARY,
+          }),
+        ) as JSONObject,
+        monitoredAt: CHECKED_AT,
+      });
+
+    // Three days later.
+    jest.setSystemTime(new Date("2026-10-20T11:59:00.000Z"));
+
+    render(<SummaryInfo {...props} />);
+
+    expect(detailOf(rows()[0]!)).toHaveTextContent(
+      "No heartbeat for 18 minutes",
     );
+    expect(
+      screen.getByTestId("probe-status-monitor-summary"),
+    ).not.toHaveTextContent("3 days");
   });
 });

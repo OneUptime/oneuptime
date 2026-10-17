@@ -41,7 +41,7 @@ Under **Probes to Watch**, pick the probes. A new monitor starts with your proje
 
 ### Create the monitor
 
-Keep the default criteria, described below, and click **Create Monitor**. The monitor is evaluated at once, and its overview lists each probe with when it was last heard from.
+Keep the default criteria, described below, and click **Create Monitor**. The monitor is evaluated at once, and its overview lists each probe it watches, disconnected ones first.
 :::
 
 > [!TIP]

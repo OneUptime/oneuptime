@@ -41,7 +41,7 @@ Em **Sondas a acompanhar**, escolha as sondas. Um novo monitor começa com as so
 
 ### Criar o monitor
 
-Mantenha os critérios padrão, descritos abaixo, e clique em **Criar monitor**. O monitor é avaliado na hora, e a visão geral dele lista cada sonda com a última vez em que ela se comunicou.
+Mantenha os critérios padrão, descritos abaixo, e clique em **Criar monitor**. O monitor é avaliado na hora, e a visão geral dele lista cada sonda que ele acompanha, as desconectadas primeiro.
 :::
 
 > [!TIP]

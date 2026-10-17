@@ -2,7 +2,9 @@ import MonitorCriteriaElement from "./MonitorCriteria";
 import MonitorStepMetricPreview from "./MonitorStepMetricPreview";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
@@ -81,6 +83,19 @@ const fieldTypeByValueType: Record<MonitorStepViewValueType, FieldType> = {
 
 // A probe the step names that no probe list holds any more.
 const DELETED_PROBE_NAME: string = translationKey("Deleted probe");
+
+/*
+ * What the Monitor Details section holds. Only the probe-check types are run
+ * by probes; every other type is judged from what reaches OneUptime (its
+ * telemetry, an agent, a device's polls, the probes' own connection), where
+ * "how the probes check this resource" would be wrong.
+ */
+const PROBE_RUN_DETAILS_DESCRIPTION: string = translationKey(
+  "How the probes check this resource: what they connect to and the settings they use.",
+);
+const DETAILS_DESCRIPTION: string = translationKey(
+  "What this monitor watches, and the settings it uses.",
+);
 
 const getWatchedProbeIds: (rows: Array<MonitorStepViewRow>) => Array<string> = (
   rows: Array<MonitorStepViewRow>,
@@ -392,7 +407,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title={"Monitor Details"}
             description={
-              "How the probes check this resource: what they connect to and the settings they use."
+              MonitorTypeHelper.isProbableMonitor(props.monitorType)
+                ? PROBE_RUN_DETAILS_DESCRIPTION
+                : DETAILS_DESCRIPTION
             }
             required={true}
             isHeading={true}

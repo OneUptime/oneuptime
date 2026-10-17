@@ -871,7 +871,11 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if every probe is connected`,
-        description: `This criteria checks if every probe ${arg.monitorName} watches is connected`,
+        /*
+         * "this monitor", not its name: "every probe Probe health watches"
+         * reads as a typo, and a renamed monitor would keep the old name.
+         */
+        description: `This criteria checks if every probe this monitor watches is connected`,
       };
 
       return monitorCriteriaInstance;
@@ -1983,10 +1987,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: [
           {
             title: MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
-            description:
-              MonitorCriteriaInstance.getProbeDisconnectedDescription(
-                arg.monitorName,
-              ),
+            description: MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1999,10 +2000,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         alerts: [
           {
             title: MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
-            description:
-              MonitorCriteriaInstance.getProbeDisconnectedDescription(
-                arg.monitorName,
-              ),
+            description: MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -2010,7 +2008,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           },
         ],
         name: `Check if a probe is disconnected`,
-        description: `This criteria checks if any probe ${arg.monitorName} watches is disconnected`,
+        description: `This criteria checks if any probe this monitor watches is disconnected`,
       };
     }
 
@@ -2024,12 +2022,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
   /*
    * What a Probe Status monitor's default incident and alert say. The first
    * line names the probes ({{probeStatusSummary}}); the rest is what it
-   * means and what happens next, so the person paged knows without reading
-   * the docs.
+   * means, what it costs and what happens next, so the person paged knows
+   * without reading the docs. It names no monitor: the incident is the
+   * monitor's own, and a renamed monitor would keep its old name here.
    */
-  public static getProbeDisconnectedDescription(monitorName: string): string {
-    return `{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Until it reconnects, the monitors only that probe checks are not being checked. This resolves itself once every probe ${monitorName} watches is connected again.`;
-  }
+  public static readonly PROBE_DISCONNECTED_DESCRIPTION: string =
+    "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.";
 
   public static getNewMonitorCriteriaInstanceAsJSON(): JSONObject {
     return {

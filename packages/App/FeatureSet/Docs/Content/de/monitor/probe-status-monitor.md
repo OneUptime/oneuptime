@@ -41,7 +41,7 @@ Wählen Sie unter **Zu überwachende Sonden** die Sonden aus. Ein neuer Monitor 
 
 ### Den Monitor erstellen
 
-Behalten Sie die unten beschriebenen Standardkriterien und klicken Sie auf **Monitor erstellen**. Der Monitor wird sofort ausgewertet, und seine Übersicht listet jede Sonde mit dem Zeitpunkt, zu dem sie sich zuletzt gemeldet hat.
+Behalten Sie die unten beschriebenen Standardkriterien und klicken Sie auf **Monitor erstellen**. Der Monitor wird sofort ausgewertet, und seine Übersicht listet jede Sonde, die er überwacht, getrennte zuerst.
 :::
 
 > [!TIP]

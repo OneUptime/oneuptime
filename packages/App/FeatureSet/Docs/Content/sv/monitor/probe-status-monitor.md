@@ -41,7 +41,7 @@ Under **Prober att bevaka** väljer du proberna. En ny monitor börjar med ditt 
 
 ### Skapa monitorn
 
-Behåll standardkriterierna, som beskrivs nedan, och klicka på **Skapa monitor**. Monitorn utvärderas direkt, och dess översikt listar varje prob med när den senast hördes av.
+Behåll standardkriterierna, som beskrivs nedan, och klicka på **Skapa monitor**. Monitorn utvärderas direkt, och dess översikt listar varje prob den bevakar, frånkopplade först.
 :::
 
 > [!TIP]

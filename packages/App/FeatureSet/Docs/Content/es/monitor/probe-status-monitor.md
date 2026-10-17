@@ -41,7 +41,7 @@ En **Sondas a vigilar**, elija las sondas. Un monitor nuevo empieza con las sond
 
 ### Crear el monitor
 
-Mantenga los criterios predeterminados, descritos más abajo, y haga clic en **Crear monitor**. El monitor se evalúa al momento, y su vista general muestra cada sonda con la última vez que se supo de ella.
+Mantenga los criterios predeterminados, descritos más abajo, y haga clic en **Crear monitor**. El monitor se evalúa al momento, y su vista general muestra cada sonda que vigila, primero las desconectadas.
 :::
 
 > [!TIP]

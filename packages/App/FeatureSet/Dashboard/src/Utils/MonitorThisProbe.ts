@@ -14,7 +14,12 @@ import RouteMap, { RouteUtil } from "./RouteMap";
 // Buttons and menu items look their title up; this makes it a key.
 export const MONITOR_THIS_PROBE_TITLE: string =
   translationKey("Monitor this probe");
-export const MONITOR_THIS_PROBE_ICON: IconProp = IconProp.SignalSlash;
+/*
+ * The monitors' own icon, as every other "Create Monitor" action has it.
+ * Not the Probe Status type's crossed-out signal: on a button that reads as
+ * "disconnect this probe".
+ */
+export const MONITOR_THIS_PROBE_ICON: IconProp = IconProp.AltGlobe;
 
 export const getMonitorThisProbeRoute: (probeId: string) => Route = (
   probeId: string,

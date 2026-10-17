@@ -528,7 +528,7 @@ class MonitorMetricTypeUtil {
         {
           title: "Probes",
           description:
-            "How many of the probes this monitor watches were connected, and how many were not, at each evaluation.",
+            "How many of the probes this monitor watches were connected and disconnected, minute by minute.",
           metrics: [
             MonitorMetricType.ConnectedProbes,
             MonitorMetricType.DisconnectedProbes,
@@ -901,9 +901,9 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.ProcessCountTotal:
         return "Number of running processes reported by the agent.";
       case MonitorMetricType.ConnectedProbes:
-        return "How many of the probes this monitor watches were connected at each evaluation, once a minute. A probe is connected while it has been heard from in the last three minutes.";
+        return "Probes with a heartbeat in the last three minutes, at each evaluation.";
       case MonitorMetricType.DisconnectedProbes:
-        return "How many of the probes this monitor watches were disconnected at each evaluation, once a minute: nothing heard from them for three minutes.";
+        return "Probes with no heartbeat for three minutes, at each evaluation.";
       default:
         return "";
     }
