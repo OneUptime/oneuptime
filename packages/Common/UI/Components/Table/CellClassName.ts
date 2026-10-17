@@ -12,6 +12,7 @@ import {
   TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
   getTableCellPaddingClassName,
   hasMaxWidthClassName,
+  hasMinWidthClassName,
 } from "./TableLayout";
 import GenericObject from "../../../Types/GenericObject";
 
@@ -102,8 +103,8 @@ export function getTableCellClassName<T extends GenericObject>(
  * Whether this column is the row's name that may use the room of a table
  * that fits (TableLayout's TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME): the
  * row's first column, on one line, under the table's own cap - a page that
- * measured its columns keeps its widths, and a column of prose wraps as it
- * always does.
+ * measured its columns (a cap or a floor of its own) keeps its widths, and
+ * a column of prose wraps as it always does.
  */
 export function isFillingNameColumn<T extends GenericObject>(
   column: Column<T>,
@@ -113,7 +114,8 @@ export function isFillingNameColumn<T extends GenericObject>(
     isPrimaryColumn &&
       column.type !== FieldType.Actions &&
       !column.wrapContent &&
-      !hasMaxWidthClassName(column.contentClassName),
+      !hasMaxWidthClassName(column.contentClassName) &&
+      !hasMinWidthClassName(column.contentClassName),
   );
 }
 
@@ -148,8 +150,12 @@ export function getTableCellContentClassName<T extends GenericObject>(
   if (column.wrapContent) {
     classNames.push(
       column.wrapMaxWidthClassName || DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME,
-      TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
     );
+
+    // The table's floor, unless the column names its own.
+    if (!hasMinWidthClassName(column.contentClassName)) {
+      classNames.push(TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME);
+    }
   } else {
     if (!hasMaxWidthClassName(column.contentClassName)) {
       classNames.push(TABLE_CELL_MAX_WIDTH_CLASS_NAME);

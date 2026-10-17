@@ -303,6 +303,23 @@ export const TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME: string =
 export const hasMaxWidthClassName: (
   className: string | undefined,
 ) => boolean = (className: string | undefined): boolean => {
+  return namesUtility(className, "max-w-");
+};
+
+/*
+ * And whether they name a floor of their own - the On-Call logs' "Triggered
+ * By" title, never narrower than 12rem beside the side menu. Two min-w-*
+ * utilities on one element are resolved the same way, so the table's own
+ * 10rem floor for a column of prose is left off and the page's is kept.
+ */
+export const hasMinWidthClassName: (
+  className: string | undefined,
+) => boolean = (className: string | undefined): boolean => {
+  return namesUtility(className, "min-w-");
+};
+
+// Whether a class string holds a utility of this kind, under any variant.
+function namesUtility(className: string | undefined, prefix: string): boolean {
   if (!className) {
     return false;
   }
@@ -310,9 +327,9 @@ export const hasMaxWidthClassName: (
   return className.split(" ").some((token: string): boolean => {
     const utility: string = token.slice(token.lastIndexOf(":") + 1);
 
-    return utility.startsWith("max-w-");
+    return utility.startsWith(prefix);
   });
-};
+}
 
 /*
  * One item of a list in a cell (TableColumnListComponent - a row's

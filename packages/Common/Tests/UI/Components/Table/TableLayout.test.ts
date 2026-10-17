@@ -41,6 +41,7 @@ import {
   TableCellPosition,
   getTableCellPaddingClassName,
   hasMaxWidthClassName,
+  hasMinWidthClassName,
 } from "../../../../UI/Components/Table/TableLayout";
 import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
 
@@ -374,6 +375,27 @@ describe("hasMaxWidthClassName", () => {
     "%p names a cap: %p",
     (value: string | undefined, expected: boolean) => {
       expect(hasMaxWidthClassName(value)).toBe(expected);
+    },
+  );
+});
+
+describe("hasMinWidthClassName", () => {
+  const CASES: Array<[string | undefined, boolean]> = [
+    [undefined, false],
+    ["", false],
+    ["text-sm text-gray-900", false],
+    ["max-w-sm", false],
+    ["min-w-[12rem]", true],
+    ["max-w-sm min-w-[12rem]", true],
+    ["md:min-w-0", true],
+    ["[&>div]:min-w-0", true],
+    ["minimum", false],
+  ];
+
+  test.each(CASES)(
+    "%p names a floor: %p",
+    (value: string | undefined, expected: boolean) => {
+      expect(hasMinWidthClassName(value)).toBe(expected);
     },
   );
 });

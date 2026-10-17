@@ -352,6 +352,28 @@ describe("CellClassName helpers", () => {
     ).toBe(FIRST_CELL_CLASS_NAME);
   });
 
+  test("a column of prose that names its own floor keeps it, and the table's 10rem one is left off", () => {
+    /*
+     * The On-Call logs' Triggered By title (min-w-[12rem]): two min-w-*
+     * utilities on one element are resolved by the stylesheet's order, so
+     * the page's floor could have lost to the table's.
+     */
+    const contentClassName: string = getTableCellContentClassName<Row>({
+      title: "Triggered By",
+      type: FieldType.Element,
+      wrapContent: true,
+      wrapMaxWidthClassName: "max-w-sm",
+      contentClassName: "min-w-[12rem]",
+    });
+
+    expect(contentClassName).toBe(
+      `max-w-sm ${TABLE_CELL_CONTENT_ALIGN_CLASS_NAME} min-w-[12rem]`,
+    );
+    expect(contentClassName).not.toContain(
+      TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
+    );
+  });
+
   test("a page's own cap in contentClassName is kept, clipped the same way, and the table's left off", () => {
     const contentClassName: string = getTableCellContentClassName<Row>({
       title: "Client",
@@ -479,6 +501,16 @@ describe("CellClassName helpers", () => {
     [
       "the Actions column",
       { title: "Actions", type: FieldType.Actions },
+      true,
+      false,
+    ],
+    [
+      "a page's own floor",
+      {
+        title: "Name",
+        type: FieldType.Text,
+        contentClassName: "min-w-[14rem]",
+      },
       true,
       false,
     ],
