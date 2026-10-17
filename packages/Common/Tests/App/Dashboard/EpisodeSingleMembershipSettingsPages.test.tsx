@@ -79,9 +79,12 @@ jest.mock("react-i18next", () => {
  * incident can be in only one episode" / "An alert can be in only one
  * episode" - that saves its Project column the moment it is flipped. Off for
  * every project, as it always was; turning it on takes nothing out of an
- * episode, which the note under the switch says. Only a project owner or
- * admin may flip it. The real pages are rendered with the model API and the
- * permission snapshot stubbed.
+ * episode, which the switch says once it is on. Each state is said in a
+ * sentence or two, and nothing else sits under the switch (the UI review
+ * dropped a third, always-on note: "Turning this on takes no incident out of
+ * an episode: incidents already in several stay in them."). Only a project
+ * owner or admin may flip it. The real pages are rendered with the model API
+ * and the permission snapshot stubbed.
  */
 
 const WAIT_TIMEOUT: number = 20000;
@@ -108,7 +111,8 @@ interface PageCase {
   cardDescription: string;
   onDescription: string;
   offDescription: string;
-  note: string;
+  // What on keeps as it was: those in several episodes stay in them.
+  keptAsItWas: string;
 }
 
 const PAGES: Array<PageCase> = [
@@ -129,9 +133,9 @@ const PAGES: Array<PageCase> = [
     cardDescription:
       "Choose whether an incident can be in more than one episode.",
     onDescription:
-      "An incident that is in an episode can't be added to another one. To move it, remove it from its episode first.",
+      "An incident in an episode can't be added to another. Incidents already in several episodes stay in them.",
     offDescription: "An incident can be in several episodes at once.",
-    note: "Turning this on takes no incident out of an episode: incidents already in several stay in them.",
+    keptAsItWas: "Incidents already in several episodes stay in them.",
   },
   {
     name: "Alerts",
@@ -148,9 +152,9 @@ const PAGES: Array<PageCase> = [
     switchTitle: "An alert can be in only one episode",
     cardDescription: "Choose whether an alert can be in more than one episode.",
     onDescription:
-      "An alert that is in an episode can't be added to another one. To move it, remove it from its episode first.",
+      "An alert in an episode can't be added to another. Alerts already in several episodes stay in them.",
     offDescription: "An alert can be in several episodes at once.",
-    note: "Turning this on takes no alert out of an episode: alerts already in several stay in them.",
+    keptAsItWas: "Alerts already in several episodes stay in them.",
   },
 ];
 
@@ -321,8 +325,9 @@ describe.each(PAGES)(
         `${pageCase.switchTestId}-row`,
       );
       expect(row).toHaveTextContent(pageCase.offDescription);
-      // Whichever way it is set: turning it on takes nobody out.
-      expect(row).toHaveTextContent(pageCase.note);
+      // Off says what off means, and nothing more.
+      expect(row).not.toHaveTextContent(pageCase.keptAsItWas);
+      expect(row).not.toHaveTextContent("Turning this on");
     });
 
     test("a project that turned it on shows it on, and says what on means", async () => {
@@ -330,9 +335,14 @@ describe.each(PAGES)(
       openPage(pageCase);
 
       expect(await theSwitch(pageCase)).toHaveAttribute("aria-checked", "true");
-      expect(
-        screen.getByTestId(`${pageCase.switchTestId}-row`),
-      ).toHaveTextContent(pageCase.onDescription);
+
+      const row: HTMLElement = screen.getByTestId(
+        `${pageCase.switchTestId}-row`,
+      );
+      expect(row).toHaveTextContent(pageCase.onDescription);
+      // On takes nothing out: those in several episodes stay in them.
+      expect(row).toHaveTextContent(pageCase.keptAsItWas);
+      expect(row).not.toHaveTextContent(pageCase.offDescription);
     });
 
     test("reads the project it is on, and only its own column", async () => {
@@ -465,8 +475,36 @@ describe.each(PAGES)(
       expect(pageCase.copy.switchTitle).toBe(pageCase.switchTitle);
       expect(pageCase.copy.switchOnDescription).toBe(pageCase.onDescription);
       expect(pageCase.copy.switchOffDescription).toBe(pageCase.offDescription);
-      expect(pageCase.copy.note).toBe(pageCase.note);
       expect(pageCase.copy.dataTestId).toBe(pageCase.switchTestId);
+      // No third line under the switch, whichever way it is set.
+      expect(Object.keys(pageCase.copy).sort()).toEqual(
+        [
+          "cardDescription",
+          "cardTitle",
+          "column",
+          "dataTestId",
+          "switchOffDescription",
+          "switchOnDescription",
+          "switchTitle",
+        ].sort(),
+      );
+    });
+
+    test("says each state in two short sentences at most", () => {
+      for (const text of [
+        pageCase.copy.cardDescription,
+        pageCase.copy.switchOnDescription,
+        pageCase.copy.switchOffDescription,
+      ]) {
+        const sentences: Array<string> = text
+          .split(". ")
+          .filter((sentence: string): boolean => {
+            return sentence.trim().length > 0;
+          });
+
+        expect([text, sentences.length <= 2]).toEqual([text, true]);
+        expect([text, text.length <= 110]).toEqual([text, true]);
+      }
     });
   },
 );

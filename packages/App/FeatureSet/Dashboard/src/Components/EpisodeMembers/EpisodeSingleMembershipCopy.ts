@@ -17,8 +17,13 @@ import {
  * project owner or admin; for anyone else the switch is locked and says so.
  *
  * No dialog either way: turning it on takes nothing out of an episode - the
- * note under the switch says so - and turning it off only lets an incident
+ * switch says so once it is on - and turning it off only lets an incident
  * join several episodes again.
+ *
+ * Each state says what it means in a sentence or two, and nothing more: off,
+ * what every project has always had; on, what is refused and what stays as
+ * it was. How to move one between episodes is said where it can be done -
+ * the add dialogs.
  *
  * Kept free of React so the card and App/Tests read these exact strings.
  * Every sentence is wrapped in translationKey() so npm run i18n:extract
@@ -33,8 +38,6 @@ export interface EpisodeSingleMembershipCopy {
   switchTitle: string;
   switchOnDescription: string;
   switchOffDescription: string;
-  // Under the switch, whichever way it is set.
-  note: string;
   // The data-testid of the switch.
   dataTestId: string;
 }
@@ -53,13 +56,10 @@ export const INCIDENT_EPISODE_SETTINGS_COPY: EpisodeSingleMembershipCopy = {
   ),
   switchTitle: translationKey("An incident can be in only one episode"),
   switchOnDescription: translationKey(
-    "An incident that is in an episode can't be added to another one. To move it, remove it from its episode first.",
+    "An incident in an episode can't be added to another. Incidents already in several episodes stay in them.",
   ),
   switchOffDescription: translationKey(
     "An incident can be in several episodes at once.",
-  ),
-  note: translationKey(
-    "Turning this on takes no incident out of an episode: incidents already in several stay in them.",
   ),
   dataTestId: INCIDENT_SINGLE_EPISODE_SWITCH_TEST_ID,
 };
@@ -72,13 +72,10 @@ export const ALERT_EPISODE_SETTINGS_COPY: EpisodeSingleMembershipCopy = {
   ),
   switchTitle: translationKey("An alert can be in only one episode"),
   switchOnDescription: translationKey(
-    "An alert that is in an episode can't be added to another one. To move it, remove it from its episode first.",
+    "An alert in an episode can't be added to another. Alerts already in several episodes stay in them.",
   ),
   switchOffDescription: translationKey(
     "An alert can be in several episodes at once.",
-  ),
-  note: translationKey(
-    "Turning this on takes no alert out of an episode: alerts already in several stay in them.",
   ),
   dataTestId: ALERT_SINGLE_EPISODE_SWITCH_TEST_ID,
 };
@@ -87,12 +84,19 @@ export const ALERT_EPISODE_SETTINGS_COPY: EpisodeSingleMembershipCopy = {
  * What the add dialogs say while the project allows one in only one episode:
  * an episode's Add Incidents / Add Alerts (AddEpisodeMembersModal), and the
  * lists' Add to Existing Episode and Add to New Episode. The sentences name
- * the rule whole, per kind, so each language words it once.
+ * the rule whole, per kind, so each language words it once - and always in
+ * the same words, as a sentence of its own: "An incident can be in only one
+ * episode in this project.", the server's own reason
+ * (INCIDENT_IN_ANOTHER_EPISODE_REASON) included. A dialog says it once:
+ * where its list already says it under the list, its empty state does not
+ * say it again.
  */
 export interface EpisodeSingleMembershipDialogCopy {
   /*
    * Under an episode's add list: why the ones in another episode are not
-   * listed, or - found by a search - cannot be picked.
+   * listed, or - found by a search - cannot be picked, and how one of them
+   * can still be added. Said under the list for everyone, not only on a
+   * locked row's hover, which a keyboard or a phone never sees.
    */
   listRule: string;
   // The hover of a row that is in another episode, which it names.
@@ -104,7 +108,10 @@ export interface EpisodeSingleMembershipDialogCopy {
    * the ones in no episode.
    */
   shownOutsideEpisodes: string;
-  // Nothing left to add: every other one is in another episode.
+  /*
+   * Nothing left to add: every other one is in another episode. The rule is
+   * the line under the list (listRule), so this says only what is so.
+   */
   emptyAllInOtherEpisodes: string;
   /*
    * Add to Existing Episode, above its button: how many of the selected
@@ -126,7 +133,7 @@ export interface EpisodeSingleMembershipDialogCopy {
 export const INCIDENT_SINGLE_MEMBERSHIP_DIALOG_COPY: EpisodeSingleMembershipDialogCopy =
   {
     listRule: translationKey(
-      "An incident can be in only one episode in this project, so incidents that are in another episode can't be added.",
+      "An incident can be in only one episode in this project. To add one that is in another episode, remove it from that episode first.",
     ),
     lockedNoteTooltip: translationKey(
       "An incident can be in only one episode in this project. To add it here, remove it from episode {{number}} first.",
@@ -138,29 +145,29 @@ export const INCIDENT_SINGLE_MEMBERSHIP_DIALOG_COPY: EpisodeSingleMembershipDial
       "Showing the {{count}} most recent incidents that are in no episode. Search to find others.",
     ),
     emptyAllInOtherEpisodes: translationKey(
-      "Every other incident you can see is in another episode, and an incident can be in only one episode in this project.",
+      "Every other incident you can see is already in another episode.",
     ),
     pickNoteInAnotherEpisode: {
-      one: "{{count}} of them is already in another episode, so it is not added: an incident can be in only one episode in this project.",
+      one: "{{count}} of them is already in another episode, so it won't be added. An incident can be in only one episode in this project.",
       other:
-        "{{count}} of them are already in another episode, so they are not added: an incident can be in only one episode in this project.",
+        "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.",
     },
     newEpisodeLeftOut: {
-      one: "{{count}} of them is already in an episode, so it is left out: an incident can be in only one episode in this project.",
+      one: "{{count}} of them is already in an episode, so it is left out. An incident can be in only one episode in this project.",
       other:
-        "{{count}} of them are already in an episode, so they are left out: an incident can be in only one episode in this project.",
+        "{{count}} of them are already in an episode, so they are left out. An incident can be in only one episode in this project.",
     },
     nothingToAdd: {
-      one: "The selected incident is already in an episode, and an incident can be in only one episode in this project. To move it, remove it from its episode first.",
+      one: "The selected incident is already in an episode. An incident can be in only one episode in this project. To move it, remove it from its episode first.",
       other:
-        "All {{count}} selected incidents are already in an episode, and an incident can be in only one episode in this project. To move them, remove them from their episodes first.",
+        "Every selected incident is already in an episode. An incident can be in only one episode in this project. To move them, remove them from their episodes first.",
     },
   };
 
 export const ALERT_SINGLE_MEMBERSHIP_DIALOG_COPY: EpisodeSingleMembershipDialogCopy =
   {
     listRule: translationKey(
-      "An alert can be in only one episode in this project, so alerts that are in another episode can't be added.",
+      "An alert can be in only one episode in this project. To add one that is in another episode, remove it from that episode first.",
     ),
     lockedNoteTooltip: translationKey(
       "An alert can be in only one episode in this project. To add it here, remove it from episode {{number}} first.",
@@ -172,22 +179,22 @@ export const ALERT_SINGLE_MEMBERSHIP_DIALOG_COPY: EpisodeSingleMembershipDialogC
       "Showing the {{count}} most recent alerts that are in no episode. Search to find others.",
     ),
     emptyAllInOtherEpisodes: translationKey(
-      "Every other alert you can see is in another episode, and an alert can be in only one episode in this project.",
+      "Every other alert you can see is already in another episode.",
     ),
     pickNoteInAnotherEpisode: {
-      one: "{{count}} of them is already in another episode, so it is not added: an alert can be in only one episode in this project.",
+      one: "{{count}} of them is already in another episode, so it won't be added. An alert can be in only one episode in this project.",
       other:
-        "{{count}} of them are already in another episode, so they are not added: an alert can be in only one episode in this project.",
+        "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project.",
     },
     newEpisodeLeftOut: {
-      one: "{{count}} of them is already in an episode, so it is left out: an alert can be in only one episode in this project.",
+      one: "{{count}} of them is already in an episode, so it is left out. An alert can be in only one episode in this project.",
       other:
-        "{{count}} of them are already in an episode, so they are left out: an alert can be in only one episode in this project.",
+        "{{count}} of them are already in an episode, so they are left out. An alert can be in only one episode in this project.",
     },
     nothingToAdd: {
-      one: "The selected alert is already in an episode, and an alert can be in only one episode in this project. To move it, remove it from its episode first.",
+      one: "The selected alert is already in an episode. An alert can be in only one episode in this project. To move it, remove it from its episode first.",
       other:
-        "All {{count}} selected alerts are already in an episode, and an alert can be in only one episode in this project. To move them, remove them from their episodes first.",
+        "Every selected alert is already in an episode. An alert can be in only one episode in this project. To move them, remove them from their episodes first.",
     },
   };
 

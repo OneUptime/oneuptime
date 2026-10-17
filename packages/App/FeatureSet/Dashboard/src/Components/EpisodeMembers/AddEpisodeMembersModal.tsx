@@ -502,8 +502,18 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
       );
     }
 
-    // The rule, once, whatever the list shows.
-    if (isLimitedToOneEpisode) {
+    /*
+     * The rule, once, and how to add one that is held: under a list that
+     * shows some, or that is empty because every other one is in another
+     * episode. Not under an empty list that holds nothing the rule kept out
+     * (a project with none yet, an episode that has them all, a search
+     * that matched nothing): there it would explain nothing.
+     */
+    const isRuleShown: boolean =
+      isLimitedToOneEpisode === true &&
+      (rows.length > 0 || (!hasSearch && hasOthersInEpisodes));
+
+    if (isRuleShown) {
       lines.push(
         <p key="one-episode" data-testid="add-episode-members-one-episode">
           {translator.translateText(config.singleMembershipCopy.listRule)}

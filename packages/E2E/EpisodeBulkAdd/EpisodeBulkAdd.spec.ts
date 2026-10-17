@@ -1102,6 +1102,28 @@ test.describe("in the dark theme", () => {
 const ALERT_IN_ANOTHER_EPISODE: string =
   "Already in another episode. An alert can be in only one episode in this project.";
 
+// Under an episode's add list: the rule, and how to add one that is held.
+const ALERT_LIST_RULE: string =
+  "An alert can be in only one episode in this project. To add one that is in another episode, remove it from that episode first.";
+
+/*
+ * How see-through an element is drawn: its own opacity times that of every
+ * element it sits in, up to the dialog.
+ */
+async function renderedOpacity(locator: Locator): Promise<number> {
+  return await locator.evaluate((element: Element): number => {
+    let opacity: number = 1;
+    let current: Element | null = element;
+
+    while (current) {
+      opacity *= Number(getComputedStyle(current).opacity);
+      current = current.parentElement;
+    }
+
+    return opacity;
+  });
+}
+
 test.describe("a project that allows an alert in only one episode", () => {
   test("Add to Existing Episode says the one in another episode is not added, and the result says why", async ({
     page,
@@ -1127,7 +1149,7 @@ test.describe("a project that allows an alert in only one episode", () => {
     await expect(
       dialog(page).getByTestId("add-to-existing-episode-in-another"),
     ).toHaveText(
-      "1 of them is already in another episode, so it is not added: an alert can be in only one episode in this project.",
+      "1 of them is already in another episode, so it won't be added. An alert can be in only one episode in this project.",
     );
 
     await screenshot(page, "one-episode-existing-dialog");
@@ -1175,7 +1197,7 @@ test.describe("a project that allows an alert in only one episode", () => {
     await expect(
       dialog(page).getByTestId("add-to-existing-episode-nothing-to-add-reason"),
     ).toHaveText(
-      "All 2 selected alerts are already in an episode, and an alert can be in only one episode in this project. To move them, remove them from their episodes first.",
+      "Every selected alert is already in an episode. An alert can be in only one episode in this project. To move them, remove them from their episodes first.",
     );
     // Only Close: nothing here adds.
     await expect(
@@ -1203,8 +1225,9 @@ test.describe("a project that allows an alert in only one episode", () => {
       .getByRole("menuitem", { name: "Add to New Episode" })
       .click();
 
-    await expect(dialog(page)).toContainText(
-      "1 of them is already in an episode, so it is left out: an alert can be in only one episode in this project.",
+    // What changes what this creates is said first.
+    await expect(dialog(page).getByTestId("modal-description")).toHaveText(
+      "1 of them is already in an episode, so it is left out. An alert can be in only one episode in this project. You can add owners, on-call policies and notes on the episode's page.",
     );
     await expect(
       dialog(page).locator('input[type="text"]').first(),
@@ -1248,9 +1271,7 @@ test.describe("a project that allows an alert in only one episode", () => {
     ]);
     await expect(
       dialog(page).getByTestId("add-episode-members-one-episode"),
-    ).toHaveText(
-      "An alert can be in only one episode in this project, so alerts that are in another episode can't be added.",
-    );
+    ).toHaveText(ALERT_LIST_RULE);
 
     await screenshot(page, "one-episode-add-dialog");
 
@@ -1267,6 +1288,18 @@ test.describe("a project that allows an alert in only one episode", () => {
     );
     await expect(locked.locator('input[type="checkbox"]')).toBeDisabled();
 
+    /*
+     * Drawn faded - its title and facts - but its note, which says why it
+     * cannot be picked, is as easy to read as any line: nothing between it
+     * and the dialog is see-through.
+     */
+    expect(
+      await renderedOpacity(locked.getByTestId(`${LIST}-option-title`)),
+    ).toBeLessThan(0.75);
+    expect(
+      await renderedOpacity(locked.getByTestId(`${LIST}-option-note`)),
+    ).toBe(1);
+
     // A click on it picks nothing.
     await locked.click({ force: true });
     await expect(locked).toHaveAttribute("data-selected", "false");
@@ -1275,6 +1308,99 @@ test.describe("a project that allows an alert in only one episode", () => {
     ).toBeDisabled();
 
     await screenshot(page, "one-episode-add-search-locked");
+  });
+
+  test("with every other alert in another episode, it says so - and the rule once, under the list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Every alert in no episode is put in AE-11: AE-12 can take none.
+    await page.goto(
+      `${PROJECT}/alerts/episodes/${alertEpisodeId(12)}/alerts?page=alert-episode&oneEpisode=1&heldElsewhere=1`,
+    );
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    const LIST: string = "add-episode-members-list";
+
+    await expect(dialog(page).getByTestId(`${LIST}-empty`)).toContainText(
+      "Every other alert you can see is already in another episode.",
+    );
+    await expect(
+      dialog(page).getByTestId("add-episode-members-one-episode"),
+    ).toHaveText(ALERT_LIST_RULE);
+
+    // Said once in the whole dialog, not by the empty state again.
+    const text: string = (await dialog(page).textContent()) || "";
+    expect(
+      text.split("An alert can be in only one episode in this project.")
+        .length - 1,
+    ).toBe(1);
+
+    // Nothing a search could pick: no search box.
+    await expect(dialog(page).getByTestId(`${LIST}-search`)).toHaveCount(0);
+
+    await screenshot(page, "one-episode-add-all-held");
+  });
+
+  test("with every alert in this episode already, the rule is not said", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${PROJECT}/alerts/episodes/${alertEpisodeId(12)}/alerts?page=alert-episode&oneEpisode=1&onlyMembers=1`,
+    );
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    await expect(
+      dialog(page).getByTestId("add-episode-members-list-empty"),
+    ).toContainText("All the alerts you can see are in this episode already.");
+    await expect(
+      dialog(page).getByTestId("add-episode-members-one-episode"),
+    ).toHaveCount(0);
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("nothing to add fits the screen, with Close only", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // Rows are picked on a wide screen; the dialog opens on the phone.
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await openList(page, "alerts", "&oneEpisode=1");
+      await selectRows(page, ["Cart service restarts"]);
+      await page.setViewportSize({ width: 390, height: 844 });
+
+      await (await openBulkMenu(page))
+        .getByRole("menuitem", { name: "Add to New Episode" })
+        .click();
+
+      await expect(
+        dialog(page).getByTestId("add-to-new-episode-nothing-to-add-reason"),
+      ).toHaveText(
+        "The selected alert is already in an episode. An alert can be in only one episode in this project. To move it, remove it from its episode first.",
+      );
+      await expect(
+        dialog(page).getByTestId("modal-footer-submit-button"),
+      ).toHaveCount(0);
+
+      const box: { x: number; width: number } | null =
+        await dialog(page).boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+      expect(
+        await page.evaluate((): number => {
+          return document.documentElement.scrollWidth;
+        }),
+      ).toBeLessThanOrEqual(390);
+
+      await screenshot(page, "one-episode-new-nothing-phone");
+    });
   });
 
   test("the incidents' dialog says incidents", async ({
@@ -1290,7 +1416,7 @@ test.describe("a project that allows an alert in only one episode", () => {
     await expect(
       dialog(page).getByTestId("add-episode-members-one-episode"),
     ).toHaveText(
-      "An incident can be in only one episode in this project, so incidents that are in another episode can't be added.",
+      "An incident can be in only one episode in this project. To add one that is in another episode, remove it from that episode first.",
     );
     // INC-58 is in IE-11: not offered until searched for.
     await expect(
@@ -1369,9 +1495,8 @@ test.describe("the Episode Membership settings page", () => {
     await expect(row).toContainText(
       "An incident can be in several episodes at once.",
     );
-    await expect(row).toContainText(
-      "Turning this on takes no incident out of an episode: incidents already in several stay in them.",
-    );
+    // Off says what off means, and nothing more.
+    await expect(row).not.toContainText("Turning this on");
 
     await screenshot(page, "one-episode-settings-off");
 
@@ -1382,7 +1507,7 @@ test.describe("the Episode Membership settings page", () => {
       page.getByTestId("incident-single-episode-switch-status"),
     ).toContainText("Saved");
     await expect(row).toContainText(
-      "An incident that is in an episode can't be added to another one. To move it, remove it from its episode first.",
+      "An incident in an episode can't be added to another. Incidents already in several episodes stay in them.",
     );
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
@@ -1441,7 +1566,7 @@ test.describe("the Episode Membership settings page", () => {
       await expect(
         page.getByTestId("alert-single-episode-switch-row"),
       ).toContainText(
-        "An alert that is in an episode can't be added to another one.",
+        "An alert in an episode can't be added to another. Alerts already in several episodes stay in them.",
       );
 
       // No sideways scroll.

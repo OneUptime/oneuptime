@@ -111,7 +111,6 @@ function keysOf(
     settings.switchTitle,
     settings.switchOnDescription,
     settings.switchOffDescription,
-    settings.note,
     dialogs.listRule,
     dialogs.lockedNoteTooltip,
     dialogs.lockedNoteTooltipUnnamed,
@@ -149,8 +148,74 @@ const ALL_KEYS: Array<[string, string]> = [
   ["Limit Alerts to One Episode", "Limit Alerts to One Episode"],
 ];
 
+/*
+ * The words the UI review rewrote (shorter, the rule always its own
+ * sentence, "All 2 selected" gone, the always-on note under the switch
+ * dropped). No language may keep them: i18n:extract never drops a key.
+ */
+const REWRITTEN_KEYS: Array<string> = [
+  "Turning this on takes no incident out of an episode: incidents already in several stay in them.",
+  "Turning this on takes no alert out of an episode: alerts already in several stay in them.",
+  "An incident that is in an episode can't be added to another one. To move it, remove it from its episode first.",
+  "An alert that is in an episode can't be added to another one. To move it, remove it from its episode first.",
+  "An incident can be in only one episode in this project, so incidents that are in another episode can't be added.",
+  "An alert can be in only one episode in this project, so alerts that are in another episode can't be added.",
+  "Every other incident you can see is in another episode, and an incident can be in only one episode in this project.",
+  "Every other alert you can see is in another episode, and an alert can be in only one episode in this project.",
+  "{{count}} of them are already in another episode, so they are not added: an incident can be in only one episode in this project.",
+  "{{count}} of them are already in another episode, so they are not added: an alert can be in only one episode in this project.",
+  "{{count}} of them are already in an episode, so they are left out: an incident can be in only one episode in this project.",
+  "{{count}} of them are already in an episode, so they are left out: an alert can be in only one episode in this project.",
+  "All {{count}} selected incidents are already in an episode, and an incident can be in only one episode in this project. To move them, remove them from their episodes first.",
+  "All {{count}} selected alerts are already in an episode, and an alert can be in only one episode in this project. To move them, remove them from their episodes first.",
+];
+
 describe("every word, in every language", () => {
   const english: Record<string, unknown> = readLocale("en");
+
+  test.each(["en", ...OTHER_LOCALES])(
+    "%s keeps none of the words the review rewrote",
+    (locale: string) => {
+      const words: Record<string, unknown> = readLocale(locale);
+
+      for (const key of REWRITTEN_KEYS) {
+        expect([key, key in words]).toEqual([key, false]);
+        expect([key, `${key}_one` in words]).toEqual([key, false]);
+      }
+    },
+  );
+
+  test("the rule is one sentence of its own, worded as the server words it", () => {
+    for (const [dialogs, rule] of [
+      [
+        INCIDENT_SINGLE_MEMBERSHIP_DIALOG_COPY,
+        "An incident can be in only one episode in this project.",
+      ],
+      [
+        ALERT_SINGLE_MEMBERSHIP_DIALOG_COPY,
+        "An alert can be in only one episode in this project.",
+      ],
+    ] as Array<[EpisodeSingleMembershipDialogCopy, string]>) {
+      for (const text of [
+        dialogs.listRule,
+        dialogs.pickNoteInAnotherEpisode.one,
+        dialogs.pickNoteInAnotherEpisode.other,
+        dialogs.newEpisodeLeftOut.one,
+        dialogs.newEpisodeLeftOut.other,
+        dialogs.nothingToAdd.one,
+        dialogs.nothingToAdd.other,
+      ]) {
+        expect([text, text.includes(rule)]).toEqual([text, true]);
+      }
+    }
+
+    expect(INCIDENT_IN_ANOTHER_EPISODE_REASON).toContain(
+      "An incident can be in only one episode in this project.",
+    );
+    expect(ALERT_IN_ANOTHER_EPISODE_REASON).toContain(
+      "An alert can be in only one episode in this project.",
+    );
+  });
 
   test("English holds each key, as itself", () => {
     for (const [key, text] of ALL_KEYS) {
@@ -213,6 +278,9 @@ interface SettingsPage {
   sideMenu: Array<string>;
   before: string;
   after: string;
+  // The icon the menu draws its product's episodes with (All Episodes).
+  episodeIcon: string;
+  episodesPage: string;
 }
 
 const SETTINGS_PAGES: Array<SettingsPage> = [
@@ -231,6 +299,8 @@ const SETTINGS_PAGES: Array<SettingsPage> = [
     sideMenu: ["Pages", "Incidents", "SideMenu.tsx"],
     before: "INCIDENTS_SETTINGS_NUMBERING",
     after: "INCIDENTS_SETTINGS_LINKED_ALERTS",
+    episodeIcon: "IconProp.SquareStack3D",
+    episodesPage: "INCIDENT_EPISODES",
   },
   {
     name: "Alerts",
@@ -242,6 +312,8 @@ const SETTINGS_PAGES: Array<SettingsPage> = [
     sideMenu: ["Pages", "Alerts", "SideMenu.tsx"],
     before: "ALERTS_SETTINGS_NUMBERING",
     after: "ALERTS_SETTINGS_MEASUREMENTS",
+    episodeIcon: "IconProp.SquareStack",
+    episodesPage: "ALERT_EPISODES",
   },
 ];
 
@@ -278,7 +350,11 @@ describe.each(SETTINGS_PAGES)(
       expect(episodes).toBeGreaterThan(menu.indexOf(`PageMap.${page.after}`));
       expect(episodes).toBeLessThan(menu.indexOf(`PageMap.${page.before}`));
       expect(menu).toContain(
-        `title: "Episode Membership", to: RouteUtil.populateRouteParams( RouteMap[PageMap.${page.routeKey}] as Route, ), }, icon: IconProp.SquareStack3D,`,
+        `title: "Episode Membership", to: RouteUtil.populateRouteParams( RouteMap[PageMap.${page.routeKey}] as Route, ), }, icon: ${page.episodeIcon},`,
+      );
+      // The icon the same menu draws its episodes with.
+      expect(menu).toContain(
+        `RouteMap[PageMap.${page.episodesPage}] as Route, ), }, icon: ${page.episodeIcon},`,
       );
     });
 
@@ -295,6 +371,7 @@ describe.each(SETTINGS_PAGES)(
       const entry: string = index.slice(start, index.indexOf("}", start));
 
       expect(entry).toContain('title: "Episode Membership"');
+      expect(entry).toContain(`icon: ${page.episodeIcon},`);
       expect(entry).toContain('"only one episode"');
     });
   },

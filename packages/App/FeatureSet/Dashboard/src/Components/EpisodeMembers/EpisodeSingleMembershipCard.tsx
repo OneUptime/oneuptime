@@ -34,7 +34,6 @@ const EpisodeSingleMembershipCard: FunctionComponent<ComponentProps> = (
           ? props.copy.switchOnDescription
           : props.copy.switchOffDescription;
       }}
-      note={props.copy.note}
       dataTestId={props.copy.dataTestId}
     />
   );

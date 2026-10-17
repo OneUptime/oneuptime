@@ -29,9 +29,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  *   - an episode's Add Alerts / Add Incidents (AddEpisodeMembersModal)
  *     lists only what can be added - the ones in no episode - and says the
- *     rule under the list; a search still finds any, and one in another
- *     episode is drawn locked, naming that episode (when the person can see
- *     it) and saying how to move it;
+ *     rule under the list, once, with how to add one that is held - only
+ *     where it explains the list; a search still finds any, and one in
+ *     another episode is drawn locked, naming that episode (when the person
+ *     can see it), its note never faded with the rest of the row;
  *   - the lists' Add to Existing Episode says the selected ones in another
  *     episode are not added - or, when every one is in an episode, that
  *     there is nothing to add, with only Close;
@@ -55,6 +56,7 @@ import {
   EPISODE_MEMBER_PICKER_LIMIT,
   fetchIsLimitedToOneEpisode,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EpisodeMembers/EpisodeMembersApi";
+import { EPISODE_PICKER_DISABLED_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/EpisodeMembers/EpisodePickerList";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeMember from "../../../Models/DatabaseModels/AlertEpisodeMember";
@@ -553,16 +555,35 @@ describe.each([
       ).toBeInstanceOf(IsNull);
     });
 
-    test("says the rule once, under the list", async () => {
+    // The rule, and how to add one that is held: said for everyone.
+    const RULE: string =
+      kind === ALERTS
+        ? "An alert can be in only one episode in this project. To add one that is in another episode, remove it from that episode first."
+        : "An incident can be in only one episode in this project. To add one that is in another episode, remove it from that episode first.";
+
+    // Every place in the dialog that says the rule.
+    function rulesSaid(): number {
+      const ruleSentence: string =
+        kind === ALERTS
+          ? "An alert can be in only one episode in this project."
+          : "An incident can be in only one episode in this project.";
+
+      return (
+        (screen.getByTestId("modal").textContent?.split(ruleSentence).length ||
+          1) - 1
+      );
+    }
+
+    test("says the rule once, under the list, with how to add one that is held", async () => {
       open();
 
       expect(
         await screen.findByTestId("add-episode-members-one-episode"),
-      ).toHaveTextContent(
-        kind === ALERTS
-          ? "An alert can be in only one episode in this project, so alerts that are in another episode can't be added."
-          : "An incident can be in only one episode in this project, so incidents that are in another episode can't be added.",
-      );
+      ).toHaveTextContent(RULE);
+      await waitFor(() => {
+        expect(options(LIST).length).toBeGreaterThan(0);
+      });
+      expect(rulesSaid()).toBe(1);
     });
 
     test("a search finds any: one in another episode is listed locked, naming the episode, with how to move it", async () => {
@@ -597,6 +618,31 @@ describe.each([
       expect(note).toHaveTextContent(
         `Already in episode ${kind.episodePrefix}3`,
       );
+
+      /*
+       * Faded: its box, its title and its facts - never its note, which
+       * says why it cannot be picked. The row itself is not faded, or the
+       * note would fade with it.
+       */
+      expect(checkbox).toHaveClass(EPISODE_PICKER_DISABLED_CLASS_NAME);
+      expect(within(locked).getByTestId(`${LIST}-option-heading`)).toHaveClass(
+        EPISODE_PICKER_DISABLED_CLASS_NAME,
+      );
+      expect(within(locked).getByTestId(`${LIST}-option-facts`)).toHaveClass(
+        EPISODE_PICKER_DISABLED_CLASS_NAME,
+      );
+      expect(note).not.toHaveClass(EPISODE_PICKER_DISABLED_CLASS_NAME);
+      expect(locked).not.toHaveClass(EPISODE_PICKER_DISABLED_CLASS_NAME);
+      expect(locked).toHaveClass("cursor-not-allowed");
+
+      // A row that can be picked is not faded at all.
+      const free: HTMLElement = optionTitled(LIST, "Checkout API is offline");
+      expect(within(free).getByRole("checkbox")).not.toHaveClass(
+        EPISODE_PICKER_DISABLED_CLASS_NAME,
+      );
+      expect(
+        within(free).getByTestId(`${LIST}-option-heading`),
+      ).not.toHaveClass(EPISODE_PICKER_DISABLED_CLASS_NAME);
       expect(note).toHaveAttribute(
         "title",
         kind === ALERTS
@@ -687,7 +733,7 @@ describe.each([
       expect(onClose).not.toHaveBeenCalled();
     });
 
-    test("with nothing in no episode, it says the rest are all in another episode", async () => {
+    test("with nothing in no episode, it says the rest are all in another episode - and the rule once, under the list", async () => {
       tables.records = tables.records.filter((record: BaseModel): boolean => {
         return Boolean(
           (record as unknown as Record<string, unknown>)[
@@ -698,14 +744,22 @@ describe.each([
 
       open();
 
-      expect(await screen.findByTestId(`${LIST}-empty`)).toHaveTextContent(
+      const empty: HTMLElement = await screen.findByTestId(`${LIST}-empty`);
+
+      expect(empty).toHaveTextContent(
         kind === ALERTS
-          ? "Every other alert you can see is in another episode, and an alert can be in only one episode in this project."
-          : "Every other incident you can see is in another episode, and an incident can be in only one episode in this project.",
+          ? "Every other alert you can see is already in another episode."
+          : "Every other incident you can see is already in another episode.",
       );
+      // The empty state says what is so; the line under the list, why.
+      expect(empty).not.toHaveTextContent("can be in only one episode");
+      expect(
+        await screen.findByTestId("add-episode-members-one-episode"),
+      ).toHaveTextContent(RULE);
+      expect(rulesSaid()).toBe(1);
     });
 
-    test("with nothing at all, it says there are none yet", async () => {
+    test("with nothing at all, it says there are none yet, and no rule that explains nothing", async () => {
       tables.records = [];
       tables.memberIds = [];
 
@@ -714,6 +768,40 @@ describe.each([
       expect(await screen.findByTestId(`${LIST}-empty`)).toHaveTextContent(
         `There are no ${kind === ALERTS ? "alerts" : "incidents"} in this project yet.`,
       );
+      expect(
+        screen.queryByTestId("add-episode-members-one-episode"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("with every one in this episode already, no rule either", async () => {
+      tables.records = tables.records.filter((record: BaseModel): boolean => {
+        return tables.memberIds.includes(idOf(record._id));
+      });
+
+      open();
+
+      expect(await screen.findByTestId(`${LIST}-empty`)).toHaveTextContent(
+        `All the ${kind === ALERTS ? "alerts" : "incidents"} you can see are in this episode already.`,
+      );
+      expect(
+        screen.queryByTestId("add-episode-members-one-episode"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("a search that matches nothing says so, without the rule", async () => {
+      open();
+      await waitFor(() => {
+        expect(options(LIST).length).toBeGreaterThan(0);
+      });
+
+      await search("no such title");
+
+      expect(await screen.findByTestId(`${LIST}-no-match`)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId("add-episode-members-one-episode"),
+        ).not.toBeInTheDocument();
+      });
     });
 
     test("at the most it lists, it says it shows the ones in no episode", async () => {
@@ -842,7 +930,7 @@ describe("the lists' Add to Existing Episode, allowed in only one episode", () =
       expect(
         screen.getByTestId("add-to-existing-episode-in-another"),
       ).toHaveTextContent(
-        "1 of them is already in another episode, so it is not added: an alert can be in only one episode in this project.",
+        "1 of them is already in another episode, so it won't be added. An alert can be in only one episode in this project.",
       );
     });
     expect(submitButton()).not.toBeDisabled();
@@ -858,7 +946,7 @@ describe("the lists' Add to Existing Episode, allowed in only one episode", () =
       expect(
         screen.getByTestId("add-to-existing-episode-in-another"),
       ).toHaveTextContent(
-        "2 of them are already in another episode, so they are not added: an alert can be in only one episode in this project.",
+        "2 of them are already in another episode, so they won't be added. An alert can be in only one episode in this project.",
       );
     });
   });
@@ -874,7 +962,7 @@ describe("the lists' Add to Existing Episode, allowed in only one episode", () =
     expect(
       screen.getByTestId("add-to-existing-episode-nothing-to-add-reason"),
     ).toHaveTextContent(
-      "All 2 selected alerts are already in an episode, and an alert can be in only one episode in this project. To move them, remove them from their episodes first.",
+      "Every selected alert is already in an episode. An alert can be in only one episode in this project. To move them, remove them from their episodes first.",
     );
     // The same dialog: its title, no list, no button that adds.
     expect(screen.getByTestId("modal-title")).toHaveTextContent(
@@ -901,7 +989,7 @@ describe("the lists' Add to Existing Episode, allowed in only one episode", () =
         "add-to-existing-episode-nothing-to-add-reason",
       ),
     ).toHaveTextContent(
-      "The selected incident is already in an episode, and an incident can be in only one episode in this project. To move it, remove it from its episode first.",
+      "The selected incident is already in an episode. An incident can be in only one episode in this project. To move it, remove it from its episode first.",
     );
     expect(screen.getByTestId("modal-footer-close-button")).toHaveTextContent(
       "Close",
@@ -1017,9 +1105,16 @@ describe("the lists' Add to New Episode, allowed in only one episode", () => {
     ).toBeNull();
     expect(screen.getByText("Major")).toBeInTheDocument();
 
+    /*
+     * What changes what this creates comes first: the one left out, then
+     * what can be added on the episode's page.
+     */
     expect(screen.getByTestId("modal-description")).toHaveTextContent(
-      "You can add owners, on-call policies and notes on the episode's page. 1 of them is already in an episode, so it is left out: an alert can be in only one episode in this project.",
+      "1 of them is already in an episode, so it is left out. An alert can be in only one episode in this project. You can add owners, on-call policies and notes on the episode's page.",
     );
+    expect(
+      screen.getByTestId("modal-description").textContent?.indexOf("1 of them"),
+    ).toBe(0);
 
     await act(async () => {
       fireEvent.click(submitButton()!);
@@ -1046,7 +1141,7 @@ describe("the lists' Add to New Episode, allowed in only one episode", () => {
     expect(
       screen.getByTestId("add-to-new-episode-nothing-to-add-reason"),
     ).toHaveTextContent(
-      "All 2 selected alerts are already in an episode, and an alert can be in only one episode in this project. To move them, remove them from their episodes first.",
+      "Every selected alert is already in an episode. An alert can be in only one episode in this project. To move them, remove them from their episodes first.",
     );
     expect(screen.getByTestId("modal-title")).toHaveTextContent(
       "Add 2 Alerts to a New Episode",
@@ -1068,8 +1163,9 @@ describe("the lists' Add to New Episode, allowed in only one episode", () => {
     expect(
       await screen.findByDisplayValue("Checkout p95 latency above 2 s"),
     ).toBeInTheDocument();
+    // Nothing changes what this creates, so the page's sentence comes first.
     expect(screen.getByTestId("modal-description")).toHaveTextContent(
-      "1 of them is already in another episode, and stays there too.",
+      "You can add owners, on-call policies and notes on the episode's page. 1 of them is already in another episode, and stays there too.",
     );
 
     await act(async () => {

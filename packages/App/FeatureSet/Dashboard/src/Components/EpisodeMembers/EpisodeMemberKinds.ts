@@ -7,6 +7,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   ALERT_EPISODE_ID_KEY,
   ALERT_IDS_KEY,
@@ -95,6 +96,13 @@ export interface EpisodeMemberKindConfig {
   // What the dialogs say while it is on.
   singleMembershipCopy: EpisodeSingleMembershipDialogCopy;
 
+  /*
+   * The icon its product draws episodes with - its side menu's All
+   * Episodes, its command palette - so what the dialogs and the Episode
+   * Membership page draw for an episode is the one people already know.
+   */
+  episodeIcon: IconProp;
+
   // "alert" / "alerts" in a sentence; "Alert" / "Alerts" in a title.
   singular: string;
   plural: string;
@@ -130,6 +138,7 @@ export const ALERT_EPISODE_MEMBER_KIND: EpisodeMemberKindConfig = {
   singleMembershipColumn: ALERT_SINGLE_MEMBERSHIP_COLUMN,
   inAnotherEpisodeReason: ALERT_IN_ANOTHER_EPISODE_REASON,
   singleMembershipCopy: ALERT_SINGLE_MEMBERSHIP_DIALOG_COPY,
+  episodeIcon: IconProp.SquareStack,
   singular: "alert",
   plural: "alerts",
   singularTitle: "Alert",
@@ -163,6 +172,7 @@ export const INCIDENT_EPISODE_MEMBER_KIND: EpisodeMemberKindConfig = {
   singleMembershipColumn: INCIDENT_SINGLE_MEMBERSHIP_COLUMN,
   inAnotherEpisodeReason: INCIDENT_IN_ANOTHER_EPISODE_REASON,
   singleMembershipCopy: INCIDENT_SINGLE_MEMBERSHIP_DIALOG_COPY,
+  episodeIcon: IconProp.SquareStack3D,
   singular: "incident",
   plural: "incidents",
   singularTitle: "Incident",

@@ -999,7 +999,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           {
             page: PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP,
             title: "Episode Membership",
-            icon: IconProp.SquareStack3D,
+            icon: IconProp.SquareStack,
             keywords: [
               "episode settings",
               "one episode",

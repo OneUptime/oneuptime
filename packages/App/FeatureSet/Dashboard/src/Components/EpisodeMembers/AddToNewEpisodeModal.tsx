@@ -228,26 +228,35 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
    * The title says what this does, so the description says only what the
    * form leaves out, and what happens to the ones in another episode:
    * whole sentences, run together the way the reader's script does it.
+   *
+   * Selected ones left out of the new episode (a project that allows one in
+   * only one episode) change what this creates, so that comes first, before
+   * anything about the episode's page. One that stays in another episode
+   * too changes nothing here, so it comes last.
    */
-  const description: string = joinSentences([
-    translator.translateText(
-      "You can add owners, on-call policies and notes on the episode's page.",
-    ) || "",
+  const leftOutSentence: string =
     isLimitedToOneEpisode && leftOutIds.length > 0
       ? translator.translatePlural(
           config.singleMembershipCopy.newEpisodeLeftOut,
           leftOutIds.length,
         )
-      : !isLimitedToOneEpisode && inAnotherEpisode > 0
-        ? translator.translatePlural(
-            {
-              one: "{{count}} of them is already in another episode, and stays there too.",
-              other:
-                "{{count}} of them are already in another episode, and stay there too.",
-            },
-            inAnotherEpisode,
-          )
-        : "",
+      : "";
+
+  const description: string = joinSentences([
+    leftOutSentence,
+    translator.translateText(
+      "You can add owners, on-call policies and notes on the episode's page.",
+    ) || "",
+    !isLimitedToOneEpisode && inAnotherEpisode > 0
+      ? translator.translatePlural(
+          {
+            one: "{{count}} of them is already in another episode, and stays there too.",
+            other:
+              "{{count}} of them are already in another episode, and stay there too.",
+          },
+          inAnotherEpisode,
+        )
+      : "",
   ]);
 
   const title: string = translator.translatePlural(

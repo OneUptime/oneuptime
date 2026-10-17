@@ -44,6 +44,10 @@
  *   - long=1                       long titles, the way some are written
  *   - onlyMembers=1                every alert and incident is in episode
  *                                  12 already: nothing left to add
+ *   - heldElsewhere=1              every alert and incident that is in no
+ *                                  episode is put in episode 11: with
+ *                                  oneEpisode=1, nothing episode 12 could
+ *                                  still take
  *   - oneEpisode=1                 the project allows an alert (and an
  *                                  incident) in only one episode
  *                                  (EpisodeSingleMembership): the server
@@ -140,6 +144,7 @@ const failTables = listTables("fail");
 const many = Math.min(400, Math.max(0, Number(params.get("many") || 0)));
 const long = params.get("long") === "1";
 const onlyMembers = params.get("onlyMembers") === "1";
+const heldElsewhere = params.get("heldElsewhere") === "1";
 const oneEpisode = params.get("oneEpisode") === "1";
 const LONG_TITLE =
   "Checkout API returns 502 for card payments in eu-west-1 while the payment provider's webhook queue is backed up";
@@ -351,6 +356,15 @@ function makeKind(kind) {
     addMember(episodes[1], records[5], 55);
     addMember(episodes[2], records[6], 70);
     addMember(episodes[2], records[7], 95);
+  }
+
+  // Every one in no episode joins episode 11: none is free any more.
+  if (heldElsewhere && !noEpisodes) {
+    for (const candidate of records) {
+      if (!candidate[episodeIdField]) {
+        addMember(episodes[1], candidate, 30);
+      }
+    }
   }
 
   // Nothing left to add to episode 12: every other one is gone.

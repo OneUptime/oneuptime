@@ -1,4 +1,3 @@
-import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -37,7 +36,10 @@ export const NothingToAddToEpisodeNotice: FunctionComponent<NoticeProps> = (
         aria-hidden="true"
         className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100"
       >
-        <Icon icon={IconProp.SquareStack3D} className="h-5 w-5 text-gray-500" />
+        <Icon
+          icon={props.config.episodeIcon}
+          className="h-5 w-5 text-gray-500"
+        />
       </div>
       <div className="mt-3 text-sm font-medium text-gray-900">
         {translator.translateText("Nothing to add")}
