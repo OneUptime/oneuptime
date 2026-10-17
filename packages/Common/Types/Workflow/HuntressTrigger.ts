@@ -168,9 +168,14 @@ export type GetHuntressTriggerUrlPrefixFunction = (data: {
 export const getHuntressTriggerUrlPrefix: GetHuntressTriggerUrlPrefixFunction =
   (data: { workflowServiceUrl: string }): string => {
     // With or without a trailing slash, the base gives the same URL.
-    const base: string = data.workflowServiceUrl.replace(/\/+$/, "");
+    const url: string = data.workflowServiceUrl;
+    let end: number = url.length;
 
-    return `${base}${HUNTRESS_TRIGGER_PATH}/`;
+    while (end > 0 && url[end - 1] === "/") {
+      end--;
+    }
+
+    return `${url.slice(0, end)}${HUNTRESS_TRIGGER_PATH}/`;
   };
 
 export type GetHuntressTriggerUrlFunction = (data: {

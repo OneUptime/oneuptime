@@ -86,6 +86,8 @@ describe("the trigger's URL", () => {
       "https://oneuptime.com/workflow",
       "https://oneuptime.com/workflow/",
       "https://oneuptime.com/workflow//",
+      // Read in one pass, however many there are.
+      `https://oneuptime.com/workflow${"/".repeat(50000)}`,
     ]) {
       expect(getHuntressTriggerUrlPrefix({ workflowServiceUrl: base })).toBe(
         "https://oneuptime.com/workflow/huntress/",
