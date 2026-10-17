@@ -12,10 +12,19 @@ import {
   VideoCallProviderCatalog,
   VideoCallProviderDefinition,
   ZOOM_CLASSIC_MEETING_SCOPE,
+  ZOOM_CLASSIC_RECORDING_SCOPE,
   ZOOM_MEETING_SCOPE,
+  ZOOM_MEETING_TRANSCRIPT_SCOPE,
   ZOOM_OAUTH_MEETING_SCOPE,
+  ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE,
+  ZOOM_OAUTH_RECORDING_FILES_SCOPE,
   ZOOM_OAUTH_USER_SCOPE,
+  ZOOM_RECORDING_FILES_SCOPE,
 } from "Common/Types/VideoCall/VideoCallProviderCatalog";
+import { VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS } from "Common/Types/VideoCall/VideoCallTranscript";
+import { GOOGLE_MEET_ENTRY_RETENTION_IN_DAYS } from "Common/Server/Utils/VideoCall/Transcripts/GoogleMeetTranscriptClient";
+import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -57,6 +66,18 @@ const FENCE_LINE: RegExp = /^\s*```/;
 const NUMBERED_STEP_LINE: RegExp = /^\d+\.\s/;
 const ONE_CLICK_DOCS_PATH: RegExp =
   /VIDEO_CALL_ONE_CLICK_DOCS_PATH: string =\s*"([^"]+)"/;
+const DASHBOARD_VIDEO_CALL_COMPONENTS: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Dashboard/src/Components/VideoCall",
+);
+const DASHBOARD_CALL_SUMMARY_SECTION: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Dashboard/src/Components/AI/CallSummary/CallSummarySection.tsx",
+);
+const CALL_TRANSCRIPTS_DOCS_PATH: RegExp =
+  /CALL_TRANSCRIPTS_DOCS_PATH: string =\s*"([^"]+)"/;
+const MAX_TRANSCRIPT_FILE_BYTES: RegExp =
+  /MAX_TRANSCRIPT_FILE_BYTES: number = (\d+) \* 1024 \* 1024;/;
 
 const DEFINITION_CASES: Array<[string, VideoCallProviderDefinition]> =
   VideoCallProviderCatalog.map(
@@ -419,6 +440,16 @@ describe("Video Calls docs - connecting in one click", () => {
     }
   });
 
+  test("asks a Zoom sign-in for the transcript permissions, and says an older one reconnects", () => {
+    const section: string = sectionOf(readPage(), "connect-in-one-click");
+
+    expect(section).toContain(ZOOM_OAUTH_RECORDING_FILES_SCOPE);
+    expect(section).toContain(ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE);
+    expect(section).toContain(
+      "A Zoom connection signed in before OneUptime read call transcripts starts calls as before",
+    );
+  });
+
   test("a self-hosted server: every redirect URI the server builds, every variable it reads", () => {
     const section: string = sectionOf(
       readPage(),
@@ -436,6 +467,9 @@ describe("Video Calls docs - connecting in one click", () => {
 
     expect(section).toContain("/api/video-call-oauth/zoom/events");
     expect(section).toContain(GOOGLE_MEET_SCOPE);
+    // The scopes this server's Zoom app needs to read call transcripts.
+    expect(section).toContain(ZOOM_OAUTH_RECORDING_FILES_SCOPE);
+    expect(section).toContain(ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE);
 
     for (const variable of [
       "ZOOM_APP_CLIENT_ID",
@@ -449,5 +483,163 @@ describe("Video Calls docs - connecting in one click", () => {
       expect(section).toContain(variable);
       expect(environment).toContain(`process.env["${variable}"]`);
     }
+  });
+});
+
+/*
+ * Call transcripts (issue #4875): the Video Call card's transcript and the
+ * AI Investigation card's reading of it, as the Dashboard draws them, the
+ * scopes Zoom asks for, and the limits the server and the Dashboard keep.
+ */
+describe("Video Calls docs - call transcripts", () => {
+  function readSource(file: string): string {
+    return fs.readFileSync(file, "utf8");
+  }
+
+  const BLOCK: string = readSource(
+    path.join(DASHBOARD_VIDEO_CALL_COMPONENTS, "CallTranscriptBlock.tsx"),
+  );
+  const ADD_DIALOG: string = readSource(
+    path.join(DASHBOARD_VIDEO_CALL_COMPONENTS, "AddCallTranscriptModal.tsx"),
+  );
+  const API: string = readSource(
+    path.join(DASHBOARD_VIDEO_CALL_COMPONENTS, "CallTranscriptApi.ts"),
+  );
+  const STATE: string = readSource(
+    path.join(DASHBOARD_VIDEO_CALL_COMPONENTS, "CallTranscriptState.ts"),
+  );
+  const SECTION: string = readSource(DASHBOARD_CALL_SUMMARY_SECTION);
+
+  test("the Video Call card's How to set it up link opens this section", () => {
+    const match: RegExpExecArray | null = CALL_TRANSCRIPTS_DOCS_PATH.exec(API);
+
+    expect(match).not.toBe(null);
+
+    const [docsPage, anchor] = match![1]!.split("#");
+
+    expect(docsPage).toBe(PAGE_URL);
+    expect(sectionOf(readPage(), anchor!)).toMatch(/^## Call transcripts/);
+  });
+
+  test("names the buttons and marks as the cards draw them", () => {
+    const section: string = sectionOf(readPage(), "call-transcripts");
+
+    for (const [label, source] of [
+      ["Get from {{provider}}", BLOCK],
+      ["Add transcript", BLOCK],
+      ["Suggested root cause", SECTION],
+      ["Not confirmed", SECTION],
+      ["Confirmed on the call", SECTION],
+      ["Hypothesis", SECTION],
+      ["Use as root cause", SECTION],
+      ["Dismiss", SECTION],
+      ["Undo", SECTION],
+      ["Not enough was said on the call to suggest a root cause", SECTION],
+    ] as Array<[string, string]>) {
+      expect({ label, drawn: source.includes(`"${label}"`) }).toEqual({
+        label,
+        drawn: true,
+      });
+    }
+
+    for (const label of [
+      "Get from Zoom",
+      "Get from Google Meet",
+      "Add transcript",
+      "Suggested root cause",
+      "Not confirmed",
+      "Confirmed on the call",
+      "Hypothesis",
+      "Use as root cause",
+      "Dismiss",
+      "Undo",
+      "Not enough was said on the call to suggest a root cause",
+    ]) {
+      expect({ label, named: section.includes(`**${label}**`) }).toEqual({
+        label,
+        named: true,
+      });
+    }
+
+    // Try again, from Troubleshooting: the cards' own button.
+    expect(BLOCK).toContain('translator.translateText("Try again")');
+    expect(SECTION).toContain('translator.translateText("Try again")');
+    expect(readPage()).toContain("**Try again** on the card reads it again.");
+  });
+
+  test("states the file types and the size Add transcript takes", () => {
+    const megabytes: RegExpExecArray | null =
+      MAX_TRANSCRIPT_FILE_BYTES.exec(STATE);
+
+    expect(megabytes).not.toBe(null);
+    expect(ADD_DIALOG).toContain("VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS");
+
+    const section: string = sectionOf(readPage(), "call-transcripts");
+
+    expect(section).toContain(
+      `(${VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS.slice(0, -1)
+        .map((extension: string): string => {
+          return `\`${extension}\``;
+        })
+        .join(", ")} or \`${VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS[VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS.length - 1]}\`, up to ${megabytes![1]} MB)`,
+    );
+  });
+
+  test("names the Zoom scopes a Server-to-Server OAuth app adds to read transcripts", () => {
+    const zoom: string = sectionOf(readPage(), "zoom");
+
+    for (const scope of [
+      ZOOM_RECORDING_FILES_SCOPE,
+      ZOOM_MEETING_TRANSCRIPT_SCOPE,
+      ZOOM_CLASSIC_RECORDING_SCOPE,
+    ]) {
+      expect(zoom).toContain(`**${scope}**`);
+    }
+
+    // The same step the connection form's setup guide shows.
+    const definition: VideoCallProviderDefinition | undefined =
+      VideoCallProviderCatalog.find(
+        (candidate: VideoCallProviderDefinition): boolean => {
+          return candidate.title === "Zoom";
+        },
+      );
+
+    expect(definition!.setupSteps.join("\n")).toContain(
+      ZOOM_RECORDING_FILES_SCOPE,
+    );
+  });
+
+  test("says how long Google keeps a transcript for apps, as the server reads it", () => {
+    expect(sectionOf(readPage(), "what-each-provider-keeps")).toContain(
+      `Google keeps a transcript for apps to read for ${GOOGLE_MEET_ENTRY_RETENTION_IN_DAYS} days.`,
+    );
+  });
+
+  test("names who may work on a call's transcript, as the model holds it", () => {
+    const call: IncidentVideoCall = new IncidentVideoCall();
+    const roles: Array<string> = call
+      .getCreatePermissions()
+      .filter((permission: Permission): boolean => {
+        return permission !== Permission.CreateIncidentVideoCall;
+      })
+      .map((permission: Permission): string => {
+        return PermissionHelper.getTitle(permission);
+      });
+    const section: string = sectionOf(readPage(), "who-can-do-what");
+    const line: string =
+      section.split("\n").find((candidate: string): boolean => {
+        return candidate.startsWith("Getting, adding, replacing and removing");
+      }) || "";
+    const named: Array<string> = Array.from(
+      line.matchAll(/\*\*([^*]+)\*\*/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(named).toEqual([
+      ...roles,
+      PermissionHelper.getTitle(Permission.CreateIncidentVideoCall),
+      "Use as root cause",
+    ]);
   });
 });

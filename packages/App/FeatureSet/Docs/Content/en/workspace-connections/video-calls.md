@@ -7,6 +7,7 @@ Give every incident and alert its own call. When a Slack or Microsoft Teams noti
 - [Connect in one click](#connect-in-one-click): Zoom, Google Meet or Microsoft Teams, by signing in.
 - [Providers](#providers): Your own app's service identity, a standing meeting link, or a Slack huddle.
 - [Starting a call by hand](#starting-a-call-by-hand): From an incident's or alert's page.
+- [Call transcripts](#call-transcripts): What was said on an incident's call, and the root cause OneUptime AI reads in it.
 :::
 
 ## How it works
@@ -63,11 +64,13 @@ Every meeting is created as the account you sign in with, which hosts it. Sign i
 
 | Provider | Sign in with | What OneUptime may do |
 | --- | --- | --- |
-| Zoom | A Zoom user. Meetings hosted by a Basic (free) user end after 40 minutes. | Create meetings for that user (`meeting:write:meeting`) and read who it is (`user:read:user`). |
+| Zoom | A Zoom user. Meetings hosted by a Basic (free) user end after 40 minutes. | Create meetings for that user (`meeting:write:meeting`) and read who it is (`user:read:user`). For [call transcripts](#call-transcripts), read its meetings' cloud recording transcripts (`cloud_recording:read:list_recording_files`, `cloud_recording:read:meeting_transcript`). |
 | Google Meet | A Google account that can use Google Meet. | Create Meet spaces as that account (`meetings.space.created`) and read its email address. |
 | Microsoft Teams | A work or school account with Microsoft Teams. Personal Microsoft accounts cannot create Teams meetings. | Create online meetings as that account (the delegated `OnlineMeetings.ReadWrite` permission) and stay signed in (`offline_access`). |
 
 A connection made by signing in still has the settings that decide who waits: **Who can join** for Google Meet and **Who skips the lobby** for Microsoft Teams. Change them with **Edit** on the connection's row.
+
+A Zoom connection signed in before OneUptime read call transcripts starts calls as before, but cannot read their transcripts until it is signed in again: **Reconnect** on its row asks Zoom for the transcript permissions.
 
 ### Staying signed in
 
@@ -97,6 +100,43 @@ The **Video Call** card on an incident's or alert's page has **Start call** (or 
 
 Starting and removing calls needs permission to work on incidents (or alerts): **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** or **Incident Member**, or **Create Incident Video Call** and **Delete Incident Video Call** in a custom role. Everyone who can read the incident sees its calls.
 
+## Call transcripts
+
+What responders say on a call, what they checked, what they suspect and what they decided, is the best record of how an incident was worked, and it is gone when the call ends. An incident's call keeps its transcript, and OneUptime AI reads it for the root cause the call points at. Nothing it reads reaches the incident until a responder uses it.
+
+:::steps
+### Get the transcript after the call
+
+On the incident's **Video Call** card, **Get from Zoom** or **Get from Google Meet** reads the transcript of a meeting OneUptime started there. For any other call, **Add transcript** takes the file the meeting tool saved (`.vtt`, `.srt` or `.txt`, up to 5 MB) or the transcript pasted.
+
+### OneUptime AI reads it
+
+Within a minute or two, the incident's **AI Investigation** card shows the **Suggested root cause**, marked **Not confirmed**, with the transcript lines it rests on, quoted with their time and speaker. Under it, folded, is the rest of what the call said: findings, each **Confirmed on the call** or a **Hypothesis**, then what was tried, decisions, follow-ups and open questions.
+
+### Use it, or dismiss it
+
+**Use as root cause** opens the suggestion, quotes and all, in the root cause's editor. Change what you need, then save: it becomes the incident's root cause as your own edit, recorded in its feed. **Dismiss** sets the suggestion aside, and **Undo** brings it back.
+:::
+
+OneUptime AI suggests a cause only when the call names one, with the lines that say so, and it quotes those lines as the transcript has them. When the call did not settle the cause, the card says **Not enough was said on the call to suggest a root cause** instead of guessing.
+
+### What each provider keeps
+
+| Call | How it gets its transcript | What it needs |
+| --- | --- | --- |
+| Zoom | **Get from Zoom** | The meeting recorded to the cloud with its audio transcript on, or AI Companion's meeting summary on. The connection needs the transcript scopes (see [Zoom](#zoom)), and one signed in before them needs **Reconnect**. Zoom prepares a transcript after the meeting, usually within twice its length. |
+| Google Meet | **Get from Google Meet** | Transcripts turned on in the call, on a Google Workspace edition that has them. Nothing else to set up: OneUptime reads the transcripts of the meetings it created. Google keeps a transcript for apps to read for 30 days. |
+| Microsoft Teams | **Add transcript** | Microsoft lets no app read the transcript of a meeting created as OneUptime creates them. In Teams, open the meeting's recap, then its transcript, and download it as a `.vtt` file. |
+| Meeting link or Slack huddle | **Add transcript** | The transcript the meeting tool, or the huddle's notes, keep. |
+
+### Who can do what
+
+Getting, adding, replacing and removing a transcript, having it read again and dismissing a suggestion need permission to start the incident's calls: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** or **Incident Member**, or **Create Incident Video Call** in a custom role. **Use as root cause** needs permission to edit the incident's root cause. Everyone who can read the incident sees its calls' transcripts and what OneUptime AI read in them.
+
+### What OneUptime AI reads
+
+Reading a transcript is AI work like an investigation: it runs only while AI is on for the project, and counts toward the project's AI usage and daily limits (see [Cost controls](/docs/ai/ai-sre#cost-controls)). A long transcript is read in parts. When AI is off, the transcript is kept and the card says it was not read. Removing a transcript removes what OneUptime AI read in it, and keeps the incident's root cause. An AI postmortem draft reads what the incident's calls said too (see [Postmortems](/docs/incidents/postmortems)).
+
 ## Providers
 
 This section is about connecting a provider with your own app's service identity: a Zoom Server-to-Server OAuth app, a Google service account, a Microsoft Entra app registration. A service identity never depends on a person, so it keeps working whoever leaves. To connect by signing in instead, see [Connect in one click](#connect-in-one-click).
@@ -113,7 +153,7 @@ OneUptime creates a Zoom meeting for each incident through a Zoom **Server-to-Se
 
 :::steps
 1. In the [Zoom App Marketplace](https://marketplace.zoom.us/), choose **Develop** > **Build App** and create a **Server-to-Server OAuth** app. Creating one needs a Zoom account admin, or a role that allows Server-to-Server OAuth apps.
-2. On the app's **Scopes** page, add **meeting:write:meeting:admin** (create a meeting for a user). An app created before granular scopes can use **meeting:write:admin** instead.
+2. On the app's **Scopes** page, add **meeting:write:meeting:admin** (create a meeting for a user). An app created before granular scopes can use **meeting:write:admin** instead. To let OneUptime read [call transcripts](#call-transcripts) too, add **cloud_recording:read:list_recording_files:admin** and **cloud_recording:read:meeting_transcript:admin** (or **recording:read:admin** on an app created before granular scopes).
 3. **Activate** the app, then copy the **Account ID**, **Client ID** and **Client secret** from its **App Credentials** page into the connection form.
 4. Enter the **Meeting host**: the email of a licensed Zoom user, ideally a service account such as incidents@example.com, so meetings keep working when people leave. Meetings hosted by a Basic (free) user end after 40 minutes.
 5. Responders join without waiting for the host, because the host is a service account that never joins. Make sure your Zoom account's **Waiting room** setting is not locked on, or nobody can get in.
@@ -215,7 +255,7 @@ Create one OAuth app per provider and register this redirect URI on it, with you
 | Google Meet | `https://<host>/api/video-call-oauth/google-meet/callback` | `GOOGLE_MEET_APP_CLIENT_ID`, `GOOGLE_MEET_APP_CLIENT_SECRET` | `googleMeetApp.clientId`, `googleMeetApp.clientSecret` |
 | Microsoft Teams | `https://<host>/api/video-call-oauth/microsoft-teams/callback` | `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET` | `microsoftTeamsMeetingsApp.clientId`, `microsoftTeamsMeetingsApp.clientSecret` |
 
-- **Zoom**: in the [Zoom App Marketplace](https://marketplace.zoom.us/), choose **Develop** > **Build App** and create a **General App**, managed by users. Under **Basic Information**, add the redirect URI as the OAuth Redirect URL on both the **Development** and **Production** tabs and to the OAuth allow list, and on the **Production** tab set the **Deauthorization Notification** endpoint URL to `https://<host>/api/video-call-oauth/zoom/events`. Under **Scopes**, add `meeting:write:meeting` and `user:read:user`. The **Secret Token** under **Features** > **Access** is `ZOOM_APP_WEBHOOK_SECRET_TOKEN`. The **Development** credentials work only for users of your own Zoom account; the **Production** credentials work for everyone once Zoom has reviewed and published the app.
+- **Zoom**: in the [Zoom App Marketplace](https://marketplace.zoom.us/), choose **Develop** > **Build App** and create a **General App**, managed by users. Under **Basic Information**, add the redirect URI as the OAuth Redirect URL on both the **Development** and **Production** tabs and to the OAuth allow list, and on the **Production** tab set the **Deauthorization Notification** endpoint URL to `https://<host>/api/video-call-oauth/zoom/events`. Under **Scopes**, add `meeting:write:meeting` and `user:read:user`. To let it read [call transcripts](#call-transcripts), add `cloud_recording:read:list_recording_files` and `cloud_recording:read:meeting_transcript` too. The **Secret Token** under **Features** > **Access** is `ZOOM_APP_WEBHOOK_SECRET_TOKEN`. The **Development** credentials work only for users of your own Zoom account; the **Production** credentials work for everyone once Zoom has reviewed and published the app.
 - **Google Meet**: in the [Google Cloud console](https://console.cloud.google.com/), enable the **Google Meet REST API**, configure the OAuth consent screen (**Google Auth Platform**) with the scopes `openid`, `email` and `https://www.googleapis.com/auth/meetings.space.created`, and create an OAuth client of type **Web application** with the redirect URI. Publish the app to production: an app left in testing loses its sign-ins after seven days. Google reviews apps that ask for the Meet scope; until it has, people see a warning before they sign in.
 - **Microsoft Teams**: in the [Microsoft Entra admin center](https://entra.microsoft.com/), register an app for **Accounts in any organizational directory**, add the redirect URI as a **Web** redirect URI, add the Microsoft Graph delegated permissions `openid`, `profile`, `email`, `offline_access` and `OnlineMeetings.ReadWrite`, and create a client secret. Use a registration of its own, not the Microsoft Teams bot's (`MICROSOFT_TEAMS_APP_CLIENT_ID`). Until the app has a verified publisher, most organizations need an administrator to consent to it.
 
@@ -237,6 +277,14 @@ Its sign-in stopped working: the account removed OneUptime, was deleted or suspe
 
 :::details People wait in a lobby or a waiting room
 Change **Who can join** (Google Meet) or **Who skips the lobby** (Microsoft Teams) with **Edit** on the connection's row. For Zoom, make sure the account's **Waiting room** setting is not locked on.
+:::
+
+:::details Get from Zoom finds no transcript
+Zoom keeps a transcript only of a meeting recorded to the cloud with its audio transcript on, or with AI Companion's meeting summary on, and prepares it after the meeting ends. The card says which: try again later, or turn one of them on for your incident meetings. Meanwhile **Add transcript** takes a transcript you saved.
+:::
+
+:::details OneUptime AI could not read a transcript
+The card says why: AI is off for the project, the project reached a daily AI limit, or the AI provider refused. Once that is fixed, **Try again** on the card reads it again.
 :::
 
 ## Next steps

@@ -7,6 +7,7 @@ Dê a cada incidente e a cada alerta a sua própria chamada. Quando uma regra de
 - [Conectar com um clique](#conectar-com-um-clique): Zoom, Google Meet ou Microsoft Teams, fazendo login.
 - [Provedores](#provedores): A identidade de serviço do seu próprio app, um link de reunião permanente ou um huddle do Slack.
 - [Iniciar uma chamada manualmente](#iniciar-uma-chamada-manualmente): A partir da página de um incidente ou de um alerta.
+- [Transcrições de chamadas](#transcrições-de-chamadas): O que foi dito na chamada de um incidente, e a causa raiz que a OneUptime AI lê nela.
 :::
 
 ## Como funciona
@@ -63,11 +64,13 @@ Cada reunião é criada como a conta com que você faz login, que é a anfitriã
 
 | Provedor | Fazer login com | O que o OneUptime pode fazer |
 | --- | --- | --- |
-| Zoom | Um usuário do Zoom. Reuniões hospedadas por um usuário Basic (gratuito) terminam após 40 minutos. | Criar reuniões para esse usuário (`meeting:write:meeting`) e ler quem ele é (`user:read:user`). |
+| Zoom | Um usuário do Zoom. Reuniões hospedadas por um usuário Basic (gratuito) terminam após 40 minutos. | Criar reuniões para esse usuário (`meeting:write:meeting`) e ler quem ele é (`user:read:user`). Para as [transcrições de chamadas](#transcrições-de-chamadas), ler as transcrições das gravações na nuvem das reuniões dele (`cloud_recording:read:list_recording_files`, `cloud_recording:read:meeting_transcript`). |
 | Google Meet | Uma conta do Google que possa usar o Google Meet. | Criar espaços do Meet como essa conta (`meetings.space.created`) e ler o endereço de e-mail dela. |
 | Microsoft Teams | Uma conta corporativa ou de estudante com Microsoft Teams. Contas pessoais da Microsoft não podem criar reuniões do Teams. | Criar reuniões online como essa conta (a permissão delegada `OnlineMeetings.ReadWrite`) e permanecer conectado (`offline_access`). |
 
 Uma conexão feita por login ainda tem as configurações que decidem quem espera: **Who can join** para o Google Meet e **Who skips the lobby** para o Microsoft Teams. Altere-as com **Editar** na linha da conexão.
+
+Uma conexão do Zoom feita antes de o OneUptime ler transcrições de chamadas inicia chamadas como antes, mas só lê as transcrições delas depois de entrar de novo: **Reconnect** na linha dela pede ao Zoom as permissões de transcrição.
 
 ### Permanecer conectado
 
@@ -97,6 +100,43 @@ O cartão **Video Call** na página de um incidente ou alerta tem **Start call**
 
 Iniciar e remover chamadas requer permissão para trabalhar em incidentes (ou alertas): **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** ou **Incident Member**, ou **Create Incident Video Call** e **Delete Incident Video Call** em uma função personalizada. Todos que podem ler o incidente veem as chamadas dele.
 
+## Transcrições de chamadas
+
+O que os responsáveis dizem numa chamada, o que verificaram, o que suspeitam e o que decidiram, é o melhor registro de como um incidente foi tratado, e some quando a chamada termina. A chamada de um incidente guarda a transcrição dela, e a OneUptime AI a lê em busca da causa raiz que a chamada aponta. Nada do que ela lê chega ao incidente até que um responsável o use.
+
+:::steps
+### Obtenha a transcrição depois da chamada
+
+No card **Video Call** do incidente, **Obter do Zoom** ou **Obter do Google Meet** lê a transcrição de uma reunião que o OneUptime iniciou lá. Para qualquer outra chamada, **Adicionar transcrição** recebe o arquivo que a ferramenta de reunião salvou (`.vtt`, `.srt` ou `.txt`, até 5 MB) ou a transcrição colada.
+
+### A OneUptime AI a lê
+
+Em um ou dois minutos, o card **AI Investigation** do incidente mostra a **Causa raiz sugerida**, marcada como **Não confirmada**, com as linhas da transcrição em que se baseia, citadas com horário e quem falou. Abaixo, recolhido, está o resto do que a chamada disse: as descobertas, cada uma **Confirmado na chamada** ou uma **Hipótese**, depois o que foi tentado, as decisões, os acompanhamentos e as perguntas em aberto.
+
+### Use ou dispense
+
+**Usar como causa raiz** abre a sugestão, com as citações, no editor da causa raiz. Altere o que precisar e salve: ela se torna a causa raiz do incidente como edição sua, registrada no feed dele. **Dispensar** deixa a sugestão de lado, e **Desfazer** a traz de volta.
+:::
+
+A OneUptime AI só sugere uma causa quando a chamada cita uma, com as linhas que dizem isso, e cita essas linhas como a transcrição as traz. Quando a chamada não esclareceu a causa, o card diz **Não se falou o suficiente na chamada para sugerir uma causa raiz** em vez de adivinhar.
+
+### O que cada provedor guarda
+
+| Chamada | Como obtém a transcrição | Do que precisa |
+| --- | --- | --- |
+| Zoom | **Obter do Zoom** | Uma reunião gravada na nuvem com a transcrição de áudio ativada, ou com o resumo de reunião do AI Companion ativado. A conexão precisa dos escopos de transcrição (veja [Zoom](#zoom)), e uma feita antes deles precisa de **Reconnect**. O Zoom prepara uma transcrição depois da reunião, geralmente em até o dobro da duração dela. |
+| Google Meet | **Obter do Google Meet** | Transcrições ativadas na chamada, numa edição do Google Workspace que as tenha. Não há mais nada a configurar: o OneUptime lê as transcrições das reuniões que criou. O Google mantém uma transcrição disponível para apps por 30 dias. |
+| Microsoft Teams | **Adicionar transcrição** | A Microsoft não deixa nenhum app ler a transcrição de uma reunião criada como o OneUptime as cria. No Teams, abra o resumo da reunião, depois a transcrição, e baixe-a como arquivo `.vtt`. |
+| Link de reunião ou huddle do Slack | **Adicionar transcrição** | A transcrição que a ferramenta de reunião, ou as notas do huddle, guardam. |
+
+### Quem pode fazer o quê
+
+Obter, adicionar, substituir e remover uma transcrição, fazê-la ser lida de novo e dispensar uma sugestão exigem permissão para iniciar as chamadas do incidente: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** ou **Incident Member**, ou **Create Incident Video Call** numa função personalizada. **Usar como causa raiz** exige permissão para editar a causa raiz do incidente. Quem pode ler o incidente vê as transcrições das chamadas dele e o que a OneUptime AI leu nelas.
+
+### O que a OneUptime AI lê
+
+Ler uma transcrição é trabalho de IA como uma investigação: só roda enquanto a IA está ativada para o projeto, e conta para o uso de IA e os limites diários do projeto (veja [Controle de custos](/docs/ai/ai-sre#controle-de-custos)). Uma transcrição longa é lida em partes. Quando a IA está desativada, a transcrição é mantida e o card diz que ela não foi lida. Remover uma transcrição remove o que a OneUptime AI leu nela, e mantém a causa raiz do incidente. Um rascunho de post-mortem da IA também lê o que foi dito nas chamadas do incidente (veja [Post-mortems](/docs/incidents/postmortems)).
+
 ## Provedores
 
 Esta seção trata de conectar um provedor com a identidade de serviço do seu próprio app: um app Server-to-Server OAuth do Zoom, uma conta de serviço do Google, um registro de aplicativo do Microsoft Entra. Uma identidade de serviço nunca depende de uma pessoa, então continua funcionando quem quer que saia. Para conectar fazendo login, consulte [Conectar com um clique](#conectar-com-um-clique).
@@ -113,7 +153,7 @@ O OneUptime cria uma reunião do Zoom para cada incidente por meio de um app **S
 
 :::steps
 1. No [Zoom App Marketplace](https://marketplace.zoom.us/), escolha **Develop** > **Build App** e crie um app **Server-to-Server OAuth**. Criar um requer um administrador da conta do Zoom, ou uma função que permita apps Server-to-Server OAuth.
-2. Na página **Scopes** do app, adicione **meeting:write:meeting:admin** (criar uma reunião para um usuário). Um app criado antes dos escopos granulares pode usar **meeting:write:admin** em vez disso.
+2. Na página **Scopes** do app, adicione **meeting:write:meeting:admin** (criar uma reunião para um usuário). Um app criado antes dos escopos granulares pode usar **meeting:write:admin** em vez disso. Para que o OneUptime também leia [transcrições de chamadas](#transcrições-de-chamadas), adicione **cloud_recording:read:list_recording_files:admin** e **cloud_recording:read:meeting_transcript:admin** (ou **recording:read:admin** num app criado antes dos escopos granulares).
 3. Clique em **Activate** para ativar o app e copie o **Account ID**, o **Client ID** e o **Client secret** da página **App Credentials** dele para o formulário da conexão.
 4. Informe o **Meeting host**: o e-mail de um usuário licenciado do Zoom, de preferência uma conta de serviço como incidents@example.com, para que as reuniões continuem funcionando quando pessoas saírem. Reuniões hospedadas por um usuário Basic (gratuito) terminam após 40 minutos.
 5. Os responders entram sem esperar pelo host, porque o host é uma conta de serviço que nunca entra. Verifique se a configuração **Waiting room** da sua conta do Zoom não está travada como ativada, ou ninguém consegue entrar.
@@ -215,7 +255,7 @@ Crie um app OAuth por provedor e registre nele este URI de redirecionamento, com
 | Google Meet | `https://<host>/api/video-call-oauth/google-meet/callback` | `GOOGLE_MEET_APP_CLIENT_ID`, `GOOGLE_MEET_APP_CLIENT_SECRET` | `googleMeetApp.clientId`, `googleMeetApp.clientSecret` |
 | Microsoft Teams | `https://<host>/api/video-call-oauth/microsoft-teams/callback` | `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET` | `microsoftTeamsMeetingsApp.clientId`, `microsoftTeamsMeetingsApp.clientSecret` |
 
-- **Zoom**: no [Zoom App Marketplace](https://marketplace.zoom.us/), escolha **Develop** > **Build App** e crie um **General App**, gerenciado pelos usuários. Em **Basic Information**, adicione o URI de redirecionamento como OAuth Redirect URL nas abas **Development** e **Production** e na lista de permissões do OAuth, e na aba **Production** defina a URL do endpoint de **Deauthorization Notification** como `https://<host>/api/video-call-oauth/zoom/events`. Em **Scopes**, adicione `meeting:write:meeting` e `user:read:user`. O **Secret Token** em **Features** > **Access** é o `ZOOM_APP_WEBHOOK_SECRET_TOKEN`. As credenciais de **Development** só funcionam para usuários da sua própria conta do Zoom; as de **Production** funcionam para todos depois que o Zoom revisar e publicar o app.
+- **Zoom**: no [Zoom App Marketplace](https://marketplace.zoom.us/), escolha **Develop** > **Build App** e crie um **General App**, gerenciado pelos usuários. Em **Basic Information**, adicione o URI de redirecionamento como OAuth Redirect URL nas abas **Development** e **Production** e na lista de permissões do OAuth, e na aba **Production** defina a URL do endpoint de **Deauthorization Notification** como `https://<host>/api/video-call-oauth/zoom/events`. Em **Scopes**, adicione `meeting:write:meeting` e `user:read:user`. Para que ele leia [transcrições de chamadas](#transcrições-de-chamadas), adicione também `cloud_recording:read:list_recording_files` e `cloud_recording:read:meeting_transcript`. O **Secret Token** em **Features** > **Access** é o `ZOOM_APP_WEBHOOK_SECRET_TOKEN`. As credenciais de **Development** só funcionam para usuários da sua própria conta do Zoom; as de **Production** funcionam para todos depois que o Zoom revisar e publicar o app.
 - **Google Meet**: no [console do Google Cloud](https://console.cloud.google.com/), ative a **Google Meet REST API**, configure a tela de consentimento OAuth (**Google Auth Platform**) com os escopos `openid`, `email` e `https://www.googleapis.com/auth/meetings.space.created`, e crie um cliente OAuth do tipo **Web application** com o URI de redirecionamento. Publique o app em produção: um app deixado em teste perde os seus logins após sete dias. O Google revisa os apps que pedem o escopo do Meet; até que isso aconteça, as pessoas veem um aviso antes de fazer login.
 - **Microsoft Teams**: no [centro de administração do Microsoft Entra](https://entra.microsoft.com/), registre um app para **Accounts in any organizational directory**, adicione o URI de redirecionamento como URI de redirecionamento **Web**, adicione as permissões delegadas do Microsoft Graph `openid`, `profile`, `email`, `offline_access` e `OnlineMeetings.ReadWrite`, e crie um segredo do cliente. Use um registro próprio, não o do bot do Microsoft Teams (`MICROSOFT_TEAMS_APP_CLIENT_ID`). Até que o app tenha um editor verificado, a maioria das organizações precisa que um administrador dê consentimento a ele.
 
@@ -237,6 +277,14 @@ O login dela parou de funcionar: a conta removeu o OneUptime, foi excluída ou s
 
 :::details As pessoas esperam em um lobby ou em uma sala de espera
 Altere **Who can join** (Google Meet) ou **Who skips the lobby** (Microsoft Teams) com **Editar** na linha da conexão. No Zoom, verifique se a configuração **Waiting room** da conta não está travada como ativada.
+:::
+
+:::details Obter do Zoom não encontra nenhuma transcrição
+O Zoom só guarda a transcrição de uma reunião gravada na nuvem com a transcrição de áudio ativada, ou com o resumo de reunião do AI Companion ativado, e a prepara depois que a reunião termina. O card diz qual é o caso: tente de novo mais tarde, ou ative uma das duas opções para as suas reuniões de incidente. Enquanto isso, **Adicionar transcrição** recebe uma transcrição que você salvou.
+:::
+
+:::details A OneUptime AI não conseguiu ler uma transcrição
+O card diz o motivo: a IA está desativada para o projeto, o projeto atingiu um limite diário de IA, ou o provedor de IA recusou. Depois de resolver isso, **Tentar novamente** no card a lê de novo.
 :::
 
 ## Próximos passos
