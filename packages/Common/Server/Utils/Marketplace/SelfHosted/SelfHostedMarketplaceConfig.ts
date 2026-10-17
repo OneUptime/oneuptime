@@ -47,7 +47,7 @@ import {
  * a buyer who could choose it could bill a cheaper product - so the code is
  * compiled in, and ENTERPRISE_MARKETPLACE_AWS_PRODUCT_CODE may only pick one
  * of these. Filled in once AWS Marketplace issues the product's code (see
- * the self-hosted section of RELEASING.md).
+ * SELF_HOSTED_RELEASING.md beside RELEASING.md).
  */
 export const AWS_SELF_HOSTED_PRODUCT_CODES: ReadonlyArray<string> = [];
 
