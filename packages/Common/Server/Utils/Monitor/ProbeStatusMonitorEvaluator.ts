@@ -212,6 +212,28 @@ export default class ProbeStatusMonitorEvaluator {
   }
 
   /*
+   * Evaluates one monitor by id, as it is stored now: a monitor just
+   * created, or one whose probes were just changed, shows the answer at
+   * once instead of on the next minute's sweep.
+   */
+  @CaptureSpan()
+  public static async evaluateMonitorById(monitorId: ObjectID): Promise<void> {
+    const monitor: Monitor | null = await MonitorService.findOneById({
+      id: monitorId,
+      select: ProbeStatusMonitorEvaluator.MONITOR_SELECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!monitor || monitor.monitorType !== MonitorType.ProbeStatus) {
+      return;
+    }
+
+    await ProbeStatusMonitorEvaluator.evaluateMonitor(monitor);
+  }
+
+  /*
    * The Probe Status monitors, checked right now, that watch this probe. A
    * project's own probe can only be watched from its project; a global probe
    * from any. The probe id lives in each monitor's step JSON, so the

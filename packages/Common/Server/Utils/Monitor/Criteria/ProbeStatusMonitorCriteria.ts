@@ -1,5 +1,6 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
+import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
 import {
   CheckOn,
   CriteriaFilter,
@@ -13,6 +14,12 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * are connected, and how many are not, compared with the filter's number.
  * Both are counts, so "Disconnected Probes is greater than 0" is "a probe is
  * down" and "Connected Probes is less than 2" is "fewer than two are left".
+ *
+ * Both counts are recorded every evaluation (MonitorMetricUtil), so a filter
+ * can also be judged over a window - "Disconnected Probes is greater than 0
+ * for all values over the last 5 minutes" waits five minutes before it
+ * opens anything, on top of the three minutes a probe takes to be called
+ * disconnected at all.
  */
 export default class ProbeStatusMonitorCriteria {
   public static getResponse(
@@ -52,6 +59,12 @@ export default class ProbeStatusMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
+    /*
+     * The monitor's monitoringInterval cron, for sizing an over-time
+     * window. A Probe Status monitor has none: it is evaluated every
+     * minute, which is what an empty interval is taken to mean.
+     */
+    monitoringInterval?: string | undefined;
   }): Promise<string | null> {
     const response: ProbeStatusMonitorResponse | null =
       ProbeStatusMonitorCriteria.getResponse(input.dataToProcess);
@@ -77,8 +90,20 @@ export default class ProbeStatusMonitorCriteria {
       return null;
     }
 
+    const overTime: OverTimeCriteriaValue =
+      await EvaluateOverTime.getOverTimeValueForCriteriaFilter({
+        projectId: response.projectId,
+        monitorId: response.monitorId,
+        criteriaFilter: input.criteriaFilter,
+        monitoringInterval: input.monitoringInterval,
+      });
+
+    if (overTime.earlyReturn) {
+      return overTime.earlyReturn.result;
+    }
+
     const comparison: string | null = CompareCriteria.compareCriteriaNumbers({
-      value: value,
+      value: (overTime.value as Array<number> | number | undefined) ?? value,
       threshold: threshold,
       criteriaFilter: input.criteriaFilter,
     });

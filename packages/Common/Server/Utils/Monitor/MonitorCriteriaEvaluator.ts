@@ -1832,6 +1832,7 @@ ${contextBlock}
         await ProbeStatusMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
         });
 
       if (probeStatusResult) {

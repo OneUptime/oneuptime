@@ -4,6 +4,7 @@ import IncomingMonitorRequest from "./IncomingMonitor/IncomingMonitorRequest";
 import MonitorEvaluationSummary from "./MonitorEvaluationSummary";
 import MonitorType from "./MonitorType";
 import ServerMonitorResponse from "./ServerMonitor/ServerMonitorResponse";
+import ProbeStatusMonitorResponse from "./ProbeStatusMonitor/ProbeStatusMonitorResponse";
 
 /*
  * A frozen copy of the "Monitor Summary" card, taken at the moment a
@@ -72,6 +73,8 @@ export default interface MonitorSummarySnapshot {
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
   incomingEmailMonitorRequest?: IncomingEmailMonitorRequest | undefined;
   telemetryMonitorSummary?: MonitorSummaryTelemetrySnapshot | undefined;
+  // The probes a Probe Status monitor watched, as they were then.
+  probeStatusMonitorResponse?: ProbeStatusMonitorResponse | undefined;
 
   // The criteria evaluation that decided to open this incident / alert.
   evaluationSummary?: MonitorEvaluationSummary | undefined;

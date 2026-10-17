@@ -125,6 +125,16 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.HostUptimeSeconds:
         return AggregationType.Max;
 
+      /*
+       * A probe that dropped out for part of a bucket counts as gone: the
+       * fewest connected and the most disconnected, never an average that
+       * reads as "2.5 probes".
+       */
+      case MonitorMetricType.ConnectedProbes:
+        return AggregationType.Min;
+      case MonitorMetricType.DisconnectedProbes:
+        return AggregationType.Max;
+
       default:
         throw new Error("Invalid MonitorMetricType value");
     }
@@ -216,6 +226,10 @@ class MonitorMetricTypeUtil {
         return MonitorMetricType.SwapUsagePercent;
       case CheckOn.CPUIoWaitPercent:
         return MonitorMetricType.CPUTimeIoWaitPercent;
+      case CheckOn.ConnectedProbes:
+        return MonitorMetricType.ConnectedProbes;
+      case CheckOn.DisconnectedProbes:
+        return MonitorMetricType.DisconnectedProbes;
       default:
         throw new Error("Invalid CheckOn value");
     }
@@ -328,6 +342,13 @@ class MonitorMetricTypeUtil {
         MonitorMetricType.SnmpInterfaceOutBitsPerSecond,
         MonitorMetricType.SnmpInterfaceUtilizationPercent,
         MonitorMetricType.SnmpInterfaceErrorsPerSecond,
+      ];
+    }
+
+    if (monitorType === MonitorType.ProbeStatus) {
+      return [
+        MonitorMetricType.ConnectedProbes,
+        MonitorMetricType.DisconnectedProbes,
       ];
     }
 
@@ -502,6 +523,20 @@ class MonitorMetricTypeUtil {
       ];
     }
 
+    if (monitorType === MonitorType.ProbeStatus) {
+      return [
+        {
+          title: "Probes",
+          description:
+            "How many of the probes this monitor watches were connected, and how many were not, at each evaluation.",
+          metrics: [
+            MonitorMetricType.ConnectedProbes,
+            MonitorMetricType.DisconnectedProbes,
+          ],
+        },
+      ];
+    }
+
     // Other monitor types keep the single-card layout.
     const metrics: Array<MonitorMetricType> =
       this.getMonitorMetricTypesByMonitorType(monitorType);
@@ -634,6 +669,10 @@ class MonitorMetricTypeUtil {
         return "Host Uptime";
       case MonitorMetricType.ProcessCountTotal:
         return "Running Processes";
+      case MonitorMetricType.ConnectedProbes:
+        return "Connected Probes";
+      case MonitorMetricType.DisconnectedProbes:
+        return "Disconnected Probes";
       default:
         return "";
     }
@@ -736,6 +775,9 @@ class MonitorMetricTypeUtil {
         return "seconds";
       case MonitorMetricType.ProcessCountTotal:
         return "processes";
+      case MonitorMetricType.ConnectedProbes:
+      case MonitorMetricType.DisconnectedProbes:
+        return "probes";
       default:
         return "";
     }
@@ -858,6 +900,10 @@ class MonitorMetricTypeUtil {
         return "Seconds since the host was last booted.";
       case MonitorMetricType.ProcessCountTotal:
         return "Number of running processes reported by the agent.";
+      case MonitorMetricType.ConnectedProbes:
+        return "How many of the probes this monitor watches were connected at each evaluation, once a minute. A probe is connected while it has been heard from in the last three minutes.";
+      case MonitorMetricType.DisconnectedProbes:
+        return "How many of the probes this monitor watches were disconnected at each evaluation, once a minute: nothing heard from them for three minutes.";
       default:
         return "";
     }

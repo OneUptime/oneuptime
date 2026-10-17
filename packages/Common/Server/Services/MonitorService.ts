@@ -116,6 +116,7 @@ import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
+import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import ProbeMonitorsNotification, {
   ProbeAffectedMonitor,
   ProbeMonitorsNotificationContent,
@@ -1595,6 +1596,7 @@ export class Service extends ProjectReferencesService<Model> {
           select: {
             projectId: true,
             name: true,
+            monitorType: true,
           },
           props: {
             isRoot: true,
@@ -1657,6 +1659,25 @@ export class Service extends ProjectReferencesService<Model> {
             monitorId: monitorId,
             validMonitorStepIds: validMonitorStepIds,
           });
+
+          /*
+           * Probes picked or dropped on a Probe Status monitor: judge it on
+           * them now, in the background so the save returns at once.
+           */
+          if (monitor?.monitorType === MonitorType.ProbeStatus) {
+            ProbeStatusMonitorEvaluator.evaluateMonitorById(monitorId).catch(
+              (error: Error) => {
+                logger.error(
+                  "Probe Status evaluation after an update failed in MonitorService.onUpdateSuccess",
+                  {
+                    projectId: projectId?.toString(),
+                    monitorId: monitorId?.toString(),
+                  } as LogAttributes,
+                );
+                logger.error(error);
+              },
+            );
+          }
         }
 
         /*
@@ -2427,6 +2448,33 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
           logger.error(error as Error);
           return Promise.resolve();
         }
+      })
+      .then(async () => {
+        /*
+         * A Probe Status monitor is judged as soon as it exists, after its
+         * first status row above, so the page it opens on already says
+         * whether its probes are connected rather than waiting for the
+         * next minute's sweep.
+         */
+        if (createdItem.monitorType !== MonitorType.ProbeStatus) {
+          return Promise.resolve();
+        }
+
+        try {
+          await ProbeStatusMonitorEvaluator.evaluateMonitorById(
+            createdItem.id!,
+          );
+        } catch (error) {
+          logger.error(
+            "First Probe Status evaluation failed in MonitorService.onCreateSuccess",
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+        }
+        return Promise.resolve();
       })
       .catch((error: Error) => {
         logger.error(

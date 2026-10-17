@@ -887,7 +887,14 @@ export class CriteriaFilterUtil {
        * an incident.
        */
       checkOn === CheckOn.DatabaseIsOnline ||
-      checkOn === CheckOn.DatabaseMetric
+      checkOn === CheckOn.DatabaseMetric ||
+      /*
+       * Recorded every minute, so a window is the hold-down: "a probe has
+       * been disconnected for 5 minutes" rides out a slow restart that the
+       * three-minute connection cutoff alone would call an outage.
+       */
+      checkOn === CheckOn.ConnectedProbes ||
+      checkOn === CheckOn.DisconnectedProbes
     );
   }
 }
