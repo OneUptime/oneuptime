@@ -44,13 +44,21 @@ export function canConfigureUnattendedResourceAiAccess(): boolean {
 
 /*
  * Resetting the agent revokes its key; the agent registers again on its
- * own. The server gates the route on the admin set, and counts a block on
- * any of them as a refusal, labelled or not.
+ * own. The server gates the route on the admin set - counting a block on
+ * any of them as a refusal, labelled or not - and on an edit of THIS
+ * resource (decided for its own row, labels and owners included). The
+ * snapshot cannot tell a resource's labels, so the menu offers it to
+ * whoever holds the admin set and may edit resources of this kind at all;
+ * the server refuses the rest in its own words.
  */
-export function canResetResourceAiAgent(): boolean {
-  return holdsProjectPermission(RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS, {
-    labelledBlocksRefuse: true,
-  });
+export function canResetResourceAiAgent(
+  descriptor: ResourceAiAgentDescriptor,
+): boolean {
+  return (
+    holdsProjectPermission(RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS, {
+      labelledBlocksRefuse: true,
+    }) && getResourceSettingsGate(descriptor).isAllowed
+  );
 }
 
 /*

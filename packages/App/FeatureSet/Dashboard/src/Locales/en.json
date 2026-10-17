@@ -30501,6 +30501,8 @@
   "Said on the call: someone found or confirmed it.": "Said on the call: someone found or confirmed it.",
   "Save as root cause": "Save as root cause",
   "See what it found": "See what it found",
+  "Show {{count}} more labels": "Show {{count}} more labels",
+  "Show {{count}} more labels_one": "Show {{count}} more label",
   "Show {{count}} more remarks": "Show {{count}} more remarks",
   "Show {{count}} more remarks_one": "Show {{count}} more remark",
   "Suggested root cause": "Suggested root cause",

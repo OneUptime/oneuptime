@@ -255,8 +255,12 @@ describe("Table cell classes are built by the shared helper", () => {
   });
 
   test("TableRow builds its content wrapper class with getTableCellContentClassName", () => {
+    /*
+     * Handed the column - and where it stands in the row, since the row's
+     * name (its first column) may use the room a table that fits has.
+     */
     expect(TABLE_ROW).toMatch(
-      /getTableCellContentClassName\s*(<[^>]*>)?\s*\(\s*column\s*\)/,
+      /getTableCellContentClassName\s*(<[^>]*>)?\s*\(\s*column\s*[,)]/,
     );
 
     /*

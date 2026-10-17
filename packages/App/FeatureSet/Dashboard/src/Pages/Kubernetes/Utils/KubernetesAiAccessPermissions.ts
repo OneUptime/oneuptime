@@ -52,13 +52,19 @@ export function canConfigureUnattendedKubernetesAiAccess(): boolean {
 
 /*
  * Resetting the agent revokes its key; the pod registers again on its own.
- * The server gates the route on the admin set, and counts a block on any of
- * them as a refusal, labelled or not.
+ * The server gates the route on the admin set - counting a block on any of
+ * them as a refusal, labelled or not - and on an edit of THIS cluster
+ * (decided for its own row, labels and owners included). The snapshot
+ * cannot tell a cluster's labels, so the menu offers it to whoever holds
+ * the admin set and may edit clusters at all; the server refuses the rest
+ * in its own words.
  */
 export function canResetKubernetesAiAgent(): boolean {
-  return holdsKubernetesAiAccessPermission(
-    KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-    { labelledBlocksRefuse: true },
+  return (
+    holdsKubernetesAiAccessPermission(KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS, {
+      labelledBlocksRefuse: true,
+    }) &&
+    PermissionGate.check(new KubernetesCluster(), ModelAction.Update).isAllowed
   );
 }
 
@@ -128,7 +134,10 @@ export function getKubectlJobsPermissionTitles(): Array<string> {
 /*
  * The connection test spends the agent's time, so its endpoint requires
  * edit access to the cluster (KubernetesClusterAiAccessAPI:
- * assertCanEditCluster, which mirrors KubernetesCluster's update ACL).
+ * assertCanEditCluster), decided there for the cluster's own row - its
+ * labels and owners included. The snapshot cannot tell those, so the
+ * button follows KubernetesCluster's update ACL, and a member whose edit
+ * does not reach this cluster is told so when the server refuses.
  */
 export function getAccessTestPermissionGate(): PermissionGateResult {
   return PermissionGate.check(new KubernetesCluster(), ModelAction.Update);

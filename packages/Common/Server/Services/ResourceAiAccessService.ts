@@ -1406,6 +1406,107 @@ export class ResourceAiAccessServiceClass {
   }
 
   /*
+   * The statuses of the resources the caller may VIEW, in the order given:
+   * each kind decided by the model layer under the caller's own props,
+   * pinned to the project - exactly a read of the resource through the
+   * API, so a read limited to some labels or to owned resources reaches
+   * only those, and a block on a label a resource carries takes it away.
+   * Root and master admins view every one.
+   *
+   * For an incident's or alert's shared AI conversation, where the person
+   * asking steers what OneUptime AI runs: its read-only infrastructure
+   * commands reach only the linked resources that person may view
+   * (InvestigationThread.buildTurnContext). A kind the read refuses
+   * outright is viewed nowhere, and any other failure is answered the same
+   * way for that kind (logged): this decides what runs for the caller, so
+   * it fails closed.
+   */
+  @CaptureSpan()
+  public async getStatusesViewableBy(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    statuses: Array<ResourceAiAccessStatus>;
+  }): Promise<Array<ResourceAiAccessStatus>> {
+    if (data.statuses.length === 0) {
+      return [];
+    }
+
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return data.statuses;
+    }
+
+    const idsByType: Map<AiResourceType, Set<string>> = new Map<
+      AiResourceType,
+      Set<string>
+    >();
+
+    for (const status of data.statuses) {
+      const resourceId: string = (status.resourceId || "").toLowerCase();
+
+      if (!isAiResourceType(status.resourceType)) {
+        continue;
+      }
+
+      if (!ObjectID.isValidUUID(resourceId)) {
+        continue;
+      }
+
+      const ids: Set<string> =
+        idsByType.get(status.resourceType) || new Set<string>();
+      ids.add(resourceId);
+      idsByType.set(status.resourceType, ids);
+    }
+
+    const callerProps: DatabaseCommonInteractionProps = {
+      ...data.props,
+      tenantId: data.projectId,
+      isMultiTenantRequest: false,
+    };
+
+    const viewable: Set<string> = new Set<string>();
+
+    for (const [resourceType, idSet] of idsByType) {
+      const ids: Array<string> = Array.from(idSet);
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const service: DatabaseService<any> = MODEL_SPECS[resourceType].service;
+
+        const rows: Array<BaseModel> = (await service.findBy({
+          query: {
+            _id: QueryHelper.any(ids),
+            projectId: data.projectId,
+          },
+          select: { _id: true },
+          limit: ids.length,
+          skip: 0,
+          props: callerProps,
+        })) as Array<BaseModel>;
+
+        for (const row of rows) {
+          if (row.id) {
+            viewable.add(refKey(resourceType, row.id.toString()));
+          }
+        }
+      } catch (error) {
+        if (
+          !(error instanceof NotAuthorizedException) &&
+          !(error instanceof NotAuthenticatedException) &&
+          !(error instanceof NotFoundException)
+        ) {
+          logger.error(
+            `ResourceAiAccess: could not check which ${resourceType} resources the caller may view; offering none of them: ${error}`,
+          );
+        }
+      }
+    }
+
+    return data.statuses.filter((status: ResourceAiAccessStatus): boolean => {
+      return viewable.has(refKey(status.resourceType, status.resourceId || ""));
+    });
+  }
+
+  /*
    * ------------------------------------------------------------------
    * Bookkeeping
    * ------------------------------------------------------------------

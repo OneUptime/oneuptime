@@ -398,6 +398,11 @@ describe("POST /auto-remediation/approve — a plan that runs with a runbook cre
       .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
       .mockResolvedValue(clusterBoundWithTheCredential());
 
+    // The approver may edit every cluster unless a test says otherwise.
+    jest
+      .spyOn(KubernetesClusterAiAccessService, "assertCallerMayChangeCluster")
+      .mockResolvedValue(undefined);
+
     jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue(undefined as never);

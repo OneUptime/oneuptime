@@ -30501,6 +30501,8 @@
   "Said on the call: someone found or confirmed it.": "Sagt i samtalen: noen fant eller bekreftet den.",
   "Save as root cause": "Lagre som rotårsak",
   "See what it found": "Se hva den fant",
+  "Show {{count}} more labels": "Vis {{count}} flere etiketter",
+  "Show {{count}} more labels_one": "Vis {{count}} etikett til",
   "Show {{count}} more remarks": "Vis {{count}} replikker til",
   "Show {{count}} more remarks_one": "Vis {{count}} replikk til",
   "Suggested root cause": "Foreslått rotårsak",

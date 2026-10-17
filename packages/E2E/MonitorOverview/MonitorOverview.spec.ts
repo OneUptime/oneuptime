@@ -2737,7 +2737,11 @@ test.describe("monitoring logs", () => {
       await openLogs(page, "incoming-email");
 
       const table: Locator = card(page, "Monitor Logs");
-      const scroller: Locator = table.locator("div.overflow-x-auto").last();
+      /*
+       * The table's own box. It scrolls (overflow-x-auto) only while its
+       * rows are wider than the card, so it is found by its test id.
+       */
+      const scroller: Locator = table.getByTestId("table-scroll").last();
       const overflow: number = await scroller.evaluate(
         (element: Element): number => {
           return element.scrollWidth - element.clientWidth;

@@ -8,6 +8,7 @@ import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePicker
 import { ResourceOwnerEntry } from "./OwnerEntry";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   owners: Array<ResourceOwnerEntry> | undefined;
@@ -71,11 +72,16 @@ const OwnerCircle: FunctionComponent<OwnerCircleProps> = (
     </div>
   );
 
+  /*
+   * The row's 24px line tall (the "chip" size), so a row with owners is as
+   * tall as one without: at 32px every owned row of a list stood 8px taller
+   * than the rows around it.
+   */
   return (
-    <div className="relative -ml-2 first:ml-0 transition-transform duration-150 hover:z-20 hover:-translate-y-0.5">
+    <div className="relative -ml-1.5 first:ml-0 transition-transform duration-150 hover:z-20 hover:-translate-y-0.5">
       <Tooltip richContent={tooltipContent}>
         <div className="cursor-default">
-          <PeopleAvatar item={item} size="sm" />
+          <PeopleAvatar item={item} size="chip" />
         </div>
       </Tooltip>
     </div>
@@ -95,10 +101,13 @@ const OwnersCell: FunctionComponent<ComponentProps> = (
 
   const owners: Array<ResourceOwnerEntry> = props.owners || [];
 
+  /*
+   * No owners is a quiet dash, as every empty cell of a table is: "No
+   * owners." down the whole column was the loudest thing in rows with
+   * nothing to say. A screen reader still hears the words.
+   */
   if (owners.length === 0) {
-    return (
-      <p className="text-gray-400">{translator.translateText("No owners.")}</p>
-    );
+    return <TableEmptyValue screenReaderText="No owners." />;
   }
 
   const cellOwners: Array<CellOwner> = owners.map(toCellOwner);
@@ -134,14 +143,14 @@ const OwnersCell: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <div className="flex items-center">
+    <div className="flex h-6 items-center">
       {visibleOwners.map((owner: CellOwner) => {
         return <OwnerCircle key={owner.key} item={owner} />;
       })}
       {hiddenOwners.length > 0 ? (
-        <div className="relative -ml-2 transition-transform duration-150 hover:z-20 hover:-translate-y-0.5">
+        <div className="relative -ml-1.5 transition-transform duration-150 hover:z-20 hover:-translate-y-0.5">
           <Tooltip richContent={overflowTooltip}>
-            <div className="h-8 w-8 rounded-full bg-gray-100 ring-2 ring-white shadow-sm flex items-center justify-center text-xs font-semibold text-gray-700 select-none cursor-default">
+            <div className="h-6 w-6 rounded-full bg-gray-100 ring-2 ring-white shadow-sm flex items-center justify-center text-[10px] font-semibold text-gray-700 select-none cursor-default">
               +{hiddenOwners.length}
             </div>
           </Tooltip>

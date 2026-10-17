@@ -1,6 +1,10 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import { useIsDetailValue } from "../Detail/DetailValueContext";
 import PlaceholderText from "../Detail/PlaceholderText";
+import { useIsTableCell } from "../Table/TableCellContext";
+import TableEmptyValue from "../Table/TableEmptyValue";
+import { showFullValueWhenCutShort } from "../Table/FullValueTitle";
+import { TABLE_LIST_ITEM_CLASS_NAME } from "../Table/TableLayout";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 import useTranslateValue from "../../Utils/Translation";
@@ -29,6 +33,7 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
    */
   const [showMoreItems, setShowMoreItems] = React.useState<boolean>(false);
   const isDetailValue: boolean = useIsDetailValue();
+  const isTableCell: boolean = useIsTableCell();
 
   if (!props.items || props.items.length === 0) {
     /*
@@ -38,6 +43,15 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
      */
     if (isDetailValue && props.noItemsMessage) {
       return <PlaceholderText text={props.noItemsMessage} />;
+    }
+
+    /*
+     * In a table's cell, a quiet dash: "No labels attached." on every row
+     * of a list was the loudest thing in rows with nothing to say. A screen
+     * reader still hears the column's words.
+     */
+    if (isTableCell) {
+      return <TableEmptyValue screenReaderText={props.noItemsMessage} />;
     }
 
     return <p>{translateString(props.noItemsMessage)}</p>;
@@ -60,14 +74,38 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
     }
   }
 
+  /*
+   * In a table's cell, each item keeps to its line and ends in "..." when
+   * it is wider than the column, its whole text under the pointer
+   * (TABLE_LIST_ITEM_CLASS_NAME).
+   */
+  const getItem: (item: TGenericObject, key: number) => ReactElement = (
+    item: TGenericObject,
+    key: number,
+  ): ReactElement => {
+    if (isTableCell) {
+      return (
+        <div
+          key={key}
+          className={TABLE_LIST_ITEM_CLASS_NAME}
+          onMouseEnter={showFullValueWhenCutShort}
+        >
+          {props.getEachElement(item)}
+        </div>
+      );
+    }
+
+    return <div key={key}>{props.getEachElement(item)}</div>;
+  };
+
   return (
     <div className={props.className}>
       {firstThreeItems.map((item: TGenericObject, i: number) => {
-        return <div key={i}>{props.getEachElement(item)}</div>;
+        return getItem(item, i);
       })}
       {showMoreItems ? (
         remainingItems.map((item: TGenericObject, i: number) => {
-          return <div key={i}>{props.getEachElement(item)}</div>;
+          return getItem(item, i);
         })
       ) : (
         <></>

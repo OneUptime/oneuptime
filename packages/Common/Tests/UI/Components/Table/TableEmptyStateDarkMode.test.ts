@@ -222,14 +222,21 @@ describe("the empty state in the dark theme", () => {
 
   /*
    * The two classes the Table and the List add around the state: the rule
-   * under the header row, and the list's grey that runs on where its
-   * footer used to be.
+   * above it (the header row's own on a desktop, the list box's on a phone),
+   * and the list's grey that runs on where its footer used to be.
    */
   test("the blocks the Table and the List draw it in are remapped too", () => {
     const tableCode: string = readCode("Components/Table/Table.tsx");
+    const layoutCode: string = readCode("Components/Table/TableLayout.ts");
     const listCode: string = readCode("Components/List/List.tsx");
 
-    expect(tableCode).toContain('"border-t border-gray-200 "');
+    // The state block draws no rule of its own: the header row's closes it.
+    expect(tableCode).toContain(
+      'const stateBlockClassName: string = "md:-mx-6 md:px-6";',
+    );
+    expect(layoutCode).toContain('"border-y border-gray-200 bg-gray-50');
+    // A phone's list of cards is ruled off from the card's header by its box.
+    expect(tableCode).toContain('"min-w-full border-t border-gray-200"');
     /*
      * The list's grey runs on to the card's rounded bottom edge - or, in a
      * section of a card (CardSections), to its square one.

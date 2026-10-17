@@ -30501,6 +30501,8 @@
   "Said on the call: someone found or confirmed it.": "Detto durante la chiamata: qualcuno l'ha trovata o confermata.",
   "Save as root cause": "Salva come causa principale",
   "See what it found": "Vedi cosa ha trovato",
+  "Show {{count}} more labels": "Mostra {{count}} etichette in più",
+  "Show {{count}} more labels_one": "Mostra {{count}} etichetta in più",
   "Show {{count}} more remarks": "Mostra altri {{count}} interventi",
   "Show {{count}} more remarks_one": "Mostra altro {{count}} intervento",
   "Suggested root cause": "Causa principale suggerita",

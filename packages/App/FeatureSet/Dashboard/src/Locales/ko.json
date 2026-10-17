@@ -30501,6 +30501,8 @@
   "Said on the call: someone found or confirmed it.": "통화에서 언급됨: 누군가 찾았거나 확인했습니다.",
   "Save as root cause": "근본 원인으로 저장",
   "See what it found": "발견한 내용 보기",
+  "Show {{count}} more labels": "레이블 {{count}}개 더 보기",
+  "Show {{count}} more labels_one": "레이블 {{count}}개 더 보기",
   "Show {{count}} more remarks": "발언 {{count}}개 더 보기",
   "Show {{count}} more remarks_one": "발언 {{count}}개 더 보기",
   "Suggested root cause": "제안된 근본 원인",

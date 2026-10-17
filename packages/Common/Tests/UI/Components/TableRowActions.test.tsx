@@ -223,7 +223,7 @@ describe("Table row actions, desktop", () => {
     expect(bodyRows).toHaveLength(2);
     expect(
       within(bodyRows[0]!).getByTestId("row-actions").closest("td"),
-    ).toHaveStyle({ textAlign: "right" });
+    ).toHaveClass("text-end");
   });
 
   test("each row's menu lists only what applies to that row", () => {

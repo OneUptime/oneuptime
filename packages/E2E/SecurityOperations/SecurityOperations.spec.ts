@@ -370,9 +370,13 @@ test.describe("the case queue", () => {
     );
 
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    /*
+     * The table's own box. It scrolls (overflow-x-auto) only while its rows
+     * are wider than the card, so it is found by its test id.
+     */
     const scroller: Locator = page
       .locator("table")
-      .locator("xpath=ancestor::div[contains(@class,'overflow-x-auto')][1]");
+      .locator("xpath=ancestor::div[@data-testid='table-scroll'][1]");
     expect(
       await overflowOf(scroller),
       "table scrolls sideways",
@@ -477,7 +481,7 @@ test.describe("a case", () => {
     const detectionsTable: Locator = page
       .locator("table")
       .first()
-      .locator("xpath=ancestor::div[contains(@class,'overflow-x-auto')][1]");
+      .locator("xpath=ancestor::div[@data-testid='table-scroll'][1]");
     expect(
       await overflowOf(detectionsTable),
       "detections table scrolls sideways",
@@ -589,7 +593,7 @@ test.describe("playbooks", () => {
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     const scroller: Locator = page
       .locator("table")
-      .locator("xpath=ancestor::div[contains(@class,'overflow-x-auto')][1]");
+      .locator("xpath=ancestor::div[@data-testid='table-scroll'][1]");
     expect(
       await overflowOf(scroller),
       "table scrolls sideways",

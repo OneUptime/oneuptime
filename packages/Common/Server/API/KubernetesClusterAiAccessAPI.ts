@@ -25,7 +25,11 @@ import {
   KubernetesClusterAiAccessStatus,
   getKubernetesAiAccessTargetKind,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
-import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import {
+  KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+  KUBERNETES_AI_ACCESS_TEST_EDIT_REFUSAL,
+  KUBERNETES_AI_AGENT_RESET_EDIT_REFUSAL,
+} from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import { AiActivityInsights } from "../../Types/AI/AiActivityInsights";
 import {
   KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH,
@@ -94,15 +98,18 @@ const router: ExpressRouter = Express.getRouter();
  *     reached through) and returns their output, so an operator can see the
  *     access work (and the RBAC it actually has) before an incident does.
  *     Read-only, but it spends the target's time, so it requires edit
- *     access to the cluster and has its own limits instead of spending the
- *     project's investigation budget: one test at a time per cluster (an
- *     atomic reservation), a few per minute and a cumulative ceiling per
- *     hour per cluster, and a few per minute per user.
+ *     access to THIS cluster (decided for its row, labels and owners
+ *     included, as an update of it would be) and has its own limits instead
+ *     of spending the project's investigation budget: one test at a time
+ *     per cluster (an atomic reservation), a few per minute and a
+ *     cumulative ceiling per hour per cluster, and a few per minute per
+ *     user.
  *
  *   POST /kubernetes-cluster/ai-access/reset-agent  { clusterId }
  *     Forgets the key of the cluster's Kubernetes AI agent, so whatever
  *     holds it is locked out and the real pod registers afresh within a
- *     few minutes. For the people who may loosen AI access.
+ *     few minutes. For the people who may loosen AI access, and may edit
+ *     THIS cluster.
  *
  *   POST /kubernetes-cluster/ai-access/logs         { clusterId }
  *     Everything AI did on the cluster, newest first, as summaries: the AI
@@ -179,31 +186,26 @@ async function findAccessibleCluster(data: {
 }
 
 /*
- * Mirrors KubernetesCluster's update ACL, read the way every permission
- * check reads it (CallerPermission): a block row is a denial, not a grant,
- * and a block with no labels on that list takes the test away. The access
- * test is read-only, but it spends the bound Runner's time and prints the
- * RBAC the Runner holds, so it is for the people who may edit the cluster.
+ * The access test is read-only, but it spends the bound Runner's (or the
+ * Kubernetes AI agent's) time, prints the RBAC it holds in the cluster and
+ * records the cluster's Last verified, so it is for the people who may edit
+ * THIS cluster - decided for its own row, as an update of it would be
+ * (KubernetesClusterAiAccessService.assertCallerMayChangeCluster): an edit
+ * grant limited to other labels, or to clusters the caller does not own,
+ * does not reach it, and a block on one of its labels takes it away.
+ * Holding an edit permission somewhere in the project is not enough.
  */
-function assertCanEditCluster(
-  props: DatabaseCommonInteractionProps,
-  projectId: ObjectID,
-): void {
-  if (props.isMasterAdmin) {
-    return;
-  }
-
-  if (
-    !CallerPermission.holdsModelPermission(
-      props,
-      { model: new KubernetesCluster(), operation: "update" },
-      { projectId: projectId },
-    )
-  ) {
-    throw new NotAuthorizedException(
-      "You need permission to edit this Kubernetes cluster to run its AI access test.",
-    );
-  }
+async function assertCanEditCluster(data: {
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  cluster: KubernetesCluster;
+}): Promise<void> {
+  await KubernetesClusterAiAccessService.assertCallerMayChangeCluster({
+    props: data.props,
+    projectId: data.projectId,
+    clusterId: data.cluster.id!,
+    refusal: KUBERNETES_AI_ACCESS_TEST_EDIT_REFUSAL,
+  });
 }
 
 /*
@@ -527,7 +529,11 @@ export const RESTRICTED_CREDENTIAL_GAP_DESCRIPTION: string =
 
 /*
  * Resetting the agent locks out whatever holds its key, and the real pod
- * registers afresh: the same people who may loosen AI access may do it.
+ * registers afresh: the same people who may loosen AI access may do it -
+ * one of the admin set, and permission to edit THIS cluster, decided for
+ * its own row as turning its fixes on is (an update of the cluster). The
+ * admin set is checked first, here; the cluster's row next
+ * (assertCanChangeClusterToResetAgent).
  */
 function assertCanResetAiAgent(
   props: DatabaseCommonInteractionProps,
@@ -555,6 +561,25 @@ function assertCanResetAiAgent(
       ).join(", ")}.`,
     );
   }
+}
+
+/*
+ * The other half of who may reset the agent: someone who may edit this
+ * cluster. An admin whose edit of clusters is limited to other labels, or
+ * blocked for a label this cluster carries, may not reset its agent - as
+ * they may not turn its fixes on.
+ */
+async function assertCanChangeClusterToResetAgent(data: {
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  cluster: KubernetesCluster;
+}): Promise<void> {
+  await KubernetesClusterAiAccessService.assertCallerMayChangeCluster({
+    props: data.props,
+    projectId: data.projectId,
+    clusterId: data.cluster.id!,
+    refusal: KUBERNETES_AI_AGENT_RESET_EDIT_REFUSAL,
+  });
 }
 
 /*
@@ -727,7 +752,7 @@ router.post(
         tenantId,
       });
 
-      assertCanEditCluster(props, tenantId);
+      await assertCanEditCluster({ props, projectId: tenantId, cluster });
 
       const viewerCanReadCredentials: boolean = canReadCredentials(
         props,
@@ -1348,6 +1373,12 @@ router.post(
       });
 
       assertCanResetAiAgent(props, tenantId);
+
+      await assertCanChangeClusterToResetAgent({
+        props,
+        projectId: tenantId,
+        cluster,
+      });
 
       const agent: KubernetesAiAgent | null =
         await KubernetesAiAgentService.findForCluster({

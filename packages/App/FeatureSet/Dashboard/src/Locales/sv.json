@@ -30501,6 +30501,8 @@
   "Said on the call: someone found or confirmed it.": "Sagt i samtalet: någon hittade eller bekräftade den.",
   "Save as root cause": "Spara som rotorsak",
   "See what it found": "Se vad den hittade",
+  "Show {{count}} more labels": "Visa {{count}} fler etiketter",
+  "Show {{count}} more labels_one": "Visa {{count}} etikett till",
   "Show {{count}} more remarks": "Visa {{count}} inlägg till",
   "Show {{count}} more remarks_one": "Visa {{count}} inlägg till",
   "Suggested root cause": "Föreslagen rotorsak",

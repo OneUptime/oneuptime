@@ -5,6 +5,8 @@ import Card, {
   CARD_HEADER_LAYOUTS,
   CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME,
   CARD_HEADER_TITLE_BLOCK_CLASS_NAME,
+  CARD_HEADER_TOOLBAR_FILL_CLASS_NAME,
+  CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME,
   CardButtonSchema,
   CardHeaderLayout,
   ComponentProps,
@@ -134,6 +136,16 @@ const SHAPES: Array<HeaderShape> = [
   },
 ];
 
+/*
+ * The title's block in each layout. A Record, so a layout added to Card
+ * cannot be left out of the rule below.
+ */
+const TITLE_BLOCK_CLASS_NAME_BY_LAYOUT: Record<CardHeaderLayout, string> = {
+  default: CARD_HEADER_TITLE_BLOCK_CLASS_NAME,
+  stacked: CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME,
+  toolbar: CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME,
+};
+
 function classOf(element: Element): string {
   return element.getAttribute("class") || "";
 }
@@ -220,8 +232,16 @@ describe.each([...CARD_HEADER_LAYOUTS] as Array<CardHeaderLayout>)(
 
       // The right element first, then one box per button.
       expect(boxes).toHaveLength(3);
+      /*
+       * A toolbar's box may also take the card's width on a phone when it
+       * holds a control that fills its line (a table's search).
+       */
+      const expectedBoxClassName: string =
+        headerLayout === "toolbar"
+          ? `${CARD_HEADER_ACTION_CLASS_NAME} ${CARD_HEADER_TOOLBAR_FILL_CLASS_NAME}`
+          : CARD_HEADER_ACTION_CLASS_NAME;
       for (const box of boxes.slice(1)) {
-        expect(classOf(box)).toBe(CARD_HEADER_ACTION_CLASS_NAME);
+        expect(classOf(box)).toBe(expectedBoxClassName);
       }
       expect(classOf(actions)).toContain(CARD_HEADER_ACTIONS_CLASS_NAME);
     });
@@ -234,9 +254,7 @@ describe.each([...CARD_HEADER_LAYOUTS] as Array<CardHeaderLayout>)(
       );
 
       expect(titleBlockClassName).toBe(
-        headerLayout === "stacked"
-          ? CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME
-          : CARD_HEADER_TITLE_BLOCK_CLASS_NAME,
+        TITLE_BLOCK_CLASS_NAME_BY_LAYOUT[headerLayout],
       );
       /*
        * Below md no utility lets the title grow into, or shrink for, the

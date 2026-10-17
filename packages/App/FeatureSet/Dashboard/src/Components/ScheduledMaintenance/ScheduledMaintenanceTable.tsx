@@ -1077,6 +1077,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                   <LiveDuration
                     startDate={item.startsAt}
                     endDate={item.endsAt}
+                    isCompact={true}
                   />
                 );
               },
