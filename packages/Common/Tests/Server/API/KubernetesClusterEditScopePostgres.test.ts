@@ -46,7 +46,6 @@ import Permission from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getResourceAiAgentResetEditRefusal } from "../../../Types/AI/ResourceAiAccessPermissions";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
-import { ResourceAiAccessStatus } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterAll,
