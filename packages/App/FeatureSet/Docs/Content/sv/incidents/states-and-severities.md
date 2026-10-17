@@ -223,14 +223,14 @@ En tillståndsändring kan meddela dina statussidors prenumeranter, men den pass
 
 ```mermaid title="Når en tillståndsändring prenumeranterna?"
 flowchart TB
-    change["Tillståndsändring sparad"] --> box{"Aviseringsrutan påslagen?"}
+    change["Tillståndsändring<br/>sparad"] --> box{"Aviseringsrutan<br/>påslagen?"}
     box -->|Nej| skipped["Hoppades över"]
-    box -->|Ja| note{"Offentlig anteckning med?"}
-    note -->|Ja| carried["Anteckningen är meddelandet"]
+    box -->|Ja| note{"Offentlig<br/>anteckning med?"}
+    note -->|Ja| carried["Anteckningen<br/>är meddelandet"]
     note -->|Nej| queued["Rad köad"]
     queued --> gates{"Genom alla spärrar?"}
-    gates -->|Nej| reason["Hoppades över, orsak registrerad"]
-    gates -->|Ja| sent["Prenumeranterna meddelade"]
+    gates -->|Nej| reason["Hoppades över,<br/>orsak registrerad"]
+    gates -->|Ja| sent["Prenumeranterna<br/>meddelade"]
 ```
 
 Avisering begärs per tidslinjerad med **Meddela statussideprenumeranter** (`shouldStatusPageSubscribersBeNotified`), kryssrutan i dialogen för tillståndsändringar och på det manuella tidslinjeformuläret. I dialogen för tillståndsändringar börjar den avstängd när incidenten deklarerades utan att meddela prenumeranterna. Samma kryssruta avgör också om dialogens offentliga anteckning meddelar någon. När den är avstängd sparas raden med statusen överhoppad och en förklaring. När den är påslagen köas raden och ett bakgrundsjobb plockar upp den — jobbet körs varje minut, så leveransen är snabb men inte omedelbar.

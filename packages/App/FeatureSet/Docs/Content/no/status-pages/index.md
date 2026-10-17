@@ -29,7 +29,7 @@ flowchart TB
 
 Statussider ligger under **Statussider** i menyen **Produkter** i den øverste linjen, blant de viktigste. Alt på denne siden gjelder per statusside: et prosjekt kan ha så mange det vil — en offentlig for kunder, en privat for et internt publikum, en per region for et bestemt marked.
 
-Siden viser monitorene du setter på den, som ressurser. Hendelser og planlagt vedlikehold når siden gjennom disse monitorene, og kunngjøringer publiseres direkte på den. Besøkende leser siden, og abonnenter blir varslet om hver endring på kanalene de har valgt.
+Siden viser monitorene du setter på den, som ressurser, og hendelser når siden gjennom disse monitorene. [Planlagte vedlikeholdshendelser](/docs/scheduled-maintenance/index) og kunngjøringer når den direkte: hver av dem angir statussidene den vises på. Besøkende leser siden, og abonnenter blir varslet om hver endring på kanalene de har valgt.
 
 ## Kort oppsummert
 

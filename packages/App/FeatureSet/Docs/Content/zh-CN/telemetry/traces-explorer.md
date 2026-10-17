@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | **查看者** | 搜索和过滤 span，并打开它们的追踪。打开时显示最近一小时的 span，最新在前，每页 50 个。 |
 | **洞察** | 每个服务的请求率、错误率和延迟，以及值得一看的请求。 |
-| **设置指南** | 如何使用你的某个摄取密钥，通过 OpenTelemetry 发送追踪。 |
+| **设置指南** | 如何使用你的某个 [摄取密钥](/docs/telemetry/ingestion-keys)，通过 OpenTelemetry 发送追踪。 |
 | **设置** | span 到达时会发生什么：**管道**、**丢弃过滤器**、**清理规则** 和 **记录规则**。 |
 
 ## 开始之前
@@ -115,12 +115,12 @@ flowchart TB
 
 ## span 到达时会发生什么
 
-**设置** 标签页包含 OneUptime 在 span 到达时应用的规则，与日志的做法相同。它们作用于之后到达的 span，而不是已存储的 span。
+**设置** 标签页包含 OneUptime 在 span 到达时应用的规则，与日志的做法相同。它们作用于之后到达的 span，而不是已存储的 span。每个 span 保留多长时间，也是在它到达时决定的：请参阅 [数据保留](/docs/telemetry/data-retention)。
 
 | 规则 | 作用 |
 | --- | --- |
-| **丢弃过滤器** | 丢弃你不想保留的 span，或者只保留其中的一部分样本。 |
-| **清理规则** | 遮盖 span 属性中的敏感数据。 |
+| **丢弃过滤器** | 丢弃你不想保留的 span，或者只保留其中的一部分样本。参见 [丢弃或采样记录](/docs/telemetry/drop-filters-and-scrub-rules#丢弃或采样记录)。 |
+| **清理规则** | 遮盖 span 属性中的敏感数据。参见 [清理敏感数据](/docs/telemetry/drop-filters-and-scrub-rules#清理敏感数据)。 |
 | **管道** | 更改和丰富 span：每个管道用过滤条件匹配 span，然后依次运行它的处理器。 |
 | **记录规则** | 每分钟把 span 数、错误数和持续时间转换为新的指标。参见 [日志记录规则](/docs/telemetry/log-recording-rules)。 |
 

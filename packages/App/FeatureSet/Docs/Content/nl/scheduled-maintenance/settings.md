@@ -125,7 +125,7 @@ Elk onderhoudsmodel heeft workflowtriggers en -acties, naar het model genoemd: *
 | **Scheduled Maintenance Member**  | Maakt, wijzigt en verwijdert gebeurtenissen met hun notities, statustijdlijnen en eigenaren, en beide soorten sjablonen. |
 | **Scheduled Maintenance Admin**   | Alles wat een lid doet, en maakt, wijzigt en verwijdert daarnaast onderhoudsstatussen.               |
 
-Regels, aangepaste velden en metingen vragen **Project Owner** of **Project Admin**, of een aangepaste rol met de eigen machtiging van die pagina, zoals **Create Scheduled Maintenance Owner Rule**. **Project Member** werkt met gebeurtenissen en sjablonen, net als **Scheduled Maintenance Member**. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index).
+Regels, aangepaste velden en metingen vragen **Project Owner** of **Project Admin**, of een aangepaste rol met de eigen machtiging van die pagina, zoals **Create Scheduled Maintenance Owner Rule**. Runbook-regels accepteren ook **Runbook Admin**. **Project Member** werkt met gebeurtenissen en sjablonen, net als **Scheduled Maintenance Member**. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index).
 
 ## Probleemoplossing
 

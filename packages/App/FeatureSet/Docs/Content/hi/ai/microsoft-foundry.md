@@ -16,16 +16,16 @@ OneUptime आपके Foundry रिसोर्स को HTTPS पर OneUpti
 ```mermaid title="OneUptime के AI अनुरोध कहाँ जाते हैं"
 flowchart TB
     subgraph OU["OneUptime सर्वर"]
-        F["AI जाँचें, नोट्स, पोस्टमॉर्टम, सुधार कार्य"]
+        F["AI जाँचें, नोट्स,<br/>पोस्टमॉर्टम, सुधार कार्य"]
     end
     subgraph AZ["आपकी Azure सदस्यता"]
         R["Foundry रिसोर्स contoso-ai"]
-        V1["OpenAI v1 API: /openai/v1/chat/completions"]
-        AN["Anthropic API: /anthropic/v1/messages"]
+        V1["OpenAI v1 API:<br/>/openai/v1/chat/completions"]
+        AN["Anthropic API:<br/>/anthropic/v1/messages"]
         D1["डिप्लॉयमेंट gpt-5.1"]
-        D2["डिप्लॉयमेंट claude-sonnet-5-5"]
+        D2["डिप्लॉयमेंट<br/>claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API कुंजी"| R
+    F -->|"HTTPS +<br/>API कुंजी"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```

@@ -15,19 +15,19 @@ Denne siden forklarer hvordan du tillater det, bevisst og snevert. Tre brytere a
 | **Monitorer** av typen API, Website, External Status Page og Custom JavaScript Code | **Probens** eget miljø | Private adresser avvist |
 
 ```mermaid title="Tre brytere, hver for sin type tilkobling"
-flowchart TB
+flowchart LR
     subgraph Server["OneUptime-serveren"]
         direction TB
         Webhooks["Arbeidsflyter og webhooks"]
-        Outbound["Datakilder, LLM-leverandører,<br/>SMTP og andre tilkoblinger"]
+        Outbound["Datakilder,<br/>LLM-leverandører,<br/>SMTP og andre tilkoblinger"]
     end
     subgraph Probe["Hver probe"]
-        Monitors["Monitorer av typen API, Website,<br/>External Status Page og<br/>Custom JavaScript Code"]
+        Monitors["Monitorer av typen<br/>API, Website,<br/>External Status Page og<br/>Custom JavaScript Code"]
     end
-    Private["Det private nettverket ditt"]
-    Webhooks -->|"av som standard"| Private
-    Outbound -->|"på som standard"| Private
-    Monitors -->|"av som standard"| Private
+    Private["Det private<br/>nettverket ditt"]
+    Webhooks -->|"av som<br/>standard"| Private
+    Outbound -->|"på som<br/>standard"| Private
+    Monitors -->|"av som<br/>standard"| Private
 ```
 
 Nettverksnære monitortyper som Ping, Port, SSL-sertifikat, DNS, DNSSEC, SNMP / Nettverksenhet, SQL-spørring, Databasehelse, Synthetic og Network Path bruker sine egne transporter. Innstillingen på denne siden styrer HTTP-transportene som returnerer vilkårlig svarinnhold til et prosjekt: monitorer av typen API, Website, External Status Page og Custom JavaScript Code.

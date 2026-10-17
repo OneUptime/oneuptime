@@ -52,10 +52,10 @@ Azure SQL Database と Azure SQL Managed Instance は **Microsoft SQL Server** �
 flowchart TB
     connect["データベースに接続"] --> probe{"プローブクエリは成功？"}
     probe -->|"いいえ"| offline["モニターはオフライン"]
-    probe -->|"はい"| groups["各メトリクスグループを実行"]
+    probe -->|"はい"| groups["各メトリクス<br/>グループを実行"]
     groups --> group{"グループを収集できた？"}
     group -->|"はい"| metrics["メトリクスを報告"]
-    group -->|"いいえ"| issue["メトリクスなし、問題を記録"]
+    group -->|"いいえ"| issue["メトリクスなし、<br/>問題を記録"]
     metrics --> criteria["条件を評価"]
     issue --> criteria
 ```

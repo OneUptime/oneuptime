@@ -27,7 +27,7 @@ Wanneer u op de pagina **Bereikbaarheidsschema's** een schema maakt, vraagt het 
 De mensen wisselen elkaar één voor één af, en de eerste heeft dienst zodra het schema is gemaakt:
 
 ```mermaid title="Layer 1 met drie mensen en beurten van 1 week"
-flowchart LR
+flowchart TB
     alice["Alice<br/>week 1"] -->|"overdracht"| bob["Bob<br/>week 2"]
     bob -->|"overdracht"| carol["Carol<br/>week 3"]
     carol -->|"terug naar de eerste"| alice
@@ -52,11 +52,11 @@ De rotatie van een schema bestaat uit lagen, op de pagina **Lagen** ervan. Lagen
 
 ```mermaid title="De hoogste laag met iemand van dienst is degene die oproept"
 flowchart TB
-    start["Een niveau roept het schema op"] --> first{"Iemand van dienst<br/>in de bovenste laag?"}
-    first -->|"Ja"| pageTop["Die persoon oproepen"]
+    start["Een niveau roept<br/>het schema op"] --> first{"Iemand van dienst<br/>in de bovenste laag?"}
+    first -->|"Ja"| pageTop["Die persoon<br/>oproepen"]
     first -->|"Nee"| next{"Iemand van dienst<br/>in de volgende laag?"}
-    next -->|"Ja"| pageNext["Die persoon oproepen"]
-    next -->|"Nee"| gap["Niemand wordt opgeroepen<br/>een dekkingsgat"]
+    next -->|"Ja"| pageNext["Die persoon<br/>oproepen"]
+    next -->|"Nee"| gap["Niemand wordt<br/>opgeroepen<br/>een dekkingsgat"]
 ```
 
 **Laag toevoegen** voegt een laag toe die begint zoals de eerste: van dienst vanaf nu, elke persoon een week, de klok rond. Klap een laag uit om er mensen aan toe te voegen, en om te wijzigen wanneer hij begint, hoe vaak hij overdraagt, wanneer hij voor het eerst overdraagt en de uren waarop hij dienst heeft:

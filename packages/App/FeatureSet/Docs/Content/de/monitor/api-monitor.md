@@ -18,11 +18,11 @@ sequenceDiagram
     participant P as Sonde
     participant A as Ihre API
     participant O as OneUptime
-    P->>A: Anfrage mit Ihrer Methode, Ihren Headern und Ihrem Body
+    P->>A: Anfrage mit Ihrer Methode,<br/>Ihren Headern und Ihrem Body
     A-->>P: Statuscode, Header und Body
-    Note over P: Wiederholt einen Fehler, ein 4xx oder 5xx<br/>oder eine Antwort langsamer als 10 s
+    Note over P: Wiederholt einen<br/>Fehler, ein 4xx oder 5xx<br/>oder eine Antwort<br/>langsamer als 10 s
     P->>O: Ergebnis der Prüfung
-    O->>O: Die Kriterien von oben nach unten prüfen
+    O->>O: Die Kriterien von<br/>oben nach unten prüfen
 ```
 
 Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebnis und kann Ihre API daher nicht als offline markieren.

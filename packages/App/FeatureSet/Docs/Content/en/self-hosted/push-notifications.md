@@ -13,12 +13,12 @@ OneUptime pages people on their phones through the **OneUptime On-Call** mobile 
 
 ```mermaid title="How a push reaches a phone or a browser"
 flowchart TB
-    Server["Your OneUptime server"]
-    Relay["OneUptime push relay"]
+    Server["Your OneUptime<br/>server"]
+    Relay["OneUptime<br/>push relay"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["OneUptime On-Call app"]
+    Phone["OneUptime<br/>On-Call app"]
     PushService["The browser's<br/>push service"]
     Browser["Browser"]
     Server -->|"no EXPO_ACCESS_TOKEN"| Relay
@@ -28,7 +28,7 @@ flowchart TB
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 

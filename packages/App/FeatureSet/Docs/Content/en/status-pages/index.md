@@ -29,7 +29,7 @@ flowchart TB
 
 Status pages live under **Status Pages** in the **Products** menu of the top bar, among the essentials. Everything on this page is per-status-page: a project can run as many of them as it likes — a public one for customers, a private one for an internal audience, a per-region one for a specific market.
 
-The page shows the monitors you put on it as its resources. Incidents and scheduled maintenance reach it through those monitors, and announcements are posted to it directly. Visitors read the page, and subscribers are told about each change on the channels they picked.
+The page shows the monitors you put on it as its resources, and incidents reach it through those monitors. [Scheduled maintenance events](/docs/scheduled-maintenance/index) and announcements reach it directly: each one names the status pages it is shown on. Visitors read the page, and subscribers are told about each change on the channels they picked.
 
 ## At a glance
 

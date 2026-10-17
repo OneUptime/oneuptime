@@ -19,16 +19,16 @@ OneUptime은 Teams 통합에 Azure Bot을 사용합니다. 트래픽은 양방�
 sequenceDiagram
     participant B as 관리자 브라우저
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
     B->>O: 관리자 동의 부여
-    O-->>B: Microsoft로 리디렉션
-    B->>E: 동의한 다음 로그인
-    E-->>B: 관리자 동의 콜백으로 리디렉션
+    O-->>B: Microsoft로<br/>리디렉션
+    B->>E: 동의한<br/>다음 로그인
+    E-->>B: 관리자 동의<br/>콜백으로<br/>리디렉션
     B->>O: 콜백
-    O->>E: Microsoft Graph 토큰 받기
+    O->>E: Microsoft<br/>Graph 토큰 받기
     Note over O,AB: 연결된 후
-    O->>AB: 알림 카드 게시, 아웃바운드 HTTPS
+    O->>AB: 알림 카드 게시,<br/>아웃바운드 HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
@@ -218,7 +218,7 @@ Microsoft는 [자체 호스팅 봇에 공개적으로 접근 가능한 HTTPS 엔
 ### 비공개 배포에서 봇 엔드포인트 게시하기
 
 ```mermaid title="비공개 배포에서 봇 엔드포인트 게시하기"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["공개 게이트웨이"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime ingress"]
     Users["VPN의 직원"] --> ING

@@ -14,7 +14,7 @@ flowchart TB
     layers --> shifts["कौन, कब ऑन-कॉल है"]
     overrides --> shifts
     shifts --> timeline["शेड्यूल टाइमलाइन"]
-    shifts --> paging["एस्केलेशन नियम उन्हें पेज करते हैं"]
+    shifts --> paging["एस्केलेशन नियम<br/>उन्हें पेज करते हैं"]
     shifts --> feeds["कैलेंडर फ़ीड"]
 ```
 

@@ -22,14 +22,14 @@ flowchart TB
     subgraph cluster["Din Swarm-klynge"]
         direction LR
         manager["Agent på en manager"]
-        others["Collectorer på andre noder"]
+        others["Collectorer<br/>på andre noder"]
     end
-    manager -->|"metrikker og inventar"| oneuptime["OneUptime"]
+    manager -->|"metrikker<br/>og inventar"| oneuptime["OneUptime"]
     others -->|"metrikker"| oneuptime
     oneuptime -->|"første data"| registered["Klynge registreret"]
     oneuptime --> monitor["Docker Swarm-monitor"]
     monitor -->|"hvert minut"| criteria{"Kriterier opfyldt?"}
-    criteria -->|"ja"| incident["Hændelse eller advarsel"]
+    criteria -->|"ja"| incident["Hændelse<br/>eller advarsel"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 

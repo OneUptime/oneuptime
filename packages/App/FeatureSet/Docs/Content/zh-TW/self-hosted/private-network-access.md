@@ -15,14 +15,14 @@ OneUptime 會拒絕向解析到私有、回送或連結本機範圍的主機傳�
 | API、Website、External Status Page 和 Custom JavaScript Code **監測器** | **探測器**本身的環境 | 拒絕私有位址 |
 
 ```mermaid title="三個開關，各自負責一類連線"
-flowchart TB
+flowchart LR
     subgraph Server["OneUptime 伺服器"]
         direction TB
         Webhooks["工作流程和 Webhook"]
         Outbound["資料來源、LLM 供應商、<br/>SMTP 及其他連線"]
     end
     subgraph Probe["每個探測器"]
-        Monitors["API、Website、<br/>External Status Page 和<br/>Custom JavaScript Code 監測器"]
+        Monitors["API、Website、<br/>External Status Page 和<br/>Custom JavaScript Code<br/>監測器"]
     end
     Private["你的私有網路"]
     Webhooks -->|"預設關閉"| Private

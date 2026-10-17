@@ -76,12 +76,12 @@ sequenceDiagram
     participant Caller as あなたのツール
     participant OneUptime
     participant Runner as ワークフローのランナー
-    Caller->>OneUptime: Webhook URL への GET または POST
+    Caller->>OneUptime: Webhook URL への<br/>GET または POST
     alt ワークフローがオン
-        OneUptime-->>Caller: 200、ステータス Scheduled
-        OneUptime->>Runner: ヘッダー、クエリ、本文とともに実行をキューに入れる
-        Runner->>Runner: トリガーの後のブロックを実行する
-    else ワークフローがオフまたはアーカイブ済み
+        OneUptime-->>Caller: 200、ステータス<br/>Scheduled
+        OneUptime->>Runner: ヘッダー、クエリ、<br/>本文とともに実行を<br/>キューに入れる
+        Runner->>Runner: トリガーの後の<br/>ブロックを実行する
+    else ワークフローが<br/>オフまたはアーカイブ済み
         OneUptime-->>Caller: 理由付きの 400
     end
 ```

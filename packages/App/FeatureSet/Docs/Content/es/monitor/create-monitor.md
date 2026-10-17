@@ -70,7 +70,7 @@ flowchart TB
     end
 ```
 
-Los incidentes y las alertas configurados para resolverse automáticamente, como los de los criterios predeterminados, se resuelven solos en cuanto su criterio deja de coincidir. Un monitor que comprueba más de una sonda solo cambia cuando sus sondas están de acuerdo: de forma predeterminada, cada sonda activada y conectada debe llegar al mismo resultado. Para exigir menos, configure **Acuerdo de sondas** en la página **Configuración → Sondas e intervalo** del monitor.
+Los incidentes y las alertas configurados para resolverse automáticamente, como los de los criterios predeterminados, se resuelven solos en cuanto su criterio deja de coincidir. Un monitor que comprueba más de una sonda solo cambia cuando sus sondas están de acuerdo: de forma predeterminada, cada sonda activada y conectada debe llegar al mismo resultado. Para exigir menos, configure **Acuerdo de sondas** en la página **Configuración → Sondas e intervalo** del monitor. Para todo lo que puede contener un criterio y los estados que puede mostrar un monitor, consulte [Criterios y estados de monitores](/docs/monitor/criteria-and-statuses).
 
 ## Sondas e intervalo
 
@@ -101,6 +101,8 @@ Cada tipo de monitor tiene su propia página con sus ajustes, sus criterios pred
 :::cards
 - [Monitor de sitio web](/docs/monitor/website-monitor): Comprobar que una página carga, y qué responde.
 - [Monitor de API](/docs/monitor/api-monitor): Llamar a un endpoint con un método, encabezados y un cuerpo.
+- [Criterios y estados de monitores](/docs/monitor/criteria-and-statuses): Qué fija el estado de cada monitor.
 - [Plantillas de monitor](/docs/monitor/monitor-templates): Crear muchos monitores a partir de una configuración y mantenerlos sincronizados.
+- [Grupos de monitores](/docs/monitor/monitor-groups): Reunir varios monitores en un solo estado.
 - [Incidentes](/docs/incidents/index): Qué ocurre después de que un monitor declara un incidente.
 :::

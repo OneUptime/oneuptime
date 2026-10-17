@@ -19,8 +19,8 @@ sequenceDiagram
     participant S as Serveur NTP
     Note over P: T1 : la sonde envoie
     P->>S: Requête cliente
-    Note over S: T2 : le serveur reçoit, T3 : le serveur répond
-    S-->>P: Réponse : strate, indicateur de seconde intercalaire, référence, T2, T3
+    Note over S: T2 : le serveur reçoit,<br/>T3 : le serveur répond
+    S-->>P: Réponse : strate, indicateur<br/>de seconde intercalaire,<br/>référence, T2, T3
     Note over P: T4 : la sonde reçoit
 ```
 

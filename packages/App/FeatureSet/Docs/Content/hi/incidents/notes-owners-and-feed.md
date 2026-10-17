@@ -20,7 +20,7 @@ flowchart TB
         public["सार्वजनिक नोट"]
         private["निजी नोट"]
     end
-    public --> page["स्थिति पृष्ठ और सब्सक्राइबर"]
+    public --> page["स्थिति पृष्ठ<br/>और सब्सक्राइबर"]
     public --> owners["घटना के स्वामी"]
     private --> owners
     public --> feed["घटना फ़ीड"]

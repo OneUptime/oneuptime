@@ -123,7 +123,7 @@ Para arquivar itens, selecione-os em **All Items** e arquive-os de uma vez, ou a
 
 ## Relações e topologia
 
-O OneUptime liga os itens com relações direcionadas à medida que as observa. **Inventário → Topology Map** as desenha, e a página **Connections** de um item lista as dele.
+O OneUptime liga os itens com relações direcionadas à medida que as observa. **Inventário → Topology Map** as desenha, e a página **Connections** de um item lista as dele. Veja [Topologia](/docs/telemetry/topology).
 
 | Relação | Por exemplo |
 | --- | --- |

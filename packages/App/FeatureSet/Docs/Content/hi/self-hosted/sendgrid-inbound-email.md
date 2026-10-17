@@ -18,11 +18,11 @@ OneUptime का **Incoming Email Monitor** आपको हर मॉनिट�
 ```mermaid title="कोई ईमेल मॉनिटर तक कैसे पहुँचता है"
 sequenceDiagram
     participant Sender as भेजने वाला मेल सर्वर
-    participant SendGrid as SendGrid Inbound Parse
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: मॉनिटर के पते पर ईमेल (आपका MX रिकॉर्ड)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: पते को किसी मॉनिटर या वर्कफ़्लो से मिलाना
+    Sender->>SendGrid: मॉनिटर के पते<br/>पर ईमेल (आपका<br/>MX रिकॉर्ड)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: पते को किसी मॉनिटर<br/>या वर्कफ़्लो<br/>से मिलाना
     OneUptime-->>SendGrid: 200 OK
 ```
 

@@ -19,15 +19,15 @@ sequenceDiagram
     participant P as Probe
     participant B as Browser
     participant A as Your web app
-    O->>P: Script, secrets filled in
-    loop Each browser and screen size
+    O->>P: Script, secrets<br/>filled in
+    loop Each browser<br/>and screen size
         P->>B: Run the script
-        B->>A: Load pages, click, type
+        B->>A: Load pages,<br/>click, type
         A-->>B: Pages
-        B-->>P: Result, screenshots, logs
+        B-->>P: Result,<br/>screenshots, logs
     end
-    P->>O: One response per run
-    O->>O: Evaluate the criteria
+    P->>O: One response<br/>per run
+    O->>O: Evaluate<br/>the criteria
 ```
 
 | Screen Type | Viewport |

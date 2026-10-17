@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as Dashboard
     participant O as OneUptime
     participant P as Sonde
-    D->>O: Paketmitschnitt starten: Schnittstelle, Filter, Limits
-    P->>O: Gibt es Mitschnitte für mich? (alle 10 Sekunden)
+    D->>O: Paketmitschnitt<br/>starten: Schnittstelle,<br/>Filter, Limits
+    P->>O: Gibt es Mitschnitte für<br/>mich? (alle 10 Sekunden)
     O-->>P: Diesen hier
-    P->>P: tcpdump, bis ein Limit erreicht ist oder Stoppen gedrückt wird
+    P->>P: tcpdump, bis ein Limit<br/>erreicht ist oder<br/>Stoppen gedrückt wird
     P->>O: Die pcap-Datei hochladen
     D->>O: Herunterladen
-    O-->>D: Die pcap-Datei und ein Eintrag im Audit-Protokoll
+    O-->>D: Die pcap-Datei<br/>und ein Eintrag<br/>im Audit-Protokoll
 ```
 
 1. **Starten.** Wer Mitschnitte starten darf, wählt die Schnittstelle der Sonde, einen Filter und die Limits und klickt auf **Mitschnitt starten**. OneUptime prüft den Filter und die Limits gegen das, was die Sonde erlaubt, bevor der Mitschnitt gespeichert wird.

@@ -11,7 +11,7 @@ Chaque processus OneUptime qui reçoit des données enregistre toutes les 30 sec
 - Rattrapage : tant que la file des données en attente de traitement a plus d'une minute de retard, le temps écoulé depuis les plus anciennes données qui y attendent encore.
 
 ```mermaid title="Le temps que OneUptime laisse de côté"
-flowchart LR
+flowchart TB
     receiving["Réception"] -->|"aucun enregistrement pendant 90 secondes"| down["Pas de réception"]
     down -->|"un processus enregistre de nouveau"| grace["Reconnexion pendant 2 minutes"]
     grace --> again["Réception"]

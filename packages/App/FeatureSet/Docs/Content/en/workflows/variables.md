@@ -100,12 +100,12 @@ sequenceDiagram
     participant Variable as OAuth 2.0 variable
     participant IdP as Identity provider
     Runner->>Variable: Read the cached token
-    alt Expired, or expires within a minute
+    alt Expired, or expires<br/>within a minute
         Runner->>IdP: Token request
         IdP-->>Runner: New access token
         Runner->>Variable: Keep the new token
     end
-    Runner->>Runner: Run the step with a token that has not expired
+    Runner->>Runner: Run the step with a token<br/>that has not expired
 ```
 
 - The first time a workflow uses the variable, OneUptime asks your identity provider's token endpoint for an access token and keeps it.

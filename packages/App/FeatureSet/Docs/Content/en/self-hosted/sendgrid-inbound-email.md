@@ -17,12 +17,12 @@ This guide explains how to set up SendGrid Inbound Parse to forward incoming ema
 
 ```mermaid title="How an email reaches a monitor"
 sequenceDiagram
-    participant Sender as Sending mail server
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as Sending<br/>mail server
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: Email to the monitor's address (your MX record)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Match the address to a monitor or a workflow
+    Sender->>SendGrid: Email to the<br/>monitor's<br/>address (your<br/>MX record)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: Match the<br/>address to<br/>a monitor or<br/>a workflow
     OneUptime-->>SendGrid: 200 OK
 ```
 

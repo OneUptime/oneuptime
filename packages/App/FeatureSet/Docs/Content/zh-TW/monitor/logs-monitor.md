@@ -155,16 +155,17 @@ OneUptime 每分鐘計算一次符合監測器篩選器、且在其時間視窗�
 ```mermaid title="不使用與使用 Group By"
 flowchart TB
     subgraph Without["不使用 Group By"]
-        direction LR
+        direction TB
         A1["HQ-Branch1 中斷"] --> M1["一個計數"]
         B1["Branch2 中斷"] --> M1
         M1 --> X1["一個警示"]
     end
     subgraph With["依 con_name 分組"]
-        direction LR
+        direction TB
         A2["HQ-Branch1 中斷"] --> X2["HQ-Branch1 警示"]
         B2["Branch2 中斷"] --> Y2["Branch2 警示"]
     end
+    Without ~~~ With
 ```
 
 ### 獨立解決

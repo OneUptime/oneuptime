@@ -12,14 +12,14 @@ Los **propietarios** son otra idea. Un propietario es quien se responsabiliza de
 ```mermaid title="Cómo obtienen acceso una persona y una clave de API"
 flowchart TB
     User["Un usuario<br/>(una cuenta)"]
-    Key["Una clave de API"]
     subgraph Project["Un proyecto"]
         direction TB
+        Key["Una clave<br/>de API"]
         Team["Equipo"]
-        Allow["Permisos concedidos,<br/>cada uno con un alcance:<br/>Todos, Propios o Etiquetas"]
-        Block["Permisos bloqueados,<br/>que siempre ganan"]
-        KeyRules["Los permisos concedidos y<br/>bloqueados de la propia clave"]
-        Resources["Monitores, incidentes,<br/>páginas de estado y más"]
+        Allow["Permisos<br/>concedidos,<br/>cada uno con<br/>un alcance:<br/>Todos, Propios<br/>o Etiquetas"]
+        Block["Permisos<br/>bloqueados,<br/>que siempre ganan"]
+        KeyRules["Los permisos<br/>concedidos y<br/>bloqueados de<br/>la propia clave"]
+        Resources["Monitores,<br/>incidentes,<br/>páginas de<br/>estado y más"]
     end
     User -->|"miembro de"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"alcanzan"| Resources
     KeyRules -->|"alcanzan"| Resources
     Block -.->|"quitan"| Resources
+    Allow ~~~ Block
 ```
 
 | Concepto | Qué es |

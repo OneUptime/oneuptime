@@ -13,10 +13,10 @@ In OneUptime Cloud bezahlt ein Projekt seinen Tarif, pro Benutzer, und was es nu
 
 ```mermaid title="Wofür ein Projekt in OneUptime Cloud bezahlt"
 flowchart TB
-    project["Ihr Projekt"] --> plan["Der Tarif: ein Preis<br/>pro Benutzer und Monat"]
-    project --> usage["Nutzungsbasiert:<br/>Telemetrie und Monitore"]
-    project --> balances["Vorausbezahltes<br/>Guthaben: Nachrichten<br/>und KI"]
-    plan --> invoices["Rechnungen, belastet auf<br/>Ihre Zahlungsmethode"]
+    project["Ihr Projekt"] --> plan["Der Tarif:<br/>ein Preis<br/>pro Benutzer<br/>und Monat"]
+    project --> usage["Nutzungsbasiert:<br/>Telemetrie<br/>und Monitore"]
+    project --> balances["Vorausbezahltes<br/>Guthaben:<br/>Nachrichten<br/>und KI"]
+    plan --> invoices["Rechnungen,<br/>belastet auf<br/>Ihre Zahlungsmethode"]
     usage --> invoices
     balances --> recharge["Aufgeladen von<br/>derselben Karte"]
 ```

@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Ett Twilio-konto, med dess Account SID och Auth Token | Policyns nummer och samtal går via det, och Twilio fakturerar dem till det. |
 | Planen **Growth**, på OneUptime Cloud | Ett projekt behöver den för en egen Twilio-konfiguration. |
-| En OneUptime-server som Twilio kan nå, om du kör den själv | Twilio skickar varje samtal till `https://<your host>/notification/incoming-call/voice`. |
+| En OneUptime-server som Twilio kan nå, om du kör den själv | Twilio skickar varje samtal till `https://<your host>/notification/incoming-call/voice`, och hur varje uppringning slutade till `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** påslaget i projektet | Varje teknikers nummer verifieras med en kod som skickas via SMS. |
 | Ett verifierat nummer för varje tekniker | En regel ringer bara personer som har lagt till och verifierat ett nummer för inkommande samtal i projektet. |
 
@@ -86,16 +86,16 @@ sequenceDiagram
     participant Twilio
     participant OneUptime
     participant Engineer as Tekniker
-    Caller->>Twilio: Ringer policyns nummer
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Hälsning, ring sedan personen i första regeln
-    Twilio->>Engineer: Ringer under regelns ringtid
+    Caller->>Twilio: Ringer<br/>policyns nummer
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Hälsning, ring<br/>sedan personen<br/>i första regeln
+    Twilio->>Engineer: Ringer under<br/>regelns ringtid
     Note over Twilio,Engineer: Ingen svarar i tid
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Ring personen i nästa regel
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Ring personen<br/>i nästa regel
     Twilio->>Engineer: Ringer nästa person
     Engineer-->>Twilio: Svarar
-    Twilio-->>Caller: Kopplar fram uppringaren
+    Twilio-->>Caller: Kopplar fram<br/>uppringaren
 ```
 
 En regel hoppas över, utan att någon ringes upp, när ingen kan ringas för den just nu: dess schema har ingen med jour, personen har inget verifierat nummer för inkommande samtal i det här projektet, eller personen är inte längre medlem i projektet. När ingen regel har någon att ringa hör uppringaren **Meddelande om att ingen är tillgänglig**. En inaktiverad policy besvarar varje samtal med "Sorry, this service is currently disabled." och lägger på.

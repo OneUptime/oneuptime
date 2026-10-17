@@ -26,8 +26,10 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import Form from "Common/Models/DatabaseModels/Form";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import { PermissionHelper } from "Common/Types/Permission";
 import {
   DEFAULT_LANGUAGE,
@@ -172,7 +174,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "On Create Form",
     "On Update Form",
     "On Create Incident",
-    "On Create Scheduled Maintenance",
+    "On Create Scheduled Maintenance Event",
     // The questions an upgraded incident form got, stored with these labels.
     "Your Name",
     "Your Email",
@@ -209,7 +211,7 @@ const WORKFLOW_COMPONENTS: Array<string> = [
   "On Create Form",
   "On Update Form",
   "On Create Incident",
-  "On Create Scheduled Maintenance",
+  "On Create Scheduled Maintenance Event",
 ];
 
 // Labels a form's default questions are stored with (FormField.ts).
@@ -986,6 +988,54 @@ describe("the lists this test keeps", () => {
     );
     expect(WORKFLOW_COMPONENTS).toContain(`On Create ${form.singularName}`);
     expect(WORKFLOW_COMPONENTS).toContain(`On Update ${form.singularName}`);
+
+    /*
+     * And the triggers that act on what a form created, as the workflow
+     * builder names them: after the model's singular name
+     * (Common/Types/Workflow/Components/BaseModel.ts). The page named the
+     * maintenance trigger "On Create Scheduled Maintenance", which the
+     * builder has never listed: it is "... Scheduled Maintenance Event".
+     */
+    const builder: string = fs.readFileSync(
+      path.join(PACKAGES_DIR, "Common/Types/Workflow/Components/BaseModel.ts"),
+      "utf8",
+    );
+
+    expect(builder).toContain("title: `On Create ${model.singularName}`,");
+
+    for (const created of [new Incident(), new ScheduledMaintenance()]) {
+      expect(created.enableWorkflowOn).toEqual(
+        expect.objectContaining({ create: true }),
+      );
+      expect(WORKFLOW_COMPONENTS).toContain(
+        `On Create ${created.singularName}`,
+      );
+    }
+
+    expect(WORKFLOW_COMPONENTS).toEqual([
+      `On Create ${form.singularName}`,
+      `On Update ${form.singularName}`,
+      `On Create ${new Incident().singularName}`,
+      `On Create ${new ScheduledMaintenance().singularName}`,
+    ]);
+
+    // Every language names them as the builder does, in English, in bold.
+    for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      const spans: Array<string> = boldSpans(readPage(lang, FORMS));
+
+      for (const component of WORKFLOW_COMPONENTS) {
+        expect({ lang, component, named: true }).toEqual({
+          lang,
+          component,
+          named: spans.includes(component),
+        });
+      }
+
+      expect({ lang, stale: false }).toEqual({
+        lang,
+        stale: spans.includes("On Create Scheduled Maintenance"),
+      });
+    }
 
     const formField: string = fs.readFileSync(
       path.join(PACKAGES_DIR, "Common/Types/Form/FormField.ts"),

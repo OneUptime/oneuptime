@@ -14,24 +14,18 @@ Dette er referencen for driftsfolk og sikkerhedsgennemgang: hvor hver slags trin
 ```mermaid title="Hvilke trin der kører hvor"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["HTTP request-trin"]
-        ai["AI-trin"]
+        onworker["HTTP request-trin<br/>AI-trin"]
     end
     subgraph yours["Din infrastruktur"]
-        direction LR
         runner["Runner"]
-        scripts["JavaScript- og Bash-trin"]
-        remote["SSH- og Kubernetes-trin"]
+        onrunner["JavaScript- og Bash-trin<br/>SSH- og Kubernetes-trin"]
     end
     person["En person"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual-trin og godkendelser"| person
-    worker -->|"sætter et job i kø til trinnets Runner"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual-trin og<br/>godkendelser"| person
+    worker --->|"sætter et<br/>job i kø<br/>til trinnets<br/>Runner"| runner
+    runner --> onrunner
 ```
 
 | Trintype | Kører på | Hvordan |

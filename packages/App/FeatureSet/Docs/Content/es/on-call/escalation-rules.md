@@ -93,15 +93,15 @@ A cada persona que avisa un nivel se la localiza como indiquen sus propias regla
 flowchart TB
     subgraph notify["Notificar"]
         direction LR
-        schedule["Programación de guardia"]
+        schedule["Programación<br/>de guardia"]
         team["Equipo"]
         user["Persona"]
     end
-    schedule -->|"quien esté de guardia"| person["Persona avisada"]
+    schedule -->|"quien esté<br/>de guardia"| person["Persona avisada"]
     team -->|"cada miembro"| person
     user -->|"directamente"| person
     person --> rules["Sus reglas de guardia"]
-    rules --> methods["Sus métodos de notificación"]
+    rules --> methods["Sus métodos de<br/>notificación"]
 ```
 
 Una sustitución de usuario vigente para una persona envía sus avisos a quien la cubre. Una que no nombra a nadie para cubrirla la omite: no recibe avisos, la ejecución de la política indica que está ausente y hasta cuándo, y en una programación de guardia cada uno de sus turnos pasa a la siguiente persona de la rotación. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).

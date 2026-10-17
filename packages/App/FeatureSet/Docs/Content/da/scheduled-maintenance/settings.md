@@ -125,7 +125,7 @@ Hver vedligeholdelsesmodel har workflow-udløsere og -handlinger, opkaldt efter 
 | **Scheduled Maintenance Member**  | Opretter, ændrer og sletter begivenheder med deres noter, tilstandstidslinjer og ejere samt begge slags skabeloner. |
 | **Scheduled Maintenance Admin**   | Alt, hvad et medlem gør, og opretter, ændrer og sletter desuden vedligeholdelsestilstande.           |
 
-Regler, brugerdefinerede felter og målinger kræver **Project Owner** eller **Project Admin** eller en brugerdefineret rolle med den sides egen tilladelse, for eksempel **Create Scheduled Maintenance Owner Rule**. **Project Member** arbejder med begivenheder og skabeloner ligesom **Scheduled Maintenance Member**. Se [Brugere, teams og tilladelser](/docs/permissions/index).
+Regler, brugerdefinerede felter og målinger kræver **Project Owner** eller **Project Admin** eller en brugerdefineret rolle med den sides egen tilladelse, for eksempel **Create Scheduled Maintenance Owner Rule**. Runbook-regler accepterer også **Runbook Admin**. **Project Member** arbejder med begivenheder og skabeloner ligesom **Scheduled Maintenance Member**. Se [Brugere, teams og tilladelser](/docs/permissions/index).
 
 ## Fejlfinding
 

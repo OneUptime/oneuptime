@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["Wat een uitvoering start"]
         direction LR
         rule["Runbook-regel"]
-        manual["Runbook uitvoeren op een evenement"]
-        runnow["Run Now op het runbook"]
+        manual["Runbook<br/>uitvoeren<br/>op een<br/>evenement"]
+        runnow["Run Now op<br/>het runbook"]
     end
-    rule --> execution["Uitvoering: een momentopname van de stappen"]
+    rule --> execution["Uitvoering: een<br/>momentopname<br/>van de stappen"]
     manual --> execution
     runnow --> execution
-    execution --> worker["De OneUptime Worker loopt de stappen op volgorde af"]
-    worker -->|"Manual-stap of goedkeuring"| person["Wacht op een persoon"]
-    worker -->|"HTTP- en AI-stappen"| onworker["Loopt op de Worker"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner in uw infrastructuur"]
-    person --> record["Status, uitvoer en fouten vastgelegd"]
+    execution --> worker["De OneUptime<br/>Worker<br/>loopt de<br/>stappen op<br/>volgorde af"]
+    worker -->|"Manual-stap<br/>of goedkeuring"| person["Wacht op<br/>een persoon"]
+    worker -->|"HTTP- en<br/>AI-stappen"| onworker["Loopt op<br/>de Worker"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner in uw<br/>infrastructuur"]
+    person --> record["Status,<br/>uitvoer<br/>en fouten<br/>vastgelegd"]
     onworker --> record
     runner --> record
-    record --> history["Runbooks-pagina van het evenement en Uitvoeringen van het runbook"]
+    record --> history["Runbooks-<br/>pagina<br/>van het<br/>evenement en<br/>Uitvoeringen<br/>van het<br/>runbook"]
 ```
 
 Elke run van een runbook is een **uitvoering**. Bij de start worden de stappen van het runbook erop gekopieerd en loopt OneUptime ze op volgorde af. Een Manual-stap, of een stap die goedkeuring nodig heeft, pauzeert de uitvoering tot iemand handelt.

@@ -15,14 +15,14 @@ Les critères d'un moniteur décident de ce que signifie chaque vérification : 
 
 ```mermaid title="Comment chaque vérification est jugée"
 flowchart TB
-    R["Le résultat<br/>d'une vérification"] --> C1{"Premier critère :<br/>ses filtres concordent ?"}
+    R["Le résultat<br/>d'une vérification"] --> C1{"Premier<br/>critère :<br/>ses filtres<br/>concordent ?"}
     C1 -->|"Oui"| A["Ce critère agit"]
-    C1 -->|"Non"| C2{"Critère suivant :<br/>ses filtres concordent ?"}
+    C1 -->|"Non"| C2{"Critère<br/>suivant :<br/>ses filtres<br/>concordent ?"}
     C2 -->|"Oui"| A
-    C2 -->|"Aucun n'a correspondu"| D["Le moniteur passe à son<br/>état par défaut"]
-    A --> S["Change le statut"]
-    A --> I["Déclare un incident"]
-    A --> L["Crée une alerte"]
+    C2 -->|"Aucun n'a<br/>correspondu"| D["Le moniteur<br/>passe à son<br/>état par<br/>défaut"]
+    A --> S["Change<br/>le statut"]
+    A --> I["Déclare un<br/>incident"]
+    A --> L["Crée une<br/>alerte"]
 ```
 
 L'ordre fait partie de la règle. Un nouveau moniteur liste ses critères du pire au meilleur : hors ligne, puis un avertissement quand son type en a un (un certificat ou un domaine qui expire bientôt), puis en ligne. Un critère sain et large, comme **Is Online** réglé sur **Vrai**, correspond à presque toutes les vérifications ; il vient donc en dernier : placé au-dessus des autres, il correspondrait le premier à chaque fois et les autres n'agiraient jamais.

@@ -16,16 +16,16 @@ OneUptime 从 OneUptime 服务器通过 HTTPS 调用您的 Foundry 资源，从�
 ```mermaid title="OneUptime 的 AI 请求去往何处"
 flowchart TB
     subgraph OU["OneUptime 服务器"]
-        F["AI 调查、备注、事后复盘、修复任务"]
+        F["AI 调查、备注、<br/>事后复盘、修复任务"]
     end
     subgraph AZ["您的 Azure 订阅"]
         R["Foundry 资源 contoso-ai"]
-        V1["OpenAI v1 API：/openai/v1/chat/completions"]
-        AN["Anthropic API：/anthropic/v1/messages"]
+        V1["OpenAI v1 API：<br/>/openai/v1/chat/completions"]
+        AN["Anthropic API：<br/>/anthropic/v1/messages"]
         D1["部署 gpt-5.1"]
         D2["部署 claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API 密钥"| R
+    F -->|"HTTPS +<br/>API 密钥"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```

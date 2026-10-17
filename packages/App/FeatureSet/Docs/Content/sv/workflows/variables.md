@@ -99,13 +99,13 @@ sequenceDiagram
     participant Runner as Arbetsflödets körmotor
     participant Variable as OAuth 2.0-variabel
     participant IdP as Identitetsleverantör
-    Runner->>Variable: Läser den cachade token
-    alt Utgången, eller går ut inom en minut
+    Runner->>Variable: Läser den<br/>cachade token
+    alt Utgången, eller går<br/>ut inom en minut
         Runner->>IdP: Tokenförfrågan
         IdP-->>Runner: Ny åtkomsttoken
         Runner->>Variable: Sparar den nya token
     end
-    Runner->>Runner: Kör steget med en token som inte har gått ut
+    Runner->>Runner: Kör steget med<br/>en token som<br/>inte har gått ut
 ```
 
 - Första gången ett arbetsflöde använder variabeln ber OneUptime din identitetsleverantörs tokenslutpunkt om en åtkomsttoken och sparar den.

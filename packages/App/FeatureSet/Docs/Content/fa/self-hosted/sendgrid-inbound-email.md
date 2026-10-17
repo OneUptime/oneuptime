@@ -17,12 +17,12 @@
 
 ```mermaid title="یک ایمیل چگونه به یک مانیتور می‌رسد"
 sequenceDiagram
-    participant Sender as سرور ایمیل فرستنده
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as سرور ایمیل<br/>فرستنده
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: ایمیل به نشانی مانیتور (از راه رکورد MX شما)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: تطبیق نشانی با یک مانیتور یا یک گردش‌کار
+    Sender->>SendGrid: ایمیل به نشانی<br/>مانیتور (از راه<br/>رکورد MX شما)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: تطبیق نشانی<br/>با یک مانیتور<br/>یا یک گردش‌کار
     OneUptime-->>SendGrid: HTTP 200 OK
 ```
 

@@ -196,7 +196,7 @@ OAuth 是 [瀏覽器重新導向，接著在伺服器端交換權杖](https://do
 ### 私人部署與回呼安全性
 
 ```mermaid title="從私人部署發布 Slack 回呼"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["公開閘道"]
     GW -->|"/api/slack/* 僅 POST"| ING["OneUptime ingress"]
     Users["VPN 上的員工"] --> ING

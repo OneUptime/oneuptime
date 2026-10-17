@@ -15,16 +15,16 @@ Diese Seite erklärt, wie Sie das bewusst und eng begrenzt erlauben. Drei Schalt
 | **Monitore** vom Typ API, Website, External Status Page und Custom JavaScript Code | Die eigene Umgebung der **Probe** | Private Adressen verweigert |
 
 ```mermaid title="Drei Schalter, jeder für seine eigene Art von Verbindung"
-flowchart TB
+flowchart LR
     subgraph Server["Der OneUptime-Server"]
         direction TB
-        Webhooks["Workflows und Webhooks"]
-        Outbound["Datenquellen, LLM-Anbieter,<br/>SMTP und andere Verbindungen"]
+        Webhooks["Workflows<br/>und Webhooks"]
+        Outbound["Datenquellen,<br/>LLM-Anbieter,<br/>SMTP und andere<br/>Verbindungen"]
     end
     subgraph Probe["Jede Probe"]
-        Monitors["Monitore vom Typ API, Website,<br/>External Status Page und<br/>Custom JavaScript Code"]
+        Monitors["Monitore vom Typ<br/>API, Website,<br/>External<br/>Status Page und<br/>Custom<br/>JavaScript Code"]
     end
-    Private["Ihr privates Netzwerk"]
+    Private["Ihr privates<br/>Netzwerk"]
     Webhooks -->|"standardmäßig aus"| Private
     Outbound -->|"standardmäßig an"| Private
     Monitors -->|"standardmäßig aus"| Private

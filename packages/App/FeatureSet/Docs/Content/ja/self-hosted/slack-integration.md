@@ -27,8 +27,8 @@ sequenceDiagram
     B->>O: ワンタイムコード
     O->>S: コードをボットトークンと交換
     Note over O,S: 接続後
-    O->>S: メッセージを投稿、アウトバウンド HTTPS
-    S->>O: イベント、クリック、コマンド、インバウンド HTTPS
+    O->>S: メッセージを投稿、<br/>アウトバウンド HTTPS
+    S->>O: イベント、クリック、<br/>コマンド、インバウンド HTTPS
 ```
 
 - **送信方向**: OneUptime は Slack の Web API を呼び出して、メッセージの投稿、チャンネルの作成、画像のアップロードを行います。
@@ -196,7 +196,7 @@ OAuth は [ブラウザーのリダイレクトと、それに続くサーバー
 ### プライベートな環境とコールバックのセキュリティ
 
 ```mermaid title="プライベートな環境から Slack のコールバックを公開する"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["公開ゲートウェイ"]
     GW -->|"/api/slack/* POST のみ"| ING["OneUptime の ingress"]
     Users["VPN 上の従業員"] --> ING

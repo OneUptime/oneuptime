@@ -15,13 +15,13 @@ Un runbook può avviarsi da solo: secondo una pianificazione, o quando un altro 
 flowchart TB
     subgraph starts["Cosa avvia l'esecuzione"]
         direction LR
-        schedule["La pianificazione: arriva un orario"]
-        webhook["Il webhook: un POST al suo URL"]
+        schedule["La pianificazione:<br/>arriva un orario"]
+        webhook["Il webhook: un<br/>POST al suo URL"]
     end
-    schedule --> checks["Il runbook è attivo e ha dei passaggi"]
+    schedule --> checks["Il runbook è attivo<br/>e ha dei passaggi"]
     webhook --> checks
-    checks --> execution["Esecuzione, contrassegnata Schedule o Webhook"]
-    execution --> worker["Il Worker di OneUptime esegue i passaggi"]
+    checks --> execution["Esecuzione, contrassegnata<br/>Schedule o Webhook"]
+    execution --> worker["Il Worker di OneUptime<br/>esegue i passaggi"]
 ```
 
 Un trigger avvia un'esecuzione come fa **Run Now**: l'esecuzione riguarda i passaggi attuali del runbook e non è collegata ad alcun incidente, avviso o evento di manutenzione pianificata. Ogni esecuzione registra cosa l'ha avviata. Le **Esecuzioni** del runbook e **Runbook → Esecuzioni** lo mostrano sotto **Attivato da**, con l'orario previsto di un'esecuzione pianificata o l'indirizzo che ha chiamato il webhook, ed entrambi gli elenchi si possono filtrare in base a questo.

@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["Hvad starter en kørsel"]
         direction LR
         rule["Runbook-regel"]
-        manual["Kør runbook på en begivenhed"]
-        runnow["Run Now på runbooket"]
+        manual["Kør runbook på<br/>en begivenhed"]
+        runnow["Run Now på<br/>runbooket"]
     end
-    rule --> execution["Udførelse: et øjebliksbillede af trinnene"]
+    rule --> execution["Udførelse: et<br/>øjebliksbillede<br/>af trinnene"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker tager trinnene i rækkefølge"]
-    worker -->|"Manual-trin eller godkendelse"| person["Venter på en person"]
-    worker -->|"HTTP- og AI-trin"| onworker["Kører på Workeren"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner i din infrastruktur"]
-    person --> record["Status, output og fejl registreret"]
+    execution --> worker["OneUptime Worker<br/>tager trinnene<br/>i rækkefølge"]
+    worker -->|"Manual-trin<br/>eller godkendelse"| person["Venter på<br/>en person"]
+    worker -->|"HTTP- og<br/>AI-trin"| onworker["Kører på Workeren"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner i din<br/>infrastruktur"]
+    person --> record["Status, output og<br/>fejl registreret"]
     onworker --> record
     runner --> record
-    record --> history["Begivenhedens Runbooks-side og runbookets Udførelser"]
+    record --> history["Begivenhedens<br/>Runbooks-side<br/>og runbookets<br/>Udførelser"]
 ```
 
 Hver kørsel er en **udførelse**. Når den starter, kopieres runbookets trin over på den, og OneUptime arbejder sig igennem dem i rækkefølge. Et Manual-trin, eller et trin der kræver godkendelse, sætter kørslen på pause, indtil nogen handler.

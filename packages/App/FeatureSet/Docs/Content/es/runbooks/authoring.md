@@ -188,14 +188,14 @@ Los pasos de IA se miden y se facturan como cualquier otra función de IA. El pa
 
 ```mermaid title="Qué pasa después de un paso automatizado"
 flowchart TB
-    run["Se ejecuta un paso automatizado"] --> ok{"¿Ha tenido éxito?"}
-    ok -->|"sí"| approval{"¿Requerir aprobación activado?"}
-    approval -->|"sí"| wait["La ejecución espera la aprobación de una persona"]
-    approval -->|"no"| next["Se ejecuta el siguiente paso"]
+    run["Se ejecuta un<br/>paso automatizado"] --> ok{"¿Ha tenido éxito?"}
+    ok -->|"sí"| approval{"¿Requerir<br/>aprobación activado?"}
+    approval -->|"sí"| wait["La ejecución espera<br/>la aprobación<br/>de una persona"]
+    approval -->|"no"| next["Se ejecuta el<br/>siguiente paso"]
     wait --> next
-    ok -->|"no"| cont{"¿Continuar en caso de error activado?"}
+    ok -->|"no"| cont{"¿Continuar en caso<br/>de error activado?"}
     cont -->|"sí"| next
-    cont -->|"no"| failed["La ejecución se detiene como fallida"]
+    cont -->|"no"| failed["La ejecución se<br/>detiene como fallida"]
 ```
 
 Por defecto, un paso que falla detiene la ejecución y la marca como `Failed`, con el error del paso como motivo. Con **Continuar en caso de error** activado, el fallo se registra y se ejecuta el siguiente paso, lo que encaja con runbooks del tipo «prueba estas tres cosas y luego avisa». **Requerir aprobación** se aplica después de que un paso tenga éxito: la ejecución espera en ese paso hasta que alguien hace clic en **Aprobar y continuar** u **Omitir**.

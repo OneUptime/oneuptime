@@ -29,7 +29,7 @@ De verkenner heeft vier tabbladen:
 | --- | --- |
 | **Kijker** | Spans zoeken en filteren, en hun traces openen. Opent op het afgelopen uur, nieuwste eerst, 50 spans per pagina. |
 | **Inzichten** | Verzoekaantallen, foutpercentages en latentie per service, en de verzoeken die een blik waard zijn. |
-| **Installatiegids** | Hoe u traces verstuurt met OpenTelemetry, met een van uw ingestiesleutels. |
+| **Installatiegids** | Hoe u traces verstuurt met OpenTelemetry, met een van uw [ingestiesleutels](/docs/telemetry/ingestion-keys). |
 | **Instellingen** | Wat er met spans gebeurt als ze binnenkomen: **Pipelines**, **Drop-filters**, **Scrub-regels** en **Opnameregels**. |
 
 ## Voordat u begint
@@ -115,12 +115,12 @@ Beperk het tot bepaalde services met de keuzelijst naast de tijdkiezer.
 
 ## Wat er met spans gebeurt als ze binnenkomen
 
-Het tabblad **Instellingen** bevat de regels die OneUptime op spans toepast als ze binnenkomen, net als bij logboeken. Ze werken op de spans die daarna binnenkomen, niet op opgeslagen spans.
+Het tabblad **Instellingen** bevat de regels die OneUptime op spans toepast als ze binnenkomen, net als bij logboeken. Ze werken op de spans die daarna binnenkomen, niet op opgeslagen spans. Hoe lang elke span wordt bewaard, wordt ook bij aankomst bepaald: zie [Gegevensbewaring](/docs/telemetry/data-retention).
 
 | Regel | Wat hij doet |
 | --- | --- |
-| **Drop-filters** | Spans weggooien die u niet wilt bewaren, of er alleen een steekproef van bewaren. |
-| **Scrub-regels** | Gevoelige gegevens in span-attributen maskeren. |
+| **Drop-filters** | Spans weggooien die u niet wilt bewaren, of er alleen een steekproef van bewaren. Zie [Records weggooien of bemonsteren](/docs/telemetry/drop-filters-and-scrub-rules#records-weggooien-of-bemonsteren). |
+| **Scrub-regels** | Gevoelige gegevens in span-attributen maskeren. Zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen). |
 | **Pipelines** | Spans wijzigen en verrijken: elke pipeline selecteert spans met een filter en voert daarna zijn processors op volgorde uit. |
 | **Opnameregels** | Elke minuut spanaantallen, foutaantallen en duren omzetten in nieuwe metrieken. Zie [Opnameregels voor logboeken](/docs/telemetry/log-recording-rules). |
 

@@ -29,7 +29,7 @@ Utforskeren har fire faner:
 | --- | --- |
 | **Viser** | Søk i og filtrer spans, og åpne sporene deres. Den åpner på siste time, nyeste først, 50 spans per side. |
 | **Innsikt** | Antall forespørsler, feilrater og latens per tjeneste, og forespørslene som er verdt en titt. |
-| **Oppsettveiledning** | Hvordan du sender spor med OpenTelemetry med en av inntaksnøklene dine. |
+| **Oppsettveiledning** | Hvordan du sender spor med OpenTelemetry med en av [inntaksnøklene](/docs/telemetry/ingestion-keys) dine. |
 | **Innstillinger** | Hva som skjer med spans når de kommer inn: **Pipelines**, **Drop-filtre**, **Scrub-regler** og **Opptaksregler**. |
 
 ## Før du begynner
@@ -115,12 +115,12 @@ Begrens den til bestemte tjenester med nedtrekkslisten ved siden av tidsvelgeren
 
 ## Hva som skjer med spans når de kommer inn
 
-Fanen **Innstillinger** inneholder reglene OneUptime bruker på spans når de kommer inn, som for logger. De virker på spannene som kommer inn etterpå, ikke på lagrede.
+Fanen **Innstillinger** inneholder reglene OneUptime bruker på spans når de kommer inn, som for logger. De virker på spannene som kommer inn etterpå, ikke på lagrede. Hvor lenge hvert span beholdes, avgjøres også når det kommer inn: se [Dataoppbevaring](/docs/telemetry/data-retention).
 
 | Regel | Hva den gjør |
 | --- | --- |
-| **Drop-filtre** | Forkast spans du ikke vil beholde, eller behold bare et utvalg av dem. |
-| **Scrub-regler** | Masker sensitive data i span-attributter. |
+| **Drop-filtre** | Forkast spans du ikke vil beholde, eller behold bare et utvalg av dem. Se [Forkast poster eller ta utvalg](/docs/telemetry/drop-filters-and-scrub-rules#forkast-poster-eller-ta-utvalg). |
+| **Scrub-regler** | Masker sensitive data i span-attributter. Se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data). |
 | **Pipelines** | Endre og berike spans: hver pipeline velger ut spans med et filter og kjører deretter prosessorene sine i rekkefølge. |
 | **Opptaksregler** | Gjør hvert minutt antall spans, antall feil og varigheter om til nye målinger. Se [Opptaksregler for logger](/docs/telemetry/log-recording-rules). |
 

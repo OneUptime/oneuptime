@@ -18,11 +18,11 @@ sequenceDiagram
     participant P as Sond
     participant A as Ditt API
     participant O as OneUptime
-    P->>A: Begäran med din metod, dina huvuden och din kropp
+    P->>A: Begäran med din metod,<br/>dina huvuden och din kropp
     A-->>P: Statuskod, huvuden och kropp
-    Note over P: Gör om ett fel, ett 4xx eller 5xx<br/>eller ett svar långsammare än 10 s
+    Note over P: Gör om ett fel,<br/>ett 4xx eller 5xx<br/>eller ett svar<br/>långsammare än 10 s
     P->>O: Resultatet av kontrollen
-    O->>O: Kontrollera kriterierna uppifrån och ned
+    O->>O: Kontrollera kriterierna<br/>uppifrån och ned
 ```
 
 En sond som har förlorat sin egen nätverksanslutning rapporterar inget resultat, så den kan inte markera ditt API som offline.

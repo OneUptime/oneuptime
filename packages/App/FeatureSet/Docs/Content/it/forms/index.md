@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### Workflow
 
-I moduli hanno i componenti di workflow generati: **On Create Form**, **On Update Form** e così via. Per agire su ciò che un modulo ha creato, usa **On Create Incident** o **On Create Scheduled Maintenance**.
+I moduli hanno i componenti di workflow generati: **On Create Form**, **On Update Form** e così via. Per agire su ciò che un modulo ha creato, usa **On Create Incident** o **On Create Scheduled Maintenance Event**.
 
 ### Gli endpoint propri della pagina pubblica
 

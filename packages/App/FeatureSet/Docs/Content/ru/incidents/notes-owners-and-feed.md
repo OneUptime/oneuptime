@@ -17,11 +17,11 @@
 flowchart TB
     subgraph write["Что вы пишете"]
         direction LR
-        public["Публичная заметка"]
-        private["Приватная заметка"]
+        public["Публичная<br/>заметка"]
+        private["Приватная<br/>заметка"]
     end
-    public --> page["Страница статуса и подписчики"]
-    public --> owners["Владельцы инцидента"]
+    public --> page["Страница<br/>статуса и<br/>подписчики"]
+    public --> owners["Владельцы<br/>инцидента"]
     private --> owners
     public --> feed["Инцидент Лента"]
     private --> feed

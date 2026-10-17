@@ -57,7 +57,7 @@ Sleep van een punt onderaan het ene blok naar het punt bovenaan het volgende. De
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Niets aangesloten, dus de uitvoering eindigt"])
+    check -->|"No"| ends(["Niets aangesloten, dus<br/>de uitvoering eindigt"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```

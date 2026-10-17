@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Een Twilio-account, met de Account SID en het Auth Token ervan | De nummers en gesprekken van het beleid lopen erover, en Twilio brengt ze daarop in rekening. |
 | Het abonnement **Growth**, op OneUptime Cloud | Een project heeft het nodig voor een eigen Twilio-configuratie. |
-| Een OneUptime-server die Twilio kan bereiken, als u die zelf host | Twilio stuurt elk gesprek naar `https://<your host>/notification/incoming-call/voice`. |
+| Een OneUptime-server die Twilio kan bereiken, als u die zelf host | Twilio stuurt elk gesprek naar `https://<your host>/notification/incoming-call/voice`, en hoe elke belpoging afliep naar `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** aan in het project | Het nummer van elke engineer wordt geverifieerd met een code die per sms wordt verstuurd. |
 | Een geverifieerd nummer voor elke engineer | Een regel laat alleen mensen overgaan die in het project een nummer voor inkomende oproepen hebben toegevoegd en geverifieerd. |
 
@@ -86,16 +86,16 @@ sequenceDiagram
     participant Twilio
     participant OneUptime
     participant Engineer
-    Caller->>Twilio: Belt het nummer van het beleid
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Begroeting, daarna de persoon van de eerste regel laten overgaan
-    Twilio->>Engineer: Gaat over gedurende de beltijd van de regel
-    Note over Twilio,Engineer: Niemand neemt op tijd op
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: De persoon van de volgende regel laten overgaan
-    Twilio->>Engineer: Laat de volgende persoon overgaan
+    Caller->>Twilio: Belt het nummer<br/>van het beleid
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Begroeting, daarna<br/>de persoon van<br/>de eerste regel<br/>laten overgaan
+    Twilio->>Engineer: Gaat over gedurende<br/>de beltijd<br/>van de regel
+    Note over Twilio,Engineer: Niemand neemt<br/>op tijd op
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: De persoon van<br/>de volgende regel<br/>laten overgaan
+    Twilio->>Engineer: Laat de volgende<br/>persoon overgaan
     Engineer-->>Twilio: Neemt op
-    Twilio-->>Caller: Verbindt de beller door
+    Twilio-->>Caller: Verbindt de<br/>beller door
 ```
 
 Een regel wordt overgeslagen, zonder iemand te laten overgaan, wanneer er op dit moment niemand voor kan worden gebeld: het schema ervan heeft niemand van dienst, de persoon heeft in dit project geen geverifieerd nummer voor inkomende oproepen, of is geen lid van het project meer. Heeft geen enkele regel iemand om te laten overgaan, dan hoort de beller het **Bericht bij niemand beschikbaar**. Een uitgeschakeld beleid beantwoordt elk gesprek met "Sorry, this service is currently disabled." en hangt op.

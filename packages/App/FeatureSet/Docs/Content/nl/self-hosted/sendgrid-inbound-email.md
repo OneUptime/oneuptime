@@ -17,12 +17,12 @@ Deze handleiding legt uit hoe u SendGrid Inbound Parse instelt om inkomende e-ma
 
 ```mermaid title="Hoe een e-mail een monitor bereikt"
 sequenceDiagram
-    participant Sender as Verzendende mailserver
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as Verzendende<br/>mailserver
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: E-mail aan het adres van de monitor (uw MX-record)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Het adres aan een monitor of workflow koppelen
+    Sender->>SendGrid: E-mail aan<br/>het adres van<br/>de monitor<br/>(uw MX-record)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: Het adres aan<br/>een monitor<br/>of workflow<br/>koppelen
     OneUptime-->>SendGrid: 200 OK
 ```
 

@@ -50,12 +50,12 @@ Bei jeder Prüfung macht eine Sonde Folgendes:
 
 ```mermaid title="Eine Prüfung, und der einzige Schritt, der den Monitor offline nehmen kann"
 flowchart TB
-    connect["Mit der Datenbank verbinden"] --> probe{"Testabfrage OK?"}
+    connect["Mit der Datenbank<br/>verbinden"] --> probe{"Testabfrage OK?"}
     probe -->|"Nein"| offline["Monitor offline"]
-    probe -->|"Ja"| groups["Jede Metrikgruppe ausführen"]
+    probe -->|"Ja"| groups["Jede Metrikgruppe<br/>ausführen"]
     groups --> group{"Gruppe erfasst?"}
     group -->|"Ja"| metrics["Metriken gemeldet"]
-    group -->|"Nein"| issue["Metriken fehlen, Problem vermerkt"]
+    group -->|"Nein"| issue["Metriken fehlen,<br/>Problem vermerkt"]
     metrics --> criteria["Kriterien ausgewertet"]
     issue --> criteria
 ```

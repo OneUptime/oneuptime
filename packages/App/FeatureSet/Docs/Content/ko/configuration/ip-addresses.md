@@ -3,7 +3,7 @@
 OneUptime Cloud의 프로브는 고정된 IP 주소 집합에서 웹사이트, API, 서버를 확인합니다. 모니터링 대상 앞에 방화벽이나 허용 목록이 있다면 확인 요청이 통과할 수 있도록 이 주소들을 허용하세요.
 
 ```mermaid title="허용 목록이 적용되는 위치"
-flowchart LR
+flowchart TB
     P["OneUptime 프로브"] -->|"목록의 IP에서 확인"| F["방화벽"]
     F -->|"허용됨"| S["웹사이트, API 또는 서버"]
 ```

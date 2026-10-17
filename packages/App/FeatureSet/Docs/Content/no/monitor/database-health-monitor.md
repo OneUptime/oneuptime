@@ -55,7 +55,7 @@ flowchart TB
     probe -->|"Ja"| groups["Kjør hver metrikkgruppe"]
     groups --> group{"Gruppe samlet inn?"}
     group -->|"Ja"| metrics["Metrikker rapportert"]
-    group -->|"Nei"| issue["Metrikker mangler, problem notert"]
+    group -->|"Nei"| issue["Metrikker mangler,<br/>problem notert"]
     metrics --> criteria["Kriterier evaluert"]
     issue --> criteria
 ```

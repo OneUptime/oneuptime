@@ -25,7 +25,7 @@ sequenceDiagram
     participant J as 你的工作
     participant O as OneUptime
     participant T as 待命團隊
-    J->>O: 對 /heartbeat/KEY 送出 GET 或 POST
+    J->>O: 對 /heartbeat/KEY<br/>送出 GET 或 POST
     O-->>J: 立即回傳 200
     O->>O: 評估條件
     Note over O: 每 30 秒<br/>檢查缺少的請求

@@ -15,11 +15,11 @@ Chiedi all'IA risponde solo con ciò che restituiscono i suoi strumenti: esegue 
 
 ```mermaid title="Da una domanda a una risposta citata"
 flowchart TB
-    Q["La tua domanda, con<br/>la pagina in cui sei"] --> A["Chiedi all'IA"]
-    A -->|"strumenti di lettura"| D["I dati del progetto,<br/>interrogati in<br/>tempo reale"]
+    Q["La tua<br/>domanda, con<br/>la pagina<br/>in cui sei"] --> A["Chiedi all'IA"]
+    A -->|"strumenti<br/>di lettura"| D["I dati del<br/>progetto,<br/>interrogati in<br/>tempo reale"]
     D --> R["Una risposta con<br/>una citazione per<br/>affermazione"]
     A -->|"un'azione"| M{"La modalità di<br/>autorizzazione"}
-    M -->|"Ask to act"| C["Una scheda di<br/>approvazione: consenti<br/>o salti"]
+    M -->|"Ask to act"| C["Una scheda di<br/>approvazione:<br/>consenti<br/>o salti"]
     M -->|"Auto-run"| X["Viene eseguita,<br/>a tuo nome"]
     C -->|"consentita"| X
 ```

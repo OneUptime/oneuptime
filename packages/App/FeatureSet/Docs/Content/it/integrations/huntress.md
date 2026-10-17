@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as Team di reperibilità
     H->>O: incident_report.created
-    O->>O: Verificare la firma, aprire un solo incidente
-    opt Gravità pari o superiore ad Avvisa la reperibilità per
-        O->>C: Eseguire le policy di reperibilità della connessione
+    O->>O: Verificare la firma,<br/>aprire un solo incidente
+    opt Gravità pari o<br/>superiore ad Avvisa<br/>la reperibilità per
+        O->>C: Eseguire le policy<br/>di reperibilità<br/>della connessione
     end
     H->>O: incident_report.comment_added
-    O->>O: Aggiungere il commento come nota privata
+    O->>O: Aggiungere il commento<br/>come nota privata
     H->>O: incident_report.closed
     O->>O: Risolvere l'incidente
 ```

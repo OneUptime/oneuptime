@@ -20,14 +20,14 @@ sequenceDiagram
     participant B as Votre navigateur
     participant O as OneUptime
     participant G as GitHub
-    B->>O: Se connecter avec l'application GitHub
-    O-->>B: Redirection vers la page d'installation de l'application
-    B->>G: Installer et autoriser l'application
-    G-->>B: Redirection vers /api/github/auth/callback
-    B->>O: installation_id et un code à usage unique
-    O->>G: Échanger le code, vérifier l'installation
-    O->>G: Importer les dépôts de l'installation
-    G->>O: Webhooks vers /api/github/webhook
+    B->>O: Se connecter avec<br/>l'application GitHub
+    O-->>B: Redirection vers la<br/>page d'installation<br/>de l'application
+    B->>G: Installer et autoriser<br/>l'application
+    G-->>B: Redirection vers<br/>/api/github/auth/callback
+    B->>O: installation_id et un<br/>code à usage unique
+    O->>G: Échanger le code,<br/>vérifier l'installation
+    O->>G: Importer les dépôts<br/>de l'installation
+    G->>O: Webhooks vers<br/>/api/github/webhook
 ```
 
 - La redirection du navigateur transporte l'installation et un code OAuth à usage unique. OneUptime échange ce code pour confirmer que le compte GitHub qui a installé l'application administre bien cette installation, puis importe ses dépôts. Pour une installation qui existe déjà, on se connecte plutôt à GitHub : le code indique alors à OneUptime quelles installations ce compte administre.

@@ -21,8 +21,8 @@ stateDiagram-v2
     state "취소됨" as Cancelled
     [*] --> Scheduled: 실행 시작됨
     Scheduled --> Running: Worker가 가져감
-    Running --> WaitingForManualStep: Manual 단계 또는 승인
-    WaitingForManualStep --> Scheduled: 완료, 승인 또는 건너뜀
+    Running --> WaitingForManualStep: Manual 단계<br/>또는 승인
+    WaitingForManualStep --> Scheduled: 완료, 승인<br/>또는 건너뜀
     Running --> Completed: 모든 단계 완료
     Running --> Failed: 단계 실패
     Scheduled --> Cancelled: 실행 취소

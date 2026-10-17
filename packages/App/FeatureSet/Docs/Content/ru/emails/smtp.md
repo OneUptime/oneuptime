@@ -83,7 +83,7 @@ sequenceDiagram
     participant O as OneUptime
     participant T as URL токена
     participant M as Почтовый сервер
-    O->>T: Запрашивает токен доступа
+    O->>T: Запрашивает<br/>токен доступа
     T-->>O: Токен доступа
     Note over O: Кэшируется и обновляется<br/>до истечения срока
     O->>M: Входит с токеном

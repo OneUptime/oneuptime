@@ -1,6 +1,6 @@
 # Docker Compose
 
-Docker Compose से एक ही Linux सर्वर पर पूरा, मुफ़्त OneUptime इंस्टेंस चलाएँ। यह पेज आपको एक नए सर्वर से चलते हुए इंस्टेंस तक ले जाता है, फिर HTTPS, प्रोडक्शन के लिए मज़बूती, बैकअप, अपडेट और हटाने के बारे में बताता है।
+Docker Compose से एक ही Linux सर्वर पर पूरा, मुफ़्त OneUptime इंस्टेंस चलाएँ। यह पेज आपको एक नए सर्वर से चलते हुए इंस्टेंस तक ले जाता है, फिर HTTPS, प्रोडक्शन के लिए मज़बूती, बैकअप, अपडेट और हटाने के बारे में बताता है। इसके बजाय OneUptime के अपने कोड पर काम करने के लिए देखें [स्थानीय विकास](/docs/installation/local-development)।
 
 :::cards
 - [OneUptime इंस्टॉल करें](#oneuptime-इंस्टॉल-करें): नए सर्वर से आपके पहले खाते तक, छह चरणों में।
@@ -15,9 +15,9 @@ Docker Compose, OneUptime के हर हिस्से को आपके �
 
 ```mermaid title="Docker Compose डिप्लॉयमेंट"
 flowchart TB
-    Users["उपयोगकर्ता और एजेंट"]
-    Proxy["आपकी रिवर्स प्रॉक्सी, वैकल्पिक"]
-    Targets["आपकी मॉनिटर की जाने वाली साइटें"]
+    Users["उपयोगकर्ता<br/>और एजेंट"]
+    Proxy["आपकी रिवर्स<br/>प्रॉक्सी,<br/>वैकल्पिक"]
+    Targets["आपकी मॉनिटर की<br/>जाने वाली साइटें"]
     subgraph Server["आपका सर्वर"]
         Ingress["ingress"]
         App["app"]
@@ -32,7 +32,7 @@ flowchart TB
     end
     Users -->|HTTPS| Proxy
     Proxy -->|HTTP| Ingress
-    Users -.->|"प्रॉक्सी के बिना"| Ingress
+    Users -.->|"प्रॉक्सी<br/>के बिना"| Ingress
     Ingress --> App
     App --> PG
     App --> CH
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|नतीजे| Ingress
     Runner -->|जॉब| Ingress
     Probe -->|जाँच| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | सेवा | इमेज | यह क्या करती है |

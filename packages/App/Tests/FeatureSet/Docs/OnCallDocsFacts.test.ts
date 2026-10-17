@@ -300,16 +300,20 @@ describe("the Incoming Call Policy page", () => {
     );
 
     expect(page).toContain(
-      "Twilio sends every call to `https://<your host>/notification/incoming-call/voice`.",
+      "Twilio sends every call to `https://<your host>/notification/incoming-call/voice`,",
     );
     expect(page).toContain(
       "OneUptime sets the number's voice webhook to `https://<your host>/notification/incoming-call/voice`, built from `HOST` and `HTTP_PROTOCOL`",
     );
+    /*
+     * The diagram names the two requests by their routes' last parts, so it
+     * fits the docs column between four participants; the text above gives
+     * both paths in full.
+     */
+    expect(page).toContain("Twilio->>OneUptime: POST …/voice");
+    expect(page).toContain("Twilio->>OneUptime: POST …/dial-status");
     expect(page).toContain(
-      "Twilio->>OneUptime: POST /notification/incoming-call/voice",
-    );
-    expect(page).toContain(
-      "Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...",
+      "Twilio sends every call to `https://<your host>/notification/incoming-call/voice`, and how each ring ended to `https://<your host>/notification/incoming-call/dial-status/...`.",
     );
   });
 

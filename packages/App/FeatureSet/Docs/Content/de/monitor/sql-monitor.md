@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonde
     participant D as Ihre Datenbank
-    O->>P: Monitoreinstellungen, Geheimnisse aufgelöst
-    P->>D: Ihre Abfrage, schreibgeschützt
-    D-->>P: Bis zu Max. Zeilen + 1 Zeilen
-    P->>O: Zeilenzahl, Skalarwert, erste Zeile, Zeit, Fehler
+    O->>P: Monitoreinstellungen,<br/>Geheimnisse aufgelöst
+    P->>D: Ihre Abfrage,<br/>schreibgeschützt
+    D-->>P: Bis zu Max.<br/>Zeilen + 1 Zeilen
+    P->>O: Zeilenzahl, Skalarwert,<br/>erste Zeile, Zeit, Fehler
     O->>O: Kriterien prüfen
 ```
 

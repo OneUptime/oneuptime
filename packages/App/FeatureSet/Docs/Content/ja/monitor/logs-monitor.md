@@ -155,16 +155,17 @@ Group By がないと、終了した IPsec トンネルを監視するモニタ�
 ```mermaid title="Group By なしとあり"
 flowchart TB
     subgraph Without["Group By なし"]
-        direction LR
+        direction TB
         A1["HQ-Branch1 がダウン"] --> M1["1 つのカウント"]
         B1["Branch2 がダウン"] --> M1
         M1 --> X1["1 つのアラート"]
     end
     subgraph With["con_name でグループ化"]
-        direction LR
+        direction TB
         A2["HQ-Branch1 がダウン"] --> X2["HQ-Branch1 のアラート"]
         B2["Branch2 がダウン"] --> Y2["Branch2 のアラート"]
     end
+    Without ~~~ With
 ```
 
 ### 独立した解決

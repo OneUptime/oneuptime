@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as Dashboard
     participant O as OneUptime
     participant P as Sonde
-    D->>O: Pakketcapture starten: interface, filter, limieten
-    P->>O: Zijn er captures voor mij? (elke 10 seconden)
+    D->>O: Pakketcapture<br/>starten: interface,<br/>filter, limieten
+    P->>O: Zijn er captures voor<br/>mij? (elke 10 seconden)
     O-->>P: Deze
-    P->>P: tcpdump tot een limiet is bereikt of Stoppen wordt ingedrukt
-    P->>O: Het pcap-bestand uploaden
+    P->>P: tcpdump tot een limiet<br/>is bereikt of Stoppen<br/>wordt ingedrukt
+    P->>O: Het pcap-bestand<br/>uploaden
     D->>O: Downloaden
-    O-->>D: Het pcap-bestand, en een regel in het auditlogboek
+    O-->>D: Het pcap-bestand,<br/>en een regel in<br/>het auditlogboek
 ```
 
 1. **Starten.** Iemand die captures mag starten, kiest de interface van de sonde, een filter en de limieten, en klikt op **Capture starten**. OneUptime toetst het filter en de limieten aan wat de sonde toestaat voordat de capture wordt opgeslagen.

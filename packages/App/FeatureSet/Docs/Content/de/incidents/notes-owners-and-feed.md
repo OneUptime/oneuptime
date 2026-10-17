@@ -20,7 +20,7 @@ flowchart TB
         public["Öffentliche Notiz"]
         private["Private Notiz"]
     end
-    public --> page["Statusseite und Abonnenten"]
+    public --> page["Statusseite<br/>und Abonnenten"]
     public --> owners["Vorfalleigentümer"]
     private --> owners
     public --> feed["Vorfalls-Feed"]

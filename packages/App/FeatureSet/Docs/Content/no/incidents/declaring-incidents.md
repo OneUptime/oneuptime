@@ -250,14 +250,7 @@ Opprettelseskallet gjør mer enn å skrive en rad:
 flowchart TB
     request["Opprettelsesforespørsel"] --> fill["Serveren fyller hullene"]
     fill --> template["Mal brukt, hvis det finnes en"]
-    template --> rules
-    subgraph rules["Regler, i denne rekkefølgen"]
-        direction LR
-        privacy["Personvern"] --> owner["Eier"]
-        owner --> label["Etikett"]
-        label --> oncall["Vakt"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Regler, i denne rekkefølgen:<br/>Personvern, Eier, Etikett,<br/>Vakt, Runbook"]
     rules --> policies["Vaktpolicyer kjøres"]
     policies --> subscribers["Abonnenter satt i kø"]
     subscribers --> workflows["Arbeidsflyter utløses"]
@@ -284,10 +277,10 @@ Derfra er hendelsen live: den teller med i merket **Aktive hendelser** i sidemen
 
 ```mermaid title="Hva en ny hendelse setter i gang, etter tilstanden den starter i"
 flowchart TB
-    start{"Starttilstand"} -->|"Opprettelsestilstanden, standarden"| live["Behandlet som ny: tilkaller vakten"]
-    start -->|"Ved eller etter bekreftet"| acked["Registrert: tilkaller ingen"]
-    start -->|"Ved eller etter løst"| over["Registrert som over"]
-    over --> quiet["Ingen gruppering, runbooks, KI, kanal eller SLA"]
+    start{"Starttilstand"} -->|"Opprettelsestilstanden,<br/>standarden"| live["Behandlet<br/>som ny:<br/>tilkaller<br/>vakten"]
+    start -->|"Ved eller<br/>etter bekreftet"| acked["Registrert:<br/>tilkaller ingen"]
+    start -->|"Ved eller<br/>etter løst"| over["Registrert<br/>som over"]
+    over --> quiet["Ingen gruppering,<br/>runbooks, KI,<br/>kanal eller SLA"]
 ```
 
 - **Ved eller etter den bekreftede tilstanden din** — **Bekreftet**, eller enhver tilstand som står under den i **Hendelser → Innstillinger → Hendelsesstatus** — kjører ingen vaktpolicy, så ingen tilkalles. Hendelsen nevner fortsatt policyene sine, dem du valgte og dem vaktregler legger til, og feeden sier hvorfor på én linje: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ SLA-en, hvis en regel gir den en, starter allerede som besvart. Alt annet nedenfor kjører som for enhver ny hendelse.

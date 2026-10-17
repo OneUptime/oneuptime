@@ -628,6 +628,97 @@ describe("the Status Pages Overview: what visitors see", () => {
   });
 });
 
+/*
+ * The argument text of every call to one of StatusPageVisibilityQuery's
+ * helpers in a source: from the "(" after its name to the ")" that closes
+ * it.
+ */
+function visibilityQueryCalls(source: string, helper: string): Array<string> {
+  const call: string = `StatusPageVisibilityQuery.${helper}(`;
+  const found: Array<string> = [];
+  let start: number = source.indexOf(call);
+
+  while (start >= 0) {
+    const open: number = start + call.length - 1;
+    let depth: number = 0;
+    let end: number = open;
+
+    for (; end < source.length; end++) {
+      if (source[end] === "(") {
+        depth++;
+      } else if (source[end] === ")") {
+        depth--;
+
+        if (depth === 0) {
+          break;
+        }
+      }
+    }
+
+    found.push(source.slice(open + 1, end));
+    start = source.indexOf(call, end);
+  }
+
+  return found;
+}
+
+describe("the Status Pages Overview: how incidents, maintenance and announcements reach the page", () => {
+  const page: string = englishPage(OVERVIEW);
+  const api: string = readSource(STATUS_PAGE_API);
+
+  it("finds the page's incidents by the monitors on it", () => {
+    const incidentQueries: Array<string> = [];
+    let start: number = api.indexOf("let incidentQuery: Query<Incident> = {");
+
+    while (start >= 0) {
+      const end: number = api.indexOf("};", start);
+      incidentQueries.push(api.slice(start, end));
+      start = api.indexOf("incidentQuery = {", end);
+    }
+
+    // The list's query and the one for a single incident.
+    expect(incidentQueries.length).toBeGreaterThanOrEqual(2);
+
+    for (const query of incidentQueries) {
+      expect(query).toContain("monitors: monitorsOnStatusPage as any,");
+      expect(query).not.toContain("statusPages:");
+    }
+  });
+
+  it("finds maintenance events and announcements by the status pages they name, never by their monitors", () => {
+    for (const helper of ["shownScheduledMaintenance", "shownAnnouncements"]) {
+      const calls: Array<string> = visibilityQueryCalls(api, helper);
+
+      // The lists, one asked for by its id, the overview and the feeds.
+      expect({ helper, calls: calls.length >= 3 }).toEqual({
+        helper,
+        calls: true,
+      });
+
+      for (const call of calls) {
+        expect({
+          helper,
+          byStatusPage: call.includes("statusPages:"),
+          byMonitor: call.includes("monitors:"),
+        }).toEqual({ helper, byStatusPage: true, byMonitor: false });
+      }
+    }
+
+    // Where an event names them: the create form's own field.
+    expect(
+      readSource(`${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Create.tsx`),
+    ).toContain('title: "Show event on these status pages ",');
+  });
+
+  it("says incidents come through the monitors, and events and announcements through the pages they name", () => {
+    expect(page).toContain(
+      "The page shows the monitors you put on it as its resources, and incidents reach it through those monitors. [Scheduled maintenance events](/docs/scheduled-maintenance/index) and announcements reach it directly: each one names the status pages it is shown on.",
+    );
+    // What it used to say: an event on the page's monitors shows on no page that the event does not name.
+    expect(page).not.toContain("scheduled maintenance reach it through");
+  });
+});
+
 describe("the Status Pages Overview: choosing what shows on the page", () => {
   const page: string = englishPage(OVERVIEW);
   const card: string = sectionOf(page, "## Choosing what shows on the page");

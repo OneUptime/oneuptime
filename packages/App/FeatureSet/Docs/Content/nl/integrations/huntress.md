@@ -19,16 +19,16 @@ Huntress stuurt een gebeurtenis over een incidentmelding wanneer de melding word
 sequenceDiagram
     participant H as Huntress
     participant O as OneUptime
-    participant C as Bereikbaarheidsteam
+    participant C as Bereikbaarheids-<br/>team
     H->>O: incident_report.created
-    O->>O: Handtekening controleren, één incident openen
-    opt Ernst op of boven Bereikbaarheidsdienst oproepen voor
-        O->>C: Het bereikbaarheidsbeleid van de koppeling uitvoeren
+    O->>O: Handtekening<br/>controleren, één<br/>incident openen
+    opt Ernst op of boven<br/>Bereikbaarheids-<br/>dienst<br/>oproepen voor
+        O->>C: Het<br/>bereikbaarheids-<br/>beleid<br/>van de koppeling<br/>uitvoeren
     end
     H->>O: incident_report.comment_added
-    O->>O: De opmerking als privénotitie toevoegen
+    O->>O: De opmerking<br/>als privénotitie<br/>toevoegen
     H->>O: incident_report.closed
-    O->>O: Het incident oplossen
+    O->>O: Het incident<br/>oplossen
 ```
 
 1. **Controleren.** Een verzoek moet ondertekend zijn met het ondertekeningsgeheim van het endpoint, niet meer dan vijf minuten voordat het aankomt. Al het andere wordt geweigerd, en de pagina van de koppeling zegt waarom.

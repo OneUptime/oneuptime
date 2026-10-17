@@ -16,12 +16,12 @@ OneUptime منبع Foundry شما را از کارساز OneUptime و از را�
 ```mermaid title="درخواست‌های هوش مصنوعی OneUptime به کجا می‌روند"
 flowchart TB
     subgraph OU["کارساز OneUptime"]
-        F["بررسی‌های هوش مصنوعی، یادداشت‌ها، پس‌نگری‌ها، کارهای اصلاحی"]
+        F["بررسی‌های هوش مصنوعی،<br/>یادداشت‌ها، پس‌نگری‌ها،<br/>کارهای اصلاحی"]
     end
     subgraph AZ["اشتراک Azure شما"]
-        R["منبع Foundry به نام contoso-ai"]
-        V1["API نسخه v1 از OpenAI: /openai/v1/chat/completions"]
-        AN["API از Anthropic: /anthropic/v1/messages"]
+        R["منبع Foundry به<br/>نام contoso-ai"]
+        V1["API نسخه v1 از OpenAI:<br/>‎/openai/v1/chat/completions"]
+        AN["API از Anthropic:<br/>‎/anthropic/v1/messages"]
         D1["استقرار gpt-5.1"]
         D2["استقرار claude-sonnet-5-5"]
     end

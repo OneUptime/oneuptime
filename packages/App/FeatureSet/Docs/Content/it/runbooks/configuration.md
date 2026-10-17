@@ -14,24 +14,18 @@ Questo è il riferimento per operatori e revisori della sicurezza: dove viene es
 ```mermaid title="Quali passaggi vengono eseguiti dove"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["Passaggi di richiesta HTTP"]
-        ai["Passaggi IA"]
+        onworker["Passaggi di<br/>richiesta HTTP<br/>Passaggi IA"]
     end
     subgraph yours["La tua infrastruttura"]
-        direction LR
         runner["Runner"]
-        scripts["Passaggi JavaScript e Bash"]
-        remote["Passaggi SSH e Kubernetes"]
+        onrunner["Passaggi<br/>JavaScript e Bash<br/>Passaggi SSH<br/>e Kubernetes"]
     end
     person["Una persona"]
-    worker --> http
-    worker --> ai
-    worker -->|"Passaggi Manual e approvazioni"| person
-    worker -->|"mette in coda un lavoro per il Runner del passaggio"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Passaggi<br/>Manual e<br/>approvazioni"| person
+    worker --->|"mette in coda<br/>un lavoro<br/>per il Runner<br/>del passaggio"| runner
+    runner --> onrunner
 ```
 
 | Tipo di passaggio | Viene eseguito su | Come |

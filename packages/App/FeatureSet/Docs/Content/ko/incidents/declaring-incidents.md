@@ -250,14 +250,7 @@ API 키는 템플릿에서 선언할 수 없습니다. `createdIncidentTemplateI
 flowchart TB
     request["생성 요청"] --> fill["서버가 빈칸을 채움"]
     fill --> template["템플릿이 있으면 적용"]
-    template --> rules
-    subgraph rules["규칙(이 순서로)"]
-        direction LR
-        privacy["개인정보 보호"] --> owner["소유자"]
-        owner --> label["레이블"]
-        label --> oncall["온콜"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["규칙(이 순서로):<br/>개인정보 보호, 소유자, 레이블,<br/>온콜, Runbook"]
     rules --> policies["온콜 정책 실행"]
     policies --> subscribers["구독자 알림 대기열에 추가"]
     subscribers --> workflows["워크플로우 실행"]
@@ -284,10 +277,10 @@ flowchart TB
 
 ```mermaid title="시작 상태에 따라 새 인시던트가 일으키는 일"
 flowchart TB
-    start{"시작 상태"} -->|"생성 상태(기본값)"| live["새 인시던트로 처리: 온콜 호출"]
-    start -->|"인지 상태 또는 그 이후"| acked["기록만: 아무도 호출하지 않음"]
-    start -->|"해결 상태 또는 그 이후"| over["끝난 것으로 기록"]
-    over --> quiet["그룹화, 런북, AI, 채널, SLA 없음"]
+    start{"시작 상태"} -->|"생성 상태(기본값)"| live["새 인시던트로<br/>처리: 온콜 호출"]
+    start -->|"인지 상태<br/>또는 그 이후"| acked["기록만: 아무도<br/>호출하지 않음"]
+    start -->|"해결 상태<br/>또는 그 이후"| over["끝난 것으로 기록"]
+    over --> quiet["그룹화, 런북, AI,<br/>채널, SLA 없음"]
 ```
 
 - **인지 상태 또는 그 이후 상태** — **인지됨**, 또는 **인시던트 → 설정 → 인시던트 상태**에서 그 아래에 놓은 상태입니다. 어떤 온콜 정책도 실행되지 않으므로 아무도 호출되지 않습니다. 인시던트에는 고른 정책과 온콜 규칙이 추가한 정책이 계속 나열되며, 피드에는 이유가 한 줄로 기록됩니다: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ 규칙이 SLA를 부여하면 그 SLA는 이미 응답된 상태로 시작합니다. 그 밖의 모든 것은 아래와 같이 새 인시던트처럼 실행됩니다.

@@ -12,9 +12,9 @@ OneUptime의 모든 것은 **프로젝트** 안에 있습니다. 그 프로젝�
 ```mermaid title="사람과 API 키가 접근 권한을 얻는 방식"
 flowchart TB
     User["사용자<br/>(계정 하나)"]
-    Key["API 키"]
     subgraph Project["프로젝트"]
         direction TB
+        Key["API 키"]
         Team["팀"]
         Allow["허용 권한,<br/>각각 범위를 가짐:<br/>전체, 소유, 라벨"]
         Block["차단 권한,<br/>항상 우선함"]
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"닿음"| Resources
     KeyRules -->|"닿음"| Resources
     Block -.->|"제외"| Resources
+    Allow ~~~ Block
 ```
 
 | 개념 | 설명 |

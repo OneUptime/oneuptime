@@ -16,10 +16,10 @@ Demander à l'IA ne répond qu'avec ce que renvoient ses outils : il exécute de
 ```mermaid title="D'une question à une réponse citée"
 flowchart TB
     Q["Votre question,<br/>avec la page où<br/>vous êtes"] --> A["Demander à l'IA"]
-    A -->|"outils de lecture"| D["Les données de votre<br/>projet, interrogées<br/>en direct"]
+    A -->|"outils de<br/>lecture"| D["Les données<br/>de votre<br/>projet,<br/>interrogées<br/>en direct"]
     D --> R["Une réponse avec<br/>une citation par<br/>affirmation"]
     A -->|"une action"| M{"Le mode<br/>d'autorisation"}
-    M -->|"Ask to act"| C["Une carte<br/>d'approbation : vous<br/>autorisez ou ignorez"]
+    M -->|"Ask to act"| C["Une carte<br/>d'approbation<br/>: vous<br/>autorisez<br/>ou ignorez"]
     M -->|"Auto-run"| X["Elle s'exécute,<br/>en votre nom"]
     C -->|"autorisée"| X
 ```

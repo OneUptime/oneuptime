@@ -14,24 +14,18 @@ Det här är referensen för driftansvariga och säkerhetsgranskare: var varje s
 ```mermaid title="Vilka steg som körs var"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["HTTP request-steg"]
-        ai["AI-steg"]
+        onworker["HTTP request-steg<br/>AI-steg"]
     end
     subgraph yours["Din infrastruktur"]
-        direction LR
         runner["Runner"]
-        scripts["JavaScript- och Bash-steg"]
-        remote["SSH- och Kubernetes-steg"]
+        onrunner["JavaScript- och Bash-steg<br/>SSH- och Kubernetes-steg"]
     end
     person["En person"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual-steg och godkännanden"| person
-    worker -->|"köar ett jobb för stegets Runner"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual-steg och<br/>godkännanden"| person
+    worker --->|"köar ett jobb<br/>för stegets<br/>Runner"| runner
+    runner --> onrunner
 ```
 
 | Stegtyp | Körs på | Hur |

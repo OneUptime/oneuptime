@@ -14,7 +14,7 @@ Die Projekteinstellungen enthalten, was für das ganze Projekt gilt: seinen Name
 Gehen Sie zu **Produkte → Einstellungen → Projekteinstellungen**. Das Seitenmenü gruppiert die Seiten in Abschnitte, und nur **Grundlegend** ist anfangs geöffnet: Klicken Sie auf den Titel eines Abschnitts, um ihn zu öffnen. Ein Abschnitt öffnet sich von selbst auf jeder Seite darin.
 
 ```mermaid title="Was die Projekteinstellungen enthalten"
-flowchart TB
+flowchart LR
     settings["Projekteinstellungen"] --> project["Das Projekt: Details,<br/>Beschriftungen, Importe"]
     settings --> connect["Was es verbindet:<br/>Chat, Telemetrie, KI"]
     settings --> access["Wer hineinkommt:<br/>Schlüssel, Domänen,<br/>Anmeldung"]

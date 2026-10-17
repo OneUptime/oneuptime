@@ -29,7 +29,7 @@ Der Explorer hat vier Tabs:
 | --- | --- |
 | **Betrachter** | Spans suchen und filtern und ihre Traces öffnen. Er öffnet mit der letzten Stunde, neueste zuerst, 50 Spans pro Seite. |
 | **Einblicke** | Anfrageraten, Fehlerraten und Latenz pro Dienst, und die Anfragen, die einen Blick wert sind. |
-| **Einrichtungsanleitung** | Wie Sie Traces mit OpenTelemetry senden, mit einem Ihrer Aufnahmeschlüssel. |
+| **Einrichtungsanleitung** | Wie Sie Traces mit OpenTelemetry senden, mit einem Ihrer [Aufnahmeschlüssel](/docs/telemetry/ingestion-keys). |
 | **Einstellungen** | Was mit Spans beim Eintreffen geschieht: **Pipelines**, **Drop-Filter**, **Scrub-Regeln** und **Aufzeichnungsregeln**. |
 
 ## Bevor Sie beginnen
@@ -115,12 +115,12 @@ Beschränken Sie ihn mit der Auswahlliste neben der Zeitauswahl auf bestimmte Di
 
 ## Was mit Spans beim Eintreffen geschieht
 
-Der Tab **Einstellungen** enthält die Regeln, die OneUptime auf Spans beim Eintreffen anwendet, wie bei Protokollen. Sie wirken auf die Spans, die danach eintreffen, nicht auf gespeicherte.
+Der Tab **Einstellungen** enthält die Regeln, die OneUptime auf Spans beim Eintreffen anwendet, wie bei Protokollen. Sie wirken auf die Spans, die danach eintreffen, nicht auf gespeicherte. Wie lange jeder Span aufbewahrt wird, wird ebenfalls bei seiner Ankunft festgelegt: siehe [Datenaufbewahrung](/docs/telemetry/data-retention).
 
 | Regel | Was sie tut |
 | --- | --- |
-| **Drop-Filter** | Spans verwerfen, die Sie nicht behalten möchten, oder nur eine Stichprobe davon behalten. |
-| **Scrub-Regeln** | Sensible Daten in Span-Attributen maskieren. |
+| **Drop-Filter** | Spans verwerfen, die Sie nicht behalten möchten, oder nur eine Stichprobe davon behalten. Siehe [Datensätze verwerfen oder Stichproben nehmen](/docs/telemetry/drop-filters-and-scrub-rules#datensätze-verwerfen-oder-stichproben-nehmen). |
+| **Scrub-Regeln** | Sensible Daten in Span-Attributen maskieren. Siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen). |
 | **Pipelines** | Spans ändern und anreichern: Jede Pipeline erfasst Spans über einen Filter und führt dann ihre Prozessoren der Reihe nach aus. |
 | **Aufzeichnungsregeln** | Span-Anzahlen, Fehlerzahlen und Dauern jede Minute in neue Metriken umwandeln. Siehe [Aufzeichnungsregeln für Protokolle](/docs/telemetry/log-recording-rules). |
 

@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | एक Twilio खाता, उसके Account SID और Auth Token के साथ | नीति के नंबर और कॉल उसी पर चलते हैं, और Twilio उन्हीं का बिल उसी खाते में लगाता है। |
 | OneUptime Cloud पर **Growth** प्लान | प्रोजेक्ट को अपने Twilio कॉन्फ़िगरेशन के लिए इसकी ज़रूरत होती है। |
-| अगर आप ख़ुद होस्ट करते हैं, तो ऐसा OneUptime सर्वर जिस तक Twilio पहुँच सके | Twilio हर कॉल `https://<your host>/notification/incoming-call/voice` पर भेजता है। |
+| अगर आप ख़ुद होस्ट करते हैं, तो ऐसा OneUptime सर्वर जिस तक Twilio पहुँच सके | Twilio हर कॉल `https://<your host>/notification/incoming-call/voice` पर, और हर घंटी का नतीजा `https://<your host>/notification/incoming-call/dial-status/...` पर भेजता है। |
 | प्रोजेक्ट में **SMS** चालू | हर इंजीनियर का नंबर SMS से भेजे गए कोड से सत्यापित होता है। |
 | हर इंजीनियर का सत्यापित नंबर | नियम केवल उन लोगों को कॉल करता है जिन्होंने प्रोजेक्ट में इनकमिंग कॉल के लिए नंबर जोड़ा और सत्यापित किया है। |
 
@@ -86,14 +86,14 @@ sequenceDiagram
     participant Twilio
     participant OneUptime
     participant Engineer as इंजीनियर
-    Caller->>Twilio: नीति का नंबर डायल करता है
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: अभिवादन, फिर पहले नियम के व्यक्ति को कॉल करें
-    Twilio->>Engineer: नियम के घंटी बजने के समय तक घंटी बजाता है
+    Caller->>Twilio: नीति का नंबर<br/>डायल करता है
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: अभिवादन, फिर पहले नियम<br/>के व्यक्ति को कॉल करें
+    Twilio->>Engineer: नियम के घंटी बजने के<br/>समय तक घंटी बजाता है
     Note over Twilio,Engineer: कोई समय पर नहीं उठाता
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: अगले नियम के व्यक्ति को कॉल करें
-    Twilio->>Engineer: अगले व्यक्ति को कॉल करता है
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: अगले नियम के<br/>व्यक्ति को कॉल करें
+    Twilio->>Engineer: अगले व्यक्ति<br/>को कॉल करता है
     Engineer-->>Twilio: उठाता है
     Twilio-->>Caller: कॉलर को जोड़ता है
 ```

@@ -21,7 +21,7 @@ sequenceDiagram
     actor U as 사용자
     participant O as OneUptime
     participant I as ID 공급자
-    U->>O: SSO로 로그인, 프로젝트 선택
+    U->>O: SSO로 로그인,<br/>프로젝트 선택
     O->>I: 로그인 URL로 SAML 요청
     I->>U: 로그인 페이지
     U->>I: 자격 증명과 MFA

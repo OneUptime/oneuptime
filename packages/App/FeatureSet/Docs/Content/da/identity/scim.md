@@ -18,12 +18,12 @@ Din identitetsudbyder kalder OneUptimes SCIM-endepunkt, godkendt med et bearer-t
 
 ```mermaid title="Hvad SCIM ændrer i OneUptime"
 flowchart TB
-    IdP["Din identitetsudbyder"] -->|"SCIM-anmodninger,<br/>bearer-token"| P["Projektets SCIM-forbindelse"]
-    IdP -->|"SCIM-anmodninger,<br/>bearer-token"| S["Statussidens SCIM-forbindelse"]
-    P --> Q{"Push-grupper slået til?"}
-    Q -->|"Nej"| T["Brugere kommer med i og forlader<br/>standardteamene"]
-    Q -->|"Ja"| G["Grupper bliver til teams,<br/>medlemskabet følger dem"]
-    S --> U["Private brugere tilføjes<br/>og slettes"]
+    IdP["Din identitetsudbyder"] -->|"SCIM-anmodninger,<br/>bearer-token"| P["Projektets<br/>SCIM-forbindelse"]
+    IdP -->|"SCIM-anmodninger,<br/>bearer-token"| S["Statussidens<br/>SCIM-forbindelse"]
+    P --> Q{"Push-grupper<br/>slået til?"}
+    Q -->|"Nej"| T["Brugere kommer<br/>med i og forlader<br/>standardteamene"]
+    Q -->|"Ja"| G["Grupper bliver<br/>til teams,<br/>medlemskabet<br/>følger dem"]
+    S --> U["Private brugere<br/>tilføjes<br/>og slettes"]
 ```
 
 SCIM-integrationen giver disse fordele:
@@ -69,10 +69,10 @@ For at se URL'erne igen skal du vælge **Vis SCIM-URL'er** i forbindelsens rækk
 sequenceDiagram
     participant IdP as Identitetsudbyder
     participant O as OneUptime
-    IdP->>O: Opret brugeren, når du tildeler vedkommende
-    Note over O: Føjet til standardteamene.<br/>På OneUptime Cloud bliver en eksisterende<br/>konto inviteret i stedet
-    IdP->>O: Opdater brugeren, når profilen ændres
-    IdP->>O: Slet eller deaktiver, når du fjerner tildelingen
+    IdP->>O: Opret brugeren, når du<br/>tildeler vedkommende
+    Note over O: Føjet til standardteamene.<br/>På OneUptime Cloud<br/>bliver en eksisterende<br/>konto inviteret i stedet
+    IdP->>O: Opdater brugeren,<br/>når profilen ændres
+    IdP->>O: Slet eller deaktiver, når<br/>du fjerner tildelingen
     Note over O: Fjernet fra standardteamene
 ```
 

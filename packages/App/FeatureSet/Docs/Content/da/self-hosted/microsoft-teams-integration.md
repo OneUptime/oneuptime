@@ -17,18 +17,18 @@ OneUptime bruger en Azure Bot til Teams-integrationen. Trafikken går begge veje
 
 ```mermaid title="Forbind et projekt med Teams, og brug det derefter"
 sequenceDiagram
-    participant B as Administratorens browser
+    participant B as Administratorens<br/>browser
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
-    B->>O: Giv administratorsamtykke
-    O-->>B: Omdirigering til Microsoft
-    B->>E: Giv samtykke, og log derefter ind
-    E-->>B: Omdirigering til callback for administratorsamtykke
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
+    B->>O: Giv<br/>administrator-<br/>samtykke
+    O-->>B: Omdirigering<br/>til Microsoft
+    B->>E: Giv samtykke, og<br/>log derefter ind
+    E-->>B: Omdirigering<br/>til callback for<br/>administrator-<br/>samtykke
     B->>O: Callback
-    O->>E: Hent et Microsoft Graph-token
-    Note over O,AB: Når forbindelsen er oprettet
-    O->>AB: Post alarmkort, udgående HTTPS
+    O->>E: Hent et<br/>Microsoft<br/>Graph-token
+    Note over O,AB: Når forbindelsen<br/>er oprettet
+    O->>AB: Post alarmkort,<br/>udgående HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
@@ -218,7 +218,7 @@ App-registreringens omdirigeringer til `/api/microsoft-teams/auth` og `/api/micr
 ### Udgiv bot-endpointet fra en privat udrulning
 
 ```mermaid title="Udgiv bot-endpointet fra en privat udrulning"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Offentlig gateway"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime-ingress"]
     Users["Medarbejdere på VPN"] --> ING

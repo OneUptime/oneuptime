@@ -18,11 +18,11 @@ sequenceDiagram
     participant P as Sonde
     participant A as Ditt API
     participant O as OneUptime
-    P->>A: Forespørsel med din metode, dine hoder og din brødtekst
+    P->>A: Forespørsel med din metode,<br/>dine hoder og din brødtekst
     A-->>P: Statuskode, hoder og brødtekst
-    Note over P: Prøver på nytt ved en feil, en 4xx eller 5xx<br/>eller et svar tregere enn 10 s
+    Note over P: Prøver på nytt ved en<br/>feil, en 4xx eller 5xx<br/>eller et svar tregere enn 10 s
     P->>O: Resultatet av sjekken
-    O->>O: Sjekk kriteriene fra topp til bunn
+    O->>O: Sjekk kriteriene<br/>fra topp til bunn
 ```
 
 En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke API-et ditt som frakoblet.

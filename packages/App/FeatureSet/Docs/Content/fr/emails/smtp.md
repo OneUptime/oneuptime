@@ -8,7 +8,7 @@ Envoyez les e-mails de OneUptime par votre propre serveur de messagerie. Un proj
 
 ```mermaid title="Quel serveur de messagerie envoie quoi"
 flowchart TB
-    SP["E-mail d'une page de statut"] --> Q{"Configuration SMTP personnalisée<br/>choisie pour la page ?"}
+    SP["E-mail d'une<br/>page de statut"] --> Q{"Configuration<br/>SMTP personnalisée<br/>choisie pour la page ?"}
     Q -->|"Oui"| P["La configuration SMTP<br/>du projet"]
     Q -->|"Non"| D["Le serveur de messagerie<br/>de OneUptime"]
     E["Tous les autres e-mails<br/>de OneUptime"] --> D
@@ -83,10 +83,10 @@ sequenceDiagram
     participant O as OneUptime
     participant T as URL du jeton
     participant M as Serveur de messagerie
-    O->>T: Demander un jeton d'accès
+    O->>T: Demander un<br/>jeton d'accès
     T-->>O: Jeton d'accès
-    Note over O: Mis en cache et renouvelé<br/>avant son expiration
-    O->>M: Se connecter avec le jeton
+    Note over O: Mis en cache<br/>et renouvelé<br/>avant son expiration
+    O->>M: Se connecter<br/>avec le jeton
     O->>M: Envoyer l'e-mail
 ```
 

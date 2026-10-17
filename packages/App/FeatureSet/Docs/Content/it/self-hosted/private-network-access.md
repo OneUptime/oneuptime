@@ -15,19 +15,19 @@ Questa pagina spiega come consentirlo, in modo deliberato e circoscritto. Lo dec
 | **Monitor** API, Website, External Status Page e Custom JavaScript Code | L'ambiente proprio della **sonda** | Indirizzi privati rifiutati |
 
 ```mermaid title="Tre interruttori, ciascuno per il proprio tipo di connessione"
-flowchart TB
+flowchart LR
     subgraph Server["Il server OneUptime"]
         direction TB
         Webhooks["Workflow e webhook"]
-        Outbound["Sorgenti dati, provider di LLM,<br/>SMTP e altre connessioni"]
+        Outbound["Sorgenti dati,<br/>provider di LLM,<br/>SMTP e altre<br/>connessioni"]
     end
     subgraph Probe["Ogni sonda"]
-        Monitors["Monitor API, Website,<br/>External Status Page e<br/>Custom JavaScript Code"]
+        Monitors["Monitor API,<br/>Website,<br/>External<br/>Status Page e<br/>Custom<br/>JavaScript Code"]
     end
-    Private["La tua rete privata"]
-    Webhooks -->|"disattivato per impostazione predefinita"| Private
-    Outbound -->|"attivo per impostazione predefinita"| Private
-    Monitors -->|"disattivato per impostazione predefinita"| Private
+    Private["La tua rete<br/>privata"]
+    Webhooks -->|"disattivato per<br/>impostazione<br/>predefinita"| Private
+    Outbound -->|"attivo per<br/>impostazione<br/>predefinita"| Private
+    Monitors -->|"disattivato per<br/>impostazione<br/>predefinita"| Private
 ```
 
 I tipi di monitor nativi di rete, come Ping, Port, Certificato SSL, DNS, DNSSEC, SNMP / Dispositivo di rete, Query SQL, Salute del database, Synthetic e Network Path, usano i propri trasporti. L'impostazione di questa pagina regola i trasporti HTTP che restituiscono a un progetto contenuti di risposta arbitrari: i monitor API, Website, External Status Page e Custom JavaScript Code.

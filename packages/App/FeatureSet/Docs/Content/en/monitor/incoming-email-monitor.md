@@ -22,7 +22,7 @@ sequenceDiagram
     S->>O: Email to the monitor's address
     O->>O: Store it on the monitor
     O->>O: Check the criteria
-    O->>T: Alert or incident, if one matches
+    O->>T: Alert or incident,<br/>if one matches
     Note over O: Every 30 seconds, check<br/>Email Received criteria
 ```
 
