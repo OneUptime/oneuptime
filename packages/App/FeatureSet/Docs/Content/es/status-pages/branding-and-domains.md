@@ -3,7 +3,7 @@
 Tu página de estado es la pantalla de OneUptime que miran tus clientes, así que debería parecerse a ti y vivir en tu propio dominio, como `status.yourcompany.com`. Esta página recorre la página **Marca** tarjeta por tarjeta y después pone la página de estado en tu dominio: añade el dominio, añade un registro DNS y el certificado SSL gratuito llega solo.
 
 :::cards
-- [La página Marca](#la-página-marca): Logotipo, título, favicon, enlaces, pie de página, colores e idiomas.
+- [La página Marca](#la-página-marca): Logotipo, tema, título, favicon, enlaces, pie de página, colores e idiomas.
 - [HTML, CSS y JavaScript personalizados](#html-css-y-javascript-personalizados): Todo lo que los ajustes integrados no cubren.
 - [Dominios personalizados](#dominios-personalizados): Tu propio nombre de host, con un certificado gratuito.
 - [La columna Estado](#leer-la-columna-estado-del-dominio): En qué punto está cada dominio de su camino a HTTPS.
@@ -15,7 +15,7 @@ Abre una página de estado: la sección **Marca** de su menú lateral tiene tres
 
 | Página | Qué defines ahí |
 | ---- | ------------------ |
-| **Marca** | Logotipo e imagen de portada, título y descripción de la página, favicon, enlaces de la cabecera, la descripción de la página de vista general, la línea de copyright y los enlaces del pie de página. Plegados en **Más ajustes**: los colores del gráfico de historial, los idiomas y la indexación en motores de búsqueda. |
+| **Marca** | Logotipo e imagen de portada, el tema (claro, oscuro o según el dispositivo de cada visitante), título y descripción de la página, favicon, enlaces de la cabecera, la descripción de la página de vista general, la línea de copyright y los enlaces del pie de página. Plegados en **Más ajustes**: los colores del gráfico de historial, los idiomas y la indexación en motores de búsqueda. |
 | **Dominios personalizados** | Tu propio dominio, su registro DNS y su certificado SSL gratuito. |
 | **HTML, CSS y JavaScript** | HTML de la cabecera, HTML del pie de página, CSS personalizado y JavaScript personalizado. |
 
@@ -25,7 +25,7 @@ Antes, la marca estaba repartida en pantallas separadas: **Marca esencial**, **C
 
 ## La página Marca
 
-**Páginas de estado → tu página → Marca → Marca** (`{id}/branding`). Cada tarjeta se guarda por separado. Tras el logotipo, el título y el favicon, las tarjetas siguen tu página de estado de arriba abajo: los enlaces de la cabecera, el texto de la parte superior de la vista general y después el pie de página. Lo que poca gente cambia está plegado en **Más ajustes**, al final.
+**Páginas de estado → tu página → Marca → Marca** (`{id}/branding`). Cada tarjeta se guarda por separado. Tras el logotipo, el tema, el título y el favicon, las tarjetas siguen tu página de estado de arriba abajo: los enlaces de la cabecera, el texto de la parte superior de la vista general y después el pie de página. Lo que poca gente cambia está plegado en **Más ajustes**, al final.
 
 ### Logotipo e imagen de portada
 
@@ -39,6 +39,22 @@ La primera tarjeta, **Logotipo e imagen de portada**, tiene un botón **Editar i
 El logotipo, la imagen de portada y el favicon son archivos subidos en el propio proyecto de la página de estado, y eso se comprueba cada vez que se guarda uno, desde el panel, la API, Terraform o un flujo de trabajo. Un archivo subido en otro proyecto se rechaza con las mismas palabras que un archivo que ya no existe: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." o "The favicon's file could not be found. Upload the favicon again." Volver a subir la imagen desde la página lo arregla.
 
 Tu página de estado solo muestra imágenes de su propio proyecto; una imagen que no puede mostrar se omite, como si la página no tuviera ninguna. El panel, la API y Terraform leen las imágenes de la página de la misma manera: una imagen de otro proyecto vuelve como ninguna imagen. Los correos que envía la página (a los suscriptores, y a los usuarios privados sobre su inicio de sesión) muestran su logotipo de la misma forma: un logotipo que la página no puede mostrar también se omite de ellos, en lugar de mostrarse como una imagen rota.
+
+### Tema
+
+La tarjeta **Tema**, justo debajo del logotipo, decide cómo ven la página sus visitantes. Elige una de sus tres opciones y se guarda al instante; no hay botón **Editar**.
+
+| Opción | Lo que ven los visitantes |
+| ------ | ----------------- |
+| **Claro** | La página clara, tenga como tenga configurado su dispositivo. Las páginas de estado creadas antes de que existiera el ajuste están en **Claro**, así que se ven como siempre. |
+| **Oscuro** | La página oscura, tenga como tenga configurado su dispositivo. El logotipo se muestra tal cual, así que usa uno pensado para un fondo oscuro. |
+| **Según el dispositivo de cada visitante** | Clara u oscura, según esté configurado su dispositivo, y cambia con él mientras la página está abierta. Un botón de sol o de luna en el pie de la página permite al visitante cambiarla, y su navegador recuerda la elección. En la página oscura, el logotipo se coloca sobre un fondo claro, así que un logotipo pensado para una página blanca se sigue viendo bien. |
+
+Una página de estado creada a partir de ahora empieza con **Según el dispositivo de cada visitante**. En la API y en Terraform el campo es `theme`, con uno de los valores `Light`, `Dark` o `System` (**Según el dispositivo de cada visitante**), escritos exactamente así; cualquier otro valor se rechaza. Una configuración de Terraform que no indica ningún `theme` recibe `Light`, así que una configuración escrita antes del ajuste nunca planifica un cambio en una página que gestiona.
+
+El tema va en el HTML de la página, así que la página se dibuja con él desde el principio: una página oscura no destella en blanco mientras carga, y el navegador dibuja sus barras de desplazamiento, sus campos de formulario y, en los teléfonos, su barra de direcciones a juego. Todas las partes de la página lo siguen, incluida la página de inicio de sesión de una página de estado privada. Las barras de tiempo de actividad conservan los colores que elegiste. En la página oscura, el texto en un color de estado toma un tono más claro de ese color donde el color mismo costaría leerse, y una barra demasiado oscura para verse recibe un borde más claro.
+
+Tu CSS y tu HTML personalizados se aplican en ambos temas; [HTML, CSS y JavaScript personalizados](#html-css-y-javascript-personalizados) explica cómo dar estilo al oscuro.
 
 ### Título, descripción y favicon
 
@@ -64,7 +80,7 @@ Los enlaces de la cabecera son para navegar; los del pie de página, para la let
 
 La última sección de la página está plegada en **Más ajustes**, porque poca gente cambia lo que contiene. Plegada, su cabecera nombra sus cuatro secciones (**Color de barra predeterminado**, **Reglas de color de las barras**, **Idiomas** e **Indexación en motores de búsqueda**) y muestra cada una que difiere de lo que trae una página de estado nueva: un color de barra predeterminado distinto del verde con el que empieza toda página, reglas de color de barra distintas de las recomendadas, un idioma predeterminado distinto del inglés, una lista de idiomas más corta o la indexación desactivada. Haz clic en ella para abrirla: es una sola tarjeta, con sus secciones una debajo de otra, cada una con su título, separadas por divisores.
 
-**Colores del gráfico de historial.** Son los únicos ajustes de color integrados de una página de estado. Cada barra del historial de tiempo de actividad es un día.
+**Colores del gráfico de historial.** Aparte del **Tema**, son los únicos ajustes de color integrados de una página de estado. Cada barra del historial de tiempo de actividad es un día.
 
 - **Color de barra predeterminado**: **Editar color de barra predeterminado** abre el selector **Color de barra predeterminado**. Es el color de un día con el que no coincide ninguna regla de color de las barras. Toda página de estado nueva empieza con verde.
 - **Reglas de color de las barras**: una tabla ordenada de reglas que ordenas arrastrando. Cada regla tiene **Cuando el % de tiempo de actividad es mayor o igual que** y **Entonces, usa este color de barra**; las columnas de la tabla dicen `When Uptime Percent >=` y `Then, Bar Color is`. Las reglas se comprueban desde arriba, y la primera que alcanza el tiempo de actividad de un día fija su color, así que mantén los porcentajes altos por encima de los bajos: una regla debajo de otra con el mismo porcentaje o uno menor nunca colorea un día. El color de una regla nueva ya viene elegido, uno que las demás reglas aún no usan; elige en su lugar el que quieras.
@@ -122,7 +138,9 @@ Antes eran dos tarjetas propias, **Porcentaje de tiempo de actividad general** y
 
 En OneUptime Cloud, añadir o cambiar cualquiera de ellos requiere el plan **Growth**. Vaciarlos funciona en todos los planes, así que el código personalizado que añadió una prueba siempre se puede quitar.
 
-**No hay selector de tema.** Las páginas de estado de OneUptime no tienen ajuste de tema ni de color de marca: los únicos ajustes de color integrados en cualquier parte son **Color de barra predeterminado** y las reglas de color de las barras del gráfico de historial, en **Más ajustes** de la página **Marca**. Las fuentes, los colores de fondo, los colores de acento y los retoques de diseño pasan todos por **CSS personalizado**. Si buscabas un campo de «color de marca», esta es la respuesta: no existe, y este cuadro es la forma de hacerlo.
+**No hay selector de color de marca.** Aparte del **Tema**, que hace la página clara u oscura, los únicos ajustes de color integrados en cualquier parte son **Color de barra predeterminado** y las reglas de color de las barras del gráfico de historial, en **Más ajustes** de la página **Marca**. Las fuentes, los colores de fondo, los colores de acento y los retoques de diseño pasan todos por **CSS personalizado**. Si buscabas un campo de «color de marca», esta es la respuesta: no existe, y este cuadro es la forma de hacerlo.
+
+**Código personalizado en el tema oscuro.** Tu CSS y tu HTML personalizados se aplican en ambos temas. Mientras la página está oscura, su elemento `<html>` tiene la clase `dark`, así que una regla CSS que empieza por `html.dark` da estilo solo al tema oscuro: `html.dark .my-banner { background: #1e293b; }`. Una regla sin ella se aplica en ambos, así que un color de fondo o de texto que pongas para la página clara se mantiene también en la oscura: revisa tu CSS personalizado en ambos temas. Si la página tiene CSS personalizado o HTML personalizado en la cabecera o en el pie, la tarjeta **Tema** lo indica bajo sus opciones.
 
 > [!WARNING]
 > El JavaScript personalizado se ejecuta en los navegadores de tus visitantes, en una página que se abre precisamente cuando alguien cree que algo está roto. Mantenlo pequeño, aloja tú mismo lo que cargue siempre que puedas y pruébalo antes de confiar en él.

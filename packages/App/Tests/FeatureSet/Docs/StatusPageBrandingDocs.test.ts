@@ -11,6 +11,16 @@ import StatusPageDisplaySettingsCopy, {
   DISPLAY_SECTIONS,
   DisplaySectionDefinition,
 } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
+import StatusPageThemeCopy, {
+  STATUS_PAGE_THEME_CHOICES,
+  StatusPageThemeChoice,
+} from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageThemeCopy";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageTheme, {
+  NEW_STATUS_PAGE_THEME,
+  STATUS_PAGE_THEMES,
+  STATUS_PAGE_THEME_COLUMN,
+} from "Common/Types/StatusPage/StatusPageTheme";
 
 /*
  * A status page's branding is one Branding page now, where it was five
@@ -54,6 +64,9 @@ const BRANDING_PAGE: string = "en/status-pages/branding-and-domains.md";
 
 // A row of a table whose first cell is a bold name: | **Branding** | ... |
 const BOLD_TABLE_ROW: RegExp = /^\| \*\*[^*]+\*\* +\|/;
+
+// A row of the Theme table: | **Light** | The light page, ... |
+const THEME_CHOICE_ROW: RegExp = /^\| \*\*([^*]+)\*\* \|/;
 
 // A bold menu path through Branding to one of the screens that are gone.
 const OLD_SCREEN_PATH: RegExp =
@@ -100,6 +113,7 @@ describe("Status Page Branding & Domains (English)", () => {
 
     for (const heading of [
       "### Logo and cover image",
+      "### Theme",
       "### Title, description and favicon",
       "### Header links",
       "### Overview page description",
@@ -319,9 +333,160 @@ describe("Status Page Branding & Domains (English)", () => {
     expect(page).toContain("now open the **Branding** page");
   });
 
-  it("says the only built-in colors are under More settings on the Branding page", () => {
+  it("says the only built-in colors are the theme and those under More settings on the Branding page", () => {
     expect(page).toContain(
       "the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **More settings** on the **Branding** page",
+    );
+    expect(page).toContain(
+      "**There is no brand-color picker.** Besides the **Theme**, which makes the page light or dark,",
+    );
+    expect(page).toContain(
+      "**History chart colors.** Besides the **Theme**, these are the only built-in color controls on a status page.",
+    );
+    expect(page).not.toContain("There is no theme picker.");
+    expect(page).not.toContain("no theme or brand-color setting");
+  });
+});
+
+/*
+ * "Can we have dark mode for the status page as well?" - the maintainer. A
+ * status page's Theme is a card on its Branding page: Light, Dark, or as
+ * each visitor's device is set. Its names, its values and the two defaults
+ * are read from the product, so the page cannot quietly drift from it.
+ */
+describe("the Theme section", () => {
+  const page: string = readPage(BRANDING_PAGE);
+  const section: string = page.slice(
+    page.indexOf("### Theme"),
+    page.indexOf("### Title, description and favicon"),
+  );
+
+  const choiceNamed: (theme: StatusPageTheme) => StatusPageThemeChoice = (
+    theme: StatusPageTheme,
+  ): StatusPageThemeChoice => {
+    return STATUS_PAGE_THEME_CHOICES.find(
+      (choice: StatusPageThemeChoice): boolean => {
+        return choice.value === theme;
+      },
+    )!;
+  };
+
+  // A value as the page writes it, as inline code.
+  const code: (value: string) => string = (value: string): string => {
+    return `\`${value}\``;
+  };
+
+  it("names the card as the Branding page draws it, under the logo, saved when picked", () => {
+    expect(section).toContain(
+      `The **${StatusPageThemeCopy.title}** card, right under the logo, sets how the page looks to its visitors.`,
+    );
+    expect(section).toContain(
+      "Pick one of its three choices and it is saved at once; there is no **Edit** button.",
+    );
+  });
+
+  it("lists the three choices as the card names them, in the card's order", () => {
+    const rows: Array<string> = section
+      .split("\n")
+      .filter((line: string): boolean => {
+        return THEME_CHOICE_ROW.test(line);
+      })
+      .map((line: string): string => {
+        return line.match(THEME_CHOICE_ROW)![1]!;
+      });
+
+    expect(rows).toEqual(
+      STATUS_PAGE_THEME_CHOICES.map((choice: StatusPageThemeChoice): string => {
+        return choice.title;
+      }),
+    );
+  });
+
+  it("says what a Dark page and a page that follows the device do with the logo, as the card does", () => {
+    expect(section).toContain(
+      "The logo is shown as it is, so use one made for a dark background.",
+    );
+    expect(section).toContain(
+      "On the dark page the logo sits on a light backdrop, so a logo made for a white page still reads.",
+    );
+    expect(section).toContain(
+      "A sun or moon button in the page's footer lets a visitor switch, and their browser remembers the choice.",
+    );
+  });
+
+  it("gives the API and Terraform field and every value it takes, exactly as they are spelled", () => {
+    const values: Array<string> = STATUS_PAGE_THEMES.map(
+      (theme: StatusPageTheme): string => {
+        return code(theme);
+      },
+    );
+
+    expect(section).toContain(
+      `Through the API and Terraform the field is ${code(STATUS_PAGE_THEME_COLUMN)}, one of ${values
+        .slice(0, -1)
+        .join(", ")} or ${values[values.length - 1]} (**${
+        choiceNamed(StatusPageTheme.System).title
+      }**), written exactly so; any other value is refused.`,
+    );
+    expect(STATUS_PAGE_THEMES[STATUS_PAGE_THEMES.length - 1]).toBe(
+      StatusPageTheme.System,
+    );
+  });
+
+  it("says a new page follows the device, and an older one and a Terraform configuration with no theme are Light", () => {
+    // What onBeforeCreate gives a page whose create names no theme.
+    expect(section).toContain(
+      `A status page made from now on starts with **${
+        choiceNamed(NEW_STATUS_PAGE_THEME).title
+      }**.`,
+    );
+
+    /*
+     * The column's default: what the migration gave every page that existed,
+     * and what the provider sends for a configuration that names no theme.
+     */
+    const columnDefault: StatusPageTheme =
+      new StatusPage().getTableColumnMetadata(STATUS_PAGE_THEME_COLUMN)
+        .defaultValue as StatusPageTheme;
+
+    expect(section).toContain(
+      `A Terraform configuration that sets no ${code(STATUS_PAGE_THEME_COLUMN)} gets ${code(columnDefault)}`,
+    );
+    expect(section).toContain(
+      `Status pages made before the setting existed are **${
+        choiceNamed(columnDefault).title
+      }**, so they look as they always have.`,
+    );
+  });
+
+  it("says the page is drawn in its theme from the start, and sends custom code writers to the dark theme's class", () => {
+    expect(section).toContain(
+      "a dark page does not flash white while it loads",
+    );
+    expect(section).toContain(
+      "[Custom HTML, CSS and JavaScript](#custom-html-css-and-javascript) says how to style the dark one.",
+    );
+
+    const customCode: string = page.slice(
+      page.indexOf("## Custom HTML, CSS and JavaScript"),
+      page.indexOf("## Custom domains"),
+    );
+
+    expect(customCode).toContain(
+      "**Custom code in the dark theme.** Your custom CSS and HTML apply in both themes.",
+    );
+    expect(customCode).toContain(
+      `a CSS rule that starts with ${code("html.dark")} styles only the dark theme`,
+    );
+  });
+
+  // The card's own note says the same: the rule starts with html.dark.
+  it("agrees with the note the card shows on a page with custom code", () => {
+    expect(StatusPageThemeCopy.customCodeNote).toContain(
+      "Your custom CSS and HTML apply in both themes.",
+    );
+    expect(StatusPageThemeCopy.customCodeNote).toContain(
+      "Start a CSS rule with html.dark to style only the dark theme.",
     );
   });
 });
@@ -356,6 +521,10 @@ describe("the rest of the English docs", () => {
     expect(overview).toContain(
       "the **Default Bar Color** and the bar-color rules are under **More settings** on **Status Pages → your page → Branding → Branding**",
     );
+    expect(overview).toContain(
+      "The page's **Theme** (light, dark, or as each visitor's device is set) is a card near the top of that same page. There is no brand-color setting;",
+    );
+    expect(overview).not.toContain("There is no theme or brand-color setting");
   });
 
   it("the status pages overview puts the overall uptime % and the downtime statuses in the card's uptime row", () => {

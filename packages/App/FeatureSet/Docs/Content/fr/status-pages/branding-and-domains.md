@@ -3,7 +3,7 @@
 Votre page de statut est l'écran OneUptime que regardent vos clients : elle devrait donc vous ressembler et se trouver sur votre propre domaine, comme `status.yourcompany.com`. Cette page parcourt la page **Image de marque** carte par carte, puis place la page de statut sur votre domaine : ajoutez le domaine, ajoutez un enregistrement DNS, et le certificat SSL gratuit suit de lui-même.
 
 :::cards
-- [La page Image de marque](#la-page-image-de-marque): Logo, titre, favicon, liens, pied de page, couleurs et langues.
+- [La page Image de marque](#la-page-image-de-marque): Logo, thème, titre, favicon, liens, pied de page, couleurs et langues.
 - [HTML, CSS et JavaScript personnalisés](#html-css-et-javascript-personnalisés): Tout ce que les réglages intégrés ne couvrent pas.
 - [Domaines personnalisés](#domaines-personnalisés): Votre propre nom d'hôte, avec un certificat gratuit.
 - [La colonne Statut](#lire-la-colonne-statut-du-domaine): Où en est chaque domaine sur le chemin de HTTPS.
@@ -15,7 +15,7 @@ Ouvrez une page de statut : la section **Image de marque** de son menu latéral 
 
 | Page | Ce que vous y réglez |
 | ---- | ------------------ |
-| **Image de marque** | Logo et image de couverture, titre et description de la page, favicon, liens d'en-tête, description de la page de vue d'ensemble, ligne de copyright et liens du pied de page. Repliés sous **Plus de paramètres** : les couleurs du graphique d'historique, les langues et l'indexation par les moteurs de recherche. |
+| **Image de marque** | Logo et image de couverture, thème (clair, sombre, ou selon le réglage de l'appareil de chaque visiteur), titre et description de la page, favicon, liens d'en-tête, description de la page de vue d'ensemble, ligne de copyright et liens du pied de page. Repliés sous **Plus de paramètres** : les couleurs du graphique d'historique, les langues et l'indexation par les moteurs de recherche. |
 | **Domaines personnalisés** | Votre propre domaine, son enregistrement DNS et son certificat SSL gratuit. |
 | **HTML, CSS et JavaScript** | HTML d'en-tête, HTML du pied de page, CSS personnalisé, JavaScript personnalisé. |
 
@@ -25,7 +25,7 @@ La personnalisation était autrefois répartie sur des écrans séparés **Perso
 
 ## La page Image de marque
 
-**Pages de statut → votre page → Image de marque → Image de marque** (`{id}/branding`). Chaque carte s'enregistre séparément. Après le logo, le titre et le favicon, les cartes suivent votre page de statut de haut en bas : les liens de l'en-tête, le texte en haut de la vue d'ensemble, puis le pied de page. Ce que peu de gens modifient est replié sous **Plus de paramètres**, en bas.
+**Pages de statut → votre page → Image de marque → Image de marque** (`{id}/branding`). Chaque carte s'enregistre séparément. Après le logo, le thème, le titre et le favicon, les cartes suivent votre page de statut de haut en bas : les liens de l'en-tête, le texte en haut de la vue d'ensemble, puis le pied de page. Ce que peu de gens modifient est replié sous **Plus de paramètres**, en bas.
 
 ### Logo et image de couverture
 
@@ -39,6 +39,22 @@ La première carte, **Logo et image de couverture**, a un bouton **Modifier les 
 Le logo, l'image de couverture et le favicon sont des fichiers téléversés dans le projet de la page de statut lui-même, et c'est vérifié à chaque enregistrement – depuis le tableau de bord, l'API, Terraform ou un workflow. Un fichier téléversé dans un autre projet est refusé avec les mêmes mots qu'un fichier qui n'existe plus : "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." ou "The favicon's file could not be found. Upload the favicon again." Téléverser à nouveau l'image depuis la page règle le problème.
 
 Votre page de statut n'affiche que les images de son propre projet ; une image qu'elle ne peut pas afficher est omise, comme si la page n'en avait pas. Le tableau de bord, l'API et Terraform lisent les images de la page de la même façon : une image d'un autre projet revient comme aucune image. Les e-mails que la page envoie – aux abonnés, et aux utilisateurs privés au sujet de leur connexion – affichent son logo de la même manière : un logo que la page ne peut pas afficher en est omis lui aussi, plutôt qu'affiché comme une image cassée.
+
+### Thème
+
+La carte **Thème**, juste sous le logo, définit l'apparence de la page pour ses visiteurs. Choisissez l'une de ses trois options et elle est enregistrée aussitôt ; il n'y a pas de bouton **Modifier**.
+
+| Option | Ce que voient les visiteurs |
+| ------ | ----------------- |
+| **Clair** | La page claire, quel que soit le réglage de leur appareil. Les pages de statut créées avant l'existence de ce réglage sont en **Clair**, elles gardent donc l'apparence qu'elles ont toujours eue. |
+| **Sombre** | La page sombre, quel que soit le réglage de leur appareil. Le logo est affiché tel quel, utilisez donc un logo conçu pour un fond sombre. |
+| **Selon l'appareil de chaque visiteur** | Claire ou sombre, selon le réglage de leur appareil, et elle change avec lui tant que la page est ouverte. Un bouton soleil ou lune dans le pied de page permet au visiteur de basculer, et son navigateur retient ce choix. Sur la page sombre, le logo est posé sur un fond clair, si bien qu'un logo conçu pour une page blanche reste lisible. |
+
+Une page de statut créée à partir de maintenant commence avec **Selon l'appareil de chaque visiteur**. Dans l'API et dans Terraform, le champ est `theme`, avec l'une des valeurs `Light`, `Dark` ou `System` (**Selon l'appareil de chaque visiteur**), écrites exactement ainsi ; toute autre valeur est refusée. Une configuration Terraform qui ne définit aucun `theme` reçoit `Light`, si bien qu'une configuration écrite avant ce réglage ne planifie jamais de changement sur une page qu'elle gère.
+
+Le thème figure dans le HTML de la page, qui est donc dessinée dans ce thème dès le départ : une page sombre ne clignote pas en blanc pendant son chargement, et le navigateur accorde ses barres de défilement, ses champs de formulaire et, sur les téléphones, sa barre d'adresse. Toutes les parties de la page le suivent, y compris la page de connexion d'une page de statut privée. Les barres de disponibilité gardent les couleurs que vous avez choisies. Sur la page sombre, un texte dans une couleur de statut prend une nuance plus claire de cette couleur là où la couleur elle-même serait difficile à lire, et une barre trop sombre pour être vue reçoit une bordure plus claire.
+
+Votre CSS et votre HTML personnalisés s'appliquent dans les deux thèmes ; [HTML, CSS et JavaScript personnalisés](#html-css-et-javascript-personnalisés) explique comment styliser le thème sombre.
 
 ### Titre, description et favicon
 
@@ -64,7 +80,7 @@ Les liens d'en-tête servent à la navigation ; les liens du pied de page aux me
 
 La dernière section de la page est repliée sous **Plus de paramètres**, car peu de gens modifient ce qu'elle contient. Repliée, son en-tête nomme ses quatre sections – **Couleur de barre par défaut**, **Règles de couleur des barres**, **Langues** et **Indexation par les moteurs de recherche** – et montre chacune de celles qui diffèrent de ce avec quoi commence une nouvelle page de statut : une couleur de barre par défaut autre que le vert de départ de chaque page, des règles de couleur de barre autres que les règles recommandées, une langue par défaut autre que l'anglais, une liste de langues plus courte, ou l'indexation désactivée. Cliquez dessus pour l'ouvrir : c'est une seule carte, ses sections l'une sous l'autre, chacune avec son titre, séparées par des lignes de séparation.
 
-**Couleurs du graphique d'historique.** Ce sont les seuls réglages de couleur intégrés d'une page de statut. Chaque barre de l'historique de disponibilité représente un jour.
+**Couleurs du graphique d'historique.** En dehors du **Thème**, ce sont les seuls réglages de couleur intégrés d'une page de statut. Chaque barre de l'historique de disponibilité représente un jour.
 
 - **Couleur de barre par défaut** – **Modifier la couleur de barre par défaut** ouvre le sélecteur **Couleur de barre par défaut**. C'est la couleur d'un jour auquel aucune règle de couleur des barres ne correspond. Chaque nouvelle page de statut commence avec le vert.
 - **Règles de couleur des barres** – un tableau ordonné de règles que vous triez par glisser-déposer. Chaque règle a **Lorsque le % de disponibilité est supérieur ou égal à** et **Ensuite, utilisez cette couleur de barre** ; les colonnes du tableau s'intitulent `When Uptime Percent >=` et `Then, Bar Color is`. Les règles sont vérifiées de haut en bas, et la première que la disponibilité d'un jour atteint fixe sa couleur ; gardez donc les pourcentages élevés au-dessus des plus bas : une règle placée sous une règle de pourcentage égal ou inférieur ne colore jamais aucun jour. La couleur d'une nouvelle règle est déjà choisie, une que les autres règles n'utilisent pas encore ; choisissez plutôt celle que vous voulez.
@@ -122,7 +138,9 @@ C'étaient autrefois deux cartes à part, **Pourcentage de disponibilité global
 
 Sur OneUptime Cloud, ajouter ou modifier l'un d'eux demande le forfait **Growth**. Les vider fonctionne sur tous les forfaits, si bien que le code personnalisé ajouté pendant un essai peut toujours être retiré.
 
-**Il n'y a pas de sélecteur de thème.** Les pages de statut OneUptime n'ont aucun réglage de thème ni de couleur de marque : les seuls réglages de couleur intégrés, où que ce soit, sont **Couleur de barre par défaut** et les règles de couleur des barres du graphique d'historique, sous **Plus de paramètres** sur la page **Image de marque**. Les polices, les couleurs de fond, les couleurs d'accent et les ajustements de mise en page passent tous par **CSS personnalisé**. Si vous cherchiez un champ « couleur de marque », voici la réponse : il n'y en a pas, et ce champ est le moyen d'y parvenir.
+**Il n'y a pas de sélecteur de couleur de marque.** En dehors du **Thème**, qui rend la page claire ou sombre, les seuls réglages de couleur intégrés, où que ce soit, sont **Couleur de barre par défaut** et les règles de couleur des barres du graphique d'historique, sous **Plus de paramètres** sur la page **Image de marque**. Les polices, les couleurs de fond, les couleurs d'accent et les ajustements de mise en page passent tous par **CSS personnalisé**. Si vous cherchiez un champ « couleur de marque », voici la réponse : il n'y en a pas, et ce champ est le moyen d'y parvenir.
+
+**Code personnalisé dans le thème sombre.** Votre CSS et votre HTML personnalisés s'appliquent dans les deux thèmes. Tant que la page est sombre, son élément `<html>` porte la classe `dark`, donc une règle CSS qui commence par `html.dark` ne stylise que le thème sombre, par exemple `html.dark .my-banner { background: #1e293b; }`. Une règle sans ce préfixe s'applique dans les deux thèmes, si bien qu'une couleur de fond ou de texte définie pour la page claire est conservée aussi sur la page sombre : vérifiez votre CSS personnalisé dans les deux thèmes. Si la page a du CSS personnalisé ou du HTML personnalisé dans l'en-tête ou le pied de page, la carte **Thème** l'indique sous ses options.
 
 > [!WARNING]
 > Le JavaScript personnalisé s'exécute dans le navigateur de vos visiteurs, sur une page qu'on ouvre justement quand on pense que quelque chose est cassé. Gardez-le court, hébergez vous-même ce qu'il charge quand c'est possible, et testez-le avant de compter dessus.
