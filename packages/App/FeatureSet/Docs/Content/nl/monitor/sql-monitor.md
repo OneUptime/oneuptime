@@ -139,7 +139,7 @@ Selecteer de **Sondes** die de database bereiken en een **Bewakingsinterval**, e
 | **Host** | De databasehost die de sonde bereikt (bijvoorbeeld `db.internal`). |
 | **Poort** | De databasepoort. |
 | **Databasenaam** | De database waarop de query wordt uitgevoerd. |
-| **Use Windows Integrated Authentication** | Alleen Microsoft SQL Server. Verifiëren met het account waaronder de sonde draait in plaats van met een SQL-gebruikersnaam en -wachtwoord. Zie [Geïntegreerde Windows-verificatie](#geïntegreerde-windows-verificatie). |
+| **Authenticatie** | Alleen Microsoft SQL Server: **Gebruikersnaam en wachtwoord**, de standaard, of **Windows Integrated Authentication**, dat aanmeldt met het account waaronder de sonde draait. Zie [Geïntegreerde Windows-verificatie](#geïntegreerde-windows-verificatie). |
 | **Gebruikersnaam** | Een alleen-lezen databasegebruiker met minimale rechten. |
 | **Wachtwoord** | Het databasewachtwoord. We raden sterk aan met `{{monitorSecrets.name}}` naar een [monitorgeheim](/docs/monitor/monitor-secrets) te verwijzen in plaats van het wachtwoord als platte tekst in te typen (zie [Een monitorgeheim voor het wachtwoord gebruiken](#een-monitorgeheim-voor-het-wachtwoord-gebruiken)). |
 | **SQL Query** | De alleen-lezen query die wordt uitgevoerd (zie [De query schrijven](#de-query-schrijven)). |
@@ -157,7 +157,7 @@ Een waarde boven het maximum wordt verlaagd tot het maximum.
 
 ### Geïntegreerde Windows-verificatie
 
-Zet voor Microsoft SQL Server **Use Windows Integrated Authentication** aan om een vertrouwde verbinding te openen met de identiteit van het sondeproces. De velden Gebruikersnaam en Wachtwoord worden in deze modus genegeerd en niet aan het stuurprogramma doorgegeven. Omdat de sonde een identiteit nodig heeft die uw domein vertrouwt, gebruikt u voor deze verificatiemodus een zelfgehoste sonde.
+Kies voor Microsoft SQL Server **Windows Integrated Authentication** onder **Authenticatie** om een vertrouwde verbinding te openen met de identiteit van het sondeproces. Het formulier verbergt dan **Gebruikersnaam** en **Wachtwoord**, en geen van beide wordt aan het stuurprogramma doorgegeven. Omdat de sonde een identiteit nodig heeft die uw domein vertrouwt, gebruikt u voor deze verificatiemodus een zelfgehoste sonde.
 
 | De sonde draait op | Wat u instelt |
 |---|---|

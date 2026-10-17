@@ -56,7 +56,7 @@ Scrivete lo script nell'editor **Playwright Code**. Partite dall'[esempio qui so
 
 ### Scegliere browser e dimensioni dello schermo
 
-Spuntate i browser in **Tipo di browser** e le dimensioni in **Tipo di schermo**. Lo script viene eseguito una volta per ogni combinazione, quindi due browser e tre dimensioni fanno sei esecuzioni per controllo. In **Altri campi**, **Numero di tentativi in caso di errore** ripete un'esecuzione fallita fino a 5 volte.
+Un nuovo monitor parte con **Chromium** in **Tipo di browser** e **Desktop** in **Tipo di schermo**; spuntatene altri per coprirne di più. Lo script viene eseguito una volta per ogni combinazione, quindi due browser e tre dimensioni fanno sei esecuzioni per controllo, e serve almeno un browser e una dimensione. In **Altri campi**, **Numero di tentativi in caso di errore** ripete un'esecuzione fallita fino a 5 volte.
 
 ### Testarlo
 

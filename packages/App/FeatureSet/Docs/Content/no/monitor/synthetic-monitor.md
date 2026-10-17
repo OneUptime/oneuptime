@@ -56,7 +56,7 @@ Skriv skriptet ditt i redigeringsprogrammet **Playwright Code**. Start fra [ekse
 
 ### Velg nettlesere og skjermstørrelser
 
-Kryss av for nettleserne under **Nettlesertype** og størrelsene under **Skjermtype**. Skriptet kjører én gang for hver kombinasjon, så to nettlesere og tre størrelser gir seks kjøringer per kontroll. Under **Flere felt** prøver **Antall nye forsøk ved feil** en mislykket kjøring på nytt opptil 5 ganger.
+En ny monitor starter med **Chromium** under **Nettlesertype** og **Desktop** under **Skjermtype**; kryss av for flere for å dekke mer. Skriptet kjører én gang for hver kombinasjon, så to nettlesere og tre størrelser gir seks kjøringer per kontroll, og det trenger minst én nettleser og én størrelse. Under **Flere felt** prøver **Antall nye forsøk ved feil** en mislykket kjøring på nytt opptil 5 ganger.
 
 ### Test det
 

@@ -5,8 +5,24 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const PROBE_DEFAULT_RETRY_COUNT_LABEL: string =
   "Probe default (usually 3)";
 
-export const REQUEST_TIMEOUT_DESCRIPTION: string =
-  "How long to wait for a response on each request or connection attempt. Each retry gets a new timeout. Defaults to 60 seconds. Maximum is 60 seconds.";
+/*
+ * What the two fields say under their titles: one line each. Their exact
+ * rules - what counts as an attempt, what is retried and what is not, the
+ * default - ran to four or five lines under the field (up to about 400
+ * characters for Website and API), so they moved into the (i) beside the
+ * title (FieldLabel's `tooltip`), word for word: the variants below.
+ */
+export const RETRIES_ON_FAILURE_DESCRIPTION: string = translationKey(
+  "How many times to try again before the check fails. Up to 3.",
+);
+
+export const REQUEST_TIMEOUT_SHORT_DESCRIPTION: string = translationKey(
+  "How long to wait for each attempt, up to 60 seconds.",
+);
+
+export const REQUEST_TIMEOUT_DESCRIPTION: string = translationKey(
+  "How long to wait for a response on each request or connection attempt. Each retry gets a new timeout. Defaults to 60 seconds. Maximum is 60 seconds.",
+);
 
 /*
  * Help text for the "Retries on Failure" field on probe-based monitor steps.
@@ -39,8 +55,9 @@ export const REQUEST_TIMEOUT_DESCRIPTION: string =
  * timeouts use this same budget, with a fresh timeout for every request.
  * Invalid targets and protective size/redirect limits still stop retries.
  */
-export const HTTP_RETRIES_ON_FAILURE_DESCRIPTION: string =
-  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. It also limits re-checks of a successful response slower than 10 seconds. Connection failures, timeouts, and HTTP 4xx and 5xx responses are retried. Each request attempt gets a new timeout. Invalid or blocked targets, oversized responses, and too many redirects are not retried.";
+export const HTTP_RETRIES_ON_FAILURE_DESCRIPTION: string = translationKey(
+  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. It also limits re-checks of a successful response slower than 10 seconds. Connection failures, timeouts, and HTTP 4xx and 5xx responses are retried. Each request attempt gets a new timeout. Invalid or blocked targets, oversized responses, and too many redirects are not retried.",
+);
 
 /*
  * Ping, IP and Port (PingMonitor.ts, PortMonitor.ts; Ping and IP take the same
@@ -50,8 +67,9 @@ export const HTTP_RETRIES_ON_FAILURE_DESCRIPTION: string =
  * only once the retries are spent - and both re-run a successful check whose
  * response took longer than 10 seconds.
  */
-export const NETWORK_RETRIES_ON_FAILURE_DESCRIPTION: string =
-  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. Every failure is retried, including timeouts, and it also limits re-checks of a successful response slower than 10 seconds.";
+export const NETWORK_RETRIES_ON_FAILURE_DESCRIPTION: string = translationKey(
+  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. Every failure is retried, including timeouts, and it also limits re-checks of a successful response slower than 10 seconds.",
+);
 
 /*
  * SSL Certificate (SslMonitor.ts).
@@ -59,8 +77,9 @@ export const NETWORK_RETRIES_ON_FAILURE_DESCRIPTION: string =
  * Connection errors, failed certificate validation and handshake timeouts
  * share one retry budget. There is no slow-response re-check on this type.
  */
-export const SSL_RETRIES_ON_FAILURE_DESCRIPTION: string =
-  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. Connection failures, certificate validation failures, and timeouts are retried.";
+export const SSL_RETRIES_ON_FAILURE_DESCRIPTION: string = translationKey(
+  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. Connection failures, certificate validation failures, and timeouts are retried.",
+);
 
 /*
  * NTP (NtpMonitor.ts). Silence and errors are retried with a fresh request;
@@ -83,7 +102,8 @@ export const NTP_REQUEST_TIMEOUT_DESCRIPTION: string = translationKey(
 /*
  * The field is rendered for seven monitor types (the API, Website and
  * Ping/IP/Port/SSL/NTP advanced sections of the monitor step form). Anything
- * else gets the network text, which is the plainest of them.
+ * else gets the network text, which is the plainest of them. This is the
+ * full rule, shown in the field's (i): see getRetriesOnFailureField.
  */
 export const getRetriesOnFailureDescription: (
   monitorType: MonitorType,
@@ -103,22 +123,48 @@ export const getRetriesOnFailureDescription: (
   return NETWORK_RETRIES_ON_FAILURE_DESCRIPTION;
 };
 
-// The timeout field's help, and the number it shows when nothing is set.
-export const getRequestTimeoutField: (monitorType: MonitorType) => {
+// What a field of the monitor step form says: one line, and the (i)'s rule.
+export interface MonitorStepFieldHelp {
   description: string;
+  tooltip: string;
+}
+
+// The retries field's line, and the rule for the monitor's type in its (i).
+export const getRetriesOnFailureField: (
+  monitorType: MonitorType,
+) => MonitorStepFieldHelp = (
+  monitorType: MonitorType,
+): MonitorStepFieldHelp => {
+  return {
+    description: RETRIES_ON_FAILURE_DESCRIPTION,
+    tooltip: getRetriesOnFailureDescription(monitorType),
+  };
+};
+
+/*
+ * The timeout field's line, its rule (in the (i)), and the number it shows
+ * when nothing is set: 5 seconds for NTP, 60 for the TCP and HTTP checks.
+ */
+export const getRequestTimeoutField: (
+  monitorType: MonitorType,
+) => MonitorStepFieldHelp & {
   defaultSeconds: number;
 } = (
   monitorType: MonitorType,
-): {
-  description: string;
+): MonitorStepFieldHelp & {
   defaultSeconds: number;
 } => {
   if (monitorType === MonitorType.NTP) {
     return {
-      description: NTP_REQUEST_TIMEOUT_DESCRIPTION,
+      description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
+      tooltip: NTP_REQUEST_TIMEOUT_DESCRIPTION,
       defaultSeconds: DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS / 1000,
     };
   }
 
-  return { description: REQUEST_TIMEOUT_DESCRIPTION, defaultSeconds: 60 };
+  return {
+    description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
+    tooltip: REQUEST_TIMEOUT_DESCRIPTION,
+    defaultSeconds: 60,
+  };
 };

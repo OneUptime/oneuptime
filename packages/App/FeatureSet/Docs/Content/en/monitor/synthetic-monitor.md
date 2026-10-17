@@ -56,7 +56,7 @@ Write your script in the **Playwright Code** editor. Start from the [example bel
 
 ### Pick browsers and screen sizes
 
-Tick the browsers under **Browser Type** and the sizes under **Screen Type**. The script runs once for each combination, so two browsers and three sizes make six runs per check. Under **More fields**, **Retry Count on Error** retries a failed run up to 5 times.
+A new monitor starts with **Chromium** under **Browser Type** and **Desktop** under **Screen Type**; tick more to run in more. The script runs once for each combination, so two browsers and three sizes make six runs per check, and it needs at least one of each. Under **More fields**, **Retry Count on Error** retries a failed run up to 5 times.
 
 ### Test it
 

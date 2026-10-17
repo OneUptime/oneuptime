@@ -56,7 +56,7 @@ Escriba su script en el editor **Código de Playwright**. Parta del [ejemplo de 
 
 ### Elegir navegadores y tamaños de pantalla
 
-Marque los navegadores en **Tipo de navegador** y los tamaños en **Tipo de pantalla**. El script se ejecuta una vez por cada combinación, así que dos navegadores y tres tamaños suman seis ejecuciones por comprobación. En **Más campos**, **Número de reintentos en caso de error** reintenta una ejecución fallida hasta 5 veces.
+Un monitor nuevo empieza con **Chromium** en **Tipo de navegador** y **Escritorio** en **Tipo de pantalla**; marque más para cubrir más. El script se ejecuta una vez por cada combinación, así que dos navegadores y tres tamaños suman seis ejecuciones por comprobación, y necesita al menos un navegador y un tamaño. En **Más campos**, **Número de reintentos en caso de error** reintenta una ejecución fallida hasta 5 veces.
 
 ### Probarlo
 

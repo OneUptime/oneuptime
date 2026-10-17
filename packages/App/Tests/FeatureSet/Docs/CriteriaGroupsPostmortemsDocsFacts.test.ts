@@ -33,6 +33,7 @@ import {
   AiLane,
 } from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { StatusPageDisplaySettingsCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
+import MonitorGroupMonitorsCopy from "../../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMonitorsCopy";
 import SubscriberNotificationResendCopy from "../../../FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -473,6 +474,13 @@ const GROUP_OVERVIEW_PAGE: string = readDashboardSource(
 );
 const GROUP_MONITORS_PAGE: string = readDashboardSource(
   "Pages/MonitorGroup/View/Monitors.tsx",
+);
+// The list's Current Status, and the line it and the Overview draw for an empty group.
+const GROUP_CURRENT_STATUS: string = readDashboardSource(
+  "Components/MonitorGroup/CurrentStatus.tsx",
+);
+const NO_MONITORS_STATUS: string = readDashboardSource(
+  "Components/MonitorGroup/NoMonitorsStatus.tsx",
 );
 const GROUP_MENU: string = readDashboardSource(
   "Pages/MonitorGroup/View/SideMenu.tsx",
@@ -1384,8 +1392,9 @@ describe("changing a monitor's criteria", () => {
     expect(handle).toBeGreaterThan(0);
     expect(handle).toBeLessThan(toggle);
     expect(CRITERIA_INSTANCE_FORM).toContain('title="Delete Criteria"');
+    expect(CRITERIA_LIST_FORM).toContain('title="This is the only criteria"');
     expect(CRITERIA_LIST_FORM).toContain(
-      "We need at least one criteria for this monitor.",
+      "A monitor needs at least one criteria.",
     );
     expect(steps).toContain(
       "**Add Criteria** adds one at the bottom, open and named after its filter. Drag a criteria by the handle on its left to move it: the first match wins, so put the worst case first. **Delete Criteria** removes one; a monitor keeps at least one criteria.",
@@ -1904,7 +1913,19 @@ describe("a monitor group's status", () => {
       "- **Archived monitors do not count.** An archived monitor is not checked, so its status is frozen; the group leaves it out.",
     );
     expect(groupsPage).toContain(
-      "- **An empty group is operational.** A group with no monitors, or with only archived ones, shows your operational status.",
+      "- **An empty group is operational.** A group with no monitors, or with only archived ones, shows your operational status. Until you add a monitor, the Dashboard shows **No monitors yet** in place of its status.",
+    );
+  });
+
+  it("says No monitors yet in the Dashboard for a group with no monitors at all, on its Overview and in the list", () => {
+    expect(MonitorGroupMonitorsCopy.emptyGroupStatus).toBe("No monitors yet");
+    // Both count the group's rows - archived monitors included - and draw it.
+    expect(GROUP_OVERVIEW_PAGE).toContain("modelType: MonitorGroupResource,");
+    expect(GROUP_OVERVIEW_PAGE).toContain("return <NoMonitorsStatus />;");
+    expect(GROUP_CURRENT_STATUS).toContain("modelType: MonitorGroupResource,");
+    expect(GROUP_CURRENT_STATUS).toContain("return <NoMonitorsStatus />;");
+    expect(NO_MONITORS_STATUS).toContain(
+      "translator.translateText(MonitorGroupMonitorsCopy.emptyGroupStatus)",
     );
   });
 
@@ -2037,7 +2058,7 @@ describe("creating a monitor group", () => {
           return match[1] as string;
         },
       ),
-    ).toEqual(["Group Name", "Current Status", "Labels", "Owners"]);
+    ).toEqual(["Name", "Current Status", "Labels", "Owners"]);
     expect(creating).toContain(
       "Go to **Monitors → Monitor Groups**. The **Monitor Groups** card lists each group with its **Current Status**, labels and owners.",
     );
@@ -2059,13 +2080,35 @@ describe("creating a monitor group", () => {
     );
   });
 
-  it("assigns monitors from the group's Monitors page, one at a time", () => {
+  it("adds monitors from an empty group's Overview, or its Monitors page, several at a time", () => {
     expect(GROUP_MONITORS_PAGE).toContain('title={"Monitors in Group"}');
-    expect(GROUP_MONITORS_PAGE).toContain('title: "Assign Monitor",');
-    expect(GROUP_MONITORS_PAGE).toContain('title: "Select Monitor",');
-    expect(GROUP_MONITORS_PAGE).toContain('submitButtonText="Assign"');
+    expect(MonitorGroupMonitorsCopy.addButton).toBe("Add Monitors");
+    expect(MonitorGroupMonitorsCopy.monitorsField).toBe("Monitors");
+    expect(GROUP_MONITORS_PAGE).toContain(
+      "title: MonitorGroupMonitorsCopy.addButton,",
+    );
+    expect(GROUP_MONITORS_PAGE).toContain(
+      "title: MonitorGroupMonitorsCopy.monitorsField,",
+    );
+    expect(GROUP_MONITORS_PAGE).toContain(
+      "fieldType: FormFieldSchemaType.MultiSelectDropdown,",
+    );
+    expect(GROUP_MONITORS_PAGE).toContain(
+      "submitButtonText={MonitorGroupMonitorsCopy.addButton}",
+    );
+    // An empty group's Overview offers it, and opens the page with it open.
+    expect(GROUP_OVERVIEW_PAGE).toContain("monitorCount === 0 ? (");
+    expect(GROUP_OVERVIEW_PAGE).toContain(
+      "title={MonitorGroupMonitorsCopy.addButton}",
+    );
+    expect(GROUP_OVERVIEW_PAGE).toContain(
+      "PageMap.MONITOR_GROUP_VIEW_MONITORS",
+    );
+    expect(GROUP_OVERVIEW_PAGE).toContain(
+      '[ADD_MONITORS_QUERY_PARAM]: "true",',
+    );
     expect(creating).toContain(
-      "Open the group and click **Monitors** in its side menu. Click **Assign Monitor**, pick a monitor in **Select Monitor** and click **Assign**. Do this for each monitor in the group.",
+      "### Add its monitors\n\nOpen the group: until it has a monitor, its **Overview** offers **Add Monitors**. Later, click **Monitors** in its side menu, then **Add Monitors**. Pick every monitor of the group under **Monitors** and click **Add Monitors**.",
     );
   });
 
@@ -2083,13 +2126,13 @@ describe("creating a monitor group", () => {
     );
   });
 
-  it("takes a monitor out with Unassign, leaving the monitor as it is, in as many groups as you like", () => {
-    expect(GROUP_MONITORS_PAGE).toContain('title: "Unassign",');
+  it("takes a monitor out with Remove, leaving the monitor as it is, in as many groups as you like", () => {
+    expect(GROUP_MONITORS_PAGE).toContain('title: "Remove",');
     expect(GROUP_MONITORS_PAGE).toContain("isDeleteable={false}");
     // Nothing keeps a monitor to one group.
     expect(MONITOR_GROUP_RESOURCE_SERVICE).not.toContain("onBeforeCreate");
     expect(groupsPage).toContain(
-      "To take a monitor out of the group, click **Unassign** on its row in **Monitors in Group**. The monitor itself does not change. A monitor can belong to more than one group.",
+      "To take a monitor out of the group, click **Remove** on its row in **Monitors in Group**. The monitor itself does not change. A monitor can belong to more than one group.",
     );
   });
 });
@@ -2099,15 +2142,15 @@ describe("a monitor group's pages", () => {
   const pages: string = section(groupsPage, "## A group's pages");
   const menu: Array<MenuSection> = menuSections(GROUP_MENU);
 
-  it("are its side menu's pages, Audit Logs and Delete Group under Advanced, which starts folded", () => {
+  it("are its side menu's pages, Owners, Audit Logs and Delete Group under Advanced, which starts folded", () => {
     expect(
       menu.map((menuSection: MenuSection): Array<string> => {
         return [menuSection.title, ...menuSection.items];
       }),
     ).toEqual([
-      ["Basic", "Overview", "Owners"],
-      ["More", "Monitors", "Incidents", "Alerts"],
-      ["Advanced", "Audit Logs", "Delete Group"],
+      ["Overview", "Overview", "Monitors"],
+      ["Activity", "Incidents", "Alerts"],
+      ["Advanced", "Owners", "Audit Logs", "Delete Group"],
     ]);
     expect(startsCollapsed(GROUP_MENU, "Advanced")).toBe(true);
     expect(firstColumn(pages)).toEqual(
@@ -2120,7 +2163,10 @@ describe("a monitor group's pages", () => {
         }),
     );
     expect(pages).toContain(
-      "| **Audit Logs** | Who changed the group, and when. It is under **Advanced**, which starts collapsed. |",
+      "| **Owners** | The people and teams responsible for the group. It is under **Advanced**, which starts collapsed. |",
+    );
+    expect(pages).toContain(
+      "| **Audit Logs** | Who changed the group, and when, also under **Advanced**. |",
     );
     expect(pages).toContain(
       "| **Delete Group** | Deletes the group, also under **Advanced**. |",
@@ -2133,7 +2179,10 @@ describe("a monitor group's pages", () => {
       "startDate: OneUptimeDate.getSomeDaysAgo(90),",
     );
     expect(pages).toContain(
-      "| **Overview** | **Monitor Group Details**, **Current Status**, and **Uptime Graph** with the group's uptime percentage over the last 90 days. |",
+      "| **Overview** | **Monitor Group Details**, **Current Status**, and **Uptime Graph** with the group's uptime percentage over the last 90 days. A group with no monitors offers **Add Monitors** in place of the graph. |",
+    );
+    expect(GROUP_OVERVIEW_PAGE).toContain(
+      "title={MonitorGroupMonitorsCopy.emptyGroupCardTitle}",
     );
   });
 

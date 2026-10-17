@@ -704,11 +704,11 @@ describe.each(LISTS)("$name", (listCase: ListCase) => {
 
 describe("a monitor group's monitors", () => {
   /*
-   * The group's members: the row's action is Unassign, and deleting a
-   * monitor from here would delete it everywhere - so Delete is off, in the
-   * rows and in Bulk Actions.
+   * The group's members: the row's action is Remove (it was Unassign), and
+   * deleting a monitor from here would delete it everywhere - so Delete is
+   * off, in the rows and in Bulk Actions.
    */
-  test("offer Unassign, not Delete", async () => {
+  test("offer Remove, not Delete", async () => {
     goTo(`/dashboard/${PROJECT_ID}/monitor-groups/${ROW_ID}/monitors`);
 
     await act(async () => {
@@ -736,7 +736,7 @@ describe("a monitor group's monitors", () => {
           return action.title;
         },
       ),
-    ).toEqual(["Unassign"]);
+    ).toEqual(["Remove"]);
   });
 });
 

@@ -56,7 +56,7 @@ Skriv ditt skript i redigeraren **Playwright Code**. Utgå från [exemplet nedan
 
 ### Välj webbläsare och skärmstorlekar
 
-Markera webbläsarna under **Webbläsartyp** och storlekarna under **Skärmtyp**. Skriptet körs en gång för varje kombination, så två webbläsare och tre storlekar ger sex körningar per kontroll. Under **Fler fält** gör **Antal återförsök vid fel** om en misslyckad körning upp till 5 gånger.
+En ny monitor börjar med **Chromium** under **Webbläsartyp** och **Desktop** under **Skärmtyp**; markera fler för att täcka mer. Skriptet körs en gång för varje kombination, så två webbläsare och tre storlekar ger sex körningar per kontroll, och det behöver minst en webbläsare och en storlek. Under **Fler fält** gör **Antal återförsök vid fel** om en misslyckad körning upp till 5 gånger.
 
 ### Testa det
 
