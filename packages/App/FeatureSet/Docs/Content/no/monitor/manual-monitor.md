@@ -56,6 +56,14 @@ Angi et **Navn** — og en **Beskrivelse** under **Flere felt**, om du vil — o
 ### I dashbordet
 
 :::steps
+1. Åpne monitoren. Klikk på **More actions** (⋯) øverst til høyre i oversikten, ved siden av **Oppdater**.
+2. Velg den nye statusen under **Endre status til**.
+3. Klikk på **Endre status**. Den nye statusen begynner nå og vises med en gang på monitoren og på hver statusside som viser den.
+:::
+
+En endring som begynte tidligere, registreres i stedet på monitorens statustidslinje:
+
+:::steps
 1. Åpne monitoren, og klikk på **Statustidslinje** i sidemenyen.
 2. Klikk på **Opprett Monitor Status Hendelse**.
 3. Velg **Monitorstatus**. **Begynner den** er nå; angi et tidligere tidspunkt hvis endringen skjedde tidligere.

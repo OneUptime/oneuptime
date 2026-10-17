@@ -27,7 +27,7 @@ flowchart TB
 
 - **Um projeto do OneUptime e o direito de criar o que você traz.** Proprietários e administradores do projeto podem trazer tudo. Outros papéis também podem executar uma importação e trazer os tipos de registro que podem criar. O resto aparece como não trazido, com o motivo.
 - **Uma chave de API do StatusCake.** A importação nunca grava no StatusCake.
-- **Uma forma de pagamento, no OneUptime Cloud.** Monitores que fazem verificações são cobrados conforme o uso, mesmo no plano Free, então adicione uma em **Configurações do projeto** > **Cobrança** antes de importar. Sem ela, esses monitores aparecem como não trazidos.
+- **Uma forma de pagamento, no OneUptime Cloud.** Monitores que fazem verificações são cobrados conforme o uso, mesmo no plano Free, então adicione uma em **Configurações do projeto** > **Cobrança e faturas** > **Cobrança** antes de importar. Sem ela, esses monitores aparecem como não trazidos.
 
 ## Importe sua conta do StatusCake
 

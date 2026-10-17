@@ -88,7 +88,7 @@ const IncomingCallPolicyDocs: FunctionComponent<
     {
       title: "Configure Twilio Account",
       description:
-        "Go to Project Settings → Notification Settings → Twilio Config and add your Twilio credentials (Account SID and Auth Token).",
+        "Go to Project Settings → Notifications → Notification Settings → Twilio Config and add your Twilio credentials (Account SID and Auth Token).",
     },
     {
       title: "Select Twilio Configuration",

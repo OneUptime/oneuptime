@@ -170,7 +170,7 @@ describe("the channels", () => {
       "Email Subscribers",
       "SMS Subscribers",
       "Slack Subscribers",
-      "MS Teams Subscribers",
+      "Microsoft Teams Subscribers",
       "Webhook Subscribers",
     ].map((title: string): number => {
       return menu.indexOf(`title: "${title}"`);

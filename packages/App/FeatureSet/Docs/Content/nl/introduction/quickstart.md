@@ -28,7 +28,7 @@ De eerste keer dat u inlogt, toont OneUptime **Geen projecten**. Klik op **Nieuw
 
 ### Een naam geven
 
-Voer een **Projectnaam** in, bijvoorbeeld de naam van uw bedrijf. Bij OneUptime Cloud kiest u in de volgende stap een abonnement.
+Voer een **Projectnaam** in, bijvoorbeeld de naam van uw bedrijf. Bij OneUptime Cloud kiest u daaronder ook een abonnement: Free is al gekozen, en de betaalde abonnementen beginnen met een gratis proefperiode.
 
 ### Het project aanmaken
 

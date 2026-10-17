@@ -68,7 +68,7 @@ export const AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
 > = {
   [ProjectBalanceType.SmsOrCall]: {
     forPeopleWhoMayAdd: translationKey(
-      "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.",
+      "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or recharge the balance now.",
     ),
     forEveryoneElse: translationKey(
       "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.",
@@ -76,7 +76,7 @@ export const AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
   },
   [ProjectBalanceType.AI]: {
     forPeopleWhoMayAdd: translationKey(
-      "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.",
+      "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add AI credits now.",
     ),
     forEveryoneElse: translationKey(
       "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.",

@@ -208,7 +208,7 @@ describe("GoogleMeetOAuthApp", () => {
 
     expect(error).toBeInstanceOf(BadDataException);
     expect((error as Error).message).toContain(
-      "Reconnect Google Meet in Project Settings > Video Calls",
+      "Reconnect Google Meet in Project Settings > Workspace > Video Calls",
     );
   });
 

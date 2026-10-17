@@ -98,7 +98,7 @@
       "title": "Authentication",
       "intro": "You'll need to authenticate your requests to access any of the endpoints in the OneUptime API. In this guide, we'll look at how authentication works. OneUptime offers one way to authenticate your API requests - by using an API Key.",
       "generateApiKey": "Generate an API Key",
-      "generateApiKeyBody": "Please head over to <strong>Project Settings</strong> > <strong>API Keys</strong>. Create a new API Key. Please note: New API Keys have no permissions assigned to them, so you will have to assign a permission before you can use it.",
+      "generateApiKeyBody": "Please head over to <strong>Project Settings</strong> > <strong>Advanced</strong> > <strong>API Keys</strong>. Create a new API Key. Please note: New API Keys have no permissions assigned to them, so you will have to assign a permission before you can use it.",
       "readMorePermissions": "Read more about permissions",
       "projectId": "Project ID",
       "projectIdBody": "Please head over to <strong>Project Settings</strong> > <strong>Project</strong>. You should see your Project ID there.",
@@ -132,7 +132,7 @@
       "metaDescription": "Learn how permissions work with OneUptime",
       "badge": "Guide",
       "title": "Permissions",
-      "intro": "Your API Token needs permissions to create, update, read or delete any resource. If you do not have permissions to make a request a <code>4xx</code> status will be sent as response. You can manage permissions for your API Key in Project Settings > API Keys.",
+      "intro": "Your API Token needs permissions to create, update, read or delete any resource. If you do not have permissions to make a request a <code>4xx</code> status will be sent as response. You can manage permissions for your API Key in Project Settings > Advanced > API Keys.",
       "jumpToCategory": "Jump to a category"
     },
     "errors": {

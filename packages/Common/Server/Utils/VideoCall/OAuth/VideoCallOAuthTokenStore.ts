@@ -436,7 +436,7 @@ export default class VideoCallOAuthTokenStore {
 
     if (!connection) {
       throw new BadDataException(
-        "The video call connection no longer exists. Pick another one, or connect a provider again in Project Settings > Video Calls.",
+        "The video call connection no longer exists. Pick another one, or connect a provider again in Project Settings > Workspace > Video Calls.",
       );
     }
 
@@ -528,7 +528,7 @@ export default class VideoCallOAuthTokenStore {
     const title: string = getVideoCallProviderDisplayName(provider);
 
     return new BadDataException(
-      `This ${title} connection is signed out: the account that connected it removed OneUptime, or the sign-in never finished. Reconnect ${title} in Project Settings > Video Calls.`,
+      `This ${title} connection is signed out: the account that connected it removed OneUptime, or the sign-in never finished. Reconnect ${title} in Project Settings > Workspace > Video Calls.`,
     );
   }
 }

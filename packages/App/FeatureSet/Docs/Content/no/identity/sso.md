@@ -44,6 +44,8 @@ Personer som logger inn for første gang, blir med i leverandørens **Team**, og
 > [!NOTE]
 > På OneUptime Cloud logger ikke OneUptime inn en person som logger inn i prosjektet for første gang med en av prosjektets SAML- eller OIDC-leverandører; i stedet sender OneUptime en lenke på e-post. Personen åpner lenken, bekrefter at prosjektets single sign-on får logge vedkommende inn, og fortsetter påloggingen. Lenken gjelder i 24 timer. Dette skjer én gang per prosjekt, og på nytt hvis personen forlater prosjektet og kommer tilbake. Selvhostede installasjoner logger personer inn med en gang.
 
+På OneUptime Cloud tar en person som blir med i prosjektet via SSO en plass, akkurat som en person du inviterer. Hvis planen din har et fast antall plasser og alle er tatt, kan nye personer ikke bli med via SSO før en plass blir ledig.
+
 ## Sette opp SSO
 
 Du trenger tillatelse til å legge til SSO-leverandører — **Project Owner**, **Project Admin** eller **Create Project SSO** — og på OneUptime Cloud planen **Scale**. Se [veiledningene for identitetsleverandører](#veiledninger-for-identitetsleverandører) for siden hos identitetsleverandøren din.

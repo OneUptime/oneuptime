@@ -234,7 +234,7 @@ Querytekst in de uitvoer wordt genormaliseerd (elke string- en getalliteral word
 
 ## Hoe fixes werken
 
-Fixes staan uit tot je ze aanzet, en daarvoor zijn twee instellingen op de agent nodig: `ONEUPTIME_AI_FIXES` op een andere modus dan `off` (zie [Wat AI mag doen, ingesteld door de agent](#wat-ai-mag-doen-ingesteld-door-de-agent)) en `ONEUPTIME_AI_ALLOW_WRITES=true` (zie [Schrijftoegang op de agent](#schrijftoegang-op-de-agent)). Eén van de twee alleen verandert niets. Een agent die ouder is dan `ONEUPTIME_AI_FIXES` neemt **Oplossingen** in plaats daarvan over van de pagina van de AI-agent van de resource. Fixes hebben ook nodig dat AI voor het project is ingeschakeld (**AI inschakelen** onder Projectinstellingen → AI Features), wat zo is tenzij iemand het heeft uitgezet.
+Fixes staan uit tot je ze aanzet, en daarvoor zijn twee instellingen op de agent nodig: `ONEUPTIME_AI_FIXES` op een andere modus dan `off` (zie [Wat AI mag doen, ingesteld door de agent](#wat-ai-mag-doen-ingesteld-door-de-agent)) en `ONEUPTIME_AI_ALLOW_WRITES=true` (zie [Schrijftoegang op de agent](#schrijftoegang-op-de-agent)). Eén van de twee alleen verandert niets. Een agent die ouder is dan `ONEUPTIME_AI_FIXES` neemt **Oplossingen** in plaats daarvan over van de pagina van de AI-agent van de resource. Fixes hebben ook nodig dat AI voor het project is ingeschakeld (**AI inschakelen** onder Projectinstellingen → AI → AI Features), wat zo is tenzij iemand het heeft uitgezet.
 
 ### Fixmodi
 

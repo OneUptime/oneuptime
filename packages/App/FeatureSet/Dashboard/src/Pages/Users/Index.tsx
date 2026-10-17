@@ -253,7 +253,7 @@ const Users: FunctionComponent<PageComponentProps> = (
       {isPushGroupsManaged && (
         <Banner
           title="Users are managed by SCIM Push Groups"
-          description="Invite or remove users from your identity provider or disable Push Groups in Settings > SCIM to manage them here."
+          description="Invite or remove users from your identity provider or disable Push Groups in Project Settings > Security > SCIM to manage them here."
         />
       )}
 
@@ -566,7 +566,7 @@ const Users: FunctionComponent<PageComponentProps> = (
       {showScimErrorModal && (
         <ConfirmModal
           title="Users are managed by SCIM Push Groups"
-          description="Team membership is being managed by your identity provider. Disable Push Groups in Settings > SCIM if you need to invite or promote users from OneUptime."
+          description="Team membership is being managed by your identity provider. Disable Push Groups in Project Settings > Security > SCIM if you need to invite or promote users from OneUptime."
           onSubmit={() => {
             setShowScimErrorModal(false);
           }}

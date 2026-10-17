@@ -28,7 +28,7 @@ Dans OneUptime, tout se trouve dans un projet : vos moniteurs, incidents, politi
 
 ### Lui donner un nom
 
-Saisissez un **Nom du projet**, par exemple le nom de votre entreprise. Sur OneUptime Cloud, l'étape suivante vous demande de choisir un forfait.
+Saisissez un **Nom du projet**, par exemple le nom de votre entreprise. Sur OneUptime Cloud, choisissez aussi un forfait juste en dessous : Free est déjà sélectionné, et les forfaits payants commencent par un essai gratuit.
 
 ### Le créer
 

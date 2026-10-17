@@ -138,7 +138,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "MS Teams Subscribers",
+            title: "Microsoft Teams Subscribers",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS

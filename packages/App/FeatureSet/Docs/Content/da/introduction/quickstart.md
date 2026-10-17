@@ -28,7 +28,7 @@ Første gang du logger ind, viser OneUptime **Ingen projekter**. Klik på **Opre
 
 ### Giv det et navn
 
-Indtast et **Projektnavn**, for eksempel din virksomheds navn. På OneUptime Cloud beder det næste trin dig vælge en plan.
+Indtast et **Projektnavn**, for eksempel din virksomheds navn. På OneUptime Cloud vælger du også en plan lige nedenunder: Free er allerede valgt, og de betalte planer starter med en gratis prøveperiode.
 
 ### Opret det
 

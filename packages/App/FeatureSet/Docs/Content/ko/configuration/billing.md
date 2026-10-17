@@ -176,7 +176,7 @@ OneUptime Cloud에서는 다음 관리 설정에 요금제가 필요합니다. �
 
 ## 문제 해결
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 Free 요금제 프로젝트는 활성 모니터를 만들거나 텔레메트리를 보내기 전에 결제 수단이 있어야 합니다. 이들은 사용한 만큼 비용을 내기 때문입니다. [결제 방법](#결제-방법)에서 추가하세요. 수동 모니터는 계속 무료입니다.
 :::
 

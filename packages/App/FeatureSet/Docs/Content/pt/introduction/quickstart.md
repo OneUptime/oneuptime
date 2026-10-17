@@ -28,7 +28,7 @@ Na primeira vez que você entra, o OneUptime mostra **Nenhum projeto**. Clique e
 
 ### Dar um nome
 
-Digite um **Nome do projeto**, por exemplo o nome da sua empresa. No OneUptime Cloud, a etapa seguinte pede que você escolha um plano.
+Digite um **Nome do projeto**, por exemplo o nome da sua empresa. No OneUptime Cloud, escolha também um plano logo abaixo: o Free já vem escolhido, e os planos pagos começam com um teste grátis.
 
 ### Criar o projeto
 

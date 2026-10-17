@@ -423,7 +423,7 @@ export class Service extends ProjectReferencesService<Model> {
             timezones: user.timezone ? [user.timezone] : [],
           }),
           viewAIAgentsLink: (
-            await this.getLinkInDashboard(aiAgent.projectId!, aiAgent.id!)
+            await this.getLinkInDashboard(aiAgent.projectId!)
           ).toString(),
         };
 
@@ -505,15 +505,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * Where an AI agent's emails, pushes and messages send its owners: the
+   * project's Tasks page, whose readiness card says which agent is online.
+   * They linked to an AI Agents page under Project Settings, which was
+   * retired when Runners replaced the agent container, so the link opened
+   * nothing.
+   */
   @CaptureSpan()
-  public async getLinkInDashboard(
-    projectId: ObjectID,
-    aiAgentId: ObjectID,
-  ): Promise<URL> {
+  public async getLinkInDashboard(projectId: ObjectID): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/settings/ai-agents/${aiAgentId.toString()}`,
+      `/${projectId.toString()}/ai/agents`,
     );
   }
 

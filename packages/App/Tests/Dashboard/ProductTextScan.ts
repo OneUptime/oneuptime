@@ -13,12 +13,14 @@ import ts from "typescript";
  *
  * ee/ is read where it is checked out: the App Test job deletes it, and the
  * Enterprise Edition Test workflow (test.ee.yaml) runs the suites that read
- * these with it present.
+ * these with it present. The other packages that speak to people - the
+ * website (its pages tell what the product does and where), the Runner, the
+ * probe, the CLI and the mobile app - are read as files, never imported.
  *
  * The menu path guards read their texts here: SettingsMenuPathsInProductText
- * (User Settings and Project Settings) and OnCallDutyMenuPathsInProductText
- * (On-Call Duty). A plain module, not a .test.ts file: importing it runs no
- * tests.
+ * and ProjectSettingsMenuPathsInProductText (User Settings and Project
+ * Settings) and OnCallDutyMenuPathsInProductText (On-Call Duty). A plain
+ * module, not a .test.ts file: importing it runs no tests.
  */
 
 export const PACKAGES_ROOT: string = path.resolve(__dirname, "../../..");
@@ -37,7 +39,10 @@ export const CODE_FILE: RegExp = /\.(ts|tsx)$/;
 export const TEMPLATE_FILE: RegExp = /\.(hbs|ejs)$/;
 const TEST_FILE: RegExp = /\.(test|spec)\.(ts|tsx)$/;
 
-// Where OneUptime's own words are: the server, the emails, every frontend.
+/*
+ * Where OneUptime's own words are: the server, the emails, every frontend,
+ * the website, the Runner, the probe, the CLI and the mobile app.
+ */
 export const SCANNED_ROOTS: ReadonlyArray<string> = [
   path.join(PACKAGES_ROOT, "Common", "Server"),
   path.join(PACKAGES_ROOT, "Common", "Utils"),
@@ -45,6 +50,11 @@ export const SCANNED_ROOTS: ReadonlyArray<string> = [
   path.join(PACKAGES_ROOT, "Common", "UI"),
   path.join(PACKAGES_ROOT, "Common", "Models"),
   path.join(PACKAGES_ROOT, "App", "FeatureSet"),
+  path.join(PACKAGES_ROOT, "Home"),
+  path.join(PACKAGES_ROOT, "Runner"),
+  path.join(PACKAGES_ROOT, "Probe"),
+  path.join(PACKAGES_ROOT, "CLI"),
+  path.join(PACKAGES_ROOT, "MobileApp", "src"),
   path.join(REPO_ROOT, "ee", "Server"),
   path.join(REPO_ROOT, "ee", "Dashboard"),
   path.join(REPO_ROOT, "ee", "AdminDashboard"),

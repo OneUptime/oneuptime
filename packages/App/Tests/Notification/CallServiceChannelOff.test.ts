@@ -170,7 +170,7 @@ describe("a call while phone calls are off in the project", () => {
       getProjectNotificationChannelOffMessage(ProjectNotificationChannel.Call),
     );
     expect(loggedCalls()[0]!.statusMessage).toBe(
-      "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.",
+      "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.",
     );
   });
 
@@ -191,7 +191,7 @@ describe("a call while phone calls are off in the project", () => {
     expect(projectId).toEqual(PROJECT_ID);
     expect(subject).toBe("Call notifications not enabled for Acme");
     expect(body).toContain(
-      "This call was not made. Phone calls are off in this project. If they should be on, turn them on in Project Settings &gt; Notification Settings.",
+      "This call was not made. Phone calls are off in this project. If they should be on, turn them on in Project Settings &gt; Notifications &gt; Notification Settings.",
     );
     expect(body).toContain(`<a href="${SETTINGS_LINK}">${SETTINGS_LINK}</a>`);
     expect(body).not.toContain("Please enable");

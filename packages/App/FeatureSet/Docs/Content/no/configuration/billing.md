@@ -176,7 +176,7 @@ For å slutte å betale for et prosjekt sletter du det: faktureringen stopper n�
 
 ## Feilsøking
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 Et prosjekt på Free-abonnementet må ha en betalingsmetode før det oppretter aktive monitorer eller sender telemetri, fordi de betales etter bruk. Legg til en under [Betalingsmetoder](#betalingsmetoder). Manuelle monitorer forblir gratis.
 :::
 

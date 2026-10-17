@@ -194,7 +194,7 @@ describe("POST /monitor at the project's active monitor limit", () => {
     expect(error).toBeInstanceOf(BadDataException);
     expect((error as BadDataException).code).toBe(400);
     expect((error as BadDataException).message).toBe(
-      "This project has reached its plan's limit of 500 active monitors, so no more can be added. Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
+      "This project has reached its plan's limit of 500 active monitors, so no more can be added. Delete monitors you no longer need, or change the plan in Project Settings > Billing and Invoices > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
     );
     expect(Response.sendEntityResponse).not.toHaveBeenCalled();
     expect(monitors.inserts).toEqual([]);

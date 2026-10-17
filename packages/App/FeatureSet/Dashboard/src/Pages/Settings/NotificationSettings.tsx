@@ -43,10 +43,10 @@ import React, {
 } from "react";
 
 /*
- * Project Settings -> Notification Settings: the balance SMS, calls,
- * WhatsApp and Telegram are paid from (billing only), the four channel
- * switches, Auto Recharge (billing only), and the project's own SMTP and
- * Twilio configs.
+ * Project Settings -> Notifications -> Notification Settings: the balance SMS,
+ * calls, WhatsApp and Telegram are paid from (billing only), the four channel
+ * switches, Auto Recharge (billing only), and the project's own SMTP and Twilio
+ * configs.
  *
  * Only a project owner or someone with Manage Billing may add to the
  * balance or change Auto Recharge (Common/Utils/Project/ProjectBalance). So

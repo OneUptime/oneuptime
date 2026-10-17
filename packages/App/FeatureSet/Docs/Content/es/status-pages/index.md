@@ -87,7 +87,7 @@ Una vez abierta una página de estado, su propio menú lateral izquierdo se agru
 | --- | --- |
 | **Básico** | **Vista general**, **Anuncios**, **Propietarios**. |
 | **Recursos** | Una sola pantalla **Recursos** (los grupos a la izquierda, los monitores del grupo seleccionado a la derecha) y **Reglas de monitores**. |
-| **Suscriptores** | **Suscriptores por correo electrónico**, **Suscriptores por SMS**, **Suscriptores de Slack**, **Suscriptores de MS Teams**, **Suscriptores de webhook**, **Ajustes de suscriptores**. |
+| **Suscriptores** | **Suscriptores por correo electrónico**, **Suscriptores por SMS**, **Suscriptores de Slack**, **Suscriptores de Microsoft Teams**, **Suscriptores de webhook**, **Ajustes de suscriptores**. |
 | **Registros de notificación** | **Registros de notificación**: lo que se envió a los suscriptores. |
 | **Marca** | **Marca** (logotipo, título, favicon, enlaces, pie de página, colores e idiomas, en una sola página), **Dominios personalizados**, **HTML, CSS y JavaScript**. |
 | **Seguridad** | **Acceso** (quién puede ver la página), **Usuarios privados**, **SSO**, **OIDC**, **SCIM**. |

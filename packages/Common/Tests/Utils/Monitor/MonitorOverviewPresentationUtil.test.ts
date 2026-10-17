@@ -866,10 +866,12 @@ describe("MonitorOverviewPresentationUtil hero", () => {
     expect(presentation.explanation).toBe(
       "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or scheduled maintenance event changes it.",
     );
-    expect(presentation.callToAction).toEqual({
-      text: "Change status",
-      linkKey: "statusTimeline",
-    });
+    /*
+     * Changing the status is in the hero's More actions (⋯) menu beside
+     * Refresh, not a call to action under the text.
+     */
+    expect(presentation.callToAction).toBeUndefined();
+    expect(presentation.moreActions).toEqual(["changeStatus"]);
 
     const unknown: MonitorOverviewPresentation = build(
       running(MonitorType.Manual, { currentStatus: undefined }),
@@ -877,6 +879,9 @@ describe("MonitorOverviewPresentationUtil hero", () => {
 
     expect(unknown.badge).toEqual({ text: "Unknown status", tone: "neutral" });
     expect(unknown.headline.text).toBe("No status recorded yet");
+    // A status can be set when none is recorded yet, too.
+    expect(unknown.callToAction).toBeUndefined();
+    expect(unknown.moreActions).toEqual(["changeStatus"]);
   });
 
   it("paused copy per reason", () => {
@@ -3108,5 +3113,143 @@ describe("MonitorOverviewPresentationUtil clock", () => {
         return build(input);
       }),
     ).toEqual(before);
+  });
+});
+
+/*
+ * The hero's More actions (⋯) menu, beside Refresh. "Please move the change
+ * status button near the refresh button, and it should be hidden behind the
+ * more button (three dots)." A manual monitor's Change status lives there
+ * now; every other monitor sets its own status from its checks, so it gets
+ * no menu at all (an empty list draws none).
+ */
+describe("MonitorOverviewPresentationUtil more actions", () => {
+  it.each(SCENARIOS)(
+    "$name offers Change status only when it is manual",
+    (scenario: Scenario) => {
+      const presentation: MonitorOverviewPresentation = build(scenario.input);
+
+      expect(presentation.moreActions).toEqual(
+        presentation.runState === MonitorOverviewRunState.Manual
+          ? ["changeStatus"]
+          : [],
+      );
+    },
+  );
+
+  it.each(ALL_TYPES)(
+    "a running %s monitor offers Change status only if it is Manual",
+    (monitorType: MonitorType) => {
+      expect(build(running(monitorType)).moreActions).toEqual(
+        monitorType === MonitorType.Manual ? ["changeStatus"] : [],
+      );
+    },
+  );
+
+  it("no state draws Change status as its call to action any more", () => {
+    const inputs: Array<MonitorOverviewPresentationInput> = [
+      ...SCENARIOS.map((scenario: Scenario) => {
+        return scenario.input;
+      }),
+      ...ALL_TYPES.map((monitorType: MonitorType) => {
+        return running(monitorType);
+      }),
+    ];
+
+    for (const input of inputs) {
+      const presentation: MonitorOverviewPresentation = build(input);
+
+      expect({
+        monitorType: input.monitorType,
+        callToAction: presentation.callToAction?.text,
+      }).not.toEqual({
+        monitorType: input.monitorType,
+        callToAction: "Change status",
+      });
+      expect(presentation.callToAction?.linkKey).not.toBe("statusTimeline");
+    }
+  });
+
+  it("a manual monitor keeps it whatever pauses its (absent) checks, and whatever its status", () => {
+    const pauses: Array<MonitorOverviewPresentationInput["pause"]> = [
+      {
+        isDisabled: true,
+        byManualIncident: false,
+        byScheduledMaintenance: false,
+      },
+      {
+        isDisabled: false,
+        byManualIncident: true,
+        byScheduledMaintenance: false,
+      },
+      {
+        isDisabled: false,
+        byManualIncident: false,
+        byScheduledMaintenance: true,
+      },
+      {
+        isArchived: true,
+        isDisabled: false,
+        byManualIncident: false,
+        byScheduledMaintenance: false,
+      },
+    ];
+
+    for (const pause of pauses) {
+      const presentation: MonitorOverviewPresentation = build(
+        running(MonitorType.Manual, { pause: pause }),
+      );
+
+      expect(presentation.runState).toBe(MonitorOverviewRunState.Manual);
+      expect(presentation.moreActions).toEqual(["changeStatus"]);
+      expect(presentation.callToAction).toBeUndefined();
+    }
+
+    for (const status of [OPERATIONAL, DEGRADED, OFFLINE, undefined]) {
+      expect(
+        build(running(MonitorType.Manual, { currentStatus: status }))
+          .moreActions,
+      ).toEqual(["changeStatus"]);
+    }
+  });
+
+  it("is decided by the run state alone", () => {
+    for (const runState of Object.values(MonitorOverviewRunState)) {
+      expect({
+        runState,
+        moreActions: MonitorOverviewPresentationUtil.getMoreActions({
+          runState: runState,
+        }),
+      }).toEqual({
+        runState,
+        moreActions:
+          runState === MonitorOverviewRunState.Manual ? ["changeStatus"] : [],
+      });
+    }
+  });
+
+  it("the other states keep their own call to action, and get no menu", () => {
+    const disabled: MonitorOverviewPresentation = build(
+      running(MonitorType.API, {
+        pause: {
+          isDisabled: true,
+          byManualIncident: false,
+          byScheduledMaintenance: false,
+        },
+      }),
+    );
+
+    expect(disabled.callToAction?.text).toBe("Turn monitoring on");
+    expect(disabled.moreActions).toEqual([]);
+
+    const noProbes: MonitorOverviewPresentation = build(
+      running(MonitorType.API, {
+        probeFlags: { isNoProbeEnabled: true, isAllProbesDisconnected: false },
+        probes: null,
+      }),
+    );
+
+    expect(noProbes.callToAction?.text).toBe("Manage probes");
+    expect(noProbes.moreActions).toEqual([]);
   });
 });

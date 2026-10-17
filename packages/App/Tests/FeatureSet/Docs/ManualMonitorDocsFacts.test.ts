@@ -10,6 +10,9 @@ import {
   getCurlCommand,
 } from "Common/Utils/DeveloperDocs/ApiExamples";
 import { ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE } from "Common/Utils/DeveloperDocs/ExampleValues";
+import MonitorOverviewPresentationUtil, {
+  MonitorOverviewRunState,
+} from "Common/Utils/Monitor/MonitorOverviewPresentationUtil";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -18,9 +21,10 @@ import path from "path";
  * What the English Manual Monitor page says about the product, held to the
  * code that makes it true: where the type picker offers Manual, that it is
  * created from the first step with no interval, probes or criteria, that it
- * is not billed as an active monitor, how its status is changed on the
- * Status Timeline and through the API (the endpoint, the fields, the answer
- * to a status it already has), and what an incident does to it.
+ * is not billed as an active monitor, how its status is changed from the
+ * More actions menu beside Refresh on its overview, on the Status Timeline
+ * and through the API (the endpoint, the fields, the answer to a status it
+ * already has), and what an incident does to it.
  *
  * Markdown is not compiled, so nothing else notices when the create form
  * grows a step for Manual, the timeline's form is renamed, or the API moves.
@@ -53,6 +57,12 @@ const ACTIVE_MONITORING_PLAN_FILE: string =
   "Common/Server/Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan.ts";
 const ACTIVE_MONITOR_LIMIT_FILE: string =
   "Common/Server/Utils/Billing/ActiveMonitorLimit.ts";
+const HERO_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewHero.tsx";
+const HERO_ACTIONS_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewActions.tsx";
+const CHANGE_STATUS_MENU_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorChangeStatusMenu.tsx";
 
 const PAGE: string = "monitor/manual-monitor";
 
@@ -180,6 +190,79 @@ describe("creating a manual monitor", () => {
 
 describe("changing its status in the dashboard", () => {
   const dashboard: string = section("### In the dashboard");
+
+  it("starts from More actions, beside Refresh at the top right of a manual monitor's overview", () => {
+    const hero: string = readRepoFile(HERO_FILE);
+    const actions: string = readRepoFile(HERO_ACTIONS_FILE);
+    const menu: string = readRepoFile(CHANGE_STATUS_MENU_FILE);
+
+    // A manual monitor's hero has the menu, and no other's does.
+    expect(
+      MonitorOverviewPresentationUtil.getMoreActions({
+        runState: MonitorOverviewRunState.Manual,
+      }),
+    ).toEqual(["changeStatus"]);
+    expect(
+      MonitorOverviewPresentationUtil.getMoreActions({
+        runState: MonitorOverviewRunState.Running,
+      }),
+    ).toEqual([]);
+
+    // The ⋯ is named More actions, and follows Refresh...
+    expect(menu).toContain('text="More actions"');
+    expect(actions).toContain(
+      'aria-label={translator.translateText("Refresh")}',
+    );
+    expect(
+      actions.indexOf("data-testid={MONITOR_OVERVIEW_REFRESH_TEST_ID}"),
+    ).toBeLessThan(actions.indexOf("<MonitorChangeStatusMenu"));
+    // ...at the top right of the hero, on the badges' line.
+    expect(hero).toContain(
+      'data-testid="monitor-overview-actions-cell"\n              className="col-start-2 row-start-1 self-start"',
+    );
+
+    expect(dashboard).toContain(
+      "1. Open the monitor. At the top right of its overview, beside **Refresh**, click **More actions** (⋯).",
+    );
+  });
+
+  it("lists the statuses under Change status to, and asks once before Change status", () => {
+    const menu: string = readRepoFile(CHANGE_STATUS_MENU_FILE);
+
+    expect(menu).toContain(
+      '<MoreMenuSection key="change-status" title="Change status to">',
+    );
+    expect(menu).toContain('submitButtonText="Change status"');
+    expect(dashboard).toContain(
+      "2. Under **Change status to**, pick the new status.",
+    );
+    expect(dashboard).toContain(
+      "3. Click **Change status**. The new status starts now, and shows on the monitor, and on every status page that lists it, straight away.",
+    );
+  });
+
+  it("starts the change now: the menu sends no start time, so the server starts it", () => {
+    const menu: string = readRepoFile(CHANGE_STATUS_MENU_FILE);
+    const service: string = readRepoFile(TIMELINE_SERVICE_FILE);
+
+    expect(menu).toContain(
+      "await ModelAPI.create<MonitorStatusTimeline>({\n          model: event,\n          modelType: MonitorStatusTimeline,\n        });",
+    );
+    expect(menu).not.toContain("event.startsAt");
+    expect(service).toContain(
+      "if (!createBy.data.startsAt) {\n      createBy.data.startsAt = OneUptimeDate.getCurrentDate();",
+    );
+  });
+
+  it("sends a change that started earlier to the Status Timeline", () => {
+    expect(dashboard).toContain(
+      "A change that started earlier is recorded on the monitor's status timeline instead:",
+    );
+    // The quick steps come first, then the timeline's.
+    expect(dashboard.indexOf("**More actions**")).toBeLessThan(
+      dashboard.indexOf("**Status Timeline**"),
+    );
+  });
 
   it("starts on the Status Timeline, which every monitor's menu has", () => {
     const menu: string = readRepoFile(MONITOR_VIEW_MENU_FILE);

@@ -1065,7 +1065,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       expect(domainField.dropdownModal?.query).toEqual({ isVerified: true });
       expect(domainField.required).toBe(true);
       expect(domainField.description).toBe(
-        "Only domains verified in Project Settings → Domains are listed.",
+        "Only domains verified in Project Settings → Advanced → Domains are listed.",
       );
       expect(domainField.sideLink?.text).toBe("Add a domain");
       expect(domainField.sideLink?.url.toString()).toContain(

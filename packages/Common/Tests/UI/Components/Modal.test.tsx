@@ -98,6 +98,26 @@ describe("Modal", () => {
     expect(closeButton).not.toHaveClass("md:hidden");
   });
 
+  it("breaks a two-line description so no word is left alone on its last line", () => {
+    /*
+     * "A project holds your monitors, incidents, status pages and" over a
+     * lone "team." - the Create New Project dialog's description in the
+     * narrow, self-hosted dialog (and "... und / Ihr Team." in German).
+     * text-wrap: pretty takes a few words down with the last one.
+     */
+    const { getByTestId } = render(
+      <Modal
+        title="Create New Project"
+        description="A project holds your monitors, incidents, status pages and team."
+        onClose={getJestMockFunction()}
+      >
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-description")).toHaveClass("text-pretty");
+  });
+
   it("keeps keyboard focus inside the modal", () => {
     const onCloseMock: MockFunction = getJestMockFunction();
     const onSubmitMock: MockFunction = getJestMockFunction();

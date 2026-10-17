@@ -98,10 +98,10 @@
       "title": "인증",
       "intro": "OneUptime API의 모든 엔드포인트에 접근하려면 요청을 인증해야 합니다. 이 가이드에서는 인증이 어떻게 작동하는지 살펴봅니다. OneUptime은 API 요청을 인증하는 한 가지 방법인 API Key 사용을 제공합니다.",
       "generateApiKey": "API Key 생성하기",
-      "generateApiKeyBody": "<strong>Project Settings</strong> > <strong>API Keys</strong>로 이동하세요. 새로운 API Key를 생성합니다. 참고: 새로 생성된 API Key에는 권한이 할당되어 있지 않으므로, 사용하기 전에 먼저 권한을 할당해야 합니다.",
+      "generateApiKeyBody": "<strong>프로젝트 설정</strong> > <strong>고급</strong> > <strong>API 키</strong>로 이동하세요. 새로운 API Key를 생성합니다. 참고: 새로 생성된 API Key에는 권한이 할당되어 있지 않으므로, 사용하기 전에 먼저 권한을 할당해야 합니다.",
       "readMorePermissions": "권한에 대해 자세히 알아보기",
       "projectId": "프로젝트 ID",
-      "projectIdBody": "<strong>Project Settings</strong> > <strong>Project</strong>로 이동하세요. 그곳에서 Project ID를 확인할 수 있습니다.",
+      "projectIdBody": "<strong>프로젝트 설정</strong> > <strong>프로젝트</strong>로 이동하세요. 그곳에서 Project ID를 확인할 수 있습니다.",
       "authWithApiKey": "API Key를 통한 인증",
       "authWithApiKeyBody": "요청을 보낼 때 OneUptime API Key를 Request Header에 사용할 수 있습니다. 요청 시 API Key와 함께 <code>ApiKey</code> 헤더를 사용할 수 있습니다.",
       "exampleApiRequest": "API Key를 사용한 요청 예시",
@@ -132,7 +132,7 @@
       "metaDescription": "OneUptime의 권한이 어떻게 작동하는지 알아봅니다",
       "badge": "가이드",
       "title": "권한",
-      "intro": "API 토큰은 리소스를 생성, 업데이트, 읽기 또는 삭제하기 위한 권한이 필요합니다. 요청을 보낼 권한이 없는 경우 응답으로 <code>4xx</code> 상태가 전송됩니다. Project Settings > API Keys에서 API Key의 권한을 관리할 수 있습니다.",
+      "intro": "API 토큰은 리소스를 생성, 업데이트, 읽기 또는 삭제하기 위한 권한이 필요합니다. 요청을 보낼 권한이 없는 경우 응답으로 <code>4xx</code> 상태가 전송됩니다. 프로젝트 설정 > 고급 > API 키에서 API Key의 권한을 관리할 수 있습니다.",
       "jumpToCategory": "카테고리로 이동"
     },
     "errors": {

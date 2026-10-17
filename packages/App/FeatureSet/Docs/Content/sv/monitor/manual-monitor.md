@@ -56,6 +56,14 @@ Ange ett **Namn** — och en **Beskrivning** under **Fler fält**, om du vill �
 ### I instrumentpanelen
 
 :::steps
+1. Öppna monitorn. Klicka på **More actions** (⋯) längst upp till höger i dess översikt, bredvid **Uppdatera**.
+2. Välj den nya statusen under **Ändra status till**.
+3. Klicka på **Ändra status**. Den nya statusen börjar nu och visas direkt på monitorn och på varje statussida som listar den.
+:::
+
+En ändring som började tidigare registreras i stället på monitorns statustidslinje:
+
+:::steps
 1. Öppna monitorn och klicka på **Statustidslinje** i dess sidomeny.
 2. Klicka på **Skapa Monitor Status Händelse**.
 3. Välj **Monitorstatus**. **Börjar den** är nu; ange en tidigare tidpunkt om ändringen skedde tidigare.

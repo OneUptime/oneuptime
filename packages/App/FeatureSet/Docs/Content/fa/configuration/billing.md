@@ -176,7 +176,7 @@ flowchart TB
 
 ## عیب‌یابی
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 پروژه‌ای با طرح Free پیش از ساختن مانیتورهای فعال یا فرستادن تله‌متری به یک روش پرداخت نیاز دارد، چون هزینهٔ آن‌ها بر اساس مصرف پرداخت می‌شود. یکی را در [روش‌های پرداخت](#روشهای-پرداخت) اضافه کنید. مانیتورهای دستی رایگان می‌مانند.
 :::
 

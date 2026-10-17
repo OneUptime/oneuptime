@@ -153,7 +153,7 @@ flowchart TB
 
 ### Antes de começar
 
-- **O domínio pai precisa estar verificado.** A lista **Domínio** só mostra os domínios verificados em **Configurações do projeto → Domínios**, onde você prova com um registro TXT que um domínio é seu. O link **Adicionar um domínio** ao lado do campo abre essa página em uma nova aba.
+- **O domínio pai precisa estar verificado.** A lista **Domínio** só mostra os domínios verificados em **Configurações do projeto → Avançado → Domínios**, onde você prova com um registro TXT que um domínio é seu. O link **Adicionar um domínio** ao lado do campo abre essa página em uma nova aba.
 - **Sua instalação precisa de um registro CNAME de páginas de status.** O OneUptime Cloud tem um. Em uma instalação auto-hospedada, defina-o como um nome de host que aponta para o seu servidor OneUptime (um registro A), e garanta que o servidor responda na porta 80, onde o Let's Encrypt faz a verificação. Sem ele, o cartão e a caixa de diálogo **Configuração de DNS** dizem "Custom Domains not enabled for this OneUptime installation" em vez de mostrar um registro.
 
 :::tabs

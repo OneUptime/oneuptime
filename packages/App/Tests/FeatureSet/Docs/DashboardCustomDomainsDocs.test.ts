@@ -89,7 +89,7 @@ describe("Dashboard custom domains (English docs)", () => {
     expect(adding).toContain(
       `placeholder \`${DASHBOARD_CUSTOM_DOMAIN_COPY.subdomainPlaceholder}\``,
     );
-    expect(adding).toContain("**Project Settings → Domains**");
+    expect(adding).toContain("**Project Settings → Advanced → Domains**");
     expect(adding).toContain(`**${CustomDomainCopy.domainFieldSideLink}**`);
     expect(adding).toContain("**More fields**");
     expect(adding).toContain(CustomDomainCopy.advancedSummaryFreeCertificate);

@@ -211,7 +211,7 @@ describe("MicrosoftTeamsMeetingsOAuthApp", () => {
 
     expect(error).toBeInstanceOf(BadDataException);
     expect((error as Error).message).toContain(
-      "Reconnect Microsoft Teams in Project Settings > Video Calls",
+      "Reconnect Microsoft Teams in Project Settings > Workspace > Video Calls",
     );
   });
 });

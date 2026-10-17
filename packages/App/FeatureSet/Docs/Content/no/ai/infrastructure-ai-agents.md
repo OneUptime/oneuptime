@@ -234,7 +234,7 @@ Spørringstekst i utdataene normaliseres (hver streng- og tall-literal blir til 
 
 ## Slik fungerer rettelser
 
-Rettelser er slått av til du slår dem på, og det krever to innstillinger på agenten: `ONEUPTIME_AI_FIXES` satt til en annen modus enn `off` (se [Hva KI-en kan gjøre, satt av agenten](#hva-ki-en-kan-gjøre-satt-av-agenten)) og `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skrivetilgang på agenten](#skrivetilgang-på-agenten)). Én av dem alene endrer ingenting. En agent som er eldre enn `ONEUPTIME_AI_FIXES`, henter i stedet **Rettelser** fra ressursens AI-agent-side. Rettelser krever også at KI er aktivert for prosjektet (**Aktiver AI** under Prosjektinnstillinger → AI Features), noe den er med mindre noen har slått den av.
+Rettelser er slått av til du slår dem på, og det krever to innstillinger på agenten: `ONEUPTIME_AI_FIXES` satt til en annen modus enn `off` (se [Hva KI-en kan gjøre, satt av agenten](#hva-ki-en-kan-gjøre-satt-av-agenten)) og `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skrivetilgang på agenten](#skrivetilgang-på-agenten)). Én av dem alene endrer ingenting. En agent som er eldre enn `ONEUPTIME_AI_FIXES`, henter i stedet **Rettelser** fra ressursens AI-agent-side. Rettelser krever også at KI er aktivert for prosjektet (**Aktiver AI** under Prosjektinnstillinger → KI → AI Features), noe den er med mindre noen har slått den av.
 
 ### Rettelsesmoduser
 

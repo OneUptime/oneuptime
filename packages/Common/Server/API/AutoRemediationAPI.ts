@@ -886,7 +886,7 @@ router.post(
 
         if (!project || project.enableAi === false) {
           throw new BadDataException(
-            "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.",
+            "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI → AI Features, or dismiss the suggestion.",
           );
         }
 

@@ -150,7 +150,7 @@ function columnsOf(
   );
 }
 
-// The project's AI switch, which lives on Project Settings → AI Features.
+// The project's AI switch, which lives on Project Settings → AI → AI Features.
 const PROJECT_AI_SWITCH_FIELDS: Array<string> = ["enableAi"];
 
 /*

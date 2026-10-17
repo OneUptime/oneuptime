@@ -197,7 +197,7 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
         <ConfirmModal
           title={`Could not add Microsoft Teams`}
           description={addError}
-          submitButtonText={"Open Microsoft Teams Integration Settings"}
+          submitButtonText={"Open Microsoft Teams Settings"}
           closeButtonText={"Close"}
           onClose={() => {
             setAddError("");

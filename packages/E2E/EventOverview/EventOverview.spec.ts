@@ -4253,7 +4253,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       );
       await expect(notice).toHaveAttribute("role", "alert");
       await expect(notice).toContainText(
-        "AI is turned off for this project. Turn it on in Project Settings → AI Features, then ask again.",
+        "AI is turned off for this project. Turn it on in Project Settings → AI → AI Features, then ask again.",
       );
       // A line with a red mark: it was a red box.
       expect(await frameLook(notice)).toEqual(NO_FRAME);

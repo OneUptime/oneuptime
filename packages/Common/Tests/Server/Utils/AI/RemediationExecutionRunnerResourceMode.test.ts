@@ -781,7 +781,7 @@ describe("RemediationExecutionRunner.executeRemediation — resource rounds", ()
         set: {
           status: AutoRemediationSuggestionStatus.NoneApplicable,
           rationaleMarkdown:
-            "AI was disabled for this project before the run started (Project Settings → AI Features) — nothing was run or proposed.",
+            "AI was disabled for this project before the run started (Project Settings → AI → AI Features) — nothing was run or proposed.",
         },
       });
     },

@@ -1209,7 +1209,7 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       title: "The project is out of AI credits",
       description: "This project's AI credit balance is used up.",
       nextStep:
-        "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits.",
+        "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
       blocks: "both",
     });
     expect(status.gaps[0]?.nextStep).toBe(AI_BALANCE_INSUFFICIENT_NEXT_STEP);
@@ -1287,7 +1287,7 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       expect(gapCodes(status)).toEqual(["project_ai_disabled"]);
       expect(status.gaps[0]?.blocks).toBe("both");
       expect(status.gaps[0]?.nextStep).toBe(
-        "Enable AI under Project Settings → AI Features.",
+        "Enable AI under Project Settings → AI → AI Features.",
       );
       expect(status.isInvestigationReady).toBe(false);
       expect(status.isRemediationReady).toBe(false);

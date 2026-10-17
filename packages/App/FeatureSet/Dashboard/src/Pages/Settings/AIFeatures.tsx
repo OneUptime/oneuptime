@@ -44,8 +44,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * on — so on a self-hosted install it could be reached only by typing its
  * URL. It is the master switch: auto-remediation and AI commands on Runners
  * had switches of their own once, and both now follow it. Every message
- * that sends people to turn AI on names this page: "Project Settings → AI
- * Features".
+ * that sends people to turn AI on names this page, with the AI section it
+ * is in: "Project Settings → AI → AI Features".
  *
  * It is the switch itself, saving the moment it is flipped (the shared
  * ModelSwitchCard). It used to sit behind "Edit AI Features" and a dialog.

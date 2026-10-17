@@ -158,7 +158,7 @@ export const SERVER_MESSAGES: Readonly<Record<string, ReadonlyArray<string>>> =
       "You have reached the user limit for the free plan",
     ],
     [BILLING]: [
-      "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry",
+      "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry",
     ],
   };
 

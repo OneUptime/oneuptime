@@ -65,9 +65,9 @@ import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemed
  * can be narrowed by rules - Investigation rules and Auto remediation rules,
  * folded under More settings with the limits. With no rule, every one is.
  *
- * Project Settings → AI Features has a More settings fold of its own, with
- * the project's daily limits on everything OneUptime AI does - a ceiling
- * above the incident and alert limits (see the end of this file).
+ * Project Settings → AI → AI Features has a More settings fold of its own, with
+ * the project's daily limits on everything OneUptime AI does - a ceiling above
+ * the incident and alert limits (see the end of this file).
  *
  * Kept free of React so the pages and App/Tests read these exact strings.
  * Every sentence is wrapped in translationKey() so npm run i18n:extract
@@ -763,7 +763,7 @@ export const AiInsightsSettingsCopy: {
 export const AI_INSIGHTS_SWITCHES_TEST_ID: string = "ai-insights-switches";
 
 /*
- * Project Settings → AI Features: Enable AI, the project's one AI switch.
+ * Project Settings → AI → AI Features: Enable AI, the project's one AI switch.
  * Turning it off stops every AI feature at once, so it asks first.
  */
 export type EnableAiColumn = "enableAi";
@@ -801,11 +801,11 @@ export const EnableAiCopy: {
   ),
   turnOffConfirmButton: translationKey("Turn off AI"),
   whoCanTurnOn: translationKey(
-    "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
+    "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
   ),
 };
 
-// The data-testid of the Enable AI switch on Project Settings → AI Features.
+// The data-testid of the Enable AI switch on Project Settings → AI → AI Features.
 export const ENABLE_AI_SWITCH_TEST_ID: string = "enable-ai-switch";
 
 // The data-testid of the Enable AI switch in the notice on the other pages.
@@ -823,7 +823,7 @@ export enum ProjectAiNoticeContext {
   Incidents = "Incidents",
   Alerts = "Alerts",
   Insights = "Insights",
-  // Project Settings → AI Features, where Enable AI is the page itself.
+  // Project Settings → AI → AI Features, where Enable AI is the page itself.
   AiFeatures = "AiFeatures",
   /*
    * The AI Insights page of a cluster, a resource, or the Incidents' and
@@ -1037,10 +1037,10 @@ export const PROJECT_AI_PROVIDER_NOTICE_TEST_ID: string =
   "project-ai-provider-notice";
 
 /*
- * Project Settings → AI Features → More settings: the project's own daily
- * limits on OneUptime AI (Common/Types/AI/ProjectAiDailyLimits). "Just like
- * we have more settings for the incident AI page ... daily token limit or
- * daily spend limit (if it is SaaS)" - the maintainer.
+ * Project Settings → AI → AI Features → More settings: the project's own daily
+ * limits on OneUptime AI (Common/Types/AI/ProjectAiDailyLimits). "Just like we
+ * have more settings for the incident AI page ... daily token limit or daily
+ * spend limit (if it is SaaS)" - the maintainer.
  *
  * One card, Daily limits: the token limit everywhere, and the spend limit
  * only where AI is billed (BILLING_ENABLED), since only there is anything

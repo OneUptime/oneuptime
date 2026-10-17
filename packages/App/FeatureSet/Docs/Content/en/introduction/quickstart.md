@@ -28,7 +28,7 @@ The first time you sign in, OneUptime shows **No projects**. Click **Create New 
 
 ### Name it
 
-Enter a **Project Name**, such as your company's name. On OneUptime Cloud, the next step asks you to pick a plan.
+Enter a **Project Name**, such as your company's name. On OneUptime Cloud, pick a plan below it as well: Free is already picked, and the paid plans start with a free trial.
 
 ### Create it
 

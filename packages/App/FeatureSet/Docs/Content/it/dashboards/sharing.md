@@ -95,7 +95,7 @@ Una volta verificata, la dashboard è raggiungibile sia sul tuo dominio personal
 Fai clic su **Crea: Dashboard Dominio**. La finestra è una sola pagina:
 
 - **Sottodominio**: solo l'etichetta, con il segnaposto `dashboard (leave blank for root)`. Inserisci solo `dashboard`, non l'intero nome host. Lascialo vuoto o inserisci `@` per usare il dominio radice (apex).
-- **Dominio**: i domini verificati in **Impostazioni del progetto → Domini**, dove dimostri con un record TXT che un dominio è tuo. Un dominio che non hai verificato non è elencato, perché verrebbe rifiutato. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
+- **Dominio**: i domini verificati in **Impostazioni del progetto → Avanzato → Domini**, dove dimostri con un record TXT che un dominio è tuo. Un dominio che non hai verificato non è elencato, perché verrebbe rifiutato. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
 - **Altri campi**: chiuso. Finché è chiuso, la sua intestazione dice quale certificato userà il dominio: "Emettiamo un certificato SSL gratuito per questo dominio e lo rinnoviamo automaticamente." Aprilo solo per usare un certificato tuo (vedi sotto).
 
 Fai clic su **Crea: Dashboard Dominio**. La finestra si chiude e si apre la **Configurazione DNS** del nuovo dominio. Il nome completo di un dominio è fissato quando lo aggiungi, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungi quel dominio ed elimina quello vecchio.

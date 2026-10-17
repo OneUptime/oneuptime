@@ -1133,7 +1133,7 @@ service:
 Vuelve a añadir un pipeline `logs`, con un receiver `filelog` o `journald` acotado, cuando lo necesites.
 
 > [!CAUTION]
-> Vigila lo que recortas. Un monitor de logs necesita que lleguen sus logs, así que filtrar una severidad o un canal silencia los monitores que lo vigilan, y las plantillas de alerta de Host necesitan las métricas `*.utilization`. Recorta los datos sobre los que no actúas, no los que vigila un monitor, y comprueba la reducción en **Ajustes del proyecto → Historial de uso** uno o dos días después (el uso se cuenta por día) antes de tirar de la siguiente palanca.
+> Vigila lo que recortas. Un monitor de logs necesita que lleguen sus logs, así que filtrar una severidad o un canal silencia los monitores que lo vigilan, y las plantillas de alerta de Host necesitan las métricas `*.utilization`. Recorta los datos sobre los que no actúas, no los que vigila un monitor, y comprueba la reducción en **Ajustes del proyecto → Facturación y facturas → Historial de uso** uno o dos días después (el uso se cuenta por día) antes de tirar de la siguiente palanca.
 
 ## OneUptime autoalojado y proxies
 

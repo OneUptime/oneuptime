@@ -92,7 +92,7 @@ describe("the AI SRE page documents the project's own daily limits", () => {
     // A section of More settings, which is one card.
     expect(text).toContain(`**${ProjectAiDailyLimitsCopy.cardTitle}** section`);
     expect(text).toContain(
-      "**Project Settings → AI Features**, folded under **More settings**",
+      "**Project Settings → AI → AI Features**, folded under **More settings**",
     );
   });
 
@@ -119,7 +119,9 @@ describe("the AI SRE page documents the project's own daily limits", () => {
     expect(text).toContain("A day is a UTC day");
     expect(text).toContain("the count starts again at the next midnight UTC");
     expect(refusal).toContain("midnight UTC");
-    expect(refusal).toContain("Project Settings → AI Features → More settings");
+    expect(refusal).toContain(
+      "Project Settings → AI → AI Features → More settings",
+    );
   });
 
   it("names who may change the limits from the columns' own access control", () => {
@@ -227,7 +229,7 @@ describe("the AI SRE page says what happens when a limit is reached", () => {
     expect(text).toContain("**The project's owners are emailed.**");
     expect(text).toContain("once a day for each limit");
     expect(email).toContain("once a day for each limit");
-    expect(text).toContain("a link to **Project Settings → AI Features**");
+    expect(text).toContain("a link to **Project Settings → AI → AI Features**");
   });
 
   it("says skipped incidents and alerts are investigated after the reset, while open and less than a day old, every five minutes", () => {

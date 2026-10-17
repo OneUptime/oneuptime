@@ -48,7 +48,8 @@ import ts from "typescript";
  *     messages, the emails, the Dashboard - names a real page, with its
  *     folded section, and nothing but OneUptime's Dashboard before it;
  *   - every path to the Slack or Microsoft Teams page of Project Settings
- *     goes through its Workspace section;
+ *     goes through its Workspace section (every other Project Settings path
+ *     is held the same way: ProjectSettingsMenuPathsInProductText);
  *   - every translation of such a text names each step as that language's
  *     Dashboard draws it;
  *   - no label beside the Microsoft Teams icon or workspace is the bare
@@ -315,13 +316,22 @@ describe("a written path, as a reader follows it", () => {
     expect(stepsOf(text)).toEqual(steps);
   });
 
-  test("a mention that is not a path is not one, and other Project Settings pages are not held here", () => {
+  test("a mention that is not a path is not one, and every Project Settings path is walked", () => {
+    expect(writtenPaths("Your User Settings are per project.", MENUS)).toEqual(
+      [],
+    );
     expect(
       writtenPaths(
         "Your User Settings are per project. Set SMTP in Project Settings > Notifications > Notification Settings.",
         MENUS,
       ),
-    ).toEqual([]);
+    ).toEqual([
+      expect.objectContaining({
+        menu: PROJECT_SETTINGS,
+        steps: ["Notifications", "Notification Settings"],
+        problems: [],
+      }),
+    ]);
   });
 });
 

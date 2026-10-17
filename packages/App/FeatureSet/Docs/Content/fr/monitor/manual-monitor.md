@@ -56,6 +56,14 @@ Saisissez un **Nom** — et une **Description** sous **Plus de champs**, si vous
 ### Dans le tableau de bord
 
 :::steps
+1. Ouvrez le moniteur. En haut à droite de sa vue d'ensemble, à côté de **Actualiser**, cliquez sur **Plus d'actions** (⋯).
+2. Sous **Changer le statut en**, choisissez le nouvel état.
+3. Cliquez sur **Changer le statut**. Le nouvel état commence maintenant et s'affiche aussitôt sur le moniteur, et sur chaque page de statut qui le liste.
+:::
+
+Un changement qui a commencé plus tôt s'enregistre plutôt dans la chronologie de statut du moniteur :
+
+:::steps
 1. Ouvrez le moniteur et cliquez sur **Chronologie de statut** dans son menu latéral.
 2. Cliquez sur **Créer : Événement de statut du moniteur**.
 3. Choisissez le **Statut du moniteur**. **Commence le** vaut maintenant ; indiquez une heure antérieure si le changement s'est produit plus tôt.

@@ -219,7 +219,7 @@ function getSuggestionForStatusCode(
      * subscription, or a balance to add. Retrying cannot help.
      */
     case 402:
-      return "The project's billing does not allow this, and the error says why: a plan the project is not on, an unpaid subscription, or a balance to add. Do not retry: ask a project owner to resolve it in Project Settings > Billing.";
+      return "The project's billing does not allow this, and the error says why: a plan the project is not on, an unpaid subscription, or a balance to add. Do not retry: ask a project owner to resolve it in Project Settings > Billing and Invoices > Billing.";
     case 403:
       return isOAuth
         ? "The signed-in user lacks permission for this operation in this project. Ask a project admin to grant their team the relevant permission."

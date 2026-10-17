@@ -841,7 +841,7 @@ describe("a question, with AI turned off", () => {
     expect(delivery.httpStatus).toBe(200);
     expect(delivery.posts).toHaveLength(1);
     expect(delivery.posts[0]!.activity["text"]).toBe(
-      "AI features are disabled for this project. Enable them in Project Settings → AI Features. Type **help** to see the other commands.",
+      "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features. Type **help** to see the other commands.",
     );
   });
 });
