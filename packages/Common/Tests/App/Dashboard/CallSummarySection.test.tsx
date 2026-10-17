@@ -51,7 +51,11 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
-// The root cause's editor as a textarea that takes `initialValue` once per mount.
+/*
+ * The root cause's editor as a textarea that takes `initialValue` once per
+ * mount, under a toolbar's first button, as the real editor's Bold is: the
+ * button a dialog would start on by itself.
+ */
 jest.mock("../../../UI/Components/Markdown.tsx/MarkdownEditor", () => {
   const ReactModule: typeof React = jest.requireActual("react") as typeof React;
   return {
@@ -65,15 +69,20 @@ jest.mock("../../../UI/Components/Markdown.tsx/MarkdownEditor", () => {
         props.initialValue || "",
       );
       return (
-        <textarea
-          aria-label="Root cause"
-          data-testid={props.dataTestId}
-          value={value}
-          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            setValue(event.target.value);
-            props.onChange?.(event.target.value);
-          }}
-        />
+        <div>
+          <button type="button" data-testid="editor-bold">
+            B
+          </button>
+          <textarea
+            aria-label="Root cause"
+            data-testid={props.dataTestId}
+            value={value}
+            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+              setValue(event.target.value);
+              props.onChange?.(event.target.value);
+            }}
+          />
+        </div>
       );
     },
   };
@@ -373,10 +382,11 @@ describe("a suggested root cause", () => {
     );
 
     /*
-     * Not the dialog's first button - in the real editor, its Bold - whose
-     * focus ring read as Bold being on.
+     * Not the dialog's first button - the editor's Bold - whose focus ring
+     * read as Bold being on.
      */
     expect(editor).toHaveFocus();
+    expect(screen.getByTestId("editor-bold")).not.toHaveFocus();
     // The editor's name for a screen reader: what it holds.
     expect(
       document.getElementById("use-call-root-cause-label"),
