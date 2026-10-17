@@ -67,7 +67,7 @@ El enlace muestra cada evento del proyecto, así que el diálogo solo lo muestra
 
 ### Gestionar el enlace
 
-**Regenerar enlace** y **Desactivar enlace** están en el menú **Gestionar enlace** del diálogo.
+**Regenerar enlace** y **Desactivar enlace** están en el menú **⋯** de la parte superior del diálogo.
 
 | Acción | Qué ocurre |
 | --- | --- |

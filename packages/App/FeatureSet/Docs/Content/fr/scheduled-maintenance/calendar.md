@@ -67,7 +67,7 @@ Le lien montre chaque événement du projet, la boîte de dialogue ne le montre 
 
 ### Gérer le lien
 
-**Régénérer le lien** et **Désactiver le lien** se trouvent dans le menu **Gérer le lien** de la boîte de dialogue.
+**Régénérer le lien** et **Désactiver le lien** se trouvent dans le menu **⋯** en haut de la boîte de dialogue.
 
 | Action | Ce qui se passe |
 | --- | --- |

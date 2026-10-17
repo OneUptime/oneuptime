@@ -67,7 +67,7 @@ The link shows every event of the project, so the dialog shows it only to people
 
 ### Manage the link
 
-**Regenerate link** and **Turn off link** are in the dialog's **Manage link** menu.
+**Regenerate link** and **Turn off link** are in the **⋯** menu at the top of the dialog.
 
 | Action | What happens |
 | --- | --- |

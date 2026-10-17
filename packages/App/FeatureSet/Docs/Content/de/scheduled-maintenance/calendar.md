@@ -67,7 +67,7 @@ Der Link zeigt jedes Ereignis des Projekts, daher zeigt der Dialog ihn nur Perso
 
 ### Den Link verwalten
 
-**Link neu erzeugen** und **Link ausschalten** stehen im Menü **Link verwalten** des Dialogs.
+**Link neu erzeugen** und **Link ausschalten** stehen im Menü **⋯** oben im Dialog.
 
 | Aktion | Was passiert |
 | --- | --- |
