@@ -248,7 +248,7 @@ describe("the profiles page is where profiles are managed", () => {
 
     expect(source).toContain("its own credentials");
     expect(source).toContain("the profile on the device");
-    expect(source).toContain("the profile on its site");
+    expect(source).toContain("then the profile on its site");
     expect(source).toContain("pinged only");
     expect(source).toContain("cannot be deleted");
   });

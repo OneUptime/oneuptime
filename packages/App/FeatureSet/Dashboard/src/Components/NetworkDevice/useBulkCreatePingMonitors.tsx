@@ -452,10 +452,10 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
   // English keys: the form looks the description up.
   const probeFieldDescription: string = didProbeLoadFail
     ? translationKey(
-        "Optional. The project's probes could not be loaded just now, so the monitors will use the project's default probes. A probe has to be able to reach the device's network — a global probe on the public internet cannot ping a private address — so if these devices are on an internal network, create the monitors from a device's page once a probe deployed there can be picked, or change the probes on each monitor afterwards.",
+        "Your probes could not be loaded, so the monitors use the default probes. You can change them on each monitor.",
       )
     : translationKey(
-        "Optional. Leave it empty to use the project's default probes. A probe has to be able to reach the device's network: a global probe on the public internet cannot ping a private (RFC 1918) address, so for devices on an internal network pick a custom probe deployed on that network.",
+        "Leave it empty to use the default probes. Devices on a private network need a probe on that network.",
       );
 
   const modals: ReactElement = (
@@ -470,7 +470,7 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
            * the device reading Up straight after this is the monitor's
            * starting status, not a verdict.
            */
-          description="Creates a Ping monitor on each selected bound-monitor device's hostname and binds it to the device, so the monitor's status becomes the device's status. Devices that already have a monitor bound are skipped, and so are probe-polled devices — their probe pings them already. Each monitor counts towards the plan's monitor limit. Incidents are off on these monitors by default, so they move the device's status without paging anyone; turn them on per monitor if you want that."
+          description="Creates a Ping monitor for each selected device with none bound, skipping probe-polled devices. Incidents are off; each counts towards your plan."
           isLoading={isLoadingProbes}
           onClose={closeModal}
           submitButtonText="Create Ping Monitors"
@@ -519,7 +519,7 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
       {startupError && (
         <Modal
           title="Ping Monitors Could Not Be Created"
-          description="Nothing was created or changed. This is a project setting rather than a problem with any of the selected devices, so it is reported once instead of against every device."
+          description="Nothing was created or changed."
           onClose={(): void => {
             setStartupError(null);
           }}

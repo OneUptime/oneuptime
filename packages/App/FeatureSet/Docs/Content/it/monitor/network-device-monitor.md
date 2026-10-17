@@ -502,7 +502,7 @@ Invece di aggiungere i dispositivi uno alla volta, scansiona un intervallo di in
 flowchart TB
     Scan["Scansione di rilevamento<br/>su una sonda"]
     Ping["Ping di ogni indirizzo<br/>dell'intervallo"]
-    Check{"Controllare SNMP sugli<br/>host che rispondono?"}
+    Check{"Metodo di scansione?"}
     Read["Leggere via SNMP nome<br/>e produttore di ogni host"]
     Found["Host trovati"]
     Review["Review Results:<br/>scegliere e importare"]
@@ -510,8 +510,8 @@ flowchart TB
     Devices["Dispositivi, interrogati<br/>dalla sonda della scansione"]
     Scan --> Ping
     Ping --> Check
-    Check -->|"Attivo"| Read
-    Check -->|"Disattivo"| Found
+    Check -->|"SNMP"| Read
+    Check -->|"ICMP"| Found
     Read --> Found
     Found --> Review
     Found --> Rules
@@ -524,13 +524,13 @@ flowchart TB
 Vai su **Rete → Discovery** e fai clic su **Avvia scansione**. **Discover Devices** nella **Panoramica** di Rete apre lo stesso modulo.
 
 ### Dire cosa scansionare
-Nel passaggio **Destinazione della scansione**, digita l'intervallo, controlla la **Sonda** e decidi se usare **Check SNMP on hosts that answer**.
+Digita l'intervallo in **Destinazione della scansione**, controlla la **Sonda** e scegli il **Metodo di scansione**: **ICMP (ping)**, con cui parte una nuova scansione, oppure **SNMP**.
 
 ### Aggiungere le credenziali da provare
-Con SNMP attivo, il passaggio **Credenziali SNMP** chiede gli insiemi di credenziali da provare. Con SNMP disattivo non c'è un secondo passaggio: la scansione è una [scansione solo ping](#scansioni-solo-ping), e **Avvia scansione** si trova nella prima pagina.
+Solo una scansione SNMP chiede le credenziali: scegliendo **SNMP** si aggiunge il passaggio **Credenziali SNMP**, con gli insiemi di credenziali da provare. Una [scansione ICMP](#scansioni-icmp) non ha un secondo passaggio, e **Avvia scansione** si trova nella prima pagina.
 
 ### Avviare la scansione
-Fai clic su **Avvia scansione**. La sonda scansiona l'intervallo e riporta quanti host ha scansionato e quanti hanno risposto: quanti hanno risposto a SNMP o, in una scansione solo ping, quanti hanno risposto al ping.
+Fai clic su **Avvia scansione**. La sonda scansiona l'intervallo e riporta quanti host ha scansionato e quanti hanno risposto: quanti hanno risposto a SNMP o, in una scansione ICMP, quanti hanno risposto al ping.
 
 ### Importare ciò che ha trovato
 Fai clic su **Review Results** sulla scansione, scegli gli host da importare e fai clic su **Avanti**. Scegli ogni quanto vengono controllati e se ognuno riceve un monitor, poi importali; vedi [Importare ciò che una scansione ha trovato](#importare-ciò-che-una-scansione-ha-trovato).
@@ -540,8 +540,8 @@ Fai clic su **Review Results** sulla scansione, scegli gli host da importare e f
 | --- | --- | --- |
 | Destinazione della scansione | Gli indirizzi da scansionare, in [notazione CIDR o a intervalli di ottetti](#notazione-della-destinazione-della-scansione). | Sì |
 | Sonda | La sonda che esegue la scansione. Deve raggiungere l'intervallo direttamente. Un progetto con esattamente una sonda personalizzata parte da quella. Un progetto senza una sonda propria lo vede indicato, con **Aggiungi una sonda** accanto al campo. | Sì |
-| Check SNMP on hosts that answer | Una scansione invia prima il ping all'intervallo; questo decide se agli host che rispondono vengano poi chiesti via SNMP il nome e il produttore. Disattivalo per una [scansione solo ping](#scansioni-solo-ping). Si sceglie alla creazione della scansione e poi resta fisso. Attivo per impostazione predefinita. | No |
-| Credenziali da provare | Il secondo passaggio: gli insiemi di credenziali da provare, in ordine. A ogni host si chiede con ciascun insieme finché uno risponde, quindi aggiungi un insieme per ogni gruppo di dispositivi che condividono versione e community o utente v3. **Aggiungi altre credenziali** ne aggiunge uno. | Quando il controllo SNMP è attivo |
+| Metodo di scansione | **ICMP (ping)** invia il ping a ogni indirizzo dell'intervallo ed elenca ciò che risponde, senza credenziali: una [scansione ICMP](#scansioni-icmp). **SNMP** invia anch'esso il ping, poi chiede a ogni host che risponde il nome e il produttore. Una nuova scansione parte da **ICMP (ping)**; **Modifica** lo cambia in seguito, e la scansione viene rieseguita. | Sì |
+| Credenziali da provare | Il secondo passaggio di una scansione SNMP: gli insiemi di credenziali da provare, in ordine. A ogni host si chiede con ciascun insieme finché uno risponde, quindi aggiungi un insieme per ogni gruppo di dispositivi che condividono versione e community o utente v3. **Aggiungi altre credenziali** ne aggiunge uno. | Quando il metodo è SNMP |
 
 Chiusi sotto **Altri campi** nel primo passaggio, per le scansioni che ne hanno bisogno:
 
@@ -587,7 +587,7 @@ Gli intervalli di ottetti esistono per le reti che non hanno la forma di blocchi
 Ogni host trovato da una scansione viene importato come dispositivo interrogato dalla sonda, con la sonda della scansione assegnata e il polling attivo, quindi ha uno stato fin dal suo primo polling. Ciò che cambia da un host all'altro è ciò che porta con sé:
 
 - Gli host che hanno risposto a SNMP vengono importati con l'indirizzo che ha risposto come hostname, il nome scelto come descritto sotto e le credenziali che hanno risposto, quindi una scansione v3 importa dispositivi pronti per il walk v3 che iniziano subito a raccogliere interfacce e inventario.
-- Gli host che hanno risposto al ping ma non a SNMP — ogni host trovato da una [scansione solo ping](#scansioni-solo-ping), e gli host che una scansione SNMP non ha potuto identificare — vengono importati senza credenziali. La sonda invia loro il ping secondo la loro pianificazione; aggiungi le credenziali in seguito, sul dispositivo o come profilo su di esso o sul suo sito, e la stessa sonda inizia anche a eseguirne il walk.
+- Gli host che hanno risposto al ping ma non a SNMP — ogni host trovato da una [scansione ICMP](#scansioni-icmp), e gli host che una scansione SNMP non ha potuto identificare — vengono importati senza credenziali. La sonda invia loro il ping secondo la loro pianificazione; aggiungi le credenziali in seguito, sul dispositivo o come profilo su di esso o sul suo sito, e la stessa sonda inizia anche a eseguirne il walk.
 
 Un host già registrato come dispositivo è contrassegnato come **Già aggiunto** e non viene mai importato due volte. Il polling dà a ogni dispositivo importato uno stato; per sapere quando uno va giù, dagli un monitor: scegli **Un monitor per ogni dispositivo** quando importi, oppure lascia che una [policy di avviso](#policy-di-avviso) ne dia uno a ogni dispositivo che copre.
 
@@ -657,7 +657,7 @@ Un nome può solo migliorare: un dispositivo mantiene il suo nome quando cambia 
 
 Rivedere a mano ogni scansione non regge oltre le prime sottoreti. **Rete → Regole → Auto Import Rules** è il posto in cui scrivi l'importazione una volta per tutte: una regola dice quali host rilevati rivendicare (un intervallo IP, e modelli facoltativi di nome di sistema, descrizione e `sysObjectID`) e, facoltativamente, quale modello di monitor e quale [OID Collection Template](#oid-collection-templates) ricevono i dispositivi che importa. Una regola contrassegnata come esclusione non rivendica nulla e pone il veto sulle altre: è così che stampanti e telefoni vengono esclusi da una regola su una sottorete ampia.
 
-In una regola, **Controlla ogni** stabilisce ogni quanto la sonda della scansione interroga ogni dispositivo che la regola importa, come **Controlla ogni** quando importi da **Review Results**; se lasciato vuoto, è ogni 5 minuti. Una regola che importa anche gli host che hanno risposto solo al ping dà anche a loro il suo modello di monitor: la sonda invia loro il ping, quindi i controlli del modello sulla raggiungibilità di un dispositivo e sui trap che invia funzionano subito per loro, e i suoi controlli che leggono un walk SNMP non appena il dispositivo ha le credenziali.
+In una regola, **Controlla ogni** stabilisce ogni quanto la sonda della scansione interroga ogni dispositivo che la regola importa, come **Controlla ogni** quando importi da **Review Results**; se lasciato vuoto, è ogni 5 minuti. Una regola con **Include Ping-Only Hosts** attivo importa anche gli host che hanno risposto solo al ping, tra cui ogni host trovato da una [scansione ICMP](#scansioni-icmp), e dà anche a loro il suo modello di monitor: la sonda invia loro il ping, quindi i controlli del modello sulla raggiungibilità di un dispositivo e sui trap che invia funzionano subito per loro, e i suoi controlli che leggono un walk SNMP non appena il dispositivo ha le credenziali.
 
 Le regole non hanno una pianificazione propria e non ne hanno bisogno. Le regole abilitate vengono eseguite da sole sui risultati di ogni scansione man mano che arrivano, compresi i risultati parziali che una scansione lunga carica mentre è ancora in corso, quindi gli host vengono importati entro un minuto da quando vengono trovati invece che alla fine dell'intervallo. Attiva **Repeat this scan** su una scansione di rilevamento e la coppia diventa un accordo permanente: la scansione ripercorre il suo intervallo con il tuo intervallo di tempo, e ogni nuovo host che trova viene importato senza che nessuno prema nulla.
 
@@ -672,23 +672,23 @@ I parchi grandi vengono importati in lotti cadenzati. Creare un dispositivo o un
 
 Dispositivi e monitor sono lavori separati con limiti separati: una regola che riceve un modello di monitor dopo che i suoi dispositivi sono stati importati non crea alcun dispositivo, solo monitor, e il suo resoconto lo dice.
 
-### Scansioni solo ping
+### Scansioni ICMP
 
-Disattiva **Check SNMP on hosts that answer** e la scansione è una semplice scansione ICMP: invia il ping a ogni indirizzo dell'intervallo, riporta quelli che hanno risposto e non invia alcun pacchetto SNMP. Il passaggio Credenziali SNMP esce dal modulo, che diventa una sola pagina con **Avvia scansione**, e nella scansione non viene chiesta né salvata alcuna versione, community string o credenziale v3.
+Con **ICMP (ping)** come **Metodo di scansione**, quello da cui parte una nuova scansione, la scansione è una semplice scansione ICMP: invia il ping a ogni indirizzo dell'intervallo, riporta quelli che hanno risposto e non invia alcun pacchetto SNMP. Il modulo non ha il passaggio Credenziali SNMP, quindi è una sola pagina con **Avvia scansione**, e nella scansione non viene chiesta né salvata alcuna versione, community string o credenziale v3.
 
-La scelta si fa alla creazione della scansione e non si può cambiare: una scansione creata solo ping resta solo ping, compresa ogni esecuzione di una scansione ripetuta. Per scansionare lo stesso intervallo nell'altro modo, crea una seconda scansione.
+Puoi cambiare il metodo in seguito, con **Modifica** sulla scansione. Un metodo cambiato riesegue la scansione: gli host trovati dalla sua ultima esecuzione vengono cancellati, e i dispositivi già importati restano come sono.
 
 Usane una quando:
 
-- Non hai credenziali SNMP per l'intervallo: un laboratorio, la rete di un tenant, una sottorete che hai ereditato. Una scansione solo ping ti dice cosa è vivo lì senza dover prima indovinare una community string.
+- Non hai credenziali SNMP per l'intervallo: un laboratorio, la rete di un tenant, una sottorete che hai ereditato. Una scansione ICMP ti dice cosa è vivo lì senza dover prima indovinare una community string.
 - Vuoi un inventario più che un controllo di identità: cosa risponde in questo intervallo, non che modello è. È anche la più veloce delle due, perché salta la richiesta SNMP e il suo timeout per host sugli host che rispondono al ping ma non ti parleranno in SNMP.
 
 Due cose da sapere prima di eseguirne una:
 
-- La sonda ha bisogno di un ambiente di esecuzione che consenta l'ICMP. La scansione esegue il `ping` del sistema operativo, quindi il container della sonda ha bisogno della capability `NET_RAW` e del binario. I deployment di OneUptime hanno entrambi: `docker-compose.base.yml` e il `probeContainerSecurityContext` del chart Helm aggiungono `NET_RAW`, e l'immagine della sonda installa `iputils-ping`. Un errore qui di solito significa che un `securityContext` Kubernetes irrigidito ha rimosso `NET_RAW`, o che un'immagine di sonda personalizzata ha omesso `ping`. Una scansione solo ping non ha allora nient'altro da provare, quindi fallisce con un messaggio che lo dice, invece di riportare un intervallo vuoto. Se il ping smette di funzionare a metà, la scansione conserva gli host già confermati e indica che l'intervallo non è stato controllato del tutto.
+- La sonda ha bisogno di un ambiente di esecuzione che consenta l'ICMP. La scansione esegue il `ping` del sistema operativo, quindi il container della sonda ha bisogno della capability `NET_RAW` e del binario. I deployment di OneUptime hanno entrambi: `docker-compose.base.yml` e il `probeContainerSecurityContext` del chart Helm aggiungono `NET_RAW`, e l'immagine della sonda installa `iputils-ping`. Un errore qui di solito significa che un `securityContext` Kubernetes irrigidito ha rimosso `NET_RAW`, o che un'immagine di sonda personalizzata ha omesso `ping`. Una scansione ICMP non ha allora nient'altro da provare, quindi fallisce con un messaggio che lo dice, invece di riportare un intervallo vuoto. Se il ping smette di funzionare a metà, la scansione conserva gli host già confermati e indica che l'intervallo non è stato controllato del tutto.
 - Tutto ciò che trova viene importato come dispositivo interrogato dalla sonda senza credenziali, che riceve il ping dalla sonda della scansione fin dal suo primo polling. Aggiungi le credenziali, sul dispositivo o come profilo su di esso o sul suo sito, quando le hai, e la sonda inizia anche a eseguire il walk del dispositivo.
 
-Una scansione solo ping trova solo gli host che rispondono all'echo ICMP. Gli host che scartano il ping (gli host Windows per impostazione predefinita, e spesso le VLAN di gestione) le restano invisibili anche quando rispondono a SNMP. Una scansione SNMP copre questo caso: quando il suo passaggio di ping non trova alcun apparato che risponda a SNMP, torna indietro e interroga via SNMP anche gli indirizzi silenziosi. Quindi, se ti aspetti dispositivi gestiti in un intervallo e una scansione solo ping torna vuota, scansionalo di nuovo con **Check SNMP on hosts that answer** attivo.
+Una scansione ICMP trova solo gli host che rispondono all'echo ICMP. Gli host che scartano il ping (gli host Windows per impostazione predefinita, e spesso le VLAN di gestione) le restano invisibili anche quando rispondono a SNMP. Una scansione SNMP copre questo caso: quando il suo passaggio di ping non trova alcun apparato che risponda a SNMP, torna indietro e interroga via SNMP anche gli indirizzi silenziosi. Quindi, se ti aspetti dispositivi gestiti in un intervallo e una scansione ICMP torna vuota, cambia il suo **Metodo di scansione** in **SNMP**.
 
 ## Avvisi
 

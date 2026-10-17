@@ -1,10 +1,11 @@
 {
   "baseline": {
-    "keys": 30339,
-    "untranslated": 17099
+    "keys": 30374,
+    "untranslated": 17000
   },
   "sameAsEnglish": [
     "CloudWatch Metric Streams",
+    "ICMP (ping)",
     "Runner",
     "SNMP trap",
     "VMware vCenter",

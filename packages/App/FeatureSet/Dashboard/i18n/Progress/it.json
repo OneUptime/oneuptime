@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30339,
-    "untranslated": 17196
+    "keys": 30374,
+    "untranslated": 17097
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -13,6 +13,7 @@
     "Failover",
     "Gateway",
     "Hardware",
+    "ICMP (ping)",
     "Marketplace",
     "Offline",
     "Pattern {{number}}: {{problem}}",

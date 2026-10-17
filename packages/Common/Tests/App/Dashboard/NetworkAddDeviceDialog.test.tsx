@@ -462,7 +462,7 @@ describe("the SNMP fold", () => {
 
     expect(header).toHaveAttribute("aria-expanded", "false");
     expect(header).toHaveTextContent(
-      "Optional. Without it the device is pinged, so it gets a status and a response time. Add its SNMP community string to also see its interfaces, traffic and health.",
+      "Optional. Without it the device is only pinged. Add a community string to also see its interfaces and health.",
     );
     expect(
       within(dialog()).getByPlaceholderText(COMMUNITY_PLACEHOLDER),
@@ -501,7 +501,9 @@ describe("the SNMP fold", () => {
     const header: HTMLElement = foldNamed("SNMP");
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(header).not.toHaveTextContent("Without it the device is pinged");
+    expect(header).not.toHaveTextContent(
+      "Without it the device is only pinged",
+    );
     expect(
       setChips(header).some((chip: string): boolean => {
         return chip.startsWith("SNMP Community String");
