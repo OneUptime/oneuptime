@@ -294,6 +294,9 @@ function serverAdminSignIn(): Dictionary<string> {
   };
 }
 
+// The role the member holds in each of their projects; Project Admin unless a test says otherwise.
+let memberRole: Permission = Permission.ProjectAdmin;
+
 function memberPermissionIn(projectId: ObjectID): UserTenantAccessPermission {
   return {
     _type: "UserTenantAccessPermission",
@@ -301,7 +304,7 @@ function memberPermissionIn(projectId: ObjectID): UserTenantAccessPermission {
     permissions: [
       {
         _type: "UserPermission",
-        permission: Permission.ProjectAdmin,
+        permission: memberRole,
         labelIds: [],
         isBlockPermission: false,
       },
@@ -550,6 +553,7 @@ beforeEach(() => {
   reached.length = 0;
   reads.clear();
   failingReads.clear();
+  memberRole = Permission.ProjectAdmin;
 
   // The server requires SSO. Of the member's projects, one requires it itself.
   serverConfig = useInMemoryTable(GlobalConfigService, [
@@ -907,6 +911,49 @@ describe("a server that requires SSO, in a project that does not require it itse
       tenantId: PROJECT_ID,
       permissions: undefined,
     });
+  });
+
+  test.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+  ])(
+    "the rule cannot be read: a %s of the project without an SSO sign-in is refused like everyone else, and nothing is read",
+    async (role: Permission) => {
+      memberRole = role;
+
+      // The member's role, as the request is let in with it once the rule reads.
+      expect((await listLabels(PROJECT_ID, ssoSignIn())).status).toBe(200);
+      expect(
+        reached.every((entry: Reached): boolean => {
+          return entry.userId === MEMBER_ID.toString();
+        }),
+      ).toBe(true);
+      reached.length = 0;
+      GlobalConfigService.forgetSignInRules();
+
+      failingReads.set(serverConfig, A_READ_FAILURE.failure);
+
+      expectAnError(await listLabels(PROJECT_ID, passwordSignIn()));
+      expect(reached).toEqual([]);
+    },
+  );
+
+  test("the rule cannot be read: someone who is not a member of the project gets nothing either", async () => {
+    failingReads.set(serverConfig, A_READ_FAILURE.failure);
+
+    const outsider: Dictionary<string> = {
+      [CookieUtil.getUserTokenKey()]: sessionToken(
+        new ObjectID("5a000000-0000-4000-8000-000000000003"),
+        false,
+      ),
+    };
+
+    const result: HttpResult = await listLabels(PROJECT_ID, outsider);
+
+    expect(result.status).toBeGreaterThanOrEqual(400);
+    expect(reached).toEqual([]);
   });
 
   test("the project's own rule cannot be read: refused with the error, server admin included, and nothing is read", async () => {
