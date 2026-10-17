@@ -99,7 +99,7 @@ import IncidentSettingsMeasurements from "../Pages/Incidents/Settings/IncidentMe
 
 import IncidentSettingsLinkedAlerts from "../Pages/Incidents/Settings/IncidentLinkedAlertsSettings";
 
-import IncidentSettingsEpisodes from "../Pages/Incidents/Settings/IncidentEpisodeSettings";
+import IncidentSettingsEpisodeMembership from "../Pages/Incidents/Settings/IncidentEpisodeMembershipSettings";
 
 import IncidentSettingsNumbering from "../Pages/Incidents/Settings/IncidentNumbering";
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
@@ -695,11 +695,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODES] || ""}
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP] ||
+            ""
+          }
           element={
-            <IncidentSettingsEpisodes
+            <IncidentSettingsEpisodeMembership
               {...props}
-              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODES] as Route}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP] as Route
+              }
             />
           }
         />

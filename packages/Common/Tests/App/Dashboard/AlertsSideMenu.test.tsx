@@ -454,8 +454,8 @@ describe("Alerts side menu", () => {
         },
         // Whether an alert can be in only one episode.
         {
-          title: "Episodes",
-          href: routeFor(PageMap.ALERTS_SETTINGS_EPISODES),
+          title: "Episode Membership",
+          href: routeFor(PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP),
         },
         /*
          * How numbers look and which comes next, on a page named for them.
@@ -468,37 +468,43 @@ describe("Alerts side menu", () => {
       ]);
     });
 
-    test("lists Episodes at settings/episodes, apart from the Episodes section's own pages", async () => {
+    test("lists Episode Membership at settings/episode-membership, apart from the Episodes section's own pages", async () => {
       await renderAlertsMenu();
 
       const episodes: Array<MenuLink> = linksIn("Settings").filter(
         (link: MenuLink): boolean => {
-          return link.title === "Episodes";
+          return link.title === "Episode Membership";
         },
       );
 
       expect(episodes).toEqual([
         {
-          title: "Episodes",
-          href: `/dashboard/${PROJECT_ID}/alerts/settings/episodes`,
+          title: "Episode Membership",
+          href: `/dashboard/${PROJECT_ID}/alerts/settings/episode-membership`,
         },
       ]);
+      // Named apart from the Episodes section, so no two say the same.
+      expect(
+        linksIn("Settings").map((link: MenuLink) => link.title),
+      ).not.toContain("Episodes");
       // The Episodes section still lists the episodes, not the setting.
       expect(
         linksIn("Episodes").map((link: MenuLink): string => {
           return link.href;
         }),
-      ).not.toContain(`/dashboard/${PROJECT_ID}/alerts/settings/episodes`);
+      ).not.toContain(
+        `/dashboard/${PROJECT_ID}/alerts/settings/episode-membership`,
+      );
     });
 
     // Settings is collapsed by default, so it must open itself on its pages.
-    test("opens itself on the Episodes settings page, and marks only it", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/episodes`);
+    test("opens itself on the Episode Membership page, and marks only it", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/episode-membership`);
       await renderAlertsMenu();
 
       expect(isExpanded("Settings")).toBe(true);
       expect(isExpanded("Rules")).toBe(false);
-      expect(activeLinkTitles()).toEqual(["Episodes"]);
+      expect(activeLinkTitles()).toEqual(["Episode Membership"]);
     });
 
     test("lists Numbering last, at settings/numbering", async () => {
@@ -677,11 +683,11 @@ describe("Alerts side menu", () => {
       expect(mobileSummaryText()).toContain("Settings / Numbering");
     });
 
-    test("names the Settings section on the Episodes settings page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/episodes`);
+    test("names the Settings section on the Episode Membership page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/episode-membership`);
       await renderAlertsMenu();
 
-      expect(mobileSummaryText()).toContain("Settings / Episodes");
+      expect(mobileSummaryText()).toContain("Settings / Episode Membership");
     });
   });
 });

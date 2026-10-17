@@ -72,7 +72,7 @@ import AlertSettingsLabelRules from "../Pages/Alerts/Settings/AlertLabelRules";
 
 import AlertSettingsMeasurements from "../Pages/Alerts/Settings/AlertMeasurements";
 
-import AlertSettingsEpisodes from "../Pages/Alerts/Settings/AlertEpisodeSettings";
+import AlertSettingsEpisodeMembership from "../Pages/Alerts/Settings/AlertEpisodeMembershipSettings";
 
 import AlertSettingsNumbering from "../Pages/Alerts/Settings/AlertNumbering";
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
@@ -500,11 +500,15 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODES] || ""}
+          path={
+            AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP] || ""
+          }
           element={
-            <AlertSettingsEpisodes
+            <AlertSettingsEpisodeMembership
               {...props}
-              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_EPISODES] as Route}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP] as Route
+              }
             />
           }
         />

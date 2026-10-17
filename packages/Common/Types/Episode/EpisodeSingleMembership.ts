@@ -11,9 +11,9 @@ import {
  * alert episodes. Some teams want each in one at most, so a project can say
  * so: Project.limitIncidentsToOneEpisode and Project.limitAlertsToOneEpisode,
  * the switches "An incident can be in only one episode" on Incidents ->
- * Settings -> Episodes and "An alert can be in only one episode" on Alerts ->
- * Settings -> Episodes. Both are off by default - an incident or an alert can
- * be in several episodes, as it always could.
+ * Settings -> Episode Membership and "An alert can be in only one episode"
+ * on Alerts -> Settings -> Episode Membership. Both are off by default - an
+ * incident or an alert can be in several episodes, as it always could.
  *
  * On, every way one joins an episode refuses one that is in another episode
  * already. Membership is the member rows (IncidentEpisodeMember /
@@ -85,7 +85,7 @@ export const INCIDENT_SINGLE_MEMBERSHIP: EpisodeSingleMembershipKind = {
   nouns: INCIDENT_NOUNS,
   singularTitle: "Incident",
   rule: "an incident can be in only one episode in this project",
-  settingLocation: "Incidents > Settings > Episodes",
+  settingLocation: "Incidents > Settings > Episode Membership",
   inAnotherEpisodeReason: INCIDENT_IN_ANOTHER_EPISODE_REASON,
 };
 
@@ -94,7 +94,7 @@ export const ALERT_SINGLE_MEMBERSHIP: EpisodeSingleMembershipKind = {
   nouns: ALERT_NOUNS,
   singularTitle: "Alert",
   rule: "an alert can be in only one episode in this project",
-  settingLocation: "Alerts > Settings > Episodes",
+  settingLocation: "Alerts > Settings > Episode Membership",
   inAnotherEpisodeReason: ALERT_IN_ANOTHER_EPISODE_REASON,
 };
 
@@ -129,7 +129,7 @@ export default class EpisodeSingleMembership {
    *
    * "Incident INC-12 is already in episode IE-3, and an incident can be in
    * only one episode in this project. Remove it from episode IE-3 first, or
-   * turn this off in Incidents > Settings > Episodes."
+   * turn this off in Incidents > Settings > Episode Membership."
    */
   public static getAddRefusal(data: {
     kind: EpisodeSingleMembershipKind;

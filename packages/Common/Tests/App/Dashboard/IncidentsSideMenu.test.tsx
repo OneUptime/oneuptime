@@ -502,8 +502,8 @@ describe("Incidents side menu", () => {
         },
         // Whether an incident can be in only one episode.
         {
-          title: "Episodes",
-          href: routeFor(PageMap.INCIDENTS_SETTINGS_EPISODES),
+          title: "Episode Membership",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP),
         },
         /*
          * How numbers look and which comes next, on a page named for them.
@@ -576,36 +576,42 @@ describe("Incidents side menu", () => {
       expect(isExpanded("Rules")).toBe(false);
     });
 
-    test("lists Episodes at settings/episodes, apart from the Episodes section's own pages", async () => {
+    test("lists Episode Membership at settings/episode-membership, apart from the Episodes section's own pages", async () => {
       await renderIncidentsMenu();
 
       const episodes: Array<MenuLink> = linksIn("Settings").filter(
         (link: MenuLink): boolean => {
-          return link.title === "Episodes";
+          return link.title === "Episode Membership";
         },
       );
 
       expect(episodes).toEqual([
         {
-          title: "Episodes",
-          href: `/dashboard/${PROJECT_ID}/incidents/settings/episodes`,
+          title: "Episode Membership",
+          href: `/dashboard/${PROJECT_ID}/incidents/settings/episode-membership`,
         },
       ]);
+      // Named apart from the Episodes section, so no two say the same.
+      expect(
+        linksIn("Settings").map((link: MenuLink) => link.title),
+      ).not.toContain("Episodes");
       // The Episodes section still lists the episodes, not the setting.
       expect(
         linksIn("Episodes").map((link: MenuLink): string => {
           return link.href;
         }),
-      ).not.toContain(`/dashboard/${PROJECT_ID}/incidents/settings/episodes`);
+      ).not.toContain(
+        `/dashboard/${PROJECT_ID}/incidents/settings/episode-membership`,
+      );
     });
 
-    test("opens itself on the Episodes settings page, and marks only it", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/episodes`);
+    test("opens itself on the Episode Membership page, and marks only it", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/episode-membership`);
       await renderIncidentsMenu();
 
       expect(isExpanded("Settings")).toBe(true);
       expect(isExpanded("Rules")).toBe(false);
-      expect(activeLinkTitles()).toEqual(["Episodes"]);
+      expect(activeLinkTitles()).toEqual(["Episode Membership"]);
     });
 
     test("does not hold the AI settings page or the auto-remediation rules, which are in AI", async () => {
@@ -805,11 +811,11 @@ describe("Incidents side menu", () => {
       expect(mobileSummaryText()).toContain("Settings / Linked Alerts");
     });
 
-    test("names the Settings section on the Episodes settings page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/episodes`);
+    test("names the Settings section on the Episode Membership page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/episode-membership`);
       await renderIncidentsMenu();
 
-      expect(mobileSummaryText()).toContain("Settings / Episodes");
+      expect(mobileSummaryText()).toContain("Settings / Episode Membership");
     });
   });
 

@@ -2282,8 +2282,8 @@ export default class Project extends TenantModel {
 
   /*
    * Whether an incident can be in only one incident episode (Incidents ->
-   * Settings -> Episodes). Off by default: an incident can be in several, as
-   * it always could. On, every way an incident joins an episode refuses one
+   * Settings -> Episode Membership). Off by default: an incident can be in
+   * several, as it always could. On, every way an incident joins an episode refuses one
    * that is in another episode already - an episode's Add Incidents, the
    * lists' Add to Existing / New Episode, the API, workflows, Terraform and
    * the grouping rules (Common/Types/Episode/EpisodeSingleMembership). It
@@ -2320,7 +2320,10 @@ export default class Project extends TenantModel {
   })
   public limitIncidentsToOneEpisode?: boolean = undefined;
 
-  // The same for alerts and alert episodes (Alerts -> Settings -> Episodes).
+  /*
+   * The same for alerts and alert episodes (Alerts -> Settings -> Episode
+   * Membership).
+   */
   @ColumnAccessControl({
     create: [],
     read: [

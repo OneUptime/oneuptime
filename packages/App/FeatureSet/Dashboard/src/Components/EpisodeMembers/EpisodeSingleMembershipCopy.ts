@@ -10,8 +10,8 @@ import {
 
 /*
  * Whether an incident can be in only one episode, on Incidents -> Settings
- * -> Episodes, and an alert, on Alerts -> Settings -> Episodes
- * (Common/Types/Episode/EpisodeSingleMembership): one switch each, off by
+ * -> Episode Membership, and an alert, on Alerts -> Settings -> Episode
+ * Membership (Common/Types/Episode/EpisodeSingleMembership): one switch each, off by
  * default, that saves the moment it is flipped (EpisodeSingleMembershipCard,
  * on the shared ModelSwitchCard). Each stores a Project column that needs a
  * project owner or admin; for anyone else the switch is locked and says so.

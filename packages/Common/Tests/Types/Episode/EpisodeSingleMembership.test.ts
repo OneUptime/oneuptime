@@ -107,7 +107,7 @@ describe("the kinds", () => {
       nouns: INCIDENT_NOUNS,
       singularTitle: "Incident",
       rule: "an incident can be in only one episode in this project",
-      settingLocation: "Incidents > Settings > Episodes",
+      settingLocation: "Incidents > Settings > Episode Membership",
       inAnotherEpisodeReason: INCIDENT_IN_ANOTHER_EPISODE_REASON,
     });
     expect(ALERT_SINGLE_MEMBERSHIP).toEqual({
@@ -115,7 +115,7 @@ describe("the kinds", () => {
       nouns: ALERT_NOUNS,
       singularTitle: "Alert",
       rule: "an alert can be in only one episode in this project",
-      settingLocation: "Alerts > Settings > Episodes",
+      settingLocation: "Alerts > Settings > Episode Membership",
       inAnotherEpisodeReason: ALERT_IN_ANOTHER_EPISODE_REASON,
     });
   });
@@ -152,11 +152,11 @@ describe("getAddRefusal", () => {
   test.each([
     [
       INCIDENT_SINGLE_MEMBERSHIP,
-      "Incident INC-12 is already in episode IE-3, and an incident can be in only one episode in this project. Remove it from episode IE-3 first, or turn this off in Incidents > Settings > Episodes.",
+      "Incident INC-12 is already in episode IE-3, and an incident can be in only one episode in this project. Remove it from episode IE-3 first, or turn this off in Incidents > Settings > Episode Membership.",
     ],
     [
       ALERT_SINGLE_MEMBERSHIP,
-      "Alert INC-12 is already in episode IE-3, and an alert can be in only one episode in this project. Remove it from episode IE-3 first, or turn this off in Alerts > Settings > Episodes.",
+      "Alert INC-12 is already in episode IE-3, and an alert can be in only one episode in this project. Remove it from episode IE-3 first, or turn this off in Alerts > Settings > Episode Membership.",
     ],
   ])(
     "names the record and the episode it is in",
@@ -179,7 +179,7 @@ describe("getAddRefusal", () => {
         episodeLabel: null,
       }),
     ).toBe(
-      "Incident INC-12 is already in another episode, and an incident can be in only one episode in this project. Remove it from that episode first, or turn this off in Incidents > Settings > Episodes.",
+      "Incident INC-12 is already in another episode, and an incident can be in only one episode in this project. Remove it from that episode first, or turn this off in Incidents > Settings > Episode Membership.",
     );
   });
 
@@ -191,7 +191,7 @@ describe("getAddRefusal", () => {
         episodeLabel: "AE-9",
       }),
     ).toBe(
-      "This alert is already in episode AE-9, and an alert can be in only one episode in this project. Remove it from episode AE-9 first, or turn this off in Alerts > Settings > Episodes.",
+      "This alert is already in episode AE-9, and an alert can be in only one episode in this project. Remove it from episode AE-9 first, or turn this off in Alerts > Settings > Episode Membership.",
     );
   });
 });

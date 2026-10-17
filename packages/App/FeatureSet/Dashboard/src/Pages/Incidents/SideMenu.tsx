@@ -353,13 +353,14 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         /*
          * Whether an incident can be in only one episode. Its own page,
-         * findable by name like Linked Alerts.
+         * findable by name like Linked Alerts - not "Episodes", the
+         * section above that lists them.
          */
         {
           link: {
-            title: "Episodes",
+            title: "Episode Membership",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODES] as Route,
+              RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP] as Route,
             ),
           },
           icon: IconProp.SquareStack3D,

@@ -3,8 +3,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 /*
  * A project can allow an incident in only one incident episode, and an alert
  * in only one alert episode (Common/Types/Episode/EpisodeSingleMembership):
- * the switches on Incidents -> Settings -> Episodes and Alerts -> Settings ->
- * Episodes.
+ * the switches on Incidents -> Settings -> Episode Membership and Alerts ->
+ * Settings -> Episode Membership.
  *
  * Generated with npm run generate-postgres-migration, then renumbered to a
  * round slot above the registered migrations. Each column is added with a

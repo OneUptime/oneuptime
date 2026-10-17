@@ -26,7 +26,8 @@ import path from "path";
  * incident settings to allow alert to be in only one episode and same for
  * incidents."
  *
- *   - Incidents -> Settings -> Episodes and Alerts -> Settings -> Episodes:
+ *   - Incidents -> Settings -> Episode Membership and Alerts -> Settings ->
+ *     Episode Membership:
  *     a page each, routed, in the Settings section of its menu right before
  *     Numbering, found by the command palette, drawing one switch card with
  *     its kind's words;
@@ -217,22 +218,27 @@ interface SettingsPage {
 const SETTINGS_PAGES: Array<SettingsPage> = [
   {
     name: "Incidents",
-    file: ["Pages", "Incidents", "Settings", "IncidentEpisodeSettings.tsx"],
+    file: [
+      "Pages",
+      "Incidents",
+      "Settings",
+      "IncidentEpisodeMembershipSettings.tsx",
+    ],
     copy: "INCIDENT_EPISODE_SETTINGS_COPY",
     routes: ["Routes", "IncidentsRoutes.tsx"],
-    routeKey: "INCIDENTS_SETTINGS_EPISODES",
-    component: "IncidentSettingsEpisodes",
+    routeKey: "INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP",
+    component: "IncidentSettingsEpisodeMembership",
     sideMenu: ["Pages", "Incidents", "SideMenu.tsx"],
     before: "INCIDENTS_SETTINGS_NUMBERING",
     after: "INCIDENTS_SETTINGS_LINKED_ALERTS",
   },
   {
     name: "Alerts",
-    file: ["Pages", "Alerts", "Settings", "AlertEpisodeSettings.tsx"],
+    file: ["Pages", "Alerts", "Settings", "AlertEpisodeMembershipSettings.tsx"],
     copy: "ALERT_EPISODE_SETTINGS_COPY",
     routes: ["Routes", "AlertRoutes.tsx"],
-    routeKey: "ALERTS_SETTINGS_EPISODES",
-    component: "AlertSettingsEpisodes",
+    routeKey: "ALERTS_SETTINGS_EPISODE_MEMBERSHIP",
+    component: "AlertSettingsEpisodeMembership",
     sideMenu: ["Pages", "Alerts", "SideMenu.tsx"],
     before: "ALERTS_SETTINGS_NUMBERING",
     after: "ALERTS_SETTINGS_MEASUREMENTS",
@@ -240,7 +246,7 @@ const SETTINGS_PAGES: Array<SettingsPage> = [
 ];
 
 describe.each(SETTINGS_PAGES)(
-  "$name → Settings → Episodes",
+  "$name → Settings → Episode Membership",
   (page: SettingsPage) => {
     test("draws the one switch card, with its kind's words", () => {
       expect(read(...page.file)).toContain(
@@ -249,7 +255,10 @@ describe.each(SETTINGS_PAGES)(
     });
 
     test("is routed, at its own page key", () => {
-      const routes: string = read(...page.routes);
+      // Braces read without the spaces prettier puts inside a long one.
+      const routes: string = read(...page.routes)
+        .replace(/\{ /g, "{")
+        .replace(/ \}/g, "}");
 
       expect(routes).toContain(
         `path={${page.name === "Incidents" ? "IncidentsRoutePath" : "AlertsRoutePath"}[PageMap.${page.routeKey}] || ""}`,
@@ -269,7 +278,7 @@ describe.each(SETTINGS_PAGES)(
       expect(episodes).toBeGreaterThan(menu.indexOf(`PageMap.${page.after}`));
       expect(episodes).toBeLessThan(menu.indexOf(`PageMap.${page.before}`));
       expect(menu).toContain(
-        `title: "Episodes", to: RouteUtil.populateRouteParams( RouteMap[PageMap.${page.routeKey}] as Route, ), }, icon: IconProp.SquareStack3D,`,
+        `title: "Episode Membership", to: RouteUtil.populateRouteParams( RouteMap[PageMap.${page.routeKey}] as Route, ), }, icon: IconProp.SquareStack3D,`,
       );
     });
 
@@ -285,7 +294,7 @@ describe.each(SETTINGS_PAGES)(
 
       const entry: string = index.slice(start, index.indexOf("}", start));
 
-      expect(entry).toContain('title: "Episodes"');
+      expect(entry).toContain('title: "Episode Membership"');
       expect(entry).toContain('"only one episode"');
     });
   },

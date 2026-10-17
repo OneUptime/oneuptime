@@ -283,9 +283,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         // Whether an alert can be in only one episode.
         {
           link: {
-            title: "Episodes",
+            title: "Episode Membership",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERTS_SETTINGS_EPISODES] as Route,
+              RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP] as Route,
             ),
           },
           icon: IconProp.SquareStack3D,

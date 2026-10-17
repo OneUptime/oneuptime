@@ -1089,3 +1089,238 @@ test.describe("in the dark theme", () => {
     await screenshot(page, "alert-episode-add-dark");
   });
 });
+
+/*
+ * A project that allows an alert (or an incident) in only one episode
+ * (Common/Types/Episode/EpisodeSingleMembership; ?oneEpisode=1). The
+ * maintainer: "Some customers dont want [an incident in many episodes], so
+ * can we create a setting in alert / incident settings to allow alert to be
+ * in only one episode and same for incidents." The fixture's server leaves
+ * out one in another episode, and refuses a new episode created with one,
+ * as the member services do.
+ */
+const ALERT_IN_ANOTHER_EPISODE: string =
+  "Already in another episode. An alert can be in only one episode in this project.";
+
+test.describe("a project that allows an alert in only one episode", () => {
+  test("Add to Existing Episode says the one in another episode is not added, and the result says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page, "alerts", "&oneEpisode=1");
+    // ALT-63 is in no episode; ALT-58 is in AE-11.
+    await selectRows(page, [
+      "Checkout API is offline",
+      "Cart service restarts",
+    ]);
+    await (await openBulkMenu(page))
+      .getByRole("menuitem", { name: "Add to Existing Episode" })
+      .click();
+
+    await pickerOption(
+      page,
+      "add-to-existing-episode-list",
+      "Checkout degradation",
+    ).click();
+
+    await expect(
+      dialog(page).getByTestId("add-to-existing-episode-in-another"),
+    ).toHaveText(
+      "1 of them is already in another episode, so it is not added: an alert can be in only one episode in this project.",
+    );
+
+    await screenshot(page, "one-episode-existing-dialog");
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
+      "1 Alert added to the episode",
+    );
+    await expect(page.getByTestId("bulk-action-failed-count")).toHaveText(
+      "1 Alert not added",
+    );
+    await expect(page.getByText(ALERT_IN_ANOTHER_EPISODE)).toBeVisible();
+
+    await screenshot(page, "one-episode-existing-result");
+
+    expect(await addsSent(page)).toEqual([
+      {
+        route: "/alert-episode-member/add-alerts",
+        episodeId: alertEpisodeId(12),
+        ids: [alertId(63), alertId(58)],
+        headers: { tenantid: "10000000-0000-4000-8000-000000000001" },
+      },
+    ]);
+  });
+
+  test("Add to Existing Episode with only alerts in an episode says there is nothing to add", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page, "alerts", "&oneEpisode=1");
+    // ALT-58 is in AE-11, ALT-56 in AE-9.
+    await selectRows(page, [
+      "Cart service restarts",
+      "CDN error rate above 1%",
+    ]);
+    await (await openBulkMenu(page))
+      .getByRole("menuitem", { name: "Add to Existing Episode" })
+      .click();
+
+    await expect(
+      dialog(page).getByTestId("add-to-existing-episode-nothing-to-add"),
+    ).toContainText("Nothing to add");
+    await expect(
+      dialog(page).getByTestId("add-to-existing-episode-nothing-to-add-reason"),
+    ).toHaveText(
+      "All 2 selected alerts are already in an episode, and an alert can be in only one episode in this project. To move them, remove them from their episodes first.",
+    );
+    // Only Close: nothing here adds.
+    await expect(
+      dialog(page).getByTestId("modal-footer-submit-button"),
+    ).toHaveCount(0);
+
+    await screenshot(page, "one-episode-existing-nothing-to-add");
+
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toBeHidden();
+    expect(await addsSent(page)).toEqual([]);
+  });
+
+  test("Add to New Episode leaves the one in an episode out, says so, and creates the episode with the rest", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page, "alerts", "&oneEpisode=1");
+    await selectRows(page, [
+      "Checkout API is offline",
+      "Cart service restarts",
+    ]);
+    await (await openBulkMenu(page))
+      .getByRole("menuitem", { name: "Add to New Episode" })
+      .click();
+
+    await expect(dialog(page)).toContainText(
+      "1 of them is already in an episode, so it is left out: an alert can be in only one episode in this project.",
+    );
+    await expect(
+      dialog(page).locator('input[type="text"]').first(),
+    ).toHaveValue("Checkout API is offline");
+
+    await screenshot(page, "one-episode-new-dialog");
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
+      "1 Alert added to the new episode",
+    );
+    await expect(page.getByTestId("bulk-action-failed-count")).toHaveText(
+      "1 Alert not added",
+    );
+    await expect(page.getByText(ALERT_IN_ANOTHER_EPISODE)).toBeVisible();
+
+    // The create carried only the one that could go in.
+    const creates: Array<RecordedCreate> = await createsSent(page);
+    expect(creates).toHaveLength(1);
+    expect(creates[0]!.ids).toEqual([alertId(63)]);
+  });
+
+  test("an episode's Add Alerts lists only the alerts in no episode; a search shows the rest locked, naming their episode", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${PROJECT}/alerts/episodes/${alertEpisodeId(12)}/alerts?page=alert-episode&oneEpisode=1`,
+    );
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    const LIST: string = "add-episode-members-list";
+
+    await expect(dialog(page).getByTestId(`${LIST}-option-title`)).toHaveText([
+      "Checkout API is offline",
+      "Checkout API p95 latency above 2 s",
+      "Disk usage above 90% on db-2",
+      "Payroll export job failing",
+    ]);
+    await expect(
+      dialog(page).getByTestId("add-episode-members-one-episode"),
+    ).toHaveText(
+      "An alert can be in only one episode in this project, so alerts that are in another episode can't be added.",
+    );
+
+    await screenshot(page, "one-episode-add-dialog");
+
+    await dialog(page).getByTestId(`${LIST}-search`).fill("ALT-58");
+
+    const locked: Locator = pickerOption(page, LIST, "Cart service restarts");
+    await expect(locked).toBeVisible();
+    await expect(locked.getByTestId(`${LIST}-option-note`)).toHaveText(
+      "Already in episode AE-11",
+    );
+    await expect(locked.getByTestId(`${LIST}-option-note`)).toHaveAttribute(
+      "title",
+      "An alert can be in only one episode in this project. To add it here, remove it from episode AE-11 first.",
+    );
+    await expect(locked.locator('input[type="checkbox"]')).toBeDisabled();
+
+    // A click on it picks nothing.
+    await locked.click({ force: true });
+    await expect(locked).toHaveAttribute("data-selected", "false");
+    await expect(
+      dialog(page).getByTestId("modal-footer-submit-button"),
+    ).toBeDisabled();
+
+    await screenshot(page, "one-episode-add-search-locked");
+  });
+
+  test("the incidents' dialog says incidents", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${PROJECT}/incidents/episodes/${incidentEpisodeId(12)}/incidents?page=incident-episode&oneEpisode=1`,
+    );
+    await page.getByRole("button", { name: "Add Incidents" }).click();
+
+    await expect(
+      dialog(page).getByTestId("add-episode-members-one-episode"),
+    ).toHaveText(
+      "An incident can be in only one episode in this project, so incidents that are in another episode can't be added.",
+    );
+    // INC-58 is in IE-11: not offered until searched for.
+    await expect(
+      pickerOption(page, "add-episode-members-list", "Cart service restarts"),
+    ).toHaveCount(0);
+  });
+
+  test("in the dark theme, the locked row and the rule read on the dark surface", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${PROJECT}/alerts/episodes/${alertEpisodeId(12)}/alerts?page=alert-episode&oneEpisode=1&theme=dark`,
+    );
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    const LIST: string = "add-episode-members-list";
+    await dialog(page).getByTestId(`${LIST}-search`).fill("Cart");
+    await expect(
+      pickerOption(page, LIST, "Cart service restarts"),
+    ).toBeVisible();
+
+    const background: string = await dialog(page)
+      .getByTestId(`${LIST}-list`)
+      .evaluate((element: Element): string => {
+        return getComputedStyle(element).backgroundColor;
+      });
+    expect(background).not.toBe("rgb(255, 255, 255)");
+
+    await screenshot(page, "one-episode-add-dark");
+  });
+});

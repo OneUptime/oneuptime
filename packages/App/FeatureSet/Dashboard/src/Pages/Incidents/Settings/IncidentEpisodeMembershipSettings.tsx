@@ -3,16 +3,17 @@ import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import EpisodeSingleMembershipCard from "../../../Components/EpisodeMembers/EpisodeSingleMembershipCard";
-import { ALERT_EPISODE_SETTINGS_COPY } from "../../../Components/EpisodeMembers/EpisodeSingleMembershipCopy";
+import { INCIDENT_EPISODE_SETTINGS_COPY } from "../../../Components/EpisodeMembers/EpisodeSingleMembershipCopy";
 
 export type ComponentProps = PageComponentProps;
 
 /*
- * Alerts -> Settings -> Episodes: whether an alert can be in only one
- * episode (EpisodeSingleMembership), as Incidents -> Settings -> Episodes
- * says it for incidents.
+ * Incidents -> Settings -> Episode Membership: whether an incident can be in
+ * only one episode (EpisodeSingleMembership). A page of its own, named for
+ * what it holds, as Linked Alerts is - so someone looking for how episodes
+ * take incidents finds it by name in the menu or the search.
  */
-const AlertEpisodeSettings: FunctionComponent<ComponentProps> = (
+const IncidentEpisodeMembershipSettings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -23,10 +24,10 @@ const AlertEpisodeSettings: FunctionComponent<ComponentProps> = (
 
   return (
     <EpisodeSingleMembershipCard
-      copy={ALERT_EPISODE_SETTINGS_COPY}
+      copy={INCIDENT_EPISODE_SETTINGS_COPY}
       projectId={projectId}
     />
   );
 };
 
-export default AlertEpisodeSettings;
+export default IncidentEpisodeMembershipSettings;

@@ -629,8 +629,8 @@ export async function fetchSeverities(data: {
 
 /*
  * Whether the project allows an incident (or alert) in only one episode
- * (EpisodeSingleMembership): its switch on Incidents -> Settings -> Episodes
- * (or Alerts'). Read fresh each time a dialog opens, so a switch flipped a
+ * (EpisodeSingleMembership): its switch on Incidents -> Settings -> Episode
+ * Membership (or Alerts'). Read fresh each time a dialog opens, so a switch flipped a
  * moment ago counts. Every project member may read it. When it cannot be
  * read, the dialogs act as they always did - several episodes allowed - and
  * the server, which decides, says why one was not added.

@@ -41,6 +41,11 @@
  *   - long=1                       long titles, the way some are written
  *   - onlyMembers=1                every alert and incident is in episode
  *                                  12 already: nothing left to add
+ *   - oneEpisode=1                 the project allows an alert (and an
+ *                                  incident) in only one episode
+ *                                  (EpisodeSingleMembership): the server
+ *                                  leaves out one in another episode, and
+ *                                  refuses a new episode created with one
  *   - lang=de|ja                   the Dashboard's German or Japanese words
  *   - theme=dark                   the dark theme
  *
@@ -90,6 +95,13 @@ import {
   ALERT_NOT_FOUND_REASON,
   INCIDENT_NOT_FOUND_REASON,
 } from "Common/Types/Episode/EpisodeMembersAdd";
+import EpisodeSingleMembership, {
+  ALERT_IN_ANOTHER_EPISODE_REASON,
+  ALERT_SINGLE_MEMBERSHIP,
+  INCIDENT_IN_ANOTHER_EPISODE_REASON,
+  INCIDENT_SINGLE_MEMBERSHIP,
+} from "Common/Types/Episode/EpisodeSingleMembership";
+import Project from "Common/Models/DatabaseModels/Project";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -122,6 +134,7 @@ const failTables = listTables("fail");
 const many = Math.min(400, Math.max(0, Number(params.get("many") || 0)));
 const long = params.get("long") === "1";
 const onlyMembers = params.get("onlyMembers") === "1";
+const oneEpisode = params.get("oneEpisode") === "1";
 const LONG_TITLE =
   "Checkout API returns 502 for card payments in eu-west-1 while the payment provider's webhook queue is backed up";
 const language = ["de", "ja"].includes(params.get("lang"))
@@ -368,6 +381,13 @@ function makeKind(kind) {
     notFoundReason: isAlert
       ? ALERT_NOT_FOUND_REASON
       : INCIDENT_NOT_FOUND_REASON,
+    inAnotherEpisodeReason: isAlert
+      ? ALERT_IN_ANOTHER_EPISODE_REASON
+      : INCIDENT_IN_ANOTHER_EPISODE_REASON,
+    singleMembership: isAlert
+      ? ALERT_SINGLE_MEMBERSHIP
+      : INCIDENT_SINGLE_MEMBERSHIP,
+    numberWithPrefixField,
     nextEpisodeNumber: 13,
   };
 }
@@ -554,8 +574,28 @@ ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
 ModelAPI.getItem = async (options) => {
   const tableName = new options.modelType().tableName;
   const id = idOf(options.id);
+
+  // The project's switches: one episode per alert and per incident.
+  if (tableName === "Project") {
+    return model(Project, {
+      _id: PROJECT_ID,
+      limitAlertsToOneEpisode: oneEpisode,
+      limitIncidentsToOneEpisode: oneEpisode,
+    });
+  }
+
   return recordsOf(tableName).find((record) => idOf(record._id) === id) || null;
 };
+
+// Whether a record is in some episode other than this one.
+function isInAnotherEpisode(kind, recordId, episodeId) {
+  return kind.members.some(
+    (member) =>
+      idOf(member[kind.memberRecordIdField]) === recordId &&
+      idOf(member[kind.isAlert ? "alertEpisodeId" : "incidentEpisodeId"]) !==
+        episodeId,
+  );
+}
 
 ModelAPI.getList = async (options) => {
   const tableName = new options.modelType().tableName;
@@ -679,6 +719,29 @@ ModelAPI.create = async (options) => {
     );
   }
 
+  // One in an episode already refuses the whole create, as the server does.
+  const held = oneEpisode
+    ? ids.filter((id) => isInAnotherEpisode(kind, id, ""))
+    : [];
+
+  if (held.length > 0) {
+    throw new HTTPErrorResponse(
+      400,
+      {
+        message: EpisodeSingleMembership.getNewEpisodeRefusal({
+          kind: kind.singleMembership,
+          recordLabels: held.map((id) => {
+            const record = kind.records.find(
+              (candidate) => idOf(candidate._id) === id,
+            );
+            return record ? record[kind.numberWithPrefixField] : null;
+          }),
+        }),
+      },
+      {},
+    );
+  }
+
   const number = kind.nextEpisodeNumber++;
   const severity = kind.severities.find(
     (candidate) => idOf(candidate._id) === idOf(values[kind.severityIdField]),
@@ -785,6 +848,11 @@ API.post = async (options) => {
 
     if (isMember) {
       result.alreadyInEpisode.push(id);
+      continue;
+    }
+
+    if (oneEpisode && isInAnotherEpisode(kind, id, episodeId)) {
+      result.notAdded.push({ id, reason: kind.inAnotherEpisodeReason });
       continue;
     }
 

@@ -18,8 +18,8 @@ import {
 } from "@testing-library/react";
 import React, { FunctionComponent } from "react";
 import { MemoryRouter } from "react-router-dom";
-import IncidentEpisodeSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentEpisodeSettings";
-import AlertEpisodeSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertEpisodeSettings";
+import IncidentEpisodeMembershipSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentEpisodeMembershipSettings";
+import AlertEpisodeMembershipSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertEpisodeMembershipSettings";
 import {
   ALERT_EPISODE_SETTINGS_COPY,
   ALERT_SINGLE_EPISODE_SWITCH_TEST_ID,
@@ -67,7 +67,8 @@ jest.mock("react-i18next", () => {
 });
 
 /*
- * Incidents → Settings → Episodes and Alerts → Settings → Episodes.
+ * Incidents → Settings → Episode Membership and Alerts → Settings →
+ * Episode Membership.
  *
  * The maintainer: "Currently, we are able to add one incident to many
  * incident episodes and one alert to many alert episode. Some customers dont
@@ -113,11 +114,12 @@ interface PageCase {
 const PAGES: Array<PageCase> = [
   {
     name: "Incidents",
-    page: IncidentEpisodeSettings,
-    pageKey: PageMap.INCIDENTS_SETTINGS_EPISODES,
-    routePath: IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODES],
-    path: `/dashboard/${PROJECT_ID}/incidents/settings/episodes`,
-    route: "/dashboard/:projectId/incidents/settings/episodes",
+    page: IncidentEpisodeMembershipSettings,
+    pageKey: PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
+    routePath:
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP],
+    path: `/dashboard/${PROJECT_ID}/incidents/settings/episode-membership`,
+    route: "/dashboard/:projectId/incidents/settings/episode-membership",
     breadcrumbs: getIncidentsBreadcrumbs,
     product: "Incidents",
     column: INCIDENT_SINGLE_MEMBERSHIP_COLUMN,
@@ -133,11 +135,11 @@ const PAGES: Array<PageCase> = [
   },
   {
     name: "Alerts",
-    page: AlertEpisodeSettings,
-    pageKey: PageMap.ALERTS_SETTINGS_EPISODES,
-    routePath: AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODES],
-    path: `/dashboard/${PROJECT_ID}/alerts/settings/episodes`,
-    route: "/dashboard/:projectId/alerts/settings/episodes",
+    page: AlertEpisodeMembershipSettings,
+    pageKey: PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP,
+    routePath: AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP],
+    path: `/dashboard/${PROJECT_ID}/alerts/settings/episode-membership`,
+    route: "/dashboard/:projectId/alerts/settings/episode-membership",
     breadcrumbs: getAlertsBreadcrumbs,
     product: "Alerts",
     column: ALERT_SINGLE_MEMBERSHIP_COLUMN,
@@ -259,203 +261,215 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe.each(PAGES)("$name → Settings → Episodes", (pageCase: PageCase) => {
-  test("lives at settings/episodes, with its own breadcrumb trail", () => {
-    expect(pageCase.routePath).toBe("settings/episodes");
-    expect((RouteMap[pageCase.pageKey] as Route).toString()).toBe(
-      pageCase.route,
-    );
+describe.each(PAGES)(
+  "$name → Settings → Episode Membership",
+  (pageCase: PageCase) => {
+    test("lives at settings/episode-membership, with its own breadcrumb trail", () => {
+      expect(pageCase.routePath).toBe("settings/episode-membership");
+      expect((RouteMap[pageCase.pageKey] as Route).toString()).toBe(
+        pageCase.route,
+      );
 
-    goTo(pageCase.path);
+      goTo(pageCase.path);
 
-    const trail: Array<Link> | undefined = pageCase.breadcrumbs(pageCase.route);
+      const trail: Array<Link> | undefined = pageCase.breadcrumbs(
+        pageCase.route,
+      );
 
-    expect(
-      (trail || []).map((link: Link): string => {
-        return link.title;
-      }),
-    ).toEqual(["Project", pageCase.product, "Settings", "Episodes"]);
-    expect(trail?.[trail.length - 1]?.to.toString()).toBe(pageCase.path);
-  });
-
-  test("is one card, Episode Membership, saying what it decides", async () => {
-    openPage(pageCase);
-
-    expect(
-      await screen.findByText(
+      expect(
+        (trail || []).map((link: Link): string => {
+          return link.title;
+        }),
+      ).toEqual([
+        "Project",
+        pageCase.product,
+        "Settings",
         "Episode Membership",
-        {},
-        { timeout: WAIT_TIMEOUT },
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText(pageCase.cardDescription)).toBeInTheDocument();
-    expect(screen.getAllByTestId("card")).toHaveLength(1);
-
-    // Once the project is read: the one switch.
-    await theSwitch(pageCase);
-    expect(screen.getAllByRole("switch")).toHaveLength(1);
-  });
-
-  test("the switch is off for a project that never turned it on, and says what off means", async () => {
-    openPage(pageCase);
-
-    const control: HTMLElement = await theSwitch(pageCase);
-
-    expect(control).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByRole("switch", { name: pageCase.switchTitle })).toBe(
-      control,
-    );
-
-    const row: HTMLElement = screen.getByTestId(`${pageCase.switchTestId}-row`);
-    expect(row).toHaveTextContent(pageCase.offDescription);
-    // Whichever way it is set: turning it on takes nobody out.
-    expect(row).toHaveTextContent(pageCase.note);
-  });
-
-  test("a project that turned it on shows it on, and says what on means", async () => {
-    (project as unknown as Record<string, unknown>)[pageCase.column] = true;
-    openPage(pageCase);
-
-    expect(await theSwitch(pageCase)).toHaveAttribute("aria-checked", "true");
-    expect(
-      screen.getByTestId(`${pageCase.switchTestId}-row`),
-    ).toHaveTextContent(pageCase.onDescription);
-  });
-
-  test("reads the project it is on, and only its own column", async () => {
-    openPage(pageCase);
-    await theSwitch(pageCase);
-
-    await waitFor(
-      () => {
-        expect(getItemSpy.mock.calls.length).toBeGreaterThan(0);
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-
-    const call: { id?: unknown; select?: Record<string, unknown> } = getItemSpy
-      .mock.calls[0]![0] as {
-      id?: unknown;
-      select?: Record<string, unknown>;
-    };
-
-    expect(String(call.id)).toBe(PROJECT_ID);
-    expect(call.select).toHaveProperty(pageCase.column);
-    for (const column of Object.keys(call.select || {})) {
-      expect(["_id", pageCase.column]).toContain(column);
-    }
-  });
-
-  test("a project owner turns it on: exactly its column is saved, at once, with no dialog", async () => {
-    openPage(pageCase);
-
-    const control: HTMLElement = await theSwitch(pageCase);
-    await press(control);
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(updates()).toEqual([{ [pageCase.column]: true }]);
-    expect(
-      String((updateByIdSpy.mock.calls[0]![0] as { id: unknown }).id),
-    ).toBe(PROJECT_ID);
-    expect(
-      (updateByIdSpy.mock.calls[0]![0] as { modelType: unknown }).modelType,
-    ).toBe(Project);
-    expect(control).toHaveAttribute("aria-checked", "true");
-    expect(
-      screen.getByTestId(`${pageCase.switchTestId}-status`),
-    ).toHaveTextContent("Saved");
-    expect(
-      screen.getByTestId(`${pageCase.switchTestId}-row`),
-    ).toHaveTextContent(pageCase.onDescription);
-  });
-
-  test("and back off, the same way", async () => {
-    (project as unknown as Record<string, unknown>)[pageCase.column] = true;
-    openPage(pageCase);
-
-    await press(await theSwitch(pageCase));
-
-    expect(updates()).toEqual([{ [pageCase.column]: false }]);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  test("a flip the server refuses moves the switch back, with why", async () => {
-    updateByIdSpy.mockImplementation(async (): Promise<never> => {
-      throw new Error("You do not have permission to update this Project.");
+      ]);
+      expect(trail?.[trail.length - 1]?.to.toString()).toBe(pageCase.path);
     });
-    openPage(pageCase);
 
-    const control: HTMLElement = await theSwitch(pageCase);
-    await press(control);
-
-    expect(control).toHaveAttribute("aria-checked", "false");
-    expect(
-      screen.getByTestId(`${pageCase.switchTestId}-row`),
-    ).toHaveTextContent("You do not have permission to update this Project.");
-  });
-
-  test.each([[Permission.ProjectOwner], [Permission.ProjectAdmin]])(
-    "%s may flip it",
-    async (permission: Permission) => {
-      grant([...BASE_PERMISSIONS, permission]);
+    test("is one card, Episode Membership, saying what it decides", async () => {
       openPage(pageCase);
 
-      const control: HTMLElement = await theSwitch(pageCase);
-      expect(control).not.toHaveAttribute("aria-disabled");
+      expect(
+        await screen.findByText(
+          "Episode Membership",
+          {},
+          { timeout: WAIT_TIMEOUT },
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText(pageCase.cardDescription)).toBeInTheDocument();
+      expect(screen.getAllByTestId("card")).toHaveLength(1);
 
-      await press(control);
-      expect(updates()).toEqual([{ [pageCase.column]: true }]);
-    },
-  );
+      // Once the project is read: the one switch.
+      await theSwitch(pageCase);
+      expect(screen.getAllByRole("switch")).toHaveLength(1);
+    });
 
-  test.each([
-    [Permission.ProjectMember],
-    [Permission.Viewer],
-    [Permission.EditProject],
-  ])(
-    "%s sees it, locked, with the permissions it needs, and a press saves nothing",
-    async (permission: Permission) => {
-      grant([...BASE_PERMISSIONS, permission]);
+    test("the switch is off for a project that never turned it on, and says what off means", async () => {
       openPage(pageCase);
 
       const control: HTMLElement = await theSwitch(pageCase);
 
-      expect(control).toHaveAttribute("aria-disabled", "true");
+      expect(control).toHaveAttribute("aria-checked", "false");
+      expect(screen.getByRole("switch", { name: pageCase.switchTitle })).toBe(
+        control,
+      );
+
+      const row: HTMLElement = screen.getByTestId(
+        `${pageCase.switchTestId}-row`,
+      );
+      expect(row).toHaveTextContent(pageCase.offDescription);
+      // Whichever way it is set: turning it on takes nobody out.
+      expect(row).toHaveTextContent(pageCase.note);
+    });
+
+    test("a project that turned it on shows it on, and says what on means", async () => {
+      (project as unknown as Record<string, unknown>)[pageCase.column] = true;
+      openPage(pageCase);
+
+      expect(await theSwitch(pageCase)).toHaveAttribute("aria-checked", "true");
       expect(
         screen.getByTestId(`${pageCase.switchTestId}-row`),
-      ).toHaveTextContent("Project Owner, Project Admin");
+      ).toHaveTextContent(pageCase.onDescription);
+    });
 
+    test("reads the project it is on, and only its own column", async () => {
+      openPage(pageCase);
+      await theSwitch(pageCase);
+
+      await waitFor(
+        () => {
+          expect(getItemSpy.mock.calls.length).toBeGreaterThan(0);
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      const call: { id?: unknown; select?: Record<string, unknown> } =
+        getItemSpy.mock.calls[0]![0] as {
+          id?: unknown;
+          select?: Record<string, unknown>;
+        };
+
+      expect(String(call.id)).toBe(PROJECT_ID);
+      expect(call.select).toHaveProperty(pageCase.column);
+      for (const column of Object.keys(call.select || {})) {
+        expect(["_id", pageCase.column]).toContain(column);
+      }
+    });
+
+    test("a project owner turns it on: exactly its column is saved, at once, with no dialog", async () => {
+      openPage(pageCase);
+
+      const control: HTMLElement = await theSwitch(pageCase);
       await press(control);
-      expect(updateByIdSpy).not.toHaveBeenCalled();
-    },
-  );
 
-  test("the switch writes the column the server reads, and needs a project owner or admin", () => {
-    expect(pageCase.copy.column).toBe(pageCase.column);
-    expect(
-      getProjectColumnsUpdatePermissions([
-        pageCase.column as keyof Project & string,
-      ]),
-    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
-    expect(
-      getProjectColumnsPermissionMessage([
-        pageCase.column as keyof Project & string,
-      ]),
-    ).toBe(
-      "Changing these needs one of these permissions: Project Owner, Project Admin.",
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(updates()).toEqual([{ [pageCase.column]: true }]);
+      expect(
+        String((updateByIdSpy.mock.calls[0]![0] as { id: unknown }).id),
+      ).toBe(PROJECT_ID);
+      expect(
+        (updateByIdSpy.mock.calls[0]![0] as { modelType: unknown }).modelType,
+      ).toBe(Project);
+      expect(control).toHaveAttribute("aria-checked", "true");
+      expect(
+        screen.getByTestId(`${pageCase.switchTestId}-status`),
+      ).toHaveTextContent("Saved");
+      expect(
+        screen.getByTestId(`${pageCase.switchTestId}-row`),
+      ).toHaveTextContent(pageCase.onDescription);
+    });
+
+    test("and back off, the same way", async () => {
+      (project as unknown as Record<string, unknown>)[pageCase.column] = true;
+      openPage(pageCase);
+
+      await press(await theSwitch(pageCase));
+
+      expect(updates()).toEqual([{ [pageCase.column]: false }]);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    test("a flip the server refuses moves the switch back, with why", async () => {
+      updateByIdSpy.mockImplementation(async (): Promise<never> => {
+        throw new Error("You do not have permission to update this Project.");
+      });
+      openPage(pageCase);
+
+      const control: HTMLElement = await theSwitch(pageCase);
+      await press(control);
+
+      expect(control).toHaveAttribute("aria-checked", "false");
+      expect(
+        screen.getByTestId(`${pageCase.switchTestId}-row`),
+      ).toHaveTextContent("You do not have permission to update this Project.");
+    });
+
+    test.each([[Permission.ProjectOwner], [Permission.ProjectAdmin]])(
+      "%s may flip it",
+      async (permission: Permission) => {
+        grant([...BASE_PERMISSIONS, permission]);
+        openPage(pageCase);
+
+        const control: HTMLElement = await theSwitch(pageCase);
+        expect(control).not.toHaveAttribute("aria-disabled");
+
+        await press(control);
+        expect(updates()).toEqual([{ [pageCase.column]: true }]);
+      },
     );
-  });
 
-  test("its words are the page's own", () => {
-    expect(pageCase.copy.cardTitle).toBe("Episode Membership");
-    expect(pageCase.copy.cardDescription).toBe(pageCase.cardDescription);
-    expect(pageCase.copy.switchTitle).toBe(pageCase.switchTitle);
-    expect(pageCase.copy.switchOnDescription).toBe(pageCase.onDescription);
-    expect(pageCase.copy.switchOffDescription).toBe(pageCase.offDescription);
-    expect(pageCase.copy.note).toBe(pageCase.note);
-    expect(pageCase.copy.dataTestId).toBe(pageCase.switchTestId);
-  });
-});
+    test.each([
+      [Permission.ProjectMember],
+      [Permission.Viewer],
+      [Permission.EditProject],
+    ])(
+      "%s sees it, locked, with the permissions it needs, and a press saves nothing",
+      async (permission: Permission) => {
+        grant([...BASE_PERMISSIONS, permission]);
+        openPage(pageCase);
+
+        const control: HTMLElement = await theSwitch(pageCase);
+
+        expect(control).toHaveAttribute("aria-disabled", "true");
+        expect(
+          screen.getByTestId(`${pageCase.switchTestId}-row`),
+        ).toHaveTextContent("Project Owner, Project Admin");
+
+        await press(control);
+        expect(updateByIdSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test("the switch writes the column the server reads, and needs a project owner or admin", () => {
+      expect(pageCase.copy.column).toBe(pageCase.column);
+      expect(
+        getProjectColumnsUpdatePermissions([
+          pageCase.column as keyof Project & string,
+        ]),
+      ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
+      expect(
+        getProjectColumnsPermissionMessage([
+          pageCase.column as keyof Project & string,
+        ]),
+      ).toBe(
+        "Changing these needs one of these permissions: Project Owner, Project Admin.",
+      );
+    });
+
+    test("its words are the page's own", () => {
+      expect(pageCase.copy.cardTitle).toBe("Episode Membership");
+      expect(pageCase.copy.cardDescription).toBe(pageCase.cardDescription);
+      expect(pageCase.copy.switchTitle).toBe(pageCase.switchTitle);
+      expect(pageCase.copy.switchOnDescription).toBe(pageCase.onDescription);
+      expect(pageCase.copy.switchOffDescription).toBe(pageCase.offDescription);
+      expect(pageCase.copy.note).toBe(pageCase.note);
+      expect(pageCase.copy.dataTestId).toBe(pageCase.switchTestId);
+    });
+  },
+);
 
 describe("the two pages", () => {
   test("hold one card each, never the other kind's switch", async () => {

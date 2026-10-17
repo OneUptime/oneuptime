@@ -5,9 +5,10 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { EpisodeSingleMembershipCopy } from "./EpisodeSingleMembershipCopy";
 
 /*
- * "Episode Membership", on Incidents -> Settings -> Episodes and Alerts ->
- * Settings -> Episodes: the one switch that says an incident (or an alert)
- * can be in only one episode, saved the moment it is flipped. See
+ * "Episode Membership", on Incidents -> Settings -> Episode Membership and
+ * Alerts -> Settings -> Episode Membership: the one switch that says an
+ * incident (or an alert) can be in only one episode, saved the moment it is
+ * flipped. See
  * EpisodeSingleMembershipCopy for its words, and
  * Common/Types/Episode/EpisodeSingleMembership for what it does.
  */

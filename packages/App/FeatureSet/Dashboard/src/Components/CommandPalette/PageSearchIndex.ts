@@ -858,14 +858,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Link,
           },
           {
-            page: PageMap.INCIDENTS_SETTINGS_EPISODES,
-            title: "Episodes",
+            page: PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
+            title: "Episode Membership",
             icon: IconProp.SquareStack3D,
             keywords: [
               "episode settings",
               "one episode",
               "only one episode",
-              "episode membership",
+              "several episodes",
             ],
           },
           {
@@ -997,14 +997,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["mtta", "time to resolve"],
           },
           {
-            page: PageMap.ALERTS_SETTINGS_EPISODES,
-            title: "Episodes",
+            page: PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP,
+            title: "Episode Membership",
             icon: IconProp.SquareStack3D,
             keywords: [
               "episode settings",
               "one episode",
               "only one episode",
-              "episode membership",
+              "several episodes",
             ],
           },
           {
