@@ -42,7 +42,11 @@ interface CapturedExistingProps {
 interface CapturedNewProps {
   recordIds: Array<string>;
   onClose: () => void;
-  onCreate: (values: { title: string; severityId: string | undefined }) => void;
+  onCreate: (values: {
+    title: string;
+    severityId: string | undefined;
+    leftOutIds?: Array<string> | undefined;
+  }) => void;
 }
 
 let existingDialog: CapturedExistingProps | null = null;
@@ -114,6 +118,10 @@ import {
   INCIDENT_NOT_FOUND_REASON,
   MAX_EPISODE_MEMBERS_PER_ADD,
 } from "../../../Types/Episode/EpisodeMembersAdd";
+import {
+  ALERT_IN_ANOTHER_EPISODE_REASON,
+  INCIDENT_IN_ANOTHER_EPISODE_REASON,
+} from "../../../Types/Episode/EpisodeSingleMembership";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import API from "../../../UI/Utils/API/API";
@@ -726,6 +734,133 @@ describe("useBulkAddToEpisodeActions", () => {
         visibleAction(ADD_TO_NEW_EPISODE_ACTION_TITLE, items).resultDetails?.(),
       ).toBeUndefined();
     });
+
+    /*
+     * A project that allows an alert in only one episode
+     * (EpisodeSingleMembership): the dialog leaves out the selected ones
+     * that are in an episode already, and says so. They are not asked for -
+     * the server would refuse the whole create for them - and each is
+     * reported as not added, with the reason the server gives for one.
+     */
+    test("the ones the dialog left out are not asked for, and each says why; the rest go into the new episode", async () => {
+      createSpy.mockResolvedValue(
+        new HTTPResponse(
+          200,
+          { _id: EPISODE_ID, episodeNumberWithPrefix: "AE-13" },
+          {},
+        ) as never,
+      );
+
+      renderHarness();
+      const items: Array<Alert> = makeAlerts(3);
+
+      await click(ADD_TO_NEW_EPISODE_ACTION_TITLE, items);
+      await actAsync(async () => {
+        newDialog!.onCreate({
+          title: "Checkout outage",
+          severityId: undefined,
+          leftOutIds: [id(2).toUpperCase()],
+        });
+      });
+      await settle();
+
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      const call: Record<string, any> = createSpy.mock.calls[0]![0] as Record<
+        string,
+        any
+      >;
+      expect(call["miscDataProps"]).toEqual({
+        alertIdsToAdd: [id(1), id(3)],
+      });
+
+      expect(outcome.changed).toEqual(["Alert 1", "Alert 3"]);
+      expect(outcome.failed).toEqual([
+        `Alert 2: ${ALERT_IN_ANOTHER_EPISODE_REASON}`,
+      ]);
+    });
+
+    test("every one left out: no episode is created, and each says why", async () => {
+      renderHarness(INCIDENT_EPISODE_MEMBER_KIND);
+      const items: Array<Alert> = makeAlerts(2);
+
+      await click(ADD_TO_NEW_EPISODE_ACTION_TITLE, items);
+      await actAsync(async () => {
+        newDialog!.onCreate({
+          title: "Checkout outage",
+          severityId: undefined,
+          leftOutIds: [id(1), id(2)],
+        });
+      });
+      await settle();
+
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(outcome.changed).toEqual([]);
+      expect(outcome.failed).toEqual([
+        `Alert 1: ${INCIDENT_IN_ANOTHER_EPISODE_REASON}`,
+        `Alert 2: ${INCIDENT_IN_ANOTHER_EPISODE_REASON}`,
+      ]);
+    });
+
+    test("nothing left out (a project that allows several): every selected id is asked for, as before", async () => {
+      createSpy.mockResolvedValue(
+        new HTTPResponse(200, { _id: EPISODE_ID }, {}) as never,
+      );
+
+      renderHarness();
+
+      await click(ADD_TO_NEW_EPISODE_ACTION_TITLE, makeAlerts(2));
+      await actAsync(async () => {
+        newDialog!.onCreate({
+          title: "Checkout outage",
+          severityId: undefined,
+          leftOutIds: [],
+        });
+      });
+      await settle();
+
+      const call: Record<string, any> = createSpy.mock.calls[0]![0] as Record<
+        string,
+        any
+      >;
+      expect(call["miscDataProps"]).toEqual({
+        alertIdsToAdd: [id(1), id(2)],
+      });
+      expect(outcome.changed).toEqual(["Alert 1", "Alert 2"]);
+    });
+  });
+
+  describe("adding to an episode, in a project that allows one in only one", () => {
+    test("one the server leaves out because it is in another episode is reported with that reason; the rest are added", async () => {
+      postSpy.mockResolvedValue(
+        new HTTPResponse(
+          200,
+          {
+            added: [id(1)],
+            alreadyInEpisode: [],
+            notAdded: [{ id: id(2), reason: ALERT_IN_ANOTHER_EPISODE_REASON }],
+          },
+          {},
+        ) as never,
+      );
+
+      renderHarness();
+      const items: Array<Alert> = makeAlerts(2);
+
+      await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
+      await actAsync(async () => {
+        existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
+      });
+      await settle();
+
+      expect(outcome.changed).toEqual(["Alert 1"]);
+      expect(outcome.failed).toEqual([
+        `Alert 2: ${ALERT_IN_ANOTHER_EPISODE_REASON}`,
+      ]);
+      // A reason the dashboard has words for, in every language.
+      expect(EPISODE_MEMBERS_ADD_REASON_KEYS).toContain(
+        ALERT_IN_ANOTHER_EPISODE_REASON,
+      );
+    });
   });
 });
 
@@ -792,6 +927,9 @@ describe("reading one row's outcome from the answer", () => {
       ALREADY_IN_EPISODE_REASON,
       ALERT_NOT_FOUND_REASON,
       INCIDENT_NOT_FOUND_REASON,
+      // A project that allows one in only one episode (EpisodeSingleMembership).
+      ALERT_IN_ANOTHER_EPISODE_REASON,
+      INCIDENT_IN_ANOTHER_EPISODE_REASON,
     ]);
   });
 });

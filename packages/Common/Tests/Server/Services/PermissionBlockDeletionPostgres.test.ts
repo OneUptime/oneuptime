@@ -129,6 +129,11 @@ describePostgres("permission block removal against Postgres", () => {
     "TeamMember",
     "TeamPermission",
     "TeamPermissionLabel",
+    // Custom roles (#4909): the team permission services read them too.
+    "CustomRole",
+    "CustomRolePermission",
+    "CustomRolePermissionLabel",
+    "TeamCustomRole",
     "Label",
     "Monitor",
     "MonitorLabel",

@@ -359,6 +359,10 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Linked Alerts",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
+      ["Project", "Incidents", "Settings", "Episode Membership"],
+    ),
 
     /*
      * The trail names the side-menu section a page actually lives in —

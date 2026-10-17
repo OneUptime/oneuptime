@@ -25,9 +25,11 @@ import React, {
 import { toIdString } from "../IncidentAlert/LinkIncidentAlertModal";
 import { EpisodeMemberKindConfig } from "./EpisodeMemberKinds";
 import {
+  fetchIsLimitedToOneEpisode,
   fetchRecordsForNewEpisode,
   fetchSeverities,
 } from "./EpisodeMembersApi";
+import NothingToAddToEpisodeModal from "./NothingToAddToEpisode";
 
 /*
  * "Add to New Episode" on an alerts or incidents list: an episode made for
@@ -39,11 +41,23 @@ import {
  *
  * Asking is all this does: the list's bulk action creates the episode with
  * them, in one request, and reports it.
+ *
+ * In a project that allows one in only one episode (EpisodeSingleMembership,
+ * read when the dialog opens), the selected ones that are in an episode
+ * already are left out of the new one - the description says how many, the
+ * title and severity start from the rest, and the result lists them as not
+ * added, with why. When every one is in an episode, there is nothing to
+ * create an episode with: the dialog says so, with only Close.
  */
 
 export interface NewEpisodeValues {
   title: string;
   severityId: string | undefined;
+  /*
+   * The selected ones left out because they are in an episode already and
+   * the project allows one in only one: none when it allows several.
+   */
+  leftOutIds?: Array<string> | undefined;
 }
 
 export interface NewEpisodeFormData {
@@ -78,6 +92,15 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
   );
   const [initialValues, setInitialValues] = useState<NewEpisodeFormData>({});
   const [inAnotherEpisode, setInAnotherEpisode] = useState<number>(0);
+  /*
+   * Whether the project allows one in only one episode, and - when it does
+   * - the selected ones in an episode already, left out of the new one.
+   */
+  const [isLimitedToOneEpisode, setIsLimitedToOneEpisode] =
+    useState<boolean>(false);
+  const [leftOutIds, setLeftOutIds] = useState<Array<string>>([]);
+  // Every selected one was read, so "all of them" is known, not assumed.
+  const [areAllRead, setAreAllRead] = useState<boolean>(false);
 
   useEffect(() => {
     let isCancelled: boolean = false;
@@ -88,7 +111,7 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
        * empty, without the severities it offers none. Either way it can
        * still be filled in.
        */
-      const [records, severities] = await Promise.all([
+      const [records, severities, isLimited] = await Promise.all([
         fetchRecordsForNewEpisode({ config: config, ids: props.recordIds })
           .then(
             (
@@ -107,14 +130,42 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
             SeverityForMapping & { color?: Color | undefined }
           >;
         }),
+        // Never rejects: a project it cannot read allows several.
+        fetchIsLimitedToOneEpisode({ config: config }),
       ]);
 
       if (isCancelled) {
         return;
       }
 
+      /*
+       * Allowed in only one episode: the ones in an episode already are left
+       * out, and the new episode starts from the rest.
+       */
+      const heldRecords: Array<
+        RecordForNewEpisode & { otherEpisodeId?: string }
+      > = isLimited
+        ? records.filter(
+            (
+              record: RecordForNewEpisode & { otherEpisodeId?: string },
+            ): boolean => {
+              return Boolean(record.otherEpisodeId);
+            },
+          )
+        : [];
+
+      const recordsToAdd: Array<
+        RecordForNewEpisode & { otherEpisodeId?: string }
+      > = records.filter(
+        (
+          record: RecordForNewEpisode & { otherEpisodeId?: string },
+        ): boolean => {
+          return !heldRecords.includes(record);
+        },
+      );
+
       const prefill: NewEpisodePrefill = EpisodeFromRecords.getPrefill({
-        records: records,
+        records: recordsToAdd,
         severities: severities,
       });
 
@@ -147,6 +198,18 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
         ).length,
       );
 
+      setIsLimitedToOneEpisode(isLimited);
+      setLeftOutIds(
+        heldRecords.map(
+          (
+            record: RecordForNewEpisode & { otherEpisodeId?: string },
+          ): string => {
+            return record.id;
+          },
+        ),
+      );
+      setAreAllRead(records.length === props.recordIds.length);
+
       setIsLoading(false);
     };
 
@@ -165,12 +228,26 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
    * The title says what this does, so the description says only what the
    * form leaves out, and what happens to the ones in another episode:
    * whole sentences, run together the way the reader's script does it.
+   *
+   * Selected ones left out of the new episode (a project that allows one in
+   * only one episode) change what this creates, so that comes first, before
+   * anything about the episode's page. One that stays in another episode
+   * too changes nothing here, so it comes last.
    */
+  const leftOutSentence: string =
+    isLimitedToOneEpisode && leftOutIds.length > 0
+      ? translator.translatePlural(
+          config.singleMembershipCopy.newEpisodeLeftOut,
+          leftOutIds.length,
+        )
+      : "";
+
   const description: string = joinSentences([
+    leftOutSentence,
     translator.translateText(
       "You can add owners, on-call policies and notes on the episode's page.",
     ) || "",
-    inAnotherEpisode > 0
+    !isLimitedToOneEpisode && inAnotherEpisode > 0
       ? translator.translatePlural(
           {
             one: "{{count}} of them is already in another episode, and stays there too.",
@@ -182,16 +259,40 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
       : "",
   ]);
 
+  const title: string = translator.translatePlural(
+    {
+      one: "Add {{count}} {{itemName}} to a New Episode",
+      other: "Add {{count}} {{itemsName}} to a New Episode",
+    },
+    count,
+    { itemName: itemTitle, itemsName: itemsTitle },
+  );
+
+  /*
+   * Allowed in only one episode, and every selected one is in an episode
+   * already: there is nothing to create an episode with.
+   */
+  if (
+    !isLoading &&
+    isLimitedToOneEpisode &&
+    areAllRead &&
+    count > 0 &&
+    leftOutIds.length === count
+  ) {
+    return (
+      <NothingToAddToEpisodeModal
+        config={config}
+        title={title}
+        count={count}
+        dataTestId="add-to-new-episode-nothing-to-add"
+        onClose={props.onClose}
+      />
+    );
+  }
+
   return (
     <BasicFormModal<NewEpisodeFormData>
-      title={translator.translatePlural(
-        {
-          one: "Add {{count}} {{itemName}} to a New Episode",
-          other: "Add {{count}} {{itemsName}} to a New Episode",
-        },
-        count,
-        { itemName: itemTitle, itemsName: itemsTitle },
-      )}
+      title={title}
       name="Add to New Episode"
       description={description}
       isLoading={isLoading}
@@ -205,6 +306,7 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
         props.onCreate({
           title: ((data as NewEpisodeFormData).title || "").trim(),
           severityId: severityId || undefined,
+          leftOutIds: leftOutIds,
         });
       }}
       formProps={{
