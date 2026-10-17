@@ -289,8 +289,8 @@ describe("SubnetScanner — an ICMP-only sweep sends no SNMP", () => {
       isSnmpEnabled: false,
       /*
        * A fully-populated credential SET on an ICMP-only scan — the shape a
-       * row has when the operator filled the SNMP step in and then turned
-       * Check SNMP off. Credentials moved into this list in issue #3458; the
+       * row has when the operator filled the SNMP step in and then picked
+       * ICMP instead. Credentials moved into this list in issue #3458; the
        * guarantee is unchanged and is the important one: carrying them must
        * not cause a single SNMP packet to be sent.
        */
@@ -655,13 +655,13 @@ describe("SubnetScanner — an ICMP-only sweep with no usable ping", () => {
     expect(error.message).toContain("ping binary");
   });
 
-  it("offers Check SNMP as the other way out", async () => {
+  it("offers SNMP as the other way out", async () => {
     mockPingUnusable();
     recordSnmpProbes();
 
     const error: Error = await captureScanError(SIX_HOSTS);
 
-    expect(error.message).toContain("Check SNMP on");
+    expect(error.message).toContain("Edit the scan and pick SNMP");
   });
 
   it("quotes what the ping layer actually reported", async () => {
@@ -701,7 +701,7 @@ describe("SubnetScanner — an ICMP-only sweep with no usable ping", () => {
     const clipped: string = error.message.substring(0, 500);
     expect(clipped).toContain("could not send ICMP echo requests");
     expect(clipped).toContain("NET_RAW");
-    expect(clipped).toContain("Check SNMP on");
+    expect(clipped).toContain("Edit the scan and pick SNMP");
     // The stderr is last, so it is the only thing the clip can cost.
     expect(error.message.indexOf("Ping reported:")).toBeGreaterThan(
       error.message.indexOf("NET_RAW"),

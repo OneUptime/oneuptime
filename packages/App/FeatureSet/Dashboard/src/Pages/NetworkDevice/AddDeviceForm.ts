@@ -69,19 +69,19 @@ export const ADD_DEVICE_PROBE_DESCRIPTION: string = translationKey(
  * the user's terms: what they get now, and what SNMP adds.
  */
 export const ADD_DEVICE_SNMP_NOT_SET_SUMMARY: string = translationKey(
-  "Optional. Without it the device is pinged, so it gets a status and a response time. Add its SNMP community string to also see its interfaces, traffic and health.",
+  "Optional. Without it the device is only pinged. Add a community string to also see its interfaces and health.",
 );
 
 export const ADD_DEVICE_SNMP_SECTION_TITLE: string = translationKey("SNMP");
 
 export const ADD_DEVICE_SNMP_SECTION_DESCRIPTION: string = translationKey(
-  "The credentials the probe reads the device with, as well as pinging it. A v1 or v2c community string is all most devices need.",
+  "Most devices need only a v1 or v2c community string.",
 );
 
 export const ADD_DEVICE_SNMP_SECTION_ID: string = "snmp";
 
 export const ADD_DEVICE_CREDENTIAL_PROFILE_DESCRIPTION: string = translationKey(
-  "Or use a saved set of credentials that other devices share. Credentials typed above win when both are set; the device's site can carry a default set too.",
+  "Or use a saved set of credentials. Credentials typed above win when both are set.",
 );
 
 export const ADD_DEVICE_CREDENTIAL_PROFILE_PLACEHOLDER: string = translationKey(
@@ -98,11 +98,11 @@ export const ADD_DEVICE_PING_MONITOR_TITLE: string = translationKey(
 );
 
 export const ADD_DEVICE_PING_MONITOR_DESCRIPTION: string = translationKey(
-  "The probe already pings this device and gives it a status. A Ping monitor is what turns failed pings into an incident: it is created on the hostname and bound to the device, it counts towards your plan, and incidents are off on it until you turn them on from the monitor's page. To alert on many devices at once, use Alert Policies instead.",
+  "The probe already pings this device. The monitor counts towards your plan, and its incidents are off at first. For many devices, use Alert Policies.",
 );
 
 export const ADD_DEVICE_PING_PROBES_DESCRIPTION: string = translationKey(
-  "The probes the Ping monitor checks from. They have to reach the device's network. Leave it empty to use the project's default probes.",
+  "They must reach the device's network. Leave it empty to use the default probes.",
 );
 
 type FormValuesRecord = Record<string, unknown>;

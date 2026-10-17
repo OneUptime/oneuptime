@@ -502,7 +502,7 @@ En lugar de añadir los dispositivos de uno en uno, recorre un rango de direccio
 flowchart TB
     Scan["Escaneo de descubrimiento<br/>en una sonda"]
     Ping["Hacer ping a cada<br/>dirección del rango"]
-    Check{"¿Comprobar SNMP en los<br/>hosts que respondan?"}
+    Check{"¿Método de escaneo?"}
     Read["Leer el nombre y el fabricante<br/>de cada host por SNMP"]
     Found["Hosts encontrados"]
     Review["Revisar resultados:<br/>elegir e importar"]
@@ -510,8 +510,8 @@ flowchart TB
     Devices["Dispositivos, sondeados<br/>por la sonda del escaneo"]
     Scan --> Ping
     Ping --> Check
-    Check -->|"Activado"| Read
-    Check -->|"Desactivado"| Found
+    Check -->|"SNMP"| Read
+    Check -->|"ICMP"| Found
     Read --> Found
     Found --> Review
     Found --> Rules
@@ -524,13 +524,13 @@ flowchart TB
 Ve a **Red → Descubrimiento** y haz clic en **Iniciar escaneo**. **Descubrir dispositivos** en la **Vista general** de Red abre el mismo formulario.
 
 ### Decir qué escanear
-En el paso **Objetivo del escaneo**, escribe el rango, comprueba la **Sonda** y decide si **Comprobar SNMP en los hosts que respondan**.
+Escribe el rango en **Objetivo del escaneo**, comprueba la **Sonda** y elige el **Método de escaneo**: **ICMP (ping)**, con el que empieza un escaneo nuevo, o **SNMP**.
 
 ### Añadir las credenciales que probar
-Con SNMP activado, el paso **Credenciales SNMP** pide los conjuntos de credenciales que probar. Con SNMP desactivado no hay segundo paso: el escaneo es un [escaneo solo con ping](#escaneos-solo-con-ping), e **Iniciar escaneo** está en la primera página.
+Solo un escaneo SNMP pide credenciales: al elegir **SNMP** se añade el paso **Credenciales SNMP**, con los conjuntos de credenciales que probar. Un [escaneo ICMP](#escaneos-icmp) no tiene segundo paso, e **Iniciar escaneo** está en la primera página.
 
 ### Iniciar el escaneo
-Haz clic en **Iniciar escaneo**. La sonda recorre el rango e informa de cuántos hosts escaneó y cuántos respondieron: cuántos respondieron a SNMP o, en un escaneo solo con ping, cuántos respondieron al ping.
+Haz clic en **Iniciar escaneo**. La sonda recorre el rango e informa de cuántos hosts escaneó y cuántos respondieron: cuántos respondieron a SNMP o, en un escaneo ICMP, cuántos respondieron al ping.
 
 ### Importar lo que encontró
 Haz clic en **Revisar resultados** en el escaneo, elige los hosts que vas a importar y haz clic en **Siguiente**. Elige con qué frecuencia se comprueban y si cada uno recibe un monitor, y luego impórtalos; consulta [Importar lo que encontró un escaneo](#importar-lo-que-encontró-un-escaneo).
@@ -540,8 +540,8 @@ Haz clic en **Revisar resultados** en el escaneo, elige los hosts que vas a impo
 | --- | --- | --- |
 | Objetivo del escaneo | Las direcciones que escanear, en [notación CIDR o de rangos de octetos](#notación-del-objetivo-del-escaneo). | Sí |
 | Sonda | La sonda que ejecuta el recorrido. Debe alcanzar el rango directamente. Un proyecto con exactamente una sonda personalizada empieza con esa. Un proyecto sin sonda propia lo ve indicado, con **Añadir una sonda** junto al campo. | Sí |
-| Comprobar SNMP en los hosts que respondan | Un escaneo hace ping al rango primero; esto decide si después se pregunta por SNMP a los hosts que responden por su nombre y su fabricante. Desactívalo para un [escaneo solo con ping](#escaneos-solo-con-ping). Se elige al crear el escaneo y queda fijo después. Activado por defecto. | No |
-| Credenciales que probar | El segundo paso: los conjuntos de credenciales que probar, en orden. A cada host se le pregunta con cada conjunto hasta que uno responde, así que añade un conjunto por grupo de dispositivos que compartan versión y comunidad o usuario v3. **Añadir más credenciales** añade uno. | Cuando la comprobación SNMP está activada |
+| Método de escaneo | **ICMP (ping)** hace ping a cada dirección del rango y lista lo que responde, sin credenciales: un [escaneo ICMP](#escaneos-icmp). **SNMP** también hace ping y después pregunta a cada host que responde por su nombre y su fabricante. Un escaneo nuevo empieza con **ICMP (ping)**; **Editar** lo cambia después, y el escaneo vuelve a ejecutarse. | Sí |
+| Credenciales que probar | El segundo paso de un escaneo SNMP: los conjuntos de credenciales que probar, en orden. A cada host se le pregunta con cada conjunto hasta que uno responde, así que añade un conjunto por grupo de dispositivos que compartan versión y comunidad o usuario v3. **Añadir más credenciales** añade uno. | Cuando el método es SNMP |
 
 Plegados en **Más campos** del primer paso, para los escaneos que los necesitan:
 
@@ -587,7 +587,7 @@ Los rangos de octetos existen para redes que no tienen forma de bloques CIDR. `1
 Cada host que encuentra un escaneo se importa como dispositivo sondeado por sonda, con la sonda del escaneo asignada y el sondeo activado, así que tiene un estado desde su primer sondeo. Lo que cambia de un host a otro es lo que viene con él:
 
 - Los hosts que respondieron a SNMP se importan con la dirección que respondió como nombre de host, el nombre elegido como se explica abajo y las credenciales que respondieron, así que un escaneo v3 importa dispositivos listos para recorrerse por v3 que empiezan a recopilar interfaces e inventario de inmediato.
-- Los hosts que respondieron al ping pero no a SNMP — cada host que encuentra un [escaneo solo con ping](#escaneos-solo-con-ping), y los hosts que un escaneo SNMP no pudo identificar — se importan sin credenciales. La sonda les hace ping según su horario; añade credenciales más tarde, en el dispositivo o como perfil en él o en su sitio, y la misma sonda empieza a recorrerlos también.
+- Los hosts que respondieron al ping pero no a SNMP — cada host que encuentra un [escaneo ICMP](#escaneos-icmp), y los hosts que un escaneo SNMP no pudo identificar — se importan sin credenciales. La sonda les hace ping según su horario; añade credenciales más tarde, en el dispositivo o como perfil en él o en su sitio, y la misma sonda empieza a recorrerlos también.
 
 Un host ya registrado como dispositivo se marca como **Ya añadido** y nunca se importa dos veces. El sondeo da a cada dispositivo importado un estado; para enterarte cuando uno caiga, dale un monitor: elige **Un monitor por dispositivo** al importar, o deja que una [política de alertas](#políticas-de-alertas) le dé uno a cada dispositivo que cubre.
 
@@ -657,7 +657,7 @@ Un nombre solo mejora: un dispositivo conserva su nombre cuando cambia su regist
 
 Revisar cada escaneo a mano no escala más allá de las primeras subredes. **Red → Reglas → Reglas de importación automática** es donde dejas escrita la importación una vez: una regla dice qué hosts descubiertos reclama (un rango de IP, y patrones opcionales de nombre de sistema, descripción y `sysObjectID`) y, opcionalmente, qué plantilla de monitor y qué [plantilla de recopilación de OID](#plantillas-de-recopilación-de-oid) reciben los dispositivos que importa. Una regla marcada como exclusión no reclama nada y veta a las demás: así se apartan impresoras y teléfonos de una regla de subred amplia.
 
-En una regla, **Comprobar cada** fija con qué frecuencia la sonda del escaneo sondea cada dispositivo que importa la regla, igual que **Comprobar cada** al importar desde **Revisar resultados**; si se deja vacío, es cada 5 minutos. Una regla que también importa hosts que solo respondieron al ping les da también su plantilla de monitor: la sonda les hace ping, así que las comprobaciones de la plantilla sobre si un dispositivo está activo y sobre los traps que envía funcionan para ellos de inmediato, y sus comprobaciones que leen un recorrido SNMP, en cuanto el dispositivo tiene credenciales.
+En una regla, **Comprobar cada** fija con qué frecuencia la sonda del escaneo sondea cada dispositivo que importa la regla, igual que **Comprobar cada** al importar desde **Revisar resultados**; si se deja vacío, es cada 5 minutos. Una regla con **Incluir hosts solo con ping** activado también importa los hosts que solo respondieron al ping, entre ellos cada host que encuentra un [escaneo ICMP](#escaneos-icmp), y les da también su plantilla de monitor: la sonda les hace ping, así que las comprobaciones de la plantilla sobre si un dispositivo está activo y sobre los traps que envía funcionan para ellos de inmediato, y sus comprobaciones que leen un recorrido SNMP, en cuanto el dispositivo tiene credenciales.
 
 Las reglas no tienen horario propio ni lo necesitan. Las reglas habilitadas se ejecutan solas sobre los resultados de cada escaneo a medida que llegan, incluidos los resultados parciales que sube un recorrido largo mientras sigue en curso, así que los hosts se importan un minuto después de encontrarse en lugar de al final del rango. Activa **Repetir este escaneo** en un escaneo de descubrimiento y la pareja se convierte en un acuerdo permanente: el escaneo vuelve a recorrer su rango con tu intervalo, y cada host nuevo que encuentra se importa sin que nadie pulse nada.
 
@@ -672,23 +672,23 @@ Los parques grandes se importan en lotes a ritmo controlado. Crear un dispositiv
 
 Los dispositivos y los monitores son trabajos separados con límites separados: una regla que recibe una plantilla de monitor después de importar sus dispositivos no crea ningún dispositivo, solo monitores, y su informe lo dice.
 
-### Escaneos solo con ping
+### Escaneos ICMP
 
-Desactiva **Comprobar SNMP en los hosts que respondan** y el escaneo es un simple recorrido ICMP: hace ping a cada dirección del rango, informa de las que respondieron y no envía ningún paquete SNMP. El paso Credenciales SNMP desaparece del formulario, que queda en una sola página con **Iniciar escaneo**, y no se pide ni se guarda en el escaneo ninguna versión, cadena de comunidad ni credencial v3.
+Con **ICMP (ping)** como **Método de escaneo**, con el que empieza un escaneo nuevo, el escaneo es un simple recorrido ICMP: hace ping a cada dirección del rango, informa de las que respondieron y no envía ningún paquete SNMP. El formulario no tiene paso de Credenciales SNMP, así que queda en una sola página con **Iniciar escaneo**, y no se pide ni se guarda en el escaneo ninguna versión, cadena de comunidad ni credencial v3.
 
-La elección se hace al crear el escaneo y no se puede cambiar: un escaneo creado solo con ping sigue siéndolo, también en cada ejecución de un escaneo repetido. Para escanear el mismo rango de la otra forma, crea un segundo escaneo.
+Puedes cambiar el método más tarde, con **Editar** en el escaneo. Un método cambiado vuelve a ejecutar el escaneo: se borran los hosts que encontró su última ejecución, y los dispositivos que ya importaste se quedan como están.
 
 Recurre a uno cuando:
 
-- No tienes credenciales SNMP para el rango: un laboratorio, una red de un inquilino, una subred que heredaste. Un escaneo solo con ping te dice qué está vivo ahí sin que tengas que adivinar antes una cadena de comunidad.
+- No tienes credenciales SNMP para el rango: un laboratorio, una red de un inquilino, una subred que heredaste. Un escaneo ICMP te dice qué está vivo ahí sin que tengas que adivinar antes una cadena de comunidad.
 - Quieres un inventario más que una comprobación de identidad: qué responde en este rango, no qué modelo es. También es el más rápido de los dos, porque se salta la consulta SNMP y su tiempo de espera por host en los hosts que responden al ping pero no te hablarán por SNMP.
 
 Dos cosas que conviene saber antes de ejecutar uno:
 
-- La sonda necesita un entorno de ejecución que permita ICMP. El recorrido ejecuta el `ping` del sistema operativo, así que el contenedor de la sonda necesita la capacidad `NET_RAW` y el binario. Los despliegues de OneUptime tienen ambos: `docker-compose.base.yml` y el `probeContainerSecurityContext` del chart de Helm añaden `NET_RAW`, y la imagen de la sonda instala `iputils-ping`. Un fallo aquí suele significar que un `securityContext` de Kubernetes endurecido quitó `NET_RAW`, o que una imagen de sonda personalizada omitió `ping`. Un escaneo solo con ping no tiene entonces nada más que probar, así que falla con un mensaje que lo dice, en lugar de informar de un rango vacío. Si el ping deja de funcionar a mitad, el escaneo conserva los hosts que ya confirmó e indica que el rango no se comprobó entero.
+- La sonda necesita un entorno de ejecución que permita ICMP. El recorrido ejecuta el `ping` del sistema operativo, así que el contenedor de la sonda necesita la capacidad `NET_RAW` y el binario. Los despliegues de OneUptime tienen ambos: `docker-compose.base.yml` y el `probeContainerSecurityContext` del chart de Helm añaden `NET_RAW`, y la imagen de la sonda instala `iputils-ping`. Un fallo aquí suele significar que un `securityContext` de Kubernetes endurecido quitó `NET_RAW`, o que una imagen de sonda personalizada omitió `ping`. Un escaneo ICMP no tiene entonces nada más que probar, así que falla con un mensaje que lo dice, en lugar de informar de un rango vacío. Si el ping deja de funcionar a mitad, el escaneo conserva los hosts que ya confirmó e indica que el rango no se comprobó entero.
 - Todo lo que encuentra se importa como dispositivo sondeado por sonda sin credenciales, al que la sonda del escaneo hace ping desde su primer sondeo. Añade credenciales, en el dispositivo o como perfil en él o en su sitio, cuando las tengas, y la sonda empieza también a recorrer el dispositivo.
 
-Un escaneo solo con ping solo encuentra hosts que responden al eco ICMP. Los hosts que descartan el ping (los hosts Windows por defecto, y a menudo las VLAN de gestión) le resultan invisibles aunque respondan a SNMP. Un escaneo SNMP cubre ese caso: cuando su pasada de ping no encuentra ningún equipo que responda a SNMP, vuelve atrás y pregunta también por SNMP a las direcciones silenciosas. Así que, si esperas dispositivos gestionados en un rango y un escaneo solo con ping vuelve vacío, escanéalo de nuevo con **Comprobar SNMP en los hosts que respondan** activado.
+Un escaneo ICMP solo encuentra hosts que responden al eco ICMP. Los hosts que descartan el ping (los hosts Windows por defecto, y a menudo las VLAN de gestión) le resultan invisibles aunque respondan a SNMP. Un escaneo SNMP cubre ese caso: cuando su pasada de ping no encuentra ningún equipo que responda a SNMP, vuelve atrás y pregunta también por SNMP a las direcciones silenciosas. Así que, si esperas dispositivos gestionados en un rango y un escaneo ICMP vuelve vacío, cambia su **Método de escaneo** a **SNMP**.
 
 ## Alertas
 

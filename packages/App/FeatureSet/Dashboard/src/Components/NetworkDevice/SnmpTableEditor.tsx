@@ -192,7 +192,7 @@ const SnmpTableEditor: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Add a Vendor's Tables"
-            description="Optional. Adds the tables a vendor template ships - IPsec tunnels, Wi-Fi radios, fabric neighbours, fans, power supplies - so you start from known-good column OIDs. Tables already in the list are kept."
+            description="Adds the tables a vendor template ships, such as IPsec tunnels or Wi-Fi radios. Tables already in the list stay."
             required={false}
           />
           <Dropdown

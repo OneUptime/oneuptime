@@ -427,6 +427,13 @@ describe("the image routes serve a file only to the people who may see it", () =
       return blocked.has(userId.toString());
     }) as never);
 
+    // The server admin's account says they are one; nobody else's does.
+    jest.spyOn(UserService, "isUserMasterAdmin").mockImplementation((async (
+      userId: ObjectID,
+    ) => {
+      return userId.toString() === ADMIN_ID.toString();
+    }) as never);
+
     // A blocked project's files are BlockedProjectBackgroundWork.test.ts.
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
@@ -657,6 +664,26 @@ describe("the image routes serve a file only to the people who may see it", () =
     it("is served to a server admin who is in no project", async () => {
       expectServed(
         await get({ port, path: tokenPath(PRIVATE_IMAGE), cookies: asAdmin() }),
+        PRIVATE_IMAGE,
+      );
+    });
+
+    /*
+     * A session that says master admin, of someone whose account no longer
+     * is one: their access was removed after the session was signed. They
+     * are in no project, so they are answered as anyone outside it is.
+     */
+    it("is answered like a missing file to someone whose master admin access was removed", async () => {
+      await expectRefusedLikeMissing(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          cookies: {
+            [CookieUtil.getUserTokenKey()]: sessionToken(OUTSIDER_ID, {
+              isMasterAdmin: true,
+            }),
+          },
+        }),
         PRIVATE_IMAGE,
       );
     });

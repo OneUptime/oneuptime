@@ -116,7 +116,7 @@ const QUERY_STRING_DEBOUNCE_MS: number = 200;
 
 const PAGE_TITLE: string = "Network Map";
 const PAGE_DESCRIPTION: string =
-  "Your whole network on one map, framed to wherever your sites are. Marker color shows the worst status at that location — click a marker to drill into a site, or use the cards below.";
+  "Your whole network on one map. A marker's color is the worst status there: click it to open the site.";
 
 const NetworkSiteMap: FunctionComponent<
   PageComponentProps

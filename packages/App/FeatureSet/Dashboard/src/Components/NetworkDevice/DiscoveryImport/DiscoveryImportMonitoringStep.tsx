@@ -278,7 +278,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
           title="Monitor template"
           required={true}
           hideOptionalLabel={true}
-          description="Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow."
+          description="Edit a template under Monitors → Settings → Templates; monitors made from it follow."
         />
         <Dropdown
           id="discovery-import-template"
@@ -422,7 +422,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
                 outcome.snmpHostCount,
                 { count: translator.formatNumber(outcome.snmpHostCount) },
               )}
-              description="Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings."
+              description="Each device gets its vendor's health OIDs and SNMP tables, such as CPU and fans. You can change them later."
               initialValue={settings.applyVendorTemplates}
               value={settings.applyVendorTemplates}
               disabled={props.isDisabled}
@@ -495,7 +495,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
                       value: DiscoveryImportAlerting.MonitorTemplate,
                       title: "A monitor for each device",
                       description:
-                        "Each device gets a Network Device monitor from the template you pick, and raises the incidents and alerts the template defines. Each monitor counts towards your plan.",
+                        "Each device gets a monitor from the template you pick. Each monitor counts towards your plan.",
                       dataTestId: "discovery-import-alerting-template",
                       details:
                         !choiceLockedReason &&

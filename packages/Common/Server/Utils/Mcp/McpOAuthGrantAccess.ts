@@ -66,10 +66,18 @@ export enum McpOAuthGrantRefusal {
   SsoRequired = "sso-required",
 }
 
-export interface McpOAuthGrantUser {
+// Who a grant's member is: what labels the requests they make (getUser).
+export interface McpOAuthGrantMember {
   id: ObjectID;
   email: Email;
   name: string;
+}
+
+/*
+ * The member a grant acts for, and whether they are a master admin now -
+ * read from their account on every use (evaluate), never from the labels.
+ */
+export interface McpOAuthGrantUser extends McpOAuthGrantMember {
   isMasterAdmin: boolean;
 }
 
@@ -86,14 +94,14 @@ export type McpOAuthGrantAccessResult =
 interface CachedUser {
   email: string;
   name: string;
-  isMasterAdmin: boolean;
 }
 
 /*
- * How long a member's name, address and master-admin flag are remembered per
- * node. They only label the request (audit trail, the instance-wide SSO
- * exemption) and change rarely; whether the member is BLOCKED is not read
- * from here - UserService.isUserBlocked keeps its own, invalidated, cache.
+ * How long a member's name and address are remembered per node. They only
+ * label the request (the audit trail) and change rarely. Whether the member
+ * is BLOCKED, or a MASTER ADMIN (the instance-wide SSO exemption), is not
+ * read from here: UserService.isUserBlocked and isUserMasterAdmin keep their
+ * own cache, which a change to either forgets on every server.
  */
 const USER_CACHE_TTL_MS: number = 60 * 1000;
 
@@ -146,11 +154,10 @@ export default class McpOAuthGrantAccess {
       return McpOAuthGrantAccess.refuse(McpOAuthGrantRefusal.WrongResource);
     }
 
-    const user: McpOAuthGrantUser | null = await McpOAuthGrantAccess.getUser(
-      grant.userId,
-    );
+    const member: McpOAuthGrantMember | null =
+      await McpOAuthGrantAccess.getUser(grant.userId);
 
-    if (!user) {
+    if (!member) {
       return McpOAuthGrantAccess.refuse(McpOAuthGrantRefusal.UserUnavailable);
     }
 
@@ -168,10 +175,22 @@ export default class McpOAuthGrantAccess {
       return McpOAuthGrantAccess.refuse(refusal);
     }
 
+    /*
+     * Whether the member is a master admin now - which exempts them from the
+     * server's Require SSO - read the way every session's request reads it
+     * (UserService.isUserMasterAdmin): from the same row read as whether they
+     * are blocked, and forgotten on every server the moment another master
+     * admin removes the access. Never from the labels getUser keeps for a
+     * minute.
+     */
+    const isMasterAdmin: boolean = await UserService.isUserMasterAdmin(
+      grant.userId,
+    );
+
     const ssoRequirement: McpOAuthSsoRequirement =
       await McpOAuthSso.getRequirement({
         projectId: grant.projectId,
-        isMasterAdmin: user.isMasterAdmin,
+        isMasterAdmin: isMasterAdmin,
       });
 
     if (ssoRequirement.isRequired) {
@@ -191,7 +210,7 @@ export default class McpOAuthGrantAccess {
       isAllowed: true,
       principal: {
         grant,
-        user,
+        user: { ...member, isMasterAdmin: isMasterAdmin },
         scopes: McpOAuthScopeUtil.parse(grant.scope).scopes,
       },
     };
@@ -277,12 +296,13 @@ export default class McpOAuthGrantAccess {
   }
 
   /*
-   * Who a user id is, or null when there is no such account. Cached briefly:
-   * see USER_CACHE_TTL_MS for what is, and is not, read from the cache.
+   * Who a user id is, or null when there is no such account: the name and
+   * address that label their requests. Cached briefly: see
+   * USER_CACHE_TTL_MS for what is, and is not, read from the cache.
    */
   public static async getUser(
     userId: ObjectID,
-  ): Promise<McpOAuthGrantUser | null> {
+  ): Promise<McpOAuthGrantMember | null> {
     const key: string = userId.toString();
 
     let cached: CachedUser | null | undefined =
@@ -295,7 +315,6 @@ export default class McpOAuthGrantAccess {
           _id: true,
           email: true,
           name: true,
-          isMasterAdmin: true,
         },
         props: {
           isRoot: true,
@@ -307,7 +326,6 @@ export default class McpOAuthGrantAccess {
           ? {
               email: user.email.toString(),
               name: user.name?.toString() || "",
-              isMasterAdmin: Boolean(user.isMasterAdmin),
             }
           : null;
 
@@ -322,7 +340,6 @@ export default class McpOAuthGrantAccess {
       id: userId,
       email: new Email(cached.email),
       name: cached.name,
-      isMasterAdmin: cached.isMasterAdmin,
     };
   }
 

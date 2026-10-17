@@ -40,7 +40,7 @@ import {
 export { CLEAR_SITE_ACTION_TITLE, SET_SITE_ACTION_TITLE };
 
 export const SET_SITE_DESCRIPTION: string = translationKey(
-  "Every selected device moves into the site you pick and counts toward its health. A device without a probe of its own picks up the site's default probe.",
+  "These devices move into the site and count toward its health. A device without a probe uses the site's default probe.",
 );
 
 export const SITE_ASSIGNMENT_RULES_HINT: string = translationKey(

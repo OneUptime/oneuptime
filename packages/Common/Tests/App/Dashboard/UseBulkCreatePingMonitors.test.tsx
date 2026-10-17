@@ -666,7 +666,9 @@ describe("useBulkCreatePingMonitors", () => {
 
       // The field says so, rather than offering an empty dropdown in silence.
       expect(
-        screen.getByText(/could not be loaded just now/),
+        screen.getByText(
+          "Your probes could not be loaded, so the monitors use the default probes. You can change them on each monitor.",
+        ),
       ).toBeInTheDocument();
 
       await submitAndWaitForEnd();
@@ -1086,9 +1088,10 @@ describe("useBulkCreatePingMonitors", () => {
       const description: string =
         screen.getByTestId("modal-description").textContent || "";
 
-      expect(description).toContain("already have a monitor bound");
+      // Devices that already have a monitor bound are skipped.
+      expect(description).toContain("each selected device with none bound");
       // Probe-polled devices are pinged by their probe already, so they are skipped.
-      expect(description).toContain("probe-polled devices");
+      expect(description).toContain("skipping probe-polled devices");
       expect(description).toContain("plan");
       expect(description).toContain("Incidents are off");
     });

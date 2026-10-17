@@ -693,8 +693,10 @@ describe("useBulkSnmpCredentialProfileActions", () => {
       const description: string =
         screen.getByTestId("modal-description").textContent || "";
 
-      expect(description).toContain("its own SNMP credentials");
-      expect(description).toContain("monitor-backed");
+      expect(description).toContain(
+        "unless they have their own SNMP credentials",
+      );
+      expect(description).toContain("Monitor-backed devices are not polled");
     });
   });
 

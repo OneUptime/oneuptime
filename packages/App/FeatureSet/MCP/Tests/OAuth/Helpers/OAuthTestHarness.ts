@@ -609,6 +609,15 @@ export default class OAuthTestHarness {
     this.blockedUserIds.delete(member.id.toString());
   }
 
+  /*
+   * Another master admin made the member one, or removed the access: their
+   * account says so from now on, as every server reads it once the change
+   * is announced (UserService.isUserMasterAdmin).
+   */
+  public setMasterAdmin(member: TestMember, isMasterAdmin: boolean): void {
+    member.isMasterAdmin = isMasterAdmin;
+  }
+
   // A member in a Growth project: the usual starting point.
   public addMemberWithProject(
     options?:
@@ -1337,6 +1346,15 @@ export default class OAuthTestHarness {
       "isUserBlocked",
       async (userId: ObjectID): Promise<boolean> => {
         return this.blockedUserIds.has(userId.toString());
+      },
+    );
+
+    // Whether a member is a master admin now, as their account says.
+    this.replace(
+      UserService,
+      "isUserMasterAdmin",
+      async (userId: ObjectID): Promise<boolean> => {
+        return this.members.get(userId.toString())?.isMasterAdmin === true;
       },
     );
 

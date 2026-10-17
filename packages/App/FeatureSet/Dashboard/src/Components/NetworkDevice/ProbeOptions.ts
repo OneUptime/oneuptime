@@ -146,9 +146,9 @@ export function hasProjectProbe(probes: Array<Probe>): boolean {
 export const ADD_PROBE_LINK_TEXT: string = translationKey("Add a probe");
 
 export const ADD_DEVICE_NO_PROBE_DESCRIPTION: string = translationKey(
-  "You have no probe on your network yet. Add one first: it checks this device from inside your network, which a probe on the internet cannot reach. Then pick it here.",
+  "You have no probe on your network yet. Add one first: a probe on the internet cannot reach this device.",
 );
 
 export const SCAN_NO_PROBE_DESCRIPTION: string = translationKey(
-  "You have no probe on your network yet. Add one first: it sweeps the range from inside your network, which a probe on the internet cannot reach. Then pick it here.",
+  "You have no probe on your network yet. Add one first: a probe on the internet cannot reach this range.",
 );
