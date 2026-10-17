@@ -2461,7 +2461,22 @@ describe("who may loosen a cluster's AI access", () => {
     for (const permission of KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS) {
       grant([...BASE_PERMISSIONS, permission]);
       expect(canConfigureUnattendedKubernetesAiAccess()).toBe(true);
-      // Resetting the agent takes the same set (the server's route gate).
+
+      /*
+       * Resetting the agent takes the same set, and an edit of the cluster
+       * (the server's route asks both): the owner and admin roles edit
+       * clusters, Edit Auto Remediation Rule alone does not.
+       */
+      expect(canResetKubernetesAiAgent()).toBe(
+        permission !== Permission.EditAutoRemediationRule,
+      );
+
+      grant([
+        ...BASE_PERMISSIONS,
+        permission,
+        Permission.ReadKubernetesCluster,
+        Permission.EditKubernetesCluster,
+      ]);
       expect(canResetKubernetesAiAgent()).toBe(true);
     }
 
@@ -2497,6 +2512,37 @@ describe("who may loosen a cluster's AI access", () => {
     expect(holdsKubernetesAiAccessPermission([Permission.ProjectMember])).toBe(
       true,
     );
+  });
+
+  test("offers Reset agent only to the admin set with an edit of clusters, as the route asks both", () => {
+    // The admin set, but no edit of clusters at all: the route would refuse.
+    grant([
+      ...BASE_PERMISSIONS,
+      Permission.EditAutoRemediationRule,
+      Permission.ReadKubernetesCluster,
+    ]);
+    expect(canResetKubernetesAiAgent()).toBe(false);
+
+    // A project admin whose edit of clusters is blocked outright.
+    grant(
+      [...BASE_PERMISSIONS, Permission.ProjectAdmin],
+      [Permission.EditKubernetesCluster],
+    );
+    expect(canResetKubernetesAiAgent()).toBe(false);
+
+    // The admin set and an edit of clusters through a member role.
+    grant([
+      ...BASE_PERMISSIONS,
+      Permission.EditAutoRemediationRule,
+      Permission.ProjectMember,
+    ]);
+    expect(canResetKubernetesAiAgent()).toBe(true);
+
+    // A master admin is offered it; nothing is offered before the snapshot lands.
+    grantNothingYet();
+    expect(canResetKubernetesAiAgent()).toBe(false);
+    jest.spyOn(User, "isMasterAdmin").mockReturnValue(true);
+    expect(canResetKubernetesAiAgent()).toBe(true);
   });
 
   test("is allowed to a master admin and withheld before the snapshot lands", () => {

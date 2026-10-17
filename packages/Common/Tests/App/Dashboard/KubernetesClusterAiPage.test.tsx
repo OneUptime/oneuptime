@@ -3951,6 +3951,37 @@ describe("Reset agent", () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+   * The route asks both: one of the admin set, and an edit of THIS
+   * cluster. One of the admin set who may edit no cluster at all is not
+   * offered what the server would refuse.
+   */
+  test("is not offered to the admin set without an edit of clusters, and is with one", async () => {
+    grant([
+      ...BASE_PERMISSIONS,
+      Permission.EditAutoRemediationRule,
+      Permission.ReadKubernetesCluster,
+    ]);
+    openAgentPage();
+    let menu: HTMLElement = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection"]);
+    expect(
+      within(menu).queryByTestId(RESET_ACTION_TEST_ID),
+    ).not.toBeInTheDocument();
+    cleanup();
+
+    grant([
+      ...BASE_PERMISSIONS,
+      Permission.EditAutoRemediationRule,
+      Permission.ReadKubernetesCluster,
+      Permission.EditKubernetesCluster,
+    ]);
+    serve(makeStatus());
+    openAgentPage();
+    menu = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection", "Reset agent"]);
+  });
+
   test("backing out of the dialog resets nothing, and focus goes back to the ⋯", async () => {
     grant(ADMIN_PERMISSIONS);
     openAgentPage();

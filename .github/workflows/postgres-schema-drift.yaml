@@ -1406,6 +1406,26 @@ jobs:
           Tests/Server/API/RecordScopeCrudPostgres.test.ts
           --forceExit
 
+      # Clones the migrated team, custom role, API key, label, Kubernetes
+      # cluster (labels and owners) and Docker host tables into an isolated
+      # schema and presses a cluster's Test connection and Reset agent, and a
+      # Docker host's Reset agent, through the routes and the real user
+      # middleware: an edit of clusters limited to labels, to owned clusters
+      # or blocked for a label reaches only the clusters it covers - through
+      # a custom role too - and approving a plan's kubectl commands is held
+      # to the same rule.
+      - name: Test who may act on one Kubernetes cluster on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_KUBERNETES_EDIT_SCOPE_TESTS: "true"
+          KUBERNETES_EDIT_SCOPE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          KUBERNETES_EDIT_SCOPE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          KUBERNETES_EDIT_SCOPE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/KubernetesClusterEditScopePostgres.test.ts
+          --forceExit
+
       # Clones the migrated team, label, monitor, on-call policy, severity,
       # status, incident and workspace connection tables into an isolated
       # schema and opens Slack's and Teams' New Incident forms and the Execute
