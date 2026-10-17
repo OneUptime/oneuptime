@@ -635,6 +635,48 @@ describe("TeamMemberService.create - the free plan", () => {
     expect(limitTransactions.opened).toBe(0);
   });
 
+  test("a first sign-in through the project's SSO, which skips the hooks and carries no plan, is held to the one person by the project's own plan", async () => {
+    freeProjectWithItsOwner();
+
+    // The project's row names the Free plan.
+    jest
+      .spyOn(SubscriptionPlan, "getSubscriptionPlanById")
+      .mockReturnValue(
+        new SubscriptionPlan(PLAN_ID, "price_yearly", "Free", 0, 0, 1, 0),
+      );
+
+    const newcomer: TeamMember = new TeamMember();
+    newcomer.projectId = PROJECT_ID;
+    newcomer.teamId = ENGINEERING_TEAM_ID;
+    newcomer.userId = MEMBER_ID;
+    newcomer.hasAcceptedInvitation = true;
+    newcomer.invitationAcceptedAt = new Date();
+
+    await expect(
+      TeamMemberService.create({
+        data: newcomer,
+        props: { isRoot: true, ignoreHooks: true },
+      }),
+    ).rejects.toThrow(Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN);
+    expect(saveSpy).not.toHaveBeenCalled();
+    await expect(peopleInProject()).resolves.toBe(1);
+
+    // Its owner, signed in onto another of its teams, is in it already.
+    const owner: TeamMember = new TeamMember();
+    owner.projectId = PROJECT_ID;
+    owner.teamId = ENGINEERING_TEAM_ID;
+    owner.userId = OWNER_ID;
+    owner.hasAcceptedInvitation = true;
+    owner.invitationAcceptedAt = new Date();
+
+    await TeamMemberService.create({
+      data: owner,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    await expect(peopleInProject()).resolves.toBe(1);
+  });
+
   test("a project with nobody in it yet takes one person, decided again at the INSERT", async () => {
     jest
       .spyOn(
