@@ -15,12 +15,13 @@ import path from "path";
  * top-to-bottom diagrams were drawn up to twice their size, a 263px one
  * 590px wide with 36px labels. The final pass of the overhaul (task 40)
  * draws each at its own size, in the middle of the column, and a wider one
- * smaller to fit - down to 13/16 of its size, its 16px labels no smaller
- * than the 13px caption under it; wider still, its box scrolls.
+ * smaller to fit - down to 3/4 of its size, its 16px labels no smaller than
+ * the 12px of a callout's label or a code sample's file name; wider still,
+ * its box scrolls. So a diagram up to 786px wide fits the 590px column.
  *
  * Common's DocsDiagramScript runs the script in jsdom and E2E's
- * DocsDiagramSizes draws real diagrams in a browser; these hold the two
- * numbers the rule rests on, and the stylesheet that places the drawing.
+ * DocsDiagramSizes draws real diagrams in a browser; these hold the numbers
+ * the rule rests on, and the stylesheet that places the drawing.
  */
 
 const HEAD: string = fs.readFileSync(
@@ -31,28 +32,44 @@ const HEAD: string = fs.readFileSync(
 const RULES: Array<CssRule> = readCssRules(DOCS_STYLESHEET);
 
 const DIAGRAM_SVG: string = ".docs-diagram .mermaid svg";
-const CAPTION: string = ".docs-diagram .docs-diagram__caption";
+// The docs' smallest text that is read, not glanced at: 12px.
+const SMALL_TEXT: ReadonlyArray<string> = [
+  ".docs-callout__label",
+  ".docs-code__title",
+];
 // Mermaid's flowchart labels: 16px.
 const MERMAID_FONT_SIZE: number = 16;
 // The docs' root font size, which rem is relative to.
 const ROOT_FONT_SIZE: number = 16;
-// The script's smallest scale, written as a fraction: "13 / 16".
+// What the docs' article gives a diagram at 1280px.
+const COLUMN: number = 590;
+// The script's smallest scale, written as a fraction: "3 / 4".
 const MIN_SCALE_DECLARATION: RegExp =
   /const MIN_DIAGRAM_SCALE = (\d+) \/ (\d+);/;
 
+const smallestScale: () => number = (): number => {
+  const scale: RegExpMatchArray | null = HEAD.match(MIN_SCALE_DECLARATION);
+
+  expect(scale).not.toBeNull();
+
+  return Number(scale?.[1]) / Number(scale?.[2]);
+};
+
 describe("a docs diagram's size", () => {
-  it("shrinks a wide diagram no further than to the caption's size", () => {
-    const scale: RegExpMatchArray | null = HEAD.match(MIN_SCALE_DECLARATION);
+  it.each(SMALL_TEXT)(
+    "shrinks a wide diagram's labels no smaller than %s's text",
+    (selector: string) => {
+      const size: string | undefined = declaredIn(RULES, selector, "font-size");
 
-    expect(scale).not.toBeNull();
+      expect(size).toBe("0.75rem");
+      expect(smallestScale() * MERMAID_FONT_SIZE).toBe(
+        parseFloat(size as string) * ROOT_FONT_SIZE,
+      );
+    },
+  );
 
-    const smallest: number = Number(scale?.[1]) / Number(scale?.[2]);
-    const caption: string | undefined = declaredIn(RULES, CAPTION, "font-size");
-
-    expect(caption).toBe("0.8125rem");
-    expect(smallest * MERMAID_FONT_SIZE).toBe(
-      parseFloat(caption as string) * ROOT_FONT_SIZE,
-    );
+  it("fits a diagram up to 786px wide into the column whole", () => {
+    expect(Math.floor(COLUMN / smallestScale())).toBe(786);
   });
 
   it("draws a diagram at its own width, at most the column's, and at least the smallest scale of it", () => {

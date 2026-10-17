@@ -157,7 +157,7 @@ const RULE_DIAGRAMS = [
 /*
  * ?diagrams=sizes (docs only): three flowcharts in a 590px column, the width
  * the docs' article gives a diagram at 1280px: one narrower than the
- * column, one a little wider - it fits once drawn at 13/16 of its size - and
+ * column, one a little wider - it fits once drawn at 3/4 of its size - and
  * one too wide to fit even then.
  */
 const SIZE_DIAGRAMS = [

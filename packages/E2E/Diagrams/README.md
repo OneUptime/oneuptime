@@ -29,10 +29,10 @@ place (`data-source="monitor/api-monitor#1"`). Both give each diagram the box
 the docs' article gives it at 1280px, 590px inside its padding.
 `DocsDiagramSizes.spec.ts` checks there how big a diagram is drawn: never
 larger than mermaid laid it out, centred when it is narrower than the column,
-drawn smaller to fit a column it is a little wider than (down to 13/16 of its
-size, its 16px labels no smaller than the 13px caption), and in a box that
+drawn smaller to fit a column it is a little wider than (down to 3/4 of its
+size, its 16px labels no smaller than a callout label's 12px), and in a box that
 scrolls past that - and that every English and German docs diagram fits the
-column at 13/16 of its size at most (in Chromium only: mermaid lays out the
+column at 3/4 of its size at most (in Chromium only: mermaid lays out the
 same in Firefox, and drawing every diagram twice would double its time).
 
 `Fixture/server.js` runs `Common/Scripts/build-mermaid-browser.js` the way the

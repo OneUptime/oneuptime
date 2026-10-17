@@ -8,12 +8,12 @@ import { Page, TestInfo, expect, test } from "@playwright/test";
  *   - Narrower than the column: drawn at its own size, in the middle of the
  *     column. (The script used to stretch every diagram to the column's full
  *     width: a 263px diagram was drawn 590px wide, its labels 36px high.)
- *   - A little wider: drawn smaller to fit the column, down to 13/16 of its
- *     size - its 16px labels no smaller than the 13px caption under it.
- *   - Wider still: drawn at 13/16 of its size, in a box that scrolls.
+ *   - A little wider: drawn smaller to fit the column, down to 3/4 of its
+ *     size - its 16px labels no smaller than the 12px of a callout's label.
+ *   - Wider still: drawn at 3/4 of its size, in a box that scrolls.
  *
  * And every diagram the docs draw, in English and German (whose words run
- * longest), fits the column at 13/16 of its size at most, so none scrolls
+ * longest), fits the column at 3/4 of its size at most, so none scrolls
  * sideways at 1280px: the final pass of the docs overhaul found 85 that did,
  * in all 17 languages, and redrew them.
  *
@@ -22,7 +22,7 @@ import { Page, TestInfo, expect, test } from "@playwright/test";
  */
 
 const COLUMN: number = 590;
-const MIN_SCALE: number = 13 / 16;
+const MIN_SCALE: number = 3 / 4;
 // What the browser may round a drawn width by.
 const ROUNDING: number = 1.5;
 
@@ -127,7 +127,7 @@ test.describe("the docs draw a diagram", () => {
       DrawnDiagram,
     ];
 
-    // Wider than the column, but it fits at 13/16 of its size.
+    // Wider than the column, but it fits at 3/4 of its size.
     expect(wider.natural).toBeGreaterThan(COLUMN);
     expect(wider.natural * MIN_SCALE).toBeLessThanOrEqual(COLUMN);
     expect(Math.abs(wider.drawn - wider.column)).toBeLessThanOrEqual(ROUNDING);
@@ -135,7 +135,7 @@ test.describe("the docs draw a diagram", () => {
     expect(wider.scrolls).toBe(false);
   });
 
-  test("too wide to fit at 13/16 of its size at that size, in a box that scrolls", async ({
+  test("too wide to fit at 3/4 of its size at that size, in a box that scrolls", async ({
     page,
   }: {
     page: Page;
@@ -160,7 +160,7 @@ test.describe("the docs draw a diagram", () => {
 
 test.describe("every docs diagram", () => {
   for (const lang of ["en", "de"]) {
-    test(`in ${lang} fits the 590px column at 13/16 of its size at most, so none scrolls sideways`, async ({
+    test(`in ${lang} fits the 590px column at 3/4 of its size at most, so none scrolls sideways`, async ({
       page,
     }: {
       page: Page;

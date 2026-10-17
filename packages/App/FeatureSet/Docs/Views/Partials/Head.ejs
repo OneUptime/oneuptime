@@ -295,10 +295,11 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
 
         /*
          * How much smaller than mermaid laid it out a diagram may be drawn
-         * to fit the column: its 16px labels down to 13px, the size of the
-         * caption under it.
+         * to fit the column: its 16px labels down to 12px, the size of a
+         * callout's label and a code sample's file name. A diagram up to
+         * 786px wide fits the 590px column whole.
          */
-        const MIN_DIAGRAM_SCALE = 13 / 16;
+        const MIN_DIAGRAM_SCALE = 3 / 4;
 
         const draw = async () => {
             const thisDraw = ++latestDraw;

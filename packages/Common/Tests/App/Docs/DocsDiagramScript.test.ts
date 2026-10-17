@@ -361,7 +361,7 @@ describe("the docs' diagram script", () => {
 
     /*
      * Each diagram holds its drawing at the size mermaid laid it out (640px
-     * here), shrinking to fit a narrower column down to 13/16 of it (520px).
+     * here), shrinking to fit a narrower column down to 3/4 of it (480px).
      */
     for (const [index, diagram] of page.diagrams().entries()) {
       expect(diagram.getAttribute("data-diagram")).toBe("drawn");
@@ -371,7 +371,7 @@ describe("the docs' diagram script", () => {
       expect(svg?.getAttribute("id")).toBe(`docs-diagram-1-${index}`);
       expect(svg?.style.width).toBe("640px");
       expect(svg?.style.maxWidth).toBe("100%");
-      expect(svg?.style.minWidth).toBe("520px");
+      expect(svg?.style.minWidth).toBe("480px");
     }
     expect(page.notes()).toEqual([]);
   });
@@ -381,22 +381,22 @@ describe("the docs' diagram script", () => {
    * never below its own): a narrow top-to-bottom diagram, 263px wide, was
    * drawn 590px wide, its 16px labels at 36px. Now a diagram is never drawn
    * larger than mermaid laid it out, and a wide one is drawn smaller to fit
-   * the column only down to 13/16 of its size - its 16px labels no smaller
-   * than the 13px caption under it - and past that its box scrolls.
+   * the column only down to 3/4 of its size - its 16px labels no smaller
+   * than 12px, a callout label's size - and past that its box scrolls.
    */
   test.each([
     // A narrow diagram: its own size, never stretched.
-    [263, "263px", "214px"],
+    [263, "263px", "198px"],
     // About the column's width.
-    [590, "590px", "480px"],
+    [590, "590px", "443px"],
     // Shrinks to the 590px column (at 0.91), no scrolling.
-    [649, "649px", "528px"],
-    // The widest that still fits the column: 726 x 13/16 = 589.9.
-    [726, "726px", "590px"],
-    // Too wide to fit even at 13/16: drawn at 13/16 in a box that scrolls.
-    [1061, "1061px", "863px"],
+    [649, "649px", "487px"],
+    // The widest that still fits the column: 786 x 3/4 = 589.5.
+    [786, "786px", "590px"],
+    // Too wide to fit even at 3/4: drawn at 3/4 in a box that scrolls.
+    [1061, "1061px", "796px"],
     // A fractional width is rounded up, never cut.
-    [480.5, "481px", "391px"],
+    [480.5, "481px", "361px"],
   ])(
     "draws a diagram mermaid laid out %spx wide at most %s, and no narrower than %s",
     async (natural: number, width: string, minWidth: string) => {
@@ -415,10 +415,10 @@ describe("the docs' diagram script", () => {
       expect(svg?.style.width).toBe(width);
       // Never wider than the column it sits in...
       expect(svg?.style.maxWidth).toBe("100%");
-      // ...unless that would draw it below 13/16 of its size.
+      // ...unless that would draw it below 3/4 of its size.
       expect(svg?.style.minWidth).toBe(minWidth);
       expect(parseFloat(minWidth) / parseFloat(width)).toBeGreaterThanOrEqual(
-        13 / 16 - 0.002,
+        3 / 4,
       );
     },
   );
@@ -454,7 +454,7 @@ describe("the docs' diagram script", () => {
     expect(svg?.getAttribute("data-theme")).toBe("dark");
     expect(svg?.style.width).toBe("640px");
     expect(svg?.style.maxWidth).toBe("100%");
-    expect(svg?.style.minWidth).toBe("520px");
+    expect(svg?.style.minWidth).toBe("480px");
   });
 
   test("asks mermaid to draw no error graphic, in the page's theme, with sequence diagrams laid out for the column", async () => {
