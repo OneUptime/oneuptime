@@ -61,7 +61,7 @@ Dit zijn de instellingen onder **Meer velden**:
 | Veld | Wat het doet |
 | --- | --- |
 | **Transport** | `SMTP` (de standaard), of `Microsoft Graph` voor een Microsoft 365-tenant waarin SMTP AUTH is uitgeschakeld. Met Microsoft Graph worden hostnaam, poort, gebruikersnaam en wachtwoord verborgen en de OAuth-velden getoond. |
-| **TLS vereisen** | Aan bij een nieuwe projectconfiguratie. Mail alleen verzenden via een versleutelde verbinding met een geldig certificaat. Poort 465 is altijd versleuteld. Als dit uit staat, wordt e-mail alleen versleuteld als de server dat aanbiedt, en wordt het certificaat niet gecontroleerd. |
+| **TLS vereisen** | Aan bij een nieuwe projectconfiguratie. Mail alleen verzenden via een versleutelde verbinding met een geldig certificaat. Als dit uit staat, wordt het certificaat niet gecontroleerd. Poort 465 is altijd versleuteld. Als dit uit staat, wordt e-mail op andere poorten alleen versleuteld als de server dat aanbiedt. |
 | **Authenticatietype** | `Username and Password` (de standaard), `OAuth`, of `None` voor een relay die geen aanmelding vraagt. |
 | **OAuth-velden** | **OAuth-providertype**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** en **OAuth-scope**, getoond zodra OAuth of Microsoft Graph is gekozen. |
 | **Beschrijving** | Een notitie voor uw team (alleen bij projectconfiguraties). |

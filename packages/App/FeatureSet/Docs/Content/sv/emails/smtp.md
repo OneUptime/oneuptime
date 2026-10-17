@@ -61,7 +61,7 @@ Det här är inställningarna under **Fler fält**:
 | Fält | Vad det gör |
 | --- | --- |
 | **Transport** | `SMTP` (standard), eller `Microsoft Graph` för en Microsoft 365-klientorganisation där SMTP AUTH är avstängt. När du väljer Microsoft Graph döljs värdnamn, port, användarnamn och lösenord, och OAuth-fälten visas. |
-| **Kräv TLS** | På för en ny projektkonfiguration. Skicka e-post endast över en krypterad anslutning med ett giltigt certifikat. Port 465 är alltid krypterad. När detta är av krypteras e-post bara om servern erbjuder det, och certifikatet kontrolleras inte. |
+| **Kräv TLS** | På för en ny projektkonfiguration. Skicka e-post endast över en krypterad anslutning med ett giltigt certifikat. När detta är av kontrolleras inte certifikatet. Port 465 är alltid krypterad. När detta är av krypteras e-post på andra portar bara om servern erbjuder det. |
 | **Autentiseringstyp** | `Username and Password` (standard), `OAuth`, eller `None` för ett relä som inte kräver inloggning. |
 | **OAuth-fält** | **OAuth-leverantörstyp**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** och **OAuth-omfattning**, som visas när OAuth eller Microsoft Graph är valt. |
 | **Beskrivning** | En anteckning för ditt team (bara projektkonfigurationer). |

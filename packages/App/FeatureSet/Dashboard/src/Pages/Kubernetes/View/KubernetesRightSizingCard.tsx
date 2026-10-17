@@ -351,7 +351,7 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Right-Sizing"
-      description="Recommended CPU and memory requests per container: the 95th percentile of hourly CPU and the peak memory, each with 25% headroom."
+      description="Recommended CPU and memory requests per container: the 95th percentile of hourly CPU usage (95% of hourly readings were lower) and the peak memory, each with 25% headroom."
       buttons={[refreshButton]}
     >
       <Fragment>

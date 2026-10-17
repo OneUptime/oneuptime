@@ -192,7 +192,7 @@ export const SMTP_TRANSPORT_DESCRIPTION: string = translationKey(
  * enable this if you use port 587" was the opposite of the advice now.
  */
 export const SMTP_REQUIRE_TLS_DESCRIPTION: string = translationKey(
-  "Send mail only over an encrypted connection with a valid certificate. Port 465 is always encrypted.",
+  "Send mail only over an encrypted connection with a valid certificate. When off, the certificate is not checked. Port 465 is always encrypted.",
 );
 
 export const SMTP_FROM_EMAIL_DESCRIPTION: string = translationKey(

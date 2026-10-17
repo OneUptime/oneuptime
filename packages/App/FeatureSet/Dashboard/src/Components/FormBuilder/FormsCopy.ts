@@ -552,7 +552,7 @@ export const FormsCopy: {
     "Its answers and the submitter's name and email are removed. What it created, and its private note, are kept.",
 
   duplicateFormNote:
-    "The copy has everything this form has, with a link of its own. It starts off: turn it on from its Share page when ready.",
+    "The copy has everything this form has, with a link of its own. It starts turned off: turn it on from its Share page when ready.",
 };
 
 // How each kind of question of the form's own is named in the builder.

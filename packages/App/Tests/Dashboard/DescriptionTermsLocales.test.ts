@@ -108,7 +108,7 @@ const RESOLVE_STEMS: Record<string, Array<string>> = {
 const ACKNOWLEDGING_DESCRIPTIONS: Array<string> = [
   "Whether alerts linked to an incident follow it when it is acknowledged or resolved. Both are on for new projects. Alerts never move back to an earlier state.",
   "Acknowledging the incident acknowledges its linked alerts and stops their on-call escalations.",
-  "The time between two moments in an incident, like time to acknowledge. OneUptime charts it for every incident, so you see if your team gets faster.",
+  "A measurement is the time between two moments in an incident, like time to acknowledge. OneUptime charts it for every incident, so you see if your team gets faster.",
   "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.",
 ];
 

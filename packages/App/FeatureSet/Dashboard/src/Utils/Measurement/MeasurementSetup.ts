@@ -659,7 +659,7 @@ export const MEASUREMENT_PAGE_COPY: Record<
   [MeasurementDomain.Incident]: {
     cardTitle: "Incident Measurements",
     cardDescription:
-      "The time between two moments in an incident, like time to acknowledge. OneUptime charts it for every incident, so you see if your team gets faster.",
+      "A measurement is the time between two moments in an incident, like time to acknowledge. OneUptime charts it for every incident, so you see if your team gets faster.",
     helpTitle: "How Incident Measurements Work",
     helpDescription:
       "What a measurement is, where its numbers show up, and why an incident can have none",
@@ -732,7 +732,7 @@ export const MEASUREMENT_PAGE_COPY: Record<
   [MeasurementDomain.ScheduledMaintenance]: {
     cardTitle: "Scheduled Maintenance Measurements",
     cardDescription:
-      "The time between two moments in a maintenance event, like how late it starts. OneUptime charts it for every event, so you see if maintenance goes to plan.",
+      "A measurement is the time between two moments in a maintenance event, like how late it starts. OneUptime charts it for every event, so you see if maintenance goes to plan.",
     helpTitle: "How Scheduled Maintenance Measurements Work",
     helpDescription:
       "What a measurement is, where its numbers show up, and why an event can have none",

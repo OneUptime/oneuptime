@@ -168,7 +168,7 @@ describe("descriptions across the product are short", () => {
     );
     // A constant in another module.
     expect(textsOfKind(found, "field")).toContain(
-      "The host or IP your applications connect to (server.address). For an in-cluster or private address, add @<cluster>: pg.shop.svc:5432@prod-eu.",
+      "The host or IP your apps connect to (server.address), never localhost. For an in-cluster or private address, add @<cluster>: pg.shop.svc:5432@prod-eu.",
     );
     // A copy object's switch sentence.
     expect(textsOfKind(found, "switch")).toContain(

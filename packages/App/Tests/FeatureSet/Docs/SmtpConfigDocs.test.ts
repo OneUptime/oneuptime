@@ -81,7 +81,7 @@ const SUMMARY_TLS_REQUIRED: string = "TLS is required.";
 
 // The Require TLS switch's own help.
 const REQUIRE_TLS_HELP: string =
-  "Send mail only over an encrypted connection with a valid certificate. Port 465 is always encrypted.";
+  "Send mail only over an encrypted connection with a valid certificate. When off, the certificate is not checked. Port 465 is always encrypted.";
 
 // The names the old guide gave the TLS switch, in each language.
 const OLD_TLS_LABELS: Array<string> = [

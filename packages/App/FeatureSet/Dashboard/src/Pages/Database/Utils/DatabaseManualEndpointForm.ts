@@ -32,7 +32,7 @@ import {
  * (a two-label name is an ordinary DNS domain without a namespace).
  */
 export const DATABASE_SERVER_ADDRESS_DESCRIPTION: string =
-  "The host or IP your applications connect to (server.address). For an in-cluster or private address, add @<cluster>: pg.shop.svc:5432@prod-eu.";
+  "The host or IP your apps connect to (server.address), never localhost. For an in-cluster or private address, add @<cluster>: pg.shop.svc:5432@prod-eu.";
 
 /*
  * Appended to the `@<cluster>` advice for a Kubernetes Service name: for

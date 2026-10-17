@@ -61,7 +61,7 @@ flowchart TB
 | 欄位 | 作用 |
 | --- | --- |
 | **傳輸** | `SMTP`（預設），或適用於已關閉 SMTP AUTH 之 Microsoft 365 租用戶的 `Microsoft Graph`。選擇 Microsoft Graph 會隱藏主機名稱、連接埠、使用者名稱和密碼，並顯示 OAuth 欄位。 |
-| **要求 TLS** | 在新的專案設定中預設開啟。僅透過具有效憑證的加密連線傳送郵件。465 連接埠一律加密。關閉時，只有在伺服器支援時才會加密郵件，且不會檢查憑證。 |
+| **要求 TLS** | 在新的專案設定中預設開啟。僅透過具有效憑證的加密連線傳送郵件。關閉時不會檢查憑證。465 連接埠一律加密。關閉時，其他連接埠只有在伺服器支援時才會加密郵件。 |
 | **驗證類型** | `Username and Password`（預設）、`OAuth`，或用於不需登入之轉送伺服器的 `None`。 |
 | **OAuth 欄位** | **OAuth 提供者類型**、**OAuth Client ID**、**OAuth Client Secret**、**OAuth 權杖 URL** 和 **OAuth Scope**，在選擇 OAuth 或 Microsoft Graph 後顯示。 |
 | **描述** | 給團隊的備註（僅限專案設定）。 |

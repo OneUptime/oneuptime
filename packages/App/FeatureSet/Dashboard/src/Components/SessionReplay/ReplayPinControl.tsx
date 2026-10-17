@@ -469,7 +469,7 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
           title="Unpin this recording?"
           description={
             isProtected
-              ? "Within an hour the recording returns to the application's usual retention, and it is deleted if that has passed."
+              ? "The protected copy is removed within an hour and ordinary retention applies again. If that retention has passed, the recording is deleted."
               : "The pin has not protected anything yet; removing it just cancels the request."
           }
           submitButtonText="Unpin"

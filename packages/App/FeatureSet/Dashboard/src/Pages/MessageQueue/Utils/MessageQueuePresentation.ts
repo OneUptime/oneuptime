@@ -427,7 +427,7 @@ export const MESSAGE_QUEUE_NOT_FOUND_MESSAGE: string = "Queue not found.";
  * owner rules, which match on name and description, see the new one.
  */
 export const MESSAGE_QUEUE_NAME_HELP: string =
-  "Shown everywhere this queue appears. Renaming is safe: queues are matched by their messaging system and destination, not their name.";
+  "Shown everywhere this queue appears. Renaming is safe: queues are matched by their messaging system and destination, never by name.";
 
 /*
  * Deleting a DISCOVERED queue does not make it go away: the next span or
