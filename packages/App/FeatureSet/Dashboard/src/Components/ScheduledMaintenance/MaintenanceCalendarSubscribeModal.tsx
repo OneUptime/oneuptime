@@ -1,5 +1,8 @@
 import CalendarFeedLinks from "../OnCallPolicy/CalendarFeedLinks";
 import CalendarFeedAPI from "../OnCallPolicy/CalendarFeed/CalendarFeedAPI";
+import MaintenanceCalendarFeedAPI, {
+  MaintenanceCalendarFeedRead,
+} from "./MaintenanceCalendarFeedAPI";
 import { FEED_PANEL_BUTTON_CLASS_NAME } from "../OnCallPolicy/CalendarFeed/CalendarFeedLayout";
 import { FeedStatus } from "../OnCallPolicy/CalendarFeed/CalendarFeedTypes";
 import {
@@ -92,6 +95,12 @@ const MaintenanceCalendarSubscribeModal: FunctionComponent<ComponentProps> = (
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
+  /*
+   * Why the link is not this reader's to see: the server's sentence, for a
+   * reader held to some of the project's events. Not an error to try again,
+   * so it is said plainly, without Try again.
+   */
+  const [restrictedMessage, setRestrictedMessage] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
   const [isUnsupported, setIsUnsupported] = useState<boolean>(false);
   const [status, setStatus] = useState<FeedStatus | null>(null);
@@ -122,14 +131,15 @@ const MaintenanceCalendarSubscribeModal: FunctionComponent<ComponentProps> = (
     }
 
     setLoadError("");
+    setRestrictedMessage("");
 
     try {
-      const result: FeedStatus | null = await CalendarFeedAPI.getFeedStatus(
-        TEAM_FEED_CURRENT_PATH,
-      );
+      const result: MaintenanceCalendarFeedRead =
+        await MaintenanceCalendarFeedAPI.getStatus(TEAM_FEED_CURRENT_PATH);
 
-      setIsUnsupported(!result);
-      setStatus(result);
+      setIsUnsupported(result.isUnsupported);
+      setRestrictedMessage(result.refusedReason || "");
+      setStatus(result.status);
     } catch (err) {
       setLoadError(API.getFriendlyMessage(err));
     } finally {
@@ -244,6 +254,14 @@ const MaintenanceCalendarSubscribeModal: FunctionComponent<ComponentProps> = (
 
   if (isLoading) {
     body = <ComponentLoader />;
+  } else if (restrictedMessage) {
+    body = (
+      <Alert
+        type={AlertType.INFO}
+        title={restrictedMessage}
+        dataTestId={`${ID_PREFIX}-restricted`}
+      />
+    );
   } else if (isUnsupported) {
     body = (
       <Alert
@@ -400,7 +418,7 @@ const MaintenanceCalendarSubscribeModal: FunctionComponent<ComponentProps> = (
           }
         />
 
-        <p
+        <div
           className="flex items-start gap-2 text-xs leading-5 text-gray-500"
           data-testid={`${ID_PREFIX}-ownership`}
         >
@@ -411,7 +429,7 @@ const MaintenanceCalendarSubscribeModal: FunctionComponent<ComponentProps> = (
           <span className="min-w-0 text-pretty">
             {translator.translateText(MAINTENANCE_LINK_OWNERSHIP_COPY)}
           </span>
-        </p>
+        </div>
       </div>
     );
   }

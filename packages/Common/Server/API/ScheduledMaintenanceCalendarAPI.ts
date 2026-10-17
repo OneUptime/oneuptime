@@ -36,7 +36,7 @@ import ScheduledMaintenanceCalendarFeed from "../../Models/DatabaseModels/Schedu
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { CalendarSubscriptionLinkSet } from "../../Types/Calendar/CalendarSubscriptionLinks";
 import OneUptimeDate from "../../Types/Date";
-import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -68,11 +68,15 @@ import { MAINTENANCE_CALENDAR_FILE_NAME } from "../../Types/ScheduledMaintenance
  * isEnabled, through its CRUD route.
  *
  * WHO MAY HOLD THE LINK. It shows every event of the project, so every
- * session route asks two things of the caller: the model's own permission
- * (the scheduled maintenance event's access lists, enforced by reading and
- * writing the row with the caller's props), and that they read every event
- * of the project - a reader held to some labels, or to the events they own,
- * is told why the link is not theirs to see (READ_EVERY_EVENT_MESSAGE).
+ * session route asks two things of the caller: that they read every event
+ * of the project (DatabaseService.readsEveryRecordInProject), and the
+ * model's own permission (the scheduled maintenance event's access lists,
+ * enforced by reading and writing the row with the caller's props). A
+ * reader held to some labels, or to the events they own, is told why the
+ * link is not theirs to see: /current answers 200 with the sentence in
+ * `refusedReason` (READ_EVERY_EVENT_MESSAGE) - never 403, which the
+ * Dashboard answers by leaving for its Forbidden page - and /publish and
+ * /rotate refuse with it (400).
  *
  * The token never reaches a log line, an error message or a cache key.
  */
@@ -139,6 +143,12 @@ export interface MaintenanceCalendarFeedStatus {
   hostWarning: string | null;
   protocolWarning: string | null;
   privateHost: string | null;
+  /*
+   * Why this reader may not see the link (they do not read every event of
+   * the project), or null. With a reason, nothing else about the link is
+   * said: not whether it exists, not its address.
+   */
+  refusedReason: string | null;
 }
 
 interface TeamFeedLookup {
@@ -196,6 +206,18 @@ export function buildAbsentFeedStatus(): MaintenanceCalendarFeedStatus {
     hostWarning: MaintenanceCalendarFeedUrls.getHostWarning(),
     protocolWarning: MaintenanceCalendarFeedUrls.getProtocolWarning(),
     privateHost: MaintenanceCalendarFeedUrls.getPrivateHost(),
+    refusedReason: null,
+  };
+}
+
+// What a reader who does not read every event is told: no more than why.
+export function buildRefusedFeedStatus(): MaintenanceCalendarFeedStatus {
+  return {
+    ...buildAbsentFeedStatus(),
+    hostWarning: null,
+    protocolWarning: null,
+    privateHost: null,
+    refusedReason: READ_EVERY_EVENT_MESSAGE,
   };
 }
 
@@ -256,6 +278,7 @@ export function buildFeedStatus(data: {
     hostWarning: MaintenanceCalendarFeedUrls.getHostWarning(),
     protocolWarning: MaintenanceCalendarFeedUrls.getProtocolWarning(),
     privateHost: MaintenanceCalendarFeedUrls.getPrivateHost(),
+    refusedReason: null,
   };
 }
 
@@ -536,16 +559,20 @@ router.all(TEAM_FEED_FALLBACK_ROUTE, feedFallbackHandler);
 
 /*
  * The link shows every event of the project, so only a caller who reads
- * every one may see, publish or regenerate it.
+ * every one may see, publish or regenerate it. A read that cannot be told
+ * (DatabaseService.readsEveryRecordInProject answers false) is a refusal.
  */
+export async function readsEveryEvent(
+  props: DatabaseCommonInteractionProps,
+): Promise<boolean> {
+  return await ScheduledMaintenanceService.readsEveryRecordInProject(props);
+}
+
 export async function assertReadsEveryEvent(
   props: DatabaseCommonInteractionProps,
 ): Promise<void> {
-  const readsEveryEvent: boolean =
-    await ScheduledMaintenanceService.readsEveryRecordInProject(props);
-
-  if (!readsEveryEvent) {
-    throw new ForbiddenException(READ_EVERY_EVENT_MESSAGE);
+  if (!(await readsEveryEvent(props))) {
+    throw new BadDataException(READ_EVERY_EVENT_MESSAGE);
   }
 }
 
@@ -623,10 +650,16 @@ router.get(
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(props);
 
+      if (!(await readsEveryEvent(props))) {
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          buildRefusedFeedStatus() as unknown as JSONObject,
+        );
+      }
+
       const feed: ScheduledMaintenanceCalendarFeed | null =
         await findTeamFeedAsCaller({ projectId, props });
-
-      await assertReadsEveryEvent(props);
 
       const status: MaintenanceCalendarFeedStatus = feed
         ? await buildStatusForRow({ feed })

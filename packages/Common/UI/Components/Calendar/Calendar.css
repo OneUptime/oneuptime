@@ -143,6 +143,65 @@
   margin-left: auto;
 }
 
+/* The month view's day action (Calendar's renderDayAction, the + that
+   schedules something on a day) shows on the week the pointer is over and
+   while it has the keyboard's focus, so a month of + signs does not crowd
+   the grid; on a screen with no hover it is always there. */
+.oneuptime-calendar .rbc-month-row .oneuptime-calendar-day-add {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.oneuptime-calendar .rbc-month-row:hover .oneuptime-calendar-day-add,
+.oneuptime-calendar .oneuptime-calendar-day-add:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .oneuptime-calendar .rbc-month-row .oneuptime-calendar-day-add {
+    opacity: 1;
+  }
+}
+
+/* A phone's month grid: seven columns of about 44px. The day's action
+   does not fit beside its number there - Create is above the grid - and
+   the day names and numbers give up most of their padding, so the grid
+   fits the screen instead of running past its right edge. */
+@media (max-width: 639px) {
+  .oneuptime-calendar .oneuptime-calendar-day-add {
+    display: none;
+  }
+
+  .oneuptime-calendar .rbc-month-view .rbc-header {
+    padding: 0.5rem 0.125rem;
+    letter-spacing: 0;
+  }
+
+  .oneuptime-calendar .rbc-date-cell {
+    padding: 0.25rem;
+  }
+}
+
+/* A colour named under a calendar: an edge, so a state as dark as the
+   page (black, on the dark theme) still shows. */
+.oneuptime-calendar-legend-dot {
+  box-shadow: inset 0 0 0 1px rgb(17 24 39 / 12%);
+}
+
+/* An event's own link (Calendar's renderEventContent) reads as the block's
+   label: the block's colour, no underline, and a ring of that colour when a
+   keyboard is on it. */
+.oneuptime-calendar .rbc-event .oneuptime-calendar-event-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.oneuptime-calendar .rbc-event .oneuptime-calendar-event-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+  border-radius: 0.125rem;
+}
+
 .oneuptime-calendar .rbc-date-cell.rbc-now {
   color: #4f46e5; /* indigo-600 */
   font-weight: 600;

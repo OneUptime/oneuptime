@@ -76,9 +76,7 @@ export interface ComponentProps {
   title: string;
   description: string;
   buttons: Array<CardButtonSchema | ReactElement>;
-  // List | Calendar, in the card's header.
-  viewSwitch: ReactElement;
-  // The filter chips, above the grid as above the list.
+  // The filter chips - and List | Calendar at their end - as above the list.
   topContent?: ReactElement | undefined;
   // Whether the reader may create events: the + on each day to come.
   canCreate: boolean;
@@ -312,7 +310,7 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
             className="flex items-center gap-1.5 text-xs text-gray-600"
           >
             <span
-              className="h-2.5 w-2.5 flex-none rounded-full"
+              className="oneuptime-calendar-legend-dot h-2.5 w-2.5 flex-none rounded-full"
               style={{
                 backgroundColor: state.color?.toString() || "#6b7280",
               }}
@@ -330,7 +328,6 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       buttons={props.buttons}
-      rightElement={props.viewSwitch}
     >
       <div data-testid={SCHEDULED_MAINTENANCE_CALENDAR_ID}>
         {props.topContent || <></>}

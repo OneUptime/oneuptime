@@ -1402,6 +1402,22 @@ html.dark .oneuptime-calendar .rbc-today {
   background-color: var(--ou-accent-soft);
 }
 
+/* Today in the month grid: the surface rule above paints every day cell
+   the card's colour and outranks .rbc-today, so today needs its own. */
+html.dark .oneuptime-calendar .rbc-month-view .rbc-day-bg.rbc-today {
+  background-color: var(--ou-accent-soft);
+}
+
+/* A block in a dark colour - a state or a person whose colour is black or
+   near it - keeps an edge on the dark grid. */
+html.dark .oneuptime-calendar .rbc-event {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%);
+}
+
+html.dark .oneuptime-calendar-legend-dot {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 35%);
+}
+
 html.dark .oneuptime-calendar .rbc-toolbar button {
   background-color: var(--ou-surface-primary);
   border-color: var(--ou-border-default);

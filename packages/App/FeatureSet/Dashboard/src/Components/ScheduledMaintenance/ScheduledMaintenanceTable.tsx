@@ -39,6 +39,7 @@ import React, {
   ReactElement,
   useState,
   useEffect,
+  useMemo,
 } from "react";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import { JSONObject } from "Common/Types/JSON";
@@ -176,6 +177,28 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       resourceIdField: "scheduledMaintenanceId",
     });
 
+  /*
+   * List | Calendar, at the right end of the filter bar: the card's header
+   * already holds the search, Create and the ⋯, and a switch there squeezed
+   * the card's title into a column a word wide. In the bar it stays where it
+   * is when the view changes.
+   */
+  const viewSwitch: ReactElement | undefined = useMemo(() => {
+    if (!props.showCalendarView) {
+      return undefined;
+    }
+
+    return (
+      <ViewSwitch<ScheduledMaintenanceView>
+        options={SCHEDULED_MAINTENANCE_VIEW_OPTIONS}
+        value={view}
+        onChange={setView}
+        ariaLabel={SCHEDULED_MAINTENANCE_VIEW_SWITCH_LABEL}
+        dataTestId={SCHEDULED_MAINTENANCE_VIEW_SWITCH_TEST_ID}
+      />
+    );
+  }, [props.showCalendarView, view, setView]);
+
   const scheduledMaintenanceExtraFacets: Array<ResourceFacet> = [
     {
       key: "currentScheduledMaintenanceState",
@@ -288,6 +311,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     showLabelsFacet: true,
     extraFacets: [...scheduledMaintenanceExtraFacets, ...customFieldFacets],
     areFacetsLoading: areCustomFieldFacetsLoading,
+    filterBarEnd: viewSwitch,
   });
 
   // Fetch scheduled maintenance states on mount
@@ -500,16 +524,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     PermissionGate.check(new ScheduledMaintenance(), ModelAction.Create)
       .isAllowed;
 
-  const viewSwitch: ReactElement | undefined = props.showCalendarView ? (
-    <ViewSwitch<ScheduledMaintenanceView>
-      key="scheduled-maintenance-view-switch"
-      options={SCHEDULED_MAINTENANCE_VIEW_OPTIONS}
-      value={view}
-      onChange={setView}
-      ariaLabel={SCHEDULED_MAINTENANCE_VIEW_SWITCH_LABEL}
-      dataTestId={SCHEDULED_MAINTENANCE_VIEW_SWITCH_TEST_ID}
-    />
-  ) : undefined;
 
   // Subscribe to calendar: in the list's ⋯, and under the calendar.
   const subscribeButton: CardButtonSchema = {
@@ -625,7 +639,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           title={cardTitle}
           description={cardDescription}
           buttons={calendarButtons}
-          viewSwitch={viewSwitch || <></>}
           topContent={filterBar}
           canCreate={canCreateEvents}
           getEventRoute={(maintenanceId: string): Route => {
@@ -687,7 +700,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           buttons: props.showCalendarView
             ? [...cardbuttons, subscribeButton]
             : cardbuttons,
-          rightElement: viewSwitch,
         }}
         noItemsMessage={props.noItemsMessage}
         showViewIdButton={true}
