@@ -857,9 +857,9 @@ describe("summarizeDiscoveryScan — the probe's explanation is mode-blind", () 
       "an ICMP-only scan",
       icmpOnlyScan({
         statusMessage:
-          "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.",
+          "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping.",
       }),
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping.",
     ],
     [
       "an SNMP scan",

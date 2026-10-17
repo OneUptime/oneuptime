@@ -660,7 +660,7 @@ describe("Editing a discovery scan after it was created", () => {
     expect(editFieldNamed("isRecurring").stepId).toBe("scan-target");
     expect(editFieldNamed("cidr").stepId).toBe("scan-target");
 
-    // The method toggle has no heading: the step asks three plain questions.
+    // The method has no heading: the step asks three plain questions.
     expect(editFieldNamed("isSnmpEnabled").sectionTitle).toBeUndefined();
 
     /*
@@ -678,33 +678,16 @@ describe("Editing a discovery scan after it was created", () => {
   });
 
   /*
-   * The naming choice is not a sweep setting: flipping it keeps the last run's
-   * hosts, and the Review dialog simply names them differently the next time it
-   * opens. The warning about what re-runs the scan has to say so, or an
-   * operator who only wants short names reads "re-runs the scan" and hesitates
-   * to save a change that costs nothing.
+   * The warning names exactly the sweep settings - the target, the probe, the
+   * scan method and the credentials (SWEEP_COLUMNS in
+   * NetworkDeviceDiscoveryScanService, the method among them since #3445) -
+   * so everything it does not name reads as free to change: the name, the
+   * schedule, short names and the NetBIOS lookup keep the results. It used to
+   * list those exceptions one by one in five more sentences; the Network
+   * Device guide still does, and says the NetBIOS lookup applies from the
+   * next run.
    */
-  test("says that switching short device names leaves the results alone", async () => {
-    await openEditDialog();
-
-    const { container } = render(
-      <MemoryRouter>{capturedModalProps?.footer}</MemoryRouter>,
-    );
-
-    expect(container.textContent || "").toContain(
-      "whether devices get short names, leaves the results alone",
-    );
-  });
-
-  /*
-   * The NetBIOS lookup (issue #3677) is not a sweep column either, so saving it
-   * keeps the results — but, unlike short names, it changes what the PROBE
-   * asks, so the stored hosts gain no NetBIOS names until the scan runs again.
-   * Both halves are said: without the first the operator hesitates to save a
-   * change that costs nothing, and without the second they turn it on, reopen
-   * Review Results to the same bare addresses, and conclude it does not work.
-   */
-  test("says that switching NetBIOS lookup keeps the results and applies from the next run", async () => {
+  test("names exactly the settings that run the scan again, the scan method among them", async () => {
     await openEditDialog();
 
     const { container } = render(
@@ -713,14 +696,15 @@ describe("Editing a discovery scan after it was created", () => {
     const warning: string = container.textContent || "";
 
     expect(warning).toContain(
-      "Turning NetBIOS name lookup on or off leaves them alone too",
+      "Changing the target, probe, scan method or credentials runs the scan again",
     );
-    expect(warning).toContain("applies from the next time the scan runs");
-    // ...and it is not listed among the changes that re-run the scan.
-    expect(warning).toContain(
-      "Changing the target, probe or credentials re-runs the scan",
-    );
-    expect(warning).not.toMatch(/NetBIOS[^.]*re-runs the scan/);
+
+    for (const free of ["NetBIOS", "short", "schedule", "name or"]) {
+      expect({ free, isNamed: warning.includes(free) }).toEqual({
+        free,
+        isNamed: false,
+      });
+    }
   });
 
   /*
@@ -742,10 +726,22 @@ describe("Editing a discovery scan after it was created", () => {
     const { container } = render(<MemoryRouter>{footerElement}</MemoryRouter>);
     const warning: string = container.textContent || "";
 
-    expect(warning).toContain("re-runs the scan");
-    expect(warning).toContain("cleared");
-    // ...and that a rename or a schedule change costs nothing.
-    expect(warning).toContain("name or the schedule");
+    expect(warning).toContain("runs the scan again");
+    expect(warning).toContain("The hosts its last run found are cleared");
+    // ...and what it never touches.
+    expect(warning).toContain("Devices you already imported stay as they are");
+  });
+
+  /*
+   * The dialog's own line says which scan it is: its range, which is also
+   * what the warning below is about.
+   */
+  test("says which range the scan sweeps, in one line", async () => {
+    await openEditDialog();
+
+    expect(capturedModalProps?.description).toBe(
+      "This scan sweeps 192.168.1.0/24.",
+    );
   });
 
   /*

@@ -244,6 +244,8 @@ beforeEach(() => {
   getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
   // A blocked user's token is BlockedUserMiddleware.test.ts; here nobody is blocked.
   getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  // A token that says master admin is one whose person still is one.
+  getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
 });
 
 afterEach(() => {

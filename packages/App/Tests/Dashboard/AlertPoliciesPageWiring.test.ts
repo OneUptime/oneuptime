@@ -381,7 +381,7 @@ describe("the policies page is where policies are managed", () => {
       "A device without SNMP credentials is only pinged, so only the stops-answering check can fire on it.",
     );
     // The delete.
-    expect(source).toContain("deleting one deletes them");
+    expect(source).toContain("Deleting a policy deletes its monitors.");
   });
 });
 

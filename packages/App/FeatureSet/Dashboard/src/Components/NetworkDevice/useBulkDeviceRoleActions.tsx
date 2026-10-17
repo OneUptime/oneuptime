@@ -35,7 +35,7 @@ import {
 export { CLEAR_DEVICE_ROLE_ACTION_TITLE, SET_DEVICE_ROLE_ACTION_TITLE };
 
 export const SET_DEVICE_ROLE_DESCRIPTION: string = translationKey(
-  "What the selected devices do on the network. It decides how the map draws them, where they sit in its hierarchy, and which alert policies scoped to a role cover them.",
+  "Decides how the map draws these devices and which role-scoped alert policies cover them.",
 );
 
 export const ALREADY_HAS_ROLE_REASON: string = translationKey(

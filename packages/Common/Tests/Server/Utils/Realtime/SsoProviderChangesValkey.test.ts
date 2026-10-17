@@ -84,7 +84,7 @@ jest.mock("../../../../Server/Services/TeamMemberService", () => {
   return { __esModule: true, default: { forgetTeamIdsForUser: jest.fn() } };
 });
 jest.mock("../../../../Server/Services/UserService", () => {
-  return { __esModule: true, default: { forgetBlockedStatus: jest.fn() } };
+  return { __esModule: true, default: { forgetAccountStanding: jest.fn() } };
 });
 
 interface Server {

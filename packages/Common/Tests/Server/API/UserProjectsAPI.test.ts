@@ -1029,6 +1029,9 @@ describe("POST /user/:userId/projects — the master API key path", () => {
 
     // A blocked master admin is refused too; that is BlockedUserMiddleware.test.ts.
     jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+
+    // One whose access was removed is too; that is MasterAdminRemovalOverHttp.test.ts.
+    jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
   });
 
   afterEach(() => {

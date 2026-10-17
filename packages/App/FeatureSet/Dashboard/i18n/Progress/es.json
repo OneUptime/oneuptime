@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30339,
-    "untranslated": 3781
+    "keys": 30374,
+    "untranslated": 3765
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -182,6 +182,7 @@
     "Host",
     "Host ",
     "Hosts",
+    "ICMP (ping)",
     "India",
     "Indonesia",
     "Info",

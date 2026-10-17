@@ -71,7 +71,7 @@ const NetworkDeviceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       cardProps={{
         title: "Network Device Label Rules",
         description:
-          "Auto-attach labels when matching network devices are created. Use Run Now on a rule to apply it to devices that already exist.",
+          "Add labels to network devices as they are created. Run Now applies a rule to existing devices.",
       }}
       helpContent={{
         title: "How Network Device Label Rules Work",
@@ -133,7 +133,7 @@ const NetworkDeviceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
-            "Case-insensitive regex — or a '*' wildcard pattern such as *0664* — matched against the network device name and description.",
+            "A regex or * pattern, such as *0664*, matched against the device's name and description.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "core-switch-.* or *0664*",

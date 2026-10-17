@@ -273,6 +273,8 @@ describe("UserMiddleware hands a request with an MCP delegation token to McpDele
       UserService,
       "isUserBlocked",
     ).mockResolvedValue(false);
+    // A session that says master admin is one whose person still is one.
+    getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
     getJestSpyOn(
       AccessTokenService,
       "getUserGlobalAccessPermission",

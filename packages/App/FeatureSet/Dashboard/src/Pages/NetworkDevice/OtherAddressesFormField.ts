@@ -26,7 +26,7 @@ import NetworkDeviceOtherAddressesUtil, {
 export const OTHER_ADDRESSES_FIELD_TITLE: string = "Other Addresses";
 
 export const OTHER_ADDRESSES_FIELD_DESCRIPTION: string = translationKey(
-  "Optional. Other IP addresses this device sends flow records, traps or syslog from - a loopback or a management interface, say - separated by commas. Records from any of them are matched to this device, as records from its hostname are.",
+  "Other IPs this device sends flows, traps or syslog from, separated by commas.",
 );
 
 export const OTHER_ADDRESSES_FIELD_PLACEHOLDER: string = "10.0.0.1, 192.0.2.10";

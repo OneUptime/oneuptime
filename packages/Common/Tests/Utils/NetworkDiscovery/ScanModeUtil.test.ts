@@ -321,58 +321,55 @@ describe("ScanModeUtil.isIcmpOnly", () => {
 });
 
 describe("ScanModeUtil.getMethodLabel", () => {
-  it("calls an SNMP scan Ping + SNMP", () => {
+  it("calls an SNMP scan SNMP", () => {
     expect(ScanModeUtil.getMethodLabel({ isSnmpEnabled: true })).toBe(
-      ScanMethodLabel.PingAndSnmp,
+      ScanMethodLabel.Snmp,
     );
   });
 
-  it("calls a scan with SNMP turned off Ping only", () => {
+  it("calls a scan with SNMP turned off ICMP", () => {
     expect(ScanModeUtil.getMethodLabel({ isSnmpEnabled: false })).toBe(
-      ScanMethodLabel.PingOnly,
+      ScanMethodLabel.Icmp,
     );
   });
 
   /*
    * A label is what an operator reads on a list row, so labelling a legacy
-   * scan "Ping only" would tell them a sweep that did query SNMP did not.
+   * scan "ICMP" would tell them a sweep that did query SNMP did not.
    */
-  it("labels every scan that does not say as Ping + SNMP", () => {
-    expect(ScanModeUtil.getMethodLabel({})).toBe(ScanMethodLabel.PingAndSnmp);
+  it("labels every scan that does not say as SNMP", () => {
+    expect(ScanModeUtil.getMethodLabel({})).toBe(ScanMethodLabel.Snmp);
     expect(ScanModeUtil.getMethodLabel(scanWith(undefined))).toBe(
-      ScanMethodLabel.PingAndSnmp,
+      ScanMethodLabel.Snmp,
     );
     expect(ScanModeUtil.getMethodLabel(scanWith(null))).toBe(
-      ScanMethodLabel.PingAndSnmp,
+      ScanMethodLabel.Snmp,
     );
-    expect(ScanModeUtil.getMethodLabel(null)).toBe(ScanMethodLabel.PingAndSnmp);
-    expect(ScanModeUtil.getMethodLabel(undefined)).toBe(
-      ScanMethodLabel.PingAndSnmp,
-    );
+    expect(ScanModeUtil.getMethodLabel(null)).toBe(ScanMethodLabel.Snmp);
+    expect(ScanModeUtil.getMethodLabel(undefined)).toBe(ScanMethodLabel.Snmp);
   });
 
   it.each(SCAN_MODE_CASES)(
     "agrees with isSnmpEnabled for $label",
     (testCase: ScanModeCase) => {
       expect(ScanModeUtil.getMethodLabel(testCase.scan)).toBe(
-        testCase.isSnmpEnabled
-          ? ScanMethodLabel.PingAndSnmp
-          : ScanMethodLabel.PingOnly,
+        testCase.isSnmpEnabled ? ScanMethodLabel.Snmp : ScanMethodLabel.Icmp,
       );
     },
   );
 });
 
 /*
- * The enum members are product copy, not identifiers. `ScanMethodLabel.PingOnly`
- * is rendered as-is into the badge on the Scan column of the discovery scans
- * list (App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery.tsx), so
- * editing either string here edits what an operator reads there.
+ * The enum members are product copy, not identifiers. They are the words of
+ * the two choices on the Start Scan form, and the badge on the Scan column of
+ * the discovery scans list (App/FeatureSet/Dashboard/src/Pages/NetworkDevice/
+ * Discovery.tsx, through DiscoveryScanMethod.ts) shows them, so editing
+ * either string here edits what an operator reads there.
  */
 describe("ScanMethodLabel", () => {
-  it("spells the two methods the way the wizard does", () => {
-    expect(ScanMethodLabel.PingAndSnmp).toBe("Ping + SNMP");
-    expect(ScanMethodLabel.PingOnly).toBe("Ping only");
+  it("spells the two methods the way the Start Scan form does", () => {
+    expect(ScanMethodLabel.Icmp).toBe("ICMP");
+    expect(ScanMethodLabel.Snmp).toBe("SNMP");
   });
 
   /*
@@ -381,10 +378,7 @@ describe("ScanMethodLabel", () => {
    * the reminder to wire it up rather than a rule against ever adding one.
    */
   it("has exactly the two methods getMethodLabel can return", () => {
-    expect(Object.values(ScanMethodLabel)).toEqual([
-      "Ping + SNMP",
-      "Ping only",
-    ]);
+    expect(Object.values(ScanMethodLabel)).toEqual(["ICMP", "SNMP"]);
   });
 });
 
@@ -458,7 +452,7 @@ describe("ScanModeUtil module boundaries", () => {
       false,
     );
     expect(isolated.default.isSnmpEnabled({})).toBe(true);
-    expect(isolated.ScanMethodLabel.PingOnly).toBe(ScanMethodLabel.PingOnly);
+    expect(isolated.ScanMethodLabel.Icmp).toBe(ScanMethodLabel.Icmp);
   });
 
   /*

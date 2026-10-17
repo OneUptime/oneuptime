@@ -230,7 +230,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
         cardProps={{
           title: "Network Device Auto Import Rules",
           description:
-            "Automatically import hosts found by discovery scans as network devices when they match these rules. Site assignment, owner, and label rules then apply to the imported devices automatically. Exclusion rules veto matching hosts.",
+            "Import the hosts your scans find automatically, when they match a rule. Exclusion rules keep hosts out.",
         }}
         helpContent={{
           title: "How Auto Import Rules Work",
@@ -378,12 +378,12 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             stepId: "match-criteria",
             sectionTitle: "Match by Address",
             sectionDescription:
-              "Conditions on one rule are ANDed — every filled-in condition must pass. At least one condition is required; to OR conditions, create multiple rules.",
+              "A host must match every condition you fill in. Fill in at least one.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "192.168.1.0/24 or 10.16-22.0-255.51-66",
             description:
-              "Only trigger for discovered hosts whose IP is inside this CIDR (192.168.1.0/24) or octet range (10.16-22.0-255.51-66) — the same notations a scan target takes. Leave empty to match any address.",
+              "A subnet (192.168.1.0/24) or octet range (10.16-22.0-255.51-66). Empty matches any address.",
           },
           {
             field: { sysNamePattern: true },
@@ -391,12 +391,12 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             stepId: "match-criteria",
             sectionTitle: "Match by SNMP Identity",
             sectionDescription:
-              "Case-insensitive regex — or a '*' wildcard pattern such as *switch* — matched against what the host reported over SNMP.",
+              "A regex or * pattern, such as *switch*, matched against what the host reported over SNMP.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "core-sw-.* or *switch*",
             description:
-              "Regex or * wildcard pattern (case-insensitive) matched against the discovered host's SNMP sysName. Leave empty to match any name.",
+              "Matched against the host's SNMP name. Empty matches any name.",
           },
           {
             field: { sysDescrPattern: true },
@@ -406,7 +406,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             required: false,
             placeholder: "Cisco IOS.* or *JUNOS*",
             description:
-              "Regex or * wildcard pattern (case-insensitive) matched against the discovered host's SNMP sysDescr. Leave empty to match any description.",
+              "Matched against the host's SNMP description. Empty matches any description.",
           },
           {
             field: { sysObjectIdPattern: true },
@@ -417,7 +417,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             placeholder:
               "1.3.6.1.4.1.9.* (Cisco) or 1.3.6.1.4.1.2636.* (Juniper)",
             description:
-              "An OID prefix (1.3.6.1.4.1.9) or a '*' wildcard OID pattern with literal dots — not regex — matched against the discovered host's SNMP sysObjectID, the vendor's registered enterprise OID. Leave empty to match any vendor. Only hosts found by probes new enough to report sysObjectID can match.",
+              "An OID prefix (1.3.6.1.4.1.9) or * pattern for the vendor's OID. Empty matches any vendor.",
           },
           {
             field: { includePingOnlyHosts: true },
@@ -426,7 +426,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Also import hosts that answered ping but not SNMP. Off by default: a wrong SNMP credential makes every host on a subnet report as ping-only, and this rule would then import all of them as half-identified devices.",
+              "Also import hosts that answered ping but not SNMP, such as every host an ICMP scan finds.",
           },
           {
             field: { isExclusion: true },
@@ -435,7 +435,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Invert this rule: matching hosts are NEVER auto-imported, even when another rule matches them. Use it to carve printers, phones, or other unwanted hosts out of a broader rule.",
+              "Hosts this rule matches are never imported, even when another rule matches them.",
             onChange: (
               value: unknown,
               currentValues: FormValues<NetworkDeviceAutoImportRule>,
@@ -465,7 +465,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             required: false,
             placeholder: "Every 5 minutes (the default)",
             description:
-              "How often the scan's probe polls each device this rule imports: it pings every device, and walks the ones that answered SNMP. The same choice as Check every when you import from Review Results.",
+              "How often the scan's probe checks each device this rule imports.",
             showIf: (
               values: FormValues<NetworkDeviceAutoImportRule>,
             ): boolean => {
@@ -480,13 +480,13 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
                   stepId: "behavior",
                   sectionTitle: "Optional Collection",
                   sectionDescription:
-                    "What every device this rule imports collects. The Monitor Template below decides what those devices are ALERTED on; this decides what they COLLECT.",
+                    "What the devices collect. The monitor template below decides what they are alerted on.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   fetchDropdownOptions: fetchOidCollectionTemplates,
                   required: false,
                   placeholder: "No template (device-specific OIDs only)",
                   description:
-                    "Imported devices are LINKED to this template, not given a copy: editing the template later changes what every linked device collects on its next poll. Without one, an imported device starts with whatever the vendor fingerprint seeds and has to be configured by hand.",
+                    "Devices are linked to it, so editing the template later changes what they all collect.",
                   showIf: (
                     values: FormValues<NetworkDeviceAutoImportRule>,
                   ): boolean => {
@@ -503,7 +503,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
                   stepId: "monitor",
                   sectionTitle: "Optional Alerting",
                   sectionDescription:
-                    "Leave this empty for inventory-only import. Selecting a template creates active, potentially billable monitors and runs the normal Monitor Label and Owner Rules after creation.",
+                    "Leave it empty to import devices without monitors. A template gives each device a monitor, which may be billed.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   fetchDropdownOptions: fetchNetworkDeviceMonitorTemplates,
                   required: false,
@@ -516,7 +516,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
                    * them until the Custom Field Defaults card existed.
                    */
                   description:
-                    "Alert criteria, interval, minimum probe agreement, monitor labels and custom field defaults (set on the template's own Custom Field Defaults card) are copied from this template onto every monitor it creates. Health OIDs and other polling settings remain on the Network Device. Matching rules that select different templates can create multiple monitors per device.",
+                    "Each monitor copies this template's criteria, interval, labels and custom field defaults.",
                   showIf: canSelectAutoImportMonitorTemplate,
                 },
               ]

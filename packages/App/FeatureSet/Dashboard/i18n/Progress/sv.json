@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30339,
-    "untranslated": 17175
+    "keys": 30374,
+    "untranslated": 17076
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -17,6 +17,7 @@
     "Filter:",
     "Filter: {{expression}}",
     "Gateway",
+    "ICMP (ping)",
     "Incident {{number}}: {{title}}",
     "Information",
     "Null",

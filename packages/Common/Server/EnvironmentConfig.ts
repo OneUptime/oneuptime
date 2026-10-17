@@ -983,21 +983,44 @@ export const StatusPageApiClientUrl: URL = new URL(
 );
 
 /*
- *Internal URL for server-to-server communication (uses internal Docker hostname)
- *Note: The internal path is /api/status-page (not /status-page-api) because
- * /status-page-api is the external route that Nginx rewrites to /api/status-page
+ * The App's own API at its internal address, for the requests the App makes
+ * to itself: plain HTTP to SERVER_APP_HOSTNAME:APP_PORT, the address Nginx
+ * proxies /api to, as the App's other server-to-server calls make them
+ * (MailService, the MCP server's tools, ...).
+ *
+ * Never the public address, HTTP_PROTOCOL + HOST: a request sent there leaves
+ * the App and comes back in through Nginx, which works only where the App can
+ * reach the address people use. With HOST=localhost - a local install, and the
+ * e2e stack - that is the App container itself, where nothing listens on port
+ * 80, so every request failed with "connect ECONNREFUSED 127.0.0.1:80"; split
+ * DNS, egress rules or a self-signed certificate break it the same way.
+ */
+const AppApiInternalUrl: URL = new URL(
+  Protocol.HTTP,
+  AppApiHostname,
+  new Route(AppApiRoute.toString()),
+);
+
+/*
+ * The status page API, for the servers that render a status page: what the
+ * page is (/seo - its title, description, search engine indexing and theme,
+ * which its HTML is sent in before any script runs), and its RSS feed and
+ * llms.txt. The internal path is /api/status-page (not /status-page-api)
+ * because /status-page-api is the external route that Nginx rewrites to
+ * /api/status-page.
  */
 export const StatusPageApiInternalUrl: URL = URL.fromString(
-  AppApiClientUrl.toString(),
+  AppApiInternalUrl.toString(),
 ).addRoute(new Route("/status-page"));
 
 /*
- *Internal URL for server-to-server communication with the Dashboard API.
- *Note: The internal path is /api/dashboard (not /public-dashboard-api) because
- * /public-dashboard-api is the external route that Nginx rewrites to /api/dashboard
+ * The public dashboard API, for the servers that render a public dashboard.
+ * The internal path is /api/dashboard (not /public-dashboard-api) because
+ * /public-dashboard-api is the external route that Nginx rewrites to
+ * /api/dashboard.
  */
 export const DashboardApiInternalUrl: URL = URL.fromString(
-  AppApiClientUrl.toString(),
+  AppApiInternalUrl.toString(),
 ).addRoute(new Route("/dashboard"));
 
 export const DashboardClientUrl: URL = new URL(
