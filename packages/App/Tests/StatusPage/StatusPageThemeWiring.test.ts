@@ -47,10 +47,37 @@ const LANGUAGES: Array<string> = [
   "fa",
 ];
 
+/*
+ * Each block comment, from its opener to the next closer, as one space. Read
+ * with indexOf, one pass over the code: a pattern that searched for the end
+ * of every opener would take time growing with the square of the file.
+ */
+function withoutBlockComments(code: string): string {
+  const parts: Array<string> = [];
+  let at: number = 0;
+  let open: number = code.indexOf("/*");
+
+  while (open >= 0) {
+    const close: number = code.indexOf("*/", open + 2);
+
+    if (close < 0) {
+      break;
+    }
+
+    parts.push(code.slice(at, open));
+    at = close + 2;
+    open = code.indexOf("/*", at);
+  }
+
+  parts.push(code.slice(at));
+
+  return parts.join(" ");
+}
+
 function readCode(...relativeParts: Array<string>): string {
-  return fs
-    .readFileSync(path.join(STATUS_PAGE_SRC, ...relativeParts), "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
+  return withoutBlockComments(
+    fs.readFileSync(path.join(STATUS_PAGE_SRC, ...relativeParts), "utf8"),
+  )
     .replace(/\/\/.*$/gm, " ")
     .replace(/\s+/g, " ");
 }

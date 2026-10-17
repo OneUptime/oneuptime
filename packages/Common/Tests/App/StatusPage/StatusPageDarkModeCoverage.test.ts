@@ -28,6 +28,26 @@ const UI_DIR: string = path.join(__dirname, "..", "..", "..", "UI");
 
 const SOURCE_FILE: RegExp = /\.tsx?$/;
 
+// An inline style object, and the text colour key a style object can hold.
+const STYLE_OBJECT_OPENER: string = "style={{";
+const TEXT_COLOUR_KEY: RegExp = /\bcolor:/;
+
+/*
+ * Whether a source writes a text colour in an inline style object: a
+ * "style={{" with "color:" after it and no "}" between. Read one stretch
+ * between two "}" at a time, so the time grows with the file, not with the
+ * square of it.
+ */
+const hasInlineTextColour: (source: string) => boolean = (
+  source: string,
+): boolean => {
+  return source.split("}").some((stretch: string): boolean => {
+    const opener: number = stretch.indexOf(STYLE_OBJECT_OPENER);
+
+    return opener >= 0 && TEXT_COLOUR_KEY.test(stretch.slice(opener));
+  });
+};
+
 const listSources: (directory: string) => Array<string> = (
   directory: string,
 ): Array<string> => {
@@ -129,13 +149,21 @@ describe("the status page app in the dark theme", () => {
   });
 
   test("never writes a status colour as inline text colour, which the dark theme could not reach", () => {
-    const inlineTextColour: RegExp = /style=\{\{[^}]*\bcolor:/;
-
     const offenders: Array<string> = FILES.filter((file: string): boolean => {
-      return inlineTextColour.test(
+      return hasInlineTextColour(
         fs.readFileSync(path.join(UI_DIR, file), "utf8"),
       );
     });
+
+    // The reader finds one where there is one, and only there.
+    expect(
+      hasInlineTextColour("<span style={{ color: status.color }} />"),
+    ).toBe(true);
+    expect(
+      hasInlineTextColour(
+        "<span style={{ backgroundColor: c }} /> <p>color: red</p>",
+      ),
+    ).toBe(false);
 
     expect(offenders).toEqual([]);
   });
