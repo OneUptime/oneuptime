@@ -1,12 +1,13 @@
 {
   "baseline": {
-    "keys": 30172,
-    "untranslated": 17270
+    "keys": 30348,
+    "untranslated": 17250
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "1 week",
     "AI / LLM",
+    "Agenda",
     "Agent",
     "Alarm",
     "App",
