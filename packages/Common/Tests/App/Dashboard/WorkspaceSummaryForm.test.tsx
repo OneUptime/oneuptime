@@ -338,15 +338,35 @@ function valueInputs(): Array<HTMLInputElement> {
     }) as Array<HTMLInputElement>;
 }
 
+/*
+ * The first condition comes with "Only incidents that match conditions";
+ * Add Condition, under it, adds the next ones.
+ */
 async function addCondition(user: UserEvent, value: string): Promise<void> {
+  const addButton: HTMLElement | null = within(dialog()).queryByRole("button", {
+    name: "Add Condition",
+  });
+
   await user.click(
-    within(dialog()).getByRole("button", { name: "Add Condition" }),
+    addButton ||
+      within(dialog()).getByRole("radio", {
+        name: "Only incidents that match conditions",
+      }),
   );
   await settle();
 
   const inputs: Array<HTMLInputElement> = valueInputs();
   fireEvent.change(inputs[inputs.length - 1]!, { target: { value: value } });
   await settle();
+}
+
+// The All / Any radios of Match Condition, apart from which incidents.
+function matchConditionRadios(): Array<HTMLElement> {
+  const group: HTMLElement | null = within(dialog()).queryByRole("radiogroup", {
+    name: /^Match Condition/,
+  });
+
+  return group ? within(group).queryAllByRole("radio") : [];
 }
 
 type CreateCall = {
@@ -590,11 +610,52 @@ describe("creating a workspace summary: the filters", () => {
 
     await toFilters(user);
 
-    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
+    // Which incidents is asked first; a new summary includes them all.
+    expect(
+      within(dialog()).getByRole("radiogroup", { name: "Which incidents" }),
+    ).toBeVisible();
+    expect(
+      within(dialog()).getByRole("radio", { name: "All incidents" }),
+    ).toBeChecked();
+    expect(
+      within(dialog()).queryByRole("button", { name: "Add Condition" }),
+    ).not.toBeInTheDocument();
+    expect(matchConditionRadios()).toHaveLength(0);
 
     await addCondition(user, "database");
 
-    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
+    expect(
+      within(dialog()).getByRole("radio", {
+        name: "Only incidents that match conditions",
+      }),
+    ).toBeChecked();
+    expect(matchConditionRadios()).toHaveLength(0);
+  });
+
+  test("include every incident when nothing narrows them, and say nothing about leaving it empty", async () => {
+    const user: UserEvent = await renderForm();
+
+    await toFilters(user);
+
+    // It said "Leave empty to include all." over an Add Condition button.
+    expect(within(dialog()).queryByText(/Leave empty/)).not.toBeInTheDocument();
+    expect(within(dialog()).queryByText("Filter Conditions")).toBeNull();
+    expect(
+      within(dialog()).queryByText(
+        "Filter conditions for which items to include in the summary",
+      ),
+    ).toBeNull();
+
+    await user.click(
+      within(dialog()).getByRole("button", { name: "Create Summary" }),
+    );
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createdSummary().filters).toEqual([]);
+    expect(createdSummary().filterCondition).toBe(FilterCondition.All);
   });
 
   test("ask Match Condition, under the conditions and on All, once there are two", async () => {
@@ -755,7 +816,7 @@ describe("editing a workspace summary", () => {
     await waitForStep("Filters");
     await settle();
 
-    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
+    expect(matchConditionRadios()).toHaveLength(0);
 
     await user.click(
       within(dialog()).getByRole("button", { name: "Save Changes" }),

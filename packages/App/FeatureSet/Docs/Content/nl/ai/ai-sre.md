@@ -293,7 +293,7 @@ Twee schakelaars op de AI-instellingenpagina van elk signaaltype beslissen wat O
 
 Een regel voor automatisch herstel stelt drie vragen:
 
-1. **Voorwaarden**: bij welke incidenten de regel past: monitoren, ernstniveaus, labels, monitorlabels, titel en beschrijving, dezelfde voorwaarden als de andere incident- en waarschuwingsregels van het project. Een regel zonder voorwaarde past bij elk incident.
+1. **Voorwaarden**: bij welke incidenten de regel past: **Alle incidenten**, waar een nieuwe regel mee begint, of **Alleen incidenten die aan de voorwaarden voldoen** op monitoren, ernstniveaus, labels, monitorlabels, titel en beschrijving, dezelfde voorwaarden als de andere incident- en waarschuwingsregels van het project.
 2. **Herstellen met**: **OneUptime AI** herstelt het incident via de AI-agent op het cluster of de host die het raakt; **Runbooks** voert de runbooks uit die de regel noemt, elke keer op dezelfde manier.
 3. **Goedkeuring**: **Eerst om goedkeuring vragen**: er draait niets totdat iemand de fix met één klik goedkeurt. **Herstellen zonder te vragen**: runbooks starten meteen, en OneUptime AI herstelt zonder goedkeuring overal waar de instellingen van de AI-agent dat toestaan; een cluster of host die op goedkeuring vragen staat, vraagt nog steeds.
 

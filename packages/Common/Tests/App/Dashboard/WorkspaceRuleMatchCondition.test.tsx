@@ -144,9 +144,31 @@ function valueInputs(): Array<HTMLInputElement> {
   return screen.getAllByRole("textbox") as Array<HTMLInputElement>;
 }
 
+/*
+ * The first condition comes with "Only incidents that match conditions";
+ * Add Condition, under it, adds the next ones.
+ */
 async function addCondition(user: UserEvent): Promise<void> {
-  await user.click(screen.getByRole("button", { name: "Add Condition" }));
+  const addButton: HTMLElement | null = screen.queryByRole("button", {
+    name: "Add Condition",
+  });
+
+  await user.click(
+    addButton ||
+      screen.getByRole("radio", {
+        name: "Only incidents that match conditions",
+      }),
+  );
   await settle();
+}
+
+// The All / Any radios of Match Condition, apart from what the rule is for.
+function matchConditionRadios(): Array<HTMLElement> {
+  const group: HTMLElement | null = screen.queryByRole("radiogroup", {
+    name: /^Match Condition/,
+  });
+
+  return group ? within(group).queryAllByRole("radio") : [];
 }
 
 afterEach(() => {
@@ -157,8 +179,12 @@ describe("a new rule's Conditions step", () => {
   test("asks no All or Any while there is no condition", async () => {
     await renderConditions(ruleWith([], FilterCondition.All));
 
-    expect(screen.getByRole("button", { name: "Add Condition" })).toBeVisible();
-    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    // What the rule is for is asked; how conditions combine is not.
+    expect(screen.getByRole("radio", { name: "All incidents" })).toBeChecked();
+    expect(
+      screen.queryByRole("button", { name: "Add Condition" }),
+    ).not.toBeInTheDocument();
+    expect(matchConditionRadios()).toHaveLength(0);
     expect(screen.queryByText("Match Condition")).not.toBeInTheDocument();
   });
 
@@ -168,7 +194,7 @@ describe("a new rule's Conditions step", () => {
     await addCondition(user);
 
     expect(valueInputs()).toHaveLength(1);
-    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    expect(matchConditionRadios()).toHaveLength(0);
   });
 
   test("asks Match Condition under the conditions once the second is added, starting on All", async () => {
@@ -238,7 +264,7 @@ describe("a rule going back to one condition", () => {
     );
     await settle();
 
-    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    expect(matchConditionRadios()).toHaveLength(0);
     expect(lastRule(onChange).filters).toEqual([titleContains("database")]);
     expect(lastRule(onChange).filterCondition).toBe(FilterCondition.Any);
   });
@@ -303,7 +329,7 @@ describe("a saved rule", () => {
       ruleWith([titleContains("database")], FilterCondition.Any),
     );
 
-    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    expect(matchConditionRadios()).toHaveLength(0);
 
     fireEvent.change(valueInputs()[0]!, { target: { value: "postgres" } });
     await settle();

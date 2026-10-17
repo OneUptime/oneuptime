@@ -588,7 +588,7 @@ flowchart TB
 **یا به دو پرسش پاسخ دهید.** **Create Custom Rule**، یا دکمه ساخت روی کارت، فرمی را باز می‌کند که از همان آغاز یک قاعده کارا است:
 
 - **Grouping** — **Group incidents by**: **Monitor**، **Everything Together**، **Severity**، **Title** یا **Custom**. گزینه Custom گام **Group By** را با پنج کلیدی که زیر این پاسخ‌ها قرار دارند می‌افزاید (مانیتور، شدت، عنوان حادثه، برچسب‌های حادثه و برچسب‌های مانیتور؛ برچسب‌ها بر پایه مجموعه دقیقشان گروه‌بندی می‌شوند). **Only group incidents that arrive close together** به‌طور پیش‌فرض روشن است: حادثه فقط وقتی به یک اپیزود می‌پیوندد که در پنجره زمانی حادثه قبلی آن اپیزود برسد. اگر خاموش شود، حادثه‌های منطبق تا برطرف شدن اپیزود باز به آن می‌پیوندند. **Name** تا وقتی نام خودتان را ننوشته‌اید از پاسخ پیروی می‌کند، و **Enabled** روشن است.
-- **Which Incidents** — شرط‌هایی که دامنه قاعده را تنگ می‌کنند. برای گروه‌بندی هر حادثه تازه آن را خالی بگذارید.
+- **Which Incidents** — **All incidents**، که قاعده تازه با آن آغاز می‌شود، هر حادثه تازه را گروه‌بندی می‌کند. **Only incidents that match conditions** شرط‌هایی را باز می‌کند که دامنه قاعده را تنگ می‌کنند.
 
 هر کار دیگری که یک قاعده می‌تواند انجام دهد زیر **More fields**، در انتهای گام **Grouping**، تا شده است، در سه گروه: **On-Call & Ownership** (سیاست‌های کشیکی که وقتی قاعده اپیزودی باز می‌کند اجرا می‌شوند، **Episode Owners**، و گماردن نقش‌های اپیزود)، **Episode Lifecycle** (بازگشایی اپیزودهای به‌تازگی برطرف‌شده، صبر پیش از برطرف کردن اپیزود، و برطرف کردن اپیزودهای ساکت — هر کدام یک کلید با دقیقه‌هایش) و **Details** (توضیحات خود قاعده، قالب‌های عنوان و توضیحات اپیزود، نمایش اپیزودها روی صفحه‌های وضعیت، و برچسب‌های اپیزود). در حالت تاشده، سرتیترش نام آنچه را در خود دارد می‌آورد، و هر تنظیمی که قاعده به کار می‌برد برچسبی است که می‌گوید روی چه چیزی تنظیم شده — «On-Call Duty Policies: 2»، «Reopen recently resolved episodes: 30 minutes» — پس ویرایش یک قاعده هرگز آنچه را انجام می‌دهد پنهان نمی‌کند. باز کردن آن گامی نمی‌افزاید: **Create Incident Grouping Rule** در **Which Incidents**، گام آخر، است. فرم هشدار تنظیم‌های صفحه وضعیت و نقش اپیزود را ندارد.
 
@@ -608,7 +608,7 @@ flowchart TB
 
 :::steps
 1. **Basic Info** — **Name** (جانگهدار چیزی مانند فراخواندن تیم پایگاه داده برای هر حادثه پایگاه داده پیشنهاد می‌دهد) و **Description**. قاعده فعال آغاز می‌شود؛ فرم ویرایشش کلید **Enabled** را می‌افزاید، و فهرست برای هر قاعده نشان سبز **Enabled** یا قرمز **Disabled** نمایش می‌دهد.
-2. **Match Criteria** — **Conditions** قاعده. هر شرط یک معیار برمی‌گزیند — **Monitors**، **Incident Severities**، **Incident Labels**، **Monitor Labels**، **Incident Title**، **Incident Description**، **Monitor Name** یا **Monitor Description** — یک عملگر و یک مقدار، و مانند یک جمله خوانده می‌شود: «If **Incident Title** contains `database`»، «And **Monitor Labels** has any of _Production_».
+2. **Match Criteria** — **All incidents**، که قاعده تازه با آن آغاز می‌شود، یا **Only incidents that match conditions**، که شرط‌های قاعده را باز می‌کند. هر شرط یک معیار برمی‌گزیند — **Monitors**، **Incident Severities**، **Incident Labels**، **Monitor Labels**، **Incident Title**، **Incident Description**، **Monitor Name** یا **Monitor Description** — یک عملگر و یک مقدار، و مانند یک جمله خوانده می‌شود: «If **Incident Title** contains `database`»، «And **Monitor Labels** has any of _Production_».
 3. **On-Call Policies** — سیاست‌هایی که این قاعده اجرا می‌کند.
 :::
 

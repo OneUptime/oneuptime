@@ -72,7 +72,7 @@ En varslingsregel sier hvilke hendelser som publiseres i Slack, og hvor. Hvert p
 | Trinn | Hva du angir |
 | --- | --- |
 | **Grunnleggende** | **Regelnavn** og **Regelbeskrivelse**. |
-| **Betingelser** | Hvilke hendelser regelen gjelder for, for eksempel etter alvorlighetsgrad, tilstand, etikett, monitor eller ord i tittelen. De kontrolleres når en hendelse opprettes, og på nytt ved hver oppdatering OneUptime publiserer om den, så en regel for bekreftede hendelser virker når en hendelse bekreftes. Uten betingelser gjelder regelen for hver hendelse. Med to eller flere sier **Samsvarsbetingelse** om alle må passe, eller om én er nok. |
+| **Betingelser** | Hvilke hendelser regelen gjelder for, for eksempel etter alvorlighetsgrad, tilstand, etikett, monitor eller ord i tittelen. De kontrolleres når en hendelse opprettes, og på nytt ved hver oppdatering OneUptime publiserer om den, så en regel for bekreftede hendelser virker når en hendelse bekreftes. En ny regel gjelder for hver hendelse, for eksempel **Alle hendelser**. For å snevre den inn velger du **Bare hendelser som oppfyller betingelsene** og legger til betingelsene. Med to eller flere sier **Samsvarsbetingelse** om alle må passe, eller om én er nok. |
 | **Mål** | Hvor den publiserer: **Publiser i eksisterende kanaler** med kanalnavnene, **Opprett en kanal for hver hendelse** (eller varsel, episode, planlagt vedlikehold, monitor eller vaktretningslinje) med hvem som blir med i den, eller begge. Under steget sier **Hva denne regelen gjør** det i setninger, som regelens kort. |
 | **Video Call** | Bare hendelser og varsler: start en samtale for hver. Se [Videosamtaler](/docs/workspace-connections/video-calls). |
 

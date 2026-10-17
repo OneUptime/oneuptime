@@ -318,13 +318,37 @@ function filterValueBoxes(): Array<HTMLElement> {
   return within(dialog()).queryAllByPlaceholderText("http.server.duration");
 }
 
+function appliesToAnswer(name: string): HTMLElement {
+  return within(dialog()).getByRole("radio", { name: name });
+}
+
+/*
+ * The divider the filters editor draws after its choice, over Match
+ * Condition: the editor's own last child, after "Applies to".
+ */
+function filtersDivider(): Element | null {
+  const choice: HTMLElement = within(dialog()).getByTestId(
+    "metric-pipeline-rule-applies-to",
+  );
+  const last: Element | null = choice.parentElement?.lastElementChild || null;
+
+  return last && last !== choice && last.className.includes("border-b")
+    ? last
+    : null;
+}
+
 async function addFilter(value: string): Promise<void> {
   const before: number = filterValueBoxes().length;
 
   await act(async (): Promise<void> => {
-    fireEvent.click(
-      within(dialog()).getByRole("button", { name: "Add Filter" }),
-    );
+    if (before === 0) {
+      // "Only data points that match filters" opens the first one.
+      fireEvent.click(appliesToAnswer("Only data points that match filters"));
+    } else {
+      fireEvent.click(
+        within(dialog()).getByRole("button", { name: "Add Filter" }),
+      );
+    }
   });
 
   await waitFor(() => {
@@ -435,14 +459,31 @@ describe("Metrics > Settings > Pipeline Rules", () => {
     expect(
       within(dialog()).getByRole("textbox", { name: "Name" }),
     ).toBeVisible();
+    /*
+     * What the rule fires on, asked as every rule's conditions are: every
+     * data point, where a new rule starts, or only those its filters match.
+     * It said "If no filters are added, then this rule will apply to every
+     * metric data point." over an Add Filter button.
+     */
+    const appliesTo: HTMLElement = within(dialog()).getByRole("radiogroup", {
+      name: /Applies to/,
+    });
     expect(
-      within(dialog()).getByRole("button", { name: "Add Filter" }),
-    ).toBeVisible();
+      within(appliesTo).getByRole("radio", { name: "All data points" }),
+    ).toBeChecked();
     expect(
-      within(dialog()).getByText(
+      within(appliesTo).getByRole("radio", {
+        name: "Only data points that match filters",
+      }),
+    ).not.toBeChecked();
+    expect(
+      within(dialog()).queryByRole("button", { name: "Add Filter" }),
+    ).toBeNull();
+    expect(
+      within(dialog()).queryByText(
         "If no filters are added, then this rule will apply to every metric data point.",
       ),
-    ).toBeVisible();
+    ).toBeNull();
 
     // Folded: listed by name, at defaults the rule works with.
     expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
@@ -470,15 +511,20 @@ describe("Metrics > Settings > Pipeline Rules", () => {
   test("asks how to combine filters only once there are two of them", async () => {
     await openCreateForm();
 
-    // None: nothing to combine.
+    /*
+     * None: nothing to combine - and no divider over the folded More
+     * fields, which would close off nothing.
+     */
     expect(filterConditionGroup()).toBeNull();
     expect(within(dialog()).queryByText("Match Condition")).toBeNull();
+    expect(filtersDivider()).toBeNull();
 
     // One: All and Any would match the same data points.
     await addFilter("http.server.duration");
     expect(filterConditionGroup()).toBeNull();
+    expect(filtersDivider()).toBeNull();
 
-    // Two: now it is a choice, starting on All.
+    // Two: now it is a choice, starting on All, under a divider.
     await addFilter("http.client.duration");
 
     const group: HTMLElement = await waitFor((): HTMLElement => {
@@ -486,6 +532,11 @@ describe("Metrics > Settings > Pipeline Rules", () => {
       expect(found).not.toBeNull();
       return found!;
     });
+    expect(filtersDivider()).not.toBeNull();
+    expect(
+      filtersDivider()!.compareDocumentPosition(group) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     expect(within(group).getByRole("radio", { name: "All" })).toBeChecked();
     expect(within(group).getByRole("radio", { name: "Any" })).not.toBeChecked();
@@ -507,6 +558,24 @@ describe("Metrics > Settings > Pipeline Rules", () => {
     await waitFor(() => {
       expect(filterConditionGroup()).toBeNull();
     });
+    expect(filtersDivider()).toBeNull();
+  });
+
+  /*
+   * A Button is full width under md, and only from md up sits 12px in
+   * (md:ml-3). Taking those 12px back at every width pushed the full-width
+   * Add Filter 12px out of line with the filters on a phone.
+   */
+  test("Add Filter lines up with the filters at every width", async () => {
+    await openCreateForm();
+    await addFilter("http.server.duration");
+
+    const wrapper: HTMLElement = within(dialog()).getByTestId(
+      "metric-pipeline-rule-add-filter",
+    ).parentElement as HTMLElement;
+    const classes: Array<string> = wrapper.className.split(/\s+/);
+    expect(classes).toContain("md:-ml-3");
+    expect(classes).not.toContain("-ml-3");
   });
 
   test("creates a rule from Action, on, for every service, combining with All", async () => {
@@ -662,6 +731,56 @@ describe("Metrics > Settings > Pipeline Rules", () => {
     expect(model["filterCondition"]).toBe(FilterCondition.All);
     // No filters: an empty list, which matches every data point.
     expect(model["filters"]).toEqual([]);
+  });
+
+  test("'Only data points that match filters' opens one filter; 'All data points' again saves none", async () => {
+    await openCreateForm();
+    await nameRule("Drop for now");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(appliesToAnswer("Only data points that match filters"));
+    });
+    await waitFor(() => {
+      expect(filterValueBoxes()).toHaveLength(1);
+    });
+    expect(
+      within(dialog()).getByRole("button", { name: "Add Filter" }),
+    ).toBeVisible();
+
+    fireEvent.change(filterValueBoxes()[0]!, {
+      target: { value: "kept.aside" },
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(appliesToAnswer("All data points"));
+    });
+    await waitFor(() => {
+      expect(filterValueBoxes()).toHaveLength(0);
+    });
+
+    // Picked again, the filter set aside comes back as it was.
+    await act(async (): Promise<void> => {
+      fireEvent.click(appliesToAnswer("Only data points that match filters"));
+    });
+    await waitFor(() => {
+      expect(filterValueBoxes()).toHaveLength(1);
+    });
+    expect(filterValueBoxes()[0]).toHaveValue("kept.aside");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(appliesToAnswer("All data points"));
+    });
+
+    await pressNext();
+    await pickRuleType(MetricPipelineRuleType.Drop);
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    // No filters: an empty list, which matches every data point.
+    expect(sentModel()["filters"]).toEqual([]);
   });
 
   test("will not go on from Match without a name", async () => {

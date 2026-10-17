@@ -83,7 +83,7 @@ Klik på **Opret Alert On-Call Rule**. Under **Grundlæggende oplysninger** give
 
 ### Vælg advarslerne
 
-Under **Matchkriterier** tilføjer du de betingelser, en advarsel skal opfylde. Lad dem være tomme for at matche hver ny advarsel.
+Under **Matchkriterier** matcher **Alle advarsler**, som en ny regel starter på, hver ny advarsel. For at indsnævre reglen vælger du **Kun advarsler, der opfylder betingelserne** og tilføjer de betingelser, en advarsel skal opfylde.
 
 ### Vælg politikkerne
 
@@ -119,7 +119,7 @@ Klik på **Opret Alert Reminder Rule**. Under **Rule Info** giver du den et **Na
 
 ### Vælg, hvilke advarsler der skal påmindes om
 
-Under **Matchkriterier** vælger du de **Advarsel Alvorligheder** og **Etiketter**, den gælder for. Lad dem være tomme for at påminde om hver advarsel.
+Under **Matchkriterier** lader du **Alle advarsler** være valgt for at påminde om hver advarsel, eller du vælger **Kun advarsler, der opfylder betingelserne** og derefter de **Advarsel Alvorligheder** og **Etiketter**, den gælder for.
 
 ### Indstil intervallet
 

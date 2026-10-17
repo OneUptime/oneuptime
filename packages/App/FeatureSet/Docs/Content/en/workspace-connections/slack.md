@@ -72,7 +72,7 @@ Creating a rule walks four steps:
 | Step | What you set |
 | --- | --- |
 | **Basic** | **Rule Name** and **Rule Description**. |
-| **Conditions** | Which events the rule is for, by severity, state, label, monitor or words in the title, for example. They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged. With no conditions the rule is for every event. With two or more, **Match Condition** says whether all of them must match, or any one. |
+| **Conditions** | Which events the rule is for, by severity, state, label, monitor or words in the title, for example. They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged. A new rule is for every event, such as **All incidents**. To narrow it down, pick **Only incidents that match conditions** and add the conditions. With two or more, **Match Condition** says whether all of them must match, or any one. |
 | **Destination** | Where it posts: **Post to existing channels** with the channel names, **Create a channel for each incident** (or alert, episode, event, monitor or on-call policy) with who joins it, or both. Under the step, **What this rule does** says it in sentences, as the rule's card does. |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
 

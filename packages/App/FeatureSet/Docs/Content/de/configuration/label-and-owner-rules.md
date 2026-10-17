@@ -40,7 +40,7 @@ Jede Beschriftungs- und Eigentümerregel wird auf dieselbe Weise angelegt, in zw
 
 ### Festlegen, worauf die Regel zutrifft
 
-Klicken Sie im Schritt **Übereinstimmung** für jede Bedingung, die die Ressource erfüllen muss, auf **Bedingung hinzufügen**. Bei zwei oder mehr Bedingungen wählen Sie **Alle müssen zutreffen** oder **Eine muss zutreffen**. Eine Regel ohne Bedingungen trifft auf jede neue Ressource zu.
+Im Schritt **Übereinstimmung** steht **Gilt für** bei einer neuen Regel auf allen neuen Ressourcen, etwa **Alle Hosts** bei einer Host-Regel. Um sie einzugrenzen, wählen Sie **Nur Hosts, die den Bedingungen entsprechen** und füllen die Bedingung aus, die sich öffnet; klicken Sie für jede weitere Bedingung, die die Ressource erfüllen muss, auf **Bedingung hinzufügen**. Bei zwei oder mehr Bedingungen wählen Sie **Alle müssen zutreffen** oder **Eine muss zutreffen**.
 
 ### Festlegen, was die Regel hinzufügt
 

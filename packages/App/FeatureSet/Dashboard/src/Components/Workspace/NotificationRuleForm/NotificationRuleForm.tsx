@@ -65,6 +65,7 @@ import {
   INCIDENT_ROLES_TITLE,
   NEW_CHANNEL_TEAM_DESCRIPTION,
   NO_CHATS_DESCRIPTION,
+  NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS,
   ON_CALL_RESPONDERS_DESCRIPTION,
   ON_CALL_RESPONDERS_TITLE,
   OWNERS_TITLE,
@@ -248,6 +249,10 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             incidentStates={props.incidentStates}
             scheduledMaintenanceStates={props.scheduledMaintenanceStates}
             monitorStatus={props.monitorStatus}
+            // When they are checked, over the conditions once there are some.
+            conditionsDescription={
+              NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[props.eventType]
+            }
             onChange={(value: Array<NotificationRuleCondition>) => {
               if (props.onChange) {
                 /*

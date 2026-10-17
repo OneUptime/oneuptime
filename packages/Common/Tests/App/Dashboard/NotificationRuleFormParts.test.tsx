@@ -204,19 +204,48 @@ afterEach(() => {
 });
 
 describe("the Conditions half", () => {
-  test("asks for the conditions, and nothing about where to post", async () => {
+  test("asks which incidents - all of them, or only those that match conditions - and nothing about where to post", async () => {
     await renderPart({ part: NotificationRuleFormPart.Conditions });
 
+    // A new rule is for every incident, and its answer says so.
     expect(
-      await screen.findByRole("button", { name: "Add Condition" }),
-    ).toBeVisible();
-    // No conditions yet: the rule is for every incident, and says so.
+      await screen.findByRole("radio", { name: "All incidents" }),
+    ).toBeChecked();
     expect(
-      screen.getByTestId("notification-rule-no-conditions-yet"),
-    ).toHaveTextContent("No conditions: the rule is for every incident.");
-    // Nothing to combine, so no All / Any.
-    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+      screen.getByRole("radio", {
+        name: "Only incidents that match conditions",
+      }),
+    ).not.toBeChecked();
+    // No condition waits to be filled in, and the old line is gone.
+    expect(
+      screen.queryByRole("button", { name: "Add Condition" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("notification-rule-no-conditions-yet"),
+    ).not.toBeInTheDocument();
+    // The two answers only: nothing to combine, so no All / Any.
+    expect(screen.queryAllByRole("radio")).toHaveLength(2);
+    expect(
+      screen.queryByRole("radiogroup", { name: /^Match Condition/ }),
+    ).not.toBeInTheDocument();
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
+  });
+
+  test("'Only incidents that match conditions' opens one condition, keeping the rule's destination", async () => {
+    const onChange: MockFunction = await renderPart({
+      part: NotificationRuleFormPart.Conditions,
+    });
+
+    await userEvent.setup({ delay: null }).click(
+      await screen.findByRole("radio", {
+        name: "Only incidents that match conditions",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(lastChange(onChange).filters).toHaveLength(1);
+    });
+    expect(screen.getByRole("button", { name: "Add Condition" })).toBeVisible();
   });
 
   test("asks All or Any, under the conditions, once there are two", async () => {

@@ -83,7 +83,7 @@ Click **Create Alert On-Call Rule**. On **Basic Info**, give it a **Name**, such
 
 ### Choose the alerts
 
-On **Match Criteria**, add the conditions an alert must meet. Leave them empty to match every new alert.
+On **Match Criteria**, **All alerts**, where a new rule starts, matches every new alert. To narrow it down, pick **Only alerts that match conditions** and add the conditions an alert must meet.
 
 ### Pick the policies
 
@@ -119,7 +119,7 @@ Click **Create Alert Reminder Rule**. On **Rule Info**, give it a **Name**, such
 
 ### Choose which alerts to remind about
 
-On **Match Criteria**, pick the **Alert Severities** and **Labels** it applies to. Leave them empty to remind about every alert.
+On **Match Criteria**, leave **All alerts** picked to remind about every alert, or pick **Only alerts that match conditions** and choose the **Alert Severities** and **Labels** it applies to.
 
 ### Set the interval
 

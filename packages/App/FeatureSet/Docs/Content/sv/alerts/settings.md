@@ -83,7 +83,7 @@ Klicka på **Skapa Alert On-Call Rule**. I **Grundläggande information** ger du
 
 ### Välj larmen
 
-I **Matchningskriterier** lägger du till de villkor som ett larm måste uppfylla. Lämna dem tomma för att matcha varje nytt larm.
+I **Matchningskriterier** matchar **Alla varningar**, som en ny regel börjar på, varje nytt larm. För att snäva in regeln väljer du **Endast varningar som uppfyller villkoren** och lägger till de villkor som ett larm måste uppfylla.
 
 ### Välj policyerna
 
@@ -119,7 +119,7 @@ Klicka på **Skapa Alert Reminder Rule**. I **Rule Info** ger du den ett **Namn*
 
 ### Välj vilka larm som ska påminnas om
 
-I **Matchningskriterier** väljer du de **Larm Allvarligheter** och **Etiketter** som den gäller för. Lämna dem tomma för att påminna om varje larm.
+I **Matchningskriterier** låter du **Alla varningar** vara valt för att påminna om varje larm, eller väljer **Endast varningar som uppfyller villkoren** och sedan de **Larm Allvarligheter** och **Etiketter** som den gäller för.
 
 ### Ställ in intervallet
 

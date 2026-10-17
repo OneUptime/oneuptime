@@ -539,8 +539,9 @@ describe("creating a grouping rule", () => {
 
     await goToStep("Which Incidents");
     expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
-    // No conditions: the rule applies to every new incident.
-    expect(screen.getByTestId("rule-criteria-empty")).toBeInTheDocument();
+    // No conditions: the rule applies to every new incident, and says so.
+    expect(screen.getByRole("radio", { name: "All incidents" })).toBeChecked();
+    expect(screen.queryByTestId("rule-criteria-row-0")).not.toBeInTheDocument();
 
     await clickSubmit();
     await waitForSave();

@@ -293,7 +293,7 @@ Dos interruptores en la página de ajustes de IA de cada tipo de señal deciden 
 
 Una regla de remediación automática hace tres preguntas:
 
-1. **Condiciones**: con qué incidentes coincide: monitores, gravedades, etiquetas, etiquetas de monitor, título y descripción, las mismas condiciones que las demás reglas de incidentes y alertas del proyecto. Una regla sin condiciones coincide con todos los incidentes.
+1. **Condiciones**: con qué incidentes coincide: **Todos los incidentes**, donde empieza una regla nueva, o **Solo los incidentes que cumplen las condiciones** sobre monitores, gravedades, etiquetas, etiquetas de monitor, título y descripción, las mismas condiciones que las demás reglas de incidentes y alertas del proyecto.
 2. **Corregir con**: **OneUptime AI** corrige el incidente a través del agente de IA del clúster o del host al que afecta; **Runbooks** ejecuta los runbooks que nombra la regla, siempre de la misma forma.
 3. **Aprobación**: **Preguntar antes de corregir**: no se ejecuta nada hasta que alguien aprueba la corrección con un clic. **Corregir sin preguntar**: los runbooks empiezan enseguida, y OneUptime AI corrige sin aprobación allí donde lo permitan los ajustes del agente de IA; un clúster o un host configurado para pedir aprobación la sigue pidiendo.
 

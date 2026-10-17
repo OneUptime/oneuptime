@@ -83,7 +83,7 @@ Klikk på **Opprett Alert On-Call Rule**. Under **Grunnleggende informasjon** gi
 
 ### Velg varslene
 
-Under **Treffkriterier** legger du til betingelsene et varsel må oppfylle. La dem stå tomme for å samsvare med hvert nytt varsel.
+Under **Treffkriterier** samsvarer **Alle varsler**, som en ny regel starter på, med hvert nytt varsel. For å snevre inn regelen velger du **Bare varsler som oppfyller betingelsene** og legger til betingelsene et varsel må oppfylle.
 
 ### Velg policyene
 
@@ -119,7 +119,7 @@ Klikk på **Opprett Alert Reminder Rule**. Under **Rule Info** gir du den et **N
 
 ### Velg hvilke varsler det skal minnes om
 
-Under **Treffkriterier** velger du **Varsel Alvorligheter** og **Etiketter** den gjelder for. La dem stå tomme for å minne om hvert varsel.
+Under **Treffkriterier** lar du **Alle varsler** være valgt for å minne om hvert varsel, eller du velger **Bare varsler som oppfyller betingelsene** og deretter **Varsel Alvorligheter** og **Etiketter** den gjelder for.
 
 ### Angi intervallet
 

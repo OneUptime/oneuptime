@@ -83,7 +83,7 @@ Cliquez sur **Créer : Règle d'astreinte des alertes**. Dans **Informations de 
 
 ### Choisir les alertes
 
-Dans **Critères de correspondance**, ajoutez les conditions qu'une alerte doit remplir. Laissez-les vides pour correspondre à chaque nouvelle alerte.
+Dans **Critères de correspondance**, **Toutes les alertes**, où démarre une nouvelle règle, correspond à chaque nouvelle alerte. Pour la restreindre, choisissez **Uniquement les alertes qui correspondent aux conditions** et ajoutez les conditions qu'une alerte doit remplir.
 
 ### Choisir les politiques
 
@@ -119,7 +119,7 @@ Cliquez sur **Créer : Règle de rappel des alertes**. Dans **Rule Info**, donne
 
 ### Choisir les alertes à rappeler
 
-Dans **Critères de correspondance**, choisissez les **Gravités d'alerte** et les **Étiquettes** auxquelles elle s'applique. Laissez-les vides pour rappeler chaque alerte.
+Dans **Critères de correspondance**, laissez **Toutes les alertes** sélectionné pour rappeler chaque alerte, ou choisissez **Uniquement les alertes qui correspondent aux conditions** puis les **Gravités d'alerte** et les **Étiquettes** auxquelles elle s'applique.
 
 ### Régler l'intervalle
 

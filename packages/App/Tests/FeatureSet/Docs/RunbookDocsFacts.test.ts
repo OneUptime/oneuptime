@@ -82,11 +82,17 @@ import RunnerLiveStatus, {
   RUNNER_ALIVE_WINDOW_IN_MINUTES,
 } from "Common/Types/Runner/RunnerLiveStatus";
 import { RuleCriteriaOperator } from "Common/Types/Rules/RuleCriteria";
+import { RuleCriteriaSubject } from "Common/Types/Rules/RuleCriteriaSubject";
 import {
   getDefaultRuleCriteriaOperator,
   getRuleCriteriaOperatorsForField,
   RULE_CRITERIA_OPERATOR_LABELS,
+  RuleCriteriaCopy,
 } from "Common/UI/Components/RuleCriteria/RuleCriteriaFields";
+import {
+  getRuleCriteriaSubjectCopy,
+  RuleCriteriaSubjectCopy,
+} from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import RulePatternMatchUtil from "Common/Utils/Rules/RulePatternMatchUtil";
@@ -1447,7 +1453,29 @@ describe("runbook rules", () => {
     const create: string = section(RULES, "Create a runbook rule");
 
     expect(create).toContain("On **Basic Info**, enter a **Name**");
-    expect(create).toContain("On **Match Criteria**, click **Add condition**");
+
+    /*
+     * Match Criteria asks what the rule applies to before any condition:
+     * an incident rule's form says "All incidents" (the table passes its
+     * trigger's subject), and the other answer opens the first condition.
+     */
+    const incidents: RuleCriteriaSubjectCopy = getRuleCriteriaSubjectCopy(
+      RuleCriteriaSubject.Incidents,
+    );
+
+    expect(RULES_TABLE).toContain(
+      "ruleCriteriaSubject={getRunbookRuleAppliesTo(props.triggerEntityType)}",
+    );
+    expect(create).toContain(
+      `On **Match Criteria**, **${RuleCriteriaCopy.appliesToTitle}** starts on every new event of this kind, such as **${incidents.all}**, and the rule starts its runbooks for each one.`,
+    );
+    expect(create).toContain(
+      `pick the other answer, such as **${incidents.matching}**, then pick a criterion and an operator`,
+    );
+    expect(create).toContain(
+      `Click **${RuleCriteriaCopy.addCondition}** for more conditions`,
+    );
+    expect(create).not.toContain("Add none to start the runbooks");
     expect(create).toContain(
       "On **Runbooks**, choose one or more **Runbooks to Start**, then click **Create Runbook Rule**. The rule is on as soon as it is created, and it appears in the list with the status **Enabled**.",
     );
