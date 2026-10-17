@@ -506,6 +506,70 @@ test.describe("rows are 48px whatever they hold", () => {
       expect(Math.abs(value - top)).toBeLessThanOrEqual(3);
     }
   });
+
+  test("a page's own text-sm value is on the row's 24px line, level with the words beside it; a pill keeps its own height", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${ROLES}?data=rich`, 1440);
+
+    const row: Locator = page
+      .locator("#network-device-roles-table-body > tr")
+      .first();
+    const cells: Locator = row.locator("td");
+
+    /*
+     * Device Roles draws its key as <span className="text-sm font-mono">:
+     * text-sm's 20px line, set at the top of the row's 24px one, stood 2px
+     * above the name beside it.
+     */
+    const key: Locator = cells.nth(3).locator("> div > span").first();
+    await expect(key).toHaveText("router");
+
+    const lines: { key: string; pill: string } = await row.evaluate(
+      (element: Element): { key: string; pill: string } => {
+        const tds: Array<Element> = Array.from(element.children);
+        const keySpan: Element = tds[3]!.querySelector(
+          ":scope > div > span",
+        ) as Element;
+        const pill: Element = tds[6]!.querySelector(
+          ":scope > div > *",
+        ) as Element;
+
+        return {
+          key: getComputedStyle(keySpan).lineHeight,
+          pill: getComputedStyle(pill).lineHeight,
+        };
+      },
+    );
+
+    expect(lines.key).toBe("24px");
+    // The Layer pill is laid out as a box of its own: its own line.
+    expect(lines.pill).not.toBe("24px");
+
+    // Its words sit level with the name's (fonts apart, within a pixel).
+    const middleOf: (cell: Locator) => Promise<number> = async (
+      cell: Locator,
+    ): Promise<number> => {
+      return await cell.evaluate((element: Element): number => {
+        const range: Range = document.createRange();
+        range.selectNodeContents(element);
+        const rect: DOMRect | undefined = Array.from(range.getClientRects())
+          .filter((candidate: DOMRect): boolean => {
+            return candidate.width > 0;
+          })
+          .pop();
+
+        return rect ? rect.top + rect.height / 2 : Number.NaN;
+      });
+    };
+
+    const keyMiddle: number = await middleOf(key);
+    const nameMiddle: number = await middleOf(cells.nth(2).locator("> div"));
+
+    expect(Math.abs(keyMiddle - nameMiddle)).toBeLessThanOrEqual(1);
+  });
 });
 
 test.describe("a value too long for its column", () => {
