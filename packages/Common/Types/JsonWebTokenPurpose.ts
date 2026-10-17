@@ -15,7 +15,9 @@ enum JsonWebTokenPurpose {
    * A dashboard sign-in: the fifteen-minute access token of one UserSession
    * (JSONWebToken.signUserLoginToken), renewed by that session's refresh
    * token and ended with it. The only kind the API takes as a session, from
-   * the access-token cookie or an Authorization: Bearer header.
+   * the access-token cookie or an Authorization: Bearer header - with the
+   * same access token an earlier release signed before tokens said what
+   * they were for (JSONWebToken.isFor).
    */
   UserSession = "user-session",
 

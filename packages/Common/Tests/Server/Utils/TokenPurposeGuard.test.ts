@@ -27,7 +27,12 @@ import ts from "typescript";
  *     UserSession, and by CookieUtil.setUserCookie that they call;
  *   - nothing that signs or reads a token spells a purpose itself;
  *   - every other reader of a token's raw claims is listed with what it
- *     reads, none of which is a person's token.
+ *     reads, none of which is a person's token;
+ *   - what is signed as raw claims (JSONWebToken.signJsonPayload) names no
+ *     session and no SSO provider: the session readers still take a token
+ *     that names a session and says nothing as an access token an earlier
+ *     release signed, and the SSO readers one that names an SSO provider,
+ *     so only JSONWebToken.sign, with a purpose, signs those now.
  *
  * Read from the code by TypeScript's own parser, so a word in a comment is
  * never taken for code.
@@ -113,6 +118,26 @@ const RAW_CLAIM_READERS: Record<string, string> = {
     "the times of an access token readRequestSession has already taken as a session",
 };
 
+/*
+ * The claims a token signed without a purpose never carries
+ * (JSONWebToken.sign refuses them): a session's, and an SSO provider's.
+ */
+const CLAIMS_SIGNED_ONLY_WITH_A_PURPOSE: Array<string> = [
+  "sessionId",
+  "ssoProviderType",
+  "ssoProviderId",
+];
+
+/*
+ * Every product file that signs raw claims it builds elsewhere rather than
+ * writes out where it signs them, with what they are. None names a session
+ * or an SSO provider.
+ */
+const RAW_CLAIM_SIGNERS_OF_BUILT_CLAIMS: Record<string, string> = {
+  "packages/App/FeatureSet/Notification/Services/CallService.ts":
+    "a phone call's keypad answers, the message for each key",
+};
+
 const CODE_FILE: RegExp = /\.(?:ts|tsx)$/;
 const ANY_JSON_WEB_TOKEN_CALL: RegExp = /\bJSONWebToken\.\w+\(/;
 const PURPOSE_MEMBER: RegExp = /\bJsonWebTokenPurpose\b/;
@@ -192,12 +217,48 @@ interface DecodeCall {
   purpose: string | null;
 }
 
+interface RawClaimSigning {
+  file: string;
+  line: number;
+  // The claims written out where they are signed, or null when they are built elsewhere.
+  claimNames: Array<string> | null;
+}
+
 interface Scan {
   decodeCalls: Array<DecodeCall>;
   purposeUses: Array<PurposeUse>;
   sessionMinters: Array<string>;
   rawClaimReaders: Array<string>;
+  rawClaimSignings: Array<RawClaimSigning>;
   spelledPurposes: Array<{ file: string; line: number; text: string }>;
+}
+
+/*
+ * The names of the claims an object literal writes out, or null when it
+ * holds anything whose names cannot be read where it is written (a spread,
+ * a computed name).
+ */
+function claimNamesOf(node: ts.Expression | undefined): Array<string> | null {
+  if (!node || !ts.isObjectLiteralExpression(node)) {
+    return null;
+  }
+
+  const names: Array<string> = [];
+
+  for (const property of node.properties) {
+    if (
+      (ts.isPropertyAssignment(property) ||
+        ts.isShorthandPropertyAssignment(property)) &&
+      (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
+    ) {
+      names.push(property.name.text);
+      continue;
+    }
+
+    return null;
+  }
+
+  return names;
 }
 
 function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
@@ -243,6 +304,7 @@ function scanProductCode(): Scan {
     purposeUses: [],
     sessionMinters: [],
     rawClaimReaders: [],
+    rawClaimSignings: [],
     spelledPurposes: [],
   };
 
@@ -279,6 +341,17 @@ function scanProductCode(): Scan {
 
       if (isJsonWebTokenCall(node, "decodeJsonPayload")) {
         readsRawClaims = true;
+      }
+
+      if (
+        isJsonWebTokenCall(node, "signJsonPayload") &&
+        file !== JSON_WEB_TOKEN_MODULE
+      ) {
+        scan.rawClaimSignings.push({
+          file,
+          line: lineOf(sourceFile, node),
+          claimNames: claimNamesOf((node as ts.CallExpression).arguments[0]),
+        });
       }
 
       const purpose: string | null = purposeMemberOf(node);
@@ -466,6 +539,61 @@ describe("each kind of token is signed only where it is made", () => {
      * place a kind of token is read or signed.
      */
     expect(SCAN.spelledPurposes).toEqual([]);
+  });
+});
+
+describe("what is signed as raw claims names no session and no SSO provider", () => {
+  test("the scan found the raw claims product code signs", () => {
+    // The master-password cookies, the sign-ins in flight, an on-call page link.
+    expect(SCAN.rawClaimSignings.length).toBeGreaterThanOrEqual(5);
+  });
+
+  test("raw claims written out where they are signed carry none of a session's or an SSO provider's", () => {
+    const carrying: Array<{
+      file: string;
+      line: number;
+      claims: Array<string>;
+    }> = [];
+
+    for (const signing of SCAN.rawClaimSignings) {
+      const claims: Array<string> = (signing.claimNames || []).filter(
+        (name: string): boolean => {
+          return CLAIMS_SIGNED_ONLY_WITH_A_PURPOSE.includes(name);
+        },
+      );
+
+      if (claims.length > 0) {
+        carrying.push({ file: signing.file, line: signing.line, claims });
+      }
+    }
+
+    /*
+     * Sign a session, an SSO sign-in or a status page's session through
+     * JSONWebToken.sign with its purpose (signUserLoginToken, CookieUtil),
+     * never as raw claims: without a purpose, a reader takes such claims
+     * for a token an earlier release signed.
+     */
+    expect(carrying).toEqual([]);
+  });
+
+  test("raw claims built elsewhere are signed only where listed, with what they are", () => {
+    const built: Array<string> = SCAN.rawClaimSignings
+      .filter((signing: RawClaimSigning): boolean => {
+        return signing.claimNames === null;
+      })
+      .map((signing: RawClaimSigning): string => {
+        return signing.file;
+      });
+
+    /*
+     * Raw claims that are not written out where they are signed - a
+     * spread, a computed name, a value built elsewhere - cannot be read
+     * here. Write them out, or check by hand that they can never carry
+     * a session's or an SSO provider's claims and list the file above.
+     */
+    expect([...new Set(built)].sort()).toEqual(
+      Object.keys(RAW_CLAIM_SIGNERS_OF_BUILT_CLAIMS).sort(),
+    );
   });
 });
 

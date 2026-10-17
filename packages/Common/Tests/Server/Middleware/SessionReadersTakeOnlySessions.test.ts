@@ -16,6 +16,7 @@ import {
   OneUptimeRequest,
 } from "../../../Server/Utils/Express";
 import JSONWebToken, {
+  EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
   PURPOSE_CLAIM,
 } from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
@@ -36,6 +37,7 @@ import Email from "../../../Types/Email";
 import Exception from "../../../Types/Exception/Exception";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import { JSONObject } from "../../../Types/JSON";
 import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -52,12 +54,13 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * EVERY PLACE THAT READS A SESSION TAKES ONLY A SESSION.
  *
  * A session is the fifteen-minute access token of one UserSession, which
- * says it is one (JsonWebTokenPurpose.UserSession). Every other token
- * OneUptime signs with the same key is refused wherever a session is read,
- * exactly as a token that does not verify: an SSO sign-in (thirty days, and
- * no session behind it), a status page private user's session, and an
- * access token from before tokens said what they were for, which the client
- * renews on the 401.
+ * says it is one (JsonWebTokenPurpose.UserSession) - or, signed by the
+ * release before, is the same access token saying nothing, which is still
+ * taken so that nobody is signed out while an upgrade rolls out. Every other
+ * token OneUptime signs with the same key is refused wherever a session is
+ * read, exactly as a token that does not verify: an SSO sign-in (thirty
+ * days, and no session behind it), a status page private user's session,
+ * and anything else that only looks like an earlier release's access token.
  *
  * The places that read a session, each run here on the real middleware with
  * tokens signed for real (only the datastore lookups behind them stubbed):
@@ -186,36 +189,63 @@ const NOT_SESSIONS: Array<NotASession> = [
     },
   },
   {
-    name: "a master admin's access token an earlier release signed",
+    name: "a master admin's session claims, saying nothing and signed for thirty days",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        earlierReleaseAccessTokenClaims(),
+        THIRTY_DAYS_IN_SECONDS,
+      );
+    },
+  },
+  {
+    name: "a master admin's session claims, saying nothing and signed a second longer than an access token lived",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        earlierReleaseAccessTokenClaims(),
+        EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS + 1,
+      );
+    },
+  },
+  {
+    name: "a master admin's session claims, saying nothing and naming the SSO provider they signed in with",
     token: (): string => {
       return JSONWebToken.signJsonPayload(
         {
-          userId: USER_ID.toString(),
-          email: "member@example.com",
-          name: "Member",
-          timezone: null,
-          isMasterAdmin: true,
-          isGlobalLogin: true,
-          sessionId: ObjectID.generate().toString(),
-          projectId: "",
+          ...earlierReleaseAccessTokenClaims(),
+          ssoProviderId: PROVIDER_ID.toString(),
+          ssoProviderType: SsoProviderType.ProjectSSO,
         },
         15 * 60,
       );
     },
   },
-  {
-    name: "a master admin's claims re-signed from a decoded session, without saying it is one",
-    token: (): string => {
-      return JSONWebToken.sign({
-        data: JSONWebToken.decode(
-          sessionToken(true),
-          JsonWebTokenPurpose.UserSession,
-        ),
-        expiresInSeconds: 15 * 60,
-      });
-    },
-  },
 ];
+
+/*
+ * The claims of a master admin's access token as the release before signed
+ * it (JSONWebToken.signUserLoginToken, before tokens said what they were
+ * for): every claim it held, and no purpose.
+ */
+function earlierReleaseAccessTokenClaims(): JSONObject {
+  return {
+    userId: USER_ID.toString(),
+    email: "member@example.com",
+    name: "Member",
+    timezone: null,
+    isMasterAdmin: true,
+    isGlobalLogin: true,
+    sessionId: ObjectID.generate().toString(),
+    projectId: "",
+  };
+}
+
+// That access token, for the fifteen minutes it was signed for.
+function earlierReleaseAccessToken(): string {
+  return JSONWebToken.signJsonPayload(
+    earlierReleaseAccessTokenClaims(),
+    EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
+  );
+}
 
 type Carrier = "cookie" | "bearer";
 
@@ -548,6 +578,122 @@ describe("the realtime join", () => {
         });
       },
     );
+  });
+});
+
+/*
+ * While an upgrade rolls out, a server of the release before still signs
+ * access tokens that say nothing about what they are for, and the client
+ * renews a session wherever its refresh lands. Each place that reads a
+ * session takes such a token as the session it is, so nobody is signed out
+ * meanwhile - and only it: the same claims signed for longer, or naming an
+ * SSO provider, are no session (NOT_SESSIONS above).
+ */
+describe("an access token an earlier release signed", () => {
+  test.each(CARRIERS)(
+    "is the member's session to readRequestSession, sent as a %s",
+    async (carrier: Carrier) => {
+      const read: RequestSession = await UserMiddleware.readRequestSession(
+        requestWith(earlierReleaseAccessToken(), carrier),
+      );
+
+      expect(read.kind).toBe("user");
+      expect(read.kind === "user" ? read.session.userId.toString() : null).toBe(
+        USER_ID.toString(),
+      );
+    },
+  );
+
+  test.each(CARRIERS)(
+    "gets the member through the user middleware, sent as a %s",
+    async (carrier: Carrier) => {
+      const req: OneUptimeRequest = requestWith(
+        earlierReleaseAccessToken(),
+        carrier,
+        { headers: { tenantid: PROJECT_ID.toString() } },
+      );
+
+      const result: MiddlewareRun = await run(
+        UserMiddleware.getUserMiddleware,
+        req,
+      );
+
+      expect(result.sentErrors).toEqual([]);
+      expect(result.nextCalls).toEqual([[]]);
+      expect(req.userAuthorization?.userId.toString()).toBe(USER_ID.toString());
+    },
+  );
+
+  test("gets a master admin through both master-admin gates, and into the Admin Dashboard shell", async () => {
+    for (const middleware of [
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+    ]) {
+      for (const carrier of CARRIERS) {
+        const result: MiddlewareRun = await run(
+          middleware,
+          requestWith(earlierReleaseAccessToken(), carrier),
+        );
+
+        expect(result.sentErrors).toEqual([]);
+        expect(result.nextCalls).toEqual([[]]);
+      }
+    }
+
+    sentErrors = [];
+
+    await ensureMasterAdminPageAccess({
+      req: requestWith(earlierReleaseAccessToken(), "cookie") as ExpressRequest,
+      res: {} as ExpressResponse,
+      service: "admin-dashboard",
+    });
+
+    expect(sentErrors).toEqual([]);
+  });
+
+  test.each(CARRIERS)(
+    "joins the member's project in realtime, sent as a %s",
+    async (carrier: Carrier) => {
+      const decision: RealtimeJoinDecision = await RealtimeJoinAccess.decide(
+        {
+          handshake: {
+            headers:
+              carrier === "cookie"
+                ? {
+                    cookie: `${CookieUtil.getUserTokenKey()}=${earlierReleaseAccessToken()}`,
+                  }
+                : { authorization: `Bearer ${earlierReleaseAccessToken()}` },
+          },
+        },
+        PROJECT_ID.toString(),
+      );
+
+      expect(decision.allowed).toBe(true);
+    },
+  );
+
+  test("is no SSO sign-in, wherever it is put", () => {
+    const token: string = earlierReleaseAccessToken();
+
+    for (const req of [
+      requestWith(sessionToken(), "cookie", {
+        cookies: { [CookieUtil.getUserSSOKey(PROJECT_ID)]: token },
+      }),
+      requestWith(sessionToken(), "cookie", {
+        cookies: { [CookieUtil.getGlobalSSOKey()]: token },
+      }),
+      requestWith(sessionToken(), "bearer", {
+        headers: {
+          "x-sso-tokens": JSON.stringify({ [PROJECT_ID.toString()]: token }),
+          "x-global-sso-token": token,
+        },
+      }),
+    ]) {
+      expect(UserMiddleware.getSsoTokens(req as ExpressRequest)).toEqual({});
+      expect(
+        UserMiddleware.getGlobalSsoTokenData(req as ExpressRequest),
+      ).toBeNull();
+    }
   });
 });
 

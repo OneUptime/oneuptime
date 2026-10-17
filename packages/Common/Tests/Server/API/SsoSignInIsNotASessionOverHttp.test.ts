@@ -609,7 +609,39 @@ const ROUTES: Array<Route> = [
   },
 ];
 
-describe("the member's own session", () => {
+/*
+ * The member's access token as the release before signed it: every claim
+ * it held, and no purpose. A server of that release still signs them while
+ * an upgrade rolls out, so they are still sessions - and only for the
+ * fifteen minutes such a token lived.
+ */
+function earlierReleaseAccessToken(expiresInSeconds: number): string {
+  return JSONWebToken.signJsonPayload(
+    {
+      userId: MEMBER_ID.toString(),
+      email: "member@example.com",
+      name: "Member",
+      timezone: null,
+      isMasterAdmin: false,
+      isGlobalLogin: false,
+      sessionId: ObjectID.generate().toString(),
+      projectId: "",
+    },
+    expiresInSeconds,
+  );
+}
+
+const SESSIONS: Array<{ name: string; token: () => string }> = [
+  { name: "the member's own session", token: sessionToken },
+  {
+    name: "the member's access token an earlier release signed",
+    token: (): string => {
+      return earlierReleaseAccessToken(15 * 60);
+    },
+  },
+];
+
+describe.each(SESSIONS)("$name", ({ token }: { token: () => string }) => {
   test.each(CARRIERS)(
     "gets them their own account and their project, sent as %s",
     async (carrier: Carrier) => {
@@ -617,7 +649,7 @@ describe("the member's own session", () => {
         const session: {
           cookies: Dictionary<string>;
           headers: Dictionary<string>;
-        } = asSession(sessionToken(), carrier);
+        } = asSession(token(), carrier);
 
         const result: HttpResult = await post({
           path: route.path,
@@ -770,6 +802,36 @@ describe("the project that requires SSO", () => {
 
     expect(reached).toEqual([]);
   });
+});
+
+describe("the same claims, signed for thirty days without saying what they are for", () => {
+  test.each(CARRIERS)(
+    "are no session: sent as %s they are a 401 everywhere, and nothing is read",
+    async (carrier: Carrier) => {
+      for (const route of ROUTES) {
+        const session: {
+          cookies: Dictionary<string>;
+          headers: Dictionary<string>;
+        } = asSession(
+          earlierReleaseAccessToken(THIRTY_DAYS_IN_SECONDS),
+          carrier,
+        );
+
+        const result: HttpResult = await post({
+          path: route.path,
+          cookies: session.cookies,
+          headers: { ...route.headers, ...session.headers },
+        });
+
+        expect({ route: route.name, status: result.status }).toEqual({
+          route: route.name,
+          status: 401,
+        });
+      }
+
+      expect(reached).toEqual([]);
+    },
+  );
 });
 
 describe("a status page private user's session", () => {

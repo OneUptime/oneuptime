@@ -1,7 +1,9 @@
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressResponse } from "../../../Server/Utils/Express";
 import JSONWebToken, {
+  EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
   PURPOSE_CLAIM,
+  UNSAID_PURPOSE_MESSAGE,
 } from "../../../Server/Utils/JsonWebToken";
 import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
@@ -256,10 +258,10 @@ describe("JSONWebToken", () => {
      * came from elsewhere - is never signed into the new token.
      */
     test("never carries a purpose over from the data", () => {
+      // Claims that name a person but no session or SSO provider.
       const smuggled: JSONObject = {
         userId: userId.toString(),
         email: email.toString(),
-        sessionId: sessionId.toString(),
         [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession,
       };
 
@@ -274,22 +276,122 @@ describe("JSONWebToken", () => {
           PURPOSE_CLAIM,
         ),
       ).toBe(false);
-      expect(() => {
-        return JSONWebToken.decode(unsaid, JsonWebTokenPurpose.UserSession);
-      }).toThrow(BadDataException);
+
+      for (const purpose of ALL_PURPOSES) {
+        expect(() => {
+          return JSONWebToken.decode(unsaid, purpose);
+        }).toThrow(BadDataException);
+      }
 
       const saidOtherwise: string = JSONWebToken.sign({
-        data: smuggled,
+        data: { ...smuggled, sessionId: sessionId.toString() },
         expiresInSeconds: 300,
-        purpose: JsonWebTokenPurpose.SsoSignIn,
+        purpose: JsonWebTokenPurpose.StatusPageSession,
       });
 
       expect(JSONWebToken.decodeJsonPayload(saidOtherwise)[PURPOSE_CLAIM]).toBe(
-        JsonWebTokenPurpose.SsoSignIn,
+        JsonWebTokenPurpose.StatusPageSession,
       );
+      expect(() => {
+        return JSONWebToken.decode(
+          saidOtherwise,
+          JsonWebTokenPurpose.UserSession,
+        );
+      }).toThrow(BadDataException);
     });
 
-    test("re-signing a decoded session without a purpose makes no session", () => {
+    /*
+     * The readers still take a token that says nothing and names a session
+     * or an SSO provider as one an earlier release signed. So nothing signs
+     * one now: data copied from a decoded token, or from anywhere else,
+     * becomes a token that names a session or an SSO provider only through
+     * a caller that says what it is for.
+     */
+    test("refuses to sign, without a purpose, anything that names a session or an SSO provider", () => {
+      const decodedSession: JSONWebTokenData = JSONWebToken.decode(
+        sessionToken(),
+        JsonWebTokenPurpose.UserSession,
+      );
+      const decodedSsoSignIn: JSONWebTokenData = JSONWebToken.decode(
+        CookieUtil.getSSOToken({
+          user: buildUser(),
+          projectId: ObjectID.generate(),
+          ssoProviderId: ObjectID.generate(),
+          ssoProviderType: SsoProviderType.ProjectSSO,
+        }),
+        JsonWebTokenPurpose.SsoSignIn,
+      );
+
+      const unsaid: Array<{ name: string; data: JSONObject }> = [
+        { name: "a decoded session", data: decodedSession },
+        { name: "a decoded SSO sign-in", data: decodedSsoSignIn },
+        {
+          name: "a session's claims, with a purpose smuggled in",
+          data: {
+            userId: userId.toString(),
+            email: email.toString(),
+            sessionId: sessionId.toString(),
+            [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession,
+          },
+        },
+        {
+          name: "a status page's session",
+          data: {
+            userId: userId.toString(),
+            email: email.toString(),
+            statusPageId: ObjectID.generate().toString(),
+            sessionId: sessionId.toString(),
+          },
+        },
+        {
+          name: "an SSO provider's kind alone",
+          data: {
+            userId: userId.toString(),
+            email: email.toString(),
+            ssoProviderType: SsoProviderType.GlobalSSO,
+          },
+        },
+        {
+          name: "an SSO provider's id alone",
+          data: {
+            userId: userId.toString(),
+            email: email.toString(),
+            ssoProviderId: ObjectID.generate().toString(),
+          },
+        },
+      ];
+
+      for (const { name, data } of unsaid) {
+        expect({
+          name,
+          signed: ((): string => {
+            try {
+              JSONWebToken.sign({ data: data, expiresInSeconds: 300 });
+              return "signed";
+            } catch (error) {
+              return (error as Error).message;
+            }
+          })(),
+        }).toEqual({ name, signed: UNSAID_PURPOSE_MESSAGE });
+      }
+
+      // What names no session and no SSO provider still signs without one.
+      expect(
+        JSONWebToken.decodeJsonPayload(
+          JSONWebToken.sign({
+            data: { resellerId: "reseller" },
+            expiresInSeconds: 300,
+          }),
+        )["resellerId"],
+      ).toBe("reseller");
+      expect(
+        JSONWebToken.decodeJsonPayload(
+          JSONWebToken.sign({ data: buildUser(), expiresInSeconds: 300 }),
+        )["userId"],
+      ).toBe(buildUser().id!.toString());
+    });
+
+    test("signs a decoded session again only as what it says it is", () => {
       const decoded: JSONWebTokenData = JSONWebToken.decode(
         sessionToken(),
         JsonWebTokenPurpose.UserSession,
@@ -298,11 +400,12 @@ describe("JSONWebToken", () => {
       const resigned: string = JSONWebToken.sign({
         data: decoded,
         expiresInSeconds: 300,
+        purpose: JsonWebTokenPurpose.UserSession,
       });
 
-      expect(() => {
-        return JSONWebToken.decode(resigned, JsonWebTokenPurpose.UserSession);
-      }).toThrow(BadDataException);
+      expect(
+        JSONWebToken.decode(resigned, JsonWebTokenPurpose.UserSession).userId,
+      ).toEqual(userId);
     });
   });
 
@@ -544,10 +647,32 @@ const TOKEN_KINDS: Array<TokenKind> = [
           sessionId: ObjectID.generate().toString(),
           projectId: "",
         },
-        900,
+        EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
       );
     },
-    // Fifteen minutes old at most: the client renews it on the 401.
+    /*
+     * Still a session: a server of the release before signs them until an
+     * upgrade has rolled out, and nobody is signed out meanwhile.
+     */
+    readAs: JsonWebTokenPurpose.UserSession,
+  },
+  {
+    name: "a session's claims that an earlier release would have signed for longer than fifteen minutes",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        {
+          userId: buildUser().id!.toString(),
+          email: "member@example.com",
+          name: "Member",
+          timezone: null,
+          isMasterAdmin: true,
+          isGlobalLogin: true,
+          sessionId: ObjectID.generate().toString(),
+          projectId: "",
+        },
+        EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS + 1,
+      );
+    },
     readAs: null,
   },
   {
@@ -697,13 +822,7 @@ describe("every token that names a person says what it is for, where it is made"
     },
   ])(
     "$name",
-    ({
-      kind,
-      purpose,
-    }: {
-      kind: TokenKind;
-      purpose: JsonWebTokenPurpose;
-    }) => {
+    ({ kind, purpose }: { kind: TokenKind; purpose: JsonWebTokenPurpose }) => {
       expect(kind.readAs).toBe(purpose);
       expect(JSONWebToken.decodeJsonPayload(kind.token())[PURPOSE_CLAIM]).toBe(
         purpose,
@@ -815,6 +934,95 @@ describe("JSONWebToken.isFor", () => {
         isSession: JSONWebToken.isFor(refused, JsonWebTokenPurpose.UserSession),
       }).toEqual({ claims: refused, isSession: false });
     }
+  });
+
+  /*
+   * An access token an earlier release signed says nothing about what it is
+   * for. It is still a session - a server of the release before signs them
+   * until an upgrade has rolled out - but only with exactly what one held:
+   * a user and a session, no status page and no SSO provider, signed for
+   * fifteen minutes at most. An SSO sign-in, which lives thirty days and
+   * never names a session, and a status page's session, which names its
+   * status page, are never one.
+   */
+  test("an access token an earlier release signed is a session, and nothing more is", () => {
+    const issuedAt: number = Math.floor(Date.now() / 1000);
+    const earlier: JSONObject = {
+      ...without(sessionClaims, PURPOSE_CLAIM),
+      iat: issuedAt,
+      exp: issuedAt + EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
+    };
+
+    expect(JSONWebToken.isFor(earlier, JsonWebTokenPurpose.UserSession)).toBe(
+      true,
+    );
+    expect(
+      JSONWebToken.isFor(
+        { ...earlier, exp: issuedAt + 60 },
+        JsonWebTokenPurpose.UserSession,
+      ),
+    ).toBe(true);
+
+    for (const refused of [
+      // Signed for longer than any access token was.
+      {
+        ...earlier,
+        exp: issuedAt + EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS + 1,
+      },
+      { ...earlier, exp: issuedAt + 30 * 24 * 60 * 60 },
+      // Saying nothing about how long it lives.
+      without(earlier, "iat"),
+      without(earlier, "exp"),
+      { ...earlier, iat: String(issuedAt) },
+      // Anything a session never held.
+      { ...earlier, ssoProviderType: SsoProviderType.ProjectSSO },
+      { ...earlier, ssoProviderType: SsoProviderType.GlobalOIDC },
+      { ...earlier, ssoProviderId: ObjectID.generate().toString() },
+      { ...earlier, statusPageId: ObjectID.generate().toString() },
+      // Or less than it held.
+      without(earlier, "sessionId"),
+      without(earlier, "userId"),
+      { ...earlier, sessionId: "not-an-id" },
+      // A purpose, but not this one.
+      { ...earlier, [PURPOSE_CLAIM]: JsonWebTokenPurpose.SsoSignIn },
+      { ...earlier, [PURPOSE_CLAIM]: "on-call-page" },
+      { ...earlier, [PURPOSE_CLAIM]: null },
+      { ...earlier, [PURPOSE_CLAIM]: "" },
+    ]) {
+      expect({
+        claims: refused,
+        isSession: JSONWebToken.isFor(refused, JsonWebTokenPurpose.UserSession),
+      }).toEqual({ claims: refused, isSession: false });
+    }
+
+    // It is a session and nothing else.
+    expect(JSONWebToken.isFor(earlier, JsonWebTokenPurpose.SsoSignIn)).toBe(
+      false,
+    );
+    expect(
+      JSONWebToken.isFor(earlier, JsonWebTokenPurpose.StatusPageSession),
+    ).toBe(false);
+  });
+
+  test("a session that says it is one names no SSO provider either", () => {
+    for (const refused of [
+      { ...sessionClaims, ssoProviderType: SsoProviderType.ProjectSSO },
+      { ...sessionClaims, ssoProviderId: ObjectID.generate().toString() },
+    ]) {
+      expect(JSONWebToken.isFor(refused, JsonWebTokenPurpose.UserSession)).toBe(
+        false,
+      );
+    }
+
+    // However long it lives: how long is a question only for one that says nothing.
+    const issuedAt: number = Math.floor(Date.now() / 1000);
+
+    expect(
+      JSONWebToken.isFor(
+        { ...sessionClaims, iat: issuedAt, exp: issuedAt + 24 * 60 * 60 },
+        JsonWebTokenPurpose.UserSession,
+      ),
+    ).toBe(true);
   });
 
   test("an SSO sign-in says it is one, and names no session or status page", () => {

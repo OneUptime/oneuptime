@@ -18,6 +18,15 @@ import TokenSigningKey from "./TokenSigningKey";
 // The claim a token says what it is for in (JsonWebTokenPurpose).
 export const PURPOSE_CLAIM: string = "purpose";
 
+/*
+ * How long a session's access token lived when an earlier release signed it,
+ * without a purpose: fifteen minutes, from every sign-in and every refresh.
+ */
+export const EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS: number = 15 * 60;
+
+export const UNSAID_PURPOSE_MESSAGE: string =
+  "A token that names a session or an SSO provider is signed with what it is for (JsonWebTokenPurpose).";
+
 const INVALID_TOKEN_MESSAGE: string = "AccessToken is invalid or expired";
 
 class JSONWebToken {
@@ -52,6 +61,10 @@ class JSONWebToken {
    * caller says it: a `purpose` inside `data` is never carried over, so
    * nothing signed from values that came from elsewhere can claim to be a
    * session.
+   *
+   * A token that names a session or an SSO provider is refused without one:
+   * the readers still take such a token, when it says nothing, as one an
+   * earlier release signed (isFor), so nothing signs one that way now.
    */
   @CaptureSpan()
   public static sign(props: {
@@ -98,6 +111,8 @@ class JSONWebToken {
 
     if (props.purpose) {
       jsonObj[PURPOSE_CLAIM] = props.purpose;
+    } else if (JSONWebToken.namesSessionOrSsoProvider(jsonObj)) {
+      throw new BadDataException(UNSAID_PURPOSE_MESSAGE);
     }
 
     return JSONWebToken.signJsonPayload(jsonObj, expiresInSeconds);
@@ -153,11 +168,14 @@ class JSONWebToken {
    * Whether claims that verified are a token for `purpose`
    * (JsonWebTokenPurpose):
    *
-   *   - a session says so, and names the user and the UserSession it
-   *     belongs to. Nothing else is one: not an SSO sign-in, not a status
-   *     page's session, and not an access token from before tokens said
-   *     what they were for - those lived fifteen minutes, and the client
-   *     renews one on the 401 it gets;
+   *   - a session names the user and the UserSession it belongs to, and no
+   *     status page or SSO provider. It says it is one, or is an access
+   *     token an earlier release signed: no purpose, and fifteen minutes
+   *     long. Those are still taken, so that nobody is signed out while an
+   *     upgrade rolls out - a server of the release before signs them until
+   *     it stops - and nothing signs one now (sign). An SSO sign-in never
+   *     names a session and lives thirty days, and a status page's session
+   *     names its status page, so neither is ever one;
    *   - an SSO sign-in says so, or is one an earlier release gave: no
    *     purpose, the kind of provider that gave it, and no session or status
    *     page of its own. Those lasted thirty days, so they are still read as
@@ -178,11 +196,25 @@ class JSONWebToken {
 
     switch (purpose) {
       case JsonWebTokenPurpose.UserSession:
+        if (
+          namesStatusPage ||
+          JSONWebToken.namesSsoProvider(claims) ||
+          !JSONWebToken.isId(claims["userId"]) ||
+          !JSONWebToken.isId(claims["sessionId"])
+        ) {
+          return false;
+        }
+
+        if (claimedPurpose === JsonWebTokenPurpose.UserSession) {
+          return true;
+        }
+
         return (
-          claimedPurpose === JsonWebTokenPurpose.UserSession &&
-          !namesStatusPage &&
-          JSONWebToken.isId(claims["userId"]) &&
-          JSONWebToken.isId(claims["sessionId"])
+          claimedPurpose === undefined &&
+          JSONWebToken.livesAtMost(
+            claims,
+            EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
+          )
         );
 
       case JsonWebTokenPurpose.SsoSignIn:
@@ -283,6 +315,32 @@ class JSONWebToken {
 
   private static isId(value: unknown): boolean {
     return typeof value === "string" && ObjectID.isValidUUID(value);
+  }
+
+  private static namesSsoProvider(claims: JSONObject): boolean {
+    return (
+      Boolean(claims["ssoProviderType"]) || Boolean(claims["ssoProviderId"])
+    );
+  }
+
+  private static namesSessionOrSsoProvider(claims: JSONObject): boolean {
+    return (
+      Boolean(claims["sessionId"]) || JSONWebToken.namesSsoProvider(claims)
+    );
+  }
+
+  // Whether the token was signed to last `seconds` or less (its `exp` less its `iat`).
+  private static livesAtMost(claims: JSONObject, seconds: number): boolean {
+    const issuedAt: unknown = claims["iat"];
+    const expiresAt: unknown = claims["exp"];
+
+    return (
+      typeof issuedAt === "number" &&
+      typeof expiresAt === "number" &&
+      Number.isFinite(issuedAt) &&
+      Number.isFinite(expiresAt) &&
+      expiresAt - issuedAt <= seconds
+    );
   }
 }
 

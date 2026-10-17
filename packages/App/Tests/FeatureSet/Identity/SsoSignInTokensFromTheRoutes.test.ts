@@ -1,6 +1,8 @@
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 import SSORouter from "../../../FeatureSet/Identity/API/SSO";
 import GlobalSSORouter from "../../../FeatureSet/Identity/API/GlobalSSO";
+import OIDCRouter from "../../../FeatureSet/Identity/API/OIDC";
+import GlobalOIDCRouter from "../../../FeatureSet/Identity/API/GlobalOIDC";
 import {
   SamlKeyPair,
   buildSamlResponse,
@@ -32,11 +34,11 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
 
 /*
  * ---------------------------------------------------------------------------
- * WHAT A SAML SIGN-IN HANDS OUT: A SESSION, AND AN SSO SIGN-IN THAT IS NONE.
+ * WHAT AN SSO SIGN-IN HANDS OUT: A SESSION, AND AN SSO SIGN-IN THAT IS NONE.
  *
- * A sign-in through a project's SAML provider, or through the server's
- * Global SAML provider, hands out two tokens - to a browser as cookies, to
- * the mobile app on its deep link:
+ * A sign-in through a project's SAML or OIDC provider, or through one of the
+ * server's Global SAML and OIDC providers, hands out two tokens - to a
+ * browser as cookies, to the mobile app on its deep link:
  *
  *   - a session: the access token of the UserSession the sign-in made,
  *     which the API takes as the person for fifteen minutes and the
@@ -45,12 +47,14 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
  *     through that provider, which a project that requires SSO reads next
  *     to the person's session - and which is no session at all.
  *
- * Each sign-in here runs through its real route handler, with a response
- * signed at run time by a generated identity provider key, the real
- * SSOUtil checking it, and the real CookieUtil and JSONWebToken minting the
- * tokens. Only the database, the cache and the response writers are
- * stand-ins. What the route handed out is then read the way the API reads a
- * request (UserMiddleware).
+ * Each sign-in here runs through its real route handler, and the real
+ * CookieUtil and JSONWebToken mint the tokens. A SAML response is signed at
+ * run time by a generated identity provider key and checked by the real
+ * SSOUtil; an OIDC sign-in comes back with the state cookie its start set,
+ * signed for real, and the code exchange answers with the identity (the
+ * exchange itself is OIDC.test.ts's subject). Only the database, the cache
+ * and the response writers are stand-ins. What the route handed out is then
+ * read the way the API reads a request (UserMiddleware).
  * ---------------------------------------------------------------------------
  */
 
@@ -65,7 +69,9 @@ const SESSION_ID: string = "1abc0000-0000-4000-8000-0000000000f3";
 
 const PROJECT_ID: string = "2bcd0000-0000-4000-8000-0000000000a1";
 const PROJECT_SSO_ID: string = "2bcd0000-0000-4000-8000-0000000000b2";
+const PROJECT_OIDC_ID: string = "2bcd0000-0000-4000-8000-0000000000c3";
 const GLOBAL_SSO_ID: string = "4fab0000-0000-4000-8000-0000000000e1";
+const GLOBAL_OIDC_ID: string = "4fab0000-0000-4000-8000-0000000000f2";
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
@@ -200,6 +206,74 @@ jest.mock("Common/Server/Services/GlobalSsoService", () => {
   };
 });
 
+const projectOidcFindOneBy: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/ProjectOidcService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneBy: (...args: Array<unknown>): unknown => {
+        return projectOidcFindOneBy(...args);
+      },
+    },
+  };
+});
+
+const globalOidcFindOneBy: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/GlobalOidcService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneBy: (...args: Array<unknown>): unknown => {
+        return globalOidcFindOneBy(...args);
+      },
+      findBy: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/GlobalOidcProjectService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: (): Promise<unknown> => {
+        return Promise.resolve([
+          {
+            projectId: new (
+              jest.requireActual("Common/Types/ObjectID") as {
+                default: typeof ObjectID;
+              }
+            ).default("2bcd0000-0000-4000-8000-0000000000a1"),
+            teams: [],
+          },
+        ]);
+      },
+    },
+  };
+});
+
+// The provider answered the code with an ID token that validated, for this person.
+jest.mock("../../../FeatureSet/Identity/Utils/OIDC", () => {
+  return {
+    __esModule: true,
+    default: {
+      createClient: (): Promise<unknown> => {
+        return Promise.resolve({});
+      },
+      exchangeCodeAndValidate: (): Promise<unknown> => {
+        const identity: typeof import("Common/Types/Email") =
+          jest.requireActual("Common/Types/Email");
+
+        return Promise.resolve({
+          email: new identity.default("fox.mulder@example.com"),
+          name: null,
+        });
+      },
+    },
+  };
+});
+
 jest.mock("Common/Server/Services/GlobalSsoProjectService", () => {
   return {
     __esModule: true,
@@ -297,60 +371,147 @@ interface RouteLayer {
     | undefined;
 }
 
-function handlerFor(router: ExpressRouter, path: string): RequestHandler {
+function handlerFor(
+  router: ExpressRouter,
+  method: "get" | "post",
+  path: string,
+): RequestHandler {
   const layers: Array<RouteLayer> = (
     router as unknown as { stack: Array<RouteLayer> }
   ).stack;
 
   const layer: RouteLayer | undefined = layers.find((candidate: RouteLayer) => {
     return (
-      candidate.route?.path === path && Boolean(candidate.route.methods["post"])
+      candidate.route?.path === path && Boolean(candidate.route.methods[method])
     );
   });
 
   if (!layer?.route) {
-    throw new Error(`POST ${path} is not registered`);
+    throw new Error(`${method.toUpperCase()} ${path} is not registered`);
   }
 
   return layer.route.stack[layer.route.stack.length - 1]!.handle;
 }
 
+type SignInFrom = "browser" | "mobile app";
+
+// What the provider sends the browser back to the route with.
+interface ProviderAnswer {
+  body: JSONObject;
+  query: JSONObject;
+  cookies: Dictionary<string>;
+}
+
 interface Flow {
   name: string;
   router: ExpressRouter;
+  method: "get" | "post";
   path: string;
   params: Record<string, string>;
-  entityId: string;
-  replyUrl: string;
   providerId: string;
   providerType: SsoProviderType;
+  answer: (from: SignInFrom) => ProviderAnswer;
   // The cookie the SSO sign-in is set in, and the deep link parameter it rides in.
   ssoCookieName: string;
   deepLinkParameter: string;
+}
+
+// A SAML provider posts a signed response to the Reply URL.
+function samlAnswer(data: {
+  entityId: string;
+  replyUrl: string;
+}): (from: SignInFrom) => ProviderAnswer {
+  return (from: SignInFrom): ProviderAnswer => {
+    return {
+      body: {
+        SAMLResponse: signedResponse(data),
+        ...(from === "mobile app" ? { RelayState: "mobile" } : {}),
+      },
+      query: {},
+      cookies: {},
+    };
+  };
+}
+
+/*
+ * An OIDC provider sends the browser back with a code and the state, to
+ * the route that reads the state cookie the sign-in's start set: signed for
+ * real, and saying whether the mobile app started it.
+ */
+function oidcAnswer(
+  stateCookieName: string,
+): (from: SignInFrom) => ProviderAnswer {
+  return (from: SignInFrom): ProviderAnswer => {
+    return {
+      body: {},
+      query: { code: "authorization-code", state: "state" },
+      cookies: {
+        [stateCookieName]: JSONWebToken.signJsonPayload(
+          {
+            state: "state",
+            nonce: "nonce",
+            codeVerifier: "code-verifier",
+            isMobile: from === "mobile app",
+          },
+          10 * 60,
+        ),
+      },
+    };
+  };
 }
 
 const FLOWS: Array<Flow> = [
   {
     name: "a project SAML sign-in",
     router: SSORouter,
+    method: "post",
     path: "/idp-login/:projectId/:projectSsoId",
     params: { projectId: PROJECT_ID, projectSsoId: PROJECT_SSO_ID },
-    entityId: `${SERVER}/${PROJECT_ID}/${PROJECT_SSO_ID}`,
-    replyUrl: `${SERVER}/identity/idp-login/${PROJECT_ID}/${PROJECT_SSO_ID}`,
     providerId: PROJECT_SSO_ID,
     providerType: SsoProviderType.ProjectSSO,
+    answer: samlAnswer({
+      entityId: `${SERVER}/${PROJECT_ID}/${PROJECT_SSO_ID}`,
+      replyUrl: `${SERVER}/identity/idp-login/${PROJECT_ID}/${PROJECT_SSO_ID}`,
+    }),
+    ssoCookieName: CookieUtil.getUserSSOKey(new ObjectID(PROJECT_ID)),
+    deepLinkParameter: "ssoToken",
+  },
+  {
+    name: "a project OIDC sign-in",
+    router: OIDCRouter,
+    method: "get",
+    path: "/oidc-callback/:projectId/:projectOidcId",
+    params: { projectId: PROJECT_ID, projectOidcId: PROJECT_OIDC_ID },
+    providerId: PROJECT_OIDC_ID,
+    providerType: SsoProviderType.ProjectOIDC,
+    answer: oidcAnswer(`oidc-state-${PROJECT_OIDC_ID}`),
     ssoCookieName: CookieUtil.getUserSSOKey(new ObjectID(PROJECT_ID)),
     deepLinkParameter: "ssoToken",
   },
   {
     name: "a Global SAML sign-in",
     router: GlobalSSORouter,
+    method: "post",
     path: "/global-idp-login/:globalSsoId",
     params: { globalSsoId: GLOBAL_SSO_ID },
-    entityId: `${SERVER}/global-sso/${GLOBAL_SSO_ID}`,
-    replyUrl: `${SERVER}/identity/global-idp-login/${GLOBAL_SSO_ID}`,
     providerId: GLOBAL_SSO_ID,
     providerType: SsoProviderType.GlobalSSO,
+    answer: samlAnswer({
+      entityId: `${SERVER}/global-sso/${GLOBAL_SSO_ID}`,
+      replyUrl: `${SERVER}/identity/global-idp-login/${GLOBAL_SSO_ID}`,
+    }),
+    ssoCookieName: CookieUtil.getGlobalSSOKey(),
+    deepLinkParameter: "globalSsoToken",
+  },
+  {
+    name: "a Global OIDC sign-in",
+    router: GlobalOIDCRouter,
+    method: "get",
+    path: "/global-oidc-callback/:globalOidcId",
+    params: { globalOidcId: GLOBAL_OIDC_ID },
+    providerId: GLOBAL_OIDC_ID,
+    providerType: SsoProviderType.GlobalOIDC,
+    answer: oidcAnswer(`global-oidc-state-${GLOBAL_OIDC_ID}`),
     ssoCookieName: CookieUtil.getGlobalSSOKey(),
     deepLinkParameter: "globalSsoToken",
   },
@@ -363,7 +524,7 @@ beforeAll(() => {
   idpKeys = generateRsaKeyPair();
 });
 
-function signedResponse(flow: Flow): string {
+function signedResponse(data: { entityId: string; replyUrl: string }): string {
   responseCounter++;
 
   return toBase64(
@@ -374,9 +535,9 @@ function signedResponse(flow: Flow): string {
         issuedAt: minutesAfter(new Date(), 0),
         responseId: `_response_${responseCounter}`,
         assertionId: `_assertion_${responseCounter}`,
-        audienceRestrictions: [[flow.entityId]],
-        recipient: flow.replyUrl,
-        destination: flow.replyUrl,
+        audienceRestrictions: [[data.entityId]],
+        recipient: data.replyUrl,
+        destination: data.replyUrl,
         inResponseTo: "_request_1",
       }),
       "Assertion",
@@ -390,23 +551,18 @@ interface SignIn {
   deepLink: URLSearchParams | null;
 }
 
-// Signs in through the flow's Reply URL, from a browser or from the mobile app.
-async function signIn(
-  flow: Flow,
-  from: "browser" | "mobile app",
-): Promise<SignIn> {
+// Signs in through the flow's route, from a browser or from the mobile app.
+async function signIn(flow: Flow, from: SignInFrom): Promise<SignIn> {
   const cookies: Dictionary<string> = {};
   const resRedirect: jest.Mock = jest.fn();
+  const answer: ProviderAnswer = flow.answer(from);
 
   const req: ExpressRequest = {
     params: flow.params,
-    body: {
-      SAMLResponse: signedResponse(flow),
-      ...(from === "mobile app" ? { RelayState: "mobile" } : {}),
-    },
-    query: {},
+    body: answer.body,
+    query: answer.query,
     headers: {},
-    cookies: {},
+    cookies: answer.cookies,
     socket: { remoteAddress: "127.0.0.1" },
     get: (): undefined => {
       return undefined;
@@ -429,9 +585,13 @@ async function signIn(
 
   let nextError: unknown = undefined;
 
-  await (handlerFor(flow.router, flow.path)(req, res, (err?: unknown): void => {
-    nextError = err;
-  }) as unknown as Promise<void>);
+  await (handlerFor(flow.router, flow.method, flow.path)(
+    req,
+    res,
+    (err?: unknown): void => {
+      nextError = err;
+    },
+  ) as unknown as Promise<void>);
 
   expect(nextError).toBeUndefined();
   expect(sendErrorResponse).not.toHaveBeenCalled();
@@ -530,6 +690,31 @@ beforeEach(() => {
     });
   });
 
+  const oidcProvider: JSONObject = {
+    discoveryURL: "https://idp.example.com/.well-known/openid-configuration",
+    issuerURL: ISSUER,
+    clientId: "oneuptime",
+    clientSecret: "client-secret",
+    teams: [{ id: new ObjectID(TEAM_ID) }],
+  };
+
+  projectOidcFindOneBy.mockImplementation((): Promise<unknown> => {
+    return Promise.resolve({
+      ...oidcProvider,
+      id: new ObjectID(PROJECT_OIDC_ID),
+      projectId: new ObjectID(PROJECT_ID),
+    });
+  });
+
+  globalOidcFindOneBy.mockImplementation((): Promise<unknown> => {
+    return Promise.resolve({
+      ...oidcProvider,
+      id: new ObjectID(GLOBAL_OIDC_ID),
+      disableSignUpWithSso: false,
+      restrictToAttachedProjects: false,
+    });
+  });
+
   createSession.mockResolvedValue({
     session: { id: new ObjectID(SESSION_ID) },
     refreshToken: "refresh-token",
@@ -612,7 +797,8 @@ describe.each(FLOWS)("$name", (flow: Flow) => {
 
     // The headers the mobile app sends it in (api/client.ts).
     const header: Dictionary<string> =
-      flow.providerType === SsoProviderType.GlobalSSO
+      flow.providerType === SsoProviderType.GlobalSSO ||
+      flow.providerType === SsoProviderType.GlobalOIDC
         ? { "x-global-sso-token": ssoSignIn! }
         : { "x-sso-tokens": JSON.stringify({ [PROJECT_ID]: ssoSignIn! }) };
 
