@@ -22,6 +22,10 @@
     "label": "Language",
     "switchLanguage": "Switch language"
   },
+  "theme": {
+    "switchToDark": "Switch to dark theme",
+    "switchToLight": "Switch to light theme"
+  },
   "nav": {
     "overview": "Overview",
     "incidents": "Incidents",

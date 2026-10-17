@@ -3,7 +3,7 @@
 Din statussida är den enda skärmen i OneUptime som dina kunder tittar på, så den bör se ut som din egen och ligga på din egen domän, som `status.yourcompany.com`. Den här sidan går igenom sidan **Varumärke** kort för kort och lägger sedan statussidan på din domän: lägg till domänen, lägg till en DNS-post, så följer det kostnadsfria SSL-certifikatet av sig självt.
 
 :::cards
-- [Sidan Varumärke](#sidan-varumärke): Logotyp, titel, favicon, länkar, sidfot, färger och språk.
+- [Sidan Varumärke](#sidan-varumärke): Logotyp, tema, titel, favicon, länkar, sidfot, färger och språk.
 - [Anpassad HTML, CSS och JavaScript](#anpassad-html-css-och-javascript): Allt som de inbyggda inställningarna inte täcker.
 - [Anpassade domäner](#anpassade-domäner): Ditt eget värdnamn, med ett kostnadsfritt certifikat.
 - [Kolumnen Status](#läsa-domänens-kolumn-status): Hur långt varje domän har kommit på vägen mot HTTPS.
@@ -15,7 +15,7 @@ Din statussida är den enda skärmen i OneUptime som dina kunder tittar på, så
 
 | Sida | Vad du anger där |
 | ---- | ------------------ |
-| **Varumärke** | Logotyp och omslagsbild, sidtitel och sidbeskrivning, favicon, sidhuvudslänkar, beskrivningen av översiktssidan, upphovsrättsraden och sidfotslänkar. Hopfällt under **Fler inställningar**: historikdiagrammets färger, språk och indexering i sökmotorer. |
+| **Varumärke** | Logotyp och omslagsbild, temat (ljust, mörkt eller som varje besökares enhet är inställd), sidtitel och sidbeskrivning, favicon, sidhuvudslänkar, beskrivningen av översiktssidan, upphovsrättsraden och sidfotslänkar. Hopfällt under **Fler inställningar**: historikdiagrammets färger, språk och indexering i sökmotorer. |
 | **Anpassade domäner** | Din egen domän, dess DNS-post och dess kostnadsfria SSL-certifikat. |
 | **HTML, CSS och JavaScript** | Sidhuvud-HTML, sidfots-HTML, anpassad CSS, anpassad JavaScript. |
 
@@ -25,7 +25,7 @@ Varumärket var tidigare uppdelat på separata skärmar för **Grundläggande va
 
 ## Sidan Varumärke
 
-**Statussidor → din sida → Varumärke → Varumärke** (`{id}/branding`). Varje kort sparas för sig. Efter logotypen, titeln och faviconen följer korten din statussida uppifrån och ned: sidhuvudets länkar, texten högst upp i översikten och sedan sidfoten. Det som få ändrar ligger hopfällt under **Fler inställningar** längst ned.
+**Statussidor → din sida → Varumärke → Varumärke** (`{id}/branding`). Varje kort sparas för sig. Efter logotypen, temat, titeln och faviconen följer korten din statussida uppifrån och ned: sidhuvudets länkar, texten högst upp i översikten och sedan sidfoten. Det som få ändrar ligger hopfällt under **Fler inställningar** längst ned.
 
 ### Logotyp och omslagsbild
 
@@ -39,6 +39,24 @@ Det första kortet, **Logotyp och omslagsbild**, har knappen **Edit Images**, so
 Logotypen, omslagsbilden och faviconen är filer som har laddats upp i statussidans eget projekt, och det kontrolleras varje gång någon av dem sparas, från instrumentpanelen, API:et, Terraform eller ett arbetsflöde. En fil som har laddats upp i ett annat projekt avvisas med samma ord som en fil som inte längre finns får: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." eller "The favicon's file could not be found. Upload the favicon again." Att ladda upp bilden igen från sidan löser det.
 
 Din statussida visar bara bilder från sitt eget projekt; en bild som den inte kan visa utelämnas, som om sidan inte hade någon. Instrumentpanelen, API:et och Terraform läser sidans bilder på samma sätt: en bild från ett annat projekt kommer tillbaka som ingen bild alls. E-postmeddelandena som sidan skickar (till prenumeranter, och till privata användare om deras inloggning) visar dess logotyp på samma sätt: en logotyp som sidan inte kan visa utelämnas även från dem i stället för att visas som en trasig bild.
+
+### Tema
+
+Kortet **Tema**, direkt under logotypen, bestämmer hur sidan ser ut för sina besökare. Välj ett av dess tre val så sparas det direkt; det finns ingen knapp **Redigera**.
+
+| Val | Vad besökarna ser |
+| ------ | ----------------- |
+| **Ljust** | Den ljusa sidan, hur deras enhet än är inställd. Statussidor som skapades innan inställningen fanns är **Ljust**, så de ser ut som de alltid har gjort. |
+| **Mörkt** | Den mörka sidan, hur deras enhet än är inställd. |
+| **Som varje besökares enhet** | Ljust eller mörkt, som deras enhet är inställd, och sidan växlar med enheten medan den är öppen. En sol- eller månknapp i sidans sidfot låter en besökare växla, och deras webbläsare kommer ihåg valet. |
+
+På den mörka sidan står logotypen på en ljus bakgrund, så en logotyp som är gjord för en vit sida syns fortfarande tydligt.
+
+En statussida som skapas från och med nu börjar med **Som varje besökares enhet**. Via API:et och Terraform heter fältet `theme`, med ett av värdena `Light`, `Dark` eller `System` (**Som varje besökares enhet**), skrivet exakt så; alla andra värden avvisas. En Terraform-konfiguration som inte anger något `theme` får `Light`, så en konfiguration som skrevs före inställningen planerar aldrig en ändring på en sida den hanterar.
+
+Temat finns i sidans HTML, så sidan ritas i det från början: en mörk sida blinkar inte vitt medan den laddas, och webbläsaren ritar sina rullningslister, sina formulärfält och, på telefoner, sitt adressfält så att de passar. Alla delar av sidan följer det, även inloggningssidan för en privat statussida. Upptidsstaplarna behåller färgerna du har valt. På den mörka sidan får text i en statusfärg en ljusare nyans av färgen där färgen själv skulle vara svår att läsa, och en stapel som är för mörk för att synas får en ljusare kant.
+
+Din anpassade CSS och HTML gäller i båda temana; [Anpassad HTML, CSS och JavaScript](#anpassad-html-css-och-javascript) berättar hur du stylar det mörka.
 
 ### Titel, beskrivning och favicon
 
@@ -64,7 +82,7 @@ Sidhuvudslänkar är för navigering; sidfotslänkar är för det finstilta, som
 
 Sidans sista sektion ligger hopfälld under **Fler inställningar**, eftersom få någonsin ändrar det som finns där. Hopfälld nämner dess rubrik de fyra sektionerna (**Standardfärg för stapel**, **Regler för stapelfärger**, **Språk** och **Indexering i sökmotorer**) och visar var och en som skiljer sig från det som en ny statussida börjar med: en annan standardfärg för stapeln än den gröna som alla sidor börjar med, andra regler för stapelfärger än de rekommenderade, ett annat standardspråk än engelska, en kortare lista med språk eller indexering i sökmotorer avstängd. Klicka på den för att öppna den: det är ett enda kort med sektionerna under varandra, var och en med egen titel, åtskilda av avdelare.
 
-**Historikdiagrammets färger.** Det här är de enda inbyggda färginställningarna på en statussida. Varje stapel i upptidshistoriken är en dag.
+**Historikdiagrammets färger.** Utöver **Tema** är det här de enda inbyggda färginställningarna på en statussida. Varje stapel i upptidshistoriken är en dag.
 
 - **Standardfärg för stapel**: **Edit Default Bar Color** öppnar väljaren **Standardfärg för stapel**. Det är färgen på en dag som ingen stapelfärgsregel matchar. Alla nya statussidor börjar med grönt.
 - **Regler för stapelfärger**: en ordnad tabell med regler som du sorterar genom att dra. Varje regel har **När drifttid % är större än eller lika med** och **Använd sedan denna stapelfärg**; tabellens kolumner heter `When Uptime Percent >=` och `Then, Bar Color is`. Reglerna kontrolleras uppifrån, och den första som en dags upptid når bestämmer dess färg, så håll högre procentsatser ovanför lägre: en regel under en med samma eller lägre procentsats färgar aldrig en dag. En ny regels färg är redan vald, en som de andra reglerna inte använder ännu; välj i stället den som du vill ha.
@@ -122,7 +140,9 @@ De var tidigare två egna kort, **Total upptidsprocent** och **Statusar för dri
 
 På OneUptime Cloud kräver det planen **Growth** att lägga till eller ändra någon av dem. Att tömma någon av dem fungerar på alla planer, så anpassad kod som lades till under en provperiod kan alltid tas bort.
 
-**Det finns ingen temaväljare.** OneUptimes statussidor har ingen inställning för tema eller varumärkesfärg: de enda inbyggda färginställningarna någonstans är **Standardfärg för stapel** och reglerna för historikdiagrammets stapelfärger, under **Fler inställningar** på sidan **Varumärke**. Typsnitt, bakgrundsfärger, accentfärger och justeringar av layouten går alla via **Anpassad CSS**. Om du har letat efter ett fält för en "varumärkesfärg" är detta svaret: det finns inget, och den här rutan är sättet att göra det.
+**Det finns ingen väljare för varumärkesfärg.** Utöver **Tema**, som gör sidan ljus eller mörk, är de enda inbyggda färginställningarna någonstans **Standardfärg för stapel** och reglerna för historikdiagrammets stapelfärger, under **Fler inställningar** på sidan **Varumärke**. Typsnitt, bakgrundsfärger, accentfärger och justeringar av layouten går alla via **Anpassad CSS**. Om du har letat efter ett fält för en "varumärkesfärg" är detta svaret: det finns inget, och den här rutan är sättet att göra det.
+
+**Anpassad kod i det mörka temat.** Din anpassade CSS och HTML gäller i båda temana. Medan sidan är mörk har dess `<html>`-element klassen `dark`, så en CSS-regel som börjar med `html.dark` stylar bara det mörka temat: `html.dark .my-banner { background: #1e293b; }`. En regel utan den gäller i båda, så en bakgrunds- eller textfärg du sätter för den ljusa sidan finns kvar på den mörka också: kontrollera din anpassade CSS i båda temana. Har sidan anpassad CSS eller HTML i sidhuvud eller sidfot säger kortet **Tema** det under sina val.
 
 > [!WARNING]
 > Anpassad JavaScript körs i dina besökares webbläsare, på en sida som folk öppnar just när de tror att något är trasigt. Håll det litet, lagra det som det läser in själv där du kan, och testa det innan du förlitar dig på det.

@@ -88,6 +88,7 @@ import StatusPageResourceSearchUtil, {
 import StatusPageLiveRefreshUtil from "../../Utils/LiveRefresh";
 import LastUpdated from "../../Components/LiveStatus/LastUpdated";
 import ResourceSearchBox from "../../Components/Search/ResourceSearchBox";
+import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
 
 const parseAxisValues: (raw?: string) => Array<string> = (
   raw?: string,
@@ -1420,7 +1421,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
           <div
             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-transform group-hover:scale-[1.03]"
             style={{
-              backgroundColor: "rgba(255,255,255,0.85)",
+              /*
+               * The card's own surface, nearly opaque, over the cell's tint:
+               * white on the light page, the dark card on the dark one.
+               */
+              backgroundColor:
+                "color-mix(in srgb, var(--ou-surface-primary, #ffffff) 85%, transparent)",
               boxShadow: `inset 0 0 0 1px ${tintFromHex(color, 0.25)}`,
             }}
           >
@@ -1436,14 +1442,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
             </span>
             <span
               className="text-[11px] font-semibold tracking-tight"
-              style={{ color: color }}
+              {...getStatusTextProps(color)}
             >
               {meta.statusName}
             </span>
             {meta.resourceCount > 1 && (
               <span
                 className="text-[10px] font-medium tabular-nums opacity-60"
-                style={{ color: color }}
+                {...getStatusTextProps(color)}
               >
                 ×{meta.resourceCount}
               </span>

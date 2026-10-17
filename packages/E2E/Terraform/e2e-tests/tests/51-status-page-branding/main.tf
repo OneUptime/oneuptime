@@ -12,10 +12,11 @@ provider "oneuptime" {
   api_key       = var.api_key
 }
 
-# Test: Status Page branding fields (custom CSS, SEO fields, copyright)
+# Test: Status Page branding fields (custom CSS, SEO fields, copyright, theme)
 #
 # Deepens oneuptime_status_page coverage: exercises the branding attributes
-# that no other fixture touches, and updates them in the update phase.
+# that no other fixture touches, and updates them in the update phase. The
+# theme is Dark here and System after the update.
 
 resource "oneuptime_status_page" "page" {
   name                                = "terraform-e2e-branding-page"
@@ -24,6 +25,7 @@ resource "oneuptime_status_page" "page" {
   page_description                    = "Branding fields set by Terraform E2E tests"
   copyright_text                      = "Copyright Terraform E2E"
   custom_css                          = ".status-page { background: #ffffff; }"
+  theme                               = "Dark"
   hide_powered_by_one_uptime_branding = true
   is_public_status_page               = false
   enable_email_subscribers            = false
