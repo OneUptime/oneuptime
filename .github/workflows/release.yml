@@ -2502,6 +2502,12 @@ jobs:
   # Each artifact is replaced, not added to, when its job is re-run
   # (overwrite: true), and is kept for 30 days, so a re-run of
   # finalize-github-release on its own still finds them.
+  #
+  # Each of the four runs only for `release`, as draft-github-release does:
+  # what they build is for the GitHub release alone, and a run of another
+  # branch has none (a workflow_dispatch for the store jobs, say). They used
+  # to need the draft, which skipped them on such a run, and still do not run
+  # there.
 
   # A CycloneDX SBOM per published image.
   #
@@ -2522,6 +2528,7 @@ jobs:
   # generate_sboms.sh's IMAGES.
   generate-sboms:
     name: Generate CycloneDX SBOMs
+    if: github.ref == 'refs/heads/release'
     needs:
       - read-version
       - app-docker-image-merge
@@ -2586,6 +2593,7 @@ jobs:
   # GoReleaser runs in --snapshot mode: it builds, and publishes nothing.
   infrastructure-agent-build:
     needs: [read-version]
+    if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -2651,6 +2659,7 @@ jobs:
   # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
   mobile-app-android-build:
     needs: [generate-build-number, read-version]
+    if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -2707,6 +2716,7 @@ jobs:
   # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
   mobile-app-ios-build:
     needs: [generate-build-number, read-version]
+    if: github.ref == 'refs/heads/release'
     runs-on: macos-latest
     permissions:
       contents: read

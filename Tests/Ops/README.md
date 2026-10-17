@@ -854,15 +854,16 @@ longer wait for `publish-npm-packages`, which `push-release-tags` needs
 instead, and nothing they run installs a package it publishes (the e2e
 package's manifest and lockfile, and the Dockerfiles of every image the e2e
 stacks boot, name none); `push-release-tags` is one job, not a matrix of ten,
-and its step is run with a fake `docker` on PATH: both tags of every image,
-from this version's tags, one image's failure not stopping the others but
-failing the job by name, and a refused call retried; and the SBOMs, the
-infrastructure agent and the two apps are built while the images are tested,
-kept as artifacts (one each, replaced on a re-run, an empty one failing) and
-attached by `finalize-github-release` before it publishes: the apps only when
-their build succeeded, under the asset names the release has always had, and
-the SBOM job waiting for the merge of exactly the images `generate_sboms.sh`
-scans.
+and its step is run with a fake `docker` on PATH, in the `bash -e` Actions
+gives a step that names no shell: both tags of every image, from this
+version's tags, one image's failure not stopping the others but failing the
+job by name, and a refused call retried; and the SBOMs, the infrastructure
+agent and the two apps are built while the images are tested, only for
+`release` (as the draft, which they used to need), kept as artifacts (one
+each, replaced on a re-run, an empty one failing) and attached by
+`finalize-github-release` before it publishes: the apps only when their build
+succeeded, under the asset names the release has always had, and the SBOM job
+waiting for the merge of exactly the images `generate_sboms.sh` scans.
 
 ### `CompileWorkflow.test.js`
 

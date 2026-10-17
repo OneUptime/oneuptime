@@ -484,7 +484,11 @@ describe(`${RELEASE}: push-release-tags moves every image's tags in one job`, ()
     runs += 1;
     const log = path.join(workDir, `calls-${runs}`);
     fs.writeFileSync(log, "");
-    const result = spawnSync("bash", ["-c", step.run], {
+    // As Actions runs a step that names no shell: `bash -e {0}`, the script
+    // in a file of its own.
+    const script = path.join(workDir, `step-${runs}.sh`);
+    fs.writeFileSync(script, step.run);
+    const result = spawnSync("bash", ["-e", script], {
       cwd: REPO_ROOT,
       encoding: "utf8",
       timeout: 60000,
@@ -539,6 +543,19 @@ describe(`${RELEASE}: push-release-tags moves every image's tags in one job`, ()
     expect(step.env).toEqual({
       VERSION: "${{needs.read-version.outputs.major_minor}}",
     });
+  });
+
+  /*
+   * The runs below start the step with `bash -e`, the shell Actions gives a
+   * step that names none. A `shell:` on the step, or a `defaults.run.shell`
+   * on the job or the workflow, would run it differently, so neither is set.
+   */
+  test("runs in the shell Actions gives a step that names none, as the runs below do", () => {
+    expect(step.shell).toBeUndefined();
+    expect(((job.defaults || {}).run || {}).shell).toBeUndefined();
+    expect(
+      ((yaml.load(read(RELEASE)).defaults || {}).run || {}).shell,
+    ).toBeUndefined();
   });
 
   test("waits for the merge of every image it retags", () => {
@@ -711,6 +728,20 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       test("writes nothing to the release, and may not", () => {
         expect((definition.steps || []).filter(writesTheRelease)).toEqual([]);
         expect(definition.permissions.contents).toBe("read");
+      });
+
+      /*
+       * It used to need draft-github-release, which runs only for `release`,
+       * so a run of another branch (a workflow_dispatch for the store jobs)
+       * skipped it. It needs the draft no more, so it says so itself: the
+       * draft's own condition, with no status function, so Actions still
+       * requires every job it needs to have succeeded.
+       */
+      test("runs only for `release`, as the draft does, and only once what it needs has succeeded", () => {
+        expect(jobs["draft-github-release"].if).toBe(
+          "github.ref == 'refs/heads/release'",
+        );
+        expect(definition.if).toBe(jobs["draft-github-release"].if);
       });
 
       test("keeps what it built as one artifact, replaced on a re-run, failing if there is nothing to keep", () => {
