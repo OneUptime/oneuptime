@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../Server/Utils/Logger");
 
@@ -270,16 +271,16 @@ let baseUrl: string;
 let cache: Map<string, string>;
 let page: StatusPage;
 
-let hasReadAccessSpy: jest.SpiedFunction<
+let hasReadAccessSpy: SpyInstance<
   typeof StatusPageService.hasReadAccess
 >;
-let readShownSpy: jest.SpiedFunction<
+let readShownSpy: SpyInstance<
   typeof StatusPageAPI.readShownScheduledMaintenanceEvents
 >;
-let blockedSpy: jest.SpiedFunction<
+let blockedSpy: SpyInstance<
   typeof BlockedProjectStatusPages.isStatusPageOfBlockedProject
 >;
-let generationSpy: jest.SpiedFunction<
+let generationSpy: SpyInstance<
   typeof StatusPageOverviewCache.getProjectGeneration
 >;
 
@@ -790,10 +791,9 @@ describe("StatusPageMaintenanceCalendarFeed helpers", () => {
       );
     }
 
-    const built: {
-      events: Array<{ title?: string | undefined }>;
-      isTruncated: boolean;
-    } = StatusPageMaintenanceCalendarFeed.buildEvents({
+    const built: ReturnType<
+      typeof StatusPageMaintenanceCalendarFeed.buildEvents
+    > = StatusPageMaintenanceCalendarFeed.buildEvents({
       response: shownResponse(many.reverse()),
       statusPageUrl: `https://${DOMAIN}`,
     });

@@ -9,6 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The team's calendar link for scheduled maintenance, over HTTP.
@@ -241,33 +242,33 @@ let projectId: ObjectID;
 let userId: ObjectID;
 let cache: Map<string, string>;
 
-let readsEverySpy: jest.SpiedFunction<
+let readsEverySpy: SpyInstance<
   typeof ScheduledMaintenanceService.readsEveryRecordInProject
 >;
-let findOneBySpy: jest.SpiedFunction<
+let findOneBySpy: SpyInstance<
   typeof ScheduledMaintenanceCalendarFeedService.findOneBy
 >;
-let findOneByIdSpy: jest.SpiedFunction<
+let findOneByIdSpy: SpyInstance<
   typeof ScheduledMaintenanceCalendarFeedService.findOneById
 >;
-let updateOneByIdSpy: jest.SpiedFunction<
+let updateOneByIdSpy: SpyInstance<
   typeof ScheduledMaintenanceCalendarFeedService.updateOneById
 >;
-let updateOneBySpy: jest.SpiedFunction<
+let updateOneBySpy: SpyInstance<
   typeof ScheduledMaintenanceCalendarFeedService.updateOneBy
 >;
-let createSpy: jest.SpiedFunction<
+let createSpy: SpyInstance<
   typeof ScheduledMaintenanceCalendarFeedService.create
 >;
-let rotateSpy: jest.SpiedFunction<
+let rotateSpy: SpyInstance<
   typeof ScheduledMaintenanceCalendarFeedService.rotateTokenById
 >;
-let readEventsSpy: jest.SpiedFunction<
+let readEventsSpy: SpyInstance<
   typeof TeamMaintenanceCalendar.readEvents
 >;
-let consumeSpy: jest.SpiedFunction<typeof OnCallCalendarFeedRateLimit.consume>;
-let lockSpy: jest.SpiedFunction<typeof Semaphore.lock>;
-let releaseSpy: jest.SpiedFunction<typeof Semaphore.release>;
+let consumeSpy: SpyInstance<typeof OnCallCalendarFeedRateLimit.consume>;
+let lockSpy: SpyInstance<typeof Semaphore.lock>;
+let releaseSpy: SpyInstance<typeof Semaphore.release>;
 
 function registeredRoutes(): Array<RegisteredRoute> {
   return (mockRouter.routes as unknown as Array<RegisteredRoute>).filter(

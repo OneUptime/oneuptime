@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   cleanup,
   fireEvent,
@@ -197,7 +198,7 @@ function urlOf(call: Array<unknown>): string {
   return String((call[0] as Record<string, unknown>)["url"]);
 }
 
-let onClose: jest.Mock<() => void>;
+let onClose: Mock<() => void>;
 
 function renderDialog(): void {
   render(<MaintenanceCalendarSubscribeModal onClose={onClose} now={NOW} />);
@@ -209,7 +210,7 @@ beforeEach(() => {
   updateByIdMock.mockReset();
   updateByIdMock.mockResolvedValue(undefined);
   permissionsForTest = EDITOR;
-  onClose = jest.fn();
+  onClose = jest.fn<() => void>();
 });
 
 afterEach(() => {

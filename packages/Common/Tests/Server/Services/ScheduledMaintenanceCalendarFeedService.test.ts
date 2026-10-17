@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
@@ -74,6 +75,11 @@ function feed(
   return model;
 }
 
+// A link written without its project, as an API call that leaves it out.
+function feedWithoutProject(): ScheduledMaintenanceCalendarFeed {
+  return new ScheduledMaintenanceCalendarFeed();
+}
+
 function create(
   data: ScheduledMaintenanceCalendarFeed,
   props: Record<string, unknown> = {},
@@ -91,7 +97,7 @@ function create(
 
 function existingLinks(
   count: number,
-): jest.SpiedFunction<typeof ScheduledMaintenanceCalendarFeedService.countBy> {
+): SpyInstance<typeof ScheduledMaintenanceCalendarFeedService.countBy> {
   return jest
     .spyOn(ScheduledMaintenanceCalendarFeedService, "countBy")
     .mockResolvedValue(new PositiveNumber(count));
@@ -125,13 +131,13 @@ describe("ScheduledMaintenanceCalendarFeedService.onBeforeCreate", () => {
 
     await expect(
       hooks.onBeforeCreate(
-        create(feed({ projectId: undefined }), { tenantId: undefined }),
+        create(feedWithoutProject(), { tenantId: undefined }),
       ),
     ).rejects.toThrow(BadDataException);
 
     const onCreate: OnCreate<ScheduledMaintenanceCalendarFeed> =
       await hooks.onBeforeCreate(
-        create(feed({ projectId: undefined }), { tenantId: OTHER_PROJECT_ID }),
+        create(feedWithoutProject(), { tenantId: OTHER_PROJECT_ID }),
       );
 
     expect(onCreate.createBy.data.projectId).toBe(OTHER_PROJECT_ID);
@@ -172,7 +178,7 @@ describe("ScheduledMaintenanceCalendarFeedService.onBeforeCreate", () => {
 
 describe("ScheduledMaintenanceCalendarFeedService.rotateTokenById", () => {
   test("mints a new token, parks the old hash for the grace period, as root", async () => {
-    const findOneBy: jest.SpiedFunction<
+    const findOneBy: SpyInstance<
       typeof ScheduledMaintenanceCalendarFeedService.findOneBy
     > = jest
       .spyOn(ScheduledMaintenanceCalendarFeedService, "findOneBy")
@@ -180,7 +186,7 @@ describe("ScheduledMaintenanceCalendarFeedService.rotateTokenById", () => {
         id: FEED_ID,
         tokenHash: "old-hash",
       } as unknown as ScheduledMaintenanceCalendarFeed);
-    const updateOneById: jest.SpiedFunction<
+    const updateOneById: SpyInstance<
       typeof ScheduledMaintenanceCalendarFeedService.updateOneById
     > = jest
       .spyOn(ScheduledMaintenanceCalendarFeedService, "updateOneById")
@@ -226,7 +232,7 @@ describe("ScheduledMaintenanceCalendarFeedService.rotateTokenById", () => {
     jest
       .spyOn(ScheduledMaintenanceCalendarFeedService, "findOneBy")
       .mockResolvedValue(null);
-    const updateOneById: jest.SpiedFunction<
+    const updateOneById: SpyInstance<
       typeof ScheduledMaintenanceCalendarFeedService.updateOneById
     > = jest
       .spyOn(ScheduledMaintenanceCalendarFeedService, "updateOneById")

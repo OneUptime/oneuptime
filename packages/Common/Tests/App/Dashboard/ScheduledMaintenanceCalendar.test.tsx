@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -162,12 +163,12 @@ function holdRequests(): Array<Deferred> {
   return held;
 }
 
-let navigateSpy: jest.SpiedFunction<typeof Navigation.navigate>;
-let onSubscribe: jest.Mock<() => void>;
+let navigateSpy: SpyInstance<typeof Navigation.navigate>;
+let onSubscribe: Mock<() => void>;
 
 beforeEach(() => {
   getListMock.mockReset();
-  onSubscribe = jest.fn();
+  onSubscribe = jest.fn<() => void>();
   navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(() => {});
 });
 

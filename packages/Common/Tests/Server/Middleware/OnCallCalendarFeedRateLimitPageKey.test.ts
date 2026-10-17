@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The calendar rate limiter keyed by something other than a token in the
@@ -95,7 +96,7 @@ function buildResponse(): {
   };
 }
 
-let consumeSpy: jest.SpiedFunction<typeof OnCallCalendarFeedRateLimit.consume>;
+let consumeSpy: SpyInstance<typeof OnCallCalendarFeedRateLimit.consume>;
 
 beforeEach(() => {
   consumeSpy = jest

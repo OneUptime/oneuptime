@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -33,6 +34,18 @@ import IconProp from "../../../../Types/Icon/IconProp";
  */
 
 type View = "list" | "calendar";
+
+/*
+ * Storage's string index signature makes @jest/globals type a spy on
+ * Storage.prototype as never; spy through its two methods instead.
+ */
+interface StorageMethods {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+}
+
+const STORAGE_METHODS: StorageMethods =
+  Storage.prototype as unknown as StorageMethods;
 
 const OPTIONS: ReadonlyArray<ViewSwitchOption<View>> = [
   { value: "list", label: "List", icon: IconProp.List },
@@ -91,7 +104,8 @@ describe("ViewSwitch", () => {
   });
 
   test("pressing another view asks for it; pressing the chosen one does nothing", () => {
-    const onChange: jest.Mock<(value: View) => void> = jest.fn();
+    const onChange: Mock<(value: View) => void> =
+      jest.fn<(value: View) => void>();
 
     render(
       <ViewSwitch
@@ -132,10 +146,10 @@ describe("RememberedView", () => {
   test("a browser that will not store it keeps the choice for the session", () => {
     const view: RememberedView<View> = remembered();
 
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    jest.spyOn(STORAGE_METHODS, "setItem").mockImplementation((): never => {
       throw new Error("QuotaExceededError");
     });
-    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    jest.spyOn(STORAGE_METHODS, "getItem").mockImplementation((): never => {
       throw new Error("SecurityError");
     });
 

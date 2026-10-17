@@ -2,6 +2,7 @@
 
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   cleanup,
   fireEvent,
@@ -117,7 +118,8 @@ describe("Calendar: an event's block", () => {
   });
 
   test("a click on the block reaches the caller with its event", () => {
-    const onEventClick: jest.Mock<(event: CalendarEvent) => void> = jest.fn();
+    const onEventClick: Mock<(event: CalendarEvent) => void> =
+      jest.fn<(event: CalendarEvent) => void>();
 
     renderMonth({ onEventClick });
 

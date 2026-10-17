@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../Server/Utils/Logger");
 
@@ -48,6 +49,7 @@ import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMai
 import ScheduledMaintenanceState from "../../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
+import URL from "../../../../Types/API/URL";
 import ObjectID from "../../../../Types/ObjectID";
 import { MAINTENANCE_CALENDAR_MAX_EVENTS } from "../../../../Types/ScheduledMaintenance/MaintenanceCalendar";
 import {
@@ -162,11 +164,11 @@ function operator(value: unknown): { sql: string; values: Array<unknown> } {
   };
 }
 
-let eventsFindBy: jest.SpiedFunction<typeof ScheduledMaintenanceService.findBy>;
-let timelineFindBy: jest.SpiedFunction<
+let eventsFindBy: SpyInstance<typeof ScheduledMaintenanceService.findBy>;
+let timelineFindBy: SpyInstance<
   typeof ScheduledMaintenanceStateTimelineService.findBy
 >;
-let statesSpy: jest.SpiedFunction<
+let statesSpy: SpyInstance<
   typeof ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates
 >;
 
@@ -181,7 +183,7 @@ beforeEach(() => {
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project);
   jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
-    .mockResolvedValue(new URL("https://oneuptime.example.com/dashboard"));
+    .mockResolvedValue(URL.fromString("https://oneuptime.example.com/dashboard"));
 
   eventsFindBy = jest
     .spyOn(ScheduledMaintenanceService, "findBy")
