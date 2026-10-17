@@ -1,7 +1,9 @@
 /*
- * Shared dashboard theme tokens (Dashboard + Admin Dashboard). Light is
- * intentionally the default; the dark values are activated only by the
- * explicit class applied to <html>.
+ * Shared dashboard theme tokens (Dashboard + Admin Dashboard), and the
+ * public status page's dark theme. Light is intentionally the default; the
+ * dark values are activated only by the explicit class applied to <html>:
+ * by the reader's own pick in the dashboards, and by the page's Theme
+ * setting on a status page (Common/Types/StatusPage/StatusPageTheme.ts).
  */
 :root {
   color-scheme: light;
@@ -186,7 +188,7 @@ html.dark :is(.bg-gray-200, .bg-slate-200) {
   background-color: var(--ou-surface-quaternary);
 }
 
-html.dark [class~="bg-gray-200/70"] {
+html.dark :is([class~="bg-gray-200/70"], [class~="bg-gray-200/80"]) {
   background-color: color-mix(
     in srgb,
     var(--ou-surface-quaternary) 82%,
@@ -533,7 +535,8 @@ html.dark :is(
     .to-gray-50,
     .to-gray-100,
     .to-slate-50,
-    [class~="to-gray-50/50"]
+    [class~="to-gray-50/50"],
+    [class~="to-gray-50/80"]
   ) {
   --tw-gradient-to: var(--ou-surface-secondary)
     var(--tw-gradient-to-position);
@@ -1465,6 +1468,45 @@ html.dark svg :is([fill="#94a3b8"], [fill="#6b7280"]) {
 html.dark :fullscreen,
 html.dark :fullscreen::backdrop {
   background-color: var(--ou-background-primary);
+}
+
+/*
+ * Status colours (Common/UI/Utils/StatusColorStyle). People pick them for a
+ * light page, and on a dark card the darkest of them all but vanish. Text in
+ * a status colour - a status's name, an uptime percentage, a group's rollup
+ * - takes the nearest lighter shade of it that reads at 4.5:1 on the dark
+ * card, which the element carries as a custom property. Important, because
+ * what it replaces is an inline style.
+ */
+html.dark [data-ou-status-text] {
+  color: var(--ou-status-text-dark) !important;
+}
+
+/*
+ * An uptime bar keeps its colour exactly as picked: the recommended colours
+ * are told apart by lightness, for people with red-green colour blindness,
+ * and a lighter red would look like the orange beside it. A bar too dark to
+ * stand out from the dark card (the very dark red of a long outage) gets a
+ * one-pixel edge inside it, in a lighter shade of its own colour that does.
+ */
+html.dark [data-ou-bar-edge] {
+  box-shadow: inset 0 0 0 1px var(--ou-bar-edge-dark);
+}
+
+/*
+ * A status page's logo, on a page that follows each visitor's device
+ * (StatusPage/src/Components/Logo/LogoPlate). That one logo is also the
+ * light page's, so it is made for a light background - dark lettering on
+ * nothing, as often as not - and on the dark page it sits on a small light
+ * backdrop, where it reads as it does on the light page.
+ */
+html.dark [data-ou-logo-plate] {
+  background-color: #f8fafc;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  box-shadow:
+    0 0 0 1px rgb(148 163 184 / 24%),
+    0 1px 2px rgb(0 0 0 / 30%);
 }
 
 /*

@@ -5,6 +5,9 @@ import { getPoweredByLink } from "Common/UI/Utils/ProductBranding";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
+import ThemeSwitch from "../ThemeSwitch/ThemeSwitch";
+import { useStatusPageTheme } from "../../Utils/StatusPageTheme";
+import { doesStatusPageThemeFollowDevice } from "Common/Types/StatusPage/StatusPageTheme";
 
 export interface ComponentProps {
   copyright?: string | undefined;
@@ -20,6 +23,7 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
+  const { theme } = useStatusPageTheme();
   const links: Array<FooterLink> = [...props.links];
 
   if (!props.hidePoweredByOneUptimeBranding) {
@@ -49,6 +53,16 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
       <LanguageSwitcher enabledLanguages={props.enabledLanguages || null} />
     ),
   });
+
+  /*
+   * The visitor's light / dark switch, only on a page that follows their
+   * device: a Light or Dark page's footer is as it was, with no empty slot.
+   */
+  if (doesStatusPageThemeFollowDevice(theme)) {
+    links.push({
+      content: <ThemeSwitch />,
+    });
+  }
 
   return (
     <Footer

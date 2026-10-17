@@ -22,6 +22,10 @@
     "label": "भाषा",
     "switchLanguage": "भाषा बदलें"
   },
+  "theme": {
+    "switchToDark": "गहरे रंग वाली थीम पर जाएं",
+    "switchToLight": "हल्के रंग वाली थीम पर जाएं"
+  },
   "nav": {
     "overview": "अवलोकन",
     "incidents": "घटनाएँ",
