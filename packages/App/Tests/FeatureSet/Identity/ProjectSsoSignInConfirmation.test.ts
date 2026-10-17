@@ -18,14 +18,20 @@ import ProjectSsoSignInConfirmation, {
   ProjectSsoKind,
 } from "../../../FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation";
 import {
+  SSO_NO_ROOM_MESSAGE,
+  SSO_NO_ROOM_TITLE,
+} from "../../../FeatureSet/Identity/Utils/SsoTeamMembership";
+import {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   RequestHandler,
 } from "Common/Server/Utils/Express";
+import Errors from "Common/Server/Utils/Errors";
 import User from "Common/Models/DatabaseModels/User";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -1510,6 +1516,116 @@ describe("POST the confirmation -- a good link", () => {
 
     expect(spendOrder).toBeLessThan(membershipOrder);
     expect(membershipOrder).toBeLessThan(verifyOrder);
+  });
+});
+
+/*
+ * The newcomer takes a seat in the project like anyone invited
+ * (SsoTeamMembership). A project with no room for one more person adds
+ * them to none of its teams, and the page says so in words for them -
+ * not the inviter's refusal as an error. Nothing more is written: no
+ * consent (so their next sign-in asks again, once there is room), no
+ * verified address, no permissions.
+ */
+describe("POST the confirmation -- a project with no room for the newcomer", () => {
+  beforeEach(() => {
+    tokenFindOneBy.mockResolvedValue(liveToken());
+    storeUser({ isEmailVerified: false });
+  });
+
+  test.each([
+    ["every seat of its plan taken", Errors.TeamMemberService.LIMIT_REACHED],
+    [
+      "the Free plan's one person there already",
+      Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+    ],
+  ])(
+    "%s: a page saying so, and nothing more written",
+    async (_label: string, refusal: string) => {
+      teamMemberCreate.mockRejectedValue(new BadDataException(refusal));
+
+      const result: RunResult = await pressConfirm({ params: linkParams() });
+
+      expect(result.nextError).toBeUndefined();
+
+      const { view, vars } = renderedPage();
+
+      expect(view).toBe(SSO_SIGN_IN_CONFIRMATION_VIEW);
+      expect(vars["title"]).toBe(SSO_NO_ROOM_TITLE);
+      expect(vars["message"]).toBe(SSO_NO_ROOM_MESSAGE);
+      expect(vars["linkUrl"]).toBeUndefined();
+      expect(vars["enableGoogleTagManager"]).toBe(false);
+
+      // The first team refused them: the second is never asked.
+      expect(teamMemberCreate).toHaveBeenCalledTimes(1);
+
+      expect(recordConsent).not.toHaveBeenCalled();
+      expect(userUpdateOneById).not.toHaveBeenCalled();
+      expect(refreshUserAllPermissions).not.toHaveBeenCalled();
+      expect(createSession).not.toHaveBeenCalled();
+      expect(setUserCookie).not.toHaveBeenCalled();
+    },
+  );
+
+  test("an OIDC provider's confirmation is answered the same way", async () => {
+    teamMemberCreate.mockRejectedValue(
+      new BadDataException(Errors.TeamMemberService.LIMIT_REACHED),
+    );
+
+    await pressConfirm({ params: linkParams({ kind: ProjectSsoKind.OIDC }) });
+
+    expect(renderedPage().vars["title"]).toBe(SSO_NO_ROOM_TITLE);
+    expect(recordConsent).not.toHaveBeenCalled();
+  });
+
+  test("confirm answers NoRoom", async () => {
+    teamMemberCreate.mockRejectedValue(
+      new BadDataException(Errors.TeamMemberService.LIMIT_REACHED),
+    );
+
+    const params: LinkParams = linkParams();
+    const result: ProjectSsoConfirmationResult =
+      await ProjectSsoSignInConfirmation.confirm({
+        token: TOKEN,
+        signature: signatureFor(params),
+        kind: params.kind,
+        projectId: params.projectId,
+        providerId: params.providerId,
+      });
+
+    expect(result).toEqual({ outcome: ProjectSsoConfirmationOutcome.NoRoom });
+  });
+
+  test("with room again, a later confirmation adds them as before", async () => {
+    teamMemberCreate.mockRejectedValueOnce(
+      new BadDataException(Errors.TeamMemberService.LIMIT_REACHED),
+    );
+
+    await pressConfirm({ params: linkParams() });
+    expect(recordConsent).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    tokenFindOneBy.mockResolvedValue(liveToken());
+    tokenDeleteOneBy.mockResolvedValue(1);
+    teamMemberCountBy.mockResolvedValue(new PositiveNumber(0));
+    teamMemberCreate.mockResolvedValue({});
+
+    await pressConfirm({ params: linkParams() });
+
+    expect(teamMemberCreate).toHaveBeenCalledTimes(2);
+    expect(recordConsent).toHaveBeenCalledTimes(1);
+    expect(renderedPage().vars["title"]).toBe("Single sign-on confirmed.");
+  });
+
+  test("anything else that goes wrong adding them is still an error", async () => {
+    const failure: BadDataException = new BadDataException("Invalid Team ID");
+    teamMemberCreate.mockRejectedValue(failure);
+
+    const result: RunResult = await pressConfirm({ params: linkParams() });
+
+    expect(result.nextError).toBe(failure);
+    expect(render).not.toHaveBeenCalled();
+    expect(recordConsent).not.toHaveBeenCalled();
   });
 });
 

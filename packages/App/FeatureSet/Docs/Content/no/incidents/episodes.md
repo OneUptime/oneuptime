@@ -9,7 +9,7 @@ Alt på denne siden fungerer på samme måte for varselepisoder: les «varsel» 
 Åpne episoden, velg **Medlemshendelser** i sidemenyen (`/dashboard/{projectId}/incidents/episodes/{episodeId}/incidents`), og klikk **Legg til hendelser**. Dialogen viser de 50 nyeste hendelsene du kan se og som ennå ikke er i episoden, hver med nummer, tittel, status og alvorlighetsgrad. Søk etter tittel eller nummer for å finne en eldre: `INC-42`, `42` og `#42` finner alle hendelse 42.
 
 - Huk av så mange du trenger, opptil 100 om gangen. Knappen teller dem: **Legg til 3 Hendelser**.
-- En hendelse som allerede er i en annen episode, sier det under tittelen sin, med nummeret til den episoden. Legger du den til her, blir den værende der også: en hendelse kan være i mer enn én episode.
+- En hendelse som allerede er i en annen episode, sier det under tittelen sin, med nummeret til den episoden. Legger du den til her, blir den værende der også: en hendelse kan være i mer enn én episode. I et prosjekt der en hendelse bare kan være i én episode, kan den ikke velges: se [Én episode per hendelse](#én-episode-per-hendelse).
 - Kan noen ikke legges til, forblir dialogen åpen og viser dem med årsaken; resten legges til.
 
 ## Legge til hendelser fra hendelseslistene
@@ -34,6 +34,20 @@ Begge tar opptil 100 valgte hendelser. Resultatet sier hvor mange som ble lagt t
 ## Ta ut en hendelse
 
 Under **Medlemshendelser** tar **Fjern** på en rad, eller på de valgte radene fra **Massehandlinger**, hendelsen ut av bare denne episoden. Selve hendelsen slettes ikke, og den blir værende i alle andre episoder den er i.
+
+## Én episode per hendelse
+
+En hendelse kan være i flere episoder samtidig. For å holde hver hendelse i høyst én episode slår du på **En hendelse kan bare være i én episode** under **Hendelser → Innstillinger → Medlemskap i episoder**. For varsler heter bryteren **Et varsel kan bare være i én episode**, under **Varsler → Innstillinger → Medlemskap i episoder**. Begge er slått av til du slår dem på, og bare Project Owners og Project Admins kan endre dem.
+
+Så lenge den er slått på, blir en hendelse som er i en episode, ikke lagt til i noen annen:
+
+- **Legg til hendelser** viser bare hendelsene som ikke er i noen episode. Et søk finner også de andre, men en hendelse som er i en annen episode, kan ikke krysses av, og sier det.
+- **Legg til i eksisterende episode** sier hvor mange av de valgte hendelsene som er i en annen episode, og legger bare til resten. Er alle allerede i en episode, sier dialogen at det ikke er noe å legge til.
+- **Legg til i ny episode** utelater de valgte hendelsene som allerede er i en episode, og sier hvor mange. Gjelder det alle, sier den at det ikke er noe å legge til.
+- **Grupperingsregler** lar en hendelse som allerede er i en episode, bli der den er.
+- **API-et, arbeidsflyter og Terraform** følger samme regel: å legge til en hendelse som er i en annen episode, avvises med begrunnelsen.
+
+Å slå den på tar ingen hendelse ut av en episode: en hendelse som allerede er i flere, blir værende i dem. For å flytte en hendelse tar du den ut med **Fjern** på siden **Medlemshendelser** i episoden dens, og legger den deretter til i den andre episoden.
 
 ## Hvem kan legge til
 
@@ -67,5 +81,7 @@ Svaret nevner hver hendelse som ble sendt, nøyaktig én gang: lagt til, allered
   ]
 }
 ```
+
+I et prosjekt der en hendelse bare kan være i én episode, kommer en hendelse som er i en annen episode, tilbake under `notAdded` med `Already in another episode. An incident can be in only one episode in this project.` som begrunnelse.
 
 For varsler sender du `alertEpisodeId` og `alertIds` til `/api/alert-episode-member/add-alerts`. For å opprette en episode med hendelser i sender du ID-ene deres med forespørselen som oppretter episoden, `POST /api/incident-episode`, som `{ "data": { "title": "Checkout outage" }, "miscDataProps": { "incidentIdsToAdd": ["<incident id>"] } }`; for en varselepisode `POST /api/alert-episode` med `alertIdsToAdd`. Kan en av dem ikke legges til, opprettes ingen episode.

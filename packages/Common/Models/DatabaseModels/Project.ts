@@ -2280,6 +2280,80 @@ export default class Project extends TenantModel {
   })
   public resolveLinkedAlertsWhenIncidentResolved?: boolean = undefined;
 
+  /*
+   * Whether an incident can be in only one incident episode (Incidents ->
+   * Settings -> Episode Membership). Off by default: an incident can be in
+   * several, as it always could. On, every way an incident joins an episode refuses one
+   * that is in another episode already - an episode's Add Incidents, the
+   * lists' Add to Existing / New Episode, the API, workflows, Terraform and
+   * the grouping rules (Common/Types/Episode/EpisodeSingleMembership). It
+   * removes nobody from an episode: an incident that was in several before
+   * stays in them.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Limit Incidents to One Episode",
+    description:
+      "When enabled, an incident can be in only one incident episode: adding an incident that is already in an episode to another one is refused, by hand, through the API, workflows and grouping rules alike. Remove it from its episode first to move it. Incidents that are already in several episodes stay in them. Off by default.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public limitIncidentsToOneEpisode?: boolean = undefined;
+
+  /*
+   * The same for alerts and alert episodes (Alerts -> Settings -> Episode
+   * Membership).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Limit Alerts to One Episode",
+    description:
+      "When enabled, an alert can be in only one alert episode: adding an alert that is already in an episode to another one is refused, by hand, through the API, workflows and grouping rules alike. Remove it from its episode first to move it. Alerts that are already in several episodes stay in them. Off by default.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public limitAlertsToOneEpisode?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [

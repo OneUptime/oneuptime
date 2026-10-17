@@ -57,7 +57,7 @@ Under **Grundläggande information** anger du ett **Namn**, till exempel "Starta
 
 ### Lägg till villkor
 
-Under **Matchningskriterier** klickar du på **Lägg till villkor**, väljer ett kriterium och en operator och skriver in eller väljer värdet. Lägg till fler villkor om du behöver och välj **Matcha alla** eller **Matcha något**. Lägg inte till några för att starta runbooks vid varje ny händelse av det här slaget.
+Under **Matchningskriterier** börjar **Gäller för** på varje ny händelse av det här slaget, till exempel **Alla incidenter**, och regeln startar sina runbooks för var och en. För att snäva in regeln väljer du det andra svaret, till exempel **Endast incidenter som uppfyller villkoren**, och sedan ett kriterium och en operator, och du skriver in eller väljer värdet. Klicka på **Lägg till villkor** för fler villkor och välj **Matcha alla** eller **Matcha något**.
 
 ### Välj runbooks
 
@@ -71,7 +71,7 @@ Under **Runbooks** väljer du ett eller flera **Runbooks att starta** och klicka
 | **Namn** | En kort, läsbar etikett för regeln. |
 | **Beskrivning** | Valfri kontext för kolleger. |
 | **Aktiverad** | Påslagen för en ny regel. Stäng av den i regelns redigeringsformulär för att pausa den utan att ta bort den. |
-| **Villkor** | Vad regeln matchar, i steget **Matchningskriterier**. Lämna tomt för att matcha varje händelse av dess typ. |
+| **Villkor** | Vad regeln matchar, i steget **Matchningskriterier**. En regel utan villkor, till exempel på **Alla incidenter**, matchar varje händelse av dess typ. |
 | **Runbooks att starta** | Ett eller flera runbooks som startas när regeln utlöses. |
 
 ## Villkor

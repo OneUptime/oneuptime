@@ -57,7 +57,7 @@ Geben Sie unter **Grundinformationen** einen **Name** ein, etwa „DB-Failover f
 
 ### Bedingungen hinzufügen
 
-Klicken Sie unter **Übereinstimmungskriterien** auf **Bedingung hinzufügen**, wählen Sie ein Kriterium und einen Operator und geben Sie den Wert ein oder wählen Sie ihn aus. Fügen Sie bei Bedarf weitere Bedingungen hinzu und wählen Sie **Alle müssen zutreffen** oder **Eine muss zutreffen**. Fügen Sie keine hinzu, um die Runbooks für jedes neue Ereignis dieser Art zu starten.
+Unter **Übereinstimmungskriterien** steht **Gilt für** bei einer neuen Regel auf allen neuen Ereignissen dieser Art, etwa **Alle Vorfälle**, und die Regel startet ihre Runbooks für jedes davon. Um sie einzugrenzen, wählen Sie die andere Antwort, etwa **Nur Vorfälle, die den Bedingungen entsprechen**, dann ein Kriterium und einen Operator, und geben den Wert ein oder wählen ihn aus. Klicken Sie für weitere Bedingungen auf **Bedingung hinzufügen** und wählen Sie **Alle müssen zutreffen** oder **Eine muss zutreffen**.
 
 ### Die Runbooks wählen
 
@@ -71,7 +71,7 @@ Wählen Sie unter **Runbooks** ein oder mehrere **Zu startende Runbooks** und kl
 | **Name** | Eine kurze, verständliche Bezeichnung für die Regel. |
 | **Beschreibung** | Optionaler Kontext für Teammitglieder. |
 | **Aktiviert** | An für eine neue Regel. Schalten Sie es im Bearbeitungsformular der Regel aus, um sie auszusetzen, ohne sie zu löschen. |
-| **Bedingungen** | Was die Regel abgleicht, im Schritt **Übereinstimmungskriterien**. Lassen Sie sie leer, um jedes Ereignis ihres Typs abzugleichen. |
+| **Bedingungen** | Was die Regel abgleicht, im Schritt **Übereinstimmungskriterien**. Eine Regel ohne Bedingungen, etwa auf **Alle Vorfälle**, trifft auf jedes Ereignis ihres Typs zu. |
 | **Zu startende Runbooks** | Ein oder mehrere Runbooks, die starten, wenn die Regel greift. |
 
 ## Bedingungen

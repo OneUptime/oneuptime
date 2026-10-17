@@ -6,7 +6,7 @@ La configurazione degli avvisi sta dentro **Avvisi**, non nelle **Impostazioni d
 - [Le regole che un nuovo avviso attraversa](#le-regole-che-un-nuovo-avviso-attraversa): In ordine, e che cosa fa ciascuna.
 - [Regole di reperibilità](#regole-di-reperibilità): Chiamare le persone giuste senza scegliere una policy ogni volta.
 - [Regole di promemoria](#regole-di-promemoria): Ricordare ai proprietari un avviso finché resta aperto.
-- [Impostazioni](#impostazioni): Modelli di note, campi personalizzati, misurazioni e numerazione.
+- [Impostazioni](#impostazioni): Modelli di note, campi personalizzati, misurazioni, appartenenza agli episodi e numerazione.
 :::
 
 ## Dove si trovano le impostazioni degli avvisi
@@ -23,7 +23,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. Le sezioni **Rego
 | **Regole etichette**           | Aggiunge etichette agli avvisi e agli episodi corrispondenti.                                  |
 | **Reminder Rules**             | Ricorda ai proprietari, a intervalli, un avviso finché è aperto.                               |
 
-La sezione **Impostazioni** contiene **Stato avviso** e **Gravità avviso**, trattati in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni** e **Numerazione**, trattati più sotto.
+La sezione **Impostazioni** contiene **Stato avviso** e **Gravità avviso**, trattati in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi** e **Numerazione**, trattati più sotto.
 
 Altre due sezioni agiscono sugli avvisi. **Avvisi → IA → Impostazioni** decide che cosa fa OneUptime AI da solo: **Indaga sui nuovi avvisi**, attivo nei nuovi progetti, e **Correggi automaticamente i nuovi avvisi**, disattivato finché non lo attivate. Vedere [AI SRE](/docs/ai/ai-sre). **Avvisi → Area di lavoro** contiene le regole di Slack e Microsoft Teams che pubblicano avvisi ed episodi nei canali, e la sua scheda **Summary**. Vedere [Slack](/docs/workspace-connections/slack).
 
@@ -83,7 +83,7 @@ Fate clic su **Crea: Alert On-Call Rule**. In **Informazioni di base**, dategli 
 
 ### Scegliere gli avvisi
 
-In **Criteri di corrispondenza**, aggiungete le condizioni che un avviso deve soddisfare. Lasciatele vuote per corrispondere a ogni nuovo avviso.
+In **Criteri di corrispondenza**, **Tutti gli avvisi**, da cui parte una nuova regola, corrisponde a ogni nuovo avviso. Per restringerla, scegliete **Solo gli avvisi che soddisfano le condizioni** e aggiungete le condizioni che un avviso deve soddisfare.
 
 ### Scegliere le policy
 
@@ -119,7 +119,7 @@ Fate clic su **Crea: Alert Reminder Rule**. In **Rule Info**, dategli un **Nome*
 
 ### Scegliere gli avvisi da ricordare
 
-In **Criteri di corrispondenza**, scegliete le **Avviso Gravità** e le **Etichette** a cui si applica. Lasciatele vuote per ricordare ogni avviso.
+In **Criteri di corrispondenza**, lasciate selezionato **Tutti gli avvisi** per ricordare ogni avviso, oppure scegliete **Solo gli avvisi che soddisfano le condizioni** e poi le **Avviso Gravità** e le **Etichette** a cui si applica.
 
 ### Impostare l'intervallo
 
@@ -141,6 +141,10 @@ I proprietari ricevono ogni promemoria come **Alert reminder**, attivo via e-mai
 ### Misurazioni
 
 **Avvisi → Impostazioni → Misurazioni** misura quanto tempo richiedono le cose su ogni avviso. Scegliete **Tempo di riconoscimento** o **Tempo di risoluzione**, o due momenti vostri, come quando **L'avviso viene creato** e quando entra in uno stato che scegliete. Ogni misurazione è mostrata nella pagina dell'avviso e riportata nei grafici come `oneuptime.alert.measurement.<key>`. Vedere [Misurazioni](/docs/incidents/settings#misurazioni), che funziona allo stesso modo per gli avvisi.
+
+### Appartenenza agli episodi
+
+**Avvisi → Impostazioni → Appartenenza agli episodi** decide se un avviso può far parte di più di un episodio. Attivate **Un avviso può far parte di un solo episodio** e un avviso che fa parte di un episodio non viene aggiunto a nessun altro, né dalla dashboard né tramite l'API, un flusso di lavoro o una regola di raggruppamento, se prima non viene tolto da quell'episodio. È disattivato finché non lo attivate, e solo i Project Owners e i Project Admins possono cambiarlo. Attivarlo non toglie nessun avviso da un episodio. Vedere [Un solo episodio per incidente](/docs/incidents/episodes#un-solo-episodio-per-incidente), che funziona allo stesso modo per gli avvisi.
 
 ### Numerazione
 

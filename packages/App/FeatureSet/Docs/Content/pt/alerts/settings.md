@@ -6,7 +6,7 @@ A configuração dos alertas fica dentro de **Alertas**, não em **Configuraçõ
 - [As regras pelas quais um novo alerta passa](#as-regras-pelas-quais-um-novo-alerta-passa): Em ordem, e o que cada uma faz.
 - [Regras de plantão](#regras-de-plantão): Acione as pessoas certas sem escolher uma política a cada vez.
 - [Regras de lembrete](#regras-de-lembrete): Lembre os proprietários enquanto um alerta continua aberto.
-- [Configurações](#configurações): Modelos de notas, campos personalizados, medições e numeração.
+- [Configurações](#configurações): Modelos de notas, campos personalizados, medições, participação em episódios e numeração.
 :::
 
 ## Onde ficam as configurações de alertas
@@ -23,7 +23,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. As seções **Regras** 
 | **Regras de Rótulos**        | Adiciona rótulos aos alertas e episódios correspondentes.                                      |
 | **Reminder Rules**           | Lembra os proprietários em intervalos enquanto um alerta está aberto.                          |
 
-A seção **Configurações** contém **Estado do alerta** e **Severidade do alerta**, tratados em [Estados e severidades de alertas](/docs/alerts/states-and-severities), e depois **Modelos de notas**, **Campos personalizados**, **Medições** e **Numeração**, tratados abaixo.
+A seção **Configurações** contém **Estado do alerta** e **Severidade do alerta**, tratados em [Estados e severidades de alertas](/docs/alerts/states-and-severities), e depois **Modelos de notas**, **Campos personalizados**, **Medições**, **Participação em episódios** e **Numeração**, tratados abaixo.
 
 Outras duas seções atuam sobre os alertas. **Alertas → IA → Configurações** decide o que o OneUptime AI faz por conta própria: **Investigar novos alertas**, ativado em projetos novos, e **Corrigir novos alertas automaticamente**, desativado até você ativá-lo. Veja [AI SRE](/docs/ai/ai-sre). **Alertas → Espaço de trabalho** contém as regras do Slack e do Microsoft Teams que publicam alertas e episódios em canais, e sua aba **Summary**. Veja [Slack](/docs/workspace-connections/slack).
 
@@ -83,7 +83,7 @@ Clique em **Criar: Alert On-Call Rule**. Em **Informações básicas**, dê a el
 
 ### Escolher os alertas
 
-Em **Critérios de Correspondência**, adicione as condições que um alerta precisa atender. Deixe-as vazias para corresponder a todo alerta novo.
+Em **Critérios de Correspondência**, **Todos os alertas**, onde uma regra nova começa, corresponde a todo alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione as condições que um alerta precisa atender.
 
 ### Escolher as políticas
 
@@ -119,7 +119,7 @@ Clique em **Criar: Alert Reminder Rule**. Em **Rule Info**, dê a ela um **Nome*
 
 ### Escolher sobre quais alertas lembrar
 
-Em **Critérios de Correspondência**, escolha as **Alerta Severidades** e os **Rótulos** aos quais ela se aplica. Deixe-os vazios para lembrar sobre todo alerta.
+Em **Critérios de Correspondência**, deixe **Todos os alertas** selecionado para lembrar sobre todo alerta, ou escolha **Somente os alertas que atendem às condições** e depois as **Alerta Severidades** e os **Rótulos** aos quais ela se aplica.
 
 ### Definir o intervalo
 
@@ -141,6 +141,10 @@ Os proprietários recebem cada lembrete como **Alert reminder**, que fica ativad
 ### Medições
 
 **Alertas → Configurações → Medições** mede quanto tempo as coisas levam em cada alerta. Escolha **Tempo até a confirmação** ou **Tempo até a resolução**, ou dois momentos seus, como quando **O alerta é criado** e quando ele entra em um estado que você escolher. Cada medição aparece na página do alerta e nos gráficos como `oneuptime.alert.measurement.<key>`. Veja [Medições](/docs/incidents/settings#medições), que funciona da mesma forma para alertas.
+
+### Participação em episódios
+
+**Alertas → Configurações → Participação em episódios** decide se um alerta pode estar em mais de um episódio. Ative **Um alerta só pode estar em um episódio** e um alerta que está em um episódio não é adicionado a nenhum outro, nem pelo painel, nem pela API, por um fluxo de trabalho ou por uma regra de agrupamento, até ser tirado desse episódio. Ele fica desativado até você ativá-lo, e só Project Owners e Project Admins podem alterá-lo. Ativá-lo não tira nenhum alerta de um episódio. Veja [Um só episódio por incidente](/docs/incidents/episodes#um-só-episódio-por-incidente), que funciona da mesma forma para alertas.
 
 ### Numeração
 

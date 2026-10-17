@@ -40,6 +40,11 @@ const SOURCE_PATHS: Array<string> = [
   path.join(EPISODE_MEMBERS_DIR, "AddEpisodeMembersModal.tsx"),
   path.join(EPISODE_MEMBERS_DIR, "AddToExistingEpisodeModal.tsx"),
   path.join(EPISODE_MEMBERS_DIR, "AddToNewEpisodeModal.tsx"),
+  /*
+   * What the lists' two dialogs draw instead, in a project that allows one
+   * in only one episode, when every selected one is in an episode already.
+   */
+  path.join(EPISODE_MEMBERS_DIR, "NothingToAddToEpisode.tsx"),
   path.join(EPISODE_MEMBERS_DIR, "BulkAddToEpisodeActions.tsx"),
   path.join(DASHBOARD_DIR, "Pages", "Alerts", "EpisodeView", "Alerts.tsx"),
   path.join(
@@ -289,6 +294,10 @@ describe("the episode add dialogs in the dark theme", () => {
     // The note on what adding to the episode picked will do.
     expect(colorTokensOf(codeOf("AddToExistingEpisodeModal.tsx"))).toEqual(
       expect.arrayContaining(["bg-gray-50", "text-gray-600", "text-gray-400"]),
+    );
+    // Nothing to add: the icon's disc, its title and why.
+    expect(colorTokensOf(codeOf("NothingToAddToEpisode.tsx"))).toEqual(
+      expect.arrayContaining(["bg-gray-100", "text-gray-500", "text-gray-900"]),
     );
     // The link to the episode under the result.
     expect(colorTokensOf(codeOf("BulkAddToEpisodeActions.tsx"))).toEqual(

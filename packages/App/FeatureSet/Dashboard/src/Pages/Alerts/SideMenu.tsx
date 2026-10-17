@@ -280,6 +280,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Clock,
         },
+        /*
+         * Whether an alert can be in only one episode. Drawn with the icon
+         * this menu draws alert episodes with (All Episodes above).
+         */
+        {
+          link: {
+            title: "Episode Membership",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP] as Route,
+            ),
+          },
+          icon: IconProp.SquareStack,
+        },
         // How alert and episode numbers look (ALT-42) and which comes next.
         {
           link: {

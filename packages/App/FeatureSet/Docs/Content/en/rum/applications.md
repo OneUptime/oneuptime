@@ -86,7 +86,7 @@ This adds the labels `team:payments` and `env:production`, and creates them in t
 
 A rule adds labels or owners to every new application it matches. Open **Real User Monitoring → Settings → Label Rules**, or **Owner Rules**, and create the rule in two steps:
 
-1. On **Match**, add conditions on **Application Labels** (has any, all or none of the labels you pick), **Application Name** or **Application Description** (equals, contains, starts with, ends with, or matches a pattern). A rule with no conditions matches every application.
+1. On **Match**, **All RUM applications**, where a new rule starts, matches every application. To narrow it down, pick **Only RUM applications that match conditions** and add conditions on **Application Labels** (has any, all or none of the labels you pick), **Application Name** or **Application Description** (equals, contains, starts with, ends with, or matches a pattern).
 2. On **Labels**, or **Owners** for an owner rule, pick what the rule adds. A new rule has to add at least one label or owner. The **Name** is filled in from your picks, such as _Add team:payments_ or _Add Payments as owners_, until you type a name of your own. The **Description**, and **Notify Owners** on an owner rule, wait under **More fields**.
 
 Rules run when an application is created, discovered ones included. To apply a rule to the applications you already have, open the **⋯** menu on its row and select **Run Now**: see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). A rule an edit left with nothing to add is marked **Adds nothing** in the list. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) covers the forms in full.

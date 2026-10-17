@@ -821,8 +821,32 @@ describe.each(KINDS)(
 
       expect(recordRead).not.toHaveBeenCalled();
       expect(episodeRead).not.toHaveBeenCalled();
-      // The duplicate check still runs, as root.
-      expect(duplicateCheck).toHaveBeenCalledTimes(1);
+      /*
+       * The duplicate check still runs, as root - then the look for another
+       * episode the record is in, which a project that allows one in only
+       * one refuses (EpisodeSingleMembership), as root too. It found none,
+       * so neither end was read for a refusal.
+       */
+      expect(duplicateCheck).toHaveBeenCalledTimes(2);
+
+      const [duplicateQuery, membershipQuery] = duplicateCheck.mock.calls.map(
+        (call: Array<unknown>): Record<string, unknown> => {
+          return (call[0] as { query: Record<string, unknown> }).query;
+        },
+      );
+
+      expect(Object.keys(duplicateQuery || {}).sort()).toEqual(
+        [kind.episodeIdColumn, kind.recordIdColumn].sort(),
+      );
+      expect(Object.keys(membershipQuery || {}).sort()).toEqual(
+        ["projectId", kind.recordIdColumn].sort(),
+      );
+
+      for (const call of duplicateCheck.mock.calls) {
+        expect((call[0] as { props: unknown }).props).toEqual({
+          isRoot: true,
+        });
+      }
     });
   },
 );

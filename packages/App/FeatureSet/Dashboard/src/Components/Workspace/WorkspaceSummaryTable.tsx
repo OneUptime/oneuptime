@@ -27,6 +27,7 @@ import NotificationRuleCondition, {
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleConditions from "./NotificationRuleForm/NotificationRuleConditions";
+import { NOTIFICATION_RULE_CONDITIONS_TITLES } from "./NotificationRuleForm/NotificationRuleCopy";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
@@ -679,8 +680,17 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             field: {
               filters: true,
             },
-            title: "Filter Conditions",
-            description: `Only include ${typeLabel.toLowerCase()}s that match these conditions. Leave empty to include all.`,
+            /*
+             * Which records the summary includes, asked as a workspace
+             * rule's conditions are: "All incidents" or "Only incidents that
+             * match conditions" (NotificationRuleConditions), under the
+             * rule form's own heading. It said "Leave empty to include
+             * all." over an Add Condition button.
+             */
+            title: NOTIFICATION_RULE_CONDITIONS_TITLES[eventType],
+            sectionTitle: NOTIFICATION_RULE_CONDITIONS_TITLES[eventType],
+            customElementDrawsOwnLabel: true,
+            hideOptionalLabel: true,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             stepId: "filters",

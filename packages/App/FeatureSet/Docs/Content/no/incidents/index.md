@@ -157,7 +157,7 @@ Rediger eller legg til alvorlighetsgrader under **Hendelser → Innstillinger �
 | **KI**        | **Innsikt**, **Logger**, **Innstillinger**: hva OneUptime AI har lært av hendelsene dine og alt den har gjort for dem, og hva den kan gjøre på egen hånd — med reglene for hvilke hendelser den undersøker og retter. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbeidsområde** | Chatarbeidsområdene prosjektet har koblet til: **Slack**, **Microsoft Teams** eller begge, hver med sine varselregler for hendelser. Er ingen av dem koblet til, inneholder den **Koble til Slack eller Teams**, en side som viser begge og hvordan de kobles til. |
 | **Regler**    | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
-| **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Målinger**, **Tilknyttede varsler**, **Nummerering**. |
+| **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Målinger**, **Tilknyttede varsler**, **Medlemskap i episoder**, **Nummerering**. |
 
 **Oversikt** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** er brettet sammen som standard, slik at menyen åpner på listene du bruker hver dag. Klikk på tittelen til en seksjon for å brette den ut og finne sidene resten av denne dokumentasjonen viser til; en seksjon åpner seg også av seg selv når du er på en av sidene i den. Konfigurasjonen av hendelser ligger ikke under prosjektinnstillingene; den ligger helt her.
 

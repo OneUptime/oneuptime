@@ -73,7 +73,7 @@ Cliquez sur **Créer : Règle de rappel des maintenances planifiées**. Dans **R
 
 ### Choisir les événements concernés
 
-Dans **Critères de correspondance**, choisissez les **Étiquettes** auxquelles elle s'applique. Laissez-les vides pour faire des rappels sur chaque événement.
+Dans **Critères de correspondance**, laissez **Tous les événements de maintenance planifiée** sélectionné pour faire des rappels sur chaque événement, ou choisissez **Uniquement les événements de maintenance planifiée qui correspondent aux conditions** puis les **Étiquettes** auxquelles elle s'applique.
 
 ### Régler l'intervalle
 

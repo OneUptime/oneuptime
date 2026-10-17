@@ -400,7 +400,8 @@ describe("the sentences that say what a rule does", () => {
     const maps: Array<Readonly<Record<NotificationRuleEventType, string>>> = [
       Copy.NOTIFICATION_RULE_CONDITIONS_TITLES,
       Copy.NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS,
-      Copy.NO_CONDITIONS_YET_SENTENCES,
+      Copy.APPLIES_TO_ALL_ANSWERS,
+      Copy.APPLIES_TO_MATCHING_ANSWERS,
       Copy.NOTIFICATION_RULES_CARD_DESCRIPTIONS,
       Copy.CREATE_CHANNEL_TITLES,
       Copy.CREATE_CHANNEL_DESCRIPTIONS,
@@ -422,6 +423,38 @@ describe("the sentences that say what a rule does", () => {
       expect(Copy.NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[eventType]).toMatch(
         /^Conditions are checked when an? .+ is created and again each time it changes/,
       );
+    }
+  });
+
+  /*
+   * Which records the rule is for, asked as every rule's conditions are:
+   * the same answers, in the same words, as an incident on-call rule's.
+   */
+  test("the Conditions step asks 'All <records>' or 'Only <records> that match conditions'", () => {
+    expect(Copy.APPLIES_TO_ALL_ANSWERS).toEqual({
+      [NotificationRuleEventType.Incident]: "All incidents",
+      [NotificationRuleEventType.Alert]: "All alerts",
+      [NotificationRuleEventType.IncidentEpisode]: "All incident episodes",
+      [NotificationRuleEventType.AlertEpisode]: "All alert episodes",
+      [NotificationRuleEventType.ScheduledMaintenance]:
+        "All scheduled maintenance events",
+      [NotificationRuleEventType.Monitor]: "All monitors",
+      [NotificationRuleEventType.OnCallDutyPolicy]: "All on-call policies",
+    });
+
+    for (const eventType of ALL_EVENT_TYPES) {
+      const records: string = Copy.APPLIES_TO_ALL_ANSWERS[eventType].replace(
+        /^All /,
+        "",
+      );
+
+      expect(Copy.APPLIES_TO_MATCHING_ANSWERS[eventType]).toBe(
+        `Only ${records} that match conditions`,
+      );
+      // "Which incidents" is the question; these are its answers.
+      expect(
+        Copy.NOTIFICATION_RULE_CONDITIONS_TITLES[eventType].toLowerCase(),
+      ).toBe(`which ${records}`);
     }
   });
 });

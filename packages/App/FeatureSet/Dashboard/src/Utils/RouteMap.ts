@@ -982,6 +982,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
+  [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]:
+    "settings/episode-membership",
   [PageMap.INCIDENTS_SETTINGS_NUMBERING]: "settings/numbering",
 
   /*
@@ -1058,6 +1060,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
+  [PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP]: "settings/episode-membership",
   [PageMap.ALERTS_SETTINGS_NUMBERING]: "settings/numbering",
 
   /*
@@ -1808,6 +1811,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP]
+    }`,
+  ),
+
   [PageMap.ALERTS_SETTINGS_NUMBERING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBERING]
@@ -2382,6 +2391,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]
     }`,
   ),
 

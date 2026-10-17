@@ -157,7 +157,7 @@ Redigera eller lägg till allvarlighetsgrader under **Incidenter → Inställnin
 | **AI**        | **Insikter**, **Loggar**, **Inställningar**: vad OneUptime AI har lärt sig av dina incidenter och allt den har gjort för dem, och vad den får göra på egen hand — med reglerna för vilka incidenter den utreder och åtgärdar. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbetsyta** | Chattarbetsytorna som projektet har anslutit: **Slack**, **Microsoft Teams** eller båda, var och en med sina aviseringsregler för incidenter. Är ingen av dem ansluten innehåller den **Anslut Slack eller Teams**, en sida som visar båda och hur de ansluts. |
 | **Regler**    | Regelmotorerna: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
-| **Inställningar** | **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Anpassade fält**, **Incidentroller**, **Mätningar**, **Länkade larm**, **Numrering**. |
+| **Inställningar** | **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Anpassade fält**, **Incidentroller**, **Mätningar**, **Länkade larm**, **Medlemskap i episoder**, **Numrering**. |
 
 **Översikt** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** är hopfällda som standard, så att menyn öppnas på listorna du använder varje dag. Klicka på ett avsnitts titel för att fälla ut det och hitta sidorna som resten av den här dokumentationen hänvisar till; ett avsnitt öppnas också av sig självt när du är på någon av dess sidor. Konfigurationen av incidenter finns inte under projektinställningarna; den finns helt här.
 

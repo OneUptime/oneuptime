@@ -157,7 +157,7 @@ Open **Incidents** from the **Products** menu in the top bar. Its side menu is o
 | **AI**        | **Insights**, **Logs**, **Settings**: what OneUptime AI learned from your incidents and everything it did for them, and what it may do on its own — with the rules for which incidents it investigates and fixes. See [AI SRE](/docs/ai/ai-sre). |
 | **Workspace** | The chat workspaces this project has connected: **Slack**, **Microsoft Teams** or both, each with its notification rules for incidents. With neither connected, it holds **Connect Slack or Teams**, a page showing both and how to connect them. |
 | **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
-| **Settings**  | **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Numbering**. |
+| **Settings**  | **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Episode Membership**, **Numbering**. |
 
 **Overview** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
 

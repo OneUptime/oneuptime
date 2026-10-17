@@ -73,7 +73,7 @@ Klik op **Scheduled Maintenance Reminder Rule aanmaken**. Geef haar onder **Rule
 
 ### Kiezen voor welke gebeurtenissen
 
-Kies onder **Overeenkomstcriteria** de **Labels** waarvoor ze geldt. Laat ze leeg om aan elke gebeurtenis te herinneren.
+Laat onder **Overeenkomstcriteria** de keuze **Alle geplande onderhoudsevenementen** staan om aan elke gebeurtenis te herinneren, of kies **Alleen geplande onderhoudsevenementen die aan de voorwaarden voldoen** en dan de **Labels** waarvoor ze geldt.
 
 ### Het interval instellen
 

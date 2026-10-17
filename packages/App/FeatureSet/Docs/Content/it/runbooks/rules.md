@@ -57,7 +57,7 @@ In **Informazioni di base**, inserisci un **Nome**, ad esempio «Avvia il failov
 
 ### Aggiungi le condizioni
 
-In **Criteri di corrispondenza**, fai clic su **Aggiungi condizione**, scegli un criterio e un operatore, e inserisci o scegli il valore. Aggiungi altre condizioni se ti servono e scegli **Soddisfa tutte** o **Soddisfa almeno una**. Non aggiungerne nessuna per avviare i runbook a ogni nuovo evento di questo tipo.
+In **Criteri di corrispondenza**, **Si applica a** parte da ogni nuovo evento di questo tipo, per esempio **Tutti gli incidenti**, e la regola avvia i suoi runbook per ciascuno. Per restringerla, scegli l'altra risposta, per esempio **Solo gli incidenti che soddisfano le condizioni**, poi scegli un criterio e un operatore, e inserisci o scegli il valore. Fai clic su **Aggiungi condizione** per altre condizioni e scegli **Soddisfa tutte** o **Soddisfa almeno una**.
 
 ### Scegli i runbook
 
@@ -71,7 +71,7 @@ In **Runbook**, scegli uno o più **Runbook da avviare**, poi fai clic su **Crea
 | **Nome** | Un'etichetta breve e chiara per la regola. |
 | **Descrizione** | Contesto facoltativo per il team. |
 | **Abilitato** | Attivo per una nuova regola. Disattivalo nel modulo di modifica della regola per sospenderla senza eliminarla. |
-| **Condizioni** | Ciò che la regola confronta, nel passaggio **Criteri di corrispondenza**. Lascialo vuoto per corrispondere a ogni evento del suo tipo. |
+| **Condizioni** | Ciò che la regola confronta, nel passaggio **Criteri di corrispondenza**. Una regola senza condizioni, per esempio su **Tutti gli incidenti**, corrisponde a ogni evento del suo tipo. |
 | **Runbook da avviare** | Uno o più runbook da lanciare quando la regola scatta. |
 
 ## Condizioni

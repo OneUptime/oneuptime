@@ -49,6 +49,13 @@ import EpisodeMembersAdd, {
 import EpisodeMembersBatch, {
   EpisodeMemberFeedMention,
 } from "../Utils/Episode/EpisodeMembersBatch";
+import EpisodeSingleMembership, {
+  ALERT_IN_ANOTHER_EPISODE_REASON,
+  ALERT_SINGLE_MEMBERSHIP,
+} from "../../Types/Episode/EpisodeSingleMembership";
+import EpisodeSingleMembershipCheck, {
+  RecordInAnotherEpisodeException,
+} from "../Utils/Episode/EpisodeSingleMembershipCheck";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -331,6 +338,18 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * In another episode already, in a project that allows an alert in only
+     * one (EpisodeSingleMembership): refused, whoever adds it and however -
+     * a person, an API key, a workflow, the grouping engine. After the
+     * visibility check, as the duplicate check is: the refusal names only
+     * what the caller can see.
+     */
+    await this.refuseIfInAnotherEpisode({
+      createBy: createBy,
+      alertId: alertId,
+    });
+
+    /*
      * Added by the person making the request. DatabaseService has already
      * taken out whatever addedByUser the request named, under both names
      * (UserAttribution), so with no person on it - an API key, a workflow -
@@ -430,6 +449,186 @@ export class Service extends ProjectReferencesService<Model> {
         "The alert to add does not exist in this project, or you do not have access to it.",
       );
     }
+  }
+
+  /*
+   * Refuses a member whose alert is in another episode already, when the
+   * project allows an alert in only one (EpisodeSingleMembership). It is not
+   * in this episode - the duplicate check came first - so any episode it is
+   * in is another. The refusal names the alert, and the episode it is in
+   * when the caller can see that episode: a private one they cannot open is
+   * "another episode". OneUptime's own writes see every episode.
+   */
+  @CaptureSpan()
+  private async refuseIfInAnotherEpisode(data: {
+    createBy: CreateBy<Model>;
+    alertId: ObjectID;
+  }): Promise<void> {
+    const { createBy } = data;
+
+    const projectId: ObjectID | null =
+      createBy.props.tenantId ||
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        "project",
+      );
+
+    if (!projectId) {
+      return;
+    }
+
+    const holdingEpisodeId: ObjectID | null = await this.findHoldingEpisodeId({
+      projectId: projectId,
+      alertId: data.alertId,
+    });
+
+    if (!holdingEpisodeId) {
+      return;
+    }
+
+    const alert: Alert | null = await AlertService.findOneById({
+      id: data.alertId,
+      select: {
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const episodeSelect: {
+      episodeNumber: true;
+      episodeNumberWithPrefix: true;
+    } = {
+      episodeNumber: true,
+      episodeNumberWithPrefix: true,
+    };
+
+    const episode: AlertEpisode | null = createBy.props.isRoot
+      ? await AlertEpisodeService.findOneById({
+          id: holdingEpisodeId,
+          select: episodeSelect,
+          props: {
+            isRoot: true,
+          },
+        })
+      : await CallerVisibleRead.find(() => {
+          return AlertEpisodeService.findOneById({
+            id: holdingEpisodeId,
+            select: episodeSelect,
+            props: createBy.props,
+          });
+        });
+
+    throw new RecordInAnotherEpisodeException(
+      EpisodeSingleMembership.getAddRefusal({
+        kind: ALERT_SINGLE_MEMBERSHIP,
+        recordLabel: EpisodeSingleMembership.getLabel(
+          alert?.alertNumberWithPrefix,
+          alert?.alertNumber,
+        ),
+        episodeLabel: EpisodeSingleMembership.getLabel(
+          episode?.episodeNumberWithPrefix,
+          episode?.episodeNumber,
+        ),
+      }),
+    );
+  }
+
+  /*
+   * The episode that keeps an alert out of every other one: the latest
+   * episode it is in, when the project allows an alert in only one episode
+   * (EpisodeSingleMembership). Null when it is in no episode, or when the
+   * project allows several. The member rows are read first, so the
+   * project's switch is read only for an alert that is in an episode -
+   * adding one that is in none, the usual case, never reads it.
+   */
+  @CaptureSpan()
+  public async findHoldingEpisodeId(data: {
+    projectId: ObjectID;
+    alertId: ObjectID;
+  }): Promise<ObjectID | null> {
+    const membership: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        alertId: data.alertId,
+      },
+      select: {
+        alertEpisodeId: true,
+      },
+      sort: {
+        createdAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!membership?.alertEpisodeId) {
+      return null;
+    }
+
+    const isOnlyOneEpisodeAllowed: boolean =
+      await EpisodeSingleMembershipCheck.isOn({
+        projectId: data.projectId,
+        kind: ALERT_SINGLE_MEMBERSHIP,
+      });
+
+    return isOnlyOneEpisodeAllowed ? membership.alertEpisodeId : null;
+  }
+
+  /*
+   * The alerts among `alertIds` that are in an episode, when the project
+   * allows an alert in only one episode (EpisodeSingleMembership) - the ones
+   * no other episode may take. Empty when none is in an episode, or when the
+   * project allows several; read like findHoldingEpisodeId, the member rows
+   * first.
+   */
+  @CaptureSpan()
+  public async findAlertIdsHeldInEpisodes(data: {
+    projectId: ObjectID;
+    alertIds: Array<ObjectID>;
+  }): Promise<Set<string>> {
+    if (data.alertIds.length === 0) {
+      return new Set();
+    }
+
+    const members: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        alertId: QueryHelper.any(data.alertIds),
+      },
+      select: {
+        alertId: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const alertIdsInAnEpisode: Set<string> = new Set();
+
+    for (const member of members) {
+      if (member.alertId) {
+        alertIdsInAnEpisode.add(EpisodeMembersAdd.normalizeId(member.alertId));
+      }
+    }
+
+    if (alertIdsInAnEpisode.size === 0) {
+      return alertIdsInAnEpisode;
+    }
+
+    const isOnlyOneEpisodeAllowed: boolean =
+      await EpisodeSingleMembershipCheck.isOn({
+        projectId: data.projectId,
+        kind: ALERT_SINGLE_MEMBERSHIP,
+      });
+
+    return isOnlyOneEpisodeAllowed ? alertIdsInAnEpisode : new Set();
   }
 
   @CaptureSpan()
@@ -737,7 +936,9 @@ export class Service extends ProjectReferencesService<Model> {
    * alerts to episodes at all, and that they can see the episode - the whole
    * request is refused otherwise - then each alert. An alert they cannot see
    * is answered like one that does not exist, and is not added; one in the
-   * episode already is left as it is. Every other is added as a member of
+   * episode already is left as it is; one in another episode, in a project
+   * that allows an alert in only one (EpisodeSingleMembership), is not added
+   * and says why. Every other is added as a member of
    * its own, through this service's create, so each is the same row, with
    * the same follow-ons on the alert, as an alert added on its own; the
    * episode's side is written once for all of them (addedTogether).
@@ -803,6 +1004,20 @@ export class Service extends ProjectReferencesService<Model> {
       }),
     });
 
+    /*
+     * Of the rest, the ones in another episode already, when the project
+     * allows an alert in only one (EpisodeSingleMembership): each is not
+     * added, and says why. The others are added as always.
+     */
+    const alertIdsInAnotherEpisode: Set<string> =
+      await this.findAlertIdsHeldInEpisodes({
+        projectId: projectId,
+        alertIds: alertIds.filter((alertId: ObjectID) => {
+          const key: string = EpisodeMembersAdd.normalizeId(alertId);
+          return visibleAlertIds.has(key) && !alertIdsInEpisode.has(key);
+        }),
+      });
+
     const result: EpisodeMembersAddResult = EpisodeMembersAdd.emptyResult();
     const addedAlertIds: Array<ObjectID> = [];
 
@@ -816,6 +1031,14 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (alertIdsInEpisode.has(key)) {
         result.alreadyInEpisode.push(key);
+        continue;
+      }
+
+      if (alertIdsInAnotherEpisode.has(key)) {
+        result.notAdded.push({
+          id: key,
+          reason: ALERT_IN_ANOTHER_EPISODE_REASON,
+        });
         continue;
       }
 
@@ -835,10 +1058,16 @@ export class Service extends ProjectReferencesService<Model> {
           result.alreadyInEpisode.push(key);
         }
       } catch (error) {
+        /*
+         * Put in another episode while this request ran: said as the one
+         * found before is, so the dialogs list both under one reason.
+         */
         const message: string =
-          error instanceof Error && error.message
-            ? error.message
-            : "This alert could not be added to the episode.";
+          error instanceof RecordInAnotherEpisodeException
+            ? ALERT_IN_ANOTHER_EPISODE_REASON
+            : error instanceof Error && error.message
+              ? error.message
+              : "This alert could not be added to the episode.";
 
         logger.error(
           `AlertEpisodeMemberService could not add alert ${key} to episode ${alertEpisodeId.toString()}: ${message}`,
@@ -873,8 +1102,10 @@ export class Service extends ProjectReferencesService<Model> {
    * caller can see in the project - one that is not refuses the whole
    * create, so no episode is left behind without some of the alerts it was
    * created for - and the caller must be allowed to add alerts to episodes.
-   * Hands back the ids, each once, and the most severe of the alerts'
-   * severities.
+   * In a project that allows an alert in only one episode
+   * (EpisodeSingleMembership), one that is in an episode already refuses the
+   * whole create too, naming the alerts that are. Hands back the ids, each
+   * once, and the most severe of the alerts' severities.
    */
   @CaptureSpan()
   public async validateAlertsForNewEpisode(data: {
@@ -909,6 +1140,8 @@ export class Service extends ProjectReferencesService<Model> {
           select: {
             _id: true,
             alertSeverityId: true,
+            alertNumber: true,
+            alertNumberWithPrefix: true,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -929,6 +1162,52 @@ export class Service extends ProjectReferencesService<Model> {
     if (!allVisible) {
       throw new BadDataException(
         "Some of the alerts to add to the episode do not exist in this project, or you do not have access to them.",
+      );
+    }
+
+    /*
+     * In an episode already, in a project that allows an alert in only one:
+     * the new episode may not take them, so it is not created. Each is named
+     * by its number - the caller can see every one of them - in the order
+     * asked.
+     */
+    const alertIdsInAnEpisode: Set<string> =
+      await this.findAlertIdsHeldInEpisodes({
+        projectId: data.projectId,
+        alertIds: alertIds,
+      });
+
+    if (alertIdsInAnEpisode.size > 0) {
+      const alertById: Map<string, Alert> = new Map();
+
+      for (const alert of alerts) {
+        alertById.set(EpisodeMembersAdd.normalizeId(alert._id || ""), alert);
+      }
+
+      const labels: Array<string | null> = [];
+
+      for (const alertId of alertIds) {
+        const key: string = EpisodeMembersAdd.normalizeId(alertId);
+
+        if (!alertIdsInAnEpisode.has(key)) {
+          continue;
+        }
+
+        const alert: Alert | undefined = alertById.get(key);
+
+        labels.push(
+          EpisodeSingleMembership.getLabel(
+            alert?.alertNumberWithPrefix,
+            alert?.alertNumber,
+          ),
+        );
+      }
+
+      throw new RecordInAnotherEpisodeException(
+        EpisodeSingleMembership.getNewEpisodeRefusal({
+          kind: ALERT_SINGLE_MEMBERSHIP,
+          recordLabels: labels,
+        }),
       );
     }
 

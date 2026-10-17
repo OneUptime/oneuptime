@@ -84,7 +84,7 @@ Creare una regola passa per quattro passaggi:
 | Passaggio | Cosa imposti |
 | --- | --- |
 | **Base** | **Nome della regola** e **Descrizione della regola**. |
-| **Condizioni** | A quali eventi si applica la regola, per esempio per gravità, stato, etichetta, monitor o parole nel titolo. Vengono verificate quando un evento viene creato e di nuovo a ogni aggiornamento che OneUptime pubblica su di esso, quindi una regola per gli incidenti riconosciuti agisce quando un incidente viene riconosciuto. Senza condizioni la regola vale per ogni evento. Con due o più, **Condizione di corrispondenza** dice se devono corrispondere tutte o ne basta una. |
+| **Condizioni** | A quali eventi si applica la regola, per esempio per gravità, stato, etichetta, monitor o parole nel titolo. Vengono verificate quando un evento viene creato e di nuovo a ogni aggiornamento che OneUptime pubblica su di esso, quindi una regola per gli incidenti riconosciuti agisce quando un incidente viene riconosciuto. Una nuova regola vale per ogni evento, per esempio **Tutti gli incidenti**. Per restringerla, scegli **Solo gli incidenti che soddisfano le condizioni** e aggiungi le condizioni. Con due o più, **Condizione di corrispondenza** dice se devono corrispondere tutte o ne basta una. |
 | **Destinazione** | Dove pubblica: un canale esistente di un team che scegli, le chat che scegli, un canale per ogni incidente (o avviso, episodio, evento, monitor o policy di reperibilità) creato in un team che scegli, o più di questi insieme. Sotto il passaggio, **Cosa fa questa regola** lo dice a frasi, come la scheda della regola. |
 | **Video Call** | Solo incidenti e avvisi: avvia una chiamata per ciascuno. Vedi [Videochiamate](/docs/workspace-connections/video-calls). |
 

@@ -8,6 +8,7 @@ import NotificationRuleCondition, {
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
+import RuleAppliesToChoice from "Common/UI/Components/RuleCriteria/RuleAppliesToChoice";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -18,9 +19,12 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import ObjectID from "Common/Types/ObjectID";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { NO_CONDITIONS_YET_SENTENCES } from "./NotificationRuleCopy";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
+import {
+  APPLIES_TO_ALL_ANSWERS,
+  APPLIES_TO_MATCHING_ANSWERS,
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+} from "./NotificationRuleCopy";
 
 export interface ComponentProps {
   value: Array<NotificationRuleCondition> | undefined;
@@ -34,6 +38,12 @@ export interface ComponentProps {
   incidentStates: Array<IncidentState>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
   monitorStatus: Array<MonitorStatus>;
+  /*
+   * When the conditions are checked, in English: drawn over them while
+   * "Only ... that match conditions" is picked, and left out while the rule
+   * is for every record (NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS).
+   */
+  conditionsDescription?: string | undefined;
 }
 
 /*
@@ -61,12 +71,38 @@ const toRows: (
   );
 };
 
+/*
+ * WHICH RECORDS A WORKSPACE RULE IS FOR: ALL OF THEM, OR ONLY THOSE ITS
+ * CONDITIONS MATCH.
+ *
+ *   Which incidents
+ *   (o) All incidents
+ *   ( ) Only incidents that match conditions
+ *
+ * Asked as every other rule's conditions are (RuleAppliesToChoice). A new
+ * rule starts on "All incidents", with no conditions; picking "Only ..."
+ * opens the conditions with one ready to fill in. The choice is read off the
+ * conditions, so a saved rule opens on whichever it is, and deleting the
+ * last condition goes back to "All". Going back to "All" takes the
+ * conditions out of the rule and keeps them aside while the step is open:
+ * "Only ..." again puts them back as they were.
+ *
+ * The divider under it separates the conditions from Match Condition, the
+ * form's next field, which only appears with two or more conditions
+ * (isFilterConditionNeeded): with fewer it would close off nothing, so it is
+ * drawn only then.
+ */
 const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [rows, setRows] = React.useState<Array<ConditionRow>>(() => {
     return toRows(props.value || []);
   });
+
+  // The conditions "All" took out, until "Only ..." is picked again.
+  const [rowsSetAside, setRowsSetAside] = React.useState<Array<ConditionRow>>(
+    [],
+  );
 
   const notificationRuleConditions: Array<NotificationRuleCondition> = rows.map(
     (row: ConditionRow): NotificationRuleCondition => {
@@ -80,91 +116,110 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
     }
   }, [rows]);
 
-  const translator: Translator = useTranslator();
-
   const checkOnByEventType: Array<NotificationRuleConditionCheckOn> =
     NotificationRuleConditionUtil.getCheckOnByEventType(props.eventType);
 
+  const addCondition: () => void = (): void => {
+    const firstCheckOn: NotificationRuleConditionCheckOn | undefined =
+      checkOnByEventType[0];
+
+    /*
+     * An event type with no check-ons has nothing to filter on. Adding a row
+     * anyway is what left the Filter Type dropdown empty on the On-Call Duty
+     * Policy rule editor (#3459): the row went in with an undefined checkOn
+     * over an empty option list, and the rule could not be saved or removed
+     * except by deleting the filter.
+     */
+    if (!firstCheckOn) {
+      return;
+    }
+
+    const conditionTypes: Array<ConditionType> =
+      NotificationRuleConditionUtil.getConditionTypeByCheckOn(firstCheckOn);
+
+    setRows((current: Array<ConditionRow>) => {
+      return [
+        ...current,
+        ...toRows([
+          {
+            checkOn: firstCheckOn,
+            conditionType: conditionTypes[0],
+            value: "",
+          },
+        ]),
+      ];
+    });
+  };
+
   return (
     <div>
-      {notificationRuleConditions.length === 0 && (
-        <p
-          className="text-sm text-gray-700"
-          data-testid="notification-rule-no-conditions-yet"
-        >
-          {translator.translateText(
-            NO_CONDITIONS_YET_SENTENCES[props.eventType],
-          )}
-        </p>
-      )}
+      <RuleAppliesToChoice
+        allLabel={APPLIES_TO_ALL_ANSWERS[props.eventType]}
+        matchingLabel={APPLIES_TO_MATCHING_ANSWERS[props.eventType]}
+        isMatching={rows.length > 0}
+        onChooseAll={(): void => {
+          setRowsSetAside(rows);
+          setRows([]);
+        }}
+        onChooseMatching={(): void => {
+          if (rowsSetAside.length > 0) {
+            setRows(rowsSetAside);
+            setRowsSetAside([]);
+            return;
+          }
 
-      {rows.map((row: ConditionRow) => {
-        return (
-          <NotificationRuleConditionElement
-            {...props}
-            key={row.key}
-            initialValue={row.condition}
-            onDelete={() => {
-              setRows((current: Array<ConditionRow>) => {
-                return current.filter((item: ConditionRow): boolean => {
-                  return item.key !== row.key;
-                });
-              });
-            }}
-            onChange={(value: NotificationRuleCondition) => {
-              setRows((current: Array<ConditionRow>) => {
-                return current.map((item: ConditionRow): ConditionRow => {
-                  return item.key === row.key
-                    ? { key: item.key, condition: value }
-                    : item;
-                });
-              });
-            }}
-          />
-        );
-      })}
-      <div className="mt-3 -ml-3">
-        <Button
-          title="Add Condition"
-          buttonSize={ButtonSize.Small}
-          icon={IconProp.Add}
-          disabled={checkOnByEventType.length === 0}
-          onClick={() => {
-            const firstCheckOn: NotificationRuleConditionCheckOn | undefined =
-              checkOnByEventType[0];
-
-            /*
-             * An event type with no check-ons has nothing to filter on. Adding
-             * a row anyway is what left the Filter Type dropdown empty on the
-             * On-Call Duty Policy rule editor (#3459): the row went in with an
-             * undefined checkOn over an empty option list, and the rule could
-             * not be saved or removed except by deleting the filter.
-             */
-            if (!firstCheckOn) {
-              return;
-            }
-
-            const conditionTypes: Array<ConditionType> =
-              NotificationRuleConditionUtil.getConditionTypeByCheckOn(
-                firstCheckOn,
-              );
-
-            setRows((current: Array<ConditionRow>) => {
-              return [
-                ...current,
-                ...toRows([
-                  {
-                    checkOn: firstCheckOn,
-                    conditionType: conditionTypes[0],
-                    value: "",
-                  },
-                ]),
-              ];
-            });
-          }}
-        />
-      </div>
-      <HorizontalRule />
+          addCondition();
+        }}
+        isMatchingUnavailable={checkOnByEventType.length === 0}
+        // The step's heading names it: "Which incidents".
+        ariaLabel={NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType]}
+        matchingDescription={props.conditionsDescription}
+        dataTestId="notification-rule-applies-to"
+      >
+        <div data-testid="notification-rule-conditions">
+          {rows.map((row: ConditionRow) => {
+            return (
+              <NotificationRuleConditionElement
+                {...props}
+                key={row.key}
+                initialValue={row.condition}
+                onDelete={() => {
+                  setRows((current: Array<ConditionRow>) => {
+                    return current.filter((item: ConditionRow): boolean => {
+                      return item.key !== row.key;
+                    });
+                  });
+                }}
+                onChange={(value: NotificationRuleCondition) => {
+                  setRows((current: Array<ConditionRow>) => {
+                    return current.map((item: ConditionRow): ConditionRow => {
+                      return item.key === row.key
+                        ? { key: item.key, condition: value }
+                        : item;
+                    });
+                  });
+                }}
+              />
+            );
+          })}
+          {/*
+           * From md up a Button sits 12px in (md:ml-3, for a dialog's
+           * footer), taken back here so it lines up with the conditions.
+           * Below md it has no such margin and is as wide as they are.
+           */}
+          <div className="mt-3 md:-ml-3">
+            <Button
+              title="Add Condition"
+              buttonSize={ButtonSize.Small}
+              icon={IconProp.Add}
+              disabled={checkOnByEventType.length === 0}
+              onClick={addCondition}
+              dataTestId="notification-rule-add-condition"
+            />
+          </div>
+        </div>
+      </RuleAppliesToChoice>
+      {isFilterConditionNeeded(rows) ? <HorizontalRule /> : <></>}
     </div>
   );
 };

@@ -12,6 +12,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookRuleTriggerEntity from "Common/Types/Runbook/RunbookRuleTriggerEntity";
+import { RuleCriteriaSubject } from "Common/Types/Rules/RuleCriteriaSubject";
 import { Green, Red } from "Common/Types/BrandColors";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -90,6 +91,24 @@ const RUNBOOK_RULE_COPY: Record<RunbookRuleTriggerEntity, RunbookRuleCopy> = {
   },
 };
 
+/*
+ * What a rule applies to until it has conditions, as its form asks it: "All
+ * incidents" or "Only incidents that match conditions" (RuleCriteriaSubject).
+ * One table of rules holds every trigger, so the page names them.
+ */
+export function getRunbookRuleAppliesTo(
+  triggerEntityType: RunbookRuleTriggerEntity,
+): RuleCriteriaSubject {
+  switch (triggerEntityType) {
+    case RunbookRuleTriggerEntity.Alert:
+      return RuleCriteriaSubject.Alerts;
+    case RunbookRuleTriggerEntity.ScheduledMaintenance:
+      return RuleCriteriaSubject.ScheduledMaintenanceEvents;
+    default:
+      return RuleCriteriaSubject.Incidents;
+  }
+}
+
 export function getRunbookRuleCopy(
   triggerEntityType: RunbookRuleTriggerEntity,
 ): RunbookRuleCopy {
@@ -163,6 +182,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
       isEditable={true}
       isCreateable={true}
       createEditModalWidth={ModalWidth.Large}
+      ruleCriteriaSubject={getRunbookRuleAppliesTo(props.triggerEntityType)}
       query={{ triggerEntityType: props.triggerEntityType }}
       onBeforeCreate={async (item: RunbookRule) => {
         item.triggerEntityType = props.triggerEntityType;

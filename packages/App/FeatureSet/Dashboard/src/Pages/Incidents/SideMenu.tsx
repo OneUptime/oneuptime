@@ -332,6 +332,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.Link,
         },
         /*
+         * Whether an incident can be in only one episode. Its own page,
+         * findable by name like Linked Alerts - not "Episodes", the
+         * section above that lists them.
+         */
+        {
+          link: {
+            title: "Episode Membership",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP] as Route,
+            ),
+          },
+          icon: IconProp.SquareStack3D,
+        },
+        /*
          * How incident and episode numbers look (the INC- in INC-42) and
          * which comes next: a page of its own, named for what it holds. It
          * was More Settings, then Number Prefix.
