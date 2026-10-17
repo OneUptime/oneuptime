@@ -97,7 +97,9 @@ describe("RemoveNotificationSettingsOfNonMembers", () => {
     expect(new RemoveNotificationSettingsOfNonMembers().name).toBe(
       MIGRATION_NAME,
     );
-    expect(MIGRATION_NAME).not.toBe("RemoveNotificationSettingsOfFormerMembers");
+    expect(MIGRATION_NAME).not.toBe(
+      "RemoveNotificationSettingsOfFormerMembers",
+    );
   });
 
   test("walks the people who are not members once and says what it removed", async () => {
