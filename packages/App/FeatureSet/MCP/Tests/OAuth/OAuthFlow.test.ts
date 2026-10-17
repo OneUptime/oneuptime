@@ -66,6 +66,8 @@ import * as PublicStatusPageTools from "../../Tools/PublicStatusPageTools";
 import { generateAllTools } from "../../Tools/ToolGenerator";
 import { McpToolInfo } from "../../Types/McpTypes";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import McpDelegationToken, {
   McpDelegationClaims,
 } from "Common/Server/Utils/Mcp/McpDelegationToken";
@@ -1045,6 +1047,74 @@ describe("MCP OAuth, end to end", () => {
         jest.spyOn(
           AccessTokenService,
           "getUserTenantAccessPermission",
+        ) as unknown as jest.Mock
+      ).mockImplementationOnce(async (): Promise<never> => {
+        throw new Error("connection terminated unexpectedly");
+      });
+
+      const response: HttpResult = await harness.callTool(
+        "list_incidents",
+        {},
+        OAuthTestHarness.bearer(connected.accessToken),
+      );
+
+      expect(response.status).toBe(500);
+      expect(response.headers.get("www-authenticate")).toBeNull();
+      expect(api.calls).toEqual([]);
+    });
+
+    /*
+     * Nor is a sign-in rule that could not be read taken for one that is
+     * off: the call is not made, whatever the client's grant was approved
+     * under, and the same token works once the rule reads again.
+     */
+    it("answers 500, not a challenge, and makes no call, when the instance's Require SSO for Login cannot be read", async () => {
+      const connected: ConnectedClient = await connect();
+
+      (
+        jest.spyOn(
+          GlobalConfigService,
+          "getRequireSsoForLogin",
+        ) as unknown as jest.Mock
+      ).mockImplementationOnce(async (): Promise<never> => {
+        throw new Error("connection terminated unexpectedly");
+      });
+
+      const response: HttpResult = await harness.callTool(
+        "list_incidents",
+        {},
+        OAuthTestHarness.bearer(connected.accessToken),
+      );
+
+      expect(response.status).toBe(500);
+      expect(response.headers.get("www-authenticate")).toBeNull();
+      expect(api.calls).toEqual([]);
+
+      expect(
+        (
+          await harness.callTool(
+            "list_incidents",
+            {},
+            OAuthTestHarness.bearer(connected.accessToken),
+          )
+        ).status,
+      ).toBe(200);
+    });
+
+    it("answers 500, not a challenge, and makes no call, when the provider a project requires cannot be read", async () => {
+      harness.setProjectSso(project, { required: true });
+      harness.signIn(member, {
+        cookies: harness.projectSsoCookie(member, project, {
+          ssoProviderType: SsoProviderType.ProjectSSO,
+        }),
+      });
+
+      const connected: ConnectedClient = await connect();
+
+      (
+        jest.spyOn(
+          ProjectService,
+          "getRequireSsoWithSsoProviderId",
         ) as unknown as jest.Mock
       ).mockImplementationOnce(async (): Promise<never> => {
         throw new Error("connection terminated unexpectedly");

@@ -180,7 +180,7 @@ Ogni elemento di `monitor_steps` è una cosa da controllare:
 
 ### Impostazioni di ogni tipo di monitor
 
-I tipi di monitor con più da impostare di un indirizzo tengono le loro impostazioni (una query sui log, una connessione a un database, un cluster da sorvegliare) in un attributo proprio, come JSON grezzo scritto con `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor` e `iot_monitor`.
+I tipi di monitor con più da impostare di un indirizzo tengono le loro impostazioni (una query sui log, una connessione a un database, un cluster da sorvegliare) in un attributo proprio, come JSON grezzo scritto con `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` e `probe_status_monitor`.
 
 Il loro JSON è lo stesso della dashboard, con le chiavi in camelCase. Un ID al suo interno si scrive come lo scrive l'API: `{ _type = "ObjectID", value = "..." }`. Un monitor Logs che conta gli errori di un servizio:
 

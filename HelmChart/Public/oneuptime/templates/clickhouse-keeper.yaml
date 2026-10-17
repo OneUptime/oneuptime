@@ -182,7 +182,7 @@ spec:
       {{- end }}
       containers:
         - name: clickhouse-keeper
-          image: "{{ $keeper.image.repository }}:{{ $keeper.image.tag }}"
+          image: {{ include "oneuptime.imageReference" (dict "Values" $.Values "Key" "clickhouseKeeper" "Default" (printf "%s:%s" $keeper.image.repository (toString $keeper.image.tag))) | quote }}
           imagePullPolicy: {{ $keeper.image.pullPolicy | default "IfNotPresent" }}
           command:
             - /bin/sh

@@ -125,6 +125,13 @@ export interface MonitorEvaluationByProbe {
     | undefined;
   byProbeId: Dictionary<MonitorEvaluationSummary>;
   latestAt?: Date | undefined;
+  /*
+   * The payload the newest evaluation ran on (the newest row's logBody).
+   * For a monitor evaluated centrally it is what the Summary card shows -
+   * a Probe Status monitor's probes, as that evaluation found them - so
+   * the card and the hero describe the same evaluation.
+   */
+  latestLogBody?: JSONObject | undefined;
 }
 
 // The order the Probes card lists rows in: what needs attention first.
@@ -748,6 +755,7 @@ export default class MonitorOverviewProbeUtil {
     const byProbeId: Dictionary<MonitorEvaluationSummary> = {};
     let latest: MonitorEvaluationByProbe["latest"] = undefined;
     let latestAt: Date | undefined = undefined;
+    let latestLogBody: JSONObject | undefined = undefined;
 
     for (let i: number = 0; i < (logs || []).length; i++) {
       const log: MonitorLog | undefined = logs[i];
@@ -768,6 +776,10 @@ export default class MonitorOverviewProbeUtil {
 
       if (!body || typeof body !== "object") {
         continue;
+      }
+
+      if (i === 0 && !Array.isArray(body)) {
+        latestLogBody = body;
       }
 
       const summary: MonitorEvaluationSummary | undefined = body[
@@ -799,11 +811,17 @@ export default class MonitorOverviewProbeUtil {
       }
     }
 
-    return {
+    const evaluation: MonitorEvaluationByProbe = {
       latest: latest,
       byProbeId: byProbeId,
       latestAt: latestAt,
     };
+
+    if (latestLogBody) {
+      evaluation.latestLogBody = latestLogBody;
+    }
+
+    return evaluation;
   }
 
   /*

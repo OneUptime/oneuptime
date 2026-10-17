@@ -180,7 +180,7 @@ resource "oneuptime_monitor" "website" {
 
 ### 各监视器类型的设置
 
-除地址外还有更多设置的监视器类型，会把设置（日志查询、数据库连接、要监视的集群）放在各自的属性中，以 `jsonencode()` 写成原始 JSON：`log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor` 和 `iot_monitor`。
+除地址外还有更多设置的监视器类型，会把设置（日志查询、数据库连接、要监视的集群）放在各自的属性中，以 `jsonencode()` 写成原始 JSON：`log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor` 和 `probe_status_monitor`。
 
 它们的 JSON 与仪表板的相同，键使用 camelCase。其中的 ID 按 API 的写法书写：`{ _type = "ObjectID", value = "..." }`。一个统计某个服务错误数的 Logs 监视器：
 

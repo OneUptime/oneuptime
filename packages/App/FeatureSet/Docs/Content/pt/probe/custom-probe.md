@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **A sonda se conecta para fora.** Cada requisição vai da sonda para `ONEUPTIME_URL` por HTTPS. Nada precisa alcançar a sonda de fora da sua rede.
 - **Ela verifica só os próprios monitores.** A sonda pede ao OneUptime os monitores aos quais foi adicionada, verifica cada um quando chega a hora e devolve o resultado. O OneUptime decide pelos resultados se o status de um monitor muda.
-- **O OneUptime acompanha se ela está rodando.** Cada requisição da sonda conta como sinal de vida, e a sonda envia pelo menos uma por minuto. Depois de cerca de três minutos sem nenhuma, a sonda mostra **Desconectado** e seus proprietários são avisados. Uma sonda sem proprietários avisa os proprietários do projeto.
+- **O OneUptime acompanha se ela está rodando.** Cada requisição da sonda conta como sinal de vida, e a sonda envia pelo menos uma por minuto. Depois de cerca de três minutos sem nenhuma, a sonda mostra **Desconectado** e seus proprietários são avisados. Uma sonda sem proprietários avisa os proprietários do projeto. Para ser acionado como em qualquer interrupção, com um único incidente até ela voltar, adicione um [monitor de status de sondas](/docs/monitor/probe-status-monitor): **Monitorar esta sonda**, na página da sonda, cria um.
 
 ## Antes de começar
 

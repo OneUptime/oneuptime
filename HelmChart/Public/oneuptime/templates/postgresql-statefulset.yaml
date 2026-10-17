@@ -54,7 +54,7 @@ spec:
       {{- end }}
       containers:
       - name: postgresql
-        image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
+        image: {{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "postgres" "Default" (printf "%s:%s" .Values.postgresql.image.repository (toString .Values.postgresql.image.tag))) | quote }}
         imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
         args:
           - "-c"

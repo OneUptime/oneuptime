@@ -15,6 +15,9 @@ import { JSONObject } from "../../Types/JSON";
 import Select from "../Types/Database/Select";
 import { AppVersion, DisableUpdateCheck } from "../EnvironmentConfig";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import EnterpriseMarketplaceBillingUtil, {
+  EnterpriseMarketplaceBillingState,
+} from "../../Types/EnterpriseLicense/EnterpriseMarketplaceBilling";
 import VersionUtil from "../../Utils/VersionUtil";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -59,6 +62,7 @@ export const LICENSE_RESPONSE_CONFIG_SELECT: Select<GlobalConfig> = {
   enterpriseLicenseCurrentUserCount: true,
   enterpriseLicenseUserCountUpdatedAt: true,
   enterpriseLicenseInstances: true,
+  enterpriseMarketplaceBilling: true,
   instanceId: true,
   latestReleaseVersion: true,
   latestReleasePublishedAt: true,
@@ -229,6 +233,13 @@ export default class GlobalConfigAPI extends BaseAPI<
        * tell a screen.
        */
       features: GlobalConfigAPI.toFeaturesResponse(snapshot),
+      /*
+       * The cloud marketplace the license comes from - "AWS", "Azure" or
+       * "GoogleCloud" - when it is a marketplace subscription rather than a
+       * license key; null otherwise. Screens say "Licensed through AWS
+       * Marketplace" instead of offering to renew a key nobody has.
+       */
+      marketplace: snapshot?.marketplace || null,
     };
 
     if (data.audience !== "master-admin") {
@@ -280,6 +291,15 @@ export default class GlobalConfigAPI extends BaseAPI<
        * released. Master admins only: telling anybody else that this server
        * is behind on patches advertises an unpatched target.
        */
+      /*
+       * How this installation bills through the marketplace it was bought on:
+       * when the marketplace last took a usage report, what it last said and
+       * what is still to be reported. Null on an installation that is not
+       * billed through a marketplace.
+       */
+      marketplaceBilling: GlobalConfigAPI.toMarketplaceBillingResponse(
+        licenseConfig?.enterpriseMarketplaceBilling,
+      ),
       currentVersion: AppVersion,
       latestVersion: config?.latestReleaseVersion || null,
       latestVersionPublishedAt: GlobalConfigAPI.toIsoString(
@@ -302,6 +322,22 @@ export default class GlobalConfigAPI extends BaseAPI<
         snapshot ? data.seatUsage : null,
       ),
     };
+  }
+
+  // The marketplace billing summary for a response, or null when there is none.
+  public static toMarketplaceBillingResponse(
+    value: unknown,
+  ): JSONObject | null {
+    const state: EnterpriseMarketplaceBillingState | null =
+      EnterpriseMarketplaceBillingUtil.fromJSON(value);
+
+    if (!state) {
+      return null;
+    }
+
+    return JSON.parse(
+      JSON.stringify(EnterpriseMarketplaceBillingUtil.summarize(state)),
+    ) as JSONObject;
   }
 
   // The license's features for a response: "all", a copy of the list, or null.

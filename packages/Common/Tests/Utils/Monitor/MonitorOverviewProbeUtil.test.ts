@@ -1371,6 +1371,72 @@ describe("MonitorOverviewProbeUtil.getEvaluationByProbe", () => {
       latestAt: undefined,
     });
   });
+
+  /*
+   * A monitor evaluated centrally - a Probe Status monitor - shows what its
+   * newest evaluation ran on in the Summary card: the payload of the same
+   * row the hero's verdict comes from.
+   */
+  it("hands on the newest row's payload, and only the newest row's", () => {
+    const newest: MonitorLog = log({
+      time: secondsAgo(5),
+      summary: verdict("newest"),
+    });
+    newest.logBody = {
+      ...newest.logBody,
+      probes: [{ probeName: "Frankfurt", isConnected: true }],
+      connectedProbeCount: 1,
+    } as unknown as JSONObject;
+
+    const result: MonitorEvaluationByProbe =
+      MonitorOverviewProbeUtil.getEvaluationByProbe([
+        newest,
+        log({ time: secondsAgo(65), summary: verdict("older") }),
+      ]);
+
+    expect(result.latestLogBody).toBe(newest.logBody);
+    expect(result.latestLogBody?.["connectedProbeCount"]).toBe(1);
+  });
+
+  it("hands on the newest row's payload even when it holds no verdict", () => {
+    const newest: MonitorLog = log({ time: secondsAgo(5) });
+    newest.logBody = {
+      probes: [],
+      connectedProbeCount: 0,
+    } as unknown as JSONObject;
+
+    const result: MonitorEvaluationByProbe =
+      MonitorOverviewProbeUtil.getEvaluationByProbe([
+        newest,
+        log({ time: secondsAgo(65), summary: verdict("older") }),
+      ]);
+
+    expect(result.latestLogBody).toBe(newest.logBody);
+    // The verdict is still the newest one there is.
+    expect(result.latest?.summary.criteriaResults[0]?.criteriaName).toBe(
+      "older",
+    );
+  });
+
+  it("never hands on an older row's payload when the newest has none", () => {
+    const newest: MonitorLog = new MonitorLog();
+    newest.time = secondsAgo(5);
+
+    const listBody: MonitorLog = new MonitorLog();
+    listBody.time = secondsAgo(5);
+    listBody.logBody = [] as unknown as JSONObject;
+
+    for (const first of [newest, listBody]) {
+      const result: MonitorEvaluationByProbe =
+        MonitorOverviewProbeUtil.getEvaluationByProbe([
+          first,
+          log({ time: secondsAgo(65), summary: verdict("older") }),
+        ]);
+
+      expect(result.latestLogBody).toBeUndefined();
+      expect("latestLogBody" in result).toBe(false);
+    }
+  });
 });
 
 describe("MonitorOverviewProbeUtil.getEvaluationLogLimit", () => {
@@ -1405,6 +1471,8 @@ describe("MonitorOverviewProbeUtil.getEvaluationLogLimit", () => {
     expect(limit(MonitorType.Kubernetes, 5)).toBe(1);
     expect(limit(MonitorType.NetworkDevice, 5)).toBe(1);
     expect(limit(MonitorType.Manual, 5)).toBe(1);
+    // Watches probes, but no probe runs it: one row, the server's.
+    expect(limit(MonitorType.ProbeStatus, 5)).toBe(1);
 
     // A nonsense count never produces a nonsense limit.
     expect(limit(MonitorType.API, Number.NaN)).toBe(1);

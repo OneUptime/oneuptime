@@ -34,14 +34,15 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 
 | Path | What it is |
 | --- | --- |
-| `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers, WhiteLabel. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
+| `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers, WhiteLabel, Marketplace. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
 | `Server/Identity/` | SCIM provisioning for projects and status pages. Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. Every route starts with a license gate (`Middleware/LicensedFeatureGate.ts`, SCIM only), so it refuses while SCIM is not active. Single sign-on (SAML, OIDC, global SSO and "Require SSO for login") is not here: it is core, Apache-2.0, in `packages/App/FeatureSet/Identity`, and served in every edition. |
 | `Server/TeamCompliance/` | Team compliance settings and the compliance status route. |
 | `Server/AuditLog/` | The audit-log recorder behind `EnterpriseEdition.getAuditLogRecorder()`. |
-| `Server/License/` | The license client: signed-license format (`LicenseToken.ts`), trusted signing keys (`TrustedLicenseKeys.ts`), the license snapshot, activation, refresh, seats and the daily license sync, including the seat arithmetic (`EnterpriseLicenseSeats.ts`) and the license-response mapper (`EnterpriseLicenseSync.ts`). Only the `SeatUsage` type stays in core. |
+| `Server/License/` | The license client: signed-license format (`LicenseToken.ts`), trusted signing keys (`TrustedLicenseKeys.ts`), the license snapshot, activation, refresh, seats and the daily license sync, including the seat arithmetic (`EnterpriseLicenseSeats.ts`) and the license-response mapper (`EnterpriseLicenseSync.ts`). The license of an installation bought on a cloud marketplace is `MarketplaceLicense.ts`. Only the `SeatUsage` type stays in core. |
 | `Server/LicenseServer/` | The license server that oneuptime.com runs. Mounted only when billing is enabled. |
 | `Server/AdminHealth/` | The live OneUptime Health dashboards (overview, queues, Valkey, logs, ClickHouse cluster, telemetry ingestion, Postgres cluster and activity) and the query console, served by one router mounted ahead of core's. Core keeps the every-edition routes, the probes they share (`App/API/AdminHealthProbes.ts`) and a 402 fallback for each enterprise path. |
 | `Server/WhiteLabel/` | White-labelling: whether the license allows it, the settings, their routes and the branding handed to core. See [White-labelling](#white-labelling). |
+| `Server/Marketplace/` | Billing of installations bought on a cloud marketplace: the `EnterpriseMarketplace:ReportUsage` job (`Jobs/`), the hourly billing state machine (`MarketplaceBilling.ts`), the run that drives it (`MarketplaceUsageRun.ts`) and its store. See [Cloud marketplace installations](#cloud-marketplace-installations). |
 | `Server/Workers/` | Enterprise cron jobs (PostgreSQL and Valkey/Redis health evaluation) and the probes they read: `InstanceHealth/PostgresHealth.ts` and the counter deltas in `InstanceHealth/RedisHealth.ts`. The Redis INFO read stays in core, because the admin health API uses it too. |
 | `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/TelemetryRetention/` holds the retention override cards (retention by telemetry type on Settings > Telemetry, and the retention cards of every service and resource Settings page) and the form and summary they share. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/`. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). `AdminDashboard/WhiteLabel/` holds Settings > White Label. |
 | `Scripts/` | Operator scripts, such as `GenerateLicenseSigningKey.ts`. |
@@ -426,6 +427,41 @@ OneUptime Cloud (`BILLING_ENABLED=true`) must run the Enterprise image.
   reason.
 - With billing on, the license server routes (`/api/enterprise-license/...`)
   are mounted, and plan checks (not the license) gate enterprise features.
+
+## Cloud marketplace installations
+
+Self-hosted OneUptime Enterprise is also sold on AWS Marketplace (Amazon EKS),
+Microsoft Marketplace (AKS) and Google Cloud Marketplace (GKE), billed per
+user-hour through the marketplace, with no license key. The marketplace
+editions of the Helm chart set `ENTERPRISE_MARKETPLACE` (`aws`, `azure` or
+`google-cloud`) and what that marketplace needs. The listings, the packaging
+and the release steps are in
+[the self-hosted marketplace guide](../packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md).
+
+- **Billing (`Server/Marketplace/`).** The job
+  `EnterpriseMarketplace:ReportUsage` is registered only on a self-hosted
+  installation that names a marketplace. It runs every 15 minutes and at
+  startup, under a Valkey lock: it notes the installation's user count and
+  reports each clock hour once, at the most users seen, through the reporters
+  in `packages/Common/Server/Utils/Marketplace/SelfHosted`. Its state is the
+  root-only license column `GlobalConfig.enterpriseMarketplaceBilling`. Each
+  report is claimed before it is sent and carries an idempotency key derived
+  from the installation and the hour, so no hour is billed twice.
+- **Licensing (`Server/License/MarketplaceLicense.ts`).** An accepted report
+  is the marketplace's word that the buyer is subscribed. It classifies as a
+  valid license for 72 hours (`MARKETPLACE_LICENSE_RENEWAL_IN_MS`), with every
+  feature and no seat limit, then as the usual grace period, then as expired.
+  A refusal (the buyer is not subscribed) classifies as expired at once.
+  Nothing in the environment grants it: `ENTERPRISE_MARKETPLACE` only says
+  which marketplace to ask. The license provider runs on whichever of a
+  license key and the marketplace license classifies better
+  (`LicenseRanking`), so a refused purchase never takes away a valid key.
+  White-labelling still needs a verified key that grants it.
+- **What operators see.** The edition label names the marketplace ("Licensed
+  through AWS Marketplace", "Marketplace Reports Failing", "Marketplace
+  Subscription Ended"), master admins get `marketplaceBilling` from
+  `GET /api/global-config/license`, and the license manager has no **Refresh
+  license** button for a marketplace license, which has no key to refresh.
 
 ## White-labelling
 

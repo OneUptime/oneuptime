@@ -500,6 +500,55 @@ describe("for the same handshake, the join answers as the API does", () => {
     });
   }
 
+  /*
+   * A rule that cannot be read is no answer, for the join as for the API:
+   * both fail with the error (the join is then not made), and neither lets
+   * the handshake in as though nothing were required.
+   */
+  test("the instance-wide requirement that cannot be read lets no member in, on either side; a server admin is not asked it", async () => {
+    (
+      ProjectService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockResolvedValue(false);
+    (
+      ProjectService.getRequireSsoWithSsoProviderId as unknown as jest.Mock
+    ).mockResolvedValue(null);
+    (
+      GlobalConfigService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockRejectedValue(new Error("database unavailable"));
+
+    for (const handshake of HANDSHAKES) {
+      const headers: Record<string, string> = headersOf(handshake);
+
+      if (handshake.isMasterAdmin) {
+        await expect(apiAnswer(headers)).resolves.toBe("allowed");
+        await expect(joinAnswer(headers)).resolves.toBe("allowed");
+        continue;
+      }
+
+      await expect(apiAnswer(headers)).rejects.toThrow("database unavailable");
+      await expect(joinAnswer(headers)).rejects.toThrow("database unavailable");
+    }
+  });
+
+  test("a pinned provider that cannot be read lets nobody in, on either side, server admins included", async () => {
+    (
+      ProjectService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockResolvedValue(true);
+    (
+      ProjectService.getRequireSsoWithSsoProviderId as unknown as jest.Mock
+    ).mockRejectedValue(new Error("database unavailable"));
+    (
+      GlobalConfigService.getRequireSsoForLogin as unknown as jest.Mock
+    ).mockResolvedValue(false);
+
+    for (const handshake of HANDSHAKES) {
+      const headers: Record<string, string> = headersOf(handshake);
+
+      await expect(apiAnswer(headers)).rejects.toThrow("database unavailable");
+      await expect(joinAnswer(headers)).rejects.toThrow("database unavailable");
+    }
+  });
+
   test("the matrix has both answers in it", async () => {
     (
       ProjectService.getRequireSsoForLogin as unknown as jest.Mock

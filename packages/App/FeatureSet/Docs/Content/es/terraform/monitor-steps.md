@@ -180,7 +180,7 @@ Cada elemento de `monitor_steps` es una cosa que comprobar:
 
 ### Ajustes de cada tipo de monitor
 
-Los tipos de monitor con más que ajustar que una dirección guardan sus ajustes (una consulta de logs, una conexión a una base de datos, un clúster que vigilar) en un atributo propio, como JSON sin procesar escrito con `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor` e `iot_monitor`.
+Los tipos de monitor con más que ajustar que una dirección guardan sus ajustes (una consulta de logs, una conexión a una base de datos, un clúster que vigilar) en un atributo propio, como JSON sin procesar escrito con `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` y `probe_status_monitor`.
 
 Su JSON es el mismo que el del panel, con las claves en camelCase. Un ID dentro de él se escribe como lo escribe la API: `{ _type = "ObjectID", value = "..." }`. Un monitor de Logs que cuenta los errores de un servicio:
 

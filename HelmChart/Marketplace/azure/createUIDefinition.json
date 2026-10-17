@@ -1,0 +1,228 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+        "config": {
+            "isWizard": false,
+            "basics": {
+                "location": {
+                    "visible": "[basics('createNewCluster')]"
+                },
+                "resourceGroup": {
+                    "allowExisting": true
+                }
+            }
+        },
+        "basics": [
+            {
+                "name": "createNewCluster",
+                "type": "Microsoft.Common.OptionsGroup",
+                "label": "Create a new AKS cluster?",
+                "defaultValue": "No",
+                "toolTip": "Install OneUptime on an AKS cluster you already have, or create one for it.",
+                "constraints": {
+                    "allowedValues": [
+                        {
+                            "label": "Yes",
+                            "value": true
+                        },
+                        {
+                            "label": "No",
+                            "value": false
+                        }
+                    ],
+                    "required": true
+                },
+                "visible": true
+            }
+        ],
+        "steps": [
+            {
+                "name": "clusterDetails",
+                "label": "Cluster",
+                "elements": [
+                    {
+                        "name": "existingClusterSection",
+                        "type": "Microsoft.Common.Section",
+                        "elements": [
+                            {
+                                "name": "clusterLookupControl",
+                                "type": "Microsoft.Solutions.ArmApiControl",
+                                "request": {
+                                    "method": "GET",
+                                    "path": "[concat(subscription().id, '/resourcegroups/', resourceGroup().name, '/providers/Microsoft.ContainerService/managedClusters?api-version=2024-09-01')]"
+                                }
+                            },
+                            {
+                                "name": "existingClusterResourceName",
+                                "type": "Microsoft.Common.DropDown",
+                                "label": "AKS cluster",
+                                "toolTip": "The AKS cluster to install OneUptime on.",
+                                "constraints": {
+                                    "allowedValues": "[map(steps('clusterDetails').existingClusterSection.clusterLookupControl.value, (item) => parse(concat('{\"label\":\"', item.name, '\",\"value\":\"', item.name, '\"}')))]",
+                                    "required": true
+                                }
+                            }
+                        ],
+                        "visible": "[equals(basics('createNewCluster'), false)]"
+                    },
+                    {
+                        "name": "newClusterSection",
+                        "type": "Microsoft.Common.Section",
+                        "elements": [
+                            {
+                                "name": "aksVersionLookupControl",
+                                "type": "Microsoft.Solutions.ArmApiControl",
+                                "request": {
+                                    "method": "GET",
+                                    "path": "[concat(subscription().id, '/providers/Microsoft.ContainerService/locations/', location(), '/orchestrators?api-version=2019-04-01&resource-type=managedClusters')]"
+                                }
+                            },
+                            {
+                                "name": "newClusterResourceName",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "AKS cluster name",
+                                "defaultValue": "",
+                                "toolTip": "6-30 letters and digits.",
+                                "constraints": {
+                                    "required": true,
+                                    "regex": "^[a-z0-9A-Z]{6,30}$",
+                                    "validationMessage": "Use 6-30 letters and digits."
+                                }
+                            },
+                            {
+                                "name": "kubernetesVersion",
+                                "type": "Microsoft.Common.DropDown",
+                                "label": "Kubernetes version",
+                                "toolTip": "The Kubernetes version of the new cluster. You can upgrade it later.",
+                                "constraints": {
+                                    "allowedValues": "[map(steps('clusterDetails').newClusterSection.aksVersionLookupControl.properties.orchestrators, (item) => parse(concat('{\"label\":\"', item.orchestratorVersion, '\",\"value\":\"', item.orchestratorVersion, '\"}')))]",
+                                    "required": true
+                                }
+                            },
+                            {
+                                "name": "vmSize",
+                                "type": "Microsoft.Compute.SizeSelector",
+                                "label": "Node size",
+                                "toolTip": "OneUptime runs its own PostgreSQL, ClickHouse and Valkey: 4 vCPUs and 16 GiB per node or more.",
+                                "recommendedSizes": [
+                                    "Standard_D4s_v5",
+                                    "Standard_D8s_v5",
+                                    "Standard_D4as_v5"
+                                ],
+                                "constraints": {
+                                    "allowedSizes": [
+                                        "Standard_D4s_v5",
+                                        "Standard_D8s_v5",
+                                        "Standard_D16s_v5",
+                                        "Standard_D4as_v5",
+                                        "Standard_D8as_v5",
+                                        "Standard_D16as_v5"
+                                    ],
+                                    "excludedSizes": []
+                                },
+                                "osPlatform": "Linux"
+                            },
+                            {
+                                "name": "enableAutoScaling",
+                                "type": "Microsoft.Common.CheckBox",
+                                "label": "Scale nodes automatically",
+                                "toolTip": "Let AKS add and remove nodes as OneUptime needs them.",
+                                "defaultValue": true
+                            },
+                            {
+                                "name": "vmCount",
+                                "type": "Microsoft.Common.Slider",
+                                "min": 1,
+                                "max": 10,
+                                "label": "Nodes",
+                                "subLabel": "",
+                                "defaultValue": 3,
+                                "showStepMarkers": false,
+                                "toolTip": "How many nodes the cluster starts with.",
+                                "constraints": {
+                                    "required": false
+                                },
+                                "visible": true
+                            }
+                        ],
+                        "visible": "[basics('createNewCluster')]"
+                    }
+                ]
+            },
+            {
+                "name": "applicationDetails",
+                "label": "OneUptime",
+                "elements": [
+                    {
+                        "name": "extensionResourceName",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Name",
+                        "defaultValue": "oneuptime",
+                        "toolTip": "The name of this OneUptime installation in Azure (its cluster extension). 6-30 lowercase letters and digits.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-z0-9]{6,30}$",
+                            "validationMessage": "Use 6-30 lowercase letters and digits."
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "host",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Domain name",
+                        "defaultValue": "",
+                        "toolTip": "Where people will open OneUptime, for example oneuptime.example.com. Point this name at the load balancer OneUptime creates once it is installed.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-zA-Z0-9]([a-zA-Z0-9.-]{0,251}[a-zA-Z0-9])?$",
+                            "validationMessage": "Enter a domain name such as oneuptime.example.com."
+                        }
+                    },
+                    {
+                        "name": "httpProtocol",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Protocol",
+                        "defaultValue": "HTTPS",
+                        "toolTip": "HTTPS if the domain name has a certificate in front of OneUptime (for example on Azure Application Gateway or Front Door).",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "HTTPS",
+                                    "value": "https"
+                                },
+                                {
+                                    "label": "HTTP",
+                                    "value": "http"
+                                }
+                            ],
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "billingInfo",
+                        "type": "Microsoft.Common.InfoBox",
+                        "visible": true,
+                        "options": {
+                            "icon": "Info",
+                            "text": "OneUptime bills every user of this installation by the hour through Microsoft Marketplace, on this Azure subscription. Enterprise features are licensed for as long as the subscription is active; no license key is needed."
+                        }
+                    }
+                ]
+            }
+        ],
+        "outputs": {
+            "location": "[location()]",
+            "createNewCluster": "[basics('createNewCluster')]",
+            "clusterResourceName": "[if(basics('createNewCluster'), steps('clusterDetails').newClusterSection.newClusterResourceName, steps('clusterDetails').existingClusterSection.existingClusterResourceName)]",
+            "kubernetesVersion": "[steps('clusterDetails').newClusterSection.kubernetesVersion]",
+            "extensionResourceName": "[steps('applicationDetails').extensionResourceName]",
+            "vmSize": "[steps('clusterDetails').newClusterSection.vmSize]",
+            "vmEnableAutoScale": "[steps('clusterDetails').newClusterSection.enableAutoScaling]",
+            "vmCount": "[steps('clusterDetails').newClusterSection.vmCount]",
+            "app-host": "[steps('applicationDetails').host]",
+            "app-httpProtocol": "[steps('applicationDetails').httpProtocol]"
+        }
+    }
+}

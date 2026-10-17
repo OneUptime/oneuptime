@@ -1,0 +1,259 @@
+# Every image the chart runs can come from a marketplace's own registry, by
+# its key (oneuptime.imageReference):
+#
+#   global.azure.images.<key>   {registry, image, tag | digest}: a Microsoft
+#                               Marketplace Kubernetes application lists each
+#                               image there, and Microsoft rewrites them to
+#                               its own registry at install;
+#   image.overrides.<key>       a full reference, as the Google Cloud
+#                               Marketplace deployer passes its images.
+#
+# Microsoft's entry wins over an override; with neither, the chart builds the
+# reference from its own values exactly as before.
+suite: image overrides
+release:
+  name: oneuptime
+  namespace: oneuptime
+set:
+  worker:
+    enabled: true
+  telemetryWriter:
+    enabled: true
+tests:
+  - it: builds the references from the chart's own values when nothing replaces them
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:release
+
+  - it: runs the app image an override names in the app, the worker and the telemetry writer (app)
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.overrides.app: us-docker.pkg.dev/oneuptime-marketplace/oneuptime-enterprise/app@sha256:aaaa
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: us-docker.pkg.dev/oneuptime-marketplace/oneuptime-enterprise/app@sha256:aaaa
+
+  - it: runs the app image an override names in the app, the worker and the telemetry writer (worker)
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.overrides.app: us-docker.pkg.dev/oneuptime-marketplace/oneuptime-enterprise/app@sha256:aaaa
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: us-docker.pkg.dev/oneuptime-marketplace/oneuptime-enterprise/app@sha256:aaaa
+
+  - it: runs the app image an override names in the app, the worker and the telemetry writer (telemetry-writer)
+    templates:
+      - templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.overrides.app: us-docker.pkg.dev/oneuptime-marketplace/oneuptime-enterprise/app@sha256:aaaa
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: us-docker.pkg.dev/oneuptime-marketplace/oneuptime-enterprise/app@sha256:aaaa
+
+  - it: migrates with the overridden app image, init container included
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      image.overrides.app: registry.example.com/oneuptime/app:enterprise-14.0.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/oneuptime/app:enterprise-14.0.0
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: registry.example.com/oneuptime/app:enterprise-14.0.0
+
+  - it: replaces only the image it names
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.overrides.app: registry.example.com/oneuptime/app:enterprise-14.0.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/nginx:release
+
+  - it: takes Microsoft's entry by tag
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      global.azure.images.app.registry: oneuptime.azurecr.io
+      global.azure.images.app.image: oneuptime/app
+      global.azure.images.app.tag: enterprise-14.0.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime.azurecr.io/oneuptime/app:enterprise-14.0.0
+
+  - it: takes Microsoft's entry by digest, which Microsoft writes when it copies the image
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      global.azure.images.app.registry: marketplace.azurecr.io
+      global.azure.images.app.image: oneuptime/app
+      global.azure.images.app.tag: enterprise-14.0.0
+      global.azure.images.app.digest: sha256:bbbb
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: marketplace.azurecr.io/oneuptime/app@sha256:bbbb
+
+  - it: prefers Microsoft's entry to an override
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.overrides.app: registry.example.com/oneuptime/app:other
+      global.azure.images.app.registry: oneuptime.azurecr.io
+      global.azure.images.app.image: oneuptime/app
+      global.azure.images.app.tag: enterprise-14.0.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime.azurecr.io/oneuptime/app:enterprise-14.0.0
+
+  - it: ignores a Microsoft entry with no image
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      global.azure.images.app.registry: oneuptime.azurecr.io
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/oneuptime/app:release
+
+  - it: replaces the bundled PostgreSQL image
+    templates:
+      - templates/postgresql-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      image.overrides.postgres: 709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime/postgres:15.14
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: 709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime/postgres:15.14
+
+  - it: replaces the bundled ClickHouse image everywhere it runs
+    templates:
+      - templates/clickhouse-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      global.azure.images.clickhouse.registry: oneuptime.azurecr.io
+      global.azure.images.clickhouse.image: oneuptime/clickhouse-server
+      global.azure.images.clickhouse.tag: "26.7"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime.azurecr.io/oneuptime/clickhouse-server:26.7
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: oneuptime.azurecr.io/oneuptime/clickhouse-server:26.7
+
+  - it: replaces the bundled Valkey image
+    templates:
+      - templates/valkey-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      image.overrides.valkey: registry.example.com/oneuptime/valkey:9.1-alpine
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/oneuptime/valkey:9.1-alpine
+
+  - it: keeps the bundled images as they were when nothing replaces them (postgresql-statefulset)
+    templates:
+      - templates/postgresql-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^(postgres:latest|valkey/valkey:9\.1-alpine)$
+
+  - it: keeps the bundled images as they were when nothing replaces them (valkey-statefulset)
+    templates:
+      - templates/valkey-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^(postgres:latest|valkey/valkey:9\.1-alpine)$
+
+  - it: replaces the pgbouncer and kubectl images
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      pgbouncer.enabled: true
+      image.overrides.pgbouncer: registry.example.com/oneuptime/pgbouncer:1.24
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/oneuptime/pgbouncer:1.24
+
+  - it: runs the helm test hook with its own override, or not at all
+    templates:
+      - templates/tests/test.yaml
+    set:
+      image.overrides.test: registry.example.com/oneuptime/test:14.0.0
+    asserts:
+      - equal:
+          path: spec.containers[0].image
+          value: registry.example.com/oneuptime/test:14.0.0
+
+  - it: renders no helm test hook when it is turned off
+    templates:
+      - templates/tests/test.yaml
+    set:
+      testHook.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
