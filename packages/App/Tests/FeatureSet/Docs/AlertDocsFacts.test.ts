@@ -74,6 +74,11 @@ import path from "path";
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 
+const DASHBOARD_SRC_DIR: string = path.join(
+  PACKAGES_DIR,
+  "App/FeatureSet/Dashboard/src",
+);
+
 function english(page: string): string {
   return readPage("en", page);
 }
@@ -2172,124 +2177,89 @@ describe("alert episodes and grouping rules", () => {
 });
 
 /*
- * The Dashboard's own Documentation page about alert grouping (Alerts →
- * Episodes → Documentation) and its incidents twin say what the engines do,
- * as the docs do: the {{variables}} a title template takes, and owners
- * where a default team or user used to be.
+ * The Dashboard used to carry its own manual about alert grouping (Alerts →
+ * Episodes → Documentation), and one about incident grouping: they said
+ * what these pages say, and drifted from them (single-brace template
+ * variables, a default team or user nothing reads). They are gone - the
+ * docs are the one place for it - and each episode list links here instead:
+ * View Documentation, under its empty state and in its ⋯ menu.
  */
-describe("the in-product episode documentation agrees with the docs and the engines", () => {
-  const SINGLE_BRACE_VARIABLE: RegExp =
-    /(?<!\{)\{(alert|incident|monitor)\w*\}(?!\})/;
+describe("the episode lists send readers to these pages", () => {
+  const DOCS_CONTENT: string = path.resolve(
+    __dirname,
+    "../../../FeatureSet/Docs/Content",
+  );
+
+  // The docs path an episode list's View Documentation opens, by its constant.
+  function docsPathOf(constant: string): string {
+    const source: string = readDashboardSource(
+      "Components/EpisodeView/EpisodeDocsLinks.ts",
+    );
+    const match: RegExpMatchArray | null = source.match(
+      new RegExp(`${escapeRegExp(constant)}: string = "([^"]+)"`),
+    );
+
+    expect({ constant, found: Boolean(match) }).toEqual({
+      constant,
+      found: true,
+    });
+
+    return match ? (match[1] as string) : "";
+  }
+
+  it("draws no manual of its own about episodes", () => {
+    for (const file of [
+      "Pages/Alerts/EpisodeDocs.tsx",
+      "Pages/Incidents/EpisodeDocs.tsx",
+    ]) {
+      expect({
+        file,
+        exists: fs.existsSync(path.join(DASHBOARD_SRC_DIR, file)),
+      }).toEqual({ file, exists: false });
+    }
+
+    expect(sectionByTitle(alertsMenu(), "Episodes").items).toEqual([
+      "All Episodes",
+      "Active Episodes",
+    ]);
+  });
 
   it.each([
-    ["Pages/Alerts/EpisodeDocs.tsx", "alert"],
-    ["Pages/Incidents/EpisodeDocs.tsx", "incident"],
+    [
+      "Components/AlertEpisode/AlertEpisodesTable.tsx",
+      "ALERT_EPISODES_DOCS_PATH",
+      "/docs/alerts/episodes",
+    ],
+    [
+      "Components/IncidentEpisode/IncidentEpisodesTable.tsx",
+      "INCIDENT_EPISODES_DOCS_PATH",
+      "/docs/incidents/episodes",
+    ],
   ])(
-    "%s names the template variables as {{variable}}",
-    (file: string, record: string) => {
-      const source: string = readDashboardSource(file);
-
-      expect(source).not.toMatch(SINGLE_BRACE_VARIABLE);
-      expect(source).toContain(`{{${record}Title}}`);
-      expect(source).toContain("{{monitorName}}");
-      expect(source).toContain(`{{${record}Severity}}`);
-    },
-  );
-
-  it("names only variables the alert engine fills", () => {
-    const source: string = readDashboardSource("Pages/Alerts/EpisodeDocs.tsx");
-    const named: Array<string> = Array.from(
-      source.matchAll(/\{\{(\w+)\}\}/g),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1] as string;
-    });
-    const filled: Array<string> = ALERT_EPISODE_TEMPLATE_STATIC_VARIABLES.map(
-      (variable: { name: string }): string => {
-        return variable.name;
-      },
-    );
-    // The TranslatedSentence slots are the page's own, not template variables.
-    const slots: Array<string> = [
-      "episodes",
-      "alerts",
-      "groupingRules",
-      "policies",
-    ];
-
-    for (const name of named) {
-      expect({
-        name,
-        known: filled.includes(name) || slots.includes(name),
-      }).toEqual({ name, known: true });
-    }
-  });
-
-  it.each(["Pages/Alerts/EpisodeDocs.tsx", "Pages/Incidents/EpisodeDocs.tsx"])(
-    "%s offers Episode Owners, not a default team or user nothing reads",
-    (file: string) => {
-      const source: string = readDashboardSource(file);
-
-      expect(source).not.toContain("Default Team/User Assignment");
-      expect(source).not.toContain("default team or user ownership");
-      expect(source).toContain('translator.translateText("Episode Owners:")');
-      expect(source).toContain(
-        "Grouping rules can name Episode Owners: people and teams who become owners of every episode the rule opens, and are notified like any other owner.",
+    "%s links to %s, a docs page in every language",
+    (table: string, constant: string, docsPath: string) => {
+      expect(readDashboardSource(table)).toContain(
+        `documentationLink={Route.fromString(${constant})}`,
       );
-    },
-  );
+      expect(docsPathOf(constant)).toBe(docsPath);
 
-  it("is translated in every Dashboard language, keeping each variable", () => {
-    const keys: Array<string> = [
-      "Episode Owners:",
-      "Grouping rules can name Episode Owners: people and teams who become owners of every episode the rule opens, and are notified like any other owner.",
-      "Optionally write an episode title template with variables such as {{alertTitle}}, {{monitorName}} and {{alertSeverity}}.",
-      "Optionally write an episode title template with variables such as {{incidentTitle}}, {{monitorName}} and {{incidentSeverity}}.",
-    ];
+      const page: string = docsPath.replace("/docs/", "");
 
-    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
-      const locale: Record<string, unknown> = JSON.parse(
-        readDashboardSource(`Locales/${language}.json`),
-      );
-
-      for (const key of keys) {
-        const value: unknown = locale[key];
-
-        expect({ language, key, value: typeof value }).toEqual({
+      for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        expect({
           language,
-          key,
-          value: "string",
-        });
-
-        if (language !== "en") {
-          expect({ language, key, translated: value !== key }).toEqual({
-            language,
-            key,
-            translated: true,
-          });
-        }
-
-        for (const variable of Array.from(key.matchAll(/\{\{\w+\}\}/g))) {
-          expect({
-            language,
-            variable: variable[0],
-            kept: String(value).includes(variable[0]),
-          }).toEqual({ language, variable: variable[0], kept: true });
-        }
+          page,
+          exists: fs.existsSync(
+            path.join(DOCS_CONTENT, language, `${page}.md`),
+          ),
+        }).toEqual({ language, page, exists: true });
       }
-    }
-  });
+    },
+  );
 
-  it("agrees with the docs on which policies a new episode runs", () => {
-    const source: string = readDashboardSource("Pages/Alerts/EpisodeDocs.tsx");
-
-    expect(source).toContain(
-      "When an alert creates a NEW episode, both the alert's on-call policy AND the grouping rule's on-call policy are executed.",
-    );
-    expect(source).toContain(
-      "When an alert joins an EXISTING episode, only the alert's on-call policy executes.",
-    );
-    expect(english(ALERT_EPISODES)).toContain(
-      "**An alert joining an open episode** runs only its own policies. The episode's do not run again.",
+  it("is the page this one is: Alerts → Episodes reads alerts/episodes", () => {
+    expect(docsPathOf("ALERT_EPISODES_DOCS_PATH")).toBe(
+      `/docs/${ALERT_EPISODES}`,
     );
   });
 });

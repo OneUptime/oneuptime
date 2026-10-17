@@ -36,6 +36,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
+import { INCIDENT_EPISODES_DOCS_PATH } from "../EpisodeView/EpisodeDocsLinks";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -308,8 +309,9 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
             props.description ||
             "Episodes group related incidents so you can respond to them together. Grouping rules open episodes for you, or you can create one yourself.",
         }}
-        noItemsMessage={props.noItemsMessage || "No episodes found."}
+        noItemsMessage={props.noItemsMessage}
         emptyState={props.emptyState}
+        documentationLink={Route.fromString(INCIDENT_EPISODES_DOCS_PATH)}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
         showViewIdButton={true}
