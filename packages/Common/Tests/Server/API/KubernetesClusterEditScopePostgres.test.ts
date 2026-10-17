@@ -462,43 +462,46 @@ describePostgres(
     };
 
     // A new API key of the project with these permission rows.
-    const createApiKey: (rows: Array<PermissionRow>) => Promise<ObjectID> =
-      async (rows: Array<PermissionRow>): Promise<ObjectID> => {
-        const id: ObjectID = ObjectID.generate();
-        const apiKey: ObjectID = ObjectID.generate();
+    const createApiKey: (
+      rows: Array<PermissionRow>,
+    ) => Promise<ObjectID> = async (
+      rows: Array<PermissionRow>,
+    ): Promise<ObjectID> => {
+      const id: ObjectID = ObjectID.generate();
+      const apiKey: ObjectID = ObjectID.generate();
 
-        await insert("ApiKey", {
-          _id: id,
+      await insert("ApiKey", {
+        _id: id,
+        projectId: projectId,
+        name: `Key ${id.toString()}`,
+        slug: `key-${id.toString()}`,
+        apiKey: apiKey,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        version: 1,
+      });
+
+      for (const row of rows) {
+        const permissionId: ObjectID = ObjectID.generate();
+
+        await insert("ApiKeyPermission", {
+          _id: permissionId,
           projectId: projectId,
-          name: `Key ${id.toString()}`,
-          slug: `key-${id.toString()}`,
-          apiKey: apiKey,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          apiKeyId: id,
+          permission: row.permission,
+          isBlockPermission: Boolean(row.isBlock),
           version: 1,
         });
 
-        for (const row of rows) {
-          const permissionId: ObjectID = ObjectID.generate();
-
-          await insert("ApiKeyPermission", {
-            _id: permissionId,
-            projectId: projectId,
-            apiKeyId: id,
-            permission: row.permission,
-            isBlockPermission: Boolean(row.isBlock),
-            version: 1,
+        for (const labelId of row.labelIds || []) {
+          await insert("ApiKeyPermissionLabel", {
+            apiKeyPermissionId: permissionId,
+            labelId: labelId,
           });
-
-          for (const labelId of row.labelIds || []) {
-            await insert("ApiKeyPermissionLabel", {
-              apiKeyPermissionId: permissionId,
-              labelId: labelId,
-            });
-          }
         }
+      }
 
-        return apiKey;
-      };
+      return apiKey;
+    };
 
     const headersOf: (caller: Caller) => Dictionary<string> = (
       caller: Caller,
@@ -644,15 +647,17 @@ describePostgres(
     };
 
     // The test ran kubectl on this cluster, and only on it.
-    const expectKubectlRanOn: (outcome: Outcome, clusterId: ObjectID) => void =
-      (outcome: Outcome, clusterId: ObjectID): void => {
-        expect(outcome.error).toBeUndefined();
-        expect(outcome.json?.["ok"]).toBe(true);
-        expect(kubectlRuns).toEqual([
-          `${clusterId.toString()} kubectl version`,
-          `${clusterId.toString()} kubectl auth can-i --list`,
-        ]);
-      };
+    const expectKubectlRanOn: (
+      outcome: Outcome,
+      clusterId: ObjectID,
+    ) => void = (outcome: Outcome, clusterId: ObjectID): void => {
+      expect(outcome.error).toBeUndefined();
+      expect(outcome.json?.["ok"]).toBe(true);
+      expect(kubectlRuns).toEqual([
+        `${clusterId.toString()} kubectl version`,
+        `${clusterId.toString()} kubectl auth can-i --list`,
+      ]);
+    };
 
     // Refused with `message`, before anything ran.
     const expectRefused: (outcome: Outcome, message: string) => void = (
@@ -678,32 +683,35 @@ describePostgres(
       expect(agentResets).toEqual([]);
     };
 
-    const readyStatus: (clusterId: ObjectID) => KubernetesClusterAiAccessStatus =
-      (clusterId: ObjectID): KubernetesClusterAiAccessStatus => {
-        return {
-          clusterId: clusterId.toString(),
-          clusterName: "cluster",
-          clusterIdentifier: "cluster",
-          runner: {
-            id: ObjectID.generate().toString(),
-            name: "office-runner",
-            isOnline: true,
-            canRunAiCommands: true,
-          },
-          accessMethod: "credential",
-          aiAgent: null,
-          automaticInvestigation: { incidents: false, alerts: false },
-          credentialId: undefined,
-          credentialName: undefined,
-          kubectlAllowlist: [],
-          isInvestigationEnabled: true,
-          isInvestigationReady: true,
-          remediationMode: KubernetesAiRemediationMode.Disabled,
-          isRemediationReady: false,
-          gaps: [],
-          evaluatedAt: "2026-10-17T00:00:00.000Z",
-        } as unknown as KubernetesClusterAiAccessStatus;
-      };
+    const readyStatus: (
+      clusterId: ObjectID,
+    ) => KubernetesClusterAiAccessStatus = (
+      clusterId: ObjectID,
+    ): KubernetesClusterAiAccessStatus => {
+      return {
+        clusterId: clusterId.toString(),
+        clusterName: "cluster",
+        clusterIdentifier: "cluster",
+        runner: {
+          id: ObjectID.generate().toString(),
+          name: "office-runner",
+          isOnline: true,
+          canRunAiCommands: true,
+        },
+        accessMethod: "credential",
+        aiAgent: null,
+        automaticInvestigation: { incidents: false, alerts: false },
+        credentialId: undefined,
+        credentialName: undefined,
+        kubectlAllowlist: [],
+        isInvestigationEnabled: true,
+        isInvestigationReady: true,
+        remediationMode: KubernetesAiRemediationMode.Disabled,
+        isRemediationReady: false,
+        gaps: [],
+        evaluatedAt: "2026-10-17T00:00:00.000Z",
+      } as unknown as KubernetesClusterAiAccessStatus;
+    };
 
     beforeAll(async () => {
       database = new DataSource({
@@ -842,16 +850,17 @@ describePostgres(
         };
       }) as never);
 
-      getJestSpyOn(KubernetesAiAgentService, "findForCluster").mockImplementation(
-        (async (data: {
-          kubernetesClusterId: ObjectID;
-        }): Promise<KubernetesAiAgent> => {
-          const agent: KubernetesAiAgent = new KubernetesAiAgent();
-          agent.id = ObjectID.generate();
-          agent.kubernetesClusterId = data.kubernetesClusterId;
-          return agent;
-        }) as never,
-      );
+      getJestSpyOn(
+        KubernetesAiAgentService,
+        "findForCluster",
+      ).mockImplementation((async (data: {
+        kubernetesClusterId: ObjectID;
+      }): Promise<KubernetesAiAgent> => {
+        const agent: KubernetesAiAgent = new KubernetesAiAgent();
+        agent.id = ObjectID.generate();
+        agent.kubernetesClusterId = data.kubernetesClusterId;
+        return agent;
+      }) as never);
       getJestSpyOn(KubernetesAiAgentService, "resetAgent").mockImplementation(
         (async (data: { kubernetesClusterId: ObjectID }): Promise<void> => {
           agentResets.push(data.kubernetesClusterId.toString());

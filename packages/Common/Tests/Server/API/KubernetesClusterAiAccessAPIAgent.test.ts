@@ -514,30 +514,33 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       // The admin set, and an edit of the cluster.
       [Permission.EditAutoRemediationRule, ...CLUSTER_EDITOR],
       [Permission.EditAutoRemediationRule, Permission.ProjectMember],
-    ])("resets this cluster's agent for %s", async (...roles: Array<Permission>) => {
-      propsSpy.mockResolvedValue(userProps({ permissions: roles }));
+    ])(
+      "resets this cluster's agent for %s",
+      async (...roles: Array<Permission>) => {
+        propsSpy.mockResolvedValue(userProps({ permissions: roles }));
 
-      const result: RouteCallResult = await callRoute(RESET_ROUTE);
+        const result: RouteCallResult = await callRoute(RESET_ROUTE);
 
-      expect(result.thrownToNext).toBeUndefined();
-      expect(resetSpy).toHaveBeenCalledTimes(1);
-      const call: Record<string, unknown> = resetSpy.mock
-        .calls[0]![0] as Record<string, unknown>;
-      expect(String(call["projectId"])).toBe(PROJECT_ID.toString());
-      expect(String(call["kubernetesClusterId"])).toBe(CLUSTER_ID.toString());
-      expect(String(call["userId"])).toBe(USER_ID.toString());
-      expect(agentLookup).toHaveBeenCalledWith({
-        projectId: PROJECT_ID,
-        kubernetesClusterId: CLUSTER_ID,
-      });
+        expect(result.thrownToNext).toBeUndefined();
+        expect(resetSpy).toHaveBeenCalledTimes(1);
+        const call: Record<string, unknown> = resetSpy.mock
+          .calls[0]![0] as Record<string, unknown>;
+        expect(String(call["projectId"])).toBe(PROJECT_ID.toString());
+        expect(String(call["kubernetesClusterId"])).toBe(CLUSTER_ID.toString());
+        expect(String(call["userId"])).toBe(USER_ID.toString());
+        expect(agentLookup).toHaveBeenCalledWith({
+          projectId: PROJECT_ID,
+          kubernetesClusterId: CLUSTER_ID,
+        });
 
-      const response: JSONObject = lastResponse();
-      expect(response["ok"]).toBe(true);
-      expect(response["message"]).toBe(
-        "The Kubernetes AI agent was reset. It reconnects on its own within a few minutes.",
-      );
-      expect(response["status"]).toBeDefined();
-    });
+        const response: JSONObject = lastResponse();
+        expect(response["ok"]).toBe(true);
+        expect(response["message"]).toBe(
+          "The Kubernetes AI agent was reset. It reconnects on its own within a few minutes.",
+        );
+        expect(response["status"]).toBeDefined();
+      },
+    );
 
     test("lets a master admin reset without any project permission", async () => {
       propsSpy.mockResolvedValue(

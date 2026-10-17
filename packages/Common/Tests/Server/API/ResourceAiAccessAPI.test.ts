@@ -1800,37 +1800,40 @@ describe("ResourceAiAccessAPI", () => {
         kind.editPermission,
       ],
       [Permission.EditAutoRemediationRule, Permission.ProjectMember],
-    ])("resets this resource's agent for %s", async (...roles: Array<Permission>) => {
-      propsSpy.mockResolvedValue(userProps({ permissions: roles }));
+    ])(
+      "resets this resource's agent for %s",
+      async (...roles: Array<Permission>) => {
+        propsSpy.mockResolvedValue(userProps({ permissions: roles }));
 
-      const result: RouteCallResult = await callRoute(
-        RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
-        body(kind.resourceType),
-      );
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+          body(kind.resourceType),
+        );
 
-      expect(result.thrownToNext).toBeUndefined();
-      expect(agentLookup).toHaveBeenCalledWith({
-        projectId: PROJECT_ID,
-        resourceType: kind.resourceType,
-        resourceId: RESOURCE_ID,
-      });
-      expect(resetSpy).toHaveBeenCalledTimes(1);
-      const call: Record<string, unknown> = resetSpy.mock
-        .calls[0]![0] as Record<string, unknown>;
-      expect(String(call["projectId"])).toBe(PROJECT_ID.toString());
-      expect(call["resourceType"]).toBe(kind.resourceType);
-      expect(String(call["resourceId"])).toBe(RESOURCE_ID.toString());
-      expect(String(call["userId"])).toBe(USER_ID.toString());
+        expect(result.thrownToNext).toBeUndefined();
+        expect(agentLookup).toHaveBeenCalledWith({
+          projectId: PROJECT_ID,
+          resourceType: kind.resourceType,
+          resourceId: RESOURCE_ID,
+        });
+        expect(resetSpy).toHaveBeenCalledTimes(1);
+        const call: Record<string, unknown> = resetSpy.mock
+          .calls[0]![0] as Record<string, unknown>;
+        expect(String(call["projectId"])).toBe(PROJECT_ID.toString());
+        expect(call["resourceType"]).toBe(kind.resourceType);
+        expect(String(call["resourceId"])).toBe(RESOURCE_ID.toString());
+        expect(String(call["userId"])).toBe(USER_ID.toString());
 
-      const response: JSONObject = lastResponse();
-      expect(response["ok"]).toBe(true);
-      expect(response["message"]).toBe(
-        `The ${
-          AI_RESOURCE_TYPE_INFO[kind.resourceType].agentDisplayName
-        } was reset. It reconnects on its own within a few minutes.`,
-      );
-      expect(response["status"]).toBeDefined();
-    });
+        const response: JSONObject = lastResponse();
+        expect(response["ok"]).toBe(true);
+        expect(response["message"]).toBe(
+          `The ${
+            AI_RESOURCE_TYPE_INFO[kind.resourceType].agentDisplayName
+          } was reset. It reconnects on its own within a few minutes.`,
+        );
+        expect(response["status"]).toBeDefined();
+      },
+    );
 
     test("lets a master admin reset without any project permission", async () => {
       propsSpy.mockResolvedValue(
@@ -2132,9 +2135,7 @@ describe("ResourceAiAccessAPI", () => {
           body(kind.resourceType),
         );
 
-        expect(result.thrownToNext).not.toBeInstanceOf(
-          NotAuthorizedException,
-        );
+        expect(result.thrownToNext).not.toBeInstanceOf(NotAuthorizedException);
         expect((result.thrownToNext as Error).message).toBe("database down");
         expect(resetSpy).not.toHaveBeenCalled();
       });

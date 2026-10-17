@@ -424,7 +424,9 @@ describe("KubernetesClusterAiAccessService.assertCallerMayChangeCluster", () => 
       serveCluster(cluster([label(PROD_LABEL_ID, "prod")]));
       jest
         .spyOn(ModelPermission, "checkUpdatePermissionByModel")
-        .mockRejectedValue(new NotFoundException("Kubernetes Cluster not found."));
+        .mockRejectedValue(
+          new NotFoundException("Kubernetes Cluster not found."),
+        );
 
       await expect(
         assertMayChange(userProps([{ permission: Permission.ProjectMember }])),
@@ -524,9 +526,7 @@ describe("KubernetesClusterAiAccessService.assertCallerMayChangeCluster", () => 
       expect(labelRead.props.isRoot).toBe(true);
       expect(labelRead.select["labels"]).toEqual({ _id: true, name: true });
       expect(String(labelRead.query["_id"])).toBe(CLUSTER_ID.toString());
-      expect(String(labelRead.query["projectId"])).toBe(
-        PROJECT_ID.toString(),
-      );
+      expect(String(labelRead.query["projectId"])).toBe(PROJECT_ID.toString());
     });
 
     it("does not gate root or master admins, and reads nothing for them", async () => {

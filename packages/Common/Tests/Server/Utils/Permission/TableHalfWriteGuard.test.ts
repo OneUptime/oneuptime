@@ -211,10 +211,7 @@ function scanServer(): Array<Call> {
   return SCANNED_ROOTS.flatMap((root: string): Array<Call> => {
     return listSourceFiles(path.join(REPOSITORY_ROOT, root)).flatMap(
       (file: string): Array<Call> => {
-        return findCalls(
-          toRepositoryPath(file),
-          fs.readFileSync(file, "utf8"),
-        );
+        return findCalls(toRepositoryPath(file), fs.readFileSync(file, "utf8"));
       },
     );
   });
