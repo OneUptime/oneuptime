@@ -83,11 +83,33 @@ test.beforeEach(async ({ page }: { page: Page }) => {
       errors.push(message.text());
     }
   });
+  /*
+   * An error event on the window that is no exception - "ResizeObserver
+   * loop completed with undelivered notifications", which a table measured
+   * inside the observer's call raised on every resize - reaches neither the
+   * console nor pageerror: it is recorded here.
+   */
+  await page.addInitScript((): void => {
+    const record: Array<string> = [];
+    (window as unknown as { __windowErrors: Array<string> }).__windowErrors =
+      record;
+    window.addEventListener("error", (event: ErrorEvent) => {
+      record.push(String(event.message));
+    });
+  });
   await page.clock.setFixedTime(NOW);
 });
 
 test.afterEach(async ({ page }: { page: Page }) => {
   expect(pageErrors.get(page) || []).toEqual([]);
+  expect(
+    await page.evaluate((): Array<string> => {
+      return (
+        (window as unknown as { __windowErrors?: Array<string> })
+          .__windowErrors || []
+      );
+    }),
+  ).toEqual([]);
   // Every read the tables made is one the fixture answers as the API does.
   expect((await fixture(page)).unmodelled).toEqual([]);
 });
@@ -690,7 +712,7 @@ test.describe("a row's name uses the room its row has", () => {
     ).toBe("ellipsis");
   });
 
-  test("a window made narrower and wider again moves between the two, and settles", async ({
+  test("a window made narrower and wider again moves between the two, and settles - with no error on the page", async ({
     page,
   }: {
     page: Page;
@@ -710,6 +732,16 @@ test.describe("a row's name uses the room its row has", () => {
       await expect(scrollBox).toHaveAttribute("data-overflowing", overflowing);
       await expect(name).toHaveAttribute("data-fill", fill);
     }
+
+    // A window's edge dragged across both, a few pixels a frame, and back.
+    for (let width: number = 1280; width >= 860; width -= 7) {
+      await page.setViewportSize({ width: width, height: 900 });
+    }
+    for (let width: number = 860; width <= 1280; width += 9) {
+      await page.setViewportSize({ width: width, height: 900 });
+    }
+    await expect(scrollBox).toHaveAttribute("data-overflowing", "false");
+    await expect(name).toHaveAttribute("data-fill", "true");
 
     // Settled: a moment later nothing has flipped back.
     const before: string = await name.evaluate((element: Element): string => {

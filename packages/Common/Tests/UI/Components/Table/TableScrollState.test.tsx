@@ -54,14 +54,21 @@ describe("isTableOverflowing", () => {
 
   test.each(CASES)(
     "%s",
-    (_label: string, tableWidth: number, boxWidth: number, expected: boolean) => {
+    (
+      _label: string,
+      tableWidth: number,
+      boxWidth: number,
+      expected: boolean,
+    ) => {
       expect(isTableOverflowing({ tableWidth, boxWidth })).toBe(expected);
     },
   );
 });
 
 describe("isInsideScrollingBox", () => {
-  type NestFunction = (styles: Array<Partial<CSSStyleDeclaration>>) => HTMLElement;
+  type NestFunction = (
+    styles: Array<Partial<CSSStyleDeclaration>>,
+  ) => HTMLElement;
 
   // The innermost element of a chain of boxes, outermost first.
   const nest: NestFunction = (
@@ -267,14 +274,32 @@ describe("useTableScrollState", () => {
     expect(onState.mock.calls.length).toBe(drawn);
   });
 
-  test("with ResizeObserver, both the box and the table are watched, and let go of on unmount", () => {
+  /*
+   * A ResizeObserver whose calls the test makes, and animation frames the
+   * test runs, in place of the browser's.
+   */
+  interface FakeBrowser {
+    observed: Array<Element>;
+    disconnect: jest.Mock<() => void>;
+    resize: () => void;
+    pendingFrames: () => number;
+    runFrames: () => void;
+  }
+
+  type WithFakeBrowserFunction = (run: (browser: FakeBrowser) => void) => void;
+
+  const withFakeBrowser: WithFakeBrowserFunction = (
+    run: (browser: FakeBrowser) => void,
+  ): void => {
     const observed: Array<Element> = [];
     const disconnect: jest.Mock<() => void> = jest.fn();
-    let callback: (() => void) | null = null;
+    let onResize: (() => void) | null = null;
+    const frames: Map<number, FrameRequestCallback> = new Map();
+    let nextFrame: number = 1;
 
     class FakeResizeObserver {
-      public constructor(onResize: () => void) {
-        callback = onResize;
+      public constructor(callback: () => void) {
+        onResize = callback;
       }
 
       public observe(element: Element): void {
@@ -288,14 +313,63 @@ describe("useTableScrollState", () => {
       public unobserve(): void {}
     }
 
-    const original: unknown = (window as unknown as { ResizeObserver?: unknown })
-      .ResizeObserver;
+    const originalObserver: unknown = (
+      window as unknown as { ResizeObserver?: unknown }
+    ).ResizeObserver;
+    const originalRequest: typeof window.requestAnimationFrame =
+      window.requestAnimationFrame;
+    const originalCancel: typeof window.cancelAnimationFrame =
+      window.cancelAnimationFrame;
+
     (window as unknown as { ResizeObserver: unknown }).ResizeObserver =
       FakeResizeObserver;
     (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
       FakeResizeObserver;
+    window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
+      const id: number = nextFrame++;
+      frames.set(id, callback);
+      return id;
+    };
+    window.cancelAnimationFrame = (id: number): void => {
+      frames.delete(id);
+    };
 
     try {
+      run({
+        observed,
+        disconnect,
+        resize: (): void => {
+          act(() => {
+            onResize?.();
+          });
+        },
+        pendingFrames: (): number => {
+          return frames.size;
+        },
+        runFrames: (): void => {
+          const callbacks: Array<FrameRequestCallback> = Array.from(
+            frames.values(),
+          );
+          frames.clear();
+          act(() => {
+            for (const callback of callbacks) {
+              callback(0);
+            }
+          });
+        },
+      });
+    } finally {
+      (window as unknown as { ResizeObserver: unknown }).ResizeObserver =
+        originalObserver;
+      (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+        originalObserver;
+      window.requestAnimationFrame = originalRequest;
+      window.cancelAnimationFrame = originalCancel;
+    }
+  };
+
+  test("with ResizeObserver, both the box and the table are watched, and let go of on unmount", () => {
+    withFakeBrowser((browser: FakeBrowser) => {
       const states: Array<TableScrollState> = [];
       const { unmount } = render(
         <Probe
@@ -307,26 +381,100 @@ describe("useTableScrollState", () => {
         />,
       );
 
-      expect(observed.map((element: Element) => element.tagName)).toEqual([
-        "DIV",
-        "TABLE",
-      ]);
+      expect(
+        browser.observed.map((element: Element) => element.tagName),
+      ).toEqual(["DIV", "TABLE"]);
 
       // The table grows past its card: the observer's call measures again.
-      setWidth(observed[1]!, 1500);
-      act(() => {
-        callback?.();
-      });
+      setWidth(browser.observed[1]!, 1500);
+      browser.resize();
+      browser.runFrames();
 
       expect(states[states.length - 1]?.isOverflowing).toBe(true);
 
       unmount();
-      expect(disconnect).toHaveBeenCalled();
-    } finally {
-      (window as unknown as { ResizeObserver: unknown }).ResizeObserver =
-        original;
-      (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
-        original;
-    }
+      expect(browser.disconnect).toHaveBeenCalled();
+    });
+  });
+
+  test("the observer's call measures on the next frame, never inside the call - a size changed in it is an error on the page", () => {
+    withFakeBrowser((browser: FakeBrowser) => {
+      const states: Array<TableScrollState> = [];
+
+      render(
+        <Probe
+          tableWidth={1000}
+          boxWidth={1200}
+          onState={(state: TableScrollState) => {
+            states.push(state);
+          }}
+        />,
+      );
+
+      const table: HTMLElement = browser.observed[1] as HTMLElement;
+      const readings: Array<string | null> = [];
+
+      setWidth(table, 1500);
+      const read: () => DOMRect = table.getBoundingClientRect;
+      table.getBoundingClientRect = (): DOMRect => {
+        readings.push("read");
+        return read.call(table);
+      };
+
+      browser.resize();
+
+      // Nothing read, nothing changed, inside the observer's call.
+      expect(readings).toEqual([]);
+      expect(states[states.length - 1]?.isOverflowing).toBe(false);
+      expect(browser.pendingFrames()).toBe(1);
+
+      browser.runFrames();
+
+      expect(readings.length).toBeGreaterThan(0);
+      expect(states[states.length - 1]?.isOverflowing).toBe(true);
+    });
+  });
+
+  test("calls that come before the frame are measured once", () => {
+    withFakeBrowser((browser: FakeBrowser) => {
+      render(
+        <Probe tableWidth={1000} boxWidth={1200} onState={(): void => {}} />,
+      );
+
+      const table: HTMLElement = browser.observed[1] as HTMLElement;
+      let reads: number = 0;
+      const read: () => DOMRect = table.getBoundingClientRect;
+      table.getBoundingClientRect = (): DOMRect => {
+        reads++;
+        return read.call(table);
+      };
+
+      // The box and the table both changed size, and the box again.
+      browser.resize();
+      browser.resize();
+      browser.resize();
+
+      expect(browser.pendingFrames()).toBe(1);
+
+      browser.runFrames();
+
+      // One measurement: the table fits, so it is read once.
+      expect(reads).toBe(1);
+    });
+  });
+
+  test("a frame still waiting when the table goes is called off", () => {
+    withFakeBrowser((browser: FakeBrowser) => {
+      const { unmount } = render(
+        <Probe tableWidth={1000} boxWidth={1200} onState={(): void => {}} />,
+      );
+
+      browser.resize();
+      expect(browser.pendingFrames()).toBe(1);
+
+      unmount();
+
+      expect(browser.pendingFrames()).toBe(0);
+    });
   });
 });

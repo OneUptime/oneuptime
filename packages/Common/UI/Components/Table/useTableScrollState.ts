@@ -236,8 +236,23 @@ const useTableScrollState: (data: {
       };
     }
 
+    let frame: number | null = null;
+
+    /*
+     * Measured on the next frame, not in the observer's call: the measuring
+     * sets the names free and back, and a size that changes inside the call
+     * is one the observer cannot deliver - the page gets an error ("loop
+     * completed with undelivered notifications") on every resize.
+     */
     const observer: ResizeObserver = new ResizeObserver(() => {
-      measure();
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+        measure();
+      });
     });
 
     if (data.scrollRef.current) {
@@ -249,6 +264,10 @@ const useTableScrollState: (data: {
     }
 
     return () => {
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+
       observer.disconnect();
     };
   }, data.watch);
