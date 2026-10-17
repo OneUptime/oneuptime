@@ -769,25 +769,67 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
-    // confirm subscription api
+    /*
+     * The link in the email that asks a new email subscriber to confirm:
+     * {statusPageUrl}/confirm-subscription/{id}?verification-token={code}.
+     * Until it is opened, the address hears nothing.
+     *
+     * The code is the whole of what proves the request came from the
+     * address's own inbox: the subscriber id is no secret, as every project
+     * member who may read subscribers sees it. So only text is taken as the
+     * code. A request without one used to leave the code out of the lookup
+     * altogether - a filter on an undefined value is no filter - and the id
+     * alone confirmed the sign-up. Every link that confirms nothing gets the
+     * same answer.
+     */
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/confirm-subscription/:statusPageSubscriberId`,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        const token: string = req.query["verification-token"] as string;
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const code: unknown = req.query["verification-token"];
+          const subscriberId: unknown = req.params["statusPageSubscriberId"];
 
-        const statusPageSubscriberId: ObjectID = new ObjectID(
-          req.params["statusPageSubscriberId"] as string,
-        );
+          const subscriber: StatusPageSubscriber | null =
+            typeof code === "string" &&
+            code.length > 0 &&
+            typeof subscriberId === "string" &&
+            ObjectID.isValidUUID(subscriberId)
+              ? await StatusPageSubscriberService.findOneBy({
+                  query: {
+                    _id: subscriberId,
+                    subscriptionConfirmationToken: code,
+                  },
+                  select: {
+                    _id: true,
+                    isSubscriptionConfirmed: true,
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : null;
 
-        const subscriber: StatusPageSubscriber | null =
-          await StatusPageSubscriberService.findOneBy({
-            query: {
-              _id: statusPageSubscriberId,
-              subscriptionConfirmationToken: token,
-            },
-            select: {
+          if (!subscriber || !subscriber.id) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException(
+                "Subscriber not found or confirmation token is invalid",
+              ),
+            );
+          }
+
+          // check if subscription confirmed already.
+
+          if (subscriber.isSubscriptionConfirmed) {
+            return Response.sendEmptySuccessResponse(req, res);
+          }
+
+          await StatusPageSubscriberService.updateOneById({
+            id: subscriber.id,
+            data: {
               isSubscriptionConfirmed: true,
             },
             props: {
@@ -795,37 +837,14 @@ export default class StatusPageAPI extends BaseAPI<
             },
           });
 
-        if (!subscriber) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException(
-              "Subscriber not found or confirmation token is invalid",
-            ),
-          );
-        }
+          await StatusPageSubscriberService.sendYouHaveSubscribedEmail({
+            subscriberId: subscriber.id,
+          });
 
-        // check if subscription confirmed already.
-
-        if (subscriber.isSubscriptionConfirmed) {
           return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
         }
-
-        await StatusPageSubscriberService.updateOneById({
-          id: statusPageSubscriberId,
-          data: {
-            isSubscriptionConfirmed: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        await StatusPageSubscriberService.sendYouHaveSubscribedEmail({
-          subscriberId: statusPageSubscriberId,
-        });
-
-        return Response.sendEmptySuccessResponse(req, res);
       },
     );
 

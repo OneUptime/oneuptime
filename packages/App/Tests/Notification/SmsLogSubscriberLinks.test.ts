@@ -90,9 +90,11 @@ import {
 import Response from "Common/Server/Utils/Response";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "Common/Models/DatabaseModels/Project";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
@@ -101,6 +103,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import Phone from "Common/Types/Phone";
 import SMS from "Common/Types/SMS/SMS";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberUnsubscribe, {
   MANAGE_SUBSCRIPTION_LINK_NOT_VALID_MESSAGE,
   StatusPageSubscriberUnsubscribeCredential,
@@ -599,5 +602,53 @@ describe("a status page subscriber's texts in the SMS log", () => {
       ),
     ).toBeUndefined();
     expect(isCancelled()).toBe(true);
+  });
+
+  test("a page's own SMS template with both links: the phone gets both whole, the log neither token", async () => {
+    // A page with its own Twilio account, which is what lets it use its own templates.
+    const callSmsConfig: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+    callSmsConfig._id = "1a000000-0000-4000-8000-000000000009";
+    callSmsConfig.twilioAccountSID = "AC-own-account";
+    callSmsConfig.twilioAuthToken = "own-auth-token";
+    callSmsConfig.twilioPrimaryPhoneNumber = new Phone("+14155550199");
+
+    const page: StatusPage = publicStatusPage();
+    page.callSmsConfig = callSmsConfig;
+
+    jest
+      .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+      .mockResolvedValue([page] as never);
+
+    const template: StatusPageSubscriberNotificationTemplate =
+      new StatusPageSubscriberNotificationTemplate();
+    template.templateBody =
+      "{{statusPageName}}: manage {{manageSubscriptionUrl}} or stop {{unsubscribeUrl}}";
+
+    jest
+      .spyOn(
+        StatusPageSubscriberNotificationTemplateService,
+        "getTemplateForStatusPage",
+      )
+      .mockImplementation((async (data: {
+        notificationMethod: StatusPageSubscriberNotificationMethod;
+      }) => {
+        return data.notificationMethod ===
+          StatusPageSubscriberNotificationMethod.SMS
+          ? template
+          : null;
+      }) as never);
+
+    await sendManageSubscriptionSms();
+
+    expect(delivered).toEqual([
+      `Acme Status: manage ${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID}-${TOKEN} or stop ${STATUS_PAGE_URL}/unsubscribe/${SUBSCRIBER_ID}-${TOKEN}`,
+    ]);
+
+    const logged: Array<string> = await smsLogAsReader();
+
+    expect(logged).toEqual([
+      `Acme Status: manage ${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID}-${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN} or stop ${STATUS_PAGE_URL}/unsubscribe/${SUBSCRIBER_ID}-${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN}`,
+    ]);
+    expect(JSON.stringify(logged)).not.toContain(TOKEN);
   });
 });

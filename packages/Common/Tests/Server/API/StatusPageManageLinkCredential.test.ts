@@ -715,3 +715,184 @@ describe("who can read about a subscription cannot change it with what they read
     expect(isCancelled(SUBSCRIBER_ID)).toBe(false);
   });
 });
+
+/*
+ * More ways around the link, each tried and refused: another subscription on
+ * the same page, a subscription with no token on record, a token with
+ * something around it - and what the link's holder can change.
+ */
+describe("the link opens its own subscription's choices, and nothing more", () => {
+  const SAME_PAGE_SUBSCRIBER_ID: string =
+    "5c000000-0000-4000-8000-000000000004";
+  const SAME_PAGE_TOKEN: string = "7d".repeat(32);
+
+  test("a token opens no other subscription on its own page", async () => {
+    subscribers.rows.push(
+      subscriberRow({
+        id: SAME_PAGE_SUBSCRIBER_ID,
+        pageId: PUBLIC_PAGE_ID,
+        projectId: PROJECT_ID,
+        token: SAME_PAGE_TOKEN,
+      }),
+    );
+
+    // Each subscription's id with the other's token, both ways round.
+    expectRefusedAsAnInvalidLink(
+      await readSubscription({
+        subscriberId: SAME_PAGE_SUBSCRIBER_ID,
+        token: TOKEN,
+      }),
+    );
+    expectRefusedAsAnInvalidLink(
+      await cancelSubscription({
+        subscriberId: SAME_PAGE_SUBSCRIBER_ID,
+        token: TOKEN,
+      }),
+    );
+    expectRefusedAsAnInvalidLink(
+      await cancelSubscription({ token: SAME_PAGE_TOKEN }),
+    );
+
+    expect(sentSubscribers()).toHaveLength(0);
+    expect(isCancelled(SUBSCRIBER_ID)).toBe(false);
+    expect(isCancelled(SAME_PAGE_SUBSCRIBER_ID)).toBe(false);
+
+    // Each with its own still opens.
+    expect(
+      await cancelSubscription({
+        subscriberId: SAME_PAGE_SUBSCRIBER_ID,
+        token: SAME_PAGE_TOKEN,
+      }),
+    ).toBeUndefined();
+    expect(isCancelled(SAME_PAGE_SUBSCRIBER_ID)).toBe(true);
+    expect(isCancelled(SUBSCRIBER_ID)).toBe(false);
+  });
+
+  test("a subscription with no token on record opens with nothing - not even the stand-in a refusal is compared with", async () => {
+    subscribers.get(SUBSCRIBER_ID)!["unsubscribeToken"] = null;
+
+    for (const token of [
+      "",
+      "0".repeat(64),
+      StatusPageSubscriberUnsubscribe.REDACTED_TOKEN,
+      "null",
+      "undefined",
+    ]) {
+      expectRefusedAsAnInvalidLink(await readSubscription({ token }));
+      expectRefusedAsAnInvalidLink(await cancelSubscription({ token }));
+    }
+
+    expect(sentSubscribers()).toHaveLength(0);
+    expect(isCancelled(SUBSCRIBER_ID)).toBe(false);
+  });
+
+  test.each([
+    ["a space before it", ` ${TOKEN}`],
+    ["a space after it", `${TOKEN} `],
+    ["a line break after it", `${TOKEN}\n`],
+    ["a NUL after it", `${TOKEN}\u0000`],
+    [
+      "every character of it written as an escape",
+      Array.from(TOKEN)
+        .map((character: string): string => {
+          return `%${character.charCodeAt(0).toString(16)}`;
+        })
+        .join(""),
+    ],
+    ["it twice", `${TOKEN}${TOKEN}`],
+    ["the whole credential", `${SUBSCRIBER_ID}-${TOKEN}`],
+  ])(
+    "the token with %s opens nothing",
+    async (_label: string, token: string) => {
+      expectRefusedAsAnInvalidLink(await readSubscription({ token }));
+      expectRefusedAsAnInvalidLink(await cancelSubscription({ token }));
+
+      expect(sentSubscribers()).toHaveLength(0);
+      expect(isCancelled(SUBSCRIBER_ID)).toBe(false);
+    },
+  );
+
+  test("the link's holder changes what the subscription hears about - never where it goes, nor anything the team set", async () => {
+    // A page that lets subscribers choose, and takes every channel.
+    useInMemoryTable(StatusPageService, [
+      {
+        _id: PUBLIC_PAGE_ID,
+        projectId: PROJECT_ID.toString(),
+        name: "Acme Status",
+        isPublicStatusPage: true,
+        showSubscriberPageOnStatusPage: true,
+        enableEmailSubscribers: true,
+        enableSmsSubscribers: true,
+        enableSlackSubscribers: true,
+        enableMicrosoftTeamsSubscribers: true,
+        enableWebhookSubscribers: true,
+        allowSubscribersToChooseResources: true,
+        allowSubscribersToChooseEventTypes: true,
+        isArchived: false,
+      },
+    ]);
+
+    const error: Error | undefined = await callRoute("PUT", UPDATE_ROUTE, {
+      params: {
+        statusPageId: PUBLIC_PAGE_ID,
+        subscriberId: SUBSCRIBER_ID,
+        token: TOKEN,
+      },
+      body: {
+        data: {
+          // The choices the page offers.
+          isSubscribedToAllResources: false,
+          statusPageResources: [],
+          isSubscribedToAllEventTypes: false,
+          statusPageEventTypes: [],
+          // Everything else a request could name.
+          subscriberEmail: "someone-else@example.com",
+          subscriberPhone: "+15555550999",
+          slackIncomingWebhookUrl:
+            "https://hooks.slack.com/services/T000/B000/elsewhere",
+          slackWorkspaceName: "Elsewhere",
+          microsoftTeamsIncomingWebhookUrl:
+            "https://example.webhook.office.com/webhookb2/elsewhere",
+          microsoftTeamsWorkspaceName: "Elsewhere",
+          subscriberWebhook: "https://example.com/elsewhere",
+          statusPageId: OTHER_PUBLIC_PAGE_ID,
+          projectId: OTHER_PROJECT_ID.toString(),
+          unsubscribeToken: OTHER_TOKEN,
+          isAddedByTeam: true,
+          isSubscriptionConfirmed: false,
+          sendYouHaveSubscribedMessage: false,
+        },
+      },
+    });
+
+    expect(error).toBeUndefined();
+
+    const calls: Array<Array<unknown>> = (
+      StatusPageSubscriberService.updateFromManageSubscriptionPage as unknown as MockedFn
+    ).mock.calls as Array<Array<unknown>>;
+
+    expect(calls).toHaveLength(1);
+
+    const written: JSONObject = (calls[0]![0] as { data: JSONObject }).data;
+
+    expect(Object.keys(written).sort()).toEqual(
+      [
+        "isSubscribedToAllEventTypes",
+        "isSubscribedToAllResources",
+        "isUnsubscribed",
+        "statusPageEventTypes",
+        "statusPageResources",
+      ].sort(),
+    );
+
+    // The subscription itself, as stored: where it goes and what the team set.
+    const stored: StoredRow = subscribers.get(SUBSCRIBER_ID)!;
+
+    expect(stored["subscriberPhone"]).toBe(PHONE);
+    expect(stored["subscriberEmail"]).toBeUndefined();
+    expect(stored["subscriberWebhook"]).toBeUndefined();
+    expect(stored["statusPageId"]).toBe(PUBLIC_PAGE_ID);
+    expect(stored["projectId"]).toBe(PROJECT_ID.toString());
+    expect(stored["unsubscribeToken"]).toBe(TOKEN);
+  });
+});

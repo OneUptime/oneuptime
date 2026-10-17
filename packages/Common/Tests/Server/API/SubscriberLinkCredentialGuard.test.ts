@@ -70,7 +70,7 @@ const TYPESCRIPT_FILE: RegExp = /\.(?:ts|tsx)$/;
  */
 const ROUTES_WITHOUT_THE_TOKEN: Record<string, string> = {
   "GET /status-page/confirm-subscription/:statusPageSubscriberId":
-    "confirms a sign-up, with the confirmation code its email carries (the verification-token query), which no API answer hands out",
+    "confirms a sign-up only with the confirmation code its email carries (the verification-token query, refused unless it is text: StatusPageSubscriptionConfirmCode.test.ts), which no API answer hands out",
   "GET /status-page-subscriber/unsubscribe/:id":
     "the unsubscribe link notifications carried until the end of 2023: it changes nothing and leads to the unsubscribe page's out-of-date state, never handing out the token",
 };
