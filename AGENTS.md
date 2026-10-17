@@ -111,7 +111,8 @@ publishing) only a maintainer may do.
 
 Self-hosted OneUptime Enterprise is sold on the same three marketplaces as a Kubernetes application, billed per
 user-hour: the usage job in `ee/Server/Marketplace`, the marketplace license in `ee/Server/License`, the reporters in
-`packages/Common/Server/Utils/Marketplace/SelfHosted` and the chart editions in `HelmChart/Marketplace`. Before changing
+`packages/Common/Server/Utils/Marketplace/SelfHosted`, the chart editions and their release automation in
+`HelmChart/Marketplace`, and `.github/workflows/marketplace-release.yml`. Before changing
 any of these, the `enterpriseMarketplace` chart values, or anything in those listings, read
 [the self-hosted marketplace guide](packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md). It explains
 how an installation is billed and licensed, how each edition is built, pushed, tested and submitted, and which steps
