@@ -860,8 +860,9 @@ describe("a project whose plan runs no workflows", () => {
     expect(getPlanNoticeMessage("First")).toContain(
       'became the workflow "First"',
     );
+    // The whole path to the page, folded section included.
     expect(getPlanNoticeMessage("First")).toContain(
-      "Project Settings > Billing",
+      "Project Settings > Billing and Invoices > Billing.",
     );
   });
 

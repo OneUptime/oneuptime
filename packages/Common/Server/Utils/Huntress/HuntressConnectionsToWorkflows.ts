@@ -310,7 +310,7 @@ export function getFreeWorkflowName(data: {
 export function getPlanNoticeMessage(workflowName: string): string {
   return [
     `Huntress is now set up with a workflow, so your Huntress connection became the workflow "${workflowName}". It receives Huntress's reports at the same address, signed with the same secret, and does what the connection did.`,
-    "Workflows need the Growth plan or above, and this project is on a plan without them, so the workflow cannot run: Huntress incident reports open no incidents and page nobody until you change the project's plan under Project Settings > Billing.",
+    "Workflows need the Growth plan or above, and this project is on a plan without them, so the workflow cannot run: Huntress incident reports open no incidents and page nobody until you change the project's plan under Project Settings > Billing and Invoices > Billing.",
   ].join("\n\n");
 }
 
