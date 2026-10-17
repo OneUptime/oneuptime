@@ -113,6 +113,23 @@ const MonitorGroupView: FunctionComponent<
       return <></>;
     }
 
+    /*
+     * A group with no monitors has no status to show: it used to read
+     * Operational, in green, beside the card that asks for its monitors.
+     */
+    if (monitorCount === 0) {
+      return (
+        <span
+          className="text-sm text-gray-500"
+          data-testid="monitor-group-status-no-monitors"
+        >
+          {translator.translateText(
+            MonitorGroupMonitorsCopy.emptyGroupStatus,
+          ) || MonitorGroupMonitorsCopy.emptyGroupStatus}
+        </span>
+      );
+    }
+
     return (
       <Statusbubble
         text={currentGroupStatus?.name || "Operational"}
@@ -332,7 +349,9 @@ const MonitorGroupView: FunctionComponent<
                     onClick={() => {
                       Navigation.navigate(
                         RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.MONITOR_GROUP_VIEW_MONITORS] as Route,
+                          RouteMap[
+                            PageMap.MONITOR_GROUP_VIEW_MONITORS
+                          ] as Route,
                           { modelId: modelId },
                         ).addQueryParams({
                           [ADD_MONITORS_QUERY_PARAM]: "true",

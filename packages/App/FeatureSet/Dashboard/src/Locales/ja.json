@@ -30596,5 +30596,10 @@
   "Username and password": "ユーザー名とパスワード",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "pg_monitor がないと PostgreSQL は監視セッションしか見せないため、それを必要とするグループは欠落として報告されます。",
   "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{total}} 件中 {{added}} 件のモニターを追加しました。残りは追加されませんでした: {{reason}}",
-  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} はこのグループから外れます。モニター自体は変わりません。"
+  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} はこのグループから外れます。モニター自体は変わりません。",
+  "A host the probe can reach, like db.internal.": "プローブから到達できるホスト（例: db.internal）。",
+  "The database engine to connect to.": "接続するデータベースエンジン。",
+  "The database to run the query against.": "クエリを実行するデータベース。",
+  "Headers, body, redirect, TLS, timeout and retry settings": "ヘッダー、本文、リダイレクト、TLS、タイムアウト、再試行の設定",
+  "Redirect, TLS, timeout and retry settings": "リダイレクト、TLS、タイムアウト、再試行の設定"
 }

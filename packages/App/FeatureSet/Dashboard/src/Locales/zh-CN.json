@@ -30596,5 +30596,10 @@
   "Username and password": "用户名和密码",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "没有 pg_monitor 时，PostgreSQL 只显示监控会话，因此需要它的组会被报告为缺失。",
   "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "已添加 {{total}} 个监视器中的 {{added}} 个。其余未添加：{{reason}}",
-  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} 将离开此组。监视器本身不会改变。"
+  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} 将离开此组。监视器本身不会改变。",
+  "A host the probe can reach, like db.internal.": "探测器能访问到的主机，例如 db.internal。",
+  "The database engine to connect to.": "要连接的数据库引擎。",
+  "The database to run the query against.": "要在其上运行查询的数据库。",
+  "Headers, body, redirect, TLS, timeout and retry settings": "标头、正文、重定向、TLS、超时和重试设置",
+  "Redirect, TLS, timeout and retry settings": "重定向、TLS、超时和重试设置"
 }

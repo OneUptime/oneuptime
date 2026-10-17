@@ -55,7 +55,8 @@ export const DATABASE_AUTHENTICATION_OPTIONS: Array<DatabaseAuthenticationOption
   ];
 
 // The data-testid of the choice (its radios are found by their labels).
-export const DATABASE_AUTHENTICATION_TEST_ID: string = "database-authentication";
+export const DATABASE_AUTHENTICATION_TEST_ID: string =
+  "database-authentication";
 
 // Whether the engine offers a choice at all: only SQL Server does.
 export const isDatabaseAuthenticationOffered: (
@@ -96,9 +97,10 @@ export const usesWindowsIntegratedAuthentication: (
  * A radio value the choice understands: anything else is the default, so a
  * stray value never turns Windows Integrated Authentication on.
  */
-export const toDatabaseAuthentication: (value: unknown) => DatabaseAuthentication =
-  (value: unknown): DatabaseAuthentication => {
-    return value === DatabaseAuthentication.WindowsIntegrated
-      ? DatabaseAuthentication.WindowsIntegrated
-      : DatabaseAuthentication.UsernameAndPassword;
-  };
+export const toDatabaseAuthentication: (
+  value: unknown,
+) => DatabaseAuthentication = (value: unknown): DatabaseAuthentication => {
+  return value === DatabaseAuthentication.WindowsIntegrated
+    ? DatabaseAuthentication.WindowsIntegrated
+    : DatabaseAuthentication.UsernameAndPassword;
+};

@@ -30596,5 +30596,10 @@
   "Username and password": "使用者名稱與密碼",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "沒有 pg_monitor 時，PostgreSQL 只顯示監測工作階段，因此需要它的群組會被回報為缺少。",
   "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "已加入 {{total}} 個監測器中的 {{added}} 個。其餘未加入：{{reason}}",
-  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} 將離開此群組。監測器本身不會改變。"
+  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} 將離開此群組。監測器本身不會改變。",
+  "A host the probe can reach, like db.internal.": "探測器能連到的主機，例如 db.internal。",
+  "The database engine to connect to.": "要連線的資料庫引擎。",
+  "The database to run the query against.": "要在其上執行查詢的資料庫。",
+  "Headers, body, redirect, TLS, timeout and retry settings": "標頭、本文、重新導向、TLS、逾時與重試設定",
+  "Redirect, TLS, timeout and retry settings": "重新導向、TLS、逾時與重試設定"
 }

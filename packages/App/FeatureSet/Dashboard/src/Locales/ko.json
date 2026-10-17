@@ -30596,5 +30596,10 @@
   "Username and password": "사용자 이름과 비밀번호",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "pg_monitor가 없으면 PostgreSQL은 모니터링 세션만 보여 주므로, 이를 필요로 하는 그룹은 누락으로 보고됩니다.",
   "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "모니터 {{total}}개 중 {{added}}개를 추가했습니다. 나머지는 추가되지 않았습니다: {{reason}}",
-  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}}이(가) 이 그룹에서 빠집니다. 모니터 자체는 바뀌지 않습니다."
+  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}}이(가) 이 그룹에서 빠집니다. 모니터 자체는 바뀌지 않습니다.",
+  "A host the probe can reach, like db.internal.": "프로브가 접근할 수 있는 호스트입니다(예: db.internal).",
+  "The database engine to connect to.": "연결할 데이터베이스 엔진입니다.",
+  "The database to run the query against.": "쿼리를 실행할 데이터베이스입니다.",
+  "Headers, body, redirect, TLS, timeout and retry settings": "헤더, 본문, 리디렉션, TLS, 타임아웃 및 재시도 설정",
+  "Redirect, TLS, timeout and retry settings": "리디렉션, TLS, 타임아웃 및 재시도 설정"
 }

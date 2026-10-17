@@ -32,6 +32,7 @@ export const MonitorGroupMonitorsCopy: {
   emptyTitle: string;
   emptyDescription: string;
   emptyGroupCardTitle: string;
+  emptyGroupStatus: string;
   tableNoItems: string;
 } = {
   addButton: translationKey("Add Monitors"),
@@ -41,7 +42,9 @@ export const MonitorGroupMonitorsCopy: {
   ),
   monitorsField: translationKey("Monitors"),
   monitorsPlaceholder: translationKey("Select Monitors"),
-  nothingToAdd: translationKey("Every monitor in this project is in the group."),
+  nothingToAdd: translationKey(
+    "Every monitor in this project is in the group.",
+  ),
   noneAddedError: translationKey("No monitor was added: {{reason}}"),
   someNotAddedError: translationKey(
     "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}",
@@ -60,6 +63,8 @@ export const MonitorGroupMonitorsCopy: {
     "Add the monitors that make up this service. The group shows the worst status among them.",
   ),
   emptyGroupCardTitle: translationKey("Monitors in Group"),
+  // An empty group's Current Status: it has nothing to be operational about.
+  emptyGroupStatus: translationKey("No monitors yet"),
   tableNoItems: translationKey(
     "No monitors in this group yet. Add the monitors that make up this service.",
   ),

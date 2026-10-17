@@ -30596,5 +30596,10 @@
   "Username and password": "Nome utente e password",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "Senza pg_monitor, PostgreSQL mostra solo la sessione di monitoraggio, quindi i gruppi che ne hanno bisogno risultano mancanti.",
   "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "Sono stati aggiunti {{added}} monitor su {{total}}. Gli altri no: {{reason}}",
-  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} esce da questo gruppo. Il monitor in sé non cambia."
+  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} esce da questo gruppo. Il monitor in sé non cambia.",
+  "A host the probe can reach, like db.internal.": "Un host raggiungibile dalla sonda, come db.internal.",
+  "The database engine to connect to.": "Il motore di database a cui connettersi.",
+  "The database to run the query against.": "Il database su cui eseguire la query.",
+  "Headers, body, redirect, TLS, timeout and retry settings": "Impostazioni di header, corpo, reindirizzamento, TLS, timeout e nuovi tentativi",
+  "Redirect, TLS, timeout and retry settings": "Impostazioni di reindirizzamento, TLS, timeout e nuovi tentativi"
 }

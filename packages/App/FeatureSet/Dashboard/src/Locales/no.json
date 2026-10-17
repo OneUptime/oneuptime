@@ -30596,5 +30596,10 @@
   "Username and password": "Brukernavn og passord",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "Uten pg_monitor viser PostgreSQL bare overvåkingsøkten, så gruppene som trenger den, rapporteres som manglende.",
   "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{added}} av {{total}} overvåkere ble lagt til. Resten ble ikke: {{reason}}",
-  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} forlater denne gruppen. Selve overvåkeren endres ikke."
+  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} forlater denne gruppen. Selve overvåkeren endres ikke.",
+  "A host the probe can reach, like db.internal.": "En vert sonden kan nå, for eksempel db.internal.",
+  "The database engine to connect to.": "Databasemotoren det skal kobles til.",
+  "The database to run the query against.": "Databasen spørringen skal kjøres mot.",
+  "Headers, body, redirect, TLS, timeout and retry settings": "Innstillinger for headere, body, omdirigering, TLS, tidsavbrudd og nye forsøk",
+  "Redirect, TLS, timeout and retry settings": "Innstillinger for omdirigering, TLS, tidsavbrudd og nye forsøk"
 }

@@ -763,8 +763,9 @@ return {
     defaultSeconds: number;
   } = getRequestTimeoutField(props.monitorType);
 
-  const retriesOnFailureField: MonitorStepFieldHelp =
-    getRetriesOnFailureField(props.monitorType);
+  const retriesOnFailureField: MonitorStepFieldHelp = getRetriesOnFailureField(
+    props.monitorType,
+  );
 
   const renderTimeoutAndRetryFields: () => ReactElement = (): ReactElement => {
     return (
@@ -1050,12 +1051,15 @@ return {
         </Card>
       )}
 
-      {/* More fields for API monitors: headers, body, redirects, TLS. */}
+      {/*
+       * More fields for API monitors: headers, body, redirects, TLS, then
+       * the timeout and the retries - all of them named by the description.
+       */}
       {props.monitorType === MonitorType.API && (
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
           icon={MORE_SECTION_ICON}
-          description="Request headers, body, and redirect settings"
+          description="Headers, body, redirect, TLS, timeout and retry settings"
           items={moreFieldsItems}
           defaultCollapsed={!showAdvancedOptionsRequestBodyAndHeaders}
           dataTestId="monitor-step-more-fields"
@@ -1315,12 +1319,12 @@ return {
         </FoldedSection>
       )}
 
-      {/* More fields for Website monitors: redirects, TLS, timeout. */}
+      {/* More fields for Website monitors: redirects, TLS, timeout, retries. */}
       {props.monitorType === MonitorType.Website && (
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
           icon={MORE_SECTION_ICON}
-          description="Redirect and TLS settings"
+          description="Redirect, TLS, timeout and retry settings"
           items={moreFieldsItems}
           defaultCollapsed={!showDoNotFollowRedirects}
           dataTestId="monitor-step-more-fields"

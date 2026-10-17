@@ -164,6 +164,8 @@ const MonitorGroupMonitors: FunctionComponent<
     setShowAddModal(false);
     setAddError("");
     setPickedMonitorIds([]);
+    // So a reload does not open the dialog again.
+    Navigation.setQueryString({ [ADD_MONITORS_QUERY_PARAM]: null });
   };
 
   /*

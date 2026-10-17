@@ -30596,5 +30596,10 @@
   "Username and password": "نام کاربری و رمز عبور",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "بدون pg_monitor، PostgreSQL فقط نشست پایش را نشان می‌دهد، پس گروه‌هایی که به آن نیاز دارند ناموجود گزارش می‌شوند.",
   "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "{{added}} از {{total}} مانیتور اضافه شد. بقیه نه: {{reason}}",
-  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} از این گروه خارج می‌شود. خود مانیتور تغییری نمی‌کند."
+  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} از این گروه خارج می‌شود. خود مانیتور تغییری نمی‌کند.",
+  "A host the probe can reach, like db.internal.": "میزبانی که پراب به آن دسترسی دارد، مانند db.internal.",
+  "The database engine to connect to.": "موتور پایگاه داده‌ای که باید به آن وصل شد.",
+  "The database to run the query against.": "پایگاه داده‌ای که پرس‌وجو روی آن اجرا می‌شود.",
+  "Headers, body, redirect, TLS, timeout and retry settings": "تنظیمات هدرها، بدنه، تغییر مسیر، TLS، وقفه و تلاش مجدد",
+  "Redirect, TLS, timeout and retry settings": "تنظیمات تغییر مسیر، TLS، وقفه و تلاش مجدد"
 }

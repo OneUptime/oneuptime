@@ -30596,5 +30596,10 @@
   "Username and password": "Имя пользователя и пароль",
   "Without pg_monitor, PostgreSQL shows only the monitoring session, so the groups that need it are reported as missing.": "Без pg_monitor PostgreSQL показывает только сеанс мониторинга, поэтому группы, которым он нужен, отмечаются как отсутствующие.",
   "{{added}} of {{total}} monitors were added. The rest were not: {{reason}}": "Добавлено мониторов: {{added}} из {{total}}. Остальные не добавлены: {{reason}}",
-  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} выходит из этой группы. Сам монитор не меняется."
+  "{{monitorName}} leaves this group. The monitor itself does not change.": "{{monitorName}} выходит из этой группы. Сам монитор не меняется.",
+  "A host the probe can reach, like db.internal.": "Хост, доступный зонду, например db.internal.",
+  "The database engine to connect to.": "Движок базы данных, к которому нужно подключиться.",
+  "The database to run the query against.": "База данных, к которой выполняется запрос.",
+  "Headers, body, redirect, TLS, timeout and retry settings": "Настройки заголовков, тела, перенаправления, TLS, тайм-аута и повторных попыток",
+  "Redirect, TLS, timeout and retry settings": "Настройки перенаправления, TLS, тайм-аута и повторных попыток"
 }

@@ -63,7 +63,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="Database Type"
-          description="The database engine to connect to. PostgreSQL, MySQL, and Microsoft SQL Server are supported."
+          description="The database engine to connect to."
           required={true}
         />
         <Dropdown
@@ -92,7 +92,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Host"
-            description="Database host reachable from the probe (e.g. db.internal)"
+            description="A host the probe can reach, like db.internal."
             required={true}
           />
           <Input
@@ -108,11 +108,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <FieldLabelElement
-            title="Port"
-            description="Database port"
-            required={true}
-          />
+          <FieldLabelElement title="Port" required={true} />
           <Input
             initialValue={
               props.monitorStepSqlMonitor.port?.toString() || "5432"
@@ -132,7 +128,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="Database Name"
-          description="The database to run the query against"
+          description="The database to run the query against."
           required={true}
         />
         <Input
