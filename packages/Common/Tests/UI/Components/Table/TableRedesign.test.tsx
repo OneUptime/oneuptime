@@ -927,9 +927,7 @@ describe("on a phone", () => {
      * In place of the white, not on top of it: the dark theme paints
      * bg-white with !important, and a wash beside it never showed.
      */
-    expect(cards[0]!.className).toContain(
-      TABLE_MOBILE_SELECTED_ROW_CLASS_NAME,
-    );
+    expect(cards[0]!.className).toContain(TABLE_MOBILE_SELECTED_ROW_CLASS_NAME);
     expect(cards[0]).not.toHaveClass("bg-white");
     expect(cards[1]!.className).toContain(TABLE_MOBILE_ROW_CLASS_NAME);
     expect(cards[1]).not.toHaveClass("bg-indigo-50");

@@ -1419,8 +1419,10 @@ test.describe("the header's search, opened on a wide screen", () => {
 
     const search: Box = await box(page.getByTestId("model-table-search-slot"));
 
-    // Squeezed to no width, "Create Monitor" broke over two lines and the
-    // opened search dropped 10px below the title.
+    /*
+     * Squeezed to no width, "Create Monitor" broke over two lines and the
+     * opened search dropped 10px below the title.
+     */
     expect(Math.abs(search.y - title.y)).toBeLessThanOrEqual(2);
     expect(Math.round((await box(header)).height)).toBe(
       Math.round(before.height),
