@@ -29,10 +29,10 @@ import ObjectID from "../../Types/ObjectID";
  * with a code (email, SMS, calls, WhatsApp, incoming call numbers) registers
  * the same route through this one function, so they answer alike.
  *
- * Only the row's owner gets an answer: the same refusals, in the same words,
- * as the verify route gives anybody else. There is nothing here to guess at
- * - no code, no attempt counter - so it is not rate limited the way verify
- * and resend are.
+ * Only the row's owner gets an answer, and only while they are a member of
+ * the row's project: the same refusals, in the same words, as the verify
+ * route gives anybody else. There is nothing here to guess at - no code, no
+ * attempt counter - so it is not rate limited the way verify and resend are.
  */
 
 export interface ChannelWithVerificationStatus<
@@ -134,6 +134,19 @@ export default class ChannelVerificationStatusRoute {
               req,
               res,
               new BadDataException("Invalid user ID"),
+            );
+          }
+
+          /*
+           * Theirs, in a project they are not a member of: answered as a
+           * row that does not exist, before the project is asked whether it
+           * could send a code (ChannelVerification.isOwnerProjectMember).
+           */
+          if (!(await ChannelVerification.isOwnerProjectMember(item))) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Item not found"),
             );
           }
 

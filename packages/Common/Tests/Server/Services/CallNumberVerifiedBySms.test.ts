@@ -10,6 +10,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
@@ -136,6 +137,8 @@ beforeEach(() => {
     ProjectCallSMSConfigService,
     "getProjectDefaultTwilioConfig",
   ).mockResolvedValue(undefined);
+  // A code is sent for a member of the number's project only; these are.
+  getJestSpyOn(ProjectMembership, "isMember").mockResolvedValue(true);
 });
 
 afterEach(() => {

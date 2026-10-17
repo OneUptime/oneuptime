@@ -174,10 +174,13 @@ const ROW_SCOPED_REQUEST_TYPES: Array<DatabaseRequestType> = [
 ];
 
 /*
- * A plain project member: authenticated, holding nothing but the permissions
- * every logged-in caller is auto-granted. This is the shape an escalation
- * attempt arrives in, and also the ordinary shape of a first-party dashboard
- * request.
+ * A plain project member: authenticated, holding nothing in these tables but
+ * the permissions every logged-in caller is auto-granted. Their permission set
+ * for the project carries only Project User - what being a member means, and
+ * what AccessTokenService gives every member whose teams grant nothing else
+ * (UserPermissionUtil.withProjectUserPermission) - which none of these tables
+ * lists. This is the shape an escalation attempt arrives in, and also the
+ * ordinary shape of a first-party dashboard request.
  *
  * Rebuilt on every call rather than shared, because
  * DatabaseCommonInteractionPropsUtil.getUserPermissions MUTATES the props it is
@@ -189,6 +192,20 @@ function memberProps(): DatabaseCommonInteractionProps {
     userId: CALLER_ID,
     tenantId: PROJECT_ID,
     userType: UserType.User,
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        projectId: PROJECT_ID,
+        permissions: [
+          {
+            permission: Permission.ProjectUser,
+            labelIds: [],
+            isBlockPermission: false,
+            _type: "UserPermission",
+          },
+        ],
+        _type: "UserTenantAccessPermission",
+      },
+    },
   };
 }
 
