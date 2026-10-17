@@ -345,6 +345,8 @@ interface MonitorOverviewContext {
   intervalPhrase: string;
   stepCount: number;
   networkDeviceId: string | null;
+  // The probes a Probe Status monitor watches; 0 for every other family.
+  watchedProbeCount: number;
   isPaused: boolean;
   isNoProbeEnabled: boolean;
   isAllProbesDisconnected: boolean;
@@ -689,6 +691,10 @@ export default class MonitorOverviewPresentationUtil {
     );
     const networkDeviceId: string | null =
       MonitorOverviewCriteriaUtil.getNetworkDeviceId(input.monitorSteps);
+    const watchedProbeCount: number =
+      family === MonitorOverviewFamily.ProbeStatus
+        ? ProbeStatusMonitorUtil.getWatchedProbeIds(input.monitorSteps).length
+        : 0;
 
     const isPaused: boolean =
       Boolean(input.pause.isArchived) ||
@@ -752,7 +758,9 @@ export default class MonitorOverviewPresentationUtil {
       runState = MonitorOverviewRunState.NotChecking;
     } else if (
       stepCount === 0 ||
-      (family === MonitorOverviewFamily.NetworkDevice && !networkDeviceId)
+      (family === MonitorOverviewFamily.NetworkDevice && !networkDeviceId) ||
+      // Nothing to evaluate: the server skips a step that watches no probe.
+      (family === MonitorOverviewFamily.ProbeStatus && watchedProbeCount === 0)
     ) {
       runState = MonitorOverviewRunState.NotConfigured;
     } else if (
@@ -777,6 +785,7 @@ export default class MonitorOverviewPresentationUtil {
       intervalPhrase: lowerFirst(intervalText),
       stepCount: stepCount,
       networkDeviceId: networkDeviceId,
+      watchedProbeCount: watchedProbeCount,
       isPaused: isPaused,
       isNoProbeEnabled: isNoProbeEnabled,
       isAllProbesDisconnected: isAllProbesDisconnected,
@@ -1248,6 +1257,21 @@ export default class MonitorOverviewPresentationUtil {
         const isMissingDevice: boolean =
           context.family === MonitorOverviewFamily.NetworkDevice &&
           context.stepCount > 0;
+
+        if (
+          context.family === MonitorOverviewFamily.ProbeStatus &&
+          context.stepCount > 0
+        ) {
+          return {
+            tone: "neutral",
+            badge: { text: "Not set up", tone: "neutral" },
+            secondaryBadges: [],
+            headline: { text: "This monitor watches no probes" },
+            explanation:
+              "Pick the probes it watches. It opens an incident when one of them disconnects.",
+            callToAction: { text: "Pick probes", linkKey: "criteria" },
+          };
+        }
 
         return {
           tone: "neutral",

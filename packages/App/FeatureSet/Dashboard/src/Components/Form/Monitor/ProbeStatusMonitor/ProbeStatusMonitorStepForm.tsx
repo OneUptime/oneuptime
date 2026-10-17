@@ -163,7 +163,8 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
     const options: Array<DropdownOptionGroup> = groups.map(
       (group: ProbeStatusProbeOptionGroup): DropdownOptionGroup => {
         return {
-          label: group.label,
+          // The picker shows a group's heading as given; options it translates.
+          label: translator.translateText(group.label),
           options: group.options.map(
             (option: ProbeStatusProbeOption): DropdownOption => {
               return { value: option.value, label: option.label };
@@ -183,7 +184,6 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
 
     return (
       <Dropdown
-        dataTestId="probe-status-monitor-probes"
         ariaLabel="Probes to watch"
         isMultiSelect={true}
         placeholder="Select probes"

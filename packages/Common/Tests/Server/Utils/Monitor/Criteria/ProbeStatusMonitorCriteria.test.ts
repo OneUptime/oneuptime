@@ -281,6 +281,23 @@ describe("ProbeStatusMonitorCriteria over a window", () => {
     expect(call.monitoringInterval).toBe("* * * * *");
   });
 
+  test("a monitor without an interval of its own is sized as the every-minute sweep it gets", async () => {
+    const spy: jest.SpiedFunction<
+      typeof EvaluateOverTime.getOverTimeValueForCriteriaFilter
+    > = jest
+      .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")
+      .mockResolvedValue({ earlyReturn: null, value: [1, 1, 1, 1, 1] });
+
+    // As MonitorCriteriaEvaluator passes it: the monitor row has none.
+    await ProbeStatusMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+      dataToProcess: oneDown,
+      criteriaFilter: windowed,
+      monitoringInterval: undefined,
+    });
+
+    expect(spy.mock.calls[0]![0].monitoringInterval).toBe("* * * * *");
+  });
+
   test("a probe down for the whole window is met", async () => {
     jest
       .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")

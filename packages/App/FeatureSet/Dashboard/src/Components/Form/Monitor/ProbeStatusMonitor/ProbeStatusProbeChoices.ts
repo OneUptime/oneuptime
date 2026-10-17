@@ -1,10 +1,13 @@
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
 /*
  * The probe picker of a Probe Status monitor: how it lists the probes the
  * project may watch, and which ones a new monitor starts watching.
  *
  * React-free on purpose - App's tests read it, and App installs no React -
  * so the option shapes are written out here rather than taken from the
- * Dropdown component.
+ * Dropdown component. The labels are English keys; the form looks them up
+ * where it shows them.
  */
 
 export interface ProbeStatusProbeChoice {
@@ -31,11 +34,15 @@ export interface ProbeStatusProbeOptionGroup {
 export const WATCH_PROBE_QUERY_PARAM: string = "watchProbeId";
 
 // The same words as the two tables under Monitors > Settings > Probes.
-export const CUSTOM_PROBES_GROUP_LABEL: string = "Custom Probes";
-export const GLOBAL_PROBES_GROUP_LABEL: string = "Global Probes";
+export const CUSTOM_PROBES_GROUP_LABEL: string =
+  translationKey("Custom Probes");
+export const GLOBAL_PROBES_GROUP_LABEL: string =
+  translationKey("Global Probes");
 // A probe the monitor still names but nobody can pick any more.
-export const NO_LONGER_AVAILABLE_GROUP_LABEL: string = "No Longer Available";
-export const DELETED_PROBE_LABEL: string = "Deleted probe";
+export const NO_LONGER_AVAILABLE_GROUP_LABEL: string = translationKey(
+  "No Longer Available",
+);
+export const DELETED_PROBE_LABEL: string = translationKey("Deleted probe");
 
 const byName: (a: ProbeStatusProbeChoice, b: ProbeStatusProbeChoice) => number =
   (a: ProbeStatusProbeChoice, b: ProbeStatusProbeChoice): number => {

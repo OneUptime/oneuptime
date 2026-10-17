@@ -33,8 +33,8 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     );
   });
 
-  it("covers all 37 monitor types", () => {
-    expect(ALL_TYPES).toHaveLength(37);
+  it("covers all 38 monitor types", () => {
+    expect(ALL_TYPES).toHaveLength(38);
   });
 
   it("ProbeCheck matches isProbableMonitor exactly", () => {
@@ -72,7 +72,7 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     );
   });
 
-  it("family sizes are 15/2/1/7/10/1/1", () => {
+  it("family sizes are 15/2/1/7/10/1/1/1", () => {
     expect({
       probeCheck: typesInFamily(MonitorOverviewFamily.ProbeCheck).length,
       heartbeat: typesInFamily(MonitorOverviewFamily.Heartbeat).length,
@@ -81,6 +81,7 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
       infrastructure: typesInFamily(MonitorOverviewFamily.Infrastructure)
         .length,
       networkDevice: typesInFamily(MonitorOverviewFamily.NetworkDevice).length,
+      probeStatus: typesInFamily(MonitorOverviewFamily.ProbeStatus).length,
       manual: typesInFamily(MonitorOverviewFamily.Manual).length,
     }).toEqual({
       probeCheck: 15,
@@ -89,8 +90,27 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
       telemetry: 7,
       infrastructure: 10,
       networkDevice: 1,
+      probeStatus: 1,
       manual: 1,
     });
+  });
+
+  /*
+   * A Probe Status monitor watches probes but is not run by one: it is
+   * judged by the server from the probes' connection status, so it is
+   * neither a probe check (no probes to run on, no Probes card) nor a
+   * telemetry monitor (it reads no telemetry).
+   */
+  it("Probe Status has a family of its own", () => {
+    expect(typesInFamily(MonitorOverviewFamily.ProbeStatus)).toEqual([
+      MonitorType.ProbeStatus,
+    ]);
+    expect(MonitorTypeHelper.isProbableMonitor(MonitorType.ProbeStatus)).toBe(
+      false,
+    );
+    expect(MonitorTypeHelper.isTelemetryMonitor(MonitorType.ProbeStatus)).toBe(
+      false,
+    );
   });
 
   it("puts the push types, the agent and network devices in their own families", () => {
@@ -247,6 +267,7 @@ describe("MonitorOverviewFamilyUtil.getLayout", () => {
       [MonitorOverviewFamily.TelemetrySignal]: null,
       [MonitorOverviewFamily.Infrastructure]: null,
       [MonitorOverviewFamily.NetworkDevice]: null,
+      [MonitorOverviewFamily.ProbeStatus]: null,
       [MonitorOverviewFamily.Manual]: "manual",
     };
 
@@ -286,5 +307,26 @@ describe("MonitorOverviewFamilyUtil.getLayout", () => {
       MonitorOverviewFamilyUtil.getLayout(MonitorType.NetworkDevice)
         .summaryDescription,
     ).toBe("How this monitor is evaluated.");
+    expect(
+      MonitorOverviewFamilyUtil.getLayout(MonitorType.ProbeStatus)
+        .summaryDescription,
+    ).toBe(
+      "Each probe this monitor watches, as the latest evaluation found it.",
+    );
+  });
+
+  it("Probe Status: the latest evaluation, no chart, no preview, no setup", () => {
+    expect(
+      MonitorOverviewFamilyUtil.getLayout(MonitorType.ProbeStatus),
+    ).toEqual(
+      expect.objectContaining({
+        family: MonitorOverviewFamily.ProbeStatus,
+        responseTimeMetric: null,
+        telemetryPreview: null,
+        evaluationPolicy: "Latest",
+        setupKind: null,
+        sideCard: null,
+      }),
+    );
   });
 });

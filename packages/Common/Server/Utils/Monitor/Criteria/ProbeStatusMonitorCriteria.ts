@@ -7,6 +7,7 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import ProbeStatusMonitorResponse from "../../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ProbeStatusMonitorUtil from "../../../../Utils/Monitor/ProbeStatusMonitorUtil";
+import { EVERY_MINUTE } from "../../../../Utils/CronTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
@@ -61,8 +62,9 @@ export default class ProbeStatusMonitorCriteria {
     criteriaFilter: CriteriaFilter;
     /*
      * The monitor's monitoringInterval cron, for sizing an over-time
-     * window. A Probe Status monitor has none: it is evaluated every
-     * minute, which is what an empty interval is taken to mean.
+     * window. A Probe Status monitor has none of its own: the worker
+     * evaluates it every minute, so that is the cadence a window is sized
+     * by (a status flip adds an evaluation, never removes one).
      */
     monitoringInterval?: string | undefined;
   }): Promise<string | null> {
@@ -95,7 +97,7 @@ export default class ProbeStatusMonitorCriteria {
         projectId: response.projectId,
         monitorId: response.monitorId,
         criteriaFilter: input.criteriaFilter,
-        monitoringInterval: input.monitoringInterval,
+        monitoringInterval: input.monitoringInterval || EVERY_MINUTE,
       });
 
     if (overTime.earlyReturn) {

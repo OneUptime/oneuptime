@@ -44,7 +44,10 @@ import MonitorStepViewModel, {
   MonitorStepViewValue,
   MonitorStepViewValueType,
 } from "../../../Utils/MonitorStepViewModel";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -80,7 +83,7 @@ const fieldTypeByValueType: Record<MonitorStepViewValueType, FieldType> = {
 };
 
 // A probe the step names that no probe list holds any more.
-const DELETED_PROBE_NAME: string = "Deleted probe";
+const DELETED_PROBE_NAME: string = translationKey("Deleted probe");
 
 const getWatchedProbeIds: (rows: Array<MonitorStepViewRow>) => Array<string> =
   (rows: Array<MonitorStepViewRow>): Array<string> => {

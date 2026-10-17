@@ -94,6 +94,18 @@ const stepsOf: (...stepData: Array<JSONObject>) => MonitorSteps = (
 
 const NO_STEPS: MonitorSteps = stepsOf();
 
+// The probes a Probe Status monitor watches, in its one step.
+const WATCHED_PROBE_IDS: Array<string> = [
+  "11111111-1111-4111-8111-111111111111",
+  "55555555-5555-4555-8555-555555555555",
+];
+
+const watchingSteps: (probeIds?: Array<string>) => MonitorSteps = (
+  probeIds: Array<string> = WATCHED_PROBE_IDS,
+): MonitorSteps => {
+  return stepsOf({ probeStatusMonitor: { probeIds: probeIds } });
+};
+
 const missingWindowSteps: (
   checkOn: CheckOn,
   minutes: number,
@@ -478,6 +490,56 @@ const SCENARIOS: Array<Scenario> = [
       latestEvaluationAt: undefined,
     }),
     runState: MonitorOverviewRunState.Running,
+  },
+  // A Probe Status monitor has no interval of its own: the server's sweep.
+  {
+    name: "running probe status monitor",
+    input: running(MonitorType.ProbeStatus, {
+      monitorSteps: watchingSteps(),
+      monitoringInterval: undefined,
+    }),
+    runState: MonitorOverviewRunState.Running,
+  },
+  {
+    name: "probe status monitor watching no probes",
+    input: running(MonitorType.ProbeStatus, {
+      monitorSteps: watchingSteps([]),
+      monitoringInterval: undefined,
+    }),
+    runState: MonitorOverviewRunState.NotConfigured,
+  },
+  {
+    name: "new probe status monitor whose log is loaded and empty",
+    input: running(MonitorType.ProbeStatus, {
+      monitorSteps: watchingSteps(),
+      monitoringInterval: undefined,
+      createdAt: secondsAgo(30),
+      latestEvaluationAt: undefined,
+    }),
+    runState: MonitorOverviewRunState.AwaitingFirstData,
+  },
+  {
+    name: "probe status monitor with nothing in its evaluation log's last day",
+    input: running(MonitorType.ProbeStatus, {
+      monitorSteps: watchingSteps(),
+      monitoringInterval: undefined,
+      currentStatus: OFFLINE,
+      latestEvaluationAt: undefined,
+    }),
+    runState: MonitorOverviewRunState.Running,
+  },
+  {
+    name: "probe status monitor disabled",
+    input: running(MonitorType.ProbeStatus, {
+      monitorSteps: watchingSteps(),
+      monitoringInterval: undefined,
+      pause: {
+        isDisabled: true,
+        byManualIncident: false,
+        byScheduledMaintenance: false,
+      },
+    }),
+    runState: MonitorOverviewRunState.Paused,
   },
 ];
 
@@ -2788,6 +2850,258 @@ describe("MonitorOverviewPresentationUtil network device evaluations", () => {
         }),
       ).runState,
     ).toBe(MonitorOverviewRunState.Running);
+  });
+});
+
+/*
+ * A Probe Status monitor watches probes; no probe runs it. The server judges
+ * it every minute from the probes' connection status, and its evaluations
+ * leave a trace only in its log - so it reads like a network device's, with
+ * a cadence that is always the server's minute.
+ */
+describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
+  const probeStatus: (
+    overrides?: Partial<MonitorOverviewPresentationInput>,
+  ) => MonitorOverviewPresentationInput = (
+    overrides?: Partial<MonitorOverviewPresentationInput>,
+  ): MonitorOverviewPresentationInput => {
+    return running(MonitorType.ProbeStatus, {
+      monitorSteps: watchingSteps(),
+      monitoringInterval: undefined,
+      ...overrides,
+    });
+  };
+
+  it("running, it leads with its status and says what it watches", () => {
+    const presentation: MonitorOverviewPresentation = build(probeStatus());
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Running);
+    expect(presentation.badge).toEqual({
+      text: "Operational",
+      tone: "good",
+      statusColor: "#10B981",
+    });
+    expect(presentation.explanation).toBeUndefined();
+    expect(presentation.callToAction).toBeUndefined();
+    expect(fact(presentation, "probes")).toEqual({
+      key: "probes",
+      label: "Watches",
+      value: "2 probes",
+      linkKey: "criteria",
+    });
+    expect(fact(presentation, "evaluates")).toEqual({
+      key: "evaluates",
+      label: "Evaluates",
+      value: "Every minute",
+    });
+    expect(factKeys(presentation)).toEqual(["probes", "evaluates", "owners"]);
+  });
+
+  it("one probe is one probe", () => {
+    expect(
+      fact(
+        build(probeStatus({ monitorSteps: watchingSteps([WATCHED_PROBE_IDS[0]!]) })),
+        "probes",
+      ).value,
+    ).toBe("1 probe");
+  });
+
+  it("an offline monitor - a probe is down - says so, as any monitor does", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      probeStatus({ currentStatus: OFFLINE }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Running);
+    expect(presentation.tone).toBe("danger");
+    expect(presentation.badge.text).toBe("Offline");
+  });
+
+  it("the probes it watches being down is what it reports, not a reason it stopped", () => {
+    // The flags of a probe check's own probes never apply to it.
+    expect(
+      build(
+        probeStatus({
+          probeFlags: { isNoProbeEnabled: true, isAllProbesDisconnected: true },
+        }),
+      ).runState,
+    ).toBe(MonitorOverviewRunState.Running);
+  });
+
+  it("its pulse is the server's minute, from the log", () => {
+    expect(build(probeStatus()).pulse).toEqual({
+      label: "Last evaluated",
+      at: secondsAgo(90),
+      emptyText: "Not evaluated yet",
+      cadenceText: "Every minute",
+      isUnavailable: false,
+    });
+
+    expect(
+      build(
+        probeStatus({ latestEvaluationAt: undefined, evaluationStatus: "loading" }),
+      ).pulse,
+    ).toEqual({
+      label: "Last evaluated",
+      at: undefined,
+      emptyText: "Loading…",
+      cadenceText: "Every minute",
+      isUnavailable: false,
+    });
+
+    for (const evaluationStatus of ["error", "forbidden"] as const) {
+      expect(
+        build(
+          probeStatus({
+            latestEvaluationAt: undefined,
+            evaluationStatus: evaluationStatus,
+          }),
+        ).pulse,
+      ).toMatchObject({
+        at: undefined,
+        emptyText: "Not evaluated yet",
+        isUnavailable: true,
+      });
+    }
+  });
+
+  it("paused, it promises no cadence", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      probeStatus({
+        pause: {
+          isDisabled: false,
+          byManualIncident: false,
+          byScheduledMaintenance: true,
+        },
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Paused);
+    expect(presentation.pulse.cadenceText).toBeUndefined();
+  });
+
+  it("its summary is the probes it watches; no chart, no probes card, no setup", () => {
+    expect(build(probeStatus()).sections).toEqual({
+      showUptime: true,
+      setup: null,
+      connection: null,
+      summary: {
+        isShown: true,
+        description:
+          "Each probe this monitor watches, as the latest evaluation found it.",
+      },
+      sideCard: null,
+      responseTimeMetric: null,
+      telemetryPreview: null,
+      stepCount: 1,
+    });
+  });
+
+  it("new, with an empty log, it is waiting for its first minute", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      probeStatus({ createdAt: secondsAgo(30), latestEvaluationAt: undefined }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.AwaitingFirstData);
+    expect(presentation.badge).toEqual({
+      text: "Waiting for data",
+      tone: "info",
+    });
+    expect(presentation.headline.text).toBe("Waiting for the first evaluation");
+    expect(presentation.explanation).toBe(
+      "This monitor checks the probes it watches every minute. The first result arrives within a minute or two.",
+    );
+    // Nothing to set up: it needs no agent, address or heartbeat.
+    expect(presentation.callToAction).toBeUndefined();
+    expect(presentation.sections.showUptime).toBe(false);
+  });
+
+  it("it is not 'waiting' while its log is unknown or unreadable", () => {
+    for (const evaluationStatus of [undefined, "error", "forbidden"] as const) {
+      expect(
+        build(
+          probeStatus({
+            createdAt: secondsAgo(30),
+            latestEvaluationAt: undefined,
+            evaluationStatus: evaluationStatus,
+          }),
+        ).runState,
+      ).toBe(MonitorOverviewRunState.Running);
+    }
+  });
+
+  it("nothing in the log's last day: the probes may be gone, and it says where to pick them", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      probeStatus({
+        createdAt: secondsAgo(90 * DAY),
+        currentStatus: OFFLINE,
+        latestEvaluationAt: undefined,
+      }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.Running);
+    // The last status it recorded stays: an outage is not forgotten.
+    expect(presentation.badge.text).toBe("Offline");
+    expect(presentation.explanation).toBe(
+      "Not evaluated in the last day. The probes this monitor watches may have been deleted: pick probes again under Criteria. The status shown is the last one recorded.",
+    );
+    expect(presentation.callToAction).toEqual({
+      text: "Pick probes",
+      linkKey: "criteria",
+    });
+    expect(presentation.pulse).toMatchObject({
+      at: undefined,
+      emptyText: "Not evaluated in the last day",
+    });
+  });
+
+  it("watching no probes, it is not set up, and says where to pick them", () => {
+    const presentation: MonitorOverviewPresentation = build(
+      probeStatus({ monitorSteps: watchingSteps([]) }),
+    );
+
+    expect(presentation.runState).toBe(MonitorOverviewRunState.NotConfigured);
+    expect(presentation.badge).toEqual({ text: "Not set up", tone: "neutral" });
+    expect(presentation.headline.text).toBe("This monitor watches no probes");
+    expect(presentation.explanation).toBe(
+      "Pick the probes it watches. It opens an incident when one of them disconnects.",
+    );
+    expect(presentation.callToAction).toEqual({
+      text: "Pick probes",
+      linkKey: "criteria",
+    });
+    expect(fact(presentation, "probes")).toEqual({
+      key: "probes",
+      label: "Watches",
+      value: "No probes picked",
+      isMuted: true,
+      linkKey: "criteria",
+    });
+  });
+
+  it("with no step at all, it has no criteria yet, as any monitor", () => {
+    expect(build(probeStatus({ monitorSteps: NO_STEPS })).headline.text).toBe(
+      "This monitor has no criteria yet",
+    );
+  });
+
+  it("probes listed in several steps are counted once", () => {
+    expect(
+      fact(
+        build(
+          probeStatus({
+            monitorSteps: stepsOf(
+              { probeStatusMonitor: { probeIds: WATCHED_PROBE_IDS } },
+              {
+                probeStatusMonitor: {
+                  probeIds: [WATCHED_PROBE_IDS[0]!.toUpperCase()],
+                },
+              },
+            ),
+          }),
+        ),
+        "probes",
+      ).value,
+    ).toBe("2 probes");
   });
 });
 

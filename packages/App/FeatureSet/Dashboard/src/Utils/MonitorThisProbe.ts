@@ -1,6 +1,7 @@
 import Route from "Common/Types/API/Route";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { WATCH_PROBE_QUERY_PARAM } from "../Components/Form/Monitor/ProbeStatusMonitor/ProbeStatusProbeChoices";
 import PageMap from "./PageMap";
 import RouteMap, { RouteUtil } from "./RouteMap";
@@ -10,7 +11,9 @@ import RouteMap, { RouteUtil } from "./RouteMap";
  * Monitor with a Probe Status monitor watching that probe, named after it.
  * The one obvious next step for "tell me when this probe goes offline".
  */
-export const MONITOR_THIS_PROBE_TITLE: string = "Monitor this probe";
+// Buttons and menu items look their title up; this makes it a key.
+export const MONITOR_THIS_PROBE_TITLE: string =
+  translationKey("Monitor this probe");
 export const MONITOR_THIS_PROBE_ICON: IconProp = IconProp.SignalSlash;
 
 export const getMonitorThisProbeRoute: (probeId: string) => Route = (
