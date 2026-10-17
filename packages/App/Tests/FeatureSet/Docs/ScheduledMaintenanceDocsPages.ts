@@ -23,6 +23,7 @@ export const MAINTENANCE_STATES: string = "scheduled-maintenance/states";
 export const TEMPLATES_AND_RECURRING: string =
   "scheduled-maintenance/templates";
 export const RULES_AND_SETTINGS: string = "scheduled-maintenance/settings";
+export const MAINTENANCE_CALENDAR: string = "scheduled-maintenance/calendar";
 
 /*
  * The Scheduled Maintenance nav group, page for page: the overview first,
@@ -38,6 +39,7 @@ export const SCHEDULED_MAINTENANCE_PAGES: ReadonlyArray<ScheduledMaintenanceDocs
       navTitle: "Templates & Recurring Events",
     },
     { page: RULES_AND_SETTINGS, navTitle: "Maintenance Rules & Settings" },
+    { page: MAINTENANCE_CALENDAR, navTitle: "Maintenance Calendar" },
   ];
 
 /*
@@ -108,6 +110,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Project Member",
       "Create Scheduled Maintenance Owner Rule",
     ],
+    // The + a day of the calendar shows, and the list's menu.
+    [MAINTENANCE_CALENDAR]: ["+", "⋯"],
   };
 
 /*
@@ -167,6 +171,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "A rule can inherit.",
     "A new rule has to add something",
   ],
+  [MAINTENANCE_CALENDAR]: ["What it holds.", "A private page.", "One event."],
 };
 
 /*
@@ -199,6 +204,7 @@ export const DIAGRAM_KINDS: Readonly<Record<string, string>> = {
   [MAINTENANCE_STATES]: "flowchart TB",
   [TEMPLATES_AND_RECURRING]: "flowchart TB",
   [RULES_AND_SETTINGS]: "flowchart TB",
+  [MAINTENANCE_CALENDAR]: "flowchart TB",
 };
 
 /*
