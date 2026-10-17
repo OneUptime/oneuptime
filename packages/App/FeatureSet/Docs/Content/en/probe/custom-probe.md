@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **The probe connects out.** Every request goes from the probe to `ONEUPTIME_URL` over HTTPS. Nothing has to reach the probe from outside your network.
 - **It checks only its own monitors.** The probe asks OneUptime for the monitors it is added to, checks each one when it is due, and sends back the result. OneUptime decides from the results whether a monitor's status changes.
-- **OneUptime watches that it runs.** Every request from the probe counts as a sign of life, and the probe sends one at least every minute. After about three minutes without one, the probe shows **Disconnected**, and its owners are told. A probe with no owners tells the project's owners.
+- **OneUptime watches that it runs.** Every request from the probe counts as a sign of life, and the probe sends one at least every minute. After about three minutes without one, the probe shows **Disconnected**, and its owners are told. A probe with no owners tells the project's owners. To be paged as for any outage, with one incident until it is back, add a [Probe Status Monitor](/docs/monitor/probe-status-monitor): **Monitor this probe** on the probe's page creates one.
 
 ## Before you begin
 

@@ -119,10 +119,44 @@ describe("Detail dropdown colors", () => {
     );
   });
 
-  test("continues to show the placeholder for an unknown single-select value", () => {
+  /*
+   * A value the options no longer offer is still the record's value, as it
+   * already was for a multi-select: shown as itself, uncoloured. It used to
+   * read as the field's placeholder - "No selection" - which said the value
+   * was not set when it was.
+   */
+  test("shows a single-select value the options no longer offer as itself", () => {
     const container: HTMLElement = renderDetail("Legacy", FieldType.Dropdown);
+    const badge: HTMLElement | null = container.querySelector<HTMLElement>(
+      '[data-dropdown-value-badge="true"]',
+    );
+
+    expect(requireElement(badge).textContent).toContain("Legacy");
+    expect(requireElement(badge).classList.contains("bg-indigo-50")).toBe(true);
+    expect(container.textContent).not.toContain("No selection");
+  });
+
+  test("shows the placeholder for an unset single-select value", () => {
+    const container: HTMLElement = renderDetail("", FieldType.Dropdown);
 
     expect(container.textContent).toContain("No selection");
+    expect(
+      container.querySelector('[data-dropdown-value-badge="true"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-testid="placeholder-text"]'),
+    ).not.toBeNull();
+  });
+
+  test("shows the placeholder for an empty multi-select value", () => {
+    const container: HTMLElement = renderDetail(
+      [],
+      FieldType.MultiSelectDropdown,
+    );
+
+    expect(
+      container.querySelector('[data-testid="placeholder-text"]')?.textContent,
+    ).toBe("No selection");
     expect(
       container.querySelector('[data-dropdown-value-badge="true"]'),
     ).toBeNull();

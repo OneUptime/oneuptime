@@ -125,7 +125,16 @@ export default class LicenseStore {
     const newConfig: GlobalConfig = new GlobalConfig();
     newConfig.id = ObjectID.getZeroObjectID();
 
-    for (const [key, value] of Object.entries(data.update)) {
+    /*
+     * Read as a plain record: the entity type's JSON columns make TypeScript's
+     * inference of each value's type recurse without end.
+     */
+    const columns: Record<string, unknown> = data.update as Record<
+      string,
+      unknown
+    >;
+
+    for (const [key, value] of Object.entries(columns)) {
       if (value !== null && value !== undefined) {
         (newConfig as unknown as Record<string, unknown>)[key] = value;
       }

@@ -180,7 +180,7 @@ resource "oneuptime_monitor" "website" {
 
 ### Настройки каждого типа монитора
 
-Типы мониторов, у которых есть что настроить помимо адреса, хранят свои настройки (запрос к логам, подключение к базе данных, кластер для наблюдения) в собственном атрибуте, в виде сырого JSON, записанного через `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor` и `iot_monitor`.
+Типы мониторов, у которых есть что настроить помимо адреса, хранят свои настройки (запрос к логам, подключение к базе данных, кластер для наблюдения) в собственном атрибуте, в виде сырого JSON, записанного через `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` и `probe_status_monitor`.
 
 Их JSON такой же, как в панели управления, с ключами в camelCase. ID внутри него записывается так, как его записывает API: `{ _type = "ObjectID", value = "..." }`. Монитор Logs, который считает ошибки одного сервиса:
 

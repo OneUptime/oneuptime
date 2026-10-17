@@ -15,6 +15,7 @@ import OAuthProviderType from "../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import Port from "../../Types/Port";
@@ -971,6 +972,33 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public enterpriseEditionFirstSeenAt?: Date = undefined;
+
+  /*
+   * How a self-hosted Enterprise installation bought on a cloud marketplace
+   * bills its users there, by the user-hour: the hourly reports the
+   * marketplace has not taken yet, the last one it took, and when it last
+   * confirmed (or refused) the subscription. An accepted report is what
+   * licenses such an installation without a license key, so this is a
+   * license column (GlobalConfigService.ROOT_ONLY_LICENSE_COLUMNS), written
+   * only by the Enterprise Edition's usage job (isRoot). The shape is
+   * Types/EnterpriseLicense/EnterpriseMarketplaceBilling.ts.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Enterprise Marketplace Billing",
+    description:
+      "How this self-hosted Enterprise installation bills its users through the cloud marketplace it was bought on: the hourly reports not taken yet, the last one taken, and when the marketplace last confirmed or refused the subscription.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public enterpriseMarketplaceBilling?: JSONObject = undefined;
 
   /*
    * The installation's own branding: the name it goes by and its logos, in

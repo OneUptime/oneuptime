@@ -91,8 +91,113 @@ limit so the two never drift apart. Unsuffixed input is treated as bytes.
   {{- $values := .Values -}}
   {{- $service := .ServiceName -}}
   {{- $imageName := default $service .ImageName -}}
-  {{- printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
+  {{- $default := printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
+  {{- include "oneuptime.imageReference" (dict "Values" $values "Key" $imageName "Default" $default) -}}
 {{- end -}}
+
+{{/*
+The image one component runs, by its key - app, nginx, probe, runner, home,
+test, postgres, clickhouse, clickhouseKeeper, valkey, pgbouncer, vllm, kubectl
+- or `Default`, the reference the chart builds from its own values, when
+nothing replaces it:
+
+  global.azure.images.<key>   {registry, image, tag | digest}. A Microsoft
+                              Marketplace Kubernetes application lists every
+                              image there; Microsoft copies them to its own
+                              registry and rewrites these values at install.
+  image.overrides.<key>       a full reference, as the Google Cloud Marketplace
+                              deployer passes its images.
+
+Usage:
+  image: {{`{{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "postgres" "Default" "postgres:15") }}`}}
+*/}}
+{{- define "oneuptime.imageReference" -}}
+  {{- $azureImages := (((.Values.global).azure).images) | default dict -}}
+  {{- $azure := get $azureImages .Key -}}
+  {{- $overrides := ((.Values.image).overrides) | default dict -}}
+  {{- $override := get $overrides .Key -}}
+  {{- if and $azure (kindIs "map" $azure) $azure.image -}}
+    {{- $name := ternary (printf "%s/%s" $azure.registry $azure.image) $azure.image (not (empty $azure.registry)) -}}
+    {{- if $azure.digest -}}
+      {{- printf "%s@%s" $name $azure.digest -}}
+    {{- else -}}
+      {{- printf "%s:%s" $name (toString $azure.tag) -}}
+    {{- end -}}
+  {{- else if $override -}}
+    {{- $override -}}
+  {{- else -}}
+    {{- .Default -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
+The service account the OneUptime app and worker pods run as: `name`, or
+"<release>-oneuptime" for one the chart creates. Empty runs them as the
+namespace's default service account.
+*/}}
+{{- define "oneuptime.serviceAccountName" -}}
+  {{- $serviceAccount := .Values.serviceAccount | default dict -}}
+  {{- if $serviceAccount.name -}}
+    {{- $serviceAccount.name -}}
+  {{- else if $serviceAccount.create -}}
+    {{- printf "%s-oneuptime" .Release.Name -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Billing this Enterprise installation through the cloud marketplace it was
+bought on (enterpriseMarketplace). Every process that runs the App image
+(app, worker, telemetry writer) is told WHICH marketplace, because the
+license each of them enforces is the marketplace's (ee/Server/License/
+MarketplaceLicense.ts). Only the app and the worker, which run the usage job,
+are given what reporting needs (Reporter=true): Microsoft's extension
+identity, plan and resource, and Google's reporting secret - so a wrong
+secret name can only ever stop those two.
+*/}}
+{{- define "oneuptime.env.enterpriseMarketplace" }}
+{{- $marketplace := .Values.enterpriseMarketplace | default dict }}
+{{- if $marketplace.provider }}
+- name: ENTERPRISE_MARKETPLACE
+  value: {{ $marketplace.provider | quote }}
+{{- if .Reporter }}
+{{- if eq $marketplace.provider "aws" }}
+{{- if (($marketplace.aws).region) }}
+- name: ENTERPRISE_MARKETPLACE_AWS_REGION
+  value: {{ $marketplace.aws.region | quote }}
+{{- end }}
+{{- else if eq $marketplace.provider "azure" }}
+{{- $azure := ((.Values.global).azure) | default dict }}
+- name: ENTERPRISE_MARKETPLACE_AZURE_RESOURCE_ID
+  value: {{ default "" (($azure.extension).resourceId) | quote }}
+- name: ENTERPRISE_MARKETPLACE_AZURE_PLAN_ID
+  value: {{ default "" (($azure.marketplace).planId) | quote }}
+- name: ENTERPRISE_MARKETPLACE_AZURE_CLIENT_ID
+  value: {{ default "" (($azure.identity).clientId) | quote }}
+{{- else if eq $marketplace.provider "google-cloud" }}
+{{- $google := $marketplace.googleCloud | default dict }}
+- name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_SERVICE_NAME
+  value: {{ default "" $google.serviceName | quote }}
+{{- if $google.reportingSecret }}
+- name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_CONSUMER_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ $google.reportingSecret | quote }}
+      key: consumer-id
+- name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_ENTITLEMENT_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ $google.reportingSecret | quote }}
+      key: entitlement-id
+- name: ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ $google.reportingSecret | quote }}
+      key: reporting-key
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
 
 {{/*
 Resolve the REAL Postgres backend (built-in StatefulSet, CloudNativePG, or

@@ -757,3 +757,119 @@ describe("getMonitorMetricTypeByCriteriaFilterOrNull", () => {
     }
   });
 });
+
+/*
+ * Issue #2733: the "online probes" series a customer asked for, recorded by
+ * the Probe Status monitor that watches the probes. Its names are what a
+ * dashboard or a Metrics monitor charts, so they never change.
+ */
+describe("Probe Status monitor metrics (issue #2733)", () => {
+  test("the two series keep their names", () => {
+    expect(MonitorMetricType.ConnectedProbes).toBe(
+      "oneuptime.monitor.probes.connected",
+    );
+    expect(MonitorMetricType.DisconnectedProbes).toBe(
+      "oneuptime.monitor.probes.disconnected",
+    );
+  });
+
+  test("a Probe Status monitor charts both, on one Probes card", () => {
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(
+        MonitorType.ProbeStatus,
+      ),
+    ).toEqual([
+      MonitorMetricType.ConnectedProbes,
+      MonitorMetricType.DisconnectedProbes,
+    ]);
+
+    const categories: Array<MonitorMetricCategory> =
+      MonitorMetricTypeUtil.getMonitorMetricCategoriesByMonitorType(
+        MonitorType.ProbeStatus,
+      );
+
+    expect(categories).toHaveLength(1);
+    expect(categories[0]!.title).toBe("Probes");
+    expect(categories[0]!.metrics).toEqual([
+      MonitorMetricType.ConnectedProbes,
+      MonitorMetricType.DisconnectedProbes,
+    ]);
+  });
+
+  test("no other monitor type charts them", () => {
+    for (const monitorType of ALL_MONITOR_TYPES) {
+      if (monitorType === MonitorType.ProbeStatus) {
+        continue;
+      }
+
+      const metrics: Array<MonitorMetricType> =
+        MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(monitorType);
+
+      expect({
+        monitorType: monitorType,
+        charted: metrics.filter((metric: MonitorMetricType): boolean => {
+          return (
+            metric === MonitorMetricType.ConnectedProbes ||
+            metric === MonitorMetricType.DisconnectedProbes
+          );
+        }),
+      }).toEqual({ monitorType: monitorType, charted: [] });
+    }
+  });
+
+  test("a bucket counts a probe that dropped out in it as gone", () => {
+    expect(
+      MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+        MonitorMetricType.ConnectedProbes,
+      ),
+    ).toBe(AggregationType.Min);
+    expect(
+      MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+        MonitorMetricType.DisconnectedProbes,
+      ),
+    ).toBe(AggregationType.Max);
+  });
+
+  test("each check reads its own series, so it can be judged over a window", () => {
+    expect(
+      MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(
+        CheckOn.ConnectedProbes,
+      ),
+    ).toBe(MonitorMetricType.ConnectedProbes);
+    expect(
+      MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(
+        CheckOn.DisconnectedProbes,
+      ),
+    ).toBe(MonitorMetricType.DisconnectedProbes);
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricTypeByCheckOnOrNull(
+        CheckOn.DisconnectedProbes,
+      ),
+    ).toBe(MonitorMetricType.DisconnectedProbes);
+  });
+
+  test("they read as counts of probes", () => {
+    expect(
+      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+        MonitorMetricType.ConnectedProbes,
+      ),
+    ).toBe("Connected Probes");
+    expect(
+      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+        MonitorMetricType.DisconnectedProbes,
+      ),
+    ).toBe("Disconnected Probes");
+
+    for (const metric of [
+      MonitorMetricType.ConnectedProbes,
+      MonitorMetricType.DisconnectedProbes,
+    ]) {
+      expect(
+        MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(metric),
+      ).toBe("probes");
+      expect(
+        MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(metric),
+      ).toContain("three minutes");
+    }
+  });
+});

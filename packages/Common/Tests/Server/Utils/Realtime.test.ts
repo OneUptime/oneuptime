@@ -1052,6 +1052,119 @@ describe("Realtime (server) ListenToModelEvent", () => {
         ListenToModelEventOutcome.Joined,
       );
     });
+
+    /*
+     * A rule that cannot be read is no answer: the join fails, as its API
+     * request does - never joined as though nothing were required, and
+     * never told to sign in with SSO for a rule nobody could read.
+     */
+    test("that cannot be read is a failed join: no room and no signal, without an SSO sign-in or with one", async () => {
+      instanceRequiresSso.mockRejectedValue(new Error("database unavailable"));
+
+      for (const cookies of [
+        cookieWith(validToken()),
+        cookieWith(
+          validToken(),
+          ssoCookie(TENANT_ID, ssoToken({ projectId: TENANT_ID })),
+        ),
+      ]) {
+        const socket: FakeServerSocket = new FakeServerSocket(cookies);
+
+        await expect(listen(socket)).resolves.toBe(
+          ListenToModelEventOutcome.Failed,
+        );
+
+        expect(socket.joinedRooms).toEqual([]);
+        expect(socket.emitted).toEqual([]);
+      }
+
+      expect(RealtimeSessions.size()).toBe(0);
+
+      // Read again by the next join: once it reads, the member is asked for SSO as before.
+      instanceRequiresSso.mockResolvedValue(true);
+
+      await expect(
+        listen(new FakeServerSocket(cookieWith(validToken()))),
+      ).resolves.toBe(ListenToModelEventOutcome.SsoRequired);
+    });
+
+    test("that cannot be read does not stop a server admin's join: they are never asked it", async () => {
+      instanceRequiresSso.mockRejectedValue(new Error("database unavailable"));
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken({ isMasterAdmin: true })),
+      );
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+      expect(instanceRequiresSso).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a project's own sign-in rule that cannot be read", () => {
+    beforeEach(() => {
+      memberOf([TENANT_ID]);
+    });
+
+    test("whether it requires SSO: a failed join, server admins included", async () => {
+      projectRequiresSso.mockRejectedValue(new Error("database unavailable"));
+
+      for (const isMasterAdmin of [false, true]) {
+        const socket: FakeServerSocket = new FakeServerSocket(
+          cookieWith(
+            validToken({ isMasterAdmin }),
+            ssoCookie(TENANT_ID, ssoToken({ projectId: TENANT_ID })),
+          ),
+        );
+
+        await expect(listen(socket)).resolves.toBe(
+          ListenToModelEventOutcome.Failed,
+        );
+
+        expect(socket.joinedRooms).toEqual([]);
+        expect(socket.emitted).toEqual([]);
+      }
+    });
+
+    test("the provider it requires: a failed join, even with the project's SSO sign-in - never 'any provider will do'", async () => {
+      projectRequiresSso.mockResolvedValue(true);
+      projectRequiredProvider.mockRejectedValue(
+        new Error("database unavailable"),
+      );
+
+      for (const isMasterAdmin of [false, true]) {
+        const socket: FakeServerSocket = new FakeServerSocket(
+          cookieWith(
+            validToken({ isMasterAdmin }),
+            ssoCookie(TENANT_ID, ssoToken({ projectId: TENANT_ID })),
+          ),
+        );
+
+        await expect(listen(socket)).resolves.toBe(
+          ListenToModelEventOutcome.Failed,
+        );
+
+        expect(socket.joinedRooms).toEqual([]);
+        expect(socket.emitted).toEqual([]);
+      }
+
+      // The same under the instance-wide rule, for a project that does not require SSO itself.
+      projectRequiresSso.mockResolvedValue(false);
+      instanceRequiresSso.mockResolvedValue(true);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          validToken(),
+          ssoCookie(TENANT_ID, ssoToken({ projectId: TENANT_ID })),
+        ),
+      );
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Failed,
+      );
+      expect(socket.joinedRooms).toEqual([]);
+    });
   });
 
   /*

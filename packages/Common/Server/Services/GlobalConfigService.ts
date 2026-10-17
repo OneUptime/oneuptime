@@ -47,6 +47,12 @@ export const ROOT_ONLY_LICENSE_COLUMNS: ReadonlyArray<keyof Model> = [
   "enterpriseLicenseUserCountUpdatedAt",
   "enterpriseLicenseInstances",
   "enterpriseEditionFirstSeenAt",
+  /*
+   * A self-hosted installation billed through a cloud marketplace is
+   * licensed by the marketplace's answers recorded here (verifiedAt): a
+   * forged one would license the installation for free.
+   */
+  "enterpriseMarketplaceBilling",
 ];
 
 /*
@@ -93,6 +99,16 @@ export class Service extends DatabaseService<Model> {
   private requireSsoForLoginCache: InMemoryTTLCache<boolean> =
     new InMemoryTTLCache(10_000);
   /*
+   * The one read of the server's Require SSO for Login in flight, if any:
+   * when the minute runs out - or the rule is forgotten, and every page's
+   * live updates are asked again at once - every request that asks shares
+   * it, rather than each reading the row. A read is kept only while it is
+   * still the current one: forgetting the rule clears the slot, so a read
+   * that was on the wire when the rule changed answers its own callers but
+   * never puts the old rule back for the minute.
+   */
+  private requireSsoForLoginLookup: Promise<boolean> | null = null;
+  /*
    * The public Telegram webhook is hit without a OneUptime session. The value
    * cache lives in Redis so every app replica observes the same generation.
    * Only the in-flight promise is process-local: it collapses a cache-miss
@@ -114,13 +130,23 @@ export class Service extends DatabaseService<Model> {
    * server (RealtimeAccessChanges).
    */
   public forgetSignInRules(): void {
-    this.requireSsoForLoginCache.clear();
+    this.forgetRequireSsoForLogin();
     clearGlobalSsoAuthorizationCaches();
+  }
+
+  // Drops this server's copy of Require SSO for Login, and the read in flight.
+  private forgetRequireSsoForLogin(): void {
+    this.requireSsoForLoginCache.clear();
+    this.requireSsoForLoginLookup = null;
   }
 
   /*
    * Instance-wide: must every user sign in with SSO to access projects?
-   * (Master admins are exempted by the enforcement layer, not here.)
+   * (Master admins are exempted by the enforcement layer, not here.) Kept
+   * for 60s, or read from the row - by one read for every caller asking at
+   * once. Throws when it cannot be read, and keeps nothing: a read that
+   * fails is no answer, and callers refuse rather than take it for "not
+   * required" (UserMiddleware.getUserTenantAccessPermissionWithTenantId).
    */
   @CaptureSpan()
   public async getRequireSsoForLogin(): Promise<boolean> {
@@ -130,15 +156,36 @@ export class Service extends DatabaseService<Model> {
       return cached;
     }
 
-    const config: Model | null = await this.findOneBy({
+    const inFlight: Promise<boolean> | null = this.requireSsoForLoginLookup;
+
+    if (inFlight) {
+      return await inFlight;
+    }
+
+    const lookup: Promise<boolean> = this.findOneBy({
       query: {},
       select: { requireSsoForLogin: true },
       props: { isRoot: true },
-    });
+    })
+      .then((config: Model | null): boolean => {
+        const value: boolean = Boolean(config?.requireSsoForLogin);
 
-    const value: boolean = Boolean(config?.requireSsoForLogin);
-    this.requireSsoForLoginCache.set(key, value, 60_000);
-    return value;
+        // Only while this read is still the current one (see requireSsoForLoginLookup).
+        if (this.requireSsoForLoginLookup === lookup) {
+          this.requireSsoForLoginCache.set(key, value, 60_000);
+        }
+
+        return value;
+      })
+      .finally((): void => {
+        if (this.requireSsoForLoginLookup === lookup) {
+          this.requireSsoForLoginLookup = null;
+        }
+      });
+
+    this.requireSsoForLoginLookup = lookup;
+
+    return await lookup;
   }
 
   @CaptureSpan()
@@ -618,7 +665,7 @@ export class Service extends DatabaseService<Model> {
       (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })
         .requireSsoForLogin !== undefined
     ) {
-      this.requireSsoForLoginCache.clear();
+      this.forgetRequireSsoForLogin();
     }
 
     /*

@@ -6,6 +6,7 @@ import LabelService from "../../Services/LabelService";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
+import ProbeService from "../../Services/ProbeService";
 import ServiceService from "../../Services/ServiceService";
 import TeamService from "../../Services/TeamService";
 import UserService from "../../Services/UserService";
@@ -19,7 +20,9 @@ import MonitorStepsReferenceExtractor, {
 import { JSONObject } from "../../../Types/JSON";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import ObjectID from "../../../Types/ObjectID";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Probe from "../../../Models/DatabaseModels/Probe";
 
 /*
  * `monitorSteps` is a JSON blob that embeds ids of other records — the default
@@ -120,6 +123,12 @@ export default class MonitorStepsProjectValidator {
       return;
     }
 
+    await MonitorStepsProjectValidator.validateWatchedProbesBelongToProject({
+      monitorSteps: data.monitorSteps,
+      projectId: data.projectId,
+      alreadyStoredMonitorSteps: data.alreadyStoredMonitorSteps,
+    });
+
     const references: Array<MonitorStepsReference> =
       MonitorStepsReferenceExtractor.extract(data.monitorSteps);
 
@@ -205,5 +214,86 @@ export default class MonitorStepsProjectValidator {
         },
       ),
     });
+  }
+
+  /*
+   * The probes a Probe Status monitor watches. A monitor may watch exactly
+   * the probes it could run on: this project's own and the global ones
+   * (ProbeService.getProbesAttachableToProject). The ids come from the
+   * browser, the API and Terraform alike, and a probe of another project
+   * must not be watchable from here: the monitor would read its name and
+   * whether it is up.
+   *
+   * As with the references above, a probe the monitor already watches is
+   * left alone: a probe deleted since must not refuse every later edit of
+   * the monitor. The evaluator no longer counts it either way.
+   */
+  public static async validateWatchedProbesBelongToProject(data: {
+    monitorSteps: MonitorSteps | JSONObject | undefined;
+    projectId: ObjectID;
+    alreadyStoredMonitorSteps?: MonitorSteps | JSONObject | undefined | null;
+  }): Promise<void> {
+    const watched: Array<string> =
+      MonitorStepsReferenceExtractor.extractWatchedProbeIds(data.monitorSteps);
+
+    if (watched.length === 0) {
+      return;
+    }
+
+    const alreadyWatched: Set<string> = new Set(
+      MonitorStepsReferenceExtractor.extractWatchedProbeIds(
+        data.alreadyStoredMonitorSteps,
+      ).map((probeId: string): string => {
+        return probeId.toLowerCase();
+      }),
+    );
+
+    const introduced: Array<string> = watched.filter(
+      (probeId: string): boolean => {
+        return !alreadyWatched.has(probeId.toLowerCase());
+      },
+    );
+
+    if (introduced.length === 0) {
+      return;
+    }
+
+    const notAnId: string | undefined = introduced.find(
+      (probeId: string): boolean => {
+        return !ObjectID.isValidUUID(probeId);
+      },
+    );
+
+    if (notAnId) {
+      throw new BadDataException(
+        `"${notAnId}" is not a probe ID. A Probe Status monitor watches probes by their ID.`,
+      );
+    }
+
+    const watchable: Array<Probe> =
+      await ProbeService.getProbesAttachableToProject({
+        probeIds: introduced.map((probeId: string): ObjectID => {
+          return new ObjectID(probeId);
+        }),
+        projectId: data.projectId,
+      });
+
+    const watchableIds: Set<string> = new Set(
+      watchable.map((probe: Probe): string => {
+        return probe.id?.toString().toLowerCase() || "";
+      }),
+    );
+
+    const refused: Array<string> = introduced.filter(
+      (probeId: string): boolean => {
+        return !watchableIds.has(probeId.toLowerCase());
+      },
+    );
+
+    if (refused.length > 0) {
+      throw new BadDataException(
+        `A Probe Status monitor can watch this project's own probes and the global probes. This project has no probe with the ID ${refused.join(", ")}.`,
+      );
+    }
   }
 }

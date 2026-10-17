@@ -919,6 +919,48 @@ export default class TemplateVariablesCatalog {
           ],
         };
 
+      case MonitorType.ProbeStatus:
+        return {
+          title: "Probe Status",
+          description:
+            "The probes this monitor watches, as the check that opened the incident or alert found them. A probe is disconnected when nothing has been heard from it for three minutes.",
+          variables: [
+            {
+              key: "disconnectedProbeNames",
+              description:
+                "The names of the disconnected probes, separated by commas.",
+              example: "EU Probe",
+            },
+            {
+              key: "disconnectedProbeCount",
+              description: "How many of the probes are disconnected.",
+              example: "1",
+            },
+            {
+              key: "connectedProbeNames",
+              description:
+                "The names of the connected probes, separated by commas.",
+              example: "US Probe, Asia Probe",
+            },
+            {
+              key: "connectedProbeCount",
+              description: "How many of the probes are connected.",
+              example: "2",
+            },
+            {
+              key: "probeStatusSummary",
+              description:
+                "One sentence naming the disconnected probes, or saying that every probe is connected.",
+              example: "1 of 3 probes is disconnected: EU Probe.",
+            },
+            {
+              key: "probes",
+              description:
+                "Array of {probeName, isConnected, isGlobalProbe, lastAliveAt}.",
+            },
+          ],
+        };
+
       default:
         return null;
     }

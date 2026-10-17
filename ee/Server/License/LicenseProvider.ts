@@ -351,7 +351,10 @@ export class LicenseProvider implements EnterpriseLicensingProvider {
       return null;
     }
 
-    return LicenseInputsUtil.classify(inputs, this.dependencies.now());
+    return LicenseInputsUtil.classifyWithMarketplace(
+      inputs,
+      this.dependencies.now(),
+    );
   }
 
   public getLastLoadError(): string | null {
@@ -404,7 +407,7 @@ export class LicenseProvider implements EnterpriseLicensingProvider {
     this.classificationCount++;
 
     const classification: LicenseTokenClassification =
-      LicenseInputsUtil.classify(inputs, now);
+      LicenseInputsUtil.classifyWithMarketplace(inputs, now);
     const snapshot: EnterpriseLicenseSnapshot =
       LicenseInputsUtil.toSnapshot(classification);
 

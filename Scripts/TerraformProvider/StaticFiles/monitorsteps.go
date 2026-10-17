@@ -220,6 +220,8 @@ var monitorStepsCheckOnValues = []string{
 	"External Status Page Component Status",
 	"External Status Page Active Incidents",
 	"External Status Page Response Time (in ms)",
+	"Connected Probes",
+	"Disconnected Probes",
 }
 
 // FilterType enum (Common/Types/Monitor/CriteriaFilter.ts). "Recieved" is
@@ -304,6 +306,7 @@ var monitorStepsSubConfigs = []monitorStepsSubConfig{
 	{"ceph_monitor", "cephMonitor"},
 	{"storage_array_monitor", "storageArrayMonitor"},
 	{"iot_monitor", "iotMonitor"},
+	{"probe_status_monitor", "probeStatusMonitor"},
 }
 
 // ---------------------------------------------------------------------------
@@ -981,6 +984,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 		"ceph_monitor":                 "Raw JSON escape hatch for the Ceph monitor config (clusterIdentifier, ...).",
 		"storage_array_monitor":        "Raw JSON escape hatch for the Storage Array monitor config (arrayIdentifier, storageSystem, resourceFilters, ...).",
 		"iot_monitor":                  "Raw JSON escape hatch for the IoT monitor config (fleetIdentifier, ...).",
+		"probe_status_monitor":         "Raw JSON escape hatch for the Probe Status monitor config (probeIds: the ids of the probes the monitor watches - this project's own probes and the global probes).",
 	}
 
 	for _, sub := range monitorStepsSubConfigs {

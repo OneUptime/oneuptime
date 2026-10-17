@@ -157,6 +157,7 @@ flowchart TB
 | Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | 로그, Security Events, 트레이스, AI / LLM, 메트릭, 예외 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`(모니터의 전체 구성) |
+| 프로브 상태 | `probeStatusMonitor.probeIds` |
 
 인프라 모니터(Kubernetes, Docker Container, 호스트, Podman Container, Proxmox, Docker Swarm, Ceph, 스토리지 어레이, IoT Device)는 리소스 선택기, 필터(호스트 제외), 메트릭 쿼리, 쿼리 시간 범위를 보호할 수 있습니다. 그 이름은 해당 유형의 템플릿에 있는 **Template sync settings**에 나열됩니다.
 :::

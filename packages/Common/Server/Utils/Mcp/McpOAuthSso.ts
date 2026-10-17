@@ -53,7 +53,10 @@ export default class McpOAuthSso {
    * The same reading UserMiddleware.getUserTenantAccessPermissionWithTenantId
    * makes: the project's own switch, else the instance-wide one - from which
    * master admins are exempt, so a misconfigured instance SSO cannot lock
-   * them out. A project that does not exist throws, as it does there.
+   * them out. A project that does not exist throws, as it does there, and so
+   * does any rule that cannot be read: a failed read is never "not
+   * required", nor "any provider will do", so the client is refused until
+   * the rules read again.
    */
   public static async getRequirement(data: {
     projectId: ObjectID;
@@ -64,11 +67,7 @@ export default class McpOAuthSso {
     );
 
     if (!isRequired && !data.isMasterAdmin) {
-      isRequired = await GlobalConfigService.getRequireSsoForLogin().catch(
-        () => {
-          return false;
-        },
-      );
+      isRequired = await GlobalConfigService.getRequireSsoForLogin();
     }
 
     if (!isRequired) {
@@ -76,11 +75,7 @@ export default class McpOAuthSso {
     }
 
     const requiredSsoProviderId: ObjectID | null =
-      await ProjectService.getRequireSsoWithSsoProviderId(data.projectId).catch(
-        () => {
-          return null;
-        },
-      );
+      await ProjectService.getRequireSsoWithSsoProviderId(data.projectId);
 
     return { isRequired: true, requiredSsoProviderId };
   }

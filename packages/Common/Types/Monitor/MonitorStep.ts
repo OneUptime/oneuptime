@@ -60,6 +60,9 @@ import SqlDatabaseType from "./SqlDatabaseType";
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "./MonitorStepExternalStatusPageMonitor";
+import MonitorStepProbeStatusMonitor, {
+  MonitorStepProbeStatusMonitorUtil,
+} from "./MonitorStepProbeStatusMonitor";
 import MonitorStepKubernetesMonitor, {
   MonitorStepKubernetesMonitorUtil,
 } from "./MonitorStepKubernetesMonitor";
@@ -260,6 +263,9 @@ export interface MonitorStepType {
 
   // IoT monitor
   iotMonitor?: MonitorStepIoTMonitor | undefined;
+
+  // Probe Status monitor: the probes it watches.
+  probeStatusMonitor?: MonitorStepProbeStatusMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -312,6 +318,7 @@ export default class MonitorStep extends DatabaseProperty {
       cephMonitor: undefined,
       storageArrayMonitor: undefined,
       iotMonitor: undefined,
+      probeStatusMonitor: undefined,
     };
   }
 
@@ -406,6 +413,16 @@ export default class MonitorStep extends DatabaseProperty {
       cephMonitor: undefined,
       storageArrayMonitor: undefined,
       iotMonitor: undefined,
+      /*
+       * Seeded like databaseMonitor: a monitor saved before anyone opens
+       * the probe picker still carries a config, so the step reads as "no
+       * probes picked yet" (a validation error naming the field) rather than
+       * as a step with no config at all.
+       */
+      probeStatusMonitor:
+        arg.monitorType === MonitorType.ProbeStatus
+          ? MonitorStepProbeStatusMonitorUtil.getDefault()
+          : undefined,
     };
 
     return monitorStep;
@@ -703,6 +720,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setProbeStatusMonitor(
+    probeStatusMonitor: MonitorStepProbeStatusMonitor,
+  ): MonitorStep {
+    this.data!.probeStatusMonitor = probeStatusMonitor;
+    return this;
+  }
+
   public setKubernetesMonitor(
     kubernetesMonitor: MonitorStepKubernetesMonitor,
   ): MonitorStep {
@@ -813,6 +837,7 @@ export default class MonitorStep extends DatabaseProperty {
         cephMonitor: undefined,
         storageArrayMonitor: undefined,
         iotMonitor: undefined,
+        probeStatusMonitor: undefined,
       },
     };
   }
@@ -1147,6 +1172,21 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    /*
+     * A Probe Status monitor needs only to know which probes to watch.
+     * Whether this project may watch them is the server's question
+     * (MonitorStepsProjectValidator): this check runs in the browser too.
+     */
+    if (monitorType === MonitorType.ProbeStatus) {
+      if (
+        MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(
+          value.data.probeStatusMonitor?.probeIds,
+        ).length === 0
+      ) {
+        return "Pick at least one probe to watch";
+      }
+    }
+
     return null;
   }
 
@@ -1278,6 +1318,11 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           iotMonitor: this.data.iotMonitor
             ? MonitorStepIoTMonitorUtil.toJSON(this.data.iotMonitor)
+            : undefined,
+          probeStatusMonitor: this.data.probeStatusMonitor
+            ? MonitorStepProbeStatusMonitorUtil.toJSON(
+                this.data.probeStatusMonitor,
+              )
             : undefined,
         },
       });
@@ -1507,6 +1552,17 @@ export default class MonitorStep extends DatabaseProperty {
       iotMonitor: json["iotMonitor"]
         ? (json["iotMonitor"] as JSONObject)
         : undefined,
+      /*
+       * Normalized on the way in: each probe once, and nothing that is not
+       * an id, whoever wrote the step (the API, a template, Terraform).
+       */
+      probeStatusMonitor: json["probeStatusMonitor"]
+        ? MonitorStepProbeStatusMonitorUtil.toJSON(
+            MonitorStepProbeStatusMonitorUtil.fromJSON(
+              json["probeStatusMonitor"] as JSONObject,
+            ),
+          )
+        : undefined,
     }) as any;
 
     return monitorStep;
@@ -1568,6 +1624,7 @@ export default class MonitorStep extends DatabaseProperty {
         cephMonitor: Zod.any().optional(),
         storageArrayMonitor: Zod.any().optional(),
         iotMonitor: Zod.any().optional(),
+        probeStatusMonitor: Zod.any().optional(),
       }).openapi({
         type: "object",
         example: {

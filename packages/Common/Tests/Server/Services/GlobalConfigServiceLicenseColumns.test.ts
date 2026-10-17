@@ -50,6 +50,7 @@ const EXPECTED_ROOT_ONLY_COLUMNS: Array<string> = [
   "enterpriseLicenseUserCountUpdatedAt",
   "enterpriseLicenseInstances",
   "enterpriseEditionFirstSeenAt",
+  "enterpriseMarketplaceBilling",
 ];
 
 // A plausible forged value for each column.
@@ -65,6 +66,11 @@ const FORGED_VALUES: Record<string, unknown> = {
   enterpriseLicenseUserCountUpdatedAt: new Date(),
   enterpriseLicenseInstances: [],
   enterpriseEditionFirstSeenAt: new Date(),
+  enterpriseMarketplaceBilling: {
+    version: 1,
+    marketplace: "AWS",
+    verifiedAt: "2099-01-01T00:00:00.000Z",
+  },
 };
 
 const MASTER_ADMIN_PROPS: DatabaseCommonInteractionProps = {

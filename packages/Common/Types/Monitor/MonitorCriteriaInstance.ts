@@ -845,6 +845,42 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    /*
+     * Online while every probe the monitor watches is connected: the exact
+     * complement of the offline default below, so every evaluation lands on
+     * one of the two.
+     */
+    if (arg.monitorType === MonitorType.ProbeStatus) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.DisconnectedProbes,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if every probe is connected`,
+        /*
+         * "this monitor", not its name: "every probe Probe health watches"
+         * reads as a typo, and a renamed monitor would keep the old name.
+         */
+        description: `This criteria checks if every probe this monitor watches is connected`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     return null;
   }
 
@@ -1929,8 +1965,69 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
+    /*
+     * One incident for a probe outage, however many monitors the probe
+     * runs, resolved by itself once every probe is back (issue #2733). The
+     * title names the probes ({{disconnectedProbeNames}}, see
+     * MonitorTemplateUtil): "Probe disconnected: EU Probe" is what the person
+     * paged needs, where "<monitor> is offline" would only name the watcher.
+     */
+    if (arg.monitorType === MonitorType.ProbeStatus) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.DisconnectedProbes,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
+        incidents: [
+          {
+            title: MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
+            description: MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: true,
+        createAlerts: false,
+        alerts: [
+          {
+            title: MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
+            description: MonitorCriteriaInstance.PROBE_DISCONNECTED_DESCRIPTION,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        name: `Check if a probe is disconnected`,
+        description: `This criteria checks if any probe this monitor watches is disconnected`,
+      };
+    }
+
     return monitorCriteriaInstance;
   }
+
+  // The title of the incident and alert a Probe Status monitor opens by default.
+  public static readonly PROBE_DISCONNECTED_TITLE: string =
+    "Probe disconnected: {{disconnectedProbeNames}}";
+
+  /*
+   * What a Probe Status monitor's default incident and alert say. The first
+   * line names the probes ({{probeStatusSummary}}); the rest is what it
+   * means, what it costs and what happens next, so the person paged knows
+   * without reading the docs. It names no monitor: the incident is the
+   * monitor's own, and a renamed monitor would keep its old name here.
+   */
+  public static readonly PROBE_DISCONNECTED_DESCRIPTION: string =
+    "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.";
 
   public static getNewMonitorCriteriaInstanceAsJSON(): JSONObject {
     return {

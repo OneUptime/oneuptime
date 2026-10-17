@@ -9,7 +9,12 @@ import Card, {
   CardButtonSchema,
   ComponentProps as CardProps,
 } from "../Card/Card";
-import { useIsCardSection } from "../Card/CardSurface";
+import CardMoreMenu from "../Card/CardMoreMenu";
+import {
+  CARD_RULED_BODY_CLASS_NAME,
+  useIsCardSection,
+} from "../Card/CardSurface";
+import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import { FormType, ModelFormOnBeforeUpdate } from "../Forms/ModelForm";
 import Fields from "../Forms/Types/Fields";
 import { FormStep } from "../Forms/Types/FormStep";
@@ -66,9 +71,18 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onBeforeEdit?: (() => boolean) | undefined;
 }
 
-// The fields' box: a rule across the card under its header, on a page.
-export const CARD_MODEL_DETAIL_BODY_CLASS_NAME: string =
-  "border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2";
+/*
+ * The fields' box on a page: a rule across the card under its header, and
+ * the fields padded as the card is, so their left edge is the title's at
+ * every width. It is the ruled body a switch card has (CardSurface), so a
+ * detail card and a switch card on one page draw their rules alike.
+ *
+ * It used to pull itself out by 24px on every side whatever the card's
+ * padding, and pad its fields 16px: on a phone, where a card is padded
+ * 20px, the rule ran 4px past the card's edges and the fields sat 8px left
+ * of the title.
+ */
+export const CARD_MODEL_DETAIL_BODY_CLASS_NAME: string = `${CARD_RULED_BODY_CLASS_NAME} px-5 py-5 md:px-6`;
 
 /*
  * In a section of a card: no rule and no box of their own, and a little more
@@ -118,13 +132,18 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
   }, [props.refresher]);
 
   /*
-   * The header's buttons: the card's own (documentation, demo, Edit), then
-   * the page's. Worked out while rendering rather than kept in state, so a
-   * page button that comes and goes - Apply Template on the postmortem,
-   * shown once the project's templates have loaded and there is one - is
-   * drawn as soon as the page hands it over. Kept in state and refreshed
-   * only by the refresher, a button the page added after the first paint
-   * stayed missing until something else changed.
+   * The header's actions: Edit, then the page's buttons, then a ⋯ holding
+   * the way to read more - the documentation, a demo - as a table's header
+   * keeps them ("as few buttons as possible visible"). Those two were
+   * buttons of their own before Edit, drawn in an outline style that has
+   * no border, so they read as stray text in the header.
+   *
+   * Worked out while rendering rather than kept in state, so a page button
+   * that comes and goes - Apply Template on the postmortem, shown once the
+   * project's templates have loaded and there is one - is drawn as soon as
+   * the page hands it over. Kept in state and refreshed only by the
+   * refresher, a button the page added after the first paint stayed missing
+   * until something else changed.
    */
   const cardButtons: Array<CardButtonSchema | ReactElement> = useMemo(() => {
     /*
@@ -145,36 +164,6 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
       : PermissionGate.check(model, ModelAction.Update);
 
     let cardButtons: Array<CardButtonSchema | ReactElement> = [];
-
-    // Add documentation link button first if provided
-    if (props.documentationLink) {
-      cardButtons.push({
-        title: "View Documentation",
-        icon: IconProp.Book,
-        buttonStyle: ButtonStyleType.OUTLINE,
-        className: "max-md:hidden md:flex",
-        onClick: () => {
-          Navigation.navigate(props.documentationLink!, {
-            openInNewTab: true,
-          });
-        },
-      });
-    }
-
-    // Add video link button if provided
-    if (props.videoLink) {
-      cardButtons.push({
-        title: "Watch Demo",
-        icon: IconProp.Play,
-        buttonStyle: ButtonStyleType.OUTLINE,
-        className: "max-md:hidden md:flex",
-        onClick: () => {
-          Navigation.navigate(props.videoLink!, {
-            openInNewTab: true,
-          });
-        },
-      });
-    }
 
     /*
      * Without update permission the button stays where it is, locked, and the
@@ -208,6 +197,49 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
 
     if (props.cardProps.buttons) {
       cardButtons = cardButtons.concat(...props.cardProps.buttons);
+    }
+
+    const moreMenuItems: Array<ReactElement> = [];
+
+    if (props.documentationLink) {
+      moreMenuItems.push(
+        <MoreMenuItem
+          key="documentation"
+          text="View Documentation"
+          icon={IconProp.Book}
+          onClick={() => {
+            Navigation.navigate(props.documentationLink!, {
+              openInNewTab: true,
+            });
+          }}
+        />,
+      );
+    }
+
+    if (props.videoLink) {
+      moreMenuItems.push(
+        <MoreMenuItem
+          key="video"
+          text="Watch Demo"
+          icon={IconProp.Play}
+          onClick={() => {
+            Navigation.navigate(props.videoLink!, {
+              openInNewTab: true,
+            });
+          }}
+        />,
+      );
+    }
+
+    if (moreMenuItems.length > 0) {
+      cardButtons.push(
+        <CardMoreMenu
+          key="card-model-detail-more-menu"
+          dataTestId="card-model-detail-more-menu"
+        >
+          {moreMenuItems}
+        </CardMoreMenu>,
+      );
     }
 
     return cardButtons;

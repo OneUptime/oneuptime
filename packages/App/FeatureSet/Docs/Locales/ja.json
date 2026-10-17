@@ -194,6 +194,7 @@
     "Exceptions Monitor": "例外モニター",
     "Profiles Monitor": "プロファイル モニター",
     "Manual Monitor": "手動モニター",
+    "Probe Status Monitor": "プローブステータスモニター",
     "JavaScript Expressions": "JavaScript 式",
     "Incident & Alert Templating": "インシデント & アラート テンプレート",
     "Monitor Secrets": "モニター シークレット",
