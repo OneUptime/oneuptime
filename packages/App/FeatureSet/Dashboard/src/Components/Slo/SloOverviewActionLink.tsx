@@ -2,6 +2,8 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export type SloOverviewActionLinkVariant = "primary" | "secondary" | "text";
@@ -42,8 +44,15 @@ export interface ComponentProps {
 const SloOverviewActionLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const variant: SloOverviewActionLinkVariant = props.variant || "text";
 
+  /*
+   * The title is looked up like every shared component's text prop: the
+   * extractor reads it as a key, and the locales translate it ("Open status
+   * timeline", "All incidents", "Manage"), but it was drawn as written, so
+   * these links stayed English in every language.
+   */
   return (
     <Link
       to={props.to}
@@ -54,7 +63,7 @@ const SloOverviewActionLink: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-      <span>{props.title}</span>
+      <span>{translator.translateText(props.title) || props.title}</span>
     </Link>
   );
 };

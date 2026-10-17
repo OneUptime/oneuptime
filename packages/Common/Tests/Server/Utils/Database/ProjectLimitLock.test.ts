@@ -101,6 +101,52 @@ describe("the lock's name", () => {
       "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
     );
   });
+
+  test("names the project by its uuid, not by how a request spelled it", () => {
+    /*
+     * Postgres reads a uuid in upper or mixed case, in braces, without
+     * hyphens or with a hyphen after any four of its digits as the same
+     * uuid, and so does every count a limit makes. The lock must name one
+     * project, however the request that reaches it spelled its id - a lock
+     * per spelling would let creates that name the project differently
+     * count side by side again.
+     */
+    const canonical: string = PROJECT_A.toString().toLowerCase();
+    const digits: string = canonical.split("-").join("");
+    const everyFour: string = (digits.match(/[0-9a-f]{4}/g) || []).join("-");
+
+    const spellings: Array<string> = [
+      canonical,
+      canonical.toUpperCase(),
+      `{${canonical}}`,
+      `{${canonical.toUpperCase()}}`,
+      digits,
+      digits.toUpperCase(),
+      everyFour,
+      `{${digits}}`,
+    ];
+
+    const keys: Set<string> = new Set(
+      spellings.map((spelling: string): string => {
+        return ProjectLimitLock.getLockKey({
+          limitName: "seats",
+          projectId: new ObjectID(spelling),
+        });
+      }),
+    );
+
+    expect(keys.size).toBe(1);
+    expect(Array.from(keys)[0]).toBe(`project-limit:seats:${canonical}`);
+  });
+
+  test("refuses an id that is no uuid, so nothing is ever locked under a bad key", () => {
+    expect(() => {
+      return ProjectLimitLock.getLockKey({
+        limitName: "seats",
+        projectId: new ObjectID("not-a-uuid"),
+      });
+    }).toThrow("Invalid project ID");
+  });
 });
 
 describe("running a write under the lock", () => {

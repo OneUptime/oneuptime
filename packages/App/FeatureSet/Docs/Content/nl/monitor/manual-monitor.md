@@ -56,6 +56,14 @@ Voer een **Naam** in — en desgewenst een **Beschrijving** onder **Meer velden*
 ### In het dashboard
 
 :::steps
+1. Open de monitor. Klik rechtsboven in het overzicht, naast **Vernieuwen**, op **More actions** (⋯).
+2. Kies onder **Status wijzigen naar** de nieuwe status.
+3. Klik op **Status wijzigen**. De nieuwe status begint nu en verschijnt meteen bij de monitor, en op elke statuspagina die hem toont.
+:::
+
+Een wijziging die eerder begon, legt u in plaats daarvan vast in de statustijdlijn van de monitor:
+
+:::steps
 1. Open de monitor en klik in het zijmenu op **Statustijdlijn**.
 2. Klik op **Monitor Status Gebeurtenis aanmaken**.
 3. Kies de **Monitorstatus**. **Begint op** is nu; stel een eerder tijdstip in als de wijziging eerder plaatsvond.

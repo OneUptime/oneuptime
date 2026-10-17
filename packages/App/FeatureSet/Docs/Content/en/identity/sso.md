@@ -44,6 +44,8 @@ People who sign in for the first time join the provider's **Teams**, which decid
 > [!NOTE]
 > On OneUptime Cloud, the first time someone signs in to the project with one of its SAML or OIDC providers, OneUptime emails them a link instead of signing them in. They open it, confirm that the project's single sign-on may sign them in, and continue to sign in. The link works for 24 hours. This happens once per project, and again if they leave the project and come back. Self-hosted installations sign people in straight away.
 
+On OneUptime Cloud, someone who joins the project through SSO takes a seat, just like someone you invite. If your plan includes a fixed number of seats and all of them are taken, new people cannot join through SSO until a seat is free.
+
 ## Setting Up SSO
 
 You need permission to add SSO providers — **Project Owner**, **Project Admin** or **Create Project SSO** — and, on OneUptime Cloud, the **Scale** plan. For your identity provider's side, see the [identity provider guides](#identity-provider-guides).

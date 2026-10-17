@@ -663,9 +663,13 @@ describe("the ingestion key the shipper pages make", () => {
     expect(baseTable).toContain(
       'return translateCreateAction(translator, { verb: props.createVerb, itemName: props.singularName || model.singularName || "", });',
     );
-    // The dialog's submit button reads the same.
+    /*
+     * The dialog's submit button reads the same: a table may name it itself
+     * (createFormSubmitButtonText, since #4909), and this one does not.
+     */
+    expect(table).not.toContain("createFormSubmitButtonText");
     expect(modelTable).toContain(
-      '? translateCreateAction(translator, { verb: props.createVerb, itemName: props.singularName || model.singularName || "", })',
+      '? props.createFormSubmitButtonText || translateCreateAction(translator, { verb: props.createVerb, itemName: props.singularName || model.singularName || "", })',
     );
 
     for (const page of KEY_STEP_PAGES) {
