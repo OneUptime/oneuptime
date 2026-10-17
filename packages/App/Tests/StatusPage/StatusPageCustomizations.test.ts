@@ -213,12 +213,14 @@ describe("Status Page custom code never runs beside a link's credential", () => 
     __ONEUPTIME_SENSITIVE_URL_TOKEN__?: string | undefined;
   }
 
-  type CredentialGlobal = typeof globalThis & {
+  // The test's own view of the global scope: a server-side test has no window of its own.
+  interface CredentialGlobal {
     window?: CredentialWindow | undefined;
     seenByCustomCode?: unknown;
-  };
+  }
 
-  const credentialGlobal: CredentialGlobal = globalThis as CredentialGlobal;
+  const credentialGlobal: CredentialGlobal =
+    globalThis as unknown as CredentialGlobal;
 
   let stored: Map<string, string>;
 
