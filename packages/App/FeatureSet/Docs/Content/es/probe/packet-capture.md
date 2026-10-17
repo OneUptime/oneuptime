@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as Panel
     participant O as OneUptime
     participant P as Sonda
-    D->>O: Iniciar captura de paquetes: interfaz, filtro, límites
-    P->>O: ¿Hay capturas para mí? (cada 10 segundos)
+    D->>O: Iniciar captura de<br/>paquetes: interfaz,<br/>filtro, límites
+    P->>O: ¿Hay capturas para<br/>mí? (cada 10 segundos)
     O-->>P: Esta
-    P->>P: tcpdump hasta alcanzar un límite o pulsar Detener
+    P->>P: tcpdump hasta alcanzar un<br/>límite o pulsar Detener
     P->>O: Subir el archivo pcap
     D->>O: Descargar
-    O-->>D: El archivo pcap, y una entrada en el registro de auditoría
+    O-->>D: El archivo pcap, y<br/>una entrada en el<br/>registro de auditoría
 ```
 
 1. **Iniciar.** Alguien con permiso para iniciar capturas elige la interfaz de la sonda, un filtro y los límites, y hace clic en **Iniciar captura**. OneUptime comprueba el filtro y los límites frente a lo que permite la sonda antes de guardar la captura.

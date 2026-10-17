@@ -18,11 +18,11 @@ sequenceDiagram
     participant P as Sonda
     participant A as Su API
     participant O as OneUptime
-    P->>A: Solicitud con su método, encabezados y cuerpo
-    A-->>P: Código de estado, encabezados y cuerpo
-    Note over P: Reintenta un fallo, un 4xx o 5xx,<br/>o una respuesta más lenta que 10 s
+    P->>A: Solicitud con su método,<br/>encabezados y cuerpo
+    A-->>P: Código de estado,<br/>encabezados y cuerpo
+    Note over P: Reintenta un fallo,<br/>un 4xx o 5xx,<br/>o una respuesta<br/>más lenta que 10 s
     P->>O: Resultado de la comprobación
-    O->>O: Comprobar los criterios, de arriba abajo
+    O->>O: Comprobar los criterios,<br/>de arriba abajo
 ```
 
 Una sonda que ha perdido su propia conexión de red no informa de ningún resultado, así que no puede marcar su API como sin conexión.

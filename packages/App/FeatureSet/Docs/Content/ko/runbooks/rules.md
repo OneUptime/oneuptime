@@ -19,15 +19,15 @@ Runbook 규칙은 **인시던트**, **알림** 또는 **예정된 유지 관리 
 
 ```mermaid title="새 인시던트부터 시작된 Runbook까지"
 flowchart TB
-    created["인시던트, 알림 또는 이벤트 생성"] --> labels["레이블 규칙이 레이블 추가"]
-    labels --> rules["해당 제품의 활성화된 Runbook 규칙"]
+    created["인시던트, 알림<br/>또는 이벤트 생성"] --> labels["레이블 규칙이<br/>레이블 추가"]
+    labels --> rules["해당 제품의 활성화된<br/>Runbook 규칙"]
     rules --> match{"조건이 일치하나요?"}
-    match -->|"아니요"| nothing["규칙이 아무것도 시작하지 않음"]
-    match -->|"예"| union["일치한 모든 규칙의 Runbook을 각각 한 번씩"]
-    union --> runnable{"Runbook이 켜져 있고 단계가 있나요?"}
+    match -->|"아니요"| nothing["규칙이 아무것도<br/>시작하지 않음"]
+    match -->|"예"| union["일치한 모든 규칙의<br/>Runbook을 각각 한 번씩"]
+    union --> runnable{"Runbook이 켜져<br/>있고 단계가 있나요?"}
     runnable -->|"아니요"| skipped["그 Runbook은 건너뜀"]
-    runnable -->|"예"| execution["실행을 만들고 큐에 넣음"]
-    execution --> attached["이벤트의 런북 페이지에 표시"]
+    runnable -->|"예"| execution["실행을 만들고<br/>큐에 넣음"]
+    execution --> attached["이벤트의 런북<br/>페이지에 표시"]
 ```
 
 규칙이 발동하면, 규칙이 지정한 각 Runbook에 대해 다음이 일어납니다.

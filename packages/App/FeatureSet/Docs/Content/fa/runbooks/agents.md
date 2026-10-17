@@ -13,15 +13,15 @@
 
 ```mermaid title="آنچه بین یک Runner و OneUptime از شبکه می‌گذرد"
 flowchart TB
-    subgraph yours["زیرساخت شما"]
-        direction LR
-        runner["کانتینر Runner"]
-        targets["میزبان‌ها، کلاسترها، سرویس‌های داخلی"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Worker گام را در صف می‌گذارد"]
         ingest["API مربوط به Runner"]
+    end
+    subgraph yours["زیرساخت شما"]
+        direction LR
+        runner["کانتینر Runner"]
+        targets["میزبان‌ها، کلاسترها، سرویس‌های داخلی"]
     end
     worker --> ingest
     runner -->|"HTTPS خروجی، شناسه و کلید Runner"| ingest

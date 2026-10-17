@@ -12,11 +12,11 @@ OneUptime 中的一切都存在於**專案**之內。誰能在專案裡做什麼
 ```mermaid title="人和 API 金鑰如何取得存取權"
 flowchart TB
     User["一位使用者<br/>（一個帳號）"]
-    Key["一把 API 金鑰"]
     subgraph Project["一個專案"]
         direction TB
+        Key["一把 API 金鑰"]
         Team["團隊"]
-        Allow["允許權限，<br/>每一條都帶一個範圍：<br/>全部、擁有或標籤"]
+        Allow["允許權限，<br/>每一條都帶<br/>一個範圍：<br/>全部、擁有或標籤"]
         Block["封鎖權限，<br/>一律獲勝"]
         KeyRules["金鑰本身的<br/>允許與封鎖權限"]
         Resources["監視器、事件、<br/>狀態頁等"]
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"觸及"| Resources
     KeyRules -->|"觸及"| Resources
     Block -.->|"移除"| Resources
+    Allow ~~~ Block
 ```
 
 | 概念 | 說明 |

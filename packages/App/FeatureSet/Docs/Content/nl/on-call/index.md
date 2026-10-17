@@ -99,7 +99,7 @@ Open de pagina **Bereikbaarheidsuitvoeringen** van het incident. Is die leeg, da
 :::
 
 :::details Iemand werd via het verkeerde kanaal opgeroepen, of helemaal niet
-Open **Bereikbaarheidsdienst → Gereedheid** en klik op **Coverage** in de rij van die persoon. Je ziet de methoden die die heeft geverifieerd en elke ernst waarvoor die geen regel heeft. Alleen die persoon kan dat oplossen, onder **Gebruikersinstellingen**: stuur een herinnering om de instellingen af te ronden vanaf dezelfde pagina. Zie [Gereedheid en rapporten](/docs/on-call/readiness).
+Open **Bereikbaarheidsdienst → Gereedheid** en klik op **Coverage** in de rij van die persoon. Je ziet de methoden die die heeft geverifieerd en elke ernst waarvoor die geen regel heeft. Alleen die persoon kan dat oplossen, onder **Gebruikersinstellingen**: stuur een herinnering om de instellingen af te ronden vanaf dezelfde pagina. Zie [Gereedheid en rapporten](/docs/on-call/readiness). Op OneUptime Cloud kan een telefoon die onbekende bellers blokkeert een oproep stilzetten: zet [de nummers van OneUptime](/docs/on-call/phone-number-whitelist) op de lijst met toegestane nummers.
 :::
 
 :::details Iemand op vakantie wordt nog steeds opgeroepen

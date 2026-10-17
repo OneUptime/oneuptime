@@ -15,15 +15,15 @@ Security Events आपके पहचान नियमों, थ्रेट
 flowchart TB
     subgraph sources["पहचान के स्रोत"]
         direction LR
-        rules["पहचान<br/>नियम"] ~~~ intel["थ्रेट<br/>इंटेलिजेंस"] ~~~ products["कनेक्ट किए गए<br/>उत्पाद"]
+        rules["पहचान<br/>नियम"] ~~~ intel["थ्रेट<br/>इंटेलिजेंस"] ~~~ products["कनेक्ट<br/>किए गए<br/>उत्पाद"]
     end
-    sources --> group{"उसी एंटिटी के बारे में<br/>कोई केस खुला है?"}
+    sources --> group{"उसी एंटिटी<br/>के बारे में<br/>कोई केस<br/>खुला है?"}
     group -->|"हाँ"| join["पहचान उसमें<br/>जुड़ जाती है"]
-    group -->|"नहीं"| open["नया केस खुलता है"]
-    join --> playbooks["प्लेबुक चलती हैं"]
+    group -->|"नहीं"| open["नया केस<br/>खुलता है"]
+    join --> playbooks["प्लेबुक<br/>चलती हैं"]
     open --> playbooks
-    playbooks --> work["एक विश्लेषक<br/>केस पर काम करता है"]
-    work --> close["निर्णय के साथ बंद"]
+    playbooks --> work["एक विश्लेषक<br/>केस पर काम<br/>करता है"]
+    work --> close["निर्णय के<br/>साथ बंद"]
 ```
 
 **उत्पाद → Security Events → Security Cases** खोलें। कतार खुले केस दिखाते हुए खुलती है; **Assigned to Me**, **Unassigned**, **बंद** और **सभी** बाकी व्यू हैं।

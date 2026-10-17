@@ -12,10 +12,10 @@ Surveillez un vCenter Server, ou un hôte ESXi autonome, sans rien installer : s
 
 ```mermaid
 flowchart TB
-    OU["OneUptime"] -->|"collecter maintenant, toutes les quelques minutes"| P["Votre sonde"]
-    P -->|"HTTPS 443, API vSphere en lecture seule"| VC["vCenter Server ou hôte ESXi"]
-    P -->|"métriques, comme l'agent VMware les envoie"| OU
-    OU --> V["Pages VMware, moniteurs, alertes et IA"]
+    OU["OneUptime"] -->|"collecter<br/>maintenant,<br/>toutes les<br/>quelques<br/>minutes"| P["Votre sonde"]
+    P -->|"HTTPS 443, API<br/>vSphere en<br/>lecture seule"| VC["vCenter Server<br/>ou hôte ESXi"]
+    P -->|"métriques,<br/>comme l'agent<br/>VMware<br/>les envoie"| OU
+    OU --> V["Pages VMware,<br/>moniteurs, alertes et IA"]
 ```
 
 Toutes les quelques minutes, la sonde se connecte à vCenter avec le compte que vous avez enregistré, lit l'inventaire, les compteurs de performance et les statistiques vSAN, et les envoie à OneUptime. Elles arrivent exactement comme celles de l'agent VMware : chaque page VMware, chaque [moniteur VMware](/docs/monitor/vmware-monitor), chaque modèle d'alerte et OneUptime AI les lisent de la même façon. La sonde conserve sa session vCenter entre deux collectes, pour que le journal des événements de vCenter ne se remplisse pas de connexions.

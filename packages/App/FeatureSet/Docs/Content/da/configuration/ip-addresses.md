@@ -3,7 +3,7 @@
 OneUptime Clouds probes tjekker dine websites, API'er og servere fra et fast sæt IP-adresser. Står der en firewall eller en tilladelsesliste foran det, du overvåger, så tillad disse adresser, så tjekkene kommer igennem.
 
 ```mermaid title="Hvor tilladelseslisten gælder"
-flowchart LR
+flowchart TB
     P["OneUptime-probes"] -->|"tjekker fra de angivne IP'er"| F["Din firewall"]
     F -->|"tilladt"| S["Dit website, API eller din server"]
 ```

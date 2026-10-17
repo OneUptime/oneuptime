@@ -250,14 +250,7 @@ Der Erstellungsaufruf tut mehr, als eine Zeile zu schreiben:
 flowchart TB
     request["Erstellungsanfrage"] --> fill["Server füllt die Lücken"]
     fill --> template["Vorlage angewendet, falls vorhanden"]
-    template --> rules
-    subgraph rules["Regeln, in dieser Reihenfolge"]
-        direction LR
-        privacy["Datenschutz"] --> owner["Eigentümer"]
-        owner --> label["Beschriftung"]
-        label --> oncall["Bereitschaft"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Regeln, in dieser Reihenfolge:<br/>Datenschutz, Eigentümer, Beschriftung,<br/>Bereitschaft, Runbook"]
     rules --> policies["Bereitschaftsrichtlinien laufen"]
     policies --> subscribers["Abonnenten eingereiht"]
     subscribers --> workflows["Workflows starten"]
@@ -284,10 +277,10 @@ Ein späterer **Anfangsstatus** – im Formular, über den **Anfänglicher Vorfa
 
 ```mermaid title="Was ein neuer Vorfall auslöst, je nach dem Status, in dem er beginnt"
 flowchart TB
-    start{"Anfangsstatus"} -->|"Erstellungsstatus, der Standard"| live["Als neu behandelt: alarmiert die Bereitschaft"]
-    start -->|"Bestätigt oder später"| acked["Erfasst: alarmiert niemanden"]
-    start -->|"Behoben oder später"| over["Als vorbei erfasst"]
-    over --> quiet["Keine Gruppierung, Runbooks, KI, kein Kanal, kein SLA"]
+    start{"Anfangsstatus"} -->|"Erstellungsstatus,<br/>der Standard"| live["Als neu<br/>behandelt:<br/>alarmiert die<br/>Bereitschaft"]
+    start -->|"Bestätigt<br/>oder später"| acked["Erfasst:<br/>alarmiert<br/>niemanden"]
+    start -->|"Behoben<br/>oder später"| over["Als vorbei<br/>erfasst"]
+    over --> quiet["Keine Gruppierung,<br/>Runbooks, KI, kein<br/>Kanal, kein SLA"]
 ```
 
 - **In Ihrem bestätigten Status oder danach** – **Bestätigt** oder ein Status, der unter **Vorfälle → Einstellungen → Vorfallsstatus** darunter steht – läuft keine Bereitschaftsrichtlinie, es wird also niemand alarmiert. Der Vorfall listet seine Richtlinien weiterhin auf, die gewählten und die von Bereitschaftsregeln hinzugefügten, und sein Feed sagt in einer Zeile, warum: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Sein SLA, falls eine Regel ihm eines gibt, beginnt bereits als beantwortet. Alles Weitere unten läuft wie bei jedem neuen Vorfall.

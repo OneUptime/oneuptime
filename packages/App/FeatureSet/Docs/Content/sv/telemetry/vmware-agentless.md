@@ -12,10 +12,10 @@
 
 ```mermaid
 flowchart TB
-    OU["OneUptime"] -->|"samla in nu, med några minuters mellanrum"| P["Din sond"]
-    P -->|"HTTPS 443, skrivskyddat vSphere-API"| VC["vCenter Server eller ESXi-värd"]
-    P -->|"mätvärden, så som VMware-agenten skickar dem"| OU
-    OU --> V["VMware-sidor, övervakare, larm och AI"]
+    OU["OneUptime"] -->|"samla in nu,<br/>med några<br/>minuters<br/>mellanrum"| P["Din sond"]
+    P -->|"HTTPS 443, skrivskyddat<br/>vSphere-API"| VC["vCenter Server<br/>eller ESXi-värd"]
+    P -->|"mätvärden,<br/>så som<br/>VMware-agenten<br/>skickar dem"| OU
+    OU --> V["VMware-sidor,<br/>övervakare, larm och AI"]
 ```
 
 Med några minuters mellanrum loggar sonden in på vCenter med kontot du sparade, läser inventariet, prestandaräknarna och vSAN-statistiken och skickar dem till OneUptime. De kommer fram precis som VMware-agentens gör, så varje VMware-sida, varje [VMware-övervakare](/docs/monitor/vmware-monitor), varje larmmall och OneUptime AI läser dem på samma sätt. Sonden behåller sin vCenter-session mellan insamlingarna, så att vCenters händelselogg inte fylls med inloggningar.

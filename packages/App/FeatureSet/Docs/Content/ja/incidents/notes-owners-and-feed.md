@@ -20,10 +20,10 @@ flowchart TB
         public["公開メモ"]
         private["非公開メモ"]
     end
-    public --> page["ステータスページと購読者"]
-    public --> owners["インシデントの所有者"]
+    public --> page["ステータスページと<br/>購読者"]
+    public --> owners["インシデントの<br/>所有者"]
     private --> owners
-    public --> feed["インシデントのフィード"]
+    public --> feed["インシデントの<br/>フィード"]
     private --> feed
 ```
 

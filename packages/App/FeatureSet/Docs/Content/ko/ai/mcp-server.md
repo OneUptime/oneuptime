@@ -20,7 +20,7 @@ MCP 서버는 모든 OneUptime 인스턴스에 포함되어 있으며, 대시보
 flowchart TB
     C["MCP 클라이언트:<br/>Claude, Cursor,<br/>VS Code"] -->|"/mcp로 HTTP"| M["OneUptime의<br/>MCP 서버"]
     M --> W{"클라이언트는<br/>무엇으로<br/>자신을 밝히나?"}
-    W -->|"로그인함"| P["로그인한 사람으로,<br/>선택한 프로젝트에서"]
+    W -->|"로그인함"| P["로그인한<br/>사람으로,<br/>선택한<br/>프로젝트에서"]
     W -->|"API 키"| K["키로서,<br/>키의 프로젝트에서"]
     W -->|"둘 다 없음"| U["공개 상태 페이지<br/>도구만"]
     P --> A["OneUptime의 API,<br/>바로 그 권한으로"]

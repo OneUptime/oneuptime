@@ -4,12 +4,12 @@ Labelregels, eigenaarsregels en privacyregels worden automatisch uitgevoerd wann
 
 ```mermaid title="Wat één uitvoering doet"
 flowchart TB
-    S["Run Now"] --> E["Elke resource in het project"]
+    S["Run Now"] --> E["Elke resource<br/>in het project"]
     E --> M{"Komt overeen met de regel?"}
     M -->|"Nee"| K["Blijft zoals het is"]
     M -->|"Ja"| H{"Heeft al wat<br/>de regel toevoegt?"}
     H -->|"Ja"| A["Geteld als al toegepast"]
-    H -->|"Nee"| C["Labels of eigenaren toegevoegd,<br/>of privé gemaakt"]
+    H -->|"Nee"| C["Labels of eigenaren<br/>toegevoegd,<br/>of privé gemaakt"]
 ```
 
 ## Welke regels u kunt uitvoeren

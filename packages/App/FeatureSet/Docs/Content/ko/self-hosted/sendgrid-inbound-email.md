@@ -18,11 +18,11 @@ OneUptime의 **Incoming Email Monitor**를 사용하면 모니터마다 고유�
 ```mermaid title="이메일이 모니터에 도달하는 과정"
 sequenceDiagram
     participant Sender as 보내는 메일 서버
-    participant SendGrid as SendGrid Inbound Parse
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: 모니터 주소로 보내는 이메일(MX 레코드 경유)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: 주소를 모니터나 워크플로에 연결
+    Sender->>SendGrid: 모니터<br/>주소로 보내는<br/>이메일(MX<br/>레코드 경유)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: 주소를<br/>모니터나<br/>워크플로에<br/>연결
     OneUptime-->>SendGrid: 200 OK
 ```
 

@@ -7,6 +7,8 @@
 - [인시던트 상태 및 심각도](/docs/incidents/states-and-severities): 수명 주기, 그리고 인지와 해결이 하는 일.
 - [인시던트 메모, 소유자 및 피드](/docs/incidents/notes-owners-and-feed): 고객과 팀을 위한 업데이트, 그리고 누가 그것을 받는지.
 - [연결된 알림](/docs/incidents/linked-alerts): 장애로 발생한 알림을 그것을 설명하는 인시던트에 묶습니다.
+- [에피소드](/docs/incidents/episodes): 관련된 인시던트를 묶어 하나처럼 대응합니다.
+- [포스트모템](/docs/incidents/postmortems): 무슨 일이 있었는지 정리하고 상태 페이지에 게시합니다.
 - [인시던트 설정 및 자동화](/docs/incidents/settings): 템플릿, 사용자 정의 필드, 역할, 측정, 규칙.
 :::
 
@@ -34,12 +36,14 @@ flowchart TB
         monitor["모니터"]
         api["API"]
         form["양식"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["새 인시던트"]
     incident --> rules["인시던트 규칙 실행"]
     rules --> oncall["온콜 정책이 호출"]
     rules --> owners["소유자에게 알림"]
-    rules --> pages["상태 페이지 업데이트"]
+    rules --> pages["상태 페이지<br/>업데이트"]
     oncall --> feed["인시던트 피드"]
     owners --> feed
     pages --> feed
@@ -77,7 +81,7 @@ flowchart TB
 
 **해결**을 클릭하면 인시던트가 해결 상태로 이동하고, 상태 타임라인에 기록되고, 기간 측정이 멈추고, 인시던트가 잡고 있던 모니터를 돌려주며, 인시던트가 표시되던 모든 상태 페이지의 활성 섹션에서 빠집니다. 이를 위해 다른 것을 바꿀 필요는 없습니다. 상태 페이지는 해결 상태보다 위에 있는 상태의 인시던트만 보여 주기 때문입니다. [해결이 하는 일](/docs/incidents/states-and-severities#해결이-하는-일)을 참고하세요.
 
-그 후 포스트모템을 작성하고, 원하면 상태 페이지에 게시할 수 있습니다.
+그 후 [포스트모템](/docs/incidents/postmortems) 을 작성하고, 원하면 상태 페이지에 게시할 수 있습니다.
 
 ## 주요 용어
 
@@ -103,7 +107,7 @@ flowchart TB
 
 ```mermaid title="모든 새 프로젝트가 처음 갖는 상태"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: 선언
     Identified --> Acknowledged: 인지
     Identified --> Resolved: 해결

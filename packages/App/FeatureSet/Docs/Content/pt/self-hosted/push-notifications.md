@@ -13,22 +13,22 @@ O OneUptime alerta as pessoas no celular pelo app **OneUptime On-Call**, e no na
 
 ```mermaid title="Como um push chega a um celular ou navegador"
 flowchart TB
-    Server["Seu servidor do OneUptime"]
-    Relay["Relay de push do OneUptime"]
+    Server["Seu servidor<br/>do OneUptime"]
+    Relay["Relay de<br/>push do<br/>OneUptime"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["App OneUptime On-Call"]
-    PushService["O serviço de push<br/>do navegador"]
+    Phone["App OneUptime<br/>On-Call"]
+    PushService["O serviço<br/>de push<br/>do navegador"]
     Browser["Navegador"]
     Server -->|"sem EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN definido"| Expo
+    Server -->|"EXPO_ACCESS_TOKEN<br/>definido"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -108,7 +108,7 @@ flowchart TB
     Rule{"Sua regra de plantão está<br/>em “Alerta crítico”?"}
     Device{"Critical On-Call Alerts<br/>ligado neste dispositivo?"}
     OS{"O sistema do celular<br/>permite alertas críticos?"}
-    Loud["Toca um som apesar do<br/>modo silencioso e do Não Perturbe"]
+    Loud["Toca um som apesar do<br/>modo silencioso<br/>e do Não Perturbe"]
     Quiet["Entregue em silêncio,<br/>como qualquer outro push"]
     Page --> Rule
     Rule -->|"sim"| Device

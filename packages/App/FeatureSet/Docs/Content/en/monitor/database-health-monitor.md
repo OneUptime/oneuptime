@@ -55,7 +55,7 @@ flowchart TB
     probe -->|Yes| groups["Run each metric group"]
     groups --> group{"Group collected?"}
     group -->|Yes| metrics["Metrics reported"]
-    group -->|No| issue["Metrics absent, issue noted"]
+    group -->|No| issue["Metrics absent,<br/>issue noted"]
     metrics --> criteria["Criteria evaluated"]
     issue --> criteria
 ```

@@ -22,7 +22,7 @@ sequenceDiagram
     S->>O: E-post til monitorens adresse
     O->>O: Lagre den på monitoren
     O->>O: Sjekk kriteriene
-    O->>T: Varsel eller hendelse, hvis et samsvarer
+    O->>T: Varsel eller hendelse,<br/>hvis et samsvarer
     Note over O: Hvert 30. sekund, sjekk<br/>kriterier med Email Received
 ```
 

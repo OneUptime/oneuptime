@@ -13,22 +13,22 @@ OneUptime avvisa le persone sul telefono tramite l'app mobile **OneUptime On-Cal
 
 ```mermaid title="Come un push raggiunge un telefono o un browser"
 flowchart TB
-    Server["Il tuo server OneUptime"]
-    Relay["Relay push di OneUptime"]
+    Server["Il tuo server<br/>OneUptime"]
+    Relay["Relay push<br/>di OneUptime"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
     Phone["App OneUptime On-Call"]
     PushService["Il servizio push<br/>del browser"]
     Browser["Browser"]
-    Server -->|"nessun EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN impostato"| Expo
+    Server -->|"nessun<br/>EXPO_ACCESS_TOKEN"| Relay
+    Server -->|"EXPO_ACCESS_TOKEN<br/>impostato"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 

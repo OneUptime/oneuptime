@@ -21,12 +21,12 @@ sequenceDiagram
     participant O as OneUptime
     participant C as Vaktlag
     H->>O: incident_report.created
-    O->>O: Kontroller signaturen, åpne én hendelse
-    opt Alvorlighetsgrad på eller over Varsle vakten for
-        O->>C: Utfør tilkoblingens vaktretningslinjer
+    O->>O: Kontroller signaturen,<br/>åpne én hendelse
+    opt Alvorlighetsgrad på eller<br/>over Varsle vakten for
+        O->>C: Utfør tilkoblingens<br/>vaktretningslinjer
     end
     H->>O: incident_report.comment_added
-    O->>O: Legg til kommentaren som et privat notat
+    O->>O: Legg til kommentaren<br/>som et privat notat
     H->>O: incident_report.closed
     O->>O: Løs hendelsen
 ```

@@ -27,7 +27,7 @@ When you create a schedule on the **On-Call Schedules** page, the form asks for 
 The people take turns one at a time, and the first one is on call as soon as the schedule is created:
 
 ```mermaid title="Layer 1 with three people and turns of 1 week"
-flowchart LR
+flowchart TB
     alice["Alice<br/>week 1"] -->|"hand-off"| bob["Bob<br/>week 2"]
     bob -->|"hand-off"| carol["Carol<br/>week 3"]
     carol -->|"back to the first"| alice

@@ -18,11 +18,11 @@ MCP-servern är en del av varje OneUptime-instans, på `/mcp` på samma adress s
 
 ```mermaid title="Så når en klient ditt projekt"
 flowchart TB
-    C["Din MCP-klient:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP till /mcp"| M["OneUptimes<br/>MCP-server"]
+    C["Din MCP-klient:<br/>Claude,<br/>Cursor,<br/>VS Code"] -->|"HTTP till /mcp"| M["OneUptimes<br/>MCP-server"]
     M --> W{"Hur identifierar<br/>sig klienten?"}
-    W -->|"den loggade in"| P["Som du, i<br/>projektet du valde"]
-    W -->|"en API-nyckel"| K["Som nyckeln, i<br/>nyckelns projekt"]
-    W -->|"inget av dem"| U["Bara verktyg för<br/>publika statussidor"]
+    W -->|"den loggade in"| P["Som du, i<br/>projektet<br/>du valde"]
+    W -->|"en API-nyckel"| K["Som nyckeln, i<br/>nyckelns<br/>projekt"]
+    W -->|"inget av dem"| U["Bara verktyg för<br/>publika<br/>statussidor"]
     P --> A["OneUptimes API,<br/>med exakt de<br/>behörigheterna"]
     K --> A
 ```

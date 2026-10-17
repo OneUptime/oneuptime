@@ -22,6 +22,19 @@ end in a colon), and `&content=en`, which serves its article as the English
 copy of an untranslated page; the blog post takes `?html=broken`, a diagram
 that does not parse written as HTML rather than as a fenced block.
 
+The docs page also takes `?diagrams=sizes` (a diagram narrower than the
+column, one a little wider and one far wider) and `?source=<lang>`: every
+diagram of every docs page in that language, each marked with its page and
+place (`data-source="monitor/api-monitor#1"`). Both give each diagram the box
+the docs' article gives it at 1280px, 590px inside its padding.
+`DocsDiagramSizes.spec.ts` checks there how big a diagram is drawn: never
+larger than mermaid laid it out, centred when it is narrower than the column,
+drawn smaller to fit a column it is a little wider than (down to 3/4 of its
+size, its 16px labels no smaller than a callout label's 12px), and in a box that
+scrolls past that - and that every English and German docs diagram fits the
+column at 3/4 of its size at most (in Chromium only: mermaid lays out the
+same in Firefox, and drawing every diagram twice would double its time).
+
 `Fixture/server.js` runs `Common/Scripts/build-mermaid-browser.js` the way the
 App and Home images do, and serves what it writes at `/oneuptime-assets/mermaid/`,
 the vendored files under the rest of `/oneuptime-assets/`, and the docs' static

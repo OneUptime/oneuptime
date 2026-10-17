@@ -1,6 +1,6 @@
 # Docker Compose
 
-Kjør en komplett, gratis OneUptime-instans på én Linux-server med Docker Compose. Denne siden tar deg fra en ny server til en kjørende instans, og dekker deretter HTTPS, herding for produksjon, sikkerhetskopier, oppdateringer og fjerning.
+Kjør en komplett, gratis OneUptime-instans på én Linux-server med Docker Compose. Denne siden tar deg fra en ny server til en kjørende instans, og dekker deretter HTTPS, herding for produksjon, sikkerhetskopier, oppdateringer og fjerning. Vil du heller jobbe med OneUptimes egen kode, se [Lokal utvikling](/docs/installation/local-development).
 
 :::cards
 - [Installer OneUptime](#installer-oneuptime): Fra en ny server til din første konto i seks steg.
@@ -16,8 +16,8 @@ Docker Compose kjører hver del av OneUptime som en container på serveren din. 
 ```mermaid title="Installasjonen med Docker Compose"
 flowchart TB
     Users["Brukere og agenter"]
-    Proxy["Din reverse proxy, valgfri"]
-    Targets["Nettsteder du overvåker"]
+    Proxy["Din reverse<br/>proxy, valgfri"]
+    Targets["Nettsteder<br/>du overvåker"]
     subgraph Server["Serveren din"]
         Ingress["ingress"]
         App["app"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|resultater| Ingress
     Runner -->|jobber| Ingress
     Probe -->|sjekker| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | Tjeneste | Image | Hva den gjør |

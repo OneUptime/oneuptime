@@ -40,6 +40,12 @@ const SEQUENCE: string = "sequenceDiagram\n  Alice->>Bob: Hello Bob";
 // Does not parse.
 const BROKEN: string = "graph LR\n  A -->";
 const ENGLISH_NOTE: string = "This diagram could not be drawn.";
+// How the docs lay out a sequence diagram (Head.ejs).
+const SEQUENCE_LAYOUT: {
+  diagramMarginX: number;
+  actorMargin: number;
+  width: number;
+} = { diagramMarginX: 8, actorMargin: 20, width: 100 };
 
 type LocaleStrings = Record<string, Record<string, unknown>>;
 
@@ -353,21 +359,105 @@ describe("the docs' diagram script", () => {
     }
     expect(page.bodyChildren()).toBe(1);
 
-    // Each diagram holds its drawing, filling the column but never narrower than drawn.
+    /*
+     * Each diagram holds its drawing at the size mermaid laid it out (640px
+     * here), shrinking to fit a narrower column down to 3/4 of it (480px).
+     */
     for (const [index, diagram] of page.diagrams().entries()) {
       expect(diagram.getAttribute("data-diagram")).toBe("drawn");
 
       const svg: SVGElement | null = diagram.querySelector("svg");
 
       expect(svg?.getAttribute("id")).toBe(`docs-diagram-1-${index}`);
-      expect(svg?.style.minWidth).toBe("640px");
-      expect(svg?.style.width).toBe("100%");
-      expect(svg?.style.maxWidth).toBe("none");
+      expect(svg?.style.width).toBe("640px");
+      expect(svg?.style.maxWidth).toBe("100%");
+      expect(svg?.style.minWidth).toBe("480px");
     }
     expect(page.notes()).toEqual([]);
   });
 
-  test("asks mermaid to draw no error graphic, in the page's theme", async () => {
+  /*
+   * The script used to set every diagram to the column's full width (and
+   * never below its own): a narrow top-to-bottom diagram, 263px wide, was
+   * drawn 590px wide, its 16px labels at 36px. Now a diagram is never drawn
+   * larger than mermaid laid it out, and a wide one is drawn smaller to fit
+   * the column only down to 3/4 of its size - its 16px labels no smaller
+   * than 12px, a callout label's size - and past that its box scrolls.
+   */
+  test.each([
+    // A narrow diagram: its own size, never stretched.
+    [263, "263px", "198px"],
+    // About the column's width.
+    [590, "590px", "443px"],
+    // Shrinks to the 590px column (at 0.91), no scrolling.
+    [649, "649px", "487px"],
+    // The widest that still fits the column: 786 x 3/4 = 589.5.
+    [786, "786px", "590px"],
+    // Too wide to fit even at 3/4: drawn at 3/4 in a box that scrolls.
+    [1061, "1061px", "796px"],
+    // A fractional width is rounded up, never cut.
+    [480.5, "481px", "361px"],
+  ])(
+    "draws a diagram mermaid laid out %spx wide at most %s, and no narrower than %s",
+    async (natural: number, width: string, minWidth: string) => {
+      const page: DocsPage = await openDocsPage([FLOWCHART], {
+        render: async (call: RenderCall): Promise<RenderResult> => {
+          return {
+            svg: `<svg id="${call.id}" viewBox="0 0 ${natural} 300"><text>${escapeHtml(call.definition)}</text></svg>`,
+          };
+        },
+      });
+      const svg: SVGElement | null = (
+        page.diagrams()[0] as HTMLElement
+      ).querySelector("svg");
+
+      expect(page.errors).toEqual([]);
+      expect(svg?.style.width).toBe(width);
+      // Never wider than the column it sits in...
+      expect(svg?.style.maxWidth).toBe("100%");
+      // ...unless that would draw it below 3/4 of its size.
+      expect(svg?.style.minWidth).toBe(minWidth);
+      expect(parseFloat(minWidth) / parseFloat(width)).toBeGreaterThanOrEqual(
+        3 / 4,
+      );
+    },
+  );
+
+  test("leaves a drawing with no width in its viewBox at mermaid's own size", async () => {
+    const page: DocsPage = await openDocsPage([FLOWCHART], {
+      render: async (call: RenderCall): Promise<RenderResult> => {
+        return {
+          svg: `<svg id="${call.id}" style="max-width: 300px;"><text>${escapeHtml(call.definition)}</text></svg>`,
+        };
+      },
+    });
+    const svg: SVGElement | null = (
+      page.diagrams()[0] as HTMLElement
+    ).querySelector("svg");
+
+    expect(page.errors).toEqual([]);
+    expect(svg?.style.maxWidth).toBe("300px");
+    expect(svg?.style.width).toBe("");
+    expect(svg?.style.minWidth).toBe("");
+  });
+
+  test("keeps the sizes on a redraw in the other theme", async () => {
+    const page: DocsPage = await openDocsPage([FLOWCHART]);
+
+    page.switchTheme(true);
+    await settle();
+
+    const svg: SVGElement | null = (
+      page.diagrams()[0] as HTMLElement
+    ).querySelector("svg");
+
+    expect(svg?.getAttribute("data-theme")).toBe("dark");
+    expect(svg?.style.width).toBe("640px");
+    expect(svg?.style.maxWidth).toBe("100%");
+    expect(svg?.style.minWidth).toBe("480px");
+  });
+
+  test("asks mermaid to draw no error graphic, in the page's theme, with sequence diagrams laid out for the column", async () => {
     const page: DocsPage = await openDocsPage([FLOWCHART]);
 
     expect(page.initialized).toEqual([
@@ -375,8 +465,41 @@ describe("the docs' diagram script", () => {
         startOnLoad: false,
         suppressErrorRendering: true,
         theme: "default",
+        sequence: SEQUENCE_LAYOUT,
       },
     ]);
+  });
+
+  /*
+   * mermaid's own sequence spacing (50px margins, 50px between
+   * participants, boxes at least 150px wide) made three participants 650px
+   * wide before a word of their messages, past the article's 590px column:
+   * every sequence diagram of the docs scrolled sideways. The docs' layout
+   * is 8px margins, as a flowchart has, 20px between participants and 100px
+   * boxes - three participants in 356px, four in 476px.
+   */
+  test("lays out sequence diagrams so three participants fit the 590px column, on every draw", async () => {
+    const page: DocsPage = await openDocsPage([SEQUENCE]);
+
+    page.switchTheme(true);
+    await settle();
+
+    expect(page.initialized).toHaveLength(2);
+
+    for (const config of page.initialized) {
+      expect(config["sequence"]).toEqual(SEQUENCE_LAYOUT);
+    }
+
+    const layout: {
+      diagramMarginX: number;
+      actorMargin: number;
+      width: number;
+    } = SEQUENCE_LAYOUT;
+
+    expect(
+      2 * layout.diagramMarginX + 3 * layout.width + 2 * layout.actorMargin,
+    ).toBeLessThanOrEqual(590);
+    expect(page.initialized[1]?.["theme"]).toBe("dark");
   });
 
   test("shows a diagram that does not parse as its source, under one short note, and draws the rest", async () => {

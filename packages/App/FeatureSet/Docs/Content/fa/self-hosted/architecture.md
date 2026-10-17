@@ -4,31 +4,32 @@
 
 ```mermaid title="یک نصب خودمیزبان OneUptime"
 flowchart TB
-    People["افراد و مرورگرها"]
-    Senders["فرستندگان تله‌متری:<br/>OpenTelemetry، Fluent Bit،<br/>syslog، عامل‌ها"]
-    Targets["آنچه پایش می‌کنید:<br/>داخلی و عمومی"]
+    People["افراد و<br/>مرورگرها"]
+    Senders["فرستندگان<br/>تله‌متری:<br/>OpenTelemetry،<br/>Fluent Bit،<br/>syslog،<br/>عامل‌ها"]
+    Targets["آنچه پایش<br/>می‌کنید:<br/>داخلی و عمومی"]
     subgraph Install["شبکهٔ شما"]
         direction TB
         Ingress["Ingress<br/>(Nginx، TLS)"]
-        App["برنامه<br/>داشبوردها، صفحه‌های وضعیت،<br/>API، دریافت داده، کارهای پس‌زمینه"]
-        Probe["پراب‌ها"]
+        App["برنامه<br/>داشبوردها،<br/>صفحه‌های<br/>وضعیت،<br/>API، دریافت<br/>داده، کارهای<br/>پس‌زمینه"]
         Runner["Runner"]
+        Probe["پراب‌ها"]
         subgraph Data["مخزن‌های داده"]
             direction LR
             Postgres[("PostgreSQL<br/>پیکربندی<br/>و وضعیت")]
-            ClickHouse[("ClickHouse<br/>لاگ‌ها، متریک‌ها،<br/>ردها")]
+            ClickHouse[("ClickHouse<br/>لاگ‌ها،<br/>متریک‌ها،<br/>ردها")]
             Valkey[("Valkey<br/>کش و<br/>صف‌ها")]
         end
     end
     People -->|"HTTPS"| Ingress
     Senders -->|"OTLP, HTTPS"| Ingress
     Ingress --> App
-    Probe -->|"گرفتن کار،<br/>فرستادن نتایج"| App
     Runner -->|"برداشتن کارها،<br/>فرستادن نتایج"| App
+    Probe -->|"گرفتن کار،<br/>فرستادن نتایج"| App
     Probe -->|"HTTP، TCP، ping،<br/>DNS، SNMP"| Targets
     App --> Postgres
     App --> ClickHouse
     App --> Valkey
+    Targets ~~~ Probe
 ```
 
 ## این نمودار چه نشان می‌دهد

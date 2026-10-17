@@ -18,11 +18,11 @@ OneUptime 的 **Incoming Email Monitor** 让你可以根据发送到唯一、按
 ```mermaid title="邮件如何到达监视器"
 sequenceDiagram
     participant Sender as 发件邮件服务器
-    participant SendGrid as SendGrid Inbound Parse
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: 发往监视器地址的邮件（经由你的 MX 记录）
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: 把地址匹配到监视器或工作流
+    Sender->>SendGrid: 发往监视器地<br/>址的邮件（经由<br/>你的 MX 记录）
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: 把地址匹配到<br/>监视器或工作流
     OneUptime-->>SendGrid: 200 OK
 ```
 

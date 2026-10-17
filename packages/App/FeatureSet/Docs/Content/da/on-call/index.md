@@ -99,7 +99,7 @@ Når du har vagt for en politik, viser klokken øverst til højre det. Klik på 
 :::
 
 :::details Nogen blev tilkaldt på den forkerte kanal, eller slet ikke
-Åbn **Vagtordning → Parathed**, og klik på **Coverage** i personens række. Den viser de metoder, personen har bekræftet, og hver alvorlighed, personen ikke har en regel for. Kun personen selv kan rette det, under **Brugerindstillinger**: send en påmindelse om opsætningen fra samme side. Se [Parathed og rapporter](/docs/on-call/readiness).
+Åbn **Vagtordning → Parathed**, og klik på **Coverage** i personens række. Den viser de metoder, personen har bekræftet, og hver alvorlighed, personen ikke har en regel for. Kun personen selv kan rette det, under **Brugerindstillinger**: send en påmindelse om opsætningen fra samme side. Se [Parathed og rapporter](/docs/on-call/readiness). På OneUptime Cloud kan en telefon, der blokerer ukendte opkald, tavsgøre et kald: føj [OneUptimes numre](/docs/on-call/phone-number-whitelist) til dens tilladelsesliste.
 :::
 
 :::details En person på ferie bliver stadig tilkaldt

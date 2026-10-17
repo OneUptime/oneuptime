@@ -125,7 +125,7 @@ flowchart TB
 | **Scheduled Maintenance Member**  | Создаёт, изменяет и удаляет события с их заметками, хронологиями состояний и владельцами, а также оба вида шаблонов. |
 | **Scheduled Maintenance Admin**   | Всё, что может участник, а также создаёт, изменяет и удаляет состояния обслуживания.                 |
 
-Для правил, пользовательских полей и измерений нужна роль **Project Owner** или **Project Admin** либо пользовательская роль с собственным разрешением этой страницы, например **Create Scheduled Maintenance Owner Rule**. **Project Member** работает с событиями и шаблонами, как **Scheduled Maintenance Member**. См. [Пользователи, команды и разрешения](/docs/permissions/index).
+Для правил, пользовательских полей и измерений нужна роль **Project Owner** или **Project Admin** либо пользовательская роль с собственным разрешением этой страницы, например **Create Scheduled Maintenance Owner Rule**. Правила runbook-ов также доступны роли **Runbook Admin**. **Project Member** работает с событиями и шаблонами, как **Scheduled Maintenance Member**. См. [Пользователи, команды и разрешения](/docs/permissions/index).
 
 ## Устранение неполадок
 

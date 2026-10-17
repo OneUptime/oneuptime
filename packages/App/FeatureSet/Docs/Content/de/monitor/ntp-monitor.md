@@ -19,8 +19,8 @@ sequenceDiagram
     participant S as NTP-Server
     Note over P: T1: Sonde sendet
     P->>S: Client-Anfrage
-    Note over S: T2: Server empfängt, T3: Server antwortet
-    S-->>P: Antwort: Stratum, Schaltsekundenanzeige, Referenz, T2, T3
+    Note over S: T2: Server empfängt,<br/>T3: Server antwortet
+    S-->>P: Antwort: Stratum,<br/>Schaltsekundenanzeige,<br/>Referenz, T2, T3
     Note over P: T4: Sonde empfängt
 ```
 

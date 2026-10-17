@@ -28,14 +28,14 @@ stateDiagram-v2
     state "Ausgeführt" as Executed
     state "Fehler" as Failed
     state "Timeout" as TimedOut
-    [*] --> Scheduled: der Trigger löst aus
-    Scheduled --> Running: ein Runner übernimmt sie
-    Scheduled --> Failed: nicht innerhalb von 5 Minuten übernommen
-    Running --> Waiting: ein Sleep-Baustein
+    [*] --> Scheduled: der Trigger<br/>löst aus
+    Scheduled --> Running: ein Runner<br/>übernimmt sie
+    Scheduled --> Failed: nicht innerhalb<br/>von 5 Minuten<br/>übernommen
+    Running --> Waiting: ein Sleep-<br/>Baustein
     Waiting --> Running: die Zeit ist um
-    Running --> Executed: sie hat das Ende erreicht
-    Running --> Failed: ein Baustein hat die Ausführung gestoppt
-    Running --> TimedOut: die Zeit ist abgelaufen
+    Running --> Executed: sie hat das<br/>Ende erreicht
+    Running --> Failed: ein Baustein hat<br/>die Ausführung<br/>gestoppt
+    Running --> TimedOut: die Zeit ist<br/>abgelaufen
     Executed --> [*]
     Failed --> [*]
     TimedOut --> [*]

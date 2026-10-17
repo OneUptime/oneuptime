@@ -18,12 +18,12 @@ Ihr Identitätsanbieter ruft den SCIM-Endpunkt von OneUptime auf, authentifizier
 
 ```mermaid title="Was SCIM in OneUptime ändert"
 flowchart TB
-    IdP["Ihr Identitätsanbieter"] -->|"SCIM-Anfragen,<br/>Bearer-Token"| P["SCIM-Verbindung des Projekts"]
-    IdP -->|"SCIM-Anfragen,<br/>Bearer-Token"| S["SCIM-Verbindung der Statusseite"]
+    IdP["Ihr Identitätsanbieter"] -->|"SCIM-Anfragen,<br/>Bearer-Token"| P["SCIM-Verbindung<br/>des Projekts"]
+    IdP -->|"SCIM-Anfragen,<br/>Bearer-Token"| S["SCIM-Verbindung<br/>der Statusseite"]
     P --> Q{"Push-Gruppen an?"}
-    Q -->|"Nein"| T["Benutzer kommen in die<br/>Standard-Teams und gehen wieder"]
-    Q -->|"Ja"| G["Gruppen werden zu Teams,<br/>die Mitgliedschaft folgt ihnen"]
-    S --> U["Private Benutzer werden<br/>angelegt und gelöscht"]
+    Q -->|"Nein"| T["Benutzer<br/>kommen in die<br/>Standard-Teams<br/>und gehen wieder"]
+    Q -->|"Ja"| G["Gruppen werden<br/>zu Teams,<br/>die Mitgliedschaft<br/>folgt ihnen"]
+    S --> U["Private<br/>Benutzer werden<br/>angelegt<br/>und gelöscht"]
 ```
 
 Die SCIM-Integration bietet folgende Vorteile:
@@ -69,11 +69,11 @@ Um die URLs erneut zu sehen, wählen Sie in der Zeile der Verbindung **SCIM-URLs
 sequenceDiagram
     participant IdP as Identitätsanbieter
     participant O as OneUptime
-    IdP->>O: Benutzer anlegen, wenn Sie ihn zuweisen
-    Note over O: Den Standard-Teams hinzugefügt.<br/>Auf OneUptime Cloud wird ein vorhandenes<br/>Konto stattdessen eingeladen
-    IdP->>O: Benutzer aktualisieren, wenn sich sein Profil ändert
-    IdP->>O: Löschen oder deaktivieren, wenn Sie die Zuweisung aufheben
-    Note over O: Aus den Standard-Teams entfernt
+    IdP->>O: Benutzer anlegen,<br/>wenn Sie ihn zuweisen
+    Note over O: Den Standard-Teams<br/>hinzugefügt.<br/>Auf OneUptime Cloud<br/>wird ein vorhandenes<br/>Konto stattdessen eingeladen
+    IdP->>O: Benutzer aktualisieren,<br/>wenn sich sein Profil ändert
+    IdP->>O: Löschen oder<br/>deaktivieren, wenn Sie<br/>die Zuweisung aufheben
+    Note over O: Aus den Standard-Teams<br/>entfernt
 ```
 
 Wer schon ein OneUptime-Konto hatte, tritt auf OneUptime Cloud bei, sobald er die Einladung annimmt (siehe [FAQ](#häufig-gestellte-fragen)). Zugriff über Teams außerhalb der Standard-Teams der Verbindung bleibt unberührt.

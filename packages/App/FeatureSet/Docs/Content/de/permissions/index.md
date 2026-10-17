@@ -12,14 +12,14 @@ Alles in OneUptime liegt innerhalb eines **Projekts**. Wer darin was tun darf, e
 ```mermaid title="Wie eine Person und ein API-Schlüssel Zugriff erhalten"
 flowchart TB
     User["Ein Benutzer<br/>(ein Konto)"]
-    Key["Ein API-Schlüssel"]
     subgraph Project["Ein Projekt"]
         direction TB
+        Key["Ein API-<br/>Schlüssel"]
         Team["Team"]
-        Allow["Erlaubt-Berechtigungen,<br/>jeweils mit Geltungsbereich:<br/>Alle, Eigene oder Labels"]
-        Block["Sperr-Berechtigungen,<br/>die immer gewinnen"]
-        KeyRules["Die eigenen Erlaubt- und<br/>Sperr-Berechtigungen des Schlüssels"]
-        Resources["Monitore, Vorfälle,<br/>Statusseiten und mehr"]
+        Allow["Erlaubt-<br/>Berechtigungen,<br/>jeweils mit<br/>Geltungsbereich:<br/>Alle, Eigene<br/>oder Labels"]
+        Block["Sperr-<br/>Berechtigungen,<br/>die immer<br/>gewinnen"]
+        KeyRules["Die eigenen<br/>Erlaubt- und<br/>Sperr-<br/>Berechtigungen<br/>des Schlüssels"]
+        Resources["Monitore,<br/>Vorfälle,<br/>Statusseiten<br/>und mehr"]
     end
     User -->|"Mitglied von"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"erreichen"| Resources
     KeyRules -->|"erreichen"| Resources
     Block -.->|"nehmen weg"| Resources
+    Allow ~~~ Block
 ```
 
 | Begriff | Bedeutung |

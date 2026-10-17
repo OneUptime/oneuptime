@@ -7,6 +7,8 @@
 - [事件狀態與嚴重程度](/docs/incidents/states-and-severities): 生命週期，以及確認和解決會做什麼。
 - [事件備註、負責人與動態](/docs/incidents/notes-owners-and-feed): 給客戶和團隊的更新，以及誰會收到它們。
 - [已連結的警示](/docs/incidents/linked-alerts): 把一次中斷引發的警示連結到解釋它們的事件上。
+- [片段](/docs/incidents/episodes): 把相關的事件歸為一組，作為一個整體處理。
+- [事後分析](/docs/incidents/postmortems): 寫下發生了什麼，並發布到你的狀態頁面。
 - [事件設定與自動化](/docs/incidents/settings): 範本、自訂欄位、角色、測量和規則。
 :::
 
@@ -34,6 +36,8 @@ flowchart TB
         monitor["監測器"]
         api["API"]
         form["表單"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["新事件"]
     incident --> rules["執行事件規則"]
@@ -77,7 +81,7 @@ flowchart TB
 
 點選 **解決** 會把事件移到已解決狀態、在狀態時間軸上記下一筆、停止持續時間計時、交還事件佔用的監測器，並把事件從它所顯示的每個狀態頁面的進行中區段移除。為此不需要變更其他任何東西——狀態頁面只顯示處於已解決狀態之上的狀態中的事件。請參閱 [解決會做什麼](/docs/incidents/states-and-severities#解決會做什麼)。
 
-之後你可以撰寫事後分析，並可選擇將其發布到狀態頁面。
+之後你可以撰寫 [事後分析](/docs/incidents/postmortems)，並可選擇將其發布到狀態頁面。
 
 ## 關鍵術語
 
@@ -103,7 +107,7 @@ flowchart TB
 
 ```mermaid title="每個新專案一開始擁有的狀態"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: 宣告
     Identified --> Acknowledged: 確認
     Identified --> Resolved: 解決

@@ -79,8 +79,8 @@ sequenceDiagram
     Caller->>OneUptime: वेबहुक URL पर GET या POST
     alt वर्कफ़्लो चालू है
         OneUptime-->>Caller: 200, स्थिति Scheduled
-        OneUptime->>Runner: हेडर, क्वेरी और बॉडी के साथ एक रन कतार में रखता है
-        Runner->>Runner: ट्रिगर के बाद के ब्लॉक चलाता है
+        OneUptime->>Runner: हेडर, क्वेरी और बॉडी के<br/>साथ एक रन कतार में रखता है
+        Runner->>Runner: ट्रिगर के बाद के<br/>ब्लॉक चलाता है
     else वर्कफ़्लो बंद या संग्रहीत है
         OneUptime-->>Caller: कारण के साथ 400
     end

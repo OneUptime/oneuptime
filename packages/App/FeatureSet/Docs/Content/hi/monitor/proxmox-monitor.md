@@ -21,11 +21,11 @@ flowchart TB
         direction LR
         pve["Proxmox VE API"] --> agent["OneUptime Proxmox एजेंट"]
     end
-    agent -->|"OTLP पर pve मेट्रिक्स"| oneuptime["OneUptime"]
+    agent -->|"OTLP पर pve<br/>मेट्रिक्स"| oneuptime["OneUptime"]
     native["Proxmox VE 9<br/>मूल पुश"] -.->|"विकल्प"| oneuptime
-    oneuptime -->|"पहला डेटा"| registered["क्लस्टर पंजीकृत"]
+    oneuptime -->|"पहला डेटा"| registered["क्लस्टर<br/>पंजीकृत"]
     oneuptime --> monitor["Proxmox मॉनिटर"]
-    monitor -->|"हर मिनट"| criteria{"मानदंड पूरा हुआ?"}
+    monitor -->|"हर मिनट"| criteria{"मानदंड<br/>पूरा हुआ?"}
     criteria -->|"हाँ"| incident["घटना या अलर्ट"]
     criteria -->|"नहीं"| online["मॉनिटर ऑनलाइन"]
 ```

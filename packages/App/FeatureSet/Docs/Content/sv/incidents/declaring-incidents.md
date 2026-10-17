@@ -250,14 +250,7 @@ Skapandeanropet gör mer än att skriva en rad:
 flowchart TB
     request["Skapandebegäran"] --> fill["Servern fyller i luckorna"]
     fill --> template["Mall tillämpad, om det finns en"]
-    template --> rules
-    subgraph rules["Regler, i den här ordningen"]
-        direction LR
-        privacy["Sekretess"] --> owner["Ägare"]
-        owner --> label["Etikett"]
-        label --> oncall["Jour"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Regler, i den här ordningen:<br/>Sekretess, Ägare, Etikett,<br/>Jour, Runbook"]
     rules --> policies["Jourpolicyer körs"]
     policies --> subscribers["Prenumeranter köas"]
     subscribers --> workflows["Arbetsflöden utlöses"]
@@ -284,10 +277,10 @@ Att välja ett senare **Inledande tillstånd** — på formuläret, via en malls
 
 ```mermaid title="Vad en ny incident sätter igång, efter tillståndet den börjar i"
 flowchart TB
-    start{"Starttillstånd"} -->|"Skapandetillståndet, standarden"| live["Behandlas som ny: larmar jouren"]
-    start -->|"Vid eller efter bekräftad"| acked["Registrerad: larmar ingen"]
-    start -->|"Vid eller efter löst"| over["Registrerad som över"]
-    over --> quiet["Ingen gruppering, runbooks, AI, kanal eller SLA"]
+    start{"Starttillstånd"} -->|"Skapandetillståndet,<br/>standarden"| live["Behandlas<br/>som ny:<br/>larmar jouren"]
+    start -->|"Vid eller<br/>efter bekräftad"| acked["Registrerad:<br/>larmar ingen"]
+    start -->|"Vid eller<br/>efter löst"| over["Registrerad<br/>som över"]
+    over --> quiet["Ingen gruppering,<br/>runbooks, AI,<br/>kanal eller SLA"]
 ```
 
 - **Vid eller efter ditt bekräftade tillstånd** — **Bekräftad**, eller varje tillstånd som står under det i **Incidenter → Inställningar → Incidentstatus** — körs ingen jourpolicy, så ingen larmas. Incidenten nämner fortfarande sina policyer, de du valde och de som jourregler lägger till, och dess flöde säger varför på en rad: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Dess SLA, om en regel ger den en, börjar redan som besvarad. Allt annat nedan körs som för varje ny incident.

@@ -123,7 +123,7 @@ För att arkivera objekt markerar du dem i **All Items** och arkiverar dem på e
 
 ## Relationer och topologi
 
-OneUptime kopplar ihop objekt med riktade relationer när det observerar dem. **Inventarie → Topology Map** ritar dem, och ett objekts sida **Connections** listar dess egna.
+OneUptime kopplar ihop objekt med riktade relationer när det observerar dem. **Inventarie → Topology Map** ritar dem, och ett objekts sida **Connections** listar dess egna. Se [Topologi](/docs/telemetry/topology).
 
 | Relation | Till exempel |
 | --- | --- |

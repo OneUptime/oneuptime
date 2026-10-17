@@ -16,12 +16,12 @@ flowchart TB
     subgraph starts["啟動執行的是什麼"]
         direction LR
         schedule["排程：到了某個時間"]
-        webhook["Webhook：向其 URL 傳送 POST"]
+        webhook["Webhook：向其<br/>URL 傳送 POST"]
     end
     schedule --> checks["Runbook 已開啟且有步驟"]
     webhook --> checks
-    checks --> execution["執行，標記為 Schedule 或 Webhook"]
-    execution --> worker["OneUptime Worker 執行各步驟"]
+    checks --> execution["執行，標記為<br/>Schedule 或 Webhook"]
+    execution --> worker["OneUptime Worker<br/>執行各步驟"]
 ```
 
 觸發器啟動執行的方式與 **Run Now** 相同：這次執行跑的是 Runbook 目前的步驟，不關聯任何事件、警示或排程維護事件。每次執行都會記錄是什麼啟動了它。Runbook 的 **執行次數** 和 **運行手冊 → 執行次數** 會在 **觸發者** 中顯示這一點，並附上排程執行的預定時間或呼叫 Webhook 的位址，兩份清單都能依此篩選。

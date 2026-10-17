@@ -155,16 +155,17 @@ Med Group By på tunnelnavnet åbner afslutningen af tunnelen `HQ-Branch1` sin e
 ```mermaid title="Uden og med Group By"
 flowchart TB
     subgraph Without["Uden Group By"]
-        direction LR
+        direction TB
         A1["HQ-Branch1 går ned"] --> M1["Én optælling"]
         B1["Branch2 går ned"] --> M1
         M1 --> X1["Én advarsel"]
     end
     subgraph With["Grupperet efter con_name"]
-        direction LR
+        direction TB
         A2["HQ-Branch1 går ned"] --> X2["Advarsel for HQ-Branch1"]
         B2["Branch2 går ned"] --> Y2["Advarsel for Branch2"]
     end
+    Without ~~~ With
 ```
 
 ### Uafhængig løsning

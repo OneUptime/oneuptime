@@ -15,14 +15,14 @@ Cada vez que se comprueba un monitor, sus criterios juzgan el resultado de arrib
 
 ```mermaid title="Cómo se juzga cada comprobación"
 flowchart TB
-    R["El resultado de una<br/>comprobación"] --> C1{"Primer criterio:<br/>¿coinciden sus filtros?"}
+    R["El resultado<br/>de una<br/>comprobación"] --> C1{"Primer<br/>criterio:<br/>¿coinciden<br/>sus filtros?"}
     C1 -->|"Sí"| A["Ese criterio actúa"]
-    C1 -->|"No"| C2{"Siguiente criterio:<br/>¿coinciden sus filtros?"}
+    C1 -->|"No"| C2{"Siguiente<br/>criterio:<br/>¿coinciden<br/>sus filtros?"}
     C2 -->|"Sí"| A
-    C2 -->|"Ninguno coincidió"| D["El monitor pasa a su<br/>estado predeterminado"]
-    A --> S["Cambia el estado"]
-    A --> I["Declara un incidente"]
-    A --> L["Crea una alerta"]
+    C2 -->|"Ninguno<br/>coincidió"| D["El monitor<br/>pasa a su<br/>estado<br/>predeterminado"]
+    A --> S["Cambia<br/>el estado"]
+    A --> I["Declara un<br/>incidente"]
+    A --> L["Crea una<br/>alerta"]
 ```
 
 El orden forma parte de la regla. Un monitor nuevo enumera sus criterios del peor caso al mejor: sin conexión, después una advertencia si su tipo la tiene (un certificado o un dominio que caduca pronto) y después en línea. Un criterio sano y amplio, como **Is Online** en **Verdadero**, coincide con casi todas las comprobaciones, así que va el último: por encima de los demás, coincidiría primero cada vez y los demás nunca actuarían.

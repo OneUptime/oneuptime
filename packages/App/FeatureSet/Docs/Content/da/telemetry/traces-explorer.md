@@ -29,7 +29,7 @@ Udforskeren har fire faner:
 | --- | --- |
 | **Seer** | Søg i og filtrér spans, og åbn deres spor. Den åbner på den seneste time, nyeste først, 50 spans pr. side. |
 | **Indsigter** | Antal forespørgsler, fejlrater og latens pr. tjeneste, og de forespørgsler, der er værd at kigge på. |
-| **Opsætningsvejledning** | Sådan sender du spor med OpenTelemetry med en af dine indtagelsesnøgler. |
+| **Opsætningsvejledning** | Sådan sender du spor med OpenTelemetry med en af dine [indtagelsesnøgler](/docs/telemetry/ingestion-keys). |
 | **Indstillinger** | Hvad der sker med spans, når de ankommer: **Pipelines**, **Drop-filtre**, **Scrub-regler** og **Optagelsesregler**. |
 
 ## Før du begynder
@@ -115,12 +115,12 @@ Begræns den til bestemte tjenester med rullelisten ved siden af tidsvælgeren.
 
 ## Hvad der sker med spans, når de ankommer
 
-Fanen **Indstillinger** rummer de regler, OneUptime anvender på spans, når de ankommer, ligesom for protokoller. De virker på de spans, der ankommer bagefter, ikke på gemte.
+Fanen **Indstillinger** rummer de regler, OneUptime anvender på spans, når de ankommer, ligesom for protokoller. De virker på de spans, der ankommer bagefter, ikke på gemte. Hvor længe hvert span opbevares, afgøres også, når det ankommer: se [Dataopbevaring](/docs/telemetry/data-retention).
 
 | Regel | Hvad den gør |
 | --- | --- |
-| **Drop-filtre** | Kassér spans, du ikke vil beholde, eller behold kun en stikprøve af dem. |
-| **Scrub-regler** | Maskér følsomme data i span-attributter. |
+| **Drop-filtre** | Kassér spans, du ikke vil beholde, eller behold kun en stikprøve af dem. Se [Kassér poster, eller tag stikprøver](/docs/telemetry/drop-filters-and-scrub-rules#kassér-poster-eller-tag-stikprøver). |
+| **Scrub-regler** | Maskér følsomme data i span-attributter. Se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data). |
 | **Pipelines** | Ændr og berig spans: hver pipeline udvælger spans med et filter og kører derefter sine processorer i rækkefølge. |
 | **Optagelsesregler** | Gør hvert minut span-antal, fejlantal og varigheder til nye metrikker. Se [Optagelsesregler for logs](/docs/telemetry/log-recording-rules). |
 

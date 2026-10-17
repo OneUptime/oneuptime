@@ -123,7 +123,7 @@ Para archivar elementos, selecciónalos en **Todos los elementos** y archívalos
 
 ## Relaciones y topología
 
-OneUptime enlaza los elementos con relaciones dirigidas a medida que las observa. **Inventario → Mapa de topología** las dibuja, y la página **Conexiones** de un elemento enumera las suyas.
+OneUptime enlaza los elementos con relaciones dirigidas a medida que las observa. **Inventario → Mapa de topología** las dibuja, y la página **Conexiones** de un elemento enumera las suyas. Consulta [Topología](/docs/telemetry/topology).
 
 | Relación | Por ejemplo |
 | --- | --- |

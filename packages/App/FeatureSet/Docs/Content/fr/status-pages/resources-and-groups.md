@@ -75,7 +75,7 @@ Cliquez sur **Ajouter un moniteur**. La ligne apparaît dans le groupe, et sur l
 Dans un groupe en grille, la boîte de dialogue demande aussi la ligne et la colonne où va le moniteur, au-dessus de **Plus de champs** ; voir [Disposition en liste ou en grille](#disposition-en-liste-ou-en-grille).
 
 > [!TIP]
-> Pour afficher plusieurs vérifications sur une seule ligne, ajoutez un groupe de moniteurs. Avec le commutateur **Groupes de moniteurs** activé (**Paramètres du projet** > **Avancé** > **Drapeaux de fonctionnalités**, qui s'enregistre dès que vous le basculez), un lien sous la liste déroulante indique **Ajoutez plutôt un groupe de moniteurs.** Cliquez dessus et **Moniteur** devient **Groupe de moniteurs** (**Sélectionner le groupe de moniteurs**) ; **Ajoutez plutôt un moniteur.** revient en arrière.
+> Pour afficher plusieurs vérifications sur une seule ligne, ajoutez un [groupe de moniteurs](/docs/monitor/monitor-groups). Avec le commutateur **Groupes de moniteurs** activé (**Paramètres du projet** > **Avancé** > **Drapeaux de fonctionnalités**, qui s'enregistre dès que vous le basculez), un lien sous la liste déroulante indique **Ajoutez plutôt un groupe de moniteurs.** Cliquez dessus et **Moniteur** devient **Groupe de moniteurs** (**Sélectionner le groupe de moniteurs**) ; **Ajoutez plutôt un moniteur.** revient en arrière.
 
 ### En ajouter plusieurs à la fois
 

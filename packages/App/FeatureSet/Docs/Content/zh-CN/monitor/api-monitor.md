@@ -18,7 +18,7 @@ sequenceDiagram
     participant P as 探测器
     participant A as 您的 API
     participant O as OneUptime
-    P->>A: 使用您的方法、标头和正文发送请求
+    P->>A: 使用您的方法、<br/>标头和正文发送请求
     A-->>P: 状态码、标头和正文
     Note over P: 重试失败、4xx 或 5xx，<br/>以及慢于 10 秒的应答
     P->>O: 检查结果

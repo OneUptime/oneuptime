@@ -30,8 +30,8 @@ OneUptime을 프로덕션에서 운영하려면 데이터 저장소 세 개가 �
 
 ```mermaid title="각 데이터 저장소가 커지는 요인"
 flowchart TB
-    Tel["로그, 메트릭, 트레이스"] -->|"수집 속도 × 보존 기간"| CH[("ClickHouse")]
-    State["모니터, 인시던트, 사용자"] -->|"엔터티 수와 기록"| PG[("PostgreSQL")]
+    Tel["로그, 메트릭,<br/>트레이스"] -->|"수집 속도<br/>× 보존 기간"| CH[("ClickHouse")]
+    State["모니터,<br/>인시던트, 사용자"] -->|"엔터티<br/>수와 기록"| PG[("PostgreSQL")]
     Work["큐, 캐시, 세션"] -->|"큐 깊이"| VK[("Valkey")]
 ```
 

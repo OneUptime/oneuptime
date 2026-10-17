@@ -223,13 +223,13 @@ Un changement d'état peut notifier les abonnés de votre page de statut, mais i
 
 ```mermaid title="Un changement d'état atteint-il les abonnés ?"
 flowchart TB
-    change["Changement d'état enregistré"] --> box{"Case Notifier cochée ?"}
+    change["Changement<br/>d'état enregistré"] --> box{"Case Notifier cochée ?"}
     box -->|Non| skipped["Ignoré"]
-    box -->|Oui| note{"Avec une note publique ?"}
+    box -->|Oui| note{"Avec une note<br/>publique ?"}
     note -->|Oui| carried["La note est le message"]
-    note -->|Non| queued["Ligne mise en file d'attente"]
-    queued --> gates{"Franchit chaque barrière ?"}
-    gates -->|Non| reason["Ignoré, raison consignée"]
+    note -->|Non| queued["Ligne mise en<br/>file d'attente"]
+    queued --> gates{"Franchit chaque<br/>barrière ?"}
+    gates -->|Non| reason["Ignoré, raison<br/>consignée"]
     gates -->|Oui| sent["Abonnés notifiés"]
 ```
 

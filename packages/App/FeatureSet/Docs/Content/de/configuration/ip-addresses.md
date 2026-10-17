@@ -3,7 +3,7 @@
 Die Probes von OneUptime Cloud prüfen Ihre Websites, APIs und Server von einer festen Gruppe von IP-Adressen aus. Steht eine Firewall oder eine Allowlist vor dem, was Sie überwachen, erlauben Sie diese Adressen, damit die Prüfungen durchkommen.
 
 ```mermaid title="Wo die Allowlist greift"
-flowchart LR
+flowchart TB
     P["OneUptime-Probes"] -->|"prüfen von den aufgeführten IPs"| F["Ihre Firewall"]
     F -->|"erlaubt"| S["Ihre Website, API oder Ihr Server"]
 ```

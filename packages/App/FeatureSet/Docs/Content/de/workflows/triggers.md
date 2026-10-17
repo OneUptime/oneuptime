@@ -76,12 +76,12 @@ sequenceDiagram
     participant Caller as Ihr Tool
     participant OneUptime
     participant Runner as Workflow-Runner
-    Caller->>OneUptime: GET oder POST an die Webhook-URL
+    Caller->>OneUptime: GET oder POST an<br/>die Webhook-URL
     alt Workflow ist an
         OneUptime-->>Caller: 200, Status Scheduled
-        OneUptime->>Runner: Eine Ausführung mit Headern, Abfrage und Body einreihen
-        Runner->>Runner: Die Bausteine nach dem Trigger ausführen
-    else Workflow ist aus oder archiviert
+        OneUptime->>Runner: Eine Ausführung mit<br/>Headern, Abfrage<br/>und Body einreihen
+        Runner->>Runner: Die Bausteine nach<br/>dem Trigger ausführen
+    else Workflow ist aus<br/>oder archiviert
         OneUptime-->>Caller: 400 mit dem Grund
     end
 ```

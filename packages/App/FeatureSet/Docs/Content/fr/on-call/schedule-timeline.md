@@ -8,14 +8,14 @@ Les permanences affichées sont celles avec lesquelles OneUptime alerte les pers
 flowchart TB
     subgraph setup["Chaque planning"]
         direction LR
-        layers["Couches et rotations"]
-        overrides["Remplacements d'utilisateurs"]
+        layers["Couches et<br/>rotations"]
+        overrides["Remplacements<br/>d'utilisateurs"]
     end
-    layers --> shifts["Qui est d'astreinte, et quand"]
+    layers --> shifts["Qui est<br/>d'astreinte,<br/>et quand"]
     overrides --> shifts
-    shifts --> timeline["Chronologie des astreintes"]
-    shifts --> paging["Les règles d'escalade les alertent"]
-    shifts --> feeds["Flux de calendrier"]
+    shifts --> timeline["Chronologie<br/>des astreintes"]
+    shifts --> paging["Les règles<br/>d'escalade<br/>les alertent"]
+    shifts --> feeds["Flux de<br/>calendrier"]
 ```
 
 ## Ouvrir la chronologie

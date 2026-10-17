@@ -12,14 +12,14 @@ Alt i OneUptime lever inne i et **prosjekt**. Hvem som kan gjøre hva i prosjekt
 ```mermaid title="Slik får en person og en API-nøkkel tilgang"
 flowchart TB
     User["En bruker<br/>(én konto)"]
-    Key["En API-nøkkel"]
     subgraph Project["Et prosjekt"]
         direction TB
+        Key["En API-nøkkel"]
         Team["Team"]
-        Allow["Tillatte tillatelser,<br/>hver med et omfang:<br/>Alle, Eide eller Etiketter"]
-        Block["Blokkerte tillatelser,<br/>som alltid vinner"]
-        KeyRules["Nøkkelens egne tillatte<br/>og blokkerte tillatelser"]
-        Resources["Overvåkere, hendelser,<br/>statussider og mer"]
+        Allow["Tillatte<br/>tillatelser,<br/>hver med<br/>et omfang:<br/>Alle, Eide<br/>eller Etiketter"]
+        Block["Blokkerte<br/>tillatelser,<br/>som alltid vinner"]
+        KeyRules["Nøkkelens<br/>egne tillatte<br/>og blokkerte<br/>tillatelser"]
+        Resources["Overvåkere,<br/>hendelser,<br/>statussider og mer"]
     end
     User -->|"medlem av"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"når"| Resources
     KeyRules -->|"når"| Resources
     Block -.->|"tar bort"| Resources
+    Allow ~~~ Block
 ```
 
 | Begrep | Hva det er |

@@ -188,14 +188,14 @@ KI-Schritte werden wie jede andere KI-Funktion gemessen und abgerechnet. Der Sch
 
 ```mermaid title="Was nach einem automatisierten Schritt passiert"
 flowchart TB
-    run["Automatisierter Schritt läuft"] --> ok{"Erfolgreich?"}
-    ok -->|"ja"| approval{"Genehmigung erforderlich an?"}
-    approval -->|"ja"| wait["Lauf wartet auf die Zustimmung einer Person"]
+    run["Automatisierter<br/>Schritt läuft"] --> ok{"Erfolgreich?"}
+    ok -->|"ja"| approval{"Genehmigung<br/>erforderlich an?"}
+    approval -->|"ja"| wait["Lauf wartet auf<br/>die Zustimmung<br/>einer Person"]
     approval -->|"nein"| next["Nächster Schritt läuft"]
     wait --> next
-    ok -->|"nein"| cont{"Bei Fehler fortfahren an?"}
+    ok -->|"nein"| cont{"Bei Fehler<br/>fortfahren an?"}
     cont -->|"ja"| next
-    cont -->|"nein"| failed["Lauf stoppt und ist fehlgeschlagen"]
+    cont -->|"nein"| failed["Lauf stoppt und<br/>ist fehlgeschlagen"]
 ```
 
 Standardmäßig hält ein fehlschlagender Schritt den Lauf an und markiert die Ausführung als `Failed`, mit dem Fehler des Schritts als Grund. Mit **Bei Fehler fortfahren** wird der Fehler aufgezeichnet und der nächste Schritt läuft, was zu Runbooks nach dem Muster „diese drei Dinge versuchen, dann benachrichtigen“ passt. **Genehmigung erforderlich** greift, nachdem ein Schritt gelungen ist: Der Lauf wartet an diesem Schritt, bis jemand auf **Genehmigen & fortfahren** oder **Überspringen** klickt.

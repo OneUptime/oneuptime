@@ -3,7 +3,7 @@
 Las sondas de OneUptime Cloud comprueban tus sitios web, API y servidores desde un conjunto fijo de direcciones IP. Si delante de lo que monitorizas hay un firewall o una lista de permitidos, permite estas direcciones para que las comprobaciones lleguen.
 
 ```mermaid title="Dónde se aplica la lista de permitidos"
-flowchart LR
+flowchart TB
     P["Sondas de OneUptime"] -->|"comprueban desde las IP de la lista"| F["Tu firewall"]
     F -->|"permitido"| S["Tu sitio web, API o servidor"]
 ```

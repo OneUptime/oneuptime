@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Ein Twilio-Konto mit seiner Account SID und seinem Auth Token | Die Nummern und Anrufe der Richtlinie laufen darüber, und Twilio rechnet sie darüber ab. |
 | Den Tarif **Growth** in OneUptime Cloud | Ein Projekt braucht ihn für eine eigene Twilio-Konfiguration. |
-| Einen OneUptime-Server, den Twilio erreicht, wenn Sie selbst hosten | Twilio sendet jeden Anruf an `https://<your host>/notification/incoming-call/voice`. |
+| Einen OneUptime-Server, den Twilio erreicht, wenn Sie selbst hosten | Twilio sendet jeden Anruf an `https://<your host>/notification/incoming-call/voice` und das Ergebnis jedes Klingelns an `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** im Projekt eingeschaltet | Die Nummer jeder Person wird mit einem per SMS gesendeten Code verifiziert. |
 | Eine verifizierte Nummer für jede Person | Eine Regel lässt nur bei Personen klingeln, die im Projekt eine Nummer für eingehende Anrufe hinzugefügt und verifiziert haben. |
 
@@ -85,17 +85,17 @@ sequenceDiagram
     participant Caller as Anrufer
     participant Twilio
     participant OneUptime
-    participant Engineer as Person in Bereitschaft
-    Caller->>Twilio: Wählt die Nummer der Richtlinie
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Begrüßung, dann bei der Person der ersten Regel klingeln
-    Twilio->>Engineer: Klingelt für die Klingeldauer der Regel
-    Note over Twilio,Engineer: Niemand nimmt rechtzeitig ab
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Bei der Person der nächsten Regel klingeln
-    Twilio->>Engineer: Klingelt bei der nächsten Person
+    participant Engineer as Person in<br/>Bereitschaft
+    Caller->>Twilio: Wählt die<br/>Nummer der<br/>Richtlinie
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Begrüßung,<br/>dann bei der<br/>Person der<br/>ersten Regel<br/>klingeln
+    Twilio->>Engineer: Klingelt<br/>für die<br/>Klingeldauer<br/>der Regel
+    Note over Twilio,Engineer: Niemand nimmt<br/>rechtzeitig ab
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Bei der Person<br/>der nächsten<br/>Regel klingeln
+    Twilio->>Engineer: Klingelt bei<br/>der nächsten<br/>Person
     Engineer-->>Twilio: Nimmt ab
-    Twilio-->>Caller: Stellt den Anrufer durch
+    Twilio-->>Caller: Stellt den<br/>Anrufer durch
 ```
 
 Eine Regel wird übersprungen, ohne dass es klingelt, wenn für sie gerade niemand angerufen werden kann: Ihr Plan hat niemanden in Bereitschaft, die Person hat in diesem Projekt keine verifizierte Nummer für eingehende Anrufe, oder sie ist nicht mehr Mitglied des Projekts. Hat keine Regel jemanden, bei dem es klingeln kann, hört der Anrufer die **Niemand-verfügbar-Nachricht**. Eine deaktivierte Richtlinie beantwortet jeden Anruf mit „Sorry, this service is currently disabled.“ und legt auf.

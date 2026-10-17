@@ -123,7 +123,7 @@ Om items te archiveren selecteer je ze in **All Items** en archiveer je ze in é
 
 ## Relaties en topologie
 
-OneUptime verbindt items met gerichte relaties zodra het die waarneemt. **Inventaris → Topology Map** tekent ze, en de pagina **Connections** van een item toont die van het item zelf.
+OneUptime verbindt items met gerichte relaties zodra het die waarneemt. **Inventaris → Topology Map** tekent ze, en de pagina **Connections** van een item toont die van het item zelf. Zie [Topologie](/docs/telemetry/topology).
 
 | Relatie | Bijvoorbeeld |
 | --- | --- |

@@ -14,7 +14,7 @@ OneUptime लोगों को फ़ोन पर **OneUptime On-Call** म�
 ```mermaid title="पुश किसी फ़ोन या ब्राउज़र तक कैसे पहुँचता है"
 flowchart TB
     Server["आपका OneUptime सर्वर"]
-    Relay["OneUptime पुश रिले"]
+    Relay["OneUptime<br/>पुश रिले"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
@@ -28,7 +28,7 @@ flowchart TB
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 

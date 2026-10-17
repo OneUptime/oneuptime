@@ -13,10 +13,10 @@ OneUptime Cloud पर, एक प्रोजेक्ट अपने प्�
 
 ```mermaid title="OneUptime Cloud पर प्रोजेक्ट किसके लिए भुगतान करता है"
 flowchart TB
-    project["आपका प्रोजेक्ट"] --> plan["प्लान: प्रति उपयोगकर्ता,<br/>प्रति माह एक कीमत"]
-    project --> usage["उपयोग के हिसाब से:<br/>टेलीमेट्री और मॉनिटर"]
+    project["आपका प्रोजेक्ट"] --> plan["प्लान: प्रति<br/>उपयोगकर्ता,<br/>प्रति माह<br/>एक कीमत"]
+    project --> usage["उपयोग के<br/>हिसाब से:<br/>टेलीमेट्री<br/>और मॉनिटर"]
     project --> balances["प्रीपेड शेष:<br/>संदेश और AI"]
-    plan --> invoices["चालान, आपकी<br/>भुगतान विधि से शुल्क"]
+    plan --> invoices["चालान, आपकी<br/>भुगतान विधि<br/>से शुल्क"]
     usage --> invoices
     balances --> recharge["उसी कार्ड से<br/>रिचार्ज"]
 ```

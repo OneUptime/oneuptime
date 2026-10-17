@@ -16,16 +16,16 @@ OneUptime llama a tu recurso de Foundry por HTTPS desde el servidor de OneUptime
 ```mermaid title="Adónde van las solicitudes de IA de OneUptime"
 flowchart TB
     subgraph OU["Servidor de OneUptime"]
-        F["Investigaciones de IA, notas, postmortems, tareas de corrección"]
+        F["Investigaciones de IA,<br/>notas, postmortems,<br/>tareas de corrección"]
     end
     subgraph AZ["Tu suscripción de Azure"]
-        R["Recurso de Foundry contoso-ai"]
-        V1["API OpenAI v1: /openai/v1/chat/completions"]
-        AN["API de Anthropic: /anthropic/v1/messages"]
+        R["Recurso de<br/>Foundry contoso-ai"]
+        V1["API OpenAI v1:<br/>/openai/v1/chat/completions"]
+        AN["API de Anthropic:<br/>/anthropic/v1/messages"]
         D1["Despliegue gpt-5.1"]
-        D2["Despliegue claude-sonnet-5-5"]
+        D2["Despliegue<br/>claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + clave de API"| R
+    F -->|"HTTPS +<br/>clave de API"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```

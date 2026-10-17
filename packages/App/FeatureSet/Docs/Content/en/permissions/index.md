@@ -12,14 +12,14 @@ Everything in OneUptime lives inside a **project**. Who can do what inside that 
 ```mermaid title="How a person and an API key get access"
 flowchart TB
     User["A user<br/>(one account)"]
-    Key["An API key"]
     subgraph Project["A project"]
         direction TB
+        Key["An API key"]
         Team["Team"]
-        Allow["Allow permissions,<br/>each with a scope:<br/>All, Owned or Labels"]
+        Allow["Allow permissions,<br/>each with a scope:<br/>All, Owned<br/>or Labels"]
         Block["Block permissions,<br/>which always win"]
-        KeyRules["The key's own allow<br/>and block permissions"]
-        Resources["Monitors, incidents,<br/>status pages and more"]
+        KeyRules["The key's<br/>own allow<br/>and block<br/>permissions"]
+        Resources["Monitors,<br/>incidents,<br/>status pages<br/>and more"]
     end
     User -->|"member of"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"reach"| Resources
     KeyRules -->|"reach"| Resources
     Block -.->|"take away"| Resources
+    Allow ~~~ Block
 ```
 
 | Concept | What it is |

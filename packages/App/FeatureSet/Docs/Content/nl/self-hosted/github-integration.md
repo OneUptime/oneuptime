@@ -21,13 +21,13 @@ sequenceDiagram
     participant O as OneUptime
     participant G as GitHub
     B->>O: Connect with GitHub App
-    O-->>B: Doorsturen naar de installatiepagina van de app
-    B->>G: De app installeren en autoriseren
-    G-->>B: Doorsturen naar /api/github/auth/callback
-    B->>O: installation_id en een eenmalige code
-    O->>G: Code inwisselen, installatie controleren
-    O->>G: De repositories van de installatie importeren
-    G->>O: Webhooks naar /api/github/webhook
+    O-->>B: Doorsturen naar de<br/>installatiepagina van de app
+    B->>G: De app installeren<br/>en autoriseren
+    G-->>B: Doorsturen naar<br/>/api/github/auth/callback
+    B->>O: installation_id en<br/>een eenmalige code
+    O->>G: Code inwisselen,<br/>installatie controleren
+    O->>G: De repositories van de<br/>installatie importeren
+    G->>O: Webhooks naar<br/>/api/github/webhook
 ```
 
 - De omleiding in de browser draagt de installatie en een eenmalige OAuth-code mee. OneUptime wisselt de code in om te bevestigen dat het GitHub-account dat de app installeerde die installatie beheert, en importeert daarna de repositories ervan. Een installatie die al bestaat, wordt in plaats daarvan verbonden door bij GitHub in te loggen: de code vertelt OneUptime dan welke installaties dat account beheert.

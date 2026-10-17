@@ -14,7 +14,7 @@ Les paramètres du projet contiennent ce qui s'applique au projet entier : son n
 Allez dans **Produits → Paramètres → Paramètres du projet**. Le menu latéral regroupe les pages en sections, et seule **Basique** est ouverte au départ : cliquez sur le titre d'une section pour l'ouvrir. Une section s'ouvre d'elle-même sur toute page qu'elle contient.
 
 ```mermaid title="Ce que contiennent les paramètres du projet"
-flowchart TB
+flowchart LR
     settings["Paramètres du projet"] --> project["Le projet : détails,<br/>étiquettes, imports"]
     settings --> connect["Ce qu'il connecte :<br/>chat, télémétrie, IA"]
     settings --> access["Qui entre : clés,<br/>domaines, connexion"]

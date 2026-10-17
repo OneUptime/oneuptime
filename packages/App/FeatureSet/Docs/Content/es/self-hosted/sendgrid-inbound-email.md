@@ -17,12 +17,12 @@ Esta guía explica cómo configurar SendGrid Inbound Parse para reenviar los cor
 
 ```mermaid title="Cómo llega un correo a un monitor"
 sequenceDiagram
-    participant Sender as Servidor de correo remitente
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as Servidor de<br/>correo remitente
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: Correo a la dirección del monitor (tu registro MX)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Asociar la dirección a un monitor o a un workflow
+    Sender->>SendGrid: Correo a la<br/>dirección del<br/>monitor (tu<br/>registro MX)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: Asociar la<br/>dirección a<br/>un monitor o<br/>a un workflow
     OneUptime-->>SendGrid: 200 OK
 ```
 

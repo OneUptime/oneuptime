@@ -23,11 +23,11 @@ sequenceDiagram
     B->>O: Connect with GitHub App
     O-->>B: 앱 설치 페이지로 리디렉션
     B->>G: 앱 설치 및 인증
-    G-->>B: /api/github/auth/callback으로 리디렉션
-    B->>O: installation_id와 일회용 코드
+    G-->>B: /api/github/auth/callback으로<br/>리디렉션
+    B->>O: installation_id와<br/>일회용 코드
     O->>G: 코드 교환, 설치 확인
     O->>G: 설치의 저장소 가져오기
-    G->>O: /api/github/webhook으로 웹훅
+    G->>O: /api/github/webhook으로<br/>웹훅
 ```
 
 - 브라우저 리디렉션에는 설치 정보와 일회용 OAuth 코드가 담겨 있습니다. OneUptime은 이 코드를 교환해 앱을 설치한 GitHub 계정이 그 설치를 관리하는지 확인한 다음, 설치의 저장소를 가져옵니다. 이미 있는 설치는 대신 GitHub에 로그인해 연결합니다. 이때 코드는 그 계정이 관리하는 설치가 무엇인지 OneUptime에 알려 줍니다.

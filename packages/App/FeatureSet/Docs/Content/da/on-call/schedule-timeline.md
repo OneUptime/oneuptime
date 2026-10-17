@@ -11,10 +11,10 @@ flowchart TB
         layers["Lag og rotationer"]
         overrides["Brugeroverrides"]
     end
-    layers --> shifts["Hvem der har vagt, og hvornår"]
+    layers --> shifts["Hvem der har<br/>vagt, og hvornår"]
     overrides --> shifts
-    shifts --> timeline["Tidslinje for vagtplaner"]
-    shifts --> paging["Eskaleringsregler tilkalder dem"]
+    shifts --> timeline["Tidslinje for<br/>vagtplaner"]
+    shifts --> paging["Eskaleringsregler<br/>tilkalder dem"]
     shifts --> feeds["Kalenderfeeds"]
 ```
 

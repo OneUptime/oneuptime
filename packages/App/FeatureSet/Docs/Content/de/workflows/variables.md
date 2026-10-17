@@ -99,13 +99,13 @@ sequenceDiagram
     participant Runner as Workflow-Runner
     participant Variable as OAuth-2.0-Variable
     participant IdP as Identitätsanbieter
-    Runner->>Variable: Das zwischengespeicherte Token lesen
-    alt Abgelaufen oder läuft innerhalb einer Minute ab
+    Runner->>Variable: Das zwischengespeicherte<br/>Token lesen
+    alt Abgelaufen oder läuft<br/>innerhalb einer Minute ab
         Runner->>IdP: Token-Anfrage
         IdP-->>Runner: Neues Zugriffstoken
         Runner->>Variable: Das neue Token behalten
     end
-    Runner->>Runner: Den Schritt mit einem nicht abgelaufenen Token ausführen
+    Runner->>Runner: Den Schritt mit einem<br/>nicht abgelaufenen<br/>Token ausführen
 ```
 
 - Wenn ein Workflow die Variable zum ersten Mal verwendet, fragt OneUptime den Token-Endpunkt Ihres Identitätsanbieters nach einem Zugriffstoken und behält es.

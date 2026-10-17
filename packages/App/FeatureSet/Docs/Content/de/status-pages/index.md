@@ -29,7 +29,7 @@ flowchart TB
 
 Statusseiten liegen unter **Statusseiten** im Menü **Produkte** der oberen Leiste, bei den wichtigsten Produkten. Alles auf dieser Seite gilt pro Statusseite: Ein Projekt darf beliebig viele davon betreiben – eine öffentliche für Kunden, eine private für ein internes Publikum, eine pro Region für einen bestimmten Markt.
 
-Die Seite zeigt die Monitore, die Sie darauf setzen, als ihre Ressourcen. Vorfälle und geplante Wartungen erreichen sie über diese Monitore, Ankündigungen veröffentlichen Sie direkt darauf. Besucher lesen die Seite, und Abonnenten werden über jede Änderung auf den Kanälen informiert, die sie gewählt haben.
+Die Seite zeigt die Monitore, die Sie darauf setzen, als ihre Ressourcen, und Vorfälle erreichen sie über diese Monitore. [Geplante Wartungsereignisse](/docs/scheduled-maintenance/index) und Ankündigungen erreichen sie direkt: Jedes davon nennt die Statusseiten, auf denen es angezeigt wird. Besucher lesen die Seite, und Abonnenten werden über jede Änderung auf den Kanälen informiert, die sie gewählt haben.
 
 ## Auf einen Blick
 

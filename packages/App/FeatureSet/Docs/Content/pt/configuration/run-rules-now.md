@@ -4,12 +4,12 @@ As regras de rótulos, de proprietários e de privacidade são executadas automa
 
 ```mermaid title="O que uma execução faz"
 flowchart TB
-    S["Run Now"] --> E["Cada recurso do projeto"]
+    S["Run Now"] --> E["Cada recurso<br/>do projeto"]
     E --> M{"Corresponde à regra?"}
     M -->|"Não"| K["Fica como está"]
     M -->|"Sim"| H{"Já tem o que<br/>a regra adiciona?"}
-    H -->|"Sim"| A["Contado como já aplicado"]
-    H -->|"Não"| C["Rótulos ou proprietários adicionados,<br/>ou tornado privado"]
+    H -->|"Sim"| A["Contado como<br/>já aplicado"]
+    H -->|"Não"| C["Rótulos ou<br/>proprietários<br/>adicionados,<br/>ou tornado privado"]
 ```
 
 ## Quais regras podem ser executadas

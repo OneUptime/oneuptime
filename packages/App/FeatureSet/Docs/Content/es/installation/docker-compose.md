@@ -1,6 +1,6 @@
 # Docker Compose
 
-Ejecuta una instancia completa y gratuita de OneUptime en un solo servidor Linux con Docker Compose. Esta página te lleva de un servidor recién creado a una instancia en marcha, y después trata HTTPS, el endurecimiento para producción, las copias de seguridad, las actualizaciones y la desinstalación.
+Ejecuta una instancia completa y gratuita de OneUptime en un solo servidor Linux con Docker Compose. Esta página te lleva de un servidor recién creado a una instancia en marcha, y después trata HTTPS, el endurecimiento para producción, las copias de seguridad, las actualizaciones y la desinstalación. Para trabajar en el código de OneUptime, consulta [Desarrollo local](/docs/installation/local-development).
 
 :::cards
 - [Instalar OneUptime](#instalar-oneuptime): De un servidor recién creado a tu primera cuenta, en seis pasos.
@@ -15,9 +15,9 @@ Docker Compose ejecuta cada parte de OneUptime como un contenedor en tu servidor
 
 ```mermaid title="El despliegue con Docker Compose"
 flowchart TB
-    Users["Usuarios y agentes"]
-    Proxy["Tu proxy inverso, opcional"]
-    Targets["Sitios que monitorizas"]
+    Users["Usuarios<br/>y agentes"]
+    Proxy["Tu proxy<br/>inverso,<br/>opcional"]
+    Targets["Sitios que<br/>monitorizas"]
     subgraph Server["Tu servidor"]
         Ingress["ingress"]
         App["app"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|resultados| Ingress
     Runner -->|trabajos| Ingress
     Probe -->|comprobaciones| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | Servicio | Imagen | Qué hace |

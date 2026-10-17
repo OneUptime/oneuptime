@@ -20,14 +20,14 @@ stateDiagram-v2
     state "Mislukt" as Failed
     state "Geannuleerd" as Cancelled
     [*] --> Scheduled: uitvoering gestart
-    Scheduled --> Running: een Worker pakt haar op
-    Running --> WaitingForManualStep: Manual-stap of goedkeuring
-    WaitingForManualStep --> Scheduled: voltooid, goedgekeurd of overgeslagen
+    Scheduled --> Running: een Worker<br/>pakt haar op
+    Running --> WaitingForManualStep: Manual-stap<br/>of goedkeuring
+    WaitingForManualStep --> Scheduled: voltooid,<br/>goedgekeurd of<br/>overgeslagen
     Running --> Completed: alle stappen klaar
     Running --> Failed: een stap mislukt
-    Scheduled --> Cancelled: Uitvoering annuleren
-    Running --> Cancelled: Uitvoering annuleren
-    WaitingForManualStep --> Cancelled: Uitvoering annuleren
+    Scheduled --> Cancelled: Uitvoering<br/>annuleren
+    Running --> Cancelled: Uitvoering<br/>annuleren
+    WaitingForManualStep --> Cancelled: Uitvoering<br/>annuleren
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]

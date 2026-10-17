@@ -1,6 +1,6 @@
 # Docker Compose
 
-با Docker Compose یک نمونهٔ کامل و رایگان OneUptime را روی یک سرور Linux اجرا کنید. این صفحه شما را از یک سرور تازه به یک نمونهٔ در حال اجرا می‌رساند و سپس HTTPS، مقاوم‌سازی برای محیط عملیاتی، پشتیبان‌گیری، به‌روزرسانی و حذف را پوشش می‌دهد.
+با Docker Compose یک نمونهٔ کامل و رایگان OneUptime را روی یک سرور Linux اجرا کنید. این صفحه شما را از یک سرور تازه به یک نمونهٔ در حال اجرا می‌رساند و سپس HTTPS، مقاوم‌سازی برای محیط عملیاتی، پشتیبان‌گیری، به‌روزرسانی و حذف را پوشش می‌دهد. برای کار روی کد خود OneUptime، [توسعه محلی](/docs/installation/local-development) را ببینید.
 
 :::cards
 - [نصب OneUptime](#نصب-oneuptime): از یک سرور تازه تا نخستین حساب شما، در شش گام.
@@ -16,8 +16,8 @@ Docker Compose هر بخش از OneUptime را به‌صورت یک کانتین
 ```mermaid title="استقرار با Docker Compose"
 flowchart TB
     Users["کاربران و عامل‌ها"]
-    Proxy["پراکسی معکوس شما، اختیاری"]
-    Targets["سایت‌هایی که پایش می‌کنید"]
+    Proxy["پراکسی معکوس<br/>شما، اختیاری"]
+    Targets["سایت‌هایی که<br/>پایش می‌کنید"]
     subgraph Server["سرور شما"]
         Ingress["ingress"]
         App["app"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|نتیجه‌ها| Ingress
     Runner -->|کارها| Ingress
     Probe -->|بررسی‌ها| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | سرویس | ایمیج | چه می‌کند |

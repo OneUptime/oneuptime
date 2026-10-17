@@ -76,12 +76,12 @@ sequenceDiagram
     participant Caller as ابزار شما
     participant OneUptime
     participant Runner as اجراکننده گردش کاری
-    Caller->>OneUptime: GET یا POST به نشانی وب‌هوک
+    Caller->>OneUptime: GET یا POST به<br/>نشانی وب‌هوک
     alt گردش کاری روشن است
         OneUptime-->>Caller: 200، وضعیت Scheduled
-        OneUptime->>Runner: یک اجرا را با هدرها، پرس‌وجو و بدنه در صف می‌گذارد
-        Runner->>Runner: بلوک‌های پس از تریگر را اجرا می‌کند
-    else گردش کاری خاموش یا بایگانی‌شده است
+        OneUptime->>Runner: یک اجرا را با<br/>هدرها، پرس‌وجو و<br/>بدنه در صف می‌گذارد
+        Runner->>Runner: بلوک‌های پس از<br/>تریگر را اجرا می‌کند
+    else گردش کاری خاموش<br/>یا بایگانی‌شده است
         OneUptime-->>Caller: 400 همراه با دلیل
     end
 ```

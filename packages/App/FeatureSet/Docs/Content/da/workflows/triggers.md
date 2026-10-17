@@ -76,12 +76,12 @@ sequenceDiagram
     participant Caller as Dit værktøj
     participant OneUptime
     participant Runner as Workflow-afvikler
-    Caller->>OneUptime: GET eller POST til webhook-URL'en
+    Caller->>OneUptime: GET eller POST<br/>til webhook-URL'en
     alt Workflowet er slået til
         OneUptime-->>Caller: 200, status Scheduled
-        OneUptime->>Runner: Sætter en kørsel i kø med headere, forespørgsel og body
-        Runner->>Runner: Kører blokkene efter triggeren
-    else Workflowet er slået fra eller arkiveret
+        OneUptime->>Runner: Sætter en kørsel<br/>i kø med headere,<br/>forespørgsel og body
+        Runner->>Runner: Kører blokkene<br/>efter triggeren
+    else Workflowet er slået<br/>fra eller arkiveret
         OneUptime-->>Caller: 400 med årsagen
     end
 ```

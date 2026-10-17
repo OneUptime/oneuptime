@@ -5,14 +5,14 @@
 ```mermaid title="자체 호스팅한 OneUptime 설치"
 flowchart TB
     People["사람과 브라우저"]
-    Senders["텔레메트리 송신자:<br/>OpenTelemetry, Fluent Bit,<br/>syslog, 에이전트"]
+    Senders["텔레메트리 송신자:<br/>OpenTelemetry,<br/>Fluent Bit,<br/>syslog, 에이전트"]
     Targets["모니터링 대상:<br/>내부와 공개"]
     subgraph Install["내 네트워크"]
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
-        App["앱<br/>대시보드, 상태 페이지,<br/>API, 수집, 백그라운드 작업"]
-        Probe["프로브"]
+        App["앱<br/>대시보드, 상태 페이지,<br/>API, 수집,<br/>백그라운드 작업"]
         Runner["Runner"]
+        Probe["프로브"]
         subgraph Data["데이터 저장소"]
             direction LR
             Postgres[("PostgreSQL<br/>구성<br/>및 상태")]
@@ -23,12 +23,13 @@ flowchart TB
     People -->|"HTTPS"| Ingress
     Senders -->|"OTLP, HTTPS"| Ingress
     Ingress --> App
-    Probe -->|"작업 가져오기,<br/>결과 보내기"| App
     Runner -->|"작업 맡기,<br/>결과 보내기"| App
+    Probe -->|"작업 가져오기,<br/>결과 보내기"| App
     Probe -->|"HTTP, TCP, ping,<br/>DNS, SNMP"| Targets
     App --> Postgres
     App --> ClickHouse
     App --> Valkey
+    Targets ~~~ Probe
 ```
 
 ## 이 그림이 보여 주는 것

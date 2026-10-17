@@ -12,14 +12,14 @@ I **proprietari** sono un concetto a parte. Un proprietario è chi è responsabi
 ```mermaid title="Come ottengono accesso una persona e una chiave API"
 flowchart TB
     User["Un utente<br/>(un account)"]
-    Key["Una chiave API"]
     subgraph Project["Un progetto"]
         direction TB
+        Key["Una chiave API"]
         Team["Team"]
-        Allow["Autorizzazioni concesse,<br/>ciascuna con un ambito:<br/>Tutti, Possedute o Etichette"]
-        Block["Autorizzazioni bloccate,<br/>che vincono sempre"]
-        KeyRules["Le autorizzazioni concesse<br/>e bloccate della chiave"]
-        Resources["Monitor, incidenti,<br/>pagine di stato e altro"]
+        Allow["Autorizzazioni<br/>concesse,<br/>ciascuna con<br/>un ambito:<br/>Tutti, Possedute<br/>o Etichette"]
+        Block["Autorizzazioni<br/>bloccate,<br/>che vincono<br/>sempre"]
+        KeyRules["Le autorizzazioni<br/>concesse<br/>e bloccate<br/>della chiave"]
+        Resources["Monitor,<br/>incidenti,<br/>pagine di<br/>stato e altro"]
     end
     User -->|"membro di"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"raggiungono"| Resources
     KeyRules -->|"raggiungono"| Resources
     Block -.->|"tolgono"| Resources
+    Allow ~~~ Block
 ```
 
 | Concetto | Che cos'è |

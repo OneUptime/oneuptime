@@ -14,24 +14,18 @@ This is the reference for operators and security reviewers: where each kind of s
 ```mermaid title="Which steps run where"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["HTTP request steps"]
-        ai["AI steps"]
+        onworker["HTTP request steps<br/>AI steps"]
     end
     subgraph yours["Your infrastructure"]
-        direction LR
         runner["Runner"]
-        scripts["JavaScript and Bash steps"]
-        remote["SSH and Kubernetes steps"]
+        onrunner["JavaScript<br/>and Bash steps<br/>SSH and<br/>Kubernetes steps"]
     end
     person["A person"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual steps and approvals"| person
-    worker -->|"queues a job for the step's Runner"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual<br/>steps and<br/>approvals"| person
+    worker --->|"queues a<br/>job for<br/>the step's<br/>Runner"| runner
+    runner --> onrunner
 ```
 
 | Step type | Runs on | How |

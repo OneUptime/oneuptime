@@ -12,12 +12,12 @@ La pagina **Costruisci** di un modulo è dove decidi cosa chiede e che aspetto h
 ## Dove va ogni risposta
 
 ```mermaid title="Dove va ogni tipo di risposta"
-flowchart TB
-    answer["Una risposta inviata"] --> kind{"Che cos'è la domanda"}
-    kind -->|"Un campo del record"| field["Quel campo del nuovo<br/>incidente o evento"]
-    kind -->|"Un campo personalizzato"| custom["Il valore di quel<br/>campo personalizzato"]
-    kind -->|"Una domanda propria<br/>del modulo"| note["Una riga della<br/>nota privata"]
-    kind -->|"Il tuo nome, la tua email"| who["Chi l'ha inviato,<br/>nella nota privata"]
+flowchart LR
+    answer["Una risposta inviata"]
+    answer -->|"Un campo<br/>del record"| field["Quel campo del nuovo<br/>incidente o evento"]
+    answer -->|"Un campo<br/>personalizzato"| custom["Il valore di quel<br/>campo personalizzato"]
+    answer -->|"Una domanda<br/>propria<br/>del modulo"| note["Una riga della<br/>nota privata"]
+    answer -->|"Il tuo nome,<br/>la tua email"| who["Chi l'ha inviato,<br/>nella nota privata"]
 ```
 
 Ogni risposta viene anche conservata con l'invio, nella pagina **Invii** del modulo. Un campo che il modulo non chiede, o che resta vuoto, viene compilato dalle [impostazioni All'invio](/docs/forms/on-submit) del modulo.

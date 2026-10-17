@@ -11,10 +11,10 @@ flowchart TB
         layers["Lager och rotationer"]
         overrides["Användaråsidosättningar"]
     end
-    layers --> shifts["Vem som har jour, och när"]
+    layers --> shifts["Vem som har<br/>jour, och när"]
     overrides --> shifts
-    shifts --> timeline["Tidslinje för jourscheman"]
-    shifts --> paging["Eskaleringsregler larmar dem"]
+    shifts --> timeline["Tidslinje för<br/>jourscheman"]
+    shifts --> paging["Eskaleringsregler<br/>larmar dem"]
     shifts --> feeds["Kalenderflöden"]
 ```
 

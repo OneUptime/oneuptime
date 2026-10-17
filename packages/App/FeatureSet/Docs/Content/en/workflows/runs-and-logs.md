@@ -29,13 +29,13 @@ stateDiagram-v2
     state "Error" as Failed
     state "Timeout" as TimedOut
     [*] --> Scheduled: the trigger fires
-    Scheduled --> Running: a runner picks it up
-    Scheduled --> Failed: not picked up within 5 minutes
+    Scheduled --> Running: a runner<br/>picks it up
+    Scheduled --> Failed: not picked up<br/>within 5 minutes
     Running --> Waiting: a Sleep block
     Waiting --> Running: the time is up
-    Running --> Executed: it reached the end
-    Running --> Failed: a block stopped the run
-    Running --> TimedOut: it ran out of time
+    Running --> Executed: it reached<br/>the end
+    Running --> Failed: a block<br/>stopped the run
+    Running --> TimedOut: it ran out<br/>of time
     Executed --> [*]
     Failed --> [*]
     TimedOut --> [*]

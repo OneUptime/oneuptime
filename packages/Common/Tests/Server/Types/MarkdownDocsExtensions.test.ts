@@ -395,13 +395,42 @@ describe("the docs renderer's components", () => {
       );
 
       expect(html).toContain(
-        '<details class="docs-details"><summary class="docs-details__summary">Why is <code class="docs-code-inline">probe-1</code> offline?</summary><div class="docs-details__body"><p>Because <strong>reasons</strong>.</p></div></details>',
+        '<details class="docs-details"><summary class="docs-details__summary"><span class="docs-details__title">Why is <code class="docs-code-inline">probe-1</code> offline?</span></summary><div class="docs-details__body"><p>Because <strong>reasons</strong>.</p></div></details>',
       );
     });
 
     test("marks its default summary for translation", async () => {
       expect(await docs(":::details\nx\n:::")).toContain(
-        '<span data-docs-label="details">Details</span>',
+        '<summary class="docs-details__summary"><span class="docs-details__title"><span data-docs-label="details">Details</span></span></summary>',
+      );
+    });
+
+    /*
+     * The summary lays out its marker and its title side by side. Its words
+     * and code spans used to be its own children, each a flex item that
+     * could not wrap around the others, so a summary with code in it was as
+     * wide as its longest pieces put together and pushed a phone-width page
+     * sideways (ru and pt API Monitor, ru AWS Security Hub).
+     */
+    test("puts the whole summary, words and code, in one title element", async () => {
+      const html: string = await docs(
+        ":::details The monitor sends `{{monitorSecrets.NAME}}` literally, and `a` `b`\nx\n:::",
+      );
+      const summary: string = html.slice(
+        html.indexOf('<summary class="docs-details__summary">') +
+          '<summary class="docs-details__summary">'.length,
+        html.indexOf("</summary>"),
+      );
+
+      expect(summary.startsWith('<span class="docs-details__title">')).toBe(
+        true,
+      );
+      expect(summary.endsWith("</span>")).toBe(true);
+      // One title, holding every code span: nothing beside it but the marker.
+      expect(summary.split('class="docs-details__title"')).toHaveLength(2);
+      expect(summary.split('<code class="docs-code-inline">')).toHaveLength(4);
+      expect(summary).toContain(
+        'The monitor sends <code class="docs-code-inline">{{monitorSecrets.NAME}}</code> literally, and',
       );
     });
   });
@@ -568,7 +597,7 @@ describe("the docs renderer's components", () => {
 
       expect(html).not.toContain("<script>");
       expect(html).toContain(
-        '<summary class="docs-details__summary">&lt;script&gt;alert(1)&lt;/script&gt; Why?</summary>',
+        '<summary class="docs-details__summary"><span class="docs-details__title">&lt;script&gt;alert(1)&lt;/script&gt; Why?</span></summary>',
       );
     });
 

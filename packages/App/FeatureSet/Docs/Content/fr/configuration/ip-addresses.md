@@ -3,7 +3,7 @@
 Les sondes d'OneUptime Cloud vérifient vos sites web, API et serveurs depuis un ensemble fixe d'adresses IP. Si un pare-feu ou une liste d'autorisation se trouve devant ce que vous surveillez, autorisez ces adresses pour que les vérifications passent.
 
 ```mermaid title="Où s'applique la liste d'autorisation"
-flowchart LR
+flowchart TB
     P["Sondes OneUptime"] -->|"vérifient depuis les IP listées"| F["Votre pare-feu"]
     F -->|"autorisé"| S["Votre site web, API ou serveur"]
 ```

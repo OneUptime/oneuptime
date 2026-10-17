@@ -15,13 +15,13 @@ Um runbook pode começar sozinho: segundo um agendamento, ou quando outra ferram
 flowchart TB
     subgraph starts["O que inicia a execução"]
         direction LR
-        schedule["O agendamento: chega um horário"]
-        webhook["O webhook: um POST para a URL dele"]
+        schedule["O agendamento:<br/>chega um horário"]
+        webhook["O webhook: um POST<br/>para a URL dele"]
     end
-    schedule --> checks["O runbook está ativado e tem etapas"]
+    schedule --> checks["O runbook está<br/>ativado e tem etapas"]
     webhook --> checks
-    checks --> execution["Execução, marcada como Schedule ou Webhook"]
-    execution --> worker["O Worker do OneUptime executa as etapas"]
+    checks --> execution["Execução, marcada como<br/>Schedule ou Webhook"]
+    execution --> worker["O Worker do OneUptime<br/>executa as etapas"]
 ```
 
 Um gatilho inicia uma execução como **Run Now** faz: a execução percorre as etapas atuais do runbook e não fica vinculada a nenhum incidente, alerta ou evento de manutenção programada. Cada execução registra o que a iniciou. As **Execuções** do runbook e **Runbooks → Execuções** mostram isso em **Acionado por**, com o horário previsto de uma execução agendada ou o endereço que chamou o webhook, e as duas listas podem ser filtradas por isso.

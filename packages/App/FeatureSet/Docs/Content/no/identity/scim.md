@@ -18,12 +18,12 @@ Identitetsleverandøren din kaller SCIM-endepunktet til OneUptime, autentisert m
 
 ```mermaid title="Hva SCIM endrer i OneUptime"
 flowchart TB
-    IdP["Identitetsleverandøren din"] -->|"SCIM-forespørsler,<br/>bearer-token"| P["Prosjektets SCIM-tilkobling"]
-    IdP -->|"SCIM-forespørsler,<br/>bearer-token"| S["Statussidens SCIM-tilkobling"]
+    IdP["Identitetsleverandøren din"] -->|"SCIM-forespørsler,<br/>bearer-token"| P["Prosjektets<br/>SCIM-tilkobling"]
+    IdP -->|"SCIM-forespørsler,<br/>bearer-token"| S["Statussidens<br/>SCIM-tilkobling"]
     P --> Q{"Push-grupper slått på?"}
-    Q -->|"Nei"| T["Brukere blir med i og forlater<br/>standardteamene"]
-    Q -->|"Ja"| G["Grupper blir team,<br/>medlemskapet følger dem"]
-    S --> U["Private brukere legges til<br/>og slettes"]
+    Q -->|"Nei"| T["Brukere blir med<br/>i og forlater<br/>standardteamene"]
+    Q -->|"Ja"| G["Grupper blir team,<br/>medlemskapet<br/>følger dem"]
+    S --> U["Private brukere<br/>legges til<br/>og slettes"]
 ```
 
 SCIM-integrasjonen gir disse fordelene:
@@ -69,10 +69,10 @@ For å se URL-ene igjen velger du **Vis SCIM-URL-er** i raden for tilkoblingen. 
 sequenceDiagram
     participant IdP as Identitetsleverandør
     participant O as OneUptime
-    IdP->>O: Opprett brukeren, når du tildeler vedkommende
-    Note over O: Lagt til i standardteamene.<br/>På OneUptime Cloud blir en eksisterende<br/>konto invitert i stedet
-    IdP->>O: Oppdater brukeren, når profilen endres
-    IdP->>O: Slett eller deaktiver, når du fjerner tildelingen
+    IdP->>O: Opprett brukeren, når<br/>du tildeler vedkommende
+    Note over O: Lagt til i standardteamene.<br/>På OneUptime Cloud<br/>blir en eksisterende<br/>konto invitert i stedet
+    IdP->>O: Oppdater brukeren,<br/>når profilen endres
+    IdP->>O: Slett eller deaktiver,<br/>når du fjerner tildelingen
     Note over O: Fjernet fra standardteamene
 ```
 
@@ -112,9 +112,9 @@ SCIM for statussider støtter bare brukere. Grupper og klargjøring av grupper s
 sequenceDiagram
     participant IdP as Identitetsleverandør
     participant O as OneUptime
-    IdP->>O: Opprett brukeren, når du tildeler vedkommende
-    Note over O: Den private brukeren har tilgang<br/>til den private statussiden
-    IdP->>O: Slett, eller sett active til false
+    IdP->>O: Opprett brukeren, når<br/>du tildeler vedkommende
+    Note over O: Den private<br/>brukeren har tilgang<br/>til den private statussiden
+    IdP->>O: Slett, eller sett<br/>active til false
     Note over O: Privat bruker og<br/>øktene slettet
 ```
 

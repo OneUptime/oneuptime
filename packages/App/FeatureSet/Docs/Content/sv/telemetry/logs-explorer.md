@@ -29,7 +29,7 @@ Utforskaren har fyra flikar:
 | --- | --- |
 | **Tittare** | Sök i, filtrera och läs loggar. Den öppnas på den senaste timmen, nyaste först, 100 loggar per sida. |
 | **Insikter** | Vad dina tjänster har loggat i ett tidsintervall, och vad som gick fel. |
-| **Installationsguide** | Hur du skickar loggar med OpenTelemetry, Fluent Bit eller Fluentd med en av dina inmatningsnycklar. |
+| **Installationsguide** | Hur du skickar loggar med OpenTelemetry, Fluent Bit eller Fluentd med en av dina [inmatningsnycklar](/docs/telemetry/ingestion-keys). |
 | **Inställningar** | Vad som händer med loggar när de kommer in: **Pipelines**, **Drop-filter**, **Scrub-regler** och **Inspelningsregler**. |
 
 ## Innan du börjar
@@ -132,12 +132,12 @@ Välj ett av de vanligaste felen för att se vad som hände runt det: när det i
 
 ## Vad som händer med loggar när de kommer in
 
-Fliken **Inställningar** innehåller reglerna som OneUptime tillämpar på varje logg innan den lagras. De verkar på loggarna som kommer in efteråt, inte på lagrade.
+Fliken **Inställningar** innehåller reglerna som OneUptime tillämpar på varje logg innan den lagras. De verkar på loggarna som kommer in efteråt, inte på lagrade. Hur länge varje logg sparas avgörs också när den kommer in: se [Datalagring](/docs/telemetry/data-retention).
 
 | Regel | Vad den gör |
 | --- | --- |
-| **Drop-filter** | Kassera loggar du inte vill behålla, eller behåll bara ett stickprov av dem. |
-| **Scrub-regler** | Maskera känsliga data, som e-postadresser och kortnummer. |
+| **Drop-filter** | Kassera loggar du inte vill behålla, eller behåll bara ett stickprov av dem. Se [Kassera poster eller ta stickprov](/docs/telemetry/drop-filters-and-scrub-rules#kassera-poster-eller-ta-stickprov). |
+| **Scrub-regler** | Maskera känsliga data, som e-postadresser och kortnummer. Se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data). |
 | **Pipelines** | Plocka ut fält ur meddelandet, rätta allvarlighetsgraden, byt namn på attribut. Se [Loggpipelines](/docs/telemetry/log-pipelines). |
 | **Inspelningsregler** | Gör matchande loggar till mätvärden. Se [Inspelningsregler för loggar](/docs/telemetry/log-recording-rules). |
 

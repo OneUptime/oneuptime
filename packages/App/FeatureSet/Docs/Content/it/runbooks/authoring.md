@@ -188,14 +188,14 @@ I passaggi IA vengono misurati e fatturati come qualsiasi altra funzione di IA. 
 
 ```mermaid title="Cosa succede dopo un passaggio automatico"
 flowchart TB
-    run["Viene eseguito un passaggio automatico"] --> ok{"Riuscito?"}
-    ok -->|"sì"| approval{"Richiedi approvazione attivo?"}
-    approval -->|"sì"| wait["L'esecuzione attende l'approvazione di una persona"]
-    approval -->|"no"| next["Viene eseguito il passaggio successivo"]
+    run["Viene eseguito<br/>un passaggio<br/>automatico"] --> ok{"Riuscito?"}
+    ok -->|"sì"| approval{"Richiedi<br/>approvazione<br/>attivo?"}
+    approval -->|"sì"| wait["L'esecuzione<br/>attende<br/>l'approvazione<br/>di una persona"]
+    approval -->|"no"| next["Viene eseguito<br/>il passaggio<br/>successivo"]
     wait --> next
-    ok -->|"no"| cont{"Continua in caso di errore attivo?"}
+    ok -->|"no"| cont{"Continua in caso<br/>di errore attivo?"}
     cont -->|"sì"| next
-    cont -->|"no"| failed["L'esecuzione si ferma come non riuscita"]
+    cont -->|"no"| failed["L'esecuzione<br/>si ferma come<br/>non riuscita"]
 ```
 
 Per impostazione predefinita, un passaggio che fallisce interrompe l'esecuzione e la segna come `Failed`, con l'errore del passaggio come motivo. Con **Continua in caso di errore** attivo, l'errore viene registrato e il passaggio successivo viene eseguito, il che si addice ai runbook del tipo «prova queste tre cose, poi avvisa». **Richiedi approvazione** si applica dopo che un passaggio è riuscito: l'esecuzione attende su quel passaggio finché qualcuno non fa clic su **Approve & continue** o **Salta**.

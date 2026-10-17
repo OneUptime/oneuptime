@@ -9,13 +9,13 @@ flowchart TB
     subgraph setup["Cada programación"]
         direction LR
         layers["Capas y rotaciones"]
-        overrides["Sustituciones de usuario"]
+        overrides["Sustituciones<br/>de usuario"]
     end
-    layers --> shifts["Quién está de guardia, y cuándo"]
+    layers --> shifts["Quién está de<br/>guardia, y cuándo"]
     overrides --> shifts
-    shifts --> timeline["Cronología de la programación"]
-    shifts --> paging["Las reglas de escalado los avisan"]
-    shifts --> feeds["Feeds de calendario"]
+    shifts --> timeline["Cronología de<br/>la programación"]
+    shifts --> paging["Las reglas<br/>de escalado<br/>los avisan"]
+    shifts --> feeds["Feeds de<br/>calendario"]
 ```
 
 ## Abre la línea de tiempo

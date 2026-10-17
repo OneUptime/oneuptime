@@ -29,7 +29,7 @@ sequenceDiagram
     O-->>J: 200 direkt
     O->>O: Utvärdera kriterierna
     Note over O: Var 30:e sekund, leta<br/>efter saknade förfrågningar
-    O->>T: Incident, om ett kriterium matchar
+    O->>T: Incident, om ett<br/>kriterium matchar
 ```
 
 Använd den för att:

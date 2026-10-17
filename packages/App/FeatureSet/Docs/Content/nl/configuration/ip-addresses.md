@@ -3,7 +3,7 @@
 De probes van OneUptime Cloud controleren uw websites, API's en servers vanaf een vaste set IP-adressen. Staat er een firewall of een allowlist voor wat u bewaakt, sta deze adressen dan toe zodat de controles erdoor komen.
 
 ```mermaid title="Waar de allowlist geldt"
-flowchart LR
+flowchart TB
     P["OneUptime-probes"] -->|"controleren vanaf de vermelde IP's"| F["Uw firewall"]
     F -->|"toegestaan"| S["Uw website, API of server"]
 ```

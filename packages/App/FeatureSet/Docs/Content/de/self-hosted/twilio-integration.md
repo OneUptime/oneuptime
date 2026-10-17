@@ -62,12 +62,12 @@ Das Senden funktioniert allein mit ausgehendem Zugriff. Zustellungsupdates, die 
 sequenceDiagram
     participant O as OneUptime
     participant T as Twilio
-    participant P as Telefon der zuständigen Person
-    O->>T: Eine SMS senden oder einen Anruf starten
+    participant P as Telefon der<br/>zuständigen Person
+    O->>T: Eine SMS senden oder<br/>einen Anruf starten
     T->>P: SMS oder Sprachanruf
-    T-->>O: Callback mit dem SMS-Zustellungsstatus
+    T-->>O: Callback mit dem<br/>SMS-Zustellungsstatus
     P->>T: Drückt 1 zur Bestätigung
-    T-->>O: Callback mit der Tastatureingabe
+    T-->>O: Callback mit der<br/>Tastatureingabe
 ```
 
 Eine private Installation braucht DNS-Auflösung und ausgehendes HTTPS über TCP 443 zu Twilio, um SMS und Anrufe abzusetzen. Twilio empfiehlt, ausgehendes HTTPS zu `*.twilio.com` zu erlauben, weil seine API-Adressen dynamisch sind; siehe [Twilio-IP-Adressen](https://help.twilio.com/articles/115015934048-All-About-Twilio-IP-Addresses). Wenden Sie das auf den ausgehenden Verkehr des Workloads der OneUptime-Anwendung an, einschließlich Kubernetes-NetworkPolicies und externer Firewalls.

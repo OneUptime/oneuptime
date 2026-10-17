@@ -492,6 +492,77 @@ describe("the cards that linked a category's own docs address", () => {
   });
 });
 
+// Node.DOCUMENT_POSITION_FOLLOWING, which jsdom's Node does not lend the test.
+const DOCUMENT_POSITION_FOLLOWING: number = 4;
+
+/*
+ * A product page sends a reader on to the docs that explain it. The
+ * scheduled maintenance page had no way there: under its four "How it
+ * works" steps it now links the overview of the docs' Scheduled
+ * Maintenance group.
+ */
+describe("the scheduled maintenance product page", () => {
+  test("links the Scheduled Maintenance docs overview, under its four steps", async () => {
+    const document: Document = await renderOwnContent(
+      "scheduled-maintenance.ejs",
+      { seo: seoFor("/product/scheduled-maintenance") },
+    );
+    const docsLinks: Array<Element> = Array.from(
+      document.querySelectorAll('a[href^="/docs"]'),
+    );
+
+    expect(
+      docsLinks.map((link: Element): [string | null, string] => {
+        return [link.getAttribute("href"), wordsOf(link)];
+      }),
+    ).toEqual([
+      [
+        "/docs/scheduled-maintenance/index",
+        "Read the scheduled maintenance docs \u2192",
+      ],
+    ]);
+
+    // In the "How It Works" section, after its steps.
+    const heading: Element | undefined = Array.from(
+      document.querySelectorAll("h2"),
+    ).find((candidate: Element): boolean => {
+      return wordsOf(candidate) === "From planning to completion in four steps";
+    });
+    const steps: Array<Element> = Array.from(
+      document.querySelectorAll("h3"),
+    ).filter((candidate: Element): boolean => {
+      return [
+        "Schedule Event",
+        "Notify Subscribers",
+        "Post Updates",
+        "Complete & Resolve",
+      ].includes(wordsOf(candidate));
+    });
+    const link: Element = docsLinks[0] as Element;
+
+    expect(heading).toBeDefined();
+    expect(steps).toHaveLength(4);
+    // The link comes after the last step.
+    expect(
+      (steps[3] as Element).compareDocumentPosition(link) &
+        DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(DOCUMENT_POSITION_FOLLOWING);
+    expect(heading!.closest("div.relative")?.contains(link)).toBe(true);
+  });
+
+  test("opens the first page of the group, as the docs' nav lists it", () => {
+    expect(NAV_PAGES).toContain("scheduled-maintenance/index");
+    expect(docsPageOf("scheduled-maintenance/index")?.title).toBe(
+      "Scheduled Maintenance Overview",
+    );
+    expect(
+      NAV_PAGES.find((page: string): boolean => {
+        return page.startsWith("scheduled-maintenance/");
+      }),
+    ).toBe("scheduled-maintenance/index");
+  });
+});
+
 describe("every docs address the website writes", () => {
   test("is read from the docs as they are: their nav, languages and files", () => {
     expect(NAV_PAGES.length).toBeGreaterThan(200);

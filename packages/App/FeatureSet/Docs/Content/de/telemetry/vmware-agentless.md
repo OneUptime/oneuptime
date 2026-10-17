@@ -12,10 +12,10 @@
 
 ```mermaid
 flowchart TB
-    OU["OneUptime"] -->|"jetzt erfassen, alle paar Minuten"| P["Ihre Sonde"]
-    P -->|"HTTPS 443, vSphere-API nur lesend"| VC["vCenter Server oder ESXi-Host"]
-    P -->|"Metriken, wie der VMware-Agent sie sendet"| OU
-    OU --> V["VMware-Seiten, Monitore, Alarme und KI"]
+    OU["OneUptime"] -->|"jetzt erfassen,<br/>alle paar<br/>Minuten"| P["Ihre Sonde"]
+    P -->|"HTTPS 443, vSphere-API<br/>nur lesend"| VC["vCenter Server<br/>oder ESXi-Host"]
+    P -->|"Metriken,<br/>wie der<br/>VMware-Agent<br/>sie sendet"| OU
+    OU --> V["VMware-Seiten,<br/>Monitore, Alarme und KI"]
 ```
 
 Alle paar Minuten meldet sich die Sonde mit dem gespeicherten Konto bei vCenter an, liest das Inventar, die Leistungszähler und die vSAN-Statistiken und sendet sie an OneUptime. Sie kommen genau so an wie die des VMware-Agents, sodass jede VMware-Seite, jeder [VMware-Monitor](/docs/monitor/vmware-monitor), jede Alarmvorlage und OneUptime AI sie gleich lesen. Die Sonde behält ihre vCenter-Sitzung zwischen den Erfassungen, damit sich das Ereignisprotokoll von vCenter nicht mit Anmeldungen füllt.

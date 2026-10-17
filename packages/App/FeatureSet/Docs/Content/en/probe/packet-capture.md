@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as Dashboard
     participant O as OneUptime
     participant P as Probe
-    D->>O: Start Packet Capture: interface, filter, limits
-    P->>O: Any captures for me? (every 10 seconds)
+    D->>O: Start Packet Capture:<br/>interface, filter, limits
+    P->>O: Any captures for me?<br/>(every 10 seconds)
     O-->>P: This one
-    P->>P: tcpdump until a limit is reached or Stop is pressed
+    P->>P: tcpdump until a limit is<br/>reached or Stop is pressed
     P->>O: Upload the pcap file
     D->>O: Download
-    O-->>D: The pcap file, and an entry in the audit log
+    O-->>D: The pcap file, and an<br/>entry in the audit log
 ```
 
 1. **Start.** Someone allowed to start captures picks the probe's interface, a filter and the limits, and clicks **Start Capture**. OneUptime checks the filter and the limits against what the probe allows before the capture is saved.

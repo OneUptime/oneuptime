@@ -29,7 +29,7 @@ L'explorateur a quatre onglets :
 | --- | --- |
 | **Lecteur** | Chercher et filtrer des spans, et ouvrir leurs traces. Il s'ouvre sur la dernière heure, les plus récents d'abord, 50 spans par page. |
 | **Analyses** | Débits de requêtes, taux d'erreur et latence par service, et les requêtes qui méritent un coup d'œil. |
-| **Guide de configuration** | Comment envoyer des traces avec OpenTelemetry, avec l'une de vos clés d'ingestion. |
+| **Guide de configuration** | Comment envoyer des traces avec OpenTelemetry, avec l'une de vos [clés d'ingestion](/docs/telemetry/ingestion-keys). |
 | **Paramètres** | Ce qui arrive aux spans à leur arrivée : **Pipelines**, **Filtres de suppression**, **Règles de masquage** et **Règles d'enregistrement**. |
 
 ## Avant de commencer
@@ -115,12 +115,12 @@ Limitez-le à certains services avec la liste déroulante à côté du sélecteu
 
 ## Ce qui arrive aux spans à leur arrivée
 
-L'onglet **Paramètres** contient les règles que OneUptime applique aux spans à leur arrivée, comme pour les journaux. Elles agissent sur les spans qui arrivent ensuite, pas sur ceux déjà stockés.
+L'onglet **Paramètres** contient les règles que OneUptime applique aux spans à leur arrivée, comme pour les journaux. Elles agissent sur les spans qui arrivent ensuite, pas sur ceux déjà stockés. La durée de conservation de chaque span est elle aussi décidée à son arrivée : voir [Rétention des données](/docs/telemetry/data-retention).
 
 | Règle | Ce qu'elle fait |
 | --- | --- |
-| **Filtres de suppression** | Écarter les spans que vous ne voulez pas garder, ou n'en garder qu'un échantillon. |
-| **Règles de masquage** | Masquer les données sensibles dans les attributs des spans. |
+| **Filtres de suppression** | Écarter les spans que vous ne voulez pas garder, ou n'en garder qu'un échantillon. Voir [Supprimer ou échantillonner des enregistrements](/docs/telemetry/drop-filters-and-scrub-rules#supprimer-ou-échantillonner-des-enregistrements). |
+| **Règles de masquage** | Masquer les données sensibles dans les attributs des spans. Voir [Masquer les données sensibles](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles). |
 | **Pipelines** | Modifier et enrichir les spans : chaque pipeline retient des spans avec un filtre, puis exécute ses processeurs dans l'ordre. |
 | **Règles d'enregistrement** | Transformer chaque minute les nombres de spans, les nombres d'erreurs et les durées en nouvelles métriques. Voir [Règles d'enregistrement de journaux](/docs/telemetry/log-recording-rules). |
 

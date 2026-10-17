@@ -29,7 +29,7 @@ Der Explorer hat vier Tabs:
 | --- | --- |
 | **Betrachter** | Protokolle suchen, filtern und lesen. Er öffnet mit der letzten Stunde, neueste zuerst, 100 Protokolle pro Seite. |
 | **Einblicke** | Was Ihre Dienste in einem Zeitraum protokolliert haben und was schiefging. |
-| **Einrichtungsanleitung** | Wie Sie Protokolle mit OpenTelemetry, Fluent Bit oder Fluentd senden, mit einem Ihrer Aufnahmeschlüssel. |
+| **Einrichtungsanleitung** | Wie Sie Protokolle mit OpenTelemetry, Fluent Bit oder Fluentd senden, mit einem Ihrer [Aufnahmeschlüssel](/docs/telemetry/ingestion-keys). |
 | **Einstellungen** | Was mit Protokollen beim Eintreffen geschieht: **Pipelines**, **Drop-Filter**, **Scrub-Regeln** und **Aufzeichnungsregeln**. |
 
 ## Bevor Sie beginnen
@@ -132,12 +132,12 @@ Wählen Sie einen der häufigsten Fehler, um zu sehen, was um ihn herum geschah:
 
 ## Was mit Protokollen beim Eintreffen geschieht
 
-Der Tab **Einstellungen** enthält die Regeln, die OneUptime auf jedes Protokoll anwendet, bevor es gespeichert wird. Sie wirken auf die Protokolle, die danach eintreffen, nicht auf gespeicherte.
+Der Tab **Einstellungen** enthält die Regeln, die OneUptime auf jedes Protokoll anwendet, bevor es gespeichert wird. Sie wirken auf die Protokolle, die danach eintreffen, nicht auf gespeicherte. Wie lange jedes Protokoll aufbewahrt wird, wird ebenfalls bei seiner Ankunft festgelegt: siehe [Datenaufbewahrung](/docs/telemetry/data-retention).
 
 | Regel | Was sie tut |
 | --- | --- |
-| **Drop-Filter** | Protokolle verwerfen, die Sie nicht behalten möchten, oder nur eine Stichprobe davon behalten. |
-| **Scrub-Regeln** | Sensible Daten maskieren, etwa E-Mail-Adressen und Kartennummern. |
+| **Drop-Filter** | Protokolle verwerfen, die Sie nicht behalten möchten, oder nur eine Stichprobe davon behalten. Siehe [Datensätze verwerfen oder Stichproben nehmen](/docs/telemetry/drop-filters-and-scrub-rules#datensätze-verwerfen-oder-stichproben-nehmen). |
+| **Scrub-Regeln** | Sensible Daten maskieren, etwa E-Mail-Adressen und Kartennummern. Siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen). |
 | **Pipelines** | Felder aus der Nachricht extrahieren, den Schweregrad korrigieren, Attribute umbenennen. Siehe [Protokoll-Pipelines](/docs/telemetry/log-pipelines). |
 | **Aufzeichnungsregeln** | Passende Protokolle in Metriken umwandeln. Siehe [Aufzeichnungsregeln für Protokolle](/docs/telemetry/log-recording-rules). |
 

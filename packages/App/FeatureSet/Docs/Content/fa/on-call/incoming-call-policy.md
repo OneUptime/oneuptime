@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | یک حساب Twilio، با Account SID و Auth Token آن | شماره‌ها و تماس‌های سیاست روی آن اجرا می‌شوند و Twilio هزینه‌شان را به همان حساب می‌زند. |
 | طرح **Growth** در OneUptime Cloud | پروژه برای پیکربندی Twilio خودش به آن نیاز دارد. |
-| اگر خودتان میزبانی می‌کنید، سروری از OneUptime که Twilio به آن دسترسی داشته باشد | Twilio هر تماس را به `https://<your host>/notification/incoming-call/voice` می‌فرستد. |
+| اگر خودتان میزبانی می‌کنید، سروری از OneUptime که Twilio به آن دسترسی داشته باشد | Twilio هر تماس را به `https://<your host>/notification/incoming-call/voice` و نتیجهٔ هر زنگ را به `https://<your host>/notification/incoming-call/dial-status/...` می‌فرستد. |
 | روشن بودن **SMS** در پروژه | شماره هر مهندس با کدی که با پیامک فرستاده می‌شود تأیید می‌شود. |
 | یک شماره تأییدشده برای هر مهندس | یک قاعده فقط به کسانی زنگ می‌زند که در پروژه شماره‌ای برای تماس‌های ورودی افزوده و تأیید کرده‌اند. |
 
@@ -86,16 +86,16 @@ sequenceDiagram
     participant Twilio
     participant OneUptime
     participant Engineer as مهندس
-    Caller->>Twilio: شماره سیاست را می‌گیرد
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: خوش‌آمدگویی، سپس زنگ به فرد نخستین قاعده
-    Twilio->>Engineer: به اندازه مدت زنگ قاعده زنگ می‌زند
-    Note over Twilio,Engineer: کسی به‌موقع پاسخ نمی‌دهد
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status
-    OneUptime-->>Twilio: زنگ به فرد قاعده بعدی
-    Twilio->>Engineer: به نفر بعدی زنگ می‌زند
+    Caller->>Twilio: شماره سیاست<br/>را می‌گیرد
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: خوش‌آمدگویی، سپس زنگ<br/>به فرد نخستین قاعده
+    Twilio->>Engineer: به اندازه مدت زنگ<br/>قاعده زنگ می‌زند
+    Note over Twilio,Engineer: کسی به‌موقع<br/>پاسخ نمی‌دهد
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: زنگ به فرد<br/>قاعده بعدی
+    Twilio->>Engineer: به نفر بعدی<br/>زنگ می‌زند
     Engineer-->>Twilio: پاسخ می‌دهد
-    Twilio-->>Caller: تماس‌گیرنده را وصل می‌کند
+    Twilio-->>Caller: تماس‌گیرنده<br/>را وصل می‌کند
 ```
 
 قاعده‌ای که اکنون کسی برای زنگ زدن ندارد، بدون زنگ زدن به کسی رد می‌شود: زمان‌بندی‌اش کسی را آنکال ندارد، فرد در این پروژه شماره تأییدشده‌ای برای تماس‌های ورودی ندارد، یا دیگر عضو پروژه نیست. وقتی هیچ قاعده‌ای کسی برای زنگ زدن ندارد، تماس‌گیرنده **پیام «کسی در دسترس نیست»** را می‌شنود. سیاست غیرفعال به هر تماسی با "Sorry, this service is currently disabled." پاسخ می‌دهد و قطع می‌کند.

@@ -20,7 +20,7 @@ flowchart TB
         public["Offentlig note"]
         private["Privat note"]
     end
-    public --> page["Statusside og abonnenter"]
+    public --> page["Statusside<br/>og abonnenter"]
     public --> owners["Hændelsens ejere"]
     private --> owners
     public --> feed["Hændelse Feed"]

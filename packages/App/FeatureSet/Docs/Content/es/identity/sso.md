@@ -21,13 +21,13 @@ sequenceDiagram
     actor U as Persona
     participant O as OneUptime
     participant I as Proveedor de identidad
-    U->>O: Iniciar sesión con SSO, elegir el proyecto
-    O->>I: Solicitud SAML a la URL de inicio de sesión
+    U->>O: Iniciar sesión con<br/>SSO, elegir el proyecto
+    O->>I: Solicitud SAML a la<br/>URL de inicio de sesión
     I->>U: Página de inicio de sesión
     U->>I: Credenciales y MFA
-    I->>O: Aserción firmada a la URL de respuesta
-    Note over O: Comprueba la firma y el emisor,<br/>lee el correo del Name ID
-    O->>U: Sesión iniciada en el proyecto
+    I->>O: Aserción firmada a<br/>la URL de respuesta
+    Note over O: Comprueba la<br/>firma y el emisor,<br/>lee el correo del Name ID
+    O->>U: Sesión iniciada<br/>en el proyecto
 ```
 
 OneUptime solo lee unas pocas cosas de la aserción que envía tu IdP:

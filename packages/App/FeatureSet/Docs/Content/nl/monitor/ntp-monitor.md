@@ -19,8 +19,8 @@ sequenceDiagram
     participant S as NTP-server
     Note over P: T1: sonde verstuurt
     P->>S: Clientverzoek
-    Note over S: T2: server ontvangt, T3: server antwoordt
-    S-->>P: Antwoord: stratum, schrikkelsecondeaanduiding, referentie, T2, T3
+    Note over S: T2: server ontvangt,<br/>T3: server antwoordt
+    S-->>P: Antwoord: stratum,<br/>schrikkelsecondeaanduiding,<br/>referentie, T2, T3
     Note over P: T4: sonde ontvangt
 ```
 
