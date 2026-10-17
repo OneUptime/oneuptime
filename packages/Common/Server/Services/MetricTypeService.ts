@@ -330,26 +330,8 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    /*
-     * Identifiers come from entity metadata, never from the caller, and every
-     * value is bound as a parameter — the same rule the other raw-SQL paths in
-     * DatabaseService follow.
-     */
-    const relation: RelationMetadata | undefined =
-      this.getRepository().metadata.findRelationWithPropertyPath("services");
-
-    const junction: string | undefined =
-      relation?.junctionEntityMetadata?.tableName;
-    const metricTypeColumn: string | undefined =
-      relation?.junctionEntityMetadata?.columns[0]?.databaseName;
-    const serviceColumn: string | undefined =
-      relation?.junctionEntityMetadata?.columns[1]?.databaseName;
-
-    if (!junction || !metricTypeColumn || !serviceColumn) {
-      throw new BadDataException(
-        "MetricTypeService.attachServices: the services relation has no junction metadata",
-      );
-    }
+    const { junction, metricTypeColumn, serviceColumn } =
+      this.getServicesJunction("attachServices");
 
     /*
      * Deduplicate and SORT. Concurrent statements that insert overlapping sets
@@ -369,6 +351,81 @@ export class Service extends ProjectReferencesService<Model> {
         `SELECT $1, unnest($2::uuid[]) ON CONFLICT DO NOTHING`,
       [data.metricTypeId.toString(), serviceIds],
     );
+  }
+
+  /*
+   * Which of the given services are already associated with the metric type.
+   *
+   * The ingest reconcile only ever needs to know about the services in ITS
+   * batch. It used to find out by loading the metric type's whole `services`
+   * relation — one entity per service that has EVER emitted the metric, on
+   * every pass through the fence. Hosts that give each cron run a uniquely
+   * named container add thousands of services a day to the container metrics,
+   * and that read alone was enough to saturate the ingest workers. This asks
+   * the junction about the given services only, through its primary key.
+   */
+  @CaptureSpan()
+  public async findAttachedServiceIds(data: {
+    metricTypeId: ObjectID;
+    serviceIds: Array<ObjectID>;
+  }): Promise<Set<string>> {
+    if (!data.metricTypeId) {
+      throw new BadDataException("metricTypeId is required");
+    }
+
+    if (!data.serviceIds || data.serviceIds.length === 0) {
+      return new Set<string>();
+    }
+
+    const { junction, metricTypeColumn, serviceColumn } =
+      this.getServicesJunction("findAttachedServiceIds");
+
+    const rows: Array<{ serviceId: string }> =
+      await this.getRepository().manager.query(
+        `SELECT "${serviceColumn}" AS "serviceId" FROM "${junction}" ` +
+          `WHERE "${metricTypeColumn}" = $1 AND "${serviceColumn}" = ANY($2::uuid[])`,
+        [
+          data.metricTypeId.toString(),
+          data.serviceIds.map((id: ObjectID) => {
+            return id.toString();
+          }),
+        ],
+      );
+
+    return new Set<string>(
+      rows.map((row: { serviceId: string }) => {
+        return row.serviceId;
+      }),
+    );
+  }
+
+  /*
+   * Identifiers come from entity metadata, never from the caller, and every
+   * value is bound as a parameter — the same rule the other raw-SQL paths in
+   * DatabaseService follow.
+   */
+  private getServicesJunction(caller: string): {
+    junction: string;
+    metricTypeColumn: string;
+    serviceColumn: string;
+  } {
+    const relation: RelationMetadata | undefined =
+      this.getRepository().metadata.findRelationWithPropertyPath("services");
+
+    const junction: string | undefined =
+      relation?.junctionEntityMetadata?.tableName;
+    const metricTypeColumn: string | undefined =
+      relation?.junctionEntityMetadata?.columns[0]?.databaseName;
+    const serviceColumn: string | undefined =
+      relation?.junctionEntityMetadata?.columns[1]?.databaseName;
+
+    if (!junction || !metricTypeColumn || !serviceColumn) {
+      throw new BadDataException(
+        `MetricTypeService.${caller}: the services relation has no junction metadata`,
+      );
+    }
+
+    return { junction, metricTypeColumn, serviceColumn };
   }
 }
 

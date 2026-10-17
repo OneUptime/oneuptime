@@ -44,41 +44,50 @@ interface CapturedQuery {
   params: Array<unknown>;
 }
 
+/** Fakes the repository: captures every statement and answers with `rows`. */
+function fakeRepository(
+  captured: Array<CapturedQuery>,
+  rows: () => Array<unknown>,
+): void {
+  getJestSpyOn(MetricTypeService, "getRepository").mockReturnValue({
+    metadata: {
+      findRelationWithPropertyPath: (path: string) => {
+        if (path !== "services") {
+          return undefined;
+        }
+        return {
+          junctionEntityMetadata: {
+            tableName: "MetricTypeService",
+            columns: [
+              { databaseName: "metricTypeId" },
+              { databaseName: "serviceId" },
+            ],
+          },
+        };
+      },
+    },
+    manager: {
+      query: async (
+        sql: string,
+        params: Array<unknown>,
+      ): Promise<Array<unknown>> => {
+        captured.push({ sql, params });
+        return rows();
+      },
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
+}
+
 describe("MetricTypeService.attachServices", () => {
   let captured: Array<CapturedQuery>;
 
   beforeEach(() => {
     jest.restoreAllMocks();
     captured = [];
-
-    getJestSpyOn(MetricTypeService, "getRepository").mockReturnValue({
-      metadata: {
-        findRelationWithPropertyPath: (path: string) => {
-          if (path !== "services") {
-            return undefined;
-          }
-          return {
-            junctionEntityMetadata: {
-              tableName: "MetricTypeService",
-              columns: [
-                { databaseName: "metricTypeId" },
-                { databaseName: "serviceId" },
-              ],
-            },
-          };
-        },
-      },
-      manager: {
-        query: async (
-          sql: string,
-          params: Array<unknown>,
-        ): Promise<Array<unknown>> => {
-          captured.push({ sql, params });
-          return [];
-        },
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    fakeRepository(captured, () => {
+      return [];
+    });
   });
 
   it("writes the associations in one statement", async () => {
@@ -214,6 +223,96 @@ describe("MetricTypeService.attachServices", () => {
 
     await expect(
       MetricTypeService.attachServices({
+        metricTypeId: METRIC_TYPE_ID,
+        serviceIds: [SERVICE_A],
+      }),
+    ).rejects.toThrow(BadDataException);
+  });
+});
+
+/*
+ * Pins the read the ingest reconcile uses instead of loading the whole
+ * `services` relation: it may only ask about the services it is given, and it
+ * may only read.
+ */
+describe("MetricTypeService.findAttachedServiceIds", () => {
+  let captured: Array<CapturedQuery>;
+  let stored: Array<{ serviceId: string }>;
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    captured = [];
+    stored = [];
+    fakeRepository(captured, () => {
+      return stored;
+    });
+  });
+
+  it("asks about the given services only, in one read through the junction key", async () => {
+    await MetricTypeService.findAttachedServiceIds({
+      metricTypeId: METRIC_TYPE_ID,
+      serviceIds: [SERVICE_A, SERVICE_B],
+    });
+
+    expect(captured).toHaveLength(1);
+    expect(captured[0]!.sql).toContain(`FROM "MetricTypeService"`);
+    expect(captured[0]!.sql).toContain(
+      `WHERE "metricTypeId" = $1 AND "serviceId" = ANY($2::uuid[])`,
+    );
+    expect(captured[0]!.params).toEqual([
+      METRIC_TYPE_ID.toString(),
+      [SERVICE_A.toString(), SERVICE_B.toString()],
+    ]);
+    expect(captured[0]!.sql).not.toContain(METRIC_TYPE_ID.toString());
+  });
+
+  it("returns the ids that are already associated", async () => {
+    stored = [{ serviceId: SERVICE_A.toString() }];
+
+    const attached: Set<string> =
+      await MetricTypeService.findAttachedServiceIds({
+        metricTypeId: METRIC_TYPE_ID,
+        serviceIds: [SERVICE_A, SERVICE_B],
+      });
+
+    expect(Array.from(attached)).toEqual([SERVICE_A.toString()]);
+  });
+
+  it("only ever reads", async () => {
+    await MetricTypeService.findAttachedServiceIds({
+      metricTypeId: METRIC_TYPE_ID,
+      serviceIds: [SERVICE_A],
+    });
+
+    const sql: string = captured[0]!.sql.toUpperCase();
+    expect(sql).not.toContain("INSERT");
+    expect(sql).not.toContain("UPDATE");
+    expect(sql).not.toContain("DELETE");
+  });
+
+  it("issues nothing for an empty set", async () => {
+    const attached: Set<string> =
+      await MetricTypeService.findAttachedServiceIds({
+        metricTypeId: METRIC_TYPE_ID,
+        serviceIds: [],
+      });
+
+    expect(captured).toHaveLength(0);
+    expect(attached.size).toBe(0);
+  });
+
+  it("fails loudly if the relation metadata is missing rather than guessing", async () => {
+    getJestSpyOn(MetricTypeService, "getRepository").mockReturnValue({
+      metadata: {
+        findRelationWithPropertyPath: () => {
+          return undefined;
+        },
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    await expect(
+      MetricTypeService.findAttachedServiceIds({
         metricTypeId: METRIC_TYPE_ID,
         serviceIds: [SERVICE_A],
       }),
