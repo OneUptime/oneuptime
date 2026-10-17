@@ -364,7 +364,7 @@ video {
   --tw-backdrop-invert: ;
   --tw-backdrop-opacity: ;
   --tw-backdrop-saturate: ;
-  --tw-backdrop-sepia: 
+  --tw-backdrop-sepia:  
 ;
 }
 
@@ -415,7 +415,7 @@ video {
   --tw-backdrop-invert: ;
   --tw-backdrop-opacity: ;
   --tw-backdrop-saturate: ;
-  --tw-backdrop-sepia: 
+  --tw-backdrop-sepia:  
 ;
 }
 
@@ -5109,6 +5109,17 @@ html.docs-js .docs-tabs__panel:not(.is-active) {
 }
 .docs-details[open] > .docs-details__summary::before {
   transform: rotate(45deg);
+}
+/*
+ * The title is the summary's one flex item beside the marker, so its words
+ * and inline code wrap as a paragraph; min-width: 0 lets it shrink below its
+ * longest word, and a code span longer than the line breaks rather than
+ * pushing a phone-width page sideways.
+ */
+.docs-details__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .docs-details__summary:hover {
   color: var(--docs-accent-text);
