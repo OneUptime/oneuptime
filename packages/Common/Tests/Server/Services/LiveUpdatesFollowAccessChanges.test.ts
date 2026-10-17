@@ -322,9 +322,9 @@ describe("live updates follow every change of access", () => {
         OTHER_USER,
         OTHER_SESSION,
       );
-      const forgetBlockedStatus: jest.SpyInstance = jest.spyOn(
+      const forgetAccountStanding: jest.SpyInstance = jest.spyOn(
         UserService,
-        "forgetBlockedStatus",
+        "forgetAccountStanding",
       );
 
       await RealtimeReaders.getReader(
@@ -355,7 +355,7 @@ describe("live updates follow every change of access", () => {
       expect(blockedTab.hearsLiveUpdates()).toBe(false);
       expect(someoneElse.hearsLiveUpdates()).toBe(true);
       expect(RealtimeReaders.size()).toBe(0);
-      expect(forgetBlockedStatus).toHaveBeenCalledWith(USER);
+      expect(forgetAccountStanding).toHaveBeenCalledWith(USER);
     });
 
     test("an unblock forgets whether they are blocked, and ends nothing", async () => {

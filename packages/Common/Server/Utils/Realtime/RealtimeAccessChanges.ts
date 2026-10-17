@@ -14,11 +14,12 @@ import ObjectID from "../../../Types/ObjectID";
  *
  * Each server keeps, for the people listening to it, who they are in each
  * project (RealtimeReaders, for 30 seconds), and the per-server answers
- * those are built from: whether they are blocked (UserService, for a
- * minute) and their teams in a project (TeamMemberService, for a minute).
- * A change made on one server used to reach the others only when those ran
- * out, and the server a person's socket is connected to is often not the
- * one that made the change.
+ * those are built from: whether they are blocked or a master admin
+ * (UserService, for a minute - every API request asks it too) and their
+ * teams in a project (TeamMemberService, for a minute). A change made on
+ * one server used to reach the others only when those ran out, and the
+ * server a person's socket is connected to is often not the one that made
+ * the change.
  *
  * So the change is announced: the server that makes it applies it to
  * itself at once and publishes it on a Valkey channel every server
@@ -414,7 +415,8 @@ export default class RealtimeAccessChanges {
         }
 
         case RealtimeAccessChangeKind.AccountChanged: {
-          RealtimeAccessChanges.getUserService().forgetBlockedStatus(
+          // Whether they are blocked or a master admin, for every API request too.
+          RealtimeAccessChanges.getUserService().forgetAccountStanding(
             new ObjectID(change.userId),
           );
           RealtimeReaders.forgetUser(change.userId);

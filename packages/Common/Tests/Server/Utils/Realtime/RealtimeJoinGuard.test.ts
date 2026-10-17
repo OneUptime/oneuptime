@@ -131,6 +131,7 @@ describe("the realtime join runs the API's own checks", () => {
       "getSsoTokens",
       "getGlobalSsoTokenData",
       "isUserBlocked",
+      "isUserMasterAdmin",
       "requireSsoForLogin",
       "ProjectService",
       "GlobalConfigService",
@@ -449,6 +450,10 @@ describe("for the same handshake, the join answers as the API does", () => {
   beforeEach(() => {
     (UserService.isUserBlocked as unknown as jest.Mock).mockResolvedValue(
       false,
+    );
+    // A handshake that says master admin is one whose person still is one.
+    (UserService.isUserMasterAdmin as unknown as jest.Mock).mockResolvedValue(
+      true,
     );
     (
       AccessTokenService.getUserTenantAccessPermission as unknown as jest.Mock

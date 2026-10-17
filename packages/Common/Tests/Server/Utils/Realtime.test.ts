@@ -318,6 +318,8 @@ const instanceRequiresSso: jest.Mock =
   GlobalConfigService.getRequireSsoForLogin as unknown as jest.Mock;
 const userBlocked: jest.Mock =
   UserService.isUserBlocked as unknown as jest.Mock;
+const userIsMasterAdmin: jest.Mock =
+  UserService.isUserMasterAdmin as unknown as jest.Mock;
 const samlProviderStanding: jest.Mock =
   ProjectSsoService.getSignInStanding as unknown as jest.Mock;
 const oidcProviderStanding: jest.Mock =
@@ -428,6 +430,9 @@ describe("Realtime (server) ListenToModelEvent", () => {
     instanceRequiresSso.mockResolvedValue(false);
     userBlocked.mockReset();
     userBlocked.mockResolvedValue(false);
+    // A handshake that says master admin is one whose person still is one.
+    userIsMasterAdmin.mockReset();
+    userIsMasterAdmin.mockResolvedValue(true);
     providersOn = [SSO_PROVIDER_ID, OTHER_SSO_PROVIDER_ID];
     samlProviderStanding.mockReset();
     samlProviderStanding.mockImplementation(providerStanding);

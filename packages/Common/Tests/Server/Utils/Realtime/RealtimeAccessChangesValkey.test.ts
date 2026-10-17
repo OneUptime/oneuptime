@@ -39,7 +39,7 @@ jest.mock("../../../../Server/Services/UserService", () => {
   return {
     __esModule: true,
     default: {
-      forgetBlockedStatus: jest.fn(),
+      forgetAccountStanding: jest.fn(),
     },
   };
 });
