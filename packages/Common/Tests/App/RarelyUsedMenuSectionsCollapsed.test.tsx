@@ -595,7 +595,6 @@ describe("the Incidents menu, as the maintainer drew it", () => {
       { title: "Episodes", expanded: true },
       { title: "AI", expanded: false },
       { title: "Workspace", expanded: false },
-      { title: "Integrations", expanded: false },
       { title: "Rules", expanded: false },
       { title: "Settings", expanded: false },
       { title: "Developer", expanded: false },

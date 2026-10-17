@@ -20,6 +20,7 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "../../../../Models/DatabaseModels/IncidentTemplate";
 import Label from "../../../../Models/DatabaseModels/Label";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
@@ -283,6 +284,28 @@ describe("the list a setting picked from the project's records offers", () => {
     expect(source?.excludesCurrentWorkflow).toBe(false);
   });
 
+  test("the Huntress trigger's incident severities list the project's incident severities, the most severe first", () => {
+    const source: RecordChoiceSource | null = getRecordChoiceSource(
+      ComponentInputType.IncidentSeveritySelect,
+    );
+
+    expect(source?.modelType).toBe(IncidentSeverity);
+    expect(source?.labelColumn).toBe("name");
+    // The project's own order, as Incidents > Settings > Incident Severity lists them.
+    expect(source?.sortColumn).toBe("order");
+    expect(source?.excludesCurrentWorkflow).toBe(false);
+
+    const huntress: ComponentMetadata = Components.find(
+      (component: ComponentMetadata): boolean => {
+        return component.id === ComponentID.HuntressIncidentReport;
+      },
+    )!;
+
+    expect(getRecordChoiceTypes(huntress.arguments)).toEqual([
+      ComponentInputType.IncidentSeveritySelect,
+    ]);
+  });
+
   test("the other two are in the order of their names", () => {
     for (const type of [
       ComponentInputType.IncidentTemplateSelect,
@@ -297,7 +320,8 @@ describe("the list a setting picked from the project's records offers", () => {
       if (
         type === ComponentInputType.IncidentTemplateSelect ||
         type === ComponentInputType.WorkflowSelect ||
-        type === ComponentInputType.AlertSeveritySelect
+        type === ComponentInputType.AlertSeveritySelect ||
+        type === ComponentInputType.IncidentSeveritySelect
       ) {
         continue;
       }

@@ -223,14 +223,14 @@ En tilstandsendring kan gi abonnentene på statussiden din beskjed, men den går
 
 ```mermaid title="Når en tilstandsendring frem til abonnentene?"
 flowchart TB
-    change["Tilstandsendring lagret"] --> box{"Varselboksen slått på?"}
+    change["Tilstandsendring<br/>lagret"] --> box{"Varselboksen<br/>slått på?"}
     box -->|Nei| skipped["Hoppet over"]
-    box -->|Ja| note{"Offentlig notat med?"}
-    note -->|Ja| carried["Notatet er meldingen"]
+    box -->|Ja| note{"Offentlig<br/>notat med?"}
+    note -->|Ja| carried["Notatet er<br/>meldingen"]
     note -->|Nei| queued["Rad satt i kø"]
-    queued --> gates{"Gjennom alle portene?"}
-    gates -->|Nei| reason["Hoppet over, årsak registrert"]
-    gates -->|Ja| sent["Abonnentene har fått beskjed"]
+    queued --> gates{"Gjennom alle<br/>portene?"}
+    gates -->|Nei| reason["Hoppet<br/>over, årsak<br/>registrert"]
+    gates -->|Ja| sent["Abonnentene<br/>har fått<br/>beskjed"]
 ```
 
 Varsling bestilles per tidslinjerad med **Varsle statussideabonnenter** (`shouldStatusPageSubscribersBeNotified`), avkrysningsboksen i dialogen for tilstandsendringer og på det manuelle tidslinjeskjemaet. I dialogen for tilstandsendringer starter den slått av når hendelsen ble erklært uten å gi abonnentene beskjed. Den samme avkrysningsboksen avgjør også om dialogens offentlige notat gir noen beskjed. Når den er slått av, lagres raden med status hoppet over og en forklaring. Når den er slått på, settes raden i kø, og en bakgrunnsjobb plukker den opp — jobben kjører hvert minutt, så leveringen er rask, men ikke umiddelbar.

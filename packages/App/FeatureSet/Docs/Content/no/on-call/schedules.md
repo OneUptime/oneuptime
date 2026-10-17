@@ -27,7 +27,7 @@ Når du oppretter en vaktplan på siden **Vaktplaner**, spør skjemaet om **Navn
 Personene bytter på én om gangen, og den første har vakt så snart vaktplanen er opprettet:
 
 ```mermaid title="Layer 1 med tre personer og vakter på 1 uke"
-flowchart LR
+flowchart TB
     alice["Alice<br/>uke 1"] -->|"overlevering"| bob["Bob<br/>uke 2"]
     bob -->|"overlevering"| carol["Carol<br/>uke 3"]
     carol -->|"tilbake til den første"| alice

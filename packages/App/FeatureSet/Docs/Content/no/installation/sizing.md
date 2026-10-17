@@ -30,8 +30,8 @@ OneUptime trenger tre datalagre i produksjon. Hvert vokser med noe forskjellig, 
 
 ```mermaid title="Hva hvert datalager vokser med"
 flowchart TB
-    Tel["Logger, metrikker, traces"] -->|"inntakshastighet × oppbevaring"| CH[("ClickHouse")]
-    State["Monitorer, hendelser, brukere"] -->|"antall objekter og historikk"| PG[("PostgreSQL")]
+    Tel["Logger,<br/>metrikker,<br/>traces"] -->|"inntakshastighet<br/>× oppbevaring"| CH[("ClickHouse")]
+    State["Monitorer,<br/>hendelser,<br/>brukere"] -->|"antall<br/>objekter og<br/>historikk"| PG[("PostgreSQL")]
     Work["Køer, cache, økter"] -->|"kødybde"| VK[("Valkey")]
 ```
 

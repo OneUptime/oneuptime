@@ -23,10 +23,10 @@ Les fonctionnalités d'IA utilisent le fournisseur par défaut du projet. Un pro
 
 ```mermaid title="Quel fournisseur une fonctionnalité d'IA utilise"
 flowchart TB
-    F["Une fonctionnalité d'IA<br/>a besoin d'un modèle"] --> D{"Le projet a-t-il<br/>un fournisseur<br/>par défaut ?"}
-    D -->|"oui"| P["Le fournisseur<br/>par défaut du projet"]
-    D -->|"non"| G{"Y a-t-il un<br/>fournisseur global ?"}
-    G -->|"oui"| GP["Le fournisseur global :<br/>crédits IA sur<br/>OneUptime Cloud"]
+    F["Une fonctionnalité d'IA<br/>a besoin<br/>d'un modèle"] --> D{"Le projet a-t-il<br/>un fournisseur<br/>par défaut ?"}
+    D -->|"oui"| P["Le fournisseur<br/>par défaut<br/>du projet"]
+    D -->|"non"| G{"Y a-t-il un<br/>fournisseur<br/>global ?"}
+    G -->|"oui"| GP["Le fournisseur<br/>global :<br/>crédits IA sur<br/>OneUptime Cloud"]
     G -->|"non"| N["Rien ne s'exécute,<br/>et les pages d'IA<br/>signalent qu'un<br/>fournisseur manque"]
 ```
 

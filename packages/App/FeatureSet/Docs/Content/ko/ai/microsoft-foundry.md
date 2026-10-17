@@ -16,12 +16,12 @@ OneUptime은 사용자의 브라우저가 아니라 OneUptime 서버에서 HTTPS
 ```mermaid title="OneUptime의 AI 요청이 가는 곳"
 flowchart TB
     subgraph OU["OneUptime 서버"]
-        F["AI 조사, 메모, 포스트모템, 수정 작업"]
+        F["AI 조사, 메모,<br/>포스트모템, 수정 작업"]
     end
     subgraph AZ["사용자의 Azure 구독"]
         R["Foundry 리소스 contoso-ai"]
-        V1["OpenAI v1 API: /openai/v1/chat/completions"]
-        AN["Anthropic API: /anthropic/v1/messages"]
+        V1["OpenAI v1 API:<br/>/openai/v1/chat/completions"]
+        AN["Anthropic API:<br/>/anthropic/v1/messages"]
         D1["배포 gpt-5.1"]
         D2["배포 claude-sonnet-5-5"]
     end

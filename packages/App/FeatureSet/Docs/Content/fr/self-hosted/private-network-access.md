@@ -15,19 +15,19 @@ Cette page explique comment l'autoriser, délibérément et de façon restreinte
 | **Moniteurs** API, Website, External Status Page et Custom JavaScript Code | L'environnement propre de la **sonde** | Adresses privées refusées |
 
 ```mermaid title="Trois interrupteurs, chacun pour son type de connexion"
-flowchart TB
+flowchart LR
     subgraph Server["Le serveur OneUptime"]
         direction TB
-        Webhooks["Workflows et webhooks"]
-        Outbound["Sources de données, fournisseurs de LLM,<br/>SMTP et autres connexions"]
+        Webhooks["Workflows<br/>et webhooks"]
+        Outbound["Sources de<br/>données,<br/>fournisseurs<br/>de LLM,<br/>SMTP et autres<br/>connexions"]
     end
     subgraph Probe["Chaque sonde"]
-        Monitors["Moniteurs API, Website,<br/>External Status Page et<br/>Custom JavaScript Code"]
+        Monitors["Moniteurs<br/>API, Website,<br/>External<br/>Status Page et<br/>Custom<br/>JavaScript Code"]
     end
     Private["Votre réseau privé"]
-    Webhooks -->|"désactivé par défaut"| Private
-    Outbound -->|"activé par défaut"| Private
-    Monitors -->|"désactivé par défaut"| Private
+    Webhooks -->|"désactivé<br/>par défaut"| Private
+    Outbound -->|"activé<br/>par défaut"| Private
+    Monitors -->|"désactivé<br/>par défaut"| Private
 ```
 
 Les types de moniteurs natifs du réseau, comme Ping, Port, Certificat SSL, DNS, DNSSEC, SNMP / Équipement réseau, Requête SQL, Santé de base de données, Synthetic et Network Path, utilisent leurs propres transports. Le réglage de cette page régit les transports HTTP qui renvoient un contenu de réponse arbitraire à un projet : les moniteurs API, Website, External Status Page et Custom JavaScript Code.

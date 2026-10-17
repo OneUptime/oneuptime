@@ -28,14 +28,14 @@ stateDiagram-v2
     state "Exécuté" as Executed
     state "Erreur" as Failed
     state "Timeout" as TimedOut
-    [*] --> Scheduled: le déclencheur se produit
-    Scheduled --> Running: un moteur d'exécution la prend en charge
-    Scheduled --> Failed: pas prise en charge en 5 minutes
+    [*] --> Scheduled: le déclencheur<br/>se produit
+    Scheduled --> Running: un moteur<br/>d'exécution<br/>la prend<br/>en charge
+    Scheduled --> Failed: pas prise<br/>en charge<br/>en 5 minutes
     Running --> Waiting: un bloc Sleep
-    Waiting --> Running: le temps est écoulé
-    Running --> Executed: elle est allée jusqu'au bout
-    Running --> Failed: un bloc a arrêté l'exécution
-    Running --> TimedOut: elle a manqué de temps
+    Waiting --> Running: le temps<br/>est écoulé
+    Running --> Executed: elle est allée<br/>jusqu'au bout
+    Running --> Failed: un bloc<br/>a arrêté<br/>l'exécution
+    Running --> TimedOut: elle a manqué<br/>de temps
     Executed --> [*]
     Failed --> [*]
     TimedOut --> [*]

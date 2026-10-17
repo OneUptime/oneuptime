@@ -7,6 +7,8 @@ En incident är posten ditt team arbetar utifrån när något går sönder: vad 
 - [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities): Livscykeln, och vad bekräftelse och lösning gör.
 - [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-feed): Uppdateringar till kunder och till ditt team, och vem som får höra om dem.
 - [Länkade larm](/docs/incidents/linked-alerts): Knyt larmen som ett avbrott utlöste till incidenten som förklarar dem.
+- [Episoder](/docs/incidents/episodes): Samla relaterade incidenter och arbeta med dem som en.
+- [Efteranalyser](/docs/incidents/postmortems): Skriv ner vad som hände och publicera det på din statussida.
 - [Incidentinställningar och automatisering](/docs/incidents/settings): Mallar, anpassade fält, roller, mätningar och regler.
 :::
 
@@ -34,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Formulär"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Ny incident"]
     incident --> rules["Incidentregler körs"]
-    rules --> oncall["Jourpolicyer larmar"]
+    rules --> oncall["Jourpolicyer<br/>larmar"]
     rules --> owners["Ägarna meddelas"]
-    rules --> pages["Statussidor uppdateras"]
+    rules --> pages["Statussidor<br/>uppdateras"]
     oncall --> feed["Incident Flöde"]
     owners --> feed
     pages --> feed
@@ -56,7 +60,7 @@ Fem vägar leder till samma objekt:
 - **Via API:t** — `POST /api/incident` med en API-nyckel. Servern fyller i `declaredAt`, skapandetillståndet och incidentnumret åt dig.
 - **Via ett formulär** — någon utanför ditt team fyller i ett formulär som du har delat som en länk, utan ett OneUptime-konto. Incidenten deklareras dold för statussidor, från formulärets incidentmall om det har en. Se [Formulär](/docs/forms/index).
 
-Integrationer öppnar också incidenter: [Huntress](/docs/integrations/huntress) gör varje incidentrapport som dess SOC skickar till en incident, som larmar de jourpolicyer du väljer. Se [Deklarera en incident](/docs/incidents/declaring-incidents) för genomgången fält för fält.
+Arbetsflöden öppnar också incidenter: arbetsflödet för [Huntress](/docs/integrations/huntress) gör varje incidentrapport som dess SOC skickar till en incident, som larmar den jourpolicy du väljer. Se [Deklarera en incident](/docs/incidents/declaring-incidents) för genomgången fält för fält.
 
 ### 2. Rätt personer får veta
 
@@ -77,7 +81,7 @@ De som ingriper bekräftar incidenten, lägger till berörda resurser, länkar l
 
 Ett klick på **Lös** flyttar incidenten till det lösta tillståndet, registrerar det i tillståndstidslinjen, stoppar varaktighetsklockan, släpper monitorerna den håller och tar bort incidenten från den aktiva delen av varje statussida den visades på. Inget annat behöver ändras för det — en statussida visar bara incidenter i ett tillstånd ovanför det lösta tillståndet. Se [Vad lösning gör](/docs/incidents/states-and-severities#vad-lösning-gör).
 
-Därefter kan du skriva en efteranalys och, om du vill, publicera den på statussidan.
+Därefter kan du skriva en [efteranalys](/docs/incidents/postmortems) och, om du vill, publicera den på statussidan.
 
 ## Nyckelbegrepp
 
@@ -103,7 +107,7 @@ När ett projekt skapas, skapar OneUptime exakt tre incidenttillstånd, i den h�
 
 ```mermaid title="Tillstånden som varje nytt projekt börjar med"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: deklarerad
     Identified --> Acknowledged: Bekräfta
     Identified --> Resolved: Lös
@@ -156,11 +160,10 @@ Redigera eller lägg till allvarlighetsgrader under **Incidenter → Inställnin
 | **Episoder**  | Incidentepisoder, en separat grupperingsfunktion med egna sidor.                                                                                                          |
 | **AI**        | **Insikter**, **Loggar**, **Inställningar**: vad OneUptime AI har lärt sig av dina incidenter och allt den har gjort för dem, och vad den får göra på egen hand — med reglerna för vilka incidenter den utreder och åtgärdar. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbetsyta** | Chattarbetsytorna som projektet har anslutit: **Slack**, **Microsoft Teams** eller båda, var och en med sina aviseringsregler för incidenter. Är ingen av dem ansluten innehåller den **Anslut Slack eller Teams**, en sida som visar båda och hur de ansluts. |
-| **Integrationer** | Verktyg som själva öppnar incidenter: **Huntress**, vars incidentrapporter blir incidenter som larmar jouren. Se [Huntress](/docs/integrations/huntress). |
 | **Regler**    | Regelmotorerna: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
 | **Inställningar** | **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Anpassade fält**, **Incidentroller**, **Mätningar**, **Länkade larm**, **Medlemskap i episoder**, **Numrering**. |
 
-**Översikt** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Integrationer**, **Regler**, **Inställningar** och **Utvecklare** är hopfällda som standard, så att menyn öppnas på listorna du använder varje dag. Klicka på ett avsnitts titel för att fälla ut det och hitta sidorna som resten av den här dokumentationen hänvisar till; ett avsnitt öppnas också av sig självt när du är på någon av dess sidor. Konfigurationen av incidenter finns inte under projektinställningarna; den finns helt här.
+**Översikt** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** är hopfällda som standard, så att menyn öppnas på listorna du använder varje dag. Klicka på ett avsnitts titel för att fälla ut det och hitta sidorna som resten av den här dokumentationen hänvisar till; ett avsnitt öppnas också av sig självt när du är på någon av dess sidor. Konfigurationen av incidenter finns inte under projektinställningarna; den finns helt här.
 
 Själva listan över incidenter visar **Incidentnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser**, **Deklarerad**, **Varaktighet**, **Etiketter** och **Ägare**, med en massåtgärd **Ändra tillstånd** för att stänga flera på en gång.
 

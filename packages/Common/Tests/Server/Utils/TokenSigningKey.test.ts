@@ -6,6 +6,7 @@ import {
   setEncryptionSecret,
 } from "../TestingUtils/ShippedEncryptionSecrets";
 import { JSONObject } from "../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
@@ -46,6 +47,7 @@ interface Installation {
 
 const HEX_KEY: RegExp = /^[0-9a-f]{64}$/;
 
+// A master admin's session, saying it is one as every session does.
 const SESSION_CLAIMS: Record<string, unknown> = {
   userId: "11111111-1111-4111-8111-111111111111",
   email: "admin@example.com",
@@ -53,6 +55,7 @@ const SESSION_CLAIMS: Record<string, unknown> = {
   isMasterAdmin: true,
   isGlobalLogin: true,
   sessionId: "22222222-2222-4222-8222-222222222222",
+  purpose: JsonWebTokenPurpose.UserSession,
 };
 
 async function installation(
@@ -83,7 +86,7 @@ function signSession(key: string): string {
 
 function verifies(server: Installation, token: string): boolean {
   try {
-    server.JSONWebToken.decode(token);
+    server.JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession);
     return true;
   } catch {
     return false;
@@ -107,15 +110,16 @@ describe("an installation whose operator set ENCRYPTION_SECRET", () => {
     expect(server.TokenSigningKey.get()).toBe(OPERATOR_ENCRYPTION_SECRET);
   });
 
-  test("still accepts a session it signed before the upgrade, so nobody is signed out", async () => {
+  test("still accepts a session signed with that secret, as every release signed them, so nobody is signed out", async () => {
     const server: Installation = await installation(OPERATOR_ENCRYPTION_SECRET);
 
-    const issuedBeforeTheUpgrade: string = signSession(
-      OPERATOR_ENCRYPTION_SECRET,
-    );
+    const signedWithTheSecret: string = signSession(OPERATOR_ENCRYPTION_SECRET);
 
     expect(
-      server.JSONWebToken.decode(issuedBeforeTheUpgrade).isMasterAdmin,
+      server.JSONWebToken.decode(
+        signedWithTheSecret,
+        JsonWebTokenPurpose.UserSession,
+      ).isMasterAdmin,
     ).toBe(true);
   });
 
@@ -183,9 +187,12 @@ describe.each(OPERATOR_SECRET_SHAPES)(
     test("still accepts what an earlier release signed with it, and derives the same per-purpose keys", async () => {
       const server: Installation = await installation(value);
 
-      expect(server.JSONWebToken.decode(signSession(value)).isMasterAdmin).toBe(
-        true,
-      );
+      expect(
+        server.JSONWebToken.decode(
+          signSession(value),
+          JsonWebTokenPurpose.UserSession,
+        ).isMasterAdmin,
+      ).toBe(true);
 
       for (const label of [
         "oneuptime:mcp:oauth:authorization-request:v1",
@@ -280,7 +287,10 @@ describe.each(SHIPPED_ENCRYPTION_SECRETS)(
         15 * 60,
       );
 
-      expect(server.JSONWebToken.decode(token).isMasterAdmin).toBe(true);
+      expect(
+        server.JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession)
+          .isMasterAdmin,
+      ).toBe(true);
     });
 
     test("derives no per-purpose key from the configured value", async () => {
@@ -328,7 +338,7 @@ describe("processes of an installation whose ENCRYPTION_SECRET is shipped", () =
     expect(first.TokenSigningKey.get()).not.toBe(second.TokenSigningKey.get());
 
     const token: string = first.JSONWebToken.signJsonPayload(
-      { userId: "u", email: "a@example.com" },
+      SESSION_CLAIMS as JSONObject,
       60,
     );
 
@@ -350,11 +360,11 @@ describe("processes of an installation whose ENCRYPTION_SECRET is shipped", () =
     second.TokenSigningKey.useInstallationKey(installationKey);
 
     const fromFirst: string = first.JSONWebToken.signJsonPayload(
-      { userId: "u", email: "a@example.com" },
+      SESSION_CLAIMS as JSONObject,
       60,
     );
     const fromSecond: string = second.JSONWebToken.signJsonPayload(
-      { userId: "u", email: "a@example.com" },
+      SESSION_CLAIMS as JSONObject,
       60,
     );
 

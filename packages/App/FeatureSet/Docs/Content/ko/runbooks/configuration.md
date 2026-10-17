@@ -14,24 +14,18 @@
 ```mermaid title="어떤 단계가 어디에서 실행되는지"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["HTTP request 단계"]
-        ai["AI 단계"]
+        onworker["HTTP request 단계<br/>AI 단계"]
     end
     subgraph yours["자체 인프라"]
-        direction LR
         runner["Runner"]
-        scripts["JavaScript와 Bash 단계"]
-        remote["SSH와 Kubernetes 단계"]
+        onrunner["JavaScript와 Bash 단계<br/>SSH와 Kubernetes 단계"]
     end
     person["사람"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual 단계와 승인"| person
-    worker -->|"단계의 Runner를 위한 작업을 큐에 넣음"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual<br/>단계와 승인"| person
+    worker --->|"단계의<br/>Runner를<br/>위한 작업을<br/>큐에 넣음"| runner
+    runner --> onrunner
 ```
 
 | 단계 유형 | 실행 위치 | 방식 |

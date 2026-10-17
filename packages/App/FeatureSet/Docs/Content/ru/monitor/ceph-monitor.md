@@ -22,13 +22,13 @@ flowchart TB
         active["Активный mgr"]
         standby["Резервные mgr"]
     end
-    active -->|"метрики на порту 9283"| agent["Агент Ceph от OneUptime"]
+    active -->|"метрики на<br/>порту 9283"| agent["Агент Ceph<br/>от OneUptime"]
     standby -.->|"после переключения"| agent
-    agent -->|"метрики Ceph по OTLP"| oneuptime["OneUptime"]
-    oneuptime -->|"первые данные"| registered["Кластер зарегистрирован"]
+    agent -->|"метрики<br/>Ceph по OTLP"| oneuptime["OneUptime"]
+    oneuptime -->|"первые данные"| registered["Кластер<br/>зарегистрирован"]
     oneuptime --> monitor["Монитор Ceph"]
     monitor -->|"каждую минуту"| criteria{"Критерии выполнены?"}
-    criteria -->|"да"| incident["Инцидент или оповещение"]
+    criteria -->|"да"| incident["Инцидент или<br/>оповещение"]
     criteria -->|"нет"| online["Монитор в сети"]
 ```
 

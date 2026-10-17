@@ -54,11 +54,11 @@ Een afbeelding in de beschrijving of het bedankbericht van het formulier wordt g
 sequenceDiagram
     participant V as Browser van de bezoeker
     participant O as OneUptime
-    V->>O: Het formulier openen, vanaf zijn eigen pagina
+    V->>O: Het formulier openen,<br/>vanaf zijn eigen pagina
     O-->>V: Vragen, sjablonen en huisstijl
     V->>O: De antwoorden verzenden
-    O->>O: Elke controle hieronder, op volgorde
-    O-->>V: Het nummer van wat er is aangemaakt
+    O->>O: Elke controle<br/>hieronder, op volgorde
+    O-->>V: Het nummer van wat<br/>er is aangemaakt
 ```
 
 Elk verzoek doorloopt deze controles, in deze volgorde:

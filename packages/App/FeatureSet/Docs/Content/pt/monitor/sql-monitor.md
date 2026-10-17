@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonda
     participant D as Seu banco de dados
-    O->>P: Configurações do monitor, segredos resolvidos
-    P->>D: Sua consulta, somente leitura
+    O->>P: Configurações do<br/>monitor, segredos<br/>resolvidos
+    P->>D: Sua consulta,<br/>somente leitura
     D-->>P: Até Max Rows + 1 linhas
-    P->>O: Número de linhas, escalar, primeira linha, tempo, erro
+    P->>O: Número de linhas,<br/>escalar, primeira<br/>linha, tempo, erro
     O->>O: Avaliar os critérios
 ```
 

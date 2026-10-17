@@ -14,7 +14,7 @@ Projektinställningar innehåller det som gäller för hela projektet: namnet, v
 Gå till **Produkter → Inställningar → Projektinställningar**. Sidomenyn grupperar sidorna i avsnitt, och bara **Grundläggande** är öppet från början: klicka på ett avsnitts rubrik för att öppna det. Ett avsnitt öppnas av sig självt på varje sida i det.
 
 ```mermaid title="Vad projektinställningar innehåller"
-flowchart TB
+flowchart LR
     settings["Projektinställningar"] --> project["Projektet: detaljer,<br/>etiketter, importer"]
     settings --> connect["Det det ansluter till:<br/>chatt, telemetri, AI"]
     settings --> access["Vem som kommer in:<br/>nycklar, domäner,<br/>inloggning"]

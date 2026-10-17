@@ -13,10 +13,10 @@ Su OneUptime Cloud, un progetto paga il suo piano, per utente, e ciò che usa: t
 
 ```mermaid title="Che cosa paga un progetto su OneUptime Cloud"
 flowchart TB
-    project["Il tuo progetto"] --> plan["Il piano: un prezzo<br/>per utente al mese"]
-    project --> usage["A consumo:<br/>telemetria e monitor"]
+    project["Il tuo progetto"] --> plan["Il piano:<br/>un prezzo<br/>per utente<br/>al mese"]
+    project --> usage["A consumo:<br/>telemetria<br/>e monitor"]
     project --> balances["Saldi prepagati:<br/>messaggi e IA"]
-    plan --> invoices["Fatture, addebitate sul<br/>tuo metodo di pagamento"]
+    plan --> invoices["Fatture,<br/>addebitate sul<br/>tuo metodo<br/>di pagamento"]
     usage --> invoices
     balances --> recharge["Ricaricati dalla<br/>stessa carta"]
 ```

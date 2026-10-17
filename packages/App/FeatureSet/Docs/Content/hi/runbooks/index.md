@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["रन कैसे शुरू होता है"]
         direction LR
         rule["Runbook नियम"]
-        manual["किसी इवेंट पर Runbook चलाएं"]
-        runnow["Runbook पर Run Now"]
+        manual["किसी इवेंट पर<br/>Runbook चलाएं"]
+        runnow["Runbook<br/>पर Run Now"]
     end
-    rule --> execution["निष्पादन: चरणों का स्नैपशॉट"]
+    rule --> execution["निष्पादन: चरणों<br/>का स्नैपशॉट"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker चरणों को क्रम से लेता है"]
-    worker -->|"Manual चरण या अनुमोदन"| person["किसी व्यक्ति की प्रतीक्षा"]
-    worker -->|"HTTP और AI चरण"| onworker["Worker पर चलते हैं"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["आपके इंफ्रास्ट्रक्चर में Runner"]
-    person --> record["स्थिति, आउटपुट और त्रुटियाँ दर्ज"]
+    execution --> worker["OneUptime Worker<br/>चरणों को<br/>क्रम से लेता है"]
+    worker -->|"Manual चरण<br/>या अनुमोदन"| person["किसी व्यक्ति<br/>की प्रतीक्षा"]
+    worker -->|"HTTP और AI चरण"| onworker["Worker पर<br/>चलते हैं"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["आपके इंफ्रास्ट्रक्चर<br/>में Runner"]
+    person --> record["स्थिति,<br/>आउटपुट और<br/>त्रुटियाँ दर्ज"]
     onworker --> record
     runner --> record
-    record --> history["इवेंट का रनबुक पेज और Runbook के निष्पादन"]
+    record --> history["इवेंट का रनबुक<br/>पेज और Runbook<br/>के निष्पादन"]
 ```
 
 हर रन एक **निष्पादन** होता है। जब यह शुरू होता है, तो Runbook के चरण उस पर कॉपी हो जाते हैं, और OneUptime उन्हें क्रम से पूरा करता है। Manual चरण, या अनुमोदन की ज़रूरत वाला चरण, रन को तब तक रोक देता है जब तक कोई कार्रवाई न करे।

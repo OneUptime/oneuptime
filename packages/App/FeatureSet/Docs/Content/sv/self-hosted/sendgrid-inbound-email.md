@@ -17,12 +17,12 @@ Den här guiden förklarar hur du konfigurerar SendGrid Inbound Parse så att in
 
 ```mermaid title="Så når ett e-postmeddelande en övervakare"
 sequenceDiagram
-    participant Sender as Sändande e-postserver
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as Sändande<br/>e-postserver
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: E-post till övervakarens adress (din MX-post)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Koppla adressen till en övervakare eller ett arbetsflöde
+    Sender->>SendGrid: E-post till<br/>övervakarens<br/>adress (din<br/>MX-post)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: Koppla adressen<br/>till en<br/>övervakare eller<br/>ett arbetsflöde
     OneUptime-->>SendGrid: 200 OK
 ```
 

@@ -18,8 +18,8 @@ sequenceDiagram
     participant P as プローブ
     participant A as あなたの API
     participant O as OneUptime
-    P->>A: 指定したメソッド、ヘッダー、ボディでリクエスト
-    A-->>P: ステータスコード、ヘッダー、ボディ
+    P->>A: 指定したメソッド、<br/>ヘッダー、<br/>ボディでリクエスト
+    A-->>P: ステータスコード、<br/>ヘッダー、ボディ
     Note over P: 失敗、4xx や 5xx、<br/>10 秒より遅い応答を再試行
     P->>O: チェックの結果
     O->>O: 条件を上から順にチェック

@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["启动执行的方式"]
         direction LR
         rule["Runbook 规则"]
-        manual["在事件上运行 Runbook"]
-        runnow["在 Runbook 上点击 Run Now"]
+        manual["在事件上运行<br/>Runbook"]
+        runnow["在 Runbook<br/>上点击 Run Now"]
     end
     rule --> execution["执行：步骤的快照"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker 按顺序处理步骤"]
-    worker -->|"Manual 步骤或审批"| person["等待人员处理"]
-    worker -->|"HTTP 和 AI 步骤"| onworker["在 Worker 上运行"]
-    worker -->|"JavaScript、Bash、SSH、Kubernetes"| runner["你基础设施中的 Runner"]
-    person --> record["记录状态、输出和错误"]
+    execution --> worker["OneUptime Worker<br/>按顺序处理步骤"]
+    worker -->|"Manual<br/>步骤或审批"| person["等待人员处理"]
+    worker -->|"HTTP 和<br/>AI 步骤"| onworker["在 Worker 上运行"]
+    worker -->|"JavaScript、<br/>Bash、SSH、<br/>Kubernetes"| runner["你基础设施中的<br/>Runner"]
+    person --> record["记录状态、<br/>输出和错误"]
     onworker --> record
     runner --> record
-    record --> history["事件的运行手册页面和 Runbook 的执行列表"]
+    record --> history["事件的<br/>运行手册页面和<br/>Runbook 的执行列表"]
 ```
 
 每次运行 Runbook 都会创建一次 **执行** 。执行开始时，Runbook 的步骤会被复制到其中，OneUptime 按顺序逐一处理。Manual 步骤或需要审批的步骤会暂停执行，直到有人处理。

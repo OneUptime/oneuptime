@@ -20,10 +20,10 @@ stateDiagram-v2
     state "Mislyktes" as Failed
     state "Avbrutt" as Cancelled
     [*] --> Scheduled: kjøring startet
-    Scheduled --> Running: en Worker tar den
-    Running --> WaitingForManualStep: Manual-trinn eller godkjenning
-    WaitingForManualStep --> Scheduled: fullført, godkjent eller hoppet over
-    Running --> Completed: alle trinn ferdige
+    Scheduled --> Running: en Worker<br/>tar den
+    Running --> WaitingForManualStep: Manual-trinn<br/>eller godkjenning
+    WaitingForManualStep --> Scheduled: fullført,<br/>godkjent eller<br/>hoppet over
+    Running --> Completed: alle trinn<br/>ferdige
     Running --> Failed: et trinn feiler
     Scheduled --> Cancelled: Avbryt kjøring
     Running --> Cancelled: Avbryt kjøring

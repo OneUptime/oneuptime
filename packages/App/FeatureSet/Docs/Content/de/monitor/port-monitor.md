@@ -20,9 +20,9 @@ sequenceDiagram
     participant H as Host
     P->>D: Den Hostnamen nachschlagen
     D-->>P: Adressen
-    P->>H: Eine TCP-Verbindung zum Port öffnen
+    P->>H: Eine TCP-Verbindung<br/>zum Port öffnen
     H-->>P: Verbindung angenommen
-    Note over P,H: Die gesamte Verbindungszeit ist das Nachschlagen plus der Verbindungsaufbau
+    Note over P,H: Die gesamte Verbindungszeit<br/>ist das Nachschlagen<br/>plus der Verbindungsaufbau
 ```
 
 Die Sonde öffnet nur TCP-Verbindungen: Ein Dienst, der ausschließlich auf UDP lauscht, etwa ein SNMP-Agent, lässt sich mit einem Port-Monitor nicht prüfen.

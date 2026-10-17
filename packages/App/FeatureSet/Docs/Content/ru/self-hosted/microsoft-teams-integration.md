@@ -17,18 +17,18 @@ OneUptime использует Azure Bot для интеграции с Teams. �
 
 ```mermaid title="Подключение проекта к Teams и работа с ним"
 sequenceDiagram
-    participant B as Браузер администратора
+    participant B as Браузер<br/>администратора
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
-    B->>O: Предоставить согласие администратора
-    O-->>B: Перенаправление в Microsoft
-    B->>E: Дать согласие, затем войти
-    E-->>B: Перенаправление на callback согласия администратора
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
+    B->>O: Предоставить<br/>согласие<br/>администратора
+    O-->>B: Переход в<br/>Microsoft
+    B->>E: Дать согласие,<br/>затем войти
+    E-->>B: Перенаправление<br/>на callback<br/>согласия<br/>администратора
     B->>O: Callback
-    O->>E: Получить токен Microsoft Graph
-    Note over O,AB: После подключения
-    O->>AB: Публикация карточек оповещений, исходящий HTTPS
+    O->>E: Получить<br/>токен<br/>Microsoft<br/>Graph
+    Note over O,AB: После<br/>подключения
+    O->>AB: Публикация<br/>карточек<br/>оповещений,<br/>исходящий<br/>HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
@@ -218,7 +218,7 @@ Microsoft требует [публично доступную конечную �
 ### Публикация конечной точки бота из частного развёртывания
 
 ```mermaid title="Публикация конечной точки бота из частного развёртывания"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Публичный шлюз"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["Ingress OneUptime"]
     Users["Сотрудники в VPN"] --> ING

@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonda
     participant D as Il vostro database
-    O->>P: Impostazioni del monitor, segreti risolti
-    P->>D: La vostra query, in sola lettura
-    D-->>P: Fino a Max Rows + 1 righe
-    P->>O: Numero di righe, scalare, prima riga, tempo, errore
+    O->>P: Impostazioni del<br/>monitor, segreti risolti
+    P->>D: La vostra query,<br/>in sola lettura
+    D-->>P: Fino a Max<br/>Rows + 1 righe
+    P->>O: Numero di righe,<br/>scalare, prima<br/>riga, tempo, errore
     O->>O: Valutare i criteri
 ```
 

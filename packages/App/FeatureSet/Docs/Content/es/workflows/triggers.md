@@ -1,12 +1,13 @@
 # Disparadores de flujo de trabajo
 
-Un disparador es el primer bloque de un flujo de trabajo: decide cuándo se ejecuta el flujo de trabajo. Todo flujo de trabajo tiene exactamente un disparador. Puedes elegir entre cinco tipos.
+Un disparador es el primer bloque de un flujo de trabajo: decide cuándo se ejecuta el flujo de trabajo. Todo flujo de trabajo tiene exactamente un disparador. Puedes elegir entre seis tipos.
 
 :::cards
 - [Manual](#manual): Inicia el flujo de trabajo desde el Constructor o desde otro flujo de trabajo.
 - [Programación](#schedule): Ejecútalo según una programación periódica, escrita como expresión cron.
 - [Webhook](#webhook): Deja que otro sistema lo inicie llamando a una URL.
 - [Correo entrante](#incoming-email): Inícialo con cada correo enviado a su propia dirección.
+- [Huntress](#huntress): Inícialo por cada evento que Huntress envía sobre un informe de incidente.
 - [Disparadores de eventos de OneUptime](#disparadores-de-eventos-de-oneuptime): Reacciona cuando se crea, actualiza o elimina un registro.
 :::
 
@@ -20,6 +21,7 @@ Para añadir el disparador, haz clic en el bloque discontinuo **Elige qué inici
 | Ejecutarlo según una programación periódica    | **Programación**            |
 | Que otro sistema envíe datos                   | **Webhook**                 |
 | Iniciarlo a partir de un correo                | **Incoming Email**          |
+| Actuar sobre los informes de incidente de Huntress | **Huntress Incident Report** |
 | Reaccionar a algo dentro de OneUptime          | **Evento de OneUptime**     |
 
 Un flujo de trabajo solo puede tener un disparador. Si necesitas dos formas de iniciar la misma automatización, construye la lógica compartida en un flujo de trabajo con un disparador **Manual** e inícialo desde dos flujos de trabajo «envoltorio» ligeros con un bloque **Execute Workflow**.
@@ -75,13 +77,13 @@ La URL acepta tanto `GET` como `POST`. Quien llama recibe una confirmación ráp
 sequenceDiagram
     participant Caller as Tu herramienta
     participant OneUptime
-    participant Runner as Ejecutor de flujos de trabajo
-    Caller->>OneUptime: GET o POST a la URL del webhook
-    alt El flujo de trabajo está activado
+    participant Runner as Ejecutor de<br/>flujos de trabajo
+    Caller->>OneUptime: GET o POST a la<br/>URL del webhook
+    alt El flujo de trabajo<br/>está activado
         OneUptime-->>Caller: 200, estado Scheduled
-        OneUptime->>Runner: Pone en cola una ejecución con cabeceras, consulta y cuerpo
-        Runner->>Runner: Ejecuta los bloques que siguen al disparador
-    else El flujo de trabajo está desactivado o archivado
+        OneUptime->>Runner: Pone en cola<br/>una ejecución<br/>con cabeceras,<br/>consulta y cuerpo
+        Runner->>Runner: Ejecuta los<br/>bloques que siguen<br/>al disparador
+    else El flujo de trabajo<br/>está desactivado<br/>o archivado
         OneUptime-->>Caller: 400 con el motivo
     end
 ```
@@ -150,6 +152,14 @@ Si la dirección se filtra, haz clic en **Restablecer dirección** en el mismo l
 
 > [!NOTE]
 > En una instalación autoalojada, OneUptime recibe el correo a través de un proveedor de correo entrante que configura tu administrador — consulta [Correo entrante de SendGrid](/docs/self-hosted/sendgrid-inbound-email). Hasta entonces, el disparador no tiene dirección, y sus ajustes lo indican.
+
+## Huntress
+
+OneUptime le da al flujo de trabajo una URL propia para Huntress, el servicio de detección y respuesta gestionadas. Huntress envía a ella cada evento sobre un informe de incidente, firmado con el secreto de firma del endpoint, y cada evento inicia el flujo de trabajo una vez: cuando su SOC envía un informe, cuando alguien lo comenta y cuando se cierra.
+
+Útil para: abrir un incidente por cada informe de incidente de Huntress, avisar a la guardia y seguir el informe hasta su cierre. La plantilla **Open an incident for each Huntress incident report** hace las tres cosas.
+
+Para conectar Huntress, haz clic en el disparador **Huntress Incident Report** en el lienzo: muestra la URL que hay que darle a Huntress, guarda el secreto de firma del endpoint y dice cuándo llegó Huntress por última vez al flujo de trabajo. Una solicitud que no está firmada con ese secreto no inicia nada, así que la URL no es una contraseña. Consulta [Huntress](/docs/integrations/huntress) para la configuración en Huntress, los valores que devuelve el disparador y sus ajustes.
 
 ## Disparadores de eventos de OneUptime
 

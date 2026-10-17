@@ -11,7 +11,7 @@ Varje OneUptime-process som tar emot data registrerar var 30:e sekund att den ta
 - Ikapphämtning: så länge kön med data som väntar på bearbetning ligger mer än en minut efter, tiden sedan de äldsta data som fortfarande väntar i den.
 
 ```mermaid title="Tid som OneUptime utelämnar"
-flowchart LR
+flowchart TB
     receiving["Tar emot"] -->|"ingen registrering på 90 sekunder"| down["Ingen mottagning"]
     down -->|"en process registrerar igen"| grace["Återanslutning i 2 minuter"]
     grace --> again["Tar emot"]

@@ -188,14 +188,14 @@ Les étapes IA sont mesurées et facturées comme toute autre fonctionnalité d'
 
 ```mermaid title="Ce qui se passe après une étape automatisée"
 flowchart TB
-    run["Une étape automatisée s'exécute"] --> ok{"Réussie ?"}
-    ok -->|"oui"| approval{"Exiger une approbation activé ?"}
-    approval -->|"oui"| wait["L'exécution attend l'approbation d'une personne"]
+    run["Une étape<br/>automatisée s'exécute"] --> ok{"Réussie ?"}
+    ok -->|"oui"| approval{"Exiger une<br/>approbation activé ?"}
+    approval -->|"oui"| wait["L'exécution attend<br/>l'approbation<br/>d'une personne"]
     approval -->|"non"| next["L'étape suivante s'exécute"]
     wait --> next
-    ok -->|"non"| cont{"Continuer en cas d'échec activé ?"}
+    ok -->|"non"| cont{"Continuer en cas<br/>d'échec activé ?"}
     cont -->|"oui"| next
-    cont -->|"non"| failed["L'exécution s'arrête en échec"]
+    cont -->|"non"| failed["L'exécution<br/>s'arrête en échec"]
 ```
 
 Par défaut, une étape en échec arrête l'exécution et la marque `Failed`, avec l'erreur de l'étape comme motif. Avec **Continuer en cas d'échec**, l'échec est enregistré et l'étape suivante s'exécute, ce qui convient aux runbooks du type « essayer ces trois choses, puis prévenir ». **Exiger une approbation** s'applique après la réussite d'une étape : l'exécution attend sur cette étape jusqu'à ce que quelqu'un clique sur **Approuver et continuer** ou **Ignorer**.

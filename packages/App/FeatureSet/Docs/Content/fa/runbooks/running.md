@@ -20,10 +20,10 @@ stateDiagram-v2
     state "ناموفق" as Failed
     state "لغوشده" as Cancelled
     [*] --> Scheduled: اجرا شروع شد
-    Scheduled --> Running: یک Worker آن را برمی‌دارد
-    Running --> WaitingForManualStep: گام Manual یا تأیید
-    WaitingForManualStep --> Scheduled: کامل، تأیید یا رد شد
-    Running --> Completed: همه گام‌ها انجام شد
+    Scheduled --> Running: یک Worker آن<br/>را برمی‌دارد
+    Running --> WaitingForManualStep: گام Manual<br/>یا تأیید
+    WaitingForManualStep --> Scheduled: کامل، تأیید<br/>یا رد شد
+    Running --> Completed: همه گام‌ها<br/>انجام شد
     Running --> Failed: گامی شکست خورد
     Scheduled --> Cancelled: لغو اجرا
     Running --> Cancelled: لغو اجرا

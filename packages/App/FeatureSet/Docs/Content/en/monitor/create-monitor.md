@@ -70,7 +70,7 @@ flowchart TB
     end
 ```
 
-Incidents and alerts set to resolve automatically, as the default criteria's are, resolve themselves once their criteria stops matching. A monitor checked by more than one probe changes only when its probes agree: by default, every probe that is turned on and connected must reach the same result. To require fewer, set **Probe Agreement** on the monitor's **Configuration → Probes & Interval** page.
+Incidents and alerts set to resolve automatically, as the default criteria's are, resolve themselves once their criteria stops matching. A monitor checked by more than one probe changes only when its probes agree: by default, every probe that is turned on and connected must reach the same result. To require fewer, set **Probe Agreement** on the monitor's **Configuration → Probes & Interval** page. For everything a criteria can hold, and the statuses a monitor can show, see [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses).
 
 ## Probes & Interval
 
@@ -101,6 +101,8 @@ Each monitor type has its own page with its settings, its default criteria and e
 :::cards
 - [Website Monitor](/docs/monitor/website-monitor): Check that a page loads, and what it answers.
 - [API Monitor](/docs/monitor/api-monitor): Call an endpoint with a method, headers and a body.
+- [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses): What sets each monitor's status.
 - [Monitor Templates](/docs/monitor/monitor-templates): Create many monitors from one configuration and keep them in step.
+- [Monitor Groups](/docs/monitor/monitor-groups): Roll several monitors up into one status.
 - [Incidents](/docs/incidents/index): What happens after a monitor declares an incident.
 :::

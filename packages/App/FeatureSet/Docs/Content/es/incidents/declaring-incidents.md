@@ -21,7 +21,7 @@ Un incidente entra en OneUptime de cinco formas, y todas acaban en el mismo siti
 | Abrir uno desde tu propio código, un script u otra herramienta           | `POST /api/incident`                                                        |
 | Dejar que personas ajenas a tu equipo informen de un problema mediante un enlace | Un [formulario](/docs/forms/index)                                   |
 
-Las cinco escriben el mismo modelo, así que un incidente abierto por una sonda es exactamente igual que uno abierto a mano por un respondedor, salvo por algunas columnas de control que el servidor rellena en los automáticos. Las integraciones también lo escriben: [Huntress](/docs/integrations/huntress) abre un incidente por cada informe de incidente que envía su SOC.
+Las cinco escriben el mismo modelo, así que un incidente abierto por una sonda es exactamente igual que uno abierto a mano por un respondedor, salvo por algunas columnas de control que el servidor rellena en los automáticos. Los flujos de trabajo también lo escriben: el flujo de trabajo de [Huntress](/docs/integrations/huntress) abre un incidente por cada informe de incidente que envía su SOC.
 
 > [!TIP]
 > También puedes declarar un incidente a partir de alertas: **Declarar incidente** en una lista de alertas, en la cabecera de una alerta o en la página **Incidentes vinculados** de una alerta abre el mismo asistente, rellenado a partir de las alertas, y las vincula al nuevo incidente. Una casilla del formulario, marcada por defecto, también reconoce las alertas, para que dejen de escalar. Consulta [Alertas vinculadas](/docs/incidents/linked-alerts).
@@ -250,14 +250,7 @@ La llamada de creación hace más que escribir una fila:
 flowchart TB
     request["Solicitud de creación"] --> fill["El servidor rellena los huecos"]
     fill --> template["Plantilla aplicada, si la hay"]
-    template --> rules
-    subgraph rules["Reglas, en este orden"]
-        direction LR
-        privacy["Privacidad"] --> owner["Propietario"]
-        owner --> label["Etiqueta"]
-        label --> oncall["Guardia"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Reglas, en este orden:<br/>Privacidad, Propietario, Etiqueta,<br/>Guardia, Runbook"]
     rules --> policies["Se ejecutan las políticas de guardia"]
     policies --> subscribers["Suscriptores en cola"]
     subscribers --> workflows["Se disparan los flujos de trabajo"]
@@ -284,10 +277,10 @@ Elegir un **Estado inicial** posterior —en el formulario, mediante el **Estado
 
 ```mermaid title="Lo que desencadena un incidente nuevo, según el estado en el que empieza"
 flowchart TB
-    start{"Estado inicial"} -->|"Estado de creación, el predeterminado"| live["Tratado como nuevo: avisa a la guardia"]
-    start -->|"Reconocido o posterior"| acked["Registrado: no avisa a nadie"]
-    start -->|"Resuelto o posterior"| over["Registrado como terminado"]
-    over --> quiet["Sin agrupación, runbooks, IA, canal ni SLA"]
+    start{"Estado<br/>inicial"} -->|"Estado de<br/>creación, el<br/>predeterminado"| live["Tratado como<br/>nuevo: avisa<br/>a la guardia"]
+    start -->|"Reconocido<br/>o posterior"| acked["Registrado:<br/>no avisa<br/>a nadie"]
+    start -->|"Resuelto o<br/>posterior"| over["Registrado<br/>como terminado"]
+    over --> quiet["Sin agrupación,<br/>runbooks, IA,<br/>canal ni SLA"]
 ```
 
 - **En tu estado reconocido o después** — **Reconocido**, o cualquier estado situado por debajo en **Incidentes → Ajustes → Estado del incidente** — no se ejecuta ninguna política de guardia, así que no se avisa a nadie. El incidente sigue listando sus políticas, las que elegiste y las que añaden las reglas de guardia, y su feed dice por qué en una línea: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Su SLA, si una regla le da uno, empieza ya marcado como respondido. Todo lo demás de abajo se ejecuta como en cualquier incidente nuevo.

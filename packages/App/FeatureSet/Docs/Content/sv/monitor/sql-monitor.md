@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sond
     participant D as Din databas
-    O->>P: Monitorinställningar, hemligheter upplösta
+    O->>P: Monitorinställningar,<br/>hemligheter upplösta
     P->>D: Din fråga, skrivskyddad
     D-->>P: Upp till Max Rows + 1 rader
-    P->>O: Antal rader, skalär, första raden, tid, fel
+    P->>O: Antal rader, skalär,<br/>första raden, tid, fel
     O->>O: Utvärdera kriterierna
 ```
 

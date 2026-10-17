@@ -10,7 +10,7 @@ Send OneUptime's email through your own mail server. A project adds SMTP configs
 flowchart TB
     SP["A status page's email"] --> Q{"Custom SMTP Config<br/>picked for the page?"}
     Q -->|"Yes"| P["The project's SMTP config"]
-    Q -->|"No"| D["OneUptime's own mail server"]
+    Q -->|"No"| D["OneUptime's<br/>own mail server"]
     E["All other OneUptime email"] --> D
 ```
 

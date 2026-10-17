@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Dig
     participant OneUptime
     participant Alerts as Advarsler
-    You->>OneUptime: Erklær hændelse, med op til 50 advarsler
-    OneUptime->>OneUptime: Kontrollér hver advarsel og dine tilladelser
-    OneUptime->>OneUptime: Opret hændelsen, og kør dens privatlivsregler
+    You->>OneUptime: Erklær hændelse, med<br/>op til 50 advarsler
+    OneUptime->>OneUptime: Kontrollér hver advarsel<br/>og dine tilladelser
+    OneUptime->>OneUptime: Opret hændelsen, og kør<br/>dens privatlivsregler
     OneUptime->>Alerts: Knyt hver advarsel
-    OneUptime-->>You: Den nye hændelse, med advarslerne allerede tilknyttet
-    OneUptime->>Alerts: Bekræft dem i baggrunden, hvis afkrydsningsfeltet er markeret
+    OneUptime-->>You: Den nye hændelse,<br/>med advarslerne<br/>allerede tilknyttet
+    OneUptime->>Alerts: Bekræft dem i baggrunden, hvis<br/>afkrydsningsfeltet er markeret
 ```
 
 Når du sender, kontrollerer serveren advarslerne, før den opretter noget: højst 50 af dem, hver en advarsel i dette projekt, som du må se, og du skal have lov til at knytte advarsler til hændelser. Fejler en kontrol, afvises anmodningen, og ingen hændelse oprettes — så et forkert advarsels-id bruger aldrig et hændelsesnummer. Når hændelsen findes — og når dens privatlivsregler har kørt, så tilknytningerne ved, om den er privat — knyttes hver advarsel, før anmodningen vender tilbage, så hændelsens side **Tilknyttede advarsler** allerede viser dem. Fejler en enkelt tilknytning — fordi advarslen blev slettet et øjeblik forinden for eksempel — erklæres hændelsen alligevel, og de andre advarsler knyttes alligevel.

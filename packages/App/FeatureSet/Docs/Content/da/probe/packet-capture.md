@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as Dashboard
     participant O as OneUptime
     participant P as Sonde
-    D->>O: Start pakkeopsamling: interface, filter, grænser
-    P->>O: Er der opsamlinger til mig? (hvert 10. sekund)
+    D->>O: Start pakkeopsamling:<br/>interface, filter, grænser
+    P->>O: Er der opsamlinger til<br/>mig? (hvert 10. sekund)
     O-->>P: Denne her
-    P->>P: tcpdump, indtil en grænse nås, eller der trykkes på Stands
+    P->>P: tcpdump, indtil en<br/>grænse nås, eller<br/>der trykkes på Stands
     P->>O: Upload pcap-filen
     D->>O: Download
-    O-->>D: pcap-filen og en post i auditloggen
+    O-->>D: pcap-filen og en<br/>post i auditloggen
 ```
 
 1. **Start.** En person, der må starte opsamlinger, vælger sondens interface, et filter og grænserne og klikker på **Start opsamling**. OneUptime kontrollerer filteret og grænserne mod det, sonden tillader, før opsamlingen gemmes.

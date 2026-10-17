@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as Dashboard
     participant O as OneUptime
     participant P as Sonda
-    D->>O: Avvia cattura di pacchetti: interfaccia, filtro, limiti
-    P->>O: Ci sono catture per me? (ogni 10 secondi)
+    D->>O: Avvia cattura di pacchetti:<br/>interfaccia, filtro, limiti
+    P->>O: Ci sono catture per<br/>me? (ogni 10 secondi)
     O-->>P: Questa
-    P->>P: tcpdump fino a un limite o al clic su Ferma
+    P->>P: tcpdump fino a un limite<br/>o al clic su Ferma
     P->>O: Carica il file pcap
     D->>O: Scarica
-    O-->>D: Il file pcap, e una voce nel registro di audit
+    O-->>D: Il file pcap, e una voce<br/>nel registro di audit
 ```
 
 1. **Avvio.** Chi può avviare le catture sceglie l'interfaccia della sonda, un filtro e i limiti, e fa clic su **Avvia cattura**. OneUptime controlla il filtro e i limiti rispetto a ciò che la sonda consente prima di salvare la cattura.

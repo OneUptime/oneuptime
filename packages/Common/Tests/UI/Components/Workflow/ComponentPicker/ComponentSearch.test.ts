@@ -546,12 +546,15 @@ describe("hand-written steps and resources together", () => {
     expect(titles(TRIGGERS, "cron")).toEqual(["Schedule"]);
     expect(titles(TRIGGERS, "every hour")).toEqual(["Schedule"]);
     expect(titles(TRIGGERS, "webhook")[0]).toBe("Webhook");
-    expect(titles(TRIGGERS, "incident").slice(0, 4)).toEqual([
+    // Huntress's trigger names incidents too: it starts on a Huntress incident report.
+    expect(titles(TRIGGERS, "incident").slice(0, 5)).toEqual([
       "On Create Incident",
       "On Update Incident",
+      "Huntress Incident Report",
       "On Create or Update Incident",
       "On Delete Incident",
     ]);
+    expect(titles(TRIGGERS, "huntress")).toEqual(["Huntress Incident Report"]);
   });
 
   /*

@@ -1,12 +1,13 @@
 # Workflow-triggers
 
-Een trigger is het eerste blok van een workflow: hij bepaalt wanneer de workflow draait. Elke workflow heeft precies één trigger. Je kiest uit vijf soorten.
+Een trigger is het eerste blok van een workflow: hij bepaalt wanneer de workflow draait. Elke workflow heeft precies één trigger. Je kiest uit zes soorten.
 
 :::cards
 - [Handmatig](#manual): Start de workflow vanuit de Bouwer, of vanuit een andere workflow.
 - [Schema](#schedule): Laat hem draaien volgens een terugkerend schema, geschreven als cron-expressie.
 - [Webhook](#webhook): Laat een ander systeem hem starten door een URL aan te roepen.
 - [Binnenkomende e-mail](#incoming-email): Start hem met elke e-mail die naar zijn eigen adres wordt gestuurd.
+- [Huntress](#huntress): Start hem voor elke gebeurtenis die Huntress over een incidentrapport stuurt.
 - [OneUptime-gebeurtenistriggers](#oneuptime-gebeurtenistriggers): Reageer als een record wordt aangemaakt, bijgewerkt of verwijderd.
 :::
 
@@ -20,6 +21,7 @@ Om de trigger toe te voegen klik je op het gestippelde blok **Choose what starts
 | Volgens een terugkerend schema draaien         | **Schema**                  |
 | Een ander systeem gegevens laten aanleveren    | **Webhook**                 |
 | Starten vanuit een e-mail                      | **Incoming Email**          |
+| Handelen op incidentrapporten van Huntress     | **Huntress Incident Report** |
 | Reageren op iets binnen OneUptime              | **OneUptime-gebeurtenis**   |
 
 Een workflow kan maar één trigger hebben. Heb je twee manieren nodig om dezelfde automatisering te starten, bouw de gedeelde logica dan in een workflow met een **Manual**-trigger en start die vanuit twee lichte «omhulsel»-workflows met een **Execute Workflow**-blok.
@@ -76,12 +78,12 @@ sequenceDiagram
     participant Caller as Jouw tool
     participant OneUptime
     participant Runner as Workflow-uitvoerder
-    Caller->>OneUptime: GET of POST naar de webhook-URL
+    Caller->>OneUptime: GET of POST naar<br/>de webhook-URL
     alt De workflow staat aan
         OneUptime-->>Caller: 200, status Scheduled
-        OneUptime->>Runner: Zet een uitvoering in de wachtrij met headers, query en body
-        Runner->>Runner: Voert de blokken na de trigger uit
-    else De workflow staat uit of is gearchiveerd
+        OneUptime->>Runner: Zet een uitvoering<br/>in de wachtrij met<br/>headers, query en body
+        Runner->>Runner: Voert de blokken<br/>na de trigger uit
+    else De workflow staat uit<br/>of is gearchiveerd
         OneUptime-->>Caller: 400 met de reden
     end
 ```
@@ -150,6 +152,14 @@ Lekt het adres uit, klik dan op dezelfde plek op **Adres opnieuw instellen**: de
 
 > [!NOTE]
 > Op een zelf gehoste installatie ontvangt OneUptime e-mail via een provider voor inkomende e-mail die je beheerder instelt — zie [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Tot die tijd heeft de trigger geen adres, en de instellingen ervan zeggen dat.
+
+## Huntress
+
+OneUptime geeft de workflow een eigen URL voor Huntress, de managed detection and response-dienst. Huntress stuurt elke gebeurtenis over een incidentrapport daarheen, ondertekend met het ondertekeningsgeheim van het endpoint, en elke gebeurtenis start de workflow één keer: wanneer zijn SOC een rapport stuurt, wanneer iemand erop reageert en wanneer het wordt gesloten.
+
+Handig voor: een incident openen voor elk incidentrapport van Huntress, de bereikbaarheidsdienst oproepen en het rapport volgen tot het gesloten is. Het sjabloon **Open an incident for each Huntress incident report** doet alle drie.
+
+Om Huntress te koppelen, klik je op het canvas op de trigger **Huntress Incident Report**: die toont de URL die je aan Huntress geeft, slaat het ondertekeningsgeheim van het endpoint op en zegt wanneer Huntress de workflow het laatst bereikte. Een verzoek dat niet met dat geheim is ondertekend, start niets, dus de URL is geen wachtwoord. Zie [Huntress](/docs/integrations/huntress) voor de instelling in Huntress, de waarden die de trigger teruggeeft en zijn instellingen.
 
 ## OneUptime-gebeurtenistriggers
 

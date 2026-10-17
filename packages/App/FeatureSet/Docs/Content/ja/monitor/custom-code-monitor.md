@@ -18,10 +18,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as プローブ
     participant A as あなたの API
-    O->>P: シークレットを埋め込んだスクリプト
+    O->>P: シークレットを埋め<br/>込んだスクリプト
     P->>A: スクリプトからのリクエスト
     A-->>P: レスポンス
-    P->>O: 結果、ログ、時間、メトリクス
+    P->>O: 結果、ログ、<br/>時間、メトリクス
     O->>O: 条件を評価
 ```
 

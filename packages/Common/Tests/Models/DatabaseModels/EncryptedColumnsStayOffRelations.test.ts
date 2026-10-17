@@ -19,7 +19,7 @@ import { describe, expect, test } from "@jest/globals";
  *
  * So no encrypted column is marked canReadOnRelationQuery. A secret a
  * relation needs to show belongs in a column of its own that says whether
- * one is set (HuntressConnection.isSigningSecretSet), never in the secret.
+ * one is set (Workflow.isWebhookSigningSecretSet), never in the secret.
  */
 
 interface EncryptedColumn {

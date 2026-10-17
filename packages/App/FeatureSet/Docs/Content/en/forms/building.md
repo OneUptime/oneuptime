@@ -12,12 +12,12 @@ A form's **Build** page is where you decide what it asks, and how its page looks
 ## Where each answer goes
 
 ```mermaid title="Where each kind of answer goes"
-flowchart TB
-    answer["An answer, submitted"] --> kind{"What the question is"}
-    kind -->|"A field of the record"| field["That field of the new<br/>incident or event"]
-    kind -->|"A custom field"| custom["That custom field's value"]
-    kind -->|"A question of the form's own"| note["A line on the<br/>private note"]
-    kind -->|"Your Name, Your Email"| who["Who submitted,<br/>on the private note"]
+flowchart LR
+    answer["An answer, submitted"]
+    answer -->|"A field of<br/>the record"| field["That field of the new<br/>incident or event"]
+    answer -->|"A custom field"| custom["That custom<br/>field's value"]
+    answer -->|"A question of<br/>the form's own"| note["A line on the<br/>private note"]
+    answer -->|"Your Name,<br/>Your Email"| who["Who submitted,<br/>on the private note"]
 ```
 
 Every answer is also kept with the submission, on the form's **Submissions** page. A field the form does not ask, or that is left empty, is filled in from the form's [On Submit settings](/docs/forms/on-submit).

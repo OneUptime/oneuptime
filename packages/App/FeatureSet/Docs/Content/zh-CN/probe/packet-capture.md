@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as 仪表板
     participant O as OneUptime
     participant P as 探测器
-    D->>O: 开始抓包：接口、过滤器、上限
-    P->>O: 有给我的抓包吗？（每 10 秒）
+    D->>O: 开始抓包：接口、<br/>过滤器、上限
+    P->>O: 有给我的抓包吗？<br/>（每 10 秒）
     O-->>P: 这个
-    P->>P: tcpdump，直到达到上限或按下停止
+    P->>P: tcpdump，<br/>直到达到上限或按下停止
     P->>O: 上传 pcap 文件
     D->>O: 下载
-    O-->>D: pcap 文件，以及审计日志中的一条记录
+    O-->>D: pcap 文件，<br/>以及审计日志中的一条记录
 ```
 
 1. **开始。** 有权开始抓包的人选择探测器的接口、过滤器和上限，然后点击 **开始抓包**。OneUptime 在保存抓包之前，会按探测器允许的范围检查过滤器和上限。

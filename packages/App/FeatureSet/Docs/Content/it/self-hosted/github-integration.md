@@ -21,13 +21,13 @@ sequenceDiagram
     participant O as OneUptime
     participant G as GitHub
     B->>O: Connect with GitHub App
-    O-->>B: Reindirizzamento alla pagina di installazione dell'app
+    O-->>B: Reindirizzamento alla pagina<br/>di installazione dell'app
     B->>G: Installa e autorizza l'app
-    G-->>B: Reindirizzamento a /api/github/auth/callback
-    B->>O: installation_id e un codice monouso
-    O->>G: Scambia il codice, verifica l'installazione
-    O->>G: Importa i repository dell'installazione
-    G->>O: Webhook verso /api/github/webhook
+    G-->>B: Reindirizzamento a<br/>/api/github/auth/callback
+    B->>O: installation_id e<br/>un codice monouso
+    O->>G: Scambia il codice,<br/>verifica l'installazione
+    O->>G: Importa i repository<br/>dell'installazione
+    G->>O: Webhook verso<br/>/api/github/webhook
 ```
 
 - Il reindirizzamento del browser porta con sé l'installazione e un codice OAuth monouso. OneUptime scambia il codice per confermare che l'account GitHub che ha installato l'app amministra quell'installazione, poi ne importa i repository. Un'installazione che esiste già si connette invece accedendo a GitHub: il codice dice allora a OneUptime quali installazioni amministra quell'account.

@@ -9,6 +9,7 @@ import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
 import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import { SelectQueryBuilder } from "typeorm";
 
@@ -47,6 +48,7 @@ describe("the email of the reader signed in to a status page", () => {
         ...claims,
       },
       expiresInSeconds,
+      purpose: JsonWebTokenPurpose.StatusPageSession,
     });
     return {
       cookies: { [CookieUtil.getUserTokenKey(statusPageId)]: token },

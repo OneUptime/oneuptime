@@ -20,8 +20,8 @@ flowchart TB
         public["Nota pública"]
         private["Nota privada"]
     end
-    public --> page["Página de status e assinantes"]
-    public --> owners["Proprietários do incidente"]
+    public --> page["Página de<br/>status e<br/>assinantes"]
+    public --> owners["Proprietários<br/>do incidente"]
     private --> owners
     public --> feed["Incidente Feed"]
     private --> feed

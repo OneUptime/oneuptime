@@ -19,15 +19,15 @@ Las tres páginas editan el mismo tipo de regla, filtrado a las reglas de ese pr
 
 ```mermaid title="De un incidente nuevo a runbooks iniciados"
 flowchart TB
-    created["Se crea un incidente, una alerta o un evento"] --> labels["Las reglas de etiquetas añaden sus etiquetas"]
-    labels --> rules["Reglas de runbook habilitadas de ese producto"]
-    rules --> match{"¿Coinciden las condiciones?"}
-    match -->|"no"| nothing["La regla no inicia nada"]
-    match -->|"sí"| union["Runbooks de todas las reglas que coinciden, cada uno una vez"]
-    union --> runnable{"¿Runbook activado y con pasos?"}
+    created["Se crea un incidente,<br/>una alerta o un evento"] --> labels["Las reglas de<br/>etiquetas añaden<br/>sus etiquetas"]
+    labels --> rules["Reglas de runbook<br/>habilitadas<br/>de ese producto"]
+    rules --> match{"¿Coinciden las<br/>condiciones?"}
+    match -->|"no"| nothing["La regla no<br/>inicia nada"]
+    match -->|"sí"| union["Runbooks de todas las<br/>reglas que coinciden,<br/>cada uno una vez"]
+    union --> runnable{"¿Runbook activado<br/>y con pasos?"}
     runnable -->|"no"| skipped["Ese runbook se omite"]
-    runnable -->|"sí"| execution["Ejecución creada y en cola"]
-    execution --> attached["Se muestra en la página Runbooks del evento"]
+    runnable -->|"sí"| execution["Ejecución<br/>creada y en cola"]
+    execution --> attached["Se muestra en la<br/>página Runbooks<br/>del evento"]
 ```
 
 Cuando una regla se activa, para cada runbook que nombra:

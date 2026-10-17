@@ -27,8 +27,8 @@ A two-way integration, like Jira or Dynamics 365, uses both directions: one work
 
 | Way | Best for | Examples |
 | --- | --- | --- |
-| A built-in connection | Tools OneUptime connects to itself. You fill in a form, and there is nothing to build. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), the [Security Events](/docs/telemetry/security-events) connections |
-| A workflow template | Ticketing tools, kept in step both ways, and chat messages. You pick a template and fill in a few settings. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| A built-in connection | Tools OneUptime connects to itself. You fill in a form, and there is nothing to build. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), the [Security Events](/docs/telemetry/security-events) connections |
+| A workflow template | Ticketing tools, kept in step both ways, security incident reports and chat messages. You pick a template and fill in a few settings. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
 | An Incoming Request monitor | Alerting tools that send a webhook. You get one incident per alert, paged to on-call and resolved when the alert recovers, with no workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | A workflow you build | Any tool with a webhook or a REST API, and any logic of your own. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 

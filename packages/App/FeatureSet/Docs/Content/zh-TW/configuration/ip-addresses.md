@@ -3,7 +3,7 @@
 OneUptime Cloud 的探測器會從一組固定的 IP 位址檢查您的網站、API 和伺服器。如果您監測的對象前面有防火牆或允許清單，請允許這些位址，讓檢查能夠通過。
 
 ```mermaid title="允許清單的作用位置"
-flowchart LR
+flowchart TB
     P["OneUptime 探測器"] -->|"從列出的 IP 發出檢查"| F["您的防火牆"]
     F -->|"已允許"| S["您的網站、API 或伺服器"]
 ```

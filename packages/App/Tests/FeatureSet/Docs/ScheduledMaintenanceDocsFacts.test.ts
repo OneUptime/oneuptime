@@ -68,6 +68,7 @@ import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/Sched
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BaseModelComponent from "Common/Types/Workflow/Components/BaseModel";
 import ComponentMetadata from "Common/Types/Workflow/Component";
@@ -3588,6 +3589,33 @@ describe("who can change maintenance", () => {
     ).toContain(Permission.CreateScheduledMaintenanceOwnerRule);
     expect(who).toContain(
       "Rules, custom fields and measurements take **Project Owner** or **Project Admin**, or a custom role with that page's own permission, such as **Create Scheduled Maintenance Owner Rule**.",
+    );
+  });
+
+  /*
+   * Maintenance runbook rules are rows of the one RunbookRule model that
+   * incidents and alerts share (triggerEntity ScheduledMaintenance), and it
+   * lets the Runbook Admin role change them too - the roles table used to
+   * leave that out.
+   */
+  it("lets Runbook Admin change runbook rules as well, and says so", () => {
+    const runbookRule: RunbookRule = new RunbookRule();
+
+    expect(rolesOf(runbookRule.getCreatePermissions())).toEqual([
+      "Project Owner",
+      "Project Admin",
+      "Runbook Admin",
+    ]);
+    expect(changes(runbookRule, Permission.RunbookAdmin)).toBe(true);
+    // The maintenance roles do not reach them.
+    expect(changes(runbookRule, Permission.ScheduledMaintenanceAdmin)).toBe(
+      false,
+    );
+    expect(PermissionHelper.getTitle(Permission.RunbookAdmin)).toBe(
+      "Runbook Admin",
+    );
+    expect(who).toContain(
+      "such as **Create Scheduled Maintenance Owner Rule**. Runbook rules also take **Runbook Admin**.",
     );
   });
 

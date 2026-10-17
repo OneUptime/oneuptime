@@ -99,7 +99,7 @@ Haben Sie Bereitschaft für eine Richtlinie, zeigt die Glocke oben rechts das an
 :::
 
 :::details Jemand wurde auf dem falschen Kanal alarmiert, oder gar nicht
-Öffnen Sie **Bereitschaftsdienst → Einsatzbereitschaft** und klicken Sie in seiner Zeile auf **Abdeckung**. Dort stehen die Methoden, die die Person verifiziert hat, und jeder Schweregrad, für den sie keine Regel hat. Beheben kann das nur sie selbst, unter **Benutzereinstellungen**: Schicken Sie ihr von derselben Seite eine Einrichtungserinnerung. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness).
+Öffnen Sie **Bereitschaftsdienst → Einsatzbereitschaft** und klicken Sie in seiner Zeile auf **Abdeckung**. Dort stehen die Methoden, die die Person verifiziert hat, und jeder Schweregrad, für den sie keine Regel hat. Beheben kann das nur sie selbst, unter **Benutzereinstellungen**: Schicken Sie ihr von derselben Seite eine Einrichtungserinnerung. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness). In OneUptime Cloud kann ein Telefon, das unbekannte Anrufer blockiert, eine Alarmierung stummschalten: Nehmen Sie [die Nummern von OneUptime](/docs/on-call/phone-number-whitelist) in seine Zulassungsliste auf.
 :::
 
 :::details Eine Person im Urlaub wird weiter alarmiert

@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | En Twilio-konto med dens Account SID og Auth Token | Politikkens numre og opkald kører på den, og Twilio fakturerer dem til den. |
 | Planen **Growth** på OneUptime Cloud | Et projekt skal have den for at få sin egen Twilio-konfiguration. |
-| En OneUptime-server, som Twilio kan nå, hvis du selv hoster den | Twilio sender hvert opkald til `https://<your host>/notification/incoming-call/voice`. |
+| En OneUptime-server, som Twilio kan nå, hvis du selv hoster den | Twilio sender hvert opkald til `https://<your host>/notification/incoming-call/voice` og udfaldet af hver opringning til `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** slået til i projektet | Hver ingeniørs nummer bekræftes med en kode, der sendes via SMS. |
 | Et bekræftet nummer for hver ingeniør | En regel ringer kun til personer, der har tilføjet og bekræftet et nummer til indgående opkald i projektet. |
 
@@ -86,16 +86,16 @@ sequenceDiagram
     participant Twilio
     participant OneUptime
     participant Engineer as Ingeniør
-    Caller->>Twilio: Ringer til politikkens nummer
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Velkomst, ring derefter til første regels person
-    Twilio->>Engineer: Ringer i reglens ringetid
-    Note over Twilio,Engineer: Ingen svarer i tide
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Ring til næste regels person
-    Twilio->>Engineer: Ringer til næste person
+    Caller->>Twilio: Ringer til<br/>politikkens<br/>nummer
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Velkomst,<br/>ring derefter<br/>til første<br/>regels person
+    Twilio->>Engineer: Ringer i<br/>reglens ringetid
+    Note over Twilio,Engineer: Ingen svarer<br/>i tide
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Ring til næste<br/>regels person
+    Twilio->>Engineer: Ringer til<br/>næste person
     Engineer-->>Twilio: Svarer
-    Twilio-->>Caller: Stiller opkalderen igennem
+    Twilio-->>Caller: Stiller<br/>opkalderen<br/>igennem
 ```
 
 En regel springes over, uden at der ringes til nogen, når der lige nu ikke er nogen at ringe til for den: dens vagtplan har ingen på vagt, personen har intet bekræftet nummer til indgående opkald i dette projekt, eller personen er ikke længere medlem af projektet. Når ingen regel har nogen at ringe til, hører opkalderen **Besked ved ingen tilgængelige**. En deaktiveret politik besvarer hvert opkald med "Sorry, this service is currently disabled." og lægger på.

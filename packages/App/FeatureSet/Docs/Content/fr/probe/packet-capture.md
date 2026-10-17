@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as Tableau de bord
     participant O as OneUptime
     participant P as Sonde
-    D->>O: Démarrer une capture de paquets : interface, filtre, limites
-    P->>O: Des captures pour moi ? (toutes les 10 secondes)
+    D->>O: Démarrer une capture<br/>de paquets : interface,<br/>filtre, limites
+    P->>O: Des captures pour moi ?<br/>(toutes les 10 secondes)
     O-->>P: Celle-ci
-    P->>P: tcpdump jusqu'à une limite ou un clic sur Arrêter
+    P->>P: tcpdump jusqu'à<br/>une limite ou un<br/>clic sur Arrêter
     P->>O: Envoi du fichier pcap
     D->>O: Télécharger
-    O-->>D: Le fichier pcap, et une entrée dans le journal d'audit
+    O-->>D: Le fichier pcap,<br/>et une entrée dans<br/>le journal d'audit
 ```
 
 1. **Démarrer.** Une personne autorisée à démarrer des captures choisit l'interface de la sonde, un filtre et les limites, puis clique sur **Démarrer la capture**. OneUptime vérifie le filtre et les limites par rapport à ce que la sonde autorise avant d'enregistrer la capture.

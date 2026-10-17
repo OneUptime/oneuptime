@@ -21,7 +21,7 @@ Un incidente entra in OneUptime in cinque modi, e tutti finiscono nello stesso p
 | Aprirne uno dal vostro codice, da uno script o da un altro strumento | `POST /api/incident`                                                       |
 | Lasciare che persone esterne al vostro team segnalino un problema tramite un link | Un [modulo](/docs/forms/index)                                   |
 
-Tutti e cinque scrivono lo stesso modello, quindi un incidente aperto da una sonda ha esattamente lo stesso aspetto di uno aperto a mano da un responder — a parte alcune colonne di servizio che il server imposta su quelli automatici. Lo scrivono anche le integrazioni: [Huntress](/docs/integrations/huntress) apre un incidente per ogni rapporto di incidente inviato dal suo SOC.
+Tutti e cinque scrivono lo stesso modello, quindi un incidente aperto da una sonda ha esattamente lo stesso aspetto di uno aperto a mano da un responder — a parte alcune colonne di servizio che il server imposta su quelli automatici. Lo scrivono anche i workflow: il workflow di [Huntress](/docs/integrations/huntress) apre un incidente per ogni rapporto di incidente inviato dal suo SOC.
 
 > [!TIP]
 > Potete anche dichiarare un incidente dagli avvisi: **Dichiara incidente** in un elenco di avvisi, nell'intestazione di un avviso o nella pagina **Incidenti collegati** di un avviso apre la stessa procedura guidata, precompilata dagli avvisi, e li collega al nuovo incidente. Una casella del modulo, spuntata per impostazione predefinita, riconosce anche gli avvisi, così smettono di inoltrarsi. Vedete [Avvisi collegati](/docs/incidents/linked-alerts).
@@ -250,14 +250,7 @@ La chiamata di creazione fa più che scrivere una riga:
 flowchart TB
     request["Richiesta di creazione"] --> fill["Il server colma le lacune"]
     fill --> template["Modello applicato, se presente"]
-    template --> rules
-    subgraph rules["Regole, in questo ordine"]
-        direction LR
-        privacy["Privacy"] --> owner["Proprietario"]
-        owner --> label["Etichetta"]
-        label --> oncall["Reperibilità"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Regole, in questo ordine:<br/>Privacy, Proprietario, Etichetta,<br/>Reperibilità, Runbook"]
     rules --> policies["Le policy di reperibilità vengono eseguite"]
     policies --> subscribers["Iscritti in coda"]
     subscribers --> workflows["I workflow scattano"]
@@ -284,10 +277,10 @@ Scegliere uno **Stato iniziale** successivo — nel modulo, tramite lo **Stato i
 
 ```mermaid title="Che cosa mette in moto un nuovo incidente, in base allo stato in cui parte"
 flowchart TB
-    start{"Stato di partenza"} -->|"Stato di creazione, quello predefinito"| live["Trattato come nuovo: avvisa la reperibilità"]
-    start -->|"Riconosciuto o oltre"| acked["Registrato: non avvisa nessuno"]
-    start -->|"Risolto o oltre"| over["Registrato come finito"]
-    over --> quiet["Niente raggruppamento, runbook, IA, canale né SLA"]
+    start{"Stato di<br/>partenza"} -->|"Stato di<br/>creazione,<br/>quello<br/>predefinito"| live["Trattato<br/>come nuovo:<br/>avvisa la<br/>reperibilità"]
+    start -->|"Riconosciuto<br/>o oltre"| acked["Registrato:<br/>non avvisa<br/>nessuno"]
+    start -->|"Risolto<br/>o oltre"| over["Registrato<br/>come finito"]
+    over --> quiet["Niente<br/>raggruppamento,<br/>runbook, IA,<br/>canale né SLA"]
 ```
 
 - **Al vostro stato riconosciuto o oltre** — **Riconosciuto**, o qualsiasi stato posto sotto di esso in **Incidenti → Impostazioni → Stato incidente** — non viene eseguita alcuna policy di reperibilità, quindi nessuno viene avvisato. L'incidente elenca comunque le sue policy, quelle che avete scelto e quelle aggiunte dalle regole di reperibilità, e il suo feed dice perché in una riga: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Il suo SLA, se una regola gliene assegna uno, parte già con la risposta registrata. Tutto il resto qui sotto viene eseguito come per qualsiasi nuovo incidente.

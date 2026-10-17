@@ -12,10 +12,10 @@ Bewaak een vCenter Server, of een zelfstandige ESXi-host, zonder iets te install
 
 ```mermaid
 flowchart TB
-    OU["OneUptime"] -->|"nu verzamelen, om de paar minuten"| P["Uw sonde"]
-    P -->|"HTTPS 443, vSphere-API alleen-lezen"| VC["vCenter Server of ESXi-host"]
-    P -->|"metrieken, zoals de VMware-agent ze verzendt"| OU
-    OU --> V["VMware-pagina's, monitors, waarschuwingen en AI"]
+    OU["OneUptime"] -->|"nu verzamelen,<br/>om de paar<br/>minuten"| P["Uw sonde"]
+    P -->|"HTTPS 443, vSphere-API<br/>alleen-lezen"| VC["vCenter Server<br/>of ESXi-host"]
+    P -->|"metrieken,<br/>zoals de<br/>VMware-agent<br/>ze verzendt"| OU
+    OU --> V["VMware-pagina's, monitors,<br/>waarschuwingen en AI"]
 ```
 
 Om de paar minuten meldt de sonde zich bij vCenter aan met het account dat u hebt opgeslagen, leest de inventaris, de prestatietellers en de vSAN-statistieken, en verzendt ze naar OneUptime. Ze komen precies zo binnen als die van de VMware-agent, dus elke VMware-pagina, elke [VMware-monitor](/docs/monitor/vmware-monitor), elke waarschuwingssjabloon en OneUptime AI lezen ze op dezelfde manier. De sonde houdt haar vCenter-sessie vast tussen verzamelingen, zodat het gebeurtenislogboek van vCenter niet volloopt met aanmeldingen.

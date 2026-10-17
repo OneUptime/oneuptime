@@ -21,7 +21,7 @@ Der er fem måder, en hændelse kommer ind i OneUptime på, og de ender alle sam
 | Åbne en fra din egen kode, et script eller et andet værktøj   | `POST /api/incident`                                                        |
 | Lade folk uden for dit team melde et problem via et link     | En [formular](/docs/forms/index)                                            |
 
-Alle fem skriver den samme model, så en hændelse, som en probe åbnede, ser præcis ud som en, en vagthavende åbnede i hånden — bortset fra nogle få administrative kolonner, serveren sætter på de automatiske. Integrationer skriver den også: [Huntress](/docs/integrations/huntress) åbner én hændelse for hver hændelsesrapport, dens SOC sender.
+Alle fem skriver den samme model, så en hændelse, som en probe åbnede, ser præcis ud som en, en vagthavende åbnede i hånden — bortset fra nogle få administrative kolonner, serveren sætter på de automatiske. Workflows skriver den også: [Huntress](/docs/integrations/huntress)-workflowet åbner én hændelse for hver hændelsesrapport, dens SOC sender.
 
 > [!TIP]
 > Du kan også erklære en hændelse fra advarsler: **Erklær hændelse** på en advarselsliste, i en advarsels hoved eller på en advarsels side **Tilknyttede hændelser** åbner den samme guide, udfyldt på forhånd fra advarslerne, og knytter dem til den nye hændelse. Et afkrydsningsfelt på formularen, markeret som standard, bekræfter også advarslerne, så de holder op med at eskalere. Se [Tilknyttede advarsler](/docs/incidents/linked-alerts).
@@ -250,14 +250,7 @@ Oprettelseskaldet gør mere end at skrive en række:
 flowchart TB
     request["Oprettelsesanmodning"] --> fill["Serveren udfylder hullerne"]
     fill --> template["Skabelon anvendt, hvis der er en"]
-    template --> rules
-    subgraph rules["Regler, i denne rækkefølge"]
-        direction LR
-        privacy["Privatliv"] --> owner["Ejer"]
-        owner --> label["Etiket"]
-        label --> oncall["Vagt"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Regler, i denne rækkefølge:<br/>Privatliv, Ejer, Etiket,<br/>Vagt, Runbook"]
     rules --> policies["Vagtpolitikker udføres"]
     policies --> subscribers["Abonnenter sat i kø"]
     subscribers --> workflows["Workflows udløses"]
@@ -284,10 +277,10 @@ At vælge en senere **Indledende tilstand** — på formularen, via en skabelons
 
 ```mermaid title="Hvad en ny hændelse sætter i gang, efter den tilstand den starter i"
 flowchart TB
-    start{"Starttilstand"} -->|"Oprettelsestilstanden, standarden"| live["Behandlet som ny: tilkalder vagten"]
-    start -->|"Ved eller efter bekræftet"| acked["Registreret: tilkalder ingen"]
-    start -->|"Ved eller efter løst"| over["Registreret som overstået"]
-    over --> quiet["Ingen gruppering, runbooks, AI, kanal eller SLA"]
+    start{"Starttilstand"} -->|"Oprettelsestilstanden,<br/>standarden"| live["Behandlet<br/>som ny:<br/>tilkalder<br/>vagten"]
+    start -->|"Ved eller<br/>efter bekræftet"| acked["Registreret:<br/>tilkalder ingen"]
+    start -->|"Ved eller<br/>efter løst"| over["Registreret<br/>som overstået"]
+    over --> quiet["Ingen gruppering,<br/>runbooks, AI,<br/>kanal eller SLA"]
 ```
 
 - **Ved eller efter din bekræftede tilstand** — **Bekræftet**, eller enhver tilstand, der står under den i **Hændelser → Indstillinger → Hændelsesstatus** — kører ingen vagtpolitik, så ingen tilkaldes. Hændelsen nævner stadig sine politikker, dem du valgte, og dem vagtregler tilføjer, og dens feed siger hvorfor på én linje: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Dens SLA, hvis en regel giver den en, starter allerede som besvaret. Alt andet nedenfor kører som for enhver ny hændelse.

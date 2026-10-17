@@ -14,24 +14,18 @@
 ```mermaid title="کدام گام‌ها کجا اجرا می‌شوند"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["گام‌های HTTP request"]
-        ai["گام‌های AI"]
+        onworker["گام‌های<br/>HTTP request<br/>گام‌های AI"]
     end
     subgraph yours["زیرساخت شما"]
-        direction LR
         runner["Runner"]
-        scripts["گام‌های JavaScript و Bash"]
-        remote["گام‌های SSH و Kubernetes"]
+        onrunner["گام‌های<br/>JavaScript و Bash<br/>گام‌های SSH<br/>و Kubernetes"]
     end
     person["یک نفر"]
-    worker --> http
-    worker --> ai
-    worker -->|"گام‌های Manual و تأییدها"| person
-    worker -->|"کاری برای Runner گام در صف می‌گذارد"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"گام‌های Manual<br/>و تأییدها"| person
+    worker --->|"کاری برای<br/>Runner گام در<br/>صف می‌گذارد"| runner
+    runner --> onrunner
 ```
 
 | نوع گام | کجا اجرا می‌شود | چگونه |

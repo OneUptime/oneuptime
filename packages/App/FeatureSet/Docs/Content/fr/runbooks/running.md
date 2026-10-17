@@ -19,15 +19,15 @@ stateDiagram-v2
     state "Achevé" as Completed
     state "Échec" as Failed
     state "Annulé" as Cancelled
-    [*] --> Scheduled: exécution lancée
-    Scheduled --> Running: un Worker la prend en charge
-    Running --> WaitingForManualStep: étape Manual ou approbation
-    WaitingForManualStep --> Scheduled: terminée, approuvée ou ignorée
-    Running --> Completed: toutes les étapes faites
-    Running --> Failed: une étape échoue
-    Scheduled --> Cancelled: Annuler l'exécution
-    Running --> Cancelled: Annuler l'exécution
-    WaitingForManualStep --> Cancelled: Annuler l'exécution
+    [*] --> Scheduled: exécution<br/>lancée
+    Scheduled --> Running: un Worker<br/>la prend<br/>en charge
+    Running --> WaitingForManualStep: étape Manual<br/>ou approbation
+    WaitingForManualStep --> Scheduled: terminée,<br/>approuvée<br/>ou ignorée
+    Running --> Completed: toutes les<br/>étapes faites
+    Running --> Failed: une étape<br/>échoue
+    Scheduled --> Cancelled: Annuler<br/>l'exécution
+    Running --> Cancelled: Annuler<br/>l'exécution
+    WaitingForManualStep --> Cancelled: Annuler<br/>l'exécution
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]

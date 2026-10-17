@@ -19,13 +19,13 @@ sequenceDiagram
     participant D as 儀表板
     participant O as OneUptime
     participant P as 探測器
-    D->>O: 開始封包擷取：介面、篩選器、上限
-    P->>O: 有給我的擷取嗎？（每 10 秒）
+    D->>O: 開始封包擷取：<br/>介面、篩選器、上限
+    P->>O: 有給我的擷取嗎？<br/>（每 10 秒）
     O-->>P: 這一個
-    P->>P: tcpdump，直到達到上限或按下停止
+    P->>P: tcpdump，<br/>直到達到上限或按下停止
     P->>O: 上傳 pcap 檔案
     D->>O: 下載
-    O-->>D: pcap 檔案，以及稽核記錄中的一筆項目
+    O-->>D: pcap 檔案，<br/>以及稽核記錄中的一筆項目
 ```
 
 1. **開始。** 有權開始擷取的人選擇探測器的介面、篩選器和上限，然後按一下 **開始擷取**。OneUptime 在儲存擷取之前，會依探測器允許的範圍檢查篩選器和上限。

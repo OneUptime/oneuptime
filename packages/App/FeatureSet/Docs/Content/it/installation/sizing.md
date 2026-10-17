@@ -30,9 +30,9 @@ In produzione OneUptime ha bisogno di tre archivi di dati. Ognuno cresce con qua
 
 ```mermaid title="Con cosa cresce ogni archivio"
 flowchart TB
-    Tel["Log, metriche, tracce"] -->|"velocità di ingestione × conservazione"| CH[("ClickHouse")]
-    State["Monitor, incidenti, utenti"] -->|"numero di entità e cronologia"| PG[("PostgreSQL")]
-    Work["Code, cache, sessioni"] -->|"profondità delle code"| VK[("Valkey")]
+    Tel["Log, metriche,<br/>tracce"] -->|"velocità di<br/>ingestione ×<br/>conservazione"| CH[("ClickHouse")]
+    State["Monitor,<br/>incidenti,<br/>utenti"] -->|"numero di<br/>entità e<br/>cronologia"| PG[("PostgreSQL")]
+    Work["Code, cache,<br/>sessioni"] -->|"profondità<br/>delle code"| VK[("Valkey")]
 ```
 
 | Archivio | Cosa memorizza | Cosa ne determina la dimensione |

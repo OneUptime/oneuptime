@@ -22,6 +22,7 @@ import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundExce
 import HashedString from "../../../Types/HashedString";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import {
   UserGlobalAccessPermission,
@@ -168,7 +169,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toEqual({});
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
       expect(spyErrorLogger).toHaveBeenCalledWith(error, undefined);
     });
 
@@ -187,7 +191,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toEqual({});
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
       expect(spyErrorLogger).not.toBeCalled();
     });
 
@@ -269,7 +276,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toStrictEqual(false);
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
     });
 
     test("should return false, when decoded JWT object's userId does not match with userId passed as parameter", () => {
@@ -290,7 +300,10 @@ describe("UserMiddleware", () => {
       );
 
       expect(result).toStrictEqual(false);
-      expect(spyDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.SsoSignIn,
+      );
     });
 
     test("should return true", () => {
@@ -405,7 +418,10 @@ describe("UserMiddleware", () => {
         ),
       );
       expect(next).not.toHaveBeenCalled();
-      expect(spyJWTDecode).toHaveBeenCalledWith(mockedAccessToken);
+      expect(spyJWTDecode).toHaveBeenCalledWith(
+        mockedAccessToken,
+        JsonWebTokenPurpose.UserSession,
+      );
       expect(UserService.updateOneBy).not.toHaveBeenCalled();
     });
 

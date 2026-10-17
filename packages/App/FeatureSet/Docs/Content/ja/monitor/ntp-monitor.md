@@ -19,8 +19,8 @@ sequenceDiagram
     participant S as NTP サーバー
     Note over P: T1: プローブが送信
     P->>S: クライアントリクエスト
-    Note over S: T2: サーバーが受信、T3: サーバーが応答
-    S-->>P: 応答: ストラタム、うるう秒指示子、参照元、T2、T3
+    Note over S: T2: サーバーが受信、<br/>T3: サーバーが応答
+    S-->>P: 応答: ストラタム、<br/>うるう秒指示子、参照元、T2、T3
     Note over P: T4: プローブが受信
 ```
 

@@ -4,15 +4,15 @@ En selvhostet OneUptime-installation er en håndfuld containere: én ingress, so
 
 ```mermaid title="En selvhostet OneUptime-installation"
 flowchart TB
-    People["Personer og browsere"]
-    Senders["Telemetriafsendere:<br/>OpenTelemetry, Fluent Bit,<br/>syslog, agenter"]
-    Targets["Det, du overvåger:<br/>internt og offentligt"]
+    People["Personer<br/>og browsere"]
+    Senders["Telemetriafsendere:<br/>OpenTelemetry,<br/>Fluent Bit,<br/>syslog, agenter"]
+    Targets["Det, du overvåger:<br/>internt og<br/>offentligt"]
     subgraph Install["Dit netværk"]
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
-        App["App<br/>dashboards, statussider,<br/>API, ingest, baggrundsjob"]
-        Probe["Probes"]
+        App["App<br/>dashboards,<br/>statussider,<br/>API, ingest,<br/>baggrundsjob"]
         Runner["Runner"]
+        Probe["Probes"]
         subgraph Data["Datalagre"]
             direction LR
             Postgres[("PostgreSQL<br/>konfiguration<br/>og tilstand")]
@@ -23,12 +23,13 @@ flowchart TB
     People -->|"HTTPS"| Ingress
     Senders -->|"OTLP, HTTPS"| Ingress
     Ingress --> App
-    Probe -->|"hente arbejde,<br/>sende resultater"| App
     Runner -->|"tage job,<br/>sende resultater"| App
+    Probe -->|"hente arbejde,<br/>sende resultater"| App
     Probe -->|"HTTP, TCP, ping,<br/>DNS, SNMP"| Targets
     App --> Postgres
     App --> ClickHouse
     App --> Valkey
+    Targets ~~~ Probe
 ```
 
 ## Det viser dette

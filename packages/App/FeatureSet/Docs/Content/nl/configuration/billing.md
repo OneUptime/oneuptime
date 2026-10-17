@@ -13,10 +13,10 @@ In OneUptime Cloud betaalt een project voor zijn abonnement, per gebruiker, en v
 
 ```mermaid title="Waarvoor een project in OneUptime Cloud betaalt"
 flowchart TB
-    project["Uw project"] --> plan["Het abonnement: een prijs<br/>per gebruiker per maand"]
-    project --> usage["Naar gebruik:<br/>telemetrie en monitors"]
-    project --> balances["Vooruitbetaalde saldi:<br/>berichten en AI"]
-    plan --> invoices["Facturen, afgeschreven<br/>van uw betaalmethode"]
+    project["Uw project"] --> plan["Het abonnement:<br/>een prijs<br/>per gebruiker<br/>per maand"]
+    project --> usage["Naar gebruik:<br/>telemetrie<br/>en monitors"]
+    project --> balances["Vooruitbetaalde<br/>saldi:<br/>berichten en AI"]
+    plan --> invoices["Facturen,<br/>afgeschreven<br/>van uw<br/>betaalmethode"]
     usage --> invoices
     balances --> recharge["Bijgevuld van<br/>dezelfde kaart"]
 ```

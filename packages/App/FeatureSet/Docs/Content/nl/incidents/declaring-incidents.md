@@ -21,7 +21,7 @@ Er zijn vijf manieren waarop een incident in OneUptime terechtkomt, en ze komen 
 | Er een openen vanuit je eigen code, een script of een andere tool | `POST /api/incident`                                                    |
 | Mensen buiten je team via een link een probleem laten melden | Een [formulier](/docs/forms/index)                                           |
 
-Alle vijf schrijven hetzelfde model, dus een incident dat een probe opende, ziet er precies zo uit als een incident dat een responder met de hand opende — op een paar administratieve kolommen na die de server bij automatische incidenten invult. Integraties schrijven het ook: [Huntress](/docs/integrations/huntress) opent één incident voor elk incidentrapport dat zijn SOC stuurt.
+Alle vijf schrijven hetzelfde model, dus een incident dat een probe opende, ziet er precies zo uit als een incident dat een responder met de hand opende — op een paar administratieve kolommen na die de server bij automatische incidenten invult. Workflows schrijven het ook: de [Huntress](/docs/integrations/huntress)-workflow opent één incident voor elk incidentrapport dat zijn SOC stuurt.
 
 > [!TIP]
 > Je kunt een incident ook vanuit waarschuwingen melden: **Incident melden** in een lijst met waarschuwingen, in de kop van een waarschuwing of op de pagina **Gekoppelde incidenten** van een waarschuwing opent dezelfde wizard, vooraf ingevuld vanuit de waarschuwingen, en koppelt ze aan het nieuwe incident. Een vakje op het formulier, standaard aangevinkt, bevestigt de waarschuwingen ook, zodat ze niet verder escaleren. Zie [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts).
@@ -250,14 +250,7 @@ De aanmaakaanroep doet meer dan een rij schrijven:
 flowchart TB
     request["Aanmaakverzoek"] --> fill["De server vult de gaten"]
     fill --> template["Sjabloon toegepast, als er een is"]
-    template --> rules
-    subgraph rules["Regels, in deze volgorde"]
-        direction LR
-        privacy["Privacy"] --> owner["Eigenaar"]
-        owner --> label["Label"]
-        label --> oncall["Bereikbaarheid"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Regels, in deze volgorde:<br/>Privacy, Eigenaar, Label,<br/>Bereikbaarheid, Runbook"]
     rules --> policies["Bereikbaarheidsbeleid wordt uitgevoerd"]
     policies --> subscribers["Abonnees in de wachtrij"]
     subscribers --> workflows["Workflows gaan af"]
@@ -284,10 +277,10 @@ Een latere **Initiële status** kiezen — op het formulier, via de **Initiële 
 
 ```mermaid title="Wat een nieuw incident in gang zet, naar de status waarin het begint"
 flowchart TB
-    start{"Beginstatus"} -->|"Aanmaakstatus, de standaard"| live["Behandeld als nieuw: roept bereikbaarheidsdienst op"]
-    start -->|"Bij of voorbij bevestigd"| acked["Vastgelegd: roept niemand op"]
-    start -->|"Bij of voorbij opgelost"| over["Vastgelegd als voorbij"]
-    over --> quiet["Geen groepering, runbooks, AI, kanaal of SLA"]
+    start{"Beginstatus"} -->|"Aanmaakstatus,<br/>de standaard"| live["Behandeld als<br/>nieuw: roept<br/>bereikbaarheidsdienst op"]
+    start -->|"Bij of voorbij<br/>bevestigd"| acked["Vastgelegd:<br/>roept niemand op"]
+    start -->|"Bij of voorbij<br/>opgelost"| over["Vastgelegd<br/>als voorbij"]
+    over --> quiet["Geen groepering,<br/>runbooks, AI,<br/>kanaal of SLA"]
 ```
 
 - **Bij of voorbij je bevestigde status** — **Bevestigd**, of elke status die eronder staat onder **Incidenten → Instellingen → Status incident** — wordt er geen bereikbaarheidsbeleid uitgevoerd, dus niemand wordt opgeroepen. Het incident noemt nog steeds zijn beleid, het beleid dat je koos en het beleid dat bereikbaarheidsregels toevoegen, en zijn feed zegt in één regel waarom: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Zijn SLA, als een regel het er een geeft, begint al als beantwoord. Al het andere hieronder wordt uitgevoerd zoals voor elk nieuw incident.

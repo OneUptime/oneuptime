@@ -19,10 +19,10 @@ sequenceDiagram
     participant S as Il vostro sistema
     participant O as OneUptime
     participant T as Team di reperibilità
-    S->>O: Email all'indirizzo del monitor
+    S->>O: Email all'indirizzo<br/>del monitor
     O->>O: Salvarla sul monitor
     O->>O: Controllare i criteri
-    O->>T: Avviso o incidente, se uno corrisponde
+    O->>T: Avviso o incidente,<br/>se uno corrisponde
     Note over O: Ogni 30 secondi, controllare<br/>i criteri Email Received
 ```
 

@@ -4,15 +4,15 @@
 
 ```mermaid title="Самостоятельно размещённая установка OneUptime"
 flowchart TB
-    People["Люди и браузеры"]
-    Senders["Отправители телеметрии:<br/>OpenTelemetry, Fluent Bit,<br/>syslog, агенты"]
-    Targets["То, что вы мониторите:<br/>внутреннее и публичное"]
+    People["Люди и<br/>браузеры"]
+    Senders["Отправители<br/>телеметрии:<br/>OpenTelemetry,<br/>Fluent Bit,<br/>syslog, агенты"]
+    Targets["То, что вы<br/>мониторите:<br/>внутреннее<br/>и публичное"]
     subgraph Install["Ваша сеть"]
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
-        App["Приложение<br/>дашборды, страницы статуса,<br/>API, приём данных, фоновые задачи"]
-        Probe["Пробы"]
+        App["Приложение<br/>дашборды,<br/>страницы<br/>статуса,<br/>API, приём<br/>данных,<br/>фоновые задачи"]
         Runner["Runner"]
+        Probe["Пробы"]
         subgraph Data["Хранилища данных"]
             direction LR
             Postgres[("PostgreSQL<br/>конфигурация<br/>и состояние")]
@@ -23,12 +23,13 @@ flowchart TB
     People -->|"HTTPS"| Ingress
     Senders -->|"OTLP, HTTPS"| Ingress
     Ingress --> App
-    Probe -->|"получать задания,<br/>отправлять результаты"| App
-    Runner -->|"забирать задачи,<br/>отправлять результаты"| App
+    Runner -->|"забирать<br/>задачи,<br/>отправлять<br/>результаты"| App
+    Probe -->|"получать<br/>задания,<br/>отправлять<br/>результаты"| App
     Probe -->|"HTTP, TCP, ping,<br/>DNS, SNMP"| Targets
     App --> Postgres
     App --> ClickHouse
     App --> Valkey
+    Targets ~~~ Probe
 ```
 
 ## Что здесь показано

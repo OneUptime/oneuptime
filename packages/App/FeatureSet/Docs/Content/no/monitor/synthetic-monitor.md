@@ -19,14 +19,14 @@ sequenceDiagram
     participant P as Sonde
     participant B as Nettleser
     participant A as Webappen din
-    O->>P: Skript, hemmeligheter fylt inn
-    loop Hver nettleser og skjermstørrelse
+    O->>P: Skript,<br/>hemmeligheter<br/>fylt inn
+    loop Hver nettleser og<br/>skjermstørrelse
         P->>B: Kjør skriptet
-        B->>A: Last sider, klikk, skriv
+        B->>A: Last sider,<br/>klikk, skriv
         A-->>B: Sider
-        B-->>P: Resultat, skjermbilder, logger
+        B-->>P: Resultat,<br/>skjermbilder,<br/>logger
     end
-    P->>O: Ett svar per kjøring
+    P->>O: Ett svar<br/>per kjøring
     O->>O: Evaluer kriteriene
 ```
 

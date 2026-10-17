@@ -18,10 +18,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonde
     participant A as Dine tjenester
-    O->>P: Script, hemmeligheder udfyldt
+    O->>P: Script,<br/>hemmeligheder udfyldt
     P->>A: Anmodninger fra scriptet
     A-->>P: Svar
-    P->>O: Resultat, logs, tid, metrikker
+    P->>O: Resultat, logs,<br/>tid, metrikker
     O->>O: Evaluér kriterierne
 ```
 

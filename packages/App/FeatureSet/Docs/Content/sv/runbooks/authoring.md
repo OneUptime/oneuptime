@@ -188,14 +188,14 @@ AI-steg mäts och faktureras som alla andra AI-funktioner. Steget misslyckas med
 
 ```mermaid title="Vad som händer efter ett automatiserat steg"
 flowchart TB
-    run["Ett automatiserat steg körs"] --> ok{"Lyckades det?"}
-    ok -->|"ja"| approval{"Kräv godkännande påslaget?"}
-    approval -->|"ja"| wait["Körningen väntar på att en person godkänner"]
+    run["Ett automatiserat<br/>steg körs"] --> ok{"Lyckades det?"}
+    ok -->|"ja"| approval{"Kräv godkännande<br/>påslaget?"}
+    approval -->|"ja"| wait["Körningen<br/>väntar på att en<br/>person godkänner"]
     approval -->|"nej"| next["Nästa steg körs"]
     wait --> next
-    ok -->|"nej"| cont{"Fortsätt vid fel påslaget?"}
+    ok -->|"nej"| cont{"Fortsätt vid<br/>fel påslaget?"}
     cont -->|"ja"| next
-    cont -->|"nej"| failed["Körningen stoppar som misslyckad"]
+    cont -->|"nej"| failed["Körningen stoppar<br/>som misslyckad"]
 ```
 
 Som standard stoppar ett steg som misslyckas körningen och markerar den som `Failed`, med stegets fel som orsak. Med **Fortsätt vid fel** påslaget registreras felet och nästa steg körs, vilket passar runbooks av typen "prova de här tre sakerna och meddela sedan". **Kräv godkännande** gäller efter att ett steg har lyckats: körningen väntar på det steget tills någon klickar på **Approve & continue** eller **Hoppa över**.

@@ -19,9 +19,9 @@ En Proxmox-monitor er knyttet til én klynge. Hvert minutt kjører den spørring
 flowchart TB
     subgraph site["Nettverket ditt"]
         direction LR
-        pve["Proxmox VE-API"] --> agent["OneUptimes Proxmox-agent"]
+        pve["Proxmox VE-API"] --> agent["OneUptimes<br/>Proxmox-agent"]
     end
-    agent -->|"pve-metrikker over OTLP"| oneuptime["OneUptime"]
+    agent -->|"pve-metrikker<br/>over OTLP"| oneuptime["OneUptime"]
     native["Innebygd push i<br/>Proxmox VE 9"] -.->|"alternativ"| oneuptime
     oneuptime -->|"første data"| registered["Klynge registrert"]
     oneuptime --> monitor["Proxmox-monitor"]

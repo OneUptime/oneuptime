@@ -1,10 +1,14 @@
 import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
+import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import StandardWebhookSignature from "../Utils/Webhook/StandardWebhookSignature";
 import ProjectReferencesService from "./ProjectReferencesService";
 import WorkflowLabelRuleEngineService from "./WorkflowLabelRuleEngineService";
 import WorkflowOwnerRuleEngineService from "./WorkflowOwnerRuleEngineService";
 import EmptyResponseData from "../../Types/API/EmptyResponse";
+import BadDataException from "../../Types/Exception/BadDataException";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
@@ -22,9 +26,138 @@ import Model from "../../Models/DatabaseModels/Workflow";
 import logger, { LogAttributes } from "../Utils/Logger";
 import UUID from "../../Utils/UUID";
 
+// What onBeforeUpdate hands onUpdateSuccess.
+interface WorkflowUpdateCarryForward {
+  signingSecretSaved: boolean;
+}
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  public static readonly SIGNING_SECRET_PROBLEM: string =
+    "The signing secret is not one Huntress issues. In Huntress, open the endpoint's menu (⋯), choose View Signing Secret and copy all of it. It starts with whsec_.";
+
+  public static readonly EMPTY_SIGNING_SECRET_PROBLEM: string =
+    "Paste the endpoint's signing secret from Huntress to save it.";
+
+  public static readonly SIGNING_SECRET_SAVED_PROBLEM: string =
+    "Webhook Signing Secret Saved follows the signing secret. Save a signing secret instead.";
+
+  /*
+   * A pasted webhook signing secret, trimmed, or null for none at all. A
+   * secret is one a Standard Webhooks sender such as Huntress issues:
+   * "whsec_" and base64 (StandardWebhookSignature.isValidSecret).
+   */
+  public static readWebhookSigningSecret(value: unknown): string | null {
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    if (typeof value !== "string") {
+      throw new BadDataException(Service.SIGNING_SECRET_PROBLEM);
+    }
+
+    const secret: string = value.trim();
+
+    if (!secret) {
+      return null;
+    }
+
+    if (!StandardWebhookSignature.isValidSecret(secret)) {
+      throw new BadDataException(Service.SIGNING_SECRET_PROBLEM);
+    }
+
+    return secret;
+  }
+
+  /*
+   * The webhook signing secret is checked when it is written, so what is
+   * stored is a secret a request can be verified with, and
+   * isWebhookSigningSecretSet follows it whatever the request says: the
+   * secret is write-only, and the dashboard reads this instead.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
+
+    const data: Model = createBy.data;
+    const secret: string | null = Service.readWebhookSigningSecret(
+      data.webhookSigningSecret,
+    );
+
+    if (secret) {
+      data.webhookSigningSecret = secret;
+    } else {
+      delete data.webhookSigningSecret;
+    }
+
+    data.isWebhookSigningSecretSet = Boolean(secret);
+
+    return onCreate;
+  }
+
+  /*
+   * On an update, an empty secret keeps the saved one - a form never has
+   * the saved one to send back - and a new one clears the refusal the old
+   * one (or none) left, once it is written (onUpdateSuccess).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    const data: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    const sentSecret: boolean = Object.prototype.hasOwnProperty.call(
+      data,
+      "webhookSigningSecret",
+    );
+    const sentSecretSaved: boolean = Object.prototype.hasOwnProperty.call(
+      data,
+      "isWebhookSigningSecretSet",
+    );
+
+    // Only the secret decides this, never the request.
+    delete data["isWebhookSigningSecretSet"];
+
+    let signingSecretSaved: boolean = false;
+
+    if (sentSecret) {
+      const secret: string | null = Service.readWebhookSigningSecret(
+        data["webhookSigningSecret"],
+      );
+
+      if (secret) {
+        data["webhookSigningSecret"] = secret;
+        data["isWebhookSigningSecretSet"] = true;
+        signingSecretSaved = true;
+      } else {
+        delete data["webhookSigningSecret"];
+      }
+    }
+
+    // Left with nothing to write: say what was meant, not "no values".
+    if ((sentSecret || sentSecretSaved) && Object.keys(data).length === 0) {
+      throw new BadDataException(
+        sentSecret
+          ? Service.EMPTY_SIGNING_SECRET_PROBLEM
+          : Service.SIGNING_SECRET_SAVED_PROBLEM,
+      );
+    }
+
+    const carryForward: WorkflowUpdateCarryForward = {
+      signingSecretSaved: signingSecretSaved,
+    };
+
+    return { updateBy: updateBy, carryForward: carryForward };
   }
 
   @CaptureSpan()
@@ -125,8 +258,28 @@ export class Service extends ProjectReferencesService<Model> {
     const updatedGraph: JSONObject | undefined = (onUpdate.updateBy.data as any)
       ?.graph as JSONObject | undefined;
 
+    const carryForward: WorkflowUpdateCarryForward | null =
+      (onUpdate.carryForward as WorkflowUpdateCarryForward | null) || null;
+
     // Every workflow the update wrote.
     for (const workflowId of updatedItemIds) {
+      /*
+       * A new signing secret: the refusal the old one (or none) left is
+       * about a secret that is gone, so the trigger waits for its sender
+       * again rather than show an error this save just fixed. The trigger
+       * writes these columns, so they are cleared as the server does.
+       */
+      if (carryForward?.signingSecretSaved) {
+        await this.updateColumnsByIdWithoutHooks({
+          id: workflowId,
+          data: {
+            lastWebhookError: null,
+            lastWebhookErrorAt: null,
+          } as any,
+          skipUpdateDateColumn: true,
+        });
+      }
+
       if (updatedGraph) {
         await this.saveTriggerFromGraph({
           workflowId: workflowId,

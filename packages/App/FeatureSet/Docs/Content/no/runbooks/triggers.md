@@ -15,13 +15,13 @@ Et runbook kan starte av seg selv: etter en tidsplan, eller når et annet verkt�
 flowchart TB
     subgraph starts["Hva som starter kjøringen"]
         direction LR
-        schedule["Tidsplanen: et tidspunkt kommer"]
-        webhook["Webhooken: en POST til URL-en dens"]
+        schedule["Tidsplanen: et<br/>tidspunkt kommer"]
+        webhook["Webhooken: en POST<br/>til URL-en dens"]
     end
-    schedule --> checks["Runbooket er slått på og har trinn"]
+    schedule --> checks["Runbooket er slått<br/>på og har trinn"]
     webhook --> checks
-    checks --> execution["Kjøring, merket Schedule eller Webhook"]
-    execution --> worker["OneUptime Worker kjører trinnene"]
+    checks --> execution["Kjøring, merket<br/>Schedule eller Webhook"]
+    execution --> worker["OneUptime Worker<br/>kjører trinnene"]
 ```
 
 En utløser starter en kjøring slik **Run Now** gjør: kjøringen går gjennom runbookets nåværende trinn og er ikke knyttet til noen hendelse, noe varsel eller noen planlagt vedlikeholdshendelse. Hver kjøring registrerer hva som startet den. Runbookets **Kjøringer** og **Runbooks → Kjøringer** viser det under **Utløst av**, med når en planlagt kjøring skulle skje, eller adressen som kalte webhooken, og begge listene kan filtreres på det.

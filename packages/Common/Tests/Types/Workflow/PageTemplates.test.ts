@@ -50,6 +50,7 @@ import {
 } from "../../../Types/Workflow/Components/OnCall";
 import { getNewPageStepArguments } from "../../../Types/Workflow/Components/OnCallPageNewStep";
 import {
+  HUNTRESS_INCIDENT_TEMPLATE_ID,
   WorkflowTemplate,
   WorkflowTemplateCategory,
   getRecommendedWorkflowTemplates,
@@ -209,7 +210,11 @@ describe("the paging templates", () => {
     ).toEqual(["oncall-executed-slack", ...PAGE_TEMPLATE_IDS]);
   });
 
-  test("are every template that pages: no other has a Page step", () => {
+  /*
+   * Besides them, only the Huntress template pages: for the incident it
+   * opens from a Huntress report (HuntressTemplateSimulation.test.ts runs it).
+   */
+  test("are every template that pages: no other has a Page step but Huntress's", () => {
     expect(
       getWorkflowTemplates()
         .filter((template: WorkflowTemplate): boolean => {
@@ -218,7 +223,7 @@ describe("the paging templates", () => {
         .map((template: WorkflowTemplate): string => {
           return template.id;
         }),
-    ).toEqual(PAGE_TEMPLATE_IDS);
+    ).toEqual([...PAGE_TEMPLATE_IDS, HUNTRESS_INCIDENT_TEMPLATE_ID]);
   });
 
   test("are named for what they do, starting with Page, so a search for it finds them", () => {

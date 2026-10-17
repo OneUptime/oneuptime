@@ -75,7 +75,7 @@ Click **Add Monitor**. The row appears in the group, and on the status page.
 In a grid group, the dialog also asks for the row and the column the monitor goes in, above **More fields**; see [List layout vs grid layout](#list-layout-vs-grid-layout).
 
 > [!TIP]
-> To show several checks as one row, add a monitor group. With the **Monitor Groups** switch on (**Project Settings** > **Advanced** > **Feature Flags**, which saves as soon as you flip it), a link under the dropdown reads **Add a Monitor Group instead.** Click it and **Monitor** becomes **Monitor Group** (**Select Monitor Group**); **Add a Monitor instead.** switches back.
+> To show several checks as one row, add a [monitor group](/docs/monitor/monitor-groups). With the **Monitor Groups** switch on (**Project Settings** > **Advanced** > **Feature Flags**, which saves as soon as you flip it), a link under the dropdown reads **Add a Monitor Group instead.** Click it and **Monitor** becomes **Monitor Group** (**Select Monitor Group**); **Add a Monitor instead.** switches back.
 
 ### Adding several at once
 

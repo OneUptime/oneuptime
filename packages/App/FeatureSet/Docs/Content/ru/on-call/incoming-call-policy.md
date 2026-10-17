@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Учётная запись Twilio с её Account SID и Auth Token | Номера и звонки политики работают через неё, и Twilio выставляет за них счёт ей. |
 | Тариф **Growth** в OneUptime Cloud | Он нужен проекту для собственной конфигурации Twilio. |
-| Сервер OneUptime, доступный для Twilio, если вы размещаете его сами | Twilio отправляет каждый звонок на `https://<your host>/notification/incoming-call/voice`. |
+| Сервер OneUptime, доступный для Twilio, если вы размещаете его сами | Twilio отправляет каждый звонок на `https://<your host>/notification/incoming-call/voice`, а итог каждого вызова — на `https://<your host>/notification/incoming-call/dial-status/...`. |
 | Включённые **SMS** в проекте | Номер каждого инженера подтверждается кодом, который приходит по SMS. |
 | Подтверждённый номер у каждого инженера | Правило вызывает только тех, кто добавил и подтвердил номер для входящих вызовов в проекте. |
 
@@ -86,16 +86,16 @@ sequenceDiagram
     participant Twilio
     participant OneUptime
     participant Engineer as Инженер
-    Caller->>Twilio: Набирает номер политики
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Приветствие, затем вызов человека из первого правила
-    Twilio->>Engineer: Звонит в течение длительности вызова правила
-    Note over Twilio,Engineer: Никто не отвечает вовремя
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Вызвать человека из следующего правила
-    Twilio->>Engineer: Звонит следующему человеку
+    Caller->>Twilio: Набирает<br/>номер политики
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Приветствие,<br/>затем вызов<br/>человека из<br/>первого правила
+    Twilio->>Engineer: Звонит в течение<br/>длительности<br/>вызова правила
+    Note over Twilio,Engineer: Никто не<br/>отвечает вовремя
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Вызвать человека<br/>из следующего<br/>правила
+    Twilio->>Engineer: Звонит<br/>следующему<br/>человеку
     Engineer-->>Twilio: Отвечает
-    Twilio-->>Caller: Соединяет звонящего
+    Twilio-->>Caller: Соединяет<br/>звонящего
 ```
 
 Правило пропускается, никого не вызывая, если по нему сейчас некого вызвать: в его расписании никто не дежурит, у человека нет подтверждённого номера для входящих вызовов в этом проекте или он больше не участник проекта. Если ни в одном правиле некого вызвать, звонящий слышит **Сообщение об отсутствии доступных людей**. Отключённая политика отвечает на каждый звонок фразой "Sorry, this service is currently disabled." и кладёт трубку.

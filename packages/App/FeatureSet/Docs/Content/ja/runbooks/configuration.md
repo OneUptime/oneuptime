@@ -14,24 +14,18 @@
 ```mermaid title="どのステップがどこで実行されるか"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["HTTP request ステップ"]
-        ai["AI ステップ"]
+        onworker["HTTP request<br/>ステップ<br/>AI ステップ"]
     end
     subgraph yours["自社インフラ"]
-        direction LR
         runner["Runner"]
-        scripts["JavaScript と Bash のステップ"]
-        remote["SSH と Kubernetes のステップ"]
+        onrunner["JavaScript と<br/>Bash のステップ<br/>SSH と<br/>Kubernetes の<br/>ステップ"]
     end
     person["人"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual ステップと承認"| person
-    worker -->|"ステップの Runner 宛てにジョブをキューに追加"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual<br/>ステップと承認"| person
+    worker --->|"ステップの<br/>Runner 宛てに<br/>ジョブを<br/>キューに追加"| runner
+    runner --> onrunner
 ```
 
 | ステップの種類 | 実行場所 | 方法 |

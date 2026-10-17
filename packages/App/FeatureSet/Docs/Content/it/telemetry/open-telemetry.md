@@ -32,6 +32,7 @@ flowchart TB
 
 - **I servizi vengono creati per te.** L'attributo di risorsa `service.name` (impostato con `OTEL_SERVICE_NAME`) dà il nome al servizio a cui appartengono i tuoi dati. OneUptime crea il servizio al primo invio e lo elenca in **Prodotti → Servizi**.
 - **Gli errori diventano eccezioni.** Gli eventi di eccezione sugli span e le eccezioni registrate nei log vengono raggruppati in problemi in **Eccezioni** — vedi [Eccezioni dai log](#eccezioni-dai-log).
+- **Le regole agiscono sui dati appena arrivano.** I [filtri di scarto e le regole di mascheramento](/docs/telemetry/drop-filters-and-scrub-rules) scartano o mascherano ciò che non vuoi mai memorizzare, e la [conservazione dei dati](/docs/telemetry/data-retention) decide per quanto tempo si conserva il resto.
 
 ## Prima di iniziare
 
@@ -407,7 +408,7 @@ La pagina di ogni chiave, in **Impostazioni del progetto → Telemetria e APM �
 | **Requests Per Minute Limit** | Il numero massimo di richieste OTLP/HTTP al minuto accettate con la chiave, considerando tutti i client che la usano. Vuoto significa nessun limite su una chiave Server e 6.000 su una chiave Browser. |
 | **Last Used At** | Quando sono stati accettati per l'ultima volta dei dati con la chiave. Usalo per trovare le chiavi che puoi ruotare o eliminare senza rischi. |
 
-**Reimposta la chiave segreta** nella pagina della chiave sostituisce il segreto. Ogni applicazione e ogni collector che invia con quello vecchio viene rifiutato finché non lo aggiorni.
+**Reimposta la chiave segreta** nella pagina della chiave sostituisce il segreto. Ogni applicazione e ogni collector che invia con quello vecchio viene rifiutato finché non lo aggiorni. Per le chiavi del browser, come ruotare una chiave in sicurezza e cosa significa ogni rifiuto, vedi [Chiavi di acquisizione](/docs/telemetry/ingestion-keys).
 
 ## OneUptime self-hosted
 

@@ -21,7 +21,7 @@ There are five ways an incident gets into OneUptime, and they all end up in the 
 | Open one from your own code, a script, or another tool       | `POST /api/incident`                                                        |
 | Let people outside your team report a problem through a link | A [form](/docs/forms/index)                                                 |
 
-All five write the same model, so an incident opened by a probe looks exactly like one a responder opened by hand — apart from a few bookkeeping columns the server sets on automatic ones. Integrations write it too: [Huntress](/docs/integrations/huntress) opens one incident for each incident report its SOC sends.
+All five write the same model, so an incident opened by a probe looks exactly like one a responder opened by hand — apart from a few bookkeeping columns the server sets on automatic ones. Workflows write it too: the [Huntress](/docs/integrations/huntress) workflow opens one incident for each incident report its SOC sends.
 
 > [!TIP]
 > You can also declare an incident from alerts: **Declare Incident** on an alerts list, in an alert's header or on an alert's **Linked Incidents** page opens the same wizard, prefilled from the alerts, and links them to the new incident. A box on the form, ticked by default, also acknowledges the alerts, so they stop escalating. See [Linked Alerts](/docs/incidents/linked-alerts).
@@ -250,14 +250,7 @@ The create call does more than write a row:
 flowchart TB
     request["Create request"] --> fill["Server fills the gaps"]
     fill --> template["Template applied, if any"]
-    template --> rules
-    subgraph rules["Rules, in this order"]
-        direction LR
-        privacy["Privacy"] --> owner["Owner"]
-        owner --> label["Label"]
-        label --> oncall["On-call"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Rules, in this order:<br/>Privacy, Owner, Label,<br/>On-call, Runbook"]
     rules --> policies["On-call policies execute"]
     policies --> subscribers["Subscribers queued"]
     subscribers --> workflows["Workflows fire"]
@@ -284,10 +277,10 @@ Picking a later **Initial State** — on the form, through a template's **Initia
 
 ```mermaid title="What a new incident sets off, by the state it starts in"
 flowchart TB
-    start{"Starting state"} -->|"Created state, the default"| live["Treated as new: pages on-call"]
-    start -->|"At or past acknowledged"| acked["Recorded: pages no one"]
-    start -->|"At or past resolved"| over["Recorded as over"]
-    over --> quiet["No grouping, runbooks, AI, channel or SLA"]
+    start{"Starting state"} -->|"Created state,<br/>the default"| live["Treated as<br/>new: pages<br/>on-call"]
+    start -->|"At or past<br/>acknowledged"| acked["Recorded:<br/>pages no one"]
+    start -->|"At or past<br/>resolved"| over["Recorded<br/>as over"]
+    over --> quiet["No grouping,<br/>runbooks, AI,<br/>channel or SLA"]
 ```
 
 - **At or past your acknowledged state** — **Acknowledged**, or any state placed below it at **Incidents → Settings → Incident State** — no on-call policy runs, so no one is paged. The incident still lists its policies, the ones you picked and the ones on-call rules add, and its feed says why in one line: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Its SLA, if a rule gives it one, starts already responded to. Everything else below runs as for any new incident.

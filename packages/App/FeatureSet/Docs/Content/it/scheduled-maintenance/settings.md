@@ -125,7 +125,7 @@ Ogni modello della manutenzione ha trigger e azioni di workflow, con il suo nome
 | **Scheduled Maintenance Member**  | Crea, modifica ed elimina eventi con le loro note, cronologie di stato e proprietari, e entrambi i tipi di modelli. |
 | **Scheduled Maintenance Admin**   | Tutto ciò che fa un membro, e in più crea, modifica ed elimina gli stati di manutenzione.            |
 
-Regole, campi personalizzati e misurazioni richiedono **Project Owner** o **Project Admin**, oppure un ruolo personalizzato con il permesso proprio di quella pagina, come **Create Scheduled Maintenance Owner Rule**. **Project Member** lavora con eventi e modelli, come **Scheduled Maintenance Member**. Vedere [Utenti, team e autorizzazioni](/docs/permissions/index).
+Regole, campi personalizzati e misurazioni richiedono **Project Owner** o **Project Admin**, oppure un ruolo personalizzato con il permesso proprio di quella pagina, come **Create Scheduled Maintenance Owner Rule**. Le regole di runbook accettano anche **Runbook Admin**. **Project Member** lavora con eventi e modelli, come **Scheduled Maintenance Member**. Vedere [Utenti, team e autorizzazioni](/docs/permissions/index).
 
 ## Risoluzione dei problemi
 

@@ -71,13 +71,13 @@ El comportamiento de un proveedor global depende de si le adjuntas proyectos:
 
 ```mermaid title="Qué hace un proveedor global al iniciar sesión"
 flowchart TB
-    S["Alguien inicia sesión"] --> A{"¿Proyectos adjuntos?"}
+    S["Alguien<br/>inicia sesión"] --> A{"¿Proyectos<br/>adjuntos?"}
     A -->|"No"| K{"¿Tiene cuenta?"}
-    K -->|"No"| R["Rechazado: invitarlo primero"]
-    K -->|"Sí"| E["Sesión iniciada en sus proyectos"]
-    A -->|"Sí"| D{"¿Nuevo, con el registro<br/>desactivado?"}
+    K -->|"No"| R["Rechazado:<br/>invitarlo primero"]
+    K -->|"Sí"| E["Sesión iniciada<br/>en sus proyectos"]
+    A -->|"Sí"| D{"¿Nuevo, con<br/>el registro<br/>desactivado?"}
     D -->|"Sí"| R
-    D -->|"No"| P["Añadido a los proyectos adjuntos<br/>en los que aún no está"]
+    D -->|"No"| P["Añadido a los<br/>proyectos adjuntos<br/>en los que<br/>aún no está"]
     P --> E
 ```
 

@@ -18,12 +18,12 @@ O servidor MCP faz parte de toda instância do OneUptime, em `/mcp` no mesmo end
 
 ```mermaid title="Como um cliente chega ao seu projeto"
 flowchart TB
-    C["O seu cliente MCP:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP para /mcp"| M["O servidor MCP<br/>do OneUptime"]
+    C["O seu cliente MCP:<br/>Claude,<br/>Cursor,<br/>VS Code"] -->|"HTTP para /mcp"| M["O servidor MCP<br/>do OneUptime"]
     M --> W{"Como o cliente<br/>se identifica?"}
-    W -->|"fez login"| P["Como você, no<br/>projeto escolhido"]
-    W -->|"uma chave de API"| K["Como a chave, no<br/>projeto da chave"]
-    W -->|"nenhum dos dois"| U["Só ferramentas de<br/>páginas de status<br/>públicas"]
-    P --> A["A API do OneUptime,<br/>com exatamente<br/>essas permissões"]
+    W -->|"fez login"| P["Como você, no<br/>projeto<br/>escolhido"]
+    W -->|"uma chave<br/>de API"| K["Como a<br/>chave, no<br/>projeto<br/>da chave"]
+    W -->|"nenhum<br/>dos dois"| U["Só ferramentas de<br/>páginas<br/>de status<br/>públicas"]
+    P --> A["A API do<br/>OneUptime,<br/>com exatamente<br/>essas permissões"]
     K --> A
 ```
 

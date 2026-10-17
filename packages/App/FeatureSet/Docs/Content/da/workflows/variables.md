@@ -100,12 +100,12 @@ sequenceDiagram
     participant Variable as OAuth 2.0-variabel
     participant IdP as Identitetsudbyder
     Runner->>Variable: Læser det cachede token
-    alt Udløbet, eller udløber inden for et minut
+    alt Udløbet, eller udløber<br/>inden for et minut
         Runner->>IdP: Tokenforespørgsel
         IdP-->>Runner: Nyt adgangstoken
         Runner->>Variable: Gemmer det nye token
     end
-    Runner->>Runner: Kører trinnet med et token, der ikke er udløbet
+    Runner->>Runner: Kører trinnet med et<br/>token, der ikke er udløbet
 ```
 
 - Første gang et workflow bruger variablen, beder OneUptime din identitetsudbyders tokenendpoint om et adgangstoken og gemmer det.

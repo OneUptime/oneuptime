@@ -144,12 +144,12 @@ sequenceDiagram
     participant You
     participant OneUptime
     participant Alerts
-    You->>OneUptime: Declare Incident, with up to 50 alerts
-    OneUptime->>OneUptime: Check every alert and your permissions
-    OneUptime->>OneUptime: Create the incident and run its privacy rules
+    You->>OneUptime: Declare Incident,<br/>with up to 50 alerts
+    OneUptime->>OneUptime: Check every alert<br/>and your permissions
+    OneUptime->>OneUptime: Create the incident and<br/>run its privacy rules
     OneUptime->>Alerts: Link each alert
-    OneUptime-->>You: The new incident, alerts already linked
-    OneUptime->>Alerts: Acknowledge them in the background, if the box is ticked
+    OneUptime-->>You: The new incident,<br/>alerts already linked
+    OneUptime->>Alerts: Acknowledge them in<br/>the background, if<br/>the box is ticked
 ```
 
 When you submit, the server checks the alerts before it creates anything: at most 50 of them, each an alert in this project that you are allowed to see, and you must be allowed to link alerts to incidents. If any check fails, the request is rejected and no incident is created — so a bad alert id never uses up an incident number. Once the incident exists — and once its privacy rules have run, so the links know whether it is private — every alert is linked before the request returns, so the incident's **Linked Alerts** page already lists them. If a single link fails — say, because the alert was deleted a moment earlier — the incident is still declared and the other alerts are still linked.

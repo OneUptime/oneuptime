@@ -107,6 +107,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Project Admin",
       "Project Member",
       "Create Scheduled Maintenance Owner Rule",
+      "Runbook Admin",
     ],
   };
 

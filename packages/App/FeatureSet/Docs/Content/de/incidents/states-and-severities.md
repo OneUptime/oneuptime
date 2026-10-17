@@ -223,14 +223,14 @@ Ein Statuswechsel kann Ihre Statusseiten-Abonnenten benachrichtigen, durchläuft
 
 ```mermaid title="Erreicht ein Statuswechsel die Abonnenten?"
 flowchart TB
-    change["Statuswechsel gespeichert"] --> box{"Kästchen an?"}
+    change["Statuswechsel<br/>gespeichert"] --> box{"Kästchen an?"}
     box -->|"Nein"| skipped["Übersprungen"]
-    box -->|"Ja"| note{"Öffentliche Notiz dabei?"}
-    note -->|"Ja"| carried["Die Notiz ist die Nachricht"]
+    box -->|"Ja"| note{"Öffentliche<br/>Notiz dabei?"}
+    note -->|"Ja"| carried["Die Notiz ist<br/>die Nachricht"]
     note -->|"Nein"| queued["Zeile eingereiht"]
     queued --> gates{"Alle Hürden genommen?"}
-    gates -->|"Nein"| reason["Übersprungen, Grund festgehalten"]
-    gates -->|"Ja"| sent["Abonnenten benachrichtigt"]
+    gates -->|"Nein"| reason["Übersprungen,<br/>Grund festgehalten"]
+    gates -->|"Ja"| sent["Abonnenten<br/>benachrichtigt"]
 ```
 
 Die Benachrichtigung wird pro Zeitachsenzeile über **Statusseiten-Abonnenten benachrichtigen** (`shouldStatusPageSubscribersBeNotified`) angefordert, das Kontrollkästchen im Statuswechsel-Dialog und im manuellen Zeitachsenformular. Im Statuswechsel-Dialog ist es aus, wenn der Vorfall gemeldet wurde, ohne die Abonnenten zu benachrichtigen. Dasselbe Kästchen entscheidet auch, ob die öffentliche Notiz des Dialogs jemanden benachrichtigt. Ist es aus, wird die Zeile mit dem Status übersprungen und einer Erklärung gespeichert. Ist es an, wird die Zeile eingereiht, und ein Hintergrundjob greift sie auf – der Job läuft jede Minute, die Zustellung ist also schnell, aber nicht sofort.

@@ -75,7 +75,7 @@ Klik op **Monitor toevoegen**. De rij verschijnt in de groep en op de statuspagi
 In een rastergroep vraagt het dialoogvenster boven **Meer velden** ook om de rij en de kolom waarin de monitor komt; zie [Lijstindeling of rasterindeling](#lijstindeling-of-rasterindeling).
 
 > [!TIP]
-> Om meerdere controles als één rij te tonen, voegt u een monitorgroep toe. Met de schakelaar **Monitorgroepen** aan (**Projectinstellingen** > **Geavanceerd** > **Functievlaggen**, die wordt opgeslagen zodra u hem omzet) staat onder de keuzelijst een link **Add a Monitor Group instead.** Klik erop en **Monitor** wordt **Monitor Groep** (**Selecteer monitorgroep**); **Add a Monitor instead.** zet het terug.
+> Om meerdere controles als één rij te tonen, voegt u een [monitorgroep](/docs/monitor/monitor-groups) toe. Met de schakelaar **Monitorgroepen** aan (**Projectinstellingen** > **Geavanceerd** > **Functievlaggen**, die wordt opgeslagen zodra u hem omzet) staat onder de keuzelijst een link **Add a Monitor Group instead.** Klik erop en **Monitor** wordt **Monitor Groep** (**Selecteer monitorgroep**); **Add a Monitor instead.** zet het terug.
 
 ### Meerdere tegelijk toevoegen
 

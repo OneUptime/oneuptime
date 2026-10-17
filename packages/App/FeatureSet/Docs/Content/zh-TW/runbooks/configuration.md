@@ -14,24 +14,18 @@
 ```mermaid title="哪些步驟在哪裡執行"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["HTTP request 步驟"]
-        ai["AI 步驟"]
+        onworker["HTTP request 步驟<br/>AI 步驟"]
     end
     subgraph yours["您的基礎架構"]
-        direction LR
         runner["Runner"]
-        scripts["JavaScript 和 Bash 步驟"]
-        remote["SSH 和 Kubernetes 步驟"]
+        onrunner["JavaScript 和 Bash 步驟<br/>SSH 和 Kubernetes 步驟"]
     end
     person["人員"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual 步驟和核准"| person
-    worker -->|"為步驟的 Runner 放入工作"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual<br/>步驟和核准"| person
+    worker --->|"為步驟的<br/>Runner<br/>放入工作"| runner
+    runner --> onrunner
 ```
 
 | 步驟類型 | 執行位置 | 方式 |

@@ -50,12 +50,12 @@ Chaque base de données qu'utilisent vos applications, clusters et hôtes — ce
 
 ```mermaid title="Une vérification, et la seule étape qui peut mettre le moniteur hors ligne"
 flowchart TB
-    connect["Se connecter à la base"] --> probe{"Requête de test OK ?"}
-    probe -->|"Non"| offline["Moniteur hors ligne"]
-    probe -->|"Oui"| groups["Exécuter chaque groupe de métriques"]
+    connect["Se connecter<br/>à la base"] --> probe{"Requête de<br/>test OK ?"}
+    probe -->|"Non"| offline["Moniteur<br/>hors ligne"]
+    probe -->|"Oui"| groups["Exécuter<br/>chaque groupe<br/>de métriques"]
     groups --> group{"Groupe collecté ?"}
-    group -->|"Oui"| metrics["Métriques remontées"]
-    group -->|"Non"| issue["Métriques absentes, problème noté"]
+    group -->|"Oui"| metrics["Métriques<br/>remontées"]
+    group -->|"Non"| issue["Métriques<br/>absentes,<br/>problème noté"]
     metrics --> criteria["Critères évalués"]
     issue --> criteria
 ```

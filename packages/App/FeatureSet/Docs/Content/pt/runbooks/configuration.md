@@ -14,24 +14,18 @@ Esta é a referência para operadores e revisores de segurança: onde cada tipo 
 ```mermaid title="Quais etapas rodam onde"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["Etapas de requisição HTTP"]
-        ai["Etapas de IA"]
+        onworker["Etapas de<br/>requisição HTTP<br/>Etapas de IA"]
     end
     subgraph yours["Sua infraestrutura"]
-        direction LR
         runner["Runner"]
-        scripts["Etapas JavaScript e Bash"]
-        remote["Etapas SSH e Kubernetes"]
+        onrunner["Etapas<br/>JavaScript<br/>e Bash<br/>Etapas SSH<br/>e Kubernetes"]
     end
     person["Uma pessoa"]
-    worker --> http
-    worker --> ai
-    worker -->|"Etapas Manual e aprovações"| person
-    worker -->|"coloca na fila um trabalho para o Runner da etapa"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Etapas<br/>Manual e<br/>aprovações"| person
+    worker --->|"coloca na<br/>fila um<br/>trabalho<br/>para o<br/>Runner<br/>da etapa"| runner
+    runner --> onrunner
 ```
 
 | Tipo de etapa | Roda em | Como |

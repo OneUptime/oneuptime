@@ -14,24 +14,18 @@ Esta es la referencia para operadores y revisores de seguridad: dónde se ejecut
 ```mermaid title="Qué pasos se ejecutan dónde"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["Pasos de solicitud HTTP"]
-        ai["Pasos de IA"]
+        onworker["Pasos de<br/>solicitud HTTP<br/>Pasos de IA"]
     end
     subgraph yours["Tu infraestructura"]
-        direction LR
         runner["Runner"]
-        scripts["Pasos JavaScript y Bash"]
-        remote["Pasos SSH y Kubernetes"]
+        onrunner["Pasos JavaScript<br/>y Bash<br/>Pasos SSH y Kubernetes"]
     end
     person["Una persona"]
-    worker --> http
-    worker --> ai
-    worker -->|"Pasos Manual y aprobaciones"| person
-    worker -->|"pone en cola un trabajo para el Runner del paso"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Pasos Manual<br/>y aprobaciones"| person
+    worker --->|"pone en cola<br/>un trabajo<br/>para el Runner<br/>del paso"| runner
+    runner --> onrunner
 ```
 
 | Tipo de paso | Se ejecuta en | Cómo |

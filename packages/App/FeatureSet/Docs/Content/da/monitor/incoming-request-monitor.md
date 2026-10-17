@@ -29,7 +29,7 @@ sequenceDiagram
     O-->>J: 200 med det samme
     O->>O: Evaluér kriterierne
     Note over O: Hvert 30. sekund, tjek<br/>for manglende anmodninger
-    O->>T: Hændelse, hvis et kriterium matcher
+    O->>T: Hændelse, hvis et<br/>kriterium matcher
 ```
 
 Brug den til at:

@@ -18,11 +18,11 @@ sequenceDiagram
     participant P as Sonde
     participant A as Din API
     participant O as OneUptime
-    P->>A: Anmodning med din metode, dine headere og din brødtekst
-    A-->>P: Statuskode, headere og brødtekst
-    Note over P: Forsøger igen ved en fejl, en 4xx eller 5xx<br/>eller et svar langsommere end 10 s
+    P->>A: Anmodning med din metode,<br/>dine headere og din brødtekst
+    A-->>P: Statuskode, headere<br/>og brødtekst
+    Note over P: Forsøger igen ved en<br/>fejl, en 4xx eller 5xx<br/>eller et svar<br/>langsommere end 10 s
     P->>O: Resultatet af tjekket
-    O->>O: Tjek kriterierne fra top til bund
+    O->>O: Tjek kriterierne<br/>fra top til bund
 ```
 
 En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet resultat, så den kan ikke markere din API som offline.

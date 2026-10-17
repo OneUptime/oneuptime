@@ -20,14 +20,14 @@ stateDiagram-v2
     state "Mislykkedes" as Failed
     state "Annulleret" as Cancelled
     [*] --> Scheduled: kørsel startet
-    Scheduled --> Running: en Worker tager den
-    Running --> WaitingForManualStep: Manual-trin eller godkendelse
-    WaitingForManualStep --> Scheduled: fuldført, godkendt eller sprunget over
-    Running --> Completed: alle trin færdige
+    Scheduled --> Running: en Worker<br/>tager den
+    Running --> WaitingForManualStep: Manual-trin<br/>eller godkendelse
+    WaitingForManualStep --> Scheduled: fuldført,<br/>godkendt eller<br/>sprunget over
+    Running --> Completed: alle trin<br/>færdige
     Running --> Failed: et trin fejler
-    Scheduled --> Cancelled: Annuller udførelse
-    Running --> Cancelled: Annuller udførelse
-    WaitingForManualStep --> Cancelled: Annuller udførelse
+    Scheduled --> Cancelled: Annuller<br/>udførelse
+    Running --> Cancelled: Annuller<br/>udførelse
+    WaitingForManualStep --> Cancelled: Annuller<br/>udførelse
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]

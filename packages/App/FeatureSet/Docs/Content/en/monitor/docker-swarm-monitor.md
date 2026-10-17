@@ -22,9 +22,9 @@ flowchart TB
     subgraph cluster["Your Swarm cluster"]
         direction LR
         manager["Agent on a manager"]
-        others["Collectors on other nodes"]
+        others["Collectors on<br/>other nodes"]
     end
-    manager -->|"metrics and inventory"| oneuptime["OneUptime"]
+    manager -->|"metrics and<br/>inventory"| oneuptime["OneUptime"]
     others -->|"metrics"| oneuptime
     oneuptime -->|"first data"| registered["Cluster registered"]
     oneuptime --> monitor["Docker Swarm monitor"]
