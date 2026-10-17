@@ -67,7 +67,7 @@ const NetworkSnmpCredentialProfilesPage: FunctionComponent<
         cardProps={{
           title: "SNMP Credentials",
           description:
-            "A device uses its own credentials, then the profile on the device, then its site's. A profile in use cannot be deleted.",
+            "A device uses its own credentials, then the profile on the device, then the profile on its site. A profile in use cannot be deleted.",
         }}
         helpContent={{
           title: "How SNMP Credential Profiles Work",

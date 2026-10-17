@@ -98,7 +98,7 @@ export const ADD_DEVICE_PING_MONITOR_TITLE: string = translationKey(
 );
 
 export const ADD_DEVICE_PING_MONITOR_DESCRIPTION: string = translationKey(
-  "Its incidents are off until you turn them on. It counts towards your plan. For many devices, use Alert Policies.",
+  "The probe already pings this device. The monitor counts towards your plan, and its incidents are off at first. For many devices, use Alert Policies.",
 );
 
 export const ADD_DEVICE_PING_PROBES_DESCRIPTION: string = translationKey(

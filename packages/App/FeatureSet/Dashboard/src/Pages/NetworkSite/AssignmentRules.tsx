@@ -52,7 +52,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
           // The menu's name: "Assignment Rules" left out what they assign to.
           title: "Site Assignment Rules",
           description:
-            "Put devices into sites by address or name as they are added, or with Run Now. The highest matching rule wins: drag to reorder.",
+            "Put devices into sites by address or name as they are added, or with Run Now. The highest matching rule wins: drag to reorder. A device you put in a site by hand stays there until its address or name changes.",
         }}
         noItemsMessage="No assignment rules yet. Add one to route newly discovered devices into the right site automatically."
         actionButtons={[

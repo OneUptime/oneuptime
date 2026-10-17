@@ -570,7 +570,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
            * that the monitors go with the policy before they click it.
            */
           description:
-            "One policy adds a monitor to every device it covers, each counted towards your plan. Deleting a policy deletes its monitors.",
+            "A policy adds one monitor to every device it covers, and each monitor counts towards your plan. Deleting a policy deletes its monitors.",
         }}
         helpContent={{
           title: "How Alert Policies Work",

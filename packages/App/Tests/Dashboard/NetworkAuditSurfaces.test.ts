@@ -93,7 +93,7 @@ describe("an empty Endpoints page says where endpoints come from", () => {
 
   test("the list says what an endpoint is, and that nothing ages out on its own", () => {
     expect(ENDPOINTS).toContain(
-      "What is plugged into your switches and routers - phones, printers, cameras, laptops - read from their address tables. Nothing is removed on its own: Last Seen says when each was last there.",
+      "What is plugged into your switches and routers, read from their address tables. Nothing is removed on its own: Last Seen says when each was last there.",
     );
   });
 
@@ -344,7 +344,7 @@ describe("words that say what they mean", () => {
 
   test("Device Links says to draw only the cables no switch reports", () => {
     expect(readCode("Pages", "NetworkDevice", "Links.tsx")).toContain(
-      "so draw a link here only for a cable no switch reports",
+      '"Cables the map cannot see on its own. A monitor bound to a link colors it."',
     );
   });
 
@@ -352,7 +352,7 @@ describe("words that say what they mean", () => {
   test("Device Links spells color as the rest of the product does", () => {
     const links: string = readCode("Pages", "NetworkDevice", "Links.tsx");
 
-    expect(links).toContain("to color it by that monitor's status");
+    expect(links).toContain("A monitor bound to a link colors it.");
     expect(links).not.toContain("colour");
   });
 
@@ -405,8 +405,9 @@ describe("words that say what they mean", () => {
     expect(rules).toContain(
       "A device you put in a site by hand stays there until its address or name changes.",
     );
+    // Run Now: the rules apply to the devices you already have too.
     expect(rules).toContain(
-      "Run Now applies a rule to the devices you already have.",
+      "Put devices into sites by address or name as they are added, or with Run Now.",
     );
   });
 
@@ -438,7 +439,7 @@ describe("words that say what they mean", () => {
 
     expect(discovery).toContain('title: "Credentials to try",');
     expect(discovery).toContain(
-      "The scan tries these in order on every host that answers ping, and keeps the first that works.",
+      "Tried in order on each host that answers ping. The first set that works is used.",
     );
     expect(discovery).not.toContain('title: "SNMP Configs"');
   });

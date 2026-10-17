@@ -44,7 +44,7 @@ export const MONITORING_METHOD_OPTIONS: Array<DropdownOption> = [
  */
 // English keys: the forms look their descriptions and placeholders up.
 export const MONITOR_BINDING_FIELD_DESCRIPTION: string = translationKey(
-  "Its status becomes the device's status. Leave it empty to bind a monitor later.",
+  'Its status becomes the device\'s status. Leave it empty to bind a monitor later: until then the device reads Pending, tagged "No monitor".',
 );
 
 export const MONITOR_BINDING_FIELD_PLACEHOLDER: string = translationKey(
@@ -59,7 +59,7 @@ export const MONITOR_BINDING_FIELD_PLACEHOLDER: string = translationKey(
  * Ping or IP monitor", which read as a prerequisite; the binding is optional.
  */
 export const MONITORING_METHOD_FIELD_DESCRIPTION: string = translationKey(
-  "Probe pings the device and walks it over SNMP when it has credentials. Use Bound monitor if no probe can reach it.",
+  "Probe is the normal choice: a device with no SNMP credentials is simply pinged. Pick Bound monitor only when no probe can reach it.",
 );
 
 /*
@@ -71,7 +71,7 @@ export const MONITORING_METHOD_FIELD_DESCRIPTION: string = translationKey(
  * walked. One sentence for all four keeps that from happening again.
  */
 export const HOSTNAME_FIELD_DESCRIPTION: string = translationKey(
-  "The device's IP address or hostname.",
+  "A probe-polled device is pinged here, and walked over SNMP once it has credentials. A monitor-backed device is only identified by it.",
 );
 
 /*
