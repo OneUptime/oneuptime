@@ -44,6 +44,9 @@ spec:
         {{- end }}
         appname: oneuptime
     spec:
+      {{- with (include "oneuptime.serviceAccountName" $) }}
+      serviceAccountName: {{ . | quote }}
+      {{- end }}
       {{- if $.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
@@ -118,6 +121,9 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "worker")) | nindent 12 }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release "DatabaseMaxOpenConnections" ($.Values.worker.databaseMaxOpenConnections | default $.Values.deployment.databaseMaxOpenConnections)) | nindent 12 }}
+            {{- if (($.Values.enterpriseMarketplace).provider) }}
+            {{- include "oneuptime.env.enterpriseMarketplace" (dict "Values" $.Values "Reporter" true) | nindent 12 }}
+            {{- end }}
             - name: PORT
               value: {{ $.Values.worker.ports.http | quote }}
             # This pod IS the worker role — it must consume the queues.

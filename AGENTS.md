@@ -109,6 +109,14 @@ Microsoft. Before changing that code, its settings, the marketplace usage prices
 the URLs and settings each marketplace is configured with, and which steps (seller registration, tax and banking,
 publishing) only a maintainer may do.
 
+Self-hosted OneUptime Enterprise is sold on the same three marketplaces as a Kubernetes application, billed per
+user-hour: the usage job in `ee/Server/Marketplace`, the marketplace license in `ee/Server/License`, the reporters in
+`packages/Common/Server/Utils/Marketplace/SelfHosted` and the chart editions in `HelmChart/Marketplace`. Before changing
+any of these, the `enterpriseMarketplace` chart values, or anything in those listings, read
+[the self-hosted marketplace guide](packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md). It explains
+how an installation is billed and licensed, how each edition is built, pushed, tested and submitted, and which steps
+only a maintainer may do.
+
 ### Commit frequently
 
 Committing frequently helps keep your changes small and manageable. It also makes it easier to identify which changes introduced a bug if something goes wrong. Aim to commit logically related changes together and write clear commit messages that describe the purpose of the change. It also costs less when the work session is interrupted and resumed later.

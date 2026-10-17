@@ -10,6 +10,7 @@ import AuditLogArea, { getAuditLogRecorder } from "./AuditLog/Index";
 import IdentityArea from "./Identity/Index";
 import LicenseArea, { licensing } from "./License/Index";
 import LicenseServerArea from "./LicenseServer/Index";
+import MarketplaceArea from "./Marketplace/Index";
 import TeamComplianceArea from "./TeamCompliance/Index";
 import WhiteLabelArea, { getProductBranding } from "./WhiteLabel/Index";
 import WorkersArea from "./Workers/Index";
@@ -37,6 +38,7 @@ export const ENTERPRISE_AREAS: ReadonlyArray<EnterpriseArea> = [
   AdminHealthArea,
   WorkersArea,
   WhiteLabelArea,
+  MarketplaceArea,
 ];
 
 type RouterHook = (area: EnterpriseArea) => Array<ExpressRouter> | undefined;

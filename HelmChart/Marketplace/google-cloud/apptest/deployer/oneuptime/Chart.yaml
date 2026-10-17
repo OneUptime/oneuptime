@@ -1,0 +1,6 @@
+apiVersion: v2
+name: oneuptime-tester
+description: Verifies a OneUptime Enterprise deployment for Google Cloud Marketplace (mpdev verify).
+type: application
+version: {version}
+appVersion: "{version}"

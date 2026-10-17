@@ -1,4 +1,5 @@
 import EnterpriseFeature from "./EnterpriseFeature";
+import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 
 /*
  * The seat usage of an Enterprise install, as
@@ -96,6 +97,14 @@ export interface EnterpriseLicenseSnapshot {
   features: EnterpriseLicenseFeatures;
   // A human-readable explanation of the status, for logs and admin banners.
   message?: string | undefined;
+  /*
+   * Set when the license is a cloud marketplace subscription rather than a
+   * license key: a self-hosted installation bought on AWS Marketplace,
+   * Microsoft Marketplace or Google Cloud Marketplace, licensed for as long
+   * as that marketplace takes its hourly usage reports (see
+   * Types/EnterpriseLicense/EnterpriseMarketplaceBilling.ts).
+   */
+  marketplace?: CloudMarketplace | undefined;
 }
 
 /*

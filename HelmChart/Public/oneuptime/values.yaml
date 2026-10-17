@@ -41,10 +41,62 @@ image:
   ##   and core monitoring is never affected.
   ## Please contact sales@oneuptime.com for a license.
   type: community-edition
+
+  ## Full image references that replace the ones this chart builds, by image:
+  ## app, nginx, probe, runner, home, test, postgres, clickhouse,
+  ## clickhouseKeeper, valkey, pgbouncer, vllm, kubectl. The marketplace
+  ## editions of this chart point them at the marketplace's own registry; on
+  ## Microsoft Marketplace, global.azure.images does the same. Leave empty to
+  ## use the references the chart builds from the values above.
+  # overrides:
+  #   app: registry.example.com/oneuptime/app:enterprise-14.0.0
+  overrides: {}
   
   restartPolicy: Always
 # imagePullSecrets:
 #   - name: MyCustomSecretNameWithDockerCredentials
+
+# The Kubernetes service account the OneUptime app and worker pods run as.
+# Empty runs them as the namespace's default service account. On Amazon EKS
+# the AWS Marketplace edition runs them as a service account with an IAM role
+# (IAM roles for service accounts): that role is how the installation bills
+# its users through AWS Marketplace.
+serviceAccount:
+  # Create the service account, named `name` (or "<release>-oneuptime").
+  create: false
+  # The service account to run as: an existing one, or the name of the one created.
+  name: ""
+  # Annotations of the created service account, for example
+  # eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/oneuptime
+  annotations: {}
+
+# Billing this OneUptime Enterprise installation through the cloud marketplace
+# it was bought on - AWS Marketplace (Amazon EKS), Microsoft Marketplace (AKS)
+# or Google Cloud Marketplace (GKE) - by the user-hour. The marketplace
+# editions of this chart set it; leave `provider` empty anywhere else. Every 15
+# minutes the installation notes how many users it has and reports each hour
+# to the marketplace; the marketplace accepting the reports is also what
+# licenses the Enterprise features, with no license key.
+enterpriseMarketplace:
+  # "" (not bought on a marketplace), "aws", "azure" or "google-cloud".
+  provider: ""
+  aws:
+    # The AWS Region, for a pod EKS does not tell it (EKS sets AWS_REGION on
+    # pods whose service account has an IAM role).
+    region: ""
+  # On Microsoft Marketplace the extension's identity, plan and resource come
+  # from global.azure.identity.clientId, global.azure.marketplace.planId and
+  # global.azure.extension.resourceId, which Azure fills in at install.
+  googleCloud:
+    # The Service Control service of OneUptime's Google Cloud Marketplace listing.
+    serviceName: ""
+    # The Secret Google Cloud Marketplace created for this deployment (its
+    # reporting secret, with consumer-id, entitlement-id and reporting-key).
+    reportingSecret: ""
+
+# The `helm test` hook pod (templates/tests/test.yaml).
+testHook:
+  enabled: true
 
 # Important: You do need to set this to a long random values if you're using OneUptime in production.
 # Please set this to string.
@@ -375,6 +427,12 @@ postgresOperator:
 
 clickhouse:
   enabled: true
+  # The service account the ClickHouse pods run as. Set create to false to run
+  # them as the namespace's default service account instead, for a platform
+  # that does not let a chart create service accounts (the Google Cloud
+  # Marketplace edition).
+  serviceAccount:
+    create: true
   auth:
     username: oneuptime
     # Will be auto-generated if not provided

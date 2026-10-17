@@ -1,0 +1,58 @@
+# The Application resource Google Cloud Marketplace requires of a Kubernetes
+# app (added to the chart by HelmChart/Marketplace/build.py for the Google
+# Cloud edition only). The deployer labels every resource it creates with
+# app.kubernetes.io/name, which is what the selector finds them by.
+apiVersion: app.k8s.io/v1beta1
+kind: Application
+metadata:
+  name: "{{ .Release.Name }}"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app.kubernetes.io/name: "{{ .Release.Name }}"
+spec:
+  descriptor:
+    type: OneUptime Enterprise
+    version: "{{ .Chart.AppVersion }}"
+    description: |-
+      OneUptime is one observability platform for the whole incident lifecycle:
+      uptime monitoring, status pages, on-call, incidents, logs, traces and
+      metrics. This is the Enterprise Edition, billed per user by the hour
+      through Google Cloud Marketplace.
+    maintainers:
+      - name: OneUptime
+        url: https://oneuptime.com
+    links:
+      - description: Documentation
+        url: https://oneuptime.com/docs
+      - description: Support
+        url: https://oneuptime.com/support
+    notes: |-
+      OneUptime is reachable through the external IP of the
+      {{ .Release.Name }}-nginx load balancer:
+
+        kubectl get service {{ .Release.Name }}-nginx --namespace {{ .Release.Namespace }}
+
+      Point {{ .Values.host }} at that IP and open {{ .Values.httpProtocol }}://{{ .Values.host }}
+      to create the first (master admin) account.
+  info:
+    - name: OneUptime
+      value: "{{ .Values.httpProtocol }}://{{ .Values.host }}"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: "{{ .Release.Name }}"
+  componentKinds:
+    - group: apps/v1
+      kind: Deployment
+    - group: apps/v1
+      kind: StatefulSet
+    - group: batch/v1
+      kind: Job
+    - group: v1
+      kind: Service
+    - group: v1
+      kind: Secret
+    - group: v1
+      kind: ConfigMap
+    - group: v1
+      kind: PersistentVolumeClaim
+  addOwnerRef: true

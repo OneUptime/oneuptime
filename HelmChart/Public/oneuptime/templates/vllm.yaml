@@ -92,7 +92,7 @@ spec:
       {{- end }}
       containers:
       - name: vllm
-        image: "{{ .Values.vllm.image.repository }}:{{ .Values.vllm.image.tag }}"
+        image: {{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "vllm" "Default" (printf "%s:%s" .Values.vllm.image.repository (toString .Values.vllm.image.tag))) | quote }}
         imagePullPolicy: {{ .Values.vllm.image.pullPolicy }}
         {{- with .Values.vllm.containerSecurityContext }}
         securityContext:

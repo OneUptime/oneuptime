@@ -30359,5 +30359,21 @@
   "Turn the workflow on, and send a test": "ワークフローをオンにして、テストを送信する",
   "Calendar range": "カレンダーの範囲",
   "Next day": "翌日",
-  "Previous day": "前日"
+  "Previous day": "前日",
+  "Check billing": "課金を確認",
+  "Check subscription": "サブスクリプションを確認",
+  "Enterprise Edition (Marketplace Reports Failing)": "Enterprise Edition（マーケットプレイスへの報告が失敗中）",
+  "Enterprise Edition (Marketplace Subscription Ended)": "Enterprise Edition（マーケットプレイスのサブスクリプション終了）",
+  "Enterprise Marketplace Billing": "Enterprise のマーケットプレイス課金",
+  "Every enterprise feature keeps working until {{date}}.": "{{date}} まで、すべてのエンタープライズ機能が引き続き動作します。",
+  "Every user of this installation is billed by the hour on your {{marketplace}} account. Enterprise features stay licensed for as long as {{marketplace}} accepts the installation's hourly usage reports.": "このインストールのすべてのユーザーは、{{marketplace}} のアカウントで時間単位で課金されます。{{marketplace}} がこのインストールの時間ごとの使用状況レポートを受け付けている限り、エンタープライズ機能のライセンスは有効です。",
+  "Last reporting problem: {{problem}}": "最後に発生したレポート送信の問題: {{problem}}",
+  "Last usage report accepted {{date}}: {{quantity}} user-hours.": "最後に受け付けられた使用状況レポート（{{date}}）: {{quantity}} ユーザー時間。",
+  "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "クラウドマーケットプレイスのサブスクリプションでライセンスされています。すべてのユーザーが時間単位で課金されます。",
+  "Licensed through {{marketplace}}": "{{marketplace}} 経由でライセンス済み",
+  "Make sure this installation can reach {{marketplace}} and is set up as the listing's instructions say.": "このインストールが {{marketplace}} に接続でき、リスティングの手順どおりに設定されていることを確認してください。",
+  "Your cloud marketplace has not accepted this installation's usage reports lately. Enterprise features keep working during the grace period.": "クラウドマーケットプレイスが最近このインストールの使用状況レポートを受け付けていません。猶予期間中はエンタープライズ機能が引き続き動作します。",
+  "Your cloud marketplace subscription no longer licenses this installation.": "クラウドマーケットプレイスのサブスクリプションは、このインストールのライセンスを提供しなくなりました。",
+  "{{marketplace}} is not accepting usage reports": "{{marketplace}} が使用状況レポートを受け付けていません",
+  "{{marketplace}} no longer licenses this installation": "{{marketplace}} はこのインストールのライセンスを提供しなくなりました"
 }

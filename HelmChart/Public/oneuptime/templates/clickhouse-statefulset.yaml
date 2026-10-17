@@ -36,7 +36,9 @@ spec:
         # init container (keeper_server is not hot-reloadable).
         checksum/config: {{ include (print $.Template.BasePath "/clickhouse-configmap.yaml") . | sha256sum }}
     spec:
+      {{- if ne ((.Values.clickhouse.serviceAccount).create) false }}
       serviceAccountName: {{ .Release.Name }}-clickhouse
+      {{- end }}
       nodeSelector:
         {{- include "oneuptime.nodeSelector" .Values.clickhouse.nodeSelector | nindent 8 }}
       {{- with .Values.clickhouse.affinity }}
@@ -60,7 +62,7 @@ spec:
       {{- end }}
       initContainers:
       - name: clickhouse-config-init
-        image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
+        image: {{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "clickhouse" "Default" (printf "%s:%s" .Values.clickhouse.image.repository (toString .Values.clickhouse.image.tag))) | quote }}
         imagePullPolicy: {{ .Values.clickhouse.image.pullPolicy }}
         command:
         - /bin/sh
@@ -89,7 +91,7 @@ spec:
           mountPath: /etc/clickhouse-server/config-output
       containers:
       - name: clickhouse
-        image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
+        image: {{ include "oneuptime.imageReference" (dict "Values" .Values "Key" "clickhouse" "Default" (printf "%s:%s" .Values.clickhouse.image.repository (toString .Values.clickhouse.image.tag))) | quote }}
         imagePullPolicy: {{ .Values.clickhouse.image.pullPolicy }}
         {{- if .Values.clickhouse.containerSecurityContext }}
         securityContext:

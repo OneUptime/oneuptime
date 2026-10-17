@@ -55,6 +55,7 @@ const makeInputs: (overrides?: Partial<LicenseInputs>) => LicenseInputs = (
     instanceId: INSTANCE_ID,
     currentUserCount: 5,
     instances: [],
+    marketplaceBilling: null,
     ...(overrides || {}),
   };
 };
