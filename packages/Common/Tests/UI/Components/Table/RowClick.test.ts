@@ -126,14 +126,30 @@ describe("a click on the row itself opens the record", () => {
 describe("a click on a control inside the row is that control's", () => {
   const CONTROLS: Array<[string, string, string]> = [
     ["a link", '<a href="/incidents/2"><span>INC-2</span></a>', "a span"],
-    ["a button (View, the ⋯)", "<button><span>View</span></button>", "button span"],
+    [
+      "a button (View, the ⋯)",
+      "<button><span>View</span></button>",
+      "button span",
+    ],
     ["a select box", '<input type="checkbox" />', "input"],
     ["a label", "<label><span>Select</span></label>", "label span"],
     ["a dropdown", "<select><option>1</option></select>", "select"],
     ["a text field", "<textarea></textarea>", "textarea"],
-    ["a drag grip", '<span role="button" tabindex="0"><svg></svg></span>', '[role="button"]'],
-    ["a link drawn as a button", '<span role="link">Docs</span>', '[role="link"]'],
-    ["a menu item", '<div role="menuitem"><span>Edit</span></div>', '[role="menuitem"] span'],
+    [
+      "a drag grip",
+      '<span role="button" tabindex="0"><svg></svg></span>',
+      '[role="button"]',
+    ],
+    [
+      "a link drawn as a button",
+      '<span role="link">Docs</span>',
+      '[role="link"]',
+    ],
+    [
+      "a menu item",
+      '<div role="menuitem"><span>Edit</span></div>',
+      '[role="menuitem"] span',
+    ],
     ["a checkbox role", '<div role="checkbox"></div>', '[role="checkbox"]'],
     ["a switch", '<div role="switch"></div>', '[role="switch"]'],
     ["a disclosure", "<details><summary>More</summary></details>", "summary"],
@@ -149,15 +165,18 @@ describe("a click on a control inside the row is that control's", () => {
     ],
   ];
 
-  test.each(CONTROLS)("%s", (_label: string, html: string, selector: string) => {
-    const { row } = buildRow(html);
-    const target: Element | null = row.querySelector(selector);
+  test.each(CONTROLS)(
+    "%s",
+    (_label: string, html: string, selector: string) => {
+      const { row } = buildRow(html);
+      const target: Element | null = row.querySelector(selector);
 
-    expect(target).not.toBeNull();
-    expect(
-      isRowOpeningClick(clickOn(row, target), { hasTextSelection: false }),
-    ).toBe(false);
-  });
+      expect(target).not.toBeNull();
+      expect(
+        isRowOpeningClick(clickOn(row, target), { hasTextSelection: false }),
+      ).toBe(false);
+    },
+  );
 
   test("the selector covers every kind of control above", () => {
     for (const part of [

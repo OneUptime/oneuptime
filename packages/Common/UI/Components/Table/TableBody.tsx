@@ -181,7 +181,11 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
 
     // Desktop view: render as table
     return (
-      <tbody id={props.id} ref={provided?.innerRef} {...provided?.droppableProps}>
+      <tbody
+        id={props.id}
+        ref={provided?.innerRef}
+        {...provided?.droppableProps}
+      >
         {props.data &&
           props.data.map((item: T, i: number) => {
             return (

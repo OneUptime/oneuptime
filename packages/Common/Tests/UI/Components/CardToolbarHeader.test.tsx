@@ -95,7 +95,11 @@ describe("the toolbar header", () => {
 
   test("a title with no controls beside it takes the whole width", () => {
     render(
-      <Card title="Incidents" description="All of them." headerLayout="toolbar" />,
+      <Card
+        title="Incidents"
+        description="All of them."
+        headerLayout="toolbar"
+      />,
     );
 
     expect(screen.getByTestId("card-header-title-block")).toHaveClass(

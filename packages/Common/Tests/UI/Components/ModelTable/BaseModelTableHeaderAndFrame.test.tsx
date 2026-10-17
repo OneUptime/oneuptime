@@ -182,17 +182,14 @@ describe("a table's card header", () => {
     expect(within(row).getByTestId("card-header-title-block").className).toBe(
       CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME,
     );
-    expect(
-      within(row).getByTestId("card-header-actions"),
-    ).toBeInTheDocument();
+    expect(within(row).getByTestId("card-header-actions")).toBeInTheDocument();
     expect(
       within(row).getByRole("button", { name: "Open search" }),
     ).toBeInTheDocument();
 
     // The description after the row, across the card.
-    const description: HTMLElement = within(header).getByTestId(
-      "card-description",
-    );
+    const description: HTMLElement =
+      within(header).getByTestId("card-description");
 
     expect(row).not.toContainElement(description);
     expect(header.lastElementChild).toBe(description);

@@ -21,7 +21,11 @@ export const TABLE_EMPTY_VALUE_CLASS_NAME: string =
 export const TABLE_EMPTY_VALUE_TEST_ID: string = "table-empty-value";
 
 // The marks pages draw for "nothing here" in a cell of their own.
-export const DASH_PLACEHOLDERS: ReadonlyArray<string> = ["-", "\u2013", "\u2014"];
+export const DASH_PLACEHOLDERS: ReadonlyArray<string> = [
+  "-",
+  "\u2013",
+  "\u2014",
+];
 
 /*
  * Whether a column's own element is a bare dash - `<>-</>`, `<p>-</p>`,

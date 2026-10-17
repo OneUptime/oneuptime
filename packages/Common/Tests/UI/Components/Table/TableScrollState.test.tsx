@@ -382,7 +382,9 @@ describe("useTableScrollState", () => {
       );
 
       expect(
-        browser.observed.map((element: Element) => element.tagName),
+        browser.observed.map((element: Element): string => {
+          return element.tagName;
+        }),
       ).toEqual(["DIV", "TABLE"]);
 
       // The table grows past its card: the observer's call measures again.

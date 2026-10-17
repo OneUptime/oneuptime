@@ -326,8 +326,7 @@ describe("a table wider than its card", () => {
 
   // The table 1986px wide in a 1214px box, as the Incidents list was.
   const widen: WidenFunction = (): void => {
-    const original: () => DOMRect =
-      HTMLElement.prototype.getBoundingClientRect;
+    const original: () => DOMRect = HTMLElement.prototype.getBoundingClientRect;
 
     jest
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
@@ -500,9 +499,9 @@ describe("a value that is not there is a quiet dash", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      within(secondCells[3] as HTMLElement).getByTestId(
-        TABLE_EMPTY_VALUE_TEST_ID,
-      ).querySelector(".sr-only"),
+      within(secondCells[3] as HTMLElement)
+        .getByTestId(TABLE_EMPTY_VALUE_TEST_ID)
+        .querySelector(".sr-only"),
     ).toHaveTextContent("No");
 
     // Primary Database Ping: nothing set at all.
@@ -515,7 +514,8 @@ describe("a value that is not there is a quiet dash", () => {
     renderTable();
 
     const pausedCell: HTMLElement = bodyRows()[0]!.children[3] as HTMLElement;
-    const yes: HTMLElement = within(pausedCell).getByTestId("table-boolean-yes");
+    const yes: HTMLElement =
+      within(pausedCell).getByTestId("table-boolean-yes");
 
     expect(yes.querySelector("svg")).not.toBeNull();
     expect(within(yes).getByText("Yes")).toHaveClass("sr-only");
@@ -573,7 +573,10 @@ describe("a value too long for its column", () => {
 
   test("shows in full under the pointer when it is cut short, and only then", () => {
     renderTable({
-      data: [{ _id: "1", name: LONG_NAME }, { _id: "2", name: "Short" }],
+      data: [
+        { _id: "1", name: LONG_NAME },
+        { _id: "2", name: "Short" },
+      ],
     });
 
     const [longRow, shortRow] = bodyRows();
@@ -676,9 +679,7 @@ describe("on a phone", () => {
         return name.textContent;
       }),
     ).toEqual(["Name"]);
-    expect(
-      within(second).queryByTestId(TABLE_EMPTY_VALUE_TEST_ID),
-    ).toBeNull();
+    expect(within(second).queryByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeNull();
   });
 
   test("a card that opens its record answers a tap", () => {
@@ -724,9 +725,7 @@ describe("while the first page loads", () => {
 
     expect(actionsCell).toHaveClass("text-end");
     expect(actionsCell.firstElementChild).toHaveClass("justify-end");
-    expect(
-      actionsCell.querySelector(".w-24.h-6.rounded-md"),
-    ).not.toBeNull();
+    expect(actionsCell.querySelector(".w-24.h-6.rounded-md")).not.toBeNull();
   });
 
   test("every placeholder sits on the row's 24px line", () => {

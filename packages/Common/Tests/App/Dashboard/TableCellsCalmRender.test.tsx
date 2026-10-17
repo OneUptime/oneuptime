@@ -60,9 +60,7 @@ describe("a row's owners", () => {
 
     const value: HTMLElement = screen.getByTestId(TABLE_EMPTY_VALUE_TEST_ID);
 
-    expect(value.querySelector('[aria-hidden="true"]')).toHaveTextContent(
-      "—",
-    );
+    expect(value.querySelector('[aria-hidden="true"]')).toHaveTextContent("—");
     expect(value.querySelector(".sr-only")).toHaveTextContent("No owners.");
     // Not a grey sentence of its own on every row.
     expect(screen.queryByText("No owners.", { selector: "p" })).toBeNull();
@@ -162,8 +160,6 @@ describe("a row's Duration", () => {
     });
 
     // The clock moves on with the timers.
-    expect(screen.getByTestId("live-duration")).toHaveTextContent(
-      "11 days",
-    );
+    expect(screen.getByTestId("live-duration")).toHaveTextContent("11 days");
   });
 });

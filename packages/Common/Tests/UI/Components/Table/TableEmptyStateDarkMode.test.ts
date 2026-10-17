@@ -231,7 +231,9 @@ describe("the empty state in the dark theme", () => {
     const listCode: string = readCode("Components/List/List.tsx");
 
     // The state block draws no rule of its own: the header row's closes it.
-    expect(tableCode).toContain('const stateBlockClassName: string = "md:-mx-6 md:px-6";');
+    expect(tableCode).toContain(
+      'const stateBlockClassName: string = "md:-mx-6 md:px-6";',
+    );
     expect(layoutCode).toContain('"border-y border-gray-200 bg-gray-50');
     // A phone's list of cards is ruled off from the card's header by its box.
     expect(tableCode).toContain('"min-w-full border-t border-gray-200"');

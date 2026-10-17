@@ -93,7 +93,10 @@ const BILLING_ID: string = "60000000-0000-4000-8000-000000000002";
 
 type MakeMonitorFunction = (id: string, name: string) => Monitor;
 
-const makeMonitor: MakeMonitorFunction = (id: string, name: string): Monitor => {
+const makeMonitor: MakeMonitorFunction = (
+  id: string,
+  name: string,
+): Monitor => {
   const monitor: Monitor = new Monitor();
   monitor._id = id;
   monitor.name = name;
@@ -206,11 +209,11 @@ describe("a row opens its record", () => {
 
   beforeEach(() => {
     permissionsForTest = [Permission.ProjectAdmin];
-    navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(
-      (): void => {
+    navigateSpy = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
         return undefined;
-      },
-    );
+      });
   });
 
   afterEach(() => {

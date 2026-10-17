@@ -197,23 +197,24 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
            * sortable column shows a faint pair of arrows under the pointer,
            * so a header that sorts says so before it is clicked.
            */
-          const sortIndicator: ReactElement | null = !canSort ? null : isSorted ? (
-            <Icon
-              icon={
-                props.sortOrder === SortOrder.Ascending
-                  ? IconProp.ArrowUp
-                  : IconProp.ArrowDown
-              }
-              className={TABLE_SORT_ARROW_CLASS_NAME}
-              data-testid="table-sort-arrow"
-            />
-          ) : (
-            <Icon
-              icon={IconProp.ArrowUpDown}
-              className={TABLE_SORT_HINT_CLASS_NAME}
-              data-testid="table-sort-hint"
-            />
-          );
+          const sortIndicator: ReactElement | null =
+            !canSort ? null : isSorted ? (
+              <Icon
+                icon={
+                  props.sortOrder === SortOrder.Ascending
+                    ? IconProp.ArrowUp
+                    : IconProp.ArrowDown
+                }
+                className={TABLE_SORT_ARROW_CLASS_NAME}
+                data-testid="table-sort-arrow"
+              />
+            ) : (
+              <Icon
+                icon={IconProp.ArrowUpDown}
+                className={TABLE_SORT_HINT_CLASS_NAME}
+                data-testid="table-sort-hint"
+              />
+            );
 
           /*
            * A header's name is computed from its content, and the (i)

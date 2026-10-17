@@ -44,11 +44,9 @@ const LiveDuration: FunctionComponent<ComponentProps> = (
   const text: string = getEventDurationText(props.startDate, endDate);
 
   if (props.isCompact) {
-    const compactText: string = getEventDurationText(
-      props.startDate,
-      endDate,
-      { maxUnits: TABLE_DURATION_MAX_UNITS },
-    );
+    const compactText: string = getEventDurationText(props.startDate, endDate, {
+      maxUnits: TABLE_DURATION_MAX_UNITS,
+    });
 
     return (
       <span

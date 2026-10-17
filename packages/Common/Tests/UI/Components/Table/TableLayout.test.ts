@@ -87,7 +87,10 @@ const utilityOf: UtilityFunction = (token: string): string => {
  * stylesheet's order, not the order they are written in. Plain (unprefixed)
  * tokens only - a hover: colour beside a resting one is the point of it.
  */
-type ConflictsFunction = (className: string, prefixes: Array<string>) => Array<string>;
+type ConflictsFunction = (
+  className: string,
+  prefixes: Array<string>,
+) => Array<string>;
 
 const conflictsOf: ConflictsFunction = (
   className: string,
@@ -365,9 +368,12 @@ describe("hasMaxWidthClassName", () => {
     ["maximum", false],
   ];
 
-  test.each(CASES)("%p names a cap: %p", (value: string | undefined, expected: boolean) => {
-    expect(hasMaxWidthClassName(value)).toBe(expected);
-  });
+  test.each(CASES)(
+    "%p names a cap: %p",
+    (value: string | undefined, expected: boolean) => {
+      expect(hasMaxWidthClassName(value)).toBe(expected);
+    },
+  );
 });
 
 describe("the Actions column", () => {

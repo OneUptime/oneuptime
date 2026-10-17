@@ -96,7 +96,9 @@ type InCellFunction = (element: ReactElement) => ReactElement;
 
 const inCell: InCellFunction = (element: ReactElement): ReactElement => {
   return (
-    <TableCellContext.Provider value={true}>{element}</TableCellContext.Provider>
+    <TableCellContext.Provider value={true}>
+      {element}
+    </TableCellContext.Provider>
   );
 };
 
@@ -120,7 +122,9 @@ describe("a record's labels in a table's cell", () => {
       "No labels attached.",
     );
     // Not the words as a line of their own any more.
-    expect(screen.queryByText("No labels attached.", { selector: "p" })).toBeNull();
+    expect(
+      screen.queryByText("No labels attached.", { selector: "p" }),
+    ).toBeNull();
   });
 
   test("two or fewer: every one, side by side on the row's line, no '+N'", () => {
@@ -197,7 +201,9 @@ describe("a record's labels in a table's cell", () => {
   });
 
   test("'+N' is said in the reader's language", () => {
-    const sentence: string = GERMAN_FILE["Show {{count}} more labels"] as string;
+    const sentence: string = GERMAN_FILE[
+      "Show {{count}} more labels"
+    ] as string;
     const one: string = GERMAN_FILE["Show {{count}} more labels_one"] as string;
 
     expect(sentence).toBeTruthy();
@@ -244,7 +250,9 @@ describe("a record's labels in a table's cell", () => {
 
     const rows: Array<HTMLElement> = screen.getAllByRole("row");
 
-    expect(within(rows[0]!).getByTestId(TABLE_LABELS_TEST_ID)).toBeInTheDocument();
+    expect(
+      within(rows[0]!).getByTestId(TABLE_LABELS_TEST_ID),
+    ).toBeInTheDocument();
     expect(
       within(rows[1]!).getByTestId(TABLE_EMPTY_VALUE_TEST_ID),
     ).toBeInTheDocument();
@@ -298,7 +306,11 @@ describe("a list in a table's cell", () => {
     render(
       inCell(
         <TableColumnListComponent<{ name: string }>
-          items={[{ name: "Redis oneuptime-valkey-master.default.svc.cluster.local:6857" }]}
+          items={[
+            {
+              name: "Redis oneuptime-valkey-master.default.svc.cluster.local:6857",
+            },
+          ]}
           noItemsMessage="No resources."
           getEachElement={(item: { name: string }): ReactElement => {
             return resource(item.name);
@@ -356,7 +368,9 @@ describe("a list in a table's cell", () => {
 
 describe("what opens over a table starts afresh", () => {
   function Probe(): ReactElement {
-    return <span data-testid="probe">{useIsTableCell() ? "cell" : "page"}</span>;
+    return (
+      <span data-testid="probe">{useIsTableCell() ? "cell" : "page"}</span>
+    );
   }
 
   test("a table's body says its cells are cells", () => {

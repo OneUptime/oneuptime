@@ -47,9 +47,13 @@ describe("a table's Duration says its two largest units", () => {
   type CompactFunction = (milliseconds: number) => string;
 
   const compact: CompactFunction = (milliseconds: number): string => {
-    return getEventDurationText(START, new Date(START.getTime() + milliseconds), {
-      maxUnits: TABLE_DURATION_MAX_UNITS,
-    });
+    return getEventDurationText(
+      START,
+      new Date(START.getTime() + milliseconds),
+      {
+        maxUnits: TABLE_DURATION_MAX_UNITS,
+      },
+    );
   };
 
   test("two units", () => {
@@ -109,10 +113,11 @@ describe("a table's Duration says its two largest units", () => {
     );
 
     expect(source).toContain("isCompact?: boolean | undefined;");
-    expect(source).toContain("{ maxUnits: TABLE_DURATION_MAX_UNITS }");
-    expect(source).toContain(
-      "title={compactText === text ? undefined : text}",
+    // However the call is laid out on its lines.
+    expect(source).toMatch(
+      /getEventDurationText\(props\.startDate, endDate, \{ maxUnits: TABLE_DURATION_MAX_UNITS,? \}\)/,
     );
+    expect(source).toContain("title={compactText === text ? undefined : text}");
   });
 
   test.each([

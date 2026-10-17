@@ -83,9 +83,9 @@ describe("a table in the dark theme", () => {
   test("the shadow the Actions column casts over passing cells is darkened for a dark row", () => {
     const layout: string = readCode("Components/Table/TableLayout.ts");
     const theme: string = readRaw("Styles/Theme.css");
-    const shadowToken: string | undefined = (
-      layout.match(/shadow-\[[^\]"\s]+\]/) || []
-    )[0];
+    const shadowToken: string | undefined = (layout.match(
+      /shadow-\[[^\]"\s]+\]/,
+    ) || [])[0];
 
     expect(shadowToken).toBeDefined();
     expect(theme).toContain(`html.dark [class~="${shadowToken}"]`);
@@ -126,7 +126,9 @@ describe("the header can stick, and nothing escapes the scroll box", () => {
     expect(table).toContain('data-testid="table-scroll"');
     expect(table).toContain('"relative md:-mx-6"');
     // Its sideways scroll comes only when the rows are wider than the card.
-    expect(table).toContain('scrollState.isOverflowing ? "overflow-x-auto" : ""');
+    expect(table).toContain(
+      'scrollState.isOverflowing ? "overflow-x-auto" : ""',
+    );
     expect(table).not.toContain("overflow-hidden border-t border-gray-200");
   });
 
@@ -152,7 +154,9 @@ describe("the header can stick, and nothing escapes the scroll box", () => {
     const uses: number = table.split("overflow-hidden").length - 1;
 
     expect(uses).toBe(1);
-    expect(table).toContain("bg-gray-50 text-right md:-mx-6 -mb-6 overflow-hidden");
+    expect(table).toContain(
+      "bg-gray-50 text-right md:-mx-6 -mb-6 overflow-hidden",
+    );
   });
 
   test("ModelTable's frame for a table without a card clips without scrolling", () => {
@@ -175,7 +179,12 @@ describe("the header never shouts", () => {
     ]) {
       const code: string = readCode(file);
 
-      for (const loud of ["uppercase", "tracking-", "font-semibold", "font-bold"]) {
+      for (const loud of [
+        "uppercase",
+        "tracking-",
+        "font-semibold",
+        "font-bold",
+      ]) {
         expect([file, loud, code.includes(loud)]).toEqual([file, loud, false]);
       }
     }
@@ -184,9 +193,11 @@ describe("the header never shouts", () => {
 
 describe("a value's cap is written once, with its clip", () => {
   test("only TableLayout names the cap's width, and only CellClassName writes it on a cell", () => {
-    const writers: Array<string> = TABLE_FILES.filter((file: string): boolean => {
-      return readCode(file).includes("max-w-[20rem]");
-    });
+    const writers: Array<string> = TABLE_FILES.filter(
+      (file: string): boolean => {
+        return readCode(file).includes("max-w-[20rem]");
+      },
+    );
 
     expect(writers).toEqual(["Components/Table/TableLayout.ts"]);
 

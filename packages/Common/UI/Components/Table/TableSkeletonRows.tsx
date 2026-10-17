@@ -100,11 +100,7 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
     (props.enableDragAndDrop ? 1 : 0) + (props.isBulkActionsEnabled ? 1 : 0);
 
   return (
-    <tbody
-      data-testid="table-skeleton-loader"
-      role="status"
-      aria-live="polite"
-    >
+    <tbody data-testid="table-skeleton-loader" role="status" aria-live="polite">
       {rowIndexes.map((rowIndex: number) => {
         const isLastRow: boolean = rowIndex === rowIndexes.length - 1;
         const ruleClassName: string = isLastRow

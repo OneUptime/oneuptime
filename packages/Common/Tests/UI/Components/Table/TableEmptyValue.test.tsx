@@ -133,12 +133,20 @@ describe("a column's own dash is the table's dash", () => {
   });
 
   const VALUES: Array<[string, React.ReactNode]> = [
-    ["a styled dash, kept as the page drew it", <span className="text-gray-400">-</span>],
+    [
+      "a styled dash, kept as the page drew it",
+      <span className="text-gray-400">-</span>,
+    ],
     ["a number", <span>0</span>],
     ["a word", <>None</>],
     ["a negative number", <span>-1</span>],
     ["a dash inside something else", <div>-</div>],
-    ["a dash with another element", <span><b>-</b></span>],
+    [
+      "a dash with another element",
+      <span>
+        <b>-</b>
+      </span>,
+    ],
     ["nothing", null],
     ["an empty string", ""],
   ];
