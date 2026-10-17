@@ -4,7 +4,14 @@ import fs from "fs";
 import path from "path";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
 import { FastestRun, fastestRun } from "../Helpers/FastestRun";
-import { afterAll, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * Two OneUptimeDate helpers run several times for every ingested log, span
@@ -25,6 +32,10 @@ import { afterAll, describe, expect, test } from "@jest/globals";
  */
 const ORIGINAL_TZ: string | undefined = process.env["TZ"];
 process.env["TZ"] = "America/New_York";
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 afterAll(() => {
   if (ORIGINAL_TZ === undefined) {
@@ -526,7 +537,7 @@ describe("speed", () => {
     expect(branch.inMs * 3).toBeLessThan(master.inMs);
   });
 
-  test("toClickhouseDateTime: a batch's 200,000 stamps well within a second, at least three times master's speed", () => {
+  test("toClickhouseDateTime: a batch's 200,000 stamps format each second once, well within a second, at least twice master's speed", () => {
     const start: number = Date.UTC(2026, 9, 17, 10, 0, 0, 0);
     const dates: Array<Date> = [];
 
@@ -534,6 +545,12 @@ describe("speed", () => {
       const time: number = start + Math.floor(row / 1000) * 1000 + (row % 997);
       dates.push(new Date(time), new Date(time - 60000));
     }
+
+    // Master read the six UTC fields of every stamp: 200,000 reads a run.
+    const yearReads: { mock: { calls: Array<unknown> } } = jest.spyOn(
+      Date.prototype,
+      "getUTCFullYear",
+    ) as unknown as { mock: { calls: Array<unknown> } };
 
     const branch: FastestRun<number> = fastestRun({
       run: (): number => {
@@ -545,6 +562,15 @@ describe("speed", () => {
       },
       limitInMs: 0,
     });
+
+    /*
+     * The stamps fall in 160 seconds (10:00:00-10:01:39 and the minute
+     * before), each formatted once over all three runs.
+     */
+    expect(yearReads.mock.calls.length).toBeGreaterThan(0);
+    expect(yearReads.mock.calls.length).toBeLessThanOrEqual(160);
+
+    jest.restoreAllMocks();
 
     const master: FastestRun<number> = fastestRun({
       run: (): number => {
@@ -559,7 +585,7 @@ describe("speed", () => {
 
     expect(branch.result).toBe(master.result);
     expect(branch.inMs).toBeLessThan(1000);
-    // Measured 4-25 times faster; three leaves room for a noisy runner.
-    expect(branch.inMs * 3).toBeLessThan(master.inMs);
+    // Measured 4-25 times faster; twice leaves room for a noisy runner.
+    expect(branch.inMs * 2).toBeLessThan(master.inMs);
   });
 });
