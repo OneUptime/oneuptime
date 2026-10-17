@@ -23,6 +23,7 @@ jest.mock("../../../Server/Utils/Logger", () => {
 });
 
 import BaseAPI from "../../../Server/API/BaseAPI";
+import GlobalConfigAPI from "../../../Server/API/GlobalConfigAPI";
 import UserAPI from "../../../Server/API/UserAPI";
 import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
@@ -144,6 +145,9 @@ const OTHER_PROJECT_ID: ObjectID = new ObjectID(
 // The instance-wide master API key (Admin Dashboard > Settings > API Key).
 const MASTER_API_KEY: string = "6c000000-0000-4000-8000-0000000000b1";
 
+// The server's own settings: the one GlobalConfig row (Admin Dashboard > Settings).
+const GLOBAL_CONFIG_ID: ObjectID = ObjectID.getZeroObjectID();
+
 const NOT_A_MASTER_ADMIN_MESSAGE: string =
   "Unauthorized: Only master admins can perform this action.";
 
@@ -165,6 +169,7 @@ interface People {
 
 let people: People;
 let users: InMemoryTable;
+let globalConfigs: InMemoryTable;
 
 // Whether the server's own Require SSO for Login is on.
 let serverRequiresSso: boolean = false;
@@ -424,6 +429,7 @@ beforeAll(async () => {
   app.use(express.json());
   app.use("/api", new UserAPI().getRouter());
   app.use("/api", new BaseAPI(Label, LabelService).getRouter());
+  app.use("/api", new GlobalConfigAPI().getRouter());
 
   // The Admin Dashboard's page, gated as its server gates it (AdminDashboard/Serve.ts).
   app.get(
@@ -487,6 +493,15 @@ beforeEach(() => {
     userRow(people.former, { name: "Fran Former", isMasterAdmin: true }),
     userRow(people.member, { name: "Mo Member", isMasterAdmin: false }),
   ]);
+
+  globalConfigs = useInMemoryTable(GlobalConfigService, [
+    {
+      _id: GLOBAL_CONFIG_ID.toString(),
+      isMasterApiKeyEnabled: true,
+      masterApiKey: MASTER_API_KEY,
+      smtpHost: "smtp.example.com",
+    },
+  ]);
 });
 
 afterEach(() => {
@@ -499,7 +514,7 @@ interface HttpResult {
   text: string;
 }
 
-type HttpMethod = "GET" | "POST" | "PUT";
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 function send(data: {
   method: HttpMethod;
@@ -1196,6 +1211,174 @@ describe("removed on another app server", () => {
     } finally {
       now.mockRestore();
     }
+  });
+});
+
+/*
+ * The server's own settings (Admin Dashboard > Settings) are read and
+ * written through their own CRUD API, which only a master admin passes:
+ * mail and SMS credentials, the server's sign-in rules, and the master API
+ * key - a credential of its own that outlives any session. They are held
+ * to the account like every other master-admin power.
+ */
+describe("the server's own settings", () => {
+  function readSettings(session: string): Promise<HttpResult> {
+    return send({
+      method: "POST",
+      path: `/api/global-config/${GLOBAL_CONFIG_ID.toString()}/get-item`,
+      token: session,
+      body: { select: { masterApiKey: true, smtpHost: true } },
+    });
+  }
+
+  function changeSettings(session: string): Promise<HttpResult> {
+    return send({
+      method: "PUT",
+      path: `/api/global-config/${GLOBAL_CONFIG_ID.toString()}`,
+      token: session,
+      body: { data: { smtpHost: "mail.elsewhere.example" } },
+    });
+  }
+
+  test("a master admin reads them, the master API key among them", async () => {
+    const result: HttpResult = await readSettings(
+      sessionOf(people.former, true),
+    );
+
+    expect(result.status).toBe(200);
+    expect((result.body as JSONObject)["masterApiKey"]).toBeTruthy();
+    expect(JSON.stringify(result.body)).toContain(MASTER_API_KEY);
+  });
+
+  test("a master admin whose access was removed no longer reads them, nor changes them", async () => {
+    const formerSession: string = sessionOf(people.former, true);
+
+    expect((await readSettings(formerSession)).status).toBe(200);
+
+    await removeAccessOfFormer(sessionOf(people.admin, true));
+
+    const read: HttpResult = await readSettings(formerSession);
+
+    expect(read.status).toBe(ExceptionCode.NotAuthorizedException);
+    expect(read.text).not.toContain(MASTER_API_KEY);
+
+    const write: HttpResult = await changeSettings(formerSession);
+
+    expect(write.status).toBe(ExceptionCode.NotAuthorizedException);
+    expect(globalConfigs.updates).toEqual([]);
+    expect(globalConfigs.get(GLOBAL_CONFIG_ID)?.["smtpHost"]).toBe(
+      "smtp.example.com",
+    );
+  });
+});
+
+/*
+ * A session's access token signed by the release before an upgrade says
+ * nothing of what it is for, and is still read as a session while it lives
+ * (JSONWebToken.isFor): it is held to the account the same way.
+ */
+describe("a session an earlier release signed, without a purpose", () => {
+  function earlierReleaseSessionOf(userId: ObjectID): string {
+    return JSONWebToken.signJsonPayload(
+      {
+        userId: userId.toString(),
+        email: `${userId.toString()}@example.com`,
+        name: "Someone",
+        isMasterAdmin: true,
+        isGlobalLogin: true,
+        sessionId: ObjectID.generate().toString(),
+      },
+      15 * 60,
+    );
+  }
+
+  test("is a master admin's only while its person still is one", async () => {
+    const formerSession: string = earlierReleaseSessionOf(people.former);
+    const route: MasterAdminRoute = MASTER_ADMIN_ROUTES[0]!;
+
+    expect((await callRoute(route, formerSession)).status).toBe(200);
+    reached.length = 0;
+
+    await removeAccessOfFormer(sessionOf(people.admin, true));
+
+    for (const carrier of ["cookie", "bearer"] as const) {
+      const result: HttpResult = await callRoute(route, formerSession, carrier);
+
+      expect({ carrier, status: result.status }).toEqual({
+        carrier,
+        status: ExceptionCode.NotAuthorizedException,
+      });
+      expect(errorMessageOf(result)).toBe(NOT_A_MASTER_ADMIN_MESSAGE);
+    }
+
+    expect((await listLabels(OTHER_PROJECT_ID, formerSession)).status).toBe(
+      ExceptionCode.NotAuthorizedException,
+    );
+    expect((await openAdminDashboard(formerSession)).status).toBe(
+      ExceptionCode.NotAuthorizedException,
+    );
+    expect(
+      reached.filter((entry: Reached): boolean => {
+        return entry.isMasterAdmin;
+      }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * Deleting a master admin's account (Admin Dashboard > Users > a user >
+ * Delete) is the furthest removal there is. An account that is gone is no
+ * master admin, and a session it already had is answered so from its next
+ * request - even on a server that read the account a moment before.
+ */
+describe("deleting the account of a master admin", () => {
+  test("their session is no master admin's from its next request", async () => {
+    const adminSession: string = sessionOf(people.admin, true);
+    const formerSession: string = sessionOf(people.former, true);
+    const route: MasterAdminRoute = MASTER_ADMIN_ROUTES[0]!;
+
+    // This server has read the account, and holds it.
+    expect((await callRoute(route, formerSession)).status).toBe(200);
+
+    const deleted: HttpResult = await send({
+      method: "DELETE",
+      path: `/api/user/${people.former.toString()}`,
+      token: adminSession,
+    });
+
+    expect(deleted.status).toBe(200);
+    expect(users.get(people.former)).toBeUndefined();
+    reached.length = 0;
+
+    for (const masterAdminRoute of MASTER_ADMIN_ROUTES) {
+      const result: HttpResult = await callRoute(
+        masterAdminRoute,
+        formerSession,
+      );
+
+      expect({
+        route: masterAdminRoute.name,
+        status: result.status,
+      }).toEqual({
+        route: masterAdminRoute.name,
+        status: ExceptionCode.NotAuthorizedException,
+      });
+    }
+
+    expect((await listLabels(OTHER_PROJECT_ID, formerSession)).status).toBe(
+      ExceptionCode.NotAuthorizedException,
+    );
+    expect((await openAdminDashboard(formerSession)).status).toBe(
+      ExceptionCode.NotAuthorizedException,
+    );
+    expect(
+      reached.filter((entry: Reached): boolean => {
+        return entry.isMasterAdmin;
+      }),
+    ).toEqual([]);
+
+    // The master admin who deleted it is unaffected.
+    expect((await callRoute(route, adminSession)).status).toBe(200);
   });
 });
 
