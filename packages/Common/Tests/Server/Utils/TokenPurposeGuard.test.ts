@@ -142,6 +142,16 @@ const CODE_FILE: RegExp = /\.(?:ts|tsx)$/;
 const ANY_JSON_WEB_TOKEN_CALL: RegExp = /\bJSONWebToken\.\w+\(/;
 const PURPOSE_MEMBER: RegExp = /\bJsonWebTokenPurpose\b/;
 
+// The class, or its module's path, anywhere in a file's text.
+const JSON_WEB_TOKEN_MENTION: RegExp = /\bJSONWebToken\b|\bJsonWebToken\b/;
+
+// The JsonWebToken module, as an import names it ("../Utils/JsonWebToken").
+const JSON_WEB_TOKEN_MODULE_SPECIFIER: RegExp =
+  /(?:^|\/)JsonWebToken(?:\.[jt]s)?$/;
+
+// The name every product file gives the class it imports.
+const JSON_WEB_TOKEN_CLASS: string = "JSONWebToken";
+
 const hasEe: boolean = fs.existsSync(path.join(REPOSITORY_DIRECTORY, "ee"));
 
 const PURPOSE_NAMES: Array<string> = Object.keys(JsonWebTokenPurpose);
@@ -224,6 +234,12 @@ interface RawClaimSigning {
   claimNames: Array<string> | null;
 }
 
+interface CodeAt {
+  file: string;
+  line: number;
+  text: string;
+}
+
 interface Scan {
   decodeCalls: Array<DecodeCall>;
   purposeUses: Array<PurposeUse>;
@@ -231,6 +247,111 @@ interface Scan {
   rawClaimReaders: Array<string>;
   rawClaimSignings: Array<RawClaimSigning>;
   spelledPurposes: Array<{ file: string; line: number; text: string }>;
+  // Every import of the JsonWebToken module, as written.
+  moduleImports: Array<CodeAt>;
+  // The imports among them that do not bind the class as JSONWebToken.
+  misnamedImports: Array<CodeAt>;
+  // JSONWebToken used as anything but `JSONWebToken.<method>(...)`.
+  indirectUses: Array<CodeAt>;
+}
+
+/*
+ * An import, require or re-export of the JsonWebToken module, or null. The
+ * one way product code takes it is `import JSONWebToken from ".../JsonWebToken"`,
+ * with any of its named constants next to it.
+ */
+function moduleImportOf(node: ts.Node): ts.Node | null {
+  if (
+    (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+    node.moduleSpecifier &&
+    ts.isStringLiteral(node.moduleSpecifier) &&
+    JSON_WEB_TOKEN_MODULE_SPECIFIER.test(node.moduleSpecifier.text)
+  ) {
+    return node;
+  }
+
+  if (
+    ts.isCallExpression(node) &&
+    (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+      (ts.isIdentifier(node.expression) &&
+        node.expression.text === "require")) &&
+    node.arguments[0] &&
+    ts.isStringLiteralLike(node.arguments[0]) &&
+    JSON_WEB_TOKEN_MODULE_SPECIFIER.test(node.arguments[0].text)
+  ) {
+    return node;
+  }
+
+  return null;
+}
+
+/*
+ * Whether an import of the JsonWebToken module binds the class as
+ * JSONWebToken: a default import of that name, and no namespace import, no
+ * `default as` another name, no re-export, no require or import().
+ */
+function bindsTheClassByItsName(moduleImport: ts.Node): boolean {
+  if (!ts.isImportDeclaration(moduleImport)) {
+    return false;
+  }
+
+  const clause: ts.ImportClause | undefined = moduleImport.importClause;
+
+  if (!clause) {
+    return false;
+  }
+
+  // A type signs and reads nothing.
+  if (clause.isTypeOnly) {
+    return true;
+  }
+
+  if (clause.name && clause.name.text !== JSON_WEB_TOKEN_CLASS) {
+    return false;
+  }
+
+  const bindings: ts.NamedImportBindings | undefined = clause.namedBindings;
+
+  if (bindings && ts.isNamespaceImport(bindings)) {
+    return false;
+  }
+
+  if (
+    bindings &&
+    bindings.elements.some((element: ts.ImportSpecifier): boolean => {
+      return (element.propertyName || element.name).text === "default";
+    })
+  ) {
+    return false;
+  }
+
+  return Boolean(clause.name);
+}
+
+/*
+ * JSONWebToken as anything but the object of a call to one of its methods
+ * (`JSONWebToken.<method>(...)`) or the name its import binds: held in a
+ * variable, destructured, indexed, passed, returned, or a method of it taken
+ * without calling it. Any of those would let a token be signed or read
+ * where this guard, which looks for the calls, never sees it.
+ */
+function isIndirectUse(node: ts.Node): boolean {
+  if (!ts.isIdentifier(node) || node.text !== JSON_WEB_TOKEN_CLASS) {
+    return false;
+  }
+
+  const parent: ts.Node = node.parent;
+
+  if (ts.isImportClause(parent) || ts.isImportSpecifier(parent)) {
+    return false;
+  }
+
+  return !(
+    ts.isPropertyAccessExpression(parent) &&
+    parent.expression === node &&
+    ts.isCallExpression(parent.parent) &&
+    parent.parent.expression === parent
+  );
 }
 
 /*
@@ -306,6 +427,9 @@ function scanProductCode(): Scan {
     rawClaimReaders: [],
     rawClaimSignings: [],
     spelledPurposes: [],
+    moduleImports: [],
+    misnamedImports: [],
+    indirectUses: [],
   };
 
   for (const file of productCodeFiles()) {
@@ -314,8 +438,12 @@ function scanProductCode(): Scan {
       ANY_JSON_WEB_TOKEN_CALL,
     );
     const mentionsPurpose: boolean = rawTextMatches(file, PURPOSE_MEMBER);
+    const namesJsonWebToken: boolean = rawTextMatches(
+      file,
+      JSON_WEB_TOKEN_MENTION,
+    );
 
-    if (!mentionsJsonWebToken && !mentionsPurpose) {
+    if (!mentionsJsonWebToken && !mentionsPurpose && !namesJsonWebToken) {
       continue;
     }
 
@@ -324,6 +452,32 @@ function scanProductCode(): Scan {
     let readsRawClaims: boolean = false;
 
     visit(sourceFile, (node: ts.Node): void => {
+      if (file !== JSON_WEB_TOKEN_MODULE) {
+        const moduleImport: ts.Node | null = moduleImportOf(node);
+
+        if (moduleImport) {
+          const at: CodeAt = {
+            file,
+            line: lineOf(sourceFile, node),
+            text: moduleImport.getText(sourceFile),
+          };
+
+          scan.moduleImports.push(at);
+
+          if (!bindsTheClassByItsName(moduleImport)) {
+            scan.misnamedImports.push(at);
+          }
+        }
+
+        if (isIndirectUse(node)) {
+          scan.indirectUses.push({
+            file,
+            line: lineOf(sourceFile, node),
+            text: node.parent.getText(sourceFile),
+          });
+        }
+      }
+
       if (isJsonWebTokenCall(node, "decode")) {
         const call: ts.CallExpression = node as ts.CallExpression;
 
@@ -605,6 +759,55 @@ describe("every other reader of a token's raw claims is listed", () => {
      * does not, list it here with what it reads.
      */
     expect(SCAN.rawClaimReaders).toEqual(Object.keys(RAW_CLAIM_READERS).sort());
+  });
+});
+
+/*
+ * Everything above is read from the calls `JSONWebToken.<method>(...)`. A
+ * token signed or read any other way - the class imported under another
+ * name, a method held in a variable, passed as a callback or destructured -
+ * would be signed or read where none of it looks, so neither happens.
+ */
+describe("JSONWebToken is only ever called, under its own name", () => {
+  test("the scan sees the import of every file it holds to a list", () => {
+    const importing: Array<string> = SCAN.moduleImports.map(
+      (moduleImport: CodeAt): string => {
+        return moduleImport.file;
+      },
+    );
+
+    const listed: Array<string> = [
+      ...Object.keys(READERS),
+      ...Object.keys(RAW_CLAIM_READERS),
+      ...SESSION_MINTERS,
+      ...Object.keys(RAW_CLAIM_SIGNERS_OF_BUILT_CLAIMS),
+    ].filter((file: string): boolean => {
+      return file !== JSON_WEB_TOKEN_MODULE;
+    });
+
+    expect(
+      listed.filter((file: string): boolean => {
+        return !importing.includes(file);
+      }),
+    ).toEqual([]);
+  });
+
+  test("every product file imports it as JSONWebToken", () => {
+    /*
+     * Import it as `import JSONWebToken from ".../JsonWebToken"`: under
+     * another name, as a namespace, through require, import() or a
+     * re-export, its calls go unseen here.
+     */
+    expect(SCAN.misnamedImports).toEqual([]);
+  });
+
+  test("outside its own module it is only ever called, never held, passed, indexed or destructured", () => {
+    /*
+     * Call the method where the token is signed or read -
+     * JSONWebToken.decode(token, JsonWebTokenPurpose.<kind>) - rather than
+     * handing JSONWebToken or one of its methods to other code.
+     */
+    expect(SCAN.indirectUses).toEqual([]);
   });
 });
 

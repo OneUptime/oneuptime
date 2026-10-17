@@ -36,6 +36,7 @@ import UserService from "../../../Server/Services/UserService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressResponse } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import Label from "../../../Models/DatabaseModels/Label";
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
@@ -45,6 +46,7 @@ import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -132,6 +134,14 @@ const GLOBAL_SAML_ID: ObjectID = new ObjectID(
 );
 const GLOBAL_OIDC_ID: ObjectID = new ObjectID(
   "f6f6f6f6-f6f6-4f6f-8f6f-f6f6f6f6f6f6",
+);
+
+// A label of a project, for the requests that name one.
+const LABEL_ID: ObjectID = new ObjectID("1a2b3c4d-1a2b-4c3d-8e4f-1a2b3c4d5e6f");
+
+// Another member of the same projects, who signs in with SSO too.
+const OTHER_MEMBER_ID: ObjectID = new ObjectID(
+  "9f8e7d6c-9f8e-4d7c-8b6a-9f8e7d6c5b4a",
 );
 
 // A status page, and a private user of it.
@@ -440,6 +450,42 @@ beforeAll(async () => {
     return new PositiveNumber(0);
   }) as never);
 
+  // And what one that gets through reads one of, or writes.
+  jest.spyOn(LabelService, "findOneById").mockImplementation((async (data: {
+    props: JSONObject;
+  }): Promise<Label> => {
+    record("a project's labels (read one)", data.props);
+    const label: Label = new Label();
+    label.id = LABEL_ID;
+    return label;
+  }) as never);
+  jest.spyOn(LabelService, "create").mockImplementation((async (data: {
+    props: JSONObject;
+  }): Promise<Label> => {
+    record("a project's labels (create)", data.props);
+    const label: Label = new Label();
+    label.id = LABEL_ID;
+    return label;
+  }) as never);
+  jest.spyOn(LabelService, "updateOneById").mockImplementation((async (data: {
+    props: JSONObject;
+  }): Promise<number> => {
+    record("a project's labels (update)", data.props);
+    return 1;
+  }) as never);
+  jest.spyOn(LabelService, "deleteOneById").mockImplementation((async (data: {
+    props: JSONObject;
+  }): Promise<number> => {
+    record("a project's labels (delete)", data.props);
+    return 1;
+  }) as never);
+  jest.spyOn(UserService, "updateOneById").mockImplementation((async (data: {
+    props: JSONObject;
+  }): Promise<number> => {
+    record("the member's own account (update)", data.props);
+    return 1;
+  }) as never);
+
   const app: express.Express = express();
   app.use(CookieParser());
   app.use(express.json());
@@ -481,16 +527,35 @@ function post(data: {
   cookies?: Dictionary<string> | undefined;
   headers?: Dictionary<string> | undefined;
 }): Promise<HttpResult> {
+  return send({
+    method: "POST",
+    path: data.path,
+    cookies: data.cookies,
+    headers: data.headers,
+    body: { query: {}, select: { _id: true } },
+  });
+}
+
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+
+function send(data: {
+  method: HttpMethod;
+  path: string;
+  cookies?: Dictionary<string> | undefined;
+  headers?: Dictionary<string> | undefined;
+  body?: JSONObject | undefined;
+}): Promise<HttpResult> {
   return new Promise<HttpResult>(
     (resolve: (result: HttpResult) => void, reject: (e: Error) => void) => {
-      const payload: string = JSON.stringify({
-        query: {},
-        select: { _id: true },
-      });
+      const payload: string = data.body ? JSON.stringify(data.body) : "";
 
       const headers: http.OutgoingHttpHeaders = {
-        "content-type": "application/json",
-        "content-length": Buffer.byteLength(payload),
+        ...(payload
+          ? {
+              "content-type": "application/json",
+              "content-length": Buffer.byteLength(payload),
+            }
+          : {}),
         ...(data.headers || {}),
       };
 
@@ -510,7 +575,7 @@ function post(data: {
           host: "127.0.0.1",
           port: port,
           path: data.path,
-          method: "POST",
+          method: data.method,
           headers,
         },
         (response: http.IncomingMessage) => {
@@ -536,7 +601,11 @@ function post(data: {
       );
 
       request.on("error", reject);
-      request.write(payload);
+
+      if (payload) {
+        request.write(payload);
+      }
+
       request.end();
     },
   );
@@ -866,6 +935,417 @@ describe("a status page private user's session", () => {
         });
       }
 
+      expect(reached).toEqual([]);
+    },
+  );
+});
+
+/*
+ * EVERY WAY THE API READS OR CHANGES A RECORD ASKS THE SAME QUESTION.
+ *
+ * A project's records are created, listed, counted, read, changed and
+ * deleted through several requests each, and a person changes their own
+ * account - the address a password reset is sent to - through another.
+ * Every one of them asks the one user middleware who is asking, so an SSO
+ * sign-in sent as the session is a 401 at each, and nothing is read or
+ * written. The member's own session gets through to each of them, so the
+ * 401 is the token's and not the route's.
+ */
+interface ApiRequest {
+  name: string;
+  method: HttpMethod;
+  path: string;
+  headers: Dictionary<string>;
+  body?: JSONObject | undefined;
+}
+
+const IN_A_PROJECT: Dictionary<string> = { tenantid: OTHER_PROJECT.toString() };
+const A_LABEL: string = `/api/label/${LABEL_ID.toString()}`;
+
+const API_REQUESTS: Array<ApiRequest> = [
+  {
+    name: "create a label",
+    method: "POST",
+    path: "/api/label",
+    headers: IN_A_PROJECT,
+    body: { data: { name: "Escalated" } },
+  },
+  {
+    name: "list labels",
+    method: "POST",
+    path: "/api/label/get-list",
+    headers: IN_A_PROJECT,
+    body: { query: {}, select: { _id: true } },
+  },
+  {
+    name: "list labels with a GET",
+    method: "GET",
+    path: "/api/label/get-list",
+    headers: IN_A_PROJECT,
+  },
+  {
+    name: "count labels",
+    method: "POST",
+    path: "/api/label/count",
+    headers: IN_A_PROJECT,
+    body: { query: {} },
+  },
+  {
+    name: "read a label",
+    method: "POST",
+    path: `${A_LABEL}/get-item`,
+    headers: IN_A_PROJECT,
+    body: { select: { _id: true } },
+  },
+  {
+    name: "read a label with a GET",
+    method: "GET",
+    path: `${A_LABEL}/get-item`,
+    headers: IN_A_PROJECT,
+  },
+  {
+    name: "rename a label",
+    method: "PUT",
+    path: A_LABEL,
+    headers: IN_A_PROJECT,
+    body: { data: { name: "Renamed" } },
+  },
+  {
+    name: "rename a label with a POST",
+    method: "POST",
+    path: `${A_LABEL}/update-item`,
+    headers: IN_A_PROJECT,
+    body: { data: { name: "Renamed" } },
+  },
+  {
+    name: "delete a label",
+    method: "DELETE",
+    path: A_LABEL,
+    headers: IN_A_PROJECT,
+  },
+  {
+    name: "delete a label with a POST",
+    method: "POST",
+    path: `${A_LABEL}/delete-item`,
+    headers: IN_A_PROJECT,
+  },
+  {
+    name: "change the email address of their own account",
+    method: "PUT",
+    path: `/api/user/${MEMBER_ID.toString()}`,
+    headers: {},
+    body: { data: { email: "someone.else@example.com" } },
+  },
+];
+
+describe("every way the API reads or changes a record", () => {
+  test.each(API_REQUESTS)(
+    "$name: the member's own session gets through, as the member",
+    async (request: ApiRequest) => {
+      const result: HttpResult = await send({
+        method: request.method,
+        path: request.path,
+        cookies: { [CookieUtil.getUserTokenKey()]: sessionToken() },
+        headers: request.headers,
+        body: request.body,
+      });
+
+      expect(result.status).toBe(200);
+      expect(reached.length).toBeGreaterThan(0);
+
+      for (const read of reached) {
+        expect(read.userId).toBe(MEMBER_ID.toString());
+      }
+    },
+  );
+
+  describe.each(SSO_SIGN_INS)("$name", (signIn: SsoSignIn) => {
+    test.each(API_REQUESTS)(
+      "is no session to $name: a 401 as the cookie and as a bearer, and nothing is read or written",
+      async (request: ApiRequest) => {
+        for (const carrier of CARRIERS) {
+          const session: {
+            cookies: Dictionary<string>;
+            headers: Dictionary<string>;
+          } = asSession(signIn.token(), carrier);
+
+          const result: HttpResult = await send({
+            method: request.method,
+            path: request.path,
+            cookies: session.cookies,
+            headers: { ...request.headers, ...session.headers },
+            body: request.body,
+          });
+
+          expect({ carrier, status: result.status }).toEqual({
+            carrier,
+            status: ExceptionCode.NotAuthenticatedException,
+          });
+        }
+
+        expect(reached).toEqual([]);
+      },
+    );
+  });
+});
+
+/*
+ * NO OTHER TOKEN THIS SERVER SIGNS IS A SESSION EITHER.
+ *
+ * Every other token signed with the same key, made where the product makes
+ * it (or, for those a route makes inline, claim for claim): none names a
+ * session, so sent where the session goes it is a 401 everywhere - and put
+ * where an SSO sign-in goes, next to the member's session, it satisfies no
+ * project's SSO.
+ */
+function cookieValueOf(set: (response: ExpressResponse) => void): string {
+  let value: string = "";
+
+  set({
+    cookie: (_name: string, cookieValue: string): void => {
+      value = cookieValue;
+    },
+  } as unknown as ExpressResponse);
+
+  return value;
+}
+
+const OTHER_TOKENS: Array<{ name: string; token: () => string }> = [
+  {
+    name: "a status page's master-password cookie",
+    token: (): string => {
+      return cookieValueOf((response: ExpressResponse): void => {
+        CookieUtil.setStatusPageMasterPasswordCookie({
+          expressResponse: response,
+          statusPageId: STATUS_PAGE_ID,
+        });
+      });
+    },
+  },
+  {
+    name: "a public dashboard's master-password cookie",
+    token: (): string => {
+      return cookieValueOf((response: ExpressResponse): void => {
+        CookieUtil.setDashboardMasterPasswordCookie({
+          expressResponse: response,
+          dashboardId: LABEL_ID,
+        });
+      });
+    },
+  },
+  {
+    name: "an on-call page link",
+    token: (): string => {
+      return OnCallPageLinkToken.sign({
+        userOnCallLogTimelineId: ObjectID.generate(),
+      });
+    },
+  },
+  {
+    name: "a sign-in in flight through an identity provider",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        {
+          state: ObjectID.generate().toString(),
+          nonce: ObjectID.generate().toString(),
+          codeVerifier: ObjectID.generate().toString(),
+          isMobile: false,
+        },
+        10 * 60,
+      );
+    },
+  },
+  {
+    name: "a reseller's token",
+    token: (): string => {
+      return JSONWebToken.sign({
+        data: { resellerId: "reseller" },
+        expiresInSeconds: OneUptimeDate.getDayInSeconds(365),
+      });
+    },
+  },
+  {
+    name: "a phone call's keypad answers",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        JSONFunctions.serialize({
+          "1": { sayMessage: "Acknowledged." },
+          default: { sayMessage: "Goodbye." },
+        }),
+        OneUptimeDate.getDayInSeconds(),
+      );
+    },
+  },
+];
+
+describe.each(OTHER_TOKENS)("$name", ({ token }: { token: () => string }) => {
+  test.each(CARRIERS)(
+    "is no session: sent as %s it is a 401 everywhere, and nothing is read",
+    async (carrier: Carrier) => {
+      for (const route of ROUTES) {
+        const session: {
+          cookies: Dictionary<string>;
+          headers: Dictionary<string>;
+        } = asSession(token(), carrier);
+
+        const result: HttpResult = await post({
+          path: route.path,
+          cookies: session.cookies,
+          headers: { ...route.headers, ...session.headers },
+        });
+
+        expect({ route: route.name, status: result.status }).toEqual({
+          route: route.name,
+          status: ExceptionCode.NotAuthenticatedException,
+        });
+      }
+
+      expect(reached).toEqual([]);
+    },
+  );
+
+  test("satisfies no project's SSO, put where an SSO sign-in goes next to the member's session", async () => {
+    for (const carrier of ["cookie", "header"] as Array<SsoCarrier>) {
+      for (const slot of ["project", "global"] as Array<SsoSlot>) {
+        const ownPlace: {
+          cookies: Dictionary<string>;
+          headers: Dictionary<string>;
+        } = asSsoSignIn(
+          { name: "another token", slot: slot, token: token },
+          token(),
+          carrier,
+        );
+
+        const result: HttpResult = await post({
+          path: "/api/label/get-list",
+          cookies: {
+            [CookieUtil.getUserTokenKey()]: sessionToken(),
+            ...ownPlace.cookies,
+          },
+          headers: {
+            tenantid: PROJECT_REQUIRING_SSO.toString(),
+            ...ownPlace.headers,
+          },
+        });
+
+        expect({ carrier, slot, status: result.status }).toEqual({
+          carrier,
+          slot,
+          status: ExceptionCode.SsoAuthorizationException,
+        });
+      }
+    }
+
+    expect(reached).toEqual([]);
+  });
+});
+
+/*
+ * AN SSO SIGN-IN IS ONE PERSON'S.
+ *
+ * Another member's SSO sign-in - every kind of it, in its own place, as
+ * the web or the mobile app sends it - does not let this member's session
+ * into a project that requires SSO: an SSO sign-in counts only next to a
+ * session of the person who signed in.
+ */
+function otherMember(): User {
+  const user: User = new User();
+  user.id = OTHER_MEMBER_ID;
+  user.email = new Email("other.member@example.com");
+  user.name = new Name("Other Member");
+  return user;
+}
+
+const OTHER_MEMBERS_SSO_SIGN_INS: Array<SsoSignIn> = [
+  {
+    name: "another member's project SAML sign-in",
+    slot: "project",
+    token: (): string => {
+      return CookieUtil.getSSOToken({
+        user: otherMember(),
+        projectId: PROJECT_REQUIRING_SSO,
+        ssoProviderId: PROJECT_SAML_ID,
+        ssoProviderType: SsoProviderType.ProjectSSO,
+      });
+    },
+  },
+  {
+    name: "another member's project OIDC sign-in",
+    slot: "project",
+    token: (): string => {
+      return CookieUtil.getSSOToken({
+        user: otherMember(),
+        projectId: PROJECT_REQUIRING_SSO,
+        ssoProviderId: PROJECT_OIDC_ID,
+        ssoProviderType: SsoProviderType.ProjectOIDC,
+      });
+    },
+  },
+  {
+    name: "another member's Global SAML sign-in",
+    slot: "global",
+    token: (): string => {
+      return CookieUtil.getGlobalSSOToken({
+        user: otherMember(),
+        ssoProviderId: GLOBAL_SAML_ID,
+        ssoProviderType: SsoProviderType.GlobalSSO,
+      });
+    },
+  },
+  {
+    name: "another member's Global OIDC sign-in",
+    slot: "global",
+    token: (): string => {
+      return CookieUtil.getGlobalSSOToken({
+        user: otherMember(),
+        ssoProviderId: GLOBAL_OIDC_ID,
+        ssoProviderType: SsoProviderType.GlobalOIDC,
+      });
+    },
+  },
+];
+
+describe.each(OTHER_MEMBERS_SSO_SIGN_INS)("$name", (signIn: SsoSignIn) => {
+  test.each(["cookie", "header"] as Array<SsoCarrier>)(
+    "does not let this member's session into the project that requires SSO, sent as a %s",
+    async (ssoCarrier: SsoCarrier) => {
+      const ownPlace: {
+        cookies: Dictionary<string>;
+        headers: Dictionary<string>;
+      } = asSsoSignIn(signIn, signIn.token(), ssoCarrier);
+
+      const result: HttpResult = await post({
+        path: "/api/label/get-list",
+        cookies: {
+          [CookieUtil.getUserTokenKey()]: sessionToken(),
+          ...ownPlace.cookies,
+        },
+        headers: {
+          tenantid: PROJECT_REQUIRING_SSO.toString(),
+          ...ownPlace.headers,
+        },
+      });
+
+      expect(result.status).toBe(ExceptionCode.SsoAuthorizationException);
+      expect(reached).toEqual([]);
+    },
+  );
+
+  test.each(CARRIERS)(
+    "is no session for anyone: sent as %s it is a 401",
+    async (carrier: Carrier) => {
+      const session: {
+        cookies: Dictionary<string>;
+        headers: Dictionary<string>;
+      } = asSession(signIn.token(), carrier);
+
+      const result: HttpResult = await post({
+        path: "/api/user/get-list",
+        cookies: session.cookies,
+        headers: session.headers,
+      });
+
+      expect(result.status).toBe(ExceptionCode.NotAuthenticatedException);
       expect(reached).toEqual([]);
     },
   );

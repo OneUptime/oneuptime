@@ -875,6 +875,147 @@ describe("what a token is for: each kind is read as what it is, and as nothing e
   });
 });
 
+/*
+ * A purpose is worth something only in a token this server signed. Claims
+ * made out to be a session, an SSO sign-in or a status page's session -
+ * each with everything its reader asks for - are refused for every purpose
+ * when nobody signed them (alg "none"), when another key signed them, or
+ * when they were put in place of the claims of a token this server did
+ * sign: exactly as a token that does not verify.
+ */
+describe("a token says what it is for only when this server signed it", () => {
+  function claimsFor(purpose: JsonWebTokenPurpose): JSONObject {
+    const issuedAt: number = Math.floor(Date.now() / 1000);
+    const common: JSONObject = {
+      userId: buildUser().id!.toString(),
+      email: "member@example.com",
+      name: "Member",
+      isMasterAdmin: true,
+      iat: issuedAt,
+      exp: issuedAt + 15 * 60,
+      [PURPOSE_CLAIM]: purpose,
+    };
+
+    if (purpose === JsonWebTokenPurpose.SsoSignIn) {
+      return {
+        ...common,
+        projectId: ObjectID.generate().toString(),
+        ssoProviderId: ObjectID.generate().toString(),
+        ssoProviderType: SsoProviderType.ProjectSSO,
+      };
+    }
+
+    if (purpose === JsonWebTokenPurpose.StatusPageSession) {
+      return {
+        ...common,
+        statusPageId: ObjectID.generate().toString(),
+        sessionId: ObjectID.generate().toString(),
+      };
+    }
+
+    return { ...common, sessionId: ObjectID.generate().toString() };
+  }
+
+  function segment(value: JSONObject): string {
+    return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+  }
+
+  // The claims without their times, for jwt.sign to write its own.
+  function withoutTimes(claims: JSONObject): JSONObject {
+    const copy: JSONObject = { ...claims };
+    delete copy["iat"];
+    delete copy["exp"];
+    return copy;
+  }
+
+  const FORGERIES: Array<{
+    name: string;
+    forge: (claims: JSONObject) => string;
+  }> = [
+    {
+      name: "signed by nobody (alg none)",
+      forge: (claims: JSONObject): string => {
+        return `${segment({ alg: "none", typ: "JWT" })}.${segment(claims)}.`;
+      },
+    },
+    {
+      name: "signed with another key",
+      forge: (claims: JSONObject): string => {
+        return jwt.sign(withoutTimes(claims), "another installation's key", {
+          expiresIn: 15 * 60,
+        });
+      },
+    },
+    {
+      name: "put in place of the claims of a token this server signed",
+      forge: (claims: JSONObject): string => {
+        const genuine: string = OnCallPageLinkToken.sign({
+          userOnCallLogTimelineId: ObjectID.generate(),
+        });
+        const [header, , signature] = genuine.split(".");
+
+        return `${header}.${segment(claims)}.${signature}`;
+      },
+    },
+    {
+      name: "put in place of an SSO sign-in's own claims",
+      forge: (claims: JSONObject): string => {
+        const genuine: string = CookieUtil.getSSOToken({
+          user: buildUser(),
+          projectId: ObjectID.generate(),
+          ssoProviderId: ObjectID.generate(),
+          ssoProviderType: SsoProviderType.ProjectSSO,
+        });
+        const [header, , signature] = genuine.split(".");
+
+        return `${header}.${segment(claims)}.${signature}`;
+      },
+    },
+  ];
+
+  test.each(ALL_PURPOSES)(
+    "claims made out as %s are read as nothing unless this server signed them",
+    (purpose: JsonWebTokenPurpose) => {
+      const claims: JSONObject = claimsFor(purpose);
+
+      // The same claims, signed here: read as what they say.
+      expect(
+        JSONWebToken.decode(
+          jwt.sign(withoutTimes(claims), TokenSigningKey.get(), {
+            expiresIn: 15 * 60,
+          }),
+          purpose,
+        ).userId.toString(),
+      ).toBe(buildUser().id!.toString());
+
+      for (const forgery of FORGERIES) {
+        const token: string = forgery.forge(claims);
+
+        for (const asked of ALL_PURPOSES) {
+          const reads: boolean = ((): boolean => {
+            try {
+              JSONWebToken.decode(token, asked);
+              return true;
+            } catch {
+              return false;
+            }
+          })();
+
+          expect({ forgery: forgery.name, asked, reads }).toEqual({
+            forgery: forgery.name,
+            asked,
+            reads: false,
+          });
+        }
+
+        expect(() => {
+          return JSONWebToken.decodeJsonPayload(token);
+        }).toThrow();
+      }
+    },
+  );
+});
+
 describe("JSONWebToken.isFor", () => {
   const sessionClaims: JSONObject = {
     userId: ObjectID.generate().toString(),
