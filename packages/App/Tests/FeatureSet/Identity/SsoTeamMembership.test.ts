@@ -112,9 +112,7 @@ describe("SsoTeamMembership.addToTeams", () => {
     async (_label: string, refusal: string) => {
       teamMemberCreate.mockRejectedValueOnce(new BadDataException(refusal));
 
-      await expect(addToTeams()).resolves.toBe(
-        SsoTeamMembershipOutcome.NoRoom,
-      );
+      await expect(addToTeams()).resolves.toBe(SsoTeamMembershipOutcome.NoRoom);
       expect(teamMemberCreate).toHaveBeenCalledTimes(1);
     },
   );
@@ -135,9 +133,7 @@ describe("SsoTeamMembership.addToTeams", () => {
   test("a failure after the first team is thrown too: only a refusal of the newcomer is NoRoom", async () => {
     const failure: BadDataException = new BadDataException("Invalid Team ID");
 
-    teamMemberCreate
-      .mockResolvedValueOnce({})
-      .mockRejectedValueOnce(failure);
+    teamMemberCreate.mockResolvedValueOnce({}).mockRejectedValueOnce(failure);
 
     await expect(addToTeams()).rejects.toBe(failure);
     expect(teamMemberCreate).toHaveBeenCalledTimes(2);

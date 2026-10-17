@@ -604,9 +604,9 @@ function projectIdsOf(filter: unknown): Array<string> | null {
     return [filter.toString()];
   }
 
-  const parameters: Record<string, Array<unknown>> =
-    (filter as { objectLiteralParameters?: Record<string, Array<unknown>> })
-      .objectLiteralParameters || {};
+  const parameters: Record<string, Array<unknown>> = (
+    filter as { objectLiteralParameters?: Record<string, Array<unknown>> }
+  ).objectLiteralParameters || {};
 
   return Object.values(parameters)
     .flat()
@@ -691,7 +691,10 @@ beforeEach(() => {
     discoveryURL: "https://idp.example.com/.well-known/openid-configuration",
     clientId: "client-id",
     clientSecret: "client-secret",
-    teams: [{ id: new ObjectID(TEAM_ID) }, { id: new ObjectID(SECOND_TEAM_ID) }],
+    teams: [
+      { id: new ObjectID(TEAM_ID) },
+      { id: new ObjectID(SECOND_TEAM_ID) },
+    ],
     disableSignUpWithSso: false,
     restrictToAttachedProjects: false,
   });
