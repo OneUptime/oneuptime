@@ -835,7 +835,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
                   { timezone: scheduleZoneName },
                 )
               : translator.translateTemplate(
-                  "A combined preview of who is on call and when, after all layers and priorities are applied. Shown in your local timezone — {{timezone}}.",
+                  "Who is on call and when, with every layer applied. Times are in your timezone, {{timezone}}.",
                   { timezone: OneUptimeDate.getCurrentTimezoneString() },
                 )
           }
