@@ -163,7 +163,7 @@ Ob die Seite einen Eintrag **Abonnieren** zeigt (**Abonnentenseite anzeigen**, `
 
 Unter der Karte stehen **Statusseite als JSON exportieren**, das die eigenen Einstellungen der Statusseite als Datei herunterlädt, die Sie wieder importieren können, und **Archive status page** (siehe [Eine Statusseite archivieren](#eine-statusseite-archivieren)). Der Gesamtprozentsatz der Verfügbarkeit und die Ausfallzeit-Status waren hier früher zwei eigene Karten, jede hinter einer Schaltfläche **Bearbeiten**; jetzt sind sie Zeilen der Karte.
 
-**Wo die Farben sind.** Die Farben der Verfügbarkeitsbalken stehen nicht hier – die **Standard-Balkenfarbe** und die Balkenfarbregeln liegen unter **Weitere Einstellungen** auf **Statusseiten → Ihre Seite → Branding → Branding**. Eine Theme- oder Markenfarbeinstellung gibt es nirgends; alles, was über diese Steuerelemente hinausgeht, erledigen Sie mit **Benutzerdefiniertes CSS**.
+**Wo die Farben sind.** Die Farben der Verfügbarkeitsbalken stehen nicht hier – die **Standard-Balkenfarbe** und die Balkenfarbregeln liegen unter **Weitere Einstellungen** auf **Statusseiten → Ihre Seite → Branding → Branding**. Das **Design** der Seite (hell, dunkel oder wie das Gerät jedes Besuchers eingestellt ist) ist eine Karte weit oben auf derselben Seite. Eine Markenfarbeinstellung gibt es nicht; alles, was über diese Steuerelemente hinausgeht, erledigen Sie mit **Benutzerdefiniertes CSS**.
 
 ## Vorschau, bevor Sie live gehen
 

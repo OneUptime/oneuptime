@@ -1,5 +1,7 @@
 import App from "./App";
 import "./Utils/i18n";
+import StatusPageThemeUtil from "./Utils/StatusPageTheme";
+import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
 import ForeignDomMutationGuard from "Common/UI/Utils/ForeignDomMutationGuard";
@@ -14,6 +16,13 @@ import { BrowserRouter } from "react-router-dom";
  * ForeignDomMutationGuard).
  */
 ForeignDomMutationGuard.install();
+
+/*
+ * The page's theme, as the first script in <head> drew it (views/index.ejs),
+ * kept in step with the visitor's device from here on. The page's own
+ * settings follow with the master page (Components/MasterPage).
+ */
+StatusPageThemeUtil.initialize();
 
 Telemetry.init({
   serviceName: "status-page",

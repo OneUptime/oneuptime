@@ -30357,5 +30357,15 @@
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project.": "{{count}} av dem finns redan i en annan episod och läggs därför inte till. Ett larm kan bara ingå i en episod i det här projektet.",
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project._one": "{{count}} av dem finns redan i en annan episod och läggs därför inte till. Ett larm kan bara ingå i en episod i det här projektet.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "{{count}} av dem finns redan i en annan episod och läggs därför inte till. En incident kan bara ingå i en episod i det här projektet.",
-  "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "{{count}} av dem finns redan i en annan episod och läggs därför inte till. En incident kan bara ingå i en episod i det här projektet."
+  "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "{{count}} av dem finns redan i en annan episod och läggs därför inte till. En incident kan bara ingå i en episod i det här projektet.",
+  "Dark": "Mörkt",
+  "Every visitor sees the dark page.": "Alla besökare ser den mörka sidan.",
+  "Every visitor sees the light page.": "Alla besökare ser den ljusa sidan.",
+  "How your status page looks to visitors.": "Så ser din statussida ut för besökare.",
+  "Light": "Ljust",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "Ljust eller mörkt, som varje besökares enhet är inställd. Besökare kan byta i sidfoten.",
+  "Match each visitor's device": "Som varje besökares enhet",
+  "Status page theme": "Statussidans tema",
+  "Theme": "Tema",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Din egen CSS och HTML gäller i båda temana. Börja en CSS-regel med html.dark för att bara styla det mörka temat."
 }

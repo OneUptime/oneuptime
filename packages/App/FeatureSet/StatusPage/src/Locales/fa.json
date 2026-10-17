@@ -22,6 +22,10 @@
     "label": "زبان",
     "switchLanguage": "تغییر زبان"
   },
+  "theme": {
+    "switchToDark": "رفتن به پوسته تیره",
+    "switchToLight": "رفتن به پوسته روشن"
+  },
   "nav": {
     "overview": "نمای کلی",
     "incidents": "حوادث",

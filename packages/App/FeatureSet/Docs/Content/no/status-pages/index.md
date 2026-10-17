@@ -163,7 +163,7 @@ Om siden viser et element **Abonner** (**Vis abonnentside**, `showSubscriberPage
 
 Under kortet står **Eksporter Statusside som JSON**, som laster ned statussidens egne innstillinger til en fil du kan importere igjen, og **Archive status page** (se [Arkiver en statusside](#å-arkivere-en-statusside)). Den samlede oppetidsprosenten og nedetidsstatusene var tidligere to egne kort her, hver bak en knapp **Rediger**; nå er de rader på kortet.
 
-**Hvor fargene er.** Fargene på oppetidsstolpene er ikke her: **Standard stolpefarge** og fargereglene for stolpene ligger under **Flere innstillinger** i **Statussider → siden din → Merkevare → Merkevare**. Det finnes ingen innstilling for tema eller merkevarefarge noe sted; alt utover disse kontrollene gjør du med **Egendefinert CSS**.
+**Hvor fargene er.** Fargene på oppetidsstolpene er ikke her: **Standard stolpefarge** og fargereglene for stolpene ligger under **Flere innstillinger** i **Statussider → siden din → Merkevare → Merkevare**. Sidens **Tema** (lyst, mørkt eller slik hver besøkendes enhet er innstilt) er et kort øverst på den samme siden. Det finnes ingen innstilling for merkevarefarge; alt utover disse kontrollene gjør du med **Egendefinert CSS**.
 
 ## Å forhåndsvise før du går live
 

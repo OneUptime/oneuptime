@@ -30357,5 +30357,15 @@
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project.": "{{count}} éléments de la sélection sont déjà dans un autre épisode et ne seront donc pas ajoutés. Une alerte ne peut faire partie que d'un seul épisode dans ce projet.",
   "{{count}} of them are already in another episode, so they won't be added. An alert can be in only one episode in this project._one": "{{count}} élément de la sélection est déjà dans un autre épisode et ne sera donc pas ajouté. Une alerte ne peut faire partie que d'un seul épisode dans ce projet.",
   "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project.": "{{count}} éléments de la sélection sont déjà dans un autre épisode et ne seront donc pas ajoutés. Un incident ne peut faire partie que d'un seul épisode dans ce projet.",
-  "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "{{count}} élément de la sélection est déjà dans un autre épisode et ne sera donc pas ajouté. Un incident ne peut faire partie que d'un seul épisode dans ce projet."
+  "{{count}} of them are already in another episode, so they won't be added. An incident can be in only one episode in this project._one": "{{count}} élément de la sélection est déjà dans un autre épisode et ne sera donc pas ajouté. Un incident ne peut faire partie que d'un seul épisode dans ce projet.",
+  "Dark": "Sombre",
+  "Every visitor sees the dark page.": "Tous les visiteurs voient la page sombre.",
+  "Every visitor sees the light page.": "Tous les visiteurs voient la page claire.",
+  "How your status page looks to visitors.": "L'apparence de votre page de statut pour les visiteurs.",
+  "Light": "Clair",
+  "Light or dark, as each visitor's device is set. Visitors can switch it in the footer.": "Clair ou sombre, selon le réglage de l'appareil de chaque visiteur. Les visiteurs peuvent en changer dans le pied de page.",
+  "Match each visitor's device": "Selon l'appareil de chaque visiteur",
+  "Status page theme": "Thème de la page de statut",
+  "Theme": "Thème",
+  "Your custom CSS and HTML apply in both themes. Start a CSS rule with html.dark to style only the dark theme.": "Votre CSS et votre HTML personnalisés s'appliquent aux deux thèmes. Commencez une règle CSS par html.dark pour ne styliser que le thème sombre."
 }

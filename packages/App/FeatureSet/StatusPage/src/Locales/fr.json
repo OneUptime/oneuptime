@@ -22,6 +22,10 @@
     "label": "Langue",
     "switchLanguage": "Changer de langue"
   },
+  "theme": {
+    "switchToDark": "Passer au thème sombre",
+    "switchToLight": "Passer au thème clair"
+  },
   "nav": {
     "overview": "Aperçu",
     "incidents": "Incidents",

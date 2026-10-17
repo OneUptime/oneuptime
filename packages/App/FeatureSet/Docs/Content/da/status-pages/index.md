@@ -163,7 +163,7 @@ Om siden viser et punkt **Abonner** (**Vis abonnentside**, `showSubscriberPageOn
 
 Under kortet står **Eksportér Statusside som JSON**, der downloader statussidens egne indstillinger til en fil, du kan importere igen, og **Archive status page** (se [Arkivér en statusside](#at-arkivere-en-statusside)). Den samlede oppetidsprocent og nedetidsstatusserne var tidligere to selvstændige kort her, hver bag en knap **Rediger**; nu er de rækker på kortet.
 
-**Hvor farverne er.** Oppetidsbjælkernes farver er ikke her: **Standardbjælkefarve** og farvereglerne for bjælkerne ligger under **Yderligere indstillinger** i **Statussider → din side → Branding → Branding**. Der findes ingen indstilling for tema eller brandfarve nogen steder; alt ud over disse kontroller klarer du med **Brugerdefineret CSS**.
+**Hvor farverne er.** Oppetidsbjælkernes farver er ikke her: **Standardbjælkefarve** og farvereglerne for bjælkerne ligger under **Yderligere indstillinger** i **Statussider → din side → Branding → Branding**. Sidens **Tema** (lyst, mørkt eller som hver besøgendes enhed er indstillet) er et kort øverst på samme side. Der findes ingen indstilling for brandfarve; alt ud over disse kontroller klarer du med **Brugerdefineret CSS**.
 
 ## At se siden an, før du går live
 

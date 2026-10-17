@@ -5,6 +5,7 @@ import {
   formatRuleUptimePercent,
 } from "../../../Components/StatusPage/HistoryChartBarColorPreviewModel";
 import SearchEngineIndexingCard from "../../../Components/StatusPage/SearchEngineIndexingCard";
+import StatusPageThemeCard from "../../../Components/StatusPage/StatusPageThemeCard";
 import StatusPageBrandingCopy, {
   BRANDING_ADVANCED_SECTION_TEST_ID,
   BrandingAdvancedValues,
@@ -56,6 +57,7 @@ import React, {
  * same cards, with the analytics names they had (the two language cards are
  * one card now, "Status Page > Languages"). First what nearly everyone
  * sets, in the order a visitor meets it: the logo and cover image, the
+ * page's theme (light, dark, or as each visitor's device is set), the
  * page's title and description, its favicon, the header's links, the text
  * at the top of the overview, and the footer. Then, folded under Advanced,
  * what few people ever change: the history chart's colors, the languages,
@@ -249,6 +251,12 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
           modelId: modelId,
         }}
       />
+
+      {/*
+       * Light, dark, or as each visitor's device is set: picked once and
+       * saved at once, right under the logo it is chosen with.
+       */}
+      <StatusPageThemeCard statusPageId={modelId} />
 
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Title and Description"
