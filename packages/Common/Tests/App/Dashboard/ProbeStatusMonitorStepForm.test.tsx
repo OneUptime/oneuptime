@@ -31,6 +31,42 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const mockGetAllProbes: MockFunction = getJestMockFunction();
 
+interface MutableConfig {
+  billingEnabled: boolean;
+}
+
+const config: MutableConfig = { billingEnabled: false };
+
+(
+  globalThis as unknown as { __probeStatusStepFormConfig: MutableConfig }
+).__probeStatusStepFormConfig = config;
+
+/*
+ * BILLING_ENABLED is read when the module loads, and CI runs these suites
+ * with BILLING_ENABLED=true in config.env: a getter here, switched per test,
+ * so the self-hosted and the Cloud defaults are each tested whatever the
+ * environment says.
+ */
+jest.mock("../../../UI/Config", () => {
+  const mocked: Record<string, unknown> = {
+    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
+  };
+
+  Object.defineProperty(mocked, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return Boolean(
+        (
+          globalThis as unknown as {
+            __probeStatusStepFormConfig: MutableConfig | undefined;
+          }
+        ).__probeStatusStepFormConfig?.billingEnabled,
+      );
+    },
+  });
+
+  return mocked;
+});
+
 jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Probe", () => {
   return {
     __esModule: true,
@@ -93,6 +129,8 @@ let watchProbeId: string | null = null;
 beforeEach(() => {
   changes.length = 0;
   watchProbeId = null;
+  // A self-hosted installation unless a test says it is OneUptime Cloud.
+  config.billingEnabled = false;
   mockGetAllProbes.mockReset();
   jest
     .spyOn(Navigation, "getQueryStringByName")
@@ -136,8 +174,7 @@ describe("ProbeStatusMonitorStepForm", () => {
     expect(await picked()).toEqual(["Data Center", "Office LAN"]);
   });
 
-  test("on an installation with only global probes, it starts on those", async () => {
-    // Tests run without billing, as a self-hosted OneUptime does.
+  test("on a self-hosted installation with only global probes, it starts on those", async () => {
     mockGetAllProbes.mockResolvedValue([BUNDLED] as never);
 
     render(<Harness probeIds={[]} />);
@@ -146,6 +183,29 @@ describe("ProbeStatusMonitorStepForm", () => {
       expect(changes).toEqual([{ probeIds: [GLOBAL_ID] }]);
     });
     expect(await picked()).toEqual(["Probe"]);
+  });
+
+  test("on OneUptime Cloud, a project with only global probes starts with none picked", async () => {
+    config.billingEnabled = true;
+    mockGetAllProbes.mockResolvedValue([BUNDLED] as never);
+
+    render(<Harness probeIds={[]} />);
+
+    // Loaded, offered, and not picked: Cloud's global probes are OneUptime's.
+    expect(await picked()).toEqual([]);
+    expect(changes).toEqual([]);
+  });
+
+  test("on OneUptime Cloud too, a project's own probes are picked", async () => {
+    config.billingEnabled = true;
+    mockGetAllProbes.mockResolvedValue([OFFICE, BUNDLED] as never);
+
+    render(<Harness probeIds={[]} />);
+
+    await waitFor(() => {
+      expect(changes).toEqual([{ probeIds: [OFFICE_ID] }]);
+    });
+    expect(await picked()).toEqual(["Office LAN"]);
   });
 
   test("from Monitor this probe, it starts on that probe alone", async () => {
