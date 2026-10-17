@@ -182,6 +182,36 @@ describe("PlanPickerCopy: each plan's row", () => {
     expect(optionText(FREE, BillingPeriod.Monthly).price).toBe("$0");
   });
 
+  /*
+   * "For one person" is the seat rule's, not a pitch: a Free project has
+   * room for one person, the rule the early check and the INSERT's check
+   * share since #4927 (TeamMemberService ALLOWED_PEOPLE_IN_FREE_PLAN). If
+   * Free ever lets more people in, this line has to say so.
+   */
+  it("Free's 'one person' is the seat rule TeamMemberService holds a Free project to", () => {
+    const service: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "Server",
+        "Services",
+        "TeamMemberService.ts",
+      ),
+      "utf8",
+    );
+
+    expect(service).toContain(
+      "export const ALLOWED_PEOPLE_IN_FREE_PLAN: number = 1;",
+    );
+    expect(service).toContain(
+      "if (data.limits.isFreePlan && data.people >= ALLOWED_PEOPLE_IN_FREE_PLAN) {\n      return Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN;",
+    );
+    expect(getPlanAudience(FREE)).toBe("For one person getting started.");
+  });
+
   it("Growth: the yearly price per user per month, billed yearly, with its trial", () => {
     expect(optionText(GROWTH, BillingPeriod.Yearly)).toEqual({
       name: "Growth",

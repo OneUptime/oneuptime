@@ -33,8 +33,8 @@ import {
  *   - usage - active monitors, telemetry - is metered on every plan
  *     (AllMeteredPlans), and on Free it needs a payment method
  *     (PayAsYouGoBillingService.canUsePayAsYouGo);
- *   - only one person can be in a Free project (TeamMemberService:
- *     LIMIT_REACHED_FOR_FREE_PLAN);
+ *   - only one person can be in a Free project (TeamMemberService
+ *     ALLOWED_PEOPLE_IN_FREE_PLAN, refused with LIMIT_REACHED_FOR_FREE_PLAN);
  *   - a custom-priced plan (Enterprise) is priced by the sales team, who are
  *     told of every new project (ProjectService
  *     sendProjectCreatedSlackNotification).
