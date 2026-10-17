@@ -312,6 +312,11 @@ html.dark :is(
   ):hover,
 html.dark [class~="focus:text-gray-900"]:focus,
 html.dark [class~="focus-visible:text-gray-900"]:focus-visible,
+/*
+ * Named as well as matched below: the status page's calendar tiles brighten
+ * their arrow on hover, and its dark-mode guard reads named classes.
+ */
+html.dark .group:hover [class~="group-hover:text-gray-600"],
 html.dark .group:hover [class*="group-hover"][class*="text-gray-"],
 /*
  * `group-[:not(:hover)]:hidden` is a group-hover reveal written so a foreign
