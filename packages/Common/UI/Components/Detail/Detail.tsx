@@ -16,7 +16,10 @@ import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import ObjectIDView from "../ObjectID/ObjectIDView";
 import FieldType from "../Types/FieldType";
 import BooleanValue from "./BooleanValue";
-import DetailFieldLabel from "./DetailFieldLabel";
+import DetailFieldLabel, {
+  DETAIL_FIELD_DESCRIPTION_CLASS_NAME,
+  DETAIL_FIELD_SIDE_LINK_CLASS_NAME,
+} from "./DetailFieldLabel";
 import {
   getDetailCellClassNames,
   getDetailGridClassName,
@@ -29,6 +32,7 @@ import {
   RecordTime,
 } from "./DetailRecordTime";
 import { getDetailCopyText, hasDetailValue } from "./DetailValue";
+import { DetailValueContext } from "./DetailValueContext";
 import EmptyValue from "./EmptyValue";
 import Field from "./Field";
 import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
@@ -68,6 +72,13 @@ export const DETAIL_VALUE_CLASS_NAME: string =
 
 // A cell drawn on its own, with no grid placement to read.
 export const DETAIL_SINGLE_CELL_CLASS_NAME: string = "min-w-0";
+
+/*
+ * A single pill drawn as a value - a dropdown's choice, a related record -
+ * sits on the value's line top to top: on the line's baseline it stood 2px
+ * lower than the values beside it, and its row 2px taller.
+ */
+export const DETAIL_VALUE_BADGE_CLASS_NAME: string = "align-top";
 
 export interface ComponentProps<T extends GenericObject> {
   item: T;
@@ -167,7 +178,12 @@ const Detail: DetailFunction = <T extends GenericObject>(
        * the field's own words, or a dash - as every empty field is.
        */
       if (data !== undefined && data !== null && String(data) !== "") {
-        return <DropdownValueBadge label={String(data)} />;
+        return (
+          <DropdownValueBadge
+            label={String(data)}
+            className={DETAIL_VALUE_BADGE_CLASS_NAME}
+          />
+        );
       }
 
       return <EmptyValue placeholder={placeholder} />;
@@ -177,6 +193,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
       <DropdownValueBadge
         label={selectedOption.label as string}
         color={selectedOption.color}
+        className={DETAIL_VALUE_BADGE_CLASS_NAME}
       />
     );
   };
@@ -314,7 +331,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
       return "";
     }
 
-    return <DropdownValueBadge label={label} color={getEntityColor(entity)} />;
+    return (
+      <DropdownValueBadge
+        label={label}
+        color={getEntityColor(entity)}
+        className={DETAIL_VALUE_BADGE_CLASS_NAME}
+      />
+    );
   };
 
   type GetEntityArrayViewerFunction = (
@@ -500,25 +523,33 @@ const Detail: DetailFunction = <T extends GenericObject>(
       field.fieldType !== FieldType.ObjectID &&
       Boolean(copyText);
 
+    /*
+     * The element a page drew for the value learns that it is one
+     * (DetailValueContext): a record's labels then sit side by side, as
+     * every other list of pills on a card does, instead of one per line as
+     * in a table's cell.
+     */
     return (
-      <div
-        className={`${field.contentClassName || ""} w-full min-w-0${
-          isCopyable ? " flex items-start gap-2" : ""
-        }`}
-      >
-        <div className="min-w-0 break-words">{data}</div>
+      <DetailValueContext.Provider value={true}>
+        <div
+          className={`${field.contentClassName || ""} w-full min-w-0${
+            isCopyable ? " flex items-start gap-2" : ""
+          }`}
+        >
+          <div className="min-w-0 break-words">{data}</div>
 
-        {isCopyable ? (
-          <div
-            className="flex h-6 flex-none items-center"
-            data-testid="detail-value-copy"
-          >
-            <CopyableButton textToBeCopied={copyText || ""} />
-          </div>
-        ) : (
-          <></>
-        )}
-      </div>
+          {isCopyable ? (
+            <div
+              className="flex h-6 flex-none items-center"
+              data-testid="detail-value-copy"
+            >
+              <CopyableButton textToBeCopied={copyText || ""} />
+            </div>
+          ) : (
+            <></>
+          )}
+        </div>
+      </DetailValueContext.Provider>
     );
   };
 
@@ -576,16 +607,20 @@ const Detail: DetailFunction = <T extends GenericObject>(
                   <Link
                     to={field.sideLink.url}
                     openInNewTab={field.sideLink.openLinkInNewTab}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline underline-offset-2"
+                    className={DETAIL_FIELD_SIDE_LINK_CLASS_NAME}
                   >
                     {translatedSideLinkText}
                   </Link>
                 )}
             </label>
           )}
+          {/*
+           * The default style's grey, which reads at WCAG AA: gray-400 on
+           * white does not.
+           */}
           {translatedDescription && (
             <div
-              className={`${alignClassName} text-xs leading-5 text-gray-400`}
+              className={`${alignClassName} ${DETAIL_FIELD_DESCRIPTION_CLASS_NAME}`}
             >
               {translatedDescription}
             </div>

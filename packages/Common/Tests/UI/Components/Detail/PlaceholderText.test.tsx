@@ -115,9 +115,17 @@ describe("the placeholder text", () => {
       screen.getByText("No logo uploaded."),
     );
 
-    for (const look of ["align-middle", "text-sm", "font-normal"]) {
+    /*
+     * On a detail value's own 24px line (leading-6; text-sm alone sets 20px),
+     * top to top with it (align-top): the words sit level with a set value
+     * beside them in the row. Centred on a line (align-middle) they hung a
+     * pixel lower than the values beside them.
+     */
+    for (const look of ["align-top", "text-sm", "leading-6", "font-normal"]) {
       expect([look, classes.includes(look)]).toEqual([look, true]);
     }
+
+    expect(classes).not.toContain("align-middle");
 
     // Grey enough to read as "not a value", dark enough to read (WCAG AA).
     expect(classes).toContain("text-gray-500");

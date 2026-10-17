@@ -22,9 +22,15 @@ export interface ComponentProps {
  * detail value is a flex row) it may shrink below its longest word
  * (min-w-0), which break-words then breaks, so not even a long URL in a
  * placeholder can push it out.
+ *
+ * Its lines are a detail value's (leading-6): text-sm alone sets 20px ones,
+ * which drew the words 2px above a set value beside them in the row. Where
+ * a page hands it in as the value's element it sits in a line of the
+ * value's own, top to top (align-top): centred there, it hung a pixel
+ * lower than the values beside it and made the line a pixel taller.
  */
 export const PLACEHOLDER_TEXT_CLASS_NAME: string =
-  "inline-block max-w-full min-w-0 whitespace-normal break-words align-middle text-sm font-normal text-gray-500";
+  "inline-block max-w-full min-w-0 whitespace-normal break-words align-top text-sm leading-6 font-normal text-gray-500";
 
 const PlaceholderText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

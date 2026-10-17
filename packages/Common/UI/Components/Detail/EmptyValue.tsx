@@ -17,7 +17,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 // The mark an empty value is drawn as, everywhere a detail card draws one.
 export const EMPTY_VALUE_MARK: string = "\u2014";
 
-export const EMPTY_VALUE_CLASS_NAME: string = "text-sm text-gray-400";
+/*
+ * On the value's own 24px line (leading-6): text-sm alone sets a 20px one,
+ * which put the dash 2px above the values beside it in its row, and made a
+ * row of empty fields 4px shorter than a row of set ones.
+ */
+export const EMPTY_VALUE_CLASS_NAME: string = "text-sm leading-6 text-gray-400";
 
 export const EMPTY_VALUE_TEST_ID: string = "detail-empty-value";
 

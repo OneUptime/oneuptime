@@ -464,7 +464,12 @@ describe("DetailStyle.Compact values", () => {
 
     const description: HTMLElement = screen.getByText("Who gets paged");
 
-    expect(description).toHaveClass("text-xs", "text-gray-400");
+    /*
+     * The default style's grey: gray-400 on white does not reach WCAG AA,
+     * and a sidebar's small print is still something to read.
+     */
+    expect(description).toHaveClass("text-xs", "text-gray-500");
+    expect(description).not.toHaveClass("text-gray-400");
     expect(rowFor("Owner").children[0]).toContainElement(description);
   });
 
