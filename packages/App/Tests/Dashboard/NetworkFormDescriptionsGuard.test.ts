@@ -381,7 +381,9 @@ function loadModel(file: string, identifier: string): ModelClass | null {
       COMMON_DIR,
       imported.specifier.replace(COMMON_PREFIX, ""),
     );
-    const loaded: { default?: ModelClass } = jest.requireActual(modulePath);
+    const loaded: { default?: ModelClass } = jest.requireActual(modulePath) as {
+      default?: ModelClass;
+    };
     models.set(imported.specifier, loaded.default || null);
   }
 
