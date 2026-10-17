@@ -90,8 +90,11 @@ function preview(page: Page): Locator {
 
 // A weekday 09:00 run, as German writes it: "Fr., 16. Okt., 09:00 BST".
 const GERMAN_WEEKDAY: RegExp = /(Mo|Di|Mi|Do|Fr)\., \d+\. /;
-// "in 2 Stunden", "in 1 Tag", "in 4 Tagen", "in 25 Minuten".
-const GERMAN_HOW_FAR: RegExp = /in \d+ (Minuten?|Stunden?|Tagen?)/;
+/*
+ * "in 2 Stunden", "in 1 Tag", "in 4 Tagen", "in 25 Minuten". "in 1 Tag" is
+ * what a Sunday before 09:00 says of Monday's run.
+ */
+const GERMAN_HOW_FAR: RegExp = /in \d+ (Minuten?|Stunden?|Tag(?:en)?)/;
 
 async function pick(page: Page, menu: string, option: string): Promise<void> {
   await dialog(page).getByRole("combobox", { name: menu }).click();
