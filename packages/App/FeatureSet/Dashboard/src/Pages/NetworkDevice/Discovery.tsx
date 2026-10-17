@@ -47,6 +47,7 @@ import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import SnmpConfigListEditor from "../../Components/NetworkDevice/SnmpConfigListEditor";
+import DiscoveryScanMethodChoice from "../../Components/NetworkDevice/DiscoveryScanMethodChoice";
 import { DEFAULT_SNMP_VERSION } from "./SnmpConfigFormFields";
 import { DiscoveryScanSnmpConfig } from "Common/Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import {
@@ -58,9 +59,13 @@ import {
   validateScanTarget,
   validateSnmpConfigs,
 } from "./DiscoveryScanFormValidation";
-import ScanModeUtil, {
-  ScanMethodLabel,
-} from "Common/Utils/NetworkDiscovery/ScanModeUtil";
+import {
+  DISCOVERY_SCAN_METHOD_FIELD_DESCRIPTION,
+  DISCOVERY_SCAN_METHOD_FIELD_TITLE,
+  DiscoveryScanMethodBadge,
+  NEW_DISCOVERY_SCAN_FORM_VALUES,
+  getDiscoveryScanMethodBadge,
+} from "./DiscoveryScanMethod";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   ADD_PROBE_LINK_TEXT,
@@ -98,11 +103,11 @@ import {
 /*
  * More fields on the new-scan form: the name, how hosts are named, and the
  * schedule. A scan is defined by three questions - what to sweep, from
- * which probe, and whether to read what answers over SNMP - and those are
- * all the form shows. Everything else has a default that suits a first
- * scan, and the folded header lists it by name, its set values as chips,
- * so nothing is hidden. Built once: BasicForm and FormStepsScan both join
- * consecutive fields into one fold by this one object.
+ * which probe, and how: ICMP or SNMP - and those are all the form shows.
+ * Everything else has a default that suits a first scan, and the folded
+ * header lists it by name, its set values as chips, so nothing is hidden.
+ * Built once: BasicForm and FormStepsScan both join consecutive fields into
+ * one fold by this one object.
  */
 const DISCOVERY_SCAN_MORE_FIELDS: FormFieldCollapsibleSection<NetworkDeviceDiscoveryScan> =
   getAdvancedFormSection<NetworkDeviceDiscoveryScan>();
@@ -126,8 +131,7 @@ const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
   fieldType: FormFieldSchemaType.Text,
   required: false,
   placeholder: "Router Discovery - Region 1100",
-  description:
-    "What this scan is for, so you can tell it apart from other scans. The list shows the scan target when this is empty.",
+  description: "Left empty, the scan list shows the scan target.",
   customValidation: validateScanName,
 };
 
@@ -137,11 +141,12 @@ const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
  * have is a setting that can be created and then never corrected — which is
  * the whole of OneUptime issue #3444.
  *
- * Two, and only one for a ping sweep. What to scan comes first, with its
- * More fields fold (name, naming, and the schedule that used to be a third
- * step of its own); the credentials come second, and only when the scan
- * reads SNMP. An edit dialog opens any step from its step list, so the
- * setting an operator came to change is one click away.
+ * Two, and only one for an ICMP scan - the method a new scan starts on.
+ * What to scan comes first, with its More fields fold (name, naming, and the
+ * schedule that used to be a third step of its own); the credentials come
+ * second, and only when the scan uses SNMP. An edit dialog opens any step
+ * from its step list, so the setting an operator came to change is one
+ * click away.
  */
 const DISCOVERY_SCAN_FORM_STEPS: Array<FormStep<NetworkDeviceDiscoveryScan>> = [
   { title: "Scan Target", id: "scan-target" },
@@ -187,13 +192,15 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       required: true,
       placeholder: "192.168.1.0/24",
       /*
-       * Both notations are described here rather than only CIDR because
-       * octet ranges are the only way to express the common real-world
-       * shape "the same handful of addresses in every one of these
-       * /24s" without creating hundreds of separate scans.
+       * Both notations are named here rather than only CIDR because octet
+       * ranges are the only way to express the common real-world shape
+       * "the same handful of addresses in every one of these /24s" without
+       * creating hundreds of separate scans. What a range means in full is
+       * in the Network Device guide; the line under the box says how many
+       * addresses the one typed covers.
        */
       description: translateTemplate(
-        "A subnet such as 192.168.1.0/24, or a range where any part may be low-high: 10.16-22.0-255.51-66 scans .51 to .66 in every /24 from 10.16 to 10.22. One scan covers up to {{max}} addresses.",
+        "A subnet such as 192.168.1.0/24, or an octet range such as 10.16-22.0-255.51-66. Up to {{max}} addresses.",
         { max: ScanTargetUtil.MAX_SCAN_HOSTS.toLocaleString("en-US") },
       ),
       /*
@@ -260,7 +267,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * a probe in another network and wait for an empty result.
        */
       description: hasProjectProbe(probes)
-        ? "The probe that sweeps the range. It has to reach it directly - a probe in another network, or outside the firewall, scans and finds nothing."
+        ? "It must reach the range directly. A probe in another network finds nothing."
         : SCAN_NO_PROBE_DESCRIPTION,
       /*
        * The Network Overview's "Add a probe" dialog, in a new tab so the
@@ -299,39 +306,79 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       placeholder: "Probe",
     },
     /*
-     * The scan's method, on the step BEFORE the one it hides — never on the
-     * step it hides. BasicForm navigates the FILTERED step array, so a toggle
-     * living on a step it can remove would leave currentFormStepId naming a
-     * step that is no longer there: findIndex returns -1, the advance branch is
-     * skipped, and Next silently does nothing while still reading "Next".
+     * The scan's method: ICMP (ping) or SNMP, two cards, ICMP for a new scan
+     * (DiscoveryScanMethod.ts says why the form and the column default
+     * differ). It used to be a switch, "Check SNMP on hosts that answer", on
+     * by default under five lines of help; each card now says what it does
+     * in one line.
+     *
+     * On the step BEFORE the one it hides — never on the step it hides.
+     * BasicForm navigates the FILTERED step array, so a choice living on a
+     * step it can remove would leave currentFormStepId naming a step that is
+     * no longer there: findIndex returns -1, the advance branch is skipped,
+     * and Next silently does nothing while still reading "Next".
+     *
+     * Bound to the boolean isSnmpEnabled column through a CustomComponent,
+     * because CardSelect works in option values and the column is a switch:
+     * the form value stays the boolean every rule here already reads.
      */
     {
       field: {
         isSnmpEnabled: true,
       },
-      title: "Check SNMP on hosts that answer",
-      stepId: "scan-target",
-      fieldType: FormFieldSchemaType.Toggle,
-      required: false,
-      defaultValue: true,
+      title: DISCOVERY_SCAN_METHOD_FIELD_TITLE,
       /*
-       * A toggle is never "optional" in the sense that label means, and
-       * FieldLabel appends "(Optional)" to every non-required field.
+       * Each card says what it does; the line under the label says the one
+       * thing the cards do not: the choice is not final. Set, too, so the
+       * form does not fall back to the column's description, which is
+       * written for API readers and repeats the cards.
+       */
+      description: DISCOVERY_SCAN_METHOD_FIELD_DESCRIPTION,
+      stepId: "scan-target",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      required: false,
+      /*
+       * ICMP for a scan the form starts. The table hands the same value in
+       * as the create form's initial values, so it is there from the first
+       * render; this default speaks for any other way the form is opened.
+       * An Edit dialog shows the scan's own method: a default only fills a
+       * value that is undefined.
+       */
+      defaultValue: NEW_DISCOVERY_SCAN_FORM_VALUES.isSnmpEnabled as boolean,
+      /*
+       * A choice between two cards always has an answer, and FieldLabel
+       * appends "(Optional)" to every non-required field.
        */
       hideOptionalLabel: true,
+      getCustomElement: (
+        values: FormValues<NetworkDeviceDiscoveryScan>,
+        customElementProps: CustomElementProps,
+      ): ReactElement => {
+        return (
+          <DiscoveryScanMethodChoice
+            /*
+             * Read off the values, not customElementProps.initialValue:
+             * FormField hands a CustomComponent `value || ""`, which turns
+             * ICMP's false into an empty string.
+             */
+            isSnmpEnabled={
+              values.isSnmpEnabled as boolean | null | undefined
+            }
+            ariaLabelledby={customElementProps.ariaLabelledby}
+            tabIndex={customElementProps.tabIndex}
+            error={customElementProps.error}
+            onChange={(isSnmpEnabled: boolean) => {
+              customElementProps.onChange?.(isSnmpEnabled);
+            }}
+          />
+        );
+      },
       /*
-       * Name and vendor, NOT model or interfaces: the sweep reads the SNMP
-       * system group (sysName / sysDescr / sysObjectId); a device's model
-       * and its interfaces arrive later, from the device's own polls.
-       */
-      description:
-        "Every scan pings each address in the range to find what is alive. Leave this on to also read the name and vendor of what answers over SNMP, with the credentials on the next step. Turn it off for an ICMP-only sweep: no credentials are asked for, and everything found is added as a device pinged by the scan's probe - add SNMP credentials later to read its details.",
-      /*
-       * Clear the credentials on the way past. Hiding the fields is not enough
-       * on its own: ModelForm builds the request body from every DECLARED field
-       * without checking whether it was visible, so a v3 passphrase typed
-       * before the operator changed their mind would be stored on a scan that
-       * will never send it.
+       * Clear the credentials on the way to ICMP. Hiding the fields is not
+       * enough on its own: ModelForm builds the request body from every
+       * DECLARED field without checking whether it was visible, so a v3
+       * passphrase typed before the operator changed their mind would be
+       * stored on a scan that will never send it.
        *
        * FormField calls this BEFORE setFieldValue, and setFieldValue spreads
        * from the object handed back here, so the clearing survives the very
@@ -340,7 +387,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * snmpVersion is RESET to its default rather than cleared. Clearing it
        * leaves a required Dropdown holding nothing, which then fails with
        * "SNMP Version is required" on a control that visibly reads V2c the
-       * moment the operator turns SNMP back on — issue #3445's own symptom,
+       * moment the operator picks SNMP again — issue #3445's own symptom,
        * reintroduced on the way out of it.
        */
       onChange: (
@@ -418,12 +465,9 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
      * keeps the last run's results; it only changes what the NEXT run asks.
      * The Edit dialog's footer says so.
      *
-     * The description carries what an operator needs before turning it on or
-     * leaving it on: that it is best-effort, which hosts are asked, that the
-     * name it finds wins over the reverse-DNS name, the hard limits the probe
-     * enforces whatever this says (private addresses only, never from a global
-     * probe), the firewall rule it needs, and when to turn it off. The Review
-     * dialog marks each row it names.
+     * The description says what it sends and when to turn it off, in one
+     * line; the section's heading says where the name it finds ranks. The
+     * Review dialog marks each row it names.
      */
     {
       field: {
@@ -439,14 +483,20 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        */
       sectionTitle: "Device names",
       sectionDescription:
-        "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.",
+        "A device is named by its SNMP name, then its Windows (NetBIOS) name, then its reverse-DNS name, then its address.",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: true,
-      // A toggle is always answered one way or the other; see isSnmpEnabled.
+      // A toggle is always answered one way or the other.
       hideOptionalLabel: true,
+      /*
+       * What it puts on the wire and when to turn it off. The limits the
+       * probe enforces whatever this says (private addresses only, never
+       * from a global probe) and the firewall rule it needs are in the
+       * Network Device guide.
+       */
       description:
-        "Best-effort: after the sweep, the probe asks each host that has no SNMP name for its NetBIOS name over UDP 137. Windows and Samba hosts usually answer, and the name is the one the host reports for itself (its Windows computer name), so it is used ahead of the host's reverse-DNS name. Only private addresses are asked, and global probes never send these queries. Hosts must allow UDP 137 from the probe. Turn this off if your intrusion detection system flags NetBIOS queries.",
+        "Asks hosts with no SNMP name for their Windows name over UDP 137. Turn it off if your intrusion detection flags NetBIOS queries.",
     },
     /*
      * How the hosts this scan finds are NAMED when they import (OneUptime
@@ -465,15 +515,12 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
      * what an operator's next import is called; a scan that wants short names
      * says so where the operator can see it.
      *
-     * The description carries the three things that are not obvious from the
-     * title, each of which would otherwise be found out afterwards:
-     *
-     *   - the full name is not lost — it is kept on the device as DNS Name;
-     *   - it is a naming choice, not a sweep one, so it is NOT in the service's
-     *     SWEEP_COLUMNS: flipping it keeps the results and the Review dialog
-     *     simply names them differently the next time it opens;
-     *   - label and owner rules match on the device NAME, so a pattern written
-     *     against the full names stops matching devices imported short.
+     * The description shows what it does with an example and says the full
+     * name is not lost: it is kept on the device as its DNS Name. The rest -
+     * a naming choice, not a sweep one, so it is NOT in the service's
+     * SWEEP_COLUMNS and flipping it keeps the results; label and owner rules
+     * written against full names stop matching short ones - is in the
+     * Network Device guide.
      */
     {
       field: {
@@ -485,10 +532,10 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: false,
-      // A toggle is always answered one way or the other; see isSnmpEnabled.
+      // A toggle is always answered one way or the other.
       hideOptionalLabel: true,
       description:
-        "Name imported devices by the first part of a fully qualified hostname - 'core-sw-01' instead of 'core-sw-01.corp.example.com'. The full DNS name is kept on the device as its DNS Name (a name the device reports over SNMP stays in full as its System Name), and names that are not fully qualified, such as addresses, are left as they are. It changes only what devices are called, so no rescan is needed: Review Results uses it the next time it opens, and so do auto-import rules. Devices already imported keep their names. Label and owner rules whose name patterns were written against full names (such as *.corp.example.com) will not match the new short names.",
+        "'core-sw-01' instead of 'core-sw-01.corp.example.com'. The full name is kept as the device's DNS Name.",
     },
     {
       field: {
@@ -506,10 +553,10 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       sectionTitle: "Schedule",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
-      // "Repeat this scan (Optional)" is noise on a toggle. Same as the method toggle above.
+      // "Repeat this scan (Optional)" is noise on a toggle.
       hideOptionalLabel: true,
       description:
-        "Re-run this scan automatically to keep discovery continuous. Newly found devices wait for your review before import, unless an auto-import rule matches them.",
+        "Runs the scan again on a schedule. New devices wait for your review, unless an auto import rule matches them.",
     },
     /*
      * Only meaningful together with the toggle above, so it reveals
@@ -526,10 +573,9 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       fieldType: FormFieldSchemaType.Number,
       required: true,
       placeholder: "60",
-      description: translateTemplate(
-        "How often to re-run this scan, in minutes. Minimum {{minutes}} minutes.",
-        { minutes: MINIMUM_RESCAN_INTERVAL_IN_MINUTES },
-      ),
+      description: translateTemplate("At least {{minutes}} minutes.", {
+        minutes: MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
+      }),
       /*
        * One validator rather than a `validation: { minValue }` beside it:
        * the built-in minimum runs the value through parseInt, so "20.5"
@@ -579,13 +625,17 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * replaces that message with one that says what to do about it.
        */
       required: true,
+      /*
+       * Each set also adds a wait on hosts that answer none of them; the
+       * Network Device guide says so, beside how many to add.
+       */
       description:
-        "The scan tries these in order on every host that answers ping, and keeps the first that works. Add more for devices with a different community string or SNMPv3 user; each one adds a wait on hosts that answer none.",
+        "Tried in order on each host that answers ping. The first set that works is used.",
       customValidation: validateSnmpConfigs,
       /*
-       * An ICMP-only scan sends no SNMP packet, so it asks for no credentials.
+       * An ICMP scan sends no SNMP packet, so it asks for no credentials.
        * Hidden rather than merely ignored: Validation skips a hidden field's
-       * rules, so `required` above cannot block a ping sweep from being saved.
+       * rules, so `required` above cannot block an ICMP scan from being saved.
        */
       showIf: (item: FormValues<NetworkDeviceDiscoveryScan>): boolean => {
         return !isIcmpOnlyScan(item);
@@ -716,6 +766,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
         singularName="Scan"
         pluralName="Scans"
         showCreateForm={isNewScanRequested}
+        // A new scan starts on ICMP (DiscoveryScanMethod.ts).
+        createInitialValues={NEW_DISCOVERY_SCAN_FORM_VALUES}
         showRefreshButton={true}
         refreshToggle={refreshToggle}
         onFetchSuccess={liveUpdates.onRowsLoaded}
@@ -826,7 +878,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
         cardProps={{
           title: "Discovery Scans",
           description:
-            "Scan an address range to find the devices on it, then pick the ones to add. A scan pings every address, and reads the ones that answer over SNMP when you give it credentials.",
+            "Scan an address range to find the devices on it, then pick the ones to add.",
         }}
         noItemsMessage={
           "No scans yet. Scan a subnet to find the devices on it, then pick the ones to add."
@@ -867,6 +919,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
               item = liveUpdates.getScan(item);
               const name: string | null = ScanNameUtil.getDisplayName(item);
+              const methodBadge: DiscoveryScanMethodBadge =
+                getDiscoveryScanMethodBadge(item);
 
               return (
                 <div className="min-w-56 max-w-xs space-y-1">
@@ -875,10 +929,11 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       {name || item.cidr || "—"}
                     </div>
                     {/*
-                     * What this scan checks with, for the rows where nothing
-                     * else says: a Pending or In Progress ICMP-only scan has no
-                     * result summary yet, and every other cell on the row looks
-                     * exactly like an SNMP scan's.
+                     * The scan's method, ICMP or SNMP, in the words of the two
+                     * cards it was started with, the card's line as the
+                     * tooltip. Every row says it: both are first-class
+                     * choices now, and a Pending or In Progress scan has no
+                     * result summary yet to tell them apart.
                      *
                      * Read from selectMoreFields rather than declared in this
                      * column's `field`, deliberately. getExportKeysFromColumn
@@ -886,21 +941,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
                      * this column's pair is its identity — the name and the
                      * range it sweeps. A badge is decoration on that identity,
                      * not a third thing the cell is keyed on.
-                     *
-                     * The label comes from the shared enum, not a literal, so
-                     * the badge and any other surface that names a scan's
-                     * method say the same word.
                      */}
-                    {ScanModeUtil.isIcmpOnly(item) && (
-                      <span
-                        className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-                        title={translator.translateText(
-                          "This scan pings each address and asks nothing else of what answers. Its hosts import as devices pinged by the scan's probe; add SNMP credentials later for inventory.",
-                        )}
-                      >
-                        {translator.translateText(ScanMethodLabel.PingOnly)}
-                      </span>
-                    )}
+                    <span
+                      className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
+                      title={translator.translateText(
+                        methodBadge.description,
+                      )}
+                      data-testid="discovery-scan-method-badge"
+                    >
+                      {translator.translateText(methodBadge.text)}
+                    </span>
                   </div>
                   {name && item.cidr ? (
                     <div className="text-xs text-gray-500">{item.cidr}</div>
@@ -1368,7 +1418,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
           name="Edit Discovery Scan"
           title="Edit Discovery Scan"
           description={translator.translateTemplate(
-            "Change what this scan sweeps, which probe runs it, the credentials it tries, or how often it repeats. It currently sweeps {{range}}.",
+            "This scan sweeps {{range}}.",
             {
               range:
                 scanToEdit.cidr ||
@@ -1379,22 +1429,18 @@ const NetworkDeviceDiscovery: FunctionComponent<
            * The one consequence that is not obvious from the form: a changed
            * sweep makes the last run's hosts describe a scan that no longer
            * exists, so they go. Said before the operator saves rather than
-           * discovered afterwards in an empty Review Results dialog.
-           *
-           * The NetBIOS lookup (issue #3677) gets its own sentence because it
-           * sits between the two cases. It is not a sweep column, so it keeps
-           * the results like a rename does; but unlike short names, which
-           * Review Results applies the next time it opens, it changes what the
-           * PROBE asks, so the stored results do not gain or lose NetBIOS
-           * names until the scan runs again. An operator who turns it on and
-           * reopens Review Results to an unchanged list must not read that as
-           * the lookup failing.
+           * discovered afterwards in an empty Review Results dialog - in two
+           * short sentences: what re-runs the scan (the sweep columns,
+           * SWEEP_COLUMNS in NetworkDeviceDiscoveryScanService, the method
+           * among them), and what is lost and what is kept. Anything not
+           * named keeps the results; the Network Device guide lists each
+           * case, the NetBIOS lookup's "from the next run" included.
            */
           footer={
             <Alert
               type={AlertType.INFO}
-              strongTitle="Changing the target, probe or credentials re-runs the scan"
-              title="The scan goes back to Pending and sweeps again with the new settings, and the hosts the last run found are cleared - they describe settings this scan no longer has. Devices you have already imported are not touched. Changing only the name or the schedule, or whether devices get short names, leaves the results alone. Turning NetBIOS name lookup on or off leaves them alone too, and applies from the next time the scan runs."
+              strongTitle="Changing the target, probe, scan method or credentials runs the scan again"
+              title="The hosts its last run found are cleared. Devices you already imported stay as they are."
             />
           }
           modalWidth={ModalWidth.Medium}
