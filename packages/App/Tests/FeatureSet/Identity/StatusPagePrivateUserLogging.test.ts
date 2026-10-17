@@ -168,6 +168,27 @@ jest.mock("../../../FeatureSet/Identity/Utils/SSO", () => {
   };
 });
 
+/*
+ * Every response is taken as used for the first time. A response posted
+ * twice is SamlSignInRoutes.test.ts's subject, not this suite's.
+ */
+jest.mock("../../../FeatureSet/Identity/Utils/SamlAssertionOneTimeUse", () => {
+  const actual: typeof import("../../../FeatureSet/Identity/Utils/SamlAssertionOneTimeUse") =
+    jest.requireActual(
+      "../../../FeatureSet/Identity/Utils/SamlAssertionOneTimeUse",
+    ) as typeof import("../../../FeatureSet/Identity/Utils/SamlAssertionOneTimeUse");
+
+  return {
+    ...actual,
+    __esModule: true,
+    default: {
+      claim: (): Promise<void> => {
+        return Promise.resolve();
+      },
+    },
+  };
+});
+
 const redirect: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Utils/Response", () => {
@@ -299,6 +320,9 @@ describe("status page private-user logs", () => {
     samlVerify.mockReturnValue({
       issuerUrl: "https://idp.example.com",
       email: new Email(EMAIL),
+      name: null,
+      assertionId: "_assertion",
+      acceptableUntil: new Date(Date.now() + 5 * 60 * 1000),
     });
     createLoginCodeSession.mockResolvedValue({ refreshToken: "login-code" });
   });
