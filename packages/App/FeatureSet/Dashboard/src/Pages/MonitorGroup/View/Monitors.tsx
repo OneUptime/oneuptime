@@ -21,6 +21,8 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Modal from "Common/UI/Components/Modal/Modal";
+import NothingToAddNotice from "../../../Components/MonitorGroup/NothingToAddNotice";
 import IconProp from "Common/Types/Icon/IconProp";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -341,25 +343,28 @@ const MonitorGroupMonitors: FunctionComponent<
       );
     }
 
+    /*
+     * Nothing to pick: why, in place of an empty picker, and Create Monitor
+     * as the way on. For whoever may not create a monitor, only Close.
+     */
     if (nothingToAddMessage) {
       if (!canCreateMonitor) {
-        // A notice: its one button closes it.
         return (
-          <ConfirmModal
+          <Modal
             title={MonitorGroupMonitorsCopy.addDialogTitle}
-            description={nothingToAddMessage}
-            submitButtonText="Close"
-            onSubmit={closeAddModal}
-          />
+            onClose={closeAddModal}
+            closeButtonText="Close"
+          >
+            <NothingToAddNotice reason={nothingToAddMessage} />
+          </Modal>
         );
       }
 
       return (
-        <ConfirmModal
+        <Modal
           title={MonitorGroupMonitorsCopy.addDialogTitle}
-          description={nothingToAddMessage}
-          submitButtonText={MonitorGroupMonitorsCopy.createMonitorButton}
           onClose={closeAddModal}
+          submitButtonText={MonitorGroupMonitorsCopy.createMonitorButton}
           onSubmit={() => {
             closeAddModal();
             Navigation.navigate(
@@ -368,7 +373,9 @@ const MonitorGroupMonitors: FunctionComponent<
               ),
             );
           }}
-        />
+        >
+          <NothingToAddNotice reason={nothingToAddMessage} />
+        </Modal>
       );
     }
 

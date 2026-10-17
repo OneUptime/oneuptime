@@ -662,6 +662,12 @@ test.describe("Create Monitor's plainer fields", () => {
   }) => {
     test.setTimeout(180000);
 
+    /*
+     * 1280px, a common laptop width: the list is squeezed by the form beside
+     * it, and on the last step "Probes & Interval" wrapped.
+     */
+    await page.setViewportSize({ width: 1280, height: 1000 });
+
     const form: Locator = await openCreate(page, "?monitorType=Website");
     await nameInput(form).fill("Storefront");
     await form.getByRole("button", { name: "Next", exact: true }).click();

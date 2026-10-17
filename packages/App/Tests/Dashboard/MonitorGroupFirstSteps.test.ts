@@ -272,7 +272,11 @@ describe("the Monitors page", () => {
     expect(page).toContain(
       "const canCreateMonitor: boolean = PermissionGate.check(\n    new Monitor(),\n    ModelAction.Create,",
     );
-    expect(page).toContain('submitButtonText="Close"');
+    expect(page).toContain('closeButtonText="Close"');
+    // Drawn like the product's other "nothing to add" dialogs.
+    expect(page).toContain(
+      "<NothingToAddNotice reason={nothingToAddMessage} />",
+    );
     // The empty picker's old line is gone.
     expect(page).not.toContain("MonitorGroupMonitorsCopy.nothingToAdd");
   });

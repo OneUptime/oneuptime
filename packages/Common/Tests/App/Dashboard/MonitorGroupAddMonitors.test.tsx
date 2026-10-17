@@ -726,6 +726,15 @@ describe("the group's Monitors page: Add Monitors", () => {
     await waitFor(() => {
       expect(within(dialog()).getByText(EVERY_MONITOR_IN_GROUP)).toBeVisible();
     });
+    // Drawn like the product's other "nothing to add" dialogs.
+    const notice: HTMLElement = within(dialog()).getByTestId(
+      "monitor-group-nothing-to-add",
+    );
+    expect(notice).toHaveAttribute("role", "status");
+    expect(within(notice).getByText("Nothing to add")).toBeVisible();
+    expect(
+      within(notice).getByTestId("monitor-group-nothing-to-add-reason"),
+    ).toHaveTextContent(EVERY_MONITOR_IN_GROUP);
     expect(within(dialog()).queryByText(NO_MONITORS_IN_PROJECT)).toBeNull();
     expect(within(dialog()).queryByRole("combobox")).toBeNull();
     expect(footerButtons()).toEqual(["Cancel", "Create Monitor"]);
@@ -783,7 +792,7 @@ describe("the group's Monitors page: Add Monitors", () => {
     });
     expect(footerButtons()).toEqual(["Close"]);
 
-    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-close-button"));
     await waitFor(() => {
       expect(screen.queryByTestId("modal")).toBeNull();
     });
