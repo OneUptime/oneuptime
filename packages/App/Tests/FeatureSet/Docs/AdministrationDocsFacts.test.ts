@@ -662,8 +662,13 @@ describe("Inviting People", () => {
     expect(service).toContain(
       "export const ALLOWED_PEOPLE_IN_FREE_PLAN: number = 1;",
     );
+    // A project on the Free plan, as the request or the project's row names it.
+    expect(service).toContain("isFreePlan: this.isHeldToFreePlanPerson({");
     expect(service).toContain(
-      "isFreePlan: data.props.currentPlan === PlanType.Free,",
+      "if (data.props.currentPlan === PlanType.Free) {\n      return true;\n    }",
+    );
+    expect(service).toContain(
+      "SubscriptionPlan.getSubscriptionPlanById(planId)?.getName() ===\n      PlanType.Free",
     );
     expect(service).toContain(
       "if (data.limits.isFreePlan && data.people >= ALLOWED_PEOPLE_IN_FREE_PLAN) {\n      return Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN;",
