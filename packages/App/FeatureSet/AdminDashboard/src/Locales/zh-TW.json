@@ -370,7 +370,7 @@
       "cardDescription": "OneUptime 客戶支援團隊是否可以存取此專案以進行疑難排解。這與客戶在其專案設定中看到的是同一個開關。",
       "fieldLabel": "允許客戶支援存取此專案",
       "fieldDescription": "啟用後，OneUptime 客戶支援團隊可以開啟此專案以調查問題。調查結束後請再次關閉。",
-      "consentWarning": "僅在客戶請求支援人員檢視其專案時使用。客戶可以在專案設定中自行開啟。完成後請關閉。",
+      "consentWarning": "僅在客戶請求支援人員檢視其專案時開啟。客戶也可以在專案設定中自行開啟。完成後請關閉。",
       "allowConfirmTitle": "要允許 OneUptime 支援團隊進入此專案嗎？",
       "allowConfirmButton": "允許支援團隊進入",
       "billingDisabled": "此執行個體未啟用計費，因此沒有可授予存取權的 OneUptime 客戶支援團隊。此設定僅適用於 OneUptime 託管版。"

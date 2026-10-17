@@ -370,7 +370,7 @@
       "cardDescription": "Om OneUptimes kundesupport kan få adgang til dette projekt med henblik på fejlfinding. Det er den samme kontakt, som kunden har i sine egne projektindstillinger.",
       "fieldLabel": "Giv kundesupport adgang til projektet",
       "fieldDescription": "Når dette er slået til, kan OneUptimes kundesupport åbne dette projekt for at undersøge et problem. Slå det fra igen, når undersøgelsen er afsluttet.",
-      "consentWarning": "Kun når kunden har bedt support om at se på sit projekt. Kunden kan selv slå det til under projektindstillinger. Slå det fra, når du er færdig.",
+      "consentWarning": "Slå det kun til, når kunden har bedt support om at se på sit projekt. Kunden kan også selv slå det til under projektindstillinger. Slå det fra, når du er færdig.",
       "allowConfirmTitle": "Giv OneUptime-support adgang til dette projekt?",
       "allowConfirmButton": "Giv support adgang",
       "billingDisabled": "Fakturering er ikke aktiveret på denne instans, så der er intet OneUptime-kundesupportteam at give adgang til. Denne indstilling gælder kun for den hostede udgave af OneUptime."

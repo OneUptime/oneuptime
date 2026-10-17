@@ -370,7 +370,7 @@
       "cardDescription": "Ob der OneUptime-Kundensupport zur Fehlersuche auf dieses Projekt zugreifen darf. Dies ist derselbe Schalter, den der Kunde in seinen Projekteinstellungen hat.",
       "fieldLabel": "Kundensupport Zugriff auf Projekt erlauben",
       "fieldDescription": "Wenn aktiviert, kann der OneUptime-Kundensupport dieses Projekt öffnen, um ein Problem zu untersuchen. Schalten Sie es wieder aus, sobald die Untersuchung abgeschlossen ist.",
-      "consentWarning": "Nur, wenn der Kunde den Support gebeten hat, sein Projekt anzusehen. Er kann es in den Projekteinstellungen selbst einschalten. Schalten Sie es aus, wenn Sie fertig sind.",
+      "consentWarning": "Schalten Sie dies nur ein, wenn der Kunde den Support gebeten hat, sein Projekt anzusehen. Er kann es auch selbst in den Projekteinstellungen einschalten. Schalten Sie es aus, wenn Sie fertig sind.",
       "allowConfirmTitle": "OneUptime-Support in dieses Projekt lassen?",
       "allowConfirmButton": "Support hereinlassen",
       "billingDisabled": "Auf dieser Instanz ist die Abrechnung nicht aktiviert, daher gibt es kein OneUptime-Kundensupport-Team, dem Zugriff gewährt werden könnte. Diese Einstellung gilt nur für die gehostete Edition von OneUptime."

@@ -370,7 +370,7 @@
       "cardDescription": "Indique si le support client OneUptime peut accéder à ce projet à des fins de dépannage. Il s'agit du même interrupteur que celui dont dispose le client dans ses paramètres de projet.",
       "fieldLabel": "Autoriser le support client à accéder au projet",
       "fieldDescription": "Lorsque cette option est activée, le support client OneUptime peut ouvrir ce projet pour enquêter sur un problème. Désactivez-la une fois l'enquête terminée.",
-      "consentWarning": "Uniquement si le client a demandé au support d'examiner son projet. Il peut l'activer lui-même dans les paramètres du projet. Désactivez-le une fois terminé.",
+      "consentWarning": "Ne l'activez que si le client a demandé au support d'examiner son projet. Il peut aussi l'activer lui-même dans les paramètres du projet. Désactivez-le une fois terminé.",
       "allowConfirmTitle": "Laisser le support OneUptime accéder à ce projet ?",
       "allowConfirmButton": "Autoriser le support",
       "billingDisabled": "La facturation n'est pas activée sur cette instance, il n'y a donc aucune équipe de support client OneUptime à qui accorder l'accès. Ce paramètre ne s'applique qu'à l'édition hébergée de OneUptime."

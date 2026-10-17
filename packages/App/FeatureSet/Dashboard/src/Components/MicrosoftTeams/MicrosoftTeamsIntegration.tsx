@@ -86,7 +86,7 @@ export const MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION: string = translationKey(
  * yours.
  */
 export const TEAMS_CONSENT_COMPLETED_DESCRIPTION: string = translationKey(
-  "Consent is granted for your Microsoft 365 organization, so OneUptime can post your notification rules to channels.",
+  "Consent is granted for your Microsoft 365 organization, so OneUptime can post to your teams' channels.",
 );
 
 export const YOUR_TEAMS_ACCOUNT_CONNECTED_TITLE: string = translationKey(

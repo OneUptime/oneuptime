@@ -542,7 +542,7 @@ describe("User Settings > Slack", () => {
 const TEAMS_PROJECT_CARD: DrawnCard = {
   title: "Admin Consent Completed",
   description:
-    "Consent is granted for your Microsoft 365 organization, so OneUptime can post your notification rules to channels.",
+    "Consent is granted for your Microsoft 365 organization, so OneUptime can post to your teams' channels.",
   buttons: [],
   moreMenu: "Manage the Microsoft Teams connection",
 };

@@ -406,7 +406,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                * pick the default provider).
                */
               defaultValue: true,
-              description: "Use this provider for AI features in this project.",
+              description: "AI features in this project use this provider.",
             },
             {
               field: {

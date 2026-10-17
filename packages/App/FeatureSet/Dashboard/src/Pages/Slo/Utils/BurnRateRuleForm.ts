@@ -625,7 +625,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Add SLO Owners as Owners",
     description:
-      "Make this SLO's owners owners of every alert and incident this rule creates. They may be notified twice.",
+      "Add this SLO's owners as owners of every alert and incident this rule creates. They may be notified twice.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     stepId: "declares",

@@ -543,7 +543,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "Send First Report At",
             description:
-              "Later summaries follow at the same time of day. Leave empty to start at 09:00 at the start of the next period.",
+              "Later summaries go out at the same time of day. Leave empty for 09:00 at the start of the next period.",
             fieldType: FormFieldSchemaType.DateTime,
             required: false,
             stepId: "schedule",

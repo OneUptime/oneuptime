@@ -370,7 +370,7 @@
       "cardDescription": "OneUptime 客户支持团队是否可以访问此项目以进行故障排查。这与客户在其项目设置中看到的是同一个开关。",
       "fieldLabel": "允许客户支持访问该项目",
       "fieldDescription": "启用后，OneUptime 客户支持团队可以打开此项目以调查问题。调查结束后请再次关闭。",
-      "consentWarning": "仅在客户请求支持人员查看其项目时使用。客户可以在项目设置中自行开启。完成后请关闭。",
+      "consentWarning": "仅在客户请求支持人员查看其项目时开启。客户也可以在项目设置中自行开启。完成后请关闭。",
       "allowConfirmTitle": "要允许 OneUptime 支持团队进入此项目吗？",
       "allowConfirmButton": "允许支持团队进入",
       "billingDisabled": "此实例未启用计费，因此没有可授予访问权限的 OneUptime 客户支持团队。此设置仅适用于 OneUptime 托管版。"

@@ -135,6 +135,28 @@ describe("RunRuleNowModal", () => {
     expect(runSpy.mock.calls[0]![0]).toMatchObject({ notifyOwners: true });
   });
 
+  it("says, in whole sentences, when the notify question counts and how many notifications it can mean", () => {
+    render(
+      <RunRuleNowModal
+        ruleType={RuleRunType.IncidentOwnerRule}
+        ruleId={RULE_ID}
+        onClose={jest.fn()}
+      />,
+    );
+
+    /*
+     * Under the checkbox: the rule's own Notify Owners switch has to be on
+     * too, and each owner hears once per record of the rule's kind - said
+     * as two sentences, not the fragment "Only when ..." it used to start
+     * with.
+     */
+    expect(
+      screen.getByText(
+        "Works only when the rule has Notify Owners on. Each owner gets a notification for every incident they are added to.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("shows progress while passes chain, then turns into the report", async () => {
     let finish: () => void = () => {};
     const onRunComplete: jest.Mock = jest.fn();

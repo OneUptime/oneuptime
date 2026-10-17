@@ -370,7 +370,7 @@
       "cardDescription": "Of de klantenondersteuning van OneUptime toegang heeft tot dit project om problemen op te lossen. Dit is dezelfde schakelaar die de klant in zijn eigen projectinstellingen heeft.",
       "fieldLabel": "Klantenondersteuning toegang geven tot project",
       "fieldDescription": "Wanneer dit is ingeschakeld, kan de klantenondersteuning van OneUptime dit project openen om een probleem te onderzoeken. Schakel het weer uit zodra het onderzoek is afgerond.",
-      "consentWarning": "Alleen als de klant support heeft gevraagd naar zijn project te kijken. Hij kan het zelf aanzetten in de projectinstellingen. Zet het uit als u klaar bent.",
+      "consentWarning": "Zet dit alleen aan als de klant support heeft gevraagd naar zijn project te kijken. Hij kan het ook zelf aanzetten in de projectinstellingen. Zet het uit als u klaar bent.",
       "allowConfirmTitle": "OneUptime-ondersteuning toelaten tot dit project?",
       "allowConfirmButton": "Ondersteuning toelaten",
       "billingDisabled": "Facturering is niet ingeschakeld op deze instantie, dus er is geen OneUptime-klantenondersteuningsteam om toegang aan te verlenen. Deze instelling geldt alleen voor de gehoste editie van OneUptime."

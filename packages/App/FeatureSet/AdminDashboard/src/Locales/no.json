@@ -370,7 +370,7 @@
       "cardDescription": "Om OneUptimes kundestøtte kan få tilgang til dette prosjektet for feilsøking. Dette er den samme bryteren som kunden har i sine egne prosjektinnstillinger.",
       "fieldLabel": "La kundestøtte få tilgang til prosjektet",
       "fieldDescription": "Når dette er slått på, kan OneUptimes kundestøtte åpne dette prosjektet for å undersøke et problem. Slå det av igjen når undersøkelsen er ferdig.",
-      "consentWarning": "Bare når kunden har bedt support om å se på prosjektet sitt. Kunden kan slå det på selv i prosjektinnstillingene. Slå det av når du er ferdig.",
+      "consentWarning": "Slå det bare på når kunden har bedt support om å se på prosjektet sitt. Kunden kan også slå det på selv i prosjektinnstillingene. Slå det av når du er ferdig.",
       "allowConfirmTitle": "Gi OneUptime-støtte tilgang til dette prosjektet?",
       "allowConfirmButton": "Gi støtte tilgang",
       "billingDisabled": "Fakturering er ikke aktivert på denne instansen, så det finnes ingen OneUptime-kundestøtte å gi tilgang til. Denne innstillingen gjelder bare den vertsbaserte utgaven av OneUptime."

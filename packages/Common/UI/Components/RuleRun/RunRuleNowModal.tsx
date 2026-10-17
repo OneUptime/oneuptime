@@ -129,7 +129,7 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
           <CheckboxElement
             title="Notify the owners this run adds"
             description={translator.translateTemplate(
-              "Only when the rule has Notify Owners on. Owners get one notification for every {{resource}} they are added to, which can be many.",
+              "Works only when the rule has Notify Owners on. Each owner gets a notification for every {{resource}} they are added to.",
               {
                 resource: translatableTerm(meta.resourceSingular, {
                   inSentence: true,

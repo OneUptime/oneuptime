@@ -370,7 +370,7 @@
       "cardDescription": "Whether OneUptime customer support can access this project for troubleshooting. This is the same switch the customer has in their own Project Settings.",
       "fieldLabel": "Let OneUptime support access this project",
       "fieldDescription": "When enabled, OneUptime customer support can open this project to investigate an issue. Turn it off again once the investigation is done.",
-      "consentWarning": "Only when the customer asked support to look at their project. They can turn it on themselves in Project Settings. Turn it off when you are done.",
+      "consentWarning": "Turn this on only when the customer asked support to look at their project. They can also turn it on in Project Settings. Turn it off when done.",
       "allowConfirmTitle": "Let OneUptime support into this project?",
       "allowConfirmButton": "Let support in",
       "billingDisabled": "Billing is not enabled on this instance, so there is no OneUptime customer support team to grant access to. This setting only applies to the hosted edition of OneUptime."

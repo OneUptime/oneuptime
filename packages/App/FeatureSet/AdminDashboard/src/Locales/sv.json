@@ -370,7 +370,7 @@
       "cardDescription": "Om OneUptimes kundsupport får åtkomst till det här projektet för felsökning. Det är samma reglage som kunden har i sina egna projektinställningar.",
       "fieldLabel": "Låt kundsupport komma åt projektet",
       "fieldDescription": "När detta är aktiverat kan OneUptimes kundsupport öppna projektet för att undersöka ett problem. Stäng av det igen när undersökningen är klar.",
-      "consentWarning": "Bara när kunden har bett supporten titta på sitt projekt. Kunden kan själv slå på det i projektinställningarna. Stäng av det när du är klar.",
+      "consentWarning": "Slå bara på det när kunden har bett supporten titta på sitt projekt. Kunden kan också själv slå på det i projektinställningarna. Stäng av det när du är klar.",
       "allowConfirmTitle": "Släppa in OneUptimes support i det här projektet?",
       "allowConfirmButton": "Släpp in support",
       "billingDisabled": "Fakturering är inte aktiverad på den här instansen, så det finns inget OneUptime-kundsupportteam att ge åtkomst till. Den här inställningen gäller endast den värdbaserade utgåvan av OneUptime."

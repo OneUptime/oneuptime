@@ -549,7 +549,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           headerLayout: "stacked",
           title: "Indicators",
           description:
-            "Indicators from the feeds above. An indicator can briefly appear twice, and expired ones stay listed for a while; matching skips both.",
+            "Indicators from the feeds above. An indicator can briefly appear twice, and expired or revoked ones stay listed for a while but are never matched.",
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

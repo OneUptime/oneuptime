@@ -370,7 +370,7 @@
       "cardDescription": "OneUptime 고객 지원팀이 문제 해결을 위해 이 프로젝트에 액세스할 수 있는지 여부입니다. 고객이 프로젝트 설정에서 사용하는 것과 동일한 스위치입니다.",
       "fieldLabel": "고객 지원팀의 프로젝트 액세스 허용",
       "fieldDescription": "활성화하면 OneUptime 고객 지원팀이 문제를 조사하기 위해 이 프로젝트를 열 수 있습니다. 조사가 끝나면 다시 비활성화하세요.",
-      "consentWarning": "고객이 지원팀에 프로젝트 확인을 요청한 경우에만 사용하세요. 고객이 프로젝트 설정에서 직접 켤 수 있습니다. 끝나면 끄세요.",
+      "consentWarning": "고객이 지원팀에 프로젝트 확인을 요청한 경우에만 켜세요. 고객도 프로젝트 설정에서 직접 켤 수 있습니다. 끝나면 끄세요.",
       "allowConfirmTitle": "OneUptime 지원팀이 이 프로젝트에 들어오도록 허용하시겠습니까?",
       "allowConfirmButton": "지원팀 허용",
       "billingDisabled": "이 인스턴스에는 청구가 활성화되어 있지 않으므로 액세스를 부여할 OneUptime 고객 지원팀이 없습니다. 이 설정은 OneUptime 호스팅 버전에만 적용됩니다."

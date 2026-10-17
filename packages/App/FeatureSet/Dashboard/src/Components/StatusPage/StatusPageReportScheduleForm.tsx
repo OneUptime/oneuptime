@@ -171,7 +171,7 @@ export const getReportScheduleFormFields: () => Fields<StatusPage> =
         },
         title: "Reporting period",
         description:
-          "Calendar covers the last whole period, such as Jul 1 to Jul 31 for a monthly report. Rolling ends when the email is sent.",
+          "For a monthly report sent in August, the previous whole calendar period is Jul 1 to Jul 31. A rolling number of days ends when the email is sent.",
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownOptions: REPORT_PERIOD_TYPE_OPTIONS.map(
           (option: {

@@ -370,7 +370,7 @@
       "cardDescription": "Indica se l'assistenza clienti di OneUptime può accedere a questo progetto per la risoluzione dei problemi. È lo stesso interruttore che il cliente ha nelle impostazioni del proprio progetto.",
       "fieldLabel": "Consenti all'assistenza clienti di accedere al progetto",
       "fieldDescription": "Se abilitato, l'assistenza clienti di OneUptime può aprire questo progetto per indagare su un problema. Disattivalo di nuovo al termine dell'indagine.",
-      "consentWarning": "Solo quando il cliente ha chiesto al supporto di esaminare il suo progetto. Può attivarlo da solo nelle impostazioni del progetto. Disattivalo quando hai finito.",
+      "consentWarning": "Attivalo solo quando il cliente ha chiesto al supporto di esaminare il suo progetto. Può anche attivarlo da solo nelle impostazioni del progetto. Disattivalo quando hai finito.",
       "allowConfirmTitle": "Far entrare il supporto di OneUptime in questo progetto?",
       "allowConfirmButton": "Fai entrare il supporto",
       "billingDisabled": "La fatturazione non è abilitata su questa istanza, quindi non esiste un team di assistenza clienti OneUptime a cui concedere l'accesso. Questa impostazione si applica solo all'edizione ospitata di OneUptime."

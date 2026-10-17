@@ -370,7 +370,7 @@
       "cardDescription": "Se o suporte ao cliente da OneUptime pode aceder a este projeto para resolução de problemas. É o mesmo botão que o cliente tem nas definições do seu projeto.",
       "fieldLabel": "Permitir que o suporte ao cliente aceda ao projeto",
       "fieldDescription": "Quando ativado, o suporte ao cliente da OneUptime pode abrir este projeto para investigar um problema. Desative-o novamente assim que a investigação terminar.",
-      "consentWarning": "Só quando o cliente pediu ao suporte para olhar o projeto dele. Ele mesmo pode ativá-lo nas configurações do projeto. Desative quando terminar.",
+      "consentWarning": "Ative somente quando o cliente pediu ao suporte para olhar o projeto dele. Ele também pode ativá-lo nas configurações do projeto. Desative quando terminar.",
       "allowConfirmTitle": "Deixar o suporte da OneUptime entrar neste projeto?",
       "allowConfirmButton": "Deixar o suporte entrar",
       "billingDisabled": "A faturação não está ativada nesta instância, pelo que não existe uma equipa de suporte ao cliente da OneUptime a quem conceder acesso. Esta definição aplica-se apenas à edição alojada da OneUptime."

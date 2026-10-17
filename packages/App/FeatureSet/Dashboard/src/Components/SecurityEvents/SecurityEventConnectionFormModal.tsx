@@ -853,7 +853,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
         field: { caseMinimumSeverity: true },
         title: "Open Cases From",
         description:
-          "Alerts at or above this severity open security cases, grouped by user, host or address. Never imports them as events only.",
+          "Alerts at or above this severity open security cases, grouped by user, host or address.",
         stepId: POLLING_STEP_ID,
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownOptions: CASE_SEVERITY_CHOICES.map(
