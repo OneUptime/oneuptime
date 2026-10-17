@@ -355,7 +355,7 @@
       "adjustBalanceStepBalance": "잔액",
       "adjustBalanceStepAmount": "금액 및 사유",
       "monitorLimitCardTitle": "활성 모니터",
-      "monitorLimitCardDescription": "수동 모니터를 제외한 모든 모니터가 켜짐 여부와 관계없이 계산됩니다. 한도에 도달하면 더 추가할 수 없지만 기존 모니터는 계속 실행됩니다. 리셀러의 다음 등급 변경이 이 값을 덮어씁니다.",
+      "monitorLimitCardDescription": "수동 모니터를 제외한 모든 모니터가 켜짐 여부와 관계없이 계산됩니다. 한도에 도달하면 더 추가할 수 없지만 기존 모니터는 계속 실행됩니다. 리셀러의 다음 등급 변경이 이 값을 덮어씁니다. Free 요금제 프로젝트에는 Free 요금제의 한도도 적용됩니다.",
       "monitorLimitEditButton": "모니터 한도 편집",
       "fieldActiveMonitors": "활성 모니터",
       "fieldMonitorLimit": "활성 모니터 한도",

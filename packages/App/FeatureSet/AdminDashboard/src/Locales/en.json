@@ -355,7 +355,7 @@
       "adjustBalanceStepBalance": "Balance",
       "adjustBalanceStepAmount": "Amount & Reason",
       "monitorLimitCardTitle": "Active Monitors",
-      "monitorLimitCardDescription": "Every monitor except Manual ones counts, on or off. At the limit the project can't add more; existing monitors keep running. A reseller's next tier change overwrites it.",
+      "monitorLimitCardDescription": "All but Manual monitors count, on or off. At the limit no more can be added; existing ones keep running. A reseller's next tier change overwrites it. Free plan projects are also held to the Free plan's limit.",
       "monitorLimitEditButton": "Edit Monitor Limit",
       "fieldActiveMonitors": "Active Monitors",
       "fieldMonitorLimit": "Active Monitor Limit",

@@ -355,7 +355,7 @@
       "adjustBalanceStepBalance": "餘額",
       "adjustBalanceStepAmount": "金額和原因",
       "monitorLimitCardTitle": "作用中的監測器",
-      "monitorLimitCardDescription": "除手動監測器外的所有監測器都計數，無論開啟與否。達到上限後專案無法再新增；現有監測器繼續執行。經銷商下次變更等級時會覆寫此值。",
+      "monitorLimitCardDescription": "除手動監測器外的所有監測器都計數，無論開啟與否。達到上限後專案無法再新增；現有監測器繼續執行。經銷商下次變更等級時會覆寫此值。Free 方案的專案同樣受 Free 方案上限的限制。",
       "monitorLimitEditButton": "編輯監測器上限",
       "fieldActiveMonitors": "作用中的監測器",
       "fieldMonitorLimit": "作用中監測器的上限",
