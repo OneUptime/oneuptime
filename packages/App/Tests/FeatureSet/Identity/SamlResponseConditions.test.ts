@@ -536,6 +536,35 @@ describe("rule 11: it was sent to this provider's Reply URL", () => {
     );
   });
 
+  /*
+   * Only a confirmation for this Reply URL can make a response good here, so
+   * one that is still open for another provider does not keep an expired one
+   * for this provider alive.
+   */
+  test("refuses when the confirmation for this provider has closed, though one for another provider is still open", () => {
+    expectRefused(
+      response({
+        destination: null,
+        conditionsNotOnOrAfter: minutesAfter(NOW, 30),
+        subjectConfirmations: [
+          {
+            data: {
+              recipient: PROVIDER.replyUrl,
+              notOnOrAfter: minutesAfter(NOW, -SKEW_MINUTES - 1),
+            },
+          },
+          {
+            data: {
+              recipient: OTHER_PROVIDER.replyUrl,
+              notOnOrAfter: minutesAfter(NOW, 30),
+            },
+          },
+        ],
+      }),
+      SAML_RESPONSE_EXPIRED_MESSAGE,
+    );
+  });
+
   test("ignores a holder-of-key confirmation naming this Reply URL when the bearer one names another", () => {
     expectRefused(
       response({
