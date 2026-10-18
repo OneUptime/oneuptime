@@ -834,6 +834,13 @@ works the group out, with `Utils/WorkflowExpression.js`, for two release runs
 (different groups), two pushes to master and two pushes to one pull request
 (one group each, so the newest still supersedes).
 
+terraform-provider-e2e.yml also runs every night: HashiCorp asks the providers
+it lists as Partner for tests that run nightly as a GitHub Action. The suite
+checks that it is scheduled once a day, every day, and that a nightly run's
+group, read from `github.event.schedule` (which GitHub sets on scheduled runs
+only), is not the one master's pushes share, so a merge that lands during the
+nightly run neither cancels it nor is cancelled by it.
+
 ### `ReleaseCriticalPath.test.js`
 
 What a release run waits for, and what it no longer does. The organization

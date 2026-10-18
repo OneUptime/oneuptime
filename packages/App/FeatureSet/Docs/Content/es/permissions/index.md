@@ -192,9 +192,9 @@ Todo permiso concedido lleva un alcance, elegido en **Alcance** al añadirlo:
 
 | Alcance | Significado |
 | --- | --- |
-| Todos los recursos del proyecto | El valor predeterminado. El permiso se aplica a todos los recursos que coincidan. |
-| Propiedad de este equipo o de sus miembros | El permiso solo se aplica a los recursos en los que este equipo, o el usuario que actúa, figura como propietario. |
-| Restringir por etiquetas (avanzado) | El permiso solo se aplica a los recursos que llevan al menos una de las etiquetas elegidas. |
+| Todos los recursos del proyecto | El valor predeterminado y lo que la mayoría de los equipos necesita. El permiso se aplica a todos los recursos que coincidan. |
+| Solo los recursos que les pertenecen | El permiso solo se aplica a los recursos que pertenecen a la persona que actúa o a uno de sus equipos. |
+| Solo los recursos con ciertas etiquetas | El permiso solo se aplica a los recursos que llevan al menos una de las etiquetas elegidas. |
 
 **Propios** es la forma más sencilla de montar un modelo de «cada uno cuida de sus propios servicios»: dé a un equipo `MonitorAdmin` con alcance Propios y haga a ese equipo propietario de los monitores de los que se encarga. Acota todos los recursos que pueden tener propietarios —monitores, incidentes, paneles, servicios, grupos de monitores, programaciones de guardia y similares— y lo que les pertenece, como las capas de una programación. Las sondas, los Runners, los agentes de IA, las programaciones de guardia y las plantillas de incidentes y de mantenimiento son aquello con lo que se configuran otros recursos, así que un permiso con alcance Propios sigue leyéndolos todos y puede elegir cualquiera de ellos; solo cambia y elimina los que usted o sus equipos poseen. La clave de un Runner, que permite a quien la tenga actuar como ese Runner, solo se muestra en los Runners que usted o sus equipos poseen. La configuración del proyecto (estados de incidentes, etiquetas, los propios equipos) no tiene propietario, así que un rol con alcance Propios se comporta ahí con normalidad.
 

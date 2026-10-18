@@ -129,7 +129,7 @@ Rollen din leser runbooks, men kjører dem ikke: knappen sier "Du har ikke tilla
 :::
 
 :::details Oppstart av en kjøring feiler med "Runbook is disabled" eller "Runbook has no steps to run"
-Runbookets bryter **Kjør dette runbooket** er slått av på siden **Innstillinger**, eller det har ingen lagrede trinn. Slå bryteren på, eller legg til trinn, og klikk **Save Steps**.
+Runbookets bryter **Kjør dette runbooket** er slått av på siden **Innstillinger**, eller det har ingen lagrede trinn. Slå bryteren på, eller legg til trinn, og klikk **Save Steps**. **Oversikt** sier hvilken, med **Slå på runbook** eller **Legg til trinn**.
 :::
 
 :::details Et trinn feilet fordi det mangler en Runner eller påloggingsinformasjon

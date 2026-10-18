@@ -13,8 +13,9 @@ import ObjectID from "../../../Types/ObjectID";
  * the numbers contiguous themselves: the escalation rules of an on-call
  * policy, the layers of a schedule, the users of a layer, the groups of a
  * status page and the resources of a status page (or of one of its groups).
- * Adding a row at a place moves the rows from there on one place down,
- * moving a row moves the rows it passes, and deleting one closes its gap.
+ * Adding a row at a place another row holds moves the rows from there on one
+ * place down, moving a row moves the rows it passes, and deleting one closes
+ * its gap.
  * (Drag-ordered lists keep their numbers through @ListOrderColumn instead.)
  *
  * The services call these from their success hooks: once the row they make
@@ -36,8 +37,13 @@ export interface ContiguousOrderList<TBaseModel extends BaseModel> {
 
 export default class ContiguousOrder {
   /*
-   * A row was created at `order`: every other row of its list at that place
-   * or after it moves one place down.
+   * A row was created at `order`. When another row of its list holds that
+   * place, that row and every row after it move one place down, as an
+   * insert does. A place no other row holds moves nothing: Terraform
+   * creates a list's rows in no set order, each at the place its
+   * configuration gives it, and moving on every create pushed the row
+   * created for place 2 to 3 when the row for place 1 came after it
+   * (OneUptime/terraform-provider-oneuptime#12).
    */
   public static async afterCreate<TBaseModel extends BaseModel>(
     data: ContiguousOrderList<TBaseModel> & {
@@ -51,6 +57,7 @@ export default class ContiguousOrder {
       from: data.order,
       to: null,
       by: 1,
+      onlyWhenFromIsHeld: true,
     });
   }
 
@@ -109,6 +116,8 @@ export default class ContiguousOrder {
       from: number;
       to: number | null;
       by: 1 | -1;
+      // Move nothing unless one of the rows to move is at `from` itself.
+      onlyWhenFromIsHeld?: boolean;
     },
   ): Promise<void> {
     const rows: Array<TBaseModel> = await data.service.findBy({
@@ -130,6 +139,8 @@ export default class ContiguousOrder {
       },
     });
 
+    const moving: Array<{ id: ObjectID; order: number }> = [];
+
     for (const row of rows) {
       const order: number = Number(
         (row as unknown as { order?: number | null }).order,
@@ -145,12 +156,25 @@ export default class ContiguousOrder {
         continue;
       }
 
+      moving.push({ id: row.id, order: order });
+    }
+
+    if (
+      data.onlyWhenFromIsHeld &&
+      !moving.some((row: { id: ObjectID; order: number }): boolean => {
+        return row.order === data.from;
+      })
+    ) {
+      return;
+    }
+
+    for (const row of moving) {
       await data.service.updateOneBy({
         query: {
           _id: row.id.toString(),
         } as Query<TBaseModel>,
         data: {
-          order: order + data.by,
+          order: row.order + data.by,
         } as unknown as PartialEntity<TBaseModel>,
         props: {
           isRoot: true,

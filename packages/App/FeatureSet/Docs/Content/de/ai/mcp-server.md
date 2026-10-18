@@ -197,6 +197,19 @@ Die Eingabevariable mit `"password": true` fragt beim Start des Servers nach dem
   ]
 }
 ```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
+}
+```
 :::
 
 ## VS Code mit GitHub Copilot

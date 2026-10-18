@@ -155,7 +155,7 @@ import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import { getSamlProviderFormFields } from "../../../../UI/Components/Sso/SamlProviderFormFields";
 import { getSsoProviderFormSteps } from "../../../../UI/Components/Sso/SsoProviderFormFields";
 
-const ACTION: string = "Create SSO";
+const ACTION: string = "Add SAML Provider";
 const SAVE: string = "Save Changes";
 
 const WITH_MEMBERS: FormValues<ProjectSSO> = {

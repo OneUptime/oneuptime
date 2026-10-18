@@ -87,14 +87,14 @@ flowchart TB
 
 Quien ya es miembro de un proyecto adjunto conserva los equipos que tiene allí.
 
-Dos interruptores del proveedor cambian esto. Ambos empiezan desactivados, plegados en **Más campos**:
+Dos preguntas del proveedor cambian esto, plegadas en **Más campos**. Cada una empieza en su primera respuesta:
 
-| Interruptor | Qué hace cuando está activado |
+| Pregunta | Respuestas |
 | --- | --- |
-| **Disable Sign Up with SSO** | Las personas deben estar invitadas a un proyecto antes de poder iniciar sesión con este proveedor, aunque haya proyectos adjuntos. No se crea a nadie nuevo en su primer inicio de sesión. |
-| **Restrict to Attached Projects** | Iniciar sesión con este proveedor cumple la exigencia de SSO solo en los proyectos adjuntos a él, así que quienes ya iniciaron sesión pueden perder el acceso a otros proyectos. |
+| **Personas sin cuenta** | **Obtienen una en su primer inicio de sesión**: se unen a los proyectos adjuntos; si no hay ninguno adjunto, primero deben ser invitadas. **Deben ser invitadas primero**: las personas deben estar invitadas a un proyecto antes de poder iniciar sesión con este proveedor, aunque haya proyectos adjuntos. |
+| **Dónde cuenta este inicio de sesión como SSO** | **Todos los proyectos**: los proyectos que exigen SSO aceptan un inicio de sesión con este proveedor. **Solo los proyectos adjuntos**: iniciar sesión con este proveedor cumple la exigencia de SSO solo en los proyectos adjuntos a él, así que quienes ya iniciaron sesión pueden perder el acceso a otros proyectos. |
 
-Con **Restrict to Attached Projects** desactivado, iniciar sesión con el proveedor cumple la exigencia de SSO en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados.
+Con **Todos los proyectos**, iniciar sesión con el proveedor cumple la exigencia de SSO en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados.
 
 ## Imponer SSO
 
@@ -136,11 +136,11 @@ Dos cambios sobre quién puede iniciar sesión se comprueban uno tras otro. Si s
 ## Solución de problemas
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La persona aún no tiene cuenta de OneUptime y el proveedor no crea ninguna: o no tiene proyectos adjuntos, o **Disable Sign Up with SSO** está activado. Invítala a un proyecto o adjunta un proyecto al proveedor.
+La persona aún no tiene cuenta de OneUptime y el proveedor no crea ninguna: o no tiene proyectos adjuntos, o **Personas sin cuenta** está en **Deben ser invitadas primero**. Invítala a un proyecto o adjunta un proyecto al proveedor.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** está activado y la persona no es miembro de ningún proyecto adjunto al proveedor. Adjunta uno de sus proyectos o añádela a un proyecto adjunto.
+**Dónde cuenta este inicio de sesión como SSO** está en **Solo los proyectos adjuntos** y la persona no es miembro de ningún proyecto adjunto al proveedor. Adjunta uno de sus proyectos o añádela a un proyecto adjunto.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"

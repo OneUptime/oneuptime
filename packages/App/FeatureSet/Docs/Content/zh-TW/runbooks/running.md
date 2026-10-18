@@ -129,7 +129,7 @@ Runbook 執行有五種建立方式：
 :::
 
 :::details 啟動執行時失敗，顯示「Runbook is disabled」或「Runbook has no steps to run」
-Runbook 的 **執行此操作手冊** 開關在其 **設定** 頁面上被關閉了，或者它沒有已儲存的步驟。請開啟開關或新增步驟，然後點選 **Save Steps** 。
+Runbook 的 **執行此操作手冊** 開關在其 **設定** 頁面上被關閉了，或者它沒有已儲存的步驟。請開啟開關或新增步驟，然後點選 **Save Steps** 。Runbook 的 **概覽** 會說明是哪一種，並提供 **開啟執行手冊** 或 **新增步驟** 。
 :::
 
 :::details 步驟因缺少 Runner 或憑證而失敗

@@ -76,6 +76,7 @@ const SOURCES: Record<string, string> = {
   environmentConfig: `${COMMON_SERVER}/EnvironmentConfig.ts`,
   projectService: `${COMMON_SERVER}/Services/ProjectService.ts`,
   pushService: `${COMMON_SERVER}/Services/PushNotificationService.ts`,
+  pushRelay: "packages/App/FeatureSet/Notification/API/PushRelay.ts",
   receiptQueue: `${COMMON_SERVER}/Infrastructure/ExpoPushReceiptQueue.ts`,
   inboundFactory: `${COMMON_SERVER}/Services/InboundEmail/InboundEmailProviderFactory.ts`,
   sendGridProvider: `${COMMON_SERVER}/Services/InboundEmail/Providers/SendGridInboundProvider.ts`,
@@ -101,6 +102,7 @@ const SOURCES: Record<string, string> = {
   projectInvitations: `${DASHBOARD}/Pages/Global/ProjectInvitations.tsx`,
   userChip: `${DASHBOARD}/Components/User/User.tsx`,
   teamPermissionTable: `${DASHBOARD}/Components/Team/TeamPermissionTable.tsx`,
+  permissionScopeChoice: `${DASHBOARD}/Components/Permission/PermissionScopeChoice.ts`,
   pushCard: `${DASHBOARD}/Components/NotificationMethods/Push.tsx`,
   pushCriticalAlertStatus: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlertStatus.tsx`,
   pushCriticalAlerts: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlerts.ts`,
@@ -174,8 +176,12 @@ const STRING_LITERAL: RegExp = /"([^"]+)"/g;
 // "1.5.0": a release of the mobile app.
 const SEMVER: RegExp = /^(\d+)\.(\d+)\.(\d+)$/;
 
-// 'label: "Owned by this team or its members"' - an option of a dropdown.
-const DROPDOWN_OPTION_LABEL: RegExp = /label: "([^"]+)"/g;
+/*
+ * '[PermissionScope.Owned]: translationKey("Only resources they own"),' -
+ * an answer of the Scope choice, possibly wrapped over lines.
+ */
+const SCOPE_ANSWER_TITLE: RegExp =
+  /\[PermissionScope\.\w+\]: translationKey\(\s*"([^"]+)",?\s*\)/g;
 
 // The ingress location's upstream: the app's own host name and port.
 const INGRESS_TO_APP: RegExp =
@@ -739,30 +745,39 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
     }
   });
 
+  /*
+   * The Scope field is three plain answers, All first, the same for a
+   * team's permission and a custom role's (Components/Permission/
+   * PermissionScopeChoice, which both tables build their Scope field from).
+   */
   it("names the scopes as a team permission's Scope field offers them, All first", () => {
+    const choice: string = readSource("permissionScopeChoice");
     const form: string = readSource("teamPermissionTable");
-    const scopeField: number = form.indexOf('title: "Scope"');
     const options: Array<string> = [
       "All resources in the project",
-      "Owned by this team or its members",
-      "Restrict by labels (advanced)",
+      "Only resources they own",
+      "Only resources with certain labels",
     ];
 
-    expect(scopeField).toBeGreaterThan(-1);
-
-    const field: string = form.slice(scopeField, form.indexOf("]", scopeField));
+    const titles: string = choice.slice(
+      choice.indexOf("export const PERMISSION_SCOPE_TITLES"),
+      choice.indexOf("export const PERMISSION_SCOPE_DESCRIPTIONS"),
+    );
 
     expect(
-      [...field.matchAll(DROPDOWN_OPTION_LABEL)].map(
+      [...titles.matchAll(SCOPE_ANSWER_TITLE)].map(
         (match: RegExpExecArray): string => {
           return match[1] as string;
         },
       ),
     ).toEqual(options);
-    expect(field).toContain("value: PermissionScope.All,");
-    expect(form.slice(scopeField, scopeField + 2000)).toContain(
-      "defaultValue: PermissionScope.All,",
+    // In the order the form offers them, and starting on All.
+    expect(choice).toMatch(
+      /PERMISSION_SCOPE_ANSWERS: ReadonlyArray<PermissionScope> = \[\s*PermissionScope\.All,\s*PermissionScope\.Owned,\s*PermissionScope\.Labels,\s*\];/,
     );
+    expect(choice).toContain("defaultValue: PermissionScope.All,");
+    expect(choice).toContain("fieldType: FormFieldSchemaType.RadioButton,");
+    expect(form).toContain("...getPermissionScopeFields<TeamPermission>({");
 
     expect(
       tableHeaded(page, ["Scope", "Meaning"]).map(
@@ -786,7 +801,7 @@ describe("Push Notifications, against the server, the chart and the mobile app",
     "What it does",
   ]);
 
-  it("lists the five push settings, each with its Helm value, its default and its config.example.env line", () => {
+  it("lists the six push settings, each with its Helm value, its default and its config.example.env line", () => {
     const helpers: string = readSource("chartHelpers");
 
     expect(
@@ -796,6 +811,7 @@ describe("Push Notifications, against the server, the chart and the mobile app",
     ).toEqual([
       "PUSH_NOTIFICATION_RELAY_URL",
       "EXPO_ACCESS_TOKEN",
+      "PUSH_NOTIFICATION_RELAY_SERVER_ENABLED",
       "VAPID_PUBLIC_KEY",
       "VAPID_PRIVATE_KEY",
       "VAPID_SUBJECT",
@@ -838,6 +854,37 @@ describe("Push Notifications, against the server, the chart and the mobile app",
     );
     expect(environment).toMatch(
       /process\.env\["EXPO_ACCESS_TOKEN"\] \|\| undefined/,
+    );
+  });
+
+  it("relays for other servers only where the page says: empty is off unless billing is on, and only true turns it on", () => {
+    const environment: string = readSource("environmentConfig");
+
+    expect(environment).toContain(
+      'value: process.env["PUSH_NOTIFICATION_RELAY_SERVER_ENABLED"],\n    isBillingEnabled: IsBillingEnabled,',
+    );
+    expect(environment).toContain(
+      '  if (!value) {\n    return data.isBillingEnabled;\n  }\n\n  return value === "true";',
+    );
+    expect(readSource("pushService")).toContain(
+      "return PushNotificationRelayServerEnabled;",
+    );
+    expect(page).toContain(
+      "Relays mobile pushes for other OneUptime servers, with this server's `EXPO_ACCESS_TOKEN`. Empty means off, unless `BILLING_ENABLED` is `true`.",
+    );
+    expect(page).toContain(
+      "A self-hosted OneUptime server relays pushes for other servers only with `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` and its own `EXPO_ACCESS_TOKEN`; without the setting it answers 404 at that address. Turn it on only on the server your other OneUptime servers send through, and let only those servers reach that address.",
+    );
+  });
+
+  it("answers 404 at the relay's address without the setting, as the page says, before anything else", () => {
+    const relay: string = readSource("pushRelay");
+
+    expect(relay).toContain(
+      "  if (!PushNotificationService.isPushRelayServer()) {\n    res.status(404).json({ message: PUSH_RELAY_NOT_SERVED_MESSAGE });",
+    );
+    expect(relay.indexOf("router.use(")).toBeLessThan(
+      relay.indexOf("router.post("),
     );
   });
 

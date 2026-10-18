@@ -64,6 +64,8 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             validation: {
               minLength: 2,
             },
+            // Not the column's "Any friendly name of this object", written for the API.
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -73,12 +75,14 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "API Key Description",
+            hideColumnDescription: true,
           },
           {
             field: {
               expiresAt: true,
             },
             title: "Expires",
+            description: "The key stops working on this date.",
             fieldType: FormFieldSchemaType.Date,
             required: true,
             placeholder: "Expires at",

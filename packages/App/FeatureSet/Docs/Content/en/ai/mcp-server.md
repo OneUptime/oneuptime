@@ -197,6 +197,19 @@ The input variable with `"password": true` asks for the key when the server star
   ]
 }
 ```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
+}
+```
 :::
 
 ## VS Code with GitHub Copilot

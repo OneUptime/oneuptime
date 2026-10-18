@@ -77,6 +77,8 @@ const USER_ID: ObjectID = new ObjectID("1c000000-0000-4000-8000-000000000003");
 const LIST_ID: string = "1c000000-0000-4000-8000-0000000000c1";
 const OTHER_LIST_ID: string = "1c000000-0000-4000-8000-0000000000c2";
 const SCHEDULE_ID: string = "1c000000-0000-4000-8000-0000000000c3";
+// A list of this project's with no rows yet.
+const EMPTY_LIST_ID: string = "1c000000-0000-4000-8000-0000000000c4";
 
 const ROW_A: string = "1c000000-0000-4000-8000-0000000000a1";
 const ROW_B: string = "1c000000-0000-4000-8000-0000000000a2";
@@ -307,7 +309,11 @@ function orderOf(
     });
 }
 
-function newRow(orderCase: OrderCase, order: number): BaseModel {
+function newRow(
+  orderCase: OrderCase,
+  order: number,
+  listId: string = LIST_ID,
+): BaseModel {
   const model: BaseModel = new orderCase.service.modelType();
   const record: StoredRow = model as unknown as StoredRow;
 
@@ -315,7 +321,7 @@ function newRow(orderCase: OrderCase, order: number): BaseModel {
     record[column] = value;
   }
 
-  record[orderCase.listColumn] = new ObjectID(LIST_ID);
+  record[orderCase.listColumn] = new ObjectID(listId);
   record["order"] = order;
 
   return model;
@@ -371,6 +377,59 @@ describe.each(ORDER_CASES)("$label", (orderCase: OrderCase) => {
       expect(orderOf(table, orderCase, OTHER_LIST_ID)).toEqual(
         untouchedOtherList,
       );
+    });
+
+    /*
+     * Terraform creates a list's rows in parallel, in no set order, each at
+     * the place its configuration gives it. When every create moved the
+     * rows from its place on, the row for place 2 saved before the row for
+     * place 1 was pushed to 3, and the apply failed
+     * (OneUptime/terraform-provider-oneuptime#12). A row created at a place
+     * no other row holds moves nothing.
+     */
+    test("rows created out of order, each at a place no row holds, keep their places", async () => {
+      const props: DatabaseCommonInteractionProps = orderCase.creatorProps();
+      const second: BaseModel = newRow(orderCase, 2, EMPTY_LIST_ID);
+      const first: BaseModel = newRow(orderCase, 1, EMPTY_LIST_ID);
+
+      // Named apart: a status page's groups must not share a name.
+      for (const [row, label] of [
+        [second, "second"],
+        [first, "first"],
+      ] as Array<[BaseModel, string]>) {
+        const record: StoredRow = row as unknown as StoredRow;
+
+        for (const column of ["name", "displayName"]) {
+          if (typeof record[column] === "string") {
+            record[column] = `${record[column]} (${label})`;
+          }
+        }
+      }
+
+      if (props.isRoot) {
+        (second as unknown as StoredRow)["projectId"] = PROJECT_ID;
+        (first as unknown as StoredRow)["projectId"] = PROJECT_ID;
+      }
+
+      const createdSecond: BaseModel = await orderCase.service.create({
+        data: second,
+        props: props,
+      });
+      const createdFirst: BaseModel = await orderCase.service.create({
+        data: first,
+        props: orderCase.creatorProps(),
+      });
+
+      expect(orderOf(table, orderCase, EMPTY_LIST_ID)).toEqual([
+        [createdFirst.id!.toString(), 1],
+        [createdSecond.id!.toString(), 2],
+      ]);
+      expect(table.updates).toEqual([]);
+      expect(orderOf(table, orderCase, LIST_ID)).toEqual([
+        [ROW_A, 1],
+        [ROW_B, 2],
+        [ROW_C, 3],
+      ]);
     });
 
     test("a member who may only look is refused, and no row moves", async () => {

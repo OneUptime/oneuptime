@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
@@ -34,6 +35,12 @@ import {
  *
  * process.hrtime is used rather than Date.now so the measurement is
  * monotonic and this file stays free of wall-clock reads.
+ *
+ * A query counts as the fastest of a few attempts (Common's fastestRun):
+ * a garbage collection of this estate's heap can stall one attempt for
+ * longer than the query takes - one search took 2,246 ms on a runner where
+ * the same searches took 192 ms between them. Searching and drawing the
+ * map keep nothing between calls, so each attempt does the same work.
  */
 
 const NOW: Date = new Date("2026-09-07T10:00:00Z");
@@ -302,10 +309,14 @@ describe("building the model", () => {
   });
 
   test("the overview map is bounded work", () => {
-    const start: bigint = process.hrtime.bigint();
-    const cards: Array<string> = collectMapCards(model, null);
-    expect(elapsedSince(start)).toBeLessThan(QUERY_BOUND_MS);
-    expect(cards).toContain("collection:iot.device");
+    const cards: FastestRun<Array<string>> = fastestRun({
+      run: (): Array<string> => {
+        return collectMapCards(model, null);
+      },
+      limitInMs: QUERY_BOUND_MS,
+    });
+    expect(cards.inMs).toBeLessThan(QUERY_BOUND_MS);
+    expect(cards.result).toContain("collection:iot.device");
   });
 });
 
@@ -366,15 +377,26 @@ describe("searching the model", () => {
         },
       ],
     ];
+    const timedSearch: (
+      query: string,
+    ) => FastestRun<Array<InfrastructureNode>> = (
+      query: string,
+    ): FastestRun<Array<InfrastructureNode>> => {
+      return fastestRun({
+        run: (): Array<InfrastructureNode> => {
+          return searchInfrastructure(model, query, index);
+        },
+        limitInMs: QUERY_BOUND_MS,
+      });
+    };
+
     for (const [query, expected] of queries) {
-      const start: bigint = process.hrtime.bigint();
-      const results: Array<InfrastructureNode> = searchInfrastructure(
-        model,
+      const results: FastestRun<Array<InfrastructureNode>> = timedSearch(query);
+      expect({ query, inMs: results.inMs < QUERY_BOUND_MS }).toEqual({
         query,
-        index,
-      );
-      expect(elapsedSince(start)).toBeLessThan(QUERY_BOUND_MS);
-      expect(expected(results.length)).toBe(true);
+        inMs: true,
+      });
+      expect(expected(results.result.length)).toBe(true);
     }
   });
 });

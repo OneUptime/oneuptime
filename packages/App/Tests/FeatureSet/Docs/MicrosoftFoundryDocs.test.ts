@@ -8,6 +8,7 @@ import EgressGuardException, {
 } from "Common/Types/Exception/EgressGuardException";
 import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
+import { LLM_PROVIDER_TYPE_COPY } from "Common/UI/Components/AI/LlmProviderFormCopy";
 import { PermissionHelper } from "Common/Types/Permission";
 import API from "Common/Utils/API";
 import LlmProviderEndpoint from "Common/Utils/LLM/LlmProviderEndpoint";
@@ -473,8 +474,13 @@ describe("the page's table of APIs is what one provider type calls", () => {
 });
 
 describe("the page names the forms as the Dashboard draws them", () => {
+  /*
+   * The form every LLM provider is added with (the Dashboard's create and
+   * edit, the Admin Dashboard's Global LLM Providers): Provider, then
+   * Connection.
+   */
   const PROVIDER_FORM: string =
-    "App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviders.tsx";
+    "Common/UI/Components/AI/LlmProviderFormFields.tsx";
 
   // A field's title in the provider form, from its key to the next field's.
   function formFieldTitle(field: string): string {
@@ -491,7 +497,7 @@ describe("the page names the forms as the Dashboard draws them", () => {
     );
   }
 
-  test("the English page's Provider Settings table names the form's fields", () => {
+  test("the English page's Connection table names the step's fields, in the form's order", () => {
     const fields: Array<string> = tableRows(
       sectionLines(readPage("en"), SECTION.connect),
     )
@@ -501,22 +507,40 @@ describe("the page names the forms as the Dashboard draws them", () => {
       });
 
     expect(fields).toEqual([
-      formFieldTitle("llmType"),
       formFieldTitle("apiKey"),
-      formFieldTitle("modelName"),
       formFieldTitle("baseUrl"),
+      formFieldTitle("modelName"),
+      formFieldTitle("name"),
     ]);
+    // In the order the form asks for them.
+    const form: string = readSource(PROVIDER_FORM);
+    const positions: Array<number> = [
+      "apiKey",
+      "baseUrl",
+      "modelName",
+      "name",
+    ].map((field: string): number => {
+      return form.search(new RegExp(`field: \\{\\s*${field}: true,`));
+    });
+
+    expect(
+      positions.every((position: number) => {
+        return position > -1;
+      }),
+    ).toBe(true);
+    expect(
+      [...positions].sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual(positions);
   });
 
-  test("the provider's label is the dropdown's", () => {
-    const options: string = readSource(
-      "Common/UI/Utils/LlmTypeDropdownOptions.ts",
+  test("the provider's card is titled as the page names it", () => {
+    expect(LLM_PROVIDER_TYPE_COPY[LlmType.AzureOpenAI].title).toBe(
+      FOUNDRY_LABEL,
     );
-
-    expect(options).toMatch(
-      new RegExp(
-        `label: "${escapeRegExp(FOUNDRY_LABEL)}",\\s*value: LlmType\\.AzureOpenAI,`,
-      ),
+    expect(readSource(PROVIDER_FORM)).toContain(
+      "cardSelectOptions: LLM_PROVIDER_CARD_OPTIONS,",
     );
   });
 
@@ -525,7 +549,8 @@ describe("the page names the forms as the Dashboard draws them", () => {
     "AI",
     "LLM Providers",
     "Create LLM Provider",
-    "Basic Info",
+    "Provider",
+    "Connection",
     "Name",
     "Description",
     "Next",

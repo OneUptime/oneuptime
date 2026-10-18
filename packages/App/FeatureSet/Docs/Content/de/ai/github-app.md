@@ -108,7 +108,7 @@ Jeder Befehl, der Arbeit startet, ist ein vollständiger Agent-Lauf: ein Klon, b
 
 GitHub-Befehle sind KI-Arbeit außerhalb von Vorfällen und Warnungen, daher gilt für sie kein tägliches Limit für Korrekturaufgaben; die eigenen täglichen KI-Limits des Projekts gelten, wenn das Projekt sie festlegt. Die einzige weitere Grenze ist die, die bereits für [Korrekturaufgaben](/docs/ai/ai-agent) gilt:
 
-- **Die Obergrenze für offene Pull Requests** (**Max. offene Korrektur-Pull-Requests** auf der Seite **Einstellungen** des Repositorys). Es gibt keine Obergrenze, bis Sie eine setzen, und 0 blockiert KI-Korrektur-Pull-Requests in diesem Repository. Reviews und Überarbeitungen sind ausgenommen: Keines davon fügt Ihrer Review-Warteschlange einen Pull Request hinzu.
+- **Die Obergrenze für offene Pull Requests** (**Max. offene Korrektur-Pull-Requests** auf der Seite **Einstellungen** des Repositorys). **KI-Korrektur-Pull-Requests** steht auf **Kein Limit**, bis Sie **Ein Limit** wählen, oder auf **Keine**, was KI-Korrektur-Pull-Requests in diesem Repository blockiert. Reviews und Überarbeitungen sind ausgenommen: Keines davon fügt Ihrer Review-Warteschlange einen Pull Request hinzu.
 
 Pro Issue oder Pull Request ist jeweils nur ein Lauf einer Art aktiv. Zweimal zu fragen sagt Ihnen, dass sie bereits daran arbeitet; um ein Review zu bitten, während eine Überarbeitung läuft, startet beides, da es verschiedene Anfragen sind.
 

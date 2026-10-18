@@ -1,4 +1,5 @@
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
 import ReminderStopState from "Common/Types/Reminder/ReminderStopState";
 import type Field from "Common/UI/Components/Forms/Types/Field";
 import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -33,14 +34,15 @@ import {
 } from "./ResourceRuleForm";
 
 /*
- * CREATE AN ON-CALL, PRIVACY, SLA OR REMINDER RULE: WHAT IT MATCHES, THEN
- * WHAT IT DOES.
+ * CREATE AN ON-CALL, PRIVACY, SLA, REMINDER OR RUNBOOK RULE: WHAT IT
+ * MATCHES, THEN WHAT IT DOES.
  *
- * Incidents, alerts, their episodes and scheduled maintenance have four
+ * Incidents, alerts, their episodes and scheduled maintenance have these
  * kinds of rule beside their label, owner and grouping rules: On-Call Rules
  * page on-call policies for a new record, Privacy Rules make it private, SLA
- * Rules track how fast an incident is acknowledged and resolved, and
- * Reminder Rules remind its owners while it is open. Their forms used to
+ * Rules track how fast an incident is acknowledged and resolved, Reminder
+ * Rules remind its owners while it is open, and Runbook Rules start runbooks
+ * for it (incidents, alerts and scheduled maintenance). Their forms used to
  * start with "Basic Info" (or "Rule Info") - a name and a description,
  * before anyone had said what the rule was for - while the label, owner and
  * grouping rules on the same menu start with what the rule matches, then
@@ -51,9 +53,10 @@ import {
  *     one conditions builder (Common/UI/Components/RuleCriteria), which
  *     starts on "All incidents".
  *   - What the rule does, on a step of its own: the on-call policies it
- *     pages, the SLA's targets, how often it reminds. Then the rule's Name -
- *     filled in from what it does ("Page Platform on-call", "Remind every 30
- *     minutes until resolved") and following it until somebody types a name
+ *     pages, the SLA's targets, how often it reminds, the runbooks it
+ *     starts. Then the rule's Name - filled in from what it does ("Page
+ *     Platform on-call", "Remind every 30 minutes until resolved", "Start
+ *     Database failover") and following it until somebody types a name
  *     of their own - its Enabled switch on the Edit form only (a new rule
  *     starts on), and More fields, folded: the Description, and what most
  *     rules leave alone.
@@ -107,6 +110,19 @@ export const getReminderRuleFormSteps: <TEntity>() => Array<
   return [
     { title: "Match", id: "match-criteria" },
     { title: "Reminders", id: "reminder-settings" },
+  ];
+};
+
+/*
+ * A runbook rule - on the Rules menus of incidents, alerts and scheduled
+ * maintenance: what it matches, then the runbooks it starts.
+ */
+export const getRunbookRuleFormSteps: <TEntity>() => Array<
+  FormStep<TEntity>
+> = <TEntity>(): Array<FormStep<TEntity>> => {
+  return [
+    { title: "Match", id: "match-criteria" },
+    { title: "Runbooks", id: "runbooks" },
   ];
 };
 
@@ -308,6 +324,101 @@ export const getOnCallRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
       field: { description: true } as unknown as SelectFormFields<TEntity>,
       title: "Description",
       stepId: "on-call",
+      fieldType: FormFieldSchemaType.LongText,
+      required: false,
+      collapsibleSection: moreFields,
+    },
+  ];
+};
+
+// ---- Runbook rules ---------------------------------------------------------
+
+/*
+ * "Start Database failover": a runbook rule is named after the runbooks it
+ * starts, as an on-call rule is after the policies it pages - as many as
+ * fit, then a count.
+ */
+export const RUNBOOK_RULE_NAME_WORDING: RuleNameWording = {
+  picksSlot: "runbooks",
+  allPicks: translationKey("Start {{runbooks}}"),
+  somePicks: {
+    one: "Start {{runbooks}} and {{count}} more",
+    other: "Start {{runbooks}} and {{count}} more",
+  },
+};
+
+export const getRunbookRuleName: (runbookNames: Array<string>) => string = (
+  runbookNames: Array<string>,
+): string => {
+  return getRuleNameFromPicks(RUNBOOK_RULE_NAME_WORDING, runbookNames);
+};
+
+/*
+ * What the field is for, in one line. That each runbook starts a run of its
+ * own, attached to what matched, is for the help panel and the docs.
+ */
+export const RUNBOOK_RULE_RUNBOOKS_DESCRIPTION: string = translationKey(
+  "The runbooks to start when this rule matches.",
+);
+
+export const RUNBOOK_RULE_NAME_DESCRIPTION: string = translationKey(
+  "Named after the runbooks it starts until you type a name of your own.",
+);
+
+/**
+ * Everything on a runbook rule's Runbooks step: the runbooks it starts
+ * (required), its name (filled in from them), its Enabled switch on the Edit
+ * form only, and its description folded under More fields.
+ */
+export const getRunbookRuleActionFields: <TEntity>() => Array<
+  Field<TEntity>
+> = <TEntity>(): Array<Field<TEntity>> => {
+  const moreFields: FormFieldCollapsibleSection<TEntity> =
+    getAdvancedFormSection<TEntity>();
+
+  return [
+    {
+      field: { runbooks: true } as unknown as SelectFormFields<TEntity>,
+      title: "Runbooks to Start",
+      description: RUNBOOK_RULE_RUNBOOKS_DESCRIPTION,
+      stepId: "runbooks",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      dropdownModal: {
+        type: Runbook,
+        labelField: "name",
+        valueField: "_id",
+      },
+      required: true,
+      placeholder: "Select Runbooks",
+      onChange: followPicksWithRuleName<TEntity>(getRunbookRuleName),
+    },
+    {
+      field: { name: true } as unknown as SelectFormFields<TEntity>,
+      title: "Name",
+      description: RUNBOOK_RULE_NAME_DESCRIPTION,
+      stepId: "runbooks",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "e.g. Start Database failover",
+      validation: {
+        minLength: 2,
+        maxLength: RULE_NAME_MAX_LENGTH,
+      },
+    },
+    {
+      field: { isEnabled: true } as unknown as SelectFormFields<TEntity>,
+      title: "Enabled",
+      description: RULE_ENABLED_DESCRIPTION,
+      stepId: "runbooks",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      // A rule starts on: the switch is on its edit form only.
+      doNotShowWhenCreating: true,
+    },
+    {
+      field: { description: true } as unknown as SelectFormFields<TEntity>,
+      title: "Description",
+      stepId: "runbooks",
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       collapsibleSection: moreFields,

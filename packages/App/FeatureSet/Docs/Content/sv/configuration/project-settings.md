@@ -36,7 +36,7 @@ flowchart LR
 | **Aviseringar** | **Aviseringsinställningar**, **Aviseringsloggar**, **Mobilappar** | [Aviseringar](#aviseringar) |
 | **AI** | **AI Features**, **LLM-leverantörer**, **AI-krediter**, **AI-loggar**, **MCP-server** | [LLM-leverantörer](/docs/ai/llm-provider), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |
 | **Avancerad** | **Domäner**, **API-nycklar**, **Funktionsflaggor** | [Egna domäner](/docs/status-pages/branding-and-domains#anpassade-domäner), [API-nycklar](/docs/permissions/index#api-nycklar), [Funktionsflaggor](#funktionsflaggor) |
-| **Säkerhet** | **SSO**, **OIDC**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
+| **Säkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering och fakturor** | **Fakturering**, **Användningshistorik**, **Fakturor** | [Fakturering och användning](/docs/configuration/billing) |
 | **Granskningsloggar** | **Granskningsloggar**, **Inställningar** | [Granskningsloggar](/docs/configuration/audit-logs) |
 | **Farozon** | **Farozon** | [Ta bort projektet](#ta-bort-projektet) |

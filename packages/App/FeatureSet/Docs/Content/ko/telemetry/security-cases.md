@@ -44,8 +44,8 @@ flowchart TB
 
 | 소스 | 케이스가 열리는 때 | 끄는 방법 |
 | --- | --- | --- |
-| 탐지 규칙 | 규칙이 일치할 때 | 규칙의 **Security Cases** 단계에 있는 **Open a Case on Match** |
-| 위협 인텔리전스 | 이벤트에 알려진 지표가 들어 있을 때 | 피드의 **Security Cases** 단계에 있는 **Open a Case on Match** |
+| 탐지 규칙 | 규칙이 일치할 때 | 규칙의 **일치 시** 단계에 있는 **Open a Case on Match** |
+| 위협 인텔리전스 | 이벤트에 알려진 지표가 들어 있을 때 | 피드의 **일치 시** 단계에 있는 **Open a Case on Match** |
 | 연결된 제품 | 연결의 임곗값 이상인 제품 자체의 알림을 가져올 때 | 연결의 **Polling** 단계에서 **Open Cases From** 을 **없음** 으로 설정 |
 | 사람 | 누군가 **Security Cases** 에서, 또는 이벤트 패널의 **Open Case** 로 직접 열 때 | 없음 |
 
@@ -229,7 +229,7 @@ flowchart TB
 ## 문제 해결
 
 :::details 규칙은 일치하는데 케이스가 열리지 않음
-규칙의 **Security Cases** 단계에서 **Open a Case on Match** 를 확인하세요. 이미 열린 케이스가 있는 엔티티에 관한 탐지는 다른 케이스를 여는 대신 그 케이스에 합류합니다. 열린 케이스의 **Detections** 에서 찾아보세요.
+규칙의 **일치 시** 단계에서 **Open a Case on Match** 를 확인하세요. 이미 열린 케이스가 있는 엔티티에 관한 탐지는 다른 케이스를 여는 대신 그 케이스에 합류합니다. 열린 케이스의 **Detections** 에서 찾아보세요.
 :::
 
 :::details 플레이북이 실행되지 않음

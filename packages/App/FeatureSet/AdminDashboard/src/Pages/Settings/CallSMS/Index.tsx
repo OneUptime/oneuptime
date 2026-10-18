@@ -54,6 +54,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.callSms.editButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.callSms.editButton")}
         /*
          * One page: the account SID, its auth token and the number to send
          * from are copied out of the Twilio console together and only work

@@ -36,6 +36,7 @@ Terraform/terraform-provider-oneuptime/
 ├── go.mod                           # Go module definition
 ├── Makefile                         # Build automation
 ├── README.md                        # Documentation
+├── LICENSE                          # Apache License 2.0
 ├── build.sh                         # Build script
 ├── install.sh                       # Local installation
 ├── test.sh                          # Test runner

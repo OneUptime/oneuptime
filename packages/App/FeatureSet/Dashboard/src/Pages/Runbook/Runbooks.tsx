@@ -4,6 +4,10 @@ import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Fi
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
+import Route from "Common/Types/API/Route";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -96,6 +100,27 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={true}
         isEditable={false}
         isCreateable={true}
+        /*
+         * A new runbook has no steps, and steps are what it runs: land on
+         * its Steps page, which asks for the first one, as a new workflow
+         * lands on its Builder. It used to stay on this list, and the
+         * runbook's Overview offered Run Now over nothing to run.
+         */
+        onCreateSuccess={(
+          item: Runbook,
+          modalType?: ModalType,
+        ): Promise<Runbook> => {
+          if (modalType === ModalType.Create && item._id) {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.RUNBOOK_VIEW_STEPS] as Route,
+                { modelId: item._id as string },
+              ),
+            );
+          }
+
+          return Promise.resolve(item);
+        }}
         bulkActions={{
           buttons: [...ownerBulkActions],
         }}

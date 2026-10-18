@@ -163,7 +163,8 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     type: RunbookStepType.JavaScript,
     label: "JavaScript",
     shortLabel: "JavaScript",
-    description: "Run a sandboxed JS snippet. Capture output and return value.",
+    description:
+      "Run JavaScript on one of your Runners and use what it returns.",
     icon: IconProp.Code,
     bg: "bg-amber-50",
     ring: "ring-amber-100",
@@ -187,7 +188,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     type: RunbookStepType.Bash,
     label: "Bash script",
     shortLabel: "Bash",
-    description: "Run a shell command on the agent.",
+    description: "Run a shell command on one of your Runners.",
     icon: IconProp.Terminal,
     bg: "bg-slate-50",
     ring: "ring-slate-200",
@@ -293,7 +294,7 @@ interface ScriptExample {
 }
 
 /*
- * JavaScript runs inside an isolated-vm sandbox on the agent.
+ * JavaScript runs inside an isolated-vm sandbox on the step's Runner.
  * No fs / network / process access — pure compute only. Use console.log()
  * and `return value` to surface results on the execution.
  */
@@ -333,9 +334,9 @@ return { status: 'healthy', value: random };`,
 ];
 
 /*
- * Bash runs via \`bash -c "<script>"\` on the agent's machine.
+ * Bash runs via \`bash -c "<script>"\` on the Runner's machine.
  * Standard shell tools (curl, jq, grep, awk, etc.) are available
- * if they are installed on the agent. Output is capped at 50 KB.
+ * if they are installed on the Runner. Output is capped at 50 KB.
  */
 const BASH_EXAMPLES: Array<ScriptExample> = [
   {
@@ -345,7 +346,7 @@ const BASH_EXAMPLES: Array<ScriptExample> = [
   },
   {
     label: "Check disk usage",
-    description: "Report disk usage on the agent host.",
+    description: "Report disk usage on the Runner's host.",
     code: `df -h | head -5
 echo "---"
 echo "Top 5 largest files in /var/log:"
@@ -373,7 +374,7 @@ if [[ -f "$LOG" ]]; then
   echo "Last 50 lines of $LOG:"
   tail -n 50 "$LOG"
 else
-  echo "Log file $LOG not found on this agent"
+  echo "Log file $LOG not found on this Runner"
   exit 1
 fi`,
   },
@@ -467,10 +468,10 @@ function summarizeStep(step: RunbookStep): string {
     return `${method} ${url}`;
   }
   if (step.type === RunbookStepType.JavaScript) {
-    return translateTemplate("Sandboxed JavaScript snippet");
+    return translateTemplate("JavaScript on a Runner");
   }
   if (step.type === RunbookStepType.Bash) {
-    return translateTemplate("Bash script on agent");
+    return translateTemplate("Bash script on a Runner");
   }
   if (step.type === RunbookStepType.SSH) {
     const cfg: SSHStepConfig = step.config as SSHStepConfig;
@@ -851,7 +852,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ? [
             {
               value: args.currentAgentId,
-              label: translator.translateTemplate("Unknown agent ({{id}})", {
+              label: translator.translateTemplate("Unknown Runner ({{id}})", {
                 id: args.currentAgentId,
               }),
             },
@@ -864,7 +865,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       (args.currentAgentId
         ? {
             value: args.currentAgentId,
-            label: translator.translateTemplate("Unknown agent ({{id}})", {
+            label: translator.translateTemplate("Unknown Runner ({{id}})", {
               id: args.currentAgentId,
             }),
           }
@@ -892,7 +893,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <Dropdown
             options={options}
             value={selectedOption}
-            placeholder="— Select an agent —"
+            placeholder="Select a Runner"
             onChange={(
               value: DropdownValue | Array<DropdownValue> | null,
             ): void => {
@@ -1071,7 +1072,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               slots={{
                 location: (
                   <strong>
-                    {translator.translateText("Settings › Credentials")}
+                    {translator.translateText(
+                      "Runbooks › Runners › Credentials",
+                    )}
                   </strong>
                 ),
               }}
@@ -1108,9 +1111,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   /*
-   * Bash and JavaScript are dispatched to an agent, so they carry two
-   * timeouts: how long the Worker waits for an agent to pick the job up, and
-   * how long the agent lets the script run once it has.
+   * Bash and JavaScript are dispatched to a Runner, so they carry two
+   * timeouts: how long the Worker waits for the Runner to pick the job up,
+   * and how long the Runner lets the script run once it has.
    */
   const renderAgentTimeouts: (args: {
     idx: number;
@@ -1145,7 +1148,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description={
             <>
               {translator.translateText(
-                "How long to wait for the agent to pick this job up before the step times out. Allow for its poll cycle (5 seconds by default).",
+                "How long to wait for the Runner to pick this step up before it times out. Allow for its poll cycle (5 seconds by default).",
               )}
             </>
           }
@@ -1172,7 +1175,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <Card
         title="Runbook Steps"
-        description="Ordered list of steps to run. Manual steps pause the runbook until a responder ticks them off; automated steps run inline. Drag steps to reorder."
+        description="Steps run in order. A manual step waits until someone ticks it off. Drag a step to move it."
         rightElement={
           steps.length > 0 ? (
             <div className="flex items-center gap-2">
@@ -1208,7 +1211,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     )}
                   </p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 max-w-5xl mx-auto">
+                {/*
+                 * Four to a row: the seven step types make two even rows
+                 * (four and three) rather than five and an orphaned two,
+                 * and each card's line wraps less.
+                 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl mx-auto">
                   {ALL_STEP_TYPES.map((t: RunbookStepType) => {
                     const meta: StepTypeMeta = STEP_TYPE_META[t];
                     return (
@@ -1218,7 +1226,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         onClick={() => {
                           return add(t);
                         }}
-                        className={`group text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-4 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
+                        /*
+                         * A column from the top: a button centres what it
+                         * holds, so cards with a longer line had their icon
+                         * higher than the others in the row.
+                         */
+                        className={`group flex flex-col items-start justify-start text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-4 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
                       >
                         <div
                           className={`inline-flex items-center justify-center h-9 w-9 rounded-lg ${meta.bg} ring-1 ${meta.ring} mb-3`}
@@ -1233,7 +1246,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           {meta.shortLabel}
                         </div>
                         <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                          {meta.description}
+                          {/*
+                           * The step's name stays as the editor and the
+                           * execution page name it, in English; what it
+                           * does reads in the reader's language.
+                           */}
+                          {translator.translateText(meta.description)}
                         </p>
                       </button>
                     );
@@ -1426,7 +1444,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               helperText: (
                                                 <>
                                                   {translator.translateText(
-                                                    "JavaScript runs sandboxed on the selected Runner in your own infrastructure. The step waits until this agent claims the job, or fails after the claim timeout.",
+                                                    "JavaScript runs on the selected Runner, in your own infrastructure. The step waits for that Runner to pick it up, or fails after the claim timeout.",
                                                   )}
                                                 </>
                                               ),
@@ -1456,7 +1474,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               />
                                               <p className="text-xs text-gray-500 mt-1.5">
                                                 <TranslatedSentence
-                                                  template="Sandboxed via {{sandbox}} on the agent. Use {{returnValue}} to capture output. No filesystem, network, or process access."
+                                                  template="Runs in an {{sandbox}} sandbox on the Runner, with no file, network or process access. Use {{returnValue}} to hand a result to the next steps."
                                                   slots={{
                                                     sandbox: (
                                                       <code>isolated-vm</code>
@@ -1485,7 +1503,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               executionDescription: (
                                                 <>
                                                   {translator.translateText(
-                                                    "How long the agent lets the script run before tearing the isolate down.",
+                                                    "How long the Runner lets the script run before stopping it.",
                                                   )}
                                                 </>
                                               ),
@@ -1647,7 +1665,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               helperText: (
                                                 <>
                                                   {translator.translateText(
-                                                    "Bash runs on the selected Runner in your own infrastructure. The step waits until this agent claims the job, or fails after the claim timeout.",
+                                                    "Bash runs on the selected Runner, in your own infrastructure. The step waits for that Runner to pick it up, or fails after the claim timeout.",
                                                   )}
                                                 </>
                                               ),
@@ -1677,7 +1695,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               />
                                               <p className="text-xs text-gray-500 mt-1.5">
                                                 <TranslatedSentence
-                                                  template="Runs via {{command}} on the selected agent. Output is capped at 50 KB. Non-zero exit codes fail the step."
+                                                  template="Runs with {{command}} on the selected Runner. Output is capped at 50 KB, and a non-zero exit code fails the step."
                                                   slots={{
                                                     command: (
                                                       <code>bash -c</code>
@@ -1702,7 +1720,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 step.config as BashStepConfig,
                                               executionDescription: (
                                                 <TranslatedSentence
-                                                  template="How long the agent lets the script run before killing it with {{signal}}."
+                                                  template="How long the Runner lets the script run before stopping it with {{signal}}."
                                                   slots={{
                                                     signal: (
                                                       <code>SIGKILL</code>
@@ -2148,7 +2166,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <div className="text-xs font-medium text-gray-500 mb-3 text-center uppercase tracking-wide">
                   {translator.translateText("Add another step")}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {ALL_STEP_TYPES.map((t: RunbookStepType) => {
                     const meta: StepTypeMeta = STEP_TYPE_META[t];
                     return (
@@ -2158,7 +2176,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         onClick={() => {
                           return add(t);
                         }}
-                        className={`group text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-3 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
+                        /*
+                         * A column from the top, like the first step's
+                         * cards: a button centres what it holds, so a card
+                         * beside a taller one had its icon lower.
+                         */
+                        className={`group flex flex-col items-start justify-start text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-3 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
                       >
                         <div
                           className={`inline-flex items-center justify-center h-8 w-8 rounded-lg ${meta.bg} ring-1 ${meta.ring} mb-2`}
@@ -2173,7 +2196,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           {meta.shortLabel}
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                          {meta.description}
+                          {translator.translateText(meta.description)}
                         </p>
                       </button>
                     );

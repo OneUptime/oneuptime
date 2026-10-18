@@ -192,9 +192,9 @@ Toda permissão concedida tem um escopo, escolhido em **Escopo** quando você a 
 
 | Escopo | Significado |
 | --- | --- |
-| Todos os recursos do projeto | O padrão. A permissão se aplica a todos os recursos correspondentes. |
-| De propriedade desta equipe ou de seus membros | A permissão só se aplica a recursos em que esta equipe, ou o usuário que age, está listado como proprietário. |
-| Restringir por rótulos (avançado) | A permissão só se aplica a recursos que carregam pelo menos um dos rótulos selecionados. |
+| Todos os recursos no projeto | O padrão, e o que a maioria das equipes precisa. A permissão se aplica a todos os recursos correspondentes. |
+| Apenas os recursos que pertencem a eles | A permissão só se aplica a recursos que pertencem à pessoa que age ou a uma das equipes dela. |
+| Apenas os recursos com certos rótulos | A permissão só se aplica a recursos que carregam pelo menos um dos rótulos escolhidos. |
 
 **Próprios** é a forma mais simples de montar um modelo de «cada um cuida dos seus próprios serviços»: dê a uma equipe `MonitorAdmin` com escopo Próprios e depois torne essa equipe proprietária dos monitores pelos quais ela é responsável. Isso restringe todo recurso que pode ter proprietários — monitores, incidentes, painéis, serviços, grupos de monitores, agendamentos de plantão e afins — e o que pertence a eles, como as camadas de um agendamento. Sondas, Runners, agentes de IA, agendamentos de plantão e modelos de incidentes e de manutenção são aquilo com que outros recursos são configurados, então uma permissão com escopo Próprios continua lendo todos eles, e você pode escolher qualquer um; ela só altera e exclui aqueles dos quais você ou suas equipes são proprietários. A chave de um Runner, que permite a quem a tem agir como esse Runner, só aparece nos Runners dos quais você ou suas equipes são proprietários. A configuração do projeto (estados de incidentes, rótulos, as próprias equipes) não tem proprietário, então uma função com escopo Próprios se comporta normalmente ali.
 

@@ -197,6 +197,19 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-
   ]
 }
 ```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
+}
+```
 :::
 
 ## GitHub Copilot 付きの VS Code

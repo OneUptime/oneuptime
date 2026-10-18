@@ -35,7 +35,7 @@ Abra **Produtos → Security Events → Threat Intel**.
 
 ### Crie o feed
 
-Clique em **Criar: Threat Intel Feed** e preencha as cinco etapas dele: **Informações básicas**, **TAXII Server**, **Autenticação**, **Security Cases** e **Ao corresponder**. Os campos estão na tabela abaixo.
+Clique em **Criar: Threat Intel Feed** e preencha as três etapas dele: **Servidor TAXII**, **Login** e **Ao corresponder**. Os campos estão na tabela abaixo.
 
 ### Confira a primeira consulta
 
@@ -48,16 +48,16 @@ Em um ou dois minutos, a linha do feed mostra **Last Polled**, e **Last Poll Sum
 | **Collection ID** | A coleção que publica os indicadores. |
 | **Poll Interval (Minutes)** | Com que frequência buscar objetos novos: de 1 a 1440 minutos, 60 por padrão. |
 | **Minimum Confidence** | Os indicadores com uma `confidence` STIX menor são ignorados: de 0 a 100, e 0 guarda tudo. Indicadores sem confiança sempre passam. |
-| **API Token** | Um token bearer, para uma coleção que peça um. |
-| **Basic Auth Username** e **Basic Auth Password** | Para uma coleção que use autenticação HTTP básica. Deixe os dois e o token vazios para uma coleção pública. |
+| **Login** | Como o OneUptime faz login: **Sem login** para uma coleção pública, **Token bearer** para um token do operador do servidor, ou **Usuário e senha** para autenticação HTTP básica. |
+| **API Token**, **Basic Auth Username** e **Basic Auth Password** | Pedidos só para o login escolhido. |
 | **Open a Case on Match** | Ativado por padrão: cada evento que cita um indicador abre um [caso](/docs/telemetry/security-cases) sobre ele, ou entra no caso aberto que já trata dele. |
-| **Create Alert on Match** | Ativado por padrão: cada indicador correspondente abre um alerta. |
+| **Alertas e incidentes** | **Criar um alerta** por padrão: cada indicador correspondente abre um alerta. |
 | **Severidade do alerta** | A severidade de cada alerta que este feed abre. Deixe vazio para usar o nível de ameaça de cada indicador. |
-| **Create Incident on Match** | Desativado por padrão. Os incidentes acionam o escalonamento de plantão, os SLAs e as páginas de status, e para correspondências de indicadores os alertas costumam bastar. |
+| **Declarar um incidente** ou **Ambos** | Em **Alertas e incidentes**. Os incidentes acionam o escalonamento de plantão, os SLAs e as páginas de status, e para correspondências de indicadores os alertas costumam bastar. |
 | **Severidade do incidente** | Como **Severidade do alerta**, para incidentes. |
 | **Write Detection Finding on Match** | Ativado por padrão: cada correspondência grava um achado no fluxo de eventos. |
 
-Tokens e senhas são criptografados e nunca mais são exibidos depois de salvos. Para trocá-los, escolha **Update Credentials** na linha do feed e depois **API Token (Bearer)**, **Basic Auth** ou **Anonymous (clear stored credentials)**: a sua escolha substitui o login do feed, então salvar um token apaga uma senha salva, e vice-versa.
+Tokens e senhas são criptografados e nunca mais são exibidos depois de salvos. Para trocá-los, escolha **Update Credentials** na linha do feed e depois **Token bearer**, **Usuário e senha** ou **Sem login**, que apaga o que está salvo: a sua escolha substitui o login do feed, então salvar um token apaga uma senha salva, e vice-versa.
 
 ### Como um feed é consultado
 
@@ -143,7 +143,7 @@ A cada minuto, os indicadores ativos de cada feed habilitado são comparados com
 ### O que uma correspondência faz
 
 - Um alerta, com o título `[Threat Intel] <feed name> — <indicator value>`, um por feed e valor enquanto estiver aberto. Depois de resolvido, a próxima correspondência abre um novo. Os alertas não são resolvidos automaticamente.
-- Um incidente, só com **Create Incident on Match**, deduplicado da mesma forma.
+- Um incidente, só com **Declarar um incidente** ou **Ambos** em **Alertas e incidentes**, deduplicado da mesma forma.
 - Um achado de inteligência de ameaças, com **Write Detection Finding on Match**: um evento `Detection Finding` (classe OCSF 2004) do produto `OneUptime Threat Intel`, com o nível de ameaça do indicador como gravidade e estes atributos:
 
 | Atributo | Valor |
@@ -199,7 +199,7 @@ A comparação confronta o valor de um indicador com os observables de um evento
 :::
 
 :::details Uma correspondência não abriu um alerta
-**Create Alert on Match** está desativado, ou ainda há um alerta aberto para o mesmo feed e valor, e as correspondências seguintes entram nele. Um projeto precisa de pelo menos uma severidade de alerta para que um feed abra alertas.
+**Alertas e incidentes** está em **Declarar um incidente** ou **Nenhum**, ou ainda há um alerta aberto para o mesmo feed e valor, e as correspondências seguintes entram nele. Um projeto precisa de pelo menos uma severidade de alerta para que um feed abra alertas.
 :::
 
 ## Próximos passos

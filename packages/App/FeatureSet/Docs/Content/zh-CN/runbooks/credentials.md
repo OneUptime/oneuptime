@@ -43,7 +43,7 @@ SSH 或 Kubernetes 步骤会指定一个凭据和一个 Runner。当该 Runner �
 
 :::tabs
 @tab SSH
-在 **SSH 主机** 下输入 **主机名** 、 **端口** （留空则为 22）和 **用户名** 。在 **SSH 认证** 下粘贴 **Private Key (PEM)** 及其 **Private Key Passphrase** （如果有），或为不支持密钥访问的主机输入 **密码** 。能选择时，密钥是最佳选择。
+在 **SSH 主机** 下输入 **主机名** 、 **端口** （留空则为 22）和 **用户名** 。在 **SSH 认证** 下选择 **登录方式** ：可以选择时更好的 **私钥** ，然后粘贴 **Private Key (PEM)** 及其 **Private Key Passphrase** （如果有）；或者为不支持密钥访问的主机选 **密码** ，然后输入 **密码** 。
 @tab Kubernetes
 在 **Kubernetes** 下输入 **API Server URL** （例如 `https://10.0.0.1:6443`）、 **Service Account Token** 和 **CA Certificate (PEM)** ，以便 Runner 验证 API 服务器。只有当 API 服务器出示的证书已被 Runner 信任时，才可以把 CA 留空。
 :::

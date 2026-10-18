@@ -111,7 +111,7 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp
 
 ### 管理已連接的用戶端
 
-透過登入連接的每個用戶端都列在 **專案設定 → 人工智慧 → MCP 伺服器** 的 **Connected MCP Clients** 下，並顯示是誰連接的、可以做什麼以及上次使用的時間。您會看到自己連接的用戶端；專案擁有者和管理員則會看到所有人的用戶端。
+透過登入連接的每個用戶端都列在 **專案設定 → 人工智慧 → MCP 伺服器** 的 **已連線的 MCP 用戶端** 下，並顯示是誰連接的、可以做什麼以及上次使用的時間。您會看到自己連接的用戶端；專案擁有者和管理員則會看到所有人的用戶端。
 
 按一下 **Disconnect** 可讓用戶端登出。它會立即停止運作。
 
@@ -195,6 +195,19 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

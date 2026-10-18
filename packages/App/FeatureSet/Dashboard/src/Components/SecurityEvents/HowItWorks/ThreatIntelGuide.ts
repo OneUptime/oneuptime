@@ -206,7 +206,7 @@ const feedsAndPollingMarkdown: string = `
 | --- | --- |
 | **TAXII API Root URL** | The collection server's TAXII 2.1 API root, e.g. \`https://taxii.example.com/api1/\`. |
 | **Collection ID** | The collection that publishes indicators. |
-| **API Token** or **Basic Auth** | Only if the collection requires them. Leave both empty for public collections. |
+| **Sign-in** | **No sign-in** for a public collection; **Bearer token** or **Username and password** when the collection requires one. |
 | **Poll Interval (Minutes)** | How often to fetch new objects: ${THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES}–${THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES}, default ${THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES}. |
 | **Minimum Confidence** | ${THREAT_INTEL_MINIMUM_CONFIDENCE_MIN}–${THREAT_INTEL_MINIMUM_CONFIDENCE_MAX}. See **Indicators**. |
 
@@ -214,7 +214,7 @@ Any TAXII 2.1 server that publishes STIX 2.1 \`indicator\` objects works — MIS
 
 #### Credentials
 
-Tokens and passwords are encrypted and are never shown again after you save them. To change them, use the row's **Update Credentials** action. Choosing a method there replaces the feed's authentication: saving a token clears a stored basic-auth password and vice versa, and **Anonymous** clears both.
+Tokens and passwords are encrypted and are never shown again after you save them. To change them, use the row's **Update Credentials** action, which asks the feed's **Sign-in** again. Choosing a method there replaces the feed's sign-in: saving a token clears a stored basic-auth password and vice versa, and **No sign-in** clears both.
 
 #### Polling
 
@@ -317,8 +317,8 @@ Every minute, each enabled feed's active indicators are matched against the even
 #### What a match does
 
 - **An alert**, titled \`[Threat Intel] <feed name> — <indicator value>\`: one per feed and indicator value while it stays open. Once it is resolved, the next match opens a new one. Alerts are not resolved automatically.
-- **An incident**, only with **Create Incident on Match** (off by default). Deduplicated the same way.
-- **A Threat Intel finding**, with **Write Detection Finding on Match** (the default): a \`${DETECTION_FINDING_CLASS_NAME}\` event (OCSF ${DETECTION_FINDING_CLASS_UID}) from product \`${THREAT_INTEL_PRODUCT_NAME}\`, with the indicator's threat level as its severity and these attributes:
+- **An incident**, only with **Declare an incident** or **Both** under **Alerts and Incidents** (an alert alone by default). Deduplicated the same way.
+- **A Threat Intel finding**, with **Write Detection Finding on Match** (the default, under **More fields**): a \`${DETECTION_FINDING_CLASS_NAME}\` event (OCSF ${DETECTION_FINDING_CLASS_UID}) from product \`${THREAT_INTEL_PRODUCT_NAME}\`, with the indicator's threat level as its severity and these attributes:
 
 ${markdownTable(
   ["Attribute", "Value"],
@@ -398,7 +398,7 @@ Read **Last Poll Summary**:
 
 #### A match did not open an alert
 
-- **Create Alert on Match** is off.
+- **Alerts and Incidents** is set to **Declare an incident** or **Neither**.
 - An alert for the same feed and indicator value is still open — further matches are deduplicated into it.
 - The project has no alert severities. Feeds need at least one to open alerts.
 `;

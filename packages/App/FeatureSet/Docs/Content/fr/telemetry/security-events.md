@@ -234,11 +234,11 @@ flowchart TB
 
 :::steps
 1. Ouvrez **Produits → Événements de sécurité → Règles de détection** et cliquez sur **Créer : Règle de détection**.
-2. Dans **Informations de base**, renseignez le **Nom** et laissez **Activé** activé.
-3. Dans **Sigma Rule**, collez le YAML de la règle dans **Sigma Rule (YAML)**. Il est analysé à l'enregistrement, donc une erreur s'affiche dans le formulaire.
-4. Dans **Évaluation**, réglez sa fréquence d'exécution et le nombre de correspondances qu'il lui faut ; voir [Paramètres d'évaluation](#paramètres-dévaluation).
-5. Dans **Security Cases**, laissez **Open a Case on Match** activé pour regrouper ses correspondances en dossiers, selon la valeur par laquelle la règle regroupe.
-6. Dans **En cas de correspondance**, choisissez ce que fait d'autre une correspondance : **Créer une alerte en cas de correspondance** (activé), **Créer un incident en cas de correspondance** (désactivé) et **Write Detection Finding on Match** (activé), avec une **Gravité de l'alerte** et une **Gravité de l'incident** optionnelles.
+2. Dans **Sigma Rule**, collez le YAML de la règle dans **Sigma Rule (YAML)**. Il est analysé à l'enregistrement, donc une erreur s'affiche dans le formulaire.
+3. Le **Nom** se remplit avec le `title` de la règle : remplacez-le pour l'appeler autrement. Une nouvelle règle s'exécute ; **Activé** se trouve dans son formulaire de modification.
+4. Dans **En cas de correspondance**, laissez **Open a Case on Match** activé pour regrouper ses correspondances en dossiers, selon la valeur par laquelle la règle regroupe.
+5. Sous **Alertes et incidents**, choisissez ce qu'une correspondance déclenche d'autre : **Créer une alerte** (par défaut), **Déclarer un incident**, **Les deux** ou **Aucun des deux**, avec une **Gravité de l'alerte** ou une **Gravité de l'incident** optionnelle.
+6. **Plus de champs** contient la **Description**, **Write Detection Finding on Match** (activé) et la façon de compter les correspondances ; voir [Paramètres d'évaluation](#paramètres-dévaluation).
 :::
 
 Une première règle, qui correspond aux échecs de connexion venant de l'extérieur de `10.x.x.x` :
@@ -372,11 +372,11 @@ Vérifiez qu'elle est **Activé**, et lisez **Dernière évaluation** et **Derni
 :::
 
 :::details Une règle a correspondu, mais aucune alerte ne s'est ouverte
-**Créer une alerte en cas de correspondance** est désactivé, ou une alerte pour la même règle et la même valeur de groupe est encore ouverte, et les correspondances suivantes s'y ajoutent. Un projet a besoin d'au moins une gravité d'alerte pour que les règles ouvrent des alertes.
+**Alertes et incidents** est réglé sur **Déclarer un incident** ou **Aucun des deux**, ou une alerte pour la même règle et la même valeur de groupe est encore ouverte, et les correspondances suivantes s'y ajoutent. Un projet a besoin d'au moins une gravité d'alerte pour que les règles ouvrent des alertes.
 :::
 
 :::details Une règle ouvre trop d'alertes
-Chaque valeur du **Champ de regroupement** reçoit sa propre alerte : regroupez sur quelque chose de plus large, relevez le seuil ou ajoutez un comptage distinct. Si c'est le rythme qui compte plutôt que chaque correspondance, désactivez **Créer une alerte en cas de correspondance** et placez un moniteur sur les constats de la règle.
+Chaque valeur du **Champ de regroupement** reçoit sa propre alerte : regroupez sur quelque chose de plus large, relevez le seuil ou ajoutez un comptage distinct. Si c'est le rythme qui compte plutôt que chaque correspondance, réglez **Alertes et incidents** sur **Aucun des deux** et placez un moniteur sur les constats de la règle.
 :::
 
 ## Étapes suivantes

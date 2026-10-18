@@ -281,12 +281,15 @@ afterEach(() => {
 async function renderPage(): Promise<void> {
   render(<APIKeyViewPage {...pageProps} />);
 
-  // Both tables have loaded: each shows its rows or its empty state.
+  /*
+   * Both tables have loaded: each shows its rows (a row's Scope cell says
+   * what it reaches) or its empty state.
+   */
   await waitFor(
     () => {
       expect(
         screen.getAllByText(
-          /This key can do nothing yet|Nothing is blocked for this API key|Restriction by labels|No restrictions/,
+          /This key can do nothing yet|Nothing is blocked for this API key|All resources in the project|Only resources with certain labels/,
         ).length,
       ).toBeGreaterThanOrEqual(2);
     },
@@ -524,6 +527,17 @@ describe("what the key can do", () => {
 
     expect(within(modal).getByText("Role")).toBeInTheDocument();
 
+    /*
+     * Named after the button that opened it, not the table's model: it
+     * read "Add New Permission" with an "Add Permission" button.
+     */
+    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+      /^Add a Role$/,
+    );
+    expect(
+      within(modal).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent(/^Add Role$/);
+
     // The team's role cards, all of them.
     const roles: number = PermissionHelper.getRolePermissionProps().length;
     expect(within(modal).getAllByRole("radio")).toHaveLength(roles);
@@ -536,9 +550,7 @@ describe("what the key can do", () => {
     );
 
     await act(async (): Promise<void> => {
-      fireEvent.click(
-        within(modal).getByRole("button", { name: "Add Permission" }),
-      );
+      fireEvent.click(within(modal).getByRole("button", { name: "Add Role" }));
     });
 
     await waitFor(() => {
@@ -578,6 +590,9 @@ describe("what the key can do", () => {
       within(modal).getByPlaceholderText("Search permissions..."),
     ).toBeInTheDocument();
     expect(within(modal).queryAllByRole("radio")).toEqual([]);
+    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+      /^Add a Permission$/,
+    );
 
     await pickPermission(modal, Permission.CreateProjectIncident);
 
@@ -647,6 +662,10 @@ describe("what the key can never do", () => {
       cardButton(block, "Add Block Permission"),
     );
 
+    // Its own Add button's words, as before: "Add New Block Permission".
+    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+      /^Add New Block Permission$/,
+    );
     expect(
       within(modal).getByPlaceholderText("Search permissions..."),
     ).toBeInTheDocument();

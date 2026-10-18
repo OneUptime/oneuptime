@@ -1,0 +1,406 @@
+import PushRelayRouter from "../../../FeatureSet/Notification/API/PushRelay";
+import PushNotificationService from "Common/Server/Services/PushNotificationService";
+import logger from "Common/Server/Utils/Logger";
+import {
+  createExpressApp,
+  ExpressApplication,
+  ExpressJson,
+} from "Common/Server/Utils/Express";
+import { expressErrorHandler } from "Common/Server/Utils/StartServer";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { JSONObject } from "Common/Types/JSON";
+import API from "Common/Utils/API";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import { createServer, Server } from "http";
+import { AddressInfo } from "net";
+
+jest.mock("Common/Server/Utils/Logger", () => {
+  return {
+    __esModule: true,
+    default: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+    getLogAttributesFromRequest: jest.fn().mockReturnValue({}),
+  };
+});
+
+/*
+ * The relay's rate limit, per route: 60 requests a minute from each client
+ * address, and 600 a minute from all the addresses of one IPv6 /64
+ * together (ClientIp getRateLimitClient). A host can send from any address
+ * of its /64, so a /64 is held to a minute of its own; some hosting
+ * providers put many customers' servers in one /64, so that minute has
+ * room for ten of them, each still held to its own address's.
+ *
+ * Over real HTTP, behind the real JSON parser and error handler. Requests
+ * arrive as they do through our Nginx: X-Forwarded-For ends with the address
+ * the proxy saw (TRUSTED_PROXY_HOPS 1, the shipped default).
+ */
+
+const RELAY_PATH: string = "/api/notification/push-relay";
+const PHONE_TOKEN: string = "ExponentPushToken[relay-rate-limit-phone1]";
+const RECEIPT_ID: string = "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
+const PER_ADDRESS: number = 60;
+const PER_IPV6_NETWORK: number = 600;
+
+interface ExpoPushMessage {
+  to: string | Array<string>;
+  [key: string]: unknown;
+}
+
+interface ExpoClient {
+  sendPushNotificationsAsync: (
+    messages: Array<ExpoPushMessage>,
+  ) => Promise<Array<JSONObject>>;
+  getPushNotificationReceiptsAsync: (
+    ids: Array<string>,
+  ) => Promise<{ [id: string]: JSONObject }>;
+}
+
+function expoClientOf(service: typeof PushNotificationService): ExpoClient {
+  return (service as unknown as { expoClient: ExpoClient }).expoClient;
+}
+
+let relay: Server;
+let origin: string;
+
+beforeAll(async () => {
+  const app: ExpressApplication = createExpressApp();
+  app.use(ExpressJson());
+  app.use(RELAY_PATH, PushRelayRouter);
+  app.use(expressErrorHandler);
+
+  relay = createServer(app);
+
+  await new Promise<void>((resolve: () => void) => {
+    relay.listen(0, "127.0.0.1", resolve);
+  });
+
+  origin = `http://127.0.0.1:${(relay.address() as AddressInfo).port}`;
+});
+
+afterAll(async () => {
+  await new Promise<void>((resolve: () => void) => {
+    relay.close(() => {
+      resolve();
+    });
+  });
+});
+
+let expoSends: number;
+let expoReceiptRequests: number;
+
+/*
+ * Each test counts in a minute of its own: the relay's limiters live as long
+ * as the process, as they do in a server.
+ */
+let minute: number = Date.UTC(2031, 0, 1, 0, 0, 0);
+
+beforeEach(() => {
+  expoSends = 0;
+  expoReceiptRequests = 0;
+  minute += 10 * 60 * 1000;
+  jest.spyOn(Date, "now").mockReturnValue(minute);
+
+  // OneUptime's cloud: a relay, with Expo credentials.
+  jest
+    .spyOn(PushNotificationService, "isPushRelayServer")
+    .mockReturnValue(true);
+  jest
+    .spyOn(PushNotificationService, "hasExpoAccessToken")
+    .mockReturnValue(true);
+
+  jest
+    .spyOn(expoClientOf(PushNotificationService), "sendPushNotificationsAsync")
+    .mockImplementation((async () => {
+      expoSends++;
+      return [{ status: "ok", id: RECEIPT_ID }];
+    }) as never);
+
+  jest
+    .spyOn(
+      expoClientOf(PushNotificationService),
+      "getPushNotificationReceiptsAsync",
+    )
+    .mockImplementation((async () => {
+      expoReceiptRequests++;
+      return { [RECEIPT_ID]: { status: "ok" } };
+    }) as never);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  jest.mocked(logger.warn).mockClear();
+});
+
+// A request from `address`, as our Nginx passes it on.
+async function postFrom(
+  address: string,
+  route: "send" | "receipts",
+): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+  return await API.post<JSONObject>({
+    url: URL.fromString(`${origin}${RELAY_PATH}/${route}`),
+    data:
+      route === "send"
+        ? {
+            to: PHONE_TOKEN,
+            title: "Incident #9: Checkout is down",
+            body: "A new incident has been created.",
+            data: {},
+            sound: "default",
+            priority: "high",
+            channelId: "oncall_high",
+          }
+        : { ids: [RECEIPT_ID] },
+    headers: { "X-Forwarded-For": address },
+  });
+}
+
+function rateLimitWarnings(): Array<string> {
+  return jest
+    .mocked(logger.warn)
+    .mock.calls.map((call: Array<unknown>): string => {
+      return String(call[0]);
+    })
+    .filter((line: string): boolean => {
+      return line.startsWith("Push relay: more than");
+    });
+}
+
+// An address in the /64 `network` ("2001:db8:a:1"), numbered `host`.
+function addressIn(network: string, host: number): string {
+  return `${network}::${host.toString(16)}`;
+}
+
+describe("each address has a minute of its own", () => {
+  test("60 pages a minute from one IPv6 address, then 429, and Expo is not asked", async () => {
+    for (let request: number = 1; request <= PER_ADDRESS; request++) {
+      expect((await postFrom("2001:db8:a:1::1", "send")).statusCode).toBe(200);
+    }
+
+    const refused: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await postFrom("2001:db8:a:1::1", "send");
+
+    expect(refused.statusCode).toBe(429);
+    expect(refused.jsonData).toEqual({
+      message: "Rate limit exceeded. Please try again later.",
+    });
+    expect(expoSends).toBe(PER_ADDRESS);
+
+    // The next address of the same /64 still sends.
+    expect((await postFrom("2001:db8:a:1::2", "send")).statusCode).toBe(200);
+  });
+
+  test("every spelling of one address is the same address", async () => {
+    const spellings: Array<string> = [
+      "2001:db8:c:1::1",
+      "2001:DB8:C:1::1",
+      "2001:0db8:000c:0001:0000:0000:0000:0001",
+      "[2001:db8:c:1::1]:443",
+    ];
+
+    for (let request: number = 0; request < PER_ADDRESS; request++) {
+      const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await postFrom(spellings[request % spellings.length]!, "send");
+
+      expect(answer.statusCode).toBe(200);
+    }
+
+    for (const spelling of spellings) {
+      expect((await postFrom(spelling, "send")).statusCode).toBe(429);
+    }
+  });
+
+  test("a new minute starts a new count", async () => {
+    for (let request: number = 1; request <= PER_ADDRESS + 1; request++) {
+      await postFrom("2001:db8:d:1::abc", "send");
+    }
+
+    expect((await postFrom("2001:db8:d:1::abc", "send")).statusCode).toBe(429);
+
+    jest.spyOn(Date, "now").mockReturnValue(minute + 61 * 1000);
+
+    expect((await postFrom("2001:db8:d:1::abc", "send")).statusCode).toBe(200);
+  });
+
+  test("the first refusal of an address's minute is logged once, naming the address", async () => {
+    for (let request: number = 1; request <= PER_ADDRESS + 10; request++) {
+      await postFrom("2001:db8:f:1::7", "send");
+    }
+
+    expect(rateLimitWarnings()).toEqual([
+      "Push relay: more than 60 send requests in a minute from 2001:db8:f:1::7. Refusing them until the minute is over.",
+    ]);
+  });
+});
+
+describe("an IPv6 /64 has a minute of its own, with room for ten servers", () => {
+  test("ten servers sharing one /64, as some hosting providers give, each send their 60 pages a minute", async () => {
+    for (let server: number = 1; server <= 10; server++) {
+      for (let request: number = 1; request <= PER_ADDRESS; request++) {
+        const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await postFrom(addressIn("2001:db8:10:1", server), "send");
+
+        expect(answer.statusCode).toBe(200);
+      }
+    }
+
+    expect(expoSends).toBe(PER_IPV6_NETWORK);
+  });
+
+  test("a host sending from a new address of its /64 every time is refused after 600 a minute", async () => {
+    for (let host: number = 1; host <= PER_IPV6_NETWORK; host++) {
+      const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await postFrom(addressIn("2001:db8:11:1", host), "send");
+
+      expect(answer.statusCode).toBe(200);
+    }
+
+    const refused: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await postFrom("2001:db8:11:1:ffff:ffff:ffff:fffe", "send");
+
+    expect(refused.statusCode).toBe(429);
+    expect(refused.jsonData).toEqual({
+      message: "Rate limit exceeded. Please try again later.",
+    });
+    expect(expoSends).toBe(PER_IPV6_NETWORK);
+
+    expect(rateLimitWarnings()).toEqual([
+      "Push relay: more than 600 send requests in a minute from 2001:db8:11:1::/64. Refusing them until the minute is over.",
+    ]);
+  });
+
+  test("an address over its own minute does not use up its /64's", async () => {
+    // One address keeps sending: 60 go out, the rest are refused.
+    for (let request: number = 1; request <= PER_ADDRESS + 40; request++) {
+      await postFrom("2001:db8:12:1::1", "send");
+    }
+
+    expect(expoSends).toBe(PER_ADDRESS);
+
+    // The rest of its /64 still has the 540 pages its minute has left.
+    for (let host: number = 2; host <= 10; host++) {
+      for (let request: number = 1; request <= PER_ADDRESS; request++) {
+        const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await postFrom(addressIn("2001:db8:12:1", host), "send");
+
+        expect(answer.statusCode).toBe(200);
+      }
+    }
+
+    expect(expoSends).toBe(PER_IPV6_NETWORK);
+
+    expect((await postFrom("2001:db8:12:1::b", "send")).statusCode).toBe(429);
+  });
+
+  test("requests refused for their /64's minute are not counted against their address", async () => {
+    for (let host: number = 1; host <= PER_IPV6_NETWORK; host++) {
+      await postFrom(addressIn("2001:db8:15:1", 0x1000 + host), "send");
+    }
+
+    // Half a minute on, a server of the /64 that had sent nothing is refused.
+    jest.spyOn(Date, "now").mockReturnValue(minute + 30 * 1000);
+
+    for (let request: number = 1; request <= PER_ADDRESS + 10; request++) {
+      expect((await postFrom("2001:db8:15:1::1", "send")).statusCode).toBe(429);
+    }
+
+    expect(expoSends).toBe(PER_IPV6_NETWORK);
+
+    // Once its /64's minute is over, its first page goes out.
+    jest.spyOn(Date, "now").mockReturnValue(minute + 61 * 1000);
+
+    expect((await postFrom("2001:db8:15:1::1", "send")).statusCode).toBe(200);
+    expect(expoSends).toBe(PER_IPV6_NETWORK + 1);
+  });
+
+  test("another /64 has a minute of its own", async () => {
+    for (let host: number = 1; host <= PER_IPV6_NETWORK + 5; host++) {
+      await postFrom(addressIn("2001:db8:13:1", host), "send");
+    }
+
+    const neighbour: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await postFrom("2001:db8:13:2::1", "send");
+
+    expect(neighbour.statusCode).toBe(200);
+    expect(expoSends).toBe(PER_IPV6_NETWORK + 1);
+  });
+
+  test("receipts are counted the same way, and never use up the pages' minute", async () => {
+    for (let host: number = 1; host <= PER_IPV6_NETWORK; host++) {
+      const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await postFrom(addressIn("2001:db8:14:1", host), "receipts");
+
+      expect(answer.statusCode).toBe(200);
+    }
+
+    expect((await postFrom("2001:db8:14:1::beef", "receipts")).statusCode).toBe(
+      429,
+    );
+    expect(expoReceiptRequests).toBe(PER_IPV6_NETWORK);
+
+    // The same /64's page still goes out.
+    expect((await postFrom("2001:db8:14:1::cafe", "send")).statusCode).toBe(
+      200,
+    );
+  });
+});
+
+describe("an IPv4 client is its address", () => {
+  test("60 pages a minute from one address, then 429; another address has its own minute", async () => {
+    for (let request: number = 1; request <= PER_ADDRESS; request++) {
+      expect((await postFrom("198.51.100.20", "send")).statusCode).toBe(200);
+    }
+
+    expect((await postFrom("198.51.100.20", "send")).statusCode).toBe(429);
+    expect((await postFrom("198.51.100.21", "send")).statusCode).toBe(200);
+    expect(expoSends).toBe(PER_ADDRESS + 1);
+  });
+
+  test("IPv4 addresses are never counted together", async () => {
+    for (let host: number = 1; host <= 11; host++) {
+      for (let request: number = 1; request <= PER_ADDRESS; request++) {
+        const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await postFrom(`198.51.100.${100 + host}`, "send");
+
+        expect(answer.statusCode).toBe(200);
+      }
+    }
+
+    expect(expoSends).toBe(11 * PER_ADDRESS);
+  });
+
+  test("an IPv4 address reached as IPv4-mapped IPv6 is that IPv4 address", async () => {
+    for (let request: number = 1; request <= PER_ADDRESS; request++) {
+      await postFrom("198.51.100.30", "send");
+    }
+
+    expect((await postFrom("::ffff:198.51.100.30", "send")).statusCode).toBe(
+      429,
+    );
+  });
+
+  test("the receipts route logs its own first refusal", async () => {
+    for (let request: number = 1; request <= PER_ADDRESS + 3; request++) {
+      await postFrom("198.51.100.40", "receipts");
+    }
+
+    expect(rateLimitWarnings()).toEqual([
+      "Push relay: more than 60 receipts requests in a minute from 198.51.100.40. Refusing them until the minute is over.",
+    ]);
+  });
+});

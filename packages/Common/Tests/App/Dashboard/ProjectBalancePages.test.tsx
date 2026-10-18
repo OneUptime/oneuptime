@@ -605,3 +605,129 @@ describe.each(PAGES)(
     });
   },
 );
+
+/*
+ * The Auto Recharge card, as each page draws it (Components/ProjectBalance/
+ * AutoRechargeCard): one line that says what it does, and an Edit dialog
+ * that asks for the two amounts only once it is on. Its helpers are pinned
+ * in AutoRechargeCard.test.ts.
+ */
+describe.each(PAGES)("$name: the Auto Recharge card", (page: BalancePage) => {
+  const enableColumn: string =
+    page.balance === ProjectBalanceType.AI
+      ? "enableAutoRechargeAiBalance"
+      : "enableAutoRechargeSmsOrCallBalance";
+
+  // The project the page reads, with this balance's Auto Recharge on or off.
+  const projectWithAutoRecharge: (isOn: boolean) => void = (
+    isOn: boolean,
+  ): void => {
+    const project: Project = Object.assign(new Project(), {
+      _id: PROJECT_ID,
+      smsOrCallCurrentBalanceInUSDCents: 0,
+      aiCurrentBalanceInUSDCents: 0,
+      enableAutoRechargeSmsOrCallBalance: false,
+      autoRechargeSmsOrCallByBalanceInUSD: 20,
+      autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: 10,
+      enableAutoRechargeAiBalance: false,
+      autoAiRechargeByBalanceInUSD: 20,
+      autoRechargeAiWhenCurrentBalanceFallsInUSD: 10,
+      enableSmsNotifications: true,
+      enableCallNotifications: true,
+      enableWhatsAppNotifications: false,
+      enableTelegramNotifications: false,
+      [enableColumn]: isOn,
+    });
+
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockImplementation(async (): Promise<Project> => {
+        return project;
+      });
+  };
+
+  test("says Off while it is off, and shows no amounts", async () => {
+    projectWithAutoRecharge(false);
+    grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+    page.open();
+
+    const card: HTMLElement = await cardOf("Auto Recharge");
+
+    expect(
+      await within(card).findByTestId(
+        "auto-recharge-summary",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toHaveTextContent(/^Off$/);
+    expect(card).not.toHaveTextContent("Amount to add");
+    expect(card).not.toHaveTextContent("When the balance falls to");
+    expect(card).toHaveTextContent(
+      "Adds to the balance automatically when it runs low.",
+    );
+  });
+
+  test("once it is on, says how much it adds and when, in one line", async () => {
+    projectWithAutoRecharge(true);
+    grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+    page.open();
+
+    const card: HTMLElement = await cardOf("Auto Recharge");
+
+    expect(
+      await within(card).findByTestId(
+        "auto-recharge-summary",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toHaveTextContent("Adds 20 USD whenever the balance falls to 10 USD.");
+  });
+
+  test("its Edit dialog is titled for it, and asks for the amounts only once it is turned on", async () => {
+    projectWithAutoRecharge(false);
+    grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+    page.open();
+
+    const card: HTMLElement = await cardOf("Auto Recharge");
+
+    await within(card).findByTestId(
+      "auto-recharge-summary",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await act(async () => {
+      fireEvent.click(buttonIn(card, "Edit Auto Recharge")!);
+    });
+    await flush();
+
+    const dialog: HTMLElement = await screen.findByTestId(
+      "modal",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(within(dialog).getByTestId("modal-title")).toHaveTextContent(
+      "Edit Auto Recharge",
+    );
+
+    const toggle: HTMLElement = await within(dialog).findByRole(
+      "switch",
+      { name: "Enable Auto Recharge" },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(within(dialog).queryByText("Amount to add")).toBeNull();
+    expect(within(dialog).queryByText("When the balance falls to")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+    await flush();
+
+    expect(within(dialog).getByText("Amount to add")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("When the balance falls to"),
+    ).toBeInTheDocument();
+  });
+});

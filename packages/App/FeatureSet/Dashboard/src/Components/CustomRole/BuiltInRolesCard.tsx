@@ -35,8 +35,9 @@ const BuiltInRolesCard: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
+  // What each role can do in full: this card is for looking roles up.
   const groups: Array<CardSelectOptionGroup> = useMemo(() => {
-    return getRoleCardSelectOptions();
+    return getRoleCardSelectOptions({ fullDescriptions: true });
   }, []);
 
   const roleCount: number = groups.reduce(

@@ -44,8 +44,8 @@ Cada uno de estos permisos también se puede conceder por separado, desde crear 
 
 | Origen | Abre un caso cuando | Cómo desactivarlo |
 | --- | --- | --- |
-| Reglas de detección | Una regla coincide | **Open a Case on Match**, en el paso **Security Cases** de la regla |
-| Inteligencia de amenazas | Un evento nombra un indicador conocido | **Open a Case on Match**, en el paso **Security Cases** del feed |
+| Reglas de detección | Una regla coincide | **Open a Case on Match**, en el paso **Al coincidir** de la regla |
+| Inteligencia de amenazas | Un evento nombra un indicador conocido | **Open a Case on Match**, en el paso **Al coincidir** del feed |
 | Productos conectados | Se importa una alerta propia del producto con un nivel igual o superior al umbral de la conexión | **Open Cases From** con el valor **Nunca**, en el paso **Sondeo** de la conexión |
 | Personas | Alguien abre uno desde **Security Cases**, o con **Open Case** en el panel de un evento | No se puede desactivar |
 
@@ -229,7 +229,7 @@ Un proyecto que aún no tiene casos ni detecciones muestra, encima de todo esto,
 ## Solución de problemas
 
 :::details Una regla coincide, pero no se abre ningún caso
-Comprueba **Open a Case on Match** en el paso **Security Cases** de la regla. Una detección sobre una entidad que ya tiene un caso abierto se suma a ese caso en lugar de abrir otro: búscala en **Detecciones** dentro del caso abierto.
+Comprueba **Open a Case on Match** en el paso **Al coincidir** de la regla. Una detección sobre una entidad que ya tiene un caso abierto se suma a ese caso en lugar de abrir otro: búscala en **Detecciones** dentro del caso abierto.
 :::
 
 :::details Un playbook no se ejecutó

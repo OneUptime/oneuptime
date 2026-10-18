@@ -43,7 +43,7 @@ SSH 또는 Kubernetes 단계는 자격 증명과 Runner를 지정합니다. 그 
 
 :::tabs
 @tab SSH
-**SSH 호스트** 아래에 **호스트 이름**, **포트**(비워 두면 22), **사용자 이름**을 입력합니다. **SSH 인증** 아래에는 **Private Key (PEM)** 와 패스프레이즈가 있다면 **Private Key Passphrase** 를 붙여 넣거나, 키로 접근할 수 없는 호스트라면 **비밀번호**를 입력합니다. 고를 수 있다면 키가 가장 좋습니다.
+**SSH 호스트** 아래에 **호스트 이름**, **포트**(비워 두면 22), **사용자 이름**을 입력합니다. **SSH 인증** 아래 **로그인 방법** 에서 고릅니다. 선택할 수 있다면 더 나은 **개인 키** 를 고르고 **Private Key (PEM)** 와 패스프레이즈가 있다면 **Private Key Passphrase** 를 붙여 넣거나, 키로 접근할 수 없는 호스트라면 **비밀번호** 를 고르고 **비밀번호**를 입력합니다.
 @tab Kubernetes
 **Kubernetes** 아래에 **API Server URL**(예: `https://10.0.0.1:6443`), **Service Account Token**, **CA Certificate (PEM)** 를 입력해 Runner가 API 서버를 검증할 수 있게 합니다. CA는 API 서버가 Runner가 이미 신뢰하는 인증서를 제시할 때만 비워 두세요.
 :::

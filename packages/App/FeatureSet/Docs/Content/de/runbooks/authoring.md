@@ -25,11 +25,11 @@ Sie schreiben ein Runbook als geordnete Liste von Schritten auf seiner Seite **S
 
 ### Das Runbook erstellen
 
-Klicken Sie auf **Runbook erstellen**, geben Sie einen **Name** und optional eine **Beschreibung** dessen ein, wofür das Runbook gedacht ist. Unter **Weitere Felder** liegen der Schalter **Aktiviert**, standardmäßig an, und **Beschriftungen**. Das neue Runbook erscheint in der Liste: Öffnen Sie es.
+Klicken Sie auf **Runbook erstellen**, geben Sie einen **Name** und optional eine **Beschreibung** dessen ein, wofür das Runbook gedacht ist. Unter **Weitere Felder** liegen der Schalter **Aktiviert**, standardmäßig an, und **Beschriftungen**. Das neue Runbook öffnet sich auf seiner Seite **Schritte**.
 
 ### Schritte hinzufügen
 
-Gehen Sie zu **Schritte**. Unter **Ihr Runbook beginnen** wählen Sie den Typ des ersten Schritts; unter dem letzten Schritt bietet **Weiteren Schritt hinzufügen** dieselben sieben Typen an. Jeder Schritt öffnet sich mit seinem **Titel**, seiner **Beschreibung** (Markdown, für die reagierende Person sichtbar) und den Einstellungen seines Typs. Sobald das Runbook einen Schritt hat, fügt **Schritt hinzufügen** oben auf der Karte einen Manual-Schritt hinzu.
+Unter **Ihr Runbook beginnen** wählen Sie den Typ des ersten Schritts; unter dem letzten Schritt bietet **Weiteren Schritt hinzufügen** dieselben sieben Typen an. Jeder Schritt öffnet sich mit seinem **Titel**, seiner **Beschreibung** (Markdown, für die reagierende Person sichtbar) und den Einstellungen seines Typs. Sobald das Runbook einen Schritt hat, fügt **Schritt hinzufügen** oben auf der Karte einen Manual-Schritt hinzu.
 
 ### Die Schritte ordnen
 

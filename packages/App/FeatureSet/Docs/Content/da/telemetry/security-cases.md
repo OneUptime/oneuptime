@@ -44,8 +44,8 @@ Hver af disse rettigheder kan også tildeles for sig, fra at oprette en sag til 
 
 | Kilde | Åbner en sag, når | Slås fra med |
 | --- | --- | --- |
-| Detektionsregler | En regel matcher | **Open a Case on Match** i regelens trin **Security Cases** |
-| Trusselsintelligens | En begivenhed nævner en kendt indikator | **Open a Case on Match** i feedets trin **Security Cases** |
+| Detektionsregler | En regel matcher | **Open a Case on Match** i regelens trin **Ved match** |
+| Trusselsintelligens | En begivenhed nævner en kendt indikator | **Open a Case on Match** i feedets trin **Ved match** |
 | Forbundne produkter | En advarsel fra selve produktet importeres på eller over forbindelsens tærskel | **Open Cases From** sat til **Aldrig** i forbindelsens trin **Polling** |
 | Personer | Nogen åbner en fra **Security Cases** eller med **Open Case** i en begivenheds panel | Ingen |
 
@@ -229,7 +229,7 @@ Et projekt, der endnu ikke har sager eller detektioner, viser over disse de tre 
 ## Fejlfinding
 
 :::details En regel matcher, men ingen sag åbnes
-Tjek **Open a Case on Match** i regelens trin **Security Cases**. En detektion om en entitet, der allerede har en åben sag, føjes til den sag i stedet for at åbne en ny: kig efter den under **Detections** på den åbne sag.
+Tjek **Open a Case on Match** i regelens trin **Ved match**. En detektion om en entitet, der allerede har en åben sag, føjes til den sag i stedet for at åbne en ny: kig efter den under **Detections** på den åbne sag.
 :::
 
 :::details En playbook kørte ikke

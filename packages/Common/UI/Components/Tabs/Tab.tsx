@@ -10,6 +10,11 @@ export enum TabType {
 
 export interface Tab {
   name: string;
+  /*
+   * The name is drawn as given, never looked up: a product's name ("Cursor")
+   * can also be a word the reader's language translates (a text cursor).
+   */
+  isName?: boolean | undefined;
   countBadge?: number | undefined;
   tabType?: TabType | undefined;
   children: ReactElement;
@@ -20,14 +25,20 @@ export interface ComponentProps {
   onClick?: () => void;
   isSelected?: boolean;
   tabPanelId?: string;
+  /*
+   * The tab sits in a row that wraps (Tabs wrap): the row spaces its tabs
+   * and its lines, so the tab adds no margin of its own.
+   */
+  isInWrappingRow?: boolean | undefined;
 }
 
 const TabElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translatedName: string =
-    translateString(props.tab.name) ?? props.tab.name;
+  const translatedName: string = props.tab.isName
+    ? props.tab.name
+    : translateString(props.tab.name) ?? props.tab.name;
   const backgroundColor: string = "bg-gray-100";
 
   const baseClasses: string =
@@ -46,7 +57,7 @@ const TabElement: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="mt-3 mb-3">
+    <div className={props.isInWrappingRow ? "" : "mt-3 mb-3"}>
       <div
         id={`tab-${props.tab.name}`}
         data-testid={`tab-${props.tab.name}`}

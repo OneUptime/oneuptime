@@ -43,7 +43,7 @@ I trinnet **Credential** skriver du inn et **Navn**, for eksempel `prod-cluster`
 
 :::tabs
 @tab SSH
-Under **SSH-vert** skriver du inn **Vertsnavn**, **Port** (22 hvis feltet er tomt) og **Brukernavn**. Under **SSH-autentisering** limer du inn en **Private Key (PEM)** med tilhørende **Private Key Passphrase** hvis den har en, eller skriver inn et **Passord** for en vert uten nøkkeltilgang. En nøkkel er det beste valget når du kan velge.
+Under **SSH-vert** skriver du inn **Vertsnavn**, **Port** (22 hvis feltet er tomt) og **Brukernavn**. Under **SSH-autentisering** velger du under **Logg på med**: en **Privat nøkkel**, det beste valget når du kan velge, og limer så inn **Private Key (PEM)** med tilhørende **Private Key Passphrase** hvis den har en; eller et **Passord** for en vert uten nøkkeltilgang, og skriver så inn **Passord**.
 @tab Kubernetes
 Under **Kubernetes** skriver du inn **API Server URL**, for eksempel `https://10.0.0.1:6443`, **Service Account Token** og **CA Certificate (PEM)**, slik at Runneren kan verifisere API-serveren. La bare CA-en stå tom hvis API-serveren presenterer et sertifikat som Runneren allerede stoler på.
 :::

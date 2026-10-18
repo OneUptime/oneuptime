@@ -394,7 +394,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "A single run covers up to 100,000 resources.",
   ],
   [SMTP]: [
-    "Username and Password",
     "OAuth 2.0",
     "OAuth fields",
     "Copy the secret value immediately",
