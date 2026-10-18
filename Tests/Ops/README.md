@@ -868,7 +868,9 @@ version's tags, one image's failure not stopping the others but failing the
 job by name, and a refused call retried; and the SBOMs, the infrastructure
 agent and the two apps are built while the images are tested, only for
 `release` (as the draft, which they used to need), kept as artifacts (one
-each, replaced on a re-run, an empty one failing) and attached by
+each, replaced on a re-run, an empty one failing; the infrastructure agent's
+job keeps its Homebrew cask and winget manifests in a second one, which the
+publish job does not download) and attached by
 `finalize-github-release` before it publishes: the apps only when their build
 succeeded, under the asset names the release has always had, and the SBOM job
 waiting for the merge of exactly the images `generate_sboms.sh` scans.
@@ -1066,6 +1068,70 @@ from the `mcp-registry-publish` environment, which no other job names or
 mentions the key in; its permissions are `contents: read`, with no `${{ }}`
 in its scripts; and it installs the `mcp-publisher` it pins, checking the
 archive's sha256 before unpacking it.
+
+### `InfrastructureAgentPackageManagers.test.js`
+
+Each release puts the infrastructure agent in apt and yum
+(packages.oneuptime.com), Homebrew (`OneUptime/homebrew-tap`) and winget
+(`microsoft/winget-pkgs`): GoReleaser writes the packages, the cask and the
+winget manifests in `infrastructure-agent-build`, and release.yml's three
+`publish-infrastructure-agent-*` jobs publish them with
+`Scripts/PackageManagers/` (see its README). The suite reads:
+
+- the GoReleaser config: packages versioned as the release, not as
+  GoReleaser's snapshot (`14.0.71~SNAPSHOT-<commit>` is what apt used to see),
+  under the file names the repository build reads; the cask and the
+  manifests downloading this release's assets, and published by GoReleaser
+  nowhere;
+- the jobs: each runs after `finalize-github-release` (so after the three e2e
+  jobs) and only for `release`, in the `package-managers` environment that no
+  other job names, with `contents: read`, a timeout and no `${{ }}` in its
+  scripts; its first step checks its secrets, every later step runs only when
+  they are set, and that step is run here to show a missing secret skips the
+  job with a notice rather than failing the release; it hands its script
+  exactly the version, files and secrets the script reads, from where the
+  artifacts put them; no other job reads its deploy key or token; the
+  manifests are an artifact of their own that the release does not attach;
+- the scripts: they parse, pass shellcheck where it is installed (CI has
+  it), trust only github.com's own host key, and the site is pushed as one
+  commit with `--force-with-lease`.
+
+And it runs two of them. `PublishHomebrewCask.sh`, against a local git
+repository: the first cask to an empty tap, nothing for a version the tap
+has or an older one, a newer version replacing it, and a cask for another
+version or a missing key refused before the tap is touched.
+`PublishWingetManifests.sh`, against a fake `gh`: the branch made at
+winget-pkgs' newest commit in the fork, the three manifests committed as
+written, the pull request from the fork (a new package's first, a new
+version's after); nothing opened for a version winget-pkgs has or one with a
+pull request open; a branch a stopped run left moved, not made again;
+`WINGET_FORK_OWNER` honoured; no fork, or a fork of something else, and an
+API that keeps failing, each stopping it having written nothing.
+
+### `package-repository-e2e.sh`
+
+Not part of `npm test`; needs docker and the distributions' package mirrors.
+The "Ops Config Test" workflow runs it on every PR. It publishes two releases
+of a stand-in agent package, built by nfpm as GoReleaser builds the real one,
+with the real `PublishPackageRepository.sh` and `BuildPackageRepository.sh`
+on Ubuntu 24.04 (the release runner's), into a local stand-in for
+`OneUptime/packages`, and serves what was pushed over HTTP. Then it runs the
+apt and dnf commands of the Server / VM Monitor docs page as written, with
+only `https://packages.oneuptime.com` swapped, under a root umask of 077:
+
+- apt on Ubuntu verifies `InRelease` against `gpg.key`, fetches the indexes
+  by hash, installs the newest version, downgrades and upgrades, and refuses
+  the repository when `gpg.key` is another key;
+- dnf on Rocky Linux 8 (RHEL 8's rpm) checks the metadata's and each
+  package's signature, installs, downgrades and upgrades;
+- the publish reads the key with its newlines written as `\n`, as the secret
+  holds it; creates the site in an empty repository; pushes nothing for a
+  version the site has; and replaces the site's one commit with another, with
+  no parent, for the next release.
+
+Run it with `bash Tests/Ops/package-repository-e2e.sh`; `--apt-image`,
+`--dnf-image`, `--builder-image` and `--server-image` swap the images (for
+example for `mirror.gcr.io/library/...` when public.ecr.aws refuses).
 
 ### `agent-ebpf-e2e/`
 

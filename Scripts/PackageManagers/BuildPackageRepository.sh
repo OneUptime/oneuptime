@@ -121,6 +121,7 @@ for arch in "${ARCHES[@]}"; do
 	[[ -f "$deb" ]] || fail "missing $deb"
 	[[ -f "$rpm_file" ]] || fail "missing $rpm_file"
 
+	# shellcheck disable=SC2016 # dpkg-deb's own ${Field} syntax, not the shell's
 	read -r name version architecture < <(dpkg-deb --show --showformat '${Package} ${Version} ${Architecture}\n' "$deb")
 	[[ "$name $version $architecture" == "$PACKAGE $VERSION $arch" ]] ||
 		fail "$deb is '$name $version $architecture', not '$PACKAGE $VERSION $arch'"
