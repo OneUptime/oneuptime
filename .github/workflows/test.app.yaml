@@ -283,6 +283,7 @@ jobs:
               test-maintenance-calendar-ui
               test-detail-cards-ui
               test-model-tables-ui
+              test-infrastructure-first-run-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -418,6 +419,8 @@ jobs:
             output/playwright/runbook-triggers-ui/test-results
             output/playwright/network-first-run-ui/*.png
             output/playwright/network-first-run-ui/test-results
+            output/playwright/infrastructure-first-run-ui/*.png
+            output/playwright/infrastructure-first-run-ui/test-results
             output/playwright/custom-roles-ui/*.png
             output/playwright/custom-roles-ui/test-results
             output/playwright/sign-in-options-ui/test-results
