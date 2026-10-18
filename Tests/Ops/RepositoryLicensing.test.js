@@ -990,7 +990,8 @@ describe("single sign-on lives in the Apache-2.0 part of the repository", () => 
   test("the single sign-on screens are in the core frontends", () => {
     for (const file of [
       "packages/App/FeatureSet/Dashboard/src/Pages/Settings/SSO.tsx",
-      "packages/App/FeatureSet/Dashboard/src/Pages/Settings/OIDC.tsx",
+      // The project's OIDC providers, drawn on the SSO page since #4989.
+      "packages/App/FeatureSet/Dashboard/src/Components/Sso/ProjectOidcProviders.tsx",
       "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SSO.tsx",
       "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/OIDC.tsx",
       "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/Index.tsx",
