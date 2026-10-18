@@ -586,14 +586,6 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
       ["Project Settings > Billing and Invoices > Billing"],
     ],
     [
-      "App/FeatureSet/Dashboard/src/Components/AIChat/AIChatAvailability.ts",
-      [
-        "Project Settings > AI > AI Features",
-        "Project Settings > AI > LLM Providers",
-        "Project Settings > Billing and Invoices > Billing",
-      ],
-    ],
-    [
       "Common/Server/Types/Database/Permissions/BillingPermission.ts",
       ["Project Settings > Billing and Invoices > Invoices"],
     ],

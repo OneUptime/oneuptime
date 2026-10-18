@@ -192,7 +192,7 @@ describe("WorkflowTools", () => {
       });
     });
 
-    it("marks whoami read-only and mutating tools non-destructive", () => {
+    it("marks whoami read-only and every tool that changes something destructive", () => {
       const tools: McpToolInfo[] = generateWorkflowTools();
       const whoami: McpToolInfo | undefined = tools.find(
         (tool: McpToolInfo) => {
@@ -205,10 +205,15 @@ describe("WorkflowTools", () => {
         },
       );
 
-      expect(whoami?.annotations).toEqual({ readOnlyHint: true });
+      expect(whoami?.annotations).toEqual({
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      });
       expect(acknowledge?.annotations).toEqual({
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
       });
     });
   });

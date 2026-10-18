@@ -8,6 +8,7 @@ import { McpToolInfo, JSONSchema } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import MCPLogger from "../Utils/MCPLogger";
+import { readOnlyToolAnnotations } from "./ToolAnnotations";
 import API from "Common/Utils/API";
 import URL from "Common/Types/API/URL";
 import Route from "Common/Types/API/Route";
@@ -66,7 +67,7 @@ RETURNS:
 - Monitor status history`,
     inputSchema: statusPageIdentifierSchema,
     title: "Get Status Page Overview",
-    annotations: { readOnlyHint: true },
+    annotations: readOnlyToolAnnotations({ openWorld: true }),
     modelName: "StatusPageOverview",
     operation: OneUptimeOperation.Read,
     modelType: ModelType.Database,
@@ -112,7 +113,7 @@ RETURNS:
       additionalProperties: false,
     },
     title: "Get Status Page Incidents",
-    annotations: { readOnlyHint: true },
+    annotations: readOnlyToolAnnotations({ openWorld: true }),
     modelName: "StatusPageIncidents",
     operation: OneUptimeOperation.List,
     modelType: ModelType.Database,
@@ -159,7 +160,7 @@ RETURNS:
       additionalProperties: false,
     },
     title: "Get Status Page Maintenance",
-    annotations: { readOnlyHint: true },
+    annotations: readOnlyToolAnnotations({ openWorld: true }),
     modelName: "StatusPageScheduledMaintenance",
     operation: OneUptimeOperation.List,
     modelType: ModelType.Database,
@@ -204,7 +205,7 @@ RETURNS:
       additionalProperties: false,
     },
     title: "Get Status Page Announcements",
-    annotations: { readOnlyHint: true },
+    annotations: readOnlyToolAnnotations({ openWorld: true }),
     modelName: "StatusPageAnnouncements",
     operation: OneUptimeOperation.List,
     modelType: ModelType.Database,
