@@ -136,6 +136,25 @@ describe("the note is true to the code", () => {
     );
   });
 
+  it("the bundled probe keeps its monitors: it takes over only the global probe of its name that holds a shipped key", () => {
+    const register: string = source(
+      "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Register.ts",
+    );
+    expect(register).toContain("ProbeService.findGlobalProbeToTakeOver({");
+
+    const takeover: string = source(
+      "packages/Common/Server/Utils/ShippedKeyTakeover.ts",
+    );
+    expect(takeover).toContain("return isShippedSecretValue(row.key);");
+
+    const aiAgentApi: string = source(
+      "packages/Common/Server/API/AIAgentAPI.ts",
+    );
+    expect(aiAgentApi).toContain(
+      "AIAgentService.findGlobalAIAgentToTakeOver({",
+    );
+  });
+
   it("verifyProbeKey refuses a shipped probe key before it reads the cache or the database", () => {
     const probeService: string = source(
       "packages/Common/Server/Services/ProbeService.ts",

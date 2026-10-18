@@ -635,6 +635,10 @@ function standInForSenders(record: {
   standIn("Common/Server/Services/AIAgentService", "findOneBy", () => {
     return null;
   });
+  // No global agent yet, so a registration has none to take over.
+  standIn("Common/Server/Services/AIAgentService", "findBy", () => {
+    return [];
+  });
   standIn(
     "Common/Server/Services/AIAgentService",
     "create",
