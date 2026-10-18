@@ -339,6 +339,65 @@ describe("a call", () => {
     expect(earlier).toHaveAttribute("target", "_blank");
     expect(earlier).toHaveTextContent("Join huddle");
   });
+
+  test("a link that is not an http or https address gets no Join link, and can still be copied", () => {
+    renderCard({
+      calls: [
+        incidentCall({
+          provider: VideoCallProvider.CustomLink,
+          joinUrl: "javascript:alert(document.domain)",
+          title: "Payments bridge",
+          minutesAgo: 1,
+        }),
+        incidentCall({
+          provider: VideoCallProvider.CustomLink,
+          joinUrl: " data:text/html,<script>alert(1)</script>",
+          title: "Old bridge",
+          minutesAgo: 9,
+        }),
+      ],
+    });
+
+    expect(screen.getAllByTestId("event-video-call")).toHaveLength(2);
+    expect(screen.getByText("Payments bridge")).toBeVisible();
+    expect(screen.queryByTestId("event-video-call-join")).toBeNull();
+    expect(screen.queryByTestId("event-video-call-join-secondary")).toBeNull();
+    expect(
+      within(
+        screen.getByTestId("event-video-call-secondary-actions"),
+      ).getByRole("button", { name: /Copy link/ }),
+    ).toBeVisible();
+
+    // No link on the card opens anything but an http or https address.
+    for (const link of Array.from(document.querySelectorAll("a[href]"))) {
+      expect(link.getAttribute("href")).toMatch(/^(https?:\/\/|\/)/);
+    }
+  });
+
+  test("Join opens the link as the browser reads it", () => {
+    renderCard({
+      calls: [
+        incidentCall({
+          provider: VideoCallProvider.CustomLink,
+          joinUrl: "  HTTPS://Bridge.Example.com/room 7 ",
+          minutesAgo: 1,
+        }),
+        incidentCall({
+          provider: VideoCallProvider.CustomLink,
+          joinUrl: "http://bridge.internal.example.com/room/8",
+          minutesAgo: 9,
+        }),
+      ],
+    });
+
+    expect(screen.getByTestId("event-video-call-join")).toHaveAttribute(
+      "href",
+      "https://bridge.example.com/room%207",
+    );
+    expect(
+      screen.getByTestId("event-video-call-join-secondary"),
+    ).toHaveAttribute("href", "http://bridge.internal.example.com/room/8");
+  });
 });
 
 describe("removing a call", () => {

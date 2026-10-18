@@ -160,6 +160,28 @@ describe("VideoCallTestPanel", () => {
     expect(testButton()).toHaveTextContent("Test again");
   });
 
+  test("shows a meeting link that is not an http or https address without opening it", async () => {
+    const runTest: MockFunction = getJestMockFunction().mockResolvedValue({
+      provider: VideoCallProvider.Zoom,
+      joinUrl: "javascript:alert(document.domain)",
+    });
+
+    render(
+      <VideoCallTestPanel providerTitle="Zoom" runTest={runTest as never} />,
+    );
+
+    fireEvent.click(testButton());
+
+    const passed: HTMLElement = await screen.findByTestId(
+      "video-call-test-passed",
+    );
+
+    expect(
+      within(passed).getByText("javascript:alert(document.domain)"),
+    ).not.toHaveAttribute("href");
+    expect(within(passed).queryByRole("link")).toBeNull();
+  });
+
   test("shows the provider's own reason when the meeting could not start", async () => {
     const runTest: MockFunction = getJestMockFunction().mockRejectedValue(
       new Error(
