@@ -165,6 +165,18 @@ describe("an IPv4 client is counted as it always was", () => {
     expect(redis.commandsSent("get")).toEqual([]);
   });
 
+  test("IPv4 clients reaching the server through a translator (64:ff9b::/96) are each their own IPv4 address, with no shared /64", async () => {
+    for (let host: number = 1; host <= 200; host++) {
+      expect(
+        await count(`64:ff9b::198.51.100.${host}`, { counters: [ipCounter] }),
+      ).toBeNull();
+    }
+
+    expect(redis.keysHolding("/64")).toEqual([]);
+    expect(redis.count("t:i:198.51.100.7:1")).toBe(1);
+    expect(redis.commandsSent("get")).toEqual([]);
+  });
+
   test("callers that cannot be placed share one count, with no /64", async () => {
     expect(await count("unknown")).toBeNull();
 

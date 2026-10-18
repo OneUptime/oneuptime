@@ -245,14 +245,19 @@ export interface RateLimitClient {
 export const getRateLimitClient: (clientIp: string) => RateLimitClient = (
   clientIp: string,
 ): RateLimitClient => {
+  /*
+   * An IPv4 client written as IPv6 - IPv4-mapped ("::ffff:203.0.113.7"), or
+   * through a translator's 64:ff9b::/96 - is that IPv4 client, with no /64:
+   * the clients behind one translator do not share an allowance.
+   */
+  const embeddedIpv4: string | null = IpCanonicalUtil.getEmbeddedIpv4(clientIp);
+
+  if (embeddedIpv4) {
+    return { address: embeddedIpv4, ipv6Network64: null };
+  }
+
   return {
-    /*
-     * An IPv4 address handed over IPv4-mapped ("::ffff:203.0.113.7") is
-     * that IPv4 address, as resolveClientIp already reads it.
-     */
-    address:
-      IpCanonicalUtil.getMappedIpv4(clientIp) ||
-      IpCanonicalUtil.canonicalize(clientIp),
+    address: IpCanonicalUtil.canonicalize(clientIp),
     ipv6Network64: IpCanonicalUtil.getIpv6Network64(clientIp),
   };
 };

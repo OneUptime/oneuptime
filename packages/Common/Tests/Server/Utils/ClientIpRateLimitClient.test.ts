@@ -145,6 +145,22 @@ describe("getRateLimitClient", () => {
       });
     }
   });
+
+  test("IPv4 clients behind a translator are each their own IPv4 address, with no shared /64", () => {
+    const clients: Array<RateLimitClient> = [
+      "64:ff9b::203.0.113.9",
+      "64:ff9b::198.51.100.4",
+      "64:ff9b::c000:201",
+    ].map((address: string): RateLimitClient => {
+      return getRateLimitClient(address);
+    });
+
+    expect(clients).toEqual([
+      { address: "203.0.113.9", ipv6Network64: null },
+      { address: "198.51.100.4", ipv6Network64: null },
+      { address: "192.0.2.1", ipv6Network64: null },
+    ]);
+  });
 });
 
 describe("the room a /64 gets under a limit that counts both", () => {

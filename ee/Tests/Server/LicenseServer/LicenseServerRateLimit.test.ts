@@ -726,19 +726,17 @@ describe("LicenseServerRateLimit", () => {
         LicenseServerRateLimitBucket.Validate,
       );
 
-      let continued: number = 0;
+      const next: MockedFn = jest.fn();
 
       for (let index: number = 0; index < 330; index++) {
         await middleware(
           buildRequest({ socketAddress: hostOf(index + 1) }),
           buildResponse().response,
-          ((): void => {
-            continued++;
-          }) as unknown as NextFunction,
+          next as unknown as NextFunction,
         );
       }
 
-      expect(continued).toBe(300);
+      expect(next).toHaveBeenCalledTimes(300);
 
       const lastRefusal: Exception = sendErrorResponseMock.mock.calls[
         sendErrorResponseMock.mock.calls.length - 1

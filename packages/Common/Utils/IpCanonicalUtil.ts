@@ -80,12 +80,22 @@ export default class IpCanonicalUtil {
   }
 
   /*
-   * The IPv4 address an IPv4-mapped IPv6 literal stands for, dotted
-   * ("::ffff:192.0.2.1" and "::ffff:c000:201" are both "192.0.2.1"), or null
-   * when the value is anything else. A rate limit counts the two spellings
-   * as one client (Server/Utils/ClientIp getRateLimitClient).
+   * The IPv4 address an IPv6 literal carries in its last 32 bits, dotted, for
+   * the two prefixes that are nothing but an IPv4 address written as IPv6:
+   *
+   *  - IPv4-mapped, ::ffff:0:0/96 ("::ffff:192.0.2.1" and "::ffff:c000:201"
+   *    are both "192.0.2.1"), what a dual-stack socket reports for an IPv4
+   *    peer;
+   *  - the well-known IPv4/IPv6 translation prefix, 64:ff9b::/96 (RFC 6052),
+   *    what a server reached through a stateless translator sees for an
+   *    IPv4 client.
+   *
+   * Null for anything else. A rate limit counts such an address as the IPv4
+   * client it is (Server/Utils/ClientIp getRateLimitClient): every IPv4
+   * client behind one translator shares the translator's /96, and counting
+   * that as one IPv6 /64 would hold them all to one allowance.
    */
-  public static getMappedIpv4(value: string): string | null {
+  public static getEmbeddedIpv4(value: string): string | null {
     const trimmed: string = value.trim();
 
     if (!IP.isIP(trimmed) || new IP(trimmed).isIPv4()) {
@@ -94,7 +104,13 @@ export default class IpCanonicalUtil {
 
     const groups: Array<number> | null = IpCanonicalUtil.toIpv6Groups(trimmed);
 
-    if (!groups || !IpCanonicalUtil.isIpv4Mapped(groups)) {
+    if (
+      !groups ||
+      !(
+        IpCanonicalUtil.isIpv4Mapped(groups) ||
+        IpCanonicalUtil.isIpv4Translated(groups)
+      )
+    ) {
       return null;
     }
 
@@ -102,6 +118,17 @@ export default class IpCanonicalUtil {
     const low: number = groups[7]!;
 
     return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
+  }
+
+  // 64:ff9b::a.b.c.d - the well-known translation prefix, then four zero groups.
+  private static isIpv4Translated(groups: Array<number>): boolean {
+    return (
+      groups[0] === 0x64 &&
+      groups[1] === 0xff9b &&
+      groups.slice(2, 6).every((group: number): boolean => {
+        return group === 0;
+      })
+    );
   }
 
   // ::ffff:a.b.c.d - five zero groups, then ffff.

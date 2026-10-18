@@ -181,7 +181,7 @@ describe("IpCanonicalUtil.getIpv6Network64", () => {
   });
 });
 
-describe("IpCanonicalUtil.getMappedIpv4", () => {
+describe("IpCanonicalUtil.getEmbeddedIpv4", () => {
   test("an IPv4-mapped address, however it is spelled, is the IPv4 address it maps", () => {
     for (const spelling of [
       "::ffff:203.0.113.7",
@@ -190,20 +190,33 @@ describe("IpCanonicalUtil.getMappedIpv4", () => {
       "0:0:0:0:0:ffff:cb00:7107",
       " ::ffff:203.0.113.7 ",
     ]) {
-      expect(IpCanonicalUtil.getMappedIpv4(spelling)).toBe("203.0.113.7");
+      expect(IpCanonicalUtil.getEmbeddedIpv4(spelling)).toBe("203.0.113.7");
     }
 
-    expect(IpCanonicalUtil.getMappedIpv4("::ffff:0.0.0.0")).toBe("0.0.0.0");
-    expect(IpCanonicalUtil.getMappedIpv4("::ffff:ffff:ffff")).toBe(
+    expect(IpCanonicalUtil.getEmbeddedIpv4("::ffff:0.0.0.0")).toBe("0.0.0.0");
+    expect(IpCanonicalUtil.getEmbeddedIpv4("::ffff:ffff:ffff")).toBe(
       "255.255.255.255",
     );
   });
 
-  test("anything else maps no IPv4 address", () => {
+  test("an address under the well-known translation prefix is the IPv4 client it carries", () => {
+    for (const spelling of [
+      "64:ff9b::203.0.113.7",
+      "64:FF9B::203.0.113.7",
+      "64:ff9b::cb00:7107",
+      "0064:ff9b:0000:0000:0000:0000:cb00:7107",
+    ]) {
+      expect(IpCanonicalUtil.getEmbeddedIpv4(spelling)).toBe("203.0.113.7");
+    }
+  });
+
+  test("anything else carries no IPv4 address", () => {
     for (const value of [
       "203.0.113.7",
       "2001:db8::1",
-      "64:ff9b::203.0.113.7",
+      // The local-use translation prefix places the IPv4 address as its operator chose.
+      "64:ff9b:1::203.0.113.7",
+      "64:ff9b:0:0:1::cb00:7107",
       "::203.0.113.7",
       "::1",
       "::",
@@ -211,7 +224,7 @@ describe("IpCanonicalUtil.getMappedIpv4", () => {
       "",
       "::ffff:203.0.113.7:443",
     ]) {
-      expect(IpCanonicalUtil.getMappedIpv4(value)).toBeNull();
+      expect(IpCanonicalUtil.getEmbeddedIpv4(value)).toBeNull();
     }
   });
 });
