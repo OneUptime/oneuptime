@@ -33,7 +33,11 @@ class CounterPipeline {
     return this;
   }
 
+  // Answered as Redis answers it: one result per command, EXPIRE's a 1.
   public expire(): this {
+    this.commands.push((): [null, number] => {
+      return [null, 1];
+    });
     return this;
   }
 
