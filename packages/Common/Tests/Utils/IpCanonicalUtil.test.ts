@@ -85,10 +85,10 @@ describe("IpCanonicalUtil.areSameIpAddress", () => {
 });
 
 /*
- * The /64 an IPv6 address is in: what a rate limit counts as one client
- * (Server/Utils/ClientIp getRateLimitClient), since one host is commonly
- * given a whole /64. Every spelling of an address in it names the same /64,
- * and nothing that is not an IPv6 address has one.
+ * The /64 an IPv6 address is in: what a rate limit counts together, beside
+ * each address (Server/Utils/ClientIp getRateLimitClient), since one host
+ * is commonly given a whole /64. Every spelling of an address in it names
+ * the same /64, and nothing that is not an IPv6 address has one.
  */
 describe("IpCanonicalUtil.getIpv6Network64", () => {
   test("an address's /64 is its first four groups", () => {

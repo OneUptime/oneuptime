@@ -220,19 +220,35 @@ export const resolveClientIp: (
 };
 
 /*
- * The client a rate limit counts a request as, given the address
- * resolveClientIp attributed it to: an IPv4 address on its own, and an IPv6
- * address by its /64 ("2001:db8:0:1::/64"). One host is commonly given a
- * whole /64 (RFC 7934), so the /64 is the host, whichever of its addresses
- * a request comes from.
+ * Who a rate limit counts a request as, given the address resolveClientIp
+ * attributed it to.
  *
- * Anything that is not an address ("unknown", the bucket of callers that
- * cannot be placed) is counted as itself.
+ * `address` is that address, written one way however it was spelled
+ * ("2001:DB8::1" and "2001:db8:0:0:0:0:0:1" are one address). Anything
+ * that is not an address ("unknown", the bucket of callers that cannot be
+ * placed) is counted as itself.
+ *
+ * `ipv6Network64` is the /64 an IPv6 address is in ("2001:db8:0:1::/64"),
+ * and null for anything else. One host is commonly given a whole /64
+ * (RFC 7934) and can send from any address in it, so a limit counted per
+ * address alone does not hold that host to anything. Some hosting
+ * providers put the servers of many customers in one shared /64, though,
+ * so a limit counted per /64 alone would hold unrelated servers to one
+ * allowance. A rate limit counts both: each address, and each /64 with
+ * room for several servers.
  */
-export const getRateLimitClient: (clientIp: string) => string = (
+export interface RateLimitClient {
+  address: string;
+  ipv6Network64: string | null;
+}
+
+export const getRateLimitClient: (clientIp: string) => RateLimitClient = (
   clientIp: string,
-): string => {
-  return IpCanonicalUtil.getIpv6Network64(clientIp) || clientIp;
+): RateLimitClient => {
+  return {
+    address: IpCanonicalUtil.canonicalize(clientIp),
+    ipv6Network64: IpCanonicalUtil.getIpv6Network64(clientIp),
+  };
 };
 
 export default resolveClientIp;

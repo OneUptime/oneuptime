@@ -18,6 +18,8 @@ import path from "path";
 
 /* <repo>/packages/App/Tests/FeatureSet/Notification -> <repo>/packages */
 const PACKAGES: string = path.resolve(__dirname, "../../../..");
+const REPO_ROOT: string = path.resolve(PACKAGES, "..");
+const ENTERPRISE: string = path.join(REPO_ROOT, "ee");
 const RELAY_ROUTER: string = path.join(
   PACKAGES,
   "App",
@@ -71,9 +73,14 @@ function sourceFilesUnder(directory: string): Array<string> {
   return files;
 }
 
+/*
+ * App and Common, and the Enterprise Edition's code where it is checked out
+ * (App's tests also run without ee/).
+ */
 const SOURCE_FILES: Array<string> = [
   ...sourceFilesUnder(path.join(PACKAGES, "App")),
   ...sourceFilesUnder(path.join(PACKAGES, "Common")),
+  ...(fs.existsSync(ENTERPRISE) ? sourceFilesUnder(ENTERPRISE) : []),
 ];
 
 function filesContaining(text: string): Array<string> {
@@ -138,8 +145,18 @@ describe("the push relay's ways in", () => {
   });
 
   test("the relay's router is mounted by the Notification feature set alone", () => {
-    // Imported: a module path ending in the router's name, quoted.
-    expect(filesContaining('/API/PushRelay"')).toEqual([
+    /*
+     * Imported or required, from anywhere and in either quotes: a module
+     * path ending in the router's name.
+     */
+    const importers: Array<string> = [
+      ...new Set<string>([
+        ...filesContaining('/PushRelay"'),
+        ...filesContaining("/PushRelay'"),
+      ]),
+    ].sort();
+
+    expect(importers).toEqual([
       path.join("App", "FeatureSet", "Notification", "Index.ts"),
     ]);
 

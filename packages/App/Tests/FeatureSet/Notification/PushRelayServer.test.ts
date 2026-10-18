@@ -6,6 +6,8 @@ import {
   createExpressApp,
   ExpressApplication,
   ExpressJson,
+  ExpressRequest,
+  ExpressResponse,
   ExpressRouter,
 } from "Common/Server/Utils/Express";
 import type { expressErrorHandler } from "Common/Server/Utils/StartServer";
@@ -27,7 +29,13 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
-import { createServer, Server } from "http";
+import {
+  ClientRequest,
+  createServer,
+  IncomingMessage,
+  request as httpRequest,
+  Server,
+} from "http";
 import { AddressInfo } from "net";
 
 jest.mock("Common/Server/Utils/Logger", () => {
@@ -452,6 +460,242 @@ describe.each(SERVERS_THAT_DO_NOT_RELAY)(
     });
   },
 );
+
+/*
+ * A request written out as a client may send it - any method, the path as
+ * it is put on the wire, any body - and the answer as it came back.
+ */
+async function rawRequest(data: {
+  server: RunningServer;
+  method: string;
+  path: string;
+  body?: string;
+  contentType?: string;
+}): Promise<{ statusCode: number; body: string }> {
+  const port: number = (data.server.http.address() as AddressInfo).port;
+
+  return await new Promise(
+    (
+      resolve: (answer: { statusCode: number; body: string }) => void,
+      reject: (error: Error) => void,
+    ) => {
+      const request: ClientRequest = httpRequest(
+        {
+          host: "127.0.0.1",
+          port: port,
+          method: data.method,
+          path: data.path,
+          // A connection of its own, closed with the answer.
+          agent: false,
+          headers: {
+            ...(data.contentType ? { "Content-Type": data.contentType } : {}),
+            ...(data.body !== undefined
+              ? { "Content-Length": Buffer.byteLength(data.body) }
+              : {}),
+          },
+        },
+        (response: IncomingMessage) => {
+          let body: string = "";
+
+          response.setEncoding("utf8");
+          response.on("data", (chunk: string) => {
+            body += chunk;
+          });
+          response.on("end", () => {
+            resolve({ statusCode: response.statusCode || 0, body: body });
+          });
+        },
+      );
+
+      request.on("error", reject);
+
+      if (data.body !== undefined) {
+        request.write(data.body);
+      }
+
+      request.end();
+    },
+  );
+}
+
+/*
+ * Every way into the relay's router on a server that does not relay: any
+ * method, any spelling of the path, any body. Express matches paths
+ * without regard to case, and with or without a trailing slash, so each of
+ * these reaches the router, where the check answers before anything else.
+ */
+const WAYS_INTO_THE_RELAY: Array<[string, string]> = [
+  ["GET", "/api/notification/push-relay/send"],
+  ["PUT", "/api/notification/push-relay/send"],
+  ["PATCH", "/push-relay/send"],
+  ["DELETE", "/push-relay/receipts"],
+  ["POST", "/API/NOTIFICATION/PUSH-RELAY/SEND"],
+  ["POST", "/Push-Relay/Send"],
+  ["POST", "/push-relay/send/"],
+  ["POST", "/push-relay/send?relay=true"],
+  ["POST", "/push-relay/%73end"],
+  ["POST", "/push-relay/send/again"],
+  ["POST", "/push-relay"],
+  ["POST", "/push-relay/"],
+  ["POST", "/api/notification/push-relay/receipts/"],
+];
+
+describe.each([
+  [
+    "a self-hosted server with an Expo access token for its own pushes",
+    SELF_HOSTED_WITH_ITS_OWN_EXPO_TOKEN,
+  ],
+  [
+    "OneUptime's cloud with the relay turned off",
+    { ...ONEUPTIME_CLOUD, PUSH_NOTIFICATION_RELAY_SERVER_ENABLED: "false" },
+  ],
+])(
+  "%s, asked every other way",
+  (_name: string, environment: ServerEnvironment) => {
+    let server: RunningServer;
+
+    beforeAll(async () => {
+      server = await startServer(environment);
+    });
+
+    afterAll(async () => {
+      await close(server.http);
+    });
+
+    beforeEach(() => {
+      watchExpo(server);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test.each(WAYS_INTO_THE_RELAY)(
+      "%s %s: answers 404 and sends nothing to Expo",
+      async (method: string, requestPath: string) => {
+        const answer: { statusCode: number; body: string } = await rawRequest({
+          server: server,
+          method: method,
+          path: requestPath,
+          body: JSON.stringify(page()),
+          contentType: "application/json",
+        });
+
+        expect(answer.statusCode).toBe(404);
+        expect(JSON.parse(answer.body)).toEqual(NOT_SERVED);
+        expect(server.expoSends).toEqual([]);
+        expect(server.expoReceiptRequests).toEqual([]);
+      },
+    );
+
+    test.each([
+      ["text/plain", JSON.stringify(page())],
+      [
+        "application/x-www-form-urlencoded",
+        `to=${encodeURIComponent(PHONE_TOKEN)}&title=Incident&body=Down`,
+      ],
+    ])(
+      "a page sent as %s: answers 404 and sends nothing to Expo",
+      async (contentType: string, body: string) => {
+        const answer: { statusCode: number; body: string } = await rawRequest({
+          server: server,
+          method: "POST",
+          path: "/api/notification/push-relay/send",
+          body: body,
+          contentType: contentType,
+        });
+
+        expect(answer.statusCode).toBe(404);
+        expect(JSON.parse(answer.body)).toEqual(NOT_SERVED);
+        expect(server.expoSends).toEqual([]);
+      },
+    );
+
+    test("a route added to the relay's router later answers the same 404, and never runs", async () => {
+      let reached: boolean = false;
+
+      server.loaded.router.post(
+        "/added-later",
+        (_req: ExpressRequest, res: ExpressResponse) => {
+          reached = true;
+          res.json({ sent: true });
+        },
+      );
+
+      const answer: HTTPResponse<JSONObject> | HTTPErrorResponse = await post(
+        `${server.origin}/push-relay/added-later`,
+        page(),
+      );
+
+      expect(answer.statusCode).toBe(404);
+      expect(answer.jsonData).toEqual(NOT_SERVED);
+      expect(reached).toBe(false);
+    });
+  },
+);
+
+describe("OneUptime's cloud, asked the same other ways", () => {
+  let server: RunningServer;
+
+  beforeAll(async () => {
+    server = await startServer(ONEUPTIME_CLOUD);
+  });
+
+  afterAll(async () => {
+    await close(server.http);
+  });
+
+  beforeEach(() => {
+    watchExpo(server);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  /*
+   * The ways above that name /send or /receipts as Express reads it reach
+   * those routes here: so the 404 above is the check, not a path that
+   * never reached the router.
+   */
+  test.each([
+    ["/API/NOTIFICATION/PUSH-RELAY/SEND"],
+    ["/Push-Relay/Send"],
+    ["/push-relay/send/"],
+    ["/push-relay/send?relay=true"],
+  ])("POST %s sends the page", async (requestPath: string) => {
+    const answer: { statusCode: number; body: string } = await rawRequest({
+      server: server,
+      method: "POST",
+      path: requestPath,
+      body: JSON.stringify(page()),
+      contentType: "application/json",
+    });
+
+    expect(answer.statusCode).toBe(200);
+    expect(server.expoSends).toHaveLength(1);
+  });
+
+  test("a route added to the relay's router later is reached", async () => {
+    let reached: boolean = false;
+
+    server.loaded.router.post(
+      "/added-later",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        reached = true;
+        res.json({ sent: true });
+      },
+    );
+
+    const answer: HTTPResponse<JSONObject> | HTTPErrorResponse = await post(
+      `${server.origin}/push-relay/added-later`,
+      page(),
+    );
+
+    expect(answer.statusCode).toBe(200);
+    expect(reached).toBe(true);
+  });
+});
 
 const SERVERS_THAT_RELAY: Array<[string, ServerEnvironment]> = [
   ["OneUptime's cloud, as it is deployed", ONEUPTIME_CLOUD],

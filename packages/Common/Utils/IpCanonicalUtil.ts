@@ -49,9 +49,9 @@ export default class IpCanonicalUtil {
   /*
    * The /64 network an IPv6 address is in, written as its first four groups
    * and "::/64" ("2001:db8:0:1::/64"), or null when the value is not an IPv6
-   * literal. A single host is commonly given a whole /64, so the /64 is what
-   * a rate limit counts as one client (Server/Utils/ClientIp
-   * getRateLimitClient).
+   * literal. A single host is commonly given a whole /64, so a rate limit
+   * counts the requests of a /64 together as well as each address's
+   * (Server/Utils/ClientIp getRateLimitClient).
    *
    * An IPv4-mapped address (::ffff:192.0.2.1) is the IPv4 address it maps,
    * not an IPv6 one: null, like any IPv4 literal.
