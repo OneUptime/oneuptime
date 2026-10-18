@@ -653,8 +653,11 @@ describe("the Databases list", () => {
     expect(code.indexOf("<DatabaseServerSummaryStrip")).toBeLessThan(
       code.indexOf("<ModelTable<DatabaseServer>"),
     );
+    // The count is the shared first-record watch's (useFirstRecordWatch).
     expect(
-      code.indexOf("{count === 0 && ( <DatabaseDocumentationCard"),
+      code.indexOf(
+        "{firstRecordWatch.count === 0 && ( <DatabaseDocumentationCard",
+      ),
     ).toBeGreaterThan(code.indexOf("<ModelTable<DatabaseServer>"));
   });
 });

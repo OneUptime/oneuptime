@@ -19,7 +19,6 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useEffect,
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -35,11 +34,15 @@ import {
   getNameFromIdentityField,
 } from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import HostDocumentationCard from "../../Components/Host/DocumentationCard";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -187,9 +190,9 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
 
 const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [hostCount, setHostCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<Host>({
+    modelType: Host,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Host>({ modelType: Host });
@@ -278,32 +281,12 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     extraFacets: hostExtraFacets,
   });
 
-  const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: Host,
-        query: {},
-      });
-      setHostCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchHostCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return <ErrorMessage message={firstRecordWatch.error} />;
   }
 
   /*
@@ -320,13 +303,17 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <ModelTable<Host>
         modelType={Host}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="hosts-table"
         userPreferencesKey="hosts-table"
         saveFilterProps={{
           tableId: "hosts-table",
         }}
         topContent={filterBar}
-        emptyState={facetEmptyState}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -334,9 +321,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onResourcesFetched(data);
         }}
         onCreateSuccess={(item: Host): Promise<Host> => {
-          setHostCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -367,7 +352,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Hosts",
           description:
-            "Hosts being monitored in this project. Auto-discovered from any OTel telemetry that carries host.name plus a host signal (host.id, os.type, system.* metrics, etc).",
+            "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.",
         }}
         showViewIdButton={true}
         formFields={[
@@ -630,10 +615,10 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
-      {hostCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <HostDocumentationCard
           title="Getting Started with Host Monitoring"
-          description="No hosts connected yet. Wire up an OpenTelemetry Collector with the hostmetrics receiver using the guide below — your host will appear here automatically once the first metric batch arrives."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

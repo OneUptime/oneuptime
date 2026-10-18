@@ -6,13 +6,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -28,9 +22,14 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ServerlessDocumentationCard from "../../Components/Serverless/ServerlessDocumentationCard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -40,29 +39,20 @@ const ServerlessFunctions: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch =
+    useFirstRecordWatch<ServerlessFunction>({
+      modelType: ServerlessFunction,
+    });
 
   const { archiveBulkActions } = useBulkArchiveActions<ServerlessFunction>({
     modelType: ServerlessFunction,
   });
 
-  useEffect(() => {
-    ModelAPI.count({
-      modelType: ServerlessFunction,
-      query: {},
-    })
-      .then(setCount)
-      .catch((err: Error) => {
-        setError(API.getFriendlyMessage(err));
-      });
-  }, []);
-
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return <ErrorMessage message={firstRecordWatch.error} />;
   }
 
-  if (count === null) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -81,6 +71,11 @@ const ServerlessFunctions: FunctionComponent<
     <Fragment>
       <ModelTable<ServerlessFunction>
         modelType={ServerlessFunction}
+        refreshToggle={firstRecordWatch.refreshToken}
+        emptyState={getFirstRunEmptyState({
+          emptyState: undefined,
+          count: firstRecordWatch.count,
+        })}
         id="serverless-functions-table"
         userPreferencesKey="serverless-functions-table"
         query={{
@@ -89,9 +84,7 @@ const ServerlessFunctions: FunctionComponent<
         onCreateSuccess={(
           item: ServerlessFunction,
         ): Promise<ServerlessFunction> => {
-          setCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -116,7 +109,7 @@ const ServerlessFunctions: FunctionComponent<
         cardProps={{
           title: "Serverless Functions",
           description:
-            "Serverless / FaaS functions auto-discovered from OpenTelemetry that carries faas.name (or a serverless cloud.platform like aws_lambda).",
+            "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.",
         }}
         formFields={[
           getIdentityFormField<ServerlessFunction>({
@@ -295,10 +288,10 @@ const ServerlessFunctions: FunctionComponent<
           );
         }}
       />
-      {count === 0 && (
+      {firstRecordWatch.count === 0 && (
         <ServerlessDocumentationCard
           title="Getting Started with Serverless Functions"
-          description="No serverless functions connected yet. Instrument a function with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
     </Fragment>

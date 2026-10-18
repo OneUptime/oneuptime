@@ -4,13 +4,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -30,9 +24,14 @@ import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
   CLOUD_PROVIDER_LABELS,
@@ -77,29 +76,22 @@ const CloudResources: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<CloudResource>(
+    {
+      modelType: CloudResource,
+      query: { cloudResourceKind: CloudResourceKind.Environment },
+    },
+  );
 
   const { archiveBulkActions } = useBulkArchiveActions<CloudResource>({
     modelType: CloudResource,
   });
 
-  useEffect(() => {
-    ModelAPI.count({
-      modelType: CloudResource,
-      query: { cloudResourceKind: CloudResourceKind.Environment },
-    })
-      .then(setCount)
-      .catch((err: Error) => {
-        setError(API.getFriendlyMessage(err));
-      });
-  }, []);
-
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return <ErrorMessage message={firstRecordWatch.error} />;
   }
 
-  if (count === null) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -115,9 +107,14 @@ const CloudResources: FunctionComponent<
 
   return (
     <Fragment>
-      <CloudFleetSummary refreshToken={count} />
+      <CloudFleetSummary refreshToken={firstRecordWatch.count} />
       <ModelTable<CloudResource>
         modelType={CloudResource}
+        refreshToggle={firstRecordWatch.refreshToken}
+        emptyState={getFirstRunEmptyState({
+          emptyState: undefined,
+          count: firstRecordWatch.count,
+        })}
         id="cloud-resources-table"
         userPreferencesKey="cloud-resources-table"
         query={{
@@ -180,9 +177,7 @@ const CloudResources: FunctionComponent<
           return Promise.resolve(item);
         }}
         onCreateSuccess={(item: CloudResource): Promise<CloudResource> => {
-          setCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -455,10 +450,10 @@ const CloudResources: FunctionComponent<
           );
         }}
       />
-      {count === 0 && (
+      {firstRecordWatch.count === 0 && (
         <CloudDocumentationCard
           title="Getting Started with Cloud Environments"
-          description="No cloud environments yet. Point your OpenTelemetry Collector at OneUptime with a cloud resource detector, using the guide below."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
     </Fragment>

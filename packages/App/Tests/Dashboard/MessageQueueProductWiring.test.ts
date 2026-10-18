@@ -856,7 +856,7 @@ describe("the pages follow the house idioms", () => {
       "query={mergeFiltersIntoQuery({ isArchived: false })}",
     );
     expect(source).toContain(
-      "{count === 0 && ( <MessageQueueDocumentationCard",
+      "{firstRecordWatch.count === 0 && ( <MessageQueueDocumentationCard",
     );
     expect(source).toContain("RouteMap[PageMap.MESSAGE_QUEUE_VIEW] as Route");
   });

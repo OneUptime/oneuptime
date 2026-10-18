@@ -13,13 +13,7 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -28,11 +22,15 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import StorageArrayDocumentationCard from "../../Components/StorageArray/DocumentationCard";
 import StorageArrayHealthPill from "../../Components/StorageArray/StorageArrayHealthPill";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -84,9 +82,9 @@ const StorageArrays: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [arrayCount, setArrayCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<StorageArray>({
+    modelType: StorageArray,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<StorageArray>({ modelType: StorageArray });
@@ -159,75 +157,26 @@ const StorageArrays: FunctionComponent<
     extraFacets: storageArrayExtraFacets,
   });
 
-  const fetchArrayCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: StorageArray,
-        query: {},
-      });
-      setArrayCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchArrayCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  /*
-   * Live first-data flip: while the project has zero storage arrays the
-   * user is staring at the install guide after starting the agent —
-   * re-count every 10s so the page flips to the table on first data
-   * without a hard refresh. The effect re-runs when arrayCount changes, so
-   * the interval is cleared as soon as the count goes nonzero (and on
-   * unmount). Poll failures are swallowed — the next tick retries.
-   */
-  useEffect(() => {
-    if (arrayCount !== 0) {
-      return;
-    }
-
-    const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      ModelAPI.count({
-        modelType: StorageArray,
-        query: {},
-      })
-        .then((count: number) => {
-          if (count > 0) {
-            setArrayCount(count);
-          }
-        })
-        .catch(() => {
-          // Best-effort poll — keep showing the install guide.
-        });
-    }, 10 * 1000);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [arrayCount]);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return <ErrorMessage message={firstRecordWatch.error} />;
   }
 
   return (
     <Fragment>
       <ModelTable<StorageArray>
         modelType={StorageArray}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="storage-arrays-table"
         userPreferencesKey="storage-arrays-table"
         topContent={filterBar}
-        emptyState={facetEmptyState}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -235,9 +184,7 @@ const StorageArrays: FunctionComponent<
           onResourcesFetched(data);
         }}
         onCreateSuccess={(item: StorageArray): Promise<StorageArray> => {
-          setArrayCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -568,10 +515,10 @@ const StorageArrays: FunctionComponent<
           );
         }}
       />
-      {arrayCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <StorageArrayDocumentationCard
           title="Getting Started with Storage Array Monitoring"
-          description="No storage arrays connected yet. Install the agent using the guide below and your array will appear here automatically."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

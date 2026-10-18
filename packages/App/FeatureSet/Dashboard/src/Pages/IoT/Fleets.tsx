@@ -13,13 +13,7 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -28,11 +22,15 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IoTDocumentationCard from "../../Components/IoT/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -40,18 +38,11 @@ import { IOT_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/IoT
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
-/*
- * WI-18: while the project has no fleets yet, re-count on this cadence
- * so the page flips from the install guide to the table the moment the
- * first agent batch lands — no hard refresh.
- */
-const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
-
 const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [fleetCount, setFleetCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<IoTFleet>({
+    modelType: IoTFleet,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<IoTFleet>({ modelType: IoTFleet });
@@ -104,74 +95,26 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
     extraFacets: iotExtraFacets,
   });
 
-  const fetchFleetCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: IoTFleet,
-        query: {},
-      });
-      setFleetCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchFleetCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  /*
-   * Live first-data poll (WI-18): the one-shot count above paints the
-   * empty state; this effect keeps quietly re-counting every 10s while
-   * the count is zero and flips the page to the table on the first
-   * nonzero result. The interval is cleared on unmount and is not
-   * re-armed once a fleet exists (the effect re-runs with a nonzero
-   * count and bails). Background failures keep the empty state rather
-   * than replacing the install guide with an error.
-   */
-  useEffect(() => {
-    if (fleetCount !== 0) {
-      return undefined;
-    }
-    const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      ModelAPI.count({
-        modelType: IoTFleet,
-        query: {},
-      })
-        .then((count: number) => {
-          if (count > 0) {
-            setFleetCount(count);
-          }
-        })
-        .catch(() => {
-          // Transient background-poll failure — keep polling.
-        });
-    }, FIRST_DATA_POLL_INTERVAL_MS);
-    return () => {
-      clearInterval(timer);
-    };
-  }, [fleetCount]);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return <ErrorMessage message={firstRecordWatch.error} />;
   }
 
   return (
     <Fragment>
       <ModelTable<IoTFleet>
         modelType={IoTFleet}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="iot-fleets-table"
         userPreferencesKey="iot-fleets-table"
         topContent={filterBar}
-        emptyState={facetEmptyState}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -179,9 +122,7 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onResourcesFetched(data);
         }}
         onCreateSuccess={(item: IoTFleet): Promise<IoTFleet> => {
-          setFleetCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -367,10 +308,10 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
-      {fleetCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <IoTDocumentationCard
           title="Getting Started with IoT Monitoring"
-          description="No IoT fleets connected yet. Send readings from your devices with OpenTelemetry or MQTT using the guide below — your fleet will appear here automatically."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

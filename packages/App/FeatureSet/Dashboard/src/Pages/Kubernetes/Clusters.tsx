@@ -15,13 +15,7 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -35,11 +29,15 @@ import {
   getNameFromIdentityField,
 } from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesDocumentationCard from "../../Components/Kubernetes/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -50,9 +48,10 @@ const KubernetesClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [clusterCount, setClusterCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch =
+    useFirstRecordWatch<KubernetesCluster>({
+      modelType: KubernetesCluster,
+    });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<KubernetesCluster>({ modelType: KubernetesCluster });
@@ -105,32 +104,12 @@ const KubernetesClusters: FunctionComponent<
     extraFacets: kubernetesExtraFacets,
   });
 
-  const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: KubernetesCluster,
-        query: {},
-      });
-      setClusterCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchClusterCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return <ErrorMessage message={firstRecordWatch.error} />;
   }
 
   /*
@@ -147,10 +126,14 @@ const KubernetesClusters: FunctionComponent<
     <Fragment>
       <ModelTable<KubernetesCluster>
         modelType={KubernetesCluster}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="kubernetes-clusters-table"
         userPreferencesKey="kubernetes-clusters-table"
         topContent={filterBar}
-        emptyState={facetEmptyState}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -160,9 +143,7 @@ const KubernetesClusters: FunctionComponent<
         onCreateSuccess={(
           item: KubernetesCluster,
         ): Promise<KubernetesCluster> => {
-          setClusterCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -330,10 +311,10 @@ const KubernetesClusters: FunctionComponent<
           );
         }}
       />
-      {clusterCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <KubernetesDocumentationCard
           title="Getting Started with Kubernetes Monitoring"
-          description="No Kubernetes clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}
