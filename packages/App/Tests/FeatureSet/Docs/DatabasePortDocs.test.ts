@@ -68,8 +68,8 @@ const FENCE_LINE: RegExp = /^\s*```/;
 // the next "]" and the scan stays linear.
 const LINK_TARGET: RegExp = /\]\(([^()[\]\s]+)\)/g;
 // The docs address the script's warning names.
-const SCRIPT_DOCS_URL: RegExp =
-  /CHANGE_PASSWORD_DOCS_URL =\s*"(https:\/\/oneuptime\.com[^"]+)"/;
+// The value the script gives CHANGE_PASSWORD_DOCS_URL, parsed below as a URL.
+const SCRIPT_DOCS_URL: RegExp = /CHANGE_PASSWORD_DOCS_URL =\s*"([^"]+)"/;
 const SSH_FORWARD: RegExp = /-L (\d+):([\d.]+):(\d+) /;
 const OVERRIDE_PORT: RegExp = /^ {6}- "(\d+)\.\d+\.\d+\.\d+:(\d+):(\d+)"$/;
 const COMPOSE_PORT: RegExp = /^([\d.]+):(\d+):(\d+)$/;
