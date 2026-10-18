@@ -15,14 +15,14 @@ import ts from "typescript";
  * link, a status page private user's password reset, an account's password
  * reset, the emails an account sign-up sends - are each limited per caller
  * and per contact by PublicMessageRateLimit.assertMaySend. The route suites
- * (StatusPageSubscriberMessageLimits.test.ts here, PasswordResetAndSignUp-
- * EmailLimits.test.ts and StatusPagePasswordResetLimits.test.ts in App)
- * drive each one; this guard holds the wiring itself, read from the code
- * with its comments removed:
+ * drive each one (StatusPageSubscriberMessageLimits.test.ts here; in App,
+ * PasswordResetAndSignUpEmailLimits.test.ts and
+ * StatusPagePasswordResetLimits.test.ts); this guard holds the wiring
+ * itself, read from the code with its comments removed:
  *
- *  - each route asks, with its own kind, before each thing it sends or
- *    creates - with no other send in between, so a branch that sends cannot
- *    lose its own count to a count made for another branch;
+ *  - each branch of a route that sends or creates something asks first, with
+ *    an ask of its own and the route's own kind, before the first thing it
+ *    does - so a branch cannot lose its count to the count of another;
  *  - nothing else asks: a new route that sends to a caller-named address is
  *    listed here, with its kind and a suite of its own;
  *  - every kind is asked for by a route, so none is left behind unused.
@@ -42,10 +42,11 @@ interface PublicMessageRoute {
   kind: PublicMessageKind;
 
   /*
-   * What the handler sends or creates, each of which must come after an
-   * assertMaySend with no other of them in between.
+   * The branches of the handler that send or create something: each the
+   * calls it makes, in order, after an ask of its own - a lookup and then
+   * the link it finds, a token written and then the email that carries it.
    */
-  sends: Array<string>;
+  branches: Array<Array<string>>;
 }
 
 const STATUS_PAGE_API: string = "packages/Common/Server/API/StatusPageAPI.ts";
@@ -59,38 +60,43 @@ const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
     file: STATUS_PAGE_API,
     method: "subscribeToStatusPage",
     kind: PublicMessageKind.StatusPageSignUp,
-    sends: ["StatusPageSubscriberService.createFromStatusPageSignUp("],
+    branches: [["StatusPageSubscriberService.createFromStatusPageSignUp("]],
   },
   {
     file: STATUS_PAGE_API,
     method: "manageExistingSubscription",
     kind: PublicMessageKind.StatusPageManageLink,
-    sends: [
-      "StatusPageSubscriberService.findBy(",
-      "this.sendManageSubscriptionLinks(",
+    branches: [
+      [
+        "StatusPageSubscriberService.findBy(",
+        "this.sendManageSubscriptionLinks(",
+      ],
     ],
   },
   {
     file: AUTHENTICATION,
     routePath: "/forgot-password",
     kind: PublicMessageKind.PasswordReset,
-    sends: ["UserService.updateOneBy(", "MailService.sendMail("],
+    branches: [["UserService.updateOneBy(", "MailService.sendMail("]],
   },
   {
     file: AUTHENTICATION,
     routePath: "/signup",
     kind: PublicMessageKind.SignUpEmail,
-    sends: [
-      "AuthenticationEmail.sendCompleteRegistrationEmail(",
-      "UserService.createUserOnSignup(",
-      "MailService.sendMail(",
+    branches: [
+      // An invitation nobody has claimed: its registration link again.
+      ["AuthenticationEmail.sendCompleteRegistrationEmail("],
+      // A new account, and its welcome.
+      ["UserService.createUserOnSignup(", "MailService.sendMail("],
     ],
   },
   {
     file: STATUS_PAGE_AUTHENTICATION,
     routePath: "/forgot-password",
     kind: PublicMessageKind.StatusPagePasswordReset,
-    sends: ["StatusPagePrivateUserService.updateOneBy(", "MailService.sendMail("],
+    branches: [
+      ["StatusPagePrivateUserService.updateOneBy(", "MailService.sendMail("],
+    ],
   },
 ];
 
@@ -166,7 +172,11 @@ function findRouteHandler(
   return found;
 }
 
-function handlerCodeOf(route: PublicMessageRoute): string {
+function handlerCodeOf(route: {
+  file: string;
+  method?: string | undefined;
+  routePath?: string | undefined;
+}): string {
   const sourceFile: ts.SourceFile = sourceOf(route.file);
   const handler: ts.Node | undefined = route.method
     ? findMethod(sourceFile, route.method)
@@ -194,6 +204,91 @@ function indexesOf(code: string, text: string): Array<number> {
   return indexes;
 }
 
+function kindNameOf(kind: PublicMessageKind): string {
+  return Object.keys(PublicMessageKind).find((key: string): boolean => {
+    return PublicMessageKind[key as keyof typeof PublicMessageKind] === kind;
+  })!;
+}
+
+/*
+ * What is wrong with a handler's wiring, in words: an empty list when every
+ * branch asks first, with an ask of its own, for the route's kind.
+ */
+function wiringProblems(
+  code: string,
+  kind: PublicMessageKind,
+  branches: Array<Array<string>>,
+): Array<string> {
+  const problems: Array<string> = [];
+  const asks: Array<number> = indexesOf(code, ASKS);
+
+  if (asks.length !== branches.length) {
+    problems.push(
+      `asks ${asks.length} times for ${branches.length} branches that send`,
+    );
+  }
+
+  for (const ask of asks) {
+    // The call's own arguments: up to the next ask, or a few lines on.
+    const call: string = code.slice(ask, ask + 200);
+
+    if (!call.includes(`kind: PublicMessageKind.${kindNameOf(kind)},`)) {
+      problems.push(`an ask that is not for ${kindNameOf(kind)}`);
+    }
+  }
+
+  const asksTaken: Set<number> = new Set<number>();
+
+  for (const branch of branches) {
+    const first: number = code.indexOf(branch[0]!);
+
+    if (first === -1) {
+      problems.push(`${branch[0]} is not in the handler`);
+      continue;
+    }
+
+    const ask: number | undefined = asks
+      .filter((index: number): boolean => {
+        return index < first;
+      })
+      .pop();
+
+    if (ask === undefined) {
+      problems.push(`${branch[0]} comes before any ask`);
+      continue;
+    }
+
+    if (asksTaken.has(ask)) {
+      problems.push(`${branch[0]} has no ask of its own`);
+    }
+
+    asksTaken.add(ask);
+
+    let previous: number = first;
+
+    for (const call of branch.slice(1)) {
+      const at: number = code.indexOf(call, previous);
+
+      if (at === -1) {
+        problems.push(`${call} does not follow ${branch[0]}`);
+        continue;
+      }
+
+      previous = at;
+    }
+
+    for (const call of branch) {
+      for (const at of indexesOf(code, call)) {
+        if (at < ask) {
+          problems.push(`${call} comes before its ask`);
+        }
+      }
+    }
+  }
+
+  return problems;
+}
+
 function nameOf(route: PublicMessageRoute): string {
   return `${route.file} ${route.method || route.routePath}`;
 }
@@ -206,88 +301,10 @@ describe("every public route that sends to a caller-named contact asks first", (
       },
     ),
   )("%s", (_name: string, route: PublicMessageRoute) => {
-    const code: string = handlerCodeOf(route);
-    const asks: Array<number> = indexesOf(code, ASKS);
-
-    expect(asks.length).toBeGreaterThan(0);
-
-    // Every ask in the handler is for the route's own kind.
-    for (const ask of asks) {
-      const call: string = code.slice(ask, ask + 200);
-
-      expect([nameOf(route), call]).toEqual([
-        nameOf(route),
-        expect.stringContaining(
-          `kind: PublicMessageKind.${
-            Object.keys(PublicMessageKind).find((key: string): boolean => {
-              return (
-                PublicMessageKind[key as keyof typeof PublicMessageKind] ===
-                route.kind
-              );
-            })!
-          }`,
-        ),
-      ]);
-    }
-
-    const sends: Array<{ marker: string; index: number }> = route.sends.flatMap(
-      (marker: string): Array<{ marker: string; index: number }> => {
-        const found: Array<number> = indexesOf(code, marker);
-
-        expect([nameOf(route), marker, found.length > 0]).toEqual([
-          nameOf(route),
-          marker,
-          true,
-        ]);
-
-        return found.map((index: number): { marker: string; index: number } => {
-          return { marker: marker, index: index };
-        });
-      },
-    );
-
-    /*
-     * Each send is preceded by an ask, and no other send lies between that
-     * ask and it - except the sends it makes right after one ask, in order:
-     * a lookup and then the message it finds, a token written and then the
-     * email that carries it.
-     */
-    for (const send of sends) {
-      const ask: number | undefined = asks
-        .filter((index: number): boolean => {
-          return index < send.index;
-        })
-        .pop();
-
-      expect([nameOf(route), send.marker, ask !== undefined]).toEqual([
-        nameOf(route),
-        send.marker,
-        true,
-      ]);
-
-      const between: Array<string> = sends
-        .filter((other: { marker: string; index: number }): boolean => {
-          return other.index > ask! && other.index < send.index;
-        })
-        .map((other: { marker: string; index: number }): string => {
-          return other.marker;
-        });
-
-      // Only sends that come earlier in the route's own list may sit there.
-      const earlierInList: Array<string> = route.sends.slice(
-        0,
-        route.sends.indexOf(send.marker),
-      );
-
-      for (const marker of between) {
-        expect([nameOf(route), send.marker, marker, earlierInList]).toEqual([
-          nameOf(route),
-          send.marker,
-          marker,
-          expect.arrayContaining([marker]),
-        ]);
-      }
-    }
+    expect([
+      nameOf(route),
+      wiringProblems(handlerCodeOf(route), route.kind, route.branches),
+    ]).toEqual([nameOf(route), []]);
   });
 });
 
@@ -355,21 +372,68 @@ describe("nothing else asks, and every kind is asked for", () => {
 });
 
 describe("the guard's own reading", () => {
+  const ask: (kind: string) => string = (kind: string): string => {
+    return `await PublicMessageRateLimit.assertMaySend({\n  req: req,\n  kind: PublicMessageKind.${kind},\n  contacts: [contact],\n});\n`;
+  };
+
+  const BRANCHES: Array<Array<string>> = [
+    ["sendInvitation("],
+    ["createAccount(", "sendWelcome("],
+  ];
+
+  test("passes a handler whose every branch asks first, for its own kind", () => {
+    const code: string = `if (invited) {\n${ask("SignUpEmail")}sendInvitation();\n} else {\n${ask("SignUpEmail")}createAccount();\nsendWelcome();\n}`;
+
+    expect(wiringProblems(code, PublicMessageKind.SignUpEmail, BRANCHES)).toEqual(
+      [],
+    );
+  });
+
+  test("fails a branch that leans on another branch's ask", () => {
+    const code: string = `if (invited) {\n${ask("SignUpEmail")}sendInvitation();\n} else {\ncreateAccount();\nsendWelcome();\n}`;
+
+    expect(
+      wiringProblems(code, PublicMessageKind.SignUpEmail, BRANCHES),
+    ).toEqual([
+      "asks 1 times for 2 branches that send",
+      "createAccount( has no ask of its own",
+    ]);
+  });
+
+  test("fails a branch that sends before it asks", () => {
+    const code: string = `createAccount();\n${ask("SignUpEmail")}sendWelcome();\n${ask("SignUpEmail")}sendInvitation();`;
+
+    expect(
+      wiringProblems(code, PublicMessageKind.SignUpEmail, [
+        ["sendInvitation("],
+        ["createAccount(", "sendWelcome("],
+      ]),
+    ).toEqual(["createAccount( comes before any ask"]);
+  });
+
+  test("fails an ask for another kind, and a call that is not there", () => {
+    const code: string = `${ask("PasswordReset")}sendInvitation();`;
+
+    expect(
+      wiringProblems(code, PublicMessageKind.SignUpEmail, [
+        ["sendInvitation("],
+        ["createAccount("],
+      ]),
+    ).toEqual([
+      "asks 1 times for 2 branches that send",
+      "an ask that is not for SignUpEmail",
+      "createAccount( is not in the handler",
+    ]);
+  });
+
   test("finds a route's handler, and a method, by name", () => {
     expect(
-      handlerCodeOf({
-        file: AUTHENTICATION,
-        routePath: "/forgot-password",
-        kind: PublicMessageKind.PasswordReset,
-        sends: [],
-      }),
+      handlerCodeOf({ file: AUTHENTICATION, routePath: "/forgot-password" }),
     ).toContain("resetPasswordToken");
     expect(
       handlerCodeOf({
         file: STATUS_PAGE_API,
         method: "manageExistingSubscription",
-        kind: PublicMessageKind.StatusPageManageLink,
-        sends: [],
       }),
     ).toContain("sendManageSubscriptionLinks");
   });

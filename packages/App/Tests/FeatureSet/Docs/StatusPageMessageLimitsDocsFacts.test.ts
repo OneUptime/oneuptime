@@ -116,7 +116,7 @@ function freshConfig(): PublicMessageRateLimitConfig {
 
   jest.isolateModules(() => {
     const limiter: { default: typeof PublicMessageRateLimit } =
-      jest.requireActual(
+      jest.requireActual<{ default: typeof PublicMessageRateLimit }>(
         "Common/Server/Utils/RateLimit/PublicMessageRateLimit",
       );
 

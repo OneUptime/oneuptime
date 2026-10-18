@@ -215,6 +215,113 @@ describe("the limits in force", () => {
     });
   });
 
+  test("each is read from its own PUBLIC_MESSAGE_RATE_LIMIT_* variable, and a value that is not a number above zero keeps the default", () => {
+    type Reading = (config: PublicMessageRateLimitConfig) => number;
+
+    const variables: Record<string, Reading> = {
+      WINDOW_SECONDS: (config: PublicMessageRateLimitConfig): number => {
+        return config.clientWindowSeconds;
+      },
+      PER_CONTACT_WINDOW_SECONDS: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.contactWindowSeconds;
+      },
+      TEXT_MESSAGES_PER_IP: (config: PublicMessageRateLimitConfig): number => {
+        return config.perClientTextMessageLimit;
+      },
+      STATUS_PAGE_SIGN_UPS_PER_IP: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.StatusPageSignUp].perClientLimit;
+      },
+      STATUS_PAGE_SIGN_UPS_PER_CONTACT: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.StatusPageSignUp].perContactLimit;
+      },
+      STATUS_PAGE_MANAGE_LINKS_PER_IP: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.StatusPageManageLink]
+          .perClientLimit;
+      },
+      STATUS_PAGE_MANAGE_LINKS_PER_CONTACT: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.StatusPageManageLink]
+          .perContactLimit;
+      },
+      STATUS_PAGE_PASSWORD_RESETS_PER_IP: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.StatusPagePasswordReset]
+          .perClientLimit;
+      },
+      STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.StatusPagePasswordReset]
+          .perContactLimit;
+      },
+      PASSWORD_RESETS_PER_IP: (config: PublicMessageRateLimitConfig): number => {
+        return config.kinds[PublicMessageKind.PasswordReset].perClientLimit;
+      },
+      PASSWORD_RESETS_PER_CONTACT: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.PasswordReset].perContactLimit;
+      },
+      SIGN_UP_EMAILS_PER_IP: (config: PublicMessageRateLimitConfig): number => {
+        return config.kinds[PublicMessageKind.SignUpEmail].perClientLimit;
+      },
+      SIGN_UP_EMAILS_PER_CONTACT: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.SignUpEmail].perContactLimit;
+      },
+    };
+
+    // The limiter as a fresh load reads it, with the environment as it is now.
+    const freshConfig: () => PublicMessageRateLimitConfig =
+      (): PublicMessageRateLimitConfig => {
+        let config: PublicMessageRateLimitConfig | undefined = undefined;
+
+        jest.isolateModules(() => {
+          config = (
+            jest.requireActual<{ default: typeof PublicMessageRateLimit }>(
+              "../../../../Server/Utils/RateLimit/PublicMessageRateLimit",
+            ) as { default: typeof PublicMessageRateLimit }
+          ).default.getConfig();
+        });
+
+        return config as unknown as PublicMessageRateLimitConfig;
+      };
+
+    const defaults: PublicMessageRateLimitConfig =
+      PublicMessageRateLimit.getConfig();
+
+    for (const [name, read] of Object.entries(variables)) {
+      const variable: string = `PUBLIC_MESSAGE_RATE_LIMIT_${name}`;
+
+      try {
+        process.env[variable] = "4321";
+        expect([variable, read(freshConfig())]).toEqual([variable, 4321]);
+
+        for (const ignored of ["0", "-5", "many"]) {
+          process.env[variable] = ignored;
+          expect([variable, ignored, read(freshConfig())]).toEqual([
+            variable,
+            ignored,
+            read(defaults),
+          ]);
+        }
+      } finally {
+        delete process.env[variable];
+      }
+    }
+  });
+
   test("are handed out as a copy, so nobody can change them in place", () => {
     const config: PublicMessageRateLimitConfig =
       PublicMessageRateLimit.getConfig();

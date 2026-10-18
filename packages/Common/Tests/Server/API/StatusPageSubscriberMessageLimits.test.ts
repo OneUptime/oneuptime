@@ -277,6 +277,11 @@ beforeEach(() => {
   jest
     .spyOn(StatusPageService, "getStatusPageURL")
     .mockResolvedValue("https://status.acme.com");
+  // A paid plan with no limit on subscribers, when billing is on.
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: null,
+    isSubscriptionUnpaid: false,
+  } as never);
   jest
     .spyOn(ProjectService, "isSMSNotificationsEnabled")
     .mockResolvedValue(true);
