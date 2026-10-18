@@ -67,24 +67,22 @@ As **Regras de runbook** iniciam um runbook quando um evento novo corresponde, c
 **Manutenção programada → Regras → Reminder Rules** lembra os proprietários de um evento até o trabalho ser aprovado. Cada evento recebe a primeira regra que corresponde a ele, de cima para baixo na lista.
 
 :::steps
-### Dar nome à regra de lembrete
-
-Clique em **Criar: Scheduled Maintenance Reminder Rule**. Em **Rule Info**, dê a ela um **Nome**, como «Lembretes de eventos de manutenção», e uma **Descrição** se quiser.
-
 ### Escolher sobre quais eventos lembrar
 
-Em **Critérios de Correspondência**, deixe **Todos os eventos de manutenção programada** selecionado para lembrar de todos os eventos, ou escolha **Somente os eventos de manutenção programada que atendem às condições** e depois os **Rótulos** a que ela se aplica.
+Clique em **Criar: Scheduled Maintenance Reminder Rule**. Em **Corresponder**, deixe **Todos os eventos de manutenção programada** selecionado para lembrar de todos os eventos, ou escolha **Somente os eventos de manutenção programada que atendem às condições** e depois os **Rótulos** a que ela se aplica.
 
 ### Definir o intervalo
 
-Em **Reminder Settings**, defina **Reminder Interval (minutes)**, a frequência com que os proprietários são lembrados, e depois crie a regra.
+Em **Lembretes**, defina **Intervalo de lembrete (minutos)**, a frequência com que os proprietários são lembrados, e escolha quando lembrá-los em **Lembrar os proprietários**. O **Nome** dela acompanha os dois, como «Lembrar a cada 30 minutos enquanto estiver em andamento», até você digitar um próprio, e uma **Descrição** fica em **Mais campos**. Depois crie a regra.
 :::
 
-| Configuração                         | Começa como                            | O que faz                                                                            |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Reminder Interval (minutes)**      | Obrigatório                            | A frequência com que os proprietários são lembrados.                                 |
-| **Stop Reminders When**              | **Remind until event is Completed**    | Ou **Stop when event starts (Ongoing)**, para parar assim que o trabalho começar.     |
-| **Remind While Event is Scheduled**  | Desativado                             | Desativado, os lembretes começam quando o evento começa; ativado, eles saem antes também. |
+| Resposta | Quando os proprietários são lembrados |
+| --- | --- |
+| **Enquanto estiver em andamento** | Do início do evento até o fim dele. Uma regra nova começa com esta resposta. |
+| **Antes de começar** | Desde o agendamento do evento até o início dele. |
+| **Antes de começar e enquanto estiver em andamento** | Desde o agendamento do evento até o fim dele. |
+
+Uma regra salva pela API ou pelo Terraform que espera o evento começar e para quando ele começa nunca envia um lembrete: a lista não mostra nenhuma resposta para ela, e o formulário dela pede que você escolha uma.
 
 Os proprietários recebem cada lembrete como **Maintenance reminder**, ativado por e-mail para cada membro novo. Salvar, alterar ou excluir uma regra de lembrete volta a atribuir uma regra a cada evento que ainda não foi concluído. Para parar os lembretes de um evento, desative **Enviar lembretes** na página **Configurações** dele; a chave salva assim que você a aciona.
 
@@ -134,7 +132,7 @@ Abra a regra e confira as condições: todas as condições preenchidas precisam
 :::
 
 :::details Os proprietários não receberam nenhum lembrete
-Confira se uma regra de lembrete corresponde aos rótulos do evento, se **Enviar lembretes** está ativado no evento e se **Maintenance reminder** está ativado nas configurações de notificação dos proprietários. Sem **Remind While Event is Scheduled**, os lembretes só começam quando o evento começa.
+Confira se uma regra de lembrete corresponde aos rótulos do evento, se **Enviar lembretes** está ativado no evento e se **Maintenance reminder** está ativado nas configurações de notificação dos proprietários. Uma regra com **Enquanto estiver em andamento** não envia nada antes de o evento começar.
 :::
 
 ## Próximos passos

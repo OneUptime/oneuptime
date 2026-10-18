@@ -607,14 +607,13 @@ Regler som ble lagret før skjemaet spurte om eiere, kan fortsatt ha et standard
 
 ## Vaktregler for hendelser
 
-**Hendelser → Regler → Vaktregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er der du gjør tilkalling automatisk. Kortet, **Hendelsesvaktregler**, beskriver regler som automatisk kjører vaktpolicyer når samsvarende hendelser opprettes. Siden har to faner: **Incident Rules** og **Episode Rules**.
+**Hendelser → Regler → Vaktregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er der du gjør tilkalling automatisk. Kortet, **Hendelsesvaktregler**, sier hva de gjør: tilkaller automatisk via vaktretningslinjer for nye hendelser som samsvarer. Siden har to faner: **Incident Rules** og **Episode Rules**.
 
-Opprettelsesskjemaet har tre trinn:
+Opprettelsesskjemaet har to trinn:
 
 :::steps
-1. **Grunnleggende informasjon** — **Navn** (plassholderen foreslår noe som å tilkalle databaseteamet ved enhver DB-hendelse) og **Beskrivelse**. Regelen starter aktivert; redigeringsskjemaet legger til bryteren **Aktivert**, og listen viser et grønt merke **Aktivert** eller et rødt merke **Deaktivert** per regel.
-2. **Treffkriterier** — **Alle hendelser**, som en ny regel starter på, eller **Bare hendelser som oppfyller betingelsene**, som åpner regelens betingelser. Hver betingelse velger et kriterium — **Monitorer**, **Hendelse Alvorligheter**, **Hendelsesetiketter**, **Overvåkingsetiketter**, **Hendelsestittel**, **Hendelsesbeskrivelse**, **Overvåkingsnavn** eller **Overvåkingsbeskrivelse** — en operator og en verdi, og leses som en setning: «Hvis **Hendelsestittel** inneholder `database`», «Og **Overvåkingsetiketter** har en av _Production_».
-3. **Vaktretningslinjer** — policyene denne regelen kjører.
+1. **Treff** — **Alle hendelser**, som en ny regel starter på, eller **Bare hendelser som oppfyller betingelsene**, som åpner regelens betingelser. Hver betingelse velger et kriterium — **Monitorer**, **Hendelse Alvorligheter**, **Hendelsesetiketter**, **Overvåkingsetiketter**, **Hendelsestittel**, **Hendelsesbeskrivelse**, **Overvåkingsnavn** eller **Overvåkingsbeskrivelse** — en operator og en verdi, og leses som en setning: «Hvis **Hendelsestittel** inneholder `database`», «Og **Overvåkingsetiketter** har en av _Production_».
+2. **Vaktretningslinjer** — policyene denne regelen tilkaller, og regelens **Navn**, fylt ut fra dem ("Tilkall Platform on-call"), til du skriver inn ditt eget; **Beskrivelse** venter under **Flere felt**. Regelen starter aktivert; redigeringsskjemaet legger til bryteren **Aktivert**, og listen viser et grønt merke **Aktivert** eller et rødt merke **Deaktivert** per regel.
 :::
 
 ### Slik avgjøres samsvar
@@ -632,7 +631,7 @@ Reglene siden selv har med, er verdt å gjøre til dine egne:
 
 ## Knytt vaktpolicyer direkte
 
-Regler er ikke den eneste veien. Hver hendelse har sin egen liste over vaktpolicyer, som vises som feltet **Vaktpolicy** på trinnet **Vakt og roller** i erklæringsveiviseren og på trinnet **Vakt** i en hendelsesmal. Feltets beskrivelse sier det rett ut: dette er vaktpolicyene som skal kjøres når denne hendelsen opprettes.
+Regler er ikke den eneste veien. Hver hendelse har sin egen liste over vaktpolicyer, som vises som feltet **Vaktpolicy** på trinnet **Vakt og roller** i erklæringsveiviseren og på trinnet **Vakt** i en hendelsesmal. Feltets beskrivelse sier når det tilkalles: så snart hendelsen er erklært.
 
 Når en hendelse opprettes, kjører OneUptime etikettreglene, deretter vaktreglene (som slår sammen sine samsvarende policyer med hendelsens liste), deretter runbook-reglene — og er den resulterende listen ikke tom, kjøres hver policy i den. Kjøringene går parallelt og avgjøres uavhengig, så feiler én policy, stopper ikke det de andre. Hver kjøring merkes med hendelsen som utløste den, og med varselhendelsestypen for en opprettet hendelse.
 

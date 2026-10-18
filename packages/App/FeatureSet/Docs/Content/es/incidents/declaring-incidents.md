@@ -116,7 +116,7 @@ Este paso solo aparece cuando al menos un campo personalizado de incidente tiene
 
 ### Paso 3 — Guardia y roles
 
-- **Política de guardia** — una selección múltiple de las políticas de guardia que se ejecutarán cuando se cree este incidente. Corresponde a `onCallDutyPolicies` en el incidente.
+- **Política de guardia** — una selección múltiple de las políticas de guardia que se activan en cuanto se declara el incidente. Corresponde a `onCallDutyPolicies` en el incidente.
 - **Asignar roles del incidente** — quién asume cada rol que define tu proyecto, una tarjeta por rol. Un rol marcado como **Principal** que dejes vacío es tuyo: lo asumes cuando se declara el incidente, y el resumen lo dice. Un rol que acepta una sola persona lo indica en cuanto tiene una; un rol que acepta varias conserva su selector.
 
 Este es el único lugar donde una política de guardia se adjunta directamente a un incidente. Las gravedades no llevan política de guardia: la gravedad es una etiqueta, y solo influye en los avisos como *criterio de coincidencia* dentro de una regla de guardia. Las reglas configuradas en **Incidentes → Reglas → Reglas de guardia** añaden sus políticas a lo que elijas aquí; el conjunto final que se ejecuta es la unión de ambas, sin duplicados. Un incidente declarado en un estado posterior no ejecuta ninguna; consulta [Declarado ya reconocido o resuelto](#declarado-ya-reconocido-o-resuelto).

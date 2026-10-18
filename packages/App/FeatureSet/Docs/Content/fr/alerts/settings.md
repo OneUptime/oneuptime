@@ -77,17 +77,13 @@ Avec deux conditions ou plus, choisissez **Toutes requises**, où chacune doit �
 **Alertes → Règles → Règles d'astreinte** rend les appels automatiques. Chaque règle qui correspond ajoute ses politiques à la nouvelle alerte, et l'alerte les exécute avec les politiques qu'elle avait déjà, chacune une seule fois.
 
 :::steps
-### Nommer la règle
-
-Cliquez sur **Créer : Règle d'astreinte des alertes**. Dans **Informations de base**, donnez-lui un **Nom**, comme « Notifier l'équipe base de données pour toute alerte de base de données », et une **Description** si vous le souhaitez.
-
 ### Choisir les alertes
 
-Dans **Critères de correspondance**, **Toutes les alertes**, où démarre une nouvelle règle, correspond à chaque nouvelle alerte. Pour la restreindre, choisissez **Uniquement les alertes qui correspondent aux conditions** et ajoutez les conditions qu'une alerte doit remplir.
+Cliquez sur **Créer : Règle d'astreinte des alertes**. Dans **Correspondance**, **Toutes les alertes**, où démarre une nouvelle règle, correspond à chaque nouvelle alerte. Pour la restreindre, choisissez **Uniquement les alertes qui correspondent aux conditions** et ajoutez les conditions qu'une alerte doit remplir.
 
 ### Choisir les politiques
 
-Dans **Politiques d'astreinte**, choisissez les **Politiques d'astreinte** que la règle exécute, puis créez la règle.
+Dans **Politiques d'astreinte**, choisissez les **Politiques d'astreinte** que la règle déclenche. Son **Nom** les suit, comme « Alerter Platform on-call », jusqu'à ce que vous saisissiez le vôtre, et une **Description** attend sous **Plus de champs**. Créez ensuite la règle.
 :::
 
 Une gravité n'alerte personne à elle seule : une règle d'astreinte qui porte sur les **Gravités d'alerte** est la façon de mettre en place « alerter l'équipe base de données pour chaque alerte Élevé ». Pour voir ce qui s'est exécuté pour une alerte, ouvrez sa page **Exécutions d'astreinte**. Chaque personne est ensuite jointe comme elle l'a configuré dans **Paramètres utilisateur → Règles d'astreinte**, dans l'onglet **Alertes** ; voir [Règles d'escalade](/docs/on-call/escalation-rules).
@@ -104,7 +100,7 @@ Les **Règles de propriétaire** ajoutent des utilisateurs et des équipes propr
 
 ## Règles de confidentialité et de runbook
 
-Les **Règles de confidentialité** rendent privées les nouvelles alertes qui correspondent, avant que quoi que ce soit d'autre ne s'exécute : seuls leurs propriétaires et les administrateurs et propriétaires du projet peuvent les voir. Une règle a une étape **Informations de base** et une étape **Critères de correspondance**, et rend privée chaque alerte qui lui correspond. Voir [Alertes privées](/docs/alerts/index#alertes-privées).
+Les **Règles de confidentialité** rendent privées les nouvelles alertes qui correspondent, avant que quoi que ce soit d'autre ne s'exécute : seuls leurs propriétaires et les administrateurs et propriétaires du projet peuvent les voir. Une règle a deux étapes : **Correspondance**, les alertes qu'elle rend privées, puis **Nom**, déjà rempli avec « Rendre les alertes privées ». Voir [Alertes privées](/docs/alerts/index#alertes-privées).
 
 Les **Règles de runbook** lancent un runbook quand une nouvelle alerte correspond, sauf si l'alerte a été créée résolue. Voir [Règles de runbook](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ Les **Règles de runbook** lancent un runbook quand une nouvelle alerte correspo
 **Alertes → Règles → Reminder Rules** rappelle aux propriétaires d'une alerte qu'elle reste ouverte. Chaque nouvelle alerte reçoit la première règle qui lui correspond, de haut en bas de la liste.
 
 :::steps
-### Nommer la règle de rappel
-
-Cliquez sur **Créer : Règle de rappel des alertes**. Dans **Rule Info**, donnez-lui un **Nom**, comme « Rappels d'alertes critiques ».
-
 ### Choisir les alertes à rappeler
 
-Dans **Critères de correspondance**, laissez **Toutes les alertes** sélectionné pour rappeler chaque alerte, ou choisissez **Uniquement les alertes qui correspondent aux conditions** puis les **Gravités d'alerte** et les **Étiquettes** auxquelles elle s'applique.
+Cliquez sur **Créer : Règle de rappel des alertes**. Dans **Correspondance**, laissez **Toutes les alertes** sélectionné pour rappeler chaque alerte, ou choisissez **Uniquement les alertes qui correspondent aux conditions** puis les **Gravités d'alerte** et les **Étiquettes** auxquelles elle s'applique.
 
 ### Régler l'intervalle
 
-Dans **Reminder Settings**, réglez **Reminder Interval (minutes)**, la fréquence des rappels aux propriétaires, et **Stop Reminders When** : **Résolu**, par défaut, ou **Pris en compte**. Créez ensuite la règle.
+Dans **Rappels**, réglez **Intervalle de rappel (minutes)**, la fréquence des rappels aux propriétaires, et **Arrêter les rappels quand** : **Résolu**, par défaut, ou **Pris en compte**. Son **Nom** suit les deux, par exemple « Rappel toutes les 30 minutes jusqu'à la résolution », jusqu'à ce que vous saisissiez le vôtre. Créez ensuite la règle.
 :::
 
 Les propriétaires reçoivent chaque rappel sous la forme **Rappel d'alerte**, activé par e-mail par défaut. La règle d'une alerte est à nouveau mise en correspondance quand sa gravité ou ses étiquettes changent. Pour arrêter les rappels d'une alerte, désactivez **Envoyer des rappels** sur sa page **Paramètres** ; l'enregistrement se fait dès que vous le basculez.

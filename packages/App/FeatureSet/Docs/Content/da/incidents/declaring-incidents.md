@@ -116,7 +116,7 @@ Dette trin vises kun, når mindst ét brugerdefineret hændelsesfelt har **Vis v
 
 ### Trin 3 — Vagt og roller
 
-- **Vagtpolitik** — et flervalg af de vagtpolitikker, der skal udføres, når denne hændelse oprettes. Det svarer til `onCallDutyPolicies` på hændelsen.
+- **Vagtpolitik** — et flervalg af de vagtpolitikker, der tilkaldes, så snart hændelsen er erklæret. Det svarer til `onCallDutyPolicies` på hændelsen.
 - **Tildel hændelsesroller** — hvem der tager hver rolle, dit projekt definerer, ét kort pr. rolle. En rolle med mærket **Primær**, som du lader stå tom, er din: du tager den, når hændelsen erklæres, og opsummeringen siger det. En rolle til én person siger det, når den har en; en rolle til flere beholder sin vælger.
 
 Dette er det eneste sted, hvor en vagtpolitik knyttes direkte til en hændelse. Alvorsgrader bærer ingen vagtpolitik — alvorsgraden er en etiket, og den påvirker kun tilkaldelse som *matchkriterium* i en vagtregel. Regler, der er sat op under **Hændelser → Regler → Vagtregler**, lægger deres politikker oven i det, du vælger her; det endelige sæt, der kører, er foreningen af begge uden dubletter. En hændelse, der erklæres i en senere tilstand, kører ingen af dem — se [Erklæret allerede bekræftet eller løst](#erklæret-allerede-bekræftet-eller-løst).

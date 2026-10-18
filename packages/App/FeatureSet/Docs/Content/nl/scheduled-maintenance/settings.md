@@ -67,24 +67,22 @@ Een regel past alleen als elke voorwaarde die je invult klopt; een lege voorwaar
 **Geplande onderhoud → Regels → Reminder Rules** herinnert de eigenaren van een gebeurtenis tot het werk is goedgekeurd. Elke gebeurtenis krijgt de eerste regel die bij haar past, van boven naar beneden in de lijst.
 
 :::steps
-### De herinneringsregel een naam geven
-
-Klik op **Scheduled Maintenance Reminder Rule aanmaken**. Geef haar onder **Rule Info** een **Naam**, zoals 'Herinneringen voor onderhoudsgebeurtenissen', en eventueel een **Beschrijving**.
-
 ### Kiezen voor welke gebeurtenissen
 
-Laat onder **Overeenkomstcriteria** de keuze **Alle geplande onderhoudsevenementen** staan om aan elke gebeurtenis te herinneren, of kies **Alleen geplande onderhoudsevenementen die aan de voorwaarden voldoen** en dan de **Labels** waarvoor ze geldt.
+Klik op **Scheduled Maintenance Reminder Rule aanmaken**. Laat onder **Overeenkomst** de keuze **Alle geplande onderhoudsevenementen** staan om aan elke gebeurtenis te herinneren, of kies **Alleen geplande onderhoudsevenementen die aan de voorwaarden voldoen** en dan de **Labels** waarvoor ze geldt.
 
 ### Het interval instellen
 
-Stel onder **Reminder Settings** de **Reminder Interval (minutes)** in, hoe vaak de eigenaren worden herinnerd, en maak dan de regel.
+Stel onder **Herinneringen** het **Herinneringsinterval (minuten)** in, hoe vaak de eigenaren worden herinnerd, en kies onder **Eigenaren herinneren** wanneer. De **Naam** volgt beide, zoals 'Elke 30 minuten herinneren terwijl het bezig is', totdat je zelf een naam typt, en een **Beschrijving** wacht onder **Meer velden**. Maak daarna de regel aan.
 :::
 
-| Instelling                           | Begint als                             | Wat het doet                                                                         |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Reminder Interval (minutes)**      | Verplicht                              | Hoe vaak de eigenaren worden herinnerd.                                              |
-| **Stop Reminders When**              | **Remind until event is Completed**    | Of **Stop when event starts (Ongoing)**, om te stoppen zodra het werk is begonnen.   |
-| **Remind While Event is Scheduled**  | Uit                                    | Uit beginnen herinneringen pas als de gebeurtenis begint; aan gaan ze ook vooraf uit. |
+| Antwoord | Wanneer de eigenaren worden herinnerd |
+| --- | --- |
+| **Terwijl het bezig is** | Vanaf het begin van de gebeurtenis tot het einde ervan. Een nieuwe regel begint met dit antwoord. |
+| **Voordat het begint** | Vanaf het moment dat de gebeurtenis gepland is tot het begin ervan. |
+| **Voordat het begint en terwijl het bezig is** | Vanaf het moment dat de gebeurtenis gepland is tot het einde ervan. |
+
+Een regel die via de API of Terraform is opgeslagen en wacht tot de gebeurtenis begint en stopt zodra die begint, stuurt nooit een herinnering: de lijst toont er geen antwoord voor, en het formulier vraagt je er een te kiezen.
 
 Eigenaren krijgen elke herinnering als **Maintenance reminder**, die voor elk nieuw lid per e-mail aanstaat. Een herinneringsregel opslaan, wijzigen of verwijderen koppelt elke gebeurtenis die nog niet voltooid is opnieuw aan een regel. Om de herinneringen voor één gebeurtenis te stoppen, zet je **Herinneringen sturen** uit op haar pagina **Instellingen**; dat slaat op zodra je omschakelt.
 
@@ -134,7 +132,7 @@ Open de regel en controleer haar voorwaarden: elke voorwaarde die je hebt ingevu
 :::
 
 :::details Eigenaren kregen geen herinnering
-Controleer of een herinneringsregel past op de labels van de gebeurtenis, of **Herinneringen sturen** bij de gebeurtenis aanstaat en of **Maintenance reminder** aanstaat in de meldingsinstellingen van de eigenaren. Zonder **Remind While Event is Scheduled** beginnen herinneringen pas als de gebeurtenis begint.
+Controleer of een herinneringsregel past op de labels van de gebeurtenis, of **Herinneringen sturen** bij de gebeurtenis aanstaat en of **Maintenance reminder** aanstaat in de meldingsinstellingen van de eigenaren. Een regel met **Terwijl het bezig is** stuurt niets voordat de gebeurtenis begint.
 :::
 
 ## Volgende stappen

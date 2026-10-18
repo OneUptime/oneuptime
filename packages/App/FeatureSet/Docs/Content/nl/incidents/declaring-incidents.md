@@ -116,7 +116,7 @@ Deze stap verschijnt alleen als minstens één aangepast incidentveld **Tonen bi
 
 ### Stap 3 — Bereikbaarheid en rollen
 
-- **Bereikbaarheidsbeleid** — een meervoudige keuze uit het bereikbaarheidsbeleid dat moet worden uitgevoerd wanneer dit incident wordt aangemaakt. Dit komt overeen met `onCallDutyPolicies` op het incident.
+- **Bereikbaarheidsbeleid** — een meervoudige keuze uit het bereikbaarheidsbeleid dat wordt opgeroepen zodra het incident is gemeld. Dit komt overeen met `onCallDutyPolicies` op het incident.
 - **Incidentrollen toewijzen** — wie elke rol neemt die je project definieert, één kaart per rol. Een rol met het label **Primair** die je leeg laat, is voor jou: je neemt hem op je wanneer het incident wordt gemeld, en de samenvatting zegt dat. Een rol voor één persoon zegt dat zodra hij er een heeft; een rol voor meerdere personen houdt zijn kiezer.
 
 Dit is de enige plek waar bereikbaarheidsbeleid rechtstreeks aan een incident wordt gehangen. Ernstniveaus dragen geen bereikbaarheidsbeleid — ernst is een label, en beïnvloedt het oproepen alleen als *criterium* binnen een bereikbaarheidsregel. Regels die zijn ingesteld onder **Incidenten → Regels → Bereikbaarheidsregels** voegen hun beleid toe aan wat je hier kiest; wat uiteindelijk wordt uitgevoerd, is de vereniging van beide, zonder dubbelingen. Een incident dat in een latere status wordt gemeld, voert er geen van uit — zie [Al bevestigd of opgelost gemeld](#al-bevestigd-of-opgelost-gemeld).

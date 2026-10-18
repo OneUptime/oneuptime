@@ -77,17 +77,13 @@ Con dos o más condiciones, elige **Coincidir con todas**, donde deben cumplirse
 **Alertas → Reglas → Reglas de guardia** automatiza los avisos. Cada regla que coincide añade sus políticas a la nueva alerta, y la alerta las ejecuta junto con las políticas que ya tenía, cada una una sola vez.
 
 :::steps
-### Nombrar la regla
-
-Haz clic en **Crear Regla de guardia de alertas**. En **Información básica**, dale un **Nombre**, como "Notificar al equipo de base de datos ante cualquier alerta de BD", y una **Descripción** si quieres.
-
 ### Elegir las alertas
 
-En **Criterios de coincidencia**, **Todas las alertas**, donde empieza una regla nueva, coincide con todas las alertas nuevas. Para acotarla, elige **Solo las alertas que cumplen las condiciones** y añade las condiciones que debe cumplir una alerta.
+Haz clic en **Crear Regla de guardia de alertas**. En **Coincidencia**, **Todas las alertas**, donde empieza una regla nueva, coincide con todas las alertas nuevas. Para acotarla, elige **Solo las alertas que cumplen las condiciones** y añade las condiciones que debe cumplir una alerta.
 
 ### Elegir las políticas
 
-En **Políticas de guardia**, elige las **Políticas de guardia** que ejecuta la regla y después crea la regla.
+En **Políticas de guardia**, elige las **Políticas de guardia** que activa la regla. Su **Nombre** las sigue, como "Avisar a Platform on-call", hasta que escribas uno propio, y una **Descripción** espera en **Más campos**. Después crea la regla.
 :::
 
 Una gravedad no avisa a nadie por sí sola: una regla de guardia que coincide con **Gravedades de alerta** es la forma de configurar "avisar al equipo de base de datos por cada alerta de gravedad Alta". Para ver lo que se ejecutó para una alerta, abre su página **Ejecuciones de guardia**. Después se localiza a cada persona como la haya configurado en **Ajustes de usuario → Reglas de guardia**, en la pestaña **Alertas**; consulta [Reglas de escalado](/docs/on-call/escalation-rules).
@@ -104,7 +100,7 @@ Las **Reglas del propietario** añaden usuarios y equipos propietarios a las ale
 
 ## Reglas de privacidad y de runbook
 
-Las **Reglas de privacidad** hacen privadas las alertas nuevas que coinciden, antes de que se ejecute nada más: solo sus propietarios y los administradores y propietarios del proyecto pueden verlas. Una regla tiene un paso **Información básica** y un paso **Criterios de coincidencia**, y hace privada cada alerta con la que coincide. Consulta [Alertas privadas](/docs/alerts/index#alertas-privadas).
+Las **Reglas de privacidad** hacen privadas las alertas nuevas que coinciden, antes de que se ejecute nada más: solo sus propietarios y los administradores y propietarios del proyecto pueden verlas. Una regla tiene dos pasos: **Coincidencia**, las alertas que hace privadas, y luego **Nombre**, ya rellenado como "Hacer privadas las alertas". Consulta [Alertas privadas](/docs/alerts/index#alertas-privadas).
 
 Las **Reglas de runbook** ponen en marcha un runbook cuando coincide una alerta nueva, salvo que la alerta se haya creado resuelta. Consulta [Reglas de runbook](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ Las **Reglas de runbook** ponen en marcha un runbook cuando coincide una alerta 
 **Alertas → Reglas → Reglas de recordatorio** recuerda a los propietarios de una alerta mientras sigue abierta. Cada alerta nueva recibe la primera regla que coincide con ella, de arriba abajo en la lista.
 
 :::steps
-### Nombrar la regla de recordatorio
-
-Haz clic en **Crear Regla de recordatorio de alertas**. En **Información de la regla**, dale un **Nombre**, como "Recordatorios de alertas críticas".
-
 ### Elegir de qué alertas recordar
 
-En **Criterios de coincidencia**, deja marcado **Todas las alertas** para recordar todas las alertas, o elige **Solo las alertas que cumplen las condiciones** y luego las **Gravedades de alerta** y las **Etiquetas** a las que se aplica.
+Haz clic en **Crear Regla de recordatorio de alertas**. En **Coincidencia**, deja marcado **Todas las alertas** para recordar todas las alertas, o elige **Solo las alertas que cumplen las condiciones** y luego las **Gravedades de alerta** y las **Etiquetas** a las que se aplica.
 
 ### Fijar el intervalo
 
-En **Ajustes de recordatorios**, fija el **Intervalo de recordatorio (minutos)**, cada cuánto se recuerda a los propietarios, y **Dejar de recordar cuando**: **Resuelto**, el valor por defecto, o **Reconocido**. Después crea la regla.
+En **Recordatorios**, fija el **Intervalo de recordatorio (minutos)**, cada cuánto se recuerda a los propietarios, y **Dejar de recordar cuando**: **Resuelto**, el valor por defecto, o **Reconocido**. Su **Nombre** sigue a ambos, por ejemplo "Recordar cada 30 minutos hasta que se resuelva", hasta que escribas uno propio. Después crea la regla.
 :::
 
 Los propietarios reciben cada recordatorio como **Recordatorio de alerta**, que está activado por correo electrónico por defecto. La regla de una alerta se vuelve a comprobar cuando cambian su gravedad o sus etiquetas. Para detener los recordatorios de una alerta, desactiva **Enviar recordatorios** en su página **Ajustes**; se guarda en el momento en que lo cambias.

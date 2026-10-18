@@ -77,17 +77,13 @@ Com duas ou mais condições, escolha **Corresponder a todas**, em que todas pre
 **Alertas → Regras → Regras de Plantão** torna os acionamentos automáticos. Cada regra correspondente adiciona suas políticas ao novo alerta, e o alerta as executa junto com as políticas que já tinha, cada uma uma vez.
 
 :::steps
-### Dar um nome à regra
-
-Clique em **Criar: Alert On-Call Rule**. Em **Informações básicas**, dê a ela um **Nome**, como "Acionar a equipe de banco de dados para qualquer alerta de BD", e uma **Descrição** se quiser.
-
 ### Escolher os alertas
 
-Em **Critérios de Correspondência**, **Todos os alertas**, onde uma regra nova começa, corresponde a todo alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione as condições que um alerta precisa atender.
+Clique em **Criar: Alert On-Call Rule**. Em **Corresponder**, **Todos os alertas**, onde uma regra nova começa, corresponde a todo alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione as condições que um alerta precisa atender.
 
 ### Escolher as políticas
 
-Em **Políticas de plantão**, escolha as **Políticas de plantão** que a regra executa e depois crie a regra.
+Em **Políticas de plantão**, escolha as **Políticas de plantão** que a regra aciona. O **Nome** dela as acompanha, como "Acionar Platform on-call", até você digitar um próprio, e uma **Descrição** fica em **Mais campos**. Depois crie a regra.
 :::
 
 Uma gravidade sozinha não aciona ninguém: uma regra de plantão que corresponde a **Alerta Severidades** é a forma de configurar "acionar a equipe de banco de dados para cada alerta High". Para ver o que foi executado para um alerta, abra a página **Execuções de plantão** dele. Cada pessoa é então contatada do jeito que configurou em **Configurações do usuário → Regras de Plantão**, na aba **Alertas**; veja [Regras de escalonamento](/docs/on-call/escalation-rules).
@@ -104,7 +100,7 @@ As **Regras de proprietário** adicionam usuários e equipes proprietários aos 
 
 ## Regras de privacidade e de runbook
 
-As **Regras de privacidade** tornam privados os novos alertas que correspondem, antes que qualquer outra coisa seja executada: só seus proprietários e os administradores e proprietários do projeto podem vê-los. Uma regra tem uma etapa **Informações básicas** e uma etapa **Critérios de Correspondência**, e torna privado todo alerta que corresponde a ela. Veja [Alertas privados](/docs/alerts/index#alertas-privados).
+As **Regras de privacidade** tornam privados os novos alertas que correspondem, antes que qualquer outra coisa seja executada: só seus proprietários e os administradores e proprietários do projeto podem vê-los. Uma regra tem duas etapas: **Corresponder**, os alertas que ela torna privados, e depois **Nome**, já preenchido como "Tornar privados os alertas". Veja [Alertas privados](/docs/alerts/index#alertas-privados).
 
 As **Regras de runbook** iniciam um runbook quando um novo alerta corresponde, a menos que o alerta tenha sido criado resolvido. Veja [Regras de runbook](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ As **Regras de runbook** iniciam um runbook quando um novo alerta corresponde, a
 **Alertas → Regras → Reminder Rules** lembra os proprietários de um alerta enquanto ele continua aberto. Cada alerta novo recebe a primeira regra que corresponde a ele, de cima para baixo na lista.
 
 :::steps
-### Dar um nome à regra de lembrete
-
-Clique em **Criar: Alert Reminder Rule**. Em **Rule Info**, dê a ela um **Nome**, como "Critical Alert Reminders".
-
 ### Escolher sobre quais alertas lembrar
 
-Em **Critérios de Correspondência**, deixe **Todos os alertas** selecionado para lembrar sobre todo alerta, ou escolha **Somente os alertas que atendem às condições** e depois as **Alerta Severidades** e os **Rótulos** aos quais ela se aplica.
+Clique em **Criar: Alert Reminder Rule**. Em **Corresponder**, deixe **Todos os alertas** selecionado para lembrar sobre todo alerta, ou escolha **Somente os alertas que atendem às condições** e depois as **Alerta Severidades** e os **Rótulos** aos quais ela se aplica.
 
 ### Definir o intervalo
 
-Em **Reminder Settings**, defina **Reminder Interval (minutes)**, com que frequência os proprietários são lembrados, e **Stop Reminders When**: **Resolvido**, o padrão, ou **Confirmado**. Depois crie a regra.
+Em **Lembretes**, defina **Intervalo de lembrete (minutos)**, com que frequência os proprietários são lembrados, e **Parar lembretes quando**: **Resolvido**, o padrão, ou **Confirmado**. O **Nome** dela acompanha os dois, como "Lembrar a cada 30 minutos até ser resolvido", até você digitar um próprio. Depois crie a regra.
 :::
 
 Os proprietários recebem cada lembrete como **Alert reminder**, que fica ativado por e-mail por padrão. A regra de um alerta volta a corresponder quando sua gravidade ou seus rótulos mudam. Para parar os lembretes de um alerta, desative **Enviar lembretes** na página **Configurações** dele; isso é salvo no momento em que você alterna o interruptor.

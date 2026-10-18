@@ -150,15 +150,15 @@ Eine Episode, die Sie erstellen, hat keine Gruppierungsregel, deshalb zeigt die 
 
 | Bereich im Seitenmenü | Seiten                                                                         |
 | --------------------- | ------------------------------------------------------------------------------ |
-| **Grundlegend**       | **Übersicht**, **Beschreibung**, **Grundursache**, **Behebungs-Notizen**       |
-| **Eigentümerschaft**  | **Eigentümer**                                                                 |
-| **Zeitachse**         | **Zustands-Zeitachse**                                                         |
-| **Warnungen**         | **Mitglieder-Warnungen**                                                       |
-| **Episodennotizen**   | **Private Notizen**                                                            |
-| **Entwickler**        | **Terraform**, **API**, **KI-Assistenten**                                     |
-| **Erweitert**         | **Audit-Protokolle**, **Episode löschen**                                      |
+| **Übersicht** | **Übersicht**, **Zustands-Zeitachse** |
+| **Untersuchung** | **Beschreibung**, **Grundursache**, **Behebungs-Notizen** |
+| **Team** | **Eigentümer** |
+| **Warnungen** | **Mitglieder-Warnungen** |
+| **Notizen** | **Private Notizen** |
+| **Entwickler** | **Terraform**, **API**, **KI-Assistenten** |
+| **Erweitert** | **Audit-Protokolle**, **Episode löschen** |
 
-**Eigentümerschaft**, **Entwickler** und **Erweitert** sind zunächst eingeklappt. Die **Übersicht** beginnt mit **Warnungen in dieser Episode**, dann folgt der **Episoden-Feed**, neben der Karte **Episodendetails**: Nummer, Status, Schweregrad, Anzahl der Warnungen, Gruppierungsregel und Bereitschaftsrichtlinien. Ihr Kopfbereich hat **Bestätigen** und **Beheben**, und **Move episode to** im Menü **⋯**.
+**Entwickler** und **Erweitert** sind zunächst eingeklappt. Die **Übersicht** beginnt mit **Warnungen in dieser Episode**, dann folgt der **Episoden-Feed**, neben der Karte **Episodendetails**: Nummer, Status, Schweregrad, Anzahl der Warnungen, Gruppierungsregel und Bereitschaftsrichtlinien. Ihr Kopfbereich hat **Bestätigen** und **Beheben**, und **Move episode to** im Menü **⋯**.
 
 **Warnungen → Aktive Episoden** listet die Episoden, die noch nicht behoben sind, und das Abzeichen daneben zählt sie.
 

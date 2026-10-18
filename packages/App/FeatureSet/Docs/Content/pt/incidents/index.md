@@ -193,7 +193,7 @@ O que cada uma contém:
 - **Funções**, **Execuções de plantão**, **Proprietários** — quem está nele, quais políticas foram acionadas e quem é notificado.
 - **Logs de notificação**, **Registros de IA**, **Registros de auditoria** — o que foi enviado e o que mudou.
 - **Notas privadas** e **Notas públicas** — o que foi dito à sua equipe e aos seus clientes. Veja [Notas, responsáveis e feed de incidentes](/docs/incidents/notes-owners-and-feed).
-- **Campos personalizados**, **Configurações**, **Excluir incidente** — a página **Configurações** contém **Visível na página de status** e **Incidente privado**, o cartão **Escopo de páginas de status** que limita o incidente a algumas páginas de status, e o cartão **Reminders**, cujo interruptor **Enviar lembretes** é salvo assim que você o altera e mostra quando sai o próximo lembrete.
+- **Campos personalizados**, **Configurações**, **Excluir incidente** — a página **Configurações** contém **Visível na página de status** e **Incidente privado**, o cartão **Escopo de páginas de status** que limita o incidente a algumas páginas de status, e o cartão **Lembretes**, cujo interruptor **Enviar lembretes** é salvo assim que você o altera e mostra quando sai o próximo lembrete.
 
 ## Como os incidentes se encaixam no resto do OneUptime
 

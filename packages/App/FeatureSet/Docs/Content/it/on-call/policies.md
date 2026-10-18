@@ -94,7 +94,7 @@ Trovate i registri di esecuzione in tre posti:
 
 - nei **Registri di esecuzione** della policy stessa, in **Registri**;
 - in **Reperibilità → Avanzato → Registri di esecuzione**, per tutte le policy, dove le chiamate dirette da workflow e chat compaiono come **Chiamata diretta**;
-- nella pagina **Esecuzioni di reperibilità** di un incidente, e in **Esecuzioni di reperibilità** di un avviso.
+- nella pagina **Esecuzioni di reperibilità** di un incidente o di un avviso.
 
 Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **View Timeline** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. Una pianificazione in cui nessuno è reperibile mostra **No one was on call** al posto di una persona. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.
 

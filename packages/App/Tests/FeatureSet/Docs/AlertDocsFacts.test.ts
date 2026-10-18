@@ -464,11 +464,13 @@ describe("the alert page's menu table is the alert's own menu", () => {
   );
 
   it("reads the menu, with the Developer section where the menu adds it", () => {
+    // The incident page's sections, in the incident page's order.
     expect(titlesOf(alertViewMenu())).toEqual([
-      "Basic",
-      "On Call",
-      "Logs",
-      "Alert Notes",
+      "Overview",
+      "Investigation",
+      "Team",
+      "Notifications",
+      "Notes",
       "Developer",
       "Advanced",
     ]);
@@ -484,13 +486,16 @@ describe("the alert page's menu table is the alert's own menu", () => {
     );
 
     expect(table).toContain(
-      "**Basic** and **Alert Notes** are open; the other sections start folded until you click them.",
+      "**Overview**, **Investigation**, **Team** and **Notes** are open; the other sections start folded until you click them.",
     );
 
     for (const menuSection of alertViewMenu()) {
-      const open: boolean = ["Basic", "Alert Notes"].includes(
-        menuSection.title,
-      );
+      const open: boolean = [
+        "Overview",
+        "Investigation",
+        "Team",
+        "Notes",
+      ].includes(menuSection.title);
 
       expect({
         section: menuSection.title,
@@ -509,11 +514,11 @@ describe("the episode page's menu table is the episode's own menu", () => {
 
   it("reads the menu, with the Developer section where the menu adds it", () => {
     expect(titlesOf(episodeViewMenu())).toEqual([
-      "Basic",
-      "Ownership",
-      "Timeline",
+      "Overview",
+      "Investigation",
+      "Team",
       "Alerts",
-      "Episode Notes",
+      "Notes",
       "Developer",
       "Advanced",
     ]);
@@ -530,11 +535,11 @@ describe("the episode page's menu table is the episode's own menu", () => {
     const folded: Array<string> = boldNames(
       paragraphAfter(
         table,
-        "**Ownership**, **Developer** and **Advanced** start folded.",
+        "**Developer** and **Advanced** start folded.",
       ).split(" start folded.")[0] || "",
     );
 
-    expect(folded).toEqual(["Ownership", "Developer", "Advanced"]);
+    expect(folded).toEqual(["Developer", "Advanced"]);
 
     for (const menuSection of episodeViewMenu()) {
       expect({
@@ -2294,36 +2299,43 @@ describe("alert rules and settings", () => {
     );
   });
 
-  it("walks the on-call rule's three steps with the form's own names, and starts a rule enabled", () => {
+  it("walks the on-call rule's two steps with the form's own names, and starts a rule enabled", () => {
     const source: string = readDashboardSource(
       `${settingsDir}/AlertOnCallRules.tsx`,
     );
+    const form: string = readDashboardSource("Utils/Form/EventRuleForm.ts");
     const steps: string = section(page, "## On-call rules");
 
-    expect(source).toContain('{ title: "Basic Info", id: "basic-info" },');
+    // Match first, then the policies the rule pages and its name.
     expect(source).toContain(
-      '{ title: "Match Criteria", id: "match-criteria", columns: 2 },',
+      "formSteps={getOnCallRuleFormSteps<AlertOnCallRule>()}",
     );
-    expect(source).toContain('{ title: "On-Call Policies", id: "on-call" },');
     expect(source).toContain(
-      'placeholder: "Page database team for any DB alert",',
+      "...getOnCallRuleActionFields<AlertOnCallRule>(),",
     );
-    expect(source).toContain("doNotShowWhenCreating: true,");
+    expect(form).toContain('{ title: "Match", id: "match-criteria" },');
+    expect(form).toContain('{ title: "On-Call Policies", id: "on-call" },');
+    expect(form).toContain('title: "On-Call Duty Policies",');
+    expect(form).toContain('allPicks: translationKey("Page {{policies}}"),');
+    expect(form).toContain("doNotShowWhenCreating: true,");
     expect(
       readCommonSource("Models/DatabaseModels/AlertOnCallRule.ts"),
     ).toContain('singularName: "Alert On-Call Rule"');
 
     for (const name of [
       "Create Alert On-Call Rule",
-      "Basic Info",
-      "Match Criteria",
+      "Match",
       "On-Call Policies",
       "On-Call Duty Policies",
+      "Name",
+      "Description",
+      "More fields",
     ]) {
       expect(steps).toContain(`**${name}**`);
     }
 
-    expect(steps).toContain('such as "Page database team for any DB alert"');
+    expect(steps).toContain('such as "Page Platform on-call"');
+    expect(steps).not.toContain("**Basic Info**");
   });
 
   it("names the conditions an alert rule can match on, as the rule forms list them", () => {
@@ -2383,10 +2395,11 @@ describe("alert rules and settings", () => {
     }
   });
 
-  it("walks the reminder rule's three steps and fields with the form's own names and defaults", () => {
+  it("walks the reminder rule's two steps and fields with the form's own names and defaults", () => {
     const source: string = readDashboardSource(
       `${settingsDir}/AlertReminderRules.tsx`,
     );
+    const form: string = readDashboardSource("Utils/Form/EventRuleForm.ts");
     const model: string = readCommonSource(
       "Models/DatabaseModels/AlertReminderRule.ts",
     );
@@ -2395,13 +2408,23 @@ describe("alert rules and settings", () => {
     );
     const reminders: string = section(page, "## Reminder rules");
 
-    for (const step of ["Rule Info", "Match Criteria", "Reminder Settings"]) {
-      expect(source).toContain(`title: "${step}",`);
+    expect(source).toContain(
+      "formSteps={getReminderRuleFormSteps<AlertReminderRule>()}",
+    );
+    expect(source).toContain(
+      '...getReminderRuleActionFields<AlertReminderRule>("alert"),',
+    );
+
+    for (const step of [
+      '{ title: "Match", id: "match-criteria" },',
+      '{ title: "Reminders", id: "reminder-settings" },',
+    ]) {
+      expect(form).toContain(step);
     }
 
-    expect(source).toContain('placeholder: "Critical Alert Reminders",');
-    expect(source).toContain('title: "Reminder Interval (minutes)",');
-    expect(source).toContain('title: "Stop Reminders When",');
+    expect(form).toContain('"Remind every {{interval}} until resolved"');
+    expect(form).toContain('title: "Reminder Interval (minutes)",');
+    expect(form).toContain('title: "Stop Reminders When",');
     expect(stopStates).toContain('Acknowledged = "Acknowledged",');
     expect(stopStates).toContain('Resolved = "Resolved",');
     expect(model).toContain("defaultValue: ReminderStopState.Resolved,");
@@ -2416,7 +2439,10 @@ describe("alert rules and settings", () => {
     expect(reminders).toContain(
       "Each new alert gets the first rule that matches it",
     );
-    expect(reminders).toContain('such as "Critical Alert Reminders"');
+    expect(reminders).toContain(
+      'such as "Remind every 30 minutes until resolved"',
+    );
+    expect(reminders).not.toContain("**Rule Info**");
   });
 
   it("matches every open alert again when a reminder rule is saved", () => {

@@ -607,14 +607,13 @@ flowchart TB
 
 ## قواعد کشیک حادثه
 
-**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) جایی است که فراخوانی را خودکار می‌کنید. کارت **Incident On-Call Rules** قواعدی را توصیف می‌کند که وقتی حادثه‌های منطبق ساخته می‌شوند سیاست‌های کشیک را خودکار اجرا می‌کنند. صفحه دو زبانه دارد: **Incident Rules** و **Episode Rules**.
+**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) جایی است که فراخوانی را خودکار می‌کنید. کارت **Incident On-Call Rules** می‌گوید این قواعد چه می‌کنند: برای حادثه‌های جدیدی که مطابقت دارند، سیاست‌های آنکال را خودکار فرا می‌خوانند. صفحه دو زبانه دارد: **Incident Rules** و **Episode Rules**.
 
-فرم ساخت سه گام دارد:
+فرم ساخت دو گام دارد:
 
 :::steps
-1. **Basic Info** — **Name** (جانگهدار چیزی مانند فراخواندن تیم پایگاه داده برای هر حادثه پایگاه داده پیشنهاد می‌دهد) و **Description**. قاعده فعال آغاز می‌شود؛ فرم ویرایشش کلید **Enabled** را می‌افزاید، و فهرست برای هر قاعده نشان سبز **Enabled** یا قرمز **Disabled** نمایش می‌دهد.
-2. **Match Criteria** — **All incidents**، که قاعده تازه با آن آغاز می‌شود، یا **Only incidents that match conditions**، که شرط‌های قاعده را باز می‌کند. هر شرط یک معیار برمی‌گزیند — **Monitors**، **Incident Severities**، **Incident Labels**، **Monitor Labels**، **Incident Title**، **Incident Description**، **Monitor Name** یا **Monitor Description** — یک عملگر و یک مقدار، و مانند یک جمله خوانده می‌شود: «If **Incident Title** contains `database`»، «And **Monitor Labels** has any of _Production_».
-3. **On-Call Policies** — سیاست‌هایی که این قاعده اجرا می‌کند.
+1. **Match** — **All incidents**، که قاعده تازه با آن آغاز می‌شود، یا **Only incidents that match conditions**، که شرط‌های قاعده را باز می‌کند. هر شرط یک معیار برمی‌گزیند — **Monitors**، **Incident Severities**، **Incident Labels**، **Monitor Labels**، **Incident Title**، **Incident Description**، **Monitor Name** یا **Monitor Description** — یک عملگر و یک مقدار، و مانند یک جمله خوانده می‌شود: «If **Incident Title** contains `database`»، «And **Monitor Labels** has any of _Production_».
+2. **On-Call Policies** — سیاست‌هایی که این قاعده فرا می‌خواند، و **Name** قاعده، که تا وقتی نام خودتان را وارد نکنید از روی آن‌ها پر می‌شود («فراخواندن Platform on-call»)؛ **Description** زیر **More fields** است. قاعده فعال آغاز می‌شود؛ فرم ویرایشش کلید **Enabled** را می‌افزاید، و فهرست برای هر قاعده نشان سبز **Enabled** یا قرمز **Disabled** نمایش می‌دهد.
 :::
 
 ### تطبیق چگونه تفکیک می‌شود
@@ -632,7 +631,7 @@ flowchart TB
 
 ## پیوست کردن مستقیم سیاست‌های کشیک
 
-قواعد تنها مسیر نیستند. هر حادثه فهرست سیاست کشیک خودش را دارد، که به‌صورت فیلد **On-Call Policy** در گام **On-Call & Roles** جادوگر اعلام و در گام **On-Call** قالب حادثه دیده می‌شود. توضیحات فیلد صریح می‌گوید: این‌ها سیاست‌های کشیکی هستند که هنگام ساخت این حادثه اجرا می‌شوند.
+قواعد تنها مسیر نیستند. هر حادثه فهرست سیاست کشیک خودش را دارد، که به‌صورت فیلد **On-Call Policy** در گام **On-Call & Roles** جادوگر اعلام و در گام **On-Call** قالب حادثه دیده می‌شود. توضیحات فیلد می‌گوید کی فراخوانده می‌شوند: به محض اعلام حادثه.
 
 وقتی حادثه‌ای ساخته می‌شود، OneUptime قواعد برچسب، سپس قواعد کشیک (که سیاست‌های منطبقشان را در فهرست حادثه ادغام می‌کنند)، سپس قواعد رانبوک را اجرا می‌کند — و اگر فهرست حاصل خالی نباشد، هر سیاستی در آن اجرا می‌شود. اجراها موازی‌اند و مستقل از هم به سرانجام می‌رسند، پس ناکامی یک سیاست بقیه را متوقف نمی‌کند. هر اجرا با حادثه‌ای که آن را به راه انداخته و با نوع رویداد اعلان «حادثه ساخته شد» برچسب می‌خورد.
 

@@ -607,14 +607,13 @@ Las reglas guardadas antes de que el formulario preguntara por propietarios pued
 
 ## Reglas de guardia de incidentes
 
-**Incidentes → Reglas → Reglas de guardia** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) es donde automatizas los avisos. La tarjeta, **Reglas de guardia de incidentes**, describe reglas que ejecutan automáticamente políticas de guardia cuando se crean incidentes que coinciden. La página tiene dos pestañas: **Reglas de incidentes** y **Reglas de episodios**.
+**Incidentes → Reglas → Reglas de guardia** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) es donde automatizas los avisos. La tarjeta, **Reglas de guardia de incidentes**, dice lo que hacen: activar automáticamente políticas de guardia para los nuevos incidentes que coincidan. La página tiene dos pestañas: **Reglas de incidentes** y **Reglas de episodios**.
 
-El formulario de creación tiene tres pasos:
+El formulario de creación tiene dos pasos:
 
 :::steps
-1. **Información básica** — **Nombre** (el texto de ejemplo sugiere algo como avisar al equipo de base de datos por cualquier incidente de base de datos) y **Descripción**. La regla empieza habilitada; su formulario de edición añade el interruptor **Habilitado**, y la lista muestra una etiqueta verde **Habilitado** o roja **Deshabilitado** por regla.
-2. **Criterios de coincidencia** — **Todos los incidentes**, donde empieza una regla nueva, o **Solo los incidentes que cumplen las condiciones**, que abre las condiciones de la regla. Cada condición elige un criterio —**Monitores**, **Gravedades de incidente**, **Etiquetas de incidentes**, **Etiquetas del monitor**, **Título del incidente**, **Descripción del incidente**, **Nombre del monitor** o **Descripción del monitor**—, un operador y un valor, y se lee como una frase: «Si **Título del incidente** contiene `database`», «Y **Etiquetas del monitor** tiene alguno de _Production_».
-3. **Políticas de guardia** — las políticas que ejecuta esta regla.
+1. **Coincidencia** — **Todos los incidentes**, donde empieza una regla nueva, o **Solo los incidentes que cumplen las condiciones**, que abre las condiciones de la regla. Cada condición elige un criterio —**Monitores**, **Gravedades de incidente**, **Etiquetas de incidentes**, **Etiquetas del monitor**, **Título del incidente**, **Descripción del incidente**, **Nombre del monitor** o **Descripción del monitor**—, un operador y un valor, y se lee como una frase: «Si **Título del incidente** contiene `database`», «Y **Etiquetas del monitor** tiene alguno de _Production_».
+2. **Políticas de guardia** — las políticas que activa esta regla, y el **Nombre** de la regla, que se rellena a partir de ellas ("Avisar a Platform on-call") hasta que escribas uno propio; su **Descripción** espera en **Más campos**. La regla empieza habilitada; su formulario de edición añade el interruptor **Habilitado**, y la lista muestra una etiqueta verde **Habilitado** o roja **Deshabilitado** por regla.
 :::
 
 ### Cómo se resuelve la coincidencia
@@ -632,7 +631,7 @@ Las reglas que trae la propia página merecen interiorizarse:
 
 ## Adjuntar políticas de guardia directamente
 
-Las reglas no son la única vía. Cada incidente lleva su propia lista de políticas de guardia, que aparece como el campo **Política de guardia** en el paso **Guardia y roles** del asistente de declaración y en el paso **De guardia** de una plantilla de incidente. La descripción del campo lo dice claramente: son las políticas de guardia que se ejecutan cuando se crea este incidente.
+Las reglas no son la única vía. Cada incidente lleva su propia lista de políticas de guardia, que aparece como el campo **Política de guardia** en el paso **Guardia y roles** del asistente de declaración y en el paso **De guardia** de una plantilla de incidente. Su descripción dice cuándo se activan: en cuanto se declara el incidente.
 
 Cuando se crea un incidente, OneUptime ejecuta las reglas de etiquetas, luego las reglas de guardia (que añaden sus políticas coincidentes a la lista del incidente), luego las reglas de runbook, y si la lista resultante no está vacía, se ejecuta cada política que contiene. Las ejecuciones van en paralelo y se resuelven de forma independiente, así que el fallo de una política no detiene a las demás. Cada ejecución se marca con el incidente que la desencadenó y con el tipo de evento de notificación de incidente creado.
 

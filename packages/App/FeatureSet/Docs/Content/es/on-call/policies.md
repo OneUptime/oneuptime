@@ -94,7 +94,7 @@ Encontrarás registros de ejecución en tres lugares:
 
 - en los propios **Registros de ejecución** de la política, en **Registros**;
 - en **Guardia → Avanzado → Registros de ejecución**, para todas las políticas, donde los avisos directos desde workflows y chat aparecen como **Aviso directo**;
-- en la página **Ejecuciones de guardia** de un incidente, y en **Ejecuciones de guardia** de una alerta.
+- en la página **Ejecuciones de guardia** de un incidente o de una alerta.
 
 Cada fila muestra qué desencadenó la ejecución, cuándo, su **Estado** y quién la reconoció. **View Timeline** abre su **Cronología de ejecución**: cada regla de escalado, a quién avisó, a través de qué programación y cómo terminó cada aviso. Una programación sin nadie de guardia muestra **No one was on call** en lugar de una persona. En OneUptime Cloud, los registros de ejecución necesitan el plan **Growth**.
 

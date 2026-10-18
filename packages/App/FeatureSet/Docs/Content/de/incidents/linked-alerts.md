@@ -84,7 +84,7 @@ Jede Zeile hat **Warnung anzeigen**, um die Warnung zu öffnen, und **Verknüpfu
 
 ## Vorfälle von einer Warnung aus verknüpfen
 
-Die Warnungsseite spiegelt die Vorfallseite. Öffnen Sie eine Warnung und wählen Sie **Verknüpfte Vorfälle** im Abschnitt **Grundlegend** ihres Seitenmenüs. Die Tabelle listet jeden Vorfall, mit dem die Warnung verknüpft ist, mit Vorfallnummer, Titel und aktuellem Status, und wann und von wem sie verknüpft wurde.
+Die Warnungsseite spiegelt die Vorfallseite. Öffnen Sie eine Warnung und wählen Sie **Verknüpfte Vorfälle** im Abschnitt **Untersuchung** ihres Seitenmenüs. Die Tabelle listet jeden Vorfall, mit dem die Warnung verknüpft ist, mit Vorfallnummer, Titel und aktuellem Status, und wann und von wem sie verknüpft wurde.
 
 - **Vorfall verknüpfen** verknüpft diese Warnung mit einem bestehenden Vorfall. Sein Dropdown funktioniert wie auf der Vorfallseite: die neuesten Vorfälle zuerst, jeder mit seiner Nummer – etwa `INC-42: Checkout is down` –, und Tippen durchsucht alle Vorfälle nach Titel.
 - **Vorfall anzeigen** öffnet einen verknüpften Vorfall.
