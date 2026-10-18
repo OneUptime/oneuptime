@@ -11,15 +11,17 @@
 # kubectl, downloaded and verified in its own stage so the download tool
 # never ships. Pinned by version AND sha256 per architecture, to the SAME
 # ARG KUBECTL_VERSION and digests as packages/Runner/Dockerfile.tpl (the docs
-# tests hold the two files together): v1.36.4 (go1.26.5) covers 1.35-1.37
+# tests hold the two files together): v1.36.5 (go1.26.8) covers 1.35-1.37
 # servers. Bump KUBECTL_VERSION and both digests together, in both files, at
 # least once per Kubernetes minor release (dl.k8s.io publishes
-# kubectl.sha256 next to each binary).
+# kubectl.sha256 next to each binary), and whenever a patch release clears
+# findings an image scan reports in it. What a bump must re-check is in
+# packages/Runner/Dockerfile.tpl.
 FROM public.ecr.aws/docker/library/node:26-alpine3.24 AS kubectl
 ARG TARGETARCH
-ARG KUBECTL_VERSION=v1.36.4
-ARG KUBECTL_SHA256_AMD64=8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a
-ARG KUBECTL_SHA256_ARM64=0ecf44450ee6063bf19dd166a103ee6df4a9034455c2abce626e6eea657d73fb
+ARG KUBECTL_VERSION=v1.36.5
+ARG KUBECTL_SHA256_AMD64=33bc88a24c3b09cf55bfd59e6ca977881b61fc3f25ab65bc80c65b430248648e
+ARG KUBECTL_SHA256_ARM64=88fc1aca8fd0c1b44fe379f67c39bd6858bdfc50241dc55775f84d0f5b31da3a
 RUN set -eu \
   && apk add --no-cache curl \
   && arch="${TARGETARCH:-amd64}" \
