@@ -39,7 +39,9 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
 type Values = FormValues<TeamPermission>;
 
 // What a field hands its new values to.
-type SetNewFormValuesMock = ReturnType<typeof jest.fn<(values: Values) => void>>;
+type SetNewFormValuesMock = ReturnType<
+  typeof jest.fn<(values: Values) => void>
+>;
 
 function values(record: Record<string, unknown>): Values {
   return record as unknown as Values;

@@ -44,7 +44,7 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  *
  * The pages' own requests go through API.fetch, and only one to the license
  * route counts as asking for the license (mockLicenseFetch). The others -
- * the switches reading their project or status page, Settings > OIDC
+ * the switches reading their project or status page, Settings > SSO
  * looking up the members team its new providers start on - get canned
  * answers (mockServerFetch).
  */
@@ -240,7 +240,6 @@ import {
 } from "../../../Dashboard/Identity/TightenOnly/ReadOnlyActionsNotice";
 import { MIN_SCIM_BEARER_TOKEN_LENGTH } from "../../../Dashboard/Identity/TightenOnly/TightenOnlyUpdates";
 import SettingsSSOPage from "@oneuptime/dashboard/Pages/Settings/SSO";
-import SettingsOIDCPage from "@oneuptime/dashboard/Pages/Settings/OIDC";
 import StatusPageSSOPage from "@oneuptime/dashboard/Pages/StatusPages/View/SSO";
 import StatusPageOIDCPage from "@oneuptime/dashboard/Pages/StatusPages/View/OIDC";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
@@ -359,10 +358,14 @@ const SSO_CASES: Array<SsoCase> = [
       confirmTitle: RequireSsoForLoginSwitchCopy.requireConfirmTitle,
     },
   },
+  /*
+   * A project's OpenID Connect providers, on the same Settings > SSO page
+   * as its SAML ones (the switch is checked once, above).
+   */
   {
-    name: "Settings > OIDC",
-    render: renderDashboardPage(SettingsOIDCPage),
-    path: `/dashboard/${PROJECT_ID}/settings/oidc`,
+    name: "Settings > SSO, its OIDC providers",
+    render: renderDashboardPage(SettingsSSOPage),
+    path: `/dashboard/${PROJECT_ID}/settings/sso`,
     table: "oidc-table",
     viewAction: "View OIDC Config",
     requireSsoSwitch: null,
@@ -450,7 +453,7 @@ const fakeUpdateById: (request: {
 /*
  * The canned answer to every request that is not the license request: the
  * project, for the "Require SSO for Login" switch's read of
- * requireSsoForLogin, and an empty list for a list read (Settings > OIDC
+ * requireSsoForLogin, and an empty list for a list read (Settings > SSO
  * looks up the members team its new providers start on).
  */
 const answerServer: (request: {

@@ -582,9 +582,10 @@ test.describe("a role's page", () => {
       "Given to 2 teams (4 people). A change here changes what they can do at once.",
     );
     await expect(permissions.locator("tbody tr")).toHaveCount(6);
-    await expect(row(permissions, "Monitor Viewer")).toContainText(
-      "Restricted to labels:",
-    );
+    // The Scope cell reads in the Scope choice's words, with the labels.
+    await expect(
+      row(permissions, "Monitor Viewer").getByTestId("permission-scope-cell"),
+    ).toContainText("Only resources with certain labels");
     await expect(row(permissions, "Monitor Viewer")).toContainText(
       "Production",
     );
