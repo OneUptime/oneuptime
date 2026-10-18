@@ -98,8 +98,14 @@ enterpriseMarketplace:
 testHook:
   enabled: true
 
-# Important: You do need to set this to a long random values if you're using OneUptime in production.
-# Please set this to string.
+# Leave these empty and the chart generates a long random value for each on
+# install, into the `<release>-secrets` Secret, and keeps it across upgrades.
+# If you set one, make it a long random string.
+#
+# oneuptimeSecret is the cluster key OneUptime's own services, the in-cluster
+# Runner among them, present to each other. OneUptime refuses a value its
+# repository ships ("secret", or a "please-change-this-..." placeholder) from
+# every caller, so a Runner given one does not register.
 oneuptimeSecret:
 registerProbeKey:
 encryptionSecret:

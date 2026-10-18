@@ -548,11 +548,83 @@ export const AirtableApiKey: string = process.env["AIRTABLE_API_KEY"] || "";
 
 export const AirtableBaseId: string = process.env["AIRTABLE_BASE_ID"] || "";
 
+/*
+ * A SHARED SECRET THIS REPOSITORY SHIPS
+ *
+ * The values a key OneUptime's own components share can be left at by an
+ * installation that never set it, all of them public in this repository:
+ *
+ *   - unset or blank;
+ *   - "secret", which the code used to fall back to;
+ *   - any placeholder config.example.env sets. Every one contains
+ *     "please-change-this" ("please-change-this-to-random-value",
+ *     "probe-1-please-change-this-to-random-value", ...), and the README's
+ *     Docker Compose install copies that file as it is.
+ *
+ * Whitespace around the value is ignored, as compose and shells keep it. The
+ * comparison is case-sensitive: these are the exact values anybody would try
+ * first, and any other weak value is the operator's own choice.
+ *
+ * Such a value is never accepted as proof that a caller is one of
+ * OneUptime's own components, whichever key it is. ENCRYPTION_SECRET keeps
+ * its own, older rule above (IsEncryptionSecretInsecure), because which of
+ * its values count decides which key every sign-in token is checked with.
+ */
+export const ShippedSecretFallback: string = "secret";
+
+export const ShippedSecretPlaceholderMark: string = "please-change-this";
+
+export function isShippedSecretValue(
+  value: string | null | undefined,
+): boolean {
+  if (typeof value !== "string") {
+    return true;
+  }
+
+  const trimmed: string = value.trim();
+
+  return (
+    trimmed === "" ||
+    trimmed === ShippedSecretFallback ||
+    trimmed.includes(ShippedSecretPlaceholderMark)
+  );
+}
+
+/*
+ * THE CLUSTER KEY (ONEUPTIME_SECRET)
+ *
+ * OneUptime's own services prove to each other that a call comes from one of
+ * them by presenting this key: the app and worker processes when one asks
+ * another to send an email, an SMS, a call, a WhatsApp or Telegram message
+ * or a webhook, to run a workflow or to write telemetry, and the in-cluster
+ * Runner when it registers to fix code for every project
+ * (ClusterKeyAuthorization). The routes that take it are reachable through
+ * the ingress like any other.
+ *
+ * ClusterKey is the value exactly as the operator set it, read only by
+ * ClusterKeyAuthorization, and only when it is not one this repository ships
+ * (IsClusterKeyShipped). There is no fallback: an installation that left it
+ * unset or at a placeholder has its services use a key of the installation's
+ * own instead, and refuses the public value from any caller.
+ */
 export const ClusterKey: ObjectID = new ObjectID(
-  process.env["ONEUPTIME_SECRET"] || "secret",
+  process.env["ONEUPTIME_SECRET"] || "",
 );
 
+// Whether ONEUPTIME_SECRET is set at all (the Runner's cluster-scoped mode).
 export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
+
+export const IsClusterKeyShipped: boolean = isShippedSecretValue(
+  process.env["ONEUPTIME_SECRET"],
+);
+
+/*
+ * Said once at boot by the app (App/Index.ts) when ONEUPTIME_SECRET is unset
+ * or a shipped value, or null. The Runner says its own.
+ */
+export const ClusterKeyWarning: string | null = IsClusterKeyShipped
+  ? 'ONEUPTIME_SECRET is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value from any caller. Its own services call each other with a key this installation derives for itself instead, so nothing needs changing for them, but the in-cluster Runner cannot register until ONEUPTIME_SECRET is a long random value, the same on the app and the Runner. npm start and npm run update put one in config.env for Docker Compose; with Helm, set oneuptimeSecret to one.'
+  : null;
 
 export const EnableQueueDashboard: boolean =
   process.env["ENABLE_QUEUE_DASHBOARD"] === "true";

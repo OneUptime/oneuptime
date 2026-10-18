@@ -14,7 +14,7 @@ up-to-date list see [`values.yaml`](../values.yaml).
 | `host`             | Primary hostname served by OneUptime (used for routing and certificates).                       | `localhost`     | 🚨 |
 | `httpProtocol`     | Set to `https` when people reach OneUptime over HTTPS (TLS at the chart's nginx or at a proxy in front of it), otherwise `http`. See [HTTPS](#https). | `http`          | 🚨 |
 | `ssl.provision`    | Auto-provision a Let's Encrypt certificate for the primary host (needs public ports 80 & 443).  | `false`         |    |
-| `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`. Set to a long random string in production.                    | `nil`           |    |
+| `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`, the cluster key OneUptime's own services and the in-cluster Runner present to each other. Leave it empty for a generated one, or set a long random string. A value the repository ships (`secret`, a `please-change-this` placeholder) is refused, and the Runner does not register with it. | `nil`           |    |
 | `encryptionSecret` | Value used for `ENCRYPTION_SECRET`. Set to a long random string in production.                   | `nil`           |    |
 | `global.clusterDomain` | Kubernetes cluster domain.                                                                   | `cluster.local` |    |
 | `nodeEnvironment`  | Node environment. Leave as `production` unless doing local development.                          | `production`    |    |
