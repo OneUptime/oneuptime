@@ -287,14 +287,7 @@ services:
     environment:
       VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD}}
     healthcheck:
-      test:
-        [
-          "CMD",
-          "valkey-cli",
-          "-a",
-          "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}",
-          "ping",
-        ]
+      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
