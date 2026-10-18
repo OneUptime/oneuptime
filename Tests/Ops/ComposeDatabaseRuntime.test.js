@@ -65,6 +65,26 @@ const PRIVATE_IPV4 = /^(?:10\.|172\.(?:1[6-9]|2\d|3[01])\.|192\.168\.)/;
 
 jest.setTimeout(10 * 60 * 1000);
 
+describe("Ops Config Test runs these checks", () => {
+  test("its jest step sets RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1, so they never skip in CI", () => {
+    const { stepCommand } = require("./Utils/WorkflowStep");
+    const steps = yaml.load(
+      fs.readFileSync(
+        path.join(REPO_ROOT, ".github", "workflows", "test.ops.yaml"),
+        "utf8",
+      ),
+    ).jobs.test.steps;
+    const jest = steps.filter((step) => {
+      return stepCommand(step) === "cd Tests/Ops && npm run test";
+    });
+
+    expect(jest).toHaveLength(1);
+    expect(jest[0].env).toEqual(
+      expect.objectContaining({ RUN_COMPOSE_DATABASE_RUNTIME_TESTS: "1" }),
+    );
+  });
+});
+
 function projectName(purpose) {
   return `oneuptime-ops-${purpose}-${process.pid}-${crypto.randomBytes(3).toString("hex")}`;
 }
