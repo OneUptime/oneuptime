@@ -300,12 +300,11 @@ describe("the shared (cluster-scoped) Runner does not run shell commands", () =>
     const mods: LoadedModules = loadForScope(CLUSTER_KEY);
     const workspace: string = makeWorkspace();
 
-    const single: Awaited<
-      ReturnType<typeof BuildVerificationType.runCommand>
-    > = await mods.BuildVerification.runCommand({
-      command: { label: "build", command: "echo ran > BUILD_RAN.txt" },
-      repositoryPath: workspace,
-    });
+    const single: Awaited<ReturnType<typeof BuildVerificationType.runCommand>> =
+      await mods.BuildVerification.runCommand({
+        command: { label: "build", command: "echo ran > BUILD_RAN.txt" },
+        repositoryPath: workspace,
+      });
 
     const several: Awaited<
       ReturnType<typeof BuildVerificationType.runCommands>
@@ -393,12 +392,11 @@ describe("a project-scoped Runner keeps running commands (no regression)", () =>
     const mods: LoadedModules = loadForScope(null);
     const workspace: string = makeWorkspace();
 
-    const result: Awaited<
-      ReturnType<typeof BuildVerificationType.runCommand>
-    > = await mods.BuildVerification.runCommand({
-      command: { label: "build", command: "echo ran > BUILD_RAN.txt" },
-      repositoryPath: workspace,
-    });
+    const result: Awaited<ReturnType<typeof BuildVerificationType.runCommand>> =
+      await mods.BuildVerification.runCommand({
+        command: { label: "build", command: "echo ran > BUILD_RAN.txt" },
+        repositoryPath: workspace,
+      });
 
     expect(result.passed).toBe(true);
     expect(fs.existsSync(path.join(workspace, "BUILD_RAN.txt"))).toBe(true);

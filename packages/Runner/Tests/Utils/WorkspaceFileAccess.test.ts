@@ -113,10 +113,7 @@ describe("WorkspaceFileAccess.resolveForRead", () => {
 
   test("a link to the workspace root's parent is refused, but one to the root itself is not", async () => {
     const { workspace } = makeLayout();
-    fs.symlinkSync(
-      path.dirname(workspace),
-      path.join(workspace, "to-parent"),
-    );
+    fs.symlinkSync(path.dirname(workspace), path.join(workspace, "to-parent"));
     fs.symlinkSync(workspace, path.join(workspace, "to-root"));
 
     await expect(

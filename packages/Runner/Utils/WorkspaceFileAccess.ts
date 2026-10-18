@@ -142,8 +142,7 @@ export default class WorkspaceFileAccess {
       try {
         stats = await fs.promises.lstat(next);
       } catch (error) {
-        const code: string | undefined = (error as NodeJS.ErrnoException)
-          .code;
+        const code: string | undefined = (error as NodeJS.ErrnoException).code;
 
         if (code === "ENOENT" || code === "ENOTDIR") {
           current = path.join(next, ...segments.slice(index + 1));

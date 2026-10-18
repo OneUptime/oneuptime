@@ -82,7 +82,10 @@ describe("only a process that holds no encrypted data leaves the warning out", (
     const initStart: number = source.indexOf("const init: InitFunction");
     const beforeLaunch: string = source.slice(
       initStart,
-      source.indexOf("await Express.launchApplication(appName, port);", initStart),
+      source.indexOf(
+        "await Express.launchApplication(appName, port);",
+        initStart,
+      ),
     );
 
     expect(beforeLaunch).toMatch(

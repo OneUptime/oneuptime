@@ -59,7 +59,8 @@ jest.mock("Common/Server/Utils/Logger", () => {
 });
 
 const OUTSIDE_MARKER: string = "outside-the-workspace-marker-7f3c";
-const ORIGINAL_SOURCE: string = "export function checkout(): number {\n  return 1;\n}\n";
+const ORIGINAL_SOURCE: string =
+  "export function checkout(): number {\n  return 1;\n}\n";
 
 const temporaryPaths: Array<string> = [];
 
@@ -159,7 +160,8 @@ function scriptToolsThenSummary(calls: Array<LLMToolCall>): void {
  * messages of the second completion request.
  */
 function toolResultsShownToModel(): Array<string> {
-  const secondCall: Array<unknown> | undefined = llmCompletionMock.mock.calls[1];
+  const secondCall: Array<unknown> | undefined =
+    llmCompletionMock.mock.calls[1];
   const payload: { messages?: Array<{ role: string; content: string }> } =
     (secondCall?.[0] as {
       messages?: Array<{ role: string; content: string }>;
@@ -377,11 +379,7 @@ describe.each(SCOPES)(
           { path: "src/../.git/description", content: "changed" },
           3,
         ),
-        toolCall(
-          "write_file",
-          { path: ".GIT/config", content: "[core]\n" },
-          4,
-        ),
+        toolCall("write_file", { path: ".GIT/config", content: "[core]\n" }, 4),
         toolCall(
           "write_file",
           { path: "linked-meta/config", content: "[core]\n" },

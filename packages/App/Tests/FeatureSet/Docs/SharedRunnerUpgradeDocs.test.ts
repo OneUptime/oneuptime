@@ -240,7 +240,9 @@ describe("the English upgrade note on the bundled Runner", () => {
     expect(verification).toContain("if (!RUNS_PROJECT_AUTHORED_COMMANDS) {");
     expect(verification).toContain("status: FixVerificationStatus.Skipped,");
 
-    const agent: string = source("packages/Runner/CodeAgents/InHouseCodeAgent.ts");
+    const agent: string = source(
+      "packages/Runner/CodeAgents/InHouseCodeAgent.ts",
+    );
     expect(agent).toContain(
       "...(RUNS_PROJECT_AUTHORED_COMMANDS ? [runCommandTool] : []),",
     );
