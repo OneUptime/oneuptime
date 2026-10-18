@@ -1171,8 +1171,12 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     expect(provider).toContain(
       "Typical scope: https://graph.microsoft.com/.default",
     );
+    // The scope field: Graph's scope as its example, the others under it.
     expect(readSource("smtpFormFields")).toContain(
-      "For Microsoft Graph: https://graph.microsoft.com/.default. For Microsoft 365 SMTP+OAuth: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+      'placeholder: "https://graph.microsoft.com/.default",',
+    );
+    expect(readSource("smtpFormFields")).toContain(
+      "For Microsoft 365 SMTP: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
     );
 
     expect(page).toContain("**Mail.Send** application permission");

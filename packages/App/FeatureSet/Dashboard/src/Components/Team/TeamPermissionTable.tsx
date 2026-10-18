@@ -247,7 +247,7 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                 },
                 title: "Scope",
                 description:
-                  "Which resources this role applies to. All (recommended): every resource in the project. Owned: resources where this team or its members are listed as owners. Labels: restrict by labels (advanced).",
+                  "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownOptions: [
                   {
@@ -350,7 +350,7 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                 },
                 title: "Scope",
                 description:
-                  "Which resources this permission applies to. All (recommended): every resource in the project. Owned: resources where this team or its members are listed as owners. Labels: restrict by labels (advanced).",
+                  "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownOptions: [
                   {

@@ -268,7 +268,7 @@ describe("getLabelsFormField", () => {
       LABELS_FORM_FIELD_DESCRIPTION,
     );
     expect(LABELS_FORM_FIELD_DESCRIPTION).toBe(
-      "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.",
+      "Labels group resources so you can filter by them, and can limit what a team sees.",
     );
     // The old help, which the folded section now says by itself.
     expect(LABELS_FORM_FIELD_DESCRIPTION).not.toContain("optional");

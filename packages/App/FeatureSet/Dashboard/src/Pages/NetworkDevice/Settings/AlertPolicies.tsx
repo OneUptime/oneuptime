@@ -280,17 +280,17 @@ const AlertPolicyScopeEditor: FunctionComponent<AlertPolicyScopeEditorProps> = (
  * a sentence that had lost its grammar.
  */
 export const RECOMMENDED_POLICY_EMPTY_STATE: string = translationKey(
-  "One policy alerts on many devices: the ones you have and the ones you add later. The recommended policy opens an incident when a device stops answering or a port goes down, and an alert when a port is saturated, logs errors, or its SNMP readings fail. A device without SNMP credentials is only pinged, so only the stops-answering check can fire on it.",
+  "One policy covers every device, including ones added later. The recommended one opens an incident when a device stops answering or a port goes down.",
 );
 
 export const RECOMMENDED_POLICY_CONFIRM: string = translationKey(
-  'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan. You can narrow the policy to some devices afterwards.',
+  'This adds the "Alert on every device" policy and its monitor template: one monitor per device, each counted towards your plan.',
 );
 
 export const RECOMMENDED_POLICY_CONFIRM_COUNTED: PluralTemplate = {
-  one: 'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitor today. You can narrow the policy to some devices afterwards.',
+  one: 'This adds the "Alert on every device" policy and its monitor template: up to {{count}} monitor today, one per device, each counted towards your plan.',
   other:
-    'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards.',
+    'This adds the "Alert on every device" policy and its monitor template: up to {{count}} monitors today, one per device, each counted towards your plan.',
 };
 
 export interface RecommendedPolicyEmptyStateProps {

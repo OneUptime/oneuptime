@@ -47,8 +47,13 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
           ></span>
         </span>
       </div>
+      {/*
+       * On a value's 24px line (leading-6), as a table's cell and a detail
+       * card's value are: text-sm alone set a 20px one, which drew the
+       * status 2px above the values beside it in a row.
+       */}
       <div
-        className="text-sm font-medium"
+        className="text-sm font-medium leading-6"
         style={{
           color: "var(--ou-text-secondary, #4b5563)",
         }}

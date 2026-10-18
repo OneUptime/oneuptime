@@ -140,7 +140,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Re-investigation Cooldown (Minutes)",
               description:
-                "Incidents affecting a monitor that was investigated within this many minutes are not re-investigated — the first analysis stands. Leave empty for no cooldown, so every incident is investigated. At most 1440 minutes (a day).",
+                "Incidents on a monitor investigated within this many minutes reuse that investigation. Leave empty to investigate every incident. At most 1440.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "No cooldown",
@@ -195,7 +195,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Max Concurrent Incident Investigations",
               description:
-                "How many incident investigations may run at the same time for this project. Leave empty for no limit — every incident investigation starts right away. With a limit set (minimum 1), queued incident investigations wait for a free slot and expire after 30 minutes.",
+                "How many incident investigations may run at once. Leave empty for no limit. Queued ones wait for a free slot for up to 30 minutes.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "No limit",
@@ -206,7 +206,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Incident Investigation Time Limit (Minutes)",
               description:
-                "Stop an incident investigation after this many minutes and report what it found. Leave empty for no time limit — OneUptime AI keeps investigating (running every query and command it needs) until it is done.",
+                "Stop an incident investigation after this many minutes and report what it found. Leave empty for no limit.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "No time limit",
@@ -276,7 +276,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Daily Incident AI Fix Task Limit",
               description:
-                "How many fix pull requests OneUptime AI may start on for incidents each day, whether someone asked for one or not. Leave empty for no limit, or set 0 to pause them.",
+                "How many fix pull requests OneUptime AI may start for incidents each day. Leave empty for no limit, or 0 to pause them.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "No limit",

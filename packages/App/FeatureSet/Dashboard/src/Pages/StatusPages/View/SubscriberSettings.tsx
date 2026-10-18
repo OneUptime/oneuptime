@@ -376,7 +376,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
             },
             title: "Custom SMTP Config",
             description:
-              "Select SMTP Config to use for this status page to send email to subscribers. You can add SMTP Config in Project Settings > Notifications > Notification Settings > Custom SMTP Configs.",
+              "The SMTP server this page sends subscriber email from. Add one in Project Settings > Notifications.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: ProjectSmtpConfig,
@@ -433,7 +433,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
             },
             title: "Twilio Config",
             description:
-              "Select Twilio Config to use for this status page to send SMS to subscribers. You can add Twilio Config in Project Settings > Notifications > Notification Settings > Twilio Config.",
+              "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: ProjectCallSMSConfig,

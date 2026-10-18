@@ -67,7 +67,7 @@ Haga clic en **Aplicar plantilla**, elija una en **Seleccionar plantilla** dentr
 
 Haga clic en **Generar con IA**. El diálogo **Generar post mortem con IA** ofrece un esquema en **Seleccionar plantilla**: **Standard Postmortem**, **Detailed Technical Postmortem** o **Brief Postmortem**, y después sus propias plantillas de post mortem. **Vista previa de la plantilla** muestra el esquema, y puede cambiarlo antes de generar.
 
-Haga clic en **Generar con IA** al final del diálogo. OneUptime AI lee el incidente (su descripción, su causa raíz y su remediación, su cronología de estados, sus notas públicas y privadas, y los mensajes de su canal de Slack o de Microsoft Teams) y escribe el post mortem con su esquema. Después el editor se abre con él.
+Haga clic en **Generar con IA** al final del diálogo. OneUptime AI lee el incidente (su descripción, su causa raíz y su remediación, su cronología de estados, sus notas públicas y privadas, los mensajes de su canal de Slack o de Microsoft Teams, y lo que se dijo en [sus llamadas](/docs/workspace-connections/video-calls#transcripciones-de-llamadas)) y escribe el post mortem con su esquema. Después el editor se abre con él.
 
 Generarlo requiere que la IA esté activada para el proyecto, en **Ajustes del proyecto → IA → Funciones de IA**, y un proveedor de LLM: consulte [Proveedores de LLM](/docs/ai/llm-provider). También requiere el rol Project Owner o Project Admin, o un rol personalizado con el permiso Edit Incident: otros roles pueden escribir el post mortem, pero no generarlo.
 

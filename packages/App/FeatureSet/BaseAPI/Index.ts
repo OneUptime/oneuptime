@@ -85,10 +85,7 @@ import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
 import WorkspaceUserGroupAPI from "Common/Server/API/WorkspaceUserGroupAPI";
 import VideoCallConnectionAPI from "Common/Server/API/VideoCallConnectionAPI";
-import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
-import IncidentVideoCallService, {
-  Service as IncidentVideoCallServiceType,
-} from "Common/Server/Services/IncidentVideoCallService";
+import IncidentVideoCallAPI from "Common/Server/API/IncidentVideoCallAPI";
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
 import AlertVideoCallService, {
   Service as AlertVideoCallServiceType,
@@ -5460,12 +5457,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new VideoCallConnectionAPI().getRouter(),
     );
+    /*
+     * Incident calls, with their transcripts and what OneUptime AI read in
+     * them (IncidentVideoCallAPI).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentVideoCall, IncidentVideoCallServiceType>(
-        IncidentVideoCall,
-        IncidentVideoCallService,
-      ).getRouter(),
+      new IncidentVideoCallAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

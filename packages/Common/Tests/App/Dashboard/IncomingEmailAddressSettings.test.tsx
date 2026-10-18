@@ -276,10 +276,8 @@ describe("resetting the address", () => {
     );
 
     expect(confirmation).toHaveTextContent(GENERATED_ADDRESS);
-    expect(confirmation).toHaveTextContent("will stop working immediately");
-    expect(confirmation).toHaveTextContent(
-      "Update every system that sends email to this monitor.",
-    );
+    expect(confirmation).toHaveTextContent("stops working at once");
+    expect(confirmation).toHaveTextContent("Update everything that emails it.");
     // Nothing is written until the person confirms.
     expect(updateById).not.toHaveBeenCalled();
   });
@@ -331,9 +329,7 @@ describe("resetting the address", () => {
     );
 
     expect(confirmation).toHaveTextContent(`nightly-backups@${DOMAIN}`);
-    expect(confirmation).toHaveTextContent(
-      "Your custom address will be removed.",
-    );
+    expect(confirmation).toHaveTextContent("Your custom address is removed.");
   });
 
   test("then shows the new address, which is the one derived from the new key", async () => {
@@ -416,12 +412,9 @@ describe("customizing the address", () => {
     const description: HTMLElement = screen.getByTestId("modal-description");
 
     expect(description).toHaveTextContent(
-      "When you save, the current address stops working immediately.",
+      "Saving stops the current address at once",
     );
-    expect(description).toHaveTextContent("avoid names that are easy to guess");
-    expect(description).toHaveTextContent(
-      "It must be unique across all monitors.",
-    );
+    expect(description).toHaveTextContent("so make it hard to guess.");
     expect(
       screen.getByText(/The domain is always @inbound\.example\.com/),
     ).toBeInTheDocument();

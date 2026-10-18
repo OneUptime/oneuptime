@@ -53,7 +53,7 @@ const DatabaseArchivedPage: FunctionComponent<
         cardProps={{
           title: "Archived Databases",
           description:
-            "Databases you archived, and discovered databases archived automatically after they stopped being seen. They are hidden from the main list; an automatically archived database returns on its own when it is seen again. Select databases to unarchive them.",
+            "Databases archived by hand or after they stopped being seen. They are hidden from the main list; select some to unarchive them.",
         }}
         // As on the main list: the id is on the Overview, not worth a column.
         viewButtonText="View"

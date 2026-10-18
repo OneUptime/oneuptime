@@ -292,7 +292,7 @@ const CephClusters: FunctionComponent<
             required: true,
             placeholder: "production-ceph-cluster",
             description:
-              "This is the join key — it must match the ceph.cluster.name resource attribute reported by the Ceph Agent (the CEPH_CLUSTER_NAME environment variable).",
+              "Must match the ceph.cluster.name the Ceph Agent reports (its CEPH_CLUSTER_NAME).",
           },
           {
             field: {

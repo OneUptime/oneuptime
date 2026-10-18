@@ -272,7 +272,7 @@ const StorageArrays: FunctionComponent<
             required: true,
             placeholder: "pure-prod-01",
             description:
-              "This is the join key — it must match the storage.array.name resource attribute reported by the Storage Array Agent (the STORAGE_ARRAY_NAME environment variable).",
+              "Must match the storage.array.name the Storage Array Agent reports (its STORAGE_ARRAY_NAME).",
           },
           {
             field: {

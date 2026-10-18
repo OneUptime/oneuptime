@@ -61,7 +61,7 @@ Queste sono le impostazioni sotto **Altri campi**:
 | Campo | Cosa fa |
 | --- | --- |
 | **Trasporto** | `SMTP` (predefinito), oppure `Microsoft Graph` per un tenant Microsoft 365 con SMTP AUTH disattivato. Scegliere Microsoft Graph nasconde hostname, porta, nome utente e password, e mostra i campi OAuth. |
-| **Richiedi TLS** | Attivo per una nuova configurazione di progetto. La posta viene inviata solo su una connessione cifrata con un certificato valido. Se l'opzione è disattivata, la posta viene cifrata solo se il server lo offre e il certificato non viene verificato. La porta 465 è sempre cifrata. |
+| **Richiedi TLS** | Attivo per una nuova configurazione di progetto. Invia email solo su una connessione cifrata con un certificato valido. Se l'opzione è disattivata, il certificato non viene verificato. La porta 465 è sempre cifrata. Se l'opzione è disattivata, la posta sulle altre porte viene cifrata solo se il server lo offre. |
 | **Tipo di autenticazione** | `Username and Password` (predefinito), `OAuth`, oppure `None` per un relay che non richiede accesso. |
 | **Campi OAuth** | **Tipo di provider OAuth**, **Client ID OAuth**, **Client Secret OAuth**, **URL del token OAuth** e **Scope OAuth**, mostrati quando si sceglie OAuth o Microsoft Graph. |
 | **Descrizione** | Una nota per il tuo team (solo configurazioni di progetto). |

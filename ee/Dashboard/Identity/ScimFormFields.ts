@@ -70,7 +70,7 @@ export const STATUS_PAGE_SCIM_AUTO_DEPROVISION_DESCRIPTION: string =
   );
 
 export const SCIM_PUSH_GROUPS_DESCRIPTION: string = translationKey(
-  "Enable push groups provisioning instead of default teams. When enabled, users will not be added to default teams and team membership will be managed via push groups.",
+  "Manage team membership with your identity provider's push groups instead of adding people to default teams.",
 );
 
 /*

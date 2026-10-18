@@ -785,7 +785,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         icon={IconProp.Alert}
         title="No telemetry yet"
         description={translator.translateTemplate(
-          "This {{resourceName}} has not reported an identifier yet, so monitors cannot be scoped to it. Once the agent sends its first data, recommendations will appear here.",
+          "This {{resourceName}} has not sent data yet. Recommendations appear once its agent reports.",
           { resourceName: resourceName },
         )}
       />

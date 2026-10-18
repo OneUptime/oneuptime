@@ -401,7 +401,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <div className="mt-1">
               <FieldLabelElement
                 title="Disk Path"
-                description="The mount point or device to check. Enter * to check every disk the agent reports and raise a separate alert for each one — otherwise a second disk filling up is silenced while the first disk's alert is open."
+                description="The mount point or device to check. Enter * to check every disk, with a separate alert for each."
               />
 
               <Input
@@ -424,7 +424,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <div className="mt-1">
               <FieldLabelElement
                 title="Field Path (Optional)"
-                description="Compare one field of the data your script returns instead of the whole value - for example status, cpu_busy_percent or data.items[0].value. Use dots for nested fields and [n] for array items. Leave empty to compare the whole result."
+                description="Compare one field of the result, such as status or data.items[0].value, instead of the whole value."
               />
 
               <Input
@@ -590,7 +590,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               <div className="mt-1" data-testid="transceiver-reading-picker">
                 <FieldLabelElement
                   title="Transceiver Reading"
-                  description="Which reading of the optic to compare: received or transmitted power in dBm, temperature in °C, supply voltage in V or laser bias current in mA. Useful on devices that report no thresholds of their own; every lane of a multi-lane optic is compared."
+                  description="Which reading of the optic to compare: power (dBm), temperature (°C), voltage (V) or bias current (mA). Every lane is compared."
                 />
                 <Dropdown
                   value={selectedReadingOption}
@@ -681,7 +681,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               <div className="mt-1">
                 <FieldLabelElement
                   title="Interface (Optional)"
-                  description="Scope this criteria to one interface, matched by name or alias (e.g. Gi0/1 or 'Uplink to core'). Leave empty to evaluate every monitored interface as one combined alert, or pick * to evaluate every interface and raise a separate alert for each one."
+                  description="One interface, by name or alias (e.g. Gi0/1). Leave empty for one combined alert, or pick * for a separate alert per interface."
                 />
                 <Dropdown
                   value={selectedInterfaceOption}
@@ -917,7 +917,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           <div className="mt-1">
             <FieldLabelElement
               title="Varbind OID (Optional)"
-              description="Compare only this varbind (and its instances, such as .0). Leave empty to search every varbind the trap carries - useful for vendors like Sophos that send every event as one trap OID with the event in a text varbind."
+              description="Compare only this varbind and its instances (such as .0). Leave empty to search every varbind in the trap."
             />
             <Input
               value={criteriaFilter?.snmpMonitorOptions?.oid || ""}
@@ -1338,7 +1338,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   <div className="mt-1">
                     <FieldLabelElement
                       title="For the last (in minutes)"
-                      description="Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window."
+                      description="Make it longer than the monitoring interval, so the window holds several checks."
                     />
                     <Dropdown
                       value={evaluateOverTimeMinutesValue}
@@ -1365,7 +1365,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     <FieldLabelElement
                       title="If No Data"
                       description={
-                        "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?"
+                        "What happens while the window does not have enough data yet, such as just after the monitor starts."
                       }
                     />
                     <Dropdown
@@ -1421,7 +1421,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <div className="mt-1">
               <FieldLabelElement
                 title="Sensitivity"
-                description="Lower sensitivity = larger expected range, fewer alerts. Compares each sample to the same-hour-of-week baseline computed from the configured Baseline Window below."
+                description="Lower sensitivity means a wider expected range and fewer alerts."
               />
               <Dropdown
                 value={(() => {
@@ -1474,7 +1474,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               <div className="mt-3">
                 <FieldLabelElement
                   title="Baseline Window"
-                  description="How many days of history to compare against. Longer windows capture monthly seasonality (billing/payroll cycles); shorter windows respond faster to genuine drift in the underlying metric."
+                  description="How many days of history to compare against. Longer windows catch monthly cycles; shorter ones adapt faster."
                 />
                 <Dropdown
                   value={(() => {

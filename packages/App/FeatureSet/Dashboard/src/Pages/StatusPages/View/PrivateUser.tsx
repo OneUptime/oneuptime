@@ -339,7 +339,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 field: { emails: true },
                 title: "Emails",
                 description:
-                  "One email per line (or separated by commas, semicolons, or spaces). Invalid or duplicate entries will be skipped.",
+                  "One email per line. Invalid and duplicate ones are skipped.",
                 fieldType: FormFieldSchemaType.LongText,
                 required: true,
                 placeholder:

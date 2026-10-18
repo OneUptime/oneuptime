@@ -92,7 +92,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           headerLayout: "stacked",
           title: "Detection Rules",
           description:
-            "Sigma rules evaluated on a schedule against your security events. Sigma is an open YAML format for describing detections — a matching rule can raise an alert and write a Detection Finding back into the event stream.",
+            "Sigma rules run on a schedule against your security events. A matching rule can raise an alert and open a case.",
         }}
         helpContent={{
           title: DetectionRulesGuide.guideTitle,
@@ -206,7 +206,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Distinct Count Field",
             stepId: "evaluation",
             description:
-              "Optional. Count distinct values of this field instead of raw matching events — e.g. group by principalIp and distinct-count principalUser to catch one IP failing logins across many accounts. Empty values are not counted.",
+              "Count distinct values of this field instead of matching events, such as users per IP to catch one IP trying many accounts.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "principalUser",
@@ -218,7 +218,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Match Count Threshold",
             stepId: "evaluation",
             description:
-              "Fire only when a group's count — distinct values when a Distinct Count Field is set, matching events otherwise — reaches this number within one evaluation window. 1 fires on any match.",
+              "Fire when a group's count reaches this number within one evaluation window. 1 fires on any match.",
             fieldType: FormFieldSchemaType.Number,
             required: true,
             placeholder: "e.g. 5",
@@ -242,7 +242,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Open a Case on Match",
             stepId: "cases",
             description:
-              "Group each match into a security case to triage, by the user, host or address it is about: a new case, or the open case already about it. Playbooks run on the cases it opens.",
+              "Group matches into security cases by user, host or address. Playbooks run on the cases it opens.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },

@@ -602,7 +602,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **会自行解除的拒绝** — 之前的代理 Pod 仍在上报（没有正常关闭就被替换的 Pod），或者旧的集群内 Runner 在升级期间仍在关闭。代理会在服务器指定的等待时间之后重试。
 - **需要你处理的拒绝** — `clusterName` 为空或过长，或者项目已达到 AI 代理的上限；日志会指明需要更改什么。如果代理始终无法连接，且其日志显示 `Another Kubernetes AI agent for cluster "<name>" is online`，说明两个安装共用了同一个 `clusterName`（AI 代理页面也会对此发出警告）：已经连接的那个只要在运行就会一直占用它，因此请为每个集群提供自己的 `clusterName`，或移除多余的发布。带有 **Pinned Service Name** 的摄取密钥无法注册代理——请给 chart 一个不带它的密钥。
 
-AI 代理页面上代理状态旁边 **⋯** 菜单中的 **重置代理**，会在你确认后让服务器忘记该代理的密钥（Project Owner、Project Admin 或拥有 **Edit Auto Remediation Rule** 权限者可以执行）；Pod 会在几分钟内自行重新连接。代理的就绪状态不依赖 OneUptime，因此配置错误的 AI 代理永远不会让 `helm upgrade --wait` 失败——只有无法拉取镜像的 Pod 才会。
+AI 代理页面上代理状态旁边 **⋯** 菜单中的 **重置代理**，会在你确认后让服务器忘记该代理的密钥（Project Owner、Project Admin 或拥有 **Edit Auto Remediation Rule** 权限者可以在其可编辑的集群上执行）；Pod 会在几分钟内自行重新连接。代理的就绪状态不依赖 OneUptime，因此配置错误的 AI 代理永远不会让 `helm upgrade --wait` 失败——只有无法拉取镜像的 Pod 才会。
 
 ## 升级代理
 

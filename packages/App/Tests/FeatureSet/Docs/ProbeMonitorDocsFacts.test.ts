@@ -595,11 +595,11 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
     ).toEqual(offeredTypes);
   });
 
-  it("warns that a window no longer than the interval holds one check, as the form does", () => {
+  it("says a window should hold several checks, as the form does", () => {
     const form: string = readRepoFile(CRITERIA_FILTER_FORM_FILE);
 
     expect(form).toContain(
-      "A monitor checked every 5 minutes has one check in any 5-minute window.",
+      "Make it longer than the monitoring interval, so the window holds several checks.",
     );
     expect(section(page, "### Evaluating over a period of time")).toContain(
       "Make the window longer than the monitoring interval, so it holds several checks: a monitor checked every 5 minutes has a single check in any 5-minute window.",

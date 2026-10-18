@@ -259,7 +259,7 @@ const RuleLibraryPage: FunctionComponent<
     <div className="space-y-6">
       <Card
         title="Rule Library"
-        description="Ready-made detections for brute force, impossible travel, suspicious PowerShell, cloud logging being turned off and more. Each works on events from any connected source. Adding one creates a detection rule that opens cases; change it or turn it off under Detection Rules."
+        description="Ready-made detections, such as brute force or impossible travel. Adding one creates a detection rule you can change under Detection Rules."
         buttons={[
           {
             title: translator.translatePlural(

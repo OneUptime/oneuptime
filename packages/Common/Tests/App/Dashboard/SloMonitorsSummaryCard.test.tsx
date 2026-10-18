@@ -220,7 +220,7 @@ describe("SloMonitorsSummaryCard without monitors", () => {
     );
 
     expect(empty).toHaveTextContent("Your monitor rules match no monitors yet");
-    expect(empty).toHaveTextContent("no monitor in this project matches them");
+    expect(empty).toHaveTextContent("No monitor matches this SLO's rules.");
     expect(
       within(empty).getByRole("link", { name: "Review monitor rules" }),
     ).toHaveAttribute("href", hrefFor(PageMap.SLO_VIEW_MONITOR_RULES, SLO_ID));

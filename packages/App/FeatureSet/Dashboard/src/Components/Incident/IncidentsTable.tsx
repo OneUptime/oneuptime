@@ -1042,6 +1042,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 <LiveDuration
                   startDate={item.declaredAt}
                   endDate={isResolved ? resolvedAt : undefined}
+                  isCompact={true}
                 />
               );
             },

@@ -67,7 +67,7 @@ flowchart TB
 
 点击 **Generate with AI**。**Generate Postmortem with AI** 对话框在 **选择模板** 下提供大纲：**Standard Postmortem**、**Detailed Technical Postmortem** 或 **Brief Postmortem**，然后是您自己的事后分析模板。**Template Preview** 显示大纲，您可以在生成之前修改它。
 
-点击对话框底部的 **Generate with AI**。OneUptime AI 会读取事件（它的描述、根本原因和修复、状态时间线、公开和私密备注，以及其 Slack 或 Microsoft Teams 频道中的消息），并按照您的大纲编写事后分析。随后编辑器会打开并显示结果。
+点击对话框底部的 **Generate with AI**。OneUptime AI 会读取事件（它的描述、根本原因和修复、状态时间线、公开和私密备注、其 Slack 或 Microsoft Teams 频道中的消息，以及 [其通话](/docs/workspace-connections/video-calls#通话转录) 中说过的内容），并按照您的大纲编写事后分析。随后编辑器会打开并显示结果。
 
 生成需要在 **项目设置 → 人工智能 → AI Features** 下为项目打开 AI，并需要一个 LLM 提供商：请参阅 [LLM 提供商](/docs/ai/llm-provider)。它还需要 Project Owner 或 Project Admin 角色，或拥有 Edit Incident 权限的自定义角色：其他角色可以编写事后分析，但不能生成。
 

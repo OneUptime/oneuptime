@@ -150,7 +150,7 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "Connections",
           description:
-            "The Zoom, Google Meet and Microsoft Teams accounts and the standing meeting links this project starts calls with. Pick one in a Slack or Microsoft Teams notification rule, or when you start a call from an incident.",
+            "The Zoom, Google Meet and Microsoft Teams accounts and meeting links this project starts calls with.",
           buttons: [
             {
               title: "Add connection",

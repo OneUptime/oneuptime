@@ -104,7 +104,7 @@ export const ACCESS_CONFIRMATION_COPY: Record<
   [StatusPageAccess.Anyone]: {
     title: translationKey("Make this status page public?"),
     description: translationKey(
-      "Anyone with the link will see this status page, with its incidents, scheduled maintenance and announcements, without signing in or entering a password.",
+      "Anyone with the link will see this status page, its incidents, maintenance and announcements, without signing in.",
     ),
     submitButtonText: translationKey("Make Public"),
   },
@@ -268,7 +268,7 @@ export const StatusPageRequireSsoCopy: {
   ),
   confirmTitle: translationKey("Require SSO for this status page?"),
   confirmDescription: translationKey(
-    "Private users will no longer be able to sign in with an email and password. Only people your SSO or OIDC provider lets in will see this status page, so test SSO with the link above first.",
+    "Private users can no longer sign in with a password; only people your SSO provider lets in will see it. Test SSO above first.",
   ),
   confirmButton: translationKey("Require SSO"),
 };

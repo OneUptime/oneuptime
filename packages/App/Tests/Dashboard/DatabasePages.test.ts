@@ -487,7 +487,7 @@ describe("the Databases list", () => {
     const helper: string = readCode(
       "Pages/Database/Utils/DatabaseManualEndpointForm.ts",
     );
-    expect(helper).toContain("Never localhost");
+    expect(helper).toContain("never localhost");
     expect(helper).toContain("parseManualDatabaseEndpoint(");
 
     const port: string = between(

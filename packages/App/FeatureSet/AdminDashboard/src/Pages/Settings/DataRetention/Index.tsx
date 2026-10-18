@@ -53,7 +53,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.PositiveNumber,
             required: false,
             description:
-              "Number of days to retain monitor logs. Monitor logs older than this will be automatically deleted. Default is 1 day if not set. Minimum: 1 day, Maximum: 365 days.",
+              "How many days monitor logs are kept, from 1 to 365. Leave empty for 1 day.",
             validation: {
               minValue: 1,
               maxValue: 365,
@@ -97,7 +97,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.PositiveNumber,
             required: false,
             description:
-              "Number of days to retain monitor metrics, the oneuptime.slo.* metrics SLO evaluations post and the oneuptime.rum.session.replay.budget.* metrics the session replay budget sweep posts. Metrics older than this will be automatically deleted. Default is 30 days if not set. Minimum: 1 day, Maximum: 365 days.",
+              "How many days monitor, SLO and session replay budget metrics are kept, from 1 to 365. Leave empty for 30 days.",
             validation: {
               minValue: 1,
               maxValue: 365,

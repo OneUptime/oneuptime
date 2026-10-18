@@ -1414,8 +1414,8 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "App/FeatureSet/AdminDashboard/src/Pages/Settings/DataRetention/Index.tsx",
     );
 
-    expect(admin).toContain("Default is 1 day if not set.");
-    expect(admin).toContain("Default is 30 days if not set.");
+    expect(admin).toContain("Leave empty for 1 day.");
+    expect(admin).toContain("Leave empty for 30 days.");
 
     for (const label of ADMIN_DASHBOARD_LABELS[DATA_RETENTION] || []) {
       expect(admin).toContain(`title: "${label}",`);

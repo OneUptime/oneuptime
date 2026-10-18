@@ -92,7 +92,9 @@ Deux interrupteurs du fournisseur modifient ce comportement. Les deux sont désa
 | Interrupteur | Ce qu'il fait lorsqu'il est activé |
 | --- | --- |
 | **Disable Sign Up with SSO** | Les personnes doivent être invitées dans un projet avant de pouvoir se connecter avec ce fournisseur, même si des projets sont attachés. Personne n'est créé lors de sa première connexion. |
-| **Restrict to Attached Projects** | Se connecter avec ce fournisseur ne satisfait l'exigence de SSO que dans les projets qui lui sont attachés ; des personnes déjà connectées peuvent donc perdre l'accès à d'autres projets. Lorsqu'il est désactivé, la connexion la satisfait dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés. |
+| **Restrict to Attached Projects** | Se connecter avec ce fournisseur ne satisfait l'exigence de SSO que dans les projets qui lui sont attachés ; des personnes déjà connectées peuvent donc perdre l'accès à d'autres projets. |
+
+Lorsque **Restrict to Attached Projects** est désactivé, la connexion avec le fournisseur satisfait l'exigence de SSO dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés.
 
 ## Imposer le SSO
 

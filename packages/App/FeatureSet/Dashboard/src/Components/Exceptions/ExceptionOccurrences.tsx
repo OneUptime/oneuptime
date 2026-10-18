@@ -139,7 +139,7 @@ const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
           timeRangeOverride={timeRange}
           onTimeRangeChange={setTimeRange}
           limit={25}
-          emptyMessage="No spans raised this exception in the selected time range. Exceptions captured from logs have no span; try a longer time range or the Occurrence details view."
+          emptyMessage="No spans raised this exception in this time range. Exceptions from logs have none: try a longer range or Occurrence details."
         />
       </div>
       {view === ExceptionOccurrencesView.Details ? (

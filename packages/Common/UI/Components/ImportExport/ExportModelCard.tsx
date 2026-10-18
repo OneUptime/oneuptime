@@ -65,7 +65,7 @@ const ExportModelCard: <TBaseModel extends BaseModel>(
           itemName: singularName,
         })}
         description={translator.translateTemplate(
-          "Download this {{itemName}} as a JSON file. You can import it later to re-create this {{itemName}}. Only this {{itemName}}'s own settings are included - related resources (like owners, labels, or other linked resources) are not exported, and references to resources from this project may need to be re-selected after importing into another project.",
+          "Download this {{itemName}}'s settings as JSON to import later. Owners, labels and other linked resources are not included.",
           {
             itemName: translatableTerm(singularName, { inSentence: true }),
           },

@@ -602,7 +602,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **저절로 해소되는 거부** — 이전 에이전트 Pod가 아직 보고하고 있거나(정상 종료 없이 교체된 Pod), 업그레이드 중에 이전 클러스터 내 Runner가 아직 종료되고 있는 경우입니다. 에이전트는 서버가 알려 주는 대기 시간 뒤에 다시 시도합니다.
 - **조치가 필요한 거부** — `clusterName`이 비어 있거나 너무 긴 경우, 또는 프로젝트가 AI 에이전트 한도에 도달한 경우입니다. 로그에 바꿀 내용이 나옵니다. 에이전트가 전혀 연결되지 않고 로그에 `Another Kubernetes AI agent for cluster "<name>" is online`이 나오면 두 설치가 하나의 `clusterName`을 공유하는 것입니다(AI 에이전트 페이지에서도 경고합니다). 이미 연결된 쪽이 실행되는 동안 계속 유지하므로, 클러스터마다 고유한 `clusterName`을 주거나 여분의 릴리스를 제거하세요. **Pinned Service Name**이 있는 수집 키로는 에이전트를 등록할 수 없습니다. 차트에는 그것이 없는 키를 주세요.
 
-AI 에이전트 페이지에서 에이전트 상태 옆 **⋯** 메뉴의 **에이전트 재설정**은 확인 후 서버가 에이전트의 키를 잊게 합니다(Project Owner, Project Admin, 또는 **Edit Auto Remediation Rule** 권한이 있으면 할 수 있습니다). Pod는 몇 분 안에 스스로 다시 연결합니다. 에이전트의 준비 상태는 OneUptime에 의존하지 않으므로, 잘못 구성된 AI 에이전트가 `helm upgrade --wait`를 실패시키는 일은 없습니다. 실패시키는 것은 이미지를 가져올 수 없는 Pod뿐입니다.
+AI 에이전트 페이지에서 에이전트 상태 옆 **⋯** 메뉴의 **에이전트 재설정**은 확인 후 서버가 에이전트의 키를 잊게 합니다(Project Owner, Project Admin, 또는 **Edit Auto Remediation Rule** 권한이 있으면 편집할 수 있는 클러스터에서 할 수 있습니다). Pod는 몇 분 안에 스스로 다시 연결합니다. 에이전트의 준비 상태는 OneUptime에 의존하지 않으므로, 잘못 구성된 AI 에이전트가 `helm upgrade --wait`를 실패시키는 일은 없습니다. 실패시키는 것은 이미지를 가져올 수 없는 Pod뿐입니다.
 
 ## 에이전트 업그레이드
 

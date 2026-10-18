@@ -1220,6 +1220,98 @@ describe("AI SRE and the infrastructure AI agents", () => {
     );
   });
 
+  /*
+   * Test connection, Reset agent and approving a fix take an edit of the
+   * very cluster or resource, decided for its own row: the routes ask the
+   * one check per record (assertCallerMayChangeCluster, built on
+   * findOneUpdatableById, and assertCallerMayChangeResource), never the
+   * table half alone (TableHalfWriteGuard in Common holds that).
+   */
+  it("says Test connection, Reset agent and approving a fix take an edit of that very cluster or resource, as the routes decide it", () => {
+    const clusterRoutes: string = readRepoFile(
+      "Common/Server/API/KubernetesClusterAiAccessAPI.ts",
+    );
+    const resourceRoutes: string = readRepoFile(
+      "Common/Server/API/ResourceAiAccessAPI.ts",
+    );
+    const approval: string = readRepoFile(
+      "Common/Server/API/AutoRemediationAPI.ts",
+    );
+    const clusterCheck: string = readRepoFile(
+      "Common/Server/Services/KubernetesClusterAiAccessService.ts",
+    );
+
+    // The test and the reset of a cluster, and the cluster's own row.
+    expect(clusterRoutes).toContain("await assertCanEditCluster({");
+    expect(clusterRoutes).toContain(
+      "await assertCanChangeClusterToResetAgent({",
+    );
+    expect(
+      clusterRoutes.split(
+        "KubernetesClusterAiAccessService.assertCallerMayChangeCluster(",
+      ).length - 1,
+    ).toBe(2);
+    expect(clusterCheck).toContain(
+      "await KubernetesClusterService.findOneUpdatableById({",
+    );
+
+    // The test and the reset of a resource.
+    expect(resourceRoutes).toContain("await assertCanEditResource({");
+    expect(resourceRoutes).toContain(
+      "await assertCanChangeResourceToResetAgent({",
+    );
+
+    // Approving: every cluster and every resource the plan changes.
+    expect(approval).toContain("await assertApproverMayChangeClusters({");
+    expect(approval).toContain("await assertApproverMayChangeResources({");
+
+    const clusterRule: string = flat(
+      englishSection(AI_SRE, "### Who may change it"),
+    );
+    expect(clusterRule).toContain(
+      `is open to anyone who may edit the cluster, and so are ${bold("Test connection")} and approving a fix OneUptime AI proposes for it. All of these take permission to edit that very cluster: a permission limited to some labels, or to the clusters you or your teams own, reaches only those clusters, and a block with labels takes away the clusters that carry them.`,
+    );
+
+    const resourceRule: string = flat(
+      englishSection(INFRASTRUCTURE_AI_AGENTS, "### Who may change it"),
+    );
+    expect(resourceRule).toContain(
+      `are open to anyone who may edit the resource, and so are ${bold("Test connection")} and approving a fix OneUptime AI proposes for it. All of these take permission to edit that very resource: a permission limited to some labels, or to the resources you or your teams own, reaches only those resources, and a block with labels takes away the resources that carry them.`,
+    );
+  });
+
+  /*
+   * The incident's conversation is a terminal the person asking steers: its
+   * read-only kubectl and infrastructure commands reach only the linked
+   * clusters and resources that person may view. The thread keeps those
+   * alone, with the asking person's props (or the deciding person's on a
+   * paused answer), before it builds the turn's tools.
+   */
+  it("says the conversation's commands reach only the clusters and resources the person asking may view, as the thread builds them", () => {
+    const thread: string = flat(
+      readRepoFile("Common/Server/Utils/AI/SRE/InvestigationThread.ts"),
+    );
+    const threadService: string = flat(
+      readRepoFile("Common/Server/Utils/AI/SRE/InvestigationThreadService.ts"),
+    );
+
+    expect(thread).toContain(
+      "await KubernetesClusterAiAccessService.getStatusesViewableBy({ props: data.props,",
+    );
+    expect(thread).toContain(
+      "await ResourceAiAccessService.getStatusesViewableBy({ props: data.props,",
+    );
+    expect(threadService).toContain("props: data.turn.props,");
+
+    const conversation: string = flat(
+      englishSection(AI_SRE, "## Talk to OneUptime AI about the incident"),
+    );
+
+    expect(conversation).toContain(
+      "(and runs read-only kubectl or infrastructure commands where it has access, on the clusters and resources you may view)",
+    );
+  });
+
   it("says the resource AI agent asks for work every 3 seconds, as its loop does", () => {
     const config: string = fs.readFileSync(
       path.join(PACKAGES_DIR, "..", "agents/ResourceAIAgent/Config.ts"),

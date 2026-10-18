@@ -91,7 +91,7 @@ export const OIDC_ISSUER_DESCRIPTION: string = translationKey(
 );
 
 export const OIDC_DISCOVERY_URL_DESCRIPTION: string = translationKey(
-  "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.",
+  "Where OneUptime finds the provider's endpoints. It follows the issuer, so change it only if your provider publishes it elsewhere.",
 );
 
 export const OIDC_ISSUER_URL_ERROR: string = translationKey(

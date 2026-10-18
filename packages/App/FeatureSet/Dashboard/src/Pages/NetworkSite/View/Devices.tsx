@@ -68,7 +68,7 @@ const NetworkSiteDevices: FunctionComponent<
           description:
             "Network devices assigned to this site, directly or by an assignment rule.",
         }}
-        noItemsMessage="No devices are assigned to this site yet. Assign them from the device's Overview page, or set up assignment rules to do it automatically by subnet or hostname."
+        noItemsMessage="No devices at this site yet. Assign them on a device's Overview page, or with assignment rules by subnet or hostname."
         filters={[
           {
             field: {

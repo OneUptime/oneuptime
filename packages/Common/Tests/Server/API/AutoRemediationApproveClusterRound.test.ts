@@ -3,12 +3,17 @@ import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AutoRemediationSuggestionService from "../../../Server/Services/AutoRemediationSuggestionService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import KubernetesClusterAiAccessService from "../../../Server/Services/KubernetesClusterAiAccessService";
+import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import CommandPlanExecutor from "../../../Server/Utils/AutoRemediation/CommandPlanExecutor";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import Label from "../../../Models/DatabaseModels/Label";
 import Project from "../../../Models/DatabaseModels/Project";
 import Runner from "../../../Models/DatabaseModels/Runner";
+import { getKubernetesAiPlanApprovalEditRefusal } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import {
@@ -29,6 +34,7 @@ import Response from "../../../Server/Utils/Response";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -72,6 +78,15 @@ import {
  *   never mistaken for it, and an agent that is no longer the cluster's
  *   target falls back to the Runner re-read, which refuses it.
  * - Each cluster's status is still read once per approval.
+ *
+ * The approver may change every cluster the plan changes.
+ * - Approving runs the plan's kubectl commands on their clusters, so the
+ *   approver must be someone who may EDIT each of them, decided for the
+ *   cluster's own row as an update of it would be
+ *   (KubernetesClusterAiAccessService.assertCallerMayChangeCluster): an
+ *   edit limited to other labels, or a block on one of the cluster's
+ *   labels, refuses the approval before anything is claimed or run. Being
+ *   allowed to start runbooks is not enough.
  * ---------------------------------------------------------------------------
  */
 
@@ -402,6 +417,7 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
   let projectFindSpy: jest.SpyInstance;
   let runnerFindSpy: jest.SpyInstance;
   let statusSpy: jest.SpyInstance;
+  let mayChangeClusterSpy: jest.SpyInstance;
   let getScopeRefusalNextStep: (
     runner: KubernetesClusterAiAccessStatus["runner"],
   ) => string;
@@ -470,6 +486,11 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
     statusSpy = jest
       .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
       .mockResolvedValue(agentStatus());
+
+    // The approver may edit every cluster unless a test says otherwise.
+    mayChangeClusterSpy = jest
+      .spyOn(KubernetesClusterAiAccessService, "assertCallerMayChangeCluster")
+      .mockResolvedValue(undefined);
 
     jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
@@ -1377,6 +1398,244 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
       expect(getScopeRefusalNextStep(null)).toContain(
         "the Runner's write scope on the Runner's host",
       );
+    });
+  });
+
+  describe("the approver may change every cluster the plan changes", () => {
+    function expectRefusedForTheCluster(
+      result: RouteCallResult,
+      message: string,
+    ): void {
+      expect(result.nextCallCount).toBe(1);
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Error).message).toBe(message);
+      expect(casSpy).not.toHaveBeenCalled();
+      expect(executeApprovedPlanMock).not.toHaveBeenCalled();
+      expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
+    }
+
+    test("asks with the approver's own props, for each cluster the plan's kubectl commands change, once", async () => {
+      statusSpy.mockImplementation(
+        async (data: {
+          clusterId: string | ObjectID;
+        }): Promise<KubernetesClusterAiAccessStatus> => {
+          return agentStatus({ clusterId: data.clusterId.toString() });
+        },
+      );
+      mockRow(
+        clusterRoundRow([
+          agentKubectlCommandJson(),
+          agentKubectlCommandJson({
+            sequence: 2,
+            command: "kubectl rollout restart deployment/api -n web",
+          }),
+          agentKubectlCommandJson({
+            sequence: 3,
+            kubernetesClusterId: OTHER_CLUSTER_ID.toString(),
+            kubernetesClusterNameSnapshot: "prod-eu",
+          }),
+        ]),
+      );
+
+      expectClaimedAndExecuted(await callApprove());
+
+      expect(mayChangeClusterSpy).toHaveBeenCalledTimes(2);
+
+      const calls: Array<{
+        props: DatabaseCommonInteractionProps;
+        projectId: ObjectID;
+        clusterId: ObjectID;
+        refusal: string;
+      }> = mayChangeClusterSpy.mock.calls.map(
+        (
+          call: Array<unknown>,
+        ): {
+          props: DatabaseCommonInteractionProps;
+          projectId: ObjectID;
+          clusterId: ObjectID;
+          refusal: string;
+        } => {
+          return call[0] as {
+            props: DatabaseCommonInteractionProps;
+            projectId: ObjectID;
+            clusterId: ObjectID;
+            refusal: string;
+          };
+        },
+      );
+
+      for (const call of calls) {
+        expect(call.props.userId?.toString()).toBe(USER_ID.toString());
+        expect(call.props.isRoot).toBeFalsy();
+        expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+      }
+
+      expect(
+        calls.map(
+          (call: { clusterId: ObjectID; refusal: string }): Array<string> => {
+            return [call.clusterId.toString(), call.refusal];
+          },
+        ),
+      ).toEqual([
+        [
+          CLUSTER_ID.toString(),
+          getKubernetesAiPlanApprovalEditRefusal("prod-us"),
+        ],
+        [
+          OTHER_CLUSTER_ID.toString(),
+          getKubernetesAiPlanApprovalEditRefusal("prod-eu"),
+        ],
+      ]);
+    });
+
+    test("refuses before claiming the plan when the approver may not edit the cluster", async () => {
+      mayChangeClusterSpy.mockRejectedValue(
+        new NotAuthorizedException(
+          getKubernetesAiPlanApprovalEditRefusal("prod-us"),
+        ),
+      );
+
+      expectRefusedForTheCluster(
+        await callApprove(),
+        getKubernetesAiPlanApprovalEditRefusal("prod-us"),
+      );
+    });
+
+    test("a rule round's kubectl commands are held to the same rule", async () => {
+      mockRow(ruleRoundRow([agentKubectlCommandJson()]));
+      mayChangeClusterSpy.mockRejectedValue(
+        new NotAuthorizedException(
+          getKubernetesAiPlanApprovalEditRefusal("prod-us"),
+        ),
+      );
+
+      expectRefusedForTheCluster(
+        await callApprove(),
+        getKubernetesAiPlanApprovalEditRefusal("prod-us"),
+      );
+    });
+
+    test("a plan with no kubectl command asks about no cluster", async () => {
+      mockRow(ruleRoundRow([bashCommandJson()]));
+
+      expectClaimedAndExecuted(await callApprove());
+      expect(mayChangeClusterSpy).not.toHaveBeenCalled();
+    });
+
+    test("a kubectl command naming no valid cluster is refused, never let through", async () => {
+      mockRow(
+        clusterRoundRow([
+          agentKubectlCommandJson({ kubernetesClusterId: "not-a-cluster" }),
+        ]),
+      );
+
+      const error: BadDataException = expectRefusedBeforeClaim(
+        await callApprove(),
+      );
+
+      expect(error.message).toBe(
+        "Command 1 is a kubectl command with no cluster, so this plan cannot be run. Dismiss it and let a new suggestion be composed.",
+      );
+      expect(mayChangeClusterSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The real check, with the approver's label rows, on the cluster's own
+     * labels: the permission layer runs; the cluster's table is a stand-in
+     * that returns the row (the label and owner SQL is held on Postgres,
+     * KubernetesClusterEditScopePostgres).
+     */
+    describe("decided for the cluster's own labels", () => {
+      const PROD_LABEL_ID: ObjectID = new ObjectID(
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      );
+      const STAGING_LABEL_ID: ObjectID = new ObjectID(
+        "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      );
+
+      function serveCluster(labelId: ObjectID, name: string): void {
+        const label: Label = new Label();
+        label.id = labelId;
+        label.name = name;
+
+        const cluster: KubernetesCluster = new KubernetesCluster();
+        cluster.id = CLUSTER_ID;
+        cluster.projectId = PROJECT_ID;
+        cluster.name = "prod-us";
+        cluster.labels = [label];
+
+        jest
+          .spyOn(KubernetesClusterService, "findOneBy")
+          .mockResolvedValue(cluster);
+      }
+
+      // A project member who may start runbooks, with these rows besides.
+      function approverWith(rows: Array<UserPermission>): void {
+        const props: DatabaseCommonInteractionProps = buildUserProps();
+        props.userTenantAccessPermission![
+          PROJECT_ID.toString()
+        ]!.permissions.push(...rows);
+
+        jest
+          .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+          .mockResolvedValue(props);
+      }
+
+      const BLOCKED_FROM_EDITING_PRODUCTION: UserPermission = {
+        _type: "UserPermission",
+        permission: Permission.EditKubernetesCluster,
+        labelIds: [PROD_LABEL_ID],
+        isBlockPermission: true,
+      };
+
+      beforeEach(() => {
+        withLabelJoinTables();
+        mayChangeClusterSpy.mockRestore();
+      });
+
+      test("an approver blocked from editing the cluster's label may not approve a change to it", async () => {
+        serveCluster(PROD_LABEL_ID, "production");
+        approverWith([BLOCKED_FROM_EDITING_PRODUCTION]);
+
+        expectRefusedForTheCluster(
+          await callApprove(),
+          getKubernetesAiPlanApprovalEditRefusal("prod-us"),
+        );
+      });
+
+      test("negative control: the same block leaves a cluster without that label approvable", async () => {
+        serveCluster(STAGING_LABEL_ID, "staging");
+        approverWith([BLOCKED_FROM_EDITING_PRODUCTION]);
+
+        expectClaimedAndExecuted(await callApprove());
+      });
+
+      test("an approver whose member role reaches only staging clusters may not approve a change to a production one", async () => {
+        serveCluster(PROD_LABEL_ID, "production");
+
+        const props: DatabaseCommonInteractionProps = buildUserProps();
+        props.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions =
+          [
+            {
+              _type: "UserPermission",
+              permission: Permission.ProjectMember,
+              labelIds: [STAGING_LABEL_ID],
+            },
+            {
+              _type: "UserPermission",
+              permission: Permission.RunbookMember,
+              labelIds: [],
+            },
+          ];
+        jest
+          .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+          .mockResolvedValue(props);
+
+        expectRefusedForTheCluster(
+          await callApprove(),
+          getKubernetesAiPlanApprovalEditRefusal("prod-us"),
+        );
+      });
     });
   });
 });

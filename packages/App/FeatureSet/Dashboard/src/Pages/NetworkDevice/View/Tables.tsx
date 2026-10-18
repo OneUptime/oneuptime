@@ -114,7 +114,7 @@ const NetworkDeviceTables: FunctionComponent<
         title="No SNMP tables on this device"
         description={
           <TranslatedSentence
-            template="SNMP tables collect lists the device keeps - one row per IPsec tunnel, Wi-Fi radio, routing neighbour, fan or power supply - and follow rows as they come and go. Link this device to an OID Collection Template that has tables, or add device-specific tables in {{settings}}. The vendor templates for Sophos, Extreme, Cambium, HPE Aruba and Ubiquiti UniFi include them."
+            template="SNMP tables read lists the device keeps, such as IPsec tunnels. Link an OID Collection Template with tables, or add some in {{settings}}."
             slots={{
               settings: (
                 <AppLink to={settingsRoute}>

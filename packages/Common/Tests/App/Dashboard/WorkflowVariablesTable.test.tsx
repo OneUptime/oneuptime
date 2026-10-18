@@ -994,7 +994,7 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
       expect(secret.fieldType).toBe("Boolean");
       expect(secret.required).toBe(false);
       expect(secret.description).toContain("[REDACTED]");
-      expect(secret.description).toContain("cannot be turned off again");
+      expect(secret.description).toContain("cannot be turned off once saved");
       expect(secret.description).not.toMatch(/encrypt/i);
     });
 

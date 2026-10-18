@@ -323,7 +323,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Databases",
           description:
-            "Every database server this project runs or talks to — discovered from the queries in your application traces, database workloads on your Kubernetes clusters and Docker / Podman hosts, and the OneUptime Database Agent — or added by hand.",
+            "Every database server this project uses, discovered from your traces, containers and the Database Agent, or added by hand.",
         }}
         formSteps={[
           { title: "Connection", id: "connection" },
@@ -630,7 +630,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {count === 0 && (
         <DatabaseDocumentationCard
           title="Getting Started with Databases"
-          description="No databases yet. Databases appear here on their own as soon as your instrumented applications query them, or when OneUptime finds one on a monitored Kubernetes cluster or Docker / Podman host. Add one by hand above, or connect engine metrics with the Database Agent using the guide below."
+          description="No databases yet. They appear when your instrumented apps query them or OneUptime finds them in your containers. You can also add one above."
         />
       )}
       {labelBulkActionModals}

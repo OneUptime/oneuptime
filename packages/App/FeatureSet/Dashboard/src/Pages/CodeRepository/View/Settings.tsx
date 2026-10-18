@@ -47,7 +47,7 @@ const CodeRepositorySettings: FunctionComponent<
             title: "Max Open Fix Pull Requests",
             stepId: "pull-requests",
             description:
-              "Maximum AI-authored fix pull requests that may be open on this repository at the same time. At the cap, new AI fix runs fail before they can push a branch. Leave empty for no cap; set 0 to block AI fix pull requests for this repository entirely.",
+              "How many AI fix pull requests may be open here at once. Leave empty for no cap, or 0 to block them.",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "No cap",
@@ -59,7 +59,7 @@ const CodeRepositorySettings: FunctionComponent<
             title: "Respond to GitHub Commands",
             stepId: "github-commands",
             description:
-              "Let people work with the OneUptime GitHub App from GitHub itself — mention it on an issue or pull request, assign it an issue, or add the trigger label below. Only people with write access to the repository can command it, and it never merges anything. Leave on unless you want the app to stay silent here.",
+              "Let people with write access mention the OneUptime GitHub App, or add the trigger label, to give it work. It never merges anything.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -70,7 +70,7 @@ const CodeRepositorySettings: FunctionComponent<
             title: "GitHub Trigger Label",
             stepId: "github-commands",
             description:
-              "The issue label that hands an issue to the app. Adding it to an issue starts the same work a mention would — the reliable way to assign work to the app from the GitHub UI, since GitHub does not let an app be an assignee on every repository. Leave empty for 'oneuptime'.",
+              "Adding this label to an issue hands it to the app, like a mention. Leave empty for 'oneuptime'.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "oneuptime",
@@ -82,7 +82,7 @@ const CodeRepositorySettings: FunctionComponent<
             title: "Setup Command",
             stepId: "build-and-test",
             description:
-              "Command the AI fix Runner executes at the repository root to install dependencies before verifying an AI-authored fix (e.g. 'npm ci'). Runs on your Runner, in the cloned workspace, before the build and test commands. Leave empty to skip.",
+              "Installs dependencies before an AI fix is checked, such as 'npm ci'. Runs at the repository root on your Runner.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "npm ci",
@@ -94,7 +94,7 @@ const CodeRepositorySettings: FunctionComponent<
             title: "Build Command",
             stepId: "build-and-test",
             description:
-              "Command the AI fix Runner executes at the repository root to verify an AI-authored fix compiles/builds (e.g. 'npm run build'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the build check.",
+              "Checks that an AI fix builds, such as 'npm run build'. A failure goes back to the AI to repair. Leave empty to skip.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "npm run build",
@@ -106,7 +106,7 @@ const CodeRepositorySettings: FunctionComponent<
             title: "Test Command",
             stepId: "build-and-test",
             description:
-              "Command the AI fix Runner executes at the repository root to run the test suite against an AI-authored fix (e.g. 'npm test'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the test check.",
+              "Runs the tests against an AI fix, such as 'npm test'. A failure goes back to the AI to repair. Leave empty to skip.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "npm test",

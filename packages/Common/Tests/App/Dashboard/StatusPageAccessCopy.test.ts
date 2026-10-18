@@ -440,7 +440,7 @@ describe("requiring SSO for a status page's private users", () => {
     });
     // It names who is locked out.
     expect(StatusPageRequireSsoCopy.confirmDescription).toContain(
-      "Private users will no longer be able to sign in with an email and password.",
+      "Private users can no longer sign in with a password",
     );
   });
 

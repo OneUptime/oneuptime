@@ -78,11 +78,10 @@ jest.mock(
  * was left exactly as it was. These pin each sentence of that help to the
  * transporter the service builds, on the submission port and on 465:
  *
- *   - "Mail is sent only over an encrypted connection with a valid
+ *   - "Send mail only over an encrypted connection with a valid
  *     certificate": on, STARTTLS is required and the certificate verified;
- *   - "When this is off, mail is encrypted only if the server offers it,
- *     and the certificate is not checked": off (or never set), STARTTLS is
- *     only taken when offered, without verifying;
+ *   - "When off, the certificate is not checked": off (or never set),
+ *     STARTTLS is only taken when offered, without verifying;
  *   - "Port 465 is always encrypted": TLS from the first byte, either way.
  *
  * The operator's own server (no config id) is used, so nothing is resolved
@@ -102,7 +101,7 @@ const BUILDER_FILE: string = path.join(
 );
 
 const REQUIRE_TLS_HELP: string =
-  "Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted.";
+  "Send mail only over an encrypted connection with a valid certificate. When off, the certificate is not checked. Port 465 is always encrypted.";
 
 function server(port: number, secure: boolean | null | undefined): EmailServer {
   return {

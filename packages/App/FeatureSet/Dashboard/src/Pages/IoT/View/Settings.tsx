@@ -26,7 +26,7 @@ const IoTFleetSettings: FunctionComponent<
         nameField={{
           title: "Name",
           description:
-            "Must match the iot.fleet.name your devices report. Telemetry is matched to this fleet by it: rename it on the devices too, or their next report creates a new fleet.",
+            "Must match the iot.fleet.name your devices report. Rename it on the devices too, or their next report creates a new fleet.",
           placeholder: "field-sensors-us-east",
         }}
         descriptionField={{

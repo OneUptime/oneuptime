@@ -322,8 +322,8 @@ test.describe("Security settings card layout", () => {
       await expect(dialog).toBeVisible();
       await expect(dialog).toContainText(
         enabled
-          ? "finish setup at your next sign-in"
-          : "Your authenticator apps and security keys will stay saved",
+          ? "you set it up at your next sign-in"
+          : "Your authenticator apps and security keys stay saved",
       );
       await expect(page.getByText(adminOnlyText)).toHaveCount(0);
       await dialog.getByRole("button", { name: action, exact: true }).click();

@@ -43,7 +43,7 @@ export const DATABASE_RETENTION_SCOPE_NOTE: string = translationKey(
  * name and description, then see the new one.
  */
 export const DATABASE_NAME_HELP: string =
-  "Shown everywhere this database appears. Renaming is safe: databases are matched by their endpoints, never by name, and label and owner rules match the new name.";
+  "Shown everywhere this database appears. Renaming is safe: databases are matched by their endpoints, not their name.";
 
 const DatabaseServerSettings: FunctionComponent<
   PageComponentProps

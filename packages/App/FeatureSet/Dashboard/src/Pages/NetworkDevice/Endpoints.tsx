@@ -46,7 +46,7 @@ const NetworkEndpoints: FunctionComponent<
          * no such switch.
          */
         noItemsMessage={
-          "No endpoints yet. Turn on Collect Connected Endpoints on a switch or router - its Settings page, Edit Polling - and what is plugged into it appears here after its next poll."
+          "No endpoints yet. Turn on Collect Connected Endpoints in a switch or router's polling settings to see what is plugged into it."
         }
         formFields={[
           {

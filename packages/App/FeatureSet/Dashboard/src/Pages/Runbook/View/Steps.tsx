@@ -1145,7 +1145,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description={
             <>
               {translator.translateText(
-                "How long the Worker waits for the selected agent to pick this job up before failing the step as timed out. Leave room for at least one of the agent’s poll cycles (5 seconds by default) and for any step already running on it — an agent runs one job at a time.",
+                "How long to wait for the agent to pick this job up before the step times out. Allow for its poll cycle (5 seconds by default).",
               )}
             </>
           }
@@ -2085,7 +2085,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                             />
                                             <Toggle
                                               title="Include trigger context"
-                                              description="Give the AI context about what started this run — the linked incident, alert or scheduled maintenance, or who ran it manually. Private internal notes and Slack/Teams messages are never included, because the AI's answer is stored on the execution, which anyone with runbook-read access can see."
+                                              description="Tell the AI what started this run, such as the linked incident. Private notes and chat messages are never included."
                                               value={Boolean(
                                                 (step.config as AIStepConfig)
                                                   .includeTriggerContext,

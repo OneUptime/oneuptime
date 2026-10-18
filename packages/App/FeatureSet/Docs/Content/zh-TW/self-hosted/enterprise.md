@@ -110,6 +110,8 @@ npm run update
 
 授權透過 **版本標籤** 管理，主管理員可以在管理員儀表板的頁首與 Dashboard 的頁尾看到它。它會顯示授權狀態、席位使用情形，並向主管理員顯示執行個體 ID。
 
+在 AWS Marketplace、Microsoft Marketplace 或 Google Cloud Marketplace 上購買的 OneUptime Enterprise 不需要授權金鑰：市集訂閱即是授權，並按小時向每位使用者計費。請參閱[雲端市集](/docs/installation/cloud-marketplaces)。
+
 ### 線上啟用（授權金鑰）
 
 :::steps

@@ -292,7 +292,7 @@ describe("MCP: the MCP server is one switch", () => {
     expect(screen.queryByRole("button", { name: "Edit Settings" })).toBeNull();
     expect(
       screen.getByText(
-        "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.",
+        "AI agents can read this status page over the public OneUptime MCP server.",
       ),
     ).toBeInTheDocument();
   });

@@ -158,7 +158,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                   title: "SCIM (System for Cross-domain Identity Management)",
                   description:
-                    "SCIM is an open standard for automating the exchange of user identity information between identity domains, or IT systems. Use SCIM to automatically provision and deprovision users from your identity provider.",
+                    "Let your identity provider add and remove the people in this project.",
                 }}
                 documentationLink={Route.fromString("/docs/identity/scim")}
                 noItemsMessage={"No SCIM configuration found."}
@@ -364,7 +364,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
       {showResetModal && (
         <ConfirmModal
           title="Reset Bearer Token"
-          description="Are you sure you want to reset the Bearer Token? You will need to update your identity provider with the new token."
+          description="The current token stops working at once. Update your identity provider with the new token."
           onSubmit={async () => {
             await resetBearerToken();
           }}

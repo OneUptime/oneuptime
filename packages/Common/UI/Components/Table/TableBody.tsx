@@ -1,5 +1,6 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import { DetailValueContext } from "../Detail/DetailValueContext";
+import { TableCellContext } from "./TableCellContext";
 import TableRow from "./TableRow";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
@@ -36,6 +37,12 @@ export interface ComponentProps<T extends GenericObject> {
   bulkItemToString?: ((item: T) => string) | undefined;
   /** Why a locked row is locked, in the caller's own words. */
   itemNotSelectableReason?: ((item: T) => string) | undefined;
+
+  /*
+   * The rows scroll sideways: the Actions cell, stuck at the right edge, is
+   * ruled off from the cells passing under it (TableLayout).
+   */
+  isOverflowing?: boolean | undefined;
 
   // responsive
   isMobile?: boolean;
@@ -143,7 +150,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
           id={props.id}
           ref={provided?.innerRef}
           {...provided?.droppableProps}
-          className="divide-y divide-gray-200 bg-white"
+          className="divide-y divide-gray-100 bg-white"
         >
           {props.data &&
             props.data.map((item: T, i: number) => {
@@ -178,12 +185,13 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
         id={props.id}
         ref={provided?.innerRef}
         {...provided?.droppableProps}
-        className="divide-y divide-gray-200 bg-white"
       >
         {props.data &&
           props.data.map((item: T, i: number) => {
             return (
               <TableRow
+                isLastRow={i === props.data.length - 1}
+                isOverflowing={props.isOverflowing}
                 isBulkActionsEnabled={props.isBulkActionsEnabled}
                 onItemSelected={props.onItemSelected}
                 onItemDeselected={props.onItemDeselected}
@@ -208,21 +216,24 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
   };
 
   /*
-   * A table's rows draw their cells as a table does - a record's labels one
-   * per line, the first three and "N more" - even where the table itself is
-   * drawn inside a detail card's value (DetailValueContext).
+   * A table's rows draw their cells as a table does - a record's labels on
+   * the row's one line, the first two and "+N"; nothing to list as a quiet
+   * dash (TableCellContext) - even where the table itself is drawn inside a
+   * detail card's value (DetailValueContext).
    */
   return (
     <DetailValueContext.Provider value={false}>
-      {props.enableDragAndDrop ? (
-        <Droppable droppableId={props.dragAndDropScope || ""}>
-          {(provided: DroppableProvided) => {
-            return getBody(provided);
-          }}
-        </Droppable>
-      ) : (
-        getBody()
-      )}
+      <TableCellContext.Provider value={true}>
+        {props.enableDragAndDrop ? (
+          <Droppable droppableId={props.dragAndDropScope || ""}>
+            {(provided: DroppableProvided) => {
+              return getBody(provided);
+            }}
+          </Droppable>
+        ) : (
+          getBody()
+        )}
+      </TableCellContext.Provider>
     </DetailValueContext.Provider>
   );
 };

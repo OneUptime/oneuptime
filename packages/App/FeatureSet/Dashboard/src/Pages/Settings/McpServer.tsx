@@ -157,11 +157,11 @@ const McpServerPage: FunctionComponent<PageComponentProps> = (
             title: "Disconnect MCP Client",
             description: item.name
               ? translator.translateTemplate(
-                  'Disconnect "{{name}}"? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.',
+                  'Disconnect "{{name}}"? It is signed out at once and must connect again to work here. Nothing it created is deleted.',
                   { name: item.name },
                 )
               : translator.translateTemplate(
-                  "Disconnect this MCP client? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.",
+                  "Disconnect this MCP client? It is signed out at once and must connect again to work here. Nothing it created is deleted.",
                 ),
             submitButtonText: "Disconnect",
           };

@@ -131,7 +131,7 @@ export const StatusPageBrandingCopy: {
     "Allow Search Engines to Index this Status Page",
   ),
   searchEngineIndexingSwitchDescription: translationKey(
-    "On by default. Turn this off to keep the page reachable by anyone with the link while keeping it out of search results - OneUptime then serves the page with a noindex, nofollow robots directive. Search engines can take a few weeks to drop a page they have already indexed.",
+    "Search engines may list this page in their results. After you turn it off, they can take a few weeks to drop it.",
   ),
   notFound: translationKey("Status page not found."),
 };

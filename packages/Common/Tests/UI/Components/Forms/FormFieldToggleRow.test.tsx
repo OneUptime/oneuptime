@@ -34,7 +34,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  */
 
 const SECRET_DESCRIPTION: string =
-  "Keep this variable's content out of workflow run logs - every run replaces it with [REDACTED] before the log is saved. It applies to future runs only, and it cannot be turned off again once saved.";
+  "Replace this value with [REDACTED] in future workflow run logs. It cannot be turned off once saved.";
 
 interface TestEntity extends JSONObject {
   content?: string;

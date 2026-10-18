@@ -92,7 +92,9 @@ Zwei Schalter am Anbieter ändern das. Beide sind zunächst aus und unter **Weit
 | Schalter | Was er bewirkt, wenn er eingeschaltet ist |
 | --- | --- |
 | **Disable Sign Up with SSO** | Personen müssen in ein Projekt eingeladen sein, bevor sie sich mit diesem Anbieter anmelden können, auch wenn Projekte zugewiesen sind. Bei der ersten Anmeldung wird niemand neu angelegt. |
-| **Restrict to Attached Projects** | Die Anmeldung mit diesem Anbieter erfüllt die SSO-Pflicht nur in den ihm zugewiesenen Projekten, sodass bereits angemeldete Personen den Zugriff auf andere Projekte verlieren können. Ist der Schalter aus, erfüllt sie die Pflicht in jedem Projekt, zu dem die Person gehört, und zugewiesene Projekte bestimmen nur, wohin Neue kommen. |
+| **Restrict to Attached Projects** | Die Anmeldung mit diesem Anbieter erfüllt die SSO-Pflicht nur in den ihm zugewiesenen Projekten, sodass bereits angemeldete Personen den Zugriff auf andere Projekte verlieren können. |
+
+Ist **Restrict to Attached Projects** aus, erfüllt die Anmeldung mit dem Anbieter die SSO-Pflicht in jedem Projekt, zu dem die Person gehört, und zugewiesene Projekte bestimmen nur, wohin Neue kommen.
 
 ## SSO durchsetzen
 

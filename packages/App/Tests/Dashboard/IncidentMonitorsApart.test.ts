@@ -375,7 +375,7 @@ describe.each(FORMS)("$label", (form: IncidentForm) => {
 
       expect(status).not.toContain("showIf");
       expect(status).toContain(
-        'description: "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.",',
+        'description: "The status the incident\'s monitors change to, including monitors picked when it is declared.",',
       );
     });
   } else {
@@ -497,7 +497,7 @@ describe("the split's copy, in every language", () => {
     "No other resources affected by this incident.",
     "Search and attach the monitors that incidents created from this template should pre-populate.",
     "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
-    "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.",
+    "The status the incident's monitors change to, including monitors picked when it is declared.",
   ];
 
   function readLocale(locale: string): Record<string, string> {

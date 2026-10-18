@@ -235,7 +235,8 @@ describe("custom action columns", () => {
       .closest("td");
 
     expect(actionsHeader.firstElementChild).toHaveClass("justify-end");
-    expect(actionsCell).toHaveStyle({ textAlign: "right" });
+    // At the row's end: the right, or the left in a right-to-left page.
+    expect(actionsCell).toHaveClass("text-end");
   });
 });
 
@@ -267,7 +268,8 @@ describe("optional table row attributes", () => {
       expect(row.tagName).toBe(width < 768 ? "DIV" : "TR");
       expect(row).toHaveClass("custom-row");
       if (width < 768) {
-        expect(row).toHaveClass("p-4", "bg-white");
+        // Padded as the card is, its text where the card's own starts.
+        expect(row).toHaveClass("px-5", "py-4", "bg-white");
       }
       row.focus();
       expect(row).toHaveFocus();

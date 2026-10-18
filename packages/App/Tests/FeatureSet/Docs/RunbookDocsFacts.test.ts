@@ -1700,7 +1700,7 @@ describe("credentials and secrets", () => {
     }
 
     expect(SECRETS_PAGE).toContain(
-      "can only contain letters, numbers, hyphens (-), and underscores (_).",
+      "Letters, numbers, hyphens and underscores.",
     );
     expect(CREDENTIALS).toContain(
       "On the **Secret** step, enter a **Name** (letters, numbers, hyphens and underscores)",

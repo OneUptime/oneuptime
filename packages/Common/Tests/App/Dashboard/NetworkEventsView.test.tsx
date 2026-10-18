@@ -1534,9 +1534,9 @@ describe("a page with nothing to list says why", () => {
       "Syslog is arriving, but none of it is an event yet",
     );
     expect(empty).toHaveTextContent(
-      "Nothing in the last 7 days was something OneUptime reads as an event",
+      "Nothing in the last 7 days looked like an event",
     );
-    expect(empty).toHaveTextContent("Every message is still stored.");
+    expect(empty).toHaveTextContent("Every message is still in Logs.");
     expect(
       within(empty).getByRole("link", { name: "Open Logs" }),
     ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/logs`);

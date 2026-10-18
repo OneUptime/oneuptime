@@ -67,7 +67,7 @@ Klik op **Sjabloon toepassen**, kies er een onder **Selecteer sjabloon** in het 
 
 Klik op **Generate with AI**. Het dialoogvenster **Generate Postmortem with AI** biedt een opzet aan onder **Selecteer sjabloon**: **Standard Postmortem**, **Detailed Technical Postmortem** of **Brief Postmortem**, daarna uw eigen postmortem-sjablonen. **Template Preview** toont de opzet, en u kunt die wijzigen voordat u genereert.
 
-Klik onderaan het dialoogvenster op **Generate with AI**. OneUptime AI leest het incident (de beschrijving, de oorzaak en de oplossing, de statustijdlijn, de openbare en privénotities, en de berichten in het Slack- of Microsoft Teams-kanaal) en schrijft het postmortem in uw opzet. Daarna opent de editor met het resultaat.
+Klik onderaan het dialoogvenster op **Generate with AI**. OneUptime AI leest het incident (de beschrijving, de oorzaak en de oplossing, de statustijdlijn, de openbare en privénotities, de berichten in het Slack- of Microsoft Teams-kanaal, en wat er in [de gesprekken](/docs/workspace-connections/video-calls#transcripties-van-gesprekken) is gezegd) en schrijft het postmortem in uw opzet. Daarna opent de editor met het resultaat.
 
 Genereren vereist dat AI voor het project is ingeschakeld, onder **Projectinstellingen → AI → AI Features**, en een LLM-provider: zie [LLM-providers](/docs/ai/llm-provider). Het vereist ook de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident: andere rollen kunnen het postmortem schrijven, maar niet genereren.
 

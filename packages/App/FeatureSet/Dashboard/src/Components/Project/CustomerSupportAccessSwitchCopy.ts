@@ -47,7 +47,7 @@ export const CustomerSupportAccessSwitchCopy: {
   ),
   allowConfirmTitle: translationKey("Let OneUptime support into this project?"),
   allowConfirmDescription: translationKey(
-    "OneUptime's support team will be able to open this project, and see and change everything in it, its settings and data included, until you turn this off.",
+    "OneUptime's support team can open this project and see and change everything in it until you turn this off.",
   ),
   allowConfirmButton: translationKey("Let support in"),
 };

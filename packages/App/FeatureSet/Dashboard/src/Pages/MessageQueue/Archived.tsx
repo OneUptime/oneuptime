@@ -57,7 +57,7 @@ const MessageQueueArchivedPage: FunctionComponent<
         cardProps={{
           title: "Archived Queues",
           description:
-            "Queues you archived, and discovered queues archived automatically after they stopped being seen. They are hidden from the main list; an automatically archived queue returns on its own when it is seen again. Select queues to unarchive them.",
+            "Queues archived by hand or after they stopped being seen. They are hidden from the main list; select some to unarchive them.",
         }}
         // As on the main list: the id is on the Overview, not worth a column.
         viewButtonText="View"

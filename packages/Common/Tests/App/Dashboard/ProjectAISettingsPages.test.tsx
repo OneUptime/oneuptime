@@ -564,7 +564,7 @@ describe("AI Features page", () => {
     );
 
     expect(row).toHaveTextContent(
-      /The master switch\. When off, every AI feature in this project stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners\./,
+      /The master switch for every AI feature in this project: Ask AI, investigations, postmortem drafts, auto-remediation and more\./,
     );
     /*
      * It no longer says auto-remediation needs no other switch: fixing new
@@ -860,7 +860,7 @@ describe("Incidents → AI → Settings", () => {
     );
     expect(postmortem).toHaveAttribute("aria-checked", "false");
     expect(screen.getByTestId(`${POSTMORTEM_TEST_ID}-row`)).toHaveTextContent(
-      "It never replaces a postmortem that already exists.",
+      "It never replaces an existing one.",
     );
   });
 

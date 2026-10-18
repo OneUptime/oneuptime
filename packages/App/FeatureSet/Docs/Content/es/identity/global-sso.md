@@ -92,7 +92,9 @@ Dos interruptores del proveedor cambian esto. Ambos empiezan desactivados, plega
 | Interruptor | Qué hace cuando está activado |
 | --- | --- |
 | **Disable Sign Up with SSO** | Las personas deben estar invitadas a un proyecto antes de poder iniciar sesión con este proveedor, aunque haya proyectos adjuntos. No se crea a nadie nuevo en su primer inicio de sesión. |
-| **Restrict to Attached Projects** | Iniciar sesión con este proveedor cumple la exigencia de SSO solo en los proyectos adjuntos a él, así que quienes ya iniciaron sesión pueden perder el acceso a otros proyectos. Cuando está desactivado, la cumple en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados. |
+| **Restrict to Attached Projects** | Iniciar sesión con este proveedor cumple la exigencia de SSO solo en los proyectos adjuntos a él, así que quienes ya iniciaron sesión pueden perder el acceso a otros proyectos. |
+
+Con **Restrict to Attached Projects** desactivado, iniciar sesión con el proveedor cumple la exigencia de SSO en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados.
 
 ## Imponer SSO
 

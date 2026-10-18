@@ -856,7 +856,7 @@ describe("the email forms' shared-address advice", () => {
     const description: string = textOf(emails!.description as ReactNode);
 
     expect(description).toContain(
-      "One email per line (or separated by commas, semicolons, or spaces). Invalid or duplicate entries will be skipped.",
+      "One email per line. Invalid and duplicate ones are skipped.",
     );
     expect(description).toContain(
       SubscriberUnsubscribeCopy.sharedAddressAdvice,

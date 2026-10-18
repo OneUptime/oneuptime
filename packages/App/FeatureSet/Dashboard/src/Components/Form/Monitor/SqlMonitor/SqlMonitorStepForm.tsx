@@ -225,7 +225,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="SQL Query"
-          description="A single read-only query (SELECT / WITH). Writes are blocked — the probe runs it read-only and against a least-privilege database user. Example: SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED' AND created_at > NOW() - INTERVAL '5 minutes'"
+          description="One SELECT or WITH query. The probe runs it read-only, so writes are blocked."
           required={true}
         />
         <TextArea

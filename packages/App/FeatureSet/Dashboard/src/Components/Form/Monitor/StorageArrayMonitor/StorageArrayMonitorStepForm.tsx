@@ -498,7 +498,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title="Storage Array Metric"
             description={
-              "Select a metric the array exports. Metrics are organized by what they describe — array health, capacity, performance, volumes, hosts, replication, hardware, file systems and buckets."
+              "A metric the array exports, grouped by what it describes."
             }
             required={true}
           />
@@ -628,7 +628,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title="Select Metrics"
             description={
-              "Select the storage array metrics to monitor. Use the query builder for full control over metric selection, label filters (for example `dimension`, `severity`, `component_status`) and grouping."
+              "The array metrics to monitor, with label filters and grouping."
             }
             required={true}
           />

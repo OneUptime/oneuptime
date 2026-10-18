@@ -34,7 +34,10 @@ jest.mock("../../../UI/Images/users/blank-profile.svg", () => {
  * regressed while adding it.
  */
 
-import UserElement from "../../../../App/FeatureSet/Dashboard/src/Components/User/User";
+import UserElement, {
+  TABLE_CELL_USER_NAME_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/User/User";
+import { TableCellContext } from "../../../UI/Components/Table/TableCellContext";
 import UsersElement from "../../../../App/FeatureSet/Dashboard/src/Components/User/Users";
 import User from "../../../Models/DatabaseModels/User";
 import Email from "../../../Types/Email";
@@ -126,6 +129,47 @@ describe("UserElement", () => {
       );
 
       expect(screen.getByText("Jane Doe")).toHaveClass("block", "truncate");
+    });
+
+    /*
+     * A table caps every value's width (TableLayout's 20rem). A person's
+     * name in a capped cell was cut off mid-letter - "Maximiliana
+     * Alexandrina Featherstoneh" - with no sign there was more; in a table
+     * the name line ends in an ellipsis, its whole text under the pointer.
+     */
+    test("in a table's cell the name keeps to its line and ends in an ellipsis", () => {
+      render(
+        <TableCellContext.Provider value={true}>
+          <UserElement
+            user={{
+              _id: USER_ID,
+              name: "Maximiliana Alexandrina Featherstonehaugh-Cholmondeley",
+              email: "maximiliana@acme.com",
+            }}
+          />
+        </TableCellContext.Provider>,
+      );
+
+      expect(TABLE_CELL_USER_NAME_CLASS_NAME).toBe("truncate");
+
+      const nameLine: HTMLElement = screen.getByTestId("user-name-line");
+
+      expect(nameLine).toHaveClass(TABLE_CELL_USER_NAME_CLASS_NAME);
+      expect(nameLine).toHaveTextContent(
+        "Maximiliana Alexandrina Featherstonehaugh-Cholmondeley",
+      );
+      // The email line below it truncates as it always has.
+      expect(screen.getByTestId("user-email")).toHaveClass("truncate");
+    });
+
+    test("anywhere else the name keeps its lines, as it always has", () => {
+      render(
+        <UserElement
+          user={{ _id: USER_ID, name: "Jane Doe", email: "jane@acme.com" }}
+        />,
+      );
+
+      expect(screen.getByTestId("user-name-line")).not.toHaveClass("truncate");
     });
   });
 

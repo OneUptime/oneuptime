@@ -295,7 +295,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title="PVE ID"
             description={
-              "Filter by the part of the resource id after the first slash — a node name (`pve1`), a VMID (`100`), or `<node>/<storage>` for storage (`pve1/local`, since storage ids are `storage/<node>/<storage>`). Optional; pair with a scope to target one resource."
+              "A node name (`pve1`), a VMID (`100`) or `<node>/<storage>` (`pve1/local`). Pair it with a scope to target one resource."
             }
             required={false}
           />

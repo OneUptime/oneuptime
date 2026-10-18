@@ -81,6 +81,27 @@ export function getVideoCallNoun(
   }
 }
 
+/*
+ * What one call is called where a sentence or a prompt names it: its
+ * provider's noun ("Zoom meeting"), or - for a link of one's own - its own
+ * title, or the name of the connection that holds the link.
+ */
+export function getVideoCallLabel(call: {
+  provider?: VideoCallProvider | string | undefined;
+  title?: string | undefined;
+  connectionName?: string | undefined;
+}): string {
+  if (call.provider === VideoCallProvider.CustomLink) {
+    return (
+      (call.title || "").trim() ||
+      (call.connectionName || "").trim() ||
+      getVideoCallNoun(call.provider)
+    );
+  }
+
+  return getVideoCallNoun(call.provider);
+}
+
 function hostIs(hostname: string, domain: string): boolean {
   return hostname === domain || hostname.endsWith(`.${domain}`);
 }

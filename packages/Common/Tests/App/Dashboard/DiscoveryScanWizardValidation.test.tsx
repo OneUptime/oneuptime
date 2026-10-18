@@ -3351,16 +3351,20 @@ describe("long status messages wrap inside their own column (issue #3585)", () =
 
   test("the scan explanation has a wider cap than the compact result count", async () => {
     await renderPage();
+    /*
+     * Each column's own cap, with the floor every wrapping column keeps
+     * (min-w-[10rem]) so it is never squeezed to a word or two a line.
+     */
     expect(
       getTableCellContentClassName<NetworkDeviceDiscoveryScan>(
         tableColumnFor("Scan"),
       ),
-    ).toBe("max-w-sm");
+    ).toBe("max-w-sm min-w-[10rem] [&>*]:align-top");
     expect(
       getTableCellContentClassName<NetworkDeviceDiscoveryScan>(
         tableColumnFor("Responded Hosts"),
       ),
-    ).toBe("max-w-xs");
+    ).toBe("max-w-xs min-w-[10rem] [&>*]:align-top");
   });
 
   test.each(["Started", "Scan Target"])(

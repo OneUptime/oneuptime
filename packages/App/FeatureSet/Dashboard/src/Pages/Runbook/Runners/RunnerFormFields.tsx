@@ -144,6 +144,7 @@ export function getRunnerFormFields(
     fields.push({
       field: { name: true },
       title: "Name",
+      description: "A name to recognize this Runner by.",
       ...onStep("runner"),
       fieldType: FormFieldSchemaType.Text,
       required: true,
@@ -189,7 +190,7 @@ export function getRunnerFormFields(
         title: "Runs AI Code Fixes",
         ...onStep("capabilities"),
         description:
-          "Let this Runner work in the code repositories connected to this project and open pull requests for review. Off by default; it needs a connected repository. The Runner picks this up on its next heartbeat — no restart needed.",
+          "Let this Runner work in this project's connected repositories and open pull requests for review.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         defaultValue: false,
@@ -203,7 +204,7 @@ export function getRunnerFormFields(
       title: "Runs AI Remediation Commands",
       ...onStep("capabilities"),
       description:
-        "Let AI auto-remediation execute policy-checked commands on this Runner. Off by default — commands either match the rule's allowlist or wait for one-click human approval, and destructive commands are always refused. Takes effect on the Runner's next heartbeat, no restart needed.",
+        "Let auto-remediation run policy-checked commands on this Runner. Destructive commands are always refused.",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: false,

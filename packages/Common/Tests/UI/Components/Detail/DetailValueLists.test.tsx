@@ -29,6 +29,7 @@ import TableBody from "../../../../UI/Components/Table/TableBody";
 import LabelsElement, {
   DETAIL_LABELS_CLASS_NAME,
   DETAIL_LABELS_TEST_ID,
+  TABLE_LABELS_TEST_ID,
 } from "../../../../UI/Components/Label/Labels";
 import TableColumnListComponent from "../../../../UI/Components/TableColumnList/TableColumnListComponent";
 import FieldType from "../../../../UI/Components/Types/FieldType";
@@ -278,7 +279,13 @@ describe("a record's labels in a detail card", () => {
   });
 });
 
-describe("a record's labels in a table's cell are left as they were", () => {
+/*
+ * Outside a detail card's value and a table's cell (TableCellContext) - a
+ * page that draws LabelsElement in a box of its own - the list is as it
+ * always was. A table's own cell draws a row of labels: see
+ * Table/TableLabels.test.tsx.
+ */
+describe("a record's labels outside a detail card and a table are left as they were", () => {
   test("one per line, the first three, then 'N more labels'", () => {
     const { container } = render(
       <LabelsElement labels={makeLabels(LABEL_NAMES)} />,
@@ -511,7 +518,15 @@ describe("a surface of its own drawn inside a value starts again", () => {
       }),
     ]);
 
-    expectTableList();
+    /*
+     * A table's rows draw a table's labels - the first two on the row's
+     * line and "+4" - never the detail card's, even inside a detail value.
+     */
+    expect(screen.queryByTestId(DETAIL_LABELS_TEST_ID)).toBeNull();
+    expect(screen.getByTestId(TABLE_LABELS_TEST_ID)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Show 4 more labels" }),
+    ).toHaveTextContent("+4");
   });
 });
 

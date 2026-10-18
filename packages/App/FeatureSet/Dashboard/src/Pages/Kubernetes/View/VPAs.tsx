@@ -133,7 +133,7 @@ const KubernetesClusterVPAs: FunctionComponent<
           },
         );
       }}
-      emptyMessage="No VPAs found. VPA data will appear here once the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and includes verticalpodautoscalers."
+      emptyMessage="No VPAs yet. They appear once the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and includes verticalpodautoscalers."
     />
   );
 };

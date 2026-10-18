@@ -92,7 +92,9 @@ Two switches on the provider change this. Both start off, folded under **More fi
 | Switch | What it does when on |
 | --- | --- |
 | **Disable Sign Up with SSO** | People must be invited to a project before they can sign in with this provider, even when projects are attached. Nobody new is created on their first sign-in. |
-| **Restrict to Attached Projects** | Signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added. |
+| **Restrict to Attached Projects** | Signing in with this provider meets SSO enforcement only in its attached projects, so people already signed in can lose access to the others. |
+
+With **Restrict to Attached Projects** off, signing in with the provider meets SSO enforcement in every project the person belongs to, and attached projects only decide where newcomers are added.
 
 ## Enforcing SSO
 

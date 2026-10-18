@@ -52,7 +52,7 @@ export type ComponentProps = PageComponentProps;
  * passes). Customers who saw an error here kept pressing Pay Invoice.
  */
 const PAYMENT_PROCESSING_MESSAGE: string =
-  "Your bank is still processing a payment for this invoice. Some banks (for example cards issued in India) take up to 2 days to confirm recurring card payments. You do not need to pay again - the invoice will update automatically once the bank confirms.";
+  "Your bank is still processing a payment for this invoice, which can take up to 2 days. You do not need to pay again.";
 
 /*
  * An invoice that is settled, not yet issued, or cancelled has nothing left to

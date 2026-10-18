@@ -38,7 +38,7 @@ export const SubscriberUnsubscribeCopy: {
    * are unchanged.
    */
   sharedAddressAdvice: translationKey(
-    "Use people's own addresses where you can: anyone who reads a shared address, such as a mailing list, can unsubscribe it for everyone.",
+    "Use people's own addresses: anyone on a mailing list can unsubscribe it for everyone.",
   ),
   recentlyUnsubscribedTitle: "Subscribers your team added have unsubscribed",
   recentlyUnsubscribedDescription:

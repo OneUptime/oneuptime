@@ -1092,7 +1092,7 @@ describe("a criteria's settings", () => {
 
   it("open one incident per value found in an incoming request when grouping is on", () => {
     expect(CRITERIA_INSTANCE_FORM).toContain(
-      "this criteria opens a separate incident and alert per distinct value extracted from the request body, so a single webhook endpoint (e.g. Grafana) can keep multiple incidents active at once.",
+      "Open a separate incident and alert for each value of a field in the request body, so one webhook can keep several open.",
     );
     expect(settings).toContain(
       "**Group incidents and alerts by a payload field** opens one incident per value found in an incoming request, so one webhook address can keep several incidents open.",
@@ -2510,9 +2510,13 @@ describe("starting a postmortem from a template or an AI draft", () => {
     );
   });
 
-  it("writes from the incident: its description, root cause, remediation, timeline, notes and chat messages", () => {
+  it("writes from the incident: its description, root cause, remediation, timeline, notes, chat messages and calls", () => {
     expect(INCIDENT_AI_CONTEXT).toContain(
-      "export interface IncidentContextData {\n  incident: Incident;\n  stateTimeline: Array<IncidentStateTimeline>;\n  internalNotes: Array<IncidentInternalNote>;\n  publicNotes: Array<IncidentPublicNote>;\n  workspaceMessages: Array<WorkspaceChannelMessage>;\n}",
+      "export interface IncidentContextData {\n  incident: Incident;\n  stateTimeline: Array<IncidentStateTimeline>;\n  internalNotes: Array<IncidentInternalNote>;\n  publicNotes: Array<IncidentPublicNote>;\n  workspaceMessages: Array<WorkspaceChannelMessage>;\n",
+    );
+    // What was said on its calls (issue #4875), which the draft asks for.
+    expect(INCIDENT_AI_CONTEXT).toContain(
+      "  calls?: Array<IncidentCallForPrompt> | undefined;\n}",
     );
 
     for (const column of [
@@ -2526,8 +2530,15 @@ describe("starting a postmortem from a template or an AI draft", () => {
     expect(INCIDENT_API).toContain(
       "const includeWorkspaceMessages: boolean = true;",
     );
+    expect(
+      between(
+        INCIDENT_API,
+        "private async generatePostmortemFromAI(",
+        "private async generateNoteFromAI(",
+      ),
+    ).toContain("includeCalls: true,");
     expect(starting).toContain(
-      "OneUptime AI reads the incident (its description, root cause and remediation, its state timeline, its public and private notes, and the messages in its Slack or Microsoft Teams channel) and writes the postmortem in your outline. The editor then opens on it.",
+      "OneUptime AI reads the incident (its description, root cause and remediation, its state timeline, its public and private notes, the messages in its Slack or Microsoft Teams channel, and what was said on [its calls](/docs/workspace-connections/video-calls#call-transcripts)) and writes the postmortem in your outline. The editor then opens on it.",
     );
   });
 
