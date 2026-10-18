@@ -1070,3 +1070,46 @@ describe(`${TERRAFORM_E2E}: each release run's suite is its own`, () => {
     );
   });
 });
+
+/*
+ * HashiCorp asks the providers it lists as Partner for tests that run nightly
+ * as a GitHub Action, so terraform-provider-e2e.yml also runs on a schedule.
+ * The nightly run is master's, and its group is its own, worked out from
+ * github.event.schedule, which GitHub sets on scheduled runs only. In the
+ * group master's pushes share, a merge landing during the three-hour suite
+ * would cancel the nightly run, or the nightly run the merge's.
+ */
+describe(`${TERRAFORM_E2E}: runs every night, in a group of its own`, () => {
+  const suite = readYaml(TERRAFORM_E2E);
+  const schedules = (suite.on && suite.on.schedule) || [];
+
+  // The group of one of the suite's runs on master, for the event's payload.
+  function masterRunGroup(runId, event) {
+    return evaluateExpressions(suite.concurrency.group, {
+      github: {
+        workflow: suite.name,
+        ref: "refs/heads/master",
+        run_id: runId,
+        event,
+      },
+      inputs: {},
+    });
+  }
+
+  test("is scheduled once a day, every day", () => {
+    expect(schedules).toHaveLength(1);
+    const fields = String(schedules[0].cron).trim().split(/\s+/);
+    expect(fields).toHaveLength(5);
+    // One minute of one hour, on every day of every month.
+    expect(fields[0]).toMatch(/^\d+$/);
+    expect(fields[1]).toMatch(/^\d+$/);
+    expect(fields.slice(2)).toEqual(["*", "*", "*"]);
+  });
+
+  test("a nightly run and a push to master never share a group, so neither cancels the other", () => {
+    const nightly = masterRunGroup("1", { schedule: schedules[0].cron });
+
+    expect(nightly).not.toEqual(masterRunGroup("2", {}));
+    expect(nightly).toContain(schedules[0].cron);
+  });
+});

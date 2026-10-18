@@ -11,9 +11,14 @@ name: Terraform Provider E2E Tests
 # release.yml passes its run id as release_run_id, and that gives every release
 # run a group of its own. A pull request's group stays "<workflow name>-<PR
 # number>", the group cancel-closed-pr-runs.yml joins to stop it.
-# Tests/Ops/ReleaseE2ePipeline.test.js and CancelClosedPrRuns.test.js hold both.
+#
+# The nightly run has a group of its own too. github.event.schedule, the cron
+# line that started it, is set on scheduled runs only, so a push to master that
+# lands while the nightly run is going neither cancels it nor is cancelled by it.
+# Tests/Ops/ReleaseE2ePipeline.test.js holds the release and nightly groups, and
+# CancelClosedPrRuns.test.js the pull request's.
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.release_run_id || github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.release_run_id || github.event.pull_request.number || github.event.schedule || github.ref }}
   cancel-in-progress: true
 
 
@@ -27,6 +32,11 @@ on:
       - main
       - master
       - develop
+  # Nightly, on master. HashiCorp asks the providers it lists as Partner for
+  # tests that run nightly as a GitHub Action, and it gives master a run on
+  # the days nothing merges.
+  schedule:
+    - cron: "43 2 * * *"
   workflow_dispatch:
   # Lets the release pipeline invoke this workflow as a gate (release.yml
   # `uses:` this workflow). Nothing below may rely on pull_request-only context.
