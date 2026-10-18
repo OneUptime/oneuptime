@@ -481,6 +481,25 @@ jobs:
           TF_E2E_PROVIDER_MIRROR: ${{ runner.temp }}/terraform-e2e-pinned/provider-mirror
         run: ./packages/E2E/Terraform/e2e-tests/scripts/run-tests.sh
 
+      # The provider's acceptance tests, written with HashiCorp's
+      # terraform-plugin-testing: the harness HashiCorp asks the providers it
+      # lists as Partner to pass. They create, update, import and destroy the
+      # core resources (Scripts/TerraformProvider/StaticFiles/acceptance_test.go)
+      # in the test project the suites above used, through the Terraform
+      # installed above, so nothing is downloaded. go test skips them unless
+      # TF_ACC is set: the unit-test step above and the release's own go test
+      # leave them out.
+      - name: Run provider acceptance tests
+        working-directory: Terraform/terraform-provider-oneuptime
+        env:
+          TF_ACC: "1"
+          TF_ACC_TERRAFORM_PATH: /usr/local/bin/terraform
+        run: |
+          set -euo pipefail
+          # ONEUPTIME_URL and ONEUPTIME_API_KEY, from "Set up test account".
+          source ../../packages/E2E/Terraform/e2e-tests/test-env.sh
+          go test ./internal/provider -run '^TestAcc' -count=1 -v -timeout 60m
+
       # Coverage ratchet: the suite must exercise at least as many provider
       # resource types as the checked-in baseline. run-tests.sh already
       # enforces this at the end of a successful run; this dedicated step

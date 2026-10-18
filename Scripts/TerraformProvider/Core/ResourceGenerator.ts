@@ -229,6 +229,18 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("client_test.go", "internal/provider");
 
     /*
+     * The acceptance tests: the core resources through a real Terraform and
+     * a real OneUptime, with terraform-plugin-testing, the harness HashiCorp
+     * asks partner providers to pass. They skip unless TF_ACC is set
+     * (terraform-provider-e2e.yml sets it).
+     */
+    await this.copyStaticFile(
+      "acceptance_helpers_test.go",
+      "internal/provider",
+    );
+    await this.copyStaticFile("acceptance_test.go", "internal/provider");
+
+    /*
      * Package-level ObjectType registry shared by every resource and the
      * envelope validator (was duplicated as a per-resource map).
      */
