@@ -583,7 +583,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 当此集群上出现事件或警报时，OneUptime AI 会进行调查。chart 中的 **Kubernetes AI 代理** 为它提供一个终端：它像值班工程师那样运行只读的 `kubectl`（describe 出故障的 Pod、读取其事件、查看崩溃容器的日志、检查节点容量），并在事件页面上引用它运行的每一条命令。
 
-该代理 **默认开启** 且 **只读**：一个小型 Deployment（`kubernetes-agent-ai-agent`，Pod 标签 `component=ai-agent`，镜像 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能读取。它使用与 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行注册，因此无需在仪表板中进行任何设置：集群的 **AI 代理** 页面（Kubernetes → 集群 → 人工智能 → 智能体）会在一分钟内显示其为已连接，该状态旁边 **⋯** 菜单中的 **测试连接** 会通过它运行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做过的一切都在集群的 **AI 日志** 页面（人工智能 → 日志）上，而关于该集群值得了解的内容——反复出现的问题及其原因、导致其中大多数问题的节点或工作负载、AI 修复了什么——则在 **AI Insights** 页面（人工智能 → Insights）上。该代理内置一个固定版本的 kubectl（v1.36.4）。它不是 Runner，也永远不会出现在 Runbooks → Runners 下：OneUptime 从不向它提供凭据，从不在它上面运行 runbook，它也永远不会被接受为自动修复规则的命令 Runner。
+该代理 **默认开启** 且 **只读**：一个小型 Deployment（`kubernetes-agent-ai-agent`，Pod 标签 `component=ai-agent`，镜像 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能读取。它使用与 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行注册，因此无需在仪表板中进行任何设置：集群的 **AI 代理** 页面（Kubernetes → 集群 → 人工智能 → 智能体）会在一分钟内显示其为已连接，该状态旁边 **⋯** 菜单中的 **测试连接** 会通过它运行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做过的一切都在集群的 **AI 日志** 页面（人工智能 → 日志）上，而关于该集群值得了解的内容——反复出现的问题及其原因、导致其中大多数问题的节点或工作负载、AI 修复了什么——则在 **AI Insights** 页面（人工智能 → Insights）上。该代理内置一个固定版本的 kubectl（v1.36.5）。它不是 Runner，也永远不会出现在 Runbooks → Runners 下：OneUptime 从不向它提供凭据，从不在它上面运行 runbook，它也永远不会被接受为自动修复规则的命令 Runner。
 
 对于在 AI 代理出现之前安装的代理，请先刷新 chart 索引，然后升级（在自托管的 OneUptime 上，请先升级 OneUptime——见 [升级代理](#升级代理)）：
 
