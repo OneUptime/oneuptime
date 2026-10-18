@@ -223,10 +223,15 @@ describe("Settings > Danger Zone", () => {
     expect(postCalls[0]?.headers?.["tenantid"]).toBe(PROJECT_ID.toString());
   });
 
-  it("warns that the deletion cannot be undone", () => {
+  it("warns that the deletion cannot be undone, once: on the Delete Project card", () => {
     renderPage();
 
-    expect(screen.getByText(/no way to recover/i)).toBeInTheDocument();
+    expect(screen.getByTestId("model-delete-card-message")).toHaveTextContent(
+      "This action cannot be undone.",
+    );
+    // No red banner above the card saying the same thing again.
+    expect(screen.queryByText(/DANGER ZONE/)).toBeNull();
+    expect(screen.queryByText(/no way to recover/i)).toBeNull();
   });
 
   it("does not ask anything until the customer confirms they want to delete", () => {
@@ -521,7 +526,9 @@ describe("Settings > Danger Zone", () => {
       expect(
         screen.queryByTestId("project-delete-marketplace-notice"),
       ).toBeNull();
-      expect(screen.getByText(/no way to recover/i)).toBeInTheDocument();
+      expect(screen.getByTestId("model-delete-card-message")).toHaveTextContent(
+        "This action cannot be undone.",
+      );
     });
 
     it("says nothing for a marketplace it does not know", () => {

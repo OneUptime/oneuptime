@@ -192,9 +192,9 @@ Hver tillatt rettighet gis med et omfang, valgt under **Omfang** når du legger 
 
 | Omfang | Betydning |
 | --- | --- |
-| Alle ressurser i prosjektet | Standarden. Tillatelsen gjelder for alle ressurser som passer. |
-| Eid av dette teamet eller medlemmene | Tillatelsen gjelder bare ressurser der dette teamet, eller brukeren som handler, står oppført som eier. |
-| Begrens etter etiketter (avansert) | Tillatelsen gjelder bare ressurser som bærer minst én av de valgte etikettene. |
+| Alle ressurser i prosjektet | Standarden, og det de fleste team trenger. Tillatelsen gjelder for alle ressurser som passer. |
+| Bare ressurser de eier | Tillatelsen gjelder bare ressurser som personen som handler, eller et av teamene deres, eier. |
+| Bare ressurser med bestemte etiketter | Tillatelsen gjelder bare ressurser som bærer minst én av de valgte etikettene. |
 
 **Eide** er den enkleste måten å bygge en modell der «dere passer på deres egne tjenester»: gi et team `MonitorAdmin` med omfanget Eide, og gjør så teamet til eier av overvåkerne det har ansvaret for. Det snevrer inn alle ressurser som kan ha eiere — overvåkere, hendelser, dashbord, tjenester, monitorgrupper, vaktplaner og lignende — og det som hører til dem, som lagene i en vaktplan. Sonder, Runnere, AI-agenter, vaktplaner og hendelses- og vedlikeholdsmaler er det andre ressurser settes opp med, så en tillatelse med omfanget Eide leser fortsatt alle sammen, og du kan velge hvilken som helst av dem; den endrer og sletter bare dem du eller teamene dine eier. En Runners nøkkel, som lar den som har den, opptre som Runneren, vises bare på Runnerne du eller teamene dine eier. Prosjektkonfigurasjon (hendelsestilstander, etiketter, selve teamene) har ingen eier, så en rolle med omfanget Eide oppfører seg normalt der.
 

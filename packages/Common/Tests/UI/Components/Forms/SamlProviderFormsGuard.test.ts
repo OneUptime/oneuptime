@@ -120,13 +120,18 @@ const PROVIDER_STEP_OPEN: Array<string> = [
  */
 const SIGN_IN_STEP_OPEN: Array<string> = ["teams", "isEnabled"];
 
-// Everything with an answer, folded (the last two only on the Global form).
+/*
+ * Everything with an answer, folded. The last two only on the Global form:
+ * its two questions, People without an account and Where this sign-in counts as SSO,
+ * by the keys the form keeps them under. The columns they write
+ * (disableSignUpWithSso, restrictToAttachedProjects) are registered unseen.
+ */
 const SIGN_IN_STEP_FOLDED: Array<string> = [
   "signatureMethod",
   "digestMethod",
   "description",
-  "disableSignUpWithSso",
-  "restrictToAttachedProjects",
+  "SSO_GLOBAL_SIGN_UP_FIELD_KEY",
+  "SSO_GLOBAL_REACH_FIELD_KEY",
 ];
 
 // What the four forms asked for, and how, before (none of it may come back).

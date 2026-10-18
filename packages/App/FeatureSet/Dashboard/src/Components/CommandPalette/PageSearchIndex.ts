@@ -557,6 +557,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SETTINGS_SSO,
             title: "SSO",
             icon: IconProp.Lock,
+            /*
+             * The SAML and the OpenID Connect providers are on one page:
+             * searching for either finds it.
+             */
             keywords: [
               "single sign-on",
               "saml",
@@ -564,13 +568,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "azure ad",
               "entra id",
               "identity provider",
+              "oidc",
+              "openid connect",
+              "oauth",
             ],
-          },
-          {
-            page: PageMap.SETTINGS_OIDC,
-            title: "OIDC",
-            icon: IconProp.Lock,
-            keywords: ["openid connect", "oauth", "single sign-on"],
           },
           {
             page: PageMap.SETTINGS_SCIM,

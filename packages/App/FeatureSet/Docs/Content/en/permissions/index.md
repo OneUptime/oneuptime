@@ -192,9 +192,9 @@ Every allow permission is granted with a scope, chosen under **Scope** when you 
 
 | Scope | Meaning |
 | --- | --- |
-| All resources in the project | The default. The permission applies to every matching resource. |
-| Owned by this team or its members | The permission only applies to resources where this team, or the user acting, is listed as an owner. |
-| Restrict by labels (advanced) | The permission only applies to resources carrying at least one of the selected labels. |
+| All resources in the project | The default, and what most teams want. The permission applies to every matching resource. |
+| Only resources they own | The permission applies only to resources the person acting, or one of their teams, owns. |
+| Only resources with certain labels | The permission applies only to resources carrying at least one of the labels you pick. |
 
 **Owned** is the simplest way to build a "you look after your own services" model: give a team `MonitorAdmin` scoped to Owned, then make that team the owner of the monitors it is responsible for. It narrows every resource that can have owners — monitors, incidents, dashboards, services, monitor groups, on-call schedules and the like — and what belongs to them, such as a schedule's layers. Probes, Runners, AI agents, on-call schedules and incident and maintenance templates are what other resources are set up with, so a permission scoped to Owned still reads all of them, and you can pick any of them; it changes and deletes only the ones you or your teams own. A Runner's key, which lets whoever holds it act as the Runner, shows only on the Runners you or your teams own. Project configuration (incident states, labels, teams themselves) has no owner, so an Owned-scoped role behaves normally there.
 

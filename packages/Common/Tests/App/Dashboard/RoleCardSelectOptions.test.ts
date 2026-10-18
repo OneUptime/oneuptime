@@ -2,9 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  ROLE_CARD_SUMMARIES,
   ROLE_ICONS,
   getRoleCardSelectOption,
   getRoleCardSelectOptions,
+  getRoleCardSummary,
   getRoleIcon,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleCardSelectOptions";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -106,14 +108,43 @@ describe("the role cards", () => {
     expect(new Set(offered).size).toBe(offered.length);
   });
 
-  test("show the role's own title and description", () => {
+  test("show the role's own title, and its one line", () => {
     for (const props of PermissionHelper.getRolePermissionProps()) {
       const option: CardSelectOption = getRoleCardSelectOption(props);
 
       expect(option.value).toBe(props.permission);
       expect(option.title).toBe(props.title);
-      expect(option.description).toBe(props.description);
+      expect(option.description).toBe(ROLE_CARD_SUMMARIES[props.permission]);
+      expect(option.description).toBe(getRoleCardSummary(props));
       expect(option.icon).toBe(getRoleIcon(props.permission));
+    }
+  });
+
+  test("show the role's whole description when asked for it", () => {
+    for (const props of PermissionHelper.getRolePermissionProps()) {
+      expect(
+        getRoleCardSelectOption(props, { fullDescription: true }).description,
+      ).toBe(props.description);
+    }
+
+    const described: Array<CardSelectOption> = getRoleCardSelectOptions({
+      fullDescriptions: true,
+    }).flatMap((group: CardSelectOptionGroup): Array<CardSelectOption> => {
+      return group.options;
+    });
+
+    expect(described.length).toBe(
+      PermissionHelper.getRolePermissionProps().length,
+    );
+
+    for (const option of described) {
+      expect(option.description).toBe(
+        PermissionHelper.getRolePermissionProps().find(
+          (props: PermissionProps): boolean => {
+            return props.permission === option.value;
+          },
+        )?.description,
+      );
     }
   });
 
@@ -146,6 +177,134 @@ describe("the role cards", () => {
     for (const props of PermissionHelper.getRolePermissionProps()) {
       expect(ROLE_ICONS[props.permission]).toBeDefined();
     }
+  });
+});
+
+/*
+ * A role's card says what it is for in one line, not its full description
+ * (a paragraph: Project Member's ran to twelve lines on its card), so Add
+ * Role reads at a glance. The full description is still there to look up,
+ * on the Built-in Roles card.
+ */
+describe("the role cards' one-line summaries", () => {
+  const roles: Array<PermissionProps> =
+    PermissionHelper.getRolePermissionProps();
+
+  test("every role has one, and nothing that is not a role does", () => {
+    const missing: Array<string> = roles
+      .filter((props: PermissionProps): boolean => {
+        return !ROLE_CARD_SUMMARIES[props.permission];
+      })
+      .map((props: PermissionProps): string => {
+        return props.title;
+      });
+
+    expect(missing).toEqual([]);
+
+    const roleValues: Array<string> = roles.map(
+      (props: PermissionProps): string => {
+        return props.permission;
+      },
+    );
+
+    expect(
+      Object.keys(ROLE_CARD_SUMMARIES).filter((permission: string) => {
+        return !roleValues.includes(permission);
+      }),
+    ).toEqual([]);
+  });
+
+  test("each is one short line, shorter than the description it stands for", () => {
+    for (const props of roles) {
+      const summary: string = ROLE_CARD_SUMMARIES[props.permission] as string;
+
+      expect(summary.length).toBeLessThanOrEqual(110);
+      expect(summary.endsWith(".")).toBe(true);
+      expect(summary).not.toContain("\n");
+      // At most two sentences: "Read monitors. Change nothing."
+      expect(summary.split(". ").length).toBeLessThanOrEqual(2);
+
+      if (props.description.length > 110) {
+        expect(summary.length).toBeLessThan(props.description.length);
+      }
+    }
+  });
+
+  test("a role that grants the same as another reads the same", () => {
+    expect(ROLE_CARD_SUMMARIES[Permission.StatusPageMember]).toBe(
+      ROLE_CARD_SUMMARIES[Permission.StatusPageAdmin],
+    );
+    expect(ROLE_CARD_SUMMARIES[Permission.OnCallMember]).toBe(
+      ROLE_CARD_SUMMARIES[Permission.OnCallAdmin],
+    );
+  });
+
+  test("the viewer roles say they change nothing, and read only", () => {
+    for (const permission of [
+      Permission.Viewer,
+      Permission.IncidentViewer,
+      Permission.AlertViewer,
+      Permission.MonitorViewer,
+      Permission.StatusPageViewer,
+      Permission.OnCallViewer,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.TelemetryViewer,
+      Permission.SecurityViewer,
+      Permission.SettingsViewer,
+      Permission.BillingViewer,
+      Permission.WorkflowViewer,
+    ]) {
+      const summary: string = ROLE_CARD_SUMMARIES[permission] as string;
+
+      expect(summary.startsWith("Read ")).toBe(true);
+      expect(summary.endsWith(" Change nothing.")).toBe(true);
+    }
+
+    // A runbook viewer cannot run one either, which is what sets it apart.
+    expect(ROLE_CARD_SUMMARIES[Permission.RunbookViewer]).toBe(
+      "Read runbooks and their runs. Run nothing.",
+    );
+  });
+
+  test("the project's owner and admin differ by billing and deleting the project", () => {
+    expect(ROLE_CARD_SUMMARIES[Permission.ProjectOwner]).toContain(
+      "billing and deleting the project included",
+    );
+    expect(ROLE_CARD_SUMMARIES[Permission.ProjectAdmin]).toContain(
+      "Billing and deleting the project are left out",
+    );
+  });
+
+  test("are written out whole in the source, for the extractor", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        DASHBOARD_SRC,
+        "Components",
+        "Permission",
+        "RoleCardSelectOptions.ts",
+      ),
+      "utf8",
+    );
+
+    for (const summary of Object.values(ROLE_CARD_SUMMARIES)) {
+      expect(source).toContain(`"${summary}"`);
+    }
+  });
+
+  test("the Built-in Roles card asks for the whole descriptions", () => {
+    const card: string = fs.readFileSync(
+      path.join(
+        DASHBOARD_SRC,
+        "Components",
+        "CustomRole",
+        "BuiltInRolesCard.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(card).toContain(
+      "getRoleCardSelectOptions({ fullDescriptions: true })",
+    );
   });
 });
 

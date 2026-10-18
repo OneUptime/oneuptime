@@ -26,6 +26,10 @@ const ALLOWED: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "the setup-guide markdown: Teams admin-center paths, manifest field names and a code block, written as one document",
   },
+  "Components/ProjectBalance/AutoRechargeCard.tsx": {
+    count: 1,
+    why: '"${n} USD" (currency): the amounts Auto Recharge offers',
+  },
 };
 
 type CountByFileFunction = (

@@ -10,6 +10,18 @@
  * fastest attempt is the one that counts. Work whose time grows with the
  * square of the text takes minutes at these lengths, on every attempt.
  *
+ * A whole run can also land on a runner several times slower than usual,
+ * where every attempt of linear work overruns: ChatMessageMarkdown's
+ * 200,000 one-character lines took 732 ms on a usual runner and 2,661 ms at
+ * best on a slow one (2026-10-18). So when every attempt overran its limit,
+ * a fixed piece of work (referenceWork) is timed the same way, and the
+ * fastest attempt counts as it would have run on a usual runner: divided by
+ * how much slower than usual the reference ran - by at most MAX_SLOWDOWN.
+ * Linear work then fits its limit on a slow runner, while work whose time
+ * grows with the square still takes far longer than any slowdown explains.
+ * Timings of two versions of the same work against each other (limitInMs 0)
+ * and runs on a test's own clock are never adjusted.
+ *
  *   const written: FastestRun<string> = fastestRun({
  *     run: (): string => {
  *       return ChatMessageMarkdown.toMarkdown(content).toString();
@@ -25,11 +37,35 @@
 // How many times work that overruns its limit is tried, the first included.
 export const FASTEST_RUN_ATTEMPTS: number = 3;
 
+/*
+ * How long referenceWork takes, fastest of three, on a usual CI runner. It
+ * took about 60 ms on a 32-core development machine, and the runners took
+ * two to four times as long as that machine for the same work on
+ * 2026-10-18: so about three times as long.
+ */
+export const REFERENCE_WORK_USUAL_MS: number = 180;
+
+/*
+ * The most a slow runner can stretch a timing. Linear work on a runner
+ * twice to four times slower than usual fits its limit again; work whose
+ * time grows with the square of the text takes minutes, which stays far
+ * past any limit divided by this.
+ */
+export const MAX_SLOWDOWN: number = 4;
+
 export interface FastestRun<T> {
   // What the fastest attempt returned.
   result: T;
-  // How long the fastest attempt took.
+  /*
+   * How long the fastest attempt took - as it would have on a usual runner
+   * when every attempt overran and the reference work ran slower than
+   * usual (see `slowdown`).
+   */
   inMs: number;
+  // How long the fastest attempt took on this machine, as measured.
+  measuredInMs: number;
+  // How much slower than usual this machine ran: 1 when not measured.
+  slowdown: number;
   // How many attempts ran.
   attempts: number;
 }
@@ -41,7 +77,54 @@ export interface FastestRunOptions<T> {
   attempts?: number | undefined;
   // The clock, in milliseconds: performance.now when left out.
   now?: (() => number) | undefined;
+  /*
+   * How much slower than usual this machine runs right now: measureSlowdown
+   * when left out. Asked only when every attempt overran a limit above zero,
+   * and never with a clock of the test's own unless given too.
+   */
+  slowdown?: (() => number) | undefined;
 }
+
+/*
+ * A fixed piece of the kind of work these tests time: short strings, one
+ * long join, a split and a scan.
+ */
+export const referenceWork: () => number = (): number => {
+  const pieces: Array<string> = [];
+
+  for (let index: number = 0; index < 500000; index++) {
+    pieces.push(`a${index % 10}\n`);
+  }
+
+  let total: number = 0;
+
+  for (const line of pieces.join("").split("\n")) {
+    total += line.length;
+  }
+
+  return total;
+};
+
+export type MeasureSlowdownFunction = (now: () => number) => number;
+
+/*
+ * How much slower than usual this machine runs right now: the fastest of
+ * three runs of referenceWork against REFERENCE_WORK_USUAL_MS. The first
+ * run also warms the work up. Not limited here; fastestRun limits it.
+ */
+export const measureSlowdown: MeasureSlowdownFunction = (
+  now: () => number,
+): number => {
+  let fastestInMs: number = Infinity;
+
+  for (let attempt: number = 0; attempt < FASTEST_RUN_ATTEMPTS; attempt++) {
+    const started: number = now();
+    referenceWork();
+    fastestInMs = Math.min(fastestInMs, now() - started);
+  }
+
+  return fastestInMs / REFERENCE_WORK_USUAL_MS;
+};
 
 export type FastestRunFunction = <T>(
   options: FastestRunOptions<T>,
@@ -68,7 +151,13 @@ export const fastestRun: FastestRunFunction = <T>(
     const inMs: number = now() - started;
 
     if (fastest === null || inMs < fastest.inMs) {
-      fastest = { result: result, inMs: inMs, attempts: attempt };
+      fastest = {
+        result: result,
+        inMs: inMs,
+        measuredInMs: inMs,
+        slowdown: 1,
+        attempts: attempt,
+      };
     }
 
     fastest.attempts = attempt;
@@ -78,5 +167,25 @@ export const fastestRun: FastestRunFunction = <T>(
     }
   }
 
-  return fastest as FastestRun<T>;
+  const run: FastestRun<T> = fastest as FastestRun<T>;
+
+  /*
+   * Every attempt overran: on a slow runner, linear work does. Count the
+   * fastest as it would have run on a usual runner. Not for timings of two
+   * versions against each other (limit 0), nor on a test's own clock, where
+   * the reference work cannot be timed.
+   */
+  const asksSlowdown: boolean = Boolean(options.slowdown) || !options.now;
+
+  if (options.limitInMs > 0 && run.inMs >= options.limitInMs && asksSlowdown) {
+    const slowdown: number = Math.min(
+      MAX_SLOWDOWN,
+      Math.max(1, options.slowdown ? options.slowdown() : measureSlowdown(now)),
+    );
+
+    run.slowdown = slowdown;
+    run.inMs = run.measuredInMs / slowdown;
+  }
+
+  return run;
 };
