@@ -38,7 +38,6 @@ import {
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
-  ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
@@ -577,33 +576,6 @@ const MessageQueueOverview: FunctionComponent<
     </div>
   );
 
-  const quickLinks: Array<ResourceOverviewQuickLink> = [
-    {
-      title: "Traces",
-      description: "Every span that publishes to or consumes from this queue",
-      to: populate(PageMap.MESSAGE_QUEUE_VIEW_TRACES),
-      icon: IconProp.Workflow,
-    },
-    {
-      title: "Metrics",
-      description: "Every broker and client metric for this queue",
-      to: populate(PageMap.MESSAGE_QUEUE_VIEW_METRICS),
-      icon: IconProp.ChartBar,
-    },
-    {
-      title: "Owners",
-      description: "Who is responsible for this queue",
-      to: populate(PageMap.MESSAGE_QUEUE_VIEW_OWNERS),
-      icon: IconProp.Team,
-    },
-    {
-      title: "Documentation",
-      description: "Instrument its clients and connect its broker metrics",
-      to: populate(PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION),
-      icon: IconProp.Book,
-    },
-  ];
-
   const detailRows: Array<ResourceOverviewDetailRow> = [
     {
       label: "Messaging system",
@@ -697,7 +669,6 @@ const MessageQueueOverview: FunctionComponent<
             }
           />
         }
-        quickLinks={quickLinks}
         detailRows={detailRows}
         labels={q.labels}
       />

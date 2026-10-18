@@ -42,7 +42,6 @@ import {
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
-  ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
@@ -499,39 +498,6 @@ const CloudEnvironmentOverview: FunctionComponent<
     </div>
   );
 
-  const quickLinks: Array<ResourceOverviewQuickLink> = [
-    {
-      title: "Traces",
-      description: "Distributed traces across this environment",
-      to: populate(PageMap.CLOUD_RESOURCE_VIEW_TRACES),
-      icon: IconProp.Workflow,
-    },
-    {
-      title: "Logs",
-      description: "Logs from workloads on this environment",
-      to: populate(PageMap.CLOUD_RESOURCE_VIEW_LOGS),
-      icon: IconProp.Terminal,
-    },
-    {
-      title: "Metrics",
-      description: "Metrics from this environment",
-      to: populate(PageMap.CLOUD_RESOURCE_VIEW_METRICS),
-      icon: IconProp.ChartBar,
-    },
-    {
-      title: "Instances",
-      description: "Running tasks and replicas, with live CPU and memory",
-      to: populate(PageMap.CLOUD_RESOURCE_VIEW_INSTANCES),
-      icon: IconProp.Cube,
-    },
-    {
-      title: "Owners",
-      description: "Who is responsible for this environment",
-      to: populate(PageMap.CLOUD_RESOURCE_VIEW_OWNERS),
-      icon: IconProp.Team,
-    },
-  ];
-
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "Cloud Platform (cloud.platform)", value: r.cloudPlatform },
     { label: "Cloud Provider", value: r.cloudProvider },
@@ -611,7 +577,6 @@ const CloudEnvironmentOverview: FunctionComponent<
             }
           />
         }
-        quickLinks={quickLinks}
         detailRows={detailRows}
         settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
         labels={r.labels}

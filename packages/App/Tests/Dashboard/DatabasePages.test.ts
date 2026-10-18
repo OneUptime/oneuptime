@@ -398,8 +398,20 @@ describe("the Overview", () => {
   });
 
   test("links to the cluster or host it runs on", () => {
-    expect(code).toContain("getDatabaseRunsOnRoute(r)");
+    // The Details card's Runs on row, linked as the Runtime card's is.
+    const runsOn: string = between(code, '{ label: "Runs on",', "},");
+    expect(runsOn).toContain("value: platform ? runsOn : undefined");
+    expect(code).toContain(
+      'element: ( <DatabaseRunsOnLink source={r} className="text-sm text-indigo-600" /> ),',
+    );
+    // The Runtime card keeps its own.
+    expect(code).toContain("<DatabaseRuntimeSection");
     expect(code).toContain("source={r}");
+  });
+
+  test("draws no Explore telemetry card: its rows were the side menu's pages", () => {
+    expect(code).not.toContain("quickLinks");
+    expect(code).not.toContain("ResourceOverviewQuickLink");
   });
 
   test("resolves calling-service names through the Service model", () => {
