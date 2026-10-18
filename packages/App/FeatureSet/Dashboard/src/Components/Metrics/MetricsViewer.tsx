@@ -66,6 +66,11 @@ import {
   resolveMetricRowValueOverride,
 } from "./Utils/MetricRowScope";
 import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
+import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import {
+  showsTelemetryFirstSteps,
+  TelemetryFirstStepsSignal,
+} from "../Telemetry/TelemetryFirstSteps";
 import {
   serializeSavedViewTimeRange,
   deserializeSavedViewTimeRange,
@@ -498,6 +503,13 @@ interface Props {
    * Applies to every row, whoever computed its value.
    */
   getRowValueUnit?: ((metricName: string) => string | undefined) | undefined;
+  /*
+   * The Metrics page's explorer: an empty list that no filter or search
+   * narrows offers the setup guide and a longer range instead of "try
+   * adjusting filters" (Telemetry/TelemetryFirstSteps). Embeds leave it
+   * unset.
+   */
+  offersSetupWhenEmpty?: boolean | undefined;
 }
 
 /*
@@ -1947,6 +1959,23 @@ const MetricsViewer: FunctionComponent<Props> = (
         ) : undefined
       }
       emptyMessage="No metrics found"
+      emptyContent={
+        showsTelemetryFirstSteps({
+          hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
+          isEmpty: true,
+          filterCount: activeFilters.length,
+          searchText: submittedSearch,
+        }) ? (
+          <TelemetryFirstStepsEmptyState
+            signal={TelemetryFirstStepsSignal.Metrics}
+            timeRange={timeRange}
+            onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
+              setTimeRange(value);
+              props.onTimeRangeChange?.(value);
+            }}
+          />
+        ) : undefined
+      }
       itemLabel="metrics"
       renderRow={(metric: MetricType): ReactElement => {
         const name: string = metric.name || "";

@@ -300,6 +300,17 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
  * live instead.
  */
 export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
+  ...[
+    `${DASHBOARD}/Pages/Logs/Settings/DropFilterView.tsx`,
+    `${DASHBOARD}/Pages/Traces/Settings/DropFilterView.tsx`,
+  ].map((file: string): ListedForm => {
+    return {
+      file: file,
+      form: "CardModelDetail: Drop Filter Action",
+      reason:
+        "Edit Action asks what the create form's Action step asks (getLogDropFilterActionFields / getTraceDropFilterActionFields, DropFilterForm): two fields, Drop or Sample as two plain choices, and the Sample Percentage, which shows for Sample only.",
+    };
+  }),
   {
     file: "packages/App/FeatureSet/Accounts/src/Pages/Form.tsx",
     form: "BasicForm: public-form",

@@ -870,7 +870,6 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     ["DockerSwarm/Clusters.tsx", "ModelTable: Docker Swarm Clusters"],
     ["IoT/Fleets.tsx", "ModelTable: IoT Fleets"],
     ["Proxmox/Clusters.tsx", "ModelTable: Proxmox Clusters"],
-    ["Service/Services.tsx", "ModelTable: Services"],
   ].map(([file, label]: Array<string>): FormShape => {
     return onePage(
       `${DASHBOARD}/Pages/${file}`,
@@ -879,6 +878,18 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
       LABELS_ONLY,
     );
   }),
+
+  /*
+   * Create Service asks for the service.name its apps send, with the
+   * description folded beside the labels (simplicity-audit-telemetry): most
+   * services are made by ingest, and a hand-made one needs only the name.
+   */
+  onePage(
+    `${DASHBOARD}/Pages/Service/Services.tsx`,
+    "ModelTable: Services",
+    ["name"],
+    ["description", LABELS_KEY],
+  ),
 
   /*
    * Stepped forms: the Labels step goes, the field folds where the name is.

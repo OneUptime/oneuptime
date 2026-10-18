@@ -82,12 +82,16 @@ function fieldNamed<T extends WritesAColumn>(fields: Array<T>, key: string): T {
   return field;
 }
 
+// The values a field offers: a dropdown's options, or a choice's answers.
 function optionValues(field: AnyField): Array<unknown> {
-  return (field.dropdownOptions as Array<DropdownOption>).map(
-    (option: DropdownOption): unknown => {
-      return option.value;
-    },
-  );
+  const options: Array<{ value: unknown }> =
+    (field.dropdownOptions as Array<DropdownOption> | undefined) ||
+    field.radioButtonOptions ||
+    [];
+
+  return options.map((option: { value: unknown }): unknown => {
+    return option.value;
+  });
 }
 
 interface ScrubRuleFormCase {
@@ -192,6 +196,10 @@ describe("the scrub rule form", () => {
         expect(
           optionValues(fieldNamed(fields, "fieldsToScrub")).sort(),
         ).toEqual([...scrubFields].sort());
+        // The scrub action is three plain choices, each with its line.
+        expect(fieldNamed(fields, "scrubAction").fieldType).toBe(
+          FormFieldSchemaType.RadioButton,
+        );
         expect(optionValues(fieldNamed(fields, "scrubAction"))).toEqual([
           "redact",
           "mask",

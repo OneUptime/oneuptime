@@ -330,3 +330,120 @@ test("saving the policy reloads the card once", async ({
   await expectPolicyLoaded(page);
   await expectPolicyFetchesStable(page, readsOnMount + 1);
 });
+
+/*
+ * When to upload a recording, Masking mode and Consent were dropdowns whose
+ * one description explained every mode. Edit Policy now shows the answers
+ * themselves, each with its line, and asks for Ignored error patterns only
+ * under the one trigger they change. The stored values are the enum values
+ * they always were.
+ */
+test("Edit Policy asks each replay mode as plain choices, each with its line", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(policyRoute);
+  await expectPolicyLoaded(page);
+  await expect(policyCard(page)).toContainText("Always");
+
+  await policyCard(page).getByRole("button", { name: "Edit Policy" }).click();
+  const modal: Locator = page.getByTestId("modal");
+  await expect(modal).toBeVisible();
+
+  // The dialog edits the policy, and says so.
+  await expect(
+    modal.getByText("Edit Session Replay Policy", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    modal.getByText("Edit RUM Application", { exact: true }),
+  ).toHaveCount(0);
+
+  const progress: Locator = modal.getByRole("navigation", {
+    name: "Progress",
+  });
+  const currentStep: Locator = progress.locator("[aria-current='step']");
+  const next: Locator = modal
+    .getByTestId("modal-footer")
+    .getByRole("button", { name: "Next", exact: true });
+
+  // Recording: two answers, the stored one picked.
+  await expect(currentStep).toHaveText("Recording");
+  const trigger: Locator = modal.getByTestId("session-replay-capture-trigger");
+  await expect(trigger.getByRole("radio")).toHaveCount(2);
+  await expect(
+    trigger.getByRole("radio", { name: "Always", exact: true }),
+  ).toBeChecked();
+  await expect(trigger).toContainText(
+    "Uploads every sampled session, whether or not anything goes wrong.",
+  );
+  await expect(trigger).toContainText(
+    "Uploads only sessions where something goes wrong, at a fraction of the cost.",
+  );
+
+  /*
+   * Under Always every sampled session uploads: no error patterns to ask
+   * for. The field's label reads "Ignored error patterns (Optional)".
+   */
+  const ignoredPatterns: Locator = modal.getByText(/^Ignored error patterns/);
+  await expect(ignoredPatterns).toHaveCount(0);
+  await trigger
+    .getByRole("radio", { name: "On error or frustration", exact: true })
+    .click();
+  await expect(ignoredPatterns.first()).toBeVisible();
+  await screenshot(page, "replay-policy-edit-recording");
+
+  // Masking: three answers, least to most private.
+  await next.click();
+  await expect(currentStep).toHaveText("Masking");
+  const masking: Locator = modal.getByTestId("session-replay-masking-mode");
+  await expect(masking.getByRole("radio")).toHaveCount(3);
+  await expect(
+    masking.getByRole("radio", { name: "Mask inputs only", exact: true }),
+  ).toBeChecked();
+  await expect(masking).toContainText(
+    "Hides everything people type. Page text is still recorded.",
+  );
+  await masking
+    .getByRole("radio", { name: "Mask all text", exact: true })
+    .click();
+  await screenshot(page, "replay-policy-edit-masking");
+
+  // Consent: two answers.
+  await next.click();
+  await expect(currentStep).toHaveText("Consent & Identity");
+  const consent: Locator = modal.getByTestId("session-replay-consent-mode");
+  await expect(consent.getByRole("radio")).toHaveCount(2);
+  await expect(
+    consent.getByRole("radio", { name: "Not required", exact: true }),
+  ).toBeChecked();
+  await expect(consent).toContainText(
+    "Nothing uploads until your page calls grantConsent().",
+  );
+  await consent
+    .getByRole("radio", { name: "Require explicit", exact: true })
+    .click();
+  await screenshot(page, "replay-policy-edit-consent");
+
+  // To the last step, and save.
+  await next.click();
+  await next.click();
+  await expect(currentStep).toHaveText(
+    policyFormSteps[policyFormSteps.length - 1]!,
+  );
+  await modal
+    .getByRole("button", { name: "Save Changes", exact: true })
+    .click();
+  await expect(modal).toHaveCount(0);
+
+  const saved: Array<SavedModel> = (await state(page)).savedModels;
+  expect(saved).toHaveLength(1);
+  expect(saved[0]!.values["sessionReplayCaptureTrigger"]).toBe(
+    "OnErrorOrFrustration",
+  );
+  expect(saved[0]!.values["sessionReplayMaskingMode"]).toBe("MaskAllText");
+  expect(saved[0]!.values["sessionReplayConsentMode"]).toBe("RequireExplicit");
+
+  // The card says the new answers in the choices' words.
+  await expect(policyCard(page)).toContainText("On error or frustration");
+});

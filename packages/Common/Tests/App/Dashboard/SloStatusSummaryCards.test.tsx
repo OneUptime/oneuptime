@@ -17,7 +17,9 @@ import {
 } from "@jest/globals";
 import React from "react";
 import { Mock } from "jest-mock";
-import SloStatusSummaryCards from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloStatusSummaryCards";
+import SloStatusSummaryCards, {
+  hasAnySlo,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloStatusSummaryCards";
 import {
   SLO_ENABLED_FACET_KEY,
   SLO_STATUS_FACET_KEY,
@@ -85,6 +87,17 @@ const COUNTS: Record<SloStatusSummaryTileKey, number> = {
   [SloStatusSummaryTileKey.Paused]: 0,
   [SloStatusSummaryTileKey.Disabled]: 4,
 };
+
+function zeroCounts(): Record<SloStatusSummaryTileKey, number> {
+  return {
+    [SloStatusSummaryTileKey.Healthy]: 0,
+    [SloStatusSummaryTileKey.AtRisk]: 0,
+    [SloStatusSummaryTileKey.BudgetExhausted]: 0,
+    [SloStatusSummaryTileKey.Misconfigured]: 0,
+    [SloStatusSummaryTileKey.Paused]: 0,
+    [SloStatusSummaryTileKey.Disabled]: 0,
+  };
+}
 
 function deferred<T>(): Deferred<T> {
   let resolvePromise: (value: T) => void = (): void => {};
@@ -307,6 +320,51 @@ describe("SloStatusSummaryCards", () => {
         screen.queryByTestId("slo-status-summary-cards"),
       ).not.toBeInTheDocument();
     });
+  });
+
+  /*
+   * A project without a live SLO has nothing to count. Six zeros - Budget
+   * Exhausted, Misconfigured, Paused, each with what it means - sat above the
+   * empty list's one next step before there was anything to be healthy or
+   * not.
+   */
+  test("a project without a live SLO shows no strip: nothing to count yet", async () => {
+    countMock.mockImplementation(countsFrom(zeroCounts()));
+
+    renderStrip({ onTileClick: jest.fn() });
+
+    await waitFor(() => {
+      expect(countMock).toHaveBeenCalledTimes(SLO_STATUS_SUMMARY_TILES.length);
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("slo-status-summary-cards"),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText("Budget Exhausted")).toBeNull();
+  });
+
+  test("one SLO in any tile brings the whole strip, zeros and all", async () => {
+    const counts: Record<SloStatusSummaryTileKey, number> = zeroCounts();
+    counts[SloStatusSummaryTileKey.Paused] = 1;
+    countMock.mockImplementation(countsFrom(counts));
+
+    renderStrip();
+    await waitForCounts();
+
+    expect(screen.getByTestId("slo-status-summary-cards")).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`slo-status-count-${SloStatusSummaryTileKey.Paused}`),
+    ).toHaveTextContent("1");
+    expect(
+      screen.getByTestId(`slo-status-count-${SloStatusSummaryTileKey.Healthy}`),
+    ).toHaveTextContent("0");
+  });
+
+  test("hasAnySlo adds the tiles up", () => {
+    expect(hasAnySlo({})).toBe(false);
+    expect(hasAnySlo(zeroCounts())).toBe(false);
+    expect(hasAnySlo({ [SloStatusSummaryTileKey.Disabled]: 2 })).toBe(true);
   });
 
   test("a new refresh token recounts; a rebuilt project id with the same value does not", async () => {
