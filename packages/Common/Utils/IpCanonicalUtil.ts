@@ -79,6 +79,31 @@ export default class IpCanonicalUtil {
     return `${network}::/64`;
   }
 
+  /*
+   * The IPv4 address an IPv4-mapped IPv6 literal stands for, dotted
+   * ("::ffff:192.0.2.1" and "::ffff:c000:201" are both "192.0.2.1"), or null
+   * when the value is anything else. A rate limit counts the two spellings
+   * as one client (Server/Utils/ClientIp getRateLimitClient).
+   */
+  public static getMappedIpv4(value: string): string | null {
+    const trimmed: string = value.trim();
+
+    if (!IP.isIP(trimmed) || new IP(trimmed).isIPv4()) {
+      return null;
+    }
+
+    const groups: Array<number> | null = IpCanonicalUtil.toIpv6Groups(trimmed);
+
+    if (!groups || !IpCanonicalUtil.isIpv4Mapped(groups)) {
+      return null;
+    }
+
+    const high: number = groups[6]!;
+    const low: number = groups[7]!;
+
+    return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
+  }
+
   // ::ffff:a.b.c.d - five zero groups, then ffff.
   private static isIpv4Mapped(groups: Array<number>): boolean {
     return (

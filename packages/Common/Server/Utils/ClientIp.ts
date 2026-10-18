@@ -246,7 +246,13 @@ export const getRateLimitClient: (clientIp: string) => RateLimitClient = (
   clientIp: string,
 ): RateLimitClient => {
   return {
-    address: IpCanonicalUtil.canonicalize(clientIp),
+    /*
+     * An IPv4 address handed over IPv4-mapped ("::ffff:203.0.113.7") is
+     * that IPv4 address, as resolveClientIp already reads it.
+     */
+    address:
+      IpCanonicalUtil.getMappedIpv4(clientIp) ||
+      IpCanonicalUtil.canonicalize(clientIp),
     ipv6Network64: IpCanonicalUtil.getIpv6Network64(clientIp),
   };
 };

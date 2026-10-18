@@ -15,6 +15,7 @@ import {
   TOO_MANY_OVERALL_MESSAGE,
   UNKNOWN_SENDER,
   createDefaultResellerInquiryOptions,
+  getSenderKey,
   registerResellerInquiryRoute,
 } from "../API/ResellerInquiryAPI";
 import FixedWindowRateLimiter from "../Utils/FixedWindowRateLimiter";
@@ -662,6 +663,49 @@ describe("a sender who keeps sending", () => {
 
     expect((await site.post({ sender: "192.0.2.1" })).status).toBe(429);
     expect(UNKNOWN_SENDER).toBe("unknown");
+  });
+
+  /*
+   * One IPv6 host can send from every address of its /64, so an IPv6 sender
+   * is its /64: otherwise one host could take every email of the hour by
+   * changing address, and refuse the real resellers.
+   */
+  test("from address after address of one IPv6 /64 is one sender", async () => {
+    for (let index: number = 0; index < PER_SENDER_LIMIT; index++) {
+      expect(
+        (
+          await site.post({
+            sender: `2001:db8:5:6::${(index + 1).toString(16)}`,
+          })
+        ).status,
+      ).toBe(200);
+    }
+
+    const refused: Answer = await site.post({
+      sender: "2001:db8:5:6:ffff:1234:5678:9abc",
+    });
+
+    expect(refused.status).toBe(429);
+    expect(refused.body).toEqual({
+      sent: false,
+      message: TOO_MANY_FROM_SENDER_MESSAGE,
+    });
+    expect(refused.headers["retry-after"]).toBe("3600");
+    expect(site.sent).toHaveLength(PER_SENDER_LIMIT);
+
+    // Another /64, and an IPv4 sender, are senders of their own.
+    expect((await site.post({ sender: "2001:db8:5:7::1" })).status).toBe(200);
+    expect((await site.post({ sender: "198.51.100.4" })).status).toBe(200);
+  });
+
+  test("is counted as its address, or for an IPv6 address as its /64", () => {
+    expect(getSenderKey("203.0.113.7")).toBe("203.0.113.7");
+    expect(getSenderKey("::ffff:203.0.113.7")).toBe("203.0.113.7");
+    expect(getSenderKey("2001:db8:5:6::1")).toBe("2001:db8:5:6::/64");
+    expect(getSenderKey("2001:DB8:5:6:0:0:0:abcd")).toBe("2001:db8:5:6::/64");
+    expect(getSenderKey("2001:db8:5:7::1")).toBe("2001:db8:5:7::/64");
+    expect(getSenderKey(undefined)).toBe(UNKNOWN_SENDER);
+    expect(getSenderKey("")).toBe(UNKNOWN_SENDER);
   });
 });
 

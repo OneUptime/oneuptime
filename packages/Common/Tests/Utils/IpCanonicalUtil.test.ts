@@ -181,6 +181,41 @@ describe("IpCanonicalUtil.getIpv6Network64", () => {
   });
 });
 
+describe("IpCanonicalUtil.getMappedIpv4", () => {
+  test("an IPv4-mapped address, however it is spelled, is the IPv4 address it maps", () => {
+    for (const spelling of [
+      "::ffff:203.0.113.7",
+      "::FFFF:203.0.113.7",
+      "::ffff:cb00:7107",
+      "0:0:0:0:0:ffff:cb00:7107",
+      " ::ffff:203.0.113.7 ",
+    ]) {
+      expect(IpCanonicalUtil.getMappedIpv4(spelling)).toBe("203.0.113.7");
+    }
+
+    expect(IpCanonicalUtil.getMappedIpv4("::ffff:0.0.0.0")).toBe("0.0.0.0");
+    expect(IpCanonicalUtil.getMappedIpv4("::ffff:ffff:ffff")).toBe(
+      "255.255.255.255",
+    );
+  });
+
+  test("anything else maps no IPv4 address", () => {
+    for (const value of [
+      "203.0.113.7",
+      "2001:db8::1",
+      "64:ff9b::203.0.113.7",
+      "::203.0.113.7",
+      "::1",
+      "::",
+      "unknown",
+      "",
+      "::ffff:203.0.113.7:443",
+    ]) {
+      expect(IpCanonicalUtil.getMappedIpv4(value)).toBeNull();
+    }
+  });
+});
+
 describe("IpCanonicalUtil.canonicalize, after its expansion was shared", () => {
   test("still canonicalizes as before", () => {
     expect(

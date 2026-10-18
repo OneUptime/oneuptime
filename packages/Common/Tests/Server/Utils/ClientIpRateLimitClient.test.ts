@@ -1,6 +1,8 @@
 import {
   ClientIpRequestLike,
+  getIpv6NetworkRateLimit,
   getRateLimitClient,
+  IPV6_NETWORK_RATE_LIMIT_ROOM_IN_ADDRESSES,
   RateLimitClient,
   resolveClientIp,
 } from "../../../Server/Utils/ClientIp";
@@ -129,5 +131,26 @@ describe("getRateLimitClient", () => {
       address: "2001:db8:5:6::99",
       ipv6Network64: "2001:db8:5:6::/64",
     });
+  });
+
+  test("an IPv4 address handed over IPv4-mapped is that IPv4 address, however it is spelled", () => {
+    for (const spelling of [
+      "::ffff:203.0.113.9",
+      "::FFFF:203.0.113.9",
+      "::ffff:cb00:7109",
+    ]) {
+      expect(getRateLimitClient(spelling)).toEqual({
+        address: "203.0.113.9",
+        ipv6Network64: null,
+      });
+    }
+  });
+});
+
+describe("the room a /64 gets under a limit that counts both", () => {
+  test("is ten addresses' worth", () => {
+    expect(IPV6_NETWORK_RATE_LIMIT_ROOM_IN_ADDRESSES).toBe(10);
+    expect(getIpv6NetworkRateLimit(60)).toBe(600);
+    expect(getIpv6NetworkRateLimit(10)).toBe(100);
   });
 });
