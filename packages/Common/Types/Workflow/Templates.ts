@@ -53,6 +53,7 @@ export enum WorkflowTemplateCategory {
   Jira = "Jira",
   Dynamics365 = "Dynamics 365",
   Huntress = "Huntress",
+  Zabbix = "Zabbix",
   Integrations = "Integrations",
 }
 
@@ -69,6 +70,7 @@ export const WorkflowTemplateCategories: Array<WorkflowTemplateCategory> = [
   WorkflowTemplateCategory.Jira,
   WorkflowTemplateCategory.Dynamics365,
   WorkflowTemplateCategory.Huntress,
+  WorkflowTemplateCategory.Zabbix,
   WorkflowTemplateCategory.Integrations,
 ];
 
@@ -175,6 +177,13 @@ const WORKFLOW_TEMPLATE_CATEGORY_INFO: Record<
     description:
       "Open incidents for Huntress incident reports, and page on-call for them.",
     icon: IconProp.ShieldCheck,
+  },
+  [WorkflowTemplateCategory.Zabbix]: {
+    category: WorkflowTemplateCategory.Zabbix,
+    label: "Zabbix",
+    description:
+      "Open incidents or alerts for Zabbix problems, and keep both sides in step.",
+    icon: IconProp.ServerStack,
   },
   [WorkflowTemplateCategory.Integrations]: {
     category: WorkflowTemplateCategory.Integrations,
@@ -7661,6 +7670,1883 @@ const HUNTRESS_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
   },
 ];
 
+/* ------------------------------- Zabbix ------------------------------- */
+
+/*
+ * ZABBIX PROBLEMS, BOTH WAYS.
+ *
+ * Zabbix tells a user about a problem through the user's media. The
+ * OneUptime media type (integrations/zabbix in the docs) is a webhook
+ * whose script posts each event to a workflow's URL as JSON: a new
+ * problem, its recovery, and every update someone makes to it in Zabbix -
+ * an acknowledgment, a comment, a new severity, a close. One action sends
+ * all three to one user's media, so one URL, and one workflow, follows a
+ * problem from start to end: a Switch / Case takes a path for each event.
+ *
+ *   problem   declare an incident (or create an alert) at the severity the
+ *             Zabbix severity maps to, kept off status pages, and page
+ *             on-call for High and Disaster problems; unless the problem
+ *             has one already, so a problem Zabbix sends again (a retry,
+ *             an escalation step of the action) never opens a second;
+ *   recovery  resolve that record, saying why on its timeline;
+ *   update    add what was done in Zabbix to the record as a private note,
+ *             and acknowledge the record when the update acknowledged the
+ *             problem - which stops on-call escalating it.
+ *
+ * The other way, two small templates call Zabbix's JSON-RPC API with an
+ * API token: one acknowledges the problem when the record is acknowledged
+ * and closes it when the record is resolved (or acknowledges it with a
+ * message, where its trigger does not allow closing problems by hand), and
+ * one copies private notes to the problem as messages.
+ *
+ * How a record and a problem find each other: the record keeps the
+ * problem's event ID in its custom fields (ZABBIX_EVENT_ID_CUSTOM_FIELD),
+ * written when it is created, as a Huntress report's number is. Every
+ * event Zabbix sends names the problem's event ID - a recovery and an
+ * update name the problem they belong to, not an ID of their own - and so
+ * does the record, so neither side needs a lookup table.
+ *
+ * How they avoid echoing each other. Messages OneUptime adds to a problem
+ * start with ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER, and the workflow that
+ * reads Zabbix's updates skips them (Zabbix does not even send a user its
+ * own updates, so with the token of the user the media belongs to, they
+ * never arrive). Notes and state causes OneUptime writes from Zabbix start
+ * with ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER, and the note template skips
+ * those. State changes settle on their own: a record only moves forward,
+ * and the API template reads the problem first, so one Zabbix already
+ * acknowledged or resolved is left as it is.
+ *
+ * The incident and alert versions are built from one set of builders
+ * (TemplateRecordKind), as the Jira and Dynamics 365 ones are.
+ */
+
+/** The custom field an incident or alert opened for a Zabbix problem keeps the problem's event ID in. */
+export const ZABBIX_EVENT_ID_CUSTOM_FIELD: string = "zabbixEventId";
+
+/** Starts every note, and every state change's cause, that OneUptime writes from a Zabbix event. */
+export const ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER: string = "Synced from Zabbix";
+
+/** Starts every message OneUptime adds to a Zabbix problem. */
+export const ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER: string =
+  "Synced from OneUptime";
+
+/** What the OneUptime media type says each event is, in its `event`: the Switch / Case's cases. */
+export enum ZabbixEventKind {
+  Problem = "problem",
+  Recovery = "recovery",
+  Update = "update",
+}
+
+/*
+ * Zabbix's six severities, by their number: 0 Not classified to 5 Disaster.
+ * The names are Zabbix's own unless an administrator renamed them, so the
+ * workflow reads the number, and the name only from a media type that does
+ * not send the number.
+ */
+export const ZABBIX_SEVERITY_NAMES: ReadonlyArray<string> = [
+  "Not classified",
+  "Information",
+  "Warning",
+  "Average",
+  "High",
+  "Disaster",
+];
+
+/** The lowest Zabbix severity whose problems page on-call: High. Disaster pages too. */
+export const ZABBIX_PAGE_FROM_SEVERITY: number = 4;
+
+/*
+ * The flags of event.acknowledge's action, a bitmask: the templates close,
+ * acknowledge and add a message.
+ */
+export const ZABBIX_ACTION_CLOSE: number = 1;
+export const ZABBIX_ACTION_ACKNOWLEDGE: number = 2;
+export const ZABBIX_ACTION_MESSAGE: number = 4;
+
+/** The longest message Zabbix keeps on a problem: its column holds 2,048 characters. */
+export const ZABBIX_MESSAGE_MAX_LENGTH: number = 2048;
+
+/** The component id of the Zabbix templates' Webhook trigger, which the problem's values are read from. */
+export const ZABBIX_WEBHOOK_COMPONENT_ID: string = "webhook-1";
+
+/*
+ * What a Zabbix URL can be: the address people open Zabbix at. http or
+ * https, its letters in either case (spelled out for the reason the Jira
+ * Site URL spells them out), then a host and a port as SITE_HOST_SOURCE and
+ * SITE_PORT_SOURCE read them, with a letter or a digit in the host, then up
+ * to five path segments for a Zabbix served under a path, such as
+ * https://example.com/zabbix, and perhaps the slash an address bar ends it
+ * with. A segment holds no dot, so the address of a page in Zabbix -
+ * zabbix.php, tr_events.php - is refused, and no query, user name or
+ * markup can ride along. At most 300 characters.
+ *
+ * The create wizard checks a typed value with ZABBIX_URL_PATTERN, and the
+ * script that links to a problem reads the setting with the same source,
+ * so a value the wizard took is one the script links to. The API steps
+ * call <Zabbix URL>/api_jsonrpc.php; a slash the address ends with makes
+ * a double slash there, which the web servers Zabbix runs on read as one.
+ */
+const ZABBIX_URL_PATTERN_SOURCE: string = [
+  String.raw`^(?![\s\S]{301})[Hh][Tt][Tt][Pp][Ss]?:\/\/`,
+  String.raw`(?=\[|[^\/:]*[\p{L}\p{Nd}])`,
+  SITE_HOST_SOURCE,
+  SITE_PORT_SOURCE,
+  String.raw`(?:\/[A-Za-z0-9_~-]+){0,5}\/?$`,
+].join("");
+
+export const ZABBIX_URL_PATTERN: RegExp = new RegExp(
+  ZABBIX_URL_PATTERN_SOURCE,
+  "u",
+);
+
+/** A Zabbix API token: the 64 hexadecimal characters Zabbix shows once, when the token is created. */
+export const ZABBIX_API_TOKEN_PATTERN: RegExp = /^[0-9A-Fa-f]{64}$/;
+
+type ZabbixUrlVariableFunction = (usedFor: string) => WorkflowTemplateVariable;
+
+/*
+ * The name, and with it whether the value is required or secret, is the
+ * same in every Zabbix template; only what the template does with it is
+ * said differently.
+ */
+const zabbixUrlVariable: ZabbixUrlVariableFunction = (
+  usedFor: string,
+): WorkflowTemplateVariable => {
+  return {
+    name: "zabbixUrl",
+    title: "Zabbix URL",
+    description: `The address you open Zabbix at, such as https://zabbix.example.com, or https://example.com/zabbix when it runs under a path. ${usedFor}`,
+    placeholder: "https://zabbix.example.com",
+    required: true,
+    isSecret: false,
+    format: {
+      pattern: ZABBIX_URL_PATTERN,
+      message:
+        "Enter only the address you open Zabbix at, such as https://zabbix.example.com, not a page in it.",
+    },
+  };
+};
+
+/*
+ * Zabbix takes an API token as a bearer token, from Zabbix 6.4 on. The
+ * variable is secret: redacted from run logs, and only ever sent in the
+ * Authorization header of the API steps.
+ */
+const ZABBIX_API_TOKEN: WorkflowTemplateVariable = {
+  name: "zabbixApiToken",
+  title: "Zabbix API Token",
+  description:
+    "An API token of the Zabbix user the workflow acts as, from Users → API tokens in Zabbix. The user's role needs access to the API and to acknowledging, commenting on and closing problems.",
+  placeholder:
+    "0424bd59b807674191e7d77572075f33a3f1c0d2b4e6f8091a2b3c4d5e6f7a8b",
+  required: true,
+  isSecret: true,
+  format: {
+    pattern: ZABBIX_API_TOKEN_PATTERN,
+    message:
+      "Enter the API token Zabbix showed when it was created: 64 characters, the digits 0 to 9 and the letters a to f.",
+  },
+};
+
+type ZabbixHeadersFunction = () => JSONObject;
+
+/*
+ * An object rather than JSON text, as the Jira steps' headers are: the
+ * argument is marked sensitive, so the whole header set is kept out of
+ * the run log.
+ */
+const zabbixHeaders: ZabbixHeadersFunction = (): JSONObject => {
+  return {
+    Authorization: "Bearer {{local.variables.zabbixApiToken}}",
+  };
+};
+
+// Where every API step sends its request: Zabbix's one JSON-RPC endpoint.
+const ZABBIX_API_URL: string = "{{local.variables.zabbixUrl}}/api_jsonrpc.php";
+
+type ZabbixRequestBodyFunction = (method: string, params: JSONObject) => string;
+
+/*
+ * A JSON-RPC 2.0 request, as Zabbix's API takes one. Zabbix reads a number
+ * sent as text ("6") as the number, so the action a script chooses can be
+ * quoted into the body like any other value.
+ */
+const zabbixRequestBody: ZabbixRequestBodyFunction = (
+  method: string,
+  params: JSONObject,
+): string => {
+  return jsonText({ jsonrpc: "2.0", method: method, params: params, id: 1 });
+};
+
+type ZabbixScriptFunction = (kind: TemplateRecordKind, body: string) => string;
+
+/*
+ * Every Zabbix script starts with the same helper block, so each one can
+ * be read and edited on its own, and keeps the rules of the Jira ones (see
+ * jiraScript): no double braces anywhere in the source; text that came
+ * from Zabbix is defused before it is returned; and text from Zabbix that
+ * goes into OneUptime - a title, a description, a note, a state change's
+ * cause - is placed with asWritten() (OUTSIDE_TEXT_HELPERS).
+ */
+const zabbixScript: ZabbixScriptFunction = (
+  kind: TemplateRecordKind,
+  body: string,
+): string => {
+  const helpers: string = String.raw`// ---- Shared by the Zabbix templates ----
+const FROM_ONEUPTIME = ${JSON.stringify(ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER)};
+const FROM_ZABBIX = ${JSON.stringify(ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER)};
+// The custom field an ${kind.noun} declared for a Zabbix problem keeps the problem's event ID in.
+const EVENT_ID_FIELD = ${JSON.stringify(ZABBIX_EVENT_ID_CUSTOM_FIELD)};
+// Zabbix numbers its events and its triggers.
+const ZABBIX_ID = /^[0-9]{1,20}$/;
+
+// Another step's output quoted into the arguments arrives as JSON text.
+const readJson = (value) => {
+  if (typeof value !== 'string') return value === undefined ? null : value;
+  try { return JSON.parse(value); } catch (error) { return null; }
+};
+const asText = (value) => (typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '');
+// OneUptime ids, names and dates are serialized as { _type, value }.
+const valueOf = (value) => (value && typeof value === 'object' ? asText(value.value) : asText(value));
+// Drops the control characters JSON rejects, keeping tabs and line breaks.
+const clean = (value) => Array.from(asText(value)).filter((c) => {
+  const code = c.charCodeAt(0);
+  return code === 9 || code === 10 || (code >= 32 && code !== 127);
+}).join('');
+const oneLine = (value) => clean(value).replace(/\s+/g, ' ').trim();
+const limit = (value, max) => (value.length > max ? value.slice(0, max - 1) + '…' : value);
+// Breaks up double braces so a later step cannot read the text as a reference.
+const defuse = (value) => {
+  let text = value;
+  while (text.indexOf('{' + '{') !== -1) text = text.split('{' + '{').join('{ {');
+  while (text.indexOf('}' + '}') !== -1) text = text.split('}' + '}').join('} }');
+  return text;
+};
+const displayName = (user) => (user && typeof user === 'object' ? oneLine(valueOf(user.name)) : '');
+// A bare "#12" says nothing about what it numbers, so it gets a name: "${kind.Noun} #12".
+const numbered = (value) => {
+  const text = oneLine(valueOf(value));
+  return text.charAt(0) === '#' ? ${JSON.stringify(kind.Noun)} + ' ' + text : text;
+};
+// Reasons can quote Zabbix's text, so they are defused like everything else.
+const skip = (reason) => ({ proceed: false, reason: defuse(asText(reason)) });
+// The Zabbix problem an ${kind.noun} was declared for: the event ID its custom fields keep, or ''.
+const eventIdOf = (record) => {
+  const fields = record && record.customFields && typeof record.customFields === 'object' ? record.customFields : {};
+  const id = oneLine(asText(fields[EVENT_ID_FIELD]));
+  return ZABBIX_ID.test(id) ? id : '';
+};
+// What Zabbix's API said when it refused a request: its message, and the detail in its data.
+const zabbixError = (error) => {
+  const parts = [oneLine(error && error.message), oneLine(error && error.data)].filter((part) => part !== '');
+  return defuse(limit(parts.join(' '), 500)) || 'an error with no message';
+};
+// Zabbix's API answers with HTTP 200 even when it refuses a request, and says why in the body.
+const readAnswer = (value) => {
+  const answer = readJson(value);
+  if (!answer || typeof answer !== 'object' || (!('result' in answer) && !answer.error)) {
+    throw new Error('The answer did not come from Zabbix\'s API. Check that the Zabbix URL is the address you open Zabbix at.');
+  }
+  if (answer.error) throw new Error('Zabbix said: ' + zabbixError(answer.error));
+  return answer.result;
+};
+`;
+
+  return `${helpers}\n${OUTSIDE_TEXT_HELPERS}\n// ---- What this step does ----\n${body.trim()}\n`;
+};
+
+type ZabbixKindScriptFunction = (kind: TemplateRecordKind) => string;
+
+/*
+ * Zabbix -> OneUptime: reads what the OneUptime media type posted, works
+ * out which event it is, and shapes what each path writes: a new record's
+ * title, description and severity, a note's text, a state change's cause.
+ */
+const zabbixReadEventScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return zabbixScript(
+    kind,
+    String.raw`
+// Reads an event the OneUptime media type posted: a new Zabbix problem, its recovery, or an
+// update someone made to it in Zabbix.
+// Zabbix numbers its severities 0 to 5, and names them as below unless an administrator
+// renamed them. A media type that sends no number is read by these names.
+const ZABBIX_SEVERITIES = ${JSON.stringify(ZABBIX_SEVERITY_NAMES)};
+// Zabbix severity to OneUptime severity: 0 is your most severe ${r} severity and 2 your
+// least, with the ones in between spread across the range. Disaster and High go to the
+// most severe, Average and Warning to the middle, Information and Not classified to the
+// least.
+const SEVERITY_RANK = { 5: 0, 4: 0, 3: 1, 2: 1, 1: 2, 0: 2 };
+// To open one Zabbix severity at one of your severities by name, list it here, for example
+// { 2: 'Minor Incident' }. Names listed here win over the ranks above.
+const SEVERITY_BY_NAME = {};
+const KINDS = ${JSON.stringify([
+      ZabbixEventKind.Problem,
+      ZabbixEventKind.Recovery,
+      ZabbixEventKind.Update,
+    ])};
+
+const ignore = (reason) => ({ kind: 'ignored', reason: defuse(asText(reason)) });
+
+// The address the workflow's Zabbix URL setting names, without the slash it may end with and with
+// its scheme in lower case, or '' when it names none. SITE_SETTING takes at most LONGEST_SITE
+// characters, and a character is at most two UTF-16 units, so a longer value is refused before
+// any pattern reads it.
+const SITE_SETTING = /${ZABBIX_URL_PATTERN_SOURCE}/u;
+const LONGEST_SITE = 300;
+const siteOfSetting = (setting) => {
+  const text = asText(setting).trim();
+  if (text.length > 2 * LONGEST_SITE || !SITE_SETTING.test(text)) return '';
+  const site = text.charAt(text.length - 1) === '/' ? text.slice(0, -1) : text;
+  const schemeEnd = site.indexOf('://');
+  return site.slice(0, schemeEnd).toLowerCase() + site.slice(schemeEnd);
+};
+
+const payload = readJson(args.payload) || {};
+if (oneLine(payload.source).toLowerCase() !== 'zabbix') {
+  return ignore('The request did not come from the OneUptime media type in Zabbix, so it was ignored.');
+}
+
+const eventId = oneLine(payload.event_id);
+if (!ZABBIX_ID.test(eventId)) return ignore('The Zabbix event named no event ID, so it was ignored.');
+
+// The media type says which event it is. One that does not (as this guide's first media type
+// did not) is a problem when its status is 1, and its recovery when the status is 0.
+const event = oneLine(payload.event).toLowerCase();
+const status = oneLine(payload.status);
+const kind = KINDS.indexOf(event) !== -1 ? event : status === '1' ? 'problem' : status === '0' ? 'recovery' : '';
+if (!kind) {
+  return ignore('Zabbix event ' + eventId + ' is not a problem, a recovery or an update, so it was ignored.');
+}
+
+// The problem's page in Zabbix, on the site the workflow's Zabbix URL names, whatever the request
+// says: the trigger's and the event's IDs are numbers, so nothing else can ride along.
+const site = siteOfSetting(args.zabbixUrl);
+const triggerId = oneLine(payload.trigger_id);
+const problem = 'problem ' + eventId;
+const problemLink = site && ZABBIX_ID.test(triggerId)
+  ? '[' + problem + '](' + site + '/tr_events.php?triggerid=' + triggerId + '&eventid=' + eventId + ')'
+  : problem;
+
+if (kind === 'recovery') {
+  return {
+    kind: kind,
+    eventId: eventId,
+    target: 'resolved',
+    rootCause: limit(defuse(FROM_ZABBIX + ': ' + problemLink + ' recovered.'), 1000),
+  };
+}
+
+if (kind === 'update') {
+  const update = payload.update && typeof payload.update === 'object' ? payload.update : {};
+  const action = oneLine(update.action);
+  const message = clean(update.message).trim();
+  // Messages OneUptime added to the problem carry this marker. Copying them back would loop.
+  if (message.indexOf(FROM_ONEUPTIME) !== -1) {
+    return ignore('This update to Zabbix ' + problem + ' came from OneUptime, so it was not copied back.');
+  }
+  if (!action && !message) return ignore('The update to Zabbix ' + problem + ' said nothing, so no note was added.');
+  // What the person did, and their name, are Zabbix's text, placed as written (asWritten).
+  const who = asWritten(oneLine(update.user)) || 'Someone';
+  // Zabbix says what an update did in words: acknowledged, commented, closed and the like.
+  const words = ' ' + action.toLowerCase().replace(/[^a-z]+/g, ' ') + ' ';
+  const acknowledged = words.indexOf(' acknowledged ') !== -1;
+  return {
+    kind: kind,
+    eventId: eventId,
+    note: limit(defuse(FROM_ZABBIX + ': ' + who + ' updated Zabbix ' + problemLink + (action ? ': ' + asWritten(action) : '') + '.' + (message ? '\n\n' + asWritten(message) : '')), 30000),
+    target: acknowledged ? 'acknowledged' : '',
+    rootCause: limit(defuse(FROM_ZABBIX + ': ' + who + ' acknowledged ' + problemLink + '.'), 1000),
+  };
+}
+
+// A new problem: the ${r}'s severity, title and description.
+const found = readJson(args.severities);
+const severities = (Array.isArray(found) ? found : [])
+  .filter((severity) => severity && asText(severity._id))
+  .sort((a, b) => Number(a.order) - Number(b.order));
+if (!severities.length) throw new Error('This project has no ${r} severities to ${kind.create} the ${r} at.');
+
+const givenNumber = oneLine(payload.severity_number);
+const namedNumber = ZABBIX_SEVERITIES.map((name) => name.toLowerCase()).indexOf(oneLine(payload.severity).toLowerCase());
+// A severity Zabbix does not name is Not classified, as Zabbix itself calls an unknown one.
+const severityNumber = /^[0-5]$/.test(givenNumber) ? Number(givenNumber) : namedNumber !== -1 ? namedNumber : 0;
+const zabbixSeverity = oneLine(payload.severity) || ZABBIX_SEVERITIES[severityNumber];
+const wantedName = oneLine(SEVERITY_BY_NAME[severityNumber]).toLowerCase();
+const named = wantedName ? severities.find((severity) => oneLine(severity.name).toLowerCase() === wantedName) : null;
+const rankValue = SEVERITY_RANK[severityNumber];
+const rank = typeof rankValue === 'number' ? Math.min(Math.max(rankValue, 0), 2) : 1;
+const severity = named || severities[Math.round((rank / 2) * (severities.length - 1))];
+
+// The problem's name, its host's, its operational data and its tags are Zabbix's text, placed as
+// written (asWritten). The link to the problem is the template's own.
+const name = oneLine(payload.name);
+const host = oneLine(payload.host);
+const lines = ['${kind.Created} from Zabbix ' + problemLink + '.', ''];
+lines.push('- Host: ' + (host ? asWritten(host) : 'not named'));
+lines.push('- Severity in Zabbix: ' + asWritten(zabbixSeverity));
+const started = oneLine(oneLine(payload.date) + ' ' + oneLine(payload.time));
+if (started) lines.push('- Started: ' + asWritten(started));
+const opdata = oneLine(payload.opdata);
+if (opdata) lines.push('- Operational data: ' + asWritten(limit(opdata, 1000)));
+const tags = (Array.isArray(payload.tags) ? payload.tags : [])
+  .filter((tag) => tag && typeof tag === 'object' && oneLine(tag.tag))
+  .slice(0, 50)
+  .map((tag) => oneLine(tag.tag) + (oneLine(tag.value) ? ': ' + oneLine(tag.value) : ''));
+if (tags.length) lines.push('- Tags: ' + asWritten(limit(tags.join(', '), 2000)));
+
+return {
+  kind: kind,
+  eventId: eventId,
+  title: limit(defuse('Zabbix: ' + asWritten(name || 'Problem ' + eventId) + (host ? ' on ' + asWritten(host) : '')), 500),
+  description: limit(defuse(lines.join('\n')), 20000),
+  ${kind.severityIdColumn}: asText(severity._id),
+  severityName: defuse(oneLine(severity.name)),
+  zabbixSeverity: defuse(zabbixSeverity),
+  severityNumber: severityNumber,
+};
+`,
+  );
+};
+
+/*
+ * Zabbix -> OneUptime: moves the record forward to the state the event
+ * asks for - resolved on a recovery, acknowledged when an update
+ * acknowledged the problem - by the one rule OneUptime moves records by
+ * (the Huntress template's): the state is the first one from the top
+ * flagged so, and a record at it or past it is left as it is.
+ */
+const zabbixDecideStateScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return zabbixScript(
+    kind,
+    String.raw`
+// Moves the ${r} forward to the state Zabbix asks for: resolved when its problem recovered,
+// acknowledged when someone acknowledged the problem in Zabbix. The project's resolved state is
+// the first one from the top flagged resolved, and its acknowledged state the first one flagged
+// acknowledged. An ${r} at that state or past it is left as it is: it never moves back.
+const record = readJson(args.${r}) || {};
+const event = readJson(args.event) || {};
+const list = readJson(args.states);
+const states = (Array.isArray(list) ? list : [])
+  .filter((state) => state && typeof state === 'object')
+  .sort((a, b) => Number(a.order) - Number(b.order));
+const number = numbered(record.${kind.numberField}) || 'The ${r}';
+const target = asText(event.target);
+const flag = target === 'resolved' ? 'isResolvedState' : target === 'acknowledged' ? 'isAcknowledgedState' : '';
+if (!flag) return skip(number + ' was left as it is: Zabbix asked for no other state.');
+
+const wanted = states.find((state) => state[flag] === true);
+if (!wanted) throw new Error('This project has no ' + target + ' ${r} state.');
+
+const current = record.${kind.stateRelation} || {};
+if (current.isResolvedState === true || Number(current.order) >= Number(wanted.order)) {
+  return skip(number + ' is already ' + (oneLine(current.name) || 'past ' + oneLine(wanted.name)) + ', so it was left as it is.');
+}
+
+return {
+  proceed: true,
+  ${r}Id: asText(record._id),
+  stateId: valueOf(wanted._id),
+  stateName: defuse(oneLine(wanted.name)),
+  number: defuse(number),
+  rootCause: limit(defuse(asText(event.rootCause)), 1000),
+};
+`,
+  );
+};
+
+/*
+ * OneUptime -> Zabbix: whether the record's new state means anything in
+ * Zabbix, before a request is sent: only a record declared for a Zabbix
+ * problem, and only when it is acknowledged or resolved.
+ */
+const zabbixPlanStateScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return zabbixScript(
+    kind,
+    String.raw`
+// Plans what the ${r}'s new state means in Zabbix: an acknowledged ${r} acknowledges its
+// problem, and a resolved one closes it.
+// Private ${kind.plural} stay in OneUptime. Set this to true to update Zabbix for them too.
+const SYNC_PRIVATE_${kind.pluralUpper} = false;
+
+const record = readJson(args.${r}) || {};
+const number = numbered(record.${kind.numberField}) || 'The ${r}';
+if (record.isPrivate === true && !SYNC_PRIVATE_${kind.pluralUpper}) {
+  return skip(number + ' is a private ${r}, so Zabbix was not updated.');
+}
+
+const eventId = eventIdOf(record);
+if (!eventId) return skip(number + ' was not ${kind.created} for a Zabbix problem, so there is nothing to update in Zabbix.');
+
+const state = record.${kind.stateRelation} || {};
+const wanted = state.isResolvedState === true ? 'close' : state.isAcknowledgedState === true ? 'acknowledge' : '';
+if (!wanted) {
+  return skip(number + ' moved to ' + (oneLine(state.name) || 'a new state') + ', which means nothing in Zabbix.');
+}
+
+return { proceed: true, eventId: eventId, wanted: wanted, number: defuse(number) };
+`,
+  );
+};
+
+/*
+ * OneUptime -> Zabbix: reads the problem as Zabbix has it, then chooses
+ * what to send. A problem Zabbix already acknowledged or resolved is left
+ * as it is - which is also what settles the echo of a change that came
+ * from Zabbix - and one whose trigger does not allow closing problems by
+ * hand is acknowledged, with a message, instead of closed: Zabbix refuses
+ * a close for those, and nothing would reach Zabbix at all.
+ */
+const zabbixChooseActionScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return zabbixScript(
+    kind,
+    String.raw`
+// Reads the problem as Zabbix has it now, and chooses what to send: acknowledge it, close it, or
+// add a message. The flags of event.acknowledge's action add up.
+const CLOSE = ${ZABBIX_ACTION_CLOSE};
+const ACKNOWLEDGE = ${ZABBIX_ACTION_ACKNOWLEDGE};
+const MESSAGE = ${ZABBIX_ACTION_MESSAGE};
+
+const plan = readJson(args.plan) || {};
+const eventId = asText(plan.eventId);
+const number = asText(plan.number) || 'The ${r}';
+const result = readAnswer(args.answer);
+const events = Array.isArray(result) ? result : [];
+const problem = events.find((candidate) => candidate && asText(candidate.eventid) === eventId);
+if (!problem) {
+  return skip('Zabbix has no problem with event ID ' + eventId + ', or the API token\'s user cannot see it, so Zabbix was not updated.');
+}
+
+const resolved = ZABBIX_ID.test(asText(problem.r_eventid)) && asText(problem.r_eventid) !== '0';
+const acknowledged = asText(problem.acknowledged) === '1';
+const trigger = problem.relatedObject && typeof problem.relatedObject === 'object' ? problem.relatedObject : {};
+const canClose = asText(trigger.manual_close) === '1';
+
+if (resolved) return skip('Zabbix problem ' + eventId + ' is already resolved in Zabbix, so it was left as it is.');
+
+if (asText(plan.wanted) === 'acknowledge') {
+  if (acknowledged) return skip('Zabbix problem ' + eventId + ' is already acknowledged in Zabbix, so it was left as it is.');
+  return {
+    proceed: true,
+    eventId: eventId,
+    action: ACKNOWLEDGE + MESSAGE,
+    message: limit(defuse(FROM_ONEUPTIME + ': ' + number + ' was acknowledged in OneUptime.'), ${ZABBIX_MESSAGE_MAX_LENGTH}),
+    done: defuse('Acknowledged Zabbix problem ' + eventId + ': ' + number + ' was acknowledged.'),
+  };
+}
+
+if (canClose) {
+  return {
+    proceed: true,
+    eventId: eventId,
+    action: CLOSE + ACKNOWLEDGE + MESSAGE,
+    message: limit(defuse(FROM_ONEUPTIME + ': ' + number + ' was resolved in OneUptime.'), ${ZABBIX_MESSAGE_MAX_LENGTH}),
+    done: defuse('Closed Zabbix problem ' + eventId + ': ' + number + ' was resolved.'),
+  };
+}
+
+// Zabbix refuses to close a problem whose trigger does not allow closing problems by hand, so the
+// problem is acknowledged, and says why it stays open.
+return {
+  proceed: true,
+  eventId: eventId,
+  action: ACKNOWLEDGE + MESSAGE,
+  message: limit(defuse(FROM_ONEUPTIME + ': ' + number + ' was resolved in OneUptime. Its trigger does not allow closing problems by hand, so the problem stays open until Zabbix sees it recover.'), ${ZABBIX_MESSAGE_MAX_LENGTH}),
+  done: defuse('Acknowledged Zabbix problem ' + eventId + ': ' + number + ' was resolved, and its trigger does not allow closing problems by hand.'),
+};
+`,
+  );
+};
+
+/*
+ * OneUptime -> Zabbix: the message for a new private note.
+ */
+const zabbixNoteMessageScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  const r: string = kind.noun;
+
+  return zabbixScript(
+    kind,
+    String.raw`
+// Writes the Zabbix message for a new private note on an ${r} declared for a Zabbix problem.
+// Notes on private ${kind.plural} stay in OneUptime. Set this to true to post them anyway.
+const SYNC_PRIVATE_${kind.pluralUpper} = false;
+// Zabbix keeps at most this many characters of a message.
+const MESSAGE_LENGTH = ${ZABBIX_MESSAGE_MAX_LENGTH};
+
+const note = readJson(args.note) || {};
+const record = readJson(args.${r}) || {};
+const number = numbered(record.${kind.numberField}) || 'the ${r}';
+if (record.isPrivate === true && !SYNC_PRIVATE_${kind.pluralUpper}) {
+  return skip('The note is on ' + number + ', a private ${r}, so it was not posted to Zabbix.');
+}
+
+const eventId = eventIdOf(record);
+if (!eventId) return skip('The note is on ' + number + ', which was not ${kind.created} for a Zabbix problem, so it was not posted to Zabbix.');
+
+const text = clean(note.note).trim();
+if (!text) return skip('The note is empty, so there is nothing to post.');
+
+// Notes copied in from Zabbix carry this marker. Posting them back would loop.
+if (text.indexOf(FROM_ZABBIX) !== -1) return skip('This note came from Zabbix, so it was not posted back.');
+
+const author = displayName(note.createdByUser);
+const heading = FROM_ONEUPTIME + ': private note on ' + number + (author ? ' by ' + author : '') + '.';
+
+return {
+  proceed: true,
+  eventId: eventId,
+  message: limit(defuse(heading + '\n\n' + text), MESSAGE_LENGTH),
+};
+`,
+  );
+};
+
+/*
+ * OneUptime -> Zabbix: reads Zabbix's answer to event.acknowledge. Zabbix
+ * answers a refused request with HTTP 200 and the reason in the body, so
+ * the API step's own Error output only covers a request that never got an
+ * answer; this step's covers Zabbix saying no.
+ */
+const zabbixCheckAnswerScript: ZabbixKindScriptFunction = (
+  kind: TemplateRecordKind,
+): string => {
+  return zabbixScript(
+    kind,
+    String.raw`
+// Reads Zabbix's answer to event.acknowledge: the IDs of the events it updated, or why it did not.
+const result = readAnswer(args.answer);
+const updated = result && Array.isArray(result.eventids) ? result.eventids.map(asText) : [];
+if (!updated.length) throw new Error('Zabbix answered, but did not say it updated the problem.');
+return { eventIds: updated };
+`,
+  );
+};
+
+type ZabbixTemplateFunction = (kind: TemplateRecordKind) => TemplateDefinition;
+
+type ZabbixPageArgsFunction = (
+  kind: TemplateRecordKind,
+  recordIdReference: string,
+) => JSONObject;
+
+// A Page step about the record a problem opened: the incident, or the alert.
+const zabbixPageArgs: ZabbixPageArgsFunction = (
+  kind: TemplateRecordKind,
+  recordIdReference: string,
+): JSONObject => {
+  if (kind.noun === ALERT_KIND.noun) {
+    return {
+      [PAGE_ARGUMENT_IDS.about]: PageAbout.Alert,
+      [PAGE_ARGUMENT_IDS.alertId]: recordIdReference,
+    };
+  }
+
+  return {
+    [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
+    [PAGE_ARGUMENT_IDS.incidentId]: recordIdReference,
+  };
+};
+
+/* ----------------------- Zabbix -> OneUptime ----------------------- */
+
+type ZabbixRecordReferenceFunction = (componentId: string) => string;
+
+type ZabbixEventValueFunction = (key: string) => string;
+
+// A value read-event-1 returns: the event's kind, its ID, a new record's title, a note.
+const zabbixEventValue: ZabbixEventValueFunction = (key: string): string => {
+  return `{{local.components.read-event-1.returnValues.returnValue.${key}}}`;
+};
+
+const ZABBIX_PROBLEM: string = `Zabbix problem ${zabbixEventValue("eventId")}`;
+
+const zabbixProblemTemplate: ZabbixTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const nodes: Array<TemplateNodeSpec> = [];
+  const edges: Array<TemplateEdgeSpec> = [];
+
+  type AddNodeFunction = (node: TemplateNodeSpec) => void;
+
+  const addNode: AddNodeFunction = (node: TemplateNodeSpec): void => {
+    nodes.push(node);
+  };
+
+  type ConnectFunction = (from: string, port: string, to: string) => void;
+
+  const connect: ConnectFunction = (
+    from: string,
+    port: string,
+    to: string,
+  ): void => {
+    edges.push({ fromComponentId: from, toComponentId: to, fromPort: port });
+  };
+
+  type LogFunction = (
+    componentId: string,
+    position: { x: number; y: number },
+    value: string,
+  ) => void;
+
+  const log: LogFunction = (
+    componentId: string,
+    position: { x: number; y: number },
+    value: string,
+  ): void => {
+    addNode({
+      componentId: componentId,
+      metadataId: ComponentID.Log,
+      componentType: ComponentType.Component,
+      position: position,
+      args: { value: value },
+    });
+  };
+
+  const numberOf: ZabbixRecordReferenceFunction = (
+    componentId: string,
+  ): string => {
+    return `{{local.components.${componentId}.returnValues.model.${kind.numberField}}}`;
+  };
+
+  // How each path finds the record a problem opened: by the event ID its custom fields keep.
+  const findRecordArgs: JSONObject = {
+    query: {
+      customFields: {
+        [ZABBIX_EVENT_ID_CUSTOM_FIELD]: zabbixEventValue("eventId"),
+      },
+    },
+    select: {
+      _id: true,
+      [kind.numberField]: true,
+      [kind.stateRelation]: {
+        name: true,
+        order: true,
+        isAcknowledgedState: true,
+        isResolvedState: true,
+      },
+    },
+  };
+
+  const foundCondition: (findComponentId: string) => JSONObject = (
+    findComponentId: string,
+  ): JSONObject => {
+    return {
+      "input-1-type": ConditionValueType.Text,
+      "input-1": `{{local.components.${findComponentId}.returnValues.model}}`,
+      operator: ConditionOperator.IsNotEmpty,
+    };
+  };
+
+  // Every row of the project's states, for a decision made by the rule above.
+  const findStatesArgs: JSONObject = {
+    query: { _id: { _type: "NotNull", value: null } },
+    select: {
+      _id: true,
+      name: true,
+      order: true,
+      isAcknowledgedState: true,
+      isResolvedState: true,
+    },
+    limit: 50,
+  };
+
+  type DecideStateArgsFunction = (
+    findComponentId: string,
+    statesComponentId: string,
+  ) => JSONObject;
+
+  const decideStateArgs: DecideStateArgsFunction = (
+    findComponentId: string,
+    statesComponentId: string,
+  ): JSONObject => {
+    return {
+      code: zabbixDecideStateScript(kind),
+      arguments: jsonText({
+        [r]: `{{local.components.${findComponentId}.returnValues.model}}`,
+        states: `{{local.components.${statesComponentId}.returnValues.models}}`,
+        event: "{{local.components.read-event-1.returnValues.returnValue}}",
+      }),
+    };
+  };
+
+  type ChangeStateArgsFunction = (decideComponentId: string) => JSONObject;
+
+  /*
+   * A state change is a new timeline row, not an edit of the record: the
+   * timeline is what records it, notifies, and says why.
+   */
+  const changeStateArgs: ChangeStateArgsFunction = (
+    decideComponentId: string,
+  ): JSONObject => {
+    const decided: (key: string) => string = (key: string): string => {
+      return `{{local.components.${decideComponentId}.returnValues.returnValue.${key}}}`;
+    };
+
+    return {
+      json: jsonText({
+        [kind.idColumn]: decided(`${r}Id`),
+        [kind.timelineStateColumn]: decided("stateId"),
+        rootCause: decided("rootCause"),
+      }),
+    };
+  };
+
+  /* ---- The trigger, the project's severities, and which event it is ---- */
+
+  addNode({
+    componentId: ZABBIX_WEBHOOK_COMPONENT_ID,
+    metadataId: ComponentID.Webhook,
+    componentType: ComponentType.Trigger,
+    position: { x: 100, y: 100 },
+  });
+
+  addNode({
+    componentId: "find-severities-1",
+    metadataId: `${r}-severity-find-many`,
+    componentType: ComponentType.Component,
+    position: { x: 100, y: 300 },
+    args: {
+      // Every row. Query cannot be left empty, so it asks for any id.
+      query: { _id: { _type: "NotNull", value: null } },
+      select: { _id: true, name: true, order: true },
+      limit: 50,
+    },
+  });
+  connect(ZABBIX_WEBHOOK_COMPONENT_ID, "out", "find-severities-1");
+
+  log(
+    "log-severities-failed",
+    { x: 450, y: 500 },
+    `❌ Could not read this project's ${r} severities, so nothing Zabbix sent was read. Why is in the run log above.`,
+  );
+  connect("find-severities-1", "error", "log-severities-failed");
+
+  addNode({
+    componentId: "read-event-1",
+    metadataId: ComponentID.JavaScriptCode,
+    componentType: ComponentType.Component,
+    position: { x: 100, y: 500 },
+    args: {
+      code: zabbixReadEventScript(kind),
+      /*
+       * The request goes last: what it says came from outside, and text
+       * from outside is only ever substituted after everything else in an
+       * argument.
+       */
+      arguments: jsonText({
+        severities: "{{local.components.find-severities-1.returnValues.models}}",
+        zabbixUrl: "{{local.variables.zabbixUrl}}",
+        payload: `{{local.components.${ZABBIX_WEBHOOK_COMPONENT_ID}.returnValues.request-body}}`,
+      }),
+    },
+  });
+  connect("find-severities-1", "success", "read-event-1");
+
+  log(
+    "log-read-failed",
+    { x: 650, y: 700 },
+    "❌ Could not read what Zabbix sent: {{local.components.read-event-1.returnValues.error}}",
+  );
+  connect("read-event-1", "error", "log-read-failed");
+
+  addNode({
+    componentId: "switch-1",
+    metadataId: ComponentID.Switch,
+    componentType: ComponentType.Component,
+    /*
+     * Wider than the step above it, as its cases' names make it
+     * (Workflow/PortLayout): 288px, so it starts 16px further left and
+     * sits centred under read-event-1.
+     */
+    position: { x: 84, y: 700 },
+    args: {
+      value: zabbixEventValue("kind"),
+      cases: [
+        {
+          id: "case-1",
+          comparison: ConditionOperator.EqualTo,
+          value: ZabbixEventKind.Problem,
+          compareAs: ConditionValueType.Text,
+        },
+        {
+          id: "case-2",
+          comparison: ConditionOperator.EqualTo,
+          value: ZabbixEventKind.Recovery,
+          compareAs: ConditionValueType.Text,
+        },
+        {
+          id: "case-3",
+          comparison: ConditionOperator.EqualTo,
+          value: ZabbixEventKind.Update,
+          compareAs: ConditionValueType.Text,
+        },
+      ],
+    },
+  });
+  connect("read-event-1", "success", "switch-1");
+
+  // Default: a request that is not a Zabbix event, or not one of the three.
+  log("log-ignored", { x: 1900, y: 940 }, `ℹ️ ${zabbixEventValue("reason")}`);
+  connect("switch-1", SWITCH_DEFAULT_PORT_ID, "log-ignored");
+
+  /* ---- problem: declare the record, unless the problem has one, and page ---- */
+
+  const P: number = -1100;
+
+  addNode({
+    componentId: `find-${r}-0`,
+    metadataId: `${r}-find-one`,
+    componentType: ComponentType.Component,
+    position: { x: P, y: 940 },
+    args: findRecordArgs,
+  });
+  connect("switch-1", "case-1", `find-${r}-0`);
+
+  /*
+   * A lookup that fails still declares the record: a problem that pages
+   * nobody is worse than a problem with two records. The log says so, for
+   * whoever finds two.
+   */
+  log(
+    "log-lookup-failed",
+    { x: P + 300, y: 1140 },
+    `⚠️ Could not check whether ${ZABBIX_PROBLEM} has an ${r} already, so a new one is ${kind.created}. Why the check failed is in the run log above.`,
+  );
+  connect(`find-${r}-0`, "error", "log-lookup-failed");
+
+  addNode({
+    componentId: "if-found-0",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: P, y: 1140 },
+    args: foundCondition(`find-${r}-0`),
+  });
+  connect(`find-${r}-0`, "success", "if-found-0");
+
+  // Yes is the If / Else's left output, so the step it leads to is on the left.
+  log(
+    "log-already-open",
+    { x: P - 300, y: 1340 },
+    `ℹ️ ${ZABBIX_PROBLEM} has an ${r} already, ${numberOf(`find-${r}-0`)}, so no other was ${kind.created}.`,
+  );
+  connect("if-found-0", "yes", "log-already-open");
+
+  addNode({
+    componentId: `create-${r}-1`,
+    metadataId: `${r}-create-one`,
+    componentType: ComponentType.Component,
+    position: { x: P, y: 1340 },
+    args: {
+      /*
+       * The problem's event ID in customFields is what the recovery and
+       * update paths, and the templates that write to Zabbix, find the
+       * record by.
+       */
+      json: jsonText({
+        [kind.severityIdColumn]: zabbixEventValue(kind.severityIdColumn),
+        customFields: {
+          [ZABBIX_EVENT_ID_CUSTOM_FIELD]: zabbixEventValue("eventId"),
+        },
+        // A Zabbix problem's name was written for the people who run the host, not for customers.
+        ...kind.quietCreateFields,
+        title: zabbixEventValue("title"),
+        description: zabbixEventValue("description"),
+      }),
+    },
+  });
+  connect("if-found-0", "no", `create-${r}-1`);
+  connect("log-lookup-failed", "out", `create-${r}-1`);
+
+  log(
+    "log-create-failed",
+    { x: P + 300, y: 1540 },
+    `❌ Could not ${kind.create} an ${r} for ${ZABBIX_PROBLEM}. Why is in the run log above.`,
+  );
+  connect(`create-${r}-1`, "error", "log-create-failed");
+
+  addNode({
+    componentId: "if-page-1",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: P, y: 1540 },
+    args: {
+      "input-1-type": ConditionValueType.Number,
+      "input-1": zabbixEventValue("severityNumber"),
+      operator: ConditionOperator.GreaterThanOrEqualTo,
+      "input-2-type": ConditionValueType.Number,
+      "input-2": String(ZABBIX_PAGE_FROM_SEVERITY),
+    },
+  });
+  connect(`create-${r}-1`, "success", "if-page-1");
+
+  addNode({
+    componentId: "page-on-call-policy-1",
+    metadataId: ComponentID.PageOnCallPolicy,
+    componentType: ComponentType.Component,
+    position: { x: P - 150, y: 1740 },
+    args: zabbixPageArgs(
+      kind,
+      `{{local.components.create-${r}-1.returnValues.model._id}}`,
+    ),
+  });
+  connect("if-page-1", "yes", "page-on-call-policy-1");
+
+  log(
+    "log-not-paged",
+    { x: P + 150, y: 1740 },
+    `ℹ️ ${kind.Created} an ${r} at ${zabbixEventValue("severityName")} for ${ZABBIX_PROBLEM}. It is ${zabbixEventValue("zabbixSeverity")} in Zabbix, so nobody was paged.`,
+  );
+  connect("if-page-1", "no", "log-not-paged");
+
+  log(
+    "log-paged",
+    { x: P - 300, y: 1940 },
+    `📟 ${kind.Created} an ${r} at ${zabbixEventValue("severityName")} for ${ZABBIX_PROBLEM}. {{local.components.page-on-call-policy-1.returnValues.summary}}`,
+  );
+  connect("page-on-call-policy-1", PAGE_SUCCESS_PORT_ID, "log-paged");
+
+  log(
+    "log-nobody-paged",
+    { x: P, y: 1940 },
+    `❌ ${kind.Created} an ${r} for ${ZABBIX_PROBLEM}, but nobody was paged: {{local.components.page-on-call-policy-1.returnValues.error}}`,
+  );
+  connect("page-on-call-policy-1", PAGE_ERROR_PORT_ID, "log-nobody-paged");
+
+  /* ---- recovery: resolve the problem's record ---- */
+
+  const R: number = 0;
+
+  addNode({
+    componentId: `find-${r}-1`,
+    metadataId: `${r}-find-one`,
+    componentType: ComponentType.Component,
+    position: { x: R, y: 940 },
+    args: findRecordArgs,
+  });
+  connect("switch-1", "case-2", `find-${r}-1`);
+
+  log(
+    "log-find-failed-1",
+    { x: R + 300, y: 1140 },
+    `❌ Could not look for the ${r} of ${ZABBIX_PROBLEM}, so it was not resolved. Why is in the run log above.`,
+  );
+  connect(`find-${r}-1`, "error", "log-find-failed-1");
+
+  addNode({
+    componentId: "if-found-1",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: R, y: 1140 },
+    args: foundCondition(`find-${r}-1`),
+  });
+  connect(`find-${r}-1`, "success", "if-found-1");
+
+  addNode({
+    componentId: "find-states-1",
+    metadataId: `${r}-state-find-many`,
+    componentType: ComponentType.Component,
+    position: { x: R - 150, y: 1340 },
+    args: findStatesArgs,
+  });
+  connect("if-found-1", "yes", "find-states-1");
+
+  log(
+    `log-no-${r}-1`,
+    { x: R + 150, y: 1340 },
+    `ℹ️ ${ZABBIX_PROBLEM} has no ${r}, so its recovery changed nothing.`,
+  );
+  connect("if-found-1", "no", `log-no-${r}-1`);
+
+  log(
+    "log-states-failed-1",
+    { x: R + 150, y: 1540 },
+    `❌ Could not read this project's ${r} states, so ${numberOf(`find-${r}-1`)} was not resolved. Why is in the run log above.`,
+  );
+  connect("find-states-1", "error", "log-states-failed-1");
+
+  addNode({
+    componentId: "decide-state-1",
+    metadataId: ComponentID.JavaScriptCode,
+    componentType: ComponentType.Component,
+    position: { x: R - 150, y: 1540 },
+    args: decideStateArgs(`find-${r}-1`, "find-states-1"),
+  });
+  connect("find-states-1", "success", "decide-state-1");
+
+  log(
+    "log-decide-failed-1",
+    { x: R + 150, y: 1740 },
+    `❌ Could not tell whether ${numberOf(`find-${r}-1`)} is resolved, so it was not resolved: {{local.components.decide-state-1.returnValues.error}}`,
+  );
+  connect("decide-state-1", "error", "log-decide-failed-1");
+
+  addNode({
+    componentId: "if-change-1",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: R - 150, y: 1740 },
+    args: proceedCondition("decide-state-1"),
+  });
+  connect("decide-state-1", "success", "if-change-1");
+
+  addNode({
+    componentId: "change-state-1",
+    metadataId: `${r}-state-timeline-create-one`,
+    componentType: ComponentType.Component,
+    position: { x: R - 300, y: 1940 },
+    args: changeStateArgs("decide-state-1"),
+  });
+  connect("if-change-1", "yes", "change-state-1");
+
+  log(
+    "log-unchanged-1",
+    { x: R, y: 1940 },
+    "ℹ️ {{local.components.decide-state-1.returnValues.returnValue.reason}}",
+  );
+  connect("if-change-1", "no", "log-unchanged-1");
+
+  log(
+    "log-resolved",
+    { x: R - 450, y: 2140 },
+    `✅ Resolved ${numberOf(`find-${r}-1`)}: ${ZABBIX_PROBLEM} recovered.`,
+  );
+  connect("change-state-1", "success", "log-resolved");
+
+  log(
+    "log-resolve-failed",
+    { x: R - 150, y: 2140 },
+    `❌ Could not resolve ${numberOf(`find-${r}-1`)} for ${ZABBIX_PROBLEM}. Why is in the run log above.`,
+  );
+  connect("change-state-1", "error", "log-resolve-failed");
+
+  /* ---- update: a private note, and an acknowledgment ---- */
+
+  const U: number = 1200;
+
+  addNode({
+    componentId: `find-${r}-2`,
+    metadataId: `${r}-find-one`,
+    componentType: ComponentType.Component,
+    position: { x: U, y: 940 },
+    args: findRecordArgs,
+  });
+  connect("switch-1", "case-3", `find-${r}-2`);
+
+  log(
+    "log-find-failed-2",
+    { x: U + 300, y: 1140 },
+    `❌ Could not look for the ${r} of ${ZABBIX_PROBLEM}, so the update was not noted. Why is in the run log above.`,
+  );
+  connect(`find-${r}-2`, "error", "log-find-failed-2");
+
+  addNode({
+    componentId: "if-found-2",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: U, y: 1140 },
+    args: foundCondition(`find-${r}-2`),
+  });
+  connect(`find-${r}-2`, "success", "if-found-2");
+
+  addNode({
+    componentId: "add-note-2",
+    metadataId: `${r}-internal-note-create-one`,
+    componentType: ComponentType.Component,
+    position: { x: U - 150, y: 1340 },
+    args: {
+      json: jsonText({
+        [kind.idColumn]: `{{local.components.find-${r}-2.returnValues.model._id}}`,
+        note: zabbixEventValue("note"),
+      }),
+    },
+  });
+  connect("if-found-2", "yes", "add-note-2");
+
+  log(
+    `log-no-${r}-2`,
+    { x: U + 150, y: 1340 },
+    `ℹ️ ${ZABBIX_PROBLEM} has no ${r}, so the update was not noted.`,
+  );
+  connect("if-found-2", "no", `log-no-${r}-2`);
+
+  log(
+    "log-note-failed",
+    { x: U + 150, y: 1540 },
+    `❌ Could not add the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)}. Why is in the run log above.`,
+  );
+  connect("add-note-2", "error", "log-note-failed");
+
+  addNode({
+    componentId: "if-acknowledged-2",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: U - 150, y: 1540 },
+    args: {
+      "input-1-type": ConditionValueType.Text,
+      "input-1": zabbixEventValue("target"),
+      operator: ConditionOperator.EqualTo,
+      "input-2-type": ConditionValueType.Text,
+      "input-2": "acknowledged",
+    },
+  });
+  connect("add-note-2", "success", "if-acknowledged-2");
+
+  addNode({
+    componentId: "find-states-2",
+    metadataId: `${r}-state-find-many`,
+    componentType: ComponentType.Component,
+    position: { x: U - 300, y: 1740 },
+    args: findStatesArgs,
+  });
+  connect("if-acknowledged-2", "yes", "find-states-2");
+
+  log(
+    "log-noted",
+    { x: U, y: 1740 },
+    `✅ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note.`,
+  );
+  connect("if-acknowledged-2", "no", "log-noted");
+
+  log(
+    "log-states-failed-2",
+    { x: U, y: 1940 },
+    `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not read this project's ${r} states, so it was not acknowledged. Why is in the run log above.`,
+  );
+  connect("find-states-2", "error", "log-states-failed-2");
+
+  addNode({
+    componentId: "decide-state-2",
+    metadataId: ComponentID.JavaScriptCode,
+    componentType: ComponentType.Component,
+    position: { x: U - 300, y: 1940 },
+    args: decideStateArgs(`find-${r}-2`, "find-states-2"),
+  });
+  connect("find-states-2", "success", "decide-state-2");
+
+  log(
+    "log-decide-failed-2",
+    { x: U, y: 2140 },
+    `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not tell whether it is acknowledged, so it was not acknowledged: {{local.components.decide-state-2.returnValues.error}}`,
+  );
+  connect("decide-state-2", "error", "log-decide-failed-2");
+
+  addNode({
+    componentId: "if-change-2",
+    metadataId: ComponentID.IfElse,
+    componentType: ComponentType.Component,
+    position: { x: U - 300, y: 2140 },
+    args: proceedCondition("decide-state-2"),
+  });
+  connect("decide-state-2", "success", "if-change-2");
+
+  addNode({
+    componentId: "change-state-2",
+    metadataId: `${r}-state-timeline-create-one`,
+    componentType: ComponentType.Component,
+    position: { x: U - 450, y: 2340 },
+    args: changeStateArgs("decide-state-2"),
+  });
+  connect("if-change-2", "yes", "change-state-2");
+
+  log(
+    "log-unchanged-2",
+    { x: U - 150, y: 2340 },
+    `ℹ️ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note. {{local.components.decide-state-2.returnValues.returnValue.reason}}`,
+  );
+  connect("if-change-2", "no", "log-unchanged-2");
+
+  log(
+    "log-acknowledged",
+    { x: U - 600, y: 2540 },
+    `✅ Acknowledged ${numberOf(`find-${r}-2`)}, and added the update to ${ZABBIX_PROBLEM} to it as a private note: the problem was acknowledged in Zabbix.`,
+  );
+  connect("change-state-2", "success", "log-acknowledged");
+
+  log(
+    "log-acknowledge-failed",
+    { x: U - 300, y: 2540 },
+    `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not acknowledge it. Why is in the run log above.`,
+  );
+  connect("change-state-2", "error", "log-acknowledge-failed");
+
+  return {
+    id: `zabbix-${kind.create}-${r}-from-problem`,
+    name: `${kind.Create} an ${r} for each Zabbix problem`,
+    description: `Pages on-call for High and Disaster problems, adds updates made in Zabbix as private notes, and resolves the ${r} when the problem recovers.`,
+    teaches:
+      "How one workflow follows a Zabbix problem from start to end: a Switch / Case takes a path for each event. Open the trigger for its URL, and the Page step to pick who to page.",
+    setUpInBuilder: "An on-call policy to page. You pick it in the Builder.",
+    category: WorkflowTemplateCategory.Zabbix,
+    icon: IconProp.ServerStack,
+    workflowName: `Zabbix problems to ${kind.plural}`,
+    /*
+     * What the workflow does, for as long as it exists: how to set it up
+     * is said where it is done (the trigger, and the Zabbix guide).
+     */
+    workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each Zabbix problem sent to this workflow's URL, and pages the on-call policy you pick for High and Disaster problems. Updates made in Zabbix become private notes, acknowledging the problem in Zabbix acknowledges the ${r}, and the problem's recovery resolves it.`,
+    variables: [
+      zabbixUrlVariable("Links to the problem in Zabbix go there."),
+    ],
+    graph: { nodes: nodes, edges: edges },
+  };
+};
+
+/* ----------------------- OneUptime -> Zabbix ----------------------- */
+
+const zabbixStateTemplate: ZabbixTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const trigger: string = `${r}-on-update-1`;
+  const planned: (key: string) => string = (key: string): string => {
+    return `{{local.components.plan-state-1.returnValues.returnValue.${key}}}`;
+  };
+  const chosen: (key: string) => string = (key: string): string => {
+    return `{{local.components.choose-action-1.returnValues.returnValue.${key}}}`;
+  };
+
+  return {
+    id: `zabbix-update-problem-on-${r}-state`,
+    name: `Acknowledge or close the Zabbix problem with the ${r}`,
+    description: `When the ${r} is acknowledged, acknowledges its Zabbix problem. When it is resolved, closes the problem, or acknowledges it where Zabbix does not allow closing it by hand.`,
+    teaches:
+      "How to call a JSON-RPC API with a token, and read an answer that reports errors in its body.",
+    category: WorkflowTemplateCategory.Zabbix,
+    icon: IconProp.CheckCircle,
+    workflowName: `Sync ${r} state to Zabbix`,
+    workflowDescription: `Acknowledges the Zabbix problem of an ${r} declared for one when the ${r} is acknowledged, and closes it when the ${r} is resolved. A problem whose trigger does not allow closing it by hand is acknowledged with a message instead.`,
+    variables: [
+      zabbixUrlVariable("The workflow calls Zabbix's API there."),
+      ZABBIX_API_TOKEN,
+    ],
+    graph: {
+      nodes: [
+        {
+          componentId: trigger,
+          metadataId: `${r}-on-update`,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            "listen-on": { [kind.stateIdColumn]: true },
+            select: {
+              _id: true,
+              [kind.numberField]: true,
+              isPrivate: true,
+              customFields: true,
+              [kind.stateRelation]: {
+                name: true,
+                isAcknowledgedState: true,
+                isResolvedState: true,
+              },
+            },
+          },
+        },
+        {
+          componentId: "plan-state-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            code: zabbixPlanStateScript(kind),
+            arguments: jsonText({
+              [r]: `{{local.components.${trigger}.returnValues.model}}`,
+            }),
+          },
+        },
+        {
+          componentId: "log-plan-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 400, y: 500 },
+          args: {
+            value: `❌ Could not tell what the ${r}'s new state means in Zabbix: {{local.components.plan-state-1.returnValues.error}}`,
+          },
+        },
+        {
+          componentId: "if-linked-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 500 },
+          args: proceedCondition("plan-state-1"),
+        },
+        {
+          componentId: "log-skipped",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 700 },
+          args: { value: `ℹ️ ${planned("reason")}` },
+        },
+        {
+          /*
+           * Zabbix is asked first: a problem it already acknowledged or
+           * resolved is left as it is, and a close is only sent where the
+           * problem's trigger allows closing it by hand.
+           */
+          componentId: "get-problem-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: -200, y: 700 },
+          args: {
+            url: ZABBIX_API_URL,
+            "request-headers": zabbixHeaders(),
+            "request-body": zabbixRequestBody("event.get", {
+              eventids: [planned("eventId")],
+              output: ["eventid", "r_eventid", "acknowledged"],
+              selectRelatedObject: ["triggerid", "manual_close"],
+            }),
+          },
+        },
+        {
+          componentId: "log-get-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 900 },
+          args: {
+            value: `❌ Could not reach Zabbix to read problem ${planned("eventId")}: {{local.components.get-problem-1.returnValues.error}}\nZabbix said: {{local.components.get-problem-1.returnValues.response-body}}`,
+          },
+        },
+        {
+          componentId: "choose-action-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: -200, y: 900 },
+          args: {
+            code: zabbixChooseActionScript(kind),
+            // Zabbix's answer goes last: it came from outside.
+            arguments: jsonText({
+              plan: "{{local.components.plan-state-1.returnValues.returnValue}}",
+              answer:
+                "{{local.components.get-problem-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-choose-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1100 },
+          args: {
+            value: `❌ Could not read Zabbix problem ${planned("eventId")}, so Zabbix was not updated: {{local.components.choose-action-1.returnValues.error}}`,
+          },
+        },
+        {
+          componentId: "if-update-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: -200, y: 1100 },
+          args: proceedCondition("choose-action-1"),
+        },
+        {
+          componentId: "log-unchanged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -200, y: 1300 },
+          args: { value: `ℹ️ ${chosen("reason")}` },
+        },
+        {
+          componentId: "update-problem-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: -500, y: 1300 },
+          args: {
+            url: ZABBIX_API_URL,
+            "request-headers": zabbixHeaders(),
+            "request-body": zabbixRequestBody("event.acknowledge", {
+              eventids: [chosen("eventId")],
+              action: chosen("action"),
+              message: chosen("message"),
+            }),
+          },
+        },
+        {
+          componentId: "log-update-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -200, y: 1500 },
+          args: {
+            value: `❌ Could not reach Zabbix to update problem ${chosen("eventId")}: {{local.components.update-problem-1.returnValues.error}}\nZabbix said: {{local.components.update-problem-1.returnValues.response-body}}`,
+          },
+        },
+        {
+          componentId: "check-answer-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: -500, y: 1500 },
+          args: {
+            code: zabbixCheckAnswerScript(kind),
+            arguments: jsonText({
+              answer:
+                "{{local.components.update-problem-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-updated",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -800, y: 1700 },
+          args: { value: `✅ ${chosen("done")}` },
+        },
+        {
+          componentId: "log-refused",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -500, y: 1700 },
+          args: {
+            value: `❌ Zabbix did not update problem ${chosen("eventId")}: {{local.components.check-answer-1.returnValues.error}}`,
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: trigger,
+          toComponentId: "plan-state-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "plan-state-1",
+          toComponentId: "if-linked-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "plan-state-1",
+          toComponentId: "log-plan-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-linked-1",
+          toComponentId: "get-problem-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-linked-1",
+          toComponentId: "log-skipped",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "get-problem-1",
+          toComponentId: "choose-action-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "get-problem-1",
+          toComponentId: "log-get-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "choose-action-1",
+          toComponentId: "if-update-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "choose-action-1",
+          toComponentId: "log-choose-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-update-1",
+          toComponentId: "update-problem-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-update-1",
+          toComponentId: "log-unchanged",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "update-problem-1",
+          toComponentId: "check-answer-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "update-problem-1",
+          toComponentId: "log-update-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "check-answer-1",
+          toComponentId: "log-updated",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "check-answer-1",
+          toComponentId: "log-refused",
+          fromPort: "error",
+        },
+      ],
+    },
+  };
+};
+
+const zabbixNoteTemplate: ZabbixTemplateFunction = (
+  kind: TemplateRecordKind,
+): TemplateDefinition => {
+  const r: string = kind.noun;
+  const built: (key: string) => string = (key: string): string => {
+    return `{{local.components.build-message-1.returnValues.returnValue.${key}}}`;
+  };
+
+  return {
+    id: `zabbix-message-from-${r}-private-note`,
+    name: `Copy ${r} private notes to the Zabbix problem`,
+    description: `Adds each new private note on an ${r} declared for a Zabbix problem to the problem as a message, so the people working in Zabbix read it too.`,
+    teaches:
+      "How a marker in the text stops two systems echoing each other's messages back.",
+    category: WorkflowTemplateCategory.Zabbix,
+    icon: IconProp.ChatBubbleLeftRight,
+    workflowName: `Copy ${r} private notes to Zabbix`,
+    workflowDescription: `Adds each new private note on an ${r} declared for a Zabbix problem to the problem as a message. Notes that came from Zabbix are not sent back.`,
+    variables: [
+      zabbixUrlVariable("The workflow calls Zabbix's API there."),
+      ZABBIX_API_TOKEN,
+    ],
+    graph: {
+      nodes: [
+        {
+          componentId: "note-on-create-1",
+          metadataId: `${r}-internal-note-on-create`,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            select: {
+              _id: true,
+              note: true,
+              [kind.idColumn]: true,
+              createdByUser: { name: true },
+            },
+          },
+        },
+        {
+          /*
+           * The record, read by itself: whether it is private, and the
+           * event ID its custom fields keep, are not read through the
+           * note's relation, which a step - reading as a Project Admin of
+           * the project - is not allowed to read them through.
+           */
+          componentId: `find-${r}-1`,
+          metadataId: `${r}-find-one`,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            query: {
+              _id: `{{local.components.note-on-create-1.returnValues.model.${kind.idColumn}.value}}`,
+            },
+            select: {
+              _id: true,
+              [kind.numberField]: true,
+              isPrivate: true,
+              customFields: true,
+            },
+          },
+        },
+        {
+          componentId: `log-find-${r}-failed`,
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 400, y: 500 },
+          args: {
+            value: `❌ Could not read the ${r} the note is on, so it was not posted to Zabbix. Why is in the run log above.`,
+          },
+        },
+        {
+          componentId: "build-message-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 500 },
+          args: {
+            code: zabbixNoteMessageScript(kind),
+            arguments: jsonText({
+              [r]: `{{local.components.find-${r}-1.returnValues.model}}`,
+              note: "{{local.components.note-on-create-1.returnValues.model}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-build-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 400, y: 700 },
+          args: {
+            value:
+              "❌ Could not write the Zabbix message: {{local.components.build-message-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "if-post-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 700 },
+          args: proceedCondition("build-message-1"),
+        },
+        {
+          componentId: "log-skipped",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 900 },
+          args: { value: `ℹ️ ${built("reason")}` },
+        },
+        {
+          componentId: "post-message-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: -200, y: 900 },
+          args: {
+            url: ZABBIX_API_URL,
+            "request-headers": zabbixHeaders(),
+            "request-body": zabbixRequestBody("event.acknowledge", {
+              eventids: [built("eventId")],
+              action: String(ZABBIX_ACTION_MESSAGE),
+              message: built("message"),
+            }),
+          },
+        },
+        {
+          componentId: "log-post-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 1100 },
+          args: {
+            value: `❌ Could not reach Zabbix to add the note to problem ${built("eventId")}: {{local.components.post-message-1.returnValues.error}}\nZabbix said: {{local.components.post-message-1.returnValues.response-body}}`,
+          },
+        },
+        {
+          componentId: "check-answer-1",
+          metadataId: ComponentID.JavaScriptCode,
+          componentType: ComponentType.Component,
+          position: { x: -200, y: 1100 },
+          args: {
+            code: zabbixCheckAnswerScript(kind),
+            arguments: jsonText({
+              answer:
+                "{{local.components.post-message-1.returnValues.response-body}}",
+            }),
+          },
+        },
+        {
+          componentId: "log-posted",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -500, y: 1300 },
+          args: {
+            value: `✅ Added the note to Zabbix problem ${built("eventId")} as a message.`,
+          },
+        },
+        {
+          componentId: "log-refused",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -200, y: 1300 },
+          args: {
+            value: `❌ Zabbix did not add the note to problem ${built("eventId")}: {{local.components.check-answer-1.returnValues.error}}`,
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "note-on-create-1",
+          toComponentId: `find-${r}-1`,
+          fromPort: "success",
+        },
+        {
+          fromComponentId: `find-${r}-1`,
+          toComponentId: "build-message-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: `find-${r}-1`,
+          toComponentId: `log-find-${r}-failed`,
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "build-message-1",
+          toComponentId: "if-post-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "build-message-1",
+          toComponentId: "log-build-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "if-post-1",
+          toComponentId: "post-message-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-post-1",
+          toComponentId: "log-skipped",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "post-message-1",
+          toComponentId: "check-answer-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "post-message-1",
+          toComponentId: "log-post-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "check-answer-1",
+          toComponentId: "log-posted",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "check-answer-1",
+          toComponentId: "log-refused",
+          fromPort: "error",
+        },
+      ],
+    },
+  };
+};
+
+type ZabbixTemplatesForKindFunction = (
+  kind: TemplateRecordKind,
+) => Array<TemplateDefinition>;
+
+/*
+ * One kind's set, the workflow Zabbix sends its problems to first: the
+ * one to start with, and the one the two that write to Zabbix build on.
+ * Each is filed under its kind ("Incidents" or "Alerts"), which is how the
+ * picker splits the six into two lists.
+ */
+const zabbixTemplatesForKind: ZabbixTemplatesForKindFunction = (
+  kind: TemplateRecordKind,
+): Array<TemplateDefinition> => {
+  return [
+    zabbixProblemTemplate(kind),
+    zabbixStateTemplate(kind),
+    zabbixNoteTemplate(kind),
+  ].map((definition: TemplateDefinition): TemplateDefinition => {
+    return { ...definition, subcategory: kind.Plural };
+  });
+};
+
+const ZABBIX_TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
+  ...zabbixTemplatesForKind(INCIDENT_KIND),
+  ...zabbixTemplatesForKind(ALERT_KIND),
+];
+
 /*
  * WHAT IS POSTED TO A WEBHOOK, SHOWN IN SLACK.
  *
@@ -10627,6 +12513,9 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
 
   /* ----------------------------- Huntress ----------------------------- */
   ...HUNTRESS_TEMPLATE_DEFINITIONS,
+
+  /* ------------------------------- Zabbix ------------------------------- */
+  ...ZABBIX_TEMPLATE_DEFINITIONS,
 
   /* --------------------------- Integrations --------------------------- */
   {
