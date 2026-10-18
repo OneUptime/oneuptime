@@ -510,7 +510,7 @@ namespaceFilters:
 
 ### Continuous profiling (`profiling.*`) — off by default
 
-A separate DaemonSet runs the [`otelcol-ebpf-profiler`](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) distribution — the same OTel project that produces the OBI auto-instrumentation, with a different build of the collector that bundles the [OpenTelemetry eBPF Profiler receiver](https://github.com/open-telemetry/opentelemetry-ebpf-profiler). It samples stacks at 19Hz across every supported runtime (Go, Java, .NET, Python, Ruby, Node, PHP, Perl, C/C++, Rust) and ships OTLP profiles directly to OneUptime (the existing in-cluster collector is on v0.96.0 which predates the OTLP profiles signal — that's why this is a separate DaemonSet).
+A separate DaemonSet runs the [`otelcol-ebpf-profiler`](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) distribution — the same OTel project that produces the OBI auto-instrumentation, with a different build of the collector that bundles the [OpenTelemetry eBPF Profiler receiver](https://github.com/open-telemetry/opentelemetry-ebpf-profiler). It samples stacks at 19Hz across every supported runtime (Go, Java, .NET, Python, Ruby, Node, PHP, Perl, C/C++, Rust) and ships OTLP profiles directly to OneUptime (the in-cluster collector has no profiles pipeline, so they do not go through it).
 
 Profiling is **off by default** — it's heavier than the OBI auto-instrumentation (more CPU per node, larger memory footprint) and not every cluster wants always-on flame graphs. Enable it when you want richer telemetry:
 

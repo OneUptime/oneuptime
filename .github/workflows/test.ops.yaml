@@ -106,7 +106,9 @@ jobs:
       # configs (also with their syslog receivers uncommented), every Database
       # agent config,
       # and both collector ConfigMaps rendered out of the kubernetes-agent chart
-      # (the Deployment's also with the opt-in ebpf.dropUnlinkedClientCalls on).
+      # (the Deployment's also with the opt-in ebpf.dropUnlinkedClientCalls on,
+      # and both again on collector 0.96.0, which an upgrade with
+      # --reuse-values keeps).
       - run: bash Tests/Ops/validate-collector-configs.sh
       # `validate` proves the agent's OTTL parses; this proves what it DOES.
       # It runs the Kubernetes agent's eBPF span filters exactly as the chart
@@ -123,6 +125,14 @@ jobs:
       # inspector requests are dropped; an app's own routes, other ports,
       # other methods and SDK metrics are kept.
       - run: bash Tests/Ops/agent-metric-filter-behaviour.sh
+      # And for kubelet CPU: the node collector's filter/cpu-utilization and
+      # transform/cpu-utilization as the chart renders them, fed what the
+      # kubeletstats receiver sends, on the collector the chart pins and on
+      # 0.96.0 (which an upgrade with --reuse-values keeps). Both must send
+      # k8s.node.cpu.utilization, k8s.pod.cpu.utilization and
+      # container.cpu.utilization once each, the names OneUptime reads, and
+      # the node and pod *.cpu.usage beside them.
+      - run: bash Tests/Ops/agent-cpu-names-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a

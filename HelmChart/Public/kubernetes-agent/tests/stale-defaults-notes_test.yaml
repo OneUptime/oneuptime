@@ -13,9 +13,10 @@
 #       never warns, whatever it pins (a pin there is somebody's choice), and
 #       is told how to upgrade without --reuse-values;
 #   (b) a release on an older chart's values (chartDefaultsVersion older, or
-#       missing on a chart from before it) is warned, with the OBI tag named
-#       when it is not this chart's default (and eBPF is on), and gets the
-#       exact upgrade that fixes it for this release, Helm 3.14+ and older;
+#       missing on a chart from before it) is warned, with the collector tag
+#       named when it is not this chart's default, the OBI tag likewise (when
+#       eBPF is on), and gets the exact upgrade that fixes it for this
+#       release, Helm 3.14+ and older;
 #   (c) a values file that copies an older chart's defaults is named as the
 #       other cause, with its own fix: the upgrades for (b) keep the copy the
 #       release stored, so they cannot clear it.
@@ -49,27 +50,30 @@ tests:
       - notMatchRegexRaw:
           pattern: "did not get this chart's defaults"
       - matchRegexRaw:
-          pattern: "\nTo upgrade to a newer chart, keeping the values you set \\(Helm 3\\.14\\+\\):\n  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reset-then-reuse-values\nHelm before 3\\.14:\n  helm repo update\n  helm get values my-agent -n monitoring -o yaml > values\\.yaml && helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring -f values\\.yaml\nNot --reuse-values: it keeps this chart's defaults too, so a newer chart's\ndefaults \\(its eBPF image among them\\) would never apply\\.\n$"
+          pattern: "\nTo upgrade to a newer chart, keeping the values you set \\(Helm 3\\.14\\+\\):\n  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reset-then-reuse-values\nHelm before 3\\.14:\n  helm repo update\n  helm get values my-agent -n monitoring -o yaml > values\\.yaml && helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring -f values\\.yaml\nNot --reuse-values: it keeps this chart's defaults too, so a newer chart's\ndefaults \\(its collector and eBPF images among them\\) would never apply\\.\n$"
       # Every command in the notes (an indented line) keeps the values set and
       # takes the chart's defaults: none of them is a --reuse-values upgrade.
       - notMatchRegexRaw:
           pattern: "(?m)^ +helm upgrade [^\\n]*--reuse-values"
 
-  - it: does not warn an upgrade that took this chart's values.yaml, even with the OBI tag pinned back
+  - it: does not warn an upgrade that took this chart's values.yaml, even with the OBI and collector tags pinned back
     release:
       upgrade: true
     set:
       chartDefaultsVersion: "14.0.15"
       ebpf.image.tag: v0.13.0
+      image.tag: "0.96.0"
     asserts:
       - notMatchRegexRaw:
           pattern: "WARNING"
       - notMatchRegexRaw:
           pattern: "ebpf\\.image\\.tag"
+      - notMatchRegexRaw:
+          pattern: "image\\.tag is"
       - matchRegexRaw:
           pattern: "\nTo upgrade to a newer chart, keeping the values you set"
 
-  - it: warns a --reuse-values upgrade from 14.0.10, names the OBI tag it kept, and prints this release's fix
+  - it: warns a --reuse-values upgrade from 14.0.10, names the collector and OBI tags it kept, and prints this release's fix
     release:
       upgrade: true
     values:
@@ -78,7 +82,7 @@ tests:
       - matchRegexRaw:
           pattern: "\n\nWARNING: this release did not get this chart's defaults\\.\nIt renders with an older chart's defaults \\(its values have no\nchartDefaultsVersion\\), not with those of this chart, 14\\.0\\.15\\.\n`helm upgrade --reuse-values` does that: it keeps the previous release's\nvalues, the old chart's defaults included\\. So does a values file copied from\nan older chart's values\\.yaml \\(or from `helm get values --all`\\)\\. Either way, a\ndefault this chart added or changed never applies\\.\n"
       - matchRegexRaw:
-          pattern: "\nStale here:\n  - ebpf\\.image\\.tag is \"v0\\.9\\.0\"; this chart's default is \"v0\\.14\\.0\"\n    \\(OBI, the eBPF instrumentation\\)\\. Kept if you set it yourself\\.\n"
+          pattern: "\nStale here:\n  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \"0\\.161\\.0\"\n    \\(the OpenTelemetry Collector, with security fixes the older one lacks\\)\\.\n    Kept if you set it yourself\\.\n  - ebpf\\.image\\.tag is \"v0\\.9\\.0\"; this chart's default is \"v0\\.14\\.0\"\n    \\(OBI, the eBPF instrumentation\\)\\. Kept if you set it yourself\\.\n"
       - matchRegexRaw:
           pattern: "\nAfter --reuse-values, apply this chart's defaults and keep the values you set\n\\(Helm 3\\.14\\+\\):\n  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --version 14\\.0\\.15 --reset-then-reuse-values\n"
       - matchRegexRaw:
@@ -106,6 +110,18 @@ tests:
       - matchRegexRaw:
           pattern: "  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --version 14\\.0\\.15 --reset-then-reuse-values\n"
 
+  - it: names the collector tag a stale release kept, and says the fix keeps a tag set on purpose
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "14.0.13"
+      image.tag: "0.96.0"
+    asserts:
+      - matchRegexRaw:
+          pattern: "\nStale here:\n  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \"0\\.161\\.0\"\n    \\(the OpenTelemetry Collector, with security fixes the older one lacks\\)\\.\n    Kept if you set it yourself\\.\nAfter --reuse-values"
+      - notMatchRegexRaw:
+          pattern: "ebpf\\.image\\.tag"
+
   - it: names an OBI tag a stale release pins, and says the fix keeps a tag set on purpose
     release:
       upgrade: true
@@ -120,7 +136,7 @@ tests:
       - matchRegexRaw:
           pattern: "\nAfter --reuse-values, apply this chart's defaults and keep the values you set\n"
 
-  - it: names no OBI tag when eBPF is off, but still warns
+  - it: names no OBI tag when eBPF is off, but still warns and names the collector tag
     release:
       upgrade: true
     values:
@@ -130,8 +146,8 @@ tests:
     asserts:
       - matchRegexRaw:
           pattern: "\nWARNING: this release did not get this chart's defaults\\.\n"
-      - notMatchRegexRaw:
-          pattern: "Stale here"
+      - matchRegexRaw:
+          pattern: "\nStale here:\n  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \"0\\.161\\.0\"\n"
       - notMatchRegexRaw:
           pattern: "ebpf\\.image\\.tag"
       - matchRegexRaw:

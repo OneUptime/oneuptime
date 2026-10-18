@@ -4,8 +4,9 @@
 #     every install from a source checkout (CI, the e2e suites) would be told
 #     it runs an older chart's defaults;
 #   - kubernetes-agent.defaultEbpfImageTag must equal values.yaml's
-#     ebpf.image.tag, which a template cannot read once --reuse-values has
-#     replaced it: on a stale release whose OBI tag is this chart's default,
+#     ebpf.image.tag, and kubernetes-agent.defaultCollectorImageTag its
+#     image.tag, which a template cannot read once --reuse-values has
+#     replaced them: on a stale release whose tags are this chart's defaults,
 #     the warning names no tag.
 suite: notes on the chart as it is in the repository
 release:
@@ -32,7 +33,7 @@ tests:
       - notMatchRegexRaw:
           pattern: "WARNING"
 
-  - it: knows its own OBI default, so a stale release on that tag gets no tag named
+  - it: knows its own OBI and collector defaults, so a stale release on those tags gets no tag named
     release:
       upgrade: true
     set:
@@ -52,3 +53,13 @@ tests:
     asserts:
       - matchRegexRaw:
           pattern: "  - ebpf\\.image\\.tag is \"v0\\.9\\.0\"; this chart's default is \""
+
+  - it: still names any other collector tag on a stale release
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "0.6.0"
+      image.tag: "0.96.0"
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \""

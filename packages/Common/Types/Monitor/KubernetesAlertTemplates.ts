@@ -730,8 +730,8 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
     return buildKubernetesMonitorStep({
       /*
        * A formula, because there is nothing to read directly. The
-       * k8s_cluster receiver the agent chart runs (collector 0.96.0, no
-       * metric renaming anywhere in the chart) reports a Deployment as
+       * k8s_cluster receiver the agent chart runs (collector 0.161.0; the
+       * chart renames none of its metrics) reports a Deployment as
        * `k8s.deployment.desired` (spec.replicas) and
        * `k8s.deployment.available` (status.availableReplicas) — there is no
        * `k8s.deployment.unavailable_replicas`, which is what this template

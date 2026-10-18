@@ -40,22 +40,22 @@ data:
         # on. Keep it that way: a second `metrics:` key under kubeletstats
         # is a duplicate mapping key, and the collector refuses the config.
         metrics:
-          # Node and pod CPU in use, in cores (`{cpu}`). Both are
-          # `enabled: false` upstream at collector 0.96.0, and they are
-          # always on here rather than behind a flag because OneUptime
-          # reads them: the "High Node CPU Utilization" alert template
-          # (k8s-high-cpu) divides `k8s.node.cpu.usage` by
-          # `k8s.node.allocatable_cpu`, and the Kubernetes dashboard
-          # template charts both. Without them that monitor has no
-          # numerator and can never fire, with no error anywhere.
+          # Node and pod CPU in use, in cores (`{cpu}`). Both are on by
+          # default in collector 0.161.0 (`enabled: false` in 0.96.0, which
+          # a --reuse-values upgrade keeps), and they are always on here
+          # rather than behind a flag because OneUptime reads them:
+          # the "High Node CPU Utilization" alert template (k8s-high-cpu)
+          # divides `k8s.node.cpu.usage` by `k8s.node.allocatable_cpu`, and
+          # the Kubernetes dashboard template charts both. Without them that
+          # monitor has no numerator and can never fire, with no error
+          # anywhere. tests/kubeletstats-cpu-usage_test.yaml keeps both on.
           #
-          # No extra scrape: the receiver records `*.cpu.usage` from the
-          # same kubelet sample, with the same value, as the default-on
-          # `*.cpu.utilization`, which is a cores gauge too despite its
-          # name. That one is deprecated upstream in favour of these, and
-          # later collectors turn these on and drop it. One series per
-          # node and one per pod; tests/kubeletstats-cpu-usage_test.yaml
-          # keeps both on. `container.cpu.usage` stays off; nothing reads it.
+          # They are also where OneUptime's `*.cpu.utilization` come from:
+          # the receiver stopped sending those in 0.125.0 (a cores gauge
+          # too, despite the name), and filter/cpu-utilization and
+          # transform/cpu-utilization below send them again under their old
+          # names. Container CPU goes out as `container.cpu.utilization`
+          # only, as before: OneUptime reads no `container.cpu.usage`.
           k8s.node.cpu.usage:
             enabled: true
           k8s.pod.cpu.usage:
@@ -130,6 +130,20 @@ data:
         root_path: /host
         scrapers:
           cpu:
+            metrics:
+              # Collector 0.157.0 sums system.cpu.time across logical CPUs
+              # unless asked for the `cpu` attribute. Asked for, so the series
+              # stay per CPU, as 0.96.0 sends them with no such key (and would
+              # refuse one): a query that averages them, as OneUptime's AI
+              # metric tools do, would otherwise read the CPU count times the
+              # value. 0.157.0 also turned on a CPU count, which OneUptime
+              # reads as a host's cores and never got from this agent.
+              {{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.157.0")) "true" }}
+              system.cpu.time:
+                attributes: [cpu, state]
+              {{- end }}
+              system.cpu.logical.count:
+                enabled: false
           load:
           memory:
           disk:
@@ -325,7 +339,7 @@ data:
           # when the body carries a recognizable severity keyword, else fall
           # back to stdout/stderr mapping. Using a router rather than
           # regex_parser's on_error keeps this compatible with OTel Collector
-          # v0.96.0.
+          # v0.96.0, which a --reuse-values upgrade keeps.
           #
           # A level keyword is only believed when it sits where a LEVEL sits, not
           # merely because the word turns up somewhere in the line. Two shapes
@@ -403,6 +417,62 @@ data:
       {{- end }}
 
     processors:
+      # kubelet CPU under the names OneUptime reads. The kubeletstats
+      # receiver stopped sending k8s.node.cpu.utilization,
+      # k8s.pod.cpu.utilization and container.cpu.utilization in collector
+      # 0.125.0; the same measure (cores in use; from 0.161.0 averaged over
+      # the interval between two scrapes) comes as *.cpu.usage. OneUptime's
+      # ingest, Kubernetes pages, dashboards and monitors read the old names,
+      # so the two processors below send them again, as 0.96.0 did:
+      #   - k8s.node.cpu.utilization and k8s.pod.cpu.utilization as copies of
+      #     k8s.node.cpu.usage and k8s.pod.cpu.usage, which are kept;
+      #   - container.cpu.usage renamed to container.cpu.utilization (0.96.0
+      #     sent no container.cpu.usage).
+      # The filter drops the receiver's own *.cpu.utilization first, so the
+      # same config also runs on 0.96.0 (which a --reuse-values upgrade
+      # keeps): there the copies replace originals of the same value, and
+      # there is no container.cpu.usage to rename. Both run first, so the
+      # telemetry filters (filters.metrics) see the names OneUptime does.
+      filter/cpu-utilization:
+        error_mode: ignore
+        metrics:
+          metric:
+            - 'name == "k8s.node.cpu.utilization" or name == "k8s.pod.cpu.utilization"'
+      transform/cpu-utilization:
+        error_mode: ignore
+        metric_statements:
+          - context: metric
+            statements:
+              - copy_metric(name="k8s.node.cpu.utilization", description="Node CPU utilization", unit="1") where name == "k8s.node.cpu.usage"
+              - copy_metric(name="k8s.pod.cpu.utilization", description="Pod CPU utilization", unit="1") where name == "k8s.pod.cpu.usage"
+              - set(description, "Container CPU utilization") where name == "container.cpu.usage"
+              - set(unit, "1") where name == "container.cpu.usage"
+              - set(name, "container.cpu.utilization") where name == "container.cpu.usage"
+
+      # Pod-level telemetry stays pod-level. Since collector 0.118.0,
+      # k8sattributes gives telemetry that names no container (here a pod's
+      # own kubelet metrics, k8s.pod.* and k8s.volume.*) the container of a
+      # pod that has only one, as k8s.container.name; 0.96.0 did not.
+      # OneUptime's Kubernetes monitors read that attribute as the container
+      # an alert is about ("Container x in pod y"), and it would split a
+      # pod's rows. So the first marks what names neither a container nor a
+      # container.id before k8sattributes runs, and the second takes back
+      # the container name k8sattributes gave it, and the mark. A
+      # container.id resolved to its name is kept: 0.96.0 did that too.
+      transform/pod-level-mark:
+        error_mode: ignore
+        metric_statements:
+          - context: resource
+            statements:
+              - set(attributes["oneuptime.k8s.pod_level"], true) where attributes["k8s.container.name"] == nil and attributes["container.id"] == nil
+      transform/pod-level-unmark:
+        error_mode: ignore
+        metric_statements:
+          - context: resource
+            statements:
+              - delete_key(attributes, "k8s.container.name") where attributes["oneuptime.k8s.pod_level"] == true
+              - delete_key(attributes, "oneuptime.k8s.pod_level")
+
       # Enrich with K8s metadata
       k8sattributes:
         auth_type: serviceAccount
@@ -549,7 +619,13 @@ data:
             {{- end }}
           processors:
             - memory_limiter
+            # In this order: the filter clears the way for the copies.
+            - filter/cpu-utilization
+            - transform/cpu-utilization
+            # Around k8sattributes: pod-level telemetry stays pod-level.
+            - transform/pod-level-mark
             - k8sattributes
+            - transform/pod-level-unmark
             {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
             # After k8sattributes so namespace conditions can match; before
             # batch so dropped series never leave the node.

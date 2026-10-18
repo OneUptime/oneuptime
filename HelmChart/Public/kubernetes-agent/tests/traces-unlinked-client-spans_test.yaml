@@ -44,7 +44,7 @@ tests:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-db\\n        - batch\\n"
+          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-db\\n        - batch\\n"
 
   - it: stays off for a release upgraded with --reuse-values from values that predate it
     set:
@@ -82,7 +82,7 @@ tests:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-db\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-client\\n        - batch\\n"
+          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-db\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-client\\n        - batch\\n"
 
   - it: runs it before the user's span filters and the sampler, so neither works on spans about to be dropped
     set:
@@ -144,7 +144,7 @@ tests:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-client\\n        - batch\\n"
+          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-client\\n        - batch\\n"
 
   - it: never touches messaging spans — PRODUCER and CONSUMER are not CLIENT, and a CLIENT one names its messaging.system
     set:

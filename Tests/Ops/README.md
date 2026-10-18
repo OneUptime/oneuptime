@@ -260,7 +260,12 @@ commented-out syslog receivers and `logs` pipeline uncommented — and it checks
 that an empty `STORAGE_ARRAY_NAME` stops the collector), over the Database
 Agent's per-receiver configs (as shipped, and again with every optional metric
 their comments list switched on), and over both collector ConfigMaps rendered
-out of the `kubernetes-agent` chart.
+out of the `kubernetes-agent` chart. It validates those two once more on
+`0.96.0`, the collector the chart pinned before, rendered for that tag:
+`helm upgrade --reuse-values` keeps a release's old `image.tag`, so the chart's
+configs have to start there too (0.96.0's `k8sobjects` receiver asks an API
+server for its resources while it is built, so the Deployment config goes
+without it on that run).
 
 That is not a YAML check. `validate` constructs every component and builds the
 stanza operator graph for real, which compiles the RE2 regexes and the expr-lang
