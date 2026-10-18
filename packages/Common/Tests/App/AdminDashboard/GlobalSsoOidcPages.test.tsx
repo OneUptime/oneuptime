@@ -315,6 +315,11 @@ import SettingsGlobalSSOView from "../../../../App/FeatureSet/AdminDashboard/src
 import AdminModelAPI from "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI";
 import ProjectScopedTeamsPicker from "../../../../App/FeatureSet/AdminDashboard/src/Components/GlobalProvider/ProjectScopedTeamsPicker";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import {
+  SSO_GLOBAL_REACH_TITLE,
+  SSO_GLOBAL_SIGN_UP_TITLE,
+} from "../../../UI/Components/Sso/SsoProviderFormFields";
+import FieldType from "../../../UI/Components/Types/FieldType";
 import GlobalOIDC from "../../../Models/DatabaseModels/GlobalOidc";
 import GlobalOIDCProject from "../../../Models/DatabaseModels/GlobalOidcProject";
 import GlobalSSO from "../../../Models/DatabaseModels/GlobalSso";
@@ -537,6 +542,69 @@ const stepsOf: (steps: unknown) => Array<string> = (
 };
 
 /*
+ * The provider page shows the two questions its form asks, answered in the
+ * form's words, rather than two Yes/No switches named "Disable Sign Up with
+ * SSO" and "Restrict to Attached Projects".
+ */
+const expectAnswerRows: (
+  fields: Array<MockProps>,
+  makeItem: (values: {
+    disableSignUpWithSso: boolean;
+    restrictToAttachedProjects: boolean;
+  }) => unknown,
+) => void = (
+  fields: Array<MockProps>,
+  makeItem: (values: {
+    disableSignUpWithSso: boolean;
+    restrictToAttachedProjects: boolean;
+  }) => unknown,
+): void => {
+  const rowFor: (column: string) => MockProps = (column: string): MockProps => {
+    return fields.find((field: MockProps): boolean => {
+      return (
+        Object.keys(field["field"] as Record<string, unknown>)[0] === column
+      );
+    }) as MockProps;
+  };
+
+  const signUp: MockProps = rowFor("disableSignUpWithSso");
+  const reach: MockProps = rowFor("restrictToAttachedProjects");
+
+  expect(signUp["title"]).toBe(SSO_GLOBAL_SIGN_UP_TITLE);
+  expect(reach["title"]).toBe(SSO_GLOBAL_REACH_TITLE);
+  expect(signUp["fieldType"]).toBe(FieldType.Element);
+  expect(reach["fieldType"]).toBe(FieldType.Element);
+
+  const drawn: (row: MockProps, item: unknown) => string = (
+    row: MockProps,
+    item: unknown,
+  ): string => {
+    const view: ReturnType<typeof render> = render(
+      (row["getElement"] as (item: unknown) => ReactElement)(item),
+    );
+    const text: string = view.container.textContent || "";
+
+    view.unmount();
+
+    return text;
+  };
+
+  const off: unknown = makeItem({
+    disableSignUpWithSso: false,
+    restrictToAttachedProjects: false,
+  });
+  const on: unknown = makeItem({
+    disableSignUpWithSso: true,
+    restrictToAttachedProjects: true,
+  });
+
+  expect(drawn(signUp, off)).toBe("Get one on their first sign-in");
+  expect(drawn(signUp, on)).toBe("Must be invited first");
+  expect(drawn(reach, off)).toBe("Every project");
+  expect(drawn(reach, on)).toBe("Attached projects only");
+};
+
+/*
  * A provider's Attached Projects form is one page: the project, then its teams
  * under it. The teams are the project picker's own (ProjectScopedTeamsPicker,
  * several at once), and the picker starts on the project's members team as
@@ -548,11 +616,29 @@ const expectOnePageAttachForm: (table: MockProps) => void = (
 ): void => {
   expect(table["formSteps"]).toBeUndefined();
 
+  /*
+   * A project is attached to the provider, not created: the button read
+   * "Create Global SSO Project", after the join table's name.
+   */
+  expect(table["createVerb"]).toBe("Attach");
+  expect(table["singularName"]).toBe("Project");
+  expect(table["pluralName"]).toBe("Projects");
+  expect(table["createFormTitle"]).toBe("Attach a Project");
+  expect(table["createFormSubmitButtonText"]).toBe("Attach Project");
+
   const fields: Array<MockProps> = table["formFields"] as Array<MockProps>;
 
   for (const field of fields) {
     expect(field["stepId"]).toBeUndefined();
   }
+
+  // What each field does for the people who sign in, in a line.
+  expect(fields[0]!["description"]).toBe(
+    "People who sign in for the first time join this project.",
+  );
+  expect(fields[1]!["description"]).toBe(
+    "The teams of that project they join.",
+  );
 
   const teamsField: MockProps = fields[1]!;
 
@@ -611,6 +697,19 @@ const OIDC_FORM_STEPS: Array<string> = [
 
 const SAML_FORM_STEPS: Array<string> = OIDC_FORM_STEPS;
 
+/*
+ * The instance-wide provider's two questions (People without an account, Where this
+ * sign-in counts as SSO) are each a form-only choice kept by its column,
+ * followed by the column itself, registered unseen so the form loads and
+ * saves it: each column is listed twice.
+ */
+const GLOBAL_SSO_QUESTION_FIELDS: Array<string> = [
+  "disableSignUpWithSso",
+  "disableSignUpWithSso",
+  "restrictToAttachedProjects",
+  "restrictToAttachedProjects",
+];
+
 const GLOBAL_SAML_FORM_FIELDS: Array<string> = [
   "name",
   "signOnURL",
@@ -620,8 +719,7 @@ const GLOBAL_SAML_FORM_FIELDS: Array<string> = [
   "signatureMethod",
   "digestMethod",
   "description",
-  "disableSignUpWithSso",
-  "restrictToAttachedProjects",
+  ...GLOBAL_SSO_QUESTION_FIELDS,
 ];
 
 const GLOBAL_OIDC_FORM_FIELDS: Array<string> = [
@@ -635,8 +733,7 @@ const GLOBAL_OIDC_FORM_FIELDS: Array<string> = [
   "emailClaimName",
   "nameClaimName",
   "description",
-  "disableSignUpWithSso",
-  "restrictToAttachedProjects",
+  ...GLOBAL_SSO_QUESTION_FIELDS,
 ];
 
 // The value next to a label in an "Identity Provider URLs" card, exactly.
@@ -645,6 +742,24 @@ const printedValueFor: (label: string) => string = (label: string): string => {
   const valueElement: Element | null = labelElement.nextElementSibling;
 
   return valueElement?.textContent || "";
+};
+
+/*
+ * A test card's sentence and link are its body, not its description: a
+ * card's description is hidden on a phone (max-md:hidden), which left the
+ * card a title with nothing under it there. The link is drawn as one.
+ */
+const expectTestLinkInBody: (card: HTMLElement, testId: string) => void = (
+  card: HTMLElement,
+  testId: string,
+): void => {
+  const body: HTMLElement = within(card).getByTestId(testId);
+
+  expect(body).toHaveTextContent(
+    'Open this link to test the provider. It must be enabled, which only adds a "Sign in with SSO" option and locks no one out.',
+  );
+  expect(within(body).getByRole("link")).toHaveClass("text-indigo-600");
+  expect(within(card).queryByTestId("card-description")).toBeNull();
 };
 
 const expectNothingRetired: () => void = (): void => {
@@ -901,7 +1016,7 @@ describe("the provider lists", () => {
       expect(screen.getByText(bannerTitle)).toBeInTheDocument();
       expect(
         screen.getByText(
-          /it works for ALL projects a user is already a member of/,
+          /signs people in to the projects they already belong to/,
         ),
       ).toBeInTheDocument();
       expect(
@@ -933,6 +1048,7 @@ describe("the Global SSO provider page", () => {
       expect(testLink).toHaveAttribute("href", SAML_TEST_LOGIN_URL);
       expect(testLink).toHaveAttribute("target", "_blank");
       expect(testLink).toHaveTextContent(SAML_TEST_LOGIN_URL);
+      expectTestLinkInBody(testCard, "global-sso-test-link");
     });
   });
 
@@ -960,6 +1076,20 @@ describe("the Global SSO provider page", () => {
       "restrictToAttachedProjects",
       "isEnabled",
     ]);
+    expectAnswerRows(
+      detailProps["fields"] as Array<MockProps>,
+      (values: {
+        disableSignUpWithSso: boolean;
+        restrictToAttachedProjects: boolean;
+      }): GlobalSSO => {
+        const provider: GlobalSSO = new GlobalSSO();
+
+        provider.disableSignUpWithSso = values.disableSignUpWithSso;
+        provider.restrictToAttachedProjects = values.restrictToAttachedProjects;
+
+        return provider;
+      },
+    );
   });
 
   test("attaches projects to this provider", async () => {
@@ -1036,6 +1166,7 @@ describe("the Global OIDC provider page", () => {
       expect(testLink).toHaveAttribute("href", OIDC_TEST_LOGIN_URL);
       expect(testLink).toHaveAttribute("target", "_blank");
       expect(testLink).toHaveTextContent(OIDC_TEST_LOGIN_URL);
+      expectTestLinkInBody(testCard, "global-oidc-test-link");
     });
   });
 
@@ -1065,6 +1196,20 @@ describe("the Global OIDC provider page", () => {
       "restrictToAttachedProjects",
       "isEnabled",
     ]);
+    expectAnswerRows(
+      detailProps["fields"] as Array<MockProps>,
+      (values: {
+        disableSignUpWithSso: boolean;
+        restrictToAttachedProjects: boolean;
+      }): GlobalOIDC => {
+        const provider: GlobalOIDC = new GlobalOIDC();
+
+        provider.disableSignUpWithSso = values.disableSignUpWithSso;
+        provider.restrictToAttachedProjects = values.restrictToAttachedProjects;
+
+        return provider;
+      },
+    );
   });
 
   test("attaches projects to this provider", async () => {

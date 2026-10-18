@@ -4,13 +4,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -30,9 +24,14 @@ import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
   CLOUD_PROVIDER_LABELS,
@@ -77,29 +76,27 @@ const CloudResources: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<CloudResource>(
+    {
+      modelType: CloudResource,
+      query: { cloudResourceKind: CloudResourceKind.Environment },
+    },
+  );
 
   const { archiveBulkActions } = useBulkArchiveActions<CloudResource>({
     modelType: CloudResource,
   });
 
-  useEffect(() => {
-    ModelAPI.count({
-      modelType: CloudResource,
-      query: { cloudResourceKind: CloudResourceKind.Environment },
-    })
-      .then(setCount)
-      .catch((err: Error) => {
-        setError(API.getFriendlyMessage(err));
-      });
-  }, []);
-
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
-  if (count === null) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -115,11 +112,18 @@ const CloudResources: FunctionComponent<
 
   return (
     <Fragment>
-      <CloudFleetSummary refreshToken={count} />
+      <CloudFleetSummary refreshToken={firstRecordWatch.count} />
       <ModelTable<CloudResource>
         modelType={CloudResource}
+        refreshToggle={firstRecordWatch.refreshToken}
+        emptyState={getFirstRunEmptyState({
+          emptyState: undefined,
+          count: firstRecordWatch.count,
+        })}
         id="cloud-resources-table"
         userPreferencesKey="cloud-resources-table"
+        // The list is of environments: not the model's "No cloud resources yet".
+        noItemsMessage="No cloud environments yet."
         query={{
           isArchived: false,
           /*
@@ -180,9 +184,7 @@ const CloudResources: FunctionComponent<
           return Promise.resolve(item);
         }}
         onCreateSuccess={(item: CloudResource): Promise<CloudResource> => {
-          setCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -206,7 +208,7 @@ const CloudResources: FunctionComponent<
         cardProps={{
           title: "Cloud Environments",
           description:
-            "Managed cloud compute environments auto-discovered from OpenTelemetry — one per cloud.platform + account + region (AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Elastic Beanstalk, App Runner). Per-service breakdown lives under Services.",
+            "Managed compute environments discovered from OpenTelemetry, one per platform, account and region, such as AWS ECS or Google Cloud Run.",
         }}
         formFields={[
           {
@@ -219,7 +221,7 @@ const CloudResources: FunctionComponent<
             required: true,
             placeholder: "Select a platform",
             description:
-              "The managed compute platform this environment runs on. Must equal the cloud.platform resource attribute your collector reports, or telemetry will never be matched to this environment.",
+              "The platform this environment runs on. It must match the cloud.platform your collector reports.",
             onChange: followWithDisplayName<CloudResource>({
               fieldKey: "cloudPlatform",
               getDefaultName: getCloudEnvironmentNameFromFields,
@@ -234,7 +236,7 @@ const CloudResources: FunctionComponent<
             required: false,
             placeholder: "123456789012",
             description:
-              "AWS account id, GCP project id or Azure subscription id — exactly as the cloud.account.id resource attribute reports it. Leave blank if your collector does not report one.",
+              "The AWS account, GCP project or Azure subscription id, as cloud.account.id reports it. Leave blank if it is not reported.",
             onChange: followWithDisplayName<CloudResource>({
               fieldKey: "cloudAccountId",
               getDefaultName: getCloudEnvironmentNameFromFields,
@@ -259,7 +261,7 @@ const CloudResources: FunctionComponent<
             getDefaultName: getCloudEnvironmentNameFromFields,
             placeholder: "AWS ECS · us-east-1 · 123456789012",
             description:
-              "Starts as platform · region · account, the way discovered environments are named. Type a name of your own to show it instead. Telemetry is still matched by the platform, account and region.",
+              "Starts as platform · region · account. Type your own name to show instead; telemetry is still matched by platform, account and region.",
             collapsibleSection: advancedSection,
           }),
           {
@@ -455,10 +457,10 @@ const CloudResources: FunctionComponent<
           );
         }}
       />
-      {count === 0 && (
+      {firstRecordWatch.count === 0 && (
         <CloudDocumentationCard
           title="Getting Started with Cloud Environments"
-          description="No cloud environments connected yet. Point your OpenTelemetry Collector at OneUptime with a cloud resource detector using the guide below — managed compute appears here automatically once the first telemetry arrives."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
     </Fragment>

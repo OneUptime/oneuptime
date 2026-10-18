@@ -75,7 +75,13 @@ const SOURCES: Record<string, string> = {
   ssoConfirmation: `${IDENTITY}/Utils/ProjectSsoSignInConfirmation.ts`,
   ssoConsent: "packages/Common/Server/Services/UserProjectSsoConsentService.ts",
   projectSsoPage: `${DASHBOARD}/Pages/Settings/SSO.tsx`,
-  projectOidcPage: `${DASHBOARD}/Pages/Settings/OIDC.tsx`,
+  // On the SSO page, under its SAML providers.
+  projectOidcProviders: `${DASHBOARD}/Components/Sso/ProjectOidcProviders.tsx`,
+  // What the SSO page calls its providers, and its test link's card.
+  projectSsoCopy: `${DASHBOARD}/Components/Sso/ProjectSsoCopy.ts`,
+  projectSignInTestCard: `${DASHBOARD}/Components/Sso/ProjectSignInTestCard.tsx`,
+  movedPagePaths: `${DASHBOARD}/Routes/MovedPagePaths.ts`,
+  settingsRoutes: `${DASHBOARD}/Routes/SettingsRoutes.tsx`,
   providerPickPage: `${DASHBOARD}/Pages/Onboarding/SSO.tsx`,
   dashboardRoutes: `${DASHBOARD}/Utils/RouteMap.ts`,
   settingsSideMenu: `${DASHBOARD}/Pages/Settings/SideMenu.tsx`,
@@ -118,13 +124,16 @@ const EE_SOURCES: Record<string, string> = {
 // A role's level: the last word of its title.
 const ROLE_LEVEL: RegExp = / (Admin|Member|Viewer)$/;
 
-// The test link of a project's SSO and OIDC pages: the project's /sso page.
+// The test link of a project's SSO page: the project's /sso page.
 const SSO_TEST_LINK: RegExp =
-  /const testUrl: string = `\$\{DASHBOARD_URL\.toString\(\)\}\/\$\{ProjectUtil\.getCurrentProjectId\(\)\?\.toString\(\)\}\/sso`;/;
+  /return `\$\{DASHBOARD_URL\.toString\(\)\}\/\$\{projectId\.toString\(\)\}\/sso`;/;
 
-// The global provider's two switches, both in the form's More fields section.
-const GLOBAL_SWITCHES_FOLDED: RegExp =
-  /withGlobalAccessSwitches\s*\?\s*\[\s*getSsoProviderDisableSignUpField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,\s*\}\),\s*getSsoProviderRestrictToAttachedProjectsField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,/;
+/*
+ * The global provider's two questions, both in the form's More fields
+ * section, each followed by the column it writes, registered unseen.
+ */
+const GLOBAL_QUESTIONS_FOLDED: RegExp =
+  /withGlobalAccessSwitches\s*\?\s*\[\s*getSsoProviderSignUpChoiceField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,\s*\}\),\s*getSsoProviderSignUpColumnField<TEntity>\(\{[^}]*\}\),\s*getSsoProviderReachChoiceField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,\s*\}\),\s*getSsoProviderReachColumnField<TEntity>\(/;
 
 // A SCIM page opens the dialog with its URLs once a connection is created.
 const SCIM_DIALOG_ON_CREATE: RegExp =
@@ -711,10 +720,37 @@ describe("the SSO guide", () => {
     }
   });
 
+  /*
+   * The project's SSO page names its two lists for what they hold, as a
+   * status page's lists do: Add SAML Provider and Add OIDC Provider, where
+   * they read Create SSO and Create OIDC after the models.
+   */
+  it("names the SSO page's buttons as the page draws them", () => {
+    const copy: string = readSource("projectSsoCopy");
+    const page: string = readSource("projectSsoPage");
+    const oidc: string = readSource("projectOidcProviders");
+
+    for (const [source, key, noun, button] of [
+      [page, "samlProvider", "SAML Provider", "Add SAML Provider"],
+      [oidc, "oidcProvider", "OIDC Provider", "Add OIDC Provider"],
+    ] as Array<[string, string, string, string]>) {
+      expect(copy).toContain(`${key}: translationKey("${noun}")`);
+      expect(source).toContain(`singularName={ProjectSsoCopy.${key}}`);
+      expect(source).toContain('createVerb="Add"');
+      expect({ button, named: english(SSO).includes(`**${button}**`) }).toEqual(
+        { button, named: true },
+      );
+    }
+
+    expect(english(SSO)).not.toContain("**Create SSO**");
+    expect(english(SSO)).not.toContain("**Create OIDC**");
+    expect(readSource("modelTable")).toContain(
+      'Add: translationKey("Add {{itemName}}")',
+    );
+  });
+
   it("names the create buttons after the models", () => {
     for (const [model, page] of [
-      [new ProjectSSO(), SSO],
-      [new ProjectOIDC(), SSO],
       [new ProjectSCIM(), SCIM],
       [new GlobalSSO(), GLOBAL_SSO],
       [new GlobalOIDC(), GLOBAL_SSO],
@@ -736,12 +772,20 @@ describe("the SSO guide", () => {
   });
 
   it("says the test link opens the project's providers, one of which you pick", () => {
-    for (const key of ["projectSsoPage", "projectOidcPage"]) {
-      expect({
-        key,
-        link: SSO_TEST_LINK.test(readSource(key)),
-      }).toEqual({ key, link: true });
-    }
+    // One link, on the SSO page, for its SAML and OIDC providers alike.
+    expect(SSO_TEST_LINK.test(readSource("projectSignInTestCard"))).toBe(true);
+    expect(readSource("projectSsoPage")).toContain("<ProjectSignInTestCard");
+    expect(readSource("projectOidcProviders")).not.toContain("testUrl");
+    // The card the docs name.
+    expect(readSource("projectSsoCopy")).toContain(
+      'testTitle: translationKey("Test Single Sign On (SSO)")',
+    );
+    expect(readSource("projectSignInTestCard")).toContain(
+      "<Card title={ProjectSsoCopy.testTitle}>",
+    );
+    expect(english(SSO)).toContain(
+      "6. Open the link in the **Test Single Sign On (SSO)** card and pick the provider, to sign in through it before you require SSO for the project.",
+    );
 
     expect(readSource("dashboardRoutes")).toContain(
       "[PageMap.PROJECT_SSO]: new Route(`/dashboard/${RouteParams.ProjectID}/sso`)",
@@ -769,8 +813,9 @@ describe("the SSO guide", () => {
 
     const settingsPage: string = readSource("projectSsoPage");
 
+    expect(settingsPage.indexOf("<ProjectSignInTestCard")).toBeGreaterThan(0);
     expect(settingsPage.indexOf("<RequireSsoForLoginCard")).toBeGreaterThan(
-      settingsPage.indexOf("title={`Test Single Sign On (SSO)`}"),
+      settingsPage.indexOf("<ProjectSignInTestCard"),
     );
 
     const page: string = english(SSO);
@@ -828,29 +873,47 @@ describe("the SSO guide", () => {
     }
   });
 
-  it("finds SSO, OIDC and SCIM under Security, in a project's settings and on a status page", () => {
-    for (const [key, heading] of [
-      ["settingsSideMenu", 'title: "Security",'],
-      ["statusPageSideMenu", '<SideMenuSection title="Security">'],
-    ] as Array<[string, string]>) {
-      const menu: string = readSource(key);
-      const start: number = menu.indexOf(heading);
+  it("finds SSO, OIDC and SCIM under Security on a status page, and SSO and SCIM in a project's settings", () => {
+    const status: string = readSource("statusPageSideMenu");
+    const statusSecurity: string = status.slice(
+      status.indexOf('<SideMenuSection title="Security">'),
+    );
+    const sso: number = statusSecurity.indexOf('title: "SSO"');
+    const oidc: number = statusSecurity.indexOf('title: "OIDC"');
+    const scim: number = statusSecurity.indexOf('title: "SCIM"');
 
-      expect({ key, section: start >= 0 }).toEqual({ key, section: true });
+    expect(status).toContain('<SideMenuSection title="Security">');
+    expect(sso >= 0 && sso < oidc && oidc < scim).toBe(true);
 
-      const security: string = menu.slice(start);
-      const sso: number = security.indexOf('title: "SSO"');
-      const oidc: number = security.indexOf('title: "OIDC"');
-      const scim: number = security.indexOf('title: "SCIM"');
+    /*
+     * A project's OpenID Connect providers are on its SSO page, under the
+     * SAML ones; the old OIDC address forwards there.
+     */
+    const settings: string = readSource("settingsSideMenu");
+    const settingsSecurity: string = settings.slice(
+      settings.indexOf('title: "Security",'),
+    );
+    const projectSso: number = settingsSecurity.indexOf('title: "SSO"');
+    const projectScim: number = settingsSecurity.indexOf('title: "SCIM"');
 
-      expect({ key, inOrder: sso >= 0 && sso < oidc && oidc < scim }).toEqual({
-        key,
-        inOrder: true,
-      });
-    }
+    expect(settings).toContain('title: "Security",');
+    expect(projectSso >= 0 && projectSso < projectScim).toBe(true);
+    expect(settingsSecurity.slice(0, projectScim)).not.toContain(
+      'title: "OIDC"',
+    );
+    expect(readSource("projectSsoPage")).toContain("<ProjectOidcProviders");
+    expect(readSource("movedPagePaths")).toContain(
+      'export const MOVED_OIDC_SETTINGS_PATH: string = "oidc";',
+    );
+    expect(readSource("settingsRoutes")).toMatch(
+      /path=\{MOVED_OIDC_SETTINGS_PATH\}\s*element=\{<MovedPageRedirect pageMap=\{PageMap\.SETTINGS_SSO\} \/>\}/,
+    );
 
     expect(english(SSO)).toContain(
       "Navigate to **Project Settings** > **Security** > **SSO**",
+    );
+    expect(english(SSO)).toContain(
+      "2. In OneUptime, go to **Project Settings** > **Security** > **SSO**. Under the SAML providers, click **Add OIDC Provider**.",
     );
     expect(english(SCIM)).toContain("Navigate to **Security** > **SCIM**");
   });
@@ -999,7 +1062,12 @@ describe("the Global SSO guide", () => {
     );
   });
 
-  it("says both switches start off, folded under More fields", () => {
+  /*
+   * "Disable Sign Up with SSO" and "Restrict to Attached Projects" were two
+   * switches; the form asks them as two questions, each starting on its
+   * first answer - off, as the columns start - written into those columns.
+   */
+  it("says both questions start on their first answer, folded under More fields", () => {
     for (const model of [new GlobalSSO(), new GlobalOIDC()]) {
       for (const column of [
         "disableSignUpWithSso",
@@ -1020,55 +1088,78 @@ describe("the Global SSO guide", () => {
     for (const key of ["samlFields", "oidcFields"]) {
       expect({
         key,
-        folded: GLOBAL_SWITCHES_FOLDED.test(readSource(key)),
+        folded: GLOBAL_QUESTIONS_FOLDED.test(readSource(key)),
       }).toEqual({ key, folded: true });
     }
 
     expect(english(GLOBAL_SSO)).toContain(
-      "Two switches on the provider change this. Both start off, folded under **More fields**:",
+      "Two questions on the provider change this, folded under **More fields**. Each starts on its first answer:",
     );
   });
 
-  it("says what each switch does in the words the form gives it", () => {
+  it("names each question and its answers in the words the form gives them, the first answer first", () => {
     const fields: string = readSource("providerFields");
     const page: string = english(GLOBAL_SSO);
-    const disable: string = translationKeyText(
+
+    const signUp: string = translationKeyText(
       fields,
-      "SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION",
+      "SSO_GLOBAL_SIGN_UP_TITLE",
     );
-    const restrict: string = translationKeyText(
-      fields,
-      "SSO_GLOBAL_RESTRICT_DESCRIPTION",
-    );
-    const [, disableRow] = tableRow(page, "**Disable Sign Up with SSO**") as [
-      string,
-      string,
-    ];
-    const [, restrictRow] = tableRow(
-      page,
-      "**Restrict to Attached Projects**",
-    ) as [string, string];
+    const reach: string = translationKeyText(fields, "SSO_GLOBAL_REACH_TITLE");
 
-    // "When on, ..." is the table's column heading.
-    expect(disable.startsWith("When on, ")).toBe(true);
-    expect(restrict.startsWith("When on, ")).toBe(true);
+    // The answers, in the order the form offers them: off first.
+    const answersOf: (constant: string) => Array<string> = (
+      constant: string,
+    ): Array<string> => {
+      const start: number = fields.indexOf(`export const ${constant}`);
+      const block: string = fields.slice(start, fields.indexOf("];", start));
 
-    const sentence: (text: string) => string = (text: string): string => {
-      const rest: string = text.slice("When on, ".length);
-
-      return rest.charAt(0).toUpperCase() + rest.slice(1);
+      return [...block.matchAll(/title: translationKey\("([^"]+)"\)/g)].map(
+        (match: RegExpMatchArray): string => {
+          return match[1] as string;
+        },
+      );
     };
 
-    expect(restrictRow).toBe(sentence(restrict));
+    const signUpAnswers: Array<string> = answersOf(
+      "SSO_GLOBAL_SIGN_UP_CHOICES",
+    );
+    const reachAnswers: Array<string> = answersOf("SSO_GLOBAL_REACH_CHOICES");
 
-    // The table adds that it holds even when projects are attached.
-    const [firstSentence, secondSentence] = sentence(disable).split(". ") as [
-      string,
-      string,
-    ];
+    expect(signUpAnswers).toEqual([
+      "Get one on their first sign-in",
+      "Must be invited first",
+    ]);
+    expect(reachAnswers).toEqual(["Every project", "Attached projects only"]);
 
-    expect(disableRow).toBe(
-      `${firstSentence}, even when projects are attached. ${secondSentence}`,
+    const [, signUpRow] = tableRow(page, `**${signUp}**`) as [string, string];
+    const [, reachRow] = tableRow(page, `**${reach}**`) as [string, string];
+
+    for (const [row, answers] of [
+      [signUpRow, signUpAnswers],
+      [reachRow, reachAnswers],
+    ] as Array<[string, Array<string>]>) {
+      expect(row.indexOf(`**${answers[0]}**:`)).toBe(0);
+      expect(row.indexOf(`**${answers[1]}**:`)).toBeGreaterThan(0);
+    }
+
+    // What restricting does, as the restriction always said it.
+    expect(reachRow).toContain(
+      "signing in with this provider meets SSO enforcement only in its attached projects, so people already signed in can lose access to the others.",
+    );
+    // A newcomer gets an account only when there is a project to put them in.
+    expect(signUpRow).toContain(
+      "with none attached, they must be invited first",
+    );
+    expect(readSource("globalSsoApi")).toContain(
+      "Boolean(globalSso.disableSignUpWithSso) || isDefaultAllMode;",
+    );
+
+    // The troubleshooting names the answer that turns people away.
+    expect(page).toContain(`**${signUp}** is set to **${signUpAnswers[1]}**`);
+    expect(page).toContain(`**${reach}** is set to **${reachAnswers[1]}**`);
+    expect(page).not.toMatch(
+      /Disable Sign Up with SSO|Restrict to Attached Projects/,
     );
   });
 });

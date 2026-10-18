@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 import McpOAuthGrant from "../../../Models/DatabaseModels/McpOAuthGrant";
 import User from "../../../Models/DatabaseModels/User";
@@ -19,6 +25,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import { ModalTableBulkDefaultActions } from "../../../UI/Components/ModelTable/BaseModelTable";
+import { CODE_BLOCK_WRAP_CLASS_NAME } from "../../../UI/Components/CodeBlock/CodeBlock";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import Navigation from "../../../UI/Utils/Navigation";
 
@@ -45,9 +52,13 @@ import Navigation from "../../../UI/Utils/Navigation";
  *    a metadata document - the one part of a client's identity the client did
  *    not simply type.
  *
- * THE SNIPPETS are copied into terminals and config files, so they have to
- * name this instance's own /mcp endpoint, and the sign-in ones must carry no
- * credential at all.
+ * THE MCP SERVER CARD asks how a client signs in, then shows the setup of
+ * the one client picked for that way only (the page had an Authentication
+ * card, then every client's setup twice on a card each). Its snippets are
+ * copied into terminals and config files, so they have to name this
+ * instance's own /mcp endpoint, and the sign-in ones must carry no
+ * credential at all. And its words are the card's body: a card description
+ * is a <p> that phones never show.
  *
  * ModelTable is a stand-in that draws the page's own columns over a few
  * rows, so the cells the page renders are the page's real getElement output.
@@ -303,24 +314,40 @@ const snippets: SnippetsFunction = (container: HTMLElement): Array<string> => {
 
 type CardFunction = (title: string) => HTMLElement;
 
-/*
- * The card with this title: the nearest ancestor of the heading that also
- * holds the card's body.
- */
+// The card with this title, its header and its body.
 const card: CardFunction = (title: string): HTMLElement => {
-  let node: HTMLElement | null = screen.getByText(title, {
-    selector: "h1, h2, h3, h4",
-  });
+  const found: HTMLElement | null = screen
+    .getByText(title, {
+      selector: "h1, h2, h3, h4",
+    })
+    .closest('[data-testid="card"]');
 
-  while (node && !node.querySelector("p")) {
-    node = node.parentElement;
-  }
-
-  if (!node) {
+  if (!found) {
     throw new Error(`No card titled "${title}"`);
   }
 
-  return node;
+  return found;
+};
+
+type PickFunction = (choice: string) => void;
+
+// Picks how the client signs in.
+const pickSignIn: PickFunction = (choice: string): void => {
+  fireEvent.click(
+    within(screen.getByTestId("mcp-sign-in")).getByLabelText(choice),
+  );
+};
+
+// Opens a client's tab.
+const pickClient: PickFunction = (client: string): void => {
+  fireEvent.click(screen.getByRole("tab", { name: client }));
+};
+
+type SetupFunction = () => HTMLElement;
+
+// The setup the open tab shows: its sentence and its snippet, if any.
+const setup: SetupFunction = (): HTMLElement => {
+  return screen.getByRole("tabpanel");
 };
 
 type IsBeforeFunction = (first: Node, second: Node) => boolean;
@@ -467,7 +494,7 @@ describe("the Connected MCP Clients table", () => {
       expect(confirmation.title).toBe("Disconnect MCP Client");
       expect(confirmation.submitButtonText).toBe("Disconnect");
       expect(confirmation.description).toBe(
-        'Disconnect "Claude"? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.',
+        'Disconnect "Claude"? It is signed out at once and must connect again to work here. Nothing it created is deleted.',
       );
 
       /*
@@ -487,7 +514,7 @@ describe("the Connected MCP Clients table", () => {
         await tableProps().getDeleteConfirmation!(BARE);
 
       expect(confirmation.description).toBe(
-        "Disconnect this MCP client? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.",
+        "Disconnect this MCP client? It is signed out at once and must connect again to work here. Nothing it created is deleted.",
       );
     });
 
@@ -896,82 +923,528 @@ describe("the Connected MCP Clients table", () => {
   });
 });
 
-describe("how the page explains authentication", () => {
-  test("signing in is presented first, an API key second", () => {
-    renderPage();
+describe("the MCP Server card", () => {
+  test("shows this instance's own /mcp address before anything else", () => {
+    const { container } = renderPage();
 
-    const authentication: HTMLElement = card("Authentication");
-
-    expect(authentication).toHaveTextContent(
-      "There are two ways for an MCP client to authenticate.",
-    );
-
-    const signIn: HTMLElement = within(authentication).getByText(
-      "Sign in with OneUptime.",
-    );
-    const apiKey: HTMLElement = within(authentication).getByText("API key.");
-
-    expect(signIn.tagName).toBe("STRONG");
-    expect(apiKey.tagName).toBe("STRONG");
-    expect(isBefore(signIn, apiKey)).toBe(true);
+    expect(snippets(container)[0]).toBe(MCP_URL);
+    expect(within(card("MCP Server")).getByText(MCP_URL)).toBeInTheDocument();
+    expect(
+      within(card("MCP Server")).getByText("Server URL", { selector: "h3" }),
+    ).toBeInTheDocument();
   });
 
-  test("says what signing in gives the client: the member's own permissions, in this project, and nothing to copy", () => {
+  test("its address, its choice and its setup are the card's body, which a phone shows too", () => {
     renderPage();
 
-    const signIn: HTMLElement = within(card("Authentication"))
-      .getByText("Sign in with OneUptime.")
-      .closest("p") as HTMLElement;
+    /*
+     * Card draws a description inside a <p> hidden below md: the page had
+     * the address and every setup there, so a phone showed none of them.
+     */
+    const description: HTMLElement | null = within(
+      card("MCP Server"),
+    ).queryByTestId("card-description");
 
-    expect(signIn).toHaveTextContent(
-      "Add the server URL to your MCP client with no credentials.",
+    for (const shown of [
+      screen.getByText(MCP_URL),
+      screen.getByTestId("mcp-sign-in"),
+      setup(),
+    ]) {
+      expect(description?.contains(shown) ?? false).toBe(false);
+      expect(shown.closest(".max-md\\:hidden")).toBeNull();
+    }
+  });
+
+  test("draws no paragraph, list or block inside a paragraph", () => {
+    /*
+     * Read off the DOM, not React's warning: React gives that once per
+     * process, and an earlier render in this file would have used it up.
+     */
+    const NESTED: string = ["p", "div", "ul", "ol", "pre", "h3", "table"]
+      .map((tag: string): string => {
+        return `p ${tag}`;
+      })
+      .join(", ");
+
+    const { container } = renderPage();
+    const nested: Array<string> = [];
+
+    for (const signIn of ["OneUptime", "API key"]) {
+      pickSignIn(signIn);
+
+      for (const client of [
+        "Claude Code",
+        "Claude Desktop",
+        "VS Code",
+        "Cursor",
+      ]) {
+        pickClient(client);
+        container.querySelectorAll(NESTED).forEach((element: Element) => {
+          nested.push(`${signIn} / ${client}: <${element.tagName}>`);
+        });
+      }
+    }
+
+    expect(nested).toEqual([]);
+  });
+});
+
+describe("how a client signs in", () => {
+  test("is one choice: OneUptime first and picked, an API key second", () => {
+    renderPage();
+
+    const choice: HTMLElement = screen.getByTestId("mcp-sign-in");
+    const options: Array<HTMLInputElement> = within(choice).getAllByRole(
+      "radio",
+    ) as Array<HTMLInputElement>;
+
+    expect(choice).toHaveAccessibleName("Sign in with");
+    expect(
+      options.map((option: HTMLInputElement): string => {
+        return (
+          choice.querySelector(`label[for="${option.id}"]`)?.textContent || ""
+        );
+      }),
+    ).toEqual(["OneUptime", "API key"]);
+    expect(
+      options.map((option: HTMLInputElement): boolean => {
+        return option.checked;
+      }),
+    ).toEqual([true, false]);
+  });
+
+  test("says in a line under each answer what it means", () => {
+    renderPage();
+
+    const signIn: HTMLElement = within(
+      screen.getByTestId("mcp-sign-in"),
+    ).getByLabelText("OneUptime");
+    const apiKey: HTMLElement = within(
+      screen.getByTestId("mcp-sign-in"),
+    ).getByLabelText("API key");
+
+    // Signing in: the member's own permissions and never more, read only if chosen.
+    expect(signIn).toHaveAccessibleDescription(
+      "The client opens OneUptime for you to sign in, then acts as you, with your permissions and never more. You can limit it to read only.",
     );
-    expect(signIn).toHaveTextContent(
-      "decide whether the client may only read or may also make changes",
-    );
-    expect(signIn).toHaveTextContent(
-      "with your permissions in this project and never more",
-    );
-    expect(signIn).toHaveTextContent(
-      "Clients connected this way are listed below, where you can disconnect them.",
+    expect(apiKey).toHaveAccessibleDescription(
+      "For an agent that runs unattended, such as a scheduled job. It acts with the key's permissions, in the key's project.",
     );
   });
 
-  test("still warns against handing an agent a master API key", () => {
+  test("signing in: says where a connected client is listed and disconnected", () => {
     renderPage();
 
-    const apiKey: HTMLElement = within(card("Authentication"))
-      .getByText("API key.")
-      .closest("p") as HTMLElement;
+    const note: HTMLElement = screen.getByTestId("mcp-sign-in-note");
 
-    expect(apiKey).toHaveTextContent(
-      "Never give an AI agent a master API key — it would grant instance-wide admin access across all projects.",
+    expect(note).toHaveTextContent(
+      "Clients connected this way are listed under Connected MCP Clients, where you can disconnect them.",
     );
-    expect(apiKey).toHaveTextContent("least-privilege permissions");
-    expect(within(apiKey).getByText("x-api-key").tagName).toBe("CODE");
+    expect(within(note).queryByRole("link")).toBeNull();
   });
 
-  test("links to this project's API keys", () => {
+  test("an API key: links to this project's API keys and still warns against a master key", () => {
     renderPage();
+    pickSignIn("API key");
 
-    const link: HTMLElement = within(card("Authentication")).getByRole("link");
+    const note: HTMLElement = screen.getByTestId("mcp-sign-in-note");
+    const link: HTMLElement = within(note).getByRole("link");
 
     expect(link).toHaveTextContent("Project Settings → Advanced → API Keys");
     expect(link).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/settings/api-keys`,
     );
+    expect(note).toHaveTextContent(
+      "Create a key in Project Settings → Advanced → API Keys with the least access the agent needs.",
+    );
+    expect(note).toHaveTextContent(
+      "Never give an agent a master API key: it grants admin access to the whole instance.",
+    );
+  });
+});
+
+// Every client, each way: the sentence's own words and the snippet to copy.
+const SETUPS: Array<[string, string, string, string | null]> = [
+  [
+    "Claude Code",
+    "OneUptime",
+    "Add the server, then run /mcp inside Claude Code and choose OneUptime to sign in:",
+    `claude mcp add --transport http oneuptime ${MCP_URL}`,
+  ],
+  [
+    "Claude Code",
+    "API key",
+    "Add the server with your API key:",
+    `claude mcp add --transport http oneuptime ${MCP_URL} --header "x-api-key: your-api-key-here"`,
+  ],
+  [
+    "Claude Desktop",
+    "OneUptime",
+    "In Claude, open Customize → Connectors, choose Add custom connector and enter the server URL above. Claude asks you to sign in to OneUptime the first time it needs your data.",
+    null,
+  ],
+  [
+    "Claude Desktop",
+    "API key",
+    "Add this to claude_desktop_config.json:",
+    JSON.stringify(
+      {
+        mcpServers: {
+          oneuptime: {
+            transport: "streamable-http",
+            url: MCP_URL,
+            headers: { "x-api-key": "your-api-key-here" },
+          },
+        },
+      },
+      null,
+      2,
+    ),
+  ],
+  [
+    "VS Code",
+    "OneUptime",
+    "Add this to .vscode/mcp.json. VS Code opens OneUptime for you to sign in when you start the server:",
+    JSON.stringify(
+      { servers: { oneuptime: { type: "http", url: MCP_URL } } },
+      null,
+      2,
+    ),
+  ],
+  [
+    "VS Code",
+    "API key",
+    "Add this to .vscode/mcp.json. VS Code asks for your API key when you start the server:",
+    JSON.stringify(
+      {
+        servers: {
+          oneuptime: {
+            type: "http",
+            url: MCP_URL,
+            headers: { "x-api-key": "${input:oneuptime-api-key}" },
+          },
+        },
+        inputs: [
+          {
+            type: "promptString",
+            id: "oneuptime-api-key",
+            description: "OneUptime API Key",
+            password: true,
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+  ],
+  [
+    "Cursor",
+    "OneUptime",
+    "Add this to ~/.cursor/mcp.json. Cursor opens OneUptime for you to sign in:",
+    JSON.stringify({ mcpServers: { oneuptime: { url: MCP_URL } } }, null, 2),
+  ],
+  [
+    "Cursor",
+    "API key",
+    "Add this to ~/.cursor/mcp.json:",
+    JSON.stringify(
+      {
+        mcpServers: {
+          oneuptime: {
+            url: MCP_URL,
+            headers: { "x-api-key": "your-api-key-here" },
+          },
+        },
+      },
+      null,
+      2,
+    ),
+  ],
+];
+
+type AllSnippetsFunction = () => Array<string>;
+
+// Every client's snippet, each way, as the page shows them one at a time.
+const allSetupSnippets: AllSnippetsFunction = (): Array<string> => {
+  const found: Array<string> = [];
+
+  for (const signIn of ["OneUptime", "API key"]) {
+    pickSignIn(signIn);
+
+    for (const client of [
+      "Claude Code",
+      "Claude Desktop",
+      "VS Code",
+      "Cursor",
+    ]) {
+      pickClient(client);
+      found.push(...snippets(setup()));
+    }
+  }
+
+  return found;
+};
+
+describe("a client's setup", () => {
+  test("is a tab per client, Claude Code first and open", () => {
+    renderPage();
+
+    const tabs: Array<HTMLElement> = within(
+      screen.getByTestId("mcp-server-connect"),
+    ).getAllByRole("tab");
+
+    expect(
+      tabs.map((tab: HTMLElement): string => {
+        return tab.textContent || "";
+      }),
+    ).toEqual(["Claude Code", "Claude Desktop", "VS Code", "Cursor"]);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(setup()).toHaveTextContent("inside Claude Code");
   });
 
-  test("the table of connected clients sits right under that explanation, above the snippets", () => {
+  test("the four clients wrap onto a second line on a phone, so Cursor is never scrolled out of sight", () => {
+    renderPage();
+
+    const row: HTMLElement = within(
+      screen.getByTestId("mcp-server-connect"),
+    ).getByRole("tablist");
+
+    // A row that scrolls hid VS Code and Cursor past the edge at 390px.
+    expect(row).toHaveClass("flex-wrap");
+    expect(row).not.toHaveClass("overflow-x-auto");
+  });
+
+  test("a client's setup lines up with the address and the sign-in choice above it", () => {
+    renderPage();
+
+    const panel: HTMLElement = within(
+      screen.getByTestId("mcp-server-connect"),
+    ).getByRole("tabpanel");
+
+    // The shared panel's ml-1 set the setup 4px in from the rest of the card.
+    expect(panel).not.toHaveClass("ml-1");
+    expect(panel).toContainElement(setup());
+  });
+
+  test.each(SETUPS)(
+    "%s, signing in with %s: the one setup for that client and that way",
+    (
+      client: string,
+      signIn: string,
+      sentence: string,
+      snippet: string | null,
+    ) => {
+      renderPage();
+      pickSignIn(signIn);
+      pickClient(client);
+
+      const shown: HTMLElement = setup();
+
+      expect(shown.querySelector("p")).toHaveTextContent(sentence, {
+        normalizeWhitespace: true,
+      });
+      expect(snippets(shown)).toEqual(snippet === null ? [] : [snippet]);
+    },
+  );
+
+  test("the tab stays open when the way of signing in changes, and its setup follows", () => {
+    renderPage();
+    pickClient("Cursor");
+    pickSignIn("API key");
+
+    expect(screen.getByRole("tab", { name: "Cursor" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(snippets(setup())[0]).toContain('"x-api-key"');
+
+    pickSignIn("OneUptime");
+
+    expect(snippets(setup())[0]).not.toContain("x-api-key");
+  });
+
+  test("the page shows the address and one setup at a time: no client's setup twice", () => {
+    const { container } = renderPage();
+
+    expect(snippets(container)).toHaveLength(2);
+
+    pickSignIn("API key");
+
+    expect(snippets(container)).toHaveLength(2);
+  });
+
+  test("the address and a command wrap on a narrow screen; a file's JSON keeps its lines", () => {
+    const { container } = renderPage();
+
+    type WrapsFunction = (block: Element) => boolean;
+
+    const wraps: WrapsFunction = (block: Element): boolean => {
+      return block.className.includes(CODE_BLOCK_WRAP_CLASS_NAME);
+    };
+
+    const codeBlocks: () => Array<Element> = (): Array<Element> => {
+      return Array.from(container.querySelectorAll("pre > code"));
+    };
+
+    // The address, and Claude Code's command.
+    expect(codeBlocks().map(wraps)).toEqual([true, true]);
+
+    pickSignIn("API key");
+
+    expect(codeBlocks().map(wraps)).toEqual([true, true]);
+
+    for (const client of ["Claude Desktop", "VS Code", "Cursor"]) {
+      pickClient(client);
+
+      expect({ client, wraps: codeBlocks().map(wraps) }).toEqual({
+        client,
+        wraps: [true, false],
+      });
+    }
+  });
+
+  test("each sentence keeps its command, file or menu in place, drawn as such", () => {
+    renderPage();
+
+    expect(within(setup()).getByText("/mcp").tagName).toBe("CODE");
+
+    pickClient("Claude Desktop");
+
+    expect(within(setup()).getByText("Customize → Connectors").tagName).toBe(
+      "STRONG",
+    );
+    expect(within(setup()).getByText("Add custom connector").tagName).toBe(
+      "STRONG",
+    );
+
+    pickClient("VS Code");
+
+    expect(within(setup()).getByText(".vscode/mcp.json").tagName).toBe("CODE");
+
+    pickClient("Cursor");
+
+    expect(within(setup()).getByText("~/.cursor/mcp.json").tagName).toBe(
+      "CODE",
+    );
+
+    pickSignIn("API key");
+    pickClient("Claude Desktop");
+
+    expect(
+      within(setup()).getByText("claude_desktop_config.json").tagName,
+    ).toBe("CODE");
+  });
+
+  test("signing in, no snippet carries a key or a header", () => {
+    renderPage();
+    pickSignIn("OneUptime");
+
+    for (const client of [
+      "Claude Code",
+      "Claude Desktop",
+      "VS Code",
+      "Cursor",
+    ]) {
+      pickClient(client);
+
+      for (const snippet of snippets(setup())) {
+        expect({ client, snippet }).toEqual({
+          client,
+          snippet: expect.not.stringMatching(/header|api-key|x-api-key/i),
+        });
+      }
+    }
+  });
+
+  test("with an API key, every snippet sends it in x-api-key, and VS Code asks for it rather than keep it in the file", () => {
+    renderPage();
+    pickSignIn("API key");
+
+    for (const client of [
+      "Claude Code",
+      "Claude Desktop",
+      "VS Code",
+      "Cursor",
+    ]) {
+      pickClient(client);
+
+      const [snippet] = snippets(setup());
+
+      expect({ client, sendsKey: snippet?.includes("x-api-key") }).toEqual({
+        client,
+        sendsKey: true,
+      });
+    }
+
+    pickClient("VS Code");
+
+    expect(snippets(setup())[0]).not.toContain("your-api-key-here");
+    expect(snippets(setup())[0]).toContain('"password": true');
+  });
+
+  test("every snippet names this instance, and none names another", () => {
+    renderPage();
+
+    const all: Array<string> = allSetupSnippets();
+
+    expect(all).toHaveLength(7);
+
+    for (const snippet of all) {
+      expect(snippet).toContain(MCP_URL);
+      // Not the cloud's address on a self-hosted instance.
+      expect(snippet).not.toContain("oneuptime.com/mcp");
+      expect(snippet).not.toContain("localhost");
+    }
+  });
+
+  test("no snippet contains anything that looks like a real credential", () => {
+    renderPage();
+
+    const LOOKS_LIKE_A_SECRET: RegExp =
+      /oumcp_|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+    for (const snippet of allSetupSnippets()) {
+      expect(LOOKS_LIKE_A_SECRET.test(snippet)).toBe(false);
+    }
+  });
+});
+
+describe("the page's other cards", () => {
+  test("the table of connected clients sits right under the MCP Server card, above What agents can do", () => {
     renderPage();
 
     const table: HTMLElement = screen.getByTestId(
       "model-table-mcp-client-authorizations-table",
     );
 
-    expect(isBefore(card("Authentication"), table)).toBe(true);
-    expect(isBefore(table, card("Connect Claude Code"))).toBe(true);
+    expect(isBefore(card("MCP Server"), table)).toBe(true);
+    expect(isBefore(table, card("What agents can do"))).toBe(true);
+  });
+
+  test("the page no longer explains signing in on a card of its own, or gives a card per client", () => {
+    renderPage();
+
+    for (const title of [
+      "Authentication",
+      "Connect Claude Code",
+      "Connect Claude Desktop",
+      "Connect VS Code or Cursor",
+    ]) {
+      expect(
+        screen.queryByText(title, { selector: "h1, h2, h3, h4" }),
+      ).toBeNull();
+    }
+  });
+
+  test("What agents can do is the card's body, which a phone shows too", () => {
+    renderPage();
+
+    const agents: HTMLElement = card("What agents can do");
+    const safety: HTMLElement = within(agents).getByText(/^Safety:/);
+
+    expect(within(agents).queryByTestId("card-description")).toBeNull();
+    expect(safety.closest(".max-md\\:hidden")).toBeNull();
   });
 
   test("links to the documentation in a new tab", () => {
@@ -989,118 +1462,40 @@ describe("how the page explains authentication", () => {
     renderPage();
 
     expect(card("What agents can do")).toHaveTextContent(
-      "A client connected by sign-in can also be limited to read-only access when it is authorized.",
+      "A client connected by sign-in can be limited to read only.",
     );
   });
-});
 
-describe("the connect snippets", () => {
-  test("the server address shown is this instance's own /mcp endpoint", () => {
-    const { container } = renderPage();
-
-    expect(snippets(container)[0]).toBe(MCP_URL);
-    expect(within(card("MCP Server")).getByText(MCP_URL)).toBeInTheDocument();
-  });
-
-  test("every snippet names this instance, and none names another", () => {
-    const { container } = renderPage();
-
-    const all: Array<string> = snippets(container);
-
-    expect(all).toHaveLength(5);
-
-    for (const snippet of all) {
-      expect(snippet).toContain(MCP_URL);
-      // Not the cloud's address on a self-hosted instance.
-      expect(snippet).not.toContain("oneuptime.com/mcp");
-      expect(snippet).not.toContain("localhost");
-    }
-  });
-
-  test("Claude Code: sign-in first with no credential, the API key variant second", () => {
-    const { container } = renderPage();
-
-    const claudeCode: HTMLElement = card("Connect Claude Code");
-    const commands: Array<string> = snippets(claudeCode);
-
-    expect(commands).toEqual([
-      `claude mcp add --transport http oneuptime ${MCP_URL}`,
-      `claude mcp add --transport http oneuptime ${MCP_URL} --header "x-api-key: your-api-key-here"`,
-    ]);
-
-    expect(commands[0]).not.toContain("--header");
-    expect(commands[0]).not.toContain("api-key");
-    expect(claudeCode).toHaveTextContent("choose OneUptime to sign in");
-    expect(claudeCode).toHaveTextContent(
-      "Or connect with an API key instead of signing in:",
-    );
-
-    // Same blocks, found from the page as a whole.
-    expect(snippets(container).slice(1, 3)).toEqual(commands);
-  });
-
-  test("Claude Desktop: the connector route is described before the API key config", () => {
+  test("says what agents can do in the reader's words, not the protocol's", () => {
     renderPage();
 
-    const desktop: HTMLElement = card("Connect Claude Desktop");
-    const configs: Array<string> = snippets(desktop);
-
-    expect(desktop).toHaveTextContent("Add custom connector");
-    expect(desktop).toHaveTextContent(
-      "Claude asks you to sign in to OneUptime the first time it needs your data.",
-    );
-
-    expect(configs).toHaveLength(1);
-    expect(JSON.parse(configs[0]!)).toEqual({
-      mcpServers: {
-        oneuptime: {
-          transport: "streamable-http",
-          url: MCP_URL,
-          headers: { "x-api-key": "your-api-key-here" },
-        },
-      },
-    });
+    const agents: HTMLElement = card("What agents can do");
 
     expect(
-      isBefore(
-        within(desktop).getByText("Add custom connector"),
-        desktop.querySelector("pre") as Element,
-      ),
-    ).toBe(true);
-  });
+      within(agents)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual([
+      "Incident response: acknowledge and resolve incidents and alerts, add notes and post status page updates.",
+      "Investigation: search logs, metrics, traces, exceptions and monitor results over a time range.",
+      "Management: create, change and delete incidents, alerts, monitors, status pages, on-call policies, teams, labels and more.",
+      "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.",
+    ]);
 
-  test("VS Code or Cursor: the config has no credential in it, and says the editor opens OneUptime to sign in", () => {
-    renderPage();
-
-    const editor: HTMLElement = card("Connect VS Code or Cursor");
-    const configs: Array<string> = snippets(editor);
-
-    expect(configs).toHaveLength(1);
-    expect(JSON.parse(configs[0]!)).toEqual({
-      servers: {
-        oneuptime: {
-          type: "http",
-          url: MCP_URL,
-        },
-      },
-    });
-    expect(configs[0]).not.toContain("headers");
-    expect(configs[0]).not.toContain("api-key");
-
-    expect(editor).toHaveTextContent(
-      "The editor opens OneUptime for you to sign in",
-    );
-    expect(editor).toHaveTextContent("To use an API key instead");
-  });
-
-  test("no snippet contains anything that looks like a real credential", () => {
-    const { container } = renderPage();
-
-    const LOOKS_LIKE_A_SECRET: RegExp =
-      /oumcp_|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-
-    for (const snippet of snippets(container)) {
-      expect(LOOKS_LIKE_A_SECRET.test(snippet)).toBe(false);
+    for (const jargon of [
+      "create/read/update/delete",
+      "annotated",
+      "auto-approve",
+      "tool call",
+      "time-range filters",
+    ]) {
+      expect(agents.textContent).not.toContain(jargon);
     }
+
+    expect(agents).toHaveTextContent(
+      "See the MCP server documentation for every tool.",
+    );
   });
 });

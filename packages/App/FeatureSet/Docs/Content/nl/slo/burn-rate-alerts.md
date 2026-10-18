@@ -79,7 +79,7 @@ Open de SLO, ga naar **Burn Rate Rules** en klik op **SLO Burn Rate Rule aanmake
 
 ### De regel een naam geven
 
-Vul onder **Rule** een **Naam** in, zoals "Fast burn". **Ingeschakeld** staat aan.
+Vul onder **Rule** een **Naam** in, zoals "Fast burn". Een nieuwe regel staat aan; zet later **Ingeschakeld** uit op het bewerkformulier als hij niet meer mag afgaan.
 
 ### Het verbruiksvenster instellen
 
@@ -87,7 +87,7 @@ Stel onder **Burn Window** de **Burn Rate Threshold** in (bijvoorbeeld `14.4`), 
 
 ### Kiezen wat hij meldt
 
-Zet onder **What It Declares** **Waarschuwing maken**, **Incident melden** of allebei aan. **Add SLO Owners as Owners** maakt de eigenaren van de SLO ook eigenaar van alles wat de regel aanmaakt.
+Beantwoord onder **What It Declares** de vraag **Wanneer hij afgaat**: **Een waarschuwing maken**, de standaard, **Een incident melden** of **Beide**. **Add SLO Owners as Owners** maakt de eigenaren van de SLO ook eigenaar van alles wat de regel aanmaakt.
 
 ### De waarschuwing en het incident beschrijven
 
@@ -103,18 +103,18 @@ OneUptime controleert de getallen van een regel als u hem opslaat:
 | **Long Window (Minutes)** | Langer dan het korte venster. |
 | **Re-fire Suppression (Minutes)** | 0 of meer. Leeg betekent de lengte van het lange venster. |
 
-Een regel moet een waarschuwing maken, een incident melden of allebei: een regel waarbij beide uit staan, wordt geweigerd, omdat hij bij elke evaluatie zou worden gecontroleerd zonder ooit iets te melden.
+Elk antwoord op **Wanneer hij afgaat** opent iets. De API weigert een regel die geen waarschuwing zou maken en geen incident zou melden, omdat hij bij elke evaluatie zou worden gecontroleerd zonder ooit iets te melden.
 
 De regeltabel toont voor elke regel de drempel, de vensters en de onderdrukking, wat hij meldt (en of de waarschuwing of het incident alleen met de hand wordt opgelost, of privé is), de ernstniveaus, het bereikbaarheidsbeleid, de eigenaren en de labels.
 
 > [!TIP]
-> Een goed begin: houd de twee standaardregels, stuur de regel voor snel verbruik met een hoge ernst naar uw bereikbaarheidsbeleid dat mensen oproept, en laat de regel voor langzaam verbruik een waarschuwing met lagere ernst geven voor kantooruren. Werkt uw team met incidenten, zet dan **Incident melden** aan op de regel voor snel verbruik, en zet daar **Waarschuwing maken** uit als u niet allebei wilt krijgen.
+> Een goed begin: houd de twee standaardregels, stuur de regel voor snel verbruik met een hoge ernst naar uw bereikbaarheidsbeleid dat mensen oproept, en laat de regel voor langzaam verbruik een waarschuwing met lagere ernst geven voor kantooruren. Werkt uw team met incidenten, kies dan **Een incident melden** voor de regel voor snel verbruik, of **Beide** om ook een waarschuwing te krijgen.
 
 ## Wat een regel meldt
 
-|  | **Waarschuwing maken** | **Incident melden** |
+|  | **Waarschuwing** | **Incident** |
 | --- | --- | --- |
-| Bij het begin | Aan | Uit |
+| Geopend door | **Een waarschuwing maken**, de standaard, of **Beide** | **Een incident melden** of **Beide** |
 | Wat het is | Het lichte signaal: komt in de lijst met waarschuwingen. | Het zware signaal: krijgt een incidentnummer en start het hele responsproces. |
 | Titel en beschrijving | Eigen, of de standaardtekst | Eigen, of de standaardtekst |
 | Ernst | **Ernst van waarschuwing**: de hoogste van het project als leeg | **Ernst van incident**: de hoogste van het project als leeg |
@@ -195,7 +195,7 @@ Labels, eigenaarsteams en bereikbaarheidsbeleid moeten bij het project van de SL
 
 Sommige wijzigingen lossen altijd op wat een regel heeft geopend, wat de instellingen voor automatisch oplossen ook zeggen, zodat niets blijft escaleren voor een regel die het niet meer kan rechtvaardigen:
 
-- **Waarschuwing maken** of **Incident melden** uitzetten sluit wat die uitvoer had geopend;
+- **Wanneer hij afgaat** zo wijzigen dat de waarschuwing of het incident wegvalt, sluit wat die uitvoer had geopend;
 - de regel uitzetten of verwijderen;
 - de evaluatie van de SLO uitzetten, de SLO archiveren of verwijderen;
 - de SLO die naar **Gepauzeerd** of **Misconfigured** gaat, omdat hij dan niets meet;

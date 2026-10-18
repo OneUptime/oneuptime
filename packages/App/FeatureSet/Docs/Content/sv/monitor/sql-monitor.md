@@ -139,7 +139,7 @@ Välj de **Sonder** som når databasen och ett **Övervakningsintervall**, och k
 | **Värd** | Databasvärden som sonden kan nå (till exempel `db.internal`). |
 | **Port** | Databasens port. |
 | **Databasnamn** | Databasen som frågan ska köras mot. |
-| **Use Windows Integrated Authentication** | Bara Microsoft SQL Server. Autentisera med kontot som sonden körs som, i stället för med ett SQL-användarnamn och lösenord. Se [Integrerad Windows-autentisering](#integrerad-windows-autentisering). |
+| **Autentisering** | Bara Microsoft SQL Server: **Användarnamn och lösenord**, standardvalet, eller **Windows Integrated Authentication**, som loggar in med kontot som sonden körs som. Se [Integrerad Windows-autentisering](#integrerad-windows-autentisering). |
 | **Användarnamn** | En skrivskyddad databasanvändare med minsta möjliga behörighet. |
 | **Lösenord** | Databasens lösenord. Vi rekommenderar starkt att du hänvisar till en [övervakningshemlighet](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stället för att skriva lösenordet som vanlig text (se [Använd en övervakningshemlighet för lösenordet](#använd-en-övervakningshemlighet-för-lösenordet)). |
 | **SQL Query** | Den skrivskyddade frågan som ska köras (se [Skriv frågan](#skriv-frågan)). |
@@ -157,7 +157,7 @@ Ett värde över maximum sänks till maximum.
 
 ### Integrerad Windows-autentisering
 
-För Microsoft SQL Server aktiverar du **Use Windows Integrated Authentication** för att öppna en betrodd anslutning med sondprocessens identitet. Fälten Användarnamn och Lösenord ignoreras i det här läget och skickas inte vidare till drivrutinen. Eftersom sonden behöver en identitet som din domän litar på bör du använda en självhostad sond för det här autentiseringsläget.
+För Microsoft SQL Server väljer du **Windows Integrated Authentication** under **Autentisering** för att öppna en betrodd anslutning med sondprocessens identitet. Formuläret döljer då **Användarnamn** och **Lösenord**, och inget av dem skickas vidare till drivrutinen. Eftersom sonden behöver en identitet som din domän litar på bör du använda en självhostad sond för det här autentiseringsläget.
 
 | Sonden körs på | Vad du ska ställa in |
 |---|---|

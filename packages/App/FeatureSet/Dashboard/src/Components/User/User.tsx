@@ -9,6 +9,7 @@ import UserUtil from "Common/UI/Utils/User";
 import ObjectID from "Common/Types/ObjectID";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { useIsTableCell } from "Common/UI/Components/Table/TableCellContext";
 
 export interface ComponentProps {
   user?: User | JSONObject | undefined | null;
@@ -81,6 +82,15 @@ type ReadableValueFunction = (value: JSONValue | undefined) => string;
  */
 const AVATAR_WRAPPER_CLASS_NAME: string = "shrink-0";
 
+/*
+ * In a table's cell the name keeps to its line and ends in an ellipsis: a
+ * table caps a value's width (Common/UI/Components/Table/TableLayout), and
+ * a long name in a capped cell was cut off mid-letter, with no sign that
+ * there was more. The whole name shows under the pointer (the table's
+ * FullValueTitle). Elsewhere a name keeps its lines as it always has.
+ */
+export const TABLE_CELL_USER_NAME_CLASS_NAME: string = "truncate";
+
 const readableValue: ReadableValueFunction = (
   value: JSONValue | undefined,
 ): string => {
@@ -103,6 +113,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isTableCell: boolean = useIsTableCell();
   let user: JSONObject | null | undefined = null;
 
   if (props.user instanceof User) {
@@ -204,7 +215,12 @@ const UserElement: FunctionComponent<ComponentProps> = (
           />
         </div>
         <div className="mt-1 mr-1 ml-3 min-w-0">
-          <div>
+          <div
+            data-testid="user-name-line"
+            className={
+              isTableCell ? TABLE_CELL_USER_NAME_CLASS_NAME : undefined
+            }
+          >
             <span
               className={props.prefixClassName ? props.prefixClassName : ""}
             >

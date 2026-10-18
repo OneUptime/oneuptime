@@ -578,7 +578,7 @@ const HostProcesses: FunctionComponent<
    */
   const noItemsMessage: string =
     rows.length === 0
-      ? `No process metrics in the last ${PROCESS_LOOKBACK_MINUTES} minutes. Enable the "process" scraper in your OTel collector "hostmetrics" receiver to see per-process CPU, memory, and ownership here. The Documentation tab has a ready-to-paste config snippet.`
+      ? `No process metrics in the last ${PROCESS_LOOKBACK_MINUTES} minutes. Turn on the collector's "process" scraper: see the Documentation tab.`
       : translationKey("No processes match your search.");
 
   /*

@@ -4,6 +4,7 @@ O agente Kubernetes do OneUptime é um chart Helm que coleta as métricas, os ev
 
 :::cards
 - [Instale o agente](#instale-o-agente): Quatro etapas com Helm.
+- [Instale como complemento do Amazon EKS](#instale-como-complemento-do-amazon-eks): Pelo console do EKS, sem Helm.
 - [Opções de configuração](#opções-de-configuração): Filtros, amostragem, plano de controle, service mesh, custos e rótulos.
 - [Agente de IA do Kubernetes](#agente-de-ia-do-kubernetes): `kubectl` somente leitura para a OneUptime AI, e correções quando você as permitir.
 - [Envie menos](#reduzindo-o-volume-de-dados-coletados): As alavancas, em ordem de impacto.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 Abra **Produtos → Infraestrutura → Kubernetes → Todos os clusters**. O cluster aparece com o `clusterName` dele em poucos minutos, e os nós, pods e cargas de trabalho dele são preenchidos. O agente de IA do Kubernetes aparece como conectado na página **Agente** do cluster, em **IA**.
 :::
 
+## Instale como complemento do Amazon EKS
+
+No Amazon EKS, você também pode adicionar o agente pelo console do EKS, onde ele é um dos complementos do AWS Marketplace. Ele não custa nada, e o EKS o instala, atualiza e remove para você. O complemento é este chart, configurado da forma que um complemento exige:
+
+- Ele envia para o OneUptime Cloud, `https://oneuptime.com`, a menos que você forneça a URL do seu próprio OneUptime.
+- Ele lê a chave de ingestão de um Secret do Kubernetes que você cria, nunca da configuração do complemento, que o EKS mostra em texto puro.
+- Ele informa o cluster ao OneUptime com o nome dele no EKS.
+- Ele é executado no namespace `oneuptime-agent`.
+
+:::steps
+### Coloque a sua chave de ingestão em um Secret
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### Adicione o complemento
+
+No console do EKS, abra o seu cluster, selecione **Add-ons** e depois **Get more add-ons**, e escolha o agente Kubernetes do OneUptime entre os complementos do AWS Marketplace. Assine-o, o que é gratuito, e crie-o. Ou com a AWS CLI:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### Verifique se o complemento está em execução
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+O complemento fica `ACTIVE` assim que os pods dele estão em execução, e o cluster aparece no OneUptime com o nome dele no EKS em poucos minutos. Um pod que continua em `CreateContainerConfigError` não consegue encontrar o Secret: crie-o como na primeira etapa, no namespace `oneuptime-agent`.
+:::
+
+### Valores de configuração do complemento
+
+Defina-os em **Optional configuration settings**, no console do EKS, ou com `--configuration-values` ao criar ou atualizar o complemento. Todos são opcionais:
+
+- `oneuptime.url`: o endereço do seu OneUptime. O padrão é `https://oneuptime.com`.
+- `oneuptime.existingSecretName`: o Secret que guarda a chave de ingestão em `api-key`. O padrão é `oneuptime-ingestion-key`.
+- `oneuptime.labels`: rótulos do projeto para tudo o que este cluster envia, como `{"team": "payments"}`.
+- `preset`: `eks-fargate` para um cluster que roda só no Fargate; caso contrário, `standard`, o padrão.
+- `logs.enabled`, `ebpf.enabled` e `aiAgent.enabled`: logs de pods, traces de eBPF e o [agente de IA do Kubernetes](#agente-de-ia-do-kubernetes), os três ativados por padrão.
+- `kubeStateMetrics.enabled` e `cost.enabled`: kube-state-metrics e a [observabilidade de custos](/docs/telemetry/kubernetes-cost), os dois desativados por padrão.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+Uma atualização substitui a configuração inteira: um valor que você deixar de fora volta ao padrão. As demais configurações do chart, como o profiler, as correções da OneUptime AI e os filtros de namespace, exigem a [instalação com Helm](#instale-o-agente). Para passar um cluster da instalação com Helm para o complemento, desinstale primeiro a release do Helm.
+
 ## Escolha um preset
 
 `preset` escolhe os padrões que funcionam na sua plataforma: se os logs de pods são lidos do nó via `hostPath` ou pela API do Kubernetes, e quais cargas de trabalho podem ser executadas com privilégios.
@@ -169,6 +225,23 @@ Se não tiver certeza, comece com `standard`. Se a instalação falhar com um er
 ## Opções de configuração
 
 Cada opção abaixo é um valor do Helm. Defina-a na instalação, ou em um agente instalado com `helm upgrade ... --reset-then-reuse-values --set <value>`.
+
+### Guarde a chave de ingestão em um Secret
+
+`--set oneuptime.apiKey` mantém a chave nos valores da release, que o Helm armazena em cada revisão. Para deixá-la fora deles, coloque a chave em um Secret no namespace do agente, em `api-key`, e indique esse Secret no lugar dela:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+Toda carga de trabalho do agente passa então a ler a chave desse Secret, e o chart não cria nenhum Secret próprio. Defina `oneuptime.apiKey` ou `oneuptime.existingSecretName`, não os dois: o chart recusa os dois juntos. O Secret pode vir de qualquer coisa que grave Secrets, como o External Secrets Operator.
 
 ### Filtragem por namespace
 
@@ -602,7 +675,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **Uma recusa que se resolve sozinha** — um pod anterior do agente que ainda se reporta (um pod substituído sem um desligamento limpo), ou o antigo Runner do cluster ainda desligando durante uma atualização. O agente tenta de novo depois da espera que o servidor indicar.
 - **Uma recusa que precisa de você** — um `clusterName` vazio ou longo demais, ou um projeto que atingiu o limite de agentes de IA; o log diz o que mudar. Se um agente nunca se conecta e o log dele diz `Another Kubernetes AI agent for cluster "<name>" is online`, duas instalações compartilham um `clusterName` (a página do agente de IA também avisa sobre isso): o que já está conectado fica com ele enquanto estiver em execução, então dê a cada cluster um `clusterName` próprio ou remova a release extra. Uma chave de ingestão com um **Pinned Service Name** não consegue registrar o agente — dê ao chart uma chave sem isso.
 
-**Redefinir agente**, no menu **⋯** ao lado do status do agente na página do agente de IA, faz o servidor esquecer a chave do agente assim que você confirma (um Project Owner, um Project Admin ou **Edit Auto Remediation Rule** pode fazer isso); o pod se reconecta sozinho em poucos minutos. A prontidão do agente não depende do OneUptime, então um agente de IA mal configurado nunca faz `helm upgrade --wait` falhar — só um pod que não consegue baixar a imagem faz isso.
+**Redefinir agente**, no menu **⋯** ao lado do status do agente na página do agente de IA, faz o servidor esquecer a chave do agente assim que você confirma (um Project Owner, um Project Admin ou **Edit Auto Remediation Rule** pode fazer isso, em um cluster que possa editar); o pod se reconecta sozinho em poucos minutos. A prontidão do agente não depende do OneUptime, então um agente de IA mal configurado nunca faz `helm upgrade --wait` falhar — só um pod que não consegue baixar a imagem faz isso.
 
 ## Atualizando o agente
 

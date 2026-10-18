@@ -206,6 +206,8 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitorLabels: true },
           title: "Monitor Labels",
+          description:
+            "Only match incidents and alerts whose monitor has one of these labels.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {

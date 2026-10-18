@@ -57,14 +57,14 @@ Eine Richtlinie, die mehrere Regeln hinzufügen, läuft einmal. Ein Schweregrad 
 
 ## Eine Richtlinie wiederholen
 
-Läuft die Wartezeit der letzten Stufe ab, ohne dass jemand bestätigt, hört eine Richtlinie auf, es sei denn, sie wiederholt sich. Öffnen Sie dafür die Seite **Eskalationsregeln** der Richtlinie, klicken Sie auf der Karte **Wiederholungsrichtlinie** unter den Regeln auf **Bearbeiten** und füllen Sie **Wiederholungsrichtlinie bearbeiten** aus:
+Läuft die Wartezeit der letzten Stufe ab, ohne dass jemand bestätigt, hört eine Richtlinie auf, es sei denn, sie wiederholt sich. Um das festzulegen, öffnen Sie die Seite **Eskalationsregeln** der Richtlinie und klicken auf der Karte **Wiederholungsrichtlinie** unter den Regeln auf **Bearbeiten**. **Wiederholungsrichtlinie bearbeiten** fragt **Wenn nach der letzten Stufe niemand bestätigt**:
 
-| Feld | Was es tut | Bei einer neuen Richtlinie |
-| --- | --- | --- |
-| **Wiederholen, wenn niemand bestätigt** | Startet die Richtlinie nach ihrer letzten Stufe wieder bei **Level 1**. Solange es aus ist, läuft die Richtlinie einmal. | Aus |
-| **Anzahl der Wiederholungen** | Wie oft die Richtlinie noch einmal von vorn beginnt. | 0 |
+| Antwort | Was sie bewirkt |
+| --- | --- |
+| **Alarmierung beenden** | Niemand wird erneut alarmiert, die Richtlinie läuft also einmal. Eine neue Richtlinie beginnt mit dieser Antwort. |
+| **Erneut bei Level 1 beginnen** | Jede Stufe wird erneut alarmiert, der Reihe nach. **Wie oft noch?** legt fest, wie oft: 1 oder mehr. |
 
-Mit eingeschaltetem Schalter und drei Wiederholungen geht eine Richtlinie insgesamt viermal durch ihre Stufen. **Richtlinie auf einen Blick** in der **Übersicht** sagt dasselbe in Worten.
+Eine Richtlinie, die noch dreimal von vorn beginnt, geht insgesamt viermal durch ihre Stufen. Die Zeile **Nach der letzten Stufe** der Karte sagt, was die Richtlinie tut, und **Richtlinie auf einen Blick** in der **Übersicht** sagt dasselbe in Worten.
 
 ## Ausführungsprotokolle
 
@@ -94,7 +94,7 @@ Ausführungsprotokolle finden Sie an drei Stellen:
 
 - in den eigenen **Ausführungsprotokolle** der Richtlinie, unter **Protokolle**;
 - unter **Bereitschaftsdienst → Erweitert → Ausführungsprotokolle**, für jede Richtlinie, wobei direkte Alarmierungen aus Workflows und Chat als **Direkte Alarmierung** erscheinen;
-- auf der Seite **Bereitschaftsausführungen** eines Vorfalls und unter **Bereitschaftsausführungen** einer Warnung.
+- auf der Seite **Bereitschaftsausführungen** eines Vorfalls oder einer Warnung.
 
 Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer ihn bestätigt hat. **View Timeline** öffnet seine **Zeitachse der Ausführung**: jede Eskalationsregel, wen sie alarmiert hat, über welchen Plan und wie jeder Alarm geendet hat. Ein Plan, in dem niemand Bereitschaft hat, zeigt statt einer Person **No one was on call**. In OneUptime Cloud brauchen Ausführungsprotokolle den Plan **Growth**.
 
@@ -119,9 +119,11 @@ Bereitschaftsrichtlinien sind die Ressource `/api/on-call-duty-policy` und in Te
 | --- | --- |
 | **Name** | `name` |
 | **Beschreibung** | `description` |
-| **Wiederholen, wenn niemand bestätigt** | `repeatPolicyIfNoOneAcknowledges` |
-| **Anzahl der Wiederholungen** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Wenn nach der letzten Stufe niemand bestätigt** | `repeatPolicyIfNoOneAcknowledges` |
+| **Wie oft noch?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | Archiviert | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` ist `false` für **Alarmierung beenden** und `true` für **Erneut bei Level 1 beginnen**. Steht es auf `true` und `repeatPolicyIfNoOneAcknowledgesNoOfTimes` auf `0`, wiederholt sich die Richtlinie nie, und das Dashboard zeigt sie als **Alarmierung beenden**.
 
 Wie Sie eine Richtlinie mit ihrer ersten Stufe in einer einzigen Anfrage anlegen, steht unter [Regeln mit der API oder Terraform anlegen](/docs/on-call/escalation-rules#regeln-mit-der-api-oder-terraform-anlegen).
 

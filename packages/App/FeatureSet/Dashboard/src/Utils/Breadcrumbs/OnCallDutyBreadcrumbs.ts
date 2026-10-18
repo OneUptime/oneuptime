@@ -316,16 +316,6 @@ export function getIncomingCallPolicyBreadcrumbs(
         "Delete",
       ],
     ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS,
-      [
-        "Project",
-        "On-Call Duty",
-        "Incoming Call Policies",
-        "View Policy",
-        "Documentation",
-      ],
-    ),
   };
   return breadcrumpLinksMap[path];
 }

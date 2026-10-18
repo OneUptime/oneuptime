@@ -131,7 +131,8 @@ func NewJSONSubsetValue(s string) JSONSubsetValue {
 // jsonIsSubset returns true when every leaf in plan exists with the same
 // value in actual. Maps: every key in plan must exist in actual (with a
 // subset value); actual may have extra keys. Slices: same length, positional
-// subset comparison. Scalars: reflect.DeepEqual.
+// subset comparison. Strings: equal, or the same instant (sameInstant).
+// Other scalars: reflect.DeepEqual.
 func jsonIsSubset(plan, actual interface{}) bool {
 	switch p := plan.(type) {
 	case map[string]interface{}:
@@ -163,7 +164,32 @@ func jsonIsSubset(plan, actual interface{}) bool {
 			}
 		}
 		return true
+	case string:
+		a, ok := actual.(string)
+		if !ok {
+			return false
+		}
+		return p == a || sameInstant(p, a)
 	default:
 		return reflect.DeepEqual(plan, actual)
 	}
+}
+
+// sameInstant reports two strings as equal when both are RFC 3339 timestamps
+// of the same instant. The server writes a DateTime inside JSON back with
+// toISOString(), in UTC and always with milliseconds, so
+// "2026-08-17T07:00:00Z", which is what timeadd() returns, came back as
+// "2026-08-17T07:00:00.000Z" and failed the apply
+// (OneUptime/terraform-provider-oneuptime#11). Top-level timestamp attributes
+// are held to the same rule by RFC3339Type.
+func sameInstant(plan, actual string) bool {
+	planned, err := parseRFC3339(plan)
+	if err != nil {
+		return false
+	}
+	returned, err := parseRFC3339(actual)
+	if err != nil {
+		return false
+	}
+	return planned.Equal(returned)
 }

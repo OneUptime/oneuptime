@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30172,
-    "untranslated": 9914
+    "keys": 30861,
+    "untranslated": 9692
   },
   "sameAsEnglish": [
     " incidents",
@@ -53,6 +53,7 @@
     "Active + Clean",
     "Administration",
     "Afghanistan",
+    "Agenda",
     "Agent",
     "Agents",
     "Alias",
@@ -207,6 +208,7 @@
     "Hong Kong",
     "Hong Kong (+852)",
     "Horizontal Pod Autoscalers",
+    "ICMP (ping)",
     "Identification",
     "Image",
     "Images",
@@ -364,6 +366,8 @@
     "port {{port}}",
     "services",
     "syslog",
+    "{{count}} incident",
+    "{{count}} incidents",
     "{{count}} minutes",
     "{{count}} option",
     "{{count}} options",

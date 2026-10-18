@@ -46,12 +46,55 @@ export default class IpCanonicalUtil {
     );
   }
 
-  private static canonicalizeIpv6(value: string): string {
-    /*
-     * Expand to 8 groups. IPv4-mapped tails (::ffff:1.2.3.4) are folded
-     * into two hex groups so every address reduces to the same shape.
-     */
-    let input: string = value.toLowerCase();
+  /*
+   * The /64 network an IPv6 address is in, written as its first four groups
+   * and "::/64" ("2001:db8:0:1::/64"), or null when the value is not an IPv6
+   * literal. A single host is commonly given a whole /64, so a rate limit
+   * counts the requests of a /64 together as well as each address's
+   * (Server/Utils/ClientIp getRateLimitClient).
+   *
+   * An IPv4-mapped address (::ffff:192.0.2.1) is the IPv4 address it maps,
+   * not an IPv6 one: null, like any IPv4 literal.
+   */
+  public static getIpv6Network64(value: string): string | null {
+    const trimmed: string = value.trim();
+
+    if (!IP.isIP(trimmed) || new IP(trimmed).isIPv4()) {
+      return null;
+    }
+
+    const groups: Array<number> | null = IpCanonicalUtil.toIpv6Groups(trimmed);
+
+    if (!groups || IpCanonicalUtil.isIpv4Mapped(groups)) {
+      return null;
+    }
+
+    const network: string = groups
+      .slice(0, 4)
+      .map((group: number): string => {
+        return group.toString(16);
+      })
+      .join(":");
+
+    return `${network}::/64`;
+  }
+
+  // ::ffff:a.b.c.d - five zero groups, then ffff.
+  private static isIpv4Mapped(groups: Array<number>): boolean {
+    return (
+      groups.slice(0, 5).every((group: number): boolean => {
+        return group === 0;
+      }) && groups[5] === 0xffff
+    );
+  }
+
+  /*
+   * An IPv6 literal as its 8 groups, or null when it cannot be read as one.
+   * IPv4-mapped tails (::ffff:1.2.3.4) are folded into two hex groups so
+   * every address reduces to the same shape.
+   */
+  private static toIpv6Groups(value: string): Array<number> | null {
+    let input: string = value.trim().toLowerCase();
 
     const v4TailMatch: RegExpMatchArray | null = input.match(
       /(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
@@ -89,6 +132,17 @@ export default class IpCanonicalUtil {
     });
 
     if (groups.length !== 8 || groups.some(Number.isNaN)) {
+      return null;
+    }
+
+    return groups;
+  }
+
+  private static canonicalizeIpv6(value: string): string {
+    // Expand to 8 groups (toIpv6Groups).
+    const groups: Array<number> | null = IpCanonicalUtil.toIpv6Groups(value);
+
+    if (!groups) {
       // Malformed despite passing IP.isIP — return as-is rather than lie.
       return value.trim().toLowerCase();
     }

@@ -148,6 +148,13 @@ export default interface Field<TEntity> {
     | undefined;
   cardSelectSingleColumn?: boolean | undefined;
   /*
+   * At most this many cards side by side (CardSelect maxColumns); three
+   * when left out. A choice whose cards carry a line each reads better two
+   * to a row in a dialog, where three columns squeeze every line to a few
+   * words.
+   */
+  cardSelectMaxColumns?: 2 | 3 | undefined;
+  /*
    * Give the card picker a search box, and lay a big catalog out as compact
    * rows with its common choices first and the rest behind a More button,
    * shrinking to the choice made with a Change button (CardSelectCatalog).
@@ -385,6 +392,18 @@ export default interface Field<TEntity> {
   dictionaryEnableOperators?: boolean | undefined;
 
   hideOptionalLabel?: boolean | undefined;
+
+  /*
+   * Draw no line under the field's title in place of its column's
+   * description. A field with no description of its own shows its column's
+   * (BasicModelForm), which is written for the API and, on a choice whose
+   * answers each say what they mean, says it all again: a reminder rule's
+   * "Stop Reminders When" had a sentence about both answers above the
+   * answers' own lines. Also for a form-only field, whose column only
+   * stands in for its permissions, and for a column whose description only
+   * says its title again ("Title of this incident" under Title).
+   */
+  hideColumnDescription?: boolean | undefined;
 
   /*
    * Spell check configuration (primarily for Markdown and text fields)

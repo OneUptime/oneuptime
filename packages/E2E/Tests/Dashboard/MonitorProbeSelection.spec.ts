@@ -28,8 +28,8 @@ import Faker from "Common/Utils/Faker";
  *     a field on step one never saw a Save button. It is one page now - the
  *     name and description, with the logo, the auto-enable switch and the
  *     labels folded under More fields - so Save Changes is the only way out.
- *     Test: toggle "enable monitoring automatically on new monitors" from the
- *     card, save, reload, and assert the card shows the new value.
+ *     Test: toggle "Add to new monitors" from the card, save, reload, and
+ *     assert the card shows the new value.
  *
  * To run locally against a full stack:
  *
@@ -40,8 +40,13 @@ test.describe.configure({ mode: "serial" });
 
 const monitorCreateFormSelector: string = "#create-monitor-form";
 const submitButtonTestId: string = "Create Monitor";
-const autoEnableToggleName: RegExp =
-  /Enable monitoring automatically on new monitors/i;
+/*
+ * The custom probe's switch, named like the global probes' one beside it
+ * ("Add global probes to new monitors"), which this name does not match.
+ */
+const autoEnableToggleName: RegExp = /Add to new monitors/i;
+// The same setting on the probe's page, and as the list's column.
+const autoEnableFieldTitle: string = "Added to New Monitors";
 
 interface SharedContext {
   page: Page;
@@ -310,9 +315,9 @@ test.describe("Monitor probe selection", () => {
     await page.goto(probeViewUrl, { waitUntil: "domcontentloaded" });
 
     // The card shows the flag it edits, so a save is observable.
-    await expect(
-      page.getByText("Enable Monitoring on New Monitors").first(),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByText(autoEnableFieldTitle).first()).toBeVisible({
+      timeout: 60000,
+    });
 
     await page.getByRole("button", { name: /Edit Probe/i }).click();
 
@@ -349,9 +354,9 @@ test.describe("Monitor probe selection", () => {
     await page.reload({ waitUntil: "domcontentloaded" });
 
     // The card still renders the flag it edits after the reload.
-    await expect(
-      page.getByText("Enable Monitoring on New Monitors").first(),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByText(autoEnableFieldTitle).first()).toBeVisible({
+      timeout: 60000,
+    });
 
     /*
      * The new value persisted: re-open the editor and the toggle now reads on.

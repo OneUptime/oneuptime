@@ -196,7 +196,7 @@ const PushDeviceCriticalAlertSteps: FunctionComponent<ComponentProps> = (
       title={isBrowser ? "Get the mobile app" : "Turn on critical alerts"}
       description={
         isBrowser
-          ? "Get push notifications on your phone with the OneUptime On-Call app. Its critical alerts ring on-call pages through silent mode and Do Not Disturb, which a browser can't."
+          ? "Get push notifications on your phone with the OneUptime On-Call app. Its critical alerts ring even on silent."
           : "Critical alerts make on-call pages ring this phone even on silent or in Do Not Disturb. They are turned on in the app, on the phone itself."
       }
       onClose={props.onClose}

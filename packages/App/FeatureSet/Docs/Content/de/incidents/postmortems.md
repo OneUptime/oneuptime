@@ -67,7 +67,7 @@ Klicken Sie auf **Vorlage anwenden**, wählen Sie im Dialog **Postmortem-Vorlage
 
 Klicken Sie auf **Mit KI generieren**. Der Dialog **Postmortem mit KI generieren** bietet unter **Vorlage auswählen** eine Gliederung an: **Standard Postmortem**, **Detailed Technical Postmortem** oder **Brief Postmortem**, danach Ihre eigenen Postmortem-Vorlagen. **Vorlagenvorschau** zeigt die Gliederung, und Sie können sie vor dem Generieren ändern.
 
-Klicken Sie unten im Dialog auf **Mit KI generieren**. OneUptime AI liest den Vorfall (seine Beschreibung, Ursache und Behebung, seine Status-Zeitachse, seine öffentlichen und privaten Notizen und die Nachrichten in seinem Slack- oder Microsoft Teams-Kanal) und schreibt das Postmortem in Ihrer Gliederung. Danach öffnet sich der Editor damit.
+Klicken Sie unten im Dialog auf **Mit KI generieren**. OneUptime AI liest den Vorfall (seine Beschreibung, Ursache und Behebung, seine Status-Zeitachse, seine öffentlichen und privaten Notizen, die Nachrichten in seinem Slack- oder Microsoft Teams-Kanal und was in [seinen Anrufen](/docs/workspace-connections/video-calls#anruf-transkripte) gesagt wurde) und schreibt das Postmortem in Ihrer Gliederung. Danach öffnet sich der Editor damit.
 
 Das Generieren erfordert, dass KI für das Projekt eingeschaltet ist, unter **Projekteinstellungen → KI → KI-Funktionen**, und einen LLM-Anbieter: siehe [LLM-Anbieter](/docs/ai/llm-provider). Außerdem erfordert es die Rolle Project Owner oder Project Admin oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident: Andere Rollen können das Postmortem schreiben, aber nicht generieren.
 

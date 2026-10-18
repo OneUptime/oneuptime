@@ -37,7 +37,7 @@ const NetworkEndpoints: FunctionComponent<
         cardProps={{
           title: "Endpoints",
           description:
-            "What is plugged into your switches and routers - phones, printers, cameras, laptops - read from their address tables. Nothing is removed on its own: Last Seen says when each was last there.",
+            "What is plugged into your switches and routers, read from their address tables. Nothing is removed on its own: Last Seen says when each was last there.",
         }}
         /*
          * Collecting endpoints is a device setting, off by default (Collect
@@ -46,7 +46,7 @@ const NetworkEndpoints: FunctionComponent<
          * no such switch.
          */
         noItemsMessage={
-          "No endpoints yet. Turn on Collect Connected Endpoints on a switch or router - its Settings page, Edit Polling - and what is plugged into it appears here after its next poll."
+          "No endpoints yet. Turn on Collect Connected Endpoints in a switch or router's polling settings to see what is plugged into it."
         }
         formFields={[
           {

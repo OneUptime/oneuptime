@@ -557,6 +557,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SETTINGS_SSO,
             title: "SSO",
             icon: IconProp.Lock,
+            /*
+             * The SAML and the OpenID Connect providers are on one page:
+             * searching for either finds it.
+             */
             keywords: [
               "single sign-on",
               "saml",
@@ -564,13 +568,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "azure ad",
               "entra id",
               "identity provider",
+              "oidc",
+              "openid connect",
+              "oauth",
             ],
-          },
-          {
-            page: PageMap.SETTINGS_OIDC,
-            title: "OIDC",
-            icon: IconProp.Lock,
-            keywords: ["openid connect", "oauth", "single sign-on"],
           },
           {
             page: PageMap.SETTINGS_SCIM,
@@ -737,12 +738,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Active Episodes",
             icon: IconProp.Alert,
           },
-          {
-            page: PageMap.INCIDENT_EPISODE_DOCS,
-            title: "Documentation",
-            icon: IconProp.Book,
-            keywords: ["how episodes work"],
-          },
         ],
       },
       workspaceSection({
@@ -903,12 +898,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.UNRESOLVED_ALERT_EPISODES,
             title: "Active Episodes",
             icon: IconProp.ExclaimationCircle,
-          },
-          {
-            page: PageMap.ALERT_EPISODE_DOCS,
-            title: "Documentation",
-            icon: IconProp.Book,
-            keywords: ["how episodes work"],
           },
         ],
       },

@@ -393,15 +393,22 @@ describe("the project's stepped forms", () => {
 
   // The forms this sweep split, so a step folded back together shows up here.
   test.each([
+    /*
+     * Five steps once (Basic Info, Sigma Rule, Evaluation, Security Cases,
+     * On Match); two questions now - the rule, then what a match does -
+     * with what a match raises one choice and how matches are counted
+     * folded under More fields, so no step holds more than five rows.
+     */
     [
       `${DASHBOARD}/Pages/SecurityEvents/DetectionRules.tsx`,
       "ModelTable: Security Events > Detection Rules",
-      ["basic-info", "sigma-rule", "evaluation", "cases", "on-match"],
+      ["sigma-rule", "on-match"],
     ],
+    // The same for a feed, with how it signs in a step of its own.
     [
       `${DASHBOARD}/Pages/SecurityEvents/ThreatIntel.tsx`,
       "ModelTable: Security Events > Threat Intel Feeds",
-      ["basic-info", "taxii-server", "authentication", "cases", "matching"],
+      ["taxii-server", "sign-in", "on-match"],
     ],
     /*
      * Five steps of fourteen fields once; three questions now - which
@@ -499,12 +506,13 @@ describe("the project's stepped forms", () => {
     ].map(([file, name]: Array<string>): [string, string, Array<string>] => {
       /*
        * The scan reads the larger branch of the conditional step list: the
-       * one a page that lets subscribers choose gets.
+       * one a page that lets subscribers choose gets. The internal note is
+       * no step of its own any more: it is folded under More fields.
        */
       return [
         `${DASHBOARD}/Pages/StatusPages/View/${file}`,
         `ModelTable: Status Page > ${name}`,
-        ["subscriber-info", "notifications", "internal-info"],
+        ["subscriber-info", "notifications"],
       ];
     }),
   ])(

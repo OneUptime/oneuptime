@@ -1,4 +1,6 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import { ProbeExpressRequest } from "../../Types/Request";
+import ProbeRequest from "../../Utils/ProbeRequest";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -31,8 +33,65 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import OneUptimeDate from "Common/Types/Date";
 import MonitorService from "Common/Server/Services/MonitorService";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import ProbeReportIdentity, {
+  PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE,
+} from "Common/Server/Utils/Probe/ProbeReportIdentity";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * The check result a probe sends, as it sent it - a JSON object, or null
+ * when there is none. Never deserialized here: results carry response
+ * bodies and screenshots, and the queue worker decodes them once.
+ */
+function readProbeMonitorResponse(req: ExpressRequest): JSONObject | null {
+  const probeMonitorResponse: unknown = req.body?.["probeMonitorResponse"];
+
+  if (
+    !probeMonitorResponse ||
+    typeof probeMonitorResponse !== "object" ||
+    Array.isArray(probeMonitorResponse)
+  ) {
+    return null;
+  }
+
+  return probeMonitorResponse as JSONObject;
+}
+
+/*
+ * What a probe sends is its own (ProbeReportIdentity): a result that names
+ * another probe is refused here, so the probe that sent it hears so, and a
+ * result that names none is written down as the sender's. Answers the
+ * request and returns null when the result is refused.
+ */
+function bindResultToSender(data: {
+  req: ProbeExpressRequest;
+  res: ExpressResponse;
+  probeMonitorResponse: JSONObject;
+  probeId: ObjectID;
+}): JSONObject | null {
+  if (
+    !ProbeReportIdentity.isResultOf(data.probeMonitorResponse, data.probeId)
+  ) {
+    logger.warn(
+      `Probe ${data.probeId.toString()} sent a result that names a different probe. Refused.`,
+      getLogAttributesFromRequest(data.req as any),
+    );
+
+    Response.sendErrorResponse(
+      data.req,
+      data.res,
+      new BadDataException(PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE),
+    );
+
+    return null;
+  }
+
+  return ProbeReportIdentity.bindResultToSender(
+    data.probeMonitorResponse,
+    data.probeId,
+  );
+}
 
 router.post(
   "/alive",
@@ -63,12 +122,23 @@ router.post(
   "/probe/status-report/offline",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
   async (
-    req: ExpressRequest,
+    req: ProbeExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
     try {
       const data: JSONObject = req.body;
+
+      // The probe whose owners are told: the one that sent this report.
+      const probeId: ObjectID | null = ProbeRequest.getProbeId(req);
+
+      if (!probeId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe not found"),
+        );
+      }
 
       const statusReport: ProbeStatusReport = JSONFunctions.deserialize(
         (data as JSONObject)["statusReport"] as any,
@@ -104,8 +174,6 @@ router.post(
 
       if (isWebsiteCheckOffline || isPingCheckOffline || isPortCheckOffline) {
         // email probe owner.
-        const probeId: ObjectID = new ObjectID(data["probeId"] as string);
-
         const probe: Probe | null = await ProbeService.findOneBy({
           query: {
             _id: probeId.toString(),
@@ -270,21 +338,51 @@ router.post(
   },
 );
 
+/*
+ * One check result from a probe. It is recorded as the result of the probe
+ * that sent it, and nobody else's: one that names another probe is refused
+ * here, and the queue worker takes it only for a monitor this probe checks
+ * (MonitorResource, given the probe as reportingProbeId).
+ */
 router.post(
   "/probe/response/ingest",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
   async (
-    req: ExpressRequest,
+    req: ProbeExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      if (!req.body["probeMonitorResponse"]) {
+      const probeId: ObjectID | null = ProbeRequest.getProbeId(req);
+
+      if (!probeId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe not found"),
+        );
+      }
+
+      const probeMonitorResponse: JSONObject | null =
+        readProbeMonitorResponse(req);
+
+      if (!probeMonitorResponse) {
         return Response.sendErrorResponse(
           req,
           res,
           new BadDataException("ProbeMonitorResponse not found"),
         );
+      }
+
+      const ownResult: JSONObject | null = bindResultToSender({
+        req,
+        res,
+        probeMonitorResponse,
+        probeId,
+      });
+
+      if (!ownResult) {
+        return;
       }
 
       // Return response immediately
@@ -294,7 +392,8 @@ router.post(
 
       // Add to queue for asynchronous processing
       await TelemetryQueueService.addProbeIngestJob({
-        probeMonitorResponse: req.body,
+        probeId: probeId,
+        probeMonitorResponse: ownResult,
         jobType: "probe-response",
       });
 
@@ -309,11 +408,21 @@ router.post(
   "/probe/snmp-trap",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
   async (
-    req: ExpressRequest,
+    req: ProbeExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
     try {
+      const probeId: ObjectID | null = ProbeRequest.getProbeId(req);
+
+      if (!probeId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe not found"),
+        );
+      }
+
       if (!req.body["snmpTrap"]) {
         return Response.sendErrorResponse(
           req,
@@ -327,8 +436,10 @@ router.post(
         result: "processing",
       });
 
+      // The trap, and the probe that received it - matched to its devices only.
       await TelemetryQueueService.addSnmpTrapIngestJob({
-        snmpTrapRequestBody: req.body,
+        probeId: probeId,
+        snmpTrap: req.body["snmpTrap"] as JSONObject,
       });
 
       return;
@@ -338,11 +449,16 @@ router.post(
   },
 );
 
+/*
+ * One step's result of a monitor test. Recorded only on a test that was
+ * handed to the probe that sent it (MonitorTestService keys the write on
+ * the probe), and refused here when the result names another probe.
+ */
 router.post(
   "/probe/response/monitor-test-ingest/:testId",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
   async (
-    req: ExpressRequest,
+    req: ProbeExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
@@ -357,12 +473,36 @@ router.post(
         );
       }
 
-      if (!req.body["probeMonitorResponse"]) {
+      const probeId: ObjectID | null = ProbeRequest.getProbeId(req);
+
+      if (!probeId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe not found"),
+        );
+      }
+
+      const probeMonitorResponse: JSONObject | null =
+        readProbeMonitorResponse(req);
+
+      if (!probeMonitorResponse) {
         return Response.sendErrorResponse(
           req,
           res,
           new BadDataException("ProbeMonitorResponse not found"),
         );
+      }
+
+      const ownResult: JSONObject | null = bindResultToSender({
+        req,
+        res,
+        probeMonitorResponse,
+        probeId,
+      });
+
+      if (!ownResult) {
+        return;
       }
 
       const testId: ObjectID = new ObjectID(testIdInParams);
@@ -372,7 +512,8 @@ router.post(
 
       // Add to queue for asynchronous processing
       await TelemetryQueueService.addProbeIngestJob({
-        probeMonitorResponse: req.body,
+        probeId: probeId,
+        probeMonitorResponse: ownResult,
         jobType: "monitor-test",
         testId: testId.toString(),
       });
@@ -432,7 +573,7 @@ router.post(
   "/metrics/queue-size",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
   async (
-    req: ExpressRequest,
+    req: ProbeExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
@@ -443,8 +584,7 @@ router.post(
        */
 
       // Get the probe ID from the authenticated request
-      const data: JSONObject = req.body;
-      const probeId: ObjectID = new ObjectID(data["probeId"] as string);
+      const probeId: ObjectID | null = ProbeRequest.getProbeId(req);
 
       if (!probeId) {
         return Response.sendErrorResponse(

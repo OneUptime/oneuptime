@@ -50,8 +50,13 @@ type CapturedFormProps = {
   fields: Array<{
     field: Record<string, boolean>;
     title: string;
+    description?: string;
     fieldType: string;
-    dropdownOptions?: Array<{ label: string; value: unknown }>;
+    dropdownOptions?: Array<{
+      label: string;
+      value: unknown;
+      description?: string;
+    }>;
     collapsibleSection?: unknown;
     placeholder?: string;
   }>;
@@ -601,6 +606,17 @@ describe("the AI / LLM monitor's form", () => {
       "Model",
     ]);
     expect(mockFormProps!.fields[0]!.dropdownOptions).toHaveLength(5);
+    /*
+     * A new monitor has every problem picked, and a picked option leaves
+     * the menu with its description: the field itself says what the two
+     * chips whose word does not say it mean.
+     */
+    expect(mockFormProps!.fields[0]!.description).toBe(
+      "Cut off means it hit the token limit. Flagged means an evaluation your app sent marked it bad.",
+    );
+    for (const option of mockFormProps!.fields[0]!.dropdownOptions || []) {
+      expect(option.description).toEqual(expect.any(String));
+    }
     expect(mockFormProps!.fields[3]!.dropdownOptions).toEqual([
       { label: "Support bot", value: SERVICE_ID },
     ]);

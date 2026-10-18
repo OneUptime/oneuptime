@@ -44,8 +44,8 @@ Jedes dieser Rechte lässt sich auch einzeln vergeben, vom Erstellen eines Falls
 
 | Quelle | Eröffnet einen Fall, wenn | Abschalten mit |
 | --- | --- | --- |
-| Erkennungsregeln | Eine Regel passt | **Open a Case on Match**, im Schritt **Security Cases** der Regel |
-| Threat Intelligence | Ein Ereignis einen bekannten Indikator nennt | **Open a Case on Match**, im Schritt **Security Cases** des Feeds |
+| Erkennungsregeln | Eine Regel passt | **Open a Case on Match**, im Schritt **Bei Treffer** der Regel |
+| Threat Intelligence | Ein Ereignis einen bekannten Indikator nennt | **Open a Case on Match**, im Schritt **Bei Treffer** des Feeds |
 | Verbundene Produkte | Eine eigene Warnung des Produkts auf oder über dem Schwellenwert der Verbindung importiert wird | **Open Cases From** auf **Nie** gesetzt, im Schritt **Abfrage** der Verbindung |
 | Personen | Jemand einen unter **Security Cases** eröffnet, oder mit **Open Case** im Panel eines Ereignisses | Nicht abschaltbar |
 
@@ -229,7 +229,7 @@ Ein Projekt, das noch keine Fälle und keine Erkennungen hat, zeigt darüber die
 ## Fehlerbehebung
 
 :::details Eine Regel passt, aber es wird kein Fall eröffnet
-Prüfen Sie **Open a Case on Match** im Schritt **Security Cases** der Regel. Eine Erkennung zu einer Entität, die bereits einen offenen Fall hat, wird diesem Fall zugeordnet, statt einen weiteren zu eröffnen: Suchen Sie sie unter **Erkennungen** im offenen Fall.
+Prüfen Sie **Open a Case on Match** im Schritt **Bei Treffer** der Regel. Eine Erkennung zu einer Entität, die bereits einen offenen Fall hat, wird diesem Fall zugeordnet, statt einen weiteren zu eröffnen: Suchen Sie sie unter **Erkennungen** im offenen Fall.
 :::
 
 :::details Ein Playbook ist nicht gelaufen

@@ -35,7 +35,7 @@ Apri **Prodotti → Security Events → Threat Intel**.
 
 ### Crea il feed
 
-Fai clic su **Crea: Threat Intel Feed** e compila i suoi cinque passi: **Informazioni di base**, **TAXII Server**, **Autenticazione**, **Security Cases** e **In caso di corrispondenza**. I campi sono nella tabella qui sotto.
+Fai clic su **Crea: Threat Intel Feed** e compila i suoi tre passi: **Server TAXII**, **Accesso** e **In caso di corrispondenza**. I campi sono nella tabella qui sotto.
 
 ### Controlla la prima interrogazione
 
@@ -48,16 +48,16 @@ Entro un paio di minuti la riga del feed mostra **Last Polled**, e **Last Poll S
 | **Collection ID** | La raccolta che pubblica gli indicatori. |
 | **Poll Interval (Minutes)** | Ogni quanto recuperare oggetti nuovi: da 1 a 1440 minuti, 60 per impostazione predefinita. |
 | **Minimum Confidence** | Gli indicatori con una `confidence` STIX più bassa vengono saltati: da 0 a 100, e 0 tiene tutto. Gli indicatori senza confidenza passano sempre. |
-| **API Token** | Un token bearer, per una raccolta che lo richiede. |
-| **Basic Auth Username** e **Basic Auth Password** | Per una raccolta che usa l'autenticazione HTTP basic. Lascia vuoti entrambi e il token per una raccolta pubblica. |
+| **Accesso** | Come accede OneUptime: **Nessun accesso** per una raccolta pubblica, **Token bearer** per un token fornito dall'operatore del server, o **Nome utente e password** per l'autenticazione HTTP basic. |
+| **API Token**, **Basic Auth Username** e **Basic Auth Password** | Richiesti solo per l'accesso scelto. |
 | **Open a Case on Match** | Attivo per impostazione predefinita: ogni evento che nomina un indicatore apre un [caso](/docs/telemetry/security-cases) su di esso, o si aggiunge al caso aperto che già lo riguarda. |
-| **Create Alert on Match** | Attivo per impostazione predefinita: ogni indicatore corrispondente apre un avviso. |
+| **Avvisi e incidenti** | **Crea un avviso** per impostazione predefinita: ogni indicatore corrispondente apre un avviso. |
 | **Gravità avviso** | La gravità di ogni avviso aperto da questo feed. Lasciala vuota per prendere il livello di minaccia di ogni indicatore. |
-| **Create Incident on Match** | Disattivato per impostazione predefinita. Gli incidenti guidano l'escalation della reperibilità, gli SLA e le pagine di stato, e per le corrispondenze di indicatori di solito bastano gli avvisi. |
+| **Dichiara un incidente** o **Entrambi** | In **Avvisi e incidenti**. Gli incidenti guidano l'escalation della reperibilità, gli SLA e le pagine di stato, e per le corrispondenze di indicatori di solito bastano gli avvisi. |
 | **Gravità incidente** | Come **Gravità avviso**, per gli incidenti. |
 | **Write Detection Finding on Match** | Attivo per impostazione predefinita: ogni corrispondenza scrive una risultanza nel flusso di eventi. |
 
-Token e password vengono cifrati e non sono più mostrati dopo il salvataggio. Per cambiarli, scegli **Update Credentials** nella riga del feed e poi **API Token (Bearer)**, **Basic Auth** o **Anonymous (clear stored credentials)**: la tua scelta sostituisce l'accesso del feed, quindi salvare un token cancella una password salvata, e viceversa.
+Token e password vengono cifrati e non sono più mostrati dopo il salvataggio. Per cambiarli, scegli **Update Credentials** nella riga del feed e poi **Token bearer**, **Nome utente e password** o **Nessun accesso**, che cancella quanto salvato: la tua scelta sostituisce l'accesso del feed, quindi salvare un token cancella una password salvata, e viceversa.
 
 ### Come viene interrogato un feed
 
@@ -143,7 +143,7 @@ Ogni minuto, gli indicatori attivi di ogni feed abilitato vengono confrontati co
 ### Cosa fa una corrispondenza
 
 - Un avviso, intitolato `[Threat Intel] <feed name> — <indicator value>`, uno per feed e valore finché resta aperto. Una volta risolto, la corrispondenza successiva ne apre uno nuovo. Gli avvisi non si risolvono automaticamente.
-- Un incidente, solo con **Create Incident on Match**, deduplicato allo stesso modo.
+- Un incidente, solo con **Dichiara un incidente** o **Entrambi** in **Avvisi e incidenti**, deduplicato allo stesso modo.
 - Una risultanza di threat intelligence, con **Write Detection Finding on Match**: un evento `Detection Finding` (classe OCSF 2004) del prodotto `OneUptime Threat Intel`, con il livello di minaccia dell'indicatore come gravità e questi attributi:
 
 | Attributo | Valore |
@@ -199,7 +199,7 @@ Il confronto paragona il valore di un indicatore agli observable di un evento, n
 :::
 
 :::details Una corrispondenza non ha aperto un avviso
-**Create Alert on Match** è disattivato, oppure è ancora aperto un avviso per lo stesso feed e valore, e le corrispondenze successive confluiscono in esso. Un progetto ha bisogno di almeno una gravità di avviso perché un feed apra avvisi.
+**Avvisi e incidenti** è impostato su **Dichiara un incidente** o **Nessuno dei due**, oppure è ancora aperto un avviso per lo stesso feed e valore, e le corrispondenze successive confluiscono in esso. Un progetto ha bisogno di almeno una gravità di avviso perché un feed apra avvisi.
 :::
 
 ## Passaggi successivi

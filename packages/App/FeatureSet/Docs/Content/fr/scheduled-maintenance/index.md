@@ -63,6 +63,8 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 
 La liste affiche **Numéro de maintenance planifiée**, **Titre**, **État actuel**, **Ressources affectées**, **Affiché sur la page de statut**, **Commence le**, **Durée**, **Se termine le**, **Étiquettes** et **Propriétaires**. Sélectionnez des événements pour agir sur plusieurs à la fois : **Modifier l'état**, **Ajouter des étiquettes**, **Remove Labels**, **Ajouter un propriétaire**, **Remove Owner** ou **Supprimer**.
 
+**Liste** et **Calendrier**, à l'extrémité droite de la barre de filtres de la liste, affichent les mêmes événements sous forme de tableau ou sur un mois, une semaine ou un jour. Voir [Calendrier de maintenance](/docs/scheduled-maintenance/calendar).
+
 ## Ce qu'un événement affecte
 
 Pendant qu'un événement est en cours, OneUptime considère la panne qu'il prévoit comme attendue :
@@ -80,13 +82,14 @@ Ouvrez un événement depuis la liste pour voir ses pages. Son menu latéral con
 
 | Section du menu latéral | Pages                                                                                   |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Basique**       | **Vue d'ensemble**, **Description**, **Propriétaires**, **Chronologie d'état**, **Runbooks**   |
-| **Journaux**      | **Journaux de notification** et **Journaux IA** : chaque message envoyé au sujet de l'événement, et tout ce que l'IA a fait pour lui |
+| **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie d'état**, **Description**, **Runbooks** |
+| **Équipe** | **Propriétaires** |
+| **Notifications**      | **Journaux de notification** et **Journaux IA** : chaque message envoyé au sujet de l'événement, et tout ce que l'IA a fait pour lui |
 | **Notes**         | **Notes privées** et **Notes publiques**                                                       |
 | **Développeurs**  | **Terraform**, **API** et **Assistants IA** : l'événement géré par le code                     |
 | **Avancé**        | **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer l'événement**      |
 
-**Basique** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
+**Vue d'ensemble**, **Équipe** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
 
 - **Vue d'ensemble** — l'en-tête affiche le numéro, le titre et l'état de l'événement, le temps restant avant son début ou depuis combien de temps il dure, et les boutons qui le font avancer. En dessous, **Commence**, **Se termine** et **Durée** montrent la fenêtre prévue dans votre fuseau horaire. Le **Fil d'activité de la maintenance planifiée** enregistre tout ce qui est arrivé à l'événement, à côté des cartes **Détails de la maintenance** et **Ressources affectées**, ainsi que des cartes **Mesures** et **Champs personnalisés** quand votre projet en a.
 - **Chronologie d'état** — chaque état dans lequel l'événement a été, quand et pendant combien de temps. Voir [États de la maintenance](/docs/scheduled-maintenance/states#la-chronologie-détat).

@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **Die Sonde verbindet sich nach außen.** Jede Anfrage geht von der Sonde über HTTPS an `ONEUPTIME_URL`. Von außerhalb Ihres Netzwerks muss nichts die Sonde erreichen.
 - **Sie prüft nur ihre eigenen Monitore.** Die Sonde fragt OneUptime nach den Monitoren, denen sie hinzugefügt ist, prüft jeden, sobald er fällig ist, und sendet das Ergebnis zurück. OneUptime entscheidet anhand der Ergebnisse, ob sich der Status eines Monitors ändert.
-- **OneUptime achtet darauf, dass sie läuft.** Jede Anfrage der Sonde gilt als Lebenszeichen, und die Sonde sendet mindestens jede Minute eine. Nach etwa drei Minuten ohne eine zeigt die Sonde **Getrennt**, und ihre Eigentümer werden benachrichtigt. Hat eine Sonde keine Eigentümer, werden die Eigentümer des Projekts benachrichtigt.
+- **OneUptime achtet darauf, dass sie läuft.** Jede Anfrage der Sonde gilt als Lebenszeichen, und die Sonde sendet mindestens jede Minute eine. Nach etwa drei Minuten ohne eine zeigt die Sonde **Getrennt**, und ihre Eigentümer werden benachrichtigt. Hat eine Sonde keine Eigentümer, werden die Eigentümer des Projekts benachrichtigt. Um wie bei jedem Ausfall alarmiert zu werden, mit einem Vorfall, bis sie zurück ist, fügen Sie einen [Sondenstatus-Monitor](/docs/monitor/probe-status-monitor) hinzu: **Diese Sonde überwachen** auf der Seite der Sonde legt einen an.
 
 ## Bevor Sie beginnen
 
@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Die Sonde anlegen
 
-Öffnen Sie **Monitore → Einstellungen → Sonden** und klicken Sie auf **Sonde erstellen**. Geben Sie ihr einen **Name** und eine **Beschreibung**: beide sind Pflicht. Unter **Weitere Felder** finden Sie das **Sondenlogo**, **Überwachung bei neuen Monitoren automatisch aktivieren**, womit diese Sonde für jeden neuen Monitor ausgewählt wird, den Sie anlegen, und **Beschriftungen**.
+Öffnen Sie **Monitore → Einstellungen → Sonden** und klicken Sie auf **Sonde erstellen**. Geben Sie ihr einen **Name** und eine **Beschreibung**: beide sind Pflicht. Unter **Weitere Felder** finden Sie das **Sondenlogo**, **Zu neuen Monitoren hinzufügen**, womit jeder neue Monitor mit dieser Sonde als Auswahl beginnt, und **Beschriftungen**.
 
 ### ID und Schlüssel kopieren
 

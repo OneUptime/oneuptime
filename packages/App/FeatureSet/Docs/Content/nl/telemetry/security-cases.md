@@ -44,8 +44,8 @@ Elk van deze rechten kan ook afzonderlijk worden toegekend, van het aanmaken van
 
 | Bron | Opent een zaak wanneer | Uitzetten met |
 | --- | --- | --- |
-| Detectieregels | Een regel matcht | **Open a Case on Match**, in de stap **Security Cases** van de regel |
-| Dreigingsinformatie | Een gebeurtenis een bekende indicator noemt | **Open a Case on Match**, in de stap **Security Cases** van de feed |
+| Detectieregels | Een regel matcht | **Open a Case on Match**, in de stap **Bij overeenkomst** van de regel |
+| Dreigingsinformatie | Een gebeurtenis een bekende indicator noemt | **Open a Case on Match**, in de stap **Bij overeenkomst** van de feed |
 | Gekoppelde producten | Een eigen waarschuwing van het product op of boven de drempel van de verbinding wordt geïmporteerd | **Open Cases From** op **Nooit** gezet, in de stap **Polling** van de verbinding |
 | Mensen | Iemand er een opent vanuit **Security Cases**, of met **Open Case** in het paneel van een gebeurtenis | Niet uit te zetten |
 
@@ -229,7 +229,7 @@ Een project zonder zaken en zonder detecties toont daarboven de drie stappen om 
 ## Probleemoplossing
 
 :::details Een regel matcht, maar er wordt geen zaak geopend
-Controleer **Open a Case on Match** in de stap **Security Cases** van de regel. Een detectie over een entiteit die al een open zaak heeft, wordt aan die zaak toegevoegd in plaats van een nieuwe te openen: zoek haar onder **Detections** in de open zaak.
+Controleer **Open a Case on Match** in de stap **Bij overeenkomst** van de regel. Een detectie over een entiteit die al een open zaak heeft, wordt aan die zaak toegevoegd in plaats van een nieuwe te openen: zoek haar onder **Detections** in de open zaak.
 :::
 
 :::details Een playbook draaide niet

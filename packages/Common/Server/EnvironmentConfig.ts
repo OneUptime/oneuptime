@@ -548,11 +548,83 @@ export const AirtableApiKey: string = process.env["AIRTABLE_API_KEY"] || "";
 
 export const AirtableBaseId: string = process.env["AIRTABLE_BASE_ID"] || "";
 
+/*
+ * A SHARED SECRET THIS REPOSITORY SHIPS
+ *
+ * The values a key OneUptime's own components share can be left at by an
+ * installation that never set it, all of them public in this repository:
+ *
+ *   - unset or blank;
+ *   - "secret", which the code used to fall back to;
+ *   - any placeholder config.example.env sets. Every one contains
+ *     "please-change-this" ("please-change-this-to-random-value",
+ *     "probe-1-please-change-this-to-random-value", ...), and the README's
+ *     Docker Compose install copies that file as it is.
+ *
+ * Whitespace around the value is ignored, as compose and shells keep it. The
+ * comparison is case-sensitive: these are the exact values anybody would try
+ * first, and any other weak value is the operator's own choice.
+ *
+ * Such a value is never accepted as proof that a caller is one of
+ * OneUptime's own components, whichever key it is. ENCRYPTION_SECRET keeps
+ * its own, older rule above (IsEncryptionSecretInsecure), because which of
+ * its values count decides which key every sign-in token is checked with.
+ */
+export const ShippedSecretFallback: string = "secret";
+
+export const ShippedSecretPlaceholderMark: string = "please-change-this";
+
+export function isShippedSecretValue(
+  value: string | null | undefined,
+): boolean {
+  if (typeof value !== "string") {
+    return true;
+  }
+
+  const trimmed: string = value.trim();
+
+  return (
+    trimmed === "" ||
+    trimmed === ShippedSecretFallback ||
+    trimmed.includes(ShippedSecretPlaceholderMark)
+  );
+}
+
+/*
+ * THE CLUSTER KEY (ONEUPTIME_SECRET)
+ *
+ * OneUptime's own services prove to each other that a call comes from one of
+ * them by presenting this key: the app and worker processes when one asks
+ * another to send an email, an SMS, a call, a WhatsApp or Telegram message
+ * or a webhook, to run a workflow or to write telemetry, and the in-cluster
+ * Runner when it registers to fix code for every project
+ * (ClusterKeyAuthorization). The routes that take it are reachable through
+ * the ingress like any other.
+ *
+ * ClusterKey is the value exactly as the operator set it, read only by
+ * ClusterKeyAuthorization, and only when it is not one this repository ships
+ * (IsClusterKeyShipped). There is no fallback: an installation that left it
+ * unset or at a placeholder has its services use a key of the installation's
+ * own instead, and refuses the public value from any caller.
+ */
 export const ClusterKey: ObjectID = new ObjectID(
-  process.env["ONEUPTIME_SECRET"] || "secret",
+  process.env["ONEUPTIME_SECRET"] || "",
 );
 
+// Whether ONEUPTIME_SECRET is set at all (the Runner's cluster-scoped mode).
 export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
+
+export const IsClusterKeyShipped: boolean = isShippedSecretValue(
+  process.env["ONEUPTIME_SECRET"],
+);
+
+/*
+ * Said once at boot by the app (App/Index.ts) when ONEUPTIME_SECRET is unset
+ * or a shipped value, or null. The Runner says its own.
+ */
+export const ClusterKeyWarning: string | null = IsClusterKeyShipped
+  ? 'ONEUPTIME_SECRET is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value from any caller. Its own services call each other with a key this installation derives for itself instead, so nothing needs changing for them, but the in-cluster Runner cannot register until ONEUPTIME_SECRET is a long random value, the same on the app and the Runner. npm start and npm run update put one in config.env for Docker Compose; with Helm, set oneuptimeSecret to one.'
+  : null;
 
 export const EnableQueueDashboard: boolean =
   process.env["ENABLE_QUEUE_DASHBOARD"] === "true";
@@ -913,6 +985,52 @@ export const TrustedProxyHops: number = ((): number => {
 
 export const ProvisionSsl: boolean = process.env["PROVISION_SSL"] === "true";
 
+// One year: what browsers and security scanners expect of an HTTPS-only site.
+export const DEFAULT_HSTS_MAX_AGE_SECONDS: number = 365 * 24 * 60 * 60;
+
+// A number of seconds as the header writes it: plain digits, nothing else.
+const HSTS_MAX_AGE_DIGITS: RegExp = /^\d+$/;
+
+/*
+ * How long a browser keeps to HTTPS for this installation's own address
+ * (HOST) once it has reached it over HTTPS: the max-age of the
+ * Strict-Transport-Security header that an installation with
+ * HTTP_PROTOCOL=https sends (Server/Utils/RequestTransport.ts).
+ *
+ * One year unless HSTS_MAX_AGE_SECONDS says otherwise. 0 is the way back: it
+ * tells every browser that visits over HTTPS to forget the rule, for when the
+ * address has to answer over plain HTTP again. Anything that is not a whole,
+ * non-negative number of seconds keeps the default, so a typo never turns
+ * the protection off.
+ *
+ * That means plain digits, and a number small enough to be written back as
+ * digits. "1e3" or "+600" is a typo here, and a value past
+ * Number.MAX_SAFE_INTEGER (a few zeros too many) would come out of the
+ * header as "max-age=3.1536e+22", which browsers do not read as a max-age:
+ * they ignore the whole header, and the protection is off.
+ */
+export const parseHstsMaxAgeSeconds: (
+  rawValue: string | undefined,
+) => number = (rawValue: string | undefined): number => {
+  const trimmedValue: string = rawValue?.trim() || "";
+
+  if (!HSTS_MAX_AGE_DIGITS.test(trimmedValue)) {
+    return DEFAULT_HSTS_MAX_AGE_SECONDS;
+  }
+
+  const parsedValue: number = Number(trimmedValue);
+
+  if (!Number.isSafeInteger(parsedValue)) {
+    return DEFAULT_HSTS_MAX_AGE_SECONDS;
+  }
+
+  return parsedValue;
+};
+
+export const HstsMaxAgeSeconds: number = parseHstsMaxAgeSeconds(
+  process.env["HSTS_MAX_AGE_SECONDS"],
+);
+
 export const CaptchaEnabled: boolean =
   process.env["CAPTCHA_ENABLED"] === "true";
 
@@ -983,21 +1101,44 @@ export const StatusPageApiClientUrl: URL = new URL(
 );
 
 /*
- *Internal URL for server-to-server communication (uses internal Docker hostname)
- *Note: The internal path is /api/status-page (not /status-page-api) because
- * /status-page-api is the external route that Nginx rewrites to /api/status-page
+ * The App's own API at its internal address, for the requests the App makes
+ * to itself: plain HTTP to SERVER_APP_HOSTNAME:APP_PORT, the address Nginx
+ * proxies /api to, as the App's other server-to-server calls make them
+ * (MailService, the MCP server's tools, ...).
+ *
+ * Never the public address, HTTP_PROTOCOL + HOST: a request sent there leaves
+ * the App and comes back in through Nginx, which works only where the App can
+ * reach the address people use. With HOST=localhost - a local install, and the
+ * e2e stack - that is the App container itself, where nothing listens on port
+ * 80, so every request failed with "connect ECONNREFUSED 127.0.0.1:80"; split
+ * DNS, egress rules or a self-signed certificate break it the same way.
+ */
+const AppApiInternalUrl: URL = new URL(
+  Protocol.HTTP,
+  AppApiHostname,
+  new Route(AppApiRoute.toString()),
+);
+
+/*
+ * The status page API, for the servers that render a status page: what the
+ * page is (/seo - its title, description, search engine indexing and theme,
+ * which its HTML is sent in before any script runs), and its RSS feed and
+ * llms.txt. The internal path is /api/status-page (not /status-page-api)
+ * because /status-page-api is the external route that Nginx rewrites to
+ * /api/status-page.
  */
 export const StatusPageApiInternalUrl: URL = URL.fromString(
-  AppApiClientUrl.toString(),
+  AppApiInternalUrl.toString(),
 ).addRoute(new Route("/status-page"));
 
 /*
- *Internal URL for server-to-server communication with the Dashboard API.
- *Note: The internal path is /api/dashboard (not /public-dashboard-api) because
- * /public-dashboard-api is the external route that Nginx rewrites to /api/dashboard
+ * The public dashboard API, for the servers that render a public dashboard.
+ * The internal path is /api/dashboard (not /public-dashboard-api) because
+ * /public-dashboard-api is the external route that Nginx rewrites to
+ * /api/dashboard.
  */
 export const DashboardApiInternalUrl: URL = URL.fromString(
-  AppApiClientUrl.toString(),
+  AppApiInternalUrl.toString(),
 ).addRoute(new Route("/dashboard"));
 
 export const DashboardClientUrl: URL = new URL(
@@ -1536,6 +1677,43 @@ export const ExpoAccessToken: string | undefined =
 export const PushNotificationRelayUrl: string =
   process.env["PUSH_NOTIFICATION_RELAY_URL"] ||
   "https://oneuptime.com/api/notification/push-relay/send";
+
+/*
+ * Whether this server relays mobile pushes for other OneUptime servers: the
+ * push relay (App/FeatureSet/Notification/API/PushRelay.ts), which sends
+ * what another server asks it to with this server's EXPO_ACCESS_TOKEN, and
+ * reads those pushes' receipts.
+ *
+ * OneUptime's cloud is the relay a self-hosted server sends through by
+ * default (PUSH_NOTIFICATION_RELAY_URL), so where BILLING_ENABLED is true it
+ * is on unless PUSH_NOTIFICATION_RELAY_SERVER_ENABLED says otherwise.
+ * Anywhere else it is off unless set to exactly "true": an EXPO_ACCESS_TOKEN
+ * set for a server's own pushes does not make it a relay for others.
+ *
+ * Empty or unset: on only where BILLING_ENABLED is true. "true": on.
+ * Anything else: off - a value that is not "true" never turns a relay on.
+ */
+export const readPushNotificationRelayServerEnabled: (data: {
+  value: string | undefined;
+  isBillingEnabled: boolean;
+}) => boolean = (data: {
+  value: string | undefined;
+  isBillingEnabled: boolean;
+}): boolean => {
+  const value: string = (data.value || "").trim();
+
+  if (!value) {
+    return data.isBillingEnabled;
+  }
+
+  return value === "true";
+};
+
+export const PushNotificationRelayServerEnabled: boolean =
+  readPushNotificationRelayServerEnabled({
+    value: process.env["PUSH_NOTIFICATION_RELAY_SERVER_ENABLED"],
+    isBillingEnabled: IsBillingEnabled,
+  });
 
 export const DEFAULT_ENTERPRISE_LICENSE_SERVER_URL: string =
   "https://oneuptime.com";

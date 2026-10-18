@@ -4,6 +4,7 @@ Der OneUptime-Kubernetes-Agent ist ein Helm-Chart, das die Metriken, Ereignisse 
 
 :::cards
 - [Agent installieren](#agent-installieren): Vier Schritte mit Helm.
+- [Als Add-on für Amazon EKS installieren](#als-add-on-für-amazon-eks-installieren): Über die EKS-Konsole, ohne Helm.
 - [Konfigurationsoptionen](#konfigurationsoptionen): Filter, Sampling, Control Plane, Service Mesh, Kosten und Labels.
 - [Kubernetes-KI-Agent](#kubernetes-ki-agent): Lesendes `kubectl` für OneUptime AI und Korrekturen, wenn Sie sie erlauben.
 - [Weniger senden](#die-erfasste-datenmenge-verringern): Die Hebel, nach Wirkung geordnet.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 Öffnen Sie **Produkte → Infrastruktur → Kubernetes → Alle Cluster**. Der Cluster erscheint innerhalb weniger Minuten unter seinem `clusterName`, und seine Knoten, Pods und Workloads füllen sich. Der Kubernetes-KI-Agent wird auf der Seite **Agent** des Clusters, unter **KI**, als verbunden angezeigt.
 :::
 
+## Als Add-on für Amazon EKS installieren
+
+Auf Amazon EKS können Sie den Agent auch über die EKS-Konsole hinzufügen, wo er eines der Add-ons aus AWS Marketplace ist. Er kostet nichts, und EKS installiert, aktualisiert und entfernt ihn für Sie. Das Add-on ist dieses Chart, so eingerichtet, wie ein Add-on es braucht:
+
+- Es sendet an OneUptime Cloud, `https://oneuptime.com`, sofern Sie ihm nicht die URL Ihres eigenen OneUptime geben.
+- Es liest den Ingestion-Schlüssel aus einem Kubernetes-Secret, das Sie anlegen, nie aus der Konfiguration des Add-ons, die EKS im Klartext anzeigt.
+- Es meldet den Cluster unter seinem EKS-Namen an OneUptime.
+- Es läuft im Namespace `oneuptime-agent`.
+
+:::steps
+### Ingestion-Schlüssel in einem Secret ablegen
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### Add-on hinzufügen
+
+Öffnen Sie in der EKS-Konsole Ihren Cluster, wählen Sie **Add-ons** und dann **Get more add-ons**, und suchen Sie unter den Add-ons aus AWS Marketplace den OneUptime-Kubernetes-Agent aus. Abonnieren Sie ihn, was kostenlos ist, und erstellen Sie ihn. Oder mit der AWS CLI:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### Prüfen, ob es läuft
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Das Add-on ist `ACTIVE`, sobald seine Pods laufen, und der Cluster erscheint innerhalb weniger Minuten unter seinem EKS-Namen in OneUptime. Ein Pod, der im Status `CreateContainerConfigError` bleibt, findet das Secret nicht: Legen Sie es wie im ersten Schritt an, im Namespace `oneuptime-agent`.
+:::
+
+### Konfigurationswerte des Add-ons
+
+Setzen Sie sie in den **Optional configuration settings** der EKS-Konsole oder mit `--configuration-values`, wenn Sie das Add-on erstellen oder aktualisieren. Alle sind optional:
+
+- `oneuptime.url`: die Adresse Ihres OneUptime. Der Standardwert ist `https://oneuptime.com`.
+- `oneuptime.existingSecretName`: das Secret, das den Ingestion-Schlüssel unter `api-key` enthält. Der Standardwert ist `oneuptime-ingestion-key`.
+- `oneuptime.labels`: Projektlabels für alles, was dieser Cluster sendet, etwa `{"team": "payments"}`.
+- `preset`: `eks-fargate` für einen Cluster, der nur auf Fargate läuft, sonst `standard`, der Standardwert.
+- `logs.enabled`, `ebpf.enabled` und `aiAgent.enabled`: Pod-Logs, eBPF-Traces und der [Kubernetes-KI-Agent](#kubernetes-ki-agent), jeweils standardmäßig aktiv.
+- `kubeStateMetrics.enabled` und `cost.enabled`: kube-state-metrics und [Kosten-Observability](/docs/telemetry/kubernetes-cost), jeweils standardmäßig aus.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+Eine Aktualisierung ersetzt die gesamte Konfiguration: Ein Wert, den Sie weglassen, fällt auf seinen Standardwert zurück. Die übrigen Einstellungen des Charts, etwa der Profiler, Korrekturen durch OneUptime AI und Namespace-Filter, erfordern die [Helm-Installation](#agent-installieren). Um einen Cluster von der Helm-Installation auf das Add-on umzustellen, deinstallieren Sie zuerst das Helm-Release.
+
 ## Preset wählen
 
 `preset` wählt die Standardwerte, die auf Ihrer Plattform funktionieren: ob Pod-Logs über `hostPath` vom Knoten oder über die Kubernetes-API gelesen werden und welche Workloads privilegiert laufen dürfen.
@@ -169,6 +225,23 @@ Wenn Sie unsicher sind, beginnen Sie mit `standard`. Scheitert die Installation 
 ## Konfigurationsoptionen
 
 Jede der folgenden Optionen ist ein Helm-Wert. Setzen Sie ihn bei der Installation oder bei einem installierten Agent mit `helm upgrade ... --reset-then-reuse-values --set <value>`.
+
+### Den Ingestion-Schlüssel in einem Secret aufbewahren
+
+`--set oneuptime.apiKey` bewahrt den Schlüssel in den Werten des Releases auf, die Helm mit jeder Revision speichert. Um ihn daraus herauszuhalten, legen Sie den Schlüssel in einem Secret im Namespace des Agents unter `api-key` ab und geben Sie stattdessen dieses Secret an:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+Jeder Agent-Workload liest den Schlüssel dann aus diesem Secret, und das Chart legt kein eigenes Secret an. Setzen Sie `oneuptime.apiKey` oder `oneuptime.existingSecretName`, nicht beides: Das Chart lehnt beide zusammen ab. Das Secret kann von allem stammen, was eines schreibt, etwa vom External Secrets Operator.
 
 ### Namespace-Filterung
 
@@ -602,7 +675,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **Eine Ablehnung, die sich von selbst erledigt** — ein früherer Agent-Pod, der sich noch meldet (ein Pod, der ohne sauberes Herunterfahren ersetzt wurde), oder der alte Runner im Cluster, der während eines Upgrades noch herunterfährt. Der Agent versucht es nach der Wartezeit erneut, die der Server nennt.
 - **Eine Ablehnung, die Sie braucht** — ein leerer oder zu langer `clusterName` oder ein Projekt, das sein Limit an KI-Agents erreicht hat; das Log nennt, was zu ändern ist. Verbindet sich ein Agent nie und meldet sein Log `Another Kubernetes AI agent for cluster "<name>" is online`, teilen sich zwei Installationen einen `clusterName` (die Seite des KI-Agents warnt ebenfalls davor): Der bereits verbundene behält ihn, solange er läuft; geben Sie daher jedem Cluster einen eigenen `clusterName` oder entfernen Sie das überzählige Release. Ein Ingestion-Schlüssel mit einem **Festgelegter Dienstname** kann den Agent nicht registrieren — geben Sie dem Chart einen Schlüssel ohne.
 
-**Agent zurücksetzen**, im Menü **⋯** neben dem Status des Agents auf der Seite des KI-Agents, lässt den Server den Schlüssel des Agents vergessen, sobald Sie bestätigen (ein Project Owner, ein Project Admin oder **Edit Auto Remediation Rule** darf das); der Pod verbindet sich innerhalb weniger Minuten von selbst neu. Die Bereitschaft des Agents hängt nicht von OneUptime ab, daher lässt ein falsch konfigurierter KI-Agent nie `helm upgrade --wait` scheitern — nur ein Pod, der sein Image nicht ziehen kann.
+**Agent zurücksetzen**, im Menü **⋯** neben dem Status des Agents auf der Seite des KI-Agents, lässt den Server den Schlüssel des Agents vergessen, sobald Sie bestätigen (ein Project Owner, ein Project Admin oder **Edit Auto Remediation Rule** darf das, auf einem Cluster, den er bearbeiten darf); der Pod verbindet sich innerhalb weniger Minuten von selbst neu. Die Bereitschaft des Agents hängt nicht von OneUptime ab, daher lässt ein falsch konfigurierter KI-Agent nie `helm upgrade --wait` scheitern — nur ein Pod, der sein Image nicht ziehen kann.
 
 ## Agent aktualisieren
 

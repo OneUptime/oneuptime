@@ -246,7 +246,7 @@ The feed shows the rotation **as it is configured now**, including for past days
 OneUptime's own Nginx keeps feed requests out of its logs:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;

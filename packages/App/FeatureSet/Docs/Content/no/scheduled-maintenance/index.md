@@ -63,6 +63,8 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 
 Listen viser **Nummer for planlagt vedlikehold**, **Tittel**, **Nåværende tilstand**, **Berørte ressurser**, **Vist på statussiden**, **Begynner den**, **Varighet**, **Slutter den**, **Etiketter** og **Eiere**. Velg hendelser for å handle på flere samtidig: **Endre tilstand**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** eller **Slett**.
 
+**Liste** og **Kalender**, lengst til høyre i listens filterlinje, viser de samme hendelsene som en tabell eller på en måned, en uke eller en dag. Se [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar).
+
 ## Hva en hendelse påvirker
 
 Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forventet:
@@ -80,13 +82,14 @@ Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forv
 
 | Seksjon i sidemenyen | Sider                                                                                      |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Grunnleggende** | **Oversikt**, **Beskrivelse**, **Eiere**, **Tilstandstidslinje**, **Runbooks**                 |
-| **Logger**        | **Varsellogger** og **AI-logger**: hver melding som er sendt om hendelsen, og hva AI har gjort for den |
+| **Oversikt** | **Oversikt**, **Tilstandstidslinje**, **Beskrivelse**, **Runbooks** |
+| **Team** | **Eiere** |
+| **Varsler**        | **Varsellogger** og **AI-logger**: hver melding som er sendt om hendelsen, og hva AI har gjort for den |
 | **Notater**       | **Private notater** og **Offentlige notater**                                                  |
 | **Utvikler**      | **Terraform**, **API** og **AI-assistenter**: hendelsen styrt fra kode                         |
 | **Avansert**      | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett hendelse**             |
 
-**Grunnleggende** og **Notater** er åpne; de andre seksjonene forblir sammenslått til du klikker på dem.
+**Oversikt**, **Team** og **Notater** er åpne; de andre seksjonene forblir sammenslått til du klikker på dem.
 
 - **Oversikt** — overskriften viser hendelsens nummer, tittel og tilstand, hvor lenge det er til den starter eller hvor lenge den har pågått, og knappene som flytter den videre. Under den viser **Starter**, **Slutter** og **Varighet** det planlagte vinduet i tidssonen din. **Planlagt Vedlikehold Feed** registrerer alt som har skjedd med hendelsen, ved siden av kortene **Maintenance Details** og **Berørte ressurser**, og kortene **Målinger** og **Egendefinerte felt** når prosjektet ditt har noen.
 - **Tilstandstidslinje** — hver tilstand hendelsen har vært i, når og hvor lenge. Se [Vedlikeholdstilstander](/docs/scheduled-maintenance/states#tilstandstidslinjen).

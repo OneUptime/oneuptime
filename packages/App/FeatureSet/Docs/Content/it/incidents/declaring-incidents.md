@@ -116,7 +116,7 @@ Questo passaggio compare solo quando almeno un campo personalizzato dell'inciden
 
 ### Passaggio 3 — Reperibilità e ruoli
 
-- **Policy di reperibilità** — una selezione multipla delle policy di reperibilità da eseguire quando viene creato questo incidente. Corrisponde a `onCallDutyPolicies` sull'incidente.
+- **Policy di reperibilità** — una selezione multipla delle policy di reperibilità da attivare appena l'incidente viene dichiarato. Corrisponde a `onCallDutyPolicies` sull'incidente.
 - **Assegna ruoli incidente** — chi prende ciascun ruolo definito dal vostro progetto, una scheda per ruolo. Un ruolo contrassegnato come **Principale** che lasciate vuoto è vostro: lo prendete quando l'incidente viene dichiarato, e il riepilogo lo dice. Un ruolo che accetta una sola persona lo indica non appena ne ha una; un ruolo che ne accetta diverse mantiene il suo selettore.
 
 Questo è l'unico punto in cui una policy di reperibilità viene collegata direttamente a un incidente. Le gravità non portano con sé una policy di reperibilità — la gravità è un'etichetta, e influisce sugli avvisi solo come *criterio di corrispondenza* all'interno di una regola di reperibilità. Le regole configurate in **Incidenti → Regole → Regole di reperibilità** aggiungono le loro policy a ciò che scegliete qui; l'insieme finale che viene eseguito è l'unione delle due, senza duplicati. Un incidente dichiarato in uno stato successivo non ne esegue nessuna — vedete [Dichiarato già riconosciuto o risolto](#dichiarato-già-riconosciuto-o-risolto).

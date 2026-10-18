@@ -112,7 +112,7 @@ const MonitorGroupPage: FunctionComponent<
             field: {
               name: true,
             },
-            title: "Group Name",
+            title: "Name",
             type: FieldType.Text,
           },
         ]}
@@ -121,7 +121,7 @@ const MonitorGroupPage: FunctionComponent<
             field: {
               name: true,
             },
-            title: "Group Name",
+            title: "Name",
             type: FieldType.Text,
           },
           {

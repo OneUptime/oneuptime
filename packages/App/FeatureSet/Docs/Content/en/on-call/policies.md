@@ -57,14 +57,14 @@ Open a policy from the list. Its side menu holds everything about it:
 
 ## Repeat a policy
 
-When the last level's wait runs out with nobody acknowledging, a policy stops, unless it repeats. To repeat, open the policy's **Escalation Rules** page, click **Edit** on the **Repeat Policy** card below the rules, and fill in **Edit Repeat Policy**:
+When the last level's wait runs out with nobody acknowledging, a policy stops, unless it repeats. To choose, open the policy's **Escalation Rules** page and click **Edit** on the **Repeat Policy** card below the rules. **Edit Repeat Policy** asks **If nobody acknowledges after the last level**:
 
-| Field | What it does | For a new policy |
-| --- | --- | --- |
-| **Repeat if no one acknowledges** | Starts the policy again from **Level 1** after its last level. While it is off, the policy runs once. | Off |
-| **Number of times to repeat** | How many more times the policy starts again. | 0 |
+| Answer | What it does |
+| --- | --- |
+| **Stop paging** | Nobody is paged again, so the policy runs once. A new policy starts with this answer. |
+| **Start again from Level 1** | Every level is paged again, in order. **How many more times?** says how often: 1 or more. |
 
-With the switch on and three repeats, a policy goes through its levels four times in all. **Policy at a glance** on the **Overview** says the same in words.
+A policy that starts again three more times goes through its levels four times in all. The card's **After the last level** row says what the policy does, and **Policy at a glance** on the **Overview** says the same in words.
 
 ## Execution logs
 
@@ -94,7 +94,7 @@ You find execution logs in three places:
 
 - the policy's own **Execution Logs**, under **Logs**;
 - **On-Call Duty → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;
-- the **On-Call Executions** page of an incident, and **On Call Executions** of an alert.
+- the **On-Call Executions** page of an incident or an alert.
 
 Each row shows what triggered the run, when, its **Status** and who acknowledged it. **View Timeline** opens its **Execution Timeline**: each escalation rule, who it paged, through which schedule, and how each page ended. A schedule with nobody on call shows **No one was on call** instead of a person. On OneUptime Cloud, execution logs need the **Growth** plan.
 
@@ -119,9 +119,11 @@ On-call policies are the `/api/on-call-duty-policy` resource, and the `oneuptime
 | --- | --- |
 | **Name** | `name` |
 | **Description** | `description` |
-| **Repeat if no one acknowledges** | `repeatPolicyIfNoOneAcknowledges` |
-| **Number of times to repeat** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **If nobody acknowledges after the last level** | `repeatPolicyIfNoOneAcknowledges` |
+| **How many more times?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | Archived | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` is `false` for **Stop paging** and `true` for **Start again from Level 1**. With it `true` and `repeatPolicyIfNoOneAcknowledgesNoOfTimes` at `0`, a policy never repeats, and the dashboard shows it as **Stop paging**.
 
 To create a policy with its first level in one request, see [Creating rules with the API or Terraform](/docs/on-call/escalation-rules#creating-rules-with-the-api-or-terraform).
 

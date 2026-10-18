@@ -150,15 +150,15 @@ Um episódio que você cria não tem regra de agrupamento, então a lista mostra
 
 | Seção do menu lateral | Páginas                                                                     |
 | --------------------- | --------------------------------------------------------------------------- |
-| **Básico**            | **Visão geral**, **Descrição**, **Causa raiz**, **Notas de remediação**     |
-| **Propriedade**       | **Proprietários**                                                           |
-| **Linha do tempo**    | **Linha do tempo de estado**                                                |
-| **Alertas**           | **Alertas de membros**                                                      |
-| **Notas do episódio** | **Notas privadas**                                                          |
-| **Desenvolvedores**   | **Terraform**, **API**, **Assistentes de IA**                               |
-| **Avançado**          | **Registros de auditoria**, **Excluir episódio**                            |
+| **Visão geral** | **Visão geral**, **Linha do tempo de estado** |
+| **Investigação** | **Descrição**, **Causa raiz**, **Notas de remediação** |
+| **Equipe** | **Proprietários** |
+| **Alertas** | **Alertas de membros** |
+| **Notas** | **Notas privadas** |
+| **Desenvolvedores** | **Terraform**, **API**, **Assistentes de IA** |
+| **Avançado** | **Registros de auditoria**, **Excluir episódio** |
 
-**Propriedade**, **Desenvolvedores** e **Avançado** começam recolhidas. A **Visão geral** começa com **Alerts in this episode**, depois o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Move episode to** no menu **⋯**.
+**Desenvolvedores** e **Avançado** começam recolhidas. A **Visão geral** começa com **Alerts in this episode**, depois o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Move episode to** no menu **⋯**.
 
 **Alertas → Episódios ativos** lista os episódios que ainda não foram resolvidos, e o selo ao lado os conta.
 

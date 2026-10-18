@@ -250,9 +250,7 @@ describe("the device Overview says where a discovered name came from (issue #451
       expect(
         screen.getByText(/A later scan that finds a better name/),
       ).toBeInTheDocument();
-      expect(
-        screen.getByText(/Rename it yourself to keep a name of your own/),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/unless you rename it/)).toBeInTheDocument();
     },
   );
 

@@ -150,15 +150,15 @@ Un episodio que creas tú no tiene regla de agrupación, así que la lista muest
 
 | Sección del menú lateral | Páginas                                                                     |
 | ------------------------ | --------------------------------------------------------------------------- |
-| **Básico**               | **Vista general**, **Descripción**, **Causa raíz**, **Notas de remediación** |
-| **Propiedad**            | **Propietarios**                                                            |
-| **Cronología**           | **Cronología de estados**                                                   |
-| **Alertas**              | **Alertas miembro**                                                         |
-| **Notas del episodio**   | **Notas privadas**                                                          |
-| **Desarrolladores**      | **Terraform**, **API**, **Asistentes de IA**                                |
-| **Avanzado**             | **Registros de auditoría**, **Eliminar episodio**                           |
+| **Vista general** | **Vista general**, **Cronología de estados** |
+| **Investigación** | **Descripción**, **Causa raíz**, **Notas de remediación** |
+| **Equipo** | **Propietarios** |
+| **Alertas** | **Alertas miembro** |
+| **Notas** | **Notas privadas** |
+| **Desarrolladores** | **Terraform**, **API**, **Asistentes de IA** |
+| **Avanzado** | **Registros de auditoría**, **Eliminar episodio** |
 
-**Propiedad**, **Desarrolladores** y **Avanzado** empiezan plegadas. La **Vista general** empieza con **Alertas de este episodio**, después el **Feed del episodio**, junto a la tarjeta **Detalles del episodio**: su número, estado, gravedad, número de alertas, regla de agrupación y políticas de guardia. Su cabecera tiene **Reconocer** y **Resolver**, y **Move episode to** en el menú **⋯**.
+**Desarrolladores** y **Avanzado** empiezan plegadas. La **Vista general** empieza con **Alertas de este episodio**, después el **Feed del episodio**, junto a la tarjeta **Detalles del episodio**: su número, estado, gravedad, número de alertas, regla de agrupación y políticas de guardia. Su cabecera tiene **Reconocer** y **Resolver**, y **Move episode to** en el menú **⋯**.
 
 **Alertas → Episodios activos** muestra los episodios que aún no se han resuelto, y la insignia a su lado los cuenta.
 

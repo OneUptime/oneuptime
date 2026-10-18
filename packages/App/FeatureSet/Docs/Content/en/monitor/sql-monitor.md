@@ -139,7 +139,7 @@ Select the **Probes** that can reach the database and a **Monitoring Interval**,
 | **Host** | The database host reachable from the probe (for example `db.internal`). |
 | **Port** | The database port. |
 | **Database Name** | The database to run the query against. |
-| **Use Windows Integrated Authentication** | Microsoft SQL Server only. Authenticate with the account running the probe instead of a SQL username and password. See [Windows Integrated Authentication](#windows-integrated-authentication). |
+| **Authentication** | Microsoft SQL Server only: **Username and password**, the default, or **Windows Integrated Authentication**, which signs in as the account running the probe. See [Windows Integrated Authentication](#windows-integrated-authentication). |
 | **Username** | A read-only, least-privilege database user. |
 | **Password** | The database password. We strongly recommend referencing a [Monitor Secret](/docs/monitor/monitor-secrets) with `{{monitorSecrets.name}}` instead of typing the password in plain text (see [Using a Monitor Secret for the password](#using-a-monitor-secret-for-the-password)). |
 | **SQL Query** | The read-only query to run (see [Writing the query](#writing-the-query)). |
@@ -157,7 +157,7 @@ A value above the maximum is lowered to the maximum.
 
 ### Windows Integrated Authentication
 
-For Microsoft SQL Server, enable **Use Windows Integrated Authentication** to open a trusted connection with the identity of the probe process. The Username and Password fields are ignored in this mode and are not passed to the driver. Because the probe needs an identity trusted by your domain, use a self-hosted probe for this authentication mode.
+For Microsoft SQL Server, pick **Windows Integrated Authentication** under **Authentication** to open a trusted connection with the identity of the probe process. The form then hides **Username** and **Password**, and neither is passed to the driver. Because the probe needs an identity trusted by your domain, use a self-hosted probe for this authentication mode.
 
 | Probe runs on | What to set up |
 |---|---|

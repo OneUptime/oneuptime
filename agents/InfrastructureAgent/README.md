@@ -4,9 +4,45 @@ The OneUptime Infrastructure Agent is a lightweight, open-source agent that coll
 
 ### Installation
 
+Debian and Ubuntu (apt):
+
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://packages.oneuptime.com/gpg.key -o /etc/apt/keyrings/oneuptime.asc
+sudo chmod a+r /etc/apt/keyrings/oneuptime.asc
+echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] https://packages.oneuptime.com/deb stable main" | sudo tee /etc/apt/sources.list.d/oneuptime.list
+sudo apt-get update
+sudo apt-get install oneuptime-infrastructure-agent
 ```
+
+RHEL, Rocky Linux, AlmaLinux, Fedora and Amazon Linux (dnf, or yum):
+
+```bash
+sudo curl -fsSL https://packages.oneuptime.com/rpm/oneuptime.repo -o /etc/yum.repos.d/oneuptime.repo
+sudo dnf install oneuptime-infrastructure-agent
+```
+
+macOS (Homebrew):
+
+```bash
+brew install oneuptime/tap/oneuptime-infrastructure-agent
+```
+
+Windows (winget, from an Administrator prompt):
+
+```shell
+winget install --id OneUptime.InfrastructureAgent --exact --scope machine
+```
+
+Intune, Configuration Manager or Group Policy: the release's `oneuptime-infrastructure-agent-amd64.msi` or `oneuptime-infrastructure-agent-arm64.msi`. It installs per machine into `C:\Program Files\OneUptimeInfrastructureAgent`, and a newer MSI upgrades it in place and restarts the agent ([windows/oneuptime-infrastructure-agent.wxs](windows/oneuptime-infrastructure-agent.wxs) says how). An MSI from before that change installed per user and cannot be upgraded: uninstall it once.
+
+Anywhere else, the install script:
+
+```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | bash
 ```
+
+The [Server / VM Monitor docs](https://oneuptime.com/docs/monitor/server-monitor) cover every way, and upgrades. Each release publishes the packages, the Homebrew cask and the winget manifests: see [Scripts/PackageManagers](../../Scripts/PackageManagers/README.md).
 
 ### Configure the agent
 
@@ -44,6 +80,8 @@ oneuptime-infrastructure-agent restart
 ```
 oneuptime-infrastructure-agent uninstall && rm -rf /usr/bin/oneuptime-infrastructure-agent
 ```
+
+If a package manager installed it, run `oneuptime-infrastructure-agent uninstall`, then remove the package with that package manager (for example `sudo apt-get remove oneuptime-infrastructure-agent`).
 
 ### Viewing agent logs
 

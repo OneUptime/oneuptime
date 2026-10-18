@@ -56,7 +56,7 @@ Skriv dit script i editoren **Playwright Code**. Start fra [eksemplet nedenfor](
 
 ### Vælg browsere og skærmstørrelser
 
-Sæt flueben ved browserne under **Browsertype** og ved størrelserne under **Skærmtype**. Scriptet kører én gang for hver kombination, så to browsere og tre størrelser giver seks kørsler pr. kontrol. Under **Flere felter** gentager **Antal genforsøg ved fejl** en mislykket kørsel op til 5 gange.
+En ny monitor starter med **Chromium** under **Browsertype** og **Desktop** under **Skærmtype**; sæt flere flueben for at dække mere. Scriptet kører én gang for hver kombination, så to browsere og tre størrelser giver seks kørsler pr. kontrol, og det kræver mindst én browser og én størrelse. Under **Flere felter** gentager **Antal genforsøg ved fejl** en mislykket kørsel op til 5 gange.
 
 ### Test det
 

@@ -15,6 +15,7 @@ import ConnectCallbackUtil, {
   CONNECT_RETURN_PATH,
   ConnectCallbackError,
   ConnectProvider,
+  ConnectProviderNotice,
   ConnectStartPage,
 } from "Common/Types/Workspace/ConnectCallback";
 import {
@@ -341,6 +342,53 @@ describe("the connect-return page", () => {
         error: null,
       }),
     ).toBe(`/dashboard/${PROJECT_ID}/code-repository`);
+  });
+
+  test("an install made on GitHub itself tells Code Repositories the app is installed", () => {
+    expect(
+      getConnectReturnPath({
+        projectId: PROJECT_ID,
+        provider: "github",
+        error: null,
+        notice: "github-installed",
+      }),
+    ).toBe(`/dashboard/${PROJECT_ID}/code-repository?notice=github-installed`);
+  });
+
+  test.each([
+    ["another provider's notice", "slack", "github-installed"],
+    ["an unknown notice", "github", "<b>anything</b>"],
+    ["an empty notice", "github", ""],
+  ])(
+    "passes on no notice for %s",
+    (_label: string, provider: string, notice: string) => {
+      expect(
+        getConnectReturnPath({
+          projectId: PROJECT_ID,
+          provider: provider,
+          error: null,
+          notice: notice,
+        }),
+      ).not.toContain("notice=");
+    },
+  );
+
+  test("reads a notice only for the provider it belongs to", () => {
+    expect(
+      ConnectCallbackUtil.readNotice(
+        ConnectProvider.GitHub,
+        "github-installed",
+      ),
+    ).toBe(ConnectProviderNotice.GitHubInstalled);
+    expect(
+      ConnectCallbackUtil.readNotice(ConnectProvider.Slack, "github-installed"),
+    ).toBeNull();
+    expect(
+      ConnectCallbackUtil.readNotice(ConnectProvider.GitHub, "link-invalid"),
+    ).toBeNull();
+    expect(
+      ConnectCallbackUtil.readNotice(ConnectProvider.GitHub, null),
+    ).toBeNull();
   });
 
   test.each(UNKNOWN_ERRORS)(

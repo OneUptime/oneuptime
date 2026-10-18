@@ -66,6 +66,8 @@ interface CapturedTableProps {
   bulkActions?: { buttons: Array<unknown> };
   cardProps: { title: string; description: string };
   noItemsMessage?: string;
+  emptyState?: { hideCreateButton?: boolean | undefined } | undefined;
+  refreshToggle?: string | undefined;
   viewPageRoute?: unknown;
   onViewPage: (item: unknown) => Promise<{ toString: () => string }>;
   onBeforeCreate?: (
@@ -378,7 +380,19 @@ describe("the Queues list: loading, errors and the setup guide", () => {
       table.compareDocumentPosition(guide) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(guide).toHaveTextContent("Getting Started with Queues");
-    expect(guide).toHaveTextContent("Add one by hand above");
+    /*
+     * What to do, and that the list fills in by itself. The empty table
+     * above already says there are none, in the card's words ("... or
+     * added by hand"), and keeps Create Queue: a queue added by hand is
+     * watched like a discovered one.
+     */
+    expect(guide).toHaveTextContent(
+      "Follow the steps below. This list fills in on its own once data arrives.",
+    );
+    expect(tableProps?.cardProps.description).toContain("or added by hand");
+    expect(tableProps?.emptyState?.hideCreateButton).toBeUndefined();
+    // The table is the watch's: it reads its rows again when the first arrives.
+    expect(tableProps?.refreshToggle).toBe("first-record-0");
     // The product guide, with its messaging-system picker: no queue of its own.
     expect(guide).toHaveAttribute("data-queue", "none");
   });
@@ -1034,15 +1048,12 @@ describe("the create form", () => {
       })?.queueIdentifier,
     ).toBe("servicebus||orders");
 
-    // The field says when to leave it empty, and what that costs.
+    // The field says when to leave it empty.
     expect(field("Namespace").description).toBe(
       MESSAGE_QUEUE_NAMESPACE_DESCRIPTION,
     );
     expect(MESSAGE_QUEUE_NAMESPACE_DESCRIPTION).toContain(
-      "Leave it empty only for a queue your applications reach through the emulator or a custom domain",
-    );
-    expect(MESSAGE_QUEUE_NAMESPACE_DESCRIPTION).toContain(
-      "Azure Monitor's metrics never reach such a queue",
+      "Leave empty only for the emulator or a custom domain.",
     );
   });
 

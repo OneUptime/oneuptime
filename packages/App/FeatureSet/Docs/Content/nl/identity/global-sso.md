@@ -87,12 +87,14 @@ flowchart TB
 
 Wie al lid is van een gekoppeld project, houdt daar zijn teams.
 
-Twee schakelaars op de provider veranderen dit. Beide staan eerst uit, ingeklapt onder **Meer velden**:
+Twee vragen op de provider veranderen dit, ingeklapt onder **Meer velden**. Elke vraag begint bij het eerste antwoord:
 
-| Schakelaar | Wat hij doet als hij aanstaat |
+| Vraag | Antwoorden |
 | --- | --- |
-| **Disable Sign Up with SSO** | Mensen moeten voor een project zijn uitgenodigd voordat ze zich met deze provider kunnen aanmelden, ook als er projecten zijn gekoppeld. Bij de eerste aanmelding wordt niemand nieuw aangemaakt. |
-| **Restrict to Attached Projects** | Aanmelden met deze provider voldoet alleen in de eraan gekoppelde projecten aan de SSO-plicht, dus mensen die al zijn aangemeld kunnen de toegang tot andere projecten verliezen. Staat hij uit, dan voldoet het in elk project waar de persoon bij hoort, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd. |
+| **Mensen zonder account** | **Krijgen er een bij hun eerste aanmelding**: ze worden lid van de gekoppelde projecten; is er geen gekoppeld, dan moeten ze eerst worden uitgenodigd. **Moeten eerst worden uitgenodigd**: mensen moeten voor een project zijn uitgenodigd voordat ze zich met deze provider kunnen aanmelden, ook als er projecten zijn gekoppeld. |
+| **Waar deze aanmelding als SSO telt** | **Elk project**: projecten die SSO vereisen, accepteren een aanmelding met deze provider. **Alleen gekoppelde projecten**: aanmelden met deze provider voldoet alleen in de eraan gekoppelde projecten aan de SSO-plicht, dus mensen die al zijn aangemeld kunnen de toegang tot andere projecten verliezen. |
+
+Met **Elk project** voldoet aanmelden met de provider in elk project waar de persoon bij hoort aan de SSO-plicht, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd.
 
 ## SSO afdwingen
 
@@ -134,11 +136,11 @@ Twee wijzigingen in wie zich kan aanmelden, worden na elkaar gecontroleerd. Word
 ## Problemen oplossen
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-De persoon heeft nog geen OneUptime-account en de provider maakt er geen aan: er zijn geen projecten aan gekoppeld, of **Disable Sign Up with SSO** staat aan. Nodig de persoon uit voor een project of koppel een project aan de provider.
+De persoon heeft nog geen OneUptime-account en de provider maakt er geen aan: er zijn geen projecten aan gekoppeld, of **Mensen zonder account** staat op **Moeten eerst worden uitgenodigd**. Nodig de persoon uit voor een project of koppel een project aan de provider.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** staat aan en de persoon is geen lid van een project dat aan de provider is gekoppeld. Koppel een van de projecten van de persoon, of voeg de persoon toe aan een gekoppeld project.
+**Waar deze aanmelding als SSO telt** staat op **Alleen gekoppelde projecten** en de persoon is geen lid van een project dat aan de provider is gekoppeld. Koppel een van de projecten van de persoon, of voeg de persoon toe aan een gekoppeld project.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"

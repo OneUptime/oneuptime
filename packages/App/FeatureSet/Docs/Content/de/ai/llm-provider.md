@@ -93,19 +93,19 @@ Die Synchronisierung ist deklarativ: Ändern Sie eine Variable, und der Anbieter
 
 Gehen Sie zu **Projekteinstellungen → KI → LLM-Anbieter** (der Abschnitt **KI** des Seitenmenüs ist anfangs zugeklappt) und klicken Sie auf **LLM-Anbieter erstellen**.
 
-### Den Anbieter benennen
+### Den Anbieter auswählen
 
-Geben Sie ihm unter **Grundinformationen** einen **Name**, der sagt, was er ist, etwa "Production OpenAI" oder "Local Ollama", und optional eine **Beschreibung**.
+Wählen Sie unter **Anbieter** Ihren **LLM-Anbieter**: je eine Karte für OpenAI, Anthropic, Azure OpenAI / Microsoft Foundry, Groq, Mistral, Ollama und jeden OpenAI-kompatiblen Server, jede mit einer Zeile dazu, was er ist.
 
-### Die Einstellungen des Anbieters ausfüllen
+### Ihn verbinden
 
-Unter **Anbietereinstellungen**:
+Unter **Verbindung** fragt das Formular nur nach dem, was dieser Anbieter verwendet, mit eigener Hilfe unter jedem Feld:
 
-- **LLM-Anbieter**: die Art des Anbieters (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama oder OpenAI Compatible)
-- **API-Schlüssel**: Ihr API-Schlüssel (nötig für OpenAI, Azure OpenAI, Anthropic, Groq und Mistral; optional für Ollama und OpenAI-kompatible Server)
-- **Modellname**: das zu verwendende Modell, etwa `gpt-5.1`, `claude-sonnet-5-5` oder `llama3.1`
-- **Basis-URL**: der Endpunkt, nötig für Azure OpenAI, Ollama und OpenAI Compatible; optional für die anderen, um deren Standard zu überschreiben
-- **Weitere Felder**, unter den Feldern oben zugeklappt: **Als Standard festlegen**, das bei einem neuen Anbieter eingeschaltet ist, weil KI-Funktionen nur den Standardanbieter des Projekts verwenden, und **Zusätzliche Parameter**, ein optionales JSON-Objekt mit zusätzlichen Parametern, das bei jeder Anfrage an den Anbieter gesendet wird (zum Beispiel `{"temperature": 0.2}`)
+- **API-Schlüssel**: Ihr API-Schlüssel, nötig für OpenAI, Azure OpenAI, Anthropic, Groq und Mistral und optional für einen OpenAI-kompatiblen Server; für Ollama wird keiner abgefragt
+- **Basis-URL**: der Endpunkt, nötig für Azure OpenAI, Ollama und OpenAI Compatible; bei den anderen nur, um über einen Proxy oder ein Gateway zu gehen
+- **Modellname**: das zu verwendende Modell, etwa `gpt-5.1`, `claude-sonnet-5-5` oder `llama3.1`. Leer gelassen verwendet OneUptime das Standardmodell des Anbieters, außer bei einem OpenAI-kompatiblen Server, der eines braucht
+- **Name**: der Name des Anbieters, bis Sie einen eigenen eingeben, etwa "Production OpenAI" oder "Local Ollama"
+- **Weitere Felder**, unter den Feldern oben zugeklappt: eine **Beschreibung**, **Als Standard festlegen**, das bei einem neuen Anbieter eingeschaltet ist, weil KI-Funktionen nur den Standardanbieter des Projekts verwenden, und **Zusätzliche Parameter**, ein optionales JSON-Objekt mit zusätzlichen Parametern, das bei jeder Anfrage an den Anbieter gesendet wird (zum Beispiel `{"temperature": 0.2}`)
 
 **Wer einen Anbieter sehen kann.** Die LLM-Anbieter eines Projekts lesen nur dessen Mitglieder, die die Einstellungen des Projekts lesen dürfen: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** und **Read LLM**. Den **API-Schlüssel** eines Anbieters und seine Angaben unter **Zusätzliche Parameter** lesen nur die Owner und Admins des Projekts, weil die Parameter bei jeder Anfrage an den Anbieter gesendet werden und wie der Schlüssel ein Token oder einen Header enthalten können. Die anderen Mitglieder sehen, ob Parameter gespeichert sind, nicht aber welche. Mitglieder, die einen Anbieter bearbeiten dürfen, können seinen API-Schlüssel oder seine Parameter trotzdem ersetzen, ohne sie zu lesen: Im Bearbeitungsformular sind diese Felder anfangs leer, und ein leer gelassenes Feld behält den gespeicherten Wert. Um die Parameter zu entfernen, speichern Sie `{}`. Nur Owner und Admins des Projekts können die **Basis-URL** eines Anbieters ändern, weil sein API-Schlüssel und seine zusätzlichen Parameter an diese Adresse gesendet werden; die anderen Mitglieder, die einen Anbieter bearbeiten dürfen, können alles andere ändern. Jeder, der einen Anbieter lesen kann, kann seine **Basis-URL** lesen, setzen Sie also nie einen Schlüssel, ein Token oder ein Passwort hinein: Verwenden Sie den **API-Schlüssel**. Die Liste **Globale LLM-Anbieter** auf derselben Seite, die gemeinsamen Anbieter, auf die ein Projekt ausweicht, zeigt jedem angemeldeten Benutzer deren Namen, Beschreibung und Preis und sonst nichts darüber.
 

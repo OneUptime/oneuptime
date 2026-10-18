@@ -89,12 +89,15 @@ describe("Status Page active-customization wiring", () => {
 
   test("rechecks the policy at every DOM render sink", () => {
     expect(masterPage).toContain("if (!canRenderCustomizations || !customCss)");
+    /*
+     * Header and footer HTML through the stricter rule: also never on a page
+     * that works with a credential from a link (canRenderStatusPageCustomHtml).
+     */
     expect(masterPage).toContain(
-      "{!canRenderCustomizations || !headerHtml ? (",
+      "const canRenderCustomHtml: boolean = canRenderStatusPageCustomHtml({ context: { allowStatusPageCustomizations: allowStatusPageCustomizations, isPreview: props.isPreview, },",
     );
-    expect(masterPage).toContain(
-      "{!canRenderCustomizations || !footerHtml ? (",
-    );
+    expect(masterPage).toContain("{!canRenderCustomHtml || !headerHtml ? (");
+    expect(masterPage).toContain("{!canRenderCustomHtml || !footerHtml ? (");
     expect(occurrences(masterPage, "dangerouslySetInnerHTML")).toBe(2);
   });
 });

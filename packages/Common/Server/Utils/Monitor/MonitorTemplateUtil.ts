@@ -38,6 +38,10 @@ import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import ProbeStatusMonitorResponse, {
+  ProbeStatusMonitorProbe,
+} from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
+import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
 import Typeof from "../../../Types/Typeof";
 import SeriesDebugHints from "../../../Types/Monitor/SeriesContext/SeriesDebugHints";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
@@ -693,6 +697,51 @@ export default class MonitorTemplateUtil {
               },
             );
         }
+      }
+      /*
+       * The probes a Probe Status monitor watches. Always strings and
+       * numbers, never undefined: a template is shared by every evaluation,
+       * and `{{disconnectedProbeNames}}` must read "" - not the placeholder
+       * itself - on the one that finds every probe connected.
+       */
+      if (data.monitorType === MonitorType.ProbeStatus) {
+        const probeStatusResponse: ProbeStatusMonitorResponse =
+          data.dataToProcess as ProbeStatusMonitorResponse;
+
+        const probes: Array<ProbeStatusMonitorProbe> = Array.isArray(
+          probeStatusResponse?.probes,
+        )
+          ? probeStatusResponse.probes
+          : [];
+
+        const connectedProbes: Array<ProbeStatusMonitorProbe> =
+          ProbeStatusMonitorUtil.getConnectedProbes({ probes: probes });
+        const disconnectedProbes: Array<ProbeStatusMonitorProbe> =
+          ProbeStatusMonitorUtil.getDisconnectedProbes({ probes: probes });
+
+        storageMap = {
+          probeStatusSummary: ProbeStatusMonitorUtil.describe({
+            probes: probes,
+            connectedProbeCount: connectedProbes.length,
+            disconnectedProbeCount: disconnectedProbes.length,
+          }),
+          connectedProbeCount: connectedProbes.length,
+          disconnectedProbeCount: disconnectedProbes.length,
+          connectedProbeNames:
+            ProbeStatusMonitorUtil.joinProbeNames(connectedProbes),
+          disconnectedProbeNames:
+            ProbeStatusMonitorUtil.joinProbeNames(disconnectedProbes),
+          probes: probes.map((probe: ProbeStatusMonitorProbe): JSONObject => {
+            return {
+              probeName: probe.probeName,
+              isConnected: probe.isConnected,
+              isGlobalProbe: probe.isGlobalProbe,
+              lastAliveAt: probe.lastAliveAt
+                ? MonitorTemplateUtil.toTimestamp(probe.lastAliveAt)
+                : "",
+            };
+          }),
+        } as JSONObject;
       }
     } catch (err) {
       logger.error(err);

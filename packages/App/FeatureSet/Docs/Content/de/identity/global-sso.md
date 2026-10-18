@@ -87,12 +87,14 @@ flowchart TB
 
 Wer bereits Mitglied eines zugewiesenen Projekts ist, behält dort seine Teams.
 
-Zwei Schalter am Anbieter ändern das. Beide sind zunächst aus und unter **Weitere Felder** eingeklappt:
+Zwei Fragen am Anbieter ändern das, eingeklappt unter **Weitere Felder**. Jede beginnt bei ihrer ersten Antwort:
 
-| Schalter | Was er bewirkt, wenn er eingeschaltet ist |
+| Frage | Antworten |
 | --- | --- |
-| **Disable Sign Up with SSO** | Personen müssen in ein Projekt eingeladen sein, bevor sie sich mit diesem Anbieter anmelden können, auch wenn Projekte zugewiesen sind. Bei der ersten Anmeldung wird niemand neu angelegt. |
-| **Restrict to Attached Projects** | Die Anmeldung mit diesem Anbieter erfüllt die SSO-Pflicht nur in den ihm zugewiesenen Projekten, sodass bereits angemeldete Personen den Zugriff auf andere Projekte verlieren können. Ist der Schalter aus, erfüllt sie die Pflicht in jedem Projekt, zu dem die Person gehört, und zugewiesene Projekte bestimmen nur, wohin Neue kommen. |
+| **Personen ohne Konto** | **Erhalten bei der ersten Anmeldung ein Konto**: Sie treten den zugewiesenen Projekten bei; ist keines zugewiesen, müssen sie zuerst eingeladen werden. **Müssen zuerst eingeladen werden**: Personen müssen in ein Projekt eingeladen sein, bevor sie sich mit diesem Anbieter anmelden können, auch wenn Projekte zugewiesen sind. |
+| **Wo diese Anmeldung als SSO zählt** | **Jedes Projekt**: Projekte, die SSO verlangen, akzeptieren eine Anmeldung mit diesem Anbieter. **Nur zugewiesene Projekte**: Die Anmeldung mit diesem Anbieter erfüllt die SSO-Pflicht nur in den ihm zugewiesenen Projekten, sodass bereits angemeldete Personen den Zugriff auf andere Projekte verlieren können. |
+
+Mit **Jedes Projekt** erfüllt die Anmeldung mit dem Anbieter die SSO-Pflicht in jedem Projekt, zu dem die Person gehört, und zugewiesene Projekte bestimmen nur, wohin Neue kommen.
 
 ## SSO durchsetzen
 
@@ -134,11 +136,11 @@ Zwei Änderungen daran, wer sich anmelden kann, werden nacheinander geprüft. Wi
 ## Fehlerbehebung
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-Die Person hat noch kein OneUptime-Konto, und der Anbieter legt keines an: Entweder sind ihm keine Projekte zugewiesen, oder **Disable Sign Up with SSO** ist eingeschaltet. Laden Sie die Person in ein Projekt ein oder weisen Sie dem Anbieter ein Projekt zu.
+Die Person hat noch kein OneUptime-Konto, und der Anbieter legt keines an: Entweder sind ihm keine Projekte zugewiesen, oder **Personen ohne Konto** steht auf **Müssen zuerst eingeladen werden**. Laden Sie die Person in ein Projekt ein oder weisen Sie dem Anbieter ein Projekt zu.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** ist eingeschaltet, und die Person ist in keinem dem Anbieter zugewiesenen Projekt Mitglied. Weisen Sie eines ihrer Projekte zu oder fügen Sie sie einem zugewiesenen Projekt hinzu.
+**Wo diese Anmeldung als SSO zählt** steht auf **Nur zugewiesene Projekte**, und die Person ist in keinem dem Anbieter zugewiesenen Projekt Mitglied. Weisen Sie eines ihrer Projekte zu oder fügen Sie sie einem zugewiesenen Projekt hinzu.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"

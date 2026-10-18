@@ -93,19 +93,19 @@ A sincronização é declarativa: mude uma variável e o provedor acompanha no p
 
 Vá para **Configurações do projeto → IA → Provedores LLM** (a seção **IA** do menu lateral começa recolhida) e clique em **Criar: Provedor LLM**.
 
-### Dê um nome ao provedor
+### Escolha o provedor
 
-Em **Informações básicas**, dê a ele um **Nome** que diga o que ele é, como "Production OpenAI" ou "Local Ollama", e opcionalmente uma **Descrição**.
+Em **Provedor**, escolha seu **Provedor LLM**: um cartão para OpenAI, Anthropic, Azure OpenAI / Microsoft Foundry, Groq, Mistral, Ollama e qualquer servidor compatível com OpenAI, cada um com uma linha que diz o que é.
 
-### Preencha as configurações do provedor
+### Conecte-o
 
-Em **Configurações do provedor**:
+Em **Conexão**, o formulário pede só o que esse provedor usa, com a ajuda dele sob cada campo:
 
-- **Provedor LLM**: o tipo de provedor (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
-- **Chave de API**: sua chave de API (necessária para OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opcional para Ollama e servidores compatíveis com OpenAI)
-- **Nome do Modelo**: o modelo a usar, como `gpt-5.1`, `claude-sonnet-5-5` ou `llama3.1`
-- **URL base**: o endpoint, necessário para Azure OpenAI, Ollama e OpenAI Compatible; opcional para os outros, para substituir o padrão deles
-- **Mais campos**, recolhido abaixo dos campos acima: **Definir como padrão**, que fica ativado para um provedor novo porque os recursos de IA só usam o provedor padrão do projeto, e **Parâmetros adicionais**, um objeto JSON opcional de parâmetros extras enviados ao provedor em cada requisição (por exemplo `{"temperature": 0.2}`)
+- **Chave de API**: sua chave de API, necessária para OpenAI, Azure OpenAI, Anthropic, Groq e Mistral e opcional para um servidor compatível com OpenAI; para o Ollama, nenhuma é pedida
+- **URL base**: o endpoint, necessário para Azure OpenAI, Ollama e OpenAI Compatible; para os outros, só para passar por um proxy ou gateway
+- **Nome do Modelo**: o modelo a usar, como `gpt-5.1`, `claude-sonnet-5-5` ou `llama3.1`. Se ficar vazio, o OneUptime usa o modelo padrão do provedor, exceto em um servidor compatível com OpenAI, que precisa de um
+- **Nome**: o nome do provedor até você digitar o seu, como "Production OpenAI" ou "Local Ollama"
+- **Mais campos**, recolhido abaixo dos campos acima: uma **Descrição**, **Definir como padrão**, que fica ativado para um provedor novo porque os recursos de IA só usam o provedor padrão do projeto, e **Parâmetros adicionais**, um objeto JSON opcional de parâmetros extras enviados ao provedor em cada requisição (por exemplo `{"temperature": 0.2}`)
 
 **Quem pode ver um provedor.** Os provedores de LLM de um projeto só são lidos pelos membros que podem ler as configurações do projeto: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** e **Read LLM**. A **Chave de API** e os **Parâmetros adicionais** de um provedor só são lidos pelos proprietários e administradores do projeto, porque os parâmetros são enviados ao provedor em cada requisição e podem levar um token ou um cabeçalho, assim como a chave. Os outros membros veem se há parâmetros salvos, não quais são. Membros que podem editar um provedor ainda podem substituir a chave de API ou os parâmetros sem lê-los: no formulário de edição esses campos começam vazios, e deixar um em branco mantém o que está salvo. Para remover os parâmetros, salve `{}`. Só proprietários e administradores do projeto podem mudar a **URL base** de um provedor, porque a chave de API e os parâmetros adicionais dele são enviados para esse endereço; os outros membros que podem editar um provedor podem mudar todo o resto. Quem pode ler um provedor pode ler a **URL base** dele, então nunca coloque nela uma chave, um token ou uma senha: use a **Chave de API**. A lista **Provedores de LLM globais** na mesma página, os provedores compartilhados aos quais um projeto recorre, mostra nome, descrição e preço a qualquer pessoa conectada, e nada mais sobre eles.
 

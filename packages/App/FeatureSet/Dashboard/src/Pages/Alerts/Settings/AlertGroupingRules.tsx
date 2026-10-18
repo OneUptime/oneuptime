@@ -523,7 +523,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
-              "When enabled, alerts from different monitors will be grouped into separate episodes. When disabled, alerts from any monitor can be grouped together.",
+              "Alerts from different monitors go into separate episodes.",
           },
           {
             field: {
@@ -534,7 +534,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
-              "When enabled, alerts with different severities will be grouped into separate episodes. When disabled, alerts of any severity can be grouped together.",
+              "Alerts with different severities go into separate episodes.",
           },
           {
             field: {
@@ -545,7 +545,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
-              "When enabled, alerts with different titles will be grouped into separate episodes. When disabled, alerts with any title can be grouped together.",
+              "Alerts with different titles go into separate episodes.",
           },
           {
             field: {
@@ -556,7 +556,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
-              "When enabled, alerts with different sets of labels will be grouped into separate episodes (exact set match). When disabled, alert labels are ignored for grouping.",
+              "Alerts with different sets of labels go into separate episodes.",
           },
           {
             field: {
@@ -567,7 +567,7 @@ const AlertGroupingRulesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
             description:
-              "When enabled, alerts whose monitors have different sets of labels will be grouped into separate episodes (exact set match). When disabled, monitor labels are ignored for grouping.",
+              "Alerts whose monitors have different sets of labels go into separate episodes.",
           },
           // Which alerts - drawn as one conditions builder
           {
@@ -641,6 +641,7 @@ const AlertGroupingRulesPage: FunctionComponent<
               alertTitlePattern: true,
             },
             title: "Alert Title",
+            description: "Leave empty to match any title.",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:

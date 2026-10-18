@@ -129,7 +129,7 @@ Il tuo ruolo legge i runbook ma non li esegue: il pulsante dice «Non hai l'auto
 :::
 
 :::details L'avvio di un'esecuzione fallisce con "Runbook is disabled" o "Runbook has no steps to run"
-L'interruttore **Esegui questo runbook** del runbook è disattivato, nella sua pagina **Impostazioni**, oppure il runbook non ha passaggi salvati. Attiva l'interruttore, oppure aggiungi passaggi e fai clic su **Save Steps**.
+L'interruttore **Esegui questo runbook** del runbook è disattivato, nella sua pagina **Impostazioni**, oppure il runbook non ha passaggi salvati. Attiva l'interruttore, oppure aggiungi passaggi e fai clic su **Save Steps**. La sua **Panoramica** dice quale, con **Attiva il runbook** o **Aggiungi passaggi**.
 :::
 
 :::details Un passaggio è fallito perché gli manca un Runner o una credenziale

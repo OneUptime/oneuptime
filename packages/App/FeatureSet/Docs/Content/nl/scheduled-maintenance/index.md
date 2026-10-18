@@ -63,6 +63,8 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De l
 
 De lijst toont **Nummer van geplande onderhoud**, **Titel**, **Huidige staat**, **Getroffen middelen**, **Weergegeven op statuspagina**, **Begint op**, **Duur**, **Eindigt op**, **Labels** en **Eigenaren**. Selecteer gebeurtenissen om er meerdere tegelijk te bewerken: **Status wijzigen**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** of **Verwijderen**.
 
+**Lijst** en **Agenda**, rechts in de filterbalk van de lijst, tonen dezelfde gebeurtenissen als tabel of op een maand, een week of een dag. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar).
+
 ## Wat een gebeurtenis beïnvloedt
 
 Zolang een gebeurtenis loopt, behandelt OneUptime de storing die ze plant als verwacht:
@@ -80,13 +82,14 @@ Open een gebeurtenis uit de lijst om haar pagina's te zien. Haar zijmenu bevat:
 
 | Sectie van het zijmenu | Pagina's                                                                                 |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Basis**         | **Overzicht**, **Beschrijving**, **Eigenaren**, **Statustijdlijn**, **Runbooks**               |
-| **Logboeken**     | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de gebeurtenis is verstuurd, en wat AI ervoor deed |
+| **Overzicht** | **Overzicht**, **Statustijdlijn**, **Beschrijving**, **Runbooks** |
+| **Team** | **Eigenaren** |
+| **Meldingen**     | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de gebeurtenis is verstuurd, en wat AI ervoor deed |
 | **Notities**      | **Privénotities** en **Openbare notities**                                                     |
 | **Ontwikkelaars** | **Terraform**, **API** en **AI-assistenten**: de gebeurtenis beheerd vanuit code              |
 | **Geavanceerd**   | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Gebeurtenis verwijderen**       |
 
-**Basis** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
+**Overzicht**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
 
 - **Overzicht** — de kop toont het nummer, de titel en de status van de gebeurtenis, hoe lang het nog duurt tot ze begint of hoe lang ze al loopt, en de knoppen die haar verder zetten. Daaronder tonen **Begint**, **Eindigt** en **Duur** het geplande venster in je tijdzone. De **Gepland Onderhoud Feed** legt alles vast wat er met de gebeurtenis is gebeurd, naast de kaarten **Maintenance Details** en **Getroffen resources**, en de kaarten **Metingen** en **Aangepaste velden** als je project die heeft.
 - **Statustijdlijn** — elke status waarin de gebeurtenis heeft gestaan, wanneer en hoe lang. Zie [Onderhoudsstatussen](/docs/scheduled-maintenance/states#de-statustijdlijn).

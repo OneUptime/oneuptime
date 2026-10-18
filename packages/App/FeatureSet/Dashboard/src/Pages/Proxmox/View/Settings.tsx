@@ -33,7 +33,7 @@ const ProxmoxClusterSettings: FunctionComponent<
         nameField={{
           title: "Name",
           description:
-            "Must match the proxmox.cluster.name the Proxmox Agent reports. Telemetry is matched to this cluster by it: rename it on the agent too, or the agent's next report creates a new cluster.",
+            "Must match the proxmox.cluster.name the Proxmox Agent reports. Rename it there too, or the agent's next report creates a new cluster.",
           placeholder: "pve-production",
         }}
         descriptionField={{
@@ -52,7 +52,7 @@ const ProxmoxClusterSettings: FunctionComponent<
         cardProps={{
           title: "Ceph Storage Link",
           description:
-            "Running Ceph under this Proxmox cluster? Link the OneUptime Ceph cluster that backs its storage to get a Ceph health and capacity card on the Proxmox overview. The link is manual — Proxmox metrics carry no Ceph cluster identity.",
+            "Link the Ceph cluster that backs this Proxmox cluster's storage to see its health and capacity on the Proxmox overview.",
         }}
         isEditable={true}
         editButtonText="Edit Link"
@@ -63,7 +63,7 @@ const ProxmoxClusterSettings: FunctionComponent<
             },
             title: "Ceph Cluster",
             description:
-              "The OneUptime Ceph cluster backing this Proxmox cluster's storage. Leave empty to unlink. Ceph health never changes the Proxmox health badge — the two products alert separately.",
+              "The Ceph cluster backing this Proxmox cluster's storage. Leave empty to unlink.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: false,
             placeholder: "Not linked",

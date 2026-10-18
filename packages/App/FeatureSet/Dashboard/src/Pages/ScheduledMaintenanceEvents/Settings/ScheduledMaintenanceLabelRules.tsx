@@ -77,7 +77,7 @@ const ScheduledMaintenanceLabelRulesPage: FunctionComponent<
         cardProps={{
           title: "Scheduled Maintenance Label Rules",
           description:
-            "Auto-attach labels to scheduled maintenance events — including labels inherited from the event's monitors, hosts, Kubernetes clusters, Docker hosts, and Podman hosts — when matching events are created.",
+            "Auto-attach labels to new scheduled maintenance events that match, including labels from their monitors and infrastructure.",
         }}
         helpContent={{
           title: "How Scheduled Maintenance Label Rules Work",

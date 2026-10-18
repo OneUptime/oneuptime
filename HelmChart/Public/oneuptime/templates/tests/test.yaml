@@ -1,3 +1,4 @@
+{{- if ne (($.Values.testHook).enabled) false }}
 apiVersion: v1
 kind: Pod
 metadata:
@@ -16,3 +17,4 @@ spec:
       "Scripts/status-check.sh {{ $.Values.httpProtocol }}://{{ $.Values.host }}",
       ]
   restartPolicy: Never
+{{- end }}

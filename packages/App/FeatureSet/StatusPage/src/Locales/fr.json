@@ -129,7 +129,27 @@
     "noneDescription": "Aucun événement planifié publié pour cette page de statut.",
     "scheduledAt": "Planifié pour ",
     "report": "Rapport d'événement planifié",
-    "notFound": "Aucun événement planifié trouvé pour cette page de statut."
+    "notFound": "Aucun événement planifié trouvé pour cette page de statut.",
+    "calendar": {
+      "subscribe": "S'abonner au calendrier",
+      "subscribeTitle": "S'abonner aux maintenances planifiées",
+      "subscribeDescription": "Recevez les maintenances planifiées de cette page dans votre application de calendrier. Elles se mettent à jour d'elles-mêmes.",
+      "eventTitle": "Ajouter au calendrier",
+      "eventDescription": "Ajoutez cette maintenance à votre application de calendrier.",
+      "addToCalendar": "Ajouter au calendrier",
+      "addHeading": "Ajouter à votre calendrier",
+      "google": "Google Agenda",
+      "googleHint": "Ouvre Google Agenda dans un nouvel onglet",
+      "device": "Apple Calendrier / Outlook",
+      "deviceHint": "Ouvre l'application de calendrier de cet appareil",
+      "deviceFileHint": "Télécharge la maintenance pour l'application de calendrier de cet appareil",
+      "copyHeading": "Ou copiez le lien",
+      "copyHint": "Collez-le dans n'importe quelle application de calendrier capable de s'abonner à un calendrier par URL.",
+      "copy": "Copier le lien",
+      "copied": "Copié !",
+      "done": "Terminé",
+      "refreshNote": "Les applications de calendrier vérifient les changements à leur propre rythme : une mise à jour peut mettre quelques heures à apparaître."
+    }
   },
   "subscribe": {
     "title": "S'abonner",
@@ -216,7 +236,10 @@
       "saved": "Vos modifications ont été enregistrées.",
       "submit": "Mettre à jour l'abonnement",
       "unsubscribe": "Se désabonner",
-      "unsubscribeDescription": "Sélectionnez cette option si vous souhaitez vous désabonner de toutes les ressources."
+      "unsubscribeDescription": "Sélectionnez cette option si vous souhaitez vous désabonner de toutes les ressources.",
+      "linkNotValid": "Ce lien de gestion de votre abonnement a expiré ou n'est pas valide. Pour en obtenir un nouveau, utilisez « Gérer l'abonnement existant » sur la page « S'abonner ».",
+      "getNewLink": "Obtenir un nouveau lien",
+      "loadFailed": "Impossible de charger ce lien. Veuillez réessayer plus tard."
     },
     "confirm": {
       "title": "Confirmer l'abonnement",

@@ -74,6 +74,25 @@ export class RegistrationRefusedError extends Error {
 }
 
 /*
+ * Thrown, before any request, by the in-cluster Runner whose ONEUPTIME_SECRET
+ * is a value the OneUptime repository ships (ClusterKeyAuthorization): the
+ * server refuses that value from any caller, and the key the app's own
+ * services use instead is derived from the installation's database, which a
+ * Runner never reads. Retrying cannot help until an operator sets the same
+ * random ONEUPTIME_SECRET on the app and this Runner and restarts them, so
+ * the retry loop says so once and keeps the container up.
+ */
+export const SHIPPED_CLUSTER_KEY_RUNNER_MESSAGE: string =
+  'This in-cluster Runner cannot register: its ONEUPTIME_SECRET is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value from any caller, so nothing is sent. Set ONEUPTIME_SECRET to the same long random value on the OneUptime app and this Runner, then restart both: with Docker Compose, npm start and npm run update put one in config.env; with Helm, set oneuptimeSecret to one.';
+
+export class ShippedClusterKeyError extends Error {
+  public constructor() {
+    super(SHIPPED_CLUSTER_KEY_RUNNER_MESSAGE);
+    this.name = "ShippedClusterKeyError";
+  }
+}
+
+/*
  * Thrown by an attempt that noticed, just before its request, that the
  * caller ended the round (the Runner is signing off). Not a failure: the
  * round ends quietly and nothing reaches the server.
@@ -258,6 +277,14 @@ export default class Register {
       Register.baseRetryIntervalInSeconds *
       Math.pow(2, Math.max(0, data.attempt - 1));
 
+    /*
+     * Nothing changes until an operator sets ONEUPTIME_SECRET and restarts
+     * the Runner, so the slowest interval: the attempts send nothing.
+     */
+    if (data.error instanceof ShippedClusterKeyError) {
+      return Register.maxRetryIntervalInSeconds;
+    }
+
     if (!data.isKubernetesAgent) {
       return Math.min(doubling, Register.maxRetryIntervalInSeconds);
     }
@@ -344,9 +371,10 @@ export default class Register {
           data.maxAttempts !== null && attempt >= data.maxAttempts;
 
         const needsOperator: boolean =
-          IS_KUBERNETES_AGENT_MODE &&
-          error instanceof RegistrationRefusedError &&
-          error.needsOperator();
+          error instanceof ShippedClusterKeyError ||
+          (IS_KUBERNETES_AGENT_MODE &&
+            error instanceof RegistrationRefusedError &&
+            error.needsOperator());
 
         if (
           needsOperator &&
@@ -375,11 +403,14 @@ export default class Register {
          * next log line. Only a request that got no answer at all is
          * waiting for the server to become reachable.
          */
-        const retryNote: string = needsOperator
-          ? "the server keeps refusing until an operator acts; what to do is logged below (and only once while the refusal stays the same)."
-          : error instanceof RegistrationRefusedError
-            ? "the Runner keeps retrying; the reason the server gave is logged below."
-            : "the Runner keeps retrying until the server is reachable.";
+        const retryNote: string =
+          error instanceof ShippedClusterKeyError
+            ? "nothing is sent until an operator sets ONEUPTIME_SECRET; what to do is logged below (and only once)."
+            : needsOperator
+              ? "the server keeps refusing until an operator acts; what to do is logged below (and only once while the refusal stays the same)."
+              : error instanceof RegistrationRefusedError
+                ? "the Runner keeps retrying; the reason the server gave is logged below."
+                : "the Runner keeps retrying until the server is reachable.";
 
         logger.error(
           isLastAttempt
@@ -699,7 +730,15 @@ export default class Register {
     }
 
     if (HasClusterKey) {
-      // Clustered mode: Auto-register and get ID from server
+      /*
+       * Clustered mode: auto-register and get the ID from the server - with
+       * a cluster key the server can accept. A value the repository ships is
+       * refused there from any caller, so it is never sent.
+       */
+      if (ClusterKeyAuthorization.isConfiguredClusterKeyShipped()) {
+        throw new ShippedClusterKeyError();
+      }
+
       const aiAgentRegistrationUrl: URL = URL.fromString(
         ONEUPTIME_BASE_URL.toString(),
       ).addRoute("/api/ai-agent/register");

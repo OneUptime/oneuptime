@@ -87,6 +87,17 @@ enum MonitorType {
 
   // External status page monitoring
   ExternalStatusPage = "External Status Page",
+
+  /*
+   * Watches OneUptime's own probes. The monitor goes offline while a probe
+   * it watches is Disconnected - nothing heard from it for three minutes,
+   * never counting OneUptime's own downtime - so a probe outage opens one
+   * incident and pages on-call once, instead of every monitor on the probe
+   * going quiet (issues #2733 and #2486). Evaluated server-side every minute
+   * from the probes' connection status; no probe runs it. The value is
+   * stored on monitors; never rename it.
+   */
+  ProbeStatus = "Probe Status",
 }
 
 export default MonitorType;
@@ -251,7 +262,7 @@ export class MonitorTypeHelper {
       },
       {
         label: "Other",
-        monitorTypes: [MonitorType.Manual],
+        monitorTypes: [MonitorType.Manual, MonitorType.ProbeStatus],
       },
     ];
   }
@@ -624,6 +635,21 @@ export class MonitorTypeHelper {
           "cpu",
           "memory",
           "disk",
+        ],
+      },
+      {
+        monitorType: MonitorType.ProbeStatus,
+        title: "Probe Status",
+        description:
+          "Alert when a probe disconnects - one incident per outage, resolved when it reconnects.",
+        icon: IconProp.SignalSlash,
+        keywords: [
+          "offline",
+          "disconnected",
+          "custom probe",
+          "global probe",
+          "private location",
+          "probe down",
         ],
       },
       {
@@ -1066,6 +1092,7 @@ export class MonitorTypeHelper {
       MonitorType.Ceph,
       MonitorType.StorageArray,
       MonitorType.IoTDevice,
+      MonitorType.ProbeStatus,
     ];
   }
 

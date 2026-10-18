@@ -20,7 +20,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * own first one. What CAN change them does refresh them at once: a
  * database created, databases archived. Anything else (a refresh click, the
  * live window moving on) refreshes them once they are old enough to have
- * drifted.
+ * drifted. So does the first database arriving while the page is open,
+ * which the page's first-record watch finds.
  */
 
 const countMock: MockFunction = getJestMockFunction();
@@ -164,6 +165,7 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkArchiveActions", () => {
 
 import Databases from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Databases";
 import { DATABASE_FLEET_SUMMARY_MIN_REFRESH_MS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerSummary";
+import { FIRST_RECORD_POLL_INTERVAL_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/FirstRecordWatch";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Route from "../../../Types/API/Route";
 
@@ -276,5 +278,55 @@ describe("the Databases list's summary strip", () => {
 
     expect(archiveEndMock).toHaveBeenCalledTimes(1);
     expect(latestToken()).toBe(1);
+  });
+
+  describe("on a project with no database yet", () => {
+    beforeEach(() => {
+      // Date stays the suite's own: only the watch's timer is driven.
+      jest.useFakeTimers({ doNotFake: ["Date"] });
+      countMock.mockResolvedValue(0);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    async function tick(): Promise<void> {
+      await act(async () => {
+        jest.advanceTimersByTime(FIRST_RECORD_POLL_INTERVAL_MS);
+      });
+      for (let i: number = 0; i < 5; i++) {
+        await act(async () => {
+          await Promise.resolve();
+        });
+      }
+    }
+
+    test("a check that still finds none leaves the counts alone", async () => {
+      await renderPage();
+
+      await tick();
+      await tick();
+
+      expect(countMock).toHaveBeenCalledTimes(3);
+      expect(latestToken()).toBe(0);
+    });
+
+    test("the first database arriving refreshes them at once, with the table", async () => {
+      await renderPage();
+      countMock.mockResolvedValue(1);
+
+      await tick();
+
+      expect(latestToken()).toBe(1);
+      expect(
+        (tableProps as unknown as { refreshToggle: string }).refreshToggle,
+      ).toBe("first-record-1");
+
+      // The watch is done: no more checks, and no more refreshes.
+      await tick();
+      expect(countMock).toHaveBeenCalledTimes(2);
+      expect(latestToken()).toBe(1);
+    });
   });
 });

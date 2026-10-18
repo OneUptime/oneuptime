@@ -239,7 +239,7 @@ describe("Discovery import: each SNMP host's vendor template", () => {
     await openMonitoringStep(scan([snmpHost("10.20.0.11")]));
 
     expect(toggle()).toHaveAccessibleDescription(
-      "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.",
+      "Each device gets its vendor's health OIDs and SNMP tables, such as CPU and fans. You can change them later.",
     );
   });
 

@@ -1244,9 +1244,9 @@ const MonitorTemplatesView: FunctionComponent<
             <span>
               {translator.translatePlural(
                 {
-                  one: "This will copy the template's criteria and step settings, including destinations and request options where applicable, to {{count}} linked monitor. {{protectedFields}} Monitoring interval, minimum probe agreement, name, description, labels, and custom field values will be left alone. This cannot be undone.",
+                  one: "Copies the template's criteria and step settings to {{count}} linked monitor. {{protectedFields}} Everything else is kept. This cannot be undone.",
                   other:
-                    "This will copy the template's criteria and step settings, including destinations and request options where applicable, to {{count}} linked monitors. {{protectedFields}} Monitoring interval, minimum probe agreement, name, description, labels, and custom field values will be left alone. This cannot be undone.",
+                    "Copies the template's criteria and step settings to {{count}} linked monitors. {{protectedFields}} Everything else is kept. This cannot be undone.",
                 },
                 linkedMonitorCount ?? 0,
                 { protectedFields: protectedFieldsSummary },
@@ -1362,7 +1362,7 @@ const MonitorTemplatesView: FunctionComponent<
           description={
             <span>
               {translator.translateTemplate(
-                'This will copy the template\'s criteria and step settings, including destinations and request options where applicable, plus its monitoring interval, minimum probe agreement, and labels to "{{monitorName}}". {{protectedFields}} Name, description, and custom field values will be left alone. This cannot be undone.',
+                'Copies the template\'s criteria, step settings, interval, probe agreement and labels to "{{monitorName}}". {{protectedFields}} This cannot be undone.',
                 {
                   monitorName:
                     singleSyncMonitor.name || translatableTerm("this monitor"),
@@ -1391,11 +1391,11 @@ const MonitorTemplatesView: FunctionComponent<
               ? "Loading monitors that can be linked…"
               : monitorType
                 ? translator.translateTemplate(
-                    "Select {{monitorType}} monitors in this project to link to this template. Monitors already linked here are hidden; monitors linked to a different template will be moved to this one.",
+                    "Pick {{monitorType}} monitors to link to this template. Monitors linked to another template move to this one.",
                     { monitorType: translatableTerm(monitorType) },
                   )
                 : translator.translateTemplate(
-                    "Select monitors in this project to link to this template. Monitors already linked here are hidden; monitors linked to a different template will be moved to this one.",
+                    "Pick monitors to link to this template. Monitors linked to another template move to this one.",
                   )
           }
           submitButtonText="Link"
@@ -1438,7 +1438,7 @@ const MonitorTemplatesView: FunctionComponent<
           description={
             <span>
               {translator.translateTemplate(
-                'This will detach "{{monitorName}}" from this template. The monitor keeps its current criteria, interval, and other settings — but it will no longer receive sync updates from this template.',
+                '"{{monitorName}}" keeps its settings but no longer gets updates from this template.',
                 {
                   monitorName:
                     unlinkTarget.name || translatableTerm("this monitor"),

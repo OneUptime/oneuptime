@@ -35,7 +35,7 @@ flowchart TB
 
 ### Opret feedet
 
-Klik på **Opret Threat Intel Feed**, og udfyld de fem trin: **Grundlæggende oplysninger**, **TAXII Server**, **Godkendelse**, **Security Cases** og **Ved match**. Felterne står i tabellen nedenfor.
+Klik på **Opret Threat Intel Feed**, og udfyld de tre trin: **TAXII-server**, **Login** og **Ved match**. Felterne står i tabellen nedenfor.
 
 ### Tjek den første hentning
 
@@ -48,16 +48,16 @@ Inden for et minut eller to viser feedets række **Last Polled**, og **Last Poll
 | **Collection ID** | Den samling, der udgiver indikatorerne. |
 | **Poll Interval (Minutes)** | Hvor ofte der hentes nye objekter: 1 til 1440 minutter, 60 som standard. |
 | **Minimum Confidence** | Indikatorer med en lavere STIX-`confidence` springes over: 0 til 100, og 0 beholder alt. Indikatorer uden confidence slipper altid igennem. |
-| **API Token** | Et bearer-token, til en samling, der beder om et. |
-| **Basic Auth Username** og **Basic Auth Password** | Til en samling, der bruger HTTP Basic-godkendelse. Lad begge og tokenet være tomme for en offentlig samling. |
+| **Login** | Hvordan OneUptime logger ind: **Ingen login** til en offentlig samling, **Bearer-token** til et token fra serverens operatør eller **Brugernavn og adgangskode** til HTTP Basic-godkendelse. |
+| **API Token**, **Basic Auth Username** og **Basic Auth Password** | Spørges der kun om for det valgte login. |
 | **Open a Case on Match** | Slået til som standard: hver begivenhed, der nævner en indikator, åbner en [sag](/docs/telemetry/security-cases) om den eller føjes til den åbne sag, der allerede handler om den. |
-| **Create Alert on Match** | Slået til som standard: hver matchet indikator åbner en advarsel. |
+| **Advarsler og hændelser** | **Opret en advarsel** som standard: hver matchet indikator åbner en advarsel. |
 | **Advarselsalvor** | Alvorligheden af hver advarsel, dette feed åbner. Lad den være tom for at bruge hver indikators trusselsniveau. |
-| **Create Incident on Match** | Slået fra som standard. Hændelser driver vagteskalering, SLA'er og statussider, og advarsler er som regel nok til indikatormatch. |
+| **Erklær en hændelse** eller **Begge** | Under **Advarsler og hændelser**. Hændelser driver vagteskalering, SLA'er og statussider, og advarsler er som regel nok til indikatormatch. |
 | **Hændelsesalvor** | Som **Advarselsalvor**, for hændelser. |
 | **Write Detection Finding on Match** | Slået til som standard: hvert match skriver et fund ind i begivenhedsstrømmen. |
 
-Tokens og adgangskoder krypteres og vises aldrig igen, når du har gemt dem. For at ændre dem vælger du **Update Credentials** i feedets række og derefter **API Token (Bearer)**, **Basic Auth** eller **Anonymous (clear stored credentials)**: dit valg erstatter feedets login, så når du gemmer et token, ryddes en gemt adgangskode, og omvendt.
+Tokens og adgangskoder krypteres og vises aldrig igen, når du har gemt dem. For at ændre dem vælger du **Update Credentials** i feedets række og derefter **Bearer-token**, **Brugernavn og adgangskode** eller **Ingen login**, som rydder det gemte: dit valg erstatter feedets login, så når du gemmer et token, ryddes en gemt adgangskode, og omvendt.
 
 ### Sådan hentes et feed
 
@@ -143,7 +143,7 @@ Hvert minut matches hvert aktiveret feeds aktive indikatorer mod de begivenheder
 ### Hvad et match gør
 
 - En advarsel med titlen `[Threat Intel] <feed name> — <indicator value>`, én pr. feed og værdi, så længe den forbliver åben. Når den er løst, åbner det næste match en ny. Advarsler løses ikke automatisk.
-- En hændelse, kun med **Create Incident on Match**, deduplikeret på samme måde.
+- En hændelse, kun med **Erklær en hændelse** eller **Begge** under **Advarsler og hændelser**, deduplikeret på samme måde.
 - Et Threat Intel-fund, med **Write Detection Finding on Match**: en begivenhed `Detection Finding` (OCSF-klasse 2004) fra produktet `OneUptime Threat Intel`, med indikatorens trusselsniveau som alvorlighed og disse attributter:
 
 | Attribut | Værdi |
@@ -199,7 +199,7 @@ Matchning sammenligner en indikators værdi med en begivenheds observables, ikke
 :::
 
 :::details Et match åbnede ingen advarsel
-**Create Alert on Match** er slået fra, eller en advarsel for det samme feed og den samme værdi er stadig åben, og senere match lægges ind i den. Et projekt skal have mindst én advarselsalvorlighed, for at et feed kan åbne advarsler.
+**Advarsler og hændelser** står på **Erklær en hændelse** eller **Ingen af dem**, eller en advarsel for det samme feed og den samme værdi er stadig åben, og senere match lægges ind i den. Et projekt skal have mindst én advarselsalvorlighed, for at et feed kan åbne advarsler.
 :::
 
 ## Næste trin

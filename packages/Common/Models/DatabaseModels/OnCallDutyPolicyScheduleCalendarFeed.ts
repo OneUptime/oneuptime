@@ -6,6 +6,7 @@ import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
@@ -35,7 +36,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * shared link, and whoever may read a schedule may copy the link. The link
  * belongs to the project, not to whoever copied it. @CanAccessIfCanReadOn
  * scopes it by the schedule's labels too, so a label-restricted reader never
- * sees the feed of a schedule they cannot see.
+ * sees the feed of a schedule they cannot see. @OwnedThrough holds an editor
+ * whose grant is scoped to Owned to the schedules they or their teams own:
+ * they publish, rotate and disable only those links, and copy any link of a
+ * schedule they may read.
  *
  * ONE ROW PER SCHEDULE - onCallDutyPolicyScheduleId is UNIQUE, and the row
  * cascades away with the schedule.
@@ -121,6 +125,7 @@ const updatePermissions: Array<Permission> = [
   ],
 })
 @CanAccessIfCanReadOn("onCallDutyPolicySchedule")
+@OwnedThrough("onCallDutyPolicyScheduleId", OnCallDutyPolicySchedule)
 @CrudApiEndpoint(new Route("/on-call-duty-policy-schedule-calendar-feed"))
 @Entity({
   name: "OnCallDutyPolicyScheduleCalendarFeed",

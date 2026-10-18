@@ -40,6 +40,8 @@ import {
 } from "Common/Types/StatusPage/StatusPageAccess";
 import StatusPageAccessCopy, {
   getStatusPageAccessState,
+  PRIVATE_USER_PLURAL_NAME,
+  PRIVATE_USER_SINGULAR_NAME,
   PRIVATE_USERS_PASSWORD_NOTICE_TEST_ID,
 } from "../../../Components/StatusPage/StatusPageAccessCopy";
 
@@ -240,6 +242,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         modelType={StatusPagePrivateUser}
         id="status-page-group"
         name="Status Page > Private Users"
+        /*
+         * On a status page's own Private Users page the rows are its private
+         * users, and they are added, as subscribers are: "Add Private User",
+         * not "Create Status Page Private User". An empty list reads the
+         * table's own "No private users yet."
+         */
+        singularName={PRIVATE_USER_SINGULAR_NAME}
+        pluralName={PRIVATE_USER_PLURAL_NAME}
+        createVerb="Add"
         userPreferencesKey="status-page-private-user-table"
         saveFilterProps={{
           tableId: "status-page-private-users-table",
@@ -275,7 +286,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             },
           ],
         }}
-        noItemsMessage={"No private users created for this status page."}
         formFields={[
           {
             field: {
@@ -339,7 +349,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 field: { emails: true },
                 title: "Emails",
                 description:
-                  "One email per line (or separated by commas, semicolons, or spaces). Invalid or duplicate entries will be skipped.",
+                  "One email per line. Invalid and duplicate ones are skipped.",
                 fieldType: FormFieldSchemaType.LongText,
                 required: true,
                 placeholder:

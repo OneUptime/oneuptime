@@ -140,6 +140,7 @@ const GLOBAL_PERMISSION: UserGlobalAccessPermission = {
 };
 
 let isUserBlocked: jest.SpyInstance;
+let isUserMasterAdmin: jest.SpyInstance;
 let getUserGlobalAccessPermission: jest.SpyInstance;
 let userUpdateLastActive: jest.SpyInstance;
 
@@ -156,6 +157,10 @@ beforeEach(() => {
   isUserBlocked = getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(
     false,
   );
+  isUserMasterAdmin = getJestSpyOn(
+    UserService,
+    "isUserMasterAdmin",
+  ).mockResolvedValue(true);
   getUserGlobalAccessPermission = getJestSpyOn(
     AccessTokenService,
     "getUserGlobalAccessPermission",
@@ -389,8 +394,14 @@ describe("MasterAdminAuthorization — a blocked master admin's live access toke
     expect(result.sentError).toBe(lookupFailure);
   });
 
-  // Not a master admin at all: refused as before, without a lookup.
-  test("does not look up a caller that is refused as not a master admin", async () => {
+  /*
+   * Not a master admin at all: refused as before, with the 422. The session
+   * is read as every route reads it (readRequestSession), so whether the
+   * person is blocked is asked first - one cached read - and whether they
+   * are still a master admin is never asked of a session that does not say
+   * so.
+   */
+  test("refuses a caller that is not a master admin with a 422, asking only whether they are blocked", async () => {
     const result: MiddlewareCallResult = await callMiddleware(
       MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware as unknown as MiddlewareFunction,
       buildRequest({ cookies: { "user-token": signValidToken() } }),
@@ -398,6 +409,20 @@ describe("MasterAdminAuthorization — a blocked master admin's live access toke
 
     expect(result.nextCalls).toHaveLength(0);
     expect(result.sentError?.code).toBe(422);
-    expect(isUserBlocked).not.toHaveBeenCalled();
+    expect(isUserBlocked).toHaveBeenCalledTimes(1);
+    expect(isUserBlocked).toHaveBeenCalledWith(USER_ID);
+    expect(isUserMasterAdmin).not.toHaveBeenCalled();
+  });
+
+  // Blocked and not a master admin: refused as blocked, so the app signs them out.
+  test("refuses a blocked caller that is not a master admin as blocked (401)", async () => {
+    isUserBlocked.mockResolvedValue(true);
+
+    const result: MiddlewareCallResult = await callMiddleware(
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware as unknown as MiddlewareFunction,
+      buildRequest({ cookies: { "user-token": signValidToken() } }),
+    );
+
+    expectBlockedRefusal(result);
   });
 });

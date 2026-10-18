@@ -83,6 +83,8 @@ import {
   EventStatusFact,
 } from "../../../Components/EventView/EventStatusPanel";
 import EventVideoCallsCard from "../../../Components/VideoCall/EventVideoCallsCard";
+import CallSummarySection from "../../../Components/AI/CallSummary/CallSummarySection";
+import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import useEventVideoCalls, {
   EventVideoCallsState,
   VideoCallEventKind,
@@ -1103,6 +1105,19 @@ const IncidentView: FunctionComponent<
                 />
               );
             }}
+            renderCallSummaries={() => {
+              return (
+                <CallSummarySection
+                  incidentId={modelId}
+                  calls={videoCalls.calls as Array<IncidentVideoCall>}
+                  onChanged={() => {
+                    videoCalls.refresh();
+                    // A root cause used from the call is a new feed entry.
+                    refreshFeed();
+                  }}
+                />
+              );
+            }}
           />
 
           {telemetryQuery && (
@@ -1336,7 +1351,7 @@ const IncidentView: FunctionComponent<
                   incidentSeverity: true,
                 },
                 title: "Incident Severity",
-                description: "What type of incident is this?",
+                description: "How serious is it?",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
                   type: IncidentSeverity,

@@ -5,7 +5,7 @@ Een statuspagina is het publieke gezicht van alles wat u monitort: één URL die
 Als er om 2 uur 's nachts iets kapotgaat, is de statuspagina het eerste waarnaar uw supportwachtrij verwijst. Het is ook de plek van waaruit uw abonnees bericht krijgen, dus het loont om haar in te richten voordat u haar nodig hebt, niet midden in de storing.
 
 :::cards
-- [Een statuspagina aanmaken](#een-statuspagina-aanmaken): Twee velden om te beginnen, al het andere later.
+- [Een statuspagina aanmaken](#een-statuspagina-aanmaken): Een naam om te beginnen, al het andere later.
 - [Kiezen wat ze toont](#kiezen-wat-er-op-de-pagina-komt): Incidenten, episoden, aankondigingen, onderhoud en uptime, op één kaart.
 - [Bepalen wie haar mag zien](#beperken-wie-de-pagina-mag-zien): Iedereen met de link, alleen mensen die inloggen of iedereen met het wachtwoord.
 - [Een statuspagina archiveren](#een-statuspagina-archiveren): Een pagina offline halen zonder haar te verwijderen.
@@ -33,7 +33,7 @@ De pagina toont de monitoren die u erop zet als resources, en incidenten komen v
 
 ## In het kort
 
-- **Aangemaakt met twee velden.** Een nieuwe statuspagina vraagt alleen om **Naam** en **Beschrijving**. Resources, huisstijl en domeinen stelt u daarna in.
+- **Aangemaakt met een naam.** Een nieuwe statuspagina vraagt alleen om haar **Naam**; **Beschrijving** en **Labels** wachten onder **Meer velden**. Resources, huisstijl en domeinen stelt u daarna in.
 - **Resources zijn wat bezoekers zien.** Elke rij op de pagina is een **Statuspagina Bron**: een monitor (of monitorgroep) met een eigen weergavenaam, tooltip en uptime-opties. Groepen verdelen een lange pagina in secties en kunnen worden genest.
 - **Vanaf dag één een voorbeeld-URL.** Elke statuspagina krijgt een voorbeeldlink, zodat u haar kunt bekijken voordat er een aangepast domein is.
 - **Routes voor bezoekers hangen af van instellingen.** Incidenten, episoden, aankondigingen en geplande gebeurtenissen verschijnen alleen zolang hun schakelaar in **Wat uw statuspagina toont** (onder **Geavanceerde instellingen**) aan staat, en de abonneerpagina alleen zolang **Abonneepagina weergeven** aan staat.
@@ -61,13 +61,13 @@ Open **Statuspagina's → Alle statuspagina's** en klik op **Statuspagina maken*
 
 ### De pagina een naam geven
 
-Vul in het venster **Nieuw aanmaken: Statuspagina** de **Naam** in (verplicht, minstens twee tekens) en, als u wilt, de **Beschrijving**, en klik op **Statuspagina maken**.
+Vul in het venster **Nieuw aanmaken: Statuspagina** de **Naam** in (verplicht, minstens twee tekens) en klik op **Statuspagina maken**. **Beschrijving** en **Labels** zijn optioneel, onder **Meer velden**.
 
-Dat is het hele formulier. De lijst waarnaar u terugkeert toont **Naam**, **Beschrijving**, **Labels** en **Eigenaren**, en kan worden gefilterd op **Statuspagina-ID**, **Naam** en **Beschrijving**.
+Dat is het hele formulier. De lijst **Statuspagina's** toont **Naam**, **Beschrijving**, **Labels** en **Eigenaren**, en kan worden gefilterd op **Statuspagina-ID**, **Naam** en **Beschrijving**.
 
 ### De nieuwe pagina openen
 
-Open de nieuwe pagina en u komt op haar scherm **Overzicht**, met twee kaarten: **Status Page Preview URL**, met een link naar de pagina zelf, en **Statuspaginadetails**, waar u de naam, de beschrijving en de labels die u net hebt ingesteld kunt bewerken. Als het project aangepaste velden voor statuspagina's heeft, volgt er een kaart **Aangepaste velden**.
+De nieuwe pagina opent op haar scherm **Overzicht**. Zolang de pagina geen resource heeft, begint het scherm met **Nog niets op deze statuspagina** en **Monitoren toevoegen**, dat haar scherm **Middelen** opent. Daarna volgen twee kaarten: **Link naar de statuspagina**, met de link naar de pagina zelf en **Link kopiëren**, en **Statuspaginadetails**, waar u de naam, de beschrijving en de labels die u net hebt ingesteld kunt bewerken. Als het project aangepaste velden voor statuspagina's heeft, volgt er een kaart **Aangepaste velden**.
 :::
 
 Een pagina die met de API of met Terraform wordt aangemaakt, valt onder dezelfde abonnementen als de instellingen hieronder. Op OneUptime Cloud wordt het aanmaken van een pagina met een ingeschakelde instelling die uw abonnement niet bevat (bijvoorbeeld privé, een verborgen lijst, aangepaste HTML, CSS of JavaScript, e-mailrapporten, abonnees via SMS, Slack, Microsoft Teams of webhook, een IP-toelatingslijst) geweigerd met `402 Payment Required`, en de melding noemt het abonnement. Het abonnement van elke instelling staat hieronder bij die instelling. Instellingen die op hun standaardwaarde blijven staan, zoals dit formulier ze laat, werken op elk abonnement.
@@ -115,7 +115,7 @@ De openbare pagina is een eigen applicatie, met een kleine set routes:
 - `/announcements` en `/announcements/:id`.
 - `/scheduled-events` en `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` en `/unsubscribe/:token`: de links in de berichten die abonnees krijgen.
+- `/confirm-subscription/:id`, `/update-subscription/:token` en `/unsubscribe/:token`: de links in de berichten die abonnees krijgen.
 - `/rss`: de feed.
 - `/login`, `/sso` en `/master-password`: alleen relevant op een privépagina.
 
@@ -167,7 +167,7 @@ Onder de kaart staan **Statuspagina exporteren als JSON**, dat de eigen instelli
 
 ## Vooraf bekijken voordat u live gaat
 
-Het scherm **Overzicht** van elke statuspagina heeft een kaart **Status Page Preview URL** met een directe link naar de pagina. Gebruik die terwijl u nog resources toevoegt en voordat er een aangepast domein is.
+Het scherm **Overzicht** van elke statuspagina heeft een kaart **Link naar de statuspagina** met een directe link naar de pagina en **Link kopiëren** ernaast. Gebruik die terwijl u nog resources toevoegt en voordat er een aangepast domein is.
 
 Achter de schermen heeft elke openbare route een voorbeeldtweeling onder `/status-page/{statusPageId}/...`: een voorbeeldoverzicht, een voorbeeldlijst met incidenten, een voorbeeldabonneerpagina enzovoort. Een URL of schermafbeelding uit het voorbeeld in het dashboard komt daardoor niet overeen met wat een klant ziet zodra er een aangepast domein is gekoppeld, dus controleer elke link die u in een runbook of e-mail plakt.
 
@@ -195,11 +195,11 @@ Voeg de mensen die mogen inloggen toe onder **Statuspagina's → uw pagina → B
 
 ### SSO en OIDC
 
-Voor een privépagina die aan uw identiteitsprovider is gekoppeld, stelt **Statuspagina's → uw pagina → Beveiliging → SSO** SAML in: u voert de aanmeldings-URL, de uitgever en het x509-certificaat in, en de ondertekenings- en digestmethoden worden ingevuld onder **Meer velden**. **Statuspagina's → uw pagina → Beveiliging → OIDC** stelt OpenID Connect in: u voert de uitgever, de client-ID en het secret in, en de discovery-URL, de scopes en de claimnamen worden ingevuld onder **Meer velden**. **SCIM** richt privégebruikers automatisch in vanuit de IdP. Op OneUptime Cloud hebben alle drie het abonnement Scale of hoger nodig. In een zelfgehoste installatie maken SSO en OIDC deel uit van elke editie, en SCIM heeft de [Enterprise Edition](/docs/self-hosted/enterprise) nodig.
+Voor een privépagina die aan uw identiteitsprovider is gekoppeld, stelt **Statuspagina's → uw pagina → Beveiliging → SSO** SAML in: **SSO-provider toevoegen** vraagt om de aanmeldings-URL, de uitgever en het x509-certificaat, en de ondertekenings- en digestmethoden worden ingevuld onder **Meer velden**. **Statuspagina's → uw pagina → Beveiliging → OIDC** stelt OpenID Connect in: **OIDC-provider toevoegen** vraagt om de uitgever, de client-ID en het secret, en de discovery-URL, de scopes en de claimnamen worden ingevuld onder **Meer velden**. Zodra een pagina een provider heeft, linkt de kaart **Aanmelden testen** onder de lijst naar de aanmelding van de pagina, om die te proberen. **SCIM** richt privégebruikers automatisch in vanuit de IdP. Op OneUptime Cloud hebben alle drie het abonnement Scale of hoger nodig. In een zelfgehoste installatie maken SSO en OIDC deel uit van elke editie, en SCIM heeft de [Enterprise Edition](/docs/self-hosted/enterprise) nodig.
 
 De SSO- of OIDC-provider van een statuspagina uitschakelen of verwijderen meldt de privégebruikers af die erdoor zijn ingelogd: hun sessies eindigen bij hun volgende verzoek, en de provider weer inschakelen brengt ze niet terug; ze loggen er opnieuw mee in. Een nieuw certificaat of clientsecret, andere URL's of een nieuwe naam houden iedereen ingelogd. Op een pagina die SSO vereist, sluit het uitschakelen van haar laatste provider iedereen buiten totdat u er weer een inschakelt of **SSO vereisen voor inloggen** uitzet; om naar een andere provider over te stappen, stelt u de nieuwe in en test u die voordat u de oude uitschakelt.
 
-Onder de providers bevat de kaart **SSO-instellingen** de schakelaar **SSO vereisen voor inloggen** (`requireSsoForLogin`, standaard uit), die wordt opgeslagen zodra u hem omzet. Inschakelen vraagt eerst om bevestiging, omdat privégebruikers vanaf dan niet meer met e-mail en wachtwoord kunnen inloggen: alleen de mensen die uw SSO- of OIDC-provider binnenlaat, kunnen de pagina zien. Test SSO met de link op dat scherm voordat u het inschakelt. Het telt alleen zolang **Alleen mensen die inloggen** de keuze is, en het scherm **Toegang** toont het als **SSO verplicht** onder die keuze. Zolang het aan staat, wordt ook een privégebruiker die met e-mail en wachtwoord heeft ingelogd bij zijn volgende verzoek afgemeld: alleen sessies die een SSO- of OIDC-provider heeft gestart, tellen. Op OneUptime Cloud heeft inschakelen het abonnement **Scale** nodig, en uitschakelen werkt op elk abonnement. Een pagina die na het einde van een Scale-proefperiode, of na een overstap naar een lager abonnement, nog SSO vereist, blijft dat doen totdat iemand het uitzet: haar pagina's **SSO** en **OIDC** tonen de schakelaar daarvoor onder het abonnementsaanbod.
+Onder de providers bevat de kaart **SSO-instellingen** de schakelaar **SSO vereisen voor inloggen** (`requireSsoForLogin`, standaard uit), die wordt opgeslagen zodra u hem omzet. Inschakelen vraagt eerst om bevestiging, omdat privégebruikers vanaf dan niet meer met e-mail en wachtwoord kunnen inloggen: alleen de mensen die uw SSO- of OIDC-provider binnenlaat, kunnen de pagina zien. Probeer de link op de kaart **Aanmelden testen** erboven voordat u het inschakelt. Het telt alleen zolang **Alleen mensen die inloggen** de keuze is, en het scherm **Toegang** toont het als **SSO verplicht** onder die keuze. Zolang het aan staat, wordt ook een privégebruiker die met e-mail en wachtwoord heeft ingelogd bij zijn volgende verzoek afgemeld: alleen sessies die een SSO- of OIDC-provider heeft gestart, tellen. Op OneUptime Cloud heeft inschakelen het abonnement **Scale** nodig, en uitschakelen werkt op elk abonnement. Een pagina die na het einde van een Scale-proefperiode, of na een overstap naar een lager abonnement, nog SSO vereist, blijft dat doen totdat iemand het uitzet: haar pagina's **SSO** en **OIDC** tonen de schakelaar daarvoor onder het abonnementsaanbod.
 
 ### Lezerssessies
 
@@ -213,11 +213,13 @@ Onder **Meer instellingen** van **Toegang** beperkt de sectie **IP-toelatingslij
 
 ## De insluitbare badge en de RSS-feed
 
-Twee manieren om de status ergens anders te tonen dan op de pagina zelf.
+Drie manieren om de status ergens anders te tonen dan op de pagina zelf.
 
-**Ingesloten statusbadge.** Zet onder **Statuspagina's → uw pagina → Geavanceerd → Ingesloten status** de optie **Ingesloten statusbadge inschakelen** aan (`enableEmbeddedOverallStatus`, standaard uit) en klik daarna op **Token opnieuw genereren** in de kaart **Beveiligingstoken** om de badge zijn token te geven (`embeddedOverallStatusToken`). De badge wordt geserveerd vanaf `/api/status-page/badge/<status-page-id>?token=<token>`, en het scherm toont hem in **Badge-voorbeeld** met fragmenten om te kopiëren, zodat u de huidige algemene status in uw documentatie, de voettekst van uw app of een marketingpagina kunt zetten.
+**Ingesloten statusbadge.** Zet onder **Statuspagina's → uw pagina → Geavanceerd → Ingesloten status** de optie **Ingesloten statusbadge inschakelen** aan (`enableEmbeddedOverallStatus`, standaard uit). De eerste keer dat u hem aanzet, krijgt de badge zijn token (`embeddedOverallStatusToken`), en de kaart **De badge insluiten** toont de badge, geserveerd vanaf `/api/status-page/badge/<status-page-id>?token=<token>`, met zijn **HTML** en zijn **Markdown, met een link naar de statuspagina** om te kopiëren, zodat u de huidige algemene status in uw documentatie, de voettekst van uw app of een marketingpagina kunt zetten. Het token staat op de kaart **Beveiligingstoken** onder **Meer instellingen**, met **Token opnieuw genereren** voor als de link te breed is gedeeld.
 
 **RSS-feed.** Elke statuspagina serveert `/rss`: een feed met de titel "{paginatitel} Updates", met de **Paginatitel** die onder **Huisstijl** is ingesteld, of de naam van de pagina als ze er geen heeft, en waarvan de items beginnen met `Incident: `, `Announcement: ` en `Scheduled Maintenance: `. Handig voor wie uw updates liever in een feedlezer of een chatbot binnenhaalt dan zich per e-mail te abonneren.
+
+**Onderhoudsagenda.** Elke statuspagina serveert ook `/maintenance.ics`: het geplande onderhoud dat ze toont, als een agenda waarop Google Agenda, Apple Agenda of Outlook zich kan abonneren. Bezoekers voegen hem toe met **Abonneren op agenda** op de pagina **Geplande gebeurtenissen**, en één gebeurtenis met **Toevoegen aan agenda** op de pagina van die gebeurtenis. De agenda van een privépagina is leeg, omdat een agenda-app niet kan inloggen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#de-agenda-van-een-statuspagina).
 
 Als u de gegevens liever zelf ophaalt: de statuspagina steunt op openbare lees-endpoints voor het overzicht, de incidenten, de geplande onderhoudsgebeurtenissen, de aankondigingen en de episoden; zie [Publieke API](/docs/status-pages/public-api).
 

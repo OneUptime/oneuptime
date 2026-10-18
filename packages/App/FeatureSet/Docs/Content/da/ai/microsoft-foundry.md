@@ -111,20 +111,20 @@ Med `--custom-domain contoso-ai` er ressourcens slutpunkt `https://contoso-ai.op
 
 Gå til **Projektindstillinger** > **AI** > **LLM-udbydere**, og klik på **Opret LLM-udbyder**.
 
-### Navngiv udbyderen
+### Vælg udbyderen
 
-Under **Grundlæggende oplysninger** skal du indtaste et **Navn**, f.eks. `Azure gpt-5.1`, og eventuelt en **Beskrivelse**. Klik på **Næste**.
+Under **Udbyder** vælger du **Azure OpenAI / Microsoft Foundry** som **LLM-udbyder** og klikker på **Næste** for at gå videre til **Forbindelse**.
 
-### Udfyld udbyderindstillingerne
+### Udfyld forbindelsen
 
 | Felt | Hvad du indtaster |
 | --- | --- |
-| **LLM-udbyder** | **Azure OpenAI / Microsoft Foundry** |
 | **API-nøgle** | Ressourcens **KEY 1** eller **KEY 2** |
-| **Modelnavn** | Udrulningens navn, præcis som Foundry viser det, f.eks. `gpt-5.1` |
 | **Basis-URL** | Ressourcens slutpunkt med `/openai/v1`, f.eks. `https://contoso-ai.openai.azure.com/openai/v1`. For Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Modelnavn** | Udrulningens navn, præcis som Foundry viser det, f.eks. `gpt-5.1` |
+| **Navn** | Først udbyderens navn: giv den et, der siger, hvilken udrulning det er, f.eks. `Azure gpt-5.1` |
 
-**Indstil som standard** under **Flere felter** er slået til: AI-funktioner bruger projektets standardudbyder. Klik på **Opret LLM-udbyder**.
+**Flere felter** rummer en **Beskrivelse** og **Indstil som standard**, som er slået til: AI-funktioner bruger projektets standardudbyder. Klik på **Opret LLM-udbyder**.
 
 ### Test forbindelsen
 

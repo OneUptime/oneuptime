@@ -515,7 +515,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * table hears about the chips through emptyState and says nothing
          * matches them. This is what a project with no SLO at all is told.
          */
-        noItemsMessage="No SLOs yet. Create one, then attach monitors or add a monitor rule to turn uptime into a reliability target with an error budget and burn-rate alerts."
+        noItemsMessage="No SLOs yet. Create one and attach monitors to turn uptime into a target with an error budget."
         helpContent={{
           title: "How SLOs Work",
           description:

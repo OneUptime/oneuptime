@@ -352,10 +352,22 @@ describe("the probe fields, for a project with no probe of its own", () => {
 
   test("each says a probe on the internet cannot reach the network", () => {
     expect(ADD_DEVICE_NO_PROBE_DESCRIPTION).toContain(
-      "which a probe on the internet cannot reach",
+      "a probe on the internet cannot reach this device",
     );
     expect(SCAN_NO_PROBE_DESCRIPTION).toContain(
-      "which a probe on the internet cannot reach",
+      "a probe on the internet cannot reach this range",
     );
+  });
+
+  // One line each: what is missing, and what to do about it.
+  test("each is a short line that says to add a probe first", () => {
+    for (const text of [
+      ADD_DEVICE_NO_PROBE_DESCRIPTION,
+      SCAN_NO_PROBE_DESCRIPTION,
+    ]) {
+      expect(text).toContain("You have no probe on your network yet.");
+      expect(text).toContain("Add one first");
+      expect(text.length).toBeLessThanOrEqual(110);
+    }
   });
 });

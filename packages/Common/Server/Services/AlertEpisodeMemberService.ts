@@ -57,8 +57,11 @@ import EpisodeSingleMembershipCheck, {
   RecordInAnotherEpisodeException,
 } from "../Utils/Episode/EpisodeSingleMembershipCheck";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import CreateScopeException from "../Types/Database/Permissions/CreateScopeException";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import type { PendingRecord } from "./DatabaseService";
+import EpisodeMemberAddScope from "../Utils/Episode/EpisodeMemberAddScope";
 
 // What adding an alert to an episode it is in already is refused with.
 export const ALERT_ALREADY_IN_EPISODE_MESSAGE: string =
@@ -1042,6 +1045,19 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
+      // One the caller may not add as a member of their own. See the helper.
+      const refusal: string | null = await this.getMemberAddRefusal({
+        projectId: projectId,
+        alertEpisodeId: alertEpisodeId,
+        alertId: alertId,
+        props: data.props,
+      });
+
+      if (refusal) {
+        result.notAdded.push({ id: key, reason: refusal });
+        continue;
+      }
+
       try {
         const wasAdded: boolean = await this.createMemberAddedTogether({
           projectId: projectId,
@@ -1112,6 +1128,8 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     alertIds: unknown;
     props: DatabaseCommonInteractionProps;
+    // The labels the episode is created with, which its members carry too.
+    labels?: unknown;
   }): Promise<AlertsForNewEpisode> {
     const alertIds: Array<ObjectID> = EpisodeMembersAdd.parseIds({
       value: data.alertIds,
@@ -1163,6 +1181,31 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(
         "Some of the alerts to add to the episode do not exist in this project, or you do not have access to them.",
       );
+    }
+
+    /*
+     * Each one the caller may add as a member of their own, to the episode
+     * as it will be saved (its labels): one they may not refuses the whole
+     * create, as one they cannot see does. See getMemberAddRefusal.
+     */
+    const pendingEpisode: PendingRecord =
+      EpisodeMemberAddScope.getPendingEpisode({
+        episodeModelType: AlertEpisode,
+        labels: data.labels,
+      });
+
+    for (const alertId of alertIds) {
+      const refusal: string | null = await this.getMemberAddRefusal({
+        projectId: data.projectId,
+        alertEpisodeId: pendingEpisode.id,
+        alertId: alertId,
+        props: data.props,
+        pendingEpisode: pendingEpisode,
+      });
+
+      if (refusal) {
+        throw new CreateScopeException(refusal);
+      }
     }
 
     /*
@@ -1394,6 +1437,33 @@ export class Service extends ProjectReferencesService<Model> {
       : AlertEpisodeMemberAddedBy.API;
 
     ModelPermission.checkCreatePermissions(Model, member, data.props);
+  }
+
+  /*
+   * Why the caller may not add one alert to an episode as a member of their
+   * own - what their permission to create members reaches: its labels, its
+   * Owned scope (the alerts they or their teams own), its blocks with
+   * labels - or null when they may (EpisodeMemberAddScope). The row is
+   * asked about as it will be written.
+   */
+  private async getMemberAddRefusal(data: {
+    projectId: ObjectID;
+    alertEpisodeId: ObjectID;
+    alertId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    pendingEpisode?: PendingRecord | undefined;
+  }): Promise<string | null> {
+    const member: Model = new Model();
+    member.projectId = data.projectId;
+    member.alertEpisodeId = data.alertEpisodeId;
+    member.alertId = data.alertId;
+
+    return await EpisodeMemberAddScope.getRefusal({
+      memberService: this,
+      member: member,
+      props: data.props,
+      pendingEpisode: data.pendingEpisode,
+    });
   }
 
   /*

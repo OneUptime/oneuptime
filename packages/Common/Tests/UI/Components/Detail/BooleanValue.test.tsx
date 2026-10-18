@@ -13,15 +13,21 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
  * Detail's FieldType.Boolean branch so that a summary element of its own -
  * the Declare Incident form's 'Notify Status Page Subscribers', which adds
  * who will be notified under it - can still say whether the box was ticked,
- * exactly as every other box on that step does. Detail must render booleans
- * exactly as it did before.
+ * exactly as every other box on that step does. Detail draws every boolean
+ * with it, so the two never drift apart.
  */
 
-// What Detail drew for a boolean before the pill was lifted out of it.
+/*
+ * What Detail draws for a boolean. The pill is as tall as a detail value's
+ * line (py-0.5 round text-sm's 20px is 24px), top to top on it (align-top):
+ * at py-1, on the line's baseline, it was 28px, so a row holding a yes/no
+ * stood 4px taller than one holding text, and its word sat lower than the
+ * values beside it.
+ */
 const YES_MARKUP: string =
-  '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-sm font-medium"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Yes</span>';
+  '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-50 text-green-700 text-sm font-medium align-top"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Yes</span>';
 const NO_MARKUP: string =
-  '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-sm font-medium"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>No</span>';
+  '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium align-top"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>No</span>';
 
 interface Item {
   isOn?: unknown;
@@ -81,7 +87,7 @@ describe("BooleanValue", () => {
   });
 });
 
-describe("Detail draws its boolean fields with BooleanValue, as before", () => {
+describe("Detail draws its boolean fields with BooleanValue", () => {
   test.each([
     ["true", true, YES_MARKUP],
     ["a truthy string", "yes", YES_MARKUP],

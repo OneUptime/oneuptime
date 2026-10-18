@@ -63,7 +63,7 @@ You need permission to add SSO providers — **Project Owner**, **Project Admin*
 
 2. **Create SSO Configuration**
 
-   - Click **Create SSO**
+   - Click **Add SAML Provider**
    - Enter a **Name** for the SSO configuration (e.g., "Keycloak SAML" or "Okta SAML")
    - Enter the **Sign On URL** from your identity provider
    - Enter the **Issuer** (Entity ID) from your identity provider
@@ -107,7 +107,7 @@ Keycloak is a popular open-source identity and access management solution. You n
 
 2. **Create the provider in OneUptime**
 
-   Go to **Project Settings** > **Security** > **SSO**, click **Create SSO** and fill in:
+   Go to **Project Settings** > **Security** > **SSO**, click **Add SAML Provider** and fill in:
    - **Name**: a descriptive name (e.g., `my-project-oneuptime`)
    - **Sign On URL** and **Issuer**: the values above
    - **Public Certificate**: the certificate, between its own `BEGIN CERTIFICATE` and `END CERTIFICATE` lines
@@ -150,7 +150,7 @@ Microsoft Entra ID (formerly Azure AD / Active Directory) is Microsoft's cloud i
 
 3. **Create the provider in OneUptime**
 
-   Go to **Project Settings** > **Security** > **SSO**, click **Create SSO** and fill in:
+   Go to **Project Settings** > **Security** > **SSO**, click **Add SAML Provider** and fill in:
    - **Name**: a descriptive name (e.g., `Azure AD SAML`)
    - **Sign On URL**: the **Login URL**
    - **Issuer**: the **Microsoft Entra Identifier**
@@ -202,7 +202,7 @@ Okta is a widely used identity platform with SAML SSO. You need an Okta organiza
 
 3. **Create the provider in OneUptime**
 
-   Go to **Project Settings** > **Security** > **SSO**, click **Create SSO** and fill in:
+   Go to **Project Settings** > **Security** > **SSO**, click **Add SAML Provider** and fill in:
    - **Name**: a descriptive name (e.g., `Okta SAML`)
    - **Sign On URL** and **Issuer**: Okta's values
    - **Public Certificate**: the certificate, including the `BEGIN CERTIFICATE` and `END CERTIFICATE` lines
@@ -244,11 +244,11 @@ A project can also sign in through an OpenID Connect provider, such as Google Wo
 
 :::steps
 1. Register an app (an OIDC client) with your identity provider that may use the authorization code flow with PKCE, and copy its **Issuer URL**, **Client ID** and **Client Secret**.
-2. In OneUptime, go to **Project Settings** > **Security** > **OIDC** and click **Create OIDC**.
+2. In OneUptime, go to **Project Settings** > **Security** > **SSO**. Under the SAML providers, click **Add OIDC Provider**.
 3. Enter a **Name** (what people see on the sign-in page), the **Issuer URL**, the **Client ID** and the **Client Secret**. You can paste the provider's discovery URL into **Issuer URL** instead.
 4. On the **Sign-in** step, **Teams** starts on your project's members team: people who sign in for the first time join these teams. Everything else is filled in under **More fields**: the **Discovery URL** (the issuer followed by `/.well-known/openid-configuration`), the **Scopes** (`openid email profile`), the `email` and `name` claim names, and a description ("Sign in with" and the name). Change them only if your provider needs it. Only teams you could invite someone to are accepted: a team that gives more access than you have is named under **Teams**.
 5. Save. The **OIDC Configuration** dialog opens with the **Redirect URI**: add it to your app's allowed redirect URIs. A new provider starts switched off, so then edit it and turn **Enabled** on.
-6. Use the link on the **Test OpenID Connect (OIDC)** card to sign in through the provider before you require SSO for the project.
+6. Open the link in the **Test Single Sign On (SSO)** card and pick the provider, to sign in through it before you require SSO for the project.
 :::
 
 ## Roles and teams for SSO users
@@ -308,14 +308,14 @@ Where neither the project nor the server requires SSO, turning a provider off st
 
 ## Providers left below the Scale plan
 
-A SAML or OIDC provider a project still has keeps signing people in after a Scale trial ends or the plan goes down. So below Scale, the **SSO** and **OIDC** pages list the project's providers under the upsell (**SAML providers still set up**, **OIDC providers still set up**):
+A SAML or OIDC provider a project still has keeps signing people in after a Scale trial ends or the plan goes down. So below Scale, the **SSO** page lists the project's providers under the upsell (**SAML providers still set up**, **OIDC providers still set up**):
 
 - **Turn off** stops a provider at once. OneUptime asks first.
 - **Delete** removes it.
 
 Adding a provider, changing one or turning it on again needs **Scale**. The people who can do each are the same as on Scale: turning a provider off needs permission to edit it, deleting it permission to delete it.
 
-While the project still requires SSO, its **SSO** and **OIDC** pages also show **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.
+While the project still requires SSO, its **SSO** page also shows **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.
 
 A status page's **SSO** and **OIDC** pages list its own providers the same way. While the status page still requires SSO, both pages also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.
 

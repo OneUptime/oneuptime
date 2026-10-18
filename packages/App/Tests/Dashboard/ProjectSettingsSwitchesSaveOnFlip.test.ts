@@ -142,10 +142,15 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
   test("Settings > SSO: the Require SSO switch, after the link that tests SSO", () => {
     const page: string = readDashboard("Pages/Settings/SSO.tsx");
 
+    /*
+     * Its line points at the test link, so it is drawn only while the
+     * link is: once the project has a provider to try.
+     */
     expect(page).toContain(
-      "<RequireSsoForLoginCard projectId={ProjectUtil.getCurrentProjectId()!} />",
+      "<RequireSsoForLoginCard projectId={ProjectUtil.getCurrentProjectId()!} isTestLinkShown={hasProviderToTest} />",
     );
-    expect(page.indexOf("Test Single Sign On (SSO)")).toBeLessThan(
+    expect(page.indexOf("<ProjectSignInTestCard")).toBeGreaterThan(0);
+    expect(page.indexOf("<ProjectSignInTestCard")).toBeLessThan(
       page.indexOf("<RequireSsoForLoginCard"),
     );
     expect(page).not.toContain("CardModelDetail");
@@ -163,8 +168,9 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
   test("Settings > SSO below Scale: the Require SSO switch under the upsell, while the project requires SSO", () => {
     const page: string = readDashboard("Pages/Settings/SSO.tsx");
 
+    // Then the SAML and the OIDC providers, which are on the same page.
     expect(page).toContain(
-      "belowPlan={ <> <RequireSsoForLoginLeftover projectId={ProjectUtil.getCurrentProjectId()!} /> <ProjectSamlProvidersLeftover /> </> }",
+      "belowPlan={ <> <RequireSsoForLoginLeftover projectId={ProjectUtil.getCurrentProjectId()!} /> <ProjectSamlProvidersLeftover /> <ProjectOidcProvidersLeftover /> </> }",
     );
 
     const leftover: string = readDashboard(
@@ -188,7 +194,7 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
     );
 
     expect(card).toContain(
-      "cardDescription={ props.isPlanLeftover ? undefined : RequireSsoForLoginSwitchCopy.cardDescription }",
+      "cardDescription={ props.isPlanLeftover || props.isTestLinkShown === false ? undefined : RequireSsoForLoginSwitchCopy.cardDescription }",
     );
     // Once off, it locks: turning it on again needs Scale.
     expect(card).toContain("locksWhenPlanNeeded={props.isPlanLeftover}");
@@ -378,7 +384,7 @@ describe("what the switches say", () => {
 
     expect(sentence).toContain("Everyone in this project, you included");
     expect(sentence).toContain("locked out of the project");
-    expect(sentence).toContain("test SSO with the link above first");
+    expect(sentence).toContain("Test SSO with the link above first");
   });
 
   test("turning Monitor Groups off deletes nothing, and the switch says so", () => {

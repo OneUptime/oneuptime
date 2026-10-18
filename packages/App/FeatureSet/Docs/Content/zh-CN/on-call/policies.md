@@ -57,14 +57,14 @@
 
 ## 重复策略
 
-当最后一级的等待时间结束仍无人确认时，策略会停止，除非它设置为重复。要重复，请打开策略的 **升级规则** 页面，点击规则下方 **重复策略** 卡片上的 **编辑** ，然后填写 **编辑重复策略** ：
+当最后一级的等待时间结束仍无人确认时，策略会停止，除非它设置为重复。要选择，请打开策略的 **升级规则** 页面，点击规则下方 **重复策略** 卡片上的 **编辑** 。 **编辑重复策略** 会询问 **如果最后一级之后仍无人确认** 时怎么做：
 
-| 字段 | 作用 | 新策略的默认值 |
-| --- | --- | --- |
-| **Repeat if no one acknowledges** | 在最后一级之后从 **Level 1** 重新开始策略。关闭时，策略只运行一次。 | 关闭 |
-| **Number of times to repeat** | 策略再从头开始多少次。 | 0 |
+| 回答 | 作用 |
+| --- | --- |
+| **停止通知** | 不再通知任何人，因此策略只运行一次。新策略默认使用此回答。 |
+| **从 Level 1 重新开始** | 按顺序再次通知每一级。 **再重复几次？** 决定次数：1 次或更多。 |
 
-打开开关并设置重复三次后，策略总共会走完四遍所有级别。 **概览** 上的 **Policy at a glance** 会用文字说明同样的内容。
+再重新开始三次的策略总共会走完四遍所有级别。卡片上的 **最后一级之后** 一行说明策略会做什么， **概览** 上的 **Policy at a glance** 会用文字说明同样的内容。
 
 ## 执行日志
 
@@ -94,7 +94,7 @@ flowchart TB
 
 - 策略自己的 **执行日志** ，位于 **日志** 下；
 - **值班 → 高级 → 执行日志** ，包含所有策略，来自工作流和聊天的直接呼叫显示为 **直接呼叫** ；
-- 事件的 **值班执行** 页面，以及警报的 **值班执行** 。
+- 事件或警报的 **值班执行** 页面。
 
 每一行显示是什么触发了运行、触发时间、它的 **状态** 以及谁确认了它。 **View Timeline** 会打开它的 **执行时间线** ：每条升级规则、它呼叫了谁、通过哪个值班计划，以及每次呼叫的结果。无人值班的值班计划会显示 **No one was on call** ，而不是某个人。在 OneUptime Cloud 上，执行日志需要 **Growth** 套餐。
 
@@ -119,9 +119,11 @@ flowchart TB
 | --- | --- |
 | **名称** | `name` |
 | **描述** | `description` |
-| **Repeat if no one acknowledges** | `repeatPolicyIfNoOneAcknowledges` |
-| **Number of times to repeat** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **如果最后一级之后仍无人确认** | `repeatPolicyIfNoOneAcknowledges` |
+| **再重复几次？** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | 已归档 | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` 为 `false` 表示 **停止通知** ，为 `true` 表示 **从 Level 1 重新开始** 。为 `true` 且 `repeatPolicyIfNoOneAcknowledgesNoOfTimes` 为 `0` 的策略永远不会重复，仪表板会将其显示为 **停止通知** 。
 
 要在一个请求中创建带有第一级的策略，请参阅 [使用 API 或 Terraform 创建规则](/docs/on-call/escalation-rules#使用-api-或-terraform-创建规则)。
 

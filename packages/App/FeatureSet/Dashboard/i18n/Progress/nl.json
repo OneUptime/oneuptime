@@ -1,12 +1,13 @@
 {
   "baseline": {
-    "keys": 30172,
-    "untranslated": 17270
+    "keys": 30861,
+    "untranslated": 16854
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "1 week",
     "AI / LLM",
+    "Agenda",
     "Agent",
     "Alarm",
     "App",
@@ -25,6 +26,7 @@
     "Filter: {{expression}}",
     "Gateway",
     "Hardware",
+    "ICMP (ping)",
     "Incident {{number}}: {{title}}",
     "Interface",
     "Interface {{index}}",
@@ -53,6 +55,7 @@
     "Tunnel",
     "VMware vCenter",
     "Website",
+    "Week",
     "agent {{version}}",
     "cluster",
     "host",
@@ -66,6 +69,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} alarm",
+    "{{count}} incident",
     "{{count}} product",
     "{{field}} is {{value}}",
     "{{tokens}} tokens"

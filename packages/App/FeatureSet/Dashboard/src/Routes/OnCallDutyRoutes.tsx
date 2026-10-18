@@ -80,7 +80,6 @@ import IncomingCallPolicyViewAuditLogs from "../Pages/OnCallDuty/IncomingCallPol
 
 import IncomingCallPolicyViewSettings from "../Pages/OnCallDuty/IncomingCallPolicy/Settings";
 
-import IncomingCallPolicyViewDocs from "../Pages/OnCallDuty/IncomingCallPolicy/Docs";
 import OnCallDutyPolicyLabelRule from "Common/Models/DatabaseModels/OnCallDutyPolicyLabelRule";
 import OnCallDutyPolicyScheduleLabelRule from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLabelRule";
 import IncomingCallPolicyLabelRule from "Common/Models/DatabaseModels/IncomingCallPolicyLabelRule";
@@ -91,6 +90,8 @@ import OnCallDutyPolicyModel from "Common/Models/DatabaseModels/OnCallDutyPolicy
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import IncomingCallPolicyModel from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import { MOVED_INCOMING_CALL_POLICY_DOCS_PATH } from "./MovedPagePaths";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
@@ -727,6 +728,22 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
         })}
       </PageRoute>
 
+      {/*
+       * An incoming call policy's Documentation page drew a manual of its own
+       * in the product; the docs page is the one place for it now, linked
+       * from the policy list (View Documentation). Its old address forwards
+       * to the policy's Overview - outside the layout, so the side menu never
+       * flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_INCOMING_CALL_POLICY_DOCS_PATH}
+        element={
+          <MovedPageRedirect
+            pageMap={PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW}
+          />
+        }
+      />
+
       {/* Incoming Call Policy View Routes */}
       <PageRoute
         path={
@@ -856,22 +873,6 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE
-                ] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS,
-          )}
-          element={
-            <IncomingCallPolicyViewDocs
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS
                 ] as Route
               }
             />

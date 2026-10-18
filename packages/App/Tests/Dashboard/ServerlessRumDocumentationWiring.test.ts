@@ -59,6 +59,11 @@ interface GuideCase {
   readonly guidePath: string;
   readonly listPage: string;
   readonly listTitle: string;
+  /*
+   * What the list page counts with: serverless functions are an
+   * infrastructure list, counted by the shared first-record watch.
+   */
+  readonly countState: string;
   readonly documentationPage: string;
   readonly model: string;
   readonly selectedColumns: ReadonlyArray<string>;
@@ -73,6 +78,7 @@ const GUIDES: ReadonlyArray<GuideCase> = [
     guidePath: "Components/Serverless/ServerlessSetupGuide.ts",
     listPage: "Pages/Serverless/ServerlessFunctions.tsx",
     listTitle: "Getting Started with Serverless Functions",
+    countState: "firstRecordWatch.count",
     documentationPage: "Pages/Serverless/View/Documentation.tsx",
     model: "serverlessFunction",
     selectedColumns: ["functionIdentifier: true", "cloudPlatform: true"],
@@ -88,6 +94,7 @@ const GUIDES: ReadonlyArray<GuideCase> = [
     guidePath: "Components/Rum/RumSetupGuide.ts",
     listPage: "Pages/Rum/RumApplications.tsx",
     listTitle: "Getting Started with Real User Monitoring",
+    countState: "count",
     documentationPage: "Pages/Rum/View/Documentation.tsx",
     model: "rumApplication",
     selectedColumns: ["appIdentifier: true", "clientType: true"],
@@ -123,7 +130,9 @@ describe.each(GUIDES)("the $label guide", (guide: GuideCase) => {
 
   test("the product page shows the card in its empty state", () => {
     expect(listPage).toContain(`<${guide.card} title="${guide.listTitle}"`);
-    expect(listPage).toContain(`{count === 0 && ( <${guide.card}`);
+    expect(listPage).toContain(
+      `{${guide.countState} === 0 && ( <${guide.card}`,
+    );
   });
 
   test("the Documentation tab passes what it knows about the resource", () => {

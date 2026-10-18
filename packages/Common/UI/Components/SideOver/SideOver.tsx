@@ -1,6 +1,8 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
+import { DetailValueContext } from "../Detail/DetailValueContext";
+import { TableCellContext } from "../Table/TableCellContext";
 import IconProp from "../../../Types/Icon/IconProp";
 import { usePageScrollLock } from "../../Utils/PageScrollLock";
 import React, {
@@ -259,10 +261,17 @@ const SideOver: FunctionComponent<ComponentProps> = (
               <div className="space-y-6 px-5 py-6 sm:space-y-0 sm:divide-y sm:divide-gray-200 sm:pt-0">
                 {/*
                  * A panel is a surface of its own: a card drawn in it is
-                 * never a section of the card it was opened from.
+                 * never a section of the card it was opened from, nor is
+                 * what it draws a value of the detail card it was opened
+                 * from (DetailValueContext), nor a cell of the table it was
+                 * opened from (TableCellContext).
                  */}
                 <CardSurfaceContext.Provider value={CardSurface.Page}>
-                  {props.children}
+                  <DetailValueContext.Provider value={false}>
+                    <TableCellContext.Provider value={false}>
+                      {props.children}
+                    </TableCellContext.Provider>
+                  </DetailValueContext.Provider>
                 </CardSurfaceContext.Provider>
               </div>
             </div>

@@ -116,7 +116,7 @@ Esta etapa só aparece quando pelo menos um campo personalizado de incidente tem
 
 ### Etapa 3 — Plantão e funções
 
-- **Política de plantão** — uma seleção múltipla das políticas de plantão a executar quando este incidente for criado. Corresponde a `onCallDutyPolicies` no incidente.
+- **Política de plantão** — uma seleção múltipla das políticas de plantão a acionar assim que o incidente for declarado. Corresponde a `onCallDutyPolicies` no incidente.
 - **Atribuir funções do incidente** — quem assume cada função que seu projeto define, um cartão por função. Uma função marcada como **Principal** que você deixa vazia é sua: você a assume quando o incidente é declarado, e o resumo diz isso. Uma função que aceita uma só pessoa diz isso assim que tem uma; uma função que aceita várias mantém seu seletor.
 
 Este é o único lugar em que uma política de plantão é anexada diretamente a um incidente. As severidades não carregam política de plantão — a severidade é um rótulo, e só influencia o acionamento como *critério de correspondência* dentro de uma regra de plantão. As regras configuradas em **Incidentes → Regras → Regras de Plantão** adicionam suas políticas ao que você escolher aqui; o conjunto final que é executado é a união das duas, sem duplicatas. Um incidente declarado em um estado posterior não executa nenhuma — veja [Declarado já confirmado ou resolvido](#declarado-já-confirmado-ou-resolvido).

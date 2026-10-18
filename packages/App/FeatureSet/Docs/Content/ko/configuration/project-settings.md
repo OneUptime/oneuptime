@@ -36,7 +36,7 @@ flowchart LR
 | **알림** | **알림 설정**, **알림 로그**, **모바일 앱** | [알림](#알림) |
 | **AI** | **AI Features**, **LLM 공급자**, **AI 크레딧**, **AI 로그**, **MCP 서버** | [LLM 공급자](/docs/ai/llm-provider), [MCP 서버](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#비용-관리) |
 | **고급** | **도메인**, **API 키**, **기능 플래그** | [사용자 지정 도메인](/docs/status-pages/branding-and-domains#사용자-정의-도메인), [API 키](/docs/permissions/index#api-키), [기능 플래그](#기능-플래그) |
-| **보안** | **SSO**, **OIDC**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
+| **보안** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **결제 및 청구서** | **결제**, **사용 기록**, **청구서** | [결제 및 사용량](/docs/configuration/billing) |
 | **감사 로그** | **감사 로그**, **설정** | [감사 로그](/docs/configuration/audit-logs) |
 | **위험 영역** | **위험 영역** | [프로젝트 삭제](#프로젝트-삭제) |

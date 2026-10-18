@@ -297,7 +297,7 @@ const SloBurnRateRules: FunctionComponent<
           description:
             "Raise alerts and declare incidents when the error budget is being spent too fast. Rules fire only when both the long and short windows exceed the threshold.",
         }}
-        noItemsMessage="No burn rate rules on this SLO — nothing will page anyone when the error budget starts burning. Create a fast-burn rule to get paged before the budget runs out."
+        noItemsMessage="No burn rate rules yet, so nothing pages anyone when the error budget burns. Add a fast-burn rule."
         helpContent={{
           title: "How Burn Rate Rules Work",
           description:

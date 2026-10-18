@@ -62,7 +62,7 @@ export const SloEvaluationSwitchCopy: {
   ),
   turnOffConfirmTitle: translationKey("Turn off evaluation?"),
   turnOffConfirmDescription: translationKey(
-    "OneUptime stops measuring this SLO and resolves the burn rate alerts and incidents it has open. Turning evaluation back on does not reopen them. Its history and settings are kept.",
+    "OneUptime stops measuring this SLO and resolves its open burn rate alerts and incidents. History and settings are kept.",
   ),
   turnOffConfirmButton: translationKey("Turn off evaluation"),
   turnOnButton: translationKey("Turn evaluation on"),

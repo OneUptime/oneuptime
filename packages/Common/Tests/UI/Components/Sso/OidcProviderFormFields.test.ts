@@ -41,14 +41,15 @@ import {
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 /*
- * The one builder behind the three OIDC provider forms (Settings > OIDC, a
+ * The one builder behind the three OIDC provider forms (Settings > SSO, a
  * status page's OIDC, Admin > Global OIDC), create and edit alike:
  *
  *   Provider   Name, Issuer URL, Client ID, Client Secret;
  *   Sign-in    Teams (a project's provider), Enabled, then one folded
  *              Advanced section - the discovery URL, the scopes, the two
- *              claim names, the description and (Global) the sign-up and
- *              access switches.
+ *              claim names, the description and (Global) the two
+ *              questions: who can sign in, and where the sign-in counts
+ *              as SSO.
  *
  * What it fills in, and how those values follow what is typed, is what the
  * services fill in for an API caller (Types/SSO/OidcProviderDefaults).
@@ -90,6 +91,23 @@ function fieldFor<TEntity>(
 
 function valuesOf(values: Record<string, unknown>): Values {
   return values as unknown as Values;
+}
+
+/*
+ * A column a Global question writes, registered unseen right after the
+ * question (no override key, and never on screen, whatever it holds).
+ */
+function isUnseenColumn<TEntity>(field: Field<TEntity>): boolean {
+  if (field.overrideFieldKey || !field.showIf) {
+    return false;
+  }
+
+  return [
+    {},
+    { disableSignUpWithSso: true, restrictToAttachedProjects: true },
+  ].every((values: Record<string, unknown>): boolean => {
+    return field.showIf!(values as unknown as FormValues<TEntity>) === false;
+  });
 }
 
 const PROJECT_FIELDS: Array<Field<ProjectOIDC>> =
@@ -156,7 +174,11 @@ describe("the fields each form gets", () => {
     ]);
   });
 
-  test("the instance-wide provider: no teams, and its two switches folded at the end", () => {
+  test("the instance-wide provider: no teams, and its two questions folded at the end", () => {
+    /*
+     * Each question is a choice kept by its column, then the column itself,
+     * registered unseen so the form loads and saves it.
+     */
     expect(keysOn(GLOBAL_FIELDS, "sign-in")).toEqual([
       "isEnabled",
       "discoveryURL",
@@ -165,6 +187,8 @@ describe("the fields each form gets", () => {
       "nameClaimName",
       "description",
       "disableSignUpWithSso",
+      "disableSignUpWithSso",
+      "restrictToAttachedProjects",
       "restrictToAttachedProjects",
     ]);
   });
@@ -192,7 +216,12 @@ describe("the fields each form gets", () => {
         },
       );
       const open: Array<Field<unknown>> = fields.slice(0, enabledAt + 1);
-      const folded: Array<Field<unknown>> = fields.slice(enabledAt + 1);
+      // The columns the Global questions write are never on screen.
+      const folded: Array<Field<unknown>> = fields
+        .slice(enabledAt + 1)
+        .filter((field: Field<unknown>): boolean => {
+          return !isUnseenColumn(field);
+        });
 
       expect(folded.length).toBeGreaterThanOrEqual(5);
 
@@ -327,12 +356,25 @@ describe("the fields each form gets", () => {
     }
   });
 
-  test("the Global switches keep their columns' default (off)", () => {
+  test("the Global questions start on their first answer, the columns' default (off), and write nothing of their own", () => {
     for (const key of ["disableSignUpWithSso", "restrictToAttachedProjects"]) {
-      const field: Field<GlobalOIDC> = fieldFor(GLOBAL_FIELDS, key);
+      const [question, column] = GLOBAL_FIELDS.filter(
+        (field: Field<GlobalOIDC>): boolean => {
+          return keyOf(field) === key;
+        },
+      ) as [Field<GlobalOIDC>, Field<GlobalOIDC>];
 
-      expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
-      expect(field.defaultValue).toBeUndefined();
+      expect(question.fieldType).toBe(FormFieldSchemaType.RadioButton);
+      expect(question.formOnly).toBe(true);
+      expect(question.defaultValue).toBeUndefined();
+      expect(question.getDefaultValue!({} as FormValues<GlobalOIDC>)).toBe(
+        question.radioButtonOptions![0]!.value,
+      );
+
+      // The column is loaded and saved, at its own default, never shown.
+      expect(column.fieldType).toBe(FormFieldSchemaType.Toggle);
+      expect(column.defaultValue).toBeUndefined();
+      expect(isUnseenColumn(column)).toBe(true);
     }
   });
 });

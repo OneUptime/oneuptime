@@ -1,11 +1,12 @@
 {
   "baseline": {
-    "keys": 30172,
-    "untranslated": 17189
+    "keys": 30861,
+    "untranslated": 16773
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "Agenda",
     "Agent",
     "Alarm",
     "App",
@@ -16,6 +17,7 @@
     "Filter:",
     "Filter: {{expression}}",
     "Gateway",
+    "ICMP (ping)",
     "Null",
     "Pause",
     "Peer",

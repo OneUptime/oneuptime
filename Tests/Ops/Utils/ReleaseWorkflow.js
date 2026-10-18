@@ -149,6 +149,42 @@ function mergedTags(command) {
 }
 
 /**
+ * The images whose release and enterprise-release tags release.yml's
+ * push-release-tags moves: its RELEASE_TAG_IMAGES, which one step loops over.
+ * (It was a matrix of one job per image, each queued for a runner of its own.)
+ * @param {Object} job - push-release-tags
+ * @returns {Array<string>}
+ */
+function releaseTagImages(job) {
+  return String(((job || {}).env || {}).RELEASE_TAG_IMAGES || "")
+    .split(/\s+/)
+    .filter((image) => {
+      return image.length > 0;
+    });
+}
+
+/**
+ * Whether a job retags `image` with `docker buildx imagetools create`: a
+ * command that names the image, or the loop over RELEASE_TAG_IMAGES when the
+ * job's list holds it.
+ * @param {Object} job
+ * @param {string} image
+ * @returns {boolean}
+ */
+function retagsImage(job, image) {
+  const commands = commandsMentioning(job, "imagetools create").join("\n");
+  // oneuptime/<image>:<tag>, on Docker Hub or GHCR.
+  const namesImage = commands.includes(`oneuptime/${image}:`);
+  const loops = ((job && job.steps) || []).some((step) => {
+    return /\bfor image in \$RELEASE_TAG_IMAGES\b/.test(stepCommand(step));
+  });
+  return (
+    namesImage ||
+    (commands.length > 0 && loops && releaseTagImages(job).includes(image))
+  );
+}
+
+/**
  * The platforms of a job's per-architecture matrix, in order.
  * @param {Object} job
  * @returns {Array<string>}
@@ -278,6 +314,8 @@ module.exports = {
   callsFor,
   mergedTags,
   matrixPlatforms,
+  releaseTagImages,
+  retagsImage,
   dockerfileSteps,
   warmUpProblems,
   readBashArray,

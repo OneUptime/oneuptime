@@ -200,7 +200,7 @@ Uma alteração que move um registro assim segue a mesma regra: cada registro qu
 
 #### Proprietários
 
-Os proprietários de um recurso - os registros de proprietários usuários e equipes de um monitor, de uma política de plantão, de um painel e de qualquer outro recurso com proprietários - são lidos por meio do recurso que possuem da mesma forma: listá-los, lê-los, adicioná-los e removê-los exige uma permissão para ler esse recurso, sob os seus rótulos e proprietários, e um registro de proprietário de um recurso que você não pode ler é respondido como se não existisse.
+Os proprietários de um recurso - os registros de proprietários usuários e equipes de um monitor, de uma política de plantão, de um painel e de qualquer outro recurso com proprietários - são lidos por meio do recurso que possuem da mesma forma: listá-los, lê-los, adicioná-los e removê-los exige uma permissão para ler esse recurso, sob os seus rótulos e proprietários, e um registro de proprietário de um recurso que você não pode ler é respondido como se não existisse. Adicioná-los e removê-los também segue o escopo da permissão que o permite: uma com o escopo `Owned` só alcança os proprietários dos recursos dos quais você ou uma das suas equipes são proprietários, e adicionar um proprietário a qualquer outro recurso é recusado com um `422` que diz isso.
 
 #### Registros que uma gravação lista ou cita
 

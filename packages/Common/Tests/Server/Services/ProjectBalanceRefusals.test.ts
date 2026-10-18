@@ -28,6 +28,7 @@ import {
   getProjectBalanceTooLowMessage,
   INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE,
 } from "../../../Utils/Project/ProjectBalance";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
@@ -211,6 +212,8 @@ beforeEach(() => {
   getJestSpyOn(UserIncomingCallNumberService, "findOneBy").mockResolvedValue(
     null,
   );
+  // A code is sent again for a member of the number's project only.
+  getJestSpyOn(ProjectMembership, "isMember").mockResolvedValue(true);
 });
 
 afterEach(() => {

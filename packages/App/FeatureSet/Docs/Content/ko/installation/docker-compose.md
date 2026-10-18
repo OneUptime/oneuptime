@@ -178,6 +178,8 @@ HTTPS를 추가하는 두 가지 방법 중 하나를 고르기 전까지 OneUpt
 
 상태 페이지나 대시보드를 사용자 지정 도메인에 둔다면 OneUptime에 TLS를 맡기는 편이 더 간단합니다. ingress가 그 도메인들의 인증서를 직접 주문하고 제공합니다.
 
+`HTTP_PROTOCOL=https`를 설정하면 OneUptime은 HTTPS 링크를 만들고, 로그인 쿠키를 HTTPS에만 두며, 브라우저에 `HOST`에는 HTTPS로만 접속하라고 알립니다. 브라우저는 그 이름의 모든 포트에서 일 년 동안 이를 지킵니다. 따라서 언젠가 `HOST`가 다시 일반 HTTP로 응답해야 한다면, 얼마 전에 미리 `HSTS_MAX_AGE_SECONDS=0`을 `config.env`에 설정하세요. 브라우저는 다음 방문 때 이 규칙을 잊습니다.
+
 ### OneUptime이 인증서를 받게 하기
 
 :::steps
@@ -301,6 +303,8 @@ server {
 ```
 인증서 경로는 Certbot이 Let's Encrypt 인증서를 두는 위치입니다. 인증서를 다른 곳에서 받았다면 그 경로를 사용하세요. `sudo nginx -t && sudo systemctl reload nginx`로 파일을 확인하고 Nginx를 다시 불러옵니다.
 :::
+
+둘 다 `X-Forwarded-Proto`를 보내며, 이 헤더는 방문자가 HTTPS로 들어왔다는 것을 OneUptime에 알립니다. 다른 프록시도 이 헤더를 보내야 합니다. 그렇지 않으면 사용자 지정 도메인에 있는 상태 페이지와 대시보드의 로그인 쿠키가 HTTPS에만 머물지 않습니다.
 
 #### 프록시를 통해 인스턴스 열기
 

@@ -100,6 +100,16 @@ published apps and the workspace, tenant and accounts that own them, and say how
 the live apps once it is released, how the Slack Marketplace and Microsoft Partner Center submissions work, and
 what customers must do after a permission change.
 
+### GitHub App releases
+
+OneUptime Cloud's GitHub Apps (OneUptime for oneuptime.com, OneUptime Test for test.oneuptime.com) are configured on
+GitHub, not in this repository: merging code changes none of their settings. Before changing what the code needs
+from an app - a token permission, a webhook event, the install or sign-in callback, the webhook route - read
+[the GitHub App guide](packages/Common/Server/Utils/CodeRepository/GitHub/RELEASING.md). It names the apps and the
+organization that owns them, lists every setting the code depends on and what breaks without it, and says in which
+order to change the app and the code, how to test end to end on test.oneuptime.com, and where publisher verification
+and the GitHub Marketplace stand.
+
 ### Cloud marketplace listings
 
 OneUptime Cloud is sold on AWS Marketplace, Microsoft Marketplace (Azure) and Google Cloud Marketplace through
@@ -108,6 +118,24 @@ Microsoft. Before changing that code, its settings, the marketplace usage prices
 [the cloud marketplace guide](packages/Common/Server/Utils/Marketplace/RELEASING.md). It explains how a purchase is billed,
 the URLs and settings each marketplace is configured with, and which steps (seller registration, tax and banking,
 publishing) only a maintainer may do.
+
+Self-hosted OneUptime Enterprise is sold on the same three marketplaces as a Kubernetes application, billed per
+user-hour: the usage job in `ee/Server/Marketplace`, the marketplace license in `ee/Server/License`, the reporters in
+`packages/Common/Server/Utils/Marketplace/SelfHosted`, the chart editions and their release automation in
+`HelmChart/Marketplace`, and `.github/workflows/marketplace-release.yml`. Before changing
+any of these, the `enterpriseMarketplace` chart values, or anything in those listings, read
+[the self-hosted marketplace guide](packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md). It explains
+how an installation is billed and licensed, how each edition is built, pushed, tested and submitted, and which steps
+only a maintainer may do.
+
+### Infrastructure agent package managers
+
+Each release publishes the infrastructure agent (`agents/InfrastructureAgent`) to apt and yum (packages.oneuptime.com,
+the GitHub Pages site of `OneUptime/packages`), Homebrew (`OneUptime/homebrew-tap`) and winget (`microsoft/winget-pkgs`).
+Before changing the agent's `.goreleaser.yaml`, `Scripts/PackageManagers`, or the `publish-infrastructure-agent-*` jobs in
+`.github/workflows/release.yml`, read [the package manager guide](Scripts/PackageManagers/README.md). It says how a
+release gets to each package manager, which repositories, keys and secrets each needs, and how to test a change
+(`Tests/Ops/package-repository-e2e.sh` installs from a repository the scripts build, as the docs say).
 
 ### Commit frequently
 

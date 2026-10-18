@@ -377,7 +377,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
           icon={IconProp.ChatBubbleLeftRight}
           dataTestId="llm-conversations-empty"
           title="No AI conversations here yet"
-          description="Conversations appear as your app's AI calls arrive: what people asked, what the AI answered, the tools it used and what went wrong. Send them with any OpenTelemetry GenAI instrumentation, such as OpenLLMetry, OpenInference, the Vercel AI SDK, or the OpenTelemetry instrumentations for OpenAI, Anthropic and Gemini."
+          description="Conversations appear as your app's AI calls arrive. Send them with any OpenTelemetry GenAI instrumentation, such as OpenLLMetry or OpenInference."
           actions={[
             {
               title: "Set up AI observability",

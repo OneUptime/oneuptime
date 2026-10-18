@@ -353,7 +353,7 @@ describe("Monitor create labels", () => {
     // The page keeps the shared description: no copy of its own.
     expect(LABELS_FIELD_CALL).not.toContain("description");
     expect(labelsFieldSource).toContain(
-      "A team whose permissions are restricted to labels only sees resources that carry one of its labels.",
+      "Labels group resources so you can filter by them, and can limit what a team sees.",
     );
     // The old help said what the folded section now says by itself.
     expect(source).not.toContain("This is optional and an advanced feature.");

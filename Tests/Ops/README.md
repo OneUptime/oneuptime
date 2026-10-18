@@ -803,21 +803,25 @@ The SaaS and self-hosted e2e jobs of both workflows run as shards
 packages/E2E's `npm run test-sharding` verifies (its `WORKFLOW_SHARD_TOTALS`),
 `fail-fast: false`, `E2E_SHARD` handed to the step that runs the suite, and an
 artifact name per shard. Each of test-release.yaml's e2e jobs must wait for
-exactly the images its stack runs, read from the compose files its start step
-boots (each file's services merged over the last, those behind a profile left
-out) plus the e2e overlay: a job that started before one of its images was
-pushed would not fail, it would test the previous push's image.
+the builds of exactly the images its stack runs, and for no merge, read from
+the compose files its start step boots (each file's services merged over the
+last, those behind a profile left out) plus the e2e overlay: a job that
+started before one of its images was pushed would not fail, it would test the
+previous push's image.
 
 Nothing writes the GitHub release once release.yml has published it: every
 job with a step that creates, fills or edits the release
 (`softprops/action-gh-release`, `ncipollo/release-action`, `gh release
-create|upload|edit`) must be one `finalize-github-release` waits for. The app
-jobs were not, and 14.0.46 shipped without its Android APK: the APK finished
-after the publish, and GitHub refused the upload. The app jobs are waited for
-but not required, so the suite reads the publish job's `if` the way Actions
-does (an `if` with no status function is `success() && if`). The release
-publishes after an app build fails, and not when a job it requires did not
-succeed, when the run was cancelled, or off `release`.
+create|upload|edit`) must be one `finalize-github-release` waits for, and the
+publish job's own attach steps (the SBOMs, the infrastructure agent and the
+apps, built ahead of the release) must all come before the step that
+publishes. The app jobs once did not, and 14.0.46 shipped without its Android
+APK: the APK finished after the publish, and GitHub refused the upload. The
+app builds are waited for but not required, so the suite reads the publish
+job's `if` the way Actions does (an `if` with no status function is
+`success() && if`). The release publishes after an app build fails, and not
+when a job it requires did not succeed, when the run was cancelled, or off
+`release`.
 
 release.yml calls terraform-provider-e2e.yml as the release's gate, and a
 called workflow reads the caller's `github.workflow` and `github.ref`, so its
@@ -829,6 +833,55 @@ workflow declares (GitHub refuses to start a run that passes any other), and
 works the group out, with `Utils/WorkflowExpression.js`, for two release runs
 (different groups), two pushes to master and two pushes to one pull request
 (one group each, so the newest still supersedes).
+
+terraform-provider-e2e.yml also runs every night: HashiCorp asks the providers
+it lists as Partner for tests that run nightly as a GitHub Action. The suite
+checks that it is scheduled once a day, every day, and that a nightly run's
+group, read from `github.event.schedule` (which GitHub sets on scheduled runs
+only), is not the one master's pushes share, so a merge that lands during the
+nightly run neither cancels it nor is cancelled by it.
+
+The same workflow runs the provider's acceptance tests, written with
+terraform-plugin-testing, which HashiCorp also asks partner providers to pass.
+Go skips them unless `TF_ACC` is set, so the suite pins the step that runs
+them: `TF_ACC=1`, `TF_ACC_TERRAFORM_PATH` at the Terraform the job installed
+(so nothing is downloaded), `test-env.sh` sourced for the OneUptime and the
+project key, and a place after the test account step and both end-to-end
+runs.
+
+### `ReleaseCriticalPath.test.js`
+
+What a release run waits for, and what it no longer does. The organization
+runs 20 jobs at a time and a release run's jobs queue behind every other
+workflow's, so most of a release's hours were queue: 4h42m for 14.0.65, under
+two of them work. release.yml now starts each job when it has what it needs
+and has fewer jobs between the e2e suite and the publish, under the release
+owner's rule: build earlier, never publish earlier.
+
+The suite pins, for every job that publishes (the tags, the draft, the charts,
+the publish, the Terraform provider, the npm packages, the store jobs, and
+the four agent images that move their own `release` tags), everything it
+waited for before, directly or through other jobs, as a floor it may never go
+under; and that the tags, the draft, the charts and the publish wait for all
+three e2e jobs. Then what moved earlier: the builds of images with version
+tags only, and the e2e jobs, no longer wait for `generate-build-number` (a job
+may wait for it only if it reads the number or publishes); the e2e jobs no
+longer wait for `publish-npm-packages`, which `push-release-tags` needs
+instead, and nothing they run installs a package it publishes (the e2e
+package's manifest and lockfile, and the Dockerfiles of every image the e2e
+stacks boot, name none); `push-release-tags` is one job, not a matrix of ten,
+and its step is run with a fake `docker` on PATH, in the `bash -e` Actions
+gives a step that names no shell: both tags of every image, from this
+version's tags, one image's failure not stopping the others but failing the
+job by name, and a refused call retried; and the SBOMs, the infrastructure
+agent and the two apps are built while the images are tested, only for
+`release` (as the draft, which they used to need), kept as artifacts (one
+each, replaced on a re-run, an empty one failing; the infrastructure agent's
+job keeps its Homebrew cask and winget manifests in a second one, which the
+publish job does not download) and attached by
+`finalize-github-release` before it publishes: the apps only when their build
+succeeded, under the asset names the release has always had, and the SBOM job
+waiting for the merge of exactly the images `generate_sboms.sh` scans.
 
 ### `CompileWorkflow.test.js`
 
@@ -842,6 +895,26 @@ installs both App and a FeatureSet (resolution from a FeatureSet walks up into
 App; MobileApp compiles after Common in its job (its tsconfig maps `Common/*`
 to `../Common/build/dist/*`); and every step after a job's first install runs
 unless the run was cancelled, so one run reports each package that fails.
+
+### `TestReleaseE2eImages.test.js`
+
+test-release.yaml's e2e jobs run each image's `-amd64` tag, which the amd64
+leg of the image's build job pushes, so they need the builds of their stack's
+images and no merge: a merge is a few seconds of work behind a runner queue of
+its own, and the merges used to stand between the last build and the e2e jobs
+(34 to 49 minutes on run 38996994440, 14.0.66's e2e evidence). The suite runs
+`Scripts/GHA/build_docker_images.sh` with each build job's own flags for the
+amd64 leg, with a fake `docker` on PATH that records every call, and holds the
+tag each e2e job boots - the same in every step that names it, the pin step's
+included, which it runs - to the tags that leg pushes, for every image of the
+job's stack and in the job's edition. No step of an e2e job, and no job env,
+may name a tag a merge pushes (`<version>-test`, `enterprise-<version>-test`,
+`test`, `enterprise-test`), in a run line, an env entry or an action's input:
+the job does not wait for the merges, so until they run those tags still name
+the previous push's images. It also pins that the merges still run
+for every image built, that `test-helm-chart` (which installs the multi-arch
+`test` tags) still waits for them, and that nothing in the workflow lets a
+failed job end the run green (no `continue-on-error`, no `always()`).
 
 ### `TerraformProviderGeneratorTypeCheck.test.js`
 
@@ -949,6 +1022,160 @@ image: that is about 10 GB, more than a standard runner has to spare, and the
 scanner emails security@oneuptime.com when its build fails. `.oss-scanner/README.md` says how to build it locally
 with the scanner's own tools.
 
+### `MarketplaceRelease.test.js`
+
+`.github/workflows/marketplace-release.yml` ships OneUptime releases to the
+AWS Marketplace, Microsoft Marketplace and Google Cloud Marketplace listings of
+self-hosted OneUptime Enterprise. What makes it safe is invisible at runtime,
+so the suite pins it:
+
+- it runs once a week, only when `MARKETPLACE_RELEASES` is `enabled`, or by
+  hand, where `dry_run` defaults to true;
+- it finds the release it ships: the version asked for, or else the newest
+  `#.#.#` tag, and that tag's commit (even of an annotated tag). The suite runs
+  that step against a repository of its own, and checks it writes nothing but
+  those two outputs, whatever is typed in;
+- each push job asks its marketplace whether it has the release before it
+  pushes anything, and every later step, and the publishing job after it, runs
+  only when the marketplace does not have it;
+- it holds no secret; `permissions: {}` at the top, `contents: read` for every
+  job, and `id-token: write` only for the jobs that sign in to a cloud;
+- every job that publishes (adds an AWS version, changes or publishes the
+  Microsoft offer) runs in the `marketplace-publish` environment, so it waits
+  for a maintainer; the jobs that only push run in `marketplace-push`; no other
+  job runs in an environment. The one-time setup
+  (`HelmChart/Marketplace/automation/ci_setup.py`) trusts those two
+  environments and nothing else;
+- no `${{ }}` in a script: values reach scripts through `env`;
+- every edition is built from the chart as it was released, through
+  `.github/actions/marketplace-edition` (which pins crane by its sha256), after
+  the marketplace chart suite passed; runs are never cancelled halfway;
+- every script it runs exists.
+
+### `McpRegistryRelease.test.js`
+
+Each release lists OneUptime Cloud's MCP server in the official MCP Registry
+as `com.oneuptime/mcp`: release.yml's `publish-mcp-registry` job runs
+`Scripts/MCP/PublishToMcpRegistry.sh` on
+`packages/App/FeatureSet/MCP/server.json`. The suite runs the script with a
+fake `curl` (the registry's answers) and a fake `mcp-publisher` on PATH:
+
+- it publishes a copy of server.json at the release's version, validated,
+  after signing in as `oneuptime.com`, the domain whose namespace the entry is
+  named in, and leaves the repository's placeholder version alone;
+- it skips a version the registry already has, signing in to nothing, as
+  `Scripts/NPM/PublishAllPackages.sh` does on npm;
+- only a clean 404 is "not published": any other answer, or none, is asked
+  again, and when it persists the job fails having published nothing;
+- with no key, or no version, it fails before signing in, and it stops at the
+  first step the registry refuses.
+
+And it reads the job: it runs after `finalize-github-release`, so only once
+the release is published and the three e2e jobs have passed; it reads the key
+from the `mcp-registry-publish` environment, which no other job names or
+mentions the key in; its permissions are `contents: read`, with no `${{ }}`
+in its scripts; and it installs the `mcp-publisher` it pins, checking the
+archive's sha256 before unpacking it.
+
+### `InfrastructureAgentPackageManagers.test.js`
+
+Each release puts the infrastructure agent in apt and yum
+(packages.oneuptime.com), Homebrew (`OneUptime/homebrew-tap`) and winget
+(`microsoft/winget-pkgs`): GoReleaser writes the packages, the cask and the
+winget manifests in `infrastructure-agent-build`, and release.yml's three
+`publish-infrastructure-agent-*` jobs publish them with
+`Scripts/PackageManagers/` (see its README). The suite reads:
+
+- the GoReleaser config: packages versioned as the release, not as
+  GoReleaser's snapshot (`14.0.71~SNAPSHOT-<commit>` is what apt used to see),
+  under the file names the repository build reads; the cask and the
+  manifests downloading this release's assets, and published by GoReleaser
+  nowhere;
+- the jobs: each runs after `finalize-github-release` (so after the three e2e
+  jobs) and only for `release`, in the `package-managers` environment that no
+  other job names, with `contents: read`, a timeout and no `${{ }}` in its
+  scripts; its first step checks its secrets, every later step runs only when
+  they are set, and that step is run here to show a missing secret skips the
+  job with a notice rather than failing the release; it hands its script
+  exactly the version, files and secrets the script reads, from where the
+  artifacts put them; no other job reads its deploy key or token; the
+  manifests are an artifact of their own that the release does not attach;
+- the scripts: they parse, pass shellcheck where it is installed (CI has
+  it), trust only github.com's own host key, and the site is pushed as one
+  commit with `--force-with-lease`.
+
+And it runs two of them. `PublishHomebrewCask.sh`, against a local git
+repository: the first cask to an empty tap, nothing for a version the tap
+has or an older one, a newer version replacing it, and a cask for another
+version or a missing key refused before the tap is touched.
+`PublishWingetManifests.sh`, against a fake `gh`: the branch made at
+winget-pkgs' newest commit in the fork, the three manifests committed as
+written, the pull request from the fork (a new package's first, a new
+version's after); nothing opened for a version winget-pkgs has or one with a
+pull request open; a branch a stopped run left moved, not made again;
+`WINGET_FORK_OWNER` honoured; no fork, or a fork of something else, and an
+API that keeps failing, each stopping it having written nothing.
+
+### `InfrastructureAgentMsi.test.js`
+
+The infrastructure agent's MSI
+(`agents/InfrastructureAgent/windows/oneuptime-infrastructure-agent.wxs`, built
+by `build-msi.sh` with wixl) is what Intune, Configuration Manager and Group
+Policy deploy, and they upgrade by installing the newer MSI over the older
+one. It had a fixed ProductCode, so Windows refused every newer version with
+error 1638. The suite holds the installer to what upgrading relies on: the
+UpgradeCode, component Guid and directory installed agents have; a new
+ProductCode each build; a per-machine install; a major upgrade that also
+replaces a build of the same version and refuses a downgrade; the agent's
+service (the one `main.go` registers) stopped by every install and uninstall,
+started after an install or upgrade and deleted by an uninstall that is not an
+upgrade's, from deferred actions that run as the local system and whose
+failures are ignored; every custom action placed by sequence number, since
+wixl does not place one After or Before a standard action; `build-msi.sh`
+building both MSIs from that one file (amd64 as an x64 package, arm64 as x86:
+wixl builds no ARM64 package); and the "Infrastructure Agent MSI Test"
+workflow running on every change to the agent, on Windows x64 and Windows on
+Arm, where `windows/test-msi-upgrade.ps1` installs, upgrades over the running
+agent, downgrades and uninstalls two versions for real.
+
+### `package-repository-e2e.sh`
+
+Not part of `npm test`; needs docker and the distributions' package mirrors.
+The "Ops Config Test" workflow runs it on every PR. It publishes two releases
+of a stand-in agent package, built by nfpm as GoReleaser builds the real one,
+with the real `PublishPackageRepository.sh` and `BuildPackageRepository.sh`
+on Ubuntu 24.04 (the release runner's), into a local stand-in for
+`OneUptime/packages`, and serves what was pushed over HTTP. Then it runs the
+apt and dnf commands of the Server / VM Monitor docs page as written, with
+only `https://packages.oneuptime.com` swapped, under a root umask of 077:
+
+- apt on Ubuntu verifies `InRelease` against `gpg.key`, fetches the indexes
+  by hash, installs the newest version, downgrades and upgrades, and refuses
+  the repository when `gpg.key` is another key;
+- dnf on Rocky Linux 8 (RHEL 8's rpm) checks the metadata's and each
+  package's signature, installs, downgrades and upgrades;
+- the publish reads the key with its newlines written as `\n`, as the secret
+  holds it; creates the site in an empty repository; pushes nothing for a
+  version the site has; and replaces the site's one commit with another, with
+  no parent, for the next release.
+
+Run it with `bash Tests/Ops/package-repository-e2e.sh`; `--apt-image`,
+`--dnf-image`, `--builder-image` and `--server-image` swap the images (for
+example for `mirror.gcr.io/library/...` when public.ecr.aws refuses).
+
+### `ChatGPTPluginPackage.test.js`
+
+`npm run build-chatgpt-plugin` (`Scripts/MCP/BuildChatGPTPlugin.sh`) builds
+the ZIP OneUptime uploads to the ChatGPT plugin directory from
+`packages/App/FeatureSet/MCP/ChatGPTPlugin`. The suite runs the script and
+reads the ZIP back: every file of the package but its README, at the root of
+the archive, byte for byte; a rebuild replaces an earlier ZIP instead of adding
+to it; and a relative output path lands where the command was typed, through
+npm (`INIT_CWD`) as well as bash. It needs `zip` and `unzip`: without them the
+ZIP checks are skipped with the reason logged, except in CI, where they fail.
+What the package says is held by
+`packages/App/FeatureSet/MCP/Tests/ChatGPTPlugin.test.ts`.
+
 ### `agent-ebpf-e2e/`
 
 Not part of `npm test`: it installs the Kubernetes agent chart on a throwaway
@@ -981,8 +1208,10 @@ context or from a stage that holds it.
 `Utils/ReleaseWorkflow.js` reads the image-release workflows: a job's needs
 (directly and transitively), the command lines of its steps (backslash
 continuations joined), the flags of its `build_docker_images.sh` and
-`merge_docker_manifests.sh` calls, which Dockerfiles it builds and warms, and a
-bash array out of a script. `KubernetesAiAgentRelease.test.js` keeps its own
+`merge_docker_manifests.sh` calls, which Dockerfiles it builds and warms, the
+images whose release tags `push-release-tags` moves (`releaseTagImages`) and
+whether a job retags an image (`retagsImage`), and a bash array out of a
+script. `KubernetesAiAgentRelease.test.js` keeps its own
 copies of these helpers as written; new image release tests use this module.
 
 `Utils/WorkflowExpression.js` evaluates a workflow's `${{ }}` expressions for

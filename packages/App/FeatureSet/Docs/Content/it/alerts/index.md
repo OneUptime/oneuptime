@@ -56,7 +56,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. L'elenco degli av
 | Sezione            | Che cosa ci fate                                                                                                          |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | **Avvisi**         | **Tutti gli avvisi** e **Avvisi attivi**, il cui badge rosso conta gli avvisi non ancora risolti.                          |
-| **Episodi**        | **Tutti gli episodi**, **Episodi attivi** e **Documentazione**, una pagina della dashboard sul raggruppamento.             |
+| **Episodi** | **Tutti gli episodi** e **Episodi attivi**: avvisi correlati, raggruppati in un unico problema su cui lavorare. |
 | **IA**             | **Informazioni**, **Registri** e **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri avvisi, tutto ciò che ha fatto e che cosa può fare. |
 | **Area di lavoro** | **Slack** e **Microsoft Teams**, a seconda di ciò che il progetto ha collegato, o **Collega Slack o Teams** quando non ne ha nessuno. |
 | **Regole**         | **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Reminder Rules**. |
@@ -129,19 +129,20 @@ Mentre ci lavorate, annotate ciò che scoprite come **Note private**, compilate 
 
 | Sezione del menu laterale | Pagine                                                                                                      |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Base**                  | **Panoramica**, **Descrizione**, **Causa principale**, **Rimedio**, **Runbook**, **Cronologia stato**, **Proprietari**, **Incidenti collegati** |
-| **Reperibilità**          | **Esecuzioni di reperibilità**: quali policy di reperibilità sono state eseguite per l'avviso, e com'è andata ciascuna |
-| **Registri**              | **Registri di notifica** e **Registri IA**: ogni messaggio inviato sull'avviso, e tutto ciò che l'IA ha fatto per esso |
-| **Note dell'avviso**      | **Note private**                                                                                            |
+| **Panoramica** | **Panoramica** e **Cronologia stato** |
+| **Indagine** | **Descrizione**, **Causa principale**, **Rimedio**, **Runbook**, **Incidenti collegati** |
+| **Team** | **Esecuzioni di reperibilità** e **Proprietari**: chi è stato chiamato per l'avviso, e chi ne è proprietario |
+| **Notifiche**              | **Registri di notifica** e **Registri IA**: ogni messaggio inviato sull'avviso, e tutto ciò che l'IA ha fatto per esso |
+| **Note**      | **Note private**                                                                                            |
 | **Sviluppatori**          | **Terraform**, **API** e **Assistenti IA**: l'avviso gestito dal codice                                     |
-| **Avanzato**              | **Campi personalizzati**, **Registri di audit**, **Impostazioni**, **Elimina avviso**                       |
+| **Avanzato** | **Campi personalizzati**, **Impostazioni**, **Registri di audit**, **Elimina avviso** |
 
-**Base** e **Note dell'avviso** sono aperte; le altre sezioni restano compresse finché non ci fate clic.
+**Panoramica**, **Indagine**, **Team** e **Note** sono aperte; le altre sezioni restano compresse finché non ci fate clic.
 
 - **Panoramica** — tre riquadri con il tempo impiegato per riconoscere e risolvere l'avviso, e la sua **Durata**. La scheda **AI Investigation** apre la pagina, con **Ask OneUptime AI** in fondo, e **Avviso Feed** registra tutto ciò che è successo all'avviso. Accanto si trovano la scheda **Dettagli dell'avviso**, le misurazioni dell'avviso e le sue **Risorse interessate**.
 - **Cronologia stato** — ogni stato in cui è stato l'avviso, quando e per quanto tempo. Vedere [La cronologia degli stati](/docs/alerts/states-and-severities#la-cronologia-degli-stati).
 - **Incidenti collegati** — gli incidenti di cui fa parte questo avviso, con **Collega incidente** e **Dichiara incidente**.
-- **Impostazioni** — **Chi può vedere questo avviso**, con l'interruttore **Avviso privato**, e **Reminders**, con **Invia promemoria**. Ogni interruttore salva nel momento in cui lo azionate.
+- **Impostazioni** — **Chi può vedere questo avviso**, con l'interruttore **Avviso privato**, e **Promemoria**, con **Invia promemoria**. Ogni interruttore salva nel momento in cui lo azionate.
 
 ## Avvisi privati
 

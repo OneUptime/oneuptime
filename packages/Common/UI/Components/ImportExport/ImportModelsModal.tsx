@@ -229,7 +229,7 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
         itemName: pluralName,
       })}
       description={translator.translateTemplate(
-        "Upload a {{itemName}} JSON export file, or paste its contents below. New {{itemsName}} will be created in this project. Related resources (like owners, labels, or other linked resources) are not part of export files, and references to resources from another project may need to be re-selected after import.",
+        "Upload a {{itemName}} JSON export, or paste it below, to create new {{itemsName}} here. Owners, labels and linked resources are not included.",
         {
           itemName: translatableTerm(singularName, { inSentence: true }),
           itemsName: translatableTerm(pluralName, { inSentence: true }),

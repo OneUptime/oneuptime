@@ -119,7 +119,7 @@ const OidListFormField: FunctionComponent<OidListFormFieldProps> = (
       <div>
         <FieldLabelElement
           title="Start from a Vendor Profile"
-          description="Optional. Prefills the list below with the CPU, memory, temperature, fan and power-supply OIDs a platform exposes, so you are editing a starting point instead of looking up MIBs. Prune or extend it afterwards — the profile is not linked to this template."
+          description="Fills the list below with a platform's health OIDs to start from. Nothing stays linked to it."
           required={false}
         />
         <Dropdown
@@ -166,7 +166,7 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
         cardProps={{
           title: "OID Collection Templates",
           description:
-            "One named list of SNMP health OIDs — CPU, memory, temperature, fans, power supplies — shared by every device linked to it. Edit the template and collection changes everywhere, with no per-device edit. Interface counters are collected automatically and do not belong here.",
+            "Shared lists of health OIDs, such as CPU, memory and temperature. Editing one changes every linked device.",
         }}
         helpContent={{
           title: "How OID Collection Templates Work",
@@ -298,7 +298,7 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             description: translator.translateTemplate(
-              "The OIDs every linked device polls, up to {{max}}. Values are recorded as device metrics and can be alerted on through monitor criteria. Interface counters — bits in/out, errors, utilization, up/down — are already collected for every port and do not need to be listed here.",
+              "Up to {{max}}. Every linked device polls them and records them as metrics. Port counters need no OIDs.",
               { max: MAX_OIDS_PER_TEMPLATE },
             ),
             getCustomElement: (
@@ -324,7 +324,7 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             description: translator.translateTemplate(
-              "Lists the device keeps, walked whole on every poll - IPsec tunnels, Wi-Fi radios, routing neighbours, fans, power supplies. Up to {{max}} tables.",
+              "Tables walked whole on every poll, such as IPsec tunnels or Wi-Fi radios. Up to {{max}}.",
               { max: MAX_TABLES_PER_TEMPLATE },
             ),
             getCustomElement: (

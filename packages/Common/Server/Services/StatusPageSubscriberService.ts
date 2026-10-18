@@ -10,6 +10,7 @@ import CreateLimit from "../Types/Database/CreateLimit";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -1371,18 +1372,84 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The subscriber a link belongs to, or null when the link is not good. The
-   * subscriber is found by its primary key, never by the token, and the token
-   * is then compared in constant time - a query on the token would let the
-   * database's own comparison time a guess. The comparison runs even when
-   * there is no subscriber to compare with.
+   * The subscriber an unsubscribe link belongs to, read with what the
+   * unsubscribe page and the team's notice need, or null when the link is not
+   * good (see findSubscriberByLink).
    */
   private async findSubscriberByUnsubscribeLink(data: {
     statusPageId: string;
     subscriberId: string;
     token: string;
   }): Promise<Model | null> {
+    return await this.findSubscriberByLink({
+      ...data,
+      select: {
+        isUnsubscribed: true,
+        isAddedByTeam: true,
+        createdByUserId: true,
+        subscriberEmail: true,
+        subscriberPhone: true,
+        slackIncomingWebhookUrl: true,
+        slackWorkspaceName: true,
+        microsoftTeamsIncomingWebhookUrl: true,
+        microsoftTeamsWorkspaceName: true,
+        subscriberWebhook: true,
+      },
+    });
+  }
+
+  /*
+   * The subscription a manage link ({statusPageUrl}/update-subscription/
+   * {id}-{token}) belongs to, as the status page's Update Subscription page
+   * shows it - its contact and its choices - or null when the link is not
+   * good. The manage page's two routes (get-subscription and
+   * update-subscription) read the subscriber only through here, so the
+   * subscriber id alone, which every project member who may read
+   * subscribers sees, never opens it: the token is the subscription's own,
+   * sent only to its contact.
+   */
+  @CaptureSpan()
+  public async findSubscriberForManagePage(data: {
+    statusPageId: string;
+    subscriberId: string;
+    token: string;
+  }): Promise<Model | null> {
+    return await this.findSubscriberByLink({
+      ...data,
+      select: {
+        isUnsubscribed: true,
+        subscriberEmail: true,
+        subscriberPhone: true,
+        slackWorkspaceName: true,
+        statusPageResources: true,
+        isSubscribedToAllResources: true,
+        statusPageEventTypes: true,
+        isSubscribedToAllEventTypes: true,
+      },
+    });
+  }
+
+  /*
+   * The subscriber a link belongs to, or null when the link is not good. The
+   * subscriber is found by its primary key and its status page, never by the
+   * token, and the token is then compared in constant time - a query on the
+   * token would let the database's own comparison time a guess. The
+   * comparison runs even when there is no subscriber to compare with, so a
+   * malformed id, no such subscriber, a deleted one, one on another status
+   * page and a wrong token all take the same path and give the same null.
+   *
+   * The token is read only to be compared: the subscriber handed back never
+   * carries it, so no answer built from it can.
+   */
+  private async findSubscriberByLink(data: {
+    statusPageId: string;
+    subscriberId: string;
+    token: string;
+    select: Select<Model>;
+  }): Promise<Model | null> {
     const isWellFormed: boolean =
+      typeof data.statusPageId === "string" &&
+      typeof data.subscriberId === "string" &&
       ObjectID.isValidUUID(data.statusPageId) &&
       ObjectID.isValidUUID(data.subscriberId);
 
@@ -1393,19 +1460,10 @@ export class Service extends ProjectReferencesService<Model> {
             statusPageId: new ObjectID(data.statusPageId),
           },
           select: {
+            ...data.select,
             _id: true,
             statusPageId: true,
             unsubscribeToken: true,
-            isUnsubscribed: true,
-            isAddedByTeam: true,
-            createdByUserId: true,
-            subscriberEmail: true,
-            subscriberPhone: true,
-            slackIncomingWebhookUrl: true,
-            slackWorkspaceName: true,
-            microsoftTeamsIncomingWebhookUrl: true,
-            microsoftTeamsWorkspaceName: true,
-            subscriberWebhook: true,
           },
           props: {
             isRoot: true,
@@ -1416,12 +1474,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     const tokenMatches: boolean = StatusPageSubscriberUnsubscribeToken.matches({
       stored: subscriber?.unsubscribeToken,
-      presented: data.token,
+      presented: typeof data.token === "string" ? data.token : null,
     });
 
     if (!subscriber || !tokenMatches) {
       return null;
     }
+
+    delete subscriber.unsubscribeToken;
 
     return subscriber;
   }
@@ -1767,23 +1827,11 @@ export class Service extends ProjectReferencesService<Model> {
         { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
 
-      /*
-       * On a public status page the SMS keeps the shorter manage link, which
-       * works there without signing in: an SMS is billed by the segment (see
-       * StatusPageSubscriberUnsubscribe.buildSmsLink).
-       */
-      const smsUnsubscribeLink: string =
-        StatusPageSubscriberUnsubscribe.buildSmsLink({
-          isPublicStatusPage: statusPageOfSubscriber?.isPublicStatusPage,
-          statusPageUrl: statusPageURL,
-          subscriberId: createdItem.id!,
-          unsubscribeUrl: unsubscribeLink,
-        });
-
+      // The unsubscribe link every message carries, on every status page.
       SmsService.sendSms(
         {
           to: createdItem.subscriberPhone,
-          message: `You have been subscribed to ${statusPageName}. To unsubscribe, click on the link: ${smsUnsubscribeLink}`,
+          message: `You have been subscribed to ${statusPageName}. To unsubscribe, click on the link: ${unsubscribeLink}`,
         },
         {
           projectId: createdItem.projectId,
@@ -2641,18 +2689,47 @@ Stay informed about service availability! 🚀`.toString();
   }
 
   /*
-   * The subscriber's Update Subscription page, where it can choose resources
-   * and event types (and unsubscribe). The "manage your subscription" email a
-   * visitor asks for from the Subscribe page links here. On a private status
-   * page it needs a signed-in visitor, like the rest of the page.
+   * The link to a subscriber's Update Subscription page, where it can choose
+   * resources and event types (and unsubscribe):
+   * {statusPageUrl}/update-subscription/{id}-{token}. The "manage your
+   * subscription" message a visitor asks for from the Subscribe page carries
+   * it. Like the unsubscribe link it holds the subscription's token, which
+   * the page asks for: the id alone opens nothing. On a private status page
+   * the page also needs a signed-in visitor, like the rest of the page.
+   *
+   * Pass the subscriber read with its unsubscribeToken, as for
+   * getUnsubscribeLink; one without a token gets a link to the page's "this
+   * link has expired" state rather than none, and that is logged.
    */
   public getManageSubscriptionLink(
     statusPageUrl: URL,
-    statusPageSubscriberId: ObjectID,
+    subscriber: Pick<Model, "_id" | "id" | "unsubscribeToken">,
   ): URL {
+    const subscriberId: ObjectID | null = subscriber.id;
+
+    if (!subscriberId) {
+      throw new BadDataException(
+        "A subscriber id is required to build a manage subscription link.",
+      );
+    }
+
+    if (
+      !StatusPageSubscriberUnsubscribe.isWellFormedToken(
+        subscriber.unsubscribeToken,
+      )
+    ) {
+      logger.error(
+        `Status page subscriber ${subscriberId.toString()} has no unsubscribe token; its manage subscription link leads to the expired link page.`,
+        {
+          statusPageSubscriberId: subscriberId.toString(),
+        } as LogAttributes,
+      );
+    }
+
     return StatusPageSubscriberUnsubscribe.buildManageSubscriptionLink({
       statusPageUrl: statusPageUrl,
-      subscriberId: statusPageSubscriberId,
+      subscriberId: subscriberId,
+      unsubscribeToken: subscriber.unsubscribeToken,
     });
   }
 

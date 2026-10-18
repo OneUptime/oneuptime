@@ -952,7 +952,6 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_EPISODE_VIEW_MEMBERS]: `episodes/${RouteParams.ModelID}/members`,
   [PageMap.INCIDENT_EPISODE_VIEW_SETTINGS]: `episodes/${RouteParams.ModelID}/settings`,
   [PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS]: `episodes/${RouteParams.ModelID}/audit-logs`,
-  [PageMap.INCIDENT_EPISODE_DOCS]: "episodes/documentation",
 
   // Incident Settings
   [PageMap.INCIDENTS_SETTINGS_STATE]: "settings/state",
@@ -1038,7 +1037,6 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERT_EPISODE_VIEW_ALERTS]: `episodes/${RouteParams.ModelID}/alerts`,
   [PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE]: `episodes/${RouteParams.ModelID}/internal-notes`,
   [PageMap.ALERT_EPISODE_VIEW_REMEDIATION]: `episodes/${RouteParams.ModelID}/remediation`,
-  [PageMap.ALERT_EPISODE_DOCS]: "episodes/documentation",
 
   // Alert Settings
   [PageMap.ALERTS_SETTINGS_STATE]: "settings/state",
@@ -1166,7 +1164,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_DOMAINS]: "domains",
   [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
   [PageMap.SETTINGS_SSO]: "sso",
-  [PageMap.SETTINGS_OIDC]: "oidc",
   [PageMap.SETTINGS_SCIM]: "scim",
   [PageMap.SETTINGS_BILLING]: "billing",
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
@@ -1260,7 +1257,6 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_AUDIT_LOGS]: `incoming-call-policies/${RouteParams.ModelID}/audit-logs`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_SETTINGS]: `incoming-call-policies/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE]: `incoming-call-policies/${RouteParams.ModelID}/delete`,
-  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]: `incoming-call-policies/${RouteParams.ModelID}/docs`,
 };
 
 export const MonitorGroupRoutePath: Dictionary<string> = {
@@ -1902,12 +1898,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.ALERT_EPISODE_DOCS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/alerts/${
-      AlertsRoutePath[PageMap.ALERT_EPISODE_DOCS]
-    }`,
-  ),
-
   [PageMap.ALERT_EPISODE_VIEW_AUDIT_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_AUDIT_LOGS]
@@ -2053,12 +2043,6 @@ const RouteMap: Dictionary<Route> = {
       IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_SETTINGS]
     }`,
   ),
-  [PageMap.INCIDENT_EPISODE_DOCS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS]
-    }`,
-  ),
-
   [PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS]
@@ -6493,12 +6477,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
-      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]
-    }`,
-  ),
-
   [PageMap.REPORTS]: new Route(`/dashboard/${RouteParams.ProjectID}/reports/`),
 
   [PageMap.ERROR_TRACKER]: new Route(
@@ -7140,12 +7118,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_SSO]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_SSO]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_OIDC]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_OIDC]
     }`,
   ),
 

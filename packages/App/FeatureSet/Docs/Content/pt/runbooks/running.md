@@ -129,7 +129,7 @@ Sua função lê runbooks, mas não os executa: o botão diz "Você não tem per
 :::
 
 :::details Iniciar uma execução falha com "Runbook is disabled" ou "Runbook has no steps to run"
-O interruptor **Executar este runbook** do runbook está desligado, na página **Configurações** dele, ou ele não tem etapas salvas. Ligue o interruptor, ou adicione etapas e clique em **Save Steps**.
+O interruptor **Executar este runbook** do runbook está desligado, na página **Configurações** dele, ou ele não tem etapas salvas. Ligue o interruptor, ou adicione etapas e clique em **Save Steps**. A **Visão geral** dele diz qual, com **Ligar o runbook** ou **Adicionar etapas**.
 :::
 
 :::details Uma etapa falhou porque falta um Runner ou uma credencial

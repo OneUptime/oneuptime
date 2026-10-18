@@ -240,8 +240,8 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: isGlobal ? "Global Variables" : "Workflow Variables",
           description: isGlobal
-            ? "Values every workflow in this project can use, such as API keys and URLs. Open a variable to edit it, replace its value or delete it. Use the More menu to create an OAuth 2.0 variable, which keeps an access token from your identity provider fresh."
-            : "Values only this workflow can use, such as API keys and URLs. Open a variable to edit it, replace its value or delete it. Use the More menu to create an OAuth 2.0 variable, which keeps an access token from your identity provider fresh.",
+            ? "Values every workflow in this project can use, such as API keys and URLs. Create an OAuth 2.0 variable from the More menu."
+            : "Values only this workflow can use, such as API keys and URLs. Create an OAuth 2.0 variable from the More menu.",
           buttons: moreMenuButtons,
         }}
         userPreferencesKey="workflow-variable-table"

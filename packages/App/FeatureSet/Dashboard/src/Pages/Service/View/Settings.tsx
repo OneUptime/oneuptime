@@ -31,7 +31,7 @@ const ServiceSettings: FunctionComponent<
         nameField={{
           title: "Name",
           description:
-            "Must match the service.name your service's telemetry reports. Telemetry is matched to this service by it: change it in your OpenTelemetry setup too, or the next report creates a new service.",
+            "Must match the service.name your telemetry reports. Change it there too, or the next report creates a new service.",
           placeholder: "checkout-api",
         }}
         descriptionField={{

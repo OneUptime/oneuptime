@@ -6,7 +6,9 @@ import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -32,7 +34,17 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import GlobalProbesOnNewMonitorsCard from "../../../Components/Probe/GlobalProbesOnNewMonitorsCard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import PermissionGate from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import {
+  getMonitorThisProbeRoute,
+  MONITOR_THIS_PROBE_ICON,
+  MONITOR_THIS_PROBE_TITLE,
+} from "../../../Utils/MonitorThisProbe";
+import { PROBE_ON_NEW_MONITORS_COPY } from "../../../Components/Probe/ProbeOnNewMonitorsCopy";
 
 const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -64,6 +76,49 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     "key",
   );
 
+  /*
+   * "Monitor this probe": Create Monitor on a Probe Status monitor that
+   * opens an incident when this probe disconnects. In both tables, in the
+   * row's menu: the global probes are the ones a self-hosted installation
+   * runs every monitor on. Locked, with the reason, for whoever may not
+   * create monitors; left out when there is no honest reason to give.
+   */
+  const createMonitorGate: PermissionGateResult = PermissionGate.check(
+    new Monitor(),
+    ModelAction.Create,
+  );
+
+  const monitorThisProbeAction: ActionButtonSchema<Probe> = {
+    title: MONITOR_THIS_PROBE_TITLE,
+    icon: MONITOR_THIS_PROBE_ICON,
+    buttonStyleType: ButtonStyleType.NORMAL,
+    placement: ActionButtonPlacement.MoreMenu,
+    isVisible: (): boolean => {
+      return (
+        createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason)
+      );
+    },
+    disabled: !createMonitorGate.isAllowed,
+    tooltip: createMonitorGate.isAllowed
+      ? undefined
+      : createMonitorGate.disabledReason,
+    onClick: async (
+      item: Probe,
+      onCompleteAction: VoidFunction,
+      onError: ErrorFunction,
+    ) => {
+      try {
+        onCompleteAction();
+        Navigation.navigate(
+          getMonitorThisProbeRoute(item._id?.toString() || ""),
+        );
+      } catch (err) {
+        onCompleteAction();
+        onError(err as Error);
+      }
+    },
+  };
+
   return (
     <Fragment>
       <>
@@ -81,7 +136,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Global Probes",
             description:
-              "Global Probes help you monitor external resources from different locations around the world.",
+              "OneUptime's probes around the world. They check what is reachable from the internet.",
           }}
           fetchRequestOptions={{
             overrideRequestUrl: URL.fromString(APP_API_URL.toString()).addRoute(
@@ -95,6 +150,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             // The Name cell renders the probe logo, which no column declares.
             iconFileId: true,
           }}
+          actionButtons={[monitorThisProbeAction]}
           filters={[
             {
               field: {
@@ -170,7 +226,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Custom Probes",
             description:
-              "Custom Probes help you monitor internal resources that is behind your firewall.",
+              "Probes you install in your own network, to check what is behind your firewall.",
           }}
           documentationLink={Route.fromString("/docs/probe/custom-probe")}
           selectMoreFields={{
@@ -218,9 +274,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
-              title: "Enable monitoring automatically on new monitors",
-              description:
-                "When on, this probe is pre-selected for every new monitor you create.",
+              title: PROBE_ON_NEW_MONITORS_COPY.switchTitle,
+              description: PROBE_ON_NEW_MONITORS_COPY.description,
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               collapsibleSection: advancedSection,
@@ -232,6 +287,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           showRefreshButton={true}
           searchableFields={["name", "description"]}
           actionButtons={[
+            monitorThisProbeAction,
             {
               title: canReadProbeKey ? "Show ID and Key" : "Show ID",
               icon: canReadProbeKey ? IconProp.Key : IconProp.Identification,
@@ -292,7 +348,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
-              title: "Enable Monitoring by Default",
+              title: PROBE_ON_NEW_MONITORS_COPY.columnTitle,
               type: FieldType.Boolean,
             },
           ]}
@@ -319,7 +375,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
-              title: "Enable Monitoring by Default",
+              title: PROBE_ON_NEW_MONITORS_COPY.columnTitle,
               type: FieldType.Boolean,
             },
             {

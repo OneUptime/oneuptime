@@ -1123,10 +1123,7 @@ describe("Network Map card texts match the children endpoint", () => {
       ),
     ).toBe("degraded");
 
-    expect(SITE.siteCards).toContain("Devices span every site below");
-    expect(SITE.siteCards).toContain(
-      "a degraded one answers but has a port down",
-    );
+    expect(SITE.siteCards).toContain("Devices span every site below.");
   });
 
   test("uptime is 30 days and 'today' is the last 24 hours, maintenance left out", () => {
@@ -1334,7 +1331,7 @@ describe("the Discovery Scans text matches how the ingest counts responders", ()
     );
   });
 
-  test("on a ping-only scan the count is the hosts that answered ping", () => {
+  test("on an ICMP scan the count is the hosts that answered ping", () => {
     const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
       discoveryScan({
         isSnmpEnabled: false,
@@ -1347,9 +1344,11 @@ describe("the Discovery Scans text matches how the ingest counts responders", ()
 
     expect(outcome.respondedHostSummary).toBe("40 of 1022 hosts answered ping");
     expect(outcome.pingOnlyHostCount).toBe(0);
+    // The scan's method by the name the Start Scan form gives it.
     expect(DEVICE.discoveryRespondedHosts).toContain(
-      "On a ping-only scan it is the hosts that answered ping",
+      "On an ICMP scan it is the hosts that answered ping",
     );
+    expect(DEVICE.discoveryRespondedHosts).not.toContain("ping-only scan");
   });
 
   test("mid-sweep, the denominator is what has been swept so far", () => {

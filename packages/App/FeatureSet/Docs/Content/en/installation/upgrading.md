@@ -975,6 +975,37 @@ API, SSO, or the Slack and Microsoft Teams apps.
   See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **Adding and removing owners keeps to the `Owned` scope.** A permission to
+  add and remove a resource's owners - such as `MonitorAdmin`,
+  `MonitorMember` or `ProjectMember`, given to a team directly or through a
+  custom role - that is scoped to `Owned` now adds and removes them only on
+  the resources its people or their teams own, however many more they may
+  read. It used to reach the owners of every resource they could read.
+  Owners are still read through the resource, and permissions over the
+  whole project, API keys and workflow steps add and remove any owner. Give
+  someone who manages the owners of resources they do not own that
+  permission over the whole project, or restricted to labels. See
+  [Users, Teams & Permissions](/docs/permissions/index).
+- **The `Owned` scope narrows every resource with owners.** Monitor groups,
+  on-call schedules, alert and incident episodes, incoming call policies,
+  incident and maintenance templates, probes, Runners and AI agents have
+  owners too, and a permission scoped to `Owned` - such as `MonitorAdmin`,
+  `OnCallMember` or `ProjectMember` - now changes and deletes only the ones
+  its people or their teams own, and adds and removes owners only on those.
+  What belongs to one goes with it: a schedule's layers, the people in them
+  and its shared calendar link, an incoming call policy's escalation rules, an
+  episode's notes, state changes and role members, and the monitors in a
+  monitor group. Incidents and alerts are added to an episode, one or many at
+  a time, only where the person or their team owns them. Monitor groups,
+  episodes and incoming call policies are also read only where owned; probes,
+  Runners, AI agents, on-call schedules and templates are still read in full,
+  so they can be picked - all but a Runner's key, which shows only where
+  owned. Someone who creates one of them with a permission scoped to
+  `Owned` is made its owner; one that nobody owns is changed only by a
+  permission over the whole project, so make your teams the owners of the ones
+  they look after - an episode a grouping rule opens takes the rule's episode
+  owners. See
+  [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a
   record you may not read answers `404`.** The same rule now holds in the
   places it did not yet reach:
@@ -1296,6 +1327,39 @@ API, SSO, or the Slack and Microsoft Teams apps.
   record by its number or name as well as its ID, and sends the JSON typed
   for a trigger as JSON: a Manual trigger's **JSON** arrives as an object,
   so a later step reads a field of it without a **Text to JSON** step.
+- **Sign-in cookies stay on HTTPS, and an HTTPS installation tells browsers
+  to stay there.** OneUptime set its cookies without `Secure`, so a browser
+  that signed in over HTTPS still sent its session with any plain-HTTP
+  request to the same address. Now every cookie OneUptime sets while the
+  browser is on HTTPS is `Secure`, and an installation with
+  `HTTP_PROTOCOL=https` sends `Strict-Transport-Security` for its `HOST`: a
+  browser that has seen it reaches that name over HTTPS only, on every port,
+  for a year (`HSTS_MAX_AGE_SECONDS`, which `config.example.env` now lists;
+  `0` makes browsers forget it). Status pages and dashboards on custom
+  domains get `Secure` cookies whenever they are served over HTTPS, and no
+  `Strict-Transport-Security`. A browser's cookies from before the upgrade
+  are replaced as its session renews, or at its next sign-in. With
+  `HTTP_PROTOCOL=https`, people have to sign in over HTTPS: a sign-in over
+  plain HTTP to `HOST` no longer keeps them signed in. Behind your own proxy,
+  check that it sends `X-Forwarded-Proto`, as Caddy and the Nginx example in
+  [Set up HTTPS](/docs/installation/docker-compose#set-up-https) do. An
+  installation served over plain HTTP (`HTTP_PROTOCOL=http`) sees no change.
+- **OneUptime refuses a placeholder `ONEUPTIME_SECRET`.** OneUptime's own
+  services prove to each other that a call comes from one of them with
+  `ONEUPTIME_SECRET`, and a value the repository ships for it is now refused
+  from every caller: unset, `secret`, or a placeholder from
+  `config.example.env` (they all contain `please-change-this`). An
+  installation that kept one needs no change for its app and workers: they
+  call each other with a key derived from the installation's own token
+  signing key instead. `npm start` and `npm run update` now give
+  `ONEUPTIME_SECRET` a random value in `config.env` when it still holds a
+  placeholder, so the bundled Runner keeps registering. If you start the
+  containers another way, or set `oneuptimeSecret` to a placeholder in Helm,
+  set `ONEUPTIME_SECRET` to a long random value, the same for the app and
+  the Runner, as
+  [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
+  shows: until then the Runner logs what to set and does not register. An
+  installation that set its own `ONEUPTIME_SECRET` sees no change.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

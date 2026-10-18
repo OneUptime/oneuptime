@@ -232,6 +232,15 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
       english: "Scheduled Maintenance Events",
       key: "overview.scheduledMaintenanceEvents",
     },
+    // The maintenance calendar's buttons, on Scheduled Events and an event's page.
+    {
+      english: "Subscribe to calendar",
+      key: "scheduledEvents.calendar.subscribe",
+    },
+    {
+      english: "Add to calendar",
+      key: "scheduledEvents.calendar.addToCalendar",
+    },
   ],
   [SUBSCRIBERS]: [
     { english: "Subscribe", key: "nav.subscribe" },
@@ -287,12 +296,20 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
     { english: "Preferences", key: "subscribe.preferences.title" },
     { english: "Update Subscription", key: "subscribe.update.title" },
     { english: "Update Subscription", key: "subscribe.update.submit" },
+    // The manage page's way on from a link that has expired.
+    { english: "Get a new link", key: "subscribe.update.getNewLink" },
     { english: "Unsubscribe", key: "subscribe.update.unsubscribe" },
     { english: "Unsubscribe", key: "subscribe.unsubscribe.confirmButton" },
     { english: "Confirm Subscription", key: "subscribe.confirm.title" },
     { english: "Active Announcements", key: "announcements.active" },
     { english: "Past Announcements", key: "announcements.past" },
     { english: "Announced at", key: "announcements.announcedAt" },
+    // A calendar instead of a subscription, from the Scheduled Events page.
+    { english: "Scheduled Events", key: "nav.scheduledEvents" },
+    {
+      english: "Subscribe to calendar",
+      key: "scheduledEvents.calendar.subscribe",
+    },
   ],
 };
 
@@ -398,7 +415,7 @@ const HELD_ELSEWHERE: Array<string> = [
  */
 const PROSE: Record<string, Array<string>> = {
   [OVERVIEW]: [
-    "Created with two fields.",
+    "Created with a name.",
     "Resources are what visitors see.",
     "A preview URL from day one.",
     "Visitor-facing routes are gated by settings.",
@@ -427,11 +444,12 @@ const PROSE: Record<string, Array<string>> = {
     "Sends nothing to its subscribers.",
     "Leaves the Status Pages list.",
     "Keeps everything.",
+    "Maintenance calendar.",
   ],
   [SUBSCRIBERS]: [
-    "public",
     "Status",
     "One switch is not enough.",
+    "A calendar instead.",
     "A monitor group stands for every monitor in it.",
     "A subscriber chooses among its own page's resources.",
     "Unconfirmed means silent.",

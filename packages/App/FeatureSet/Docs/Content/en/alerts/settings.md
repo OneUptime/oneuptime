@@ -77,20 +77,16 @@ With two or more conditions, choose **Match all**, where every one must hold, or
 **Alerts → Rules → On-Call Rules** makes paging automatic. Every matching rule adds its policies to the new alert, and the alert runs them with any policies it already had, each one once.
 
 :::steps
-### Name the rule
-
-Click **Create Alert On-Call Rule**. On **Basic Info**, give it a **Name**, such as "Page database team for any DB alert", and a **Description** if you like.
-
 ### Choose the alerts
 
-On **Match Criteria**, **All alerts**, where a new rule starts, matches every new alert. To narrow it down, pick **Only alerts that match conditions** and add the conditions an alert must meet.
+Click **Create Alert On-Call Rule**. On **Match**, **All alerts**, where a new rule starts, matches every new alert. To narrow it down, pick **Only alerts that match conditions** and add the conditions an alert must meet.
 
 ### Pick the policies
 
-On **On-Call Policies**, pick the **On-Call Duty Policies** the rule runs, then create the rule.
+On **On-Call Policies**, pick the **On-Call Duty Policies** the rule pages. Its **Name** follows them, such as "Page Platform on-call", until you type your own, and a **Description** waits under **More fields**. Then create the rule.
 :::
 
-A severity pages nobody on its own: an on-call rule that matches **Alert Severities** is how "page the database team for every High alert" is set up. To see what ran for one alert, open its **On Call Executions** page. Each person is then reached the way they set up under **User Settings → On-Call Rules**, on the **Alerts** tab; see [Escalation Rules](/docs/on-call/escalation-rules).
+A severity pages nobody on its own: an on-call rule that matches **Alert Severities** is how "page the database team for every High alert" is set up. To see what ran for one alert, open its **On-Call Executions** page. Each person is then reached the way they set up under **User Settings → On-Call Rules**, on the **Alerts** tab; see [Escalation Rules](/docs/on-call/escalation-rules).
 
 ## Owner and label rules
 
@@ -104,7 +100,7 @@ A severity pages nobody on its own: an on-call rule that matches **Alert Severit
 
 ## Privacy and runbook rules
 
-**Privacy Rules** make new alerts that match private, before anything else runs: only their owners and the project's admins and owners can see them. A rule has a **Basic Info** step and a **Match Criteria** step, and makes private every alert it matches. See [Private alerts](/docs/alerts/index#private-alerts).
+**Privacy Rules** make new alerts that match private, before anything else runs: only their owners and the project's admins and owners can see them. A rule has two steps: **Match**, the alerts it makes private, then **Name**, filled in as "Make alerts private". See [Private alerts](/docs/alerts/index#private-alerts).
 
 **Runbook Rules** start a runbook when a new alert matches, unless the alert was created resolved. See [Runbook Rules](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ A severity pages nobody on its own: an on-call rule that matches **Alert Severit
 **Alerts → Rules → Reminder Rules** reminds an alert's owners while it stays open. Each new alert gets the first rule that matches it, from the top of the list down.
 
 :::steps
-### Name the reminder rule
-
-Click **Create Alert Reminder Rule**. On **Rule Info**, give it a **Name**, such as "Critical Alert Reminders".
-
 ### Choose which alerts to remind about
 
-On **Match Criteria**, leave **All alerts** picked to remind about every alert, or pick **Only alerts that match conditions** and choose the **Alert Severities** and **Labels** it applies to.
+Click **Create Alert Reminder Rule**. On **Match**, leave **All alerts** picked to remind about every alert, or pick **Only alerts that match conditions** and choose the **Alert Severities** and **Labels** it applies to.
 
 ### Set the interval
 
-On **Reminder Settings**, set **Reminder Interval (minutes)**, how often owners are reminded, and **Stop Reminders When**: **Resolved**, the default, or **Acknowledged**. Then create the rule.
+On **Reminders**, set **Reminder Interval (minutes)**, how often owners are reminded, and **Stop Reminders When**: **Resolved**, the default, or **Acknowledged**. Its **Name** follows them, such as "Remind every 30 minutes until resolved", until you type your own. Then create the rule.
 :::
 
 Owners get each reminder as **Alert reminder**, which is on by email by default. An alert's rule is matched again when its severity or labels change. To stop the reminders for one alert, turn **Send reminders** off on its **Settings** page; it saves the moment you flip it.

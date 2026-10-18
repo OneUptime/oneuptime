@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **De sonde maakt verbinding naar buiten.** Elk verzoek gaat van de sonde naar `ONEUPTIME_URL` via HTTPS. Niets hoeft de sonde van buiten uw netwerk te bereiken.
 - **Hij controleert alleen zijn eigen monitors.** De sonde vraagt OneUptime om de monitors waaraan hij is toegevoegd, controleert elk ervan wanneer het aan de beurt is en stuurt het resultaat terug. OneUptime beslist aan de hand van de resultaten of de status van een monitor verandert.
-- **OneUptime let erop dat hij draait.** Elk verzoek van de sonde telt als levensteken, en de sonde stuurt er minstens één per minuut. Na ongeveer drie minuten zonder verzoek toont de sonde **Verbinding verbroken**, en krijgen zijn eigenaren bericht. Heeft een sonde geen eigenaren, dan krijgen de eigenaren van het project bericht.
+- **OneUptime let erop dat hij draait.** Elk verzoek van de sonde telt als levensteken, en de sonde stuurt er minstens één per minuut. Na ongeveer drie minuten zonder verzoek toont de sonde **Verbinding verbroken**, en krijgen zijn eigenaren bericht. Heeft een sonde geen eigenaren, dan krijgen de eigenaren van het project bericht. Om net als bij elke storing gewaarschuwd te worden, met één incident tot de sonde terug is, voegt u een [probestatusmonitor](/docs/monitor/probe-status-monitor) toe: **Deze probe bewaken** op de pagina van de sonde maakt er een.
 
 ## Voordat u begint
 
@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### De sonde aanmaken
 
-Open **Monitoren → Instellingen → Sondes** en klik op **Sonde aanmaken**. Geef hem een **Naam** en een **Beschrijving**: beide zijn verplicht. **Meer velden** bevat het **Sondelogo**, **Schakel monitoring automatisch in op nieuwe monitoren**, waarmee deze sonde wordt gekozen voor elke nieuwe monitor die u maakt, en **Labels**.
+Open **Monitoren → Instellingen → Sondes** en klik op **Sonde aanmaken**. Geef hem een **Naam** en een **Beschrijving**: beide zijn verplicht. **Meer velden** bevat het **Sondelogo**, **Toevoegen aan nieuwe monitoren**, waarmee elke nieuwe monitor begint met deze sonde geselecteerd, en **Labels**.
 
 ### De ID en sleutel kopiëren
 

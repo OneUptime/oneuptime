@@ -1,12 +1,10 @@
 import crypto from "crypto";
 import { DashboardRoute } from "../../../ServiceRoute";
-import Protocol from "../../../Types/API/Protocol";
 import OneUptimeDate from "../../../Types/Date";
 import {
   MARKETPLACE_PURCHASE_PENDING_COOKIE_NAME,
   MARKETPLACE_PURCHASE_TTL_IN_HOURS,
 } from "../../../Types/Marketplace/MarketplacePurchase";
-import { HttpProtocol } from "../../EnvironmentConfig";
 import CookieUtil from "../Cookie";
 import { ExpressRequest, ExpressResponse } from "../Express";
 
@@ -61,35 +59,31 @@ export default class MarketplaceClaimToken {
 
   /*
    * The claim token for the API, and the marker the dashboard looks for
-   * after a sign-in. Both last as long as the claim.
+   * after a sign-in. Both last as long as the claim, and both are Secure
+   * whenever the browser is on HTTPS (CookieUtil.setCookie decides).
    */
   public static setCookies(res: ExpressResponse, token: string): void {
     const maxAge: number = MARKETPLACE_PURCHASE_TTL_IN_HOURS * 60 * 60 * 1000;
-    const secure: boolean = HttpProtocol === Protocol.HTTPS;
 
     CookieUtil.setCookie(res, CLAIM_COOKIE_NAME, token, {
       path: CLAIM_COOKIE_PATH,
       maxAge: maxAge,
       httpOnly: true,
-      secure: secure,
     });
 
     CookieUtil.setCookie(res, MARKETPLACE_PURCHASE_PENDING_COOKIE_NAME, "1", {
       path: DashboardRoute.toString(),
       maxAge: maxAge,
       httpOnly: false,
-      secure: secure,
     });
   }
 
   public static clearCookies(res: ExpressResponse): void {
-    res.clearCookie(CLAIM_COOKIE_NAME, {
+    CookieUtil.removeCookie(res, CLAIM_COOKIE_NAME, {
       path: CLAIM_COOKIE_PATH,
-      sameSite: "lax",
     });
-    res.clearCookie(MARKETPLACE_PURCHASE_PENDING_COOKIE_NAME, {
+    CookieUtil.removeCookie(res, MARKETPLACE_PURCHASE_PENDING_COOKIE_NAME, {
       path: DashboardRoute.toString(),
-      sameSite: "lax",
     });
   }
 

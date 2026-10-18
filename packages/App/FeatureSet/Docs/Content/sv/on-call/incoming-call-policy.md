@@ -49,7 +49,7 @@ Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställninga
 
 ### Skapa policyn
 
-Gå till **Jourtjänst** > **Inkommande samtalspolicyer** och klicka på **Skapa Inkommande samtalspolicy**. Ge den ett **Namn**, till exempel "Supportlinje", och om du vill en **Beskrivning** och **Etiketter**. Öppna den sedan från listan.
+Gå till **Jourtjänst** > **Inkommande samtalspolicyer** och klicka på **Skapa Inkommande samtalspolicy**. Ge den ett **Namn**, till exempel "Supportlinje"; **Beskrivning** och **Etiketter** är valfria, under **Fler fält**. Den nya policyn öppnas på sin **Översikt**.
 
 ### Välj Twilio-kontot
 
@@ -78,7 +78,7 @@ När alla tre stegen är klara blir kortet **Phone Numbers & Twilio Configuratio
 2. OneUptime ringer upp den person som den första eskaleringsregeln nämner: den personen, eller den som har jour i regelns jourschema i det ögonblicket, användaråsidosättningar inräknade. Personens telefon visar policyns nummer som uppringare.
 3. Om personen svarar inom regelns **Ringtid** kopplas uppringaren fram, och samtalsloggen registrerar vem som svarade.
 4. Om inte hör uppringaren "Connecting you to the next available engineer.", och personen i nästa regel ringes upp.
-5. Efter den sista regeln börjar policyn om från den första regeln om **Upprepa policy om ingen svarar** är påslaget, så många gånger som **Antal upprepningar av policy** säger. Annars hör uppringaren **Meddelande vid inget svar**, och samtalet avslutas.
+5. Efter den sista regeln avgör policyns **Upprepningspolicy**: **Ring igen från den första regeln** ringer varje regel igen, så många gånger till som den säger, och **Avsluta samtalet** gör det inte. Därefter hör uppringaren **Meddelande vid inget svar**, och samtalet avslutas.
 
 ```mermaid title="Förfrågningarna bakom ett samtal"
 sequenceDiagram
@@ -98,7 +98,7 @@ sequenceDiagram
     Twilio-->>Caller: Kopplar fram<br/>uppringaren
 ```
 
-En regel hoppas över, utan att någon ringes upp, när ingen kan ringas för den just nu: dess schema har ingen med jour, personen har inget verifierat nummer för inkommande samtal i det här projektet, eller personen är inte längre medlem i projektet. När ingen regel har någon att ringa hör uppringaren **Meddelande om att ingen är tillgänglig**. En inaktiverad policy besvarar varje samtal med "Sorry, this service is currently disabled." och lägger på.
+En regel hoppas över, utan att någon ringes upp, när ingen kan ringas för den just nu: dess schema har ingen med jour, personen har inget verifierat nummer för inkommande samtal i det här projektet, eller personen är inte längre medlem i projektet. När ingen regel har någon att ringa hör uppringaren **Meddelande om att ingen är tillgänglig**. Med **Besvara samtal** avstängt besvarar en policy varje samtal med "Sorry, this service is currently disabled." och lägger på.
 
 OneUptime kontrollerar Twilios signatur på varje förfrågan med Twilio-konfigurationens Auth Token och avvisar en förfrågan som den inte kan verifiera.
 
@@ -165,18 +165,21 @@ Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara
 
 ## Röstmeddelanden och policyinställningar
 
-Öppna policyn och välj **Inställningar** under **Avancerad** i dess sidomeny. **Edit Messages** på kortet **Röstmeddelanden** ändrar vad uppringare hör; **Edit Policy Settings** på kortet **Policyinställningar** ändrar resten.
+Öppna policyn och välj **Inställningar** under **Avancerad** i dess sidomeny. Sidan har tre kort:
+
+- **Besvara samtal**: **Besvara samtal till den här policyns nummer** sparas så snart du slår om den. Avstängd hör uppringare att linjen inte är tillgänglig, och ingen rings upp; dess nummer, regler och samtalsloggar behålls. Innan den stängs av frågar sidan först, med **Sluta besvara samtal**. Så länge den är avslagen säger policyns **Översikt** det, med **Besvara samtal igen** för att slå på den igen.
+- **Upprepningspolicy**: vad som händer när ingen svarar efter den sista regeln. **Redigera** frågar **Om ingen svarar efter den sista regeln**: **Avsluta samtalet**, eller **Ring igen från den första regeln** och **Hur många gånger till?**.
+- **Röstmeddelanden**: vad uppringare hör. **Redigera meddelanden** ändrar dem.
 
 | Inställning | Vad den gör | För en ny policy |
 | --- | --- | --- |
-| **Hälsningsmeddelande** | Läses upp när samtalet besvaras, innan den första personen ringes upp. | "Please wait while we connect you to the on-call engineer." |
-| **Meddelande vid inget svar** | Läses upp när alla regler har provats och ingen svarade. | "No one is available. Please try again later." |
-| **Meddelande om att ingen är tillgänglig** | Läses upp när ingen regel har någon att ringa. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
-| **Aktiverad** | En inaktiverad policy avvisar alla samtal. | På |
-| **Upprepa policy om ingen svarar** | Börjar om från den första regeln efter den sista. | Av |
-| **Antal upprepningar av policy** | Hur många gånger det börjar om. | 1 |
+| **Hälsningsmeddelande** | Läses upp när någon ringer, innan någon rings upp. | "Please wait while we connect you to the on-call engineer." |
+| **Meddelande vid inget svar** | Läses upp när varje regel har ringt och ingen har svarat, innan samtalet avslutas. | "No one is available. Please try again later." |
+| **Meddelande om att ingen är tillgänglig** | Läses upp när ingen kan ringas upp, till exempel när ingen har jour. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Besvara samtal till den här policyns nummer** | Avstängd hör varje uppringare "Sorry, this service is currently disabled.", och samtalet avslutas. | På |
+| **Om ingen svarar efter den sista regeln** | **Avsluta samtalet**, eller **Ring igen från den första regeln**. | **Avsluta samtalet** |
 
-Twilio läser upp meddelandena med en text-till-tal-röst, så skriv dem som du vill att de ska låta.
+Twilio läser upp meddelandena med en text-till-tal-röst, så skriv dem som du vill att de ska låta. Ett meddelande som lämnas tomt läses upp med OneUptimes egna ord, som kortet visar i dess ställe.
 
 ## Samtalsloggar
 
@@ -188,7 +191,7 @@ Varje samtal visas på policyns sida **Samtalsloggar**, under **Loggar** i dess 
 | **Slutförd** | Någon svarade, och uppringaren kopplades fram. |
 | **Inget svar** | Alla eskaleringsregler provades och ingen svarade. Uppringaren hörde ditt **Meddelande vid inget svar**. |
 | **Caller Hung Up** | Uppringaren lade på medan en teknikers telefon ringde. |
-| **Misslyckades** | Ingen kunde ringas upp: ingen eskaleringsregel hade en användare med jour och ett verifierat nummer för inkommande samtal (uppringaren hörde ditt **Meddelande om att ingen är tillgänglig**), eller så är policyn inaktiverad. |
+| **Misslyckades** | Ingen kunde ringas upp: ingen eskaleringsregel hade en användare med jour och ett verifierat nummer för inkommande samtal (uppringaren hörde ditt **Meddelande om att ingen är tillgänglig**), eller så är **Besvara samtal** avstängt. |
 
 ## Missade samtal
 
@@ -257,7 +260,7 @@ En regel som skapas via API:et utan `escalateAfterSeconds` ringer i 20 sekunder,
 :::
 
 :::details Samtalet besvaras, men ingen ringes upp
-Samtalsloggen säger **Misslyckades**. Kontrollera att policyn är **Aktiverad**, att varje regels jourschema har någon med jour just nu, och att de personer som reglerna ringer har ett verifierat nummer under **Användarinställningar** > **Inkommande samtalspolicy** > **Inkommande telefonnummer**, i det här projektet. Regler ringer bara medlemmar i projektet.
+Samtalsloggen säger **Misslyckades**. Kontrollera att **Besvara samtal** är påslaget under policyns **Inställningar**, att varje regels jourschema har någon med jour just nu, och att de personer som reglerna ringer har ett verifierat nummer under **Användarinställningar** > **Inkommande samtalspolicy** > **Inkommande telefonnummer**, i det här projektet. Regler ringer bara medlemmar i projektet.
 :::
 
 :::details Samtal hamnar i röstbrevlådan

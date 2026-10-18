@@ -109,7 +109,7 @@ spec:
           {{- end }}
           containers:
             - name: clickhouse
-              image: "{{ $altinity.image.repository }}:{{ $altinity.image.tag }}"
+              image: {{ include "oneuptime.imageReference" (dict "Values" $.Values "Key" "clickhouse" "Default" (printf "%s:%s" $altinity.image.repository (toString $altinity.image.tag))) | quote }}
               imagePullPolicy: {{ $altinity.image.pullPolicy | default "IfNotPresent" }}
               {{- if $altinity.containerSecurityContext }}
               securityContext:

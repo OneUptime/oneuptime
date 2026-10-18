@@ -290,7 +290,13 @@ describe("Pages and cards", () => {
     );
   });
 
-  test("the schedule page renders the subscribe card between the roster alert and the preview, with the schedule's timezone", () => {
+  /*
+   * The schedule page leads with who is on call - the Final Schedule
+   * (FinalPreview) - now that the roster banner which said it first is gone,
+   * and offers the calendar links after it, once the schedule has layers:
+   * before anybody takes turns there are no shifts to follow.
+   */
+  test("the schedule page renders the subscribe card after the preview, once the schedule has layers, with the schedule's timezone", () => {
     const page: string = readCode(
       "Pages",
       "OnCallDuty",
@@ -302,9 +308,13 @@ describe("Pages and cards", () => {
       "<ScheduleSubscribeCard scheduleId={modelId} scheduleTimezone={ onCallSchedule ? onCallSchedule.timezone?.toString() || null : undefined } />",
     );
     const previewIndex: number = page.indexOf("<FinalPreview");
+    const layersCheckIndex: number = page.indexOf("{hasLayers ? (");
 
     expect(subscribeIndex).toBeGreaterThan(-1);
-    expect(previewIndex).toBeGreaterThan(subscribeIndex);
+    expect(previewIndex).toBeGreaterThan(-1);
+    expect(subscribeIndex).toBeGreaterThan(previewIndex);
+    expect(layersCheckIndex).toBeGreaterThan(previewIndex);
+    expect(subscribeIndex).toBeGreaterThan(layersCheckIndex);
     // The timezone must be SELECTED for the legacy-timezone warning to work.
     expect(page).toContain("timezone: true,");
   });
@@ -946,7 +956,7 @@ describe("Locales", () => {
       "Shifts you cover for someone else, when an override names you.",
       "Private to you. Anyone who has the link can read your shifts, so treat it like a password.",
       "No shared link yet",
-      "Every app subscribed to the current link stops updating and shows an empty calendar. For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working - paste the new link into every app you subscribed with.",
+      "Apps subscribed to the current link stop getting shifts and show an empty calendar. Paste the new link into every app you subscribed with.",
       "Your previous link returns an empty calendar until {{date}}, then stops working.",
       "The previous link returns an empty calendar until {{date}}, then stops working.",
       "{{count}} weeks",
@@ -1000,11 +1010,12 @@ describe("Locales", () => {
       const json: Record<string, unknown> = readLocale(locale);
 
       /*
-       * The three sentences that describe the rotated-out link, by their key.
+       * The two sentences that describe the rotated-out link, by their key.
        * Each says what the old link serves - an empty calendar - which is also
        * what tells them apart from other features' sentences about an old
        * link of their own (an incident form's Reset Link, whose old link
-       * stops working at once).
+       * stops working at once). The rotate dialog itself only says that
+       * subscribed apps go empty and need the new link.
        */
       const previousLinkKeys: Array<string> = Object.keys(json).filter(
         (key: string): boolean => {
@@ -1015,7 +1026,7 @@ describe("Locales", () => {
         },
       );
 
-      expect(previousLinkKeys.length).toBe(3);
+      expect(previousLinkKeys.length).toBe(2);
 
       for (const key of previousLinkKeys) {
         expect(String(json[key])).not.toContain(phrase);

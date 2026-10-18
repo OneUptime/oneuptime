@@ -205,6 +205,15 @@ describe("SLO detail side menu", () => {
       goTo(page.path);
       await renderSloMenu();
 
+      // A page named like its section (Overview) is named once.
+      if (page.section === page.title) {
+        expect(mobileSummaryText()).toContain(page.title);
+        expect(mobileSummaryText()).not.toContain(
+          `${page.section} / ${page.title}`,
+        );
+        return;
+      }
+
       expect(mobileSummaryText()).toContain(`${page.section} / ${page.title}`);
     },
   );

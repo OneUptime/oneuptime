@@ -477,7 +477,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           title={SHARED_FEED_EMPTY_TITLE}
           description={
             isSchedule
-              ? "No shared link has been published for this schedule yet. Once published, anyone with the link sees everyone's shifts on it - handy for a team calendar."
+              ? "No shared link for this schedule yet. Anyone with the link sees everyone's shifts - handy for a team calendar."
               : "No project-wide link has been published yet. Once published, anyone with the link sees every shift on every schedule in this project."
           }
           control={publishControl}

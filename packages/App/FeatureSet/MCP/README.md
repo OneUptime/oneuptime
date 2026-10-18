@@ -1,6 +1,6 @@
 # OneUptime MCP Server
 
-A Model Context Protocol (MCP) server that exposes OneUptime to AI agents. It lets MCP-compatible clients (Claude, VS Code with Copilot, Cursor, and others) manage incidents, alerts, monitors, status pages, on-call, and telemetry through ~155 tools.
+A Model Context Protocol (MCP) server that exposes OneUptime to AI agents. It lets MCP-compatible clients (Claude, VS Code with Copilot, Cursor, and others) manage incidents, alerts, monitors, status pages, on-call, and telemetry through ~190 tools.
 
 ## How it works
 
@@ -126,13 +126,13 @@ Two settings: `DISABLE_MCP_OAUTH=true` switches the whole thing off (the routes 
 
 ### Database resources — full CRUD
 
-Each of these 22 models gets six tools: `create_`, `get_`, `list_`, `update_`, `delete_`, `count_` (e.g. `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`):
+Each of these 27 models gets six tools: `create_`, `get_`, `list_`, `update_`, `delete_`, `count_` (e.g. `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`):
 
-Incident, Alert, Monitor, Status Page, Scheduled Maintenance Event, Team, Monitor Status, On-Call Policy, Incident State, Incident Severity, Alert State, Alert Severity, Incident State Timeline, Alert State Timeline, Incident Public Note, Incident Internal Note, Alert Internal Note, Status Page Announcement, Scheduled Maintenance State, Scheduled Maintenance State Timeline, Label, Monitor Status Event.
+Incident, Alert, Incident Alert, Monitor, Status Page, Scheduled Maintenance Event, Team, Monitor Status, On-Call Policy, Incident State, Incident Severity, Alert State, Alert Severity, Incident State Timeline, Alert State Timeline, Incident Public Note, Incident Internal Note, Alert Internal Note, Status Page Announcement, Scheduled Maintenance State, Scheduled Maintenance State Timeline, Label, Monitor Status Event, Security Case, Security Case Note, Security Detection, Security Playbook.
 
 ### Telemetry resources — read-only
 
-Log, Metric, Span, Exception Instance, and Monitor Log get `list_` and `count_` tools only (e.g. `list_logs`, `count_spans`, `list_exception_instances`). There are no create tools for telemetry — ingestion happens via OpenTelemetry.
+Log, Metric, Span, Exception Instance, Monitor Log, Security Event, Change Event, Kubernetes Cost Allocation, and Threat Intel Indicator get `list_` and `count_` tools only (e.g. `list_logs`, `count_spans`, `list_exception_instances`). There are no create tools for telemetry — ingestion happens via OpenTelemetry.
 
 ### Workflow tools
 
@@ -151,7 +151,13 @@ Purpose-built shortcuts for incident/alert response (`packages/App/FeatureSet/MC
 
 ### Annotations and results
 
-All tools carry MCP annotations and titles: `readOnlyHint` on every `get_`/`list_`/`count_` tool and `destructiveHint` on every `delete_` tool, so clients can auto-approve safe calls and confirm destructive ones. Tool results include `structuredContent` alongside the JSON text. Errors come back as in-band tool results (`isError: true`) with `statusCode`, `details`, and a `suggestion` — not as protocol errors.
+Every tool has a title and states all three MCP hints, set in `Tools/ToolAnnotations.ts`, so clients can auto-approve safe calls and confirm the rest:
+
+- `readOnlyHint: true` on the tools that change nothing: `get_`, `list_`, `count_`, `oneuptime_whoami`, the helper tools and the public status page tools.
+- `destructiveHint: true` on every tool that changes something: create, update and delete tools, acknowledging and resolving, and adding notes. Most writes overwrite or delete a record, change an incident's or alert's state, page someone on call or post to a status page, and the directories allow `false` only for a write that adds and sends nothing.
+- `openWorldHint: true` only on the public status page tools, which read any public status page on the instance. Every other tool stays inside the caller's project.
+
+MCP directories require them: the Claude Connectors Directory flags any tool without a `title` or a `readOnlyHint`/`destructiveHint`, and ChatGPT's requires all three hints as booleans. `Tests/ToolAnnotationsForDirectories.test.ts` fails on a tool that lacks one, or that breaks the rules above. On the server itself, `MCP_ALLOW_DESTRUCTIVE=false` removes the delete tools only, and `MCP_READ_ONLY=true` removes every tool that is not read-only (`Tests/WritePolicy.test.ts`). Tool results include `structuredContent` alongside the JSON text. Errors come back as in-band tool results (`isError: true`) with `statusCode`, `details`, and a `suggestion` — not as protocol errors.
 
 ## Query, sort, select, and pagination
 
@@ -273,6 +279,40 @@ log through them. The API key or access token is never logged.
 The MCP server ships as part of the App container and is served at `/mcp` behind Nginx — no separate deployment is needed. Its tools call the OneUptime API at the App's internal address - `SERVER_APP_HOSTNAME` and `APP_PORT`, the address Nginx proxies `/api` to (inherited from the App service's environment) - never through the public `HOST`, which the App container cannot always reach (with `HOST=localhost` it is the container itself). API keys are never configured on the server; clients supply them per request.
 
 OAuth sign-in needs nothing configured either, but it does depend on `HOST` and `HTTP_PROTOCOL` being the address people actually use: the issuer, the token audience and every endpoint in the discovery documents are built from them. A reverse proxy in front of OneUptime has to forward `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server` (and everything under them) to the App along with `/mcp`; the bundled Nginx does.
+
+## MCP Registry
+
+OneUptime Cloud's server is listed in the official [MCP Registry](https://registry.modelcontextprotocol.io), which MCP clients and directories read, as `com.oneuptime/mcp`. [`server.json`](server.json) is the entry: streamable HTTP at `https://oneuptime.com/mcp`, signed in to with OAuth, or given a project API key in the optional `x-api-key` header. Its `version` is a placeholder, `0.0.0`.
+
+Every release publishes it at the release's version. The `publish-mcp-registry` job in `.github/workflows/release.yml` runs `Scripts/MCP/PublishToMcpRegistry.sh` once the GitHub release is published, and skips a version the registry already has, so re-running a release publishes nothing twice. A published version cannot be changed.
+
+Only whoever controls `oneuptime.com` may publish under `com.oneuptime`. The job signs in with an Ed25519 private key whose public key is in a TXT record on `oneuptime.com`, and it fails, publishing nothing, until both are in place. To set them up (Ed25519 needs OpenSSL 3; on macOS, `brew install openssl@3` and use its `openssl`, not the system LibreSSL):
+
+1. Make a key pair:
+
+   ```bash
+   openssl genpkey -algorithm Ed25519 -out mcp-registry-key.pem
+   ```
+
+2. Add a TXT record on `oneuptime.com` itself, not on a subdomain such as `_mcp.oneuptime.com`, with the value this prints:
+
+   ```bash
+   echo "v=MCPv1; k=ed25519; p=$(openssl pkey -in mcp-registry-key.pem -pubout -outform DER | tail -c 32 | base64)"
+   ```
+
+3. In the repository's **Settings → Environments**, create `mcp-registry-publish`, limit its deployment branches to `release`, and give it the secret `MCP_REGISTRY_PRIVATE_KEY`: the private key in hex, which this prints:
+
+   ```bash
+   openssl pkey -in mcp-registry-key.pem -noout -text | grep -A3 "priv:" | tail -n +2 | tr -d ' :\n'
+   ```
+
+Then delete `mcp-registry-key.pem`, or keep it somewhere safe: whoever has the key can publish, and overwrite, any entry under `com.oneuptime`. To change the key, replace the TXT record and the secret together; an old record left beside the new one is tried first and fails the sign-in.
+
+To publish before the next release, run the script by hand from the repository root, with [`mcp-publisher`](https://github.com/modelcontextprotocol/registry/releases) and `jq` installed: `PACKAGE_VERSION=<version> MCP_REGISTRY_PRIVATE_KEY=<hex key> bash Scripts/MCP/PublishToMcpRegistry.sh`.
+
+## ChatGPT plugin directory
+
+[`ChatGPTPlugin/`](ChatGPTPlugin/README.md) is the package OneUptime uploads to the ChatGPT plugin directory, which ChatGPT and Codex share: the listing, five positive and three negative review test cases, and `mcp.json`, which points at `https://oneuptime.com/mcp` and signs in with OAuth for read and write access. `npm run build-chatgpt-plugin` builds the ZIP. Its README lists what else a submission needs: a verified developer identity, a domain-verification token served at `https://oneuptime.com/.well-known/openai-apps-challenge`, reviewer credentials for a demo project, and a demo video. `Tests/ChatGPTPlugin.test.ts` holds the package to the Agent Plugins schemas and OpenAI's limits, and checks that every tool a test case names is one this server has.
 
 ## Development
 

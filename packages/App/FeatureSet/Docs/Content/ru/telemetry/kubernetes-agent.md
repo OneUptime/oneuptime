@@ -4,6 +4,7 @@
 
 :::cards
 - [Установка агента](#установка-агента): Четыре шага с Helm.
+- [Установка в виде дополнения Amazon EKS](#установка-в-виде-дополнения-amazon-eks): Из консоли EKS, без Helm.
 - [Параметры конфигурации](#параметры-конфигурации): Фильтры, сэмплирование, плоскость управления, сервисная сетка, затраты и метки.
 - [ИИ-агент Kubernetes](#ии-агент-kubernetes): `kubectl` только для чтения для OneUptime AI и исправления, когда вы их разрешаете.
 - [Отправляйте меньше](#сокращение-объёма-собираемых-данных): Рычаги в порядке их влияния.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 Откройте **Продукты → Инфраструктура → Kubernetes → Все кластеры**. Кластер появится под своим `clusterName` в течение нескольких минут, и его узлы, поды и рабочие нагрузки заполнятся. ИИ-агент Kubernetes отображается как подключённый на странице кластера **Агент** в разделе **ИИ**.
 :::
 
+## Установка в виде дополнения Amazon EKS
+
+В Amazon EKS агент можно также добавить из консоли EKS, где он входит в число дополнений AWS Marketplace. Он бесплатен, а EKS сам устанавливает, обновляет и удаляет его. Дополнение — это тот же чарт, настроенный так, как нужно дополнению:
+
+- Отправляет данные в OneUptime Cloud, `https://oneuptime.com`, если вы не укажете URL своего OneUptime.
+- Читает ключ приёма из Secret Kubernetes, который вы создаёте, и никогда — из конфигурации дополнения, которую EKS показывает в открытом виде.
+- Регистрирует кластер в OneUptime под его именем в EKS.
+- Работает в пространстве имён `oneuptime-agent`.
+
+:::steps
+### Поместите ключ приёма в Secret
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### Добавьте дополнение
+
+В консоли EKS откройте свой кластер, выберите **Add-ons**, затем **Get more add-ons**, а среди дополнений AWS Marketplace — агент Kubernetes от OneUptime. Оформите на него бесплатную подписку и создайте дополнение. Или через AWS CLI:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### Убедитесь, что дополнение работает
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Как только поды дополнения заработают, его статус станет `ACTIVE`, а кластер в течение нескольких минут появится в OneUptime под своим именем в EKS. Под, который остаётся в состоянии `CreateContainerConfigError`, не может найти Secret: создайте Secret, как на первом шаге, в пространстве имён `oneuptime-agent`.
+:::
+
+### Значения конфигурации дополнения
+
+Задайте их в разделе **Optional configuration settings** консоли EKS или с помощью `--configuration-values` при создании или обновлении дополнения. Все они необязательны:
+
+- `oneuptime.url`: адрес вашего OneUptime. По умолчанию — `https://oneuptime.com`.
+- `oneuptime.existingSecretName`: Secret, в котором ключ приёма хранится под ключом `api-key`. По умолчанию — `oneuptime-ingestion-key`.
+- `oneuptime.labels`: метки проекта для всего, что отправляет этот кластер, например `{"team": "payments"}`.
+- `preset`: `eks-fargate` для кластера, который работает только на Fargate, иначе `standard` (по умолчанию).
+- `logs.enabled`, `ebpf.enabled` и `aiAgent.enabled`: логи подов, трассировки eBPF и [ИИ-агент Kubernetes](#ии-агент-kubernetes), все включены по умолчанию.
+- `kubeStateMetrics.enabled` и `cost.enabled`: kube-state-metrics и [наблюдаемость затрат](/docs/telemetry/kubernetes-cost), оба по умолчанию выключены.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+Обновление заменяет всю конфигурацию: всё, что вы не указали, возвращается к значениям по умолчанию. Остальные настройки чарта, например профилировщик, исправления OneUptime AI и фильтры пространств имён, требуют [установки через Helm](#установка-агента). Чтобы перевести кластер с установки через Helm на дополнение, сначала удалите релиз Helm.
+
 ## Выбор пресета
 
 `preset` выбирает значения по умолчанию, которые работают на вашей платформе: читаются ли логи подов с узла через `hostPath` или через API Kubernetes и каким рабочим нагрузкам разрешено работать в привилегированном режиме.
@@ -169,6 +225,23 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 ## Параметры конфигурации
 
 Каждый параметр ниже — это значение Helm. Задайте его при установке или на уже установленном агенте с помощью `helm upgrade ... --reset-then-reuse-values --set <value>`.
+
+### Хранение ключа приёма в Secret
+
+`--set oneuptime.apiKey` хранит ключ в значениях релиза, которые Helm сохраняет с каждой ревизией. Чтобы ключа в них не было, поместите его в Secret в пространстве имён агента под ключом `api-key` и укажите вместо ключа имя этого Secret:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+После этого все рабочие нагрузки агента читают ключ из этого Secret, а чарт не создаёт собственного Secret. Задайте `oneuptime.apiKey` или `oneuptime.existingSecretName`, но не оба: вместе чарт их не принимает. Secret может создать любой инструмент, который записывает Secret, например External Secrets Operator.
 
 ### Фильтрация по пространствам имён
 
@@ -602,7 +675,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **Отказ, который проходит сам** — прежний под агента, который ещё отчитывается (под, заменённый без корректного завершения), или старый Runner внутри кластера, который ещё завершает работу во время обновления. Агент повторяет попытку через время ожидания, указанное сервером.
 - **Отказ, требующий вашего участия** — пустое или слишком длинное `clusterName` либо проект, исчерпавший лимит ИИ-агентов; лог указывает, что изменить. Если агент так и не подключается, а в его логе написано `Another Kubernetes AI agent for cluster "<name>" is online`, две установки используют одно `clusterName` (страница ИИ-агента тоже об этом предупреждает): уже подключённая сохраняет его, пока работает, поэтому дайте каждому кластеру своё `clusterName` или удалите лишний релиз. Ключ приёма с **Pinned Service Name** не может зарегистрировать агента — передайте чарту ключ без него.
 
-**Сбросить агент** в меню **⋯** рядом со статусом агента на странице ИИ-агента заставляет сервер забыть ключ агента после вашего подтверждения (это может сделать владелец проекта, администратор проекта или **Edit Auto Remediation Rule**); под переподключается сам в течение нескольких минут. Готовность агента не зависит от OneUptime, поэтому неверно настроенный ИИ-агент никогда не приводит к ошибке `helm upgrade --wait` — к ней приводит только под, который не может скачать свой образ.
+**Сбросить агент** в меню **⋯** рядом со статусом агента на странице ИИ-агента заставляет сервер забыть ключ агента после вашего подтверждения (это может сделать владелец проекта, администратор проекта или **Edit Auto Remediation Rule** на кластере, который он может редактировать); под переподключается сам в течение нескольких минут. Готовность агента не зависит от OneUptime, поэтому неверно настроенный ИИ-агент никогда не приводит к ошибке `helm upgrade --wait` — к ней приводит только под, который не может скачать свой образ.
 
 ## Обновление агента
 

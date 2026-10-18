@@ -139,7 +139,7 @@ Selezionate le **Sonde** che raggiungono il database e un **Intervallo di monito
 | **Host** | L'host del database raggiungibile dalla sonda (per esempio `db.internal`). |
 | **Porta** | La porta del database. |
 | **Nome del database** | Il database su cui eseguire la query. |
-| **Use Windows Integrated Authentication** | Solo Microsoft SQL Server. Autenticarsi con l'account che esegue la sonda invece che con nome utente e password SQL. Consultate [Autenticazione integrata di Windows](#autenticazione-integrata-di-windows). |
+| **Autenticazione** | Solo Microsoft SQL Server: **Nome utente e password**, l'impostazione predefinita, oppure **Windows Integrated Authentication**, che accede con l'account che esegue la sonda. Consultate [Autenticazione integrata di Windows](#autenticazione-integrata-di-windows). |
 | **Nome utente** | Un utente del database in sola lettura, con privilegi minimi. |
 | **Password** | La password del database. Consigliamo vivamente di fare riferimento a un [segreto del monitor](/docs/monitor/monitor-secrets) con `{{monitorSecrets.name}}` invece di digitare la password in chiaro (consultate [Usare un segreto del monitor per la password](#usare-un-segreto-del-monitor-per-la-password)). |
 | **SQL Query** | La query in sola lettura da eseguire (consultate [Scrivere la query](#scrivere-la-query)). |
@@ -157,7 +157,7 @@ Un valore sopra il massimo viene abbassato al massimo.
 
 ### Autenticazione integrata di Windows
 
-Per Microsoft SQL Server, attivate **Use Windows Integrated Authentication** per aprire una connessione attendibile con l'identità del processo della sonda. I campi Nome utente e Password vengono ignorati in questa modalità e non vengono passati al driver. Poiché la sonda ha bisogno di un'identità considerata attendibile dal vostro dominio, usate una sonda self-hosted per questa modalità di autenticazione.
+Per Microsoft SQL Server, scegliete **Windows Integrated Authentication** in **Autenticazione** per aprire una connessione attendibile con l'identità del processo della sonda. Il modulo nasconde allora **Nome utente** e **Password**, e nessuno dei due viene passato al driver. Poiché la sonda ha bisogno di un'identità considerata attendibile dal vostro dominio, usate una sonda self-hosted per questa modalità di autenticazione.
 
 | La sonda gira su | Cosa configurare |
 |---|---|

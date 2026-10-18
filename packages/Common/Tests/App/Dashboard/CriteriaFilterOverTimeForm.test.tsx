@@ -353,7 +353,7 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
 
       expect(
         screen.getByText(
-          "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.",
+          "Make it longer than the monitoring interval, so the window holds several checks.",
         ),
       ).toBeTruthy();
     });

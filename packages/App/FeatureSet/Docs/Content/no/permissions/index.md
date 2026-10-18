@@ -59,6 +59,7 @@ En bruker er «i» et prosjekt når vedkommende er medlem av **minst ett team** 
 - Invitasjoner oppretter et ventende teammedlem. Brukeren teller først som prosjektmedlem — og får først noen tillatelse — **etter å ha godtatt invitasjonen.**
 - **Inviter bruker** starter på prosjektets medlemsteam: teamet som har `ProjectMember` for hele prosjektet, altså **Members** med mindre du har gitt det nytt navn. Velg et annet team for å gi personen mer eller mindre tilgang. Ingenting er valgt når du ikke selv kunne invitert til det teamet — å invitere noen gir dem teamets tillatelser, og du kan bare gi videre tillatelser du selv har — eller når prosjektet ikke har et slikt team. Administratordashbordet starter på det samme teamet overalt der en administrator av instansen legger noen til i et prosjekt: **Inviter bruker** på et prosjekt, **Legg til i prosjekt** på en bruker og på flere brukere samtidig, og prosjektene som er knyttet til en [global SSO-leverandør](/docs/identity/global-sso).
 - Fjerner du en bruker fra alle team i et prosjekt, mister vedkommende tilgangen til prosjektet fra neste forespørsel — også mens vedkommende er pålogget. Kontoen og brukerens andre prosjekter berøres ikke. Brukeren tas ut av prosjektets vaktplaner, eskaleringsregler og overstyringer, av rollene i de åpne hendelsene og episodene og av eierne av ressursene; løste hendelser beholder hvem som eide og ledet dem.
+- Fjerner du noens tilgang som hovedadministrator i Admin Dashboard på en selvhostet installasjon, mister vedkommende den fra neste forespørsel — også mens vedkommende er pålogget. Vedkommende forblir pålogget og beholder prosjektene vedkommende er medlem av.
 - Den som forlater et prosjekt, får ikke lenger varslene fra det. Personens egne varslingsmetoder, -regler og -innstillinger for prosjektet fjernes sammen med det siste teamet — e-post, SMS, anrop, WhatsApp, Telegram, push, webhook, Slack og Microsoft Teams, e-postsammendraget og e-posten som ennå ikke er sendt, nummeret for innkommende anrop og vaktpåminnelsene —, så den som blir med igjen, starter fra standardinnstillingene. Det som fortsatt nevner personen, som brukeren en regel for innkommende anrop ringer til eller en eier som beholdes på en løst hendelse, varsler ikke lenger personen: ingenting sendes på vegne av et prosjekt til noen som ikke er medlem, og en ventende invitasjon er ennå ikke et medlemskap. Disse stedene viser **Ikke lenger medlem** ved siden av navnet, slik at du kan sette inn en annen. Den som er invitert og ikke har akseptert ennå, viser i stedet **Invitasjon ikke akseptert ennå**. Hvis en overstyring sender noens varsler videre til en person som har forlatt prosjektet, varsles i stedet den som overstyringen dekker. Å forlate prosjektet kobler også fra MCP-klientene personen har koblet til prosjektet, og personens personlige lenke til vaktkalenderen viser deretter en tom kalender. På OneUptime Cloud bekrefter den som kommer tilbake via prosjektets enkel pålogging (SSO), den på nytt fra e-postkassen sin.
 - Krever prosjektet SSO og brukeren ennå ikke har autentisert seg via identitetsleverandøren, behandles vedkommende som uautorisert SSO-bruker og ser ingenting før det er gjort. Se [SSO](/docs/identity/sso).
 - Med SCIM satt opp kan identitetsleverandøren opprette, oppdatere og fjerne brukere og teammedlemskap automatisk. Se [SCIM](/docs/identity/scim).
@@ -191,11 +192,11 @@ Hver tillatt rettighet gis med et omfang, valgt under **Omfang** når du legger 
 
 | Omfang | Betydning |
 | --- | --- |
-| Alle ressurser i prosjektet | Standarden. Tillatelsen gjelder for alle ressurser som passer. |
-| Eid av dette teamet eller medlemmene | Tillatelsen gjelder bare ressurser der dette teamet, eller brukeren som handler, står oppført som eier. |
-| Begrens etter etiketter (avansert) | Tillatelsen gjelder bare ressurser som bærer minst én av de valgte etikettene. |
+| Alle ressurser i prosjektet | Standarden, og det de fleste team trenger. Tillatelsen gjelder for alle ressurser som passer. |
+| Bare ressurser de eier | Tillatelsen gjelder bare ressurser som personen som handler, eller et av teamene deres, eier. |
+| Bare ressurser med bestemte etiketter | Tillatelsen gjelder bare ressurser som bærer minst én av de valgte etikettene. |
 
-**Eide** er den enkleste måten å bygge en modell der «dere passer på deres egne tjenester»: gi et team `MonitorAdmin` med omfanget Eide, og gjør så teamet til eier av overvåkerne det har ansvaret for. Det snevrer bare inn ressurser som faktisk kan ha eiere — overvåkere, hendelser, dashbord, tjenester og lignende. Prosjektkonfigurasjon (hendelsestilstander, etiketter, selve teamene) har ingen eier, så en rolle med omfanget Eide oppfører seg normalt der.
+**Eide** er den enkleste måten å bygge en modell der «dere passer på deres egne tjenester»: gi et team `MonitorAdmin` med omfanget Eide, og gjør så teamet til eier av overvåkerne det har ansvaret for. Det snevrer inn alle ressurser som kan ha eiere — overvåkere, hendelser, dashbord, tjenester, monitorgrupper, vaktplaner og lignende — og det som hører til dem, som lagene i en vaktplan. Sonder, Runnere, AI-agenter, vaktplaner og hendelses- og vedlikeholdsmaler er det andre ressurser settes opp med, så en tillatelse med omfanget Eide leser fortsatt alle sammen, og du kan velge hvilken som helst av dem; den endrer og sletter bare dem du eller teamene dine eier. En Runners nøkkel, som lar den som har den, opptre som Runneren, vises bare på Runnerne du eller teamene dine eier. Prosjektkonfigurasjon (hendelsestilstander, etiketter, selve teamene) har ingen eier, så en rolle med omfanget Eide oppfører seg normalt der.
 
 **Etiketter** er den mer manuelle varianten av samme idé: merk ressurser, og gi så tillatelser begrenset til de merkene.
 
@@ -216,7 +217,7 @@ Eiere har to oppgaver:
 
 Eierskap alene gir ingenting. Å eie en overvåker gir ikke rett til å redigere den med mindre et av teamene dine også har en overvåkertillatelse. Eierskap snevrer inn tilgang; det utvider den aldri.
 
-Hvem som eier en ressurs, leses gjennom ressursen. Eierne av en overvåker eller av en annen ressurs vises, leses, legges til og fjernes bare av noen som kan lese ressursen, og en tillatelse for eiere alene når ikke eierne av noen ressurs du ikke kan lese.
+Hvem som eier en ressurs, leses gjennom ressursen. Eierne av en overvåker eller av en annen ressurs vises, leses, legges til og fjernes bare av noen som kan lese ressursen, og en tillatelse for eiere alene når ikke eierne av noen ressurs du ikke kan lese. Å legge til og fjerne eiere holder seg også til omfanget av tillatelsen som gir lov til det: med omfanget `Owned` når den bare ressursene som du eller et av teamene dine allerede eier, uansett hvor mange flere du kan lese, så det at du kan lese en overvåker, lar deg ikke gjøre deg selv til eieren av den. En eier legges til eller fjernes, men flyttes aldri til en annen ressurs.
 
 ## Etiketter
 
@@ -322,7 +323,7 @@ Løste tillatelser bufres per bruker og prosjekt, og oppdateres når teammedlems
 
 **Et team som bare ser på.** Opprett teamet med **Viser** under **Tilgang**. For bare noen områder velger du **Velg tillatelser senere** og legger til de områdevise `*Viewer`-rollene teamet skal se.
 
-**Vaktingeniører som drifter sine egne tjenester.** Gi teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Eide**, og legg så til teamet som eier av overvåkerne det drifter.
+**Vaktingeniører som drifter sine egne tjenester.** Gi teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Eide**, og legg så til teamet som eier av overvåkerne, vaktretningslinjene og vaktplanene det drifter. Det personene dets oppretter med disse tillatelsene, eier de allerede.
 
 **Innleide holdt unna produksjon.** Gi teamet rollene det trenger med omfanget **Alle**, og legg så til en **blokkert tillatelse** (under **Flere innstillinger** på teamets side Tillatelser) for de sensitive evnene, begrenset til etiketten `Production`.
 

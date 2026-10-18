@@ -81,6 +81,11 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { KUBERNETES_TEMPLATE_CATEGORIES } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
+import {
+  ALERT_TEMPLATE_TIME_RANGE,
+  AlertTemplateCategory,
+} from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 import fs from "fs";
 import path from "path";
 
@@ -1014,9 +1019,16 @@ describe(`${KUBERNETES}: the template table`, () => {
       `${FORMS}/KubernetesMonitor/KubernetesTemplatePicker.tsx`,
     );
 
-    for (const label of Object.values(CATEGORY_LABELS)) {
-      expect(picker).toContain(`label: "${label}"`);
-    }
+    expect(picker).toContain("categories={KUBERNETES_TEMPLATE_CATEGORIES}");
+    expect(
+      Object.fromEntries(
+        KUBERNETES_TEMPLATE_CATEGORIES.map(
+          (category: AlertTemplateCategory): [string, string] => {
+            return [category.category, category.label];
+          },
+        ),
+      ),
+    ).toEqual(CATEGORY_LABELS);
   });
 
   it("states every threshold and long window a template fires on", () => {
@@ -1441,12 +1453,23 @@ describe("creating a telemetry-backed infrastructure monitor", () => {
   });
 
   it("a template's names stay as the picker shows them, and its Time Range stays editable", () => {
+    /*
+     * Once a template is picked, the list folds into it, and its Time Range
+     * (the step form hands it to the picker) stays editable under it.
+     */
+    const configuration: string = source(
+      `${FORMS}/AlertTemplatePicker/AlertTemplateConfiguration.tsx`,
+    );
+
+    expect(ALERT_TEMPLATE_TIME_RANGE).toBe("Time Range");
+    expect(configuration).toContain("title={ALERT_TEMPLATE_TIME_RANGE}");
+    expect(configuration).toContain("<RollingTimePicker");
+
     for (const facts of CREATE_FACTS) {
       const form: string = source(`${FORMS}/${facts.form}`);
 
-      expect(form).toContain(
-        "The following settings have been auto-configured. You can adjust the time range below.",
-      );
+      expect(form).toContain("<AlertTemplateConfiguration");
+      expect(form).toContain("onRollingTimeChange={");
       expect(englishPage(facts.page)).toContain(
         "You can still change the **Time Range**.",
       );
@@ -2425,6 +2448,98 @@ describe(`${SERVER}`, () => {
       "puts the `oneuptime-infrastructure-agent` binary in `$HOME/bin`",
     );
     expect(page).toContain("| sudo bash -s -- -b /usr/local/bin");
+  });
+
+  /*
+   * Each release publishes the agent to apt and yum (packages.oneuptime.com),
+   * Homebrew and winget (Scripts/PackageManagers, release.yml's
+   * publish-infrastructure-agent-* jobs). The page installs from where they
+   * publish, under the names they publish. Tests/Ops/package-repository-e2e.sh
+   * runs the apt and dnf commands against a repository they built.
+   */
+  it("installs from the package managers each release publishes to, by the names they publish under", () => {
+    const release: string = source(
+      "agents/InfrastructureAgent/.goreleaser.yaml",
+    );
+    const build: string = source(
+      "Scripts/PackageManagers/BuildPackageRepository.sh",
+    );
+    const publish: string = source(
+      "Scripts/PackageManagers/PublishPackageRepository.sh",
+    );
+
+    // apt: the suite and component the repository is built with, at the site it is pushed to.
+    expect(publish).toContain(
+      'URL="${PACKAGE_REPOSITORY_URL:-https://packages.oneuptime.com}"',
+    );
+    expect(build).toContain('readonly SUITE="stable"');
+    expect(build).toContain('readonly COMPONENT="main"');
+    expect(build).toContain(
+      'gpg --batch --armor --export "$SIGNING_KEY" >"$REPOSITORY/gpg.key"',
+    );
+    expect(page).toContain(
+      "sudo curl -fsSL https://packages.oneuptime.com/gpg.key -o /etc/apt/keyrings/oneuptime.asc",
+    );
+    expect(page).toContain(
+      'echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] https://packages.oneuptime.com/deb stable main" | sudo tee /etc/apt/sources.list.d/oneuptime.list',
+    );
+
+    // yum and dnf: the .repo file the build writes.
+    expect(build).toContain('cat >"$RPM/oneuptime.repo" <<EOF');
+    expect(page).toContain(
+      "sudo curl -fsSL https://packages.oneuptime.com/rpm/oneuptime.repo -o /etc/yum.repos.d/oneuptime.repo",
+    );
+
+    // The packages are nfpm's, with its default bindir.
+    expect(release).toContain("package_name: oneuptime-infrastructure-agent");
+    expect(release).not.toContain("bindir:");
+    expect(page).toContain("the packages put the binary in `/usr/bin`");
+
+    // Homebrew: GoReleaser's cask, in OneUptime/homebrew-tap, which brew calls oneuptime/tap.
+    expect(release).toContain(
+      "homebrew_casks:\n  - name: oneuptime-infrastructure-agent",
+    );
+    expect(release).toContain(
+      "    repository:\n      owner: OneUptime\n      name: homebrew-tap",
+    );
+    expect(page).toContain(
+      "brew install oneuptime/tap/oneuptime-infrastructure-agent",
+    );
+
+    // winget: the identifier GoReleaser writes the manifests under.
+    expect(release).toContain(
+      "package_identifier: OneUptime.InfrastructureAgent",
+    );
+    expect(page).toContain(
+      "winget install --id OneUptime.InfrastructureAgent --exact --scope machine",
+    );
+  });
+
+  it("names the release's MSIs, where they install the agent, and that a newer one upgrades and restarts it", () => {
+    const build: string = source("agents/InfrastructureAgent/build-msi.sh");
+    const installer: string = source(
+      "agents/InfrastructureAgent/windows/oneuptime-infrastructure-agent.wxs",
+    );
+
+    expect(build).toContain('ARCHES=("amd64" "arm64")');
+    expect(build).toContain('MSI_FILE="$OUTPUT_DIR/$APP_NAME-$ARCH.msi"');
+    expect(installer).toContain(
+      "<Directory Id='ProgramFiles64Folder' Name='PFiles'>",
+    );
+    expect(installer).toContain(
+      "<Directory Id='OneUptimeInfrastructureAgent' Name='OneUptimeInfrastructureAgent'>",
+    );
+    expect(installer).toContain("<MajorUpgrade");
+    expect(installer).toContain(
+      "ExeCommand='start oneuptime-infrastructure-agent'",
+    );
+    expect(page).toContain(
+      "`oneuptime-infrastructure-agent-amd64.msi` (or `oneuptime-infrastructure-agent-arm64.msi`)",
+    );
+    expect(page).toContain(
+      "It installs the agent in `C:\\Program Files\\OneUptimeInfrastructureAgent`, and a newer MSI upgrades it in place and starts it again.",
+    );
+    expect(page).toContain("| MSI | Install the newer MSI. |");
   });
 
   it("the Windows downloads are the release's zip archives", () => {

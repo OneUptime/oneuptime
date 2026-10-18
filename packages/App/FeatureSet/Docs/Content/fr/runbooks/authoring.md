@@ -25,11 +25,11 @@ Ouvrez **Produits → Runbooks**. Runbooks se trouve dans le groupe **Tableaux d
 
 ### Créer le runbook
 
-Cliquez sur **Créer : Runbook**, saisissez un **Nom** et, si vous le souhaitez, une **Description** de l'usage du runbook. Sous **Plus de champs** se trouvent l'interrupteur **Activé**, activé par défaut, et les **Étiquettes**. Le nouveau runbook apparaît dans la liste : ouvrez-le.
+Cliquez sur **Créer : Runbook**, saisissez un **Nom** et, si vous le souhaitez, une **Description** de l'usage du runbook. Sous **Plus de champs** se trouvent l'interrupteur **Activé**, activé par défaut, et les **Étiquettes**. Le nouveau runbook s'ouvre sur sa page **Étapes**.
 
 ### Ajouter des étapes
 
-Allez dans **Étapes**. Sous **Start your runbook**, choisissez le type de la première étape ; sous la dernière étape, **Ajouter une autre étape** propose les mêmes sept types. Chaque étape s'ouvre avec son **Titre**, sa **Description** (en Markdown, affichée à la personne qui intervient) et les réglages de son type. Dès que le runbook a une étape, **Ajouter une étape**, en haut de la carte, ajoute une étape Manual.
+Sous **Start your runbook**, choisissez le type de la première étape ; sous la dernière étape, **Ajouter une autre étape** propose les mêmes sept types. Chaque étape s'ouvre avec son **Titre**, sa **Description** (en Markdown, affichée à la personne qui intervient) et les réglages de son type. Dès que le runbook a une étape, **Ajouter une étape**, en haut de la carte, ajoute une étape Manual.
 
 ### Ordonner les étapes
 

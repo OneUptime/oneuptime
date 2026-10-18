@@ -5,7 +5,7 @@ Una página de estado es la cara pública de todo lo que monitorizas: una única
 Cuando algo se rompe a las 2 de la madrugada, la página de estado es lo primero que enlaza tu cola de soporte. También es desde donde se notifica a tus suscriptores, así que merece la pena configurarla antes de necesitarla, no en mitad de la caída.
 
 :::cards
-- [Crear una página de estado](#crear-una-página-de-estado): Dos campos para empezar, todo lo demás después.
+- [Crear una página de estado](#crear-una-página-de-estado): Un nombre para empezar, todo lo demás después.
 - [Elegir qué muestra](#elegir-qué-se-muestra-en-la-página): Incidentes, episodios, anuncios, mantenimiento y tiempo de actividad, en una sola tarjeta.
 - [Decidir quién puede verla](#restringir-quién-puede-ver-la-página): Cualquiera con el enlace, solo quienes inician sesión o cualquiera con la contraseña.
 - [Archivar una página de estado](#archivar-una-página-de-estado): Desconectar una página sin eliminarla.
@@ -33,7 +33,7 @@ La página muestra como recursos los monitores que colocas en ella, y los incide
 
 ## De un vistazo
 
-- **Se crea con dos campos.** Una página de estado nueva solo pide **Nombre** y **Descripción**. Los recursos, la marca y los dominios se configuran después.
+- **Se crea con un nombre.** Una página de estado nueva solo pide su **Nombre**; **Descripción** y **Etiquetas** esperan en **Más campos**. Los recursos, la marca y los dominios se configuran después.
 - **Los recursos son lo que ven los visitantes.** Cada fila de la página es un **Recurso de la página de estado**: un monitor (o grupo de monitores) con su propio nombre visible, su información emergente y sus opciones de tiempo de actividad. Los grupos dividen una página larga en secciones y se pueden anidar.
 - **Una URL de vista previa desde el primer día.** Cada página de estado recibe un enlace de vista previa para que puedas verla antes de que exista un dominio personalizado.
 - **Las rutas para visitantes dependen de ajustes.** Los incidentes, los episodios, los anuncios y los eventos programados solo aparecen mientras su interruptor en **Lo que muestra tu página de estado** (en **Ajustes avanzados**) está activado, y la página de suscripción solo mientras **Mostrar página de suscriptores** está activado.
@@ -61,13 +61,13 @@ Abre **Páginas de estado → Todas las páginas de estado** y haz clic en **Cre
 
 ### Ponerle nombre a la página
 
-En la ventana **Crear Página de estado**, rellena **Nombre** (obligatorio, al menos dos caracteres) y, si quieres, **Descripción**, y haz clic en **Crear página de estado**.
+En la ventana **Crear Página de estado**, rellena **Nombre** (obligatorio, al menos dos caracteres) y haz clic en **Crear página de estado**. **Descripción** y **Etiquetas** son opcionales, en **Más campos**.
 
-Ese es todo el formulario. La lista a la que vuelves muestra **Nombre**, **Descripción**, **Etiquetas** y **Propietarios**, y se puede filtrar por **ID de la página de estado**, **Nombre** y **Descripción**.
+Ese es todo el formulario. La lista **Páginas de estado** muestra **Nombre**, **Descripción**, **Etiquetas** y **Propietarios**, y se puede filtrar por **ID de la página de estado**, **Nombre** y **Descripción**.
 
 ### Abrir la página nueva
 
-Abre la página nueva y llegarás a su pantalla **Vista general**, que tiene dos tarjetas: **URL de vista previa de la página de estado**, con un enlace a la propia página, y **Detalles de la página de estado**, donde puedes editar el nombre, la descripción y las etiquetas que acabas de definir. Cuando el proyecto tiene campos personalizados de páginas de estado, les sigue una tarjeta **Campos personalizados**.
+La página nueva se abre en su pantalla **Vista general**. Mientras la página no tiene ningún recurso, la pantalla empieza con **Aún no hay nada en esta página de estado** y **Añadir monitores**, que abre su pantalla **Recursos**. Después vienen dos tarjetas: **Enlace de la página de estado**, con el enlace a la propia página y **Copiar enlace**, y **Detalles de la página de estado**, donde puedes editar el nombre, la descripción y las etiquetas que acabas de definir. Cuando el proyecto tiene campos personalizados de páginas de estado, les sigue una tarjeta **Campos personalizados**.
 :::
 
 Una página creada con la API o con Terraform está sujeta a los mismos planes que los ajustes que se describen abajo. En OneUptime Cloud, crear una página con un ajuste activado que tu plan no incluye (por ejemplo privada, una lista oculta, HTML, CSS o JavaScript personalizados, informes por correo electrónico, suscriptores por SMS, Slack, Microsoft Teams o webhook, una lista de IP permitidas) se rechaza con `402 Payment Required`, y el mensaje indica el plan. El plan de cada ajuste se indica junto a él más abajo. Los ajustes que se dejan con su valor predeterminado, como los deja este formulario, funcionan en todos los planes.
@@ -115,7 +115,7 @@ La página pública es una aplicación propia, con un pequeño conjunto de rutas
 - `/announcements` y `/announcements/:id`.
 - `/scheduled-events` y `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` y `/unsubscribe/:token`: los enlaces de los mensajes que reciben los suscriptores.
+- `/confirm-subscription/:id`, `/update-subscription/:token` y `/unsubscribe/:token`: los enlaces de los mensajes que reciben los suscriptores.
 - `/rss`: el feed.
 - `/login`, `/sso` y `/master-password`: solo relevantes en una página privada.
 
@@ -167,7 +167,7 @@ Debajo de la tarjeta están **Exportar como JSON: Página de estado**, que desca
 
 ## Previsualizar antes de publicar
 
-La pantalla **Vista general** de cada página de estado tiene una tarjeta **URL de vista previa de la página de estado** con un enlace directo a la página. Úsala mientras sigues añadiendo recursos y antes de que exista un dominio personalizado.
+La pantalla **Vista general** de cada página de estado tiene una tarjeta **Enlace de la página de estado** con un enlace directo a la página y **Copiar enlace** al lado. Úsala mientras sigues añadiendo recursos y antes de que exista un dominio personalizado.
 
 Por debajo, cada ruta pública tiene una gemela de vista previa en `/status-page/{statusPageId}/...`: un resumen de vista previa, una lista de incidencias de vista previa, una página de suscripción de vista previa, etc. Por eso, una URL o una captura de pantalla tomada de la vista previa del panel no coincidirá con lo que ve un cliente una vez asociado un dominio personalizado, así que comprueba cualquier enlace que pegues en un runbook o un correo electrónico.
 
@@ -195,11 +195,11 @@ Añade a las personas que pueden iniciar sesión en **Páginas de estado → tu 
 
 ### SSO y OIDC
 
-Para una página privada vinculada a tu proveedor de identidad, **Páginas de estado → tu página → Seguridad → SSO** configura SAML: introduces la URL de inicio de sesión, el emisor y el certificado x509, y los métodos de firma y de resumen se rellenan en **Más campos**. **Páginas de estado → tu página → Seguridad → OIDC** configura OpenID Connect: introduces el emisor, el ID de cliente y el secreto, y la URL de descubrimiento, los scopes y los nombres de los claims se rellenan en **Más campos**. **SCIM** aprovisiona automáticamente usuarios privados desde el IdP. En OneUptime Cloud, los tres necesitan el plan Scale o superior. En una instalación autoalojada, SSO y OIDC forman parte de todas las ediciones, y SCIM necesita la [Edición Enterprise](/docs/self-hosted/enterprise).
+Para una página privada vinculada a tu proveedor de identidad, **Páginas de estado → tu página → Seguridad → SSO** configura SAML: **Añadir proveedor SSO** pide la URL de inicio de sesión, el emisor y el certificado x509, y los métodos de firma y de resumen se rellenan en **Más campos**. **Páginas de estado → tu página → Seguridad → OIDC** configura OpenID Connect: **Añadir proveedor OIDC** pide el emisor, el ID de cliente y el secreto, y la URL de descubrimiento, los scopes y los nombres de los claims se rellenan en **Más campos**. Cuando una página tiene un proveedor, la tarjeta **Probar el inicio de sesión** bajo la lista enlaza con el inicio de sesión de la página, para probarlo. **SCIM** aprovisiona automáticamente usuarios privados desde el IdP. En OneUptime Cloud, los tres necesitan el plan Scale o superior. En una instalación autoalojada, SSO y OIDC forman parte de todas las ediciones, y SCIM necesita la [Edición Enterprise](/docs/self-hosted/enterprise).
 
 Desactivar o eliminar el proveedor de SSO u OIDC de una página de estado cierra la sesión de los usuarios privados que inició: sus sesiones terminan en su siguiente solicitud, y volver a activar el proveedor no las recupera; vuelven a iniciar sesión con él. Un certificado o un secreto de cliente nuevo, otras URL o un nombre nuevo mantienen a todos con la sesión iniciada. En una página que exige SSO, desactivar su último proveedor deja a todos sin poder iniciar sesión hasta que vuelvas a activar uno o desactives **Requerir SSO para iniciar sesión**; para pasar a otro proveedor, configura y prueba el nuevo antes de desactivar el antiguo.
 
-Debajo de los proveedores, la tarjeta **Ajustes de SSO** contiene el interruptor **Requerir SSO para iniciar sesión** (`requireSsoForLogin`, desactivado por defecto), que se guarda en cuanto lo cambias. Activarlo pide confirmación primero, porque a partir de entonces los usuarios privados no pueden iniciar sesión con correo electrónico y contraseña: solo pueden ver la página las personas a las que deja entrar tu proveedor de SSO u OIDC. Prueba el SSO con el enlace de esa pantalla antes de activarlo. Solo importa mientras **Solo quienes inician sesión** es la elección, y la pantalla **Acceso** lo muestra como **SSO obligatorio** bajo esa elección. Mientras está activado, un usuario privado que inició sesión con correo electrónico y contraseña también pierde la sesión en su siguiente solicitud: solo cuentan las sesiones que inició un proveedor de SSO u OIDC. En OneUptime Cloud, activarlo necesita el plan **Scale**, y desactivarlo funciona en todos los planes. Una página que sigue exigiendo SSO tras terminar una prueba de Scale, o tras pasar a un plan inferior, lo sigue exigiendo hasta que alguien lo desactiva: sus páginas **SSO** y **OIDC** muestran el interruptor bajo la oferta del plan para ello.
+Debajo de los proveedores, la tarjeta **Ajustes de SSO** contiene el interruptor **Requerir SSO para iniciar sesión** (`requireSsoForLogin`, desactivado por defecto), que se guarda en cuanto lo cambias. Activarlo pide confirmación primero, porque a partir de entonces los usuarios privados no pueden iniciar sesión con correo electrónico y contraseña: solo pueden ver la página las personas a las que deja entrar tu proveedor de SSO u OIDC. Prueba el enlace de la tarjeta **Probar el inicio de sesión** de arriba antes de activarlo. Solo importa mientras **Solo quienes inician sesión** es la elección, y la pantalla **Acceso** lo muestra como **SSO obligatorio** bajo esa elección. Mientras está activado, un usuario privado que inició sesión con correo electrónico y contraseña también pierde la sesión en su siguiente solicitud: solo cuentan las sesiones que inició un proveedor de SSO u OIDC. En OneUptime Cloud, activarlo necesita el plan **Scale**, y desactivarlo funciona en todos los planes. Una página que sigue exigiendo SSO tras terminar una prueba de Scale, o tras pasar a un plan inferior, lo sigue exigiendo hasta que alguien lo desactiva: sus páginas **SSO** y **OIDC** muestran el interruptor bajo la oferta del plan para ello.
 
 ### Sesiones de lectores
 
@@ -213,11 +213,13 @@ En **Más ajustes** de **Acceso**, la sección **Lista de IP permitidas** (la co
 
 ## La insignia incrustable y el feed RSS
 
-Dos formas de mostrar el estado en otro sitio que no sea la propia página.
+Tres formas de mostrar el estado en otro sitio que no sea la propia página.
 
-**Insignia de estado incrustada.** En **Páginas de estado → tu página → Avanzado → Estado incrustado**, activa **Habilitar insignia de estado incrustada** (`enableEmbeddedOverallStatus`, desactivado por defecto) y después haz clic en **Regenerar token** en la tarjeta **Token de seguridad** para dar a la insignia su token (`embeddedOverallStatusToken`). La insignia se sirve desde `/api/status-page/badge/<status-page-id>?token=<token>`, y la pantalla la muestra en **Vista previa del distintivo** con fragmentos para copiar, para que puedas poner el estado general actual en tu documentación, en el pie de página de tu aplicación o en una página de marketing.
+**Insignia de estado incrustada.** En **Páginas de estado → tu página → Avanzado → Estado incrustado**, activa **Habilitar insignia de estado incrustada** (`enableEmbeddedOverallStatus`, desactivado por defecto). La primera vez que la activas, la insignia recibe su token (`embeddedOverallStatusToken`), y la tarjeta **Incrustar la insignia** muestra la insignia, servida desde `/api/status-page/badge/<status-page-id>?token=<token>`, con su **HTML** y su **Markdown, con enlace a la página de estado** para copiar, para que puedas poner el estado general actual en tu documentación, en el pie de página de tu aplicación o en una página de marketing. El token está en la tarjeta **Token de seguridad** dentro de **Más ajustes**, con **Regenerar token** por si el enlace se compartió demasiado.
 
 **Feed RSS.** Cada página de estado sirve `/rss`: un feed titulado "{título de la página} Updates", con el **Título de la página** definido en **Marca**, o su nombre si no tiene, y cuyos elementos empiezan por `Incident: `, `Announcement: ` y `Scheduled Maintenance: `. Útil para quien prefiere llevar tus actualizaciones a un lector o a un chatbot en lugar de suscribirse por correo electrónico.
+
+**Calendario de mantenimiento.** Cada página de estado sirve también `/maintenance.ics`: el mantenimiento programado que muestra, como un calendario al que Google Calendar, el Calendario de Apple u Outlook pueden suscribirse. Los visitantes lo añaden con **Suscribirse al calendario** en la página **Eventos programados**, y un solo evento con **Añadir al calendario** en la propia página del evento. El calendario de una página privada está vacío, porque una aplicación de calendario no puede iniciar sesión. Consulta [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#el-calendario-de-una-página-de-estado).
 
 Si prefieres obtener los datos tú mismo, la página de estado se apoya en endpoints públicos de lectura para el resumen, los incidentes, los eventos de mantenimiento programado, los anuncios y los episodios: consulta [API pública](/docs/status-pages/public-api).
 

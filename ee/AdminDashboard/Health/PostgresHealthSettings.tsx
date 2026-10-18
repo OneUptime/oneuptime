@@ -155,7 +155,7 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
           },
           placeholder: "50",
           description:
-            "Send a notification when transaction-ID age reaches this percentage of the wraparound ceiling. Recovering from wraparound needs the instance offline, so this warns much earlier than a capacity check.",
+            "Notify when transaction-ID age reaches this share of the wraparound limit. Set it low: recovering from wraparound takes the instance offline.",
         },
         {
           field: {
@@ -182,7 +182,7 @@ const PostgresHealthSettings: FunctionComponent = (): ReactElement => {
           },
           placeholder: "10",
           description:
-            "Send a notification when a single replication slot retains more than this many gigabytes of WAL. An abandoned slot retains WAL forever and will eventually fill the volume.",
+            "Notify when one replication slot holds more than this many GB of WAL. An abandoned slot keeps WAL forever and fills the disk.",
         },
       ]}
       modelDetailProps={{

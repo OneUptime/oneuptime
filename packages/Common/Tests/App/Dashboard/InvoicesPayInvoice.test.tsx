@@ -41,7 +41,7 @@ const CUSTOMER_ID: string = "cus_stale_card_customer";
 const INVOICE_ID: string = "in_stale_card_invoice";
 const CLIENT_SECRET: string = "pi_stale_card_invoice_secret_abc";
 const PROCESSING_MESSAGE: string =
-  "Your bank is still processing a payment for this invoice. Some banks (for example cards issued in India) take up to 2 days to confirm recurring card payments. You do not need to pay again - the invoice will update automatically once the bank confirms.";
+  "Your bank is still processing a payment for this invoice, which can take up to 2 days. You do not need to pay again.";
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {

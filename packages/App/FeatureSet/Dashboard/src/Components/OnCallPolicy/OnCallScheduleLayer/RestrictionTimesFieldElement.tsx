@@ -7,7 +7,6 @@ import RestrictionTimes, {
 } from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import Typeof from "Common/Types/Typeof";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown from "Common/UI/Components/Dropdown/Dropdown";
 // removed InputType.TIME usage in favor of TimePicker
 import TimePicker from "Common/UI/Components/TimePicker/Index";
@@ -37,6 +36,18 @@ export interface ComponentProps {
    */
   timezone?: string | undefined;
 }
+
+/*
+ * Over each clock: the start and the end of a window, as a form names its
+ * fields - quiet and in the reader's words. They were the detail cards'
+ * tracked capitals with a dot after them ("FROM: •"), which shouted over a
+ * time field.
+ */
+export const RESTRICTION_TIME_LABEL_CLASS_NAME: string =
+  "mb-1 text-xs font-medium text-gray-500";
+
+// One end of a weekly window: its day over its time, as wide as the time.
+export const RESTRICTION_WINDOW_END_CLASS_NAME: string = "flex flex-col gap-2";
 
 type CopyRestrictionTimesFunction = (
   value: RestrictionTimes,
@@ -148,9 +159,11 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
     // show start time to end time input fields
 
     return (
-      <div className="flex space-x-3">
+      <div className="flex flex-wrap gap-x-5 gap-y-3">
         <div>
-          <FieldLabelElement title="From:" />
+          <p className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
+            {translator.translateText("From:")}
+          </p>
           <TimePicker
             value={storedDateToTimePickerValue(
               restrictionTimes?.dayRestrictionTimes?.startTime,
@@ -175,7 +188,9 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           />
         </div>
         <div>
-          <FieldLabelElement title="To:" />
+          <p className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
+            {translator.translateText("To:")}
+          </p>
           <TimePicker
             value={storedDateToTimePickerValue(
               restrictionTimes?.dayRestrictionTimes?.endTime,
@@ -253,7 +268,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
     (): ReactElement => {
       return (
         <div>
-          <div className="ml-8">
+          {/* A window apart from the next, so each From reads with its To. */}
+          <div className="ml-8 space-y-4">
             {/** LIST */}
 
             {restrictionTimes?.weeklyRestrictionTimes?.map(
@@ -299,7 +315,11 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             )}
           </div>
 
-          <div className="ml-5 mt-3">
+          {/*
+           * Level with the windows above it: Button keeps a dialog footer's
+           * left margin (md:ml-3), which its wrapper clears.
+           */}
+          <div className="ml-8 mt-3 [&>button]:ml-0 [&>button]:md:ml-0">
             {/** show add button */}
             <Button
               title="Add Restriction Time"
@@ -338,13 +358,23 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
   }): ReactElement => {
     // show start time to end time input fields
 
+    /*
+     * One window, one row: From and To side by side, each its day over its
+     * time, and Delete level with the times. The day picker is as wide as
+     * the time under it: it was as wide as its day's name, so its arrow and
+     * its clear button wrapped under the day. On a narrow screen To and
+     * Delete wrap under From rather than running past the card's edge.
+     */
     return (
-      <div className="flex space-x-3 mt-2">
+      <div className="mt-2 flex flex-wrap items-end gap-x-5 gap-y-3">
         <div>
-          <FieldLabelElement title="From:" />
-          <div className="space-x-3 flex">
+          <p className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
+            {translator.translateText("From:")}
+          </p>
+          <div className={RESTRICTION_WINDOW_END_CLASS_NAME}>
             <div>
               <Dropdown
+                isClearable={false}
                 options={DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek)}
                 value={DropdownUtil.getDropdownOptionFromEnumForValue(
                   DayOfWeek,
@@ -396,11 +426,14 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             </div>
           </div>
         </div>
-        <div className="ml-5">
-          <FieldLabelElement title="To:" />
-          <div className="space-x-3 flex">
+        <div>
+          <p className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
+            {translator.translateText("To:")}
+          </p>
+          <div className={RESTRICTION_WINDOW_END_CLASS_NAME}>
             <div>
               <Dropdown
+                isClearable={false}
                 options={DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek)}
                 value={DropdownUtil.getDropdownOptionFromEnumForValue(
                   DayOfWeek,
@@ -453,8 +486,11 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           </div>
         </div>
 
-        <div className="mt-8">
-          {/* Dellete Button */}
+        {/*
+         * Button keeps a dialog footer's left margin (md:ml-3); the row's gap
+         * spaces it here.
+         */}
+        <div className="[&>button]:ml-0 [&>button]:md:ml-0">
           <Button
             title="Delete"
             buttonStyle={ButtonStyleType.NORMAL}
@@ -528,18 +564,28 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           }
         }}
         initialValue={restrictionTimes?.restictionType}
+        /*
+         * In the reader's language: the radio draws its titles as given, so
+         * they were English in every language, beside a same-time error
+         * that names "No Restrictions" in the reader's words.
+         */
         options={[
           {
-            title: "No Restrictions",
+            title:
+              translator.translateText("No Restrictions") || "No Restrictions",
             value: RestrictionType.None,
           },
           {
-            title: "Specific Times of the Day",
+            title:
+              translator.translateText("Specific Times of the Day") ||
+              "Specific Times of the Day",
             value: RestrictionType.Daily,
             children: getDailyRestriction(),
           },
           {
-            title: "Specific Times of the Week",
+            title:
+              translator.translateText("Specific Times of the Week") ||
+              "Specific Times of the Week",
             value: RestrictionType.Weekly,
             children: getWeeklyTimeRestrictions(),
           },

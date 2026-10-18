@@ -129,7 +129,7 @@ Tu rol lee runbooks pero no los ejecuta: el botón dice «No tienes permiso para
 :::
 
 :::details Iniciar una ejecución falla con "Runbook is disabled" o "Runbook has no steps to run"
-El interruptor **Ejecutar este runbook** del runbook está desactivado, en su página **Ajustes**, o no tiene pasos guardados. Activa el interruptor, o añade pasos y haz clic en **Guardar pasos**.
+El interruptor **Ejecutar este runbook** del runbook está desactivado, en su página **Ajustes**, o no tiene pasos guardados. Activa el interruptor, o añade pasos y haz clic en **Guardar pasos**. Su **Vista general** dice cuál, con **Activar el runbook** o **Añadir pasos**.
 :::
 
 :::details Un paso falló porque le falta un Runner o una credencial

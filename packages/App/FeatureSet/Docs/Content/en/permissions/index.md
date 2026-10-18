@@ -59,6 +59,7 @@ A user is "in" a project when they are a member of **at least one team** in it. 
 - Invitations create a pending team member. The user only counts as a project member — and only gains any permission — **after they accept the invitation.**
 - **Invite User** starts on the project's members team: the team that holds `ProjectMember` for the whole project, which is **Members** unless you renamed it. Pick another team to give the person more or less access. Nothing is picked when you could not invite to that team yourself — inviting someone hands them the team's permissions, and you can only hand on permissions you hold — or when the project has no such team. The Admin Dashboard starts on the same team wherever an instance administrator adds someone to a project: **Invite User** on a project, **Add to Project** on a user and on several users at once, and the projects attached to a [global SSO provider](/docs/identity/global-sso).
 - Removing a user from every team in a project removes their access to it, from their next request on — including while they are signed in. Their account and their other projects are not affected. They are taken off the project's on-call schedules, escalation rules and overrides, off the roles of its open incidents and episodes, and off the owners of its resources; resolved incidents keep the record of who owned and ran them.
+- On a self-hosted installation, removing someone's master admin access in the Admin Dashboard takes it away from their next request on — including while they are signed in. They stay signed in, and keep the projects they are a member of.
 - Someone who leaves a project stops getting its notifications. Their own notification methods, rules and settings for the project go with their last team — email, SMS, phone, WhatsApp, Telegram, push, webhook, Slack and Microsoft Teams, their email rollup and the rollup email not sent yet, their number for incoming calls and their shift reminders — so joining again starts from the defaults. Anything that still names them, such as the user an incoming call rule rings or an owner kept on a resolved incident, no longer notifies them: nothing is sent on a project's behalf to anyone who is not a member of it, and a pending invitation is not membership yet. Those places show **No longer a member** next to their name, so you can put someone else there. Someone invited who has not accepted yet shows **Invitation not accepted yet** instead. If an override routes someone's pages to a person who has left, the person it covers is paged instead. Leaving also disconnects the MCP clients they connected to the project, and their personal on-call calendar link shows an empty calendar from then on. On OneUptime Cloud, someone who comes back through the project's single sign-on confirms it from their mailbox again.
 - If your project enforces SSO and a user has not authenticated through the identity provider yet, they are treated as an unauthorised SSO user and see nothing until they do. See [SSO](/docs/identity/sso).
 - With SCIM configured, your identity provider can create, update and remove users and their team memberships automatically. See [SCIM](/docs/identity/scim).
@@ -191,11 +192,11 @@ Every allow permission is granted with a scope, chosen under **Scope** when you 
 
 | Scope | Meaning |
 | --- | --- |
-| All resources in the project | The default. The permission applies to every matching resource. |
-| Owned by this team or its members | The permission only applies to resources where this team, or the user acting, is listed as an owner. |
-| Restrict by labels (advanced) | The permission only applies to resources carrying at least one of the selected labels. |
+| All resources in the project | The default, and what most teams want. The permission applies to every matching resource. |
+| Only resources they own | The permission applies only to resources the person acting, or one of their teams, owns. |
+| Only resources with certain labels | The permission applies only to resources carrying at least one of the labels you pick. |
 
-**Owned** is the simplest way to build a "you look after your own services" model: give a team `MonitorAdmin` scoped to Owned, then make that team the owner of the monitors it is responsible for. It only narrows resources that can actually have owners — monitors, incidents, dashboards, services and the like. Project configuration (incident states, labels, teams themselves) has no owner, so an Owned-scoped role behaves normally there.
+**Owned** is the simplest way to build a "you look after your own services" model: give a team `MonitorAdmin` scoped to Owned, then make that team the owner of the monitors it is responsible for. It narrows every resource that can have owners — monitors, incidents, dashboards, services, monitor groups, on-call schedules and the like — and what belongs to them, such as a schedule's layers. Probes, Runners, AI agents, on-call schedules and incident and maintenance templates are what other resources are set up with, so a permission scoped to Owned still reads all of them, and you can pick any of them; it changes and deletes only the ones you or your teams own. A Runner's key, which lets whoever holds it act as the Runner, shows only on the Runners you or your teams own. Project configuration (incident states, labels, teams themselves) has no owner, so an Owned-scoped role behaves normally there.
 
 **Labels** is the more manual version of the same idea: tag resources, then grant permissions restricted to those tags.
 
@@ -216,7 +217,7 @@ Owners do two jobs:
 
 Ownership on its own grants nothing. Being the owner of a monitor does not let you edit it unless a team you belong to also holds a monitor permission. Ownership narrows access; it never widens it.
 
-Who owns a resource is read through the resource. The owners of a monitor or of any other resource are listed, read, added and removed only by someone who may read that resource, and a permission on owners alone reaches the owners of no resource you may not read.
+Who owns a resource is read through the resource. The owners of a monitor or of any other resource are listed, read, added and removed only by someone who may read that resource, and a permission on owners alone reaches the owners of no resource you may not read. Adding and removing owners keeps to the scope of the permission that does it, too: scoped to `Owned`, it reaches only the resources you or one of your teams already own, however many more you may read, so reading a monitor does not let you make yourself its owner. An owner is added or removed, never moved to another resource.
 
 ## Labels
 
@@ -322,7 +323,7 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 **A team that only watches.** Create the team with **Viewer** under **Access**. For just some areas, pick **Choose permissions later** and add the per-area `*Viewer` roles they should see.
 
-**On-call engineers who manage their own services.** Give the team `MonitorAdmin`, `IncidentMember` and `OnCallMember` scoped to **Owned**, then add the team as owner of the monitors it runs.
+**On-call engineers who manage their own services.** Give the team `MonitorAdmin`, `IncidentMember` and `OnCallMember` scoped to **Owned**, then add the team as owner of the monitors, on-call policies and schedules it runs. Whatever its people create with these permissions, they own already.
 
 **Contractors kept away from production.** Give the team the roles it needs at **All** scope, then add a **block permission** (under **More settings** on the team's Permissions page) for the sensitive capabilities, restricted to the `Production` label.
 

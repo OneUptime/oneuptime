@@ -16,9 +16,22 @@ import {
   THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES,
   THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES,
 } from "Common/Types/SecurityEvent/ThreatIntelConstants";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
-import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  THREAT_INTEL_MATCH_WORDING,
+  getSecurityMatchActionFields,
+  getSecurityMatchFindingField,
+  getTaxiiSignInChoices,
+} from "../../Components/SecurityEvents/SecurityMatchActionFields";
+import {
+  TAXII_SIGN_IN_CLEAR_DESCRIPTION,
+  TAXII_SIGN_IN_FIELD_KEY,
+  TAXII_SIGN_IN_FIELD_TITLE,
+  TaxiiSignIn,
+  getTaxiiSignIn,
+} from "../../Components/SecurityEvents/SecurityMatchRaises";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -40,6 +53,13 @@ import SecurityEventsHowItWorksCard from "../../Components/SecurityEvents/HowItW
 import ThreatIntelGuide from "../../Components/SecurityEvents/HowItWorks/ThreatIntelGuide";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+
+/*
+ * The description, the poll interval, the confidence floor and the
+ * detection finding: folded under More fields on their steps.
+ */
+const advancedSection: FormFieldCollapsibleSection<ThreatIntelFeed> =
+  getAdvancedFormSection<ThreatIntelFeed>();
 
 const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -134,53 +154,37 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           shouldCreateIncident: false,
         }}
         /*
-         * The feed (what to poll, how often, which indicators to keep), how
-         * to sign in to it, then what a match does - as the detection rules
-         * ask it. The server and its credentials were one step of six, and
-         * the confidence floor sat with the match actions it does not
-         * belong to: it decides which indicators are ingested at all.
+         * The feed - where it is and what to call it - how to sign in to
+         * it, then what a match does, as a detection rule asks it. It was
+         * five steps: Basic Info, TAXII Server, Authentication (a token, a
+         * username and a password at once, each "Leave empty for anonymous
+         * access"), Security Cases and On Match. Now sign-in is one choice
+         * (TaxiiSignIn) that shows only its own fields; Enabled is the Edit
+         * form's (a new feed is polled); what a match raises is one choice
+         * (SecurityMatchActionFields); and the description, the poll
+         * interval, the confidence floor and the detection finding wait
+         * under More fields, at their defaults.
          */
         formSteps={[
-          { title: "Basic Info", id: "basic-info" },
           { title: "TAXII Server", id: "taxii-server" },
-          { title: "Authentication", id: "authentication" },
-          { title: "Security Cases", id: "cases" },
-          { title: "On Match", id: "matching" },
+          {
+            title: TAXII_SIGN_IN_FIELD_TITLE,
+            id: "sign-in",
+            /*
+             * A new feed's question. An existing feed changes its secrets
+             * with Update Credentials, so its Edit form walks this step
+             * only to show the username it signs in with, when it has one.
+             */
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getTaxiiSignIn(values) !== null ||
+                Boolean(values.basicAuthUsername)
+              );
+            },
+          },
+          { title: "On Match", id: "on-match" },
         ]}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "e.g. Corporate MISP",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "What this feed carries and why it is subscribed.",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "basic-info",
-            description: "Disabled feeds are neither polled nor matched.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
           {
             field: {
               apiRootUrl: true,
@@ -208,45 +212,39 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              apiToken: true,
+              name: true,
             },
-            title: "API Token",
-            stepId: "authentication",
-            description:
-              "Bearer token for token-authenticated collections. Encrypted at rest and never returned by the API — use the row's Update Credentials action to rotate it later. Leave empty for anonymous or basic-auth collections.",
-            fieldType: FormFieldSchemaType.Password,
-            required: false,
-            /*
-             * The column has ColumnAccessControl read: [], so an edit form
-             * can never prefill it; showing an empty field on edit would
-             * silently blank the stored secret on every unrelated change.
-             */
-            doNotShowWhenEditing: true,
-            placeholder: "Leave empty for anonymous access",
-          },
-          {
-            field: {
-              basicAuthUsername: true,
-            },
-            title: "Basic Auth Username",
-            stepId: "authentication",
+            title: "Name",
+            stepId: "taxii-server",
             fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "Leave empty for anonymous access",
-            disableSpellCheck: true,
+            required: true,
+            placeholder: "e.g. Corporate MISP",
+            validation: {
+              minLength: 2,
+            },
           },
           {
             field: {
-              basicAuthPassword: true,
+              isEnabled: true,
             },
-            title: "Basic Auth Password",
-            stepId: "authentication",
-            description:
-              "Encrypted at rest and never returned by the API — use the row's Update Credentials action to rotate it later.",
-            fieldType: FormFieldSchemaType.Password,
+            title: "Enabled",
+            stepId: "taxii-server",
+            description: "Disabled feeds are neither polled nor matched.",
+            fieldType: FormFieldSchemaType.Toggle,
             required: false,
-            doNotShowWhenEditing: true,
-            placeholder: "Leave empty for anonymous access",
+            // A new feed is polled (createInitialValues); pausing is an edit.
+            doNotShowWhenCreating: true,
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            stepId: "taxii-server",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "What this feed carries and why it is subscribed.",
+            collapsibleSection: advancedSection,
           },
           {
             field: {
@@ -268,6 +266,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               minValue: THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES,
               maxValue: THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES,
             },
+            collapsibleSection: advancedSection,
           },
           {
             field: {
@@ -284,95 +283,105 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               minValue: THREAT_INTEL_MINIMUM_CONFIDENCE_MIN,
               maxValue: THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
             },
+            collapsibleSection: advancedSection,
+          },
+          /*
+           * How OneUptime signs in: one choice where a token, a username and
+           * a password were asked at once. A new feed's only: stored
+           * secrets are never read back, so an existing feed changes them
+           * with Update Credentials, which offers the same answers.
+           */
+          {
+            overrideField: {
+              basicAuthUsername: true,
+            },
+            overrideFieldKey: TAXII_SIGN_IN_FIELD_KEY,
+            formOnly: true,
+            title: TAXII_SIGN_IN_FIELD_TITLE,
+            stepId: "sign-in",
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: getTaxiiSignInChoices(),
+            required: true,
+            hideColumnDescription: true,
+            doNotShowWhenEditing: true,
+            defaultValue: TaxiiSignIn.Anonymous,
+            dataTestId: "taxii-sign-in",
           },
           {
             field: {
-              shouldCreateCase: true,
+              apiToken: true,
             },
-            title: "Open a Case on Match",
-            stepId: "cases",
+            title: "API Token",
+            stepId: "sign-in",
             description:
-              "Group each event that names a known indicator into a security case to triage: a new case, or the open case already about that indicator. Playbooks run on the cases it opens.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
+              "A bearer token for collections that need one. It is never shown again; use Update Credentials to replace it.",
+            fieldType: FormFieldSchemaType.Password,
+            required: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return getTaxiiSignIn(values) === TaxiiSignIn.ApiToken;
+            },
+            /*
+             * The column has ColumnAccessControl read: [], so an edit form
+             * can never prefill it; showing an empty field on edit would
+             * silently blank the stored secret on every unrelated change.
+             */
+            doNotShowWhenEditing: true,
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return getTaxiiSignIn(values) === TaxiiSignIn.ApiToken;
+            },
           },
           {
             field: {
-              shouldCreateAlert: true,
+              basicAuthUsername: true,
             },
-            title: "Create Alert on Match",
-            stepId: "matching",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
+            title: "Basic Auth Username",
+            stepId: "sign-in",
+            fieldType: FormFieldSchemaType.Text,
+            required: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return getTaxiiSignIn(values) === TaxiiSignIn.BasicAuth;
+            },
+            /*
+             * The column's sentence says to leave it empty for anonymous or
+             * token access: the Sign-in choice above says that now.
+             */
+            hideColumnDescription: true,
+            disableSpellCheck: true,
+            /*
+             * Asked of a new feed that signs in with it, and shown on an
+             * existing feed that has one (the sign-in choice is a new
+             * feed's only).
+             */
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              const signIn: TaxiiSignIn | null = getTaxiiSignIn(values);
+
+              return signIn === null
+                ? Boolean(values.basicAuthUsername)
+                : signIn === TaxiiSignIn.BasicAuth;
+            },
           },
           {
             field: {
-              alertSeverity: true,
+              basicAuthPassword: true,
             },
-            title: "Alert Severity",
-            stepId: "matching",
+            title: "Basic Auth Password",
+            stepId: "sign-in",
             description:
-              "Optional. Severity of alerts this feed opens. When unset, the indicator's STIX confidence is mapped onto this project's severities.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: AlertSeverity,
-              labelField: "name",
-              valueField: "_id",
-              sort: {
-                order: SortOrder.Ascending,
-              },
+              "Encrypted at rest and never returned by the API — use the row's Update Credentials action to rotate it later.",
+            fieldType: FormFieldSchemaType.Password,
+            required: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return getTaxiiSignIn(values) === TaxiiSignIn.BasicAuth;
             },
-            required: false,
-            placeholder: "Default from indicator confidence",
-            showIf: (model: FormValues<ThreatIntelFeed>): boolean => {
-              return model.shouldCreateAlert === true;
+            doNotShowWhenEditing: true,
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return getTaxiiSignIn(values) === TaxiiSignIn.BasicAuth;
             },
           },
-          {
-            field: {
-              shouldCreateIncident: true,
-            },
-            title: "Create Incident on Match",
-            stepId: "matching",
-            description:
-              "Incidents are the heavier machinery — on-call escalation, SLAs, status pages. Off by default; alerts usually suffice for indicator matches.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              incidentSeverity: true,
-            },
-            title: "Incident Severity",
-            stepId: "matching",
-            description:
-              "Optional. Severity of incidents this feed opens. When unset, the indicator's STIX confidence is mapped onto this project's incident severities.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: IncidentSeverity,
-              labelField: "name",
-              valueField: "_id",
-              sort: {
-                order: SortOrder.Ascending,
-              },
-            },
-            required: false,
-            placeholder: "Default from indicator confidence",
-            showIf: (model: FormValues<ThreatIntelFeed>): boolean => {
-              return model.shouldCreateIncident === true;
-            },
-          },
-          {
-            field: {
-              shouldWriteDetectionFinding: true,
-            },
-            title: "Write Detection Finding on Match",
-            stepId: "matching",
-            description:
-              "Write a Detection Finding security event back into the event stream when an indicator matches.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
+          ...getSecurityMatchActionFields<ThreatIntelFeed>(
+            THREAT_INTEL_MATCH_WORDING,
+          ),
+          getSecurityMatchFindingField<ThreatIntelFeed>(
+            THREAT_INTEL_MATCH_WORDING,
+            advancedSection,
+          ),
         ]}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
@@ -549,7 +558,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           headerLayout: "stacked",
           title: "Indicators",
           description:
-            "Raw ingested indicator rows from the feeds above, eventually consistent: a re-polled indicator can briefly appear twice until ClickHouse merges versions, and revoked or expired rows remain listed until retention cleanup. Matching always checks validity and revocation at query time, so a stale row here is never matched.",
+            "Indicators from the feeds above. An indicator can briefly appear twice, and expired or revoked ones stay listed for a while but are never matched.",
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -714,24 +723,22 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           formProps={{
             initialValues: {},
             fields: [
+              /*
+               * The answers a new feed's Sign-in offers, in the same words;
+               * here No sign-in clears what is stored.
+               */
               {
                 field: {
                   authenticationMode: true,
                 },
-                title: "Authentication",
+                title: TAXII_SIGN_IN_FIELD_TITLE,
                 description:
-                  "How the poller authenticates to the TAXII server. The choice replaces the feed's current authentication — any previously stored secret of the other kind is cleared.",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: [
-                  { label: "API Token (Bearer)", value: "api-token" },
-                  { label: "Basic Auth", value: "basic-auth" },
-                  {
-                    label: "Anonymous (clear stored credentials)",
-                    value: "anonymous",
-                  },
-                ],
+                  "How OneUptime signs in to the TAXII server. Changing it clears the secret of the other kind.",
+                fieldType: FormFieldSchemaType.RadioButton,
+                radioButtonOptions: getTaxiiSignInChoices({
+                  anonymousDescription: TAXII_SIGN_IN_CLEAR_DESCRIPTION,
+                }),
                 required: true,
-                placeholder: "Select authentication",
               },
               {
                 field: {

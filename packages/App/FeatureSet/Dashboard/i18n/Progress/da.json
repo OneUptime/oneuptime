@@ -1,11 +1,12 @@
 {
   "baseline": {
-    "keys": 30172,
-    "untranslated": 17212
+    "keys": 30861,
+    "untranslated": 16796
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "Agenda",
     "Agent",
     "Alarm",
     "App",
@@ -21,6 +22,7 @@
     "Find",
     "Gateway",
     "Hardware",
+    "ICMP (ping)",
     "Information",
     "Interface",
     "Interfaces",

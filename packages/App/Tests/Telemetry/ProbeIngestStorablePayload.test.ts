@@ -93,6 +93,8 @@ const MONITOR_ID: string = "8f14e45f-ceea-467a-9575-1b0d0d3e7a9c";
 const PROJECT_ID: string = "3c6e0b8a-9c15-4f8b-a1d2-7e5f4c3b2a19";
 const TEST_ID: string = "6f1c3c8e-2b7a-4d4e-9f0a-1c2d3e4f5a6b";
 const STEP_ID: string = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+// The probe that ran the test: the one the probe ingest route authenticated.
+const PROBE_ID: string = "44444444-4444-4444-8444-444444444444";
 
 const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
@@ -183,10 +185,11 @@ beforeEach(() => {
   mergeStepProbeResponse.mockImplementation(
     (data: {
       monitorStepProbeResponse: MonitorStepProbeResponse;
-    }): Promise<void> => {
+    }): Promise<boolean> => {
       // The service binds JSON.stringify(monitorStepProbeResponse)::jsonb.
       assertJsonbAccepts(data.monitorStepProbeResponse);
-      return Promise.resolve();
+      // The test was handed to the probe that reported it: one row written.
+      return Promise.resolve(true);
     },
   );
 
@@ -298,7 +301,10 @@ describe("A monitor test run whose response held NUL", () => {
     probeResponse: ProbeMonitorResponse,
   ) => ProbeIngestJobData;
 
-  // The shape the probe ingest API enqueues for a "test monitor" run.
+  /*
+   * The shape the probe ingest API enqueues for a "test monitor" run: the
+   * probe that sent the result, as it authenticated, beside the result.
+   */
   const monitorTestJob: MonitorTestJobFunction = (
     probeResponse: ProbeMonitorResponse,
   ): ProbeIngestJobData => {
@@ -307,6 +313,7 @@ describe("A monitor test run whose response held NUL", () => {
       testId: TEST_ID,
       ingestionTimestamp: new Date("2026-10-06T10:00:00.000Z"),
       probeMonitorResponse: {
+        probeId: PROBE_ID,
         probeMonitorResponse: JSONFunctions.serialize(
           probeResponse as unknown as JSONObject,
         ),
@@ -318,7 +325,7 @@ describe("A monitor test run whose response held NUL", () => {
     projectId: new ObjectID(PROJECT_ID),
     monitorId: new ObjectID(MONITOR_ID),
     monitorStepId: new ObjectID(STEP_ID),
-    probeId: new ObjectID("44444444-4444-4444-8444-444444444444"),
+    probeId: new ObjectID(PROBE_ID),
     isOnline: true,
     responseCode: 200,
     responseBody: ZIP_TEXT,
@@ -336,17 +343,21 @@ describe("A monitor test run whose response held NUL", () => {
 
     const input: {
       testId: ObjectID;
+      probeId: ObjectID;
       monitorStepProbeResponse: MonitorStepProbeResponse;
     } = (
       mergeStepProbeResponse.mock.calls as unknown as Array<
         Array<{
           testId: ObjectID;
+          probeId: ObjectID;
           monitorStepProbeResponse: MonitorStepProbeResponse;
         }>
       >
     )[0]![0]!;
 
     expect(input.testId.toString()).toBe(TEST_ID);
+    // Written only on a test handed to the probe that reported it.
+    expect(input.probeId.toString()).toBe(PROBE_ID);
 
     const stored: ProbeMonitorResponse = input.monitorStepProbeResponse[
       STEP_ID

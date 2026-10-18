@@ -87,12 +87,14 @@ flowchart TB
 
 En person som allerede er medlem av et tilknyttet prosjekt, beholder teamene sine der.
 
-To brytere på leverandøren endrer dette. Begge starter avslått, foldet sammen under **Flere felt**:
+To spørsmål på leverandøren endrer dette, foldet sammen under **Flere felt**. Hvert begynner på sitt første svar:
 
-| Bryter | Hva den gjør når den er slått på |
+| Spørsmål | Svar |
 | --- | --- |
-| **Disable Sign Up with SSO** | Personer må være invitert til et prosjekt før de kan logge inn med denne leverandøren, også når prosjekter er tilknyttet. Ingen nye opprettes ved første pålogging. |
-| **Restrict to Attached Projects** | Pålogging med denne leverandøren oppfyller SSO-kravet bare i prosjektene som er knyttet til den, så personer som allerede er logget inn, kan miste tilgangen til andre prosjekter. Når den er slått av, oppfyller påloggingen kravet i alle prosjekter personen hører til, og tilknyttede prosjekter avgjør bare hvor nye personer legges til. |
+| **Personer uten konto** | **Får en ved første pålogging**: de blir med i de tilknyttede prosjektene; er ingen tilknyttet, må de inviteres først. **Må inviteres først**: personer må være invitert til et prosjekt før de kan logge inn med denne leverandøren, også når prosjekter er tilknyttet. |
+| **Hvor denne påloggingen teller som SSO** | **Alle prosjekter**: prosjekter som krever SSO, godtar en pålogging med denne leverandøren. **Bare tilknyttede prosjekter**: pålogging med denne leverandøren oppfyller SSO-kravet bare i prosjektene som er knyttet til den, så personer som allerede er logget inn, kan miste tilgangen til andre prosjekter. |
+
+Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle prosjekter personen hører til, og tilknyttede prosjekter avgjør bare hvor nye personer legges til.
 
 ## Håndhev SSO
 
@@ -134,11 +136,11 @@ To endringer i hvem som kan logge inn, kontrolleres etter hverandre. Lagres en a
 ## Feilsøking
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-Personen har ennå ingen OneUptime-konto, og leverandøren oppretter ingen: enten er ingen prosjekter knyttet til den, eller **Disable Sign Up with SSO** er slått på. Inviter personen til et prosjekt, eller knytt et prosjekt til leverandøren.
+Personen har ennå ingen OneUptime-konto, og leverandøren oppretter ingen: enten er ingen prosjekter knyttet til den, eller **Personer uten konto** står på **Må inviteres først**. Inviter personen til et prosjekt, eller knytt et prosjekt til leverandøren.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** er slått på, og personen er ikke medlem av noe prosjekt som er knyttet til leverandøren. Knytt til et av personens prosjekter, eller legg personen til i et tilknyttet prosjekt.
+**Hvor denne påloggingen teller som SSO** står på **Bare tilknyttede prosjekter**, og personen er ikke medlem av noe prosjekt som er knyttet til leverandøren. Knytt til et av personens prosjekter, eller legg personen til i et tilknyttet prosjekt.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"

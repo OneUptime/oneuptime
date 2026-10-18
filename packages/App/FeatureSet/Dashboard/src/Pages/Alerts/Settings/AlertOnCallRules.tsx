@@ -11,56 +11,53 @@ import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
 import AlertEpisodeOnCallRule from "Common/Models/DatabaseModels/AlertEpisodeOnCallRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import {
+  getOnCallRuleActionFields,
+  getOnCallRuleFormSteps,
+} from "../../../Utils/Form/EventRuleForm";
 
 const alertOnCallDocumentation: string = `
 ### How Alert On-Call Rules Work
 
-Alert On-Call Rules let you automatically execute on-call duty policies when an alert is created that matches your criteria — without having to remember to attach the policy by hand.
+An on-call rule pages on-call policies for every new alert it matches, so nobody has to remember to add the policy by hand.
 
 \`\`\`mermaid
 flowchart TD
     A[New Alert Created] --> B{Match Against On-Call Rules}
-    B -->|Rule Matches| C[Add Rule's On-Call Policies to Alert]
-    B -->|No Match| D[Use Only Manually Attached Policies]
-    C --> E[Execute All Attached Policies]
+    B -->|Rule Matches| C[Add the Rule's On-Call Policies]
+    B -->|No Match| D[Only the Policies Added by Hand]
+    C --> E[Each Policy Pages Its People]
     D --> E
 \`\`\`
 
 ### Match Criteria
 
-A rule matches an alert only when **all** specified criteria pass. Empty criteria are skipped (don't filter on that field).
+The conditions a new alert must meet.
 
-- **Monitors** — alert must come from one of these monitors
-- **Alert Severities** — alert must have one of these severities (any-of)
-- **Alert Labels** — alert must carry at least one of these labels (any-of)
-- **Monitor Labels** — the alert's monitor must carry at least one of these labels
-- **Alert Title / Description Pattern** — case-insensitive regex match
-- **Monitor Name / Description Pattern** — case-insensitive regex match against the alert's monitor
+### What It Does
 
-### Action
+When a rule matches, each of its on-call policies pages its people for the alert. A policy already on the alert is not run twice.
 
-When a rule matches, every on-call duty policy listed on the rule is executed for the alert. Policies are deduped against any policies already attached to the alert, so each policy runs at most once.
+### Several Matching Rules
 
-### Multiple Matching Rules
-
-All matching rules fire — there is no priority or short-circuit. The set of policies that ends up executing is the union of every matching rule's policies, plus any policies attached to the alert manually.
+Every rule that matches runs: there is no order and no first match. Their policies are added to any added by hand, and each policy runs once.
 `;
 
 const alertEpisodeOnCallDocumentation: string = `
 ### How Alert Episode On-Call Rules Work
 
-Match an alert episode on creation and execute on-call duty policies automatically.
+An episode on-call rule pages on-call policies for every new alert episode it matches.
 
 ### Match Criteria
 
-- **Alert Severities**, **Episode Labels** — any of the selected values
-- **Episode Title**, **Episode Description** — text, or a regular expression or \`*\` wildcard pattern
+The conditions a new episode must meet.
 
-All matching rules fire — the union of their on-call policies is executed (deduped).
+### What It Does
+
+When a rule matches, each of its on-call policies pages its people for the episode. Every rule that matches runs, and each policy runs once.
 `;
 
 const AlertRulesTable: FunctionComponent = (): ReactElement => {
@@ -80,12 +77,11 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       cardProps={{
         title: "Alert On-Call Rules",
         description:
-          "Define rules to automatically execute on-call duty policies when matching alerts are created.",
+          "Page on-call policies automatically for new alerts that match.",
       }}
       helpContent={{
         title: "How Alert On-Call Rules Work",
-        description:
-          "Match alerts against criteria and fire on-call policies automatically.",
+        description: "Which new alerts page which on-call policies.",
         markdown: alertOnCallDocumentation,
       }}
       sortBy="name"
@@ -129,40 +125,8 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
         },
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "On-Call Policies", id: "on-call" },
-      ]}
+      formSteps={getOnCallRuleFormSteps<AlertOnCallRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Page database team for any DB alert",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder:
-            "Fires the database on-call rotation whenever an alert with the 'database' label is created.",
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          // A rule starts on: the switch is on its edit form only.
-          doNotShowWhenCreating: true,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
         {
           field: { monitors: true },
           title: "Monitors",
@@ -224,6 +188,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
         {
           field: { alertTitlePattern: true },
           title: "Alert Title",
+          description: "Leave empty to match any title.",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -256,22 +221,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { onCallDutyPolicies: true },
-          title: "On-Call Duty Policies",
-          stepId: "on-call",
-          sectionTitle: "Policies to Execute",
-          sectionDescription:
-            "When this rule matches, every selected policy is fired. Already-attached policies are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: OnCallDutyPolicy,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: true,
-          placeholder: "Select On-Call Policies",
-        },
+        ...getOnCallRuleActionFields<AlertOnCallRule>(),
       ]}
       showRefreshButton={true}
     />
@@ -295,11 +245,11 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       cardProps={{
         title: "Alert Episode On-Call Rules",
         description:
-          "Auto-execute on-call policies when matching alert episodes are created.",
+          "Page on-call policies automatically for new alert episodes that match.",
       }}
       helpContent={{
         title: "How Alert Episode On-Call Rules Work",
-        description: "Match episodes and fire on-call policies.",
+        description: "Which new episodes page which on-call policies.",
         markdown: alertEpisodeOnCallDocumentation,
       }}
       sortBy="name"
@@ -334,36 +284,8 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         },
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "On-Call Policies", id: "on-call" },
-      ]}
+      formSteps={getOnCallRuleFormSteps<AlertEpisodeOnCallRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          // A rule starts on: the switch is on its edit form only.
-          doNotShowWhenCreating: true,
-          required: false,
-        },
         {
           field: { alertSeverities: true },
           title: "Alert Severities",
@@ -415,22 +337,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
           required: false,
           placeholder: "timeout|connection refused",
         },
-        {
-          field: { onCallDutyPolicies: true },
-          title: "On-Call Duty Policies",
-          stepId: "on-call",
-          sectionTitle: "Policies to Execute",
-          sectionDescription:
-            "When this rule matches, every selected policy is fired. Already-attached policies are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: OnCallDutyPolicy,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: true,
-          placeholder: "Select On-Call Policies",
-        },
+        ...getOnCallRuleActionFields<AlertEpisodeOnCallRule>(),
       ]}
       showRefreshButton={true}
     />

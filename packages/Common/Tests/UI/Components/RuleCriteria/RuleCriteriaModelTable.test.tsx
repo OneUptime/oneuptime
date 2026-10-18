@@ -328,11 +328,12 @@ More details stay here.
   test("normalizes every static rule help document through the shared behavior", () => {
     /*
      * A form with a Match Criteria step: written on the page, or the shared
-     * label and owner rule form's Match step (Dashboard Utils/Form/
-     * ResourceRuleForm).
+     * Match step of the label and owner rule forms (Dashboard Utils/Form/
+     * ResourceRuleForm) and of the on-call, privacy, SLA, reminder and
+     * runbook rule forms (Utils/Form/EventRuleForm).
      */
     const matchCriteriaForm: RegExp =
-      /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner)RuleFormSteps</;
+      /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner|OnCall|Privacy|Sla|Reminder|Runbook)RuleFormSteps</;
     const staticRuleFormFiles: Array<string> = listTypescriptReactFiles(
       DASHBOARD_SOURCE_ROOT,
     ).filter((filePath: string): boolean => {

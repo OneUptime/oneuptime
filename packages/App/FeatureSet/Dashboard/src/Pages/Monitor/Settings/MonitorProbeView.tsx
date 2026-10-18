@@ -28,6 +28,16 @@ import CustomProbeDocumentation from "../../../Components/Probe/CustomProbeDocum
 import ProbePacketCaptures from "../../../Components/PacketCapture/ProbePacketCaptures";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import {
+  getMonitorThisProbeRoute,
+  MONITOR_THIS_PROBE_ICON,
+  MONITOR_THIS_PROBE_TITLE,
+} from "../../../Utils/MonitorThisProbe";
+import { PROBE_ON_NEW_MONITORS_COPY } from "../../../Components/Probe/ProbeOnNewMonitorsCopy";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -44,6 +54,24 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
 
   const [probeKey, setProbeKey] = useState<string | null>(null);
+
+  /*
+   * Beside the probe's status: the way to be told, once, when it goes
+   * offline - a Probe Status monitor watching this probe.
+   */
+  const monitorThisProbeButton: CardButtonSchema | null =
+    PermissionGate.gateCardButton(
+      {
+        title: MONITOR_THIS_PROBE_TITLE,
+        icon: MONITOR_THIS_PROBE_ICON,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: () => {
+          Navigation.navigate(getMonitorThisProbeRoute(modelId.toString()));
+        },
+      },
+      new Monitor(),
+      ModelAction.Create,
+    );
 
   return (
     <Fragment>
@@ -100,9 +128,8 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
             field: {
               shouldAutoEnableProbeOnNewMonitors: true,
             },
-            title: "Enable monitoring automatically on new monitors",
-            description:
-              "When on, this probe is pre-selected for every new monitor you create.",
+            title: PROBE_ON_NEW_MONITORS_COPY.switchTitle,
+            description: PROBE_ON_NEW_MONITORS_COPY.description,
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             collapsibleSection: advancedSection,
@@ -160,9 +187,8 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
-              title: "Enable Monitoring on New Monitors",
-              description:
-                "When on, this probe is pre-selected for every new monitor you create.",
+              title: PROBE_ON_NEW_MONITORS_COPY.columnTitle,
+              description: PROBE_ON_NEW_MONITORS_COPY.description,
               fieldType: FieldType.Boolean,
             },
             {
@@ -186,7 +212,9 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
       <CardModelDetail<Probe>
         name="Probe Status"
         cardProps={{
+          // The title says it all; the button is how to be told it went down.
           title: "Probe Status",
+          buttons: monitorThisProbeButton ? [monitorThisProbeButton] : [],
         }}
         isEditable={false}
         modelDetailProps={{
@@ -247,11 +275,12 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         fieldName={"key"}
         title={"Reset Probe Key"}
         description={
-          <p className="mt-2">
+          // A span: the card draws its description in a <p>.
+          <span>
             {translator.translateText(
-              "Resetting the secret key will generate a new key. Secret is used to authenticate probe requests.",
+              "The old key stops working at once. Set the new one as PROBE_KEY and restart the probe.",
             )}
-          </p>
+          </span>
         }
         modelId={modelId}
       />

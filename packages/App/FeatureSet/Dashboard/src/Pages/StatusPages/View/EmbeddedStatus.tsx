@@ -9,17 +9,20 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import ModelAPI, { type ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
+import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import { APP_API_URL, STATUS_PAGE_URL } from "Common/UI/Config";
 import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -27,9 +30,79 @@ import URL from "Common/Types/API/URL";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
+/*
+ * Status Pages -> a page -> Advanced -> Embedded Status: a small image of
+ * the page's overall status, for a website, a README or docs.
+ *
+ * It used to end in a "Badge Documentation" card ("Review the rendered
+ * documentation before sharing with your team."): the snippets again, a
+ * list of use cases and a security note, beside a "Badge Preview" card -
+ * and a page with no token yet offered only "Regenerate Token" to make
+ * one. Then it asked for two things before it showed a badge: turn the
+ * switch on, and press Create Token on a card of its own.
+ *
+ * Now the switch is the one step: the first time it is turned on, the
+ * badge gets its token, and a card appears under it with the badge and the
+ * code to embed it. While the badge is off there is nothing to embed, so
+ * the page is the switch. The token itself - read, copied, or regenerated
+ * when its link was shared too widely - waits under More settings, as it
+ * is needed only then. A page switched on before it had a token offers
+ * Create Token where the badge would be.
+ */
+
 // The data-testid of the Embedded Status Badge switch.
 export const EMBEDDED_STATUS_BADGE_SWITCH_TEST_ID: string =
   "status-page-embedded-status-badge-switch";
+
+// The data-testid of the card that shows the badge and its code.
+export const EMBEDDED_STATUS_BADGE_EMBED_TEST_ID: string =
+  "status-page-embedded-status-badge-embed";
+
+// The data-testid of More settings, which holds the token.
+export const EMBEDDED_STATUS_BADGE_MORE_TEST_ID: string =
+  "status-page-embedded-status-badge-more";
+
+export const EmbeddedStatusCopy: {
+  switchDescription: string;
+  needsToken: string;
+  creatingToken: string;
+  tokenCardTitle: string;
+  tokenCardDescription: string;
+} = {
+  switchDescription: translationKey(
+    "Serves the badge at a link with a secret token, made the first time you turn it on.",
+  ),
+  needsToken: translationKey("The badge needs a token before it can be shown."),
+  creatingToken: translationKey("Making the badge's token..."),
+  tokenCardTitle: translationKey("Security Token"),
+  tokenCardDescription: translationKey(
+    "The secret part of the badge's link. Anyone with the link can show the badge.",
+  ),
+};
+
+// The Security Token card's button: Create Token until there is one.
+export const getEmbeddedBadgeTokenButtonTitle: (hasToken: boolean) => string = (
+  hasToken: boolean,
+): string => {
+  return hasToken
+    ? translationKey("Regenerate Token")
+    : translationKey("Create Token");
+};
+
+/*
+ * Whether turning the badge on should make its token: only when it has
+ * none. A page that already has one keeps it - its badges may be embedded
+ * somewhere already.
+ */
+export const shouldMakeBadgeTokenWhenTurnedOn: (data: {
+  isOn: boolean;
+  token: string | undefined;
+}) => boolean = (data: {
+  isOn: boolean;
+  token: string | undefined;
+}): boolean => {
+  return data.isOn && !data.token;
+};
 
 const StatusPageEmbeddedStatus: FunctionComponent<
   PageComponentProps
@@ -41,7 +114,15 @@ const StatusPageEmbeddedStatus: FunctionComponent<
   const [showRegenerateTokenModal, setShowRegenerateTokenModal] =
     useState<boolean>(false);
   const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
   const [token, setToken] = useState<string | undefined>(undefined);
+  /*
+   * The token as last set here, for the switch's save, which comes back
+   * after this render: a token made a moment ago is not made again.
+   */
+  const tokenRef: React.MutableRefObject<string | undefined> = useRef<
+    string | undefined
+  >(undefined);
   const [isEmbeddedStatusEnabled, setIsEmbeddedStatusEnabled] =
     useState<boolean>(false);
 
@@ -91,8 +172,17 @@ const StatusPageEmbeddedStatus: FunctionComponent<
     void fetchStatusPageUrl();
   }, [fallbackStatusPageUrl, modelId]);
 
+  const keepToken: (value: string | undefined) => void = (
+    value: string | undefined,
+  ): void => {
+    tokenRef.current = value;
+    setToken(value);
+  };
+
+  // A new token, saved at once: Create Token, Regenerate Token, turning on.
   const regenerateToken: () => Promise<void> = async (): Promise<void> => {
     setIsRegenerating(true);
+    setTokenError(null);
     try {
       const newToken: string = ObjectID.generate().toString();
 
@@ -104,10 +194,10 @@ const StatusPageEmbeddedStatus: FunctionComponent<
         },
       });
 
-      setToken(newToken);
+      keepToken(newToken);
       setShowRegenerateTokenModal(false);
-    } catch {
-      // Error will be handled by ModelAPI
+    } catch (err) {
+      setTokenError(API.getFriendlyMessage(err));
     } finally {
       setIsRegenerating(false);
     }
@@ -116,53 +206,107 @@ const StatusPageEmbeddedStatus: FunctionComponent<
   const badgeUrlWithToken: string | null = token
     ? `${APP_API_URL}/status-page/badge/${modelId.toString()}?token=${token}`
     : null;
-  const badgeUrlDocumentation: string =
-    badgeUrlWithToken ||
-    `${APP_API_URL}/status-page/badge/${modelId.toString()}?token={TOKEN_PLACEHOLDER}`;
 
-  const introMessage: string =
-    isEmbeddedStatusEnabled && token
-      ? "Your embedded status badge is currently enabled and can be embedded using the snippets below."
-      : "Enable the embedded status badge and generate a security token to activate the snippets below.";
+  // A sentence in the dashed box the badge is shown in.
+  const getEmbedPlaceholder: (children: ReactElement) => ReactElement = (
+    children: ReactElement,
+  ): ReactElement => {
+    return (
+      <div className="flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-4">
+        {children}
+      </div>
+    );
+  };
 
-  const documentationMarkdown: string = `
-${introMessage}
+  /*
+   * The badge and the code that shows it, once it has a token; until then,
+   * the token that is missing. Drawn only while the badge is on.
+   */
+  const getEmbedBody: () => ReactElement = (): ReactElement => {
+    if (!badgeUrlWithToken) {
+      if (isRegenerating) {
+        return getEmbedPlaceholder(
+          <p className="text-center text-sm text-gray-500">
+            {translator.translateText(EmbeddedStatusCopy.creatingToken)}
+          </p>,
+        );
+      }
 
-#### Badge URL
-\`${badgeUrlDocumentation}\`
+      return getEmbedPlaceholder(
+        <Fragment>
+          <p className="text-center text-sm text-gray-500">
+            {translator.translateText(EmbeddedStatusCopy.needsToken)}
+          </p>
+          {tokenError ? (
+            <p className="text-center text-sm text-red-600" role="alert">
+              {tokenError}
+            </p>
+          ) : (
+            <></>
+          )}
+          {/*
+           * Button keeps a dialog footer's left margin (md:ml-3), which
+           * would push it off the centre here, so its wrapper clears it.
+           */}
+          <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+            <Button
+              title={getEmbeddedBadgeTokenButtonTitle(false)}
+              icon={IconProp.Add}
+              buttonStyle={ButtonStyleType.NORMAL}
+              onClick={() => {
+                void regenerateToken();
+              }}
+              dataTestId="embedded-status-badge-create-token"
+            />
+          </div>
+        </Fragment>,
+      );
+    }
 
-#### HTML Embed
-\`\`\`html
-<img src="${badgeUrlDocumentation}" alt="Status Badge" />
-\`\`\`
-
-#### Markdown Embed
-\`\`\`markdown
-![Status](${badgeUrlDocumentation})
-\`\`\`
-
-#### Markdown with Link
-\`\`\`markdown
-[![Status](${badgeUrlDocumentation})](${statusPageUrl})
-\`\`\`
-
-#### Use Cases
-- Add to your company website to show real-time status
-- Include in project README.md files on GitHub
-- Embed in documentation sites
-- Display on internal dashboards
-- Include in status emails or reports
-
-#### Security
-Regenerating the token invalidates all existing embeds. Rotate the token whenever you suspect the URL has been shared publicly.
-`;
+    return (
+      <div className="space-y-4">
+        <div className="flex min-h-[96px] items-center justify-center rounded-md border border-dashed border-gray-200 bg-gray-50">
+          <img
+            src={badgeUrlWithToken}
+            alt={translator.translateText("Status Badge")}
+            className="max-h-24 rounded"
+          />
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">
+            {translator.translateText("HTML")}
+          </p>
+          {/*
+           * One long line, read whole and copied: it wraps rather than
+           * running under the copy button (CodeBlock wrapLongLines).
+           */}
+          <CodeBlock
+            language="html"
+            code={`<img src="${badgeUrlWithToken}" alt="Status Badge" />`}
+            wrapLongLines={true}
+          />
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">
+            {translator.translateText("Markdown, linked to the status page")}
+          </p>
+          <CodeBlock
+            language="markdown"
+            code={`[![Status](${badgeUrlWithToken})](${statusPageUrl})`}
+            wrapLongLines={true}
+          />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Fragment>
       <div>
         {/*
-         * One switch that saves when it is flipped. The preview below
-         * follows it as it moves; the token is read along with it.
+         * One switch that saves when it is flipped. The card below follows
+         * it as it moves; the token is read along with it, and made the
+         * first time the badge is turned on.
          */}
         <ModelSwitchCard<StatusPage>
           modelType={StatusPage}
@@ -170,111 +314,117 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
           column="enableEmbeddedOverallStatus"
           cardTitle={translationKey("Embedded Status Badge")}
           cardDescription={translationKey(
-            "Enable a lightweight status badge that can be embedded on external websites. The badge displays the current overall status of your status page.",
+            "A small image of this page's overall status, for your website, a README or your docs.",
           )}
           title="Enable Embedded Status Badge"
           getDescription={(): string => {
-            return translationKey(
-              "When enabled, you can embed a status badge on external websites using the badge URL with the security token.",
-            );
+            return EmbeddedStatusCopy.switchDescription;
           }}
           select={{
             embeddedOverallStatusToken: true,
           }}
           onLoaded={(item: StatusPage): void => {
-            setToken(item.embeddedOverallStatusToken || undefined);
+            /*
+             * A read that was on its way while a token was made here does
+             * not take that token away.
+             */
+            keepToken(item.embeddedOverallStatusToken || tokenRef.current);
           }}
           onChange={(isOn: boolean): void => {
             setIsEmbeddedStatusEnabled(isOn);
           }}
+          onSaved={(isOn: boolean): void => {
+            if (
+              shouldMakeBadgeTokenWhenTurnedOn({
+                isOn: isOn,
+                token: tokenRef.current,
+              })
+            ) {
+              // Nothing is embedded yet, so nothing breaks: no question.
+              void regenerateToken();
+            }
+          }}
           dataTestId={EMBEDDED_STATUS_BADGE_SWITCH_TEST_ID}
         />
 
-        <Card
-          bodyClassName="mt-6 space-y-4"
-          title="Security Token"
-          description="Review and copy the token required to access the embedded badge. Keep it confidential to prevent unauthorized access."
-          buttons={[
+        {/*
+         * Only while the badge is on: off, there is nothing to embed, and
+         * the switch above says what turning it on does.
+         */}
+        {isEmbeddedStatusEnabled ? (
+          <Card
+            bodyClassName="mt-6"
+            title="Embed the Badge"
+            description="Paste one of these where the badge should show."
+          >
+            <div data-testid={EMBEDDED_STATUS_BADGE_EMBED_TEST_ID}>
+              {getEmbedBody()}
+            </div>
+          </Card>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * The token is in the code above already; it is needed on its own
+         * only to read it, or to regenerate it when its link was shared too
+         * widely. The one card in the fold says so itself.
+         */}
+        <AdvancedPageSection
+          items={[
             {
-              title: "Regenerate Token",
-              buttonStyle: ButtonStyleType.NORMAL,
-              icon: IconProp.Refresh,
-              onClick: () => {
-                setShowRegenerateTokenModal(true);
-              },
-              isLoading: isRegenerating,
-              disabled: isRegenerating,
+              key: "security-token",
+              title: EmbeddedStatusCopy.tokenCardTitle,
+              isSet: false,
             },
           ]}
+          dataTestId={EMBEDDED_STATUS_BADGE_MORE_TEST_ID}
         >
-          <>
+          <Card
+            bodyClassName="mt-6 space-y-4"
+            title={EmbeddedStatusCopy.tokenCardTitle}
+            description={EmbeddedStatusCopy.tokenCardDescription}
+            buttons={[
+              {
+                title: getEmbeddedBadgeTokenButtonTitle(Boolean(token)),
+                buttonStyle: ButtonStyleType.NORMAL,
+                icon: token ? IconProp.Refresh : IconProp.Add,
+                onClick: () => {
+                  if (token) {
+                    setShowRegenerateTokenModal(true);
+                    return;
+                  }
+
+                  // Nothing is embedded yet, so nothing breaks: no question.
+                  void regenerateToken();
+                },
+                isLoading: isRegenerating,
+                disabled: isRegenerating,
+              },
+            ]}
+          >
             {token ? (
               <HiddenText text={token} isCopyable={true} />
             ) : (
               <p className="text-sm text-gray-500">
-                {translator.translateText(
-                  "No token has been generated yet. Enable the embedded badge and use “Regenerate Token” to create one.",
-                )}
+                {translator.translateText("No token yet.")}
               </p>
             )}
-            <p className="text-sm text-gray-500">
-              {translator.translateText(
-                "Regenerating the token will invalidate any existing embedded badges.",
-              )}
-            </p>
-          </>
-        </Card>
-
-        <Card
-          bodyClassName="mt-6"
-          title="Badge Preview"
-          description="Preview the live badge rendering using the current security token."
-        >
-          <div className="flex min-h-[160px] items-center justify-center rounded-md border border-dashed border-gray-200 bg-gray-50">
-            {isEmbeddedStatusEnabled ? (
-              badgeUrlWithToken ? (
-                <img
-                  src={badgeUrlWithToken}
-                  alt={translator.translateText("Status Badge")}
-                  className="max-h-24 rounded"
-                />
-              ) : (
-                <p className="text-sm text-gray-500 text-center">
-                  {translator.translateText(
-                    "Generate a security token to see the live preview.",
-                  )}
-                </p>
-              )
-            ) : (
-              <p className="text-sm text-gray-500 text-center">
-                {translator.translateText(
-                  "Enable the embedded status badge to view the live preview.",
-                )}
-              </p>
-            )}
-          </div>
-        </Card>
-
-        <Card
-          className="lg:col-span-2"
-          bodyClassName="mt-6"
-          title="Badge Documentation"
-          description="Review the rendered documentation before sharing with your team."
-        >
-          <MarkdownViewer text={documentationMarkdown} />
-        </Card>
+          </Card>
+        </AdvancedPageSection>
       </div>
 
       {showRegenerateTokenModal && (
         <ConfirmModal
           title="Regenerate Security Token"
-          description="Are you sure you want to regenerate the security token? This will invalidate the current token and any existing embedded badges will stop working until you update them with the new token."
+          description="The current token stops working, and embedded badges break until you update them with the new one."
           onClose={() => {
             setShowRegenerateTokenModal(false);
           }}
           submitButtonText="Regenerate Token"
           onSubmit={regenerateToken}
           isLoading={isRegenerating}
+          error={tokenError || undefined}
         />
       )}
     </Fragment>

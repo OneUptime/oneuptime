@@ -22,9 +22,17 @@ const DASHBOARD_SOURCE: string = "packages/App/FeatureSet/Dashboard/src/";
 const IN_SCOPE: RegExp = /^Components\/[M-R]/;
 
 const ALLOWED: Record<string, { count: number; why: string }> = {
+  "Components/Mcp/McpConnectSetup.ts": {
+    count: 7,
+    why: "the MCP clients' setup snippets (#4990): the `claude mcp add` command and each client's JSON config, code that is copied as it is",
+  },
   "Components/MicrosoftTeams/MicrosoftTeamsIntegration.tsx": {
     count: 1,
     why: "the setup-guide markdown: Teams admin-center paths, manifest field names and a code block, written as one document",
+  },
+  "Components/ProjectBalance/AutoRechargeCard.tsx": {
+    count: 1,
+    why: '"${n} USD" (currency): the amounts Auto Recharge offers',
   },
 };
 

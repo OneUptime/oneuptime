@@ -1,4 +1,6 @@
 import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
+import { getPermissionScopeFields } from "../Permission/PermissionScopeChoice";
+import PermissionScopeCell from "../Permission/PermissionScopeCell";
 import {
   CUSTOM_ROLE_PERMISSION_DIALOG_WORDS,
   CustomRolePermissionDialogWords,
@@ -29,7 +31,6 @@ import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -51,8 +52,9 @@ import React, {
  * Added the way a team's own are (Components/Team/TeamPermissionTable): Add
  * Role picks a built-in role from the same cards, Add Permission one
  * permission from the full list, each with a scope - every resource in the
- * project, the resources the team given the role (or its members) owns, or
- * the resources carrying some labels. What a custom role cannot hold is not
+ * project, the resources the person acting (or one of their teams) owns, or
+ * the resources carrying some labels, the three plain answers of
+ * Components/Permission/PermissionScopeChoice. What a custom role cannot hold is not
  * offered: Project Owner (the Owners team gives it), block permissions (they
  * stay on the team), and the scope Labels without a label.
  *
@@ -76,22 +78,6 @@ export interface ComponentProps {
   // After every load: how many permissions the role holds.
   onPermissionCountChange?: ((count: number) => void) | undefined;
 }
-
-// The scope choices, worded for a role: the team it is given to owns.
-const SCOPE_OPTIONS: Array<{ value: PermissionScope; label: string }> = [
-  {
-    value: PermissionScope.All,
-    label: "All resources in the project",
-  },
-  {
-    value: PermissionScope.Owned,
-    label: "Owned by the team given the role, or its members",
-  },
-  {
-    value: PermissionScope.Labels,
-    label: "Restrict by labels (advanced)",
-  },
-];
 
 const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -197,48 +183,14 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const isLabelsScope: (values: FormValues<CustomRolePermission>) => boolean = (
-    values: FormValues<CustomRolePermission>,
-  ): boolean => {
-    return (
-      isScopeShown(values) &&
-      (values["scope"] as PermissionScope | undefined) ===
-        PermissionScope.Labels
-    );
-  };
-
-  const scopeAndLabelsFields: Array<ModelField<CustomRolePermission>> = [
-    {
-      field: {
-        scope: true,
-      },
-      title: "Scope",
-      description:
-        "Which resources it reaches. All (recommended): every resource in the project. Owned: the resources the team given this role, or one of its members, owns. Labels: the resources carrying one of the labels you pick.",
-      fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: SCOPE_OPTIONS,
-      defaultValue: PermissionScope.All,
-      required: true,
-      showIf: isScopeShown,
-    },
-    {
-      field: {
-        labels: true,
-      },
-      title: "Restrict to Labels",
-      description:
-        "Only resources carrying at least one of these labels are reached.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      showIf: isLabelsScope,
-      required: isLabelsScope,
-      placeholder: "Labels",
-    },
-  ];
+  /*
+   * Scope: the three plain answers a team's permission offers, All first,
+   * and the labels the third one asks for (PermissionScopeChoice).
+   */
+  const scopeAndLabelsFields: Array<ModelField<CustomRolePermission>> =
+    getPermissionScopeFields<CustomRolePermission>({
+      isScopeShown: isScopeShown,
+    });
 
   return (
     <ModelTable<CustomRolePermission>
@@ -394,32 +346,12 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
           title: "Scope",
           type: FieldType.Text,
           getElement: (item: CustomRolePermission): ReactElement => {
-            const scope: PermissionScope =
-              (item["scope"] as PermissionScope) || PermissionScope.All;
-
-            if (scope === PermissionScope.Owned) {
-              return (
-                <p>
-                  {translator.translateText("Owned by the team or its members")}
-                </p>
-              );
-            }
-
-            if (scope === PermissionScope.All) {
-              return (
-                <p>{translator.translateText("All resources in project")}</p>
-              );
-            }
-
+            // In the Scope choice's words, with the labels that narrow it.
             return (
-              <div className="flex flex-col gap-1">
-                <p className="text-gray-500">
-                  {translator.translateText("Restricted to labels:")}
-                </p>
-                <LabelsElement
-                  labels={(item["labels"] || []) as Array<Label>}
-                />
-              </div>
+              <PermissionScopeCell
+                scope={item["scope"]}
+                labels={(item["labels"] || []) as Array<Label>}
+              />
             );
           },
         },

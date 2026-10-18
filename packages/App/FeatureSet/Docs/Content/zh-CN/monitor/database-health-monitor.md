@@ -168,7 +168,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ### 选择要收集的内容
 
-除非有理由关闭某个组，否则让 **Metric Groups** 下的所有组保持开启——参见[指标组](#指标组)。
+**更多字段** 中 **Metric Groups** 下的所有组一开始都是开启的。除非有理由关闭某个组，否则让它们保持开启——参见[指标组](#指标组)。
 
 ### 测试连接
 
@@ -191,13 +191,14 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **主机** | 探测器可以访问的数据库主机（例如 `db.internal`）。 |
 | **端口** | 数据库端口。 |
 | **数据库名称** | 要连接的数据库。数据库范围的指标（大小、缓存命中率、溢出到临时文件）针对这个数据库报告；服务器范围的指标（连接、运行时间、复制）针对整个服务器报告——Azure SQL Database 除外，在那里只统计被监控数据库的连接。 |
-| **Use Windows Integrated Authentication** | 仅限 Microsoft SQL Server。使用探测器进程的身份进行身份验证，而不是用户名和密码。参见 SQL Query 监视器页面上的 [Windows 集成身份验证](/docs/monitor/sql-monitor#windows-集成身份验证)——设置方法完全相同。 |
+| **认证** | 仅限 Microsoft SQL Server：默认的 **用户名和密码**，或以探测器进程身份登录的 **Windows Integrated Authentication**。参见 SQL Query 监视器页面上的 [Windows 集成身份验证](/docs/monitor/sql-monitor#windows-集成身份验证)——设置方法完全相同。 |
 | **用户名** | 监控用户。除非使用 Windows 集成身份验证，否则必填。 |
 | **密码** | 密码。请用 `{{monitorSecrets.name}}` 引用[监视器密钥](/docs/monitor/monitor-secrets)，而不是以明文输入（参见[使用监视器密钥](#用监视器密钥保存密码)）。 |
 | **Use SSL/TLS** | 通过 TLS 连接。启用后，对于自签名证书，可以关闭 **Verify server certificate**。 |
-| **Metric Groups** | 要运行的组：Connections、活动、Throughput、Locks and Blocking、存储、Replication 和维护。默认全部开启；参见[指标组](#指标组)。监视器的详细信息中将它们列为 **Collected Metric Groups**。 |
 
 ### 更多字段
+
+**Metric Groups** 也在这里：从 Connections、活动、Throughput、Locks and Blocking、存储、Replication 和维护中选择要运行的组。默认全部开启；参见[指标组](#指标组)。监视器的详细信息中将它们列为 **Collected Metric Groups**。
 
 | 字段 | 默认值 | 最大值 | 限制的内容 |
 |---|---|---|---|
@@ -443,7 +444,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 :::
 
 :::details 每次检查 Metric Groups Failed 都大于 0
-有一个组在任何检查中都无法收集，所以同一个收集问题不断重复。监视器摘要会写明组、原因以及修复它的 `GRANT`。运行这条授权；如果拿不到权限，就在 **Metric Groups** 中关闭该组，让问题不再重复出现。
+有一个组在任何检查中都无法收集，所以同一个收集问题不断重复。监视器摘要会写明组、原因以及修复它的 `GRANT`。运行这条授权；如果拿不到权限，就在 **更多字段 → Metric Groups** 中关闭该组，让问题不再重复出现。
 :::
 
 ## 后续步骤

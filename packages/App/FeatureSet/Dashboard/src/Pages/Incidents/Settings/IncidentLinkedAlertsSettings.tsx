@@ -54,7 +54,7 @@ const IncidentLinkedAlertsSettings: FunctionComponent<ComponentProps> = (
       modelId={projectId}
       cardTitle={translationKey("Linked Alerts")}
       cardDescription={translationKey(
-        "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are on for new projects. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.",
+        "Whether alerts linked to an incident follow it when it is acknowledged or resolved. Both are on for new projects. Alerts never move back to an earlier state.",
       )}
       switches={[
         {
@@ -62,7 +62,7 @@ const IncidentLinkedAlertsSettings: FunctionComponent<ComponentProps> = (
           title: "Acknowledge Linked Alerts When Incident Is Acknowledged",
           getDescription: (): string => {
             return translationKey(
-              "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations. It stops their reminders only when the alert reminder rule is set to stop reminders on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+              "Acknowledging the incident acknowledges its linked alerts and stops their on-call escalations.",
             );
           },
           dataTestId: LINKED_ALERTS_ACKNOWLEDGE_SWITCH_TEST_ID,
@@ -72,7 +72,7 @@ const IncidentLinkedAlertsSettings: FunctionComponent<ComponentProps> = (
           title: "Resolve Linked Alerts When Incident Is Resolved",
           getDescription: (): string => {
             return translationKey(
-              "When the incident is resolved, resolve every alert linked to it - except alerts that are still linked to another incident that is not resolved yet. Alerts linked to an incident that is already resolved are resolved as they are linked.",
+              "Resolving the incident resolves its linked alerts, unless an alert is linked to another open incident.",
             );
           },
           dataTestId: LINKED_ALERTS_RESOLVE_SWITCH_TEST_ID,

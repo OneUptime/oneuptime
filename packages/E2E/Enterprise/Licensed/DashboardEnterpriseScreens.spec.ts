@@ -79,7 +79,7 @@ const ENTERPRISE_SCREENS: ReadonlyArray<DashboardScreen> = [
   {
     label: "Settings > SCIM",
     route: "settings/scim",
-    copy: "SCIM is an open standard for automating the exchange of user identity information",
+    copy: "Let your identity provider add and remove the people in this project.",
   },
   {
     label: "Settings > Audit Logs",
@@ -93,12 +93,16 @@ const SINGLE_SIGN_ON_SCREENS: ReadonlyArray<DashboardScreen> = [
   {
     label: "Settings > SSO",
     route: "settings/sso",
-    copy: "Single sign-on is an authentication scheme that allows a user to log in with a single ID",
+    copy: "Sign in through a SAML app, such as Okta, Microsoft Entra ID or OneLogin.",
   },
+  /*
+   * The project's OpenID Connect providers are on the SSO page, under the
+   * SAML ones; the old OIDC address forwards there.
+   */
   {
-    label: "Settings > OIDC",
+    label: "Settings > SSO (OIDC providers, from the old OIDC address)",
     route: "settings/oidc",
-    copy: "Configure OpenID Connect identity providers for single sign-on",
+    copy: "Sign in through an OpenID Connect app, such as Google Workspace, Auth0 or Keycloak.",
   },
 ];
 
@@ -252,7 +256,7 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
     await expect(
       page
         .getByText(
-          "SCIM is an open standard for automating the exchange of user identity information",
+          "Let your identity provider add and remove the people in this project.",
         )
         .first(),
     ).toBeVisible({ timeout: 60000 });

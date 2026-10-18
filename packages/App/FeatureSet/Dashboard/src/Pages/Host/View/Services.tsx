@@ -586,7 +586,7 @@ const HostServices: FunctionComponent<
    */
   const noItemsMessage: string =
     rows.length === 0
-      ? `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES} minutes. Service status comes from the "windows_service" receiver (alpha, Windows-only), which is bundled in the upstream otelcol-contrib build from v0.155.0. Make sure the host runs otelcol-contrib v0.155.0+ with windows_service added to the metrics pipeline — see the Documentation tab for setup steps.`
+      ? `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES} minutes. Add the windows_service receiver to your collector: see the Documentation tab.`
       : "No services match the current filters.";
 
   /*

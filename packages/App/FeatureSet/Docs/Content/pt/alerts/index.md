@@ -56,7 +56,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. A lista de alertas fica
 | Seção                  | O que você faz ali                                                                                                        |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Alertas**            | **Todos os alertas** e **Alertas ativos**, cujo selo vermelho conta os alertas que ainda não foram resolvidos.              |
-| **Episódios**          | **Todos os episódios**, **Episódios ativos** e **Documentação**, uma página do painel sobre agrupamento.                   |
+| **Episódios** | **Todos os episódios** e **Episódios ativos**: alertas relacionados, agrupados em um único problema para trabalhar. |
 | **IA**                 | **Insights**, **Registros** e **Configurações**: o que o OneUptime AI aprendeu com seus alertas, tudo o que fez e o que pode fazer. |
 | **Espaço de trabalho** | **Slack** e **Microsoft Teams**, conforme o que o projeto conectou, ou **Conectar Slack ou Teams** quando não tem nenhum dos dois. |
 | **Regras**             | **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Reminder Rules**. |
@@ -129,19 +129,20 @@ Enquanto trabalha nele, registre o que descobrir como **Notas privadas**, preenc
 
 | Seção do menu lateral | Páginas                                                                                                    |
 | --------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Básico**            | **Visão geral**, **Descrição**, **Causa raiz**, **Remediação**, **Runbooks**, **Linha do tempo de estado**, **Proprietários**, **Incidentes vinculados** |
-| **Plantão**           | **Execuções de plantão**: quais políticas de plantão foram executadas para o alerta e como foi cada uma    |
-| **Registros**         | **Logs de notificação** e **Registros de IA**: cada mensagem enviada sobre o alerta e tudo o que a IA fez por ele |
-| **Notas de alerta**   | **Notas privadas**                                                                                         |
+| **Visão geral** | **Visão geral** e **Linha do tempo de estado** |
+| **Investigação** | **Descrição**, **Causa raiz**, **Remediação**, **Runbooks**, **Incidentes vinculados** |
+| **Equipe** | **Execuções de plantão** e **Proprietários**: quem foi acionado para o alerta e quem é o proprietário dele |
+| **Notificações**         | **Logs de notificação** e **Registros de IA**: cada mensagem enviada sobre o alerta e tudo o que a IA fez por ele |
+| **Notas**   | **Notas privadas**                                                                                         |
 | **Desenvolvedores**   | **Terraform**, **API** e **Assistentes de IA**: o alerta gerenciado por código                             |
-| **Avançado**          | **Campos personalizados**, **Registros de auditoria**, **Configurações**, **Excluir alerta**               |
+| **Avançado** | **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir alerta** |
 
-**Básico** e **Notas de alerta** ficam abertas; as outras seções ficam recolhidas até você clicar nelas.
+**Visão geral**, **Investigação**, **Equipe** e **Notas** ficam abertas; as outras seções ficam recolhidas até você clicar nelas.
 
 - **Visão geral** — três blocos com quanto tempo o alerta levou para ser confirmado e resolvido, e sua **Duração**. O cartão **AI Investigation** abre a página, com **Ask OneUptime AI** no rodapé, e o **Alerta Feed** registra tudo o que aconteceu com o alerta. Ao lado ficam o cartão **Detalhes do alerta**, as medições do alerta e seus **Recursos afetados**.
 - **Linha do tempo de estado** — cada estado em que o alerta esteve, quando e por quanto tempo. Veja [A linha do tempo de estados](/docs/alerts/states-and-severities#a-linha-do-tempo-de-estados).
 - **Incidentes vinculados** — os incidentes de que este alerta faz parte, com **Vincular incidente** e **Declarar incidente**.
-- **Configurações** — **Quem pode ver este alerta**, com o interruptor **Alerta privado**, e **Reminders**, com **Enviar lembretes**. Cada interruptor salva no momento em que você o alterna.
+- **Configurações** — **Quem pode ver este alerta**, com o interruptor **Alerta privado**, e **Lembretes**, com **Enviar lembretes**. Cada interruptor salva no momento em que você o alterna.
 
 ## Alertas privados
 

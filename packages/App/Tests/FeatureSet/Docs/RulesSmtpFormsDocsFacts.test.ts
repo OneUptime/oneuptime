@@ -93,6 +93,7 @@ const SOURCES: Record<string, string> = {
   emailLogsTable: `${DASHBOARD}/Components/NotificationLogs/EmailLogsTable.tsx`,
   statusPageSideMenu: `${DASHBOARD}/Pages/StatusPages/View/SideMenu.tsx`,
   subscriberSettings: `${DASHBOARD}/Pages/StatusPages/View/SubscriberSettings.tsx`,
+  subscriberChoicesCopy: `${DASHBOARD}/Components/StatusPage/SubscriberChoicesCopy.ts`,
   smtpFormFields: `${COMMON_UI}/SmtpConfig/SmtpConfigFormFields.ts`,
   adminNavBar: `${ADMIN_DASHBOARD}/Components/NavBar/NavBar.tsx`,
   adminSettingsSideMenu: `${ADMIN_DASHBOARD}/Pages/Settings/SideMenu.tsx`,
@@ -1171,8 +1172,12 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     expect(provider).toContain(
       "Typical scope: https://graph.microsoft.com/.default",
     );
+    // The scope field: Graph's scope as its example, the others under it.
     expect(readSource("smtpFormFields")).toContain(
-      "For Microsoft Graph: https://graph.microsoft.com/.default. For Microsoft 365 SMTP+OAuth: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+      'placeholder: "https://graph.microsoft.com/.default",',
+    );
+    expect(readSource("smtpFormFields")).toContain(
+      "For Microsoft 365 SMTP: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
     );
 
     expect(page).toContain("**Mail.Send** application permission");
@@ -1194,7 +1199,13 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     expect(readSource("statusPageSideMenu")).toContain(
       'title: "Subscriber Settings",',
     );
-    expect(readSource("subscriberSettings")).toContain('title: "Custom SMTP",');
+    // The Custom SMTP card, under More settings, is titled from its copy.
+    expect(readSource("subscriberSettings")).toContain(
+      "title: SubscriberChoicesCopy.smtpTitle,",
+    );
+    expect(readSource("subscriberChoicesCopy")).toContain(
+      'smtpTitle: translationKey("Custom SMTP"),',
+    );
     expect(page).toContain(
       "A status page picks its SMTP config on its **Subscriber Settings** page, in the **Custom SMTP** card.",
     );

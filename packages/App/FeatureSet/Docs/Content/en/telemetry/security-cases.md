@@ -44,8 +44,8 @@ Each of these can also be granted on its own, from creating a case to approving 
 
 | Source | Opens a case when | Turn it off with |
 | --- | --- | --- |
-| Detection rules | A rule matches | **Open a Case on Match**, on the rule's **Security Cases** step |
-| Threat intelligence | An event names a known indicator | **Open a Case on Match**, on the feed's **Security Cases** step |
+| Detection rules | A rule matches | **Open a Case on Match**, on the rule's **On Match** step |
+| Threat intelligence | An event names a known indicator | **Open a Case on Match**, on the feed's **On Match** step |
 | Connected products | A product's own alert is imported at or above the connection's threshold | **Open Cases From** set to **Never**, in the connection's **Polling** step |
 | People | Someone opens one from **Security Cases**, or with **Open Case** in an event's panel | None |
 
@@ -229,7 +229,7 @@ A project with no cases and no detections yet shows, above these, the three step
 ## Troubleshooting
 
 :::details A rule matches, but no case opens
-Check **Open a Case on Match** on the rule's **Security Cases** step. A detection about an entity that already has an open case joins that case instead of opening another: look for it under **Detections** on the open case.
+Check **Open a Case on Match** on the rule's **On Match** step. A detection about an entity that already has an open case joins that case instead of opening another: look for it under **Detections** on the open case.
 :::
 
 :::details A playbook did not run

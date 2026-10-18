@@ -157,6 +157,7 @@ Omita el array o póngalo en `[]` para sincronizar todos los ajustes de paso adm
 | Salud de la base de datos | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
 | Página de estado externa | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | Registros, Eventos de seguridad, Trazas, IA / LLM, Métricas, Excepciones | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (toda la configuración del monitor) |
+| Estado de la sonda | `probeStatusMonitor.probeIds` |
 
 Los monitores de infraestructura (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Cabina de almacenamiento, Dispositivo IoT) ofrecen su selector de recursos, filtros (todos salvo Host), consultas de métricas y ventana de tiempo de consulta. Sus nombres aparecen en **Ajustes de sincronización de la plantilla** en una plantilla de ese tipo.
 :::

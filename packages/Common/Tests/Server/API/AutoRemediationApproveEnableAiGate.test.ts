@@ -468,6 +468,7 @@ describe("POST /auto-remediation/approve — Enable AI is the one project gate",
   let clusterStatusSpy: jest.SpyInstance;
   let resourceStatusSpy: jest.SpyInstance;
   let mayChangeSpy: jest.SpyInstance;
+  let mayChangeClusterSpy: jest.SpyInstance;
   let incidentFeedSpy: jest.SpyInstance;
   let alertFeedSpy: jest.SpyInstance;
 
@@ -551,6 +552,10 @@ describe("POST /auto-remediation/approve — Enable AI is the one project gate",
       .spyOn(ResourceAiAccessService, "assertCallerMayChangeResource")
       .mockResolvedValue(undefined);
 
+    mayChangeClusterSpy = jest
+      .spyOn(KubernetesClusterAiAccessService, "assertCallerMayChangeCluster")
+      .mockResolvedValue(undefined);
+
     incidentFeedSpy = jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue(undefined as never);
@@ -584,6 +589,7 @@ describe("POST /auto-remediation/approve — Enable AI is the one project gate",
     expect(clusterStatusSpy).not.toHaveBeenCalled();
     expect(resourceStatusSpy).not.toHaveBeenCalled();
     expect(mayChangeSpy).not.toHaveBeenCalled();
+    expect(mayChangeClusterSpy).not.toHaveBeenCalled();
   }
 
   // Claimed Suggested -> Approved, handed to the executor, and announced.

@@ -63,6 +63,8 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 
 L'elenco mostra **Numero della manutenzione programmata**, **Titolo**, **Stato attuale**, **Risorse interessate**, **Mostrato sulla pagina di stato**, **Inizia il**, **Durata**, **Termina il**, **Etichette** e **Proprietari**. Selezionate degli eventi per agire su più eventi alla volta: **Cambia stato**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** o **Elimina**.
 
+**Elenco** e **Calendario**, all'estremità destra della barra dei filtri dell'elenco, mostrano gli stessi eventi come tabella oppure su un mese, una settimana o un giorno. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar).
+
 ## Cosa influenza un evento
 
 Mentre un evento è in corso, OneUptime tratta come previsto il fermo che pianifica:
@@ -80,13 +82,14 @@ Aprite un evento dall'elenco per vedere le sue pagine. Il suo menu laterale cont
 
 | Sezione del menu laterale | Pagine                                                                               |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Base**          | **Panoramica**, **Descrizione**, **Proprietari**, **Cronologia stato**, **Runbook**            |
-| **Registri**      | **Registri di notifica** e **Registri IA**: ogni messaggio inviato sull'evento, e ciò che l'IA ha fatto per lui |
+| **Panoramica** | **Panoramica**, **Cronologia stato**, **Descrizione**, **Runbook** |
+| **Team** | **Proprietari** |
+| **Notifiche**      | **Registri di notifica** e **Registri IA**: ogni messaggio inviato sull'evento, e ciò che l'IA ha fatto per lui |
 | **Note**          | **Note private** e **Note pubbliche**                                                          |
 | **Sviluppatori**  | **Terraform**, **API** e **Assistenti IA**: l'evento gestito dal codice                        |
 | **Avanzato**      | **Campi personalizzati**, **Impostazioni**, **Registri di audit**, **Elimina evento**          |
 
-**Base** e **Note** sono aperte; le altre sezioni restano chiuse finché non ci fate clic.
+**Panoramica**, **Team** e **Note** sono aperte; le altre sezioni restano chiuse finché non ci fate clic.
 
 - **Panoramica** — l'intestazione mostra il numero, il titolo e lo stato dell'evento, quanto manca all'inizio o da quanto è in corso, e i pulsanti che lo fanno avanzare. Sotto, **Inizia**, **Termina** e **Durata** mostrano la finestra pianificata nel vostro fuso orario. Il **Pianificato Manutenzione Feed** registra tutto ciò che è successo all'evento, accanto alle schede **Maintenance Details** e **Risorse interessate**, e alle schede **Misurazioni** e **Campi personalizzati** quando il vostro progetto ne ha.
 - **Cronologia stato** — ogni stato in cui l'evento è stato, quando e per quanto tempo. Vedere [Stati della manutenzione](/docs/scheduled-maintenance/states#la-cronologia-di-stato).

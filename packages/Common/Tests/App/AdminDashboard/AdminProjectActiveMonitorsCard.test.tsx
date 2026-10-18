@@ -299,7 +299,7 @@ describe("Admin > Project > Subscription > Active Monitors", () => {
 
     expect(
       screen.getByText(
-        "Every monitor but a Manual one counts, turned on or off. At the limit the project can't add more, and the monitors it has keep running. A plan bought from a reseller sets this limit, and the reseller's next change of tier overwrites it. Free plan projects are also held to the Free plan's limit.",
+        "All but Manual monitors count, on or off. At the limit no more can be added; existing ones keep running. A reseller's next tier change overwrites it. Free plan projects are also held to the Free plan's limit.",
       ),
     ).toBeInTheDocument();
   });

@@ -84,7 +84,7 @@ Cada fila tiene **Ver alerta** para abrir la alerta y **Desvincular** para quita
 
 ## Vincular incidentes desde una alerta
 
-El lado de la alerta refleja el del incidente. Abre una alerta y elige **Incidentes vinculados** en la sección **Básico** de su menú lateral. La tabla lista cada incidente al que está vinculada la alerta, con el número, el título y el estado actual del incidente, y cuándo y quién la vinculó.
+El lado de la alerta refleja el del incidente. Abre una alerta y elige **Incidentes vinculados** en la sección **Investigación** de su menú lateral. La tabla lista cada incidente al que está vinculada la alerta, con el número, el título y el estado actual del incidente, y cuándo y quién la vinculó.
 
 - **Vincular incidente** vincula esta alerta a un incidente existente. Su desplegable funciona como el del lado del incidente: primero los incidentes más recientes, cada uno con su número —como `INC-42: Checkout is down`—, y escribir busca en todos los incidentes por título.
 - **Ver incidente** abre un incidente vinculado.

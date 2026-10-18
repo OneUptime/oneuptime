@@ -13,11 +13,31 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import { INCIDENT_SLA_NOTE_TEMPLATE_VARIABLE_GROUPS } from "Common/Utils/Incident/IncidentSlaNoteTemplateVariables";
 import IncidentSlaNoteReminderCopy from "../../../Components/Incident/IncidentSlaNoteReminderCopy";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  SLA_RULE_NAME_DESCRIPTION,
+  clearEmptiedSlaRuleMinutes,
+  followValueWithRuleName,
+  getNewSlaRuleValues,
+  getSlaRuleFormSteps,
+  getSlaRuleName,
+} from "../../../Utils/Form/EventRuleForm";
+import { RULE_NAME_MAX_LENGTH } from "../../../Utils/Form/ResourceRuleForm";
+
+/*
+ * What most SLA rules leave alone, folded under More fields at the end of
+ * the Targets step: when the SLA counts as at risk, the description, and
+ * the notes it can post while the incident is open. Built once, so the
+ * form folds the fields together.
+ */
+const SLA_RULE_MORE_FIELDS: FormFieldCollapsibleSection<IncidentSlaRule> =
+  getAdvancedFormSection<IncidentSlaRule>();
 
 const documentationMarkdown: string = `
 ### How Incident SLA Rules Work
 
-SLA (Service Level Agreement) rules automatically track response and resolution times for incidents. When an incident is created, the first matching SLA rule is applied, and deadlines are calculated based on the rule's configuration.
+An SLA (Service Level Agreement) rule sets how long the team has to acknowledge and to resolve an incident. When an incident is created, the first rule that matches it applies, and its deadlines start from the moment the incident was declared.
 
 \`\`\`mermaid
 flowchart TD
@@ -39,16 +59,7 @@ flowchart TD
 
 ### Match Criteria
 
-Match criteria determines which incidents this SLA rule applies to. An incident must match ALL specified criteria for the rule to apply.
-
-| Criteria | Description |
-|----------|-------------|
-| **Monitors** | Only incidents from these specific monitors |
-| **Severities** | Only incidents with these severity levels |
-| **Incident Labels** | Only incidents with at least one of these labels |
-| **Monitor Labels** | Only incidents from monitors with at least one of these labels |
-| **Title Pattern** | Regex pattern to match incident titles |
-| **Description Pattern** | Regex pattern to match incident descriptions |
+The conditions a new incident must meet.
 
 ---
 
@@ -58,7 +69,7 @@ Match criteria determines which incidents this SLA rule applies to. An incident 
 |--------|-------------|
 | **Response Time** | Time allowed to acknowledge the incident |
 | **Resolution Time** | Time allowed to resolve the incident |
-| **At-Risk Threshold** | Percentage of deadline at which status changes to "At Risk" (default: 80%) |
+| **At-Risk Threshold** | Under **More fields**: how much of a deadline may pass before the SLA is "At Risk" (default: 80%) |
 
 ---
 
@@ -76,7 +87,7 @@ Match criteria determines which incidents this SLA rule applies to. An incident 
 
 ### Note Reminders
 
-SLA rules can automatically post internal or public notes at regular intervals while the incident remains open. This helps keep stakeholders informed and encourages progress updates.
+Under **More fields**, an SLA rule can post internal or public notes at regular intervals while the incident is open, to keep everyone informed.
 
 - **Internal Note Reminders**: Posted to the incident's internal notes
 - **Public Note Reminders**: Posted to the incident's public notes (visible on status pages)
@@ -111,12 +122,12 @@ const IncidentSlaRulesPage: FunctionComponent<
         cardProps={{
           title: "Incident SLA Rules",
           description:
-            "Define SLA rules to automatically track response and resolution times for incidents. Rules are evaluated from top to bottom - drag a rule to change its place.",
+            "Track how fast incidents are acknowledged and resolved. The first rule that matches an incident applies - drag a rule to change its place.",
         }}
         helpContent={{
           title: "How Incident SLA Rules Work",
           description:
-            "Understanding SLA tracking, match criteria, and automatic note reminders",
+            "What an SLA rule tracks, which incidents it applies to, and the notes it can post.",
           markdown: documentationMarkdown,
         }}
         sortBy="order"
@@ -126,6 +137,23 @@ const IncidentSlaRulesPage: FunctionComponent<
         dragDropIndexField="order"
         selectMoreFields={{
           isEnabled: true,
+        }}
+        /*
+         * A new rule starts with targets - respond in 15 minutes, resolve
+         * in 4 hours - and the name they make. The Create form only: an
+         * Edit form shows what the rule stores, an empty target included.
+         */
+        createInitialValues={getNewSlaRuleValues<IncidentSlaRule>()}
+        // An emptied target or note interval is saved as none, not as "".
+        onBeforeCreate={async (
+          item: IncidentSlaRule,
+        ): Promise<IncidentSlaRule> => {
+          return clearEmptiedSlaRuleMinutes(item);
+        }}
+        onBeforeUpdate={async (
+          item: IncidentSlaRule,
+        ): Promise<IncidentSlaRule> => {
+          return clearEmptiedSlaRuleMinutes(item);
         }}
         filters={[
           {
@@ -143,6 +171,11 @@ const IncidentSlaRulesPage: FunctionComponent<
             type: FieldType.Boolean,
           },
         ]}
+        /*
+         * The targets beside the name: they are what an SLA rule is, and
+         * last in the row they sat behind the actions at every width a
+         * table scrolls sideways.
+         */
         columns={[
           {
             field: {
@@ -150,6 +183,20 @@ const IncidentSlaRulesPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              responseTimeInMinutes: true,
+            },
+            title: "Response Time (min)",
+            type: FieldType.Number,
+          },
+          {
+            field: {
+              resolutionTimeInMinutes: true,
+            },
+            title: "Resolution Time (min)",
+            type: FieldType.Number,
           },
           {
             field: {
@@ -171,120 +218,11 @@ const IncidentSlaRulesPage: FunctionComponent<
               return <Pill color={Red} text="Disabled" />;
             },
           },
-          {
-            field: {
-              responseTimeInMinutes: true,
-            },
-            title: "Response Time (min)",
-            type: FieldType.Number,
-          },
-          {
-            field: {
-              resolutionTimeInMinutes: true,
-            },
-            title: "Resolution Time (min)",
-            type: FieldType.Number,
-          },
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
-        formSteps={[
-          {
-            title: "Basic Info",
-            id: "basic-info",
-          },
-          {
-            title: "SLA Targets",
-            id: "sla-targets",
-          },
-          {
-            title: "Match Criteria",
-            id: "match-criteria",
-            columns: 2,
-          },
-          {
-            title: "Note Reminders",
-            id: "note-reminders",
-          },
-        ]}
+        formSteps={getSlaRuleFormSteps<IncidentSlaRule>()}
         formFields={[
-          // Basic Info
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Critical Incident SLA",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "SLA for critical incidents requiring fast response and resolution",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            // A rule starts on: the switch is on its edit form only.
-            doNotShowWhenCreating: true,
-            required: false,
-            description: "Enable or disable this SLA rule.",
-          },
-          // SLA Targets
-          {
-            field: {
-              responseTimeInMinutes: true,
-            },
-            title: "Response Time (minutes)",
-            stepId: "sla-targets",
-            sectionTitle: "Deadlines",
-            sectionDescription:
-              "Time budgets for acknowledgement and resolution. Leave a target empty to skip tracking it.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "15",
-            description: "Time allowed to acknowledge the incident.",
-          },
-          {
-            field: {
-              resolutionTimeInMinutes: true,
-            },
-            title: "Resolution Time (minutes)",
-            stepId: "sla-targets",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "60",
-            description: "Time allowed to resolve the incident.",
-          },
-          {
-            field: {
-              atRiskThresholdInPercentage: true,
-            },
-            title: "At-Risk Threshold (%)",
-            stepId: "sla-targets",
-            sectionTitle: "Risk Threshold",
-            sectionDescription:
-              "When elapsed time exceeds this percentage of a deadline, the SLA flips to At Risk.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "80",
-            description: "Default is 80%.",
-          },
-          // Match Criteria
+          // Match: drawn as one conditions builder, on "All incidents".
           {
             field: {
               monitors: true,
@@ -341,6 +279,8 @@ const IncidentSlaRulesPage: FunctionComponent<
               monitorLabels: true,
             },
             title: "Monitor Labels",
+            description:
+              "Only match incidents whose monitor has one of these labels.",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
@@ -356,6 +296,7 @@ const IncidentSlaRulesPage: FunctionComponent<
               incidentTitlePattern: true,
             },
             title: "Incident Title",
+            description: "Leave empty to match any title.",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -374,26 +315,116 @@ const IncidentSlaRulesPage: FunctionComponent<
             required: false,
             placeholder: "timeout|connection refused",
           },
-          // Note Reminders
+          /*
+           * Targets: the two deadlines, which name the rule ("Respond in 15
+           * minutes, resolve in 4 hours") until somebody types a name. No
+           * placeholder: an emptied box means the target is not tracked,
+           * and a grey "15" in it read as a value.
+           */
+          {
+            field: {
+              responseTimeInMinutes: true,
+            },
+            title: "Response Time (minutes)",
+            stepId: "sla-targets",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            description:
+              "How long the team has to acknowledge the incident. Leave empty to not track it.",
+            onChange: followValueWithRuleName<IncidentSlaRule>({
+              column: "responseTimeInMinutes",
+              makeName: getSlaRuleName,
+            }),
+          },
+          {
+            field: {
+              resolutionTimeInMinutes: true,
+            },
+            title: "Resolution Time (minutes)",
+            stepId: "sla-targets",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            description:
+              "How long the team has to resolve the incident. Leave empty to not track it.",
+            onChange: followValueWithRuleName<IncidentSlaRule>({
+              column: "resolutionTimeInMinutes",
+              makeName: getSlaRuleName,
+            }),
+          },
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            description: SLA_RULE_NAME_DESCRIPTION,
+            stepId: "sla-targets",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "e.g. Respond in 15 minutes",
+            validation: {
+              minLength: 2,
+              maxLength: RULE_NAME_MAX_LENGTH,
+            },
+          },
+          {
+            field: {
+              isEnabled: true,
+            },
+            title: "Enabled",
+            stepId: "sla-targets",
+            fieldType: FormFieldSchemaType.Toggle,
+            // A rule starts on: the switch is on its edit form only.
+            doNotShowWhenCreating: true,
+            required: false,
+            description: "Enable or disable this SLA rule.",
+          },
+          /*
+           * More fields, folded: what most SLA rules leave alone - when the
+           * SLA counts as at risk, a description, and notes posted while
+           * the incident is open.
+           */
+          {
+            field: {
+              atRiskThresholdInPercentage: true,
+            },
+            title: "At-Risk Threshold (%)",
+            stepId: "sla-targets",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "80",
+            description:
+              "The SLA is at risk once this much of a deadline has passed. Default is 80%.",
+            collapsibleSection: SLA_RULE_MORE_FIELDS,
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            stepId: "sla-targets",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            collapsibleSection: SLA_RULE_MORE_FIELDS,
+          },
           {
             field: {
               internalNoteReminderIntervalInMinutes: true,
             },
             title: "Internal Note Reminder Interval (minutes)",
-            stepId: "note-reminders",
-            sectionTitle: "Internal Reminders",
-            sectionDescription:
-              "Post an internal note on a recurring interval while the incident is open. Leave the interval empty to disable.",
+            description:
+              "Post an internal note this often while the incident is open. Leave empty for none.",
+            stepId: "sla-targets",
+            sectionTitle: "Note Reminders",
             fieldType: FormFieldSchemaType.Number,
             required: false,
-            placeholder: "30",
+            collapsibleSection: SLA_RULE_MORE_FIELDS,
           },
           {
             field: {
               internalNoteReminderTemplate: true,
             },
             title: "Internal Note Reminder Template",
-            stepId: "note-reminders",
+            stepId: "sla-targets",
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
             placeholder:
@@ -403,26 +434,26 @@ const IncidentSlaRulesPage: FunctionComponent<
             templateVariables: INCIDENT_SLA_NOTE_TEMPLATE_VARIABLE_GROUPS,
             templateVariablesDescription:
               IncidentSlaNoteReminderCopy.templateVariablesDescription,
+            collapsibleSection: SLA_RULE_MORE_FIELDS,
           },
           {
             field: {
               publicNoteReminderIntervalInMinutes: true,
             },
             title: "Public Note Reminder Interval (minutes)",
-            stepId: "note-reminders",
-            sectionTitle: "Public Reminders",
-            sectionDescription:
-              "Post a public note (visible on status pages) on a recurring interval. Leave the interval empty to disable.",
+            description:
+              "Post a public status update this often while the incident is open. Leave empty for none.",
+            stepId: "sla-targets",
             fieldType: FormFieldSchemaType.Number,
             required: false,
-            placeholder: "60",
+            collapsibleSection: SLA_RULE_MORE_FIELDS,
           },
           {
             field: {
               publicNoteReminderTemplate: true,
             },
             title: "Public Note Reminder Template",
-            stepId: "note-reminders",
+            stepId: "sla-targets",
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
             placeholder:
@@ -432,6 +463,7 @@ const IncidentSlaRulesPage: FunctionComponent<
             templateVariables: INCIDENT_SLA_NOTE_TEMPLATE_VARIABLE_GROUPS,
             templateVariablesDescription:
               IncidentSlaNoteReminderCopy.templateVariablesDescription,
+            collapsibleSection: SLA_RULE_MORE_FIELDS,
           },
         ]}
         showRefreshButton={true}

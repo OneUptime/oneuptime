@@ -356,7 +356,7 @@ describe("the Settings page's Data Collection card", () => {
 
     expect(
       screen.getByText(
-        "The probe stops collecting this vCenter and OneUptime forgets its saved password. Its data then comes from the VMware agent you run - install and start it first, so nothing is missed.",
+        "The probe stops collecting this vCenter and its saved password is deleted. Start the VMware agent first, so nothing is missed.",
       ),
     ).toBeInTheDocument();
     expect(updateByIdMock).not.toHaveBeenCalled();

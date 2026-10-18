@@ -233,6 +233,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/manual-monitor",
       },
       {
+        title: "Probe Status Monitor",
+        url: "/docs/monitor/probe-status-monitor",
+      },
+      {
         title: "JavaScript Expressions",
         url: "/docs/monitor/javascript-expression",
       },
@@ -593,6 +597,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Maintenance Rules & Settings",
         url: "/docs/scheduled-maintenance/settings",
+      },
+      {
+        title: "Maintenance Calendar",
+        url: "/docs/scheduled-maintenance/calendar",
       },
     ],
   },
@@ -1436,6 +1444,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Kubernetes and Helm",
         url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
+      },
+      {
+        title: "Cloud Marketplaces",
+        url: "/docs/installation/cloud-marketplaces",
       },
       {
         title: "Sizing & Capacity Planning",

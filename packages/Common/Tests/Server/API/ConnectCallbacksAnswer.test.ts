@@ -1760,7 +1760,58 @@ describe("Every connect callback answers on the page it came from", () => {
 
       expectAnsweredOn(response, connectReturnPage(), null);
       expect(queryOf(response.location!).get("provider")).toBe("github");
+      expect(queryOf(response.location!).get("notice")).toBeNull();
       expect(verifyInstallation).not.toHaveBeenCalled();
+      expectNothingWritten();
+    });
+
+    /*
+     * An install made on GitHub itself - from the app's Marketplace listing
+     * or its page - comes back with an installation and a code but no state
+     * of ours. Nothing says which project it is for, so nothing is connected
+     * and the code is left unused; Code Repositories says the app is
+     * installed and offers to connect it.
+     */
+    test("an install made on GitHub itself goes to Code Repositories saying so, and connects nothing", async () => {
+      const response: ProbeResponse = await callback(GITHUB_CALLBACK, {
+        installation_id: "424242",
+        code: "github-oauth-code",
+        setup_action: "install",
+      });
+
+      expectAnsweredOn(response, connectReturnPage(), null);
+      expect(queryOf(response.location!).get("provider")).toBe("github");
+      expect(queryOf(response.location!).get("notice")).toBe(
+        "github-installed",
+      );
+      expect(verifyInstallation).not.toHaveBeenCalled();
+      expectNothingWritten();
+    });
+
+    test("an install with an empty state is refused, not taken for one made on GitHub", async () => {
+      const response: ProbeResponse = await callback(GITHUB_CALLBACK, {
+        installation_id: "424242",
+        code: "github-oauth-code",
+        setup_action: "install",
+        state: "",
+      });
+
+      expectAnsweredOn(response, connectReturnPage(), "link-invalid");
+      expect(queryOf(response.location!).get("notice")).toBeNull();
+      expectNothingWritten();
+    });
+
+    test("an install that OneUptime started is not taken for one made on GitHub", async () => {
+      const response: ProbeResponse = await callback(GITHUB_CALLBACK, {
+        installation_id: "424242",
+        code: "github-oauth-code",
+        setup_action: "install",
+        state: crypto.randomBytes(32).toString("base64url"),
+      });
+
+      // An unknown state is refused as such, not waved through as GitHub's.
+      expectAnsweredOn(response, connectReturnPage(), "link-invalid");
+      expect(queryOf(response.location!).get("notice")).toBeNull();
       expectNothingWritten();
     });
   });

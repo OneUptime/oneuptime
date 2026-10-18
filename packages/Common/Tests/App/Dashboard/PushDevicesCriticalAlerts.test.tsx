@@ -977,7 +977,7 @@ describe("a browser, and nobody's phone yet", () => {
       "Get the mobile app",
     );
     expect(within(modal).getByTestId("modal-description")).toHaveTextContent(
-      "Get push notifications on your phone with the OneUptime On-Call app. Its critical alerts ring on-call pages through silent mode and Do Not Disturb, which a browser can't.",
+      "Get push notifications on your phone with the OneUptime On-Call app. Its critical alerts ring even on silent.",
     );
 
     expect(stepsOf(modal)).toEqual([

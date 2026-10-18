@@ -244,6 +244,7 @@ const getScheduleAdvancedValueFields: () => Array<
     },
     {
       field: { timezone: true },
+      description: "The timezone the schedule's times are in.",
       fieldType: FormFieldSchemaType.Dropdown,
       defaultValue: OneUptimeDate.getCurrentTimezone(),
     },
@@ -309,7 +310,9 @@ export const getOnCallScheduleCreateFormFields: (
       title: "Name",
       fieldType: FormFieldSchemaType.Text,
       required: true,
-      placeholder: "Schedule Name",
+      placeholder: "e.g., Platform primary",
+      // The title says it; the column's "Any friendly name of this object" adds nothing.
+      hideColumnDescription: true,
       validation: {
         minLength: 2,
       },
@@ -365,7 +368,7 @@ export const getOnCallScheduleCreateFormFields: (
       },
       title: "Timezone",
       description:
-        "The timezone this schedule's active-hour restrictions and hand-off times are interpreted in. Defaults to your current timezone.",
+        "The schedule's times are in this timezone. It starts at yours.",
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
       defaultValue: OneUptimeDate.getCurrentTimezone(),
@@ -381,6 +384,7 @@ export const getOnCallScheduleCreateFormFields: (
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: "Description",
+      hideColumnDescription: true,
       collapsibleSection: advanced,
     },
     getLabelsFormField<OnCallDutyPolicySchedule>({

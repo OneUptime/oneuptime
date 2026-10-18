@@ -1152,6 +1152,19 @@ jobs:
   # starts as soon as those are pushed; they all used to wait for
   # test-helm-chart, and through it for the Terraform provider dry run.
   #
+  # And they need those images' build jobs, not their merges: each runs the
+  # -amd64 tags the builds' amd64 legs push (the runner is amd64), the same
+  # image the merged tag points an amd64 pull at. A merge job is a few
+  # seconds of work behind a queue of its own for a runner, and on 14.0.66's
+  # e2e evidence (run 38996994440) the merges queued 34 to 49 minutes between
+  # the last build and the e2e jobs. The merges still run, beside the e2e
+  # jobs, and test-helm-chart, which installs the multi-arch `test` tags,
+  # waits for them; a failed merge still fails the run. A need on a build
+  # job waits for both of its legs, arm64's too, so a failed arm64 build
+  # still holds the e2e jobs back, as it did through the merge. No step here
+  # may name a tag a merge pushes: until the merge runs, it still names the
+  # previous push's image (TestReleaseE2eImages.test.js).
+  #
   # The SaaS and self-hosted jobs each run one shard of the default suite
   # (E2E_SHARD; packages/E2E/Sharding/Sharding.ts): whole spec files, balanced
   # by their measured durations, each shard against a stack of its own and
@@ -1169,7 +1182,7 @@ jobs:
     runs-on: ubuntu-latest
     # The SaaS stack: docker-compose.yml with the billing overlay, which adds
     # home and leaves the runner out.
-    needs: [read-version, app-docker-image-merge, home-docker-image-merge, nginx-docker-image-merge, probe-docker-image-merge, e2e-docker-image-merge]
+    needs: [read-version, app-docker-image-build, home-docker-image-build, nginx-docker-image-build, probe-docker-image-build, e2e-docker-image-build]
     # Above the suite's own 90-minute globalTimeout, so a hang still reports.
     timeout-minutes: 120
     strategy:
@@ -1244,7 +1257,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{needs.read-version.outputs.major_minor}}-test"
-          SANITIZED_VERSION="enterprise-${VERSION//+/-}"
+          SANITIZED_VERSION="enterprise-${VERSION//+/-}-amd64"
           if [ -f config.env ]; then
             if grep -q '^APP_TAG=' config.env; then
               sed -i "s/^APP_TAG=.*/APP_TAG=${SANITIZED_VERSION}/" config.env
@@ -1280,7 +1293,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test-amd64
           # Retried only for what a later attempt can clear - a rate limit, a
           # 5xx, a dropped connection; a tag that was never pushed fails at once.
           source ./Scripts/GHA/retry.sh
@@ -1291,7 +1304,7 @@ jobs:
       # bundles, and the loader actually loading it.
       - name: Check the App image is the Enterprise Edition
         env:
-          APP_IMAGE: oneuptime/app:enterprise-${{needs.read-version.outputs.major_minor}}-test
+          APP_IMAGE: oneuptime/app:enterprise-${{needs.read-version.outputs.major_minor}}-test-amd64
         run: |
           set -euo pipefail
           docker pull "$APP_IMAGE"
@@ -1300,7 +1313,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test-amd64
           # The e2e overlay publishes ClickHouse on the runner's loopback for the
           # exception fixtures; see the header of packages/E2E/docker-compose.e2e-clickhouse.yml.
           docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml up --remove-orphans -d
@@ -1324,7 +1337,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test-amd64
           trap 'docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml rm -sfv e2e || true' EXIT
           if ! docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
             docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml logs e2e
@@ -1368,7 +1381,7 @@ jobs:
     runs-on: ubuntu-latest
     # The self-hosted stack: docker-compose.yml alone, which runs the runner
     # and no home - so this job does not wait for home's ~30-minute build.
-    needs: [read-version, app-docker-image-merge, nginx-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, e2e-docker-image-merge]
+    needs: [read-version, app-docker-image-build, nginx-docker-image-build, probe-docker-image-build, runner-docker-image-build, e2e-docker-image-build]
     # Above the suite's own 90-minute globalTimeout, so a hang still reports.
     timeout-minutes: 120
     strategy:
@@ -1397,7 +1410,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{needs.read-version.outputs.major_minor}}-test"
-          SANITIZED_VERSION="${VERSION//+/-}"
+          SANITIZED_VERSION="${VERSION//+/-}-amd64"
           if [ -f config.env ]; then
             if grep -q '^APP_TAG=' config.env; then
               sed -i "s/^APP_TAG=.*/APP_TAG=${SANITIZED_VERSION}/" config.env
@@ -1413,7 +1426,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-amd64
           # Retried only for what a later attempt can clear - a rate limit, a
           # 5xx, a dropped connection; a tag that was never pushed fails at once.
           source ./Scripts/GHA/retry.sh
@@ -1424,7 +1437,7 @@ jobs:
       # its UI bundles, and the loader finding none.
       - name: Check the App image is the Community Edition
         env:
-          APP_IMAGE: oneuptime/app:${{needs.read-version.outputs.major_minor}}-test
+          APP_IMAGE: oneuptime/app:${{needs.read-version.outputs.major_minor}}-test-amd64
         run: |
           set -euo pipefail
           docker pull "$APP_IMAGE"
@@ -1433,7 +1446,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-amd64
           # `npm run start` minus the implicit compose file, so the e2e overlay can
           # publish ClickHouse on the runner's loopback for the exception fixtures;
           # see the header of packages/E2E/docker-compose.e2e-clickhouse.yml.
@@ -1450,7 +1463,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-amd64
           trap 'docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml rm -sfv e2e || true' EXIT
           if ! docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
             docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml logs e2e
@@ -1474,7 +1487,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-amd64
           docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml run --rm e2e npm run test-label-rule-transfer || (bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml; exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -1536,7 +1549,7 @@ jobs:
     # The self-hosted stack, as test-e2e-test-self-hosted boots it (no home).
     # Not sharded: both phases must run against one stack, and together they
     # take about five minutes.
-    needs: [read-version, app-docker-image-merge, nginx-docker-image-merge, probe-docker-image-merge, runner-docker-image-merge, e2e-docker-image-merge]
+    needs: [read-version, app-docker-image-build, nginx-docker-image-build, probe-docker-image-build, runner-docker-image-build, e2e-docker-image-build]
     timeout-minutes: 90
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -1564,7 +1577,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{needs.read-version.outputs.major_minor}}-test"
-          SANITIZED_VERSION="enterprise-${VERSION//+/-}"
+          SANITIZED_VERSION="enterprise-${VERSION//+/-}-amd64"
           if [ -f config.env ]; then
             if grep -q '^APP_TAG=' config.env; then
               sed -i "s/^APP_TAG=.*/APP_TAG=${SANITIZED_VERSION}/" config.env
@@ -1600,7 +1613,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test-amd64
           # Retried only for what a later attempt can clear - a rate limit, a
           # 5xx, a dropped connection; a tag that was never pushed fails at once.
           source ./Scripts/GHA/retry.sh
@@ -1613,7 +1626,7 @@ jobs:
       # image and in its UI bundles, and the loader actually loading it.
       - name: Check the App image is the Enterprise Edition
         env:
-          APP_IMAGE: oneuptime/app:enterprise-${{needs.read-version.outputs.major_minor}}-test
+          APP_IMAGE: oneuptime/app:enterprise-${{needs.read-version.outputs.major_minor}}-test-amd64
         run: |
           set -euo pipefail
           docker pull "$APP_IMAGE"
@@ -1622,7 +1635,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test-amd64
           # No billing overlay: BILLING_ENABLED stays false, which is the point
           # of this job. The e2e overlay publishes ClickHouse on the runner's
           # loopback for the fixtures; see the header of
@@ -1679,7 +1692,7 @@ jobs:
       - name: Run E2E Tests (phase A, licensed enterprise stack)
         run: |
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test-amd64
           docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml run --rm e2e npm run test-enterprise-licensed || (bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml; exit 1)
       # PHASE B, step 1: make the license lapse.
       #
@@ -1753,7 +1766,7 @@ jobs:
       - name: Run E2E Tests (phase B, lapsed enterprise license)
         run: |
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test
+          export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}-test-amd64
           docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e.yml run --rm e2e npm run test-enterprise-lapsed || (bash ./Tests/Scripts/dump-container-logs.sh docker-compose.yml; exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4

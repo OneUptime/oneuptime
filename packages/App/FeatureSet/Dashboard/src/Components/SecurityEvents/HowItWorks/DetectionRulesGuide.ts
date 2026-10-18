@@ -517,18 +517,18 @@ Incidents follow the same order with *Incident Severity* and your incident sever
 const alertsAndFindingsMarkdown: string = `
 #### Alerts
 
-With **Create Alert on Match** on (the default), each firing group opens an alert titled \`[Detection] <rule name> — <group value>\`, or \`[Detection] <rule name>\` when the rule has no Group By Field. The alert describes the match count, the time window, a sample event message and the observables involved.
+With **Create an alert** (the default) or **Both** under **Alerts and Incidents**, each firing group opens an alert titled \`[Detection] <rule name> — <group value>\`, or \`[Detection] <rule name>\` when the rule has no Group By Field. The alert describes the match count, the time window, a sample event message and the observables involved.
 
 - **One open alert per group.** While an alert for a rule and group value is unresolved, further matches for that group do not open another one. Once you resolve it, the next match opens a fresh alert.
 - **Alerts are not resolved automatically.** A rule only sees matches — it cannot tell that an attack has stopped — so its alerts stay open until someone resolves them. For a status that recovers on its own, use a monitor (below).
 
 #### Incidents
 
-**Create Incident on Match** is off by default: incidents drive on-call escalation, SLAs and status pages, and alerts are usually enough for detections. When it is on, incidents are deduplicated per group exactly like alerts.
+**Declare an incident** and **Both** under **Alerts and Incidents** open incidents: they drive on-call escalation, SLAs and status pages, and alerts are usually enough for detections. Incidents are deduplicated per group exactly like alerts.
 
 #### Detection Findings
 
-With **Write Detection Finding on Match** on (the default), every firing group also writes a security event back into the event stream: class \`${DETECTION_FINDING_CLASS_NAME}\` (OCSF ${DETECTION_FINDING_CLASS_UID}), product \`${DETECTIONS_PRODUCT_NAME}\`, the severity from the rule's level, the rule's MITRE ATT&CK tags, and the group value first in \`observables\`. Each finding carries these attributes:
+With **Write Detection Finding on Match** on (the default, under **More fields**), every firing group also writes a security event back into the event stream: class \`${DETECTION_FINDING_CLASS_NAME}\` (OCSF ${DETECTION_FINDING_CLASS_UID}), product \`${DETECTIONS_PRODUCT_NAME}\`, the severity from the rule's level, the rule's MITRE ATT&CK tags, and the group value first in \`observables\`. Each finding carries these attributes:
 
 ${markdownTable(
   ["Attribute", "Value"],
@@ -554,7 +554,7 @@ ${markdownTable(
   ],
 )}
 
-Findings are ordinary security events: search them in **Events** and pivot on their observables in **Correlate**. Turn every action off except findings to trial a new rule quietly before it pages anyone.
+Findings are ordinary security events: search them in **Events** and pivot on their observables in **Correlate**. To trial a new rule quietly before it pages anyone, pick **Neither** under **Alerts and Incidents** and turn **Open a Case on Match** off: it only writes findings.
 
 #### Monitors on top of rules
 
@@ -589,7 +589,7 @@ The form shows the parser's reason. The usual causes:
 
 #### It matched, but no alert opened
 
-- **Create Alert on Match** is off.
+- **Alerts and Incidents** is set to **Declare an incident** or **Neither**.
 - An alert for the same rule and group value is still open — matches for that group are deduplicated into it.
 - The project has no alert severities. Rules need at least one to open alerts.
 
@@ -598,7 +598,7 @@ The form shows the parser's reason. The usual causes:
 - The Group By Field has too many values — every value gets its own alert. Group by a coarser field, or remove it for one alert per rule.
 - The threshold is too low for the traffic. Raise it, or add a Distinct Count Field.
 - Known-good activity matches. Exclude it with a filter selection: \`condition: selection and not filter_known_good\`.
-- You care about the rate, not each match. Turn **Create Alert on Match** off and put a monitor on the rule's findings instead.
+- You care about the rate, not each match. Set **Alerts and Incidents** to **Neither** and put a monitor on the rule's findings instead.
 `;
 
 const detectionRuleLevels: Array<SecurityEventsGuideLevel> =

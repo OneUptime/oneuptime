@@ -19,6 +19,7 @@ import {
   DASHBOARD_MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS,
 } from "../../Types/Dashboard/MasterPassword";
 import CaptureSpan from "./Telemetry/CaptureSpan";
+import RequestTransport from "./RequestTransport";
 
 export default class CookieUtil {
   // set cookie with express response
@@ -252,8 +253,14 @@ export default class CookieUtil {
       );
     }
 
+    /*
+     * What the dashboards read to show a master admin's links and settings
+     * (UserUtil.isMasterAdmin); the server decides from the account itself.
+     * Taken away for everyone else, so a browser that last signed in as a
+     * master admin whose access was removed stops showing them at the
+     * session's next renewal, as the server already has.
+     */
     if (user.isMasterAdmin) {
-      // set user isMasterAdmin cookie
       CookieUtil.setCookie(
         res,
         CookieName.IsMasterAdmin,
@@ -263,6 +270,8 @@ export default class CookieUtil {
           httpOnly: false,
         },
       );
+    } else {
+      CookieUtil.removeCookie(res, CookieName.IsMasterAdmin);
     }
 
     if (user.profilePictureId) {
@@ -364,6 +373,15 @@ export default class CookieUtil {
     );
   }
 
+  /*
+   * Every cookie the server sets goes through here (a guard test holds the
+   * rest of the code to it), so one rule decides what keeps a cookie on
+   * HTTPS: it is Secure whenever the browser is talking to OneUptime over
+   * HTTPS (RequestTransport.isHttps), and a browser never sends a Secure
+   * cookie over plain HTTP. A caller cannot turn that off; over plain HTTP,
+   * where the browser would drop a Secure cookie, the cookie is left as it
+   * was so a plain-HTTP installation still signs people in.
+   */
   @CaptureSpan()
   public static setCookie(
     res: ExpressResponse,
@@ -376,6 +394,10 @@ export default class CookieUtil {
       sameSite: "lax",
       ...options,
     };
+
+    if (RequestTransport.isHttps(res.req)) {
+      cookieOptions.secure = true;
+    }
 
     res.cookie(name, value, cookieOptions);
   }
@@ -407,12 +429,35 @@ export default class CookieUtil {
 
   // delete cookie with express response
 
+  /*
+   * Clears a cookie with the attributes it was set with: the path (a cookie
+   * set on another path is a different cookie, and survives a clear on "/"),
+   * the SameSite setting, and Secure by the same rule as setCookie.
+   */
   @CaptureSpan()
-  public static removeCookie(res: ExpressResponse, name: string): void {
-    res.clearCookie(name, {
-      path: "/",
-      sameSite: "lax",
-    });
+  public static removeCookie(
+    res: ExpressResponse,
+    name: string,
+    options?: {
+      path?: string | undefined;
+      sameSite?: CookieOptions["sameSite"] | undefined;
+      httpOnly?: boolean | undefined;
+    },
+  ): void {
+    const cookieOptions: CookieOptions = {
+      path: options?.path || "/",
+      sameSite: options?.sameSite || "lax",
+    };
+
+    if (options?.httpOnly !== undefined) {
+      cookieOptions.httpOnly = options.httpOnly;
+    }
+
+    if (RequestTransport.isHttps(res.req)) {
+      cookieOptions.secure = true;
+    }
+
+    res.clearCookie(name, cookieOptions);
   }
 
   @CaptureSpan()

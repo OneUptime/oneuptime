@@ -54,8 +54,7 @@ import {
  * re-export it - is the one applied here.
  */
 
-const NO_OUTPUT_ERROR: string =
-  "This rule would do nothing. Turn on Create Alert, Declare Incident, or both.";
+const NO_OUTPUT_ERROR: string = "Pick what this rule opens when it fires.";
 
 const WINDOW_ORDER_ERROR: string =
   "The short window must be shorter than the long window.";
@@ -124,15 +123,20 @@ describe("validateBurnRateOutputs", () => {
     },
   );
 
-  test("rejects with the copy that names both toggles by their form labels", () => {
+  test("rejects with the copy that asks for the one choice the form draws", () => {
     /*
      * Pinned verbatim because it is the only place the user is told what to do
      * about it. The server's own message ("A burn rate rule must create an
      * alert, declare an incident, or both.") is written for an API caller and
-     * names neither control on screen.
+     * names no control on screen. The form asks one question now - When it
+     * fires - so the message asks for its answer, not for two switches that
+     * are gone.
      */
     expect(validateOutputs({ shouldCreateAlert: false })).toBe(
-      "This rule would do nothing. Turn on Create Alert, Declare Incident, or both.",
+      "Pick what this rule opens when it fires.",
+    );
+    expect(validateOutputs({ shouldCreateAlert: false })).not.toMatch(
+      /Turn on Create Alert/,
     );
   });
 });

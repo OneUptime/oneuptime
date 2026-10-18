@@ -10,8 +10,11 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
-import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookRuleTriggerEntity from "Common/Types/Runbook/RunbookRuleTriggerEntity";
+import {
+  getRunbookRuleActionFields,
+  getRunbookRuleFormSteps,
+} from "../../Utils/Form/EventRuleForm";
 import { RuleCriteriaSubject } from "Common/Types/Rules/RuleCriteriaSubject";
 import { Green, Red } from "Common/Types/BrandColors";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -232,11 +235,13 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         },
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria" },
-        { title: "Runbooks", id: "runbooks" },
-      ]}
+      /*
+       * What the rule matches, then the runbooks it starts - with the name
+       * filled in from them ("Start Database failover"), as the other rules
+       * of the same menu ask it (Utils/Form/EventRuleForm). It used to open
+       * on Basic Info: a name, before anyone had said what the rule was for.
+       */
+      formSteps={getRunbookRuleFormSteps<RunbookRule>()}
       /*
        * The criteria the other rules of the same product offer, in the same
        * order and words (Types/Runbook/RunbookRuleCriteria lists them per
@@ -244,33 +249,10 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
        */
       formFields={[
         {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Start DB-failover runbook for database incidents",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          // A rule starts on: the switch is on its edit form only.
-          doNotShowWhenCreating: true,
-          required: false,
-        },
-        {
           field: { monitors: true },
           title: "Monitors",
+          description:
+            "Only match incidents, alerts and maintenance events of these monitors.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
@@ -337,6 +319,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitorLabels: true },
           title: "Monitor Labels",
+          description: "Only match when a monitor has one of these labels.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
@@ -366,6 +349,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitorNamePattern: true },
           title: "Monitor Name",
+          description: "A case-insensitive regex for monitor names.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -374,27 +358,13 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitorDescriptionPattern: true },
           title: "Monitor Description",
+          description: "A case-insensitive regex for monitor descriptions.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { runbooks: true },
-          title: "Runbooks to Start",
-          stepId: "runbooks",
-          sectionTitle: "Action",
-          sectionDescription:
-            "When this rule matches, every selected runbook starts its own execution attached to the event.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Runbook,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: true,
-          placeholder: "Select Runbooks",
-        },
+        ...getRunbookRuleActionFields<RunbookRule>(),
       ]}
       showRefreshButton={true}
     />

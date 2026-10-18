@@ -81,7 +81,7 @@ const PAGE_PATH: string = `/dashboard/${PROJECT_ID}/incidents/settings/linked-al
 
 const CARD_TITLE: string = "Linked Alerts";
 const CARD_DESCRIPTION: string =
-  "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are on for new projects. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.";
+  "Whether alerts linked to an incident follow it when it is acknowledged or resolved. Both are on for new projects. Alerts never move back to an earlier state.";
 
 const ACKNOWLEDGE_SWITCH: string =
   "Acknowledge Linked Alerts When Incident Is Acknowledged";
@@ -395,12 +395,10 @@ describe("Incidents → Settings → Linked Alerts", () => {
 
     expect(
       screen.getByTestId(`${LINKED_ALERTS_ACKNOWLEDGE_SWITCH_TEST_ID}-row`),
-    ).toHaveTextContent(/This stops those alerts' on-call escalations\./);
+    ).toHaveTextContent(/stops their on-call escalations\./);
     expect(
       screen.getByTestId(`${LINKED_ALERTS_RESOLVE_SWITCH_TEST_ID}-row`),
-    ).toHaveTextContent(
-      /except alerts that are still linked to another incident that is not resolved yet/,
-    );
+    ).toHaveTextContent(/unless an alert is linked to another open incident\./);
   });
 
   test("a project owner turns the acknowledge switch off, and exactly that column is saved", async () => {

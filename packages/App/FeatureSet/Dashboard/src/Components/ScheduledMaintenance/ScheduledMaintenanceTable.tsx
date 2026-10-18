@@ -39,6 +39,7 @@ import React, {
   ReactElement,
   useState,
   useEffect,
+  useMemo,
 } from "react";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import { JSONObject } from "Common/Types/JSON";
@@ -88,6 +89,19 @@ import {
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
 import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
+import ScheduledMaintenanceCalendar from "./ScheduledMaintenanceCalendar";
+import MaintenanceCalendarSubscribeModal from "./MaintenanceCalendarSubscribeModal";
+import {
+  SCHEDULED_MAINTENANCE_VIEW_OPTIONS,
+  SCHEDULED_MAINTENANCE_VIEW_SWITCH_LABEL,
+  SCHEDULED_MAINTENANCE_VIEW_SWITCH_TEST_ID,
+  ScheduledMaintenanceView,
+  scheduledMaintenanceViewChoice,
+} from "./ScheduledMaintenanceViewChoice";
+import ViewSwitch from "Common/UI/Components/ViewSwitch/ViewSwitch";
+import { useRememberedView } from "Common/UI/Components/ViewSwitch/RememberedView";
+import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
@@ -109,6 +123,14 @@ export interface ComponentProps {
   description?: string | undefined;
   disableCreate?: boolean | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
+  /*
+   * The project's own list of events (Scheduled Maintenance > Events): a
+   * List | Calendar switch in the card's header, the reader's choice
+   * remembered (ScheduledMaintenanceViewChoice), and Subscribe to calendar -
+   * the team's calendar link for every event of the project. The lists on
+   * a monitor's or a host's Scheduled Maintenance tab stay lists.
+   */
+  showCalendarView?: boolean | undefined;
 }
 
 const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
@@ -129,6 +151,15 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<ScheduledMaintenance> | null>(null);
+  const [showSubscribeModal, setShowSubscribeModal] = useState<boolean>(false);
+
+  // List or Calendar: the reader's choice, on the project's own list only.
+  const [rememberedView, setView] = useRememberedView<ScheduledMaintenanceView>(
+    scheduledMaintenanceViewChoice,
+  );
+  const view: ScheduledMaintenanceView = props.showCalendarView
+    ? rememberedView
+    : ScheduledMaintenanceView.List;
 
   const { noteTemplates } = useNoteTemplates<ScheduledMaintenanceNoteTemplate>({
     modelType: ScheduledMaintenanceNoteTemplate,
@@ -145,6 +176,28 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
       resourceIdField: "scheduledMaintenanceId",
     });
+
+  /*
+   * List | Calendar, at the right end of the filter bar: the card's header
+   * already holds the search, Create and the ⋯, and a switch there squeezed
+   * the card's title into a column a word wide. In the bar it stays where it
+   * is when the view changes.
+   */
+  const viewSwitch: ReactElement | undefined = useMemo(() => {
+    if (!props.showCalendarView) {
+      return undefined;
+    }
+
+    return (
+      <ViewSwitch<ScheduledMaintenanceView>
+        options={SCHEDULED_MAINTENANCE_VIEW_OPTIONS}
+        value={view}
+        onChange={setView}
+        ariaLabel={SCHEDULED_MAINTENANCE_VIEW_SWITCH_LABEL}
+        dataTestId={SCHEDULED_MAINTENANCE_VIEW_SWITCH_TEST_ID}
+      />
+    );
+  }, [props.showCalendarView, view, setView]);
 
   const scheduledMaintenanceExtraFacets: Array<ResourceFacet> = [
     {
@@ -258,6 +311,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     showLabelsFacet: true,
     extraFacets: [...scheduledMaintenanceExtraFacets, ...customFieldFacets],
     areFacetsLoading: areCustomFieldFacetsLoading,
+    filterBarEnd: viewSwitch,
   });
 
   // Fetch scheduled maintenance states on mount
@@ -465,6 +519,21 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     props.createFrom,
   );
 
+  const canCreateEvents: boolean =
+    !props.disableCreate &&
+    PermissionGate.check(new ScheduledMaintenance(), ModelAction.Create)
+      .isAllowed;
+
+  // Subscribe to calendar: in the list's ⋯, and under the calendar.
+  const subscribeButton: CardButtonSchema = {
+    title: "Subscribe to calendar",
+    icon: IconProp.Calendar,
+    buttonStyle: ButtonStyleType.OUTLINE,
+    onClick: () => {
+      setShowSubscribeModal(true);
+    },
+  };
+
   if (!props.disableCreate) {
     /*
      * These route to a dedicated create page instead of the table's built in
@@ -508,461 +577,563 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     }) as Array<CardButtonSchema>;
   }
 
-  return (
-    <div>
-      <ModelTable<ScheduledMaintenance>
-        modelType={ScheduledMaintenance}
-        id="scheduledMaintenances-table"
-        name="Scheduled Maintenance Events"
-        userPreferencesKey={"scheduled-maintenance-table"}
-        customFieldsModelType={ScheduledMaintenanceCustomField}
-        bulkActions={{
-          buttons: [
-            getBulkChangeStateAction(),
-            ...labelBulkActions,
-            ...ownerBulkActions,
-            ModalTableBulkDefaultActions.Delete,
-          ],
-        }}
-        isDeleteable={true}
-        topContent={filterBar}
-        emptyState={{ ...props.emptyState, ...facetEmptyState }}
-        currentFacetState={facetSaveState}
-        onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(props.query)}
-        onFetchSuccess={(data: Array<ScheduledMaintenance>) => {
-          onResourcesFetched(data);
-        }}
-        isEditable={false}
-        isCreateable={false}
-        isViewable={true}
-        saveFilterProps={props.saveFilterProps}
-        urlStateKey={tableUrlStateKey}
-        showCreateForm={false}
-        cardProps={{
-          title: props.title || "Scheduled Maintenance Events",
-          description:
-            props.description ||
-            "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.",
-          buttons: cardbuttons,
-        }}
-        noItemsMessage={props.noItemsMessage}
-        showViewIdButton={true}
-        viewButtonText="View Event"
-        showRefreshButton={true}
-        searchableFields={["title", "description"]}
-        viewPageRoute={props.viewPageRoute}
-        filters={[
-          {
-            title: "Scheduled Maintenance ID",
-            type: FieldType.Text,
-            field: {
-              _id: true,
-            },
-          },
-          {
-            title: "Scheduled Maintenance Number",
-            type: FieldType.Number,
-            field: {
-              scheduledMaintenanceNumber: true,
-            },
-          },
-          {
-            field: {
-              title: true,
-            },
-            title: "Title",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              monitors: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Monitors Affected",
-            type: FieldType.EntityArray,
-            filterEntityType: Monitor,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              statusPages: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Shown on Status Page",
-            type: FieldType.EntityArray,
-            filterEntityType: StatusPage,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Created At",
-            type: FieldType.Date,
-          },
-          {
-            field: {
-              startsAt: true,
-            },
-            title: "Starts At",
-            type: FieldType.Date,
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            type: FieldType.Date,
-          },
-        ]}
-        selectMoreFields={{
-          scheduledMaintenanceNumberWithPrefix: true,
-          /*
-           * The Resources Affected column lists several M2M relations under one
-           * `field` block, but BaseModelTable only auto-selects the FIRST key
-           * of each column.field. Include the remaining relations explicitly
-           * so all attached resources actually load.
-           */
-          hosts: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          kubernetesClusters: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          dockerHosts: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          podmanHosts: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          proxmoxClusters: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          vmwareVCenters: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          cephClusters: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          storageArrays: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          dockerSwarmClusters: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          iotFleets: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          databaseServers: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          networkSites: {
-            name: true,
-            _id: true,
-            projectId: true,
-          },
-          services: {
-            name: true,
-            _id: true,
-            projectId: true,
-            serviceColor: true,
-          },
-        }}
-        columns={[
-          {
-            field: {
-              scheduledMaintenanceNumber: true,
-            },
-            title: "Scheduled Maintenance Number",
-            type: FieldType.Text,
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              if (!item.scheduledMaintenanceNumber) {
-                return <>-</>;
-              }
+  /*
+   * The calendar's header as the list's reads: the main action as a button,
+   * the rest in the ⋯ (the list folds them the same way, BaseModelTable).
+   */
+  const calendarMainButton: CardButtonSchema | undefined = cardbuttons.find(
+    (button: CardButtonSchema): boolean => {
+      return (
+        button.buttonStyle === ButtonStyleType.NORMAL &&
+        button.icon === IconProp.Add
+      );
+    },
+  );
 
-              const numberLabel: string =
-                item.scheduledMaintenanceNumberWithPrefix ||
-                `#${item.scheduledMaintenanceNumber}`;
+  const calendarMoreButtons: Array<CardButtonSchema> = cardbuttons.filter(
+    (button: CardButtonSchema): boolean => {
+      return button !== calendarMainButton;
+    },
+  );
 
-              if (item._id) {
+  const calendarButtons: Array<CardButtonSchema | ReactElement> = [
+    ...(calendarMainButton ? [calendarMainButton] : []),
+    ...(calendarMoreButtons.length > 0
+      ? [
+          <CardMoreMenu key="scheduled-maintenance-calendar-more">
+            {calendarMoreButtons.map(
+              (button: CardButtonSchema, index: number): ReactElement => {
                 return (
-                  <AppLink
-                    className="hover:underline"
-                    to={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
-                      {
-                        modelId: new ObjectID(item._id as string),
-                      },
-                    )}
-                  >
-                    <span>{numberLabel}</span>
-                  </AppLink>
-                );
-              }
-
-              return <span>{numberLabel}</span>;
-            },
-          },
-          {
-            field: {
-              title: true,
-            },
-            title: "Title",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              currentScheduledMaintenanceState: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Current State",
-            type: FieldType.Entity,
-
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              if (item["currentScheduledMaintenanceState"]) {
-                return (
-                  <Pill
-                    color={item.currentScheduledMaintenanceState.color || Black}
-                    text={
-                      item.currentScheduledMaintenanceState.name || "Unknown"
-                    }
+                  <MoreMenuItem
+                    key={`calendar-more-${index}`}
+                    text={button.title}
+                    icon={button.icon}
+                    isDisabled={button.disabled}
+                    tooltip={button.tooltip}
+                    onClick={() => {
+                      if (!button.disabled) {
+                        button.onClick();
+                      }
+                    }}
                   />
                 );
-              }
+              },
+            )}
+          </CardMoreMenu>,
+        ]
+      : []),
+  ];
 
-              return <></>;
-            },
-          },
+  const cardTitle: string = props.title || "Scheduled Maintenance Events";
+  const cardDescription: string =
+    props.description ||
+    "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.";
 
-          {
-            // Unified "Resources Affected" cell mirroring the form picker.
-            field: {
-              monitors: {
-                name: true,
-                _id: true,
-                projectId: true,
+  return (
+    <div>
+      {view === ScheduledMaintenanceView.Calendar ? (
+        <ScheduledMaintenanceCalendar
+          query={mergeFiltersIntoQuery(props.query) || {}}
+          states={scheduledMaintenanceStates}
+          title={cardTitle}
+          description={cardDescription}
+          buttons={calendarButtons}
+          topContent={filterBar}
+          canCreate={canCreateEvents}
+          getEventRoute={(maintenanceId: string): Route => {
+            return RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
+              {
+                modelId: new ObjectID(maintenanceId),
               },
-              hosts: {
-                name: true,
-                _id: true,
-                projectId: true,
+            );
+          }}
+          getCreateRoute={(startsAt: Date): Route => {
+            return RouteUtil.getPageRoute(
+              PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
+              {
+                query: {
+                  ...createQuery,
+                  startsAt: startsAt.toISOString(),
+                },
               },
-              kubernetesClusters: {
-                name: true,
+            );
+          }}
+          onSubscribe={() => {
+            setShowSubscribeModal(true);
+          }}
+        />
+      ) : (
+        <ModelTable<ScheduledMaintenance>
+          modelType={ScheduledMaintenance}
+          id="scheduledMaintenances-table"
+          name="Scheduled Maintenance Events"
+          userPreferencesKey={"scheduled-maintenance-table"}
+          customFieldsModelType={ScheduledMaintenanceCustomField}
+          bulkActions={{
+            buttons: [
+              getBulkChangeStateAction(),
+              ...labelBulkActions,
+              ...ownerBulkActions,
+              ModalTableBulkDefaultActions.Delete,
+            ],
+          }}
+          isDeleteable={true}
+          topContent={filterBar}
+          emptyState={{ ...props.emptyState, ...facetEmptyState }}
+          currentFacetState={facetSaveState}
+          onFacetStateRestored={restoreFacetState}
+          query={mergeFiltersIntoQuery(props.query)}
+          onFetchSuccess={(data: Array<ScheduledMaintenance>) => {
+            onResourcesFetched(data);
+          }}
+          isEditable={false}
+          isCreateable={false}
+          isViewable={true}
+          saveFilterProps={props.saveFilterProps}
+          urlStateKey={tableUrlStateKey}
+          showCreateForm={false}
+          cardProps={{
+            title: cardTitle,
+            description: cardDescription,
+            buttons: props.showCalendarView
+              ? [...cardbuttons, subscribeButton]
+              : cardbuttons,
+          }}
+          noItemsMessage={props.noItemsMessage}
+          showViewIdButton={true}
+          viewButtonText="View Event"
+          showRefreshButton={true}
+          searchableFields={["title", "description"]}
+          viewPageRoute={props.viewPageRoute}
+          filters={[
+            {
+              title: "Scheduled Maintenance ID",
+              type: FieldType.Text,
+              field: {
                 _id: true,
-                projectId: true,
-              },
-              dockerHosts: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-              podmanHosts: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-              proxmoxClusters: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-              vmwareVCenters: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-              cephClusters: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-              storageArrays: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-              dockerSwarmClusters: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-              iotFleets: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-              databaseServers: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-              networkSites: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-              services: {
-                name: true,
-                _id: true,
-                projectId: true,
-                serviceColor: true,
               },
             },
-            title: "Resources Affected",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
-
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              return (
-                <AffectedResourcesCell
-                  monitors={item.monitors || []}
-                  hosts={item.hosts || []}
-                  kubernetesClusters={item.kubernetesClusters || []}
-                  dockerHosts={item.dockerHosts || []}
-                  podmanHosts={item.podmanHosts || []}
-                  proxmoxClusters={item.proxmoxClusters || []}
-                  vmwareVCenters={item.vmwareVCenters || []}
-                  cephClusters={item.cephClusters || []}
-                  storageArrays={item.storageArrays || []}
-                  dockerSwarmClusters={item.dockerSwarmClusters || []}
-                  iotFleets={item.iotFleets || []}
-                  databaseServers={item.databaseServers || []}
-                  networkSites={item.networkSites || []}
-                  services={item.services || []}
-                />
-              );
-            },
-          },
-          {
-            field: {
-              statusPages: {
-                name: true,
-                _id: true,
-                projectId: true,
+            {
+              title: "Scheduled Maintenance Number",
+              type: FieldType.Number,
+              field: {
+                scheduledMaintenanceNumber: true,
               },
             },
-            title: "Shown on Status Page",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
-
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              return (
-                <StatusPagesElement statusPages={item["statusPages"] || []} />
-              );
+            {
+              field: {
+                title: true,
+              },
+              title: "Title",
+              type: FieldType.Text,
             },
-          },
-          {
-            field: {
-              startsAt: true,
-            },
-            title: "Starts At",
-            type: FieldType.DateTime,
-            hideOnMobile: true,
-          },
-          {
-            field: {
-              startsAt: true,
-              endsAt: true,
-            },
-            title: "Duration",
-            type: FieldType.Element,
-            disableSort: true,
-            disableCsvExport: true,
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              if (!item.startsAt || !item.endsAt) {
-                return <>-</>;
-              }
-
-              return (
-                <LiveDuration startDate={item.startsAt} endDate={item.endsAt} />
-              );
-            },
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            type: FieldType.DateTime,
-            hideOnMobile: true,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
+            {
+              field: {
+                monitors: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+              },
+              title: "Monitors Affected",
+              type: FieldType.EntityArray,
+              filterEntityType: Monitor,
+              filterQuery: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              filterDropdownField: {
+                label: "name",
+                value: "_id",
               },
             },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            hideOnMobile: true,
-
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              return <LabelsElement labels={item["labels"] || []} />;
+            {
+              field: {
+                statusPages: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+              },
+              title: "Shown on Status Page",
+              type: FieldType.EntityArray,
+              filterEntityType: StatusPage,
+              filterQuery: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              filterDropdownField: {
+                label: "name",
+                value: "_id",
+              },
             },
-          },
-          {
-            field: {
+            {
+              field: {
+                createdAt: true,
+              },
+              title: "Created At",
+              type: FieldType.Date,
+            },
+            {
+              field: {
+                startsAt: true,
+              },
+              title: "Starts At",
+              type: FieldType.Date,
+            },
+            {
+              field: {
+                endsAt: true,
+              },
+              title: "Ends At",
+              type: FieldType.Date,
+            },
+          ]}
+          selectMoreFields={{
+            scheduledMaintenanceNumberWithPrefix: true,
+            /*
+             * The Resources Affected column lists several M2M relations under one
+             * `field` block, but BaseModelTable only auto-selects the FIRST key
+             * of each column.field. Include the remaining relations explicitly
+             * so all attached resources actually load.
+             */
+            hosts: {
+              name: true,
               _id: true,
+              projectId: true,
             },
-            title: "Owners",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              return (
-                <OwnersCell
-                  owners={getOwnersForResource(item)}
-                  isLoading={isLoadingOwners}
-                />
-              );
+            kubernetesClusters: {
+              name: true,
+              _id: true,
+              projectId: true,
             },
-          },
-        ]}
-      />
+            dockerHosts: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
+            podmanHosts: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
+            proxmoxClusters: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
+            vmwareVCenters: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
+            cephClusters: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
+            storageArrays: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
+            dockerSwarmClusters: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
+            iotFleets: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
+            databaseServers: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
+            networkSites: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
+            services: {
+              name: true,
+              _id: true,
+              projectId: true,
+              serviceColor: true,
+            },
+          }}
+          columns={[
+            {
+              field: {
+                scheduledMaintenanceNumber: true,
+              },
+              title: "Scheduled Maintenance Number",
+              type: FieldType.Text,
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                if (!item.scheduledMaintenanceNumber) {
+                  return <>-</>;
+                }
+
+                const numberLabel: string =
+                  item.scheduledMaintenanceNumberWithPrefix ||
+                  `#${item.scheduledMaintenanceNumber}`;
+
+                if (item._id) {
+                  return (
+                    <AppLink
+                      className="hover:underline"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
+                        {
+                          modelId: new ObjectID(item._id as string),
+                        },
+                      )}
+                    >
+                      <span>{numberLabel}</span>
+                    </AppLink>
+                  );
+                }
+
+                return <span>{numberLabel}</span>;
+              },
+            },
+            {
+              field: {
+                title: true,
+              },
+              title: "Title",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                currentScheduledMaintenanceState: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Current State",
+              type: FieldType.Entity,
+
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                if (item["currentScheduledMaintenanceState"]) {
+                  return (
+                    <Pill
+                      color={
+                        item.currentScheduledMaintenanceState.color || Black
+                      }
+                      text={
+                        item.currentScheduledMaintenanceState.name || "Unknown"
+                      }
+                    />
+                  );
+                }
+
+                return <></>;
+              },
+            },
+
+            {
+              // Unified "Resources Affected" cell mirroring the form picker.
+              field: {
+                monitors: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                hosts: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                kubernetesClusters: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                dockerHosts: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                podmanHosts: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                proxmoxClusters: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                vmwareVCenters: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                cephClusters: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                storageArrays: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                dockerSwarmClusters: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                iotFleets: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                databaseServers: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                networkSites: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+                services: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                  serviceColor: true,
+                },
+              },
+              title: "Resources Affected",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
+
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                return (
+                  <AffectedResourcesCell
+                    monitors={item.monitors || []}
+                    hosts={item.hosts || []}
+                    kubernetesClusters={item.kubernetesClusters || []}
+                    dockerHosts={item.dockerHosts || []}
+                    podmanHosts={item.podmanHosts || []}
+                    proxmoxClusters={item.proxmoxClusters || []}
+                    vmwareVCenters={item.vmwareVCenters || []}
+                    cephClusters={item.cephClusters || []}
+                    storageArrays={item.storageArrays || []}
+                    dockerSwarmClusters={item.dockerSwarmClusters || []}
+                    iotFleets={item.iotFleets || []}
+                    databaseServers={item.databaseServers || []}
+                    networkSites={item.networkSites || []}
+                    services={item.services || []}
+                  />
+                );
+              },
+            },
+            {
+              field: {
+                statusPages: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
+              },
+              title: "Shown on Status Page",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
+
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                return (
+                  <StatusPagesElement statusPages={item["statusPages"] || []} />
+                );
+              },
+            },
+            {
+              field: {
+                startsAt: true,
+              },
+              title: "Starts At",
+              type: FieldType.DateTime,
+              hideOnMobile: true,
+            },
+            {
+              field: {
+                startsAt: true,
+                endsAt: true,
+              },
+              title: "Duration",
+              type: FieldType.Element,
+              disableSort: true,
+              disableCsvExport: true,
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                if (!item.startsAt || !item.endsAt) {
+                  return <>-</>;
+                }
+
+                return (
+                  <LiveDuration
+                    startDate={item.startsAt}
+                    endDate={item.endsAt}
+                    isCompact={true}
+                  />
+                );
+              },
+            },
+            {
+              field: {
+                endsAt: true,
+              },
+              title: "Ends At",
+              type: FieldType.DateTime,
+              hideOnMobile: true,
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              type: FieldType.EntityArray,
+              hideOnMobile: true,
+
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: ScheduledMaintenance): ReactElement => {
+                return (
+                  <OwnersCell
+                    owners={getOwnersForResource(item)}
+                    isLoading={isLoadingOwners}
+                  />
+                );
+              },
+            },
+          ]}
+        />
+      )}
+
+      {showSubscribeModal ? (
+        <MaintenanceCalendarSubscribeModal
+          onClose={() => {
+            setShowSubscribeModal(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
 
       {scheduledMaintenanceTemplates.length === 0 &&
         showScheduledMaintenanceTemplateModal &&

@@ -345,7 +345,7 @@ async function clickFooter(): Promise<void> {
 async function walkToTwilioStep(): Promise<void> {
   await act(async (): Promise<void> => {
     fireEvent.change(
-      within(dialog()).getByPlaceholderText("Company CallSMS Server"),
+      within(dialog()).getByPlaceholderText("Company Twilio Account"),
       { target: { value: "Production Twilio" } },
     );
   });

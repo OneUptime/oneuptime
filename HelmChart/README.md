@@ -34,6 +34,7 @@ you do, and so does the unit suite anywhere it has to install the plugin.
 | `lint`              | no              | `helm lint` over the `oneuptime` and `kubernetes-agent` charts                        |
 | `unit`              | no              | the helm-unittest suites in [`Public/oneuptime/tests`](Public/oneuptime/tests)        |
 | `extra-values`      | no              | `extraEnv`/`extraVolumes`/`extraVolumeMounts` reach every workload the chart renders, and no more |
+| `marketplace`       | no              | the AWS, Microsoft and Google Cloud Marketplace editions [`Marketplace/build.py`](Marketplace/build.py) makes of the chart, and the Kubernetes agent's Amazon EKS add-on: its unit tests, then each edition rendered and checked the way that marketplace checks it at submission |
 | `secrets-lifecycle` | yes             | installs and upgrades the chart for real, to cover Secret handling across an upgrade  |
 | `keda-bootstrap`    | yes             | the KEDA CRD bootstrap and the `keda.install` / `keda.enabled` split, against a real API server |
 
@@ -64,6 +65,19 @@ cannot go unnoticed).
 
 Not part of the `helm-test` job: `Tests/index.sh`, the full end-to-end install
 that pulls every image and waits for all pods to become ready.
+
+## Marketplace editions
+
+Self-hosted OneUptime Enterprise is also sold on AWS Marketplace (Amazon EKS),
+Microsoft Marketplace (AKS) and Google Cloud Marketplace (GKE), billed per user
+by the hour through the marketplace. Each edition is built from this chart by
+[`Marketplace/build.py`](Marketplace/build.py) at release time; see
+[Marketplace/README.md](Marketplace/README.md) and the release runbook,
+[SELF_HOSTED_RELEASING.md](../packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md).
+
+The Kubernetes agent (`Public/kubernetes-agent`) is on AWS Marketplace too, free,
+as an Amazon EKS add-on: `build.py --marketplace aws-eks-addon` builds it from
+the agent chart, and the same runbook says how it is released.
 
 ## Database migration guides
 

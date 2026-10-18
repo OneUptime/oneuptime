@@ -271,7 +271,6 @@ import {
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
-  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -348,8 +347,8 @@ const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
-// An SMS from this public page carries the manage link (see smsManageLinkFor).
-const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+// An SMS carries the same token link as every other message, on a public page too.
+const SMS_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -1886,7 +1885,7 @@ describe("IncidentEpisodePublicNote custom template variable values", () => {
           let value: string =
             name === "note" ? noteByChannel[channel]! : expectedValues[name]!;
 
-          // An SMS from this public page carries the manage link.
+          // An SMS carries the same token link as every other message, on a public page too.
           if (name === "unsubscribeUrl" && channel === "sms") {
             value = SMS_UNSUBSCRIBE_URL;
           }
@@ -1967,7 +1966,7 @@ describe.each(TRIGGERS)(
       expect(sentMail()[0]!["subject"]).toBe(
         `${EPISODE_TITLE}: ${NOTE_TEXT} (${GROUPED_RESOURCES_TEXT})`,
       );
-      // An SMS from this public page carries the manage link (see smsManageLinkFor).
+      // An SMS carries the same token link as every other message, on a public page too.
       expect(sentSms()).toEqual([
         renderedEveryVariable("sms", trigger.eventType, {
           ...plainTextVariables,

@@ -66,8 +66,23 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
 
   const description: string = props.viewModel.recommendation.description || "";
 
+  /*
+   * A recommendation with a one-line summary (every infrastructure template
+   * has one) shows that line; its full description - how the value is
+   * computed, which metric it reads, its caveats - waits behind Show more.
+   * Without one, the description is the card's line, clamped when long.
+   */
+  const summary: string = props.viewModel.recommendation.summary?.trim() || "";
+
+  const hasSummary: boolean =
+    summary.length > 0 && description.length > 0 && summary !== description;
+
   const isDescriptionClampable: boolean =
-    description.length > DESCRIPTION_CLAMP_CHARACTER_COUNT;
+    !hasSummary && description.length > DESCRIPTION_CLAMP_CHARACTER_COUNT;
+
+  const isDescriptionToggleable: boolean = hasSummary || isDescriptionClampable;
+
+  const descriptionId: string = `recommendation-description-${props.viewModel.recommendation.recommendationId}`;
 
   const isSelectable: boolean = isAvailable && !props.isDisabled;
 
@@ -214,20 +229,38 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
             )}
           </div>
 
-          <p
-            className={`mt-1.5 text-xs leading-relaxed ${
-              isDismissed ? "text-gray-400" : "text-gray-500"
-            } ${
-              isDescriptionClampable && !isDescriptionExpanded
-                ? "line-clamp-3"
-                : ""
-            }`}
-            data-testid={`recommendation-description-${props.viewModel.recommendation.recommendationId}`}
-          >
-            {description}
-          </p>
+          {hasSummary ? (
+            <p
+              className={`mt-1.5 text-xs leading-relaxed ${
+                isDismissed ? "text-gray-400" : "text-gray-500"
+              }`}
+              data-testid={`recommendation-summary-${props.viewModel.recommendation.recommendationId}`}
+            >
+              {summary}
+            </p>
+          ) : (
+            <></>
+          )}
 
-          {isDescriptionClampable ? (
+          {!hasSummary || isDescriptionExpanded ? (
+            <p
+              id={descriptionId}
+              className={`mt-1.5 text-xs leading-relaxed ${
+                isDismissed ? "text-gray-400" : "text-gray-500"
+              } ${
+                isDescriptionClampable && !isDescriptionExpanded
+                  ? "line-clamp-3"
+                  : ""
+              }`}
+              data-testid={`recommendation-description-${props.viewModel.recommendation.recommendationId}`}
+            >
+              {description}
+            </p>
+          ) : (
+            <></>
+          )}
+
+          {isDescriptionToggleable ? (
             <button
               type="button"
               /*
@@ -238,6 +271,9 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
                */
               className="pointer-events-auto relative z-20 mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               aria-expanded={isDescriptionExpanded}
+              aria-controls={
+                hasSummary && !isDescriptionExpanded ? undefined : descriptionId
+              }
               data-testid={`recommendation-description-toggle-${props.viewModel.recommendation.recommendationId}`}
               onClick={() => {
                 setIsDescriptionExpanded(!isDescriptionExpanded);

@@ -1,0 +1,19 @@
+# The package manifest container-package-app (cpa) reads to build the CNAB of
+# the Microsoft Marketplace Kubernetes application. build.py fills in the
+# placeholders from editions.json; the version must be #.#.#, and a new
+# version is needed for every bundle pushed (never `cpa buildbundle --force`
+# a version Partner Center already has).
+applicationName: {applicationName}
+publisher: "{publisher}"
+description: "OneUptime Enterprise, self-hosted on AKS: uptime monitoring, status pages, on-call, incidents, logs, traces and metrics. Billed per user by the hour through Microsoft Marketplace."
+version: {version}
+helmChart: "./oneuptime"
+# clusterArmTemplate, as container-package-app reads it and Microsoft's samples spell it: the
+# docs' table says clusterARMTemplate, which cpa 1.3.59 rejects as missing.
+clusterArmTemplate: "./mainTemplate.json"
+uiDefinition: "./createUIDefinition.json"
+registryServer: "{registryServer}"
+extensionRegistrationParameters:
+  # One OneUptime per cluster, in its own namespace.
+  defaultScope: "cluster"
+  namespace: "{namespace}"

@@ -28,7 +28,10 @@ import Radio from "Common/UI/Components/Radio/Radio";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import React, {
@@ -301,7 +304,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     filterCondition: monitorCriteriaInstance?.data?.filterCondition,
   });
 
-  // Calculate actions summary
+  /*
+   * What the folded Actions section says it does: "Status: Offline, 1
+   * incident". Each piece in the reader's language - the section draws its
+   * badge as given, so English pieces glued together read English everywhere.
+   */
   const getActionsSummary: () => string = (): string => {
     const actions: Array<string> = [];
     if (showMonitorStatusChangeControl) {
@@ -313,22 +320,32 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           );
         });
       if (statusOption) {
-        actions.push(`Status: ${statusOption.label}`);
+        actions.push(
+          translator.translateTemplate("Status: {{status}}", {
+            status: translatableTerm(statusOption.label),
+          }),
+        );
       }
     }
     if (showAlertControl) {
-      const alertCount: number =
-        monitorCriteriaInstance?.data?.alerts?.length || 0;
-      actions.push(`${alertCount} alert${alertCount !== 1 ? "s" : ""}`);
-    }
-    if (showIncidentControl) {
-      const incidentCount: number =
-        monitorCriteriaInstance?.data?.incidents?.length || 0;
       actions.push(
-        `${incidentCount} incident${incidentCount !== 1 ? "s" : ""}`,
+        translator.translatePlural(
+          { one: "{{count}} alert", other: "{{count}} alerts" },
+          monitorCriteriaInstance?.data?.alerts?.length || 0,
+        ),
       );
     }
-    return actions.length > 0 ? actions.join(", ") : "No actions";
+    if (showIncidentControl) {
+      actions.push(
+        translator.translatePlural(
+          { one: "{{count}} incident", other: "{{count}} incidents" },
+          monitorCriteriaInstance?.data?.incidents?.length || 0,
+        ),
+      );
+    }
+    return actions.length > 0
+      ? actions.join(", ")
+      : translator.translateText("No actions") || "No actions";
   };
 
   const hasActions: boolean =
@@ -700,10 +717,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     <>
                       {translator.translateText(
                         showIncidentControl && showAlertControl
-                          ? "Each email that matches opens its own incident and alert, even while earlier ones are open. Replies are added to them as notes until they are resolved."
+                          ? "Each matching email opens its own incident and alert. Replies are added as notes until they are resolved."
                           : showIncidentControl
-                            ? "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved."
-                            : "Each email that matches opens its own alert, even while earlier ones are open. Replies are added to that alert as notes until it is resolved.",
+                            ? "Each matching email opens its own incident. Replies are added to it as notes until it is resolved."
+                            : "Each matching email opens its own alert. Replies are added to it as notes until it is resolved.",
                       )}{" "}
                       {/* Styled as the incident form's docs link above it. */}
                       <Link
@@ -741,7 +758,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       <CollapsibleSection
         title="Settings"
         description="Configure additional settings for this criteria."
-        badge={isEnabled ? "Enabled" : "Disabled"}
+        badge={
+          translator.translateText(isEnabled ? "Enabled" : "Disabled") ||
+          (isEnabled ? "Enabled" : "Disabled")
+        }
         variant="bordered"
         defaultCollapsed={!showIncidentGrouping}
         className="mb-4"
@@ -793,7 +813,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               <Toggle
                 value={showIncidentGrouping}
                 title="Group incidents and alerts by a payload field"
-                description="When enabled, this criteria opens a separate incident and alert per distinct value extracted from the request body, so a single webhook endpoint (e.g. Grafana) can keep multiple incidents active at once. Leave off for the default one-active-incident-per-criteria behaviour."
+                description="Open a separate incident and alert for each value of a field in the request body, so one webhook can keep several open."
                 onChange={(value: boolean) => {
                   setShowIncidentGrouping(value);
                   if (value) {

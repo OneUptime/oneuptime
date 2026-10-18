@@ -252,6 +252,14 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
     return license.payload || {};
   }, [license.payload]);
 
+  /*
+   * A license that is a cloud marketplace subscription has no key to refresh:
+   * it renews itself with every usage report the marketplace accepts.
+   */
+  const isMarketplaceLicense: boolean =
+    typeof payload["marketplace"] === "string" &&
+    payload["marketplace"].length > 0;
+
   const licenseInstances: Array<EnterpriseLicenseInstanceSummary> =
     useMemo(() => {
       return parseLicenseInstances(payload["instances"]);
@@ -774,7 +782,7 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
          * An installation activated offline has no key to refresh with; a new
          * token replaces the license instead.
          */}
-        {activationMode !== "offline" && (
+        {activationMode !== "offline" && !isMarketplaceLicense && (
           <Button
             title="Refresh license"
             icon={IconProp.Refresh}

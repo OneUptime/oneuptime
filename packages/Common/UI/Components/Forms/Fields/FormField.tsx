@@ -471,9 +471,15 @@ const FormField: <T extends GenericObject>(
         props.field.fieldType === FormFieldSchemaType.MultiSelectDropdown &&
         props.field.selectByAccessControlProps
       ) {
+        /*
+         * The description reaches FieldLabel inside an element here, and
+         * FieldLabel looks up only a string: so it is looked up now, or it
+         * stayed English in every language beside a translated link (an
+         * on-call rule's On-Call Duty Policies).
+         */
         return (
           <span>
-            {fieldDescription}
+            {translateValue(fieldDescription)}
             <Link
               onClick={() => {
                 setShowMultiSelectCheckboxCategoryModal(true);
@@ -756,6 +762,7 @@ const FormField: <T extends GenericObject>(
               tabIndex={0}
               dataTestId={props.field.dataTestId}
               singleColumn={props.field.cardSelectSingleColumn}
+              maxColumns={props.field.cardSelectMaxColumns}
               searchable={props.field.cardSelectSearchable}
               searchPlaceholder={props.field.cardSelectSearchPlaceholder}
               searchHint={props.field.cardSelectSearchHint}
@@ -868,12 +875,24 @@ const FormField: <T extends GenericObject>(
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
+              /*
+               * Each answer in the reader's language, with its one line
+               * under it when it has one - a choice of modes reads as plain
+               * answers (a reminder rule's Resolved / Acknowledged).
+               */
               options={
                 props.field.radioButtonOptions?.map(
                   (option: BasicRadioButtonOption) => {
                     return {
-                      label: option.title,
+                      label: translateString(option.title) || option.title,
                       value: option.value,
+                      ...(option.description
+                        ? {
+                            description:
+                              translateString(option.description) ||
+                              option.description,
+                          }
+                        : {}),
                     };
                   },
                 ) || []

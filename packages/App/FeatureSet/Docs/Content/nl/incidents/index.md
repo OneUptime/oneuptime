@@ -193,7 +193,7 @@ Wat elke pagina bevat:
 - **Rollen**, **Bereikbaarheidsuitvoeringen**, **Eigenaren** — wie eraan werkt, welk beleid is uitgevoerd en wie meldingen krijgt.
 - **Meldingslogboeken**, **AI-logboeken**, **Auditlogboeken** — wat er is verstuurd en wat er is veranderd.
 - **Privénotities** en **Openbare notities** — wat je team en je klanten is verteld. Zie [Incidentnotities, eigenaren en feed](/docs/incidents/notes-owners-and-feed).
-- **Aangepaste velden**, **Instellingen**, **Incident verwijderen** — de pagina **Instellingen** bevat **Zichtbaar op statuspagina** en **Privé-incident**, de kaart **Bereik van statuspagina's** die het incident tot enkele statuspagina's beperkt, en de kaart **Reminders**, waarvan de schakelaar **Herinneringen sturen** wordt opgeslagen zodra je hem omzet en laat zien wanneer de volgende herinnering uitgaat.
+- **Aangepaste velden**, **Instellingen**, **Incident verwijderen** — de pagina **Instellingen** bevat **Zichtbaar op statuspagina** en **Privé-incident**, de kaart **Bereik van statuspagina's** die het incident tot enkele statuspagina's beperkt, en de kaart **Herinneringen**, waarvan de schakelaar **Herinneringen sturen** wordt opgeslagen zodra je hem omzet en laat zien wanneer de volgende herinnering uitgaat.
 
 ## Hoe incidenten in de rest van OneUptime passen
 

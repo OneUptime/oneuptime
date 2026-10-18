@@ -316,7 +316,7 @@ async function openCreateForm(): Promise<HTMLElement> {
 
   const modal: HTMLElement = await screen.findByTestId("modal");
 
-  await within(modal).findByPlaceholderText("On-Call Duty Name");
+  await within(modal).findByPlaceholderText("e.g., Platform on-call");
 
   // BasicForm opens its first step in a mount effect.
   await act(async (): Promise<void> => {});
@@ -325,9 +325,12 @@ async function openCreateForm(): Promise<HTMLElement> {
 }
 
 function typeName(modal: HTMLElement, name: string): void {
-  fireEvent.change(within(modal).getByPlaceholderText("On-Call Duty Name"), {
-    target: { value: name },
-  });
+  fireEvent.change(
+    within(modal).getByPlaceholderText("e.g., Platform on-call"),
+    {
+      target: { value: name },
+    },
+  );
 }
 
 async function pick(name: string): Promise<void> {

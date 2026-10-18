@@ -180,7 +180,7 @@ resource "oneuptime_monitor" "website" {
 
 ### モニタータイプごとの設定
 
-アドレス以外にも設定することがあるモニタータイプは、その設定 (ログのクエリ、データベース接続、監視するクラスターなど) を専用の属性に、`jsonencode()` で書いた生の JSON として持ちます: `log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor`。
+アドレス以外にも設定することがあるモニタータイプは、その設定 (ログのクエリ、データベース接続、監視するクラスターなど) を専用の属性に、`jsonencode()` で書いた生の JSON として持ちます: `log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor`、`probe_status_monitor`。
 
 その JSON はダッシュボードのものと同じで、キーは camelCase です。中の ID は、API と同じく `{ _type = "ObjectID", value = "..." }` と書きます。1 つのサービスのエラーを数える Logs モニターの例です。
 

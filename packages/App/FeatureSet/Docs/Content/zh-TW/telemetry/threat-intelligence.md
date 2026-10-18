@@ -35,7 +35,7 @@ flowchart TB
 
 ### 建立情資來源
 
-按一下 **建立Threat Intel Feed**，填寫它的五個步驟：**基本資訊**、**TAXII Server**、**驗證**、**Security Cases** 和 **符合時**。各欄位請見下表。
+按一下 **建立Threat Intel Feed**，填寫它的三個步驟：**TAXII 伺服器**、**登入** 和 **符合時**。各欄位請見下表。
 
 ### 檢查第一次輪詢
 
@@ -48,16 +48,16 @@ flowchart TB
 | **Collection ID** | 發布指標的集合。 |
 | **Poll Interval (Minutes)** | 取得新物件的頻率：1 到 1440 分鐘，預設 60。 |
 | **Minimum Confidence** | STIX `confidence` 低於此值的指標會被略過：0 到 100，設為 0 時全部保留。沒有 confidence 的指標一律通過。 |
-| **API Token** | bearer 權杖，用於要求權杖的集合。 |
-| **Basic Auth Username** 和 **Basic Auth Password** | 用於使用 HTTP 基本驗證的集合。公開集合請把兩者和權杖都留空。 |
+| **登入** | OneUptime 的登入方式：公開集合選 **無需登入**，伺服器營運方提供的權杖選 **Bearer 權杖**，HTTP 基本驗證選 **使用者名稱與密碼**。 |
+| **API Token**、**Basic Auth Username** 和 **Basic Auth Password** | 只詢問所選登入方式需要的項目。 |
 | **Open a Case on Match** | 預設開啟：每個提到指標的事件都會開啟一個與該指標有關的 [案件](/docs/telemetry/security-cases)，或併入已有的、與該指標有關的未關閉案件。 |
-| **Create Alert on Match** | 預設開啟：每個符合的指標都會開啟一個警示。 |
+| **警示和事件** | 預設 **建立警示**：每個符合的指標都會開啟一個警示。 |
 | **警示嚴重性** | 此情資來源開啟的每個警示的嚴重程度。留空時使用每個指標的威脅等級。 |
-| **Create Incident on Match** | 預設關閉。事件會驅動待命呈報、SLA 和狀態頁面，而對於指標符合，通常警示就已足夠。 |
+| **宣告事件** 或 **兩者** | 在 **警示和事件** 下。事件會驅動待命呈報、SLA 和狀態頁面，而對於指標符合，通常警示就已足夠。 |
 | **事件嚴重性** | 與 **警示嚴重性** 相同，用於事件。 |
 | **Write Detection Finding on Match** | 預設開啟：每次符合都會在事件串流中寫入一個偵測結果。 |
 
-權杖和密碼會經過加密，儲存後不會再顯示。若要變更它們，請在情資來源所在列中選擇 **Update Credentials** ，再選擇 **API Token (Bearer)**、**Basic Auth** 或 **Anonymous (clear stored credentials)** ：你的選擇會取代情資來源的登入方式，所以儲存權杖會清除已儲存的密碼，反之亦然。
+權杖和密碼會經過加密，儲存後不會再顯示。若要變更它們，請在情資來源所在列中選擇 **Update Credentials** ，再選擇 **Bearer 權杖**、**使用者名稱與密碼** 或會清除已儲存內容的 **無需登入** ：你的選擇會取代情資來源的登入方式，所以儲存權杖會清除已儲存的密碼，反之亦然。
 
 ### 如何輪詢情資來源
 
@@ -143,7 +143,7 @@ detection:
 ### 符合會帶來什麼
 
 - 一個標題為 `[Threat Intel] <feed name> — <indicator value>` 的警示，在保持開啟期間每個情資來源和值只有一個。警示解決後，下一次符合會開啟一個新的。警示不會自動解決。
-- 一個事件，只在開啟 **Create Incident on Match** 時建立，並以同樣的方式去重。
+- 一個事件，只在 **警示和事件** 設為 **宣告事件** 或 **兩者** 時建立，並以同樣的方式去重。
 - 一個 Threat Intel 偵測結果，在開啟 **Write Detection Finding on Match** 時寫入：一個來自產品 `OneUptime Threat Intel` 的 `Detection Finding` 事件（OCSF 類別 2004），以指標的威脅等級作為嚴重程度，並帶有下列屬性：
 
 | 屬性 | 值 |
@@ -199,7 +199,7 @@ detection:
 :::
 
 :::details 有符合，但沒有開啟警示
-**Create Alert on Match** 已關閉，或者同一情資來源和值的警示仍處於開啟狀態，之後的符合都會併入其中。專案至少需要一個警示嚴重程度，情資來源才能開啟警示。
+**警示和事件** 設為 **宣告事件** 或 **都不**，或者同一情資來源和值的警示仍處於開啟狀態，之後的符合都會併入其中。專案至少需要一個警示嚴重程度，情資來源才能開啟警示。
 :::
 
 ## 後續步驟

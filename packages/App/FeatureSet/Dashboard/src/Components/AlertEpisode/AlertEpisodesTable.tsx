@@ -29,6 +29,7 @@ import React, {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import { ALERT_EPISODES_DOCS_PATH } from "../EpisodeView/EpisodeDocsLinks";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import {
@@ -293,6 +294,12 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
                     ),
                   );
                 },
+                /*
+                 * NORMAL + Add is how a list's header picks its main
+                 * button: without a style this one went into the ⋯ menu,
+                 * and the empty list offered no way to create one.
+                 */
+                buttonStyle: ButtonStyleType.NORMAL,
                 icon: IconProp.Add,
               },
               new AlertEpisode(),
@@ -302,8 +309,9 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             return button !== null;
           }) as Array<CardButtonSchema>,
         }}
-        noItemsMessage={props.noItemsMessage || "No episodes found."}
+        noItemsMessage={props.noItemsMessage}
         emptyState={props.emptyState}
+        documentationLink={Route.fromString(ALERT_EPISODES_DOCS_PATH)}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
         showViewIdButton={true}

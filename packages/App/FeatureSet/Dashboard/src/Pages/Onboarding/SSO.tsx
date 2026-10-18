@@ -19,7 +19,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Where a user lands when a project requires single sign-on, and what the
- * Settings > SSO and Settings > OIDC test links open: the project's enabled
+ * Settings > SSO test link opens: the project's enabled
  * providers, SAML (/project-sso/:projectId/sso-list) and OpenID Connect
  * (/project-oidc/:projectId/oidc-list) alike. Picking one starts its sign-in.
  *

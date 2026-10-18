@@ -32,10 +32,10 @@ const ServiceSourceMaps: FunctionComponent<
         cardProps={{
           title: "Source Maps",
           description:
-            "Source maps uploaded for this service, used to unminify browser exception stack traces. Upload maps from CI with the source map upload API — see the Source Maps page in the documentation. Maps are matched to exceptions by release (the service.version resource attribute) and deleted automatically after 90 days.",
+            "Source maps that unminify this service's browser stack traces, matched by release (service.version). Kept for 90 days.",
         }}
         noItemsMessage={
-          "No source maps uploaded for this service yet. Upload them from your CI pipeline with a telemetry ingestion key — see the Source Maps page in the documentation."
+          "No source maps yet. Upload them from CI with a telemetry ingestion key; the Source Maps docs page shows how."
         }
         showRefreshButton={true}
         searchableFields={["bundlePath", "serviceVersion"]}

@@ -79,7 +79,7 @@ I en gittergruppe beder dialogen også om den række og kolonne, monitoren skal 
 
 ### Tilføj flere på én gang
 
-**Add Multiple** (også **Add multiple monitors** i menuen **More actions**) åbner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, derefter de samme sammenfoldede **Flere felter**, hvis visningsindstillinger gælder for hver monitor, du vælger. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Add Monitors** tilføjer dem alle. Det er den hurtigste måde at fylde en ny side på.
+**Add Multiple** (også **Add multiple monitors** i menuen **More actions**) åbner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, derefter de samme sammenfoldede **Flere felter**, hvis visningsindstillinger gælder for hver monitor, du vælger. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Tilføj monitorer** tilføjer dem alle. Det er den hurtigste måde at fylde en ny side på.
 
 Flervalgslisten har fanen **Etiketter**: klik på en etiket, og alle monitorer med den vælges på én gang.
 
@@ -139,14 +139,14 @@ Klik på **Create Status Page Group**. Gruppen vises i navigatoren, klar til mon
 
 De to felter er **Gruppenavn** (`name`) og **Parent Group** (`parentStatusPageGroupId`). De to sammenfoldede sektioner indeholder resten:
 
-- **Layout**: dens sammenfoldede overskrift siger **List** eller **Grid**. Den indeholder **Visningstilstand** og et gitters akser (se [Listelayout eller gitterlayout](#listelayout-eller-gitterlayout)), og den åbner af sig selv på en gittergruppe.
+- **Layout**: dens sammenfoldede overskrift siger **Liste** eller **Gitter**. Den indeholder **Visningstilstand** og et gitters akser (se [Listelayout eller gitterlayout](#listelayout-eller-gitterlayout)), og den åbner af sig selv på en gittergruppe.
 - **Flere felter**: gruppeniveauets udgaver af ressourceindstillingerne:
   - **Gruppebeskrivelse** (`description`): valgfri markdown, vist under overskriften. Et billede i den vises for alle besøgende.
   - **Udvid på statusside som standard** (`isExpandedByDefault`): til som standard; afgør, om sektionen starter åben eller sammenfoldet for besøgende.
   - **Vis aktuel gruppestatus** (`showCurrentStatus`): til som standard. Viser en status ved siden af gruppeoverskriften.
   - **Vis oppetid %** (`showUptimePercent`): fra som standard, med **Vælg oppetidspræcision**, når den er slået til.
 
-For at ændre en gruppe bruger du **Edit Group** i panelets overskrift eller **Edit group** i navigatorens rækkemenu: **Edit Status Page Group** åbner med knappen **Gem ændringer**. Panelets overskrift viser mærker for de indstillinger, der er slået til (**Grid**, **Collapsed by default**, **Uptime %**), så du kan se, hvordan en gruppe er sat op, uden at åbne formularen.
+For at ændre en gruppe bruger du **Edit Group** i panelets overskrift eller **Edit group** i navigatorens rækkemenu: **Edit Status Page Group** åbner med knappen **Gem ændringer**. Panelets overskrift viser mærker for de indstillinger, der er slået til (**Gitter**, **Collapsed by default**, **Uptime %**), så du kan se, hvordan en gruppe er sat op, uden at åbne formularen.
 
 ### Administrer en gruppe
 
@@ -171,10 +171,10 @@ Sektionen **Layout** i gruppeformularen angiver gruppens **Visningstilstand** (`
 
 | Hvis du vil… | Vælg |
 | --------------- | ---- |
-| Vise en enkel lodret liste over tjenester, én pr. række | **List** (standard) |
-| Vise den samme tjeneste i flere regioner eller lejere som en matrix | **Grid** |
+| Vise en enkel lodret liste over tjenester, én pr. række | **Liste** (standard) |
+| Vise den samme tjeneste i flere regioner eller lejere som en matrix | **Gitter** |
 
-Vælg **Grid**, og der vises fire felter mere:
+Vælg **Gitter**, og der vises fire felter mere:
 
 | Felt | Hvad du skal angive |
 | ----- | ------------- |
@@ -209,23 +209,19 @@ En monitorregel tilføjer monitorer til siden for dig: beskriv monitorerne én g
 :::steps
 ### Åbn Monitor Rules
 
-Åbn statussiden, vælg **Monitor Rules** i sektionen **Ressourcer** i dens sidemenu, og klik på **Opret Status Page Monitor Rule**.
-
-### Navngiv reglen
-
-Angiv et **Navn** under **Grundlæggende oplysninger**. **Aktiveret** er slået til som standard.
+Åbn statussiden, vælg **Monitor Rules** i sektionen **Ressourcer** i dens sidemenu, og klik på **Opret monitorregel**.
 
 ### Angiv, hvilke monitorer den matcher
 
-Under **Matchkriterier** udfylder du mindst ét af **Overvågningsetiketter** (en monitor med en hvilken som helst af dem matcher), **Overvågningsnavn** og **Overvågningsbeskrivelse**. En monitor skal opfylde hvert kriterium, du udfylder. De to mønstre accepterer et regulært udtryk uden forskel på store og små bogstaver (`^api-.*`) eller et jokertegn `*` (`*checkout*`); `.*` matcher alle monitorer.
+Under **Match** tilføjer du mindst én betingelse på **Overvågningsetiketter** (en monitor med en hvilken som helst af dem matcher), **Overvågningsnavn** eller **Overvågningsbeskrivelse**. Med to betingelser eller flere vælger du, om en monitor skal opfylde dem alle eller kun én. De to mønstre accepterer et regulært udtryk uden forskel på store og små bogstaver (`^api-.*`) eller et jokertegn `*` (`*checkout*`); `.*` matcher alle monitorer.
 
 ### Vælg gruppen
 
-Under **Gruppe** vælger du **Add Monitors To Group**, eller du lader den stå tom for at tilføje monitorerne uden gruppe. Derefter følger de samme visningsindstillinger som for en ressource; på en regel starter **Vis oppetid %** slået til.
+Under **Gruppe** vælger du **Tilføj monitorer til**, eller du lader den stå tom for at tilføje monitorerne øverst på siden. Reglens **Navn** udfyldes ud fra den, f.eks. "Tilføj monitorer til Websted", indtil du skriver dit eget navn. **Flere felter** rummer de samme visningsindstillinger som for en ressource og reglens **Beskrivelse**; på en regel starter **Vis oppetid %** slået til.
 
 ### Gem reglen
 
-Reglen kører med det samme mod alle monitorer, der allerede findes, og listen viser under **Adds Monitors To** den gruppe, den tilføjer monitorer til.
+Reglen kører med det samme mod alle monitorer, der allerede findes, og listen viser under **Adds Monitors To** den gruppe, den tilføjer monitorer til. En ny regel er slået til: dens kontakt **Aktiveret** findes i dens redigeringsformular.
 :::
 
 Derefter kører en regel igen for en monitor, hver gang en oprettes, eller når dens etiketter, navn eller beskrivelse ændres. En regel fjerner kun de ressourcer, den selv har tilføjet: at slå den fra eller slette den fjerner dem fra siden, og en monitor, du har tilføjet i hånden, røres aldrig. En monitor, der allerede er på siden, tilføjes aldrig to gange.

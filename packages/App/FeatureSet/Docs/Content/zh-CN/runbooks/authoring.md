@@ -25,11 +25,11 @@
 
 ### 新建 Runbook
 
-点击 **创建Runbook** ，输入 **名称** ，并可选地输入说明 Runbook 用途的 **描述** 。 **更多字段** 下有默认开启的 **已启用** 开关和 **标签** 。新的 Runbook 会出现在列表中：打开它。
+点击 **创建Runbook** ，输入 **名称** ，并可选地输入说明 Runbook 用途的 **描述** 。 **更多字段** 下有默认开启的 **已启用** 开关和 **标签** 。新的 Runbook 会在其 **步骤** 页面打开。
 
 ### 添加步骤
 
-进入 **步骤** 。在 **Start your runbook** 下选择第一个步骤的类型；在最后一个步骤下方， **Add another step** 提供同样的七种类型。每个步骤打开时都带有 **标题** 、 **描述** （Markdown，向响应人员显示）和该类型的设置。Runbook 有了一个步骤后，卡片顶部的 **添加步骤** 会添加一个 Manual 步骤。
+在 **Start your runbook** 下选择第一个步骤的类型；在最后一个步骤下方， **Add another step** 提供同样的七种类型。每个步骤打开时都带有 **标题** 、 **描述** （Markdown，向响应人员显示）和该类型的设置。Runbook 有了一个步骤后，卡片顶部的 **添加步骤** 会添加一个 Manual 步骤。
 
 ### 调整步骤顺序
 
@@ -78,8 +78,8 @@
 | --- | --- | --- |
 | **Runner** | 运行该步骤的 Runner。只有这个 Runner 可以领取该作业。 | — |
 | **Script** | 要运行的 JavaScript。用 `return` 返回一个值即可记录它；`console.log` 的每一行也会被记录。抛出的错误会使步骤失败。 | — |
-| **Execution timeout** | Runner 在销毁沙箱之前允许代码运行的时长。 | 30 秒 |
-| **Claim timeout** | Worker 等待 Runner 领取作业的时长。 | 2 分钟 |
+| **执行超时** | Runner 在销毁沙箱之前允许代码运行的时长。 | 30 秒 |
+| **领取超时** | Worker 等待 Runner 领取作业的时长。 | 2 分钟 |
 
 ```javascript
 const start = Date.now();
@@ -117,8 +117,8 @@ return { durationMs: Date.now() - start };
 | --- | --- | --- |
 | **Runner** | 运行该步骤的 Runner。只有这个 Runner 可以领取该作业。 | — |
 | **Bash 脚本** | 脚本。输出（stdout 和 stderr）最多记录 50 KB，非零退出码会使步骤失败。 | — |
-| **Execution timeout** | Runner 在用 `SIGKILL` 终止脚本之前允许其运行的时长。对于确实需要几分钟的步骤，请调高它。 | 30 秒 |
-| **Claim timeout** | Worker 等待 Runner 领取作业的时长。 | 2 分钟 |
+| **执行超时** | Runner 在用 `SIGKILL` 终止脚本之前允许其运行的时长。对于确实需要几分钟的步骤，请调高它。 | 30 秒 |
+| **领取超时** | Worker 等待 Runner 领取作业的时长。 | 2 分钟 |
 
 脚本在 Runner 的容器中运行，可以使用镜像自带的工具，例如 `curl`、`wget` 和 `ssh` 客户端，并拥有其所在主机的网络访问权限。例如，检查只有你的网络才能访问的服务：
 
@@ -147,8 +147,8 @@ fi
 | **Runner** | 打开连接的 Runner。它必须能通过网络访问该主机。 |
 | **Credential** | 一个 SSH 凭据，包含主机、端口、用户以及密钥或密码。它必须已分配给你选择的 Runner，否则步骤会失败，而不是以错误的访问权限运行。 |
 | **Command** | 以凭据中的用户身份在远程主机上运行。输出最多记录 50 KB，非零退出码会使步骤失败。 |
-| **Execution timeout** | 涵盖连接、认证和运行命令的总时长，因此挂起的命令无法让步骤一直保持打开。默认 30 秒。 |
-| **Claim timeout** | Worker 等待 Runner 领取作业的时长。默认 2 分钟。 |
+| **执行超时** | 涵盖连接、认证和运行命令的总时长，因此挂起的命令无法让步骤一直保持打开。默认 30 秒。 |
+| **领取超时** | Worker 等待 Runner 领取作业的时长。默认 2 分钟。 |
 
 ### Kubernetes
 
@@ -162,8 +162,8 @@ fi
 | **Workload kind** | **部署** 、 **StatefulSet** 或 **DaemonSet** 。 |
 | **命名空间** 和 **Workload name** | 要操作的工作负载。 |
 | **副本** | 仅在扩缩时使用。允许为零：清空一个工作负载是合理的修复手段。DaemonSet 在每个节点上运行一个 Pod，无法扩缩；请改为重启它。 |
-| **Execution timeout** | Runner 等待 API 服务器接受更改的时长。默认 30 秒。 |
-| **Claim timeout** | Worker 等待 Runner 领取作业的时长。默认 2 分钟。 |
+| **执行超时** | Runner 等待 API 服务器接受更改的时长。默认 30 秒。 |
+| **领取超时** | Worker 等待 Runner 领取作业的时长。默认 2 分钟。 |
 
 如果 API 服务器拒绝更改，步骤上会显示它自己的消息，因此权限错误会告诉你需要扩大哪个角色绑定。
 

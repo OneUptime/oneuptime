@@ -258,6 +258,7 @@ const DataSourcesPage: FunctionComponent<
                 dataSourceType: true,
               },
               title: "Data Source Type",
+              description: "The system this data source connects to.",
               stepId: "basic-info",
               fieldType: FormFieldSchemaType.Text,
               required: false,

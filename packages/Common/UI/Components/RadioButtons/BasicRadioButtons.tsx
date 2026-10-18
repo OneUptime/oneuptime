@@ -86,7 +86,15 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
                       onChange={() => {
                         handleChange(radioButton.value);
                       }}
-                      className="mt-1 h-4 w-4 flex-shrink-0 border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                      /*
+                       * accent-indigo-600 colours the browser's own radio, as
+                       * the shared Radio's: text- and ring- are for the
+                       * Tailwind forms plugin, which the product does not
+                       * load, so a checked one was the browser's blue beside
+                       * the indigo buttons of its form (a layer's Active
+                       * hours over Save Layer).
+                       */
+                      className="mt-1 h-4 w-4 flex-shrink-0 border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-600"
                     />
                     <label
                       htmlFor={`${id}-${i}`}

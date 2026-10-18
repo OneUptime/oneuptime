@@ -129,7 +129,27 @@
     "noneDescription": "Nessun evento pianificato pubblicato per questa pagina di stato.",
     "scheduledAt": "Pianificato per ",
     "report": "Rapporto evento pianificato",
-    "notFound": "Nessun evento pianificato trovato per questa pagina di stato."
+    "notFound": "Nessun evento pianificato trovato per questa pagina di stato.",
+    "calendar": {
+      "subscribe": "Iscriviti al calendario",
+      "subscribeTitle": "Iscriviti alle manutenzioni programmate",
+      "subscribeDescription": "Ricevi le manutenzioni programmate di questa pagina nella tua app di calendario. Si aggiorna da sola.",
+      "eventTitle": "Aggiungi al calendario",
+      "eventDescription": "Aggiungi questa manutenzione alla tua app di calendario.",
+      "addToCalendar": "Aggiungi al calendario",
+      "addHeading": "Aggiungi al tuo calendario",
+      "google": "Google Calendar",
+      "googleHint": "Apre Google Calendar in una nuova scheda",
+      "device": "Calendario Apple / Outlook",
+      "deviceHint": "Apre l'app di calendario di questo dispositivo",
+      "deviceFileHint": "Scarica la manutenzione per l'app di calendario di questo dispositivo",
+      "copyHeading": "Oppure copia il link",
+      "copyHint": "Incollalo in qualsiasi app di calendario che possa iscriversi a un calendario tramite URL.",
+      "copy": "Copia link",
+      "copied": "Copiato!",
+      "done": "Fatto",
+      "refreshNote": "Le app di calendario controllano le modifiche con i propri tempi, quindi un aggiornamento può richiedere qualche ora per comparire."
+    }
   },
   "subscribe": {
     "title": "Iscriviti",
@@ -216,7 +236,10 @@
       "saved": "Le tue modifiche sono state salvate.",
       "submit": "Aggiorna iscrizione",
       "unsubscribe": "Annulla iscrizione",
-      "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse."
+      "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse.",
+      "linkNotValid": "Questo link per gestire la tua iscrizione è scaduto o non è valido. Per riceverne uno nuovo, usa «Gestisci iscrizione esistente» nella pagina «Iscriviti».",
+      "getNewLink": "Ricevi un nuovo link",
+      "loadFailed": "Impossibile caricare questo link. Riprova più tardi."
     },
     "confirm": {
       "title": "Conferma iscrizione",

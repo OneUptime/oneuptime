@@ -108,7 +108,7 @@ Every command that starts work is a full agent run: a clone, up to 40 LLM calls 
 
 GitHub commands are AI work outside incidents and alerts, so no daily fix-task limit applies to them; the project's own daily AI limits do, when the project sets them. The one other limit is the one that already governs [Fix Tasks](/docs/ai/ai-agent):
 
-- **The cap on open pull requests** (**Max Open Fix Pull Requests**, on the repository's **Settings** page). There is no cap until you set one, and 0 blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a pull request to your review queue.
+- **The cap on open pull requests** (**Max Open Fix Pull Requests**, on the repository's **Settings** page). **AI Fix Pull Requests** is **No limit** until you choose **A limit**, or **None**, which blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a pull request to your review queue.
 
 Only one run of a kind is live per issue or pull request at a time. Asking twice tells you it is already working; asking for a review while a revision runs starts both, since they are different requests.
 

@@ -5,7 +5,7 @@ Un gruppo di monitor riunisce più monitor in un unico stato. Raggruppate i moni
 :::cards
 - [Come si calcola lo stato di un gruppo](#come-si-calcola-lo-stato-di-un-gruppo): Lo stato peggiore tra i suoi monitor.
 - [Attivare i gruppi di monitor](#attivare-i-gruppi-di-monitor): Un solo interruttore nelle impostazioni del progetto.
-- [Creare un gruppo di monitor](#creare-un-gruppo-di-monitor): Dategli un nome, poi assegnategli i suoi monitor.
+- [Creare un gruppo di monitor](#creare-un-gruppo-di-monitor): Dategli un nome, poi aggiungetegli i suoi monitor.
 - [Mostrare un gruppo su una pagina di stato](#mostrare-un-gruppo-su-una-pagina-di-stato): Una riga per l'intero gruppo.
 :::
 
@@ -27,7 +27,7 @@ flowchart TB
 ```
 
 - **I monitor archiviati non contano.** Un monitor archiviato non viene controllato, quindi il suo stato è congelato; il gruppo lo esclude.
-- **Un gruppo vuoto è operativo.** Un gruppo senza monitor, o con soli monitor archiviati, mostra il vostro stato operativo.
+- **Un gruppo vuoto è operativo.** Un gruppo senza monitor, o con soli monitor archiviati, mostra il vostro stato operativo. Finché non aggiungete un monitor, la dashboard mostra **Nessun monitor ancora** al posto del suo stato.
 - **L'ordine lo decidete voi.** Quale stato sia il peggiore segue l'ordine di **Monitor → Impostazioni → Stato del monitor**. Vedere [Stati dei monitor](/docs/monitor/criteria-and-statuses#stati-dei-monitor).
 
 Un gruppo di monitor non è un gruppo di una pagina di stato. Un gruppo di una pagina di stato è un'intestazione su una pagina di stato che contiene righe. Un gruppo di monitor è una riga che rappresenta più monitor, e qualsiasi pagina di stato può mostrarla.
@@ -63,16 +63,16 @@ Andate in **Monitor → Gruppi di monitor**. La scheda **Gruppi di monitor** ele
 
 Fate clic su **Crea: Monitor Gruppo**, inserite un **Nome** e, se volete, una **Descrizione**, poi fate clic su **Crea: Monitor Gruppo** in fondo al modulo. Il gruppo parte senza monitor.
 
-### Assegnare i suoi monitor
+### Aggiungere i suoi monitor
 
-Aprite il gruppo e fate clic su **Monitor** nel suo menu laterale. Fate clic su **Assegna monitor**, scegliete un monitor in **Seleziona monitor** e fate clic su **Assegna**. Ripetete per ogni monitor del gruppo.
+Aprite il gruppo: finché non ha un monitor, la sua **Panoramica** offre **Aggiungi monitor**. In seguito, fate clic su **Monitor** nel suo menu laterale, poi su **Aggiungi monitor**. Scegliete ogni monitor del gruppo in **Monitor** e fate clic su **Aggiungi monitor**.
 
 ### Controllarne lo stato
 
 Fate clic su **Panoramica**. **Stato attuale** mostra lo stato attuale del gruppo, e **Grafico di uptime** mostra i suoi ultimi 90 giorni, una barra al giorno.
 :::
 
-Per togliere un monitor dal gruppo, fate clic su **Annulla assegnazione** nella sua riga in **Monitor nel gruppo**. Il monitor stesso non cambia. Un monitor può appartenere a più di un gruppo.
+Per togliere un monitor dal gruppo, fate clic su **Rimuovi** nella sua riga in **Monitor nel gruppo**. Il monitor stesso non cambia. Un monitor può appartenere a più di un gruppo.
 
 ## Le pagine di un gruppo
 
@@ -80,12 +80,12 @@ Aprite un gruppo per vederne le pagine nel menu laterale:
 
 | Pagina | Cosa mostra |
 | --- | --- |
-| **Panoramica** | **Dettagli del gruppo di monitor**, **Stato attuale** e **Grafico di uptime** con la percentuale di disponibilità del gruppo negli ultimi 90 giorni. |
-| **Proprietari** | Le persone e i team responsabili del gruppo. |
-| **Monitor** | **Monitor nel gruppo**, con **Assegna monitor** e **Annulla assegnazione**. |
+| **Panoramica** | **Dettagli del gruppo di monitor**, **Stato attuale** e **Grafico di uptime** con la percentuale di disponibilità del gruppo negli ultimi 90 giorni. Un gruppo senza monitor offre **Aggiungi monitor** al posto del grafico. |
+| **Monitor** | **Monitor nel gruppo**, con **Aggiungi monitor** e **Rimuovi**. |
 | **Incidenti** | Gli incidenti su qualsiasi monitor del gruppo. |
 | **Avvisi** | Gli avvisi su qualsiasi monitor del gruppo. |
-| **Registri di audit** | Chi ha modificato il gruppo, e quando. Si trova sotto **Avanzato**, che parte chiuso. |
+| **Proprietari** | Le persone e i team responsabili del gruppo. Si trova sotto **Avanzato**, che parte chiuso. |
+| **Registri di audit** | Chi ha modificato il gruppo, e quando, anche questa sotto **Avanzato**. |
 | **Elimina gruppo** | Elimina il gruppo, anche questa sotto **Avanzato**. |
 
 La disponibilità nella **Panoramica** conta come inattività ogni stato tranne quello operativo. Una pagina di stato conta solo gli stati nel proprio elenco **Conta come inattività**: vedere [Scegliere cosa mostra la pagina](/docs/status-pages/index#scegliere-che-cosa-compare-sulla-pagina).
@@ -130,7 +130,7 @@ L'interruttore **Gruppi di monitor** è disattivato. Attivatelo in **Impostazion
 :::
 
 :::details Il gruppo mostra Offline, ma la maggior parte dei suoi monitor funziona
-È la regola: il gruppo mostra il suo monitor peggiore. Aprite **Monitor** nel gruppo per trovare il monitor fuori servizio, oppure annullate l'assegnazione di un monitor che non appartiene al gruppo.
+È la regola: il gruppo mostra il suo monitor peggiore. Aprite **Monitor** nel gruppo per trovare il monitor fuori servizio, oppure rimuovete un monitor che non appartiene al gruppo.
 :::
 
 :::details Una pagina di stato non riesce ad aggiungere il gruppo

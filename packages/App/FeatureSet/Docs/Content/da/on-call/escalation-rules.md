@@ -79,7 +79,7 @@ Når en hændelse eller advarsel når politikken, tilkalder **Level 1** straks s
 
 En hændelse, en advarsel eller en episode, der oprettes allerede bekræftet eller løst — registreret bagefter — udfører ingen af sine politikker: ingen tilkaldes, og dens feed siger det og nævner dem ved navn. Se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
 
-For at gentage en politik skal du klikke på **Rediger** på kortet **Gentagelsespolitik**, slå **Repeat if no one acknowledges** til og angive **Number of times to repeat**.
+For at gentage en politik skal du klikke på **Rediger** på kortet **Gentagelsespolitik**, vælge **Start forfra fra Level 1** og angive **Hvor mange gange mere?**.
 
 ### Eskaleringsoversigten
 

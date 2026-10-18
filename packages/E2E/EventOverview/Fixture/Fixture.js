@@ -77,6 +77,20 @@
  *            run on the card is the follow-up check (IncidentFollowUpCheck)
  *            - its activity starts with why, its report leads with
  *            "Checked again", and the feed holds both reports.
+ *   ?calls=  none (default) | zoom | teams | reading | stuck | transcript
+ *            | not-enough | accepted | dismissed | failed | skipped | two
+ *            Incident #1042's video calls (issue #4875). "zoom": a Zoom
+ *            meeting a workspace rule started, no transcript yet; "teams": a
+ *            Microsoft Teams meeting (only Add transcript: Microsoft lets
+ *            no app read it). The rest are the Zoom meeting with its
+ *            transcript: OneUptime AI reading it, stuck reading it, done with
+ *            a suggested root cause (transcript), done with "not enough was
+ *            said" (not-enough), its suggestion used (accepted) or dismissed,
+ *            a reading that failed, or one skipped because AI is off. "two":
+ *            the Zoom meeting with a suggestion, and an earlier Teams one.
+ *   ?transcriptFetch= found (default) | not-ready | permission
+ *            | not-transcribed
+ *            What Get from Zoom (POST .../transcript/from-provider) answers.
  *   ?private= 1 makes Incident #1042 and Incident Episode #12 private. A
  *            private incident or episode takes no public notes: the
  *            incident's state change dialogs fold a private note and ask
@@ -261,6 +275,7 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MeasurementEvaluator from "Common/Utils/Measurement/MeasurementEvaluator";
+import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 
@@ -387,6 +402,28 @@ const linkedMode = LINKED_MODES.includes(params.get("linked"))
  * from every status page, and taking no public notes.
  */
 const isPrivateMode = params.get("private") === "1";
+const CALL_MODES = [
+  "zoom",
+  "teams",
+  "reading",
+  "stuck",
+  "transcript",
+  "not-enough",
+  "accepted",
+  "dismissed",
+  "failed",
+  "skipped",
+  "two",
+];
+const callsMode = CALL_MODES.includes(params.get("calls"))
+  ? params.get("calls")
+  : "none";
+const TRANSCRIPT_FETCH_MODES = ["not-ready", "permission", "not-transcribed"];
+const transcriptFetchMode = TRANSCRIPT_FETCH_MODES.includes(
+  params.get("transcriptFetch"),
+)
+  ? params.get("transcriptFetch")
+  : "found";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -4079,6 +4116,10 @@ ModelAPI.getItem = async (options) => {
 
 ModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
+  // A call's transcript being read finishes on a later read of the calls.
+  if (modelName === tableName(IncidentVideoCall)) {
+    advanceCallReadings();
+  }
   const skip = Number(options.skip || 0);
   const limit = Number(options.limit || 10);
   fixture.listRequests.push({
@@ -5143,6 +5184,487 @@ function addToChannel(body) {
   return { results };
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Incident #1042's calls and their transcripts (?calls=, ?transcriptFetch=)
+ * ---------------------------------------------------------------------------
+ *
+ * The calls the Video Call card lists, with their transcript and what
+ * OneUptime AI read in it, as IncidentVideoCall rows (issue #4875). The
+ * transcript routes are modelled: Get from Zoom answers as
+ * ?transcriptFetch= says, Add transcript stores what was sent, and a
+ * reading that starts is Pending for one read of the calls and Ready (with
+ * CALL_SUMMARY) on the next, as the page's polling would see it.
+ */
+const CALL_TRANSCRIPT_LINES = [
+  {
+    offsetInSeconds: 8,
+    speaker: "Sam Rivera",
+    text: "I'm on. Checkout p95 is at 2.4 seconds and climbing.",
+  },
+  {
+    offsetInSeconds: 31,
+    speaker: "Jordan Patel",
+    text: "Orders DB looks healthy from its side, CPU is at 30%.",
+  },
+  {
+    offsetInSeconds: 72,
+    speaker: "Sam Rivera",
+    text: "The app side is waiting on pg.pool.connect, most requests wait about two seconds.",
+  },
+  {
+    offsetInSeconds: 160,
+    speaker: "Maya Chen",
+    text: "Did anything ship in the last hour?",
+  },
+  {
+    offsetInSeconds: 175,
+    speaker: "Jordan Patel",
+    text: "checkout-api 2026.09.14-2 went out at 17:52.",
+  },
+  {
+    offsetInSeconds: 243,
+    speaker: "Sam Rivera",
+    text: "The new release has DB_POOL_MAX=10, it was 40 before.",
+  },
+  {
+    offsetInSeconds: 270,
+    speaker: "Maya Chen",
+    text: "That would explain the queueing. Can we roll back?",
+  },
+  {
+    offsetInSeconds: 302,
+    speaker: "Jordan Patel",
+    text: "Maybe the cache is cold too, I'm not sure.",
+  },
+  {
+    offsetInSeconds: 375,
+    speaker: "Sam Rivera",
+    text: "Rolling checkout-api back to 2026.09.14-1 now.",
+  },
+  {
+    offsetInSeconds: 588,
+    speaker: "Sam Rivera",
+    text: "Rollback done, p95 is back under 300 milliseconds.",
+  },
+  {
+    offsetInSeconds: 620,
+    speaker: "Maya Chen",
+    text: "So the pool size change caused it. Jordan, can you add an alert on pool usage?",
+  },
+  {
+    offsetInSeconds: 641,
+    speaker: "Jordan Patel",
+    text: "Yes, I'll add the alert today.",
+  },
+];
+
+function callCitation(lineNumber) {
+  const line = CALL_TRANSCRIPT_LINES[lineNumber - 1];
+  return {
+    line: lineNumber,
+    time: TranscriptText.formatOffset(line.offsetInSeconds),
+    speaker: line.speaker,
+    text: line.text,
+  };
+}
+
+function callPoint(text, lineNumbers) {
+  return { text, citations: lineNumbers.map(callCitation) };
+}
+
+// What OneUptime AI read in the fixture's transcript, as the server stores it.
+const CALL_SUMMARY = {
+  version: 1,
+  runId: "fixture-reading-1",
+  generatedAt: at("18:16").toISOString(),
+  rootCause: {
+    outcome: "Suggested",
+    summary:
+      "checkout-api 2026.09.14-2 shipped with DB_POOL_MAX=10 instead of 40, so checkout requests queued for a database connection.",
+    basis: "StatedOnCall",
+    citations: [callCitation(6), callCitation(11), callCitation(10)],
+  },
+  findings: [
+    {
+      ...callPoint("The orders database itself was healthy.", [2]),
+      kind: "Confirmed",
+    },
+    {
+      ...callPoint("Requests waited about two seconds in pg.pool.connect.", [
+        3,
+      ]),
+      kind: "Confirmed",
+    },
+    {
+      ...callPoint("A cold cache may have added to it.", [8]),
+      kind: "Hypothesis",
+    },
+  ],
+  stepsTried: [
+    callPoint("Checked the orders database's own health.", [2]),
+    callPoint("Rolled checkout-api back to 2026.09.14-1.", [9]),
+  ],
+  decisions: [callPoint("Roll checkout-api back to 2026.09.14-1.", [7, 9])],
+  actions: [
+    {
+      ...callPoint("Add an alert on database pool usage.", [11, 12]),
+      owner: "Jordan Patel",
+    },
+  ],
+  openQuestions: [callPoint("Why the release changed DB_POOL_MAX.", [])],
+  linesRead: CALL_TRANSCRIPT_LINES.length,
+  partsRead: 1,
+};
+
+const NOT_ENOUGH_SUMMARY = {
+  ...CALL_SUMMARY,
+  rootCause: { outcome: "NotEnoughDiscussion", citations: [] },
+  findings: [],
+  decisions: [],
+  actions: [],
+  openQuestions: [callPoint("What changed in checkout-api today?", [4])],
+};
+
+const CALL_TRANSCRIPT_STORED = TranscriptText.serialize(CALL_TRANSCRIPT_LINES);
+const CALL_TRANSCRIPT_INFO = TranscriptText.getInfo(CALL_TRANSCRIPT_LINES);
+
+// The fields of a call holding the fixture's transcript.
+function withTranscript(fields) {
+  return {
+    transcript: CALL_TRANSCRIPT_STORED,
+    transcriptSource: "Provider",
+    transcriptInfo: CALL_TRANSCRIPT_INFO,
+    transcriptAddedAt: at("18:15"),
+    transcriptAddedByUserId: people.maya.id,
+    transcriptAddedByUser: people.maya,
+    ...fields,
+  };
+}
+
+function incidentCall(number, fields) {
+  return insert(IncidentVideoCall, {
+    _id: uuid("88000000", number),
+    incidentId: mainIncident.id,
+    createdAt: at("18:02"),
+    ...fields,
+  });
+}
+
+const ZOOM_CALL = {
+  provider: "Zoom",
+  title: `INC-${INCIDENT_NUMBER}: Checkout API p95 latency above 2s`,
+  joinUrl: "https://acme.zoom.us/j/85746065432?pwd=abc",
+  externalMeetingId: "85746065432",
+  videoCallConnectionId: uuid("89000000", 1),
+  workspaceNotificationRuleId: uuid("89100000", 1),
+};
+
+const TEAMS_CALL = {
+  provider: "MicrosoftTeams",
+  title: `INC-${INCIDENT_NUMBER}: Checkout API p95 latency above 2s`,
+  joinUrl: "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc",
+  externalMeetingId: "MSo1N2Y5ZGFjYy03MWJm",
+  videoCallConnectionId: uuid("89000000", 2),
+  createdByUser: people.sam,
+  createdByUserId: people.sam.id,
+};
+
+if (callsMode === "zoom") {
+  incidentCall(1, ZOOM_CALL);
+}
+
+if (callsMode === "teams") {
+  incidentCall(1, TEAMS_CALL);
+}
+
+if (callsMode === "reading") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: { runId: "fixture-reading-1" },
+      callSummaryStatus: "Pending",
+      callSummaryUpdatedAt: ago(30 * 1000),
+    }),
+  });
+}
+
+if (callsMode === "stuck") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: { runId: "fixture-reading-1" },
+      callSummaryStatus: "Pending",
+      callSummaryUpdatedAt: ago(40 * MINUTE),
+    }),
+  });
+}
+
+if (["transcript", "accepted", "dismissed", "two"].includes(callsMode)) {
+  incidentCall(callsMode === "two" ? 2 : 1, {
+    ...ZOOM_CALL,
+    createdAt: callsMode === "two" ? at("18:06") : at("18:02"),
+    ...withTranscript({
+      callSummary: CALL_SUMMARY,
+      callSummaryStatus: "Ready",
+      callSummaryUpdatedAt: at("18:16"),
+      rootCauseSuggestionStatus:
+        callsMode === "accepted"
+          ? "Accepted"
+          : callsMode === "dismissed"
+            ? "Dismissed"
+            : "Suggested",
+      rootCauseSuggestionReviewedAt: ["accepted", "dismissed"].includes(
+        callsMode,
+      )
+        ? at("18:18")
+        : undefined,
+      rootCauseSuggestionReviewedByUser: ["accepted", "dismissed"].includes(
+        callsMode,
+      )
+        ? people.jordan
+        : undefined,
+    }),
+  });
+}
+
+if (callsMode === "two") {
+  incidentCall(1, { ...TEAMS_CALL, createdAt: at("18:02") });
+}
+
+if (callsMode === "not-enough") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: NOT_ENOUGH_SUMMARY,
+      callSummaryStatus: "Ready",
+      callSummaryUpdatedAt: at("18:16"),
+    }),
+  });
+}
+
+if (callsMode === "failed") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: { runId: "fixture-reading-1" },
+      callSummaryStatus: "Failed",
+      callSummaryStatusMessage:
+        "This project reached its daily AI token limit. OneUptime AI starts again at midnight UTC.",
+      callSummaryUpdatedAt: at("18:16"),
+    }),
+  });
+}
+
+if (callsMode === "skipped") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummaryStatus: "Skipped",
+      callSummaryStatusMessage:
+        "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features.",
+      callSummaryUpdatedAt: at("18:16"),
+    }),
+  });
+}
+
+function callRecord(callId) {
+  return table(IncidentVideoCall).find((record) => {
+    return String(record._id) === String(callId);
+  });
+}
+
+/*
+ * A reading that started finishes on the second read of the calls after
+ * it: Pending once - what the page shows first - then Ready.
+ */
+function advanceCallReadings() {
+  for (const record of table(IncidentVideoCall)) {
+    if (record.callSummaryStatus !== "Pending" || !record.fixtureReadsLeft) {
+      continue;
+    }
+
+    record.fixtureReadsLeft -= 1;
+
+    if (record.fixtureReadsLeft === 0) {
+      record.callSummaryStatus = "Ready";
+      record.callSummary = CALL_SUMMARY;
+      record.callSummaryUpdatedAt = NOW;
+      record.rootCauseSuggestionStatus = "Suggested";
+    }
+  }
+}
+
+/*
+ * The feed entry the server writes when a transcript is added
+ * (IncidentVideoCallAPI.getTranscriptFeedMarkdown): opening with "added",
+ * so the feed puts the person who added it first.
+ */
+function announceCallTranscript(record, source, info) {
+  const details = TranscriptText.describeInfo(info);
+  const feedInfoInMarkdown =
+    source === "Provider"
+      ? `📝 added the call's transcript from **Zoom**: ${details}.`
+      : `📝 added a transcript of the **${record.provider === "MicrosoftTeams" ? "Microsoft Teams meeting" : "Zoom meeting"}**: ${details}.`;
+
+  insert(IncidentFeed, {
+    incidentId: record.incidentId,
+    incidentFeedEventType: IncidentFeedEventType.VideoCallTranscriptAdded,
+    feedInfoInMarkdown,
+    displayColor: new Color("#3b82f6"),
+    postedAt: NOW,
+    createdAt: NOW,
+    user: people.maya,
+  });
+}
+
+function startCallReading(record) {
+  record.callSummary = { runId: `fixture-reading-${Date.now()}` };
+  record.callSummaryStatus = "Pending";
+  record.callSummaryStatusMessage = undefined;
+  record.callSummaryUpdatedAt = NOW;
+  record.rootCauseSuggestionStatus = undefined;
+  record.rootCauseSuggestionReviewedAt = undefined;
+  record.rootCauseSuggestionReviewedByUser = undefined;
+  record.fixtureReadsLeft = 2;
+}
+
+// What the transcript routes answer (IncidentVideoCallAPI), or null for another URL.
+function handleCallTranscriptApi(method, url, body) {
+  const marker = "/incident-video-call/";
+  const markerAt = url.indexOf(marker);
+
+  if (markerAt === -1) {
+    return null;
+  }
+
+  const [callId, ...rest] = url
+    .slice(markerAt + marker.length)
+    .split("?")[0]
+    .split("/");
+  const route = rest.join("/");
+  const record = callRecord(callId);
+
+  if (!record) {
+    throw fail(404, "Video call not found.");
+  }
+
+  if (route === "transcript/from-provider" && method === "POST") {
+    if (transcriptFetchMode === "not-ready") {
+      return ok({
+        added: false,
+        reason: "NotReady",
+        message:
+          "Zoom is still preparing this meeting's transcript. It is usually ready within twice the length of the call. Try again later.",
+      });
+    }
+
+    if (transcriptFetchMode === "permission") {
+      return ok({
+        added: false,
+        reason: "PermissionMissing",
+        message:
+          "This connection's Zoom app cannot read transcripts. On the app's Scopes page in the Zoom App Marketplace, add cloud_recording:read:list_recording_files:admin and cloud_recording:read:meeting_transcript:admin (or recording:read:admin on an older app).",
+      });
+    }
+
+    if (transcriptFetchMode === "not-transcribed") {
+      return ok({
+        added: false,
+        reason: "NotTranscribed",
+        message:
+          "Zoom has no transcript of this meeting. Zoom keeps one when the meeting is recorded to the cloud with Audio transcript on, or when AI Companion's meeting summary is on. You can add the transcript yourself.",
+      });
+    }
+
+    Object.assign(record, withTranscript({ transcriptAddedAt: NOW }));
+    startCallReading(record);
+    announceCallTranscript(record, "Provider", CALL_TRANSCRIPT_INFO);
+    return ok({
+      added: true,
+      transcriptSource: "Provider",
+      transcriptInfo: CALL_TRANSCRIPT_INFO,
+      callSummaryStatus: "Pending",
+    });
+  }
+
+  if (route === "transcript" && method === "POST") {
+    const prepared = TranscriptText.prepare({
+      text: String(body.text || ""),
+      fileName: body.fileName,
+    });
+    Object.assign(record, {
+      transcript: prepared.stored,
+      transcriptSource: "Upload",
+      transcriptInfo: prepared.info,
+      transcriptAddedAt: NOW,
+      transcriptAddedByUserId: people.maya.id,
+      transcriptAddedByUser: people.maya,
+    });
+    startCallReading(record);
+    announceCallTranscript(record, "Upload", prepared.info);
+    return ok({
+      transcriptSource: "Upload",
+      transcriptInfo: prepared.info,
+      callSummaryStatus: "Pending",
+    });
+  }
+
+  if (route === "transcript" && method === "DELETE") {
+    for (const key of [
+      "transcript",
+      "transcriptSource",
+      "transcriptInfo",
+      "transcriptAddedAt",
+      "transcriptAddedByUserId",
+      "transcriptAddedByUser",
+      "callSummary",
+      "callSummaryStatus",
+      "callSummaryStatusMessage",
+      "callSummaryUpdatedAt",
+      "rootCauseSuggestionStatus",
+      "rootCauseSuggestionReviewedAt",
+      "rootCauseSuggestionReviewedByUser",
+    ]) {
+      delete record[key];
+    }
+    return ok({});
+  }
+
+  if (route === "call-summary" && method === "POST") {
+    startCallReading(record);
+    return ok({ callSummaryStatus: "Pending" });
+  }
+
+  if (route === "root-cause-suggestion" && method === "POST") {
+    if (failures.has("suggestion")) {
+      throw fail(
+        403,
+        "You do not have permission to edit this incident's root cause.",
+      );
+    }
+
+    record.rootCauseSuggestionStatus = body.decision;
+    record.rootCauseSuggestionReviewedAt =
+      body.decision === "Suggested" ? undefined : NOW;
+    record.rootCauseSuggestionReviewedByUser =
+      body.decision === "Suggested" ? undefined : people.maya;
+
+    if (body.decision === "Accepted") {
+      const incident = table(Incident).find((item) => {
+        return String(item._id) === String(record.incidentId);
+      });
+      if (incident) {
+        incident.rootCause = body.rootCause;
+      }
+    }
+
+    return ok({ rootCauseSuggestionStatus: body.decision });
+  }
+
+  return null;
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -5282,6 +5804,13 @@ async function handleApi(method, options) {
       }
       return ok({ answers: passOnAnswers(recordType, recordId) });
     }
+  }
+
+  // An incident call's transcript routes (?calls=).
+  const callTranscriptAnswer = handleCallTranscriptApi(method, url, body);
+
+  if (callTranscriptAnswer) {
+    return callTranscriptAnswer;
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

@@ -77,7 +77,6 @@ const MONITOR_ID: ObjectID = new ObjectID(
 const UNSUBSCRIBE_TOKEN: string = "5e".repeat(32);
 const STATUS_PAGE_URL: string = "https://status.example.com";
 const UNSUBSCRIBE_URL: string = `${STATUS_PAGE_URL}/unsubscribe/${SUBSCRIBER_ID.toString()}-${UNSUBSCRIBE_TOKEN}`;
-const MANAGE_URL: string = `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`;
 
 const STARTS_AT: Date = new Date("2024-03-04T06:08:00.000Z");
 const TITLE: string = "Quarterly database failover drill";
@@ -438,13 +437,13 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
 
     /*
      * Every message links to the subscriber's unsubscribe page, token and
-     * all - except an SMS from this public page, which keeps the shorter
-     * manage link (see StatusPageSubscriberUnsubscribe.buildSmsLink).
+     * all - an SMS from this public page too: there is no shorter SMS-only
+     * link keyed by the subscriber id any more.
      */
     expect(sms).toEqual({
       ...shared,
       scheduledMaintenanceDescription: DESCRIPTION_TEXT,
-      unsubscribeUrl: MANAGE_URL,
+      unsubscribeUrl: UNSUBSCRIBE_URL,
     });
     expect(slack).toEqual({
       ...shared,
@@ -601,7 +600,7 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
         .mockResolvedValue(null);
     });
 
-    test("the default email, Slack and webhook carry the token link; a public page's SMS the manage link", async () => {
+    test("the default email, Slack, webhook and SMS all carry the token link, on a public page too", async () => {
       await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
         scheduledEvent(),
       ]);
@@ -614,11 +613,11 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
             .calls[0]![0] as { payload: { unsubscribeUrl: string } }
         ).payload.unsubscribeUrl,
       ).toBe(UNSUBSCRIBE_URL);
-      expect(sentSms()[0]).toContain(`Unsub: ${MANAGE_URL}`);
-      expect(sentSms()[0]).not.toContain(UNSUBSCRIBE_TOKEN);
+      expect(sentSms()[0]).toContain(`Unsub: ${UNSUBSCRIBE_URL}`);
+      expect(sentSms()[0]).not.toContain("/update-subscription/");
     });
 
-    test("a private page's SMS carries the token link: its manage page needs a signed-in visitor", async () => {
+    test("a private page's SMS carries the token link, as a public page's does", async () => {
       const privatePage: StatusPage = statusPage({ withCustomProviders: true });
       privatePage.isPublicStatusPage = false;
 

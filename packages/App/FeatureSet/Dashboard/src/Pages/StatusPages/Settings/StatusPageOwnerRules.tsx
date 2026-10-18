@@ -92,7 +92,11 @@ const StatusPageOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         {
           field: { isEnabled: true },
           title: "Status",
-          type: FieldType.Boolean,
+          /*
+           * An element, not a Boolean: a phone's card leaves out a Boolean
+           * that is off, so a disabled rule showed no status at all.
+           */
+          type: FieldType.Element,
           getElement: (item: StatusPageOwnerRule): ReactElement => {
             return item.isEnabled ? (
               <Pill color={Green} text="Enabled" />

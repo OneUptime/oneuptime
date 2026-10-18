@@ -246,6 +246,58 @@ describe("a status page's Announcements tab", () => {
   });
 });
 
+/*
+ * Which status pages show each announcement is the product list's
+ * question. On a page's own tab every row is on that page, and the column
+ * only repeated its name - squeezing the title beside it to its first
+ * words at 1280px.
+ */
+describe("the columns each list draws", () => {
+  async function columnHeaders(): Promise<Array<string>> {
+    await screen.findByRole("columnheader", { name: /Title/ });
+
+    return screen
+      .getAllByRole("columnheader")
+      .map((header: HTMLElement): string => {
+        return (header.textContent || "").trim();
+      })
+      .filter((text: string): boolean => {
+        return text.length > 0;
+      });
+  }
+
+  test("a status page's tab: the title, when it starts and ends - not the pages it is on", async () => {
+    renderTable(new ObjectID(STATUS_PAGE_ID));
+
+    const headers: Array<string> = await columnHeaders();
+
+    expect(headers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Title"),
+        expect.stringContaining("Starts"),
+        expect.stringContaining("Ends"),
+      ]),
+    );
+    expect(
+      headers.some((text: string): boolean => {
+        return text.includes("Shown on Status Pages");
+      }),
+    ).toBe(false);
+  });
+
+  test("the project's list: which status pages show each one, too", async () => {
+    renderTable();
+
+    const headers: Array<string> = await columnHeaders();
+
+    expect(
+      headers.some((text: string): boolean => {
+        return text.includes("Shown on Status Pages");
+      }),
+    ).toBe(true);
+  });
+});
+
 describe("the project's Announcements list", () => {
   test("Create Announcement opens the create page with nothing picked", async () => {
     renderTable();

@@ -17,7 +17,10 @@ import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import Label from "../../../Models/DatabaseModels/Label";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
+import { KUBERNETES_AI_AGENT_RESET_EDIT_REFUSAL } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 import {
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
@@ -75,9 +78,10 @@ import {
  *   project's AI (credits included) never stops it; the agent's own
  *   connection gaps do;
  * - /reset-agent is for the people who may loosen AI access
- *   (KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS, or a master admin), after the
- *   same cluster read gate as the status, and calls
- *   KubernetesAiAgentService.resetAgent for THIS cluster;
+ *   (KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS, or a master admin) and may
+ *   edit THIS cluster - decided for its own row, labels included, as
+ *   turning its fixes on is - after the same cluster read gate as the
+ *   status, and calls KubernetesAiAgentService.resetAgent for THIS cluster;
  * - /logs has the status's read gate, reads everything else as root,
  *   and returns summaries only: investigations (runs that ran kubectl on
  *   the cluster UNION runs of incidents and alerts linked to it), fixes
@@ -204,9 +208,20 @@ function lastResponse(): JSONObject {
   return calls[calls.length - 1]![2] as JSONObject;
 }
 
+/*
+ * A caller's permission rows: grants and blocks with no labels, and rows
+ * limited to some labels (`scoped`).
+ */
 function userProps(data: {
   permissions: Array<Permission>;
   blocked?: Array<Permission> | undefined;
+  scoped?:
+    | Array<{
+        permission: Permission;
+        labelIds: Array<ObjectID>;
+        isBlockPermission?: boolean | undefined;
+      }>
+    | undefined;
   isMasterAdmin?: boolean | undefined;
 }): DatabaseCommonInteractionProps {
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
@@ -230,6 +245,20 @@ function userProps(data: {
           isBlockPermission: true,
         } as UserPermission;
       }),
+      ...(data.scoped || []).map(
+        (row: {
+          permission: Permission;
+          labelIds: Array<ObjectID>;
+          isBlockPermission?: boolean | undefined;
+        }): UserPermission => {
+          return {
+            _type: "UserPermission",
+            permission: row.permission,
+            labelIds: row.labelIds,
+            isBlockPermission: Boolean(row.isBlockPermission),
+          } as UserPermission;
+        },
+      ),
     ],
   };
 
@@ -240,6 +269,39 @@ function userProps(data: {
     userTenantAccessPermission: permissionMap,
     ...(data.isMasterAdmin ? { isMasterAdmin: true } : {}),
   } as DatabaseCommonInteractionProps;
+}
+
+/*
+ * A role that may edit clusters: an edit reads the row by its id and
+ * project, so it needs the read as well, as the update endpoint does.
+ */
+const CLUSTER_EDITOR: Array<Permission> = [
+  Permission.ReadKubernetesCluster,
+  Permission.EditKubernetesCluster,
+];
+
+const PROD_LABEL_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
+const STAGING_LABEL_ID: ObjectID = new ObjectID(
+  "77777777-7777-4777-8777-777777777777",
+);
+
+// The cluster as its table holds it: a model, with the labels it carries.
+function clusterRow(labels: Array<Label> = []): KubernetesCluster {
+  const model: KubernetesCluster = new KubernetesCluster();
+  model.id = CLUSTER_ID;
+  model.projectId = PROJECT_ID;
+  model.name = "prod-us";
+  model.labels = labels;
+  return model;
+}
+
+function label(id: ObjectID, name: string): Label {
+  const model: Label = new Label();
+  model.id = id;
+  model.name = name;
+  return model;
 }
 
 function agentStatus(
@@ -302,19 +364,18 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
     jest.spyOn(Semaphore, "lock").mockResolvedValue({} as SemaphoreMutex);
     jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
 
+    /*
+     * A team's block with labels narrows the editable lookup itself, against
+     * the cluster's label join table.
+     */
+    withLabelJoinTables();
+
     propsSpy = jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-      .mockResolvedValue(
-        userProps({ permissions: [Permission.EditKubernetesCluster] }),
-      );
+      .mockResolvedValue(userProps({ permissions: CLUSTER_EDITOR }));
     clusterFind = jest
       .spyOn(KubernetesClusterService, "findOneBy")
-      .mockResolvedValue({
-        id: CLUSTER_ID,
-        _id: CLUSTER_ID.toString(),
-        projectId: PROJECT_ID,
-        name: "prod-us",
-      } as unknown as KubernetesCluster);
+      .mockResolvedValue(clusterRow());
     statusSpy = jest
       .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
       .mockResolvedValue(agentStatus());
@@ -448,33 +509,38 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
     });
 
     test.each([
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditAutoRemediationRule,
-    ])("resets this cluster's agent for %s", async (role: Permission) => {
-      propsSpy.mockResolvedValue(userProps({ permissions: [role] }));
+      [Permission.ProjectOwner],
+      [Permission.ProjectAdmin],
+      // The admin set, and an edit of the cluster.
+      [Permission.EditAutoRemediationRule, ...CLUSTER_EDITOR],
+      [Permission.EditAutoRemediationRule, Permission.ProjectMember],
+    ])(
+      "resets this cluster's agent for %s",
+      async (...roles: Array<Permission>) => {
+        propsSpy.mockResolvedValue(userProps({ permissions: roles }));
 
-      const result: RouteCallResult = await callRoute(RESET_ROUTE);
+        const result: RouteCallResult = await callRoute(RESET_ROUTE);
 
-      expect(result.thrownToNext).toBeUndefined();
-      expect(resetSpy).toHaveBeenCalledTimes(1);
-      const call: Record<string, unknown> = resetSpy.mock
-        .calls[0]![0] as Record<string, unknown>;
-      expect(String(call["projectId"])).toBe(PROJECT_ID.toString());
-      expect(String(call["kubernetesClusterId"])).toBe(CLUSTER_ID.toString());
-      expect(String(call["userId"])).toBe(USER_ID.toString());
-      expect(agentLookup).toHaveBeenCalledWith({
-        projectId: PROJECT_ID,
-        kubernetesClusterId: CLUSTER_ID,
-      });
+        expect(result.thrownToNext).toBeUndefined();
+        expect(resetSpy).toHaveBeenCalledTimes(1);
+        const call: Record<string, unknown> = resetSpy.mock
+          .calls[0]![0] as Record<string, unknown>;
+        expect(String(call["projectId"])).toBe(PROJECT_ID.toString());
+        expect(String(call["kubernetesClusterId"])).toBe(CLUSTER_ID.toString());
+        expect(String(call["userId"])).toBe(USER_ID.toString());
+        expect(agentLookup).toHaveBeenCalledWith({
+          projectId: PROJECT_ID,
+          kubernetesClusterId: CLUSTER_ID,
+        });
 
-      const response: JSONObject = lastResponse();
-      expect(response["ok"]).toBe(true);
-      expect(response["message"]).toBe(
-        "The Kubernetes AI agent was reset. It reconnects on its own within a few minutes.",
-      );
-      expect(response["status"]).toBeDefined();
-    });
+        const response: JSONObject = lastResponse();
+        expect(response["ok"]).toBe(true);
+        expect(response["message"]).toBe(
+          "The Kubernetes AI agent was reset. It reconnects on its own within a few minutes.",
+        );
+        expect(response["status"]).toBeDefined();
+      },
+    );
 
     test("lets a master admin reset without any project permission", async () => {
       propsSpy.mockResolvedValue(
@@ -518,6 +584,151 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
 
       expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
       expect(resetSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The admin set alone is not enough: resetting a cluster's agent takes
+     * an edit of THAT cluster too, decided for its own row as turning its
+     * fixes on is (KubernetesClusterAiAccessService
+     * .assertCallerMayChangeCluster).
+     */
+    describe("and only on a cluster the admin may edit", () => {
+      function refusedWithoutReset(result: RouteCallResult): void {
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect((result.thrownToNext as Error).message).toBe(
+          KUBERNETES_AI_AGENT_RESET_EDIT_REFUSAL,
+        );
+        expect(agentLookup).not.toHaveBeenCalled();
+        expect(resetSpy).not.toHaveBeenCalled();
+        expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
+      }
+
+      test("refuses Edit Auto Remediation Rule with a read of the cluster but no edit of it", async () => {
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [
+              Permission.EditAutoRemediationRule,
+              Permission.ReadKubernetesCluster,
+            ],
+          }),
+        );
+
+        refusedWithoutReset(await callRoute(RESET_ROUTE));
+      });
+
+      test("refuses Edit Auto Remediation Rule whose edit of clusters is limited to another label", async () => {
+        clusterFind.mockResolvedValue(
+          clusterRow([label(PROD_LABEL_ID, "prod")]),
+        );
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [
+              Permission.EditAutoRemediationRule,
+              Permission.ReadKubernetesCluster,
+            ],
+            scoped: [
+              {
+                permission: Permission.EditKubernetesCluster,
+                labelIds: [STAGING_LABEL_ID],
+              },
+            ],
+          }),
+        );
+
+        refusedWithoutReset(await callRoute(RESET_ROUTE));
+      });
+
+      test("negative control: the same admin resets a cluster carrying their label", async () => {
+        clusterFind.mockResolvedValue(
+          clusterRow([label(STAGING_LABEL_ID, "staging")]),
+        );
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [
+              Permission.EditAutoRemediationRule,
+              Permission.ReadKubernetesCluster,
+            ],
+            scoped: [
+              {
+                permission: Permission.EditKubernetesCluster,
+                labelIds: [STAGING_LABEL_ID],
+              },
+            ],
+          }),
+        );
+
+        const result: RouteCallResult = await callRoute(RESET_ROUTE);
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(resetSpy).toHaveBeenCalledTimes(1);
+      });
+
+      test("refuses a project admin blocked from editing a label this cluster carries", async () => {
+        clusterFind.mockResolvedValue(
+          clusterRow([label(PROD_LABEL_ID, "prod")]),
+        );
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [Permission.ProjectAdmin],
+            scoped: [
+              {
+                permission: Permission.EditKubernetesCluster,
+                labelIds: [PROD_LABEL_ID],
+                isBlockPermission: true,
+              },
+            ],
+          }),
+        );
+
+        refusedWithoutReset(await callRoute(RESET_ROUTE));
+      });
+
+      test("negative control: that block leaves a cluster without the label alone", async () => {
+        clusterFind.mockResolvedValue(
+          clusterRow([label(STAGING_LABEL_ID, "staging")]),
+        );
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [Permission.ProjectAdmin],
+            scoped: [
+              {
+                permission: Permission.EditKubernetesCluster,
+                labelIds: [PROD_LABEL_ID],
+                isBlockPermission: true,
+              },
+            ],
+          }),
+        );
+
+        const result: RouteCallResult = await callRoute(RESET_ROUTE);
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(resetSpy).toHaveBeenCalledTimes(1);
+      });
+
+      test("the admin set is asked first: a cluster editor without it hears which permissions reset an agent", async () => {
+        clusterFind.mockResolvedValue(
+          clusterRow([label(PROD_LABEL_ID, "prod")]),
+        );
+        propsSpy.mockResolvedValue(
+          userProps({
+            permissions: [Permission.ReadKubernetesCluster],
+            scoped: [
+              {
+                permission: Permission.EditKubernetesCluster,
+                labelIds: [STAGING_LABEL_ID],
+              },
+            ],
+          }),
+        );
+
+        const result: RouteCallResult = await callRoute(RESET_ROUTE);
+
+        expect((result.thrownToNext as Error).message).toBe(
+          "You need one of these permissions to reset this cluster's Kubernetes AI agent: Project Owner, Project Admin, Edit Auto Remediation Rule.",
+        );
+        expect(resetSpy).not.toHaveBeenCalled();
+      });
     });
 
     test("checks the cluster first, under the user's own props, scoped to the tenant", async () => {

@@ -1,4 +1,3 @@
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -29,6 +28,13 @@ import {
   getRoleCardSelectOptions,
   isBuiltInRolePermission,
 } from "../Permission/RoleCardSelectOptions";
+import { getPermissionScopeFields } from "../Permission/PermissionScopeChoice";
+import PermissionScopeCell from "../Permission/PermissionScopeCell";
+import {
+  ADD_PERMISSION_DIALOG_WORDS,
+  AddPermissionDialogKind,
+  AddPermissionDialogWords,
+} from "../Permission/AddPermissionDialogWords";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -84,6 +90,14 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
   // The same role cards an API key's Add Role offers (RoleCardSelectOptions).
   const roleCardSelectOptions: Array<CardSelectOption | CardSelectOptionGroup> =
     getRoleCardSelectOptions();
+
+  // What the Add dialog is called: what the button that opened it said.
+  const createDialogWords: AddPermissionDialogWords =
+    ADD_PERMISSION_DIALOG_WORDS[
+      createPermissionType === CreatePermissionType.RoleBased
+        ? AddPermissionDialogKind.Role
+        : AddPermissionDialogKind.SinglePermission
+    ];
 
   type OpenCreateFormFunction = (type: CreatePermissionType) => void;
 
@@ -146,6 +160,12 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
       isEditable={true}
       isCreateable={false}
       showCreateForm={showCreateForm}
+      /*
+       * Named after the button that opened it - "Add a Role" behind Add
+       * Role - not after the table's model ("Create New Team Permission").
+       */
+      createFormTitle={createDialogWords.title}
+      createFormSubmitButtonText={createDialogWords.submitButtonText}
       name={"Settings > Team > Permissions-" + permissionType}
       createEditModalWidth={ModalWidth.Large}
       isViewable={false}
@@ -234,71 +254,26 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                   }
                 },
                 title: "Role",
-                description:
-                  "Select a role to assign to this team. Roles provide a predefined set of permissions.",
+                description: "A ready-made set of permissions.",
                 fieldType: FormFieldSchemaType.CardSelect,
                 cardSelectOptions: roleCardSelectOptions,
                 required: true,
                 placeholder: "Select a role",
               },
-              {
-                field: {
-                  scope: true,
-                },
-                title: "Scope",
-                description:
-                  "Which resources this role applies to. All (recommended): every resource in the project. Owned: resources where this team or its members are listed as owners. Labels: restrict by labels (advanced).",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: [
-                  {
-                    value: PermissionScope.All,
-                    label: "All resources in the project",
-                  },
-                  {
-                    value: PermissionScope.Owned,
-                    label: "Owned by this team or its members",
-                  },
-                  {
-                    value: PermissionScope.Labels,
-                    label: "Restrict by labels (advanced)",
-                  },
-                ],
-                defaultValue: PermissionScope.All,
-                required: true,
-                showIf: (values: FormValues<TeamPermission>): boolean => {
-                  if (!values["permission"]) {
-                    return false;
-                  }
-                  return PermissionHelper.isScopeApplicable(
-                    values["permission"] as Permission,
+              /*
+               * Scope: three plain answers, All first, and the labels the
+               * third one asks for (PermissionScopeChoice).
+               */
+              ...getPermissionScopeFields<TeamPermission>({
+                isScopeShown: (values: FormValues<TeamPermission>): boolean => {
+                  return (
+                    Boolean(values["permission"]) &&
+                    PermissionHelper.isScopeApplicable(
+                      values["permission"] as Permission,
+                    )
                   );
                 },
-              },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Restrict to Labels",
-                description:
-                  "If you want to restrict this role to specific labels, you can select them here. Advanced.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                showIf: (values: FormValues<TeamPermission>): boolean => {
-                  if (!values["permission"]) {
-                    return false;
-                  }
-                  const scope: PermissionScope | undefined = values["scope"] as
-                    | PermissionScope
-                    | undefined;
-                  return scope === PermissionScope.Labels;
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              }),
             ]
           : [
               {
@@ -319,6 +294,7 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                   }
                 },
                 title: "Permission",
+                description: "One permission, for exactly what the team needs.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: true,
                 placeholder: "Search permissions...",
@@ -344,90 +320,23 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                   );
                 },
               },
-              {
-                field: {
-                  scope: true,
-                },
-                title: "Scope",
-                description:
-                  "Which resources this permission applies to. All (recommended): every resource in the project. Owned: resources where this team or its members are listed as owners. Labels: restrict by labels (advanced).",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: [
-                  {
-                    value: PermissionScope.All,
-                    label: "All resources in the project",
-                  },
-                  {
-                    value: PermissionScope.Owned,
-                    label: "Owned by this team or its members",
-                  },
-                  {
-                    value: PermissionScope.Labels,
-                    label: "Restrict by labels (advanced)",
-                  },
-                ],
-                defaultValue: PermissionScope.All,
-                required: true,
-                showIf: (values: FormValues<TeamPermission>): boolean => {
-                  if (!values["permission"]) {
-                    return false;
-                  }
-                  if (
-                    !PermissionHelper.isAccessControlPermission(
+              /*
+               * Only a permission labels can narrow takes a scope: the
+               * others reach the whole project by definition.
+               */
+              ...getPermissionScopeFields<TeamPermission>({
+                isScopeShown: (values: FormValues<TeamPermission>): boolean => {
+                  return (
+                    Boolean(values["permission"]) &&
+                    PermissionHelper.isAccessControlPermission(
+                      values["permission"] as Permission,
+                    ) &&
+                    PermissionHelper.isScopeApplicable(
                       values["permission"] as Permission,
                     )
-                  ) {
-                    return false;
-                  }
-                  if (
-                    !PermissionHelper.isScopeApplicable(
-                      values["permission"] as Permission,
-                    )
-                  ) {
-                    return false;
-                  }
-                  return true;
+                  );
                 },
-              },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Restrict to Labels",
-                description:
-                  "If you want to restrict this permission to specific labels, you can select them here. This is an optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                showIf: (values: FormValues<TeamPermission>): boolean => {
-                  if (!values["permission"]) {
-                    return false;
-                  }
-
-                  if (
-                    values["permission"] &&
-                    !PermissionHelper.isAccessControlPermission(
-                      values["permission"] as Permission,
-                    )
-                  ) {
-                    return false;
-                  }
-
-                  const scope: PermissionScope | undefined = values["scope"] as
-                    | PermissionScope
-                    | undefined;
-                  if (scope && scope !== PermissionScope.Labels) {
-                    return false;
-                  }
-
-                  return true;
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              }),
             ]
       }
       showRefreshButton={true}
@@ -481,32 +390,12 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
           title: "Scope",
           type: FieldType.Text,
           getElement: (item: TeamPermission): ReactElement => {
-            const scope: PermissionScope =
-              (item["scope"] as PermissionScope) || PermissionScope.Labels;
-
-            if (scope === PermissionScope.Owned) {
-              return <p>Owned by team or members</p>;
-            }
-
-            if (scope === PermissionScope.All) {
-              return <p>All resources in project</p>;
-            }
-
-            const labels: Array<Label> = (item["labels"] || []) as Array<Label>;
-            if (labels.length === 0) {
-              return (
-                <p>
-                  All resources{" "}
-                  <span className="text-gray-400">(no labels selected)</span>
-                </p>
-              );
-            }
-
+            // In the Scope choice's words, with the labels that narrow it.
             return (
-              <div className="flex flex-col gap-1">
-                <p className="text-gray-500">Restricted to labels:</p>
-                <LabelsElement labels={labels} />
-              </div>
+              <PermissionScopeCell
+                scope={item["scope"]}
+                labels={(item["labels"] || []) as Array<Label>}
+              />
             );
           },
         },

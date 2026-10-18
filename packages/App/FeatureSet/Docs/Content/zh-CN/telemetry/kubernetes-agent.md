@@ -4,6 +4,7 @@ OneUptime Kubernetes 代理是一个 Helm chart，它采集集群的指标、事
 
 :::cards
 - [安装代理](#安装代理): 使用 Helm 的四个步骤。
+- [作为 Amazon EKS 附加组件安装](#作为-amazon-eks-附加组件安装): 从 EKS 控制台安装，无需 Helm。
 - [配置选项](#配置选项): 过滤器、采样、控制平面、服务网格、成本和标签。
 - [Kubernetes AI 代理](#kubernetes-ai-代理): 供 OneUptime AI 使用的只读 `kubectl`，以及在你允许时进行的修复。
 - [减少发送量](#减少采集的数据量): 按影响大小排列的调节手段。
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 打开 **产品 → 基础设施 → Kubernetes → 所有集群**。几分钟内，集群会以其 `clusterName` 出现，节点、Pod 和工作负载也会填充进来。Kubernetes AI 代理会在集群 **人工智能** 下的 **智能体** 页面上显示为已连接。
 :::
 
+## 作为 Amazon EKS 附加组件安装
+
+在 Amazon EKS 上，你也可以从 EKS 控制台添加该代理，它在那里是 AWS Marketplace 附加组件之一。使用它不产生任何费用，EKS 会为你安装、升级和移除它。该附加组件就是这个 chart，并按附加组件的要求进行了设置：
+
+- 除非你提供自己的 OneUptime 的 URL，否则它会将数据发送到 OneUptime Cloud（`https://oneuptime.com`）。
+- 它从你创建的 Kubernetes Secret 中读取摄取密钥，绝不从附加组件的配置中读取，因为 EKS 会以明文显示这些配置。
+- 它以集群在 EKS 中的名称向 OneUptime 报告该集群。
+- 它运行在 `oneuptime-agent` 命名空间中。
+
+:::steps
+### 将摄取密钥存入 Secret
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### 添加附加组件
+
+在 EKS 控制台中打开你的集群，依次选择 **Add-ons** 和 **Get more add-ons** 后，从 AWS Marketplace 附加组件中选择 OneUptime Kubernetes 代理。免费订阅它，然后创建该附加组件。也可以使用 AWS CLI：
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### 检查它是否在运行
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+一旦其 Pod 开始运行，附加组件就会变为 `ACTIVE`，集群也会在几分钟内以其 EKS 名称出现在 OneUptime 中。一直停留在 `CreateContainerConfigError` 的 Pod 找不到 Secret：请按第一步的方法，在 `oneuptime-agent` 命名空间中创建它。
+:::
+
+### 附加组件的配置值
+
+在 EKS 控制台的 **Optional configuration settings** 中设置它们，或在创建或更新附加组件时使用 `--configuration-values` 设置。每一项都是可选的：
+
+- `oneuptime.url`：你的 OneUptime 的地址。默认值为 `https://oneuptime.com`。
+- `oneuptime.existingSecretName`：以 `api-key` 为键保存摄取密钥的 Secret。默认值为 `oneuptime-ingestion-key`。
+- `oneuptime.labels`：附加到此集群发送的所有数据上的项目标签，例如 `{"team": "payments"}`。
+- `preset`：仅在 Fargate 上运行的集群使用 `eks-fargate`，否则使用默认值 `standard`。
+- `logs.enabled`、`ebpf.enabled` 和 `aiAgent.enabled`：Pod 日志、eBPF 追踪和 [Kubernetes AI 代理](#kubernetes-ai-代理)，均默认开启。
+- `kubeStateMetrics.enabled` 和 `cost.enabled`：kube-state-metrics 和 [成本可观测性](/docs/telemetry/kubernetes-cost)，均默认关闭。
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+更新会替换整个配置：你省略的值会恢复为默认值。chart 的其余设置，例如性能剖析器、OneUptime AI 的修复和命名空间过滤器，需要使用 [Helm 安装](#安装代理)。要将集群从 Helm 安装迁移到附加组件，请先卸载该 Helm 发布。
+
 ## 选择预设
 
 `preset` 选择适用于你平台的默认值：Pod 日志是通过 `hostPath` 从节点读取，还是通过 Kubernetes API 读取，以及哪些工作负载可以以特权模式运行。
@@ -169,6 +225,23 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 ## 配置选项
 
 下面的每个选项都是一个 Helm 值。可在安装时设置，或对已安装的代理使用 `helm upgrade ... --reset-then-reuse-values --set <value>` 设置。
+
+### 将摄取密钥保存在 Secret 中
+
+`--set oneuptime.apiKey` 会把密钥保存在发布的值中，而 Helm 会随每个修订版本存储这些值。若要让密钥不出现在这些值中，请将密钥以 `api-key` 为键存入代理所在命名空间中的一个 Secret，并改为指定该 Secret 的名称：
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+之后，代理的每个工作负载都会从该 Secret 中读取密钥，chart 也不会创建自己的 Secret。请设置 `oneuptime.apiKey` 或 `oneuptime.existingSecretName`，而不要同时设置两者：chart 会拒绝同时设置这两项。该 Secret 可以来自任何能写入 Secret 的工具，例如 External Secrets Operator。
 
 ### 命名空间过滤
 
@@ -602,7 +675,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **会自行解除的拒绝** — 之前的代理 Pod 仍在上报（没有正常关闭就被替换的 Pod），或者旧的集群内 Runner 在升级期间仍在关闭。代理会在服务器指定的等待时间之后重试。
 - **需要你处理的拒绝** — `clusterName` 为空或过长，或者项目已达到 AI 代理的上限；日志会指明需要更改什么。如果代理始终无法连接，且其日志显示 `Another Kubernetes AI agent for cluster "<name>" is online`，说明两个安装共用了同一个 `clusterName`（AI 代理页面也会对此发出警告）：已经连接的那个只要在运行就会一直占用它，因此请为每个集群提供自己的 `clusterName`，或移除多余的发布。带有 **Pinned Service Name** 的摄取密钥无法注册代理——请给 chart 一个不带它的密钥。
 
-AI 代理页面上代理状态旁边 **⋯** 菜单中的 **重置代理**，会在你确认后让服务器忘记该代理的密钥（Project Owner、Project Admin 或拥有 **Edit Auto Remediation Rule** 权限者可以执行）；Pod 会在几分钟内自行重新连接。代理的就绪状态不依赖 OneUptime，因此配置错误的 AI 代理永远不会让 `helm upgrade --wait` 失败——只有无法拉取镜像的 Pod 才会。
+AI 代理页面上代理状态旁边 **⋯** 菜单中的 **重置代理**，会在你确认后让服务器忘记该代理的密钥（Project Owner、Project Admin 或拥有 **Edit Auto Remediation Rule** 权限者可以在其可编辑的集群上执行）；Pod 会在几分钟内自行重新连接。代理的就绪状态不依赖 OneUptime，因此配置错误的 AI 代理永远不会让 `helm upgrade --wait` 失败——只有无法拉取镜像的 Pod 才会。
 
 ## 升级代理
 

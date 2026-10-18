@@ -398,7 +398,7 @@ export const FormsCopy: {
   templateEditorDescription:
     "Which questions the form asks when someone starts from this template, and what it fills in.",
   templateQuestionsDescription:
-    "Make a question required, optional or hidden for people who start from this template. Form default follows the form's own setting, even after you change it.",
+    "Make a question required, optional or hidden for this template. Form default follows the form's own setting.",
   templateAnswersDescription:
     "What the template fills in. Leave a question empty to leave it to the person submitting.",
   templateHiddenAnswerNote:
@@ -421,15 +421,15 @@ export const FormsCopy: {
     "Every submission through this form creates one of these in your project.",
   changeTargetTitle: "Change What Submissions Create",
   changeTargetToIncident:
-    "From now on, each submission declares an incident. The title, description, monitors and labels stay linked. Other linked questions become questions of the form's own, and the On Submit settings start over.",
+    "Each submission will declare an incident. Title, description, monitors and labels stay linked; On Submit settings start over.",
   changeTargetToScheduledMaintenance:
-    "From now on, each submission schedules a maintenance event. The title, description, monitors and labels stay linked. Other linked questions become questions of the form's own, the On Submit settings start over, and the form asks when the maintenance starts and ends.",
+    "Each submission will schedule a maintenance event. Title, description, monitors and labels stay linked; On Submit settings start over.",
   changeTargetConfirm: "Change",
   mappingIncidentTitle: "How a Submission Becomes an Incident",
   mappingScheduledMaintenanceTitle:
     "How a Submission Becomes a Scheduled Maintenance Event",
   mappingIncidentDescription:
-    "Each field of the new incident, and where its value comes from: an answer, or a setting of this form. Whatever is still unset comes from the incident template, if you choose one.",
+    "Where each field of the new incident comes from: an answer or a setting of this form. The incident template fills the rest.",
   mappingScheduledMaintenanceDescription:
     "Each field of the new scheduled maintenance event, and where its value comes from: an answer, or a setting of this form.",
   editOnSubmitSettings: "Edit Settings",
@@ -452,7 +452,7 @@ export const FormsCopy: {
   severityFromTemplate: "The incident template's severity",
   incidentTemplate: "Incident Template",
   incidentTemplateDescription:
-    "Incidents are declared from this template. It fills in whatever the answers and these settings leave unset: its state, monitors, labels, on-call policies, owners and custom field values.",
+    "Incidents are declared from this template, which fills in whatever the answers and these settings leave unset.",
   noTemplate: "No template",
   alwaysMonitors: "Monitors",
   alwaysMonitorsDescription:
@@ -549,10 +549,10 @@ export const FormsCopy: {
   noAnswers: "This submission has no answers.",
   deleteSubmissionTitle: "Delete Submission",
   deleteSubmissionDescription:
-    "Delete this submission? Its answers and the submitter's name and email are removed from this list. What it created is not deleted, and neither is the private note on it.",
+    "Its answers and the submitter's name and email are removed. What it created, and its private note, are kept.",
 
   duplicateFormNote:
-    "The copy has this form's questions, templates, On Submit settings, branding, thank-you message and IP allowlist, and a link of its own. It starts turned off: turn it on from its Share page when it is ready.",
+    "The copy has everything this form has, with a link of its own. It starts turned off: turn it on from its Share page when ready.",
 };
 
 // How each kind of question of the form's own is named in the builder.

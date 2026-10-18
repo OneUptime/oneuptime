@@ -287,6 +287,8 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitorLabels: true },
           title: "Monitor Labels",
+          description:
+            "Only match incidents and alerts whose monitor has one of these labels.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
@@ -317,6 +319,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           // Who fixes: OneUptime AI or the rule's runbooks.
           field: { remediationAction: true },
           title: "Fix With",
+          description: "Who fixes what this rule matches.",
           stepId: "remediation",
           fieldType: FormFieldSchemaType.CardSelect,
           cardSelectSingleColumn: true,
@@ -343,6 +346,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           // Ask first: whether a fix waits for someone to approve it.
           field: { executionMode: true },
           title: "Approval",
+          description: "Whether each fix waits for someone to approve it.",
           stepId: "remediation",
           fieldType: FormFieldSchemaType.CardSelect,
           cardSelectSingleColumn: true,

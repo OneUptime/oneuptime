@@ -42,7 +42,7 @@ Under rutenettet viser **On call this week** (**On call this month** i månedsvi
 
 ## Endre periode og tidssone
 
-- Bytt mellom **Week** og **Month**, bla med pilene, og gå tilbake med **Today**.
+- Bytt mellom **Uke** og **Måned**, bla med pilene, og gå tilbake med **I dag**.
 - Tidene vises i din egen tidssone. Tidssoneknappen åpner **View timeline in timezone**, som viser tidslinjen i en hvilken som helst annen sone uten å endre når noen har vakt: hver vaktplan overleverer fortsatt i sin egen tidssone.
 - Tidslinjen dekker 180 dager bakover og 365 dager fremover.
 

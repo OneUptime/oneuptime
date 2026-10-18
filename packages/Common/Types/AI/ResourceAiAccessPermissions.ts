@@ -114,6 +114,20 @@ export function getResourceAiAccessAdminRefusal(
   )}. Anyone who may edit the ${name} can still turn AI fixes off or down to Ask for approval, and remove allowlist patterns.`;
 }
 
+/*
+ * The refusal for one of the admin set who may not edit this resource:
+ * resetting its AI agent takes both, as turning its fixes on does - an
+ * update of the resource, decided for its own row, labels and owners
+ * included (ResourceAiAccessService.assertCallerMayChangeResource).
+ */
+export function getResourceAiAgentResetEditRefusal(
+  resourceType: AiResourceType,
+): string {
+  return `You need permission to edit this ${getResourceSentenceName(
+    resourceType,
+  )} to reset its ${getResourceAgentName(resourceType)}.`;
+}
+
 // The refusal for a caller who may not reset the resource's AI agent.
 export function getResourceAiAgentResetRefusal(
   resourceType: AiResourceType,

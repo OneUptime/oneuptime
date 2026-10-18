@@ -94,9 +94,9 @@ const SSO_CARD_STRINGS: Array<string> = [
   "Single Sign-On (SSO)",
   "Control whether users must sign in with SSO across this server.",
   "Require SSO for Login",
-  "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.",
+  "Everyone except master admins must sign in with SSO to open any project on this server.",
   "Require SSO for everyone?",
-  "Everyone except master admins will have to sign in with SSO to open any project on this server. Anyone who signs in with a password is locked out of their projects until they sign in with SSO, so check that an SSO provider works for them first.",
+  "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.",
   "Require SSO",
 ];
 
@@ -265,12 +265,11 @@ describe("Settings > Authentication: the Single Sign-On (SSO) card", () => {
     }
   });
 
-  test("the dialog says who is locked out, and who is not", () => {
+  test("the switch says who is exempt, and the dialog who is locked out", () => {
+    expect(REQUIRE_SSO_COPY.note).toContain("Everyone except master admins");
     expect(REQUIRE_SSO_COPY.confirmDescription).toContain(
-      "Everyone except master admins",
+      "signs in with a password is locked out",
     );
-    expect(REQUIRE_SSO_COPY.confirmDescription).toContain("locked out");
-    expect(REQUIRE_SSO_COPY.note).toContain("Master admins are exempt");
   });
 
   test("en.json maps every string to itself", () => {

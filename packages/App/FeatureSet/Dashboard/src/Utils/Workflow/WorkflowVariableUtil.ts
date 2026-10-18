@@ -317,7 +317,7 @@ export function getVariableDescriptionFormField(data?: {
  * exposure.
  */
 export const SECRET_TOGGLE_DESCRIPTION: string =
-  "Keep this variable's content out of workflow run logs - every run replaces it with [REDACTED] before the log is saved. It applies to future runs only, and it cannot be turned off again once saved.";
+  "Replace this value with [REDACTED] in future workflow run logs. It cannot be turned off once saved.";
 
 export function getSecretFormField(data?: {
   stepId?: string | undefined;
@@ -566,7 +566,7 @@ export function getOAuthClientSecretFormField(data?: {
     title: "Client Secret",
     stepId: data?.stepId,
     description:
-      "Encrypted, and never shown again once saved - open the variable and use Update Credentials to replace it. Optional for the Refresh Token grant if your application is a public client.",
+      "Never shown again once saved: open the variable and use Update Credentials to replace it. Optional for a public client's Refresh Token grant.",
     fieldType: FormFieldSchemaType.EncryptedText,
     required: (values: FormValues<WorkflowVariable>): boolean => {
       return values["oauthGrantType"] !== OAuth2GrantType.RefreshToken;
@@ -589,7 +589,7 @@ export function getOAuthRefreshTokenFormField(data?: {
     title: "Refresh Token",
     stepId: data?.stepId,
     description:
-      "The refresh token you got when you authorised the application, for example from your provider's OAuth playground. Encrypted, never shown again, and replaced automatically when your provider rotates it.",
+      "The refresh token you got when you authorised the application. Never shown again, and replaced when your provider rotates it.",
     fieldType: FormFieldSchemaType.EncryptedText,
     required: true,
     placeholder: "Refresh token",
@@ -631,7 +631,7 @@ export function getOAuthAdditionalParametersFormField(data?: {
     title: "Additional Parameters",
     stepId: data?.stepId,
     description:
-      "Extra form parameters for the token request, such as audience for Auth0 or resource for Azure AD v1. Anyone who can read this variable can read them, so do not put secrets here.",
+      "Extra parameters for the token request, such as audience for Auth0. Anyone who can read this variable sees them, so do not put secrets here.",
     fieldType: FormFieldSchemaType.Dictionary,
     required: false,
     customValidation: (values: FormValues<WorkflowVariable>): string | null => {

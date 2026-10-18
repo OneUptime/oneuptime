@@ -44,8 +44,8 @@ Ognuna di queste azioni si può anche concedere singolarmente, dalla creazione d
 
 | Origine | Apre un caso quando | Si disattiva con |
 | --- | --- | --- |
-| Regole di rilevamento | Una regola corrisponde | **Open a Case on Match**, nel passo **Security Cases** della regola |
-| Threat intelligence | Un evento nomina un indicatore noto | **Open a Case on Match**, nel passo **Security Cases** del feed |
+| Regole di rilevamento | Una regola corrisponde | **Open a Case on Match**, nel passo **In caso di corrispondenza** della regola |
+| Threat intelligence | Un evento nomina un indicatore noto | **Open a Case on Match**, nel passo **In caso di corrispondenza** del feed |
 | Prodotti collegati | Un avviso proprio del prodotto viene importato a un livello pari o superiore alla soglia della connessione | **Open Cases From** impostato su **Mai**, nel passo **Polling** della connessione |
 | Persone | Qualcuno ne apre uno da **Security Cases**, o con **Open Case** nel pannello di un evento | Nessuna impostazione |
 
@@ -229,7 +229,7 @@ Un progetto che non ha ancora né casi né rilevamenti mostra, sopra tutto quest
 ## Risoluzione dei problemi
 
 :::details Una regola corrisponde, ma non si apre nessun caso
-Controlla **Open a Case on Match** nel passo **Security Cases** della regola. Un rilevamento su un'entità che ha già un caso aperto si aggiunge a quel caso invece di aprirne un altro: cercalo in **Detections** sul caso aperto.
+Controlla **Open a Case on Match** nel passo **In caso di corrispondenza** della regola. Un rilevamento su un'entità che ha già un caso aperto si aggiunge a quel caso invece di aprirne un altro: cercalo in **Detections** sul caso aperto.
 :::
 
 :::details Un playbook non è stato eseguito

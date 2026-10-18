@@ -116,7 +116,7 @@ export interface ComponentProps {
    * and in Bulk Actions. On by default: every list of monitors is one of the
    * places a monitor is deleted from. Off where the list is another
    * resource's members (a monitor group's monitors, whose row action is
-   * Unassign): deleting there would take the monitor out of every group,
+   * Remove): deleting there would take the monitor out of every group,
    * status page and SLO it is on, not only out of this one.
    */
   isDeleteable?: boolean | undefined;

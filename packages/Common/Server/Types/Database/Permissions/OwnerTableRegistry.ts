@@ -52,6 +52,26 @@ import StatusPageOwnerTeamService from "../../../Services/StatusPageOwnerTeamSer
 import StatusPageOwnerUserService from "../../../Services/StatusPageOwnerUserService";
 import WorkflowOwnerTeamService from "../../../Services/WorkflowOwnerTeamService";
 import WorkflowOwnerUserService from "../../../Services/WorkflowOwnerUserService";
+import AlertEpisodeOwnerTeamService from "../../../Services/AlertEpisodeOwnerTeamService";
+import AlertEpisodeOwnerUserService from "../../../Services/AlertEpisodeOwnerUserService";
+import IncidentEpisodeOwnerTeamService from "../../../Services/IncidentEpisodeOwnerTeamService";
+import IncidentEpisodeOwnerUserService from "../../../Services/IncidentEpisodeOwnerUserService";
+import MonitorGroupOwnerTeamService from "../../../Services/MonitorGroupOwnerTeamService";
+import MonitorGroupOwnerUserService from "../../../Services/MonitorGroupOwnerUserService";
+import IncomingCallPolicyOwnerTeamService from "../../../Services/IncomingCallPolicyOwnerTeamService";
+import IncomingCallPolicyOwnerUserService from "../../../Services/IncomingCallPolicyOwnerUserService";
+import OnCallDutyPolicyScheduleOwnerTeamService from "../../../Services/OnCallDutyPolicyScheduleOwnerTeamService";
+import OnCallDutyPolicyScheduleOwnerUserService from "../../../Services/OnCallDutyPolicyScheduleOwnerUserService";
+import IncidentTemplateOwnerTeamService from "../../../Services/IncidentTemplateOwnerTeamService";
+import IncidentTemplateOwnerUserService from "../../../Services/IncidentTemplateOwnerUserService";
+import ScheduledMaintenanceTemplateOwnerTeamService from "../../../Services/ScheduledMaintenanceTemplateOwnerTeamService";
+import ScheduledMaintenanceTemplateOwnerUserService from "../../../Services/ScheduledMaintenanceTemplateOwnerUserService";
+import ProbeOwnerTeamService from "../../../Services/ProbeOwnerTeamService";
+import ProbeOwnerUserService from "../../../Services/ProbeOwnerUserService";
+import RunnerOwnerTeamService from "../../../Services/RunnerOwnerTeamService";
+import RunnerOwnerUserService from "../../../Services/RunnerOwnerUserService";
+import AIAgentOwnerTeamService from "../../../Services/AIAgentOwnerTeamService";
+import AIAgentOwnerUserService from "../../../Services/AIAgentOwnerUserService";
 /*
  * The resources whose ids can appear in a telemetry row's polymorphic
  * serviceId also expose their own service (for label-scope resolution).
@@ -78,14 +98,18 @@ import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 import ServiceLevelObjectiveService from "../../../Services/ServiceLevelObjectiveService";
 
 /*
- * Maps an operational model name (e.g. "Monitor") to the two services that
- * hold its ownership rows plus the FK column those services use to point at
- * the parent resource. The `Owned` permission scope reads from these to
- * compute which resource IDs the requesting user can act on.
+ * EVERY KIND OF RECORD WITH OWNERS OF ITS OWN: a model name ("Monitor") to
+ * the two services that hold its owner rows (people and teams) and the key
+ * column those rows name the record by. The `Owned` permission scope reads
+ * them to work out which records a member may act on, so a kind with owner
+ * tables that is missing here is not narrowed by the scope at all - not its
+ * reads, changes or deletes, nor the adding and removing of its owners.
+ * Tests/Server/Types/Database/Permissions/OwnedScopeEveryKindWithOwners holds
+ * every model with owner tables to an entry here.
  *
  * Nested models (those decorated with @OwnedThrough) resolve ownership
- * through their parent, so this registry only needs entries for the
- * canonical operational roots.
+ * through their parent, so this registry only needs entries for the kinds
+ * that keep owner rows of their own.
  */
 export interface OwnerTablePair {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -110,6 +134,21 @@ export interface OwnerTablePair {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   modelService?: any;
+  /*
+   * True for a kind other records are set up with: the probe a monitor runs
+   * on, the runner a runbook step runs on, an AI agent, the template an
+   * incident or a maintenance event is declared from, the on-call schedule
+   * an escalation rule pages. Picking one is reading it, and so is seeing
+   * who is on call, so the Owned scope leaves reads of the kind alone:
+   * whoever may read it reads every one of its records - and the records
+   * that take their owners from it (@OwnedThrough: a schedule's layers) -
+   * whatever the scope of their grant, as labels and blocks allow. A grant
+   * scoped to Owned still changes and deletes only the records its holder
+   * or their teams own, and adds and removes owners only on those
+   * (OwnedScopePermission.isLimitedToOwnedRecords). Every other kind is
+   * narrowed on reads as well.
+   */
+  ownedScopeLeavesReads?: boolean;
 }
 
 const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
@@ -391,6 +430,117 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: WorkflowOwnerUserService,
       ownerTeamService: WorkflowOwnerTeamService,
       fkColumn: "workflowId",
+    },
+  ],
+  [
+    // An episode is held to its owners as the alerts it groups are to theirs.
+    "AlertEpisode",
+    {
+      ownerUserService: AlertEpisodeOwnerUserService,
+      ownerTeamService: AlertEpisodeOwnerTeamService,
+      fkColumn: "alertEpisodeId",
+    },
+  ],
+  [
+    // An episode is held to its owners as the incidents it groups are.
+    "IncidentEpisode",
+    {
+      ownerUserService: IncidentEpisodeOwnerUserService,
+      ownerTeamService: IncidentEpisodeOwnerTeamService,
+      fkColumn: "incidentEpisodeId",
+    },
+  ],
+  [
+    /*
+     * Held to its owners as the monitors it groups are: a status page's
+     * monitor group picker lists what its picker of monitors does.
+     */
+    "MonitorGroup",
+    {
+      ownerUserService: MonitorGroupOwnerUserService,
+      ownerTeamService: MonitorGroupOwnerTeamService,
+      fkColumn: "monitorGroupId",
+    },
+  ],
+  [
+    "IncomingCallPolicy",
+    {
+      ownerUserService: IncomingCallPolicyOwnerUserService,
+      ownerTeamService: IncomingCallPolicyOwnerTeamService,
+      fkColumn: "incomingCallPolicyId",
+    },
+  ],
+  [
+    /*
+     * An escalation rule of any policy pages a schedule, the way it pages a
+     * person or a team, and the people on a schedule see their turns on it
+     * whoever owns it: read by every reader of schedules
+     * (ownedScopeLeavesReads), changed only by its owners.
+     */
+    "OnCallDutyPolicySchedule",
+    {
+      ownerUserService: OnCallDutyPolicyScheduleOwnerUserService,
+      ownerTeamService: OnCallDutyPolicyScheduleOwnerTeamService,
+      fkColumn: "onCallDutyPolicyScheduleId",
+      ownedScopeLeavesReads: true,
+    },
+  ],
+  [
+    /*
+     * Anyone who declares incidents picks from the project's templates. Its
+     * owners also become the owners of every incident declared from it, so
+     * only they change it - or add and remove its owners.
+     */
+    "IncidentTemplate",
+    {
+      ownerUserService: IncidentTemplateOwnerUserService,
+      ownerTeamService: IncidentTemplateOwnerTeamService,
+      fkColumn: "incidentTemplateId",
+      ownedScopeLeavesReads: true,
+    },
+  ],
+  [
+    // The same for the events scheduled from a maintenance template.
+    "ScheduledMaintenanceTemplate",
+    {
+      ownerUserService: ScheduledMaintenanceTemplateOwnerUserService,
+      ownerTeamService: ScheduledMaintenanceTemplateOwnerTeamService,
+      fkColumn: "scheduledMaintenanceTemplateId",
+      ownedScopeLeavesReads: true,
+    },
+  ],
+  [
+    /*
+     * A monitor's probe picker lists the project's probes to everyone who
+     * may pick one (Probe's PROBE_PICKER_READERS); OneUptime's global probes
+     * are listed by a route of their own (ProbeAPI).
+     */
+    "Probe",
+    {
+      ownerUserService: ProbeOwnerUserService,
+      ownerTeamService: ProbeOwnerTeamService,
+      fkColumn: "probeId",
+      ownedScopeLeavesReads: true,
+    },
+  ],
+  [
+    // A runbook's steps, and a cluster's AI, run on a runner picked here.
+    "Runner",
+    {
+      ownerUserService: RunnerOwnerUserService,
+      ownerTeamService: RunnerOwnerTeamService,
+      fkColumn: "runnerId",
+      ownedScopeLeavesReads: true,
+    },
+  ],
+  [
+    // Like a probe, an agent the project's AI work runs on.
+    "AIAgent",
+    {
+      ownerUserService: AIAgentOwnerUserService,
+      ownerTeamService: AIAgentOwnerTeamService,
+      fkColumn: "aiAgentId",
+      ownedScopeLeavesReads: true,
     },
   ],
 ]);

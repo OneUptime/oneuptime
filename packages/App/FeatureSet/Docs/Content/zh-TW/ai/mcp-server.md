@@ -39,7 +39,7 @@ flowchart TB
 - **排定維護**：建立和管理維護事件。
 - **遙測**：查詢日誌、指標、追蹤、例外、監測器日誌、安全性事件等，唯讀。
 
-有針對 27 種記錄的建立、取得、列出、更新、刪除和計數工具，有針對 9 種遙測的列出和計數工具，還有專為事件應變打造的工具。唯讀工具帶有 `readOnlyHint`，刪除工具帶有 `destructiveHint`，因此用戶端可以自行執行安全的呼叫，並在執行破壞性呼叫之前詢問您。失敗的工具呼叫會以工具結果（`isError: true`）傳回，其中包含 `statusCode`、詳細資料和建議，而不是以 MCP 通訊協定錯誤傳回，因此代理程式可以讀取失敗原因並自行修正。
+有針對 27 種記錄的建立、取得、列出、更新、刪除和計數工具，有針對 9 種遙測的列出和計數工具，還有專為事件應變打造的工具。唯讀工具帶有 `readOnlyHint`，每個會變更內容的工具都帶有 `destructiveHint`，只有公開狀態頁工具帶有 `openWorldHint`，因此用戶端可以自行執行唯讀呼叫，並在做出任何變更之前詢問您。失敗的工具呼叫會以工具結果（`isError: true`）傳回，其中包含 `statusCode`、詳細資料和建議，而不是以 MCP 通訊協定錯誤傳回，因此代理程式可以讀取失敗原因並自行修正。
 
 ## 開始之前
 
@@ -111,7 +111,7 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp
 
 ### 管理已連接的用戶端
 
-透過登入連接的每個用戶端都列在 **專案設定 → 人工智慧 → MCP 伺服器** 的 **Connected MCP Clients** 下，並顯示是誰連接的、可以做什麼以及上次使用的時間。您會看到自己連接的用戶端；專案擁有者和管理員則會看到所有人的用戶端。
+透過登入連接的每個用戶端都列在 **專案設定 → 人工智慧 → MCP 伺服器** 的 **已連線的 MCP 用戶端** 下，並顯示是誰連接的、可以做什麼以及上次使用的時間。您會看到自己連接的用戶端；專案擁有者和管理員則會看到所有人的用戶端。
 
 按一下 **Disconnect** 可讓用戶端登出。它會立即停止運作。
 
@@ -195,6 +195,19 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

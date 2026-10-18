@@ -147,9 +147,29 @@ jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
   return { __esModule: true, default: {} };
 });
 jest.mock("Common/Server/Utils/Cookie", () => {
+  /*
+   * The challenge cookie is written by the real setCookie and removeCookie,
+   * so it carries the attributes the shared rule gives every cookie (Secure
+   * on HTTPS); only the session cookies are stood in for.
+   */
+  const actual: {
+    default: {
+      setCookie: (...args: Array<unknown>) => void;
+      removeCookie: (...args: Array<unknown>) => void;
+    };
+  } = jest.requireActual("Common/Server/Utils/Cookie");
+
   return {
     __esModule: true,
-    default: { setUserCookie: jest.fn() },
+    default: {
+      setUserCookie: jest.fn(),
+      setCookie: (...args: Array<unknown>): void => {
+        actual.default.setCookie(...args);
+      },
+      removeCookie: (...args: Array<unknown>): void => {
+        actual.default.removeCookie(...args);
+      },
+    },
   };
 });
 jest.mock("Common/Server/Utils/JsonWebToken", () => {

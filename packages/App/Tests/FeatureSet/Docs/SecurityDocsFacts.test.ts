@@ -11,6 +11,16 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsSearchQuery";
 import { DEFAULT_SECURITY_EVENTS_TIME_RANGE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsTimeRange";
 import {
+  SECURITY_MATCH_RAISES_ANSWERS,
+  SECURITY_MATCH_RAISES_COPY,
+  SECURITY_MATCH_RAISES_FIELD_TITLE,
+  SecurityMatchRaises,
+  TAXII_SIGN_IN_ANSWERS,
+  TAXII_SIGN_IN_COPY,
+  TAXII_SIGN_IN_FIELD_TITLE,
+  getSecurityMatchRaises,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityMatchRaises";
+import {
   DETECTION_FINDING_MONITOR_WINDOW_SECONDS,
   buildDetectionRuleMonitorPrefill,
   buildThreatIntelFeedMonitorPrefill,
@@ -151,6 +161,9 @@ const SOURCES: Record<string, string> = {
   connectionsTable: `${DASHBOARD}/Components/SecurityEvents/SecurityEventConnectionsTable.tsx`,
   detectionRules: `${DASHBOARD}/Pages/SecurityEvents/DetectionRules.tsx`,
   threatIntel: `${DASHBOARD}/Pages/SecurityEvents/ThreatIntel.tsx`,
+  // The On Match step both draw, and its choices' words.
+  securityMatchFields: `${DASHBOARD}/Components/SecurityEvents/SecurityMatchActionFields.ts`,
+  securityMatchRaises: `${DASHBOARD}/Components/SecurityEvents/SecurityMatchRaises.ts`,
   monitorForm: `${DASHBOARD}/Components/Form/Monitor/SecurityEventsMonitor/SecurityEventsMonitorStepForm.tsx`,
   telemetrySettings: `${DASHBOARD}/Pages/Settings/TelemetrySettings.tsx`,
   settingsSideMenu: `${DASHBOARD}/Pages/Settings/SideMenu.tsx`,
@@ -1159,28 +1172,32 @@ describe("the Security Events page", () => {
     );
   });
 
-  it("creates a rule in the form's five steps, with its fields and defaults", () => {
-    const form: string = flat(source("detectionRules"));
+  it("creates a rule in the form's two steps, with its fields and defaults", () => {
+    const page_: string = flat(source("detectionRules"));
+    // The page's fields, and the On Match step it draws from the shared one.
+    const form: string = `${page_} ${flat(source("securityMatchFields"))}`;
     const steps: Array<string> = numberedSteps(page, "Create a rule");
 
-    expect(form).toContain(
-      'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "Sigma Rule", id: "sigma-rule" }, { title: "Evaluation", id: "evaluation" }, { title: "Security Cases", id: "cases" }, { title: "On Match", id: "on-match" }, ]}',
+    expect(page_).toContain(
+      'formSteps={[ { title: "Sigma Rule", id: "sigma-rule" }, { title: "On Match", id: "on-match" }, ]}',
     );
+    expect(page_).toContain(
+      "...getSecurityMatchActionFields<DetectionRule>( DETECTION_RULE_MATCH_WORDING, ),",
+    );
+    // Each step of the page names a step of the form, or a fold.
     expect(
-      steps.slice(1).map((step: string): string => {
-        return boldSpans(step)[0] as string;
+      [1, 3].map((index: number): string => {
+        return boldSpans(steps[index] as string)[0] as string;
       }),
-    ).toEqual([
-      "Basic Info",
-      "Sigma Rule",
-      "Evaluation",
-      "Security Cases",
-      "On Match",
-    ]);
-    expect(form).toContain(
+    ).toEqual(["Sigma Rule", "On Match"]);
+    expect(boldSpans(steps[4] as string)[0]).toBe(
+      SECURITY_MATCH_RAISES_FIELD_TITLE,
+    );
+    expect(boldSpans(steps[5] as string)[0]).toBe("More fields");
+    expect(page_).toContain(
       "createInitialValues={{ isEnabled: true, evaluationIntervalInMinutes: 5,",
     );
-    expect(form).toContain(
+    expect(page_).toContain(
       "shouldCreateCase: true, shouldCreateAlert: true, shouldWriteDetectionFinding: true, shouldCreateIncident: false, matchCountThreshold: 1, }}",
     );
 
@@ -1188,9 +1205,8 @@ describe("the Security Events page", () => {
       "Name",
       "Enabled",
       "Sigma Rule (YAML)",
+      "Description",
       "Open a Case on Match",
-      "Create Alert on Match",
-      "Create Incident on Match",
       "Write Detection Finding on Match",
       "Alert Severity",
       "Incident Severity",
@@ -1199,9 +1215,34 @@ describe("the Security Events page", () => {
       expect(boldSpans(steps.join("\n"))).toContain(title);
     }
 
-    expect(steps[4]).toContain("keep **Open a Case on Match** on");
+    // The name follows the Sigma rule's title; Enabled is the Edit form's.
+    expect(steps[2]).toContain("The **Name** fills in from the rule's `title`");
+    expect(steps[2]).toContain("**Enabled** is on its edit form");
+    expect(page_).toContain("getDetectionRuleNameAfterYamlChange(");
+    expect(page_).toContain(
+      'title: "Enabled", stepId: "sigma-rule", fieldType: FormFieldSchemaType.Toggle, required: false, // A new rule runs (createInitialValues); turning it off is an edit. doNotShowWhenCreating: true,',
+    );
+
+    expect(steps[3]).toContain("keep **Open a Case on Match** on");
+    // What a match raises: the choice's answers, the default first.
+    expect(
+      SECURITY_MATCH_RAISES_ANSWERS.map(
+        (answer: SecurityMatchRaises): string => {
+          return SECURITY_MATCH_RAISES_COPY[answer].title;
+        },
+      ),
+    ).toEqual(["Create an alert", "Declare an incident", "Both", "Neither"]);
+    expect(steps[4]).toContain(
+      "**Create an alert** (the default), **Declare an incident**, **Both** or **Neither**",
+    );
+    expect(
+      getSecurityMatchRaises({
+        shouldCreateAlert: true,
+        shouldCreateIncident: false,
+      }),
+    ).toBe(SecurityMatchRaises.Alert);
     expect(steps[5]).toContain(
-      "**Create Alert on Match** (on), **Create Incident on Match** (off) and **Write Detection Finding on Match** (on)",
+      "**Write Detection Finding on Match** (on) and how matches are counted",
     );
     expect(page).toContain(
       "Open **Products → Security Events → Detection Rules** and click **Create Detection Rule**.",
@@ -1751,22 +1792,48 @@ describe("the Threat Intelligence page", () => {
     );
   });
 
-  it("creates a feed in the form's five steps, with its fields", () => {
-    const form: string = flat(source("threatIntel"));
+  it("creates a feed in the form's three steps, with its fields", () => {
+    const page_: string = flat(source("threatIntel"));
+    // The page, the On Match step it shares, and the choices' words.
+    const form: string = [
+      page_,
+      flat(source("securityMatchFields")),
+      flat(source("securityMatchRaises")),
+    ].join(" ");
     const rows: Array<Array<string>> = rowsOf(page, "Subscribe a feed");
 
-    expect(form).toContain(
-      'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "TAXII Server", id: "taxii-server" }, { title: "Authentication", id: "authentication" }, { title: "Security Cases", id: "cases" }, { title: "On Match", id: "matching" }, ]}',
+    expect(page_).toContain(
+      'formSteps={[ { title: "TAXII Server", id: "taxii-server" }, { title: TAXII_SIGN_IN_FIELD_TITLE, id: "sign-in",',
     );
+    expect(page_).toContain('{ title: "On Match", id: "on-match" }, ]}');
+    expect(TAXII_SIGN_IN_FIELD_TITLE).toBe("Sign-in");
     expect(page).toContain(
-      "Click **Create Threat Intel Feed** and fill in its five steps: **Basic Info**, **TAXII Server**, **Authentication**, **Security Cases** and **On Match**.",
+      "Click **Create Threat Intel Feed** and fill in its three steps: **TAXII Server**, **Sign-in** and **On Match**.",
     );
 
+    // Every field a row names is one the form draws, by that title.
     for (const row of rows) {
       for (const title of boldSpans(row[0] as string)) {
-        expect(form).toContain(`title: "${title}",`);
+        expect({
+          title,
+          drawn:
+            form.includes(`title: "${title}",`) ||
+            form.includes(`translationKey("${title}")`) ||
+            form.includes(`translationKey( "${title}", )`),
+        }).toEqual({ title, drawn: true });
       }
     }
+
+    // How the feed signs in: one choice, its answers in the form's words.
+    expect(
+      TAXII_SIGN_IN_ANSWERS.map((answer: string): string => {
+        return TAXII_SIGN_IN_COPY[answer as keyof typeof TAXII_SIGN_IN_COPY]
+          .title;
+      }),
+    ).toEqual(["No sign-in", "Bearer token", "Username and password"]);
+    expect(rowNamed(rows, "**Sign-in**")[1]).toBe(
+      "How OneUptime signs in: **No sign-in** for a public collection, **Bearer token** for a token the server's operator gave you, or **Username and password** for HTTP basic auth.",
+    );
   });
 
   it("names the feed's columns the first poll fills, and the Indicators table", () => {
@@ -1824,11 +1891,18 @@ describe("the Threat Intelligence page", () => {
     expect(form).toContain(
       "shouldCreateAlert: true, shouldWriteDetectionFinding: true, shouldCreateIncident: false,",
     );
-    expect(rowNamed(rows, "**Create Alert on Match**")[1]).toMatch(
-      /^On by default/,
+    // Those columns make Create an alert, the choice's default.
+    expect(
+      getSecurityMatchRaises({
+        shouldCreateAlert: true,
+        shouldCreateIncident: false,
+      }),
+    ).toBe(SECURITY_MATCH_RAISES_ANSWERS[0]);
+    expect(rowNamed(rows, "**Alerts and Incidents**")[1]).toMatch(
+      /^\*\*Create an alert\*\* by default/,
     );
-    expect(rowNamed(rows, "**Create Incident on Match**")[1]).toMatch(
-      /^Off by default/,
+    expect(rowNamed(rows, "**Declare an incident** or **Both**")[1]).toMatch(
+      /^Under \*\*Alerts and Incidents\*\*\./,
     );
     expect(rowNamed(rows, "**Write Detection Finding on Match**")[1]).toMatch(
       /^On by default/,
@@ -1844,13 +1918,10 @@ describe("the Threat Intelligence page", () => {
       expect(feed.getColumnAccessControlFor(secret)?.read).toEqual([]);
     }
 
-    for (const label of [
-      "API Token (Bearer)",
-      "Basic Auth",
-      "Anonymous (clear stored credentials)",
-    ]) {
-      expect(form).toContain(`label: "${label}"`);
-    }
+    // The dialog asks the feed's Sign-in again, in the same words.
+    expect(form).toContain(
+      "radioButtonOptions: getTaxiiSignInChoices({ anonymousDescription: TAXII_SIGN_IN_CLEAR_DESCRIPTION, }),",
+    );
 
     expect(form).toContain('title: "Update Credentials",');
     expect(form).toContain(
@@ -1863,7 +1934,7 @@ describe("the Threat Intelligence page", () => {
       '} else if (mode === "anonymous") { update = { apiToken: null, basicAuthUsername: null, basicAuthPassword: null, };',
     );
     expect(page).toContain(
-      "Tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **API Token (Bearer)**, **Basic Auth** or **Anonymous (clear stored credentials)**: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.",
+      "Tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **Bearer token**, **Username and password** or **No sign-in**, which clears what is stored: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.",
     );
   });
 

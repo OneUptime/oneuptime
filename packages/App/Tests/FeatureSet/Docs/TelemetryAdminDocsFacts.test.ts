@@ -1414,8 +1414,8 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "App/FeatureSet/AdminDashboard/src/Pages/Settings/DataRetention/Index.tsx",
     );
 
-    expect(admin).toContain("Default is 1 day if not set.");
-    expect(admin).toContain("Default is 30 days if not set.");
+    expect(admin).toContain("Leave empty for 1 day.");
+    expect(admin).toContain("Leave empty for 30 days.");
 
     for (const label of ADMIN_DASHBOARD_LABELS[DATA_RETENTION] || []) {
       expect(admin).toContain(`title: "${label}",`);
@@ -1653,8 +1653,12 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
   it("creates a filter on Match then Action, Drop picked, with the description and Enabled under Advanced", () => {
     expect(dropForm).toContain('{ title: "Match", id: "match" },');
     expect(dropForm).toContain('{ title: "Action", id: "action" },');
+    // Action is two plain choices, Drop first, each with its line.
     expect(
-      allMatches(between(dropForm, "dropdownOptions: [", "],"), LABEL_PROPERTY),
+      allMatches(
+        between(dropForm, "radioButtonOptions: [", "],"),
+        TITLE_PROPERTY,
+      ),
     ).toEqual(["Drop", "Sample"]);
     expect(
       readDashboardSource("Pages/Logs/Settings/DropFilters.tsx"),

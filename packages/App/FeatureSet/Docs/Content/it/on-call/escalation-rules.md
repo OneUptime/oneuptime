@@ -79,7 +79,7 @@ Quando un incidente o un avviso raggiunge la policy, **Level 1** avvisa subito i
 
 Un incidente, un avviso o un episodio creato già riconosciuto o risolto — registrato a posteriori — non esegue nessuna delle sue policy: nessuno viene avvisato, e il suo feed lo indica nominandole. Vedi [Dichiarato già riconosciuto o risolto](/docs/incidents/declaring-incidents#dichiarato-già-riconosciuto-o-risolto).
 
-Per ripetere una policy, fai clic su **Modifica** nella scheda **Criterio di ripetizione**, attiva **Repeat if no one acknowledges** e imposta **Number of times to repeat**.
+Per ripetere una policy, fai clic su **Modifica** nella scheda **Criterio di ripetizione**, scegli **Ricomincia da Level 1** e imposta **Quante volte ancora?**.
 
 ### Il riepilogo dell'escalation
 

@@ -35,6 +35,7 @@ import {
   INCOMING_CALL_NUMBER_NO_TWILIO_ACCOUNT_MESSAGE,
   TwilioMessageKind,
 } from "../../../Utils/Project/TwilioAccount";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
@@ -287,6 +288,9 @@ function stubChannel(
 
   // A call number is checked against the person's SMS numbers first.
   getJestSpyOn(UserSmsService, "findBy").mockResolvedValue([]);
+
+  // A code is sent for a member of the number's project only; these are.
+  getJestSpyOn(ProjectMembership, "isMember").mockResolvedValue(true);
 }
 
 const writtenData: (call: number) => Record<string, unknown> = (

@@ -66,6 +66,7 @@ export const MONITOR_STEP_SUB_CONFIGS: ReadonlyArray<{
   { attributeName: "ceph_monitor", apiKey: "cephMonitor" },
   { attributeName: "storage_array_monitor", apiKey: "storageArrayMonitor" },
   { attributeName: "iot_monitor", apiKey: "iotMonitor" },
+  { attributeName: "probe_status_monitor", apiKey: "probeStatusMonitor" },
 ];
 
 /*

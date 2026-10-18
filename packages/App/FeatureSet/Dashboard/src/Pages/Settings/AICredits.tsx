@@ -10,6 +10,12 @@ import {
 } from "../../Components/ProjectBalance/ProjectBalanceAccess";
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
+import AutoRechargeCard from "../../Components/ProjectBalance/AutoRechargeCard";
+import {
+  CURRENT_BALANCE_ROW_TITLE,
+  RECHARGE_AMOUNT_DESCRIPTION,
+  RECHARGE_AMOUNT_TITLE,
+} from "../../Components/ProjectBalance/ProjectBalanceCopy";
 import {
   getProjectColumnsEditGate,
   ProjectColumnsEditGate,
@@ -128,9 +134,8 @@ const AIBillingSettings: FunctionComponent<
                 aiCurrentBalanceInUSDCents: true,
               },
               fieldType: FieldType.USDCents,
-              title: "AI Current Balance",
-              description:
-                "This is your current balance for AI services. It is in USD.",
+              // The card's description says what the balance pays for.
+              title: CURRENT_BALANCE_ROW_TITLE,
               placeholder: "0 USD",
             },
           ],
@@ -144,159 +149,13 @@ const AIBillingSettings: FunctionComponent<
        * listed only when billing is on, so it keeps the balance and recharge
        * settings alone.
        */}
-      {/* Auto Recharge */}
-      <CardModelDetail
-        name="Auto Recharge"
-        cardProps={{
-          title: "Auto Recharge",
-          description:
-            "Enable Auto Recharge for AI balance. This will make sure you always have enough balance for AI services.",
-          buttons: autoRechargeGate.lockedButtons,
-        }}
+      <AutoRechargeCard
+        balance={ProjectBalanceType.AI}
+        projectId={ProjectUtil.getCurrentProjectId()!}
         isEditable={autoRechargeGate.isEditable}
-        editButtonText="Edit Auto Recharge"
+        lockedButtons={autoRechargeGate.lockedButtons}
         onSaveSuccess={() => {
           setAutoRechargeSaves(autoRechargeSaves + 1);
-        }}
-        formFields={[
-          {
-            field: {
-              enableAutoRechargeAiBalance: true,
-            },
-            title: "Enable Auto Recharge",
-            description:
-              "Enable Auto Recharge. This will automatically recharge your AI balance when it falls below a threshold.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              autoAiRechargeByBalanceInUSD: true,
-            },
-            title: "Auto Recharge Balance by (in USD)",
-            description:
-              "Amount of balance to be recharged when the balance is low. It is in USD.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              {
-                value: 10,
-                label: "10 USD",
-              },
-              {
-                value: 20,
-                label: "20 USD",
-              },
-              {
-                value: 25,
-                label: "25 USD",
-              },
-              {
-                value: 50,
-                label: "50 USD",
-              },
-              {
-                value: 75,
-                label: "75 USD",
-              },
-              {
-                value: 100,
-                label: "100 USD",
-              },
-              {
-                value: 200,
-                label: "200 USD",
-              },
-              {
-                value: 500,
-                label: "500 USD",
-              },
-              {
-                value: 1000,
-                label: "1000 USD",
-              },
-            ],
-            required: true,
-          },
-          {
-            field: {
-              autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
-            },
-            title: "Auto Recharge when balance falls to (in USD)",
-            description:
-              "Trigger auto recharge when balance falls to this amount. It is in USD.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              {
-                value: 10,
-                label: "10 USD",
-              },
-              {
-                value: 20,
-                label: "20 USD",
-              },
-              {
-                value: 25,
-                label: "25 USD",
-              },
-              {
-                value: 50,
-                label: "50 USD",
-              },
-              {
-                value: 75,
-                label: "75 USD",
-              },
-              {
-                value: 100,
-                label: "100 USD",
-              },
-              {
-                value: 200,
-                label: "200 USD",
-              },
-              {
-                value: 500,
-                label: "500 USD",
-              },
-              {
-                value: 1000,
-                label: "1000 USD",
-              },
-            ],
-            required: true,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "ai-auto-recharge",
-          fields: [
-            {
-              field: {
-                enableAutoRechargeAiBalance: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Auto Recharge Enabled",
-              description: "Enable auto recharge for AI balance.",
-              placeholder: "Not Enabled",
-            },
-            {
-              field: {
-                autoAiRechargeByBalanceInUSD: true,
-              },
-              fieldType: FieldType.Text,
-              title: "Auto Recharge by (in USD)",
-              placeholder: "0 USD",
-            },
-            {
-              field: {
-                autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
-              },
-              fieldType: FieldType.Text,
-              title: "Trigger auto recharge if balance falls below (in USD)",
-              placeholder: "0 USD",
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
         }}
       />
 
@@ -340,8 +199,8 @@ const AIBillingSettings: FunctionComponent<
             error: rechargeBalanceError || "",
             fields: [
               {
-                title: "Amount (in USD)",
-                description: `Please enter the amount to recharge. It is in USD.`,
+                title: RECHARGE_AMOUNT_TITLE,
+                description: RECHARGE_AMOUNT_DESCRIPTION,
                 field: {
                   amount: true,
                 },

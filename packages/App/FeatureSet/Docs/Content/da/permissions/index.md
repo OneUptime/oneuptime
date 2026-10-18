@@ -59,6 +59,7 @@ En bruger er "i" et projekt, når vedkommende er medlem af **mindst ét team** i
 - Invitationer opretter et afventende teammedlem. Brugeren tæller først som projektmedlem — og får først nogen tilladelse — **efter at have accepteret invitationen.**
 - **Inviter bruger** starter på projektets medlemsteam: det team, der har `ProjectMember` for hele projektet, altså **Members**, medmindre du har omdøbt det. Vælg et andet team for at give personen mere eller mindre adgang. Intet er valgt, når du ikke selv ville kunne invitere til det team — at invitere nogen giver dem teamets tilladelser, og du kan kun give tilladelser videre, som du selv har — eller når projektet ikke har et sådant team. Administratordashboardet starter på det samme team, overalt hvor en administrator af instansen føjer nogen til et projekt: **Inviter bruger** på et projekt, **Føj til projekt** på en bruger og på flere brugere på én gang, og de projekter, der er knyttet til en [global SSO-udbyder](/docs/identity/global-sso).
 - Fjernes en bruger fra alle teams i et projekt, mistes adgangen til projektet fra brugerens næste forespørgsel — også mens brugeren er logget ind. Kontoen og brugerens andre projekter berøres ikke. Brugeren fjernes fra projektets vagtplaner, eskaleringsregler og overrides, fra rollerne i dets åbne hændelser og episoder og fra ejerne af dets ressourcer; løste hændelser beholder oplysningen om, hvem der ejede og ledte dem.
+- På en selvhostet installation mister en person, hvis adgang som hovedadministrator fjernes i Admin Dashboard, den fra sin næste forespørgsel — også mens personen er logget ind. Personen forbliver logget ind og beholder de projekter, vedkommende er medlem af.
 - Den, der forlader et projekt, får ikke længere dets notifikationer. Personens egne notifikationsmetoder, -regler og -indstillinger for projektet fjernes sammen med det sidste team — e-mail, SMS, opkald, WhatsApp, Telegram, push, webhook, Slack og Microsoft Teams, e-mailopsamlingen og den endnu ikke sendte e-mail, nummeret til indgående opkald og vagtpåmindelserne —, så en ny tilmelding starter fra standardindstillingerne. Det, der stadig nævner personen, som brugeren en regel for indgående opkald ringer til eller en ejer, der bevares på en løst hændelse, sender ikke længere noget til personen: intet sendes på et projekts vegne til nogen, der ikke er medlem, og en afventende invitation er endnu ikke et medlemskab. Disse steder viser **Ikke længere medlem** ved siden af navnet, så du kan sætte en anden ind. Den, der er inviteret og endnu ikke har accepteret, viser i stedet **Invitation endnu ikke accepteret**. Hvis en override sender nogens kald videre til en person, der har forladt projektet, bliver den person, overriden dækker, kaldt i stedet. At forlade projektet afbryder også de MCP-klienter, personen har forbundet til projektet, og personens personlige link til vagtkalenderen viser derefter en tom kalender. På OneUptime Cloud bekræfter en, der vender tilbage via projektets single sign-on, det igen fra sin mailboks.
 - Hvis projektet kræver SSO, og en bruger endnu ikke har godkendt sig via identitetsudbyderen, behandles vedkommende som uautoriseret SSO-bruger og ser intet, før det sker. Se [SSO](/docs/identity/sso).
 - Med SCIM opsat kan din identitetsudbyder automatisk oprette, opdatere og fjerne brugere og deres teammedlemskaber. Se [SCIM](/docs/identity/scim).
@@ -191,11 +192,11 @@ Hver tilladt rettighed gives med et omfang, valgt under **Omfang**, når du tilf
 
 | Omfang | Betydning |
 | --- | --- |
-| Alle ressourcer i projektet | Standarden. Tilladelsen gælder for alle matchende ressourcer. |
-| Ejet af dette team eller dets medlemmer | Tilladelsen gælder kun for ressourcer, hvor dette team eller den handlende bruger står som ejer. |
-| Begræns efter labels (avanceret) | Tilladelsen gælder kun for ressourcer, der bærer mindst ét af de valgte labels. |
+| Alle ressourcer i projektet | Standarden, og hvad de fleste teams har brug for. Tilladelsen gælder for alle matchende ressourcer. |
+| Kun ressourcer, de ejer | Tilladelsen gælder kun for ressourcer, som den handlende person eller et af vedkommendes teams ejer. |
+| Kun ressourcer med bestemte etiketter | Tilladelsen gælder kun for ressourcer, der bærer mindst én af de valgte etiketter. |
 
-**Ejede** er den enkleste måde at bygge en model på, hvor "I passer på jeres egne tjenester": giv et team `MonitorAdmin` med omfanget Ejede, og gør så teamet til ejer af de monitorer, det har ansvaret for. Det indsnævrer kun ressourcer, der faktisk kan have ejere — monitorer, hændelser, dashboards, tjenester og lignende. Projektkonfiguration (hændelsestilstande, labels, teamsene selv) har ingen ejer, så en rolle med omfanget Ejede opfører sig normalt der.
+**Ejede** er den enkleste måde at bygge en model på, hvor "I passer på jeres egne tjenester": giv et team `MonitorAdmin` med omfanget Ejede, og gør så teamet til ejer af de monitorer, det har ansvaret for. Det indsnævrer alle ressourcer, der kan have ejere — monitorer, hændelser, dashboards, tjenester, monitorgrupper, vagtplaner og lignende — og det, der hører til dem, såsom en vagtplans lag. Sonder, Runnere, AI-agenter, vagtplaner samt hændelses- og vedligeholdelsesskabeloner er det, andre ressourcer sættes op med, så en tilladelse med omfanget Ejede læser stadig dem alle, og du kan vælge enhver af dem; den ændrer og sletter kun dem, du eller dine teams ejer. En Runners nøgle, som lader den, der har den, optræde som Runneren, vises kun på de Runnere, du eller dine teams ejer. Projektkonfiguration (hændelsestilstande, labels, teamsene selv) har ingen ejer, så en rolle med omfanget Ejede opfører sig normalt der.
 
 **Labels** er den mere manuelle udgave af samme idé: mærk ressourcer, og giv så tilladelser begrænset til de mærker.
 
@@ -216,7 +217,7 @@ Ejere har to opgaver:
 
 Ejerskab i sig selv giver ingenting. At eje en monitor giver ikke ret til at redigere den, medmindre et af dine teams også har en monitortilladelse. Ejerskab indsnævrer adgang; det udvider den aldrig.
 
-Hvem der ejer en ressource, læses gennem ressourcen. Ejerne af en monitor eller af en anden ressource vises, læses, tilføjes og fjernes kun af en, der må læse ressourcen, og en tilladelse til ejere alene når ikke ejerne af en ressource, du ikke må læse.
+Hvem der ejer en ressource, læses gennem ressourcen. Ejerne af en monitor eller af en anden ressource vises, læses, tilføjes og fjernes kun af en, der må læse ressourcen, og en tilladelse til ejere alene når ikke ejerne af en ressource, du ikke må læse. Tilføjelse og fjernelse af ejere holder sig også til omfanget af den tilladelse, der giver lov til det: med omfanget `Owned` når den kun de ressourcer, som du eller et af dine teams allerede ejer, uanset hvor mange flere du må læse, så at du må læse en monitor, giver dig ikke lov til at gøre dig selv til dens ejer. En ejer tilføjes eller fjernes, men flyttes aldrig til en anden ressource.
 
 ## Labels
 
@@ -322,7 +323,7 @@ Opløste tilladelser caches pr. bruger og projekt og opdateres, når teammedlems
 
 **Et team, der kun kigger med.** Opret teamet med **Seer** under **Adgang**. For kun nogle områder vælger du **Vælg tilladelser senere** og tilføjer de områdespecifikke `*Viewer`-roller, teamet skal se.
 
-**Vagtingeniører, der passer deres egne tjenester.** Giv teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Ejede**, og tilføj så teamet som ejer af de monitorer, det driver.
+**Vagtingeniører, der passer deres egne tjenester.** Giv teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Ejede**, og tilføj så teamet som ejer af de monitorer, vagtpolitikker og vagtplaner, det driver. Hvad dets folk opretter med disse tilladelser, ejer de allerede.
 
 **Konsulenter holdt væk fra produktion.** Giv teamet de roller, det har brug for, med omfanget **Alle**, og tilføj så en **blokeret tilladelse** (under **Yderligere indstillinger** på teamets side Tilladelser) for de følsomme evner, begrænset til labelet `Production`.
 

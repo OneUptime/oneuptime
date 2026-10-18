@@ -135,7 +135,7 @@ const LAPSED_SCREENS: ReadonlyArray<LapsedScreen> = [
     noticeTitle: READ_ONLY_TITLE,
     actionsNoticeTitle: SCIM_ACTIONS_TITLE,
     enterpriseCopy:
-      "SCIM is an open standard for automating the exchange of user identity information",
+      "Let your identity provider add and remove the people in this project.",
     graceNoticeTestId: GRACE_BANNER_TEST_ID,
   },
 ];
@@ -165,12 +165,16 @@ const SINGLE_SIGN_ON_SCREENS: ReadonlyArray<SingleSignOnScreen> = [
   {
     label: "Settings > SSO",
     route: "settings/sso",
-    copy: "Single sign-on is an authentication scheme that allows a user to log in with a single ID",
+    copy: "Sign in through a SAML app, such as Okta, Microsoft Entra ID or OneLogin.",
   },
+  /*
+   * The project's OpenID Connect providers are on the SSO page, under the
+   * SAML ones; the old OIDC address forwards there.
+   */
   {
-    label: "Settings > OIDC",
+    label: "Settings > SSO (OIDC providers, from the old OIDC address)",
     route: "settings/oidc",
-    copy: "Configure OpenID Connect identity providers for single sign-on",
+    copy: "Sign in through an OpenID Connect app, such as Google Workspace, Auth0 or Keycloak.",
   },
 ];
 
