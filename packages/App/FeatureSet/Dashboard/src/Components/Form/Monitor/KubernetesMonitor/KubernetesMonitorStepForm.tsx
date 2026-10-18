@@ -33,11 +33,10 @@ import {
   getKubernetesAlertTemplateById,
   buildKubernetesMonitorConfig,
 } from "Common/Types/Monitor/KubernetesAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { KubernetesMetricDefinition } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import Navigation from "Common/UI/Utils/Navigation";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export type KubernetesFormMode = "quick" | "custom" | "advanced";
 
@@ -92,7 +91,6 @@ const aggregationOptions: Array<DropdownOption> = [
 const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   // Read query params for template/cluster pre-fill
   const urlTemplateId: string | undefined =
     props.initialTemplateId ||
@@ -314,7 +312,6 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div className="mb-4">
         <FieldLabelElement
           title="Kubernetes Cluster"
-          description={"Select the Kubernetes cluster to monitor."}
           required={true}
         />
         <Dropdown
@@ -440,6 +437,11 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const selectedTemplate: KubernetesAlertTemplate | undefined =
+    selectedTemplateId
+      ? getKubernetesAlertTemplateById(selectedTemplateId)
+      : undefined;
+
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -450,36 +452,17 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
           }}
         />
 
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              {translator.translateText("Template Configuration")}
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              {translator.translateText(
-                "The following settings have been auto-configured. You can adjust the time range below.",
-              )}
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepKubernetesMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepKubernetesMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepKubernetesMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
+        {selectedTemplate && (
+          <AlertTemplateConfiguration
+            template={selectedTemplate}
+            rollingTime={monitorStepKubernetesMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepKubernetesMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
         )}
       </div>
     );

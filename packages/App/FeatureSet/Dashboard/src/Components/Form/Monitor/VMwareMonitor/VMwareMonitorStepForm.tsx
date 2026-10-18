@@ -33,11 +33,11 @@ import {
   VMwareAlertTemplate,
   VMwareGroupByKey,
   buildVMwareMonitorConfig,
+  getVMwareAlertTemplateById,
 } from "Common/Types/Monitor/VMwareAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { VMwareMetricDefinition } from "Common/Types/Monitor/VMwareMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Window used when a step arrives without one (a legacy step, or a config
@@ -151,7 +151,6 @@ const resourceFilterFields: Array<ResourceFilterField> = [
 const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -375,6 +374,10 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const selectedTemplate: VMwareAlertTemplate | undefined = selectedTemplateId
+    ? getVMwareAlertTemplateById(selectedTemplateId)
+    : undefined;
+
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -385,36 +388,17 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
           }}
         />
 
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              {translator.translateText("Template Configuration")}
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              {translator.translateText(
-                "The following settings have been auto-configured. You can adjust the time range below.",
-              )}
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepVMwareMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepVMwareMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepVMwareMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
+        {selectedTemplate && (
+          <AlertTemplateConfiguration
+            template={selectedTemplate}
+            rollingTime={monitorStepVMwareMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepVMwareMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
         )}
       </div>
     );

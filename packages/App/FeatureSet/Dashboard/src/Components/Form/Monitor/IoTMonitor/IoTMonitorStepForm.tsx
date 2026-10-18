@@ -31,11 +31,11 @@ import IoTMetricPicker from "./IoTMetricPicker";
 import {
   IoTAlertTemplate,
   buildIoTMonitorConfig,
+  getIoTAlertTemplateById,
 } from "Common/Types/Monitor/IotAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { IoTMetricDefinition } from "Common/Types/Monitor/IotMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorStepIoTMonitor: MonitorStepIoTMonitor;
@@ -69,7 +69,6 @@ const scopeOptions: Array<DropdownOption> = [
 const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -227,7 +226,6 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div className="mb-4">
         <FieldLabelElement
           title="IoT Fleet"
-          description={"Select the IoT fleet to monitor."}
           required={true}
         />
         <Dropdown
@@ -335,6 +333,10 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const selectedTemplate: IoTAlertTemplate | undefined = selectedTemplateId
+    ? getIoTAlertTemplateById(selectedTemplateId)
+    : undefined;
+
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -345,36 +347,17 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
           }}
         />
 
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              {translator.translateText("Template Configuration")}
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              {translator.translateText(
-                "The following settings have been auto-configured. You can adjust the time range below.",
-              )}
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepIoTMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepIoTMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepIoTMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
+        {selectedTemplate && (
+          <AlertTemplateConfiguration
+            template={selectedTemplate}
+            rollingTime={monitorStepIoTMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepIoTMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
         )}
       </div>
     );

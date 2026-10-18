@@ -164,9 +164,7 @@ describe("Infrastructure alert template summaries", () => {
       const summary: string = template.summary;
 
       // Not the name again, and not the old "Alert when ..." preamble.
-      expect(summary.toLowerCase()).not.toBe(
-        `${template.name.toLowerCase()}.`,
-      );
+      expect(summary.toLowerCase()).not.toBe(`${template.name.toLowerCase()}.`);
       expect(summary.startsWith("Alert ")).toBe(false);
 
       // No metric names, formulas or code: those stay in the description.
@@ -182,16 +180,15 @@ describe("Infrastructure alert template summaries", () => {
   test.each(TEMPLATE_CASES)(
     "%s states only numbers its template uses",
     (_label: string, template: SummarisedTemplate) => {
-      const step: MonitorStep = template.getMonitorStep(
-        STEP_ARGS as never,
-      );
-      const facts: string = `${template.description} ${JSON.stringify(
-        step,
-      )}`;
+      const step: MonitorStep = template.getMonitorStep(STEP_ARGS as never);
+      const facts: string = `${template.description} ${JSON.stringify(step)}`;
 
       for (const number of template.summary.match(NUMBER) || []) {
-        expect({ template: template.id, number, found: facts.includes(number) })
-          .toEqual({ template: template.id, number, found: true });
+        expect({
+          template: template.id,
+          number,
+          found: facts.includes(number),
+        }).toEqual({ template: template.id, number, found: true });
       }
     },
   );
@@ -246,11 +243,9 @@ describe("Infrastructure alert template summaries", () => {
 
       for (const template of catalog.templates) {
         const recommendation: MonitorRecommendation | undefined =
-          recommendations.find(
-            (candidate: MonitorRecommendation): boolean => {
-              return candidate.templateId === template.id;
-            },
-          );
+          recommendations.find((candidate: MonitorRecommendation): boolean => {
+            return candidate.templateId === template.id;
+          });
 
         expect(recommendation?.summary).toBe(template.summary);
         expect(recommendation?.description).toBe(template.description);

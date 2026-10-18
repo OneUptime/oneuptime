@@ -30,11 +30,11 @@ import CephMetricPicker from "./CephMetricPicker";
 import {
   CephAlertTemplate,
   buildCephMonitorConfig,
+  getCephAlertTemplateById,
 } from "Common/Types/Monitor/CephAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { CephMetricDefinition } from "Common/Types/Monitor/CephMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorStepCephMonitor: MonitorStepCephMonitor;
@@ -58,7 +58,6 @@ const aggregationOptions: Array<DropdownOption> = [
 const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -204,7 +203,6 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div className="mb-4">
         <FieldLabelElement
           title="Ceph Cluster"
-          description={"Select the Ceph cluster to monitor."}
           required={true}
         />
         <Dropdown
@@ -276,6 +274,10 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const selectedTemplate: CephAlertTemplate | undefined = selectedTemplateId
+    ? getCephAlertTemplateById(selectedTemplateId)
+    : undefined;
+
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -286,36 +288,17 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
           }}
         />
 
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              {translator.translateText("Template Configuration")}
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              {translator.translateText(
-                "The following settings have been auto-configured. You can adjust the time range below.",
-              )}
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepCephMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepCephMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepCephMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
+        {selectedTemplate && (
+          <AlertTemplateConfiguration
+            template={selectedTemplate}
+            rollingTime={monitorStepCephMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepCephMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
         )}
       </div>
     );
