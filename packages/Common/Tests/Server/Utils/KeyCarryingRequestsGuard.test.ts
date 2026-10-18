@@ -92,14 +92,14 @@ const OTHER_CLIENTS: Record<string, string> = {
     "OneUptime's runbook mount, with this Runner's key",
 };
 
-// The one other client that carries a key, and how it checks its redirects.
+/*
+ * The one other client that carries a key, and the check it is made with:
+ * the `beforeRedirect` of the axios client it makes.
+ */
 const KEY_CARRYING_OTHER_CLIENTS: Record<string, string> = {
   "packages/Runner/Services/RunnerClient.ts":
-    "beforeRedirect: getSameServerRedirectCheck(RUNNER_INGEST_URL.toString())",
+    "getSameServerRedirectCheck(RUNNER_INGEST_URL.toString())",
 };
-
-// An axios client being made, its whole configuration.
-const AXIOS_CLIENT_MADE: RegExp = /axios\.create\(\{[\s\S]*?\}\);/g;
 
 // A request sent through axios itself rather than a client made from it.
 const AXIOS_CALLED_DIRECTLY: RegExp =
@@ -117,6 +117,36 @@ const OTHER_CLIENT_MODULES: Array<string> = [
   "node:https",
   "undici",
 ];
+
+/*
+ * The `beforeRedirect` of every axios client a file makes (axios.create), as
+ * written - an empty string for a client made without one.
+ */
+function redirectChecksOfClientsMadeIn(relativePath: string): Array<string> {
+  const sourceFile: ts.SourceFile = parseFile(relativePath);
+  const checks: Array<string> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      node.expression.getText(sourceFile) === "axios.create"
+    ) {
+      const config: ts.Expression | undefined = node.arguments[0];
+      const check: ts.Expression | undefined =
+        config && ts.isObjectLiteralExpression(config)
+          ? propertyOf(config, "beforeRedirect", sourceFile)
+          : undefined;
+
+      checks.push(check ? check.getText(sourceFile) : "");
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return checks;
+}
 
 function codeFilesUnder(folders: Array<string>): Array<string> {
   return listProductFiles(undefined, folders).filter(
@@ -270,8 +300,8 @@ describe("the probe's and the Runner's requests", () => {
       if (check) {
         expect({
           relativePath,
-          checksItsRedirects: code.includes(check),
-        }).toEqual({ relativePath, checksItsRedirects: true });
+          checks: redirectChecksOfClientsMadeIn(relativePath),
+        }).toEqual({ relativePath, checks: [check] });
         continue;
       }
 
@@ -283,15 +313,13 @@ describe("the probe's and the Runner's requests", () => {
   });
 
   test("the Runner's own HTTP client checks its redirects where it is made, and nothing makes another", () => {
-    const code: string = codeOf("packages/Runner/Services/RunnerClient.ts");
-    const created: Array<string> = code.match(AXIOS_CLIENT_MADE) || [];
+    const relativePath: string = "packages/Runner/Services/RunnerClient.ts";
 
-    expect(created).toHaveLength(1);
-    expect(created[0]).toContain(
-      KEY_CARRYING_OTHER_CLIENTS["packages/Runner/Services/RunnerClient.ts"],
-    );
+    expect(redirectChecksOfClientsMadeIn(relativePath)).toEqual([
+      KEY_CARRYING_OTHER_CLIENTS[relativePath],
+    ]);
     // Requests go through that client alone: never axios itself.
-    expect(code).not.toMatch(AXIOS_CALLED_DIRECTLY);
+    expect(codeOf(relativePath)).not.toMatch(AXIOS_CALLED_DIRECTLY);
   });
 });
 
