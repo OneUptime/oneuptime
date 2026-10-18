@@ -59,6 +59,13 @@ import { ActiveFilter } from "Common/UI/Components/TelemetryViewer/types";
 import LockedFilterChip from "Common/UI/Components/TelemetryViewer/components/LockedFilterChip";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
+import { getTelemetryFirstStepsSetupAction } from "../Telemetry/TelemetryFirstStepsEmptyState";
+import {
+  TELEMETRY_FIRST_STEPS_COPY,
+  TelemetryFirstStepsCopy,
+  TelemetryFirstStepsSignal,
+} from "../Telemetry/TelemetryFirstSteps";
 
 const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "CPU time", value: "cpu" },
@@ -452,6 +459,44 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       })
     : null;
 
+  /*
+   * The All profiles page's empty list (an embed passes its own sentence).
+   * Under a deep-link chip - a trace, a service, a profile type - nothing
+   * matches, with the way to clear the chips. With none, it is the
+   * Profiler's first steps, as its Overview shows them: the list said "No
+   * profiles found." over a paragraph naming Grafana Alloy, eBPF and a
+   * Pyroscope SDK, the setup guide's job.
+   */
+  const isNarrowedByChip: boolean = Boolean(
+    traceIdFilter || serviceIdFilter || profileTypeFilter,
+  );
+
+  const firstSteps: TelemetryFirstStepsCopy =
+    TELEMETRY_FIRST_STEPS_COPY[TelemetryFirstStepsSignal.Profiles];
+
+  const allProfilesEmptyState: EmptyStateOptions = isNarrowedByChip
+    ? {
+        isFiltered: true,
+        onClearFilters: (): void => {
+          setTraceIdFilter(null);
+          setServiceIdFilter(null);
+          setProfileTypeFilter(null);
+          Navigation.setQueryString({
+            traceId: null,
+            serviceId: null,
+            profileType: null,
+          });
+        },
+      }
+    : {
+        title: firstSteps.title,
+        description: firstSteps.description,
+        icon: firstSteps.icon,
+        actions: [
+          getTelemetryFirstStepsSetupAction(TelemetryFirstStepsSignal.Profiles),
+        ],
+      };
+
   const showFilterRow: boolean = hasProfileTableFilterRow({
     lockedChips: lockedEntityKeyChips,
     traceIdFilter,
@@ -613,30 +658,8 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
             primaryEntityType: true,
           }}
           showViewIdButton={true}
-          noItemsMessage={
-            props.noItemsMessage ? (
-              props.noItemsMessage
-            ) : (
-              <div className="text-center">
-                <p className="text-sm text-gray-500 max-w-md mx-auto">
-                  {translator.translateText(
-                    "No profiles found. Send continuous profiles with Grafana Alloy (zero-code eBPF profiling for anything on a host) or a Pyroscope SDK in your application — recordings show up here shortly after they arrive.",
-                  )}
-                </p>
-                <div className="mt-3">
-                  <Link
-                    to={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
-                    )}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    <Icon icon={IconProp.Book} className="h-4 w-4" />
-                    {translator.translateText("Set up profiling")}
-                  </Link>
-                </div>
-              </div>
-            )
-          }
+          noItemsMessage={props.noItemsMessage}
+          emptyState={props.noItemsMessage ? undefined : allProfilesEmptyState}
           showRefreshButton={true}
           sortBy="startTime"
           sortOrder={SortOrder.Descending}

@@ -7,6 +7,10 @@ import {
   willCreateAlert,
   willDeclareIncident,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleForm";
+import {
+  BURN_RATE_DECLARES_FIELD_KEY,
+  BurnRateDeclares,
+} from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateDeclares";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
@@ -88,6 +92,15 @@ function stepById(id: string): StepOf {
  * field" without depending on array positions that a reorder would shuffle.
  */
 function columnOf(field: FieldOf): string {
+  /*
+   * The one form-only field, When it fires: named by the form value it keeps
+   * (BURN_RATE_DECLARES_FIELD_KEY). It writes the two output columns, which
+   * are registered as fields of their own.
+   */
+  if (field.formOnly && field.overrideFieldKey) {
+    return field.overrideFieldKey;
+  }
+
   const keys: Array<string> = Object.keys(
     field.field as unknown as Record<string, unknown>,
   );
@@ -205,6 +218,8 @@ describe("the burn rate rule form steps", () => {
     ]);
 
     expect(columnsOnStep("declares")).toEqual([
+      // When it fires, then the two columns it writes, never drawn.
+      BURN_RATE_DECLARES_FIELD_KEY,
       "shouldCreateAlert",
       "shouldCreateIncident",
       "addSloOwnersAsOwners",
@@ -303,12 +318,29 @@ describe("the burn rate rule form steps", () => {
    * the way out of the first step — before the user can reach the toggle that
    * would have made the rule legal.
    */
-  test("both output toggles live on one step", () => {
-    const alertToggle: FieldOf = fieldFor("shouldCreateAlert");
-    const incidentToggle: FieldOf = fieldFor("shouldCreateIncident");
+  test("the choice and the two columns it writes live on one step", () => {
+    const choice: FieldOf = fieldFor(BURN_RATE_DECLARES_FIELD_KEY);
 
-    expect(alertToggle.stepId).toBe("declares");
-    expect(incidentToggle.stepId).toBe(alertToggle.stepId);
+    expect(choice.stepId).toBe("declares");
+    expect(fieldFor("shouldCreateAlert").stepId).toBe(choice.stepId);
+    expect(fieldFor("shouldCreateIncident").stepId).toBe(choice.stepId);
+  });
+
+  /*
+   * The two output switches are registered so the form loads and saves
+   * their columns, and are never drawn: the choice above them is how a
+   * person answers.
+   */
+  test("the two output columns are never drawn as switches", () => {
+    for (const column of ["shouldCreateAlert", "shouldCreateIncident"]) {
+      const field: FieldOf = fieldFor(column);
+
+      expect({ column, shown: field.showIf!({}) }).toEqual({
+        column,
+        shown: false,
+      });
+      expect(field.hideColumnDescription).toBe(true);
+    }
   });
 
   /*
@@ -330,17 +362,23 @@ describe("the burn rate rule form steps", () => {
    * untouched incident toggle validates nothing: move the attachment there and
    * "turn the alert off and submit" stops being caught in the browser at all.
    */
-  test("the no-output validator hangs off the toggle that always has a value", () => {
-    expect(fieldFor("shouldCreateAlert").customValidation).toBe(
-      validateBurnRateOutputs,
-    );
+  test("the no-output validator hangs off the choice, which always has an answer", () => {
+    const choice: FieldOf = fieldFor(BURN_RATE_DECLARES_FIELD_KEY);
+
+    expect(choice.customValidation).toBe(validateBurnRateOutputs);
+    expect(choice.required).toBe(true);
+    expect(fieldFor("shouldCreateAlert").customValidation).toBeUndefined();
     expect(fieldFor("shouldCreateIncident").customValidation).toBeUndefined();
 
-    /*
-     * And that toggle's default is what guarantees it is in the values at all —
-     * the two facts are one mechanism, so they are asserted together.
-     */
+    // The alert column's default still writes a new rule's alert.
     expect(fieldFor("shouldCreateAlert").defaultValue).toBe(true);
+  });
+
+  test("Enabled is on the Edit form only: a new rule starts on", () => {
+    const enabled: FieldOf = fieldFor("isEnabled");
+
+    expect(enabled.doNotShowWhenCreating).toBe(true);
+    expect(columnMetadata("isEnabled").defaultValue).toBe(true);
   });
 
   /*
@@ -705,6 +743,33 @@ describe("the per-output steps appear only for the output they configure", () =>
 
     for (const id of INCIDENT_STEPS) {
       expect(isVisible(id, {})).toBe(false);
+    }
+  });
+
+  test("each answer of When it fires shows exactly the steps it opens", () => {
+    const choice: FieldOf = fieldFor(BURN_RATE_DECLARES_FIELD_KEY);
+    const answers: Array<[BurnRateDeclares, boolean, boolean]> = [
+      [BurnRateDeclares.Alert, true, false],
+      [BurnRateDeclares.Incident, false, true],
+      [BurnRateDeclares.Both, true, true],
+    ];
+
+    for (const [answer, showsAlert, showsIncident] of answers) {
+      let values: FormValues<ServiceLevelObjectiveBurnRateRule> = {};
+
+      choice.onChange!(
+        answer,
+        values,
+        (next: FormValues<ServiceLevelObjectiveBurnRateRule>): void => {
+          values = next;
+        },
+      );
+
+      expect({
+        answer,
+        alert: stepById("alert-details").showIf!(values),
+        incident: stepById("incident-details").showIf!(values),
+      }).toEqual({ answer, alert: showsAlert, incident: showsIncident });
     }
   });
 

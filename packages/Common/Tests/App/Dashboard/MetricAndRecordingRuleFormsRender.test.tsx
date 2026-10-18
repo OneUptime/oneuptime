@@ -562,6 +562,38 @@ describe("Metrics > Settings > Pipeline Rules", () => {
   });
 
   /*
+   * The Match Condition's two answers say what each matches, one line under
+   * each. The field used to carry its column's sentence about both ("'All'
+   * requires every filter to match (AND). 'Any' requires at least one filter
+   * to match (OR).").
+   */
+  test("says under All and Any what each matches, with no sentence about both above them", async () => {
+    await openCreateForm();
+    await addFilter("http.server.duration");
+    await addFilter("http.client.duration");
+
+    const group: HTMLElement = await waitFor((): HTMLElement => {
+      const found: HTMLElement | null = filterConditionGroup();
+      expect(found).not.toBeNull();
+      return found!;
+    });
+
+    const lineOf: (name: string) => string = (name: string): string => {
+      const id: string | null = within(group)
+        .getByRole("radio", { name: name })
+        .getAttribute("aria-describedby");
+
+      return (document.getElementById(id || "")?.textContent || "").trim();
+    };
+
+    expect(lineOf("All")).toBe("Every filter must match.");
+    expect(lineOf("Any")).toBe("At least one filter must match.");
+    expect(
+      within(dialog()).queryByText(/requires every filter to match/),
+    ).toBeNull();
+  });
+
+  /*
    * A Button is full width under md, and only from md up sits 12px in
    * (md:ml-3). Taking those 12px back at every width pushed the full-width
    * Add Filter 12px out of line with the filters on a phone.
@@ -576,6 +608,50 @@ describe("Metrics > Settings > Pipeline Rules", () => {
     const classes: Array<string> = wrapper.className.split(/\s+/);
     expect(classes).toContain("md:-ml-3");
     expect(classes).not.toContain("-ml-3");
+  });
+
+  /*
+   * The action's boxes said what they hold in the column's words, written
+   * for the API: "For RenameMetric: the existing metric name. For
+   * RenameAttribute: the existing attribute key." Each says it plainly now.
+   */
+  test("names what each action box holds in plain words, never a rule type's enum name", async () => {
+    await openCreateForm();
+    await nameRule("Rename");
+    await pressNext();
+    await pickRuleType(MetricPipelineRuleType.RenameMetric);
+
+    expect(
+      await within(dialog()).findByText(
+        "The current name, exactly as it arrives.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog()).getByText("The name to store it under."),
+    ).toBeInTheDocument();
+
+    await pickRuleType(MetricPipelineRuleType.AddAttribute);
+
+    expect(
+      await within(dialog()).findByText(
+        "The attribute to act on, such as deployment.environment.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog()).getByText("The value to give it."),
+    ).toBeInTheDocument();
+
+    await pickRuleType(MetricPipelineRuleType.RedactAttribute);
+
+    expect(
+      await within(dialog()).findByText(
+        "What to write in place of the value. Empty writes [REDACTED].",
+      ),
+    ).toBeInTheDocument();
+
+    expect(dialog().textContent).not.toMatch(
+      /For (RenameMetric|RenameAttribute|AddAttribute|RedactAttribute|Sample):/,
+    );
   });
 
   test("creates a rule from Action, on, for every service, combining with All", async () => {

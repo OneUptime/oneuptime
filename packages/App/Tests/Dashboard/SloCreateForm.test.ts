@@ -5,12 +5,12 @@ import * as SloFormFieldsModule from "../../FeatureSet/Dashboard/src/Pages/Slo/S
 import {
   getSloAdvancedSummary,
   getSloFormFields,
-  getSloWindowTypeDropdownOptions,
+  getSloWindowTypeChoices,
   isSloAdvancedAtDefaults,
   SLO_ADVANCED_DEFAULTS_SUMMARY,
   SLO_CREATE_INITIAL_VALUES,
   SLO_SUGGESTED_TARGET_PERCENTAGE,
-  SLO_WINDOW_TYPE_DESCRIPTIONS,
+  SLO_WINDOW_TYPE_CHOICE_DESCRIPTIONS,
   validateAtRiskThreshold,
   validateTargetPercentage,
   validateWindowDays,
@@ -21,7 +21,8 @@ import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
 } from "Common/Utils/Slo/SloHealth";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -554,23 +555,37 @@ describe("the SLO create form's window fields", () => {
     expect(fieldFor("timezone").showIf!(calendar)).toBe(true);
   });
 
-  test("explain every window type inside the dropdown itself", () => {
-    const options: Array<DropdownOption> = getSloWindowTypeDropdownOptions();
+  /*
+   * Window Type was a dropdown under one description explaining both kinds
+   * ("Rolling suits ... Calendar Month suits ..."). Its two answers are on
+   * the form, each with one line saying what the window is and when to
+   * pick it, Rolling - a new SLO's - first.
+   */
+  test("ask the window type as two answers, each with its line, Rolling first", () => {
+    const options: Array<RadioButton> = getSloWindowTypeChoices();
+    const field: ModelField<ServiceLevelObjective> = fieldFor("windowType");
 
     expect(
-      options.map((option: DropdownOption): unknown => {
+      options.map((option: RadioButton): string => {
         return option.value;
       }),
-    ).toEqual(Object.values(SloWindowType));
+    ).toEqual([SloWindowType.Rolling, SloWindowType.CalendarMonth]);
 
     for (const option of options) {
+      expect(option.title).toBe(option.value);
       expect(option.description).toBe(
-        SLO_WINDOW_TYPE_DESCRIPTIONS[option.value as SloWindowType],
+        SLO_WINDOW_TYPE_CHOICE_DESCRIPTIONS[option.value as SloWindowType],
       );
-      expect(option.description!.length).toBeGreaterThan(0);
+      expect(option.description!.length).toBeLessThanOrEqual(100);
     }
 
-    expect(fieldFor("windowType").dropdownOptions).toEqual(options);
+    expect(field.fieldType).toBe(FormFieldSchemaType.RadioButton);
+    expect(field.radioButtonOptions).toEqual(options);
+    expect(field.dropdownOptions).toBeUndefined();
+    // The answers explain themselves: no sentence above them about both.
+    expect(field.description).toBeUndefined();
+    expect(field.hideColumnDescription).toBe(true);
+    expect(SLO_CREATE_INITIAL_VALUES.windowType).toBe(SloWindowType.Rolling);
   });
 
   test("put the client-side validators on the fields they guard", () => {

@@ -107,6 +107,27 @@ export const CONNECT_ERROR_QUERY_PARAM: string = "error";
 export const CONNECT_PROVIDER_QUERY_PARAM: string = "provider";
 
 /*
+ * What a redirect the provider sent on its own tells the page (`?notice=`),
+ * when it has something to say. Like `?error=`, a page shows its own
+ * sentence for a code it knows and nothing for anything else.
+ */
+export const CONNECT_NOTICE_QUERY_PARAM: string = "notice";
+
+export enum ConnectProviderNotice {
+  /*
+   * GitHub: the app was installed on GitHub itself - from its Marketplace
+   * listing or its page - so GitHub sent the browser back with no state of
+   * ours. Nothing was connected; the page offers to connect the installation.
+   */
+  GitHubInstalled = "github-installed",
+}
+
+// The provider each notice belongs to: a page shows only its own.
+const PROVIDER_OF_NOTICE: Record<ConnectProviderNotice, ConnectProvider> = {
+  [ConnectProviderNotice.GitHubInstalled]: ConnectProvider.GitHub,
+};
+
+/*
  * A video call connection a sign-in made or reconnected: the Video Calls
  * page names it and offers a test meeting.
  */
@@ -272,6 +293,23 @@ export default class ConnectCallbackUtil {
     return ConnectCallbackUtil.isError(value)
       ? value
       : ConnectCallbackError.CouldNotFinish;
+  }
+
+  /*
+   * The notice `provider`'s page shows for the `?notice=` it was opened
+   * with: one it knows and that belongs to `provider`, or null.
+   */
+  public static readNotice(
+    provider: ConnectProvider,
+    value: string | null | undefined,
+  ): ConnectProviderNotice | null {
+    const notice: ConnectProviderNotice | undefined = (
+      Object.values(ConnectProviderNotice) as Array<string>
+    ).includes(value || "")
+      ? (value as ConnectProviderNotice)
+      : undefined;
+
+    return notice && PROVIDER_OF_NOTICE[notice] === provider ? notice : null;
   }
 
   // The provider a `?provider=` names, or null for anything else.

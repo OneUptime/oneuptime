@@ -168,8 +168,9 @@ test("the table reports what each rule declares, and where each output goes", as
 /*
  * The create form is a wizard. These walk it, because the interesting part is
  * not that the fields exist — the unit suite pins that from the exported
- * arrays — but that the rail reacts: the incident step is absent until the
- * rule says it declares one, and the alert step leaves when it says it does not.
+ * arrays — but that the rail reacts: the incident step is absent until When
+ * it fires says the rule declares one, and the alert step leaves when it says
+ * the rule does not raise one.
  */
 
 const STEP_RAIL: Array<string> = [
@@ -224,6 +225,19 @@ function toggle(page: Page, title: string): ReturnType<Page["locator"]> {
   return page.getByRole("switch", { name: title, exact: true }).last();
 }
 
+/*
+ * What a rule opens is one question, When it fires, with three answers where
+ * there were two switches (Create Alert, Declare Incident) that could both be
+ * off. An answer is a radio button named by its title, its line under it.
+ */
+function whenItFires(page: Page): Locator {
+  return page.getByRole("radiogroup", { name: /^When it fires/ }).last();
+}
+
+function answer(page: Page, title: string): Locator {
+  return whenItFires(page).getByRole("radio", { name: title, exact: true });
+}
+
 async function fillRuleAndWindow(
   page: Page,
   name: string = "Fast burn",
@@ -262,13 +276,18 @@ test("the wider form opens with only the steps for its enabled outputs", async (
   expect(bounds).not.toBeNull();
   expect(bounds!.width).toBe(1280);
 
-  // Enabled carries its column default, so the first step is already truthful.
-  await expect(toggle(page, "Enabled")).toHaveAttribute("aria-checked", "true");
+  /*
+   * A new rule is on: Enabled is on the edit form only, so the first step
+   * asks for the name alone.
+   */
+  await expect(
+    page.getByRole("switch", { name: "Enabled", exact: true }),
+  ).toHaveCount(0);
 
   await screenshot(page, "burn-rate-rule-form-step-rule-synthetic", false);
 });
 
-test("the step rail gains and loses each output step with its toggle", async ({
+test("the step rail follows the answer to When it fires", async ({
   page,
 }: {
   page: Page;
@@ -278,15 +297,32 @@ test("the step rail gains and loses each output step with its toggle", async ({
   await screenshot(page, "burn-rate-rule-form-step-window-synthetic", false);
   await next(page);
 
-  // Step 3 - What It Declares: both toggles, together, before any output step.
-  const alertToggle: ReturnType<Page["locator"]> = toggle(page, "Create Alert");
-  const incidentToggle: ReturnType<Page["locator"]> = toggle(
-    page,
-    "Declare Incident",
-  );
+  /*
+   * Step 3 - What It Declares: one question, before any output step. A new
+   * rule starts on Create an alert, what the two columns' defaults make.
+   */
+  await expect(whenItFires(page).getByRole("radio")).toHaveCount(3);
+  await expect(answer(page, "Create an alert")).toBeChecked();
+  await expect(answer(page, "Declare an incident")).not.toBeChecked();
+  await expect(answer(page, "Both")).not.toBeChecked();
 
-  await expect(alertToggle).toHaveAttribute("aria-checked", "true");
-  await expect(incidentToggle).toHaveAttribute("aria-checked", "false");
+  // Each answer says in a line what it opens.
+  for (const line of [
+    "Opens an alert for the team to look at.",
+    "Opens an incident. Burn rate incidents never reach status pages.",
+    "Opens an alert and an incident, each set up on the next steps.",
+  ]) {
+    await expect(
+      whenItFires(page).getByText(line, { exact: true }),
+    ).toBeVisible();
+  }
+
+  // The two switches it replaced are gone from the screen.
+  for (const title of ["Create Alert", "Declare Incident"]) {
+    await expect(
+      page.getByRole("switch", { name: title, exact: true }),
+    ).toHaveCount(0);
+  }
 
   // The switch that applies to both outputs lives here, off by default.
   await expect(toggle(page, "Add SLO Owners as Owners")).toHaveAttribute(
@@ -296,9 +332,9 @@ test("the step rail gains and loses each output step with its toggle", async ({
 
   await screenshot(page, "burn-rate-rule-form-step-declares-synthetic", false);
 
-  // Declaring an incident adds its configuration step.
-  await incidentToggle.click();
-  await expect(incidentToggle).toHaveAttribute("aria-checked", "true");
+  // Both adds the incident's configuration step.
+  await answer(page, "Both").click();
+  await expect(answer(page, "Both")).toBeChecked();
   await expect
     .poll(() => {
       return visibleSteps(page);
@@ -311,9 +347,9 @@ test("the step rail gains and loses each output step with its toggle", async ({
     false,
   );
 
-  // And dropping the alert takes its configuration step away again.
-  await alertToggle.click();
-  await expect(alertToggle).toHaveAttribute("aria-checked", "false");
+  // And Declare an incident takes the alert's step away again.
+  await answer(page, "Declare an incident").click();
+  await expect(answer(page, "Declare an incident")).toBeChecked();
   await expect
     .poll(() => {
       return visibleSteps(page);
@@ -321,43 +357,18 @@ test("the step rail gains and loses each output step with its toggle", async ({
     .toEqual(["Rule", "Burn Window", "What It Declares", "Incident"]);
 
   /*
-   * A rule that declares nothing is refused here rather than after a
-   * round-trip. The server enforces it too — this only saves the trip.
-   *
-   * With neither output on, every output step leaves the rail, so What It
-   * Declares becomes the last step: its plain Next gives way to the submit
-   * button. Wait for that before clicking: reaching for "Next" straight
-   * after the toggle only worked when the click beat the re-render.
+   * No answer opens nothing, so What It Declares is never the last step and
+   * the old "This rule would do nothing" refusal has nothing left to catch.
    */
-  await incidentToggle.click();
-  await expect(incidentToggle).toHaveAttribute("aria-checked", "false");
+  await answer(page, "Create an alert").click();
   await expect
     .poll(() => {
       return visibleSteps(page);
     })
-    .toEqual(["Rule", "Burn Window", "What It Declares"]);
-  const dialog: ReturnType<Page["locator"]> = page.getByRole("dialog", {
-    name: "Create New SLO Burn Rate Rule",
-  });
-  await dialog
-    .getByRole("button", { name: "Create SLO Burn Rate Rule", exact: true })
-    .click();
-
-  // Refused in the form: the dialog is still open on the same step.
-  await expect(dialog).toBeVisible();
-
-  const noOutputError: ReturnType<Page["locator"]> = page.getByText(
-    "This rule would do nothing. Turn on Create Alert, Declare Incident, or both.",
-  );
-
-  /*
-   * Once, not twice. The validator hangs off the alert toggle alone — both
-   * toggles carrying it rendered the same sentence under each of them.
-   */
-  await expect(noOutputError).toHaveCount(1);
-  await expect(noOutputError).toBeVisible();
-
-  await screenshot(page, "burn-rate-rule-form-no-output-synthetic", false);
+    .toEqual(["Rule", "Burn Window", "What It Declares", "Alert"]);
+  await expect(
+    page.getByText("This rule would do nothing", { exact: false }),
+  ).toHaveCount(0);
 });
 
 const OUTPUT_SECTIONS: Array<string> = [
@@ -451,7 +462,7 @@ test("each output keeps title and severity beside collapsible optional sections"
   await openCreateForm(page);
   await fillRuleAndWindow(page);
   await next(page);
-  await toggle(page, "Declare Incident").click();
+  await answer(page, "Both").click();
   await next(page);
 
   for (const output of ["Alert", "Incident"]) {
@@ -676,7 +687,7 @@ test("creating and editing preserve both outputs' optional values and distinct r
   await openCreateForm(page);
   await fillRuleAndWindow(page, "Custom burn");
   await next(page);
-  await toggle(page, "Declare Incident").click();
+  await answer(page, "Both").click();
   await toggle(page, "Add SLO Owners as Owners").click();
   await next(page);
   await configureOutput(page, ALERT_VALUES);
@@ -706,6 +717,8 @@ test("creating and editing preserve both outputs' optional values and distinct r
   await page.getByPlaceholder("Fast burn").fill("Custom burn updated");
   await next(page);
   await next(page);
+  // The rule's two columns read back as the answer they make.
+  await expect(answer(page, "Both")).toBeChecked();
   await expect(toggle(page, "Add SLO Owners as Owners")).toHaveAttribute(
     "aria-checked",
     "true",
@@ -752,6 +765,8 @@ test("editing expands configured sections and keeps empty defaults collapsed", a
   page: Page;
 }) => {
   await openEditForm(page, "Fast burn");
+  // Enabled is on the edit form, on for a rule that is on.
+  await expect(toggle(page, "Enabled")).toHaveAttribute("aria-checked", "true");
   await reachOutputStep(page);
   for (const output of ["Alert", "Incident"]) {
     await expect(
@@ -829,7 +844,7 @@ test("validation reopens a collapsed section containing an invalid description",
   await openCreateForm(page);
   await fillRuleAndWindow(page);
   await next(page);
-  await toggle(page, "Declare Incident").click();
+  await answer(page, "Both").click();
   await next(page);
   await setSection(page, "Description", true);
   await page
@@ -915,7 +930,7 @@ test("default templates survive saving and reopening, and clearing them keeps th
   await openCreateForm(page);
   await fillRuleAndWindow(page, "Default templates");
   await next(page);
-  await toggle(page, "Declare Incident").click();
+  await answer(page, "Both").click();
   await next(page);
 
   for (const output of ["Alert", "Incident"]) {
@@ -980,7 +995,7 @@ test("default templates survive saving and reopening, and clearing them keeps th
 });
 
 for (const disabledOutput of ["Alert", "Incident"]) {
-  test(`a disabled ${disabledOutput.toLowerCase()} restores its configured values after saving and re-enabling`, async ({
+  test(`a dropped ${disabledOutput.toLowerCase()} restores its configured values after saving and picking Both again`, async ({
     page,
   }: {
     page: Page;
@@ -1004,11 +1019,13 @@ for (const disabledOutput of ["Alert", "Incident"]) {
       .locator('nav[aria-label="Progress"] li')
       .filter({ hasText: /^What It Declares$/ })
       .click();
-    const disabledToggle: string =
-      disabledOutput === "Alert" ? "Create Alert" : "Declare Incident";
+    // The answer that keeps the other output only.
+    const keptAnswer: string =
+      disabledOutput === "Alert" ? "Declare an incident" : "Create an alert";
     const enabledOutput: string =
       disabledOutput === "Alert" ? "Incident" : "Alert";
-    await toggle(page, disabledToggle).click();
+    await expect(answer(page, "Both")).toBeChecked();
+    await answer(page, keptAnswer).click();
     await expect
       .poll(() => {
         return visibleSteps(page);
@@ -1029,11 +1046,8 @@ for (const disabledOutput of ["Alert", "Incident"]) {
     await openEditForm(page, "Fast burn");
     await next(page);
     await next(page);
-    await expect(toggle(page, disabledToggle)).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
-    await toggle(page, disabledToggle).click();
+    await expect(answer(page, keptAnswer)).toBeChecked();
+    await answer(page, "Both").click();
     await expect
       .poll(() => {
         return visibleSteps(page);
