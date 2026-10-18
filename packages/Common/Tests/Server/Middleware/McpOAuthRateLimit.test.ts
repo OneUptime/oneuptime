@@ -162,6 +162,65 @@ class FakeRedisClient {
       return recorded.key === key;
     });
   }
+
+  /*
+   * The limiter counts through pipelines (ClientRateLimitCounter). A
+   * pipeline runs its commands through the methods above, and answers as
+   * ioredis does: [error, value] per command, a failed command's error in
+   * its place rather than thrown.
+   */
+  public pipeline(): FakePipeline {
+    return new FakePipeline(this);
+  }
+}
+
+type QueuedCommand = () => Promise<unknown>;
+
+class FakePipeline {
+  private commands: Array<QueuedCommand> = [];
+
+  public constructor(private client: FakeRedisClient) {}
+
+  public incr(key: string): FakePipeline {
+    this.commands.push((): Promise<unknown> => {
+      return this.client.incr(key);
+    });
+
+    return this;
+  }
+
+  public expire(key: string, ttlSeconds: number): FakePipeline {
+    this.commands.push((): Promise<unknown> => {
+      return this.client.expire(key, ttlSeconds);
+    });
+
+    return this;
+  }
+
+  // As Redis answers GET: the count as a string, or null for no key.
+  public get(key: string): FakePipeline {
+    this.commands.push(async (): Promise<unknown> => {
+      const count: number | undefined = this.client.counters.get(key);
+
+      return count === undefined ? null : String(count);
+    });
+
+    return this;
+  }
+
+  public async exec(): Promise<Array<[Error | null, unknown]>> {
+    const results: Array<[Error | null, unknown]> = [];
+
+    for (const command of this.commands) {
+      try {
+        results.push([null, await command()]);
+      } catch (error) {
+        results.push([error as Error, null]);
+      }
+    }
+
+    return results;
+  }
 }
 
 interface BuildRequestOverrides {

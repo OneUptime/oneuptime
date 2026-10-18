@@ -251,4 +251,22 @@ export const getRateLimitClient: (clientIp: string) => RateLimitClient = (
   };
 };
 
+/*
+ * How many addresses' worth of requests the addresses of one IPv6 /64 may
+ * make together, under a rate limit that counts both. A /64 is often one
+ * host's, and a host that sends from address after address of it is held
+ * to ten addresses' worth. It is as often an office's or a university's
+ * network, or a hosting provider's for many customers' servers, and ten
+ * addresses' worth is room for them: each address there is still held to
+ * its own allowance, and one that goes over it never spends the /64's.
+ */
+export const IPV6_NETWORK_RATE_LIMIT_ROOM_IN_ADDRESSES: number = 10;
+
+// What the addresses of one IPv6 /64 may make together, for a per-address limit.
+export const getIpv6NetworkRateLimit: (perAddressLimit: number) => number = (
+  perAddressLimit: number,
+): number => {
+  return perAddressLimit * IPV6_NETWORK_RATE_LIMIT_ROOM_IN_ADDRESSES;
+};
+
 export default resolveClientIp;
