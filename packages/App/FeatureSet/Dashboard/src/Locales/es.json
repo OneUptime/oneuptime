@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "Al menos un filtro debe coincidir.",
   "Check that signing in works before you require it: {{link}}": "Comprueba que el inicio de sesión funciona antes de exigirlo: {{link}}",
   "Connect an AI Assistant": "Conectar un asistente de IA",
+  "Connect the installation": "Conectar la instalación",
   "Create Token": "Crear token",
   "Create a token to see the badge and the code to embed it.": "Crea un token para ver la insignia y el código para incrustarla.",
   "Discards every matching log for good.": "Descarta para siempre cada registro que coincida.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "Opciones de los suscriptores",
   "Tells them they are subscribed, with a link to unsubscribe.": "Les avisa de que están suscritos, con un enlace para darse de baja.",
   "Test Sign-In": "Probar el inicio de sesión",
+  "The GitHub App is installed": "La GitHub App está instalada",
   "The assistant names this page by its ID, or by one of its custom domains:": "El asistente identifica esta página por su ID o por uno de sus dominios personalizados:",
   "The attribute to act on, such as deployment.environment.": "El atributo sobre el que actúa, como deployment.environment.",
   "The current name, exactly as it arrives.": "El nombre actual, tal como llega.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "Editar acción",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Usa el service.name que envían tus apps, para que su telemetría aparezca en este servicio.",
   "No profiles here yet": "Aún no hay perfiles",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Los perfiles muestran en qué gasta tu código su tiempo y su memoria. Aparecen aquí en cuanto tus apps o hosts los envían."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Los perfiles muestran en qué gasta tu código su tiempo y su memoria. Aparecen aquí en cuanto tus apps o hosts los envían.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} para importar sus repositorios en este proyecto."
 }

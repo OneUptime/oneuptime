@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "Minst ett filter måste matcha.",
   "Check that signing in works before you require it: {{link}}": "Kontrollera att inloggningen fungerar innan du kräver den: {{link}}",
   "Connect an AI Assistant": "Anslut en AI-assistent",
+  "Connect the installation": "Anslut installationen",
   "Create Token": "Skapa token",
   "Create a token to see the badge and the code to embed it.": "Skapa en token för att se brickan och koden för att bädda in den.",
   "Discards every matching log for good.": "Kasserar varje matchande logg för gott.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "Val för prenumeranter",
   "Tells them they are subscribed, with a link to unsubscribe.": "Berättar att de prenumererar, med en länk för att avsluta prenumerationen.",
   "Test Sign-In": "Testa inloggning",
+  "The GitHub App is installed": "GitHub-appen är installerad",
   "The assistant names this page by its ID, or by one of its custom domains:": "Assistenten anger den här sidan med dess ID eller med en av dess anpassade domäner:",
   "The attribute to act on, such as deployment.environment.": "Attributet som regeln verkar på, till exempel deployment.environment.",
   "The current name, exactly as it arrives.": "Det nuvarande namnet, exakt som det kommer in.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "Redigera åtgärd",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Använd det service.name som dina appar skickar, så att deras telemetri visas under den här tjänsten.",
   "No profiles here yet": "Inga profiler här än",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiler visar var din kod lägger tid och minne. De visas här så snart dina appar eller värdar skickar dem."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiler visar var din kod lägger tid och minne. De visas här så snart dina appar eller värdar skickar dem.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} för att importera dess repositorier till det här projektet."
 }

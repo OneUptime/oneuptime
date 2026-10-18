@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "Almeno un filtro deve corrispondere.",
   "Check that signing in works before you require it: {{link}}": "Verifica che l'accesso funzioni prima di renderlo obbligatorio: {{link}}",
   "Connect an AI Assistant": "Collega un assistente IA",
+  "Connect the installation": "Collega l'installazione",
   "Create Token": "Crea token",
   "Create a token to see the badge and the code to embed it.": "Crea un token per vedere il badge e il codice per incorporarlo.",
   "Discards every matching log for good.": "Scarta definitivamente ogni log corrispondente.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "Scelte degli iscritti",
   "Tells them they are subscribed, with a link to unsubscribe.": "Comunica loro che sono iscritti, con un link per annullare l'iscrizione.",
   "Test Sign-In": "Prova l'accesso",
+  "The GitHub App is installed": "L'app GitHub è installata",
   "The assistant names this page by its ID, or by one of its custom domains:": "L'assistente indica questa pagina con il suo ID o con uno dei suoi domini personalizzati:",
   "The attribute to act on, such as deployment.environment.": "L'attributo su cui agire, come deployment.environment.",
   "The current name, exactly as it arrives.": "Il nome attuale, esattamente come arriva.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "Modifica azione",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Usa il service.name che inviano le tue app, così la loro telemetria compare sotto questo servizio.",
   "No profiles here yet": "Ancora nessun profilo",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "I profili mostrano dove il tuo codice impiega tempo e memoria. Compaiono qui non appena le tue app o i tuoi host li inviano."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "I profili mostrano dove il tuo codice impiega tempo e memoria. Compaiono qui non appena le tue app o i tuoi host li inviano.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} per importare i suoi repository in questo progetto."
 }

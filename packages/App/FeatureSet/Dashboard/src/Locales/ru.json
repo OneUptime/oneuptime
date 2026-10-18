@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "Должен совпасть хотя бы один фильтр.",
   "Check that signing in works before you require it: {{link}}": "Проверьте, что вход работает, прежде чем делать его обязательным: {{link}}",
   "Connect an AI Assistant": "Подключить ИИ-ассистента",
+  "Connect the installation": "Подключить установку",
   "Create Token": "Создать токен",
   "Create a token to see the badge and the code to embed it.": "Создайте токен, чтобы увидеть значок и код для его встраивания.",
   "Discards every matching log for good.": "Безвозвратно отбрасывает каждый подходящий лог.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "Выбор для подписчиков",
   "Tells them they are subscribed, with a link to unsubscribe.": "Сообщает о подписке и даёт ссылку для отписки.",
   "Test Sign-In": "Проверить вход",
+  "The GitHub App is installed": "Приложение GitHub установлено",
   "The assistant names this page by its ID, or by one of its custom domains:": "Ассистент указывает эту страницу по её ID или по одному из её пользовательских доменов:",
   "The attribute to act on, such as deployment.environment.": "Атрибут, с которым работать, например deployment.environment.",
   "The current name, exactly as it arrives.": "Текущее имя — точно в том виде, в каком оно приходит.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "Изменить действие",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Укажите service.name, которое отправляют ваши приложения, чтобы их телеметрия появлялась в этом сервисе.",
   "No profiles here yet": "Профилей пока нет",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Профили показывают, на что ваш код тратит время и память. Они появятся здесь, как только ваши приложения или хосты их отправят."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Профили показывают, на что ваш код тратит время и память. Они появятся здесь, как только ваши приложения или хосты их отправят.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}, чтобы импортировать её репозитории в этот проект."
 }

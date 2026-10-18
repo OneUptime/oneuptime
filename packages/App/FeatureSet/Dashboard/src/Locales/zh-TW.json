@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "必須至少符合一個篩選條件。",
   "Check that signing in works before you require it: {{link}}": "在要求登入之前，請先確認登入可正常運作：{{link}}",
   "Connect an AI Assistant": "連接 AI 助理",
+  "Connect the installation": "連接此安裝",
   "Create Token": "建立權杖",
   "Create a token to see the badge and the code to embed it.": "建立權杖後，即可看到徽章及其嵌入程式碼。",
   "Discards every matching log for good.": "永久捨棄每筆相符的日誌。",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "訂閱者選項",
   "Tells them they are subscribed, with a link to unsubscribe.": "告知他們已訂閱，並附上取消訂閱的連結。",
   "Test Sign-In": "測試登入",
+  "The GitHub App is installed": "GitHub App 已安裝",
   "The assistant names this page by its ID, or by one of its custom domains:": "助理會以此頁面的 ID 或其中一個自訂網域來指定它：",
   "The attribute to act on, such as deployment.environment.": "要處理的屬性，例如 deployment.environment。",
   "The current name, exactly as it arrives.": "目前名稱，與傳入時完全一致。",
@@ -30908,5 +30910,6 @@
   "Edit Action": "編輯操作",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "使用你的應用程式傳送的 service.name，它們的遙測資料就會顯示在此服務下。",
   "No profiles here yet": "這裡還沒有效能剖析資料",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "效能剖析資料顯示你的程式碼把時間和記憶體花在哪裡。你的應用程式或主機一傳送，就會顯示在這裡。"
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "效能剖析資料顯示你的程式碼把時間和記憶體花在哪裡。你的應用程式或主機一傳送，就會顯示在這裡。",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}，將其存放庫匯入此專案。"
 }

@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "Pelo menos um filtro precisa corresponder.",
   "Check that signing in works before you require it: {{link}}": "Verifique se o login funciona antes de exigi-lo: {{link}}",
   "Connect an AI Assistant": "Conectar um assistente de IA",
+  "Connect the installation": "Conectar a instalação",
   "Create Token": "Criar token",
   "Create a token to see the badge and the code to embed it.": "Crie um token para ver o selo e o código para incorporá-lo.",
   "Discards every matching log for good.": "Descarta para sempre cada log correspondente.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "Escolhas dos assinantes",
   "Tells them they are subscribed, with a link to unsubscribe.": "Avisa que estão inscritos, com um link para cancelar a inscrição.",
   "Test Sign-In": "Testar o login",
+  "The GitHub App is installed": "O app do GitHub está instalado",
   "The assistant names this page by its ID, or by one of its custom domains:": "O assistente identifica esta página pelo ID ou por um dos seus domínios personalizados:",
   "The attribute to act on, such as deployment.environment.": "O atributo em que agir, como deployment.environment.",
   "The current name, exactly as it arrives.": "O nome atual, exatamente como chega.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "Editar ação",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Use o service.name que seus apps enviam, para que a telemetria deles apareça neste serviço.",
   "No profiles here yet": "Nenhum perfil aqui ainda",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Os perfis mostram onde seu código gasta tempo e memória. Eles aparecem aqui assim que seus apps ou hosts os enviam."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Os perfis mostram onde seu código gasta tempo e memória. Eles aparecem aqui assim que seus apps ou hosts os enviam.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} para importar os repositórios dela neste projeto."
 }

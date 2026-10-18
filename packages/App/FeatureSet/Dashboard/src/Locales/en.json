@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "At least one filter must match.",
   "Check that signing in works before you require it: {{link}}": "Check that signing in works before you require it: {{link}}",
   "Connect an AI Assistant": "Connect an AI Assistant",
+  "Connect the installation": "Connect the installation",
   "Create Token": "Create Token",
   "Create a token to see the badge and the code to embed it.": "Create a token to see the badge and the code to embed it.",
   "Discards every matching log for good.": "Discards every matching log for good.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "Subscriber Choices",
   "Tells them they are subscribed, with a link to unsubscribe.": "Tells them they are subscribed, with a link to unsubscribe.",
   "Test Sign-In": "Test Sign-In",
+  "The GitHub App is installed": "The GitHub App is installed",
   "The assistant names this page by its ID, or by one of its custom domains:": "The assistant names this page by its ID, or by one of its custom domains:",
   "The attribute to act on, such as deployment.environment.": "The attribute to act on, such as deployment.environment.",
   "The current name, exactly as it arrives.": "The current name, exactly as it arrives.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "Edit Action",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Use the service.name your apps send, so their telemetry shows up under this service.",
   "No profiles here yet": "No profiles here yet",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} to import its repositories into this project."
 }

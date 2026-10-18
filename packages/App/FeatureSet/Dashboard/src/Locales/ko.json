@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "필터가 하나 이상 일치해야 합니다.",
   "Check that signing in works before you require it: {{link}}": "필수로 지정하기 전에 로그인이 되는지 확인하세요: {{link}}",
   "Connect an AI Assistant": "AI 어시스턴트 연결",
+  "Connect the installation": "설치 연결",
   "Create Token": "토큰 만들기",
   "Create a token to see the badge and the code to embed it.": "토큰을 만들면 배지와 삽입 코드가 표시됩니다.",
   "Discards every matching log for good.": "일치하는 모든 로그를 영구히 버립니다.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "구독자 선택",
   "Tells them they are subscribed, with a link to unsubscribe.": "구독되었다는 사실을 구독 취소 링크와 함께 알립니다.",
   "Test Sign-In": "로그인 테스트",
+  "The GitHub App is installed": "GitHub App이 설치되었습니다",
   "The assistant names this page by its ID, or by one of its custom domains:": "어시스턴트는 이 페이지를 ID나 사용자 정의 도메인 중 하나로 지정합니다:",
   "The attribute to act on, such as deployment.environment.": "적용할 속성입니다. 예: deployment.environment.",
   "The current name, exactly as it arrives.": "들어오는 그대로의 현재 이름입니다.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "작업 편집",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "앱이 보내는 service.name을 사용하면 해당 텔레메트리가 이 서비스 아래에 표시됩니다.",
   "No profiles here yet": "아직 프로파일이 없습니다",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "프로파일은 코드가 시간과 메모리를 어디에 쓰는지 보여 줍니다. 앱이나 호스트가 보내는 즉시 여기에 표시됩니다."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "프로파일은 코드가 시간과 메모리를 어디에 쓰는지 보여 줍니다. 앱이나 호스트가 보내는 즉시 여기에 표시됩니다.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}을 눌러 저장소를 이 프로젝트로 가져오세요."
 }

@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "कम से कम एक फ़िल्टर मेल खाना चाहिए।",
   "Check that signing in works before you require it: {{link}}": "इसे ज़रूरी बनाने से पहले जांचें कि साइन इन काम करता है: {{link}}",
   "Connect an AI Assistant": "AI सहायक कनेक्ट करें",
+  "Connect the installation": "इंस्टॉलेशन कनेक्ट करें",
   "Create Token": "टोकन बनाएं",
   "Create a token to see the badge and the code to embed it.": "बैज और उसे एम्बेड करने का कोड देखने के लिए टोकन बनाएं।",
   "Discards every matching log for good.": "हर मिलते लॉग को हमेशा के लिए हटा देता है।",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "सब्सक्राइबर विकल्प",
   "Tells them they are subscribed, with a link to unsubscribe.": "उन्हें बताता है कि वे सब्सक्राइब हो गए हैं, सदस्यता समाप्त करने के लिंक के साथ।",
   "Test Sign-In": "साइन इन जांचें",
+  "The GitHub App is installed": "GitHub App इंस्टॉल हो गया है",
   "The assistant names this page by its ID, or by one of its custom domains:": "सहायक इस पृष्ठ को इसकी ID से, या इसके किसी कस्टम डोमेन से बताता है:",
   "The attribute to act on, such as deployment.environment.": "जिस एट्रिब्यूट पर काम करना है, जैसे deployment.environment।",
   "The current name, exactly as it arrives.": "मौजूदा नाम, ठीक वैसा जैसा वह आता है।",
@@ -30908,5 +30910,6 @@
   "Edit Action": "कार्रवाई संपादित करें",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "वही service.name इस्तेमाल करें जो आपके ऐप भेजते हैं, ताकि उनकी टेलीमेट्री इस सेवा के अंतर्गत दिखे।",
   "No profiles here yet": "यहाँ अभी कोई प्रोफ़ाइल नहीं है",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "प्रोफ़ाइल दिखाती हैं कि आपका कोड अपना समय और मेमोरी कहाँ खर्च करता है। आपके ऐप या होस्ट जैसे ही उन्हें भेजते हैं, वे यहाँ दिखती हैं।"
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "प्रोफ़ाइल दिखाती हैं कि आपका कोड अपना समय और मेमोरी कहाँ खर्च करता है। आपके ऐप या होस्ट जैसे ही उन्हें भेजते हैं, वे यहाँ दिखती हैं।",
+  "{{connectInstallation}} to import its repositories into this project.": "इसकी रिपॉज़िटरी इस प्रोजेक्ट में इम्पोर्ट करने के लिए {{connectInstallation}}।"
 }

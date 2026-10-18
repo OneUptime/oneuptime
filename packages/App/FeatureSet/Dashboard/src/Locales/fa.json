@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "دست‌کم یک فیلتر باید منطبق باشد.",
   "Check that signing in works before you require it: {{link}}": "پیش از الزامی کردن ورود، بررسی کنید که کار می‌کند: {{link}}",
   "Connect an AI Assistant": "اتصال دستیار هوش مصنوعی",
+  "Connect the installation": "نصب را متصل کنید",
   "Create Token": "ساخت توکن",
   "Create a token to see the badge and the code to embed it.": "برای دیدن نشان و کد جاسازی آن، یک توکن بسازید.",
   "Discards every matching log for good.": "هر لاگ منطبق را برای همیشه دور می‌اندازد.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "انتخاب‌های مشترکان",
   "Tells them they are subscribed, with a link to unsubscribe.": "به آن‌ها می‌گوید که مشترک شده‌اند، همراه با پیوندی برای لغو عضویت.",
   "Test Sign-In": "آزمایش ورود",
+  "The GitHub App is installed": "برنامه GitHub نصب شده است",
   "The assistant names this page by its ID, or by one of its custom domains:": "دستیار این صفحه را با شناسه آن یا با یکی از دامنه‌های سفارشی‌اش مشخص می‌کند:",
   "The attribute to act on, such as deployment.environment.": "ویژگی‌ای که روی آن کار می‌شود، مانند deployment.environment.",
   "The current name, exactly as it arrives.": "نام فعلی، دقیقاً همان‌طور که می‌رسد.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "ویرایش اقدام",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "همان service.name را به کار ببرید که برنامه‌هایتان می‌فرستند، تا تله‌متری آن‌ها زیر این سرویس نمایش داده شود.",
   "No profiles here yet": "هنوز پروفایلی اینجا نیست",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "پروفایل‌ها نشان می‌دهند کد شما زمان و حافظه‌اش را کجا صرف می‌کند. به محض اینکه برنامه‌ها یا میزبان‌هایتان آن‌ها را بفرستند، اینجا نمایش داده می‌شوند."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "پروفایل‌ها نشان می‌دهند کد شما زمان و حافظه‌اش را کجا صرف می‌کند. به محض اینکه برنامه‌ها یا میزبان‌هایتان آن‌ها را بفرستند، اینجا نمایش داده می‌شوند.",
+  "{{connectInstallation}} to import its repositories into this project.": "برای وارد کردن مخزن‌های آن به این پروژه، {{connectInstallation}}."
 }

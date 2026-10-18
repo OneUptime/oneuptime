@@ -19,6 +19,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ConnectCallbackUtil, {
   ConnectCallbackError,
   ConnectProvider,
+  ConnectProviderNotice,
   ConnectStartPage,
 } from "../../../Types/Workspace/ConnectCallback";
 import { beforeEach, describe, expect, test } from "@jest/globals";
@@ -547,6 +548,52 @@ describe("route: one order, and every ending answered once", () => {
 
     expect(probe.redirectedTo).toEqual([connectReturn("github")]);
     expect(spent).toBe(false);
+  });
+
+  test("a provider's own redirect carries the notice the callback names for it, and still spends nothing", async () => {
+    let spent: boolean = false;
+
+    const probe: FakeResponse = await run(
+      spec({
+        provider: ConnectProvider.GitHub,
+        isProviderRedirect: (): boolean => {
+          return true;
+        },
+        noticeOfProviderRedirect: (): ConnectProviderNotice | null => {
+          return ConnectProviderNotice.GitHubInstalled;
+        },
+        spendState: async (): Promise<WorkspaceOAuthStateRecord | null> => {
+          spent = true;
+          return null;
+        },
+      }),
+    );
+
+    expect(probe.redirectedTo).toEqual([
+      `${connectReturn("github")}&notice=github-installed`,
+    ]);
+    expect(spent).toBe(false);
+  });
+
+  test("a notice is asked for only on a provider's own redirect", async () => {
+    let asked: boolean = false;
+
+    await run(
+      spec({
+        isProviderRedirect: (): boolean => {
+          return false;
+        },
+        noticeOfProviderRedirect: (): ConnectProviderNotice | null => {
+          asked = true;
+          return ConnectProviderNotice.GitHubInstalled;
+        },
+        spendState: async (): Promise<WorkspaceOAuthStateRecord | null> => {
+          return null;
+        },
+      }),
+    );
+
+    expect(asked).toBe(false);
   });
 
   test("the order: the state, then the question, then finishing", async () => {

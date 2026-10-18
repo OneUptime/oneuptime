@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "Mindst ét filter skal matche.",
   "Check that signing in works before you require it: {{link}}": "Kontrollér, at login virker, før du kræver det: {{link}}",
   "Connect an AI Assistant": "Forbind en AI-assistent",
+  "Connect the installation": "Forbind installationen",
   "Create Token": "Opret token",
   "Create a token to see the badge and the code to embed it.": "Opret et token for at se mærket og koden til at indlejre det.",
   "Discards every matching log for good.": "Kasserer hver matchende log for altid.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "Valg for abonnenter",
   "Tells them they are subscribed, with a link to unsubscribe.": "Fortæller dem, at de abonnerer, med et link til at afmelde.",
   "Test Sign-In": "Test login",
+  "The GitHub App is installed": "GitHub-appen er installeret",
   "The assistant names this page by its ID, or by one of its custom domains:": "Assistenten angiver denne side med dens ID eller med et af dens brugerdefinerede domæner:",
   "The attribute to act on, such as deployment.environment.": "Attributten, der skal ændres, fx deployment.environment.",
   "The current name, exactly as it arrives.": "Det nuværende navn, præcis som det kommer ind.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "Rediger handling",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Brug det service.name, dine apps sender, så deres telemetri vises under denne tjeneste.",
   "No profiles here yet": "Ingen profiler her endnu",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiler viser, hvor din kode bruger tid og hukommelse. De vises her, så snart dine apps eller hosts sender dem."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiler viser, hvor din kode bruger tid og hukommelse. De vises her, så snart dine apps eller hosts sender dem.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} for at importere dens repositories til dette projekt."
 }

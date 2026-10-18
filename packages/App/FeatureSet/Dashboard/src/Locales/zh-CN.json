@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "必须至少匹配一个筛选条件。",
   "Check that signing in works before you require it: {{link}}": "在要求登录之前，请先确认登录可以正常使用：{{link}}",
   "Connect an AI Assistant": "连接 AI 助手",
+  "Connect the installation": "连接此安装",
   "Create Token": "创建令牌",
   "Create a token to see the badge and the code to embed it.": "创建令牌后，即可看到徽章及其嵌入代码。",
   "Discards every matching log for good.": "永久丢弃每条匹配的日志。",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "订阅者选项",
   "Tells them they are subscribed, with a link to unsubscribe.": "告诉他们已订阅，并附上取消订阅的链接。",
   "Test Sign-In": "测试登录",
+  "The GitHub App is installed": "GitHub App 已安装",
   "The assistant names this page by its ID, or by one of its custom domains:": "助手通过此页面的 ID 或其某个自定义域名来指定它：",
   "The attribute to act on, such as deployment.environment.": "要处理的属性，例如 deployment.environment。",
   "The current name, exactly as it arrives.": "当前名称，与传入时完全一致。",
@@ -30908,5 +30910,6 @@
   "Edit Action": "编辑操作",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "使用你的应用发送的 service.name，它们的遥测数据就会显示在此服务下。",
   "No profiles here yet": "这里还没有性能剖析数据",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "性能剖析数据显示你的代码把时间和内存花在了哪里。你的应用或主机一发送，就会显示在这里。"
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "性能剖析数据显示你的代码把时间和内存花在了哪里。你的应用或主机一发送，就会显示在这里。",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}，将其仓库导入此项目。"
 }

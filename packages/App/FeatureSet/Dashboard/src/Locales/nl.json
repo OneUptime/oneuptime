@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "Minstens één filter moet overeenkomen.",
   "Check that signing in works before you require it: {{link}}": "Controleer of aanmelden werkt voordat je het verplicht maakt: {{link}}",
   "Connect an AI Assistant": "Een AI-assistent verbinden",
+  "Connect the installation": "Installatie koppelen",
   "Create Token": "Token maken",
   "Create a token to see the badge and the code to embed it.": "Maak een token om de badge en de code om hem in te sluiten te zien.",
   "Discards every matching log for good.": "Verwijdert elk overeenkomend logboek voorgoed.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "Keuzes voor abonnees",
   "Tells them they are subscribed, with a link to unsubscribe.": "Laat weten dat ze geabonneerd zijn, met een link om zich af te melden.",
   "Test Sign-In": "Aanmelden testen",
+  "The GitHub App is installed": "De GitHub-app is geïnstalleerd",
   "The assistant names this page by its ID, or by one of its custom domains:": "De assistent noemt deze pagina met haar ID of met een van haar aangepaste domeinen:",
   "The attribute to act on, such as deployment.environment.": "Het attribuut waarop de regel werkt, zoals deployment.environment.",
   "The current name, exactly as it arrives.": "De huidige naam, precies zoals hij binnenkomt.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "Actie bewerken",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Gebruik de service.name die uw apps versturen, zodat hun telemetrie onder deze service verschijnt.",
   "No profiles here yet": "Nog geen profielen",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profielen tonen waar uw code tijd en geheugen aan besteedt. Ze verschijnen hier zodra uw apps of hosts ze versturen."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profielen tonen waar uw code tijd en geheugen aan besteedt. Ze verschijnen hier zodra uw apps of hosts ze versturen.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} om de repository's ervan in dit project te importeren."
 }

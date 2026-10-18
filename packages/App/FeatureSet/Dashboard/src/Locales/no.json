@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "Minst ett filter må samsvare.",
   "Check that signing in works before you require it: {{link}}": "Sjekk at innlogging fungerer før du krever det: {{link}}",
   "Connect an AI Assistant": "Koble til en AI-assistent",
+  "Connect the installation": "Koble til installasjonen",
   "Create Token": "Opprett token",
   "Create a token to see the badge and the code to embed it.": "Opprett et token for å se merket og koden for å bygge det inn.",
   "Discards every matching log for good.": "Forkaster hver samsvarende logg for godt.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "Valg for abonnenter",
   "Tells them they are subscribed, with a link to unsubscribe.": "Forteller at de abonnerer, med en lenke for å melde seg av.",
   "Test Sign-In": "Test innlogging",
+  "The GitHub App is installed": "GitHub-appen er installert",
   "The assistant names this page by its ID, or by one of its custom domains:": "Assistenten angir denne siden med ID-en eller med et av de egendefinerte domenene:",
   "The attribute to act on, such as deployment.environment.": "Attributtet regelen virker på, for eksempel deployment.environment.",
   "The current name, exactly as it arrives.": "Det nåværende navnet, nøyaktig slik det kommer inn.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "Rediger handling",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Bruk service.name som appene dine sender, slik at telemetrien deres vises under denne tjenesten.",
   "No profiles here yet": "Ingen profiler her ennå",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiler viser hvor koden din bruker tid og minne. De vises her så snart appene eller vertene dine sender dem."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiler viser hvor koden din bruker tid og minne. De vises her så snart appene eller vertene dine sender dem.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} for å importere repositoriene dens til dette prosjektet."
 }

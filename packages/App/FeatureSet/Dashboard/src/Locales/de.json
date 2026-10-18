@@ -30757,6 +30757,7 @@
   "At least one filter must match.": "Mindestens ein Filter muss zutreffen.",
   "Check that signing in works before you require it: {{link}}": "Prüfen Sie, ob die Anmeldung funktioniert, bevor Sie sie verlangen: {{link}}",
   "Connect an AI Assistant": "KI-Assistenten verbinden",
+  "Connect the installation": "Installation verbinden",
   "Create Token": "Token erstellen",
   "Create a token to see the badge and the code to embed it.": "Erstellen Sie ein Token, um das Badge und den Code zum Einbetten zu sehen.",
   "Discards every matching log for good.": "Verwirft jedes passende Protokoll endgültig.",
@@ -30866,6 +30867,7 @@
   "Subscriber Choices": "Auswahl für Abonnenten",
   "Tells them they are subscribed, with a link to unsubscribe.": "Teilt ihnen mit, dass sie abonniert sind, mit einem Link zum Abbestellen.",
   "Test Sign-In": "Anmeldung testen",
+  "The GitHub App is installed": "Die GitHub-App ist installiert",
   "The assistant names this page by its ID, or by one of its custom domains:": "Der Assistent nennt diese Seite über ihre ID oder über eine ihrer benutzerdefinierten Domains:",
   "The attribute to act on, such as deployment.environment.": "Das Attribut, auf das die Regel wirkt, etwa deployment.environment.",
   "The current name, exactly as it arrives.": "Der aktuelle Name, genau so, wie er ankommt.",
@@ -30908,5 +30910,6 @@
   "Edit Action": "Aktion bearbeiten",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Verwenden Sie den service.name, den Ihre Apps senden, damit ihre Telemetrie unter diesem Dienst erscheint.",
   "No profiles here yet": "Noch keine Profile",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profile zeigen, wo Ihr Code Zeit und Speicher verbraucht. Sie erscheinen hier, sobald Ihre Apps oder Hosts sie senden."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profile zeigen, wo Ihr Code Zeit und Speicher verbraucht. Sie erscheinen hier, sobald Ihre Apps oder Hosts sie senden.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}, um ihre Repositories in dieses Projekt zu importieren."
 }
