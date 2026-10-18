@@ -12,7 +12,7 @@ up-to-date list see [`values.yaml`](../values.yaml).
 |--------------------|-------------------------------------------------------------------------------------------------|-----------------|:------:|
 | `global.storageClass` | Storage class used for all persistent volumes.                                               | `nil`           | 🚨 |
 | `host`             | Primary hostname served by OneUptime (used for routing and certificates).                       | `localhost`     | 🚨 |
-| `httpProtocol`     | Set to `https` when the server has an SSL/TLS certificate, otherwise `http`.                     | `http`          | 🚨 |
+| `httpProtocol`     | Set to `https` when people reach OneUptime over HTTPS (TLS at the chart's nginx or at a proxy in front of it), otherwise `http`. See [HTTPS](#https). | `http`          | 🚨 |
 | `ssl.provision`    | Auto-provision a Let's Encrypt certificate for the primary host (needs public ports 80 & 443).  | `false`         |    |
 | `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`. Set to a long random string in production.                    | `nil`           |    |
 | `encryptionSecret` | Value used for `ENCRYPTION_SECRET`. Set to a long random string in production.                   | `nil`           |    |
@@ -464,6 +464,37 @@ it directly is the peer, and no header setting compensates for that.
 | Parameter          | Description                                                                                          | Default |
 |--------------------|------------------------------------------------------------------------------------------------------|---------|
 | `trustedProxyHops` | Number of appending reverse proxies you run in front of OneUptime. `0` ignores `X-Forwarded-For` entirely and uses the connecting address. | `1` |
+
+## HTTPS
+
+Set `httpProtocol: https` once people reach OneUptime over HTTPS, whether TLS
+ends at the chart's nginx (`ssl.provision: true`) or at a proxy, load balancer
+or CDN in front of it. Besides building `https://` links, OneUptime then:
+
+- keeps sign-in cookies on HTTPS (`Secure`), so a browser never sends a
+  session over plain HTTP;
+- sends `Strict-Transport-Security: max-age=31536000` for `host`, so a browser
+  that has been there reaches that name over HTTPS only, on every port, for a
+  year. Status pages and dashboards on custom domains never get this header,
+  and neither does a `host` that is `localhost` (or a name under it) or an IP
+  address.
+
+Cookies are also `Secure` whenever a visitor's own connection is HTTPS, on any
+domain: the chart's nginx tells the app so when it ends TLS itself, or when the
+proxy in front of it sends `X-Forwarded-Proto: https`. Make sure yours does, or
+the sign-in cookies of status pages and dashboards on custom domains it serves
+are not kept on HTTPS. A plain-HTTP install (`httpProtocol: http`, no TLS in
+front) sets its cookies as before, so people can still sign in.
+
+To change how long browsers keep to HTTPS, set `HSTS_MAX_AGE_SECONDS` through
+`extraEnv`. `0` makes browsers forget the rule at their next HTTPS visit: set it
+a while before `host` has to answer over plain HTTP again.
+
+```yaml
+extraEnv:
+  - name: HSTS_MAX_AGE_SECONDS
+    value: "0"
+```
 
 ## On-call calendar feeds
 

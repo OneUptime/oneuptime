@@ -138,6 +138,10 @@ import StatusPageReportScheduleUtil, {
 } from "../../Utils/StatusPage/ReportSchedule";
 import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 import StatusPageHistoryChartBarColorRuleService from "./StatusPageHistoryChartBarColorRuleService";
+import {
+  DEFAULT_SUBSCRIBER_EMAIL_FOOTER_TEXT,
+  getSubscriberEmailFooterText,
+} from "../../Types/StatusPage/SubscriberEmailFooter";
 import StatusPageHistoryChartBarColorRule from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import Color from "../../Types/Color";
 import {
@@ -541,18 +545,16 @@ export class Service extends ProjectReferencesService<StatusPage> {
     return statusPage?.isArchived === true;
   }
 
+  /*
+   * The line subscriber emails end with, by the rule the dashboard's Email
+   * Footer card reads too (Types/StatusPage/SubscriberEmailFooter).
+   */
   public static getDefaultEmailFooterText(): string {
-    return "This is an automated email sent to you because you are subscribed to this Status Page.";
+    return DEFAULT_SUBSCRIBER_EMAIL_FOOTER_TEXT;
   }
 
   public static getSubscriberEmailFooterText(statusPage: StatusPage): string {
-    if (
-      statusPage.enableCustomSubscriberEmailNotificationFooterText &&
-      statusPage.subscriberEmailNotificationFooterText
-    ) {
-      return statusPage.subscriberEmailNotificationFooterText;
-    }
-    return this.getDefaultEmailFooterText();
+    return getSubscriberEmailFooterText(statusPage);
   }
 
   /*

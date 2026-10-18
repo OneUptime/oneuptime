@@ -196,7 +196,7 @@ describe("Status pages: the OIDC page", () => {
     const page: string = readPage("en", "status-pages/index");
 
     expect(page).toContain(
-      "configures OpenID Connect: you enter the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**.",
+      "configures OpenID Connect: **Add OIDC Provider** asks for the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**.",
     );
     expect(page).not.toContain(
       "(discovery URL, issuer, client ID and secret, scopes, claim names)",

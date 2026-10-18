@@ -41,7 +41,9 @@ const NOTE_LEAD: string =
   "**A workflow's field lists have plain names, and a watched related record is heard.**";
 const PREVIOUS_LEAD: string =
   "**A placeholder `ENCRYPTION_SECRET` no longer signs sign-in tokens.**";
-const LAST_ITEM_START: string = "- See [API and endpoint changes]";
+// The note after it: sign-in cookies and HTTPS (HttpsCookiesUpgradeDocs).
+const NEXT_LEAD: string =
+  "**Sign-in cookies stay on HTTPS, and an HTTPS installation tells browsers to stay there.**";
 
 // What the two settings were called, which the note names once each.
 const OLD_WATCHED_NAME: string = "Listen on";
@@ -77,7 +79,7 @@ describe("the English upgrade note on workflow field lists", () => {
     return component.id === "incident-on-update";
   }) as ComponentMetadata;
 
-  it("is a note of the 13 → 14 changes, once, after the note on sign-in tokens and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on sign-in tokens and before the note on HTTPS cookies", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -89,9 +91,9 @@ describe("the English upgrade note on workflow field lists", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(LAST_ITEM_START)).toBe(
-      true,
-    );
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("gives the settings the names the On Update trigger has now, and says what they were", () => {

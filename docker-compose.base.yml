@@ -3,6 +3,10 @@ x-common-variables: &common-variables
   PROVISION_SSL: ${PROVISION_SSL}
 
   HTTP_PROTOCOL: ${HTTP_PROTOCOL}
+  # With HTTP_PROTOCOL=https, browsers are told to reach HOST over HTTPS only
+  # (Strict-Transport-Security) for this many seconds. Empty means one year;
+  # 0 makes browsers forget the rule at their next HTTPS visit.
+  HSTS_MAX_AGE_SECONDS: ${HSTS_MAX_AGE_SECONDS:-}
 
   STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
   DASHBOARD_CNAME_RECORD: ${DASHBOARD_CNAME_RECORD}

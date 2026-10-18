@@ -9,6 +9,7 @@ import SubscribeSideMenu from "./SideMenu";
 import {
   SubscribePageProps,
   getSubscribePreferenceFields,
+  isSubscribeChannelMenuShown,
 } from "./SubscribePageUtils";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -188,16 +189,22 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         },
       ]}
       sideMenu={
-        <SubscribeSideMenu
-          isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
-          enableSlackSubscribers={props.enableSlackSubscribers}
-          enableEmailSubscribers={props.enableEmailSubscribers}
-          enableSMSSubscribers={props.enableSMSSubscribers}
-          enableMicrosoftTeamsSubscribers={
-            props.enableMicrosoftTeamsSubscribers
-          }
-          enableWebhookSubscribers={props.enableWebhookSubscribers}
-        />
+        /*
+         * The channels, only when there is more than one to pick
+         * from (isSubscribeChannelMenuShown).
+         */
+        isSubscribeChannelMenuShown(props) ? (
+          <SubscribeSideMenu
+            isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
+            enableSlackSubscribers={props.enableSlackSubscribers}
+            enableEmailSubscribers={props.enableEmailSubscribers}
+            enableSMSSubscribers={props.enableSMSSubscribers}
+            enableMicrosoftTeamsSubscribers={
+              props.enableMicrosoftTeamsSubscribers
+            }
+            enableWebhookSubscribers={props.enableWebhookSubscribers}
+          />
+        ) : undefined
       }
     >
       {isLaoding ? <FormSkeleton /> : <></>}

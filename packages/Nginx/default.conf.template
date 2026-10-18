@@ -55,6 +55,28 @@ map "${NGINX_INGEST_ACCESS_LOG}" $ingest_access_log {
     "no"      0;
 }
 
+## The scheme the visitor used, for X-Forwarded-Proto.
+##
+## Every proxying location below tells the app how the browser reached
+## OneUptime with `proxy_set_header X-Forwarded-Proto $visitor_scheme`. It is
+## nginx's own $scheme - https when this ingress ended TLS itself
+## (PROVISION_SSL, a status page's or a dashboard's own certificate) - unless
+## the proxy in front of this one already said the visitor used https: TLS
+## ended at a CDN, a load balancer or a reverse proxy of the operator's, which
+## then talks plain HTTP to this ingress. Before, that "https" was replaced
+## with this hop's "http", so the app took every such visitor for a plain-HTTP
+## one.
+##
+## The app keeps a browser's cookies on HTTPS (Secure) whenever this says
+## https (Common/Server/Utils/RequestTransport.ts). Only an "https" is taken
+## from the request, and it can only add Secure: a caller that sends it over
+## plain HTTP makes its own cookies Secure, which its own browser then
+## declines to keep. Nothing a caller sends can turn https into http.
+map $http_x_forwarded_proto $visitor_scheme {
+    default                   $scheme;
+    "~*^\s*https\s*(,|$)"   https;
+}
+
 # Status Pages
 
 server {
@@ -103,7 +125,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         if ($billing_enabled = true) {
             return 301 https://$host$request_uri;
@@ -137,7 +159,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
@@ -163,7 +185,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
@@ -226,7 +248,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Keep the upstream connection pooled, as every other proxying
         # location in this file does.
@@ -252,7 +274,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         if ($billing_enabled = true) {
             return 301 https://$host$request_uri;
@@ -269,7 +291,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -286,7 +308,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -303,7 +325,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -320,7 +342,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -337,7 +359,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -354,7 +376,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -371,7 +393,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -423,7 +445,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -448,7 +470,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
@@ -467,7 +489,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
@@ -524,7 +546,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Keep the upstream connection pooled, as every other proxying
         # location in this file does.
@@ -541,7 +563,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -558,7 +580,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -575,7 +597,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -592,7 +614,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -609,7 +631,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -626,7 +648,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -642,7 +664,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -692,7 +714,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $server_name;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -716,7 +738,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -733,7 +755,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -763,7 +785,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -781,7 +803,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Cache manifest for 1 hour, service worker for no cache
         if ($uri ~* "service-worker\.js$") {
@@ -811,7 +833,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -828,7 +850,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -845,7 +867,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -862,7 +884,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -879,7 +901,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -897,7 +919,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -919,7 +941,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
@@ -949,7 +971,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
@@ -971,7 +993,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1005,7 +1027,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
@@ -1030,7 +1052,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
@@ -1059,7 +1081,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
@@ -1087,7 +1109,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
@@ -1116,7 +1138,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Source maps built with sourcesContent are large. This bounds the
         # WHOLE request body; the App's multipart middleware separately caps
@@ -1188,7 +1210,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1205,7 +1227,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -1220,7 +1242,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1238,7 +1260,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1255,7 +1277,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1330,7 +1352,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Keep the upstream connection pooled. nginx talks HTTP/1.0 to the
         # upstream by default and sends "Connection: close" with it, which
@@ -1371,7 +1393,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1392,7 +1414,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1413,7 +1435,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1428,7 +1450,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1447,7 +1469,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1466,7 +1488,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1482,7 +1504,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1497,7 +1519,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1521,7 +1543,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1551,7 +1573,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $server_name;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1573,7 +1595,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1629,7 +1651,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # Keep the upstream connection pooled, as every other proxying
         # location in this file does.
@@ -1646,7 +1668,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1678,7 +1700,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1698,7 +1720,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1721,7 +1743,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1739,7 +1761,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1758,7 +1780,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -1792,7 +1814,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $server_name;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1815,7 +1837,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $server_name;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1837,7 +1859,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1854,7 +1876,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1882,7 +1904,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1906,7 +1928,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1929,7 +1951,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1955,7 +1977,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1973,7 +1995,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -1991,7 +2013,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets
         proxy_http_version 1.1;
@@ -2007,7 +2029,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $visitor_scheme;
 
         # enable WebSockets and SSE (for MCP Server-Sent Events)
         proxy_http_version 1.1;

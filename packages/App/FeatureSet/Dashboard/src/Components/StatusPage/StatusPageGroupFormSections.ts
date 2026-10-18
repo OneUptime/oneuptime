@@ -24,6 +24,34 @@ export const STATUS_PAGE_GROUP_LIST_SUMMARY: string = translationKey("List");
 
 export const STATUS_PAGE_GROUP_GRID_SUMMARY: string = translationKey("Grid");
 
+// The group form's name, by example.
+export const STATUS_PAGE_GROUP_NAME_PLACEHOLDER: string = translationKey(
+  "e.g., Core services",
+);
+
+/*
+ * View Mode's two answers, each with one line saying what it draws: the
+ * list nearly every group is, first.
+ */
+export const STATUS_PAGE_GROUP_VIEW_MODE_OPTIONS: Array<{
+  value: StatusPageGroupViewMode;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: StatusPageGroupViewMode.List,
+    title: STATUS_PAGE_GROUP_LIST_SUMMARY,
+    description: translationKey("One row for each monitor."),
+  },
+  {
+    value: StatusPageGroupViewMode.Grid,
+    title: STATUS_PAGE_GROUP_GRID_SUMMARY,
+    description: translationKey(
+      "Rows and columns, such as services by region.",
+    ),
+  },
+];
+
 type IsGridViewModeFunction = (viewMode: unknown) => boolean;
 
 /*

@@ -49,6 +49,66 @@ export interface SubscribePageProps extends PageComponentProps {
 
 export const SUBSCRIBE_PREFERENCES_SECTION_ID: string = "preferences";
 
+/*
+ * How many ways a visitor can subscribe on this page: email, SMS, Slack,
+ * Microsoft Teams and webhook, each switched on or off by the page.
+ */
+export const getSubscribeChannelCount: (
+  props: Pick<
+    SubscribePageProps,
+    | "enableEmailSubscribers"
+    | "enableSMSSubscribers"
+    | "enableSlackSubscribers"
+    | "enableMicrosoftTeamsSubscribers"
+    | "enableWebhookSubscribers"
+  >,
+) => number = (
+  props: Pick<
+    SubscribePageProps,
+    | "enableEmailSubscribers"
+    | "enableSMSSubscribers"
+    | "enableSlackSubscribers"
+    | "enableMicrosoftTeamsSubscribers"
+    | "enableWebhookSubscribers"
+  >,
+): number => {
+  return [
+    props.enableEmailSubscribers,
+    props.enableSMSSubscribers,
+    props.enableSlackSubscribers,
+    props.enableMicrosoftTeamsSubscribers,
+    props.enableWebhookSubscribers,
+  ].filter(Boolean).length;
+};
+
+/*
+ * The Subscribe page lists its channels in a side menu only when there is
+ * more than one to pick from. A page that offers one channel - most offer
+ * email alone - drew a menu holding that one entry beside the form: a
+ * choice nobody had to make.
+ */
+export const isSubscribeChannelMenuShown: (
+  props: Pick<
+    SubscribePageProps,
+    | "enableEmailSubscribers"
+    | "enableSMSSubscribers"
+    | "enableSlackSubscribers"
+    | "enableMicrosoftTeamsSubscribers"
+    | "enableWebhookSubscribers"
+  >,
+) => boolean = (
+  props: Pick<
+    SubscribePageProps,
+    | "enableEmailSubscribers"
+    | "enableSMSSubscribers"
+    | "enableSlackSubscribers"
+    | "enableMicrosoftTeamsSubscribers"
+    | "enableWebhookSubscribers"
+  >,
+): boolean => {
+  return getSubscribeChannelCount(props) > 1;
+};
+
 // Status page locale keys (Locales/*.json), looked up with the page's t().
 export const SUBSCRIBE_PREFERENCES_COPY: {
   title: string;

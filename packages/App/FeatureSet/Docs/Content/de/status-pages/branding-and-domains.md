@@ -60,12 +60,12 @@ Ihr eigenes CSS und HTML gilt in beiden Designs; [Eigenes HTML, CSS und JavaScri
 
 ### Titel, Beschreibung und Favicon
 
-- **Titel und Beschreibung** – die Karte merkt an, dass dies auch für SEO verwendet wird. **Bearbeiten** öffnet **Seitentitel** (Platzhalter `Please enter page title here.`) und **Seitenbeschreibung**. Suchmaschinen und Linkvorschauen zeigen diese an; schreiben Sie sie also für einen Kunden, nicht für Ihr Team.
+- **Titel und Beschreibung** – der Name der Seite im Browser-Tab und in E-Mails an Abonnenten sowie die Beschreibung, die Suchmaschinen zeigen. **Bearbeiten** öffnet **Seitentitel** (Platzhalter `e.g., Acme Status`) und **Seitenbeschreibung**. Suchmaschinen und Linkvorschauen zeigen diese an; schreiben Sie sie also für einen Kunden, nicht für Ihr Team.
 - **Favicon** – **Favicon bearbeiten** öffnet den Upload **Favicon**: das kleine Symbol im Browser-Tab.
 
 ### Header-Links
 
-Die Tabelle **Header-Links** enthält die Links im Header der Statusseite, etwa zu Ihrer Website, Ihrer Dokumentation oder einem Support-Portal. Jeder Link hat einen **Titel** und einen **Link** (eine URL, Platzhalter `https://link.com`), und Sie ordnen sie durch Ziehen. Ohne Links sagt die Tabelle **Kein Status-Kopfzeilenlink für diese Statusseite**, mit **Statusseite Kopfzeile Link erstellen** darunter.
+Die Tabelle **Header-Links** enthält die Links im Header der Statusseite, etwa zu Ihrer Website, Ihrer Dokumentation oder einem Support-Portal. Jeder Link hat einen **Titel** und einen **Link** (eine URL, Platzhalter `https://link.com`), und Sie ordnen sie durch Ziehen. Ohne Links sagt die Tabelle, wofür sie da sind, mit **Header-Link hinzufügen** darunter.
 
 ### Beschreibung der Übersichtsseite
 
@@ -74,7 +74,7 @@ Die Tabelle **Header-Links** enthält die Links im Header der Statusseite, etwa 
 ### Fußzeile
 
 - **Copyright-Informationen** – **Copyright bearbeiten** öffnet ein Feld, **Copyright-Informationen**, mit dem Platzhalter `Acme, Inc.`.
-- **Footer-Links** – dasselbe Paar aus **Titel** und **Link** wie bei den Header-Links, durch Ziehen geordnet. Ohne Links steht dort „Kein Status-Fußzeilenlink für diese Statusseite.“
+- **Footer-Links** – dasselbe Paar aus **Titel** und **Link** wie bei den Header-Links, durch Ziehen geordnet und mit **Footer-Link hinzufügen** hinzugefügt.
 
 Header-Links dienen der Navigation; Footer-Links dem Kleingedruckten, etwa Rechtliches, Datenschutz und Nutzungsbedingungen.
 
@@ -130,8 +130,8 @@ Sie waren früher zwei eigene Karten, **Gesamtprozentsatz der Verfügbarkeit** u
 
 | Karte | Spalte | Was sie enthält |
 | ---- | ------ | ------------- |
-| **Header-HTML** | `headerHTML` | HTML, das dem Header der Seite hinzugefügt wird (Platzhalter `Insert Custom HTML here.`). |
-| **Footer-HTML** | `footerHTML` | HTML, das der Fußzeile der Seite hinzugefügt wird. |
+| **Header-HTML** | `headerHTML` | HTML, das statt des Headers der Seite angezeigt wird, also statt Logo und Header-Links (Platzhalter `Insert Custom HTML here.`). |
+| **Footer-HTML** | `footerHTML` | HTML, das statt der Fußzeile der Seite angezeigt wird, samt ihren Links und den Umschaltern für Sprache und Design. |
 | **Benutzerdefiniertes CSS** | `customCSS` | Stile für die ganze Seite (Platzhalter `Insert Custom CSS here.`). |
 | **Benutzerdefiniertes JavaScript** | `customJavaScript` | Ein Skript, das die Seite ausführt (Platzhalter `Insert Custom JavaScript here.`). |
 

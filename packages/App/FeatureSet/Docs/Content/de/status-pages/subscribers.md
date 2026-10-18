@@ -43,7 +43,7 @@ Die Schalter bestimmen, wie sich Besucher selbst anmelden können; eine Anmeldun
 
 In OneUptime Cloud steht neben einem Schalter, den Ihr Tarif nicht enthält, der Name des Tarifs: **Growth** für **SMS** und **Abonnentenseite anzeigen**, **Scale** für **Slack**, **Microsoft Teams** und **Webhook**. Einen Kanal auszuschalten funktioniert in jedem Tarif, sodass sich ein Kanal, den eine Testphase eingeschaltet hat, immer wieder ausschalten lässt; der Schalter sagt das darunter.
 
-Jeder Kanal bekommt außerdem seine eigene Liste im Seitenmenü der Statusseite unter **Abonnenten**: **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **Microsoft Teams-Abonnenten** und **Webhook-Abonnenten**. Dort sehen Sie, wer eingetragen ist, tragen jemanden von Hand nach oder hinterlassen sich zu einem bestimmten Abonnenten einen Eintrag unter **Notizen** (`internalNote`). Solange ein Kanal aus ist, steht das oben in seiner Liste, direkt neben dem Schalter des Kanals – so schalten Sie ihn ein, ohne die Liste zu verlassen.
+Jeder Kanal bekommt außerdem seine eigene Liste im Seitenmenü der Statusseite unter **Abonnenten**: **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **Microsoft Teams-Abonnenten** und **Webhook-Abonnenten**. Dort sehen Sie, wer eingetragen ist, tragen jemanden mit **Abonnent hinzufügen** von Hand nach oder hinterlassen sich zu einem bestimmten Abonnenten eine **Interne Notiz** (`internalNote`), die nur Ihr Team sieht. Solange ein Kanal aus ist, steht das oben in seiner Liste, direkt neben dem Schalter des Kanals – so schalten Sie ihn ein, ohne die Liste zu verlassen.
 
 **Ein Schalter allein genügt nicht.** Der Eintrag **Abonnieren** in der Navigationsleiste der Statusseite erscheint nur, wenn **Abonnentenseite anzeigen** an ist *und* mindestens ein Kanal an ist. Schalten Sie **E-Mail** ein, lassen aber **Abonnentenseite anzeigen** aus, kommen Besucher gar nicht erst zum Formular.
 
@@ -66,7 +66,7 @@ Keine der beiden Einstellungen löscht einen Abonnenten, und wenn Sie sie aussch
 
 ## Was ein Besucher auf der Seite Abonnieren sieht
 
-Die Seite **Abonnieren** hat ein Untermenü mit einem Reiter je aktiviertem Kanal. Jeder Reiter fragt nur das Nötigste ab:
+Die Seite **Abonnieren** hat ein Untermenü mit einem Reiter je aktiviertem Kanal; ist nur ein Kanal an, gibt es kein Untermenü, nur das Formular dieses Kanals. Jeder Reiter fragt nur das Nötigste ab:
 
 | Reiter | Adresse | Überschrift | Was er abfragt |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ Der Absendeknopf heißt **Abonnieren**. Eine Anmeldung per SMS, Slack, Microsoft
 
 ## Abonnenten Ressourcen und Ereignistypen wählen lassen
 
-Standardmäßig bekommt ein Abonnent alles auf der Seite. Zwei Schalter in der Karte **Erweiterte Abonnenten-Einstellungen** ändern das:
+Standardmäßig bekommt ein Abonnent alles auf der Seite. Zwei Schalter in der Karte **Auswahl für Abonnenten** auf **Abonnenten-Einstellungen** ändern das, und jeder speichert in dem Moment, in dem Sie ihn umlegen:
 
 - **Abonnenten erlauben, Ressourcen auszuwählen** (`allowSubscribersToChooseResources`) – standardmäßig aus. Schalten Sie es ein, und das Abonnierformular bekommt einen Schalter **Alle Ressourcen abonnieren**; wird er abgewählt, erscheint **Ressourcen zum Abonnieren auswählen**, damit der Besucher einzelne Ressourcen auswählen kann.
 - **Abonnenten erlauben, Ereignistypen auszuwählen** (`allowSubscribersToChooseEventTypes`) – standardmäßig aus. Gleiches Prinzip: ein Schalter **Alle Ereignistypen abonnieren** und darunter **Ereignistypen zum Abonnieren auswählen**, wenn er abgewählt ist.
@@ -99,17 +99,17 @@ Die Auswahl landet im Abonnentendatensatz als **Hat alle Ressourcen abonniert** 
 
 Gut für: eine Seite, die mehrere Produkte abdeckt. Ein Kunde, der nur Ihre API nutzt, will nicht jedes Mal benachrichtigt werden, wenn die Marketing-Website wackelt – lassen Sie ihn die Liste selbst eingrenzen, statt zuzusehen, wie er sich ganz abmeldet.
 
-Dieselbe Karte enthält auch **Zeitzonen der Abonnenten**.
+**Zeitzonen der Abonnenten** liegt unter **Weitere Einstellungen** auf demselben Bildschirm (siehe [unten](#e-mail-fußzeile-eigenes-smtp-und-twilio)).
 
 ## Double Opt-in per E-Mail
 
 E-Mail-Abonnenten bestätigen immer. Wird ein Abonnent mit einer E-Mail-Adresse angelegt und nicht bereits als bestätigt angelegt, wird **Ist Abonnement bestätigt** (`isSubscriptionConfirmed`) auf `false` gesetzt und ein sechsstelliges **Token zur Abonnementbestätigung** erzeugt. OneUptime schickt dann einen Bestätigungslink der Form `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Der Besucher landet auf einer Seite **Abonnement bestätigen** und sieht, sobald es durchgeht, *Abonnement erfolgreich bestätigt*.
 
-SMS-, Slack-, Microsoft-Teams- und Webhook-Abonnenten überspringen das – sie werden mit `isSubscriptionConfirmed` bereits auf `true` angelegt. Ebenso E-Mail-Abonnenten, die Ihr Team unter **E-Mail-Abonnenten** hinzufügt: Dort ist **Keinen Bestätigungslink senden** standardmäßig an. Schalten Sie es aus, damit die Adresse wie bei einer Anmeldung bestätigt.
+SMS-, Slack-, Microsoft-Teams- und Webhook-Abonnenten überspringen das – sie werden mit `isSubscriptionConfirmed` bereits auf `true` angelegt. Fügt Ihr Team unter **E-Mail-Abonnenten** einen E-Mail-Abonnenten hinzu, entscheidet **Beim Hinzufügen**: **Jetzt abonnieren** (der Standard: bestätigt, und nichts wird gesendet), **Jetzt abonnieren und Bescheid geben** (bestätigt, und die E-Mail, dass er abonniert ist, geht hinaus) oder **Zuerst um Bestätigung bitten** (er bekommt den Bestätigungslink, wie bei einer Anmeldung). **In großen Mengen hinzufügen** fragt dasselbe.
 
 **Unbestätigt heißt stumm.** Die Abfrage, die Abonnenten für eine Benachrichtigung holt, filtert auf `isUnsubscribed: false` und `isSubscriptionConfirmed: true`. Eine E-Mail-Adresse, die den Link nie angeklickt hat, steht in Ihrer Liste **E-Mail-Abonnenten** und bekommt nichts. Wenn jemand schwört, abonniert zu haben, aber nichts hört, prüfen Sie zuerst diese Spalte.
 
-Es gibt keinen Schalter, um die E-Mail-Bestätigung abzuschalten – sie gilt ausnahmslos für jeden, der sich über die Statusseite einträgt. Eine eigene Spalte pro Abonnent, **Abonnementbestätigung senden** (`sendYouHaveSubscribedMessage`, Standard true), steuert die E-Mail „Sie haben abonniert“, die verschickt wird, sobald ein Abonnent bestätigt ist.
+Es gibt keinen Schalter, um die E-Mail-Bestätigung abzuschalten – sie gilt ausnahmslos für jeden, der sich über die Statusseite einträgt. Eine eigene Spalte pro Abonnent, **Abonnementbestätigung senden** (`sendYouHaveSubscribedMessage`, Standard true), steuert die E-Mail „Sie haben abonniert“, die verschickt wird, sobald ein Abonnent bestätigt ist. Im Dashboard setzt sie **Beim Hinzufügen** für einen E-Mail-Abonnenten und **Willkommensnachricht senden** unter **Weitere Felder** für die anderen Kanäle.
 
 ## Ein Abonnement verwalten und kündigen
 
@@ -131,7 +131,7 @@ Auf einer privaten Statusseite braucht sie einen angemeldeten Besucher, wie der 
 
 Die Endpunkte hinter all dem sind `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token` sowie `GET` und `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. Das `GET` zur Abmeldung beschreibt nur den Link. Das `POST` kündigt das Abonnement, egal mit welchem Body, auch mit dem Body `List-Unsubscribe=One-Click` einer Ein-Klick-Abmeldung. Jeder Endpunkt, der ein Token nimmt, gibt dieselbe Antwort für ein fehlendes oder falsches Token, einen gelöschten Abonnenten und einen Abonnenten einer anderen Statusseite, sodass sich mit keinem herausfinden lässt, wer abonniert hat.
 
-Die Abmeldung setzt ein Flag, statt eine Zeile zu löschen, sodass der Datensatz mit gesetztem **Ist abgemeldet** in der Kanalliste bleibt – nützlich, wenn Sie später erklären müssen, warum eine bestimmte Adresse keine Mails mehr bekommt. Sie hält außerdem **Abgemeldet am** (`unsubscribedAt`) fest, wer auch immer das Abonnement gekündigt hat: der Abonnent über den Link oder die Seite **Abonnement aktualisieren** oder ein Teammitglied im Dashboard oder über die API. Jede Abonnentenliste hat eine Spalte und einen Filter **Abgemeldet am**. Schalten Sie **Ist abgemeldet** wieder aus, wird es geleert. Abonnements, die gekündigt wurden, bevor OneUptime das festhielt, haben kein Datum.
+Die Abmeldung setzt ein Flag, statt eine Zeile zu löschen, sodass der Datensatz mit gesetztem **Ist abgemeldet** in der Kanalliste bleibt – nützlich, wenn Sie später erklären müssen, warum eine bestimmte Adresse keine Mails mehr bekommt. Sie hält außerdem **Abgemeldet am** (`unsubscribedAt`) fest, wer auch immer das Abonnement gekündigt hat: der Abonnent über den Link oder die Seite **Abonnement aktualisieren** oder ein Teammitglied im Dashboard oder über die API. Jede Abonnentenliste hat eine Spalte und einen Filter **Abgemeldet am**. Setzen Sie den **Status** eines Abonnenten wieder auf **Abonniert**, wird es geleert. Abonnements, die gekündigt wurden, bevor OneUptime das festhielt, haben kein Datum.
 
 Ein Link nur mit der ID des Abonnenten öffnet nichts mehr. Ein Link **Abonnement aktualisieren** in einer älteren Nachricht, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, öffnet eine Seite, die sagt, dass der Link abgelaufen ist, mit **Neuen Link anfordern**, das zur Seite **Abonnieren** führt. Sehr alte Nachrichten trugen `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, der früher sofort beim Öffnen abmeldete. Er ändert nichts mehr: Er führt auf die Abmeldeseite, die sagt, dass der Link veraltet ist und man den aus einer aktuellen Nachricht nehmen soll.
 
@@ -392,9 +392,10 @@ Während Sie eine Vorlage schreiben, füllt **Live-Vorschau** unter dem Vorlagen
 
 ## E-Mail-Fußzeile, eigenes SMTP und Twilio
 
-Drei weitere Karten in den **Abonnenten-Einstellungen** steuern, wie Abonnentennachrichten Ihr Projekt verlassen:
+Vier weitere Abschnitte unter **Weitere Einstellungen** unten in den **Abonnenten-Einstellungen** steuern, wie Abonnentennachrichten Ihr Projekt verlassen:
 
-- **E-Mail-Fußzeileneinstellungen** – **Benutzerdefinierten E-Mail-Fußzeilentext aktivieren** und **Fußzeilentext der Abonnenten-E-Mail-Benachrichtigung** setzen Ihre eigene Fußzeile unter Abonnenten-E-Mails.
+- **Zeitzonen der Abonnenten** – die Zeitzonen, in denen Zeiten in Benachrichtigungen angezeigt werden, gewählt mit **Zeitzonen bearbeiten**. Ist keine gewählt, werden Zeiten in UTC und in der Zeit von London, New York, Los Angeles, Kolkata und Sydney angezeigt.
+- **E-Mail-Fußzeile** – die Zeile am Ende jeder E-Mail an die Abonnenten der Seite. **Fußzeile bearbeiten** fragt nach der **Fußzeile**: **Die Standard-Fußzeile**, eine Zeile, die sagt, dass sie die E-Mail bekommen, weil sie abonniert haben, oder **Ihr eigener Text**, der **Fußzeilentext**, den Sie schreiben (`enableCustomSubscriberEmailNotificationFooterText` und `subscriberEmailNotificationFooterText`). Bleibt Ihr eigener Text leer, geht die Standard-Fußzeile hinaus.
 - **Benutzerdefiniertes SMTP** – **Benutzerdefinierte SMTP-Konfiguration** verschickt Abonnenten-E-Mails über Ihren eigenen Mailserver statt über den Standard.
 - **Twilio-Konfiguration** – **Twilio-Konfiguration** ist das Twilio-Konto für SMS-Abonnenten.
 

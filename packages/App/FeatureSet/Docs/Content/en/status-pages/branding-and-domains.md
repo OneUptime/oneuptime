@@ -60,12 +60,12 @@ Your custom CSS and HTML apply in both themes; [Custom HTML, CSS and JavaScript]
 
 ### Title, description and favicon
 
-- **Title and Description** — the card notes this is also used for SEO. **Edit** opens **Page Title** (placeholder `Please enter page title here.`) and **Page Description**. Search engines and link previews show these, so write them for a customer, not for your team.
+- **Title and Description** — the page's name in the browser tab and in subscriber emails, and the description search engines show. **Edit** opens **Page Title** (placeholder `e.g., Acme Status`) and **Page Description**. Search engines and link previews show these, so write them for a customer, not for your team.
 - **Favicon** — **Edit Favicon** opens the **Favicon** upload: the small icon in the browser tab.
 
 ### Header links
 
-The **Header Links** table holds the links in the status page's header, such as your website, your docs or a support portal. Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and you reorder them by dragging. With none, the table says **No status header link for this status page**, with **Create Status Page Header Link** under it.
+The **Header Links** table holds the links in the status page's header, such as your website, your docs or a support portal. Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and you reorder them by dragging. With none, the table says what they are for, with **Add Header Link** under it.
 
 ### Overview page description
 
@@ -74,7 +74,7 @@ The **Header Links** table holds the links in the status page's header, such as 
 ### Footer
 
 - **Copyright Info** — **Edit Copyright** opens one field, **Copyright Info**, with the placeholder `Acme, Inc.`.
-- **Footer Links** — the same **Title** and **Link** pair as the header links, ordered by dragging. With none, it says "No status footer link for this status page."
+- **Footer Links** — the same **Title** and **Link** pair as the header links, ordered by dragging, and added with **Add Footer Link**.
 
 Header links are for navigation; footer links are for the fine print, such as legal, privacy and terms.
 
@@ -130,8 +130,8 @@ They used to be two cards of their own, **Overall Uptime Percent** and **Downtim
 
 | Card | Column | What it holds |
 | ---- | ------ | ------------- |
-| **Header HTML** | `headerHTML` | HTML added to the page header (placeholder `Insert Custom HTML here.`). |
-| **Footer HTML** | `footerHTML` | HTML added to the page footer. |
+| **Header HTML** | `headerHTML` | HTML shown in place of the page header, its logo and header links (placeholder `Insert Custom HTML here.`). |
+| **Footer HTML** | `footerHTML` | HTML shown in place of the page footer, with its links and its language and theme switches. |
 | **Custom CSS** | `customCSS` | Styles for the whole page (placeholder `Insert Custom CSS here.`). |
 | **Custom JavaScript** | `customJavaScript` | A script the page runs (placeholder `Insert Custom JavaScript here.`). |
 

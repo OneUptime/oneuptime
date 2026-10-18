@@ -43,7 +43,7 @@ De schakelaars bepalen hoe bezoekers zich zelf kunnen aanmelden, en de statuspag
 
 Op OneUptime Cloud staat bij een schakelaar die uw abonnement niet bevat de naam van het abonnement: **Growth** voor **SMS** en **Abonneepagina weergeven**, **Scale** voor **Slack**, **Microsoft Teams** en **Webhook**. Een kanaal uitzetten werkt op elk abonnement, dus een kanaal dat tijdens een proefperiode is aangezet, kan altijd weer uit; de schakelaar vermeldt dat eronder.
 
-Elk kanaal heeft ook een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **Microsoft Teams-abonnees** en **Webhook-abonnees**. Daar ziet u wie er is aangemeld, voegt u iemand handmatig toe of laat u voor uzelf een **Notities** (`internalNote`) achter bij een bepaalde abonnee. Zolang een kanaal uit staat, vermeldt de bovenkant van de lijst dat, met de schakelaar van het kanaal er direct bij, zodat u het kunt aanzetten zonder de lijst te verlaten.
+Elk kanaal heeft ook een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **Microsoft Teams-abonnees** en **Webhook-abonnees**. Daar ziet u wie er is aangemeld, voegt u iemand handmatig toe met **Abonnee toevoegen** of laat u voor uzelf een **Interne notitie** (`internalNote`) achter bij een bepaalde abonnee, die alleen uw team ziet. Zolang een kanaal uit staat, vermeldt de bovenkant van de lijst dat, met de schakelaar van het kanaal er direct bij, zodat u het kunt aanzetten zonder de lijst te verlaten.
 
 **Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt alleen wanneer **Abonneepagina weergeven** aan staat *en* minstens één kanaal aan staat. Als u **E-mail** aanzet maar **Abonneepagina weergeven** uit laat, kunnen bezoekers het formulier niet bereiken.
 
@@ -66,7 +66,7 @@ Geen van beide instellingen verwijdert een abonnee, en ze uitzetten stuurt weer 
 
 ## Wat een bezoeker op de pagina Abonneren ziet
 
-De pagina **Abonneren** heeft een submenu met één tabblad per ingeschakeld kanaal. Elk tabblad vraagt om het minimum dat het nodig heeft:
+De pagina **Abonneren** heeft een submenu met één tabblad per ingeschakeld kanaal; met maar één kanaal aan is er geen submenu, alleen het formulier van dat kanaal. Elk tabblad vraagt om het minimum dat het nodig heeft:
 
 | Tabblad | Adres | Kop | Wat het vraagt |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ De verzendknop heet **Abonneren**. Een aanmelding via SMS, Slack, Microsoft Team
 
 ## Abonnees zelf resources en gebeurtenistypen laten kiezen
 
-Standaard krijgt een abonnee alles op de pagina. Twee schakelaars in de kaart **Geavanceerde abonnee-instellingen** veranderen dat:
+Standaard krijgt een abonnee alles op de pagina. Twee schakelaars in de kaart **Keuzes voor abonnees** op **Abonneeinstellingen** veranderen dat, en elk wordt opgeslagen zodra u hem omzet:
 
 - **Abonnees toestaan resources te kiezen** (`allowSubscribersToChooseResources`) — standaard uit. Zet het aan en het aanmeldformulier krijgt een schakelaar **Abonneren op alle bronnen**; zet die uit en **Selecteer bronnen om op te abonneren** verschijnt, zodat de bezoeker afzonderlijke resources kan kiezen.
 - **Abonnees toestaan gebeurtenistypen te kiezen** (`allowSubscribersToChooseEventTypes`) — standaard uit. Dezelfde vorm: een schakelaar **Abonneren op alle gebeurtenistypen**, en **Selecteer gebeurtenistypen om op te abonneren** eronder wanneer die uit staat.
@@ -99,17 +99,17 @@ De keuzes komen in het record van de abonnee terecht als **Is Subscribed to All 
 
 Handig voor: een pagina die meerdere producten dekt. Een klant die alleen uw API gebruikt, wil geen melding telkens wanneer de marketingsite hapert — laat hem de lijst zelf beperken in plaats van toe te kijken hoe hij zich helemaal afmeldt.
 
-Dezelfde kaart bevat ook **Tijdzones abonnee**.
+**Tijdzones abonnee** staat onder **Meer instellingen** op hetzelfde scherm (zie [hieronder](#e-mailvoettekst-eigen-smtp-en-twilio)).
 
 ## Dubbele opt-in bij e-mail
 
 E-mailabonnees bevestigen altijd. Wanneer een abonnee met een e-mailadres wordt aangemaakt en niet al bevestigd werd aangemaakt, wordt **Is Subscription Confirmed** (`isSubscriptionConfirmed`) op `false` gezet en wordt er een **Subscription Confirmation Token** van zes cijfers gegenereerd. OneUptime mailt dan een bevestigingslink in de vorm `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. De bezoeker komt op een pagina **Abonnement bevestigen** en ziet, zodra die is afgerond, *Abonnement succesvol bevestigd*.
 
-Abonnees via SMS, Slack, Microsoft Teams en webhook slaan dit over — ze worden aangemaakt met `isSubscriptionConfirmed` al op `true`. Dat geldt ook voor e-mailabonnees die uw team toevoegt onder **E-mail-abonnees**: daar staat **Geen bevestigingslink verzenden** standaard aan. Zet het uit om het adres te laten bevestigen zoals bij een aanmelding.
+Abonnees via SMS, Slack, Microsoft Teams en webhook slaan dit over — ze worden aangemaakt met `isSubscriptionConfirmed` al op `true`. Voegt uw team onder **E-mail-abonnees** een e-mailabonnee toe, dan beslist **Bij het toevoegen**: **Nu abonneren** (de standaard: bevestigd, en er wordt niets verstuurd), **Nu abonneren en het laten weten** (bevestigd, en de e-mail dat ze geabonneerd zijn gaat eruit) of **Eerst om bevestiging vragen** (ze krijgen de bevestigingslink, zoals bij een aanmelding). **In bulk toevoegen** vraagt hetzelfde.
 
 **Onbevestigd betekent stil.** De query die abonnees voor een melding ophaalt, filtert op `isUnsubscribed: false` en `isSubscriptionConfirmed: true`. Een e-mailadres dat nooit op de link heeft geklikt, blijft in uw lijst **E-mail-abonnees** staan en ontvangt niets. Als iemand zweert dat hij is aangemeld maar niets ontvangt, controleer dan eerst die kolom.
 
-Er is geen schakelaar om de e-mailbevestiging uit te zetten — die is onvoorwaardelijk voor iedereen die zich via de statuspagina aanmeldt. Een aparte kolom per abonnee, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, standaard true), bepaalt de e-mail "u bent geabonneerd" die wordt verstuurd zodra een abonnee is bevestigd.
+Er is geen schakelaar om de e-mailbevestiging uit te zetten — die is onvoorwaardelijk voor iedereen die zich via de statuspagina aanmeldt. Een aparte kolom per abonnee, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, standaard true), bepaalt de e-mail "u bent geabonneerd" die wordt verstuurd zodra een abonnee is bevestigd. In het dashboard stelt **Bij het toevoegen** haar in voor een e-mailabonnee, en **Een welkomstbericht sturen**, onder **Meer velden**, voor de andere kanalen.
 
 ## Een abonnement beheren en opzeggen
 
@@ -131,7 +131,7 @@ Op een privé-statuspagina vereist ze een ingelogde bezoeker, net als de rest va
 
 De endpoints achter dit alles zijn `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token`, en `GET` en `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. De afmeld-`GET` beschrijft alleen de link. De `POST` zegt het abonnement op, wat de body ook is, inclusief de body `List-Unsubscribe=One-Click` van een afmeldverzoek met één klik. Elk endpoint dat een token krijgt, geeft hetzelfde antwoord voor een ontbrekend of verkeerd token, een verwijderde abonnee en een abonnee van een andere statuspagina, zodat geen ervan kan worden gebruikt om uit te zoeken wie er is aangemeld.
 
-Afmelden zet een vlag om in plaats van een rij te verwijderen, dus het record blijft in de kanaallijst staan met **Is afgemeld** ingesteld — handig als u later moet uitleggen waarom een bepaald adres geen mail meer ontving. Het legt ook **Uitgeschreven op** (`unsubscribedAt`) vast, wie het abonnement ook heeft opgezegd: de abonnee via de link of de pagina **Abonnement bijwerken**, of een teamgenoot in het dashboard of via de API. Elke abonneelijst heeft een kolom en een filter **Uitgeschreven op**. **Is afgemeld** weer uitzetten wist het. Abonnementen die zijn opgezegd voordat OneUptime dit vastlegde, hebben geen datum.
+Afmelden zet een vlag om in plaats van een rij te verwijderen, dus het record blijft in de kanaallijst staan met **Is afgemeld** ingesteld — handig als u later moet uitleggen waarom een bepaald adres geen mail meer ontving. Het legt ook **Uitgeschreven op** (`unsubscribedAt`) vast, wie het abonnement ook heeft opgezegd: de abonnee via de link of de pagina **Abonnement bijwerken**, of een teamgenoot in het dashboard of via de API. Elke abonneelijst heeft een kolom en een filter **Uitgeschreven op**. De **Status** van een abonnee weer op **Geabonneerd** zetten wist het. Abonnementen die zijn opgezegd voordat OneUptime dit vastlegde, hebben geen datum.
 
 Een link met alleen de ID van de abonnee opent niets meer. Een link **Abonnement bijwerken** in een ouder bericht, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, opent een pagina die zegt dat de link is verlopen, met **Nieuwe link aanvragen**, dat naar de pagina **Abonneren** leidt. Heel oude berichten bevatten `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, die vroeger afmeldde zodra hij werd geopend. Die verandert niets meer: hij leidt naar de afmeldpagina, die zegt dat de link verouderd is en dat de link uit een recent bericht moet worden gebruikt.
 
@@ -392,9 +392,10 @@ Terwijl u een sjabloon schrijft, vult **Live voorbeeld** onder de body van het s
 
 ## E-mailvoettekst, eigen SMTP en Twilio
 
-Nog drie kaarten op **Abonneeinstellingen** bepalen hoe abonneeberichten uw project verlaten:
+Nog vier secties, onder **Meer instellingen** onderaan **Abonneeinstellingen**, bepalen hoe abonneeberichten uw project verlaten:
 
-- **Instellingen e-mailvoettekst** — **Aangepaste e-mailvoettekst inschakelen** en **Voettekst e-mailmelding abonnee** zetten uw eigen voettekst onder e-mails aan abonnees.
+- **Tijdzones abonnee** — de tijdzones waarin tijden in meldingen worden getoond, gekozen met **Tijdzones bewerken**. Als er geen is gekozen, worden tijden getoond in UTC en in de tijd van Londen, New York, Los Angeles, Kolkata en Sydney.
+- **Voettekst van e-mails** — de regel aan het eind van elke e-mail aan de abonnees van de pagina. **Voettekst bewerken** vraagt om de **Voettekst**: **De standaardvoettekst**, een regel die zegt dat ze de e-mail krijgen omdat ze zich hebben geabonneerd, of **Je eigen tekst**, de **Tekst voor de voettekst** die u schrijft (`enableCustomSubscriberEmailNotificationFooterText` en `subscriberEmailNotificationFooterText`). Blijft uw eigen tekst leeg, dan gaat de standaardvoettekst mee.
 - **Aangepaste SMTP** — **Aangepaste SMTP-configuratie** verstuurt e-mail aan abonnees via uw eigen mailserver in plaats van de standaardserver.
 - **Twilio-configuratie** — **Twilio-configuratie** is het Twilio-account dat voor sms-abonnees wordt gebruikt.
 

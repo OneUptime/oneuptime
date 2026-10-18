@@ -426,17 +426,28 @@ export const getReportSwitchDescription: (data: {
     : StatusPageReportsCopy.switchOffDescription;
 };
 
-// The period choices of the schedule dialog, in English.
+/*
+ * The period choices of the schedule dialog, in English: two plain answers,
+ * each with one line saying what it means, where a dropdown under a
+ * description that explained both used to be.
+ */
 export const REPORT_PERIOD_TYPE_OPTIONS: ReadonlyArray<{
   value: StatusPageReportPeriodType;
   label: string;
+  description: string;
 }> = [
   {
     value: StatusPageReportPeriodType.PreviousCalendarPeriod,
     label: translationKey("The previous whole calendar period"),
+    description: translationKey(
+      "A monthly report sent in August covers July 1 to July 31.",
+    ),
   },
   {
     value: StatusPageReportPeriodType.Rolling,
     label: translationKey("A rolling number of days"),
+    description: translationKey(
+      "Ends when the report is sent, as many days back as you choose.",
+    ),
   },
 ];
