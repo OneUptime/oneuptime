@@ -308,10 +308,15 @@ resource "oneuptime_on_call_schedule_layer" "around_the_clock" {
 				ConfigPlanChecks: testAccUpdatesInPlace(businessHours),
 				Check:            resource.TestCheckResourceAttr(businessHours, "order", "1"),
 			},
+			// A layer change bumps its schedule's shift_config_version (and
+			// updated_at) on the server, after the apply that made it has read
+			// the schedule: step 2's layer update leaves the schedule's state
+			// one version behind until the next refresh.
 			{
-				ResourceName:      scheduleAddress,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            scheduleAddress,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"shift_config_version", "updated_at"},
 			},
 			{
 				ResourceName:            businessHours,

@@ -930,6 +930,24 @@ describe("the OpenTelemetry collector pin", () => {
     expect([...versions]).toHaveLength(1);
   });
 
+  /*
+   * validate-collector-configs.sh checks the Kubernetes agent chart's
+   * collector configs against this pin, so the chart runs it too (its
+   * values.yaml names repository and tag apart, which the pattern above
+   * does not see).
+   */
+  test("the Kubernetes agent chart runs it", () => {
+    const values = yaml.load(
+      read("HelmChart/Public/kubernetes-agent/values.yaml"),
+    );
+    expect(values.image).toEqual(
+      expect.objectContaining({
+        repository: "otel/opentelemetry-collector-contrib",
+        tag: pinsIn("agents/DockerAgent/Dockerfile.tpl")[0],
+      }),
+    );
+  });
+
   test("the Swarm agent's APP_VERSION default and the severity model follow it", () => {
     const [version] = pinsIn("agents/DockerAgent/Dockerfile.tpl");
     expect(read("agents/DockerSwarmAgent/docker-compose.yml")).toContain(

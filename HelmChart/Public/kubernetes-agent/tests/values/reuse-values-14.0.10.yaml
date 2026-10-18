@@ -14,6 +14,9 @@
 # this chart's (a key a later chart adds needs a null here too). The user's
 # own values (clusterName, oneuptime.*) are set by each test.
 chartDefaultsVersion: null
+# 14.0.10 ran collector 0.96.0; a later chart moved the default.
+image:
+  tag: "0.96.0"
 ebpf:
   image:
     tag: v0.9.0
