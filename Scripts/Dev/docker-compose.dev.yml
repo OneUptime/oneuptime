@@ -14,17 +14,20 @@ x-common-depends-on: &common-depends-on
     condition: service_healthy
 
 services:
+  # The datastores are published on this machine's loopback address only:
+  # tools on this machine reach them at localhost, and no other machine on the
+  # network reaches them at all.
   valkey:
     ports:
-      - "6310:6379"
+      - "127.0.0.1:6310:6379"
     extends:
       file: ./docker-compose.base.yml
       service: valkey
 
   clickhouse:
     ports:
-      - "9034:9000"
-      - "8189:8123"
+      - "127.0.0.1:9034:9000"
+      - "127.0.0.1:8189:8123"
     extends:
       file: ./docker-compose.base.yml
       service: clickhouse
@@ -33,7 +36,7 @@ services:
 
   postgres:
     ports:
-      - "5400:5432"
+      - "127.0.0.1:5400:5432"
     extends:
       file: ./docker-compose.base.yml
       service: postgres
