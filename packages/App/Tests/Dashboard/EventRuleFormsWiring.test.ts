@@ -348,4 +348,40 @@ describe("a new SLA rule starts with targets", () => {
       }).toEqual({ column, hasPlaceholder: false });
     }
   });
+
+  test("an emptied box is saved as none, on Create and on Edit", () => {
+    expect(page).toContain(
+      "onBeforeCreate={async (\n          item: IncidentSlaRule,\n        ): Promise<IncidentSlaRule> => {\n          return clearEmptiedSlaRuleMinutes(item);",
+    );
+    expect(page).toContain(
+      "onBeforeUpdate={async (\n          item: IncidentSlaRule,\n        ): Promise<IncidentSlaRule> => {\n          return clearEmptiedSlaRuleMinutes(item);",
+    );
+  });
+
+  test("the list shows the targets right after the name", () => {
+    const columns: string = page.slice(
+      page.indexOf("columns={["),
+      page.indexOf("viewPageRoute="),
+    );
+    const order: Array<number> = [
+      "name: true",
+      "responseTimeInMinutes: true",
+      "resolutionTimeInMinutes: true",
+      "description: true",
+      "isEnabled: true",
+    ].map((column: string): number => {
+      return columns.indexOf(column);
+    });
+
+    expect(
+      order.every((at: number): boolean => {
+        return at > -1;
+      }),
+    ).toBe(true);
+    expect(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(order);
+  });
 });

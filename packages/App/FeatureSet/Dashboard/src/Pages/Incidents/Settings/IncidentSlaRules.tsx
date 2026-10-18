@@ -171,6 +171,11 @@ const IncidentSlaRulesPage: FunctionComponent<
             type: FieldType.Boolean,
           },
         ]}
+        /*
+         * The targets beside the name: they are what an SLA rule is, and
+         * last in the row they sat behind the actions at every width a
+         * table scrolls sideways.
+         */
         columns={[
           {
             field: {
@@ -178,6 +183,20 @@ const IncidentSlaRulesPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              responseTimeInMinutes: true,
+            },
+            title: "Response Time (min)",
+            type: FieldType.Number,
+          },
+          {
+            field: {
+              resolutionTimeInMinutes: true,
+            },
+            title: "Resolution Time (min)",
+            type: FieldType.Number,
           },
           {
             field: {
@@ -198,20 +217,6 @@ const IncidentSlaRulesPage: FunctionComponent<
               }
               return <Pill color={Red} text="Disabled" />;
             },
-          },
-          {
-            field: {
-              responseTimeInMinutes: true,
-            },
-            title: "Response Time (min)",
-            type: FieldType.Number,
-          },
-          {
-            field: {
-              resolutionTimeInMinutes: true,
-            },
-            title: "Resolution Time (min)",
-            type: FieldType.Number,
           },
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
