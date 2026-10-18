@@ -19,7 +19,6 @@ import {
   IsBillingEnabled,
   VercelMarketplaceClientId,
   VercelMarketplaceClientSecret,
-  VercelMarketplaceIntegrationSlug,
 } from "../../EnvironmentConfig";
 import CloudMarketplace from "../../../Types/Marketplace/CloudMarketplace";
 import GoogleCloudMarketplaceAPI, {
@@ -73,11 +72,7 @@ export default class MarketplaceConfig {
   public static isVercelConfigured(): boolean {
     return (
       IsBillingEnabled &&
-      Boolean(
-        VercelMarketplaceClientId &&
-          VercelMarketplaceClientSecret &&
-          VercelMarketplaceIntegrationSlug,
-      )
+      Boolean(VercelMarketplaceClientId && VercelMarketplaceClientSecret)
     );
   }
 

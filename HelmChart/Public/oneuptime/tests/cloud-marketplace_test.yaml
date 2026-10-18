@@ -76,7 +76,6 @@ tests:
       cloudMarketplace.googleCloud.pubSubAudience: https://oneuptime.com/api/marketplace/google-cloud/events
       cloudMarketplace.vercel.clientId: oac_example
       cloudMarketplace.vercel.clientSecret: vercel-secret
-      cloudMarketplace.vercel.integrationSlug: oneuptime
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
@@ -168,11 +167,6 @@ tests:
           content:
             name: VERCEL_MARKETPLACE_CLIENT_SECRET
             value: vercel-secret
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: VERCEL_MARKETPLACE_INTEGRATION_SLUG
-            value: oneuptime
 
   - it: passes them to the worker, which reports usage and syncs purchases
     templates:

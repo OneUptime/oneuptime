@@ -4495,12 +4495,6 @@
                                 "null"
                             ]
                         },
-                        "integrationSlug": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        },
                         "existingSecret": {
                             "type": "object",
                             "properties": {

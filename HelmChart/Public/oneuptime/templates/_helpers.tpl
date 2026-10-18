@@ -726,8 +726,6 @@ values are set. Secrets can come from an existing Kubernetes secret.
   {{- else }}
   value: {{ default "" ((($.Values.cloudMarketplace).vercel).clientSecret) | quote }}
   {{- end }}
-- name: VERCEL_MARKETPLACE_INTEGRATION_SLUG
-  value: {{ default "" ((($.Values.cloudMarketplace).vercel).integrationSlug) | quote }}
 
 - name: CAPTCHA_SECRET_KEY
   value: {{ default "" $.Values.captcha.secretKey | quote }}

@@ -25,7 +25,6 @@ jest.mock("../../../../../Server/EnvironmentConfig", () => {
     HttpProtocol: "https://",
     VercelMarketplaceClientId: "oac_client",
     VercelMarketplaceClientSecret: "client-secret",
-    VercelMarketplaceIntegrationSlug: "oneuptime",
   };
 });
 
@@ -63,7 +62,7 @@ describe("VercelMarketplaceAdapter", () => {
 });
 
 describe("Vercel in MarketplaceConfig and CloudMarketplace", () => {
-  it("is set up with the integration's client ID, secret and slug", () => {
+  it("is set up with the integration's client ID and secret", () => {
     expect(MarketplaceConfig.isVercelConfigured()).toBe(true);
     expect(MarketplaceConfig.isConfigured(CloudMarketplace.Vercel)).toBe(true);
   });

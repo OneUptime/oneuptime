@@ -2664,8 +2664,6 @@ cloudMarketplace:
     # The integration's client ID (oac_...) and client secret.
     clientId:
     clientSecret:
-    # The integration's URL slug (vercel.com/integrations/<slug>).
-    integrationSlug:
     # existingSecret:
     #   name: "vercel-marketplace-secret"
     #   clientSecretKey: clientSecret

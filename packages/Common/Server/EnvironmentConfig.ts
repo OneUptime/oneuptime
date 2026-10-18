@@ -1581,15 +1581,12 @@ export const GoogleCloudMarketplacePubSubAudience: string | null =
  * (Server/Utils/Marketplace/Vercel, VERCEL_RELEASING.md). The integration's
  * client ID (oac_...) is the audience of every token Vercel signs for
  * OneUptime; its client secret signs webhooks and drain deliveries and
- * exchanges sign-in codes; the URL slug names the integration in Vercel's
- * links (vercel.com/integrations/<slug>).
+ * exchanges sign-in codes.
  */
 export const VercelMarketplaceClientId: string | null =
   process.env["VERCEL_MARKETPLACE_CLIENT_ID"] || null;
 export const VercelMarketplaceClientSecret: string | null =
   process.env["VERCEL_MARKETPLACE_CLIENT_SECRET"] || null;
-export const VercelMarketplaceIntegrationSlug: string | null =
-  process.env["VERCEL_MARKETPLACE_INTEGRATION_SLUG"] || null;
 
 /*
  * Sign in with Microsoft: a multi-tenant Microsoft Entra app (work, school
