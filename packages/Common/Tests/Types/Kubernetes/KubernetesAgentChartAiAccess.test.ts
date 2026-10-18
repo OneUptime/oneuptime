@@ -323,10 +323,23 @@ describe("the kubernetes-agent chart's Kubernetes AI agent environment", () => {
   });
 
   it("hands the agent the collector's API key from the chart's Secret, never a literal", () => {
+    /*
+     * The Secret the collector reads (87784029bb): the one the chart renders,
+     * or the one oneuptime.existingSecretName names - one helper for both.
+     */
     expect(template).toContain(
-      `- name: ONEUPTIME_API_KEY\n              valueFrom:\n                secretKeyRef:\n                  name: {{ $fullname }}\n                  key: api-key`,
+      `- name: ONEUPTIME_API_KEY\n              valueFrom:\n                secretKeyRef:\n                  name: {{ include "kubernetes-agent.apiKeySecretName" . }}\n                  key: api-key`,
     );
     expect(template).not.toContain(".Values.oneuptime.apiKey");
+
+    // With no existing Secret named, that is the chart's own Secret.
+    const helpers: string = fs.readFileSync(
+      path.join(TEMPLATES_DIR, "_helpers.tpl"),
+      "utf8",
+    );
+    expect(helpers).toContain(
+      `{{- define "kubernetes-agent.apiKeySecretName" -}}\n{{- include "kubernetes-agent.existingSecretName" . | default (include "kubernetes-agent.fullname" .) -}}\n{{- end }}`,
+    );
   });
 
   it("tells the agent node operations are on exactly when the node role is rendered", () => {
