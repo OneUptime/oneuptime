@@ -49,7 +49,7 @@ Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**. Klikk
 
 ### Opprett policyen
 
-Gå til **Vakttjeneste** > **Retningslinjer for innkommende anrop**, og klikk på **Opprett Retningslinjer for innkommende anrop**. Gi den et **Navn**, for eksempel "Supportlinje", og eventuelt en **Beskrivelse** og **Etiketter**. Åpne den deretter fra listen.
+Gå til **Vakttjeneste** > **Retningslinjer for innkommende anrop**, og klikk på **Opprett Retningslinjer for innkommende anrop**. Gi den et **Navn**, for eksempel "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felt**. Den nye policyen åpnes på sin **Oversikt**.
 
 ### Velg Twilio-kontoen
 
@@ -78,7 +78,7 @@ Når alle tre stegene er fullført, blir kortet til **Phone Numbers & Twilio Con
 2. OneUptime ringer personen den første eskaleringsregelen nevner: den personen, eller den som har vakt i regelens vaktplan i det øyeblikket, brukeroverstyringer medregnet. Telefonen deres viser policyens nummer som innringer.
 3. Svarer de innen regelens **Ringetid**, settes innringeren over, og anropsloggen registrerer hvem som svarte.
 4. Hvis ikke, hører innringeren "Connecting you to the next available engineer.", og personen i neste regel ringes.
-5. Etter den siste regelen starter policyen på nytt fra den første regelen hvis **Gjenta retningslinje hvis ingen svarer** er på, så mange ganger som **Antall gjentakelser av retningslinje** sier. Ellers hører innringeren **Melding ved ingen svar**, og anropet avsluttes.
+5. Etter den siste regelen avgjør policyens **Gjentakelsesretningslinje**: **Ring igjen fra den første regelen** ringer hver regel igjen, så mange ganger til som den sier, og **Avslutt anropet** gjør det ikke. Deretter hører innringeren **Melding ved ingen svar**, og anropet avsluttes.
 
 ```mermaid title="Forespørslene bak ett anrop"
 sequenceDiagram
@@ -98,7 +98,7 @@ sequenceDiagram
     Twilio-->>Caller: Setter<br/>innringeren<br/>over
 ```
 
-En regel hoppes over, uten at noen ringes, når ingen kan ringes for den akkurat nå: vaktplanen har ingen på vakt, personen har ikke noe verifisert nummer for innkommende anrop i dette prosjektet, eller personen er ikke lenger medlem av prosjektet. Når ingen regel har noen å ringe, hører innringeren **Melding ved ingen tilgjengelige**. En deaktivert policy besvarer hvert anrop med "Sorry, this service is currently disabled." og legger på.
+En regel hoppes over, uten at noen ringes, når ingen kan ringes for den akkurat nå: vaktplanen har ingen på vakt, personen har ikke noe verifisert nummer for innkommende anrop i dette prosjektet, eller personen er ikke lenger medlem av prosjektet. Når ingen regel har noen å ringe, hører innringeren **Melding ved ingen tilgjengelige**. Med **Besvar anrop** slått av besvarer en policy hvert anrop med "Sorry, this service is currently disabled." og legger på.
 
 OneUptime sjekker Twilios signatur på hver forespørsel med Auth Token fra Twilio-konfigurasjonen, og avviser en forespørsel den ikke kan verifisere.
 
@@ -165,18 +165,21 @@ Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være sl
 
 ## Talemeldinger og innstillinger for policyen
 
-Åpne policyen og velg **Innstillinger** under **Avansert** i sidemenyen. **Edit Messages** på kortet **Talemeldinger** endrer hva innringere hører; **Edit Policy Settings** på kortet **Innstillinger for retningslinje** endrer resten.
+Åpne policyen og velg **Innstillinger** under **Avansert** i sidemenyen. Siden har tre kort:
+
+- **Besvar anrop**: **Besvar anrop til numrene til denne policyen** lagres så snart du slår den om. Slått av hører innringere at linjen ikke er tilgjengelig, og ingen blir ringt opp; numrene, reglene og anropsloggene beholdes. Før den slås av, spør siden først, med **Slutt å besvare anrop**.
+- **Gjentakelsesretningslinje**: hva som skjer når ingen svarer etter den siste regelen. **Rediger** spør **Hvis ingen svarer etter den siste regelen**: **Avslutt anropet**, eller **Ring igjen fra den første regelen** og **Hvor mange ganger til?**.
+- **Talemeldinger**: hva innringere hører. **Rediger meldinger** endrer dem.
 
 | Innstilling | Hva den gjør | For en ny policy |
 | --- | --- | --- |
-| **Hilsemelding** | Leses opp når anropet besvares, før den første personen ringes. | "Please wait while we connect you to the on-call engineer." |
-| **Melding ved ingen svar** | Leses opp når alle regler er prøvd og ingen svarte. | "No one is available. Please try again later." |
-| **Melding ved ingen tilgjengelige** | Leses opp når ingen regel har noen å ringe. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
-| **Aktivert** | En deaktivert policy avviser alle anrop. | På |
-| **Gjenta retningslinje hvis ingen svarer** | Starter på nytt fra den første regelen etter den siste. | Av |
-| **Antall gjentakelser av retningslinje** | Hvor mange ganger det startes på nytt. | 1 |
+| **Hilsemelding** | Leses opp når noen ringer, før noen ringes opp. | "Please wait while we connect you to the on-call engineer." |
+| **Melding ved ingen svar** | Leses opp når hver regel har ringt og ingen har svart, før anropet avsluttes. | "No one is available. Please try again later." |
+| **Melding ved ingen tilgjengelige** | Leses opp når ingen kan ringes opp, for eksempel når ingen har vakt. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Besvar anrop til numrene til denne policyen** | Slått av hører hver innringer "Sorry, this service is currently disabled.", og anropet avsluttes. | På |
+| **Hvis ingen svarer etter den siste regelen** | **Avslutt anropet**, eller **Ring igjen fra den første regelen**. | **Avslutt anropet** |
 
-Twilio leser meldingene opp med en tekst-til-tale-stemme, så skriv dem slik du vil at de skal høres ut.
+Twilio leser meldingene opp med en tekst-til-tale-stemme, så skriv dem slik du vil at de skal høres ut. En melding som står tom, leses opp med OneUptimes egne ord, som kortet viser i stedet.
 
 ## Anropslogger
 
@@ -188,7 +191,7 @@ Hvert anrop står på policyens side **Anropslogger**, under **Logger** i sideme
 | **Fullført** | Noen svarte, og innringeren ble satt over. |
 | **Ingen svar** | Alle eskaleringsregler ble prøvd, og ingen svarte. Innringeren hørte **Melding ved ingen svar**. |
 | **Caller Hung Up** | Innringeren la på mens telefonen til en ingeniør ringte. |
-| **Mislyktes** | Ingen kunne ringes: ingen eskaleringsregel hadde en bruker på vakt med et verifisert nummer for innkommende anrop (innringeren hørte **Melding ved ingen tilgjengelige**), eller policyen er deaktivert. |
+| **Mislyktes** | Ingen kunne ringes: ingen eskaleringsregel hadde en bruker på vakt med et verifisert nummer for innkommende anrop (innringeren hørte **Melding ved ingen tilgjengelige**), eller **Besvar anrop** er slått av. |
 
 ## Tapte anrop
 
@@ -257,7 +260,7 @@ En regel som opprettes gjennom API-et uten `escalateAfterSeconds`, ringer i 20 s
 :::
 
 :::details Anropet besvares, men ingen ringes
-Anropsloggen sier **Mislyktes**. Sjekk at policyen er **Aktivert**, at vaktplanen i hver regel har noen på vakt akkurat nå, og at personene reglene ringer, har et verifisert nummer under **Brukerinnstillinger** > **Retningslinjer for innkommende anrop** > **Innkommende telefonnumre**, i dette prosjektet. Regler ringer bare medlemmer av prosjektet.
+Anropsloggen sier **Mislyktes**. Sjekk at **Besvar anrop** er slått på under policyens **Innstillinger**, at vaktplanen i hver regel har noen på vakt akkurat nå, og at personene reglene ringer, har et verifisert nummer under **Brukerinnstillinger** > **Retningslinjer for innkommende anrop** > **Innkommende telefonnumre**, i dette prosjektet. Regler ringer bare medlemmer av prosjektet.
 :::
 
 :::details Anrop havner i talepostkassen

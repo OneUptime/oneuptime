@@ -49,7 +49,7 @@ flowchart TB
 
 ### Die Richtlinie anlegen
 
-Öffnen Sie **Bereitschaftsdienst** > **Richtlinien für eingehende Anrufe** und klicken Sie auf **Richtlinie für eingehende Anrufe erstellen**. Geben Sie ihr einen **Name**, etwa „Support-Hotline“, und optional eine **Beschreibung** und **Beschriftungen**. Öffnen Sie sie dann aus der Liste.
+Öffnen Sie **Bereitschaftsdienst** > **Richtlinien für eingehende Anrufe** und klicken Sie auf **Richtlinie für eingehende Anrufe erstellen**. Geben Sie ihr einen **Name**, etwa „Support-Hotline“; **Beschreibung** und **Beschriftungen** sind optional, unter **Weitere Felder**. Die neue Richtlinie öffnet sich in ihrer **Übersicht**.
 
 ### Das Twilio-Konto wählen
 
@@ -78,7 +78,7 @@ Sind alle drei Schritte erledigt, wird die Karte zu **Telefonnummern & Twilio-Ko
 2. OneUptime lässt bei der Person klingeln, die die erste Eskalationsregel nennt: bei dieser Person oder bei der, die im Bereitschaftsplan der Regel gerade Bereitschaft hat, Benutzervertretungen eingeschlossen. Ihr Telefon zeigt die Nummer der Richtlinie als Anrufer.
 3. Nimmt sie innerhalb der **Klingeldauer** der Regel ab, wird der Anrufer durchgestellt, und das Anrufprotokoll hält fest, wer abgenommen hat.
 4. Wenn nicht, hört der Anrufer „Connecting you to the next available engineer.“, und es klingelt bei der Person der nächsten Regel.
-5. Nach der letzten Regel beginnt die Richtlinie wieder bei der ersten, wenn **Richtlinie wiederholen, wenn niemand antwortet** eingeschaltet ist, so oft, wie **Anzahl der Richtlinienwiederholungen** angibt. Sonst hört der Anrufer die **Keine-Antwort-Nachricht**, und der Anruf endet.
+5. Nach der letzten Regel entscheidet die **Wiederholungsrichtlinie** der Richtlinie: **Erneut ab der ersten Regel klingeln** lässt jede Regel erneut klingeln, so oft, wie dort angegeben, **Anruf beenden** nicht. Danach hört der Anrufer die **Keine-Antwort-Nachricht**, und der Anruf endet.
 
 ```mermaid title="Die Anfragen hinter einem Anruf"
 sequenceDiagram
@@ -98,7 +98,7 @@ sequenceDiagram
     Twilio-->>Caller: Stellt den<br/>Anrufer durch
 ```
 
-Eine Regel wird übersprungen, ohne dass es klingelt, wenn für sie gerade niemand angerufen werden kann: Ihr Plan hat niemanden in Bereitschaft, die Person hat in diesem Projekt keine verifizierte Nummer für eingehende Anrufe, oder sie ist nicht mehr Mitglied des Projekts. Hat keine Regel jemanden, bei dem es klingeln kann, hört der Anrufer die **Niemand-verfügbar-Nachricht**. Eine deaktivierte Richtlinie beantwortet jeden Anruf mit „Sorry, this service is currently disabled.“ und legt auf.
+Eine Regel wird übersprungen, ohne dass es klingelt, wenn für sie gerade niemand angerufen werden kann: Ihr Plan hat niemanden in Bereitschaft, die Person hat in diesem Projekt keine verifizierte Nummer für eingehende Anrufe, oder sie ist nicht mehr Mitglied des Projekts. Hat keine Regel jemanden, bei dem es klingeln kann, hört der Anrufer die **Niemand-verfügbar-Nachricht**. Ist **Anrufe annehmen** ausgeschaltet, beantwortet die Richtlinie jeden Anruf mit „Sorry, this service is currently disabled.“ und legt auf.
 
 OneUptime prüft bei jeder Anfrage die Signatur von Twilio mit dem Auth Token der Twilio-Konfiguration und lehnt eine Anfrage ab, die es nicht verifizieren kann.
 
@@ -165,18 +165,21 @@ Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** 
 
 ## Sprachnachrichten und Richtlinieneinstellungen
 
-Öffnen Sie die Richtlinie und wählen Sie im Seitenmenü **Einstellungen** unter **Erweitert**. **Nachrichten bearbeiten** auf der Karte **Sprachnachrichten** ändert, was Anrufer hören; **Richtlinieneinstellungen bearbeiten** auf der Karte **Richtlinieneinstellungen** ändert den Rest.
+Öffnen Sie die Richtlinie und wählen Sie im Seitenmenü **Einstellungen** unter **Erweitert**. Die Seite hat drei Karten:
+
+- **Anrufe annehmen**: **Anrufe an die Nummern dieser Richtlinie annehmen** speichert, sobald Sie den Schalter umlegen. Ausgeschaltet hören Anrufer, dass die Leitung nicht verfügbar ist, und niemand wird angerufen; Nummern, Regeln und Anrufprotokolle bleiben erhalten. Vor dem Ausschalten fragt die Seite nach, mit **Keine Anrufe mehr annehmen**.
+- **Wiederholungsrichtlinie**: was passiert, wenn nach der letzten Regel niemand annimmt. **Bearbeiten** fragt **Wenn nach der letzten Regel niemand annimmt**: **Anruf beenden** oder **Erneut ab der ersten Regel klingeln** und **Wie oft noch?**.
+- **Sprachnachrichten**: was Anrufer hören. **Nachrichten bearbeiten** ändert sie.
 
 | Einstellung | Was sie bewirkt | Bei einer neuen Richtlinie |
 | --- | --- | --- |
-| **Begrüßungsnachricht** | Wird vorgelesen, wenn der Anruf angenommen wird, bevor es bei der ersten Person klingelt. | "Please wait while we connect you to the on-call engineer." |
-| **Keine-Antwort-Nachricht** | Wird vorgelesen, wenn jede Regel versucht wurde und niemand abgenommen hat. | "No one is available. Please try again later." |
-| **Niemand-verfügbar-Nachricht** | Wird vorgelesen, wenn keine Regel jemanden hat, bei dem es klingeln kann. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
-| **Aktiviert** | Eine deaktivierte Richtlinie weist jeden Anruf ab. | An |
-| **Richtlinie wiederholen, wenn niemand antwortet** | Nach der letzten Regel wieder bei der ersten beginnen. | Aus |
-| **Anzahl der Richtlinienwiederholungen** | Wie oft wieder von vorn begonnen wird. | 1 |
+| **Begrüßungsnachricht** | Wird vorgelesen, wenn jemand anruft, bevor jemand angerufen wird. | "Please wait while we connect you to the on-call engineer." |
+| **Keine-Antwort-Nachricht** | Wird vorgelesen, wenn jede Regel geklingelt hat und niemand angenommen hat, bevor der Anruf endet. | "No one is available. Please try again later." |
+| **Niemand-verfügbar-Nachricht** | Wird vorgelesen, wenn niemand angerufen werden kann, etwa weil niemand Bereitschaft hat. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Anrufe an die Nummern dieser Richtlinie annehmen** | Ausgeschaltet hört jeder Anrufer "Sorry, this service is currently disabled.", und der Anruf endet. | An |
+| **Wenn nach der letzten Regel niemand annimmt** | **Anruf beenden** oder **Erneut ab der ersten Regel klingeln**. | **Anruf beenden** |
 
-Twilio liest die Nachrichten mit einer Sprachausgabe vor; schreiben Sie sie also so, wie sie klingen sollen.
+Twilio liest die Nachrichten mit einer Sprachausgabe vor; schreiben Sie sie also so, wie sie klingen sollen. Eine leer gelassene Nachricht wird mit den eigenen Worten von OneUptime vorgelesen, die die Karte an ihrer Stelle zeigt.
 
 ## Anrufprotokolle
 
@@ -188,7 +191,7 @@ Jeder Anruf steht auf der Seite **Anrufprotokolle** der Richtlinie, unter **Prot
 | **Abgeschlossen** | Jemand hat abgenommen, und der Anrufer wurde durchgestellt. |
 | **Keine Antwort** | Jede Eskalationsregel wurde versucht, und niemand hat abgenommen. Der Anrufer hat Ihre **Keine-Antwort-Nachricht** gehört. |
 | **Anrufer hat aufgelegt** | Der Anrufer hat aufgelegt, während das Telefon einer Person klingelte. |
-| **Fehlgeschlagen** | Bei niemandem konnte es klingeln: Keine Eskalationsregel hatte eine Person in Bereitschaft mit einer verifizierten Nummer für eingehende Anrufe (der Anrufer hat Ihre **Niemand-verfügbar-Nachricht** gehört), oder die Richtlinie ist deaktiviert. |
+| **Fehlgeschlagen** | Bei niemandem konnte es klingeln: Keine Eskalationsregel hatte eine Person in Bereitschaft mit einer verifizierten Nummer für eingehende Anrufe (der Anrufer hat Ihre **Niemand-verfügbar-Nachricht** gehört), oder **Anrufe annehmen** ist ausgeschaltet. |
 
 ## Verpasste Anrufe
 
@@ -257,7 +260,7 @@ Eine über die API ohne `escalateAfterSeconds` angelegte Regel klingelt 20 Sekun
 :::
 
 :::details Der Anruf wird angenommen, aber bei niemandem klingelt es
-Das Anrufprotokoll zeigt **Fehlgeschlagen**. Prüfen Sie, dass die Richtlinie **Aktiviert** ist, dass im Bereitschaftsplan jeder Regel gerade jemand Bereitschaft hat und dass die Personen, bei denen die Regeln klingeln lassen, unter **Benutzereinstellungen** > **Richtlinie für eingehende Anrufe** > **Eingehende Telefonnummern** eine verifizierte Nummer in diesem Projekt haben. Regeln lassen nur bei Mitgliedern des Projekts klingeln.
+Das Anrufprotokoll zeigt **Fehlgeschlagen**. Prüfen Sie, dass **Anrufe annehmen** in den **Einstellungen** der Richtlinie eingeschaltet ist, dass im Bereitschaftsplan jeder Regel gerade jemand Bereitschaft hat und dass die Personen, bei denen die Regeln klingeln lassen, unter **Benutzereinstellungen** > **Richtlinie für eingehende Anrufe** > **Eingehende Telefonnummern** eine verifizierte Nummer in diesem Projekt haben. Regeln lassen nur bei Mitgliedern des Projekts klingeln.
 :::
 
 :::details Anrufe landen in der Mailbox

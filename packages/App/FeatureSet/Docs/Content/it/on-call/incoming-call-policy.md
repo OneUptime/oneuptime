@@ -49,7 +49,7 @@ Vai in **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche*
 
 ### Crea la policy
 
-Vai in **Reperibilità** > **Policy chiamate in entrata** e fai clic su **Crea: Policy chiamate in entrata**. Dalle un **Nome**, ad esempio «Linea di supporto», e se vuoi una **Descrizione** e delle **Etichette**. Poi aprila dall'elenco.
+Vai in **Reperibilità** > **Policy chiamate in entrata** e fai clic su **Crea: Policy chiamate in entrata**. Dalle un **Nome**, ad esempio «Linea di supporto»; **Descrizione** ed **Etichette** sono facoltative, in **Altri campi**. La nuova policy si apre sulla sua **Panoramica**.
 
 ### Scegli l'account Twilio
 
@@ -78,7 +78,7 @@ Quando i tre passaggi sono completati, la scheda diventa **Phone Numbers & Twili
 2. OneUptime fa squillare la persona indicata dalla prima regola di escalation: quella persona, oppure chi è reperibile in quel momento nella pianificazione di reperibilità della regola, sostituzioni utente comprese. Il suo telefono mostra il numero della policy come chiamante.
 3. Se risponde entro la **Durata dello squillo** della regola, chi chiama viene messo in contatto, e il registro chiamate annota chi ha risposto.
 4. Altrimenti chi chiama sente «Connecting you to the next available engineer.» e squilla la persona della regola successiva.
-5. Dopo l'ultima regola, la policy ricomincia dalla prima se **Ripeti il criterio se nessuno risponde** è attivo, tante volte quante indica **Numero di ripetizioni del criterio**. Altrimenti chi chiama sente il **Messaggio di mancata risposta**, e la chiamata termina.
+5. Dopo l'ultima regola decide il **Criterio di ripetizione** della policy: **Squilla di nuovo dalla prima regola** fa squillare di nuovo ogni regola, tante altre volte quante indica, e **Termina la chiamata** no. Poi chi chiama sente il **Messaggio di mancata risposta**, e la chiamata termina.
 
 ```mermaid title="Le richieste dietro una chiamata"
 sequenceDiagram
@@ -98,7 +98,7 @@ sequenceDiagram
     Twilio-->>Caller: Mette in<br/>contatto<br/>chi chiama
 ```
 
-Una regola viene saltata, senza far squillare nessuno, quando in quel momento non c'è nessuno da chiamare per essa: la sua pianificazione non ha nessuno reperibile, la persona non ha un numero verificato per le chiamate in entrata in questo progetto, oppure non è più membro del progetto. Quando nessuna regola ha qualcuno da far squillare, chi chiama sente il **Messaggio di nessuno disponibile**. Una policy disattivata risponde a ogni chiamata con «Sorry, this service is currently disabled.» e riaggancia.
+Una regola viene saltata, senza far squillare nessuno, quando in quel momento non c'è nessuno da chiamare per essa: la sua pianificazione non ha nessuno reperibile, la persona non ha un numero verificato per le chiamate in entrata in questo progetto, oppure non è più membro del progetto. Quando nessuna regola ha qualcuno da far squillare, chi chiama sente il **Messaggio di nessuno disponibile**. Con **Rispondi alle chiamate** disattivato, una policy risponde a ogni chiamata con «Sorry, this service is currently disabled.» e riaggancia.
 
 OneUptime verifica la firma di Twilio su ogni richiesta con l'Auth Token della configurazione Twilio, e rifiuta una richiesta che non riesce a verificare.
 
@@ -165,18 +165,21 @@ I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS
 
 ## Messaggi vocali e impostazioni della policy
 
-Apri la policy e scegli **Impostazioni** in **Avanzato** nel suo menu laterale. **Edit Messages** nella scheda **Messaggi vocali** cambia ciò che sentono i chiamanti; **Edit Policy Settings** nella scheda **Impostazioni del criterio** cambia il resto.
+Apri la policy e scegli **Impostazioni** in **Avanzato** nel suo menu laterale. Ha tre schede:
+
+- **Rispondi alle chiamate**: **Rispondi alle chiamate ai numeri di questa policy** si salva appena lo cambi. Disattivato, chi chiama sente che la linea non è disponibile e nessuno viene chiamato; i suoi numeri, le regole e i registri chiamate vengono conservati. Prima di disattivarlo viene chiesta conferma, con **Smetti di rispondere alle chiamate**.
+- **Criterio di ripetizione**: cosa succede quando nessuno risponde dopo l'ultima regola. **Modifica** chiede **Se nessuno risponde dopo l'ultima regola**: **Termina la chiamata**, oppure **Squilla di nuovo dalla prima regola** e **Quante volte ancora?**.
+- **Messaggi vocali**: cosa sente chi chiama. **Modifica messaggi** li cambia.
 
 | Impostazione | Che cosa fa | Per una nuova policy |
 | --- | --- | --- |
-| **Messaggio di benvenuto** | Letto quando la chiamata viene presa, prima che squilli la prima persona. | "Please wait while we connect you to the on-call engineer." |
-| **Messaggio di mancata risposta** | Letto quando tutte le regole sono state provate e nessuno ha risposto. | "No one is available. Please try again later." |
-| **Messaggio di nessuno disponibile** | Letto quando nessuna regola ha qualcuno da far squillare. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
-| **Abilitato** | Una policy disattivata rifiuta tutte le chiamate. | Attivo |
-| **Ripeti il criterio se nessuno risponde** | Dopo l'ultima regola, ricomincia dalla prima. | Disattivo |
-| **Numero di ripetizioni del criterio** | Quante volte ricominciare. | 1 |
+| **Messaggio di benvenuto** | Letto quando qualcuno chiama, prima che venga chiamato chiunque. | "Please wait while we connect you to the on-call engineer." |
+| **Messaggio di mancata risposta** | Letto quando ogni regola ha squillato e nessuno ha risposto, prima che la chiamata termini. | "No one is available. Please try again later." |
+| **Messaggio di nessuno disponibile** | Letto quando non si può chiamare nessuno, per esempio quando nessuno è reperibile. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Rispondi alle chiamate ai numeri di questa policy** | Disattivato, ogni chiamante sente "Sorry, this service is currently disabled." e la chiamata termina. | Attivo |
+| **Se nessuno risponde dopo l'ultima regola** | **Termina la chiamata**, oppure **Squilla di nuovo dalla prima regola**. | **Termina la chiamata** |
 
-Twilio legge i messaggi con una voce sintetica, quindi scrivili come vuoi che suonino.
+Twilio legge i messaggi con una voce sintetica, quindi scrivili come vuoi che suonino. Un messaggio lasciato vuoto viene letto con le parole di OneUptime, che la scheda mostra al suo posto.
 
 ## Registri chiamate
 
@@ -188,7 +191,7 @@ Ogni chiamata compare nella pagina **Registri chiamate** della policy, in **Regi
 | **Completato** | Qualcuno ha risposto e chi chiamava è stato messo in contatto. |
 | **Nessuna risposta** | Sono state provate tutte le regole di escalation e nessuno ha risposto. Chi chiamava ha sentito il tuo **Messaggio di mancata risposta**. |
 | **Caller Hung Up** | Chi chiamava ha riagganciato mentre il telefono di una persona squillava. |
-| **Non riuscito** | Non è stato possibile far squillare nessuno: nessuna regola di escalation aveva una persona reperibile con un numero verificato per le chiamate in entrata (chi chiamava ha sentito il tuo **Messaggio di nessuno disponibile**), oppure la policy è disattivata. |
+| **Non riuscito** | Non è stato possibile far squillare nessuno: nessuna regola di escalation aveva una persona reperibile con un numero verificato per le chiamate in entrata (chi chiamava ha sentito il tuo **Messaggio di nessuno disponibile**), oppure **Rispondi alle chiamate** è disattivato. |
 
 ## Chiamate perse
 
@@ -257,7 +260,7 @@ Una regola creata tramite l'API senza `escalateAfterSeconds` squilla per 20 seco
 :::
 
 :::details La chiamata viene presa, ma non squilla nessuno
-Il registro chiamate indica **Non riuscito**. Verifica che la policy sia **Abilitato**, che la pianificazione di reperibilità di ogni regola abbia qualcuno reperibile in questo momento e che le persone che le regole fanno squillare abbiano un numero verificato in **Impostazioni utente** > **Policy chiamate in entrata** > **Numeri di telefono in entrata**, in questo progetto. Le regole fanno squillare solo membri del progetto.
+Il registro chiamate indica **Non riuscito**. Verifica che **Rispondi alle chiamate** sia attivo nelle **Impostazioni** della policy, che la pianificazione di reperibilità di ogni regola abbia qualcuno reperibile in questo momento e che le persone che le regole fanno squillare abbiano un numero verificato in **Impostazioni utente** > **Policy chiamate in entrata** > **Numeri di telefono in entrata**, in questo progetto. Le regole fanno squillare solo membri del progetto.
 :::
 
 :::details Le chiamate finiscono in segreteria

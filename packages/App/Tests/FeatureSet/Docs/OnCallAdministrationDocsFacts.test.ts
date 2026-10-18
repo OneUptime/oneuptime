@@ -907,45 +907,90 @@ describe("repeating a policy", () => {
   const repeatCard: string = readDashboardSource(
     "Components/OnCallPolicy/RepeatPolicy.tsx",
   );
+  const choiceCard: string = readDashboardSource(
+    "Components/OnCallPolicy/RepeatChoice/RepeatChoiceCard.tsx",
+  );
+  const choices: string = readDashboardSource(
+    "Components/OnCallPolicy/RepeatChoice/RepeatChoice.ts",
+  );
+  // The on-call policy's words: from its config to the incoming call policy's.
+  const onCallCopy: string = choices.slice(
+    choices.indexOf("export const ON_CALL_POLICY_REPEAT"),
+    choices.indexOf("export const INCOMING_CALL_POLICY_REPEAT"),
+  );
 
-  it("names the card under the rules, its Edit button, the dialog and its two fields", () => {
+  it("names the card under the rules, its Edit button, the dialog, its question and its two answers", () => {
     expect(
       readDashboardSource("Pages/OnCallDuty/OnCallDutyPolicy/Escalation.tsx"),
     ).toContain("<RepeatPolicy onCallDutyPolicyId={modelId} />");
-    expect(repeatCard).toContain('translator.translateText("Repeat Policy")');
-    expect(repeatCard).toContain('title="Edit"');
-    expect(repeatCard).toContain('title="Edit Repeat Policy"');
-    expect(repeatCard).toContain('title: "Repeat if no one acknowledges"');
-    expect(repeatCard).toContain('title: "Number of times to repeat"');
+    expect(repeatCard).toContain("config={ON_CALL_POLICY_REPEAT}");
+    expect(choiceCard).toContain('editButtonText="Edit"');
+    expect(choiceCard).toContain(
+      "editModalTitle={props.config.copy.dialogTitle}",
+    );
+
+    for (const fact of [
+      'cardTitle: translationKey("Repeat Policy")',
+      'dialogTitle: translationKey("Edit Repeat Policy")',
+      'fieldTitle: translationKey("If nobody acknowledges after the last level")',
+      'title: translationKey("Stop paging")',
+      'title: translationKey("Start again from Level 1")',
+      'timesTitle: translationKey("How many more times?")',
+      'rowTitle: translationKey("After the last level")',
+    ]) {
+      expect({ fact, inCode: onCallCopy.includes(fact) }).toEqual({
+        fact,
+        inCode: true,
+      });
+    }
+
     expect(english(ON_CALL_POLICIES)).toContain(
-      "click **Edit** on the **Repeat Policy** card below the rules, and fill in **Edit Repeat Policy**:",
+      "click **Edit** on the **Repeat Policy** card below the rules. **Edit Repeat Policy** asks **If nobody acknowledges after the last level**:",
+    );
+    expect(english(ON_CALL_POLICIES)).toContain(
+      "The card's **After the last level** row says what the policy does",
     );
   });
 
-  it("starts a new policy with the switch off and no repeats", () => {
+  it("starts a new policy at Stop paging: the switch off and no repeats", () => {
     const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
     const rows: Array<string> = tableRows(
       section(english(ON_CALL_POLICIES), "## Repeat a policy"),
     );
+    const repeat: unknown = policy.getTableColumnMetadata(
+      "repeatPolicyIfNoOneAcknowledges",
+    )?.defaultValue;
+    const times: unknown = policy.getTableColumnMetadata(
+      "repeatPolicyIfNoOneAcknowledgesNoOfTimes",
+    )?.defaultValue;
 
+    expect(repeat).toBe(false);
+    expect(times).toBe(0);
+    // The card reads a pair by what the worker does with it: no run left is Stop.
     expect(
-      policy.getTableColumnMetadata("repeatPolicyIfNoOneAcknowledges")
-        ?.defaultValue,
-    ).toBe(false);
-    expect(
-      policy.getTableColumnMetadata("repeatPolicyIfNoOneAcknowledgesNoOfTimes")
-        ?.defaultValue,
-    ).toBe(0);
-    expect(
-      rows.map((row: string): Array<string> => {
-        const cells: Array<string> = tableCells(row);
-
-        return [cells[0] || "", cells[2] || ""];
+      getOnCallPolicyRepeatsAllowed({
+        repeatPolicyIfNoOneAcknowledges: repeat as boolean,
+        repeatPolicyIfNoOneAcknowledgesNoOfTimes: times as number,
       }),
-    ).toEqual([
-      ["**Repeat if no one acknowledges**", "Off"],
-      ["**Number of times to repeat**", "0"],
-    ]);
+    ).toBe(0);
+    expect(onCallCopy).toContain("return getOnCallPolicyRepeatsAllowed({");
+    expect(choices).toContain("config.getRepeatsAllowed(asRecord(values)) > 0");
+    expect(
+      rows.map((row: string): string => {
+        return tableCells(row)[0] || "";
+      }),
+    ).toEqual(["**Stop paging**", "**Start again from Level 1**"]);
+    expect(english(ON_CALL_POLICIES)).toContain(
+      "| **Stop paging** | Nobody is paged again, so the policy runs once. A new policy starts with this answer. |",
+    );
+  });
+
+  it("asks how many more times only for Start again, from 1", () => {
+    expect(choiceCard).toContain("minValue: 1");
+    expect(choices).toContain("export const DEFAULT_REPEAT_TIMES: number = 1;");
+    expect(english(ON_CALL_POLICIES)).toContain(
+      "**How many more times?** says how often: 1 or more.",
+    );
   });
 
   it("repeats only while the switch is on, as many times as the number says", () => {
@@ -970,11 +1015,24 @@ describe("repeating a policy", () => {
     expect(
       readCommonSource("Server/Utils/OnCall/OnCallEscalationAdvance.ts"),
     ).toMatch(/<=\s*getOnCallPolicyRepeatsAllowed\(run\.onCallDutyPolicy\)/);
+    // The switch on with 0 more times never repeats: the card reads it as Stop.
+    expect(
+      getOnCallPolicyRepeatsAllowed({
+        repeatPolicyIfNoOneAcknowledges: true,
+        repeatPolicyIfNoOneAcknowledgesNoOfTimes: 0,
+      }),
+    ).toBe(0);
     expect(english(ON_CALL_POLICIES)).toContain(
-      "While it is off, the policy runs once.",
+      "A policy that starts again three more times goes through its levels four times in all.",
     );
     expect(english(ON_CALL_POLICIES)).toContain(
-      "With the switch on and three repeats, a policy goes through its levels four times in all.",
+      "`repeatPolicyIfNoOneAcknowledges` is `false` for **Stop paging** and `true` for **Start again from Level 1**. With it `true` and `repeatPolicyIfNoOneAcknowledgesNoOfTimes` at `0`, a policy never repeats, and the dashboard shows it as **Stop paging**.",
+    );
+    expect(english(ON_CALL_POLICIES)).toContain(
+      "| **If nobody acknowledges after the last level** | `repeatPolicyIfNoOneAcknowledges` |",
+    );
+    expect(english(ON_CALL_POLICIES)).toContain(
+      "| **How many more times?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |",
     );
   });
 });

@@ -79,7 +79,7 @@ When an incident or alert reaches the policy, **Level 1** pages its responders s
 
 An incident, alert or episode that is created already acknowledged or resolved — recorded after the fact — runs none of its policies: no one is paged, and its feed says so, naming them. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 
-To repeat a policy, click **Edit** on the **Repeat Policy** card, turn on **Repeat if no one acknowledges** and set the **Number of times to repeat**.
+To repeat a policy, click **Edit** on the **Repeat Policy** card, choose **Start again from Level 1** and set **How many more times?**.
 
 ### The escalation summary
 

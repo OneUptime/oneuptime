@@ -49,7 +49,7 @@ Go to **Project Settings** > **Notifications** > **Notification Settings**. In t
 
 ### Create the policy
 
-Go to **On-Call Duty** > **Incoming Call Policies** and click **Create Incoming Call Policy**. Give it a **Name**, such as "Support Hotline", and optionally a **Description** and **Labels**. Then open it from the list.
+Go to **On-Call Duty** > **Incoming Call Policies** and click **Create Incoming Call Policy**. Give it a **Name**, such as "Support Hotline"; a **Description** and **Labels** are optional, under **More fields**. The new policy opens on its **Overview**.
 
 ### Choose the Twilio account
 
@@ -78,7 +78,7 @@ When all three steps are done, the card becomes **Phone Numbers & Twilio Configu
 2. OneUptime rings the person the first escalation rule names: that person, or whoever is on call in the rule's on-call schedule at that moment, user overrides included. Their phone shows the policy's number as the caller.
 3. If they answer within the rule's **Ring for** time, the caller is put through, and the call log records who answered.
 4. If not, the caller hears "Connecting you to the next available engineer.", and the next rule's person is rung.
-5. After the last rule, the policy starts again from the first rule if **Repeat Policy If No One Answers** is on, as many times as **Repeat Policy Times** says. Otherwise the caller hears the **No Answer Message**, and the call ends.
+5. After the last rule, the policy's **Repeat Policy** decides: **Ring again from the first rule** rings every rule again, as many more times as it says, and **End the call** does not. Then the caller hears the **No Answer Message**, and the call ends.
 
 ```mermaid title="The requests behind one call"
 sequenceDiagram
@@ -98,7 +98,7 @@ sequenceDiagram
     Twilio-->>Caller: Puts the<br/>caller through
 ```
 
-A rule is skipped, without ringing anyone, when nobody can be rung for it right now: its schedule has nobody on call, the person has no verified number for incoming calls in this project, or they are no longer a member of the project. When no rule has anyone to ring, the caller hears the **No One Available Message**. A disabled policy answers every call with "Sorry, this service is currently disabled." and hangs up.
+A rule is skipped, without ringing anyone, when nobody can be rung for it right now: its schedule has nobody on call, the person has no verified number for incoming calls in this project, or they are no longer a member of the project. When no rule has anyone to ring, the caller hears the **No One Available Message**. A policy with **Answer Calls** off answers every call with "Sorry, this service is currently disabled." and hangs up.
 
 OneUptime checks Twilio's signature on every request with the Twilio config's Auth Token, and refuses a request it cannot verify.
 
@@ -165,18 +165,21 @@ Incoming call numbers are verified by SMS, so **SMS** has to be on for the proje
 
 ## Voice messages and policy settings
 
-Open the policy and choose **Settings** under **Advanced** in its side menu. **Edit Messages** on the **Voice Messages** card changes what callers hear; **Edit Policy Settings** on the **Policy Settings** card changes the rest.
+Open the policy and choose **Settings** under **Advanced** in its side menu. It has three cards:
+
+- **Answer Calls**: **Answer calls to this policy's numbers** saves as soon as you flip it. Off, callers hear that the line is not available and nobody is rung; its numbers, rules and call logs are kept. Turning it off asks first, with **Stop answering calls**.
+- **Repeat Policy**: what happens when nobody answers after the last rule. **Edit** asks **If nobody answers after the last rule**: **End the call**, or **Ring again from the first rule** and **How many more times?**.
+- **Voice Messages**: what callers hear. **Edit Messages** changes them.
 
 | Setting | What it does | For a new policy |
 | --- | --- | --- |
-| **Greeting Message** | Read out when the call is answered, before the first person is rung. | "Please wait while we connect you to the on-call engineer." |
-| **No Answer Message** | Read out when every rule was tried and nobody answered. | "No one is available. Please try again later." |
-| **No One Available Message** | Read out when no rule has anyone to ring. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
-| **Enabled** | A disabled policy turns every call away. | On |
-| **Repeat Policy If No One Answers** | After the last rule, start again from the first. | Off |
-| **Repeat Policy Times** | How many times to start again. | 1 |
+| **Greeting Message** | Read out when someone calls, before anyone is rung. | "Please wait while we connect you to the on-call engineer." |
+| **No Answer Message** | Read out when every rule rang and nobody answered, before the call ends. | "No one is available. Please try again later." |
+| **No One Available Message** | Read out when nobody can be rung, such as when nobody is on call. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Answer calls to this policy's numbers** | Off, every caller hears "Sorry, this service is currently disabled." and the call ends. | On |
+| **If nobody answers after the last rule** | **End the call**, or **Ring again from the first rule**. | **End the call** |
 
-Twilio reads the messages out with a text-to-speech voice, so write them as you want them to sound.
+Twilio reads the messages out with a text-to-speech voice, so write them as you want them to sound. A message left empty is read out in OneUptime's own words, which the card shows in its place.
 
 ## Call logs
 
@@ -188,7 +191,7 @@ Every call is listed on the policy's **Call Logs** page, under **Logs** in its s
 | **Completed** | Somebody answered, and the caller was put through. |
 | **No Answer** | Every escalation rule was tried and nobody answered. The caller heard your **No Answer Message**. |
 | **Caller Hung Up** | The caller hung up while an engineer's phone was ringing. |
-| **Failed** | Nobody could be rung: no escalation rule had an on-call user with a verified incoming call number (the caller heard your **No One Available Message**), or the policy is disabled. |
+| **Failed** | Nobody could be rung: no escalation rule had an on-call user with a verified incoming call number (the caller heard your **No One Available Message**), or the policy's **Answer Calls** is off. |
 
 ## Missed calls
 
@@ -257,7 +260,7 @@ A rule created through the API without `escalateAfterSeconds` rings for 20 secon
 :::
 
 :::details The call is answered, but nobody is rung
-The call log says **Failed**. Check that the policy is **Enabled**, that each rule's on-call schedule has somebody on call right now, and that the people the rules ring have a verified number under **User Settings** > **Incoming Call Policy** > **Incoming Phone Numbers**, in this project. Rules ring members of the project only.
+The call log says **Failed**. Check that the policy's **Answer Calls** is on, under **Settings**, that each rule's on-call schedule has somebody on call right now, and that the people the rules ring have a verified number under **User Settings** > **Incoming Call Policy** > **Incoming Phone Numbers**, in this project. Rules ring members of the project only.
 :::
 
 :::details Calls end up in voicemail
