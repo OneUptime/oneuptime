@@ -193,7 +193,7 @@ Hvad hver side indeholder:
 - **Roller**, **Vagtudførelser**, **Ejere** — hvem der er på den, hvilke politikker der blev udført, og hvem der får besked.
 - **Notifikationslogs**, **AI-logs**, **Auditlogs** — hvad der blev sendt, og hvad der blev ændret.
 - **Private noter** og **Offentlige noter** — hvad dit team og dine kunder fik at vide. Se [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed).
-- **Brugerdefinerede felter**, **Indstillinger**, **Slet hændelse** — siden **Indstillinger** indeholder **Synlig på statussiden** og **Privat hændelse**, kortet **Statussideomfang**, der begrænser hændelsen til nogle statussider, og kortet **Reminders**, hvis kontakt **Send påmindelser** gemmes, så snart du slår den om, og viser, hvornår den næste påmindelse sendes.
+- **Brugerdefinerede felter**, **Indstillinger**, **Slet hændelse** — siden **Indstillinger** indeholder **Synlig på statussiden** og **Privat hændelse**, kortet **Statussideomfang**, der begrænser hændelsen til nogle statussider, og kortet **Påmindelser**, hvis kontakt **Send påmindelser** gemmes, så snart du slår den om, og viser, hvornår den næste påmindelse sendes.
 
 ## Sådan passer hændelser ind i resten af OneUptime
 

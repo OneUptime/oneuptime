@@ -218,8 +218,12 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
    */
   // A resource's own views.
   "Activity",
-  "Alert Notes",
-  "Episode Notes",
+  /*
+   * "Alert Notes", "Episode Notes" and "Timeline" left this list when the
+   * alert, alert episode and maintenance event menus took an incident's
+   * sections: their notes are under Notes and their state timeline under
+   * Overview, as an incident's are.
+   */
   "Infrastructure",
   "Investigation",
   "Members",
@@ -235,7 +239,6 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Storage",
   "Team",
   "Telemetry",
-  "Timeline",
   "Workloads",
   // The pages a settings menu is mostly opened for.
   "Alerts & Notifications",

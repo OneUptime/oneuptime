@@ -116,7 +116,7 @@ This step appears only when at least one incident custom field has **Show on Cre
 
 ### Step 3 — On-Call & Roles
 
-- **On-Call Policy** — a multi-select of the on-call duty policies to execute when this incident is created. This maps to `onCallDutyPolicies` on the incident.
+- **On-Call Policy** — a multi-select of the on-call policies to page as soon as the incident is declared. This maps to `onCallDutyPolicies` on the incident.
 - **Assign Incident Roles** — who takes each role your project defines, one card per role. A role tagged **Primary** that you leave empty is yours: you take it when the incident is declared, and the summary says so. A role that takes one person says so once it has one; a role that takes several keeps its picker.
 
 This is the only place an on-call policy is attached to an incident directly. Severities do not carry an on-call policy — severity is a label, and it only influences paging as a *match criterion* inside an on-call rule. Rules configured at **Incidents → Rules → On-Call Rules** add their policies on top of whatever you pick here; the final set that runs is the deduplicated union of both. An incident declared in a later state runs none of them — see [Declared already acknowledged or resolved](#declared-already-acknowledged-or-resolved).

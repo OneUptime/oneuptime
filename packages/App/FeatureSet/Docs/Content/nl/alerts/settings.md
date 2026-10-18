@@ -77,17 +77,13 @@ Met twee of meer voorwaarden kies je **Voldoet aan alle**, waarbij elke voorwaar
 **Waarschuwingen → Regels → Bereikbaarheidsregels** maakt oproepen automatisch. Elke overeenkomende regel voegt haar beleid toe aan de nieuwe waarschuwing, en de waarschuwing voert het uit samen met het beleid dat ze al had, elk één keer.
 
 :::steps
-### De regel een naam geven
-
-Klik op **Alert On-Call Rule aanmaken**. Geef haar bij **Basisinformatie** een **Naam**, zoals "Roep het databaseteam op bij elke DB-waarschuwing", en een **Beschrijving** als je wilt.
-
 ### De waarschuwingen kiezen
 
-Bij **Overeenkomstcriteria** komt **Alle waarschuwingen**, waar een nieuwe regel mee begint, overeen met elke nieuwe waarschuwing. Om de regel in te perken, kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg de voorwaarden toe waaraan een waarschuwing moet voldoen.
+Klik op **Alert On-Call Rule aanmaken**. Bij **Overeenkomst** komt **Alle waarschuwingen**, waar een nieuwe regel mee begint, overeen met elke nieuwe waarschuwing. Om de regel in te perken, kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg de voorwaarden toe waaraan een waarschuwing moet voldoen.
 
 ### Het beleid kiezen
 
-Kies bij **Bereikbaarheidsbeleid** het **Bereikbaarheidsbeleid** dat de regel uitvoert en maak daarna de regel aan.
+Kies bij **Bereikbaarheidsbeleid** het **Bereikbaarheidsbeleid** dat de regel oproept. De **Naam** volgt dat, zoals "Platform on-call oproepen", totdat je zelf een naam typt, en een **Beschrijving** wacht onder **Meer velden**. Maak daarna de regel aan.
 :::
 
 Een ernstniveau roept op zichzelf niemand op: een bereikbaarheidsregel die op **Waarschuwing Ernsten** matcht, is de manier om "roep het databaseteam op bij elke High-waarschuwing" in te stellen. Om te zien wat er voor één waarschuwing draaide, open je haar pagina **Bereikbaarheidsuitvoeringen**. Elke persoon wordt daarna bereikt zoals die het heeft ingesteld onder **Gebruikersinstellingen → Bereikbaarheidsregels**, op het tabblad **Waarschuwingen**; zie [Escalatieregels](/docs/on-call/escalation-rules).
@@ -104,7 +100,7 @@ Een ernstniveau roept op zichzelf niemand op: een bereikbaarheidsregel die op **
 
 ## Privacy- en runbook-regels
 
-**Privacyregels** maken overeenkomende nieuwe waarschuwingen privé, voordat er iets anders draait: alleen hun eigenaren en de beheerders en eigenaren van het project kunnen ze zien. Een regel heeft een stap **Basisinformatie** en een stap **Overeenkomstcriteria**, en maakt elke waarschuwing waarop ze overeenkomt privé. Zie [Privéwaarschuwingen](/docs/alerts/index#privéwaarschuwingen).
+**Privacyregels** maken overeenkomende nieuwe waarschuwingen privé, voordat er iets anders draait: alleen hun eigenaren en de beheerders en eigenaren van het project kunnen ze zien. Een regel heeft twee stappen: **Overeenkomst**, de waarschuwingen die ze privé maakt, en dan **Naam**, al ingevuld als "Waarschuwingen privé maken". Zie [Privéwaarschuwingen](/docs/alerts/index#privéwaarschuwingen).
 
 **Runbook-regels** starten een runbook wanneer een nieuwe waarschuwing overeenkomt, tenzij de waarschuwing opgelost werd aangemaakt. Zie [Runbook-regels](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ Een ernstniveau roept op zichzelf niemand op: een bereikbaarheidsregel die op **
 **Waarschuwingen → Regels → Reminder Rules** herinnert de eigenaren van een waarschuwing zolang ze open blijft. Elke nieuwe waarschuwing krijgt de eerste regel die overeenkomt, van boven naar beneden in de lijst.
 
 :::steps
-### De herinneringsregel een naam geven
-
-Klik op **Alert Reminder Rule aanmaken**. Geef haar bij **Rule Info** een **Naam**, zoals "Critical Alert Reminders".
-
 ### Kiezen voor welke waarschuwingen je herinnert
 
-Laat bij **Overeenkomstcriteria** de keuze **Alle waarschuwingen** staan om voor elke waarschuwing te herinneren, of kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en dan de **Waarschuwing Ernsten** en **Labels** waarvoor ze geldt.
+Klik op **Alert Reminder Rule aanmaken**. Laat bij **Overeenkomst** de keuze **Alle waarschuwingen** staan om voor elke waarschuwing te herinneren, of kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en dan de **Waarschuwing Ernsten** en **Labels** waarvoor ze geldt.
 
 ### Het interval instellen
 
-Stel bij **Reminder Settings** het **Reminder Interval (minutes)** in, hoe vaak eigenaren worden herinnerd, en **Stop Reminders When**: **Opgelost**, de standaard, of **Bevestigd**. Maak daarna de regel aan.
+Stel bij **Herinneringen** het **Herinneringsinterval (minuten)** in, hoe vaak eigenaren worden herinnerd, en **Herinneringen stoppen wanneer**: **Opgelost**, de standaard, of **Bevestigd**. De **Naam** volgt beide, zoals "Elke 30 minuten herinneren tot opgelost", totdat je zelf een naam typt. Maak daarna de regel aan.
 :::
 
 Eigenaren krijgen elke herinnering als **Alert reminder**, dat standaard per e-mail aan staat. De regel van een waarschuwing wordt opnieuw gematcht wanneer haar ernst of labels veranderen. Om de herinneringen voor één waarschuwing te stoppen, zet je **Herinneringen sturen** uit op haar pagina **Instellingen**; dat wordt opgeslagen zodra je de schakelaar omzet.

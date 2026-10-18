@@ -150,15 +150,15 @@ Un episodio creato da voi non ha una regola di raggruppamento, quindi l'elenco m
 
 | Sezione del menu laterale | Pagine                                                                      |
 | ------------------------- | --------------------------------------------------------------------------- |
-| **Base**                  | **Panoramica**, **Descrizione**, **Causa principale**, **Note di rimedio**  |
-| **Proprietà**             | **Proprietari**                                                             |
-| **Cronologia**            | **Cronologia stato**                                                        |
-| **Avvisi**                | **Avvisi dei membri**                                                       |
-| **Note episodio**         | **Note private**                                                            |
-| **Sviluppatori**          | **Terraform**, **API**, **Assistenti IA**                                   |
-| **Avanzato**              | **Registri di audit**, **Elimina episodio**                                 |
+| **Panoramica** | **Panoramica**, **Cronologia stato** |
+| **Indagine** | **Descrizione**, **Causa principale**, **Note di rimedio** |
+| **Team** | **Proprietari** |
+| **Avvisi** | **Avvisi dei membri** |
+| **Note** | **Note private** |
+| **Sviluppatori** | **Terraform**, **API**, **Assistenti IA** |
+| **Avanzato** | **Registri di audit**, **Elimina episodio** |
 
-**Proprietà**, **Sviluppatori** e **Avanzato** partono compresse. La **Panoramica** si apre con **Alerts in this episode**, poi il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Move episode to** nel menu **⋯**.
+**Sviluppatori** e **Avanzato** partono compresse. La **Panoramica** si apre con **Alerts in this episode**, poi il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Move episode to** nel menu **⋯**.
 
 **Avvisi → Episodi attivi** elenca gli episodi non ancora risolti, e il badge accanto li conta.
 

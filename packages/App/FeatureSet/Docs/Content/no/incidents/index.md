@@ -193,7 +193,7 @@ Hva hver side inneholder:
 - **Roller**, **Vaktutførelser**, **Eiere** — hvem som jobber med den, hvilke policyer som ble kjørt, og hvem som får beskjed.
 - **Varsellogger**, **AI-logger**, **Revisjonslogger** — hva som ble sendt, og hva som ble endret.
 - **Private notater** og **Offentlige notater** — hva teamet ditt og kundene dine fikk vite. Se [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed).
-- **Egendefinerte felt**, **Innstillinger**, **Slett hendelse** — siden **Innstillinger** inneholder **Synlig på statussiden** og **Privat hendelse**, kortet **Statussideomfang** som begrenser hendelsen til noen statussider, og kortet **Reminders**, der bryteren **Send påminnelser** lagres så snart du slår den om og viser når neste påminnelse sendes.
+- **Egendefinerte felt**, **Innstillinger**, **Slett hendelse** — siden **Innstillinger** inneholder **Synlig på statussiden** og **Privat hendelse**, kortet **Statussideomfang** som begrenser hendelsen til noen statussider, og kortet **Påminnelser**, der bryteren **Send påminnelser** lagres så snart du slår den om og viser når neste påminnelse sendes.
 
 ## Slik passer hendelser inn i resten av OneUptime
 

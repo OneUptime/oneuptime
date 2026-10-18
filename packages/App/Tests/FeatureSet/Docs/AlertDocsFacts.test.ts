@@ -74,6 +74,11 @@ import path from "path";
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 
+const DASHBOARD_SRC_DIR: string = path.join(
+  PACKAGES_DIR,
+  "App/FeatureSet/Dashboard/src",
+);
+
 function english(page: string): string {
   return readPage("en", page);
 }
@@ -459,11 +464,13 @@ describe("the alert page's menu table is the alert's own menu", () => {
   );
 
   it("reads the menu, with the Developer section where the menu adds it", () => {
+    // The incident page's sections, in the incident page's order.
     expect(titlesOf(alertViewMenu())).toEqual([
-      "Basic",
-      "On Call",
-      "Logs",
-      "Alert Notes",
+      "Overview",
+      "Investigation",
+      "Team",
+      "Notifications",
+      "Notes",
       "Developer",
       "Advanced",
     ]);
@@ -479,13 +486,16 @@ describe("the alert page's menu table is the alert's own menu", () => {
     );
 
     expect(table).toContain(
-      "**Basic** and **Alert Notes** are open; the other sections start folded until you click them.",
+      "**Overview**, **Investigation**, **Team** and **Notes** are open; the other sections start folded until you click them.",
     );
 
     for (const menuSection of alertViewMenu()) {
-      const open: boolean = ["Basic", "Alert Notes"].includes(
-        menuSection.title,
-      );
+      const open: boolean = [
+        "Overview",
+        "Investigation",
+        "Team",
+        "Notes",
+      ].includes(menuSection.title);
 
       expect({
         section: menuSection.title,
@@ -504,11 +514,11 @@ describe("the episode page's menu table is the episode's own menu", () => {
 
   it("reads the menu, with the Developer section where the menu adds it", () => {
     expect(titlesOf(episodeViewMenu())).toEqual([
-      "Basic",
-      "Ownership",
-      "Timeline",
+      "Overview",
+      "Investigation",
+      "Team",
       "Alerts",
-      "Episode Notes",
+      "Notes",
       "Developer",
       "Advanced",
     ]);
@@ -525,11 +535,11 @@ describe("the episode page's menu table is the episode's own menu", () => {
     const folded: Array<string> = boldNames(
       paragraphAfter(
         table,
-        "**Ownership**, **Developer** and **Advanced** start folded.",
+        "**Developer** and **Advanced** start folded.",
       ).split(" start folded.")[0] || "",
     );
 
-    expect(folded).toEqual(["Ownership", "Developer", "Advanced"]);
+    expect(folded).toEqual(["Developer", "Advanced"]);
 
     for (const menuSection of episodeViewMenu()) {
       expect({
@@ -2172,124 +2182,89 @@ describe("alert episodes and grouping rules", () => {
 });
 
 /*
- * The Dashboard's own Documentation page about alert grouping (Alerts →
- * Episodes → Documentation) and its incidents twin say what the engines do,
- * as the docs do: the {{variables}} a title template takes, and owners
- * where a default team or user used to be.
+ * The Dashboard used to carry its own manual about alert grouping (Alerts →
+ * Episodes → Documentation), and one about incident grouping: they said
+ * what these pages say, and drifted from them (single-brace template
+ * variables, a default team or user nothing reads). They are gone - the
+ * docs are the one place for it - and each episode list links here instead:
+ * View Documentation, under its empty state and in its ⋯ menu.
  */
-describe("the in-product episode documentation agrees with the docs and the engines", () => {
-  const SINGLE_BRACE_VARIABLE: RegExp =
-    /(?<!\{)\{(alert|incident|monitor)\w*\}(?!\})/;
+describe("the episode lists send readers to these pages", () => {
+  const DOCS_CONTENT: string = path.resolve(
+    __dirname,
+    "../../../FeatureSet/Docs/Content",
+  );
+
+  // The docs path an episode list's View Documentation opens, by its constant.
+  function docsPathOf(constant: string): string {
+    const source: string = readDashboardSource(
+      "Components/EpisodeView/EpisodeDocsLinks.ts",
+    );
+    const match: RegExpMatchArray | null = source.match(
+      new RegExp(`${escapeRegExp(constant)}: string = "([^"]+)"`),
+    );
+
+    expect({ constant, found: Boolean(match) }).toEqual({
+      constant,
+      found: true,
+    });
+
+    return match ? (match[1] as string) : "";
+  }
+
+  it("draws no manual of its own about episodes", () => {
+    for (const file of [
+      "Pages/Alerts/EpisodeDocs.tsx",
+      "Pages/Incidents/EpisodeDocs.tsx",
+    ]) {
+      expect({
+        file,
+        exists: fs.existsSync(path.join(DASHBOARD_SRC_DIR, file)),
+      }).toEqual({ file, exists: false });
+    }
+
+    expect(sectionByTitle(alertsMenu(), "Episodes").items).toEqual([
+      "All Episodes",
+      "Active Episodes",
+    ]);
+  });
 
   it.each([
-    ["Pages/Alerts/EpisodeDocs.tsx", "alert"],
-    ["Pages/Incidents/EpisodeDocs.tsx", "incident"],
+    [
+      "Components/AlertEpisode/AlertEpisodesTable.tsx",
+      "ALERT_EPISODES_DOCS_PATH",
+      "/docs/alerts/episodes",
+    ],
+    [
+      "Components/IncidentEpisode/IncidentEpisodesTable.tsx",
+      "INCIDENT_EPISODES_DOCS_PATH",
+      "/docs/incidents/episodes",
+    ],
   ])(
-    "%s names the template variables as {{variable}}",
-    (file: string, record: string) => {
-      const source: string = readDashboardSource(file);
-
-      expect(source).not.toMatch(SINGLE_BRACE_VARIABLE);
-      expect(source).toContain(`{{${record}Title}}`);
-      expect(source).toContain("{{monitorName}}");
-      expect(source).toContain(`{{${record}Severity}}`);
-    },
-  );
-
-  it("names only variables the alert engine fills", () => {
-    const source: string = readDashboardSource("Pages/Alerts/EpisodeDocs.tsx");
-    const named: Array<string> = Array.from(
-      source.matchAll(/\{\{(\w+)\}\}/g),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1] as string;
-    });
-    const filled: Array<string> = ALERT_EPISODE_TEMPLATE_STATIC_VARIABLES.map(
-      (variable: { name: string }): string => {
-        return variable.name;
-      },
-    );
-    // The TranslatedSentence slots are the page's own, not template variables.
-    const slots: Array<string> = [
-      "episodes",
-      "alerts",
-      "groupingRules",
-      "policies",
-    ];
-
-    for (const name of named) {
-      expect({
-        name,
-        known: filled.includes(name) || slots.includes(name),
-      }).toEqual({ name, known: true });
-    }
-  });
-
-  it.each(["Pages/Alerts/EpisodeDocs.tsx", "Pages/Incidents/EpisodeDocs.tsx"])(
-    "%s offers Episode Owners, not a default team or user nothing reads",
-    (file: string) => {
-      const source: string = readDashboardSource(file);
-
-      expect(source).not.toContain("Default Team/User Assignment");
-      expect(source).not.toContain("default team or user ownership");
-      expect(source).toContain('translator.translateText("Episode Owners:")');
-      expect(source).toContain(
-        "Grouping rules can name Episode Owners: people and teams who become owners of every episode the rule opens, and are notified like any other owner.",
+    "%s links to %s, a docs page in every language",
+    (table: string, constant: string, docsPath: string) => {
+      expect(readDashboardSource(table)).toContain(
+        `documentationLink={Route.fromString(${constant})}`,
       );
-    },
-  );
+      expect(docsPathOf(constant)).toBe(docsPath);
 
-  it("is translated in every Dashboard language, keeping each variable", () => {
-    const keys: Array<string> = [
-      "Episode Owners:",
-      "Grouping rules can name Episode Owners: people and teams who become owners of every episode the rule opens, and are notified like any other owner.",
-      "Optionally write an episode title template with variables such as {{alertTitle}}, {{monitorName}} and {{alertSeverity}}.",
-      "Optionally write an episode title template with variables such as {{incidentTitle}}, {{monitorName}} and {{incidentSeverity}}.",
-    ];
+      const page: string = docsPath.replace("/docs/", "");
 
-    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
-      const locale: Record<string, unknown> = JSON.parse(
-        readDashboardSource(`Locales/${language}.json`),
-      );
-
-      for (const key of keys) {
-        const value: unknown = locale[key];
-
-        expect({ language, key, value: typeof value }).toEqual({
+      for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        expect({
           language,
-          key,
-          value: "string",
-        });
-
-        if (language !== "en") {
-          expect({ language, key, translated: value !== key }).toEqual({
-            language,
-            key,
-            translated: true,
-          });
-        }
-
-        for (const variable of Array.from(key.matchAll(/\{\{\w+\}\}/g))) {
-          expect({
-            language,
-            variable: variable[0],
-            kept: String(value).includes(variable[0]),
-          }).toEqual({ language, variable: variable[0], kept: true });
-        }
+          page,
+          exists: fs.existsSync(
+            path.join(DOCS_CONTENT, language, `${page}.md`),
+          ),
+        }).toEqual({ language, page, exists: true });
       }
-    }
-  });
+    },
+  );
 
-  it("agrees with the docs on which policies a new episode runs", () => {
-    const source: string = readDashboardSource("Pages/Alerts/EpisodeDocs.tsx");
-
-    expect(source).toContain(
-      "When an alert creates a NEW episode, both the alert's on-call policy AND the grouping rule's on-call policy are executed.",
-    );
-    expect(source).toContain(
-      "When an alert joins an EXISTING episode, only the alert's on-call policy executes.",
-    );
-    expect(english(ALERT_EPISODES)).toContain(
-      "**An alert joining an open episode** runs only its own policies. The episode's do not run again.",
+  it("is the page this one is: Alerts → Episodes reads alerts/episodes", () => {
+    expect(docsPathOf("ALERT_EPISODES_DOCS_PATH")).toBe(
+      `/docs/${ALERT_EPISODES}`,
     );
   });
 });
@@ -2324,36 +2299,43 @@ describe("alert rules and settings", () => {
     );
   });
 
-  it("walks the on-call rule's three steps with the form's own names, and starts a rule enabled", () => {
+  it("walks the on-call rule's two steps with the form's own names, and starts a rule enabled", () => {
     const source: string = readDashboardSource(
       `${settingsDir}/AlertOnCallRules.tsx`,
     );
+    const form: string = readDashboardSource("Utils/Form/EventRuleForm.ts");
     const steps: string = section(page, "## On-call rules");
 
-    expect(source).toContain('{ title: "Basic Info", id: "basic-info" },');
+    // Match first, then the policies the rule pages and its name.
     expect(source).toContain(
-      '{ title: "Match Criteria", id: "match-criteria", columns: 2 },',
+      "formSteps={getOnCallRuleFormSteps<AlertOnCallRule>()}",
     );
-    expect(source).toContain('{ title: "On-Call Policies", id: "on-call" },');
     expect(source).toContain(
-      'placeholder: "Page database team for any DB alert",',
+      "...getOnCallRuleActionFields<AlertOnCallRule>(),",
     );
-    expect(source).toContain("doNotShowWhenCreating: true,");
+    expect(form).toContain('{ title: "Match", id: "match-criteria" },');
+    expect(form).toContain('{ title: "On-Call Policies", id: "on-call" },');
+    expect(form).toContain('title: "On-Call Duty Policies",');
+    expect(form).toContain('allPicks: translationKey("Page {{policies}}"),');
+    expect(form).toContain("doNotShowWhenCreating: true,");
     expect(
       readCommonSource("Models/DatabaseModels/AlertOnCallRule.ts"),
     ).toContain('singularName: "Alert On-Call Rule"');
 
     for (const name of [
       "Create Alert On-Call Rule",
-      "Basic Info",
-      "Match Criteria",
+      "Match",
       "On-Call Policies",
       "On-Call Duty Policies",
+      "Name",
+      "Description",
+      "More fields",
     ]) {
       expect(steps).toContain(`**${name}**`);
     }
 
-    expect(steps).toContain('such as "Page database team for any DB alert"');
+    expect(steps).toContain('such as "Page Platform on-call"');
+    expect(steps).not.toContain("**Basic Info**");
   });
 
   it("names the conditions an alert rule can match on, as the rule forms list them", () => {
@@ -2413,10 +2395,11 @@ describe("alert rules and settings", () => {
     }
   });
 
-  it("walks the reminder rule's three steps and fields with the form's own names and defaults", () => {
+  it("walks the reminder rule's two steps and fields with the form's own names and defaults", () => {
     const source: string = readDashboardSource(
       `${settingsDir}/AlertReminderRules.tsx`,
     );
+    const form: string = readDashboardSource("Utils/Form/EventRuleForm.ts");
     const model: string = readCommonSource(
       "Models/DatabaseModels/AlertReminderRule.ts",
     );
@@ -2425,13 +2408,23 @@ describe("alert rules and settings", () => {
     );
     const reminders: string = section(page, "## Reminder rules");
 
-    for (const step of ["Rule Info", "Match Criteria", "Reminder Settings"]) {
-      expect(source).toContain(`title: "${step}",`);
+    expect(source).toContain(
+      "formSteps={getReminderRuleFormSteps<AlertReminderRule>()}",
+    );
+    expect(source).toContain(
+      '...getReminderRuleActionFields<AlertReminderRule>("alert"),',
+    );
+
+    for (const step of [
+      '{ title: "Match", id: "match-criteria" },',
+      '{ title: "Reminders", id: "reminder-settings" },',
+    ]) {
+      expect(form).toContain(step);
     }
 
-    expect(source).toContain('placeholder: "Critical Alert Reminders",');
-    expect(source).toContain('title: "Reminder Interval (minutes)",');
-    expect(source).toContain('title: "Stop Reminders When",');
+    expect(form).toContain('"Remind every {{interval}} until resolved"');
+    expect(form).toContain('title: "Reminder Interval (minutes)",');
+    expect(form).toContain('title: "Stop Reminders When",');
     expect(stopStates).toContain('Acknowledged = "Acknowledged",');
     expect(stopStates).toContain('Resolved = "Resolved",');
     expect(model).toContain("defaultValue: ReminderStopState.Resolved,");
@@ -2446,7 +2439,10 @@ describe("alert rules and settings", () => {
     expect(reminders).toContain(
       "Each new alert gets the first rule that matches it",
     );
-    expect(reminders).toContain('such as "Critical Alert Reminders"');
+    expect(reminders).toContain(
+      'such as "Remind every 30 minutes until resolved"',
+    );
+    expect(reminders).not.toContain("**Rule Info**");
   });
 
   it("matches every open alert again when a reminder rule is saved", () => {

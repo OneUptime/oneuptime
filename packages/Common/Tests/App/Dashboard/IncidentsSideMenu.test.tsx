@@ -175,6 +175,11 @@ describe("Incidents side menu", () => {
       ]);
     });
 
+    /*
+     * Episodes holds the two lists and nothing else: its "Documentation"
+     * page, a manual drawn in the product, gave way to the docs, which the
+     * episode list links to.
+     */
     test("the overview, episode and workspace sections are unchanged by the move", async () => {
       await renderIncidentsMenu();
 
@@ -191,10 +196,6 @@ describe("Incidents side menu", () => {
         {
           title: "Active Episodes",
           href: routeFor(PageMap.UNRESOLVED_INCIDENT_EPISODES),
-        },
-        {
-          title: "Documentation",
-          href: routeFor(PageMap.INCIDENT_EPISODE_DOCS),
         },
       ]);
 

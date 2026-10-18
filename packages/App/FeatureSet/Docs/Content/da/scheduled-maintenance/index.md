@@ -82,13 +82,14 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 
 | Sektion i sidemenuen | Sider                                                                                      |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Grundlæggende** | **Oversigt**, **Beskrivelse**, **Ejere**, **Tilstandstidslinje**, **Runbooks**                 |
-| **Protokoller**   | **Notifikationslogs** og **AI-logs**: hver besked, der er sendt om begivenheden, og hvad AI har gjort for den |
+| **Oversigt** | **Oversigt**, **Tilstandstidslinje**, **Beskrivelse**, **Runbooks** |
+| **Team** | **Ejere** |
+| **Notifikationer**   | **Notifikationslogs** og **AI-logs**: hver besked, der er sendt om begivenheden, og hvad AI har gjort for den |
 | **Noter**         | **Private noter** og **Offentlige noter**                                                      |
 | **Udvikler**      | **Terraform**, **API** og **AI-assistenter**: begivenheden styret fra kode                     |
 | **Avanceret**     | **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet begivenhed**             |
 
-**Grundlæggende** og **Noter** er åbne; de andre sektioner forbliver foldet sammen, indtil du klikker på dem.
+**Oversigt**, **Team** og **Noter** er åbne; de andre sektioner forbliver foldet sammen, indtil du klikker på dem.
 
 - **Oversigt** — headeren viser begivenhedens nummer, titel og tilstand, hvor lang tid der er til start, eller hvor længe den har stået på, og knapperne, der flytter den videre. Under den viser **Starter**, **Slutter** og **Varighed** det planlagte vindue i din tidszone. **Planlagt Vedligeholdelse Feed** registrerer alt, hvad der er sket med begivenheden, ved siden af kortene **Maintenance Details** og **Berørte ressourcer** og kortene **Målinger** og **Brugerdefinerede felter**, når dit projekt har nogen.
 - **Tilstandstidslinje** — hver tilstand, begivenheden har været i, hvornår og hvor længe. Se [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states#tilstandstidslinjen).

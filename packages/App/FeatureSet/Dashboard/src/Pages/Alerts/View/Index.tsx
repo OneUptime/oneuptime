@@ -1205,7 +1205,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
                 title: "Private Alert",
                 description:
-                  "If enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert.",
+                  "Only the alert's owners, project admins and project owners can see it.",
                 fieldType: FormFieldSchemaType.Toggle,
                 required: false,
                 collapsibleSection: advancedSection,

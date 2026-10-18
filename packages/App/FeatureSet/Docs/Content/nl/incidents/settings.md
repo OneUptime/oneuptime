@@ -607,14 +607,13 @@ Regels die werden opgeslagen voordat het formulier om eigenaren vroeg, kunnen no
 
 ## Bereikbaarheidsregels voor incidenten
 
-**Incidenten → Regels → Bereikbaarheidsregels** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is waar je het oproepen automatisch maakt. De kaart, **Bereikbaarheidsregels incident**, beschrijft regels die automatisch bereikbaarheidsbeleid uitvoeren als overeenkomende incidenten worden aangemaakt. De pagina heeft twee tabbladen: **Incident Rules** en **Episode Rules**.
+**Incidenten → Regels → Bereikbaarheidsregels** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is waar je het oproepen automatisch maakt. De kaart, **Bereikbaarheidsregels incident**, zegt wat ze doen: automatisch bereikbaarheidsbeleid oproepen voor nieuwe incidenten die overeenkomen. De pagina heeft twee tabbladen: **Incident Rules** en **Episode Rules**.
 
-Het aanmaakformulier heeft drie stappen:
+Het aanmaakformulier heeft twee stappen:
 
 :::steps
-1. **Basisinformatie** — **Naam** (de voorbeeldtekst stelt iets voor als het databaseteam oproepen voor elk DB-incident) en **Beschrijving**. De regel begint ingeschakeld; het bewerkingsformulier voegt de schakelaar **Ingeschakeld** toe, en de lijst toont per regel een groen label **Ingeschakeld** of een rood label **Uitgeschakeld**.
-2. **Overeenkomstcriteria** — **Alle incidenten**, waar een nieuwe regel mee begint, of **Alleen incidenten die aan de voorwaarden voldoen**, dat de voorwaarden van de regel opent. Elke voorwaarde kiest een criterium — **Monitoren**, **Incident Ernsten**, **Incident-labels**, **Monitorlabels**, **Incidenttitel**, **Incidentbeschrijving**, **Monitornaam** of **Monitorbeschrijving** — een operator en een waarde, en leest als een zin: "Als **Incidenttitel** `database` bevat", "En **Monitorlabels** heeft een van _Production_".
-3. **Bereikbaarheidsbeleid** — het beleid dat deze regel uitvoert.
+1. **Overeenkomst** — **Alle incidenten**, waar een nieuwe regel mee begint, of **Alleen incidenten die aan de voorwaarden voldoen**, dat de voorwaarden van de regel opent. Elke voorwaarde kiest een criterium — **Monitoren**, **Incident Ernsten**, **Incident-labels**, **Monitorlabels**, **Incidenttitel**, **Incidentbeschrijving**, **Monitornaam** of **Monitorbeschrijving** — een operator en een waarde, en leest als een zin: "Als **Incidenttitel** `database` bevat", "En **Monitorlabels** heeft een van _Production_".
+2. **Bereikbaarheidsbeleid** — het beleid dat deze regel oproept, en de **Naam** van de regel, daaruit ingevuld ("Platform on-call oproepen") totdat je zelf een naam typt; de **Beschrijving** wacht onder **Meer velden**. De regel begint ingeschakeld; het bewerkingsformulier voegt de schakelaar **Ingeschakeld** toe, en de lijst toont per regel een groen label **Ingeschakeld** of een rood label **Uitgeschakeld**.
 :::
 
 ### Hoe overeenkomen wordt afgehandeld
@@ -632,7 +631,7 @@ De regels die de pagina zelf meebrengt, zijn het waard om je eigen te maken:
 
 ## Bereikbaarheidsbeleid rechtstreeks koppelen
 
-Regels zijn niet de enige route. Elk incident heeft een eigen lijst met bereikbaarheidsbeleid, die verschijnt als het veld **Bereikbaarheidsbeleid** in de stap **Bereikbaarheid en rollen** van de meldwizard en in de stap **Bereikbaarheid** van een incidentsjabloon. De beschrijving van het veld zegt het duidelijk: dit is het bereikbaarheidsbeleid dat moet worden uitgevoerd als dit incident wordt aangemaakt.
+Regels zijn niet de enige route. Elk incident heeft een eigen lijst met bereikbaarheidsbeleid, die verschijnt als het veld **Bereikbaarheidsbeleid** in de stap **Bereikbaarheid en rollen** van de meldwizard en in de stap **Bereikbaarheid** van een incidentsjabloon. De beschrijving zegt wanneer het wordt opgeroepen: zodra het incident is gemeld.
 
 Als een incident wordt aangemaakt, voert OneUptime de labelregels uit, dan de bereikbaarheidsregels (die hun overeenkomende beleid in de lijst van het incident samenvoegen), dan de runbook-regels — en als de resulterende lijst niet leeg is, wordt elk beleid erin uitgevoerd. De uitvoeringen lopen parallel en worden onafhankelijk afgehandeld, dus als één beleid mislukt, stopt dat de andere niet. Elke uitvoering wordt gemarkeerd met het incident dat haar startte en met het meldingsgebeurtenistype voor een aangemaakt incident.
 

@@ -177,7 +177,7 @@ const LINK_PAGES: Array<LinkPageCase> = [
     breadcrumbFile: "Utils/Breadcrumbs/AlertBreadcrumbs.ts",
     breadcrumb: ["Project", "Alerts", "View Alert", "Linked Incidents"],
     sideMenu: "Pages/Alerts/View/SideMenu.tsx",
-    sideMenuSection: "Basic",
+    sideMenuSection: "Investigation",
     menuTitle: "Linked Incidents",
     scopeField: "alertId",
     linkedField: "incidentId",

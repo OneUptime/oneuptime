@@ -150,15 +150,15 @@ Un épisode que vous créez n'a pas de règle de regroupement : la liste affiche
 
 | Section du menu latéral | Pages                                                                       |
 | ----------------------- | --------------------------------------------------------------------------- |
-| **Basique**             | **Vue d'ensemble**, **Description**, **Cause racine**, **Notes de remédiation** |
-| **Propriété**           | **Propriétaires**                                                           |
-| **Chronologie**         | **Chronologie d'état**                                                      |
-| **Alertes**             | **Alertes des membres**                                                     |
-| **Notes de l'épisode**  | **Notes privées**                                                           |
-| **Développeurs**        | **Terraform**, **API**, **Assistants IA**                                   |
-| **Avancé**              | **Journaux d'audit**, **Supprimer l'épisode**                               |
+| **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie d'état** |
+| **Investigation** | **Description**, **Cause racine**, **Notes de remédiation** |
+| **Équipe** | **Propriétaires** |
+| **Alertes** | **Alertes des membres** |
+| **Notes** | **Notes privées** |
+| **Développeurs** | **Terraform**, **API**, **Assistants IA** |
+| **Avancé** | **Journaux d'audit**, **Supprimer l'épisode** |
 
-**Propriété**, **Développeurs** et **Avancé** commencent repliées. La **Vue d'ensemble** s'ouvre sur **Alertes de cet épisode**, puis le **Flux de l'épisode**, à côté de la carte **Détails de l'épisode** : son numéro, son état, sa gravité, son nombre d'alertes, sa règle de regroupement et ses politiques d'astreinte. Son en-tête propose **Prendre en compte** et **Résoudre**, et **Move episode to** dans le menu **⋯**.
+**Développeurs** et **Avancé** commencent repliées. La **Vue d'ensemble** s'ouvre sur **Alertes de cet épisode**, puis le **Flux de l'épisode**, à côté de la carte **Détails de l'épisode** : son numéro, son état, sa gravité, son nombre d'alertes, sa règle de regroupement et ses politiques d'astreinte. Son en-tête propose **Prendre en compte** et **Résoudre**, et **Move episode to** dans le menu **⋯**.
 
 **Alertes → Épisodes actifs** liste les épisodes pas encore résolus, et le badge à côté les compte.
 

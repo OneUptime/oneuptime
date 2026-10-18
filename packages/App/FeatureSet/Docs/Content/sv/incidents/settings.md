@@ -607,14 +607,13 @@ Regler som sparades innan formuläret frågade efter ägare kan fortfarande ha e
 
 ## Jourregler för incidenter
 
-**Incidenter → Regler → Jourregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) är där du gör larmning automatisk. Kortet, **Incidentjourregler**, beskriver regler som automatiskt kör jourpolicyer när matchande incidenter skapas. Sidan har två flikar: **Incident Rules** och **Episode Rules**.
+**Incidenter → Regler → Jourregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) är där du gör larmning automatisk. Kortet, **Incidentjourregler**, säger vad de gör: larmar automatiskt via jourpolicyer för nya incidenter som matchar. Sidan har två flikar: **Incident Rules** och **Episode Rules**.
 
-Skapandeformuläret har tre steg:
+Skapandeformuläret har två steg:
 
 :::steps
-1. **Grundläggande information** — **Namn** (platshållaren föreslår något i stil med att larma databasteamet vid varje DB-incident) och **Beskrivning**. Regeln börjar aktiverad; dess redigeringsformulär lägger till reglaget **Aktiverad**, och listan visar ett grönt märke **Aktiverad** eller ett rött märke **Inaktiverad** per regel.
-2. **Matchningskriterier** — **Alla incidenter**, som en ny regel börjar på, eller **Endast incidenter som uppfyller villkoren**, som öppnar regelns villkor. Varje villkor väljer ett kriterium — **Monitorer**, **Incident Allvarligheter**, **Incidentetiketter**, **Övervakningsetiketter**, **Incidenttitel**, **Incidentbeskrivning**, **Övervakningsnamn** eller **Övervakningsbeskrivning** — en operator och ett värde, och läses som en mening: "Om **Incidenttitel** innehåller `database`", "Och **Övervakningsetiketter** har någon av _Production_".
-3. **Jourpolicyer** — policyerna som den här regeln kör.
+1. **Matcha** — **Alla incidenter**, som en ny regel börjar på, eller **Endast incidenter som uppfyller villkoren**, som öppnar regelns villkor. Varje villkor väljer ett kriterium — **Monitorer**, **Incident Allvarligheter**, **Incidentetiketter**, **Övervakningsetiketter**, **Incidenttitel**, **Incidentbeskrivning**, **Övervakningsnamn** eller **Övervakningsbeskrivning** — en operator och ett värde, och läses som en mening: "Om **Incidenttitel** innehåller `database`", "Och **Övervakningsetiketter** har någon av _Production_".
+2. **Jourpolicyer** — policyerna som den här regeln larmar, och regelns **Namn**, ifyllt utifrån dem ("Larma Platform on-call") tills du skriver ett eget; dess **Beskrivning** väntar under **Fler fält**. Regeln börjar aktiverad; dess redigeringsformulär lägger till reglaget **Aktiverad**, och listan visar ett grönt märke **Aktiverad** eller ett rött märke **Inaktiverad** per regel.
 :::
 
 ### Så avgörs matchning
@@ -632,7 +631,7 @@ Reglerna som sidan själv har med är värda att göra till dina egna:
 
 ## Koppla jourpolicyer direkt
 
-Regler är inte den enda vägen. Varje incident har en egen lista över jourpolicyer, som visas som fältet **Jourpolicy** i steget **Jour och roller** i deklarationsguiden och i steget **Jour** i en incidentmall. Fältets beskrivning säger det rakt ut: det här är jourpolicyerna som ska köras när den här incidenten skapas.
+Regler är inte den enda vägen. Varje incident har en egen lista över jourpolicyer, som visas som fältet **Jourpolicy** i steget **Jour och roller** i deklarationsguiden och i steget **Jour** i en incidentmall. Fältets beskrivning säger när de larmas: så snart incidenten har deklarerats.
 
 När en incident skapas kör OneUptime etikettreglerna, sedan jourreglerna (som slår ihop sina matchande policyer med incidentens lista), sedan runbook-reglerna — och om den resulterande listan inte är tom körs varje policy i den. Körningarna sker parallellt och avgörs oberoende av varandra, så att en policy som misslyckas inte stoppar de andra. Varje körning märks med incidenten som utlöste den och med aviseringshändelsetypen för en skapad incident.
 

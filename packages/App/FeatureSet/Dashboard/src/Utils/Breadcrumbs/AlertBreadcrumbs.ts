@@ -359,12 +359,6 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Episode",
       "Delete Episode",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_EPISODE_DOCS, [
-      "Project",
-      "Alerts",
-      "Episodes",
-      "Documentation",
-    ]),
   };
   return breadcrumpLinksMap[path];
 }

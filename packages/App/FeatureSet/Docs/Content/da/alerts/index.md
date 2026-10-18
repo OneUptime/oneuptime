@@ -56,7 +56,7 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 | Sektion           | Hvad du gør der                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Advarsler**     | **Alle advarsler** og **Aktive advarsler**, hvis røde mærke tæller de advarsler, der endnu ikke er løst.                    |
-| **Episoder**      | **Alle episoder**, **Aktive episoder** og **Dokumentation**, en side i dashboardet om gruppering.                          |
+| **Episoder** | **Alle episoder** og **Aktive episoder**: relaterede advarsler samlet i ét problem at arbejde på. |
 | **AI**            | **Indsigter**, **Protokoller** og **Indstillinger**: hvad OneUptime AI har lært af dine advarsler, alt, hvad den har gjort, og hvad den må gøre. |
 | **Arbejdsområde** | **Slack** og **Microsoft Teams**, alt efter hvad projektet har forbundet, eller **Forbind Slack eller Teams**, når det har ingen af dem. |
 | **Regler**        | **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **Reminder Rules**. |
@@ -129,19 +129,20 @@ Mens du arbejder med den, skriver du det, du lærer, ned som **Private noter**, 
 
 | Sektion i sidemenuen | Sider                                                                                                       |
 | -------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Grundlæggende**    | **Oversigt**, **Beskrivelse**, **Grundårsag**, **Afhjælpning**, **Runbooks**, **Tilstandstidslinje**, **Ejere**, **Tilknyttede hændelser** |
-| **Vagt**             | **Vagtudførelser**: hvilke vagtpolitikker der kørte for advarslen, og hvordan hver af dem gik               |
-| **Protokoller**      | **Notifikationslogs** og **AI-logs**: hver besked, der er sendt om advarslen, og alt, hvad AI gjorde for den |
-| **Advarselsnoter**   | **Private noter**                                                                                           |
+| **Oversigt** | **Oversigt** og **Tilstandstidslinje** |
+| **Undersøgelse** | **Beskrivelse**, **Grundårsag**, **Afhjælpning**, **Runbooks**, **Tilknyttede hændelser** |
+| **Team** | **Vagtudførelser** og **Ejere**: hvem der blev tilkaldt for advarslen, og hvem der ejer den |
+| **Notifikationer**      | **Notifikationslogs** og **AI-logs**: hver besked, der er sendt om advarslen, og alt, hvad AI gjorde for den |
+| **Noter**   | **Private noter**                                                                                           |
 | **Udvikler**         | **Terraform**, **API** og **AI-assistenter**: advarslen styret fra kode                                     |
-| **Avanceret**        | **Brugerdefinerede felter**, **Auditlogs**, **Indstillinger**, **Slet advarsel**                            |
+| **Avanceret** | **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet advarsel** |
 
-**Grundlæggende** og **Advarselsnoter** er åbne; de andre sektioner er foldet sammen, indtil du klikker på dem.
+**Oversigt**, **Undersøgelse**, **Team** og **Noter** er åbne; de andre sektioner er foldet sammen, indtil du klikker på dem.
 
 - **Oversigt** — tre felter med, hvor lang tid det tog at bekræfte og løse advarslen, og dens **Varighed**. Kortet **AI Investigation** står øverst på siden med **Ask OneUptime AI** nederst, og **Advarsel Feed** registrerer alt, hvad der skete med advarslen. Ved siden af dem står kortet **Advarselsdetaljer**, advarslens målinger og dens **Berørte ressourcer**.
 - **Tilstandstidslinje** — hver tilstand, advarslen har været i, hvornår og hvor længe. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).
 - **Tilknyttede hændelser** — de hændelser, advarslen er en del af, med **Tilknyt hændelse** og **Erklær hændelse**.
-- **Indstillinger** — **Hvem kan se denne advarsel** med kontakten **Privat advarsel** og **Reminders** med **Send påmindelser**. Hver kontakt gemmer i det øjeblik, du slår den om.
+- **Indstillinger** — **Hvem kan se denne advarsel** med kontakten **Privat advarsel** og **Påmindelser** med **Send påmindelser**. Hver kontakt gemmer i det øjeblik, du slår den om.
 
 ## Private advarsler
 

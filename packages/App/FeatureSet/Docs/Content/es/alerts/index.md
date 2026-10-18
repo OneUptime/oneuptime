@@ -56,7 +56,7 @@ Abre **Alertas** desde el menú **Productos** de la barra superior. La lista de 
 | Sección                | Qué haces allí                                                                                                            |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Alertas**            | **Todas las alertas** y **Alertas activas**, cuya insignia roja cuenta las alertas que aún no se han resuelto.              |
-| **Episodios**          | **Todos los episodios**, **Episodios activos** y **Documentación**, una página del panel sobre la agrupación.               |
+| **Episodios** | **Todos los episodios** y **Episodios activos**: alertas relacionadas, agrupadas en un solo problema en el que trabajar. |
 | **IA**                 | **Análisis**, **Registros** y **Ajustes**: lo que OneUptime AI ha aprendido de tus alertas, todo lo que ha hecho y lo que puede hacer. |
 | **Espacio de trabajo** | **Slack** y **Microsoft Teams**, según lo que haya conectado el proyecto, o **Conectar Slack o Teams** si no tiene ninguno. |
 | **Reglas**             | **Reglas de agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de recordatorio**. |
@@ -129,14 +129,15 @@ Mientras trabajas en ella, anota lo que vayas aprendiendo como **Notas privadas*
 
 | Sección del menú lateral | Páginas                                                                                                     |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| **Básico**               | **Vista general**, **Descripción**, **Causa raíz**, **Remediación**, **Runbooks**, **Cronología de estados**, **Propietarios**, **Incidentes vinculados** |
-| **Guardia**              | **Ejecuciones de guardia**: qué políticas de guardia se ejecutaron para la alerta y cómo fue cada una       |
-| **Registros**            | **Registros de notificación** y **Registros de IA**: cada mensaje enviado sobre la alerta y todo lo que la IA hizo por ella |
-| **Notas de alerta**      | **Notas privadas**                                                                                          |
+| **Vista general** | **Vista general** y **Cronología de estados** |
+| **Investigación** | **Descripción**, **Causa raíz**, **Remediación**, **Runbooks**, **Incidentes vinculados** |
+| **Equipo** | **Ejecuciones de guardia** y **Propietarios**: a quién se avisó por la alerta y quién es su propietario |
+| **Notificaciones**            | **Registros de notificación** y **Registros de IA**: cada mensaje enviado sobre la alerta y todo lo que la IA hizo por ella |
+| **Notas**      | **Notas privadas**                                                                                          |
 | **Desarrolladores**      | **Terraform**, **API** y **Asistentes de IA**: la alerta gestionada desde código                           |
-| **Avanzado**             | **Campos personalizados**, **Registros de auditoría**, **Ajustes**, **Eliminar alerta**                     |
+| **Avanzado** | **Campos personalizados**, **Ajustes**, **Registros de auditoría**, **Eliminar alerta** |
 
-**Básico** y **Notas de alerta** están abiertas; las demás secciones empiezan plegadas hasta que haces clic en ellas.
+**Vista general**, **Investigación**, **Equipo** y **Notas** están abiertas; las demás secciones empiezan plegadas hasta que haces clic en ellas.
 
 - **Vista general** — tres recuadros con cuánto tardó la alerta en ser reconocida y resuelta, y su **Duración**. La tarjeta **Investigación de IA** encabeza la página, con **Ask OneUptime AI** al pie, y el **Feed de la alerta** registra todo lo que le ha pasado a la alerta. A su lado están la tarjeta **Detalles de la alerta**, las mediciones de la alerta y sus **Recursos afectados**.
 - **Cronología de estados** — cada estado en el que ha estado la alerta, cuándo y durante cuánto tiempo. Consulta [La cronología de estados](/docs/alerts/states-and-severities#la-cronología-de-estados).

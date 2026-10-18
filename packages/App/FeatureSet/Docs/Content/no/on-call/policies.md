@@ -94,7 +94,7 @@ Du finner utførelseslogger tre steder:
 
 - i retningslinjens egne **Utførelseslogger**, under **Logger**;
 - under **Vakttjeneste → Avansert → Utførelseslogger**, for alle retningslinjer, der direkte tilkallinger fra arbeidsflyter og chat står som **Direkte tilkalling**;
-- på siden **Vaktutførelser** for en hendelse, og under **Vaktutførelser** for et varsel.
+- på siden **Vaktutførelser** for en hendelse eller et varsel.
 
 Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **View Timeline** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. En vaktplan der ingen har vakt, viser **No one was on call** i stedet for en person. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
 

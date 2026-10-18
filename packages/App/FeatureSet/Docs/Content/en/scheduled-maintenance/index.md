@@ -82,13 +82,14 @@ Open an event from the list to see its pages. Its side menu holds:
 
 | Side menu section | Pages                                                                                         |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Basic**         | **Overview**, **Description**, **Owners**, **State Timeline**, **Runbooks**                    |
-| **Logs**          | **Notification Logs** and **AI Logs**: every message sent about the event, and what AI did for it |
+| **Overview** | **Overview**, **State Timeline**, **Description**, **Runbooks** |
+| **Team** | **Owners** |
+| **Notifications**          | **Notification Logs** and **AI Logs**: every message sent about the event, and what AI did for it |
 | **Notes**         | **Private Notes** and **Public Notes**                                                         |
 | **Developer**     | **Terraform**, **API** and **AI Assistants**: the event managed from code                     |
 | **Advanced**      | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Event**                             |
 
-**Basic** and **Notes** are open; the other sections start folded until you click them.
+**Overview**, **Team** and **Notes** are open; the other sections start folded until you click them.
 
 - **Overview** — the header shows the event's number, title and state, how long until it starts or how long it has run, and the buttons that move it on. Under it, **Starts**, **Ends** and **Duration** show the planned window in your time zone. The **Scheduled Maintenance Feed** records everything that happened to the event, beside the **Maintenance Details** and **Affected Resources** cards, and the **Measurements** and **Custom Fields** cards when your project has any.
 - **State Timeline** — every state the event has been in, when, and for how long. See [Maintenance States](/docs/scheduled-maintenance/states#the-state-timeline).

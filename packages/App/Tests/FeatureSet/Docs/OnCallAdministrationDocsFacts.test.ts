@@ -1036,7 +1036,8 @@ describe("execution logs", () => {
     };
 
     expect(entriesOf(incidentMenu)).toContain("On-Call Executions");
-    expect(entriesOf(alertMenu)).toContain("On Call Executions");
+    // The alert menu names the page as the incident menu does.
+    expect(entriesOf(alertMenu)).toContain("On-Call Executions");
     expect(sectionByTitle(policyMenu(), "Logs").items).toContain(
       "Execution Logs",
     );
@@ -1050,7 +1051,7 @@ describe("execution logs", () => {
       "- **On-Call Duty → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;",
     );
     expect(statusTable()).toContain(
-      "- the **On-Call Executions** page of an incident, and **On Call Executions** of an alert.",
+      "- the **On-Call Executions** page of an incident or an alert.",
     );
   });
 

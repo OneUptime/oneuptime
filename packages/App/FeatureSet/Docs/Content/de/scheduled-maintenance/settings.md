@@ -67,24 +67,22 @@ Eine Regel passt nur, wenn jede ausgefüllte Bedingung zutrifft; eine leer gelas
 **Geplante Wartung → Regeln → Erinnerungsregeln** erinnert die Eigentümer eines Ereignisses, bis die Arbeit abgenommen ist. Jedes Ereignis erhält die erste passende Regel, von oben nach unten in der Liste.
 
 :::steps
-### Die Erinnerungsregel benennen
-
-Klicken Sie auf **Erinnerungsregel für geplante Wartungen erstellen**. Geben Sie ihr unter **Regelinformationen** einen **Name**, etwa „Erinnerungen an Wartungsereignisse“, und bei Bedarf eine **Beschreibung**.
-
 ### Wählen, an welche Ereignisse erinnert wird
 
-Lassen Sie unter **Übereinstimmungskriterien** die Auswahl **Alle geplanten Wartungsereignisse** stehen, um an jedes Ereignis zu erinnern, oder wählen Sie **Nur geplante Wartungsereignisse, die den Bedingungen entsprechen** und dann die **Beschriftungen**, für die sie gilt.
+Klicken Sie auf **Erinnerungsregel für geplante Wartungen erstellen**. Lassen Sie unter **Übereinstimmung** die Auswahl **Alle geplanten Wartungsereignisse** stehen, um an jedes Ereignis zu erinnern, oder wählen Sie **Nur geplante Wartungsereignisse, die den Bedingungen entsprechen** und dann die **Beschriftungen**, für die sie gilt.
 
 ### Das Intervall festlegen
 
-Legen Sie unter **Erinnerungseinstellungen** das **Erinnerungsintervall (Minuten)** fest, wie oft die Eigentümer erinnert werden, und erstellen Sie dann die Regel.
+Legen Sie unter **Erinnerungen** das **Erinnerungsintervall (Minuten)** fest, wie oft die Eigentümer erinnert werden, und wählen Sie unter **Eigentümer erinnern**, wann erinnert wird. Ihr **Name** folgt beidem, etwa „Alle 30 Minuten erinnern, solange es läuft“, bis Sie einen eigenen eingeben, und eine **Beschreibung** wartet unter **Weitere Felder**. Erstellen Sie dann die Regel.
 :::
 
-| Einstellung                          | Beginnt als                            | Was sie tut                                                                          |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Erinnerungsintervall (Minuten)**   | Erforderlich                           | Wie oft die Eigentümer erinnert werden.                                              |
-| **Erinnerungen beenden, wenn**       | **Erinnern, bis das Ereignis abgeschlossen ist** | Oder **Beenden, wenn das Ereignis beginnt (Laufend)**, um aufzuhören, sobald die Arbeit begonnen hat. |
-| **Erinnern, solange das Ereignis geplant ist** | Aus                          | Aus beginnen die Erinnerungen erst, wenn das Ereignis beginnt; an gehen sie auch vorher hinaus. |
+| Antwort | Wann die Eigentümer erinnert werden |
+| --- | --- |
+| **Während es läuft** | Vom Beginn des Ereignisses bis zu seinem Ende. Eine neue Regel beginnt mit dieser Antwort. |
+| **Vor dem Beginn** | Ab der Planung des Ereignisses bis zu seinem Beginn. |
+| **Vor dem Beginn und während es läuft** | Ab der Planung des Ereignisses bis zu seinem Ende. |
+
+Eine über die API oder Terraform gespeicherte Regel, die auf den Beginn des Ereignisses wartet und beim Beginn aufhört, sendet nie eine Erinnerung: Die Liste markiert sie mit **Erinnert nie**, und ihr Formular bittet Sie, eine Antwort zu wählen.
 
 Eigentümer erhalten jede Erinnerung als **Wartungserinnerung**, die für jedes neue Mitglied per E-Mail eingeschaltet ist. Das Speichern, Ändern oder Löschen einer Erinnerungsregel ordnet jedes noch nicht abgeschlossene Ereignis neu zu. Um die Erinnerungen für ein Ereignis zu stoppen, schalten Sie **Erinnerungen senden** auf seiner Seite **Einstellungen** aus; es speichert, sobald Sie den Schalter umlegen.
 
@@ -134,7 +132,7 @@ Regeln, benutzerdefinierte Felder und Messungen erfordern **Project Owner** oder
 :::
 
 :::details Eigentümer haben keine Erinnerung erhalten
-Prüfen Sie, ob eine Erinnerungsregel auf die Beschriftungen des Ereignisses passt, ob **Erinnerungen senden** beim Ereignis eingeschaltet ist und ob **Wartungserinnerung** in den Benachrichtigungseinstellungen der Eigentümer eingeschaltet ist. Ohne **Erinnern, solange das Ereignis geplant ist** beginnen Erinnerungen erst, wenn das Ereignis beginnt.
+Prüfen Sie, ob eine Erinnerungsregel auf die Beschriftungen des Ereignisses passt, ob **Erinnerungen senden** beim Ereignis eingeschaltet ist und ob **Wartungserinnerung** in den Benachrichtigungseinstellungen der Eigentümer eingeschaltet ist. Eine Regel mit **Während es läuft** sendet vor dem Beginn des Ereignisses nichts.
 :::
 
 ## Nächste Schritte

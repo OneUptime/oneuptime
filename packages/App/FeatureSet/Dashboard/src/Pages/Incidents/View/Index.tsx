@@ -1351,7 +1351,7 @@ const IncidentView: FunctionComponent<
                   incidentSeverity: true,
                 },
                 title: "Incident Severity",
-                description: "What type of incident is this?",
+                description: "How serious is it?",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
                   type: IncidentSeverity,
