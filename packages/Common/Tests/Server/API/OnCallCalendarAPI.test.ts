@@ -2446,10 +2446,12 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
   /*
    * The feed is served on whatever scheme reached the app. The routes used to
    * 301 plain http to https when HTTP_PROTOCOL=https, PROVISION_SSL=true and
-   * the trusted X-Forwarded-Proto said http - but the shipped Nginx writes
-   * `X-Forwarded-Proto $scheme`, the scheme of the hop INTO Nginx, so on an
-   * install whose TLS ends in front of Nginx (OneUptime Cloud) every request
-   * said http and the 301 pointed at the URL the client had asked for.
+   * the trusted X-Forwarded-Proto said http - but the shipped Nginx wrote
+   * `X-Forwarded-Proto $scheme` then, the scheme of the hop INTO Nginx, so on
+   * an install whose TLS ends in front of Nginx (OneUptime Cloud) every
+   * request said http and the 301 pointed at the URL the client had asked
+   * for. Nginx now forwards the visitor's scheme when the proxy in front
+   * names it, but one that says nothing still reads as http here.
    */
   describe("no scheme redirect", () => {
     test("OneUptime Cloud: https, PROVISION_SSL on, TLS ended before Nginx -> 200, not a 301 to the same URL", async () => {

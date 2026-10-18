@@ -45,6 +45,7 @@ import {
   UnitOfWork,
 } from "../../Types/Telemetry/UnitOfWork";
 import mountVendorAssets from "./VendorAssets";
+import RequestTransport from "./RequestTransport";
 import StartupGate from "./StartupGate";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
@@ -139,7 +140,7 @@ const urlEncodedMiddleware: RequestHandler = ExpressUrlEncoded(
   urlEncodedBodyParserOptions,
 ); // 50 MB limit.
 
-const setDefaultHeaders: RequestHandler = (
+export const setDefaultHeaders: RequestHandler = (
   req: ExpressRequest,
   res: ExpressResponse,
   next: NextFunction,
@@ -181,6 +182,19 @@ const setDefaultHeaders: RequestHandler = (
    * /file, so set it here for everything the app itself serves.
    */
   res.header("X-Content-Type-Options", "nosniff");
+
+  /*
+   * An installation served over HTTPS tells browsers to reach its own
+   * address over HTTPS only (RequestTransport says when, and for how long),
+   * so a browser that has been here never sends a request - or the cookies
+   * that go with it - over plain HTTP again.
+   */
+  const strictTransportSecurity: string | null =
+    RequestTransport.getStrictTransportSecurity(req);
+
+  if (strictTransportSecurity) {
+    res.header("Strict-Transport-Security", strictTransportSecurity);
+  }
 
   next();
 };

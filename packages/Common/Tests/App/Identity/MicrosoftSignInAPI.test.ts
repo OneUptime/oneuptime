@@ -57,12 +57,23 @@ jest.mock("../../../Server/Services/UserSessionService", () => {
 });
 
 jest.mock("../../../Server/Utils/Cookie", () => {
+  /*
+   * The state cookie is cleared by the real removeCookie, so the response's
+   * clearCookie sees the path (and Secure, over HTTPS) every cookie gets.
+   */
+  const actual: {
+    default: { removeCookie: (...args: Array<unknown>) => void };
+  } = jest.requireActual("../../../Server/Utils/Cookie");
+
   return {
     __esModule: true,
     default: {
       setCookie: jest.fn(),
       getCookieFromExpressRequest: jest.fn(),
       setUserCookie: jest.fn(),
+      removeCookie: (...args: Array<unknown>): void => {
+        actual.default.removeCookie(...args);
+      },
     },
   };
 });

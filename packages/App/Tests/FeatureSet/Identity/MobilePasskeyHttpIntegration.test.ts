@@ -166,6 +166,12 @@ let passkey: SignedPasskeyFixture;
 
 beforeAll(async () => {
   const app: ExpressApplication = createExpressApp();
+  /*
+   * As StartServer sets it: the app trusts the scheme its ingress forwards,
+   * which is how it knows a visitor is on HTTPS behind the proxy and keeps
+   * the challenge cookie Secure.
+   */
+  app.set("trust proxy", 1);
   app.use(ExpressJson());
   app.use(CookieParser());
   app.use("/identity", AuthenticationRouter);
@@ -290,7 +296,12 @@ async function post(
 ): Promise<HttpResult> {
   const response: Response = await fetch(`${httpOrigin}/identity/${route}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...headers },
+    headers: {
+      "Content-Type": "application/json",
+      // What the HTTPS reverse proxy in front of the app tells it.
+      "X-Forwarded-Proto": "https",
+      ...headers,
+    },
     body: JSON.stringify(body),
   });
   return { response, body: (await response.json()) as Record<string, any> };
