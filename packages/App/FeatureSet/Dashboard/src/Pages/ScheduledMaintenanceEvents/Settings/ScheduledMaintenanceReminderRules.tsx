@@ -18,7 +18,7 @@ import MaintenanceReminderTimingText from "../../../Components/Reminders/Mainten
 const documentationMarkdown: string = `
 ### How Scheduled Maintenance Reminder Rules Work
 
-Reminder rules periodically re-notify scheduled maintenance event owners while an event has not yet finished. When an event is created, the first matching rule, from the top of the list down, is applied, and reminders are sent to the event's owners at the configured interval until the event reaches the stop state.
+A reminder rule reminds a maintenance event's owners, as often as it says. A new event gets the first rule that matches it, from the top of the list down, and its reminders go out when the rule's **Remind Owners** says: before the event starts, while it is in progress, or both.
 
 \`\`\`mermaid
 flowchart TD
@@ -26,7 +26,7 @@ flowchart TD
     B -->|Rule Matches| C[Schedule Reminder]
     B -->|No Match| D[No Reminders]
     C --> E[Wait for Interval]
-    E --> F{Event Reached Stop State?}
+    E --> F{Time to Stop?}
     F -->|No| G[Notify Event Owners]
     G --> E
     F -->|Yes| H[Stop Reminders]
@@ -76,8 +76,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
         }}
         helpContent={{
           title: "How Scheduled Maintenance Reminder Rules Work",
-          description:
-            "Understanding reminder intervals, match criteria, and stop states",
+          description: "How often an event's owners are reminded, and when.",
           markdown: documentationMarkdown,
         }}
         sortBy="order"

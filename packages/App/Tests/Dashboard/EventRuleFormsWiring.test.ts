@@ -25,6 +25,9 @@ function read(relative: string): string {
   return fs.readFileSync(path.join(DASHBOARD_SRC, relative), "utf8");
 }
 
+// Runs of whitespace, so a source reads the same however prettier wraps it.
+const WHITESPACE: RegExp = /\s+/g;
+
 function countOf(text: string, part: string): number {
   return text.split(part).length - 1;
 }
@@ -177,6 +180,10 @@ describe("the help panels speak plainly", () => {
       "users + members of owner teams",
       "fire on-call policies",
       "Remind While Event is Scheduled",
+      // The reminder rules' help said this, over forms with no stop state.
+      "stop state",
+      "Stop State",
+      "re-notify",
     ]) {
       expect({
         file: page.file,
@@ -239,5 +246,106 @@ describe("a maintenance reminder rule's one choice", () => {
     expect(page).toContain("<MaintenanceReminderTimingText rule={item} />");
     expect(page).not.toContain('title: "Remind While Scheduled"');
     expect(page).not.toContain('title: "Stop Reminders When"');
+  });
+
+  test("a rule that never reminds is marked in the list, as a rule that adds nothing is", () => {
+    const text: string = read(
+      "Components/Reminders/MaintenanceReminderTimingText.tsx",
+    );
+
+    expect(text).toContain("<Pill");
+    expect(text).toContain("color={Yellow}");
+    expect(text).toContain("text={MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT}");
+    expect(text).toContain("tooltip={MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE}");
+    // Not an empty value's dash: a phone's card leaves an empty value out.
+    expect(text).not.toContain("TableEmptyValue");
+  });
+});
+
+describe("an incident's and an alert's reminder rules list", () => {
+  test.each([
+    [
+      "Pages/Incidents/Settings/IncidentReminderRules.tsx",
+      "IncidentReminderRule",
+    ],
+    ["Pages/Alerts/Settings/AlertReminderRules.tsx", "AlertReminderRule"],
+  ])(
+    "%s shows Stop Reminders When as the form words it, in the reader's language",
+    (file: string, model: string) => {
+      const page: string = read(file).replace(WHITESPACE, " ");
+
+      expect(page).toContain(
+        `title: "Stop Reminders When", type: FieldType.Element, getElement: (item: ${model}): ReactElement => { return ( <ReminderStopStateText value={item.stopRemindersOnState} /> );`,
+      );
+      expect(page).not.toContain(
+        'title: "Stop Reminders When", type: FieldType.Text',
+      );
+    },
+  );
+
+  test("the list and the form read one word for each answer", () => {
+    const form: string = read("Utils/Form/EventRuleForm.ts");
+    const text: string = read("Components/Reminders/ReminderStopStateText.tsx");
+
+    expect(form).toContain(
+      '[ReminderStopState.Resolved]: translationKey("Resolved"),',
+    );
+    expect(form).toContain(
+      '[ReminderStopState.Acknowledged]: translationKey("Acknowledged"),',
+    );
+    expect(form).toContain(
+      "title: REMINDER_STOP_STATE_TITLES[ReminderStopState.Resolved],",
+    );
+    expect(form).toContain(
+      "title: REMINDER_STOP_STATE_TITLES[ReminderStopState.Acknowledged],",
+    );
+    expect(text).toContain(
+      "REMINDER_STOP_STATE_TITLES[readStopState(props.value)]",
+    );
+  });
+});
+
+describe("a new SLA rule starts with targets", () => {
+  const page: string = read("Pages/Incidents/Settings/IncidentSlaRules.tsx");
+  const form: string = read("Utils/Form/EventRuleForm.ts");
+
+  test("15 minutes to respond and 4 hours to resolve, named after them", () => {
+    expect(form).toContain(
+      "export const DEFAULT_SLA_RESPONSE_TIME_IN_MINUTES: number = 15;",
+    );
+    expect(form).toContain(
+      "export const DEFAULT_SLA_RESOLUTION_TIME_IN_MINUTES: number = 240;",
+    );
+    expect(form).toContain("name: getSlaRuleName(values),");
+  });
+
+  test("on the Create form only, so an Edit form never fills in an empty target", () => {
+    expect(page).toContain(
+      "createInitialValues={getNewSlaRuleValues<IncidentSlaRule>()}",
+    );
+    // Not field defaults: those fill an empty stored value on Edit too.
+    expect(page).not.toContain("defaultValue: DEFAULT_SLA_");
+  });
+
+  test("its number boxes have no placeholder that reads like a value", () => {
+    const fields: string = page.slice(page.indexOf("formFields={["));
+
+    for (const column of [
+      "responseTimeInMinutes",
+      "resolutionTimeInMinutes",
+      "internalNoteReminderIntervalInMinutes",
+      "publicNoteReminderIntervalInMinutes",
+    ]) {
+      const at: number = fields.indexOf(`${column}: true`);
+      expect(at).toBeGreaterThan(-1);
+      const field: string = fields.slice(
+        at,
+        fields.indexOf("},\n          {", at),
+      );
+      expect({
+        column,
+        hasPlaceholder: field.includes("placeholder:"),
+      }).toEqual({ column, hasPlaceholder: false });
+    }
   });
 });

@@ -93,10 +93,18 @@ export const MAINTENANCE_REMINDER_TIMING_COPY: Record<
   },
 };
 
-// Shown in place of an answer for a rule stored with the two that clash.
+/*
+ * A rule stored with the two that clash: its Edit form shows this note in
+ * place of an answer, and the rules list marks it "Never reminds" (with the
+ * note as the mark's tooltip), as label and owner rules that add nothing
+ * are marked "Adds nothing".
+ */
 export const MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE: string = translationKey(
   "This rule never sends a reminder: it waits for the event to start and stops when it starts. Pick when to remind.",
 );
+
+export const MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT: string =
+  translationKey("Never reminds");
 
 /*
  * "Remind every 30 minutes while it is in progress": the rule's name after

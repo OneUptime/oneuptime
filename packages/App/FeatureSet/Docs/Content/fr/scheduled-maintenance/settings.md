@@ -82,7 +82,7 @@ Dans **Rappels**, réglez **Intervalle de rappel (minutes)**, la fréquence des 
 | **Avant le début** | De la planification de l'événement jusqu'à son début. |
 | **Avant le début et pendant son déroulement** | De la planification de l'événement jusqu'à sa fin. |
 
-Une règle enregistrée via l'API ou Terraform qui attend le début de l'événement et s'arrête à ce moment-là n'envoie jamais de rappel : la liste n'affiche aucune réponse pour elle, et son formulaire vous demande d'en choisir une.
+Une règle enregistrée via l'API ou Terraform qui attend le début de l'événement et s'arrête à ce moment-là n'envoie jamais de rappel : la liste la signale par **N'envoie jamais de rappel**, et son formulaire vous demande de choisir une réponse.
 
 Les propriétaires reçoivent chaque rappel comme **Rappel de maintenance**, activé par e-mail pour chaque nouveau membre. Enregistrer, modifier ou supprimer une règle de rappel réattribue une règle à chaque événement qui n'est pas achevé. Pour arrêter les rappels d'un événement, désactivez **Envoyer des rappels** sur sa page **Paramètres** ; il enregistre dès que vous le basculez.
 

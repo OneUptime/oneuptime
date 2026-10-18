@@ -18,6 +18,7 @@ import {
   SLA_RULE_NAME_DESCRIPTION,
   SLA_RULE_NAME_WORDING,
   getMaintenanceReminderRuleName,
+  getNewSlaRuleValues,
   getOnCallRuleActionFields,
   getOnCallRuleFormSteps,
   getOnCallRuleName,
@@ -30,6 +31,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/EventRuleForm";
 import {
   MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE,
+  MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT,
   MAINTENANCE_REMINDER_RULE_NAME_WORDING,
   MAINTENANCE_REMINDER_TIMINGS,
   MAINTENANCE_REMINDER_TIMING_COLUMNS,
@@ -38,6 +40,11 @@ import {
   MaintenanceReminderTiming,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Reminders/MaintenanceReminderTiming";
 import ReminderStopState from "../../../Types/Reminder/ReminderStopState";
+import ReminderRuleScope from "../../../../App/FeatureSet/Dashboard/src/Components/Reminders/ReminderRuleScope";
+import {
+  REMINDERS_SWITCH_SCOPE_COPY,
+  RemindersSwitchScopeCopy,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Reminders/RemindersSwitchCopy";
 
 /*
  * The on-call, privacy, SLA and reminder rule forms of Incidents, Alerts and
@@ -167,6 +174,15 @@ const PAGE_SENTENCES: Record<string, Array<string>> = {
   "Pages/ScheduledMaintenanceEvents/Create.tsx": [
     "Plan maintenance ahead, and tell your team and your status page subscribers when it happens.",
   ],
+  // The reminder rules' help panels: what a rule decides, in plain words.
+  "Pages/Incidents/Settings/IncidentReminderRules.tsx": [
+    "How often an open incident's owners are reminded, and until when.",
+  ],
+  "Pages/Alerts/Settings/AlertReminderRules.tsx": [
+    "How often an open alert's owners are reminded, and until when.",
+  ],
+  "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceReminderRules.tsx":
+    ["How often an event's owners are reminded, and when."],
 };
 
 function fieldTitlesAndDescriptions(
@@ -245,6 +261,13 @@ function ruleFormWords(): Array<string> {
     MAINTENANCE_REMINDER_INTERVAL_DESCRIPTION,
     MAINTENANCE_REMINDER_TIMING_FIELD_TITLE,
     MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE,
+    MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT,
+    // The Reminders card on a record's Settings page, which these rules drive.
+    ...Object.values(REMINDERS_SWITCH_SCOPE_COPY).flatMap(
+      (copy: RemindersSwitchScopeCopy): Array<string> => {
+        return [copy.cardDescription, copy.switchOnDescription];
+      },
+    ),
     ...Object.values(MAINTENANCE_REMINDER_RULE_NAME_WORDING),
     ...Object.values(MAINTENANCE_REMINDER_TIMING_COPY).flatMap(
       (copy: { title: string; description: string }): Array<string> => {
@@ -388,6 +411,29 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
         resolution: words["1 day"]!,
       }),
     );
+  });
+
+  test("a new SLA rule starts named after its targets, in the language", () => {
+    expect(getNewSlaRuleValues<Record<string, unknown>>()).toEqual({
+      responseTimeInMinutes: 15,
+      resolutionTimeInMinutes: 240,
+      name: fill(words[SLA_RULE_NAME_WORDING.both]!, {
+        response: fill(words["{{count}} minutes"]!, { count: "15" }),
+        resolution: fill(words["{{count}} hours"]!, { count: "4" }),
+      }),
+    });
+  });
+
+  test("the Reminders card leaves when reminders stop to the rules, in the language", () => {
+    for (const scope of Object.values(ReminderRuleScope)) {
+      const english: string =
+        REMINDERS_SWITCH_SCOPE_COPY[scope].switchOnDescription;
+
+      // No stop of its own: the rule decides it.
+      expect(english).toContain("for as long");
+      expect(words[english]).toBeDefined();
+      expect(words[english]).not.toBe(english);
+    }
   });
 
   test("a maintenance reminder rule is named after its one choice in the language", () => {

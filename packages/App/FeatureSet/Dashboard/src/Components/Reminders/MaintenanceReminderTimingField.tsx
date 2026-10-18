@@ -5,6 +5,8 @@ import {
   MaintenanceReminderTiming,
   isMaintenanceReminderTiming,
 } from "./MaintenanceReminderTiming";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Radio, {
   RadioOption,
   RadioValue,
@@ -63,13 +65,22 @@ const MaintenanceReminderTimingField: FunctionComponent<ComponentProps> = (
           }
         }}
       />
+      {/*
+       * The product's warning beside a form field (as on Declare Incident's
+       * status page scope): an amber box with its icon, so a rule that
+       * never reminds is noticed, not read past as more help text.
+       */}
       {props.value === null ? (
-        <p
-          className="mt-2 text-sm text-amber-700"
+        <div
+          role="note"
+          className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
           data-testid="maintenance-reminder-never-reminds"
         >
-          {translator.translateText(MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE)}
-        </p>
+          <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            {translator.translateText(MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE)}
+          </span>
+        </div>
       ) : (
         <></>
       )}

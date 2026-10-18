@@ -21465,7 +21465,7 @@
   "Searching logs": "Searching logs",
   "See Investigation activity for why.": "See Investigation activity for why.",
   "Select a new user to reassign the {{role}} role from {{member}}.": "Select a new user to reassign the {{role}} role from {{member}}.",
-  "Select items by {{column}}": "Select items by {{column}}",
+  "Select items by {{column}}": "{{column}} के अनुसार आइटम चुनें",
   "Select status...": "Select status...",
   "Select user for {{role}}": "Select user for {{role}}",
   "Select {{field}}...": "Select {{field}}...",
@@ -30666,5 +30666,14 @@
   "Plan maintenance ahead, and tell your team and your status page subscribers when it happens.": "रखरखाव की योजना पहले से बनाएँ, और अपनी टीम व अपने स्थिति पृष्ठ के सब्सक्राइबर्स को बताएँ कि यह कब होगा।",
   "The on-call policies to page as soon as the alert is created.": "अलर्ट बनते ही बुलाई जाने वाली ऑन-कॉल नीतियाँ।",
   "The on-call policies to page as soon as the episode is created.": "एपिसोड बनते ही बुलाई जाने वाली ऑन-कॉल नीतियाँ।",
-  "The on-call policies to page as soon as the incident is declared.": "घटना घोषित होते ही बुलाई जाने वाली ऑन-कॉल नीतियाँ।"
+  "The on-call policies to page as soon as the incident is declared.": "घटना घोषित होते ही बुलाई जाने वाली ऑन-कॉल नीतियाँ।",
+  "How often an event's owners are reminded, and when.": "इवेंट के मालिकों को कितनी बार और कब याद दिलाया जाता है।",
+  "How often an open alert's owners are reminded, and until when.": "खुले अलर्ट के मालिकों को कितनी बार और कब तक याद दिलाया जाता है।",
+  "How often an open incident's owners are reminded, and until when.": "खुली घटना के मालिकों को कितनी बार और कब तक याद दिलाया जाता है।",
+  "Never reminds": "कभी याद नहीं दिलाता",
+  "Remind this event's owners before it starts or while it is in progress.": "इस इवेंट के शुरू होने से पहले या चलने के दौरान इसके मालिकों को याद दिलाएं।",
+  "Reminders go to the alert's owners as often, and for as long, as the project's reminder rules say.": "अलर्ट के मालिकों को उतनी बार और उतने समय तक रिमाइंडर भेजे जाते हैं जितना प्रोजेक्ट के रिमाइंडर नियम कहते हैं।",
+  "Reminders go to the event's owners as often, and for as long, as the project's reminder rules say.": "इवेंट के मालिकों को उतनी बार और उतने समय तक रिमाइंडर भेजे जाते हैं जितना प्रोजेक्ट के रिमाइंडर नियम कहते हैं।",
+  "Reminders go to the incident's owners as often, and for as long, as the project's reminder rules say.": "घटना के मालिकों को उतनी बार और उतने समय तक रिमाइंडर भेजे जाते हैं जितना प्रोजेक्ट के रिमाइंडर नियम कहते हैं।",
+  "The on-call policies to page when this rule matches.": "यह नियम मेल खाने पर बुलाई जाने वाली ऑन-कॉल नीतियाँ।"
 }

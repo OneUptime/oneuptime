@@ -11,6 +11,7 @@ import { Green, Red } from "Common/Types/BrandColors";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import ReminderStopStateText from "../../../Components/Reminders/ReminderStopStateText";
 import {
   getReminderRuleActionFields,
   getReminderRuleFormSteps,
@@ -19,7 +20,7 @@ import {
 const documentationMarkdown: string = `
 ### How Alert Reminder Rules Work
 
-Reminder rules periodically re-notify alert owners while an alert is still open. When an alert is created, the first matching rule, from the top of the list down, is applied, and reminders are sent to alert owners at the configured interval until the alert reaches the stop state.
+A reminder rule reminds an alert's owners, as often as it says, while the alert is open. A new alert gets the first rule that matches it, from the top of the list down, and its reminders stop as the rule's **Stop Reminders When** says: once the alert is resolved, or once someone acknowledges it.
 
 \`\`\`mermaid
 flowchart TD
@@ -27,7 +28,7 @@ flowchart TD
     B -->|Rule Matches| C[Schedule Reminder]
     B -->|No Match| D[No Reminders]
     C --> E[Wait for Interval]
-    E --> F{Alert Reached Stop State?}
+    E --> F{Time to Stop?}
     F -->|No| G[Notify Alert Owners]
     G --> E
     F -->|Yes| H[Stop Reminders]
@@ -78,7 +79,7 @@ const AlertReminderRulesPage: FunctionComponent<
         helpContent={{
           title: "How Alert Reminder Rules Work",
           description:
-            "Understanding reminder intervals, match criteria, and stop states",
+            "How often an open alert's owners are reminded, and until when.",
           markdown: documentationMarkdown,
         }}
         sortBy="order"
@@ -127,12 +128,18 @@ const AlertReminderRulesPage: FunctionComponent<
             title: "Reminder Interval (min)",
             type: FieldType.Number,
           },
+          // The answer as the form words it, in the reader's language.
           {
             field: {
               stopRemindersOnState: true,
             },
             title: "Stop Reminders When",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: AlertReminderRule): ReactElement => {
+              return (
+                <ReminderStopStateText value={item.stopRemindersOnState} />
+              );
+            },
           },
           {
             field: {

@@ -21465,7 +21465,7 @@
   "Searching logs": "Searching logs",
   "See Investigation activity for why.": "See Investigation activity for why.",
   "Select a new user to reassign the {{role}} role from {{member}}.": "Select a new user to reassign the {{role}} role from {{member}}.",
-  "Select items by {{column}}": "Select items by {{column}}",
+  "Select items by {{column}}": "Выбрать элементы по полю «{{column}}»",
   "Select status...": "Select status...",
   "Select user for {{role}}": "Select user for {{role}}",
   "Select {{field}}...": "Select {{field}}...",
@@ -30666,5 +30666,14 @@
   "Plan maintenance ahead, and tell your team and your status page subscribers when it happens.": "Планируйте обслуживание заранее и сообщайте команде и подписчикам страницы статуса, когда оно пройдёт.",
   "The on-call policies to page as soon as the alert is created.": "Политики дежурств, которые запускаются сразу после создания оповещения.",
   "The on-call policies to page as soon as the episode is created.": "Политики дежурств, которые запускаются сразу после создания эпизода.",
-  "The on-call policies to page as soon as the incident is declared.": "Политики дежурств, которые запускаются сразу после объявления инцидента."
+  "The on-call policies to page as soon as the incident is declared.": "Политики дежурств, которые запускаются сразу после объявления инцидента.",
+  "How often an event's owners are reminded, and when.": "Как часто и когда напоминать владельцам события.",
+  "How often an open alert's owners are reminded, and until when.": "Как часто напоминать владельцам открытого оповещения и до какого момента.",
+  "How often an open incident's owners are reminded, and until when.": "Как часто напоминать владельцам открытого инцидента и до какого момента.",
+  "Never reminds": "Никогда не напоминает",
+  "Remind this event's owners before it starts or while it is in progress.": "Напоминайте владельцам этого события до его начала или во время проведения.",
+  "Reminders go to the alert's owners as often, and for as long, as the project's reminder rules say.": "Владельцы оповещения получают напоминания так часто и так долго, как задают правила напоминаний проекта.",
+  "Reminders go to the event's owners as often, and for as long, as the project's reminder rules say.": "Владельцы события получают напоминания так часто и так долго, как задают правила напоминаний проекта.",
+  "Reminders go to the incident's owners as often, and for as long, as the project's reminder rules say.": "Владельцы инцидента получают напоминания так часто и так долго, как задают правила напоминаний проекта.",
+  "The on-call policies to page when this rule matches.": "Политики дежурств, которые запускаются, когда это правило срабатывает."
 }

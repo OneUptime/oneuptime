@@ -3255,9 +3255,18 @@ describe("reminder rules", () => {
       expect(reminders).toContain(`| **${answer}** | ${description}`);
     }
 
+    // The list marks such a rule, as it marks a label rule that adds nothing.
     expect(reminders).toContain(
-      "never sends a reminder: the list shows no answer for it, and its form asks you to pick one.",
+      "never sends a reminder: the list marks it **Never reminds**, and its form asks you to pick one.",
     );
+    expect(timing).toContain(
+      'export const MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT: string =\n  translationKey("Never reminds");',
+    );
+    expect(
+      readDashboardSource(
+        "Components/Reminders/MaintenanceReminderTimingText.tsx",
+      ),
+    ).toContain("text={MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT}");
     expect(timing).toContain(
       '"This rule never sends a reminder: it waits for the event to start and stops when it starts. Pick when to remind."',
     );

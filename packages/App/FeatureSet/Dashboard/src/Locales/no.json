@@ -21465,7 +21465,7 @@
   "Searching logs": "Searching logs",
   "See Investigation activity for why.": "See Investigation activity for why.",
   "Select a new user to reassign the {{role}} role from {{member}}.": "Select a new user to reassign the {{role}} role from {{member}}.",
-  "Select items by {{column}}": "Select items by {{column}}",
+  "Select items by {{column}}": "Velg elementer etter {{column}}",
   "Select status...": "Select status...",
   "Select user for {{role}}": "Select user for {{role}}",
   "Select {{field}}...": "Select {{field}}...",
@@ -30666,5 +30666,14 @@
   "Plan maintenance ahead, and tell your team and your status page subscribers when it happens.": "Planlegg vedlikehold på forhånd, og fortell teamet ditt og abonnentene på statussiden din når det skjer.",
   "The on-call policies to page as soon as the alert is created.": "Vaktretningslinjene som tilkalles så snart varselet er opprettet.",
   "The on-call policies to page as soon as the episode is created.": "Vaktretningslinjene som tilkalles så snart episoden er opprettet.",
-  "The on-call policies to page as soon as the incident is declared.": "Vaktretningslinjene som tilkalles så snart hendelsen er erklært."
+  "The on-call policies to page as soon as the incident is declared.": "Vaktretningslinjene som tilkalles så snart hendelsen er erklært.",
+  "How often an event's owners are reminded, and when.": "Hvor ofte og når eierne av en vedlikeholdshendelse påminnes.",
+  "How often an open alert's owners are reminded, and until when.": "Hvor ofte eierne av et åpent varsel påminnes, og til når.",
+  "How often an open incident's owners are reminded, and until when.": "Hvor ofte eierne av en åpen hendelse påminnes, og til når.",
+  "Never reminds": "Påminner aldri",
+  "Remind this event's owners before it starts or while it is in progress.": "Påminn eierne av denne vedlikeholdshendelsen før den starter eller mens den pågår.",
+  "Reminders go to the alert's owners as often, and for as long, as the project's reminder rules say.": "Varselets eiere får påminnelser så ofte og så lenge som prosjektets påminnelsesregler sier.",
+  "Reminders go to the event's owners as often, and for as long, as the project's reminder rules say.": "Vedlikeholdshendelsens eiere får påminnelser så ofte og så lenge som prosjektets påminnelsesregler sier.",
+  "Reminders go to the incident's owners as often, and for as long, as the project's reminder rules say.": "Hendelsens eiere får påminnelser så ofte og så lenge som prosjektets påminnelsesregler sier.",
+  "The on-call policies to page when this rule matches.": "Vaktretningslinjene som tilkalles når denne regelen samsvarer."
 }

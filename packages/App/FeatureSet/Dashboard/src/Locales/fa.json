@@ -21465,7 +21465,7 @@
   "Searching logs": "Searching logs",
   "See Investigation activity for why.": "See Investigation activity for why.",
   "Select a new user to reassign the {{role}} role from {{member}}.": "Select a new user to reassign the {{role}} role from {{member}}.",
-  "Select items by {{column}}": "Select items by {{column}}",
+  "Select items by {{column}}": "انتخاب موارد بر اساس {{column}}",
   "Select status...": "Select status...",
   "Select user for {{role}}": "Select user for {{role}}",
   "Select {{field}}...": "Select {{field}}...",
@@ -30666,5 +30666,14 @@
   "Plan maintenance ahead, and tell your team and your status page subscribers when it happens.": "تعمیر و نگهداری را از قبل برنامه‌ریزی کنید و به تیم خود و مشترکان صفحه وضعیتتان بگویید چه زمانی انجام می‌شود.",
   "The on-call policies to page as soon as the alert is created.": "سیاست‌های آنکالی که به محض ساخت هشدار فراخوانده می‌شوند.",
   "The on-call policies to page as soon as the episode is created.": "سیاست‌های آنکالی که به محض ساخت اپیزود فراخوانده می‌شوند.",
-  "The on-call policies to page as soon as the incident is declared.": "سیاست‌های آنکالی که به محض اعلام حادثه فراخوانده می‌شوند."
+  "The on-call policies to page as soon as the incident is declared.": "سیاست‌های آنکالی که به محض اعلام حادثه فراخوانده می‌شوند.",
+  "How often an event's owners are reminded, and when.": "مالکان یک رویداد هر چند وقت یک‌بار و چه زمانی یادآوری دریافت می‌کنند.",
+  "How often an open alert's owners are reminded, and until when.": "مالکان یک هشدار باز هر چند وقت یک‌بار و تا کی یادآوری دریافت می‌کنند.",
+  "How often an open incident's owners are reminded, and until when.": "مالکان یک حادثهٔ باز هر چند وقت یک‌بار و تا کی یادآوری دریافت می‌کنند.",
+  "Never reminds": "هرگز یادآوری نمی‌فرستد",
+  "Remind this event's owners before it starts or while it is in progress.": "پیش از شروع این رویداد یا در حین انجام آن، به مالکانش یادآوری کنید.",
+  "Reminders go to the alert's owners as often, and for as long, as the project's reminder rules say.": "با فاصله و تا زمانی که قواعد یادآوری پروژه تعیین می‌کنند به مالکان هشدار یادآوری فرستاده می‌شود.",
+  "Reminders go to the event's owners as often, and for as long, as the project's reminder rules say.": "با فاصله و تا زمانی که قواعد یادآوری پروژه تعیین می‌کنند به مالکان رویداد یادآوری فرستاده می‌شود.",
+  "Reminders go to the incident's owners as often, and for as long, as the project's reminder rules say.": "با فاصله و تا زمانی که قواعد یادآوری پروژه تعیین می‌کنند به مالکان حادثه یادآوری فرستاده می‌شود.",
+  "The on-call policies to page when this rule matches.": "سیاست‌های آنکالی که وقتی این قاعده مطابقت دارد فراخوانده می‌شوند."
 }

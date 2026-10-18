@@ -1,9 +1,12 @@
 import {
+  MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE,
+  MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT,
   MAINTENANCE_REMINDER_TIMING_COPY,
   MaintenanceReminderTiming,
   getMaintenanceReminderTiming,
 } from "./MaintenanceReminderTiming";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import { Yellow } from "Common/Types/BrandColors";
+import Pill from "Common/UI/Components/Pill/Pill";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -13,11 +16,17 @@ export interface ComponentProps {
   rule: ScheduledMaintenanceReminderRule;
 }
 
+export const MAINTENANCE_REMINDER_NEVER_REMINDS_TEST_ID: string =
+  "maintenance-reminder-never-reminds-pill";
+
 /*
  * A maintenance reminder rule's "Remind Owners" answer in the rules list -
  * "While it is in progress" - read off its two columns the way the form
- * reads them. A rule stored with the pair that never reminds shows a dash,
- * as an empty value does: its form says why.
+ * reads them. A rule stored with the pair that never reminds is marked
+ * "Never reminds", in amber, with why in its tooltip - as a label rule that
+ * adds nothing is marked "Adds nothing" - so a rule that quietly does
+ * nothing stands out in the list, on a phone's cards too, where an empty
+ * value's dash left the line out altogether.
  */
 const MaintenanceReminderTimingText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -32,7 +41,15 @@ const MaintenanceReminderTimingText: FunctionComponent<ComponentProps> = (
   );
 
   if (timing === null) {
-    return <TableEmptyValue />;
+    return (
+      <span data-testid={MAINTENANCE_REMINDER_NEVER_REMINDS_TEST_ID}>
+        <Pill
+          color={Yellow}
+          text={MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT}
+          tooltip={MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE}
+        />
+      </span>
+    );
   }
 
   const title: string = MAINTENANCE_REMINDER_TIMING_COPY[timing].title;

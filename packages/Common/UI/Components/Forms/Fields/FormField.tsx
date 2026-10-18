@@ -471,9 +471,15 @@ const FormField: <T extends GenericObject>(
         props.field.fieldType === FormFieldSchemaType.MultiSelectDropdown &&
         props.field.selectByAccessControlProps
       ) {
+        /*
+         * The description reaches FieldLabel inside an element here, and
+         * FieldLabel looks up only a string: so it is looked up now, or it
+         * stayed English in every language beside a translated link (an
+         * on-call rule's On-Call Duty Policies).
+         */
         return (
           <span>
-            {fieldDescription}
+            {translateValue(fieldDescription)}
             <Link
               onClick={() => {
                 setShowMultiSelectCheckboxCategoryModal(true);

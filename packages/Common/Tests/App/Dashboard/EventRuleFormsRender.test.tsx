@@ -93,6 +93,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
             submitButtonText="Save Changes"
             onClose={() => {}}
             onSuccess={() => {}}
+            onBeforeUpdate={props.onBeforeUpdate}
             modelIdToEdit={new ObjectID(RULE_ID)}
             formProps={{
               id: `edit-${props.modelType.name}-form`,
@@ -121,6 +122,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
           submitButtonText={`Create ${singularName}`}
           onClose={() => {}}
           onSuccess={() => {}}
+          onBeforeCreate={props.onBeforeCreate}
           formProps={{
             id: `create-${props.modelType.name}-form`,
             name: `create-${props.modelType.name}-form`,
@@ -229,6 +231,7 @@ import Route from "../../../Types/API/Route";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
 import ScheduledMaintenanceReminderRule from "../../../Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import IncidentReminderRule from "../../../Models/DatabaseModels/IncidentReminderRule";
+import IncidentSlaRule from "../../../Models/DatabaseModels/IncidentSlaRule";
 import ReminderStopState from "../../../Types/Reminder/ReminderStopState";
 import ScheduledMaintenanceReminderStopState from "../../../Types/Reminder/ScheduledMaintenanceReminderStopState";
 import { listedNames } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
@@ -679,9 +682,18 @@ describe("Incidents > Rules > SLA Rules", () => {
 
     await next();
 
+    // A new rule starts with targets, and the name they make.
     expect(numberBox("Response Time (minutes)")).toBeVisible();
-    expect(numberBox("Resolution Time (minutes)")).toBeVisible();
-    expect(nameBox()).toHaveValue("");
+    expect(numberBox("Response Time (minutes)")).toHaveValue(15);
+    expect(numberBox("Resolution Time (minutes)")).toHaveValue(240);
+    expect(nameBox()).toHaveValue("Respond in 15 minutes, resolve in 4 hours");
+    // No grey number that reads like a value once a box is emptied.
+    expect(
+      numberBox("Response Time (minutes)").getAttribute("placeholder") || "",
+    ).toBe("");
+    expect(
+      numberBox("Resolution Time (minutes)").getAttribute("placeholder") || "",
+    ).toBe("");
 
     // The At-Risk Threshold, the description and the note reminders fold.
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
@@ -700,8 +712,8 @@ describe("Incidents > Rules > SLA Rules", () => {
     await openForm();
     await next();
 
-    fireEvent.change(numberBox("Response Time (minutes)"), {
-      target: { value: "15" },
+    fireEvent.change(numberBox("Resolution Time (minutes)"), {
+      target: { value: "" },
     });
     await waitFor(() => {
       expect(nameBox()).toHaveValue("Respond in 15 minutes");
@@ -720,6 +732,59 @@ describe("Incidents > Rules > SLA Rules", () => {
     await waitFor(() => {
       expect(nameBox()).toHaveValue("Resolve in 1 hour");
     });
+  });
+
+  test("never writes over a name somebody typed", async () => {
+    await openForm();
+    await next();
+
+    fireEvent.change(nameBox(), { target: { value: "Platinum customers" } });
+    fireEvent.change(numberBox("Response Time (minutes)"), {
+      target: { value: "5" },
+    });
+
+    await waitFor(() => {
+      expect(numberBox("Response Time (minutes)")).toHaveValue(5);
+    });
+    expect(nameBox()).toHaveValue("Platinum customers");
+  });
+
+  test("creates the rule it shows, untouched: respond in 15 minutes, resolve in 4 hours", async () => {
+    await openForm();
+    await next();
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const model: JSONObject = sentModel();
+    expect(model["name"]).toBe("Respond in 15 minutes, resolve in 4 hours");
+    expect(Number(model["responseTimeInMinutes"])).toBe(15);
+    expect(Number(model["resolutionTimeInMinutes"])).toBe(240);
+  });
+
+  test("an emptied target is not tracked: nothing is stored for it", async () => {
+    await openForm();
+    await next();
+
+    fireEvent.change(numberBox("Response Time (minutes)"), {
+      target: { value: "" },
+    });
+    await waitFor(() => {
+      expect(nameBox()).toHaveValue("Resolve in 4 hours");
+    });
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const model: JSONObject = sentModel();
+    expect(model["name"]).toBe("Resolve in 4 hours");
+    // None, not "": a number column cannot store an empty string.
+    expect(model["responseTimeInMinutes"]).toBeNull();
+    expect(Number(model["resolutionTimeInMinutes"])).toBe(240);
   });
 
   test("creates the rule with its targets and the name filled in", async () => {
@@ -747,6 +812,70 @@ describe("Incidents > Rules > SLA Rules", () => {
     expect(model["name"]).toBe("Respond in 30 minutes, resolve in 4 hours");
     expect(Number(model["responseTimeInMinutes"])).toBe(30);
     expect(Number(model["resolutionTimeInMinutes"])).toBe(240);
+  });
+});
+
+describe("editing an incident SLA rule", () => {
+  test("shows the targets it stores, and never fills in one it left empty", async () => {
+    getItemMock.mockImplementation((() => {
+      return Promise.resolve(
+        Object.assign(new IncidentSlaRule(), {
+          _id: RULE_ID,
+          name: "Respond in 30 minutes",
+          isEnabled: true,
+          responseTimeInMinutes: 30,
+          atRiskThresholdInPercentage: 80,
+        }),
+      );
+    }) as never);
+
+    await renderPage(IncidentSlaRules as RulePage, "edit");
+    await within(dialog()).findByRole("navigation", { name: "Progress" });
+    await next();
+
+    await waitFor(() => {
+      expect(numberBox("Response Time (minutes)")).toHaveValue(30);
+    });
+    // The new rule's 4 hours are for a Create form only.
+    expect(numberBox("Resolution Time (minutes)")).toHaveValue(null);
+    expect(nameBox()).toHaveValue("Respond in 30 minutes");
+  });
+
+  test("an emptied target is saved as none, so the rule stops tracking it", async () => {
+    getItemMock.mockImplementation((() => {
+      return Promise.resolve(
+        Object.assign(new IncidentSlaRule(), {
+          _id: RULE_ID,
+          name: "Customer SLA",
+          isEnabled: true,
+          responseTimeInMinutes: 30,
+          resolutionTimeInMinutes: 240,
+          atRiskThresholdInPercentage: 80,
+        }),
+      );
+    }) as never);
+
+    await renderPage(IncidentSlaRules as RulePage, "edit");
+    await within(dialog()).findByRole("navigation", { name: "Progress" });
+    await next();
+
+    await waitFor(() => {
+      expect(numberBox("Response Time (minutes)")).toHaveValue(30);
+    });
+    fireEvent.change(numberBox("Response Time (minutes)"), {
+      target: { value: "" },
+    });
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const model: JSONObject = sentModel();
+    expect(model["responseTimeInMinutes"]).toBeNull();
+    expect(Number(model["resolutionTimeInMinutes"])).toBe(240);
+    // A name somebody typed stays.
+    expect(model["name"]).toBe("Customer SLA");
   });
 });
 
@@ -1146,11 +1275,19 @@ describe("Scheduled Maintenance > Rules > Reminder Rules", () => {
     await within(dialog()).findByRole("navigation", { name: "Progress" });
     await next();
 
-    expect(
-      await within(dialog()).findByTestId("maintenance-reminder-never-reminds"),
-    ).toHaveTextContent(
+    const note: HTMLElement = await within(dialog()).findByTestId(
+      "maintenance-reminder-never-reminds",
+    );
+    expect(note).toHaveTextContent(
       "This rule never sends a reminder: it waits for the event to start and stops when it starts. Pick when to remind.",
     );
+    /*
+     * The product's warning beside a field - an amber box with its icon, a
+     * note to assistive technology - not one more line of grey help.
+     */
+    expect(note).toHaveAttribute("role", "note");
+    expect(note).toHaveClass("bg-amber-50", "border-amber-200");
+    expect(note.querySelector("svg")).not.toBeNull();
     for (const radio of within(answers()).getAllByRole("radio")) {
       expect(radio).not.toBeChecked();
     }

@@ -17,7 +17,9 @@ import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Fi
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   SLA_RULE_NAME_DESCRIPTION,
+  clearEmptiedSlaRuleMinutes,
   followValueWithRuleName,
+  getNewSlaRuleValues,
   getSlaRuleFormSteps,
   getSlaRuleName,
 } from "../../../Utils/Form/EventRuleForm";
@@ -135,6 +137,23 @@ const IncidentSlaRulesPage: FunctionComponent<
         dragDropIndexField="order"
         selectMoreFields={{
           isEnabled: true,
+        }}
+        /*
+         * A new rule starts with targets - respond in 15 minutes, resolve
+         * in 4 hours - and the name they make. The Create form only: an
+         * Edit form shows what the rule stores, an empty target included.
+         */
+        createInitialValues={getNewSlaRuleValues<IncidentSlaRule>()}
+        // An emptied target or note interval is saved as none, not as "".
+        onBeforeCreate={async (
+          item: IncidentSlaRule,
+        ): Promise<IncidentSlaRule> => {
+          return clearEmptiedSlaRuleMinutes(item);
+        }}
+        onBeforeUpdate={async (
+          item: IncidentSlaRule,
+        ): Promise<IncidentSlaRule> => {
+          return clearEmptiedSlaRuleMinutes(item);
         }}
         filters={[
           {
@@ -293,7 +312,9 @@ const IncidentSlaRulesPage: FunctionComponent<
           },
           /*
            * Targets: the two deadlines, which name the rule ("Respond in 15
-           * minutes, resolve in 1 hour") until somebody types a name.
+           * minutes, resolve in 4 hours") until somebody types a name. No
+           * placeholder: an emptied box means the target is not tracked,
+           * and a grey "15" in it read as a value.
            */
           {
             field: {
@@ -303,7 +324,6 @@ const IncidentSlaRulesPage: FunctionComponent<
             stepId: "sla-targets",
             fieldType: FormFieldSchemaType.Number,
             required: false,
-            placeholder: "15",
             description:
               "How long the team has to acknowledge the incident. Leave empty to not track it.",
             onChange: followValueWithRuleName<IncidentSlaRule>({
@@ -319,7 +339,6 @@ const IncidentSlaRulesPage: FunctionComponent<
             stepId: "sla-targets",
             fieldType: FormFieldSchemaType.Number,
             required: false,
-            placeholder: "60",
             description:
               "How long the team has to resolve the incident. Leave empty to not track it.",
             onChange: followValueWithRuleName<IncidentSlaRule>({
@@ -393,7 +412,6 @@ const IncidentSlaRulesPage: FunctionComponent<
             sectionTitle: "Note Reminders",
             fieldType: FormFieldSchemaType.Number,
             required: false,
-            placeholder: "30",
             collapsibleSection: SLA_RULE_MORE_FIELDS,
           },
           {
@@ -423,7 +441,6 @@ const IncidentSlaRulesPage: FunctionComponent<
             stepId: "sla-targets",
             fieldType: FormFieldSchemaType.Number,
             required: false,
-            placeholder: "60",
             collapsibleSection: SLA_RULE_MORE_FIELDS,
           },
           {

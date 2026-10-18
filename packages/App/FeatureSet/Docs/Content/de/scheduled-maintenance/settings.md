@@ -82,7 +82,7 @@ Legen Sie unter **Erinnerungen** das **Erinnerungsintervall (Minuten)** fest, wi
 | **Vor dem Beginn** | Ab der Planung des Ereignisses bis zu seinem Beginn. |
 | **Vor dem Beginn und während es läuft** | Ab der Planung des Ereignisses bis zu seinem Ende. |
 
-Eine über die API oder Terraform gespeicherte Regel, die auf den Beginn des Ereignisses wartet und beim Beginn aufhört, sendet nie eine Erinnerung: Die Liste zeigt für sie keine Antwort, und ihr Formular bittet Sie, eine zu wählen.
+Eine über die API oder Terraform gespeicherte Regel, die auf den Beginn des Ereignisses wartet und beim Beginn aufhört, sendet nie eine Erinnerung: Die Liste markiert sie mit **Erinnert nie**, und ihr Formular bittet Sie, eine Antwort zu wählen.
 
 Eigentümer erhalten jede Erinnerung als **Wartungserinnerung**, die für jedes neue Mitglied per E-Mail eingeschaltet ist. Das Speichern, Ändern oder Löschen einer Erinnerungsregel ordnet jedes noch nicht abgeschlossene Ereignis neu zu. Um die Erinnerungen für ein Ereignis zu stoppen, schalten Sie **Erinnerungen senden** auf seiner Seite **Einstellungen** aus; es speichert, sobald Sie den Schalter umlegen.
 

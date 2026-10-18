@@ -30666,5 +30666,14 @@
   "Plan maintenance ahead, and tell your team and your status page subscribers when it happens.": "Planifica el mantenimiento con antelación y avisa a tu equipo y a los suscriptores de tu página de estado de cuándo se hará.",
   "The on-call policies to page as soon as the alert is created.": "Las políticas de guardia que se activan en cuanto se crea la alerta.",
   "The on-call policies to page as soon as the episode is created.": "Las políticas de guardia que se activan en cuanto se crea el episodio.",
-  "The on-call policies to page as soon as the incident is declared.": "Las políticas de guardia que se activan en cuanto se declara el incidente."
+  "The on-call policies to page as soon as the incident is declared.": "Las políticas de guardia que se activan en cuanto se declara el incidente.",
+  "How often an event's owners are reminded, and when.": "Cada cuánto y cuándo se recuerda a los propietarios de un evento.",
+  "How often an open alert's owners are reminded, and until when.": "Cada cuánto se recuerda a los propietarios de una alerta abierta, y hasta cuándo.",
+  "How often an open incident's owners are reminded, and until when.": "Cada cuánto se recuerda a los propietarios de un incidente abierto, y hasta cuándo.",
+  "Never reminds": "Nunca envía recordatorios",
+  "Remind this event's owners before it starts or while it is in progress.": "Recuerda a los propietarios de este evento antes de que empiece o mientras esté en curso.",
+  "Reminders go to the alert's owners as often, and for as long, as the project's reminder rules say.": "Los propietarios de la alerta reciben recordatorios con la frecuencia y durante el tiempo que indiquen las reglas de recordatorio del proyecto.",
+  "Reminders go to the event's owners as often, and for as long, as the project's reminder rules say.": "Los propietarios del evento reciben recordatorios con la frecuencia y durante el tiempo que indiquen las reglas de recordatorio del proyecto.",
+  "Reminders go to the incident's owners as often, and for as long, as the project's reminder rules say.": "Los propietarios del incidente reciben recordatorios con la frecuencia y durante el tiempo que indiquen las reglas de recordatorio del proyecto.",
+  "The on-call policies to page when this rule matches.": "Las políticas de guardia que se activan cuando esta regla coincide."
 }

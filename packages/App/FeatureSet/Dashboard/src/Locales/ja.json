@@ -30666,5 +30666,14 @@
   "Plan maintenance ahead, and tell your team and your status page subscribers when it happens.": "メンテナンスを事前に計画し、実施時期をチームとステータスページの購読者に知らせます。",
   "The on-call policies to page as soon as the alert is created.": "アラートが作成されたらすぐに呼び出すオンコールポリシーです。",
   "The on-call policies to page as soon as the episode is created.": "エピソードが作成されたらすぐに呼び出すオンコールポリシーです。",
-  "The on-call policies to page as soon as the incident is declared.": "インシデントが宣言されたらすぐに呼び出すオンコールポリシーです。"
+  "The on-call policies to page as soon as the incident is declared.": "インシデントが宣言されたらすぐに呼び出すオンコールポリシーです。",
+  "How often an event's owners are reminded, and when.": "イベントの所有者にリマインドする頻度とタイミング。",
+  "How often an open alert's owners are reminded, and until when.": "未解決のアラートの所有者にリマインドする頻度と、いつまで続けるか。",
+  "How often an open incident's owners are reminded, and until when.": "未解決のインシデントの所有者にリマインドする頻度と、いつまで続けるか。",
+  "Never reminds": "リマインドしない",
+  "Remind this event's owners before it starts or while it is in progress.": "このイベントの開始前または進行中に、所有者にリマインドします。",
+  "Reminders go to the alert's owners as often, and for as long, as the project's reminder rules say.": "プロジェクトのリマインダールールで決められた頻度と期間で、アラートの所有者にリマインダーが送られます。",
+  "Reminders go to the event's owners as often, and for as long, as the project's reminder rules say.": "プロジェクトのリマインダールールで決められた頻度と期間で、イベントの所有者にリマインダーが送られます。",
+  "Reminders go to the incident's owners as often, and for as long, as the project's reminder rules say.": "プロジェクトのリマインダールールで決められた頻度と期間で、インシデントの所有者にリマインダーが送られます。",
+  "The on-call policies to page when this rule matches.": "このルールに一致したときに呼び出すオンコールポリシーです。"
 }

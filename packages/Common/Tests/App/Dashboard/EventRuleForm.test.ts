@@ -5,11 +5,18 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import type Field from "../../../UI/Components/Forms/Types/Field";
 import {
   DEFAULT_REMINDER_INTERVAL_IN_MINUTES,
+  DEFAULT_SLA_RESOLUTION_TIME_IN_MINUTES,
+  DEFAULT_SLA_RESPONSE_TIME_IN_MINUTES,
   ON_CALL_RULE_NAME_WORDING,
+  ON_CALL_RULE_POLICIES_DESCRIPTION,
   PRIVACY_RULE_NAMES,
+  REMINDER_STOP_STATE_TITLES,
+  SLA_RULE_OPTIONAL_MINUTE_COLUMNS,
+  clearEmptiedSlaRuleMinutes,
   followValueWithRuleName,
   getMaintenanceReminderRuleName,
   getNewMaintenanceReminderRuleName,
+  getNewSlaRuleValues,
   getOnCallRuleActionFields,
   getOnCallRuleFormSteps,
   getOnCallRuleName,
@@ -21,6 +28,7 @@ import {
   getSlaRuleFormSteps,
   getSlaRuleName,
   readMinutes,
+  readStopState,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/EventRuleForm";
 import {
   FILLED_IN_RULE_NAME_KEY,
@@ -156,6 +164,17 @@ describe("an on-call rule's name", () => {
     expect(policies.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
     expect(policies.onChange).toBeDefined();
   });
+
+  test("the policies picker says what it is for in one sentence", () => {
+    const policies: Field<Values> = getOnCallRuleActionFields<Values>()[0]!;
+
+    expect(policies.description).toBe(ON_CALL_RULE_POLICIES_DESCRIPTION);
+    expect(ON_CALL_RULE_POLICIES_DESCRIPTION).toBe(
+      "The on-call policies to page when this rule matches.",
+    );
+    // That a policy two rules pick runs once is for the help and the docs.
+    expect(ON_CALL_RULE_POLICIES_DESCRIPTION).not.toContain("runs once");
+  });
 });
 
 describe("a privacy rule's name", () => {
@@ -226,6 +245,121 @@ describe("an SLA rule's name", () => {
       ).toBe(name);
     },
   );
+});
+
+describe("a new SLA rule", () => {
+  test("starts with targets - respond in 15 minutes, resolve in 4 hours - named after them", () => {
+    expect(DEFAULT_SLA_RESPONSE_TIME_IN_MINUTES).toBe(15);
+    expect(DEFAULT_SLA_RESOLUTION_TIME_IN_MINUTES).toBe(240);
+    expect(getNewSlaRuleValues<Values>()).toEqual({
+      responseTimeInMinutes: 15,
+      resolutionTimeInMinutes: 240,
+      name: "Respond in 15 minutes, resolve in 4 hours",
+    });
+  });
+
+  test("its name is the one its targets make, so it follows them from the start", () => {
+    const start: Values = getNewSlaRuleValues<Values>() as Values;
+
+    expect(start["name"]).toBe(getSlaRuleName(start));
+
+    const resolution: Field<Values> = {
+      onChange: followValueWithRuleName<Values>({
+        column: "resolutionTimeInMinutes",
+        makeName: getSlaRuleName,
+      }),
+    } as Field<Values>;
+
+    expect(change(resolution.onChange, "60", start)?.["name"]).toBe(
+      "Respond in 15 minutes, resolve in 1 hour",
+    );
+    expect(change(resolution.onChange, "", start)?.["name"]).toBe(
+      "Respond in 15 minutes",
+    );
+  });
+});
+
+describe("an SLA rule's emptied number box", () => {
+  test("is saved as none, for both targets and both note intervals", () => {
+    expect(SLA_RULE_OPTIONAL_MINUTE_COLUMNS).toEqual([
+      "responseTimeInMinutes",
+      "resolutionTimeInMinutes",
+      "internalNoteReminderIntervalInMinutes",
+      "publicNoteReminderIntervalInMinutes",
+    ]);
+
+    const model: Values = {
+      name: "Customer SLA",
+      responseTimeInMinutes: "",
+      resolutionTimeInMinutes: "  ",
+      internalNoteReminderIntervalInMinutes: "",
+      publicNoteReminderIntervalInMinutes: "",
+    };
+
+    expect(clearEmptiedSlaRuleMinutes(model)).toBe(model);
+    expect(model).toEqual({
+      name: "Customer SLA",
+      responseTimeInMinutes: null,
+      resolutionTimeInMinutes: null,
+      internalNoteReminderIntervalInMinutes: null,
+      publicNoteReminderIntervalInMinutes: null,
+    });
+  });
+
+  test("leaves every value it was given, and every column it does not own, alone", () => {
+    const model: Values = {
+      responseTimeInMinutes: 15,
+      resolutionTimeInMinutes: "240",
+      atRiskThresholdInPercentage: "",
+      name: "",
+    };
+
+    clearEmptiedSlaRuleMinutes(model);
+
+    expect(model).toEqual({
+      responseTimeInMinutes: 15,
+      resolutionTimeInMinutes: "240",
+      // Not an SLA target: the form's own validation speaks for it.
+      atRiskThresholdInPercentage: "",
+      name: "",
+    });
+    // A column the form did not send stays unsent.
+    expect("internalNoteReminderIntervalInMinutes" in model).toBe(false);
+  });
+});
+
+describe("a reminder rule's stop, as a word", () => {
+  test("the form's answers and the list read the same word for each stop", () => {
+    expect(REMINDER_STOP_STATE_TITLES).toEqual({
+      [ReminderStopState.Resolved]: "Resolved",
+      [ReminderStopState.Acknowledged]: "Acknowledged",
+    });
+
+    for (const record of ["incident", "alert"] as const) {
+      const stop: Field<Values> =
+        getReminderRuleActionFields<Values>(record)[1]!;
+
+      expect(
+        (stop.radioButtonOptions || []).map(
+          (option: { title: string }): string => {
+            return option.title;
+          },
+        ),
+      ).toEqual(["Resolved", "Acknowledged"]);
+    }
+  });
+
+  test("anything but Acknowledged stops at Resolved, as the workers read it", () => {
+    expect(readStopState(ReminderStopState.Acknowledged)).toBe(
+      ReminderStopState.Acknowledged,
+    );
+    expect(readStopState(ReminderStopState.Resolved)).toBe(
+      ReminderStopState.Resolved,
+    );
+    for (const other of [undefined, null, "", "Ongoing", 0]) {
+      expect(readStopState(other)).toBe(ReminderStopState.Resolved);
+    }
+  });
 });
 
 describe("an incident's or an alert's reminder rule", () => {

@@ -240,8 +240,12 @@ export const getOnCallRuleName: (policyNames: Array<string>) => string = (
   return getRuleNameFromPicks(ON_CALL_RULE_NAME_WORDING, policyNames);
 };
 
+/*
+ * What the field is for, in one line. That a policy picked by two matching
+ * rules still runs once is for the help panel and the docs, which say it.
+ */
 export const ON_CALL_RULE_POLICIES_DESCRIPTION: string = translationKey(
-  "The on-call policies to page when this rule matches. Each runs once, even when another rule picks it too.",
+  "The on-call policies to page when this rule matches.",
 );
 
 export const ON_CALL_RULE_NAME_DESCRIPTION: string = translationKey(
@@ -453,6 +457,78 @@ export const SLA_RULE_NAME_DESCRIPTION: string = translationKey(
   "Named after its targets until you type a name of your own.",
 );
 
+/*
+ * The targets a new SLA rule starts with: acknowledged within 15 minutes,
+ * resolved within 4 hours. Two empty boxes whose placeholders read like
+ * values ("15", "60") left a new rule tracking nothing and its name empty;
+ * a rule that starts with targets says what it will track, is named after
+ * them, and either can be changed or emptied.
+ */
+export const DEFAULT_SLA_RESPONSE_TIME_IN_MINUTES: number = 15;
+
+export const DEFAULT_SLA_RESOLUTION_TIME_IN_MINUTES: number = 240;
+
+/*
+ * An SLA rule's optional number columns: its two targets and the intervals
+ * of its note reminders. Each is "none" while empty.
+ */
+export const SLA_RULE_OPTIONAL_MINUTE_COLUMNS: ReadonlyArray<string> = [
+  "responseTimeInMinutes",
+  "resolutionTimeInMinutes",
+  "internalNoteReminderIntervalInMinutes",
+  "publicNoteReminderIntervalInMinutes",
+];
+
+/**
+ * A number box hands back "" once it is emptied, and a number column cannot
+ * store "" (NumericColumnValue leaves a blank alone on purpose): so an SLA
+ * rule's emptied target or note interval is saved as none (null), which is
+ * what its help says - "Leave empty to not track it". With a new rule's
+ * targets filled in, emptying one is how a rule tracks only the other.
+ * Run on the model the form is about to save, Create and Edit alike.
+ */
+export const clearEmptiedSlaRuleMinutes: <TModel>(item: TModel) => TModel = <
+  TModel,
+>(
+  item: TModel,
+): TModel => {
+  const record: Record<string, unknown> = item as unknown as Record<
+    string,
+    unknown
+  >;
+
+  for (const column of SLA_RULE_OPTIONAL_MINUTE_COLUMNS) {
+    const value: unknown = record[column];
+
+    if (typeof value === "string" && value.trim().length === 0) {
+      record[column] = null;
+    }
+  }
+
+  return item;
+};
+
+/**
+ * What the Create form of an SLA rule starts with: the two targets above
+ * and the name they make ("Respond in 15 minutes, resolve in 4 hours", in
+ * the reader's language). A Create form only - ModelTable's
+ * createInitialValues - so an Edit form never fills in a target that a rule
+ * left empty.
+ */
+export const getNewSlaRuleValues: <TEntity>() => FormValues<TEntity> = <
+  TEntity,
+>(): FormValues<TEntity> => {
+  const values: FormValuesRecord = {
+    responseTimeInMinutes: DEFAULT_SLA_RESPONSE_TIME_IN_MINUTES,
+    resolutionTimeInMinutes: DEFAULT_SLA_RESOLUTION_TIME_IN_MINUTES,
+  };
+
+  return {
+    ...values,
+    name: getSlaRuleName(values),
+  } as unknown as FormValues<TEntity>;
+};
+
 // ---- Reminder rules --------------------------------------------------------
 
 export type ReminderRuleRecord = "incident" | "alert";
@@ -500,7 +576,20 @@ export const REMINDER_STOP_OPTION_DESCRIPTIONS: Record<
   },
 };
 
-const readStopState: (value: unknown) => ReminderStopState = (
+/*
+ * Each answer's word, as the form offers it and the rules list shows it -
+ * one word for both, looked up in the reader's language where it is drawn.
+ */
+export const REMINDER_STOP_STATE_TITLES: Record<ReminderStopState, string> = {
+  [ReminderStopState.Resolved]: translationKey("Resolved"),
+  [ReminderStopState.Acknowledged]: translationKey("Acknowledged"),
+};
+
+/*
+ * The stop a rule's column means. Anything but Acknowledged is Resolved, as
+ * the reminder workers read it (and the column starts as Resolved).
+ */
+export const readStopState: (value: unknown) => ReminderStopState = (
   value: unknown,
 ): ReminderStopState => {
   return value === ReminderStopState.Acknowledged
@@ -589,7 +678,7 @@ export const getReminderRuleActionFields: <TEntity>(
       dataTestId: "reminder-stop-state",
       radioButtonOptions: [
         {
-          title: "Resolved",
+          title: REMINDER_STOP_STATE_TITLES[ReminderStopState.Resolved],
           description:
             REMINDER_STOP_OPTION_DESCRIPTIONS[record][
               ReminderStopState.Resolved
@@ -597,7 +686,7 @@ export const getReminderRuleActionFields: <TEntity>(
           value: ReminderStopState.Resolved,
         },
         {
-          title: "Acknowledged",
+          title: REMINDER_STOP_STATE_TITLES[ReminderStopState.Acknowledged],
           description:
             REMINDER_STOP_OPTION_DESCRIPTIONS[record][
               ReminderStopState.Acknowledged
