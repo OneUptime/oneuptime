@@ -88,7 +88,12 @@ const CloudResources: FunctionComponent<
   });
 
   if (firstRecordWatch.error) {
-    return <ErrorMessage message={firstRecordWatch.error} />;
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
   if (firstRecordWatch.isLoading) {

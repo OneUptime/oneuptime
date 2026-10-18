@@ -35,6 +35,7 @@ import useFirstRecordWatch, {
 import {
   FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
+  getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import VMwareDocumentationCard from "../../Components/VMware/DocumentationCard";
@@ -131,7 +132,12 @@ const VMwareVCenters: FunctionComponent<
   }
 
   if (firstRecordWatch.error) {
-    return <ErrorMessage message={firstRecordWatch.error} />;
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
   return (
@@ -141,7 +147,10 @@ const VMwareVCenters: FunctionComponent<
         refreshToggle={firstRecordWatch.refreshToken}
         id="vmware-vcenters-table"
         userPreferencesKey="vmware-vcenters-table"
-        topContent={filterBar}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
         emptyState={getFirstRunEmptyState({
           emptyState: facetEmptyState,
           count: firstRecordWatch.count,

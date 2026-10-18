@@ -48,6 +48,19 @@ export function getCountAfterCheck(data: {
 }
 
 /*
+ * What sits over the table (its filter chips) while the project has none of
+ * this resource: nothing - there is nothing to filter yet, and the guide
+ * under the table is the one thing to do. The chips come back with the
+ * first record.
+ */
+export function getFirstRunTopContent<T>(data: {
+  topContent: T;
+  count: number | null;
+}): T | undefined {
+  return isWatchingForFirstRecord(data.count) ? undefined : data.topContent;
+}
+
+/*
  * The empty table's options while the project has none of this resource:
  * agent-discovered lists do not repeat their Create button there - creating
  * a record by hand does not connect anything, and the guide below is the

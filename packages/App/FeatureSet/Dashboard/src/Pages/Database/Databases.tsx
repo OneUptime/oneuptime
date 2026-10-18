@@ -42,6 +42,7 @@ import useFirstRecordWatch, {
 import {
   FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
+  getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -236,7 +237,12 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
   });
 
   if (firstRecordWatch.error) {
-    return <ErrorMessage message={firstRecordWatch.error} />;
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
   if (firstRecordWatch.isLoading) {
@@ -252,7 +258,10 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="database-servers-table"
         userPreferencesKey="database-servers-table"
         isCreateable={true}
-        topContent={filterBar}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
         emptyState={getFirstRunEmptyState({
           emptyState: facetEmptyState,
           count: firstRecordWatch.count,

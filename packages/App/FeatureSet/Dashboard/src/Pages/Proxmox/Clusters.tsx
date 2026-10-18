@@ -29,6 +29,7 @@ import useFirstRecordWatch, {
 import {
   FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
+  getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ProxmoxDocumentationCard from "../../Components/Proxmox/DocumentationCard";
@@ -102,7 +103,12 @@ const ProxmoxClusters: FunctionComponent<
   }
 
   if (firstRecordWatch.error) {
-    return <ErrorMessage message={firstRecordWatch.error} />;
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
   return (
@@ -112,7 +118,10 @@ const ProxmoxClusters: FunctionComponent<
         refreshToggle={firstRecordWatch.refreshToken}
         id="proxmox-clusters-table"
         userPreferencesKey="proxmox-clusters-table"
-        topContent={filterBar}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
         emptyState={getFirstRunEmptyState({
           emptyState: facetEmptyState,
           count: firstRecordWatch.count,

@@ -19,7 +19,8 @@ import {
  * refreshToggle, so the new row shows without a reload; `onFirstRecord`
  * tells whatever else on the page counts records (the Databases summary
  * strip). A failed background check keeps the guide; only the first
- * count's failure is an error.
+ * count's failure is an error, and `retry` counts again (the error's
+ * Refresh).
  */
 
 export interface FirstRecordWatch {
@@ -31,6 +32,8 @@ export interface FirstRecordWatch {
   refreshToken: string;
   // For the list's onCreateSuccess: one more, so the guide gives way at once.
   onRecordCreated: () => void;
+  // After a failed first count: count again (the page shows its loader meanwhile).
+  retry: () => void;
 }
 
 export default function useFirstRecordWatch<
@@ -44,6 +47,8 @@ export default function useFirstRecordWatch<
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
   const [arrivals, setArrivals] = useState<number>(0);
+  // How many times the first count was asked for: retry asks again.
+  const [attempts, setAttempts] = useState<number>(0);
 
   // The latest query, without restarting the watch when a page rebuilds it.
   const queryRef: MutableRefObject<Query<TBaseModel>> = useRef<
@@ -76,7 +81,7 @@ export default function useFirstRecordWatch<
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [attempts]);
 
   useEffect(() => {
     if (!isWatchingForFirstRecord(count)) {
@@ -130,6 +135,12 @@ export default function useFirstRecordWatch<
     onRecordCreated: (): void => {
       setCount((current: number | null): number => {
         return (current || 0) + 1;
+      });
+    },
+    retry: (): void => {
+      setError("");
+      setAttempts((value: number): number => {
+        return value + 1;
       });
     },
   };

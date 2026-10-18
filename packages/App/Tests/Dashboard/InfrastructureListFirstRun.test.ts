@@ -6,6 +6,7 @@ import {
   FIRST_RUN_GUIDE_DESCRIPTION,
   getCountAfterCheck,
   getFirstRunEmptyState,
+  getFirstRunTopContent,
   isWatchingForFirstRecord,
 } from "../../FeatureSet/Dashboard/src/Components/Infrastructure/FirstRecordWatch";
 
@@ -19,6 +20,9 @@ import {
  *   the table empty, and nine never looked again.
  * - The guide under an empty table says one shared sentence of what to do;
  *   the table above already says "No X yet" and what the list is for.
+ * - While a list waits for its first record its filter chips are put away:
+ *   there is nothing to filter, and the guide is the one thing to do.
+ * - A first count that failed can be tried again from the error (Refresh).
  * - The words it added are in every language, and the ones it retired are
  *   in none.
  *
@@ -66,6 +70,22 @@ const LIST_PAGES: Array<string> = [
   "Pages/Cloud/MonitoredResources.tsx",
 ];
 
+// The lists that draw filter chips over their table.
+const LISTS_WITH_CHIPS: Array<string> = [
+  "Pages/Host/Hosts.tsx",
+  "Pages/Kubernetes/Clusters.tsx",
+  "Pages/Docker/Hosts.tsx",
+  "Pages/Podman/Hosts.tsx",
+  "Pages/DockerSwarm/Clusters.tsx",
+  "Pages/Proxmox/Clusters.tsx",
+  "Pages/VMware/VCenters.tsx",
+  "Pages/Ceph/Clusters.tsx",
+  "Pages/StorageArray/StorageArrays.tsx",
+  "Pages/IoT/Fleets.tsx",
+  "Pages/Database/Databases.tsx",
+  "Pages/MessageQueue/MessageQueues.tsx",
+];
+
 describe("the first-run rules", () => {
   test("only an empty list is watched", () => {
     expect(isWatchingForFirstRecord(0)).toBe(true);
@@ -103,6 +123,20 @@ describe("the first-run rules", () => {
     ).toBeUndefined();
   });
 
+  test("the filter chips are put away only while the list waits for its first record", () => {
+    const chips: { kind: string } = { kind: "chips" };
+
+    expect(getFirstRunTopContent({ topContent: chips, count: 0 })).toBe(
+      undefined,
+    );
+    expect(getFirstRunTopContent({ topContent: chips, count: 1 })).toBe(chips);
+    expect(getFirstRunTopContent({ topContent: chips, count: 12 })).toBe(chips);
+    // Not yet counted: the page shows its loader, not the table.
+    expect(getFirstRunTopContent({ topContent: chips, count: null })).toBe(
+      chips,
+    );
+  });
+
   test("an empty list looks again every ten seconds", () => {
     expect(FIRST_RECORD_POLL_INTERVAL_MS).toBe(10000);
   });
@@ -121,6 +155,19 @@ describe("the first-run rules", () => {
     expect(hook).toContain("}, FIRST_RECORD_POLL_INTERVAL_MS);");
     expect(hook).toContain("clearInterval(timer);");
   });
+
+  test("retry counts again: it clears the error and asks for the first count anew", () => {
+    const hook: string = code(
+      "Components/Infrastructure/UseFirstRecordWatch.ts",
+    );
+
+    expect(hook).toContain("retry: () => void;");
+    expect(hook).toContain(
+      'retry: (): void => { setError(""); setAttempts((value: number): number => { return value + 1; }); },',
+    );
+    // The first count runs again whenever attempts changes.
+    expect(hook).toContain("}, [attempts]);");
+  });
 });
 
 describe.each(LIST_PAGES)("%s", (page: string) => {
@@ -138,6 +185,32 @@ describe.each(LIST_PAGES)("%s", (page: string) => {
     expect(source).toContain("{firstRecordWatch.count === 0 && (");
     expect(source).toContain("description={FIRST_RUN_GUIDE_DESCRIPTION}");
   });
+
+  test("a failed first count offers Refresh, which counts again", () => {
+    expect(source).toContain(
+      "<ErrorMessage message={firstRecordWatch.error} onRefreshClick={firstRecordWatch.retry} />",
+    );
+  });
+});
+
+describe.each(LISTS_WITH_CHIPS)("%s's filter chips", (page: string) => {
+  const source: string = code(page);
+
+  test("wait for the first record: none over a new project's empty table", () => {
+    expect(source).toContain(
+      "topContent={getFirstRunTopContent({ topContent: filterBar, count: firstRecordWatch.count, })}",
+    );
+    expect(source).not.toContain("topContent={filterBar}");
+  });
+});
+
+test("every list with chips is held to that, and the lists without have none", () => {
+  for (const page of LIST_PAGES) {
+    expect({
+      page,
+      hasChips: code(page).includes("filterBar"),
+    }).toEqual({ page, hasChips: LISTS_WITH_CHIPS.includes(page) });
+  }
 });
 
 describe("the list descriptions that named attributes say what a reader sees", () => {

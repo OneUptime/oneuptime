@@ -99,7 +99,11 @@ const FACET_TABLES: Array<string> = DASHBOARD_FILES.filter(
 
     return (
       HOOK_CALL.test(code) &&
-      code.includes("topContent={filterBar}") &&
+      (code.includes("topContent={filterBar}") ||
+        // An infrastructure list puts its chips away until its first record.
+        code.includes(
+          "topContent={getFirstRunTopContent({ topContent: filterBar,",
+        )) &&
       !file.endsWith(path.join("ResourceOwners", "useResourceOwners.tsx"))
     );
   },

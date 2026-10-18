@@ -38,6 +38,8 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
  * table reads its rows again and the guide is put away - no reload. Six of
  * these lists used to hide the guide without refreshing the table (an
  * empty table, and no guide), and the other nine never looked again.
+ * Until the first one arrives the filter chips stay away (there is nothing
+ * to filter), and a first count that failed offers Refresh.
  *
  * Every real page is rendered with the real ModelTable over a project
  * behind ModelAPI; useFirstRecordWatch and its rules are then tested on
@@ -118,6 +120,7 @@ import {
   FIRST_RUN_GUIDE_DESCRIPTION,
   getCountAfterCheck,
   getFirstRunEmptyState,
+  getFirstRunTopContent,
   isWatchingForFirstRecord,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/FirstRecordWatch";
 import useFirstRecordWatch, {
@@ -181,6 +184,8 @@ interface FirstRunCase {
   isAddedByHand: boolean;
   // Cloud Resources are ingest's rows only: no Create anywhere.
   isCreateable: boolean;
+  // It draws filter chips over its table (once it has a record).
+  hasChips: boolean;
 }
 
 const agentList: (
@@ -202,6 +207,7 @@ const agentList: (
     guideTitle,
     isAddedByHand: false,
     isCreateable: true,
+    hasChips: true,
   };
 };
 
@@ -282,12 +288,15 @@ const FIRST_RUN_CASES: Array<FirstRunCase> = [
     ),
     isAddedByHand: true,
   },
-  agentList(
-    "Serverless Functions",
-    ServerlessFunctionsPage,
-    ServerlessFunction,
-    "Getting Started with Serverless Functions",
-  ),
+  {
+    ...agentList(
+      "Serverless Functions",
+      ServerlessFunctionsPage,
+      ServerlessFunction,
+      "Getting Started with Serverless Functions",
+    ),
+    hasChips: false,
+  },
   {
     ...agentList(
       "Cloud Environments",
@@ -296,6 +305,7 @@ const FIRST_RUN_CASES: Array<FirstRunCase> = [
       "Getting Started with Cloud Environments",
     ),
     watchQuery: { cloudResourceKind: CloudResourceKind.Environment },
+    hasChips: false,
   },
   {
     ...agentList(
@@ -306,8 +316,16 @@ const FIRST_RUN_CASES: Array<FirstRunCase> = [
     ),
     watchQuery: { cloudResourceKind: CloudResourceKind.Resource },
     isCreateable: false,
+    hasChips: false,
   },
 ];
+
+const COUNT_FAILURE: string = "The API is down.";
+
+// The filter chips over a list's table (useResourceOwners' bar).
+function chips(): HTMLElement | null {
+  return screen.queryByTestId("facet-filter-bar");
+}
 
 // The project behind ModelAPI, as each test sets it up.
 let currentCase: FirstRunCase | null = null;
@@ -315,6 +333,8 @@ let projectCount: number = 0;
 let listedRows: Array<BaseModel> = [];
 let watchChecks: number = 0;
 let tableReads: number = 0;
+// How many of the next watch counts fail.
+let failingChecks: number = 0;
 
 function isWatchQuery(options: {
   modelType: { new (): BaseModel };
@@ -349,6 +369,7 @@ beforeEach(() => {
   listedRows = [];
   watchChecks = 0;
   tableReads = 0;
+  failingChecks = 0;
   PermissionGate.clearPermissionPropsCache();
   TableFilterUrlState.resetClaimedKeys();
   window.localStorage.clear();
@@ -363,6 +384,10 @@ beforeEach(() => {
       }): Promise<number> => {
         if (isWatchQuery(options)) {
           watchChecks++;
+          if (failingChecks > 0) {
+            failingChecks--;
+            throw new Error(COUNT_FAILURE);
+          }
           return projectCount;
         }
         return 0;
@@ -546,6 +571,46 @@ describe.each(FIRST_RUN_CASES)("$name, first run", (listCase: FirstRunCase) => {
     expect(watchChecks).toBe(3);
   });
 
+  test(
+    listCase.hasChips
+      ? "no filter chips over a new project's empty table; they come with the first record"
+      : "no filter chips, before or after the first record",
+    async () => {
+      jest.useFakeTimers();
+      await renderList(listCase);
+
+      expect(screen.getByText(listCase.guideTitle)).toBeInTheDocument();
+      // Nothing to filter yet: the guide is the one thing to do.
+      expect(chips()).toBeNull();
+
+      projectCount = 1;
+      listedRows = [rowOf(listCase.modelType)];
+      await advance(FIRST_RECORD_POLL_INTERVAL_MS);
+
+      expect(screen.queryByText(listCase.guideTitle)).toBeNull();
+      expect(chips() !== null).toBe(listCase.hasChips);
+    },
+  );
+
+  test("a failed first count says so, and its Refresh counts again", async () => {
+    failingChecks = 1;
+    await renderList(listCase);
+
+    expect(screen.getByText(COUNT_FAILURE)).toBeInTheDocument();
+    expect(screen.queryByText(listCase.guideTitle)).toBeNull();
+    expect(watchChecks).toBe(1);
+
+    await act(async () => {
+      screen.getByTestId("refresh-button").click();
+    });
+    await settle();
+
+    expect(watchChecks).toBe(2);
+    expect(screen.queryByText(COUNT_FAILURE)).toBeNull();
+    expect(await screen.findByText(listCase.guideTitle)).toBeInTheDocument();
+    expect(emptyTable()).not.toBeNull();
+  });
+
   test("a project that already has some: no guide, and nothing watched", async () => {
     jest.useFakeTimers();
     projectCount = 2;
@@ -556,6 +621,8 @@ describe.each(FIRST_RUN_CASES)("$name, first run", (listCase: FirstRunCase) => {
     expect(screen.queryByText(listCase.guideTitle)).toBeNull();
     expect(screen.queryByText(FIRST_RUN_GUIDE_DESCRIPTION)).toBeNull();
     expect(screen.queryByTestId(EMPTY_TABLE_CREATE_BUTTON_TEST_ID)).toBeNull();
+    // Its chips are there from the start.
+    expect(chips() !== null).toBe(listCase.hasChips);
 
     await advance(3 * FIRST_RECORD_POLL_INTERVAL_MS);
     expect(watchChecks).toBe(1);
@@ -659,6 +726,17 @@ describe("the first-run rules", () => {
 
   test("an empty list looks again every ten seconds", () => {
     expect(FIRST_RECORD_POLL_INTERVAL_MS).toBe(10 * 1000);
+  });
+
+  test("the chips are put away only while the list waits for its first record", () => {
+    const bar: ReactElement = <div>chips</div>;
+
+    expect(
+      getFirstRunTopContent({ topContent: bar, count: 0 }),
+    ).toBeUndefined();
+    expect(getFirstRunTopContent({ topContent: bar, count: 1 })).toBe(bar);
+    expect(getFirstRunTopContent({ topContent: bar, count: 40 })).toBe(bar);
+    expect(getFirstRunTopContent({ topContent: bar, count: null })).toBe(bar);
   });
 });
 
@@ -823,6 +901,45 @@ describe("useFirstRecordWatch", () => {
 
     await advance(3 * FIRST_RECORD_POLL_INTERVAL_MS);
     expect(asked).toHaveLength(1);
+  });
+
+  test("retry after a failed first count: the error goes, it loads, counts anew with the same query, and watches", async () => {
+    const { result } = watch({ query: { isArchived: false } });
+    await answer(0, new Error("The API is down."));
+
+    act(() => {
+      result.current.retry();
+    });
+    await settle();
+
+    expect(result.current.error).toBe("");
+    expect(result.current.isLoading).toBe(true);
+    expect(asked).toHaveLength(2);
+    expect(asked[1]).toEqual({ modelType: Host, query: { isArchived: false } });
+
+    await answer(1, 0);
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.count).toBe(0);
+
+    // An empty list: the watch starts as after any first count.
+    await advance(FIRST_RECORD_POLL_INTERVAL_MS);
+    expect(asked).toHaveLength(3);
+  });
+
+  test("a retry that fails again is the page's error again", async () => {
+    const { result } = watch();
+    await answer(0, new Error("The API is down."));
+
+    act(() => {
+      result.current.retry();
+    });
+    await settle();
+    await answer(1, new Error("Still down."));
+
+    expect(result.current.error).toBe("Still down.");
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.count).toBeNull();
   });
 
   test("one created by hand puts the guide away at once and ends the watch; the table reads it itself", async () => {

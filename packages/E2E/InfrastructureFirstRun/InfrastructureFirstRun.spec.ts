@@ -39,6 +39,10 @@ const POLL_MS: number = 10_000;
 const GUIDE_SENTENCE: string =
   "Follow the steps below. This list fills in on its own once data arrives.";
 
+// The fixture's answer to a count that fails (?failFirstCount=1).
+const COUNT_FAILURE: string =
+  "The server did not answer. Try again in a moment.";
+
 const SCREENSHOTS: string = path.resolve(
   __dirname,
   "../../../output/playwright/infrastructure-first-run-ui",
@@ -179,6 +183,11 @@ function emptyTableCreate(page: Page): Locator {
   return page.getByTestId("empty-table-create-button");
 }
 
+// The filter chips over the list's table.
+function chips(page: Page): Locator {
+  return page.getByTestId("facet-filter-bar");
+}
+
 async function screenshot(page: Page, name: string): Promise<void> {
   await fs.mkdir(SCREENSHOTS, { recursive: true });
   await page.screenshot({
@@ -237,6 +246,8 @@ test("a new project's Hosts: the empty table says what the list is, the guide un
   // Creating a host by hand connects nothing: the guide is the way in.
   await expect(headerButton(page, "Create Host")).toBeVisible();
   await expect(emptyTableCreate(page)).toHaveCount(0);
+  // Nothing to filter yet: no chips over the empty table.
+  await expect(chips(page)).toHaveCount(0);
 
   await screenshot(page, "hosts-first-run");
 });
@@ -275,6 +286,8 @@ test("the first host to report shows in the table, and the guide goes away, with
     page.getByText("Getting Started with Host Monitoring"),
   ).toHaveCount(0);
   await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
+  // With a host to filter, the chips are back.
+  await expect(chips(page)).toBeVisible();
   expect(
     await page.evaluate((): boolean => {
       return Boolean(
@@ -304,9 +317,37 @@ test("a project that has a host: no guide, and the page does not keep looking", 
   ).toBeVisible();
   await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
   await expect(emptyTable(page)).toHaveCount(0);
+  await expect(chips(page)).toBeVisible();
 
   await page.clock.runFor(3 * POLL_MS);
   expect(await checks(page, "Host")).toBe(1);
+});
+
+test("a first count that failed says so, and its Refresh counts again", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(`${HOSTS}?failFirstCount=1`);
+  await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+    timeout: 60000,
+  });
+
+  // The message and its Refresh share one block, so the words are matched within it.
+  await expect(page.getByText(COUNT_FAILURE)).toBeVisible();
+  await expect(emptyTable(page)).toHaveCount(0);
+  await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
+  expect(await checks(page, "Host")).toBe(1);
+
+  const refresh: Locator = page.getByTestId("refresh-button");
+  await expect(refresh).toBeVisible();
+  await screenshot(page, "hosts-first-count-failed");
+  await refresh.click();
+
+  await expect(emptyTable(page)).toBeVisible();
+  await expect(page.getByText(GUIDE_SENTENCE, { exact: true })).toBeVisible();
+  await expect(page.getByText(COUNT_FAILURE)).toHaveCount(0);
+  expect(await checks(page, "Host")).toBe(2);
 });
 
 /*

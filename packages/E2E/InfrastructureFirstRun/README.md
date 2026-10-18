@@ -28,6 +28,8 @@ workspace, and the fixture header says so ("Preview workspace · Synthetic data"
 Picked with query parameters:
 
 - `hosts=1`: the project already has a host ("web-01").
+- `failFirstCount=1`: the page's first count of its list fails once, so the page shows the error
+  with its Refresh; the count after it answers as usual.
 - `lang=de`, `theme=dark`.
 
 `window.__infrastructureFirstRunFixture.arrive(kind)` is an agent reporting (`host`, `vcenter`

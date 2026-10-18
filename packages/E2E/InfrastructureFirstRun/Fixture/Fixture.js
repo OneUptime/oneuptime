@@ -13,6 +13,7 @@
  * Scenarios are picked with query parameters, parsed once at load:
  *
  *   ?hosts=1   the project already has a host ("web-01")
+ *   ?failFirstCount=1  the page's first count of its list fails (once)
  *   ?lang=     de reads the German locale file
  *   ?theme=    dark adds html.dark (handled by server.js)
  *
@@ -69,6 +70,10 @@ const params = new URLSearchParams(window.location.search);
 
 const hasHost = params.get("hosts") === "1";
 const language = params.get("lang") === "de" ? "de" : "en";
+// How many of the list's counts still fail: the first one, when asked for.
+let failingCounts = params.get("failFirstCount") === "1" ? 1 : 0;
+
+const COUNT_FAILURE = "The server did not answer. Try again in a moment.";
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -175,7 +180,7 @@ if (hasHost) {
  * ---------------------------------------------------------------------------
  */
 const fixture = {
-  scenario: { hosts: hasHost, language },
+  scenario: { hosts: hasHost, language, failFirstCount: failingCounts > 0 },
   countRequests: [],
   listRequests: [],
   apiRequests: [],
@@ -307,6 +312,11 @@ ModelAPI.getList = async (options) => {
 ModelAPI.count = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.countRequests.push({ modelName, query: serialize(options.query) });
+
+  if (failingCounts > 0) {
+    failingCounts--;
+    throw new Error(COUNT_FAILURE);
+  }
 
   const data = rows(options.modelType, options.query);
   if (!data) {
