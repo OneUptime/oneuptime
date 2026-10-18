@@ -136,7 +136,7 @@ Il marketplace rifiuta un abbonamento annullato o sospeso, oppure un'installazio
 
 OneUptime migra il suo database quando si avvia la nuova release. Leggi le [note di aggiornamento](/docs/installation/upgrading) prima di passare a una nuova versione principale.
 
-Aggiorna tramite il marketplace: l'etichetta dell'edizione può mostrare una release di OneUptime più recente prima che sia disponibile sul tuo marketplace.
+Aggiorna tramite il marketplace. Un'installazione dal marketplace non si confronta con le release di OneUptime su GitHub: le versioni offerte dal tuo marketplace sono quelle a cui aggiornare.
 
 ## Impostazioni e scaling
 

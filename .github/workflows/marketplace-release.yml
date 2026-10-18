@@ -18,10 +18,15 @@ name: Marketplace Release
 # Microsoft's preview goes live with a run by hand (action: azure-go-live) once it has passed
 # Microsoft's checks and been tried; AKS then upgrades buyers' clusters to it.
 #
-# After every release it runs on its own once MARKETPLACE_RELEASES is "enabled", for each
-# marketplace editions.json marks ready and the repository variables sign in to (the others are
-# skipped with a notice). By hand it is a dry run unless dry_run is unticked: everything is built
-# and checked, the change set and the configure request are written, nothing is pushed or sent.
+# Once a week (Mondays) it ships the newest release, once MARKETPLACE_RELEASES is "enabled", to
+# each marketplace editions.json marks ready and the repository variables sign in to (the others
+# are skipped with a notice). Not after every release: OneUptime releases several times a day,
+# and every version a marketplace takes is a review, an approval, a copy in its registry, and on
+# Microsoft an upgrade of every buyer's cluster. Each push job first asks its marketplace whether
+# it has the release already, and stops there if it has: a week with no new release, or a run
+# again, ships nothing twice. By hand (for an urgent fix, or another release) it is a dry run
+# unless dry_run is unticked: everything is built and checked, the change set and the configure
+# request are written, nothing is pushed or sent.
 #
 # It signs in to every cloud with GitHub's OIDC token, so it holds no secret: the one-time setup
 # (HelmChart/Marketplace/automation/ci_setup.py) trusts only this repository's
@@ -29,10 +34,9 @@ name: Marketplace Release
 # holds this file to all of that.
 
 on:
-  workflow_run:
-    workflows: ["Push Release Images to Docker Hub and GitHub Container Registry"]
-    types: [completed]
-    branches: [release]
+  schedule:
+    # Mondays, 09:00 UTC: the newest release.
+    - cron: "0 9 * * 1"
   workflow_dispatch:
     inputs:
       action:
@@ -41,7 +45,7 @@ on:
         options: [release, azure-go-live]
         default: release
       version:
-        description: "The release (#.#.#). Empty takes the VERSION file."
+        description: "The release (#.#.#). Empty takes the newest release."
         type: string
         default: ""
       marketplaces:
@@ -62,7 +66,7 @@ concurrency:
 
 jobs:
   prepare:
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && vars.MARKETPLACE_RELEASES == 'enabled')
+    if: github.event_name == 'workflow_dispatch' || vars.MARKETPLACE_RELEASES == 'enabled'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -81,27 +85,34 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-      - name: Read the release's version
+      # The release asked for, or else the newest release tag (#.#.#), and the commit its tag
+      # names: the one the release was built from. GitHub cuts a release's tag only once its
+      # images are all published, so the newest tag is always a whole release.
+      - name: Find the release
         id: release
         env:
-          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          VERSION_INPUT: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          if [[ -n "$RELEASE_SHA" ]]; then
-            git fetch --no-tags --depth 1 origin "$RELEASE_SHA"
-            version="$(git show FETCH_HEAD:VERSION | tr -d ' \n')"
-          else
-            version="$(tr -d ' \n' < VERSION)"
+          version="${VERSION_INPUT//[[:space:]]/}"
+          if [[ -z "$version" ]]; then
+            version="$(git ls-remote --tags --refs origin | sed -E 's#.*refs/tags/##' \
+              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1 || true)"
           fi
-          echo "version_file=${version}" >>"$GITHUB_OUTPUT"
-          echo "sha=${RELEASE_SHA}" >>"$GITHUB_OUTPUT"
+          sha=""
+          if [[ -n "$version" ]]; then
+            # The commit, even of an annotated tag (its peeled ^{} line comes last).
+            sha="$(git ls-remote origin "refs/tags/${version}" "refs/tags/${version}^{}" | tail -n 1 | cut -f1)"
+          fi
+          echo "version=${version}" >>"$GITHUB_OUTPUT"
+          echo "sha=${sha}" >>"$GITHUB_OUTPUT"
       - name: Plan the run
         id: plan
         env:
           EVENT_NAME: ${{ github.event_name }}
           ACTION: ${{ inputs.action }}
-          VERSION_INPUT: ${{ inputs.version }}
-          VERSION_FILE: ${{ steps.release.outputs.version_file }}
+          VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
           MARKETPLACES_INPUT: ${{ inputs.marketplaces }}
           DRY_RUN_INPUT: ${{ inputs.dry_run }}
           MARKETPLACE_RELEASE_AWS_ROLE_ARN: ${{ vars.MARKETPLACE_RELEASE_AWS_ROLE_ARN }}
@@ -221,6 +232,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    outputs:
+      shipped: ${{ steps.shipped.outputs.shipped }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -238,28 +251,44 @@ jobs:
           role-session-name: marketplace-release-${{ github.run_id }}
           aws-region: us-east-1
           role-duration-seconds: 7200
+      # A product that has the version already (a week with no new release, or a run again) is
+      # left alone: nothing is pushed, and aws-publish neither runs nor asks for an approval.
+      - name: Does the product have this version already?
+        id: shipped
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: python3 HelmChart/Marketplace/automation/aws_catalog.py shipped --version "$VERSION"
       - name: Sign in to the AWS Marketplace registry
+        if: steps.shipped.outputs.shipped == 'false'
         run: |
           set -euo pipefail
           aws ecr get-login-password --region us-east-1 | crane auth login 709825985650.dkr.ecr.us-east-1.amazonaws.com -u AWS --password-stdin
           aws ecr get-login-password --region us-east-1 | helm registry login 709825985650.dkr.ecr.us-east-1.amazonaws.com --username AWS --password-stdin
       - name: Copy the images
+        if: steps.shipped.outputs.shipped == 'false'
         env:
           OUT: ${{ steps.edition.outputs.out }}
         run: |
           set -uo pipefail
           source ./Scripts/GHA/retry.sh
           retry_with_backoff "Copying the AWS images" bash HelmChart/Marketplace/mirror-images.sh "$OUT/images.json"
+      # A chart an earlier run pushed, whose version was not added, is not pushed again.
       - name: Push the chart
+        if: steps.shipped.outputs.shipped == 'false'
         env:
           OUT: ${{ steps.edition.outputs.out }}
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
           registry="$(python3 -c 'import json; print(json.load(open("HelmChart/Marketplace/editions.json"))["aws"]["registry"])')"
-          helm package "$OUT/oneuptime" --destination "$OUT"
-          helm push "$OUT/oneuptime-${VERSION}.tgz" "oci://${registry}"
+          if crane digest "${registry}/oneuptime:${VERSION}" >/dev/null 2>&1; then
+            echo "The chart ${VERSION} is in the registry already, from an earlier run."
+          else
+            helm package "$OUT/oneuptime" --destination "$OUT"
+            helm push "$OUT/oneuptime-${VERSION}.tgz" "oci://${registry}"
+          fi
       - name: Keep the edition's images plan for the publishing job
+        if: steps.shipped.outputs.shipped == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: marketplace-aws-images
@@ -268,6 +297,7 @@ jobs:
 
   aws-publish:
     needs: [prepare, aws-push]
+    if: needs.aws-push.outputs.shipped == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     environment: marketplace-publish
@@ -315,6 +345,7 @@ jobs:
       id-token: write
     outputs:
       digest: ${{ steps.bundle.outputs.digest }}
+      shipped: ${{ steps.shipped.outputs.shipped }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -331,7 +362,21 @@ jobs:
           client-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_TENANT_ID }}
           subscription-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_SUBSCRIPTION_ID }}
+      # An offer whose preview has the bundle already (a week with no new release, or a run
+      # again) is left alone: nothing is pushed, and azure-publish neither runs nor asks for an
+      # approval.
+      - name: Does the offer's preview have this version already?
+        id: shipped
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          PARTNER_CENTER_TOKEN="$(az account get-access-token --scope https://graph.microsoft.com/.default --query accessToken --output tsv)"
+          echo "::add-mask::${PARTNER_CENTER_TOKEN}"
+          export PARTNER_CENTER_TOKEN
+          python3 HelmChart/Marketplace/automation/partner_center.py shipped --tag "$VERSION"
       - name: Sign in to the container registry
+        if: steps.shipped.outputs.shipped == 'false'
         run: |
           set -euo pipefail
           host="$(python3 -c 'import json; print(json.load(open("HelmChart/Marketplace/editions.json"))["azure"]["registry"])')"
@@ -340,6 +385,7 @@ jobs:
           crane auth login "$host" -u 00000000-0000-0000-0000-000000000000 --password-stdin <<<"$token"
           docker login "$host" -u 00000000-0000-0000-0000-000000000000 --password-stdin <<<"$token"
       - name: Copy the images
+        if: steps.shipped.outputs.shipped == 'false'
         env:
           OUT: ${{ steps.edition.outputs.out }}
         run: |
@@ -347,17 +393,26 @@ jobs:
           source ./Scripts/GHA/retry.sh
           retry_with_backoff "Copying the Azure images" bash HelmChart/Marketplace/mirror-images.sh "$OUT/images.json"
       # Microsoft's packaging tool, in its own image, as Microsoft documents it: it checks the
-      # edition and pushes the bundle (CNAB) to the registry. A version is never pushed twice.
+      # edition and pushes the bundle (CNAB) to the registry. A bundle an earlier run pushed,
+      # whose publishing did not go through, is used again rather than built twice.
       - name: Build and push the bundle
+        if: steps.shipped.outputs.shipped == 'false'
         env:
           OUT: ${{ steps.edition.outputs.out }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
+          reference="$(python3 -c 'import json; e=json.load(open("HelmChart/Marketplace/editions.json"))["azure"]; print(e["registry"] + "/" + e["bundleRepository"])')"
+          if crane digest "${reference}:${VERSION}" >/dev/null 2>&1; then
+            echo "The bundle ${VERSION} is in the registry already, from an earlier run."
+            exit 0
+          fi
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "${HOME}/.docker:/root/.docker" \
             -v "${HOME}/.azure:/root/.azure" -v "${OUT}:/data" -w /data --entrypoint /bin/bash \
             mcr.microsoft.com/container-package-app:latest -c "cpa verify && cpa buildbundle"
       - name: The bundle's digest
         id: bundle
+        if: steps.shipped.outputs.shipped == 'false'
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
@@ -367,6 +422,7 @@ jobs:
 
   azure-publish:
     needs: [prepare, azure-push]
+    if: needs.azure-push.outputs.shipped == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     environment: marketplace-publish
@@ -433,6 +489,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    outputs:
+      shipped: ${{ steps.shipped.outputs.shipped }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -457,9 +515,25 @@ jobs:
           set -euo pipefail
           crane auth login us-docker.pkg.dev -u oauth2accesstoken --password-stdin <<<"$TOKEN"
           docker login us-docker.pkg.dev -u oauth2accesstoken --password-stdin <<<"$TOKEN"
+      # The deployer is pushed last: when this version's is there, an earlier run pushed it all
+      # and wrote what to add in Producer Portal to its summary, and nothing is pushed again.
+      - name: Is this version's deployer there already?
+        id: shipped
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          registry="$(python3 -c 'import json; print(json.load(open("HelmChart/Marketplace/editions.json"))["google-cloud"]["registry"])')"
+          if digest="$(crane digest "${registry}/deployer:${VERSION}" 2>/dev/null)"; then
+            echo "shipped=true" >>"$GITHUB_OUTPUT"
+            echo "Artifact Registry has the deployer of ${VERSION} already (${digest}): nothing to push. The run that pushed it says what to add in Producer Portal." >>"$GITHUB_STEP_SUMMARY"
+          else
+            echo "shipped=false" >>"$GITHUB_OUTPUT"
+          fi
       # mirror-images.sh annotates each image with the listing's service and tags it with the
       # release's track too, as Google requires.
       - name: Copy the images
+        if: steps.shipped.outputs.shipped == 'false'
         env:
           OUT: ${{ steps.edition.outputs.out }}
         run: |
@@ -467,9 +541,11 @@ jobs:
           source ./Scripts/GHA/retry.sh
           retry_with_backoff "Copying the Google Cloud images" bash HelmChart/Marketplace/mirror-images.sh "$OUT/images.json"
       - name: Set up Docker Buildx
+        if: steps.shipped.outputs.shipped == 'false'
         uses: docker/setup-buildx-action@v3
       - name: Build and push the deployer
         id: deployer
+        if: steps.shipped.outputs.shipped == 'false'
         env:
           OUT: ${{ steps.edition.outputs.out }}
           VERSION: ${{ needs.prepare.outputs.version }}
@@ -485,6 +561,7 @@ jobs:
             --push "$OUT"
           echo "digest=$(crane digest "${registry}/deployer:${VERSION}")" >>"$GITHUB_OUTPUT"
       - name: What to add in Producer Portal
+        if: steps.shipped.outputs.shipped == 'false'
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           DIGEST: ${{ steps.deployer.outputs.digest }}

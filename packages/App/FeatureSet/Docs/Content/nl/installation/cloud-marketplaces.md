@@ -136,7 +136,7 @@ De marketplace weigert een opgezegd of opgeschort abonnement, of een andere inst
 
 OneUptime migreert zijn database wanneer de nieuwe release start. Lees de [upgradenotities](/docs/installation/upgrading) voordat u overstapt op een nieuwe hoofdversie.
 
-Upgrade via de marketplace: het editielabel kan een nieuwere OneUptime-release tonen voordat die op uw marketplace staat.
+Upgrade via de marketplace. Een marketplace-installatie vergelijkt zich niet met de OneUptime-releases op GitHub: de versies die uw marketplace aanbiedt, zijn de versies om naar te upgraden.
 
 ## Instellingen en schalen
 
