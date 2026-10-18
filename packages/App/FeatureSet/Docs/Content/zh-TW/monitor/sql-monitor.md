@@ -139,7 +139,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 | **主機** | 探測器可以連到的資料庫主機（例如 `db.internal`）。 |
 | **連接埠** | 資料庫連接埠。 |
 | **資料庫名稱** | 要在其上執行查詢的資料庫。 |
-| **Use Windows Integrated Authentication** | 僅限 Microsoft SQL Server。以執行探測器的帳戶驗證，而不是使用 SQL 使用者名稱和密碼。請參閱 [Windows 整合式驗證](#windows-整合式驗證)。 |
+| **驗證** | 僅限 Microsoft SQL Server：預設的 **使用者名稱與密碼**，或以執行探測器的帳戶登入的 **Windows Integrated Authentication**。請參閱 [Windows 整合式驗證](#windows-整合式驗證)。 |
 | **使用者名稱** | 唯讀的最小權限資料庫使用者。 |
 | **密碼** | 資料庫密碼。我們強烈建議以 `{{monitorSecrets.name}}` 參照一個 [監控密鑰](/docs/monitor/monitor-secrets)，而不是以純文字輸入密碼（請參閱[為密碼使用監控密鑰](#為密碼使用監控密鑰)）。 |
 | **SQL Query** | 要執行的唯讀查詢（請參閱[撰寫查詢](#撰寫查詢)）。 |
@@ -157,7 +157,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 
 ### Windows 整合式驗證
 
-對於 Microsoft SQL Server，啟用 **Use Windows Integrated Authentication** 即可使用探測器程序的身分開啟受信任的連線。在此模式下，使用者名稱和密碼欄位會被忽略，也不會傳給驅動程式。由於探測器需要一個受你的網域信任的身分，請為這種驗證模式使用自行託管的探測器。
+對於 Microsoft SQL Server，在 **驗證** 下選擇 **Windows Integrated Authentication**，即可使用探測器程序的身分開啟受信任的連線。表單隨後會隱藏 **使用者名稱** 和 **密碼**，兩者都不會傳給驅動程式。由於探測器需要一個受你的網域信任的身分，請為這種驗證模式使用自行託管的探測器。
 
 | 探測器執行於 | 需要設定的內容 |
 |---|---|

@@ -79,7 +79,7 @@ Lorsqu'un incident ou une alerte atteint la politique, **Level 1** alerte ses in
 
 Un incident, une alerte ou un épisode créé déjà pris en compte ou résolu — enregistré après coup — n'exécute aucune de ses politiques : personne n'est alerté, et son fil d'activité l'indique en les nommant. Voir [Déclaré déjà pris en compte ou résolu](/docs/incidents/declaring-incidents#déclaré-déjà-pris-en-compte-ou-résolu).
 
-Pour répéter une politique, cliquez sur **Modifier** sur la carte **Politique de répétition**, activez **Repeat if no one acknowledges** et définissez le **Nombre de répétitions**.
+Pour répéter une politique, cliquez sur **Modifier** sur la carte **Politique de répétition**, choisissez **Recommencer depuis Level 1** et indiquez **Combien de fois de plus ?**.
 
 ### Le résumé de l'escalade
 

@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Creare la sonda
 
-Apri **Monitor → Impostazioni → Sonde** e fai clic su **Crea: Sonda**. Dalle un **Nome** e una **Descrizione**: sono obbligatori entrambi. **Altri campi** contiene il **Logo della sonda**, **Abilita automaticamente il monitoraggio sui nuovi monitor**, che sceglie questa sonda per ogni nuovo monitor che crei, e le **Etichette**.
+Apri **Monitor → Impostazioni → Sonde** e fai clic su **Crea: Sonda**. Dalle un **Nome** e una **Descrizione**: sono obbligatori entrambi. **Altri campi** contiene il **Logo della sonda**, **Aggiungi ai nuovi monitor**, che fa partire ogni nuovo monitor con questa sonda selezionata, e le **Etichette**.
 
 ### Copiare ID e chiave
 

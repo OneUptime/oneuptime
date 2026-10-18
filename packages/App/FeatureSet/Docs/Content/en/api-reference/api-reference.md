@@ -200,7 +200,7 @@ A change that moves such a record follows the same rule: each record it adds as 
 
 #### Owners
 
-The owners of a resource - the user and team owner records of a monitor, an on-call policy, a dashboard and every other resource with owners - are read through the resource they own the same way: listing, reading, adding and removing them needs a permission to read that resource, under its labels and owners, and an owner record of a resource you may not read is answered as if it did not exist.
+The owners of a resource - the user and team owner records of a monitor, an on-call policy, a dashboard and every other resource with owners - are read through the resource they own the same way: listing, reading, adding and removing them needs a permission to read that resource, under its labels and owners, and an owner record of a resource you may not read is answered as if it did not exist. Adding and removing them keeps to the scope of the permission that does it, too: one scoped to `Owned` reaches only the owners of resources you or one of your teams own, and adding an owner to any other resource is refused with a `422` that says so.
 
 #### Records a write lists or names
 

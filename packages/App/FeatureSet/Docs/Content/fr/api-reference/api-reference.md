@@ -200,7 +200,7 @@ Une modification qui déplace un tel enregistrement suit la même règle : chaqu
 
 #### Propriétaires
 
-Les propriétaires d'une ressource - les enregistrements de propriétaires utilisateurs et équipes d'un moniteur, d'une stratégie d'astreinte, d'un tableau de bord et de toute autre ressource avec des propriétaires - sont lus à travers la ressource qu'ils possèdent de la même façon : les lister, les lire, les ajouter et les retirer exige une autorisation de lire cette ressource, sous ses étiquettes et ses propriétaires, et un enregistrement de propriétaire d'une ressource que vous ne pouvez pas lire reçoit la réponse comme s'il n'existait pas.
+Les propriétaires d'une ressource - les enregistrements de propriétaires utilisateurs et équipes d'un moniteur, d'une stratégie d'astreinte, d'un tableau de bord et de toute autre ressource avec des propriétaires - sont lus à travers la ressource qu'ils possèdent de la même façon : les lister, les lire, les ajouter et les retirer exige une autorisation de lire cette ressource, sous ses étiquettes et ses propriétaires, et un enregistrement de propriétaire d'une ressource que vous ne pouvez pas lire reçoit la réponse comme s'il n'existait pas. Les ajouter et les retirer suit aussi la portée de l'autorisation qui le permet : une autorisation de portée `Owned` n'atteint que les propriétaires des ressources dont vous ou l'une de vos équipes êtes propriétaires, et l'ajout d'un propriétaire à toute autre ressource est refusé par un `422` qui le dit.
 
 #### Enregistrements qu'une écriture liste ou nomme
 

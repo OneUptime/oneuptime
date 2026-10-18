@@ -56,7 +56,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De lijst
 | Sectie            | Wat je daar doet                                                                                                          |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Waarschuwingen** | **Alle waarschuwingen** en **Actieve waarschuwingen**, waarvan de rode badge de waarschuwingen telt die nog niet zijn opgelost. |
-| **Episoden**      | **Alle episodes**, **Actieve episodes** en **Documentatie**, een pagina in het dashboard over groeperen.                   |
+| **Episoden** | **Alle episodes** en **Actieve episodes**: gerelateerde waarschuwingen, gebundeld tot één probleem om aan te werken. |
 | **AI**            | **Inzichten**, **Logboeken** en **Instellingen**: wat OneUptime AI van je waarschuwingen heeft geleerd, alles wat het heeft gedaan en wat het mag doen. |
 | **Werkruimte**    | **Slack** en **Microsoft Teams**, afhankelijk van wat het project heeft gekoppeld, of **Slack of Teams koppelen** als het geen van beide heeft. |
 | **Regels**        | **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **Reminder Rules**. |
@@ -129,19 +129,20 @@ Terwijl je eraan werkt, leg je wat je leert vast als **Privénotities**, vul je 
 
 | Sectie in het zijmenu | Pagina's                                                                                                   |
 | --------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Basis**             | **Overzicht**, **Beschrijving**, **Hoofdoorzaak**, **Herstel**, **Runbooks**, **Statustijdlijn**, **Eigenaren**, **Gekoppelde incidenten** |
-| **Piket**             | **Bereikbaarheidsuitvoeringen**: welk bereikbaarheidsbeleid voor de waarschuwing draaide, en hoe elk verliep |
-| **Logboeken**         | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de waarschuwing is verstuurd, en alles wat AI ervoor deed |
-| **Waarschuwingsnotities** | **Privénotities**                                                                                      |
+| **Overzicht** | **Overzicht** en **Statustijdlijn** |
+| **Onderzoek** | **Beschrijving**, **Hoofdoorzaak**, **Herstel**, **Runbooks**, **Gekoppelde incidenten** |
+| **Team** | **Bereikbaarheidsuitvoeringen** en **Eigenaren**: wie er voor de waarschuwing werd opgeroepen, en wie haar eigenaar is |
+| **Meldingen**         | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de waarschuwing is verstuurd, en alles wat AI ervoor deed |
+| **Notities** | **Privénotities**                                                                                      |
 | **Ontwikkelaars**     | **Terraform**, **API** en **AI-assistenten**: de waarschuwing vanuit code beheerd                          |
-| **Geavanceerd**       | **Aangepaste velden**, **Auditlogboeken**, **Instellingen**, **Waarschuwing verwijderen**                  |
+| **Geavanceerd** | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Waarschuwing verwijderen** |
 
-**Basis** en **Waarschuwingsnotities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
+**Overzicht**, **Onderzoek**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
 
 - **Overzicht** — drie tegels met hoe lang het duurde voordat de waarschuwing werd bevestigd en opgelost, en haar **Duur**. De kaart **AI Investigation** staat bovenaan de pagina, met **Ask OneUptime AI** onderaan, en **Waarschuwing Feed** legt alles vast wat met de waarschuwing gebeurde. Daarnaast staan de kaart **Waarschuwingsdetails**, de metingen van de waarschuwing en haar **Getroffen resources**.
 - **Statustijdlijn** — elke status waarin de waarschuwing heeft gestaan, wanneer en hoe lang. Zie [De statustijdlijn](/docs/alerts/states-and-severities#de-statustijdlijn).
 - **Gekoppelde incidenten** — de incidenten waar deze waarschuwing deel van uitmaakt, met **Incident koppelen** en **Incident melden**.
-- **Instellingen** — **Wie deze waarschuwing kan zien**, met de schakelaar **Privéwaarschuwing**, en **Reminders**, met **Herinneringen sturen**. Elke schakelaar slaat op zodra je hem omzet.
+- **Instellingen** — **Wie deze waarschuwing kan zien**, met de schakelaar **Privéwaarschuwing**, en **Herinneringen**, met **Herinneringen sturen**. Elke schakelaar slaat op zodra je hem omzet.
 
 ## Privéwaarschuwingen
 

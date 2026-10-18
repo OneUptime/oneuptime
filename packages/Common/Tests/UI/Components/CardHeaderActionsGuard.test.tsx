@@ -505,8 +505,6 @@ describe("hand-built card headers", () => {
    * layer").
    */
   const FIXED_HAND_BUILT_HEADERS: Record<string, string> = {
-    "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/RepeatPolicy.tsx":
-      'className="self-end sm:shrink-0 sm:self-auto"',
     "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/ResponderReadinessCard.tsx":
       'className="flex-shrink-0 self-end sm:self-auto"',
     "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRules.tsx":

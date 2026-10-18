@@ -142,7 +142,6 @@ import IncidentEpisodeViewMembers from "../Pages/Incidents/EpisodeView/Members";
 
 import IncidentEpisodeCreate from "../Pages/Incidents/EpisodeCreate";
 
-import IncidentEpisodeDocs from "../Pages/Incidents/EpisodeDocs";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
 import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
@@ -157,6 +156,7 @@ import MovedFormPageRedirect from "../Components/FormBuilder/MovedFormPageRedire
 import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
 import {
   MOVED_AI_SECTION_PATHS,
+  MOVED_EPISODE_DOCS_PATH,
   MOVED_HUNTRESS_PATHS,
   MOVED_INCIDENT_FORM_PATHS,
 } from "./MovedPagePaths";
@@ -247,6 +247,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={MOVED_HUNTRESS_PATHS.connectionView}
         element={<MovedPageRedirect pageMap={PageMap.WORKFLOW_VIEW} />}
+      />
+
+      {/*
+       * Episodes > Documentation was a manual drawn in the product; the docs
+       * are the one place for it now, linked from the episode list (View
+       * Documentation). Its old URL forwards to that list - outside the
+       * layout, so the side menu never flashes on the way, and ahead of
+       * episodes/:id, which would take "documentation" for an episode id.
+       */}
+      <PageRoute
+        path={MOVED_EPISODE_DOCS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.INCIDENT_EPISODES} />}
       />
 
       <PageRoute
@@ -792,16 +804,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             <IncidentEpisodeCreate
               {...props}
               pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS] || ""}
-          element={
-            <IncidentEpisodeDocs
-              {...props}
-              pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route}
             />
           }
         />

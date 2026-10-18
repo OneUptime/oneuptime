@@ -84,7 +84,7 @@ Varje rad har **Visa larm** för att öppna larmet och **Avlänka** för att ta 
 
 ## Länka incidenter från ett larm
 
-Larmets sida speglar incidentens. Öppna ett larm och välj **Länkade incidenter** i avsnittet **Grundläggande** i dess sidomeny. Tabellen listar varje incident som larmet är länkat till, med incidentnummer, titel och aktuellt tillstånd, och när och av vem den länkades.
+Larmets sida speglar incidentens. Öppna ett larm och välj **Länkade incidenter** i avsnittet **Utredning** i dess sidomeny. Tabellen listar varje incident som larmet är länkat till, med incidentnummer, titel och aktuellt tillstånd, och när och av vem den länkades.
 
 - **Länka incident** länkar det här larmet till en befintlig incident. Dess rullgardinsmeny fungerar som den på incidentens sida: de senaste incidenterna först, var och en med sitt nummer — som `INC-42: Checkout is down` — och när du skriver söks alla incidenter igenom efter titel.
 - **Visa incident** öppnar en länkad incident.
@@ -164,7 +164,7 @@ Låt den vara ikryssad, så när incidenten har deklarerats och larmen har länk
 
 - **Bekräftas larmen som du.** Varje larm går till ditt larmtillstånd **Bekräftad**, som om du själv hade klickat på **Bekräfta** på det: larmets **Tillståndstidslinje** och flöde nämner dig, larmets ägare meddelas, och ändringen publiceras i larmets Slack- och Microsoft Teams-kanaler som vilken annan tillståndsändring för ett larm som helst. Orsaken lyder "Acknowledged because Incident INC-42 was declared from this alert." — eller, för en privat incident, "Acknowledged because a private incident was declared from this alert.", så att en privat incident aldrig nämns där larmets publik kan läsa det.
 - **Stoppas deras egen eskalering från jouren inom ungefär en minut.** Nästa eskaleringssteg ser ett bekräftat larm och stannar. Larm som redan har gått ut återkallas inte.
-- **Stoppas påminnelser bara om påminnelseregeln säger det.** Ett larms påminnelser stoppas vid bekräftelse bara när dess påminnelseregel har **Stop Reminders When** satt till **Bekräftad**; annars fortsätter de tills larmet är löst.
+- **Stoppas påminnelser bara om påminnelseregeln säger det.** Ett larms påminnelser stoppas vid bekräftelse bara när dess påminnelseregel har **Sluta påminna när** satt till **Bekräftad**; annars fortsätter de tills larmet är löst.
 - **Fortsätter en larmepisod att eskalera.** Hör ett larm till en episod som larmar via sin egen jourpolicy fortsätter episoden att eskalera tills själva episoden har bekräftats.
 - **Lämnas larm som redan är bekräftade eller lösta i fred.** Som överallt annars jämförs tillstånd efter sin ordning, så ett larm i ett eget tillstånd efter **Bekräftad** räknas som bekräftat, och inget flyttas någonsin bakåt.
 
@@ -306,7 +306,7 @@ Båda flödenas dialoger **Filtrera efter händelsetyp**, i varje flödes meny *
 
 Två projektreglage låter incidenten ta med sig sina länkade larm. Båda är påslagna i nya projekt. Ett projekt som skapades innan de var påslagna som standard behåller inställningen det hade, som är avstängd om ingen slog på dem. De har en egen inställningssida, **Incidenter → Inställningar → Länkade larm**, där vart och ett är ett reglage på kortet **Länkade larm** som sparas så snart du slår om det. Bara Project Owners och Project Admins kan ändra dem; för alla andra är reglagen låsta och säger vilken behörighet de kräver:
 
-- **Bekräfta länkade larm när incidenten bekräftas** — när incidenten når ditt bekräftade tillstånd går varje länkat larm som inte har bekräftats än till ditt larmtillstånd **Bekräftad**. Det är det här som stoppar jourens eskaleringar för de larmen: nästa eskaleringssteg ser ett bekräftat larm och stannar, inom ungefär en minut. Larm som redan har gått ut återkallas inte. Påminnelser för larm stoppas också när larmets påminnelseregel har **Stop Reminders When** satt till **Bekräftad**; annars fortsätter de tills larmet är löst.
+- **Bekräfta länkade larm när incidenten bekräftas** — när incidenten når ditt bekräftade tillstånd går varje länkat larm som inte har bekräftats än till ditt larmtillstånd **Bekräftad**. Det är det här som stoppar jourens eskaleringar för de larmen: nästa eskaleringssteg ser ett bekräftat larm och stannar, inom ungefär en minut. Larm som redan har gått ut återkallas inte. Påminnelser för larm stoppas också när larmets påminnelseregel har **Sluta påminna när** satt till **Bekräftad**; annars fortsätter de tills larmet är löst.
 - **Lös länkade larm när incidenten löses** — när incidenten når ditt lösta tillstånd går varje länkat larm som inte har lösts än till ditt larmtillstånd **Löst**, förutom ett larm som fortfarande är länkat till en annan incident som inte är löst. Det larmet lämnas öppet för den andra incidenten — bekräftat, om bekräftelsereglaget också är påslaget — och löses när den sista av dess incidenter löses.
 
 Med båda reglagen avstängda ändrar länkning ingenting i ett larms tillstånd. Ett länkat larm stannar där det är tills någon flyttar det, dess jourpolicy fortsätter att eskalera, och dess påminnelser fortsätter att komma. Det enda undantaget är att deklarera en incident från larm med formulärets ruta ikryssad, vilket bekräftar dem medan du deklarerar — se [Bekräfta larmen medan du deklarerar](#bekräfta-larmen-medan-du-deklarerar).

@@ -79,7 +79,7 @@ Når en hendelse eller et varsel når retningslinjen, varsler **Level 1** mottak
 
 En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst — registrert i etterkant — kjører ingen av retningslinjene sine: ingen varsles, og feeden sier det og nevner dem ved navn. Se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
 
-For å gjenta en retningslinje klikker du på **Rediger** på kortet **Gjentakelsesretningslinje**, slår på **Repeat if no one acknowledges** og angir **Number of times to repeat**.
+For å gjenta en retningslinje klikker du på **Rediger** på kortet **Gjentakelsesretningslinje**, velger **Start på nytt fra Level 1** og angir **Hvor mange ganger til?**.
 
 ### Eskaleringsoversikten
 

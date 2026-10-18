@@ -262,12 +262,6 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Episode",
       "Audit Logs",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_EPISODE_DOCS, [
-      "Project",
-      "Incidents",
-      "Episodes",
-      "Documentation",
-    ]),
 
     // Incident Settings (Product-level)
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_ROLES, [

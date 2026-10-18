@@ -56,7 +56,7 @@ Schrijf uw script in de editor **Playwright Code**. Begin met het [voorbeeld hie
 
 ### Browsers en schermformaten kiezen
 
-Vink de browsers aan onder **Browsertype** en de formaten onder **Schermtype**. Het script draait één keer voor elke combinatie, dus twee browsers en drie formaten geven zes uitvoeringen per controle. Onder **Meer velden** probeert **Aantal nieuwe pogingen bij fout** een mislukte uitvoering tot 5 keer opnieuw.
+Een nieuwe monitor begint met **Chromium** onder **Browsertype** en **Desktop** onder **Schermtype**; vink er meer aan om meer te dekken. Het script draait één keer voor elke combinatie, dus twee browsers en drie formaten geven zes uitvoeringen per controle, en het heeft minstens één browser en één formaat nodig. Onder **Meer velden** probeert **Aantal nieuwe pogingen bij fout** een mislukte uitvoering tot 5 keer opnieuw.
 
 ### Het testen
 

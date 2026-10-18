@@ -112,7 +112,7 @@ const MonitorCriteria: FunctionComponent<
           description={
             <>
               {translator.translateText(
-                "This is a manual monitor and it cannot have any criteria set. You can have monitoring criteria on other monitor types.",
+                "A manual monitor has no criteria: you set its status yourself, from the ⋯ menu on its overview.",
               )}
             </>
           }

@@ -688,6 +688,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * what says so; a create or update writing a column a plan sells needs
    * the project's plan.
    *
+   * And for a create of a row a person adds for themselves - a model of a
+   * project that only the CurrentUser grant lets them create, such as their
+   * own phone number - that the project is one they are a member of
+   * (CreatePermission.checkCreateInMemberProject): asked before anything
+   * about the project is read, its plan included, so the hooks never send a
+   * verification message on a project's account, or describe its settings,
+   * for someone who is not in it.
+   *
    * Returns the props the rest of the operation goes on with: the caller's
    * own, with their project's plan when they act in it without one and the
    * operation is one a plan decides (CallerPlan.withPlanFor). The plan is
@@ -708,6 +716,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     PublicPermission.checkIfUserIsLoggedIn(this.modelType, props, type);
+
+    if (type === DatabaseRequestType.Create) {
+      ModelPermission.checkCreateInMemberProject(
+        this.modelType,
+        writeData as TBaseModel | undefined,
+        props,
+      );
+    }
 
     const propsWithPlan: DatabaseCommonInteractionProps =
       await CallerPlan.withPlanFor({
@@ -5721,6 +5737,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * Probes) have no userId either, and nobody owns what they make.
      */
     if (props.isRoot || props.isMasterAdmin || !props.userId) {
+      return;
+    }
+
+    /*
+     * A record of a kind with no owner rows of its own - an owner row, an
+     * incident's note - takes its owners from the record it names, so there
+     * is no owner of it to make its creator, whatever reaches what.
+     */
+    if (!OwnedScopePermission.hasOwnerTables(this.modelType)) {
       return;
     }
 

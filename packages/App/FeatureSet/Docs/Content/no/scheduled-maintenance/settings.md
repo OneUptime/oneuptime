@@ -67,24 +67,22 @@ En regel matcher bare når hver betingelse du fyller ut, holder; en betingelse s
 **Planlagt vedlikehold → Regler → Reminder Rules** påminner eierne av en hendelse til arbeidet er godkjent. Hver hendelse får den første regelen som matcher den, fra toppen av listen og nedover.
 
 :::steps
-### Gi påminnelsesregelen et navn
-
-Klikk på **Opprett Scheduled Maintenance Reminder Rule**. Under **Rule Info** gir du den et **Navn**, for eksempel "Påminnelser om vedlikehold", og en **Beskrivelse** hvis du vil.
-
 ### Velg hvilke hendelser det skal påminnes om
 
-Under **Treffkriterier** lar du **Alle planlagte vedlikeholdshendelser** være valgt for å påminne om hver hendelse, eller du velger **Bare planlagte vedlikeholdshendelser som oppfyller betingelsene** og deretter **Etiketter** den gjelder for.
+Klikk på **Opprett Scheduled Maintenance Reminder Rule**. Under **Treff** lar du **Alle planlagte vedlikeholdshendelser** være valgt for å påminne om hver hendelse, eller du velger **Bare planlagte vedlikeholdshendelser som oppfyller betingelsene** og deretter **Etiketter** den gjelder for.
 
 ### Still inn intervallet
 
-Under **Reminder Settings** stiller du inn **Reminder Interval (minutes)**, hvor ofte eierne påminnes, og oppretter deretter regelen.
+Under **Påminnelser** stiller du inn **Påminnelsesintervall (minutter)**, hvor ofte eierne påminnes, og velger under **Påminn eiere** når. **Navn** følger begge, for eksempel "Påminn hver 30 minutter mens den pågår", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Opprett deretter regelen.
 :::
 
-| Innstilling                          | Starter som                            | Hva den gjør                                                                         |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Reminder Interval (minutes)**      | Påkrevd                                | Hvor ofte eierne påminnes.                                                           |
-| **Stop Reminders When**              | **Remind until event is Completed**    | Eller **Stop when event starts (Ongoing)**, for å stoppe når arbeidet har begynt.    |
-| **Remind While Event is Scheduled**  | Av                                     | Av: påminnelsene begynner når hendelsen starter; på: de sendes også før start.       |
+| Svar | Når eierne påminnes |
+| --- | --- |
+| **Mens den pågår** | Fra hendelsen starter til den slutter. En ny regel starter med dette svaret. |
+| **Før den starter** | Fra hendelsen er planlagt til den starter. |
+| **Før den starter og mens den pågår** | Fra hendelsen er planlagt til den slutter. |
+
+En regel lagret via API-et eller Terraform som venter til hendelsen starter, og stopper når den starter, sender aldri en påminnelse: Listen merker den med **Påminner aldri**, og skjemaet ber deg velge et svar.
 
 Eierne får hver påminnelse som **Maintenance reminder**, som er på via e-post for hvert nye medlem. Å lagre, endre eller slette en påminnelsesregel matcher hver hendelse som ikke er fullført, på nytt. For å stoppe påminnelsene for én hendelse slår du av **Send påminnelser** på siden **Innstillinger** for den; den lagres i det øyeblikket du slår den om.
 
@@ -134,7 +132,7 @@ Regler, egendefinerte felt og målinger krever **Project Owner** eller **Project
 :::
 
 :::details Eierne fikk ingen påminnelse
-Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påminnelser** for hendelsen er på, og at **Maintenance reminder** er på i varselinnstillingene til eierne. Uten **Remind While Event is Scheduled** begynner påminnelsene først når hendelsen starter.
+Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påminnelser** for hendelsen er på, og at **Maintenance reminder** er på i varselinnstillingene til eierne. En regel med **Mens den pågår** sender ingenting før hendelsen starter.
 :::
 
 ## Neste steg

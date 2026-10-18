@@ -57,14 +57,14 @@
 
 ## 重複策略
 
-當最後一級的等待時間結束仍無人確認時，策略會停止，除非它設定為重複。要重複，請開啟策略的 **上報規則** 頁面，點選規則下方 **重複策略** 卡片上的 **編輯** ，然後填寫 **編輯重複策略** ：
+當最後一級的等待時間結束仍無人確認時，策略會停止，除非它設定為重複。要選擇，請開啟策略的 **上報規則** 頁面，點選規則下方 **重複策略** 卡片上的 **編輯** 。 **編輯重複策略** 會詢問 **如果最後一個層級之後仍無人確認** 時怎麼做：
 
-| 欄位 | 作用 | 新策略的預設值 |
-| --- | --- | --- |
-| **Repeat if no one acknowledges** | 在最後一級之後從 **Level 1** 重新開始策略。關閉時，策略只執行一次。 | 關閉 |
-| **Number of times to repeat** | 策略再從頭開始多少次。 | 0 |
+| 回答 | 作用 |
+| --- | --- |
+| **停止通知** | 不再通知任何人，因此策略只執行一次。新策略預設使用此回答。 |
+| **從 Level 1 重新開始** | 依序再次通知每個層級。 **再重複幾次？** 決定次數：1 次或更多。 |
 
-開啟開關並設定重複三次後，策略總共會走完四遍所有級別。 **概覽** 上的 **Policy at a glance** 會用文字說明同樣的內容。
+再重新開始三次的策略總共會走完四遍所有層級。卡片上的 **最後一個層級之後** 一列說明策略會做什麼， **概覽** 上的 **Policy at a glance** 會用文字說明同樣的內容。
 
 ## 執行日誌
 
@@ -94,7 +94,7 @@ flowchart TB
 
 - 策略自己的 **執行日誌** ，位於 **日誌** 下；
 - **待命 → 進階 → 執行日誌** ，包含所有策略，來自工作流程和聊天的直接呼叫顯示為 **直接呼叫** ；
-- 事件的 **待命執行** 頁面，以及警示的 **待命執行** 。
+- 事件或警示的 **待命執行** 頁面。
 
 每一列顯示是什麼觸發了執行、觸發時間、它的 **狀態** 以及誰確認了它。 **View Timeline** 會開啟它的 **執行時間軸** ：每條上報規則、它呼叫了誰、透過哪個待命排程，以及每次呼叫的結果。無人待命的待命排程會顯示 **No one was on call** ，而不是某個人。在 OneUptime Cloud 上，執行日誌需要 **Growth** 方案。
 
@@ -119,9 +119,11 @@ flowchart TB
 | --- | --- |
 | **名稱** | `name` |
 | **描述** | `description` |
-| **Repeat if no one acknowledges** | `repeatPolicyIfNoOneAcknowledges` |
-| **Number of times to repeat** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **如果最後一個層級之後仍無人確認** | `repeatPolicyIfNoOneAcknowledges` |
+| **再重複幾次？** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | 已封存 | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` 為 `false` 表示 **停止通知** ，為 `true` 表示 **從 Level 1 重新開始** 。為 `true` 且 `repeatPolicyIfNoOneAcknowledgesNoOfTimes` 為 `0` 的策略永遠不會重複，儀表板會將其顯示為 **停止通知** 。
 
 要在一個請求中建立帶有第一級的策略，請參閱 [使用 API 或 Terraform 建立規則](/docs/on-call/escalation-rules#使用-api-或-terraform-建立規則)。
 

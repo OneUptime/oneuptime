@@ -139,7 +139,7 @@ Seleccione las **Sondas** que alcanzan la base de datos y un **Intervalo de moni
 | **Host** | El host de la base de datos accesible desde la sonda (por ejemplo, `db.internal`). |
 | **Puerto** | El puerto de la base de datos. |
 | **Nombre de la base de datos** | La base de datos contra la que se ejecuta la consulta. |
-| **Usar la autenticación integrada de Windows** | Solo Microsoft SQL Server. Autenticarse con la cuenta que ejecuta la sonda en lugar de con un nombre de usuario y una contraseña de SQL. Consulte [Autenticación integrada de Windows](#autenticación-integrada-de-windows). |
+| **Autenticación** | Solo Microsoft SQL Server: **Usuario y contraseña**, la opción predeterminada, o **Autenticación integrada de Windows**, que inicia sesión con la cuenta que ejecuta la sonda. Consulte [Autenticación integrada de Windows](#autenticación-integrada-de-windows). |
 | **Nombre de usuario** | Un usuario de base de datos de solo lectura y con privilegios mínimos. |
 | **Contraseña** | La contraseña de la base de datos. Recomendamos encarecidamente hacer referencia a un [secreto de monitor](/docs/monitor/monitor-secrets) con `{{monitorSecrets.name}}` en lugar de escribir la contraseña como texto sin formato (consulte [Usar un secreto de monitor para la contraseña](#usar-un-secreto-de-monitor-para-la-contraseña)). |
 | **Consulta SQL** | La consulta de solo lectura que se ejecuta (consulte [Escribir la consulta](#escribir-la-consulta)). |
@@ -157,7 +157,7 @@ Un valor por encima del máximo se reduce al máximo.
 
 ### Autenticación integrada de Windows
 
-Para Microsoft SQL Server, active **Usar la autenticación integrada de Windows** para abrir una conexión de confianza con la identidad del proceso de la sonda. Los campos Nombre de usuario y Contraseña se ignoran en este modo y no se pasan al controlador. Como la sonda necesita una identidad en la que confíe su dominio, use una sonda autoalojada para este modo de autenticación.
+Para Microsoft SQL Server, elija **Autenticación integrada de Windows** en **Autenticación** para abrir una conexión de confianza con la identidad del proceso de la sonda. El formulario oculta entonces **Nombre de usuario** y **Contraseña**, y ninguno de los dos se pasa al controlador. Como la sonda necesita una identidad en la que confíe su dominio, use una sonda autoalojada para este modo de autenticación.
 
 | La sonda se ejecuta en | Qué configurar |
 |---|---|

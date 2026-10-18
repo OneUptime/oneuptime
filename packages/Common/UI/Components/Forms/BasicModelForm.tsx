@@ -95,6 +95,8 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
          */
         if (
           field.fieldType !== FormFieldSchemaType.Color &&
+          // The field says what it means another way (Field.hideColumnDescription).
+          !field.hideColumnDescription &&
           props.model.getDisplayColumnDescriptionAs(
             Object.keys(field.field || {})[0] as string,
           ) &&

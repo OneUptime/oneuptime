@@ -427,6 +427,43 @@ describe("on a phone", () => {
   });
 
   /*
+   * A page named like its section - a monitor's or a monitor group's
+   * Overview, under Overview - read "Overview / Overview" on the button.
+   */
+  test("a page named like its section is named once on the button", async () => {
+    await renderAt(
+      "/m/1",
+      <SideMenu>
+        <SideMenuSection title="Overview">
+          {item("Overview", "/m/1")}
+          {item("Monitors", "/m/1/monitors")}
+        </SideMenuSection>
+      </SideMenu>,
+    );
+
+    const button: HTMLElement = screen.getByTestId("mobile-sidemenu-toggle");
+    expect(button.textContent).toContain("Overview");
+    expect(button.textContent).not.toContain("Overview / Overview");
+    expect(button.textContent).not.toContain("/");
+  });
+
+  test("any other page keeps its section before its name", async () => {
+    await renderAt(
+      "/m/1/monitors",
+      <SideMenu>
+        <SideMenuSection title="Overview">
+          {item("Overview", "/m/1")}
+          {item("Monitors", "/m/1/monitors")}
+        </SideMenuSection>
+      </SideMenu>,
+    );
+
+    expect(screen.getByTestId("mobile-sidemenu-toggle").textContent).toContain(
+      "Overview / Monitors",
+    );
+  });
+
+  /*
    * The phone menu closes when a page is picked. A tap on a section's header
    * used to close it too (the handler sits on the whole <nav>), so a folded
    * section could never be opened on a phone.

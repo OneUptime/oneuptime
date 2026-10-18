@@ -217,7 +217,7 @@ Eiere har to oppgaver:
 
 Eierskap alene gir ingenting. Å eie en overvåker gir ikke rett til å redigere den med mindre et av teamene dine også har en overvåkertillatelse. Eierskap snevrer inn tilgang; det utvider den aldri.
 
-Hvem som eier en ressurs, leses gjennom ressursen. Eierne av en overvåker eller av en annen ressurs vises, leses, legges til og fjernes bare av noen som kan lese ressursen, og en tillatelse for eiere alene når ikke eierne av noen ressurs du ikke kan lese.
+Hvem som eier en ressurs, leses gjennom ressursen. Eierne av en overvåker eller av en annen ressurs vises, leses, legges til og fjernes bare av noen som kan lese ressursen, og en tillatelse for eiere alene når ikke eierne av noen ressurs du ikke kan lese. Å legge til og fjerne eiere holder seg også til omfanget av tillatelsen som gir lov til det: med omfanget `Owned` når den bare ressursene som du eller et av teamene dine allerede eier, uansett hvor mange flere du kan lese, så det at du kan lese en overvåker, lar deg ikke gjøre deg selv til eieren av den. En eier legges til eller fjernes, men flyttes aldri til en annen ressurs.
 
 ## Etiketter
 

@@ -607,14 +607,13 @@ Regler, der blev gemt, før formularen spurgte om ejere, kan stadig have et stan
 
 ## Vagtregler for hændelser
 
-**Hændelser → Regler → Vagtregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er dér, du gør tilkaldelse automatisk. Kortet, **Hændelsesvagtregler**, beskriver regler, der automatisk udfører vagtpolitikker, når matchende hændelser oprettes. Siden har to faner: **Incident Rules** og **Episode Rules**.
+**Hændelser → Regler → Vagtregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er dér, du gør tilkaldelse automatisk. Kortet, **Hændelsesvagtregler**, siger, hvad de gør: tilkalder automatisk via vagtpolitikker for nye hændelser, der matcher. Siden har to faner: **Incident Rules** og **Episode Rules**.
 
-Oprettelsesformularen har tre trin:
+Oprettelsesformularen har to trin:
 
 :::steps
-1. **Grundlæggende oplysninger** — **Navn** (pladsholderen foreslår noget i stil med at tilkalde databaseteamet ved enhver DB-hændelse) og **Beskrivelse**. Reglen starter aktiveret; dens redigeringsformular tilføjer kontakten **Aktiveret**, og listen viser et grønt mærke **Aktiveret** eller et rødt mærke **Deaktiveret** pr. regel.
-2. **Matchkriterier** — **Alle hændelser**, som en ny regel starter på, eller **Kun hændelser, der opfylder betingelserne**, som åbner reglens betingelser. Hver betingelse vælger et kriterium — **Monitorer**, **Hændelse Alvorligheder**, **Hændelsesetiketter**, **Overvågningsetiketter**, **Hændelsestitel**, **Hændelsesbeskrivelse**, **Overvågningsnavn** eller **Overvågningsbeskrivelse** — en operator og en værdi og læses som en sætning: "Hvis **Hændelsestitel** indeholder `database`", "Og **Overvågningsetiketter** har en af _Production_".
-3. **Vagtpolitikker** — de politikker, denne regel udfører.
+1. **Match** — **Alle hændelser**, som en ny regel starter på, eller **Kun hændelser, der opfylder betingelserne**, som åbner reglens betingelser. Hver betingelse vælger et kriterium — **Monitorer**, **Hændelse Alvorligheder**, **Hændelsesetiketter**, **Overvågningsetiketter**, **Hændelsestitel**, **Hændelsesbeskrivelse**, **Overvågningsnavn** eller **Overvågningsbeskrivelse** — en operator og en værdi og læses som en sætning: "Hvis **Hændelsestitel** indeholder `database`", "Og **Overvågningsetiketter** har en af _Production_".
+2. **Vagtpolitikker** — de politikker, denne regel tilkalder, og reglens **Navn**, udfyldt ud fra dem ("Tilkald Platform on-call"), indtil du skriver dit eget; dens **Beskrivelse** venter under **Flere felter**. Reglen starter aktiveret; dens redigeringsformular tilføjer kontakten **Aktiveret**, og listen viser et grønt mærke **Aktiveret** eller et rødt mærke **Deaktiveret** pr. regel.
 :::
 
 ### Sådan afgøres matchning
@@ -632,7 +631,7 @@ De regler, siden selv kommer med, er værd at gøre til dine egne:
 
 ## Knyt vagtpolitikker direkte
 
-Regler er ikke den eneste vej. Hver hændelse har sin egen liste over vagtpolitikker, der vises som feltet **Vagtpolitik** på trinnet **Vagt og roller** i erklæringsguiden og på trinnet **Vagt** i en hændelsesskabelon. Feltets beskrivelse siger det ligeud: det er de vagtpolitikker, der skal udføres, når denne hændelse oprettes.
+Regler er ikke den eneste vej. Hver hændelse har sin egen liste over vagtpolitikker, der vises som feltet **Vagtpolitik** på trinnet **Vagt og roller** i erklæringsguiden og på trinnet **Vagt** i en hændelsesskabelon. Feltets beskrivelse siger, hvornår der tilkaldes: så snart hændelsen er erklæret.
 
 Når en hændelse oprettes, kører OneUptime etiketreglerne, derefter vagtreglerne (som fletter deres matchende politikker ind i hændelsens liste), derefter runbook-reglerne — og er den resulterende liste ikke tom, udføres hver politik i den. Udførelserne kører parallelt og afgøres uafhængigt, så fejler én politik, stopper det ikke de andre. Hver udførelse mærkes med den hændelse, der udløste den, og med notifikationsbegivenhedstypen for en oprettet hændelse.
 

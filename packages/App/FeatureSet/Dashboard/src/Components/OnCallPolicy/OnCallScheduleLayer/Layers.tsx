@@ -796,19 +796,17 @@ const Layers: FunctionComponent<ComponentProps> = (
       <div className="mb-5">
         <Card
           title="Schedule timezone"
-          description={
-            "Every layer in this schedule — rotation start, hand-off and active-hour restrictions — is entered and enforced in this timezone."
-          }
+          description={"Every time on the layers below is in this timezone."}
         >
           <div className="flex items-center gap-3">
             <TimezoneSelectButton
               value={scheduleTimezone}
               saving={isSavingTimezone}
               icon={IconProp.Globe}
-              placeholder="Not set — using server local time"
+              placeholder="Not set: the server's own time is used"
               modalTitle={translationKey("Set schedule timezone")}
               modalDescription={translationKey(
-                "All rotation start, hand-off and active-hour times in this schedule are interpreted in this timezone. Changing it re-interprets the existing times in the new zone.",
+                "Changing it keeps each time as it reads, in the new timezone: a 09:00 hand-off stays at 09:00.",
               )}
               submitButtonText="Save timezone"
               dataTestId="schedule-timezone-button"
@@ -821,14 +819,12 @@ const Layers: FunctionComponent<ComponentProps> = (
             {scheduleTimezone ? (
               <span className="text-xs text-gray-500">
                 {translator.translateText(
-                  "Click to change. Everything below is in this zone.",
+                  "Everything below is in this timezone.",
                 )}
               </span>
             ) : (
               <span className="text-xs text-amber-600">
-                {translator.translateText(
-                  "No timezone set yet — click to choose one.",
-                )}
+                {translator.translateText("No timezone set yet. Choose one.")}
               </span>
             )}
           </div>
@@ -846,19 +842,32 @@ const Layers: FunctionComponent<ComponentProps> = (
   }
 
   if (layers.length === 0) {
+    /*
+     * The first layer, asked for in the card the layers go in - under the
+     * timezone card, as the layers are - rather than on the bare page 13rem
+     * below it.
+     */
     return (
       <div>
         {timezoneCard()}
-        <EmptyState
-          footer={addLayerButton()}
-          showSolidBackground={false}
-          id="no-layers"
-          title={"Build your on-call rotation"}
-          description={
-            "Add a layer to define who is on call and when. Stack multiple layers to build coverage — higher layers take priority."
-          }
-          icon={IconProp.SquareStack}
-        />
+        <Card title="Rotation layers">
+          <EmptyState
+            footer={
+              /*
+               * Button keeps a dialog footer's left margin (md:ml-3), which
+               * would push it off the centre here, so its wrapper clears it.
+               */
+              <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+                {addLayerButton()}
+              </div>
+            }
+            id="no-layers"
+            title={"Build your on-call rotation"}
+            description={"Add a layer to say who is on call, and when."}
+            icon={IconProp.SquareStack}
+            paddingClassName="py-8"
+          />
+        </Card>
       </div>
     );
   }
@@ -875,7 +884,7 @@ const Layers: FunctionComponent<ComponentProps> = (
           </h2>
           <p className="mt-1.5 max-w-2xl text-sm text-gray-500">
             {translator.translateText(
-              "Layers are evaluated from the top down. The highest-priority layer with someone on call is used, so put your primary rotation on top and fall-back coverage below.",
+              "The highest layer with someone on call is the one that pages. Put the main rotation on top, and fall-back cover below it.",
             )}
           </p>
         </div>

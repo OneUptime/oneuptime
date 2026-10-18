@@ -57,14 +57,14 @@ En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører a
 
 ## Gentag en politik
 
-Når det sidste niveaus ventetid er gået, uden at nogen har kvitteret, stopper en politik, medmindre den gentages. For at gentage den skal du åbne politikkens side **Eskaleringsregler**, klikke på **Rediger** på kortet **Gentagelsespolitik** under reglerne og udfylde **Rediger Gentagelsespolitik**:
+Når det sidste niveaus ventetid er gået, uden at nogen har kvitteret, stopper en politik, medmindre den gentages. For at vælge skal du åbne politikkens side **Eskaleringsregler** og klikke på **Rediger** på kortet **Gentagelsespolitik** under reglerne. **Rediger gentagelsespolitik** spørger **Hvis ingen bekræfter efter det sidste niveau**:
 
-| Felt | Hvad det gør | For en ny politik |
-| --- | --- | --- |
-| **Repeat if no one acknowledges** | Starter politikken forfra fra **Level 1** efter dens sidste niveau. Mens den er slået fra, kører politikken én gang. | Fra |
-| **Number of times to repeat** | Hvor mange gange mere politikken starter forfra. | 0 |
+| Svar | Hvad det gør |
+| --- | --- |
+| **Stop tilkald** | Ingen tilkaldes igen, så politikken kører én gang. En ny politik starter med dette svar. |
+| **Start forfra fra Level 1** | Hvert niveau tilkaldes igen, i rækkefølge. **Hvor mange gange mere?** siger hvor mange: 1 eller flere. |
 
-Med kontakten slået til og tre gentagelser går en politik gennem sine niveauer fire gange i alt. **Policy at a glance** på **Oversigt** siger det samme med ord.
+En politik, der starter forfra tre gange mere, går gennem sine niveauer fire gange i alt. Kortets række **Efter det sidste niveau** siger, hvad politikken gør, og **Policy at a glance** på **Oversigt** siger det samme med ord.
 
 ## Udførelseslogs
 
@@ -94,7 +94,7 @@ Du finder udførelseslogs tre steder:
 
 - i politikkens egne **Udførelseslogs**, under **Protokoller**;
 - under **Vagtordning → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
-- på en hændelses side **Vagtudførelser** og under en advarsels **Vagtudførelser**.
+- på en hændelses eller en advarsels side **Vagtudførelser**.
 
 Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **View Timeline** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. En vagtplan, hvor ingen har vagt, viser **No one was on call** i stedet for en person. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.
 
@@ -119,9 +119,11 @@ Vagtpolitikker er ressourcen `/api/on-call-duty-policy`, og ressourcen `oneuptim
 | --- | --- |
 | **Navn** | `name` |
 | **Beskrivelse** | `description` |
-| **Repeat if no one acknowledges** | `repeatPolicyIfNoOneAcknowledges` |
-| **Number of times to repeat** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Hvis ingen bekræfter efter det sidste niveau** | `repeatPolicyIfNoOneAcknowledges` |
+| **Hvor mange gange mere?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | Arkiveret | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` er `false` for **Stop tilkald** og `true` for **Start forfra fra Level 1**. Med `true` og `repeatPolicyIfNoOneAcknowledgesNoOfTimes` på `0` gentages en politik aldrig, og dashboardet viser den som **Stop tilkald**.
 
 Se [Opret regler med API'et eller Terraform](/docs/on-call/escalation-rules#opret-regler-med-apiet-eller-terraform) for at oprette en politik med dens første niveau i én forespørgsel.
 

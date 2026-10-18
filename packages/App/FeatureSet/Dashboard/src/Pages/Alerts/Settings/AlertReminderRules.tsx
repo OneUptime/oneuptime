@@ -5,20 +5,22 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ReminderStopState from "Common/Types/Reminder/ReminderStopState";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import ReminderStopStateText from "../../../Components/Reminders/ReminderStopStateText";
+import {
+  getReminderRuleActionFields,
+  getReminderRuleFormSteps,
+} from "../../../Utils/Form/EventRuleForm";
 
 const documentationMarkdown: string = `
 ### How Alert Reminder Rules Work
 
-Reminder rules periodically re-notify alert owners while an alert is still open. When an alert is created, the first matching rule, from the top of the list down, is applied, and reminders are sent to alert owners at the configured interval until the alert reaches the stop state.
+A reminder rule reminds an alert's owners, as often as it says, while the alert is open. A new alert gets the first rule that matches it, from the top of the list down, and its reminders stop as the rule's **Stop Reminders When** says: once the alert is resolved, or once someone acknowledges it.
 
 \`\`\`mermaid
 flowchart TD
@@ -26,7 +28,7 @@ flowchart TD
     B -->|Rule Matches| C[Schedule Reminder]
     B -->|No Match| D[No Reminders]
     C --> E[Wait for Interval]
-    E --> F{Alert Reached Stop State?}
+    E --> F{Time to Stop?}
     F -->|No| G[Notify Alert Owners]
     G --> E
     F -->|Yes| H[Stop Reminders]
@@ -38,18 +40,19 @@ flowchart TD
 
 | Criteria | Description |
 |----------|-------------|
-| **Severities** | Only alerts with these severity levels. Leave empty to match all severities. |
+| **Severities** | Only alerts with these severity levels. |
+| **Labels** | Only alerts with at least one of these labels. |
 
 Rules are evaluated from the top of the list down - the first matching rule wins. Drag a rule by its handle to change its place; a new rule is added to the end.
 
 ---
 
-### Stop State
+### Stop Reminders When
 
-| State | Description |
-|-------|-------------|
-| **Acknowledged** | Stop reminders once the alert is acknowledged |
-| **Resolved** | Keep reminding until the alert is resolved (default) |
+| Answer | What it does |
+|--------|--------------|
+| **Resolved** | Keep reminding until the alert is resolved. A new rule starts here. |
+| **Acknowledged** | Stop once someone acknowledges the alert. |
 `;
 
 const AlertReminderRulesPage: FunctionComponent<
@@ -76,7 +79,7 @@ const AlertReminderRulesPage: FunctionComponent<
         helpContent={{
           title: "How Alert Reminder Rules Work",
           description:
-            "Understanding reminder intervals, match criteria, and stop states",
+            "How often an open alert's owners are reminded, and until when.",
           markdown: documentationMarkdown,
         }}
         sortBy="order"
@@ -125,12 +128,18 @@ const AlertReminderRulesPage: FunctionComponent<
             title: "Reminder Interval (min)",
             type: FieldType.Number,
           },
+          // The answer as the form words it, in the reader's language.
           {
             field: {
               stopRemindersOnState: true,
             },
             title: "Stop Reminders When",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: AlertReminderRule): ReactElement => {
+              return (
+                <ReminderStopStateText value={item.stopRemindersOnState} />
+              );
+            },
           },
           {
             field: {
@@ -160,62 +169,8 @@ const AlertReminderRulesPage: FunctionComponent<
           },
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
-        formSteps={
-          [
-            {
-              id: "rule-info",
-              title: "Rule Info",
-            },
-            {
-              id: "match-criteria",
-              title: "Match Criteria",
-            },
-            {
-              id: "reminder-settings",
-              title: "Reminder Settings",
-            },
-          ] as Array<FormStep<AlertReminderRule>>
-        }
+        formSteps={getReminderRuleFormSteps<AlertReminderRule>()}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "rule-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Critical Alert Reminders",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "rule-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Remind owners of critical alerts every 30 minutes until resolved",
-          },
-          /*
-           * A rule starts on, so the create form does not ask. Turning it
-           * off is an edit, with the rule's name - not a step of its own.
-           */
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "rule-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            doNotShowWhenCreating: true,
-            description: "Enable or disable this reminder rule.",
-          },
           {
             field: {
               alertSeverities: true,
@@ -253,32 +208,7 @@ const AlertReminderRulesPage: FunctionComponent<
             description:
               "Only apply this rule to alerts with these labels. Leave empty to match alerts with any labels.",
           },
-          {
-            field: {
-              reminderIntervalInMinutes: true,
-            },
-            title: "Reminder Interval (minutes)",
-            stepId: "reminder-settings",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "30",
-            description:
-              "How often to remind alert owners while the alert is open.",
-          },
-          {
-            field: {
-              stopRemindersOnState: true,
-            },
-            title: "Stop Reminders When",
-            stepId: "reminder-settings",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(ReminderStopState),
-            required: false,
-            placeholder: "Resolved",
-            description:
-              "Stop sending reminders once the alert reaches this state. Defaults to Resolved.",
-          },
+          ...getReminderRuleActionFields<AlertReminderRule>("alert"),
         ]}
         showRefreshButton={true}
       />

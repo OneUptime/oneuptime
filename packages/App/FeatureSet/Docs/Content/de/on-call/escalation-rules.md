@@ -79,7 +79,7 @@ Erreicht ein Vorfall oder eine Warnung die Richtlinie, alarmiert **Level 1** sei
 
 Ein Vorfall, eine Warnung oder eine Episode, die bereits bestätigt oder behoben erstellt wird – also nachträglich erfasst –, führt keine ihrer Richtlinien aus: Niemand wird alarmiert, und ihr Feed vermerkt das und nennt die Richtlinien. Siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
 
-Um eine Richtlinie zu wiederholen, klicken Sie auf der Karte **Wiederholungsrichtlinie** auf **Bearbeiten**, schalten **Wiederholen, wenn niemand bestätigt** ein und legen die **Anzahl der Wiederholungen** fest.
+Um eine Richtlinie zu wiederholen, klicken Sie auf der Karte **Wiederholungsrichtlinie** auf **Bearbeiten**, wählen **Erneut bei Level 1 beginnen** und legen **Wie oft noch?** fest.
 
 ### Die Eskalationsübersicht
 

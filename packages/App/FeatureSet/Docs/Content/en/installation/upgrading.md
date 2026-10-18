@@ -975,6 +975,17 @@ API, SSO, or the Slack and Microsoft Teams apps.
   See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **Adding and removing owners keeps to the `Owned` scope.** A permission to
+  add and remove a resource's owners - such as `MonitorAdmin`,
+  `MonitorMember` or `ProjectMember`, given to a team directly or through a
+  custom role - that is scoped to `Owned` now adds and removes them only on
+  the resources its people or their teams own, however many more they may
+  read. It used to reach the owners of every resource they could read.
+  Owners are still read through the resource, and permissions over the
+  whole project, API keys and workflow steps add and remove any owner. Give
+  someone who manages the owners of resources they do not own that
+  permission over the whole project, or restricted to labels. See
+  [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a
   record you may not read answers `404`.** The same rule now holds in the
   places it did not yet reach:

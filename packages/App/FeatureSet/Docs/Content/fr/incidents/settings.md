@@ -607,14 +607,13 @@ Les règles enregistrées avant que le formulaire ne demande des propriétaires 
 
 ## Règles d'astreinte des incidents
 
-**Incidents → Règles → Règles d'astreinte** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) est l'endroit où vous automatisez les alertes. La carte, **Règles d'astreinte des incidents**, décrit des règles qui exécutent automatiquement des politiques d'astreinte quand des incidents correspondants sont créés. La page a deux onglets : **Règles d'incident** et **Règles d'épisode**.
+**Incidents → Règles → Règles d'astreinte** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) est l'endroit où vous automatisez les alertes. La carte, **Règles d'astreinte des incidents**, dit ce qu'elles font : déclencher automatiquement des politiques d'astreinte pour les nouveaux incidents qui correspondent. La page a deux onglets : **Règles d'incident** et **Règles d'épisode**.
 
-Le formulaire de création a trois étapes :
+Le formulaire de création a deux étapes :
 
 :::steps
-1. **Informations de base** — **Nom** (le texte indicatif suggère par exemple d'alerter l'équipe base de données pour tout incident de base de données) et **Description**. La règle démarre activée ; son formulaire de modification ajoute l'interrupteur **Activé**, et la liste affiche une pastille verte **Activé** ou rouge **Désactivé** par règle.
-2. **Critères de correspondance** — **Tous les incidents**, où démarre une nouvelle règle, ou **Uniquement les incidents qui correspondent aux conditions**, qui ouvre les conditions de la règle. Chaque condition choisit un critère — **Moniteurs**, **Gravités d'incident**, **Étiquettes d'incident**, **Étiquettes du moniteur**, **Titre de l'incident**, **Description de l'incident**, **Nom du moniteur** ou **Description du moniteur** —, un opérateur et une valeur, et se lit comme une phrase : « Si **Titre de l'incident** contient `database` », « Et **Étiquettes du moniteur** contient l'un de _Production_ ».
-3. **Politiques d'astreinte** — les politiques qu'exécute cette règle.
+1. **Correspondance** — **Tous les incidents**, où démarre une nouvelle règle, ou **Uniquement les incidents qui correspondent aux conditions**, qui ouvre les conditions de la règle. Chaque condition choisit un critère — **Moniteurs**, **Gravités d'incident**, **Étiquettes d'incident**, **Étiquettes du moniteur**, **Titre de l'incident**, **Description de l'incident**, **Nom du moniteur** ou **Description du moniteur** —, un opérateur et une valeur, et se lit comme une phrase : « Si **Titre de l'incident** contient `database` », « Et **Étiquettes du moniteur** contient l'un de _Production_ ».
+2. **Politiques d'astreinte** — les politiques que cette règle déclenche, et le **Nom** de la règle, rempli à partir d'elles (« Alerter Platform on-call ») jusqu'à ce que vous saisissiez le vôtre ; sa **Description** attend sous **Plus de champs**. La règle démarre activée ; son formulaire de modification ajoute l'interrupteur **Activé**, et la liste affiche une pastille verte **Activé** ou rouge **Désactivé** par règle.
 :::
 
 ### Comment se résout la correspondance
@@ -632,7 +631,7 @@ Les règles que la page applique d'elle-même méritent d'être retenues :
 
 ## Rattacher directement des politiques d'astreinte
 
-Les règles ne sont pas le seul chemin. Chaque incident porte sa propre liste de politiques d'astreinte, présentée comme le champ **Politique d'astreinte** à l'étape **Astreinte et rôles** de l'assistant de déclaration et à l'étape **Astreinte** d'un modèle d'incident. La description du champ le dit clairement : ce sont les politiques d'astreinte à exécuter quand cet incident est créé.
+Les règles ne sont pas le seul chemin. Chaque incident porte sa propre liste de politiques d'astreinte, présentée comme le champ **Politique d'astreinte** à l'étape **Astreinte et rôles** de l'assistant de déclaration et à l'étape **Astreinte** d'un modèle d'incident. Sa description dit quand elles sont déclenchées : dès que l'incident est déclaré.
 
 Quand un incident est créé, OneUptime exécute les règles d'étiquettes, puis les règles d'astreinte (qui fusionnent leurs politiques correspondantes dans la liste de l'incident), puis les règles de runbook — et si la liste obtenue n'est pas vide, chaque politique qu'elle contient est exécutée. Les exécutions se déroulent en parallèle et se règlent indépendamment, si bien que l'échec d'une politique n'arrête pas les autres. Chaque exécution est marquée avec l'incident qui l'a déclenchée et avec le type d'événement de notification « incident créé ».
 

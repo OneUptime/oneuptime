@@ -54,8 +54,12 @@ const EmptyState: FunctionComponent<ComponentProps> = (
            * Capped at a readable measure. Uncapped, a long description in a
            * wide table ran edge to edge as a single line.
            */}
+          {/*
+           * Balanced, as centred text should be: a description just over
+           * one line wraps into two even lines, not a line and an orphan.
+           */}
           <p
-            className="mx-auto mt-1 max-w-xl text-sm leading-6 text-gray-500"
+            className="mx-auto mt-1 max-w-xl text-balance text-sm leading-6 text-gray-500"
             data-testid={`${props.id}-description`}
           >
             {translateValue(props.description)}

@@ -161,11 +161,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getAlertsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/alerts/episodes/documentation",
-    titles: ["Project", "Alerts", "Episodes", "Documentation"],
-  },
-  {
-    getter: "getAlertsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/alerts/episodes/unresolved",
     titles: ["Project", "Alerts", "Active Episodes"],
   },

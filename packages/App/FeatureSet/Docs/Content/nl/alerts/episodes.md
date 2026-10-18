@@ -150,15 +150,15 @@ Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijs
 
 | Sectie in het zijmenu | Pagina's                                                                    |
 | --------------------- | --------------------------------------------------------------------------- |
-| **Basis**             | **Overzicht**, **Beschrijving**, **Hoofdoorzaak**, **Herstelnotities**      |
-| **Eigendom**          | **Eigenaren**                                                               |
-| **Tijdlijn**          | **Statustijdlijn**                                                          |
-| **Waarschuwingen**    | **Lidwaarschuwingen**                                                       |
-| **Episodenotities**   | **Privénotities**                                                           |
-| **Ontwikkelaars**     | **Terraform**, **API**, **AI-assistenten**                                  |
-| **Geavanceerd**       | **Auditlogboeken**, **Episode verwijderen**                                 |
+| **Overzicht** | **Overzicht**, **Statustijdlijn** |
+| **Onderzoek** | **Beschrijving**, **Hoofdoorzaak**, **Herstelnotities** |
+| **Team** | **Eigenaren** |
+| **Waarschuwingen** | **Lidwaarschuwingen** |
+| **Notities** | **Privénotities** |
+| **Ontwikkelaars** | **Terraform**, **API**, **AI-assistenten** |
+| **Geavanceerd** | **Auditlogboeken**, **Episode verwijderen** |
 
-**Eigendom**, **Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Het **Overzicht** opent met **Alerts in this episode**, dan de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Move episode to** in het menu **⋯**.
+**Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Het **Overzicht** opent met **Alerts in this episode**, dan de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Move episode to** in het menu **⋯**.
 
 **Waarschuwingen → Actieve episodes** toont de episodes die nog niet zijn opgelost, en de badge ernaast telt ze.
 

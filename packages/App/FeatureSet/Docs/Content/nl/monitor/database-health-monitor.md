@@ -168,7 +168,7 @@ Kies het **Database Type** en vul dan de host, de poort, de databasenaam en de i
 
 ### Kiezen wat er wordt verzameld
 
-Laat elke groep onder **Metric Groups** aan staan, tenzij je een reden hebt om er een uit te zetten — zie [Metricgroepen](#metricgroepen).
+Elke groep onder **Metric Groups**, in **Meer velden**, staat standaard aan. Laat ze aan staan, tenzij je een reden hebt om er een uit te zetten — zie [Metricgroepen](#metricgroepen).
 
 ### De verbinding testen
 
@@ -191,13 +191,14 @@ Selecteer de **Sondes** die de database kunnen bereiken en een **Bewakingsinterv
 | **Host** | De databasehost die vanaf de sonde bereikbaar is (bijvoorbeeld `db.internal`). |
 | **Poort** | De poort van de database. |
 | **Databasenaam** | De database waarmee verbinding wordt gemaakt. Metrics op databaseniveau (grootte, cache-hitratio, uitwijken naar tijdelijke bestanden) worden voor deze database gerapporteerd; metrics op serverniveau (verbindingen, uptime, replicatie) voor de hele server — behalve op Azure SQL Database, waar verbindingen alleen voor de bewaakte database worden geteld. |
-| **Use Windows Integrated Authentication** | Alleen Microsoft SQL Server. Verifiëren met de identiteit van het sondeproces in plaats van een gebruikersnaam en wachtwoord. Zie [Geïntegreerde Windows-verificatie](/docs/monitor/sql-monitor#geïntegreerde-windows-verificatie) op de pagina van de SQL Query-monitor — de inrichting is identiek. |
+| **Authenticatie** | Alleen Microsoft SQL Server: **Gebruikersnaam en wachtwoord**, de standaard, of **Windows Integrated Authentication**, dat aanmeldt als het sondeproces. Zie [Geïntegreerde Windows-verificatie](/docs/monitor/sql-monitor#geïntegreerde-windows-verificatie) op de pagina van de SQL Query-monitor — de inrichting is identiek. |
 | **Gebruikersnaam** | De monitoringgebruiker. Verplicht, tenzij je geïntegreerde Windows-verificatie gebruikt. |
 | **Wachtwoord** | Het wachtwoord. Verwijs met `{{monitorSecrets.name}}` naar een [monitorgeheim](/docs/monitor/monitor-secrets) in plaats van het als platte tekst in te typen (zie [Een monitorgeheim gebruiken](#een-monitorgeheim-gebruiken-voor-het-wachtwoord)). |
 | **Use SSL/TLS** | Verbinding maken via TLS. Als dit aan staat, kun je **Verify server certificate** uitzetten voor een zelfondertekend certificaat. |
-| **Metric Groups** | Welke groepen draaien: Connections, Activiteit, Throughput, Locks and Blocking, Opslag, Replication en Onderhoud. Standaard staan ze allemaal aan; zie [Metricgroepen](#metricgroepen). De details van de monitor tonen ze als **Collected Metric Groups**. |
 
 ### Meer velden
+
+**Metric Groups** staat hier: welke groepen draaien, uit Connections, Activiteit, Throughput, Locks and Blocking, Opslag, Replication en Onderhoud. Standaard staan ze allemaal aan; zie [Metricgroepen](#metricgroepen). De details van de monitor tonen ze als **Collected Metric Groups**.
 
 | Veld | Standaard | Maximum | Wat het begrenst |
 |---|---|---|---|
@@ -443,7 +444,7 @@ PostgreSQL meet ze alleen als `track_io_timing` aan staat, en standaard staat he
 :::
 
 :::details Metric Groups Failed staat bij elke controle boven 0
-Een groep kan bij geen enkele controle worden verzameld, dus hetzelfde verzamelprobleem herhaalt zich. De samenvatting van de monitor noemt de groep, de reden en de `GRANT` die het oplost. Voer het recht uit, of zet die groep, als je het niet kunt krijgen, uit onder **Metric Groups**, zodat het probleem zich niet meer herhaalt.
+Een groep kan bij geen enkele controle worden verzameld, dus hetzelfde verzamelprobleem herhaalt zich. De samenvatting van de monitor noemt de groep, de reden en de `GRANT` die het oplost. Voer het recht uit, of zet die groep, als je het niet kunt krijgen, uit onder **Meer velden → Metric Groups**, zodat het probleem zich niet meer herhaalt.
 :::
 
 ## Volgende stappen

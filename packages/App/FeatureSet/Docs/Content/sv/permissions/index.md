@@ -217,7 +217,7 @@ En ägare är en användare eller ett team som är kopplat till en viss resurs. 
 
 Ägarskap i sig ger ingenting. Att äga en övervakare ger inte rätt att redigera den om inte något av dina team också har en övervakarbehörighet. Ägarskap smalnar av åtkomst; det vidgar den aldrig.
 
-Vem som äger en resurs läses genom resursen. Ägarna till en övervakare eller till någon annan resurs visas, läses, läggs till och tas bort bara av någon som får läsa resursen, och en behörighet för enbart ägare når inte ägarna till någon resurs som du inte får läsa.
+Vem som äger en resurs läses genom resursen. Ägarna till en övervakare eller till någon annan resurs visas, läses, läggs till och tas bort bara av någon som får läsa resursen, och en behörighet för enbart ägare når inte ägarna till någon resurs som du inte får läsa. Att lägga till och ta bort ägare håller sig också till omfattningen av den behörighet som tillåter det: med omfattningen `Owned` når den bara de resurser som du eller något av dina team redan äger, hur många fler du än får läsa, så att du får läsa en övervakare låter dig inte göra dig själv till dess ägare. En ägare läggs till eller tas bort, men flyttas aldrig till en annan resurs.
 
 ## Etiketter
 

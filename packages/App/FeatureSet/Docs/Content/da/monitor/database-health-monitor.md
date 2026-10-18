@@ -168,7 +168,7 @@ Vælg **Database Type**, og udfyld derefter vært, port, databasenavn og overvå
 
 ### Vælg, hvad der skal indsamles
 
-Lad alle grupper under **Metric Groups** være slået til, medmindre du har en grund til at slå en fra — se [Metrikgrupper](#metrikgrupper).
+Alle grupper under **Metric Groups**, i **Flere felter**, starter slået til. Lad dem være slået til, medmindre du har en grund til at slå en fra — se [Metrikgrupper](#metrikgrupper).
 
 ### Test forbindelsen
 
@@ -191,13 +191,14 @@ Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og 
 | **Vært** | Databaseværten, som proben kan nå (for eksempel `db.internal`). |
 | **Port** | Databasens port. |
 | **Databasenavn** | Den database, der forbindes til. Metrikker på databaseniveau (størrelse, cache-hitrate, udskrivning til midlertidige filer) rapporteres for denne database; metrikker på serverniveau (forbindelser, oppetid, replikering) for hele serveren — undtagen på Azure SQL Database, hvor forbindelser kun tælles for den overvågede database. |
-| **Use Windows Integrated Authentication** | Kun Microsoft SQL Server. Godkend med probeprocessens identitet i stedet for et brugernavn og en adgangskode. Se [Integreret Windows-godkendelse](/docs/monitor/sql-monitor#integreret-windows-godkendelse) på siden om SQL Query-monitoren — opsætningen er den samme. |
+| **Godkendelse** | Kun Microsoft SQL Server: **Brugernavn og adgangskode**, standardvalget, eller **Windows Integrated Authentication**, som logger på som probeprocessen. Se [Integreret Windows-godkendelse](/docs/monitor/sql-monitor#integreret-windows-godkendelse) på siden om SQL Query-monitoren — opsætningen er den samme. |
 | **Brugernavn** | Overvågningsbrugeren. Påkrævet, medmindre du bruger integreret Windows-godkendelse. |
 | **Adgangskode** | Adgangskoden. Henvis til en [monitorhemmelighed](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for at skrive den i klartekst (se [Brug en monitorhemmelighed](#brug-en-monitorhemmelighed-til-adgangskoden)). |
 | **Use SSL/TLS** | Forbind over TLS. Når det er slået til, kan du slå **Verify server certificate** fra for et selvsigneret certifikat. |
-| **Metric Groups** | Hvilke grupper der kører: Connections, Aktivitet, Throughput, Locks and Blocking, Lagerplads, Replication og Vedligeholdelse. Alle er slået til som standard; se [Metrikgrupper](#metrikgrupper). Monitorens detaljer viser dem som **Collected Metric Groups**. |
 
 ### Flere felter
+
+**Metric Groups** ligger her: hvilke grupper der kører, blandt Connections, Aktivitet, Throughput, Locks and Blocking, Lagerplads, Replication og Vedligeholdelse. Alle er slået til som standard; se [Metrikgrupper](#metrikgrupper). Monitorens detaljer viser dem som **Collected Metric Groups**.
 
 | Felt | Standard | Maksimum | Hvad det begrænser |
 |---|---|---|---|
@@ -443,7 +444,7 @@ PostgreSQL måler dem kun, når `track_io_timing` er slået til, og den er slåe
 :::
 
 :::details Metric Groups Failed er over 0 ved hver kontrol
-En gruppe kan ikke indsamles ved nogen kontrol, så det samme indsamlingsproblem gentager sig. Monitorens oversigt nævner gruppen, årsagen og den `GRANT`, der løser det. Kør rettigheden, eller slå, hvis du ikke kan få den, gruppen fra under **Metric Groups**, så problemet holder op med at gentage sig.
+En gruppe kan ikke indsamles ved nogen kontrol, så det samme indsamlingsproblem gentager sig. Monitorens oversigt nævner gruppen, årsagen og den `GRANT`, der løser det. Kør rettigheden, eller slå, hvis du ikke kan få den, gruppen fra under **Flere felter → Metric Groups**, så problemet holder op med at gentage sig.
 :::
 
 ## Næste trin

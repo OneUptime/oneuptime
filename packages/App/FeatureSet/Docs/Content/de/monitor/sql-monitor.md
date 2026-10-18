@@ -139,7 +139,7 @@ Wählen Sie die **Sonden**, die die Datenbank erreichen, und ein **Überwachungs
 | **Host** | Der Datenbankhost, den die Sonde erreicht (zum Beispiel `db.internal`). |
 | **Port** | Der Datenbankport. |
 | **Datenbankname** | Die Datenbank, gegen die die Abfrage läuft. |
-| **Integrierte Windows-Authentifizierung verwenden** | Nur Microsoft SQL Server. Mit dem Konto authentifizieren, unter dem die Sonde läuft, statt mit SQL-Benutzername und Passwort. Siehe [Integrierte Windows-Authentifizierung](#integrierte-windows-authentifizierung). |
+| **Authentifizierung** | Nur Microsoft SQL Server: **Benutzername und Passwort**, die Voreinstellung, oder **Integrierte Windows-Authentifizierung**, die sich mit dem Konto anmeldet, unter dem die Sonde läuft. Siehe [Integrierte Windows-Authentifizierung](#integrierte-windows-authentifizierung). |
 | **Benutzername** | Ein schreibgeschützter Datenbankbenutzer mit minimalen Rechten. |
 | **Passwort** | Das Datenbankpasswort. Wir empfehlen dringend, mit `{{monitorSecrets.name}}` auf ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets) zu verweisen, statt das Passwort im Klartext einzugeben (siehe [Ein Monitor-Geheimnis für das Passwort verwenden](#ein-monitor-geheimnis-für-das-passwort-verwenden)). |
 | **SQL-Abfrage** | Die schreibgeschützte Abfrage, die ausgeführt wird (siehe [Die Abfrage schreiben](#die-abfrage-schreiben)). |
@@ -157,7 +157,7 @@ Ein Wert über dem Maximum wird auf das Maximum gesenkt.
 
 ### Integrierte Windows-Authentifizierung
 
-Für Microsoft SQL Server aktivieren Sie **Integrierte Windows-Authentifizierung verwenden**, um eine vertrauenswürdige Verbindung mit der Identität des Sondenprozesses zu öffnen. Die Felder Benutzername und Passwort werden in diesem Modus ignoriert und nicht an den Treiber übergeben. Weil die Sonde eine Identität braucht, der Ihre Domäne vertraut, verwenden Sie für diesen Authentifizierungsmodus eine selbst gehostete Sonde.
+Für Microsoft SQL Server wählen Sie unter **Authentifizierung** die Option **Integrierte Windows-Authentifizierung**, um eine vertrauenswürdige Verbindung mit der Identität des Sondenprozesses zu öffnen. Das Formular blendet dann **Benutzername** und **Passwort** aus, und keines von beiden wird an den Treiber übergeben. Weil die Sonde eine Identität braucht, der Ihre Domäne vertraut, verwenden Sie für diesen Authentifizierungsmodus eine selbst gehostete Sonde.
 
 | Die Sonde läuft auf | Was einzurichten ist |
 |---|---|

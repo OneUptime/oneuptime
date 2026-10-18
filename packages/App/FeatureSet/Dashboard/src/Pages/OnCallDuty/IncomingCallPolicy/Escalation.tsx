@@ -169,7 +169,7 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
         cardProps={{
           title: "Escalation Rules",
           description:
-            "Define the order in which users or schedules are called when an incoming call is received. Drag a rule to change when it is called.",
+            "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.",
         }}
         formFields={formFields}
         showRefreshButton={true}

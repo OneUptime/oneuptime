@@ -11,6 +11,9 @@
  *   - hold     wait until `window.__fixture.releasePhoneNumbers()` is called
  *   - fail     reject, the way an API outage would
  *
+ * `?policies=none` answers the list with no policies: a project that has
+ * none yet.
+ *
  * Every list request and every create is recorded on `window.__fixture` so the
  * spec can assert what the page actually asked for, not just what it drew.
  */
@@ -45,6 +48,9 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const mode = new URLSearchParams(window.location.search).get("phoneNumbers");
+const policiesMode = new URLSearchParams(window.location.search).get(
+  "policies",
+);
 
 function label(id, name, color) {
   const record = new Label();
@@ -238,7 +244,10 @@ ModelAPI.getList = async (options) => {
 
   let items = [];
   if (tableName === "IncomingCallPolicy") {
-    items = policies.filter((record) => matchesQuery(record, options.query));
+    items =
+      policiesMode === "none"
+        ? []
+        : policies.filter((record) => matchesQuery(record, options.query));
   } else if (tableName === "IncomingCallPolicyPhoneNumber") {
     if (mode === "hold") {
       await phoneNumbersReleased;
@@ -265,7 +274,7 @@ ModelAPI.getList = async (options) => {
 
 ModelAPI.getCount = async (options) => {
   const tableName = new options.modelType().tableName;
-  return tableName === "IncomingCallPolicy"
+  return tableName === "IncomingCallPolicy" && policiesMode !== "none"
     ? policies.filter((record) => matchesQuery(record, options.query)).length
     : 0;
 };

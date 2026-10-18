@@ -57,14 +57,14 @@ Aprite una policy dall'elenco. Il suo menu laterale contiene tutto ciò che la r
 
 ## Ripetere una policy
 
-Quando l'attesa dell'ultimo livello scade senza che nessuno riconosca, una policy si ferma, a meno che non si ripeta. Per ripeterla, aprite la pagina **Regole di escalation** della policy, fate clic su **Modifica** nella scheda **Criterio di ripetizione** sotto le regole e compilate **Modifica: Criterio di ripetizione**:
+Quando l'attesa dell'ultimo livello scade senza che nessuno riconosca, una policy si ferma, a meno che non si ripeta. Per scegliere, aprite la pagina **Regole di escalation** della policy e fate clic su **Modifica** nella scheda **Criterio di ripetizione** sotto le regole. **Modifica criterio di ripetizione** chiede **Se nessuno riconosce dopo l'ultimo livello**:
 
-| Campo | Che cosa fa | In una nuova policy |
-| --- | --- | --- |
-| **Repeat if no one acknowledges** | Fa ripartire la policy da **Level 1** dopo il suo ultimo livello. Finché è disattivato, la policy viene eseguita una sola volta. | Disattivato |
-| **Number of times to repeat** | Quante altre volte la policy ricomincia. | 0 |
+| Risposta | Che cosa fa |
+| --- | --- |
+| **Interrompi gli avvisi** | Nessuno viene avvisato di nuovo, quindi la policy viene eseguita una sola volta. Una nuova policy parte con questa risposta. |
+| **Ricomincia da Level 1** | Ogni livello viene avvisato di nuovo, in ordine. **Quante volte ancora?** dice quante volte: 1 o più. |
 
-Con l'interruttore attivo e tre ripetizioni, una policy percorre i suoi livelli quattro volte in tutto. **Policy at a glance** nella **Panoramica** dice la stessa cosa a parole.
+Una policy che ricomincia altre tre volte percorre i suoi livelli quattro volte in tutto. La riga **Dopo l'ultimo livello** della scheda dice che cosa fa la policy, e **Policy at a glance** nella **Panoramica** dice la stessa cosa a parole.
 
 ## Registri di esecuzione
 
@@ -94,7 +94,7 @@ Trovate i registri di esecuzione in tre posti:
 
 - nei **Registri di esecuzione** della policy stessa, in **Registri**;
 - in **Reperibilità → Avanzato → Registri di esecuzione**, per tutte le policy, dove le chiamate dirette da workflow e chat compaiono come **Chiamata diretta**;
-- nella pagina **Esecuzioni di reperibilità** di un incidente, e in **Esecuzioni di reperibilità** di un avviso.
+- nella pagina **Esecuzioni di reperibilità** di un incidente o di un avviso.
 
 Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **View Timeline** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. Una pianificazione in cui nessuno è reperibile mostra **No one was on call** al posto di una persona. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.
 
@@ -119,9 +119,11 @@ Le policy di reperibilità sono la risorsa `/api/on-call-duty-policy`, e la riso
 | --- | --- |
 | **Nome** | `name` |
 | **Descrizione** | `description` |
-| **Repeat if no one acknowledges** | `repeatPolicyIfNoOneAcknowledges` |
-| **Number of times to repeat** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Se nessuno riconosce dopo l'ultimo livello** | `repeatPolicyIfNoOneAcknowledges` |
+| **Quante volte ancora?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | Archiviata | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` è `false` per **Interrompi gli avvisi** e `true` per **Ricomincia da Level 1**. Con `true` e `repeatPolicyIfNoOneAcknowledgesNoOfTimes` a `0`, una policy non si ripete mai, e la dashboard la mostra come **Interrompi gli avvisi**.
 
 Per creare una policy con il suo primo livello in una sola richiesta, vedi [Creare regole con l'API o Terraform](/docs/on-call/escalation-rules#creare-regole-con-lapi-o-terraform).
 

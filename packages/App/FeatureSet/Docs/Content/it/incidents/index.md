@@ -193,7 +193,7 @@ Che cosa contiene ciascuna:
 - **Ruoli**, **Esecuzioni di reperibilità**, **Proprietari** — chi ci sta lavorando, quali policy sono scattate e chi viene avvisato.
 - **Registri di notifica**, **Registri IA**, **Registri di audit** — che cosa è stato inviato e che cosa è cambiato.
 - **Note private** e **Note pubbliche** — che cosa è stato detto al vostro team e ai vostri clienti. Vedete [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed).
-- **Campi personalizzati**, **Impostazioni**, **Elimina incidente** — la pagina **Impostazioni** contiene **Visibile sulla pagina di stato** e **Incidente privato**, la scheda **Ambito delle pagine di stato** che limita l'incidente ad alcune pagine di stato, e la scheda **Reminders**, il cui interruttore **Invia promemoria** si salva non appena lo cambiate e mostra quando parte il prossimo promemoria.
+- **Campi personalizzati**, **Impostazioni**, **Elimina incidente** — la pagina **Impostazioni** contiene **Visibile sulla pagina di stato** e **Incidente privato**, la scheda **Ambito delle pagine di stato** che limita l'incidente ad alcune pagine di stato, e la scheda **Promemoria**, il cui interruttore **Invia promemoria** si salva non appena lo cambiate e mostra quando parte il prossimo promemoria.
 
 ## Come si inseriscono gli incidenti nel resto di OneUptime
 

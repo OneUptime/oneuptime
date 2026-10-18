@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30512,
-    "untranslated": 16982
+    "keys": 30702,
+    "untranslated": 16968
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -69,6 +69,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} alarm",
+    "{{count}} incident",
     "{{count}} product",
     "{{field}} is {{value}}",
     "{{tokens}} tokens"

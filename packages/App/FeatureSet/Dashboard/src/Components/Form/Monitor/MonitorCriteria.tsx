@@ -634,8 +634,8 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
       </div>
       {showCantDeleteModal ? (
         <ConfirmModal
-          description={`We need at least one criteria for this monitor. We cant delete one remaining criteria.`}
-          title={`Cannot delete last remaining criteria.`}
+          description="A monitor needs at least one criteria. Change this one, or add another before you delete it."
+          title="This is the only criteria"
           onSubmit={() => {
             setShowCantDeleteModal(false);
           }}

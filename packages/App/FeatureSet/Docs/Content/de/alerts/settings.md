@@ -77,17 +77,13 @@ Bei zwei oder mehr Bedingungen wählen Sie **Alle müssen zutreffen**, wobei jed
 **Warnungen → Regeln → Bereitschaftsregeln** macht das Alarmieren automatisch. Jede passende Regel fügt der neuen Warnung ihre Richtlinien hinzu, und die Warnung führt sie zusammen mit den Richtlinien aus, die sie schon hatte, jede einmal.
 
 :::steps
-### Die Regel benennen
-
-Klicken Sie auf **Bereitschaftsregel für Warnungen erstellen**. Geben Sie unter **Grundinformationen** einen Namen in **Name** ein, etwa „Datenbankteam bei jeder DB-Warnung benachrichtigen“, und, wenn Sie möchten, eine **Beschreibung**.
-
 ### Die Warnungen wählen
 
-Unter **Übereinstimmungskriterien** trifft **Alle Warnungen**, womit eine neue Regel beginnt, auf jede neue Warnung zu. Um sie einzugrenzen, wählen Sie **Nur Warnungen, die den Bedingungen entsprechen** und fügen die Bedingungen hinzu, die eine Warnung erfüllen muss.
+Klicken Sie auf **Bereitschaftsregel für Warnungen erstellen**. Unter **Übereinstimmung** trifft **Alle Warnungen**, womit eine neue Regel beginnt, auf jede neue Warnung zu. Um sie einzugrenzen, wählen Sie **Nur Warnungen, die den Bedingungen entsprechen** und fügen die Bedingungen hinzu, die eine Warnung erfüllen muss.
 
 ### Die Richtlinien wählen
 
-Wählen Sie unter **Bereitschaftsrichtlinien** die **Bereitschaftsrichtlinien**, die die Regel ausführt, und erstellen Sie dann die Regel.
+Wählen Sie unter **Bereitschaftsrichtlinien** die **Bereitschaftsrichtlinien**, über die die Regel alarmiert. Ihr **Name** folgt ihnen, etwa „Platform on-call alarmieren“, bis Sie einen eigenen eingeben, und eine **Beschreibung** wartet unter **Weitere Felder**. Erstellen Sie dann die Regel.
 :::
 
 Ein Schweregrad alarmiert für sich niemanden: Eine Bereitschaftsregel, die auf **Warnungsschweregrade** prüft, ist der Weg, „bei jeder Warnung mit Schweregrad Hoch das Datenbankteam alarmieren“ einzurichten. Um zu sehen, was für eine Warnung lief, öffnen Sie ihre Seite **Bereitschaftsausführungen**. Jede Person wird dann so erreicht, wie sie es unter **Benutzereinstellungen → Bereitschaftsregeln** auf dem Tab **Warnungen** eingerichtet hat; siehe [Eskalationsregeln](/docs/on-call/escalation-rules).
@@ -104,7 +100,7 @@ Ein Schweregrad alarmiert für sich niemanden: Eine Bereitschaftsregel, die auf 
 
 ## Datenschutz- und Runbook-Regeln
 
-**Datenschutzregeln** machen passende neue Warnungen privat, bevor irgendetwas anderes läuft: Nur ihre Eigentümer sowie die Admins und Eigentümer des Projekts können sie sehen. Eine Regel hat einen Schritt **Grundinformationen** und einen Schritt **Übereinstimmungskriterien** und macht jede Warnung privat, auf die sie zutrifft. Siehe [Private Warnungen](/docs/alerts/index#private-warnungen).
+**Datenschutzregeln** machen passende neue Warnungen privat, bevor irgendetwas anderes läuft: Nur ihre Eigentümer sowie die Admins und Eigentümer des Projekts können sie sehen. Eine Regel hat zwei Schritte: **Übereinstimmung**, die Warnungen, die sie privat macht, dann **Name**, schon ausgefüllt mit „Warnungen privat machen“. Siehe [Private Warnungen](/docs/alerts/index#private-warnungen).
 
 **Runbook-Regeln** starten ein Runbook, wenn eine neue Warnung zutrifft, es sei denn, die Warnung wurde behoben erstellt. Siehe [Runbook-Regeln](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ Ein Schweregrad alarmiert für sich niemanden: Eine Bereitschaftsregel, die auf 
 **Warnungen → Regeln → Erinnerungsregeln** erinnert die Eigentümer einer Warnung, solange sie offen bleibt. Jede neue Warnung bekommt die erste Regel, die auf sie zutrifft, von oben nach unten in der Liste.
 
 :::steps
-### Die Erinnerungsregel benennen
-
-Klicken Sie auf **Erinnerungsregel für Warnungen erstellen**. Geben Sie unter **Regelinformationen** einen Namen in **Name** ein, etwa „Erinnerungen an kritische Warnungen“.
-
 ### Wählen, an welche Warnungen erinnert wird
 
-Lassen Sie unter **Übereinstimmungskriterien** die Auswahl **Alle Warnungen** stehen, um an jede Warnung zu erinnern, oder wählen Sie **Nur Warnungen, die den Bedingungen entsprechen** und dann die **Warnungsschweregrade** und **Beschriftungen**, für die sie gilt.
+Klicken Sie auf **Erinnerungsregel für Warnungen erstellen**. Lassen Sie unter **Übereinstimmung** die Auswahl **Alle Warnungen** stehen, um an jede Warnung zu erinnern, oder wählen Sie **Nur Warnungen, die den Bedingungen entsprechen** und dann die **Warnungsschweregrade** und **Beschriftungen**, für die sie gilt.
 
 ### Das Intervall festlegen
 
-Legen Sie unter **Erinnerungseinstellungen** das **Erinnerungsintervall (Minuten)** fest, wie oft Eigentümer erinnert werden, und **Erinnerungen beenden, wenn**: **Behoben**, die Vorgabe, oder **Bestätigt**. Erstellen Sie dann die Regel.
+Legen Sie unter **Erinnerungen** das **Erinnerungsintervall (Minuten)** fest, wie oft Eigentümer erinnert werden, und **Erinnerungen beenden, wenn**: **Behoben**, die Vorgabe, oder **Bestätigt**. Ihr **Name** folgt beidem, etwa „Alle 30 Minuten erinnern, bis behoben“, bis Sie einen eigenen eingeben. Erstellen Sie dann die Regel.
 :::
 
 Eigentümer erhalten jede Erinnerung als **Warnungserinnerung**, die standardmäßig per E-Mail eingeschaltet ist. Die Regel einer Warnung wird neu abgeglichen, wenn sich ihr Schweregrad oder ihre Beschriftungen ändern. Um die Erinnerungen für eine Warnung zu beenden, schalten Sie **Erinnerungen senden** auf ihrer Seite **Einstellungen** aus; das speichert, sobald Sie den Schalter umlegen.

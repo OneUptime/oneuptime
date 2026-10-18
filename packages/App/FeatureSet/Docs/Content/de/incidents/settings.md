@@ -607,14 +607,13 @@ Regeln, die gespeichert wurden, bevor das Formular nach Eigentümern fragte, kö
 
 ## Bereitschaftsregeln für Vorfälle
 
-**Vorfälle → Regeln → Bereitschaftsregeln** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) ist der Ort, an dem Sie die Alarmierung automatisieren. Die Karte **Vorfalls-Bereitschaftsregeln** beschreibt Regeln, die automatisch Bereitschaftsrichtlinien ausführen, wenn passende Vorfälle angelegt werden. Die Seite hat zwei Tabs: **Vorfallsregeln** und **Episodenregeln**.
+**Vorfälle → Regeln → Bereitschaftsregeln** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) ist der Ort, an dem Sie die Alarmierung automatisieren. Die Karte **Vorfalls-Bereitschaftsregeln** sagt, was sie tun: bei neuen passenden Vorfällen automatisch über Bereitschaftsrichtlinien alarmieren. Die Seite hat zwei Tabs: **Vorfallsregeln** und **Episodenregeln**.
 
-Das Erstellungsformular hat drei Schritte:
+Das Erstellungsformular hat zwei Schritte:
 
 :::steps
-1. **Grundinformationen** – **Name** (der Platzhalter schlägt etwa vor, das Datenbankteam bei jedem DB-Vorfall zu alarmieren) und **Beschreibung**. Die Regel beginnt aktiviert; ihr Bearbeitungsformular ergänzt den Schalter **Aktiviert**, und die Liste zeigt pro Regel ein grünes Etikett **Aktiviert** oder ein rotes **Deaktiviert**.
-2. **Übereinstimmungskriterien** – **Alle Vorfälle**, womit eine neue Regel beginnt, oder **Nur Vorfälle, die den Bedingungen entsprechen**, was die Bedingungen der Regel öffnet. Jede Bedingung wählt ein Kriterium – **Monitore**, **Vorfallsschweregrade**, **Vorfall-Beschriftungen**, **Überwachungs-Beschriftungen**, **Vorfalltitel**, **Vorfallbeschreibung**, **Überwachungsname** oder **Überwachungsbeschreibung** –, einen Operator und einen Wert und liest sich wie ein Satz: „Wenn **Vorfalltitel** `database` enthält“, „Und **Überwachungs-Beschriftungen** hat eines von _Production_“.
-3. **Bereitschaftsrichtlinien** – die Richtlinien, die diese Regel ausführt.
+1. **Übereinstimmung** – **Alle Vorfälle**, womit eine neue Regel beginnt, oder **Nur Vorfälle, die den Bedingungen entsprechen**, was die Bedingungen der Regel öffnet. Jede Bedingung wählt ein Kriterium – **Monitore**, **Vorfallsschweregrade**, **Vorfall-Beschriftungen**, **Überwachungs-Beschriftungen**, **Vorfalltitel**, **Vorfallbeschreibung**, **Überwachungsname** oder **Überwachungsbeschreibung** –, einen Operator und einen Wert und liest sich wie ein Satz: „Wenn **Vorfalltitel** `database` enthält“, „Und **Überwachungs-Beschriftungen** hat eines von _Production_“.
+2. **Bereitschaftsrichtlinien** – die Richtlinien, über die diese Regel alarmiert, und der **Name** der Regel, aus ihnen gebildet („Platform on-call alarmieren“), bis Sie einen eigenen eingeben; die **Beschreibung** wartet unter **Weitere Felder**. Die Regel beginnt aktiviert; ihr Bearbeitungsformular ergänzt den Schalter **Aktiviert**, und die Liste zeigt pro Regel ein grünes Etikett **Aktiviert** oder ein rotes **Deaktiviert**.
 :::
 
 ### Wie der Abgleich aufgelöst wird
@@ -632,7 +631,7 @@ Die Regeln, die die Seite selbst mitbringt, sollten Sie verinnerlichen:
 
 ## Bereitschaftsrichtlinien direkt anhängen
 
-Regeln sind nicht der einzige Weg. Jeder Vorfall hat eine eigene Liste von Bereitschaftsrichtlinien, sichtbar als Feld **Bereitschaftsrichtlinie** im Schritt **Bereitschaft & Rollen** des Meldeassistenten und im Schritt **Bereitschaft** einer Vorfall-Vorlage. Die Feldbeschreibung sagt es klar: Das sind die Bereitschaftsrichtlinien, die ausgeführt werden, wenn dieser Vorfall angelegt wird.
+Regeln sind nicht der einzige Weg. Jeder Vorfall hat eine eigene Liste von Bereitschaftsrichtlinien, sichtbar als Feld **Bereitschaftsrichtlinie** im Schritt **Bereitschaft & Rollen** des Meldeassistenten und im Schritt **Bereitschaft** einer Vorfall-Vorlage. Seine Beschreibung sagt, wann darüber alarmiert wird: sobald der Vorfall gemeldet ist.
 
 Wenn ein Vorfall angelegt wird, führt OneUptime die Beschriftungsregeln aus, dann die Bereitschaftsregeln (die ihre passenden Richtlinien in die Liste des Vorfalls übernehmen), dann die Runbook-Regeln – und ist die resultierende Liste nicht leer, wird jede Richtlinie darin ausgeführt. Ausführungen laufen parallel und werden unabhängig abgeschlossen, sodass das Scheitern einer Richtlinie die anderen nicht aufhält. Jede Ausführung ist mit dem auslösenden Vorfall und mit dem Benachrichtigungsereignistyp für angelegte Vorfälle markiert.
 

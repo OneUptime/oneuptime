@@ -193,7 +193,7 @@ Ce que contient chacune :
 - **Rôles**, **Exécutions d'astreinte**, **Propriétaires** — qui s'en occupe, quelles politiques se sont déclenchées, et qui est notifié.
 - **Journaux de notification**, **Journaux IA**, **Journaux d'audit** — ce qui a été envoyé et ce qui a changé.
 - **Notes privées** et **Notes publiques** — ce qui a été dit à votre équipe et à vos clients. Voir [Notes, propriétaires et fil d'incident](/docs/incidents/notes-owners-and-feed).
-- **Champs personnalisés**, **Paramètres**, **Supprimer l'incident** — la page **Paramètres** contient **Visible sur la page de statut** et **Incident privé**, la carte **Portée des pages de statut** qui limite l'incident à certaines pages de statut, et la carte **Reminders**, dont l'interrupteur **Envoyer des rappels** s'enregistre dès que vous le basculez et indique quand part le prochain rappel.
+- **Champs personnalisés**, **Paramètres**, **Supprimer l'incident** — la page **Paramètres** contient **Visible sur la page de statut** et **Incident privé**, la carte **Portée des pages de statut** qui limite l'incident à certaines pages de statut, et la carte **Rappels**, dont l'interrupteur **Envoyer des rappels** s'enregistre dès que vous le basculez et indique quand part le prochain rappel.
 
 ## Comment les incidents s'articulent avec le reste de OneUptime
 

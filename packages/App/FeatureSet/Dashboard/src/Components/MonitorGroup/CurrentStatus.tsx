@@ -10,8 +10,10 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import NoMonitorsStatus from "./NoMonitorsStatus";
 
 export interface ComponentProps {
   monitorGroupId: ObjectID;
@@ -27,19 +29,38 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
 
   const [error, setError] = React.useState<string | undefined>(undefined);
 
+  /*
+   * How many monitors the group holds. The server answers an empty group's
+   * status as the operational one, so the list said Operational for a
+   * group whose Overview says it has no monitors yet. Null when it could
+   * not be counted: the status is then shown as the server gives it.
+   */
+  const [monitorCount, setMonitorCount] = React.useState<number | null>(null);
+
   const loadCurrentStatus: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
 
     try {
-      const currentStatus: MonitorStatus | null =
-        await ModelAPI.post<MonitorStatus>({
-          modelType: MonitorStatus,
-          apiUrl: URL.fromString(APP_API_URL.toString())
-            .addRoute(new MonitorGroup().getCrudApiPath()!)
-            .addRoute("/current-status/")
-            .addRoute(`/${props.monitorGroupId.toString()}`),
-        });
+      const [currentStatus, count]: [MonitorStatus | null, number | null] =
+        await Promise.all([
+          ModelAPI.post<MonitorStatus>({
+            modelType: MonitorStatus,
+            apiUrl: URL.fromString(APP_API_URL.toString())
+              .addRoute(new MonitorGroup().getCrudApiPath()!)
+              .addRoute("/current-status/")
+              .addRoute(`/${props.monitorGroupId.toString()}`),
+          }),
+          ModelAPI.count<MonitorGroupResource>({
+            modelType: MonitorGroupResource,
+            query: {
+              monitorGroupId: props.monitorGroupId,
+            },
+          }).catch((): null => {
+            return null;
+          }),
+        ]);
 
+      setMonitorCount(count);
       setCurrentGroupStatus(currentStatus);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -58,6 +79,10 @@ const CurrentStatusElement: FunctionComponent<ComponentProps> = (
 
   if (error) {
     return <ErrorMessage message={error} />;
+  }
+
+  if (monitorCount === 0) {
+    return <NoMonitorsStatus />;
   }
 
   if (!currentGroupStatus) {

@@ -42,6 +42,22 @@ export default class UserTelegramAPI extends BaseAPI<
             );
           }
 
+          /*
+           * A person first: a request whose session names nobody (a
+           * project's API key) is refused before any row is read, so a
+           * missing caller id is never compared with a row's owner.
+           */
+          const userId: ObjectID | undefined = (req as OneUptimeRequest)
+            ?.userAuthorization?.userId;
+
+          if (!userId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid user ID"),
+            );
+          }
+
           const item: UserTelegram | null = await this.service.findOneById({
             id: req.body["itemId"],
             props: {
@@ -62,10 +78,7 @@ export default class UserTelegramAPI extends BaseAPI<
             );
           }
 
-          if (
-            item.userId?.toString() !==
-            (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
-          ) {
+          if (item.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -154,6 +167,18 @@ export default class UserTelegramAPI extends BaseAPI<
             );
           }
 
+          // A person first, as above.
+          const userId: ObjectID | undefined = (req as OneUptimeRequest)
+            ?.userAuthorization?.userId;
+
+          if (!userId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid user ID"),
+            );
+          }
+
           const item: UserTelegram | null = await this.service.findOneById({
             id: req.body["itemId"],
             props: {
@@ -173,10 +198,7 @@ export default class UserTelegramAPI extends BaseAPI<
             );
           }
 
-          if (
-            item.userId?.toString() !==
-            (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
-          ) {
+          if (item.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,

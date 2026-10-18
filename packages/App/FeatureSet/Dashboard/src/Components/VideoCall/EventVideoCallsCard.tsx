@@ -41,6 +41,7 @@ import {
 } from "./CallTranscriptState";
 import StartVideoCallModal from "./StartVideoCallModal";
 import { EventVideoCall, VideoCallEventKind } from "./useEventVideoCalls";
+import { getOpenableJoinUrl } from "./VideoCallJoinLink";
 import VideoCallProviderLogo, {
   getDisplayedVideoCallProvider,
 } from "./VideoCallProviderLogo";
@@ -147,6 +148,8 @@ const CallRow: FunctionComponent<CallRowProps> = (
   const translator: Translator = useTranslator();
   const call: EventVideoCall = props.call;
   const joinUrl: string = call.joinUrl || "";
+  // No Join link for a link that is not an http or https address.
+  const openableJoinUrl: string | undefined = getOpenableJoinUrl(joinUrl);
 
   const startedBy: string = call.workspaceNotificationRuleId
     ? translator.translateText("Started automatically by a workspace rule") ||
@@ -216,9 +219,9 @@ const CallRow: FunctionComponent<CallRowProps> = (
           </p>
           {props.isPrimary ? <></> : transcriptBlock}
         </div>
-        {!props.isPrimary && (
+        {!props.isPrimary && openableJoinUrl && (
           <a
-            href={joinUrl}
+            href={openableJoinUrl}
             target="_blank"
             rel="noopener noreferrer"
             data-testid="event-video-call-join-secondary"
@@ -232,16 +235,18 @@ const CallRow: FunctionComponent<CallRowProps> = (
 
       {props.isPrimary && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <a
-            href={joinUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid="event-video-call-join"
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-          >
-            <Icon icon={IconProp.VideoCamera} className="h-4 w-4" />
-            {translator.translateText(isHuddle ? "Join huddle" : "Join call")}
-          </a>
+          {openableJoinUrl && (
+            <a
+              href={openableJoinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="event-video-call-join"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            >
+              <Icon icon={IconProp.VideoCamera} className="h-4 w-4" />
+              {translator.translateText(isHuddle ? "Join huddle" : "Join call")}
+            </a>
+          )}
           {/*
             Copy link and Remove wrap as one: when the row is too narrow
             for all three, Join call takes its line and the two go under

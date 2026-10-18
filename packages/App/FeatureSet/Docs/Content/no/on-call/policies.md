@@ -57,14 +57,14 @@ En retningslinje som flere regler legger til, kjører én gang. En alvorlighetsg
 
 ## Gjenta en retningslinje
 
-Når ventetiden til det siste nivået er ute uten at noen har bekreftet, stopper en retningslinje, med mindre den gjentas. For å gjenta den åpner du siden **Eskaleringsregler** for retningslinjen, klikker på **Rediger** på kortet **Gjentakelsesretningslinje** under reglene og fyller ut **Rediger Gjentakelsesretningslinje**:
+Når ventetiden til det siste nivået er ute uten at noen har bekreftet, stopper en retningslinje, med mindre den gjentas. For å velge åpner du siden **Eskaleringsregler** for retningslinjen og klikker på **Rediger** på kortet **Gjentakelsesretningslinje** under reglene. **Rediger gjentakelsesretningslinje** spør **Hvis ingen bekrefter etter det siste nivået**:
 
-| Felt | Hva det gjør | For en ny retningslinje |
-| --- | --- | --- |
-| **Repeat if no one acknowledges** | Starter retningslinjen på nytt fra **Level 1** etter det siste nivået. Så lenge den er av, kjører retningslinjen én gang. | Av |
-| **Number of times to repeat** | Hvor mange ganger til retningslinjen starter på nytt. | 0 |
+| Svar | Hva det gjør |
+| --- | --- |
+| **Stopp varslingen** | Ingen varsles igjen, så retningslinjen kjører én gang. En ny retningslinje starter med dette svaret. |
+| **Start på nytt fra Level 1** | Hvert nivå varsles igjen, i rekkefølge. **Hvor mange ganger til?** sier hvor mange: 1 eller flere. |
 
-Med bryteren på og tre gjentakelser går en retningslinje gjennom nivåene sine fire ganger til sammen. **Policy at a glance** på **Oversikt** sier det samme med ord.
+En retningslinje som starter på nytt tre ganger til, går gjennom nivåene sine fire ganger til sammen. Kortets rad **Etter det siste nivået** sier hva retningslinjen gjør, og **Policy at a glance** på **Oversikt** sier det samme med ord.
 
 ## Utførelseslogger
 
@@ -94,7 +94,7 @@ Du finner utførelseslogger tre steder:
 
 - i retningslinjens egne **Utførelseslogger**, under **Logger**;
 - under **Vakttjeneste → Avansert → Utførelseslogger**, for alle retningslinjer, der direkte tilkallinger fra arbeidsflyter og chat står som **Direkte tilkalling**;
-- på siden **Vaktutførelser** for en hendelse, og under **Vaktutførelser** for et varsel.
+- på siden **Vaktutførelser** for en hendelse eller et varsel.
 
 Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **View Timeline** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. En vaktplan der ingen har vakt, viser **No one was on call** i stedet for en person. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
 
@@ -119,9 +119,11 @@ Vaktretningslinjer er ressursen `/api/on-call-duty-policy`, og ressursen `oneupt
 | --- | --- |
 | **Navn** | `name` |
 | **Beskrivelse** | `description` |
-| **Repeat if no one acknowledges** | `repeatPolicyIfNoOneAcknowledges` |
-| **Number of times to repeat** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Hvis ingen bekrefter etter det siste nivået** | `repeatPolicyIfNoOneAcknowledges` |
+| **Hvor mange ganger til?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | Arkivert | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` er `false` for **Stopp varslingen** og `true` for **Start på nytt fra Level 1**. Med `true` og `repeatPolicyIfNoOneAcknowledgesNoOfTimes` på `0` gjentas en retningslinje aldri, og dashbordet viser den som **Stopp varslingen**.
 
 Se [Opprett regler med API-et eller Terraform](/docs/on-call/escalation-rules#opprett-regler-med-api-et-eller-terraform) for å opprette en retningslinje med det første nivået i én forespørsel.
 

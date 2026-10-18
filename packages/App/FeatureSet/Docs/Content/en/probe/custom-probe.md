@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Create the probe
 
-Open **Monitors → Settings → Probes** and click **Create Probe**. Give it a **Name** and a **Description**: both are required. **More fields** holds the **Probe Logo**, **Enable monitoring automatically on new monitors**, which picks this probe for every new monitor you create, and **Labels**.
+Open **Monitors → Settings → Probes** and click **Create Probe**. Give it a **Name** and a **Description**: both are required. **More fields** holds the **Probe Logo**, **Add to new monitors**, which starts every new monitor with this probe selected, and **Labels**.
 
 ### Copy its ID and key
 

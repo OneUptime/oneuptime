@@ -56,7 +56,7 @@ Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de m
 
 ### Choisir navigateurs et tailles d'écran
 
-Cochez les navigateurs sous **Type de navigateur** et les tailles sous **Type d'écran**. Le script s'exécute une fois pour chaque combinaison : deux navigateurs et trois tailles font donc six exécutions par vérification. Sous **Plus de champs**, **Nombre de tentatives en cas d'erreur** relance une exécution échouée jusqu'à 5 fois.
+Un nouveau moniteur commence avec **Chromium** sous **Type de navigateur** et **Ordinateur** sous **Type d'écran** ; cochez-en d'autres pour en couvrir davantage. Le script s'exécute une fois pour chaque combinaison : deux navigateurs et trois tailles font donc six exécutions par vérification, et il lui faut au moins un navigateur et une taille. Sous **Plus de champs**, **Nombre de tentatives en cas d'erreur** relance une exécution échouée jusqu'à 5 fois.
 
 ### Le tester
 

@@ -67,24 +67,22 @@ Las **Reglas de runbook** inician un runbook cuando coincide un evento nuevo, co
 **Mantenimiento programado → Reglas → Reglas de recordatorio** recuerda el evento a sus propietarios hasta que el trabajo se aprueba. Cada evento recibe la primera regla que coincide con él, de arriba abajo en la lista.
 
 :::steps
-### Nombrar la regla de recordatorio
-
-Haz clic en **Crear Regla de recordatorio de mantenimiento programado**. En **Información de la regla**, dale un **Nombre**, por ejemplo «Recordatorios de eventos de mantenimiento», y una **Descripción** si quieres.
-
 ### Elegir sobre qué eventos recordar
 
-En **Criterios de coincidencia**, deja marcado **Todos los eventos de mantenimiento programado** para recordar todos los eventos, o elige **Solo los eventos de mantenimiento programado que cumplen las condiciones** y luego las **Etiquetas** a las que se aplica.
+Haz clic en **Crear Regla de recordatorio de mantenimiento programado**. En **Coincidencia**, deja marcado **Todos los eventos de mantenimiento programado** para recordar todos los eventos, o elige **Solo los eventos de mantenimiento programado que cumplen las condiciones** y luego las **Etiquetas** a las que se aplica.
 
 ### Fijar el intervalo
 
-En **Ajustes de recordatorios**, fija el **Intervalo de recordatorio (minutos)**, cada cuánto se recuerda a los propietarios, y luego crea la regla.
+En **Recordatorios**, fija el **Intervalo de recordatorio (minutos)**, cada cuánto se recuerda a los propietarios, y elige cuándo recordarles en **Recordar a los propietarios**. Su **Nombre** sigue a ambos, por ejemplo «Recordar cada 30 minutos mientras esté en curso», hasta que escribas uno propio, y una **Descripción** espera en **Más campos**. Después crea la regla.
 :::
 
-| Ajuste                               | Empieza como                           | Qué hace                                                                             |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Intervalo de recordatorio (minutos)** | Obligatorio                         | Cada cuánto se recuerda a los propietarios.                                          |
-| **Dejar de recordar cuando**         | **Recordar hasta que el evento esté completado** | O **Detener cuando empiece el evento (En curso)**, para parar en cuanto empieza el trabajo. |
-| **Recordar mientras el evento esté programado** | Desactivado                  | Desactivado, los recordatorios empiezan cuando empieza el evento; activado, también salen antes. |
+| Respuesta | Cuándo se recuerda a los propietarios |
+| --- | --- |
+| **Mientras esté en curso** | Desde que empieza el evento hasta que termina. Una regla nueva empieza con esta respuesta. |
+| **Antes de que empiece** | Desde que se programa el evento hasta que empieza. |
+| **Antes de que empiece y mientras esté en curso** | Desde que se programa el evento hasta que termina. |
+
+Una regla guardada mediante la API o Terraform que espera a que empiece el evento y se detiene cuando empieza nunca envía un recordatorio: la lista la marca con **Nunca envía recordatorios** y su formulario te pide que elijas una respuesta.
 
 Los propietarios reciben cada recordatorio como **Recordatorio de mantenimiento**, activado por correo electrónico para cada miembro nuevo. Guardar, cambiar o eliminar una regla de recordatorio vuelve a asignar regla a cada evento que no está completado. Para detener los recordatorios de un evento, desactiva **Enviar recordatorios** en su página **Ajustes**; se guarda en cuanto lo cambias.
 
@@ -134,7 +132,7 @@ Abre la regla y revisa sus condiciones: cada condición que rellenaste debe cump
 :::
 
 :::details Los propietarios no recibieron ningún recordatorio
-Comprueba que una regla de recordatorio coincide con las etiquetas del evento, que **Enviar recordatorios** está activado en el evento y que **Recordatorio de mantenimiento** está activado en los ajustes de notificaciones de los propietarios. Sin **Recordar mientras el evento esté programado**, los recordatorios solo empiezan cuando empieza el evento.
+Comprueba que una regla de recordatorio coincide con las etiquetas del evento, que **Enviar recordatorios** está activado en el evento y que **Recordatorio de mantenimiento** está activado en los ajustes de notificaciones de los propietarios. Una regla con **Mientras esté en curso** no envía nada antes de que empiece el evento.
 :::
 
 ## Próximos pasos

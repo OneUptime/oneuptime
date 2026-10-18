@@ -173,9 +173,11 @@ import MonitorStepExternalStatusPageMonitor, {
 } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import {
   getRequestTimeoutField,
-  getRetriesOnFailureDescription,
+  getRetriesOnFailureField,
+  MonitorStepFieldHelp,
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
 } from "../../../Utils/MonitorRetryHelpText";
+import SyntheticMonitorCopy from "../../../Utils/Form/Monitor/SyntheticMonitorCopy";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -753,11 +755,17 @@ return {
     });
 
   /*
-   * The timeout field says, and starts on, the default the probe really uses
-   * for this type: 5 seconds for NTP, 60 for the TCP and HTTP checks.
+   * The timeout field starts on the default the probe really uses for this
+   * type: 5 seconds for NTP, 60 for the TCP and HTTP checks. Both fields say
+   * what they are in one line; the exact rule waits in the (i) by the title.
    */
-  const requestTimeoutField: { description: string; defaultSeconds: number } =
-    getRequestTimeoutField(props.monitorType);
+  const requestTimeoutField: MonitorStepFieldHelp & {
+    defaultSeconds: number;
+  } = getRequestTimeoutField(props.monitorType);
+
+  const retriesOnFailureField: MonitorStepFieldHelp = getRetriesOnFailureField(
+    props.monitorType,
+  );
 
   const renderTimeoutAndRetryFields: () => ReactElement = (): ReactElement => {
     return (
@@ -766,6 +774,7 @@ return {
           <FieldLabelElement
             title={"Request Timeout (seconds)"}
             description={requestTimeoutField.description}
+            tooltip={requestTimeoutField.tooltip}
             required={false}
           />
           <Input
@@ -796,7 +805,8 @@ return {
         <div>
           <FieldLabelElement
             title={"Retries on Failure"}
-            description={getRetriesOnFailureDescription(props.monitorType)}
+            description={retriesOnFailureField.description}
+            tooltip={retriesOnFailureField.tooltip}
             required={false}
           />
           <Input
@@ -836,11 +846,12 @@ return {
         onChange={props.onChange}
       />
       {/* Monitor Target Card */}
+      {/*
+       * The address field below says what to enter, so the card's title is
+       * all it needs: its old description said nothing the field does not.
+       */}
       {hasMonitorDestination && (
-        <Card
-          title="Monitor Target"
-          description="Configure what you want to monitor"
-        >
+        <Card title="Monitor Target">
           <div className="space-y-4">
             <div>
               <FieldLabelElement
@@ -1005,10 +1016,15 @@ return {
               <div>
                 <FieldLabelElement
                   title={"API Request Type"}
-                  description={"What is the type of the API request?"}
+                  description={"GET unless the endpoint needs another method."}
                   required={true}
                 />
+                {/*
+                 * A request always has a method, so nothing to clear: an
+                 * emptied box sent GET anyway.
+                 */}
                 <Dropdown
+                  isClearable={false}
                   initialValue={requestTypeDropdownOptions.find(
                     (i: DropdownOption) => {
                       return (
@@ -1035,12 +1051,15 @@ return {
         </Card>
       )}
 
-      {/* More fields for API monitors: headers, body, redirects, TLS. */}
+      {/*
+       * More fields for API monitors: headers, body, redirects, TLS, then
+       * the timeout and the retries - all of them named by the description.
+       */}
       {props.monitorType === MonitorType.API && (
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
           icon={MORE_SECTION_ICON}
-          description="Request headers, body, and redirect settings"
+          description="Headers, body, redirect, TLS, timeout and retry settings"
           items={moreFieldsItems}
           defaultCollapsed={!showAdvancedOptionsRequestBodyAndHeaders}
           dataTestId="monitor-step-more-fields"
@@ -1056,7 +1075,7 @@ return {
                 title={"Request Headers"}
                 description={
                   <p>
-                    {translator.translateText("Request Headers to send.")}{" "}
+                    {translator.translateText("Sent with every request.")}{" "}
                     <Link
                       className="underline"
                       openInNewTab={true}
@@ -1090,7 +1109,7 @@ return {
                 description={
                   <p>
                     {translator.translateText(
-                      "Request Headers to send in JSON.",
+                      "Sent with every request, as JSON.",
                     )}{" "}
                     <Link
                       className="underline"
@@ -1145,7 +1164,7 @@ return {
               <CheckboxElement
                 initialValue={monitorStep.data?.doNotFollowRedirects || false}
                 title={"Do not follow redirects"}
-                description="Please check this if you do not want to follow redirects."
+                description="Check the redirect response itself, not the page it leads to."
                 onChange={(value: boolean) => {
                   monitorStep.setDoNotFollowRedirects(value);
                   if (props.onChange) {
@@ -1161,7 +1180,7 @@ return {
                   monitorStep.data?.allowSelfSignedCertificates || false
                 }
                 title={"Allow self-signed certificates"}
-                description="Check this to skip TLS certificate validation (e.g. accept self-signed or untrusted certificates)."
+                description="Skip certificate validation for this host, so self-signed certificates work."
                 onChange={(value: boolean) => {
                   monitorStep.setAllowSelfSignedCertificates(value);
                   if (props.onChange) {
@@ -1300,12 +1319,12 @@ return {
         </FoldedSection>
       )}
 
-      {/* More fields for Website monitors: redirects, TLS, timeout. */}
+      {/* More fields for Website monitors: redirects, TLS, timeout, retries. */}
       {props.monitorType === MonitorType.Website && (
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
           icon={MORE_SECTION_ICON}
-          description="Redirect and TLS settings"
+          description="Redirect, TLS, timeout and retry settings"
           items={moreFieldsItems}
           defaultCollapsed={!showDoNotFollowRedirects}
           dataTestId="monitor-step-more-fields"
@@ -1320,7 +1339,7 @@ return {
               <CheckboxElement
                 initialValue={monitorStep.data?.doNotFollowRedirects || false}
                 title={"Do not follow redirects"}
-                description="Please check this if you do not want to follow redirects."
+                description="Check the redirect response itself, not the page it leads to."
                 onChange={(value: boolean) => {
                   monitorStep.setDoNotFollowRedirects(value);
                   if (props.onChange) {
@@ -1336,7 +1355,7 @@ return {
                   monitorStep.data?.allowSelfSignedCertificates || false
                 }
                 title={"Allow self-signed certificates"}
-                description="Check this to skip TLS certificate validation (e.g. accept self-signed or untrusted certificates)."
+                description="Skip certificate validation for this host, so self-signed certificates work."
                 onChange={(value: boolean) => {
                   monitorStep.setAllowSelfSignedCertificates(value);
                   if (props.onChange) {
@@ -1549,10 +1568,7 @@ return {
 
       {/* Telemetry Monitor Forms */}
       {props.monitorType === MonitorType.Logs && (
-        <Card
-          title="Log Monitor Configuration"
-          description="Configure the log monitoring settings"
-        >
+        <Card title="Log Monitor Configuration">
           <LogMonitorStepForm
             monitorStepLogMonitor={
               monitorStep.data?.logMonitor ||
@@ -1570,10 +1586,7 @@ return {
       )}
 
       {props.monitorType === MonitorType.SecurityEvents && (
-        <Card
-          title="Security Events Monitor Configuration"
-          description="Configure the security event monitoring settings"
-        >
+        <Card title="Security Events Monitor Configuration">
           <SecurityEventsMonitorStepForm
             monitorStepSecurityEventsMonitor={
               monitorStep.data?.securityEventsMonitor ||
@@ -1610,10 +1623,7 @@ return {
       )}
 
       {props.monitorType === MonitorType.Metrics && (
-        <Card
-          title="Metric Monitor Configuration"
-          description="Configure the metric monitoring settings"
-        >
+        <Card title="Metric Monitor Configuration">
           <MetricMonitorStepForm
             monitorStepMetricMonitor={
               monitorStep.data?.metricMonitor ||
@@ -1898,10 +1908,7 @@ return {
       )}
 
       {props.monitorType === MonitorType.Traces && (
-        <Card
-          title="Trace Monitor Configuration"
-          description="Configure the trace monitoring settings"
-        >
+        <Card title="Trace Monitor Configuration">
           <TraceMonitorStepForm
             monitorStepTraceMonitor={
               monitorStep.data?.traceMonitor ||
@@ -1921,10 +1928,7 @@ return {
       )}
 
       {props.monitorType === MonitorType.Exceptions && (
-        <Card
-          title="Exception Monitor Configuration"
-          description="Configure the exception monitoring settings"
-        >
+        <Card title="Exception Monitor Configuration">
           <ExceptionMonitorStepForm
             monitorStepExceptionMonitor={
               monitorStep.data?.exceptionMonitor ||
@@ -1961,10 +1965,7 @@ return {
       )}
 
       {props.monitorType === MonitorType.DNS && (
-        <Card
-          title="DNS Monitor Configuration"
-          description="Configure the DNS monitoring settings"
-        >
+        <Card title="DNS Monitor Configuration">
           <DnsMonitorStepForm
             monitorStepDnsMonitor={
               monitorStep.data?.dnsMonitor ||
@@ -2015,10 +2016,7 @@ return {
       )}
 
       {props.monitorType === MonitorType.Domain && (
-        <Card
-          title="Domain Monitor Configuration"
-          description="Configure the domain registration monitoring settings"
-        >
+        <Card title="Domain Monitor Configuration">
           <DomainMonitorStepForm
             monitorStepDomainMonitor={
               monitorStep.data?.domainMonitor ||
@@ -2096,8 +2094,8 @@ return {
           }
           description={
             props.monitorType === MonitorType.CustomJavaScriptCode
-              ? "Write your JavaScript code here. You can use secrets for sensitive data."
-              : "Write browser automation for Chromium and Firefox using OneUptime's secure Playwright-compatible facade. See the OneUptime docs below."
+              ? SyntheticMonitorCopy.javaScriptCodeDescription
+              : SyntheticMonitorCopy.playwrightCodeDescription
           }
         >
           <div className="space-y-4">
@@ -2147,7 +2145,7 @@ return {
                 <div>
                   <FieldLabelElement
                     title={"Browser Type"}
-                    description={"Select the browser type."}
+                    description={SyntheticMonitorCopy.browserTypeDescription}
                     required={true}
                   />
                   <CheckBoxList
@@ -2165,9 +2163,7 @@ return {
                 <div>
                   <FieldLabelElement
                     title={"Screen Type"}
-                    description={
-                      "Which screen type should we use to run this test?"
-                    }
+                    description={SyntheticMonitorCopy.screenTypeDescription}
                     required={true}
                   />
                   <CheckBoxList
@@ -2207,9 +2203,7 @@ return {
           <div>
             <FieldLabelElement
               title={"Retry Count on Error"}
-              description={
-                "How many times should we retry the synthetic monitor if it fails? Set to 0 for no retries. Max is 5."
-              }
+              description={SyntheticMonitorCopy.retryCountOnErrorDescription}
               required={false}
             />
             <Input
@@ -2240,7 +2234,7 @@ return {
       {MonitorTypeHelper.isProbableMonitor(props.monitorType) && (
         <Card
           title="Test Monitor"
-          description="Verify your monitor configuration before saving"
+          description="Run one check now, before you save."
           className="bg-blue-50 border-blue-200"
         >
           <MonitorTestForm

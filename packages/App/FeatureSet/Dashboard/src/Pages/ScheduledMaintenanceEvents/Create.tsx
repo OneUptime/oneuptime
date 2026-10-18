@@ -362,7 +362,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
       <Card
         title="Create New Scheduled Maintenance"
         description={
-          "Scheduled maintenance events are planned maintenance events that you can use to notify your team and subscribers about upcoming maintenance events."
+          "Plan maintenance ahead, and tell your team and your status page subscribers when it happens."
         }
         className="mb-10"
       >
@@ -412,6 +412,8 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.Text,
                   required: true,
                   placeholder: "Event Title",
+                  // Its column's description only says the title again.
+                  hideColumnDescription: true,
                   validation: {
                     minLength: 2,
                   },

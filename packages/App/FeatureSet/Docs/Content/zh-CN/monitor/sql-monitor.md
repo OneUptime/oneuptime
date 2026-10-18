@@ -139,7 +139,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 | **主机** | 探测器可以访问的数据库主机（例如 `db.internal`）。 |
 | **端口** | 数据库端口。 |
 | **数据库名称** | 要在其上运行查询的数据库。 |
-| **Use Windows Integrated Authentication** | 仅限 Microsoft SQL Server。使用运行探测器的账户进行身份验证，而不是使用 SQL 用户名和密码。请参阅 [Windows 集成身份验证](#windows-集成身份验证)。 |
+| **认证** | 仅限 Microsoft SQL Server：默认的 **用户名和密码**，或以运行探测器的账户登录的 **Windows Integrated Authentication**。请参阅 [Windows 集成身份验证](#windows-集成身份验证)。 |
 | **用户名** | 一个只读的最小权限数据库用户。 |
 | **密码** | 数据库密码。我们强烈建议用 `{{monitorSecrets.name}}` 引用一个 [监控密钥](/docs/monitor/monitor-secrets)，而不是以纯文本输入密码（参见[为密码使用监控密钥](#为密码使用监控密钥)）。 |
 | **SQL Query** | 要运行的只读查询（参见[编写查询](#编写查询)）。 |
@@ -157,7 +157,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 
 ### Windows 集成身份验证
 
-对于 Microsoft SQL Server，启用 **Use Windows Integrated Authentication** 即可使用探测器进程的身份打开受信任的连接。在此模式下，用户名和密码字段会被忽略，也不会传给驱动程序。由于探测器需要一个受你的域信任的身份，请为这种身份验证模式使用自托管的探测器。
+对于 Microsoft SQL Server，在 **认证** 下选择 **Windows Integrated Authentication**，即可使用探测器进程的身份打开受信任的连接。表单随后会隐藏 **用户名** 和 **密码**，两者都不会传给驱动程序。由于探测器需要一个受你的域信任的身份，请为这种身份验证模式使用自托管的探测器。
 
 | 探测器运行在 | 需要设置的内容 |
 |---|---|

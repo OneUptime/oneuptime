@@ -37,7 +37,8 @@ const OnCallDutyPolicyView: FunctionComponent<
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "On-Call Policy Name",
+            placeholder: "e.g., Platform on-call",
+            hideColumnDescription: true,
             validation: {
               minLength: 2,
             },
@@ -50,6 +51,7 @@ const OnCallDutyPolicyView: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
+            hideColumnDescription: true,
           },
           getLabelsFormField<OnCallDutyPolicy>(),
         ]}

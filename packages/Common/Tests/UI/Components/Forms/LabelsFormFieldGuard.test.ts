@@ -837,11 +837,15 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     NAME_DESCRIPTION,
     ["isEnabled", "labels"],
   ),
+  /*
+   * The name, with the description and the labels under More fields
+   * (IncomingCallPolicyCreateForm.ts), as Create On-Call Policy asks.
+   */
   onePage(
     `${DASHBOARD}/Pages/OnCallDuty/IncomingCallPolicies.tsx`,
     "ModelTable: On-Call > Incoming Call Policies",
-    NAME_DESCRIPTION,
-    LABELS_ONLY,
+    ["name"],
+    ["description", LABELS_KEY],
   ),
   // Create and Edit Probe: the "More" step held the auto-enable switch and labels.
   ...[
