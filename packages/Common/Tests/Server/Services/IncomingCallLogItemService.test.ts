@@ -6,6 +6,7 @@ import IncomingCallLogService from "../../../Server/Services/IncomingCallLogServ
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import OwnedScopePermission from "../../../Server/Types/Database/Permissions/OwnedScopePermission";
+import ReadPermission from "../../../Server/Types/Database/Permissions/ReadPermission";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -113,6 +114,37 @@ describe("IncomingCallLogItemService: an attempt names its call's policy", () =>
       includeUnattributed: false,
       includeProjectScope: false,
     });
+  });
+
+  test("is read by the labels of its call's policy too, as the call is", () => {
+    const labelledKeysOf: (modelType: {
+      new (): IncomingCallLog | IncomingCallLogItem;
+    }) => Array<[string, Array<string>]> = (modelType: {
+      new (): IncomingCallLog | IncomingCallLogItem;
+    }): Array<[string, Array<string>]> => {
+      return ReadPermission.getLabelledReferences(modelType).keys.map(
+        (key: {
+          column: string;
+          modelTypes: Array<{ new (): unknown }>;
+        }): [string, Array<string>] => {
+          return [
+            key.column,
+            key.modelTypes.map((labelled: { new (): unknown }): string => {
+              return labelled.name;
+            }),
+          ];
+        },
+      );
+    };
+
+    expect(labelledKeysOf(IncomingCallLogItem)).toContainEqual([
+      "incomingCallPolicyId",
+      ["IncomingCallPolicy"],
+    ]);
+    expect(labelledKeysOf(IncomingCallLog)).toContainEqual([
+      "incomingCallPolicyId",
+      ["IncomingCallPolicy"],
+    ]);
   });
 
   test("an attempt OneUptime writes names the policy its call names, read as OneUptime from that call alone", async () => {
