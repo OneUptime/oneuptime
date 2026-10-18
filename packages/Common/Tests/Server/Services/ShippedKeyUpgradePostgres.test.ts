@@ -32,7 +32,6 @@ import {
   beforeEach,
   describe,
   expect,
-  jest,
   test,
 } from "@jest/globals";
 import { DataSource } from "typeorm";
@@ -88,7 +87,7 @@ jest.mock("../../../Server/Utils/Response", () => {
  * endpoint from SHIPPED_KEY_UPGRADE_TEST_DATABASE_HOST / _PORT (default
  * localhost:5400).
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_SHIPPED_KEY_UPGRADE_TESTS"] === "true"
     ? describe
     : describe.skip;
