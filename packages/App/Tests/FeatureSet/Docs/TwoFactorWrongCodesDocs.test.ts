@@ -29,8 +29,9 @@ import path from "path";
  *     security key and a backup code still sign in; a password reset ends the
  *     wait - naming the sign-in page's links as the sign-in page draws them;
  *   - the upgrade note (installation/upgrading, "Other changes in 14"),
- *     after the note on the bundled Runner and before the pointer to the
- *     endpoint changes, saying the same and linking to Your Account;
+ *     after the note on the bundled Runner and before the note on redirects
+ *     (KeyCarryingRedirectsUpgradeDocs), saying the same and linking to Your
+ *     Account;
  *   - every translation carries both in the English places, each in its own
  *     words, with that language's sign-in labels.
  */
@@ -54,7 +55,9 @@ const NOTE_LEAD: string =
 // The note before it (SharedRunnerUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**The bundled Runner no longer runs a repository's commands, and holds only what it needs.**";
-const LAST_ITEM_START: string = "- See [API and endpoint changes]";
+// The note after it (KeyCarryingRedirectsUpgradeDocs).
+const NEXT_LEAD: string =
+  "**Probes, Runners and OneUptime's own services follow redirects only on the server they call.**";
 
 const DETAILS_OPEN: string = ":::details ";
 const CONTAINER_CLOSE: string = ":::";
@@ -210,7 +213,7 @@ describe("Your Account's troubleshooting entry", () => {
 });
 
 describe("the English upgrade note on wrong two-factor codes", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on the bundled Runner and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on the bundled Runner and before the note on redirects", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -222,9 +225,9 @@ describe("the English upgrade note on wrong two-factor codes", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(LAST_ITEM_START)).toBe(
-      true,
-    );
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says the code's rule: counted once the password is right, from any address or network, five free, then a minute doubling up to an hour", () => {

@@ -1416,6 +1416,14 @@ API, SSO, or the Slack and Microsoft Teams apps.
   authentication ends the wait, and wrong codes are forgotten a day after
   the last one. Someone who gets their code right within five tries sees no
   change. See [Your Account](/docs/introduction/your-account).
+- **Probes, Runners and OneUptime's own services follow redirects only on the
+  server they call.** A request that carries one of their keys follows a
+  redirect to the same address, or to that address moved from `http` to
+  `https`, and nowhere else: a redirect to another server fails the request,
+  with an error that names that server. If your OneUptime address redirects to
+  another host name, such as an old domain to a new one, set `ONEUPTIME_URL`
+  on your probes and Runners to the address it redirects to. An address that
+  answers directly, or only moves from `http` to `https`, sees no change.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
