@@ -36,7 +36,7 @@ import {
  *
  * The page writes its steps and fields out as literals, as the form step
  * guards read them (Common/Tests/Helpers/FormStepsScan.ts); the words and
- * the name are here, React-free, so tests read the exact strings.
+ * the name are here, so the page and its tests read the exact strings.
  */
 
 export const StatusPageMonitorRuleCopy: {
