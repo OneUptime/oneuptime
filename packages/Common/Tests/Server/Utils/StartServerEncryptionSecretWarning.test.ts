@@ -62,3 +62,53 @@ describe("StartServer emits the ENCRYPTION_SECRET boot warning", () => {
     expect(initBody).not.toMatch(/process\.exit/);
   });
 });
+
+/*
+ * The Runner is never handed ENCRYPTION_SECRET (the shared Runner's deployment
+ * environment leaves the server's settings out), so the warning would be said
+ * on every boot and setting the secret would not silence it there. A process
+ * that holds no encrypted data opts out; the App, which does, never does.
+ */
+describe("only a process that holds no encrypted data leaves the warning out", () => {
+  const PACKAGES_ROOT: string = path.join(__dirname, "../../../..");
+  const OPT_OUT: RegExp = /usesEncryptionSecret:\s*false/;
+
+  const source: string = fs.readFileSync(
+    path.join(__dirname, "../../../Server/Utils/StartServer.ts"),
+    "utf8",
+  );
+
+  test("StartServer says the warning unless the process opts out", () => {
+    const initStart: number = source.indexOf("const init: InitFunction");
+    const beforeLaunch: string = source.slice(
+      initStart,
+      source.indexOf(
+        "await Express.launchApplication(appName, port);",
+        initStart,
+      ),
+    );
+
+    expect(beforeLaunch).toMatch(
+      /if\s*\(data\.usesEncryptionSecret\s*!==\s*false\)\s*\{\s*if\s*\(EncryptionSecretWarning\)\s*\{\s*logger\.warn\(EncryptionSecretWarning\);\s*\}\s*\}/,
+    );
+  });
+
+  test("the Runner opts out", () => {
+    const runnerEntry: string = fs.readFileSync(
+      path.join(PACKAGES_ROOT, "Runner", "Index.ts"),
+      "utf8",
+    );
+
+    expect(runnerEntry).toMatch(OPT_OUT);
+  });
+
+  test("the App, which holds encrypted data, never opts out", () => {
+    const appEntry: string = fs.readFileSync(
+      path.join(PACKAGES_ROOT, "App", "Index.ts"),
+      "utf8",
+    );
+
+    expect(appEntry).not.toMatch(OPT_OUT);
+    expect(appEntry).not.toMatch(/usesEncryptionSecret/);
+  });
+});

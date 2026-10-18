@@ -378,6 +378,13 @@ export interface InitFuctionOptions {
    * routes are mounted first and keep answering. See StartupGate.
    */
   useStartupGate?: boolean | undefined;
+  /*
+   * Whether this process reads or writes data protected by ENCRYPTION_SECRET.
+   * The Runner does not: it reaches the server over its API and is never
+   * handed the secret, so it passes false and does not repeat a warning about
+   * a value it never holds (one setting the secret would not silence there).
+   */
+  usesEncryptionSecret?: boolean | undefined;
   getVariablesToRenderIndexPage?: (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -400,8 +407,10 @@ const init: InitFunction = async (
    * will see it. EnvironmentConfig computes the message but cannot log it
    * (Logger depends on EnvironmentConfig), so the entrypoint does.
    */
-  if (EncryptionSecretWarning) {
-    logger.warn(EncryptionSecretWarning);
+  if (data.usesEncryptionSecret !== false) {
+    if (EncryptionSecretWarning) {
+      logger.warn(EncryptionSecretWarning);
+    }
   }
 
   await Express.launchApplication(appName, port);

@@ -81,6 +81,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       appName: APP_NAME,
       port: PORT,
       isFrontendApp: false,
+      /*
+       * The Runner never holds ENCRYPTION_SECRET (the shared Runner's
+       * deployment environment leaves it out), so the boot warning about it
+       * is not this process's to say.
+       */
+      usesEncryptionSecret: false,
       statusOptions: {
         liveCheck: async () => {},
         readyCheck: async () => {},

@@ -31,7 +31,7 @@ flowchart TB
 3. El Runner obtiene el contexto de la tarea. Para una excepción, es su tipo, su mensaje y su stack trace.
 4. Clona el repositorio en un espacio de trabajo propio y crea una rama. Una corrección de una excepción se llama `oneuptime-fix-exception-` seguido de los primeros caracteres del id de la ejecución.
 5. Un agente de código, impulsado por el proveedor de LLM de tu proyecto, lee el código y escribe el cambio. El servidor de OneUptime hace las llamadas al LLM, así que el Runner nunca tiene la clave de API de tu proveedor, y cada llamada se mide y aparece en los registros de IA.
-6. Si el repositorio tiene comandos de verificación, el Runner compila y prueba el cambio antes de hacer ningún commit, y devuelve un fallo al agente de código para que lo repare (consulta [Verificación antes del pull request](#verificación-antes-del-pull-request)).
+6. Si el repositorio tiene comandos de verificación, un Runner propio compila y prueba el cambio antes de hacer ningún commit, y devuelve un fallo al agente de código para que lo repare (consulta [Verificación antes del pull request](#verificación-antes-del-pull-request)).
 7. El Runner hace el commit, sube la rama, abre el pull request y borra el espacio de trabajo.
 
 La página desde la que se inició la tarea muestra su estado en directo. Cada tarea aparece en **Productos → Código → Tareas**: abre una para ver su **Vista general**, sus **Registros** (una línea por cada archivo que el Runner leyó o escribió y por cada comando que ejecutó) y sus **Pull requests**.
@@ -68,11 +68,11 @@ Cuando alguno está definido, cada ejecución de corrección comprueba su cambio
 
 1. Cuando el agente de código termina, los comandos se ejecutan en orden en la raíz del repositorio, en el Runner, en el espacio de trabajo clonado. Cada uno tiene hasta 15 minutos y se ejecuta con `CI=true`, para que nada espere una respuesta; el primer fallo detiene la pasada.
 2. Ante un fallo, el final de la salida del comando fallido vuelve al mismo agente de código como tarea de reparación, con instrucciones de corregir su propio cambio en lugar de debilitar u omitir pruebas, y los comandos se ejecutan de nuevo. Hace como máximo **2** intentos de reparación. Comparten el presupuesto de LLM de la ejecución, y sus cambios van en el mismo commit que la corrección.
-3. El resultado, superado, fallido u omitido (sin comandos definidos), se escribe en una sección Verification de la descripción del pull request y se registra en el pull request de la tarea.
+3. El resultado, superado, fallido u omitido (sin comandos definidos, o un Runner compartido), se escribe en una sección Verification de la descripción del pull request y se registra en el pull request de la tarea.
 
 Un cambio que sigue sin superar la verificación no se descarta: el pull request se abre de todos modos, con una sección "Verification failed" claramente marcada que nombra el comando fallido y termina con su salida. El trabajo se conserva y quien revisa decide. Un repositorio sin comandos definidos se informa como omitido, en lugar de dar a entender una compilación en verde.
 
-Los comandos son ajustes del repositorio que escribe tu equipo y que se ejecutan en tu propio Runner: el mismo modelo de confianza que los pasos de Bash de un runbook. La IA nunca los escribe ni los cambia.
+Los comandos son ajustes del repositorio que escribe tu equipo y que se ejecutan en tu propio Runner: el mismo modelo de confianza que los pasos de Bash de un runbook. La IA nunca los escribe ni los cambia. Los Runners compartidos de OneUptime nunca los ejecutan: en un Runner compartido, la corrección se escribe y se abre para revisión, la verificación se informa como omitida y la CI propia de tu repositorio comprueba el cambio. [Ejecuta un Runner propio](#ejecuta-un-runner-propio) para que las correcciones se compilen y prueben antes de que se abra el pull request.
 
 ## Antes de empezar
 
