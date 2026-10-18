@@ -16,7 +16,8 @@ name: Marketplace Release
 #                Producer Portal to the run's summary.
 #
 # Microsoft's preview goes live with a run by hand (action: azure-go-live) once it has passed
-# Microsoft's checks and been tried; AKS then upgrades buyers' clusters to it.
+# Microsoft's checks; AKS then upgrades buyers' clusters to it. We run no test installation of
+# our own (it would cost money): each marketplace's review tests what we submit.
 #
 # Once a week (Mondays) it ships the newest release, once MARKETPLACE_RELEASES is "enabled", to
 # each marketplace editions.json marks ready and the repository variables sign in to (the others
