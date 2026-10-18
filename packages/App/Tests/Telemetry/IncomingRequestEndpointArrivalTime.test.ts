@@ -51,6 +51,10 @@ jest.mock("Common/Server/Middleware/ClusterKeyAuthorization", () => {
     __esModule: true,
     default: {
       isAuthorizedServiceMiddleware: jest.fn(),
+      // The route hands on the headers it was sent through this, as it is.
+      withoutClusterKeyHeaders: (headers: Record<string, unknown>) => {
+        return { ...headers };
+      },
     },
   };
 });

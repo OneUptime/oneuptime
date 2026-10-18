@@ -1,32 +1,34 @@
 # Zabbix
 
-Senden Sie [Zabbix](https://www.zabbix.com)-Probleme an OneUptime, sodass jedes Problem zu einem Vorfall wird, der Ihr Bereitschaftsteam alarmiert und behoben wird, wenn sich Zabbix erholt. Zabbix sendet jedes Problem über einen Webhook-Medientyp, es gibt also auf keiner Seite etwas zu installieren.
+Senden Sie [Zabbix](https://www.zabbix.com)-Probleme an OneUptime, sodass jedes Problem zu einem Vorfall wird, der Ihr Bereitschaftsteam alarmiert und behoben wird, wenn sich Zabbix erholt. Fertige Workflow-Vorlagen halten beide Seiten auf demselben Stand: Was Personen in Zabbix tun, wird am Vorfall notiert, und wer den Vorfall bestätigt oder behebt, bestätigt oder schließt das Problem in Zabbix. Zabbix sendet jedes Problem über einen Webhook-Medientyp, es gibt also auf keiner Seite etwas zu installieren.
 
 :::cards
-- [Wählen Sie, wie OneUptime Probleme empfängt](#wählen-sie-wie-oneuptime-probleme-empfängt): Ein Monitor für eingehende Anfragen oder ein eigener Workflow.
-- [Probleme mit einem Monitor empfangen](#probleme-mit-einem-monitor-empfangen): Ein Vorfall pro Problem, bei der Erholung behoben.
+- [Wählen Sie, wie OneUptime Probleme empfängt](#wählen-sie-wie-oneuptime-probleme-empfängt): Workflow-Vorlagen oder ein Monitor für eingehende Anfragen.
+- [Mit den Vorlagen beginnen](#mit-den-vorlagen-beginnen): Sechs Vorlagen, was sie tun und was sie abfragen.
 - [Zabbix konfigurieren](#zabbix-konfigurieren): Ein Medientyp, ein Benutzer und eine Aktion.
 - [Fehlerbehebung](#fehlerbehebung): Wenn Probleme nicht ankommen oder Vorfälle offen bleiben.
 :::
 
 ## So funktioniert es
 
-```mermaid title="Vom Zabbix-Problem zum Vorfall"
+```mermaid title="Vom Zabbix-Problem zum Vorfall und zurück"
 flowchart TB
     problem["Zabbix-Trigger:<br/>PROBLEM oder OK"] --> action["Aktion sendet es an<br/>den OneUptime-Benutzer"]
     action --> media["Medientyp sendet<br/>JSON an OneUptime"]
-    media --> status{"status"}
-    status -->|"1, ein Problem"| open["Vorfall eröffnet,<br/>Bereitschaft alarmiert"]
-    status -->|"0, erholt"| resolve["Vorfall behoben"]
+    media --> event{"event"}
+    event -->|"problem"| open["Vorfall gemeldet,<br/>Bereitschaft alarmiert"]
+    event -->|"recovery"| resolve["Vorfall behoben"]
+    event -->|"update"| note["Private Notiz,<br/>evtl. bestätigt"]
+    open -.->|"bestätigt<br/>oder behoben"| api["Zabbix-API:<br/>bestätigen oder<br/>schließen"]
 ```
 
-Zabbix sendet ein Problem an einen Benutzer, über dessen Medien. Hier ist das Medium ein Webhook-Medientyp namens **OneUptime**: Sein Skript sendet ein kleines JSON-Dokument an OneUptime, mit der Ereignis-ID des Problems, seinem Namen, Host, Schweregrad und Status. Der Status ist `1` für ein Problem und `0` für seine Erholung.
+Zabbix sendet ein Problem an einen Benutzer, über dessen Medien. Hier ist das Medium ein Webhook-Medientyp namens **OneUptime**: Sein Skript sendet ein kleines JSON-Dokument an OneUptime, für jedes Problem, für seine Erholung und für jede Aktualisierung, die jemand in Zabbix daran vornimmt, mit der Ereignis-ID des Problems, seinem Namen, Host und Schweregrad. Über die Ereignis-ID findet OneUptime den Vorfall, den ein Problem eröffnet hat.
 
 ## Bevor Sie beginnen
 
-- Ein Zabbix-Server, den Sie verwalten. Diese Anleitung ist für Zabbix 6.0 LTS und 7.0 LTS geschrieben. Webhook-Medientypen funktionieren ab Zabbix 5.0 genauso.
-- Ein Zabbix-Server, der Ihr OneUptime über HTTPS erreicht.
-- In OneUptime das Recht, Monitore anzulegen, oder Workflows, wenn Sie diesen Weg gehen.
+- Ein Zabbix-Server, den Sie verwalten. Diese Anleitung ist für Zabbix 6.0 LTS und 7.0 LTS geschrieben. Webhook-Medientypen funktionieren ab Zabbix 5.0 genauso. Die Vorlagen, die die API von Zabbix aufrufen, brauchen Zabbix 6.4 oder neuer, oder [eine Änderung unter Zabbix 6.0](#unter-zabbix-60).
+- Ein Zabbix-Server, der Ihr OneUptime über HTTPS erreicht, und für die Vorlagen, die Zabbix aufrufen, ein OneUptime, das Zabbix erreicht.
+- In OneUptime das Recht, Workflows anzulegen, oder Monitore, wenn Sie diesen Weg gehen. Auf OneUptime Cloud brauchen Workflows den Tarif **Growth** oder höher.
 
 ## Wählen Sie, wie OneUptime Probleme empfängt
 
@@ -34,10 +36,98 @@ Richten Sie zuerst OneUptime ein: Es gibt Ihnen die URL, an die Zabbix sendet.
 
 | Weg | Nutzen Sie ihn, wenn |
 | --- | --- |
-| Ein Monitor für eingehende Anfragen (empfohlen) | Sie möchten, dass jedes Zabbix-Problem ein Vorfall wird, der die Bereitschaft alarmiert und behoben wird, wenn sich Zabbix erholt. Es gibt nichts zu bauen. |
-| Ein Workflow mit einem Webhook-Trigger | Sie brauchen eigene Logik: Probleme filtern, umformen oder zuerst andere Systeme aufrufen. Ein Workflow behebt den Vorfall bei der Erholung nicht von selbst. |
+| Die Workflow-Vorlagen (empfohlen) | Sie möchten jedes Problem als Vorfall oder Warnung mit seinem Zabbix-Schweregrad, bei High und Disaster an die Bereitschaft gemeldet, bei der Erholung behoben, mit dem darauf notiert, was Personen in Zabbix tun, und Zabbix aus OneUptime heraus bestätigt oder geschlossen. |
+| Ein Monitor für eingehende Anfragen | Sie möchten Vorfälle ohne Workflow, in jedem Tarif, und einen Monitor, dessen Status Zabbix folgt. Nichts geht an Zabbix zurück. |
 
 Beide bekommen dasselbe JSON vom selben Medientyp, Sie können also mit einem beginnen und später wechseln, indem Sie in Zabbix eine URL ändern.
+
+## Mit den Vorlagen beginnen
+
+Der Dialog **Arbeitsablauf erstellen** hat sechs Zabbix-Vorlagen, unter **Zabbix** in seiner Kategorieliste: drei für Vorfälle, dann dieselben drei für Warnungen.
+
+| Vorlage | Was sie tut | Was sie abfragt |
+| --- | --- | --- |
+| **Vorfälle** | | |
+| Declare an incident for each Zabbix problem | Der Workflow, an den Zabbix jedes Ereignis sendet. Er meldet für jedes Problem einen Vorfall, alarmiert bei High und Disaster die Bereitschaft, notiert Aktualisierungen aus Zabbix und behebt den Vorfall bei der Erholung. | Zabbix URL |
+| Acknowledge or close the Zabbix problem with the incident | Wird der Vorfall bestätigt, bestätigt sie sein Problem. Wird er behoben, schließt sie das Problem, oder bestätigt es, wo Zabbix nicht erlaubt, es von Hand zu schließen. | Zabbix URL, Zabbix API Token |
+| Copy incident private notes to the Zabbix problem | Fügt jede private Notiz des Vorfalls seinem Problem als Nachricht hinzu. | Zabbix URL, Zabbix API Token |
+| **Warnungen** | | |
+| Create an alert for each Zabbix problem | Dasselbe wie für Vorfälle, mit einer Warnung für jedes Problem. | Zabbix URL |
+| Acknowledge or close the Zabbix problem with the alert | Dasselbe wie für Vorfälle, nach dem Status der Warnung. | Zabbix URL, Zabbix API Token |
+| Copy alert private notes to the Zabbix problem | Fügt jede private Notiz der Warnung ihrem Problem als Nachricht hinzu. | Zabbix URL, Zabbix API Token |
+
+Beginnen Sie mit **Declare an incident for each Zabbix problem**, oder für Warnungen mit **Create an alert for each Zabbix problem**: Der Vorfall oder die Warnung, die sie eröffnet, behält die Ereignis-ID des Problems in ihrem benutzerdefinierten Feld `zabbixEventId`, und die beiden anderen Vorlagen finden das Problem darüber.
+
+### Was die Vorlagen abfragen
+
+- **Zabbix URL**: die Adresse, unter der Sie Zabbix öffnen, etwa `https://zabbix.example.com`, oder `https://example.com/zabbix`, wenn Zabbix unter einem Pfad läuft. Links zu einem Problem führen dorthin, und die Vorlagen, die Zabbix aufrufen, senden ihre Anfragen an dessen `api_jsonrpc.php`. Das Feld lehnt die Adresse einer Seite in Zabbix ab.
+- **Zabbix API Token**: ein API-Token des Zabbix-Benutzers, als der der Workflow handelt. [Das API-Token erstellen](#das-api-token-erstellen) zeigt, wie. Es wird als geheime Variable gespeichert und nur im Header `Authorization` gesendet.
+
+### Probleme mit der Vorlage empfangen
+
+:::steps
+1. Gehen Sie zu **Arbeitsabläufe** und klicken Sie auf **Arbeitsablauf erstellen**. Wählen Sie unter **Oder mit einer Vorlage beginnen** in der Kategorieliste **Zabbix**, klicken Sie auf **Declare an incident for each Zabbix problem** und dann auf **Diese Vorlage verwenden**.
+2. Füllen Sie **Zabbix URL** aus und klicken Sie auf **Arbeitsablauf erstellen**. Der Workflow öffnet sich ausgeschaltet im **Editor**.
+3. Klicken Sie auf den Schritt **Page an On-Call Policy**, wählen Sie die zu alarmierenden **Bereitschaftsrichtlinien** und speichern Sie ihn.
+4. Klicken Sie auf den Trigger **Webhook**, dann auf **URL kopieren**, und bewahren Sie die URL für Zabbix auf.
+5. Schalten Sie oben im **Editor** **Aktiviert** ein. Ein ausgeschalteter Workflow antwortet Zabbix mit `400`.
+:::
+
+Dann [konfigurieren Sie Zabbix](#zabbix-konfigurieren), damit es seine Probleme an diese URL sendet.
+
+### Was der Workflow tut
+
+Nach dem Trigger **Webhook** nimmt ein Baustein **Switch / Case** für jedes `event`, das der Medientyp sendet, einen eigenen Weg:
+
+| Ereignis | Was der Workflow tut |
+| --- | --- |
+| `problem` | Meldet einen Vorfall mit dem Titel `Zabbix: <problem> on <host>`, mit dem Schweregrad, auf den der Zabbix-Schweregrad abgebildet wird, und hält ihn von Ihren Statusseiten fern. Seine Beschreibung verlinkt das Problem in Zabbix und nennt den Host, den Schweregrad, den Beginn, seine Betriebsdaten und seine Tags. Bei einem High- oder Disaster-Problem alarmiert er die gewählte Bereitschaftsrichtlinie. Ein Problem, das Zabbix mit derselben Ereignis-ID erneut sendet, eröffnet keinen zweiten Vorfall. |
+| `recovery` | Behebt den Vorfall des Problems, sofern er nicht schon behoben ist. Der Grund steht auf seiner Zeitleiste. |
+| `update` | Fügt dem Vorfall als private Notiz hinzu, was in Zabbix getan wurde: wer es getan hat, was getan und was geschrieben wurde. Hat die Aktualisierung das Problem bestätigt, bestätigt er auch den Vorfall, sodass die Bereitschaft ihn nicht weiter eskaliert. |
+
+Alles andere, etwa eine Anfrage eines anderen Werkzeugs, bleibt unberührt, und der letzte Schritt der Ausführung sagt, warum. Jede Ausführung endet in einem Schritt **Log**, der sagt, was geschah: `✅` er hat seine Aufgabe erledigt, `ℹ️` er hat das Ereignis absichtlich übersprungen, `❌` ein Schritt ist fehlgeschlagen, und das Ausführungsprotokoll sagt, warum.
+
+### Schweregrade
+
+In einem neuen Projekt bildet die Vorlage die sechs Schweregrade von Zabbix auf diese Vorfall- und Warnungsschweregrade ab:
+
+| Zabbix-Schweregrad | Vorfall | Warnung | Bereitschaft |
+| --- | --- | --- | --- |
+| Disaster | Critical Incident | High | Alarmiert |
+| High | Critical Incident | High | Alarmiert |
+| Average | Major Incident | Low | Nicht alarmiert |
+| Warning | Major Incident | Low | Nicht alarmiert |
+| Information | Minor Incident | Low | Nicht alarmiert |
+| Not classified | Minor Incident | Low | Nicht alarmiert |
+
+Mit eigenen Schweregraden gehen Disaster und High an Ihren schwersten, Average und Warning an den mittleren und Information und Not classified an Ihren leichtesten. Zabbix nummeriert seine Schweregrade von 0 (Not classified) bis 5 (Disaster), und die Vorlage liest die Nummer, eine Umbenennung in Zabbix ändert also nichts.
+
+- Um einen Schweregrad per Namen einem Ihrer Schweregrade zuzuordnen, bearbeiten Sie `SEVERITY_BY_NAME` im Schritt `read-event-1`, etwa `{ 2: 'Minor Incident' }` für Warning.
+- Um auch bei Average-Problemen zu alarmieren, setzen Sie **Compare with** des Schritts `if-page-1` **If / Else** auf `3`.
+
+### Bestätigungen und Notizen an Zabbix zurücksenden
+
+:::steps
+1. [Erstellen Sie das API-Token](#das-api-token-erstellen).
+2. Erstellen Sie einen Workflow aus **Acknowledge or close the Zabbix problem with the incident**. Füllen Sie **Zabbix URL** und **Zabbix API Token** aus, klicken Sie auf **Arbeitsablauf erstellen** und schalten Sie **Aktiviert** ein.
+3. Wenn Sie auch Notizen in Zabbix möchten, tun Sie dasselbe mit **Copy incident private notes to the Zabbix problem**.
+:::
+
+Die Statusvorlage fragt Zabbix zuerst nach dem Problem, ein Problem, das Zabbix schon bestätigt oder behoben hat, bleibt also unverändert. Um ein Problem zu schließen, braucht sein Trigger in Zabbix **Allow manual close**. Ohne diese Option wird das Problem stattdessen bestätigt, mit einer Nachricht, dass der Vorfall behoben wurde, und Zabbix schließt es, wenn es sich erholt. Vorfälle, die kein Zabbix-Problem eröffnet hat, und als **Privater Vorfall** markierte Vorfälle werden nie an Zabbix gesendet.
+
+### Das API-Token erstellen
+
+:::steps
+1. Nutzen Sie den Benutzer `OneUptime`, der [Probleme empfängt](#einen-benutzer-anlegen-der-probleme-empfängt). Zabbix sendet einem Benutzer nicht seine eigenen Aktualisierungen, mit dem Token dieses Benutzers kommen die Bestätigungen und Nachrichten von OneUptime also nie als Aktualisierungen zu OneUptime zurück.
+2. Prüfen Sie die Rolle des Benutzers unter **Users → User roles**. Sie braucht **Access to API** aktiviert, und **Acknowledge problems**, **Add problem comments** und **Close problems** erlaubt. Die **User role** erlaubt sie, sofern niemand sie geändert hat.
+3. Prüfen Sie die Gruppe des Benutzers unter **Users → User groups**. Die Berechtigung **Read** auf die Hostgruppen genügt, um Probleme zu bestätigen und Nachrichten hinzuzufügen. Um Probleme zu schließen, braucht sie **Read-write**.
+4. Gehen Sie zu **Users → API tokens** und klicken Sie auf **Create API token**. Wählen Sie den Benutzer `OneUptime`, entfernen Sie das Häkchen bei **Set expiration date and time** oder notieren Sie das Datum, und klicken Sie auf **Add**.
+5. Kopieren Sie das **Auth token**: Zabbix zeigt es nur einmal. Fügen Sie es in **Zabbix API Token** ein.
+:::
+
+### Unter Zabbix 6.0
+
+Zabbix 6.0 liest das API-Token aus dem Text der Anfrage, nicht aus ihrem Header `Authorization`. Fügen Sie in jedem API-Schritt der Vorlagen, die Zabbix aufrufen, `"auth": "{{local.variables.zabbixApiToken}}",` zu **Request Body** hinzu, nach `"jsonrpc": "2.0",`, und entfernen Sie den Header. Zabbix 7.2 und neuer lehnen `auth` ab, entfernen Sie es also wieder, wenn Sie aktualisieren.
 
 ## Probleme mit einem Monitor empfangen
 
@@ -82,44 +172,7 @@ https://oneuptime.com/heartbeat/<secret key>
 Eine selbst gehostete Installation hat ihren eigenen Host anstelle von `oneuptime.com`.
 :::
 
-Der Monitor liest das JSON der Anfrage so, wie es geschrieben ist: `"status":"1"`, ohne Leerzeichen. Unter [Warnungen aus einem anderen System empfangen](/docs/monitor/incoming-request-monitor#warnungen-aus-einem-anderen-system-empfangen) steht, was jede Einstellung tut.
-
-## Probleme mit einem Workflow empfangen
-
-Nutzen Sie einen [Workflow](/docs/workflows/index), wenn Sie zwischen Zabbix und dem Vorfall eigene Schritte brauchen.
-
-:::steps
-### Den Workflow anlegen
-
-Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** und dann auf **Ohne Vorlage beginnen**. Nennen Sie ihn `Zabbix problems` und klicken Sie auf **Arbeitsablauf erstellen**.
-
-### Den Webhook-Trigger hinzufügen
-
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Webhook**. Klicken Sie auf den Trigger, dann auf **URL kopieren**, und bewahren Sie die URL für Zabbix auf.
-
-### Prüfen, ob es ein Problem ist
-
-Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **If / Else**-Baustein hinzu und verbinden Sie den Punkt **Out** des Triggers damit. Setzen Sie **Value to check** auf `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** auf **is equal to** und **Compare with** auf `1`.
-
-### Den Vorfall melden
-
-Fügen Sie einen **Create One Incident**-Baustein hinzu und verbinden Sie die Seite **Yes** des **If / Else**-Bausteins damit. Wählen Sie unter **Incident Template** eine Vorlage, die den Schweregrad und die zu alarmierenden Bereitschaftsrichtlinien festlegt (siehe [Vorfallvorlagen](/docs/incidents/settings#vorfall-vorlagen)). Setzen Sie in **JSON Object**, was von Zabbix kommt:
-
-```json
-{
-  "title": "Zabbix: {{local.components.webhook-1.returnValues.request-body.name}}",
-  "description": "Host: {{local.components.webhook-1.returnValues.request-body.host}}\nSeverity: {{local.components.webhook-1.returnValues.request-body.severity}}\nZabbix event: {{local.components.webhook-1.returnValues.request-body.event_id}}"
-}
-```
-
-Ohne Vorlage braucht **JSON Object** zusätzlich `incidentSeverityId`, die ID eines Vorfallschweregrads des Projekts.
-
-### Ihn einschalten
-
-Schalten Sie oben im **Editor** **Aktiviert** ein. Ein ausgeschalteter Workflow antwortet Zabbix mit `400`.
-:::
-
-Eine Erholung nimmt die Seite **No** des **If / Else**-Bausteins, an der nichts angeschlossen ist, die Ausführung endet also dort. Um Vorfälle bei der Erholung zu beheben, nutzen Sie den Monitor.
+Der Monitor liest das JSON der Anfrage so, wie es geschrieben ist: `"status":"1"`, ohne Leerzeichen. Unter [Warnungen aus einem anderen System empfangen](/docs/monitor/incoming-request-monitor#warnungen-aus-einem-anderen-system-empfangen) steht, was jede Einstellung tut. Eine Aktualisierung in Zabbix wird ebenfalls mit `"status":"1"` gesendet, was der Monitor erneut als das Problem liest, ohne einen zweiten Vorfall zu eröffnen.
 
 ## Zabbix konfigurieren
 
@@ -139,28 +192,73 @@ Zabbix braucht drei Dinge: einen Medientyp, der an OneUptime sendet, einen Benut
    | `event_name` | `{EVENT.NAME}` |
    | `event_value` | `{EVENT.VALUE}` |
    | `event_severity` | `{EVENT.SEVERITY}` |
+   | `event_nseverity` | `{EVENT.NSEVERITY}` |
    | `host` | `{HOST.NAME}` |
    | `event_date` | `{EVENT.DATE}` |
    | `event_time` | `{EVENT.TIME}` |
+   | `event_opdata` | `{EVENT.OPDATA}` |
+   | `event_tags` | `{EVENT.TAGSJSON}` |
+   | `trigger_id` | `{TRIGGER.ID}` |
+   | `event_update_status` | `{EVENT.UPDATE.STATUS}` |
+   | `event_update_action` | `{EVENT.UPDATE.ACTION}` |
+   | `event_update_message` | `{EVENT.UPDATE.MESSAGE}` |
+   | `event_update_user` | `{USER.FULLNAME}` |
 
 4. Fügen Sie dies in **Script** ein:
 
    ```javascript
    var params = JSON.parse(value);
-   var request = new HttpRequest();
-   request.addHeader("Content-Type: application/json");
 
+   // Zabbix leaves a macro it has no value for as it is written, such as
+   // {EVENT.UPDATE.MESSAGE} on a problem: it is sent as nothing.
+   function given(text) {
+     var written = String(text === undefined || text === null ? "" : text);
+     return /^\{[A-Z0-9_.]+\}$/.test(written) || written === "*UNKNOWN*"
+       ? ""
+       : written;
+   }
+
+   var isUpdate = given(params.event_update_status) === "1";
    var payload = {
      source: "zabbix",
+     // "problem", "recovery" or "update".
+     event: isUpdate
+       ? "update"
+       : params.event_value === "0"
+         ? "recovery"
+         : "problem",
      event_id: params.event_id,
      name: params.event_name,
      host: params.host,
      severity: params.event_severity,
+     // 0 Not classified, 1 Information, 2 Warning, 3 Average, 4 High, 5 Disaster.
+     severity_number: params.event_nseverity,
      // "1" for a problem, "0" for its recovery.
      status: params.event_value,
      date: params.event_date,
      time: params.event_time,
+     opdata: given(params.event_opdata),
+     tags: [],
+     trigger_id: params.trigger_id,
    };
+
+   try {
+     var tags = JSON.parse(given(params.event_tags) || "[]");
+     payload.tags = Array.isArray(tags) ? tags : [];
+   } catch (error) {
+     payload.tags = [];
+   }
+
+   if (isUpdate) {
+     payload.update = {
+       action: given(params.event_update_action),
+       message: given(params.event_update_message),
+       user: given(params.event_update_user),
+     };
+   }
+
+   var request = new HttpRequest();
+   request.addHeader("Content-Type: application/json");
 
    var response = request.post(params.url, JSON.stringify(payload));
 
@@ -173,7 +271,7 @@ Zabbix braucht drei Dinge: einen Medientyp, der an OneUptime sendet, einen Benut
    return "OK";
    ```
 
-5. Fügen Sie auf dem Tab **Message templates** eine Vorlage für **Problem** und eine für **Problem recovery** hinzu. Lassen Sie ihren Text leer: Das Skript baut die Anfrage. Zabbix nutzt einen Medientyp nur für die Ereignisarten, für die er eine Vorlage hat.
+5. Fügen Sie auf dem Tab **Message templates** eine Vorlage für **Problem**, eine für **Problem recovery** und eine für **Problem update** hinzu. Lassen Sie ihren Text leer: Das Skript baut die Anfrage. Zabbix nutzt einen Medientyp nur für die Ereignisarten, für die er eine Vorlage hat.
 6. Klicken Sie auf **Add**.
 
 ### Einen Benutzer anlegen, der Probleme empfängt
@@ -187,30 +285,32 @@ Zabbix braucht drei Dinge: einen Medientyp, der an OneUptime sendet, einen Benut
 1. Gehen Sie zu **Alerts → Actions → Trigger actions**, unter Zabbix 6.0 zu **Configuration → Actions**, und klicken Sie auf **Create action**. Nennen Sie sie `Notify OneUptime`.
 2. Schränken Sie sie unter **Conditions** ein, wenn Sie möchten, etwa mit **Trigger severity is greater than or equals Warning**. Ohne Bedingungen wird jedes Problem gesendet.
 3. Fügen Sie auf dem Tab **Operations** eine Operation hinzu, die über den Medientyp `OneUptime` an den Benutzer `OneUptime` sendet.
-4. Fügen Sie dieselbe Operation unter **Recovery operations** hinzu, damit auch Erholungen gesendet werden.
+4. Fügen Sie dieselbe Operation unter **Recovery operations** hinzu, damit auch Erholungen gesendet werden, und unter **Update operations**, damit in Zabbix vorgenommene Bestätigungen und Kommentare gesendet werden.
 5. Klicken Sie auf **Add** und prüfen Sie, dass die Aktion aktiviert ist.
 :::
 
+Um manche Probleme an die Vorfallvorlage und andere an die Warnungsvorlage zu senden, geben Sie dem Benutzer `OneUptime` zwei Medien vom Typ `OneUptime`: je eines, das an die URL eines Workflows sendet, jedes mit den Schweregraden, die es bekommen soll.
+
 ## Testen
 
-1. Öffnen Sie in Zabbix **Alerts → Media types** und klicken Sie neben `OneUptime` auf **Test**. Tragen Sie die kopierte URL und Beispielwerte ein, etwa `event_id` `12345`, `event_name` `Test problem`, `host` `web-1` und `event_value` `1`. Klicken Sie auf **Test**: Zabbix zeigt die Antwort des Skripts, `OK`, oder den Fehler, den es ausgelöst hat.
-2. Öffnen Sie in OneUptime den Monitor und prüfen Sie, dass ein Vorfall eröffnet wurde, oder öffnen Sie **Protokolle → Ausführungen** des Workflows und prüfen Sie die Ausführung.
-3. Testen Sie noch einmal mit `event_value` `0` und derselben `event_id`. Mit dem Monitor wird der Vorfall behoben.
+1. Öffnen Sie in Zabbix **Alerts → Media types** und klicken Sie neben `OneUptime` auf **Test**. Tragen Sie die kopierte URL und Beispielwerte ein, etwa `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` und `event_value` `1`. Klicken Sie auf **Test**: Zabbix zeigt die Antwort des Skripts, `OK`, oder den Fehler, den es ausgelöst hat.
+2. Öffnen Sie in OneUptime **Protokolle → Ausführungen** des Workflows und prüfen Sie die Ausführung, oder öffnen Sie den Monitor und prüfen Sie, dass ein Vorfall eröffnet wurde.
+3. Testen Sie noch einmal mit `event_value` `0` und derselben `event_id`. Der Vorfall wird behoben.
 
-Lassen Sie dann einen echten Trigger auslösen, etwa indem Sie einen Schwellwert kurz senken, und sehen Sie zu, wie das Problem ankommt.
+Lassen Sie dann einen echten Trigger auslösen, etwa indem Sie einen Schwellwert kurz senken, und sehen Sie zu, wie das Problem ankommt. Um eine Aktualisierung zu testen, bestätigen Sie das Problem in Zabbix mit einer Nachricht: Der Vorfall bekommt eine private Notiz und wird bestätigt.
 
 ## Zabbix-Schweregrade zuordnen
 
 Zabbix sendet seinen Schweregrad als Text: `Not classified`, `Information`, `Warning`, `Average`, `High` oder `Disaster`.
 
+- **Mit den Vorlagen** werden die Schweregrade für Sie abgebildet: siehe [Schweregrade](#schweregrade).
 - **Mit dem Monitor** klicken Sie für jede Gruppe von Schweregraden auf **Kriterien hinzufügen** und ziehen das neue Kriterium über das erste: Kriterien werden von oben geprüft, und das erste, das zutrifft, entscheidet. Geben Sie jedem zwei Filter, `"status":"1"` und einen Schweregrad wie `"severity":"Disaster"`, mit **Abgleichsbedingung** auf **Alle**. Geben Sie jedem einen Vorfall mit eigenem **Schweregrad** und **Vorfall automatisch beheben**, und dieselben Gruppierungseinstellungen.
-- **Mit dem Workflow** fügen Sie einen [Switch / Case](/docs/workflows/components#switch-case)-Baustein auf `{{local.components.webhook-1.returnValues.request-body.severity}}` hinzu, mit einem Fall pro Schweregrad, und nach jedem Fall einen **Create One Incident**-Baustein mit eigener Vorlage.
 
 ## Fehlerbehebung
 
 :::details In OneUptime kommt nichts an
 - Öffnen Sie in Zabbix **Reports → Action log** und prüfen Sie, dass die Aktion das Problem gesendet hat und was zurückkam.
-- Senden Sie vom Zabbix-Server selbst eine Anfrage: `curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"status":"1","event_id":"1","name":"Test","host":"test"}'`.
+- Senden Sie vom Zabbix-Server selbst eine Anfrage: `curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"source":"zabbix","event":"problem","event_id":"1","name":"Test","host":"test","severity_number":"4","status":"1"}'`.
 - Der Monitor antwortet sofort mit `200`, bevor er etwas prüft, selbst bei einem falschen geheimen Schlüssel. Prüfen Sie in der Zeitleiste des Monitors, ob Anfragen ankommen.
 - Ein ausgeschalteter Workflow antwortet mit `400`. Schalten Sie oben in seinem **Editor** **Aktiviert** ein.
 :::
@@ -221,9 +321,17 @@ Zabbix sendet seinen Schweregrad als Text: `Not classified`, `Information`, `War
 
 :::details Vorfälle werden eröffnet, aber nie behoben
 - Die Aktion braucht **Recovery operations**, sonst sendet Zabbix die Erholung nie.
-- Der Vorfall des Kriteriums braucht **Vorfall automatisch beheben** unter **Weitere Felder**.
-- **Feld, das die Erholung signalisiert** muss `requestBody.status` sein und **Wert, der „wiederhergestellt“ bedeutet** genau `0`.
-- Ein Workflow behebt Vorfälle bei der Erholung nicht. Nutzen Sie den Monitor.
+- Öffnen Sie mit der Vorlage **Protokolle → Ausführungen** des Workflows und die Ausführung der Erholung: Ihr letzter Schritt sagt, warum. Die Erholung eines Problems, das keinen Vorfall eröffnet hat, ändert nichts.
+- Mit dem Monitor braucht der Vorfall des Kriteriums **Vorfall automatisch beheben** unter **Weitere Felder**. **Feld, das die Erholung signalisiert** muss `requestBody.status` sein und **Wert, der „wiederhergestellt“ bedeutet** genau `0`.
+:::
+
+:::details Zabbix wird nicht bestätigt oder geschlossen
+Öffnen Sie die Ausführung der Statusvorlage unter **Protokolle → Ausführungen**: Ihr letzter Schritt sagt, was Zabbix geantwortet hat.
+
+- `Not authorized`: Das API-Token ist falsch, abgelaufen oder deaktiviert, oder Zabbix ist älter als 6.4 (siehe [Unter Zabbix 6.0](#unter-zabbix-60)).
+- `Cannot close problem: trigger does not allow manual closing`: Schalten Sie am Trigger **Allow manual close** ein. Die Vorlage bestätigt solche Probleme bereits, statt sie zu schließen.
+- `No permissions to referred object or it does not exist!`: Der Benutzer sieht das Problem, braucht aber die Berechtigung **Read-write**, um es zu schließen.
+- `Zabbix has no problem with event ID`: Der Benutzer sieht den Host des Problems nicht. Geben Sie seiner Benutzergruppe die Berechtigung **Read** auf die Hostgruppe.
 :::
 
 :::details Der Vorfall zeigt einen Verweis statt eines Werts
@@ -231,20 +339,22 @@ Ein Verweis auf ein Feld, das die Anfrage nicht hat, bleibt so stehen, wie er ge
 :::
 
 :::details Jedes Problem kommt doppelt an
-Die Aktion hat vermutlich zwei Operationen, die an denselben Benutzer senden, etwa einen ersten Schritt und einen Eskalationsschritt. Prüfen Sie die **Operations** der Aktion.
+Die Aktion hat vermutlich zwei Operationen, die an denselben Benutzer senden, etwa einen ersten Schritt und einen Eskalationsschritt. Die Vorlage eröffnet pro Ereignis-ID einen Vorfall, egal was ankommt, aber jede Zustellung ist eine Ausführung. Prüfen Sie die **Operations** der Aktion.
 :::
 
 ## Sicherheit
 
-- **Behandeln Sie die URL wie ein Passwort.** Wer sie hat, kann Vorfälle eröffnen. Wird sie bekannt, setzen Sie sie zurück: mit **Geheimen Schlüssel für eingehende Anfragen zurücksetzen** auf der Seite **Einstellungen** des Monitors oder mit **URL zurücksetzen** im **Webhook**-Trigger des Workflows. Aktualisieren Sie dann **Send to** in den Medien des Zabbix-Benutzers.
+- **Behandeln Sie die URL wie ein Passwort.** Wer sie hat, kann Vorfälle eröffnen. Wird sie bekannt, setzen Sie sie zurück: mit **URL zurücksetzen** im **Webhook**-Trigger des Workflows oder mit **Geheimen Schlüssel für eingehende Anfragen zurücksetzen** auf der Seite **Einstellungen** des Monitors. Aktualisieren Sie dann **Send to** in den Medien des Zabbix-Benutzers.
+- **Links führen zu Ihrem Zabbix.** Die Vorlage verlinkt ein Problem auf der Site, die ihre **Zabbix URL** nennt, egal was eine Anfrage sagt, und schreibt, was Zabbix gesendet hat, als Text.
+- **Beschränken Sie das API-Token auf das, was der Workflow tut.** Es ist eine geheime Variable, aus Ausführungsprotokollen entfernt und nur im Header `Authorization` gesendet. Geben Sie seinem Benutzer eine Rolle mit nicht mehr als den obigen Aktionen, und löschen Sie das Token unter **Users → API tokens**, wenn es bekannt wird.
 - **Senden Sie nur, was einen Vorfall braucht.** Nutzen Sie die Bedingungen der Aktion oder die Schweregrade der Benutzermedien, um Probleme mit niedrigem Schweregrad in Zabbix zu lassen.
-- **Selbst gehostet?** Lassen Sie Ihren Zabbix-Server Ihr OneUptime über HTTPS durch Ihre Firewall erreichen.
+- **Selbst gehostet?** Lassen Sie Ihren Zabbix-Server Ihr OneUptime über HTTPS durch Ihre Firewall erreichen. Um ein Zabbix in einem privaten Netzwerk aufzurufen, braucht der Workflow [ausgehenden Netzwerkzugriff](/docs/workflows/configuration#ausgehender-netzwerkzugriff).
 
 ## Nächste Schritte
 
 :::cards
+- [Workflow-Vorlagen](/docs/workflows/authoring): Einen Workflow aus einer Vorlage erstellen und im Editor ändern.
 - [Eingehende-Anfrage-Überwachung](/docs/monitor/incoming-request-monitor): Jede Einstellung des Monitors, der Zabbix-Probleme empfängt.
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Festlegen, wen eine Bereitschaftsrichtlinie alarmiert, und wann.
-- [Workflow-Trigger](/docs/workflows/triggers#webhook): Wie die Webhook-URL eines Workflows funktioniert.
 - [Integrationsübersicht](/docs/integrations/index): Die anderen Werkzeuge, die Sie verbinden können.
 :::

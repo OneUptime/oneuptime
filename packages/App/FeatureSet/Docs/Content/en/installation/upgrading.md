@@ -1360,6 +1360,20 @@ API, SSO, or the Slack and Microsoft Teams apps.
   [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
   shows: until then the Runner logs what to set and does not register. An
   installation that set its own `ONEUPTIME_SECRET` sees no change.
+- **OneUptime's own services send `ONEUPTIME_SECRET` in a header, and only to
+  the routes that take it.** Those routes read it from the `clusterkey`
+  request header alone. A request whose URL carries it is refused, and a body
+  is read for it only by the in-cluster Runner's registration, so a Runner of
+  an earlier release still registers while the app logs that it should be
+  updated. The routes that nothing in OneUptime called are removed: the queue
+  statistics and failed jobs (`GET .../queue/stats`, `GET .../queue/size`,
+  `GET .../queue/failed`) and the pending monitors
+  (`GET /monitor/pending-count/...`, `GET /monitor/pending-list/...`). The
+  support bundle in the Admin Dashboard shows the queues. A script of yours
+  that calls a route with `ONEUPTIME_SECRET` sends it in the `clusterkey`
+  header now, and if it ever put it in a URL, change `ONEUPTIME_SECRET` on the
+  app and the Runner. An installation's own services need no change, during a
+  rolling upgrade too.
 - **PostgreSQL answers only on the server itself, and a new install starts
   with a database password of its own.** `docker-compose.yml` published
   PostgreSQL's port 5400 on every address of the server. It is now published

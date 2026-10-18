@@ -83,9 +83,24 @@ import {
   WorkflowTemplateCategory,
   WorkflowTemplateOAuth2Variable,
   WorkflowTemplateVariable,
+  ZABBIX_EVENT_ID_CUSTOM_FIELD,
+  ZABBIX_PAGE_FROM_SEVERITY,
+  ZABBIX_SEVERITY_NAMES,
+  ZABBIX_URL_PATTERN,
+  ZabbixEventKind,
   getTemplateGraphSpec,
+  getWorkflowTemplateCategoryInfo,
   getWorkflowTemplatesByCategory,
 } from "Common/Types/Workflow/Templates";
+import {
+  ALERT,
+  INCIDENT,
+  ZABBIX_URL,
+  quoted,
+  runZabbixScript,
+  zabbixMacroValues,
+  zabbixPostedBody,
+} from "Common/Tests/Types/Workflow/ZabbixTemplateFixtures";
 import {
   WEBHOOK_TRIGGER_HTTP_METHODS,
   getWebhookTriggerUrl,
@@ -385,7 +400,6 @@ describe("every page: the workflow steps it names", () => {
 
   it.each([
     OVERVIEW,
-    ZABBIX,
     PAGERDUTY,
     OPSGENIE,
     SERVICENOW,
@@ -790,19 +804,11 @@ describe("Zabbix", () => {
     };
   }
 
-  const MONITOR_URL: string = "https://oneuptime.com/heartbeat/KEY";
-
   function zabbixEvent(eventValue: string): Record<string, string> {
-    return {
-      url: MONITOR_URL,
-      event_id: "12345",
-      event_name: "High CPU",
-      event_value: eventValue,
-      event_severity: "Disaster",
-      host: "web-1",
-      event_date: "2026.10.13",
-      event_time: "12:00:00",
-    };
+    return zabbixMacroValues({
+      kind:
+        eventValue === "0" ? ZabbixEventKind.Recovery : ZabbixEventKind.Problem,
+    });
   }
 
   // The grouping settings the page's table gives the criteria.
@@ -823,6 +829,30 @@ describe("Zabbix", () => {
     };
   }
 
+  const ZABBIX_TEMPLATES: Array<WorkflowTemplate> =
+    getWorkflowTemplatesByCategory(WorkflowTemplateCategory.Zabbix);
+
+  function zabbixTemplate(templateId: string): WorkflowTemplate {
+    const found: WorkflowTemplate | undefined = ZABBIX_TEMPLATES.find(
+      (candidate: WorkflowTemplate): boolean => {
+        return candidate.id === templateId;
+      },
+    );
+
+    if (!found) {
+      throw new Error(`No Zabbix template ${templateId}`);
+    }
+
+    return found;
+  }
+
+  const PROBLEM_TEMPLATE: WorkflowTemplate = zabbixTemplate(
+    "zabbix-declare-incident-from-problem",
+  );
+  const STATE_TEMPLATE: WorkflowTemplate = zabbixTemplate(
+    "zabbix-update-problem-on-incident-state",
+  );
+
   it("sends every parameter the script reads, each from a Zabbix macro", () => {
     const names: Array<string> = parameters().map((row: Array<string>) => {
       return row[0] as string;
@@ -837,30 +867,105 @@ describe("Zabbix", () => {
       ),
     );
 
-    expect(names).toHaveLength(8);
+    expect(names).toHaveLength(16);
     expect([...names].sort()).toEqual([...read].sort());
-    expect(rowStartingWith(parameters(), "url")[1]).toBe("{ALERT.SENDTO}");
-    expect(rowStartingWith(parameters(), "event_id")[1]).toBe("{EVENT.ID}");
-    expect(rowStartingWith(parameters(), "event_value")[1]).toBe(
-      "{EVENT.VALUE}",
-    );
+    expect(parameters()).toEqual([
+      ["url", "{ALERT.SENDTO}"],
+      ["event_id", "{EVENT.ID}"],
+      ["event_name", "{EVENT.NAME}"],
+      ["event_value", "{EVENT.VALUE}"],
+      ["event_severity", "{EVENT.SEVERITY}"],
+      ["event_nseverity", "{EVENT.NSEVERITY}"],
+      ["host", "{HOST.NAME}"],
+      ["event_date", "{EVENT.DATE}"],
+      ["event_time", "{EVENT.TIME}"],
+      ["event_opdata", "{EVENT.OPDATA}"],
+      ["event_tags", "{EVENT.TAGSJSON}"],
+      ["trigger_id", "{TRIGGER.ID}"],
+      ["event_update_status", "{EVENT.UPDATE.STATUS}"],
+      ["event_update_action", "{EVENT.UPDATE.ACTION}"],
+      ["event_update_message", "{EVENT.UPDATE.MESSAGE}"],
+      ["event_update_user", "{USER.FULLNAME}"],
+    ]);
   });
 
-  it("posts the problem as JSON to the URL a user's media sends to, and says OK", () => {
-    const posted: ReturnType<typeof postedFor> = postedFor(zabbixEvent("1"));
+  /*
+   * The templates are tested on what this media type posts
+   * (ZabbixTemplateFixtures.zabbixPostedBody): the page's own script, given
+   * what Zabbix fills its parameters with for each kind of event, posts
+   * exactly that.
+   */
+  it.each([
+    ZabbixEventKind.Problem,
+    ZabbixEventKind.Recovery,
+    ZabbixEventKind.Update,
+  ])(
+    "posts a %s as JSON to the URL a user's media sends to, exactly as the templates are tested on, and says OK",
+    (kind: ZabbixEventKind) => {
+      const values: Record<string, string> = zabbixMacroValues({ kind });
+      const posted: ReturnType<typeof postedFor> = postedFor(values);
 
-    expect(posted.url).toBe(MONITOR_URL);
-    expect(posted.headers).toEqual(["Content-Type: application/json"]);
-    expect(posted.returned).toBe("OK");
-    expect(posted.body).toEqual(
-      expect.objectContaining({
-        event_id: "12345",
-        name: "High CPU",
-        host: "web-1",
-        severity: "Disaster",
-        status: "1",
-      }),
+      expect(posted.url).toBe(values["url"]);
+      expect(posted.headers).toEqual(["Content-Type: application/json"]);
+      expect(posted.returned).toBe("OK");
+      expect(posted.body).toEqual(zabbixPostedBody({ kind }));
+    },
+  );
+
+  it("sends a macro Zabbix left as written as nothing, and tags Zabbix could not read as none", () => {
+    const posted: JSONObject = postedFor({
+      ...zabbixMacroValues({ kind: ZabbixEventKind.Problem }),
+      event_opdata: "{EVENT.OPDATA}",
+      event_tags: "*UNKNOWN*",
+    }).body;
+
+    expect(posted["opdata"]).toBe("");
+    expect(posted["tags"]).toEqual([]);
+    expect(posted["update"]).toBeUndefined();
+  });
+
+  it.each([
+    ZabbixEventKind.Problem,
+    ZabbixEventKind.Recovery,
+    ZabbixEventKind.Update,
+  ])(
+    "what it posts for a %s is read by the template Zabbix sends its problems to as that event",
+    async (kind: ZabbixEventKind) => {
+      const read: JSONObject = await runZabbixScript({
+        templateId: PROBLEM_TEMPLATE.id,
+        componentId: "read-event-1",
+        args: {
+          severities: quoted(INCIDENT.severities),
+          zabbixUrl: ZABBIX_URL,
+          payload: quoted(postedFor(zabbixMacroValues({ kind })).body),
+        },
+      });
+
+      expect(read["kind"]).toBe(kind);
+      expect(read["eventId"]).toBe(zabbixMacroValues()["event_id"]);
+    },
+  );
+
+  it("the request the troubleshooting sends by hand is read as a problem", async () => {
+    const curl: string = lineStartingWith(
+      englishSection(ZABBIX, "## Troubleshooting"),
+      "- From the Zabbix server, send a request yourself:",
     );
+    const body: string = (curl.split(" -d '")[1] as string).split(
+      "'`",
+    )[0] as string;
+    const read: JSONObject = await runZabbixScript({
+      templateId: PROBLEM_TEMPLATE.id,
+      componentId: "read-event-1",
+      args: {
+        severities: quoted(INCIDENT.severities),
+        zabbixUrl: ZABBIX_URL,
+        payload: quoted(JSON.parse(body) as JSONObject),
+      },
+    });
+
+    expect(read["kind"]).toBe("problem");
+    expect(read["severityNumber"]).toBe(4);
   });
 
   it('matches the criteria\'s filters as the page writes them: "status":"1" for a problem, "status":"0" for its recovery', () => {
@@ -870,11 +975,19 @@ describe("Zabbix", () => {
      */
     const problem: string = JSON.stringify(postedFor(zabbixEvent("1")).body);
     const recovery: string = JSON.stringify(postedFor(zabbixEvent("0")).body);
+    const update: string = JSON.stringify(
+      postedFor(zabbixMacroValues({ kind: ZabbixEventKind.Update })).body,
+    );
 
     expect(problem).toContain('"status":"1"');
     expect(problem).not.toContain('"status":"0"');
     expect(recovery).toContain('"status":"0"');
     expect(recovery).not.toContain('"status":"1"');
+    // An update is the problem again, to the monitor, as the page says.
+    expect(update).toContain('"status":"1"');
+    expect(page).toContain(
+      'An update made in Zabbix is sent with `"status":"1"` too',
+    );
     expect(page).toContain(
       `Set its filter to ${bold("Request Body")}, ${bold("Contains")}, \`"status":"1"\`.`,
     );
@@ -1009,15 +1122,246 @@ describe("Zabbix", () => {
     expect(form).toContain('title="On-Call"');
   });
 
-  it("declares a workflow's incident from a template, or names the severity it needs", () => {
-    const incidentService: string = readRepoFile(
-      "Common/Server/Services/IncidentService.ts",
+  /* ------------------------------ The templates ------------------------------ */
+
+  // The template table's rows, under their part's heading: [part, name, asks for].
+  function templateRows(): Array<[string, string, string]> {
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(ZABBIX, "## Start from the templates"),
+      "Template",
+    );
+    const listed: Array<[string, string, string]> = [];
+    let part: string = "";
+
+    for (const row of rows) {
+      const first: string = row[0] as string;
+
+      if (first.startsWith("**")) {
+        part = first.slice(2, -2);
+        continue;
+      }
+
+      listed.push([part, first, row[2] as string]);
+    }
+
+    return listed;
+  }
+
+  it("lists the six templates under Zabbix, by name, in the picker's order and parts, with the settings each asks for", () => {
+    expect(templateRows()).toEqual(
+      ZABBIX_TEMPLATES.map(
+        (template: WorkflowTemplate): [string, string, string] => {
+          return [
+            template.subcategory || "",
+            template.name,
+            template.variables
+              .map((variable: WorkflowTemplateVariable): string => {
+                return variable.title;
+              })
+              .join(", "),
+          ];
+        },
+      ),
+    );
+    expect(page).toContain(
+      `The ${bold("Create a workflow")} dialog has six Zabbix templates, under ${bold("Zabbix")} in its category list: three for incidents, then the same three for alerts.`,
+    );
+    expect(
+      getWorkflowTemplateCategoryInfo(WorkflowTemplateCategory.Zabbix).label,
+    ).toBe("Zabbix");
+  });
+
+  it("names each setting by the wizard's title for it, and says the token is the secret, sent only in its header", () => {
+    const settings: string = englishSection(
+      ZABBIX,
+      "### What the templates ask for",
+    );
+    const titles: Array<string> = STATE_TEMPLATE.variables.map(
+      (variable: WorkflowTemplateVariable): string => {
+        return variable.title;
+      },
     );
 
-    expect(stepDefinedNames().has("Incident Template")).toBe(true);
-    expect(incidentService).toContain("incidentSeverityId is");
+    expect(titles).toEqual(["Zabbix URL", "Zabbix API Token"]);
+
+    for (const title of titles) {
+      expect(settings).toContain(`- ${bold(title)}: `);
+    }
+
+    expect(
+      STATE_TEMPLATE.variables.map(
+        (variable: WorkflowTemplateVariable): boolean => {
+          return variable.isSecret;
+        },
+      ),
+    ).toEqual([false, true]);
+    expect(settings).toContain(
+      "It is saved as a secret variable, and only ever sent in the `Authorization` header.",
+    );
+    expect(
+      JSON.stringify(nodeOf(STATE_TEMPLATE, "update-problem-1").args),
+    ).toContain("Bearer {{local.variables.zabbixApiToken}}");
+  });
+
+  it("the examples of a Zabbix URL are ones the wizard takes, and a page in Zabbix is one it refuses", () => {
+    const settings: string = englishSection(
+      ZABBIX,
+      "### What the templates ask for",
+    );
+    const url: string = lineStartingWith(settings, `- ${bold("Zabbix URL")}`);
+
+    for (const example of codeIn(url).filter((code: string): boolean => {
+      return code.startsWith("https://");
+    })) {
+      expect({ example, taken: ZABBIX_URL_PATTERN.test(example) }).toEqual({
+        example,
+        taken: true,
+      });
+    }
+
+    expect(codeIn(url)).toContain("api_jsonrpc.php");
+    expect(String(nodeOf(STATE_TEMPLATE, "get-problem-1").args?.["url"])).toBe(
+      "{{local.variables.zabbixUrl}}/api_jsonrpc.php",
+    );
+    expect(
+      ZABBIX_URL_PATTERN.test("https://zabbix.example.com/zabbix.php"),
+    ).toBe(false);
+    expect(url).toContain("The field refuses the address of a page in Zabbix.");
+  });
+
+  it("names the custom field the record keeps the event ID in", () => {
     expect(page).toContain(
-      `Without a template, ${bold("JSON Object")} also needs \`incidentSeverityId\``,
+      `in its custom field \`${ZABBIX_EVENT_ID_CUSTOM_FIELD}\``,
+    );
+  });
+
+  it("names the steps the reader opens by the template's own ids", () => {
+    for (const componentId of ["read-event-1", "if-page-1"]) {
+      expect(page).toContain(`\`${componentId}\``);
+      expect(() => {
+        return nodeOf(PROBLEM_TEMPLATE, componentId);
+      }).not.toThrow();
+    }
+
+    expect(codeOf(PROBLEM_TEMPLATE, "read-event-1")).toContain(
+      "const SEVERITY_BY_NAME = {};",
+    );
+    expect(page).toContain(
+      "edit `SEVERITY_BY_NAME` in the `read-event-1` step",
+    );
+  });
+
+  it("pages for High and Disaster: the If / Else in front of the Page step compares the Zabbix severity with 4, and Average is 3", () => {
+    const condition: JSONObject = nodeOf(PROBLEM_TEMPLATE, "if-page-1")
+      .args as JSONObject;
+
+    expect(condition["operator"]).toBe(">=");
+    expect(condition["input-2"]).toBe(String(ZABBIX_PAGE_FROM_SEVERITY));
+    expect(ZABBIX_SEVERITY_NAMES[ZABBIX_PAGE_FROM_SEVERITY]).toBe("High");
+    expect(ZABBIX_SEVERITY_NAMES.indexOf("Average")).toBe(3);
+    expect(page).toContain(
+      `To page for Average problems too, set ${bold("Compare with")} of the \`if-page-1\` ${bold("If / Else")} step to \`3\`.`,
+    );
+  });
+
+  /*
+   * The severity table, as the template maps a new project's severities:
+   * the page's rows are run through the template's own script.
+   */
+  it("maps each Zabbix severity as the severity table says, for a new project's incident and alert severities, and pages as it says", async () => {
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(ZABBIX, "### Severities"),
+      "Zabbix severity",
+    );
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual([...ZABBIX_SEVERITY_NAMES].reverse());
+
+    for (const row of rows) {
+      const severityNumber: number = ZABBIX_SEVERITY_NAMES.indexOf(
+        row[0] as string,
+      );
+      const mapped: Array<string> = [];
+
+      for (const kind of [INCIDENT, ALERT]) {
+        const read: JSONObject = await runZabbixScript({
+          templateId: kind.problemTemplateId,
+          componentId: "read-event-1",
+          args: {
+            severities: quoted(kind.severities),
+            zabbixUrl: ZABBIX_URL,
+            payload: quoted(zabbixPostedBody({ severityNumber })),
+          },
+        });
+
+        mapped.push(String(read["severityName"]));
+      }
+
+      expect({
+        zabbix: row[0],
+        incident: mapped[0],
+        alert: mapped[1],
+        pages:
+          severityNumber >= ZABBIX_PAGE_FROM_SEVERITY ? "Paged" : "Not paged",
+      }).toEqual({
+        zabbix: row[0],
+        incident: row[1],
+        alert: row[2],
+        pages: row[3],
+      });
+    }
+  });
+
+  it("says what each event does, by the Switch / Case's cases", () => {
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(ZABBIX, "### What the workflow does"),
+      "Event",
+    );
+    const cases: Array<string> = (
+      nodeOf(PROBLEM_TEMPLATE, "switch-1").args?.["cases"] as Array<JSONObject>
+    ).map((entry: JSONObject): string => {
+      return `\`${String(entry["value"])}\``;
+    });
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual(cases);
+    expect(rows[0]?.[1]).toContain("titled `Zabbix: <problem> on <host>`");
+  });
+
+  it("says why Zabbix refuses, in the words the template's log shows", () => {
+    expect(codeOf(STATE_TEMPLATE, "choose-action-1")).toContain(
+      "'Zabbix has no problem with event ID '",
+    );
+    expect(page).toContain(
+      "- `Zabbix has no problem with event ID`: the user cannot see the problem's host.",
+    );
+    // The flags of event.acknowledge the template sends, and what Zabbix answers when a trigger refuses a close.
+    expect(codeOf(STATE_TEMPLATE, "choose-action-1")).toContain(
+      "does not allow closing problems by hand",
+    );
+  });
+
+  it("tells Zabbix 6.0 where its token goes: after the jsonrpc member of each request body the templates send", () => {
+    for (const template of ZABBIX_TEMPLATES) {
+      for (const node of nodesOf(template)) {
+        if (node.metadataId !== ComponentID.ApiPost) {
+          continue;
+        }
+
+        expect(String(node.args?.["request-body"])).toContain(
+          '"jsonrpc": "2.0",',
+        );
+      }
+    }
+
+    expect(page).toContain(
+      'add `"auth": "{{local.variables.zabbixApiToken}}",` to **Request Body**, after `"jsonrpc": "2.0",`, and remove the header.',
     );
   });
 
@@ -1031,6 +1375,16 @@ describe("Zabbix", () => {
   it("leaves a reference to a missing field as written, never empty", () => {
     expect(page).toContain(
       "A reference to a field the request does not have is left as written, braces and all, rather than being emptied.",
+    );
+  });
+
+  it("no longer says a workflow cannot resolve an incident on recovery", () => {
+    expect(page).not.toContain("does not resolve the incident on recovery");
+    expect(page).not.toContain(
+      "To resolve incidents on recovery, use the monitor",
+    );
+    expect(page).not.toContain(
+      "A workflow does not resolve incidents on recovery",
     );
   });
 });

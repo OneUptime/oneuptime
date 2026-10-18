@@ -20,8 +20,8 @@ import path from "path";
  *     commands name the compose service and the config.env settings that
  *     exist; ComposeDatabaseRuntime (Tests/Ops) runs them for real;
  *   - the upgrade note (installation/upgrading, "Other changes in 14") sits
- *     after the note on a placeholder ONEUPTIME_SECRET and before the
- *     pointer to the endpoint changes, says the same, and links to those two
+ *     after the note on the header ONEUPTIME_SECRET travels in and before the
+ *     note on the bundled Runner, says the same, and links to those two
  *     sections - in
  *     every language at that language's own headings;
  *   - every translation carries the guide's sections and the note in the
@@ -62,9 +62,9 @@ const OVERRIDE_EXAMPLE: Array<string> = [
 
 const NOTE_LEAD: string =
   "**PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.**";
-// The note before it (ClusterKeyUpgradeDocs).
+// The note before it (ClusterKeyHeaderUpgradeDocs).
 const PREVIOUS_LEAD: string =
-  "**OneUptime refuses a placeholder `ONEUPTIME_SECRET`.**";
+  "**OneUptime's own services send `ONEUPTIME_SECRET` in a header, and only to the routes that take it.**";
 // The note after it (SharedRunnerUpgradeDocs).
 const NEXT_LEAD: string =
   "**The bundled Runner no longer runs a repository's commands, and holds only what it needs.**";
@@ -483,7 +483,7 @@ function noteLinks(language: string): Array<string> {
 }
 
 describe("the English upgrade note on PostgreSQL's port and password", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on a placeholder ONEUPTIME_SECRET and before the note on the bundled Runner", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on the header ONEUPTIME_SECRET travels in and before the note on the bundled Runner", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

@@ -66,7 +66,6 @@ import {
   securityCaseSummaryMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import { WorkflowHostname } from "../../EnvironmentConfig";
-import ClusterKeyAuthorization from "../../Middleware/ClusterKeyAuthorization";
 import IncidentFeedService from "../../Services/IncidentFeedService";
 import IncidentService from "../../Services/IncidentService";
 import MailService from "../../Services/MailService";
@@ -931,7 +930,10 @@ export default class SecurityPlaybookActions {
       );
     }
 
-    // The workflow's own webhook trigger, inside the cluster.
+    /*
+     * The workflow's own webhook trigger, inside the cluster: its secret key
+     * is all the trigger asks for, so the request carries the case alone.
+     */
     await API.post({
       url: new URL(
         Protocol.HTTP,
@@ -941,9 +943,6 @@ export default class SecurityPlaybookActions {
         ),
       ),
       data: await this.getCasePayload(context),
-      headers: {
-        ...ClusterKeyAuthorization.getClusterKeyHeaders(),
-      },
     });
 
     return succeeded(mdText`Started the workflow **${workflow.name || ""}**.`);

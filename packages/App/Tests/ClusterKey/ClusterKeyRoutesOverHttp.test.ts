@@ -1,5 +1,7 @@
 import {
   ClusterKeyRoute,
+  RUNNER_REGISTRATION_MIDDLEWARE,
+  SERVICE_MIDDLEWARE,
   findClusterKeyRoutes,
 } from "Common/Tests/Server/TestingUtils/ClusterKeyRoutes";
 import {
@@ -32,8 +34,21 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { createServer, Server } from "http";
+import {
+  ClientRequest,
+  createServer,
+  request as httpRequest,
+  IncomingMessage,
+  Server,
+} from "http";
 import { AddressInfo } from "net";
+
+/*
+ * What any installation's logger was asked to warn about. The logger is one
+ * stand-in shared by every copy of the product here, so a test empties this
+ * before it acts.
+ */
+const mockWarnings: Array<string> = [];
 
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
@@ -41,7 +56,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
     default: {
       debug: jest.fn(),
       info: jest.fn(),
-      warn: jest.fn(),
+      warn: (message: unknown): void => {
+        mockWarnings.push(String(message));
+      },
       error: jest.fn(),
     },
     getLogAttributesFromRequest: jest.fn().mockReturnValue({}),
@@ -54,10 +71,10 @@ jest.mock("Common/Server/Utils/Logger", () => {
  *
  * These routes send an email, an SMS, a call, a WhatsApp or Telegram message
  * or a webhook with the installation's own accounts, release its phone
- * numbers, run its workflows, write telemetry for any project, show what its
- * queues hold and which monitors its probes check, and register the Runner
- * that fixes code for every project. Only OneUptime's own services may ask
- * for that, and a value this repository ships is never their key.
+ * numbers, run its workflows, write telemetry for any project, and register
+ * the Runner that fixes code for every project. Only OneUptime's own
+ * services may ask for that, they ask for it with POST requests, and a value
+ * this repository ships is never their key.
  *
  * Each installation here is a fresh copy of the product, loaded with the
  * ONEUPTIME_SECRET it names: the real EnvironmentConfig reads it, and the
@@ -76,7 +93,14 @@ jest.mock("Common/Server/Utils/Logger", () => {
  *   - an installation that kept such a value takes the key its own app and
  *     worker processes present (derived from the token signing key they all
  *     load at boot), and nothing else;
- *   - an installation whose operator set ONEUPTIME_SECRET takes exactly that.
+ *   - an installation whose operator set ONEUPTIME_SECRET takes exactly that;
+ *   - the key is taken from a request header alone: a URL that carries it
+ *     is refused, whatever else the request carries, and a body that
+ *     carries it is not read - but by the Runner's registration, where
+ *     Runners of earlier releases put it;
+ *   - the routes nothing in OneUptime called (queue statistics, failed
+ *     jobs, pending monitors, and GET twins of the workflow routes) are
+ *     gone from every address.
  *
  * The second part runs the real handlers, with the senders behind them
  * stood in for, and the real callers in another copy of the product: a
@@ -103,7 +127,7 @@ type AnyModule = any; // eslint-disable-line @typescript-eslint/no-explicit-any
  */
 interface RouteUnderTest {
   source: ClusterKeyRoute;
-  method: "GET" | "POST";
+  method: "POST";
   urls: Array<string>;
 }
 
@@ -132,6 +156,43 @@ function incomingRequestUrls(routePath: string): Array<string> {
 const NOTIFICATION_API: string = "packages/App/FeatureSet/Notification/API";
 const TELEMETRY_API: string = "packages/App/FeatureSet/Telemetry/API";
 
+// The in-cluster Runner's registration.
+const REGISTRATION_URL: string = "/api/ai-agent/register";
+
+/*
+ * The routes that took the cluster key though nothing in OneUptime called
+ * them, at every address the app answered them on: queue statistics and
+ * failed jobs, the monitors pending on a probe, and GET twins of the two
+ * workflow routes their callers POST to. The model trigger's address is
+ * filled in once the trigger is loaded.
+ */
+function removedRequests(
+  modelTriggerPath: string,
+): Array<{ method: "GET"; url: string }> {
+  const urls: Array<string> = [];
+
+  for (const what of ["stats", "size", "failed"]) {
+    urls.push(
+      ...incomingRequestUrls(`/incoming-request/queue/${what}`),
+      ...telemetryUrls(`/otlp/queue/${what}`),
+      ...probeIngestUrls(`/probe/queue/${what}`),
+      ...serverMonitorUrls(`/server-monitor/queue/${what}`),
+    );
+  }
+
+  urls.push(
+    ...probeIngestUrls(`/monitor/pending-count/by-probe/${PROBE_ID}`),
+    ...probeIngestUrls("/monitor/pending-count/incoming-request"),
+    ...probeIngestUrls(`/monitor/pending-list/by-probe/${PROBE_ID}`),
+    `/workflow/update/${WORKFLOW_ID}`,
+    modelTriggerPath,
+  );
+
+  return urls.map((url: string) => {
+    return { method: "GET", url: url };
+  });
+}
+
 /*
  * Every cluster-key route, keyed as ClusterKeyRoutes reads it, with the
  * addresses the app answers it on. The model trigger's address is filled in
@@ -140,39 +201,27 @@ const TELEMETRY_API: string = "packages/App/FeatureSet/Telemetry/API";
 function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
   const route: (
     file: string,
-    method: "GET" | "POST",
+    method: "POST",
     sourcePath: string,
     urls: Array<string>,
+    middleware?: string,
   ) => RouteUnderTest = (
     file: string,
-    method: "GET" | "POST",
+    method: "POST",
     sourcePath: string,
     urls: Array<string>,
+    middleware: string = SERVICE_MIDDLEWARE,
   ): RouteUnderTest => {
     return {
-      source: { file: file, method: method, path: sourcePath },
+      source: {
+        file: file,
+        method: method,
+        path: sourcePath,
+        middleware: middleware,
+      },
       method: method,
       urls: urls,
     };
-  };
-
-  const queueRoutes: (
-    file: string,
-    queue: string,
-    urlsOf: (routePath: string) => Array<string>,
-  ) => Array<RouteUnderTest> = (
-    file: string,
-    queue: string,
-    urlsOf: (routePath: string) => Array<string>,
-  ): Array<RouteUnderTest> => {
-    return ["failed", "size", "stats"].map((what: string): RouteUnderTest => {
-      return route(
-        file,
-        "GET",
-        `"/${queue}/queue/${what}"`,
-        urlsOf(`/${queue}/queue/${what}`),
-      );
-    });
   };
 
   return [
@@ -218,51 +267,11 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       '"/send"',
       notificationUrls("whatsapp", "/send"),
     ),
-    ...queueRoutes(
-      `${TELEMETRY_API}/IncomingRequestIngest/IncomingRequest.ts`,
-      "incoming-request",
-      incomingRequestUrls,
-    ),
-    ...queueRoutes(`${TELEMETRY_API}/OTelIngest.ts`, "otlp", telemetryUrls),
-    route(
-      `${TELEMETRY_API}/ProbeIngest/Monitor.ts`,
-      "GET",
-      '"/monitor/pending-count/by-probe/:probeId"',
-      probeIngestUrls(`/monitor/pending-count/by-probe/${PROBE_ID}`),
-    ),
-    route(
-      `${TELEMETRY_API}/ProbeIngest/Monitor.ts`,
-      "GET",
-      '"/monitor/pending-count/incoming-request"',
-      probeIngestUrls("/monitor/pending-count/incoming-request"),
-    ),
-    route(
-      `${TELEMETRY_API}/ProbeIngest/Monitor.ts`,
-      "GET",
-      '"/monitor/pending-list/by-probe/:probeId"',
-      probeIngestUrls(`/monitor/pending-list/by-probe/${PROBE_ID}`),
-    ),
-    ...queueRoutes(
-      `${TELEMETRY_API}/ProbeIngest/Probe.ts`,
-      "probe",
-      probeIngestUrls,
-    ),
-    ...queueRoutes(
-      `${TELEMETRY_API}/ServerMonitorIngest/ServerMonitor.ts`,
-      "server-monitor",
-      serverMonitorUrls,
-    ),
     route(
       `${TELEMETRY_API}/TelemetryWriter.ts`,
       "POST",
       '"/telemetry-writer/insert"',
       ["/telemetry-writer/insert"],
-    ),
-    route(
-      "packages/App/FeatureSet/Workflow/API/Workflow.ts",
-      "GET",
-      "`/update/:workflowId`",
-      [`/workflow/update/${WORKFLOW_ID}`],
     ),
     route(
       "packages/App/FeatureSet/Workflow/API/Workflow.ts",
@@ -274,13 +283,8 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       "packages/Common/Server/API/AIAgentAPI.ts",
       "POST",
       "`${new this.entityType().getCrudApiPath()?.toString()}/register`",
-      ["/api/ai-agent/register"],
-    ),
-    route(
-      "packages/Common/Server/Types/Workflow/Components/BaseModel/OnTriggerBaseModel.ts",
-      "GET",
-      "`/model/:projectId/${this.modelId}/${this.type}`",
-      [modelTriggerPath],
+      [REGISTRATION_URL],
+      RUNNER_REGISTRATION_MIDDLEWARE,
     ),
     route(
       "packages/Common/Server/Types/Workflow/Components/BaseModel/OnTriggerBaseModel.ts",
@@ -306,8 +310,16 @@ interface RunningInstallation {
   origin: string;
   http: Server;
   ClusterKeyAuthorization: AnyModule;
-  messages: { notFound: string; invalid: string; shipped: string };
+  messages: {
+    notFound: string;
+    invalid: string;
+    shipped: string;
+    inUrl: string;
+    olderRunner: string;
+  };
   routes: Array<RouteUnderTest>;
+  // The requests that reached a route nothing called, which is gone.
+  removed: Array<{ method: "GET"; url: string }>;
   // What reached the senders and services behind the routes (real handlers only).
   reached: Array<string>;
   // What the stood-in senders were handed.
@@ -386,24 +398,29 @@ async function startInstallation(
 
       if (options.mode === "check") {
         /*
-         * Before any router is loaded, so every route captures it: the real
-         * check, and the request answered as soon as it lets it through.
+         * Before any router is loaded, so every route captures them: the
+         * real checks, and the request answered as soon as one lets it
+         * through.
          */
-        const realCheck: (
-          req: ExpressRequest,
-          res: ExpressResponse,
-          next: NextFunction,
-        ) => Promise<void> =
-          ClusterKeyAuthorization.isAuthorizedServiceMiddleware;
+        for (const check of [
+          SERVICE_MIDDLEWARE,
+          RUNNER_REGISTRATION_MIDDLEWARE,
+        ]) {
+          const realCheck: (
+            req: ExpressRequest,
+            res: ExpressResponse,
+            next: NextFunction,
+          ) => Promise<void> = ClusterKeyAuthorization[check];
 
-        ClusterKeyAuthorization.isAuthorizedServiceMiddleware = async (
-          req: ExpressRequest,
-          res: ExpressResponse,
-        ): Promise<void> => {
-          await realCheck(req, res, () => {
-            res.status(200).json(CHECK_PASSED);
-          });
-        };
+          ClusterKeyAuthorization[check] = async (
+            req: ExpressRequest,
+            res: ExpressResponse,
+          ): Promise<void> => {
+            await realCheck(req, res, () => {
+              res.status(200).json(CHECK_PASSED);
+            });
+          };
+        }
       } else {
         standInForSenders({ reached, mails, smses, registeredAgents });
       }
@@ -502,6 +519,8 @@ async function startInstallation(
 
       http.on("request", app);
 
+      const modelTriggerPath: string = `/workflow/model/${PROJECT_ID}/${modelTrigger.modelId}/${modelTrigger.type}`;
+
       installation = {
         origin: origin,
         http: http,
@@ -510,10 +529,11 @@ async function startInstallation(
           notFound: middlewareModule.CLUSTER_KEY_NOT_FOUND_MESSAGE,
           invalid: middlewareModule.INVALID_CLUSTER_KEY_MESSAGE,
           shipped: middlewareModule.SHIPPED_CLUSTER_KEY_MESSAGE,
+          inUrl: middlewareModule.CLUSTER_KEY_IN_URL_MESSAGE,
+          olderRunner: middlewareModule.OLDER_RUNNER_CLUSTER_KEY_MESSAGE,
         },
-        routes: routesUnderTest(
-          `/workflow/model/${PROJECT_ID}/${modelTrigger.modelId}/${modelTrigger.type}`,
-        ),
+        routes: routesUnderTest(modelTriggerPath),
+        removed: removedRequests(modelTriggerPath),
         reached: reached,
         mails: mails,
         smses: smses,
@@ -593,52 +613,6 @@ function standInForSenders(record: {
     },
   );
   standIn(
-    "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService",
-    "getQueueStats",
-    () => {
-      return {
-        waiting: 0,
-        active: 0,
-        completed: 0,
-        failed: 0,
-        delayed: 0,
-        total: 0,
-      };
-    },
-  );
-  standIn(
-    "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService",
-    "getQueueSize",
-    () => {
-      return 0;
-    },
-  );
-  standIn(
-    "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService",
-    "getFailedJobs",
-    () => {
-      return [];
-    },
-  );
-  standIn("Common/Server/Services/MonitorProbeService", "findBy", () => {
-    return [];
-  });
-  standIn("Common/Server/Services/MonitorProbeService", "countBy", () => {
-    const PositiveNumber: AnyModule = require_(
-      "Common/Types/PositiveNumber",
-    ).default;
-    return new PositiveNumber(0);
-  });
-  standIn("Common/Server/Services/ProbeService", "findOneById", () => {
-    return { _id: PROBE_ID };
-  });
-  standIn("Common/Server/Services/MonitorService", "countBy", () => {
-    const PositiveNumber: AnyModule = require_(
-      "Common/Types/PositiveNumber",
-    ).default;
-    return new PositiveNumber(0);
-  });
-  standIn(
     "../../FeatureSet/Workflow/Services/QueueWorkflow",
     "reconcileSchedule",
   );
@@ -711,11 +685,18 @@ async function send(
 
 function everyRequest(
   installation: RunningInstallation,
-): Array<{ method: "GET" | "POST"; url: string }> {
+): Array<{ method: "POST"; url: string; registration: boolean }> {
   return installation.routes.flatMap(
-    (route: RouteUnderTest): Array<{ method: "GET" | "POST"; url: string }> => {
+    (
+      route: RouteUnderTest,
+    ): Array<{ method: "POST"; url: string; registration: boolean }> => {
       return route.urls.map((url: string) => {
-        return { method: route.method, url: url };
+        return {
+          method: route.method,
+          url: url,
+          registration:
+            route.source.middleware === RUNNER_REGISTRATION_MIDDLEWARE,
+        };
       });
     },
   );
@@ -835,7 +816,7 @@ describe.each(SHIPPED_INSTALLATIONS)(
       expect(refusedWrongly).toStrictEqual([]);
     });
 
-    test("refuses a shipped value carried in the body or the query string too", async () => {
+    test("refuses a shipped value carried in the query string or the body too", async () => {
       for (const request of everyRequest(installation)) {
         const inQuery: HttpResult = await send(
           installation,
@@ -847,24 +828,27 @@ describe.each(SHIPPED_INSTALLATIONS)(
         expect({ ...request, ...inQuery }).toStrictEqual({
           ...request,
           status: 400,
-          body: { message: installation.messages.shipped },
+          body: { message: installation.messages.inUrl },
         });
 
-        if (request.method === "POST") {
-          const inBody: HttpResult = await send(
-            installation,
-            request.method,
-            request.url,
-            {},
-            { clusterKey: "secret" },
-          );
+        const inBody: HttpResult = await send(
+          installation,
+          request.method,
+          request.url,
+          {},
+          { clusterKey: "secret" },
+        );
 
-          expect({ ...request, ...inBody }).toStrictEqual({
-            ...request,
-            status: 400,
-            body: { message: installation.messages.shipped },
-          });
-        }
+        // Only the Runner's registration reads a body, and refuses it there.
+        expect({ ...request, ...inBody }).toStrictEqual({
+          ...request,
+          status: 400,
+          body: {
+            message: request.registration
+              ? installation.messages.shipped
+              : installation.messages.notFound,
+          },
+        });
       }
     });
 
@@ -913,6 +897,104 @@ describe.each(SHIPPED_INSTALLATIONS)(
           status: 400,
           body: { message: installation.messages.invalid },
         });
+      }
+    });
+
+    test("refuses its own processes' key in a URL, on every route, even beside the right header", async () => {
+      const worker: RunningInstallation = await startInstallation({
+        clusterKey: configuration.value,
+        installationKey: INSTALLATION_KEY,
+        mode: "check",
+      });
+
+      try {
+        const key: string = worker.ClusterKeyAuthorization.getClusterKey();
+
+        for (const request of everyRequest(installation)) {
+          for (const [query, headers] of [
+            [`clusterKey=${key}`, {}],
+            [`clusterKey=${key}`, { clusterkey: key }],
+            [`x-clusterkey=${key}&start=0`, { clusterkey: key }],
+          ] as Array<[string, Record<string, string>]>) {
+            const result: HttpResult = await send(
+              installation,
+              request.method,
+              `${request.url}?${query}`,
+              headers,
+            );
+
+            expect({ ...request, query, ...result }).toStrictEqual({
+              ...request,
+              query,
+              status: 400,
+              body: { message: installation.messages.inUrl },
+            });
+          }
+        }
+      } finally {
+        await close(worker.http);
+      }
+    });
+
+    test("does not read its own processes' key from a body, but on the Runner's registration", async () => {
+      const worker: RunningInstallation = await startInstallation({
+        clusterKey: configuration.value,
+        installationKey: INSTALLATION_KEY,
+        mode: "check",
+      });
+
+      try {
+        const key: string = worker.ClusterKeyAuthorization.getClusterKey();
+
+        for (const request of everyRequest(installation)) {
+          const result: HttpResult = await send(
+            installation,
+            request.method,
+            request.url,
+            {},
+            { clusterKey: key },
+          );
+
+          expect({ ...request, ...result }).toStrictEqual({
+            ...request,
+            ...(request.registration
+              ? { status: 200, body: CHECK_PASSED }
+              : {
+                  status: 400,
+                  body: { message: installation.messages.notFound },
+                }),
+          });
+        }
+      } finally {
+        await close(worker.http);
+      }
+    });
+
+    test("answers GET at none of the routes nothing in OneUptime called, at any address", async () => {
+      const worker: RunningInstallation = await startInstallation({
+        clusterKey: configuration.value,
+        installationKey: INSTALLATION_KEY,
+        mode: "check",
+      });
+
+      try {
+        expect(installation.removed.length).toBe(38);
+
+        for (const request of installation.removed) {
+          const result: HttpResult = await send(
+            installation,
+            request.method,
+            request.url,
+            worker.ClusterKeyAuthorization.getClusterKeyHeaders(),
+          );
+
+          expect({ ...request, status: result.status }).toStrictEqual({
+            ...request,
+            status: 404,
+          });
+        }
+      } finally {
+        await close(worker.http);
       }
     });
 
@@ -1000,7 +1082,133 @@ describe("an installation whose operator set ONEUPTIME_SECRET", () => {
       }
     }
   });
+
+  test("never takes the key from a URL, whatever the parameter is called or however it is nested", async () => {
+    const key: string = encodeURIComponent(operatorKey);
+
+    for (const request of everyRequest(installation)) {
+      for (const name of [
+        "clusterKey",
+        "CLUSTERKEY",
+        "cluster_key",
+        "cluster-key",
+        "x-clusterkey",
+        "X_Cluster_Key",
+        "clusterKey[]",
+        "clusterKey[0]",
+        "a[clusterKey]",
+        "cluster.key",
+        "cluster%4Bey",
+        "key",
+      ]) {
+        const result: HttpResult = await send(
+          installation,
+          request.method,
+          `${request.url}?${name}=${key}`,
+          {},
+        );
+
+        // Refused as a key in a URL, or as no key at all: never let through.
+        expect({ ...request, name, status: result.status }).toStrictEqual({
+          ...request,
+          name,
+          status: 400,
+        });
+        expect([
+          installation.messages.inUrl,
+          installation.messages.notFound,
+        ]).toContain(result.body?.["message"]);
+      }
+    }
+  });
+
+  test("reads one header, once: the key sent twice, or a wrong clusterkey beside the right x-clusterkey, is refused", async () => {
+    const key: string = encodeURIComponent(operatorKey);
+
+    for (const request of everyRequest(installation)) {
+      for (const [headers, expected] of [
+        [{ clusterkey: [key, key] }, { status: 400, message: "invalid" }],
+        [
+          { clusterkey: "wrong", "x-clusterkey": key },
+          { status: 400, message: "invalid" },
+        ],
+        [
+          { clusterkey: key, "x-clusterkey": "wrong" },
+          { status: 200, message: "passed" },
+        ],
+      ] as Array<
+        [
+          Record<string, string | Array<string>>,
+          { status: number; message: string },
+        ]
+      >) {
+        const result: HttpResult = await sendHeaderLines(
+          installation,
+          request.url,
+          headers,
+        );
+
+        expect({ ...request, headers, ...result }).toStrictEqual({
+          ...request,
+          headers,
+          status: expected.status,
+          body:
+            expected.message === "passed"
+              ? CHECK_PASSED
+              : { message: installation.messages.invalid },
+        });
+      }
+    }
+  });
 });
+
+/*
+ * A POST with these header lines exactly as given: a name with a list of
+ * values is sent as that many lines, as a client that repeats a header
+ * would.
+ */
+async function sendHeaderLines(
+  installation: RunningInstallation,
+  url: string,
+  headers: Record<string, string | Array<string>>,
+): Promise<HttpResult> {
+  const target: URL = new URL(`${installation.origin}${url}`);
+
+  return await new Promise<HttpResult>(
+    (resolve: (result: HttpResult) => void, reject: (error: Error) => void) => {
+      const outgoing: ClientRequest = httpRequest(
+        {
+          host: target.hostname,
+          port: target.port,
+          path: `${target.pathname}${target.search}`,
+          method: "POST",
+          headers: { "content-type": "application/json", ...headers },
+        },
+        (response: IncomingMessage) => {
+          let text: string = "";
+
+          response.on("data", (chunk: Buffer) => {
+            text += chunk.toString("utf8");
+          });
+          response.on("end", () => {
+            let parsed: JSONObject | null = null;
+
+            try {
+              parsed = JSON.parse(text) as JSONObject;
+            } catch {
+              parsed = null;
+            }
+
+            resolve({ status: response.statusCode || 0, body: parsed });
+          });
+        },
+      );
+
+      outgoing.on("error", reject);
+      outgoing.end("{}");
+    },
+  );
+}
 
 describe("the real handlers behind the routes", () => {
   /*
@@ -1062,7 +1270,7 @@ describe("the real handlers behind the routes", () => {
     },
     {
       name: "a global AI agent registration",
-      url: "/api/ai-agent/register",
+      url: REGISTRATION_URL,
       body: { aiAgentKey: "an-agent-key" },
     },
     {
@@ -1109,6 +1317,55 @@ describe("the real handlers behind the routes", () => {
     },
   );
 
+  test("the installation's own key in a URL, or in the body of anything but the Runner's registration, sends nothing", async () => {
+    const worker: RunningInstallation = await startInstallation({
+      clusterKey: "please-change-this-to-random-value",
+      installationKey: INSTALLATION_KEY,
+      mode: "check",
+    });
+
+    try {
+      const key: string = worker.ClusterKeyAuthorization.getClusterKey();
+      const before: number = api.reached.length;
+
+      for (const sendCase of SENDS) {
+        const inUrl: HttpResult = await send(
+          api,
+          "POST",
+          `${sendCase.url}?clusterKey=${key}`,
+          { clusterkey: key },
+          sendCase.body,
+        );
+
+        expect({ name: sendCase.name, ...inUrl }).toStrictEqual({
+          name: sendCase.name,
+          status: 400,
+          body: { message: api.messages.inUrl },
+        });
+
+        if (sendCase.url !== REGISTRATION_URL) {
+          const inBody: HttpResult = await send(
+            api,
+            "POST",
+            sendCase.url,
+            {},
+            { ...sendCase.body, clusterKey: key },
+          );
+
+          expect({ name: sendCase.name, ...inBody }).toStrictEqual({
+            name: sendCase.name,
+            status: 400,
+            body: { message: api.messages.notFound },
+          });
+        }
+      }
+
+      expect(api.reached.slice(before)).toStrictEqual([]);
+    } finally {
+      await close(worker.http);
+    }
+  });
+
   test("nothing was sent, registered or run by any refused request", () => {
     expect(api.mails).toStrictEqual([]);
     expect(api.smses).toStrictEqual([]);
@@ -1148,20 +1405,34 @@ describe("the real handlers behind the routes", () => {
           )
         ).status,
       ).toBe(200);
+      // A Runner of this release: the key in the header.
+      mockWarnings.length = 0;
+
+      expect(
+        (
+          await send(api, "POST", REGISTRATION_URL, headers, {
+            aiAgentKey: "the-runner-key",
+          })
+        ).status,
+      ).toBe(200);
+      expect(mockWarnings).toStrictEqual([]);
+
+      // A Runner of an earlier release: the key in the body, still let in.
       expect(
         (
           await send(
             api,
             "POST",
-            "/api/ai-agent/register",
+            REGISTRATION_URL,
             {},
             {
-              aiAgentKey: "the-runner-key",
+              aiAgentKey: "an-earlier-runner-key",
               clusterKey: worker.ClusterKeyAuthorization.getClusterKey(),
             },
           )
         ).status,
       ).toBe(200);
+      expect(mockWarnings).toStrictEqual([api.messages.olderRunner]);
 
       expect(
         api.mails.map((mail: JSONObject) => {
@@ -1173,6 +1444,7 @@ describe("the real handlers behind the routes", () => {
       ]);
       expect(api.registeredAgents).toStrictEqual([
         { key: "the-runner-key", isGlobalAIAgent: true },
+        { key: "an-earlier-runner-key", isGlobalAIAgent: true },
       ]);
     } finally {
       await close(worker.http);

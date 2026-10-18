@@ -343,6 +343,7 @@ const PROSE_LEADS: Array<string> = [
   "A workflow's field lists have plain names, and a watched related record is heard.",
   "Sign-in cookies stay on HTTPS, and an HTTPS installation tells browsers to stay there.",
   "OneUptime refuses a placeholder `ONEUPTIME_SECRET`.",
+  "OneUptime's own services send `ONEUPTIME_SECRET` in a header, and only to the routes that take it.",
   "PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.",
   "The bundled Runner no longer runs a repository's commands, and holds only what it needs.",
   "Wrong two-factor codes are counted for the account, wherever they come from.",

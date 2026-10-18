@@ -28,7 +28,7 @@ Un'integrazione bidirezionale, come Jira o Dynamics 365, usa entrambe le direzio
 | Modo | Ideale per | Esempi |
 | --- | --- | --- |
 | Una connessione integrata | Strumenti a cui OneUptime si collega da solo. Compili un modulo e non c'è nulla da costruire. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), le connessioni di [Eventi di sicurezza](/docs/telemetry/security-events) |
-| Un modello di workflow | Strumenti di ticketing, sincronizzati in entrambe le direzioni, rapporti di incidenti di sicurezza e messaggi di chat. Scegli un modello e compili poche impostazioni. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
+| Un modello di workflow | Strumenti di ticketing, sincronizzati in entrambe le direzioni, problemi di monitoraggio, rapporti di incidenti di sicurezza e messaggi di chat. Scegli un modello e compili poche impostazioni. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
 | Un monitor Incoming Request | Strumenti di allerta che inviano un webhook. Ottieni un incidente per allerta, segnalato ai reperibili e risolto quando l'allerta rientra, senza workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Un workflow che costruisci tu | Qualsiasi strumento con un webhook o un'API REST, e qualsiasi logica tua. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 
 | Strumento | Direzione | Cosa fa |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | In entrata | Trasforma i problemi di Zabbix in incidenti e li risolve quando Zabbix rientra. |
+| [Zabbix](/docs/integrations/zabbix) | Entrambe | Trasforma i problemi di Zabbix in incidenti o avvisi, li risolve al rientro, e conferma o chiude i problemi da OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | In entrata | Trasforma le notifiche di Alertmanager in incidenti. |
 | [Grafana](/docs/integrations/grafana) | In entrata | Trasforma gli alert di Grafana in incidenti. |
 | [Datadog](/docs/integrations/datadog) | In entrata | Trasforma gli alert dei monitor di Datadog in incidenti. |

@@ -37,10 +37,14 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
   public constructor() {
     super(AIAgent, AIAgentService);
 
-    // Register Global AI Agent. Custom AI Agent can be registered via dashboard.
+    /*
+     * Register Global AI Agent: the in-cluster Runner, which proves it is
+     * one of the installation's own services with the cluster key. Custom
+     * AI Agent can be registered via dashboard.
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/register`,
-      ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+      ClusterKeyAuthorization.isAuthorizedRunnerRegistrationMiddleware,
       async (
         req: ExpressRequest,
         res: ExpressResponse,
