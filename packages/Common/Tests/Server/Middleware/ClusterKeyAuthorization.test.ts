@@ -30,11 +30,15 @@ import type { Mock } from "jest-mock";
  *
  * Each installation below is a fresh module registry: EnvironmentConfig reads
  * the ONEUPTIME_SECRET it names, and the real middleware runs on requests
- * carrying a key in each place OneUptime's services and KEDA put one. The
- * rule:
+ * carrying a key in every place a request can carry one. The rule:
  *
- *   - a value this repository ships is refused, from any caller, in any
- *     place, as it is or URI-encoded, whatever the installation's own key;
+ *   - the key is taken from a request header (clusterkey, or x-clusterkey
+ *     as KEDA sends it) and nowhere else: a request whose URL names the key
+ *     is refused whatever else it carries, and a key in the body is not
+ *     read - but by the in-cluster Runner's registration, where Runners of
+ *     earlier releases put it;
+ *   - a value this repository ships is refused, from any caller, as it is
+ *     or URI-encoded, whatever the installation's own key;
  *   - an installation that kept such a value presents a key of its own,
  *     derived from its token signing key, which every app and worker process
  *     loads at boot, so its services keep calling each other - and only
@@ -52,11 +56,15 @@ interface Installation {
   configured: string | undefined;
   ClusterKeyAuthorization: ClusterKeyAuthorizationClass;
   TokenSigningKey: TokenSigningKeyClass;
+  // The installation's logger, mocked: what it was asked to warn about.
+  warnings: Mock<(...args: Array<unknown>) => unknown>;
   label: string;
   messages: {
     notFound: string;
     invalid: string;
     shipped: string;
+    inUrl: string;
+    olderRunner: string;
   };
   config: {
     IsClusterKeyShipped: boolean;
@@ -96,6 +104,7 @@ function loadInstallation(
         require("../../../Server/Utils/TokenSigningKey").default;
       const middlewareModule: JSONObject = require("../../../Server/Middleware/ClusterKeyAuthorization");
       const config: Installation["config"] = require("../../../Server/EnvironmentConfig");
+      const logger: JSONObject = require("../../../Server/Utils/Logger").default;
       /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
       if (options.installationKey) {
@@ -109,10 +118,17 @@ function loadInstallation(
           "default"
         ] as unknown as ClusterKeyAuthorizationClass,
         TokenSigningKey: TokenSigningKey,
+        warnings: logger["warn"] as unknown as Mock<
+          (...args: Array<unknown>) => unknown
+        >,
         messages: {
           notFound: middlewareModule["CLUSTER_KEY_NOT_FOUND_MESSAGE"] as string,
           invalid: middlewareModule["INVALID_CLUSTER_KEY_MESSAGE"] as string,
           shipped: middlewareModule["SHIPPED_CLUSTER_KEY_MESSAGE"] as string,
+          inUrl: middlewareModule["CLUSTER_KEY_IN_URL_MESSAGE"] as string,
+          olderRunner: middlewareModule[
+            "OLDER_RUNNER_CLUSTER_KEY_MESSAGE"
+          ] as string,
         },
         config: config,
       };
@@ -130,7 +146,7 @@ afterAll(() => {
   restoreEncryptionSecret();
 });
 
-// The places a request can carry the key, as the middleware reads them.
+// The places a request can carry the key.
 type Channel = "params" | "query" | "header" | "prefixed header" | "body";
 
 const CHANNELS: Array<Channel> = [
@@ -139,6 +155,22 @@ const CHANNELS: Array<Channel> = [
   "header",
   "prefixed header",
   "body",
+];
+
+// Where the key is taken from: a request header.
+const HEADER_CHANNELS: Array<Channel> = ["header", "prefixed header"];
+
+// Where a request's URL carries it: refused, whatever it is.
+const URL_CHANNELS: Array<Channel> = ["query", "params"];
+
+// The two checks: every route's, and the in-cluster Runner's registration's.
+type Check =
+  | "isAuthorizedServiceMiddleware"
+  | "isAuthorizedRunnerRegistrationMiddleware";
+
+const CHECKS: Array<Check> = [
+  "isAuthorizedServiceMiddleware",
+  "isAuthorizedRunnerRegistrationMiddleware",
 ];
 
 // A request as the middleware reads it: any value in any place.
@@ -168,6 +200,7 @@ interface Outcome {
 async function present(
   installation: Installation,
   request: FakeRequest,
+  check: Check = "isAuthorizedServiceMiddleware",
 ): Promise<Outcome> {
   const next: Mock<() => void> = jest.fn();
   const status: Mock<(code: number) => unknown> = jest.fn();
@@ -180,7 +213,7 @@ async function present(
   res["status"] = status as unknown as JSONObject;
   res["send"] = send as unknown as JSONObject;
 
-  await installation.ClusterKeyAuthorization.isAuthorizedServiceMiddleware(
+  await installation.ClusterKeyAuthorization[check](
     request as never,
     res as never,
     next,
@@ -261,55 +294,172 @@ describe.each(SHIPPED_CLUSTER_KEYS)(
       ).not.toBe(installation.TokenSigningKey.get());
     });
 
-    describe.each(CHANNELS)(
+    describe.each(HEADER_CHANNELS)(
       "a request carrying the key in its %s",
       (channel: Channel) => {
-        test("is refused with every shipped value", async () => {
-          for (const value of shippedValuesAStrangerWouldTry()) {
+        test.each(CHECKS)(
+          "is refused with every shipped value (%s)",
+          async (check: Check) => {
+            for (const value of shippedValuesAStrangerWouldTry()) {
+              const outcome: Outcome = await present(
+                installation,
+                requestWith(channel, value),
+                check,
+              );
+
+              expect({ value, ...outcome }).toStrictEqual({
+                value,
+                passed: false,
+                status: 400,
+                message: installation.messages.shipped,
+              });
+            }
+          },
+        );
+
+        test.each(CHECKS)(
+          "is let through with the installation's own key (%s)",
+          async (check: Check) => {
             const outcome: Outcome = await present(
               installation,
-              requestWith(channel, value),
+              requestWith(
+                channel,
+                installation.ClusterKeyAuthorization.getClusterKey(),
+              ),
+              check,
             );
 
-            expect({ value, ...outcome }).toStrictEqual({
-              value,
+            expect(outcome).toStrictEqual({
+              passed: true,
+              status: null,
+              message: null,
+            });
+          },
+        );
+
+        test.each(CHECKS)(
+          "is refused with another installation's key (%s)",
+          async (check: Check) => {
+            const outcome: Outcome = await present(
+              installation,
+              requestWith(channel, derivedClusterKey(OTHER_INSTALLATION_KEY)),
+              check,
+            );
+
+            expect(outcome).toStrictEqual({
               passed: false,
               status: 400,
-              message: installation.messages.shipped,
+              message: installation.messages.invalid,
             });
-          }
-        });
-
-        test("is let through with the installation's own key", async () => {
-          const outcome: Outcome = await present(
-            installation,
-            requestWith(
-              channel,
-              installation.ClusterKeyAuthorization.getClusterKey(),
-            ),
-          );
-
-          expect(outcome).toStrictEqual({
-            passed: true,
-            status: null,
-            message: null,
-          });
-        });
-
-        test("is refused with another installation's key", async () => {
-          const outcome: Outcome = await present(
-            installation,
-            requestWith(channel, derivedClusterKey(OTHER_INSTALLATION_KEY)),
-          );
-
-          expect(outcome).toStrictEqual({
-            passed: false,
-            status: 400,
-            message: installation.messages.invalid,
-          });
-        });
+          },
+        );
       },
     );
+
+    describe.each(URL_CHANNELS)(
+      "a request carrying the key in its URL (%s)",
+      (channel: Channel) => {
+        test.each(CHECKS)(
+          "is refused, the installation's own key and every shipped value alike (%s)",
+          async (check: Check) => {
+            for (const value of [
+              installation.ClusterKeyAuthorization.getClusterKey(),
+              ...shippedValuesAStrangerWouldTry(),
+            ]) {
+              const outcome: Outcome = await present(
+                installation,
+                requestWith(channel, value),
+                check,
+              );
+
+              expect({ value, ...outcome }).toStrictEqual({
+                value,
+                passed: false,
+                status: 400,
+                message: installation.messages.inUrl,
+              });
+            }
+          },
+        );
+      },
+    );
+
+    describe("a request carrying the key in its body", () => {
+      test("is not read by the routes that take the key", async () => {
+        for (const value of [
+          installation.ClusterKeyAuthorization.getClusterKey(),
+          ...shippedValuesAStrangerWouldTry(),
+        ]) {
+          const outcome: Outcome = await present(
+            installation,
+            requestWith("body", value),
+          );
+
+          expect({ value, ...outcome }).toStrictEqual({
+            value,
+            passed: false,
+            status: 400,
+            message: installation.messages.notFound,
+          });
+        }
+      });
+
+      test("lets an earlier release's Runner register with the installation's own key, and says to update it", async () => {
+        installation.warnings.mockClear();
+
+        const outcome: Outcome = await present(
+          installation,
+          requestWith(
+            "body",
+            installation.ClusterKeyAuthorization.getClusterKey(),
+          ),
+          "isAuthorizedRunnerRegistrationMiddleware",
+        );
+
+        expect(outcome).toStrictEqual({
+          passed: true,
+          status: null,
+          message: null,
+        });
+        expect(installation.warnings).toHaveBeenCalledTimes(1);
+        expect(installation.warnings.mock.calls[0]![0]).toBe(
+          installation.messages.olderRunner,
+        );
+      });
+
+      test("refuses an earlier release's Runner every shipped value, and another installation's key", async () => {
+        installation.warnings.mockClear();
+
+        for (const value of shippedValuesAStrangerWouldTry()) {
+          const outcome: Outcome = await present(
+            installation,
+            requestWith("body", value),
+            "isAuthorizedRunnerRegistrationMiddleware",
+          );
+
+          expect({ value, ...outcome }).toStrictEqual({
+            value,
+            passed: false,
+            status: 400,
+            message: installation.messages.shipped,
+          });
+        }
+
+        const other: Outcome = await present(
+          installation,
+          requestWith("body", derivedClusterKey(OTHER_INSTALLATION_KEY)),
+          "isAuthorizedRunnerRegistrationMiddleware",
+        );
+
+        expect(other).toStrictEqual({
+          passed: false,
+          status: 400,
+          message: installation.messages.invalid,
+        });
+        // Only a Runner let in is told to update.
+        expect(installation.warnings).not.toHaveBeenCalled();
+      });
+    });
   },
 );
 
@@ -335,16 +485,60 @@ describe.each(OPERATOR_CLUSTER_KEYS)(
       ).toStrictEqual({ clusterkey: encodeURIComponent(operatorKey) });
     });
 
-    describe.each(CHANNELS)(
+    test("takes the operator's key from the body of an earlier release's Runner registration alone", async () => {
+      expect(
+        (
+          await present(
+            installation,
+            requestWith("body", encodeURIComponent(operatorKey)),
+            "isAuthorizedRunnerRegistrationMiddleware",
+          )
+        ).passed,
+      ).toBe(true);
+      expect(
+        await present(
+          installation,
+          requestWith("body", encodeURIComponent(operatorKey)),
+        ),
+      ).toStrictEqual({
+        passed: false,
+        status: 400,
+        message: installation.messages.notFound,
+      });
+    });
+
+    test.each(URL_CHANNELS)(
+      "refuses the operator's key in a URL (%s), for every check",
+      async (channel: Channel) => {
+        for (const check of CHECKS) {
+          expect(
+            await present(
+              installation,
+              requestWith(channel, encodeURIComponent(operatorKey)),
+              check,
+            ),
+          ).toStrictEqual({
+            passed: false,
+            status: 400,
+            message: installation.messages.inUrl,
+          });
+        }
+      },
+    );
+
+    describe.each(HEADER_CHANNELS)(
       "a request carrying the key in its %s",
       (channel: Channel) => {
         test("is let through with the operator's key as services send it", async () => {
-          const outcome: Outcome = await present(
-            installation,
-            requestWith(channel, encodeURIComponent(operatorKey)),
-          );
+          for (const check of CHECKS) {
+            const outcome: Outcome = await present(
+              installation,
+              requestWith(channel, encodeURIComponent(operatorKey)),
+              check,
+            );
 
-          expect(outcome.passed).toBe(true);
+            expect(outcome.passed).toBe(true);
+          }
         });
 
         test("is refused with every shipped value", async () => {
@@ -526,20 +720,25 @@ describe("what a request can carry", () => {
   );
   const key: string = installation.ClusterKeyAuthorization.getClusterKey();
 
-  test("no key at all is answered as missing", async () => {
-    for (const request of [
-      { headers: {} },
-      { params: {}, query: {}, headers: {}, body: {} },
-      { headers: { clusterkey: "" } },
-      { body: { clusterKey: "" }, headers: {} },
-    ] as Array<FakeRequest>) {
-      const outcome: Outcome = await present(installation, request);
+  test("no key at all is answered as missing, by either check", async () => {
+    for (const check of CHECKS) {
+      for (const request of [
+        { headers: {} },
+        { params: {}, query: {}, headers: {}, body: {} },
+        { headers: { clusterkey: "" } },
+        { body: { clusterKey: "" }, headers: {} },
+        { body: "clusterKey", headers: {} },
+        { body: [key], headers: {} },
+      ] as Array<FakeRequest>) {
+        const outcome: Outcome = await present(installation, request, check);
 
-      expect(outcome).toStrictEqual({
-        passed: false,
-        status: 400,
-        message: installation.messages.notFound,
-      });
+        expect({ check, ...outcome }).toStrictEqual({
+          check,
+          passed: false,
+          status: 400,
+          message: installation.messages.notFound,
+        });
+      }
     }
   });
 
@@ -552,9 +751,14 @@ describe("what a request can carry", () => {
       true,
     ] as Array<unknown>) {
       for (const channel of CHANNELS) {
+        const check: Check =
+          channel === "body"
+            ? "isAuthorizedRunnerRegistrationMiddleware"
+            : "isAuthorizedServiceMiddleware";
         const outcome: Outcome = await present(
           installation,
           requestWith(channel, value),
+          check,
         );
 
         expect({ channel, value, ...outcome }).toStrictEqual({
@@ -562,7 +766,9 @@ describe("what a request can carry", () => {
           value,
           passed: false,
           status: 400,
-          message: installation.messages.invalid,
+          message: URL_CHANNELS.includes(channel)
+            ? installation.messages.inUrl
+            : installation.messages.invalid,
         });
       }
     }
@@ -582,20 +788,179 @@ describe("what a request can carry", () => {
     }
   });
 
-  test("the first place that carries a key decides, as before", async () => {
+  test("a URL that names the key is refused beside the right header, under any spelling of its name", async () => {
+    for (const name of [
+      "clusterKey",
+      "clusterkey",
+      "CLUSTERKEY",
+      "cluster_key",
+      "cluster-key",
+      "x-clusterkey",
+      "X_ClusterKey",
+    ]) {
+      for (const part of ["query", "params"]) {
+        for (const check of CHECKS) {
+          const outcome: Outcome = await present(
+            installation,
+            { headers: { clusterkey: key }, [part]: { [name]: key } },
+            check,
+          );
+
+          expect({ name, part, check, ...outcome }).toStrictEqual({
+            name,
+            part,
+            check,
+            passed: false,
+            status: 400,
+            message: installation.messages.inUrl,
+          });
+        }
+      }
+    }
+  });
+
+  test("a URL's other parameters are its own business", async () => {
     const outcome: Outcome = await present(installation, {
-      params: { clusterKey: "wrong" },
       headers: { clusterkey: key },
+      query: { start: "0", end: "100", key: "value", clusters: "a" },
+      params: { projectId: "6c7f1e2a-3b4d-4e5f-8a9b-0c1d2e3f4a5b" },
     });
 
-    expect(outcome.passed).toBe(false);
+    expect(outcome.passed).toBe(true);
+  });
 
-    const outcomeWithBody: Outcome = await present(installation, {
-      headers: { clusterkey: key },
-      body: { clusterKey: "secret" },
+  test("the header decides, and a body never stands in for it on a route that takes the key", async () => {
+    expect(
+      (
+        await present(installation, {
+          headers: { clusterkey: key },
+          body: { clusterKey: "secret" },
+        })
+      ).passed,
+    ).toBe(true);
+    expect(
+      (
+        await present(installation, {
+          headers: { clusterkey: "wrong" },
+          body: { clusterKey: key },
+        })
+      ).passed,
+    ).toBe(false);
+    expect(
+      (
+        await present(installation, {
+          headers: {},
+          body: { clusterKey: key },
+        })
+      ).message,
+    ).toBe(installation.messages.notFound);
+  });
+
+  test("the Runner's registration reads the header first, and a body only when no header carries a key", async () => {
+    installation.warnings.mockClear();
+
+    expect(
+      (
+        await present(
+          installation,
+          { headers: { clusterkey: "wrong" }, body: { clusterKey: key } },
+          "isAuthorizedRunnerRegistrationMiddleware",
+        )
+      ).passed,
+    ).toBe(false);
+    expect(
+      (
+        await present(
+          installation,
+          { headers: { clusterkey: key }, body: { clusterKey: "wrong" } },
+          "isAuthorizedRunnerRegistrationMiddleware",
+        )
+      ).passed,
+    ).toBe(true);
+    // A Runner of this release sent it in the header: nothing to update.
+    expect(installation.warnings).not.toHaveBeenCalled();
+  });
+});
+
+describe("carriesClusterKeyInUrl", () => {
+  const installation: Installation = loadInstallation(
+    OPERATOR_CLUSTER_KEYS[0]!.value,
+  );
+
+  test("finds the key's name in the query string or a path parameter, any spelling", () => {
+    for (const request of [
+      { query: { clusterKey: "x" } },
+      { query: { "x-clusterkey": "x" } },
+      { query: { Cluster_Key: ["x", "y"] } },
+      { params: { clusterKey: "x" } },
+      { query: { a: "1", clusterkey: "" } },
+    ]) {
+      expect(
+        installation.ClusterKeyAuthorization.carriesClusterKeyInUrl(
+          request as never,
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("finds nothing in a URL that does not name it, or a request with no URL parts", () => {
+    for (const request of [
+      {},
+      { query: {}, params: {} },
+      { query: { key: "x", cluster: "y", clusterKeys: "z" } },
+      { params: { workflowId: "x", projectId: "y" } },
+      { query: null, params: undefined },
+    ]) {
+      expect(
+        installation.ClusterKeyAuthorization.carriesClusterKeyInUrl(
+          request as never,
+        ),
+      ).toBe(false);
+    }
+  });
+});
+
+describe("withoutClusterKeyHeaders", () => {
+  const installation: Installation = loadInstallation(
+    OPERATOR_CLUSTER_KEYS[0]!.value,
+  );
+
+  test("keeps every header but the two the key travels in, whatever their case", () => {
+    expect(
+      installation.ClusterKeyAuthorization.withoutClusterKeyHeaders({
+        clusterkey: "a",
+        "x-clusterkey": "b",
+        ClusterKey: "c",
+        "X-ClusterKey": "d",
+        "content-type": "application/json",
+        authorization: "Bearer the-callers-own",
+        "x-forwarded-for": ["10.0.0.1", "10.0.0.2"],
+        "cluster-key": "a header of the caller's own",
+      }),
+    ).toStrictEqual({
+      "content-type": "application/json",
+      authorization: "Bearer the-callers-own",
+      "x-forwarded-for": ["10.0.0.1", "10.0.0.2"],
+      "cluster-key": "a header of the caller's own",
     });
+  });
 
-    expect(outcomeWithBody.passed).toBe(true);
+  test("hands back a copy, and an empty one for no headers", () => {
+    const headers: Record<string, string> = {
+      clusterkey: "a",
+      accept: "*/*",
+    };
+
+    expect(
+      installation.ClusterKeyAuthorization.withoutClusterKeyHeaders(headers),
+    ).toStrictEqual({ accept: "*/*" });
+    expect(headers).toStrictEqual({ clusterkey: "a", accept: "*/*" });
+    expect(
+      installation.ClusterKeyAuthorization.withoutClusterKeyHeaders(undefined),
+    ).toStrictEqual({});
+    expect(
+      installation.ClusterKeyAuthorization.withoutClusterKeyHeaders(null),
+    ).toStrictEqual({});
   });
 });
 

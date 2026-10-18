@@ -597,10 +597,13 @@ describe("the trigger itself", () => {
     expect(router.get).not.toHaveBeenCalled();
     expect(router.post).not.toHaveBeenCalled();
 
-    // The trigger it stands beside has its two, as before.
+    /*
+     * The trigger it stands beside has its one: the POST the record's own
+     * service sends (DatabaseService.onTriggerWorkflow).
+     */
     await new OnCreateBaseModel(MonitorService as never).setupComponent(props);
 
-    expect(router.get).toHaveBeenCalledTimes(1);
+    expect(router.get).not.toHaveBeenCalled();
     expect(router.post).toHaveBeenCalledTimes(1);
     expect(router.post.mock.calls[0]![0]).toBe(
       "/model/:projectId/monitor/on-create",

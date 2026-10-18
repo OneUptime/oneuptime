@@ -16,7 +16,8 @@
  *     only an operator setting ONEUPTIME_SECRET and restarting it helps.
  *
  * A Runner given a key of the operator's own registers with exactly that,
- * URI-encoded as ever.
+ * URI-encoded as ever, in the clusterkey request header - never in the URL
+ * or the request body.
  *
  * Each Runner here is a fresh module registry loaded with the environment
  * it names; API.post and the sleeps are recorded, not performed.
@@ -193,7 +194,7 @@ describe.each(SHIPPED_VALUES)(
 describe.each(OPERATOR_KEYS)(
   "an in-cluster Runner whose operator set ONEUPTIME_SECRET to %s",
   (_label: string, clusterKey: string) => {
-    test("registers with exactly that key, URI-encoded, at /api/ai-agent/register", async () => {
+    test("registers with exactly that key, URI-encoded, in the clusterkey header of a POST to /api/ai-agent/register", async () => {
       postMock.mockResolvedValue(
         new HTTPResponse<JSONObject>(
           200,
@@ -212,11 +213,18 @@ describe.each(OPERATOR_KEYS)(
 
       const request: JSONObject = postMock.mock.calls[0]![0] as JSONObject;
       const data: JSONObject = request["data"] as JSONObject;
+      const url: URL = new URL(String(request["url"]));
 
-      expect(new URL(String(request["url"])).pathname).toBe(
-        "/api/ai-agent/register",
-      );
-      expect(data["clusterKey"]).toBe(encodeURIComponent(clusterKey));
+      expect(url.pathname).toBe("/api/ai-agent/register");
+      expect(url.search).toBe("");
+      expect(request["headers"]).toStrictEqual({
+        clusterkey: encodeURIComponent(clusterKey),
+      });
+      expect(Object.keys(data).sort()).toStrictEqual([
+        "aiAgentDescription",
+        "aiAgentKey",
+        "runnerName",
+      ]);
       expect(data["aiAgentKey"]).toBe(process.env["ONEUPTIME_RUNNER_KEY"]);
       expect(errorLog).toEqual([]);
     });

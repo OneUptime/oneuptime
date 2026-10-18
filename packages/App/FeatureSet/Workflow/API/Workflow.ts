@@ -21,12 +21,7 @@ export default class WorkflowAPI {
   public constructor() {
     this.router = Express.getRouter();
 
-    this.router.get(
-      `/update/:workflowId`,
-      ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-      this.updateWorkflow,
-    );
-
+    // WorkflowService posts here when a workflow is saved or deleted.
     this.router.post(
       `/update/:workflowId`,
       ClusterKeyAuthorization.isAuthorizedServiceMiddleware,

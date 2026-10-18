@@ -3,8 +3,14 @@ import { REPOSITORY_DIRECTORY } from "../../Helpers/TagStripScan";
 import escapeRegExp from "../../../Utils/RegExpEscape";
 import { INSTALLATION_CLUSTER_KEY_LABEL } from "../../../Server/Middleware/ClusterKeyAuthorization";
 import {
+  CLUSTER_KEY_ROUTE_CALLERS,
   ClusterKeyMiddlewareUse,
+  ClusterKeyRoute,
+  ClusterKeyRouteCaller,
+  RUNNER_REGISTRATION_MIDDLEWARE,
+  SERVICE_MIDDLEWARE,
   findClusterKeyMiddlewareUses,
+  findClusterKeyRoutes,
 } from "../TestingUtils/ClusterKeyRoutes";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -26,11 +32,16 @@ import ts from "typescript";
  *     (EnvironmentConfig.ClusterKey, IsClusterKeyShipped), and only the
  *     Runner reads whether one is set at all (HasClusterKey);
  *   - only ClusterKeyAuthorization reads a key a request carries - the
- *     clusterkey and x-clusterkey headers, a clusterKey field - and only the
- *     Runner writes one into a body;
- *   - a route takes the cluster key only by handing a router
- *     ClusterKeyAuthorization.isAuthorizedServiceMiddleware, never by
- *     wrapping or storing it;
+ *     clusterkey and x-clusterkey headers, and, for the Runner's
+ *     registration alone, the clusterKey field Runners of earlier releases
+ *     send - and nothing writes one into a body or a URL (LogRedaction names
+ *     it only to keep it out of logs);
+ *   - a route takes the cluster key only by handing a router one of
+ *     ClusterKeyAuthorization's checks, never by wrapping or storing it, and
+ *     only the Runner's registration is handed the one that also reads a
+ *     body;
+ *   - every route that takes it is called by OneUptime's own code, and every
+ *     file that presents it presents it to such a route, in the header;
  *   - only the app's own code (App, Common) and the Runner present the key,
  *     because only processes that load the installation's token signing key
  *     at boot (App/Index.ts) know the key an installation that kept a shipped
@@ -50,6 +61,12 @@ const CLUSTER_KEY_AUTHORIZATION: string =
 const RUNNER_CONFIG: string = "packages/Runner/Config.ts";
 const RUNNER_REGISTRATION: string =
   "packages/Runner/Services/RegisterRunner.ts";
+const LOG_REDACTION: string = "packages/Common/Server/Utils/LogRedaction.ts";
+const WEBHOOK_TRIGGER: string =
+  "packages/Common/Server/Types/Workflow/Components/Webhook.ts";
+const INCOMING_REQUEST_INGEST: string =
+  "packages/App/FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts";
+const AI_AGENT_API: string = "packages/Common/Server/API/AIAgentAPI.ts";
 
 const ONEUPTIME_SECRET_READ: RegExp =
   /process\.env(?:\[\s*["'`]ONEUPTIME_SECRET["'`]\s*\]|\.ONEUPTIME_SECRET\b)/;
@@ -66,8 +83,6 @@ const CLUSTER_KEY_WORD: RegExp = /\bclusterkey\b/i;
 const PRESENTERS: Record<string, string> = {
   "packages/App/FeatureSet/Telemetry/Services/IncomingEmailWorkflowDelivery.ts":
     "WorkflowHostname",
-  "packages/Common/Server/Services/AnalyticsDatabaseService.ts":
-    "WorkflowHostname",
   "packages/Common/Server/Services/CallService.ts": "AppApiHostname",
   "packages/Common/Server/Services/DatabaseService.ts": "WorkflowHostname",
   "packages/Common/Server/Services/MailService.ts": "AppApiHostname",
@@ -77,8 +92,6 @@ const PRESENTERS: Record<string, string> = {
   "packages/Common/Server/Services/WhatsAppService.ts": "AppApiHostname",
   "packages/Common/Server/Services/WorkflowService.ts": "WorkflowHostname",
   "packages/Common/Server/Utils/IncomingCallPhoneNumber.ts": "AppApiHostname",
-  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts":
-    "WorkflowHostname",
   "packages/Common/Server/Utils/Telemetry/TelemetryWriterClient.ts":
     "TELEMETRY_WRITER_URL",
   "packages/Runner/Services/RegisterRunner.ts": "ONEUPTIME_BASE_URL",
@@ -107,6 +120,12 @@ const LABEL_SHAPE: RegExp = /^[a-z]+(?:-[a-z]+)*$/;
 
 const PRESENTING_CALL: RegExp =
   /\bClusterKeyAuthorization\.(?:getClusterKeyHeaders|getClusterKey)\(/;
+
+// Presenting the key as a bare value, to be put anywhere but a header.
+const BARE_KEY_CALL: RegExp = /\bClusterKeyAuthorization\.getClusterKey\(/;
+
+// What carries the key in a request, as ClusterKeyAuthorization reads it.
+const REQUEST_PARTS: RegExp = /\breq\.(?:query|params|body)\b/;
 
 // The code of a file, its comments removed by TypeScript's own printer.
 function codeOf(relativePath: string): string {
@@ -240,15 +259,15 @@ describe("ONEUPTIME_SECRET is read in one place, with no fallback", () => {
 });
 
 describe("a presented cluster key is read in one place", () => {
-  test("only ClusterKeyAuthorization names the headers or the field, and only the Runner writes the field", () => {
+  test("only ClusterKeyAuthorization names the headers or the field, and LogRedaction only to keep it out of logs", () => {
     expect(productFilesWhoseCodeMatches(CLUSTER_KEY_WORD)).toEqual([
       ENVIRONMENT_CONFIG,
       CLUSTER_KEY_AUTHORIZATION,
-      RUNNER_REGISTRATION,
+      LOG_REDACTION,
     ]);
   });
 
-  test("EnvironmentConfig names it only as the export ClusterKey, and the Runner only as the field it sends", () => {
+  test("EnvironmentConfig names it only as the export ClusterKey, and LogRedaction only as a fragment of what it redacts", () => {
     const environmentConfigMentions: Array<string> =
       codeOf(ENVIRONMENT_CONFIG).match(/\bclusterkey\b/gi) || [];
 
@@ -256,9 +275,22 @@ describe("a presented cluster key is read in one place", () => {
       "ClusterKey",
     ]);
 
-    expect(codeOf(RUNNER_REGISTRATION).match(/\bclusterkey\b.*$/gim)).toEqual([
-      "clusterKey: ClusterKeyAuthorization.getClusterKey(),",
+    const fragments: string =
+      codeOf(LOG_REDACTION)
+        .split("const SENSITIVE_KEY_FRAGMENTS")[1]
+        ?.split("];")[0] || "";
+
+    expect(codeOf(LOG_REDACTION).match(/\bclusterkey\b.*$/gim)).toEqual([
+      'clusterkey",',
     ]);
+    expect(fragments).toContain('"clusterkey",');
+  });
+
+  test("nothing writes the key into a request body: the Runner sends it in the header", () => {
+    expect(codeOf(RUNNER_REGISTRATION)).not.toMatch(/\bclusterKey\s*:/);
+    expect(codeOf(RUNNER_REGISTRATION)).toContain(
+      "...ClusterKeyAuthorization.getClusterKeyHeaders(),",
+    );
   });
 
   test("every use of the check is a router handed it for a route", () => {
@@ -268,6 +300,94 @@ describe("a presented cluster key is read in one place", () => {
     expect(
       uses.filter((use: ClusterKeyMiddlewareUse): boolean => {
         return !use.isRouteArgument;
+      }),
+    ).toEqual([]);
+  });
+
+  test("only the Runner's registration is handed the check that also reads a body", () => {
+    const routes: Array<ClusterKeyRoute> = findClusterKeyRoutes();
+
+    expect(
+      routes
+        .filter((route: ClusterKeyRoute): boolean => {
+          return route.middleware !== SERVICE_MIDDLEWARE;
+        })
+        .map((route: ClusterKeyRoute): string => {
+          return `${route.middleware} ${route.method} ${route.file} ${route.path}`;
+        }),
+    ).toEqual([
+      `${RUNNER_REGISTRATION_MIDDLEWARE} POST ${AI_AGENT_API} \`\${new this.entityType().getCrudApiPath()?.toString()}/register\``,
+    ]);
+  });
+
+  test("ClusterKeyAuthorization reads the key from the headers, a URL only to refuse it, and a body only for the Runner's registration", () => {
+    const sourceFile: ts.SourceFile = ts.createSourceFile(
+      "ClusterKeyAuthorization.ts",
+      codeOf(CLUSTER_KEY_AUTHORIZATION),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
+    const methods: Record<string, string> = {};
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isMethodDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.body
+      ) {
+        methods[node.name.text] = node.body.getText(sourceFile);
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(sourceFile);
+
+    // The headers, nothing else of a request.
+    expect(methods["getPresentedClusterKey"]).toContain("req.headers");
+    expect(methods["getPresentedClusterKey"]).not.toMatch(REQUEST_PARTS);
+
+    // A body is read in one method, which one middleware alone calls.
+    const readsABody: Array<string> = Object.keys(methods).filter(
+      (name: string): boolean => {
+        return /\breq\.body\b/.test(methods[name]!);
+      },
+    );
+
+    expect(readsABody).toEqual(["getOlderRunnerClusterKey"]);
+    expect(
+      Object.keys(methods).filter((name: string): boolean => {
+        return methods[name]!.includes(
+          "ClusterKeyAuthorization.getOlderRunnerClusterKey(",
+        );
+      }),
+    ).toEqual(["isAuthorizedRunnerRegistrationMiddleware"]);
+
+    // The URL is read only to refuse the request, before anything else.
+    const authorize: string = methods["authorize"] || "";
+    const urlCheck: number = authorize.indexOf(
+      "if (ClusterKeyAuthorization.carriesClusterKeyInUrl(req)) {",
+    );
+
+    expect(urlCheck).toBeGreaterThan(-1);
+    expect(authorize.slice(urlCheck)).toMatch(
+      /^if \(ClusterKeyAuthorization\.carriesClusterKeyInUrl\(req\)\) \{\s*return Response\.sendErrorResponse\(\s*req,\s*res,\s*new BadDataException\(CLUSTER_KEY_IN_URL_MESSAGE\)/,
+    );
+    expect(authorize.slice(0, urlCheck)).not.toContain("next(");
+    expect(
+      Object.keys(methods).filter((name: string): boolean => {
+        return /\breq\.(?:query|params)\b/.test(methods[name]!);
+      }),
+    ).toEqual(["carriesClusterKeyInUrl"]);
+  });
+
+  test("nothing outside ClusterKeyAuthorization reads the key from a request", () => {
+    expect(
+      productFilesWhoseCodeMatches(
+        /\bClusterKeyAuthorization\.(?:getPresentedClusterKey|getOlderRunnerClusterKey|carriesClusterKeyInUrl|authorize)\(/,
+      ).filter((relativePath: string): boolean => {
+        return relativePath !== CLUSTER_KEY_AUTHORIZATION;
       }),
     ).toEqual([]);
   });
@@ -371,6 +491,12 @@ describe("only processes that can know the installation's key present it", () =>
     }
   });
 
+  test("every file that presents it presents it in the header, never as a bare value", () => {
+    expect(productFilesWhoseCodeMatches(BARE_KEY_CALL)).toEqual([
+      CLUSTER_KEY_AUTHORIZATION,
+    ]);
+  });
+
   test("no frontend code presents it", () => {
     expect(
       presenters.filter((relativePath: string): boolean => {
@@ -389,13 +515,97 @@ describe("only processes that can know the installation's key present it", () =>
       "if (ClusterKeyAuthorization.isConfiguredClusterKeyShipped()) {",
     );
     const present: number = code.indexOf(
-      "ClusterKeyAuthorization.getClusterKey()",
+      "ClusterKeyAuthorization.getClusterKeyHeaders()",
     );
 
     expect(check).toBeGreaterThan(-1);
     expect(present).toBeGreaterThan(check);
     expect(code.slice(check, present)).toContain(
       "throw new ShippedClusterKeyError();",
+    );
+  });
+});
+
+/*
+ * A ROUTE TAKES THE CLUSTER KEY ONLY BECAUSE ONEUPTIME CALLS IT.
+ *
+ * Each route that takes the key is called by one of OneUptime's own
+ * services, named in CLUSTER_KEY_ROUTE_CALLERS with the address it calls,
+ * and each file that presents the key presents it to such a route alone -
+ * not to a route that checks something else, and not to one that hands the
+ * request on.
+ */
+describe("the routes that take the cluster key, and who calls them", () => {
+  function routeKey(route: {
+    file: string;
+    method: string;
+    path: string;
+  }): string {
+    return `${route.method} ${route.file} ${route.path}`;
+  }
+
+  test("every route that takes the key has a caller in the repository, and every listed caller's route exists", () => {
+    const found: Array<string> = findClusterKeyRoutes().map(routeKey).sort();
+    const called: Array<string> = Array.from(
+      new Set(
+        CLUSTER_KEY_ROUTE_CALLERS.map((entry: ClusterKeyRouteCaller) => {
+          return routeKey(entry.route);
+        }),
+      ),
+    ).sort();
+
+    expect(found.length).toBeGreaterThan(0);
+    expect(called).toEqual(found);
+  });
+
+  test("every caller presents the key and calls the address listed for it", () => {
+    for (const entry of CLUSTER_KEY_ROUTE_CALLERS) {
+      const code: string = codeOf(entry.caller);
+
+      expect({
+        caller: entry.caller,
+        presents: code.includes(
+          "ClusterKeyAuthorization.getClusterKeyHeaders()",
+        ),
+        callsIt: code.includes(entry.calls),
+      }).toEqual({ caller: entry.caller, presents: true, callsIt: true });
+    }
+  });
+
+  test("every file that presents the key is the caller of a route that takes it", () => {
+    const callers: Array<string> = Array.from(
+      new Set(
+        CLUSTER_KEY_ROUTE_CALLERS.map((entry: ClusterKeyRouteCaller) => {
+          return entry.caller;
+        }),
+      ),
+    ).sort();
+
+    expect(callers).toEqual(Object.keys(PRESENTERS).sort());
+  });
+
+  test("every route that takes the key answers a POST, the method its callers send", () => {
+    expect(
+      findClusterKeyRoutes()
+        .filter((route: ClusterKeyRoute): boolean => {
+          return route.method !== "POST";
+        })
+        .map(routeKey),
+    ).toEqual([]);
+  });
+
+  test("a route that hands the request's headers on to a project takes the key's headers out first", () => {
+    expect(codeOf(WEBHOOK_TRIGGER)).toContain(
+      '"request-headers": ClusterKeyAuthorization.withoutClusterKeyHeaders(req.headers)',
+    );
+    expect(codeOf(WEBHOOK_TRIGGER)).not.toContain(
+      '"request-headers": req.headers',
+    );
+    expect(codeOf(INCOMING_REQUEST_INGEST)).toContain(
+      "ClusterKeyAuthorization.withoutClusterKeyHeaders(req.headers)",
+    );
+    expect(codeOf(INCOMING_REQUEST_INGEST)).not.toMatch(
+      /requestHeaders: Dictionary<string> = req\.headers/,
     );
   });
 });
