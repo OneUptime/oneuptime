@@ -7,17 +7,18 @@ run or a real one, and which marketplaces it pushes to and publishes on.
 
 Everything comes from the environment the workflow sets:
 
-    EVENT_NAME           workflow_run (after a release) or workflow_dispatch (by hand)
+    EVENT_NAME           schedule (the weekly run) or workflow_dispatch (by hand)
     ACTION               release (default) or azure-go-live
-    VERSION_INPUT        the release asked for; empty takes VERSION_FILE
-    VERSION_FILE         the VERSION file of the release's commit
+    VERSION              the release: the one asked for, or else the newest release tag
+    RELEASE_SHA          the commit of that release's tag; empty when it has none
     MARKETPLACES_INPUT   e.g. "aws,azure"; empty means all three
     DRY_RUN_INPUT        "true" builds everything and pushes and submits nothing
     MARKETPLACE_RELEASE_* the repository variables each marketplace signs in with
 
-After a release (workflow_run) a marketplace that is not set up yet is skipped with a notice:
-releases go on before every listing exists. A run by hand that asks for a real release on a
-marketplace that is not set up fails, saying what is missing.
+The weekly run ships the newest release. A marketplace that is not set up yet is skipped with
+a notice, and one that has the release already is skipped by its own job. A run by hand that
+asks for a real release on a marketplace that is not set up fails, saying what is missing, and a
+real run only ever ships a version that was released (has its tag).
 """
 
 import os
@@ -75,14 +76,14 @@ def make_plan(
     *,
     event: str,
     action: str,
-    version_input: str,
-    version_file: str,
+    version: str,
+    released: bool,
     marketplaces_input: str,
     dry_run_input: str,
     variables: Dict[str, str],
     editions: Dict[str, Any],
 ) -> Dict[str, Any]:
-    if event not in ("workflow_run", "workflow_dispatch"):
+    if event not in ("schedule", "workflow_dispatch"):
         raise ReleaseError(f"Unexpected event {event}.")
 
     action = action or "release"
@@ -90,8 +91,12 @@ def make_plan(
     if action not in ACTIONS:
         raise ReleaseError(f"Unknown action {action}; choose {' or '.join(ACTIONS)}.")
 
-    automatic: bool = event == "workflow_run"
-    version: str = check_version((version_input or "").strip() or (version_file or "").strip())
+    automatic: bool = event == "schedule"
+
+    if not (version or "").strip():
+        raise ReleaseError("No release to ship: the repository has no release tag (#.#.#).")
+
+    version = check_version(version.strip())
     # Going live is already gated by the approval it waits for: there is nothing to rehearse.
     dry_run: bool = (
         (not automatic)
@@ -103,6 +108,11 @@ def make_plan(
         selected: List[str] = ["azure"]
     else:
         selected = list(MARKETPLACES) if automatic else parse_marketplaces(marketplaces_input)
+
+    if action == "release" and not dry_run and not released:
+        raise ReleaseError(
+            f"{version} was not released (no tag {version}): a real run only ships a release."
+        )
 
     runs: Dict[str, bool] = {name: False for name in MARKETPLACES}
     skipped: Dict[str, List[str]] = {}
@@ -156,10 +166,14 @@ def summary_of(plan: Dict[str, Any]) -> str:
     ]
 
     for name in MARKETPLACES:
-        if plan["runs"][name]:
-            what: str = "builds and checks" if plan["dry_run"] else (
-                "publishes to live" if plan["action"] == "azure-go-live" else "pushes, then publishes once approved"
-            )
+        if plan["runs"][name] and plan["dry_run"]:
+            what: str = "builds and checks"
+        elif plan["runs"][name] and plan["action"] == "azure-go-live":
+            what = "publishes the newest preview to live"
+        elif plan["runs"][name] and name == "google-cloud":
+            what = "pushes it, unless it has it already; it is then added in Producer Portal by hand"
+        elif plan["runs"][name]:
+            what = "ships it, once approved, unless it has it already"
         elif name in plan["skipped"]:
             what = "skipped: " + " ".join(plan["skipped"][name])
         else:
@@ -176,8 +190,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         plan: Dict[str, Any] = make_plan(
             event=env.get("EVENT_NAME", ""),
             action=env.get("ACTION", ""),
-            version_input=env.get("VERSION_INPUT", ""),
-            version_file=env.get("VERSION_FILE", ""),
+            version=env.get("VERSION", ""),
+            released=bool(env.get("RELEASE_SHA", "").strip()),
             marketplaces_input=env.get("MARKETPLACES_INPUT", ""),
             dry_run_input=env.get("DRY_RUN_INPUT", ""),
             variables=env,

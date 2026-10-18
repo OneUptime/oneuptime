@@ -136,7 +136,7 @@ Ce que la place de marché refuse, c'est un abonnement résilié ou suspendu, ou
 
 OneUptime migre sa base de données au démarrage de la nouvelle version. Lisez les [notes de mise à niveau](/docs/installation/upgrading) avant de passer à une nouvelle version majeure.
 
-Mettez à niveau via la place de marché : le libellé d'édition peut afficher une version plus récente de OneUptime avant qu'elle soit disponible sur votre place de marché.
+Mettez à niveau via la place de marché. Une installation issue de la place de marché ne se compare pas aux versions de OneUptime publiées sur GitHub : les versions que propose votre place de marché sont celles vers lesquelles mettre à niveau.
 
 ## Paramètres et mise à l'échelle
 

@@ -136,7 +136,7 @@ A cancelled or suspended subscription, or an installation that is not the one yo
 
 OneUptime migrates its database when the new release starts. Read the [upgrade notes](/docs/installation/upgrading) before you move to a new major release.
 
-Upgrade through the marketplace: the edition label can show a newer OneUptime release before it is on your marketplace.
+Upgrade through the marketplace. A marketplace installation does not compare itself with OneUptime's releases on GitHub: the versions your marketplace offers are the ones to upgrade to.
 
 ## Settings and scaling
 

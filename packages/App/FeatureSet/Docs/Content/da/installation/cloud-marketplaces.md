@@ -136,7 +136,7 @@ Markedspladsen afviser et abonnement, der er opsagt eller suspenderet, og en ins
 
 OneUptime migrerer sin database, når den nye release starter. Læs [opgraderingsnoterne](/docs/installation/upgrading), før du skifter til en ny hovedversion.
 
-Opgradér gennem markedspladsen: Udgavemærket kan vise en nyere release af OneUptime, før den er kommet på din markedsplads.
+Opgradér gennem markedspladsen. En installation fra markedspladsen sammenligner sig ikke med OneUptimes releases på GitHub: De versioner, din markedsplads tilbyder, er dem, du opgraderer til.
 
 ## Indstillinger og skalering
 
