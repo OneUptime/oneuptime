@@ -532,11 +532,18 @@ export class DescriptionScanner {
 
     /*
      * A form field with no description of its own shows its column's
-     * (BasicModelForm), which was written for the API reference.
+     * (BasicModelForm), which was written for the API reference - unless it
+     * says it shows none (Field.hideColumnDescription: true), which
+     * BasicModelForm honours too.
      */
+    const hidesColumnDescription: boolean =
+      properties.get("hideColumnDescription")?.kind ===
+      ts.SyntaxKind.TrueKeyword;
+
     if (
       isFormField &&
       !properties.has("description") &&
+      !hidesColumnDescription &&
       !NO_COLUMN_DESCRIPTION_TYPE.test(fieldTypeText)
     ) {
       const field: ts.Node | undefined = properties.get("field");

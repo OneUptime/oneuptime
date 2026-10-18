@@ -245,6 +245,8 @@ describe("the short descriptions guard", () => {
     sentence: sentenceOf("Resets {{name}} and explains it all", 165),
     nested: sentenceOf("Invites them and explains the invitation", 155),
     mediumField: sentenceOf("A field that runs a little long", 180),
+    // A column line a field asks for by name (hideColumnDescription: false).
+    shownColumn: sentenceOf("Explains the depth column for the API", 182),
   };
 
   const SHORT: Record<string, string> = {
@@ -259,6 +261,8 @@ describe("the short descriptions guard", () => {
     tooltip: sentenceOf("A tooltip explains everything", 220),
     help: sentenceOf("The help dialog explains everything", 230),
     layout: sentenceOf("A paragraph in a laid-out dialog", 200),
+    // The column line of a field that draws none (hideColumnDescription).
+    hiddenColumn: sentenceOf("Explains the weight column for the API", 185),
   };
 
   const files: Record<string, string> = {
@@ -282,6 +286,8 @@ export default function Widgets() {
           { field: { limit: true }, title: "Limit", fieldType: FormFieldSchemaType.Number, description: WIDGET_LIMIT_DESCRIPTION },
           { field: { color: true }, title: "Colour", fieldType: FormFieldSchemaType.Text, description: "${SHORT["field"]}" },
           { field: { note: true }, title: "Note", fieldType: FormFieldSchemaType.Text, description: "${LONG["mediumField"]}" },
+          { field: { weight: true }, title: "Weight", fieldType: FormFieldSchemaType.Number, hideColumnDescription: true },
+          { field: { depth: true }, title: "Depth", fieldType: FormFieldSchemaType.Number, hideColumnDescription: false },
         ]}
       />
       <ModelTable modelType={Widget} cardProps={{ title: "Recent", description: "${SHORT["card"]}" }} />
@@ -326,6 +332,12 @@ export default class Widget extends BaseModel {
 
   @TableColumn({ type: TableColumnType.ShortText, description: "A short column." })
   public color?: string = undefined;
+
+  @TableColumn({ type: TableColumnType.Number, description: "${NEVER_MEASURED["hiddenColumn"]}" })
+  public weight?: number = undefined;
+
+  @TableColumn({ type: TableColumnType.Number, description: "${LONG["shownColumn"]}" })
+  public depth?: number = undefined;
 }
 `,
     [path.join(ROOT, ADMIN, "Pages", "Users.tsx")]: `
@@ -382,6 +394,7 @@ export default function Users() {
     expect(kindOf(LONG["sentence"]!)).toEqual(["dialog"]);
     expect(kindOf(LONG["nested"]!)).toEqual(["dialog"]);
     expect(kindOf(LONG["mediumField"]!)).toEqual(["field"]);
+    expect(kindOf(LONG["shownColumn"]!)).toEqual(["column"]);
 
     const reported: Array<string> = tooLong(found, []);
 

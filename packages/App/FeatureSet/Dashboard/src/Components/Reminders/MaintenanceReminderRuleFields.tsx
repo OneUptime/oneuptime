@@ -158,7 +158,8 @@ export const getMaintenanceReminderRuleActionFields: () => Array<
     },
     /*
      * The two columns the choice writes, registered so the form loads and
-     * saves them; never drawn.
+     * saves them; never drawn, so neither shows its column's API-worded
+     * description either.
      */
     {
       field: {
@@ -168,6 +169,7 @@ export const getMaintenanceReminderRuleActionFields: () => Array<
       stepId: "reminder-settings",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
+      hideColumnDescription: true,
       showIf: (): boolean => {
         return false;
       },
@@ -180,6 +182,7 @@ export const getMaintenanceReminderRuleActionFields: () => Array<
       stepId: "reminder-settings",
       fieldType: FormFieldSchemaType.Text,
       required: false,
+      hideColumnDescription: true,
       showIf: (): boolean => {
         return false;
       },
