@@ -324,7 +324,7 @@ export default class StatusPageSCIM extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.EditStatusPageSSO,
+      Permission.CreateStatusPageSSO,
     ],
     read: [],
     update: [
@@ -352,7 +352,7 @@ export default class StatusPageSCIM extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.EditStatusPageSSO,
+      Permission.CreateStatusPageSSO,
     ],
     read: [
       Permission.ProjectOwner,
@@ -382,7 +382,7 @@ export default class StatusPageSCIM extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.EditStatusPageSSO,
+      Permission.CreateStatusPageSSO,
     ],
     read: [],
     update: [
@@ -410,7 +410,7 @@ export default class StatusPageSCIM extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.EditStatusPageSSO,
+      Permission.CreateStatusPageSSO,
     ],
     read: [
       Permission.ProjectOwner,
