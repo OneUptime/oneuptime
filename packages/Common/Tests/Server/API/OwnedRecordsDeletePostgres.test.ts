@@ -353,6 +353,9 @@ const OWN_OWNER_PERMISSION: RegExp = /^(Create|Read|Delete)/;
 // A kind's own read and edit permissions (Read Monitor, Edit Monitor).
 const OWN_READ_OR_EDIT_PERMISSION: RegExp = /^(Read|Edit)/;
 
+// An owner table, by its name, and the kind it owns: MonitorOwnerUser.
+const OWNER_TABLE_NAME: RegExp = /^(.+)Owner(User|Team)$/;
+
 /*
  * The text columns a change of a kind writes in this suite, the first of
  * them the kind has and its permission to change it may write.
@@ -5132,6 +5135,33 @@ describePostgres(
           await deleteItem(pathOf(IncidentEpisodeRoleMember), member, myRole),
         );
       });
+    });
+
+    test("the sweep covers every kind with owner tables but the monitor, which the suite runs through its own routes", () => {
+      const kinds: Set<string> = new Set<string>();
+
+      for (const modelType of Entities as Array<{ new (): BaseModel }>) {
+        const match: RegExpExecArray | null = OWNER_TABLE_NAME.exec(
+          new modelType().tableName || "",
+        );
+
+        if (match) {
+          kinds.add(match[1]!);
+        }
+      }
+
+      expect(kinds.size).toBeGreaterThanOrEqual(37);
+      expect(
+        SWEPT_KINDS.map((kind: OwningKind): string => {
+          return kind.name;
+        }).sort(),
+      ).toEqual(
+        Array.from(kinds)
+          .filter((kind: string): boolean => {
+            return kind !== "Monitor";
+          })
+          .sort(),
+      );
     });
 
     test("the suite copied every table it writes", () => {

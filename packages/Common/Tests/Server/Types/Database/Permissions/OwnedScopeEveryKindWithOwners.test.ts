@@ -1,3 +1,4 @@
+import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import BasePermission from "../../../../../Server/Types/Database/Permissions/BasePermission";
 import CreateScopeException from "../../../../../Server/Types/Database/Permissions/CreateScopeException";
@@ -883,6 +884,80 @@ describe.each(PARTS_OF_A_KIND)(
           }),
         ).resolves.toBeUndefined();
       }
+    });
+  },
+);
+
+/*
+ * WHAT A MEMBER CREATES UNDER AN OWNED GRANT IS THEIRS. A create whose every
+ * permission is scoped to Owned goes through only as one its creator will
+ * own (CreateScopePermission), and DatabaseService makes the creator its
+ * owner straight after the save, before anything else happens to the
+ * record (makeCreatorOwnerOrUndo): for every kind with owners, in that
+ * kind's own table of people who own it. With the same permission over the
+ * whole project nobody is made the owner of a kind that is no operational
+ * resource - its owners are set as before, by hand or by owner rules.
+ */
+describe.each(Array.from(OwnerTableRegistry.keys()))(
+  "%s, created by a member",
+  (kind: string) => {
+    const kindType: ModelType = modelNamed(kind)!;
+    const pair: OwnerTablePair = OwnerTableRegistry.get(kind)!;
+
+    // The service's own steps of a create, as DatabaseService.create takes them.
+    const service: {
+      createReliesOnOwnership: (
+        props: DatabaseCommonInteractionProps,
+      ) => boolean;
+      insertCreatorAsOwner: (
+        createdItem: BaseModel,
+        props: DatabaseCommonInteractionProps,
+      ) => Promise<void>;
+    } = new DatabaseService(kindType) as never;
+
+    test("is theirs when every permission to create it is scoped to Owned, and in the kind's own table of owners", async () => {
+      if (scopeable(kindType, DatabaseRequestType.Create).length === 0) {
+        return;
+      }
+
+      const owned: DatabaseCommonInteractionProps = memberWith(
+        rowsAt(everyGrantOn(kindType), PermissionScope.Owned),
+      );
+      const projectWide: DatabaseCommonInteractionProps = memberWith(
+        rowsAt(everyGrantOn(kindType), PermissionScope.All),
+      );
+
+      expect(OwnedScopePermission.hasOwnerTables(kindType)).toBe(true);
+      expect(service.createReliesOnOwnership(owned)).toBe(true);
+      expect(service.createReliesOnOwnership(projectWide)).toBe(false);
+
+      const written: Array<BaseModel> = [];
+
+      jest
+        .spyOn(pair.ownerUserService, "create")
+        .mockImplementation((async (args: { data: BaseModel }) => {
+          written.push(args.data);
+          return args.data;
+        }) as never);
+
+      const record: BaseModel = new (kindType as unknown as {
+        new (id: ObjectID): BaseModel;
+      })(new ObjectID(PENDING_ID));
+      record.setColumnValue("projectId", PROJECT_ID);
+
+      await service.insertCreatorAsOwner(record, owned);
+
+      expect(written).toHaveLength(1);
+      expect(written[0]!).toBeInstanceOf(pair.ownerUserService.modelType);
+      expect(written[0]!.getColumnValue(pair.fkColumn)?.toString()).toBe(
+        PENDING_ID,
+      );
+      expect(written[0]!.getColumnValue("userId")?.toString()).toBe(
+        USER_ID.toString(),
+      );
+      expect(written[0]!.getColumnValue("projectId")?.toString()).toBe(
+        PROJECT_ID.toString(),
+      );
     });
   },
 );
