@@ -140,9 +140,10 @@ describe("an Incoming Request monitor's request", () => {
         authorization: "Bearer the-senders-own",
         "oneuptime-probe-id": PROBE_ID,
       });
-      const headers: Record<string, string> = job[
-        "requestHeaders"
-      ] as Record<string, string>;
+      const headers: Record<string, string> = job["requestHeaders"] as Record<
+        string,
+        string
+      >;
 
       expect(Object.keys(headers)).not.toContain("clusterkey");
       expect(Object.keys(headers)).not.toContain("x-clusterkey");
