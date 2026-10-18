@@ -64,25 +64,6 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 
 If you try the default `standard` preset on a cluster that blocks hostPath, the install fails with a Pod Security error. Re-install with `--set preset=gke-autopilot` (or `eks-fargate`) and it works.
 
-## Keep the ingestion key in a Secret
-
-`--set oneuptime.apiKey` stores the key in the release's values, which Helm keeps with every revision. To keep it out of them, create a Secret in the release's namespace with the key under `api-key`, and name it in `oneuptime.existingSecretName` instead:
-
-```bash
-kubectl create namespace oneuptime-kubernetes-agent
-kubectl create secret generic oneuptime-ingestion-key \
-  --namespace oneuptime-kubernetes-agent \
-  --from-literal=api-key=<YOUR_API_KEY>
-
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
-  --set oneuptime.url=https://oneuptime.com \
-  --set oneuptime.existingSecretName=oneuptime-ingestion-key \
-  --set clusterName=<A_UNIQUE_NAME_FOR_THIS_CLUSTER>
-```
-
-Every agent workload then reads the key from that Secret, and the chart creates no Secret of its own. Set `oneuptime.apiKey` or `oneuptime.existingSecretName`, not both: the chart refuses the two together. The Secret can come from anywhere that writes one, such as the External Secrets Operator or the Secrets Store CSI driver. On Amazon EKS, the agent is also an [EKS add-on](https://oneuptime.com/docs/telemetry/kubernetes-agent#install-as-an-amazon-eks-add-on), which reads its key this way.
-
 ## Kubernetes AI agent (AI investigations and fixes)
 
 When an incident or alert is raised on this cluster, OneUptime AI investigates it. The **Kubernetes AI agent** gives it a terminal: it runs read-only `kubectl` the way an on-call engineer would (describe the failing pod, read its events, tail the crashing container's logs, check node capacity) and shows every command it ran on the incident page.
@@ -187,6 +168,25 @@ With `aiAgent.remediation.namespaces` empty, the remediation role is bound with 
 | `imagePullSecrets` | `[]` | Pull secrets (`[{name: …}]`) for a private registry or mirror. |
 | `resources` | `50m` / `64Mi` → `500m` / `256Mi` | The agent idles between commands. |
 | `extraEnv` | `[]` | Extra `EnvVar` objects for the agent container — e.g. `HTTPS_PROXY` / `NO_PROXY` when the cluster reaches OneUptime through an egress proxy. Names the chart sets itself (`ONEUPTIME_URL`, `ONEUPTIME_API_KEY`, `ONEUPTIME_KUBERNETES_CLUSTER_NAME`, `ONEUPTIME_KUBECTL_ALLOW_WRITES`, `ONEUPTIME_KUBECTL_WRITE_NAMESPACES`, `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS`, `ONEUPTIME_AI_AGENT_POD_NAMESPACE`, `ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`, …) fail the render instead of silently replacing the chart's value. `--set-json 'aiAgent.extraEnv=[]'` clears a list carried over from `aiAccess.extraEnv` (`--set` passes `[]` as a string, which the schema rejects). |
+
+## Keep the ingestion key in a Secret
+
+`--set oneuptime.apiKey` stores the key in the release's values, which Helm keeps with every revision. To keep it out of them, create a Secret in the release's namespace with the key under `api-key`, and name it in `oneuptime.existingSecretName` instead:
+
+```bash
+kubectl create namespace oneuptime-kubernetes-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-kubernetes-agent \
+  --from-literal=api-key=<YOUR_API_KEY>
+
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key \
+  --set clusterName=<A_UNIQUE_NAME_FOR_THIS_CLUSTER>
+```
+
+Every agent workload then reads the key from that Secret, and the chart creates no Secret of its own. Set `oneuptime.apiKey` or `oneuptime.existingSecretName`, not both: the chart refuses the two together. The Secret can come from anywhere that writes one, such as the External Secrets Operator or the Secrets Store CSI driver. On Amazon EKS, the agent is also an [EKS add-on](https://oneuptime.com/docs/telemetry/kubernetes-agent#install-as-an-amazon-eks-add-on), which reads its key this way.
 
 ## Tuning resources (CPU & memory)
 
