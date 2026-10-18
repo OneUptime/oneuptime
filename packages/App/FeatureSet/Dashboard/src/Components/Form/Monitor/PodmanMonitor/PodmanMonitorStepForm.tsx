@@ -302,13 +302,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Podman Metric"
-            description={
-              "Select a Podman metric to monitor. Metrics are organized by resource type."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Podman Metric" required={true} />
           <PodmanMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: PodmanMetricDefinition) => {
@@ -325,7 +319,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -429,13 +423,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the Podman metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 

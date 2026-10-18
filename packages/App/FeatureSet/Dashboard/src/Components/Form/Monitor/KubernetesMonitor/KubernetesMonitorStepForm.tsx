@@ -465,13 +465,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Kubernetes Metric"
-            description={
-              "Select a Kubernetes metric to monitor. Metrics are organized by resource type."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Kubernetes Metric" required={true} />
           <KubernetesMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: KubernetesMetricDefinition) => {
@@ -518,7 +512,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -651,13 +645,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the Kubernetes metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 

@@ -241,6 +241,41 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
 };
 
 /*
+ * A resource's Recommendations, in the order Quick Setup lists the same
+ * templates: the headings the type names, in its order, then any other
+ * category of the catalog's, in the catalog's order (never dropped). A type
+ * without headings (Host, Docker, Podman, a Service) keeps the catalog's
+ * order as it is.
+ */
+export function orderAlertTemplateCategories(
+  resourceType: MonitorRecommendationResourceType,
+  categories: Array<string>,
+): Array<string> {
+  const named: Array<AlertTemplateCategory> | undefined =
+    ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE[resourceType];
+
+  if (!named) {
+    return [...categories];
+  }
+
+  const ordered: Array<string> = named
+    .map((category: AlertTemplateCategory): string => {
+      return category.category;
+    })
+    .filter((category: string): boolean => {
+      return categories.includes(category);
+    });
+
+  for (const category of categories) {
+    if (!ordered.includes(category)) {
+      ordered.push(category);
+    }
+  }
+
+  return ordered;
+}
+
+/*
  * What a resource type calls one of its template categories, or undefined
  * when it names no heading for it (the page then shows the value as it is).
  */

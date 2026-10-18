@@ -91,6 +91,7 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { ActiveMonitorLimitStatus } from "Common/Types/Monitor/ActiveMonitorLimit";
 import { readActiveMonitorLimitIfReached } from "../Monitor/ActiveMonitorLimitNotice";
+import { orderAlertTemplateCategories } from "../Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
 
 export interface ComponentProps {
   resourceType: MonitorRecommendationResourceType;
@@ -255,10 +256,15 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
    * catalog instead would render an empty "JVM Runtime" heading on a Go
    * service — `groupByCategory` drops empty categories, so it would not
    * actually break, but the two would be answering different questions.
+   * They come in the order Create Monitor's Quick Setup lists the same
+   * templates under the same headings (orderAlertTemplateCategories).
    */
-  const categories: Array<string> = MonitorRecommendationCatalog.getCategories(
+  const categories: Array<string> = orderAlertTemplateCategories(
     props.resourceType,
-    props.resourceContext,
+    MonitorRecommendationCatalog.getCategories(
+      props.resourceType,
+      props.resourceContext,
+    ),
   );
 
   type BuildArgsFunction = (

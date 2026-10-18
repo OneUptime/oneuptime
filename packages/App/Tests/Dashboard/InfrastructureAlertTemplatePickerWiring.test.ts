@@ -25,7 +25,9 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 import {
   ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE,
+  KUBERNETES_TEMPLATE_CATEGORIES,
   getAlertTemplateCategoryLabel,
+  orderAlertTemplateCategories,
 } from "../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
@@ -46,6 +48,12 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   pick: both replace the monitor's query.
  * - Each type's configuration card says in one line what its three tabs are
  *   for, instead of ten sentences listing them.
+ * - On the Custom Metric and Advanced tabs, the metric fields say nothing
+ *   their title and the picker under them do not ("Select a Kubernetes
+ *   metric to monitor ..."), and Aggregation says what it is in a sentence
+ *   rather than a question.
+ * - A resource's Recommendations list their headings in the order Quick
+ *   Setup does: the same templates, under the same headings, in one order.
  * - The words it added are in every language, and the ones it retired are
  *   in none.
  *
@@ -84,6 +92,23 @@ interface InfrastructureType {
   picker: string;
   configurationTitle: string;
 }
+
+// Its Custom Metric tab's metric field.
+const METRIC_FIELD_TITLES: Record<string, string> = {
+  Host: "Host Metric",
+  Docker: "Docker Metric",
+  Podman: "Podman Metric",
+  "Docker Swarm": "Docker Swarm Metric",
+  Kubernetes: "Kubernetes Metric",
+  Proxmox: "Proxmox Metric",
+  VMware: "VMware Metric",
+  Ceph: "Ceph Metric",
+  "Storage Array": "Storage Array Metric",
+  IoT: "IoT Metric",
+};
+
+const AGGREGATION_DESCRIPTION: string =
+  "How the metric values are combined over the time range.";
 
 const TYPES: Array<InfrastructureType> = [
   {
@@ -231,6 +256,31 @@ describe("one shared template picker for every infrastructure type", () => {
       expect(form).not.toMatch(
         /description=\{"Select the [^"]+ to monitor\."\}/,
       );
+    },
+  );
+
+  test.each(TYPES)(
+    "$name's metric fields carry no line that repeats them, and Aggregation says what it is",
+    (type: InfrastructureType) => {
+      const form: string = flat(read(`${FORMS}/${type.stepForm}`));
+      const metricTitle: string | undefined = METRIC_FIELD_TITLES[type.name];
+
+      expect(metricTitle).toBeDefined();
+      // The metric picker shows its own grouping; the query builder is right there.
+      expect(form).toContain(
+        `<FieldLabelElement title="${metricTitle}" required={true} />`,
+      );
+      expect(form).toContain(
+        '<FieldLabelElement title="Select Metrics" required={true} />',
+      );
+      expect(form).not.toContain("Metrics are organized by");
+      expect(form).not.toContain("Use the query builder for full control");
+      expect(form).not.toContain("metrics to monitor, with");
+
+      expect(form).toContain(
+        `title="Aggregation" description={ "${AGGREGATION_DESCRIPTION}" }`,
+      );
+      expect(form).not.toContain("How should the metric values");
     },
   );
 
@@ -555,6 +605,86 @@ describe("a resource's Recommendations use the picker's category names", () => {
     },
   );
 
+  test("Kubernetes Recommendations come in Quick Setup's order, not the catalog's", () => {
+    const catalogOrder: Array<string> =
+      MonitorRecommendationCatalog.getCategories(
+        MonitorRecommendationResourceType.Kubernetes,
+      );
+    const pickerOrder: Array<string> = KUBERNETES_TEMPLATE_CATEGORIES.map(
+      (category: AlertTemplateCategory): string => {
+        return category.category;
+      },
+    );
+
+    // The catalog meets Scheduling second (Pod Stuck in Pending); the picker lists it last.
+    expect(catalogOrder).not.toEqual(pickerOrder);
+    expect(
+      orderAlertTemplateCategories(
+        MonitorRecommendationResourceType.Kubernetes,
+        catalogOrder,
+      ),
+    ).toEqual(pickerOrder);
+  });
+
+  test.each(
+    Object.keys(
+      ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE,
+    ) as Array<MonitorRecommendationResourceType>,
+  )(
+    "%s Recommendations list every catalog category once, in the picker's order",
+    (resourceType: MonitorRecommendationResourceType) => {
+      const catalogOrder: Array<string> =
+        MonitorRecommendationCatalog.getCategories(resourceType);
+      const ordered: Array<string> = orderAlertTemplateCategories(
+        resourceType,
+        catalogOrder,
+      );
+      const pickerOrder: Array<string> = (
+        ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE[resourceType] || []
+      )
+        .map((category: AlertTemplateCategory): string => {
+          return category.category;
+        })
+        .filter((category: string): boolean => {
+          return catalogOrder.includes(category);
+        });
+
+      expect([...ordered].sort()).toEqual([...catalogOrder].sort());
+      expect(ordered.slice(0, pickerOrder.length)).toEqual(pickerOrder);
+    },
+  );
+
+  test("a category the picker names no heading for is kept, after the named ones", () => {
+    expect(
+      orderAlertTemplateCategories(
+        MonitorRecommendationResourceType.Kubernetes,
+        ["Brand New", "Storage", "Workload"],
+      ),
+    ).toEqual(["Workload", "Storage", "Brand New"]);
+  });
+
+  test("a type without headings keeps the catalog's order", () => {
+    const categories: Array<string> = ["Latency", "Errors", "Throughput"];
+    const ordered: Array<string> = orderAlertTemplateCategories(
+      MonitorRecommendationResourceType.Service,
+      categories,
+    );
+
+    expect(ordered).toEqual(categories);
+    // A copy: the page's list is never the catalog's own array.
+    expect(ordered).not.toBe(categories);
+  });
+
+  test("the page orders the catalog's categories that way", () => {
+    const page: string = flat(
+      read("Components/Recommendations/MonitorRecommendations.tsx"),
+    );
+
+    expect(page).toContain(
+      "const categories: Array<string> = orderAlertTemplateCategories( props.resourceType, MonitorRecommendationCatalog.getCategories( props.resourceType, props.resourceContext, ), );",
+    );
+  });
+
   test("the list reads the label and translates it", () => {
     const list: string = flat(
       read("Components/Recommendations/RecommendationsList.tsx"),
@@ -596,6 +726,8 @@ describe("the words, in every language", () => {
     ALERT_TEMPLATE_SHOW_LESS,
     ALERT_TEMPLATE_TIME_RANGE,
     ALERT_TEMPLATE_TIME_RANGE_DESCRIPTION,
+    // Aggregation's sentence keeps the translations of the question it replaced.
+    AGGREGATION_DESCRIPTION,
   ];
 
   test("there are sixteen languages besides English", () => {
@@ -649,6 +781,29 @@ describe("the words, in every language", () => {
     "Select the time range for the Ceph monitor.",
     "Select the time range for the storage array monitor.",
     "Select the time range for the IoT monitor.",
+    // Aggregation's question, now a sentence.
+    "How should the metric values be aggregated over the time range.",
+    // The metric fields' lines that said their title again.
+    "Select a Ceph metric to monitor. Metrics are organized by resource type.",
+    "Select a Docker metric to monitor. Metrics are organized by resource type.",
+    "Select a Docker Swarm metric to monitor. Metrics are organized by category.",
+    "Select a host metric to monitor. Metrics are organized by resource type.",
+    "Select an IoT metric to monitor. Metrics are organized by category.",
+    "Select a Kubernetes metric to monitor. Metrics are organized by resource type.",
+    "Select a Podman metric to monitor. Metrics are organized by resource type.",
+    "Select a Proxmox metric to monitor. Metrics are organized by resource type.",
+    "A metric the array exports, grouped by what it describes.",
+    "A vCenter metric, grouped by vSphere object.",
+    "Select the Ceph metrics to monitor. Use the query builder for full control over metric selection and filtering.",
+    "Select the Docker metrics to monitor. Use the query builder for full control over metric selection and filtering.",
+    "Select the Docker Swarm metrics to monitor. Use the query builder for full control over metric selection and filtering.",
+    "Select the host metrics to monitor. Use the query builder for full control over metric selection and filtering.",
+    "Select the IoT metrics to monitor. Use the query builder for full control over metric selection and filtering.",
+    "Select the Kubernetes metrics to monitor. Use the query builder for full control over metric selection and filtering.",
+    "Select the Podman metrics to monitor. Use the query builder for full control over metric selection and filtering.",
+    "Select the Proxmox metrics to monitor. Use the query builder for full control over metric selection and filtering.",
+    "The array metrics to monitor, with label filters and grouping.",
+    "The vCenter metrics to monitor, with attribute filters and grouping.",
   ];
 
   test.each(RETIRED)("%s is in no language any more", (key: string) => {

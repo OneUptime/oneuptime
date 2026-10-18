@@ -247,13 +247,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Host Metric"
-            description={
-              "Select a host metric to monitor. Metrics are organized by resource type."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Host Metric" required={true} />
           <HostMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: HostMetricDefinition) => {
@@ -268,7 +262,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -369,13 +363,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the host metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 

@@ -376,13 +376,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Docker Swarm Metric"
-            description={
-              "Select a Docker Swarm metric to monitor. Metrics are organized by category."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Docker Swarm Metric" required={true} />
           <DockerSwarmMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: DockerSwarmMetricDefinition) => {
@@ -399,7 +393,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -503,13 +497,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the Docker Swarm metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 

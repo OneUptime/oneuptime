@@ -388,13 +388,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Proxmox Metric"
-            description={
-              "Select a Proxmox metric to monitor. Metrics are organized by resource type."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Proxmox Metric" required={true} />
           <ProxmoxMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: ProxmoxMetricDefinition) => {
@@ -411,7 +405,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -515,13 +509,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the Proxmox metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 

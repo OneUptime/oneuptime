@@ -404,11 +404,7 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="VMware Metric"
-            description={"A vCenter metric, grouped by vSphere object."}
-            required={true}
-          />
+          <FieldLabelElement title="VMware Metric" required={true} />
           <VMwareMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: VMwareMetricDefinition) => {
@@ -425,7 +421,7 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -529,13 +525,7 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "The vCenter metrics to monitor, with attribute filters and grouping."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 

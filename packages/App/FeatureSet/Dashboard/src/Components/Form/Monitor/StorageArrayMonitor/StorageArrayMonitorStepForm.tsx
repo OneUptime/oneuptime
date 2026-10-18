@@ -475,13 +475,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Storage Array Metric"
-            description={
-              "A metric the array exports, grouped by what it describes."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Storage Array Metric" required={true} />
           <StorageArrayMetricPicker
             storageSystem={storageSystem}
             selectedMetricId={selectedMetricId}
@@ -499,7 +493,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -603,13 +597,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "The array metrics to monitor, with label filters and grouping."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 

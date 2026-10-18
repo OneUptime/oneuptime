@@ -301,13 +301,7 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Ceph Metric"
-            description={
-              "Select a Ceph metric to monitor. Metrics are organized by resource type."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Ceph Metric" required={true} />
           <CephMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: CephMetricDefinition) => {
@@ -324,7 +318,7 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -427,13 +421,7 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the Ceph metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 
