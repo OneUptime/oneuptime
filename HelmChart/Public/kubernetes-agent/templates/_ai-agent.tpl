@@ -4,7 +4,7 @@ The Kubernetes AI agent's effective settings, as JSON (read them with
 for templates/ai-agent.yaml, which renders the RBAC and the pod, and
 templates/NOTES.txt, which describes them, so the two can never disagree.
 
-Every aiAgent.* / aiAccess.* lookup is nil-safe. `helm upgrade --reuse-values`
+Every aiAgent.* / aiAccess.* read is nil-safe. `helm upgrade --reuse-values`
 feeds the templates the PREVIOUS release's coalesced values, not this chart's
 values.yaml:
   * a release from a chart before 14.0.2 stores neither aiAgent nor

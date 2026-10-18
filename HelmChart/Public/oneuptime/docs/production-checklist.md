@@ -165,6 +165,13 @@ Work through this list to make your OneUptime installation production-ready.
   need to stay available — e.g. `nginx` (ingress) and `app` (API). The
   single-replica databases are intentionally excluded; for database HA use the
   bundled operators (above).
+- [ ] **Check that each service's replicas run on different nodes.**
+  `deployment.spreadReplicasAcrossNodes` (on by default) strongly prefers a
+  different node for each replica, but it is a preference: give the cluster at
+  least two nodes with room, and after a rollout check with `kubectl get pods
+  -o wide` that no service has every replica on one node. On a multi-zone
+  cluster, add a zone rule through `topologySpreadConstraints` — see
+  [Spreading replicas across nodes](configuration.md#spreading-replicas-across-nodes).
 
 ## Secrets
 

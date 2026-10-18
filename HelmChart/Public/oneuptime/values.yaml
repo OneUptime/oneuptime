@@ -98,8 +98,14 @@ enterpriseMarketplace:
 testHook:
   enabled: true
 
-# Important: You do need to set this to a long random values if you're using OneUptime in production.
-# Please set this to string.
+# Leave these empty and the chart generates a long random value for each on
+# install, into the `<release>-secrets` Secret, and keeps it across upgrades.
+# If you set one, make it a long random string.
+#
+# oneuptimeSecret is the cluster key OneUptime's own services, the in-cluster
+# Runner among them, present to each other. OneUptime refuses a value its
+# repository ships ("secret", or a "please-change-this-..." placeholder) from
+# every caller, so a Runner given one does not register.
 oneuptimeSecret:
 registerProbeKey:
 encryptionSecret:
@@ -145,6 +151,15 @@ deployment:
     type: RollingUpdate
   # Dynamic timestamp label to force updates
   includeTimestampLabel: true
+  # Spread each service's replicas across nodes, so a node going away (drained
+  # by a node-pool upgrade or a scale-down, or failing) cannot take every
+  # replica of a service with it. A soft rule: pods still schedule when only
+  # one node has room, so it never blocks a rollout. Covers app, home, nginx,
+  # worker, runner, telemetry-writer, every probe, test-server and pgbouncer,
+  # unless topologySpreadConstraints are set for them (see the chart-wide
+  # topologySpreadConstraints below). It only helps services that run more
+  # than one replica; pair it with podDisruptionBudget.enabled.
+  spreadReplicasAcrossNodes: true
 
 metalLb:
   enabled: false
@@ -199,6 +214,10 @@ nginx:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -970,6 +989,9 @@ pgbouncer:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # Spread rules for pgbouncer only. Like its affinity, this never inherits the
+  # chart-wide list; left empty, deployment.spreadReplicasAcrossNodes applies.
+  topologySpreadConstraints: []
   # Optional: override global security contexts just for the pgbouncer pod/container
   podSecurityContext: {}
   containerSecurityContext: {}
@@ -1558,6 +1580,10 @@ probes:
     nodeSelector: {}
     podSecurityContext: {}
     hostAliases: []
+    # Affinity and topology spread for this service only. Each replaces the
+    # chart-wide value (they are not merged).
+    affinity: {}
+    topologySpreadConstraints: []
     containerSecurityContext: {}
     # Extra env / volumes for this service only. A non-empty list REPLACES the
     # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -1646,6 +1672,10 @@ testServer:
     http: 3800
   resources: {}
   nodeSelector: {}
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   podSecurityContext: {}
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
@@ -1679,6 +1709,26 @@ affinity:
 tolerations:
 nodeSelector:
 hostAliases:
+# Chart-wide topology spread constraints, for app, home, nginx, worker, runner,
+# telemetry-writer, every probe and test-server. A service's own
+# <service>.topologySpreadConstraints replaces this list (they are not merged).
+# When neither is set, deployment.spreadReplicasAcrossNodes spreads each
+# service across nodes.
+#
+# A constraint without a labelSelector is scoped to each service's own pods
+# (app: <release>-<service>) and, on Kubernetes 1.27+, counted per rollout
+# (matchLabelKeys: [pod-template-hash]), so one entry here spreads every
+# service on its own. For example, to spread across zones as well on a
+# multi-zone cluster (this list replaces the default, so keep the node rule):
+#
+# topologySpreadConstraints:
+#   - maxSkew: 1
+#     topologyKey: kubernetes.io/hostname
+#     whenUnsatisfiable: ScheduleAnyway
+#   - maxSkew: 1
+#     topologyKey: topology.kubernetes.io/zone
+#     whenUnsatisfiable: ScheduleAnyway
+topologySpreadConstraints: []
 
 # Chart-wide escape hatches, applied to every OneUptime workload the chart runs:
 # app, worker, every probe, runner, home, telemetry-writer, nginx, pgbouncer,
@@ -1935,6 +1985,10 @@ home:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2010,6 +2064,10 @@ app:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2105,6 +2163,10 @@ worker:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2242,6 +2304,10 @@ telemetryWriter:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2294,6 +2360,10 @@ runner:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).

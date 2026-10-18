@@ -117,7 +117,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 | `404` | この URL に応答する Runbook の Webhook がありません。Runbook の ID かキーが間違っているか、URL がリセットされています。 |
 | `405` | リクエストが `GET` です。 `GET` では実行は開始されないため、チャットアプリのリンクプレビューが誤って実行することはありません。 |
 | `413` | 本文が 64 KB を超えています。 |
-| `429` | Webhook が直近 1 分間に 30 回の実行を開始した、その実行のうち 10 回がまだ進行中である、または 1 つのアドレスが 1 分間に Runbook の Webhook を 120 回を超えて呼び出しました。可能な場合は `Retry-After` ヘッダーが再試行のタイミングを示します。 |
+| `429` | Webhook が直近 1 分間に 30 回の実行を開始した、その実行のうち 10 回がまだ進行中である、または 1 つのアドレスが 1 分間に Runbook の Webhook を 120 回を超えて呼び出したか、1 つの IPv6 /64 のアドレスが合わせて 1200 回を超えて呼び出しました。可能な場合は `Retry-After` ヘッダーが再試行のタイミングを示します。 |
 | `503` | OneUptime が現在、呼び出しを数えられません。1 分後に再試行してください。 |
 
 拒否された呼び出しは何も開始せず、本文が理由を 1 文で示します。例: "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

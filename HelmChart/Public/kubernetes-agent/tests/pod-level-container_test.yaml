@@ -1,0 +1,63 @@
+# Pod-level telemetry stays pod-level.
+#
+# Since collector 0.118.0, k8sattributes gives telemetry that names no
+# container — a pod's own kubelet metrics (k8s.pod.*, k8s.volume.*),
+# k8s_cluster's k8s.pod.phase, OBI's network metrics — the container of a pod
+# that has only one, as the resource attribute k8s.container.name. Collector
+# 0.96.0, which the chart ran before, did not, and OneUptime's Kubernetes
+# monitors read that attribute as the container an alert is about ("Container
+# x in pod y"), splitting a pod's rows. Measured in KinD: on 0.161.0 every one
+# of those series gained k8s.container.name.
+#
+# transform/pod-level-mark marks a resource that names neither a container nor
+# a container.id, right before k8sattributes; transform/pod-level-unmark,
+# right after, deletes the container name of a marked resource, and the mark.
+# Both are resource-context OTTL that 0.96.0 (kept by --reuse-values) runs too.
+suite: collectors keep pod-level telemetry pod-level
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+set:
+  clusterName: prod-us
+  ebpf.enabled: true
+tests:
+  - it: the node collector marks and unmarks around k8sattributes in its metrics pipeline
+    templates:
+      - templates/configmap-daemonset.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/pod-level-mark:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - set\\(attributes\\[\"oneuptime\\.k8s\\.pod_level\"\\], true\\) where attributes\\[\"k8s\\.container\\.name\"\\] == nil and attributes\\[\"container\\.id\"\\] == nil\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/pod-level-unmark:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"k8s\\.container\\.name\"\\) where attributes\\[\"oneuptime\\.k8s\\.pod_level\"\\] == true\\n          - delete_key\\(attributes, \"oneuptime\\.k8s\\.pod_level\"\\)\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n(?:        [^\\n]*\\n)+      processors:\\n(?:        [^\\n]*\\n)*?        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n"
+
+  - it: the cluster collector does it in its metrics and traces pipelines
+    templates:
+      - templates/configmap-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/pod-level-mark:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - set\\(attributes\\[\"oneuptime\\.k8s\\.pod_level\"\\], true\\) where attributes\\[\"k8s\\.container\\.name\"\\] == nil and attributes\\[\"container\\.id\"\\] == nil\\n    trace_statements:\\n      - context: resource\\n        statements:\\n          - set\\(attributes\\[\"oneuptime\\.k8s\\.pod_level\"\\], true\\) where attributes\\[\"k8s\\.container\\.name\"\\] == nil and attributes\\[\"container\\.id\"\\] == nil\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/pod-level-unmark:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"k8s\\.container\\.name\"\\) where attributes\\[\"oneuptime\\.k8s\\.pod_level\"\\] == true\\n          - delete_key\\(attributes, \"oneuptime\\.k8s\\.pod_level\"\\)\\n    trace_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"k8s\\.container\\.name\"\\) where attributes\\[\"oneuptime\\.k8s\\.pod_level\"\\] == true\\n          - delete_key\\(attributes, \"oneuptime\\.k8s\\.pod_level\"\\)\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n(?:        [^\\n]*\\n)+      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n"
+
+  - it: every k8sattributes in a metrics or traces pipeline is wrapped
+    templates:
+      - templates/configmap-deployment.yaml
+      - templates/configmap-daemonset.yaml
+    asserts:
+      # A k8sattributes not right after the mark, in any pipeline but logs.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    (metrics|traces):\\n      receivers:\\n(?:        [^\\n]*\\n)+      processors:\\n(?:        [^\\n]*\\n)*?        - (?:memory_limiter|transform/cpu-utilization)\\n        - k8sattributes\\n"

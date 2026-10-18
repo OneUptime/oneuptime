@@ -4,6 +4,7 @@
 
 :::cards
 - [نصب عامل](#نصب-عامل): چهار گام با Helm.
+- [نصب به‌صورت افزونه Amazon EKS](#نصب-بهصورت-افزونه-amazon-eks): از کنسول EKS، بدون Helm.
 - [گزینه‌های پیکربندی](#گزینههای-پیکربندی): فیلترها، نمونه‌برداری، Control Plane، Service Mesh، هزینه‌ها و برچسب‌ها.
 - [عامل هوش مصنوعی Kubernetes](#عامل-هوش-مصنوعی-kubernetes): `kubectl` فقط‌خواندنی برای OneUptime AI، و اصلاح‌ها وقتی اجازه دهید.
 - [فرستادن داده کمتر](#کاهش-حجم-داده-گردآوریشده): اهرم‌ها، به ترتیب اثرشان.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 به **محصولات** > **زیرساخت** > **Kubernetes** > **همه خوشه‌ها** بروید. خوشه در چند دقیقه با `clusterName` خود دیده می‌شود و گره‌ها، پادها و بارهای کاری‌اش پر می‌شوند. عامل هوش مصنوعی Kubernetes در صفحه **عامل** خوشه، زیر **هوش مصنوعی**، وصل‌شده نشان داده می‌شود.
 :::
 
+## نصب به‌صورت افزونه Amazon EKS
+
+روی Amazon EKS می‌توانید عامل را از کنسول EKS هم بیفزایید، که در آنجا یکی از افزونه‌های AWS Marketplace است. هیچ هزینه‌ای ندارد، و EKS آن را برایتان نصب، به‌روزرسانی و حذف می‌کند. افزونه همین چارت است، با تنظیماتی که یک افزونه لازم دارد:
+
+- داده‌ها را به OneUptime Cloud، یعنی `https://oneuptime.com`، می‌فرستد، مگر آنکه نشانی OneUptime خودتان را به آن بدهید.
+- کلید دریافت داده را از یک Secret در Kubernetes می‌خواند که خودتان می‌سازید، و هرگز از پیکربندی افزونه نمی‌خواند، که EKS آن را به‌صورت متن ساده نشان می‌دهد.
+- خوشه را با نامی که در EKS دارد به OneUptime گزارش می‌دهد.
+- در namespace `oneuptime-agent` اجرا می‌شود.
+
+:::steps
+### کلید دریافت داده خود را در یک Secret بگذارید
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### افزونه را اضافه کنید
+
+در کنسول EKS، خوشه خود را باز کنید، **Add-ons** و سپس **Get more add-ons** را برگزینید، و از میان افزونه‌های AWS Marketplace، عامل Kubernetes در OneUptime را انتخاب کنید. مشترک آن شوید، که رایگان است، و آن را بسازید. یا با AWS CLI:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### بررسی کنید که افزونه اجرا می‌شود
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+افزونه همین که پادهایش اجرا شوند `ACTIVE` می‌شود، و خوشه در چند دقیقه با نامی که در EKS دارد در OneUptime دیده می‌شود. پادی که در وضعیت `CreateContainerConfigError` بماند Secret را پیدا نمی‌کند: Secret را مانند گام نخست، در namespace `oneuptime-agent` بسازید.
+:::
+
+### مقدارهای پیکربندی افزونه
+
+آن‌ها را در **Optional configuration settings** در کنسول EKS تنظیم کنید، یا با `--configuration-values` هنگام ساختن یا به‌روزرسانی افزونه. هر کدام اختیاری است:
+
+- `oneuptime.url`: نشانی OneUptime شما. پیش‌فرض `https://oneuptime.com` است.
+- `oneuptime.existingSecretName`: Secretی که کلید دریافت داده را زیر `api-key` نگه می‌دارد. پیش‌فرض `oneuptime-ingestion-key` است.
+- `oneuptime.labels`: برچسب‌های پروژه برای هر چیزی که این خوشه می‌فرستد، مانند `{"team": "payments"}`.
+- `preset`: `eks-fargate` برای خوشه‌ای که فقط روی Fargate اجرا می‌شود، و در غیر این صورت `standard`، که پیش‌فرض است.
+- `logs.enabled`، `ebpf.enabled` و `aiAgent.enabled`: لاگ‌های پاد، ترِیس‌های eBPF و [عامل هوش مصنوعی Kubernetes](#عامل-هوش-مصنوعی-kubernetes)، که هر سه به‌طور پیش‌فرض روشن‌اند.
+- `kubeStateMetrics.enabled` و `cost.enabled`: kube-state-metrics و [مشاهده‌پذیری هزینه](/docs/telemetry/kubernetes-cost)، که هر دو به‌طور پیش‌فرض خاموش‌اند.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+به‌روزرسانی کل پیکربندی را جایگزین می‌کند: مقداری که نیاورید به پیش‌فرض خودش برمی‌گردد. بقیه تنظیمات چارت، مانند پروفایلر، اصلاح‌های OneUptime AI و فیلترهای namespace، به [نصب با Helm](#نصب-عامل) نیاز دارند. برای بردن یک خوشه از نصب با Helm به افزونه، نخست انتشار Helm را حذف کنید.
+
 ## برگزیدن پیش‌تنظیم
 
 `preset` پیش‌فرض‌هایی را برمی‌گزیند که روی بستر شما کار می‌کنند: اینکه لاگ‌های پاد از راه `hostPath` از گره خوانده شوند یا از راه API در Kubernetes، و کدام بارهای کاری می‌توانند با امتیاز ویژه اجرا شوند.
@@ -169,6 +225,23 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 ## گزینه‌های پیکربندی
 
 هر گزینه زیر یک مقدار Helm است. آن را هنگام نصب تنظیم کنید، یا روی عاملی که نصب شده با `helm upgrade ... --reset-then-reuse-values --set <value>`.
+
+### نگه داشتن کلید دریافت داده در یک Secret
+
+`--set oneuptime.apiKey` کلید را در مقدارهای انتشار نگه می‌دارد، که Helm آن‌ها را با هر بازبینی ذخیره می‌کند. برای اینکه کلید در آن‌ها نباشد، آن را در یک Secret در namespace عامل، زیر `api-key`، بگذارید و به‌جایش نام همان Secret را بدهید:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+سپس همه بارهای کاری عامل کلید را از همان Secret می‌خوانند، و چارت Secret خودش را نمی‌سازد. `oneuptime.apiKey` یا `oneuptime.existingSecretName` را تنظیم کنید، نه هر دو را: چارت این دو را با هم نمی‌پذیرد. این Secret را هر ابزاری که Secret می‌نویسد می‌تواند فراهم کند، مانند External Secrets Operator.
 
 ### پالایش بر پایه namespace
 
@@ -510,7 +583,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 وقتی حادثه یا هشداری روی این خوشه رخ می‌دهد، OneUptime AI آن را بررسی می‌کند. **عامل هوش مصنوعی Kubernetes** در چارت به آن یک ترمینال می‌دهد: `kubectl` فقط‌خواندنی را همان‌طور اجرا می‌کند که یک مهندس آماده‌به‌خدمت اجرا می‌کرد (پاد ناسالم را توصیف می‌کند، رویدادهایش را می‌خواند، لاگ‌های کانتینری را که از کار می‌افتد دنبال می‌کند، ظرفیت گره را بررسی می‌کند) و هر فرمان را در صفحه حادثه نقل می‌کند.
 
-عامل **به‌طور پیش‌فرض روشن** و **فقط‌خواندنی** است: یک Deployment کوچک (`kubernetes-agent-ai-agent`، برچسب پاد `component=ai-agent`، ایمیج `oneuptime/kubernetes-ai-agent`) که ServiceAccount آن فقط می‌تواند بخواند. با همان `oneuptime.apiKey` و `clusterName` که کالکتور به کار می‌برد خود را ثبت می‌کند، پس چیزی برای راه‌اندازی در داشبورد نیست: صفحه **عامل هوش مصنوعی** خوشه (Kubernetes > خوشه > هوش مصنوعی > عامل) در یک دقیقه آن را وصل‌شده نشان می‌دهد، و **آزمایش اتصال** در منوی **⋯** کنار همان وضعیت، `kubectl version` و `kubectl auth can-i --list` را از راه آن اجرا می‌کند. هر کاری که هوش مصنوعی با آن کرده در صفحه **گزارش‌های هوش مصنوعی** خوشه (هوش مصنوعی > لاگ‌ها) است، و آنچه درباره خوشه دانستنی است — مشکلاتی که مدام برمی‌گردند و چرایی‌شان، گره یا بار کاری پشت بیشترشان، آنچه هوش مصنوعی اصلاح کرده — در صفحه **AI Insights** (هوش مصنوعی > Insights). عامل یک kubectl ثابت‌شده (v1.36.4) با خود دارد. Runner نیست و هرگز زیر Runbooks > Runners دیده نمی‌شود: OneUptime هرگز اعتبارنامه‌ای به آن نمی‌دهد، هرگز runbookی روی آن اجرا نمی‌کند، و هرگز به‌عنوان Runner فرمان یک قاعده اصلاح خودکار پذیرفته نمی‌شود.
+عامل **به‌طور پیش‌فرض روشن** و **فقط‌خواندنی** است: یک Deployment کوچک (`kubernetes-agent-ai-agent`، برچسب پاد `component=ai-agent`، ایمیج `oneuptime/kubernetes-ai-agent`) که ServiceAccount آن فقط می‌تواند بخواند. با همان `oneuptime.apiKey` و `clusterName` که کالکتور به کار می‌برد خود را ثبت می‌کند، پس چیزی برای راه‌اندازی در داشبورد نیست: صفحه **عامل هوش مصنوعی** خوشه (Kubernetes > خوشه > هوش مصنوعی > عامل) در یک دقیقه آن را وصل‌شده نشان می‌دهد، و **آزمایش اتصال** در منوی **⋯** کنار همان وضعیت، `kubectl version` و `kubectl auth can-i --list` را از راه آن اجرا می‌کند. هر کاری که هوش مصنوعی با آن کرده در صفحه **گزارش‌های هوش مصنوعی** خوشه (هوش مصنوعی > لاگ‌ها) است، و آنچه درباره خوشه دانستنی است — مشکلاتی که مدام برمی‌گردند و چرایی‌شان، گره یا بار کاری پشت بیشترشان، آنچه هوش مصنوعی اصلاح کرده — در صفحه **AI Insights** (هوش مصنوعی > Insights). عامل یک kubectl ثابت‌شده (v1.36.5) با خود دارد. Runner نیست و هرگز زیر Runbooks > Runners دیده نمی‌شود: OneUptime هرگز اعتبارنامه‌ای به آن نمی‌دهد، هرگز runbookی روی آن اجرا نمی‌کند، و هرگز به‌عنوان Runner فرمان یک قاعده اصلاح خودکار پذیرفته نمی‌شود.
 
 روی عاملی که پیش از وجود عامل هوش مصنوعی نصب شده، نخست نمایه چارت خود را تازه کنید و سپس به‌روزرسانی کنید (روی OneUptime خودمیزبان، نخست OneUptime را به‌روز کنید — ببینید [به‌روزرسانی عامل](#بهروزرسانی-عامل)):
 

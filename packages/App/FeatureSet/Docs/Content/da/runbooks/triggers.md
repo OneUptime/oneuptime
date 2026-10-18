@@ -117,7 +117,7 @@ Svaret navngiver den kørsel, det startede: `{"runbookExecutionId": "...", "stat
 | `404` | Ingen runbook-webhook svarer på denne URL: runbook-ID'et eller nøglen er forkert, eller URL'en blev nulstillet. |
 | `405` | Anmodningen er en `GET`. En `GET` starter aldrig en kørsel, så en linkforhåndsvisning i en chatapp kan ikke køre den ved et uheld. |
 | `413` | Brødteksten er større end 64 KB. |
-| `429` | Webhooken startede 30 kørsler i det seneste minut, 10 af dens kørsler er stadig i gang, eller én adresse foretog mere end 120 kald til runbook-webhooks på et minut. Headeren `Retry-After` siger, hvornår du kan prøve igen, hvor det er muligt. |
+| `429` | Webhooken startede 30 kørsler i det seneste minut, 10 af dens kørsler er stadig i gang, eller én adresse foretog mere end 120 kald til runbook-webhooks på et minut, eller adresserne i ét IPv6-/64 foretog mere end 1200 sammen. Headeren `Retry-After` siger, hvornår du kan prøve igen, hvor det er muligt. |
 | `503` | OneUptime kan ikke tælle kald lige nu. Prøv igen om et minut. |
 
 Et afvist kald starter intet, og dets brødtekst siger hvorfor i én sætning, som "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

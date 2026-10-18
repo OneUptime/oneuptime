@@ -31,7 +31,7 @@ flowchart TB
 3. Runneren henter oppgavens kontekst. For et unntak er det typen, meldingen og stack tracen.
 4. Den kloner repositoriet til et eget arbeidsområde og lager en branch. En retting av et unntak heter `oneuptime-fix-exception-` etterfulgt av de første tegnene i kjøringens id.
 5. En kodeagent, drevet av prosjektets LLM-leverandør, leser koden og skriver endringen. OneUptime-serveren gjør LLM-kallene, slik at Runneren aldri har leverandørens API-nøkkel, og hvert kall måles og vises i AI-loggene.
-6. Har repositoriet kontrollkommandoer, bygger og tester Runneren endringen før den committer noe, og gir en feil tilbake til kodeagenten for å reparere den (se [Kontroll før pull requesten](#kontroll-før-pull-requesten)).
+6. Har repositoriet kontrollkommandoer, bygger og tester din egen Runner endringen før den committer noe, og gir en feil tilbake til kodeagenten for å reparere den (se [Kontroll før pull requesten](#kontroll-før-pull-requesten)).
 7. Runneren committer, pusher branchen, åpner pull requesten og sletter arbeidsområdet.
 
 Siden oppgaven ble startet fra, viser statusen live. Hver oppgave står under **Produkter → Kode → Oppgaver**: åpne en for å se **Oversikt**, **Logger** (en linje for hver fil Runneren leste eller skrev og hver kommando den kjørte) og **Pull-forespørsler**.
@@ -68,11 +68,11 @@ Når en av dem er satt, kontrollerer hver rettingskjøring endringen sin før pu
 
 1. Når kodeagenten er ferdig, kjører kommandoene i rekkefølge i roten av repositoriet, på Runneren, i det klonede arbeidsområdet. Hver får opptil 15 minutter og kjører med `CI=true`, slik at ingenting venter på inndata; den første feilen stopper gjennomkjøringen.
 2. Ved en feil går slutten av utdataene fra den feilende kommandoen tilbake til den samme kodeagenten som en reparasjonsoppgave, med beskjed om å rette sin egen endring i stedet for å svekke eller hoppe over tester, og kommandoene kjører på nytt. Den gjør høyst **2** reparasjonsforsøk. De deler kjøringens LLM-budsjett, og endringene havner i samme commit som rettingen.
-3. Utfallet, bestått, feilet eller hoppet over (ingen kommandoer satt), skrives i en Verification-seksjon i pull requestens beskrivelse og registreres på oppgavens pull request.
+3. Utfallet, bestått, feilet eller hoppet over (ingen kommandoer satt, eller en delt Runner), skrives i en Verification-seksjon i pull requestens beskrivelse og registreres på oppgavens pull request.
 
 En endring som fortsatt ikke består kontrollen, kastes ikke: pull requesten åpnes likevel, med en tydelig merket seksjon "Verification failed" som nevner den feilende kommandoen og slutter med utdataene dens. Arbeidet beholdes, og den som gjennomgår, bestemmer. Et repositorium uten kommandoer rapporteres som hoppet over, i stedet for å antyde et grønt bygg.
 
-Kommandoene er repositoriuminnstillinger som teamet ditt skriver, og de kjører på din egen Runner: samme tillitsmodell som Bash-stegene i en runbook. AI-en skriver eller endrer dem aldri.
+Kommandoene er repositoriuminnstillinger som teamet ditt skriver, og de kjører på din egen Runner: samme tillitsmodell som Bash-stegene i en runbook. AI-en skriver eller endrer dem aldri. OneUptimes delte Runnere kjører dem aldri: på en delt Runner skrives rettingen og åpnes for gjennomgang, kontrollen rapporteres som hoppet over, og repositoriets egen CI sjekker endringen. [Kjør din egen Runner](#kjør-din-egen-runner) for å få rettinger bygget og testet før pull requesten åpnes.
 
 ## Før du begynner
 

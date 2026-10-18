@@ -1344,6 +1344,52 @@ API, SSO, or the Slack and Microsoft Teams apps.
   check that it sends `X-Forwarded-Proto`, as Caddy and the Nginx example in
   [Set up HTTPS](/docs/installation/docker-compose#set-up-https) do. An
   installation served over plain HTTP (`HTTP_PROTOCOL=http`) sees no change.
+- **OneUptime refuses a placeholder `ONEUPTIME_SECRET`.** OneUptime's own
+  services prove to each other that a call comes from one of them with
+  `ONEUPTIME_SECRET`, and a value the repository ships for it is now refused
+  from every caller: unset, `secret`, or a placeholder from
+  `config.example.env` (they all contain `please-change-this`). An
+  installation that kept one needs no change for its app and workers: they
+  call each other with a key derived from the installation's own token
+  signing key instead. `npm start` and `npm run update` now give
+  `ONEUPTIME_SECRET` a random value in `config.env` when it still holds a
+  placeholder, so the bundled Runner keeps registering. If you start the
+  containers another way, or set `oneuptimeSecret` to a placeholder in Helm,
+  set `ONEUPTIME_SECRET` to a long random value, the same for the app and
+  the Runner, as
+  [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
+  shows: until then the Runner logs what to set and does not register. An
+  installation that set its own `ONEUPTIME_SECRET` sees no change.
+- **PostgreSQL answers only on the server itself, and a new install starts
+  with a database password of its own.** `docker-compose.yml` published
+  PostgreSQL's port 5400 on every address of the server. It is now published
+  on `127.0.0.1` only, where `npm run backup` and `restore.sh` reach it as
+  before, and the development stack publishes its PostgreSQL, ClickHouse and
+  Valkey ports the same way. Anything on another machine that connected to
+  port 5400 now needs an SSH tunnel, or a private address published as
+  [Back up and restore](/docs/installation/docker-compose#back-up-and-restore)
+  shows. On a new install, `npm start` replaces a `DATABASE_PASSWORD` still at
+  its `config.example.env` placeholder with a random value
+  before PostgreSQL creates its database. An installation whose database
+  already exists keeps its password, and `npm start` warns while that is the
+  placeholder:
+  [Change the database password](/docs/installation/docker-compose#change-the-database-password)
+  shows how to change it. If you commented out the port line in
+  `docker-compose.yml`, `git pull` stops at that file: run
+  `git checkout docker-compose.yml`, then pull again. Helm installs see no
+  change.
+- **The bundled Runner no longer runs a repository's commands, and holds only
+  what it needs.** The Runner that Docker Compose (its `runner` service) and the
+  Helm chart (`runner.enabled`) start serves AI code fixes for every project
+  without a Runner of its own. It no longer runs a code repository's setup,
+  build and test commands, and its code agent has no command tool: the fix is
+  written, the pull request opens with its verification shown as skipped, and
+  your repository's own CI checks the change. It also starts with only its
+  OneUptime URL, its keys and its telemetry settings instead of the app's whole
+  environment; settings you gave it through `runner.extraEnv` or a Compose
+  override stay. To have fixes built and tested before the pull request opens,
+  [run a Runner of your own](/docs/ai/ai-agent#run-a-runner-of-your-own): it
+  verifies them as before. Runners you installed yourself see no change.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

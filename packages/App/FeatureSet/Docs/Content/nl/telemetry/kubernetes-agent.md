@@ -4,6 +4,7 @@ De OneUptime Kubernetes-agent is een Helm-chart die de metrics, events en podlog
 
 :::cards
 - [De agent installeren](#de-agent-installeren): Vier stappen met Helm.
+- [Installeren als Amazon EKS-add-on](#installeren-als-amazon-eks-add-on): Vanuit de EKS-console, zonder Helm.
 - [Configuratieopties](#configuratieopties): Filters, sampling, controlevlak, service mesh, kosten en labels.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Alleen-lezen `kubectl` voor OneUptime AI, en correcties als je die toestaat.
 - [Minder versturen](#het-volume-van-verzamelde-gegevens-verminderen): De hefbomen, op volgorde van effect.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 Open **Producten → Infrastructuur → Kubernetes → Alle clusters**. Het cluster verschijnt binnen een paar minuten onder zijn `clusterName`, en de nodes, pods en workloads ervan vullen zich. De Kubernetes-AI-agent wordt als verbonden weergegeven op de pagina **Agent** van het cluster, onder **AI**.
 :::
 
+## Installeren als Amazon EKS-add-on
+
+Op Amazon EKS kun je de agent ook toevoegen vanuit de EKS-console, waar hij een van de add-ons van AWS Marketplace is. Hij kost niets, en EKS installeert, upgradet en verwijdert hem voor je. De add-on is deze chart, ingericht zoals een add-on dat nodig heeft:
+
+- Hij stuurt naar OneUptime Cloud, `https://oneuptime.com`, tenzij je hem de URL van je eigen OneUptime geeft.
+- Hij leest de ingestiesleutel uit een Kubernetes-Secret dat je aanmaakt, nooit uit de configuratie van de add-on, die EKS in platte tekst toont.
+- Hij meldt het cluster aan OneUptime onder de EKS-naam ervan.
+- Hij draait in de namespace `oneuptime-agent`.
+
+:::steps
+### Je ingestiesleutel in een Secret zetten
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### De add-on toevoegen
+
+Open je cluster in de EKS-console, selecteer **Add-ons** en daarna **Get more add-ons**, en kies de OneUptime Kubernetes-agent uit de add-ons van AWS Marketplace. Neem er een abonnement op, wat gratis is, en maak hem aan. Of met de AWS CLI:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### Controleren of de add-on draait
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+De add-on is `ACTIVE` zodra de pods ervan draaien, en het cluster verschijnt binnen een paar minuten in OneUptime onder zijn EKS-naam. Een pod die in `CreateContainerConfigError` blijft hangen, kan het Secret niet vinden: maak het aan zoals in de eerste stap, in de namespace `oneuptime-agent`.
+:::
+
+### Configuratiewaarden van de add-on
+
+Stel ze in bij **Optional configuration settings** in de EKS-console, of met `--configuration-values` wanneer je de add-on aanmaakt of bijwerkt. Ze zijn allemaal optioneel:
+
+- `oneuptime.url`: het adres van je OneUptime. De standaardwaarde is `https://oneuptime.com`.
+- `oneuptime.existingSecretName`: het Secret dat de ingestiesleutel onder `api-key` bevat. De standaardwaarde is `oneuptime-ingestion-key`.
+- `oneuptime.labels`: projectlabels voor alles wat dit cluster stuurt, zoals `{"team": "payments"}`.
+- `preset`: `eks-fargate` voor een cluster dat alleen op Fargate draait, anders `standard`, de standaardwaarde.
+- `logs.enabled`, `ebpf.enabled` en `aiAgent.enabled`: podlogs, eBPF-traces en de [Kubernetes-AI-agent](#kubernetes-ai-agent), alle drie standaard aan.
+- `kubeStateMetrics.enabled` en `cost.enabled`: kube-state-metrics en [kostenobservability](/docs/telemetry/kubernetes-cost), allebei standaard uit.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+Een update vervangt de hele configuratie: een waarde die je weglaat, valt terug op zijn standaardwaarde. De overige instellingen van de chart, zoals de profiler, correcties door OneUptime AI en namespacefilters, vereisen de [Helm-installatie](#de-agent-installeren). Om een cluster van de Helm-installatie naar de add-on over te zetten, verwijder je eerst de Helm-release.
+
 ## Een preset kiezen
 
 `preset` kiest de standaardwaarden die op je platform werken: of podlogs via `hostPath` van de node worden gelezen of via de Kubernetes-API, en welke workloads geprivilegieerd mogen draaien.
@@ -169,6 +225,23 @@ Twijfel je, begin dan met `standard`. Mislukt de installatie met een Pod Securit
 ## Configuratieopties
 
 Elke optie hieronder is een Helm-waarde. Stel hem in bij de installatie, of op een geïnstalleerde agent met `helm upgrade ... --reset-then-reuse-values --set <value>`.
+
+### De ingestiesleutel in een Secret bewaren
+
+`--set oneuptime.apiKey` bewaart de sleutel in de values van de release, die Helm bij elke revisie opslaat. Om hem daarbuiten te houden, zet je de sleutel in een Secret in de namespace van de agent, onder `api-key`, en geef je in plaats daarvan dat Secret op:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+Elke workload van de agent leest de sleutel dan uit dat Secret, en de chart maakt zelf geen Secret aan. Stel `oneuptime.apiKey` of `oneuptime.existingSecretName` in, niet allebei: de chart weigert die twee samen. Het Secret kan afkomstig zijn van alles wat Secrets schrijft, zoals de External Secrets Operator.
 
 ### Namespacefiltering
 
@@ -510,7 +583,7 @@ Hij staat uit omdat het injecteren van de header betekent dat verkeer dat al ond
 
 Als er op dit cluster een incident of waarschuwing ontstaat, onderzoekt OneUptime AI die. De **Kubernetes-AI-agent** van de chart geeft haar een terminal: hij voert alleen-lezen `kubectl` uit zoals een dienstdoende engineer zou doen (de falende pod beschrijven, zijn events lezen, de logs van de crashende container volgen, de nodecapaciteit controleren) en vermeldt elk commando op de incidentpagina.
 
-De agent staat **standaard aan** en is **alleen-lezen**: een kleine Deployment (`kubernetes-agent-ai-agent`, podlabel `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) waarvan het ServiceAccount alleen mag lezen. Hij registreert zich met dezelfde `oneuptime.apiKey` en `clusterName` die de collector gebruikt, dus er is niets in te stellen in het dashboard: de pagina **AI-agent** van het cluster (Kubernetes → cluster → AI → Agent) toont hem binnen een minuut als verbonden, en **Verbinding testen**, in het menu **⋯** naast die status, voert `kubectl version` en `kubectl auth can-i --list` via hem uit. Alles wat AI ermee heeft gedaan, staat op de pagina **AI-logboeken** van het cluster (AI → Logboeken), en wat er over het cluster te weten valt — de problemen die steeds terugkomen en waarom, de node of workload achter de meeste ervan, wat AI heeft opgelost — op de pagina **AI Insights** (AI → Insights). De agent wordt geleverd met een vastgezette kubectl (v1.36.4). Het is geen Runner en hij verschijnt nooit onder Runbooks → Runners: OneUptime geeft hem nooit inloggegevens, voert er nooit runbooks op uit, en hij wordt nooit geaccepteerd als commando-Runner van een regel voor automatisch herstel.
+De agent staat **standaard aan** en is **alleen-lezen**: een kleine Deployment (`kubernetes-agent-ai-agent`, podlabel `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) waarvan het ServiceAccount alleen mag lezen. Hij registreert zich met dezelfde `oneuptime.apiKey` en `clusterName` die de collector gebruikt, dus er is niets in te stellen in het dashboard: de pagina **AI-agent** van het cluster (Kubernetes → cluster → AI → Agent) toont hem binnen een minuut als verbonden, en **Verbinding testen**, in het menu **⋯** naast die status, voert `kubectl version` en `kubectl auth can-i --list` via hem uit. Alles wat AI ermee heeft gedaan, staat op de pagina **AI-logboeken** van het cluster (AI → Logboeken), en wat er over het cluster te weten valt — de problemen die steeds terugkomen en waarom, de node of workload achter de meeste ervan, wat AI heeft opgelost — op de pagina **AI Insights** (AI → Insights). De agent wordt geleverd met een vastgezette kubectl (v1.36.5). Het is geen Runner en hij verschijnt nooit onder Runbooks → Runners: OneUptime geeft hem nooit inloggegevens, voert er nooit runbooks op uit, en hij wordt nooit geaccepteerd als commando-Runner van een regel voor automatisch herstel.
 
 Werk bij een agent die is geïnstalleerd voordat de AI-agent bestond eerst je chartindex bij en upgrade daarna (upgrade op een zelf-gehoste OneUptime eerst OneUptime — zie [De agent upgraden](#de-agent-upgraden)):
 

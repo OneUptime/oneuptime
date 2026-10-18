@@ -54,7 +54,7 @@ to take, so they are not on the list.
 */ -}}
 {{- $reservedEnv := dict -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_URL" "the chart sets it from oneuptime.url" -}}
-{{- $_ := set $reservedEnv "ONEUPTIME_API_KEY" "the chart sets it from oneuptime.apiKey" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_API_KEY" "the chart sets it from oneuptime.apiKey, or from the Secret oneuptime.existingSecretName names" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_KUBERNETES_CLUSTER_NAME" "the chart sets it from clusterName" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION" "the chart sets it to its own version" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_KUBECTL_ALLOW_WRITES" "the chart sets it from aiAgent.fixes (or aiAgent.remediation.enabled) so it always matches the RBAC it grants; change that value instead" -}}
@@ -297,7 +297,7 @@ rules:
     verbs: ["patch", "update", "create"]
 {{- /*
 Namespaces listed: one RoleBinding in each. The chart never creates a
-namespace (and uses no `lookup`, so `helm template` renders the same thing),
+namespace (and reads nothing from the cluster, so `helm template` renders the same thing),
 so every listed namespace must already exist: the API server refuses a
 RoleBinding in a missing one with `namespaces "<ns>" not found`, and that
 fails the whole install or upgrade, collector included. The values, README,
@@ -475,7 +475,7 @@ spec:
             - name: ONEUPTIME_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ $fullname }}
+                  name: {{ include "kubernetes-agent.apiKeySecretName" . }}
                   key: api-key
             - name: ONEUPTIME_KUBERNETES_CLUSTER_NAME
               value: {{ include "kubernetes-agent.clusterName" . | quote }}

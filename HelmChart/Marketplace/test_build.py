@@ -10,11 +10,14 @@ runs these, then renders each built edition with helm.
 """
 
 import json
+import re
 import shutil
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -159,6 +162,30 @@ class ValuesEditorTest(unittest.TestCase):
     def test_leaves_untouched_text_byte_for_byte(self) -> None:
         self.assertEqual(self.editor().text(), VALUES)
 
+    def test_removes_a_block_and_only_that(self) -> None:
+        editor: build.ValuesEditor = self.editor()
+        editor.remove(["postgresql", "image"])
+        text: str = editor.text()
+
+        self.assertIn("postgresql:\n  enabled: true # trailing comment\n  auth:\n", text)
+        self.assertNotIn("repository: postgres", text)
+        # The image block of the same name elsewhere stays.
+        self.assertIn("  tag: release", text)
+
+    def test_removing_a_key_that_is_not_there_changes_nothing(self) -> None:
+        editor: build.ValuesEditor = self.editor()
+        editor.remove(["postgresql", "nope"])
+        editor.remove(["nope"])
+
+        self.assertEqual(editor.text(), VALUES)
+
+    def test_reads_a_value_as_yaml_does(self) -> None:
+        editor: build.ValuesEditor = self.editor()
+
+        self.assertEqual(editor.get_value(["postgresql", "enabled"]), "true")
+        editor.set(["image", "tag"], "1.2.3")
+        self.assertEqual(editor.get_value(["image", "tag"]), "1.2.3")
+
 
 class HelpersTest(unittest.TestCase):
     def test_removes_a_top_level_block_and_only_that(self) -> None:
@@ -188,6 +215,33 @@ class HelpersTest(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             build.split_reference("localhost:5000/oneuptime/app")
+
+    def test_reads_scalars_as_the_charts_write_them(self) -> None:
+        self.assertEqual(build.scalar_value('"0.96.0"'), "0.96.0")
+        self.assertEqual(build.scalar_value('""'), "")
+        self.assertEqual(build.scalar_value("'v1.2.3'"), "v1.2.3")
+        self.assertEqual(build.scalar_value("otel/ebpf-instrument"), "otel/ebpf-instrument")
+        self.assertEqual(build.scalar_value('"v0.14.0" # the pin'), "v0.14.0")
+        self.assertEqual(build.scalar_value("IfNotPresent  # a comment"), "IfNotPresent")
+        self.assertEqual(build.scalar_value('"a \\"quoted\\" word"'), 'a "quoted" word')
+
+        with self.assertRaises(ValueError):
+            build.scalar_value("'unclosed")
+
+    def test_spells_out_docker_hubs_short_names(self) -> None:
+        self.assertEqual(
+            build.docker_reference("otel/ebpf-instrument"), "docker.io/otel/ebpf-instrument"
+        )
+        self.assertEqual(build.docker_reference("busybox"), "docker.io/library/busybox")
+
+        for full in (
+            "registry.k8s.io/kube-state-metrics/kube-state-metrics",
+            "ghcr.io/opencost/opencost",
+            "quay.io/prometheus/prometheus",
+            "localhost:5000/agent",
+            "localhost/agent",
+        ):
+            self.assertEqual(build.docker_reference(full), full)
 
 
 class PlanImagesTest(unittest.TestCase):
@@ -406,6 +460,428 @@ class BuildTest(unittest.TestCase):
 
         self.assertIn("type: REPORTING_SECRET", schema)
         self.assertIn('publishedVersion: "$TAG"', schema)
+
+
+# --- The Kubernetes agent's Amazon EKS add-on -------------------------------------------
+
+# The JSON Schema versions Amazon EKS takes for an add-on's configuration schema (AWS
+# Marketplace Seller Guide, "Schema requirements"), in the form their meta-schemas name
+# themselves. Draft 2020-12, the agent chart's own, is not one of them.
+EKS_SCHEMA_VERSIONS = {
+    "json-schema.org/draft-04/schema",
+    "json-schema.org/draft-06/schema",
+    "json-schema.org/draft-07/schema",
+    "json-schema.org/draft/2019-09/schema",
+}
+
+# What the add-on's configuration schema may say: these validation keywords, which
+# schema_errors() below checks in full, and annotations.
+VALIDATION_KEYWORDS = {
+    "type",
+    "enum",
+    "properties",
+    "additionalProperties",
+    "pattern",
+    "minLength",
+    "maxLength",
+}
+ANNOTATIONS = {"$schema", "title", "description", "default", "examples", "$comment"}
+
+# A schema property AWS refuses as a place for a secret (INVALID_HELM_SENSITIVE_CONFIG):
+# a buyer passes the name of a Secret they created, never the key itself.
+SENSITIVE_NAME = re.compile(
+    r"password|passwd|token|api[-_]?key|private[-_]?key|certificate|credential|license|secret",
+    re.IGNORECASE,
+)
+CAMEL_CASE = re.compile(r"^[a-z][a-zA-Z0-9]*$")
+
+
+def json_type_of(value: Any, name: str) -> bool:
+    if name == "object":
+        return isinstance(value, dict)
+    if name == "array":
+        return isinstance(value, list)
+    if name == "string":
+        return isinstance(value, str)
+    if name == "boolean":
+        return isinstance(value, bool)
+    if name == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if name == "number":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if name == "null":
+        return value is None
+    raise ValueError(f"Unknown JSON type {name}")
+
+
+def schema_errors(schema: Dict[str, Any], value: Any, where: str = "") -> List[str]:
+    """What Amazon EKS's validator would refuse in a configuration, for VALIDATION_KEYWORDS."""
+    if "type" in schema:
+        types = schema["type"] if isinstance(schema["type"], list) else [schema["type"]]
+
+        if not any(json_type_of(value, name) for name in types):
+            return [f"{where or '/'}: {value!r} is not {types}"]
+
+    errors: List[str] = []
+
+    if "enum" in schema and value not in schema["enum"]:
+        errors.append(f"{where}: {value!r} is not one of {schema['enum']}")
+
+    if isinstance(value, str):
+        if "pattern" in schema and not re.search(schema["pattern"], value):
+            errors.append(f"{where}: {value!r} does not match {schema['pattern']}")
+        if len(value) > schema.get("maxLength", len(value)):
+            errors.append(f"{where}: longer than {schema['maxLength']}")
+        if len(value) < schema.get("minLength", 0):
+            errors.append(f"{where}: shorter than {schema['minLength']}")
+
+    if isinstance(value, dict):
+        properties: Dict[str, Any] = schema.get("properties", {})
+
+        for key, item in value.items():
+            if key in properties:
+                errors.extend(schema_errors(properties[key], item, f"{where}/{key}"))
+            elif schema.get("additionalProperties", True) is False:
+                errors.append(f"{where}/{key}: not a configuration value of the add-on")
+            elif isinstance(schema.get("additionalProperties"), dict):
+                errors.extend(
+                    schema_errors(schema["additionalProperties"], item, f"{where}/{key}")
+                )
+
+    return errors
+
+
+def subschemas(schema: Dict[str, Any], path: Tuple[str, ...] = ()) -> List[Tuple[Tuple[str, ...], Dict[str, Any]]]:
+    """Every schema in the tree, by the values path it describes ("*" for additionalProperties)."""
+    found = [(path, schema)]
+
+    for key, child in schema.get("properties", {}).items():
+        found.extend(subschemas(child, path + (key,)))
+
+    if isinstance(schema.get("additionalProperties"), dict):
+        found.extend(subschemas(schema["additionalProperties"], path + ("*",)))
+
+    return found
+
+
+class EksAddonConfigurationSchemaTest(unittest.TestCase):
+    def schema(self) -> Dict[str, Any]:
+        return build.load_json(build.EKS_ADDON_DIR / "configuration-schema.json")
+
+    def chart_schema(self) -> Dict[str, Any]:
+        return build.load_json(build.AGENT_CHART / "values.schema.json")
+
+    def test_uses_a_json_schema_version_eks_takes(self) -> None:
+        version: str = self.schema()["$schema"]
+        normalized: str = re.sub(r"^https?://", "", version).rstrip("#")
+
+        self.assertIn(normalized, EKS_SCHEMA_VERSIONS)
+
+    def test_says_only_what_the_validator_here_checks(self) -> None:
+        for path, schema in subschemas(self.schema()):
+            unknown = set(schema) - VALIDATION_KEYWORDS - ANNOTATIONS
+            self.assertEqual(unknown, set(), ".".join(path))
+
+    def test_describes_every_value_for_the_eks_console(self) -> None:
+        for path, schema in subschemas(self.schema()):
+            if path and path[-1] == "*":
+                continue
+
+            self.assertTrue(schema.get("description", "").strip(), ".".join(path) or "root")
+
+    def test_names_every_value_in_camel_case(self) -> None:
+        for path, _ in subschemas(self.schema()):
+            for key in path:
+                if key != "*":
+                    self.assertRegex(key, CAMEL_CASE, ".".join(path))
+
+    def test_takes_no_secret_only_the_name_of_a_secret(self) -> None:
+        for path, _ in subschemas(self.schema()):
+            for key in path:
+                if key == "*" or key.endswith("SecretName"):
+                    continue
+
+                self.assertIsNone(SENSITIVE_NAME.search(key), ".".join(path))
+
+        self.assertEqual(
+            schema_errors(self.schema(), {"oneuptime": {"apiKey": "f0b3c3c4-key"}}),
+            ["/oneuptime/apiKey: not a configuration value of the add-on"],
+        )
+
+    def test_takes_nothing_it_does_not_name(self) -> None:
+        for path, schema in subschemas(self.schema()):
+            if schema.get("type") == "object" and path[-1:] != ("labels",):
+                self.assertIs(schema.get("additionalProperties"), False, ".".join(path) or "root")
+
+        # Nor what a buyer must leave to EKS and the listing: the images, and the cluster's
+        # name, which EKS fills in itself.
+        for value in (
+            {"clusterName": "prod"},
+            {"image": {"repository": "otel/opentelemetry-collector-contrib"}},
+            {"profiling": {"enabled": True}},
+            {"debug": {"enabled": True}},
+        ):
+            self.assertNotEqual(schema_errors(self.schema(), value), [], value)
+
+    def test_every_value_is_one_the_agent_chart_takes(self) -> None:
+        chart: Dict[str, Any] = self.chart_schema()
+
+        for path, schema in subschemas(self.schema()):
+            if not path or "*" in path:
+                continue
+
+            node: Dict[str, Any] = chart
+
+            for key in path:
+                self.assertIn(key, node.get("properties", {}), ".".join(path))
+                node = node["properties"][key]
+
+            ours = set(schema["type"] if isinstance(schema["type"], list) else [schema["type"]])
+            theirs = set(node["type"] if isinstance(node["type"], list) else [node["type"]])
+            self.assertTrue(ours <= theirs, ".".join(path))
+
+            if "enum" in node:
+                self.assertTrue(set(schema["enum"]) <= set(node["enum"]), ".".join(path))
+
+    def test_its_examples_are_configurations_eks_takes(self) -> None:
+        schema = self.schema()
+        self.assertTrue(schema["examples"])
+
+        for example in schema["examples"]:
+            self.assertEqual(schema_errors(schema, example), [])
+
+    def test_refuses_what_would_break_the_agent(self) -> None:
+        schema = self.schema()
+
+        for value in (
+            {"preset": "gke-autopilot"},
+            {"preset": ""},
+            {"oneuptime": {"url": "oneuptime.com"}},
+            {"oneuptime": {"url": "https://oneuptime.com and more"}},
+            {"oneuptime": {"existingSecretName": "Oneuptime_Key"}},
+            {"oneuptime": {"existingSecretName": ""}},
+            {"oneuptime": {"labels": {"team": ["a", "b"]}}},
+            {"ebpf": {"enabled": "false"}},
+        ):
+            self.assertNotEqual(schema_errors(schema, value), [], value)
+
+        for value in (
+            {},
+            {"oneuptime": {"url": "http://oneuptime.internal:3000/"}},
+            {"oneuptime": {"labels": {"env": "prod", "tier": 1, "pci": True}}},
+            {"preset": "eks-fargate", "ebpf": {"enabled": False}},
+        ):
+            self.assertEqual(schema_errors(schema, value), [], value)
+
+
+class EksAddonBuildTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.out: Path = Path(tempfile.mkdtemp())
+        self.edition: Dict[str, Any] = build.load_json(build.HERE / "editions.json")[build.EKS_ADDON]
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.out, ignore_errors=True)
+
+    def built(self) -> Tuple[List[Dict[str, Any]], Path]:
+        plan = build.build(build.EKS_ADDON, "14.0.65", self.out)
+        return plan, self.out / "kubernetes-agent"
+
+    def test_is_an_edition_but_not_of_the_oneuptime_chart(self) -> None:
+        self.assertIn(build.EKS_ADDON, build.EDITIONS)
+        self.assertNotIn(build.EKS_ADDON, build.MARKETPLACES)
+
+    def test_ships_every_image_from_the_add_on_products_repositories(self) -> None:
+        plan, _ = self.built()
+        targets = {entry["key"]: entry["target"] for entry in plan}
+        registry: str = self.edition["registry"]
+
+        self.assertEqual(
+            sorted(targets),
+            sorted(
+                [
+                    "collector",
+                    "ebpf",
+                    "kubeStateMetrics",
+                    "opencost",
+                    "prometheus",
+                    "logTailer",
+                    "costAgent",
+                    "aiAgent",
+                ]
+            ),
+        )
+
+        for entry in plan:
+            self.assertTrue(entry["target"].startswith(f"{registry}/"), entry["key"])
+            self.assertNotIn(":latest", entry["target"])
+
+        # OneUptime's images at the release, not at the moving tag the chart runs.
+        self.assertEqual(targets["aiAgent"], f"{registry}/kubernetes-ai-agent:14.0.65")
+        self.assertEqual(targets["logTailer"], f"{registry}/kubernetes-log-tailer:14.0.65")
+        self.assertEqual(
+            {entry["source"] for entry in plan if entry["key"] == "costAgent"},
+            {"docker.io/oneuptime/kubernetes-cost-agent:14.0.65"},
+        )
+
+    def test_takes_each_third_party_image_at_the_version_the_agent_chart_pins(self) -> None:
+        plan, _ = self.built()
+        chart = build.ValuesEditor((build.AGENT_CHART / "values.yaml").read_text())
+
+        for entry in plan:
+            path = entry["values"].split(".")
+            repository: str = chart.get_value(path + ["repository"])
+
+            if entry["key"] in ("logTailer", "costAgent", "aiAgent"):
+                continue
+
+            tag: str = chart.get_value(path + ["tag"])
+            self.assertEqual(entry["source"], f"{build.docker_reference(repository)}:{tag}")
+            self.assertTrue(entry["target"].endswith(f":{tag}"))
+
+    def test_names_repositories_the_enterprise_product_does_not_use(self) -> None:
+        addon = build.load_json(build.EKS_ADDON_DIR / "images.json")["images"]
+        enterprise = build.load_json(build.HERE / "images.json")["images"]
+        names = [image["name"] for image in addon.values()]
+
+        self.assertEqual(len(names), len(set(names)))
+        # "oneuptime" is the Enterprise chart's repository; "kubernetes-agent" is the add-on's.
+        taken = {image["name"] for image in enterprise.values()} | {"oneuptime", "kubernetes-agent"}
+        self.assertEqual(set(names) & taken, set())
+
+    def test_writes_every_image_out_in_values_yaml_registry_and_all(self) -> None:
+        plan, chart = self.built()
+        values = build.ValuesEditor((chart / "values.yaml").read_text())
+
+        for entry in plan:
+            path = entry["values"].split(".")
+            repository, tag = build.split_reference(entry["target"])
+            self.assertEqual(values.get_value(path + ["repository"]), repository)
+            self.assertEqual(values.get_value(path + ["tag"]), tag)
+
+        text: str = (chart / "values.yaml").read_text()
+
+        for outside in (
+            "repository: otel/",
+            "repository: oneuptime/",
+            "repository: registry.k8s.io",
+            "repository: ghcr.io",
+            "repository: quay.io",
+            "repository: nicolaka/",
+        ):
+            self.assertNotIn(outside, text)
+
+    def test_offers_no_profiler_and_no_debug_sidecar_and_ships_neither_image(self) -> None:
+        _, chart = self.built()
+        values = build.ValuesEditor((chart / "values.yaml").read_text())
+
+        for feature in ("profiling", "debug"):
+            self.assertEqual(values.get_value([feature, "enabled"]), "false")
+
+            with self.assertRaises(KeyError):
+                values.get_scalar([feature, "image"])
+
+    def test_sets_the_add_ons_defaults(self) -> None:
+        _, chart = self.built()
+        values = build.ValuesEditor((chart / "values.yaml").read_text())
+
+        self.assertEqual(values.get_value(["oneuptime", "url"]), "https://oneuptime.com")
+        self.assertEqual(
+            values.get_value(["oneuptime", "existingSecretName"]), "oneuptime-ingestion-key"
+        )
+        # No key in values: the chart would refuse it next to existingSecretName.
+        self.assertEqual(values.get_value(["oneuptime", "apiKey"]), "")
+        self.assertEqual(values.get_value(["fullnameOverride"]), "kubernetes-agent")
+        self.assertEqual(values.get_value(["preset"]), "standard")
+        self.assertEqual(values.get_value(["clusterName"]), "set-by-amazon-eks")
+        self.assertEqual(values.get_value(["chartDefaultsVersion"]), "14.0.65")
+
+    def test_its_configuration_schema_says_what_values_yaml_does(self) -> None:
+        _, chart = self.built()
+        values = build.ValuesEditor((chart / "values.yaml").read_text())
+        schema = build.load_json(chart / build.EKS_CONFIGURATION_SCHEMA)
+
+        for path, node in subschemas(schema):
+            if "default" not in node or not path or "*" in path:
+                continue
+
+            default = node["default"]
+            written = default if isinstance(default, str) else json.dumps(default)
+            self.assertEqual(values.get_value(list(path)), written, ".".join(path))
+
+    def test_ships_the_configuration_schema_beside_chart_yaml(self) -> None:
+        _, chart = self.built()
+
+        self.assertEqual(
+            (chart / build.EKS_CONFIGURATION_SCHEMA).read_text(),
+            (build.EKS_ADDON_DIR / "configuration-schema.json").read_text(),
+        )
+
+    def test_opens_the_charts_own_schema_at_its_root_for_eks_alone(self) -> None:
+        _, chart = self.built()
+        schema = build.load_json(chart / "values.schema.json")
+        public = build.load_json(build.AGENT_CHART / "values.schema.json")
+
+        self.assertIs(public["additionalProperties"], False)
+        self.assertIs(schema["additionalProperties"], True)
+        self.assertIn("k8version", schema["$comment"])
+        # Everything below the root is the chart's, word for word.
+        self.assertEqual(schema["properties"], public["properties"])
+        self.assertEqual(schema["required"], public["required"])
+
+    def test_ships_the_chart_at_the_release_without_tests_or_scripts(self) -> None:
+        _, chart = self.built()
+        chart_yaml: str = (chart / "Chart.yaml").read_text()
+
+        self.assertIn("\nversion: 14.0.65\n", chart_yaml)
+        self.assertIn('\nappVersion: "14.0.65"\n', chart_yaml)
+        self.assertIn("\nname: kubernetes-agent\n", chart_yaml)
+        self.assertNotIn("dependencies:", chart_yaml)
+        self.assertFalse((chart / "tests").exists())
+        self.assertFalse((chart / "troubleshoot.sh").exists())
+        self.assertFalse((chart / "charts").exists())
+
+    def test_writes_the_plan_for_the_mirror(self) -> None:
+        self.built()
+        plan = json.loads((self.out / "images.json").read_text())
+
+        self.assertEqual(plan["marketplace"], build.EKS_ADDON)
+        self.assertEqual(plan["version"], "14.0.65")
+        self.assertEqual(len(plan["images"]), 8)
+
+    def test_leaves_the_agent_chart_alone(self) -> None:
+        before = {
+            name: (build.AGENT_CHART / name).read_bytes()
+            for name in ("values.yaml", "Chart.yaml", "values.schema.json")
+        }
+        self.built()
+
+        for name, content in before.items():
+            self.assertEqual((build.AGENT_CHART / name).read_bytes(), content, name)
+
+    def test_refuses_a_release_from_before_the_add_on(self) -> None:
+        old_chart: Path = self.out / "old-agent-chart"
+        shutil.copytree(build.AGENT_CHART, old_chart)
+        values: Path = old_chart / "values.yaml"
+        values.write_text(
+            "\n".join(
+                line
+                for line in values.read_text().split("\n")
+                if not line.startswith("  existingSecretName:")
+            )
+        )
+
+        with mock.patch.object(build, "AGENT_CHART", old_chart):
+            with self.assertRaises(ValueError) as raised:
+                build.build(build.EKS_ADDON, "14.0.65", self.out / "edition")
+
+        self.assertIn(build.EKS_ADDON_PREDATES, str(raised.exception))
+
+    def test_refuses_an_image_the_agent_chart_does_not_pin(self) -> None:
+        values = build.ValuesEditor((build.AGENT_CHART / "values.yaml").read_text())
+        values.set(["image", "tag"], "")
+
+        with self.assertRaises(ValueError):
+            build.plan_addon_images("14.0.65", self.edition, values)
 
 
 if __name__ == "__main__":

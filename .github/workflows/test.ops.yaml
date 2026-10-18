@@ -74,10 +74,18 @@ jobs:
       # without asking any registry.
       - name: Warm the base image the real-Docker tests build FROM
         run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/node:26-alpine3.24
+      # RUN_COMPOSE_DATABASE_RUNTIME_TESTS starts PostgreSQL from
+      # docker-compose.yml for real (ComposeDatabaseRuntime.test.js): it
+      # answers on 127.0.0.1 and on no other address of the runner, the way
+      # backup.sh and restore.sh connect reaches it, npm start's first step sees
+      # whether its database exists, and the Docker Compose guide's commands
+      # work as written. It pulls postgres:15, and fails rather than skips
+      # when docker is not usable.
       - run: cd Tests/Ops && npm run test
         env:
           RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"
           RUN_NPM_CLI_UPDATE_TESTS: "1"
+          RUN_COMPOSE_DATABASE_RUNTIME_TESTS: "1"
       # The eBPF end-to-end test (the "Kubernetes Agent eBPF E2E" workflow)
       # needs a cluster and only runs when the chart changes; its assertions
       # do not. These unit tests feed Tests/Ops/agent-ebpf-e2e/analyze.py
@@ -98,7 +106,9 @@ jobs:
       # configs (also with their syslog receivers uncommented), every Database
       # agent config,
       # and both collector ConfigMaps rendered out of the kubernetes-agent chart
-      # (the Deployment's also with the opt-in ebpf.dropUnlinkedClientCalls on).
+      # (the Deployment's also with the opt-in ebpf.dropUnlinkedClientCalls on,
+      # and both again on collector 0.96.0, which an upgrade with
+      # --reuse-values keeps).
       - run: bash Tests/Ops/validate-collector-configs.sh
       # `validate` proves the agent's OTTL parses; this proves what it DOES.
       # It runs the Kubernetes agent's eBPF span filters exactly as the chart
@@ -115,6 +125,14 @@ jobs:
       # inspector requests are dropped; an app's own routes, other ports,
       # other methods and SDK metrics are kept.
       - run: bash Tests/Ops/agent-metric-filter-behaviour.sh
+      # And for kubelet CPU: the node collector's filter/cpu-utilization and
+      # transform/cpu-utilization as the chart renders them, fed what the
+      # kubeletstats receiver sends, on the collector the chart pins and on
+      # 0.96.0 (which an upgrade with --reuse-values keeps). Both must send
+      # k8s.node.cpu.utilization, k8s.pod.cpu.utilization and
+      # container.cpu.utilization once each, the names OneUptime reads, and
+      # the node and pod *.cpu.usage beside them.
+      - run: bash Tests/Ops/agent-cpu-names-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a
@@ -171,6 +189,19 @@ jobs:
       - run: bash Tests/Ops/vmware-agent-native-install.sh --image public.ecr.aws/docker/library/rockylinux:8
         env:
           VCSIM_CACHE_DIR: ${{ steps.vcsim.outputs.dir }}
+      # The infrastructure agent's apt and yum repository, end to end:
+      # Scripts/PackageManagers/PublishPackageRepository.sh publishes two
+      # releases of a stand-in package (built by nfpm, as GoReleaser builds
+      # the agent's) to a local stand-in for OneUptime/packages, and the
+      # Server / VM Monitor page's apt and dnf commands install from the site
+      # it pushed, as written, on Ubuntu 24.04 and Rocky Linux 8 (the images
+      # warmed above) under a root umask of 077: signatures checked, by-hash
+      # indexes, downgrade and upgrade, another key refused. release.yml
+      # publishes the real repository only after a release, so this is where
+      # a broken publish shows up first. The site is served by busybox httpd.
+      - name: Warm the image the package repository e2e serves its site from
+        run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/busybox:1.37
+      - run: bash Tests/Ops/package-repository-e2e.sh
       # The App Dockerfile builds the Community and Enterprise editions as
       # targets. BuildKit resolves each target's stage graph and runs its build
       # checks over the production render (default, community, enterprise) and

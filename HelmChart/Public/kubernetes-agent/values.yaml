@@ -48,6 +48,17 @@ oneuptime:
   # APM > Ingestion Keys). The agent sends it as the x-oneuptime-token
   # header, so a project API key (Settings > API Keys) does not work here.
   apiKey: ""
+  # Or keep the key out of your values: the name of a Secret you create in
+  # this release's namespace, holding the key under `api-key`:
+  #
+  #   kubectl create secret generic oneuptime-ingestion-key \
+  #     --namespace <namespace> --from-literal=api-key=<ingestion key>
+  #
+  # Every agent workload then reads the key from it, and the chart creates no
+  # Secret of its own. Set this or apiKey, not both. The Amazon EKS add-on
+  # takes its key this way, because EKS shows an add-on's configuration
+  # values in plain text.
+  existingSecretName: ""
   # Optional: Auto-tag every record this agent emits with project Labels.
   #
   # Each key/value pair becomes a resource attribute of the form
@@ -282,9 +293,16 @@ sampling:
     hashSeed: 22
 
 # OTel Collector image configuration
+#
+# The same collector the other OneUptime agents are built FROM. 0.96.0, the
+# pin before this one, carries known critical vulnerabilities (Go 1.21,
+# grpc 1.62, docker 24) that later releases fixed. The collector configs
+# keep what OneUptime reads as it was on 0.96.0 (the `*.cpu.utilization`
+# names, per-CPU `system.cpu.time`), and they still run on 0.96.0, which an
+# upgrade with --reuse-values keeps (see NOTES.txt).
 image:
   repository: otel/opentelemetry-collector-contrib
-  tag: "0.96.0"
+  tag: "0.161.0"
   pullPolicy: IfNotPresent
 
 # Debug sidecar — drops a shell + network tools (curl, dig, nc, tcpdump, …)
@@ -607,7 +625,7 @@ kubeStateMetrics:
   # mode == "external".
   image:
     repository: registry.k8s.io/kube-state-metrics/kube-state-metrics
-    tag: "v2.13.0"
+    tag: "v2.20.0"
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -680,7 +698,7 @@ cost:
   opencost:
     image:
       repository: ghcr.io/opencost/opencost
-      tag: "1.121.0"
+      tag: "1.121.3"
       pullPolicy: IfNotPresent
     logLevel: info
     resources:
@@ -717,7 +735,10 @@ cost:
   prometheus:
     image:
       repository: quay.io/prometheus/prometheus
-      tag: "v2.55.1"
+      # Prometheus 3. Its scrape config and flags (templates/prometheus-cost.yaml)
+      # read the same as in 2.x, and OpenCost adjusts its queries to 3.x's
+      # left-open range selectors itself.
+      tag: "v3.15.0"
       pullPolicy: IfNotPresent
     # The cost poller only queries recently-closed hourly windows, so a
     # few days is all this TSDB needs for spend alone. It is set to 7d

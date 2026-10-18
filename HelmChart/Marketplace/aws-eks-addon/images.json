@@ -1,0 +1,45 @@
+{
+  "_comment": "The images of the Kubernetes agent's Amazon EKS add-on, by the values.yaml path the agent chart reads each from (<values>.repository and <values>.tag). build.py takes each source from the chart: a third-party image keeps the version the chart pins, and OneUptime's own (which the chart runs at the moving release tag) is tagged with the release. Each name is the image's repository in the add-on product's AWS Marketplace ECR, under the seller prefix in editions.json. Repository names are unique across the seller's products, so none may be one the Enterprise product's images.json uses. The profiler and the debug sidecar are not here: the add-on does not offer them, and ships without their images.",
+  "images": {
+    "collector": {
+      "values": "image",
+      "name": "opentelemetry-collector-contrib",
+      "oneuptime": false
+    },
+    "ebpf": {
+      "values": "ebpf.image",
+      "name": "ebpf-instrument",
+      "oneuptime": false
+    },
+    "kubeStateMetrics": {
+      "values": "kubeStateMetrics.image",
+      "name": "kube-state-metrics",
+      "oneuptime": false
+    },
+    "opencost": {
+      "values": "cost.opencost.image",
+      "name": "opencost",
+      "oneuptime": false
+    },
+    "prometheus": {
+      "values": "cost.prometheus.image",
+      "name": "prometheus",
+      "oneuptime": false
+    },
+    "logTailer": {
+      "values": "logs.api.image",
+      "name": "kubernetes-log-tailer",
+      "oneuptime": true
+    },
+    "costAgent": {
+      "values": "cost.agent.image",
+      "name": "kubernetes-cost-agent",
+      "oneuptime": true
+    },
+    "aiAgent": {
+      "values": "aiAgent.image",
+      "name": "kubernetes-ai-agent",
+      "oneuptime": true
+    }
+  }
+}

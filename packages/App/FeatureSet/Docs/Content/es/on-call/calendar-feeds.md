@@ -241,7 +241,7 @@ El feed muestra la rotación **tal como está configurada ahora**, también para
 - Los enlaces son por proyecto. Un enlace personal filtrado expone los turnos de un proyecto, no los de todos los proyectos a los que perteneces.
 - Regenerar un enlace pasa el token antiguo a un periodo de gracia de 30 días (calendario vacío y después 404). **Desactivar enlace** sirve un calendario vacío. Un enlace desconocido o caducado responde con un simple 404 sin pistas. Los calendarios vacíos hacen que las aplicaciones suscritas vacíen su copia; un 404 hace que la conserven, por eso desactivar y regenerar sirven calendarios vacíos.
 - Los tokens se guardan con hash; la copia que se muestra en la página de ajustes está cifrada con `ENCRYPTION_SECRET`. Configura esa variable con un secreto real en una instalación autoalojada: el servidor avisa al arrancar cuando no está definida o sigue siendo uno de los marcadores de posición que trae este repositorio (`secret`, o el `please-change-this-to-random-value` que define `config.example.env`). Si la cambias después, la página ofrece **Regenerar enlace** porque la copia guardada ya no se puede leer; el feed sigue funcionando hasta que lo hagas.
-- Las respuestas de los feeds se marcan con `Cache-Control: private`, se excluyen de los buscadores (`X-Robots-Tag: noindex`) y tienen límite de frecuencia por enlace y por dirección de cliente.
+- Las respuestas de los feeds se marcan con `Cache-Control: private`, se excluyen de los buscadores (`X-Robots-Tag: noindex`) y tienen límite de frecuencia por enlace y por dirección de cliente, y por /64 de IPv6 con diez veces los límites de una dirección.
 
 El Nginx de OneUptime mantiene las peticiones de los feeds fuera de sus registros:
 
@@ -319,7 +319,7 @@ O bien `DISABLE_ON_CALL_CALENDAR_FEED` está definido, o el servidor está ocupa
 :::
 
 :::details 429 o «demasiadas peticiones»
-Muchos clientes detrás de una misma dirección —un NAT de oficina, una pasarela VPN— comparten el presupuesto por dirección. Sube `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` y revisa `TRUSTED_PROXY_HOPS`: si es demasiado bajo, cada cliente se atribuye a tu propio proxy y todos comparten un solo presupuesto.
+Muchos clientes detrás de una misma dirección —un NAT de oficina, una pasarela VPN— comparten el presupuesto por dirección. Los clientes de un mismo /64 de IPv6 comparten además diez veces ese presupuesto. Sube `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` y revisa `TRUSTED_PROXY_HOPS`: si es demasiado bajo, cada cliente se atribuye a tu propio proxy y todos comparten un solo presupuesto.
 :::
 
 :::details Errores de certificado en el Calendario de Apple, Thunderbird u Outlook
