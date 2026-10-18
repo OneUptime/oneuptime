@@ -200,7 +200,6 @@ const settingsEagerLeafModules: Array<string> = [
   "Settings/Domains",
   "Settings/Billing",
   "Settings/SSO",
-  "Settings/OIDC",
   "Settings/SCIM",
   "Settings/NotificationLogs",
   "Settings/NotificationSettings",

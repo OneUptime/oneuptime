@@ -36,7 +36,7 @@ flowchart LR
 | **Notifications** | **Paramètres de notification**, **Journaux de notification**, **Applications mobiles** | [Notifications](#notifications) |
 | **IA** | **Fonctionnalités IA**, **Fournisseurs LLM**, **Crédits IA**, **Journaux IA**, **Serveur MCP** | [Fournisseurs LLM](/docs/ai/llm-provider), [Serveur MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#maîtrise-des-coûts) |
 | **Avancé** | **Domaines**, **Clés API**, **Drapeaux de fonctionnalités** | [Domaines personnalisés](/docs/status-pages/branding-and-domains#domaines-personnalisés), [Clés API](/docs/permissions/index#clés-dapi), [Drapeaux de fonctionnalités](#drapeaux-de-fonctionnalités) |
-| **Sécurité** | **SSO**, **OIDC**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
+| **Sécurité** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturation et factures** | **Facturation**, **Historique d'utilisation**, **Factures** | [Facturation et utilisation](/docs/configuration/billing) |
 | **Journaux d'audit** | **Journaux d'audit**, **Paramètres** | [Journaux d'audit](/docs/configuration/audit-logs) |
 | **Zone de danger** | **Zone de danger** | [Supprimer le projet](#supprimer-le-projet) |

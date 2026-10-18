@@ -36,6 +36,8 @@ const TeamViewIndex: FunctionComponent<
             validation: {
               minLength: 2,
             },
+            // Not the column's "Any friendly name of this object", written for the API.
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -45,6 +47,7 @@ const TeamViewIndex: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Team Description",
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{

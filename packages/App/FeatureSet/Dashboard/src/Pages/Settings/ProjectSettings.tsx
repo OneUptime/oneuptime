@@ -32,6 +32,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             validation: {
               minLength: 2,
             },
+            // Not the column's "Any friendly name of this object", written for the API.
+            hideColumnDescription: true,
           },
         ]}
         onSaveSuccess={() => {

@@ -34,6 +34,11 @@ import {
   SMTP_SUMMARY_TLS_OPTIONAL,
   SMTP_SUMMARY_TLS_PORT_465_UNCHECKED,
   SMTP_SUMMARY_TLS_REQUIRED,
+  SMTP_AUTH_TYPE_CHOICES,
+  SMTP_AUTH_TYPE_DESCRIPTION,
+  SMTP_OAUTH_PROVIDER_TYPE_CHOICES,
+  SMTP_OAUTH_PROVIDER_TYPE_DESCRIPTION,
+  SMTP_TRANSPORT_CHOICES,
   SMTP_TRANSPORT_DESCRIPTION,
   SMTP_USERNAME_DESCRIPTION,
   SmtpConfigFormColumns,
@@ -57,6 +62,7 @@ import {
 } from "../../../../UI/Components/SmtpConfig/SmtpConfigFormFields";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Port from "../../../../Types/Port";
+import type { RadioButton } from "../../../../UI/Components/RadioButtons/GroupRadioButtons";
 
 /*
  * The one builder behind both mail server forms - a project's Custom SMTP
@@ -487,7 +493,7 @@ describe("both forms", () => {
     expect(fieldFor(PROJECT_FIELDS, "password").required).toBe(false);
   });
 
-  test("start the dropdowns where the mail service reads an empty one", () => {
+  test("start each choice where the mail service reads an empty one", () => {
     expect(fieldFor(PROJECT_FIELDS, "transportType").defaultValue).toBe(
       MailTransportType.SMTP,
     );
@@ -497,25 +503,94 @@ describe("both forms", () => {
     expect(fieldFor(PROJECT_FIELDS, "oauthProviderType").defaultValue).toBe(
       OAuthProviderType.ClientCredentials,
     );
+  });
 
-    expect(
-      (fieldFor(PROJECT_FIELDS, "transportType").dropdownOptions || []).map(
-        (option: unknown) => {
-          return (option as { value: unknown }).value;
+  /*
+   * Transport, Authentication Type and OAuth Provider Type were dropdowns
+   * whose one description named every answer; they are the answers
+   * themselves now, the default first, each with one line saying when to
+   * pick it. The values are the ones the API, Terraform and the mail
+   * service always read.
+   */
+  test("offer the transport, sign-in and OAuth grant as plain answers, each with its line, the default first", () => {
+    for (const fields of [PROJECT_FIELDS, GLOBAL_FIELDS] as Array<
+      Array<Field<unknown>>
+    >) {
+      const transport: Field<unknown> = fields.find(
+        (field: Field<unknown>): boolean => {
+          return field.title === "Transport";
         },
-      ),
-    ).toEqual([MailTransportType.SMTP, MailTransportType.MicrosoftGraph]);
-    expect(
-      (fieldFor(PROJECT_FIELDS, "authType").dropdownOptions || []).map(
-        (option: unknown) => {
-          return (option as { value: unknown }).value;
+      ) as Field<unknown>;
+      const authType: Field<unknown> = fields.find(
+        (field: Field<unknown>): boolean => {
+          return field.title === "Authentication Type";
         },
-      ),
-    ).toEqual([
+      ) as Field<unknown>;
+      const grant: Field<unknown> = fields.find(
+        (field: Field<unknown>): boolean => {
+          return field.title === "OAuth Provider Type";
+        },
+      ) as Field<unknown>;
+
+      for (const [field, choices] of [
+        [transport, SMTP_TRANSPORT_CHOICES],
+        [authType, SMTP_AUTH_TYPE_CHOICES],
+        [grant, SMTP_OAUTH_PROVIDER_TYPE_CHOICES],
+      ] as Array<[Field<unknown>, Array<RadioButton>]>) {
+        expect(field.fieldType).toBe(FormFieldSchemaType.RadioButton);
+        expect(field.radioButtonOptions).toBe(choices);
+        expect(field.dropdownOptions).toBeUndefined();
+        expect(field.defaultValue).toBe(choices[0]!.value);
+      }
+
+      expect(transport.description).toBe(SMTP_TRANSPORT_DESCRIPTION);
+      expect(authType.description).toBe(SMTP_AUTH_TYPE_DESCRIPTION);
+      expect(grant.description).toBe(SMTP_OAUTH_PROVIDER_TYPE_DESCRIPTION);
+    }
+
+    const values: (choices: Array<RadioButton>) => Array<string> = (
+      choices: Array<RadioButton>,
+    ): Array<string> => {
+      return choices.map((choice: RadioButton): string => {
+        return choice.value;
+      });
+    };
+
+    expect(values(SMTP_TRANSPORT_CHOICES)).toEqual([
+      MailTransportType.SMTP,
+      MailTransportType.MicrosoftGraph,
+    ]);
+    expect(values(SMTP_AUTH_TYPE_CHOICES)).toEqual([
       SMTPAuthenticationType.UsernamePassword,
       SMTPAuthenticationType.OAuth,
       SMTPAuthenticationType.None,
     ]);
+    expect(values(SMTP_OAUTH_PROVIDER_TYPE_CHOICES)).toEqual([
+      OAuthProviderType.ClientCredentials,
+      OAuthProviderType.JWTBearer,
+    ]);
+
+    // Every answer is named as it always was - the value the guides use - with one line under it.
+    for (const choice of [
+      ...SMTP_TRANSPORT_CHOICES,
+      ...SMTP_AUTH_TYPE_CHOICES,
+      ...SMTP_OAUTH_PROVIDER_TYPE_CHOICES,
+    ]) {
+      expect(choice.title).toBe(choice.value);
+      expect(choice.description).toMatch(/^[A-Z].*\.$/);
+      expect(String(choice.description).split(". ")).toHaveLength(1);
+    }
+
+    // No description lists the answers any more: each answer says it.
+    for (const description of [
+      SMTP_TRANSPORT_DESCRIPTION,
+      SMTP_AUTH_TYPE_DESCRIPTION,
+      SMTP_OAUTH_PROVIDER_TYPE_DESCRIPTION,
+    ]) {
+      expect(description).not.toMatch(
+        /Microsoft Graph|Client Credentials|JWT Bearer|Pick|Choose|Select/,
+      );
+    }
   });
 
   /*

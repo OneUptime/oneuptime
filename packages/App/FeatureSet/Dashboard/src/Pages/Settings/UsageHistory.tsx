@@ -101,20 +101,10 @@ const Settings: FunctionComponent<ComponentProps> = (
             title: "Day",
             type: FieldType.Date,
           },
-          {
-            field: {
-              dataIngestedInGB: true,
-            },
-            title: "Data Ingested (in GB)",
-            type: FieldType.Text,
-            getElement: (item: TelemetryUsageBilling) => {
-              return (
-                <div>{`${DiskSize.convertToDecimalPlaces(
-                  (item["dataIngestedInGB"] as Decimal).value as number,
-                )} GB`}</div>
-              );
-            },
-          },
+          /*
+           * Data Ingested is drawn once, after the service that sent it: the
+           * table drew the same column twice, before and after Service.
+           */
           {
             field: {
               service: {
@@ -192,6 +182,20 @@ const Settings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              dataIngestedInGB: true,
+            },
+            title: "Data Ingested (in GB)",
+            type: FieldType.Text,
+            getElement: (item: TelemetryUsageBilling) => {
+              return (
+                <div>{`${DiskSize.convertToDecimalPlaces(
+                  (item["dataIngestedInGB"] as Decimal).value as number,
+                )} GB`}</div>
+              );
+            },
+          },
+          {
+            field: {
               retainTelemetryDataForDays: true,
             },
             title: "Data Retention (in Days)",
@@ -204,20 +208,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                     Number(item["retainTelemetryDataForDays"] || 0),
                   )}
                 </div>
-              );
-            },
-          },
-          {
-            field: {
-              dataIngestedInGB: true,
-            },
-            title: "Data Ingested (in GB)",
-            type: FieldType.Text,
-            getElement: (item: TelemetryUsageBilling) => {
-              return (
-                <div>{`${DiskSize.convertToDecimalPlaces(
-                  (item["dataIngestedInGB"] as Decimal).value as number,
-                )} GB`}</div>
               );
             },
           },

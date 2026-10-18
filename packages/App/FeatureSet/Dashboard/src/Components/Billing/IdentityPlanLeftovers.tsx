@@ -1,6 +1,5 @@
 import { PlanLeftoverTitle } from "./PlanLeftoverCopy";
 import PlanLeftoverTable from "./PlanLeftoverTable";
-import RequireSsoForLoginLeftover from "../Project/RequireSsoForLoginLeftover";
 import StatusPageRequireSsoLeftover from "../StatusPage/StatusPageRequireSsoLeftover";
 import {
   IDENTITY_REQUIRED_PLAN,
@@ -73,28 +72,24 @@ export const ProjectSamlProvidersLeftover: FunctionComponent =
   };
 
 /*
- * Settings > OIDC: "Require SSO for Login" while the project still requires
- * it, as on Settings > SSO - turning the last provider off while it does
- * would leave nobody a way in - then the project's OIDC providers.
+ * Settings > SSO: the project's OIDC providers, under its SAML ones. The
+ * page draws "Require SSO for Login" once above both, while the project
+ * still requires it - turning the last provider off while it does would
+ * leave nobody a way in.
  */
 export const ProjectOidcProvidersLeftover: FunctionComponent =
   (): ReactElement => {
-    const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
-
     return (
-      <>
-        <RequireSsoForLoginLeftover projectId={projectId} />
-        <PlanLeftoverTable<ProjectOIDC>
-          modelType={ProjectOIDC}
-          id="project-oidc-providers"
-          query={{
-            projectId: projectId,
-          }}
-          requiredPlan={SSO_REQUIRED_PLAN}
-          title={PlanLeftoverTitle.oidcProviders}
-          columns={nameColumns<ProjectOIDC>()}
-        />
-      </>
+      <PlanLeftoverTable<ProjectOIDC>
+        modelType={ProjectOIDC}
+        id="project-oidc-providers"
+        query={{
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        }}
+        requiredPlan={SSO_REQUIRED_PLAN}
+        title={PlanLeftoverTitle.oidcProviders}
+        columns={nameColumns<ProjectOIDC>()}
+      />
     );
   };
 

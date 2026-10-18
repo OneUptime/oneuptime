@@ -1164,7 +1164,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_DOMAINS]: "domains",
   [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
   [PageMap.SETTINGS_SSO]: "sso",
-  [PageMap.SETTINGS_OIDC]: "oidc",
   [PageMap.SETTINGS_SCIM]: "scim",
   [PageMap.SETTINGS_BILLING]: "billing",
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
@@ -7119,12 +7118,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_SSO]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_SSO]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_OIDC]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_OIDC]
     }`,
   ),
 

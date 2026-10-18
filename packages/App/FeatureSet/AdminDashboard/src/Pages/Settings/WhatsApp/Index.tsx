@@ -254,6 +254,8 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.whatsapp.metaEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.whatsapp.metaEditButton")}
         /*
          * One page: the access token and the phone number ID, which is all
          * a message is sent with, and the rest folded under Advanced. It was

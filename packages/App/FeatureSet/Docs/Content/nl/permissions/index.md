@@ -192,9 +192,9 @@ Elke toegestane machtiging wordt toegekend met een bereik, gekozen onder **Berei
 
 | Bereik | Betekenis |
 | --- | --- |
-| Alle resources in het project | De standaard. De machtiging geldt voor elke passende resource. |
-| In eigendom van dit team of zijn leden | De machtiging geldt alleen voor resources waarbij dit team, of de handelende gebruiker, als eigenaar staat. |
-| Beperken op labels (geavanceerd) | De machtiging geldt alleen voor resources die minstens één van de gekozen labels dragen. |
+| Alle resources in het project | De standaard, en wat de meeste teams nodig hebben. De machtiging geldt voor elke passende resource. |
+| Alleen resources die van hen zijn | De machtiging geldt alleen voor resources die van de handelende persoon of een van diens teams zijn. |
+| Alleen resources met bepaalde labels | De machtiging geldt alleen voor resources die minstens één van de gekozen labels dragen. |
 
 **Eigen** is de eenvoudigste manier om een model "jullie zorgen voor je eigen diensten" op te zetten: geef een team `MonitorAdmin` met bereik Eigen en maak dat team eigenaar van de monitors waarvoor het verantwoordelijk is. Het beperkt elke resource die eigenaren kan hebben — monitors, incidenten, dashboards, diensten, monitorgroepen, bereikbaarheidsschema's en dergelijke — en wat erbij hoort, zoals de lagen van een schema. Sondes, Runners, AI-agenten, bereikbaarheidsschema's en incident- en onderhoudssjablonen zijn waarmee andere resources worden ingericht, dus een machtiging met bereik Eigen leest ze nog steeds allemaal en u kunt er elk van kiezen; ze wijzigt en verwijdert alleen die waarvan u of uw teams eigenaar zijn. De sleutel van een Runner, waarmee wie hem heeft als die Runner kan optreden, is alleen te zien bij de Runners waarvan u of uw teams eigenaar zijn. Projectconfiguratie (incidentstatussen, labels, de teams zelf) heeft geen eigenaar, dus daar gedraagt een rol met bereik Eigen zich normaal.
 

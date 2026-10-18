@@ -57,13 +57,14 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={true}
         isEditable={false}
         isCreateable={true}
+        // A domain is one you own, added here: not created.
+        createVerb="Add"
         cardProps={{
           title: "Domains",
           description:
-            "Please list the domains you own here. This will help you to connect them to Status Page.",
+            "Domains you own. Verify one with a TXT record to use it for a status page or dashboard address.",
         }}
         refreshToggle={refreshToggle}
-        noItemsMessage={"No domains found."}
         viewPageRoute={Navigation.getCurrentRoute()}
         actionButtons={[
           {
@@ -100,6 +101,8 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
               domain: true,
             },
             title: "Domain",
+            description:
+              "A domain you own. Once it is added, verify it from its row.",
             fieldType: FormFieldSchemaType.Domain,
             required: true,
             placeholder: "acme-inc.com",

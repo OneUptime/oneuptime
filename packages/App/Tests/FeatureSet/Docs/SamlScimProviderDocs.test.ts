@@ -239,7 +239,7 @@ describe("Project SSO: setting up a SAML provider", () => {
     const section: string = ssoSetUp("en");
 
     const steps: Array<string> = [
-      "**Create SSO**",
+      "**Add SAML Provider**",
       "**Name**",
       "**Sign On URL**",
       "**Issuer**",

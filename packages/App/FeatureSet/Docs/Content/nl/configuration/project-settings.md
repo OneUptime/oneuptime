@@ -36,7 +36,7 @@ flowchart LR
 | **Meldingen** | **Meldingsinstellingen**, **Meldingslogboeken**, **Mobiele apps** | [Meldingen](#meldingen) |
 | **AI** | **AI Features**, **LLM-providers**, **AI-tegoeden**, **AI-logboeken**, **MCP-server** | [LLM-providers](/docs/ai/llm-provider), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenbeheersing) |
 | **Geavanceerd** | **Domeinen**, **API-sleutels**, **Functievlaggen** | [Eigen domeinen](/docs/status-pages/branding-and-domains#aangepaste-domeinen), [API-sleutels](/docs/permissions/index#api-sleutels), [Functievlaggen](#functievlaggen) |
-| **Beveiliging** | **SSO**, **OIDC**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
+| **Beveiliging** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturering en facturen** | **Facturering**, **Gebruiksgeschiedenis**, **Facturen** | [Facturering en gebruik](/docs/configuration/billing) |
 | **Auditlogboeken** | **Auditlogboeken**, **Instellingen** | [Auditlogboeken](/docs/configuration/audit-logs) |
 | **Gevarenzone** | **Gevarenzone** | [Het project verwijderen](#het-project-verwijderen) |

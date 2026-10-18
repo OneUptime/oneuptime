@@ -36,7 +36,7 @@ flowchart LR
 | **Notificações** | **Configurações de notificação**, **Logs de notificação**, **Aplicativos móveis** | [Notificações](#notificações) |
 | **IA** | **AI Features**, **Provedores LLM**, **Créditos de IA**, **Registros de IA**, **Servidor MCP** | [Provedores de LLM](/docs/ai/llm-provider), [Servidor MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#controle-de-custos) |
 | **Avançado** | **Domínios**, **Chaves de API**, **Sinalizadores de recursos** | [Domínios personalizados](/docs/status-pages/branding-and-domains#domínios-personalizados), [Chaves de API](/docs/permissions/index#chaves-de-api), [Sinalizadores de recursos](#sinalizadores-de-recursos) |
-| **Segurança** | **SSO**, **OIDC**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
+| **Segurança** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Cobrança e faturas** | **Cobrança**, **Histórico de uso**, **Faturas** | [Cobrança e uso](/docs/configuration/billing) |
 | **Registros de auditoria** | **Registros de auditoria**, **Configurações** | [Registros de auditoria](/docs/configuration/audit-logs) |
 | **Zona de perigo** | **Zona de perigo** | [Excluir o projeto](#excluir-o-projeto) |
