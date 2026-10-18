@@ -146,37 +146,51 @@ test("the shared component draws the card only for a page that passes links", ()
  * The Details rows ran edge to edge with -m-6 and started their words at
  * px-4, while the card is padded px-5 md:px-6: every label sat 8px left of
  * the card's title on a desktop, and the rows reached 4px past the card on a
- * phone. They follow the card's padding now, at every width.
+ * phone. They are the card's ruled list now (CardSurface, as every ruled
+ * list of a card is), with each row padded as the card is.
  */
 test("the Details rows line up with the card's title at every width", () => {
+  const commonCard: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Common",
+    "UI",
+    "Components",
+    "Card",
+  );
   const card: string = fs.readFileSync(
-    path.join(
-      __dirname,
-      "..",
-      "..",
-      "..",
-      "Common",
-      "UI",
-      "Components",
-      "Card",
-      "Card.tsx",
-    ),
+    path.join(commonCard, "Card.tsx"),
+    "utf8",
+  );
+  const surface: string = fs.readFileSync(
+    path.join(commonCard, "CardSurface.ts"),
     "utf8",
   );
   const component: string = code(
     "Components/TelemetryResource/ResourceOverview.tsx",
   );
 
-  // What the rows are lined up with.
+  // The card's padding, and the ruled list that reaches out by exactly it.
   expect(card).toContain(
     'export const CARD_PADDING_CLASS_NAME: string = "py-6 px-5 md:px-6";',
   );
-
-  // Edge to edge: out by exactly the card's padding.
-  expect(component).toContain(
-    '<div className="-mx-5 -mb-6 -mt-2 divide-y divide-gray-100 border-t border-gray-200 md:-mx-6">',
+  expect(surface).toContain(
+    '"-mx-5 -mb-6 divide-y divide-gray-200 border-t border-gray-200 md:-mx-6"',
   );
-  // And the words back in by it.
+
+  expect(component).toContain(
+    'import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";',
+  );
+  expect(component).toContain(
+    "const ruledListClassName: string = useCardRuledListClassName();",
+  );
+  // The Details rows and the quick links both.
+  expect(component.split("<div className={ruledListClassName}>").length).toBe(
+    3,
+  );
+  // And each row's words back in by the card's padding.
   expect(component).toContain(
     'className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"',
   );

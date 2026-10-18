@@ -3,6 +3,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Card from "Common/UI/Components/Card/Card";
+import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
@@ -279,6 +280,11 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
 const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
   props: ResourceOverviewProps,
 ): ReactElement => {
+  /*
+   * The Details rows and the quick links: ruled from edge to edge of their
+   * card, their words where the card's title starts, at every width.
+   */
+  const ruledListClassName: string = useCardRuledListClassName();
   const status: string = (props.status || "").toLowerCase();
   const isConnected: boolean = status === "connected" || status === "active";
   const lastSeenText: string = props.lastSeenAt
@@ -443,12 +449,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             : undefined
         }
       >
-        {/*
-         * Card-wide rules under the description: the rows reach the card's
-         * edges (its padding is px-5 md:px-6, CARD_PADDING_CLASS_NAME) and
-         * their words start where the card's title does.
-         */}
-        <div className="-mx-5 -mb-6 -mt-2 divide-y divide-gray-100 border-t border-gray-200 md:-mx-6">
+        <div className={ruledListClassName}>
           {props.detailRows.map(
             (row: ResourceOverviewDetailRow, idx: number): ReactElement => {
               return (
@@ -482,7 +483,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             title="Explore telemetry"
             description="Drill into the raw signals for this resource."
           >
-            <div className="-mx-5 -mb-6 -mt-2 divide-y divide-gray-100 border-t border-gray-200 md:-mx-6">
+            <div className={ruledListClassName}>
               {props.quickLinks.map(
                 (
                   link: ResourceOverviewQuickLink,
