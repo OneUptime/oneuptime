@@ -305,9 +305,7 @@ describe("a request that carries a Runner's key, redirected to another server", 
 
     expect(pathsOf(redirectingAway)).toEqual(["/runner-ingest/heartbeat"]);
     expect(
-      (JSON.parse(redirectingAway.received[0]!.body) as JSONObject)[
-        "agentKey"
-      ],
+      (JSON.parse(redirectingAway.received[0]!.body) as JSONObject)["agentKey"],
     ).toBe(RUNNER_KEY);
     expect(otherServer.received).toEqual([]);
   });

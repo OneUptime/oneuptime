@@ -307,9 +307,7 @@ describe("the report that closes a code-fix task", () => {
       expect(claim.options).toEqual(NOT_RETRIED);
     }
 
-    expect(reportOf(AIAgentTaskStatus.InProgress).options).toEqual(
-      NOT_RETRIED,
-    );
+    expect(reportOf(AIAgentTaskStatus.InProgress).options).toEqual(NOT_RETRIED);
   });
 
   test("a finished task reports its status once, after the heartbeat", async () => {

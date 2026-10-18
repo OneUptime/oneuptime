@@ -64,8 +64,7 @@ interface TestServer {
 
 async function startServer(): Promise<TestServer> {
   const received: Array<Received> = [];
-  const answers: Map<string, { status: number; location?: string }> =
-    new Map();
+  const answers: Map<string, { status: number; location?: string }> = new Map();
 
   const http: Server = createServer(
     (req: IncomingMessage, res: ServerResponse) => {
@@ -279,26 +278,70 @@ describe("a request that carries a key, redirected on its own server", () => {
 describe("which redirects stay on the server", () => {
   test.each([
     ["the same address", "http://app:3002/a", "http://app:3002/b"],
-    ["the same address, a query added", "https://x.com/a", "https://x.com/b?c=d"],
-    ["the same name in other capitals", "https://oneuptime.com/a", "https://OneUptime.COM/a"],
-    ["http moved to https", "http://oneuptime.example.com/a", "https://oneuptime.example.com/a"],
-    ["http on 80 moved to https on 443, written out", "http://x.com:80/a", "https://x.com:443/a"],
+    [
+      "the same address, a query added",
+      "https://x.com/a",
+      "https://x.com/b?c=d",
+    ],
+    [
+      "the same name in other capitals",
+      "https://oneuptime.com/a",
+      "https://OneUptime.COM/a",
+    ],
+    [
+      "http moved to https",
+      "http://oneuptime.example.com/a",
+      "https://oneuptime.example.com/a",
+    ],
+    [
+      "http on 80 moved to https on 443, written out",
+      "http://x.com:80/a",
+      "https://x.com:443/a",
+    ],
     ["an IPv6 address", "http://[::1]:3002/a", "http://[::1]:3002/b"],
   ])("%s", (_label: string, from: string, to: string) => {
     expect(isRedirectOnSameServer(from, to)).toBe(true);
   });
 
   test.each([
-    ["another host", "https://oneuptime.com/a", "https://collector.example.net/a"],
-    ["a host that only starts like it", "https://oneuptime.com/a", "https://oneuptime.com.example.net/a"],
+    [
+      "another host",
+      "https://oneuptime.com/a",
+      "https://collector.example.net/a",
+    ],
+    [
+      "a host that only starts like it",
+      "https://oneuptime.com/a",
+      "https://oneuptime.com.example.net/a",
+    ],
     ["a subdomain", "https://oneuptime.com/a", "https://www.oneuptime.com/a"],
     ["another port", "http://app:3002/a", "http://app:3003/a"],
-    ["https moved to http", "https://oneuptime.com/a", "http://oneuptime.com/a"],
-    ["http moved to https on another port", "http://x.com:3002/a", "https://x.com/a"],
-    ["http moved to https from another port", "http://x.com/a", "https://x.com:8443/a"],
+    [
+      "https moved to http",
+      "https://oneuptime.com/a",
+      "http://oneuptime.com/a",
+    ],
+    [
+      "http moved to https on another port",
+      "http://x.com:3002/a",
+      "https://x.com/a",
+    ],
+    [
+      "http moved to https from another port",
+      "http://x.com/a",
+      "https://x.com:8443/a",
+    ],
     ["another scheme", "https://oneuptime.com/a", "ftp://oneuptime.com/a"],
-    ["credentials added", "https://oneuptime.com/a", "https://user:pass@oneuptime.com/a"],
-    ["an address that cannot be read", "https://oneuptime.com/a", "http://[bad"],
+    [
+      "credentials added",
+      "https://oneuptime.com/a",
+      "https://user:pass@oneuptime.com/a",
+    ],
+    [
+      "an address that cannot be read",
+      "https://oneuptime.com/a",
+      "http://[bad",
+    ],
     ["no address", "https://oneuptime.com/a", ""],
   ])("not %s", (_label: string, from: string, to: string) => {
     expect(isRedirectOnSameServer(from, to)).toBe(false);

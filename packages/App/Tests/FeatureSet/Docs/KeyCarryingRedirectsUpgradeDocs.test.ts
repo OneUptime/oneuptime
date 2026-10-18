@@ -1,4 +1,8 @@
-import { DocsLink, scanMarkdown, TRANSLATED_LANGUAGES } from "./DocsContentSupport";
+import {
+  DocsLink,
+  scanMarkdown,
+  TRANSLATED_LANGUAGES,
+} from "./DocsContentSupport";
 import { inlineCode } from "./DocsTranslationChecks";
 import { flattened, otherChangesItems } from "./UpgradingDocsNotes";
 import { isRedirectOnSameServer } from "Common/Utils/SameServerRedirect";

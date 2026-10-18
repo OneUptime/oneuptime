@@ -967,7 +967,9 @@ describe("the keys OneUptime's own components present", () => {
       redactLogString(
         `POST /x HTTP/1.1\r\nx-agent-key: ${ISSUED_KEY}\r\nHost: oneuptime\r\n`,
       ),
-    ).toBe(`POST /x HTTP/1.1\r\nx-agent-key: ${REDACTED}\r\nHost: oneuptime\r\n`);
+    ).toBe(
+      `POST /x HTTP/1.1\r\nx-agent-key: ${REDACTED}\r\nHost: oneuptime\r\n`,
+    );
     expect(
       redactLogString(
         JSON.stringify({ probeKey: PROBE_KEY, probeId: AGENT_ID }),
@@ -1010,10 +1012,7 @@ describe("the keys' names keep redaction linear", () => {
     ["names and separators with no value", "x-agent-key=".repeat(LENGTH / 12)],
     ["an unterminated JSON member", `"probeKey":"${"a".repeat(LENGTH)}`],
     ["a header line with a long value", `x-agent-key: ${"k".repeat(LENGTH)}`],
-    [
-      "an unterminated single-quoted value",
-      `agentKey: '${"a".repeat(LENGTH)}`,
-    ],
+    ["an unterminated single-quoted value", `agentKey: '${"a".repeat(LENGTH)}`],
     [
       "an unterminated single-quoted value of escapes",
       `agentKey: '${"\\'".repeat(LENGTH / 2)}`,
@@ -1151,11 +1150,12 @@ describe("private key blocks", () => {
     ],
     [
       "BEGIN lines of many words",
-      "-----BEGIN A B C D E F G H I J K PRIVATE KEY-----".repeat(
-        1000000 / 49,
-      ),
+      "-----BEGIN A B C D E F G H I J K PRIVATE KEY-----".repeat(1000000 / 49),
     ],
-    ["one BEGIN and a label that never ends", `-----BEGIN ${"A ".repeat(500000)}`],
+    [
+      "one BEGIN and a label that never ends",
+      `-----BEGIN ${"A ".repeat(500000)}`,
+    ],
     ["dashes", "-".repeat(1000000)],
   ])(
     "are looked for in time in line with the text: %s",

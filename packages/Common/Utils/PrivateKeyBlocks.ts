@@ -17,7 +17,8 @@
  */
 
 // A header and a footer: neither repeat can run past the next "-".
-const PRIVATE_KEY_HEADER: RegExp = /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----/g;
+const PRIVATE_KEY_HEADER: RegExp =
+  /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----/g;
 const PRIVATE_KEY_FOOTER: RegExp = /-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----/g;
 
 // What every header starts with: text without it holds no block.

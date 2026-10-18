@@ -268,9 +268,10 @@ describe("the probe's and the Runner's requests", () => {
         KEY_CARRYING_OTHER_CLIENTS[relativePath];
 
       if (check) {
-        expect({ relativePath, checksItsRedirects: code.includes(check) }).toEqual(
-          { relativePath, checksItsRedirects: true },
-        );
+        expect({
+          relativePath,
+          checksItsRedirects: code.includes(check),
+        }).toEqual({ relativePath, checksItsRedirects: true });
         continue;
       }
 
@@ -358,7 +359,10 @@ describe("how a request's options are read", () => {
   }
 
   test.each([
-    ["written out", "API.post({ url, options: { sameServerRedirectsOnly: true } });"],
+    [
+      "written out",
+      "API.post({ url, options: { sameServerRedirectsOnly: true } });",
+    ],
     [
       "written out after other options",
       "API.post({ url, options: { timeout: 5, sameServerRedirectsOnly: true } });",

@@ -341,9 +341,9 @@ describe("a request that carries a probe's keys, redirected on its own server", 
       "/probe-ingest/register",
       `${MOVED_PATH}/probe-ingest/register`,
     ]);
-    expect(
-      JSON.parse(redirectingToItself.received[1]!.body)["probeKey"],
-    ).toBe(PROBE_KEY);
+    expect(JSON.parse(redirectingToItself.received[1]!.body)["probeKey"]).toBe(
+      PROBE_KEY,
+    );
     expect(probe.LocalCache.getString("PROBE", "PROBE_ID")).toBe(PROBE_ID);
   });
 
