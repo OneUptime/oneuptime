@@ -309,6 +309,11 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
      * (`clusterKey=...`), a console's `{ clusterkey: '...' }` and a raw
      * request stringified again keep none of it. JSON members are the JSON
      * rules' above.
+     *
+     * Linear in the text's length: the name's prefix and suffix are bounded
+     * (KEY_PREFIX, KEY_SUFFIX), the value stops at whitespace and a quoted
+     * value at its closing quote (LogRedaction.test reads 400,000 characters
+     * of each worst case).
      */
     name: "cluster-key-value",
     regex: new RegExp(
@@ -398,9 +403,17 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
     replacement: REDACTED,
   },
   {
-    // Credentials embedded in a URL: postgres://user:password@host/db
+    /*
+     * Credentials embedded in a URL: postgres://user:password@host/db
+     *
+     * The scheme is bounded (64 characters, far more than any scheme that
+     * carries credentials), so the time this takes grows in line with the
+     * text's length: a scheme can start at every word, and each start reads
+     * no further than that (LogRedaction.test reads 400,000 characters of
+     * the worst cases).
+     */
     name: "url-basic-auth",
-    regex: /\b([a-z][a-z0-9+.-]*:\/\/)([^\s/:@]+):[^\s/@]+@/gi,
+    regex: /\b([a-z][a-z0-9+.-]{0,63}:\/\/)([^\s/:@]+):[^\s/@]+@/gi,
     replacement: `$1$2:${REDACTED}@`,
   },
 ];

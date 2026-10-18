@@ -677,6 +677,10 @@ describe("the cluster key's spellings keep redaction linear", () => {
     ["names and quotes over and over", 'clusterkey:"'.repeat(LENGTH / 12)],
     ["names and escaped quotes", 'clusterkey: \\"'.repeat(LENGTH / 14)],
     ["names with no separator", "x-clusterkey ".repeat(LENGTH / 13)],
+    [
+      "names run together with what a name may start and end with",
+      `${"UCLUSTERKEY-".repeat(LENGTH / 12)}\u0000`,
+    ],
   ])("%s", (_label: string, text: string) => {
     const startedAt: number = Date.now();
 
@@ -684,4 +688,51 @@ describe("the cluster key's spellings keep redaction linear", () => {
 
     expect(Date.now() - startedAt).toBeLessThan(2000);
   });
+});
+
+/*
+ * Credentials in a URL (scheme://user:password@host) are found wherever a
+ * scheme can start, and a scheme can start at every word. Log text that
+ * names a credential (and so goes through every rule) can be one long run of
+ * words joined by - or . with no :// in it: it must still be read in time in
+ * line with its length.
+ */
+describe("credentials in a URL", () => {
+  const LENGTH: number = 400000;
+
+  it("are redacted, whatever the scheme", () => {
+    for (const [url, password] of [
+      ["postgres://oneuptime:hunter2@postgres:5432/oneuptimedb", "hunter2"],
+      ["mongodb+srv://admin:p4ss-w0rd@cluster0.example.net/db", "p4ss-w0rd"],
+      ["amqps://guest:guest-secret@rabbit/vhost", "guest-secret"],
+      ["see https://user:pa55@example.com/path and more", "pa55"],
+      [`${"s".repeat(64)}://user:long-scheme-pass@host`, "long-scheme-pass"],
+    ] as Array<[string, string]>) {
+      const output: string = redactLogString(url);
+
+      expect({ url, holdsThePassword: output.includes(password) }).toEqual({
+        url,
+        holdsThePassword: false,
+      });
+    }
+  });
+
+  it.each([
+    ["words joined by hyphens", "secret-".repeat(LENGTH / 7)],
+    ["words joined by dots", "token.".repeat(LENGTH / 6)],
+    [
+      "the cluster key's name joined by hyphens",
+      "UCLUSTERKEY-".repeat(LENGTH / 12),
+    ],
+    ["one letter and dotted capitals", `secret a${".C".repeat(LENGTH / 2)}`],
+  ])(
+    "are looked for in time in line with the text: %s",
+    (_label: string, text: string) => {
+      const startedAt: number = Date.now();
+
+      redactLogString(text);
+
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+    },
+  );
 });
