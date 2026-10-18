@@ -11,8 +11,10 @@
 #
 #   every edition  lints and renders; every image comes from the
 #                  marketplace's own registry, none from Docker Hub and none
-#                  "latest"; the app knows which marketplace bills it; no
-#                  subchart, archive or helm test hook is shipped;
+#                  "latest"; the app knows which marketplace bills it, and
+#                  makes no update check against GitHub (upgrades come
+#                  through the marketplace); no subchart, archive or helm
+#                  test hook is shipped;
 #   aws            every image written out in values.yaml; the app and worker
 #                  run as the IRSA service account; at most 50 images;
 #   azure          the CNAB manifest, UI definition and ARM template agree;
@@ -70,6 +72,11 @@ check_common() {
     local marketplace_env
     marketplace_env="$(grep -A1 'name: ENTERPRISE_MARKETPLACE$' "$rendered" | grep 'value:' | sort -u | tr -d ' ')"
     assert_eq "${marketplace}: the app is told which marketplace bills it" "value:\"${marketplace}\"" "$marketplace_env"
+
+    # Upgrades come through the marketplace: no comparing with, or calling, GitHub's releases.
+    local update_check_env
+    update_check_env="$(grep -A1 'name: DISABLE_UPDATE_CHECK$' "$rendered" | grep 'value:' | sort -u | tr -d ' ')"
+    assert_eq "${marketplace}: the app makes no update check against GitHub" "value:'true'" "$update_check_env"
 
     assert_absent "${marketplace}: no helm test hook" "$(cat "$rendered")" '"helm.sh/hook": test'
 
