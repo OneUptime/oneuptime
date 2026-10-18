@@ -7778,7 +7778,10 @@ export const ZABBIX_WEBHOOK_COMPONENT_ID: string = "webhook-1";
  * https://example.com/zabbix, and perhaps the slash an address bar ends it
  * with. A segment holds no dot, so the address of a page in Zabbix -
  * zabbix.php, tr_events.php - is refused, and no query, user name or
- * markup can ride along. At most 300 characters.
+ * markup can ride along. At most 300 characters: the lookahead at its start
+ * refuses a longer value at once, and nothing in it can match the same
+ * text two ways (a segment's characters are never a "/", a host's never a
+ * ":" or a "/"), so it reads a value in time in line with its length.
  *
  * The create wizard checks a typed value with ZABBIX_URL_PATTERN, and the
  * script that links to a problem reads the setting with the same source,
@@ -8587,10 +8590,11 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentType: ComponentType.Component,
     /*
      * Wider than the step above it, as its cases' names make it
-     * (Workflow/PortLayout): 288px, so it starts 16px further left and
-     * sits centred under read-event-1.
+     * (Workflow/PortLayout): 288px. read-event-1 leads into it from its
+     * Success output, a quarter across that card (x 164), so it starts at
+     * 20 and the connection runs straight down into the middle of it.
      */
-    position: { x: 84, y: 700 },
+    position: { x: 20, y: 700 },
     args: {
       value: zabbixEventValue("kind"),
       cases: [

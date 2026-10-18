@@ -318,6 +318,26 @@ describe("shapes workflows already have", () => {
         } else if (operator === ConditionOperator.IsEmpty) {
           matching = { ...args, "input-1": "" };
           missing = { ...args, "input-1": "something" };
+        } else if (
+          operator === ConditionOperator.GreaterThanOrEqualTo ||
+          operator === ConditionOperator.GreaterThan ||
+          operator === ConditionOperator.LessThanOrEqualTo ||
+          operator === ConditionOperator.LessThan
+        ) {
+          // A number past the bound, on the side the comparison asks for, and one short of it.
+          const bound: number = Number(args["input-2"]);
+          const above: boolean =
+            operator === ConditionOperator.GreaterThanOrEqualTo ||
+            operator === ConditionOperator.GreaterThan;
+
+          matching = {
+            ...args,
+            "input-1": String(above ? bound + 1 : bound - 1),
+          };
+          missing = {
+            ...args,
+            "input-1": String(above ? bound - 1 : bound + 1),
+          };
         }
 
         expect({ step: node.componentId, port: await run(matching) }).toEqual({
