@@ -122,28 +122,66 @@ const describeReplacedSecrets = (replaced) => {
   );
 };
 
-const init = () => {
-  const path = "./config.env";
+// The line printed when config.env could not be read ("read") or written ("written").
+const describeUnchangedConfig = (action, error) => {
+  const reason = error && error.message ? error.message : String(error);
 
-  if (!fs.existsSync(path)) {
-    return;
+  return (
+    `config.env could not be ${action} (${reason}), so ONEUPTIME_SECRET was not given a random value. ` +
+    "OneUptime starts anyway. If ONEUPTIME_SECRET still holds the placeholder from config.example.env, " +
+    "the bundled Runner does not register until it is a long random value (openssl rand -hex 32 makes one)."
+  );
+};
+
+/*
+ * Sets every listed secret in config.env that still holds a placeholder.
+ *
+ * Never throws. A config.env it cannot read or write is left as it was and
+ * reported: OneUptime's own services do not need the new value (they use a
+ * key of the installation's own), only the bundled Runner does, so neither
+ * `npm start` nor `npm run update` stops over it. `options` replaces the
+ * file system and the output for the tests. Returns the names it set.
+ */
+const init = (options = {}) => {
+  const path = options.path || "./config.env";
+  const fileSystem = options.fileSystem || fs;
+  const log = options.log || console.log;
+  const warn = options.warn || console.error;
+
+  if (!fileSystem.existsSync(path)) {
+    return [];
   }
 
-  const result = replacePlaceholderSecrets(fs.readFileSync(path, "utf8"));
+  let result;
+
+  try {
+    result = replacePlaceholderSecrets(fileSystem.readFileSync(path, "utf8"));
+  } catch (error) {
+    warn(describeUnchangedConfig("read", error));
+    return [];
+  }
 
   if (result.replaced.length === 0) {
-    return;
+    return [];
   }
 
-  fs.writeFileSync(path, result.contents);
-  console.log(describeReplacedSecrets(result.replaced));
+  try {
+    fileSystem.writeFileSync(path, result.contents);
+  } catch (error) {
+    warn(describeUnchangedConfig("written", error));
+    return [];
+  }
+
+  log(describeReplacedSecrets(result.replaced));
+
+  return result.replaced;
 };
 
 /*
  * Run as a script (`node ./Scripts/Install/ReplacePlaceholderSecrets.js` from
  * the repository root) by `npm start` (its prestart) and by
  * Scripts/Install/configure.sh, which `npm run update` runs. Requiring it,
- * as the tests do, only exports the pure functions.
+ * as the tests do, only exports the functions.
  */
 if (require.main === module) {
   init();
@@ -156,4 +194,6 @@ module.exports = {
   isPlaceholderValue,
   replacePlaceholderSecrets,
   describeReplacedSecrets,
+  describeUnchangedConfig,
+  init,
 };

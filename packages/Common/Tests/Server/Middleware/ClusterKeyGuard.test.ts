@@ -1,6 +1,7 @@
 import { listProductFiles } from "../../Helpers/CodeScanning";
 import { REPOSITORY_DIRECTORY } from "../../Helpers/TagStripScan";
 import escapeRegExp from "../../../Utils/RegExpEscape";
+import { INSTALLATION_CLUSTER_KEY_LABEL } from "../../../Server/Middleware/ClusterKeyAuthorization";
 import {
   ClusterKeyMiddlewareUse,
   findClusterKeyMiddlewareUses,
@@ -55,6 +56,54 @@ const ONEUPTIME_SECRET_READ: RegExp =
 
 // The key's own name, the headers and the body field, any case, as a whole word.
 const CLUSTER_KEY_WORD: RegExp = /\bclusterkey\b/i;
+
+/*
+ * Every file that presents the key, with the address it sends it to: one of
+ * the installation's own, read from its configuration (the app's API, the
+ * workflow service, the telemetry writer, the OneUptime URL the in-cluster
+ * Runner is given), never an address a project or a request supplies.
+ */
+const PRESENTERS: Record<string, string> = {
+  "packages/App/FeatureSet/Telemetry/Services/IncomingEmailWorkflowDelivery.ts":
+    "WorkflowHostname",
+  "packages/Common/Server/Services/AnalyticsDatabaseService.ts":
+    "WorkflowHostname",
+  "packages/Common/Server/Services/CallService.ts": "AppApiHostname",
+  "packages/Common/Server/Services/DatabaseService.ts": "WorkflowHostname",
+  "packages/Common/Server/Services/MailService.ts": "AppApiHostname",
+  "packages/Common/Server/Services/SmsService.ts": "AppApiHostname",
+  "packages/Common/Server/Services/TelegramService.ts": "AppApiHostname",
+  "packages/Common/Server/Services/WebhookService.ts": "AppApiHostname",
+  "packages/Common/Server/Services/WhatsAppService.ts": "AppApiHostname",
+  "packages/Common/Server/Services/WorkflowService.ts": "WorkflowHostname",
+  "packages/Common/Server/Utils/IncomingCallPhoneNumber.ts": "AppApiHostname",
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts":
+    "WorkflowHostname",
+  "packages/Common/Server/Utils/Telemetry/TelemetryWriterClient.ts":
+    "TELEMETRY_WRITER_URL",
+  "packages/Runner/Services/RegisterRunner.ts": "ONEUPTIME_BASE_URL",
+};
+
+/*
+ * Every product module that uses the token signing key itself. Each signs
+ * something that can never be the cluster key's label: a JWT (its header and
+ * payload, joined by a dot), a project SSO confirmation (its own purpose
+ * first, the fields joined by colons), or keys derived under labels of their
+ * own.
+ */
+const TOKEN_SIGNING_KEY_USERS: Array<string> = [
+  "packages/App/FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation.ts",
+  "packages/App/FeatureSet/Identity/Utils/VerificationEmailResendToken.ts",
+  "packages/Common/Server/Middleware/ClusterKeyAuthorization.ts",
+  "packages/Common/Server/Utils/JsonWebToken.ts",
+  "packages/Common/Server/Utils/Mcp/McpOAuthSignedToken.ts",
+  "packages/Common/Server/Utils/TokenSigningKey.ts",
+];
+
+const TOKEN_SIGNING_KEY_USE: RegExp = /\bTokenSigningKey\.(?:get|deriveKey)\(/;
+
+// The cluster key's label: lower-case words and hyphens, no dot and no colon.
+const LABEL_SHAPE: RegExp = /^[a-z]+(?:-[a-z]+)*$/;
 
 const PRESENTING_CALL: RegExp =
   /\bClusterKeyAuthorization\.(?:getClusterKeyHeaders|getClusterKey)\(/;
@@ -307,6 +356,21 @@ describe("only processes that can know the installation's key present it", () =>
     ).toEqual([]);
   });
 
+  test("every file that presents it is listed, with the installation's own address it calls", () => {
+    expect(
+      presenters.filter((relativePath: string): boolean => {
+        return relativePath !== CLUSTER_KEY_AUTHORIZATION;
+      }),
+    ).toEqual(Object.keys(PRESENTERS).sort());
+
+    for (const [relativePath, destination] of Object.entries(PRESENTERS)) {
+      expect({ relativePath, callsIt: codeOf(relativePath) }).toEqual({
+        relativePath,
+        callsIt: expect.stringContaining(destination),
+      });
+    }
+  });
+
   test("no frontend code presents it", () => {
     expect(
       presenters.filter((relativePath: string): boolean => {
@@ -360,5 +424,37 @@ describe("the cluster key an installation that kept a shipped value presents", (
     expect(refusal).toBeGreaterThan(-1);
     expect(expected).toBeGreaterThan(refusal);
     expect(accepted).toContain("crypto.timingSafeEqual(");
+  });
+});
+
+/*
+ * NOTHING ELSE CAN MAKE THE KEY AN INSTALLATION DERIVES FOR ITSELF.
+ *
+ * An installation that kept a shipped value presents HMAC-SHA256(its token
+ * signing key, INSTALLATION_CLUSTER_KEY_LABEL). That is the installation's own
+ * only while nothing hands anybody an HMAC of the signing key over that label:
+ * so the signing key is used only by the modules listed above, each signing
+ * text that can never equal the label, and the label is written once.
+ */
+describe("the key an installation derives for itself is made nowhere else", () => {
+  test("only the listed modules use the token signing key", () => {
+    expect(productFilesWhoseCodeMatches(TOKEN_SIGNING_KEY_USE)).toEqual(
+      [...TOKEN_SIGNING_KEY_USERS].sort(),
+    );
+  });
+
+  test("its label is written in ClusterKeyAuthorization alone, once", () => {
+    const writers: Array<string> = productFilesWhoseCodeMatches(
+      new RegExp(escapeRegExp(INSTALLATION_CLUSTER_KEY_LABEL)),
+    );
+
+    expect(writers).toEqual([CLUSTER_KEY_AUTHORIZATION]);
+    expect(
+      codeOf(CLUSTER_KEY_AUTHORIZATION).split(INSTALLATION_CLUSTER_KEY_LABEL),
+    ).toHaveLength(2);
+  });
+
+  test("its label holds no dot and no colon, so no JWT and no project SSO confirmation is signed over it", () => {
+    expect(INSTALLATION_CLUSTER_KEY_LABEL).toMatch(LABEL_SHAPE);
   });
 });

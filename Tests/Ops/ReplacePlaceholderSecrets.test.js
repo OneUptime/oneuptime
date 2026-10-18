@@ -48,6 +48,8 @@ const {
   isPlaceholderValue,
   replacePlaceholderSecrets,
   describeReplacedSecrets,
+  describeUnchangedConfig,
+  init,
 } = require(SCRIPT_PATH);
 
 const HEX_256_BITS = /^[0-9a-f]{64}$/;
@@ -405,6 +407,140 @@ describe("the script, run the way npm start and configure.sh run it", () => {
     expect(fs.readFileSync(path.join(dir, "config.env"), "utf8")).toBe(
       `ONEUPTIME_SECRET=${PLACEHOLDER}\n`,
     );
+  });
+});
+
+/*
+ * A config.env it cannot read or write never stops a start: OneUptime's own
+ * services do not need the new value, only the bundled Runner does, so the
+ * script says what to set and leaves the file as it was.
+ */
+describe("a config.env it cannot read or write", () => {
+  // A stand-in file system holding one config.env, whose reads or writes fail on demand.
+  function fileSystemWith(contents, failure) {
+    const fileSystem = {
+      contents: contents,
+      writes: 0,
+      existsSync: () => {
+        return true;
+      },
+      readFileSync: () => {
+        if (failure === "read") {
+          throw Object.assign(new Error("EACCES: permission denied"), {
+            code: "EACCES",
+          });
+        }
+        return fileSystem.contents;
+      },
+      writeFileSync: (_path, newContents) => {
+        fileSystem.writes++;
+        if (failure === "write") {
+          throw Object.assign(new Error("EROFS: read-only file system"), {
+            code: "EROFS",
+          });
+        }
+        fileSystem.contents = newContents;
+      },
+    };
+    return fileSystem;
+  }
+
+  function output() {
+    const lines = { logged: [], warned: [] };
+    return {
+      lines: lines,
+      log: (line) => {
+        lines.logged.push(line);
+      },
+      warn: (line) => {
+        lines.warned.push(line);
+      },
+    };
+  }
+
+  test("one it cannot write is left as it was, and the script says what to set instead of throwing", () => {
+    const contents = `HOST=localhost\nONEUPTIME_SECRET=${PLACEHOLDER}\n`;
+    const fileSystem = fileSystemWith(contents, "write");
+    const out = output();
+
+    expect(
+      init({ fileSystem: fileSystem, log: out.log, warn: out.warn }),
+    ).toEqual([]);
+    expect(fileSystem.writes).toBe(1);
+    expect(fileSystem.contents).toBe(contents);
+    expect(out.lines.logged).toEqual([]);
+    expect(out.lines.warned).toEqual([
+      describeUnchangedConfig(
+        "written",
+        new Error("EROFS: read-only file system"),
+      ),
+    ]);
+  });
+
+  test("one it cannot read is not written at all, and the script says so instead of throwing", () => {
+    const fileSystem = fileSystemWith("", "read");
+    const out = output();
+
+    expect(
+      init({ fileSystem: fileSystem, log: out.log, warn: out.warn }),
+    ).toEqual([]);
+    expect(fileSystem.writes).toBe(0);
+    expect(out.lines.logged).toEqual([]);
+    expect(out.lines.warned).toEqual([
+      describeUnchangedConfig("read", new Error("EACCES: permission denied")),
+    ]);
+  });
+
+  test("one it can write gets the new value, and the script says what it did", () => {
+    const fileSystem = fileSystemWith(`ONEUPTIME_SECRET=${PLACEHOLDER}\n`);
+    const out = output();
+
+    expect(
+      init({ fileSystem: fileSystem, log: out.log, warn: out.warn }),
+    ).toEqual(["ONEUPTIME_SECRET"]);
+    expect(valueOf(fileSystem.contents, "ONEUPTIME_SECRET")).toMatch(
+      HEX_256_BITS,
+    );
+    expect(out.lines.logged).toEqual([
+      describeReplacedSecrets(["ONEUPTIME_SECRET"]),
+    ]);
+    expect(out.lines.warned).toEqual([]);
+  });
+
+  test("the message names the file, the reason, and what the Runner needs", () => {
+    expect(
+      describeUnchangedConfig(
+        "written",
+        new Error("EROFS: read-only file system"),
+      ),
+    ).toBe(
+      "config.env could not be written (EROFS: read-only file system), so ONEUPTIME_SECRET was not given a random value. OneUptime starts anyway. If ONEUPTIME_SECRET still holds the placeholder from config.example.env, the bundled Runner does not register until it is a long random value (openssl rand -hex 32 makes one).",
+    );
+  });
+
+  test("the real script exits 0 when config.env is not a file it can read, so npm start goes on", () => {
+    const dir = workspace();
+    fs.mkdirSync(path.join(dir, "Scripts", "Install"), { recursive: true });
+    fs.copyFileSync(
+      SCRIPT_PATH,
+      path.join(dir, "Scripts", "Install", "ReplacePlaceholderSecrets.js"),
+    );
+    // A directory where config.env belongs: it exists, and reading it fails.
+    fs.mkdirSync(path.join(dir, "config.env"));
+
+    const run = spawnSync(
+      process.execPath,
+      ["./Scripts/Install/ReplacePlaceholderSecrets.js"],
+      { cwd: dir, encoding: "utf8" },
+    );
+
+    expect(run.status).toBe(0);
+    expect(run.stdout).toBe("");
+    expect(run.stderr).toContain("config.env could not be read (");
+    expect(run.stderr).toContain(
+      "so ONEUPTIME_SECRET was not given a random value. OneUptime starts anyway.",
+    );
+    expect(fs.statSync(path.join(dir, "config.env")).isDirectory()).toBe(true);
   });
 });
 
