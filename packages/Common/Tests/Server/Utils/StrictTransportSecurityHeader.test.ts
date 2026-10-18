@@ -287,6 +287,33 @@ describe("no Strict-Transport-Security", () => {
 
     expect(answer.header).toBeUndefined();
   });
+
+  test("when HOST is localhost: a year of HTTPS-only localhost would break every local server on that machine", async () => {
+    for (const host of ["localhost", "oneuptime.localhost"]) {
+      setEnv({ host });
+
+      const answer: { status: number; header: string | undefined } =
+        await strictTransportSecurity({
+          host: `${host}:8443`,
+          forwardedProto: "https",
+        });
+
+      expect(answer.status).toBe(200);
+      expect(answer.header).toBeUndefined();
+    }
+  });
+
+  test("when HOST is an IP address, which browsers never pin", async () => {
+    setEnv({ host: "203.0.113.10" });
+
+    const answer: { status: number; header: string | undefined } =
+      await strictTransportSecurity({
+        host: "203.0.113.10",
+        forwardedProto: "https",
+      });
+
+    expect(answer.header).toBeUndefined();
+  });
 });
 
 describe("every OneUptime service sends it", () => {

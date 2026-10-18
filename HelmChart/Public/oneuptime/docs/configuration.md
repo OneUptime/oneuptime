@@ -475,7 +475,9 @@ or CDN in front of it. Besides building `https://` links, OneUptime then:
   session over plain HTTP;
 - sends `Strict-Transport-Security: max-age=31536000` for `host`, so a browser
   that has been there reaches that name over HTTPS only, on every port, for a
-  year. Status pages and dashboards on custom domains never get this header.
+  year. Status pages and dashboards on custom domains never get this header,
+  and neither does a `host` that is `localhost` (or a name under it) or an IP
+  address.
 
 Cookies are also `Secure` whenever a visitor's own connection is HTTPS, on any
 domain: the chart's nginx tells the app so when it ends TLS itself, or when the

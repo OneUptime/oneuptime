@@ -347,6 +347,88 @@ describe("Strict-Transport-Security", () => {
   test("without a request there is no address to name, so no header", () => {
     expect(RequestTransport.getStrictTransportSecurity(undefined)).toBeNull();
   });
+
+  test("is never pinned to localhost or a name under it: every local development server answers there", () => {
+    for (const host of [
+      "localhost",
+      "LOCALHOST",
+      "localhost.",
+      "oneuptime.localhost",
+      "app.dev.localhost",
+    ]) {
+      setEnv({ host });
+
+      for (const requestHost of [host, `${host}:8443`]) {
+        expect({
+          host,
+          header: RequestTransport.getStrictTransportSecurity(
+            request({ secure: true, host: requestHost }),
+          ),
+        }).toEqual({ host, header: null });
+      }
+    }
+  });
+
+  test("is never sent when HOST is an IP address, which browsers never pin", () => {
+    for (const [host, requestHost] of [
+      ["10.0.0.5", "10.0.0.5"],
+      ["127.0.0.1", "127.0.0.1:8443"],
+      ["[2001:db8::1]", "[2001:db8::1]:443"],
+      ["[::1]", "[::1]"],
+    ] as Array<[string, string]>) {
+      setEnv({ host });
+
+      expect({
+        host,
+        header: RequestTransport.getStrictTransportSecurity(
+          request({ secure: true, host: requestHost }),
+        ),
+      }).toEqual({ host, header: null });
+    }
+  });
+
+  test("names that only look like localhost or an address are pinned as usual", () => {
+    for (const host of [
+      "localhost.example.com",
+      "mylocalhost",
+      "10.0.0.5.example.com",
+      "oneuptime-localhost.com",
+    ]) {
+      setEnv({ host });
+
+      expect({
+        host,
+        header: RequestTransport.getStrictTransportSecurity(request({ host })),
+      }).toEqual({ host, header: "max-age=31536000" });
+    }
+  });
+
+  test("the cookies of such an installation still stay on HTTPS", () => {
+    for (const host of ["localhost", "10.0.0.5"]) {
+      setEnv({ host });
+
+      expect(RequestTransport.isHttps(request({ host }))).toBe(true);
+    }
+  });
+});
+
+describe("isNeverPinned", () => {
+  const cases: Array<[string | null, boolean]> = [
+    [null, true],
+    ["localhost", true],
+    ["a.localhost", true],
+    ["192.168.1.10", true],
+    ["[fe80::1]", true],
+    ["::1", true],
+    ["oneuptime.example.com", false],
+    ["localhost.example.com", false],
+    ["notlocalhost", false],
+    ["999.1.1.1", false],
+  ];
+
+  test.each(cases)("%j -> %s", (hostname: string | null, never: boolean) => {
+    expect(RequestTransport.isNeverPinned(hostname)).toBe(never);
+  });
 });
 
 describe("HSTS_MAX_AGE_SECONDS", () => {

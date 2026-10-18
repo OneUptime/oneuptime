@@ -1,5 +1,6 @@
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
+import IP from "../../Types/IP/IP";
 import { HstsMaxAgeSeconds, Host, HttpProtocol } from "../EnvironmentConfig";
 import { ExpressRequest } from "./Express";
 
@@ -97,6 +98,9 @@ export default class RequestTransport {
    *
    * HSTS_MAX_AGE_SECONDS=0 sends max-age=0, which makes a browser forget the
    * rule at its next HTTPS visit.
+   *
+   * Nor is it sent when HOST is localhost, a name under .localhost or an IP
+   * address (isNeverPinned).
    */
   public static getStrictTransportSecurity(
     req: ExpressRequest | undefined,
@@ -109,7 +113,37 @@ export default class RequestTransport {
       return null;
     }
 
+    if (RequestTransport.isNeverPinned(RequestTransport.hostnameOf(Host))) {
+      return null;
+    }
+
     return `max-age=${HstsMaxAgeSeconds}`;
+  }
+
+  /*
+   * Whether a host name is one Strict-Transport-Security must not be pinned
+   * to. localhost and the names under .localhost are what every development
+   * server on a machine answers to, and a browser would refuse plain HTTP to
+   * all of them, on every port, for a year: one HTTPS test of OneUptime on a
+   * laptop would break every other local project there. Their traffic never
+   * crosses a network either. An IP address is never pinned by a browser
+   * (RFC 6797, section 8.1), so the header would only be noise.
+   */
+  public static isNeverPinned(hostname: string | null): boolean {
+    if (!hostname) {
+      return true;
+    }
+
+    if (hostname === "localhost" || hostname.endsWith(".localhost")) {
+      return true;
+    }
+
+    const address: string =
+      hostname.startsWith("[") && hostname.endsWith("]")
+        ? hostname.slice(1, -1)
+        : hostname;
+
+    return IP.isIP(address);
   }
 
   /*
