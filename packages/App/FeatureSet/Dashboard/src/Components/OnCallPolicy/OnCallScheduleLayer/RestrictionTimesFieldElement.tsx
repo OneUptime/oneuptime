@@ -528,18 +528,28 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           }
         }}
         initialValue={restrictionTimes?.restictionType}
+        /*
+         * In the reader's language: the radio draws its titles as given, so
+         * they were English in every language, beside a same-time error
+         * that names "No Restrictions" in the reader's words.
+         */
         options={[
           {
-            title: "No Restrictions",
+            title:
+              translator.translateText("No Restrictions") || "No Restrictions",
             value: RestrictionType.None,
           },
           {
-            title: "Specific Times of the Day",
+            title:
+              translator.translateText("Specific Times of the Day") ||
+              "Specific Times of the Day",
             value: RestrictionType.Daily,
             children: getDailyRestriction(),
           },
           {
-            title: "Specific Times of the Week",
+            title:
+              translator.translateText("Specific Times of the Week") ||
+              "Specific Times of the Week",
             value: RestrictionType.Weekly,
             children: getWeeklyTimeRestrictions(),
           },

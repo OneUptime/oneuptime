@@ -137,9 +137,17 @@ describe("a layer's form", () => {
       "on-call duty passes to the next user",
       "repeat every rotation interval",
       "how often on-call duty hands off between users",
+      // Under Restrictions, saying again what the Active hours section says.
+      "Restrict this layer to these times",
     ]) {
       expect(document.body).not.toHaveTextContent(retired);
     }
+
+    expect(
+      screen.getByText(
+        "Limit the hours this layer is on call. Outside these hours, lower layers take over.",
+      ),
+    ).toBeInTheDocument();
   });
 
   test("keeps the description under More fields, folded", async () => {

@@ -21,7 +21,9 @@ import RestrictionTimes, {
  * clocks, German An:, Russian Кому: (to whom), Chinese 收件人 (recipient).
  * Each now names the start and the end of a window, and the error for a
  * window that starts when it ends names the two fields the way the form
- * labels them.
+ * labels them. The three choices above them - No Restrictions, Specific
+ * Times of the Day, Specific Times of the Week - were drawn in English in
+ * every language; they are now in the reader's, as the error names them.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -215,6 +217,8 @@ describe("the From: and To: labels name the start and end of a window", () => {
       expect(sentence).not.toBe(SAME_TIME_ERROR);
       expect(sentence).toContain(bareLabel(TIME_LABELS[locale]!.from));
       expect(sentence).toContain(bareLabel(TIME_LABELS[locale]!.to));
+      // And the choice that is on call around the clock, as the radio names it.
+      expect(sentence).toContain(readLocale(locale)["No Restrictions"]);
     },
   );
 
@@ -248,6 +252,41 @@ describe("a layer's restriction hours, drawn in the reader's language", () => {
     expect(screen.getAllByText("終了：")).toHaveLength(1);
     expect(screen.queryByText("差出人:")).not.toBeInTheDocument();
     expect(screen.queryByText("宛先:")).not.toBeInTheDocument();
+  });
+
+  test("Japanese and German name the three choices in their own words", async () => {
+    for (const [language, choices] of [
+      ["ja", ["制限なし", "1 日の特定の時刻", "1 週間の特定の時刻"]],
+      [
+        "de",
+        [
+          "Keine Einschränkungen",
+          "Bestimmte Tageszeiten",
+          "Bestimmte Zeiten der Woche",
+        ],
+      ],
+    ] as Array<[string, Array<string>]>) {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+
+      const view: ReturnType<typeof render> = render(
+        <RestrictionTimesFieldElement
+          value={dailyRestriction()}
+          timezone="UTC"
+        />,
+      );
+
+      for (const choice of choices) {
+        expect(screen.getByRole("radio", { name: choice })).toBeInTheDocument();
+      }
+
+      expect(screen.queryByText("No Restrictions")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("radio", { name: choices[1] as string }),
+      ).toBeChecked();
+      view.unmount();
+    }
   });
 
   test("German reads Von: and Bis: on every weekly window", async () => {

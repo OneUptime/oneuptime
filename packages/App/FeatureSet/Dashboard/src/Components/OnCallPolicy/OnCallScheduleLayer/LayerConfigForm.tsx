@@ -157,6 +157,8 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
           sectionDescription:
             "Limit the hours this layer is on call. Outside these hours, lower layers take over.",
           title: "Restrictions",
+          // The section says what it limits; "Restrict this layer to these times" said it again.
+          hideColumnDescription: true,
           fieldType: FormFieldSchemaType.CustomComponent,
           required: true,
           getCustomElement: (

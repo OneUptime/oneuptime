@@ -293,6 +293,32 @@ describe("Answer Calls", () => {
     );
   });
 
+  test("cancelling the question keeps the line answering calls, and saves nothing", async () => {
+    await renderPage();
+    await screen.findByTestId(INCOMING_CALL_ANSWER_CALLS_TEST_ID);
+
+    await act(async () => {
+      fireEvent.click(theSwitch());
+    });
+    await settle();
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      IncomingCallAnswerCallsCopy.turnOffConfirmTitle,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+    });
+    await settle();
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+    expect(saved).toEqual([]);
+    expect(theSwitch()).toHaveAttribute("aria-checked", "true");
+    expect(document.body).toHaveTextContent(
+      IncomingCallAnswerCallsCopy.switchOnDescription,
+    );
+  });
+
   test("turning calls back on saves at once, without asking", async () => {
     stored = { ...STORED_POLICY, isEnabled: false };
 
