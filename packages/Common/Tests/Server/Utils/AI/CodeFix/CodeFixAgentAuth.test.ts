@@ -413,3 +413,53 @@ describe("CodeFixAgentAuth.deniesAccessToProject", () => {
     );
   });
 });
+
+describe("CodeFixAgentAuth.resolveAgentIdentity refuses a shipped agent key", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  /*
+   * The in-cluster fleet's global agent registers with ONEUPTIME_RUNNER_KEY,
+   * which config.example.env ships as a placeholder. A key the repository
+   * ships never authenticates an agent on any code-fix route: it is refused
+   * before either registry is read.
+   */
+  test.each([
+    ["the old fallback", "secret"],
+    ["the bare placeholder", "please-change-this-to-random-value"],
+    ["a partially edited placeholder", "please-change-this-to-random-value-2"],
+    ["a blank key", "   "],
+  ])(
+    "returns null for %s, querying neither registry",
+    async (_label: string, shippedKey: string) => {
+      const aiAgentSpy: AIAgentFindSpy = mockAIAgentLookup(fakeAIAgent());
+      const runnerSpy: RunnerFindSpy = mockRunnerLookup(fakeRunner());
+
+      const identity: CodeFixAgentIdentity | null =
+        await CodeFixAgentAuth.resolveAgentIdentity({
+          aiAgentId: agentId.toString(),
+          aiAgentKey: shippedKey,
+        });
+
+      expect(identity).toBeNull();
+      expect(aiAgentSpy).not.toHaveBeenCalled();
+      expect(runnerSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a real random key still reaches the registries", async () => {
+    const aiAgentSpy: AIAgentFindSpy = mockAIAgentLookup(fakeAIAgent());
+    mockRunnerLookup(null);
+
+    const identity: CodeFixAgentIdentity | null =
+      await CodeFixAgentAuth.resolveAgentIdentity({
+        aiAgentId: agentId.toString(),
+        aiAgentKey: ObjectID.generate().toString(),
+      });
+
+    expect(identity).not.toBeNull();
+    expect(identity!.source).toBe(CodeFixAgentSource.AIAgent);
+    expect(aiAgentSpy).toHaveBeenCalledTimes(1);
+  });
+});

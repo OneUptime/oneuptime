@@ -1416,6 +1416,24 @@ API, SSO, or the Slack and Microsoft Teams apps.
   authentication ends the wait, and wrong codes are forgotten a day after
   the last one. Someone who gets their code right within five tries sees no
   change. See [Your Account](/docs/introduction/your-account).
+- **A global probe and the bundled Runner no longer authenticate with a key
+  the repository ships.** A global probe runs the monitors of every project on
+  the installation, and the bundled Runner serves AI code fixes for every
+  project, so the keys they present must be the installation's own, never a
+  value that is public in the OneUptime repository. `REGISTER_PROBE_KEY` (which
+  registers a global probe), a global probe's own key (`GLOBAL_PROBE_1_KEY`,
+  `GLOBAL_PROBE_2_KEY`) and the Runner's `ONEUPTIME_RUNNER_KEY` are now refused
+  when unset, `secret`, or a placeholder from `config.example.env` (they all
+  contain `please-change-this`). `npm start` and `npm run update` give each of
+  these a random value in `config.env` when it still holds a placeholder, and
+  the bundled probe re-registers under its new key without losing its monitors.
+  The Helm chart already generates random values for all of them. If you start
+  the containers another way, or run a global probe or the in-cluster Runner
+  with one of these keys set to a placeholder, set it to a long random value,
+  as [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
+  shows: until then that probe or Runner cannot register. Custom probes and
+  Runners you installed yourself, which already have their own keys, and an
+  installation that set its own keys, see no change.
 - **Probes, Runners and OneUptime's own services follow redirects only on the
   server they call.** A request that carries one of their keys follows a
   redirect to the same address, or to that address moved from `http` to

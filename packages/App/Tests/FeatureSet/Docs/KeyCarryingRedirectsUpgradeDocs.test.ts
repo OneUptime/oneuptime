@@ -15,8 +15,8 @@ import path from "path";
  * key, held to the code that decides them:
  *
  *   - the note (installation/upgrading, "Other changes in 14") sits after
- *     the note on wrong two-factor codes and before the pointer to the
- *     endpoint changes;
+ *     the note on the keys a global probe and the bundled Runner may not use
+ *     and before the pointer to the endpoint changes;
  *   - what it says a request follows - the same address, or that address
  *     moved from http to https - and refuses - another server, a host name
  *     of another domain - is what SameServerRedirect decides;
@@ -30,9 +30,9 @@ const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
 
 const NOTE_LEAD: string =
   "**Probes, Runners and OneUptime's own services follow redirects only on the server they call.**";
-// The note before it (TwoFactorWrongCodesDocs).
+// The note before it (ProbeRunnerKeyUpgradeDocs).
 const PREVIOUS_LEAD: string =
-  "**Wrong two-factor codes are counted for the account, wherever they come from.**";
+  "**A global probe and the bundled Runner no longer authenticate with a key the repository ships.**";
 const LAST_ITEM_START: string = "- See [API and endpoint changes]";
 
 const ADDRESS_SETTING: string = "ONEUPTIME_URL";
@@ -56,7 +56,7 @@ function linksOf(markdown: string): Array<string> {
 }
 
 describe("the English upgrade note on the redirects of requests that carry a key", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on wrong two-factor codes and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on the global-probe and Runner keys and before the endpoint pointer", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

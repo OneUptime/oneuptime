@@ -347,6 +347,7 @@ const PROSE_LEADS: Array<string> = [
   "PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.",
   "The bundled Runner no longer runs a repository's commands, and holds only what it needs.",
   "Wrong two-factor codes are counted for the account, wherever they come from.",
+  "A global probe and the bundled Runner no longer authenticate with a key the repository ships.",
   "Probes, Runners and OneUptime's own services follow redirects only on the server they call.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",

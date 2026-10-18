@@ -24,8 +24,8 @@ import path from "path";
  *     ClusterKeyAuthorization derives, from the installation's token signing
  *     key;
  *   - the commands it says give config.env a random value are the ones
- *     that run Scripts/Install/ReplacePlaceholderSecrets.js (npm start's
- *     prestart, and configure.sh, which npm run update runs), and the Helm
+ *     that run Scripts/Install/ReplacePlaceholderSecrets.js (a step of
+ *     npm start, and configure.sh, which npm run update runs), and the Helm
  *     value it names is the chart's;
  *   - it sits after the note on HTTPS cookies and before the note on the
  *     header the key travels in, and points at the Docker Compose
@@ -186,7 +186,11 @@ describe("the English upgrade note on a placeholder ONEUPTIME_SECRET", () => {
       source("package.json"),
     ).scripts;
 
-    expect(scripts["prestart"]).toBe(
+    /*
+     * A step of the start script, not a prestart hook npm skips under
+     * ignore-scripts.
+     */
+    expect(scripts["start"]).toContain(
       "node ./Scripts/Install/ReplacePlaceholderSecrets.js",
     );
     expect(scripts["update"]).toContain("npm run prerun");
@@ -232,11 +236,13 @@ describe.each(TRANSLATIONS)(
     it("is in the English note's place, under a lead of its own", () => {
       expect(note.startsWith("- **")).toBe(true);
       expect(note).not.toContain(NOTE_LEAD);
-      expect(
-        otherChangesItems(language).filter((item: string): boolean => {
-          return item.includes("`please-change-this`");
-        }),
-      ).toHaveLength(1);
+      /*
+       * This note names the placeholder it refuses. A sibling note (the
+       * global-probe and Runner key note) names it too, so this is not a
+       * uniqueness check: the note in the cluster-key note's own place says
+       * it.
+       */
+      expect(note).toContain("`please-change-this`");
     });
 
     it("carries the English note's code", () => {

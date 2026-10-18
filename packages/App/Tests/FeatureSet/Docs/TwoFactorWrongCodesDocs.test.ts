@@ -29,9 +29,8 @@ import path from "path";
  *     security key and a backup code still sign in; a password reset ends the
  *     wait - naming the sign-in page's links as the sign-in page draws them;
  *   - the upgrade note (installation/upgrading, "Other changes in 14"),
- *     after the note on the bundled Runner and before the note on redirects
- *     (KeyCarryingRedirectsUpgradeDocs), saying the same and linking to Your
- *     Account;
+ *     after the note on the bundled Runner and before the pointer to the
+ *     endpoint changes, saying the same and linking to Your Account;
  *   - every translation carries both in the English places, each in its own
  *     words, with that language's sign-in labels.
  */
@@ -55,9 +54,12 @@ const NOTE_LEAD: string =
 // The note before it (SharedRunnerUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**The bundled Runner no longer runs a repository's commands, and holds only what it needs.**";
-// The note after it (KeyCarryingRedirectsUpgradeDocs).
+/*
+ * The note after it (ProbeRunnerKeyUpgradeDocs), which the endpoint pointer
+ * still follows.
+ */
 const NEXT_LEAD: string =
-  "**Probes, Runners and OneUptime's own services follow redirects only on the server they call.**";
+  "**A global probe and the bundled Runner no longer authenticate with a key the repository ships.**";
 
 const DETAILS_OPEN: string = ":::details ";
 const CONTAINER_CLOSE: string = ":::";
@@ -213,7 +215,7 @@ describe("Your Account's troubleshooting entry", () => {
 });
 
 describe("the English upgrade note on wrong two-factor codes", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on the bundled Runner and before the note on redirects", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on the bundled Runner and before the endpoint pointer", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
