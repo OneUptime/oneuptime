@@ -4,6 +4,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -47,6 +48,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: [],
   update: [],
 })
+/*
+ * The calls to a policy's number are read with the policy: a grant scoped to
+ * Owned reads the calls of the policies its holder or their teams own.
+ */
+@OwnedThrough("incomingCallPolicyId", IncomingCallPolicy)
 @CrudApiEndpoint(new Route("/incoming-call-log"))
 @Entity({
   name: "IncomingCallLog",

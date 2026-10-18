@@ -6,11 +6,15 @@ import CacheGenerations from "../../../Server/Infrastructure/CacheGenerations";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
+import { AddIncomingCallLogItemPolicy1803600000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1803600000000-AddIncomingCallLogItemPolicy";
+import { AddIncomingCallLogItemPolicyIndexAndKey1803650000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1803650000000-AddIncomingCallLogItemPolicyIndexAndKey";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import IncomingCallLogItemService from "../../../Server/Services/IncomingCallLogItemService";
 import MonitorOwnerTeamService from "../../../Server/Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "../../../Server/Services/MonitorOwnerUserService";
 import MonitorService from "../../../Server/Services/MonitorService";
+import OnCallDutyPolicyScheduleCalendarFeedService from "../../../Server/Services/OnCallDutyPolicyScheduleCalendarFeedService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import CreateScopeException from "../../../Server/Types/Database/Permissions/CreateScopeException";
@@ -18,7 +22,10 @@ import OwnerTableRegistry, {
   OwnerTablePair,
 } from "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
 import CustomRoleSync from "../../../Server/Utils/CustomRole/CustomRoleSync";
-import { UnreadableParentException } from "../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
+import {
+  UnreadableParentException,
+  UnreadableReferenceException,
+} from "../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -31,15 +38,33 @@ import OwnerRuleAssignment from "../../../Server/Utils/Rules/OwnerRuleAssignment
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
+import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeInternalNote from "../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
+import IncidentEpisodeRoleMember from "../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
+import IncomingCallLog from "../../../Models/DatabaseModels/IncomingCallLog";
+import IncomingCallLogItem from "../../../Models/DatabaseModels/IncomingCallLogItem";
+import IncomingCallStatus from "../../../Types/IncomingCall/IncomingCallStatus";
+import IncomingCallPolicyEscalationRule from "../../../Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "../../../Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "../../../Models/DatabaseModels/MonitorOwnerUser";
+import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
+import MonitorGroupResource from "../../../Models/DatabaseModels/MonitorGroupResource";
+import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorTest from "../../../Models/DatabaseModels/MonitorTest";
+import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
+import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleCalendarFeed from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
+import OnCallDutyPolicyScheduleLayer from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageAnnouncementTemplate from "../../../Models/DatabaseModels/StatusPageAnnouncementTemplate";
+import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Dictionary from "../../../Types/Dictionary";
 import Exception from "../../../Types/Exception/Exception";
@@ -51,6 +76,8 @@ import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { getJestSpyOn } from "../../Spy";
+import { buildNewScheduleLayer } from "../../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
+import { isReadByEveryReader } from "../TestingUtils/OwnedScopeKinds";
 import {
   afterAll,
   beforeAll,
@@ -59,7 +86,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { DataSource, EntityMetadata } from "typeorm";
+import { DataSource, EntityMetadata, QueryRunner } from "typeorm";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 
 /*
@@ -112,7 +139,25 @@ import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
  *     monitors and status pages.
  *   - Across projects, from another project, without a session or with a
  *     viewer's permissions: refused. An API key holds no scope.
- *   - Every other kind with owners of its own, by id and by query.
+ *   - Every other kind with owners of its own - monitor groups, on-call
+ *     schedules, episodes, incoming call policies, templates, probes,
+ *     runners and AI agents among them - by id and by query: what a member
+ *     lists, changes and deletes of it, and whose owners they add and remove.
+ *     A kind other records are set up with (TestingUtils/OwnedScopeKinds)
+ *     is listed in full and changed only where owned.
+ *   - The pickers of those kinds: a monitor's probes, an escalation rule's
+ *     schedules, the incident and maintenance templates, the runners, the
+ *     AI agents - and a status page's monitor groups, which keep to the
+ *     owned ones as its monitors do.
+ *   - The records that are part of a kind with owners - a schedule's layers,
+ *     the people in them and its shared link, an incoming call policy's
+ *     escalation rules and calls, an episode's notes and role members, the
+ *     monitors a group holds - keep to its owners.
+ *   - A Runner is read by every reader of Runners, but its key - which lets
+ *     whoever holds it act as the Runner - only where the member or their
+ *     team own the Runner: left out of the others, not matched by a filter
+ *     or a search, not ordered by, and not filtered on through a Runner's
+ *     owners.
  *
  * Opt in with RUN_POSTGRES_OWNED_RECORDS_DELETE_TESTS=true against a
  * database the registered migrations have been applied to, e.g. from
@@ -228,6 +273,23 @@ const TABLES: Array<string> = [
   "AnnouncementStatusPage",
   "StatusPageAnnouncementTemplate",
   "AnnouncementTemplateStatusPage",
+  // The pickers of the kinds other records are set up with, and their parts.
+  "MonitorProbe",
+  "OnCallDutyPolicyEscalationRule",
+  "OnCallDutyPolicyEscalationRuleSchedule",
+  "OnCallDutyPolicyScheduleLayer",
+  "OnCallDutyPolicyScheduleLayerUser",
+  "OnCallDutyPolicyScheduleCalendarFeed",
+  "IncomingCallPolicyEscalationRule",
+  "IncomingCallLog",
+  // Each attempt to reach someone during a call.
+  "IncomingCallLogItem",
+  "IncidentEpisodeRoleMember",
+  "IncidentEpisodeInternalNote",
+  // The monitors a group holds.
+  "MonitorGroupResource",
+  // What a status page shows: a monitor group among them.
+  "StatusPageResource",
 ];
 
 interface PermissionRow {
@@ -315,6 +377,18 @@ const OWN_READ_PERMISSION: RegExp = /^Read/;
 // An owner table's own permissions to add, read and remove owners.
 const OWN_OWNER_PERMISSION: RegExp = /^(Create|Read|Delete)/;
 
+// A kind's own read and edit permissions (Read Monitor, Edit Monitor).
+const OWN_READ_OR_EDIT_PERMISSION: RegExp = /^(Read|Edit)/;
+
+// An owner table, by its name, and the kind it owns: MonitorOwnerUser.
+const OWNER_TABLE_NAME: RegExp = /^(.+)Owner(User|Team)$/;
+
+/*
+ * The text columns a change of a kind writes in this suite, the first of
+ * them the kind has and its permission to change it may write.
+ */
+const CHANGED_TEXT_COLUMNS: Array<string> = ["description", "name", "title"];
+
 describePostgres(
   "what a member limited to owned records deletes, on Postgres",
   () => {
@@ -376,6 +450,39 @@ describePostgres(
         new BaseAPI(ownerModelType, sweptOwnerServices[ownerModelType.name]!);
       }
     }
+
+    /*
+     * The records that pick a kind other records are set up with, and the
+     * records that are part of a kind with owners - plain services, as the
+     * swept kinds have: what is under test is the permission pipeline every
+     * service runs. A schedule's shared link has its own service, which
+     * mints the link's token.
+     */
+    const partServices: Dictionary<DatabaseService<BaseModel>> = {};
+
+    for (const modelType of [
+      MonitorProbe,
+      OnCallDutyPolicyEscalationRuleSchedule,
+      OnCallDutyPolicyScheduleLayer,
+      OnCallDutyPolicyScheduleLayerUser,
+      IncomingCallPolicyEscalationRule,
+      IncomingCallLog,
+      IncomingCallLogItem,
+      IncidentEpisodeRoleMember,
+      IncidentEpisodeInternalNote,
+      MonitorGroupResource,
+      StatusPageResource,
+    ] as Array<{ new (): BaseModel }>) {
+      partServices[modelType.name] = new DatabaseService(
+        modelType,
+      ) as DatabaseService<BaseModel>;
+      new BaseAPI(modelType, partServices[modelType.name]!);
+    }
+
+    new BaseAPI(
+      OnCallDutyPolicyScheduleCalendarFeed,
+      OnCallDutyPolicyScheduleCalendarFeedService as unknown as DatabaseService<BaseModel>,
+    );
 
     // A label of the project, that a grant limited to labels names.
     const readLabelId: ObjectID = ObjectID.generate();
@@ -1054,6 +1161,164 @@ describePostgres(
             projectId: projectId,
           } as unknown as JSONObject),
         },
+      });
+    };
+
+    // A record created through its table's own route, as a form creates one.
+    const createThrough: (data: {
+      caller: Caller;
+      path: string;
+      row: Dictionary<unknown>;
+    }) => Promise<Outcome> = async (data: {
+      caller: Caller;
+      path: string;
+      row: Dictionary<unknown>;
+    }): Promise<Outcome> => {
+      return await send({
+        method: "post",
+        uri: data.path,
+        caller: data.caller,
+        body: {
+          data: JSONFunctions.serialize({
+            projectId: projectId,
+            ...data.row,
+          } as unknown as JSONObject),
+        },
+      });
+    };
+
+    // A record changed by its id through its table's own route.
+    const updateThrough: (data: {
+      caller: Caller;
+      path: string;
+      id: ObjectID;
+      row: Dictionary<unknown>;
+    }) => Promise<Outcome> = async (data: {
+      caller: Caller;
+      path: string;
+      id: ObjectID;
+      row: Dictionary<unknown>;
+    }): Promise<Outcome> => {
+      return await send({
+        method: "post",
+        uri: `${data.path}/:id/update-item`,
+        caller: data.caller,
+        id: data.id,
+        body: {
+          data: JSONFunctions.serialize(data.row as unknown as JSONObject),
+        },
+      });
+    };
+
+    // The ids of `ids` a list through the table's own route answers with.
+    const listThrough: (data: {
+      caller: Caller;
+      path: string;
+      ids: Array<ObjectID>;
+    }) => Promise<Outcome> = async (data: {
+      caller: Caller;
+      path: string;
+      ids: Array<ObjectID>;
+    }): Promise<Outcome> => {
+      return await send({
+        method: "post",
+        uri: `${data.path}/get-list`,
+        caller: data.caller,
+        body: {
+          query: JSONFunctions.serialize({
+            _id: new Includes(data.ids),
+          } as unknown as JSONObject),
+          select: { _id: true },
+          limit: 50,
+        },
+      });
+    };
+
+    const idsOf: (ids: Array<ObjectID>) => Array<string> = (
+      ids: Array<ObjectID>,
+    ): Array<string> => {
+      return ids
+        .map((id: ObjectID): string => {
+          return id.toString();
+        })
+        .sort();
+    };
+
+    // One column of a row, as Postgres holds it now; undefined once it is gone.
+    const valueOf: (
+      table: string,
+      column: string,
+      id: ObjectID,
+    ) => Promise<unknown> = async (
+      table: string,
+      column: string,
+      id: ObjectID,
+    ): Promise<unknown> => {
+      const rows: Array<Dictionary<unknown>> = await database.query(
+        `SELECT "${column}" AS "value" FROM "${schema}"."${table}" WHERE "_id" = $1 AND "deletedAt" IS NULL`,
+        [id.toString()],
+      );
+
+      return rows[0]?.["value"];
+    };
+
+    /*
+     * A record the caller may read but not change or delete: refused, in
+     * the words every by-id write answers with (getUnwrittenByIdError).
+     */
+    const expectReadableNotWritten: (
+      outcome: Outcome,
+      name: string,
+      operation: "update" | "delete",
+    ) => void = (
+      outcome: Outcome,
+      name: string,
+      operation: "update" | "delete",
+    ): void => {
+      expect(outcome.isEmptySuccess).toBeUndefined();
+      expect(outcome.error).toBeInstanceOf(NotAuthorizedException);
+      expect((outcome.error as Error).message).toBe(
+        `You do not have permission to ${operation} this ${name.toLowerCase()}.`,
+      );
+    };
+
+    // A create refused because the record it belongs to is not the member's.
+    const expectPartCreateRefused: (
+      outcome: Outcome,
+      part: { new (): BaseModel },
+      kind: { new (): BaseModel },
+    ) => void = (
+      outcome: Outcome,
+      part: { new (): BaseModel },
+      kind: { new (): BaseModel },
+    ): void => {
+      expect(outcome.item).toBeUndefined();
+      expect(outcome.error).toBeInstanceOf(CreateScopeException);
+      expect((outcome.error as Error).message).toBe(
+        `Your access lets you create ${new part().pluralName} only for the ${new kind().pluralName} you or your teams own.`,
+      );
+    };
+
+    // The first text column of CHANGED_TEXT_COLUMNS `permissions` change.
+    const changedTextColumnOf: (
+      modelType: { new (): BaseModel },
+      permissions: Array<Permission>,
+    ) => string | undefined = (
+      modelType: { new (): BaseModel },
+      permissions: Array<Permission>,
+    ): string | undefined => {
+      const model: BaseModel = new modelType();
+
+      return CHANGED_TEXT_COLUMNS.find((column: string): boolean => {
+        const updaters: Array<Permission> =
+          model.getColumnAccessControlFor(column)?.update || [];
+
+        return (
+          Boolean(model.getTableColumnMetadata(column)) &&
+          permissions.some((permission: Permission): boolean => {
+            return updaters.includes(permission);
+          })
+        );
       });
     };
 
@@ -3434,7 +3699,10 @@ describePostgres(
         );
       });
 
-      test("by id: the records the member or their team own go, the others are answered as missing and stay", async () => {
+      // Whether every reader of the kind reads all of it: one other records are set up with.
+      const isReadInFull: boolean = isReadByEveryReader(kind.name);
+
+      test("by id: the records the member or their team own go; the others stay - answered as missing, or refused as ones they may read when every reader reads the kind", async () => {
         for (const owner of [
           "member",
           "memberTeam",
@@ -3447,6 +3715,8 @@ describePostgres(
           if (isOwned) {
             expect([owner, outcome.error]).toEqual([owner, undefined]);
             expectDeleted(outcome);
+          } else if (isReadInFull) {
+            expectReadableNotWritten(outcome, singularName, "delete");
           } else {
             expectMissing(outcome, singularName);
           }
@@ -3484,6 +3754,139 @@ describePostgres(
 
         for (const id of others) {
           expect(await rowExists(tableOf(), id)).toBe(true);
+        }
+      });
+
+      test("lists only the records the member or their team own - or every one, of a kind other records are set up with", async () => {
+        const owned: Array<ObjectID> = [
+          await insertRecord("member"),
+          await insertRecord("memberTeam"),
+        ];
+        const others: Array<ObjectID> = [];
+
+        for (const owner of OTHERS) {
+          others.push(await insertRecord(owner));
+        }
+
+        const listed: Outcome = await listThrough({
+          caller: member,
+          path: path,
+          ids: [...owned, ...others],
+        });
+
+        expect(listed.error).toBeUndefined();
+        expect(listed.ids).toEqual(
+          idsOf(isReadInFull ? [...owned, ...others] : owned),
+        );
+      });
+
+      test("changes only the records the member or their team own, by id and by query", async () => {
+        const model: BaseModel = new kind.modelType();
+        const permissions: Array<Permission> = Array.from(
+          new Set<Permission>([
+            ...model.updateRecordPermissions,
+            ...model.readRecordPermissions,
+          ]),
+        ).filter((permission: Permission): boolean => {
+          return OWN_READ_OR_EDIT_PERMISSION.test(permission);
+        });
+        const column: string | undefined = changedTextColumnOf(
+          kind.modelType,
+          permissions,
+        );
+
+        expect([kind.name, typeof column]).toEqual([kind.name, "string"]);
+
+        await setGrants(
+          permissions.map((permission: Permission): PermissionRow => {
+            return { permission: permission, scope: PermissionScope.Owned };
+          }),
+        );
+
+        try {
+          // By id, through the route.
+          for (const owner of [
+            "member",
+            "memberTeam",
+            ...OTHERS,
+          ] as Array<Owner>) {
+            const id: ObjectID = await insertRecord(owner);
+            const before: unknown = await valueOf(tableOf(), column!, id);
+            const isOwned: boolean =
+              owner === "member" || owner === "memberTeam";
+
+            const outcome: Outcome = await updateThrough({
+              caller: member,
+              path: path,
+              id: id,
+              row: { [column!]: `Changed ${id.toString()}` },
+            });
+
+            if (isOwned) {
+              expect([owner, outcome.error]).toEqual([owner, undefined]);
+            } else if (isReadInFull) {
+              expectReadableNotWritten(outcome, singularName, "update");
+            } else {
+              expectMissing(outcome, singularName);
+            }
+
+            expect([owner, await valueOf(tableOf(), column!, id)]).toEqual([
+              owner,
+              isOwned ? `Changed ${id.toString()}` : before,
+            ]);
+          }
+
+          // By query, as the member: only the owned ones change.
+          const owned: Array<ObjectID> = [
+            await insertRecord("member"),
+            await insertRecord("memberTeam"),
+          ];
+          const others: Array<ObjectID> = [];
+
+          for (const owner of OTHERS) {
+            others.push(await insertRecord(owner));
+          }
+
+          const changed: number = await sweptServices[kind.name]!.updateBy({
+            query: { _id: new Includes([...owned, ...others]) },
+            data: { [column!]: "Changed by query" } as never,
+            props: await propsOf(member),
+            limit: 50,
+            skip: 0,
+          });
+
+          expect(changed).toBe(2);
+
+          for (const id of owned) {
+            expect(await valueOf(tableOf(), column!, id)).toBe(
+              "Changed by query",
+            );
+          }
+
+          for (const id of others) {
+            expect(await valueOf(tableOf(), column!, id)).not.toBe(
+              "Changed by query",
+            );
+          }
+        } finally {
+          // The sweep's read and delete grants, back for what follows.
+          await setGrants(
+            Array.from(
+              new Set<Permission>([
+                ...model.deleteRecordPermissions,
+                ...model.readRecordPermissions,
+              ]),
+            )
+              .filter((permission: Permission): boolean => {
+                return OWN_READ_OR_DELETE_PERMISSION.test(permission);
+              })
+              .map((permission: Permission): PermissionRow => {
+                return {
+                  permission: permission,
+                  scope: PermissionScope.Owned,
+                };
+              }),
+          );
         }
       });
 
@@ -3757,6 +4160,2058 @@ describePostgres(
           );
         });
       });
+    });
+
+    /*
+     * THE PICKERS. A kind other records are set up with stays readable to
+     * everyone who may pick one, whatever the scope of their grant: a
+     * monitor's probes, an escalation rule's schedules, the templates an
+     * incident or an event is declared from, the runners, the AI agents.
+     * Changing and deleting one keeps to its owners. A monitor group is not
+     * one of them: a status page picks the groups a member owns, as it picks
+     * the monitors they own.
+     */
+    describe("the records other records are set up with, picked by a member whose grants are scoped to Owned", () => {
+      // A record of a swept kind, owned by `owner`.
+      const insertKind: (
+        name: string,
+        owner: Owner,
+      ) => Promise<ObjectID> = async (
+        name: string,
+        owner: Owner,
+      ): Promise<ObjectID> => {
+        const kind: OwningKind = SWEPT_KINDS.find(
+          (each: OwningKind): boolean => {
+            return each.name === name;
+          },
+        )!;
+
+        return await insertOwned({
+          table: database.getMetadata(kind.modelType).tableName,
+          ownerUserTable: database.getMetadata(
+            kind.pair.ownerUserService.modelType,
+          ).tableName,
+          ownerTeamTable: database.getMetadata(
+            kind.pair.ownerTeamService.modelType,
+          ).tableName,
+          ownerColumn: kind.pair.fkColumn,
+          owner: owner,
+        });
+      };
+
+      const pathOf: (modelType: { new (): BaseModel }) => string = (modelType: {
+        new (): BaseModel;
+      }): string => {
+        return new modelType().getCrudApiPath()!.toString();
+      };
+
+      // Every kind of the pickers below is one the registry lets readers read in full.
+      test("the kinds picked here are the ones other records are set up with", () => {
+        for (const name of [
+          "Probe",
+          "OnCallDutyPolicySchedule",
+          "IncidentTemplate",
+          "ScheduledMaintenanceTemplate",
+          "Runner",
+          "AIAgent",
+        ]) {
+          expect([name, isReadByEveryReader(name)]).toEqual([name, true]);
+          expect([
+            name,
+            Boolean(OwnerTableRegistry.get(name)?.ownedScopeLeavesReads),
+          ]).toEqual([name, true]);
+        }
+
+        expect(isReadByEveryReader("MonitorGroup")).toBe(false);
+      });
+
+      test("Monitor Admin scoped to Owned: the probe picker lists the project's probes, and their own monitor runs on another team's probe", async () => {
+        /*
+         * A monitor's Probes page adds a probe with Create Monitor Probe
+         * (Project Owners and Admins hold it): here in a custom role beside
+         * Monitor Admin, both scoped to Owned.
+         */
+        await setGrants([
+          { permission: Permission.MonitorAdmin, scope: PermissionScope.Owned },
+          {
+            permission: Permission.CreateMonitorProbe,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const probes: Array<ObjectID> = [
+          await insertKind("Probe", "member"),
+          await insertKind("Probe", "otherTeam"),
+          await insertKind("Probe", "nobody"),
+        ];
+
+        const listed: Outcome = await listThrough({
+          caller: member,
+          path: "/probe",
+          ids: probes,
+        });
+
+        expect(listed.error).toBeUndefined();
+        expect(listed.ids).toEqual(idsOf(probes));
+
+        // Their monitor, on another team's probe and on nobody's.
+        const monitorId: ObjectID = await insertMonitor("member");
+
+        for (const probeId of probes.slice(1)) {
+          const created: Outcome = await createThrough({
+            caller: member,
+            path: pathOf(MonitorProbe),
+            row: { monitorId: monitorId, probeId: probeId },
+          });
+
+          expect([probeId.toString(), created.error]).toEqual([
+            probeId.toString(),
+            undefined,
+          ]);
+
+          const rows: Array<unknown> = await database.query(
+            `SELECT "_id" FROM "${schema}"."MonitorProbe" WHERE "monitorId" = $1 AND "probeId" = $2`,
+            [monitorId.toString(), probeId.toString()],
+          );
+
+          expect(rows).toHaveLength(1);
+        }
+
+        // Another team's monitor runs on no probe of theirs.
+        const theirMonitor: ObjectID = await insertMonitor("otherTeam");
+
+        expectRefused(
+          await createThrough({
+            caller: member,
+            path: pathOf(MonitorProbe),
+            row: { monitorId: theirMonitor, probeId: probes[0]! },
+          }),
+        );
+      });
+
+      test("Project Member scoped to Owned: every probe and AI agent listed, only their own changed or deleted", async () => {
+        await setGrants([
+          {
+            permission: Permission.ProjectMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        for (const [name, path] of [
+          ["Probe", "/probe"],
+          ["AIAgent", "/ai-agent"],
+        ] as Array<[string, string]>) {
+          const mine: ObjectID = await insertKind(name, "member");
+          const theirs: ObjectID = await insertKind(name, "otherTeam");
+          const table: string = name;
+          const singular: string =
+            new (SWEPT_KINDS.find((each: OwningKind): boolean => {
+              return each.name === name;
+            })!.modelType)().singularName || name;
+
+          const listed: Outcome = await listThrough({
+            caller: member,
+            path: path,
+            ids: [mine, theirs],
+          });
+
+          expect([name, listed.ids]).toEqual([name, idsOf([mine, theirs])]);
+
+          expectReadableNotWritten(
+            await updateThrough({
+              caller: member,
+              path: path,
+              id: theirs,
+              row: { name: `Renamed ${theirs.toString()}` },
+            }),
+            singular,
+            "update",
+          );
+          expectReadableNotWritten(
+            await deleteItem(path, member, theirs),
+            singular,
+            "delete",
+          );
+          expect([name, await rowExists(table, theirs)]).toEqual([name, true]);
+
+          expect(
+            (
+              await updateThrough({
+                caller: member,
+                path: path,
+                id: mine,
+                row: { name: `Renamed ${mine.toString()}` },
+              })
+            ).error,
+          ).toBeUndefined();
+          expect(await valueOf(table, "name", mine)).toBe(
+            `Renamed ${mine.toString()}`,
+          );
+          expectDeleted(await deleteItem(path, member, mine));
+        }
+      });
+
+      test("On-Call Member scoped to Owned: every schedule listed, another team's paged from their own policy's escalation rule, and theirs left as it is", async () => {
+        await setGrants([
+          {
+            permission: Permission.OnCallMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const theirs: ObjectID = await insertKind(
+          "OnCallDutyPolicySchedule",
+          "otherTeam",
+        );
+        const nobodys: ObjectID = await insertKind(
+          "OnCallDutyPolicySchedule",
+          "nobody",
+        );
+
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: "/on-call-duty-policy-schedule",
+              ids: [theirs, nobodys],
+            })
+          ).ids,
+        ).toEqual(idsOf([theirs, nobodys]));
+
+        // Their own policy, and its first escalation rule.
+        const policyId: ObjectID = await insertKind(
+          "OnCallDutyPolicy",
+          "memberTeam",
+        );
+        const ruleId: ObjectID = ObjectID.generate();
+
+        await insertAnyRow("OnCallDutyPolicyEscalationRule", {
+          _id: ruleId,
+          projectId: projectId,
+          onCallDutyPolicyId: policyId,
+          order: 1,
+          version: 1,
+        });
+
+        const paged: Outcome = await createThrough({
+          caller: member,
+          path: pathOf(OnCallDutyPolicyEscalationRuleSchedule),
+          row: {
+            onCallDutyPolicyId: policyId,
+            onCallDutyPolicyEscalationRuleId: ruleId,
+            onCallDutyPolicyScheduleId: theirs,
+          },
+        });
+
+        expect(paged.error).toBeUndefined();
+
+        const rows: Array<unknown> = await database.query(
+          `SELECT "_id" FROM "${schema}"."OnCallDutyPolicyEscalationRuleSchedule" WHERE "onCallDutyPolicyEscalationRuleId" = $1 AND "onCallDutyPolicyScheduleId" = $2`,
+          [ruleId.toString(), theirs.toString()],
+        );
+
+        expect(rows).toHaveLength(1);
+
+        // The schedule itself stays theirs: not renamed, not deleted, no owner added.
+        const before: unknown = await valueOf(
+          "OnCallDutyPolicySchedule",
+          "name",
+          theirs,
+        );
+
+        expectReadableNotWritten(
+          await updateThrough({
+            caller: member,
+            path: "/on-call-duty-policy-schedule",
+            id: theirs,
+            row: { name: "Ours now" },
+          }),
+          new OnCallDutyPolicySchedule().singularName!,
+          "update",
+        );
+        expect(
+          await valueOf("OnCallDutyPolicySchedule", "name", theirs),
+        ).toEqual(before);
+
+        expectReadableNotWritten(
+          await deleteItem("/on-call-duty-policy-schedule", member, theirs),
+          new OnCallDutyPolicySchedule().singularName!,
+          "delete",
+        );
+        expect(await rowExists("OnCallDutyPolicySchedule", theirs)).toBe(true);
+
+        expectOwnerAddRefused(
+          await addOwner({
+            caller: member,
+            path: "/on-call-duty-policy-schedule-owner-team",
+            column: "onCallDutyPolicyScheduleId",
+            recordId: theirs,
+            ownerColumn: "teamId",
+            ownerId: memberTeamId,
+          }),
+          new OnCallDutyPolicySchedule().pluralName!,
+        );
+      });
+
+      test.each([
+        {
+          role: "Incident Member",
+          permission: Permission.IncidentMember,
+          name: "IncidentTemplate",
+        },
+        {
+          role: "Scheduled Maintenance Member",
+          permission: Permission.ScheduledMaintenanceMember,
+          name: "ScheduledMaintenanceTemplate",
+        },
+        {
+          role: "Runbook Admin",
+          permission: Permission.RunbookAdmin,
+          name: "Runner",
+        },
+      ] as Array<{ role: string; permission: Permission; name: string }>)(
+        "$role scoped to Owned: every $name listed to pick from, only their own changed or deleted",
+        async ({
+          permission,
+          name,
+        }: {
+          role: string;
+          permission: Permission;
+          name: string;
+        }) => {
+          await setGrants([
+            { permission: permission, scope: PermissionScope.Owned },
+          ]);
+
+          const kind: OwningKind = SWEPT_KINDS.find(
+            (each: OwningKind): boolean => {
+              return each.name === name;
+            },
+          )!;
+          const path: string = pathOf(kind.modelType);
+          const singular: string = new kind.modelType().singularName!;
+          const column: string = changedTextColumnOf(kind.modelType, [
+            permission,
+          ])!;
+
+          expect(column).toBeDefined();
+
+          const mine: ObjectID = await insertKind(name, "member");
+          const ours: ObjectID = await insertKind(name, "memberTeam");
+          const theirs: ObjectID = await insertKind(name, "otherTeam");
+          const nobodys: ObjectID = await insertKind(name, "nobody");
+
+          expect(
+            (
+              await listThrough({
+                caller: member,
+                path: path,
+                ids: [mine, ours, theirs, nobodys],
+              })
+            ).ids,
+          ).toEqual(idsOf([mine, ours, theirs, nobodys]));
+
+          for (const id of [theirs, nobodys]) {
+            expectReadableNotWritten(
+              await updateThrough({
+                caller: member,
+                path: path,
+                id: id,
+                row: { [column]: "Changed" },
+              }),
+              singular,
+              "update",
+            );
+            expectReadableNotWritten(
+              await deleteItem(path, member, id),
+              singular,
+              "delete",
+            );
+            expect(await rowExists(name, id)).toBe(true);
+          }
+
+          for (const id of [mine, ours]) {
+            expect(
+              (
+                await updateThrough({
+                  caller: member,
+                  path: path,
+                  id: id,
+                  row: { [column]: "Changed" },
+                })
+              ).error,
+            ).toBeUndefined();
+            expect(await valueOf(name, column, id)).toBe("Changed");
+          }
+
+          expectDeleted(await deleteItem(path, member, ours));
+        },
+      );
+
+      test("Monitor Admin scoped to Owned: a status page's monitor group picker lists only their groups, as its monitor picker lists only their monitors", async () => {
+        await setGrants([
+          { permission: Permission.MonitorAdmin, scope: PermissionScope.Owned },
+        ]);
+
+        const groups: Array<ObjectID> = [
+          await insertKind("MonitorGroup", "member"),
+          await insertKind("MonitorGroup", "memberTeam"),
+          await insertKind("MonitorGroup", "otherTeam"),
+          await insertKind("MonitorGroup", "nobody"),
+        ];
+        const monitors: Array<ObjectID> = [
+          await insertMonitor("member"),
+          await insertMonitor("memberTeam"),
+          await insertMonitor("otherTeam"),
+          await insertMonitor("nobody"),
+        ];
+
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: "/monitor-group",
+              ids: groups,
+            })
+          ).ids,
+        ).toEqual(idsOf(groups.slice(0, 2)));
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: "/monitor",
+              ids: monitors,
+            })
+          ).ids,
+        ).toEqual(idsOf(monitors.slice(0, 2)));
+
+        // Another team's group is answered as missing, to a change as to a delete.
+        expectMissing(
+          await updateThrough({
+            caller: member,
+            path: "/monitor-group",
+            id: groups[2]!,
+            row: { name: "Ours now" },
+          }),
+          "Monitor Group",
+        );
+        expectMissing(
+          await deleteItem("/monitor-group", member, groups[2]!),
+          "Monitor Group",
+        );
+        expect(await rowExists("MonitorGroup", groups[2]!)).toBe(true);
+      });
+
+      /*
+       * A group the member may not read is not one they name either: a
+       * status page of theirs shows another team's monitor group only when
+       * they may read it - picking one is reading it - however the request
+       * names it.
+       */
+      test("Project Member scoped to Owned: a status page of theirs shows no monitor group of another team's, named by its id; beside a read of every group it shows any", async () => {
+        const myPage: ObjectID = await insertKind("StatusPage", "memberTeam");
+        const myGroup: ObjectID = await insertKind(
+          "MonitorGroup",
+          "memberTeam",
+        );
+        const theirGroup: ObjectID = await insertKind(
+          "MonitorGroup",
+          "otherTeam",
+        );
+
+        // Whether a status page resource showing `groupId` is written.
+        const show: (groupId: ObjectID) => Promise<Outcome> = async (
+          groupId: ObjectID,
+        ): Promise<Outcome> => {
+          return await createThrough({
+            caller: member,
+            path: pathOf(StatusPageResource),
+            row: {
+              statusPageId: myPage,
+              monitorGroupId: groupId,
+              displayName: `Group ${groupId.toString()}`,
+              order: 1,
+            },
+          });
+        };
+
+        const shownCount: (groupId: ObjectID) => Promise<number> = async (
+          groupId: ObjectID,
+        ): Promise<number> => {
+          return (
+            await database.query(
+              `SELECT "_id" FROM "${schema}"."StatusPageResource" WHERE "statusPageId" = $1 AND "monitorGroupId" = $2`,
+              [myPage.toString(), groupId.toString()],
+            )
+          ).length;
+        };
+
+        await setGrants([
+          {
+            permission: Permission.ProjectMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const refused: Outcome = await show(theirGroup);
+
+        expect(refused.error).toBeInstanceOf(UnreadableReferenceException);
+        expect(await shownCount(theirGroup)).toBe(0);
+
+        expect((await show(myGroup)).error).toBeUndefined();
+        expect(await shownCount(myGroup)).toBe(1);
+
+        // A read of every group: any group can be picked.
+        await setGrants([
+          { permission: Permission.Viewer },
+          {
+            permission: Permission.ProjectMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        expect((await show(theirGroup)).error).toBeUndefined();
+        expect(await shownCount(theirGroup)).toBe(1);
+      });
+    });
+
+    /*
+     * THE PARTS OF A KIND WITH OWNERS: a schedule's layers, the people in
+     * them and its shared link; an incoming call policy's escalation rules
+     * and the calls it took; an episode's notes and role members. They take their
+     * owners from the record they are part of: a member whose grants are
+     * scoped to Owned adds, changes and removes them only on the records
+     * they or their teams own, and reads them as that record is read.
+     */
+    describe("the parts of a kind with owners keep to its owners", () => {
+      const insertKind: (
+        name: string,
+        owner: Owner,
+      ) => Promise<ObjectID> = async (
+        name: string,
+        owner: Owner,
+      ): Promise<ObjectID> => {
+        const kind: OwningKind = SWEPT_KINDS.find(
+          (each: OwningKind): boolean => {
+            return each.name === name;
+          },
+        )!;
+
+        return await insertOwned({
+          table: database.getMetadata(kind.modelType).tableName,
+          ownerUserTable: database.getMetadata(
+            kind.pair.ownerUserService.modelType,
+          ).tableName,
+          ownerTeamTable: database.getMetadata(
+            kind.pair.ownerTeamService.modelType,
+          ).tableName,
+          ownerColumn: kind.pair.fkColumn,
+          owner: owner,
+        });
+      };
+
+      const pathOf: (modelType: { new (): BaseModel }) => string = (modelType: {
+        new (): BaseModel;
+      }): string => {
+        return new modelType().getCrudApiPath()!.toString();
+      };
+
+      // A layer of a schedule, as a schedule's Layers page adds one.
+      const layerRow: (
+        scheduleId: ObjectID,
+        name: string,
+      ) => Dictionary<unknown> = (
+        scheduleId: ObjectID,
+        name: string,
+      ): Dictionary<unknown> => {
+        const layer: OnCallDutyPolicyScheduleLayer = buildNewScheduleLayer({
+          onCallDutyPolicyScheduleId: scheduleId,
+          projectId: projectId,
+          name: name,
+          order: 2,
+        });
+
+        return {
+          onCallDutyPolicyScheduleId: scheduleId,
+          name: name,
+          order: 2,
+          startsAt: layer.startsAt,
+          handOffTime: layer.handOffTime,
+          rotation: layer.rotation,
+          restrictionTimes: layer.restrictionTimes,
+        };
+      };
+
+      // A part of `parentId` written directly, as OneUptime writes one.
+      const insertPart: (
+        table: string,
+        row: Dictionary<unknown>,
+      ) => Promise<ObjectID> = async (
+        table: string,
+        row: Dictionary<unknown>,
+      ): Promise<ObjectID> => {
+        const id: ObjectID = ObjectID.generate();
+
+        await insertAnyRow(table, {
+          _id: id,
+          projectId: projectId,
+          version: 1,
+          ...row,
+        });
+
+        return id;
+      };
+
+      test("On-Call Member scoped to Owned: the layers of another team's schedule, and the people in them, are listed and left as they are; their own schedule's are theirs to change", async () => {
+        await setGrants([
+          {
+            permission: Permission.OnCallMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const mine: ObjectID = await insertKind(
+          "OnCallDutyPolicySchedule",
+          "memberTeam",
+        );
+        const theirs: ObjectID = await insertKind(
+          "OnCallDutyPolicySchedule",
+          "otherTeam",
+        );
+
+        const myLayer: ObjectID = await insertPart(
+          "OnCallDutyPolicyScheduleLayer",
+          { onCallDutyPolicyScheduleId: mine, order: 1 },
+        );
+        const theirLayer: ObjectID = await insertPart(
+          "OnCallDutyPolicyScheduleLayer",
+          { onCallDutyPolicyScheduleId: theirs, order: 1 },
+        );
+        const myTurn: ObjectID = await insertPart(
+          "OnCallDutyPolicyScheduleLayerUser",
+          {
+            onCallDutyPolicyScheduleId: mine,
+            onCallDutyPolicyScheduleLayerId: myLayer,
+            userId: memberId,
+            order: 1,
+          },
+        );
+        const theirTurn: ObjectID = await insertPart(
+          "OnCallDutyPolicyScheduleLayerUser",
+          {
+            onCallDutyPolicyScheduleId: theirs,
+            onCallDutyPolicyScheduleLayerId: theirLayer,
+            userId: otherUserId,
+            order: 1,
+          },
+        );
+
+        // Read as the schedule is: everyone's.
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(OnCallDutyPolicyScheduleLayer),
+              ids: [myLayer, theirLayer],
+            })
+          ).ids,
+        ).toEqual(idsOf([myLayer, theirLayer]));
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(OnCallDutyPolicyScheduleLayerUser),
+              ids: [myTurn, theirTurn],
+            })
+          ).ids,
+        ).toEqual(idsOf([myTurn, theirTurn]));
+
+        // No layer, and nobody in one, added to theirs.
+        expectPartCreateRefused(
+          await createThrough({
+            caller: member,
+            path: pathOf(OnCallDutyPolicyScheduleLayer),
+            row: layerRow(theirs, "Our layer"),
+          }),
+          OnCallDutyPolicyScheduleLayer,
+          OnCallDutyPolicySchedule,
+        );
+        expectPartCreateRefused(
+          await createThrough({
+            caller: member,
+            path: pathOf(OnCallDutyPolicyScheduleLayerUser),
+            row: {
+              onCallDutyPolicyScheduleId: theirs,
+              onCallDutyPolicyScheduleLayerId: theirLayer,
+              userId: memberId,
+              order: 2,
+            },
+          }),
+          OnCallDutyPolicyScheduleLayerUser,
+          OnCallDutyPolicySchedule,
+        );
+
+        /*
+         * Theirs keeps its turns: nobody moves its hand-off, nobody puts
+         * themselves in place of whoever takes a turn, and nothing is removed.
+         */
+        const handOffTime: Date = new Date("2030-01-01T09:00:00.000Z");
+        const theirHandOff: unknown = await valueOf(
+          "OnCallDutyPolicyScheduleLayer",
+          "handOffTime",
+          theirLayer,
+        );
+
+        expectReadableNotWritten(
+          await updateThrough({
+            caller: member,
+            path: pathOf(OnCallDutyPolicyScheduleLayer),
+            id: theirLayer,
+            row: { handOffTime: handOffTime },
+          }),
+          new OnCallDutyPolicyScheduleLayer().singularName!,
+          "update",
+        );
+        expect(
+          await valueOf(
+            "OnCallDutyPolicyScheduleLayer",
+            "handOffTime",
+            theirLayer,
+          ),
+        ).toEqual(theirHandOff);
+
+        expectReadableNotWritten(
+          await updateThrough({
+            caller: member,
+            path: pathOf(OnCallDutyPolicyScheduleLayerUser),
+            id: theirTurn,
+            row: { userId: memberId },
+          }),
+          new OnCallDutyPolicyScheduleLayerUser().singularName!,
+          "update",
+        );
+        expect(
+          await valueOf(
+            "OnCallDutyPolicyScheduleLayerUser",
+            "userId",
+            theirTurn,
+          ),
+        ).toBe(otherUserId.toString());
+
+        expectReadableNotWritten(
+          await deleteItem(
+            pathOf(OnCallDutyPolicyScheduleLayerUser),
+            member,
+            theirTurn,
+          ),
+          new OnCallDutyPolicyScheduleLayerUser().singularName!,
+          "delete",
+        );
+        expectReadableNotWritten(
+          await deleteItem(
+            pathOf(OnCallDutyPolicyScheduleLayer),
+            member,
+            theirLayer,
+          ),
+          new OnCallDutyPolicyScheduleLayer().singularName!,
+          "delete",
+        );
+        expect(
+          await rowExists("OnCallDutyPolicyScheduleLayerUser", theirTurn),
+        ).toBe(true);
+        expect(
+          await rowExists("OnCallDutyPolicyScheduleLayer", theirLayer),
+        ).toBe(true);
+
+        // Their own schedule's: added to, changed and removed.
+        const added: Outcome = await createThrough({
+          caller: member,
+          path: pathOf(OnCallDutyPolicyScheduleLayer),
+          row: layerRow(mine, "Our second layer"),
+        });
+
+        expect(added.error).toBeUndefined();
+        expect(
+          (
+            await updateThrough({
+              caller: member,
+              path: pathOf(OnCallDutyPolicyScheduleLayer),
+              id: myLayer,
+              row: { handOffTime: handOffTime },
+            })
+          ).error,
+        ).toBeUndefined();
+        expect(
+          await valueOf(
+            "OnCallDutyPolicyScheduleLayer",
+            "handOffTime",
+            myLayer,
+          ),
+        ).toEqual(handOffTime);
+        expect(
+          (
+            await updateThrough({
+              caller: member,
+              path: pathOf(OnCallDutyPolicyScheduleLayerUser),
+              id: myTurn,
+              row: { userId: otherUserId },
+            })
+          ).error,
+        ).toBeUndefined();
+        expect(
+          await valueOf("OnCallDutyPolicyScheduleLayerUser", "userId", myTurn),
+        ).toBe(otherUserId.toString());
+        expectDeleted(
+          await deleteItem(
+            pathOf(OnCallDutyPolicyScheduleLayerUser),
+            member,
+            myTurn,
+          ),
+        );
+      });
+
+      test("On-Call Member scoped to Owned: the shared link of another team's schedule is not published, changed or taken down; their own schedule's is", async () => {
+        await setGrants([
+          {
+            permission: Permission.OnCallMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const mine: ObjectID = await insertKind(
+          "OnCallDutyPolicySchedule",
+          "member",
+        );
+        const theirs: ObjectID = await insertKind(
+          "OnCallDutyPolicySchedule",
+          "otherTeam",
+        );
+        const props: DatabaseCommonInteractionProps = await propsOf(member);
+
+        // Publishing theirs: refused, and no link is made.
+        const linkOf: (
+          scheduleId: ObjectID,
+        ) => Promise<OnCallDutyPolicyScheduleCalendarFeed> = (
+          scheduleId: ObjectID,
+        ): Promise<OnCallDutyPolicyScheduleCalendarFeed> => {
+          const feed: OnCallDutyPolicyScheduleCalendarFeed =
+            new OnCallDutyPolicyScheduleCalendarFeed();
+          feed.projectId = projectId;
+          feed.onCallDutyPolicyScheduleId = scheduleId;
+
+          return OnCallDutyPolicyScheduleCalendarFeedService.create({
+            data: feed,
+            props: props,
+          });
+        };
+
+        await expect(linkOf(theirs)).rejects.toThrow(
+          new CreateScopeException(
+            `Your access lets you create ${new OnCallDutyPolicyScheduleCalendarFeed().pluralName} only for the ${new OnCallDutyPolicySchedule().pluralName} you or your teams own.`,
+          ),
+        );
+        expect(
+          await database.query(
+            `SELECT "_id" FROM "${schema}"."OnCallDutyPolicyScheduleCalendarFeed" WHERE "onCallDutyPolicyScheduleId" = $1`,
+            [theirs.toString()],
+          ),
+        ).toHaveLength(0);
+
+        // Their own: published.
+        const myLink: OnCallDutyPolicyScheduleCalendarFeed = await linkOf(mine);
+
+        expect(myLink.id).toBeDefined();
+
+        // Theirs, published by its team: read, but neither turned off nor removed.
+        const theirLink: ObjectID = await insertPart(
+          "OnCallDutyPolicyScheduleCalendarFeed",
+          { onCallDutyPolicyScheduleId: theirs, isEnabled: true },
+        );
+
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(OnCallDutyPolicyScheduleCalendarFeed),
+              ids: [myLink.id!, theirLink],
+            })
+          ).ids,
+        ).toEqual(idsOf([myLink.id!, theirLink]));
+
+        expect(
+          await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
+            query: { _id: theirLink, projectId: projectId },
+            data: { isEnabled: false },
+            props: props,
+          }),
+        ).toBe(0);
+        expect(
+          await valueOf(
+            "OnCallDutyPolicyScheduleCalendarFeed",
+            "isEnabled",
+            theirLink,
+          ),
+        ).toBe(true);
+
+        expectReadableNotWritten(
+          await deleteItem(
+            pathOf(OnCallDutyPolicyScheduleCalendarFeed),
+            member,
+            theirLink,
+          ),
+          new OnCallDutyPolicyScheduleCalendarFeed().singularName!,
+          "delete",
+        );
+        expect(
+          await rowExists("OnCallDutyPolicyScheduleCalendarFeed", theirLink),
+        ).toBe(true);
+
+        // Their own link: turned off.
+        expect(
+          await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
+            query: { _id: myLink.id!, projectId: projectId },
+            data: { isEnabled: false },
+            props: props,
+          }),
+        ).toBe(1);
+      });
+
+      test("Project Member scoped to Owned: an incoming call policy's escalation rules and calls are reached only on the policies they or their team own", async () => {
+        await setGrants([
+          {
+            permission: Permission.ProjectMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const mine: ObjectID = await insertKind(
+          "IncomingCallPolicy",
+          "memberTeam",
+        );
+        const theirs: ObjectID = await insertKind(
+          "IncomingCallPolicy",
+          "otherTeam",
+        );
+
+        const myRule: ObjectID = await insertPart(
+          "IncomingCallPolicyEscalationRule",
+          { incomingCallPolicyId: mine, order: 1 },
+        );
+        const theirRule: ObjectID = await insertPart(
+          "IncomingCallPolicyEscalationRule",
+          { incomingCallPolicyId: theirs, order: 1 },
+        );
+        const myCall: ObjectID = await insertPart("IncomingCallLog", {
+          incomingCallPolicyId: mine,
+        });
+        const theirCall: ObjectID = await insertPart("IncomingCallLog", {
+          incomingCallPolicyId: theirs,
+        });
+
+        // Who each call rang: the attempts, with their call's policy.
+        const myAttempt: ObjectID = await insertPart("IncomingCallLogItem", {
+          incomingCallLogId: myCall,
+          incomingCallPolicyId: mine,
+        });
+        const theirAttempt: ObjectID = await insertPart("IncomingCallLogItem", {
+          incomingCallLogId: theirCall,
+          incomingCallPolicyId: theirs,
+        });
+
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncomingCallPolicyEscalationRule),
+              ids: [myRule, theirRule],
+            })
+          ).ids,
+        ).toEqual(idsOf([myRule]));
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncomingCallLog),
+              ids: [myCall, theirCall],
+            })
+          ).ids,
+        ).toEqual(idsOf([myCall]));
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncomingCallLogItem),
+              ids: [myAttempt, theirAttempt],
+            })
+          ).ids,
+        ).toEqual(idsOf([myAttempt]));
+
+        // Nor read one by one, nor found by the call it was part of.
+        expectMissing(
+          await send({
+            method: "post",
+            uri: `${pathOf(IncomingCallLogItem)}/:id/get-item`,
+            caller: member,
+            id: theirAttempt,
+            body: { select: { _id: true, userPhoneNumber: true } },
+          }),
+          new IncomingCallLogItem().singularName!,
+        );
+        expect(
+          (
+            await send({
+              method: "post",
+              uri: `${pathOf(IncomingCallLogItem)}/get-list`,
+              caller: member,
+              body: {
+                query: JSONFunctions.serialize({
+                  incomingCallLogId: theirCall,
+                } as unknown as JSONObject),
+                select: { _id: true },
+                limit: 50,
+              },
+            })
+          ).ids,
+        ).toEqual([]);
+
+        // No rule added to theirs, and theirs is answered as missing.
+        const added: Outcome = await createThrough({
+          caller: member,
+          path: pathOf(IncomingCallPolicyEscalationRule),
+          row: { incomingCallPolicyId: theirs, order: 2 },
+        });
+
+        expectRefused(added);
+        expect(
+          await database.query(
+            `SELECT "_id" FROM "${schema}"."IncomingCallPolicyEscalationRule" WHERE "incomingCallPolicyId" = $1`,
+            [theirs.toString()],
+          ),
+        ).toHaveLength(1);
+
+        const ruleName: string = new IncomingCallPolicyEscalationRule()
+          .singularName!;
+
+        expectMissing(
+          await updateThrough({
+            caller: member,
+            path: pathOf(IncomingCallPolicyEscalationRule),
+            id: theirRule,
+            row: { order: 5 },
+          }),
+          ruleName,
+        );
+        expectMissing(
+          await deleteItem(
+            pathOf(IncomingCallPolicyEscalationRule),
+            member,
+            theirRule,
+          ),
+          ruleName,
+        );
+        expect(
+          await rowExists("IncomingCallPolicyEscalationRule", theirRule),
+        ).toBe(true);
+
+        // Their own policy's: added to and removed.
+        expect(
+          (
+            await createThrough({
+              caller: member,
+              path: pathOf(IncomingCallPolicyEscalationRule),
+              row: { incomingCallPolicyId: mine, order: 2 },
+            })
+          ).error,
+        ).toBeUndefined();
+        expectDeleted(
+          await deleteItem(
+            pathOf(IncomingCallPolicyEscalationRule),
+            member,
+            myRule,
+          ),
+        );
+      });
+
+      test("Viewer over the whole project beside Project Member scoped to Owned: every call, and who it rang, is read; the escalation rules are still changed only on their own policies", async () => {
+        await setGrants([
+          { permission: Permission.Viewer },
+          {
+            permission: Permission.ProjectMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const mine: ObjectID = await insertKind(
+          "IncomingCallPolicy",
+          "memberTeam",
+        );
+        const theirs: ObjectID = await insertKind(
+          "IncomingCallPolicy",
+          "otherTeam",
+        );
+
+        const theirRule: ObjectID = await insertPart(
+          "IncomingCallPolicyEscalationRule",
+          { incomingCallPolicyId: theirs, order: 1 },
+        );
+        const myCall: ObjectID = await insertPart("IncomingCallLog", {
+          incomingCallPolicyId: mine,
+        });
+        const theirCall: ObjectID = await insertPart("IncomingCallLog", {
+          incomingCallPolicyId: theirs,
+        });
+        const myAttempt: ObjectID = await insertPart("IncomingCallLogItem", {
+          incomingCallLogId: myCall,
+          incomingCallPolicyId: mine,
+        });
+        const theirAttempt: ObjectID = await insertPart("IncomingCallLogItem", {
+          incomingCallLogId: theirCall,
+          incomingCallPolicyId: theirs,
+        });
+
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncomingCallLog),
+              ids: [myCall, theirCall],
+            })
+          ).ids,
+        ).toEqual(idsOf([myCall, theirCall]));
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncomingCallLogItem),
+              ids: [myAttempt, theirAttempt],
+            })
+          ).ids,
+        ).toEqual(idsOf([myAttempt, theirAttempt]));
+
+        // Another team's rule: read, not changed or removed.
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncomingCallPolicyEscalationRule),
+              ids: [theirRule],
+            })
+          ).ids,
+        ).toEqual(idsOf([theirRule]));
+
+        const ruleName: string = new IncomingCallPolicyEscalationRule()
+          .singularName!;
+
+        expectReadableNotWritten(
+          await updateThrough({
+            caller: member,
+            path: pathOf(IncomingCallPolicyEscalationRule),
+            id: theirRule,
+            row: { order: 5 },
+          }),
+          ruleName,
+          "update",
+        );
+        expectReadableNotWritten(
+          await deleteItem(
+            pathOf(IncomingCallPolicyEscalationRule),
+            member,
+            theirRule,
+          ),
+          ruleName,
+          "delete",
+        );
+        expect(
+          await valueOf("IncomingCallPolicyEscalationRule", "order", theirRule),
+        ).toBe(1);
+      });
+
+      test("an attempt OneUptime writes while it rings someone names the policy of its call, whatever the write named", async () => {
+        const mine: ObjectID = await insertKind(
+          "IncomingCallPolicy",
+          "memberTeam",
+        );
+        const theirs: ObjectID = await insertKind(
+          "IncomingCallPolicy",
+          "otherTeam",
+        );
+        const theirCall: ObjectID = await insertPart("IncomingCallLog", {
+          incomingCallPolicyId: theirs,
+        });
+
+        for (const named of [undefined, mine]) {
+          // As a call that rings someone writes it.
+          const attempt: IncomingCallLogItem = new IncomingCallLogItem();
+          attempt.projectId = projectId;
+          attempt.incomingCallLogId = theirCall;
+          attempt.status = IncomingCallStatus.Ringing;
+          attempt.startedAt = new Date();
+          attempt.isAnswered = false;
+
+          if (named) {
+            attempt.incomingCallPolicyId = named;
+          }
+
+          const written: IncomingCallLogItem =
+            await IncomingCallLogItemService.create({
+              data: attempt,
+              props: { isRoot: true },
+            });
+
+          expect([
+            named?.toString() || "none named",
+            await valueOf(
+              "IncomingCallLogItem",
+              "incomingCallPolicyId",
+              written.id!,
+            ),
+          ]).toEqual([named?.toString() || "none named", theirs.toString()]);
+        }
+      });
+
+      test("Incident Member scoped to Owned: who holds a role on an episode is changed only on the episodes they or their team own", async () => {
+        await setGrants([
+          {
+            permission: Permission.IncidentMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const mine: ObjectID = await insertKind(
+          "IncidentEpisode",
+          "memberTeam",
+        );
+        const theirs: ObjectID = await insertKind(
+          "IncidentEpisode",
+          "otherTeam",
+        );
+        const roleId: ObjectID = ObjectID.generate();
+
+        const myRole: ObjectID = await insertPart("IncidentEpisodeRoleMember", {
+          incidentEpisodeId: mine,
+          incidentRoleId: roleId,
+          userId: otherUserId,
+        });
+        const theirRole: ObjectID = await insertPart(
+          "IncidentEpisodeRoleMember",
+          {
+            incidentEpisodeId: theirs,
+            incidentRoleId: roleId,
+            userId: otherUserId,
+          },
+        );
+
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncidentEpisodeRoleMember),
+              ids: [myRole, theirRole],
+            })
+          ).ids,
+        ).toEqual(idsOf([myRole]));
+
+        // Nobody is put in a role on theirs, and nobody is taken out of one.
+        expectRefused(
+          await createThrough({
+            caller: member,
+            path: pathOf(IncidentEpisodeRoleMember),
+            row: {
+              incidentEpisodeId: theirs,
+              incidentRoleId: roleId,
+              userId: memberId,
+            },
+          }),
+        );
+        expect(
+          await database.query(
+            `SELECT "_id" FROM "${schema}"."IncidentEpisodeRoleMember" WHERE "incidentEpisodeId" = $1`,
+            [theirs.toString()],
+          ),
+        ).toHaveLength(1);
+
+        expectMissing(
+          await deleteItem(
+            pathOf(IncidentEpisodeRoleMember),
+            member,
+            theirRole,
+          ),
+          new IncidentEpisodeRoleMember().singularName!,
+        );
+        expect(await rowExists("IncidentEpisodeRoleMember", theirRole)).toBe(
+          true,
+        );
+
+        // On their own episode, someone is taken out of a role.
+        expectDeleted(
+          await deleteItem(pathOf(IncidentEpisodeRoleMember), member, myRole),
+        );
+      });
+    });
+
+    /*
+     * A RUNNER'S KEY IS ITS IDENTITY. Every reader of Runners reads every
+     * Runner, so that a runbook step can pick one; but whoever presents a
+     * Runner's key is handed the work meant for it, with the runbook secrets
+     * and credentials that come with it. So a member who may read keys only
+     * through a grant scoped to Owned reads the key of the Runners they or
+     * their teams own, and of no other - however they ask.
+     */
+    describe("a Runner's key keeps to its owners, though every Runner is read", () => {
+      const KEY_REFUSAL: string =
+        "Your access lets you read the Agent Key only of the Runners you or your teams own, so you cannot sort or filter Runners by it.";
+
+      // A key is unique across Runners, so every test makes its own.
+      const keyOf: (name: string) => string = (name: string): string => {
+        return `${name}-${ObjectID.generate().toString()}`;
+      };
+
+      const insertRunner: (
+        owner: Owner,
+        key: string,
+      ) => Promise<ObjectID> = async (
+        owner: Owner,
+        key: string,
+      ): Promise<ObjectID> => {
+        return await insertOwned({
+          table: "Runner",
+          ownerUserTable: "RunnerOwnerUser",
+          ownerTeamTable: "RunnerOwnerTeam",
+          ownerColumn: "runnerId",
+          owner: owner,
+          row: { key: key },
+        });
+      };
+
+      interface RunnersListed {
+        // The Runners listed, by id, sorted.
+        ids?: Array<string>;
+        // The key read of each: undefined where it was left out.
+        keys?: Dictionary<string | undefined>;
+        error?: unknown;
+      }
+
+      const listRunners: (data: {
+        caller: Caller;
+        query: Dictionary<unknown>;
+        sort?: Dictionary<unknown>;
+      }) => Promise<RunnersListed> = async (data: {
+        caller: Caller;
+        query: Dictionary<unknown>;
+        sort?: Dictionary<unknown>;
+      }): Promise<RunnersListed> => {
+        const outcome: Outcome = await send({
+          method: "post",
+          uri: "/runner/get-list",
+          caller: data.caller,
+          body: {
+            query: JSONFunctions.serialize(data.query as unknown as JSONObject),
+            select: { _id: true, name: true, key: true },
+            ...(data.sort ? { sort: data.sort as JSONObject } : {}),
+            limit: 50,
+          },
+        });
+
+        if (outcome.error) {
+          return { error: outcome.error };
+        }
+
+        const rows: Array<BaseModel> = jest.mocked(
+          Response.sendEntityArrayResponse,
+        ).mock.calls[0]![2] as Array<BaseModel>;
+
+        const keys: Dictionary<string | undefined> = {};
+
+        for (const row of rows) {
+          keys[row.id!.toString()] =
+            (row.getColumnValue("key") as string | null) || undefined;
+        }
+
+        return { ids: Object.keys(keys).sort(), keys: keys };
+      };
+
+      const runnersOf: (ids: Array<ObjectID>) => Dictionary<unknown> = (
+        ids: Array<ObjectID>,
+      ): Dictionary<unknown> => {
+        return { _id: new Includes(ids) };
+      };
+
+      test.each([
+        {
+          grant: "Runbook Admin scoped to Owned",
+          rows: [
+            {
+              permission: Permission.RunbookAdmin,
+              scope: PermissionScope.Owned,
+            },
+          ],
+        },
+        {
+          grant:
+            "Runbook Viewer over the whole project beside Runbook Admin scoped to Owned",
+          rows: [
+            {
+              permission: Permission.RunbookViewer,
+              scope: PermissionScope.All,
+            },
+            {
+              permission: Permission.RunbookAdmin,
+              scope: PermissionScope.Owned,
+            },
+          ],
+        },
+      ] as Array<{ grant: string; rows: Array<PermissionRow> }>)(
+        "$grant: every Runner listed and read, the key only of their own",
+        async ({ rows }: { grant: string; rows: Array<PermissionRow> }) => {
+          await setGrants(rows);
+
+          const mineKey: string = keyOf("mine");
+          const oursKey: string = keyOf("ours");
+
+          const mine: ObjectID = await insertRunner("member", mineKey);
+          const ours: ObjectID = await insertRunner("memberTeam", oursKey);
+          const theirs: ObjectID = await insertRunner(
+            "otherTeam",
+            keyOf("theirs"),
+          );
+          const nobodys: ObjectID = await insertRunner(
+            "nobody",
+            keyOf("nobody"),
+          );
+
+          const listed: RunnersListed = await listRunners({
+            caller: member,
+            query: runnersOf([mine, ours, theirs, nobodys]),
+          });
+
+          // Every Runner is listed, the key only of the ones they own.
+          expect(listed.ids).toEqual(idsOf([mine, ours, theirs, nobodys]));
+          expect(listed.keys).toStrictEqual({
+            [mine.toString()]: mineKey,
+            [ours.toString()]: oursKey,
+            [theirs.toString()]: undefined,
+            [nobodys.toString()]: undefined,
+          });
+
+          // One by one: the Runner is read, its key only when it is theirs.
+          for (const [id, key] of [
+            [mine, mineKey],
+            [theirs, undefined],
+          ] as Array<[ObjectID, string | undefined]>) {
+            const outcome: Outcome = await send({
+              method: "post",
+              uri: "/runner/:id/get-item",
+              caller: member,
+              id: id,
+              body: { select: { _id: true, name: true, key: true } },
+            });
+
+            expect(outcome.error).toBeUndefined();
+            expect(outcome.item?.id?.toString()).toBe(id.toString());
+            expect(outcome.item?.getColumnValue("name")).toBeTruthy();
+            expect(outcome.item?.getColumnValue("key") || undefined).toBe(key);
+          }
+        },
+      );
+
+      test("Runbook Admin scoped to Owned: a filter or a search on the key finds only their own Runners, and Runners are not ordered by it", async () => {
+        await setGrants([
+          { permission: Permission.RunbookAdmin, scope: PermissionScope.Owned },
+        ]);
+
+        const mineKey: string = keyOf("match-mine");
+        const theirsKey: string = keyOf("match-theirs");
+
+        const mine: ObjectID = await insertRunner("member", mineKey);
+        const theirs: ObjectID = await insertRunner("otherTeam", theirsKey);
+        const all: Array<ObjectID> = [mine, theirs];
+
+        // By the key itself: another team's is never matched.
+        expect(
+          await listRunners({
+            caller: member,
+            query: { ...runnersOf(all), key: theirsKey },
+          }),
+        ).toStrictEqual({ ids: [], keys: {} });
+        expect(
+          await listRunners({
+            caller: member,
+            query: { ...runnersOf(all), key: mineKey },
+          }),
+        ).toStrictEqual({
+          ids: idsOf([mine]),
+          keys: { [mine.toString()]: mineKey },
+        });
+
+        // By a free-text search that reads the key: only their own.
+        expect(
+          await listRunners({
+            caller: member,
+            query: {
+              ...runnersOf(all),
+              search: new MultiSearch({
+                value: "match-",
+                fields: ["name", "key"],
+              }),
+            },
+          }),
+        ).toStrictEqual({
+          ids: idsOf([mine]),
+          keys: { [mine.toString()]: mineKey },
+        });
+
+        // Ordered by the key: refused, as a read of every key one guess at a time.
+        const sorted: RunnersListed = await listRunners({
+          caller: member,
+          query: runnersOf(all),
+          sort: { key: SortOrder.Ascending },
+        });
+
+        expect(sorted.error).toBeInstanceOf(NotAuthorizedException);
+        expect((sorted.error as Error).message).toBe(KEY_REFUSAL);
+
+        // Ordered by anything else, every Runner is listed.
+        expect(
+          (
+            await listRunners({
+              caller: member,
+              query: runnersOf(all),
+              sort: { name: SortOrder.Ascending },
+            })
+          ).ids,
+        ).toEqual(idsOf(all));
+
+        // A Runner's owners, matched by the key of the Runner they own: refused.
+        const byOwners: Outcome = await send({
+          method: "post",
+          uri: "/runner-owner-user/get-list",
+          caller: member,
+          body: {
+            query: JSONFunctions.serialize({
+              runner: { key: theirsKey },
+            } as unknown as JSONObject),
+            select: { _id: true },
+            limit: 50,
+          },
+        });
+
+        expect(byOwners.error).toBeInstanceOf(NotAuthorizedException);
+        expect((byOwners.error as Error).message).toBe(KEY_REFUSAL);
+      });
+
+      test("Runbook Admin over the whole project, and an API key: every Runner's key, filtered and ordered by it as before", async () => {
+        await setGrants([
+          { permission: Permission.RunbookAdmin, scope: PermissionScope.All },
+        ]);
+
+        const mineKey: string = keyOf("wide-mine");
+        const theirsKey: string = keyOf("wide-theirs");
+
+        const mine: ObjectID = await insertRunner("member", mineKey);
+        const theirs: ObjectID = await insertRunner("otherTeam", theirsKey);
+        const apiKey: ObjectID = await createApiKey([Permission.RunbookAdmin]);
+
+        for (const caller of [
+          member,
+          { kind: "apiKey", apiKey: apiKey } as Caller,
+        ]) {
+          expect(
+            await listRunners({
+              caller: caller,
+              query: runnersOf([mine, theirs]),
+              sort: { key: SortOrder.Ascending },
+            }),
+          ).toStrictEqual({
+            ids: idsOf([mine, theirs]),
+            keys: {
+              [mine.toString()]: mineKey,
+              [theirs.toString()]: theirsKey,
+            },
+          });
+
+          expect(
+            await listRunners({
+              caller: caller,
+              query: { ...runnersOf([mine, theirs]), key: theirsKey },
+            }),
+          ).toStrictEqual({
+            ids: idsOf([theirs]),
+            keys: { [theirs.toString()]: theirsKey },
+          });
+        }
+      });
+    });
+
+    /*
+     * THE MONITORS A GROUP HOLDS ARE THE GROUP'S. They make the status a
+     * status page shows for it, and nothing in a group changes the monitors
+     * it holds, so a group's members are held to the group's owners: a
+     * member whose permission to add monitors to groups is scoped to Owned
+     * adds them to, and takes them out of, the groups they or their teams
+     * own - any monitor they may read - and no other group, however many
+     * groups they may read.
+     */
+    describe("the monitors a group holds keep to the group's owners", () => {
+      const insertGroup: (owner: Owner) => Promise<ObjectID> = async (
+        owner: Owner,
+      ): Promise<ObjectID> => {
+        return await insertOwned({
+          table: "MonitorGroup",
+          ownerUserTable: "MonitorGroupOwnerUser",
+          ownerTeamTable: "MonitorGroupOwnerTeam",
+          ownerColumn: "monitorGroupId",
+          owner: owner,
+        });
+      };
+
+      // A monitor in a group, as a project admin would have put it there.
+      const insertMembership: (
+        groupId: ObjectID,
+        monitorId: ObjectID,
+      ) => Promise<ObjectID> = async (
+        groupId: ObjectID,
+        monitorId: ObjectID,
+      ): Promise<ObjectID> => {
+        const id: ObjectID = ObjectID.generate();
+
+        await insertAnyRow("MonitorGroupResource", {
+          _id: id,
+          projectId: projectId,
+          monitorGroupId: groupId,
+          monitorId: monitorId,
+          version: 1,
+        });
+
+        return id;
+      };
+
+      const membershipsOf: (
+        groupId: ObjectID,
+      ) => Promise<Array<string>> = async (
+        groupId: ObjectID,
+      ): Promise<Array<string>> => {
+        const rows: Array<{ monitorId: string }> = await database.query(
+          `SELECT "monitorId" FROM "${schema}"."MonitorGroupResource" WHERE "monitorGroupId" = $1 AND "deletedAt" IS NULL ORDER BY "monitorId"`,
+          [groupId.toString()],
+        );
+
+        return rows.map((row: { monitorId: string }): string => {
+          return row.monitorId;
+        });
+      };
+
+      const PATH: string = "/monitor-group-resource";
+
+      test("Monitor Viewer over the whole project beside Monitor Admin scoped to Owned: a monitor of theirs is not put in another team's group, and their own group's owners take out any monitor", async () => {
+        await setGrants([
+          { permission: Permission.MonitorViewer, scope: PermissionScope.All },
+          { permission: Permission.MonitorAdmin, scope: PermissionScope.Owned },
+        ]);
+
+        const myGroup: ObjectID = await insertGroup("member");
+        const theirGroup: ObjectID = await insertGroup("otherTeam");
+        const myMonitor: ObjectID = await insertMonitor("member");
+        const theirMonitor: ObjectID = await insertMonitor("otherTeam");
+
+        // Another team's group, which they read: no monitor of theirs goes in.
+        expectPartCreateRefused(
+          await createThrough({
+            caller: member,
+            path: PATH,
+            row: { monitorGroupId: theirGroup, monitorId: myMonitor },
+          }),
+          MonitorGroupResource,
+          MonitorGroup,
+        );
+        expect(await membershipsOf(theirGroup)).toEqual([]);
+
+        // Their own group holds any monitor they read - another team's too.
+        for (const monitorId of [myMonitor, theirMonitor]) {
+          expect(
+            (
+              await createThrough({
+                caller: member,
+                path: PATH,
+                row: { monitorGroupId: myGroup, monitorId: monitorId },
+              })
+            ).error,
+          ).toBeUndefined();
+        }
+        expect(await membershipsOf(myGroup)).toEqual(
+          idsOf([myMonitor, theirMonitor]),
+        );
+
+        // A monitor of theirs someone put in another team's group stays there.
+        const inTheirs: ObjectID = await insertMembership(
+          theirGroup,
+          myMonitor,
+        );
+
+        expectReadableNotWritten(
+          await deleteItem(PATH, member, inTheirs),
+          "Monitor Group Resource",
+          "delete",
+        );
+        expect(await membershipsOf(theirGroup)).toEqual(idsOf([myMonitor]));
+
+        // Another team's monitor put in their group: theirs to take out.
+        const intruder: ObjectID = await insertGroup("member");
+        const placed: ObjectID = await insertMembership(intruder, theirMonitor);
+
+        expectDeleted(await deleteItem(PATH, member, placed));
+        expect(await membershipsOf(intruder)).toEqual([]);
+      });
+
+      test("Monitor Admin scoped to Owned: every monitor in their own group is listed, and nothing of another team's group", async () => {
+        await setGrants([
+          { permission: Permission.MonitorAdmin, scope: PermissionScope.Owned },
+        ]);
+
+        const myGroup: ObjectID = await insertGroup("memberTeam");
+        const theirGroup: ObjectID = await insertGroup("otherTeam");
+        const myMonitor: ObjectID = await insertMonitor("member");
+        const theirMonitor: ObjectID = await insertMonitor("otherTeam");
+
+        const memberships: Array<ObjectID> = [
+          await insertMembership(myGroup, myMonitor),
+          await insertMembership(myGroup, theirMonitor),
+          await insertMembership(theirGroup, myMonitor),
+          await insertMembership(theirGroup, theirMonitor),
+        ];
+
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: PATH,
+              ids: memberships,
+            })
+          ).ids,
+        ).toEqual(idsOf(memberships.slice(0, 2)));
+
+        // And a monitor of another team's group is not taken out of it.
+        expectMissing(
+          await deleteItem(PATH, member, memberships[2]!),
+          "Monitor Group Resource",
+        );
+        expect(await membershipsOf(theirGroup)).toEqual(
+          idsOf([myMonitor, theirMonitor]),
+        );
+      });
+
+      test("the same permissions over the whole project put any monitor in any group, and take any out", async () => {
+        await setGrants([
+          { permission: Permission.MonitorAdmin, scope: PermissionScope.All },
+        ]);
+
+        const theirGroup: ObjectID = await insertGroup("otherTeam");
+        const myMonitor: ObjectID = await insertMonitor("member");
+
+        const created: Outcome = await createThrough({
+          caller: member,
+          path: PATH,
+          row: { monitorGroupId: theirGroup, monitorId: myMonitor },
+        });
+
+        expect(created.error).toBeUndefined();
+        expect(await membershipsOf(theirGroup)).toEqual(idsOf([myMonitor]));
+
+        expectDeleted(await deleteItem(PATH, member, created.item!.id!));
+        expect(await membershipsOf(theirGroup)).toEqual([]);
+      });
+    });
+
+    test("an episode's notes are posted, read and removed only on the episodes the member or their team own - beside a read of every episode too", async () => {
+      const insertEpisode: (owner: Owner) => Promise<ObjectID> = async (
+        owner: Owner,
+      ): Promise<ObjectID> => {
+        return await insertOwned({
+          table: "IncidentEpisode",
+          ownerUserTable: "IncidentEpisodeOwnerUser",
+          ownerTeamTable: "IncidentEpisodeOwnerTeam",
+          ownerColumn: "incidentEpisodeId",
+          owner: owner,
+        });
+      };
+
+      const insertNote: (episodeId: ObjectID) => Promise<ObjectID> = async (
+        episodeId: ObjectID,
+      ): Promise<ObjectID> => {
+        const id: ObjectID = ObjectID.generate();
+
+        await insertAnyRow("IncidentEpisodeInternalNote", {
+          _id: id,
+          projectId: projectId,
+          incidentEpisodeId: episodeId,
+          note: "A note",
+          version: 1,
+        });
+
+        return id;
+      };
+
+      const path: string = new IncidentEpisodeInternalNote()
+        .getCrudApiPath()!
+        .toString();
+      const singular: string = new IncidentEpisodeInternalNote().singularName!;
+
+      const mine: ObjectID = await insertEpisode("memberTeam");
+      const theirs: ObjectID = await insertEpisode("otherTeam");
+      const myNote: ObjectID = await insertNote(mine);
+      const theirNote: ObjectID = await insertNote(theirs);
+
+      /*
+       * Incident Member scoped to Owned, and the same beside a read of every
+       * episode: either way the notes keep to the episodes they own.
+       */
+      for (const grants of [
+        [
+          {
+            permission: Permission.IncidentMember,
+            scope: PermissionScope.Owned,
+          },
+        ],
+        [
+          {
+            permission: Permission.ReadIncidentEpisode,
+            scope: PermissionScope.All,
+          },
+          {
+            permission: Permission.CreateIncidentEpisodeInternalNote,
+            scope: PermissionScope.Owned,
+          },
+          {
+            permission: Permission.ReadIncidentEpisodeInternalNote,
+            scope: PermissionScope.Owned,
+          },
+          {
+            permission: Permission.DeleteIncidentEpisodeInternalNote,
+            scope: PermissionScope.Owned,
+          },
+        ],
+      ] as Array<Array<PermissionRow>>) {
+        await setGrants(grants);
+
+        const scope: string = grants
+          .map((row: PermissionRow): string => {
+            return `${row.permission} ${scopeOf(row)}`;
+          })
+          .join(", ");
+
+        expect([
+          scope,
+          (
+            await listThrough({
+              caller: member,
+              path: path,
+              ids: [myNote, theirNote],
+            })
+          ).ids,
+        ]).toEqual([scope, idsOf([myNote])]);
+
+        const posted: Outcome = await createThrough({
+          caller: member,
+          path: path,
+          row: { incidentEpisodeId: theirs, note: "Ours now" },
+        });
+
+        expect([scope, posted.item]).toEqual([scope, undefined]);
+        expectRefused(posted);
+        expect(
+          await database.query(
+            `SELECT "_id" FROM "${schema}"."IncidentEpisodeInternalNote" WHERE "incidentEpisodeId" = $1`,
+            [theirs.toString()],
+          ),
+        ).toHaveLength(1);
+
+        expectMissing(await deleteItem(path, member, theirNote), singular);
+        expect(await rowExists("IncidentEpisodeInternalNote", theirNote)).toBe(
+          true,
+        );
+
+        expect([
+          scope,
+          (
+            await createThrough({
+              caller: member,
+              path: path,
+              row: { incidentEpisodeId: mine, note: "Our note" },
+            })
+          ).error,
+        ]).toEqual([scope, undefined]);
+      }
+
+      // The refusal says why, for a member who reads every episode.
+      const refused: Outcome = await createThrough({
+        caller: member,
+        path: path,
+        row: { incidentEpisodeId: theirs, note: "Ours now" },
+      });
+
+      expectPartCreateRefused(
+        refused,
+        IncidentEpisodeInternalNote,
+        IncidentEpisode,
+      );
+    });
+
+    /*
+     * THE ATTEMPTS OF THE CALLS MADE BEFORE THIS CHANGE take the policy of
+     * their call: the migration adds the column and gives each attempt the
+     * policy its call names, then the online migration indexes the column
+     * and keys it to the policy - an attempt goes with its policy. Run
+     * again, it changes nothing. In a schema of its own, with the three
+     * tables as they were before it.
+     */
+    test("the attempts of the calls made before the change take the policy of their call, indexed and keyed to it, however often the migration runs", async () => {
+      const before: string = `call_attempts_${ObjectID.generate()
+        .toString()
+        .replace(/-/g, "")}`;
+      const runner: QueryRunner = database.createQueryRunner();
+
+      const policyA: string = ObjectID.generate().toString();
+      const policyB: string = ObjectID.generate().toString();
+      const callA: string = ObjectID.generate().toString();
+      const callB: string = ObjectID.generate().toString();
+      const attempts: Dictionary<string> = {
+        [ObjectID.generate().toString()]: policyA,
+        [ObjectID.generate().toString()]: policyA,
+        [ObjectID.generate().toString()]: policyB,
+      };
+      const callOf: (policyId: string) => string = (
+        policyId: string,
+      ): string => {
+        return policyId === policyA ? callA : callB;
+      };
+
+      try {
+        await database.query(`CREATE SCHEMA "${before}"`);
+
+        for (const table of [
+          "IncomingCallPolicy",
+          "IncomingCallLog",
+          "IncomingCallLogItem",
+        ]) {
+          await database.query(
+            `CREATE TABLE "${before}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
+          );
+        }
+
+        // The attempts' table as it was before the change.
+        await database.query(
+          `ALTER TABLE "${before}"."IncomingCallLogItem" DROP COLUMN "incomingCallPolicyId"`,
+        );
+
+        for (const policyId of [policyA, policyB]) {
+          await database.query(
+            `INSERT INTO "${before}"."IncomingCallPolicy" ("_id", "version", "projectId", "name", "slug") VALUES ($1, 1, $2, $3, $3)`,
+            [policyId, projectId.toString(), `policy-${policyId}`],
+          );
+          await database.query(
+            `INSERT INTO "${before}"."IncomingCallLog" ("_id", "version", "projectId", "incomingCallPolicyId") VALUES ($1, 1, $2, $3)`,
+            [callOf(policyId), projectId.toString(), policyId],
+          );
+        }
+
+        for (const [attemptId, policyId] of Object.entries(attempts)) {
+          await database.query(
+            `INSERT INTO "${before}"."IncomingCallLogItem" ("_id", "version", "projectId", "incomingCallLogId") VALUES ($1, 1, $2, $3)`,
+            [attemptId, projectId.toString(), callOf(policyId)],
+          );
+        }
+
+        await runner.query(`SET search_path TO "${before}"`);
+        await new AddIncomingCallLogItemPolicy1803600000000().up(runner);
+
+        for (let run: number = 0; run < 2; run++) {
+          await new AddIncomingCallLogItemPolicyIndexAndKey1803650000000().up(
+            runner,
+          );
+        }
+
+        const rows: Array<{ _id: string; incomingCallPolicyId: string }> =
+          await database.query(
+            `SELECT "_id", "incomingCallPolicyId" FROM "${before}"."IncomingCallLogItem"`,
+          );
+
+        expect(
+          Object.fromEntries(
+            rows.map((row: { _id: string; incomingCallPolicyId: string }) => {
+              return [row._id, row.incomingCallPolicyId];
+            }),
+          ),
+        ).toEqual(attempts);
+
+        const indexes: Array<{ isValid: boolean }> = await database.query(
+          `SELECT x.indisvalid AS "isValid" FROM pg_index x JOIN pg_class c ON c.oid = x.indexrelid JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = $1 AND c.relname = $2`,
+          [before, "IDX_d728fcf2cd2e2bafbbb0ee8719"],
+        );
+
+        expect(indexes).toEqual([{ isValid: true }]);
+
+        const keys: Array<{ isValidated: boolean; onDelete: string }> =
+          await database.query(
+            `SELECT con.convalidated AS "isValidated", con.confdeltype AS "onDelete" FROM pg_constraint con JOIN pg_namespace n ON n.oid = con.connamespace WHERE n.nspname = $1 AND con.conname = $2`,
+            [before, "FK_d728fcf2cd2e2bafbbb0ee87193"],
+          );
+
+        expect(keys).toEqual([{ isValidated: true, onDelete: "c" }]);
+
+        // An attempt goes with its policy.
+        await database.query(
+          `DELETE FROM "${before}"."IncomingCallPolicy" WHERE "_id" = $1`,
+          [policyB],
+        );
+
+        expect(
+          (
+            await database.query(
+              `SELECT "_id" FROM "${before}"."IncomingCallLogItem" ORDER BY "_id"`,
+            )
+          ).map((row: { _id: string }): string => {
+            return row._id;
+          }),
+        ).toEqual(
+          Object.keys(attempts)
+            .filter((attemptId: string): boolean => {
+              return attempts[attemptId] === policyA;
+            })
+            .sort(),
+        );
+      } finally {
+        await runner.query(`RESET search_path`).catch(() => {
+          return undefined;
+        });
+        await runner.release();
+        await database.query(`DROP SCHEMA IF EXISTS "${before}" CASCADE`);
+      }
+    });
+
+    test("the sweep covers every kind with owner tables but the monitor, which the suite runs through its own routes", () => {
+      const kinds: Set<string> = new Set<string>();
+
+      for (const modelType of Entities as Array<{ new (): BaseModel }>) {
+        const match: RegExpExecArray | null = OWNER_TABLE_NAME.exec(
+          new modelType().tableName || "",
+        );
+
+        if (match) {
+          kinds.add(match[1]!);
+        }
+      }
+
+      expect(kinds.size).toBeGreaterThanOrEqual(37);
+      expect(
+        SWEPT_KINDS.map((kind: OwningKind): string => {
+          return kind.name;
+        }).sort(),
+      ).toEqual(
+        Array.from(kinds)
+          .filter((kind: string): boolean => {
+            return kind !== "Monitor";
+          })
+          .sort(),
+      );
     });
 
     test("the suite copied every table it writes", () => {

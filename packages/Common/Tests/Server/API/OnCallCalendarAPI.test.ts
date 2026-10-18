@@ -246,6 +246,7 @@ import {
   PROJECT_FEED_ROUTE,
   ROTATE_LOCK_NAMESPACE,
   ROTATE_LOCK_TIMEOUT_MS,
+  SCHEDULE_FEED_CHANGE_REFUSAL,
   SCHEDULE_FEED_CURRENT_ROUTE,
   SCHEDULE_FEED_FALLBACK_ROUTE,
   SCHEDULE_FEED_PUBLISH_ROUTE,
@@ -309,6 +310,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
 import {
   DEFAULT_FUTURE_DAYS,
@@ -960,9 +962,10 @@ beforeEach(() => {
   scheduleUpdateOneById = jest
     .spyOn(OnCallDutyPolicyScheduleCalendarFeedService, "updateOneById")
     .mockResolvedValue(undefined as never);
+  // The one feed the caller may change, changed: what the update answers.
   scheduleUpdateOneBy = jest
     .spyOn(OnCallDutyPolicyScheduleCalendarFeedService, "updateOneBy")
-    .mockResolvedValue(undefined as never);
+    .mockResolvedValue(1 as never);
   scheduleCreate = jest
     .spyOn(OnCallDutyPolicyScheduleCalendarFeedService, "create")
     .mockResolvedValue(undefined as never);
@@ -4202,6 +4205,119 @@ describe("schedule-feed session routes", () => {
     expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
     expect(scheduleRotate).not.toHaveBeenCalled();
     expect(purgeForSchedule).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The update that stands for the change is narrowed to the feeds the
+   * caller may change - the labels and the owners of the schedule - and the
+   * rotation itself runs as OneUptime. A caller who may read the schedule but
+   * not change its link (a grant limited to labels it does not carry, or
+   * scoped to Owned on a schedule another team owns) changes no feed, and is
+   * refused before the rotation, whatever else would follow.
+   */
+  test("POST /rotate that changes no feed - one the caller may read but not change - is refused before the mint, and nothing is purged", async () => {
+    const row: FeedRowFixture = scheduleRow({
+      projectId,
+      onCallDutyPolicyScheduleId: scheduleId,
+    });
+
+    scheduleFindOneBy.mockImplementation(lookupFrom([row]) as never);
+    scheduleUpdateOneBy.mockResolvedValue(0 as never);
+
+    // The link is still there, and one the caller may read.
+    const unwritten: jest.SpyInstance = jest
+      .spyOn(
+        OnCallDutyPolicyScheduleCalendarFeedService,
+        "getUnwrittenByIdError",
+      )
+      .mockResolvedValue(
+        new NotAuthorizedException(
+          "You may read it but not change it.",
+        ) as never,
+      );
+
+    const result: HttpResult = await postJson(rotatePath());
+
+    expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
+    expect(json(result)).toEqual({ message: SCHEDULE_FEED_CHANGE_REFUSAL });
+    expect(SCHEDULE_FEED_CHANGE_REFUSAL).toBe(
+      "You do not have permission to change the shared link of this on-call schedule.",
+    );
+    expect(scheduleUpdateOneBy).toHaveBeenCalledTimes(1);
+
+    // Asked about the link the update named, with the caller's props.
+    const asked: { id: ObjectID; props: { isRoot?: boolean }; type: string } =
+      unwritten.mock.calls[0]?.[0] as {
+        id: ObjectID;
+        props: { isRoot?: boolean };
+        type: string;
+      };
+
+    expect(asked.id.toString()).toBe(row.id.toString());
+    expect(asked.props.isRoot).toBeUndefined();
+    expect(asked.props).toBe(await propsSpy.mock.results[0]?.value);
+    expect(asked.type).toBe("update");
+
+    expect(scheduleRotate).not.toHaveBeenCalled();
+    expect(purgeForSchedule).not.toHaveBeenCalled();
+    expect(scheduleFindOneById).not.toHaveBeenCalled();
+  });
+
+  test("POST /rotate of a link gone meanwhile - its schedule deleted - is answered as missing, and nothing is minted", async () => {
+    const row: FeedRowFixture = scheduleRow({
+      projectId,
+      onCallDutyPolicyScheduleId: scheduleId,
+    });
+
+    scheduleFindOneBy.mockImplementation(lookupFrom([row]) as never);
+    scheduleUpdateOneBy.mockResolvedValue(0 as never);
+    jest
+      .spyOn(
+        OnCallDutyPolicyScheduleCalendarFeedService,
+        "getUnwrittenByIdError",
+      )
+      .mockResolvedValue(
+        new NotFoundException(
+          "On-Call Schedule Calendar Feed not found.",
+        ) as never,
+      );
+
+    const result: HttpResult = await postJson(rotatePath());
+
+    expect(result.status).toBe(404);
+    expect(json(result)).toEqual({ message: "Calendar feed not found." });
+    expect(scheduleRotate).not.toHaveBeenCalled();
+    expect(purgeForSchedule).not.toHaveBeenCalled();
+  });
+
+  test("POST /publish of a feed published already, that changes no feed, is refused: nothing is created, enabled or purged", async () => {
+    const row: FeedRowFixture = scheduleRow({
+      projectId,
+      onCallDutyPolicyScheduleId: scheduleId,
+      isEnabled: false,
+    });
+
+    scheduleFindOneBy.mockImplementation(lookupFrom([row]) as never);
+    scheduleUpdateOneBy.mockResolvedValue(0 as never);
+    jest
+      .spyOn(
+        OnCallDutyPolicyScheduleCalendarFeedService,
+        "getUnwrittenByIdError",
+      )
+      .mockResolvedValue(
+        new NotAuthorizedException(
+          "You may read it but not change it.",
+        ) as never,
+      );
+
+    const result: HttpResult = await postJson(publishPath());
+
+    expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
+    expect(json(result)).toEqual({ message: SCHEDULE_FEED_CHANGE_REFUSAL });
+    expect(scheduleCreate).not.toHaveBeenCalled();
+    expect(scheduleRotate).not.toHaveBeenCalled();
+    expect(purgeForSchedule).not.toHaveBeenCalled();
+    expect(row.isEnabled).toBe(false);
   });
 
   test("POST /rotate on an unpublished feed is 404 with a message that says to publish first", async () => {

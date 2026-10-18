@@ -261,6 +261,7 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: projectId,
             alertIds: alertIdsToAdd,
             props: createBy.props,
+            labels: createBy.data.labels,
           })
         : null;
 

@@ -8411,6 +8411,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       : await this.onBeforeFind(findBy);
     const onBeforeFind: FindBy<TBaseModel> = { ...onFind.findBy };
 
+    /*
+     * No order by a column the caller reads only on the records they or
+     * their teams own: where the others fall in it says what they hold.
+     * See OwnedScopePermission.getColumnsKeptToOwners.
+     */
+    OwnedScopePermission.checkSortOnColumnsKeptToOwners(
+      this.modelType,
+      onBeforeFind.sort,
+      onBeforeFind.props,
+    );
+
     if (!onBeforeFind.select || Object.keys(onBeforeFind.select).length === 0) {
       onBeforeFind.select = {} as any;
     }
@@ -8544,6 +8555,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       decryptedItems = this.sanitizeFindByItems(decryptedItems, onBeforeFind);
+
+      /*
+       * A column the caller reads only on the records they or their teams
+       * own - a Runner's key - only on those; the others are read without
+       * it. See OwnedScopePermission.getColumnsKeptToOwners.
+       */
+      decryptedItems = await OwnedScopePermission.withholdColumnsKeptToOwners({
+        modelType: this.modelType,
+        rows: decryptedItems,
+        select: onBeforeFind.select,
+        props: onBeforeFind.props,
+      });
 
       /*
        * A record's files only for someone who may see them; anyone else

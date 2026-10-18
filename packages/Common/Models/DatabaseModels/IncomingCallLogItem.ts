@@ -1,10 +1,12 @@
 import IncomingCallLog from "./IncomingCallLog";
+import IncomingCallPolicy from "./IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "./IncomingCallPolicyEscalationRule";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -35,6 +37,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: [Permission.ProjectOwner, Permission.ProjectAdmin],
   update: [Permission.ProjectOwner, Permission.ProjectAdmin],
 })
+/*
+ * Each attempt to reach someone during a call to a policy's number - who was
+ * rung, at which number, for how long - is read with the policy, as the call
+ * it is part of is (IncomingCallLog): a grant scoped to Owned reads the
+ * attempts of the calls to the policies its holder or their teams own. The
+ * policy is the call's, written with each attempt
+ * (IncomingCallLogItemService).
+ */
+@OwnedThrough("incomingCallPolicyId", IncomingCallPolicy)
 @CrudApiEndpoint(new Route("/incoming-call-log-item"))
 @Entity({
   name: "IncomingCallLogItem",
@@ -163,6 +174,66 @@ export default class IncomingCallLogItem extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public incomingCallLogId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectIncomingCallLogItem,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "incomingCallPolicyId",
+    type: TableColumnType.Entity,
+    modelType: IncomingCallPolicy,
+    title: "Incoming Call Policy",
+    description:
+      "The incoming call policy whose number took the call this attempt is part of",
+  })
+  @ManyToOne(
+    () => {
+      return IncomingCallPolicy;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incomingCallPolicyId" })
+  public incomingCallPolicy?: IncomingCallPolicy = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectIncomingCallLogItem,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Incoming Call Policy ID",
+    description:
+      "ID of the incoming call policy whose number took the call this attempt is part of",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incomingCallPolicyId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [Permission.ProjectOwner, Permission.ProjectAdmin],
