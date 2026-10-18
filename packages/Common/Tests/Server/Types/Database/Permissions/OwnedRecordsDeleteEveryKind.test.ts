@@ -36,11 +36,10 @@ import {
  * team, or the user acting, is listed as an owner" (permissions docs). A
  * read, an update and a delete keep to that one rule
  * (BasePermission.addRecordScopeToQuery, asked by
- * DeletePermission.checkDeletePermission for every delete a caller makes):
- * a delete used to be narrowed by labels only, so a member whose monitor
- * permissions were all scoped to Owned listed and changed only the
- * monitors they or their teams own, yet deleted any monitor of the project
- * by its id.
+ * DeletePermission.checkDeletePermission for every delete a caller makes).
+ * A delete was once narrowed by labels only, so the scope that kept a
+ * member's list and changes to the monitors they or their teams own did not
+ * hold for it.
  *
  * This sweeps every kind the Owned scope narrows, and holds the query a
  * delete runs with to the owned records only - for a member holding every
@@ -53,8 +52,8 @@ import {
  *   - the records that belong to one of them (@OwnedThrough: a monitor's
  *     status timeline, an incident's notes), by the record they belong to;
  *   - the records read through one of them by a key column
- *     (@CanAccessIfCanReadOn: a monitor's owner rows, its labels' rules),
- *     by that record.
+ *     (@CanAccessIfCanReadOn: a monitor's owner rows, the resources a status
+ *     page shows), by that record.
  *
  * The records the caller owns are stubbed (the owner tables are not read
  * here); RecordScopeCrudPostgres and OwnedRecordsDeletePostgres run the
@@ -118,9 +117,7 @@ function scopeablePermissions(
 }
 
 // The relation a model is read through (@CanAccessIfCanReadOn), if any.
-function readThroughColumnOf(
-  modelType: ModelType,
-): TableColumnMetadata | null {
+function readThroughColumnOf(modelType: ModelType): TableColumnMetadata | null {
   const model: BaseModel = new modelType();
 
   if (!model.canAccessIfCanReadOn) {

@@ -68,9 +68,8 @@ import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
  * permissions are all scoped to Owned deletes the monitors they or one of
  * their teams own, and no other - by id (POST /monitor/:id/delete-item and
  * DELETE /monitor/:id), by query, or by first making themselves an owner.
- * It once did not: the delete was narrowed by labels only, so such a member
- * listed and changed only their own monitors, yet deleted any monitor of
- * the project whose id they knew.
+ * A delete was once narrowed by labels only, so the scope that kept such a
+ * member's list and changes to their own monitors did not hold for it.
  *
  * Every request goes through the route, the real user middleware - which
  * reads the member's teams and their permission rows (a custom role's
@@ -248,11 +247,9 @@ interface OwningKind {
 
 /*
  * Every kind with owners of its own (OwnerTableRegistry) but the monitor,
- * which the parts above run through its own routes and service.
+ * which the rest of this suite runs through its own routes and service.
  */
-const SWEPT_KINDS: Array<OwningKind> = Array.from(
-  OwnerTableRegistry.entries(),
-)
+const SWEPT_KINDS: Array<OwningKind> = Array.from(OwnerTableRegistry.entries())
   .filter(([name]: [string, OwnerTablePair]): boolean => {
     return name !== "Monitor";
   })
@@ -430,9 +427,7 @@ describePostgres(
           filled[column.name] = 1;
         } else if (column.udt === "bool") {
           filled[column.name] = false;
-        } else if (
-          ["timestamptz", "timestamp", "date"].includes(column.udt)
-        ) {
+        } else if (["timestamptz", "timestamp", "date"].includes(column.udt)) {
           filled[column.name] = new Date();
         } else if (column.udt === "jsonb" || column.udt === "json") {
           filled[column.name] = {};
@@ -454,15 +449,17 @@ describePostgres(
       await insert(table, { ...filled, ...row });
     };
 
-    const rowExists: (table: string, id: ObjectID) => Promise<boolean> =
-      async (table: string, id: ObjectID): Promise<boolean> => {
-        const rows: Array<unknown> = await database.query(
-          `SELECT "_id" FROM "${schema}"."${table}" WHERE "_id" = $1 AND "deletedAt" IS NULL`,
-          [id.toString()],
-        );
+    const rowExists: (table: string, id: ObjectID) => Promise<boolean> = async (
+      table: string,
+      id: ObjectID,
+    ): Promise<boolean> => {
+      const rows: Array<unknown> = await database.query(
+        `SELECT "_id" FROM "${schema}"."${table}" WHERE "_id" = $1 AND "deletedAt" IS NULL`,
+        [id.toString()],
+      );
 
-        return rows.length > 0;
-      };
+      return rows.length > 0;
+    };
 
     // The owner rows of a record in an owner table: their ids and owners.
     const ownerRowsOf: (
@@ -598,66 +595,67 @@ describePostgres(
      * A custom role holding `rows`, given to the member's team (with no
      * rows of its own), its copies written by the one sync that writes them.
      */
-    const giveCustomRole: (rows: Array<PermissionRow>) => Promise<void> =
-      async (rows: Array<PermissionRow>): Promise<void> => {
-        await setGrants([]);
+    const giveCustomRole: (
+      rows: Array<PermissionRow>,
+    ) => Promise<void> = async (rows: Array<PermissionRow>): Promise<void> => {
+      await setGrants([]);
 
-        const roleId: ObjectID = ObjectID.generate();
+      const roleId: ObjectID = ObjectID.generate();
 
-        await insert("CustomRole", {
-          _id: roleId,
-          projectId: projectId,
-          name: `Owned monitors ${roleId.toString()}`,
-          slug: `owned-monitors-${roleId.toString()}`,
-          version: 1,
-        });
+      await insert("CustomRole", {
+        _id: roleId,
+        projectId: projectId,
+        name: `Owned monitors ${roleId.toString()}`,
+        slug: `owned-monitors-${roleId.toString()}`,
+        version: 1,
+      });
 
-        for (const row of rows) {
-          await insert("CustomRolePermission", {
-            _id: ObjectID.generate(),
-            projectId: projectId,
-            customRoleId: roleId,
-            permission: row.permission,
-            scope: row.scope || PermissionScope.All,
-            version: 1,
-          });
-        }
-
-        await insert("TeamCustomRole", {
+      for (const row of rows) {
+        await insert("CustomRolePermission", {
           _id: ObjectID.generate(),
           projectId: projectId,
-          teamId: memberTeamId,
           customRoleId: roleId,
+          permission: row.permission,
+          scope: row.scope || PermissionScope.All,
           version: 1,
         });
+      }
 
-        await CustomRoleSync.syncRoles({
-          projectId: projectId,
-          customRoleIds: [roleId],
-        });
+      await insert("TeamCustomRole", {
+        _id: ObjectID.generate(),
+        projectId: projectId,
+        teamId: memberTeamId,
+        customRoleId: roleId,
+        version: 1,
+      });
 
-        // The team holds the role's permissions as its copies, and only them.
-        const copies: Array<Dictionary<string>> = await database.query(
-          `SELECT "permission", "scope", "teamCustomRoleId" IS NOT NULL AS "isCopy" FROM "${schema}"."TeamPermission" WHERE "teamId" = $1 ORDER BY "permission"`,
-          [memberTeamId.toString()],
-        );
+      await CustomRoleSync.syncRoles({
+        projectId: projectId,
+        customRoleIds: [roleId],
+      });
 
-        expect(copies).toEqual(
-          rows
-            .map((row: PermissionRow): Dictionary<unknown> => {
-              return {
-                permission: row.permission,
-                scope: row.scope || PermissionScope.All,
-                isCopy: true,
-              };
-            })
-            .sort((a: Dictionary<unknown>, b: Dictionary<unknown>): number => {
-              return String(a["permission"]).localeCompare(
-                String(b["permission"]),
-              );
-            }),
-        );
-      };
+      // The team holds the role's permissions as its copies, and only them.
+      const copies: Array<Dictionary<string>> = await database.query(
+        `SELECT "permission", "scope", "teamCustomRoleId" IS NOT NULL AS "isCopy" FROM "${schema}"."TeamPermission" WHERE "teamId" = $1 ORDER BY "permission"`,
+        [memberTeamId.toString()],
+      );
+
+      expect(copies).toEqual(
+        rows
+          .map((row: PermissionRow): Dictionary<unknown> => {
+            return {
+              permission: row.permission,
+              scope: row.scope || PermissionScope.All,
+              isCopy: true,
+            };
+          })
+          .sort((a: Dictionary<unknown>, b: Dictionary<unknown>): number => {
+            return String(a["permission"]).localeCompare(
+              String(b["permission"]),
+            );
+          }),
+      );
+    };
 
     // A new API key of the project with these permission rows.
     const createApiKey: (
@@ -920,8 +918,7 @@ describePostgres(
       database = new DataSource({
         type: "postgres",
         host:
-          process.env["OWNED_RECORDS_DELETE_TEST_DATABASE_HOST"] ||
-          "localhost",
+          process.env["OWNED_RECORDS_DELETE_TEST_DATABASE_HOST"] || "localhost",
         port: Number(
           process.env["OWNED_RECORDS_DELETE_TEST_DATABASE_PORT"] || "5400",
         ),
@@ -950,8 +947,8 @@ describePostgres(
 
       for (const kind of SWEPT_KINDS) {
         const metadata: EntityMetadata = database.getMetadata(kind.modelType);
-        const accessControlColumn: string | null = new kind.modelType()
-          .getAccessControlColumn();
+        const accessControlColumn: string | null =
+          new kind.modelType().getAccessControlColumn();
         const labels: RelationMetadata | undefined =
           metadata.manyToManyRelations.find(
             (relation: RelationMetadata): boolean => {
@@ -1237,8 +1234,11 @@ describePostgres(
                 undefined,
               ]);
               expectDeleted(outcome);
-              expect([route, owner, await rowExists("Monitor", monitorId)])
-                .toEqual([route, owner, false]);
+              expect([
+                route,
+                owner,
+                await rowExists("Monitor", monitorId),
+              ]).toEqual([route, owner, false]);
             }
           }
         });
@@ -1272,8 +1272,11 @@ describePostgres(
                 expect.any(NotFoundException),
               ]);
               expectMissing(outcome, "Monitor");
-              expect([route, owner, await rowExists("Monitor", monitorId)])
-                .toEqual([route, owner, true]);
+              expect([
+                route,
+                owner,
+                await rowExists("Monitor", monitorId),
+              ]).toEqual([route, owner, true]);
               expect([
                 ...(await ownerRowsOf(
                   "MonitorOwnerUser",
@@ -1313,9 +1316,7 @@ describePostgres(
           });
 
           expect(listed.error).toBeUndefined();
-          expect(listed.ids).toEqual(
-            [mine.toString(), ours.toString()].sort(),
-          );
+          expect(listed.ids).toEqual([mine.toString(), ours.toString()].sort());
         });
 
         test("a delete by query, as the member, removes only the monitors they or their team own", async () => {
