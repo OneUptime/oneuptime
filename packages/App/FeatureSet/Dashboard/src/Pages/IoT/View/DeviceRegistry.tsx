@@ -128,6 +128,12 @@ const IoTFleetDeviceRegistry: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: true,
+            /*
+             * A device is registered to connect, so it starts on (the
+             * column's default): the switch that revokes it is on its edit
+             * form only.
+             */
+            doNotShowWhenCreating: true,
           },
         ]}
         filters={[]}

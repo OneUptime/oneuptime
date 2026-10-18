@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getAllIoTAlertTemplates,
   IoTAlertTemplate,
@@ -14,6 +14,8 @@ import { IOT_TEMPLATE_CATEGORIES } from "../AlertTemplatePicker/AlertTemplateCat
 export interface ComponentProps {
   selectedTemplateId?: string | undefined;
   onTemplateSelected: (template: IoTAlertTemplate) => void;
+  // What the picked template still asks for (its Time Range).
+  children?: ReactNode | undefined;
 }
 
 const IoTTemplatePicker: FunctionComponent<ComponentProps> = (
@@ -25,7 +27,9 @@ const IoTTemplatePicker: FunctionComponent<ComponentProps> = (
       categories={IOT_TEMPLATE_CATEGORIES}
       selectedTemplateId={props.selectedTemplateId}
       onTemplateSelected={props.onTemplateSelected}
-    />
+    >
+      {props.children}
+    </AlertTemplatePicker>
   );
 };
 

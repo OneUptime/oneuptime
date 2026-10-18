@@ -29,7 +29,6 @@ import HostMetricPicker from "./HostMetricPicker";
 import {
   HostAlertTemplate,
   buildHostMonitorConfig,
-  getHostAlertTemplateById,
 } from "Common/Types/Monitor/HostAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { HostMetricDefinition } from "Common/Types/Monitor/HostMetricCatalog";
@@ -142,6 +141,8 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: HostAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const hostIdentifier: string = monitorStepHostMonitor.hostIdentifier;
 
@@ -180,6 +181,8 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: HostMetricDefinition,
   ): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const hostIdentifier: string = monitorStepHostMonitor.hostIdentifier;
@@ -217,10 +220,6 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const selectedTemplate: HostAlertTemplate | undefined = selectedTemplateId
-    ? getHostAlertTemplateById(selectedTemplateId)
-    : undefined;
-
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -229,11 +228,8 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: HostAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplate && (
+        >
           <AlertTemplateConfiguration
-            template={selectedTemplate}
             rollingTime={monitorStepHostMonitor.rollingTime}
             onRollingTimeChange={(value: RollingTime) => {
               props.onChange({
@@ -242,7 +238,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-        )}
+        </HostTemplatePicker>
       </div>
     );
   };

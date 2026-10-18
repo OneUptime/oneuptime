@@ -31,7 +31,6 @@ import IoTMetricPicker from "./IoTMetricPicker";
 import {
   IoTAlertTemplate,
   buildIoTMonitorConfig,
-  getIoTAlertTemplateById,
 } from "Common/Types/Monitor/IotAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { IoTMetricDefinition } from "Common/Types/Monitor/IotMetricCatalog";
@@ -155,6 +154,8 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: IoTAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const fleetIdentifier: string = monitorStepIoTMonitor.fleetIdentifier;
 
@@ -193,6 +194,8 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: IoTMetricDefinition,
   ): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const fleetIdentifier: string = monitorStepIoTMonitor.fleetIdentifier;
@@ -330,10 +333,6 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const selectedTemplate: IoTAlertTemplate | undefined = selectedTemplateId
-    ? getIoTAlertTemplateById(selectedTemplateId)
-    : undefined;
-
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -342,11 +341,8 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: IoTAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplate && (
+        >
           <AlertTemplateConfiguration
-            template={selectedTemplate}
             rollingTime={monitorStepIoTMonitor.rollingTime}
             onRollingTimeChange={(value: RollingTime) => {
               props.onChange({
@@ -355,7 +351,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-        )}
+        </IoTTemplatePicker>
       </div>
     );
   };

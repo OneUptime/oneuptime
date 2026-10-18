@@ -17086,7 +17086,6 @@
   "Temperature": "Temperature",
   "Temperature sensors across Building A": "Temperature sensors across Building A",
   "Template": "Template",
-  "Template Configuration": "範本設定",
   "Template Preview": "Template Preview",
   "Template Synced": "Template Synced",
   "Template Synced At": "Template Synced At",
@@ -30660,5 +30659,7 @@
   "Follow the steps below. This list fills in on its own once data arrives.": "依照下方步驟操作。資料送達後，此清單會自動填入。",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "此專案中受監測的主機。主機的 OpenTelemetry Collector 傳送資料後，主機就會顯示在這裡。",
   "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "此專案中受監測的無伺服器函式。函式的 OpenTelemetry 資料送達後，函式就會顯示在這裡。",
-  "When off, the device cannot connect with these credentials and raises no offline alerts.": "關閉後，裝置無法使用這些憑證連線，也不會產生離線警示。"
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "關閉後，裝置無法使用這些憑證連線，也不會產生離線警示。",
+  "No cloud environments yet.": "還沒有雲端環境。",
+  "Alert Template": "警示範本"
 }

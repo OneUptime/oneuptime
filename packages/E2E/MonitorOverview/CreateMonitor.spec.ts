@@ -604,8 +604,10 @@ test.describe("Create Monitor, start to finish", () => {
  * description - up to 509 characters of metric names and formulas,
  * seventeen cards one under the other. Now each template is one compact
  * row (name, severity, one line saying when it fires), two to a line on a
- * wide screen, and the picked template's full description is under
- * Template Configuration, beside its Time Range.
+ * wide screen. Once one is picked the list folds into it, the way the type
+ * picker on step one does: its row with Change, its full description
+ * behind Show more, and its Time Range right under it - where the list's
+ * seventeen rows used to put them a screen away from the row clicked.
  */
 test.describe("Quick Setup's alert templates", () => {
   const KUBERNETES_TEMPLATE_COUNT: number = 17;
@@ -691,7 +693,7 @@ test.describe("Quick Setup's alert templates", () => {
     await screenshot(page, "create-monitor-alert-templates");
   });
 
-  test("a picked template explains itself, keeps its Time Range, and is what Create Monitor sends", async ({
+  test("a picked template folds the list: the template, Change, its Time Range, and the criteria it made, all in one screen", async ({
     page,
   }: {
     page: Page;
@@ -710,39 +712,48 @@ test.describe("Quick Setup's alert templates", () => {
       })
       .click();
 
-    const etcd: Locator = page.getByTestId("alert-template-k8s-etcd-no-leader");
-    await etcd.click();
-    await expect(etcd).toHaveAttribute("aria-checked", "true");
+    // A row from the middle of the list: eight rows are under it.
+    await page.getByTestId("alert-template-k8s-etcd-no-leader").click();
 
-    const configuration: Locator = page.getByTestId(
-      "alert-template-configuration",
+    // The list folded into the template.
+    await expect(
+      page.getByRole("radiogroup", { name: "Alert templates" }),
+    ).toHaveCount(0);
+    const picked: Locator = page.getByTestId("alert-template-picked");
+    await expect(picked).toBeVisible();
+    await expect(picked.getByTestId("alert-template-picked-name")).toHaveText(
+      "etcd No Leader",
     );
-    await expect(configuration).toBeVisible();
     await expect(
-      configuration.getByRole("heading", { name: "Template Configuration" }),
-    ).toBeVisible();
+      picked.getByTestId("alert-template-picked-summary"),
+    ).toHaveText(
+      "etcd has no leader. Needs control plane metrics, so not on EKS, GKE or AKS.",
+    );
+    await expect(page.getByTestId("alert-template-change")).toBeFocused();
+
+    // Its full description is one press away, not on screen by default.
+    await expect(page.getByText(ETCD_DESCRIPTION_START)).toHaveCount(0);
+    await picked.getByRole("button", { name: "Show more" }).click();
     await expect(
-      configuration.getByTestId("alert-template-configuration-name"),
-    ).toHaveText("etcd No Leader");
-    await expect(
-      configuration.getByTestId("alert-template-description"),
+      picked.getByTestId("alert-template-description"),
     ).toContainText(ETCD_DESCRIPTION_START);
-    await expect(configuration.getByText("Time Range")).toBeVisible();
 
-    // The panel sits right under the list, not a screen away.
-    const lastRow: { y: number; height: number } = await boxOf(
-      page
-        .getByRole("radiogroup", { name: "Alert templates" })
-        .getByRole("radio")
-        .last(),
-    );
-    const panel: { y: number } = await boxOf(configuration);
-    expect(panel.y - (lastRow.y + lastRow.height)).toBeLessThan(40);
-
-    // The template replaced the criteria with its own.
+    // Its Time Range right under it, and the criteria it made right after.
+    const timeRange: Locator = page.getByTestId("alert-template-configuration");
+    await expect(timeRange.getByText("Time Range")).toBeVisible();
     await expect(
-      page.getByTestId("monitor-criteria-header").first(),
-    ).toContainText("etcd No Leader");
+      timeRange.getByText("How far back each check looks."),
+    ).toBeVisible();
+    const pickedBox: { y: number; height: number } = await boxOf(picked);
+    const timeRangeBox: { y: number; height: number } = await boxOf(timeRange);
+    expect(timeRangeBox.y - (pickedBox.y + pickedBox.height)).toBeLessThan(40);
+
+    const criteria: Locator = page
+      .getByTestId("monitor-criteria-header")
+      .first();
+    await expect(criteria).toContainText("etcd No Leader");
+    // Everything a pick changed fits one screen under the cluster picker.
+    expect((await boxOf(criteria)).y - pickedBox.y).toBeLessThan(600);
 
     await screenshot(page, "create-monitor-alert-template-picked");
 
@@ -761,7 +772,71 @@ test.describe("Quick Setup's alert templates", () => {
     expect(steps).toContain("etcd No Leader");
   });
 
-  test("fits a phone: one row a line, nothing wider than the screen", async ({
+  test("Change opens the list again on the picked row; picking it again, or Escape, keeps the criteria as edited", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(150000);
+
+    await openKubernetesQuickSetup(page);
+
+    await page.getByTestId("alert-template-k8s-high-cpu").click();
+    const criteriaName: Locator = page
+      .getByTestId("monitor-criteria-header")
+      .first();
+    await expect(criteriaName).toContainText("High CPU");
+
+    // Change what the template made: its incident's title.
+    await criteriaName.locator("button[aria-expanded]").first().click();
+    const incidentTitle: Locator = page
+      .getByTestId("monitor-criteria-body")
+      .first()
+      .getByPlaceholder("e.g., {{monitorName}} is down")
+      .first();
+    await expect(incidentTitle).toHaveValue(/High CPU/);
+    await incidentTitle.fill("CPU is pegged on a node");
+
+    await page.getByTestId("alert-template-change").click();
+
+    // The list, on the picked row: checked, focused, scrolled to.
+    const highCpu: Locator = page.getByTestId("alert-template-k8s-high-cpu");
+    await expect(highCpu).toHaveAttribute("aria-checked", "true");
+    await expect(highCpu).toBeFocused();
+    await expect(highCpu).toBeInViewport();
+    await expect(page.getByTestId("alert-template-configuration")).toHaveCount(
+      0,
+    );
+
+    // The same template again: folded, and the template is not applied anew.
+    await highCpu.click();
+    await expect(page.getByTestId("alert-template-picked")).toHaveAttribute(
+      "data-alert-template-id",
+      "k8s-high-cpu",
+    );
+    await expect(incidentTitle).toHaveValue("CPU is pegged on a node");
+
+    // Escape after Change keeps it too.
+    await page.getByTestId("alert-template-change").click();
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("alert-template-picked")).toHaveAttribute(
+      "data-alert-template-id",
+      "k8s-high-cpu",
+    );
+    await expect(page.getByTestId("alert-template-change")).toBeFocused();
+    await expect(incidentTitle).toHaveValue("CPU is pegged on a node");
+
+    // Another template is a new pick: folded into it, its criteria in.
+    await page.getByTestId("alert-template-change").click();
+    await page.getByTestId("alert-template-k8s-node-not-ready").click();
+    await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
+      "Node Not Ready",
+    );
+    await expect(criteriaName).toContainText("Node NotReady");
+  });
+
+  test("fits a phone: one row a line, and the folded template uses the screen's width", async ({
     page,
   }: {
     page: Page;
@@ -787,15 +862,37 @@ test.describe("Quick Setup's alert templates", () => {
     }
 
     await rows.nth(2).click();
-    const configuration: { x: number; width: number } = await boxOf(
+
+    const picked: { x: number; y: number; width: number; height: number } =
+      await boxOf(page.getByTestId("alert-template-picked"));
+    const summaryLine: { width: number } = await boxOf(
+      page.getByTestId("alert-template-picked-summary"),
+    );
+    const change: { x: number; y: number } = await boxOf(
+      page.getByTestId("alert-template-change"),
+    );
+    const timeRange: { x: number; width: number } = await boxOf(
       page.getByTestId("alert-template-configuration"),
     );
-    expect(configuration.x + configuration.width).toBeLessThanOrEqual(390);
+
+    expect(picked.x + picked.width).toBeLessThanOrEqual(390);
+    expect(timeRange.x + timeRange.width).toBeLessThanOrEqual(390);
+    // On a phone Change goes under the words, which keep the frame's width.
+    expect(change.y).toBeGreaterThan(picked.y + 40);
+    expect(summaryLine.width).toBeGreaterThan(picked.width - 40);
+    expect(
+      await page.evaluate((): boolean => {
+        return (
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth + 1
+        );
+      }),
+    ).toBe(false);
 
     await screenshot(page, "create-monitor-alert-templates-phone");
   });
 
-  test("dark mode: rows, the picked row and the panel sit on dark surfaces", async ({
+  test("dark mode: the rows, the folded template and its Change sit on dark surfaces", async ({
     page,
   }: {
     page: Page;
@@ -814,8 +911,8 @@ test.describe("Quick Setup's alert templates", () => {
     await row.click();
 
     for (const element of [
-      row,
-      page.getByTestId("alert-template-configuration"),
+      page.getByTestId("alert-template-picked"),
+      page.getByTestId("alert-template-change"),
     ]) {
       expect(
         await element.evaluate((node: Element): string => {
@@ -823,6 +920,15 @@ test.describe("Quick Setup's alert templates", () => {
         }),
       ).not.toBe(WHITE_RGB);
     }
+
+    // The name reads light on the dark frame.
+    expect(
+      await page
+        .getByTestId("alert-template-picked-name")
+        .evaluate((node: Element): string => {
+          return getComputedStyle(node).color;
+        }),
+    ).not.toBe("rgb(17, 24, 39)");
 
     await screenshot(page, "create-monitor-alert-templates-dark");
   });

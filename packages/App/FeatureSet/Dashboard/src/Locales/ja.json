@@ -17086,7 +17086,6 @@
   "Temperature": "温度",
   "Temperature sensors across Building A": "A 棟全体の温度センサー",
   "Template": "テンプレート",
-  "Template Configuration": "テンプレートの設定",
   "Template Preview": "テンプレートのプレビュー",
   "Template Synced": "テンプレートを同期しました",
   "Template Synced At": "テンプレートの同期日時",
@@ -30660,5 +30659,7 @@
   "Follow the steps below. This list fills in on its own once data arrives.": "下の手順に従ってください。データが届くと、この一覧に自動で表示されます。",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "このプロジェクトで監視しているホストです。OpenTelemetry Collector がデータを送り始めると、ホストがここに表示されます。",
   "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "このプロジェクトで監視しているサーバーレス関数です。OpenTelemetry のデータが届くと、関数がここに表示されます。",
-  "When off, the device cannot connect with these credentials and raises no offline alerts.": "オフにすると、デバイスはこの認証情報で接続できず、オフラインアラートも発生しません。"
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "オフにすると、デバイスはこの認証情報で接続できず、オフラインアラートも発生しません。",
+  "No cloud environments yet.": "クラウド環境はまだありません。",
+  "Alert Template": "アラートテンプレート"
 }

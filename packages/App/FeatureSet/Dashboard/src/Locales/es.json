@@ -17086,7 +17086,6 @@
   "Temperature": "Temperatura",
   "Temperature sensors across Building A": "Sensores de temperatura de todo el edificio A",
   "Template": "Plantilla",
-  "Template Configuration": "Configuración de la plantilla",
   "Template Preview": "Vista previa de la plantilla",
   "Template Synced": "Plantilla sincronizada",
   "Template Synced At": "Plantilla sincronizada el",
@@ -30660,5 +30659,7 @@
   "Follow the steps below. This list fills in on its own once data arrives.": "Sigue los pasos de abajo. Esta lista se llena sola en cuanto llegan los datos.",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "Hosts supervisados en este proyecto. Un host aparece aquí en cuanto su OpenTelemetry Collector envía datos.",
   "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Funciones serverless supervisadas en este proyecto. Una función aparece aquí en cuanto llegan sus datos de OpenTelemetry.",
-  "When off, the device cannot connect with these credentials and raises no offline alerts.": "Si lo desactivas, el dispositivo no puede conectarse con estas credenciales y no genera alertas sin conexión."
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "Si lo desactivas, el dispositivo no puede conectarse con estas credenciales y no genera alertas sin conexión.",
+  "No cloud environments yet.": "Aún no hay entornos en la nube.",
+  "Alert Template": "Plantilla de alerta"
 }

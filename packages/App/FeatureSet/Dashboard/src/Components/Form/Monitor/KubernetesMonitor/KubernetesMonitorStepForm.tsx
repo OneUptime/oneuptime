@@ -222,6 +222,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: KubernetesAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     /*
      * Build the kubernetes monitor config from the template's getMonitorStep
@@ -271,6 +273,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: KubernetesMetricDefinition,
   ) => void = (metric: KubernetesMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
     setCustomResourceScope(metric.defaultResourceScope);
 
@@ -434,11 +438,6 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const selectedTemplate: KubernetesAlertTemplate | undefined =
-    selectedTemplateId
-      ? getKubernetesAlertTemplateById(selectedTemplateId)
-      : undefined;
-
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -447,11 +446,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: KubernetesAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplate && (
+        >
           <AlertTemplateConfiguration
-            template={selectedTemplate}
             rollingTime={monitorStepKubernetesMonitor.rollingTime}
             onRollingTimeChange={(value: RollingTime) => {
               props.onChange({
@@ -460,7 +456,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-        )}
+        </KubernetesTemplatePicker>
       </div>
     );
   };

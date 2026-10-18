@@ -5,7 +5,9 @@ import path from "path";
 /*
  * The Device Registry's Enabled switch, in plain words: turning it off
  * stops the device connecting with its credentials, and stops its offline
- * alerts. It used to say "pause silent-death detection". Common's
+ * alerts. It used to say "pause silent-death detection". A device is
+ * registered to connect, so the switch is on its edit form only: the
+ * register form asks for the Device ID and a name. Common's
  * IoTDeviceRegistryPage renders the page's form.
  */
 
@@ -45,6 +47,16 @@ describe("the Device Registry's Enabled switch", () => {
   test("says what turning it off does, without jargon", () => {
     expect(registry).toContain(`"${ENABLED_DESCRIPTION}"`);
     expect(registry).not.toContain("silent-death");
+  });
+
+  test("is on the edit form only: a device is registered on", () => {
+    const at: number = registry.indexOf('title: "Enabled"');
+    const fieldEnd: number = registry.indexOf("},", at);
+
+    expect(at).toBeGreaterThan(-1);
+    expect(registry.slice(at, fieldEnd)).toContain(
+      "doNotShowWhenCreating: true",
+    );
   });
 
   test("the sentence is in English and translated in all sixteen other languages", () => {

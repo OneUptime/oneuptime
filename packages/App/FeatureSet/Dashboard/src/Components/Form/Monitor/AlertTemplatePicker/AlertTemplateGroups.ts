@@ -8,7 +8,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * read it.
  *
  * Each template says in one line when it fires (`summary`); how it is
- * computed (`description`) is shown once it is picked.
+ * computed (`description`) waits behind Show more once it is picked.
  */
 
 export interface AlertTemplatePickerTemplate {
@@ -44,11 +44,26 @@ export const ALERT_TEMPLATE_PICKER_INTRO: string = translationKey(
 export const ALERT_TEMPLATE_PICKER_ARIA_LABEL: string =
   translationKey("Alert templates");
 
-export const ALERT_TEMPLATE_CONFIGURATION_TITLE: string = translationKey(
-  "Template Configuration",
-);
+/*
+ * Over the picked template, once the list has folded into it, in Title
+ * Case like the card's other field labels. Not the bare "Template", which
+ * several languages show in English on other pages.
+ */
+export const ALERT_TEMPLATE_PICKED_LABEL: string =
+  translationKey("Alert Template");
+
+// Unfolds the list again, to pick another template.
+export const ALERT_TEMPLATE_CHANGE: string = translationKey("Change");
+
+// The picked template's full description, behind the same words as on a resource's Recommendations.
+export const ALERT_TEMPLATE_SHOW_MORE: string = translationKey("Show more");
+export const ALERT_TEMPLATE_SHOW_LESS: string = translationKey("Show less");
 
 export const ALERT_TEMPLATE_TIME_RANGE: string = translationKey("Time Range");
+
+export const ALERT_TEMPLATE_TIME_RANGE_DESCRIPTION: string = translationKey(
+  "How far back each check looks.",
+);
 
 /*
  * The one line under each infrastructure monitor type's configuration card
@@ -199,4 +214,47 @@ export function isCriticalAlertTemplate(
   template: Pick<AlertTemplatePickerTemplate, "severity">,
 ): boolean {
   return template.severity === "Critical";
+}
+
+/*
+ * The picked template, when the list offers it: the list folds into it. A
+ * pick the list does not offer (a storage array whose platform changed
+ * since) has nothing to fold into, so the list stays open.
+ */
+export function getPickedAlertTemplate<T extends AlertTemplatePickerTemplate>(
+  templates: Array<T>,
+  selectedTemplateId: string | undefined,
+): T | undefined {
+  if (!selectedTemplateId) {
+    return undefined;
+  }
+
+  return templates.find((template: T): boolean => {
+    return template.id === selectedTemplateId;
+  });
+}
+
+/*
+ * Whether a row's pick is a new one, to hand to the form. Picking the
+ * template already picked (after Change, to keep it) only folds the list:
+ * handing it on would rebuild the criteria from the template and throw away
+ * whatever was changed in them since.
+ */
+export function isNewAlertTemplatePick(data: {
+  templateId: string;
+  selectedTemplateId: string | undefined;
+}): boolean {
+  return data.templateId !== data.selectedTemplateId;
+}
+
+/*
+ * Whether the picked template has more to say than its one-line summary:
+ * then its full description waits behind Show more.
+ */
+export function hasAlertTemplateDetails(
+  template: Pick<AlertTemplatePickerTemplate, "summary" | "description">,
+): boolean {
+  const description: string = template.description.trim();
+
+  return description.length > 0 && description !== template.summary.trim();
 }

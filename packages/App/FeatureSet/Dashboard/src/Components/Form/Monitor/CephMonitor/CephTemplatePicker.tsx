@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getAllCephAlertTemplates,
   CephAlertTemplate,
@@ -14,6 +14,8 @@ import { CEPH_TEMPLATE_CATEGORIES } from "../AlertTemplatePicker/AlertTemplateCa
 export interface ComponentProps {
   selectedTemplateId?: string | undefined;
   onTemplateSelected: (template: CephAlertTemplate) => void;
+  // What the picked template still asks for (its Time Range).
+  children?: ReactNode | undefined;
 }
 
 const CephTemplatePicker: FunctionComponent<ComponentProps> = (
@@ -25,7 +27,9 @@ const CephTemplatePicker: FunctionComponent<ComponentProps> = (
       categories={CEPH_TEMPLATE_CATEGORIES}
       selectedTemplateId={props.selectedTemplateId}
       onTemplateSelected={props.onTemplateSelected}
-    />
+    >
+      {props.children}
+    </AlertTemplatePicker>
   );
 };
 

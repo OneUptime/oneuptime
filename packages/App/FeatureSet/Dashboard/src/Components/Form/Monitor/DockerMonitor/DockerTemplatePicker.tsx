@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getAllDockerAlertTemplates,
   DockerAlertTemplate,
@@ -13,6 +13,8 @@ import AlertTemplatePicker from "../AlertTemplatePicker/AlertTemplatePicker";
 export interface ComponentProps {
   selectedTemplateId?: string | undefined;
   onTemplateSelected: (template: DockerAlertTemplate) => void;
+  // What the picked template still asks for (its Time Range).
+  children?: ReactNode | undefined;
 }
 
 const DockerTemplatePicker: FunctionComponent<ComponentProps> = (
@@ -23,7 +25,9 @@ const DockerTemplatePicker: FunctionComponent<ComponentProps> = (
       templates={getAllDockerAlertTemplates()}
       selectedTemplateId={props.selectedTemplateId}
       onTemplateSelected={props.onTemplateSelected}
-    />
+    >
+      {props.children}
+    </AlertTemplatePicker>
   );
 };
 

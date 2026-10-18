@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getAllDockerSwarmAlertTemplates,
   DockerSwarmAlertTemplate,
@@ -14,6 +14,8 @@ import { DOCKER_SWARM_TEMPLATE_CATEGORIES } from "../AlertTemplatePicker/AlertTe
 export interface ComponentProps {
   selectedTemplateId?: string | undefined;
   onTemplateSelected: (template: DockerSwarmAlertTemplate) => void;
+  // What the picked template still asks for (its Time Range).
+  children?: ReactNode | undefined;
 }
 
 const DockerSwarmTemplatePicker: FunctionComponent<ComponentProps> = (
@@ -25,7 +27,9 @@ const DockerSwarmTemplatePicker: FunctionComponent<ComponentProps> = (
       categories={DOCKER_SWARM_TEMPLATE_CATEGORIES}
       selectedTemplateId={props.selectedTemplateId}
       onTemplateSelected={props.onTemplateSelected}
-    />
+    >
+      {props.children}
+    </AlertTemplatePicker>
   );
 };
 

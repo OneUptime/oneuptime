@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getAllPodmanAlertTemplates,
   PodmanAlertTemplate,
@@ -13,6 +13,8 @@ import AlertTemplatePicker from "../AlertTemplatePicker/AlertTemplatePicker";
 export interface ComponentProps {
   selectedTemplateId?: string | undefined;
   onTemplateSelected: (template: PodmanAlertTemplate) => void;
+  // What the picked template still asks for (its Time Range).
+  children?: ReactNode | undefined;
 }
 
 const PodmanTemplatePicker: FunctionComponent<ComponentProps> = (
@@ -23,7 +25,9 @@ const PodmanTemplatePicker: FunctionComponent<ComponentProps> = (
       templates={getAllPodmanAlertTemplates()}
       selectedTemplateId={props.selectedTemplateId}
       onTemplateSelected={props.onTemplateSelected}
-    />
+    >
+      {props.children}
+    </AlertTemplatePicker>
   );
 };
 

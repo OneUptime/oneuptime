@@ -30,7 +30,6 @@ import DockerSwarmMetricPicker from "./DockerSwarmMetricPicker";
 import {
   DockerSwarmAlertTemplate,
   buildDockerSwarmMonitorConfig,
-  getDockerSwarmAlertTemplateById,
 } from "Common/Types/Monitor/DockerSwarmAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { DockerSwarmMetricDefinition } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
@@ -147,6 +146,8 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: DockerSwarmAlertTemplate,
   ) => void = (template: DockerSwarmAlertTemplate): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const clusterIdentifier: string =
       monitorStepDockerSwarmMonitor.clusterIdentifier;
@@ -186,6 +187,8 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: DockerSwarmMetricDefinition,
   ) => void = (metric: DockerSwarmMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const clusterIdentifier: string =
@@ -346,11 +349,6 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const selectedTemplate: DockerSwarmAlertTemplate | undefined =
-    selectedTemplateId
-      ? getDockerSwarmAlertTemplateById(selectedTemplateId)
-      : undefined;
-
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -359,11 +357,8 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: DockerSwarmAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplate && (
+        >
           <AlertTemplateConfiguration
-            template={selectedTemplate}
             rollingTime={monitorStepDockerSwarmMonitor.rollingTime}
             onRollingTimeChange={(value: RollingTime) => {
               props.onChange({
@@ -372,7 +367,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-        )}
+        </DockerSwarmTemplatePicker>
       </div>
     );
   };

@@ -2,9 +2,14 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
-  ALERT_TEMPLATE_CONFIGURATION_TITLE,
+  ALERT_TEMPLATE_CHANGE,
+  ALERT_TEMPLATE_PICKED_LABEL,
   ALERT_TEMPLATE_PICKER_ARIA_LABEL,
   ALERT_TEMPLATE_PICKER_INTRO,
+  ALERT_TEMPLATE_SHOW_LESS,
+  ALERT_TEMPLATE_SHOW_MORE,
+  ALERT_TEMPLATE_TIME_RANGE,
+  ALERT_TEMPLATE_TIME_RANGE_DESCRIPTION,
   AlertTemplateCategory,
   AlertTemplateGroup,
   AlertTemplatePickerTemplate,
@@ -12,8 +17,11 @@ import {
   getAlertTemplateIdAfterKey,
   getAlertTemplateTabStopId,
   getAlertTemplatesInDrawnOrder,
+  getPickedAlertTemplate,
   groupAlertTemplates,
+  hasAlertTemplateDetails,
   isCriticalAlertTemplate,
+  isNewAlertTemplatePick,
 } from "../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 import {
   ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE,
@@ -31,8 +39,11 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   compact radio row per template with its name, severity and one-line
  *   summary. The ten copies of a card list that carried each template's
  *   whole description, in a blue that is not the product's, are gone.
- * - Once a template is picked, one shared Template Configuration panel
- *   explains it in full and keeps its Time Range editable.
+ * - Once a template is picked, the list folds into it: its row with Change,
+ *   its full description behind Show more, and its Time Range under it,
+ *   handed in by the step form as the picker's children.
+ * - A template pick and a Custom Metric pick each clear the other tab's
+ *   pick: both replace the monitor's query.
  * - Each type's configuration card says in one line what its three tabs are
  *   for, instead of ten sentences listing them.
  * - The words it added are in every language, and the ones it retired are
@@ -54,6 +65,14 @@ function read(relative: string): string {
 
 // Runs of whitespace, so a source reads the same however prettier wraps it.
 const WHITESPACE: RegExp = /\s+/g;
+
+// A template pick, then (after at most a comment line) the metric pick cleared.
+const TEMPLATE_PICK_CLEARS_METRIC: RegExp =
+  /setSelectedTemplateId\(template\.id\);\s*(?:\/\/[^\n]*\s*)?setSelectedMetricId\(undefined\);/;
+
+// A metric pick, then (after at most a comment line) the template pick cleared.
+const METRIC_PICK_CLEARS_TEMPLATE: RegExp =
+  /setSelectedMetricId\(metric\.id\);\s*(?:\/\/[^\n]*\s*)?setSelectedTemplateId\(undefined\);/;
 
 function flat(text: string): string {
   return text.replace(WHITESPACE, " ");
@@ -138,6 +157,9 @@ describe("one shared template picker for every infrastructure type", () => {
       expect(picker).toContain("<AlertTemplatePicker<");
       expect(picker).toContain("templates={");
       expect(picker).toContain("onTemplateSelected={props.onTemplateSelected}");
+      // What the picked template asks for goes through to the fold.
+      expect(picker).toContain("children?: ReactNode | undefined;");
+      expect(picker).toContain("{props.children} </AlertTemplatePicker>");
 
       // No hand-drawn cards, category blurbs or intro of its own.
       expect(picker).not.toContain('role="button"');
@@ -148,18 +170,39 @@ describe("one shared template picker for every infrastructure type", () => {
   );
 
   test.each(TYPES)(
-    "$name's step form explains a picked template in the shared panel",
+    "$name's step form hands the picker its Time Range, to sit under the picked template",
     (type: InfrastructureType) => {
       const form: string = flat(read(`${FORMS}/${type.stepForm}`));
+      const pickerName: string = path.basename(type.picker, ".tsx");
+      const opening: number = form.indexOf(`<${pickerName}`);
+      const closing: number = form.indexOf(`</${pickerName}>`);
+      const configuration: number = form.indexOf("<AlertTemplateConfiguration");
 
-      expect(form).toContain("<AlertTemplateConfiguration");
-      expect(form).toContain("template={selectedTemplate}");
+      // The picker's children: shown under the template once one is picked.
+      expect(opening).toBeGreaterThan(-1);
+      expect(configuration).toBeGreaterThan(opening);
+      expect(closing).toBeGreaterThan(configuration);
       expect(form).toContain("onRollingTimeChange={");
+      // The form no longer looks the template up to draw a panel of its own.
+      expect(form).not.toContain("template={selectedTemplate}");
+      expect(form).not.toContain("selectedTemplate &&");
 
       // The ten blue boxes are gone.
       expect(form).not.toMatch(/\b(?:bg|border|text)-blue-\d+/);
       expect(form).not.toContain("auto-configured");
       expect(form).not.toContain("Adjust the monitoring time range.");
+    },
+  );
+
+  test.each(TYPES)(
+    "$name's step form: a template pick and a Custom Metric pick clear each other",
+    (type: InfrastructureType) => {
+      const form: string = read(`${FORMS}/${type.stepForm}`);
+
+      // A template replaces the metric: the Custom Metric tab's pick goes.
+      expect(form).toMatch(TEMPLATE_PICK_CLEARS_METRIC);
+      // A metric replaces the template's: Quick Setup's pick goes.
+      expect(form).toMatch(METRIC_PICK_CLEARS_TEMPLATE);
     },
   );
 
@@ -197,6 +240,42 @@ describe("one shared template picker for every infrastructure type", () => {
     // Never the long description on a row: that is the picked template's.
     expect(picker).not.toContain("template.description");
     expect(picker).toContain("{template.summary}");
+  });
+
+  test("a pick folds the list into the picked template, as the monitor type picker does", () => {
+    const picker: string = flat(
+      read(`${FORMS}/AlertTemplatePicker/AlertTemplatePicker.tsx`),
+    );
+
+    expect(picker).toContain('data-testid="alert-template-picked"');
+    expect(picker).toContain('data-testid="alert-template-change"');
+    // Its full description waits behind Show more.
+    expect(picker).toContain("{pickedTemplate.description}");
+    expect(picker).toContain("aria-expanded={isDescriptionShown}");
+    // What the template still asks for sits under it.
+    expect(picker).toContain("{props.children}");
+    // Picking the template already picked folds the list and nothing more.
+    expect(picker).toContain("isNewAlertTemplatePick(");
+    // Escape after Change keeps the pick.
+    expect(picker).toContain('event.key === "Escape"');
+  });
+
+  test("the folded template reads like the monitor type's: the same frame and Change button", () => {
+    const picker: string = read(
+      `${FORMS}/AlertTemplatePicker/AlertTemplatePicker.tsx`,
+    );
+    const cardSelect: string = fs.readFileSync(
+      path.join(APP_ROOT, "../Common/UI/Components/CardSelect/CardSelect.tsx"),
+      "utf8",
+    );
+
+    for (const className of [
+      "rounded-lg border border-indigo-200 bg-indigo-50/50 px-3 py-2.5",
+      "rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm",
+    ]) {
+      expect(cardSelect).toContain(className);
+      expect(picker).toContain(className);
+    }
   });
 });
 
@@ -350,6 +429,52 @@ describe("grouping and keyboard rules (React-free)", () => {
     expect(isCriticalAlertTemplate({ severity: "Critical" })).toBe(true);
     expect(isCriticalAlertTemplate({ severity: "Warning" })).toBe(false);
   });
+
+  test("the picked template is the listed one with the picked id, if any", () => {
+    const listed: Array<AlertTemplatePickerTemplate> = [
+      template("a", "A"),
+      template("b", "B"),
+    ];
+
+    expect(getPickedAlertTemplate(listed, "b")?.id).toBe("b");
+    // Not offered (another platform's): nothing to fold into.
+    expect(getPickedAlertTemplate(listed, "gone")).toBeUndefined();
+    expect(getPickedAlertTemplate(listed, undefined)).toBeUndefined();
+    expect(getPickedAlertTemplate([], "a")).toBeUndefined();
+  });
+
+  test("only a different template is a new pick: the one already picked keeps the criteria", () => {
+    expect(
+      isNewAlertTemplatePick({
+        templateId: "a",
+        selectedTemplateId: undefined,
+      }),
+    ).toBe(true);
+    expect(
+      isNewAlertTemplatePick({ templateId: "a", selectedTemplateId: "b" }),
+    ).toBe(true);
+    expect(
+      isNewAlertTemplatePick({ templateId: "a", selectedTemplateId: "a" }),
+    ).toBe(false);
+  });
+
+  test("Show more only when the description says more than the summary", () => {
+    expect(
+      hasAlertTemplateDetails({
+        summary: "It fires.",
+        description: "It fires, when the metric says so.",
+      }),
+    ).toBe(true);
+    expect(
+      hasAlertTemplateDetails({
+        summary: "It fires.",
+        description: " It fires. ",
+      }),
+    ).toBe(false);
+    expect(
+      hasAlertTemplateDetails({ summary: "It fires.", description: "  " }),
+    ).toBe(false);
+  });
 });
 
 describe("a resource's Recommendations use the picker's category names", () => {
@@ -446,8 +571,14 @@ describe("the words, in every language", () => {
     ALERT_TEMPLATE_PICKER_INTRO,
     ALERT_TEMPLATE_PICKER_ARIA_LABEL,
     INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION,
-    ALERT_TEMPLATE_CONFIGURATION_TITLE,
     "Its platform decides which metrics and templates are offered.",
+    // The fold reuses words the Dashboard already has, in every language.
+    ALERT_TEMPLATE_PICKED_LABEL,
+    ALERT_TEMPLATE_CHANGE,
+    ALERT_TEMPLATE_SHOW_MORE,
+    ALERT_TEMPLATE_SHOW_LESS,
+    ALERT_TEMPLATE_TIME_RANGE,
+    ALERT_TEMPLATE_TIME_RANGE_DESCRIPTION,
   ];
 
   test("there are sixteen languages besides English", () => {
@@ -478,6 +609,8 @@ describe("the words, in every language", () => {
   });
 
   const RETIRED: Array<string> = [
+    // The panel's heading: the folded template names itself.
+    "Template Configuration",
     "The following settings have been auto-configured. You can adjust the time range below.",
     "Adjust the monitoring time range.",
     "Select a pre-built alert template to quickly set up monitoring. The template will auto-configure the metric, scope, aggregation, time range, and thresholds.",

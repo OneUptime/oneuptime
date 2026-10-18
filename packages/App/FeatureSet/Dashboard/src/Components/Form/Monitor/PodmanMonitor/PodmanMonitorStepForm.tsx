@@ -30,7 +30,6 @@ import PodmanMetricPicker from "./PodmanMetricPicker";
 import {
   PodmanAlertTemplate,
   buildPodmanMonitorConfig,
-  getPodmanAlertTemplateById,
 } from "Common/Types/Monitor/PodmanAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { PodmanMetricDefinition } from "Common/Types/Monitor/PodmanMetricCatalog";
@@ -145,6 +144,8 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: PodmanAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const hostIdentifier: string = monitorStepPodmanMonitor.hostIdentifier;
 
@@ -183,6 +184,8 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: PodmanMetricDefinition,
   ) => void = (metric: PodmanMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const hostIdentifier: string = monitorStepPodmanMonitor.hostIdentifier;
@@ -272,10 +275,6 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const selectedTemplate: PodmanAlertTemplate | undefined = selectedTemplateId
-    ? getPodmanAlertTemplateById(selectedTemplateId)
-    : undefined;
-
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -284,11 +283,8 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: PodmanAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplate && (
+        >
           <AlertTemplateConfiguration
-            template={selectedTemplate}
             rollingTime={monitorStepPodmanMonitor.rollingTime}
             onRollingTimeChange={(value: RollingTime) => {
               props.onChange({
@@ -297,7 +293,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-        )}
+        </PodmanTemplatePicker>
       </div>
     );
   };

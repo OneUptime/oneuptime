@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getAllHostAlertTemplates,
   HostAlertTemplate,
@@ -13,6 +13,8 @@ import AlertTemplatePicker from "../AlertTemplatePicker/AlertTemplatePicker";
 export interface ComponentProps {
   selectedTemplateId?: string | undefined;
   onTemplateSelected: (template: HostAlertTemplate) => void;
+  // What the picked template still asks for (its Time Range).
+  children?: ReactNode | undefined;
 }
 
 const HostTemplatePicker: FunctionComponent<ComponentProps> = (
@@ -23,7 +25,9 @@ const HostTemplatePicker: FunctionComponent<ComponentProps> = (
       templates={getAllHostAlertTemplates()}
       selectedTemplateId={props.selectedTemplateId}
       onTemplateSelected={props.onTemplateSelected}
-    />
+    >
+      {props.children}
+    </AlertTemplatePicker>
   );
 };
 

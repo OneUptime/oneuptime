@@ -17086,7 +17086,6 @@
   "Temperature": "Temperature",
   "Temperature sensors across Building A": "Temperature sensors across Building A",
   "Template": "Template",
-  "Template Configuration": "템플릿 구성",
   "Template Preview": "Template Preview",
   "Template Synced": "Template Synced",
   "Template Synced At": "Template Synced At",
@@ -30660,5 +30659,7 @@
   "Follow the steps below. This list fills in on its own once data arrives.": "아래 단계를 따르세요. 데이터가 들어오면 이 목록이 자동으로 채워집니다.",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "이 프로젝트에서 모니터링하는 호스트입니다. OpenTelemetry Collector가 데이터를 보내면 호스트가 여기에 나타납니다.",
   "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "이 프로젝트에서 모니터링하는 서버리스 함수입니다. OpenTelemetry 데이터가 들어오면 함수가 여기에 나타납니다.",
-  "When off, the device cannot connect with these credentials and raises no offline alerts.": "끄면 디바이스가 이 자격 증명으로 연결할 수 없으며 오프라인 경고도 발생하지 않습니다."
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "끄면 디바이스가 이 자격 증명으로 연결할 수 없으며 오프라인 경고도 발생하지 않습니다.",
+  "No cloud environments yet.": "아직 클라우드 환경이 없습니다.",
+  "Alert Template": "알림 템플릿"
 }

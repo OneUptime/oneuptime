@@ -15,7 +15,9 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 /*
  * A fleet's Device Registry, as the page hands it to ModelTable: the
- * register form (Device ID, Name, Enabled) and the columns. The Enabled
+ * register form and the columns. Registering asks only for the Device ID
+ * and an optional name: a device is registered to connect, so it starts
+ * on, and the Enabled switch that revokes it is on its edit form only. The
  * switch says in plain words what turning it off does - the device cannot
  * connect with its credentials, and raises no offline alerts - where it
  * used to say "pause silent-death detection".
@@ -27,6 +29,8 @@ interface CapturedField {
   description?: string | undefined;
   required?: boolean | undefined;
   defaultValue?: unknown;
+  doNotShowWhenCreating?: boolean | undefined;
+  doNotShowWhenEditing?: boolean | undefined;
 }
 
 interface CapturedColumn {
@@ -138,17 +142,35 @@ describe("a fleet's Device Registry", () => {
     expect(captured!.singularName).toBe("Registered Device");
   });
 
-  test("the register form asks for the Device ID, an optional name, and whether it is on", async () => {
+  test("registering asks for the Device ID and an optional name, nothing more", async () => {
     await renderRegistry();
 
+    // What ModelTable's create form keeps (it drops doNotShowWhenCreating).
+    expect(
+      captured!.formFields
+        .filter((candidate: CapturedField): boolean => {
+          return !candidate.doNotShowWhenCreating;
+        })
+        .map((candidate: CapturedField): string => {
+          return candidate.title;
+        }),
+    ).toEqual(["Device ID", "Name"]);
+    expect(field("Device ID").required).toBe(true);
+    expect(field("Name").required).toBe(false);
+  });
+
+  test("the Enabled switch is on the edit form only; a new device starts on", async () => {
+    await renderRegistry();
+
+    expect(field("Enabled").doNotShowWhenCreating).toBe(true);
+    expect(field("Enabled").doNotShowWhenEditing).toBeFalsy();
+    // The edit form's switch reads the stored value; a stored device without one is on.
+    expect(field("Enabled").defaultValue).toBe(true);
     expect(
       captured!.formFields.map((candidate: CapturedField): string => {
         return candidate.title;
       }),
     ).toEqual(["Device ID", "Name", "Enabled"]);
-    expect(field("Device ID").required).toBe(true);
-    expect(field("Name").required).toBe(false);
-    expect(field("Enabled").defaultValue).toBe(true);
   });
 
   test("Enabled says in plain words what turning it off does", async () => {

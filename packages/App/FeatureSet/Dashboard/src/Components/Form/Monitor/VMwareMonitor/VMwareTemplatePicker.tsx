@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getAllVMwareAlertTemplates,
   VMwareAlertTemplate,
@@ -14,6 +14,8 @@ import { VMWARE_TEMPLATE_CATEGORIES } from "../AlertTemplatePicker/AlertTemplate
 export interface ComponentProps {
   selectedTemplateId?: string | undefined;
   onTemplateSelected: (template: VMwareAlertTemplate) => void;
+  // What the picked template still asks for (its Time Range).
+  children?: ReactNode | undefined;
 }
 
 const VMwareTemplatePicker: FunctionComponent<ComponentProps> = (
@@ -25,7 +27,9 @@ const VMwareTemplatePicker: FunctionComponent<ComponentProps> = (
       categories={VMWARE_TEMPLATE_CATEGORIES}
       selectedTemplateId={props.selectedTemplateId}
       onTemplateSelected={props.onTemplateSelected}
-    />
+    >
+      {props.children}
+    </AlertTemplatePicker>
   );
 };
 

@@ -117,6 +117,8 @@ const CloudResources: FunctionComponent<
         })}
         id="cloud-resources-table"
         userPreferencesKey="cloud-resources-table"
+        // The list is of environments: not the model's "No cloud resources yet".
+        noItemsMessage="No cloud environments yet."
         query={{
           isArchived: false,
           /*

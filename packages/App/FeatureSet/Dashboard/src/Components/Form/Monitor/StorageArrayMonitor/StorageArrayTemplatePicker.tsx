@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getStorageArrayAlertTemplatesForSystem,
   StorageArrayAlertTemplate,
@@ -19,6 +19,8 @@ export interface ComponentProps {
   storageSystem?: string | undefined;
   selectedTemplateId?: string | undefined;
   onTemplateSelected: (template: StorageArrayAlertTemplate) => void;
+  // What the picked template still asks for (its Time Range).
+  children?: ReactNode | undefined;
 }
 
 const StorageArrayTemplatePicker: FunctionComponent<ComponentProps> = (
@@ -30,7 +32,9 @@ const StorageArrayTemplatePicker: FunctionComponent<ComponentProps> = (
       categories={STORAGE_ARRAY_TEMPLATE_CATEGORIES}
       selectedTemplateId={props.selectedTemplateId}
       onTemplateSelected={props.onTemplateSelected}
-    />
+    >
+      {props.children}
+    </AlertTemplatePicker>
   );
 };
 

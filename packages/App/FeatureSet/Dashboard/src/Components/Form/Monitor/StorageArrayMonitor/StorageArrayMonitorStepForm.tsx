@@ -32,7 +32,6 @@ import StorageArrayMetricPicker from "./StorageArrayMetricPicker";
 import {
   StorageArrayAlertTemplate,
   buildStorageArrayMonitorConfig,
-  getStorageArrayAlertTemplateById,
 } from "Common/Types/Monitor/StorageArrayAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import {
@@ -292,6 +291,8 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: StorageArrayAlertTemplate,
   ) => void = (template: StorageArrayAlertTemplate): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const arrayIdentifier: string =
       monitorStepStorageArrayMonitor.arrayIdentifier;
@@ -333,6 +334,8 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: StorageArrayMetricDefinition,
   ) => void = (metric: StorageArrayMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const arrayIdentifier: string =
@@ -444,11 +447,6 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const selectedTemplate: StorageArrayAlertTemplate | undefined =
-    selectedTemplateId
-      ? getStorageArrayAlertTemplateById(selectedTemplateId)
-      : undefined;
-
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -458,11 +456,8 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: StorageArrayAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplate && (
+        >
           <AlertTemplateConfiguration
-            template={selectedTemplate}
             rollingTime={monitorStepStorageArrayMonitor.rollingTime}
             onRollingTimeChange={(value: RollingTime) => {
               props.onChange({
@@ -471,7 +466,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-        )}
+        </StorageArrayTemplatePicker>
       </div>
     );
   };

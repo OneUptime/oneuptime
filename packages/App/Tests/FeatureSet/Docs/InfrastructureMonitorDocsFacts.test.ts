@@ -1454,8 +1454,8 @@ describe("creating a telemetry-backed infrastructure monitor", () => {
 
   it("a template's names stay as the picker shows them, and its Time Range stays editable", () => {
     /*
-     * Once a template is picked, Template Configuration (one shared panel)
-     * explains it and keeps its Time Range editable.
+     * Once a template is picked, the list folds into it, and its Time Range
+     * (the step form hands it to the picker) stays editable under it.
      */
     const configuration: string = source(
       `${FORMS}/AlertTemplatePicker/AlertTemplateConfiguration.tsx`,

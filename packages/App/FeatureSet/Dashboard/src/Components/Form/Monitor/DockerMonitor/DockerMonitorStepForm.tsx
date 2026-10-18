@@ -30,7 +30,6 @@ import DockerMetricPicker from "./DockerMetricPicker";
 import {
   DockerAlertTemplate,
   buildDockerMonitorConfig,
-  getDockerAlertTemplateById,
 } from "Common/Types/Monitor/DockerAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { DockerMetricDefinition } from "Common/Types/Monitor/DockerMetricCatalog";
@@ -145,6 +144,8 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: DockerAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const hostIdentifier: string = monitorStepDockerMonitor.hostIdentifier;
 
@@ -183,6 +184,8 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: DockerMetricDefinition,
   ) => void = (metric: DockerMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const hostIdentifier: string = monitorStepDockerMonitor.hostIdentifier;
@@ -272,10 +275,6 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const selectedTemplate: DockerAlertTemplate | undefined = selectedTemplateId
-    ? getDockerAlertTemplateById(selectedTemplateId)
-    : undefined;
-
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -284,11 +283,8 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: DockerAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplate && (
+        >
           <AlertTemplateConfiguration
-            template={selectedTemplate}
             rollingTime={monitorStepDockerMonitor.rollingTime}
             onRollingTimeChange={(value: RollingTime) => {
               props.onChange({
@@ -297,7 +293,7 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-        )}
+        </DockerTemplatePicker>
       </div>
     );
   };

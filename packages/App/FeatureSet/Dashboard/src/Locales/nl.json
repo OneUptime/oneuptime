@@ -17086,7 +17086,6 @@
   "Temperature": "Temperature",
   "Temperature sensors across Building A": "Temperature sensors across Building A",
   "Template": "Template",
-  "Template Configuration": "Sjabloonconfiguratie",
   "Template Preview": "Template Preview",
   "Template Synced": "Template Synced",
   "Template Synced At": "Template Synced At",
@@ -30660,5 +30659,7 @@
   "Follow the steps below. This list fills in on its own once data arrives.": "Volg de stappen hieronder. Deze lijst vult zichzelf zodra er gegevens binnenkomen.",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "Hosts die in dit project worden bewaakt. Een host verschijnt hier zodra zijn OpenTelemetry Collector gegevens stuurt.",
   "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Serverless functies die in dit project worden bewaakt. Een functie verschijnt hier zodra haar OpenTelemetry-gegevens binnenkomen.",
-  "When off, the device cannot connect with these credentials and raises no offline alerts.": "Uitgeschakeld kan het apparaat niet verbinden met deze inloggegevens en geeft het geen offline-waarschuwingen."
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "Uitgeschakeld kan het apparaat niet verbinden met deze inloggegevens en geeft het geen offline-waarschuwingen.",
+  "No cloud environments yet.": "Nog geen cloudomgevingen.",
+  "Alert Template": "Waarschuwingssjabloon"
 }

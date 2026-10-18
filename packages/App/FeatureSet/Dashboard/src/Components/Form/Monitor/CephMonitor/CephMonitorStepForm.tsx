@@ -30,7 +30,6 @@ import CephMetricPicker from "./CephMetricPicker";
 import {
   CephAlertTemplate,
   buildCephMonitorConfig,
-  getCephAlertTemplateById,
 } from "Common/Types/Monitor/CephAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { CephMetricDefinition } from "Common/Types/Monitor/CephMetricCatalog";
@@ -144,6 +143,8 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: CephAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const clusterIdentifier: string = monitorStepCephMonitor.clusterIdentifier;
 
@@ -182,6 +183,8 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: CephMetricDefinition,
   ): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const clusterIdentifier: string = monitorStepCephMonitor.clusterIdentifier;
@@ -271,10 +274,6 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const selectedTemplate: CephAlertTemplate | undefined = selectedTemplateId
-    ? getCephAlertTemplateById(selectedTemplateId)
-    : undefined;
-
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -283,11 +282,8 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: CephAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplate && (
+        >
           <AlertTemplateConfiguration
-            template={selectedTemplate}
             rollingTime={monitorStepCephMonitor.rollingTime}
             onRollingTimeChange={(value: RollingTime) => {
               props.onChange({
@@ -296,7 +292,7 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-        )}
+        </CephTemplatePicker>
       </div>
     );
   };

@@ -43,9 +43,14 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * Quick Setup on each infrastructure monitor's criteria step, through the
  * real step forms: the shared picker lists the type's templates, a pick
- * fills in the monitor's queries and replaces the criteria, and Template
- * Configuration then explains the picked template and keeps its Time Range
- * editable - in one shared panel instead of ten copies of a blue box.
+ * fills in the monitor's queries and replaces the criteria, and the list
+ * then folds into the picked template - its summary, its full description
+ * behind Show more, and its Time Range right under it - instead of ten
+ * copies of a blue box under every other row.
+ *
+ * A template and a Custom Metric pick each replace the monitor's query, so
+ * each clears the other tab's pick: Quick Setup never claims a template the
+ * monitor no longer uses, nor Custom Metric a metric.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -270,7 +275,7 @@ describe("Quick Setup on an infrastructure monitor's criteria step", () => {
   );
 
   test.each(FORM_CASES)(
-    "$name: a pick fills in the monitor and its criteria, then explains the template",
+    "$name: a pick fills in the monitor and its criteria, then the list folds into the template, its Time Range under it",
     async (formCase: FormCase) => {
       const onChange: MockFunction = getJestMockFunction();
       const onCriteria: MockFunction = getJestMockFunction();
@@ -293,26 +298,45 @@ describe("Quick Setup on an infrastructure monitor's criteria step", () => {
         criteria.data?.monitorCriteriaInstanceArray.length,
       ).toBeGreaterThan(0);
 
-      // The row is the picked one, and the panel explains it in full.
-      expect(
-        screen.getByTestId(`alert-template-${template.id}`),
-      ).toHaveAttribute("aria-checked", "true");
+      // The list is folded into the picked template.
+      expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
 
-      const panel: HTMLElement = screen.getByTestId(
+      const picked: HTMLElement = screen.getByTestId("alert-template-picked");
+
+      expect(picked).toHaveAttribute("data-alert-template-id", template.id);
+      expect(
+        within(picked).getByTestId("alert-template-picked-name"),
+      ).toHaveTextContent(template.name);
+      expect(
+        within(picked).getByTestId("alert-template-picked-summary"),
+      ).toHaveTextContent(template.summary);
+
+      // Its full description is one press away.
+      fireEvent.click(
+        within(picked).getByTestId("alert-template-description-toggle"),
+      );
+      expect(
+        within(picked).getByTestId("alert-template-description"),
+      ).toHaveTextContent(template.description);
+
+      // And its Time Range is right under it.
+      const timeRange: HTMLElement = screen.getByTestId(
         "alert-template-configuration",
       );
 
+      expect(within(timeRange).getByText("Time Range")).toBeInTheDocument();
       expect(
-        within(panel).getByTestId("alert-template-description"),
-      ).toHaveTextContent(template.description);
-      expect(within(panel).getByText("Time Range")).toBeInTheDocument();
+        picked.compareDocumentPosition(timeRange) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
     },
   );
 
   test.each(FORM_CASES)(
-    "$name: picking another template explains that one instead",
+    "$name: Change, then another template: the form folds into that one instead",
     async (formCase: FormCase) => {
-      formCase.render(getJestMockFunction(), getJestMockFunction());
+      const onCriteria: MockFunction = getJestMockFunction();
+      formCase.render(getJestMockFunction(), onCriteria);
       await settle();
 
       const first: Template = formCase.templates[0]!;
@@ -320,24 +344,147 @@ describe("Quick Setup on an infrastructure monitor's criteria step", () => {
 
       fireEvent.click(screen.getByTestId(`alert-template-${first.id}`));
       await settle();
+      fireEvent.click(screen.getByTestId("alert-template-change"));
+      await settle();
+
+      // The list again, the first still the picked one.
+      expect(screen.getByTestId(`alert-template-${first.id}`)).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      expect(
+        screen.queryByTestId("alert-template-configuration"),
+      ).not.toBeInTheDocument();
+
       fireEvent.click(screen.getByTestId(`alert-template-${second.id}`));
       await settle();
 
+      expect(onCriteria).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId("alert-template-picked")).toHaveAttribute(
+        "data-alert-template-id",
+        second.id,
+      );
       expect(
         screen.getAllByTestId("alert-template-configuration"),
       ).toHaveLength(1);
-      expect(
-        screen.getByTestId("alert-template-description"),
-      ).toHaveTextContent(second.description);
-      expect(screen.getByTestId(`alert-template-${first.id}`)).toHaveAttribute(
-        "aria-checked",
-        "false",
+    },
+  );
+
+  test.each(FORM_CASES)(
+    "$name: Change, then the same template: the criteria are not rebuilt",
+    async (formCase: FormCase) => {
+      const onChange: MockFunction = getJestMockFunction();
+      const onCriteria: MockFunction = getJestMockFunction();
+      formCase.render(onChange, onCriteria);
+      await settle();
+
+      const template: Template = formCase.templates[0]!;
+
+      fireEvent.click(screen.getByTestId(`alert-template-${template.id}`));
+      await settle();
+
+      const changesAfterThePick: number = onChange.mock.calls.length;
+
+      fireEvent.click(screen.getByTestId("alert-template-change"));
+      await settle();
+      fireEvent.click(screen.getByTestId(`alert-template-${template.id}`));
+      await settle();
+
+      // Whatever was changed in the criteria since the pick is kept.
+      expect(onCriteria).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledTimes(changesAfterThePick);
+      expect(screen.getByTestId("alert-template-picked")).toHaveAttribute(
+        "data-alert-template-id",
+        template.id,
       );
     },
   );
 });
 
-describe("Template Configuration's Time Range", () => {
+/*
+ * The Custom Metric tab's metric picker: the first combobox on that tab
+ * (the resource picker sits above the tabs).
+ */
+async function pickFirstCustomMetric(): Promise<void> {
+  fireEvent.click(screen.getByRole("tab", { name: "Custom Metric" }));
+  await settle();
+
+  const metricPicker: HTMLElement = within(
+    screen.getByRole("tabpanel"),
+  ).getAllByRole("combobox")[0]!;
+
+  fireEvent.keyDown(metricPicker, { key: "ArrowDown" });
+  await settle();
+  fireEvent.keyDown(metricPicker, { key: "Enter" });
+  await settle();
+}
+
+function customMetricFieldsShown(): boolean {
+  return (
+    within(screen.getByRole("tabpanel")).queryByText("Aggregation") !== null
+  );
+}
+
+describe("a template and a custom metric each replace the other's pick", () => {
+  test.each(FORM_CASES)(
+    "$name: a metric picked on Custom Metric unfolds Quick Setup, with no template checked",
+    async (formCase: FormCase) => {
+      formCase.render(getJestMockFunction(), getJestMockFunction());
+      await settle();
+
+      const template: Template = formCase.templates[0]!;
+
+      fireEvent.click(screen.getByTestId(`alert-template-${template.id}`));
+      await settle();
+      expect(screen.getByTestId("alert-template-picked")).toBeInTheDocument();
+
+      await pickFirstCustomMetric();
+      expect(customMetricFieldsShown()).toBe(true);
+
+      fireEvent.click(screen.getByRole("tab", { name: "Quick Setup" }));
+      await settle();
+
+      expect(
+        screen.queryByTestId("alert-template-picked"),
+      ).not.toBeInTheDocument();
+
+      const rows: Array<HTMLElement> = within(
+        screen.getByRole("radiogroup", { name: "Alert templates" }),
+      ).getAllByRole("radio");
+
+      expect(rows).toHaveLength(formCase.templates.length);
+      for (const row of rows) {
+        expect(row).toHaveAttribute("aria-checked", "false");
+      }
+    },
+  );
+
+  test.each(FORM_CASES)(
+    "$name: a template picked after a custom metric clears the Custom Metric pick",
+    async (formCase: FormCase) => {
+      formCase.render(getJestMockFunction(), getJestMockFunction());
+      await settle();
+
+      await pickFirstCustomMetric();
+      expect(customMetricFieldsShown()).toBe(true);
+
+      fireEvent.click(screen.getByRole("tab", { name: "Quick Setup" }));
+      await settle();
+      fireEvent.click(
+        screen.getByTestId(`alert-template-${formCase.templates[0]!.id}`),
+      );
+      await settle();
+
+      fireEvent.click(screen.getByRole("tab", { name: "Custom Metric" }));
+      await settle();
+
+      // No metric picked: no Aggregation or Time Range for one.
+      expect(customMetricFieldsShown()).toBe(false);
+    },
+  );
+});
+
+describe("the picked template's Time Range", () => {
   test("a new Time Range is handed back with the rest of the monitor", async () => {
     const onChange: MockFunction = getJestMockFunction();
     render(

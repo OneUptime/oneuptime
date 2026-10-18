@@ -31,7 +31,6 @@ import ProxmoxMetricPicker from "./ProxmoxMetricPicker";
 import {
   ProxmoxAlertTemplate,
   buildProxmoxMonitorConfig,
-  getProxmoxAlertTemplateById,
 } from "Common/Types/Monitor/ProxmoxAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { ProxmoxMetricDefinition } from "Common/Types/Monitor/ProxmoxMetricCatalog";
@@ -158,6 +157,8 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: ProxmoxAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const clusterIdentifier: string =
       monitorStepProxmoxMonitor.clusterIdentifier;
@@ -197,6 +198,8 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: ProxmoxMetricDefinition,
   ) => void = (metric: ProxmoxMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const clusterIdentifier: string =
@@ -358,10 +361,6 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const selectedTemplate: ProxmoxAlertTemplate | undefined = selectedTemplateId
-    ? getProxmoxAlertTemplateById(selectedTemplateId)
-    : undefined;
-
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -370,11 +369,8 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: ProxmoxAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplate && (
+        >
           <AlertTemplateConfiguration
-            template={selectedTemplate}
             rollingTime={monitorStepProxmoxMonitor.rollingTime}
             onRollingTimeChange={(value: RollingTime) => {
               props.onChange({
@@ -383,7 +379,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-        )}
+        </ProxmoxTemplatePicker>
       </div>
     );
   };

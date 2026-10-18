@@ -163,6 +163,20 @@ describe("the list descriptions that named attributes say what a reader sees", (
   });
 });
 
+describe("the Cloud lists name what they list", () => {
+  test("an empty Cloud Environments list says no environments, not the model's no resources", () => {
+    expect(code("Pages/Cloud/CloudResources.tsx")).toContain(
+      'noItemsMessage="No cloud environments yet."',
+    );
+  });
+
+  test("an empty Cloud Resources list keeps its own sentence", () => {
+    expect(code("Pages/Cloud/MonitoredResources.tsx")).toContain(
+      'noItemsMessage="No cloud resources discovered yet."',
+    );
+  });
+});
+
 describe("the words, in every language", () => {
   type Locale = Record<string, unknown>;
 
@@ -184,6 +198,7 @@ describe("the words, in every language", () => {
 
   const ADDED: Array<string> = [
     FIRST_RUN_GUIDE_DESCRIPTION,
+    "No cloud environments yet.",
     "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.",
     "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.",
   ];

@@ -562,6 +562,43 @@ describe.each(FIRST_RUN_CASES)("$name, first run", (listCase: FirstRunCase) => {
   });
 });
 
+describe("each Cloud list's empty table names what it lists", () => {
+  test.each([
+    [
+      "Cloud Environments",
+      CloudEnvironmentsPage,
+      { cloudResourceKind: CloudResourceKind.Environment },
+      "No cloud environments yet",
+    ],
+    [
+      "Cloud Resources",
+      CloudMonitoredResourcesPage,
+      { cloudResourceKind: CloudResourceKind.Resource },
+      "No cloud resources discovered yet",
+    ],
+  ])(
+    "%s",
+    async (
+      name: string,
+      page: unknown,
+      watchQuery: JSONObject,
+      title: string,
+    ) => {
+      await renderList({
+        ...agentList(name, page, CloudResource, ""),
+        watchQuery,
+      });
+
+      const table: HTMLElement | null = emptyTable();
+
+      expect(table).not.toBeNull();
+      expect(within(table!).getByText(title)).toBeInTheDocument();
+      // The model's own "No cloud resources yet" is never the title.
+      expect(table!.textContent || "").not.toContain("No cloud resources yet");
+    },
+  );
+});
+
 describe("the first-run rules", () => {
   test("an empty list is watched; one with records, or not yet counted, is not", () => {
     expect(isWatchingForFirstRecord(0)).toBe(true);

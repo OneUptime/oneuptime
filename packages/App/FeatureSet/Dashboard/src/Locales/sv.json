@@ -17086,7 +17086,6 @@
   "Temperature": "Temperature",
   "Temperature sensors across Building A": "Temperature sensors across Building A",
   "Template": "Template",
-  "Template Configuration": "Mallkonfiguration",
   "Template Preview": "Template Preview",
   "Template Synced": "Template Synced",
   "Template Synced At": "Template Synced At",
@@ -30660,5 +30659,7 @@
   "Follow the steps below. This list fills in on its own once data arrives.": "Följ stegen nedan. Listan fyller sig själv så snart data kommer in.",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "Värdar som övervakas i det här projektet. En värd visas här så snart dess OpenTelemetry Collector skickar data.",
   "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Serverlösa funktioner som övervakas i det här projektet. En funktion visas här så snart dess OpenTelemetry-data kommer in.",
-  "When off, the device cannot connect with these credentials and raises no offline alerts.": "När den är avstängd kan enheten inte ansluta med de här autentiseringsuppgifterna och utlöser inga offlinelarm."
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "När den är avstängd kan enheten inte ansluta med de här autentiseringsuppgifterna och utlöser inga offlinelarm.",
+  "No cloud environments yet.": "Inga molnmiljöer ännu.",
+  "Alert Template": "Larmmall"
 }

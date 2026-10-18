@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getAllProxmoxAlertTemplates,
   ProxmoxAlertTemplate,
@@ -14,6 +14,8 @@ import { PROXMOX_TEMPLATE_CATEGORIES } from "../AlertTemplatePicker/AlertTemplat
 export interface ComponentProps {
   selectedTemplateId?: string | undefined;
   onTemplateSelected: (template: ProxmoxAlertTemplate) => void;
+  // What the picked template still asks for (its Time Range).
+  children?: ReactNode | undefined;
 }
 
 const ProxmoxTemplatePicker: FunctionComponent<ComponentProps> = (
@@ -25,7 +27,9 @@ const ProxmoxTemplatePicker: FunctionComponent<ComponentProps> = (
       categories={PROXMOX_TEMPLATE_CATEGORIES}
       selectedTemplateId={props.selectedTemplateId}
       onTemplateSelected={props.onTemplateSelected}
-    />
+    >
+      {props.children}
+    </AlertTemplatePicker>
   );
 };
 

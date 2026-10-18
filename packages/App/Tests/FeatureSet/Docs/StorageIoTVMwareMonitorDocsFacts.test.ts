@@ -329,7 +329,7 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
       expect(page).toContain("Pick one of the three tabs:");
       expect(form).toContain('title="Time Range"');
       expect(form).toContain('title="Select Metrics"');
-      // A picked template's Time Range, in the shared Template Configuration.
+      // A picked template's Time Range, under the template the list folds into.
       expect(form).toContain("<AlertTemplateConfiguration");
       expect(ALERT_TEMPLATE_TIME_RANGE).toBe("Time Range");
       expect(page).toContain("You can still change the **Time Range**.");

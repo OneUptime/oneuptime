@@ -33,7 +33,6 @@ import {
   VMwareAlertTemplate,
   VMwareGroupByKey,
   buildVMwareMonitorConfig,
-  getVMwareAlertTemplateById,
 } from "Common/Types/Monitor/VMwareAlertTemplates";
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { VMwareMetricDefinition } from "Common/Types/Monitor/VMwareMetricCatalog";
@@ -242,6 +241,8 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: VMwareAlertTemplate,
   ): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const vcenterIdentifier: string =
       monitorStepVMwareMonitor.vcenterIdentifier;
@@ -281,6 +282,8 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: VMwareMetricDefinition,
   ) => void = (metric: VMwareMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const vcenterIdentifier: string =
@@ -374,10 +377,6 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const selectedTemplate: VMwareAlertTemplate | undefined = selectedTemplateId
-    ? getVMwareAlertTemplateById(selectedTemplateId)
-    : undefined;
-
   const renderQuickSetup: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-4">
@@ -386,11 +385,8 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: VMwareAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplate && (
+        >
           <AlertTemplateConfiguration
-            template={selectedTemplate}
             rollingTime={monitorStepVMwareMonitor.rollingTime}
             onRollingTimeChange={(value: RollingTime) => {
               props.onChange({
@@ -399,7 +395,7 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-        )}
+        </VMwareTemplatePicker>
       </div>
     );
   };

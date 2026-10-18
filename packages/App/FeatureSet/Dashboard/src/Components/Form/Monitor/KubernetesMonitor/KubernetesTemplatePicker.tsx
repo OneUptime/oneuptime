@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getAllKubernetesAlertTemplates,
   KubernetesAlertTemplate,
@@ -14,6 +14,8 @@ import { KUBERNETES_TEMPLATE_CATEGORIES } from "../AlertTemplatePicker/AlertTemp
 export interface ComponentProps {
   selectedTemplateId?: string | undefined;
   onTemplateSelected: (template: KubernetesAlertTemplate) => void;
+  // What the picked template still asks for (its Time Range).
+  children?: ReactNode | undefined;
 }
 
 const KubernetesTemplatePicker: FunctionComponent<ComponentProps> = (
@@ -25,7 +27,9 @@ const KubernetesTemplatePicker: FunctionComponent<ComponentProps> = (
       categories={KUBERNETES_TEMPLATE_CATEGORIES}
       selectedTemplateId={props.selectedTemplateId}
       onTemplateSelected={props.onTemplateSelected}
-    />
+    >
+      {props.children}
+    </AlertTemplatePicker>
   );
 };
 

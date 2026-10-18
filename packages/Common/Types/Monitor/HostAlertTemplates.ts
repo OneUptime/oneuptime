@@ -580,7 +580,8 @@ const highLoadAverageTemplate: HostAlertTemplate = {
 const highProcessCountTemplate: HostAlertTemplate = {
   id: "host-high-processes",
   name: "High Process Count",
-  summary: "More than 2000 processes are in one state. Linux only.",
+  summary:
+    "More than 2000 processes are in one state, such as sleeping. Linux only.",
   description:
     "Alert when the host's largest process-state bucket (running, sleeping, idle, ...) exceeds 2000 processes, which may indicate a fork bomb or resource leak. Linux only.",
   category: "Host",

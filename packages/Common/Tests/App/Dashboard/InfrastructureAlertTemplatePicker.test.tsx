@@ -38,10 +38,7 @@ import {
   PodmanAlertTemplate,
   getAllPodmanAlertTemplates,
 } from "../../../Types/Monitor/PodmanAlertTemplates";
-import {
-  ProxmoxAlertTemplate,
-  getAllProxmoxAlertTemplates,
-} from "../../../Types/Monitor/ProxmoxAlertTemplates";
+import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
 import {
   StorageArrayAlertTemplate,
   getAllStorageArrayAlertTemplates,
@@ -78,8 +75,12 @@ import IoTTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Componen
  * template's whole description - up to 509 characters of metric names and
  * formulas in grey, seventeen cards to a screen - in a blue that is not the
  * product's. One shared picker now draws a compact radio row per template:
- * its name, its severity and the one line that says when it fires. The full
- * description is the picked template's, under Template Configuration.
+ * its name, its severity and the one line that says when it fires.
+ *
+ * Once a template is picked the list folds into it, the way the monitor
+ * type picker folds into the type: its row with Change, its full
+ * description behind Show more, and its Time Range right under it - not
+ * under every other row, a phone's whole screen and more away.
  */
 
 afterEach(() => {
@@ -388,13 +389,16 @@ describe("the shared picker", () => {
     }
   });
 
-  test("the picked row is checked, ticked and takes the tab stop", () => {
+  test("after Change, the picked row is checked, ticked and takes the tab stop", () => {
     const picked: KubernetesAlertTemplate = kubernetes.find(
       (template: KubernetesAlertTemplate): boolean => {
         return template.id === "k8s-etcd-no-leader";
       },
     )!;
     renderKubernetes(picked.id);
+
+    // A pick folds the list; Change opens it again.
+    fireEvent.click(screen.getByTestId("alert-template-change"));
 
     const row: HTMLElement = rowOf(picked);
 
@@ -537,53 +541,399 @@ describe("the shared picker", () => {
     ).toContain("bg-yellow-100");
   });
 
-  test("no blue that is not the product's", () => {
+  test("no blue that is not the product's, folded or open", () => {
     renderKubernetes("k8s-crashloopbackoff");
 
-    const html: string = screen.getByTestId("alert-template-picker").innerHTML;
+    const folded: string = screen.getByTestId(
+      "alert-template-picker",
+    ).innerHTML;
 
-    expect(html).not.toMatch(/\b(?:bg|border|ring|text)-blue-\d+/);
+    fireEvent.click(screen.getByTestId("alert-template-change"));
+
+    const open: string = screen.getByTestId("alert-template-picker").innerHTML;
+
+    for (const html of [folded, open]) {
+      expect(html).not.toMatch(/\b(?:bg|border|ring|text)-blue-\d+/);
+    }
   });
 });
 
-describe("Template Configuration, once a template is picked", () => {
-  const template: ProxmoxAlertTemplate = getAllProxmoxAlertTemplates()[0]!;
+/*
+ * The picker as the step forms hold it: the form keeps the picked id and
+ * hands in the Time Range as children.
+ */
+function PickerAsAForm(props: {
+  templates: Array<AlertTemplatePickerTemplate>;
+  onTemplateSelected: MockFunction;
+  initialTemplateId?: string | undefined;
+}): React.ReactElement {
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState<
+    string | undefined
+  >(props.initialTemplateId);
 
-  test("explains the picked template in full", () => {
+  return (
+    <AlertTemplatePicker<AlertTemplatePickerTemplate>
+      templates={props.templates}
+      categories={KUBERNETES_TEMPLATE_CATEGORIES}
+      selectedTemplateId={selectedTemplateId}
+      onTemplateSelected={(template: AlertTemplatePickerTemplate) => {
+        props.onTemplateSelected(template);
+        setSelectedTemplateId(template.id);
+      }}
+    >
+      <p data-testid="what-the-template-asks-for">Time Range goes here</p>
+    </AlertTemplatePicker>
+  );
+}
+
+describe("once a template is picked, the list folds into it", () => {
+  const kubernetes: Array<KubernetesAlertTemplate> =
+    getAllKubernetesAlertTemplates();
+  const etcd: KubernetesAlertTemplate = kubernetes.find(
+    (template: KubernetesAlertTemplate): boolean => {
+      return template.id === "k8s-etcd-no-leader";
+    },
+  )!;
+  const highCpu: KubernetesAlertTemplate = kubernetes.find(
+    (template: KubernetesAlertTemplate): boolean => {
+      return template.id === "k8s-high-cpu";
+    },
+  )!;
+
+  function renderForm(
+    onTemplateSelected: MockFunction = getJestMockFunction(),
+    initialTemplateId?: string | undefined,
+  ): void {
+    render(
+      <PickerAsAForm
+        templates={kubernetes}
+        onTemplateSelected={onTemplateSelected}
+        initialTemplateId={initialTemplateId}
+      />,
+    );
+  }
+
+  function picked(): HTMLElement {
+    return screen.getByTestId("alert-template-picked");
+  }
+
+  test("before a pick: every row, the intro, and nothing the template asks for", () => {
+    renderForm();
+
+    expect(rows()).toHaveLength(kubernetes.length);
+    expect(
+      screen.getByText(
+        "Pick a template. It fills in the metric, thresholds and criteria below.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("alert-template-picked"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("what-the-template-asks-for"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a pick folds the list: the picked template's name, severity and summary, Change, and what it asks for under it", () => {
+    const onTemplateSelected: MockFunction = getJestMockFunction();
+    renderForm(onTemplateSelected);
+
+    fireEvent.click(rowOf(etcd));
+
+    expect(onTemplateSelected).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    expect(
+      screen.queryByText(
+        "Pick a template. It fills in the metric, thresholds and criteria below.",
+      ),
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByText("Alert Template")).toBeInTheDocument();
+    expect(picked()).toHaveAttribute("data-alert-template-id", etcd.id);
+    expect(
+      within(picked()).getByTestId("alert-template-picked-name"),
+    ).toHaveTextContent(etcd.name);
+    expect(
+      within(picked()).getByTestId("alert-template-picked-severity"),
+    ).toHaveTextContent("Critical");
+    expect(
+      within(picked()).getByTestId("alert-template-picked-severity").className,
+    ).toContain("bg-red-100");
+    expect(
+      within(picked()).getByTestId("alert-template-picked-summary"),
+    ).toHaveTextContent(etcd.summary);
+    expect(
+      within(picked()).getByRole("button", { name: "Change" }),
+    ).toBeInTheDocument();
+
+    // What the template still asks for is right under it.
+    const asksFor: HTMLElement = screen.getByTestId(
+      "what-the-template-asks-for",
+    );
+    expect(
+      picked().compareDocumentPosition(asksFor) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // No other template is left on screen.
+    for (const other of kubernetes) {
+      if (other.id !== etcd.id) {
+        expect(screen.queryByText(other.name)).not.toBeInTheDocument();
+      }
+    }
+  });
+
+  test("the folded template is a group named by the template, and Change says which", () => {
+    renderForm();
+
+    fireEvent.click(rowOf(etcd));
+
+    expect(screen.getByRole("group", { name: etcd.name })).toBeInTheDocument();
+    expect(
+      screen.getByTestId("alert-template-change"),
+    ).toHaveAccessibleDescription(etcd.name);
+  });
+
+  test("a pick from the keyboard moves focus to Change: the row it was on is gone", () => {
+    renderForm();
+
+    const row: HTMLElement = rowOf(highCpu);
+
+    act(() => {
+      row.focus();
+    });
+    fireEvent.keyDown(row, { key: "Enter" });
+
+    expect(document.activeElement).toBe(
+      screen.getByTestId("alert-template-change"),
+    );
+  });
+
+  test("the full description waits behind Show more", () => {
+    renderForm();
+
+    fireEvent.click(rowOf(etcd));
+
+    expect(
+      screen.queryByTestId("alert-template-description"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(etcd.description)).not.toBeInTheDocument();
+
+    const toggle: HTMLElement = screen.getByTestId(
+      "alert-template-description-toggle",
+    );
+
+    expect(toggle).toHaveTextContent("Show more");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).not.toHaveAttribute("aria-controls");
+
+    fireEvent.click(toggle);
+
+    const description: HTMLElement = screen.getByTestId(
+      "alert-template-description",
+    );
+
+    expect(description).toHaveTextContent(etcd.description);
+    expect(toggle).toHaveTextContent("Show less");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveAttribute("aria-controls", description.id);
+
+    fireEvent.click(toggle);
+
+    expect(
+      screen.queryByTestId("alert-template-description"),
+    ).not.toBeInTheDocument();
+    expect(toggle).toHaveTextContent("Show more");
+  });
+
+  test("a template whose description says no more than its summary has no Show more", () => {
+    const plain: AlertTemplatePickerTemplate = {
+      ...etcd,
+      id: "plain-template",
+      name: "Plain Template",
+      summary: "It fires when it fires.",
+      description: "  It fires when it fires.  ",
+    };
+
+    render(
+      <PickerAsAForm
+        templates={[plain]}
+        onTemplateSelected={getJestMockFunction()}
+        initialTemplateId={plain.id}
+      />,
+    );
+
+    expect(picked()).toHaveTextContent("It fires when it fires.");
+    expect(
+      screen.queryByTestId("alert-template-description-toggle"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a form that opens on a picked template (from a link) opens folded", () => {
+    renderForm(getJestMockFunction(), highCpu.id);
+
+    expect(picked()).toHaveAttribute("data-alert-template-id", highCpu.id);
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("what-the-template-asks-for"),
+    ).toBeInTheDocument();
+  });
+
+  test("Change opens the list again: the picked row checked and focused, the rest of the form put away", () => {
+    renderForm();
+
+    fireEvent.click(rowOf(etcd));
+    fireEvent.click(screen.getByTestId("alert-template-change"));
+
+    expect(rows()).toHaveLength(kubernetes.length);
+    expect(rowOf(etcd)).toHaveAttribute("aria-checked", "true");
+    expect(rowOf(etcd).tabIndex).toBe(0);
+    expect(document.activeElement).toBe(rowOf(etcd));
+    expect(
+      screen.queryByTestId("alert-template-picked"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("what-the-template-asks-for"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("after Change, picking the same template only folds the list: the form is not told again, so its criteria stay as they are", () => {
+    const onTemplateSelected: MockFunction = getJestMockFunction();
+    renderForm(onTemplateSelected);
+
+    fireEvent.click(rowOf(etcd));
+    fireEvent.click(screen.getByTestId("alert-template-change"));
+    fireEvent.click(rowOf(etcd));
+
+    expect(onTemplateSelected).toHaveBeenCalledTimes(1);
+    expect(picked()).toHaveAttribute("data-alert-template-id", etcd.id);
+    expect(document.activeElement).toBe(
+      screen.getByTestId("alert-template-change"),
+    );
+  });
+
+  test("after Change, Enter on the picked row keeps it too", () => {
+    const onTemplateSelected: MockFunction = getJestMockFunction();
+    renderForm(onTemplateSelected);
+
+    fireEvent.click(rowOf(etcd));
+    fireEvent.click(screen.getByTestId("alert-template-change"));
+    fireEvent.keyDown(rowOf(etcd), { key: "Enter" });
+
+    expect(onTemplateSelected).toHaveBeenCalledTimes(1);
+    expect(picked()).toBeInTheDocument();
+  });
+
+  test("after Change, Escape keeps the template already picked", () => {
+    const onTemplateSelected: MockFunction = getJestMockFunction();
+    renderForm(onTemplateSelected);
+
+    fireEvent.click(rowOf(etcd));
+    fireEvent.click(screen.getByTestId("alert-template-change"));
+    // Looking around first: arrows move focus, they pick nothing.
+    fireEvent.keyDown(rowOf(etcd), { key: "ArrowDown" });
+    fireEvent.keyDown(document.activeElement as HTMLElement, {
+      key: "Escape",
+    });
+
+    expect(onTemplateSelected).toHaveBeenCalledTimes(1);
+    expect(picked()).toHaveAttribute("data-alert-template-id", etcd.id);
+    expect(document.activeElement).toBe(
+      screen.getByTestId("alert-template-change"),
+    );
+  });
+
+  test("Escape before any pick leaves the list as it is", () => {
+    renderForm();
+
+    fireEvent.keyDown(rows()[0]!, { key: "Escape" });
+
+    expect(rows()).toHaveLength(kubernetes.length);
+    expect(
+      screen.queryByTestId("alert-template-picked"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("after Change, another template is a new pick: the form is told, and the list folds into it", () => {
+    const onTemplateSelected: MockFunction = getJestMockFunction();
+    renderForm(onTemplateSelected);
+
+    fireEvent.click(rowOf(etcd));
+    fireEvent.click(screen.getByTestId("alert-template-change"));
+    fireEvent.click(rowOf(highCpu));
+
+    expect(
+      onTemplateSelected.mock.calls.map((call: Array<unknown>): string => {
+        return (call[0] as KubernetesAlertTemplate).id;
+      }),
+    ).toEqual([etcd.id, highCpu.id]);
+    expect(picked()).toHaveAttribute("data-alert-template-id", highCpu.id);
+    expect(
+      within(picked()).getByTestId("alert-template-picked-severity"),
+    ).toHaveTextContent("Warning");
+  });
+
+  test("a new pick starts with its description folded", () => {
+    renderForm();
+
+    fireEvent.click(rowOf(etcd));
+    fireEvent.click(screen.getByTestId("alert-template-description-toggle"));
+    expect(screen.getByTestId("alert-template-description")).toBeVisible();
+
+    fireEvent.click(screen.getByTestId("alert-template-change"));
+    fireEvent.click(rowOf(highCpu));
+
+    expect(
+      screen.queryByTestId("alert-template-description"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a pick the list does not offer leaves the list open, nothing checked", () => {
+    renderForm(getJestMockFunction(), "a-template-from-another-platform");
+
+    expect(rows()).toHaveLength(kubernetes.length);
+    for (const row of rows()) {
+      expect(row).toHaveAttribute("aria-checked", "false");
+    }
+    expect(
+      screen.queryByTestId("what-the-template-asks-for"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("the Time Range under a picked template", () => {
+  test("is labelled, says in one line what it is, and shows the template's window", () => {
     render(
       <AlertTemplateConfiguration
-        template={template}
         rollingTime={RollingTime.Past5Minutes}
         onRollingTimeChange={getJestMockFunction()}
       />,
     );
 
-    const panel: HTMLElement = screen.getByTestId(
+    const field: HTMLElement = screen.getByTestId(
       "alert-template-configuration",
     );
 
+    expect(within(field).getByText("Time Range")).toBeInTheDocument();
     expect(
-      within(panel).getByRole("heading", { name: "Template Configuration" }),
+      within(field).getByText("How far back each check looks."),
     ).toBeInTheDocument();
-    expect(
-      within(panel).getByTestId("alert-template-configuration-name"),
-    ).toHaveTextContent(template.name);
-    expect(
-      within(panel).getByTestId("alert-template-description"),
-    ).toHaveTextContent(template.description);
-    expect(within(panel).getByText("Time Range")).toBeInTheDocument();
-    expect(within(panel).getByText("Past 5 Minutes")).toBeInTheDocument();
+    expect(within(field).getByText("Past 5 Minutes")).toBeInTheDocument();
   });
 
-  test("says nothing the old panel said about settings being auto-configured", () => {
+  test("is the only thing in it: no heading, no name and no description of its own", () => {
     render(
       <AlertTemplateConfiguration
-        template={template}
         rollingTime={RollingTime.Past5Minutes}
         onRollingTimeChange={getJestMockFunction()}
       />,
     );
 
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Template Configuration"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText(
         "The following settings have been auto-configured. You can adjust the time range below.",
