@@ -23,9 +23,9 @@ import { createHmac } from "crypto";
 /*
  * A SCIM connection's OAuth 2.0 client credentials: secrets made and kept
  * as hashes, matched only while they live, and access tokens that name
- * their connection and the secret they were issued with - so replacing,
- * deleting or the expiry of that secret ends them - and that are never any
- * other kind of token.
+ * their connection and the secret they were issued with - so a secret
+ * deleted, expired, or pushed out by two newer ones ends them - and that are
+ * never any other kind of token.
  */
 
 // Decoding a token signed for another use logs why it was refused.

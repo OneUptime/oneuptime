@@ -71,7 +71,7 @@ const CLIENT_SECRETS_SELECT: {
 };
 
 export const ACCESS_TOKEN_SECRET_ENDED_MESSAGE: string =
-  "The client secret this access token was issued with has been replaced, deleted or has expired. Request a new access token with a current client secret.";
+  "The client secret this access token was issued with has expired, or is no longer one of the connection's secrets. Request a new access token with a current client secret.";
 
 // What getMissingPlanOrRefuse returns once it has answered the request.
 type Refused = "refused";
@@ -341,10 +341,10 @@ export default class SCIMMiddleware {
 
   /*
    * The connection an access token found, while the secret it was issued
-   * with is still one of the connection's own: replacing or deleting the
-   * secret, or its expiring, ends the tokens it gave at once. Without an
-   * access token - a connection's own bearer token, matched in the query -
-   * the connection as found.
+   * with is still one of the connection's own: once it is deleted, expires
+   * or is pushed out by two newer secrets, the tokens it gave end at once.
+   * Without an access token - a connection's own bearer token, matched in
+   * the query - the connection as found.
    */
   private static withLiveSecret<T extends ProjectSCIM | StatusPageSCIM | null>(
     accessToken: ScimAccessTokenClaims | null,

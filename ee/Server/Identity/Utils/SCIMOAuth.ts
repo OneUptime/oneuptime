@@ -23,8 +23,9 @@ import crypto from "crypto";
  * gap.
  *
  * An access token lasts an hour and names its connection and - by a
- * fingerprint, never the hash - the secret it was issued with: deleting or
- * replacing that secret, or its expiring, ends the tokens issued with it at
+ * fingerprint, never the hash - the secret it was issued with: once that
+ * secret is no longer one of the connection's live secrets - deleted,
+ * expired, or pushed out by two newer ones - the tokens issued with it end at
  * once. It is signed like every other token OneUptime signs
  * (JSONWebToken.signJsonPayload) and says what it is for in its purpose
  * claim, so it is never anything else, and nothing else is ever one.
@@ -141,8 +142,7 @@ const getLiveSecretHashes: (
 /*
  * The hash of the connection's secret `secret` is, when it is one of its
  * secrets and has not expired - or null. An expired secret gets no access
- * token (Microsoft Entra ID's requirement), and neither does one that was
- * replaced and then deleted.
+ * token (Microsoft Entra ID's requirement), and neither does a deleted one.
  */
 export const matchScimClientSecret: (data: {
   secret: string;
@@ -249,8 +249,8 @@ export const readScimAccessToken: (data: {
 
 /*
  * Whether an access token's secret is still one of the connection's live
- * secrets: replacing, deleting or expiry of the secret ends the tokens it
- * gave.
+ * secrets, current or previous: deleted, expired, or pushed out by two newer
+ * secrets, it ends the tokens it gave.
  */
 export const isLiveScimClientSecretFingerprint: (data: {
   secretFingerprint: string;
