@@ -420,11 +420,10 @@ describe("CodeFixAgentAuth.resolveAgentIdentity refuses a shipped agent key", ()
   });
 
   /*
-   * The in-cluster fleet's global agent registers with ONEUPTIME_RUNNER_KEY.
-   * An installation that left it at a value the repository ships would hand
-   * every code-fix route — claiming work, reading task data, minting
-   * repository tokens — to anyone who knows the public value. A shipped key
-   * is refused before either registry is read.
+   * The in-cluster fleet's global agent registers with ONEUPTIME_RUNNER_KEY,
+   * which config.example.env ships as a placeholder. A key the repository
+   * ships never authenticates an agent on any code-fix route: it is refused
+   * before either registry is read.
    */
   test.each([
     ["the old fallback", "secret"],
