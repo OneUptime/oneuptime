@@ -313,7 +313,7 @@ describe("the derivation itself is sound", () => {
      * a template literal - both invisible to the regex scanner this replaced.
      */
     expect(paths).toContain(
-      "/server-monitor-ingest/server-monitor/queue/stats",
+      "/server-monitor-ingest/server-monitor/secret-key/verify/:secretkey",
     );
     expect(paths).toContain("/workflow/model-schema/:tableName");
 

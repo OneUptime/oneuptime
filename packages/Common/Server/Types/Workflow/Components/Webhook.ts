@@ -4,6 +4,7 @@ import {
   NextFunction,
 } from "../../../Utils/Express";
 import Response from "../../../Utils/Response";
+import ClusterKeyAuthorization from "../../../Middleware/ClusterKeyAuthorization";
 import { RunOptions, RunReturnType } from "../ComponentCode";
 import TriggerCode, { ExecuteWorkflowType, InitProps } from "../TriggerCode";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -133,7 +134,13 @@ export default class WebhookTrigger extends TriggerCode {
     const executeWorkflow: ExecuteWorkflowType = {
       workflowId: new ObjectID(workflow._id),
       returnValues: {
-        "request-headers": req.headers,
+        /*
+         * Every header the caller sent but the two OneUptime's own services
+         * prove themselves with: a run's values are the project's to read.
+         */
+        "request-headers": ClusterKeyAuthorization.withoutClusterKeyHeaders(
+          req.headers,
+        ),
         "request-params": req.query,
         "request-body": req.body,
       },

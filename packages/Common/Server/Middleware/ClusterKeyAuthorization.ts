@@ -8,6 +8,10 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
+import logger, {
+  getLogAttributesFromRequest,
+  type RequestLike,
+} from "../Utils/Logger";
 import Response from "../Utils/Response";
 import TokenSigningKey from "../Utils/TokenSigningKey";
 import Dictionary from "../../Types/Dictionary";
@@ -50,13 +54,37 @@ import crypto from "crypto";
  * random one in config.env for Docker Compose
  * (Scripts/Install/ReplacePlaceholderSecrets.js), and the Helm chart
  * generates one.
+ *
+ * IN A HEADER, AND NOWHERE ELSE
+ *
+ * The key travels in the clusterkey request header (x-clusterkey too, as
+ * KEDA would send it), which every OneUptime service sends and every release
+ * has read. Never in the URL: proxies, ingresses, access logs and the
+ * request's own trace keep URLs, so a request whose URL carries the key is
+ * refused, whatever else it carries. Never in the body either - with one
+ * exception, for as long as Runners of earlier releases are about: the
+ * Runner's registration (isAuthorizedRunnerRegistrationMiddleware) also
+ * takes the clusterKey field of its JSON body, where those Runners put it,
+ * and logs that the Runner should be updated.
+ *
+ * Every OneUptime service presents the key to these routes alone, through
+ * getClusterKeyHeaders, and no route hands the headers it is sent to
+ * anything a project can read without taking these two out first
+ * (withoutClusterKeyHeaders).
  */
 
 // What the installation's own cluster key is derived for, and nothing else.
 export const INSTALLATION_CLUSTER_KEY_LABEL: string =
   "oneuptime-installation-cluster-key";
 
-export const CLUSTER_KEY_NOT_FOUND_MESSAGE: string = "Cluster key not found.";
+export const CLUSTER_KEY_NOT_FOUND_MESSAGE: string =
+  'Cluster key not found. OneUptime\'s services send it in the "clusterkey" request header.';
+
+export const CLUSTER_KEY_IN_URL_MESSAGE: string =
+  'OneUptime takes the cluster key only in the "clusterkey" request header, never in the URL, which proxies and access logs keep. Send it in the header, and if it was sent in a URL, change ONEUPTIME_SECRET on the OneUptime app and on every service that uses it.';
+
+export const OLDER_RUNNER_CLUSTER_KEY_MESSAGE: string =
+  'A Runner registered with the cluster key in its request body, as Runners of earlier releases send it. Update that Runner to the release the OneUptime app runs: it sends the key in the "clusterkey" request header.';
 
 export const INVALID_CLUSTER_KEY_MESSAGE: string =
   "Invalid cluster key provided";
@@ -69,6 +97,29 @@ const CLUSTER_KEY_HEADER: string = "clusterkey";
 
 // KEDA's TriggerAuthentication sends its parameters with an X- prefix.
 const PREFIXED_CLUSTER_KEY_HEADER: string = "x-clusterkey";
+
+// The headers the key travels in.
+const CLUSTER_KEY_HEADERS: Array<string> = [
+  CLUSTER_KEY_HEADER,
+  PREFIXED_CLUSTER_KEY_HEADER,
+];
+
+// Where Runners of earlier releases put the key: their registration's body.
+const OLDER_RUNNER_BODY_FIELD: string = "clusterKey";
+
+// A URL's name for the key: any case, with or without separators.
+const CLUSTER_KEY_NAMES: Array<string> = ["clusterkey", "xclusterkey"];
+
+const NAME_SEPARATORS: RegExp = /[-_\s]/g;
+
+function namesClusterKey(name: string): boolean {
+  return CLUSTER_KEY_NAMES.includes(
+    name.toLowerCase().replace(NAME_SEPARATORS, ""),
+  );
+}
+
+// Where a request presented the key from.
+type PresentedFrom = "header" | "older Runner body";
 
 export default class ClusterKeyAuthorization {
   @CaptureSpan()
@@ -163,18 +214,11 @@ export default class ClusterKeyAuthorization {
   }
 
   /*
-   * The cluster key a request presents, where OneUptime's services and
-   * KEDA put it, or undefined.
+   * The cluster key a request presents in its headers, where OneUptime's
+   * services and KEDA put it, or undefined. Nothing else of a request is
+   * read for it.
    */
   public static getPresentedClusterKey(req: ExpressRequest): unknown {
-    if (req.params && req.params["clusterKey"]) {
-      return req.params["clusterKey"];
-    }
-
-    if (req.query && req.query["clusterKey"]) {
-      return req.query["clusterKey"];
-    }
-
     if (req.headers && req.headers[CLUSTER_KEY_HEADER]) {
       return req.headers[CLUSTER_KEY_HEADER];
     }
@@ -183,21 +227,125 @@ export default class ClusterKeyAuthorization {
       return req.headers[PREFIXED_CLUSTER_KEY_HEADER];
     }
 
-    if (req.body && req.body.clusterKey) {
-      return req.body.clusterKey;
-    }
-
     return undefined;
   }
 
+  /*
+   * The key a Runner of an earlier release registers with: the clusterKey
+   * field of its JSON body, or undefined. Read for the Runner's
+   * registration alone.
+   */
+  public static getOlderRunnerClusterKey(req: ExpressRequest): unknown {
+    const body: unknown = req.body;
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return undefined;
+    }
+
+    return (body as Dictionary<unknown>)[OLDER_RUNNER_BODY_FIELD] || undefined;
+  }
+
+  /*
+   * Whether the request's URL - its query string, or a path parameter -
+   * names the key, under any spelling of its name.
+   */
+  public static carriesClusterKeyInUrl(req: ExpressRequest): boolean {
+    for (const names of [req.query, req.params]) {
+      if (
+        names &&
+        typeof names === "object" &&
+        Object.keys(names).some(namesClusterKey)
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /*
+   * A copy of request headers without the ones that carry the key, for a
+   * route that hands the headers it was sent on to something a project can
+   * read - a workflow's Webhook trigger hands them to the run.
+   */
+  public static withoutClusterKeyHeaders<T>(
+    headers: Dictionary<T> | undefined | null,
+  ): Dictionary<T> {
+    const kept: Dictionary<T> = {};
+
+    for (const [name, value] of Object.entries(headers || {})) {
+      // Header names are not case-sensitive.
+      if (!CLUSTER_KEY_HEADERS.includes(name.toLowerCase())) {
+        kept[name] = value;
+      }
+    }
+
+    return kept;
+  }
+
+  /*
+   * Every route that takes the cluster key: the key in a request header,
+   * and only there.
+   */
   @CaptureSpan()
   public static async isAuthorizedServiceMiddleware(
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
-    const presented: unknown =
+    return await ClusterKeyAuthorization.authorize({
+      req: req,
+      res: res,
+      next: next,
+      presented: ClusterKeyAuthorization.getPresentedClusterKey(req),
+      presentedFrom: "header",
+    });
+  }
+
+  /*
+   * The in-cluster Runner's registration: the key in a request header, as
+   * the Runner of this release sends it - or, from a Runner of an earlier
+   * release, in the clusterKey field of the request's JSON body, so that a
+   * Runner a release behind the app still registers, during a rolling
+   * upgrade or after it.
+   */
+  @CaptureSpan()
+  public static async isAuthorizedRunnerRegistrationMiddleware(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    const inHeader: unknown =
       ClusterKeyAuthorization.getPresentedClusterKey(req);
+
+    return await ClusterKeyAuthorization.authorize({
+      req: req,
+      res: res,
+      next: next,
+      presented:
+        inHeader !== undefined
+          ? inHeader
+          : ClusterKeyAuthorization.getOlderRunnerClusterKey(req),
+      presentedFrom: inHeader !== undefined ? "header" : "older Runner body",
+    });
+  }
+
+  private static async authorize(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    next: NextFunction;
+    presented: unknown;
+    presentedFrom: PresentedFrom;
+  }): Promise<void> {
+    const { req, res, next, presented } = data;
+
+    if (ClusterKeyAuthorization.carriesClusterKeyInUrl(req)) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException(CLUSTER_KEY_IN_URL_MESSAGE),
+      );
+    }
 
     if (presented === undefined) {
       return Response.sendErrorResponse(
@@ -223,6 +371,13 @@ export default class ClusterKeyAuthorization {
         req,
         res,
         new BadDataException(INVALID_CLUSTER_KEY_MESSAGE),
+      );
+    }
+
+    if (data.presentedFrom === "older Runner body") {
+      logger.warn(
+        OLDER_RUNNER_CLUSTER_KEY_MESSAGE,
+        getLogAttributesFromRequest(req as RequestLike),
       );
     }
 

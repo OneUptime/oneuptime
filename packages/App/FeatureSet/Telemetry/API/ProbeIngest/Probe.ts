@@ -26,7 +26,6 @@ import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
-import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -525,49 +524,6 @@ router.post(
   },
 );
 
-// Queue stats endpoint
-router.get(
-  "/probe/queue/stats",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      const stats: {
-        waiting: number;
-        active: number;
-        completed: number;
-        failed: number;
-        delayed: number;
-        total: number;
-      } = await TelemetryQueueService.getQueueStats();
-      return Response.sendJsonObjectResponse(req, res, stats);
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
-// Queue size endpoint
-router.get(
-  "/probe/queue/size",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      const size: number = await TelemetryQueueService.getQueueSize();
-      return Response.sendJsonObjectResponse(req, res, { size });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
 // Queue size endpoint for Keda autoscaling (returns pending monitors count for specific probe)
 router.post(
   "/metrics/queue-size",
@@ -616,48 +572,6 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         queueSize: pendingCount.toNumber(),
-      });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
-// Queue failed jobs endpoint
-router.get(
-  "/probe/queue/failed",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      // Parse pagination parameters from query string
-      const start: number = parseInt(req.query["start"] as string) || 0;
-      const end: number = parseInt(req.query["end"] as string) || 100;
-
-      const failedJobs: Array<{
-        id: string;
-        name: string;
-        data: any;
-        failedReason: string;
-        stackTrace?: string;
-        processedOn: Date | null;
-        finishedOn: Date | null;
-        attemptsMade: number;
-      }> = await TelemetryQueueService.getFailedJobs({
-        start,
-        end,
-      });
-
-      return Response.sendJsonObjectResponse(req, res, {
-        failedJobs,
-        pagination: {
-          start,
-          end,
-          count: failedJobs.length,
-        },
       });
     } catch (err) {
       return next(err);
