@@ -57,14 +57,14 @@ Open een beleid vanuit de lijst. Het zijmenu ervan bevat alles over het beleid:
 
 ## Een beleid herhalen
 
-Loopt de wachttijd van het laatste niveau af zonder dat iemand bevestigt, dan stopt een beleid, tenzij het zich herhaalt. Open daarvoor de pagina **Escalatieregels** van het beleid, klik op **Bewerken** op de kaart **Herhaalbeleid** onder de regels en vul **Herhaalbeleid bewerken** in:
+Loopt de wachttijd van het laatste niveau af zonder dat iemand bevestigt, dan stopt een beleid, tenzij het zich herhaalt. Open om dat te kiezen de pagina **Escalatieregels** van het beleid en klik op **Bewerken** op de kaart **Herhaalbeleid** onder de regels. **Herhaalbeleid bewerken** vraagt **Als niemand bevestigt na het laatste niveau**:
 
-| Veld | Wat het doet | Bij een nieuw beleid |
-| --- | --- | --- |
-| **Repeat if no one acknowledges** | Start het beleid na het laatste niveau opnieuw bij **Level 1**. Zolang het uit staat, loopt het beleid één keer. | Uit |
-| **Number of times to repeat** | Hoe vaak het beleid nog opnieuw begint. | 0 |
+| Antwoord | Wat het doet |
+| --- | --- |
+| **Stoppen met oproepen** | Niemand wordt opnieuw opgeroepen, dus het beleid loopt één keer. Een nieuw beleid begint met dit antwoord. |
+| **Opnieuw beginnen bij Level 1** | Elk niveau wordt opnieuw opgeroepen, op volgorde. **Hoe vaak nog?** zegt hoe vaak: 1 of meer. |
 
-Met de schakelaar aan en drie herhalingen gaat een beleid in totaal vier keer door zijn niveaus. **Policy at a glance** op het **Overzicht** zegt hetzelfde in woorden.
+Een beleid dat nog drie keer opnieuw begint, gaat in totaal vier keer door zijn niveaus. De regel **Na het laatste niveau** op de kaart zegt wat het beleid doet, en **Policy at a glance** op het **Overzicht** zegt hetzelfde in woorden.
 
 ## Uitvoeringslogboeken
 
@@ -119,9 +119,11 @@ Bereikbaarheidsbeleid is de resource `/api/on-call-duty-policy`, en in Terraform
 | --- | --- |
 | **Naam** | `name` |
 | **Beschrijving** | `description` |
-| **Repeat if no one acknowledges** | `repeatPolicyIfNoOneAcknowledges` |
-| **Number of times to repeat** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Als niemand bevestigt na het laatste niveau** | `repeatPolicyIfNoOneAcknowledges` |
+| **Hoe vaak nog?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | Gearchiveerd | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` is `false` voor **Stoppen met oproepen** en `true` voor **Opnieuw beginnen bij Level 1**. Met `true` en `repeatPolicyIfNoOneAcknowledgesNoOfTimes` op `0` herhaalt een beleid zich nooit, en het dashboard toont het als **Stoppen met oproepen**.
 
 Hoe je een beleid met zijn eerste niveau in één verzoek maakt, lees je bij [Regels maken met de API of Terraform](/docs/on-call/escalation-rules#regels-maken-met-de-api-of-terraform).
 

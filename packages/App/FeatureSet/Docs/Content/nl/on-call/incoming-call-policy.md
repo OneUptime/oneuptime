@@ -49,7 +49,7 @@ Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen**. Klik
 
 ### Maak het beleid aan
 
-Ga naar **Bereikbaarheidsdienst** > **Beleid inkomende gesprekken** en klik op **Beleid inkomend gesprek aanmaken**. Geef het een **Naam**, zoals "Supportlijn", en desgewenst een **Beschrijving** en **Labels**. Open het daarna vanuit de lijst.
+Ga naar **Bereikbaarheidsdienst** > **Beleid inkomende gesprekken** en klik op **Beleid inkomend gesprek aanmaken**. Geef het een **Naam**, zoals "Supportlijn"; een **Beschrijving** en **Labels** zijn optioneel, onder **Meer velden**. Het nieuwe beleid opent op zijn **Overzicht**.
 
 ### Kies het Twilio-account
 
@@ -78,7 +78,7 @@ Wanneer alle drie de stappen klaar zijn, wordt de kaart **Phone Numbers & Twilio
 2. OneUptime laat de persoon overgaan die de eerste escalatieregel noemt: die persoon, of wie er op dat moment dienst heeft in het bereikbaarheidsschema van de regel, overrides van gebruikers inbegrepen. Diens telefoon toont het nummer van het beleid als beller.
 3. Neemt die persoon op binnen de tijd **Overgaan gedurende** van de regel, dan wordt de beller doorverbonden, en het belogboek legt vast wie opnam.
 4. Zo niet, dan hoort de beller "Connecting you to the next available engineer.", en gaat de persoon van de volgende regel over.
-5. Na de laatste regel begint het beleid opnieuw bij de eerste regel als **Herhaalbeleid als niemand antwoordt** aan staat, zo vaak als **Aantal keren herhaalbeleid** zegt. Anders hoort de beller het **Bericht bij geen antwoord**, en eindigt het gesprek.
+5. Na de laatste regel beslist het **Herhaalbeleid** van het beleid: **Opnieuw laten overgaan vanaf de eerste regel** laat elke regel opnieuw overgaan, zo vaak als het zegt, en **Gesprek beëindigen** niet. Daarna hoort de beller het **Bericht bij geen antwoord**, en eindigt het gesprek.
 
 ```mermaid title="De verzoeken achter één gesprek"
 sequenceDiagram
@@ -98,7 +98,7 @@ sequenceDiagram
     Twilio-->>Caller: Verbindt de<br/>beller door
 ```
 
-Een regel wordt overgeslagen, zonder iemand te laten overgaan, wanneer er op dit moment niemand voor kan worden gebeld: het schema ervan heeft niemand van dienst, de persoon heeft in dit project geen geverifieerd nummer voor inkomende oproepen, of is geen lid van het project meer. Heeft geen enkele regel iemand om te laten overgaan, dan hoort de beller het **Bericht bij niemand beschikbaar**. Een uitgeschakeld beleid beantwoordt elk gesprek met "Sorry, this service is currently disabled." en hangt op.
+Een regel wordt overgeslagen, zonder iemand te laten overgaan, wanneer er op dit moment niemand voor kan worden gebeld: het schema ervan heeft niemand van dienst, de persoon heeft in dit project geen geverifieerd nummer voor inkomende oproepen, of is geen lid van het project meer. Heeft geen enkele regel iemand om te laten overgaan, dan hoort de beller het **Bericht bij niemand beschikbaar**. Staat **Gesprekken aannemen** uit, dan beantwoordt een beleid elk gesprek met "Sorry, this service is currently disabled." en hangt op.
 
 OneUptime controleert de handtekening van Twilio bij elk verzoek met het Auth Token van de Twilio-configuratie, en weigert een verzoek dat het niet kan verifiëren.
 
@@ -165,18 +165,21 @@ Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet ee
 
 ## Spraakberichten en beleidsinstellingen
 
-Open het beleid en kies **Instellingen** onder **Geavanceerd** in het zijmenu ervan. **Edit Messages** op de kaart **Spraakberichten** wijzigt wat bellers horen; **Edit Policy Settings** op de kaart **Beleidsinstellingen** wijzigt de rest.
+Open het beleid en kies **Instellingen** onder **Geavanceerd** in het zijmenu ervan. De pagina heeft drie kaarten:
+
+- **Gesprekken aannemen**: **Gesprekken naar de nummers van dit beleid aannemen** wordt opgeslagen zodra u de schakelaar omzet. Staat die uit, dan horen bellers dat de lijn niet beschikbaar is en wordt niemand gebeld; de nummers, regels en belogboeken blijven bewaard. Uitzetten vraagt eerst om bevestiging, met **Geen gesprekken meer aannemen**. Zolang het uit staat, zegt het **Overzicht** van het beleid dat, met **Weer gesprekken aannemen** om het weer aan te zetten.
+- **Herhaalbeleid**: wat er gebeurt als niemand opneemt na de laatste regel. **Bewerken** vraagt **Als niemand opneemt na de laatste regel**: **Gesprek beëindigen**, of **Opnieuw laten overgaan vanaf de eerste regel** en **Hoe vaak nog?**.
+- **Spraakberichten**: wat bellers horen. **Berichten bewerken** wijzigt ze.
 
 | Instelling | Wat het doet | Bij een nieuw beleid |
 | --- | --- | --- |
-| **Begroetingsbericht** | Wordt voorgelezen wanneer het gesprek wordt aangenomen, voordat de eerste persoon wordt gebeld. | "Please wait while we connect you to the on-call engineer." |
-| **Bericht bij geen antwoord** | Wordt voorgelezen wanneer elke regel is geprobeerd en niemand heeft opgenomen. | "No one is available. Please try again later." |
-| **Bericht bij niemand beschikbaar** | Wordt voorgelezen wanneer geen enkele regel iemand heeft om te laten overgaan. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
-| **Ingeschakeld** | Een uitgeschakeld beleid weigert elk gesprek. | Aan |
-| **Herhaalbeleid als niemand antwoordt** | Begint na de laatste regel opnieuw bij de eerste. | Uit |
-| **Aantal keren herhaalbeleid** | Hoe vaak er opnieuw wordt begonnen. | 1 |
+| **Begroetingsbericht** | Wordt voorgelezen wanneer iemand belt, voordat iemand wordt gebeld. | "Please wait while we connect you to the on-call engineer." |
+| **Bericht bij geen antwoord** | Wordt voorgelezen wanneer elke regel is overgegaan en niemand heeft opgenomen, voordat het gesprek eindigt. | "No one is available. Please try again later." |
+| **Bericht bij niemand beschikbaar** | Wordt voorgelezen wanneer niemand gebeld kan worden, bijvoorbeeld als niemand dienst heeft. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Gesprekken naar de nummers van dit beleid aannemen** | Staat het uit, dan hoort elke beller "Sorry, this service is currently disabled." en eindigt het gesprek. | Aan |
+| **Als niemand opneemt na de laatste regel** | **Gesprek beëindigen**, of **Opnieuw laten overgaan vanaf de eerste regel**. | **Gesprek beëindigen** |
 
-Twilio leest de berichten voor met een tekst-naar-spraakstem, dus schrijf ze zoals u wilt dat ze klinken.
+Twilio leest de berichten voor met een tekst-naar-spraakstem, dus schrijf ze zoals u wilt dat ze klinken. Een leeg gelaten bericht wordt voorgelezen in de eigen woorden van OneUptime, die de kaart op zijn plaats toont.
 
 ## Belogboeken
 
@@ -188,7 +191,7 @@ Elk gesprek staat op de pagina **Belogboeken** van het beleid, onder **Logboeken
 | **Voltooid** | Iemand nam op, en de beller werd doorverbonden. |
 | **Geen antwoord** | Elke escalatieregel is geprobeerd en niemand nam op. De beller hoorde uw **Bericht bij geen antwoord**. |
 | **Caller Hung Up** | De beller hing op terwijl de telefoon van een engineer overging. |
-| **Mislukt** | Niemand kon worden gebeld: geen enkele escalatieregel had een dienstdoende gebruiker met een geverifieerd nummer voor inkomende oproepen (de beller hoorde uw **Bericht bij niemand beschikbaar**), of het beleid is uitgeschakeld. |
+| **Mislukt** | Niemand kon worden gebeld: geen enkele escalatieregel had een dienstdoende gebruiker met een geverifieerd nummer voor inkomende oproepen (de beller hoorde uw **Bericht bij niemand beschikbaar**), of **Gesprekken aannemen** staat uit. |
 
 ## Gemiste oproepen
 
@@ -257,7 +260,7 @@ Een regel die via de API zonder `escalateAfterSeconds` wordt gemaakt, gaat 20 se
 :::
 
 :::details Het gesprek wordt aangenomen, maar niemand wordt gebeld
-Het belogboek zegt **Mislukt**. Controleer of het beleid **Ingeschakeld** is, of het bereikbaarheidsschema van elke regel nu iemand van dienst heeft, en of de mensen die de regels laten overgaan een geverifieerd nummer hebben onder **Gebruikersinstellingen** > **Beleid inkomend gesprek** > **Inkomende telefoonnummers**, in dit project. Regels bellen alleen leden van het project.
+Het belogboek zegt **Mislukt**. Controleer of **Gesprekken aannemen** aan staat in de **Instellingen** van het beleid, of het bereikbaarheidsschema van elke regel nu iemand van dienst heeft, en of de mensen die de regels laten overgaan een geverifieerd nummer hebben onder **Gebruikersinstellingen** > **Beleid inkomend gesprek** > **Inkomende telefoonnummers**, in dit project. Regels bellen alleen leden van het project.
 :::
 
 :::details Gesprekken eindigen in de voicemail

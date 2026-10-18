@@ -49,7 +49,7 @@ Vá em **Configurações do projeto** > **Notificações** > **Configurações d
 
 ### Crie a política
 
-Vá em **Plantão** > **Políticas de chamadas recebidas** e clique em **Criar: Política de chamadas recebidas**. Dê a ela um **Nome**, por exemplo "Linha de suporte", e, se quiser, uma **Descrição** e **Rótulos**. Depois abra a política na lista.
+Vá em **Plantão** > **Políticas de chamadas recebidas** e clique em **Criar: Política de chamadas recebidas**. Dê a ela um **Nome**, por exemplo "Linha de suporte"; **Descrição** e **Rótulos** são opcionais, em **Mais campos**. A nova política abre na sua **Visão geral**.
 
 ### Escolha a conta do Twilio
 
@@ -78,7 +78,7 @@ Quando os três passos estiverem concluídos, o cartão vira **Phone Numbers & T
 2. O OneUptime faz tocar a pessoa citada pela primeira regra de escalonamento: essa pessoa, ou quem estiver de plantão naquele momento no agendamento de plantão da regra, substituições de usuário incluídas. O telefone dela mostra o número da política como quem está ligando.
 3. Se ela atender dentro do **Tempo de toque** da regra, a chamada é transferida, e o registro de chamadas guarda quem atendeu.
 4. Se não, quem liga ouve "Connecting you to the next available engineer." e a pessoa da próxima regra toca.
-5. Depois da última regra, a política recomeça pela primeira se **Repetir Política Se Ninguém Responder** estiver ligado, quantas vezes **Número de Repetições da Política** mandar. Se não, quem liga ouve a **Mensagem de Sem Resposta**, e a chamada termina.
+5. Depois da última regra, a **Política de Repetição** da política decide: **Tocar de novo a partir da primeira regra** faz cada regra tocar de novo, quantas vezes mais ela disser, e **Encerrar a chamada** não. Depois, quem liga ouve a **Mensagem de Sem Resposta**, e a chamada termina.
 
 ```mermaid title="As requisições por trás de uma chamada"
 sequenceDiagram
@@ -98,7 +98,7 @@ sequenceDiagram
     Twilio-->>Caller: Transfere<br/>a chamada
 ```
 
-Uma regra é pulada, sem tocar para ninguém, quando agora não há ninguém para chamar por ela: o agendamento dela não tem ninguém de plantão, a pessoa não tem um número verificado para chamadas recebidas neste projeto ou não é mais membro do projeto. Quando nenhuma regra tem alguém para tocar, quem liga ouve a **Mensagem de Ninguém Disponível**. Uma política desativada responde a toda chamada com "Sorry, this service is currently disabled." e desliga.
+Uma regra é pulada, sem tocar para ninguém, quando agora não há ninguém para chamar por ela: o agendamento dela não tem ninguém de plantão, a pessoa não tem um número verificado para chamadas recebidas neste projeto ou não é mais membro do projeto. Quando nenhuma regra tem alguém para tocar, quem liga ouve a **Mensagem de Ninguém Disponível**. Com **Atender chamadas** desligado, uma política responde a toda chamada com "Sorry, this service is currently disabled." e desliga.
 
 O OneUptime confere a assinatura do Twilio em cada requisição com o Auth Token da configuração do Twilio, e recusa uma requisição que não consegue verificar.
 
@@ -165,18 +165,21 @@ Os números para chamadas recebidas são verificados por SMS, então o **SMS** p
 
 ## Mensagens de voz e configurações da política
 
-Abra a política e escolha **Configurações** em **Avançado** no menu lateral dela. **Edit Messages** no cartão **Mensagens de voz** muda o que quem liga ouve; **Edit Policy Settings** no cartão **Configurações da política** muda o resto.
+Abra a política e escolha **Configurações** em **Avançado** no menu lateral dela. A página tem três cartões:
+
+- **Atender chamadas**: **Atender as chamadas para os números desta política** é salvo assim que você o muda. Desligado, quem liga ouve que a linha não está disponível e ninguém é chamado; os números, as regras e os registros de chamadas são mantidos. Desligar pede confirmação antes, com **Parar de atender chamadas**. Enquanto está desligado, a **Visão geral** da política o indica, com **Voltar a atender chamadas** para religá-lo.
+- **Política de Repetição**: o que acontece quando ninguém atende depois da última regra. **Editar** pergunta **Se ninguém atender depois da última regra**: **Encerrar a chamada**, ou **Tocar de novo a partir da primeira regra** e **Quantas vezes mais?**.
+- **Mensagens de voz**: o que quem liga ouve. **Editar mensagens** as muda.
 
 | Configuração | O que faz | Em uma política nova |
 | --- | --- | --- |
-| **Mensagem de Saudação** | Lida quando a chamada é atendida, antes de a primeira pessoa tocar. | "Please wait while we connect you to the on-call engineer." |
-| **Mensagem de Sem Resposta** | Lida quando todas as regras foram tentadas e ninguém atendeu. | "No one is available. Please try again later." |
-| **Mensagem de Ninguém Disponível** | Lida quando nenhuma regra tem alguém para tocar. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
-| **Habilitado** | Uma política desativada recusa todas as chamadas. | Ligado |
-| **Repetir Política Se Ninguém Responder** | Depois da última regra, recomeça pela primeira. | Desligado |
-| **Número de Repetições da Política** | Quantas vezes recomeçar. | 1 |
+| **Mensagem de Saudação** | Lida quando alguém liga, antes de chamar qualquer pessoa. | "Please wait while we connect you to the on-call engineer." |
+| **Mensagem de Sem Resposta** | Lida quando todas as regras tocaram e ninguém atendeu, antes de a chamada terminar. | "No one is available. Please try again later." |
+| **Mensagem de Ninguém Disponível** | Lida quando não é possível chamar ninguém, por exemplo quando ninguém está de plantão. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Atender as chamadas para os números desta política** | Desligado, cada pessoa que liga ouve "Sorry, this service is currently disabled." e a chamada termina. | Ligado |
+| **Se ninguém atender depois da última regra** | **Encerrar a chamada**, ou **Tocar de novo a partir da primeira regra**. | **Encerrar a chamada** |
 
-O Twilio lê as mensagens com uma voz sintetizada, então escreva-as do jeito que quer que soem.
+O Twilio lê as mensagens com uma voz sintetizada, então escreva-as do jeito que quer que soem. Uma mensagem deixada vazia é lida com as palavras do OneUptime, que o cartão mostra no lugar dela.
 
 ## Registros de chamadas
 
@@ -188,7 +191,7 @@ Toda chamada aparece na página **Registros de chamadas** da política, em **Reg
 | **Concluído** | Alguém atendeu, e a chamada foi transferida. |
 | **Sem Resposta** | Todas as regras de escalonamento foram tentadas e ninguém atendeu. Quem ligou ouviu a sua **Mensagem de Sem Resposta**. |
 | **Caller Hung Up** | Quem ligou desligou enquanto o telefone de uma pessoa tocava. |
-| **Falhou** | Não foi possível tocar para ninguém: nenhuma regra de escalonamento tinha uma pessoa de plantão com um número verificado para chamadas recebidas (quem ligou ouviu a sua **Mensagem de Ninguém Disponível**), ou a política está desativada. |
+| **Falhou** | Não foi possível tocar para ninguém: nenhuma regra de escalonamento tinha uma pessoa de plantão com um número verificado para chamadas recebidas (quem ligou ouviu a sua **Mensagem de Ninguém Disponível**), ou **Atender chamadas** está desligado. |
 
 ## Chamadas perdidas
 
@@ -257,7 +260,7 @@ Uma regra criada pela API sem `escalateAfterSeconds` toca por 20 segundos, assim
 :::
 
 :::details A chamada é atendida, mas ninguém toca
-O registro de chamadas mostra **Falhou**. Confira se a política está **Habilitado**, se o agendamento de plantão de cada regra tem alguém de plantão agora e se as pessoas que as regras fazem tocar têm um número verificado em **Configurações do usuário** > **Política de chamadas recebidas** > **Números de telefone recebidos**, neste projeto. As regras só fazem tocar membros do projeto.
+O registro de chamadas mostra **Falhou**. Confira se **Atender chamadas** está ligado nas **Configurações** da política, se o agendamento de plantão de cada regra tem alguém de plantão agora e se as pessoas que as regras fazem tocar têm um número verificado em **Configurações do usuário** > **Política de chamadas recebidas** > **Números de telefone recebidos**, neste projeto. As regras só fazem tocar membros do projeto.
 :::
 
 :::details As chamadas acabam na caixa postal

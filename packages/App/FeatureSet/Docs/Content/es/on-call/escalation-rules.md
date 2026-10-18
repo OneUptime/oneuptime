@@ -79,7 +79,7 @@ Cuando un incidente o una alerta llega a la política, **Level 1** avisa a sus d
 
 Un incidente, una alerta o un episodio que se crea ya reconocido o resuelto —registrado a posteriori— no ejecuta ninguna de sus políticas: no se avisa a nadie, y su feed lo indica, nombrándolas. Consulta [Declarado ya reconocido o resuelto](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto).
 
-Para repetir una política, haz clic en **Editar** en la tarjeta **Política de repetición**, activa **Repetir si nadie reconoce** y define el **Número de veces que repetir**.
+Para repetir una política, haz clic en **Editar** en la tarjeta **Política de repetición**, elige **Empezar de nuevo desde Level 1** y define **¿Cuántas veces más?**.
 
 ### El resumen de escalado
 

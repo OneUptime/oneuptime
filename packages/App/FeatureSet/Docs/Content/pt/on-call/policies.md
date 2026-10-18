@@ -57,14 +57,14 @@ Abra uma política a partir da lista. O menu lateral dela reúne tudo sobre ela:
 
 ## Repetir uma política
 
-Quando a espera do último nível acaba sem que ninguém confirme, uma política para, a menos que se repita. Para repeti-la, abra a página **Regras de escalonamento** da política, clique em **Editar** no cartão **Política de Repetição** abaixo das regras e preencha **Editar: Política de Repetição**:
+Quando a espera do último nível acaba sem que ninguém confirme, uma política para, a menos que se repita. Para escolher, abra a página **Regras de escalonamento** da política e clique em **Editar** no cartão **Política de Repetição** abaixo das regras. **Editar política de repetição** pergunta **Se ninguém confirmar depois do último nível**:
 
-| Campo | O que faz | Em uma nova política |
-| --- | --- | --- |
-| **Repeat if no one acknowledges** | Recomeça a política em **Level 1** depois do último nível. Enquanto está desligado, a política é executada uma única vez. | Desligado |
-| **Number of times to repeat** | Quantas vezes mais a política recomeça. | 0 |
+| Resposta | O que faz |
+| --- | --- |
+| **Parar de acionar** | Ninguém é acionado de novo, então a política é executada uma única vez. Uma nova política começa com esta resposta. |
+| **Recomeçar a partir do Level 1** | Cada nível é acionado de novo, em ordem. **Quantas vezes mais?** diz quantas vezes: 1 ou mais. |
 
-Com a chave ligada e três repetições, uma política percorre seus níveis quatro vezes no total. **Policy at a glance** na **Visão geral** diz o mesmo em palavras.
+Uma política que recomeça mais três vezes percorre seus níveis quatro vezes no total. A linha **Depois do último nível** do cartão diz o que a política faz, e **Policy at a glance** na **Visão geral** diz o mesmo em palavras.
 
 ## Registros de execução
 
@@ -119,9 +119,11 @@ As políticas de plantão são o recurso `/api/on-call-duty-policy`, e o recurso
 | --- | --- |
 | **Nome** | `name` |
 | **Descrição** | `description` |
-| **Repeat if no one acknowledges** | `repeatPolicyIfNoOneAcknowledges` |
-| **Number of times to repeat** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Se ninguém confirmar depois do último nível** | `repeatPolicyIfNoOneAcknowledges` |
+| **Quantas vezes mais?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | Arquivada | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` é `false` para **Parar de acionar** e `true` para **Recomeçar a partir do Level 1**. Com `true` e `repeatPolicyIfNoOneAcknowledgesNoOfTimes` em `0`, uma política nunca se repete, e o painel a mostra como **Parar de acionar**.
 
 Para criar uma política com seu primeiro nível em uma única requisição, veja [Criar regras com a API ou o Terraform](/docs/on-call/escalation-rules#criar-regras-com-a-api-ou-o-terraform).
 

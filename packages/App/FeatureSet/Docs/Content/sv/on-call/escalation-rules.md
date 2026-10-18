@@ -79,7 +79,7 @@ När en incident eller ett larm når policyn larmar **Level 1** sina mottagare d
 
 En incident, ett larm eller en episod som skapas redan bekräftad eller löst — registrerad i efterhand — kör ingen av sina policyer: ingen larmas, och dess feed säger det och nämner dem vid namn. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
 
-För att upprepa en policy klickar du på **Redigera** på kortet **Upprepningspolicy**, slår på **Repeat if no one acknowledges** och anger **Number of times to repeat**.
+För att upprepa en policy klickar du på **Redigera** på kortet **Upprepningspolicy**, väljer **Börja om från Level 1** och anger **Hur många gånger till?**.
 
 ### Eskaleringsöversikten
 
