@@ -443,13 +443,18 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             : undefined
         }
       >
-        <div className="border-t border-gray-200 divide-y divide-gray-100 -m-6 -mt-2">
+        {/*
+         * Card-wide rules under the description: the rows reach the card's
+         * edges (its padding is px-5 md:px-6, CARD_PADDING_CLASS_NAME) and
+         * their words start where the card's title does.
+         */}
+        <div className="-mx-5 -mb-6 -mt-2 divide-y divide-gray-100 border-t border-gray-200 md:-mx-6">
           {props.detailRows.map(
             (row: ResourceOverviewDetailRow, idx: number): ReactElement => {
               return (
                 <div
                   key={`row-${idx}`}
-                  className="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4"
+                  className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"
                 >
                   <dt className="text-sm font-medium text-gray-500">
                     {row.label}
@@ -477,7 +482,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             title="Explore telemetry"
             description="Drill into the raw signals for this resource."
           >
-            <div className="-m-6 -mt-2 border-t border-gray-200 divide-y divide-gray-100">
+            <div className="-mx-5 -mb-6 -mt-2 divide-y divide-gray-100 border-t border-gray-200 md:-mx-6">
               {props.quickLinks.map(
                 (
                   link: ResourceOverviewQuickLink,
@@ -487,7 +492,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     <AppLink
                       key={`ql-${idx}`}
                       to={link.to}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 md:px-6"
                     >
                       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-50 ring-1 ring-inset ring-gray-200">
                         <Icon

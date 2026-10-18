@@ -339,11 +339,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       <>
         {showNamespaceFilter && (
           <div className="mt-3">
-            <FieldLabelElement
-              title="Namespace"
-              description={"Filter by namespace (optional)."}
-              required={false}
-            />
+            <FieldLabelElement title="Namespace" required={false} />
             <Input
               value={
                 monitorStepKubernetesMonitor.resourceFilters.namespace || ""
@@ -364,11 +360,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showWorkloadFilter && (
           <div className="mt-3">
-            <FieldLabelElement
-              title="Workload Name"
-              description={"Filter by workload name (optional)."}
-              required={false}
-            />
+            <FieldLabelElement title="Workload Name" required={false} />
             <Input
               value={
                 monitorStepKubernetesMonitor.resourceFilters.workloadName || ""
@@ -389,11 +381,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showNodeFilter && (
           <div className="mt-3">
-            <FieldLabelElement
-              title="Node Name"
-              description={"Filter by node name (optional)."}
-              required={false}
-            />
+            <FieldLabelElement title="Node Name" required={false} />
             <Input
               value={
                 monitorStepKubernetesMonitor.resourceFilters.nodeName || ""
@@ -414,11 +402,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showPodFilter && (
           <div className="mt-3">
-            <FieldLabelElement
-              title="Pod Name"
-              description={"Filter by pod name (optional)."}
-              required={false}
-            />
+            <FieldLabelElement title="Pod Name" required={false} />
             <Input
               value={monitorStepKubernetesMonitor.resourceFilters.podName || ""}
               onChange={(value: string) => {

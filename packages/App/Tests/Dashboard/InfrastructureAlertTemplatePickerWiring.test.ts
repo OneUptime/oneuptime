@@ -284,6 +284,48 @@ describe("one shared template picker for every infrastructure type", () => {
     },
   );
 
+  test.each(TYPES)(
+    "$name's filter fields carry no line that says their label again",
+    (type: InfrastructureType) => {
+      const form: string = flat(read(`${FORMS}/${type.stepForm}`));
+
+      // The label says the field's name and "(Optional)" already.
+      expect(form).not.toMatch(
+        /description=\{"Filter by [^"]+ \(optional\)\."\}/,
+      );
+    },
+  );
+
+  test("Kubernetes, Docker and Podman draw those filter fields with their label alone", () => {
+    const kubernetes: string = flat(
+      read(`${FORMS}/KubernetesMonitor/KubernetesMonitorStepForm.tsx`),
+    );
+
+    for (const title of [
+      "Namespace",
+      "Workload Name",
+      "Node Name",
+      "Pod Name",
+    ]) {
+      expect(kubernetes).toContain(
+        `<FieldLabelElement title="${title}" required={false} />`,
+      );
+    }
+
+    for (const stepForm of [
+      "DockerMonitor/DockerMonitorStepForm.tsx",
+      "PodmanMonitor/PodmanMonitorStepForm.tsx",
+    ]) {
+      const form: string = flat(read(`${FORMS}/${stepForm}`));
+
+      for (const title of ["Container Name", "Container Image"]) {
+        expect(form).toContain(
+          `<FieldLabelElement title="${title}" required={false} />`,
+        );
+      }
+    }
+  });
+
   test("the shared components draw only the product's indigo", () => {
     for (const file of [
       "AlertTemplatePicker/AlertTemplatePicker.tsx",
@@ -804,6 +846,13 @@ describe("the words, in every language", () => {
     "Select the Proxmox metrics to monitor. Use the query builder for full control over metric selection and filtering.",
     "The array metrics to monitor, with label filters and grouping.",
     "The vCenter metrics to monitor, with attribute filters and grouping.",
+    // The filter fields' lines that said their label again.
+    "Filter by namespace (optional).",
+    "Filter by workload name (optional).",
+    "Filter by node name (optional).",
+    "Filter by pod name (optional).",
+    "Filter by container name (optional).",
+    "Filter by container image (optional).",
   ];
 
   test.each(RETIRED)("%s is in no language any more", (key: string) => {

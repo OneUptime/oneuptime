@@ -227,11 +227,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <>
         <div className="mt-3">
-          <FieldLabelElement
-            title="Container Name"
-            description={"Filter by container name (optional)."}
-            required={false}
-          />
+          <FieldLabelElement title="Container Name" required={false} />
           <Input
             value={
               monitorStepPodmanMonitor.containerFilters.containerName || ""
@@ -250,11 +246,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Container Image"
-            description={"Filter by container image (optional)."}
-            required={false}
-          />
+          <FieldLabelElement title="Container Image" required={false} />
           <Input
             value={
               monitorStepPodmanMonitor.containerFilters.containerImage || ""
