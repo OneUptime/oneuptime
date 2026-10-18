@@ -151,7 +151,13 @@ describe("the create form's fields", () => {
       "labels",
     ]);
     expect(fields[0]!.required).toBe(true);
-    expect(fields[0]!.placeholder).toBe("Schedule Name");
+    expect(fields[0]!.placeholder).toBe("e.g., Platform primary");
+    /*
+     * The title says what it is: the column's "Any friendly name of this
+     * object" is not drawn under it, nor its description's under Description.
+     */
+    expect(fields[0]!.hideColumnDescription).toBe(true);
+    expect(fields[4]!.hideColumnDescription).toBe(true);
   });
 
   test("ask who takes turns with the people picker, people only", () => {

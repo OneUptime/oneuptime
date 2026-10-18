@@ -323,7 +323,7 @@ test("search matches a policy by name or by description", async ({
   await expect(page.locator("tbody tr")).toHaveCount(4);
 });
 
-test("the create form validates the name, then adds the policy to the table", async ({
+test("the create form validates the name, then opens the new policy", async ({
   page,
 }: {
   page: Page;
@@ -341,6 +341,9 @@ test("the create form validates the name, then adds the policy to the table", as
   const name: Locator = dialog.getByPlaceholder(
     "e.g., Production Support Hotline",
   );
+  const description: Locator = dialog.getByPlaceholder(
+    "Description of this incoming call policy",
+  );
   const create: Locator = dialog.getByRole("button", {
     name: "Create Incoming Call Policy",
     exact: true,
@@ -354,14 +357,17 @@ test("the create form validates the name, then adds the policy to the table", as
   });
 
   /*
-   * One page: the name, the description, and the labels folded under
-   * More fields. There is no Labels step to walk, so no Next.
+   * One page: the name, with the description and the labels folded under
+   * More fields, as Create On-Call Policy asks. No steps, so no Next; and
+   * the name says no more than its title.
    */
   await expect(
     dialog.getByRole("button", { name: "Next", exact: true }),
   ).toHaveCount(0);
   await expect(advanced).toHaveAttribute("aria-expanded", "false");
+  await expect(description).toBeHidden();
   await expect(labels).toBeHidden();
+  await expect(dialog).not.toContainText("Any friendly name");
 
   // Empty name: required.
   await create.click();
@@ -377,14 +383,13 @@ test("the create form validates the name, then adds the policy to the table", as
   await screenshot(page, "incoming-call-policy-create-validation-synthetic");
 
   await name.fill("Status Page Callback Line");
-  await dialog
-    .getByPlaceholder("Description of this incoming call policy")
-    .fill("Customers calling from the status page");
 
-  // The labels are one click away, and optional.
+  // The description and the labels are one click away, and optional.
   await advanced.click();
   await expect(advanced).toHaveAttribute("aria-expanded", "true");
+  await expect(description).toBeVisible();
   await expect(labels).toBeVisible();
+  await description.fill("Customers calling from the status page");
   await expect(dialog.getByText("Name is required.")).toHaveCount(0);
   await create.click();
 
@@ -404,9 +409,41 @@ test("the create form validates the name, then adds the policy to the table", as
     },
   ]);
 
-  // The table refetched, and a brand new policy has no number yet.
-  await expect(page.locator("tbody tr")).toHaveCount(5);
-  await expect(row(page, "Status Page Callback Line")).toContainText(
-    "Setup Needed",
+  /*
+   * A new policy opens on its Overview, where its Setup card walks through
+   * the Twilio account, the number and the rules it still needs - rather
+   * than leaving a "Setup Needed" row in the list for somebody to open.
+   */
+  await expect(page).toHaveURL(
+    `${ROUTE}/30000000-0000-4000-8000-000000000005`,
   );
+});
+
+test("an empty list says what a policy is for, offers Create and the docs", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(`${ROUTE}?policies=none`);
+
+  await expect(
+    page.getByText("No incoming call policies yet", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Phone numbers people can call to reach whoever is on call.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  // Not the words of a search that missed.
+  await expect(page.getByText("No incoming call policy found")).toHaveCount(0);
+
+  await expect(page.getByTestId("empty-table-create-button")).toHaveText(
+    "Create Incoming Call Policy",
+  );
+  await expect(page.getByTestId("empty-table-docs-link")).toHaveText(
+    "View Documentation",
+  );
+
+  await screenshot(page, "incoming-call-policies-empty");
 });

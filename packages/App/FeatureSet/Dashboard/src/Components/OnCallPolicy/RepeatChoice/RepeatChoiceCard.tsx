@@ -142,6 +142,30 @@ export const getRepeatChoiceFormFields: <TBaseModel extends BaseModel>(
         minValue: 1,
       },
       showIf: isStartingAgain,
+      /*
+       * The box is there only while Start again is the answer. Typing in it -
+       * emptying it to type another number included - keeps that answer,
+       * which a stored pair would otherwise read again from the number: on
+       * an on-call policy an empty box reads as 0 repeats, which is Stop,
+       * and the box would vanish under the cursor.
+       */
+      onChange: (
+        _value: unknown,
+        currentValues: FormValues<TBaseModel>,
+        setNewFormValues: (values: FormValues<TBaseModel>) => void,
+      ): void => {
+        if (
+          asValues(currentValues)[REPEAT_CHOICE_FIELD_KEY] ===
+          RepeatChoice.StartAgain
+        ) {
+          return;
+        }
+
+        setNewFormValues({
+          ...asValues(currentValues),
+          [REPEAT_CHOICE_FIELD_KEY]: RepeatChoice.StartAgain,
+        } as FormValues<TBaseModel>);
+      },
       dataTestId: `${config.dataTestId}-times-field`,
     },
     {
