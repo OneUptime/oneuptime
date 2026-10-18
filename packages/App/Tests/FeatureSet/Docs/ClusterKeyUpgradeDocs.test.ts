@@ -27,8 +27,8 @@ import path from "path";
  *     that run Scripts/Install/ReplacePlaceholderSecrets.js (npm start's
  *     prestart, and configure.sh, which npm run update runs), and the Helm
  *     value it names is the chart's;
- *   - it sits after the note on HTTPS cookies and before the note on
- *     PostgreSQL's port and password, and points at the Docker Compose
+ *   - it sits after the note on HTTPS cookies and before the note on the
+ *     header the key travels in, and points at the Docker Compose
  *     guide's "Generate random secrets" step, in every language at that
  *     language's own heading;
  *   - every translation carries it in the English note's place, under a lead
@@ -47,9 +47,9 @@ const NOTE_LEAD: string =
 // The note before it (HttpsCookiesUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**Sign-in cookies stay on HTTPS, and an HTTPS installation tells browsers to stay there.**";
-// The note after it (DatabasePortDocs).
+// The note after it (ClusterKeyHeaderUpgradeDocs).
 const NEXT_LEAD: string =
-  "**PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.**";
+  "**OneUptime's own services send `ONEUPTIME_SECRET` in a header, and only to the routes that take it.**";
 
 const SECRETS_HEADING: string = "### Generate random secrets";
 const DOCKER_COMPOSE_PAGE: string = "installation/docker-compose";
@@ -132,7 +132,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on a placeholder ONEUPTIME_SECRET", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on HTTPS cookies and before the note on PostgreSQL's port and password", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on HTTPS cookies and before the note on the header the key travels in", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
