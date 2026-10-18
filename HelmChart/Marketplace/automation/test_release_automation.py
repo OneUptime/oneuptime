@@ -504,7 +504,7 @@ TREE = {
         {
             "$schema": f"{partner_center.SCHEMA}/plan/2022-03-01-preview2",
             "id": PLAN,
-            "identity": {"externalID": "enterprise"},
+            "identity": {"externalId": "enterprise"},
         },
         {
             "$schema": f"{partner_center.SCHEMA}/container-plan-technical-configuration/2022-03-01-preview4",
@@ -590,9 +590,46 @@ class PartnerCenterTest(unittest.TestCase):
         self.assertEqual(partner_center.PartnerCenter("the-token", opener=fake).resource_tree(PRODUCT, "preview"), [])
         self.assertIn("targetType=preview", fake.requests[0]["path"])
 
+        # What Partner Center really answers for a new offer (2026-10-18): 400, not 404.
+        never = urllib.error.HTTPError(
+            "https://graph.microsoft.com/rp/product-ingestion/resource-tree", 400, "Bad Request", {},
+            io.BytesIO(
+                b'{"error":{"code":"badRequest","message":"Publisher 92156140 Product 1111 has no published '
+                b'submission in Preview.","details":[]}}'
+            ),
+        )
+        center = partner_center.PartnerCenter("the-token", opener=FakePartnerCenter({"resource-tree/": never}))
+        self.assertEqual(center.resource_tree(PRODUCT, "preview"), [])
+
+        # Any other 400 is an error.
+        other = urllib.error.HTTPError(
+            "https://graph.microsoft.com/rp/product-ingestion/resource-tree", 400, "Bad Request", {},
+            io.BytesIO(b'{"error":{"code":"badRequest","message":"The Version query parameter is not valid."}}'),
+        )
+        with self.assertRaises(release_common.ReleaseError):
+            partner_center.PartnerCenter("the-token", opener=FakePartnerCenter({"resource-tree/": other})).resource_tree(
+                PRODUCT, "preview"
+            )
+
         # The draft is always there: a 404 for it is an error.
         with self.assertRaises(release_common.ReleaseError):
             partner_center.PartnerCenter("the-token", opener=FakePartnerCenter({"resource-tree/": not_found()})).resource_tree(PRODUCT)
+
+    def test_reads_ids_as_partner_center_spells_them(self) -> None:
+        # The schemas, and the API's answers, say externalId and jobId; Microsoft's examples say
+        # externalID and jobID.
+        self.assertEqual(partner_center.external_id({"identity": {"externalId": "enterprise"}}), "enterprise")
+        self.assertEqual(partner_center.external_id({"identity": {"externalID": "enterprise"}}), "enterprise")
+        self.assertEqual(partner_center.external_id({}), "")
+
+        for job in ({"jobId": "job-1"}, {"jobID": "job-1"}):
+            fake = FakePartnerCenter(
+                {"configure/job-1/status": {"jobId": "job-1", "jobStatus": "completed", "jobResult": "succeeded"}}
+            )
+            center = partner_center.PartnerCenter("the-token", opener=fake)
+            self.assertEqual(
+                partner_center.follow(center, job, wait_minutes=1, sleep=lambda seconds: None), ("succeeded", [], "job-1")
+            )
 
     def test_shipped_asks_the_offer_s_preview(self) -> None:
         real = partner_center.PartnerCenter
@@ -661,8 +698,8 @@ class PartnerCenterTest(unittest.TestCase):
             {
                 "product?": {"value": [{"id": PRODUCT}]},
                 "resource-tree/": TREE,
-                "configure/job-1/status": {"jobID": "job-1", "jobStatus": "completed", "jobResult": "succeeded"},
-                "configure": {"jobID": "job-1", "jobStatus": "notStarted", "jobResult": "pending"},
+                "configure/job-1/status": {"jobId": "job-1", "jobStatus": "completed", "jobResult": "succeeded"},
+                "configure": {"jobId": "job-1", "jobStatus": "notStarted", "jobResult": "pending"},
             }
         )
         center = partner_center.PartnerCenter("the-token", opener=fake)

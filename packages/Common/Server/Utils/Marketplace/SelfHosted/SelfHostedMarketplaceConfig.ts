@@ -46,10 +46,12 @@ import {
  * bill. AWS asks sellers to keep the product code out of the buyer's hands -
  * a buyer who could choose it could bill a cheaper product - so the code is
  * compiled in, and ENTERPRISE_MARKETPLACE_AWS_PRODUCT_CODE may only pick one
- * of these. Filled in once AWS Marketplace issues the product's code (see
- * SELF_HOSTED_RELEASING.md beside RELEASING.md).
+ * of these (see SELF_HOSTED_RELEASING.md beside RELEASING.md).
  */
-export const AWS_SELF_HOSTED_PRODUCT_CODES: ReadonlyArray<string> = [];
+export const AWS_SELF_HOSTED_PRODUCT_CODES: ReadonlyArray<string> = [
+  // "OneUptime Enterprise (self-hosted)", product prod-5ijwaqpun3coo.
+  "c8qvytt92i74r7bhzi6nxunsi",
+];
 
 export type SelfHostedMarketplaceEnvironment = Record<
   string,
