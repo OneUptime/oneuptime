@@ -1344,6 +1344,22 @@ API, SSO, or the Slack and Microsoft Teams apps.
   check that it sends `X-Forwarded-Proto`, as Caddy and the Nginx example in
   [Set up HTTPS](/docs/installation/docker-compose#set-up-https) do. An
   installation served over plain HTTP (`HTTP_PROTOCOL=http`) sees no change.
+- **OneUptime refuses a placeholder `ONEUPTIME_SECRET`.** OneUptime's own
+  services prove to each other that a call comes from one of them with
+  `ONEUPTIME_SECRET`, and a value the repository ships for it is now refused
+  from every caller: unset, `secret`, or a placeholder from
+  `config.example.env` (they all contain `please-change-this`). An
+  installation that kept one needs no change for its app and workers: they
+  call each other with a key derived from the installation's own token
+  signing key instead. `npm start` and `npm run update` now give
+  `ONEUPTIME_SECRET` a random value in `config.env` when it still holds a
+  placeholder, so the bundled Runner keeps registering. If you start the
+  containers another way, or set `oneuptimeSecret` to a placeholder in Helm,
+  set `ONEUPTIME_SECRET` to a long random value, the same for the app and
+  the Runner, as
+  [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
+  shows: until then the Runner logs what to set and does not register. An
+  installation that set its own `ONEUPTIME_SECRET` sees no change.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
