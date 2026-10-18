@@ -299,6 +299,11 @@ describe("which redirects stay on the server", () => {
       "https://x.com:443/a",
     ],
     ["an IPv6 address", "http://[::1]:3002/a", "http://[::1]:3002/b"],
+    [
+      "from an address that names a user, to the server without it",
+      "https://probe:secret@oneuptime.example.com/a",
+      "https://oneuptime.example.com/b",
+    ],
   ])("%s", (_label: string, from: string, to: string) => {
     expect(isRedirectOnSameServer(from, to)).toBe(true);
   });

@@ -29,14 +29,17 @@ function parse(address: string): PlatformUrl | null {
   }
 }
 
-// A host and port, http or https, and nothing that names a user.
+// A host and port, over http or https.
 function isServerAddress(address: PlatformUrl): boolean {
   return (
     (address.protocol === "http:" || address.protocol === "https:") &&
-    address.hostname !== "" &&
-    address.username === "" &&
-    address.password === ""
+    address.hostname !== ""
   );
+}
+
+// An address that names a user: never where a redirect may send a request.
+function namesAUser(address: PlatformUrl): boolean {
+  return address.username !== "" || address.password !== "";
 }
 
 export type IsRedirectOnSameServerFunction = (
@@ -56,7 +59,13 @@ export const isRedirectOnSameServer: IsRedirectOnSameServerFunction = (
   const from: PlatformUrl | null = parse(requestUrl);
   const to: PlatformUrl | null = parse(redirectUrl);
 
-  if (!from || !to || !isServerAddress(from) || !isServerAddress(to)) {
+  if (
+    !from ||
+    !to ||
+    !isServerAddress(from) ||
+    !isServerAddress(to) ||
+    namesAUser(to)
+  ) {
     return false;
   }
 
