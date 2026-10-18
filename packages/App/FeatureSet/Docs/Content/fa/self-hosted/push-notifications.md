@@ -44,6 +44,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | تا وقتی `EXPO_ACCESS_TOKEN` تنظیم نشده، پوش‌های موبایل به کجا می‌روند. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | خالی | پوش‌های موبایل را با توکن پروژهٔ Expo شما مستقیم به Expo می‌فرستد. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | خالی | پوش‌های موبایل سرورهای دیگر OneUptime را با `EXPO_ACCESS_TOKEN` همین سرور رله می‌کند. خالی یعنی خاموش، مگر اینکه `BILLING_ENABLED` برابر `true` باشد. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | خالی | نیمهٔ عمومی جفت‌کلیدی که مرورگرها با آن مشترک می‌شوند. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | خالی | نیمهٔ خصوصی، که هر پوش وب را امضا می‌کند. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | نشانی تماسی که سرویس‌های پوش مرورگرها می‌توانند با آن به شما برسند. |
@@ -81,6 +82,8 @@ expo:
 | برنامهٔ موبایل یا مرورگر → OneUptime | نام میزبان OneUptime شما | HTTPS / TCP 443 | ورود، ثبت دستگاه و باز کردن پیوندهای اعلان. |
 
 اگر `PUSH_NOTIFICATION_RELAY_URL` را تغییر دهید، نام میزبان مقصد و پورت پیکربندی‌شدهٔ آن را مجاز کنید. یک رلهٔ سفارشی باید API رلهٔ OneUptime را پیاده‌سازی کند. این پیش‌فرض‌ها و جابه‌جایی میان رله و تحویل مستقیم در [پیکربندی OneUptime](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) و [سرویس پوش](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) تعریف شده‌اند. درخواست‌های مستقیم به Expo از نقطهٔ پایانی‌ای استفاده می‌کنند که در [راهنمای ارسال Expo](https://docs.expo.dev/push-notifications/sending-notifications/) آمده است. ‏OneUptime رسیدهای تحویل را از رله در همان نشانی، با `/receipts` به‌جای `/send`، می‌خواند. رله‌ای که این مسیر را ندارد همچنان پوش‌ها را تحویل می‌دهد؛ در آن صورت دستگاهی که برنامه‌اش حذف شده، فقط وقتی شناخته می‌شود که پوش بعدی به آن رد شود.
+
+یک سرور خودمیزبان OneUptime فقط با `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` و `EXPO_ACCESS_TOKEN` خودش پوش‌های سرورهای دیگر را رله می‌کند؛ بدون این تنظیم، در آن نشانی با 404 پاسخ می‌دهد. آن را فقط روی سروری روشن کنید که سرورهای دیگر OneUptime شما از طریق آن می‌فرستند، و فقط به همان سرورها اجازه دهید به آن نشانی برسند.
 
 برای Web Push، میزبان‌های واقعی نقطه‌های پایانی اشتراک را برای مرورگرهایی که تیم شما به کار می‌برد مجاز کنید. ‏OneUptime ‏`fcm.googleapis.com`، `android.googleapis.com`، `push.services.mozilla.com`، `notify.windows.com` و `push.apple.com` را همراه با زیردامنه‌هایشان می‌پذیرد. نمونه‌های رایج `updates.push.services.mozilla.com` و `web.push.apple.com` هستند. [اشتراک پوش مرورگر](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) مقصد را تعیین می‌کند؛ مجاز کردن فقط Expo یا رلهٔ OneUptime، Web Push را فعال نمی‌کند.
 

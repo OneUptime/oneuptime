@@ -180,7 +180,8 @@ describe("the menu the paths are held to, read from its source", () => {
       ["AI Features", "LLM Providers", "AI Credits", "AI Logs", "MCP Server"],
     ],
     ["Advanced", ["Domains", "API Keys", "Feature Flags"]],
-    ["Security", ["SSO", "OIDC", "SCIM"]],
+    // SSO holds the project's SAML and OpenID Connect providers.
+    ["Security", ["SSO", "SCIM"]],
     ["Billing and Invoices", ["Billing", "Usage History", "Invoices"]],
   ])(
     "%s holds the pages the texts name",

@@ -11,6 +11,12 @@ import {
 } from "../../Components/ProjectBalance/ProjectBalanceAccess";
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
+import AutoRechargeCard from "../../Components/ProjectBalance/AutoRechargeCard";
+import {
+  CURRENT_BALANCE_ROW_TITLE,
+  RECHARGE_AMOUNT_DESCRIPTION,
+  RECHARGE_AMOUNT_TITLE,
+} from "../../Components/ProjectBalance/ProjectBalanceCopy";
 import {
   getProjectColumnsEditGate,
   ProjectColumnsEditGate,
@@ -136,9 +142,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   smsOrCallCurrentBalanceInUSDCents: true,
                 },
                 fieldType: FieldType.USDCents,
-                title: "SMS, Call, WhatsApp, and Telegram Current Balance",
-                description:
-                  "This is your current balance for SMS, Call, WhatsApp, and Telegram. It is in USD. ",
+                // The card's description says what the balance pays for.
+                title: CURRENT_BALANCE_ROW_TITLE,
                 placeholder: "0 USD",
               },
             ],
@@ -156,167 +161,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ProjectNotificationChannelsCard />
 
       {BILLING_ENABLED ? (
-        <CardModelDetail
-          name="Auto Recharge"
-          cardProps={{
-            title: "Auto Recharge",
-            description:
-              "Enable Auto Recharge for SMS, Call, and WhatsApp balance. This will make sure you always have enough balance for sending notifications.",
-            buttons: autoRechargeGate.lockedButtons,
-          }}
+        <AutoRechargeCard
+          balance={ProjectBalanceType.SmsOrCall}
+          projectId={ProjectUtil.getCurrentProjectId()!}
           isEditable={autoRechargeGate.isEditable}
-          editButtonText="Edit Auto Recharge"
+          lockedButtons={autoRechargeGate.lockedButtons}
           onSaveSuccess={() => {
             setAutoRechargeSaves(autoRechargeSaves + 1);
-          }}
-          formFields={[
-            {
-              field: {
-                enableAutoRechargeSmsOrCallBalance: true,
-              },
-              title: "Enable Auto Recharge",
-              description:
-                "Enable Auto Recharge. This will be used for sending an SMS, Call, or WhatsApp message.",
-              fieldType: FormFieldSchemaType.Toggle,
-              required: false,
-            },
-            {
-              field: {
-                autoRechargeSmsOrCallByBalanceInUSD: true,
-              },
-              title: "Auto Recharge Balance by (in USD)",
-              description:
-                "Amount of balance to be recharged when the balance is low. It is in USD. ",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions: [
-                {
-                  value: 10,
-                  label: "10 USD",
-                },
-                {
-                  value: 20,
-                  label: "20 USD",
-                },
-                {
-                  value: 25,
-                  label: "25 USD",
-                },
-                {
-                  value: 50,
-                  label: "50 USD",
-                },
-                {
-                  value: 75,
-                  label: "75 USD",
-                },
-                {
-                  value: 100,
-                  label: "100 USD",
-                },
-                {
-                  value: 200,
-                  label: "200 USD",
-                },
-                {
-                  value: 500,
-                  label: "500 USD",
-                },
-                {
-                  value: 500,
-                  label: "500 USD",
-                },
-                {
-                  value: 1000,
-                  label: "1000 USD",
-                },
-              ],
-              required: true,
-            },
-            {
-              field: {
-                autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
-              },
-              title: "Auto Recharge when balance falls to (in USD)",
-              description:
-                "Trigger auto recharge when balance falls to this amount. It is in USD. ",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions: [
-                {
-                  value: 10,
-                  label: "10 USD",
-                },
-                {
-                  value: 20,
-                  label: "20 USD",
-                },
-                {
-                  value: 25,
-                  label: "25 USD",
-                },
-                {
-                  value: 50,
-                  label: "50 USD",
-                },
-                {
-                  value: 75,
-                  label: "75 USD",
-                },
-                {
-                  value: 100,
-                  label: "100 USD",
-                },
-                {
-                  value: 200,
-                  label: "200 USD",
-                },
-                {
-                  value: 500,
-                  label: "500 USD",
-                },
-                {
-                  value: 500,
-                  label: "500 USD",
-                },
-                {
-                  value: 1000,
-                  label: "1000 USD",
-                },
-              ],
-              required: true,
-            },
-          ]}
-          modelDetailProps={{
-            modelType: Project,
-            id: "notifications",
-            fields: [
-              {
-                field: {
-                  enableAutoRechargeSmsOrCallBalance: true,
-                },
-                fieldType: FieldType.Boolean,
-                title: "Auto Recharge Balance by (in USD)",
-                description:
-                  "Amount of balance to be recharged when the balance is low. It is in USD. ",
-                placeholder: "Not Enabled",
-              },
-              {
-                field: {
-                  autoRechargeSmsOrCallByBalanceInUSD: true,
-                },
-                fieldType: FieldType.Text,
-                title: "Auto Recharge by (in USD)",
-                placeholder: "0 USD",
-              },
-              {
-                field: {
-                  autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
-                },
-                fieldType: FieldType.Text,
-                title: "Trigger auto recharge if balance falls below (in USD)",
-                placeholder: "0 USD",
-              },
-            ],
-            modelId: ProjectUtil.getCurrentProjectId()!,
           }}
         />
       ) : (
@@ -363,8 +214,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             error: rechargeBalanceError || "",
             fields: [
               {
-                title: "Amount (in USD)",
-                description: `Please enter the amount to recharge. It is in USD.`,
+                title: RECHARGE_AMOUNT_TITLE,
+                description: RECHARGE_AMOUNT_DESCRIPTION,
                 field: {
                   amount: true,
                 },

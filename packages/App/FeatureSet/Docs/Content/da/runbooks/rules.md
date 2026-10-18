@@ -9,7 +9,7 @@ Runbook-regler starter runbooks automatisk, når en **hændelse**, en **advarsel
 Alle tre sider redigerer samme slags regel, filtreret til det pågældende produkts regler.
 
 :::cards
-- [Opret en runbook-regel](#opret-en-runbook-regel): Fire trin: et navn, betingelser og de runbooks, der skal startes.
+- [Opret en runbook-regel](#opret-en-runbook-regel): Tre trin: betingelser og derefter de runbooks, der skal startes, som reglen navngives efter.
 - [Betingelser](#betingelser): Hvert kriterium og hver operator, en regel kan bruge.
 - [Matchlogik](#matchlogik): Flere regler, monitorbetingelser og etiketregler.
 - [Eksempler](#eksempler): Tre regler at kopiere.
@@ -51,27 +51,23 @@ Du kan se alle kørsler, startet af en regel eller ej, under **Runbooks → Udf�
 
 I **Hændelser**, **Advarsler** eller **Planlagt vedligeholdelse** åbner du **Regler → Runbook-regler** og klikker på **Opret Runbook Rule**.
 
-### Navngiv reglen
-
-Under **Grundlæggende oplysninger** angiver du et **Navn**, f.eks. "Start DB-failover ved databasehændelser", og eventuelt en **Beskrivelse**.
-
 ### Tilføj betingelser
 
-Under **Matchkriterier** starter **Gælder for** på hver ny begivenhed af denne slags, for eksempel **Alle hændelser**, og reglen starter sine runbooks for hver af dem. For at indsnævre reglen vælger du det andet svar, for eksempel **Kun hændelser, der opfylder betingelserne**, og derefter et kriterium og en operator, og du indtaster eller vælger værdien. Klik på **Tilføj betingelse** for flere betingelser, og vælg **Alle skal matche** eller **Én skal matche**.
+Under **Match** starter **Gælder for** på hver ny begivenhed af denne slags, for eksempel **Alle hændelser**, og reglen starter sine runbooks for hver af dem. For at indsnævre reglen vælger du det andet svar, for eksempel **Kun hændelser, der opfylder betingelserne**, og derefter et kriterium og en operator, og du indtaster eller vælger værdien. Klik på **Tilføj betingelse** for flere betingelser, og vælg **Alle skal matche** eller **Én skal matche**.
 
 ### Vælg runbooks
 
-Under **Runbooks** vælger du et eller flere **Driftsmanualer til at starte** og klikker på **Opret Runbook Rule**. Reglen er aktiv, så snart den er oprettet, og vises på listen med status **Aktiveret**.
+Under **Runbooks** vælger du et eller flere **Driftsmanualer til at starte**. Reglens **Navn** følger dem, for eksempel "Kør Database failover", indtil du skriver dit eget, og en **Beskrivelse** venter under **Flere felter**. Klik på **Opret Runbook Rule**. Reglen er aktiv, så snart den er oprettet, og vises på listen med status **Aktiveret**.
 :::
 
 ## En regels opbygning
 
 | Felt | Formål |
 | --- | --- |
-| **Navn** | En kort, forståelig betegnelse for reglen. |
-| **Beskrivelse** | Valgfri kontekst til holdkammerater. |
+| **Navn** | Navngivet efter de driftsmanualer, den starter, for eksempel "Kør Database failover", indtil du skriver dit eget. |
+| **Beskrivelse** | Valgfri kontekst til holdkammerater, under **Flere felter**. |
 | **Aktiveret** | Slået til for en ny regel. Slå den fra i reglens redigeringsformular for at sætte den på pause uden at slette den. |
-| **Betingelser** | Hvad reglen matcher, i trinnet **Matchkriterier**. En regel uden betingelser, for eksempel på **Alle hændelser**, matcher hver begivenhed af dens type. |
+| **Betingelser** | Hvad reglen matcher, i trinnet **Match**. En regel uden betingelser, for eksempel på **Alle hændelser**, matcher hver begivenhed af dens type. |
 | **Driftsmanualer til at starte** | Et eller flere runbooks, der startes, når reglen udløses. |
 
 ## Betingelser

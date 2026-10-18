@@ -111,7 +111,6 @@ jest.mock("Common/UI/Components/ModelDetail/CardModelDetail", () => {
 });
 
 import SettingsSSOPage from "@oneuptime/dashboard/Pages/Settings/SSO";
-import SettingsOIDCPage from "@oneuptime/dashboard/Pages/Settings/OIDC";
 import SettingsSCIMShell from "@oneuptime/dashboard/Pages/Settings/SCIM";
 import StatusPageSSOPage from "@oneuptime/dashboard/Pages/StatusPages/View/SSO";
 import StatusPageOIDCPage from "@oneuptime/dashboard/Pages/StatusPages/View/OIDC";
@@ -136,7 +135,7 @@ const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 /*
  * The canned answer to every request that is not the license request: the
  * project, for the "Require SSO for Login" switch's read of
- * requireSsoForLogin, and an empty list for a list read (Settings > OIDC
+ * requireSsoForLogin, and an empty list for a list read (Settings > SSO
  * looks up the members team its new providers start on).
  */
 const answerServer: (request: {
@@ -178,19 +177,23 @@ interface IdentityPageCase {
 }
 
 const SSO_PAGES: Array<IdentityPageCase> = [
+  /*
+   * A project's SAML and OpenID Connect providers are on one page,
+   * Settings > SSO, behind one plan upsell.
+   */
   {
-    name: "Settings > SSO",
+    name: "Settings > SSO, its SAML providers",
     Page: SettingsSSOPage,
     path: `/dashboard/${PROJECT_ID}/settings/sso`,
     table: "sso-table",
-    featureName: "SAML Single Sign On",
+    featureName: "Single Sign-On",
   },
   {
-    name: "Settings > OIDC",
-    Page: SettingsOIDCPage,
-    path: `/dashboard/${PROJECT_ID}/settings/oidc`,
+    name: "Settings > SSO, its OIDC providers",
+    Page: SettingsSSOPage,
+    path: `/dashboard/${PROJECT_ID}/settings/sso`,
     table: "oidc-table",
-    featureName: "OIDC Single Sign On",
+    featureName: "Single Sign-On",
   },
   {
     name: "Status page > SSO",

@@ -108,7 +108,7 @@ Cada comando que inicia trabajo es una ejecución completa del agente: un clon, 
 
 Los comandos de GitHub son trabajo de IA fuera de los incidentes y las alertas, así que no se les aplica ningún límite diario de tareas de corrección; sí se aplican los límites diarios de IA del propio proyecto, cuando el proyecto los fija. El único otro límite es el que ya rige las [Tareas de corrección](/docs/ai/ai-agent):
 
-- **El tope de pull requests abiertos** (**Máximo de pull requests de corrección abiertas**, en la página **Ajustes** del repositorio). No hay tope hasta que pones uno, y 0 bloquea los pull requests de corrección de IA en ese repositorio. Las reseñas y las revisiones están exentas: ninguna añade un pull request a tu cola de revisión.
+- **El tope de pull requests abiertos** (**Máximo de pull requests de corrección abiertas**, en la página **Ajustes** del repositorio). **Pull requests de corrección con IA** está en **Sin límite** hasta que eliges **Un límite**, o **Ninguno**, que bloquea los pull requests de corrección de IA en ese repositorio. Las reseñas y las revisiones están exentas: ninguna añade un pull request a tu cola de revisión.
 
 Solo hay una ejecución de cada tipo activa a la vez por issue o pull request. Pedirlo dos veces te dice que ya está trabajando; pedir una reseña mientras corre una revisión inicia las dos, porque son peticiones distintas.
 

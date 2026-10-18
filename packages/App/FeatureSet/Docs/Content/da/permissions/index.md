@@ -192,9 +192,9 @@ Hver tilladt rettighed gives med et omfang, valgt under **Omfang**, når du tilf
 
 | Omfang | Betydning |
 | --- | --- |
-| Alle ressourcer i projektet | Standarden. Tilladelsen gælder for alle matchende ressourcer. |
-| Ejet af dette team eller dets medlemmer | Tilladelsen gælder kun for ressourcer, hvor dette team eller den handlende bruger står som ejer. |
-| Begræns efter labels (avanceret) | Tilladelsen gælder kun for ressourcer, der bærer mindst ét af de valgte labels. |
+| Alle ressourcer i projektet | Standarden, og hvad de fleste teams har brug for. Tilladelsen gælder for alle matchende ressourcer. |
+| Kun ressourcer, de ejer | Tilladelsen gælder kun for ressourcer, som den handlende person eller et af vedkommendes teams ejer. |
+| Kun ressourcer med bestemte etiketter | Tilladelsen gælder kun for ressourcer, der bærer mindst én af de valgte etiketter. |
 
 **Ejede** er den enkleste måde at bygge en model på, hvor "I passer på jeres egne tjenester": giv et team `MonitorAdmin` med omfanget Ejede, og gør så teamet til ejer af de monitorer, det har ansvaret for. Det indsnævrer alle ressourcer, der kan have ejere — monitorer, hændelser, dashboards, tjenester, monitorgrupper, vagtplaner og lignende — og det, der hører til dem, såsom en vagtplans lag. Sonder, Runnere, AI-agenter, vagtplaner samt hændelses- og vedligeholdelsesskabeloner er det, andre ressourcer sættes op med, så en tilladelse med omfanget Ejede læser stadig dem alle, og du kan vælge enhver af dem; den ændrer og sletter kun dem, du eller dine teams ejer. En Runners nøgle, som lader den, der har den, optræde som Runneren, vises kun på de Runnere, du eller dine teams ejer. Projektkonfiguration (hændelsestilstande, labels, teamsene selv) har ingen ejer, så en rolle med omfanget Ejede opfører sig normalt der.
 

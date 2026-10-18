@@ -3,9 +3,10 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The on-call, privacy, SLA and reminder rule forms of Incidents, Alerts and
- * Scheduled Maintenance start with the rule: what it matches, then what it
- * does, its name filled in from that (Dashboard Utils/Form/EventRuleForm).
+ * The on-call, privacy, SLA, reminder and runbook rule forms of Incidents,
+ * Alerts and Scheduled Maintenance start with the rule: what it matches, then
+ * what it does, its name filled in from that (Dashboard Utils/Form/
+ * EventRuleForm).
  * They used to open on "Basic Info" ("Rule Info" on a reminder rule) - a
  * name and a description before anyone had said what the rule was for -
  * unlike the label, owner and grouping rules on the same menus.
@@ -90,6 +91,16 @@ const RULE_PAGES: Array<RulePageCase> = [
     forms: 1,
     actionFields: "...getMaintenanceReminderRuleActionFields()",
   },
+  /*
+   * The runbook rules of Incidents, Alerts and Scheduled Maintenance: one
+   * table, drawn on each product's Rules menu for its own trigger.
+   */
+  {
+    file: "Components/Runbook/RunbookRulesTable.tsx",
+    steps: "getRunbookRuleFormSteps<",
+    forms: 1,
+    actionFields: "...getRunbookRuleActionFields<RunbookRule>()",
+  },
 ];
 
 describe("the rule forms start with the rule", () => {
@@ -134,6 +145,7 @@ describe("the rule forms start with the rule", () => {
       '{ title: "Name", id: "rule-name" }',
       '{ title: "Targets", id: "sla-targets" }',
       '{ title: "Reminders", id: "reminder-settings" }',
+      '{ title: "Runbooks", id: "runbooks" }',
     ]) {
       expect(source).toContain(step);
     }

@@ -105,7 +105,7 @@ Runbook 位于 **产品** 下的 **仪表板与自动化** 分组中。
 :::steps
 ### 创建 Runbook
 
-在 **运行手册** 中点击 **创建Runbook** ，将其命名为“DB primary failover”。打开它，进入 **步骤** ，添加以下步骤，然后点击 **Save Steps** ：
+在 **运行手册** 中点击 **创建Runbook** ，将其命名为“DB primary failover”。它会在 **步骤** 打开：添加以下步骤，然后点击 **Save Steps** ：
 
 | # | 类型 | 标题 |
 | --- | --- | --- |

@@ -351,11 +351,10 @@ async function type(key: string, value: string): Promise<void> {
   });
 }
 
+// Transport, Authentication Type and OAuth Provider Type are plain answers.
 async function pick(option: string): Promise<void> {
   await act(async (): Promise<void> => {
-    fireEvent.click(
-      within(dialog()).getByRole("button", { name: `Pick ${option}` }),
-    );
+    fireEvent.click(within(dialog()).getByRole("radio", { name: option }));
   });
   await settle();
 }
@@ -481,8 +480,8 @@ describe("creating a project's mail server", () => {
       }),
     ).not.toBeVisible();
     expect(
-      within(dialog()).getByRole("button", {
-        name: "Pick Microsoft Graph",
+      within(dialog()).getByRole("radio", {
+        name: "Microsoft Graph",
         hidden: true,
       }),
     ).not.toBeVisible();
@@ -496,11 +495,19 @@ describe("creating a project's mail server", () => {
     expect(requireTls).toBeVisible();
     // On: what the column starts a new config with.
     expect(requireTls).toHaveAttribute("aria-checked", "true");
+    // Each answer with its line; a new config starts on the first of each.
+    expect(within(dialog()).getByRole("radio", { name: "SMTP" })).toBeChecked();
     expect(
-      within(dialog()).getByRole("button", { name: "Pick Microsoft Graph" }),
+      within(dialog()).getByRole("radio", { name: "Microsoft Graph" }),
     ).toBeVisible();
     expect(
-      within(dialog()).getByRole("button", { name: "Pick OAuth" }),
+      within(dialog()).getByRole("radio", { name: "Username and Password" }),
+    ).toBeChecked();
+    expect(
+      within(dialog()).getByRole("radio", { name: "OAuth" }),
+    ).toBeVisible();
+    expect(
+      within(dialog()).getByText("For a relay that needs no sign-in."),
     ).toBeVisible();
     expect(
       within(dialog()).getByPlaceholderText(
@@ -600,12 +607,10 @@ describe("creating a project's mail server", () => {
     expect(
       within(dialog()).queryByRole("switch", { name: "Require TLS" }),
     ).toBeNull();
-    expect(
-      within(dialog()).queryByRole("button", { name: "Pick OAuth" }),
-    ).toBeNull();
+    expect(within(dialog()).queryByRole("radio", { name: "OAuth" })).toBeNull();
     // Graph always uses Client Credentials: not asked.
     expect(
-      within(dialog()).queryByRole("button", { name: "Pick JWT Bearer" }),
+      within(dialog()).queryByRole("radio", { name: "JWT Bearer" }),
     ).toBeNull();
 
     for (const key of ["clientId", "clientSecret", "tokenUrl", "scope"]) {
@@ -709,8 +714,12 @@ describe("creating a project's mail server", () => {
 
     expect(input("username")).toBeVisible();
     expect(queryInput("password")).toBeNull();
+    // The grant, Client Credentials to start with.
     expect(
-      within(dialog()).getByRole("button", { name: "Pick JWT Bearer" }),
+      within(dialog()).getByRole("radio", { name: "Client Credentials" }),
+    ).toBeChecked();
+    expect(
+      within(dialog()).getByRole("radio", { name: "JWT Bearer" }),
     ).toBeVisible();
 
     for (const key of ["clientId", "clientSecret", "tokenUrl", "scope"]) {

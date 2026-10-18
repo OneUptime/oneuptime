@@ -111,7 +111,7 @@ O que um cliente conectado pode fazer:
 
 ### Gerenciar os clientes conectados
 
-Todo cliente conectado por login aparece em **Configurações do projeto → IA → Servidor MCP**, em **Connected MCP Clients**, com quem o conectou, o que ele pode fazer e quando foi usado pela última vez. Você vê os clientes que você conectou; os proprietários e administradores do projeto veem os de todos.
+Todo cliente conectado por login aparece em **Configurações do projeto → IA → Servidor MCP**, em **Clientes MCP conectados**, com quem o conectou, o que ele pode fazer e quando foi usado pela última vez. Você vê os clientes que você conectou; os proprietários e administradores do projeto veem os de todos.
 
 Clique em **Disconnect** para desconectar um cliente. Ele para de funcionar na hora.
 
@@ -195,6 +195,19 @@ A variável de entrada com `"password": true` pede a chave quando o servidor ini
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

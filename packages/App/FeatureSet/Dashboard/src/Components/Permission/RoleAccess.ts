@@ -16,7 +16,7 @@ import {
   PluralTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
-import { getRoleIcon } from "./RoleCardSelectOptions";
+import { getRoleIcon, ROLE_CARD_SUMMARIES } from "./RoleCardSelectOptions";
 
 /*
  * A NEW API KEY OR TEAM STARTS WITH THE ACCESS IT NEEDS.
@@ -111,28 +111,26 @@ export const ROLE_ACCESS_ROLES: Array<Permission> = [
 
 /*
  * What each role means, short enough to compare at a glance, in words that
- * fit a key and a team alike. Written out one by one so the extractor finds
- * every sentence (src/Locales/README.md).
+ * fit a key and a team alike: each role's one line on every role card
+ * (ROLE_CARD_SUMMARIES), so a role reads the same in Access and in Add Role.
  */
 const ROLE_OPTIONS: Array<CardSelectOption> = [
   {
     value: Permission.ProjectAdmin,
     title: "Project Admin",
-    description:
-      "Create, change and delete anything, settings included. Billing and deleting the project are left out.",
+    description: ROLE_CARD_SUMMARIES[Permission.ProjectAdmin] as string,
     icon: getRoleIcon(Permission.ProjectAdmin),
   },
   {
     value: Permission.ProjectMember,
     title: "Project Member",
-    description:
-      "Create, change and delete monitors, incidents, status pages and other resources.",
+    description: ROLE_CARD_SUMMARIES[Permission.ProjectMember] as string,
     icon: getRoleIcon(Permission.ProjectMember),
   },
   {
     value: Permission.Viewer,
     title: "Viewer",
-    description: "Read everything in the project. Change nothing.",
+    description: ROLE_CARD_SUMMARIES[Permission.Viewer] as string,
     icon: getRoleIcon(Permission.Viewer),
   },
 ];

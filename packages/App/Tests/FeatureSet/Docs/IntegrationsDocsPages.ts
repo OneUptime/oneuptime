@@ -647,17 +647,14 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
 /*
  * Bold names no Dashboard locale has as a label, kept as written in every
  * language: the ⋯ menu, a symbol everywhere; what the OAuth 2.0 variable's
- * card says once a token is fetched, and its grant type, both drawn in
- * English; and a custom field's name, which is code.
+ * card says once a token is fetched, drawn in English; and a custom
+ * field's name, which is code. (The grant type, Client Credentials, is a
+ * label of the SMTP form's OAuth answers now, and reads the same in every
+ * language: i18n/SameAsEnglish.json.)
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [DYNAMICS]: [
-      "⋯",
-      "Access Token Fetched",
-      "Client Credentials",
-      "`customFields.dynamicsCaseId`.",
-    ],
+    [DYNAMICS]: ["⋯", "Access Token Fetched", "`customFields.dynamicsCaseId`."],
     /*
      * The criteria filter's conditions, drawn from the filter type's own
      * text, misspelling included.

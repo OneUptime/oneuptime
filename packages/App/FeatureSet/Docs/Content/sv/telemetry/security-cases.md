@@ -44,8 +44,8 @@ Var och en av dessa behörigheter kan också ges för sig, från att skapa ett �
 
 | Källa | Öppnar ett ärende när | Stängs av med |
 | --- | --- | --- |
-| Detektionsregler | En regel träffar | **Open a Case on Match**, i regelns steg **Security Cases** |
-| Hotunderrättelser | En händelse nämner en känd indikator | **Open a Case on Match**, i flödets steg **Security Cases** |
+| Detektionsregler | En regel träffar | **Open a Case on Match**, i regelns steg **Vid träff** |
+| Hotunderrättelser | En händelse nämner en känd indikator | **Open a Case on Match**, i flödets steg **Vid träff** |
 | Anslutna produkter | Ett larm från produkten själv importeras på eller över anslutningens tröskel | **Open Cases From** satt till **Aldrig**, i anslutningens steg **Polling** |
 | Personer | Någon öppnar ett från **Security Cases**, eller med **Open Case** i en händelses panel | Går inte |
 
@@ -229,7 +229,7 @@ Ett projekt som ännu inte har några ärenden eller detektioner visar, ovanför
 ## Felsökning
 
 :::details En regel träffar, men inget ärende öppnas
-Kontrollera **Open a Case on Match** i regelns steg **Security Cases**. En detektion om en entitet som redan har ett öppet ärende läggs till i det ärendet i stället för att öppna ett nytt: leta efter den under **Detections** i det öppna ärendet.
+Kontrollera **Open a Case on Match** i regelns steg **Vid träff**. En detektion om en entitet som redan har ett öppet ärende läggs till i det ärendet i stället för att öppna ett nytt: leta efter den under **Detections** i det öppna ärendet.
 :::
 
 :::details En playbook kördes inte

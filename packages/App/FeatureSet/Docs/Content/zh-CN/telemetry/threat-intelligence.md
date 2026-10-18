@@ -35,7 +35,7 @@ flowchart TB
 
 ### 创建情报源
 
-点击 **创建Threat Intel Feed**，填写它的五个步骤：**基本信息**、**TAXII Server**、**认证**、**Security Cases** 和 **匹配时**。各字段见下表。
+点击 **创建Threat Intel Feed**，填写它的三个步骤：**TAXII 服务器**、**登录** 和 **匹配时**。各字段见下表。
 
 ### 检查第一次轮询
 
@@ -48,16 +48,16 @@ flowchart TB
 | **Collection ID** | 发布指标的集合。 |
 | **Poll Interval (Minutes)** | 获取新对象的频率：1 到 1440 分钟，默认 60。 |
 | **Minimum Confidence** | STIX `confidence` 低于该值的指标会被跳过：0 到 100，设为 0 时全部保留。没有 confidence 的指标总能通过。 |
-| **API Token** | bearer 令牌，用于要求令牌的集合。 |
-| **Basic Auth Username** 和 **Basic Auth Password** | 用于使用 HTTP 基本身份验证的集合。公共集合请把两者和令牌都留空。 |
+| **登录** | OneUptime 的登录方式：公共集合选 **无需登录**，服务器运营方提供的令牌选 **Bearer 令牌**，HTTP 基本身份验证选 **用户名和密码**。 |
+| **API Token**、**Basic Auth Username** 和 **Basic Auth Password** | 只询问所选登录方式需要的项。 |
 | **Open a Case on Match** | 默认打开：每个提到指标的事件都会打开一个关于该指标的 [案例](/docs/telemetry/security-cases)，或并入已有的关于该指标的未关闭案例。 |
-| **Create Alert on Match** | 默认打开：每个匹配的指标都会打开一个警报。 |
+| **警报和事件** | 默认 **创建警报**：每个匹配的指标都会打开一个警报。 |
 | **警报严重性** | 该情报源打开的每个警报的严重程度。留空时使用每个指标的威胁级别。 |
-| **Create Incident on Match** | 默认关闭。事件会驱动值班升级、SLA 和状态页面，而对于指标匹配，通常警报就足够了。 |
+| **声明事件** 或 **两者** | 在 **警报和事件** 下。事件会驱动值班升级、SLA 和状态页面，而对于指标匹配，通常警报就足够了。 |
 | **事件严重性** | 与 **警报严重性** 相同，用于事件。 |
 | **Write Detection Finding on Match** | 默认打开：每次匹配都会向事件流写入一个检测结果。 |
 
-令牌和密码会被加密，保存后不会再显示。要更改它们，请在情报源所在行中选择 **Update Credentials** ，然后选择 **API Token (Bearer)**、**Basic Auth** 或 **Anonymous (clear stored credentials)** ：你的选择会替换情报源的登录方式，所以保存令牌会清除已保存的密码，反之亦然。
+令牌和密码会被加密，保存后不会再显示。要更改它们，请在情报源所在行中选择 **Update Credentials** ，然后选择 **Bearer 令牌**、**用户名和密码** 或会清除已保存内容的 **无需登录** ：你的选择会替换情报源的登录方式，所以保存令牌会清除已保存的密码，反之亦然。
 
 ### 如何轮询情报源
 
@@ -143,7 +143,7 @@ detection:
 ### 匹配会带来什么
 
 - 一个标题为 `[Threat Intel] <feed name> — <indicator value>` 的警报，在保持打开期间每个情报源和值只有一个。警报解决后，下一次匹配会打开一个新的。警报不会自动解决。
-- 一个事件，仅在打开 **Create Incident on Match** 时创建，并以同样的方式去重。
+- 一个事件，仅在 **警报和事件** 设为 **声明事件** 或 **两者** 时创建，并以同样的方式去重。
 - 一个 Threat Intel 检测结果，在打开 **Write Detection Finding on Match** 时写入：一个来自产品 `OneUptime Threat Intel` 的 `Detection Finding` 事件（OCSF 类别 2004），以指标的威胁级别作为严重程度，并带有以下属性：
 
 | 属性 | 值 |
@@ -199,7 +199,7 @@ detection:
 :::
 
 :::details 匹配了，但没有打开警报
-**Create Alert on Match** 已关闭，或者同一情报源和值的警报仍处于打开状态，之后的匹配都会并入其中。项目至少需要一个警报严重程度，情报源才能打开警报。
+**警报和事件** 设为 **声明事件** 或 **都不**，或者同一情报源和值的警报仍处于打开状态，之后的匹配都会并入其中。项目至少需要一个警报严重程度，情报源才能打开警报。
 :::
 
 ## 后续步骤

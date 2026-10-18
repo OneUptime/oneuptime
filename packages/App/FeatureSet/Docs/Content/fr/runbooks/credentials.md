@@ -43,7 +43,7 @@ Ouvrez **Runbooks → Agents de runbook → Identifiants** et cliquez sur **Cré
 
 :::tabs
 @tab SSH
-À l'étape **Hôte SSH**, saisissez le **Nom d'hôte**, le **Port** (22 s'il est vide) et le **Nom d'utilisateur**. À l'étape **Authentification SSH**, collez une **Private Key (PEM)**, avec sa **Private Key Passphrase** si elle en a une, ou saisissez un **Mot de passe** pour un hôte sans accès par clé. Une clé est la meilleure option quand vous avez le choix.
+À l'étape **Hôte SSH**, saisissez le **Nom d'hôte**, le **Port** (22 s'il est vide) et le **Nom d'utilisateur**. À l'étape **Authentification SSH**, choisissez comment **Se connecter avec** : une **Clé privée**, la meilleure option quand vous avez le choix, puis collez la **Private Key (PEM)**, avec sa **Private Key Passphrase** si elle en a une ; ou un **Mot de passe**, pour un hôte sans accès par clé, puis saisissez le **Mot de passe**.
 @tab Kubernetes
 À l'étape **Kubernetes**, saisissez l'**URL du serveur API**, par exemple `https://10.0.0.1:6443`, le **Service Account Token**, et le **Certificat CA (PEM)** pour que l'agent Runbook puisse vérifier le serveur API. Ne laissez la CA vide que si le serveur API présente un certificat auquel l'agent fait déjà confiance.
 :::

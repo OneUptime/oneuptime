@@ -43,7 +43,7 @@ Geben Sie im Schritt **Anmeldedaten** einen **Name** ein, etwa `prod-cluster`, e
 
 :::tabs
 @tab SSH
-Geben Sie unter **SSH-Host** den **Hostname**, den **Port** (22, wenn leer) und den **Benutzername** ein. Fügen Sie unter **SSH-Authentifizierung** einen **Privater Schlüssel (PEM)** ein, mit seiner **Passphrase des privaten Schlüssels**, falls er eine hat, oder geben Sie ein **Passwort** für einen Host ohne Schlüsselzugang ein. Ein Schlüssel ist die bessere Wahl, wo Sie die Wahl haben.
+Geben Sie unter **SSH-Host** den **Hostname**, den **Port** (22, wenn leer) und den **Benutzername** ein. Wählen Sie unter **SSH-Authentifizierung** bei **Anmelden mit**: einen **Privater Schlüssel**, die bessere Wahl, wo Sie sie haben, und fügen Sie dann den **Privater Schlüssel (PEM)** ein, mit seiner **Passphrase des privaten Schlüssels**, falls er eine hat; oder ein **Passwort** für einen Host ohne Schlüsselzugang, und geben Sie dann das **Passwort** ein.
 @tab Kubernetes
 Geben Sie unter **Kubernetes** die **API-Server-URL** ein, etwa `https://10.0.0.1:6443`, das **Dienstkonto-Token** und das **CA-Zertifikat (PEM)**, damit der Runner den API-Server prüfen kann. Lassen Sie die CA nur leer, wenn der API-Server ein Zertifikat vorlegt, dem der Runner bereits vertraut.
 :::

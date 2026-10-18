@@ -111,7 +111,7 @@ MCP 인증을 지원하는 다른 클라이언트도 똑같이 동작합니다. 
 
 ### 연결된 클라이언트 관리하기
 
-로그인으로 연결된 모든 클라이언트는 **프로젝트 설정 → AI → MCP 서버** 의 **Connected MCP Clients** 아래에, 연결한 사람, 할 수 있는 일, 마지막 사용 시각과 함께 표시됩니다. 자신이 연결한 클라이언트가 보이며, 프로젝트 소유자와 관리자에게는 모든 사람의 클라이언트가 보입니다.
+로그인으로 연결된 모든 클라이언트는 **프로젝트 설정 → AI → MCP 서버** 의 **연결된 MCP 클라이언트** 아래에, 연결한 사람, 할 수 있는 일, 마지막 사용 시각과 함께 표시됩니다. 자신이 연결한 클라이언트가 보이며, 프로젝트 소유자와 관리자에게는 모든 사람의 클라이언트가 보입니다.
 
 클라이언트를 로그아웃시키려면 **Disconnect** 를 클릭합니다. 클라이언트는 즉시 동작을 멈춥니다.
 
@@ -195,6 +195,19 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

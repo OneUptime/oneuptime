@@ -309,6 +309,14 @@ beforeEach(() => {
     .spyOn(PushNotificationService, "hasExpoAccessToken")
     .mockReturnValue(true);
 
+  /*
+   * And relays for other servers, as OneUptime's cloud does
+   * (PushRelayServer.test.ts has the servers that do not).
+   */
+  jest
+    .spyOn(PushNotificationService, "isPushRelayServer")
+    .mockReturnValue(true);
+
   jest
     .spyOn(expoClientOf(PushNotificationService), "sendPushNotificationsAsync")
     .mockImplementation((async (messages: Array<ExpoPushMessage>) => {
@@ -959,6 +967,27 @@ describe("the relay's rate limits", () => {
     expect(limiter.isRateLimited("203.0.113.8", start + 62)).toBe(false);
     // A new minute starts a new count.
     expect(limiter.isRateLimited("203.0.113.7", start + 60 * 1000 + 2)).toBe(
+      false,
+    );
+  });
+
+  test("says whether a key is over its minute without counting a request", () => {
+    const limiter: RelayRateLimiter = new RelayRateLimiter(3);
+    const start: number = Date.UTC(2026, 9, 8, 12, 0, 0);
+
+    expect(limiter.isOverLimit("2001:db8::/64", start)).toBe(false);
+
+    for (let request: number = 1; request <= 3; request++) {
+      expect(limiter.isRateLimited("2001:db8::/64", start)).toBe(false);
+      expect(limiter.isOverLimit("2001:db8::/64", start)).toBe(false);
+    }
+
+    expect(limiter.isRateLimited("2001:db8::/64", start)).toBe(true);
+    expect(limiter.isOverLimit("2001:db8::/64", start + 1)).toBe(true);
+    // Asking does not count: still the first refusal of the minute.
+    expect(limiter.isFirstRefusalInWindow("2001:db8::/64")).toBe(true);
+    // A new minute is not over.
+    expect(limiter.isOverLimit("2001:db8::/64", start + 60 * 1000 + 1)).toBe(
       false,
     );
   });

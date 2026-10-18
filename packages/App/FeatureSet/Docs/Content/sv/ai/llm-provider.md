@@ -93,19 +93,19 @@ Synkroniseringen är deklarativ: ändra en variabel så följer leverantören me
 
 Gå till **Projektinställningar → AI → LLM-leverantörer** (sidomenyns avsnitt **AI** är hopfällt från början) och klicka på **Skapa LLM-leverantör**.
 
-### Namnge leverantören
+### Välj leverantören
 
-Under **Grundläggande information** ger du den ett **Namn** som säger vad den är, till exempel "Production OpenAI" eller "Local Ollama", och eventuellt en **Beskrivning**.
+Under **Leverantör** väljer du din **LLM-leverantör**: ett kort för OpenAI, Anthropic, Azure OpenAI / Microsoft Foundry, Groq, Mistral, Ollama och alla OpenAI-kompatibla servrar, vart och ett med en rad om vad det är.
 
-### Fyll i leverantörens inställningar
+### Anslut den
 
-Under **Leverantörsinställningar**:
+Under **Anslutning** frågar formuläret bara efter det som leverantören använder, med egen hjälp under varje fält:
 
-- **LLM-leverantör**: typen av leverantör (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama eller OpenAI Compatible)
-- **API-nyckel**: din API-nyckel (krävs för OpenAI, Azure OpenAI, Anthropic, Groq och Mistral; valfri för Ollama och OpenAI-kompatibla servrar)
-- **Modellnamn**: modellen som ska användas, till exempel `gpt-5.1`, `claude-sonnet-5-5` eller `llama3.1`
-- **Bas-URL**: slutpunkten, krävs för Azure OpenAI, Ollama och OpenAI Compatible; valfri för de andra, för att åsidosätta deras standardvärde
-- **Fler fält**, hopfällt under fälten ovan: **Ange som standard**, som är påslaget för en ny leverantör eftersom AI-funktioner bara använder projektets standardleverantör, och **Ytterligare parametrar**, ett valfritt JSON-objekt med extra parametrar som skickas till leverantören med varje begäran (till exempel `{"temperature": 0.2}`)
+- **API-nyckel**: din API-nyckel, krävs för OpenAI, Azure OpenAI, Anthropic, Groq och Mistral och valfri för en OpenAI-kompatibel server; för Ollama efterfrågas ingen
+- **Bas-URL**: slutpunkten, krävs för Azure OpenAI, Ollama och OpenAI Compatible; för de andra bara för att gå via en proxy eller en gateway
+- **Modellnamn**: modellen som ska användas, till exempel `gpt-5.1`, `claude-sonnet-5-5` eller `llama3.1`. Lämnas det tomt använder OneUptime leverantörens standardmodell, utom på en OpenAI-kompatibel server, som behöver en
+- **Namn**: leverantörens namn tills du skriver ett eget, till exempel "Production OpenAI" eller "Local Ollama"
+- **Fler fält**, hopfällt under fälten ovan: en **Beskrivning**, **Ange som standard**, som är påslaget för en ny leverantör eftersom AI-funktioner bara använder projektets standardleverantör, och **Ytterligare parametrar**, ett valfritt JSON-objekt med extra parametrar som skickas till leverantören med varje begäran (till exempel `{"temperature": 0.2}`)
 
 **Vem som kan se en leverantör.** Ett projekts LLM-leverantörer läses bara av de medlemmar som får läsa projektets inställningar: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** och **Read LLM**. En leverantörs **API-nyckel** och **Ytterligare parametrar** läses bara av projektets ägare och administratörer, eftersom parametrarna skickas till leverantören med varje begäran och kan innehålla en token eller en header precis som nyckeln. De andra medlemmarna ser om det finns sparade parametrar, men inte vilka. Medlemmar som får redigera en leverantör kan fortfarande ersätta dess API-nyckel eller parametrar utan att läsa dem: i redigeringsformuläret är de fälten tomma från början, och ett fält som lämnas tomt behåller det sparade. För att ta bort parametrarna sparar du `{}`. Bara projektets ägare och administratörer kan ändra en leverantörs **Bas-URL**, eftersom dess API-nyckel och ytterligare parametrar skickas till den adressen; de andra medlemmarna som får redigera en leverantör kan ändra allt annat. Alla som kan läsa en leverantör kan läsa dess **Bas-URL**, så lägg aldrig en nyckel, en token eller ett lösenord i den: använd **API-nyckel**. Listan **Globala LLM-leverantörer** på samma sida, de delade leverantörer som ett projekt faller tillbaka på, visar deras namn, beskrivning och pris för alla som är inloggade, och inget annat om dem.
 

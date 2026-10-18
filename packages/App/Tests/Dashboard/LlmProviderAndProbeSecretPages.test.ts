@@ -40,6 +40,56 @@ function readSource(...relativeParts: Array<string>): string {
 
 const CREDENTIALS_WARNING: string = "Never put keys here.";
 
+/*
+ * Every LLM provider form is the shared one (Common/UI/Components/AI/
+ * LlmProviderFormFields): its Base URL says, after the provider's own hint,
+ * not to put keys there - more of the project may read the Base URL than
+ * the API key.
+ */
+const SHARED_FORM_SOURCE: string = squash(
+  [
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Common",
+      "UI",
+      "Components",
+      "AI",
+      "LlmProviderFormFields.tsx",
+    ),
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Common",
+      "UI",
+      "Components",
+      "AI",
+      "LlmProviderFormCopy.ts",
+    ),
+  ]
+    .map((file: string): string => {
+      return fs.readFileSync(file, "utf8");
+    })
+    .join("\n"),
+);
+
+function expectSharedFormWarnsAboutKeys(): void {
+  expect(SHARED_FORM_SOURCE).toContain(
+    squash('baseUrlNoKeys: translationKey("Never put keys here.")'),
+  );
+  // Under every provider's Base URL, after its own hint.
+  expect(SHARED_FORM_SOURCE).toContain(
+    squash(
+      'return renderHint( hint?.text, hint?.values || {}, "llm-provider-base-url-hint", LlmProviderFormCopy.baseUrlNoKeys, );',
+    ),
+  );
+  expect(CREDENTIALS_WARNING).toBe("Never put keys here.");
+}
+
 describe("Settings → AI → LLM Providers", () => {
   const source: string = readSource("Pages", "Settings", "LlmProviders.tsx");
 
@@ -49,7 +99,8 @@ describe("Settings → AI → LLM Providers", () => {
   });
 
   test("the Base URL help says not to put credentials in it", () => {
-    expect(source).toContain(CREDENTIALS_WARNING);
+    expect(source).toContain("formFields={getProjectLlmProviderFormFields()}");
+    expectSharedFormWarnsAboutKeys();
   });
 });
 
@@ -91,7 +142,8 @@ describe("an LLM provider's page", () => {
   });
 
   test("the Base URL help in the edit form says not to put credentials in it", () => {
-    expect(source).toContain(CREDENTIALS_WARNING);
+    expect(source).toContain("formFields={getProjectLlmProviderFormFields()}");
+    expectSharedFormWarnsAboutKeys();
   });
 });
 

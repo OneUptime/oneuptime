@@ -35,7 +35,7 @@ Abre **Productos → Eventos de seguridad → Inteligencia de amenazas**.
 
 ### Crea el feed
 
-Haz clic en **Crear Feed de inteligencia de amenazas** y rellena sus cinco pasos: **Información básica**, **Servidor TAXII**, **Autenticación**, **Security Cases** y **Al coincidir**. Los campos están en la tabla de abajo.
+Haz clic en **Crear Feed de inteligencia de amenazas** y rellena sus tres pasos: **Servidor TAXII**, **Inicio de sesión** y **Al coincidir**. Los campos están en la tabla de abajo.
 
 ### Comprueba la primera consulta
 
@@ -48,16 +48,16 @@ En uno o dos minutos, la fila del feed muestra **Último sondeo**, y **Resumen d
 | **ID de la colección** | La colección que publica los indicadores. |
 | **Intervalo de sondeo (minutos)** | Cada cuánto se traen objetos nuevos: de 1 a 1440 minutos, 60 por defecto. |
 | **Confianza mínima** | Los indicadores con una `confidence` STIX menor se omiten: de 0 a 100, y 0 lo conserva todo. Los indicadores sin confianza siempre pasan. |
-| **Token de API** | Un token bearer, para una colección que lo pida. |
-| **Usuario de Basic Auth** y **Contraseña de Basic Auth** | Para una colección que use autenticación básica HTTP. Deja ambos y el token vacíos para una colección pública. |
+| **Inicio de sesión** | Cómo inicia sesión OneUptime: **Sin inicio de sesión** para una colección pública, **Token bearer** para un token del operador del servidor, o **Usuario y contraseña** para la autenticación básica HTTP. |
+| **Token de API**, **Usuario de Basic Auth** y **Contraseña de Basic Auth** | Solo se piden para el inicio de sesión elegido. |
 | **Open a Case on Match** | Activado por defecto: cada evento que nombra un indicador abre un [caso](/docs/telemetry/security-cases) sobre él, o se suma al caso abierto que ya trata sobre él. |
-| **Crear alerta al coincidir** | Activado por defecto: cada indicador coincidente abre una alerta. |
+| **Alertas e incidentes** | **Crear una alerta** por defecto: cada indicador coincidente abre una alerta. |
 | **Gravedad de la alerta** | La gravedad de cada alerta que abre este feed. Déjala vacía para tomar el nivel de amenaza de cada indicador. |
-| **Crear incidente al coincidir** | Desactivado por defecto. Los incidentes impulsan la escalada de guardia, los SLA y las páginas de estado, y para las coincidencias de indicadores suelen bastar las alertas. |
+| **Declarar un incidente** o **Ambos** | En **Alertas e incidentes**. Los incidentes impulsan la escalada de guardia, los SLA y las páginas de estado, y para las coincidencias de indicadores suelen bastar las alertas. |
 | **Gravedad del incidente** | Como **Gravedad de la alerta**, para los incidentes. |
 | **Escribir un hallazgo de detección al coincidir** | Activado por defecto: cada coincidencia escribe un hallazgo en el flujo de eventos. |
 
-Los tokens y las contraseñas se cifran y no vuelven a mostrarse después de guardarlos. Para cambiarlos, elige **Actualizar credenciales** en la fila del feed y elige **Token de API (Bearer)**, **Basic Auth** o **Anónimo (borrar las credenciales almacenadas)**: tu elección sustituye el inicio de sesión del feed, así que guardar un token borra una contraseña guardada, y al revés.
+Los tokens y las contraseñas se cifran y no vuelven a mostrarse después de guardarlos. Para cambiarlos, elige **Actualizar credenciales** en la fila del feed y elige **Token bearer**, **Usuario y contraseña** o **Sin inicio de sesión**, que borra lo almacenado: tu elección sustituye el inicio de sesión del feed, así que guardar un token borra una contraseña guardada, y al revés.
 
 ### Cómo se consulta un feed
 
@@ -143,7 +143,7 @@ Cada minuto, los indicadores activos de cada feed habilitado se cotejan con los 
 ### Qué hace una coincidencia
 
 - Una alerta, titulada `[Threat Intel] <feed name> — <indicator value>`, una por feed y valor mientras siga abierta. Cuando se resuelve, la siguiente coincidencia abre una nueva. Las alertas no se resuelven automáticamente.
-- Un incidente, solo con **Crear incidente al coincidir**, deduplicado de la misma forma.
+- Un incidente, solo con **Declarar un incidente** o **Ambos** en **Alertas e incidentes**, deduplicado de la misma forma.
 - Un hallazgo de inteligencia de amenazas, con **Escribir un hallazgo de detección al coincidir**: un evento `Detection Finding` (clase OCSF 2004) del producto `OneUptime Threat Intel`, con el nivel de amenaza del indicador como gravedad y estos atributos:
 
 | Atributo | Valor |
@@ -199,7 +199,7 @@ El cotejo compara el valor de un indicador con los observables de un evento, no 
 :::
 
 :::details Una coincidencia no abrió una alerta
-**Crear alerta al coincidir** está desactivado, o sigue abierta una alerta del mismo feed y valor, y las coincidencias posteriores se suman a ella. Un proyecto necesita al menos una gravedad de alerta para que un feed abra alertas.
+**Alertas e incidentes** está en **Declarar un incidente** o **Ninguno**, o sigue abierta una alerta del mismo feed y valor, y las coincidencias posteriores se suman a ella. Un proyecto necesita al menos una gravedad de alerta para que un feed abra alertas.
 :::
 
 ## Próximos pasos

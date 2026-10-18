@@ -192,9 +192,9 @@ Varje tillåten behörighet ges med en omfattning, vald under **Omfattning** nä
 
 | Omfattning | Betydelse |
 | --- | --- |
-| Alla resurser i projektet | Standard. Behörigheten gäller för alla matchande resurser. |
-| Ägda av det här teamet eller dess medlemmar | Behörigheten gäller bara resurser där det här teamet, eller den agerande användaren, står som ägare. |
-| Begränsa efter etiketter (avancerat) | Behörigheten gäller bara resurser som bär minst en av de valda etiketterna. |
+| Alla resurser i projektet | Standard, och det de flesta team behöver. Behörigheten gäller för alla matchande resurser. |
+| Bara resurser som de äger | Behörigheten gäller bara resurser som den agerande personen, eller ett av deras team, äger. |
+| Bara resurser med vissa etiketter | Behörigheten gäller bara resurser som bär minst en av de valda etiketterna. |
 
 **Ägda** är det enklaste sättet att bygga en modell där "ni sköter era egna tjänster": ge ett team `MonitorAdmin` med omfattningen Ägda och gör sedan teamet till ägare av de övervakare det ansvarar för. Det smalnar av varje resurs som kan ha ägare — övervakare, incidenter, instrumentpaneler, tjänster, monitorgrupper, jourscheman och liknande — och det som hör till dem, som lagren i ett jourschema. Sonder, Runners, AI-agenter, jourscheman och incident- och underhållsmallar är det som andra resurser ställs in med, så en behörighet med omfattningen Ägda läser fortfarande alla, och du kan välja vilken som helst av dem; den ändrar och tar bara bort dem som du eller dina team äger. En Runners nyckel, som låter den som har den uppträda som Runnern, visas bara på de Runners som du eller dina team äger. Projektkonfiguration (incidenttillstånd, etiketter, själva teamen) har ingen ägare, så en roll med omfattningen Ägda beter sig normalt där.
 

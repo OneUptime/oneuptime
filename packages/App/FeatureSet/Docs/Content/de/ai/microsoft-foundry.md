@@ -111,20 +111,20 @@ Mit `--custom-domain contoso-ai` lautet der Endpunkt der Ressource `https://cont
 
 Gehen Sie zu **Projekteinstellungen** > **KI** > **LLM-Anbieter** und klicken Sie auf **LLM-Anbieter erstellen**.
 
-### Den Anbieter benennen
+### Den Anbieter auswählen
 
-Geben Sie unter **Grundinformationen** einen **Name** ein, etwa `Azure gpt-5.1`, und auf Wunsch eine **Beschreibung**. Klicken Sie auf **Weiter**.
+Wählen Sie unter **Anbieter** **Azure OpenAI / Microsoft Foundry** als **LLM-Anbieter** und klicken Sie auf **Weiter**, um zu **Verbindung** zu gelangen.
 
-### Anbietereinstellungen ausfüllen
+### Die Verbindung ausfüllen
 
 | Feld | Was Sie eingeben |
 | --- | --- |
-| **LLM-Anbieter** | **Azure OpenAI / Microsoft Foundry** |
 | **API-Schlüssel** | **KEY 1** oder **KEY 2** der Ressource |
-| **Modellname** | Der Name der Bereitstellung, genau wie Foundry ihn anzeigt, etwa `gpt-5.1` |
 | **Basis-URL** | Der Endpunkt der Ressource mit `/openai/v1`, etwa `https://contoso-ai.openai.azure.com/openai/v1`. Für Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Modellname** | Der Name der Bereitstellung, genau wie Foundry ihn anzeigt, etwa `gpt-5.1` |
+| **Name** | Zu Beginn der Name des Anbieters: Geben Sie ihm einen, der sagt, welche Bereitstellung es ist, etwa `Azure gpt-5.1` |
 
-**Als Standard festlegen** unter **Weitere Felder** ist eingeschaltet: KI-Funktionen verwenden den Standardanbieter des Projekts. Klicken Sie auf **LLM-Anbieter erstellen**.
+**Weitere Felder** enthält eine **Beschreibung** und **Als Standard festlegen**, das eingeschaltet ist: KI-Funktionen verwenden den Standardanbieter des Projekts. Klicken Sie auf **LLM-Anbieter erstellen**.
 
 ### Die Verbindung testen
 

@@ -87,14 +87,14 @@ flowchart TB
 
 Une personne déjà membre d'un projet attaché garde les équipes qu'elle y a.
 
-Deux interrupteurs du fournisseur modifient ce comportement. Les deux sont désactivés au départ, repliés sous **Plus de champs** :
+Deux questions du fournisseur modifient ce comportement, repliées sous **Plus de champs**. Chacune part de sa première réponse :
 
-| Interrupteur | Ce qu'il fait lorsqu'il est activé |
+| Question | Réponses |
 | --- | --- |
-| **Disable Sign Up with SSO** | Les personnes doivent être invitées dans un projet avant de pouvoir se connecter avec ce fournisseur, même si des projets sont attachés. Personne n'est créé lors de sa première connexion. |
-| **Restrict to Attached Projects** | Se connecter avec ce fournisseur ne satisfait l'exigence de SSO que dans les projets qui lui sont attachés ; des personnes déjà connectées peuvent donc perdre l'accès à d'autres projets. |
+| **Personnes sans compte** | **En obtiennent un à leur première connexion** : elles rejoignent les projets attachés ; si aucun n'est attaché, elles doivent d'abord être invitées. **Doivent d'abord être invitées** : les personnes doivent être invitées dans un projet avant de pouvoir se connecter avec ce fournisseur, même si des projets sont attachés. |
+| **Où cette connexion compte comme SSO** | **Tous les projets** : les projets qui exigent le SSO acceptent une connexion avec ce fournisseur. **Uniquement les projets attachés** : se connecter avec ce fournisseur ne satisfait l'exigence de SSO que dans les projets qui lui sont attachés ; des personnes déjà connectées peuvent donc perdre l'accès à d'autres projets. |
 
-Lorsque **Restrict to Attached Projects** est désactivé, la connexion avec le fournisseur satisfait l'exigence de SSO dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés.
+Avec **Tous les projets**, la connexion avec le fournisseur satisfait l'exigence de SSO dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés.
 
 ## Imposer le SSO
 
@@ -136,11 +136,11 @@ Deux modifications de qui peut se connecter sont vérifiées l'une après l'autr
 ## Dépannage
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La personne n'a pas encore de compte OneUptime, et le fournisseur n'en crée pas : soit aucun projet ne lui est attaché, soit **Disable Sign Up with SSO** est activé. Invitez-la dans un projet, ou attachez un projet au fournisseur.
+La personne n'a pas encore de compte OneUptime, et le fournisseur n'en crée pas : soit aucun projet ne lui est attaché, soit **Personnes sans compte** est réglé sur **Doivent d'abord être invitées**. Invitez-la dans un projet, ou attachez un projet au fournisseur.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** est activé, et la personne n'est membre d'aucun projet attaché au fournisseur. Attachez l'un de ses projets, ou ajoutez-la à un projet attaché.
+**Où cette connexion compte comme SSO** est réglé sur **Uniquement les projets attachés**, et la personne n'est membre d'aucun projet attaché au fournisseur. Attachez l'un de ses projets, ou ajoutez-la à un projet attaché.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"

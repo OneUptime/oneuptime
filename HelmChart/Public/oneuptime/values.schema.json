@@ -1966,6 +1966,12 @@
                         "string",
                         "null"
                     ]
+                },
+                "relayServerEnabled": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false

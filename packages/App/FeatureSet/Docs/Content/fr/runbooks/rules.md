@@ -9,7 +9,7 @@ Les règles de runbook lancent automatiquement des runbooks quand un **incident*
 Les trois pages modifient le même type de règle, filtré sur les règles de ce produit.
 
 :::cards
-- [Créer une règle de runbook](#créer-une-règle-de-runbook): Quatre étapes : un nom, des conditions et les runbooks à lancer.
+- [Créer une règle de runbook](#créer-une-règle-de-runbook): Trois étapes : des conditions, puis les runbooks à lancer, qui donnent son nom à la règle.
 - [Conditions](#conditions): Chaque critère et chaque opérateur qu'une règle peut utiliser.
 - [Logique de correspondance](#logique-de-correspondance): Plusieurs règles, conditions sur les moniteurs et règles d'étiquettes.
 - [Exemples](#exemples): Trois règles à reprendre.
@@ -51,27 +51,23 @@ Vous voyez toutes les exécutions, lancées par une règle ou non, sous **Runboo
 
 Dans **Incidents**, **Alertes** ou **Maintenance planifiée**, ouvrez **Règles → Règles de runbook**, puis cliquez sur **Créer : Règle de runbook**.
 
-### Nommer la règle
-
-Sous **Informations de base**, saisissez un **Nom**, par exemple « Lancer la bascule DB pour les incidents de base de données », et si vous le souhaitez une **Description**.
-
 ### Ajouter des conditions
 
-Sous **Critères de correspondance**, **S'applique à** démarre sur chaque nouvel événement de ce type, par exemple **Tous les incidents**, et la règle lance ses runbooks pour chacun. Pour la restreindre, choisissez l'autre réponse, par exemple **Uniquement les incidents qui correspondent aux conditions**, puis choisissez un critère et un opérateur, et saisissez ou choisissez la valeur. Cliquez sur **Ajouter une condition** pour d'autres conditions et choisissez **Toutes requises** ou **Au moins une requise**.
+Sous **Correspondance**, **S'applique à** démarre sur chaque nouvel événement de ce type, par exemple **Tous les incidents**, et la règle lance ses runbooks pour chacun. Pour la restreindre, choisissez l'autre réponse, par exemple **Uniquement les incidents qui correspondent aux conditions**, puis choisissez un critère et un opérateur, et saisissez ou choisissez la valeur. Cliquez sur **Ajouter une condition** pour d'autres conditions et choisissez **Toutes requises** ou **Au moins une requise**.
 
 ### Choisir les runbooks
 
-Sous **Runbooks**, choisissez un ou plusieurs **Runbooks à démarrer**, puis cliquez sur **Créer : Règle de runbook**. La règle est active dès sa création et apparaît dans la liste avec le statut **Activé**.
+Sous **Runbooks**, choisissez un ou plusieurs **Runbooks à démarrer**. Le **Nom** de la règle les suit, comme « Démarrer Database failover », jusqu'à ce que vous saisissiez le vôtre, et une **Description** attend sous **Plus de champs**. Cliquez ensuite sur **Créer : Règle de runbook**. La règle est active dès sa création et apparaît dans la liste avec le statut **Activé**.
 :::
 
 ## Anatomie d'une règle
 
 | Champ | Rôle |
 | --- | --- |
-| **Nom** | Un libellé court et parlant pour la règle. |
-| **Description** | Contexte facultatif pour l'équipe. |
+| **Nom** | Suit les runbooks qu'elle démarre, comme « Démarrer Database failover », jusqu'à ce que vous saisissiez le vôtre. |
+| **Description** | Contexte facultatif pour l'équipe, sous **Plus de champs**. |
 | **Activé** | Activé pour une nouvelle règle. Désactivez-le dans le formulaire de modification de la règle pour la suspendre sans la supprimer. |
-| **Conditions** | Ce que la règle fait correspondre, à l'étape **Critères de correspondance**. Une règle sans condition, par exemple sur **Tous les incidents**, correspond à chaque événement de son type. |
+| **Conditions** | Ce que la règle fait correspondre, à l'étape **Correspondance**. Une règle sans condition, par exemple sur **Tous les incidents**, correspond à chaque événement de son type. |
 | **Runbooks à démarrer** | Un ou plusieurs runbooks à lancer quand la règle se déclenche. |
 
 ## Conditions

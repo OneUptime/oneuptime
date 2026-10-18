@@ -86,6 +86,8 @@ const EXPIRES_VALUE: Field<ApiKey> = {
   },
   fieldType: FormFieldSchemaType.Date,
   getDefaultValue: getDefaultApiKeyExpiryValue,
+  // Never drawn: it only reads the value.
+  hideColumnDescription: true,
 };
 
 /*
@@ -134,6 +136,8 @@ export const getApiKeyCreateFormFields: (
       validation: {
         minLength: 2,
       },
+      // Not the column's "Any friendly name of this object", written for the API.
+      hideColumnDescription: true,
     },
     /*
      * Not a column of the key: the page adds the role once the key exists
@@ -155,6 +159,7 @@ export const getApiKeyCreateFormFields: (
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: "API Key Description",
+      hideColumnDescription: true,
       collapsibleSection: advanced,
     },
     {

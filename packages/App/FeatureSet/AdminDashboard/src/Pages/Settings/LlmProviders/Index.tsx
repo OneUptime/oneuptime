@@ -9,30 +9,28 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import TestLlmProviderModal from "Common/UI/Components/AI/TestLlmProviderModal";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  getGlobalLlmProviderFormFields,
+  getLlmProviderFormSteps,
+} from "Common/UI/Components/AI/LlmProviderFormFields";
+import {
+  getLlmProviderDefaultModel,
+  getLlmProviderShownValue,
+  getLlmProviderTypeCopy,
+} from "Common/UI/Components/AI/LlmProviderFormCopy";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ColumnLength from "Common/Types/Database/ColumnLength";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
-import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BILLING_ENABLED } from "Common/UI/Config";
 
-/*
- * Additional Parameters and, where projects are billed for AI, the cost per
- * million tokens: folded at the end of Provider Settings, as on the
- * Dashboard's own LLM provider form. Each used to be a wizard step of its
- * own that every new provider had to walk through.
- */
-const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
-  getAdvancedFormSection<LlmProvider>();
-
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
 
   // The global provider whose Test dialog is open.
   const [testedProviderId, setTestedProviderId] = useState<string | null>(null);
@@ -105,138 +103,19 @@ const Settings: FunctionComponent = (): ReactElement => {
           return Promise.resolve(item);
         }}
         /*
-         * What the provider is, then how to reach it - with the rarely
-         * changed options folded under Advanced at the end of the second.
+         * The form every LLM provider is added with: which provider, then
+         * only what it needs (Common LlmProviderFormFields), as on a
+         * project's LLM Providers. Where projects are billed for AI, its
+         * price waits under More fields.
          */
-        formSteps={[
-          {
-            title: t("pages.settings.llmProviders.stepBasicInfo"),
-            id: "basic-info",
-          },
-          {
-            title: t("pages.settings.llmProviders.stepProviderSettings"),
-            id: "provider-settings",
-          },
-        ]}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "My OpenAI GPT-4",
-            validation: {
-              minLength: 2,
-            },
-          },
-
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "GPT-4 for general AI features.",
-          },
-          {
-            field: {
-              llmType: true,
-            },
-            title: "LLM Provider",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select LLM Provider",
-            dropdownOptions: LlmTypeDropdownOptions,
-          },
-          {
-            field: {
-              apiKey: true,
-            },
-            title: "API Key",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "sk-...",
-            description:
-              "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq and Mistral.",
-          },
-          {
-            field: {
-              modelName: true,
-            },
-            title: "Model Name",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
-            description:
-              "The model to use, such as gpt-5.1 or claude-sonnet-5-5. For Azure OpenAI / Microsoft Foundry, your deployment's name.",
-          },
-          {
-            field: {
-              baseUrl: true,
-            },
-            title: "Base URL",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.URL,
-            required: false,
-            placeholder: "http://ollama:11434",
-            /*
-             * The column holds 100 characters. Said at the field, before the
-             * save: a deployment's whole Target URI with its api-version runs
-             * longer, and the resource's endpoint is short.
-             */
-            validation: {
-              maxLength: ColumnLength.ShortURL,
-            },
-            description:
-              "On Azure: https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude. Never put keys here.",
-          },
-          {
-            field: {
-              additionalParams: true,
-            },
-            title: "Additional Parameters",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.JSON,
-            required: false,
-            collapsibleSection: advancedSection,
-            description:
-              'Extra JSON parameters sent to the provider with every request, such as {"temperature": 0.2}. Leave empty unless your model needs them.',
-          },
-          ...(BILLING_ENABLED
-            ? [
-                {
-                  field: {
-                    costPerMillionTokensInUSDCents: true,
-                  },
-                  title: "Cost Per Million Tokens (USD Cents)",
-                  stepId: "provider-settings",
-                  fieldType: FormFieldSchemaType.Number,
-                  required: false,
-                  collapsibleSection: advancedSection,
-                  /*
-                   * The column's default: a provider that is free to use.
-                   * Written here too so its Edit form, which does not start
-                   * from column defaults, reads 0 as nothing set rather than
-                   * "Configured".
-                   */
-                  defaultValue: 0,
-                  placeholder: "0",
-                  description:
-                    "Cost per million tokens in USD cents. For example, if the cost is $0.01 per 1M tokens, enter 1.",
-                },
-              ]
-            : []),
-        ]}
+        formSteps={getLlmProviderFormSteps()}
+        formFields={getGlobalLlmProviderFormFields({
+          includeCost: BILLING_ENABLED,
+        })}
         selectMoreFields={{
           apiKey: true,
+          // The Model column names a Claude deployment's default by it.
+          baseUrl: true,
         }}
         filters={[
           {
@@ -275,6 +154,16 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             title: "Provider",
             type: FieldType.Text,
+            // As the form's cards name it: "Azure OpenAI / Microsoft Foundry".
+            getElement: (item: LlmProvider): ReactElement => {
+              return (
+                <span>
+                  {getLlmProviderTypeCopy(item.llmType)?.title ||
+                    item.llmType ||
+                    "-"}
+                </span>
+              );
+            },
           },
           {
             field: {
@@ -282,7 +171,24 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             title: "Model",
             type: FieldType.Text,
-            noValueMessage: "-",
+            /*
+             * Left blank, the model the server asks for, by name - as a
+             * project's LLM Providers list shows it ("gpt-5.1 (default)").
+             */
+            getElement: (item: LlmProvider): ReactElement => {
+              return (
+                <span>
+                  {getLlmProviderShownValue({
+                    value: item.modelName,
+                    defaultValue: getLlmProviderDefaultModel({
+                      llmType: item.llmType,
+                      baseUrl: item.baseUrl,
+                    }),
+                    translator: translator,
+                  })}
+                </span>
+              );
+            },
           },
           ...(BILLING_ENABLED
             ? [
