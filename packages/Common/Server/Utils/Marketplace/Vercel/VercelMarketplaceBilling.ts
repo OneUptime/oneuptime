@@ -510,7 +510,10 @@ export default class VercelMarketplaceBilling {
         ...VercelMarketplaceBilling.groupByPlan(
           purchase,
           reports.filter((report: MarketplaceUsageReport): boolean => {
-            return report.periodEnd!.getTime() <= period.periodEnd.getTime();
+            return (
+              report.periodEnd!.getTime() > period.periodStart.getTime() &&
+              report.periodEnd!.getTime() <= period.periodEnd.getTime()
+            );
           }),
         ),
       );
