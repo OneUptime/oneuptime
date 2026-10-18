@@ -148,6 +148,10 @@ Wenn Sie sich erneut anmelden, wird ein neuer Link gesendet: Prüfen Sie auch Ih
 Wählen Sie beim zweiten Schritt der Anmeldung **Keinen Zugriff mehr auf Ihre Authenticator-App?** und geben Sie einen Ihrer Backup-Codes ein. Öffnen Sie dann **Sicherheit → Zwei-Faktor-Authentifizierung** und fügen Sie Ihre neue App hinzu. Ohne Backup-Codes bitten Sie einen Administrator Ihrer OneUptime-Installation, die Zwei-Faktor-Authentifizierung Ihres Kontos zurückzusetzen.
 :::
 
+:::details Die Anmeldung lässt mich warten, bevor ich einen weiteren Code eingeben kann
+Nach fünf falschen Codes in Folge wartet jeder weitere Code, bevor er geprüft wird: eine Minute, dann zwei, dann vier und so weiter, bis zu einer Stunde. OneUptime zählt falsche Codes für Ihr Konto, egal wo sie eingegeben werden, schickt Ihnen eine E-Mail, wenn die Wartezeiten beginnen, und zählt neu, sobald Sie einen richtigen Code eingeben. Warten Sie und versuchen Sie es erneut, melden Sie sich mit einem Sicherheitsschlüssel an, oder wählen Sie **Keinen Zugriff mehr auf Ihre Authenticator-App?** und geben Sie einen Backup-Code ein. Wenn Sie diese Codes nicht eingegeben haben, kennt jemand Ihr Passwort: Setzen Sie es mit **Passwort vergessen?** auf der Anmeldeseite zurück, das beendet auch die Wartezeit.
+:::
+
 :::details Die Zeiten im Dashboard weichen um eine Stunde ab
 Das Dashboard zeigt Zeiten in der **Zeitzone** aus Ihrem Profil, nicht in der Ihres Computers. Prüfen Sie sie unter **Benutzerprofil → Übersicht**.
 :::

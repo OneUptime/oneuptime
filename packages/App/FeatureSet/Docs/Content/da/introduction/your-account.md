@@ -148,6 +148,10 @@ Logger du ind igen, sendes et nyt link: tjek også din spam-mappe. Kan du ikke l
 Ved det andet trin af login vælger du **Mistet adgangen til din autentifikator-app?** og indtaster en af dine backupkoder. Åbn derefter **Sikkerhed → Two-factor authentication**, og tilføj din nye app. Uden backupkoder beder du en administrator af din OneUptime-installation om at nulstille totrinsgodkendelsen på din konto.
 :::
 
+:::details Login beder mig vente, før jeg prøver en ny kode
+Efter fem forkerte koder i træk venter hver næste kode, før den bliver tjekket: et minut, så to, så fire og så videre, op til en time. OneUptime tæller forkerte koder for din konto, uanset hvor de indtastes, sender dig en e-mail, når ventetiderne begynder, og tæller forfra, når du indtaster en rigtig kode. Vent og prøv igen, log ind med en sikkerhedsnøgle, eller vælg **Mistet adgangen til din autentifikator-app?** og indtast en backupkode. Hvis det ikke var dig, der indtastede de koder, kender nogen din adgangskode: nulstil den med **Glemt adgangskode?** på loginsiden, hvilket også afslutter ventetiden.
+:::
+
 :::details Tiderne i dashboardet er en time forkerte
 Dashboardet viser tider i den **Tidszone**, der står på din profil, ikke din computers. Tjek den under **Brugerprofil → Oversigt**.
 :::
