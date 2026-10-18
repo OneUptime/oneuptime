@@ -1,4 +1,13 @@
 import LayersPreview from "./LayersPreview";
+import {
+  SCHEDULE_NO_LAYERS_TEST_ID,
+  ScheduleNoLayersCopy,
+} from "./ScheduleOverviewCopy";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Navigation from "Common/UI/Utils/Navigation";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
@@ -22,6 +31,11 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 export interface ComponentProps {
   onCallDutyPolicyScheduleId: ObjectID;
   projectId: ObjectID;
+  /*
+   * Told how many layers the schedule has, once they are read: the Overview
+   * leaves out what only a schedule with shifts can use until it has some.
+   */
+  onLayersLoaded?: ((count: number) => void) | undefined;
 }
 
 const Layers: FunctionComponent<ComponentProps> = (
@@ -96,6 +110,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         });
 
       setLayers(layers.data);
+      props.onLayersLoaded?.(layers.data.length);
 
       // get layer users.
       const layerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>> =
@@ -157,18 +172,36 @@ const Layers: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
+      {/*
+       * Nobody takes turns yet: the one thing to do is on the Layers page,
+       * so the button goes there.
+       */}
       {layers.length === 0 && (
-        <EmptyState
-          showSolidBackground={false}
-          id="no-layers"
-          title={
-            "No Layers in this On Call Schedule. Please go to layers tab to add one."
-          }
-          description={
-            "No layers in this on-call schedule. Please add a layer to start on-call rotations and scheduling."
-          }
-          icon={IconProp.SquareStack}
-        />
+        <div data-testid={SCHEDULE_NO_LAYERS_TEST_ID}>
+          <EmptyState
+            showSolidBackground={false}
+            id="no-layers"
+            title={ScheduleNoLayersCopy.title}
+            description={ScheduleNoLayersCopy.description}
+            icon={IconProp.SquareStack}
+            footer={
+              <Button
+                title={ScheduleNoLayersCopy.button}
+                icon={IconProp.SquareStack}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                dataTestId="schedule-no-layers-go-to-layers"
+                onClick={() => {
+                  Navigation.navigate(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS] as Route,
+                      { modelId: props.onCallDutyPolicyScheduleId },
+                    ),
+                  );
+                }}
+              />
+            }
+          />
+        </div>
       )}
 
       {layers.length > 0 && (

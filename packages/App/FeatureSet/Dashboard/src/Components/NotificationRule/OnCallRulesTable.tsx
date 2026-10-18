@@ -1325,6 +1325,12 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
               notifyAfterMinutes: true,
             },
             title: notifyAfterFieldTitle,
+            /*
+             * Its own line: the column's "How long should we wait before
+             * sending a notification to the user after the event has
+             * occurred?" spoke of "the user" to the user.
+             */
+            description: "How long after the page to use this method.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Immediately",

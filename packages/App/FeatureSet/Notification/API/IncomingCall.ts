@@ -10,6 +10,13 @@ import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import IncomingCallStatus from "Common/Types/IncomingCall/IncomingCallStatus";
 import { IncomingCallStatusMessage } from "Common/Types/IncomingCall/MissedIncomingCall";
 import { getIncomingCallRingSeconds } from "Common/Types/IncomingCall/IncomingCallRingTime";
+import { getIncomingCallPolicyRepeatsAllowed } from "Common/Types/IncomingCall/IncomingCallPolicyRepeat";
+import {
+  DEFAULT_INCOMING_CALL_GREETING_MESSAGE,
+  DEFAULT_INCOMING_CALL_NO_ANSWER_MESSAGE,
+  DEFAULT_INCOMING_CALL_NO_ONE_AVAILABLE_MESSAGE,
+  INCOMING_CALL_POLICY_OFF_MESSAGE,
+} from "Common/Types/IncomingCall/IncomingCallMessages";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
@@ -283,7 +290,7 @@ router.post(
         });
 
         const twiml: string = provider.generateHangupResponse(
-          "Sorry, this service is currently disabled.",
+          INCOMING_CALL_POLICY_OFF_MESSAGE,
         );
         res.type("text/xml");
         return res.send(twiml);
@@ -312,7 +319,7 @@ router.post(
 
         const twiml: string = provider.generateHangupResponse(
           policy.noOneAvailableMessage ||
-            "We're sorry, but no on-call engineer is currently available.",
+            DEFAULT_INCOMING_CALL_NO_ONE_AVAILABLE_MESSAGE,
         );
         res.type("text/xml");
         return res.send(twiml);
@@ -360,8 +367,7 @@ router.post(
 
       // Generate TwiML response
       const greetingMessage: string =
-        policy.greetingMessage ||
-        "Please wait while we connect you to the on-call engineer.";
+        policy.greetingMessage || DEFAULT_INCOMING_CALL_GREETING_MESSAGE;
 
       // Construct status callback URL
       const statusCallbackUrl: string = `${HttpProtocol}${Host}/notification/incoming-call/dial-status/${createdCallLog.id?.toString()}/${createdCallLogItem.id?.toString()}`;
@@ -681,12 +687,14 @@ router.post(
        * No further rule with an available user. If the policy is configured to
        * repeat, restart from the first available rule. State (repeatCount /
        * order) is only mutated once we've confirmed there is someone to dial,
-       * so a failed repeat doesn't leave misleading audit state.
+       * so a failed repeat doesn't leave misleading audit state. How many
+       * repeats the policy allows is read as its Settings page says it
+       * (IncomingCallPolicyRepeat): none while the switch is off, and a
+       * number left at 0 counts as 1.
        */
       if (
-        policy.repeatPolicyIfNoOneAnswers &&
         (callLog.repeatCount || 0) <
-          (policy.repeatPolicyIfNoOneAnswersTimes || 1)
+        getIncomingCallPolicyRepeatsAllowed(policy)
       ) {
         const repeatResolved: {
           rule: IncomingCallPolicyEscalationRule;
@@ -729,8 +737,7 @@ router.post(
       });
 
       const twiml: string = provider.generateHangupResponse(
-        policy.noAnswerMessage ||
-          "No one is available. Please try again later.",
+        policy.noAnswerMessage || DEFAULT_INCOMING_CALL_NO_ANSWER_MESSAGE,
       );
       res.type("text/xml");
       return res.send(twiml);

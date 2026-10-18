@@ -1,0 +1,35 @@
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * Words of a schedule's Overview and Layers pages that more than one file
+ * (and App/Tests) reads. Kept free of React. Every sentence is wrapped in
+ * translationKey() so npm run i18n:extract finds it.
+ */
+
+/*
+ * The details card's Edit button and dialog: the schedule as every menu
+ * names it. The model's own name (On-Call Policy Schedule) is its table's.
+ */
+export const SCHEDULE_EDIT_BUTTON_TEXT: string = translationKey(
+  "Edit On-Call Schedule",
+);
+
+/*
+ * A schedule with no layers yet, on its Overview: one step - add the people
+ * who take turns - where a red "No one is currently on call" banner, two
+ * calendar cards and "No Layers in this On Call Schedule. Please go to
+ * layers tab to add one." used to be.
+ */
+export const ScheduleNoLayersCopy: {
+  title: string;
+  description: string;
+  button: string;
+} = {
+  title: translationKey("Nobody takes turns on this schedule yet"),
+  description: translationKey(
+    "Add the people who are on call, and when, on its Layers page. Until then, nobody is paged through it.",
+  ),
+  button: translationKey("Go to Layers"),
+};
+
+export const SCHEDULE_NO_LAYERS_TEST_ID: string = "schedule-no-layers";

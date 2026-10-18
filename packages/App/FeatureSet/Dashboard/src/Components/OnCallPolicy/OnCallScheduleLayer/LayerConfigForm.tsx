@@ -6,9 +6,13 @@ import RestrictionTimes, {
 } from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import RecurringFieldElement from "Common/UI/Components/Events/RecurringFieldElement";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -27,6 +31,10 @@ export interface ComponentProps {
   timezone?: string | undefined;
   onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
 }
+
+// The layer's description, folded: most layers are known by their name.
+const MORE_LAYER_FIELDS: FormFieldCollapsibleSection<OnCallDutyPolicyScheduleLayer> =
+  getAdvancedFormSection<OnCallDutyPolicyScheduleLayer>();
 
 /*
  * A single form that edits every configuration field of a layer (name,
@@ -57,33 +65,33 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
             name: true,
           },
           sectionTitle: "Layer details",
-          sectionDescription:
-            "Give this layer a clear name so your team knows what it covers.",
           title: "Layer name",
+          description: "What the layer covers.",
           fieldType: FormFieldSchemaType.Name,
           placeholder: "e.g. Weekday Primary",
           required: true,
+          hideColumnDescription: true,
         },
         {
           field: {
             description: true,
           },
           title: "Description",
-          description: "Optional. Explain the purpose of this layer.",
           fieldType: FormFieldSchemaType.LongText,
           placeholder: "What is this layer responsible for?",
           required: false,
+          hideColumnDescription: true,
+          // Rarely needed: folded under More fields, like every Description.
+          collapsibleSection: MORE_LAYER_FIELDS,
         },
         {
           field: {
             startsAt: true,
           },
           sectionTitle: "Rotation schedule",
-          sectionDescription:
-            "Control when this layer starts and how often on-call duty hands off between users.",
+          sectionDescription: "When turns start, and how long each lasts.",
           title: "Rotation starts at",
-          description:
-            "The date and time this layer's on-call rotation begins.",
+          description: "When the first person in the layer goes on call.",
           fieldType: FormFieldSchemaType.CustomComponent,
           required: true,
           getCustomElement: (
@@ -104,8 +112,7 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
             rotation: true,
           },
           title: "Rotate every",
-          description:
-            "How often on-call duty passes to the next user in this layer.",
+          description: "How long each turn lasts.",
           fieldType: FormFieldSchemaType.CustomComponent,
           getCustomElement: (
             value: FormValues<OnCallDutyPolicyScheduleLayer>,
@@ -126,7 +133,7 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
           },
           title: "First hand-off time",
           description:
-            "The date and time of the first hand-off to the next user. Hand-offs then repeat every rotation interval.",
+            "When the first turn passes to the next person. Later hand-offs follow every turn.",
           fieldType: FormFieldSchemaType.CustomComponent,
           required: true,
           getCustomElement: (
@@ -225,7 +232,7 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
             restrictionStart.getSeconds() === restrictionEnd.getSeconds()
           ) {
             errors["restrictionTimes"] = translator.translateTemplate(
-              "The restriction 'From' and 'To' times cannot be the same. Choose a window with a positive duration (or set the restriction to None for 24/7 coverage).",
+              "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.",
             );
           }
         }

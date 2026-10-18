@@ -2,13 +2,48 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
+import { ModelSwitchConfirmation } from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import RepeatChoiceCard from "../../../Components/OnCallPolicy/RepeatChoice/RepeatChoiceCard";
+import { INCOMING_CALL_POLICY_REPEAT } from "../../../Components/OnCallPolicy/RepeatChoice/RepeatChoice";
+import {
+  INCOMING_CALL_ANSWER_CALLS_COLUMN,
+  INCOMING_CALL_ANSWER_CALLS_TEST_ID,
+  IncomingCallAnswerCallsCopy,
+  IncomingCallVoiceMessagesCopy,
+} from "../../../Components/IncomingCallPolicy/IncomingCallPolicySettingsCopy";
+import IncomingCallVoiceMessage from "../../../Components/IncomingCallPolicy/IncomingCallVoiceMessage";
 
+/*
+ * Turning calls away asks first: it is the one press here that silences a
+ * hotline. Turning them back on saves at once.
+ */
+export const getStopAnsweringCallsConfirmation: (
+  isTurningOn: boolean,
+) => ModelSwitchConfirmation | undefined = (
+  isTurningOn: boolean,
+): ModelSwitchConfirmation | undefined => {
+  if (isTurningOn) {
+    return undefined;
+  }
+
+  return {
+    title: IncomingCallAnswerCallsCopy.turnOffConfirmTitle,
+    description: IncomingCallAnswerCallsCopy.turnOffConfirmDescription,
+    submitButtonText: IncomingCallAnswerCallsCopy.turnOffConfirmButton,
+    submitButtonType: ButtonStyleType.DANGER,
+  };
+};
+
+/*
+ * An incoming call policy's Settings: whether it answers calls, what happens
+ * when nobody answers, and what callers hear - a card each
+ * (IncomingCallPolicySettingsCopy.ts says what they replaced).
+ */
 const IncomingCallPolicySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -16,154 +51,124 @@ const IncomingCallPolicySettings: FunctionComponent<
 
   return (
     <Fragment>
-      {/* Messages Settings */}
-      <CardModelDetail<IncomingCallPolicy>
-        name="Incoming Call Policy > Messages"
-        editButtonText="Edit Messages"
-        cardProps={{
-          title: "Voice Messages",
-          description:
-            "Configure the text-to-speech messages played to callers at different stages.",
+      <ModelSwitchCard<IncomingCallPolicy>
+        modelType={IncomingCallPolicy}
+        modelId={modelId}
+        column={INCOMING_CALL_ANSWER_CALLS_COLUMN}
+        cardTitle={IncomingCallAnswerCallsCopy.cardTitle}
+        cardDescription={IncomingCallAnswerCallsCopy.cardDescription}
+        title={IncomingCallAnswerCallsCopy.switchTitle}
+        getDescription={(isOn: boolean): string => {
+          return isOn
+            ? IncomingCallAnswerCallsCopy.switchOnDescription
+            : IncomingCallAnswerCallsCopy.switchOffDescription;
         }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              greetingMessage: true,
-            },
-            title: "Greeting Message",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Please wait while we connect you to the on-call engineer.",
-            description:
-              "Text-to-speech message played to callers when they first connect",
-          },
-          {
-            field: {
-              noAnswerMessage: true,
-            },
-            title: "No Answer Message",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "No one is available. Please try again later.",
-            description: "Message when all escalation rules are exhausted",
-          },
-          {
-            field: {
-              noOneAvailableMessage: true,
-            },
-            title: "No One Available Message",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "We're sorry, but no on-call engineer is currently available.",
-            description: "Message when no one is on-call",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: IncomingCallPolicy,
-          id: "model-detail-incoming-call-policy-messages",
-          fields: [
-            {
-              field: {
-                greetingMessage: true,
-              },
-              title: "Greeting Message",
-              placeholder: "No greeting message set",
-            },
-            {
-              field: {
-                noAnswerMessage: true,
-              },
-              title: "No Answer Message",
-              placeholder: "No message set",
-            },
-            {
-              field: {
-                noOneAvailableMessage: true,
-              },
-              title: "No One Available Message",
-              placeholder: "No message set",
-            },
-          ],
-          modelId: modelId,
-        }}
+        getConfirmation={getStopAnsweringCallsConfirmation}
+        dataTestId={INCOMING_CALL_ANSWER_CALLS_TEST_ID}
       />
 
-      {/* Policy Settings */}
+      <div className="mt-5">
+        <RepeatChoiceCard<IncomingCallPolicy>
+          config={INCOMING_CALL_POLICY_REPEAT}
+          modelType={IncomingCallPolicy}
+          modelId={modelId}
+          name="Incoming Call Policy > Repeat Policy"
+        />
+      </div>
+
       <div className="mt-5">
         <CardModelDetail<IncomingCallPolicy>
-          name="Incoming Call Policy > Policy Settings"
-          editButtonText="Edit Policy Settings"
+          name="Incoming Call Policy > Messages"
+          editButtonText={IncomingCallVoiceMessagesCopy.editButtonText}
+          editModalTitle={IncomingCallVoiceMessagesCopy.dialogTitle}
           cardProps={{
-            title: "Policy Settings",
-            description:
-              "Configure how this policy behaves when handling incoming calls.",
+            title: IncomingCallVoiceMessagesCopy.cardTitle,
+            description: IncomingCallVoiceMessagesCopy.cardDescription,
           }}
           isEditable={true}
           formFields={[
             {
               field: {
-                isEnabled: true,
+                greetingMessage: true,
               },
-              title: "Enabled",
-              fieldType: FormFieldSchemaType.Toggle,
+              title: IncomingCallVoiceMessagesCopy.greeting.title,
+              description: IncomingCallVoiceMessagesCopy.greeting.description,
+              fieldType: FormFieldSchemaType.LongText,
               required: false,
-              description: "Enable or disable this policy",
             },
             {
               field: {
-                repeatPolicyIfNoOneAnswers: true,
+                noAnswerMessage: true,
               },
-              title: "Repeat Policy If No One Answers",
-              fieldType: FormFieldSchemaType.Toggle,
+              title: IncomingCallVoiceMessagesCopy.noAnswer.title,
+              description: IncomingCallVoiceMessagesCopy.noAnswer.description,
+              fieldType: FormFieldSchemaType.LongText,
               required: false,
-              description: "Restart from first rule if all escalations fail",
             },
             {
               field: {
-                repeatPolicyIfNoOneAnswersTimes: true,
+                noOneAvailableMessage: true,
               },
-              title: "Repeat Policy Times",
-              fieldType: FormFieldSchemaType.Number,
+              title: IncomingCallVoiceMessagesCopy.noOneAvailable.title,
+              description:
+                IncomingCallVoiceMessagesCopy.noOneAvailable.description,
+              fieldType: FormFieldSchemaType.LongText,
               required: false,
-              placeholder: "1",
-              description: "Maximum number of times to repeat the policy",
             },
           ]}
           modelDetailProps={{
             showDetailsInNumberOfColumns: 1,
             modelType: IncomingCallPolicy,
-            id: "model-detail-incoming-call-policy-settings",
+            id: "model-detail-incoming-call-policy-messages",
             fields: [
               {
                 field: {
-                  isEnabled: true,
+                  greetingMessage: true,
                 },
-                title: "Status",
+                title: IncomingCallVoiceMessagesCopy.greeting.title,
                 getElement: (item: IncomingCallPolicy): ReactElement => {
-                  if (item.isEnabled) {
-                    return <Pill text="Enabled" color={Green} />;
-                  }
-                  return <Pill text="Disabled" color={Red} />;
+                  return (
+                    <IncomingCallVoiceMessage
+                      message={item.greetingMessage}
+                      defaultMessage={
+                        IncomingCallVoiceMessagesCopy.greeting.defaultMessage
+                      }
+                    />
+                  );
                 },
               },
               {
                 field: {
-                  repeatPolicyIfNoOneAnswers: true,
+                  noAnswerMessage: true,
                 },
-                title: "Repeat Policy If No One Answers",
-                fieldType: FieldType.Boolean,
+                title: IncomingCallVoiceMessagesCopy.noAnswer.title,
+                getElement: (item: IncomingCallPolicy): ReactElement => {
+                  return (
+                    <IncomingCallVoiceMessage
+                      message={item.noAnswerMessage}
+                      defaultMessage={
+                        IncomingCallVoiceMessagesCopy.noAnswer.defaultMessage
+                      }
+                    />
+                  );
+                },
               },
               {
                 field: {
-                  repeatPolicyIfNoOneAnswersTimes: true,
+                  noOneAvailableMessage: true,
                 },
-                title: "Repeat Policy Times",
-                fieldType: FieldType.Number,
-                placeholder: "Not set",
+                title: IncomingCallVoiceMessagesCopy.noOneAvailable.title,
+                getElement: (item: IncomingCallPolicy): ReactElement => {
+                  return (
+                    <IncomingCallVoiceMessage
+                      message={item.noOneAvailableMessage}
+                      defaultMessage={
+                        IncomingCallVoiceMessagesCopy.noOneAvailable
+                          .defaultMessage
+                      }
+                    />
+                  );
+                },
               },
             ],
             modelId: modelId,

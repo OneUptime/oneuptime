@@ -1,12 +1,19 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../PageComponentProps";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import {
+  INCOMING_CALL_POLICIES_CARD_DESCRIPTION,
+  INCOMING_CALL_POLICY_DOCS_PATH,
+  getIncomingCallPolicyCreateFormFields,
+} from "../../Components/IncomingCallPolicy/IncomingCallPolicyCreateForm";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import IncomingCallPolicyOwnerTeam from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
@@ -15,6 +22,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -105,6 +113,17 @@ const IncomingCallPoliciesPage: FunctionComponent<
     showLabelsFacet: true,
     extraFacets: incomingCallPolicyExtraFacets,
   });
+
+  /*
+   * The name, with the description and the labels under More fields
+   * (IncomingCallPolicyCreateForm.ts). Built once, not on every render.
+   */
+  const createFormFields: Array<ModelField<IncomingCallPolicy>> = useMemo(
+    (): Array<ModelField<IncomingCallPolicy>> => {
+      return getIncomingCallPolicyCreateFormFields();
+    },
+    [],
+  );
 
   const fetchPhoneNumbersForPolicies: (
     policies: Array<IncomingCallPolicy>,
@@ -216,34 +235,29 @@ const IncomingCallPoliciesPage: FunctionComponent<
         }}
         cardProps={{
           title: "Incoming Call Policies",
-          description:
-            "Configure incoming call routing policies for your on-call teams. Purchase phone numbers and set up escalation rules.",
+          description: INCOMING_CALL_POLICIES_CARD_DESCRIPTION,
         }}
-        noItemsMessage={"No incoming call policy found."}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "e.g., Production Support Hotline",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description of this incoming call policy",
-          },
-          getLabelsFormField<IncomingCallPolicy>(),
-        ]}
+        documentationLink={Route.fromString(INCOMING_CALL_POLICY_DOCS_PATH)}
+        formFields={createFormFields}
+        onCreateSuccess={(
+          item: IncomingCallPolicy,
+        ): Promise<IncomingCallPolicy> => {
+          /*
+           * A new policy opens on its Overview, where its Setup card walks
+           * through what it still needs: a Twilio account, a number and
+           * the rules that ring people.
+           */
+          if (item._id) {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW] as Route,
+                { modelId: new ObjectID(item._id.toString()) },
+              ),
+            );
+          }
+
+          return Promise.resolve(item);
+        }}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
