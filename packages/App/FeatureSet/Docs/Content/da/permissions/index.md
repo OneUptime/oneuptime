@@ -196,7 +196,7 @@ Hver tilladt rettighed gives med et omfang, valgt under **Omfang**, når du tilf
 | Ejet af dette team eller dets medlemmer | Tilladelsen gælder kun for ressourcer, hvor dette team eller den handlende bruger står som ejer. |
 | Begræns efter labels (avanceret) | Tilladelsen gælder kun for ressourcer, der bærer mindst ét af de valgte labels. |
 
-**Ejede** er den enkleste måde at bygge en model på, hvor "I passer på jeres egne tjenester": giv et team `MonitorAdmin` med omfanget Ejede, og gør så teamet til ejer af de monitorer, det har ansvaret for. Det indsnævrer kun ressourcer, der faktisk kan have ejere — monitorer, hændelser, dashboards, tjenester og lignende. Projektkonfiguration (hændelsestilstande, labels, teamsene selv) har ingen ejer, så en rolle med omfanget Ejede opfører sig normalt der.
+**Ejede** er den enkleste måde at bygge en model på, hvor "I passer på jeres egne tjenester": giv et team `MonitorAdmin` med omfanget Ejede, og gør så teamet til ejer af de monitorer, det har ansvaret for. Det indsnævrer alle ressourcer, der kan have ejere — monitorer, hændelser, dashboards, tjenester, monitorgrupper, vagtplaner og lignende — og det, der hører til dem, såsom en vagtplans lag. Sonder, Runnere, AI-agenter, vagtplaner samt hændelses- og vedligeholdelsesskabeloner er det, andre ressourcer sættes op med, så en tilladelse med omfanget Ejede læser stadig dem alle, og du kan vælge enhver af dem; den ændrer og sletter kun dem, du eller dine teams ejer. Projektkonfiguration (hændelsestilstande, labels, teamsene selv) har ingen ejer, så en rolle med omfanget Ejede opfører sig normalt der.
 
 **Labels** er den mere manuelle udgave af samme idé: mærk ressourcer, og giv så tilladelser begrænset til de mærker.
 
@@ -323,7 +323,7 @@ Opløste tilladelser caches pr. bruger og projekt og opdateres, når teammedlems
 
 **Et team, der kun kigger med.** Opret teamet med **Seer** under **Adgang**. For kun nogle områder vælger du **Vælg tilladelser senere** og tilføjer de områdespecifikke `*Viewer`-roller, teamet skal se.
 
-**Vagtingeniører, der passer deres egne tjenester.** Giv teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Ejede**, og tilføj så teamet som ejer af de monitorer, det driver.
+**Vagtingeniører, der passer deres egne tjenester.** Giv teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Ejede**, og tilføj så teamet som ejer af de monitorer, vagtpolitikker og vagtplaner, det driver. Hvad dets folk opretter med disse tilladelser, ejer de allerede.
 
 **Konsulenter holdt væk fra produktion.** Giv teamet de roller, det har brug for, med omfanget **Alle**, og tilføj så en **blokeret tilladelse** (under **Yderligere indstillinger** på teamets side Tilladelser) for de følsomme evner, begrænset til labelet `Production`.
 

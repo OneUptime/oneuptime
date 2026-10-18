@@ -196,7 +196,7 @@ Chaque autorisation accordée l'est avec une portée, choisie sous **Portée** a
 | Possédées par cette équipe ou ses membres | L'autorisation ne s'applique qu'aux ressources dont cette équipe, ou l'utilisateur qui agit, est propriétaire. |
 | Restreindre par étiquettes (avancé) | L'autorisation ne s'applique qu'aux ressources portant au moins une des étiquettes sélectionnées. |
 
-**Possédées** est le moyen le plus simple de construire un modèle « chacun s'occupe de ses propres services » : donnez à une équipe `MonitorAdmin` avec la portée Possédées, puis faites de cette équipe le propriétaire des moniteurs dont elle a la charge. Cela ne restreint que les ressources pouvant réellement avoir des propriétaires — moniteurs, incidents, tableaux de bord, services, etc. La configuration du projet (états d'incident, étiquettes, équipes elles-mêmes) n'a pas de propriétaire ; un rôle en portée Possédées s'y comporte donc normalement.
+**Possédées** est le moyen le plus simple de construire un modèle « chacun s'occupe de ses propres services » : donnez à une équipe `MonitorAdmin` avec la portée Possédées, puis faites de cette équipe le propriétaire des moniteurs dont elle a la charge. Cela restreint toutes les ressources pouvant avoir des propriétaires — moniteurs, incidents, tableaux de bord, services, groupes de moniteurs, plannings d'astreinte, etc. — et ce qui leur appartient, comme les couches d'un planning. Les sondes, les Runners, les agents IA, les plannings d'astreinte et les modèles d'incident et de maintenance sont ce avec quoi d'autres ressources sont configurées : une autorisation en portée Possédées les lit donc toujours tous, et vous pouvez choisir n'importe lequel ; elle ne modifie et ne supprime que ceux dont vous ou vos équipes êtes propriétaires. La configuration du projet (états d'incident, étiquettes, équipes elles-mêmes) n'a pas de propriétaire ; un rôle en portée Possédées s'y comporte donc normalement.
 
 **Étiquettes** est la version plus manuelle de la même idée : marquez les ressources, puis accordez des autorisations restreintes à ces marqueurs.
 
@@ -323,7 +323,7 @@ Les autorisations résolues sont mises en cache par utilisateur et par projet, e
 
 **Une équipe qui observe seulement.** Créez l'équipe avec **Lecteur** sous **Accès**. Pour certains domaines seulement, choisissez **Choisir les autorisations plus tard** et ajoutez les rôles `*Viewer` par domaine qu'elle doit voir.
 
-**Des ingénieurs d'astreinte qui gèrent leurs propres services.** Donnez à l'équipe `MonitorAdmin`, `IncidentMember` et `OnCallMember` en portée **Possédées**, puis ajoutez l'équipe comme propriétaire des moniteurs qu'elle exploite.
+**Des ingénieurs d'astreinte qui gèrent leurs propres services.** Donnez à l'équipe `MonitorAdmin`, `IncidentMember` et `OnCallMember` en portée **Possédées**, puis ajoutez l'équipe comme propriétaire des moniteurs, des politiques d'astreinte et des plannings qu'elle exploite. Ce que ses membres créent avec ces autorisations leur appartient déjà.
 
 **Des prestataires tenus à l'écart de la production.** Donnez à l'équipe les rôles nécessaires en portée **Toutes**, puis ajoutez une **autorisation bloquée** (sous **Plus de paramètres** sur la page Autorisations de l'équipe) pour les capacités sensibles, restreinte à l'étiquette `Production`.
 

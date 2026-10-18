@@ -196,7 +196,7 @@ Hver tillatt rettighet gis med et omfang, valgt under **Omfang** når du legger 
 | Eid av dette teamet eller medlemmene | Tillatelsen gjelder bare ressurser der dette teamet, eller brukeren som handler, står oppført som eier. |
 | Begrens etter etiketter (avansert) | Tillatelsen gjelder bare ressurser som bærer minst én av de valgte etikettene. |
 
-**Eide** er den enkleste måten å bygge en modell der «dere passer på deres egne tjenester»: gi et team `MonitorAdmin` med omfanget Eide, og gjør så teamet til eier av overvåkerne det har ansvaret for. Det snevrer bare inn ressurser som faktisk kan ha eiere — overvåkere, hendelser, dashbord, tjenester og lignende. Prosjektkonfigurasjon (hendelsestilstander, etiketter, selve teamene) har ingen eier, så en rolle med omfanget Eide oppfører seg normalt der.
+**Eide** er den enkleste måten å bygge en modell der «dere passer på deres egne tjenester»: gi et team `MonitorAdmin` med omfanget Eide, og gjør så teamet til eier av overvåkerne det har ansvaret for. Det snevrer inn alle ressurser som kan ha eiere — overvåkere, hendelser, dashbord, tjenester, monitorgrupper, vaktplaner og lignende — og det som hører til dem, som lagene i en vaktplan. Sonder, Runnere, AI-agenter, vaktplaner og hendelses- og vedlikeholdsmaler er det andre ressurser settes opp med, så en tillatelse med omfanget Eide leser fortsatt alle sammen, og du kan velge hvilken som helst av dem; den endrer og sletter bare dem du eller teamene dine eier. Prosjektkonfigurasjon (hendelsestilstander, etiketter, selve teamene) har ingen eier, så en rolle med omfanget Eide oppfører seg normalt der.
 
 **Etiketter** er den mer manuelle varianten av samme idé: merk ressurser, og gi så tillatelser begrenset til de merkene.
 
@@ -323,7 +323,7 @@ Løste tillatelser bufres per bruker og prosjekt, og oppdateres når teammedlems
 
 **Et team som bare ser på.** Opprett teamet med **Viser** under **Tilgang**. For bare noen områder velger du **Velg tillatelser senere** og legger til de områdevise `*Viewer`-rollene teamet skal se.
 
-**Vaktingeniører som drifter sine egne tjenester.** Gi teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Eide**, og legg så til teamet som eier av overvåkerne det drifter.
+**Vaktingeniører som drifter sine egne tjenester.** Gi teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Eide**, og legg så til teamet som eier av overvåkerne, vaktretningslinjene og vaktplanene det drifter. Det personene dets oppretter med disse tillatelsene, eier de allerede.
 
 **Innleide holdt unna produksjon.** Gi teamet rollene det trenger med omfanget **Alle**, og legg så til en **blokkert tillatelse** (under **Flere innstillinger** på teamets side Tillatelser) for de sensitive evnene, begrenset til etiketten `Production`.
 

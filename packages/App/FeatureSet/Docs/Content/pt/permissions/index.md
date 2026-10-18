@@ -196,7 +196,7 @@ Toda permissão concedida tem um escopo, escolhido em **Escopo** quando você a 
 | De propriedade desta equipe ou de seus membros | A permissão só se aplica a recursos em que esta equipe, ou o usuário que age, está listado como proprietário. |
 | Restringir por rótulos (avançado) | A permissão só se aplica a recursos que carregam pelo menos um dos rótulos selecionados. |
 
-**Próprios** é a forma mais simples de montar um modelo de «cada um cuida dos seus próprios serviços»: dê a uma equipe `MonitorAdmin` com escopo Próprios e depois torne essa equipe proprietária dos monitores pelos quais ela é responsável. Isso só restringe recursos que realmente podem ter proprietários — monitores, incidentes, painéis, serviços e afins. A configuração do projeto (estados de incidentes, rótulos, as próprias equipes) não tem proprietário, então uma função com escopo Próprios se comporta normalmente ali.
+**Próprios** é a forma mais simples de montar um modelo de «cada um cuida dos seus próprios serviços»: dê a uma equipe `MonitorAdmin` com escopo Próprios e depois torne essa equipe proprietária dos monitores pelos quais ela é responsável. Isso restringe todo recurso que pode ter proprietários — monitores, incidentes, painéis, serviços, grupos de monitores, agendamentos de plantão e afins — e o que pertence a eles, como as camadas de um agendamento. Sondas, Runners, agentes de IA, agendamentos de plantão e modelos de incidentes e de manutenção são aquilo com que outros recursos são configurados, então uma permissão com escopo Próprios continua lendo todos eles, e você pode escolher qualquer um; ela só altera e exclui aqueles dos quais você ou suas equipes são proprietários. A configuração do projeto (estados de incidentes, rótulos, as próprias equipes) não tem proprietário, então uma função com escopo Próprios se comporta normalmente ali.
 
 **Rótulos** é a versão mais manual da mesma ideia: marque os recursos e depois conceda permissões restritas a essas marcas.
 
@@ -323,7 +323,7 @@ As permissões resolvidas ficam em cache por usuário e projeto, e são atualiza
 
 **Uma equipe que só observa.** Crie a equipe com **Visualizador** em **Acesso**. Para só algumas áreas, escolha **Escolher as permissões depois** e adicione as funções `*Viewer` por área que ela deve ver.
 
-**Engenheiros de plantão que cuidam dos próprios serviços.** Dê à equipe `MonitorAdmin`, `IncidentMember` e `OnCallMember` com escopo **Próprios**, e depois adicione a equipe como proprietária dos monitores que ela opera.
+**Engenheiros de plantão que cuidam dos próprios serviços.** Dê à equipe `MonitorAdmin`, `IncidentMember` e `OnCallMember` com escopo **Próprios**, e depois adicione a equipe como proprietária dos monitores, das políticas de plantão e dos agendamentos que ela opera. O que suas pessoas criam com essas permissões já é delas.
 
 **Prestadores de serviço longe da produção.** Dê à equipe as funções de que ela precisa com escopo **Todos** e depois adicione uma **permissão bloqueada** (em **Mais configurações**, na página Permissões da equipe) para as capacidades sensíveis, restrita ao rótulo `Production`.
 

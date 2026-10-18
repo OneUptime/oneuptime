@@ -196,7 +196,7 @@ Jede Erlaubt-Berechtigung wird mit einem Geltungsbereich vergeben, den Sie beim 
 | Im Besitz dieses Teams oder seiner Mitglieder | Die Berechtigung gilt nur für Ressourcen, bei denen dieses Team oder der handelnde Benutzer als Eigentümer eingetragen ist. |
 | Nach Labels einschränken (fortgeschritten) | Die Berechtigung gilt nur für Ressourcen, die mindestens eines der gewählten Labels tragen. |
 
-**Eigene** ist der einfachste Weg zu einem Modell nach dem Motto „Ihr kümmert euch um eure eigenen Dienste": Geben Sie einem Team `MonitorAdmin` mit Geltungsbereich „Eigene" und machen Sie dieses Team zum Eigentümer der Monitore, für die es zuständig ist. Eingegrenzt werden nur Ressourcen, die überhaupt Eigentümer haben können — Monitore, Vorfälle, Dashboards, Services und Ähnliches. Projektkonfiguration (Vorfallzustände, Labels, die Teams selbst) hat keine Eigentümer, dort verhält sich eine „Eigene"-Rolle also ganz normal.
+**Eigene** ist der einfachste Weg zu einem Modell nach dem Motto „Ihr kümmert euch um eure eigenen Dienste": Geben Sie einem Team `MonitorAdmin` mit Geltungsbereich „Eigene" und machen Sie dieses Team zum Eigentümer der Monitore, für die es zuständig ist. Eingegrenzt wird jede Ressource, die Eigentümer haben kann — Monitore, Vorfälle, Dashboards, Services, Monitor-Gruppen, Bereitschaftspläne und Ähnliches — samt dem, was zu ihr gehört, etwa den Ebenen eines Bereitschaftsplans. Sonden, Runner, KI-Agenten, Bereitschaftspläne sowie Vorfall- und Wartungsvorlagen sind das, womit andere Ressourcen eingerichtet werden: Eine Berechtigung mit Geltungsbereich „Eigene" liest sie deshalb weiterhin alle, und Sie können jede davon auswählen; ändern und löschen kann sie nur die, die Ihnen oder Ihren Teams gehören. Projektkonfiguration (Vorfallzustände, Labels, die Teams selbst) hat keine Eigentümer, dort verhält sich eine „Eigene"-Rolle also ganz normal.
 
 **Labels** ist die manuellere Variante derselben Idee: Ressourcen markieren und Berechtigungen auf diese Markierungen beschränken.
 
@@ -323,7 +323,7 @@ Aufgelöste Berechtigungen werden pro Benutzer und Projekt zwischengespeichert u
 
 **Ein Team, das nur zuschaut.** Legen Sie das Team mit **Betrachter** unter **Zugriff** an. Nur für einige Bereiche wählen Sie **Berechtigungen später wählen** und fügen die bereichsbezogenen `*Viewer`-Rollen hinzu, die es sehen soll.
 
-**Bereitschaftsingenieure, die ihre eigenen Dienste betreuen.** Geben Sie dem Team `MonitorAdmin`, `IncidentMember` und `OnCallMember` mit Geltungsbereich **Eigene** und tragen Sie das Team als Eigentümer der Monitore ein, die es betreibt.
+**Bereitschaftsingenieure, die ihre eigenen Dienste betreuen.** Geben Sie dem Team `MonitorAdmin`, `IncidentMember` und `OnCallMember` mit Geltungsbereich **Eigene** und tragen Sie das Team als Eigentümer der Monitore, Bereitschaftsrichtlinien und Bereitschaftspläne ein, die es betreibt. Was seine Personen mit diesen Berechtigungen anlegen, gehört ihnen bereits.
 
 **Externe von der Produktion fernhalten.** Geben Sie dem Team die nötigen Rollen im Geltungsbereich **Alle** und fügen Sie dann eine **Sperr-Berechtigung** (unter **Weitere Einstellungen** auf der Seite Berechtigungen des Teams) für die sensiblen Fähigkeiten hinzu, eingeschränkt auf das Label `Production`.
 

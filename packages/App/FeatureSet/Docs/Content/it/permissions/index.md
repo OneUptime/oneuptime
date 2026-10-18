@@ -196,7 +196,7 @@ Ogni autorizzazione concessa ha un ambito, scelto sotto **Ambito** quando la agg
 | Possedute da questo team o dai suoi membri | L'autorizzazione si applica solo alle risorse di cui questo team, o l'utente che agisce, è indicato come proprietario. |
 | Limita per etichette (avanzato) | L'autorizzazione si applica solo alle risorse che portano almeno una delle etichette selezionate. |
 
-**Possedute** è il modo più semplice di costruire un modello «ognuno si occupa dei propri servizi»: date a un team `MonitorAdmin` con ambito Possedute, poi rendete quel team proprietario dei monitor di cui è responsabile. Restringe solo le risorse che possono davvero avere proprietari — monitor, incidenti, dashboard, servizi e simili. La configurazione del progetto (stati degli incidenti, etichette, i team stessi) non ha proprietari, quindi lì un ruolo con ambito Possedute si comporta normalmente.
+**Possedute** è il modo più semplice di costruire un modello «ognuno si occupa dei propri servizi»: date a un team `MonitorAdmin` con ambito Possedute, poi rendete quel team proprietario dei monitor di cui è responsabile. Restringe ogni risorsa che può avere proprietari — monitor, incidenti, dashboard, servizi, gruppi di monitor, pianificazioni di reperibilità e simili — e ciò che le appartiene, come i livelli di una pianificazione. Sonde, Runner, agenti IA, pianificazioni di reperibilità e modelli di incidenti e di manutenzione sono ciò con cui si configurano altre risorse, quindi un'autorizzazione con ambito Possedute continua a leggerli tutti e potete sceglierne uno qualsiasi; modifica ed elimina solo quelli di cui voi o i vostri team siete proprietari. La configurazione del progetto (stati degli incidenti, etichette, i team stessi) non ha proprietari, quindi lì un ruolo con ambito Possedute si comporta normalmente.
 
 **Etichette** è la versione più manuale della stessa idea: etichettate le risorse, poi concedete autorizzazioni limitate a quelle etichette.
 
@@ -323,7 +323,7 @@ Le autorizzazioni risolte vengono memorizzate nella cache per utente e progetto,
 
 **Un team che si limita a osservare.** Create il team con **Visualizzatore** sotto **Accesso**. Solo per alcune aree, scegliete **Scegli le autorizzazioni più tardi** e aggiungete i ruoli `*Viewer` per area che deve vedere.
 
-**Ingegneri di reperibilità che gestiscono i propri servizi.** Date al team `MonitorAdmin`, `IncidentMember` e `OnCallMember` con ambito **Possedute**, poi aggiungete il team come proprietario dei monitor che gestisce.
+**Ingegneri di reperibilità che gestiscono i propri servizi.** Date al team `MonitorAdmin`, `IncidentMember` e `OnCallMember` con ambito **Possedute**, poi aggiungete il team come proprietario dei monitor, delle policy di reperibilità e delle pianificazioni che gestisce. Ciò che le sue persone creano con queste autorizzazioni è già loro.
 
 **Collaboratori esterni tenuti lontani dalla produzione.** Date al team i ruoli di cui ha bisogno con ambito **Tutti**, poi aggiungete un'**autorizzazione bloccata** (sotto **Altre impostazioni** nella pagina Autorizzazioni del team) per le capacità sensibili, limitata all'etichetta `Production`.
 
