@@ -3,6 +3,15 @@ import path from "path";
 import { TerraformProviderConfig } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 
+// The repository's LICENSE, whose Apache License 2.0 text the provider carries.
+const ROOT_LICENSE_PATH: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "LICENSE",
+);
+
 export class TerraformProviderGenerator {
   public config: TerraformProviderConfig;
   private fileGenerator: FileGenerator;
@@ -16,6 +25,7 @@ export class TerraformProviderGenerator {
     await this.generateMakefile();
     await this.generateGoReleaserConfig();
     await this.generateRegistryManifest();
+    await this.generateLicense();
     await this.generateInstallScript();
     await this.generateBuildScript();
     await this.generateTestScript();
@@ -194,6 +204,39 @@ changelog:
       "terraform-registry-manifest.json",
       manifestContent,
     );
+  }
+
+  private async generateLicense(): Promise<void> {
+    /*
+     * The provider repository's LICENSE, which its README links to. HashiCorp
+     * lists a provider as Partner only when its repository carries an open
+     * source license, and the repository is regenerated on every release, so
+     * the license has to come from here.
+     *
+     * The provider is under the Apache License 2.0, like everything outside
+     * ee/ in this repository. Copied whole, the root LICENSE would bring its
+     * preamble that carves ee/ out, and GitHub names a license with a preamble
+     * "Other". The provider has no ee/, so it gets the Apache License text
+     * alone, which Tests/Ops/RepositoryLicensing.test.js holds to the
+     * license, complete and unmodified.
+     */
+    const rootLicense: string = fs
+      .readFileSync(ROOT_LICENSE_PATH, "utf-8")
+      .replace(/\r\n/g, "\n");
+    const heading: number = rootLicense.indexOf("Apache License\n");
+
+    if (heading === -1) {
+      throw new Error(
+        `${ROOT_LICENSE_PATH} has no Apache License text for the provider's LICENSE.`,
+      );
+    }
+
+    // From the start of the heading's line: the heading is indented.
+    const licenseText: string = rootLicense
+      .slice(rootLicense.lastIndexOf("\n", heading) + 1)
+      .trimEnd();
+
+    await this.fileGenerator.writeFile("LICENSE", `${licenseText}\n`);
   }
 
   private async generateInstallScript(): Promise<void> {

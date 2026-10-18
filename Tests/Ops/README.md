@@ -834,6 +834,13 @@ works the group out, with `Utils/WorkflowExpression.js`, for two release runs
 (different groups), two pushes to master and two pushes to one pull request
 (one group each, so the newest still supersedes).
 
+terraform-provider-e2e.yml also runs every night: HashiCorp asks the providers
+it lists as Partner for tests that run nightly as a GitHub Action. The suite
+checks that it is scheduled once a day, every day, and that a nightly run's
+group, read from `github.event.schedule` (which GitHub sets on scheduled runs
+only), is not the one master's pushes share, so a merge that lands during the
+nightly run neither cancels it nor is cancelled by it.
+
 ### `ReleaseCriticalPath.test.js`
 
 What a release run waits for, and what it no longer does. The organization
@@ -1034,6 +1041,31 @@ so the suite pins it:
   `.github/actions/marketplace-edition` (which pins crane by its sha256), after
   the marketplace chart suite passed; runs are never cancelled halfway;
 - every script it runs exists.
+
+### `McpRegistryRelease.test.js`
+
+Each release lists OneUptime Cloud's MCP server in the official MCP Registry
+as `com.oneuptime/mcp`: release.yml's `publish-mcp-registry` job runs
+`Scripts/MCP/PublishToMcpRegistry.sh` on
+`packages/App/FeatureSet/MCP/server.json`. The suite runs the script with a
+fake `curl` (the registry's answers) and a fake `mcp-publisher` on PATH:
+
+- it publishes a copy of server.json at the release's version, validated,
+  after signing in as `oneuptime.com`, the domain whose namespace the entry is
+  named in, and leaves the repository's placeholder version alone;
+- it skips a version the registry already has, signing in to nothing, as
+  `Scripts/NPM/PublishAllPackages.sh` does on npm;
+- only a clean 404 is "not published": any other answer, or none, is asked
+  again, and when it persists the job fails having published nothing;
+- with no key, or no version, it fails before signing in, and it stops at the
+  first step the registry refuses.
+
+And it reads the job: it runs after `finalize-github-release`, so only once
+the release is published and the three e2e jobs have passed; it reads the key
+from the `mcp-registry-publish` environment, which no other job names or
+mentions the key in; its permissions are `contents: read`, with no `${{ }}`
+in its scripts; and it installs the `mcp-publisher` it pins, checking the
+archive's sha256 before unpacking it.
 
 ### `agent-ebpf-e2e/`
 

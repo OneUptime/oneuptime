@@ -3057,6 +3057,57 @@ jobs:
               }
             }
 
+  # Lists this release in the official MCP Registry
+  # (registry.modelcontextprotocol.io), where MCP clients and directories find
+  # OneUptime Cloud's MCP server: packages/App/FeatureSet/MCP/server.json,
+  # com.oneuptime/mcp, at this release's version.
+  # Scripts/MCP/PublishToMcpRegistry.sh skips a version the registry already
+  # has, as Scripts/NPM/PublishAllPackages.sh does on npm, so a re-run
+  # publishes nothing twice.
+  #
+  # It needs finalize-github-release, so the registry hears of a version only
+  # once it is released, and so runs only for `release`, as that job does.
+  #
+  # Only whoever controls oneuptime.com may publish under com.oneuptime:
+  # mcp-publisher proves it by signing with the private key whose public key
+  # is in oneuptime.com's MCPv1 TXT record. GitHub's OIDC token cannot prove
+  # a domain, so the key is a secret of the mcp-registry-publish environment,
+  # which only this job names. It can publish, and overwrite, any entry under
+  # com.oneuptime, and runs with the mcp-publisher pinned below.
+  # Tests/Ops/McpRegistryRelease.test.js holds all of this.
+  publish-mcp-registry:
+    name: Publish to the MCP Registry
+    needs: [read-version, finalize-github-release]
+    runs-on: ubuntu-latest
+    environment: mcp-registry-publish
+    permissions:
+      contents: read
+    env:
+      # The registry's publisher CLI and the sha256 of its linux_amd64 archive,
+      # both from https://github.com/modelcontextprotocol/registry/releases.
+      MCP_PUBLISHER_VERSION: "1.8.1"
+      MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-publisher
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/mcp-publisher"
+          mkdir -p "$install_dir"
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "$install_dir/mcp-publisher.tar.gz" \
+            "https://github.com/modelcontextprotocol/registry/releases/download/v${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${MCP_PUBLISHER_SHA256}  $install_dir/mcp-publisher.tar.gz" | sha256sum --check --strict
+          tar -xzf "$install_dir/mcp-publisher.tar.gz" -C "$install_dir" mcp-publisher
+          echo "$install_dir" >> "$GITHUB_PATH"
+
+      - name: Publish server.json at this release's version
+        env:
+          PACKAGE_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          MCP_REGISTRY_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_PRIVATE_KEY }}
+        run: bash ./Scripts/MCP/PublishToMcpRegistry.sh
+
   # Publish Android app to Google Play Store.
   # This job only runs when manually triggered via workflow_dispatch with publish_android_to_store=true.
   # Required secrets:

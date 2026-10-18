@@ -44,11 +44,11 @@ PUSH_URL=""
 
 # Files in the provider repo that are owned by the repo itself (the generator
 # does not emit them) and must survive the deletion-aware sync. .git is never
-# touched by `git rm`, so it needs no entry here.
+# touched by `git rm`, so it needs no entry here. LICENSE is not one of them:
+# the generator writes it (TerraformProviderGenerator.generateLicense).
 REPO_OWNED_PATHSPECS=(
     ':(exclude).github'
     ':(exclude)CHANGELOG*'
-    ':(exclude)LICENSE*'
     ':(exclude).gitignore'
 )
 
@@ -450,8 +450,8 @@ sync_provider_repository() {
     # Deletion-aware sync: drop every tracked file before copying the fresh
     # generator output in, so resources/docs the generator no longer emits are
     # actually deleted from the provider repo instead of accumulating forever.
-    # Repo-owned files (.github/, CHANGELOG*, LICENSE*, .gitignore) are
-    # excluded and survive; .git is never touched by git rm.
+    # Repo-owned files (.github/, CHANGELOG*, .gitignore) are excluded and
+    # survive; .git is never touched by git rm.
     print_status "Removing tracked files before sync (deletion-aware)..."
     git rm -rf -q -- . "${REPO_OWNED_PATHSPECS[@]}" 2>/dev/null || true
 
