@@ -212,6 +212,15 @@ function rowsOf(fields: Array<FieldMeasure>): Array<Array<FieldMeasure>> {
  * width without a gap; nothing running out of its cell.
  */
 async function expectAlignedRows(card: Locator, where: string): Promise<void> {
+  /*
+   * A card can draw its fields after the page's first card does: a status
+   * page's Custom Fields shows a spinner, not a skeleton, until its read
+   * returns. Measure once this card's own fields are in.
+   */
+  await expect(
+    card.getByTestId("detail-field").first(),
+    `${where}: fields`,
+  ).toBeVisible();
   const fields: Array<FieldMeasure> = await measureFields(card);
   const grid: Box = await box(
     card.getByTestId("detail-field").first().locator("xpath=.."),
