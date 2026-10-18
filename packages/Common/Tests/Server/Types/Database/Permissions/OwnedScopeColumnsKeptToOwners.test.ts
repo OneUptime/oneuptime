@@ -34,6 +34,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A COLUMN ONLY THOSE WHO MAY CHANGE A KIND READ FOLLOWS ITS OWNERS, EVEN
@@ -438,11 +439,10 @@ describe("a Runner's key, read under a grant scoped to Owned", () => {
     };
 
   test("every Runner is listed, but the key only of the ones the member owns", async () => {
-    const getOwnedIds: jest.SpiedFunction<
-      typeof OwnedScopePermission.getOwnedIds
-    > = jest
-      .spyOn(OwnedScopePermission, "getOwnedIds")
-      .mockResolvedValue([new ObjectID(OWNED_ID)]);
+    const getOwnedIds: SpyInstance<typeof OwnedScopePermission.getOwnedIds> =
+      jest
+        .spyOn(OwnedScopePermission, "getOwnedIds")
+        .mockResolvedValue([new ObjectID(OWNED_ID)]);
 
     const rows: Array<Runner> =
       await OwnedScopePermission.withholdColumnsKeptToOwners({
@@ -486,9 +486,8 @@ describe("a Runner's key, read under a grant scoped to Owned", () => {
   });
 
   test("a read that does not select the key, or by a grant over the whole project, is left as it is - and looks nothing up", async () => {
-    const getOwnedIds: jest.SpiedFunction<
-      typeof OwnedScopePermission.getOwnedIds
-    > = jest.spyOn(OwnedScopePermission, "getOwnedIds").mockResolvedValue([]);
+    const getOwnedIds: SpyInstance<typeof OwnedScopePermission.getOwnedIds> =
+      jest.spyOn(OwnedScopePermission, "getOwnedIds").mockResolvedValue([]);
 
     for (const [select, props] of [
       [{ _id: true, name: true }, owned()],
@@ -610,6 +609,44 @@ describe("a Runner's key, read under a grant scoped to Owned", () => {
       OwnedScopePermission.checkSortOnColumnsKeptToOwners(
         Runner,
         undefined,
+        owned(),
+      );
+    }).not.toThrow();
+  });
+
+  test("a Runner's owners are not ordered by the key of the Runner they own", () => {
+    expect(() => {
+      OwnedScopePermission.checkSortOnColumnsKeptToOwners(
+        RunnerOwnerUser,
+        { runner: { key: SortOrder.Ascending } },
+        owned(),
+      );
+    }).toThrow(
+      new NotAuthorizedException(
+        "Your access lets you read the Agent Key only of the Runners you or your teams own, so you cannot sort or filter Runners by it.",
+      ),
+    );
+
+    // By the Runner's name, they are; and by its key with a grant over the whole project.
+    expect(() => {
+      OwnedScopePermission.checkSortOnColumnsKeptToOwners(
+        RunnerOwnerUser,
+        { runner: { name: SortOrder.Ascending } },
+        owned(),
+      );
+    }).not.toThrow();
+    expect(() => {
+      OwnedScopePermission.checkSortOnColumnsKeptToOwners(
+        RunnerOwnerUser,
+        { runner: { key: SortOrder.Ascending } },
+        memberWith([row(Permission.RunbookAdmin, PermissionScope.All)]),
+      );
+    }).not.toThrow();
+    // An order that names no relation is read no deeper.
+    expect(() => {
+      OwnedScopePermission.checkSortOnColumnsKeptToOwners(
+        RunnerOwnerUser,
+        { notAColumn: { key: SortOrder.Ascending } },
         owned(),
       );
     }).not.toThrow();

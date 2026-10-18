@@ -526,29 +526,52 @@ export default class OwnedScopePermission {
 
   /*
    * Refuses an order by a column the caller reads only on the records they
-   * or their teams own (getColumnsKeptToOwners): where the other records
+   * or their teams own (getColumnsKeptToOwners) - of the model, or of a
+   * record it names, ordered through the relation: where the other records
    * fall in it says what they hold, one guess at a time.
    */
   public static checkSortOnColumnsKeptToOwners(
     modelType: { new (): BaseModel },
     sort: unknown,
     props: DatabaseCommonInteractionProps,
+    // How many relations deep the order is read: a few at most.
+    depth: number = 0,
   ): void {
+    if (!sort || typeof sort !== "object" || depth > 3) {
+      return;
+    }
+
     const kept: Array<string> = OwnedScopePermission.getColumnsKeptToOwners(
       modelType,
       props,
     );
+    const model: BaseModel = new modelType();
 
-    const sorted: string | undefined = Object.keys(
-      (sort as Record<string, unknown> | null | undefined) || {},
-    ).find((column: string): boolean => {
-      return kept.includes(column);
-    });
+    for (const [column, order] of Object.entries(
+      sort as Record<string, unknown>,
+    )) {
+      if (kept.includes(column)) {
+        throw new NotAuthorizedException(
+          OwnedScopePermission.getColumnKeptToOwnersRefusal(modelType, column),
+        );
+      }
 
-    if (sorted) {
-      throw new NotAuthorizedException(
-        OwnedScopePermission.getColumnKeptToOwnersRefusal(modelType, sorted),
-      );
+      // An order through a relation, by the related record's columns.
+      const relatedModelType: { new (): BaseModel } | undefined =
+        order && typeof order === "object"
+          ? (model.getTableColumnMetadata(column)?.modelType as
+              | { new (): BaseModel }
+              | undefined)
+          : undefined;
+
+      if (relatedModelType) {
+        OwnedScopePermission.checkSortOnColumnsKeptToOwners(
+          relatedModelType,
+          order,
+          props,
+          depth + 1,
+        );
+      }
     }
   }
 
