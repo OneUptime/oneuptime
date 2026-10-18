@@ -122,11 +122,12 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * can send every attempt from another address of it, so for an IPv6 client
  * both counters are kept twice (ClientRateLimitCounter): per address, at the
  * limits below, and per /64, with room for ten addresses -- a /64 is as often
- * an office's network, where many people sign in, as one host's. The per-account /64 counter is still
- * keyed on the /64 and the account together, never on the account alone, so
- * attempts from one /64 never lock the account's owner out from anywhere
- * else; and an address over its own limit is not counted against its /64, so
- * one noisy neighbour cannot spend the allowance of everybody else in it.
+ * an office's network, where many people sign in, as one host's. The
+ * per-account /64 counter is still keyed on the /64 and the account
+ * together, never on the account alone, so attempts from one /64 never lock
+ * the account's owner out from anywhere else; and an address over its own
+ * limit is not counted against its /64, so one noisy neighbour cannot spend
+ * the allowance of everybody else in it.
  *
  * Both counters are incremented on every request including a rejected one.
  * That is standard fixed-window behaviour and it is deliberate: a caller who
