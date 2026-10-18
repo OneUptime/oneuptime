@@ -38,6 +38,7 @@ const InitJob: VoidFunction = (): void => {
         const result: HTTPResponse<JSONObject> = await API.post({
           url: aliveUrl,
           data: RunnerAPIRequest.getDefaultRequestBody(),
+          options: RunnerAPIRequest.getDefaultRequestOptions(),
         });
 
         if (result.isSuccess()) {

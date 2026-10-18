@@ -4,6 +4,7 @@ import {
   redactLogString,
   redactLogValue,
 } from "../../../Server/Utils/LogRedaction";
+import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -726,6 +727,436 @@ describe("credentials in a URL", () => {
     ],
     ["one letter and dotted capitals", `secret a${".C".repeat(LENGTH / 2)}`],
     ["capitals joined by plus signs", `secret ${"A+".repeat(LENGTH / 2)}`],
+  ])(
+    "are looked for in time in line with the text: %s",
+    (_label: string, text: string) => {
+      const startedAt: number = Date.now();
+
+      redactLogString(text);
+
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+    },
+  );
+});
+
+/*
+ * Every run of 12 characters of a value (the whole value when it is
+ * shorter) that a text still holds. Redaction that stopped at a character
+ * it took for the end of the value would leave the rest of the value in
+ * the clear, and the whole value would no longer be found.
+ */
+function keptRunsOf(output: string, value: string): Array<string> {
+  if (value.length <= 12) {
+    return output.includes(value) ? [value] : [];
+  }
+
+  const kept: Set<string> = new Set<string>();
+
+  for (let start: number = 0; start + 12 <= value.length; start++) {
+    const run: string = value.slice(start, start + 12);
+
+    if (output.includes(run)) {
+      kept.add(run);
+    }
+  }
+
+  return Array.from(kept);
+}
+
+/*
+ * The keys OneUptime's own components present when they call the server: a
+ * Runner's key (aiAgentKey on the code-fix protocol and its registration,
+ * agentKey on the runbook mount, previousRunnerKey when a Kubernetes agent
+ * Runner registers again, the x-agent-key header, ONEUPTIME_RUNNER_KEY), a
+ * probe's key (probeKey, PROBE_KEY), the key that registers a global probe
+ * (registerProbeKey, REGISTER_PROBE_KEY), a telemetry ingestion key in the
+ * x-oneuptime-ingestion-key header and an enterprise licence key. A call
+ * that gets no answer is logged with the request it was making - its body
+ * as the JSON text the client sent, its headers, the raw request it had
+ * started writing - and every log record reaches the console, the
+ * recent-log buffer a support bundle reads and the log exporter. Each key
+ * is redacted there like the cluster key: by its name, and in text, the
+ * whole value.
+ */
+describe("the keys OneUptime's own components present", () => {
+  // Keys an operator sets can hold any character; the dashboard issues uuids.
+  const RUNNER_KEY: string = "it's-(runner)-key!*~R7dVk2LmX9pR4tWz8NcB1sHf";
+  const ISSUED_KEY: string = "5f2c1e9a-7b3d-4c8e-9f1a-2b3c4d5e6f70";
+  const PROBE_KEY: string = "pr0be-(key)!*~Zq9Lm2Xv8Nc4Bt6Hj1Kp";
+  const REGISTER_PROBE_KEY: string = "global-probes-(registration)!~3Xc9Vb2Nm8";
+  const INGESTION_KEY: string = "8f7e6d5c-4b3a-4291-8a7b-6c5d4e3f2a10";
+  const LICENSE_KEY: string = "ACME-1234-ABCD-5678-EFGH-9XYZ";
+  const AGENT_ID: string = "2b3c4d5e-6f70-4a81-9b2c-3d4e5f607182";
+
+  it("are sensitive keys in every spelling of their names", () => {
+    for (const key of [
+      "aiAgentKey",
+      "agentKey",
+      "AgentKey",
+      "agent_key",
+      "x-agent-key",
+      "X-Agent-Key",
+      "previousAgentKey",
+      "runnerKey",
+      "previousRunnerKey",
+      "ONEUPTIME_RUNNER_KEY",
+      "RUNNER_KEY",
+      "probeKey",
+      "ProbeKey",
+      "probe_key",
+      "PROBE_KEY",
+      "registerProbeKey",
+      "REGISTER_PROBE_KEY",
+      "x-oneuptime-ingestion-key",
+      "ONEUPTIME_INGESTION_KEY",
+      "ONEUPTIME_TELEMETRY_INGESTION_KEY",
+      "ingestionKey",
+      "licenseKey",
+      "enterpriseLicenseKey",
+      "LICENSE_KEY",
+    ]) {
+      expect({ key, sensitive: isSensitiveLogKey(key, ISSUED_KEY) }).toEqual({
+        key,
+        sensitive: true,
+      });
+    }
+  });
+
+  it("leave the names that only identify a component, and the ids of keys, alone", () => {
+    for (const key of [
+      "agentId",
+      "aiAgentId",
+      "runnerId",
+      "probeId",
+      "runnerName",
+      "probeName",
+      "clusterName",
+      "agentVersion",
+      "probeCapabilities",
+      "ingestionKeyId",
+      "telemetryIngestionKeyId",
+      "registeredWithIngestionKeyId",
+    ]) {
+      expect({ key, sensitive: isSensitiveLogKey(key, AGENT_ID) }).toEqual({
+        key,
+        sensitive: false,
+      });
+    }
+  });
+
+  it("are redacted from the request a failed call was making, structurally", () => {
+    const output: string = serialize({
+      config: {
+        url: "https://oneuptime.example.com/runner-ingest/heartbeat",
+        headers: {
+          Accept: "application/json",
+          "x-agent-key": RUNNER_KEY,
+          "x-oneuptime-ingestion-key": INGESTION_KEY,
+        },
+        data: {
+          agentId: AGENT_ID,
+          agentKey: RUNNER_KEY,
+          aiAgentKey: ISSUED_KEY,
+          previousRunnerKey: ISSUED_KEY,
+          probeKey: PROBE_KEY,
+          registerProbeKey: REGISTER_PROBE_KEY,
+          licenseKey: LICENSE_KEY,
+        },
+      },
+    });
+
+    for (const value of [
+      RUNNER_KEY,
+      ISSUED_KEY,
+      PROBE_KEY,
+      REGISTER_PROBE_KEY,
+      INGESTION_KEY,
+      LICENSE_KEY,
+    ]) {
+      expect({ value, kept: keptRunsOf(output, value) }).toEqual({
+        value,
+        kept: [],
+      });
+    }
+
+    expect(JSON.parse(output).config.data.agentId).toBe(AGENT_ID);
+    expect(output).toContain("/runner-ingest/heartbeat");
+  });
+
+  it("leave none of the value in the JSON a client sent, a header line, a field or a console print", () => {
+    for (const value of [
+      RUNNER_KEY,
+      ISSUED_KEY,
+      PROBE_KEY,
+      REGISTER_PROBE_KEY,
+      INGESTION_KEY,
+      LICENSE_KEY,
+    ]) {
+      const encoded: string = encodeURIComponent(value);
+
+      for (const text of [
+        // The bodies the Runner and the probe send, as a client keeps them.
+        JSON.stringify({ aiAgentKey: value, aiAgentId: AGENT_ID }),
+        JSON.stringify({
+          agentId: AGENT_ID,
+          agentKey: value,
+          agentVersion: "14.0.72",
+        }),
+        JSON.stringify({ clusterName: "prod", previousRunnerKey: value }),
+        JSON.stringify({
+          probeKey: value,
+          probeId: AGENT_ID,
+          probeCapabilities: ["networkDevicePing"],
+        }),
+        JSON.stringify({
+          probeKey: value,
+          probeName: null,
+          registerProbeKey: value,
+        }),
+        JSON.stringify({ licenseKey: value }),
+        // Raw requests a client had started writing.
+        `POST /runner-ingest/heartbeat HTTP/1.1\r\nx-agent-key: ${encoded}\r\nHost: oneuptime\r\n\r\n`,
+        `POST /otlp/v1/logs HTTP/1.1\r\nx-oneuptime-ingestion-key: ${encoded}\r\nHost: oneuptime\r\n`,
+        // Fields, as a form, a query or an environment writes them.
+        `agentId=${AGENT_ID}&agentKey=${encoded}&agentVersion=14.0.72`,
+        `https://oneuptime.example.com/probe-ingest/alive?probeKey=${encoded}`,
+        `PROBE_KEY=${encoded}`,
+        `REGISTER_PROBE_KEY=${encoded}`,
+        `ONEUPTIME_RUNNER_KEY=${encoded}`,
+        // A console's print of the body, quoted the way it quotes the value.
+        value.includes("'")
+          ? `{ agentKey: "${value}", agentId: '${AGENT_ID}' }`
+          : `{ agentKey: '${value}', agentId: '${AGENT_ID}' }`,
+        `{ probeKey: '${encoded}', probeId: '${AGENT_ID}' }`,
+      ]) {
+        const output: string = redactLogString(text);
+
+        for (const form of [value, encoded]) {
+          expect({ text, kept: keptRunsOf(output, form) }).toEqual({
+            text,
+            kept: [],
+          });
+        }
+
+        expect(output).toContain(REDACTED);
+      }
+    }
+  });
+
+  it("leave none of a value with spaces and delimiters in a console's quoted print", () => {
+    const value: string = "a key, with spaces; & ] } delimiters";
+
+    expect(
+      keptRunsOf(
+        redactLogString(`{ agentKey: '${value}', agentId: '${AGENT_ID}' }`),
+        value,
+      ),
+    ).toEqual([]);
+    expect(
+      keptRunsOf(redactLogString(JSON.stringify({ probeKey: value })), value),
+    ).toEqual([]);
+  });
+
+  it("keep what follows the value", () => {
+    expect(
+      redactLogString(
+        `agentId=${AGENT_ID}&agentKey=${encodeURIComponent(RUNNER_KEY)}&agentVersion=14.0.72`,
+      ),
+    ).toBe(`agentId=${AGENT_ID}&agentKey=${REDACTED}&agentVersion=14.0.72`);
+    expect(
+      redactLogString(
+        `POST /x HTTP/1.1\r\nx-agent-key: ${ISSUED_KEY}\r\nHost: oneuptime\r\n`,
+      ),
+    ).toBe(`POST /x HTTP/1.1\r\nx-agent-key: ${REDACTED}\r\nHost: oneuptime\r\n`);
+    expect(
+      redactLogString(
+        JSON.stringify({ probeKey: PROBE_KEY, probeId: AGENT_ID }),
+      ),
+    ).toBe(`{"probeKey":"${REDACTED}","probeId":"${AGENT_ID}"}`);
+    expect(
+      redactLogString(`{ agentKey: '${ISSUED_KEY}', agentId: '${AGENT_ID}' }`),
+    ).toBe(`{ agentKey: ${REDACTED}, agentId: '${AGENT_ID}' }`);
+  });
+
+  it("leave the messages that name a key without its value alone", () => {
+    for (const text of [
+      "agentId or agentKey is missing",
+      "Invalid agentId or agentKey",
+      "ProbeId or ProbeKey is missing",
+      "Invalid or missing registerProbeKey. Please check REGISTER_PROBE_KEY environment variable.",
+      "Unable to register probe after 10 attempts. Check PROBE_KEY / REGISTER_PROBE_KEY / connectivity to https://oneuptime.com/probe-ingest.",
+      "ONEUPTIME_RUNNER_KEY is not set. Create a Runner in your OneUptime dashboard (Runbooks > Runners) and copy its id and key into this container.",
+      "Runner key not found - the Runner has not finished registering yet.",
+      "The ingestion key was rotated by a project admin.",
+      "A license key is required to turn this on.",
+    ]) {
+      expect(redactLogString(text)).toBe(text);
+    }
+  });
+});
+
+/*
+ * Log lines are text anybody can put a header or a field into, so the
+ * names of these keys must keep every rule's time in line with the text's
+ * length: about 400,000 characters of each worst case, each read in well
+ * under 2 seconds.
+ */
+describe("the keys' names keep redaction linear", () => {
+  const LENGTH: number = 400000;
+
+  it.each([
+    ["names run together", "registerProbeKey".repeat(LENGTH / 16)],
+    ["a name's start over and over", "agent_".repeat(LENGTH / 6)],
+    ["names and separators with no value", "x-agent-key=".repeat(LENGTH / 12)],
+    ["an unterminated JSON member", `"probeKey":"${"a".repeat(LENGTH)}`],
+    ["a header line with a long value", `x-agent-key: ${"k".repeat(LENGTH)}`],
+    [
+      "an unterminated single-quoted value",
+      `agentKey: '${"a".repeat(LENGTH)}`,
+    ],
+    [
+      "an unterminated single-quoted value of escapes",
+      `agentKey: '${"\\'".repeat(LENGTH / 2)}`,
+    ],
+    ["names and single quotes over and over", "probeKey:'".repeat(LENGTH / 10)],
+    [
+      "names and closed quotes no delimiter follows",
+      "runnerKey: 'a'b".repeat(LENGTH / 15),
+    ],
+    [
+      "names run together with what a name may start and end with",
+      `${"UPROBEKEY-".repeat(LENGTH / 10)}\u{0}`,
+    ],
+    [
+      "every name of the rule, joined by hyphens",
+      "ingestion-key-license-key-runner-key-agent-key-probe-key-cluster-key-".repeat(
+        LENGTH / 69,
+      ),
+    ],
+  ])("%s", (_label: string, text: string) => {
+    const startedAt: number = Date.now();
+
+    redactLogString(text);
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
+});
+
+/*
+ * A PEM private key block is redacted whole, from its BEGIN line to the
+ * first END line after it - and found in time in line with the text's
+ * length, however many BEGIN lines it holds with no END after them.
+ */
+describe("private key blocks", () => {
+  const BODY: string = "MIIEpAIBAAKCAQEA1234567890abcdefZmFrZSBrZXk";
+
+  it("are redacted from their BEGIN line to their END line, whatever the key's kind", () => {
+    for (const kind of ["", "RSA ", "EC ", "OPENSSH ", "ENCRYPTED ", "DSA "]) {
+      const block: string = [
+        `-----BEGIN ${kind}PRIVATE KEY-----`,
+        "Proc-Type: 4,ENCRYPTED",
+        BODY,
+        `-----END ${kind}PRIVATE KEY-----`,
+      ].join("\n");
+
+      expect(redactLogString(`key:\n${block}\nafter`)).toBe(
+        `key:\n${REDACTED}\nafter`,
+      );
+    }
+  });
+
+  it("are each redacted when a text holds several, and what lies between them is kept", () => {
+    const block: string = `-----BEGIN PRIVATE KEY-----\n${BODY}\n-----END PRIVATE KEY-----`;
+
+    expect(redactLogString(`one ${block} two ${block} three`)).toBe(
+      `one ${REDACTED} two ${REDACTED} three`,
+    );
+  });
+
+  it("run to the first END after a BEGIN, BEGIN lines between them included", () => {
+    expect(
+      redactLogString(
+        `-----BEGIN RSA PRIVATE KEY-----\n${BODY}\n-----BEGIN RSA PRIVATE KEY-----\n${BODY}\n-----END RSA PRIVATE KEY-----\ntail`,
+      ),
+    ).toBe(`${REDACTED}\ntail`);
+  });
+
+  it("are left as they are with no END after them, and so is a certificate", () => {
+    for (const text of [
+      `-----BEGIN RSA PRIVATE KEY-----\n${BODY}`,
+      `-----BEGIN CERTIFICATE-----\n${BODY}\n-----END CERTIFICATE-----`,
+      `-----END RSA PRIVATE KEY-----\n${BODY}\n-----BEGIN RSA PRIVATE KEY-----`,
+    ]) {
+      expect(redactLogString(text)).toBe(text);
+    }
+  });
+
+  /*
+   * The pattern this rule used to be: one lazy body between the BEGIN and
+   * END lines. It reads the rest of the text from every BEGIN line with no
+   * END after it, so it is only ever run here on short texts.
+   */
+  const PREVIOUS_PATTERN: RegExp =
+    /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----/g;
+
+  it("are found exactly where the pattern they replace found them, on 20,000 generated texts", () => {
+    const pieces: Array<string> = [
+      "-----BEGIN ",
+      "-----END ",
+      "PRIVATE KEY-----",
+      "PRIVATE ",
+      "KEY-----",
+      "RSA ",
+      "EC ",
+      "OPENSSH ",
+      "-----",
+      "MIIE",
+      "\n",
+      " ",
+      "a",
+      "-",
+    ];
+
+    const differences: Array<string> = [];
+
+    for (const text of generatedTexts(20000, 1729, pieces)) {
+      // Only texts the rule reaches; the other rules leave these alone.
+      const expected: string = text.replace(PREVIOUS_PATTERN, REDACTED);
+
+      if (redactLogString(text) !== expected) {
+        differences.push(text);
+      }
+    }
+
+    expect(differences.slice(0, 5)).toEqual([]);
+  });
+
+  /*
+   * A million characters, not 400,000: the pattern this rule used to be
+   * read 400,000 characters of its worst case in just under two seconds,
+   * and twice that in four times as long.
+   */
+  it.each([
+    [
+      "BEGIN lines with no END",
+      "-----BEGIN RSA PRIVATE KEY-----".repeat(1000000 / 31),
+    ],
+    [
+      "BEGIN lines on lines of their own",
+      "-----BEGIN PRIVATE KEY-----\n".repeat(1000000 / 28),
+    ],
+    [
+      "BEGIN lines with END lines that never close",
+      "-----BEGIN RSA PRIVATE KEY----------END RSA ".repeat(1000000 / 45),
+    ],
+    [
+      "BEGIN lines of many words",
+      "-----BEGIN A B C D E F G H I J K PRIVATE KEY-----".repeat(
+        1000000 / 49,
+      ),
+    ],
+    ["one BEGIN and a label that never ends", `-----BEGIN ${"A ".repeat(500000)}`],
+    ["dashes", "-".repeat(1000000)],
   ])(
     "are looked for in time in line with the text: %s",
     (_label: string, text: string) => {

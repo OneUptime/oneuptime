@@ -11,6 +11,7 @@ import {
   RUNNER_VERSION,
 } from "../Config";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
+import RunnerAPIRequest from "../Utils/RunnerAPIRequest";
 import KubernetesPosture from "../Utils/KubernetesPosture";
 import {
   KubernetesRunnerPosture,
@@ -643,6 +644,7 @@ export default class Register {
       headers: {
         "x-oneuptime-token": KUBERNETES_AGENT_INGESTION_KEY || "",
       },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
 
     if (!result.isSuccess()) {
@@ -764,6 +766,7 @@ export default class Register {
         headers: {
           ...ClusterKeyAuthorization.getClusterKeyHeaders(),
         },
+        options: RunnerAPIRequest.getDefaultRequestOptions(),
       });
 
       if (!result.isSuccess()) {
@@ -838,6 +841,7 @@ export default class Register {
           agentKey: RUNNER_KEY.toString(),
           agentVersion: RUNNER_VERSION,
         },
+        options: RunnerAPIRequest.getDefaultRequestOptions(),
       });
 
       if (result.isSuccess()) {
@@ -886,6 +890,7 @@ export default class Register {
             aiAgentId: RUNNER_ID.toString(),
             aiAgentKey: RUNNER_KEY.toString(),
           },
+          options: RunnerAPIRequest.getDefaultRequestOptions(),
         });
 
         if (!legacyResult.isSuccess()) {

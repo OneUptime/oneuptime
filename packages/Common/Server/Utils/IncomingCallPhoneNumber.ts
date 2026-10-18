@@ -37,6 +37,9 @@ export default async function releaseIncomingCallPhoneNumber(data: {
         headers: {
           ...ClusterKeyAuthorization.getClusterKeyHeaders(),
         },
+        options: {
+          sameServerRedirectsOnly: true,
+        },
       });
 
     if (response.isFailure()) {

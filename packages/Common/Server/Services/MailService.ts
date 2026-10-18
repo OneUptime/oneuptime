@@ -172,9 +172,10 @@ export class MailService extends BaseService {
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
-      ...(options?.timeoutInMs
-        ? { options: { timeout: options.timeoutInMs } }
-        : {}),
+      options: {
+        sameServerRedirectsOnly: true,
+        ...(options?.timeoutInMs ? { timeout: options.timeoutInMs } : {}),
+      },
     });
   }
 }

@@ -99,6 +99,9 @@ export class CallService extends BaseService {
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
+      options: {
+        sameServerRedirectsOnly: true,
+      },
     });
   }
 }

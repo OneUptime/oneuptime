@@ -30,7 +30,13 @@
  *
  * Over-redaction is the intended failure mode. Losing a token count from a
  * debug line costs a little context; leaking a bot token costs the workspace.
+ *
+ * Every rule reads a text in time in line with its length: log text is text
+ * anybody can put a header or a field into (LogRedaction.test reads about
+ * 400,000 characters of each rule's worst case).
  */
+
+import { replacePrivateKeyBlocks } from "../../Utils/PrivateKeyBlocks";
 
 export const REDACTED: string = "[REDACTED]";
 
@@ -85,11 +91,26 @@ const SENSITIVE_KEY_FRAGMENTS: Array<string> = [
   "dsn",
   "sslkey",
   /*
-   * The key OneUptime's own services present to each other: the clusterkey
-   * and x-clusterkey headers of a request a client was making when it
-   * failed, and the clusterKey field Runners of earlier releases send.
+   * The keys OneUptime's own components present when they call it, in the
+   * headers and bodies of a request a client was making when it failed:
+   *
+   *   - the cluster key its own services present to each other (the
+   *     clusterkey and x-clusterkey headers, and the clusterKey field
+   *     Runners of earlier releases send);
+   *   - a Runner's and an AI agent's key (aiAgentKey, agentKey, x-agent-key,
+   *     previousAgentKey; runnerKey, previousRunnerKey,
+   *     ONEUPTIME_RUNNER_KEY);
+   *   - a probe's key, and the key that registers a global probe (probeKey,
+   *     PROBE_KEY; registerProbeKey, REGISTER_PROBE_KEY);
+   *   - a telemetry ingestion key (x-oneuptime-ingestion-key,
+   *     ONEUPTIME_INGESTION_KEY) and an enterprise licence key (licenseKey).
    */
   "clusterkey",
+  "agentkey",
+  "runnerkey",
+  "probekey",
+  "ingestionkey",
+  "licensekey",
 ];
 
 /*
@@ -123,6 +144,10 @@ const NON_SENSITIVE_KEYS: Set<string> = new Set<string>([
   "isauthorized",
   "authorizationurl",
   "authorizationendpoint",
+  // Which ingestion key a request came with: an id, never the key itself.
+  "ingestionkeyid",
+  "telemetryingestionkeyid",
+  "registeredwithingestionkeyid",
 ]);
 
 /*
@@ -242,23 +267,36 @@ const OTHER_TEXT_SECRET_WORDS: string =
   "password|passwd|passphrase|secret|token|credential|credentials|authorization|cookie|api[_-]?key|private[_-]?key|access[_-]?key|assertion|attestation|signature|raw[_-]?id|client[_-]?data[_-]?json|authenticator[_-]?data|user[_-]?handle|two[_-]?factor[_-]?secret|code[_-]?verifier";
 
 /*
- * The name of the key OneUptime's own services present to each other, in
- * text: clusterkey, clusterKey, cluster_key, x-clusterkey... Its unquoted
- * values have a rule of their own (cluster-key-value below).
+ * The names of the keys OneUptime's own components present (see
+ * SENSITIVE_KEY_FRAGMENTS), in text: clusterKey, x-clusterkey, aiAgentKey,
+ * x-agent-key, previousRunnerKey, ONEUPTIME_RUNNER_KEY, registerProbeKey,
+ * PROBE_KEY, x-oneuptime-ingestion-key, licenseKey... Their unquoted values
+ * have a rule of their own (internal-key-value below).
  */
-const CLUSTER_KEY_WORD: string = "cluster[_-]?key";
+const INTERNAL_KEY_WORDS: string =
+  "cluster[_-]?key|agent[_-]?key|runner[_-]?key|probe[_-]?key|ingestion[_-]?key|license[_-]?key";
 
-const TEXT_SECRET_WORDS: string = `${OTHER_TEXT_SECRET_WORDS}|${CLUSTER_KEY_WORD}`;
+const TEXT_SECRET_WORDS: string = `${OTHER_TEXT_SECRET_WORDS}|${INTERNAL_KEY_WORDS}`;
 
 // Bounded, so a long non-matching run cannot blow up on backtracking.
 const KEY_PREFIX: string = "[A-Za-z0-9_.-]{0,40}";
 const KEY_SUFFIX: string = "[A-Za-z0-9_.-]{0,40}";
 
-interface StringRedactionRule {
-  name: string;
-  regex: RegExp;
-  replacement: string;
-}
+/*
+ * A rule is a pattern and what replaces each match, or - where one pattern
+ * cannot read a text in time in line with its length - a function that
+ * reads the text itself.
+ */
+type StringRedactionRule =
+  | {
+      name: string;
+      regex: RegExp;
+      replacement: string;
+    }
+  | {
+      name: string;
+      redact: (text: string) => string;
+    };
 
 const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
   {
@@ -300,24 +338,34 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
   },
   {
     /*
-     * The key OneUptime's own services present to each other, as it travels:
-     * URI-encoded (ClusterKeyAuthorization.getClusterKey), which leaves
-     * ' ( ) ! * ~ as they are. The rule below ends a value at ' and ), so it
-     * would leave the rest of such a key in the clear. Here an unquoted value
-     * runs to whitespace or a delimiter an encoded key never holds (, ; & ]
-     * } " and a backslash), so a header line (`clusterkey: ...`), a field
-     * (`clusterKey=...`), a console's `{ clusterkey: '...' }` and a raw
-     * request stringified again keep none of it. JSON members are the JSON
-     * rules' above.
+     * The keys OneUptime's own components present (INTERNAL_KEY_WORDS), as
+     * they travel. The cluster key goes URI-encoded
+     * (ClusterKeyAuthorization.getClusterKey), which leaves ' ( ) ! * ~ as
+     * they are, and a key an operator sets (ONEUPTIME_RUNNER_KEY, PROBE_KEY,
+     * REGISTER_PROBE_KEY) can hold any character. The rule below ends a
+     * value at ' and ), so it would leave the rest of such a key in the
+     * clear. Here a value is read whole:
+     *
+     *   - double-quoted, to its closing quote, escapes included;
+     *   - single-quoted, as a console prints a string, to the closing quote
+     *     on its line that a delimiter or the end follows - so a value
+     *     printed with a quote inside it falls to the next form;
+     *   - unquoted, to whitespace or a delimiter an encoded key never holds
+     *     (, ; & ] } " and a backslash),
+     *
+     * so a header line (`x-agent-key: ...`), a field (`probeKey=...`,
+     * `PROBE_KEY=...`), a console's `{ agentKey: '...' }` and a raw request
+     * stringified again keep none of it. JSON members are the JSON rules'
+     * above.
      *
      * Linear in the text's length: the name's prefix and suffix are bounded
-     * (KEY_PREFIX, KEY_SUFFIX), the value stops at whitespace and a quoted
-     * value at its closing quote (LogRedaction.test reads 400,000 characters
-     * of each worst case).
+     * (KEY_PREFIX, KEY_SUFFIX), an unquoted value stops at whitespace and a
+     * quoted one at its closing quote or (single-quoted) its line's end
+     * (LogRedaction.test reads 400,000 characters of each worst case).
      */
-    name: "cluster-key-value",
+    name: "internal-key-value",
     regex: new RegExp(
-      `\\b(${KEY_PREFIX}${CLUSTER_KEY_WORD}${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"(?:[^"\\\\]|\\\\.)*"|[^\\s,;&\\]}"\\\\]+)`,
+      `\\b(${KEY_PREFIX}(?:${INTERNAL_KEY_WORDS})${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\\\r\\n]|\\\\.)*'(?=[\\s,;&)\\]}]|$)|[^\\s,;&\\]}"\\\\]+)`,
       "gi",
     ),
     replacement: `$1$2${REDACTED}`,
@@ -397,10 +445,15 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
     replacement: `$1${REDACTED}`,
   },
   {
+    /*
+     * A PEM private key block, from its BEGIN line to the first END line
+     * after it. Read by PrivateKeyBlocks, in time in line with the text's
+     * length however many BEGIN lines it holds with no END after them.
+     */
     name: "private-key-block",
-    regex:
-      /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----/g,
-    replacement: REDACTED,
+    redact: (text: string): string => {
+      return replacePrivateKeyBlocks(text, REDACTED).text;
+    },
   },
   {
     /*
@@ -467,6 +520,11 @@ export const redactLogString: RedactLogStringFunction = (
   let redacted: string = value;
 
   for (const rule of STRING_REDACTION_RULES) {
+    if ("redact" in rule) {
+      redacted = rule.redact(redacted);
+      continue;
+    }
+
     /*
      * The rules carry the /g flag and are module-level, so lastIndex has to be
      * reset -- String.replace does that itself, but .test() on the hint regex
