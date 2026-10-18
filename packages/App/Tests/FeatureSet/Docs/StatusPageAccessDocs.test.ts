@@ -132,7 +132,7 @@ describe("the English status pages guide", () => {
   it("keeps the SSO, OIDC and SCIM paragraph whole", () => {
     expect(section).toContain("\n### SSO and OIDC\n");
     expect(section).toContain(
-      "configures SAML: you enter the sign-on URL, issuer and x509 certificate",
+      "configures SAML: **Add SSO Provider** asks for the sign-on URL, issuer and x509 certificate",
     );
   });
 

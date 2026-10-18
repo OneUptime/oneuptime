@@ -15,6 +15,7 @@ import {
   DEVELOPER_DOCS_SECTION_TITLE,
   DeveloperDocsPageDefinition,
 } from "../../../FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
+import { StatusPageOverviewCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageOverviewCopy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import CacheGenerations from "Common/Server/Infrastructure/CacheGenerations";
@@ -63,9 +64,13 @@ const STATUS_PAGES_MENU: string = `${DASHBOARD}/Pages/StatusPages/SideMenu.tsx`;
 const STATUS_PAGE_MENU: string = `${DASHBOARD}/Pages/StatusPages/View/SideMenu.tsx`;
 const STATUS_PAGE_OVERVIEW: string = `${DASHBOARD}/Pages/StatusPages/View/Index.tsx`;
 const STATUS_PAGE_PREVIEW_LINK: string = `${DASHBOARD}/Pages/StatusPages/View/StatusPagePreviewLink.tsx`;
+const STATUS_PAGE_CREATE_FORM: string = `${DASHBOARD}/Components/StatusPage/StatusPageCreateForm.ts`;
+const STATUS_PAGE_FIRST_STEP: string = `${DASHBOARD}/Components/StatusPage/StatusPageFirstStep.tsx`;
 const STATUS_PAGE_GROUPS: string = `${DASHBOARD}/Pages/StatusPages/View/Groups.tsx`;
 const EMBEDDED_STATUS: string = `${DASHBOARD}/Pages/StatusPages/View/EmbeddedStatus.tsx`;
 const SUBSCRIBER_SETTINGS: string = `${DASHBOARD}/Pages/StatusPages/View/SubscriberSettings.tsx`;
+const SUBSCRIBER_CHOICES_COPY: string = `${DASHBOARD}/Components/StatusPage/SubscriberChoicesCopy.ts`;
+const SUBSCRIBER_FORM_CHOICES: string = `${DASHBOARD}/Components/StatusPage/SubscriberFormChoices.ts`;
 const EMAIL_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/EmailSubscribers.tsx`;
 
 const STATUS_PAGE_APP: string = "App/FeatureSet/StatusPage/src";
@@ -351,12 +356,16 @@ function planOf(column: string): PlanType | null {
 describe("the Status Pages Overview: creating a status page", () => {
   const page: string = englishPage(OVERVIEW);
   const list: string = readSource(STATUS_PAGES_LIST);
-  const formFields: string = list.slice(
-    list.indexOf("formFields={["),
-    list.indexOf("saveFilterProps="),
+  const createForm: string = readSource(STATUS_PAGE_CREATE_FORM);
+  // Create Status Page's fields: the create form's, not the details card's.
+  const formFields: string = createForm.slice(
+    createForm.indexOf("export const getStatusPageCreateFormFields"),
+    createForm.indexOf("export const getStatusPageDetailsFormFields"),
   );
 
-  it("asks only for Name, at least two characters, and an optional Description", () => {
+  it("asks only for a Name, at least two characters, with Description and Labels under More fields", () => {
+    expect(list).toContain("return getStatusPageCreateFormFields();");
+    expect(list).toContain("formFields={createFormFields}");
     expect(
       Array.from(formFields.matchAll(/title: "([^"]+)"/g)).map(
         (match: RegExpMatchArray): string => {
@@ -367,12 +376,19 @@ describe("the Status Pages Overview: creating a status page", () => {
     expect(formFields).toMatch(
       /title: "Name",[\s\S]*?required: true,[\s\S]*?minLength: 2,/,
     );
-    expect(formFields).toMatch(/title: "Description",[\s\S]*?required: false/);
+    // Only the name is asked: the description and the labels fold.
+    expect(formFields).toMatch(
+      /title: "Description",[\s\S]*?required: false,[\s\S]*?collapsibleSection: moreFields,/,
+    );
+    expect(formFields).toMatch(
+      /getLabelsFormField<StatusPage>\(\{\s*collapsibleSection: moreFields,\s*\}\)/,
+    );
+    expect(formFields).toContain("getAdvancedFormSection<StatusPage>()");
     expect(page).toContain(
-      "In the **Create New Status Page** modal, fill in **Name** (required, at least two characters) and, optionally, **Description**, then click **Create Status Page**.",
+      "In the **Create New Status Page** modal, fill in **Name** (required, at least two characters), then click **Create Status Page**. **Description** and **Labels** are optional, under **More fields**.",
     );
     expect(page).toContain(
-      "A new status page only asks for **Name** and **Description**.",
+      "A new status page only asks for its **Name**; **Description** and **Labels** wait under **More fields**.",
     );
   });
 
@@ -402,26 +418,46 @@ describe("the Status Pages Overview: creating a status page", () => {
     expect(columns).toEqual(["Name", "Description", "Labels", "Owners"]);
     expect(filters).toEqual(["Status Page ID", "Name", "Description"]);
     expect(page).toContain(
-      `The list you land back on shows ${boldList(columns)}, and can be filtered by ${boldList(filters)}.`,
+      `The **Status Pages** list shows ${boldList(columns)}, and can be filtered by ${boldList(filters)}.`,
     );
   });
 
-  it("lands on the Overview screen, with the preview link and the details card that edits what was just set", () => {
+  it("opens the new page on its Overview: the first step while it has no resource, the link card and the details card that edits what was just set", () => {
     const overview: string = readSource(STATUS_PAGE_OVERVIEW);
-    const details: string = overview.slice(
-      overview.indexOf('title: "Status Page Details"'),
-      overview.indexOf("modelDetailProps="),
+    const details: string = createForm.slice(
+      createForm.indexOf("export const getStatusPageDetailsFormFields"),
+    );
+    const firstStep: string = readSource(STATUS_PAGE_FIRST_STEP);
+    const link: string = readSource(STATUS_PAGE_PREVIEW_LINK);
+
+    // A page made in Create Status Page opens straight away.
+    expect(list).toMatch(
+      /modalType === ModalType\.Create[\s\S]*?RouteMap\[PageMap\.STATUS_PAGE_VIEW\]/,
     );
 
-    expect(readSource(STATUS_PAGE_PREVIEW_LINK)).toContain(
-      "title={`Status Page Preview URL`}",
+    // Its first step counts the page's resources, and opens Resources.
+    expect(overview.indexOf("<StatusPageFirstStep")).toBeLessThan(
+      overview.indexOf("<StatusPagePreviewLink"),
     );
+    expect(firstStep).toContain("count > 0 ? FirstStepState.Hidden");
+    expect(firstStep).toContain("PageMap.STATUS_PAGE_VIEW_RESOURCES");
+    expect(StatusPageOverviewCopy.firstStepTitle).toBe(
+      "Nothing on this status page yet",
+    );
+    expect(StatusPageOverviewCopy.firstStepButton).toBe("Add Monitors");
+
+    // The link card: the page's own address, with Copy link beside it.
+    expect(link).toContain("title={StatusPageOverviewCopy.linkCardTitle}");
+    expect(link).toContain('label="Copy link"');
+    expect(StatusPageOverviewCopy.linkCardTitle).toBe("Status Page Link");
+
+    expect(overview).toContain("formFields={getStatusPageDetailsFormFields()}");
     expect(details).toContain("name: true");
     expect(details).toContain("description: true");
     expect(details).toContain("getLabelsFormField<StatusPage>()");
     expect(overview).toContain("<OverviewCustomFields");
     expect(page).toContain(
-      "Open the new page and you land on its **Overview** screen, which carries two cards: **Status Page Preview URL** with a link to the page itself, and **Status Page Details** where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.",
+      "The new page opens on its **Overview** screen. Until the page has a resource, the screen starts with **Nothing on this status page yet** and **Add Monitors**, which opens its **Resources** screen. Then come two cards: **Status Page Link**, with the link to the page itself and **Copy link**, and **Status Page Details**, where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.",
     );
   });
 });
@@ -898,9 +934,17 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
 
     for (const name of [
       'title="Enable Embedded Status Badge"',
-      'title="Security Token"',
-      'title: "Regenerate Token"',
-      'title="Badge Preview"',
+      'tokenCardTitle: translationKey("Security Token")',
+      "title={EmbeddedStatusCopy.tokenCardTitle}",
+      "title: getEmbeddedBadgeTokenButtonTitle(Boolean(token)),",
+      'title="Embed the Badge"',
+      'translator.translateText("Markdown, linked to the status page")',
+      // Create Token until the page has a token, then Regenerate Token.
+      'hasToken\n    ? translationKey("Regenerate Token")\n    : translationKey("Create Token");',
+      // The token is made when the badge is first turned on.
+      "shouldMakeBadgeTokenWhenTurnedOn({",
+      // The token card waits under More settings.
+      "<AdvancedPageSection",
     ]) {
       expect({ name: name, found: screen.includes(name) }).toEqual({
         name: name,
@@ -910,7 +954,10 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
 
     expect(statusPageDefault("enableEmbeddedOverallStatus")).toBe(false);
     expect(page).toContain(
-      "turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default), then click **Regenerate Token** on the **Security Token** card to give the badge its token (`embeddedOverallStatusToken`). The badge is served from `/api/status-page/badge/<status-page-id>?token=<token>`, and the screen shows it under **Badge Preview**",
+      "turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default). The first time you turn it on, the badge gets its token (`embeddedOverallStatusToken`), and the **Embed the Badge** card shows the badge, served from `/api/status-page/badge/<status-page-id>?token=<token>`, with its **HTML** and **Markdown, linked to the status page** to copy",
+    );
+    expect(page).toContain(
+      "The token waits on the **Security Token** card under **More settings**, with **Regenerate Token** for when the link was shared too widely.",
     );
   });
 
@@ -1048,14 +1095,24 @@ describe("Subscribers & Announcements: channels and signing up", () => {
     }
   });
 
-  it("names the two choices of Advanced Subscriber Settings by their titles, columns and defaults", () => {
+  it("names the two switches of the Subscriber Choices card by their titles, columns and defaults", () => {
     const settings: string = readSource(SUBSCRIBER_SETTINGS);
+    const choicesCopy: string = readSource(SUBSCRIBER_CHOICES_COPY);
     const choosing: string = sectionOf(
       page,
       "## Letting subscribers choose resources and event types",
     );
 
-    expect(settings).toContain('title: "Advanced Subscriber Settings"');
+    expect(settings).toContain(
+      "<SubscriberChoicesCard statusPageId={modelId} />",
+    );
+    expect(settings).not.toContain('title: "Advanced Subscriber Settings"');
+    expect(choicesCopy).toContain(
+      'cardTitle: translationKey("Subscriber Choices")',
+    );
+    expect(choosing).toContain(
+      "Two switches in the **Subscriber Choices** card on **Subscriber Settings** change that, each saving the moment you flip it:",
+    );
 
     for (const [title, column] of [
       [
@@ -1067,16 +1124,18 @@ describe("Subscribers & Announcements: channels and signing up", () => {
         "allowSubscribersToChooseEventTypes",
       ],
     ] as Array<[string, string]>) {
-      expect(settings).toContain(`title: "${title}"`);
+      expect(choicesCopy).toContain(`translationKey("${title}")`);
       expect(statusPageDefault(column)).toBe(false);
       expect(choosing).toContain(
         `- **${title}** (\`${column}\`) — off by default.`,
       );
     }
 
+    // The timezones fold under More settings, with the email footer.
+    expect(settings).toContain("<AdvancedPageSection");
     expect(settings).toContain('title: "Subscriber Timezones"');
     expect(choosing).toContain(
-      "The same card also carries **Subscriber Timezones**.",
+      "**Subscriber Timezones** is under **More settings** on the same screen",
     );
   });
 
@@ -1141,19 +1200,54 @@ describe("Subscribers & Announcements: confirming an email address", () => {
     );
   });
 
-  it("confirms email subscribers only, and lets the team skip it", () => {
+  it("confirms email subscribers only, and lets the team choose: subscribe now, subscribe and tell, or ask to confirm", () => {
+    const choices: string = readSource(SUBSCRIBER_FORM_CHOICES);
+
     expect(service).toMatch(
       /if \(isEmailSubscriber && !isSubscriptionConfirmed\) \{\s*data\.data\.isSubscriptionConfirmed = false;\s*\} else \{\s*data\.data\.isSubscriptionConfirmed = true;/,
     );
-    expect(readSource(EMAIL_SUBSCRIBERS)).toMatch(
-      /field: \{\s*isSubscriptionConfirmed: true,?\s*\},?\s*(?:stepId: "subscriber-info",\s*)?title: "Do not send confirmation link",[\s\S]*?defaultValue: true,/,
+    // The Add form asks one question, Add in Bulk the same.
+    expect(readSource(EMAIL_SUBSCRIBERS)).toContain(
+      "...getEmailSubscriberAddChoiceFields(),",
     );
+    expect(readSource(EMAIL_SUBSCRIBERS)).toContain(
+      "getSubscriberAddChoiceColumns(data.subscriberAddChoice)",
+    );
+
+    // What each answer writes, and the answer a new subscriber starts with.
+    for (const [choice, confirmed, told] of [
+      ["SubscribeNow", true, false],
+      ["SubscribeAndTell", true, true],
+      ["AskToConfirm", false, false],
+    ] as Array<[string, boolean, boolean]>) {
+      expect(choices).toMatch(
+        new RegExp(
+          `\\[SubscriberAddChoice\\.${choice}\\]: \\{\\s*isSubscriptionConfirmed: ${confirmed},\\s*sendYouHaveSubscribedMessage: ${told},\\s*\\}`,
+        ),
+      );
+    }
+    expect(choices).toMatch(
+      /if \(values\["isSubscriptionConfirmed"\] === false\) \{\s*return SubscriberAddChoice\.AskToConfirm;\s*\}\s*if \(values\["sendYouHaveSubscribedMessage"\] === true\) \{\s*return SubscriberAddChoice\.SubscribeAndTell;\s*\}\s*return SubscriberAddChoice\.SubscribeNow;/,
+    );
+    for (const words of [
+      'addChoiceTitle: translationKey("When you add them")',
+      'subscribeNowTitle: translationKey("Subscribe them now")',
+      'subscribeAndTellTitle: translationKey("Subscribe them now and tell them")',
+      'askToConfirmTitle: translationKey("Ask them to confirm first")',
+    ]) {
+      expect({ words: words, found: choices.includes(words) }).toEqual({
+        words: words,
+        found: true,
+      });
+    }
+
     expect(optIn).toContain(
       `**${subscriberColumn("isSubscriptionConfirmed").title}** (\`isSubscriptionConfirmed\`) is forced to \`false\``,
     );
     expect(optIn).toContain(
-      "**Do not send confirmation link** is on by default there.",
+      "When your team adds an email subscriber on **Email Subscribers**, **When you add them** decides: **Subscribe them now** (the default: confirmed, and sent nothing), **Subscribe them now and tell them** (confirmed, and sent the email that says they are subscribed) or **Ask them to confirm first** (sent the confirmation link, like a sign-up). **Add in Bulk** asks the same.",
     );
+    expect(optIn).not.toContain("Do not send confirmation link");
   });
 
   it("sends only to confirmed subscribers who have not unsubscribed", () => {

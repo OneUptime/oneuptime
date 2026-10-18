@@ -3185,18 +3185,29 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   });
 
   /*
-   * While they show, the chart above has nothing to draw either. It kept
-   * its card for the Count / Response time picker, so a first visit read
-   * "No data for this metric in the selected range" over the first steps
-   * that say the same thing with a way forward. It steps aside until the
-   * list has a span, as the Logs page's empty chart does.
+   * Whether the first steps show: the list's read came back with no span.
+   * Before its first read (`listAnswer` still null) nothing is loading and
+   * there are no spans, which is not an empty list.
    */
   const showsFirstSteps: boolean =
     offersFirstSteps &&
+    listAnswer !== null &&
     !isLoading &&
     !listError &&
     !error &&
     spans.length === 0;
+
+  /*
+   * While they show, the chart above has nothing to draw either. It kept
+   * its card for the Count / Response time picker, so a first visit read
+   * "No data for this metric in the selected range" over the first steps
+   * that say the same thing with a way forward. It steps aside while it
+   * has no bar, as the Logs page's empty chart does; a chart with bars
+   * stays, whatever the list says (the chart's window edges round to the
+   * minute, the list's do not).
+   */
+  const chartStepsAside: boolean =
+    showsFirstSteps && histogramBuckets.length === 0;
 
   const viewer: ReactElement = (
     <TelemetryViewer<Span>
@@ -3503,7 +3514,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       onClearAllFilters={handleClearAllFilters}
       lockedFilterSignal="traces"
       // Histogram: none while the first steps say there is nothing yet.
-      showHistogram={!showsFirstSteps}
+      showHistogram={!chartStepsAside}
       histogramBuckets={histogramBuckets}
       histogramSeries={histogramSeries}
       /*

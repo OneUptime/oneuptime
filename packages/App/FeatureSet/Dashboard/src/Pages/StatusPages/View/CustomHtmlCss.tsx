@@ -1,5 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
+import {
+  STATUS_PAGE_CUSTOM_CODE_NOTICE_TEST_ID,
+  StatusPageCustomCodeCopy,
+} from "../../../Components/StatusPage/StatusPageCustomCodeCopy";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -7,21 +15,44 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const StatusPageDelete: FunctionComponent<
+/*
+ * Status Pages -> a page -> Branding -> HTML, CSS & JavaScript: the code
+ * that goes past what the Branding page offers. See
+ * StatusPageCustomCodeCopy for what each card says, and why the page opens
+ * on where the code runs.
+ */
+const StatusPageCustomCode: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
     <Fragment>
-      {/* StatusPage View  */}
+      <Alert
+        className="mb-5"
+        type={AlertType.INFO}
+        title={StatusPageCustomCodeCopy.notice}
+        textOnRight={StatusPageCustomCodeCopy.noticeAction}
+        dataTestId={STATUS_PAGE_CUSTOM_CODE_NOTICE_TEST_ID}
+        onClick={() => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_DOMAINS] as Route,
+              { modelId },
+            ),
+          );
+        }}
+      />
+
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Header HTML"
         cardProps={{
-          title: "Header HTML",
-          description: "You can include header HTML to your status page.",
+          title: StatusPageCustomCodeCopy.headerTitle,
+          description: StatusPageCustomCodeCopy.headerDescription,
         }}
         isEditable={true}
+        editButtonText={StatusPageCustomCodeCopy.headerEdit}
+        editModalTitle={StatusPageCustomCodeCopy.headerEdit}
         formFields={[
           {
             field: {
@@ -31,12 +62,13 @@ const StatusPageDelete: FunctionComponent<
             fieldType: FormFieldSchemaType.HTML,
             required: false,
             placeholder: "Insert Custom HTML here.",
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: StatusPage,
-          id: "model-detail-status-page",
+          id: "model-detail-status-page-header-html",
           fields: [
             {
               field: {
@@ -44,22 +76,22 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.HTML,
               title: "Header HTML",
-              placeholder:
-                "No Header HTML found. Please edit this Status Page to add some.",
+              placeholder: StatusPageCustomCodeCopy.headerEmpty,
             },
           ],
           modelId: modelId,
         }}
       />
 
-      {/* StatusPage View  */}
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Footer HTML"
         cardProps={{
-          title: "Footer HTML",
-          description: "You can include footer HTML to your status page.",
+          title: StatusPageCustomCodeCopy.footerTitle,
+          description: StatusPageCustomCodeCopy.footerDescription,
         }}
         isEditable={true}
+        editButtonText={StatusPageCustomCodeCopy.footerEdit}
+        editModalTitle={StatusPageCustomCodeCopy.footerEdit}
         formFields={[
           {
             field: {
@@ -69,12 +101,13 @@ const StatusPageDelete: FunctionComponent<
             fieldType: FormFieldSchemaType.HTML,
             required: false,
             placeholder: "Insert Custom HTML here.",
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: StatusPage,
-          id: "model-detail-status-page",
+          id: "model-detail-status-page-footer-html",
           fields: [
             {
               field: {
@@ -82,23 +115,22 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.HTML,
               title: "Footer HTML",
-              placeholder:
-                "No Footer HTML found. Please edit this Status Page to add some.",
+              placeholder: StatusPageCustomCodeCopy.footerEmpty,
             },
           ],
           modelId: modelId,
         }}
       />
 
-      {/* StatusPage View  */}
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Custom CSS"
         cardProps={{
-          title: "Custom CSS",
-          description:
-            "You can include custom CSS classes to your status page.",
+          title: StatusPageCustomCodeCopy.cssTitle,
+          description: StatusPageCustomCodeCopy.cssDescription,
         }}
         isEditable={true}
+        editButtonText={StatusPageCustomCodeCopy.cssEdit}
+        editModalTitle={StatusPageCustomCodeCopy.cssEdit}
         formFields={[
           {
             field: {
@@ -108,12 +140,13 @@ const StatusPageDelete: FunctionComponent<
             fieldType: FormFieldSchemaType.CSS,
             required: false,
             placeholder: "Insert Custom CSS here.",
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: StatusPage,
-          id: "model-detail-status-page",
+          id: "model-detail-status-page-custom-css",
           fields: [
             {
               field: {
@@ -121,23 +154,21 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.CSS,
               title: "Custom CSS",
-              placeholder:
-                "No Custom CSS found. Please edit this Status Page to add some.",
             },
           ],
           modelId: modelId,
         }}
       />
 
-      {/* StatusPage View  */}
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Custom JavaScript"
         cardProps={{
-          title: "Custom JavaScript",
-          description:
-            "You can include custom JavaScript classes to your status page.",
+          title: StatusPageCustomCodeCopy.javaScriptTitle,
+          description: StatusPageCustomCodeCopy.javaScriptDescription,
         }}
         isEditable={true}
+        editButtonText={StatusPageCustomCodeCopy.javaScriptEdit}
+        editModalTitle={StatusPageCustomCodeCopy.javaScriptEdit}
         formFields={[
           {
             field: {
@@ -147,12 +178,13 @@ const StatusPageDelete: FunctionComponent<
             fieldType: FormFieldSchemaType.JavaScript,
             required: false,
             placeholder: "Insert Custom JavaScript here.",
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: StatusPage,
-          id: "model-detail-status-page",
+          id: "model-detail-status-page-custom-javascript",
           fields: [
             {
               field: {
@@ -160,8 +192,6 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.JavaScript,
               title: "Custom JavaScript",
-              placeholder:
-                "No Custom JavaScript found. Please edit this Status Page to add some.",
             },
           ],
           modelId: modelId,
@@ -171,4 +201,4 @@ const StatusPageDelete: FunctionComponent<
   );
 };
 
-export default StatusPageDelete;
+export default StatusPageCustomCode;

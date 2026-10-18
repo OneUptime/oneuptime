@@ -132,8 +132,7 @@ export const getStatusPageResourceAdvancedFields: (
       title: "Tooltip",
       fieldType: FormFieldSchemaType.LongText,
       required: false,
-      description:
-        "This will show up as tooltip beside the resource on your status page.",
+      description: "Shown in a tooltip beside the resource on the status page.",
       placeholder: "Tooltip",
       collapsibleSection: advancedSection,
     },
@@ -145,8 +144,7 @@ export const getStatusPageResourceAdvancedFields: (
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: true,
-      description:
-        "Current Resource Status will be shown beside this resource on your status page.",
+      description: "Shows its current status, such as Operational, beside it.",
       collapsibleSection: advancedSection,
     },
     {
@@ -157,8 +155,12 @@ export const getStatusPageResourceAdvancedFields: (
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: false,
+      /*
+       * The days are set under Uptime History on Advanced Settings: there
+       * is no page called Status Page Settings, which is what it said.
+       */
       description:
-        "Show uptime percentage beside this resource on your status page. The number of days is configured in Status Page Settings.",
+        "Shows its uptime beside it, over the days set under Uptime History on Advanced Settings.",
       collapsibleSection: advancedSection,
     },
     {
@@ -183,7 +185,7 @@ export const getStatusPageResourceAdvancedFields: (
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       description:
-        "Show resource status history chart. The number of days is configured in Status Page Settings.",
+        "A bar for each day, over the days set under Uptime History on Advanced Settings.",
       defaultValue: true,
       collapsibleSection: advancedSection,
     },

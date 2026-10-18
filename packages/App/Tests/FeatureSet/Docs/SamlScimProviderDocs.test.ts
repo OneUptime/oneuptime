@@ -354,7 +354,7 @@ describe("Status pages: the SSO page", () => {
     const page: string = readPage("en", "status-pages/index");
 
     expect(page).toContain(
-      "configures SAML: you enter the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**.",
+      "configures SAML: **Add SSO Provider** asks for the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**.",
     );
     expect(page).not.toContain(
       "(sign-on URL, issuer, x509 certificate, signature and digest methods)",

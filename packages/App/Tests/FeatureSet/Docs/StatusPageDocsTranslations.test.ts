@@ -415,7 +415,7 @@ const HELD_ELSEWHERE: Array<string> = [
  */
 const PROSE: Record<string, Array<string>> = {
   [OVERVIEW]: [
-    "Created with two fields.",
+    "Created with a name.",
     "Resources are what visitors see.",
     "A preview URL from day one.",
     "Visitor-facing routes are gated by settings.",

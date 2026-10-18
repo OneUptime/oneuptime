@@ -40,17 +40,23 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
           tableId: "status-page-announcement-templates-table",
         }}
         name="Settings > Status Page Announcement Templates"
+        /*
+         * Under Status Pages > Settings the rows are announcement templates:
+         * "Create Announcement Template", "No announcement templates yet." -
+         * the menu's name, without the product's in front of it.
+         */
+        singularName="Announcement Template"
+        pluralName="Announcement Templates"
         isDeleteable={true}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
         cardProps={{
-          title: "Status Page Announcement Templates",
+          title: "Announcement Templates",
           description:
             "Ready-made announcements for news you post often, such as a planned upgrade. Use one with Create from Template on the Announcements page, and edit it before you publish.",
         }}
-        noItemsMessage={"No status page announcement templates found."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}

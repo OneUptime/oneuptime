@@ -65,7 +65,7 @@ Fate clic su **Crea: Monitor Gruppo**, inserite un **Nome** e, se volete, una **
 
 ### Aggiungere i suoi monitor
 
-Aprite il gruppo: finché non ha un monitor, la sua **Panoramica** offre **Add Monitors**. In seguito, fate clic su **Monitor** nel suo menu laterale, poi su **Add Monitors**. Scegliete ogni monitor del gruppo in **Monitor** e fate clic su **Add Monitors**.
+Aprite il gruppo: finché non ha un monitor, la sua **Panoramica** offre **Aggiungi monitor**. In seguito, fate clic su **Monitor** nel suo menu laterale, poi su **Aggiungi monitor**. Scegliete ogni monitor del gruppo in **Monitor** e fate clic su **Aggiungi monitor**.
 
 ### Controllarne lo stato
 
@@ -80,8 +80,8 @@ Aprite un gruppo per vederne le pagine nel menu laterale:
 
 | Pagina | Cosa mostra |
 | --- | --- |
-| **Panoramica** | **Dettagli del gruppo di monitor**, **Stato attuale** e **Grafico di uptime** con la percentuale di disponibilità del gruppo negli ultimi 90 giorni. Un gruppo senza monitor offre **Add Monitors** al posto del grafico. |
-| **Monitor** | **Monitor nel gruppo**, con **Add Monitors** e **Rimuovi**. |
+| **Panoramica** | **Dettagli del gruppo di monitor**, **Stato attuale** e **Grafico di uptime** con la percentuale di disponibilità del gruppo negli ultimi 90 giorni. Un gruppo senza monitor offre **Aggiungi monitor** al posto del grafico. |
+| **Monitor** | **Monitor nel gruppo**, con **Aggiungi monitor** e **Rimuovi**. |
 | **Incidenti** | Gli incidenti su qualsiasi monitor del gruppo. |
 | **Avvisi** | Gli avvisi su qualsiasi monitor del gruppo. |
 | **Proprietari** | Le persone e i team responsabili del gruppo. Si trova sotto **Avanzato**, che parte chiuso. |

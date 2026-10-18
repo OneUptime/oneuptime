@@ -43,7 +43,7 @@ Gli interruttori decidono come i visitatori possono iscriversi da soli, e la pag
 
 Su OneUptime Cloud, un interruttore che il vostro piano non include mostra accanto il nome del piano: **Growth** per **SMS** e **Mostra pagina iscritti**, **Scale** per **Slack**, **Microsoft Teams** e **Webhook**. Disattivare un canale funziona su tutti i piani, quindi un canale attivato durante una prova si può sempre disattivare di nuovo; l'interruttore lo dice sotto.
 
-Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, sotto **Iscritti**: **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti a Microsoft Teams** e **Iscritti webhook**. È lì che guardate chi è iscritto, aggiungete qualcuno a mano o vi lasciate una voce **Note** (`internalNote`) su un determinato iscritto. Finché un canale è disattivato, la parte alta del suo elenco lo dice, con l'interruttore del canale proprio lì, così potete attivarlo senza lasciare l'elenco.
+Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, sotto **Iscritti**: **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti a Microsoft Teams** e **Iscritti webhook**. È lì che guardate chi è iscritto, aggiungete qualcuno a mano con **Aggiungi iscritto** o vi lasciate una **Nota interna** (`internalNote`) su un determinato iscritto, che vede solo il vostro team. Finché un canale è disattivato, la parte alta del suo elenco lo dice, con l'interruttore del canale proprio lì, così potete attivarlo senza lasciare l'elenco.
 
 **Un interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** è attivo *e* almeno un canale è attivo. Se attivate **E-mail** ma lasciate disattivato **Mostra pagina iscritti**, i visitatori non hanno modo di raggiungere il modulo.
 
@@ -66,7 +66,7 @@ Nessuna delle due impostazioni elimina un iscritto, e disattivandole si torna a 
 
 ## Che cosa vede un visitatore nella pagina di iscrizione
 
-La pagina **Iscriviti** ha un sottomenu con una scheda per ogni canale attivo. Ogni scheda chiede il minimo indispensabile:
+La pagina **Iscriviti** ha un sottomenu con una scheda per ogni canale attivo; con un solo canale attivo non c'è il sottomenu, solo il modulo di quel canale. Ogni scheda chiede il minimo indispensabile:
 
 | Scheda | Indirizzo | Titolo | Che cosa chiede |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ Il pulsante di invio dice **Iscriviti**. Un'iscrizione via SMS, Slack, Microsoft
 
 ## Lasciare che gli iscritti scelgano risorse e tipi di evento
 
-Per impostazione predefinita un iscritto riceve tutto ciò che c'è sulla pagina. Due interruttori nella scheda **Impostazioni avanzate degli iscritti** lo cambiano:
+Per impostazione predefinita un iscritto riceve tutto ciò che c'è sulla pagina. Due interruttori nella scheda **Scelte degli iscritti** in **Impostazioni iscritti** lo cambiano, e ciascuno si salva appena lo cambiate:
 
 - **Consenti agli iscritti di scegliere le risorse** (`allowSubscribersToChooseResources`) — disattivato per impostazione predefinita. Attivatelo e il modulo di iscrizione guadagna un interruttore **Iscriviti a tutte le risorse**; disattivatelo e compare **Seleziona le risorse a cui iscriverti**, così il visitatore può scegliere singole risorse.
 - **Consenti agli iscritti di scegliere i tipi di evento** (`allowSubscribersToChooseEventTypes`) — disattivato per impostazione predefinita. Stessa forma: un interruttore **Iscriviti a tutti i tipi di eventi**, e **Seleziona i tipi di eventi a cui iscriverti** sotto quando è disattivato.
@@ -99,17 +99,17 @@ Le scelte finiscono nel record dell'iscritto come **Is Subscribed to All Resourc
 
 Utile per: una pagina che copre diversi prodotti. Un cliente che usa solo la vostra API non vuole un avviso ogni volta che il sito di marketing vacilla: lasciate che restringa l'elenco da solo invece di vederlo annullare del tutto l'iscrizione.
 
-La stessa scheda contiene anche **Fusi orari abbonati**.
+**Fusi orari abbonati** si trova in **Altre impostazioni** nella stessa schermata (vedete [più sotto](#piè-di-pagina-delle-email-smtp-personalizzato-e-twilio)).
 
 ## Doppia conferma per le email
 
 Gli iscritti via email confermano sempre. Quando un iscritto viene creato con un indirizzo email e non è stato creato già confermato, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) viene forzato a `false` e viene generato un **Subscription Confirmation Token** di sei cifre. OneUptime invia poi un link di conferma della forma `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Il visitatore arriva su una pagina **Conferma iscrizione** e, una volta completata, vede *Iscrizione confermata con successo*.
 
-Gli iscritti via SMS, Slack, Microsoft Teams e webhook saltano questo passaggio: vengono creati con `isSubscriptionConfirmed` già impostato a `true`. Lo stesso vale per gli iscritti email che il vostro team aggiunge in **Iscritti email**: lì **Non inviare il link di conferma** è attivo per impostazione predefinita. Disattivatelo perché l'indirizzo confermi come in un'iscrizione.
+Gli iscritti via SMS, Slack, Microsoft Teams e webhook saltano questo passaggio: vengono creati con `isSubscriptionConfirmed` già impostato a `true`. Quando il vostro team aggiunge un iscritto email in **Iscritti email**, decide **Quando li aggiungi**: **Iscrivili ora** (l'opzione predefinita: confermato, e non gli viene inviato nulla), **Iscrivili ora e avvisali** (confermato, e riceve l'email che dice che è iscritto) o **Chiedi prima la loro conferma** (riceve il link di conferma, come in un'iscrizione). **Aggiungi in blocco** chiede la stessa cosa.
 
 **Non confermato significa silenzioso.** La query che recupera gli iscritti per una notifica filtra su `isUnsubscribed: false` e `isSubscriptionConfirmed: true`. Un indirizzo email che non ha mai cliccato il link resterà nel vostro elenco **Iscritti email** senza ricevere nulla. Se qualcuno giura di essere iscritto ma non riceve nulla, controllate prima quella colonna.
 
-Non esiste un interruttore per disattivare la conferma via email: è incondizionata per chiunque si iscriva tramite la pagina di stato. Una colonna separata per iscritto, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, vero per impostazione predefinita), controlla l'email «vi siete iscritti» che parte una volta confermato un iscritto.
+Non esiste un interruttore per disattivare la conferma via email: è incondizionata per chiunque si iscriva tramite la pagina di stato. Una colonna separata per iscritto, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, vero per impostazione predefinita), controlla l'email «vi siete iscritti» che parte una volta confermato un iscritto. Nella dashboard la imposta **Quando li aggiungi** per un iscritto email, e **Invia un messaggio di benvenuto**, in **Altri campi**, per gli altri canali.
 
 ## Gestire e annullare un'iscrizione
 
@@ -131,7 +131,7 @@ Su una pagina di stato privata richiede un visitatore che ha effettuato l'access
 
 Gli endpoint dietro tutto questo sono `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token`, e `GET` e `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. Il `GET` di disiscrizione descrive soltanto il link. Il `POST` annulla l'iscrizione qualunque sia il suo corpo, compreso il corpo `List-Unsubscribe=One-Click` di una richiesta di disiscrizione con un clic. Ogni endpoint che riceve un token dà la stessa risposta per un token mancante o errato, un iscritto eliminato e un iscritto di un'altra pagina di stato, quindi nessuno si può usare per scoprire chi è iscritto.
 
-Annullare l'iscrizione cambia un flag invece di eliminare una riga, quindi il record resta nell'elenco del canale con **È disiscritto** impostato: utile quando dovete spiegare più tardi perché un certo indirizzo ha smesso di ricevere posta. Registra anche **Iscrizione annullata il** (`unsubscribedAt`), chiunque abbia annullato l'iscrizione: l'iscritto tramite il link o la pagina **Aggiorna iscrizione**, o un collega nella dashboard o tramite l'API. Ogni elenco di iscritti ha una colonna e un filtro **Iscrizione annullata il**. Disattivare di nuovo **È disiscritto** lo cancella. Le iscrizioni annullate prima che OneUptime registrasse questo dato non hanno data.
+Annullare l'iscrizione cambia un flag invece di eliminare una riga, quindi il record resta nell'elenco del canale con **È disiscritto** impostato: utile quando dovete spiegare più tardi perché un certo indirizzo ha smesso di ricevere posta. Registra anche **Iscrizione annullata il** (`unsubscribedAt`), chiunque abbia annullato l'iscrizione: l'iscritto tramite il link o la pagina **Aggiorna iscrizione**, o un collega nella dashboard o tramite l'API. Ogni elenco di iscritti ha una colonna e un filtro **Iscrizione annullata il**. Rimettere lo **Stato** di un iscritto su **Iscritto** lo cancella. Le iscrizioni annullate prima che OneUptime registrasse questo dato non hanno data.
 
 Un link con il solo ID dell'iscritto non apre più nulla. Un link **Aggiorna iscrizione** in un messaggio più vecchio, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, apre una pagina che dice che il link è scaduto, con **Ricevi un nuovo link**, che porta alla pagina **Iscriviti**. I messaggi molto vecchi portavano `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, che un tempo annullava l'iscrizione appena aperto. Ora non cambia più nulla: porta alla pagina di disiscrizione, che dice che il link è scaduto e di usare quello di un messaggio recente.
 
@@ -392,9 +392,10 @@ Mentre scrivete un modello, **Anteprima dal vivo** sotto il corpo del modello lo
 
 ## Piè di pagina delle email, SMTP personalizzato e Twilio
 
-Altre tre schede in **Impostazioni iscritti** controllano come i messaggi agli iscritti lasciano il vostro progetto:
+Altre quattro sezioni, in **Altre impostazioni** in fondo a **Impostazioni iscritti**, controllano come i messaggi agli iscritti lasciano il vostro progetto:
 
-- **Impostazioni piè di pagina email** — **Abilita testo personalizzato per il piè di pagina email** e **Testo del piè di pagina delle notifiche email per gli abbonati** mettono un vostro piè di pagina nelle email agli iscritti.
+- **Fusi orari abbonati** — i fusi orari in cui sono mostrati gli orari nelle notifiche, scelti con **Modifica fusi orari**. Se non ne scegliete nessuno, gli orari sono mostrati in UTC e nell'ora di Londra, New York, Los Angeles, Calcutta e Sydney.
+- **Piè di pagina delle email** — la riga alla fine di ogni email agli iscritti della pagina. **Modifica piè di pagina** chiede il **Piè di pagina**: **Il piè di pagina predefinito**, una riga che dice che ricevono l'email perché si sono iscritti, o **Il tuo testo**, il **Testo del piè di pagina** che scrivete (`enableCustomSubscriberEmailNotificationFooterText` e `subscriberEmailNotificationFooterText`). Se il vostro testo resta vuoto, parte il piè di pagina predefinito.
 - **SMTP personalizzato** — **Configurazione SMTP personalizzata** invia le email agli iscritti tramite il vostro server di posta invece di quello predefinito.
 - **Configurazione Twilio** — **Configurazione Twilio** è l'account Twilio usato per gli iscritti SMS.
 

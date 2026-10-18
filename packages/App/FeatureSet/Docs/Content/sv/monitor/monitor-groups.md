@@ -65,7 +65,7 @@ Klicka på **Skapa Monitor Grupp**, ange ett **Namn** och, om du vill, en **Besk
 
 ### Lägg till dess monitorer
 
-Öppna gruppen: tills den har en monitor erbjuder dess **Översikt** **Add Monitors**. Senare klickar du på **Monitorer** i dess sidomeny och sedan på **Add Monitors**. Välj varje monitor i gruppen under **Monitorer** och klicka på **Add Monitors**.
+Öppna gruppen: tills den har en monitor erbjuder dess **Översikt** **Lägg till monitorer**. Senare klickar du på **Monitorer** i dess sidomeny och sedan på **Lägg till monitorer**. Välj varje monitor i gruppen under **Monitorer** och klicka på **Lägg till monitorer**.
 
 ### Kontrollera dess status
 
@@ -80,8 +80,8 @@ För att ta bort en monitor från gruppen klickar du på **Ta bort** på dess ra
 
 | Sida | Vad den visar |
 | --- | --- |
-| **Översikt** | **Detaljer för övervakningsgrupp**, **Aktuell status** och **Drifttidsgraf** med gruppens tillgänglighet i procent under de senaste 90 dagarna. En grupp utan monitorer erbjuder **Add Monitors** i stället för grafen. |
-| **Monitorer** | **Övervakare i grupp**, med **Add Monitors** och **Ta bort**. |
+| **Översikt** | **Detaljer för övervakningsgrupp**, **Aktuell status** och **Drifttidsgraf** med gruppens tillgänglighet i procent under de senaste 90 dagarna. En grupp utan monitorer erbjuder **Lägg till monitorer** i stället för grafen. |
+| **Monitorer** | **Övervakare i grupp**, med **Lägg till monitorer** och **Ta bort**. |
 | **Incidenter** | Incidenterna på någon monitor i gruppen. |
 | **Varningar** | Varningarna på någon monitor i gruppen. |
 | **Ägare** | De personer och team som ansvarar för gruppen. Den ligger under **Avancerad**, som börjar hopfällt. |

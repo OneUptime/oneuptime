@@ -60,12 +60,12 @@ Uw aangepaste CSS en HTML gelden in beide thema's; [Aangepaste HTML, CSS en Java
 
 ### Titel, beschrijving en favicon
 
-- **Titel en beschrijving**: de kaart vermeldt dat dit ook voor SEO wordt gebruikt. **Bewerken** opent **Paginatitel** (plaatshouder `Please enter page title here.`) en **Paginabeschrijving**. Zoekmachines en linkvoorbeelden tonen deze teksten, dus schrijf ze voor een klant, niet voor uw team.
+- **Titel en beschrijving**: de naam van de pagina in het browsertabblad en in e-mails aan abonnees, en de beschrijving die zoekmachines tonen. **Bewerken** opent **Paginatitel** (plaatshouder `e.g., Acme Status`) en **Paginabeschrijving**. Zoekmachines en linkvoorbeelden tonen deze teksten, dus schrijf ze voor een klant, niet voor uw team.
 - **Favicon**: **Edit Favicon** opent de upload **Favicon**: het kleine pictogram in het browsertabblad.
 
 ### Koptekstlinks
 
-De tabel **Koptekstkoppelingen** bevat de links in de koptekst van de statuspagina, zoals uw website, uw documentatie of een supportportaal. Elke link heeft een **Titel** en een **Koppeling** (een URL, plaatshouder `https://link.com`), en u herschikt ze door te slepen. Zonder links zegt de tabel **Geen statuskoptekstlink voor deze statuspagina**, met **Statuspagina Kop Link aanmaken** eronder.
+De tabel **Koptekstkoppelingen** bevat de links in de koptekst van de statuspagina, zoals uw website, uw documentatie of een supportportaal. Elke link heeft een **Titel** en een **Koppeling** (een URL, plaatshouder `https://link.com`), en u herschikt ze door te slepen. Zonder links zegt de tabel waarvoor ze dienen, met **Koptekstkoppeling toevoegen** eronder.
 
 ### Beschrijving van de overzichtspagina
 
@@ -74,7 +74,7 @@ De tabel **Koptekstkoppelingen** bevat de links in de koptekst van de statuspagi
 ### Footer
 
 - **Copyrightinformatie**: **Edit Copyright** opent één veld, **Copyrightinformatie**, met de plaatshouder `Acme, Inc.`.
-- **Footerlinks**: hetzelfde paar **Titel** en **Koppeling** als bij de koptekstlinks, herschikt door te slepen. Zonder links staat er "Geen statusvoettekstlink voor deze statuspagina."
+- **Footerlinks**: hetzelfde paar **Titel** en **Koppeling** als bij de koptekstlinks, herschikt door te slepen en toegevoegd met **Footerlink toevoegen**.
 
 Koptekstlinks zijn voor navigatie; footerlinks zijn voor de kleine lettertjes, zoals juridische informatie, privacy en voorwaarden.
 
@@ -130,8 +130,8 @@ Vroeger waren dit twee eigen kaarten, **Totaal uptimepercentage** en **Downtime-
 
 | Kaart | Kolom | Wat het bevat |
 | ---- | ------ | ------------- |
-| **Koptekst-HTML** | `headerHTML` | HTML die aan de koptekst van de pagina wordt toegevoegd (plaatshouder `Insert Custom HTML here.`). |
-| **Footer-HTML** | `footerHTML` | HTML die aan de footer van de pagina wordt toegevoegd. |
+| **Koptekst-HTML** | `headerHTML` | HTML die in plaats van de koptekst van de pagina wordt getoond, met het logo en de koptekstlinks (plaatshouder `Insert Custom HTML here.`). |
+| **Footer-HTML** | `footerHTML` | HTML die in plaats van de footer van de pagina wordt getoond, met de links en de keuzes voor taal en thema. |
 | **Aangepaste CSS** | `customCSS` | Stijlen voor de hele pagina (plaatshouder `Insert Custom CSS here.`). |
 | **Aangepaste JavaScript** | `customJavaScript` | Een script dat de pagina uitvoert (plaatshouder `Insert Custom JavaScript here.`). |
 

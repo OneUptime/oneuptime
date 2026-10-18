@@ -60,12 +60,12 @@ O seu CSS e o seu HTML personalizados valem nos dois temas; [HTML, CSS e JavaScr
 
 ### Título, descrição e favicon
 
-- **Título e descrição**: o cartão avisa que isto também é usado para SEO. **Editar** abre **Título da página** (texto de exemplo `Please enter page title here.`) e **Descrição da página**. Mecanismos de pesquisa e prévias de links mostram esses textos, então escreva-os para um cliente, não para a sua equipe.
+- **Título e descrição**: o nome da página na aba do navegador e nos e-mails aos assinantes, e a descrição que os mecanismos de pesquisa mostram. **Editar** abre **Título da página** (texto de exemplo `e.g., Acme Status`) e **Descrição da página**. Mecanismos de pesquisa e prévias de links mostram esses textos, então escreva-os para um cliente, não para a sua equipe.
 - **Favicon**: **Edit Favicon** abre o envio **Favicon**: o pequeno ícone na aba do navegador.
 
 ### Links do cabeçalho
 
-A tabela **Links do Cabeçalho** contém os links do cabeçalho da página de status, como o seu site, a sua documentação ou um portal de suporte. Cada link tem um **Título** e um **Link** (uma URL, texto de exemplo `https://link.com`), e você os reordena arrastando. Sem nenhum, a tabela diz **Nenhum link de cabeçalho de status para esta página de status**, com **Criar: Página de status Cabeçalho Link** abaixo.
+A tabela **Links do Cabeçalho** contém os links do cabeçalho da página de status, como o seu site, a sua documentação ou um portal de suporte. Cada link tem um **Título** e um **Link** (uma URL, texto de exemplo `https://link.com`), e você os reordena arrastando. Sem nenhum, a tabela diz para que eles servem, com **Adicionar: Link do Cabeçalho** abaixo.
 
 ### Descrição da página de visão geral
 
@@ -74,7 +74,7 @@ A tabela **Links do Cabeçalho** contém os links do cabeçalho da página de st
 ### Rodapé
 
 - **Informações de direitos autorais**: **Edit Copyright** abre um campo, **Informações de direitos autorais**, com o texto de exemplo `Acme, Inc.`.
-- **Links do rodapé**: o mesmo par **Título** e **Link** dos links do cabeçalho, ordenados arrastando. Sem nenhum, diz "Nenhum link de rodapé de status para esta página de status."
+- **Links do rodapé**: o mesmo par **Título** e **Link** dos links do cabeçalho, ordenados arrastando e adicionados com **Adicionar: Link do rodapé**.
 
 Os links do cabeçalho servem para navegar; os do rodapé, para as letras miúdas, como avisos legais, privacidade e termos.
 
@@ -130,8 +130,8 @@ Antes eram dois cartões próprios, **Porcentagem geral de tempo de atividade** 
 
 | Cartão | Coluna | O que contém |
 | ---- | ------ | ------------- |
-| **HTML do Cabeçalho** | `headerHTML` | HTML adicionado ao cabeçalho da página (texto de exemplo `Insert Custom HTML here.`). |
-| **HTML do rodapé** | `footerHTML` | HTML adicionado ao rodapé da página. |
+| **HTML do Cabeçalho** | `headerHTML` | HTML mostrado no lugar do cabeçalho da página, com o logotipo e os links do cabeçalho (texto de exemplo `Insert Custom HTML here.`). |
+| **HTML do rodapé** | `footerHTML` | HTML mostrado no lugar do rodapé da página, com os links e os seletores de idioma e tema. |
 | **CSS Personalizado** | `customCSS` | Estilos para a página inteira (texto de exemplo `Insert Custom CSS here.`). |
 | **JavaScript Personalizado** | `customJavaScript` | Um script que a página executa (texto de exemplo `Insert Custom JavaScript here.`). |
 

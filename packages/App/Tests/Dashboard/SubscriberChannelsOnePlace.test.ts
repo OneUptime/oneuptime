@@ -355,15 +355,25 @@ describe("one place for each switch", () => {
       expect(source).not.toContain(`name="${name}"`);
     }
 
-    // The cards that stay.
+    /*
+     * The cards that stay: what visitors can pick, then the rest folded
+     * under More settings - the timezones, the email footer, your own mail
+     * server and Twilio account.
+     */
+    expect(source).toContain(
+      "<SubscriberChoicesCard statusPageId={modelId} />",
+    );
+    expect(source).toContain("<AdvancedPageSection");
     for (const title of [
-      "Advanced Subscriber Settings",
-      "Email Footer Settings",
-      "Custom SMTP",
-      "Twilio Config",
+      "SubscriberChoicesCopy.timezonesTitle",
+      "SubscriberChoicesCopy.smtpTitle",
+      "SubscriberChoicesCopy.twilioTitle",
     ]) {
-      expect(source).toContain(`title: "${title}"`);
+      expect(source).toContain(`title: ${title},`);
     }
+    expect(source).toContain("<SubscriberEmailFooterCard");
+    expect(source).not.toContain('title: "Advanced Subscriber Settings"');
+    expect(source).not.toContain('title: "Email Footer Settings"');
   });
 });
 

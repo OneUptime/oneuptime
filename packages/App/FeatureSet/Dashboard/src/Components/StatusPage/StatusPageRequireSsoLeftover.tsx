@@ -103,7 +103,6 @@ const StatusPageRequireSsoLeftover: FunctionComponent<ComponentProps> = (
     <div data-testid={STATUS_PAGE_REQUIRE_SSO_LEFTOVER_TEST_ID}>
       <StatusPageRequireSsoCard
         statusPageId={props.statusPageId}
-        isPlanLeftover={true}
         initialStatusPage={statusPage}
         onSaved={(isOn: boolean): void => {
           if (!isOn) {
