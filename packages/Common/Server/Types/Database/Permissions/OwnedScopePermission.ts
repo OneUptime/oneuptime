@@ -452,15 +452,27 @@ export default class OwnedScopePermission {
    * reads its owners by, and the model of the relation on that column. Null
    * for a model that is no registered kind's owner table. The registry is
    * read on every call, so a kind registered after the first request is held
-   * to it too.
+   * to it too. An owner table is known by its model's name, as the registry
+   * knows its kinds: a second copy of its class, should a module ever be
+   * loaded twice, is the same table and held to the same rule, never left
+   * unscoped.
    */
   private static getOwnerTableOwnership(modelType: {
     new (): BaseModel;
   }): OwnedThroughMetadata | null {
+    const modelName: string | undefined =
+      OwnedScopePermission.getClassName(modelType);
+
+    if (!modelName) {
+      return null;
+    }
+
     for (const [kind, pair] of this.getOwnerTableRegistry().entries()) {
       if (
-        pair.ownerUserService?.modelType !== modelType &&
-        pair.ownerTeamService?.modelType !== modelType
+        OwnedScopePermission.getClassName(pair.ownerUserService?.modelType) !==
+          modelName &&
+        OwnedScopePermission.getClassName(pair.ownerTeamService?.modelType) !==
+          modelName
       ) {
         continue;
       }
@@ -499,6 +511,13 @@ export default class OwnedScopePermission {
     }
 
     return null;
+  }
+
+  // A model class's name - what the registry knows models by - if it has one.
+  private static getClassName(modelType: unknown): string | undefined {
+    const name: unknown = (modelType as { name?: unknown } | undefined)?.name;
+
+    return typeof name === "string" && name ? name : undefined;
   }
 
   /*

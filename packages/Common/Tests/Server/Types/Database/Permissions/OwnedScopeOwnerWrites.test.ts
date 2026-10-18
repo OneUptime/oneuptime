@@ -492,6 +492,73 @@ describe("an owner row is owned through its resource", () => {
     },
   );
 
+  /*
+   * The registry knows its kinds by name, and so an owner table is known by
+   * its name: a second copy of its class - a module loaded twice - is the
+   * same table, held to the same rule, and never left unscoped.
+   */
+  test.each(OWNER_TABLES)(
+    "$name is known by its name: another copy of its class is held to the rule too",
+    async (table: OwnerTable) => {
+      const copy: ModelType = class extends table.modelType {};
+
+      Object.defineProperty(copy, "name", { value: table.name });
+
+      expect(copy).not.toBe(table.modelType);
+      expect(copy.name).toBe(table.name);
+
+      expect(OwnedScopePermission.isOwnerTable(copy)).toBe(true);
+      expect(OwnedScopePermission.getOwnedThrough(copy)).toEqual({
+        fkColumn: table.fkColumn,
+        parentModels: [table.resourceType],
+        includeProjectScope: false,
+        onlyParentModels: true,
+        includeUnattributed: false,
+      });
+
+      ownsOnly(OWNED_ID);
+
+      const props: DatabaseCommonInteractionProps = readsEveryManagesOwn(table);
+
+      expect(
+        OwnedScopePermission.isLimitedToOwnedRecords(
+          copy,
+          props,
+          DatabaseRequestType.Delete,
+        ),
+      ).toBe(true);
+
+      await expect(
+        CreateScopePermission.checkCreateScope({
+          modelType: copy,
+          data: ownerRowOn(table, OTHER_ID),
+          props: props,
+          findRecordLabels: async (): Promise<Dictionary<Array<string>>> => {
+            return {};
+          },
+          findLabelNames: async (): Promise<Array<string>> => {
+            return [];
+          },
+        }),
+      ).rejects.toThrow(CreateScopeException);
+    },
+  );
+
+  test("a class of no name, or of another name, is no owner table", () => {
+    const monitorOwners: OwnerTable = ownerTableNamed("MonitorOwnerUser");
+    const unnamed: ModelType = class extends monitorOwners.modelType {};
+
+    Object.defineProperty(unnamed, "name", { value: "" });
+
+    const renamed: ModelType = class extends monitorOwners.modelType {};
+
+    Object.defineProperty(renamed, "name", { value: "MonitorOwnerUserCopy" });
+
+    for (const modelType of [unnamed, renamed]) {
+      expect(OwnedScopePermission.isOwnerTable(modelType)).toBe(false);
+    }
+  });
+
   test("no other model is taken for an owner table, and every other model keeps what it declares", () => {
     const ownerTableTypes: Set<ModelType> = new Set<ModelType>(
       OWNER_TABLES.map((table: OwnerTable): ModelType => {
