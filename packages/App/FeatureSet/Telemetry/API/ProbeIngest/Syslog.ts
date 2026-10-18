@@ -1,11 +1,12 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import { ProbeExpressRequest } from "../../Types/Request";
+import ProbeRequest from "../../Utils/ProbeRequest";
 import ProbeSyslogIngestService from "../../Services/ProbeSyslogIngestService";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import Express, {
-  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -26,7 +27,7 @@ router.post(
   TelemetryIngestionDisabled.middleware,
   ProbeAuthorization.isAuthorizedServiceMiddleware,
   async (
-    req: ExpressRequest,
+    req: ProbeExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
@@ -41,11 +42,10 @@ router.post(
         );
       }
 
-      const probeIdAsString: string | undefined = req.body["probeId"] as
-        | string
-        | undefined;
+      // The probe that heard these messages: the one that authenticated.
+      const probeId: ObjectID | null = ProbeRequest.getProbeId(req);
 
-      if (!probeIdAsString) {
+      if (!probeId) {
         return Response.sendErrorResponse(
           req,
           res,
@@ -60,7 +60,7 @@ router.post(
 
       try {
         await ProbeSyslogIngestService.processSyslogMessages(
-          new ObjectID(probeIdAsString),
+          probeId,
           rawMessages as Array<JSONObject>,
         );
       } catch (err) {

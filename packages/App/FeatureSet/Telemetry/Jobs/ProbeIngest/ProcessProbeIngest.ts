@@ -8,7 +8,10 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import OneUptimeDate from "Common/Types/Date";
-import MonitorTestService from "Common/Server/Services/MonitorTestService";
+import MonitorTestService, {
+  MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE,
+} from "Common/Server/Services/MonitorTestService";
+import ProbeReportIdentity from "Common/Server/Utils/Probe/ProbeReportIdentity";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import { ProbeCapabilityUtil } from "Common/Types/Probe/ProbeCapability";
@@ -44,23 +47,45 @@ import InboundEmailProviderFactory from "Common/Server/Services/InboundEmail/Inb
 import Select from "Common/Server/Types/Database/Select";
 import IncomingEmailWorkflowDelivery from "../../Services/IncomingEmailWorkflowDelivery";
 
+/*
+ * One probe's check result, or one step of a monitor test it ran.
+ *
+ * The result is the probe's that sent it (ProbeReportIdentity): the route
+ * wrote that probe beside the result, as it authenticated - a job queued
+ * before the route did carries the whole request body, whose top-level
+ * probeId is the one the probe authenticated with. A result that names
+ * another probe is refused; one that names none becomes the sender's. It is
+ * then recorded only where that probe was asked to look: a monitor it checks
+ * (MonitorResource, told the reporting probe) or a test handed to it
+ * (MonitorTestService keys the write on the probe).
+ */
 export async function processProbeFromQueue(
   jobData: ProbeIngestJobData,
 ): Promise<void> {
+  const queuedResult: JSONObject | undefined = jobData.probeMonitorResponse;
+
+  const reportingProbeId: ObjectID = ProbeReportIdentity.readSender(
+    queuedResult?.["probeId"],
+  );
+
   const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
-    jobData.probeMonitorResponse?.["probeMonitorResponse"] as JSONObject,
+    queuedResult?.["probeMonitorResponse"] as JSONObject,
   ) as unknown as ProbeMonitorResponse;
 
   if (!probeResponse) {
     throw new BadDataException("ProbeMonitorResponse not found");
   }
 
+  ProbeReportIdentity.bindResultToSender(probeResponse, reportingProbeId);
+
   // this is when the resource was ingested.
   probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
 
   if (jobData.jobType === "probe-response") {
     // Handle regular probe response
-    await MonitorResourceUtil.monitorResource(probeResponse);
+    await MonitorResourceUtil.monitorResource(probeResponse, {
+      reportingProbeId: reportingProbeId,
+    });
   } else if (jobData.jobType === "monitor-test" && jobData.testId) {
     // Handle monitor test response
     const testId: ObjectID = new ObjectID(jobData.testId);
@@ -82,10 +107,21 @@ export async function processProbeFromQueue(
       } as ProbeMonitorResponse,
     };
 
-    await MonitorTestService.mergeStepProbeResponse({
-      testId: testId,
-      monitorStepProbeResponse: stepResponse,
-    });
+    const isRecorded: boolean = await MonitorTestService.mergeStepProbeResponse(
+      {
+        testId: testId,
+        probeId: reportingProbeId,
+        monitorStepProbeResponse: stepResponse,
+      },
+    );
+
+    if (!isRecorded) {
+      logger.warn(
+        `Probe ${reportingProbeId.toString()} sent a result for monitor test ${testId.toString()}, which was not handed to it or no longer exists. Nothing was recorded.`,
+      );
+
+      throw new BadDataException(MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE);
+    }
   } else {
     throw new BadDataException(`Invalid job type: ${jobData.jobType}`);
   }
@@ -118,19 +154,22 @@ export async function processSnmpTrapFromQueue(
     requestBody["snmpTrap"] as JSONObject,
   ) as unknown as SnmpTrap;
 
-  const probeIdAsString: string | undefined = requestBody["probeId"] as
-    | string
-    | undefined;
-
   if (!snmpTrap || !snmpTrap.sourceIpAddress || !snmpTrap.trapOid) {
     throw new BadDataException("SNMP trap is missing source or trap OID");
   }
 
-  if (!probeIdAsString) {
+  if (!requestBody["probeId"]) {
     throw new BadDataException("Probe ID not found on SNMP trap request");
   }
 
-  const probeId: ObjectID = new ObjectID(probeIdAsString);
+  /*
+   * The probe that received the trap, as it authenticated: the route writes
+   * it beside the trap (a job queued earlier carries the whole request body,
+   * whose top-level probeId is that same probe). Only its devices match.
+   */
+  const probeId: ObjectID = ProbeReportIdentity.readSender(
+    requestBody["probeId"],
+  );
 
   /*
    * Traps are matched through the NetworkDevice inventory: devices polled
