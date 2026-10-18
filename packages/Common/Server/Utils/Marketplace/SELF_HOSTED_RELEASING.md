@@ -87,6 +87,7 @@ telemetry writers only get `ENTERPRISE_MARKETPLACE`, for the license.
 | `ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_CONSUMER_ID`           | Key `consumer-id` of the Secret named by `enterpriseMarketplace.googleCloud.reportingSecret`, which Marketplace creates |
 | `ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_ENTITLEMENT_ID`        | Key `entitlement-id` of that Secret                                                                                     |
 | `ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY`         | Key `reporting-key` of that Secret                                                                                      |
+| `DISABLE_UPDATE_CHECK`                                      | `updateCheck.disabled`: `true` in every edition (build.py); upgrades come through the marketplace, not GitHub           |
 
 The AWS product code is compiled in (`AWS_SELF_HOSTED_PRODUCT_CODES` in
 [SelfHostedMarketplaceConfig.ts](SelfHosted/SelfHostedMarketplaceConfig.ts)),
@@ -196,8 +197,10 @@ see [Releasing a version](#releasing-a-version).
 
 Every edition is the public chart with every image (OneUptime's, and the
 PostgreSQL, ClickHouse and Valkey it bundles) taken from the marketplace's
-registry, `enterpriseMarketplace.provider` set, no subcharts and no `helm test`
-pod. The chart tests' `marketplace` suite builds and checks all three:
+registry, `enterpriseMarketplace.provider` set, the update check off (buyers
+upgrade through the marketplace, which has a release a week, not GitHub's
+several a day), no subcharts and no `helm test` pod. The chart tests'
+`marketplace` suite builds and checks all three:
 
 ```bash
 bash HelmChart/Tests/run.sh marketplace
@@ -838,10 +841,6 @@ cost a review round.
   buyer guide only says to contact support. Settle it with the Partner
   Engineer (Terraform-based Kubernetes apps update in place) before the
   Google listing goes live.
-- **OneUptime's update notice reads GitHub releases**, so a marketplace
-  installation is told about a release before it is on its marketplace. The
-  buyer guide tells buyers to upgrade through the marketplace; setting
-  `updateCheck.disabled` in the editions (`build.py`) would remove the notice.
 - **Google's version is added by hand** in Producer Portal: Google has no API
   for it. The workflow pushes everything and writes what to add.
 - **The automation has not met the real listings yet.** The Partner Center
@@ -867,6 +866,7 @@ rejection, go-live and price change.
 | 2026-10-17 | All three   | Billing, licensing and packaging merged with this guide; nothing submitted to any marketplace       | Agent      |
 | 2026-10-17 | All three   | The Marketplace Release workflow and the one-time CI setup added; nothing set up yet                | Agent      |
 | 2026-10-18 | All three   | The workflow ships weekly and skips what a marketplace has; the registries keep 3 releases by count | Agent      |
+| 2026-10-18 | All three   | The editions turn off OneUptime's update check: buyers upgrade through their marketplace            | Agent      |
 
 ## Notes for agents driving the browser
 

@@ -136,7 +136,7 @@ kubectl get service --namespace <namespace>
 
 新版本启动时，OneUptime 会迁移数据库。升级到新的主要版本之前，请阅读[升级说明](/docs/installation/upgrading)。
 
-请通过云市场升级：版本标签可能会在较新的 OneUptime 版本上架你的云市场之前就显示它。
+请通过云市场升级。从云市场安装的实例不会与 GitHub 上的 OneUptime 版本进行比较：你的云市场提供的版本，就是应升级到的版本。
 
 ## 设置与扩缩
 
