@@ -33,6 +33,27 @@ Every edition is the public chart (HelmChart/Public/oneuptime) with:
 It also writes images.json: each image's source and where it goes, for
 mirror-images.sh. Standard library only, so the chart tests can run it
 anywhere Python 3 is.
+
+One more edition is not of the OneUptime chart: aws-eks-addon is the free
+Kubernetes agent (HelmChart/Public/kubernetes-agent) as an Amazon EKS add-on,
+sold through AWS Marketplace for nothing, which buyers add from the EKS
+console. It is the agent chart with:
+
+  - every image it can run taken from the add-on product's AWS Marketplace
+    repositories (aws-eks-addon/images.json): third-party images at the
+    version the chart pins, OneUptime's at the release rather than the moving
+    `release` tag;
+  - the defaults an add-on needs: OneUptime Cloud's address, the ingestion key
+    read from a Secret the buyer creates (EKS takes no secrets in an add-on's
+    configuration), resources named as the Helm install names them, and a
+    cluster name EKS replaces with the cluster's own at install;
+  - no profiler and no debug sidecar, which the add-on does not offer, and no
+    images for them;
+  - aws_mp_configuration_schema.json beside Chart.yaml: what a buyer may set
+    (aws-eks-addon/configuration-schema.json), and the chart's own schema open
+    at its root for the k8version value EKS renders the add-on with.
+
+    python3 HelmChart/Marketplace/build.py --marketplace aws-eks-addon --version 14.0.65 --out /tmp/oneuptime-eks-addon
 """
 
 import argparse
@@ -46,12 +67,41 @@ from typing import Any, Dict, List, Optional, Tuple
 HERE: Path = Path(__file__).resolve().parent
 REPOSITORY: Path = HERE.parent.parent
 PUBLIC_CHART: Path = REPOSITORY / "HelmChart" / "Public" / "oneuptime"
+AGENT_CHART: Path = REPOSITORY / "HelmChart" / "Public" / "kubernetes-agent"
+# The editions of the OneUptime chart.
 MARKETPLACES: Tuple[str, ...] = ("aws", "azure", "google-cloud")
+# The Kubernetes agent's Amazon EKS add-on, an edition of the agent chart.
+EKS_ADDON: str = "aws-eks-addon"
+EDITIONS: Tuple[str, ...] = MARKETPLACES + (EKS_ADDON,)
+EKS_ADDON_DIR: Path = HERE / EKS_ADDON
+# Where Amazon EKS reads an add-on's configuration schema from: beside Chart.yaml.
+EKS_CONFIGURATION_SCHEMA: str = "aws_mp_configuration_schema.json"
 VERSION_PATTERN: re.Pattern = re.compile(r"^\d+\.\d+\.\d+$")
 PLAIN_KEY: re.Pattern = re.compile(r"^[A-Za-z0-9_-]+$")
+DOUBLE_QUOTED: re.Pattern = re.compile(r'^"((?:[^"\\]|\\.)*)"')
 
 # Azure fills these in when it installs the extension; the chart ships placeholders.
 AZURE_PLACEHOLDER: str = "DONOTMODIFY"
+
+# The add-on's own defaults, by values path. A buyer changes the first two with
+# configuration values (aws-eks-addon/configuration-schema.json, whose defaults
+# say the same); the others are the add-on's.
+EKS_ADDON_VALUES: Dict[str, Any] = {
+    # Where most clusters send: OneUptime Cloud.
+    "oneuptime.url": "https://oneuptime.com",
+    # The Secret the buyer creates in the add-on's namespace, with the ingestion
+    # key under api-key: an add-on's configuration takes no secrets.
+    "oneuptime.existingSecretName": "oneuptime-ingestion-key",
+    "preset": "standard",
+    # The names the Helm install gives its resources (kubernetes-agent-ai-agent,
+    # ...), so the docs and troubleshoot.sh fit both, whatever release name EKS
+    # renders the add-on with.
+    "fullnameOverride": "kubernetes-agent",
+    # Amazon EKS puts the cluster's name here at install (the delivery option's
+    # environment override, ${AWS_EKS_CLUSTER_NAME}). AWS's own checks render
+    # the chart without it, and the chart renders nothing without a name.
+    "clusterName": "set-by-amazon-eks",
+}
 
 
 class ValuesEditor:
@@ -145,6 +195,19 @@ class ValuesEditor:
         self.lines[index : self.block_end(index)] = self.render_entry(
             path[-1], value, indent
         )
+
+    def remove(self, path: List[str]) -> None:
+        """Removes a key and the block under it. A key that is not there stays not there."""
+        try:
+            index: int = self.find(path)
+        except KeyError:
+            return
+
+        del self.lines[index : self.block_end(index)]
+
+    def get_value(self, path: List[str]) -> str:
+        """A scalar as YAML reads it: unquoted, without a trailing comment."""
+        return scalar_value(self.get_scalar(path))
 
     def insert(self, path: List[str], value: Any) -> None:
         parent_length: int = 0
@@ -252,6 +315,41 @@ def remove_top_level_block(text: str, key: str) -> str:
         output.append(line)
 
     return "\n".join(output).rstrip("\n") + "\n"
+
+
+def scalar_value(raw: str) -> str:
+    """
+    A scalar as the charts write them in values.yaml: bare, "double-quoted" or
+    'single-quoted', with an optional trailing comment.
+    """
+    text: str = raw.strip()
+    quoted: Optional[re.Match] = DOUBLE_QUOTED.match(text)
+
+    if quoted:
+        return json.loads(quoted.group(0))
+
+    if text.startswith("'"):
+        end: int = text.find("'", 1)
+
+        if end == -1:
+            raise ValueError(f"{raw} opens a quote it does not close.")
+
+        return text[1:end]
+
+    return re.split(r"\s+#", text, maxsplit=1)[0].strip()
+
+
+def docker_reference(repository: str) -> str:
+    """A repository with its registry spelled out, as a pull reads Docker Hub's short names."""
+    first: str = repository.split("/", 1)[0]
+
+    if "/" in repository and ("." in first or ":" in first or first == "localhost"):
+        return repository
+
+    if "/" not in repository:
+        return f"docker.io/library/{repository}"
+
+    return f"docker.io/{repository}"
 
 
 def split_reference(reference: str) -> Tuple[str, str]:
@@ -482,16 +580,121 @@ def build_google_cloud(
     return plan
 
 
+def plan_addon_images(
+    version: str, edition: Dict[str, Any], values: ValuesEditor
+) -> List[Dict[str, Any]]:
+    """
+    Where each image of the agent goes in the add-on product's AWS Marketplace
+    repositories, read from the agent chart's values.yaml: a third-party image
+    at the version the chart pins, and OneUptime's own, which the chart runs at
+    the moving `release` tag, at the release.
+    """
+    images: Dict[str, Any] = load_json(EKS_ADDON_DIR / "images.json")["images"]
+    plan: List[Dict[str, Any]] = []
+
+    for key, image in images.items():
+        path: List[str] = image["values"].split(".")
+        repository: str = values.get_value(path + ["repository"])
+        tag: str = version if image["oneuptime"] else values.get_value(path + ["tag"])
+
+        if not repository or not tag or tag == "latest":
+            raise ValueError(
+                f"The agent chart's values.yaml gives {image['values']} no repository or no pinned tag."
+            )
+
+        plan.append(
+            {
+                "key": key,
+                "values": image["values"],
+                "source": f"{docker_reference(repository)}:{tag}",
+                "target": f"{edition['registry']}/{image['name']}:{tag}",
+                "extraTags": [],
+            }
+        )
+
+    return plan
+
+
+def copy_agent_chart(destination: Path, version: str) -> None:
+    """The agent chart, without its unit tests and troubleshoot.sh: neither installs anything."""
+    if destination.exists():
+        shutil.rmtree(destination)
+
+    shutil.copytree(
+        AGENT_CHART,
+        destination,
+        ignore=shutil.ignore_patterns("charts", "Chart.lock", "tests", "troubleshoot.sh"),
+    )
+
+    chart_yaml: Path = destination / "Chart.yaml"
+    text: str = chart_yaml.read_text(encoding="utf-8")
+    text = remove_top_level_block(text, "dependencies")
+    text = re.sub(r"(?m)^version: .*$", f"version: {version}", text)
+    text = re.sub(r'(?m)^appVersion: .*$', f'appVersion: "{version}"', text)
+    chart_yaml.write_text(text, encoding="utf-8")
+
+
+def build_aws_eks_addon(
+    out: Path, version: str, edition: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    chart: Path = out / "kubernetes-agent"
+    copy_agent_chart(chart, version)
+
+    values_path: Path = chart / "values.yaml"
+    editor: ValuesEditor = ValuesEditor(values_path.read_text(encoding="utf-8"))
+    plan: List[Dict[str, Any]] = plan_addon_images(version, edition, editor)
+
+    # Each image written out in values.yaml, its registry beside its name: the
+    # form AWS checks, and the one it rewrites for every other Region.
+    for entry in plan:
+        repository, tag = split_reference(entry["target"])
+        path: List[str] = entry["values"].split(".")
+        editor.set(path + ["repository"], repository)
+        editor.set(path + ["tag"], tag)
+
+    # Off, and with no image to run: the add-on ships no image it does not offer.
+    for feature in ("profiling", "debug"):
+        editor.set([feature, "enabled"], False)
+        editor.remove([feature, "image"])
+
+    for path, value in EKS_ADDON_VALUES.items():
+        editor.set(path.split("."), value)
+
+    # The version the chart's notes compare their defaults with, stamped as
+    # the release workflow stamps the chart it publishes.
+    editor.set(["chartDefaultsVersion"], version)
+    values_path.write_text(editor.text(), encoding="utf-8")
+
+    # EKS renders an add-on with --set k8version=<the cluster's version>, a value
+    # the chart does not have. Buyers' values are held to the add-on's own schema
+    # before they get here, so the chart's may take what it does not know.
+    schema_path: Path = chart / "values.schema.json"
+    schema: Dict[str, Any] = load_json(schema_path)
+    schema["additionalProperties"] = True
+    schema["$comment"] = (
+        "Open at the root for the k8version value Amazon EKS renders the add-on with. "
+        f"What a buyer may set is {EKS_CONFIGURATION_SCHEMA}."
+    )
+    schema_path.write_text(json.dumps(schema, indent=2) + "\n", encoding="utf-8")
+
+    shutil.copyfile(
+        EKS_ADDON_DIR / "configuration-schema.json", chart / EKS_CONFIGURATION_SCHEMA
+    )
+
+    return plan
+
+
 BUILDERS = {
     "aws": build_aws,
     "azure": build_azure,
     "google-cloud": build_google_cloud,
+    EKS_ADDON: build_aws_eks_addon,
 }
 
 
 def build(marketplace: str, version: str, out: Path) -> List[Dict[str, Any]]:
-    if marketplace not in MARKETPLACES:
-        raise ValueError(f"--marketplace must be one of {', '.join(MARKETPLACES)}.")
+    if marketplace not in EDITIONS:
+        raise ValueError(f"--marketplace must be one of {', '.join(EDITIONS)}.")
 
     if not VERSION_PATTERN.match(version):
         raise ValueError(
@@ -518,7 +721,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description="Builds a marketplace edition of the OneUptime Helm chart."
     )
-    parser.add_argument("--marketplace", required=True, choices=MARKETPLACES)
+    parser.add_argument("--marketplace", required=True, choices=EDITIONS)
     parser.add_argument("--version", required=True)
     parser.add_argument("--out", required=True, type=Path)
     arguments: argparse.Namespace = parser.parse_args(argv)
