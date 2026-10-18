@@ -291,6 +291,30 @@ export const CLUSTER_ENABLE_CODE_FIXES: boolean =
   ENABLE_CODE_FIXES_OVERRIDE !== false;
 
 /*
+ * Whether this Runner may execute project-authored or model-composed shell
+ * commands as part of a code fix: the repository's Setup/Build/Test
+ * verification commands (BuildVerification), and the code agent's
+ * `run_command` tool (InHouseCodeAgent).
+ *
+ * A PROJECT-SCOPED Runner runs them. It is a host the operator installed in
+ * their own network, holds only that one project's credentials, and runs
+ * that project's own repository commands — the same trust model as a runbook
+ * Bash step, which this Runner already executes.
+ *
+ * The SHARED in-cluster Runner must NOT. It serves AI code fixes for every
+ * project that has no Runner of its own, so a command one project configures
+ * (or a model composes from that project's untrusted repository and incident
+ * text) would run on a host shared with every other project — and, on a
+ * self-hosted install, next to the installation's own settings. Running it
+ * there is arbitrary code execution by one tenant on shared infrastructure,
+ * so the shared Runner instead writes the fix with its file tools and opens
+ * it for review; the repository's own CI and the human reviewer run the
+ * tests. The kubernetes-agent Runner never runs the code-fix loop at all
+ * (its filesystem is read-only), so cluster scope is the whole condition.
+ */
+export const RUNS_PROJECT_AUTHORED_COMMANDS: boolean = !IS_CLUSTER_SCOPED;
+
+/*
  * The runbook work mount on the OneUptime app:
  *   POST /runner-ingest/heartbeat
  *   POST /runner-ingest/claim-next-job

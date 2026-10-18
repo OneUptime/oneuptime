@@ -76,6 +76,23 @@ x-common-variables: &common-variables
   # Sign in with Microsoft: the public client id (see config.example.env).
   MICROSOFT_SIGN_IN_CLIENT_ID: ${MICROSOFT_SIGN_IN_CLIENT_ID:-}
 
+# The environment of the shared Runner (the `runner` service below). It serves
+# AI code fixes for every project that has no Runner of its own, so it holds
+# ONLY what it needs to reach the OneUptime server and report telemetry — never
+# the server's runtime secrets (database, ClickHouse, encryption, GitHub App,
+# billing, chat and marketplace credentials). It reaches everything over the
+# network, authenticated with ONEUPTIME_SECRET (its cluster key) and
+# ONEUPTIME_RUNNER_KEY, and its LLM calls are mediated by the server. This is
+# deliberately NOT a merge of common-runtime-variables; the SharedRunnerMinimalEnv
+# ops test holds the list minimal.
+x-common-runner-variables: &common-runner-variables
+  ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
+  LOG_LEVEL: ${LOG_LEVEL}
+  NODE_ENV: ${ENVIRONMENT}
+  BILLING_ENABLED: ${BILLING_ENABLED}
+  OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+  OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+
 x-common-runtime-variables: &common-runtime-variables
   <<: *common-variables
   ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
@@ -588,7 +605,10 @@ services:
     restart: always
     network_mode: host
     environment:
-      <<: *common-runtime-variables
+      # The shared Runner's own minimal environment — deliberately NOT
+      # common-runtime-variables, so the server's secrets are never in this
+      # container. See x-common-runner-variables above.
+      <<: *common-runner-variables
       ONEUPTIME_RUNNER_KEY: ${ONEUPTIME_RUNNER_KEY}
       ONEUPTIME_URL: ${ONEUPTIME_RUNNER_ONEUPTIME_URL}
       # The in-cluster Runner serves code fixes for every project; customer

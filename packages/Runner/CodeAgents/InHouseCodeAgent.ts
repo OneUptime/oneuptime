@@ -6,6 +6,7 @@ import {
   CodeAgentProgressCallback,
   CodeAgentProgressEvent,
 } from "./CodeAgentInterface";
+import { RUNS_PROJECT_AUTHORED_COMMANDS } from "../Config";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI, { LlmCompletionResult } from "../Utils/BackendAPI";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "../Utils/GitPorcelain";
@@ -345,8 +346,16 @@ export default class InHouseCodeAgent implements CodeAgent {
       "explore and modify it:",
       "- read_file / write_file / list_directory / search_files operate on paths",
       "  relative to the repository root and cannot leave it.",
-      "- run_command runs a shell command in the repository root (120 second",
-      "  timeout). Use it to build or run tests when helpful.",
+      ...(RUNS_PROJECT_AUTHORED_COMMANDS
+        ? [
+            "- run_command runs a shell command in the repository root (120 second",
+            "  timeout). Use it to build or run tests when helpful.",
+          ]
+        : [
+            "- There is no command-running tool on this Runner: make your change",
+            "  with the file tools above. The repository's own CI and the human",
+            "  reviewer build and test it after the pull request opens.",
+          ]),
       "- Tool outputs are truncated; read specific files rather than dumping",
       "  large ones.",
       "Make focused, minimal changes. Do NOT run git commands to commit, branch",
@@ -360,6 +369,30 @@ export default class InHouseCodeAgent implements CodeAgent {
 
   // The workspace tool surface offered to the model.
   private getToolDefinitions(): Array<LLMToolDefinition> {
+    /*
+     * run_command is offered only on a Runner that may run project-authored
+     * or model-composed shell (a project-scoped Runner). The shared
+     * in-cluster Runner never executes it — the agent edits files and the
+     * fix opens for review (see RUNS_PROJECT_AUTHORED_COMMANDS). The model
+     * cannot force it either: toolRunCommand refuses it when it is not
+     * offered, so an unadvertised call never spawns a process.
+     */
+    const runCommandTool: LLMToolDefinition = {
+      name: "run_command",
+      description:
+        "Run a shell command in the repository root (120 second timeout). Returns the exit code and combined output (truncated).",
+      inputSchema: {
+        type: "object",
+        properties: {
+          command: {
+            type: "string",
+            description: "The shell command to run",
+          },
+        },
+        required: ["command"],
+      },
+    };
+
     return [
       {
         name: "read_file",
@@ -430,21 +463,7 @@ export default class InHouseCodeAgent implements CodeAgent {
           required: ["pattern"],
         },
       },
-      {
-        name: "run_command",
-        description:
-          "Run a shell command in the repository root (120 second timeout). Returns the exit code and combined output (truncated).",
-        inputSchema: {
-          type: "object",
-          properties: {
-            command: {
-              type: "string",
-              description: "The shell command to run",
-            },
-          },
-          required: ["command"],
-        },
-      },
+      ...(RUNS_PROJECT_AUTHORED_COMMANDS ? [runCommandTool] : []),
     ];
   }
 
@@ -713,6 +732,22 @@ export default class InHouseCodeAgent implements CodeAgent {
     args: JSONObject,
   ): Promise<ToolExecution> {
     const command: string = (args["command"] as string) || "";
+
+    /*
+     * The shared in-cluster Runner never runs a shell command: it serves
+     * every project, so a command composed from one project's untrusted
+     * repository and incident text would execute on a host shared with every
+     * other project (see RUNS_PROJECT_AUTHORED_COMMANDS). The tool is not
+     * offered there, but a model can still emit the call, so refuse it here
+     * BEFORE anything spawns — this, not the tool list, is the control.
+     */
+    if (!RUNS_PROJECT_AUTHORED_COMMANDS) {
+      return {
+        narration: `refused run_command on a shared Runner: ${command.substring(0, 120)}`,
+        output:
+          "Error: run_command is not available on this Runner. Make the change with read_file, write_file, list_directory and search_files; the repository's own CI and the reviewer build and test it after the pull request opens.",
+      };
+    }
 
     if (!command) {
       return {

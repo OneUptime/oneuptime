@@ -110,7 +110,20 @@ spec:
             - name: ENABLE_PROFILING
               value: {{ $.Values.runner.enableProfiling | quote }}
             {{- end }}
-            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+            {{- /*
+            The shared in-cluster Runner holds only what it needs to reach the
+            OneUptime server and report telemetry, NOT the server's runtime
+            secrets. It serves AI code fixes for every project that has no
+            Runner of its own, so the database, ClickHouse, encryption, GitHub
+            App, billing, chat and marketplace credentials the app runs with
+            must never be in this container: the Runner reaches everything over
+            HTTPS, authenticated with ONEUPTIME_SECRET (its cluster key) and
+            ONEUPTIME_RUNNER_KEY, and its LLM calls are mediated by the server.
+            So it takes oneuptime.env.oneuptimeSecret (the cluster key) instead
+            of oneuptime.env.runtime (every server secret). The runner-minimal-env
+            chart test holds this.
+            */}}
+            {{- include "oneuptime.env.oneuptimeSecret" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             {{- with (default $.Values.extraEnv $.Values.runner.extraEnv) }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

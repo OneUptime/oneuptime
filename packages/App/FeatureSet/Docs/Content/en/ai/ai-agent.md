@@ -72,7 +72,7 @@ When any of them is set, every fix run checks its change before the pull request
 
 A change that still fails verification is not thrown away: the pull request opens anyway, with a clearly marked "Verification failed" section that names the failing command and ends with its output. The work is kept, and the reviewer decides. A repository with no commands set is reported as skipped, rather than implying a green build.
 
-The commands are repository settings your team writes, run on your own Runner: the same trust model as a runbook's Bash steps. The AI never writes or changes them.
+The commands are repository settings your team writes, run on your own Runner: the same trust model as a runbook's Bash steps. The AI never writes or changes them. OneUptime's shared Runners do not run them at all — on a shared Runner the fix is written and opened for review, verification is reported as skipped, and your repository's own CI checks the change; run a Runner of your own to have fixes built and tested on the Runner before the pull request opens.
 
 ## Before you begin
 
