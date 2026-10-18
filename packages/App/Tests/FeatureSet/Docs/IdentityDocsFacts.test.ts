@@ -73,6 +73,7 @@ const SOURCES: Record<string, string> = {
   statusPageSsoApi: `${IDENTITY}/API/StatusPageSSO.ts`,
   oidcUtil: `${IDENTITY}/Utils/OIDC.ts`,
   ssoConfirmation: `${IDENTITY}/Utils/ProjectSsoSignInConfirmation.ts`,
+  ssoIdentityBinding: `${IDENTITY}/Utils/ProjectSsoIdentityBinding.ts`,
   ssoConsent: "packages/Common/Server/Services/UserProjectSsoConsentService.ts",
   projectSsoPage: `${DASHBOARD}/Pages/Settings/SSO.tsx`,
   // On the SSO page, under its SAML providers.
@@ -113,6 +114,10 @@ const EE_SOURCES: Record<string, string> = {
   scimApi: "ee/Server/Identity/API/SCIM.ts",
   statusPageScimApi: "ee/Server/Identity/API/StatusPageSCIM.ts",
   scimUtils: "ee/Server/Identity/Utils/SCIMUtils.ts",
+  scimOAuth: "ee/Server/Identity/Utils/SCIMOAuth.ts",
+  scimOAuthToken: "ee/Server/Identity/API/SCIMOAuthToken.ts",
+  scimClientCredentials:
+    "ee/Dashboard/Identity/Components/ScimOAuthClientCredentials.tsx",
   projectScimPage: "ee/Dashboard/Identity/Pages/Settings/SCIM.tsx",
   statusPageScimPage: "ee/Dashboard/Identity/Pages/StatusPages/SCIM.tsx",
   projectScimLogs:
@@ -629,12 +634,48 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("reads the name from the claim the guide names", () => {
-    expect(readSource("ssoUtil")).toContain(
+  it("reads the name from the attributes the guide names", () => {
+    const util: string = readSource("ssoUtil");
+
+    for (const attribute of [
+      '"displayName"',
       '"http://schemas.microsoft.com/identity/claims/displayname"',
-    );
+      '"firstName"',
+      '"lastName"',
+      '"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"',
+      '"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"',
+    ]) {
+      expect({ attribute, read: util.includes(attribute) }).toEqual({
+        attribute,
+        read: true,
+      });
+    }
+
     expect(english(SSO)).toContain(
-      "| `http://schemas.microsoft.com/identity/claims/displayname` | The person's name, used when OneUptime creates their account. Optional. |",
+      "| Name attributes | The person's name, used when OneUptime creates their account: a display name (`displayName`, or `http://schemas.microsoft.com/identity/claims/displayname`), or a first and last name (`firstName` and `lastName`, or the `givenname` and `surname` claims Microsoft Entra ID sends by default). Optional. |",
+    );
+  });
+
+  it("says a sign-in is linked to the object ID Microsoft Entra ID sends, and a later one as someone else is refused", () => {
+    expect(readSource("ssoUtil")).toContain(
+      '"http://schemas.microsoft.com/identity/claims/objectidentifier"',
+    );
+
+    const api: string = readSource("ssoApi");
+
+    expect(api).toContain("ProjectSsoIdentityBinding.isBoundToAnotherPerson(");
+    expect(api).toContain("ProjectSsoIdentityBinding.bindOrRefuse(");
+    expect(readSource("ssoIdentityBinding")).toContain(
+      'PROJECT_SSO_IDENTITY_MISMATCH_TITLE: string =\n  "This account is linked to someone else.";',
+    );
+
+    const page: string = english(SSO);
+
+    expect(page).toContain(
+      "| `http://schemas.microsoft.com/identity/claims/objectidentifier` | The person's object ID, which Microsoft Entra ID sends by default. The first sign-in through the provider links the account to it, and a later sign-in that names the account's email address with another object ID is refused. Optional. |",
+    );
+    expect(page).toContain(
+      ':::details "This account is linked to someone else."',
     );
   });
 
@@ -1323,10 +1364,12 @@ describe("the SCIM guide", () => {
       "Yes, up to 1,000 operations and 1 MB per request",
     );
     expect(tableRow(page, "Filter")[1]).toBe("Yes, up to 200 results");
-    expect(tableRow(page, "Sort")[1]).toBe("Yes");
+    expect(tableRow(page, "Sort")[1]).toBe("No");
     expect(tableRow(page, "Change password")[1]).toBe("No");
     expect(tableRow(page, "ETag")[1]).toBe("No");
-    expect(tableRow(page, "Authentication")[1]).toBe("HTTP Bearer token");
+    expect(tableRow(page, "Authentication")[1]).toBe(
+      "HTTP Bearer token, or an OAuth 2.0 access token",
+    );
 
     if (!hasEe()) {
       return;
@@ -1342,12 +1385,59 @@ describe("the SCIM guide", () => {
     expect(body).toMatch(
       /bulk: \{\s*supported: true,\s*maxOperations: 1000,\s*maxPayloadSize: 1048576,/,
     );
-    expect(body).toMatch(/filter: \{\s*supported: true,\s*maxResults: 200,/);
+    expect(body).toMatch(
+      /filter: \{\s*supported: true,\s*maxResults: SCIM_MAX_PAGE_SIZE,/,
+    );
+    expect(config).toContain("export const SCIM_MAX_PAGE_SIZE: number = 200;");
     expect(body).toMatch(/changePassword: \{\s*supported: false,/);
-    expect(body).toMatch(/sort: \{\s*supported: true,/);
+    expect(body).toMatch(/sort: \{\s*supported: false,/);
     expect(body).toMatch(/etag: \{\s*supported: false,/);
     expect(config).toMatch(
-      /authenticationSchemes: \[\s*\{\s*type: "httpbearer",/,
+      /authenticationSchemes: \[\s*\{\s*type: "httpbearer",[\s\S]*?\},\s*\{\s*type: "oauthbearertoken",/,
+    );
+  });
+
+  it("gives the token endpoint of OAuth 2.0 client credentials, its grant, and how long tokens and secrets work", () => {
+    const page: string = english(SCIM);
+
+    expect(page).toContain(
+      "it is `https://oneuptime.com/identity/scim/oauth/token` for every connection on OneUptime Cloud. It takes the `client_credentials` grant, with the client ID and secret sent with HTTP Basic authentication or in the form, and answers an access token that works for an hour (`expires_in` of `3600`).",
+    );
+    expect(page).toContain(
+      "- **Token Endpoint**: where your identity provider gets its access tokens. It is the same for every connection: `https://oneuptime.com/identity/scim/oauth/token` on OneUptime Cloud.",
+    );
+    expect(page).toContain(
+      "OneUptime keeps only a hash of it and cannot show it again. It works for a year.",
+    );
+    expect(page).toContain(
+      "The secret before it keeps working until it expires or you click **Delete Previous Secret**",
+    );
+
+    expect(readSource("serviceRoutes")).toContain(
+      'export const IdentityRoute: Route = new Route("/identity");',
+    );
+
+    if (!hasEe()) {
+      return;
+    }
+
+    expect(readEe("scimOAuthToken")).toContain(
+      'export const SCIM_TOKEN_ROUTE: string = "/scim/oauth/token";',
+    );
+    expect(readEe("scimOAuthToken")).toContain(
+      'const GRANT_TYPE_CLIENT_CREDENTIALS: string = "client_credentials";',
+    );
+
+    const oauth: string = readEe("scimOAuth");
+
+    expect(oauth).toContain(
+      "export const SCIM_ACCESS_TOKEN_EXPIRES_IN_SECONDS: number = 60 * 60;",
+    );
+    expect(oauth).toContain(
+      "export const SCIM_CLIENT_SECRET_LIFETIME_IN_DAYS: number = 365;",
+    );
+    expect(readEe("scimClientCredentials")).toContain(
+      "`${IDENTITY_URL.toString()}/scim/oauth/token`",
     );
   });
 });

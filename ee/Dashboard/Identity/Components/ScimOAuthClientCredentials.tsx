@@ -161,7 +161,7 @@ const ScimOAuthClientCredentials: FunctionComponent<ComponentProps> = (
   return (
     <div className="border-t pt-4" data-testid="scim-oauth-client-credentials">
       <p className="font-medium text-gray-700 mb-1">
-        OAuth 2.0 client credentials
+        OAuth 2.0 Client Credentials:
       </p>
       <p className="text-xs text-gray-500 mb-3">
         For identity providers that ask for a token endpoint, client ID and
@@ -171,7 +171,7 @@ const ScimOAuthClientCredentials: FunctionComponent<ComponentProps> = (
 
       <div className="space-y-3">
         <div>
-          <p className="text-sm text-gray-700 mb-1">Token endpoint:</p>
+          <p className="text-sm text-gray-700 mb-1">Token Endpoint:</p>
           <code className="block p-2 bg-gray-100 rounded text-sm break-all">
             {getScimTokenEndpoint()}
           </code>
@@ -185,7 +185,7 @@ const ScimOAuthClientCredentials: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <p className="text-sm text-gray-700 mb-1">Client secret:</p>
+          <p className="text-sm text-gray-700 mb-1">Client Secret:</p>
           {newSecret ? (
             <div data-testid="scim-oauth-new-client-secret">
               <div className="mb-2">
