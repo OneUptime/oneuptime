@@ -29825,6 +29825,7 @@
   "Not shown while this episode is private": "Vises ikke, så længe denne episode er privat",
   "Not shown while this incident is private": "Vises ikke, så længe denne hændelse er privat",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Når du sletter dette projekt, stopper faktureringen af det efter en sidste opkrævning for forbruget indtil nu. Dit OneUptime-køb på {{marketplace}} forbliver aktivt, indtil du opsiger det dér.",
+  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.": "Når du sletter dette projekt, stopper faktureringen af det efter en sidste opkrævning for forbruget indtil nu, og dets OneUptime-ressource på Vercel slettes. De Vercel-projekter, der er forbundet med den, mister dens miljøvariabler ved deres næste udrulning.",
   "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.": "Hvilke ressourcer den når: alle (anbefalet), dem, teamet ejer, eller dem med de etiketter, du vælger.",
   "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.": "Du er gæst i Slack, og Slack lader ikke OneUptime tilføje dig til denne kanal.",
   "You're already in this channel.": "Du er allerede i denne kanal.",

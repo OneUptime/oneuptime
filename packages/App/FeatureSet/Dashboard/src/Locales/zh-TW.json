@@ -29825,6 +29825,7 @@
   "Not shown while this episode is private": "此片段為私人期間不顯示",
   "Not shown while this incident is private": "此事件為私人期間不顯示",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "刪除此專案後，將對目前為止的使用量進行最後一次計費，然後停止計費。您在 {{marketplace}} 上的 OneUptime 購買將維持有效，直到您在那裡取消。",
+  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.": "刪除此專案後，會先對目前為止的用量做最後一次收費，然後停止計費，並刪除其在 Vercel 上的 OneUptime 資源。連線到該資源的 Vercel 專案會在下次部署時失去它的環境變數。",
   "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.": "可存取哪些資源：全部（推薦）、團隊擁有的資源，或帶有你所選標籤的資源。",
   "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.": "您是 Slack 中的訪客，Slack 不允許 OneUptime 將您新增到此頻道。",
   "You're already in this channel.": "您已在此頻道中。",

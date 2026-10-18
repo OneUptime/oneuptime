@@ -29825,6 +29825,7 @@
   "Not shown while this episode is private": "이 에피소드가 비공개인 동안 표시되지 않음",
   "Not shown while this incident is private": "이 인시던트가 비공개인 동안 표시되지 않음",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "이 프로젝트를 삭제하면 지금까지의 사용량에 대한 마지막 청구 후 청구가 중지됩니다. {{marketplace}}의 OneUptime 구매는 그곳에서 취소할 때까지 활성 상태로 유지됩니다.",
+  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.": "이 프로젝트를 삭제하면 지금까지의 사용량에 대한 마지막 청구 후 과금이 중지되고 Vercel의 OneUptime 리소스도 삭제됩니다. 리소스에 연결된 Vercel 프로젝트는 다음 배포 때 해당 환경 변수를 잃게 됩니다.",
   "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.": "적용되는 리소스입니다. 전체(권장), 팀이 소유한 리소스, 또는 고른 레이블이 있는 리소스.",
   "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.": "회원님은 Slack의 게스트이므로 Slack이 OneUptime의 이 채널 추가를 허용하지 않습니다.",
   "You're already in this channel.": "이미 이 채널에 있습니다.",

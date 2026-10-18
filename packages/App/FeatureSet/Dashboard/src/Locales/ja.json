@@ -29825,6 +29825,7 @@
   "Not shown while this episode is private": "このエピソードが非公開の間は表示されません",
   "Not shown while this incident is private": "このインシデントが非公開の間は表示されません",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "このプロジェクトを削除すると、これまでの利用分を最後に請求したうえで、請求が停止します。{{marketplace}} での OneUptime の購入は、そこでキャンセルするまで有効なままです。",
+  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.": "このプロジェクトを削除すると、これまでの使用量に対する最後の請求の後に課金が停止し、Vercel 上の OneUptime リソースも削除されます。リソースに接続されている Vercel プロジェクトは、次回のデプロイ時にその環境変数を失います。",
   "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.": "対象となるリソース: すべて (推奨)、チームが所有するもの、または選んだラベルが付いたもの。",
   "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.": "あなたは Slack のゲストのため、Slack は OneUptime があなたをこのチャネルに追加することを許可していません。",
   "You're already in this channel.": "すでにこのチャネルに参加しています。",
