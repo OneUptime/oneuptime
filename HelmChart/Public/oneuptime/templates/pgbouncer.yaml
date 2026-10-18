@@ -100,12 +100,12 @@ spec:
         appname: oneuptime
       annotations:
         # Roll the pods when the rendered pgbouncer.ini (its inputs) changes.
-        {{- /* extraEnv/extraVolumes/extraVolumeMounts are omitted on purpose: they are
-               pod-spec inputs, not pgbouncer.ini inputs, so setting one already changes the
-               pod template and rolls the pods on its own. Leaving them in the hash would
-               instead roll the pooler on the upgrade that merely INTRODUCED the keys, for
-               every install, without the ini changing. */}}
-        checksum/config: {{ printf "%s|%s|%s|%s" (toYaml (omit .Values.pgbouncer "extraEnv" "extraVolumes" "extraVolumeMounts")) (include "oneuptime.postgres.backendHost" .) (include "oneuptime.postgres.backendPort" .) (include "oneuptime.postgres.backendUser" .) | sha256sum }}
+        {{- /* extraEnv/extraVolumes/extraVolumeMounts and topologySpreadConstraints are
+               omitted on purpose: they are pod-spec inputs, not pgbouncer.ini inputs, so
+               setting one already changes the pod template and rolls the pods on its own.
+               Leaving them in the hash would instead roll the pooler on the upgrade that
+               merely INTRODUCED the keys, for every install, without the ini changing. */}}
+        checksum/config: {{ printf "%s|%s|%s|%s" (toYaml (omit .Values.pgbouncer "extraEnv" "extraVolumes" "extraVolumeMounts" "topologySpreadConstraints")) (include "oneuptime.postgres.backendHost" .) (include "oneuptime.postgres.backendPort" .) (include "oneuptime.postgres.backendUser" .) | sha256sum }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -117,6 +117,7 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- include "oneuptime.topologySpreadConstraints" (dict "ServiceName" "pgbouncer" "Constraints" .Values.pgbouncer.topologySpreadConstraints "SkipChartWide" true "Release" .Release "Values" .Values "Capabilities" .Capabilities) | nindent 6 }}
       {{- with .Values.pgbouncer.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
