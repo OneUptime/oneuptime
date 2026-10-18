@@ -743,6 +743,8 @@ class GoogleCloudReleaseTest(unittest.TestCase):
         self.assertIn(f"`{READY_GOOGLE['registry']}/deployer:{VERSION}` (digest `sha256:abc`)", steps)
         self.assertIn("`14.0` track", steps)
         self.assertIn("Submit it for review", steps)
+        # Google's review tests the version: nothing here asks for a cluster of our own.
+        self.assertNotIn("mpdev", steps)
 
         with self.assertRaises(release_common.ReleaseError):
             google_cloud_release.producer_portal_steps(READY_GOOGLE, VERSION, "abc")

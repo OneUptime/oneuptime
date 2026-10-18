@@ -433,7 +433,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if preview is None:
             raise ReleaseError(
                 "There is no succeeded preview to publish to live yet. Wait for the preview to "
-                "pass Microsoft's checks, test it, then run this again."
+                "pass Microsoft's checks, then run this again."
             )
 
         job = center.configure([submission(product_id, "live", preview["id"])])
