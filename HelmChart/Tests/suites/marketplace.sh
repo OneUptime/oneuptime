@@ -24,6 +24,13 @@
 #                  chart renders an Application and no service account; the
 #                  reporting secret reaches the app; the tester renders.
 #
+# The Kubernetes agent's Amazon EKS add-on (aws-eks-addon) is checked the way
+# AWS checks an add-on: AWS's own helm lint and helm template, for every
+# Kubernetes version it names; no hook, no lookup, no CRD, no Release object
+# but .Name and .Namespace; every image from the add-on's registry and named
+# in its version; a Deployment or DaemonSet to follow; the ingestion key only
+# ever read from the buyer's Secret; the configuration's examples rendering.
+#
 # Everything here is `helm template` and Python: no cluster, no images.
 
 # shellcheck source=../lib/harness.sh
@@ -337,25 +344,183 @@ else
     fail "google-cloud: builds"
 fi
 
+# --- The Kubernetes agent's Amazon EKS add-on ------------------------------------------------
+#
+# AWS renders an add-on as its Seller Guide says ("Requirements for Amazon EKS add-on
+# products"), with Helm 3.19:
+#   helm template <name> <chart> --set k8version=<v> --kube-version <v> --namespace <ns> --include-crds --no-hooks
+# and refuses a chart that fails it, or uses what EKS does not run.
+
+ADDON_OUT="${WORK_DIR}/aws-eks-addon"
+
+addon_field() {
+    # addon_field <key of aws-eks-addon/delivery-option.json>, lists one per line
+    python3 -c 'import json,sys; v=json.load(open(sys.argv[1]))[sys.argv[2]]; print("\n".join(v) if isinstance(v, list) else v)' \
+        "${MARKETPLACE_DIR}/aws-eks-addon/delivery-option.json" "$1"
+}
+
+render_addon() {
+    # render_addon <out file> <kubernetes version> [helm args...]
+    local out="$1" kubernetes="$2"
+    shift 2
+
+    if helm template kubernetes-agent "$ADDON_CHART" --set k8version="$kubernetes" --kube-version "$kubernetes" \
+        --namespace "$ADDON_NAMESPACE" --include-crds --no-hooks "$@" >"$out" 2>"${out}.err"; then
+        pass "aws-eks-addon: $(basename "$out" .yaml): renders as AWS renders it"
+    else
+        fail "aws-eks-addon: $(basename "$out" .yaml): renders as AWS renders it"
+        sed 's/^/        /' "${out}.err" | head -20
+    fi
+}
+
+if python3 "${MARKETPLACE_DIR}/build.py" --marketplace aws-eks-addon --version "$VERSION" --out "$ADDON_OUT" \
+    >/dev/null 2>"${WORK_DIR}/aws-eks-addon-build.err"; then
+    pass "aws-eks-addon: builds"
+
+    ADDON_CHART="${ADDON_OUT}/kubernetes-agent"
+    ADDON_REGISTRY="$(edition_value aws-eks-addon registry)"
+    ADDON_NAMESPACE="$(addon_field namespace)"
+
+    if helm lint "$ADDON_CHART" >"${WORK_DIR}/aws-eks-addon-lint.log" 2>&1; then
+        pass "aws-eks-addon: helm lint"
+    else
+        fail "aws-eks-addon: helm lint"
+        tail -20 "${WORK_DIR}/aws-eks-addon-lint.log" | sed 's/^/        /'
+    fi
+
+    # What AWS validates, and what a buyer gets with no configuration at all.
+    while read -r kubernetes; do
+        render_addon "${WORK_DIR}/aws-eks-addon-${kubernetes}.yaml" "$kubernetes"
+    done < <(addon_field compatibleKubernetesVersions)
+
+    KUBERNETES="$(addon_field compatibleKubernetesVersions | tail -n 1)"
+    DEFAULT="${WORK_DIR}/aws-eks-addon-${KUBERNETES}.yaml"
+
+    # As EKS installs it, with the cluster's name filled in, and every part the add-on offers on.
+    render_addon "${WORK_DIR}/aws-eks-addon-everything.yaml" "$KUBERNETES" --set clusterName=prod-eks \
+        --set kubeStateMetrics.enabled=true --set cost.enabled=true
+    render_addon "${WORK_DIR}/aws-eks-addon-fargate.yaml" "$KUBERNETES" --set clusterName=prod-eks \
+        --set preset=eks-fargate --set kubeStateMetrics.enabled=true --set cost.enabled=true
+
+    EVERYTHING="$(cat "${WORK_DIR}/aws-eks-addon-everything.yaml" "${WORK_DIR}/aws-eks-addon-fargate.yaml")"
+    ADDON_IMAGES="$(cat "${WORK_DIR}/aws-eks-addon-everything.yaml" "${WORK_DIR}/aws-eks-addon-fargate.yaml" >"${WORK_DIR}/aws-eks-addon-all.yaml" && rendered_images "${WORK_DIR}/aws-eks-addon-all.yaml")"
+
+    ADDON_OUTSIDE="$(grep -vF -- "${ADDON_REGISTRY}/" <<<"$ADDON_IMAGES" || true)"
+    assert_eq "aws-eks-addon: every image comes from ${ADDON_REGISTRY}/" "" "$ADDON_OUTSIDE"
+    assert_absent "aws-eks-addon: no image from Docker Hub" "$ADDON_IMAGES" "docker.io"
+    assert_absent "aws-eks-addon: no image tagged latest" "$ADDON_IMAGES" ":latest"
+
+    ADDON_DECLARED="$(python3 -c 'import json,sys; print("\n".join(i["target"] for i in json.load(open(sys.argv[1]))["images"]))' "${ADDON_OUT}/images.json")"
+    ADDON_UNDECLARED="$(grep -vxF -- "$ADDON_DECLARED" <<<"$ADDON_IMAGES" || true)"
+    assert_eq "aws-eks-addon: every image it can run is one its version names" "" "$ADDON_UNDECLARED"
+    assert_eq "aws-eks-addon: and it names no image it cannot run" "$(sort <<<"$ADDON_DECLARED")" "$(sort -u <<<"$ADDON_IMAGES")"
+
+    ALL_TEMPLATES="$(cat "${ADDON_CHART}"/templates/*)"
+    RELEASE_OBJECTS="$(grep -ohE '\.Release\.[A-Za-z]+' "${ADDON_CHART}"/templates/* | sort -u | grep -vxE '\.Release\.(Name|Namespace)' || true)"
+    assert_eq "aws-eks-addon: no Release object but .Name and .Namespace" "" "$RELEASE_OBJECTS"
+    LOOKUPS="$(grep -lwE 'lookup' "${ADDON_CHART}"/templates/* || true)"
+    assert_eq "aws-eks-addon: no template so much as names lookup" "" "$LOOKUPS"
+    assert_absent "aws-eks-addon: reads no API version off the cluster" "$ALL_TEMPLATES" ".Capabilities.APIVersions"
+    assert_absent "aws-eks-addon: no helm hook" "$EVERYTHING" "helm.sh/hook"
+    assert_absent "aws-eks-addon: installs no CRD" "$EVERYTHING" "kind: CustomResourceDefinition"
+
+    if [ -d "${ADDON_CHART}/crds" ] || [ -d "${ADDON_CHART}/charts" ] || [ -n "$(find "$ADDON_CHART" -name '*.tgz' -print -quit)" ]; then
+        fail "aws-eks-addon: no CRD directory, subchart or archive in the chart"
+    else
+        pass "aws-eks-addon: no CRD directory, subchart or archive in the chart"
+    fi
+
+    assert_absent "aws-eks-addon: Chart.yaml declares no dependencies" "$(cat "${ADDON_CHART}/Chart.yaml")" "dependencies:"
+    assert_present "aws-eks-addon: Chart.yaml carries the release" "$(cat "${ADDON_CHART}/Chart.yaml")" "version: ${VERSION}"
+
+    if [ -f "${ADDON_CHART}/aws_mp_configuration_schema.json" ]; then
+        pass "aws-eks-addon: ships its configuration schema beside Chart.yaml"
+    else
+        fail "aws-eks-addon: ships its configuration schema beside Chart.yaml"
+    fi
+
+    DEFAULT_RENDER="$(cat "$DEFAULT")"
+    assert_present "aws-eks-addon: a Deployment EKS can follow" "$DEFAULT_RENDER" "kind: Deployment"
+    assert_present "aws-eks-addon: a DaemonSet on every node" "$DEFAULT_RENDER" "kind: DaemonSet"
+    assert_present "aws-eks-addon: named as the Helm install names it" "$DEFAULT_RENDER" "name: kubernetes-agent-ai-agent"
+    assert_present "aws-eks-addon: runs eBPF by default" "$DEFAULT_RENDER" "component: ebpf-instrument"
+
+    # The key only ever in the buyer's Secret: no Secret of the add-on's own, and every
+    # workload that sends to OneUptime reads it from the Secret the buyer names.
+    assert_absent "aws-eks-addon: creates no Secret of its own" "$EVERYTHING" "kind: Secret"
+    KEY_SECRETS="$(grep -A2 'secretKeyRef:' "${WORK_DIR}/aws-eks-addon-all.yaml" | grep -E '^[[:space:]]+name:' | sed -E 's/^[[:space:]]+name: //' | sort -u)"
+    assert_eq "aws-eks-addon: every workload reads the key from the buyer's Secret" "oneuptime-ingestion-key" "$KEY_SECRETS"
+    KEY_READERS="$(grep -c 'name: ONEUPTIME_API_KEY$' "${WORK_DIR}/aws-eks-addon-all.yaml" || true)"
+    KEY_FROM_SECRETS="$(grep -A2 'name: ONEUPTIME_API_KEY$' "${WORK_DIR}/aws-eks-addon-all.yaml" | grep -c 'secretKeyRef:' || true)"
+    assert_eq "aws-eks-addon: no workload is given the key as a value" "$KEY_READERS" "$KEY_FROM_SECRETS"
+
+    # The cluster's name, as EKS fills it in, is what the agent reports.
+    assert_present "aws-eks-addon: the cluster's name reaches the collectors" "$EVERYTHING" 'value: "prod-eks"'
+    assert_absent "aws-eks-addon: nothing keeps the placeholder once EKS fills the name in" "$EVERYTHING" "set-by-amazon-eks"
+
+    FARGATE="$(cat "${WORK_DIR}/aws-eks-addon-fargate.yaml")"
+    assert_absent "aws-eks-addon: on Fargate, no DaemonSet" "$FARGATE" "kind: DaemonSet"
+    assert_present "aws-eks-addon: on Fargate, the log tailer reads pod logs" "$FARGATE" "image: \"${ADDON_REGISTRY}/kubernetes-log-tailer:${VERSION}\""
+
+    # A buyer's configuration values, as the schema's examples give them (JSON is YAML).
+    python3 -c 'import json,sys; [open(f"{sys.argv[2]}-{i}.json", "w").write(json.dumps(e)) for i, e in enumerate(json.load(open(sys.argv[1]))["examples"])]' \
+        "${ADDON_CHART}/aws_mp_configuration_schema.json" "${WORK_DIR}/aws-eks-addon-example"
+
+    for example in "${WORK_DIR}"/aws-eks-addon-example-*.json; do
+        render_addon "${example%.json}.yaml" "$KUBERNETES" --set clusterName=prod-eks -f "$example"
+    done
+
+    # A Region change is a registry change in values.yaml: AWS rewrites it when it copies the product.
+    ADDON_EU_VALUES="${WORK_DIR}/aws-eks-addon-eu.values.yaml"
+    sed "s#709825985650.dkr.ecr.us-east-1.amazonaws.com#709825985650.dkr.ecr.eu-west-1.amazonaws.com#g" "${ADDON_CHART}/values.yaml" >"$ADDON_EU_VALUES"
+    render_addon "${WORK_DIR}/aws-eks-addon-eu.yaml" "$KUBERNETES" -f "$ADDON_EU_VALUES" --set clusterName=prod-eks \
+        --set kubeStateMetrics.enabled=true --set cost.enabled=true
+    ADDON_EU_OUTSIDE="$(rendered_images "${WORK_DIR}/aws-eks-addon-eu.yaml" | grep -vF "709825985650.dkr.ecr.eu-west-1.amazonaws.com/" || true)"
+    assert_eq "aws-eks-addon: changing the Region in values.yaml moves every image" "" "$ADDON_EU_OUTSIDE"
+
+    # The change set the workflow sends, built from this edition.
+    if python3 "${MARKETPLACE_DIR}/automation/aws_catalog.py" plan --edition aws-eks-addon --images-json "${ADDON_OUT}/images.json" \
+        --version "$VERSION" --product-id prod-test --out "${WORK_DIR}/aws-eks-addon-change-set.json" >/dev/null 2>"${WORK_DIR}/aws-eks-addon-change-set.log"; then
+        ADDON_CHANGE_SET="$(cat "${WORK_DIR}/aws-eks-addon-change-set.json")"
+        assert_present "aws-eks-addon: the change set adds an EKS add-on version" "$ADDON_CHANGE_SET" '"EksAddOnDeliveryOptionDetails"'
+        assert_present "aws-eks-addon: for testing first" "$ADDON_CHANGE_SET" '"Visibility": "Limited"'
+        assert_present "aws-eks-addon: the change set ships the chart" "$ADDON_CHANGE_SET" "\"HelmChartUri\": \"${ADDON_REGISTRY}/kubernetes-agent:${VERSION}\""
+        assert_present "aws-eks-addon: EKS fills in the cluster's name" "$ADDON_CHANGE_SET" '"Value": "${AWS_EKS_CLUSTER_NAME}"'
+        ADDON_CHANGE_SET_IMAGES="$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))[0]["DetailsDocument"]["DeliveryOptions"][0]["Details"]["EksAddOnDeliveryOptionDetails"]["ContainerImages"]))' "${WORK_DIR}/aws-eks-addon-change-set.json")"
+        assert_eq "aws-eks-addon: the change set lists every image" "$(grep -c . <<<"$ADDON_DECLARED")" "$ADDON_CHANGE_SET_IMAGES"
+    else
+        fail "aws-eks-addon: the change set builds"
+        sed 's/^/        /' "${WORK_DIR}/aws-eks-addon-change-set.log" | tail -10
+    fi
+elif grep -qF "predates the EKS add-on" "${WORK_DIR}/aws-eks-addon-build.err"; then
+    # The release workflow runs this suite on the charts of the release it ships: one from
+    # before the add-on has no add-on to check (and the add-on's own job refuses to build it).
+    echo "  SKIP: aws-eks-addon: $(cat "${WORK_DIR}/aws-eks-addon-build.err")"
+else
+    fail "aws-eks-addon: builds"
+    sed 's/^/        /' "${WORK_DIR}/aws-eks-addon-build.err" | tail -10
+fi
+
 # --- mirror-images.sh ---------------------------------------------------------------
 
-for marketplace in aws azure google-cloud; do
+for marketplace in aws azure google-cloud aws-eks-addon; do
     PLAN="${WORK_DIR}/${marketplace}/images.json"
 
     if [ ! -f "$PLAN" ]; then
         continue
     fi
 
+    PLANNED="$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["images"]))' "$PLAN")"
     MIRROR="$(bash "${MARKETPLACE_DIR}/mirror-images.sh" "$PLAN" --dry-run 2>&1 || true)"
     COPIES="$(grep -cE '^\+ crane (copy|index filter) ' <<<"$MIRROR" || true)"
-    assert_eq "${marketplace}: mirror-images.sh copies every image" "7" "$COPIES"
+    assert_eq "${marketplace}: mirror-images.sh copies every image" "$PLANNED" "$COPIES"
 
     case "$marketplace" in
-        aws)
+        aws | aws-eks-addon)
             # Only what EKS runs: no attestation manifests, no 386/s390x/... from the official images.
             FILTERS="$(grep -c '^+ crane index filter .* --platform linux/amd64 --platform linux/arm64 --tag ' <<<"$MIRROR" || true)"
-            assert_eq "aws: keeps only linux/amd64 and linux/arm64 of every image" "7" "$FILTERS"
-            assert_absent "aws: never copies a whole index" "$MIRROR" "+ crane copy "
+            assert_eq "${marketplace}: keeps only linux/amd64 and linux/arm64 of every image" "$PLANNED" "$FILTERS"
+            assert_absent "${marketplace}: never copies a whole index" "$MIRROR" "+ crane copy "
             ;;
         azure)
             assert_present "azure: mirrors linux/amd64 only" "$MIRROR" "crane copy --platform linux/amd64"

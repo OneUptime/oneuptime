@@ -57,9 +57,10 @@ spec:
       hostAliases:
         {{- toYaml $.Values.hostAliases | nindent 8 }}
       {{- end }}
-      {{- if $.Values.affinity }}
-      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- with ($.Values.app.affinity | default $.Values.affinity) }}
+      affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- include "oneuptime.topologySpreadConstraints" (dict "ServiceName" "app" "Constraints" $.Values.app.topologySpreadConstraints "Release" $.Release "Values" $.Values "Capabilities" $.Capabilities) | nindent 6 }}
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}

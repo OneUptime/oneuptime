@@ -11,7 +11,7 @@ Everything comes from the environment the workflow sets:
     ACTION               release (default) or azure-go-live
     VERSION              the release: the one asked for, or else the newest release tag
     RELEASE_SHA          the commit of that release's tag; empty when it has none
-    MARKETPLACES_INPUT   e.g. "aws,azure"; empty means all three
+    MARKETPLACES_INPUT   e.g. "aws,azure"; empty means every one
     DRY_RUN_INPUT        "true" builds everything and pushes and submits nothing
     MARKETPLACE_RELEASE_* the repository variables each marketplace signs in with
 
@@ -19,6 +19,11 @@ The weekly run ships the newest release. A marketplace that is not set up yet is
 a notice, and one that has the release already is skipped by its own job. A run by hand that
 asks for a real release on a marketplace that is not set up fails, saying what is missing, and a
 real run only ever ships a version that was released (has its tag).
+
+The Kubernetes agent's EKS add-on (aws-eks-addon) is one more: AWS takes days to publish each
+version for testing, and OneUptime tests it on every Kubernetes version it names before it goes
+public. So the weekly run (automatic=true) leaves it alone while a version of it is still being
+published or tested; a run by hand ships it whatever.
 """
 
 import os
@@ -51,12 +56,15 @@ REQUIRED_VARIABLES: Dict[str, tuple] = {
         "MARKETPLACE_RELEASE_GOOGLE_WORKLOAD_IDENTITY_PROVIDER",
         "MARKETPLACE_RELEASE_GOOGLE_SERVICE_ACCOUNT",
     ),
+    # The add-on product is in the same seller account: the same role adds its versions.
+    "aws-eks-addon": ("MARKETPLACE_RELEASE_AWS_ROLE_ARN",),
 }
 
 OUTPUT_NAMES: Dict[str, str] = {
     "aws": "aws",
     "azure": "azure",
     "google-cloud": "google_cloud",
+    "aws-eks-addon": "aws_eks_addon",
 }
 
 
@@ -147,6 +155,7 @@ def outputs_of(plan: Dict[str, Any]) -> Dict[str, str]:
         "track": plan["track"],
         "dry_run": "true" if plan["dry_run"] else "false",
         "release": "true" if plan["action"] == "release" else "false",
+        "automatic": "true" if plan["automatic"] else "false",
     }
 
     for name in MARKETPLACES:
@@ -172,6 +181,11 @@ def summary_of(plan: Dict[str, Any]) -> str:
             what = "publishes the newest preview to live"
         elif plan["runs"][name] and name == "google-cloud":
             what = "pushes it, unless it has it already; it is then added in Producer Portal by hand"
+        elif plan["runs"][name] and name == "aws-eks-addon":
+            what = (
+                "adds it for testing, once approved, unless it has it already"
+                + (", or a version of it is still being published or tested" if plan["automatic"] else "")
+            )
         elif plan["runs"][name]:
             what = "ships it, once approved, unless it has it already"
         elif name in plan["skipped"]:

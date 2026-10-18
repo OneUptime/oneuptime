@@ -1341,6 +1341,67 @@ Usage (the include is nindent-ed under the `nodeSelector:` key):
 {{- end }}
 
 
+{{/*
+Pod topology spread constraints for a stateless OneUptime service.
+
+The first of these that is set wins:
+  1. the service's own list (.Constraints);
+  2. the chart-wide `topologySpreadConstraints`, unless the service passes
+     "SkipChartWide" (pgbouncer, whose nodeSelector, affinity and tolerations
+     never inherit the chart-wide ones either);
+  3. when `deployment.spreadReplicasAcrossNodes` is on, one soft rule that
+     spreads the service's replicas across nodes.
+Renders nothing when none applies.
+
+A constraint without a labelSelector is scoped to the service's own pods
+(app: <release>-<service>). On Kubernetes 1.27 and later it is also counted per
+rollout revision (matchLabelKeys: [pod-template-hash]) unless it lists
+matchLabelKeys of its own. Counting per revision matters because an upgrade
+rolls these pods: counted together with the old pods, the second new pod can
+join the first on the node that already pulled the new image while the old
+pods leave the other node, and the rollout ends with every replica on one
+node. Before 1.27 the key is left out, because clusters older than 1.25 do not
+know it and Helm's schema validation rejects the manifest.
+
+The soft rule has no zone constraint on purpose. A pod that declares
+topologySpreadConstraints replaces the scheduler's built-in defaults, and the
+scheduler then leaves out of the scoring every node that lacks one of the
+constraints' topology keys. On clusters whose nodes carry no zone label (bare
+metal, kind, k3s) a zone constraint would switch the spreading off entirely.
+Multi-zone installs add one through `topologySpreadConstraints`.
+
+Each constraint is deep-copied before the labelSelector is filled in, so one
+service's selector never leaks into the chart-wide list the next service reads.
+
+Usage (nindent-ed to the pod spec's indentation):
+  {{`{{- include "oneuptime.topologySpreadConstraints" (dict "ServiceName" "app" "Constraints" $.Values.app.topologySpreadConstraints "Release" $.Release "Values" $.Values "Capabilities" $.Capabilities) | nindent 6 }}`}}
+*/}}
+{{- define "oneuptime.topologySpreadConstraints" -}}
+{{- $constraints := .Constraints -}}
+{{- if and (not $constraints) (not .SkipChartWide) -}}
+{{- $constraints = .Values.topologySpreadConstraints -}}
+{{- end -}}
+{{- if and (not $constraints) .Values.deployment.spreadReplicasAcrossNodes -}}
+{{- $constraints = list (dict "maxSkew" 1 "topologyKey" "kubernetes.io/hostname" "whenUnsatisfiable" "ScheduleAnyway") -}}
+{{- end -}}
+{{- if $constraints -}}
+{{- $rendered := list -}}
+{{- range $constraints -}}
+{{- $constraint := deepCopy . -}}
+{{- if not (hasKey $constraint "labelSelector") -}}
+{{- $_ := set $constraint "labelSelector" (dict "matchLabels" (dict "app" (printf "%s-%s" $.Release.Name $.ServiceName))) -}}
+{{- if and (not (hasKey $constraint "matchLabelKeys")) (semverCompare ">=1.27-0" $.Capabilities.KubeVersion.Version) -}}
+{{- $_ := set $constraint "matchLabelKeys" (list "pod-template-hash") -}}
+{{- end -}}
+{{- end -}}
+{{- $rendered = append $rendered $constraint -}}
+{{- end -}}
+topologySpreadConstraints:
+{{ toYaml $rendered | indent 2 }}
+{{- end -}}
+{{- end }}
+
+
 {{- define "oneuptime.deployment" }}
 apiVersion: apps/v1
 kind: Deployment
@@ -1391,9 +1452,10 @@ spec:
       hostAliases:
         {{- toYaml $.hostAliases | nindent 8 }}
       {{- end }}
-      {{- if $.Values.affinity }}
-      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- with ($.Affinity | default $.Values.affinity) }}
+      affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- include "oneuptime.topologySpreadConstraints" (dict "ServiceName" $.ServiceName "Constraints" $.TopologySpreadConstraints "Release" $.Release "Values" $.Values "Capabilities" $.Capabilities) | nindent 6 }}
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}

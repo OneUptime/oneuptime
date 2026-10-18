@@ -738,11 +738,12 @@ describe("Local Development, against the scripts it runs", () => {
     const config: Map<string, string> = configExample();
     const ports: string = sectionOf(page, "### Ports");
 
-    expect(dev["postgres"]?.["ports"]).toContain("5400:5432");
+    // On this machine's loopback address only, which is what localhost reaches.
+    expect(dev["postgres"]?.["ports"]).toContain("127.0.0.1:5400:5432");
     expect(dev["clickhouse"]?.["ports"]).toEqual(
-      expect.arrayContaining(["8189:8123", "9034:9000"]),
+      expect.arrayContaining(["127.0.0.1:8189:8123", "127.0.0.1:9034:9000"]),
     );
-    expect(dev["valkey"]?.["ports"]).toContain("6310:6379");
+    expect(dev["valkey"]?.["ports"]).toContain("127.0.0.1:6310:6379");
     expect(config.get("CLICKHOUSE_PORT")).toBe("8123");
     expect(config.get("DATABASE_USERNAME")).toBe("postgres");
     expect(config.get("DATABASE_NAME")).toBe("oneuptimedb");
@@ -1053,9 +1054,11 @@ describe("Docker Compose, against the compose files and scripts", () => {
       const settings: Array<string> = inlineCodes(row[2] as string);
 
       if (settings[0] === "docker-compose.yml") {
+        // Published on the server's loopback address, as the row says.
         expect(
           composeServices("compose")[unwrap(row[1] as string)]?.["ports"],
-        ).toContain(`${row[0]}:5432`);
+        ).toContain(`127.0.0.1:${row[0]}:5432`);
+        expect(inlineCodes(row[3] as string)).toContain("127.0.0.1");
         continue;
       }
 

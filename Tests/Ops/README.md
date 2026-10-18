@@ -33,6 +33,11 @@ Test" workflow provides both:
   one against a vulnerable npm installed from the registry, one inside
   `node:26-alpine3.24` through the real `.dockerignore`. The workflow sets it
   on the jest step too.
+- **docker, and postgres:15.** `RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1` turns on
+  `ComposeDatabaseRuntime.test.js`, which starts PostgreSQL from
+  `docker-compose.yml` for real (on a free port, in a project of its own that
+  it removes with its volume). The workflow sets it on the jest step, and the
+  suite checks that it does.
 
 or from the repo root:
 
@@ -102,6 +107,51 @@ refer to — the coherence that was previously missing, when `backup.sh` wrote
 
 Both scripts are also checked with `bash -n`, and with `shellcheck` when it is
 on PATH (skipped, not failed, when it is not).
+
+### `ComposeDataStorePorts.test.js`
+
+Every port a compose file in the repository publishes for a datastore
+(PostgreSQL, ClickHouse, Valkey or Redis, and any other database image, found
+by service name, by the service it extends or by image) is published on
+`127.0.0.1`. Docker publishes a port that names no address on every interface,
+IPv4 and IPv6, and past a host firewall such as `ufw`; a datastore port is for
+tools on the server itself. The production stack publishes nothing beyond the
+server but its ingress, no datastore runs on the host's network, and
+`restore.sh` reaches the loopback-published port (its `host.docker.internal`
+is `127.0.0.1`). With docker's compose plugin on PATH (no daemon needed), the
+same is checked on what `docker compose config` renders.
+
+### `ComposeDatabaseRuntime.test.js`
+
+The same, for real (`RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1`): PostgreSQL started
+from `docker-compose.yml` answers on `127.0.0.1` and on no other address of the
+machine, IPv6 included (Docker's own `docker port` says the same), and the
+client containers `backup.sh` and `restore.sh` run reach it. `npm start`'s
+first step (`Scripts/Install/GenerateDatabasePassword.js`) asks this Docker
+whether the bundled database exists, gives a placeholder `DATABASE_PASSWORD` a
+random value while it does not, and PostgreSQL is created with that value;
+once the database exists, `config.env` is left alone. The Docker Compose
+guide's "Change the database password" block is run as written, pasted whole:
+while PostgreSQL is not running it changes nothing, and while it runs it
+changes the password in PostgreSQL and in `config.env`. Its
+`docker-compose.override.yml` example is applied.
+
+### `GenerateDatabasePassword.test.js`
+
+Every branch of `Scripts/Install/GenerateDatabasePassword.js` with Docker
+stubbed: what counts as a shipped value, which line of `config.env` changes and
+which never do, what it decides for a new install, an existing database, an
+external database or a check that cannot tell, and that it never stops
+`npm start`. npm itself runs the root `start` script in a throwaway copy, with a
+recording `docker` on PATH: the step runs before `docker compose up` with
+`ignore-scripts` on or off, which a `prestart` hook would not.
+
+### `ReadmeQuickStart.test.js`
+
+The README's Docker Compose quick start, in English and the 16 translations,
+gives every placeholder secret its own random value before `npm start`, with
+the loop of the Docker Compose guide's "Generate random secrets" step; the
+block is run on `config.example.env` and leaves no placeholder.
 
 ### `ContainerAgentLogSeverity.test.js`
 
@@ -876,7 +926,9 @@ version's tags, one image's failure not stopping the others but failing the
 job by name, and a refused call retried; and the SBOMs, the infrastructure
 agent and the two apps are built while the images are tested, only for
 `release` (as the draft, which they used to need), kept as artifacts (one
-each, replaced on a re-run, an empty one failing) and attached by
+each, replaced on a re-run, an empty one failing; the infrastructure agent's
+job keeps its Homebrew cask and winget manifests in a second one, which the
+publish job does not download) and attached by
 `finalize-github-release` before it publishes: the apps only when their build
 succeeded, under the asset names the release has always had, and the SBOM job
 waiting for the merge of exactly the images `generate_sboms.sh` scans.
@@ -1074,6 +1126,92 @@ from the `mcp-registry-publish` environment, which no other job names or
 mentions the key in; its permissions are `contents: read`, with no `${{ }}`
 in its scripts; and it installs the `mcp-publisher` it pins, checking the
 archive's sha256 before unpacking it.
+
+### `InfrastructureAgentPackageManagers.test.js`
+
+Each release puts the infrastructure agent in apt and yum
+(packages.oneuptime.com), Homebrew (`OneUptime/homebrew-tap`) and winget
+(`microsoft/winget-pkgs`): GoReleaser writes the packages, the cask and the
+winget manifests in `infrastructure-agent-build`, and release.yml's three
+`publish-infrastructure-agent-*` jobs publish them with
+`Scripts/PackageManagers/` (see its README). The suite reads:
+
+- the GoReleaser config: packages versioned as the release, not as
+  GoReleaser's snapshot (`14.0.71~SNAPSHOT-<commit>` is what apt used to see),
+  under the file names the repository build reads; the cask and the
+  manifests downloading this release's assets, and published by GoReleaser
+  nowhere;
+- the jobs: each runs after `finalize-github-release` (so after the three e2e
+  jobs) and only for `release`, in the `package-managers` environment that no
+  other job names, with `contents: read`, a timeout and no `${{ }}` in its
+  scripts; its first step checks its secrets, every later step runs only when
+  they are set, and that step is run here to show a missing secret skips the
+  job with a notice rather than failing the release; it hands its script
+  exactly the version, files and secrets the script reads, from where the
+  artifacts put them; no other job reads its deploy key or token; the
+  manifests are an artifact of their own that the release does not attach;
+- the scripts: they parse, pass shellcheck where it is installed (CI has
+  it), trust only github.com's own host key, and the site is pushed as one
+  commit with `--force-with-lease`.
+
+And it runs two of them. `PublishHomebrewCask.sh`, against a local git
+repository: the first cask to an empty tap, nothing for a version the tap
+has or an older one, a newer version replacing it, and a cask for another
+version or a missing key refused before the tap is touched.
+`PublishWingetManifests.sh`, against a fake `gh`: the branch made at
+winget-pkgs' newest commit in the fork, the three manifests committed as
+written, the pull request from the fork (a new package's first, a new
+version's after); nothing opened for a version winget-pkgs has or one with a
+pull request open; a branch a stopped run left moved, not made again;
+`WINGET_FORK_OWNER` honoured; no fork, or a fork of something else, and an
+API that keeps failing, each stopping it having written nothing.
+
+### `InfrastructureAgentMsi.test.js`
+
+The infrastructure agent's MSI
+(`agents/InfrastructureAgent/windows/oneuptime-infrastructure-agent.wxs`, built
+by `build-msi.sh` with wixl) is what Intune, Configuration Manager and Group
+Policy deploy, and they upgrade by installing the newer MSI over the older
+one. It had a fixed ProductCode, so Windows refused every newer version with
+error 1638. The suite holds the installer to what upgrading relies on: the
+UpgradeCode, component Guid and directory installed agents have; a new
+ProductCode each build; a per-machine install; a major upgrade that also
+replaces a build of the same version and refuses a downgrade; the agent's
+service (the one `main.go` registers) stopped by every install and uninstall,
+started after an install or upgrade and deleted by an uninstall that is not an
+upgrade's, from deferred actions that run as the local system and whose
+failures are ignored; every custom action placed by sequence number, since
+wixl does not place one After or Before a standard action; `build-msi.sh`
+building both MSIs from that one file (amd64 as an x64 package, arm64 as x86:
+wixl builds no ARM64 package); and the "Infrastructure Agent MSI Test"
+workflow running on every change to the agent, on Windows x64 and Windows on
+Arm, where `windows/test-msi-upgrade.ps1` installs, upgrades over the running
+agent, downgrades and uninstalls two versions for real.
+
+### `package-repository-e2e.sh`
+
+Not part of `npm test`; needs docker and the distributions' package mirrors.
+The "Ops Config Test" workflow runs it on every PR. It publishes two releases
+of a stand-in agent package, built by nfpm as GoReleaser builds the real one,
+with the real `PublishPackageRepository.sh` and `BuildPackageRepository.sh`
+on Ubuntu 24.04 (the release runner's), into a local stand-in for
+`OneUptime/packages`, and serves what was pushed over HTTP. Then it runs the
+apt and dnf commands of the Server / VM Monitor docs page as written, with
+only `https://packages.oneuptime.com` swapped, under a root umask of 077:
+
+- apt on Ubuntu verifies `InRelease` against `gpg.key`, fetches the indexes
+  by hash, installs the newest version, downgrades and upgrades, and refuses
+  the repository when `gpg.key` is another key;
+- dnf on Rocky Linux 8 (RHEL 8's rpm) checks the metadata's and each
+  package's signature, installs, downgrades and upgrades;
+- the publish reads the key with its newlines written as `\n`, as the secret
+  holds it; creates the site in an empty repository; pushes nothing for a
+  version the site has; and replaces the site's one commit with another, with
+  no parent, for the next release.
+
+Run it with `bash Tests/Ops/package-repository-e2e.sh`; `--apt-image`,
+`--dnf-image`, `--builder-image` and `--server-image` swap the images (for
+example for `mirror.gcr.io/library/...` when public.ecr.aws refuses).
 
 ### `ChatGPTPluginPackage.test.js`
 

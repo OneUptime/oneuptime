@@ -1360,6 +1360,24 @@ API, SSO, or the Slack and Microsoft Teams apps.
   [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
   shows: until then the Runner logs what to set and does not register. An
   installation that set its own `ONEUPTIME_SECRET` sees no change.
+- **PostgreSQL answers only on the server itself, and a new install starts
+  with a database password of its own.** `docker-compose.yml` published
+  PostgreSQL's port 5400 on every address of the server. It is now published
+  on `127.0.0.1` only, where `npm run backup` and `restore.sh` reach it as
+  before, and the development stack publishes its PostgreSQL, ClickHouse and
+  Valkey ports the same way. Anything on another machine that connected to
+  port 5400 now needs an SSH tunnel, or a private address published as
+  [Back up and restore](/docs/installation/docker-compose#back-up-and-restore)
+  shows. On a new install, `npm start` replaces a `DATABASE_PASSWORD` still at
+  its `config.example.env` placeholder with a random value
+  before PostgreSQL creates its database. An installation whose database
+  already exists keeps its password, and `npm start` warns while that is the
+  placeholder:
+  [Change the database password](/docs/installation/docker-compose#change-the-database-password)
+  shows how to change it. If you commented out the port line in
+  `docker-compose.yml`, `git pull` stops at that file: run
+  `git checkout docker-compose.yml`, then pull again. Helm installs see no
+  change.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

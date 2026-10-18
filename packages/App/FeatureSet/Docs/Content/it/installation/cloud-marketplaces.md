@@ -182,4 +182,5 @@ I database di OneUptime hanno bisogno di volumi persistenti. Dai al cluster una 
 - [Aggiornamento](/docs/installation/upgrading): Le note di aggiornamento di ogni release.
 - [Dimensionamento e pianificazione della capacità](/docs/installation/sizing): Dimensiona gli archivi di dati per la tua telemetria.
 - [Architettura](/docs/self-hosted/architecture): Cosa gira nel tuo cluster.
+- [Agent Kubernetes](/docs/telemetry/kubernetes-agent#installalo-come-componente-aggiuntivo-di-amazon-eks): Gratuito anche su AWS Marketplace, come componente aggiuntivo di Amazon EKS, per i cluster che inviano i loro dati a OneUptime.
 :::

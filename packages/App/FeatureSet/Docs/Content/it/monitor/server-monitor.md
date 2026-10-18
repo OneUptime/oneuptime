@@ -46,20 +46,60 @@ Andate in **Monitor**, aprite il monitor Server / VM e selezionate **Documentazi
 
 :::tabs
 @tab Linux
+Su Debian e Ubuntu, aggiungete il repository apt di OneUptime e installate l'agente da lì:
+
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://packages.oneuptime.com/gpg.key -o /etc/apt/keyrings/oneuptime.asc
+sudo chmod a+r /etc/apt/keyrings/oneuptime.asc
+echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] https://packages.oneuptime.com/deb stable main" | sudo tee /etc/apt/sources.list.d/oneuptime.list
+sudo apt-get update
+sudo apt-get install oneuptime-infrastructure-agent
+```
+
+Su RHEL, Rocky Linux, AlmaLinux, Fedora e Amazon Linux, aggiungete il repository yum di OneUptime e installate l'agente da lì. Usate `yum` dove non c'è `dnf`, e accettate la chiave di firma di OneUptime quando vi viene chiesto.
+
+```bash
+sudo curl -fsSL https://packages.oneuptime.com/rpm/oneuptime.repo -o /etc/yum.repos.d/oneuptime.repo
+sudo dnf install oneuptime-infrastructure-agent
+```
+
+Su qualsiasi altra distribuzione, usate lo script di installazione:
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab macOS
+Installate l'agente con Homebrew:
+
+```bash
+brew install oneuptime/tap/oneuptime-infrastructure-agent
+```
+
+Oppure usate lo script di installazione:
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab Windows
+Nel **Prompt dei comandi** aperto come amministratore, installate l'agente con winget:
+
+```shell
+winget install --id OneUptime.InfrastructureAgent --exact --scope machine
+```
+
+Poi riaprite il **Prompt dei comandi** come amministratore, perché `oneuptime-infrastructure-agent` sia nel percorso.
+
+Senza winget, scaricate l'agente voi stessi:
+
 1. Scaricate l'agente dall'[ultima release su GitHub](https://github.com/OneUptime/oneuptime/releases/latest): `oneuptime-infrastructure-agent_windows_amd64.zip` per x64, oppure `oneuptime-infrastructure-agent_windows_arm64.zip` per ARM64.
 2. Estraete il file ZIP. Contiene `oneuptime-infrastructure-agent.exe`.
 3. Aprite il **Prompt dei comandi** come amministratore nella cartella in cui l'avete estratto.
+
+Per distribuire l'agente con Intune, Configuration Manager o Criteri di gruppo, usate `oneuptime-infrastructure-agent-amd64.msi` (o `oneuptime-infrastructure-agent-arm64.msi`) della stessa release. Installa l'agente in `C:\Program Files\OneUptimeInfrastructureAgent`, e un MSI più recente lo aggiorna sul posto e lo riavvia. Un MSI di una release precedente non può essere aggiornato: disinstallatelo prima una volta.
 :::
 
-Lo script di installazione scarica l'ultima release per il vostro sistema operativo e processore (x86-64 o ARM64) e mette il binario `oneuptime-infrastructure-agent` in `$HOME/bin`. In un'installazione self-hosted, lo script viene servito dal vostro URL di OneUptime.
+Ogni metodo installa l'ultima release per il vostro sistema operativo e processore (x86-64 o ARM64). I repository apt e yum contengono i pacchetti `.deb` e `.rpm` allegati a ogni release di GitHub, firmati con la chiave pubblicata in `https://packages.oneuptime.com/gpg.key`, e i pacchetti mettono il binario in `/usr/bin`. Lo script di installazione mette il binario `oneuptime-infrastructure-agent` in `$HOME/bin`. In un'installazione self-hosted, lo script viene servito dal vostro URL di OneUptime.
 
 ### Collegarlo al monitor
 
@@ -136,6 +176,23 @@ Eseguiteli con `sudo` su Linux e macOS, e da un **Prompt dei comandi** da ammini
 
 Quando l'agente non può scrivere in queste directory, usa invece `~/.oneuptime-infrastructure-agent/`. Le variabili d'ambiente `ONEUPTIME_AGENT_CONFIG_PATH` e `ONEUPTIME_AGENT_LOG_PATH` impostano esplicitamente l'uno o l'altro percorso.
 
+### Aggiornamenti e rimozione
+
+Aggiornate l'agente nello stesso modo in cui l'avete installato:
+
+| Installato con | Aggiornamento |
+| --- | --- |
+| apt | `sudo apt-get update && sudo apt-get install --only-upgrade oneuptime-infrastructure-agent` |
+| dnf o yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
+| Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
+| winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | Installate l'MSI più recente. |
+| Script di installazione | Eseguite di nuovo lo script di installazione. |
+
+Un aggiornamento non riavvia l'agente in esecuzione, quindi eseguite `restart` subito dopo. Su Windows, eseguite `stop` prima di `winget upgrade` e `start` dopo: winget non può sostituire il programma mentre il servizio lo sta eseguendo.
+
+Per rimuovere l'agente, eseguite prima `uninstall`, poi rimuovete il pacchetto con lo strumento con cui l'avete installato, per esempio `sudo apt-get remove oneuptime-infrastructure-agent`.
+
 ## Cosa comunica l'agente
 
 Ogni report contiene il nome host del server e:
@@ -211,7 +268,7 @@ I criteri decidono quando il monitor è online, degradato od offline, e quando a
 :::
 
 :::details `sudo` dice che il comando non è stato trovato
-Lo script di installazione mette il binario nella `$HOME/bin` dell'utente con cui è stato eseguito, e stampa la directory usata. Eseguite l'agente con il percorso completo, per esempio `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. Per installarlo invece in una directory del percorso di sistema, passate `-b` allo script:
+I pacchetti mettono l'agente nel percorso di sistema, quindi questo succede solo con lo script di installazione. Lo script di installazione mette il binario nella `$HOME/bin` dell'utente con cui è stato eseguito, e stampa la directory usata. Eseguite l'agente con il percorso completo, per esempio `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. Per installarlo invece in una directory del percorso di sistema, passate `-b` allo script:
 
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin

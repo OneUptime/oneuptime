@@ -6,8 +6,10 @@ again: it creates what is missing and leaves what is there.
 
     ci_setup.py aws [--apply]
         In the AWS Marketplace seller account (AWS CLI signed in to it): GitHub's OIDC provider,
-        and a role only the workflow's two environments can assume, which can push to this
-        product's repositories and add versions to it - nothing else.
+        and a role only the workflow's two environments can assume, which can push to the
+        products' repositories and add versions to them - OneUptime Enterprise, and the
+        Kubernetes agent's EKS add-on once editions.json has its product ID (run it again then) -
+        nothing else.
     ci_setup.py azure-registry [--location eastus] [--apply]
         In the HackerBay tenant (az signed in): the container registry (Basic, about USD 5 a
         month), Microsoft's ingestion app allowed to pull from it, and a daily task that keeps
@@ -92,10 +94,28 @@ def aws_trust_policy() -> Dict[str, Any]:
     }
 
 
-def aws_permissions_policy(edition: Dict[str, Any]) -> Dict[str, Any]:
-    product_id: str = (edition.get("productId") or "").strip()
+def registry_prefix(edition: Dict[str, Any], name: str) -> str:
+    """The seller prefix of an edition's AWS Marketplace registry."""
     registry: str = edition.get("registry", "")
     prefix: str = registry.split("/", 1)[1] if "/" in registry else ""
+
+    if not registry.startswith(f"{MARKETPLACE_ECR_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/") or not prefix:
+        raise ReleaseError(
+            f"editions.json's {name}.registry is not the product's AWS Marketplace registry "
+            f"({MARKETPLACE_ECR_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/<seller prefix>)."
+        )
+
+    return prefix
+
+
+def aws_permissions_policy(
+    edition: Dict[str, Any], addon: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    What the release role may do: push to the products' repositories and add versions to them.
+    The add-on product (aws-eks-addon) is in it once editions.json has its product ID.
+    """
+    product_id: str = (edition.get("productId") or "").strip()
 
     if not product_id:
         raise ReleaseError(
@@ -103,58 +123,78 @@ def aws_permissions_policy(edition: Dict[str, Any]) -> Dict[str, Any]:
             "with `aws_catalog.py find-product`."
         )
 
-    if not registry.startswith(f"{MARKETPLACE_ECR_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/") or not prefix:
-        raise ReleaseError(
-            "editions.json's aws.registry is not the product's AWS Marketplace registry "
-            f"({MARKETPLACE_ECR_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/<seller prefix>)."
+    prefixes: List[str] = [registry_prefix(edition, "aws")]
+    product_ids: List[str] = [product_id]
+    addon_id: str = ((addon or {}).get("productId") or "").strip()
+
+    if addon_id:
+        product_ids.append(addon_id)
+        prefixes.append(registry_prefix(addon or {}, "aws-eks-addon"))
+
+    products: List[str] = [
+        f"arn:aws:aws-marketplace:us-east-1:${{ACCOUNT_ID}}:AWSMarketplace/ContainerProduct/{identifier}"
+        for identifier in product_ids
+    ]
+    repositories: List[str] = [
+        f"arn:aws:ecr:us-east-1:{MARKETPLACE_ECR_ACCOUNT}:repository/{prefix}/*"
+        for prefix in dict.fromkeys(prefixes)
+    ]
+    change_sets: str = "arn:aws:aws-marketplace:us-east-1:${ACCOUNT_ID}:AWSMarketplace/ChangeSet/*"
+    statements: List[Dict[str, Any]] = [
+        {
+            "Sid": "PushToTheProductRepositories",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:BatchGetImage",
+                "ecr:CompleteLayerUpload",
+                "ecr:DescribeImages",
+                "ecr:DescribeRepositories",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:InitiateLayerUpload",
+                "ecr:ListImages",
+                "ecr:PutImage",
+                "ecr:UploadLayerPart",
+            ],
+            "Resource": repositories[0] if len(repositories) == 1 else repositories,
+        },
+        {
+            "Sid": "SignInToTheRegistry",
+            "Effect": "Allow",
+            "Action": "ecr:GetAuthorizationToken",
+            "Resource": "*",
+        },
+        {
+            "Sid": "AddVersionsOnly",
+            "Effect": "Allow",
+            "Action": "aws-marketplace:StartChangeSet",
+            "Resource": products + [change_sets],
+            "Condition": {"StringEquals": {"catalog:ChangeType": ["AddDeliveryOptions"]}},
+        },
+        {
+            "Sid": "FollowTheChanges",
+            "Effect": "Allow",
+            "Action": ["aws-marketplace:DescribeChangeSet", "aws-marketplace:DescribeEntity"],
+            "Resource": products + [change_sets],
+        },
+    ]
+
+    if addon_id:
+        # The weekly run adds no add-on version while AWS is still applying one: it lists the
+        # product's open change sets, which ListChangeSets cannot narrow down to a resource.
+        statements.append(
+            {
+                "Sid": "SeeTheAddOnVersionsOnTheirWay",
+                "Effect": "Allow",
+                "Action": "aws-marketplace:ListChangeSets",
+                "Resource": "*",
+            }
         )
 
-    product: str = f"arn:aws:aws-marketplace:us-east-1:${{ACCOUNT_ID}}:AWSMarketplace/ContainerProduct/{product_id}"
-    change_sets: str = "arn:aws:aws-marketplace:us-east-1:${ACCOUNT_ID}:AWSMarketplace/ChangeSet/*"
-    return {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Sid": "PushToTheProductRepositories",
-                "Effect": "Allow",
-                "Action": [
-                    "ecr:BatchCheckLayerAvailability",
-                    "ecr:BatchGetImage",
-                    "ecr:CompleteLayerUpload",
-                    "ecr:DescribeImages",
-                    "ecr:DescribeRepositories",
-                    "ecr:GetDownloadUrlForLayer",
-                    "ecr:InitiateLayerUpload",
-                    "ecr:ListImages",
-                    "ecr:PutImage",
-                    "ecr:UploadLayerPart",
-                ],
-                "Resource": f"arn:aws:ecr:us-east-1:{MARKETPLACE_ECR_ACCOUNT}:repository/{prefix}/*",
-            },
-            {
-                "Sid": "SignInToTheRegistry",
-                "Effect": "Allow",
-                "Action": "ecr:GetAuthorizationToken",
-                "Resource": "*",
-            },
-            {
-                "Sid": "AddVersionsOnly",
-                "Effect": "Allow",
-                "Action": "aws-marketplace:StartChangeSet",
-                "Resource": [product, change_sets],
-                "Condition": {"StringEquals": {"catalog:ChangeType": ["AddDeliveryOptions"]}},
-            },
-            {
-                "Sid": "FollowTheChanges",
-                "Effect": "Allow",
-                "Action": ["aws-marketplace:DescribeChangeSet", "aws-marketplace:DescribeEntity"],
-                "Resource": [product, change_sets],
-            },
-        ],
-    }
+    return {"Version": "2012-10-17", "Statement": statements}
 
 
-def aws_script(edition: Dict[str, Any]) -> str:
+def aws_script(edition: Dict[str, Any], addon: Optional[Dict[str, Any]] = None) -> str:
     role: str = shlex.quote(AWS_ROLE_NAME)
     return f"""set -euo pipefail
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
@@ -176,7 +216,7 @@ else
 fi
 POLICY="$(mktemp)"
 cat >"$POLICY" <<JSON
-{json_block(aws_permissions_policy(edition))}
+{json_block(aws_permissions_policy(edition, addon))}
 JSON
 aws iam put-role-policy --role-name {role} --policy-name marketplace-release --policy-document "file://$POLICY"
 rm -f "$TRUST" "$POLICY"
@@ -414,7 +454,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         editions: Dict[str, Any] = load_editions()
 
         if arguments.command == "aws":
-            script: str = aws_script(editions["aws"])
+            script: str = aws_script(editions["aws"], editions.get("aws-eks-addon"))
         elif arguments.command == "azure-registry":
             script = azure_registry_script(editions["azure"], arguments.location)
         elif arguments.command == "azure":

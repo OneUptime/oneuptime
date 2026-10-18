@@ -25,6 +25,32 @@ render is the only place this can be caught before the data is wrong.
 {{- end }}
 
 {{/*
+The Secret the operator created for the ingestion key (oneuptime.existingSecretName),
+or nothing when the chart keeps oneuptime.apiKey in a Secret of its own
+(templates/secret.yaml, which renders only then).
+
+Setting both is refused rather than resolved: a Secret of your own is there to
+keep the key out of the release's values, and a key left in apiKey would stay
+in every revision Helm stores.
+*/}}
+{{- define "kubernetes-agent.existingSecretName" -}}
+{{- $oneuptime := .Values.oneuptime | default dict -}}
+{{- $existing := toString ($oneuptime.existingSecretName | default "") | trim -}}
+{{- if and $existing (toString ($oneuptime.apiKey | default "") | trim) -}}
+{{- fail (printf "oneuptime.apiKey and oneuptime.existingSecretName are both set. Set one of them: to read the ingestion key from the Secret %s, clear apiKey (--set oneuptime.apiKey=\"\")." $existing) -}}
+{{- end -}}
+{{- $existing -}}
+{{- end }}
+
+{{/*
+The Secret every workload reads the ingestion key from, under `api-key`.
+Usage: secretKeyRef: { name: {{ include "kubernetes-agent.apiKeySecretName" . }}, key: api-key }
+*/}}
+{{- define "kubernetes-agent.apiKeySecretName" -}}
+{{- include "kubernetes-agent.existingSecretName" . | default (include "kubernetes-agent.fullname" .) -}}
+{{- end }}
+
+{{/*
 Create a default fully qualified app name.
 */}}
 {{- define "kubernetes-agent.fullname" -}}
@@ -49,12 +75,16 @@ Create chart name and version as used by the chart label.
 
 {{/*
 Common labels
+
+managed-by is written out, as Helm itself would always fill it in ("Helm"):
+Amazon EKS renders this chart as an add-on too (HelmChart/Marketplace), and
+refuses a chart that reads any Release object but .Name and .Namespace.
 */}}
 {{- define "kubernetes-agent.labels" -}}
 helm.sh/chart: {{ include "kubernetes-agent.chart" . }}
 {{ include "kubernetes-agent.selectorLabels" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/managed-by: Helm
 app.kubernetes.io/part-of: oneuptime
 {{- end }}
 
