@@ -79,7 +79,7 @@ In een rastergroep vraagt het dialoogvenster boven **Meer velden** ook om de rij
 
 ### Meerdere tegelijk toevoegen
 
-**Add Multiple** (ook **Add multiple monitors** in het menu **More actions**) opent **Add Multiple Monitors**. Ook dat is één pagina: een meervoudige selectie **Monitoren**, dan dezelfde ingeklapte **Meer velden**, waarvan de weergaveopties gelden voor elke monitor die u kiest. Elke resource neemt de weergavenaam en beschrijving van zijn monitor over, en **Add Monitors** voegt ze allemaal toe. Zo vult u het snelst een nieuwe pagina.
+**Add Multiple** (ook **Add multiple monitors** in het menu **More actions**) opent **Add Multiple Monitors**. Ook dat is één pagina: een meervoudige selectie **Monitoren**, dan dezelfde ingeklapte **Meer velden**, waarvan de weergaveopties gelden voor elke monitor die u kiest. Elke resource neemt de weergavenaam en beschrijving van zijn monitor over, en **Monitoren toevoegen** voegt ze allemaal toe. Zo vult u het snelst een nieuwe pagina.
 
 De meervoudige selectie heeft een tabblad **Labels**: klik op een label en elke monitor met dat label wordt in één keer geselecteerd.
 
@@ -139,14 +139,14 @@ Klik op **Create Status Page Group**. De groep verschijnt in de navigator, klaar
 
 De twee velden zijn **Groepsnaam** (`name`) en **Parent Group** (`parentStatusPageGroupId`). De twee ingeklapte secties bevatten de rest:
 
-- **Indeling**: de ingeklapte kop zegt **Lijst** of **Grid**. Ze bevat **Weergavemodus** en de assen van een raster (zie [Lijstindeling of rasterindeling](#lijstindeling-of-rasterindeling)), en ze klapt bij een rastergroep vanzelf open.
+- **Indeling**: de ingeklapte kop zegt **Lijst** of **Raster**. Ze bevat **Weergavemodus** en de assen van een raster (zie [Lijstindeling of rasterindeling](#lijstindeling-of-rasterindeling)), en ze klapt bij een rastergroep vanzelf open.
 - **Meer velden**: de exemplaren op groepsniveau van de resource-opties:
   - **Groepsbeschrijving** (`description`): optionele markdown, onder de kop getoond. Een afbeelding erin wordt aan elke bezoeker getoond.
   - **Standaard uitvouwen op statuspagina** (`isExpandedByDefault`): standaard aan; bepaalt of de sectie voor bezoekers open of ingeklapt begint.
   - **Huidige groepsstatus weergeven** (`showCurrentStatus`): standaard aan. Toont een status naast de groepskop.
   - **Uptime % weergeven** (`showUptimePercent`): standaard uit, met **Selecteer uptime-precisie** zodra het aan staat.
 
-Om een groep te wijzigen, gebruikt u **Edit Group** in de kop van het deelvenster, of **Edit group** in het rijmenu van de navigator: **Edit Status Page Group** opent, met een knop **Wijzigingen opslaan**. De kop van het deelvenster toont labels voor de instellingen die aan staan (**Grid**, **Collapsed by default**, **Uptime %**), zodat u ziet hoe een groep is ingesteld zonder het formulier te openen.
+Om een groep te wijzigen, gebruikt u **Edit Group** in de kop van het deelvenster, of **Edit group** in het rijmenu van de navigator: **Edit Status Page Group** opent, met een knop **Wijzigingen opslaan**. De kop van het deelvenster toont labels voor de instellingen die aan staan (**Raster**, **Collapsed by default**, **Uptime %**), zodat u ziet hoe een groep is ingesteld zonder het formulier te openen.
 
 ### Een groep beheren
 
@@ -172,9 +172,9 @@ De sectie **Indeling** van het groepsformulier stelt de **Weergavemodus** (`view
 | Als u… wilt | Kies |
 | --------------- | ---- |
 | Een eenvoudige verticale lijst van services wilt tonen, één per rij | **Lijst** (de standaard) |
-| Dezelfde service in meerdere regio's of tenants als matrix wilt tonen | **Grid** |
+| Dezelfde service in meerdere regio's of tenants als matrix wilt tonen | **Raster** |
 
-Kies **Grid** en er verschijnen nog vier velden:
+Kies **Raster** en er verschijnen nog vier velden:
 
 | Veld | Wat u invult |
 | ----- | ------------- |

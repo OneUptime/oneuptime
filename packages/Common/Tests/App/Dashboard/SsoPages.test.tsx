@@ -1123,7 +1123,9 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
         fireEvent.click(screen.getByTestId(`fetched-${pageCase.table}-1`));
       });
 
-      expect(screen.getByText(pageCase.testLink, { exact: true })).toBeInTheDocument();
+      expect(
+        screen.getByText(pageCase.testLink, { exact: true }),
+      ).toBeInTheDocument();
 
       await act(async () => {
         fireEvent.click(screen.getByTestId(`fetched-${pageCase.table}-0`));

@@ -89,7 +89,7 @@ Na lista, clique em **Publique uma página de status**, ou abra **Páginas de st
 
 ### Adicionar seu monitor
 
-Clique em **Add Monitors** na **Visão geral** ou, no menu lateral da página, em **Recursos**, escolha **Monitores**; em projetos com grupos de monitores ativados, o item se chama **Recursos**. Clique em **Adicionar monitor**, escolha o monitor do seu site e clique em **Adicionar monitor**. A linha mostra aos visitantes o nome do monitor; mude-o em **Nome de exibição**, se quiser.
+Clique em **Adicionar monitores** na **Visão geral** ou, no menu lateral da página, em **Recursos**, escolha **Monitores**; em projetos com grupos de monitores ativados, o item se chama **Recursos**. Clique em **Adicionar monitor**, escolha o monitor do seu site e clique em **Adicionar monitor**. A linha mostra aos visitantes o nome do monitor; mude-o em **Nome de exibição**, se quiser.
 
 ### Abrir a página
 

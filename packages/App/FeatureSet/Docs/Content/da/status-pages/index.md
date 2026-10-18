@@ -67,7 +67,7 @@ Det er hele formularen. Listen **Statussider** viser **Navn**, **Beskrivelse**, 
 
 ### Åbn den nye side
 
-Den nye side åbner på sin skærm **Oversigt**. Indtil siden har en ressource, begynder skærmen med **Intet på denne statusside endnu** og **Add Monitors**, som åbner dens skærm **Ressourcer**. Derefter kommer to kort: **Link til statussiden** med linket til selve siden og **Kopiér link**, og **Statussidedetaljer**, hvor du kan redigere det navn, den beskrivelse og de etiketter, du lige har angivet. Når projektet har brugerdefinerede felter til statussider, følger et kort **Brugerdefinerede felter**.
+Den nye side åbner på sin skærm **Oversigt**. Indtil siden har en ressource, begynder skærmen med **Intet på denne statusside endnu** og **Tilføj monitorer**, som åbner dens skærm **Ressourcer**. Derefter kommer to kort: **Link til statussiden** med linket til selve siden og **Kopiér link**, og **Statussidedetaljer**, hvor du kan redigere det navn, den beskrivelse og de etiketter, du lige har angivet. Når projektet har brugerdefinerede felter til statussider, følger et kort **Brugerdefinerede felter**.
 :::
 
 En side, der oprettes med API'et eller med Terraform, er underlagt de samme abonnementer som indstillingerne nedenfor. På OneUptime Cloud afvises oprettelsen af en side med en slået-til-indstilling, som dit abonnement ikke omfatter (for eksempel privat, en skjult liste, brugerdefineret HTML, CSS eller JavaScript, e-mailrapporter, abonnenter via SMS, Slack, Microsoft Teams eller webhook, en IP-tilladelsesliste), med `402 Payment Required`, og beskeden nævner abonnementet. Hver indstillings abonnement står ved indstillingen nedenfor. Indstillinger, der står på standard, som denne formular efterlader dem, virker på alle abonnementer.

@@ -240,7 +240,9 @@ describe("Embedded Status: the badge is one switch", () => {
     expect(
       screen.getByRole("button", { name: "Create Token" }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Regenerate Token" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Regenerate Token" }),
+    ).toBeNull();
   });
 
   test("Create Token saves a new token at once, with no question: nothing is embedded yet", async () => {
@@ -310,16 +312,12 @@ describe("Embedded Status: the badge is one switch", () => {
     expect(screen.getByText("Embed the Badge")).toBeInTheDocument();
     expect(embed).toHaveTextContent("HTML");
     expect(embed).toHaveTextContent("Markdown, linked to the status page");
-    expect(embed.textContent).toContain(
-      `<img src="`,
-    );
+    expect(embed.textContent).toContain(`<img src="`);
     expect(embed.textContent).toContain(
       `/status-page/badge/${STATUS_PAGE_ID}?token=badge-token" alt="Status Badge" />`,
     );
     // The Markdown links the badge to the page: its preview link, without a domain.
-    expect(embed.textContent).toContain(
-      `[![Status](`,
-    );
+    expect(embed.textContent).toContain(`[![Status](`);
     expect(embed.textContent).toContain(`/${STATUS_PAGE_ID})`);
   });
 

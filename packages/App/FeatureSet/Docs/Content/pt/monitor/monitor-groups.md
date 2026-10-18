@@ -65,7 +65,7 @@ Clique em **Criar: Monitor Grupo**, digite um **Nome** e, se quiser, uma **Descr
 
 ### Adicionar os monitores
 
-Abra o grupo: enquanto ele não tiver nenhum monitor, a **Visão geral** dele oferece **Add Monitors**. Depois, clique em **Monitores** no menu lateral dele e em **Add Monitors**. Escolha cada monitor do grupo em **Monitores** e clique em **Add Monitors**.
+Abra o grupo: enquanto ele não tiver nenhum monitor, a **Visão geral** dele oferece **Adicionar monitores**. Depois, clique em **Monitores** no menu lateral dele e em **Adicionar monitores**. Escolha cada monitor do grupo em **Monitores** e clique em **Adicionar monitores**.
 
 ### Conferir o status
 
@@ -80,8 +80,8 @@ Abra um grupo para ver as páginas dele no menu lateral:
 
 | Página | O que mostra |
 | --- | --- |
-| **Visão geral** | **Detalhes do Grupo de Monitores**, **Status Atual** e **Gráfico de tempo de atividade** com a porcentagem de disponibilidade do grupo nos últimos 90 dias. Um grupo sem monitores oferece **Add Monitors** no lugar do gráfico. |
-| **Monitores** | **Monitores no Grupo**, com **Add Monitors** e **Remover**. |
+| **Visão geral** | **Detalhes do Grupo de Monitores**, **Status Atual** e **Gráfico de tempo de atividade** com a porcentagem de disponibilidade do grupo nos últimos 90 dias. Um grupo sem monitores oferece **Adicionar monitores** no lugar do gráfico. |
+| **Monitores** | **Monitores no Grupo**, com **Adicionar monitores** e **Remover**. |
 | **Incidentes** | Os incidentes em qualquer monitor do grupo. |
 | **Alertas** | Os alertas em qualquer monitor do grupo. |
 | **Proprietários** | As pessoas e equipes responsáveis pelo grupo. Fica em **Avançado**, que começa recolhido. |

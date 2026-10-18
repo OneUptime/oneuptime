@@ -360,7 +360,9 @@ describe("one place for each switch", () => {
      * under More settings - the timezones, the email footer, your own mail
      * server and Twilio account.
      */
-    expect(source).toContain("<SubscriberChoicesCard statusPageId={modelId} />");
+    expect(source).toContain(
+      "<SubscriberChoicesCard statusPageId={modelId} />",
+    );
     expect(source).toContain("<AdvancedPageSection");
     for (const title of [
       "SubscriberChoicesCopy.timezonesTitle",

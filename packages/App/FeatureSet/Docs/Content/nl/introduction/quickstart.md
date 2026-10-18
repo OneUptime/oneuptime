@@ -89,7 +89,7 @@ Klik in de checklist op **Publiceer een statuspagina**, of open **Statuspagina's
 
 ### Uw monitor toevoegen
 
-Klik op **Add Monitors** in het **Overzicht**, of kies in het zijmenu van de pagina, onder **Middelen**, het item **Monitoren**; in projecten met monitorgroepen ingeschakeld heet het **Middelen**. Klik op **Monitor toevoegen**, kies uw websitemonitor en klik op **Monitor toevoegen**. De rij toont bezoekers de naam van de monitor; wijzig die desgewenst onder **Weergavenaam**.
+Klik op **Monitoren toevoegen** in het **Overzicht**, of kies in het zijmenu van de pagina, onder **Middelen**, het item **Monitoren**; in projecten met monitorgroepen ingeschakeld heet het **Middelen**. Klik op **Monitor toevoegen**, kies uw websitemonitor en klik op **Monitor toevoegen**. De rij toont bezoekers de naam van de monitor; wijzig die desgewenst onder **Weergavenaam**.
 
 ### De pagina openen
 

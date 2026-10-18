@@ -79,7 +79,7 @@ I en rutenettgruppe ber dialogen også om raden og kolonnen monitoren skal stå 
 
 ### Legg til flere på én gang
 
-**Add Multiple** (også **Add multiple monitors** i menyen **More actions**) åpner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, deretter de samme sammenslåtte **Flere felt**, der visningsalternativene gjelder for hver monitor du velger. Hver ressurs får visningsnavn og beskrivelse fra monitoren sin, og **Add Monitors** legger til alle. Det er den raskeste måten å fylle en ny side på.
+**Add Multiple** (også **Add multiple monitors** i menyen **More actions**) åpner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, deretter de samme sammenslåtte **Flere felt**, der visningsalternativene gjelder for hver monitor du velger. Hver ressurs får visningsnavn og beskrivelse fra monitoren sin, og **Legg til monitorer** legger til alle. Det er den raskeste måten å fylle en ny side på.
 
 Flervalgslisten har fanen **Etiketter**: klikk på en etikett, så velges alle monitorer med den på én gang.
 
@@ -139,14 +139,14 @@ Klikk på **Create Status Page Group**. Gruppen vises i navigatoren, klar for mo
 
 De to feltene er **Gruppenavn** (`name`) og **Parent Group** (`parentStatusPageGroupId`). De to sammenslåtte seksjonene inneholder resten:
 
-- **Oppsett**: den sammenslåtte overskriften sier **Liste** eller **Grid**. Den inneholder **Visningsmodus** og aksene til et rutenett (se [Listeoppsett eller rutenettoppsett](#listeoppsett-eller-rutenettoppsett)), og den åpner seg selv på en rutenettgruppe.
+- **Oppsett**: den sammenslåtte overskriften sier **Liste** eller **Rutenett**. Den inneholder **Visningsmodus** og aksene til et rutenett (se [Listeoppsett eller rutenettoppsett](#listeoppsett-eller-rutenettoppsett)), og den åpner seg selv på en rutenettgruppe.
 - **Flere felt**: gruppenivåets utgaver av ressursalternativene:
   - **Gruppebeskrivelse** (`description`): valgfri markdown, vist under overskriften. Et bilde i den vises til alle besøkende.
   - **Utvid på statusside som standard** (`isExpandedByDefault`): på som standard; avgjør om seksjonen starter åpen eller sammenslått for besøkende.
   - **Vis gjeldende gruppestatus** (`showCurrentStatus`): på som standard. Viser en status ved siden av gruppeoverskriften.
   - **Vis oppetid %** (`showUptimePercent`): av som standard, med **Velg presisjon for oppetid** når den er slått på.
 
-For å endre en gruppe bruker du **Edit Group** i panelets overskrift, eller **Edit group** i navigatorens radmeny: **Edit Status Page Group** åpnes med knappen **Lagre endringer**. Panelets overskrift viser merker for innstillingene som er slått på (**Grid**, **Collapsed by default**, **Uptime %**), så du ser hvordan en gruppe er satt opp uten å åpne skjemaet.
+For å endre en gruppe bruker du **Edit Group** i panelets overskrift, eller **Edit group** i navigatorens radmeny: **Edit Status Page Group** åpnes med knappen **Lagre endringer**. Panelets overskrift viser merker for innstillingene som er slått på (**Rutenett**, **Collapsed by default**, **Uptime %**), så du ser hvordan en gruppe er satt opp uten å åpne skjemaet.
 
 ### Administrer en gruppe
 
@@ -172,9 +172,9 @@ Seksjonen **Oppsett** i gruppeskjemaet angir gruppens **Visningsmodus** (`viewMo
 | Hvis du vil… | Velg |
 | --------------- | ---- |
 | Vise en enkel loddrett liste over tjenester, én per rad | **Liste** (standard) |
-| Vise den samme tjenesten i flere regioner eller leietakere som en matrise | **Grid** |
+| Vise den samme tjenesten i flere regioner eller leietakere som en matrise | **Rutenett** |
 
-Velg **Grid**, så vises fire felt til:
+Velg **Rutenett**, så vises fire felt til:
 
 | Felt | Hva du skal skrive inn |
 | ----- | ------------- |

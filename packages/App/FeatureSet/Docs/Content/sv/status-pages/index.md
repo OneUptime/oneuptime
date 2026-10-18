@@ -67,7 +67,7 @@ Det är hela formuläret. Listan **Statussidor** visar **Namn**, **Beskrivning**
 
 ### Öppna den nya sidan
 
-Den nya sidan öppnas på sin skärm **Översikt**. Tills sidan har en resurs börjar skärmen med **Inget på den här statussidan ännu** och **Add Monitors**, som öppnar dess skärm **Resurser**. Sedan kommer två kort: **Länk till statussidan**, med länken till själva sidan och **Kopiera länk**, och **Detaljer för statussida**, där du kan redigera namnet, beskrivningen och etiketterna du just angav. När projektet har anpassade fält för statussidor följer ett kort **Anpassade fält**.
+Den nya sidan öppnas på sin skärm **Översikt**. Tills sidan har en resurs börjar skärmen med **Inget på den här statussidan ännu** och **Lägg till monitorer**, som öppnar dess skärm **Resurser**. Sedan kommer två kort: **Länk till statussidan**, med länken till själva sidan och **Kopiera länk**, och **Detaljer för statussida**, där du kan redigera namnet, beskrivningen och etiketterna du just angav. När projektet har anpassade fält för statussidor följer ett kort **Anpassade fält**.
 :::
 
 En sida som skapas med API:et eller med Terraform omfattas av samma abonnemang som inställningarna nedan. På OneUptime Cloud avvisas skapandet av en sida med en påslagen inställning som ditt abonnemang inte omfattar (till exempel privat, en dold lista, anpassad HTML, CSS eller JavaScript, e-postrapporter, prenumeranter via SMS, Slack, Microsoft Teams eller webhook, en IP-tillåtelselista) med `402 Payment Required`, och meddelandet nämner abonnemanget. Varje inställnings abonnemang anges vid inställningen nedan. Inställningar som står kvar på standard, som det här formuläret lämnar dem, fungerar på alla abonnemang.

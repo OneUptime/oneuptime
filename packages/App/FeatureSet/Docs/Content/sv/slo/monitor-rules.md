@@ -33,11 +33,11 @@ Du behöver behörighet att redigera SLO:et.
 
 ### Välj monitorerna
 
-Klicka på **Add Monitors** och välj monitorer från projektet. Bara monitorer som inte redan är kopplade visas.
+Klicka på **Lägg till monitorer** och välj monitorer från projektet. Bara monitorer som inte redan är kopplade visas.
 
 ### Spara listan
 
-Klicka på **Add Monitors**. Monitorerna visas i listan med källan **Manual** och räknas in i SLI:n från nästa utvärdering.
+Klicka på **Lägg till monitorer**. Monitorerna visas i listan med källan **Manual** och räknas in i SLI:n från nästa utvärdering.
 :::
 
 Klicka på **Ta bort** på en monitors rad för att ta ut den ur SLO:et. Själva monitorn ändras inte; den slutar bara räknas in i SLO:ets SLI och felbudget.
@@ -114,7 +114,7 @@ Reglerna synkroniseras om vid varje sparning, så **Run Now** är till för att 
 
 Så länge minst en regel är aktiverad är det reglerna som hanterar SLO:ets monitorer:
 
-- monitorer kan inte läggas till för hand: **Add Monitors** är inaktiverad, och en banner säger **This SLO's monitors are managed by its monitor rules**, med en länk **Manage Monitor Rules**;
+- monitorer kan inte läggas till för hand: **Lägg till monitorer** är inaktiverad, och en banner säger **This SLO's monitors are managed by its monitor rules**, med en länk **Manage Monitor Rules**;
 - monitorer som en regel har kopplat kan inte tas bort för hand, eftersom regeln skulle koppla dem igen: deras knapp **Ta bort** är låst och knappbeskrivningen förklarar varför;
 - monitorer som kopplades för hand innan regler slogs på kan fortfarande tas bort.
 
@@ -144,7 +144,7 @@ Varje koppling och bortkoppling, och varje regel som skapas, redigeras eller rad
 
 ## Felsökning
 
-:::details Add Monitors är inaktiverad
+:::details Lägg till monitorer är inaktiverad
 Minst en av SLO:ets monitorregler är aktiverad, så det är reglerna som hanterar dess monitorer. Ändra reglerna, eller stäng av alla för att välja monitorer för hand.
 :::
 

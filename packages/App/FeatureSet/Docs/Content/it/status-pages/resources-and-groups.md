@@ -79,7 +79,7 @@ In un gruppo a griglia, la finestra di dialogo chiede anche la riga e la colonna
 
 ### Aggiungerne diversi insieme
 
-**Add Multiple** (anche **Add multiple monitors** nel menu **More actions**) apre **Add Multiple Monitors**. Anche questa è una sola pagina: una selezione multipla **Monitor**, poi gli stessi **Altri campi** chiusi, le cui opzioni di visualizzazione si applicano a ogni monitor che scegliete. Ogni risorsa prende nome visualizzato e descrizione dal proprio monitor, e **Add Monitors** li aggiunge tutti. È il modo più veloce per popolare una nuova pagina.
+**Add Multiple** (anche **Add multiple monitors** nel menu **More actions**) apre **Add Multiple Monitors**. Anche questa è una sola pagina: una selezione multipla **Monitor**, poi gli stessi **Altri campi** chiusi, le cui opzioni di visualizzazione si applicano a ogni monitor che scegliete. Ogni risorsa prende nome visualizzato e descrizione dal proprio monitor, e **Aggiungi monitor** li aggiunge tutti. È il modo più veloce per popolare una nuova pagina.
 
 La selezione multipla ha una scheda **Etichette**: fate clic su un'etichetta e ogni monitor che la porta viene selezionato in una volta.
 
@@ -139,14 +139,14 @@ Fate clic su **Create Status Page Group**. Il gruppo compare nel navigatore, pro
 
 I due campi sono **Nome gruppo** (`name`) e **Parent Group** (`parentStatusPageGroupId`). Le due sezioni chiuse contengono tutto il resto:
 
-- **Layout**: la sua intestazione chiusa dice **Elenco** o **Grid**. Contiene **Modalità di visualizzazione** e gli assi di una griglia (vedete [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia)), e si apre da sola su un gruppo a griglia.
+- **Layout**: la sua intestazione chiusa dice **Elenco** o **Griglia**. Contiene **Modalità di visualizzazione** e gli assi di una griglia (vedete [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia)), e si apre da sola su un gruppo a griglia.
 - **Altri campi**: le copie, a livello di gruppo, delle opzioni delle risorse:
   - **Descrizione gruppo** (`description`): Markdown facoltativo, mostrato sotto l'intestazione. Un'immagine al suo interno viene mostrata a ogni visitatore.
   - **Espandi sulla pagina di stato per impostazione predefinita** (`isExpandedByDefault`): attivo per impostazione predefinita; indica se la sezione parte aperta o chiusa per i visitatori.
   - **Mostra stato attuale del gruppo** (`showCurrentStatus`): attivo per impostazione predefinita. Mostra uno stato accanto all'intestazione del gruppo.
   - **Mostra % di uptime** (`showUptimePercent`): disattivo per impostazione predefinita, con **Seleziona precisione del tempo di attività** quando è attivo.
 
-Per modificare un gruppo, usate **Edit Group** nell'intestazione del riquadro, oppure **Edit group** nel menu della riga del navigatore: si apre **Edit Status Page Group**, con un pulsante **Salva modifiche**. L'intestazione del riquadro mostra dei chip per le impostazioni attive (**Grid**, **Collapsed by default**, **Uptime %**), così vedete come è configurato un gruppo senza aprire il modulo.
+Per modificare un gruppo, usate **Edit Group** nell'intestazione del riquadro, oppure **Edit group** nel menu della riga del navigatore: si apre **Edit Status Page Group**, con un pulsante **Salva modifiche**. L'intestazione del riquadro mostra dei chip per le impostazioni attive (**Griglia**, **Collapsed by default**, **Uptime %**), così vedete come è configurato un gruppo senza aprire il modulo.
 
 ### Gestire un gruppo
 
@@ -172,9 +172,9 @@ La sezione **Layout** del modulo del gruppo imposta la **Modalità di visualizza
 | Se volete… | Scegliete |
 | --------------- | ---- |
 | Mostrare un semplice elenco verticale di servizi, uno per riga | **Elenco** (il predefinito) |
-| Mostrare lo stesso servizio in più regioni o tenant come una matrice | **Grid** |
+| Mostrare lo stesso servizio in più regioni o tenant come una matrice | **Griglia** |
 
-Scegliete **Grid** e compaiono altri quattro campi:
+Scegliete **Griglia** e compaiono altri quattro campi:
 
 | Campo | Cosa inserire |
 | ----- | ------------- |

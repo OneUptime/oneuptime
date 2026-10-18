@@ -629,7 +629,9 @@ describe("the reporting period's choices", () => {
     );
 
     expect(field).toContain("fieldType: FormFieldSchemaType.RadioButton,");
-    expect(field).toContain("radioButtonOptions: REPORT_PERIOD_TYPE_OPTIONS.map(");
+    expect(field).toContain(
+      "radioButtonOptions: REPORT_PERIOD_TYPE_OPTIONS.map(",
+    );
     expect(field).toContain("description: option.description,");
     expect(field).toContain("hideColumnDescription: true,");
     // No sentence above the answers: each says its own.

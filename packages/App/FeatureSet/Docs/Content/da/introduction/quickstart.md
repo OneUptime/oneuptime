@@ -89,7 +89,7 @@ Klik på **Udgiv en statusside** i tjeklisten, eller åbn **Statussider** fra me
 
 ### Tilføj din monitor
 
-Klik på **Add Monitors** på **Oversigt**, eller vælg **Monitorer** under **Ressourcer** i sidens sidemenu; i projekter med monitorgrupper slået til hedder punktet **Ressourcer**. Klik på **Tilføj monitor**, vælg din webstedsmonitor, og klik på **Tilføj monitor**. Rækken viser monitorens navn for besøgende; ret det under **Visningsnavn**, hvis du vil.
+Klik på **Tilføj monitorer** på **Oversigt**, eller vælg **Monitorer** under **Ressourcer** i sidens sidemenu; i projekter med monitorgrupper slået til hedder punktet **Ressourcer**. Klik på **Tilføj monitor**, vælg din webstedsmonitor, og klik på **Tilføj monitor**. Rækken viser monitorens navn for besøgende; ret det under **Visningsnavn**, hvis du vil.
 
 ### Åbn siden
 

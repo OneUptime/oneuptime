@@ -89,7 +89,7 @@ Klicka på **Publicera en statussida** i checklistan, eller öppna **Statussidor
 
 ### Lägg till din monitor
 
-Klicka på **Add Monitors** på **Översikt**, eller välj **Monitorer** under **Resurser** i sidans sidomeny; i projekt med monitorgrupper påslagna heter punkten **Resurser**. Klicka på **Lägg till monitor**, välj din webbplatsmonitor och klicka på **Lägg till monitor**. Raden visar monitorns namn för besökare; ändra det under **Visningsnamn** om du vill.
+Klicka på **Lägg till monitorer** på **Översikt**, eller välj **Monitorer** under **Resurser** i sidans sidomeny; i projekt med monitorgrupper påslagna heter punkten **Resurser**. Klicka på **Lägg till monitor**, välj din webbplatsmonitor och klicka på **Lägg till monitor**. Raden visar monitorns namn för besökare; ändra det under **Visningsnamn** om du vill.
 
 ### Öppna sidan
 

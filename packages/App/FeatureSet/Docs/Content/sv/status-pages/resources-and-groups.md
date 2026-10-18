@@ -79,7 +79,7 @@ I en rutnätsgrupp ber dialogrutan också om raden och kolumnen som monitorn ska
 
 ### Lägg till flera på en gång
 
-**Add Multiple** (även **Add multiple monitors** i menyn **More actions**) öppnar **Add Multiple Monitors**. Den är också en sida: en flervalslista **Monitorer**, sedan samma hopfällda **Fler fält**, vars visningsalternativ gäller för varje monitor som du väljer. Varje resurs får sitt visningsnamn och sin beskrivning från sin monitor, och **Add Monitors** lägger till alla. Det är det snabbaste sättet att fylla en ny sida.
+**Add Multiple** (även **Add multiple monitors** i menyn **More actions**) öppnar **Add Multiple Monitors**. Den är också en sida: en flervalslista **Monitorer**, sedan samma hopfällda **Fler fält**, vars visningsalternativ gäller för varje monitor som du väljer. Varje resurs får sitt visningsnamn och sin beskrivning från sin monitor, och **Lägg till monitorer** lägger till alla. Det är det snabbaste sättet att fylla en ny sida.
 
 Flervalslistan har fliken **Etiketter**: klicka på en etikett så väljs alla monitorer med den på en gång.
 
@@ -139,14 +139,14 @@ Klicka på **Create Status Page Group**. Gruppen visas i navigatorn, redo för m
 
 De två fälten är **Gruppnamn** (`name`) och **Parent Group** (`parentStatusPageGroupId`). De två hopfällda sektionerna innehåller resten:
 
-- **Layout**: dess hopfällda rubrik säger **Lista** eller **Grid**. Den innehåller **Visningsläge** och ett rutnäts axlar (se [Listlayout eller rutnätslayout](#listlayout-eller-rutnätslayout)), och den öppnas av sig själv på en rutnätsgrupp.
+- **Layout**: dess hopfällda rubrik säger **Lista** eller **Rutnät**. Den innehåller **Visningsläge** och ett rutnäts axlar (se [Listlayout eller rutnätslayout](#listlayout-eller-rutnätslayout)), och den öppnas av sig själv på en rutnätsgrupp.
 - **Fler fält**: gruppnivåns varianter av resursalternativen:
   - **Gruppbeskrivning** (`description`): valfri markdown, visas under rubriken. En bild i den visas för alla besökare.
   - **Expandera på statussidan som standard** (`isExpandedByDefault`): på som standard; avgör om sektionen börjar öppen eller hopfälld för besökare.
   - **Visa aktuell gruppstatus** (`showCurrentStatus`): på som standard. Visar en status bredvid grupprubriken.
   - **Visa upptid %** (`showUptimePercent`): av som standard, med **Välj precision för drifttid** när det är aktiverat.
 
-För att ändra en grupp använder du **Edit Group** i panelens rubrik, eller **Edit group** i navigatorns radmeny: **Edit Status Page Group** öppnas, med knappen **Spara ändringar**. Panelens rubrik visar märken för de inställningar som är på (**Grid**, **Collapsed by default**, **Uptime %**), så att du ser hur en grupp är inställd utan att öppna formuläret.
+För att ändra en grupp använder du **Edit Group** i panelens rubrik, eller **Edit group** i navigatorns radmeny: **Edit Status Page Group** öppnas, med knappen **Spara ändringar**. Panelens rubrik visar märken för de inställningar som är på (**Rutnät**, **Collapsed by default**, **Uptime %**), så att du ser hur en grupp är inställd utan att öppna formuläret.
 
 ### Hantera en grupp
 
@@ -172,9 +172,9 @@ Sektionen **Layout** i gruppformuläret anger gruppens **Visningsläge** (`viewM
 | Om du vill… | Välj |
 | --------------- | ---- |
 | Visa en enkel lodrät lista över tjänster, en per rad | **Lista** (standard) |
-| Visa samma tjänst i flera regioner eller hyresgäster som en matris | **Grid** |
+| Visa samma tjänst i flera regioner eller hyresgäster som en matris | **Rutnät** |
 
-Välj **Grid** så visas ytterligare fyra fält:
+Välj **Rutnät** så visas ytterligare fyra fält:
 
 | Fält | Vad du ska ange |
 | ----- | ------------- |

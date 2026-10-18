@@ -534,9 +534,9 @@ describe("one place for each branding setting", () => {
         expect([file, pattern.test(source)]).toEqual([file, true]);
         expect([
           file,
-          new RegExp(`\\b${column}\\s*:|\\.${column}\\b|["'\`]${column}["'\`]`).test(
-            source,
-          ),
+          new RegExp(
+            `\\b${column}\\s*:|\\.${column}\\b|["'\`]${column}["'\`]`,
+          ).test(source),
         ]).toEqual([file, false]);
       }
     },

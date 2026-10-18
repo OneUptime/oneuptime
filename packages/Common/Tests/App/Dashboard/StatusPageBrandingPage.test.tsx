@@ -449,6 +449,105 @@ describe("the cards people set", () => {
     );
   });
 
+  test("each card says what it changes for a visitor", async () => {
+    await renderPage();
+
+    expect(
+      cardPropsOf("Status Page > Branding > Header Style")["description"],
+    ).toBe("Shown at the top of your status page.");
+    expect(
+      cardPropsOf("Status Page > Branding > Title and Description")[
+        "description"
+      ],
+    ).toBe(
+      "Its name in the browser tab and in subscriber emails, and the description search engines show.",
+    );
+    // The favicon is the browser tab's icon; it was said to be "used for SEO".
+    expect(cardPropsOf("Status Page > Branding > Favicon")["description"]).toBe(
+      "The small icon in the browser tab.",
+    );
+    expect(
+      cardPropsOf("Status Page > Branding > Copyright")["description"],
+    ).toBe("The line at the bottom of your status page, such as Acme, Inc.");
+
+    const descriptions: Array<unknown> = Array.from(store.latest.values()).map(
+      (recorded: Recorded): unknown => {
+        return (
+          recorded.props["cardProps"] as Record<string, unknown> | undefined
+        )?.["description"];
+      },
+    );
+
+    expect(descriptions.length).toBeGreaterThan(5);
+
+    for (const description of [
+      "These will show up on your status page.",
+      "This will also be used for SEO.",
+      "Favicon will be used for SEO.",
+      "Copyright info for your status page",
+      "Header Links for your status page",
+    ]) {
+      expect(descriptions).not.toContain(description);
+    }
+  });
+
+  test("the page title's example is a name, and the detail rows have no stand-in sentences", async () => {
+    await renderPage();
+
+    const name: string = "Status Page > Branding > Title and Description";
+    const [title, description] = formFieldsOf(name) as [
+      FieldShape & { placeholder?: string },
+      FieldShape & { placeholder?: string },
+    ];
+
+    expect(title.placeholder).toBe("e.g., Acme Status");
+    expect(description.placeholder).toBe(
+      "e.g., Live status of Acme's website and API.",
+    );
+
+    for (const row of detailFieldsOf(name) as Array<
+      FieldShape & { placeholder?: string }
+    >) {
+      expect(row.placeholder).toBeUndefined();
+    }
+  });
+
+  test.each([
+    [
+      "Status Page > Header Links",
+      "Header Link",
+      "Header Links",
+      "Links at the top of your status page, such as your website or support.",
+    ],
+    [
+      "Status Page > Footer Links",
+      "Footer Link",
+      "Footer Links",
+      "Links at the bottom of your status page, such as your terms or privacy policy.",
+    ],
+  ])(
+    "%s: its rows are each a %s, added with Add, and an empty table says what they are for",
+    async (
+      name: string,
+      singular: string,
+      plural: string,
+      description: string,
+    ) => {
+      await renderPage();
+
+      const props: Record<string, unknown> = propsOf(name);
+
+      expect(props["singularName"]).toBe(singular);
+      expect(props["pluralName"]).toBe(plural);
+      expect(props["createVerb"]).toBe("Add");
+      expect(
+        (props["cardProps"] as Record<string, unknown>)["description"],
+      ).toBe(description);
+      // No message of its own: empty, the table says the card's line.
+      expect(props["noItemsMessage"]).toBeUndefined();
+    },
+  );
+
   test.each([
     ["Status Page > Header Links", StatusPageHeaderLink, "Header Links"],
     ["Status Page > Footer Links", StatusPageFooterLink, "Footer Links"],

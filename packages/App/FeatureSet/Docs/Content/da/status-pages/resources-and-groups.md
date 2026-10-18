@@ -79,7 +79,7 @@ I en gittergruppe beder dialogen også om den række og kolonne, monitoren skal 
 
 ### Tilføj flere på én gang
 
-**Add Multiple** (også **Add multiple monitors** i menuen **More actions**) åbner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, derefter de samme sammenfoldede **Flere felter**, hvis visningsindstillinger gælder for hver monitor, du vælger. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Add Monitors** tilføjer dem alle. Det er den hurtigste måde at fylde en ny side på.
+**Add Multiple** (også **Add multiple monitors** i menuen **More actions**) åbner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, derefter de samme sammenfoldede **Flere felter**, hvis visningsindstillinger gælder for hver monitor, du vælger. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Tilføj monitorer** tilføjer dem alle. Det er den hurtigste måde at fylde en ny side på.
 
 Flervalgslisten har fanen **Etiketter**: klik på en etiket, og alle monitorer med den vælges på én gang.
 
@@ -139,14 +139,14 @@ Klik på **Create Status Page Group**. Gruppen vises i navigatoren, klar til mon
 
 De to felter er **Gruppenavn** (`name`) og **Parent Group** (`parentStatusPageGroupId`). De to sammenfoldede sektioner indeholder resten:
 
-- **Layout**: dens sammenfoldede overskrift siger **Liste** eller **Grid**. Den indeholder **Visningstilstand** og et gitters akser (se [Listelayout eller gitterlayout](#listelayout-eller-gitterlayout)), og den åbner af sig selv på en gittergruppe.
+- **Layout**: dens sammenfoldede overskrift siger **Liste** eller **Gitter**. Den indeholder **Visningstilstand** og et gitters akser (se [Listelayout eller gitterlayout](#listelayout-eller-gitterlayout)), og den åbner af sig selv på en gittergruppe.
 - **Flere felter**: gruppeniveauets udgaver af ressourceindstillingerne:
   - **Gruppebeskrivelse** (`description`): valgfri markdown, vist under overskriften. Et billede i den vises for alle besøgende.
   - **Udvid på statusside som standard** (`isExpandedByDefault`): til som standard; afgør, om sektionen starter åben eller sammenfoldet for besøgende.
   - **Vis aktuel gruppestatus** (`showCurrentStatus`): til som standard. Viser en status ved siden af gruppeoverskriften.
   - **Vis oppetid %** (`showUptimePercent`): fra som standard, med **Vælg oppetidspræcision**, når den er slået til.
 
-For at ændre en gruppe bruger du **Edit Group** i panelets overskrift eller **Edit group** i navigatorens rækkemenu: **Edit Status Page Group** åbner med knappen **Gem ændringer**. Panelets overskrift viser mærker for de indstillinger, der er slået til (**Grid**, **Collapsed by default**, **Uptime %**), så du kan se, hvordan en gruppe er sat op, uden at åbne formularen.
+For at ændre en gruppe bruger du **Edit Group** i panelets overskrift eller **Edit group** i navigatorens rækkemenu: **Edit Status Page Group** åbner med knappen **Gem ændringer**. Panelets overskrift viser mærker for de indstillinger, der er slået til (**Gitter**, **Collapsed by default**, **Uptime %**), så du kan se, hvordan en gruppe er sat op, uden at åbne formularen.
 
 ### Administrer en gruppe
 
@@ -172,9 +172,9 @@ Sektionen **Layout** i gruppeformularen angiver gruppens **Visningstilstand** (`
 | Hvis du vil… | Vælg |
 | --------------- | ---- |
 | Vise en enkel lodret liste over tjenester, én pr. række | **Liste** (standard) |
-| Vise den samme tjeneste i flere regioner eller lejere som en matrix | **Grid** |
+| Vise den samme tjeneste i flere regioner eller lejere som en matrix | **Gitter** |
 
-Vælg **Grid**, og der vises fire felter mere:
+Vælg **Gitter**, og der vises fire felter mere:
 
 | Felt | Hvad du skal angive |
 | ----- | ------------- |

@@ -53,9 +53,9 @@ export const getEmailSubscriberAddChoiceFields: () => Array<SubscriberField> =
         hideColumnDescription: true,
         doNotShowWhenEditing: true,
         /*
-         * An admin who adds a subscriber vouches for the address: the
-         * column's off is for people who subscribe themselves, who confirm
-         * by email (CreateFormDefaultsGuard lists why).
+         * Subscribe them now, the first answer: an admin who adds a
+         * subscriber vouches for the address. The column's off is for
+         * people who subscribe themselves, who confirm by email.
          */
         defaultValue: true,
         showIf: (): boolean => {
@@ -75,7 +75,7 @@ export const getEmailSubscriberAddChoiceFields: () => Array<SubscriberField> =
         /*
          * Off on purpose, though the column defaults to on: someone an admin
          * adds is sent a "you have subscribed" message only when the admin
-         * asks for one (CreateFormDefaultsGuard lists why).
+         * picks Subscribe them now and tell them.
          */
         defaultValue: false,
         showIf: (): boolean => {

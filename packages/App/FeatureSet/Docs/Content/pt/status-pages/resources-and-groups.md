@@ -79,7 +79,7 @@ Em um grupo em grade, a caixa de diálogo também pede a linha e a coluna em que
 
 ### Adicionar vários de uma vez
 
-**Add Multiple** (também **Add multiple monitors** no menu **More actions**) abre **Add Multiple Monitors**. Ela também tem uma só página: uma seleção múltipla **Monitores**, depois o mesmo **Mais campos** recolhido, cujas opções de exibição valem para cada monitor que você escolher. Cada recurso recebe o nome de exibição e a descrição do seu monitor, e **Add Monitors** adiciona todos. É a forma mais rápida de preencher uma página nova.
+**Add Multiple** (também **Add multiple monitors** no menu **More actions**) abre **Add Multiple Monitors**. Ela também tem uma só página: uma seleção múltipla **Monitores**, depois o mesmo **Mais campos** recolhido, cujas opções de exibição valem para cada monitor que você escolher. Cada recurso recebe o nome de exibição e a descrição do seu monitor, e **Adicionar monitores** adiciona todos. É a forma mais rápida de preencher uma página nova.
 
 A seleção múltipla tem uma aba **Rótulos**: clique em um rótulo e cada monitor que o tem é selecionado de uma vez.
 
@@ -139,14 +139,14 @@ Clique em **Create Status Page Group**. O grupo aparece no navegador, pronto par
 
 Os dois campos são **Nome do Grupo** (`name`) e **Parent Group** (`parentStatusPageGroupId`). As duas seções recolhidas guardam todo o resto:
 
-- **Layout**: seu cabeçalho recolhido diz **Lista** ou **Grid**. Ela contém **Modo de visualização** e os eixos de uma grade (veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade)), e se abre sozinha em um grupo em grade.
+- **Layout**: seu cabeçalho recolhido diz **Lista** ou **Grade**. Ela contém **Modo de visualização** e os eixos de uma grade (veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade)), e se abre sozinha em um grupo em grade.
 - **Mais campos**: as cópias, no nível do grupo, das opções dos recursos:
   - **Descrição do Grupo** (`description`): markdown opcional, mostrado abaixo do cabeçalho. Uma imagem nele é mostrada a todos os visitantes.
   - **Expandir na Página de status por padrão** (`isExpandedByDefault`): ativado por padrão; define se a seção começa aberta ou recolhida para os visitantes.
   - **Mostrar status atual do grupo** (`showCurrentStatus`): ativado por padrão. Mostra um status ao lado do cabeçalho do grupo.
   - **Mostrar % de tempo de atividade** (`showUptimePercent`): desativado por padrão, com **Selecionar Precisão de Disponibilidade** quando está ativado.
 
-Para alterar um grupo, use **Edit Group** no cabeçalho do painel, ou **Edit group** no menu da linha do navegador: **Edit Status Page Group** se abre, com um botão **Salvar alterações**. O cabeçalho do painel mostra etiquetas para as configurações ativadas (**Grid**, **Collapsed by default**, **Uptime %**), para você ver como um grupo está configurado sem abrir o formulário.
+Para alterar um grupo, use **Edit Group** no cabeçalho do painel, ou **Edit group** no menu da linha do navegador: **Edit Status Page Group** se abre, com um botão **Salvar alterações**. O cabeçalho do painel mostra etiquetas para as configurações ativadas (**Grade**, **Collapsed by default**, **Uptime %**), para você ver como um grupo está configurado sem abrir o formulário.
 
 ### Gerenciar um grupo
 
@@ -172,9 +172,9 @@ A seção **Layout** do formulário do grupo define o **Modo de visualização**
 | Se você quer… | Escolha |
 | --------------- | ---- |
 | Mostrar uma lista vertical simples de serviços, um por linha | **Lista** (o padrão) |
-| Mostrar o mesmo serviço em várias regiões ou locatários como uma matriz | **Grid** |
+| Mostrar o mesmo serviço em várias regiões ou locatários como uma matriz | **Grade** |
 
-Escolha **Grid** e aparecem mais quatro campos:
+Escolha **Grade** e aparecem mais quatro campos:
 
 | Campo | O que digitar |
 | ----- | ------------- |
