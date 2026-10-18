@@ -212,6 +212,53 @@ describe("ProbeAuthorization.isAuthorizedServiceMiddleware", () => {
   });
 
   /*
+   * Postgres reads a uuid in any case, so a probe may send its id
+   * upper-cased and still authenticate. Everything after the middleware -
+   * the key check's cache and its revocation, the liveness stamp, every
+   * handler reading req.probe - sees the one spelling Postgres stores.
+   */
+  test("an id sent in another case is the probe's one id: checked, stamped and attached lower-cased", async () => {
+    const sentId: string = probeId.toString().toUpperCase();
+
+    expect(sentId).not.toBe(probeId.toString());
+
+    const { req, next, middlewarePromise } = callMiddleware({
+      probeId: sentId,
+      probeKey: probeKey,
+    });
+    await middlewarePromise;
+
+    expect(next).toHaveBeenCalledWith();
+
+    const verifyArgs: { probeId: ObjectID; probeKey: string } = probeService
+      .verifyProbeKey.mock.calls[0]![0] as {
+      probeId: ObjectID;
+      probeKey: string;
+    };
+    expect(verifyArgs.probeId.toString()).toBe(probeId.toString());
+
+    const stampedId: ObjectID = probeService.updateLastAlive.mock
+      .calls[0]![0] as ObjectID;
+    expect(stampedId.toString()).toBe(probeId.toString());
+
+    expect(req.probe?.id?.toString()).toBe(probeId.toString());
+  });
+
+  test("an id sent as JSON writes an ObjectID is read the same way", async () => {
+    const { req, next, middlewarePromise } = callMiddleware({
+      probeId: {
+        _type: "ObjectID",
+        value: probeId.toString().toUpperCase(),
+      },
+      probeKey: probeKey,
+    });
+    await middlewarePromise;
+
+    expect(next).toHaveBeenCalledWith();
+    expect(req.probe?.id?.toString()).toBe(probeId.toString());
+  });
+
+  /*
    * THE non-blocking pin: the lastAlive stamp must be fire-and-forget. If
    * someone re-introduces an `await` on updateLastAlive, this test hangs on
    * a never-resolving promise and the 500ms timer wins the race — awaiting
