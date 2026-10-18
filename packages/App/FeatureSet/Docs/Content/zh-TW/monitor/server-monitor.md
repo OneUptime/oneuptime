@@ -46,20 +46,58 @@ flowchart TB
 
 :::tabs
 @tab Linux
+在 Debian 和 Ubuntu 上，新增 OneUptime 的 apt 套件庫，然後從中安裝代理程式：
+
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://packages.oneuptime.com/gpg.key -o /etc/apt/keyrings/oneuptime.asc
+sudo chmod a+r /etc/apt/keyrings/oneuptime.asc
+echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] https://packages.oneuptime.com/deb stable main" | sudo tee /etc/apt/sources.list.d/oneuptime.list
+sudo apt-get update
+sudo apt-get install oneuptime-infrastructure-agent
+```
+
+在 RHEL、Rocky Linux、AlmaLinux、Fedora 和 Amazon Linux 上，新增 OneUptime 的 yum 套件庫，然後從中安裝代理程式。沒有 `dnf` 的系統請使用 `yum`，並在被詢問時接受 OneUptime 的簽署金鑰。
+
+```bash
+sudo curl -fsSL https://packages.oneuptime.com/rpm/oneuptime.repo -o /etc/yum.repos.d/oneuptime.repo
+sudo dnf install oneuptime-infrastructure-agent
+```
+
+在其他任何發行版上，請使用安裝指令碼：
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab macOS
+使用 Homebrew 安裝代理程式：
+
+```bash
+brew install oneuptime/tap/oneuptime-infrastructure-agent
+```
+
+或者使用安裝指令碼：
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab Windows
+在以系統管理員身分開啟的 **命令提示字元** 中，用 winget 安裝代理程式：
+
+```shell
+winget install --id OneUptime.InfrastructureAgent --exact --scope machine
+```
+
+然後以系統管理員身分重新開啟 **命令提示字元**，此時 `oneuptime-infrastructure-agent` 已在路徑中。
+
+不使用 winget 時，請自行下載代理程式：
+
 1. 從 [最新的 GitHub 版本](https://github.com/OneUptime/oneuptime/releases/latest) 下載代理程式：x64 使用 `oneuptime-infrastructure-agent_windows_amd64.zip`，ARM64 使用 `oneuptime-infrastructure-agent_windows_arm64.zip`。
 2. 解壓縮 zip 檔。其中包含 `oneuptime-infrastructure-agent.exe`。
 3. 在解壓縮的資料夾中以系統管理員身分開啟 **命令提示字元**。
 :::
 
-安裝指令碼會下載適用於你的作業系統和處理器（x86-64 或 ARM64）的最新版本，並把 `oneuptime-infrastructure-agent` 二進位檔放到 `$HOME/bin`。在自行託管的部署中，指令碼由你自己的 OneUptime URL 提供。
+每種方式都會安裝適用於你的作業系統和處理器（x86-64 或 ARM64）的最新版本。apt 和 yum 套件庫提供每個 GitHub 版本附帶的 `.deb` 和 `.rpm` 套件，並以 `https://packages.oneuptime.com/gpg.key` 的金鑰簽署，套件會把二進位檔放到 `/usr/bin`。安裝指令碼會把 `oneuptime-infrastructure-agent` 二進位檔放到 `$HOME/bin`。在自行託管的部署中，指令碼由你自己的 OneUptime URL 提供。
 
 ### 將它連接到監測器
 
@@ -136,6 +174,22 @@ oneuptime-infrastructure-agent start
 
 當代理程式無法寫入這些目錄時，會改用 `~/.oneuptime-infrastructure-agent/`。環境變數 `ONEUPTIME_AGENT_CONFIG_PATH` 和 `ONEUPTIME_AGENT_LOG_PATH` 可以明確設定其中任一路徑。
 
+### 升級與移除
+
+依照安裝代理程式的方式升級它：
+
+| 安裝方式 | 升級 |
+| --- | --- |
+| apt | `sudo apt-get update && sudo apt-get install --only-upgrade oneuptime-infrastructure-agent` |
+| dnf 或 yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
+| Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
+| winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| 安裝指令碼 | 重新執行安裝指令碼。 |
+
+升級不會重新啟動正在執行的代理程式，因此升級後請執行 `restart`。在 Windows 上，請在 `winget upgrade` 之前執行 `stop`，之後執行 `start`：服務執行程式期間，winget 無法取代它。
+
+若要移除代理程式，請先執行 `uninstall`，再用安裝它的工具移除套件，例如 `sudo apt-get remove oneuptime-infrastructure-agent`。
+
 ## 代理程式回報的內容
 
 每份報告都包含伺服器的主機名稱，以及：
@@ -211,7 +265,7 @@ oneuptime-infrastructure-agent start
 :::
 
 :::details `sudo` 顯示找不到指令
-安裝指令碼會把二進位檔放到執行指令碼的使用者的 `$HOME/bin`，並輸出所用的目錄。請以完整路徑執行代理程式，例如 `sudo /root/bin/oneuptime-infrastructure-agent configure ...`。若要改為安裝到系統路徑中的目錄，請傳入 `-b` 給指令碼：
+套件會把代理程式放到系統路徑中，所以只有使用安裝指令碼時才會發生這種情況。安裝指令碼會把二進位檔放到執行指令碼的使用者的 `$HOME/bin`，並輸出所用的目錄。請以完整路徑執行代理程式，例如 `sudo /root/bin/oneuptime-infrastructure-agent configure ...`。若要改為安裝到系統路徑中的目錄，請傳入 `-b` 給指令碼：
 
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin

@@ -46,20 +46,58 @@ Gå till **Monitorer**, öppna Server- / VM-monitorn och välj **Dokumentation**
 
 :::tabs
 @tab Linux
+På Debian och Ubuntu lägger du till OneUptimes apt-förråd och installerar agenten därifrån:
+
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://packages.oneuptime.com/gpg.key -o /etc/apt/keyrings/oneuptime.asc
+sudo chmod a+r /etc/apt/keyrings/oneuptime.asc
+echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] https://packages.oneuptime.com/deb stable main" | sudo tee /etc/apt/sources.list.d/oneuptime.list
+sudo apt-get update
+sudo apt-get install oneuptime-infrastructure-agent
+```
+
+På RHEL, Rocky Linux, AlmaLinux, Fedora och Amazon Linux lägger du till OneUptimes yum-förråd och installerar agenten därifrån. Använd `yum` där det inte finns `dnf`, och godkänn OneUptimes signeringsnyckel när du blir tillfrågad.
+
+```bash
+sudo curl -fsSL https://packages.oneuptime.com/rpm/oneuptime.repo -o /etc/yum.repos.d/oneuptime.repo
+sudo dnf install oneuptime-infrastructure-agent
+```
+
+På alla andra distributioner använder du installationsskriptet:
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab macOS
+Installera agenten med Homebrew:
+
+```bash
+brew install oneuptime/tap/oneuptime-infrastructure-agent
+```
+
+Eller använd installationsskriptet:
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab Windows
+I **Kommandotolken** som administratör installerar du agenten med winget:
+
+```shell
+winget install --id OneUptime.InfrastructureAgent --exact --scope machine
+```
+
+Öppna sedan **Kommandotolken** som administratör igen, så att `oneuptime-infrastructure-agent` finns på sökvägen.
+
+Utan winget hämtar du agenten själv:
+
 1. Ladda ned agenten från den [senaste GitHub-versionen](https://github.com/OneUptime/oneuptime/releases/latest): `oneuptime-infrastructure-agent_windows_amd64.zip` för x64 eller `oneuptime-infrastructure-agent_windows_arm64.zip` för ARM64.
 2. Packa upp zip-filen. Den innehåller `oneuptime-infrastructure-agent.exe`.
 3. Öppna **Kommandotolken** som administratör i mappen du packade upp den till.
 :::
 
-Installationsskriptet hämtar den senaste versionen för ditt operativsystem och din processor (x86-64 eller ARM64) och lägger binärfilen `oneuptime-infrastructure-agent` i `$HOME/bin`. På en egen installation levereras skriptet från din egen OneUptime-URL.
+Alla sätt installerar den senaste versionen för ditt operativsystem och din processor (x86-64 eller ARM64). apt- och yum-förråden innehåller `.deb`- och `.rpm`-paketen som bifogas varje GitHub-version, signerade med nyckeln på `https://packages.oneuptime.com/gpg.key`, och paketen lägger binärfilen i `/usr/bin`. Installationsskriptet lägger binärfilen `oneuptime-infrastructure-agent` i `$HOME/bin`. På en egen installation levereras skriptet från din egen OneUptime-URL.
 
 ### Anslut den till monitorn
 
@@ -136,6 +174,22 @@ Kör dem med `sudo` på Linux och macOS, och från **Kommandotolken** med admini
 
 När agenten inte kan skriva till de här katalogerna använder den i stället `~/.oneuptime-infrastructure-agent/`. Miljövariablerna `ONEUPTIME_AGENT_CONFIG_PATH` och `ONEUPTIME_AGENT_LOG_PATH` anger vardera sökvägen uttryckligen.
 
+### Uppgraderingar och borttagning
+
+Uppgradera agenten på samma sätt som du installerade den:
+
+| Installerad med | Uppgradera |
+| --- | --- |
+| apt | `sudo apt-get update && sudo apt-get install --only-upgrade oneuptime-infrastructure-agent` |
+| dnf eller yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
+| Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
+| winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| Installationsskript | Kör installationsskriptet igen. |
+
+En uppgradering startar inte om den körande agenten, så kör `restart` efteråt. På Windows kör du `stop` före `winget upgrade` och `start` efteråt: winget kan inte ersätta programmet medan tjänsten kör det.
+
+Ta bort agenten genom att först köra `uninstall` och sedan ta bort paketet med verktyget du installerade det med, till exempel `sudo apt-get remove oneuptime-infrastructure-agent`.
+
 ## Vad agenten rapporterar
 
 Varje rapport innehåller serverns värdnamn och:
@@ -211,7 +265,7 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 :::
 
 :::details `sudo` säger att kommandot inte hittas
-Installationsskriptet lägger binärfilen i `$HOME/bin` för användaren det kördes som, och skriver ut katalogen det använde. Kör agenten med hela sökvägen, till exempel `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. För att i stället installera den i en katalog på systemets sökväg skickar du `-b` till skriptet:
+Paketen lägger agenten på systemets sökväg, så det här händer bara med installationsskriptet. Installationsskriptet lägger binärfilen i `$HOME/bin` för användaren det kördes som, och skriver ut katalogen det använde. Kör agenten med hela sökvägen, till exempel `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. För att i stället installera den i en katalog på systemets sökväg skickar du `-b` till skriptet:
 
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin

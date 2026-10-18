@@ -46,20 +46,58 @@ flowchart TB
 
 :::tabs
 @tab Linux
+Debian と Ubuntu では、OneUptime の apt リポジトリを追加し、そこからエージェントをインストールします。
+
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://packages.oneuptime.com/gpg.key -o /etc/apt/keyrings/oneuptime.asc
+sudo chmod a+r /etc/apt/keyrings/oneuptime.asc
+echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] https://packages.oneuptime.com/deb stable main" | sudo tee /etc/apt/sources.list.d/oneuptime.list
+sudo apt-get update
+sudo apt-get install oneuptime-infrastructure-agent
+```
+
+RHEL、Rocky Linux、AlmaLinux、Fedora、Amazon Linux では、OneUptime の yum リポジトリを追加し、そこからエージェントをインストールします。`dnf` がない環境では `yum` を使い、確認を求められたら OneUptime の署名鍵を受け入れてください。
+
+```bash
+sudo curl -fsSL https://packages.oneuptime.com/rpm/oneuptime.repo -o /etc/yum.repos.d/oneuptime.repo
+sudo dnf install oneuptime-infrastructure-agent
+```
+
+その他のディストリビューションでは、インストールスクリプトを使います。
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab macOS
+Homebrew でエージェントをインストールします。
+
+```bash
+brew install oneuptime/tap/oneuptime-infrastructure-agent
+```
+
+またはインストールスクリプトを使います。
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab Windows
+管理者として開いた **コマンド プロンプト** で、winget を使ってエージェントをインストールします。
+
+```shell
+winget install --id OneUptime.InfrastructureAgent --exact --scope machine
+```
+
+その後、**コマンド プロンプト** を管理者としてもう一度開くと、`oneuptime-infrastructure-agent` にパスが通っています。
+
+winget を使わない場合は、エージェントを自分でダウンロードします。
+
 1. [GitHub の最新リリース](https://github.com/OneUptime/oneuptime/releases/latest) からエージェントをダウンロードします。x64 は `oneuptime-infrastructure-agent_windows_amd64.zip`、ARM64 は `oneuptime-infrastructure-agent_windows_arm64.zip` です。
 2. zip を展開します。中に `oneuptime-infrastructure-agent.exe` があります。
 3. 展開したフォルダーで **コマンド プロンプト** を管理者として開きます。
 :::
 
-インストールスクリプトは、お使いのオペレーティングシステムとプロセッサ（x86-64 または ARM64）向けの最新リリースをダウンロードし、`oneuptime-infrastructure-agent` バイナリを `$HOME/bin` に配置します。セルフホストの場合、スクリプトはお使いの OneUptime の URL から配信されます。
+どの方法でも、お使いのオペレーティングシステムとプロセッサ（x86-64 または ARM64）向けの最新リリースがインストールされます。apt と yum のリポジトリには、各 GitHub リリースに添付された `.deb` と `.rpm` のパッケージが `https://packages.oneuptime.com/gpg.key` の鍵で署名されて置かれており、パッケージはバイナリを `/usr/bin` に配置します。インストールスクリプトは `oneuptime-infrastructure-agent` バイナリを `$HOME/bin` に配置します。セルフホストの場合、スクリプトはお使いの OneUptime の URL から配信されます。
 
 ### モニターに接続する
 
@@ -136,6 +174,22 @@ Linux と macOS では `sudo` を付けて、Windows では管理者の **コマ
 
 エージェントがこれらのディレクトリに書き込めない場合は、代わりに `~/.oneuptime-infrastructure-agent/` を使います。環境変数 `ONEUPTIME_AGENT_CONFIG_PATH` と `ONEUPTIME_AGENT_LOG_PATH` で、それぞれのパスを明示的に指定できます。
 
+### アップグレードと削除
+
+エージェントは、インストールしたときと同じ方法でアップグレードします。
+
+| インストール方法 | アップグレード |
+| --- | --- |
+| apt | `sudo apt-get update && sudo apt-get install --only-upgrade oneuptime-infrastructure-agent` |
+| dnf または yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
+| Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
+| winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| インストールスクリプト | インストールスクリプトをもう一度実行します。 |
+
+アップグレードしても実行中のエージェントは再起動されないため、その後に `restart` を実行してください。Windows では、`winget upgrade` の前に `stop` を、後に `start` を実行します。サービスがプログラムを実行している間、winget はプログラムを置き換えられません。
+
+エージェントを削除するには、まず `uninstall` を実行し、次にインストールに使ったツールでパッケージを削除します（例: `sudo apt-get remove oneuptime-infrastructure-agent`）。
+
 ## エージェントが報告する内容
 
 各レポートには、サーバーのホスト名と次の情報が含まれます。
@@ -211,7 +265,7 @@ Linux と macOS では `sudo` を付けて、Windows では管理者の **コマ
 :::
 
 :::details `sudo` でコマンドが見つからないと表示される
-インストールスクリプトは、実行したユーザーの `$HOME/bin` にバイナリを配置し、使用したディレクトリを表示します。`sudo /root/bin/oneuptime-infrastructure-agent configure ...` のようにフルパスでエージェントを実行してください。代わりにシステムのパス上のディレクトリにインストールするには、スクリプトに `-b` を渡します。
+パッケージはエージェントをシステムのパス上に配置するため、この問題はインストールスクリプトの場合にのみ起こります。インストールスクリプトは、実行したユーザーの `$HOME/bin` にバイナリを配置し、使用したディレクトリを表示します。`sudo /root/bin/oneuptime-infrastructure-agent configure ...` のようにフルパスでエージェントを実行してください。代わりにシステムのパス上のディレクトリにインストールするには、スクリプトに `-b` を渡します。
 
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin

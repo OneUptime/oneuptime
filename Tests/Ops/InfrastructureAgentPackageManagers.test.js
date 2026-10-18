@@ -23,7 +23,11 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const yaml = require("js-yaml");
 
-const { needsOf, ancestorsOf, stepCommand } = require("./Utils/ReleaseWorkflow");
+const {
+  needsOf,
+  ancestorsOf,
+  stepCommand,
+} = require("./Utils/ReleaseWorkflow");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const RELEASE = ".github/workflows/release.yml";
@@ -141,7 +145,9 @@ describe(`${GORELEASER}: what the package managers are given`, () => {
     expect(nfpm.file_name_template).toBe(
       "oneuptime-infrastructure-agent_{{ .Arch }}.{{ .Format }}",
     );
-    expect(build).toContain('readonly PACKAGE="oneuptime-infrastructure-agent"');
+    expect(build).toContain(
+      'readonly PACKAGE="oneuptime-infrastructure-agent"',
+    );
     expect(build).toContain('deb="$PACKAGES/${PACKAGE}_${arch}.deb"');
     expect(build).toContain('rpm_file="$PACKAGES/${PACKAGE}_${arch}.rpm"');
     expect(build).toContain("readonly ARCHES=(amd64 arm64)");
@@ -217,9 +223,9 @@ describe(`${RELEASE}: infrastructure-agent-build keeps the cask and the manifest
   });
 
   test("which the release does not attach", () => {
-    expect(downloadOf(jobs["finalize-github-release"], MANIFESTS_ARTIFACT)).toBe(
-      undefined,
-    );
+    expect(
+      downloadOf(jobs["finalize-github-release"], MANIFESTS_ARTIFACT),
+    ).toBe(undefined);
   });
 });
 
@@ -268,10 +274,15 @@ describe.each(PUBLISH_JOB_NAMES)(`${RELEASE}: %s`, (name) => {
   });
 
   test("is skipped with a notice, not failed, while a secret is missing, and publishes once all are set", () => {
-    const work = fs.mkdtempSync(path.join(os.tmpdir(), "package-managers-check-"));
+    const work = fs.mkdtempSync(
+      path.join(os.tmpdir(), "package-managers-check-"),
+    );
     try {
       const outcome = (values) => {
-        const output = path.join(work, `output-${Object.values(values).join("-")}`);
+        const output = path.join(
+          work,
+          `output-${Object.values(values).join("-")}`,
+        );
         const result = run("bash", ["-e", "-c", check.run], {
           env: { PATH: process.env.PATH, GITHUB_OUTPUT: output, ...values },
         });
@@ -287,7 +298,10 @@ describe.each(PUBLISH_JOB_NAMES)(`${RELEASE}: %s`, (name) => {
 
       expect(outcome(all)).toEqual({ output: "publish=true", notice: false });
       for (const secret of expected.secrets) {
-        expect({ missing: secret, ...outcome({ ...all, [secret]: "" }) }).toEqual({
+        expect({
+          missing: secret,
+          ...outcome({ ...all, [secret]: "" }),
+        }).toEqual({
           missing: secret,
           output: "publish=false",
           notice: true,
@@ -413,17 +427,24 @@ describe(`${SCRIPTS}: the scripts`, () => {
     ]);
   });
 
-  test.each(scripts)("%s parses, and passes shellcheck when it is installed", (script) => {
-    const file = path.join(REPO_ROOT, SCRIPTS, script);
-    expect(run("bash", ["-n", file]).status).toBe(0);
+  test.each(scripts)(
+    "%s parses, and passes shellcheck when it is installed",
+    (script) => {
+      const file = path.join(REPO_ROOT, SCRIPTS, script);
+      expect(run("bash", ["-n", file]).status).toBe(0);
 
-    if (run("sh", ["-c", "command -v shellcheck"]).status === 0) {
-      const result = run("shellcheck", ["-x", "--source-path=SCRIPTDIR", file], {
-        cwd: path.join(REPO_ROOT, SCRIPTS),
-      });
-      expect(result.stdout + result.stderr).toBe("");
-    }
-  });
+      if (run("sh", ["-c", "command -v shellcheck"]).status === 0) {
+        const result = run(
+          "shellcheck",
+          ["-x", "--source-path=SCRIPTDIR", file],
+          {
+            cwd: path.join(REPO_ROOT, SCRIPTS),
+          },
+        );
+        expect(result.stdout + result.stderr).toBe("");
+      }
+    },
+  );
 
   test("ssh trusts github.com's own host key, and nothing else", () => {
     const helper = read(`${SCRIPTS}/GitHubDeployKey.sh`);
@@ -466,7 +487,10 @@ describe(`${SCRIPTS}/PublishHomebrewCask.sh`, () => {
     return file;
   }
 
-  function publish(version, { caskFile = caskFor(version), key = "deploy key" } = {}) {
+  function publish(
+    version,
+    { caskFile = caskFor(version), key = "deploy key" } = {},
+  ) {
     return run("bash", [SCRIPT], {
       cwd: REPO_ROOT,
       env: {
@@ -481,9 +505,13 @@ describe(`${SCRIPTS}/PublishHomebrewCask.sh`, () => {
   }
 
   function tapLog() {
-    const result = run("git", ["--git-dir", tap, "log", "--format=%s", "main"], {
-      env: { ...process.env, ...ISOLATED_GIT },
-    });
+    const result = run(
+      "git",
+      ["--git-dir", tap, "log", "--format=%s", "main"],
+      {
+        env: { ...process.env, ...ISOLATED_GIT },
+      },
+    );
     return result.status === 0 ? result.stdout.trim().split("\n") : [];
   }
 
@@ -822,7 +850,9 @@ if (method === "GET" && endpoint === "user") {
   test("stops, writing nothing, without a fork of winget-pkgs", () => {
     const missing = publish({ state: { forks: {} } });
     expect(missing.status).not.toBe(0);
-    expect(missing.stderr).toContain("fork microsoft/winget-pkgs into oneuptime-bot first");
+    expect(missing.stderr).toContain(
+      "fork microsoft/winget-pkgs into oneuptime-bot first",
+    );
     expect(missing.writes).toEqual([]);
 
     const other = publish({
@@ -845,7 +875,10 @@ if (method === "GET" && endpoint === "user") {
   });
 
   test("refuses manifests for another version, and a missing token, before asking GitHub anything", () => {
-    const wrong = publish({ version: "1.2.4", manifests: writeManifests("1.2.3") });
+    const wrong = publish({
+      version: "1.2.4",
+      manifests: writeManifests("1.2.3"),
+    });
     expect(wrong.status).not.toBe(0);
     expect(wrong.stderr).toContain("is not for version 1.2.4");
     expect(wrong.calls).toEqual([]);

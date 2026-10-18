@@ -128,6 +128,15 @@ any of these, the `enterpriseMarketplace` chart values, or anything in those lis
 how an installation is billed and licensed, how each edition is built, pushed, tested and submitted, and which steps
 only a maintainer may do.
 
+### Infrastructure agent package managers
+
+Each release publishes the infrastructure agent (`agents/InfrastructureAgent`) to apt and yum (packages.oneuptime.com,
+the GitHub Pages site of `OneUptime/packages`), Homebrew (`OneUptime/homebrew-tap`) and winget (`microsoft/winget-pkgs`).
+Before changing the agent's `.goreleaser.yaml`, `Scripts/PackageManagers`, or the `publish-infrastructure-agent-*` jobs in
+`.github/workflows/release.yml`, read [the package manager guide](Scripts/PackageManagers/README.md). It says how a
+release gets to each package manager, which repositories, keys and secrets each needs, and how to test a change
+(`Tests/Ops/package-repository-e2e.sh` installs from a repository the scripts build, as the docs say).
+
 ### Commit frequently
 
 Committing frequently helps keep your changes small and manageable. It also makes it easier to identify which changes introduced a bug if something goes wrong. Aim to commit logically related changes together and write clear commit messages that describe the purpose of the change. It also costs less when the work session is interrupted and resumed later.
