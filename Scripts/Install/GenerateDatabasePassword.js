@@ -54,9 +54,11 @@ const CHANGE_PASSWORD_DOCS_URL =
 
 /*
  * Asks the bundled PostgreSQL's own data directory, through Compose, whether
- * initdb has run there: PG_VERSION is the first file it writes. Compose
- * resolves the project, its volume and any override files exactly as
- * `npm start` does, and `run` publishes no port and starts no other service.
+ * a database is there: a non-empty PG_VERSION is the test the postgres
+ * image's entrypoint makes before it creates one, and with it skips
+ * POSTGRES_PASSWORD. Compose resolves the project, its volume and any
+ * override files exactly as `npm start` does, and `run` publishes no port and
+ * starts no other service.
  */
 const DATABASE_STATE_MARK = "oneuptime-database:";
 const DATABASE_STATE_SCRIPT =
@@ -234,12 +236,17 @@ const parseDatabaseState = (result) => {
   return DATABASE_STATE.UNKNOWN;
 };
 
+/*
+ * Only the answer is read from stdout. Compose's own progress - pulling the
+ * PostgreSQL image on a first start - goes to the terminal as `npm start`
+ * would show it.
+ */
 const runDockerCommand = (args, options) => {
   return spawnSync("docker", args, {
     cwd: options.cwd,
     env: options.env,
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: ["ignore", "pipe", "inherit"],
     timeout: DATABASE_STATE_TIMEOUT_MS,
   });
 };
@@ -271,8 +278,8 @@ const MESSAGES = {
     `config.env: ${SETTING} was still the placeholder from config.example.env. ` +
     "It now holds a random value, which PostgreSQL takes as it creates its database on this start.",
   "warn-created":
-    `WARNING: ${SETTING} in config.env is still the placeholder from config.example.env, and PostgreSQL was ` +
-    "created with it, so anything that can reach PostgreSQL can sign in as its superuser with a password that is public. " +
+    `WARNING: ${SETTING} in config.env is still the placeholder from config.example.env, which is public, ` +
+    "and PostgreSQL was created with it. " +
     `PostgreSQL keeps the password it was created with: change it there and in config.env together, as ${CHANGE_PASSWORD_DOCS_URL} shows.`,
   "warn-external":
     `WARNING: ${SETTING} in config.env is still the placeholder from config.example.env, which is public. ` +
