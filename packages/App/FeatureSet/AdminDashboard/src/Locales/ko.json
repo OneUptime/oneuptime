@@ -946,11 +946,6 @@
   "Where OneUptime writes about this server, such as when a probe goes offline.": "프로브가 오프라인이 될 때처럼 OneUptime이 이 서버에 관해 알리는 곳입니다.",
   "Has root access to every project on this server.": "이 서버의 모든 프로젝트에 root 권한으로 접근합니다.",
   "While it is off, every request with the key fails.": "꺼져 있는 동안에는 이 키를 사용한 모든 요청이 실패합니다.",
-  "Who can sign in": "로그인할 수 있는 사람",
-  "Anyone your provider lets in": "제공업체가 허용하는 누구나",
-  "People without an account get one on their first sign-in.": "계정이 없는 사람은 처음 로그인할 때 계정이 만들어집니다.",
-  "Only invited people": "초대받은 사람만",
-  "People must be invited to a project before they can sign in.": "로그인하려면 먼저 프로젝트에 초대받아야 합니다.",
   "Where this sign-in counts as SSO": "이 로그인이 SSO로 인정되는 곳",
   "Every project": "모든 프로젝트",
   "Projects that require SSO accept a sign-in with this provider.": "SSO가 필수인 프로젝트는 이 제공업체로 한 로그인을 받아들입니다.",
@@ -959,5 +954,10 @@
   "Attach a Project": "프로젝트 연결",
   "Attach Project": "프로젝트 연결",
   "People who sign in for the first time join this project.": "처음 로그인하는 사람은 이 프로젝트에 참여합니다.",
-  "The teams of that project they join.": "참여하게 되는 그 프로젝트의 팀입니다."
+  "The teams of that project they join.": "참여하게 되는 그 프로젝트의 팀입니다.",
+  "People without an account": "계정이 없는 사람",
+  "Get one on their first sign-in": "처음 로그인할 때 만들어짐",
+  "They join the projects attached to this provider. With none attached, they must be invited first.": "이 제공업체에 연결된 프로젝트에 참여합니다. 연결된 프로젝트가 없으면 먼저 초대받아야 합니다.",
+  "Must be invited first": "먼저 초대받아야 함",
+  "They are turned away until someone invites them to a project.": "누군가 프로젝트에 초대할 때까지 로그인이 거부됩니다."
 }

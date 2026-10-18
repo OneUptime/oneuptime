@@ -19,10 +19,9 @@ import {
   PROJECT_SMTP_CONFIG_FORM_COLUMNS,
   getProjectSmtpConfigFormFields,
   getSmtpConfigFormSteps,
-  getSmtpTransport,
+  showsSmtpServerFields,
   withoutValuesGraphIgnores,
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
-import MailTransportType from "Common/Types/Email/MailTransportType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -180,10 +179,10 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             },
             title: "Server Host",
             type: FieldType.Text,
+            // Microsoft Graph sends with no server of the config's own.
             getElement: (item: ProjectSmtpConfig): ReactElement => {
               if (
-                getSmtpTransport(item, PROJECT_SMTP_CONFIG_FORM_COLUMNS) ===
-                MailTransportType.MicrosoftGraph
+                !showsSmtpServerFields(item, PROJECT_SMTP_CONFIG_FORM_COLUMNS)
               ) {
                 return <span>Microsoft Graph</span>;
               }

@@ -31,6 +31,7 @@ import {
 } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
+import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import React, {
   Fragment,
   FunctionComponent,
@@ -76,6 +77,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
     useState<SamlConfigDialogTarget | null>(null);
   const showSingleSignOnUrlId: string = samlConfigTarget?.id || "";
 
+  // Looked up once, for the SAML and the OIDC tables alike.
   const createInitialValues: FormValues<ProjectSSO> | undefined =
     useDefaultSsoTeamsInitialValues<ProjectSSO>();
 
@@ -209,7 +211,17 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
          * test link and the one Require SSO for Login switch, which counts
          * an OIDC sign-in exactly as a SAML one.
          */}
-        <ProjectOidcProviders />
+        <ProjectOidcProviders
+          /*
+           * The same { teams } a new SAML provider starts on: both kinds
+           * keep the teams newcomers join in a column of that name.
+           */
+          createInitialValues={
+            createInitialValues as unknown as
+              | FormValues<ProjectOIDC>
+              | undefined
+          }
+        />
 
         {/*
          * One test link for both: the project's sign-in page lists its

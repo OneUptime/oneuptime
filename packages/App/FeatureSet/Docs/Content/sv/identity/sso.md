@@ -244,11 +244,11 @@ Ett projekt kan också logga in via en OpenID Connect-leverantör, till exempel 
 
 :::steps
 1. Registrera en app (en OIDC-klient) hos din identitetsleverantör som får använda auktoriseringskodflödet med PKCE, och kopiera dess **Utfärdar-URL**, **Klient-ID** och **Klienthemlighet**.
-2. Gå till **Projektinställningar** > **Säkerhet** > **OIDC** i OneUptime och klicka på **Skapa OIDC**.
+2. Gå till **Projektinställningar** > **Säkerhet** > **SSO** i OneUptime. Klicka på **Skapa OIDC** under SAML-leverantörerna.
 3. Ange ett **Namn** (det som personer ser på inloggningssidan), **Utfärdar-URL**, **Klient-ID** och **Klienthemlighet**. Du kan också klistra in leverantörens discovery-URL i **Utfärdar-URL** i stället.
 4. I steget **Inloggning** börjar **Team** med projektets medlemsteam: personer som loggar in för första gången går med i dessa team. Resten är redan ifyllt under **Fler fält**: **Discovery-URL** (utfärdaren följd av `/.well-known/openid-configuration`), **Omfattningar** (`openid email profile`), anspråksnamnen `email` och `name` och en beskrivning ("Sign in with" och namnet). Ändra dem bara om din leverantör kräver det. Endast team som du själv kan bjuda in någon till godtas: ett team som ger mer åtkomst än du har nämns under **Team**.
 5. Spara. Dialogen **OIDC Configuration** öppnas med **Redirect URI**: lägg till den bland appens tillåtna omdirigerings-URI:er. En ny leverantör börjar avstängd, så redigera den sedan och slå på **Aktiverad**.
-6. Använd länken i kortet **Test OpenID Connect (OIDC)** för att logga in via leverantören innan du kräver SSO för projektet.
+6. Öppna länken i kortet **Test Single Sign On (SSO)** och välj leverantören för att logga in via den innan du kräver SSO för projektet.
 :::
 
 ## Roller och team för SSO-användare
@@ -308,14 +308,14 @@ Där varken projektet eller servern kräver SSO stoppar en avstängning nya inlo
 
 ## Leverantörer under planen Scale
 
-En SAML- eller OIDC-leverantör som ett projekt fortfarande har fortsätter att logga in personer efter att en Scale-provperiod har slutat eller planen har sänkts. Därför listar sidorna **SSO** och **OIDC** under Scale projektets leverantörer under uppgraderingserbjudandet (**SAML-leverantörer som fortfarande är konfigurerade**, **OIDC-leverantörer som fortfarande är konfigurerade**):
+En SAML- eller OIDC-leverantör som ett projekt fortfarande har fortsätter att logga in personer efter att en Scale-provperiod har slutat eller planen har sänkts. Därför listar sidan **SSO** under Scale projektets leverantörer under uppgraderingserbjudandet (**SAML-leverantörer som fortfarande är konfigurerade**, **OIDC-leverantörer som fortfarande är konfigurerade**):
 
 - **Stäng av** stoppar en leverantör direkt. OneUptime frågar först.
 - **Ta bort** tar bort den.
 
 Att lägga till en leverantör, ändra en eller slå på den igen kräver **Scale**. Vem som kan göra vad är detsamma som med Scale: att stänga av en leverantör kräver behörighet att redigera den, att ta bort den behörighet att ta bort den.
 
-Så länge projektet fortfarande kräver SSO visar sidorna **SSO** och **OIDC** också **Kräv SSO för inloggning**: stäng av det innan du stänger av den sista leverantören. Till dess kan den sista leverantör som personer kan logga in med inte stängas av eller tas bort, så att ingen stängs ute från projektet.
+Så länge projektet fortfarande kräver SSO visar sidan **SSO** också **Kräv SSO för inloggning**: stäng av det innan du stänger av den sista leverantören. Till dess kan den sista leverantör som personer kan logga in med inte stängas av eller tas bort, så att ingen stängs ute från projektet.
 
 En statussidas sidor **SSO** och **OIDC** listar statussidans egna leverantörer på samma sätt. Så länge statussidan fortfarande kräver SSO visar båda sidorna också **Kräv SSO för inloggning**: stäng av det innan du stänger av leverantörerna, annars kan statussidans privata användare inte logga in alls.
 

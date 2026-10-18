@@ -498,8 +498,15 @@ describe("Admin > Settings > Email > Host Settings", () => {
     expect(
       within(dialog).getByRole("switch", { name: "Require TLS" }),
     ).toHaveAttribute("aria-checked", "true");
+    // The transport is two plain answers, the stored one picked.
+    expect(within(dialog).getByRole("radio", { name: "SMTP" })).toBeChecked();
     expect(
-      within(dialog).getByRole("button", { name: "Pick Microsoft Graph" }),
+      within(dialog).getByRole("radio", { name: "Microsoft Graph" }),
+    ).toBeVisible();
+    expect(
+      within(dialog).getByText(
+        "For a Microsoft 365 tenant with SMTP AUTH turned off.",
+      ),
     ).toBeVisible();
 
     // Save Changes is on the last step only: a plain Next here.
@@ -684,7 +691,7 @@ describe("Admin > Settings > Email > Host Settings", () => {
     });
     await act(async () => {
       fireEvent.click(
-        within(dialog).getByRole("button", { name: "Pick Microsoft Graph" }),
+        within(dialog).getByRole("radio", { name: "Microsoft Graph" }),
       );
     });
     await settle();

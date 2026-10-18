@@ -25,8 +25,10 @@ import {
   getSsoProviderDescriptionField,
   getSsoProviderEnabledField,
   getSsoProviderNameField,
-  getSsoProviderReachChoiceFields,
-  getSsoProviderSignUpChoiceFields,
+  getSsoProviderReachChoiceField,
+  getSsoProviderReachColumnField,
+  getSsoProviderSignUpChoiceField,
+  getSsoProviderSignUpColumnField,
   getSsoProviderTeamsField,
   isSsoGlobalAccessAtDefaults,
   readSsoFormValue,
@@ -38,7 +40,7 @@ import {
  * ADDING AN OPENID CONNECT PROVIDER ASKS FOR THE ISSUER, THE CLIENT ID AND THE
  * SECRET; THE REST IS FILLED IN.
  *
- * The three OIDC provider forms - Settings > OIDC, a status page's OIDC and
+ * The three OIDC provider forms - a project's (now on Settings > SSO), a status page's OIDC and
  * the Admin Dashboard's Global OIDC - each walked four steps and asked for
  * eleven things, a description among them, and both a discovery URL and an
  * issuer, although the first is the second plus
@@ -470,14 +472,16 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
     }),
     ...(options?.withGlobalAccessSwitches
       ? [
-          ...getSsoProviderSignUpChoiceFields<TEntity>({
+          getSsoProviderSignUpChoiceField<TEntity>({
             stepId: "sign-in",
             collapsibleSection: advancedSection,
           }),
-          ...getSsoProviderReachChoiceFields<TEntity>({
+          getSsoProviderSignUpColumnField<TEntity>({ stepId: "sign-in" }),
+          getSsoProviderReachChoiceField<TEntity>({
             stepId: "sign-in",
             collapsibleSection: advancedSection,
           }),
+          getSsoProviderReachColumnField<TEntity>({ stepId: "sign-in" }),
         ]
       : []),
   ];

@@ -101,6 +101,7 @@ const SOURCES: Record<string, string> = {
   projectInvitations: `${DASHBOARD}/Pages/Global/ProjectInvitations.tsx`,
   userChip: `${DASHBOARD}/Components/User/User.tsx`,
   teamPermissionTable: `${DASHBOARD}/Components/Team/TeamPermissionTable.tsx`,
+  permissionScopeChoice: `${DASHBOARD}/Components/Permission/PermissionScopeChoice.ts`,
   pushCard: `${DASHBOARD}/Components/NotificationMethods/Push.tsx`,
   pushCriticalAlertStatus: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlertStatus.tsx`,
   pushCriticalAlerts: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlerts.ts`,
@@ -174,8 +175,12 @@ const STRING_LITERAL: RegExp = /"([^"]+)"/g;
 // "1.5.0": a release of the mobile app.
 const SEMVER: RegExp = /^(\d+)\.(\d+)\.(\d+)$/;
 
-// 'label: "Owned by this team or its members"' - an option of a dropdown.
-const DROPDOWN_OPTION_LABEL: RegExp = /label: "([^"]+)"/g;
+/*
+ * '[PermissionScope.Owned]: translationKey("Only resources they own"),' -
+ * an answer of the Scope choice, possibly wrapped over lines.
+ */
+const SCOPE_ANSWER_TITLE: RegExp =
+  /\[PermissionScope\.\w+\]: translationKey\(\s*"([^"]+)",?\s*\)/g;
 
 // The ingress location's upstream: the app's own host name and port.
 const INGRESS_TO_APP: RegExp =
@@ -739,30 +744,39 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
     }
   });
 
+  /*
+   * The Scope field is three plain answers, All first, the same for a
+   * team's permission and a custom role's (Components/Permission/
+   * PermissionScopeChoice, which both tables build their Scope field from).
+   */
   it("names the scopes as a team permission's Scope field offers them, All first", () => {
+    const choice: string = readSource("permissionScopeChoice");
     const form: string = readSource("teamPermissionTable");
-    const scopeField: number = form.indexOf('title: "Scope"');
     const options: Array<string> = [
       "All resources in the project",
-      "Owned by this team or its members",
-      "Restrict by labels (advanced)",
+      "Only resources they own",
+      "Only resources with certain labels",
     ];
 
-    expect(scopeField).toBeGreaterThan(-1);
-
-    const field: string = form.slice(scopeField, form.indexOf("]", scopeField));
+    const titles: string = choice.slice(
+      choice.indexOf("export const PERMISSION_SCOPE_TITLES"),
+      choice.indexOf("export const PERMISSION_SCOPE_DESCRIPTIONS"),
+    );
 
     expect(
-      [...field.matchAll(DROPDOWN_OPTION_LABEL)].map(
+      [...titles.matchAll(SCOPE_ANSWER_TITLE)].map(
         (match: RegExpExecArray): string => {
           return match[1] as string;
         },
       ),
     ).toEqual(options);
-    expect(field).toContain("value: PermissionScope.All,");
-    expect(form.slice(scopeField, scopeField + 2000)).toContain(
-      "defaultValue: PermissionScope.All,",
+    // In the order the form offers them, and starting on All.
+    expect(choice).toMatch(
+      /PERMISSION_SCOPE_ANSWERS: ReadonlyArray<PermissionScope> = \[\s*PermissionScope\.All,\s*PermissionScope\.Owned,\s*PermissionScope\.Labels,\s*\];/,
     );
+    expect(choice).toContain("defaultValue: PermissionScope.All,");
+    expect(choice).toContain("fieldType: FormFieldSchemaType.RadioButton,");
+    expect(form).toContain("...getPermissionScopeFields<TeamPermission>({");
 
     expect(
       tableHeaded(page, ["Scope", "Meaning"]).map(

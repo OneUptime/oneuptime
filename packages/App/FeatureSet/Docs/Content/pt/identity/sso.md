@@ -244,11 +244,11 @@ Um projeto também pode fazer login por meio de um provedor OpenID Connect, como
 
 :::steps
 1. Registre no seu provedor de identidade um app (um cliente OIDC) que possa usar o fluxo authorization code com PKCE, e copie a **URL do Emissor**, o **Client ID** e o **Client Secret** dele.
-2. No OneUptime, vá para **Configurações do projeto** > **Segurança** > **OIDC** e clique em **Criar: OIDC**.
+2. No OneUptime, vá para **Configurações do projeto** > **Segurança** > **SSO**. Abaixo dos provedores SAML, clique em **Criar: OIDC**.
 3. Informe um **Nome** (o que as pessoas veem na página de login), a **URL do Emissor**, o **Client ID** e o **Client Secret**. Você também pode colar a URL de descoberta do provedor em **URL do Emissor**.
 4. Na etapa **Login**, **Equipes** começa com a equipe de membros do seu projeto: quem faz login pela primeira vez entra nessas equipes. Todo o resto já vem preenchido em **Mais campos**: a **URL de descoberta** (o emissor seguido de `/.well-known/openid-configuration`), os **Escopos** (`openid email profile`), os nomes das declarações `email` e `name`, e uma descrição ("Sign in with" seguido do nome). Altere-os apenas se o seu provedor exigir. Só são aceitas equipes para as quais você poderia convidar alguém: uma equipe que dá mais acesso do que você tem é indicada em **Equipes**.
 5. Salve. A caixa de diálogo **OIDC Configuration** abre com a **Redirect URI**: adicione-a às URIs de redirecionamento permitidas do seu app. Um provedor novo começa desligado, então depois edite-o e ative **Habilitado**.
-6. Use o link do cartão **Test OpenID Connect (OIDC)** para fazer login pelo provedor antes de exigir SSO no projeto.
+6. Abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor, para fazer login por ele antes de exigir SSO no projeto.
 :::
 
 ## Funções e equipes dos usuários de SSO
@@ -308,14 +308,14 @@ Onde nem o projeto nem o servidor exigem SSO, desligar um provedor impede novos 
 
 ## Provedores que ficam abaixo do plano Scale
 
-Um provedor SAML ou OIDC que um projeto ainda tem continua fazendo o login das pessoas depois que um teste do Scale termina ou o plano é reduzido. Por isso, abaixo do Scale, as páginas **SSO** e **OIDC** listam os provedores do projeto abaixo da oferta (**Provedores SAML ainda configurados**, **Provedores OIDC ainda configurados**):
+Um provedor SAML ou OIDC que um projeto ainda tem continua fazendo o login das pessoas depois que um teste do Scale termina ou o plano é reduzido. Por isso, abaixo do Scale, a página **SSO** lista os provedores do projeto abaixo da oferta (**Provedores SAML ainda configurados**, **Provedores OIDC ainda configurados**):
 
 - **Desativar** interrompe um provedor na hora. O OneUptime pergunta antes.
 - **Excluir** remove o provedor.
 
 Adicionar um provedor, alterar um ou ligá-lo de novo requer o **Scale**. Quem pode fazer cada coisa é o mesmo que no Scale: desligar um provedor exige permissão para editá-lo, e excluí-lo, permissão para excluí-lo.
 
-Enquanto o projeto ainda exigir SSO, as páginas **SSO** e **OIDC** dele também mostram **Exigir SSO para login**: desligue-o antes de desligar o último provedor. Até lá, o último provedor com que as pessoas conseguem fazer login não pode ser desligado nem excluído, para que ninguém fique sem acesso ao projeto.
+Enquanto o projeto ainda exigir SSO, a página **SSO** dele também mostra **Exigir SSO para login**: desligue-o antes de desligar o último provedor. Até lá, o último provedor com que as pessoas conseguem fazer login não pode ser desligado nem excluído, para que ninguém fique sem acesso ao projeto.
 
 As páginas **SSO** e **OIDC** de uma página de status listam os provedores dela da mesma forma. Enquanto a página de status ainda exigir SSO, as duas páginas também mostram **Exigir SSO para login**: desligue-o antes de desligar os provedores dela, ou os usuários privados dela não conseguirão fazer login de jeito nenhum.
 

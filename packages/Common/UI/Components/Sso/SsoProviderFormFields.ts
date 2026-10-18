@@ -39,7 +39,7 @@ import type { ReactElement } from "react";
  *     say under it which picked teams the person could not invite someone
  *     to: the server saves a provider only with teams the person saving it
  *     could grant (Server/Utils/SsoProviderTeamGrant).
- *   - Who can sign in and Where this sign-in counts as SSO (the
+ *   - People without an account and Where this sign-in counts as SSO (the
  *     instance-wide providers of the Admin Dashboard): two plain choices
  *     written into the Disable Sign Up with SSO and Restrict to Attached
  *     Projects columns, each starting on its first answer (off, as the
@@ -118,20 +118,27 @@ export const SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY: string = translationKey(
  * now its question with two answers, the default first, one line under
  * each:
  *
- *   Who can sign in                 Anyone your provider lets in (off)
- *                                   Only invited people (on)
+ *   People without an account       Get one on their first sign-in (off)
+ *                                   Must be invited first (on)
  *   Where this sign-in counts       Every project (off)
  *   as SSO                          Attached projects only (on)
+ *
+ * The first question is only ever about newcomers: someone with an account
+ * signs in either way. And a newcomer gets an account only when there is a
+ * project to put them in - with no project attached, the sign-in routes
+ * turn them away whatever the column says (Identity/API/GlobalSSO,
+ * GlobalOIDC: "default-all" mode) - so the first answer says so.
  *
  * The answers are written into the same two boolean columns
  * (disableSignUpWithSso, restrictToAttachedProjects), which the form loads
  * and saves unseen: the API, Terraform, the sign-in routes and every
  * provider already set up read them as before.
  */
-export const SSO_GLOBAL_SIGN_UP_FIELD_KEY: string = "whoCanSignInChoice";
+export const SSO_GLOBAL_SIGN_UP_FIELD_KEY: string = "newPeopleChoice";
 
-export const SSO_GLOBAL_SIGN_UP_TITLE: string =
-  translationKey("Who can sign in");
+export const SSO_GLOBAL_SIGN_UP_TITLE: string = translationKey(
+  "People without an account",
+);
 
 export const SSO_GLOBAL_SIGN_UP_ANYONE: string = "anyone";
 
@@ -140,16 +147,16 @@ export const SSO_GLOBAL_SIGN_UP_INVITED: string = "invited";
 export const SSO_GLOBAL_SIGN_UP_CHOICES: Array<RadioButton> = [
   {
     value: SSO_GLOBAL_SIGN_UP_ANYONE,
-    title: translationKey("Anyone your provider lets in"),
+    title: translationKey("Get one on their first sign-in"),
     description: translationKey(
-      "People without an account get one on their first sign-in.",
+      "They join the projects attached to this provider. With none attached, they must be invited first.",
     ),
   },
   {
     value: SSO_GLOBAL_SIGN_UP_INVITED,
-    title: translationKey("Only invited people"),
+    title: translationKey("Must be invited first"),
     description: translationKey(
-      "People must be invited to a project before they can sign in.",
+      "They are turned away until someone invites them to a project.",
     ),
   },
 ];
@@ -434,121 +441,138 @@ export const getSsoProviderTeamsField: GetSsoProviderTeamsFieldFunction = <
   };
 };
 
-export type GetSsoProviderFoldedFieldsFunction = <TEntity>(
-  options: SsoProviderFoldedFieldOptions<TEntity>,
-) => Array<Field<TEntity>>;
-
 /*
  * The instance-wide provider's two questions (see SSO_GLOBAL_SIGN_UP_CHOICES
  * and SSO_GLOBAL_REACH_CHOICES). Each is a form-only choice that starts on
  * the answer its column holds - off, the first answer, for a new provider,
  * as the column's default - and writes the column when picked; the column
- * itself is registered unseen right after it, so the form loads and saves
- * it. Both are always folded under the form's Advanced section.
+ * itself is registered unseen right after it (the *ColumnField helpers),
+ * so the form loads and saves it. Both questions are always folded under
+ * the form's Advanced section:
+ *
+ *   getSsoProviderSignUpChoiceField<GlobalSSO>({
+ *     stepId: "sign-in",
+ *     collapsibleSection: advancedSection,
+ *   }),
+ *   getSsoProviderSignUpColumnField<GlobalSSO>({ stepId: "sign-in" }),
+ *
+ * One field per helper, so Tests/Helpers/FormStepsScan reads each with the
+ * step and section its call names.
  */
-export const getSsoProviderSignUpChoiceFields: GetSsoProviderFoldedFieldsFunction =
+export const getSsoProviderSignUpChoiceField: GetSsoProviderFoldedFieldFunction =
   <TEntity>(
     options: SsoProviderFoldedFieldOptions<TEntity>,
-  ): Array<Field<TEntity>> => {
-    return [
-      {
-        // The column stands in for the field's permissions; the value is not sent.
-        field: {
-          disableSignUpWithSso: true,
-        } as unknown as SelectFormFields<TEntity>,
-        overrideFieldKey: SSO_GLOBAL_SIGN_UP_FIELD_KEY,
-        formOnly: true,
-        title: SSO_GLOBAL_SIGN_UP_TITLE,
-        fieldType: FormFieldSchemaType.RadioButton,
-        radioButtonOptions: SSO_GLOBAL_SIGN_UP_CHOICES,
-        required: true,
-        dataTestId: "sso-global-sign-up",
-        // Each answer says what it means; the column's sentence is for the API.
-        hideColumnDescription: true,
-        stepId: options.stepId,
-        collapsibleSection: options.collapsibleSection,
-        getDefaultValue: (values: FormValues<TEntity>): string => {
-          return getSsoGlobalSignUpAnswer(values);
-        },
-        isAtDefault: (values: FormValues<TEntity>): boolean => {
-          return getSsoGlobalSignUpAnswer(values) === SSO_GLOBAL_SIGN_UP_ANYONE;
-        },
-        onChange: (
-          value: unknown,
-          currentValues: FormValues<TEntity>,
-          setNewFormValues: (values: FormValues<TEntity>) => void,
-        ): void => {
-          setNewFormValues({
-            ...(currentValues as Record<string, unknown>),
-            disableSignUpWithSso: value === SSO_GLOBAL_SIGN_UP_INVITED,
-          } as unknown as FormValues<TEntity>);
-        },
+  ): Field<TEntity> => {
+    return {
+      // The column stands in for the field's permissions; the value is not sent.
+      field: {
+        disableSignUpWithSso: true,
+      } as unknown as SelectFormFields<TEntity>,
+      overrideFieldKey: SSO_GLOBAL_SIGN_UP_FIELD_KEY,
+      formOnly: true,
+      title: SSO_GLOBAL_SIGN_UP_TITLE,
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: SSO_GLOBAL_SIGN_UP_CHOICES,
+      required: true,
+      dataTestId: "sso-global-sign-up",
+      // Each answer says what it means; the column's sentence is for the API.
+      hideColumnDescription: true,
+      stepId: options.stepId,
+      collapsibleSection: options.collapsibleSection,
+      getDefaultValue: (values: FormValues<TEntity>): string => {
+        return getSsoGlobalSignUpAnswer(values);
       },
-      {
-        field: {
-          disableSignUpWithSso: true,
-        } as unknown as SelectFormFields<TEntity>,
-        title: "Disable Sign Up with SSO",
-        fieldType: FormFieldSchemaType.Toggle,
-        stepId: options.stepId,
-        showIf: (): boolean => {
-          return false;
-        },
+      isAtDefault: (values: FormValues<TEntity>): boolean => {
+        return getSsoGlobalSignUpAnswer(values) === SSO_GLOBAL_SIGN_UP_ANYONE;
       },
-    ];
+      onChange: (
+        value: unknown,
+        currentValues: FormValues<TEntity>,
+        setNewFormValues: (values: FormValues<TEntity>) => void,
+      ): void => {
+        setNewFormValues({
+          ...(currentValues as Record<string, unknown>),
+          disableSignUpWithSso: value === SSO_GLOBAL_SIGN_UP_INVITED,
+        } as unknown as FormValues<TEntity>);
+      },
+    };
   };
 
-export const getSsoProviderReachChoiceFields: GetSsoProviderFoldedFieldsFunction =
+// The column People without an account writes: loaded and saved, never on screen.
+export const getSsoProviderSignUpColumnField: GetSsoProviderFieldFunction = <
+  TEntity,
+>(
+  options: SsoProviderFieldOptions,
+): Field<TEntity> => {
+  return {
+    field: {
+      disableSignUpWithSso: true,
+    } as unknown as SelectFormFields<TEntity>,
+    title: "Disable Sign Up with SSO",
+    fieldType: FormFieldSchemaType.Toggle,
+    stepId: options.stepId,
+    showIf: (): boolean => {
+      return false;
+    },
+  };
+};
+
+export const getSsoProviderReachChoiceField: GetSsoProviderFoldedFieldFunction =
   <TEntity>(
     options: SsoProviderFoldedFieldOptions<TEntity>,
-  ): Array<Field<TEntity>> => {
-    return [
-      {
-        // The column stands in for the field's permissions; the value is not sent.
-        field: {
-          restrictToAttachedProjects: true,
-        } as unknown as SelectFormFields<TEntity>,
-        overrideFieldKey: SSO_GLOBAL_REACH_FIELD_KEY,
-        formOnly: true,
-        title: SSO_GLOBAL_REACH_TITLE,
-        fieldType: FormFieldSchemaType.RadioButton,
-        radioButtonOptions: SSO_GLOBAL_REACH_CHOICES,
-        required: true,
-        dataTestId: "sso-global-reach",
-        // Each answer says what it means; the column's sentence is for the API.
-        hideColumnDescription: true,
-        stepId: options.stepId,
-        collapsibleSection: options.collapsibleSection,
-        getDefaultValue: (values: FormValues<TEntity>): string => {
-          return getSsoGlobalReachAnswer(values);
-        },
-        isAtDefault: (values: FormValues<TEntity>): boolean => {
-          return (
-            getSsoGlobalReachAnswer(values) === SSO_GLOBAL_REACH_EVERY_PROJECT
-          );
-        },
-        onChange: (
-          value: unknown,
-          currentValues: FormValues<TEntity>,
-          setNewFormValues: (values: FormValues<TEntity>) => void,
-        ): void => {
-          setNewFormValues({
-            ...(currentValues as Record<string, unknown>),
-            restrictToAttachedProjects:
-              value === SSO_GLOBAL_REACH_ATTACHED_ONLY,
-          } as unknown as FormValues<TEntity>);
-        },
+  ): Field<TEntity> => {
+    return {
+      // The column stands in for the field's permissions; the value is not sent.
+      field: {
+        restrictToAttachedProjects: true,
+      } as unknown as SelectFormFields<TEntity>,
+      overrideFieldKey: SSO_GLOBAL_REACH_FIELD_KEY,
+      formOnly: true,
+      title: SSO_GLOBAL_REACH_TITLE,
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: SSO_GLOBAL_REACH_CHOICES,
+      required: true,
+      dataTestId: "sso-global-reach",
+      // Each answer says what it means; the column's sentence is for the API.
+      hideColumnDescription: true,
+      stepId: options.stepId,
+      collapsibleSection: options.collapsibleSection,
+      getDefaultValue: (values: FormValues<TEntity>): string => {
+        return getSsoGlobalReachAnswer(values);
       },
-      {
-        field: {
-          restrictToAttachedProjects: true,
-        } as unknown as SelectFormFields<TEntity>,
-        title: "Restrict to Attached Projects",
-        fieldType: FormFieldSchemaType.Toggle,
-        stepId: options.stepId,
-        showIf: (): boolean => {
-          return false;
-        },
+      isAtDefault: (values: FormValues<TEntity>): boolean => {
+        return (
+          getSsoGlobalReachAnswer(values) === SSO_GLOBAL_REACH_EVERY_PROJECT
+        );
       },
-    ];
+      onChange: (
+        value: unknown,
+        currentValues: FormValues<TEntity>,
+        setNewFormValues: (values: FormValues<TEntity>) => void,
+      ): void => {
+        setNewFormValues({
+          ...(currentValues as Record<string, unknown>),
+          restrictToAttachedProjects: value === SSO_GLOBAL_REACH_ATTACHED_ONLY,
+        } as unknown as FormValues<TEntity>);
+      },
+    };
   };
+
+// The column Where this sign-in counts as SSO writes: loaded and saved, never on screen.
+export const getSsoProviderReachColumnField: GetSsoProviderFieldFunction = <
+  TEntity,
+>(
+  options: SsoProviderFieldOptions,
+): Field<TEntity> => {
+  return {
+    field: {
+      restrictToAttachedProjects: true,
+    } as unknown as SelectFormFields<TEntity>,
+    title: "Restrict to Attached Projects",
+    fieldType: FormFieldSchemaType.Toggle,
+    stepId: options.stepId,
+    showIf: (): boolean => {
+      return false;
+    },
+  };
+};

@@ -946,11 +946,6 @@
   "Where OneUptime writes about this server, such as when a probe goes offline.": "Dove OneUptime scrive riguardo a questo server, ad esempio quando una sonda va offline.",
   "Has root access to every project on this server.": "Ha accesso root a ogni progetto su questo server.",
   "While it is off, every request with the key fails.": "Finché è disattivata, ogni richiesta con la chiave non riesce.",
-  "Who can sign in": "Chi può accedere",
-  "Anyone your provider lets in": "Chiunque il tuo provider lasci entrare",
-  "People without an account get one on their first sign-in.": "Chi non ha un account ne riceve uno al primo accesso.",
-  "Only invited people": "Solo le persone invitate",
-  "People must be invited to a project before they can sign in.": "Le persone devono essere invitate in un progetto prima di poter accedere.",
   "Where this sign-in counts as SSO": "Dove questo accesso vale come SSO",
   "Every project": "Ogni progetto",
   "Projects that require SSO accept a sign-in with this provider.": "I progetti che richiedono l'SSO accettano un accesso con questo provider.",
@@ -959,5 +954,10 @@
   "Attach a Project": "Collega un progetto",
   "Attach Project": "Collega progetto",
   "People who sign in for the first time join this project.": "Chi accede per la prima volta entra in questo progetto.",
-  "The teams of that project they join.": "I team di quel progetto in cui entrano."
+  "The teams of that project they join.": "I team di quel progetto in cui entrano.",
+  "People without an account": "Persone senza account",
+  "Get one on their first sign-in": "Ne ricevono uno al primo accesso",
+  "They join the projects attached to this provider. With none attached, they must be invited first.": "Entrano nei progetti collegati a questo provider. Se non ce n'è nessuno collegato, devono prima essere invitate.",
+  "Must be invited first": "Devono prima essere invitate",
+  "They are turned away until someone invites them to a project.": "Vengono respinte finché qualcuno non le invita in un progetto."
 }

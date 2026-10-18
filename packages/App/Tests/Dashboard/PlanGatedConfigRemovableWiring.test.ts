@@ -95,6 +95,11 @@ function readDashboard(relativePath: string): string {
   return readSource(path.join(DASHBOARD_SRC, relativePath));
 }
 
+// A literal piece of source, as a pattern that matches only it.
+function escapeForRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function readLocale(locale: string): Record<string, unknown> {
   return JSON.parse(
     fs.readFileSync(path.join(LOCALES_DIR, `${locale}.json`), "utf8"),
@@ -177,8 +182,9 @@ describe("the server's rule, which the dashboard asks", () => {
 
 describe("the Scale pages draw what is left under their upsell", () => {
   test.each([
+    // Settings > SSO holds the project's SAML and its OIDC providers.
     ["Pages/Settings/SSO.tsx", "ProjectSamlProvidersLeftover"],
-    ["Pages/Settings/OIDC.tsx", "ProjectOidcProvidersLeftover"],
+    ["Pages/Settings/SSO.tsx", "ProjectOidcProvidersLeftover"],
     ["Pages/Settings/SCIM.tsx", "ProjectScimConnectionsLeftover"],
     ["Pages/StatusPages/View/SSO.tsx", "StatusPageSamlProvidersLeftover"],
     ["Pages/StatusPages/View/OIDC.tsx", "StatusPageOidcProvidersLeftover"],
@@ -187,9 +193,12 @@ describe("the Scale pages draw what is left under their upsell", () => {
     "%s hands its upsell %s, an element nothing is read for until it is drawn",
     (page: string, leftover: string) => {
       const source: string = readDashboard(page);
+      const from: string = `${page.startsWith("Pages/Settings") ? "../.." : "../../.."}/Components/Billing/IdentityPlanLeftovers`;
 
-      expect(source).toContain(
-        `import { ${leftover} } from "${page.startsWith("Pages/Settings") ? "../.." : "../../.."}/Components/Billing/IdentityPlanLeftovers";`,
+      expect(source).toMatch(
+        new RegExp(
+          `import \\{[^}]*\\b${leftover}\\b[^}]*\\} from "${escapeForRegExp(from)}";`,
+        ),
       );
       expect(source).toMatch(
         new RegExp(`belowPlan=\\{ ?(<> )?.*<${leftover} />`),
@@ -197,10 +206,17 @@ describe("the Scale pages draw what is left under their upsell", () => {
     },
   );
 
-  test("Settings > SSO keeps the project's Require SSO for Login leftover too", () => {
-    expect(readDashboard("Pages/Settings/SSO.tsx")).toContain(
-      "<RequireSsoForLoginLeftover projectId={ProjectUtil.getCurrentProjectId()!} /> <ProjectSamlProvidersLeftover />",
+  /*
+   * One switch for the page, above both kinds of provider: turning the last
+   * provider of either kind off while SSO is required leaves no way in.
+   */
+  test("Settings > SSO keeps the project's Require SSO for Login leftover too, once, above both kinds of provider", () => {
+    const page: string = readDashboard("Pages/Settings/SSO.tsx");
+
+    expect(page).toContain(
+      "<RequireSsoForLoginLeftover projectId={ProjectUtil.getCurrentProjectId()!} /> <ProjectSamlProvidersLeftover /> <ProjectOidcProvidersLeftover />",
     );
+    expect(page.split("<RequireSsoForLoginLeftover").length - 1).toBe(1);
   });
 
   test.each([
@@ -252,14 +268,26 @@ describe("the Scale pages draw what is left under their upsell", () => {
     );
   });
 
-  // Turning the last provider off while SSO is required leaves no way in.
-  test("the project's OIDC leftovers start with its Require SSO for Login switch, as Settings > SSO does", () => {
+  /*
+   * The project's OIDC providers are on Settings > SSO, under the switch
+   * the page draws once: their leftover draws no second one.
+   */
+  test("the project's OIDC leftovers leave Require SSO for Login to the page they are on", () => {
     const source: string = readDashboard(
       "Components/Billing/IdentityPlanLeftovers.tsx",
     );
+    const start: number = source.indexOf(
+      "export const ProjectOidcProvidersLeftover",
+    );
+    const body: string = source.slice(
+      start,
+      source.indexOf("export const", start + 1),
+    );
 
-    expect(source).toContain(
-      "<RequireSsoForLoginLeftover projectId={projectId} /> <PlanLeftoverTable<ProjectOIDC>",
+    expect(start).toBeGreaterThan(-1);
+    expect(body).not.toContain("RequireSsoForLoginLeftover");
+    expect(source).not.toContain(
+      'import RequireSsoForLoginLeftover from "../Project/RequireSsoForLoginLeftover";',
     );
   });
 });

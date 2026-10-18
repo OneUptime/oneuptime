@@ -36,7 +36,7 @@ flowchart LR
 | **Benachrichtigungen** | **Benachrichtigungseinstellungen**, **Benachrichtigungsprotokolle**, **Mobile Apps** | [Benachrichtigungen](#benachrichtigungen) |
 | **KI** | **KI-Funktionen**, **LLM-Anbieter**, **KI-Guthaben**, **KI-Protokolle**, **MCP-Server** | [LLM-Anbieter](/docs/ai/llm-provider), [MCP-Server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenkontrollen) |
 | **Erweitert** | **Domänen**, **API-Schlüssel**, **Feature-Flags** | [Eigene Domains](/docs/status-pages/branding-and-domains#eigene-domains), [API-Schlüssel](/docs/permissions/index#api-schlüssel), [Feature-Flags](#feature-flags) |
-| **Sicherheit** | **SSO**, **OIDC**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
+| **Sicherheit** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Abrechnung und Rechnungen** | **Abrechnung**, **Nutzungsverlauf**, **Rechnungen** | [Abrechnung & Nutzung](/docs/configuration/billing) |
 | **Audit-Protokolle** | **Audit-Protokolle**, **Einstellungen** | [Audit-Protokolle](/docs/configuration/audit-logs) |
 | **Gefahrenzone** | **Gefahrenzone** | [Das Projekt löschen](#das-projekt-löschen) |

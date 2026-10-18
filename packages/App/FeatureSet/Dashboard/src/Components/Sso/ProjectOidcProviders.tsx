@@ -1,5 +1,4 @@
 import TeamsElement from "../Team/TeamsElement";
-import { useDefaultSsoTeamsInitialValues } from "./UseDefaultSsoTeams";
 import { getSsoTeamsGrantNote } from "./SsoTeamsGrantNote";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -47,14 +46,25 @@ interface OidcConfigDialogTarget {
  * Once it is saved, the dialog with the redirect URI to give the identity
  * provider opens straight away: that is the next thing to do.
  */
-const ProjectOidcProviders: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+  /*
+   * What a new provider's Create form starts with: the team the project's
+   * members join, which the SSO page looks up once for its SAML and OIDC
+   * tables alike (useDefaultSsoTeamsInitialValues).
+   */
+  createInitialValues?: FormValues<ProjectOIDC> | undefined;
+}
+
+const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const [oidcConfigTarget, setOidcConfigTarget] =
     useState<OidcConfigDialogTarget | null>(null);
   const showOidcConfigId: string = oidcConfigTarget?.id || "";
 
   const createInitialValues: FormValues<ProjectOIDC> | undefined =
-    useDefaultSsoTeamsInitialValues<ProjectOIDC>();
+    props.createInitialValues;
 
   return (
     <Fragment>

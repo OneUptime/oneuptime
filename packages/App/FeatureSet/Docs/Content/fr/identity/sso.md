@@ -244,11 +244,11 @@ Un projet peut aussi se connecter via un fournisseur OpenID Connect, comme Googl
 
 :::steps
 1. Enregistrez auprès de votre fournisseur d'identité une application (un client OIDC) autorisée à utiliser le flux authorization code avec PKCE, et copiez son **URL de l'émetteur**, son **ID client** et son **Secret client**.
-2. Dans OneUptime, allez dans **Paramètres du projet** > **Sécurité** > **OIDC** et cliquez sur **Créer : OIDC**.
+2. Dans OneUptime, allez dans **Paramètres du projet** > **Sécurité** > **SSO**. Sous les fournisseurs SAML, cliquez sur **Créer : OIDC**.
 3. Saisissez un **Nom** (ce que les personnes voient sur la page de connexion), l'**URL de l'émetteur**, l'**ID client** et le **Secret client**. Vous pouvez aussi coller l'URL de découverte du fournisseur dans **URL de l'émetteur**.
 4. À l'étape **Connexion**, **Équipes** commence par l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes. Tout le reste est prérempli sous **Plus de champs** : l'**URL de découverte** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Portées** (`openid email profile`), les noms de revendications `email` et `name`, et une description ("Sign in with" suivi du nom). Ne les modifiez que si votre fournisseur l'exige. Seules les équipes dans lesquelles vous pourriez inviter quelqu'un sont acceptées : une équipe qui donne plus d'accès que vous n'en avez est signalée sous **Équipes**.
 5. Enregistrez. La boîte de dialogue **Configuration OIDC** s'ouvre avec la **Redirect URI** : ajoutez-la aux URI de redirection autorisées de votre application. Un nouveau fournisseur est désactivé au départ : modifiez-le ensuite et activez **Activé**.
-6. Utilisez le lien de la carte **Test OpenID Connect (OIDC)** pour vous connecter via le fournisseur avant d'exiger le SSO pour le projet.
+6. Ouvrez le lien de la carte **Test Single Sign On (SSO)** et choisissez le fournisseur, pour vous connecter avec lui avant d'exiger le SSO pour le projet.
 :::
 
 ## Rôles et équipes des utilisateurs SSO
@@ -308,14 +308,14 @@ Là où ni le projet ni le serveur n'exigent le SSO, désactiver un fournisseur 
 
 ## Fournisseurs conservés sous le plan Scale
 
-Un fournisseur SAML ou OIDC qu'un projet possède encore continue de connecter des personnes après la fin d'un essai Scale ou une rétrogradation du plan. C'est pourquoi, en dessous de Scale, les pages **SSO** et **OIDC** listent les fournisseurs du projet sous l'offre de mise à niveau (**Fournisseurs SAML encore configurés**, **Fournisseurs OIDC encore configurés**) :
+Un fournisseur SAML ou OIDC qu'un projet possède encore continue de connecter des personnes après la fin d'un essai Scale ou une rétrogradation du plan. C'est pourquoi, en dessous de Scale, la page **SSO** liste les fournisseurs du projet sous l'offre de mise à niveau (**Fournisseurs SAML encore configurés**, **Fournisseurs OIDC encore configurés**) :
 
 - **Désactiver** arrête un fournisseur immédiatement. OneUptime demande d'abord confirmation.
 - **Supprimer** le retire.
 
 Ajouter un fournisseur, en modifier un ou le réactiver nécessite **Scale**. Les personnes autorisées sont les mêmes qu'avec Scale : désactiver un fournisseur nécessite l'autorisation de le modifier, le supprimer l'autorisation de le supprimer.
 
-Tant que le projet exige encore le SSO, ses pages **SSO** et **OIDC** affichent aussi **Exiger le SSO pour la connexion** : désactivez-le avant de désactiver le dernier fournisseur. D'ici là, le dernier fournisseur avec lequel les personnes peuvent se connecter ne peut être ni désactivé ni supprimé, pour que personne ne soit exclu du projet.
+Tant que le projet exige encore le SSO, sa page **SSO** affiche aussi **Exiger le SSO pour la connexion** : désactivez-le avant de désactiver le dernier fournisseur. D'ici là, le dernier fournisseur avec lequel les personnes peuvent se connecter ne peut être ni désactivé ni supprimé, pour que personne ne soit exclu du projet.
 
 Les pages **SSO** et **OIDC** d'une page de statut listent ses propres fournisseurs de la même façon. Tant que la page de statut exige encore le SSO, les deux pages affichent aussi **Exiger le SSO pour la connexion** : désactivez-le avant de désactiver ses fournisseurs, sinon ses utilisateurs privés ne pourront plus se connecter du tout.
 

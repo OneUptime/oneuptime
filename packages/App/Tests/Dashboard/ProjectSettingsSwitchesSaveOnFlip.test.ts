@@ -163,8 +163,9 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
   test("Settings > SSO below Scale: the Require SSO switch under the upsell, while the project requires SSO", () => {
     const page: string = readDashboard("Pages/Settings/SSO.tsx");
 
+    // Then the SAML and the OIDC providers, which are on the same page.
     expect(page).toContain(
-      "belowPlan={ <> <RequireSsoForLoginLeftover projectId={ProjectUtil.getCurrentProjectId()!} /> <ProjectSamlProvidersLeftover /> </> }",
+      "belowPlan={ <> <RequireSsoForLoginLeftover projectId={ProjectUtil.getCurrentProjectId()!} /> <ProjectSamlProvidersLeftover /> <ProjectOidcProvidersLeftover /> </> }",
     );
 
     const leftover: string = readDashboard(

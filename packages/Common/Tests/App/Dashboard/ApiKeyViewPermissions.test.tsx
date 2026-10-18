@@ -281,12 +281,15 @@ afterEach(() => {
 async function renderPage(): Promise<void> {
   render(<APIKeyViewPage {...pageProps} />);
 
-  // Both tables have loaded: each shows its rows or its empty state.
+  /*
+   * Both tables have loaded: each shows its rows (a row's Scope cell says
+   * what it reaches) or its empty state.
+   */
   await waitFor(
     () => {
       expect(
         screen.getAllByText(
-          /This key can do nothing yet|Nothing is blocked for this API key|Restriction by labels|No restrictions/,
+          /This key can do nothing yet|Nothing is blocked for this API key|All resources in the project|Only resources with certain labels/,
         ).length,
       ).toBeGreaterThanOrEqual(2);
     },

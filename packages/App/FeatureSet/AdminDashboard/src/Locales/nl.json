@@ -946,11 +946,6 @@
   "Where OneUptime writes about this server, such as when a probe goes offline.": "Waar OneUptime over deze server schrijft, bijvoorbeeld wanneer een sonde offline gaat.",
   "Has root access to every project on this server.": "Heeft root-toegang tot elk project op deze server.",
   "While it is off, every request with the key fails.": "Zolang hij uit staat, mislukt elk verzoek met de sleutel.",
-  "Who can sign in": "Wie zich kan aanmelden",
-  "Anyone your provider lets in": "Iedereen die je provider binnenlaat",
-  "People without an account get one on their first sign-in.": "Mensen zonder account krijgen er een bij hun eerste aanmelding.",
-  "Only invited people": "Alleen uitgenodigde mensen",
-  "People must be invited to a project before they can sign in.": "Mensen moeten voor een project zijn uitgenodigd voordat ze zich kunnen aanmelden.",
   "Where this sign-in counts as SSO": "Waar deze aanmelding als SSO telt",
   "Every project": "Elk project",
   "Projects that require SSO accept a sign-in with this provider.": "Projecten die SSO vereisen, accepteren een aanmelding met deze provider.",
@@ -959,5 +954,10 @@
   "Attach a Project": "Een project koppelen",
   "Attach Project": "Project koppelen",
   "People who sign in for the first time join this project.": "Mensen die zich voor het eerst aanmelden, worden lid van dit project.",
-  "The teams of that project they join.": "De teams van dat project waarvan ze lid worden."
+  "The teams of that project they join.": "De teams van dat project waarvan ze lid worden.",
+  "People without an account": "Mensen zonder account",
+  "Get one on their first sign-in": "Krijgen er een bij hun eerste aanmelding",
+  "They join the projects attached to this provider. With none attached, they must be invited first.": "Ze worden lid van de projecten die aan deze provider zijn gekoppeld. Is er geen gekoppeld, dan moeten ze eerst worden uitgenodigd.",
+  "Must be invited first": "Moeten eerst worden uitgenodigd",
+  "They are turned away until someone invites them to a project.": "Ze worden geweigerd totdat iemand ze voor een project uitnodigt."
 }

@@ -946,11 +946,6 @@
   "Where OneUptime writes about this server, such as when a probe goes offline.": "Hvor OneUptime skriver om denne serveren, for eksempel når en sonde går frakoblet.",
   "Has root access to every project on this server.": "Har root-tilgang til alle prosjekter på denne serveren.",
   "While it is off, every request with the key fails.": "Så lenge den er slått av, mislykkes alle forespørsler med nøkkelen.",
-  "Who can sign in": "Hvem som kan logge inn",
-  "Anyone your provider lets in": "Alle som leverandøren din slipper inn",
-  "People without an account get one on their first sign-in.": "Personer uten konto får en ved første pålogging.",
-  "Only invited people": "Bare inviterte personer",
-  "People must be invited to a project before they can sign in.": "Personer må inviteres til et prosjekt før de kan logge inn.",
   "Where this sign-in counts as SSO": "Hvor denne påloggingen teller som SSO",
   "Every project": "Alle prosjekter",
   "Projects that require SSO accept a sign-in with this provider.": "Prosjekter som krever SSO, godtar en pålogging med denne leverandøren.",
@@ -959,5 +954,10 @@
   "Attach a Project": "Knytt til et prosjekt",
   "Attach Project": "Knytt til prosjekt",
   "People who sign in for the first time join this project.": "Personer som logger inn for første gang, blir med i dette prosjektet.",
-  "The teams of that project they join.": "Teamene i det prosjektet som de blir med i."
+  "The teams of that project they join.": "Teamene i det prosjektet som de blir med i.",
+  "People without an account": "Personer uten konto",
+  "Get one on their first sign-in": "Får en ved første pålogging",
+  "They join the projects attached to this provider. With none attached, they must be invited first.": "De blir med i prosjektene som er knyttet til denne leverandøren. Er ingen knyttet til, må de inviteres først.",
+  "Must be invited first": "Må inviteres først",
+  "They are turned away until someone invites them to a project.": "De avvises til noen inviterer dem til et prosjekt."
 }

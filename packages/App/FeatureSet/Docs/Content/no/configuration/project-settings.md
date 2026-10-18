@@ -36,7 +36,7 @@ flowchart LR
 | **Varsler** | **Varselinnstillinger**, **Varsellogger**, **Mobilapper** | [Varsler](#varsler) |
 | **KI** | **AI Features**, **LLM-leverandører**, **AI-kreditter**, **AI-logger**, **MCP-server** | [LLM-leverandører](/docs/ai/llm-provider), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |
 | **Avansert** | **Domener**, **API-nøkler**, **Funksjonsflagg** | [Egne domener](/docs/status-pages/branding-and-domains#egendefinerte-domener), [API-nøkler](/docs/permissions/index#api-nøkler), [Funksjonsflagg](#funksjonsflagg) |
-| **Sikkerhet** | **SSO**, **OIDC**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
+| **Sikkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Brukshistorikk**, **Fakturaer** | [Fakturering og bruk](/docs/configuration/billing) |
 | **Revisjonslogger** | **Revisjonslogger**, **Innstillinger** | [Revisjonslogger](/docs/configuration/audit-logs) |
 | **Faresone** | **Faresone** | [Slett prosjektet](#slett-prosjektet) |

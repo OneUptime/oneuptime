@@ -946,11 +946,6 @@
   "Where OneUptime writes about this server, such as when a probe goes offline.": "Hvor OneUptime skriver om denne server, f.eks. når en sonde går offline.",
   "Has root access to every project on this server.": "Har root-adgang til alle projekter på denne server.",
   "While it is off, every request with the key fails.": "Så længe den er slået fra, mislykkes alle anmodninger med nøglen.",
-  "Who can sign in": "Hvem der kan logge ind",
-  "Anyone your provider lets in": "Alle, som din udbyder lukker ind",
-  "People without an account get one on their first sign-in.": "Personer uden en konto får en ved deres første login.",
-  "Only invited people": "Kun inviterede personer",
-  "People must be invited to a project before they can sign in.": "Personer skal inviteres til et projekt, før de kan logge ind.",
   "Where this sign-in counts as SSO": "Hvor dette login tæller som SSO",
   "Every project": "Alle projekter",
   "Projects that require SSO accept a sign-in with this provider.": "Projekter, der kræver SSO, accepterer et login med denne udbyder.",
@@ -959,5 +954,10 @@
   "Attach a Project": "Tilknyt et projekt",
   "Attach Project": "Tilknyt projekt",
   "People who sign in for the first time join this project.": "Personer, der logger ind for første gang, bliver medlem af dette projekt.",
-  "The teams of that project they join.": "De teams i projektet, som de bliver medlem af."
+  "The teams of that project they join.": "De teams i projektet, som de bliver medlem af.",
+  "People without an account": "Personer uden en konto",
+  "Get one on their first sign-in": "Får en ved deres første login",
+  "They join the projects attached to this provider. With none attached, they must be invited first.": "De bliver medlem af de projekter, der er tilknyttet denne udbyder. Er ingen tilknyttet, skal de først inviteres.",
+  "Must be invited first": "Skal inviteres først",
+  "They are turned away until someone invites them to a project.": "De afvises, indtil nogen inviterer dem til et projekt."
 }

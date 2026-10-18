@@ -19,8 +19,9 @@ import {
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * Settings > SSO / OIDC and Status page > SSO / OIDC: single sign-on
- * configuration, which every edition includes.
+ * Settings > SSO (the project's SAML and OpenID Connect providers, on one
+ * page) and Status page > SSO / OIDC: single sign-on configuration, which
+ * every edition includes.
  *
  * On a self-hosted install (billing off) each page is the configuration
  * screen whatever the edition and whatever the Enterprise license says: the
@@ -128,9 +129,9 @@ const mockProviderRow: { _id: string } = {
 
 /*
  * The team a project's new SAML or OIDC provider starts on
- * (Utils/DefaultInviteTeam, looked up when Settings > SSO or Settings > OIDC
- * opens). Stubbed so the pages make no request at all here; its own suite
- * tests the lookup.
+ * (Utils/DefaultInviteTeam, looked up once when Settings > SSO opens, for
+ * its SAML and OIDC tables alike). Stubbed so the pages make no request at
+ * all here; its own suite tests the lookup.
  */
 const mockDefaultInviteTeam: {
   team: { id: string; name: string } | null;
@@ -439,7 +440,6 @@ jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
 });
 
 import SettingsSSOPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/SSO";
-import SettingsOIDCPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/OIDC";
 import StatusPageSSOPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SSO";
 import StatusPageOIDCPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/OIDC";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
@@ -547,7 +547,23 @@ interface PageCase {
     table: string;
     countPath: string;
   };
+  /*
+   * What the page counts below Scale: the providers of every table on it
+   * (the project's SSO page has its SAML and its OIDC providers).
+   */
+  countPaths: Array<string>;
 }
+
+// The project's single sign-on page, below Scale.
+const PROJECT_SSO_UPSELL: { upsellTitle: string; featureName: string } = {
+  upsellTitle: "Single Sign On (SSO)",
+  featureName: "Single Sign-On",
+};
+
+const PROJECT_SSO_COUNT_PATHS: Array<string> = [
+  "/project-sso",
+  "/project-oidc",
+];
 
 const PAGE_CASES: Array<PageCase> = [
   {
@@ -582,18 +598,23 @@ const PAGE_CASES: Array<PageCase> = [
       "description",
     ],
     attachesToStatusPage: false,
-    upsellTitle: "Single Sign On (SSO)",
-    featureName: "SAML Single Sign On",
+    ...PROJECT_SSO_UPSELL,
     retiredPluginKey: "SettingsSSO",
     leftover: {
       table: "plan-leftover-project-saml-providers",
       countPath: "/project-sso",
     },
+    countPaths: PROJECT_SSO_COUNT_PATHS,
   },
+  /*
+   * The project's OpenID Connect providers, on the same page under its SAML
+   * ones (Components/Sso/ProjectOidcProviders): they had a page of their
+   * own, Settings > OIDC, whose address forwards here.
+   */
   {
-    name: "Settings > OIDC",
-    Page: SettingsOIDCPage,
-    path: `/dashboard/${PROJECT_ID}/settings/oidc`,
+    name: "Settings > SSO, its OIDC providers",
+    Page: SettingsSSOPage,
+    path: `/dashboard/${PROJECT_ID}/settings/sso`,
     table: "oidc-table",
     viewAction: "View OIDC Config",
     modalTitle: "OIDC Configuration",
@@ -604,7 +625,12 @@ const PAGE_CASES: Array<PageCase> = [
     turnOnNote: OIDC_TURN_ON_NOTE,
     startsOnMembersTeam: true,
     testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
-    requireSsoSwitch: null,
+    // The page's one switch: an OIDC sign-in meets it as a SAML one does.
+    requireSsoSwitch: {
+      testId: REQUIRE_SSO_SWITCH_CARD,
+      model: "Project",
+      modelId: PROJECT_ID,
+    },
     // What the identity provider gives, then how people sign in.
     formFields: [
       "name",
@@ -620,13 +646,13 @@ const PAGE_CASES: Array<PageCase> = [
       "description",
     ],
     attachesToStatusPage: false,
-    upsellTitle: "OpenID Connect (OIDC)",
-    featureName: "OIDC Single Sign On",
+    ...PROJECT_SSO_UPSELL,
     retiredPluginKey: "SettingsOIDC",
     leftover: {
       table: "plan-leftover-project-oidc-providers",
       countPath: "/project-oidc",
     },
+    countPaths: PROJECT_SSO_COUNT_PATHS,
   },
   {
     name: "Status page > SSO",
@@ -665,6 +691,7 @@ const PAGE_CASES: Array<PageCase> = [
       table: "plan-leftover-status-page-saml-providers",
       countPath: "/status-page-sso",
     },
+    countPaths: ["/status-page-sso"],
   },
   {
     name: "Status page > OIDC",
@@ -701,6 +728,7 @@ const PAGE_CASES: Array<PageCase> = [
       table: "plan-leftover-status-page-oidc-providers",
       countPath: "/status-page-oidc",
     },
+    countPaths: ["/status-page-oidc"],
   },
 ];
 
@@ -1112,9 +1140,10 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
           pageCase.name.startsWith("Settings")
             ? PROJECT_READ_URL
             : STATUS_PAGE_READ_URL,
-          countUrl(pageCase.leftover.countPath),
+          ...pageCase.countPaths.map(countUrl),
         ].sort(),
       );
+      expect(pageCase.countPaths).toContain(pageCase.leftover.countPath);
       expect(
         screen.queryByTestId(`model-table-${pageCase.leftover.table}`),
       ).not.toBeInTheDocument();
@@ -1474,10 +1503,14 @@ describe("Settings > SSO below Scale: Require SSO for Login stays reachable whil
 
       /*
        * It asked only whether the project requires SSO, and how many
-       * providers are left - never for the license.
+       * providers of each kind are left - never for the license.
        */
       expect(allRequests().sort()).toEqual(
-        [PROJECT_READ_URL, countUrl("/project-sso")].sort(),
+        [
+          PROJECT_READ_URL,
+          countUrl("/project-sso"),
+          countUrl("/project-oidc"),
+        ].sort(),
       );
       expect(
         apiFetch.mock.calls.find((call: Array<unknown>): boolean => {
@@ -1540,35 +1573,80 @@ describe("Settings > SSO below Scale: Require SSO for Login stays reachable whil
   });
 
   /*
-   * The project's OIDC providers sign the same people in: turning the last
-   * one off while the project requires SSO would leave nobody a way in, so
-   * Settings > OIDC draws the switch too.
+   * The project's OIDC providers sign the same people in, and are on the
+   * same page: under the upsell the switch is drawn once, with the SAML and
+   * the OIDC providers the project still has.
    */
-  test("Settings > OIDC draws it too, while the project requires SSO", async () => {
-    const settingsOidc: PageCase = PAGE_CASES.find(
-      (pageCase: PageCase): boolean => {
-        return pageCase.name === "Settings > OIDC";
-      },
-    ) as PageCase;
-
+  test("one switch for both kinds of provider, with each kind's providers under it", async () => {
     pinCloud(PlanType.Free);
     projectRequiresSsoForTest = true;
+    providerCountForTest = 1;
 
-    renderPage(settingsOidc);
+    renderPage(settingsSso);
 
     await settle();
 
     expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+    expect(screen.getAllByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveLength(1);
+    expect(
+      screen.getByTestId("model-table-plan-leftover-project-saml-providers"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("model-table-plan-leftover-project-oidc-providers"),
+    ).toBeInTheDocument();
+  });
 
-    const requireSso: HTMLElement = screen.getByTestId(REQUIRE_SSO_SWITCH_CARD);
+  test("on a plan that has SSO the page holds both tables, one test link and one switch", async () => {
+    pinCloud(PlanType.Scale);
 
-    expect(requireSso).toHaveAttribute("data-model", "Project");
-    expect(requireSso).toHaveAttribute("data-model-id", PROJECT_ID);
-    expect(requireSso).toHaveAttribute("data-locks-when-plan-needed", "true");
-    expect(requireSso).toHaveAttribute("data-initial-value", "true");
-    expect(allRequests().sort()).toEqual(
-      [PROJECT_READ_URL, countUrl("/project-oidc")].sort(),
+    renderPage(settingsSso);
+
+    await settle();
+
+    expect(screen.getByTestId("model-table-sso-table")).toBeInTheDocument();
+    expect(screen.getByTestId("model-table-oidc-table")).toBeInTheDocument();
+    // SAML first, then OIDC, then the test link, then the switch.
+    expect(
+      Boolean(
+        screen
+          .getByTestId("model-table-sso-table")
+          .compareDocumentPosition(
+            screen.getByTestId("model-table-oidc-table"),
+          ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
+    expect(
+      screen.getAllByText(settingsSso.testLink, { exact: true }),
+    ).toHaveLength(1);
+    expect(screen.getAllByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveLength(1);
+    expect(
+      Boolean(
+        screen
+          .getByTestId("model-table-oidc-table")
+          .compareDocumentPosition(
+            screen.getByTestId(REQUIRE_SSO_SWITCH_CARD),
+          ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
+  });
+
+  test("a new provider of either kind starts on the members team, looked up once", async () => {
+    mockDefaultInviteTeam.team = { id: MEMBERS_TEAM_ID, name: "Members" };
+
+    renderPage(settingsSso);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("model-table-oidc-table")).toHaveAttribute(
+        "data-create-initial-values",
+        JSON.stringify({ teams: [MEMBERS_TEAM_ID] }),
+      );
+    });
+
+    expect(screen.getByTestId("model-table-sso-table")).toHaveAttribute(
+      "data-create-initial-values",
+      JSON.stringify({ teams: [MEMBERS_TEAM_ID] }),
     );
+    expect(mockDefaultInviteTeam.lookups).toBe(1);
   });
 
   test("the status page SSO page never draws the project's switch", async () => {
@@ -1825,7 +1903,7 @@ test("every provider page is one of those two kinds", () => {
     }),
   ).toEqual([
     "Settings > SSO: true",
-    "Settings > OIDC: true",
+    "Settings > SSO, its OIDC providers: true",
     "Status page > SSO: false",
     "Status page > OIDC: false",
   ]);

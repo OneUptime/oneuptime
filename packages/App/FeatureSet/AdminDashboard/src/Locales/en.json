@@ -946,11 +946,6 @@
   "Where OneUptime writes about this server, such as when a probe goes offline.": "Where OneUptime writes about this server, such as when a probe goes offline.",
   "Has root access to every project on this server.": "Has root access to every project on this server.",
   "While it is off, every request with the key fails.": "While it is off, every request with the key fails.",
-  "Who can sign in": "Who can sign in",
-  "Anyone your provider lets in": "Anyone your provider lets in",
-  "People without an account get one on their first sign-in.": "People without an account get one on their first sign-in.",
-  "Only invited people": "Only invited people",
-  "People must be invited to a project before they can sign in.": "People must be invited to a project before they can sign in.",
   "Where this sign-in counts as SSO": "Where this sign-in counts as SSO",
   "Every project": "Every project",
   "Projects that require SSO accept a sign-in with this provider.": "Projects that require SSO accept a sign-in with this provider.",
@@ -959,5 +954,10 @@
   "Attach a Project": "Attach a Project",
   "Attach Project": "Attach Project",
   "People who sign in for the first time join this project.": "People who sign in for the first time join this project.",
-  "The teams of that project they join.": "The teams of that project they join."
+  "The teams of that project they join.": "The teams of that project they join.",
+  "People without an account": "People without an account",
+  "Get one on their first sign-in": "Get one on their first sign-in",
+  "They join the projects attached to this provider. With none attached, they must be invited first.": "They join the projects attached to this provider. With none attached, they must be invited first.",
+  "Must be invited first": "Must be invited first",
+  "They are turned away until someone invites them to a project.": "They are turned away until someone invites them to a project."
 }

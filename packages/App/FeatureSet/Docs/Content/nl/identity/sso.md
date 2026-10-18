@@ -244,11 +244,11 @@ Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google
 
 :::steps
 1. Registreer bij uw identiteitsprovider een app (een OIDC-client) die de authorization code flow met PKCE mag gebruiken, en kopieer de **Uitgever-URL**, de **Client-ID** en het **Client-secret**.
-2. Ga in OneUptime naar **Projectinstellingen** > **Beveiliging** > **OIDC** en klik op **OIDC aanmaken**.
+2. Ga in OneUptime naar **Projectinstellingen** > **Beveiliging** > **SSO**. Klik onder de SAML-providers op **OIDC aanmaken**.
 3. Voer een **Naam** in (wat mensen op de aanmeldpagina zien), de **Uitgever-URL**, de **Client-ID** en het **Client-secret**. U kunt ook de discovery-URL van de provider in **Uitgever-URL** plakken.
 4. In de stap **Aanmelden** begint **Teams** met het ledenteam van uw project: wie zich voor het eerst aanmeldt, komt in deze teams. De rest staat al ingevuld onder **Meer velden**: de **Discovery-URL** (de uitgever gevolgd door `/.well-known/openid-configuration`), de **Bereiken** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving ("Sign in with" en de naam). Wijzig ze alleen als uw provider dat vraagt. Alleen teams waarvoor u zelf iemand zou kunnen uitnodigen worden geaccepteerd: een team dat meer toegang geeft dan u hebt, wordt onder **Teams** genoemd.
 5. Sla op. Het dialoogvenster **OIDC Configuration** opent met de **Redirect URI**: voeg die toe aan de toegestane redirect-URI's van uw app. Een nieuwe provider staat eerst uit, dus bewerk hem daarna en zet **Ingeschakeld** aan.
-6. Meld u met de link in de kaart **Test OpenID Connect (OIDC)** via de provider aan voordat u voor het project SSO verplicht.
+6. Open de link in de kaart **Test Single Sign On (SSO)** en kies de provider, om u er via aan te melden voordat u voor het project SSO verplicht.
 :::
 
 ## Rollen en teams voor SSO-gebruikers
@@ -308,14 +308,14 @@ Waar noch het project noch de server SSO verplicht, stopt het uitzetten van een 
 
 ## Providers onder het Scale-abonnement
 
-Een SAML- of OIDC-provider die een project nog heeft, blijft mensen aanmelden nadat een Scale-proefperiode afloopt of het abonnement omlaag gaat. Daarom tonen de pagina's **SSO** en **OIDC** onder Scale de providers van het project onder het upgrade-aanbod (**Nog ingestelde SAML-providers**, **Nog ingestelde OIDC-providers**):
+Een SAML- of OIDC-provider die een project nog heeft, blijft mensen aanmelden nadat een Scale-proefperiode afloopt of het abonnement omlaag gaat. Daarom toont de pagina **SSO** onder Scale de providers van het project onder het upgrade-aanbod (**Nog ingestelde SAML-providers**, **Nog ingestelde OIDC-providers**):
 
 - **Uitzetten** stopt een provider meteen. OneUptime vraagt eerst om bevestiging.
 - **Verwijderen** haalt hem weg.
 
 Een provider toevoegen, wijzigen of weer aanzetten vereist **Scale**. Wie wat mag, is hetzelfde als met Scale: een provider uitzetten vereist toestemming om hem te bewerken, verwijderen toestemming om hem te verwijderen.
 
-Zolang het project nog SSO verplicht, tonen de pagina's **SSO** en **OIDC** ook **SSO vereisen voor inloggen**: zet het uit voordat u de laatste provider uitzet. Tot dan kan de laatste provider waarmee mensen zich kunnen aanmelden niet worden uitgezet of verwijderd, zodat niemand uit het project wordt buitengesloten.
+Zolang het project nog SSO verplicht, toont de pagina **SSO** ook **SSO vereisen voor inloggen**: zet het uit voordat u de laatste provider uitzet. Tot dan kan de laatste provider waarmee mensen zich kunnen aanmelden niet worden uitgezet of verwijderd, zodat niemand uit het project wordt buitengesloten.
 
 De pagina's **SSO** en **OIDC** van een statuspagina tonen de eigen providers op dezelfde manier. Zolang de statuspagina nog SSO verplicht, tonen beide pagina's ook **SSO vereisen voor inloggen**: zet het uit voordat u de providers uitzet, anders kunnen de privégebruikers zich helemaal niet meer aanmelden.
 

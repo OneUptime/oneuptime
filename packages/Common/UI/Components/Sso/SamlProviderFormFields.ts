@@ -20,8 +20,10 @@ import {
   getSsoProviderDescriptionField,
   getSsoProviderEnabledField,
   getSsoProviderNameField,
-  getSsoProviderReachChoiceFields,
-  getSsoProviderSignUpChoiceFields,
+  getSsoProviderReachChoiceField,
+  getSsoProviderReachColumnField,
+  getSsoProviderSignUpChoiceField,
+  getSsoProviderSignUpColumnField,
   getSsoProviderTeamsField,
   isSsoGlobalAccessAtDefaults,
   readSsoFormValue,
@@ -319,14 +321,16 @@ export const getSamlProviderFormFields: GetSamlProviderFormFieldsFunction = <
     }),
     ...(options?.withGlobalAccessSwitches
       ? [
-          ...getSsoProviderSignUpChoiceFields<TEntity>({
+          getSsoProviderSignUpChoiceField<TEntity>({
             stepId: "sign-in",
             collapsibleSection: advancedSection,
           }),
-          ...getSsoProviderReachChoiceFields<TEntity>({
+          getSsoProviderSignUpColumnField<TEntity>({ stepId: "sign-in" }),
+          getSsoProviderReachChoiceField<TEntity>({
             stepId: "sign-in",
             collapsibleSection: advancedSection,
           }),
+          getSsoProviderReachColumnField<TEntity>({ stepId: "sign-in" }),
         ]
       : []),
   ];
