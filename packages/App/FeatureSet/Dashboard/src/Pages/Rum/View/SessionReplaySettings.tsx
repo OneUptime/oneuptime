@@ -30,6 +30,7 @@ import {
   asksForIgnoredErrorPatterns,
   CAPTURE_TRIGGER_CHOICES,
   CONSENT_MODE_CHOICES,
+  EDIT_SESSION_REPLAY_POLICY_TITLE,
   fillEmptiedPolicyNumbers,
   MASKING_MODE_CHOICES,
 } from "../../../Components/SessionReplay/SessionReplayPolicyChoices";
@@ -288,11 +289,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
           }}
           isEditable={true}
           editButtonText="Edit Policy"
-          /*
-           * The dialog edits the policy, not the application: it said "Edit
-           * RUM Application" over five steps of replay settings.
-           */
-          editModalTitle="Edit Session Replay Policy"
+          editModalTitle={EDIT_SESSION_REPLAY_POLICY_TITLE}
           createEditModalWidth={ModalWidth.Large}
           onSaveSuccess={(item: RumApplication): void => {
             setApplication(item);

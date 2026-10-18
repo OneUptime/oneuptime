@@ -27,6 +27,14 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * React-free on purpose: App's tests read these without the page.
  */
 
+/*
+ * Edit Policy's dialog edits the policy, not the application: it said "Edit
+ * RUM Application" over five steps of replay settings.
+ */
+export const EDIT_SESSION_REPLAY_POLICY_TITLE: string = translationKey(
+  "Edit Session Replay Policy",
+);
+
 export const CAPTURE_TRIGGER_CHOICES: Array<RadioButton> = [
   {
     value: SessionReplayCaptureTrigger.Always,
