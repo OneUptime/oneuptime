@@ -556,8 +556,8 @@ export default class BasePermission {
    *
    * Rows the caller's own grants already keep to the same owned parents -
    * their model takes its owners from exactly this parent (@OwnedThrough on
-   * the same key) and they are narrowed to owned records - are not looked
-   * up twice.
+   * the same key, or an owner table's resource) and they are narrowed to
+   * owned records - are not looked up twice.
    */
   private static async addParentOwnedScopeToQuery<
     TBaseModel extends BaseModel,
@@ -611,7 +611,8 @@ export default class BasePermission {
 
   /*
    * Whether a model's rows take their owners from exactly the record they
-   * are read through (@OwnedThrough on the same key, that parent alone, no
+   * are read through (@OwnedThrough on the same key, or an owner table's
+   * resource - OwnedScopePermission.getOwnedThrough - that parent alone, no
    * rows kept for the project as a whole): its own Owned scope then keeps
    * them to the parents the caller owns.
    */
@@ -620,8 +621,8 @@ export default class BasePermission {
     parentModelType: { new (): BaseModel },
     relationColumn: TableColumnMetadata,
   ): boolean {
-    const ownedThrough: BaseModel["ownedThrough"] = new modelType()
-      .ownedThrough;
+    const ownedThrough: BaseModel["ownedThrough"] =
+      OwnedScopePermission.getOwnedThrough(modelType);
 
     return Boolean(
       ownedThrough &&

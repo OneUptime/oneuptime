@@ -367,6 +367,75 @@ describe("OwnersCard", () => {
     expect(request.id.toString()).toBe(ADA_ROW);
   });
 
+  /*
+   * A member whose permission to add and remove owners reaches only what
+   * they or their team own may read the owners of a resource they do not
+   * own: the server refuses the change, and the card says why, where it was
+   * asked, keeping the owners as they are.
+   */
+  test("says why an owner could not be added to a resource the member does not own, and adds no one", async () => {
+    createMock.mockRejectedValue(
+      new Error(
+        "Your access lets you add owners only to the Incidents you or your teams own.",
+      ),
+    );
+
+    renderCard();
+
+    const dialog: HTMLElement = await openAddOwner();
+
+    fireEvent.click(
+      within(dialog)
+        .getAllByRole("option")
+        .find((option: HTMLElement): boolean => {
+          return option.getAttribute("data-id") === BOB;
+        })!,
+    );
+
+    expect(
+      await within(dialog).findByText(
+        "Your access lets you add owners only to the Incidents you or your teams own.",
+      ),
+    ).toBeInTheDocument();
+
+    // Bob is no owner, and the list stays open on its people and teams.
+    expect(
+      screen.queryByRole("button", { name: "Remove Bob Stone" }),
+    ).not.toBeInTheDocument();
+    expect(optionNames(dialog)).toEqual([BOB, DATABASE]);
+  });
+
+  test("says why an owner could not be removed, in the confirmation, and keeps the owner", async () => {
+    deleteItemMock.mockRejectedValue(
+      new Error(
+        "You do not have permission to delete this incident user owner.",
+      ),
+    );
+
+    renderCard();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Remove Ada Lovelace" }),
+    );
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+
+    fireEvent.click(within(modal).getByRole("button", { name: "Remove" }));
+
+    expect(
+      await within(modal).findByText(
+        "You do not have permission to delete this incident user owner.",
+      ),
+    ).toBeInTheDocument();
+
+    // Still asked, and Ada still owns it.
+    expect(screen.getByTestId("modal")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remove Ada Lovelace" }),
+    ).toBeInTheDocument();
+    expect(deleteItemMock).toHaveBeenCalledTimes(1);
+  });
+
   test("removing a team says it is a team", async () => {
     renderCard();
 

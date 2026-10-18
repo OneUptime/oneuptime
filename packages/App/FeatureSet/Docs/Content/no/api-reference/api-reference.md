@@ -200,7 +200,7 @@ En endring som flytter en slik post, følger samme regel: hver post den legger t
 
 #### Eiere
 
-Eierne av en ressurs - bruker- og teameierpostene for en monitor, en vaktpolicy, et dashbord og enhver annen ressurs med eiere - leses på samme måte via ressursen de eier: å liste opp, lese, legge til og fjerne dem krever en tillatelse til å lese den ressursen, under etikettene og eierne dens, og en eierpost for en ressurs du ikke får lese, besvares som om den ikke fantes.
+Eierne av en ressurs - bruker- og teameierpostene for en monitor, en vaktpolicy, et dashbord og enhver annen ressurs med eiere - leses på samme måte via ressursen de eier: å liste opp, lese, legge til og fjerne dem krever en tillatelse til å lese den ressursen, under etikettene og eierne dens, og en eierpost for en ressurs du ikke får lese, besvares som om den ikke fantes. Å legge dem til og fjerne dem holder seg også til omfanget av tillatelsen som gir lov til det: en med omfanget `Owned` når bare eierne av ressurser som du eller et av teamene dine eier, og å legge til en eier på en hvilken som helst annen ressurs avvises med en `422` som sier det.
 
 #### Poster en skriving lister opp eller nevner
 

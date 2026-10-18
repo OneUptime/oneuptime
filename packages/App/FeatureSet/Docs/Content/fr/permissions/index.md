@@ -217,7 +217,7 @@ Les propriétaires jouent deux rôles :
 
 La propriété seule n'accorde rien. Être propriétaire d'un moniteur ne permet pas de le modifier si aucune de vos équipes ne détient également une autorisation sur les moniteurs. La propriété restreint l'accès ; elle ne l'élargit jamais.
 
-Les propriétaires d'une ressource se lisent à travers la ressource. Les propriétaires d'un moniteur ou de toute autre ressource ne sont listés, lus, ajoutés et retirés que par quelqu'un qui peut lire cette ressource, et une autorisation portant sur les seuls propriétaires n'atteint les propriétaires d'aucune ressource que vous ne pouvez pas lire.
+Les propriétaires d'une ressource se lisent à travers la ressource. Les propriétaires d'un moniteur ou de toute autre ressource ne sont listés, lus, ajoutés et retirés que par quelqu'un qui peut lire cette ressource, et une autorisation portant sur les seuls propriétaires n'atteint les propriétaires d'aucune ressource que vous ne pouvez pas lire. L'ajout et le retrait de propriétaires suivent aussi la portée de l'autorisation qui les permet : avec la portée `Owned`, elle n'atteint que les ressources dont vous ou l'une de vos équipes êtes déjà propriétaires, quel que soit le nombre d'autres ressources que vous pouvez lire ; pouvoir lire un moniteur ne vous permet donc pas de vous en faire le propriétaire. Un propriétaire est ajouté ou retiré, jamais déplacé vers une autre ressource.
 
 ## Étiquettes
 

@@ -5740,6 +5740,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return;
     }
 
+    /*
+     * A record of a kind with no owner rows of its own - an owner row, an
+     * incident's note - takes its owners from the record it names, so there
+     * is no owner of it to make its creator, whatever reaches what.
+     */
+    if (!OwnedScopePermission.hasOwnerTables(this.modelType)) {
+      return;
+    }
+
     // The @OperationalResource() decorator sets this on the model prototype.
     const isOperationalResource: boolean = Boolean(
       (createdItem as unknown as { isOperationalResource?: boolean })

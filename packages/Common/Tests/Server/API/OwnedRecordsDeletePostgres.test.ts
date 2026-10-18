@@ -13,6 +13,7 @@ import MonitorOwnerUserService from "../../../Server/Services/MonitorOwnerUserSe
 import MonitorService from "../../../Server/Services/MonitorService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
+import CreateScopeException from "../../../Server/Types/Database/Permissions/CreateScopeException";
 import OwnerTableRegistry, {
   OwnerTablePair,
 } from "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
@@ -26,8 +27,11 @@ import {
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import RealtimeAccessChanges from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import Response from "../../../Server/Utils/Response";
+import OwnerRuleAssignment from "../../../Server/Utils/Rules/OwnerRuleAssignment";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "../../../Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "../../../Models/DatabaseModels/MonitorOwnerUser";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
@@ -91,6 +95,18 @@ import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
  *     monitor (the broader grant wins).
  *   - Nobody makes themselves an owner of a monitor they may not read, nor
  *     takes its owners away.
+ *   - An owner row is owned through its monitor: a member whose permission
+ *     to add and remove owners is scoped to Owned adds and removes them only
+ *     on the monitors they or their team own, however many more they read -
+ *     by id, by query and through a create form's owners - and so does every
+ *     other kind with owners of its own. Grants over the whole project, API
+ *     keys and workflow steps add and remove any owner, and nobody moves an
+ *     owner row to another monitor.
+ *   - However the request is shaped: the monitor named by its relation, by
+ *     both names or in capitals; a removal or a change by a query naming no
+ *     monitor; from another project, across projects or without a session.
+ *     A monitor created through its own route takes the owners its form
+ *     picked, as its creator's own.
  *   - The records of a monitor (its status timeline, its tests) and a status
  *     page's announcements and announcement templates keep to the owned
  *     monitors and status pages.
@@ -195,9 +211,13 @@ const TABLES: Array<string> = [
   "ApiKeyPermission",
   "ApiKeyPermissionLabel",
   "Monitor",
+  // The status a monitor created through its route starts in.
+  "MonitorStatus",
   "MonitorLabel",
   "MonitorOwnerUser",
   "MonitorOwnerTeam",
+  // What adding or removing a monitor's owner writes to its feed.
+  "MonitorFeed",
   "MonitorStatusTimeline",
   "MonitorTest",
   "StatusPage",
@@ -289,6 +309,12 @@ const JSON_COLUMN_VALUES: Dictionary<unknown> = {
 // A kind's own read and delete permissions (Read Monitor, Delete Monitor).
 const OWN_READ_OR_DELETE_PERMISSION: RegExp = /^(Read|Delete)/;
 
+// A kind's own read permission (Read Monitor).
+const OWN_READ_PERMISSION: RegExp = /^Read/;
+
+// An owner table's own permissions to add, read and remove owners.
+const OWN_OWNER_PERMISSION: RegExp = /^(Create|Read|Delete)/;
+
 describePostgres(
   "what a member limited to owned records deletes, on Postgres",
   () => {
@@ -329,11 +355,26 @@ describePostgres(
 
     const sweptServices: Dictionary<DatabaseService<BaseModel>> = {};
 
+    // Each swept kind's owner tables (people and teams), by owner table name.
+    const sweptOwnerServices: Dictionary<DatabaseService<BaseModel>> = {};
+
     for (const kind of SWEPT_KINDS) {
       sweptServices[kind.name] = new DatabaseService(
         kind.modelType,
       ) as DatabaseService<BaseModel>;
       new BaseAPI(kind.modelType, sweptServices[kind.name]!);
+
+      for (const ownerService of [
+        kind.pair.ownerUserService,
+        kind.pair.ownerTeamService,
+      ] as Array<{ modelType: { new (): BaseModel } }>) {
+        const ownerModelType: { new (): BaseModel } = ownerService.modelType;
+
+        sweptOwnerServices[ownerModelType.name] = new DatabaseService(
+          ownerModelType,
+        ) as DatabaseService<BaseModel>;
+        new BaseAPI(ownerModelType, sweptOwnerServices[ownerModelType.name]!);
+      }
     }
 
     // A label of the project, that a grant limited to labels names.
@@ -947,6 +988,91 @@ describePostgres(
     ): void => {
       expect(outcome.error).toBeUndefined();
       expect(outcome.isEmptySuccess).toBe(true);
+    };
+
+    // Every owner row of a monitor: its people, then its teams.
+    const monitorOwnersOf: (
+      monitorId: ObjectID,
+    ) => Promise<Array<Dictionary<string>>> = async (
+      monitorId: ObjectID,
+    ): Promise<Array<Dictionary<string>>> => {
+      return [
+        ...(await ownerRowsOf("MonitorOwnerUser", "monitorId", monitorId)),
+        ...(await ownerRowsOf("MonitorOwnerTeam", "monitorId", monitorId)),
+      ];
+    };
+
+    // An owner row written to its table directly: a person's or a team's.
+    const insertOwnerRow: (data: {
+      table: string;
+      column: string;
+      recordId: ObjectID;
+      ownerId: ObjectID;
+    }) => Promise<ObjectID> = async (data: {
+      table: string;
+      column: string;
+      recordId: ObjectID;
+      ownerId: ObjectID;
+    }): Promise<ObjectID> => {
+      const id: ObjectID = ObjectID.generate();
+
+      await insertAnyRow(data.table, {
+        _id: id,
+        projectId: projectId,
+        [data.column]: data.recordId,
+        [data.table.endsWith("OwnerUser") ? "userId" : "teamId"]: data.ownerId,
+        version: 1,
+      });
+
+      return id;
+    };
+
+    // An owner added through its table's own route, as the Owners tab adds one.
+    const addOwner: (data: {
+      caller: Caller;
+      path: string;
+      column: string;
+      recordId: ObjectID;
+      ownerColumn: "userId" | "teamId";
+      ownerId: ObjectID;
+    }) => Promise<Outcome> = async (data: {
+      caller: Caller;
+      path: string;
+      column: string;
+      recordId: ObjectID;
+      ownerColumn: "userId" | "teamId";
+      ownerId: ObjectID;
+    }): Promise<Outcome> => {
+      return await send({
+        method: "post",
+        uri: data.path,
+        caller: data.caller,
+        body: {
+          data: JSONFunctions.serialize({
+            [data.column]: data.recordId,
+            [data.ownerColumn]: data.ownerId,
+            projectId: projectId,
+          } as unknown as JSONObject),
+        },
+      });
+    };
+
+    // Why an owner is not added: what the Owners tab shows.
+    const OWNER_ADD_REFUSAL: (pluralName: string) => string = (
+      pluralName: string,
+    ): string => {
+      return `Your access lets you add owners only to the ${pluralName} you or your teams own.`;
+    };
+
+    const expectOwnerAddRefused: (
+      outcome: Outcome,
+      pluralName: string,
+    ) => void = (outcome: Outcome, pluralName: string): void => {
+      expect(outcome.item).toBeUndefined();
+      expect(outcome.error).toBeInstanceOf(CreateScopeException);
+      expect((outcome.error as Error).message).toBe(
+        OWNER_ADD_REFUSAL(pluralName),
+      );
     };
 
     beforeAll(async () => {
@@ -1616,13 +1742,8 @@ describePostgres(
      * project's, or those carrying a label. A member set up to "see every
      * monitor, manage your own" is a common shape, and the Owned scope must
      * still hold their delete to the monitors they or their team own: being
-     * able to read a monitor is not being able to delete it.
-     *
-     * (A separate hardening - narrowing who may add or remove a monitor's
-     * owners by the same Owned scope, so a broad reader cannot hand a
-     * monitor to themselves by naming themselves its owner - is tracked on
-     * its own, since it is a change to owner-management scope across every
-     * kind that carries owners, not to the delete this suite covers.)
+     * able to read a monitor is not being able to delete it - nor to make
+     * themselves its owner (OWNER_MANAGING_GRANTS below).
      */
     const READ_BEYOND_OWNED_GRANTS: Array<[string, () => Promise<void>]> = [
       [
@@ -1811,6 +1932,1196 @@ describePostgres(
         });
       },
     );
+
+    /*
+     * AN OWNED-SCOPE GRANT ADDS AND REMOVES OWNERS ONLY ON MONITORS THE
+     * MEMBER OWNS.
+     *
+     * Who owns a monitor is what the Owned scope reads to decide what a
+     * member may manage, so an owner row is owned through its monitor: a
+     * member whose permission to add and remove owners is scoped to Owned
+     * adds and removes them only on the monitors they or their team own,
+     * however many more they may read: reading a monitor is not owning it.
+     * Every grant shape that reads more than it manages, the owner
+     * permissions themselves, Project Member, and a custom role.
+     */
+    const OWNER_MANAGING_GRANTS: Array<[string, () => Promise<void>]> = [
+      ...READ_BEYOND_OWNED_GRANTS.filter(
+        ([name]: [string, () => Promise<void>]): boolean => {
+          // The one shape above whose grants add no owners at all.
+          return !name.startsWith("Delete Monitor scoped to Owned");
+        },
+      ),
+      [
+        "the owner permissions scoped to Owned beside Read Monitor and Read Monitor Owners over the whole project",
+        async (): Promise<void> => {
+          await setGrants([
+            {
+              permission: Permission.CreateMonitorOwnerUser,
+              scope: PermissionScope.Owned,
+            },
+            {
+              permission: Permission.DeleteMonitorOwnerUser,
+              scope: PermissionScope.Owned,
+            },
+            {
+              permission: Permission.CreateMonitorOwnerTeam,
+              scope: PermissionScope.Owned,
+            },
+            {
+              permission: Permission.DeleteMonitorOwnerTeam,
+              scope: PermissionScope.Owned,
+            },
+            {
+              permission: Permission.ReadProjectMonitor,
+              scope: PermissionScope.All,
+            },
+            {
+              permission: Permission.ReadMonitorOwnerUser,
+              scope: PermissionScope.All,
+            },
+            {
+              permission: Permission.ReadMonitorOwnerTeam,
+              scope: PermissionScope.All,
+            },
+          ]);
+        },
+      ],
+      [
+        "Project Member scoped to Owned beside the Viewer role",
+        async (): Promise<void> => {
+          await setGrants([
+            {
+              permission: Permission.ProjectMember,
+              scope: PermissionScope.Owned,
+            },
+            { permission: Permission.Viewer, scope: PermissionScope.All },
+          ]);
+        },
+      ],
+      [
+        /*
+         * Every permission on owners scoped to Owned - Monitor Admin's - and
+         * the read of every monitor from a permission on monitors alone:
+         * owners are read through the monitor, so they read every one.
+         */
+        "Monitor Admin scoped to Owned beside Read Monitor over the whole project",
+        async (): Promise<void> => {
+          await setGrants([
+            {
+              permission: Permission.MonitorAdmin,
+              scope: PermissionScope.Owned,
+            },
+            {
+              permission: Permission.ReadProjectMonitor,
+              scope: PermissionScope.All,
+            },
+          ]);
+        },
+      ],
+    ];
+
+    // The monitor owner tables, the route that adds to each, and its names.
+    const MONITOR_OWNER_TABLES: Array<{
+      table: string;
+      path: string;
+      ownerColumn: "userId" | "teamId";
+      singularName: string;
+    }> = [
+      {
+        table: "MonitorOwnerUser",
+        path: "/monitor-owner-user",
+        ownerColumn: "userId",
+        singularName: new MonitorOwnerUser().singularName!,
+      },
+      {
+        table: "MonitorOwnerTeam",
+        path: "/monitor-owner-team",
+        ownerColumn: "teamId",
+        singularName: new MonitorOwnerTeam().singularName!,
+      },
+    ];
+
+    const MONITORS: string = new Monitor().pluralName!;
+
+    describe.each(OWNER_MANAGING_GRANTS)(
+      "an owned-scope grant adds and removes owners only on monitors the member owns: %s",
+      (_grant: string, grant: () => Promise<void>) => {
+        beforeAll(async () => {
+          await grant();
+        });
+
+        test("adds no owner to a monitor they do not own - not themselves, their team or anyone else - and the monitor stays out of their hands", async () => {
+          for (const owner of OTHERS) {
+            const monitorId: ObjectID = await insertLabelledMonitor(owner);
+            const ownersBefore: Array<Dictionary<string>> =
+              await monitorOwnersOf(monitorId);
+
+            for (const [who, path, ownerColumn, ownerId] of [
+              ["themselves", "/monitor-owner-user", "userId", memberId],
+              ["their team", "/monitor-owner-team", "teamId", memberTeamId],
+              ["another person", "/monitor-owner-user", "userId", otherUserId],
+              ["another team", "/monitor-owner-team", "teamId", otherTeamId],
+            ] as Array<[string, string, "userId" | "teamId", ObjectID]>) {
+              // One who owns it already is no owner to add.
+              if (
+                (owner === "otherUser" && ownerId === otherUserId) ||
+                (owner === "otherTeam" && ownerId === otherTeamId)
+              ) {
+                continue;
+              }
+
+              const added: Outcome = await addOwner({
+                caller: member,
+                path: path,
+                column: "monitorId",
+                recordId: monitorId,
+                ownerColumn: ownerColumn,
+                ownerId: ownerId,
+              });
+
+              expect([owner, who, added.error]).toEqual([
+                owner,
+                who,
+                expect.any(CreateScopeException),
+              ]);
+              expectOwnerAddRefused(added, MONITORS);
+            }
+
+            expect(await monitorOwnersOf(monitorId)).toEqual(ownersBefore);
+
+            // They read it, and that is all: it is still not theirs to delete.
+            const outcome: Outcome = await deleteItem(
+              "/monitor",
+              member,
+              monitorId,
+            );
+
+            expect([owner, outcome.error]).toEqual([
+              owner,
+              expect.any(NotAuthorizedException),
+            ]);
+            expect(await rowExists("Monitor", monitorId)).toBe(true);
+          }
+        });
+
+        test("removes no owner of a monitor they do not own, by either route or by query", async () => {
+          const monitorId: ObjectID = await insertLabelledMonitor("otherUser");
+
+          await insertOwnerRow({
+            table: "MonitorOwnerTeam",
+            column: "monitorId",
+            recordId: monitorId,
+            ownerId: otherTeamId,
+          });
+
+          const ownersBefore: Array<Dictionary<string>> =
+            await monitorOwnersOf(monitorId);
+
+          expect(ownersBefore).toHaveLength(2);
+
+          for (const [route, remove] of REMOVALS) {
+            for (const ownerTable of MONITOR_OWNER_TABLES) {
+              const [ownerRow] = await ownerRowsOf(
+                ownerTable.table,
+                "monitorId",
+                monitorId,
+              );
+
+              const outcome: Outcome = await remove(
+                ownerTable.path,
+                member,
+                new ObjectID(ownerRow!["_id"]!),
+              );
+
+              // They may read the owner, but not take it away.
+              expect([route, ownerTable.table, outcome.error]).toEqual([
+                route,
+                ownerTable.table,
+                expect.any(NotAuthorizedException),
+              ]);
+              expect((outcome.error as Error).message).toBe(
+                `You do not have permission to delete this ${ownerTable.singularName.toLowerCase()}.`,
+              );
+            }
+          }
+
+          for (const service of [
+            MonitorOwnerUserService,
+            MonitorOwnerTeamService,
+          ] as Array<DatabaseService<BaseModel>>) {
+            const removed: number = await service.deleteBy({
+              query: { monitorId: monitorId } as never,
+              props: await propsOf(member),
+              limit: 50,
+              skip: 0,
+            });
+
+            expect(removed).toBe(0);
+          }
+
+          expect(await monitorOwnersOf(monitorId)).toEqual(ownersBefore);
+        });
+
+        test("adds and removes the owners of a monitor they or their team own, by either route and by query", async () => {
+          for (const owner of ["member", "memberTeam"] as Array<Owner>) {
+            const monitorId: ObjectID = await insertLabelledMonitor(owner);
+
+            // Another person and another team, added.
+            for (const [ownerTable, ownerId] of [
+              [MONITOR_OWNER_TABLES[0]!, otherUserId],
+              [MONITOR_OWNER_TABLES[1]!, otherTeamId],
+            ] as Array<[(typeof MONITOR_OWNER_TABLES)[number], ObjectID]>) {
+              const added: Outcome = await addOwner({
+                caller: member,
+                path: ownerTable.path,
+                column: "monitorId",
+                recordId: monitorId,
+                ownerColumn: ownerTable.ownerColumn,
+                ownerId: ownerId,
+              });
+
+              expect([owner, ownerTable.table, added.error]).toEqual([
+                owner,
+                ownerTable.table,
+                undefined,
+              ]);
+              expect(added.item).toBeTruthy();
+            }
+
+            const ownerRowOf: (
+              table: string,
+              ownerId: ObjectID,
+            ) => Promise<Dictionary<string> | undefined> = async (
+              table: string,
+              ownerId: ObjectID,
+            ): Promise<Dictionary<string> | undefined> => {
+              return (await ownerRowsOf(table, "monitorId", monitorId)).find(
+                (row: Dictionary<string>): boolean => {
+                  return row["owner"] === ownerId.toString();
+                },
+              );
+            };
+
+            const personRow: Dictionary<string> | undefined = await ownerRowOf(
+              "MonitorOwnerUser",
+              otherUserId,
+            );
+            const teamRow: Dictionary<string> | undefined = await ownerRowOf(
+              "MonitorOwnerTeam",
+              otherTeamId,
+            );
+
+            expect([owner, Boolean(personRow), Boolean(teamRow)]).toEqual([
+              owner,
+              true,
+              true,
+            ]);
+
+            // And taken off again: the person by one route, the team by the other.
+            expectDeleted(
+              await deleteItem(
+                "/monitor-owner-user",
+                member,
+                new ObjectID(personRow!["_id"]!),
+              ),
+            );
+            expectDeleted(
+              await deleteById(
+                "/monitor-owner-team",
+                member,
+                new ObjectID(teamRow!["_id"]!),
+              ),
+            );
+
+            // What is left is the ownership that made it theirs.
+            expect(
+              (await monitorOwnersOf(monitorId)).map(
+                (row: Dictionary<string>): string => {
+                  return row["owner"]!;
+                },
+              ),
+            ).toEqual([
+              owner === "member"
+                ? memberId.toString()
+                : memberTeamId.toString(),
+            ]);
+          }
+
+          // By query: another person is taken off the monitors they own, and only those.
+          const ours: ObjectID = await insertLabelledMonitor("memberTeam");
+          const theirs: ObjectID = await insertLabelledMonitor("otherTeam");
+
+          for (const monitorId of [ours, theirs]) {
+            await insertOwnerRow({
+              table: "MonitorOwnerUser",
+              column: "monitorId",
+              recordId: monitorId,
+              ownerId: otherUserId,
+            });
+          }
+
+          const removed: number = await MonitorOwnerUserService.deleteBy({
+            query: {
+              monitorId: new Includes([ours, theirs]),
+              userId: otherUserId,
+            },
+            props: await propsOf(member),
+            limit: 50,
+            skip: 0,
+          });
+
+          expect(removed).toBe(1);
+          expect(
+            await ownerRowsOf("MonitorOwnerUser", "monitorId", ours),
+          ).toEqual([]);
+          expect(
+            (await ownerRowsOf("MonitorOwnerUser", "monitorId", theirs)).map(
+              (row: Dictionary<string>): string => {
+                return row["owner"]!;
+              },
+            ),
+          ).toEqual([otherUserId.toString()]);
+        });
+
+        test("reads the owners of every monitor they may read", async () => {
+          const monitorId: ObjectID = await insertLabelledMonitor("otherTeam");
+
+          await insertOwnerRow({
+            table: "MonitorOwnerUser",
+            column: "monitorId",
+            recordId: monitorId,
+            ownerId: otherUserId,
+          });
+
+          for (const ownerTable of MONITOR_OWNER_TABLES) {
+            const listed: Outcome = await send({
+              method: "post",
+              uri: `${ownerTable.path}/get-list`,
+              caller: member,
+              body: {
+                query: JSONFunctions.serialize({
+                  monitorId: monitorId,
+                } as unknown as JSONObject),
+                select: { _id: true },
+                limit: 50,
+              },
+            });
+
+            expect([ownerTable.table, listed.error]).toEqual([
+              ownerTable.table,
+              undefined,
+            ]);
+            expect(listed.ids).toEqual(
+              (await ownerRowsOf(ownerTable.table, "monitorId", monitorId)).map(
+                (row: Dictionary<string>): string => {
+                  return row["_id"]!;
+                },
+              ),
+            );
+            expect(listed.ids).toHaveLength(1);
+          }
+        });
+      },
+    );
+
+    describe("grants that reach the whole project add and remove the owners of any monitor", () => {
+      const CALLERS: Array<[string, () => Promise<Caller>]> = [
+        [
+          "Monitor Admin over the whole project",
+          async (): Promise<Caller> => {
+            await setGrants([
+              {
+                permission: Permission.MonitorAdmin,
+                scope: PermissionScope.All,
+              },
+            ]);
+
+            return member;
+          },
+        ],
+        [
+          "Monitor Admin over the whole project beside Monitor Admin scoped to Owned: the broader grant wins",
+          async (): Promise<Caller> => {
+            await setGrants([
+              {
+                permission: Permission.MonitorAdmin,
+                scope: PermissionScope.Owned,
+              },
+              {
+                permission: Permission.MonitorAdmin,
+                scope: PermissionScope.All,
+              },
+            ]);
+
+            return member;
+          },
+        ],
+        [
+          "Project Admin, which no scope narrows - its row scoped to Owned all the same",
+          async (): Promise<Caller> => {
+            await setGrants([
+              {
+                permission: Permission.ProjectAdmin,
+                scope: PermissionScope.Owned,
+              },
+            ]);
+
+            return member;
+          },
+        ],
+        [
+          "an API key, which holds no scope",
+          async (): Promise<Caller> => {
+            return {
+              kind: "apiKey",
+              apiKey: await createApiKey([
+                Permission.CreateMonitorOwnerUser,
+                Permission.DeleteMonitorOwnerUser,
+                Permission.ReadMonitorOwnerUser,
+                Permission.CreateMonitorOwnerTeam,
+                Permission.DeleteMonitorOwnerTeam,
+                Permission.ReadMonitorOwnerTeam,
+                Permission.ReadProjectMonitor,
+              ]),
+            };
+          },
+        ],
+      ];
+
+      test.each(CALLERS)(
+        "%s",
+        async (_who: string, callerOf: () => Promise<Caller>) => {
+          const caller: Caller = await callerOf();
+
+          for (const owner of OTHERS) {
+            const monitorId: ObjectID = await insertMonitor(owner);
+
+            // The member and their team, added.
+            for (const [ownerTable, ownerId] of [
+              [MONITOR_OWNER_TABLES[0]!, memberId],
+              [MONITOR_OWNER_TABLES[1]!, memberTeamId],
+            ] as Array<[(typeof MONITOR_OWNER_TABLES)[number], ObjectID]>) {
+              const added: Outcome = await addOwner({
+                caller: caller,
+                path: ownerTable.path,
+                column: "monitorId",
+                recordId: monitorId,
+                ownerColumn: ownerTable.ownerColumn,
+                ownerId: ownerId,
+              });
+
+              expect([owner, ownerTable.table, added.error]).toEqual([
+                owner,
+                ownerTable.table,
+                undefined,
+              ]);
+            }
+
+            // And every owner taken off it again, by id.
+            for (const ownerTable of MONITOR_OWNER_TABLES) {
+              for (const ownerRow of await ownerRowsOf(
+                ownerTable.table,
+                "monitorId",
+                monitorId,
+              )) {
+                expectDeleted(
+                  await deleteItem(
+                    ownerTable.path,
+                    caller,
+                    new ObjectID(ownerRow["_id"]!),
+                  ),
+                );
+              }
+            }
+
+            expect(await monitorOwnersOf(monitorId)).toEqual([]);
+          }
+        },
+      );
+
+      test("a workflow step, which acts as a Project Admin, adds and removes the owners of any monitor", async () => {
+        const props: DatabaseCommonInteractionProps =
+          WorkflowPrincipal.getPropsWithoutPlan({
+            projectId: projectId,
+            workflowId: ObjectID.generate(),
+          });
+
+        for (const owner of OTHERS) {
+          const monitorId: ObjectID = await insertMonitor(owner);
+
+          const person: MonitorOwnerUser = new MonitorOwnerUser();
+          person.projectId = projectId;
+          person.monitorId = monitorId;
+          person.userId = memberId;
+
+          await MonitorOwnerUserService.create({ data: person, props: props });
+
+          const team: MonitorOwnerTeam = new MonitorOwnerTeam();
+          team.projectId = projectId;
+          team.monitorId = monitorId;
+          team.teamId = memberTeamId;
+
+          await MonitorOwnerTeamService.create({ data: team, props: props });
+
+          expect(
+            (await monitorOwnersOf(monitorId)).map(
+              (row: Dictionary<string>): string => {
+                return row["owner"]!;
+              },
+            ),
+          ).toEqual(
+            expect.arrayContaining([
+              memberId.toString(),
+              memberTeamId.toString(),
+            ]),
+          );
+
+          await MonitorOwnerUserService.deleteBy({
+            query: { monitorId: monitorId },
+            props: props,
+            limit: 50,
+            skip: 0,
+          });
+          await MonitorOwnerTeamService.deleteBy({
+            query: { monitorId: monitorId },
+            props: props,
+            limit: 50,
+            skip: 0,
+          });
+
+          expect(await monitorOwnersOf(monitorId)).toEqual([]);
+        }
+      });
+    });
+
+    describe("nobody moves an owner row: an owner is added or removed", () => {
+      test.each([
+        [
+          "the member who owns the monitor, with Monitor Admin scoped to Owned",
+          PermissionScope.Owned,
+          Permission.MonitorAdmin,
+        ],
+        [
+          "Monitor Admin over the whole project",
+          PermissionScope.All,
+          Permission.MonitorAdmin,
+        ],
+        ["Project Admin", PermissionScope.All, Permission.ProjectAdmin],
+      ] as Array<[string, PermissionScope, Permission]>)(
+        "%s moves no owner row to another monitor or another owner",
+        async (
+          _who: string,
+          scope: PermissionScope,
+          permission: Permission,
+        ) => {
+          await setGrants([{ permission: permission, scope: scope }]);
+
+          const mine: ObjectID = await insertMonitor("member");
+          const other: ObjectID = await insertMonitor("member");
+          const [ownRow] = await ownerRowsOf(
+            "MonitorOwnerUser",
+            "monitorId",
+            mine,
+          );
+          const otherOwners: Array<Dictionary<string>> = await ownerRowsOf(
+            "MonitorOwnerUser",
+            "monitorId",
+            other,
+          );
+
+          for (const change of [
+            { monitorId: other },
+            { userId: otherUserId },
+            // The same, by the relations.
+            { monitor: { _id: other.toString() } },
+            { user: { _id: otherUserId.toString() } },
+          ] as Array<Dictionary<unknown>>) {
+            const moved: Outcome = await send({
+              method: "post",
+              uri: "/monitor-owner-user/:id/update-item",
+              caller: member,
+              id: new ObjectID(ownRow!["_id"]!),
+              body: {
+                data: JSONFunctions.serialize(change as unknown as JSONObject),
+              },
+            });
+
+            expectRefused(moved);
+          }
+
+          expect(
+            await ownerRowsOf("MonitorOwnerUser", "monitorId", mine),
+          ).toEqual([ownRow]);
+          expect(
+            await ownerRowsOf("MonitorOwnerUser", "monitorId", other),
+          ).toEqual(otherOwners);
+        },
+      );
+    });
+
+    describe("the owners picked when a member creates a monitor", () => {
+      const CREATORS: Array<[string, () => Promise<void>]> = [
+        [
+          "Monitor Admin scoped to Owned",
+          async (): Promise<void> => {
+            await setGrants([
+              {
+                permission: Permission.MonitorAdmin,
+                scope: PermissionScope.Owned,
+              },
+            ]);
+          },
+        ],
+        [
+          "Monitor Admin scoped to Owned beside Monitor Viewer over the whole project",
+          async (): Promise<void> => {
+            await setGrants([
+              {
+                permission: Permission.MonitorAdmin,
+                scope: PermissionScope.Owned,
+              },
+              {
+                permission: Permission.MonitorViewer,
+                scope: PermissionScope.All,
+              },
+            ]);
+          },
+        ],
+        [
+          "a custom role's Monitor Admin scoped to Owned",
+          async (): Promise<void> => {
+            await giveCustomRole([
+              {
+                permission: Permission.MonitorAdmin,
+                scope: PermissionScope.Owned,
+              },
+            ]);
+          },
+        ],
+      ];
+
+      test.each(CREATORS)(
+        "%s: anyone may be picked - themselves, their team, others - asked before the monitor is saved and added once it is theirs",
+        async (_creator: string, grant: () => Promise<void>) => {
+          await grant();
+
+          const props: DatabaseCommonInteractionProps = await propsOf(member);
+
+          // Before anything is saved: the monitor as it will be.
+          const monitor: Monitor = new Monitor();
+          monitor.projectId = projectId;
+          monitor.name = "A monitor being created";
+
+          await expect(
+            OwnerRuleAssignment.checkOwnersPickedOnCreate({
+              ownerUserService: MonitorOwnerUserService,
+              ownerTeamService: MonitorOwnerTeamService,
+              resourceIdColumn: "monitorId",
+              resourceModelType: Monitor,
+              resource: monitor,
+              miscDataProps: {
+                ownerUsers: [memberId, otherUserId],
+                ownerTeams: [memberTeamId, otherTeamId],
+              } as unknown as JSONObject,
+              props: props,
+            }),
+          ).resolves.toBeUndefined();
+
+          /*
+           * Saved: its creator is its owner (DatabaseService makes them one
+           * as it is saved), and the picks are added for them.
+           */
+          const monitorId: ObjectID = await insertMonitor("member");
+
+          await MonitorService.addOwners(
+            projectId,
+            monitorId,
+            [memberId, otherUserId],
+            [memberTeamId, otherTeamId],
+            false,
+            props,
+            true,
+          );
+
+          expect(
+            (await monitorOwnersOf(monitorId))
+              .map((row: Dictionary<string>): string => {
+                return row["owner"]!;
+              })
+              .sort(),
+          ).toEqual(
+            [
+              memberId.toString(),
+              otherUserId.toString(),
+              memberTeamId.toString(),
+              otherTeamId.toString(),
+            ].sort(),
+          );
+        },
+      );
+
+      test.each(CREATORS)(
+        "%s: picks for a monitor its creator does not own are refused, not written for them",
+        async (_creator: string, grant: () => Promise<void>) => {
+          await grant();
+
+          const props: DatabaseCommonInteractionProps = await propsOf(member);
+          const monitorId: ObjectID = await insertMonitor("otherTeam");
+          const ownersBefore: Array<Dictionary<string>> =
+            await monitorOwnersOf(monitorId);
+
+          await expect(
+            MonitorService.addOwners(
+              projectId,
+              monitorId,
+              [memberId],
+              [memberTeamId],
+              false,
+              props,
+              true,
+            ),
+          ).rejects.toThrow(OWNER_ADD_REFUSAL(MONITORS));
+
+          expect(await monitorOwnersOf(monitorId)).toEqual(ownersBefore);
+        },
+      );
+    });
+
+    /*
+     * HOWEVER THE REQUEST IS SHAPED, an owned-scope grant adds and removes
+     * owners only on the monitors the member owns: the monitor named by its
+     * relation instead of its ID, by both names, or in capitals; a removal
+     * or a change by a query that names no monitor, or names one by its
+     * relation; from another project, across projects or without a session.
+     * And a monitor created through its own route takes the owners picked
+     * in its form, as the creator's own.
+     */
+    describe("however the request is shaped, an owned-scope grant adds and removes owners only on monitors the member owns", () => {
+      beforeAll(async () => {
+        // The status a monitor created through its route starts in.
+        await insertAnyRow("MonitorStatus", {
+          _id: ObjectID.generate(),
+          projectId: projectId,
+          name: "Operational",
+          isOperationalState: true,
+          isOfflineState: false,
+          priority: 1,
+          version: 1,
+        });
+
+        await setGrants([
+          {
+            permission: Permission.MonitorAdmin,
+            scope: PermissionScope.Owned,
+          },
+          {
+            permission: Permission.MonitorViewer,
+            scope: PermissionScope.All,
+          },
+        ]);
+      });
+
+      // An owner added through its table's own route, with `data` as sent.
+      const addOwnerAs: (
+        path: string,
+        data: JSONObject,
+        caller?: Caller,
+      ) => Promise<Outcome> = async (
+        path: string,
+        data: JSONObject,
+        caller?: Caller,
+      ): Promise<Outcome> => {
+        return await send({
+          method: "post",
+          uri: path,
+          caller: caller || member,
+          body: { data: JSONFunctions.serialize(data) },
+        });
+      };
+
+      // The ways a request can name the monitor an owner is added to.
+      const SHAPES: Array<
+        [
+          string,
+          (monitorId: ObjectID) => {
+            path: string;
+            data: JSONObject;
+            owner: ObjectID;
+          },
+        ]
+      > = [
+        [
+          "the monitor by its relation, themselves by their ID",
+          (monitorId: ObjectID) => {
+            return {
+              path: "/monitor-owner-user",
+              data: {
+                monitor: { _id: monitorId.toString() },
+                userId: memberId,
+                projectId: projectId,
+              } as unknown as JSONObject,
+              owner: memberId,
+            };
+          },
+        ],
+        [
+          "the monitor and themselves by their relations",
+          (monitorId: ObjectID) => {
+            return {
+              path: "/monitor-owner-user",
+              data: {
+                monitor: { _id: monitorId.toString() },
+                user: { _id: memberId.toString() },
+                projectId: projectId,
+              } as unknown as JSONObject,
+              owner: memberId,
+            };
+          },
+        ],
+        [
+          "the monitor by both of its names",
+          (monitorId: ObjectID) => {
+            return {
+              path: "/monitor-owner-user",
+              data: {
+                monitorId: monitorId,
+                monitor: { _id: monitorId.toString() },
+                userId: memberId,
+                projectId: projectId,
+              } as unknown as JSONObject,
+              owner: memberId,
+            };
+          },
+        ],
+        [
+          "the monitor's ID in capitals",
+          (monitorId: ObjectID) => {
+            return {
+              path: "/monitor-owner-user",
+              data: {
+                monitorId: monitorId.toString().toUpperCase(),
+                userId: memberId,
+                projectId: projectId,
+              } as unknown as JSONObject,
+              owner: memberId,
+            };
+          },
+        ],
+        [
+          "their team, the monitor and the team by their relations",
+          (monitorId: ObjectID) => {
+            return {
+              path: "/monitor-owner-team",
+              data: {
+                monitor: { _id: monitorId.toString() },
+                team: { _id: memberTeamId.toString() },
+                projectId: projectId,
+              } as unknown as JSONObject,
+              owner: memberTeamId,
+            };
+          },
+        ],
+      ];
+
+      test.each(SHAPES)(
+        "%s: added to a monitor they own, refused on one they do not",
+        async (
+          _shape: string,
+          shapeOf: (monitorId: ObjectID) => {
+            path: string;
+            data: JSONObject;
+            owner: ObjectID;
+          },
+        ) => {
+          // Another person's: refused, its owners as they were.
+          const theirs: ObjectID = await insertLabelledMonitor("otherUser");
+          const ownersBefore: Array<Dictionary<string>> =
+            await monitorOwnersOf(theirs);
+          const refused: { path: string; data: JSONObject } = shapeOf(theirs);
+
+          expectOwnerAddRefused(
+            await addOwnerAs(refused.path, refused.data),
+            MONITORS,
+          );
+          expect(await monitorOwnersOf(theirs)).toEqual(ownersBefore);
+
+          // Still not theirs to delete.
+          expect(
+            (await deleteItem("/monitor", member, theirs)).error,
+          ).toBeInstanceOf(NotAuthorizedException);
+          expect(await rowExists("Monitor", theirs)).toBe(true);
+
+          /*
+           * On a monitor of their own - their team's when they add
+           * themselves, theirs when they add their team - the same request
+           * adds the owner.
+           */
+          const ours: ObjectID = await insertLabelledMonitor(
+            refused.path === "/monitor-owner-team" ? "member" : "memberTeam",
+          );
+          const added: { path: string; data: JSONObject; owner: ObjectID } =
+            shapeOf(ours);
+          const outcome: Outcome = await addOwnerAs(added.path, added.data);
+
+          expect(outcome.error).toBeUndefined();
+          expect(
+            (await monitorOwnersOf(ours)).map(
+              (row: Dictionary<string>): string => {
+                return row["owner"]!;
+              },
+            ),
+          ).toContain(added.owner.toString());
+        },
+      );
+
+      test("a monitor they own by one name and one they do not by the other is refused, and neither gains an owner", async () => {
+        const mine: ObjectID = await insertLabelledMonitor("member");
+        const theirs: ObjectID = await insertLabelledMonitor("otherTeam");
+        const mineBefore: Array<Dictionary<string>> =
+          await monitorOwnersOf(mine);
+        const theirsBefore: Array<Dictionary<string>> =
+          await monitorOwnersOf(theirs);
+
+        for (const [byId, byRelation] of [
+          [mine, theirs],
+          [theirs, mine],
+        ] as Array<[ObjectID, ObjectID]>) {
+          expectRefused(
+            await addOwnerAs("/monitor-owner-team", {
+              monitorId: byId,
+              monitor: { _id: byRelation.toString() },
+              teamId: memberTeamId,
+              projectId: projectId,
+            } as unknown as JSONObject),
+          );
+        }
+
+        expect(await monitorOwnersOf(mine)).toEqual(mineBefore);
+        expect(await monitorOwnersOf(theirs)).toEqual(theirsBefore);
+      });
+
+      test("a removal by a query that names no monitor, or names one by its relation, takes owners off only the monitors they own", async () => {
+        const mine: ObjectID = await insertLabelledMonitor("member");
+        const ours: ObjectID = await insertLabelledMonitor("memberTeam");
+        const theirs: ObjectID = await insertLabelledMonitor("otherTeam");
+        const nobodys: ObjectID = await insertLabelledMonitor("nobody");
+
+        // A person who is no owner anywhere else, on all four.
+        const departingId: ObjectID = ObjectID.generate();
+
+        await insert("User", {
+          _id: departingId,
+          name: "Synthetic User",
+          email: `${departingId.toString()}@example.com`,
+          slug: departingId.toString(),
+          version: 1,
+        });
+
+        for (const monitorId of [mine, ours, theirs, nobodys]) {
+          await insertOwnerRow({
+            table: "MonitorOwnerUser",
+            column: "monitorId",
+            recordId: monitorId,
+            ownerId: departingId,
+          });
+        }
+
+        const ownersOf: (
+          monitorId: ObjectID,
+        ) => Promise<Array<string>> = async (
+          monitorId: ObjectID,
+        ): Promise<Array<string>> => {
+          return (
+            await ownerRowsOf("MonitorOwnerUser", "monitorId", monitorId)
+          ).map((row: Dictionary<string>): string => {
+            return row["owner"]!;
+          });
+        };
+
+        // By the monitor's relation: on theirs, nothing goes.
+        expect(
+          await MonitorOwnerUserService.deleteBy({
+            query: {
+              monitor: { _id: theirs.toString() },
+              userId: departingId,
+            } as never,
+            props: await propsOf(member),
+            limit: 50,
+            skip: 0,
+          }),
+        ).toBe(0);
+        expect(await ownersOf(theirs)).toContain(departingId.toString());
+
+        // Naming no monitor: only the rows on the monitors they own go.
+        expect(
+          await MonitorOwnerUserService.deleteBy({
+            query: { userId: departingId },
+            props: await propsOf(member),
+            limit: 50,
+            skip: 0,
+          }),
+        ).toBe(2);
+
+        expect(await ownersOf(mine)).toEqual([memberId.toString()]);
+        expect(await ownersOf(ours)).toEqual([]);
+        expect(await ownersOf(theirs)).toEqual([departingId.toString()]);
+        expect(await ownersOf(nobodys)).toEqual([departingId.toString()]);
+      });
+
+      test("a change by query moves no owner row onto, or off, a monitor", async () => {
+        const mine: ObjectID = await insertLabelledMonitor("member");
+        const theirs: ObjectID = await insertLabelledMonitor("otherUser");
+        const mineBefore: Array<Dictionary<string>> =
+          await monitorOwnersOf(mine);
+        const theirsBefore: Array<Dictionary<string>> =
+          await monitorOwnersOf(theirs);
+
+        for (const [query, data] of [
+          // Theirs onto the member, by ID and by relation.
+          [{ monitorId: theirs }, { userId: memberId }],
+          [{ monitorId: theirs }, { user: { _id: memberId.toString() } }],
+          // Theirs onto a monitor of their own, by ID and by relation.
+          [{ monitorId: theirs }, { monitorId: mine }],
+          [{ monitorId: theirs }, { monitor: { _id: mine.toString() } }],
+          // Their own onto theirs, by ID and by relation.
+          [{ monitorId: mine }, { monitorId: theirs }],
+          [{ monitorId: mine }, { monitor: { _id: theirs.toString() } }],
+          // Every row they may reach, onto theirs.
+          [{}, { monitorId: theirs }],
+        ] as Array<[JSONObject, JSONObject]>) {
+          let changed: number = 0;
+
+          try {
+            changed = await MonitorOwnerUserService.updateBy({
+              query: query as never,
+              data: data as never,
+              props: await propsOf(member),
+              limit: 50,
+              skip: 0,
+            });
+          } catch (error) {
+            expect(error).toBeInstanceOf(Exception);
+          }
+
+          // Refused, or nothing it may change: either way, nothing moved.
+          expect([query, data, changed]).toEqual([query, data, 0]);
+          expect(await monitorOwnersOf(mine)).toEqual(mineBefore);
+          expect(await monitorOwnersOf(theirs)).toEqual(theirsBefore);
+        }
+      });
+
+      test("from another project, across projects or without a session, no owner is added or removed", async () => {
+        const theirs: ObjectID = await insertLabelledMonitor("otherTeam");
+        const ownersBefore: Array<Dictionary<string>> =
+          await monitorOwnersOf(theirs);
+        const [ownerRow] = await ownerRowsOf(
+          "MonitorOwnerTeam",
+          "monitorId",
+          theirs,
+        );
+
+        const outsiderHere: Caller = {
+          kind: "member",
+          userId: outsiderId,
+          tenantId: projectId,
+        };
+        // The outsider in their own project, where they may manage every monitor.
+        const outsiderAtHome: Caller = {
+          kind: "member",
+          userId: outsiderId,
+          tenantId: otherProjectId,
+        };
+
+        for (const caller of [
+          outsiderHere,
+          outsiderAtHome,
+          { kind: "anonymous", tenantId: projectId } as Caller,
+          { kind: "member", userId: memberId, isMultiTenant: true } as Caller,
+        ]) {
+          expectRefused(
+            await addOwnerAs(
+              "/monitor-owner-team",
+              {
+                monitorId: theirs,
+                teamId:
+                  caller.kind === "member" && caller.userId === outsiderId
+                    ? outsiderTeamId
+                    : memberTeamId,
+                projectId: projectId,
+              } as unknown as JSONObject,
+              caller,
+            ),
+          );
+
+          for (const [, remove] of REMOVALS) {
+            expectRefused(
+              await remove(
+                "/monitor-owner-team",
+                caller,
+                new ObjectID(ownerRow!["_id"]!),
+              ),
+            );
+          }
+        }
+
+        expect(await monitorOwnersOf(theirs)).toEqual(ownersBefore);
+      });
+
+      test("a monitor created through its own route takes the owners picked in its form, as its creator's own", async () => {
+        const created: Outcome = await send({
+          method: "post",
+          uri: "/monitor",
+          caller: member,
+          body: {
+            data: JSONFunctions.serialize({
+              name: "A monitor created with owners picked",
+              monitorType: "Manual",
+              projectId: projectId,
+            } as unknown as JSONObject),
+            miscDataProps: JSONFunctions.serialize({
+              ownerUsers: [otherUserId.toString()],
+              ownerTeams: [memberTeamId.toString(), otherTeamId.toString()],
+            } as unknown as JSONObject),
+          },
+        });
+
+        expect(created.error).toBeUndefined();
+
+        const monitorId: ObjectID = created.item!.id!;
+        const expected: Array<string> = [
+          memberId.toString(),
+          otherUserId.toString(),
+          memberTeamId.toString(),
+          otherTeamId.toString(),
+        ].sort();
+
+        // The picks are added once the monitor is saved, after its first status.
+        let owners: Array<string> = [];
+
+        for (let attempt: number = 0; attempt < 100; attempt++) {
+          owners = (await monitorOwnersOf(monitorId))
+            .map((row: Dictionary<string>): string => {
+              return row["owner"]!;
+            })
+            .sort();
+
+          if (owners.length >= expected.length) {
+            break;
+          }
+
+          await new Promise<void>((resolve: () => void) => {
+            setTimeout(resolve, 100);
+          });
+        }
+
+        expect(owners).toEqual(expected);
+
+        // Theirs, then: they delete it.
+        expectDeleted(await deleteItem("/monitor", member, monitorId));
+        expect(await rowExists("Monitor", monitorId)).toBe(false);
+      });
+    });
 
     describe("the records of a monitor, and of a status page", () => {
       test.each([
@@ -2174,6 +3485,277 @@ describePostgres(
         for (const id of others) {
           expect(await rowExists(tableOf(), id)).toBe(true);
         }
+      });
+
+      /*
+       * Its owners, by a member who reads every record of the kind and whose
+       * permissions to add, read and remove its owners are scoped to Owned:
+       * an owner row is owned through its record.
+       */
+      describe("its owners", () => {
+        interface KindOwnerTable {
+          name: string;
+          tableName: string;
+          path: string;
+          ownerColumn: "userId" | "teamId";
+          singularName: string;
+          service: DatabaseService<BaseModel>;
+        }
+
+        const ownerTables: () => Array<KindOwnerTable> =
+          (): Array<KindOwnerTable> => {
+            return (
+              [
+                kind.pair.ownerUserService,
+                kind.pair.ownerTeamService,
+              ] as Array<{ modelType: { new (): BaseModel } }>
+            ).map((ownerService: { modelType: { new (): BaseModel } }) => {
+              const ownerModel: BaseModel = new ownerService.modelType();
+
+              return {
+                name: ownerService.modelType.name,
+                tableName: database.getMetadata(ownerService.modelType)
+                  .tableName,
+                path: ownerModel.getCrudApiPath()!.toString(),
+                ownerColumn: ownerService.modelType.name.endsWith("OwnerUser")
+                  ? "userId"
+                  : "teamId",
+                singularName: ownerModel.singularName || "Owner",
+                service: sweptOwnerServices[ownerService.modelType.name]!,
+              };
+            });
+          };
+
+        const pluralName: string = new kind.modelType().pluralName || "Records";
+
+        beforeAll(async () => {
+          // The kind's own read over the whole project.
+          const reads: Array<Permission> =
+            new kind.modelType().readRecordPermissions.filter(
+              (permission: Permission): boolean => {
+                return OWN_READ_PERMISSION.test(permission);
+              },
+            );
+
+          // Its owner tables' own create, read and delete permissions.
+          const ownerPermissions: Array<Permission> = Array.from(
+            new Set<Permission>(
+              (
+                [
+                  kind.pair.ownerUserService,
+                  kind.pair.ownerTeamService,
+                ] as Array<{ modelType: { new (): BaseModel } }>
+              ).flatMap(
+                (ownerService: {
+                  modelType: { new (): BaseModel };
+                }): Array<Permission> => {
+                  const ownerModel: BaseModel = new ownerService.modelType();
+
+                  return [
+                    ...ownerModel.createRecordPermissions,
+                    ...ownerModel.readRecordPermissions,
+                    ...ownerModel.deleteRecordPermissions,
+                  ];
+                },
+              ),
+            ),
+          ).filter((permission: Permission): boolean => {
+            return OWN_OWNER_PERMISSION.test(permission);
+          });
+
+          expect(reads.length).toBeGreaterThan(0);
+          // Add, read and remove, for people and for teams.
+          expect(ownerPermissions).toHaveLength(6);
+
+          await setGrants([
+            ...reads.map((permission: Permission): PermissionRow => {
+              return { permission: permission, scope: PermissionScope.All };
+            }),
+            ...ownerPermissions.map((permission: Permission): PermissionRow => {
+              return { permission: permission, scope: PermissionScope.Owned };
+            }),
+          ]);
+        });
+
+        test("adds an owner only to a record they or their team own", async () => {
+          for (const owner of [
+            "member",
+            "memberTeam",
+            ...OTHERS,
+          ] as Array<Owner>) {
+            const recordId: ObjectID = await insertRecord(owner);
+            const isOwned: boolean =
+              owner === "member" || owner === "memberTeam";
+
+            for (const ownerTable of ownerTables()) {
+              // Someone who does not own it yet: themselves or their team on another's.
+              const ownerId: ObjectID =
+                ownerTable.ownerColumn === "userId"
+                  ? isOwned
+                    ? otherUserId
+                    : memberId
+                  : isOwned
+                    ? otherTeamId
+                    : memberTeamId;
+
+              const added: Outcome = await addOwner({
+                caller: member,
+                path: ownerTable.path,
+                column: kind.pair.fkColumn,
+                recordId: recordId,
+                ownerColumn: ownerTable.ownerColumn,
+                ownerId: ownerId,
+              });
+
+              if (isOwned) {
+                expect([owner, ownerTable.name, added.error]).toEqual([
+                  owner,
+                  ownerTable.name,
+                  undefined,
+                ]);
+              } else {
+                expect([owner, ownerTable.name, added.error]).toEqual([
+                  owner,
+                  ownerTable.name,
+                  expect.any(CreateScopeException),
+                ]);
+                expectOwnerAddRefused(added, pluralName);
+              }
+
+              expect([
+                owner,
+                ownerTable.name,
+                (
+                  await ownerRowsOf(
+                    ownerTable.tableName,
+                    kind.pair.fkColumn,
+                    recordId,
+                  )
+                ).some((row: Dictionary<string>): boolean => {
+                  return row["owner"] === ownerId.toString();
+                }),
+              ]).toEqual([owner, ownerTable.name, isOwned]);
+            }
+          }
+        });
+
+        test("removes owners only of a record they or their team own, by id and by query", async () => {
+          const ours: ObjectID = await insertRecord("memberTeam");
+          const theirs: ObjectID = await insertRecord("otherTeam");
+
+          // Another person owns both; another team owns ours as well.
+          for (const recordId of [ours, theirs]) {
+            await insertOwnerRow({
+              table: ownerTables()[0]!.tableName,
+              column: kind.pair.fkColumn,
+              recordId: recordId,
+              ownerId: otherUserId,
+            });
+          }
+
+          await insertOwnerRow({
+            table: ownerTables()[1]!.tableName,
+            column: kind.pair.fkColumn,
+            recordId: ours,
+            ownerId: otherTeamId,
+          });
+
+          const theirOwners: Array<Dictionary<string>> = [];
+
+          for (const ownerTable of ownerTables()) {
+            theirOwners.push(
+              ...(await ownerRowsOf(
+                ownerTable.tableName,
+                kind.pair.fkColumn,
+                theirs,
+              )),
+            );
+          }
+
+          // By id, either route: the owners of theirs stay.
+          for (const [route, remove] of REMOVALS) {
+            for (const ownerTable of ownerTables()) {
+              const [ownerRow] = await ownerRowsOf(
+                ownerTable.tableName,
+                kind.pair.fkColumn,
+                theirs,
+              );
+
+              const outcome: Outcome = await remove(
+                ownerTable.path,
+                member,
+                new ObjectID(ownerRow!["_id"]!),
+              );
+
+              expect([route, ownerTable.name, outcome.error]).toEqual([
+                route,
+                ownerTable.name,
+                expect.any(NotAuthorizedException),
+              ]);
+              expect((outcome.error as Error).message).toBe(
+                `You do not have permission to delete this ${ownerTable.singularName.toLowerCase()}.`,
+              );
+            }
+          }
+
+          // By query: the other person and team leave ours, and only ours.
+          for (const ownerTable of ownerTables()) {
+            const removed: number = await ownerTable.service.deleteBy({
+              query: {
+                [kind.pair.fkColumn]: new Includes([ours, theirs]),
+                [ownerTable.ownerColumn]:
+                  ownerTable.ownerColumn === "userId"
+                    ? otherUserId
+                    : otherTeamId,
+              } as never,
+              props: await propsOf(member),
+              limit: 50,
+              skip: 0,
+            });
+
+            expect([ownerTable.name, removed]).toEqual([ownerTable.name, 1]);
+          }
+
+          const ourOwners: Array<Dictionary<string>> = [];
+          const theirOwnersAfter: Array<Dictionary<string>> = [];
+
+          for (const ownerTable of ownerTables()) {
+            ourOwners.push(
+              ...(await ownerRowsOf(
+                ownerTable.tableName,
+                kind.pair.fkColumn,
+                ours,
+              )),
+            );
+            theirOwnersAfter.push(
+              ...(await ownerRowsOf(
+                ownerTable.tableName,
+                kind.pair.fkColumn,
+                theirs,
+              )),
+            );
+          }
+
+          // Ours keeps the team that makes it theirs; theirs keeps every owner.
+          expect(
+            ourOwners.map((row: Dictionary<string>): string => {
+              return row["owner"]!;
+            }),
+          ).toEqual([memberTeamId.toString()]);
+          expect(theirOwnersAfter).toEqual(theirOwners);
+
+          // And by id, on ours: an owner added back is taken off again.
+          const personRowId: ObjectID = await insertOwnerRow({
+            table: ownerTables()[0]!.tableName,
+            column: kind.pair.fkColumn,
+            recordId: ours,
+            ownerId: otherUserId,
+          });
+
+          expectDeleted(
+            await deleteItem(ownerTables()[0]!.path, member, personRowId),
+          );
+        });
       });
     });
 

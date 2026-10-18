@@ -5,7 +5,9 @@ import logger from "../../../Server/Utils/Logger";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorOwnerUser from "../../../Models/DatabaseModels/MonitorOwnerUser";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -246,5 +248,50 @@ describe("DatabaseService.autoOwnerOnCreate", () => {
     ).resolves.toBeUndefined();
 
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  /*
+   * An owner row - like an incident's note - has no owner rows of its own:
+   * it is owned through the record it names. Adding an owner to a monitor
+   * makes nobody an owner of the owner row, and says nothing about it, even
+   * for a member whose permission to add owners reaches only what they own
+   * (whose create relies on ownership, as a monitor's would).
+   */
+  test("a record of a kind with no owner rows of its own makes nobody its owner, and logs nothing", async () => {
+    const ownerRow: MonitorOwnerUser = new MonitorOwnerUser(
+      ObjectID.generate(),
+    );
+    ownerRow.projectId = PROJECT_ID;
+    ownerRow.monitorId = MONITOR_A;
+    ownerRow.userId = USER_B;
+
+    const props: DatabaseCommonInteractionProps = {
+      userId: USER_A,
+      tenantId: PROJECT_ID,
+      userTeamIds: [],
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: PROJECT_ID,
+          permissions: [
+            {
+              _type: "UserPermission",
+              permission: Permission.MonitorAdmin,
+              labelIds: [],
+              isBlockPermission: false,
+              scope: PermissionScope.Owned,
+            },
+          ],
+        },
+      },
+    };
+
+    await expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (MonitorOwnerUserService as any).autoOwnerOnCreate(ownerRow, props),
+    ).resolves.toBeUndefined();
+
+    expect(create).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });
