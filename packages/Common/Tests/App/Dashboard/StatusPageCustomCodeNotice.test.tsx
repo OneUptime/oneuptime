@@ -31,6 +31,11 @@ import { getJestSpyOn } from "../../Spy";
  * verified for this page, on a verified project domain. Until there is one
  * the code runs nowhere.
  *
+ * The page reads that in two steps: its CNAME-verified domains, then
+ * whether any of their project domains is verified. Domain.isVerified
+ * cannot be read through the relation (App RelationSelectColumnsWiring), so
+ * one read selecting it would throw and the notice would never show.
+ *
  * The real page is rendered; only the network, the route's id and the
  * permission gate are stubbed.
  */
@@ -64,6 +69,7 @@ import Domain from "../../../Models/DatabaseModels/Domain";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import Route from "../../../Types/API/Route";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate, {
@@ -78,21 +84,79 @@ const PAGE_PROPS: PageComponentProps = {
   hasPaymentMethod: false,
 };
 
-// A domain of the page as the read returns it: CNAME-verified ones only.
-function cnameVerifiedDomain(
-  isProjectDomainVerified: boolean,
-): StatusPageDomain {
-  const statusPageDomain: StatusPageDomain = new StatusPageDomain();
-  statusPageDomain._id = ObjectID.generate().toString();
-  const domain: Domain = new Domain();
-  domain.isVerified = isProjectDomainVerified;
-  statusPageDomain.domain = domain;
-  return statusPageDomain;
+/*
+ * The page's CNAME-verified domains as the server holds them: each on a
+ * project domain, verified or not.
+ */
+interface PageDomain {
+  id: string;
+  projectDomainId: string;
+  isProjectDomainVerified: boolean;
+}
+
+let pageDomains: Array<PageDomain> = [];
+
+// The page's CNAME-verified domains, one per answer: is its project domain verified?
+function onDomains(...isProjectDomainVerified: Array<boolean>): void {
+  pageDomains = isProjectDomainVerified.map(
+    (isVerified: boolean, index: number): PageDomain => {
+      return {
+        id: `5e5e5e5e-0000-4000-8000-00000000000${index}`,
+        projectDomainId: `6f6f6f6f-0000-4000-8000-00000000000${index}`,
+        isProjectDomainVerified: isVerified,
+      };
+    },
+  );
+}
+
+interface ListOptions {
+  modelType: unknown;
+  query: Record<string, unknown>;
+  select: Record<string, unknown>;
+  limit: number;
+}
+
+// Answers each read as the API would, from `pageDomains`.
+function answer(options: ListOptions): Array<unknown> {
+  if (options.modelType === StatusPageDomain) {
+    return pageDomains.map((pageDomain: PageDomain): StatusPageDomain => {
+      const item: StatusPageDomain = new StatusPageDomain();
+      item._id = pageDomain.id;
+      item.domainId = new ObjectID(pageDomain.projectDomainId);
+      return item;
+    });
+  }
+
+  if (options.modelType === Domain) {
+    const ids: Array<string> = (
+      (options.query["_id"] as Includes).values as Array<ObjectID>
+    ).map((id: ObjectID): string => {
+      return id.toString();
+    });
+
+    return pageDomains
+      .filter((pageDomain: PageDomain): boolean => {
+        return (
+          ids.includes(pageDomain.projectDomainId) &&
+          pageDomain.isProjectDomainVerified ===
+            Boolean(options.query["isVerified"])
+        );
+      })
+      .map((pageDomain: PageDomain): Domain => {
+        const item: Domain = new Domain();
+        item._id = pageDomain.projectDomainId;
+        return item;
+      });
+  }
+
+  return [];
 }
 
 let navigateSpy: jest.SpiedFunction<typeof Navigation.navigate>;
 
 beforeEach(() => {
+  pageDomains = [];
+
   getItemMock.mockReset();
   getItemMock.mockImplementation(async (): Promise<unknown> => {
     const page: StatusPage = new StatusPage();
@@ -101,6 +165,10 @@ beforeEach(() => {
   });
 
   getListMock.mockReset();
+  getListMock.mockImplementation(async (options: unknown): Promise<unknown> => {
+    const data: Array<unknown> = answer(options as ListOptions);
+    return { data: data, count: data.length, skip: 0, limit: 100 };
+  });
 
   getJestSpyOn(Navigation, "getLastParamAsObjectID").mockImplementation(
     (): ObjectID => {
@@ -132,29 +200,13 @@ async function flush(): Promise<void> {
   });
 }
 
-// The page's domains read answers with `domains`; every other list is empty.
-function domainsRead(domains: Array<StatusPageDomain>): void {
-  getListMock.mockImplementation(async (options: unknown): Promise<unknown> => {
-    const modelType: unknown = (options as { modelType: unknown }).modelType;
-    const data: Array<unknown> = modelType === StatusPageDomain ? domains : [];
-    return { data: data, count: data.length, skip: 0, limit: 100 };
-  });
-}
-
-interface ListOptions {
-  modelType: unknown;
-  query: Record<string, unknown>;
-  select: Record<string, unknown>;
-  limit: number;
-}
-
-function domainReads(): Array<ListOptions> {
+function readsOf(modelType: unknown): Array<ListOptions> {
   return getListMock.mock.calls
     .map((call: Array<unknown>): ListOptions => {
       return call[0] as ListOptions;
     })
     .filter((options: ListOptions): boolean => {
-      return options.modelType === StatusPageDomain;
+      return options.modelType === modelType;
     });
 }
 
@@ -173,12 +225,14 @@ function notice(): HTMLElement | null {
 
 describe("the custom code notice", () => {
   test("a page with no custom domain: the notice, with Custom Domains a click away", async () => {
-    domainsRead([]);
+    onDomains();
 
     await renderPage();
 
     expect(notice()).toBeInTheDocument();
     expect(notice()).toHaveTextContent(StatusPageCustomCodeCopy.notice);
+    // No project domain to ask about.
+    expect(readsOf(Domain)).toHaveLength(0);
 
     fireEvent.click(screen.getByText(StatusPageCustomCodeCopy.noticeAction));
 
@@ -188,16 +242,17 @@ describe("the custom code notice", () => {
   });
 
   test("REGRESSION: a page with a domain its code runs on is not told on every visit", async () => {
-    domainsRead([cnameVerifiedDomain(true)]);
+    onDomains(true);
 
     await renderPage();
 
-    expect(domainReads()).toHaveLength(1);
+    expect(readsOf(StatusPageDomain)).toHaveLength(1);
+    expect(readsOf(Domain)).toHaveLength(1);
     expect(notice()).not.toBeInTheDocument();
   });
 
   test("a CNAME verified on a project domain not verified yet: the code runs nowhere, so the notice shows", async () => {
-    domainsRead([cnameVerifiedDomain(false)]);
+    onDomains(false);
 
     await renderPage();
 
@@ -205,35 +260,37 @@ describe("the custom code notice", () => {
   });
 
   test("one domain the code runs on among others is enough", async () => {
-    domainsRead([
-      cnameVerifiedDomain(false),
-      cnameVerifiedDomain(true),
-      cnameVerifiedDomain(false),
-    ]);
+    onDomains(false, true, false);
 
     await renderPage();
 
     expect(notice()).not.toBeInTheDocument();
   });
 
-  test("no notice on a guess: none while the domains are read, none when the read fails", async () => {
-    let answer: (value: unknown) => void = (): void => {};
-    getListMock.mockImplementation((): Promise<unknown> => {
-      return new Promise<unknown>((resolve: (value: unknown) => void) => {
-        answer = resolve;
-      });
-    });
+  test("no notice on a guess: none while the domains are read, none when a read fails", async () => {
+    onDomains();
+    let release: () => void = (): void => {};
+    getListMock.mockImplementation(
+      async (options: unknown): Promise<unknown> => {
+        await new Promise<void>((resolve: () => void) => {
+          release = resolve;
+        });
+        const data: Array<unknown> = answer(options as ListOptions);
+        return { data: data, count: data.length, skip: 0, limit: 100 };
+      },
+    );
 
     await renderPage();
     expect(notice()).not.toBeInTheDocument();
 
     await act(async () => {
-      answer({ data: [], count: 0, skip: 0, limit: 100 });
+      release();
     });
     await flush();
     // The answer came: no domain, so now it says so.
     expect(notice()).toBeInTheDocument();
 
+    // The first read fails.
     cleanup();
     getListMock.mockImplementation(async (): Promise<unknown> => {
       throw new Error("The domains could not be read");
@@ -241,26 +298,58 @@ describe("the custom code notice", () => {
 
     await renderPage();
     expect(notice()).not.toBeInTheDocument();
+
+    // The second read fails.
+    cleanup();
+    onDomains(false);
+    getListMock.mockImplementation(
+      async (options: unknown): Promise<unknown> => {
+        if ((options as ListOptions).modelType === Domain) {
+          throw new Error("The project domains could not be read");
+        }
+        const data: Array<unknown> = answer(options as ListOptions);
+        return { data: data, count: data.length, skip: 0, limit: 100 };
+      },
+    );
+
+    await renderPage();
+    expect(notice()).not.toBeInTheDocument();
   });
 
-  test("it asks what the status page server asks: this page's CNAME-verified domains, with their project domain's verification", async () => {
-    domainsRead([]);
+  test("it asks what the status page server asks, in reads the API allows", async () => {
+    onDomains(false, true);
 
     await renderPage();
 
-    const reads: Array<ListOptions> = domainReads();
-    expect(reads).toHaveLength(1);
-    expect(String(reads[0]!.query["statusPageId"])).toBe(STATUS_PAGE_ID);
-    expect(reads[0]!.query["isCnameVerified"]).toBe(true);
-    expect(reads[0]!.select).toEqual({
-      _id: true,
-      domain: { isVerified: true },
-    });
-    expect(reads[0]!.limit).toBe(CUSTOM_CODE_DOMAINS_READ_LIMIT);
+    const pageReads: Array<ListOptions> = readsOf(StatusPageDomain);
+    expect(pageReads).toHaveLength(1);
+    expect(String(pageReads[0]!.query["statusPageId"])).toBe(STATUS_PAGE_ID);
+    expect(pageReads[0]!.query["isCnameVerified"]).toBe(true);
+    // Only the page domain's own columns: nothing read through the relation.
+    expect(pageReads[0]!.select).toEqual({ _id: true, domainId: true });
+    expect(pageReads[0]!.limit).toBe(CUSTOM_CODE_DOMAINS_READ_LIMIT);
+
+    const domainReads: Array<ListOptions> = readsOf(Domain);
+    expect(domainReads).toHaveLength(1);
+    expect(
+      ((domainReads[0]!.query["_id"] as Includes).values as Array<ObjectID>)
+        .map((id: ObjectID): string => {
+          return id.toString();
+        })
+        .sort(),
+    ).toEqual(
+      pageDomains
+        .map((pageDomain: PageDomain): string => {
+          return pageDomain.projectDomainId;
+        })
+        .sort(),
+    );
+    expect(domainReads[0]!.query["isVerified"]).toBe(true);
+    expect(domainReads[0]!.select).toEqual({ _id: true });
   });
 
   test("the four code cards show either way", async () => {
-    domainsRead([cnameVerifiedDomain(true)]);
+    onDomains(true);
 
     await renderPage();
 
