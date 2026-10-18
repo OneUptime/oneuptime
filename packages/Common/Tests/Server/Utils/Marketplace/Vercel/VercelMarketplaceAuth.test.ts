@@ -246,7 +246,31 @@ describe("VercelMarketplaceAuth", () => {
     ).rejects.toThrow("no Vercel user");
   });
 
-  it("refuses a token that names no account", async () => {
+  it("reads a system token sent before anything is installed, which names no team", async () => {
+    const caller: VercelMarketplaceCaller = await authWith(
+      jwks(),
+    ).verifyAuthorizationHeader(
+      `Bearer ${signToken({
+        key: key,
+        claims: {
+          iss: VERCEL_MARKETPLACE_ISSUER,
+          aud: CLIENT_ID,
+          type: "access_token",
+          sub: null,
+          installation_id: null,
+        },
+        expiresInSeconds: 300,
+      })}`,
+    );
+
+    expect(caller).toEqual({
+      kind: "system",
+      accountId: null,
+      installationId: null,
+    });
+  });
+
+  it("refuses a user token that names no account", async () => {
     const claims: Record<string, unknown> = userClaims();
     delete claims["account_id"];
 

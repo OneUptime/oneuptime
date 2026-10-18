@@ -34,7 +34,11 @@ export type VercelTokenType = "access_token" | "id_token";
 
 export interface VercelMarketplaceCaller {
   kind: "user" | "system";
-  accountId: string;
+  /*
+   * The Vercel team. Null only on a system token for something no team has
+   * yet: the plans Vercel shows before anyone installs OneUptime.
+   */
+  accountId: string | null;
   // Null only on a system token for something no installation is part of yet.
   installationId: string | null;
   userId?: string | undefined;
@@ -144,18 +148,13 @@ export default class VercelMarketplaceAuth {
     }
 
     const accountId: unknown = claims["account_id"];
-
-    if (typeof accountId !== "string" || !accountId) {
-      throw new VercelAuthError("The token names no Vercel account.");
-    }
-
     const installationId: unknown = claims["installation_id"];
     const userId: unknown = claims["user_id"];
     const subject: unknown = claims["sub"];
 
     const caller: VercelMarketplaceCaller = {
       kind: "system",
-      accountId: accountId,
+      accountId: typeof accountId === "string" && accountId ? accountId : null,
       installationId:
         typeof installationId === "string" && installationId
           ? installationId
@@ -180,6 +179,11 @@ export default class VercelMarketplaceAuth {
 
     if (typeof userId !== "string" || !userId) {
       throw new VercelAuthError("The token names no Vercel user.");
+    }
+
+    // A person is always someone in a team.
+    if (!caller.accountId) {
+      throw new VercelAuthError("The token names no Vercel account.");
     }
 
     if (role !== "ADMIN" && role !== "USER") {

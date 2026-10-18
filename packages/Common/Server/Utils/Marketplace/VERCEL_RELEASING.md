@@ -333,7 +333,8 @@ its own, which a maintainer creates.
 From Vercel's approval checklist, with what to look at in OneUptime (the
 master-admin API: `/api/vercel-marketplace-installation`,
 `/api/vercel-marketplace-connection`, `/api/marketplace-subscription`,
-`/api/marketplace-usage-report`).
+`/api/marketplace-usage-report`). The installation's access token is never
+served, to a master admin either: only the server reads it.
 
 - [ ] Install as a new Vercel user, as an existing OneUptime user, and while
       signed out of Vercel. A `VercelMarketplaceInstallation` row is
@@ -430,6 +431,11 @@ is in brackets.
    on Vercel's invoices? [Yes, as on the other marketplaces.]
 7. Fees and payout terms of the Integrations Agreement.
 8. How to keep the integration private while testing.
+9. Does Vercel take a month's invoice lines for a resource deleted during
+   that month, by the deleted resource's ID? [Assumed: its usage up to the
+   deletion is on the month's invoice. If Vercel refuses the lines, the
+   invoice fails and is retried each hour, and `lastBillingError` on the
+   installation says why.]
 
 ## History
 

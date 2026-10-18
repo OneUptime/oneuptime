@@ -438,6 +438,17 @@ export default class VercelMarketplaceBilling {
         : monthStart;
     const periodEnd: Date = VercelMarketplaceBilling.getStartOfNextMonth(now);
 
+    // A team that has added no resource yet has nothing to show.
+    if (
+      (
+        await VercelMarketplaceResources.listPurchases(
+          installation.installationId!,
+        )
+      ).length === 0
+    ) {
+      return;
+    }
+
     const usage: Array<ResourceUsage> =
       await VercelMarketplaceBilling.getResourceUsage(installation, {
         periodStart: periodStart,

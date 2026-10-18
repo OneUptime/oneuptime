@@ -704,6 +704,17 @@ describe("VercelMarketplaceBilling.billInstallation", () => {
     );
   });
 
+  it("sends no running totals for a team that has added no resource yet", async () => {
+    setNow("2026-11-01T03:15:00.000Z");
+    mocked(VercelMarketplaceResources.listPurchases).mockResolvedValue([]);
+    mocked(MarketplaceUsageReportService.findBy).mockResolvedValue([]);
+
+    await VercelMarketplaceBilling.billInstallation(installation());
+
+    expect(api.submitBillingData).not.toHaveBeenCalled();
+    expect(api.submitInvoice).not.toHaveBeenCalled();
+  });
+
   it("bills nobody while another run holds the installation", async () => {
     setNow("2026-11-01T03:15:00.000Z");
     mocked(Semaphore.lock).mockRejectedValue(new Error("locked"));
@@ -944,7 +955,15 @@ describe("VercelMarketplaceBilling.runAll", () => {
           : installation({ installationId: "icfg_active" });
       },
     );
-    mocked(VercelMarketplaceResources.listPurchases).mockResolvedValue([]);
+    mocked(VercelMarketplaceResources.listPurchases).mockImplementation(
+      async (
+        installationId: unknown,
+      ): Promise<Array<MarketplaceSubscription>> => {
+        return installationId === "icfg_active"
+          ? [resource("res_1", { externalCustomerId: "icfg_active" })]
+          : [];
+      },
+    );
     mocked(MarketplaceUsageReportService.findBy).mockResolvedValue([]);
 
     await VercelMarketplaceBilling.runAll();

@@ -158,7 +158,7 @@ export default class VercelMarketplaceProvider {
 
     // What Vercel says now; a detail it leaves out is cleared, not kept from before.
     const fields: Record<string, unknown> = {
-      vercelAccountId: data.caller.accountId,
+      vercelAccountId: data.caller.accountId || null,
       accessToken: accessToken,
       tokenType:
         typeof tokenType === "string" && tokenType ? tokenType : "Bearer",
