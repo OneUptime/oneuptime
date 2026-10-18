@@ -3,6 +3,7 @@ import BasePermission from "../../../../../Server/Types/Database/Permissions/Bas
 import CreateScopeException from "../../../../../Server/Types/Database/Permissions/CreateScopeException";
 import CreateScopePermission from "../../../../../Server/Types/Database/Permissions/CreateScopePermission";
 import DeletePermission from "../../../../../Server/Types/Database/Permissions/DeletePermission";
+import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
 import OwnedScopePermission from "../../../../../Server/Types/Database/Permissions/OwnedScopePermission";
 import OwnerTableRegistry, {
   OwnerTablePair,
@@ -885,3 +886,64 @@ describe.each(PARTS_OF_A_KIND)(
     });
   },
 );
+
+/*
+ * Routes of their own that hold a record to its update rule before they act
+ * as OneUptime: the numbers of an incoming call policy are reserved,
+ * attached and released only on a policy the caller may edit
+ * (Notification/API/PhoneNumber's assertCanEditIncomingCallPolicy), and a
+ * schedule's shared link is published again or rotated only when the
+ * caller's change of it reaches it (OnCallCalendarAPI). Both ask the update
+ * rule with the caller's props, which keeps a member whose grants are
+ * scoped to Owned to what they or their teams own.
+ */
+describe("the routes that check a record by its update rule keep to the owned ones", () => {
+  test("an incoming call policy's numbers: only on the policies the member owns", async () => {
+    ownsOnly(OWNED_ID);
+
+    const props: DatabaseCommonInteractionProps = memberWith(
+      rowsAt(everyGrantOn(IncomingCallPolicy), PermissionScope.Owned),
+    );
+
+    for (const [id, isReached] of [
+      [OWNED_ID, true],
+      [OTHER_ID, false],
+    ] as Array<[string, boolean]>) {
+      const query: Dictionary<unknown> =
+        (await ModelPermission.checkUpdateQueryPermissions(
+          IncomingCallPolicy,
+          { _id: id, projectId: PROJECT_ID },
+          {},
+          props,
+        )) as Dictionary<unknown>;
+
+      expect([id, reaches(query, "_id", id)]).toEqual([id, isReached]);
+    }
+  });
+
+  test("a schedule's shared link: only on the schedules the member owns", async () => {
+    ownsOnly(OWNED_ID);
+
+    const props: DatabaseCommonInteractionProps = memberWith(
+      rowsAt(
+        [
+          ...everyGrantOn(OnCallDutyPolicyScheduleCalendarFeed),
+          ...everyGrantOn(OnCallDutyPolicySchedule),
+        ],
+        PermissionScope.Owned,
+      ),
+    );
+
+    // The change the rotate route makes first, of the link it found.
+    const query: Dictionary<unknown> =
+      (await ModelPermission.checkUpdateQueryPermissions(
+        OnCallDutyPolicyScheduleCalendarFeed,
+        { _id: PENDING_ID, projectId: PROJECT_ID },
+        { isEnabled: true },
+        props,
+      )) as Dictionary<unknown>;
+
+    expect(reaches(query, "onCallDutyPolicyScheduleId", OWNED_ID)).toBe(true);
+    expect(reaches(query, "onCallDutyPolicyScheduleId", OTHER_ID)).toBe(false);
+  });
+});
