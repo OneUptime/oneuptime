@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { getFirstRunEmptyState } from "../../FeatureSet/Dashboard/src/Components/Infrastructure/FirstRecordWatch";
 
 /*
  * Every table's empty state, at the level of the Dashboard's sources.
@@ -145,10 +146,36 @@ describe("tables under a facet bar tell their empty state about the chips", () =
       expect(code).toContain("emptyState: facetEmptyState,");
       expect(
         code.includes("emptyState={facetEmptyState}") ||
-          code.includes("...facetEmptyState"),
+          code.includes("...facetEmptyState") ||
+          // An infrastructure list's first run: the chips' state, carried through.
+          code.includes(
+            "emptyState={getFirstRunEmptyState({ emptyState: facetEmptyState,",
+          ),
       ).toBe(true);
     },
   );
+
+  test("an infrastructure list's first run carries the chips' state through, empty or not", () => {
+    const onClearFilters: () => void = (): void => {};
+    const chips: { isFiltered: boolean; onClearFilters: () => void } = {
+      isFiltered: true,
+      onClearFilters,
+    };
+
+    for (const count of [0, 1, null]) {
+      for (const isAddedByHand of [false, true]) {
+        const options: ReturnType<typeof getFirstRunEmptyState> =
+          getFirstRunEmptyState({ emptyState: chips, count, isAddedByHand });
+
+        expect({
+          count,
+          isAddedByHand,
+          isFiltered: options.isFiltered,
+        }).toEqual({ count, isAddedByHand, isFiltered: true });
+        expect(options.onClearFilters).toBe(onClearFilters);
+      }
+    }
+  });
 
   /*
    * The old way: each page worded its own "No X matches the filters above."
