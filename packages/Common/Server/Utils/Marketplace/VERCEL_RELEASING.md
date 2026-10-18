@@ -115,7 +115,8 @@ adapter accepts it at once. From those reports, `Marketplace:VercelBilling`
 
 - sends each installation's **running totals** for the current month (Submit
   Billing Data: the billing lines, and the users, active monitors and
-  telemetry spend of each resource). Vercel shows them; they charge nothing;
+  telemetry spend of each resource). Vercel shows them; they charge nothing.
+  An installation with no resources is sent none;
 - sends the **invoice** of a month once it has ended and its last hour has
   been reported (two hours after midnight UTC), with `externalId`
   `oneuptime-<installation>-<YYYY-MM>`, so an invoice sent again is
