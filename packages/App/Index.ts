@@ -37,7 +37,10 @@ import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
 import StartupGate from "Common/Server/Utils/StartupGate";
 import InstanceReceivingHeartbeat from "Common/Server/Utils/Telemetry/InstanceReceivingHeartbeat";
-import { RunDatabaseMigrationsOnBoot } from "Common/Server/EnvironmentConfig";
+import {
+  ClusterKeyWarning,
+  RunDatabaseMigrationsOnBoot,
+} from "Common/Server/EnvironmentConfig";
 import "ejs";
 import OpenAPIUtil from "Common/Server/Utils/OpenAPI";
 /*
@@ -121,6 +124,17 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * and it refuses a token signed with it.
      */
     await InstanceTokenSigningKeyService.loadTokenSigningKey();
+
+    /*
+     * An installation whose ONEUPTIME_SECRET is unset or a value the
+     * repository ships has its services call each other with a cluster key
+     * derived from the key just loaded (ClusterKeyAuthorization), and refuses
+     * the public value from any caller. Said once, with what the in-cluster
+     * Runner needs.
+     */
+    if (ClusterKeyWarning) {
+      logger.warn(ClusterKeyWarning);
+    }
 
     // Connect to Redis
     await Redis.connect();
