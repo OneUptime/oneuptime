@@ -178,8 +178,14 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
           ...(props.query || {}),
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
+        /*
+         * "Announcements", as the menus name the page, and "Starts" and
+         * "Ends" for when a notice shows, as on a maintenance event: "Show
+         * Announcement At" and "End Announcement At" were cut off beside the
+         * row's actions at 1280px.
+         */
         cardProps={{
-          title: props.title || "Status Page Announcements",
+          title: props.title || "Announcements",
           buttons: cardbuttons,
           description:
             props.description ||
@@ -202,14 +208,14 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             field: {
               showAnnouncementAt: true,
             },
-            title: "Show Announcement At",
+            title: "Starts",
             type: FieldType.Date,
           },
           {
             field: {
               endAnnouncementAt: true,
             },
-            title: "End Announcement At",
+            title: "Ends",
             type: FieldType.Date,
           },
           {
@@ -252,7 +258,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             field: {
               showAnnouncementAt: true,
             },
-            title: "Show Announcement At",
+            title: "Starts",
             type: FieldType.DateTime,
             hideOnMobile: true,
           },
@@ -260,7 +266,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             field: {
               endAnnouncementAt: true,
             },
-            title: "End Announcement At",
+            title: "Ends",
             type: FieldType.DateTime,
             // Shown until removed: the table's quiet dash, like every cell.
             hideOnMobile: true,

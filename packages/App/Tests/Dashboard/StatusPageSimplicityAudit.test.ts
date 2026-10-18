@@ -497,6 +497,39 @@ describe("the screens", () => {
     );
   });
 
+  test("the announcement lists are Announcements, as the menus say, with Starts and Ends that fit beside the row's actions", () => {
+    const table: string = readCode(
+      "Components/Announcement/AnnouncementsTable.tsx",
+    );
+
+    expect(table).toContain('title: props.title || "Announcements",');
+    expect(table).not.toContain('"Status Page Announcements"');
+    // The column and the filter of each date.
+    expect(table.split('title: "Starts",').length - 1).toBe(2);
+    expect(table.split('title: "Ends",').length - 1).toBe(2);
+    expect(table).not.toContain('title: "Show Announcement At"');
+    expect(table).not.toContain('title: "End Announcement At"');
+  });
+
+  test("the template lists are named as the menu names them: Create Announcement Template, Create Template", () => {
+    const announcementTemplates: string = readCode(
+      "Pages/StatusPages/Settings/StatusPageAnnouncementTemplates.tsx",
+    );
+    const subscriberTemplates: string = readCode(
+      "Pages/StatusPages/Settings/SubscriberNotificationTemplates.tsx",
+    );
+
+    expect(announcementTemplates).toContain(
+      'singularName="Announcement Template" pluralName="Announcement Templates"',
+    );
+    expect(announcementTemplates).toContain('title: "Announcement Templates",');
+    expect(announcementTemplates).not.toContain("noItemsMessage");
+    expect(subscriberTemplates).toContain(
+      'singularName="Template" pluralName="Templates"',
+    );
+    expect(subscriberTemplates).not.toContain("noItemsMessage");
+  });
+
   test("the SSO and OIDC lists name their rows providers, and test sign-in only once there is one", () => {
     for (const [file, singular, plural] of [
       ["SSO.tsx", "ssoProvider", "ssoProviders"],
