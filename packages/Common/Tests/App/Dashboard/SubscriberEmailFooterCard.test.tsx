@@ -78,7 +78,7 @@ jest.mock("../../../UI/Utils/User", () => {
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   const actualModel: { default: unknown } = jest.requireActual(
     "../../../Models/DatabaseModels/StatusPage",
-  );
+  ) as { default: unknown };
 
   return {
     __esModule: true,

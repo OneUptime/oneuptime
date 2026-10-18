@@ -120,12 +120,16 @@ const NEW_WORDS: Array<string> = [
       "Awaiting Confirmation",
     ].includes(text);
   }),
-  ...SUBSCRIBER_ADD_CHOICE.options.map((option: { description?: string }) => {
-    return option.description as string;
-  }),
-  ...EMAIL_SUBSCRIBER_STATUS.options.map((option: { description?: string }) => {
-    return option.description as string;
-  }),
+  ...SUBSCRIBER_ADD_CHOICE.options.map(
+    (option: { description?: string | undefined }): string => {
+      return option.description as string;
+    },
+  ),
+  ...EMAIL_SUBSCRIBER_STATUS.options.map(
+    (option: { description?: string | undefined }): string => {
+      return option.description as string;
+    },
+  ),
   ...Object.values(SubscriberChoicesCopy).filter((text: string): boolean => {
     return ![
       "Allow Subscribers to Choose Resources",

@@ -138,6 +138,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberFormFields";
 import {
   ColumnChoiceConfig,
+  ColumnChoiceOption,
   getColumnChoiceInForm,
   getColumnChoiceRadioButtons,
   getColumnChoiceTitle,
@@ -445,13 +446,15 @@ describe("ColumnChoice: one question, written into its columns", () => {
       "Ask them to confirm first",
     ]);
     expect(getColumnChoiceRadioButtons(config)).toEqual(
-      config.options.map((option: Values) => {
-        return {
-          value: option["value"],
-          title: option["title"],
-          description: option["description"],
-        };
-      }),
+      config.options.map(
+        (option: ColumnChoiceOption<SubscriberAddChoice>): Values => {
+          return {
+            value: option.value,
+            title: option.title,
+            description: option.description,
+          };
+        },
+      ),
     );
     expect(
       getColumnChoiceTitle(config, SubscriberAddChoice.SubscribeAndTell),
@@ -539,7 +542,7 @@ describe("ColumnChoice: one question, written into its columns", () => {
       SubscriberAddChoice.SubscribeAndTell,
       {
         subscriberEmail: "ana@example.com",
-      } as FormValues<StatusPageSubscriber>,
+      } as unknown as FormValues<StatusPageSubscriber>,
       write,
     );
     // Something that is no answer changes nothing.
