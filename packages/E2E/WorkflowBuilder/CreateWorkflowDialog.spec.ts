@@ -577,6 +577,242 @@ test.describe("Create a workflow", () => {
     );
   });
 
+  /*
+   * Zabbix, like Jira: the workflow its problems come to, and the two that
+   * write back to Zabbix, for incidents and then for alerts, each set under
+   * its own heading.
+   */
+  test("the category select: Zabbix lists its three incident templates, then its three alert templates, under their own headings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openDialog(page);
+
+    await dialog
+      .getByTestId("workflow-template-view-select")
+      .selectOption("Zabbix");
+
+    const listbox: Locator = dialog.getByRole("listbox");
+
+    await expect(listbox.getByRole("option")).toHaveCount(6);
+    await expect(listbox.getByRole("group")).toHaveCount(2);
+
+    const incidents: Locator = listbox
+      .getByRole("group", { name: "Incidents" })
+      .getByRole("option");
+    const alerts: Locator = listbox
+      .getByRole("group", { name: "Alerts" })
+      .getByRole("option");
+
+    await expect(incidents).toHaveCount(3);
+    await expect(alerts).toHaveCount(3);
+    // The workflow Zabbix sends its problems to comes first in each.
+    await expect(incidents.first()).toContainText(
+      "Declare an incident for each Zabbix problem",
+    );
+    await expect(alerts.first()).toContainText(
+      "Create an alert for each Zabbix problem",
+    );
+    await expect(dialog.getByTestId("workflow-template-details")).toHaveCount(
+      0,
+    );
+  });
+
+  /*
+   * The workflow Zabbix sends its problems to asks for one thing, the
+   * address its links to a problem go to, and says what else it needs:
+   * who to page, picked in the Builder. A page's address pasted from the
+   * address bar is refused where it is typed, and nothing is created; the
+   * address Zabbix is opened at, under a path and with the slash an address
+   * bar ends it with, is saved as typed, and the workflow is created with
+   * its Page step waiting for who to page.
+   */
+  test("the Zabbix problems template asks for the Zabbix URL alone, refuses a page's address there, and is created with its Page step waiting", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openDialog(page);
+
+    await dialog
+      .getByTestId("workflow-template-view-select")
+      .selectOption("Zabbix");
+
+    const row: Locator = templateRow(
+      dialog,
+      "Declare an incident for each Zabbix problem",
+    );
+
+    await row.click();
+
+    const details: Locator = row.getByTestId("workflow-template-details");
+
+    await expect(
+      details.getByTestId("workflow-template-details-trigger"),
+    ).toContainText("Webhook");
+    await expect(
+      details.getByTestId("workflow-template-details-setting-zabbixUrl"),
+    ).toContainText("Zabbix URL");
+    await expect(
+      details.getByTestId("workflow-template-details-in-builder"),
+    ).toHaveText("An on-call policy to page. You pick it in the Builder.");
+
+    await nextButton(dialog).click();
+    await expect(dialog.getByTestId("workflow-name-input")).toHaveValue(
+      "Zabbix problems to incidents",
+    );
+    await nextButton(dialog).click();
+
+    const url: Locator = dialog.getByTestId("workflow-variable-zabbixUrl");
+    const message: string =
+      "Enter only the address you open Zabbix at, such as https://zabbix.example.com, not a page in it.";
+
+    await expect(url).toBeFocused();
+    await expect(url).toHaveAttribute("type", "text");
+    await expect(
+      dialog.locator('label[for="workflow-variable-zabbixUrl"]'),
+    ).toHaveText("Zabbix URL");
+    await expect(dialog.getByTestId("workflow-variable-zabbixApiToken")).toHaveCount(
+      0,
+    );
+
+    await url.fill("https://example.com/zabbix/zabbix.php?action=problem.view");
+    await submitButton(dialog).click();
+
+    await expect(dialog).toContainText(message);
+    await expect(url).toHaveAttribute("aria-invalid", "true");
+    expect(await createdRecords(page)).toEqual([]);
+
+    await url.fill("https://example.com/zabbix/");
+    await expect(dialog).not.toContainText(message);
+    await submitButton(dialog).click();
+
+    await expect(page.getByTestId("created-workflow")).toHaveText(
+      "Opened the builder for Zabbix problems to incidents",
+    );
+
+    const records: Array<CreatedRecord> = await createdRecords(page);
+
+    expect(
+      records.map((record: CreatedRecord): string => {
+        return `${record.kind} ${record.name}`;
+      }),
+    ).toEqual(["workflow Zabbix problems to incidents", "variable zabbixUrl"]);
+    expect(records[0]).toMatchObject({ isEnabled: false, projectId: PROJECT_ID });
+    expect(records[1]).toEqual({
+      kind: "variable",
+      name: "zabbixUrl",
+      content: "https://example.com/zabbix/",
+      isSecret: false,
+      workflowId: CREATED_WORKFLOW_ID,
+    });
+
+    type StoredNode = {
+      data?: { metadataId?: string; arguments?: Record<string, unknown> };
+    };
+
+    const nodes: Array<StoredNode> = (records[0]?.graph?.nodes ||
+      []) as Array<StoredNode>;
+    const pageSteps: Array<StoredNode> = nodes.filter(
+      (node: StoredNode): boolean => {
+        return node.data?.metadataId === "page-on-call-policy";
+      },
+    );
+
+    expect(
+      nodes.filter((node: StoredNode): boolean => {
+        return node.data?.metadataId === "webhook";
+      }),
+    ).toHaveLength(1);
+    expect(pageSteps).toHaveLength(1);
+    // About the incident it opens, and nobody picked to page yet.
+    expect(pageSteps[0]?.data?.arguments).toMatchObject({ about: "incident" });
+    expect(Object.keys(pageSteps[0]?.data?.arguments || {})).not.toContain(
+      "on-call-policies",
+    );
+  });
+
+  /*
+   * The two that call Zabbix ask for its URL and an API token: the token is
+   * masked, refused unless it is a token's 64 characters - a session ID or
+   * a token typed with "Bearer" is the usual slip - and saved as the one
+   * secret variable.
+   */
+  test("a Zabbix template that calls Zabbix asks for its URL and its API token, refuses what is not a token, and saves only the token as a secret", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const token: string =
+      "bbcfce79a2d95037502f7e9a534906d3466c9a1484beb6ea0f4e7be28e8b8ce2";
+    const dialog: Locator = await openDialog(page);
+
+    await dialog
+      .getByTestId("workflow-template-view-select")
+      .selectOption("Zabbix");
+    await templateRow(
+      dialog,
+      "Acknowledge or close the Zabbix problem with the alert",
+    ).click();
+    await nextButton(dialog).click();
+    await expect(dialog.getByTestId("workflow-name-input")).toHaveValue(
+      "Sync alert state to Zabbix",
+    );
+    await nextButton(dialog).click();
+
+    const url: Locator = dialog.getByTestId("workflow-variable-zabbixUrl");
+    const secret: Locator = dialog.getByTestId(
+      "workflow-variable-zabbixApiToken",
+    );
+    const message: string =
+      "Enter the API token Zabbix showed when it was created: 64 characters, the digits 0 to 9 and the letters a to f.";
+
+    await expect(url).toBeFocused();
+    expect((await boxOf(url)).y).toBeLessThan((await boxOf(secret)).y);
+    await expect(secret).toHaveAttribute("type", "password");
+
+    await url.fill("https://zabbix.example.com");
+    await secret.fill(`Bearer ${token}`);
+    await submitButton(dialog).click();
+
+    await expect(dialog).toContainText(message);
+    await expect(secret).toHaveAttribute("aria-invalid", "true");
+    expect(await createdRecords(page)).toEqual([]);
+
+    await secret.fill(token);
+    await expect(dialog).not.toContainText(message);
+    await submitButton(dialog).click();
+
+    await expect(page.getByTestId("created-workflow")).toHaveText(
+      "Opened the builder for Sync alert state to Zabbix",
+    );
+
+    const records: Array<CreatedRecord> = await createdRecords(page);
+
+    expect(records.slice(1)).toEqual([
+      {
+        kind: "variable",
+        name: "zabbixUrl",
+        content: "https://zabbix.example.com",
+        isSecret: false,
+        workflowId: CREATED_WORKFLOW_ID,
+      },
+      {
+        kind: "variable",
+        name: "zabbixApiToken",
+        content: token,
+        isSecret: true,
+        workflowId: CREATED_WORKFLOW_ID,
+      },
+    ]);
+    // The workflow reads the token by reference, and never holds it.
+    const graph: string = JSON.stringify(records[0]?.graph);
+
+    expect(graph).toContain("Bearer {{local.variables.zabbixApiToken}}");
+    expect(graph).not.toContain(token);
+  });
+
   test("Back from Name keeps the template picked, its details open, and the focus on the list", async ({
     page,
   }: {
