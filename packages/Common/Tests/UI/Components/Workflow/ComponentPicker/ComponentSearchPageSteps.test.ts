@@ -58,6 +58,10 @@ const PAGE_TEAM: string = "Page a Team";
 const PAGE_ON_CALL: string = "Page Whoever Is On Call";
 const PAGE_POLICY: string = "Page an On-Call Policy";
 
+// The SMSEagle steps text and call a phone, so the same words find them too.
+const SMSEAGLE_SMS: string = "Send SMS via SMSEagle";
+const SMSEAGLE_CALL: string = "Make a Call via SMSEagle";
+
 // The four, in the order equal matches are listed: by name.
 const PAGE_STEPS: Array<string> = [
   PAGE_TEAM,
@@ -103,7 +107,6 @@ describe("the word itself", () => {
 
 describe("what people call it", () => {
   test.each([
-    "phone",
     "person",
     "people",
     "someone",
@@ -113,9 +116,24 @@ describe("what people call it", () => {
     "pagerduty",
     "opsgenie",
     "page someone",
-    "sms",
   ])("'%s' lists the four Page steps first", (query: string) => {
     expect(titles(query).slice(0, 4)).toEqual(PAGE_STEPS);
+  });
+
+  test("'phone' lists the four Page steps with the SMSEagle steps, by name", () => {
+    expect(titles("phone").slice(0, 6)).toEqual([
+      SMSEAGLE_CALL,
+      ...PAGE_STEPS,
+      SMSEAGLE_SMS,
+    ]);
+  });
+
+  test("'sms' lists the SMSEagle steps, which say it in their name, then the four Page steps", () => {
+    expect(titles("sms").slice(0, 6)).toEqual([
+      SMSEAGLE_SMS,
+      SMSEAGLE_CALL,
+      ...PAGE_STEPS,
+    ]);
   });
 
   test.each(["notify", "notification"])(
@@ -129,14 +147,18 @@ describe("what people call it", () => {
         "Send Message to Discord",
         "Send Email",
       ]);
-      expect(found.slice(4, 8)).toEqual(PAGE_STEPS);
+      expect(found.slice(4, 9)).toEqual([SMSEAGLE_CALL, ...PAGE_STEPS]);
     },
   );
 
-  test("'call' lists all four, the two that say it in their name first", () => {
+  test("'call' lists all four, the ones that say it in their name first", () => {
     const found: Array<string> = titles("call");
 
-    expect(found.slice(0, 2)).toEqual([PAGE_POLICY, PAGE_ON_CALL]);
+    expect(found.slice(0, 3)).toEqual([
+      SMSEAGLE_CALL,
+      PAGE_POLICY,
+      PAGE_ON_CALL,
+    ]);
     expect(found).toContain(PAGE_USERS);
     expect(found).toContain(PAGE_TEAM);
   });

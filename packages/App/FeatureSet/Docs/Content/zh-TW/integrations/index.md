@@ -75,6 +75,7 @@ flowchart TB
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | 傳出 | 為每個 OneUptime 事件觸發一個 PagerDuty 事件，並隨該事件一起解決。 |
 | [Opsgenie](/docs/integrations/opsgenie) | 傳出 | 為每個 OneUptime 事件建立一個 Opsgenie 警示，並隨該事件一起關閉。 |
+| [SMSEagle](/docs/integrations/smseagle) | 傳出 | 透過你自己的 SMSEagle 簡訊閘道傳送簡訊和電話。 |
 
 ### 聊天工具
 

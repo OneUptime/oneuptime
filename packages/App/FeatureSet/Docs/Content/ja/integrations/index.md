@@ -75,6 +75,7 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | アウトバウンド | OneUptime のインシデントごとに PagerDuty のインシデントをトリガーし、インシデントとともに解決します。 |
 | [Opsgenie](/docs/integrations/opsgenie) | アウトバウンド | OneUptime のインシデントごとに Opsgenie のアラートを作成し、インシデントとともにクローズします。 |
+| [SMSEagle](/docs/integrations/smseagle) | アウトバウンド | 自社の SMSEagle SMS ゲートウェイから SMS と電話を送る。 |
 
 ### チャットツール
 

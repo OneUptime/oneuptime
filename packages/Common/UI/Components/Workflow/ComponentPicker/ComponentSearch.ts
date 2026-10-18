@@ -261,6 +261,14 @@ export const COMPONENT_KEYWORDS: Readonly<
     "oftc",
   ],
   [ComponentID.MattermostSendMessageToChannel]: [...MESSAGE_KEYWORDS, "post"],
+  [ComponentID.SMSEagleSendSms]: [...MESSAGE_KEYWORDS, "sms", "text", "phone"],
+  [ComponentID.SMSEagleMakeCall]: [
+    ...MESSAGE_KEYWORDS,
+    "call",
+    "phone",
+    "voice",
+    "tts",
+  ],
   [ComponentID.SendEmail]: [
     "mail",
     "smtp",

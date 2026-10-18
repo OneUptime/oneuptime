@@ -2512,3 +2512,179 @@ describe("the Mattermost templates", () => {
     });
   });
 });
+
+describe("the SMSEagle templates", () => {
+  const SMSEAGLE_TEMPLATE_IDS: Array<string> = [
+    "alert-created-smseagle-sms",
+    "alert-created-smseagle-call",
+  ];
+
+  type SMSEagleStepFunction = (templateId: string) => TemplateNodeSpec;
+
+  const smsEagleStep: SMSEagleStepFunction = (
+    templateId: string,
+  ): TemplateNodeSpec => {
+    const steps: Array<TemplateNodeSpec> = specOf(templateId).nodes.filter(
+      (node: TemplateNodeSpec) => {
+        return (
+          node.metadataId === ComponentID.SMSEagleSendSms ||
+          node.metadataId === ComponentID.SMSEagleMakeCall
+        );
+      },
+    );
+
+    expect(steps).toHaveLength(1);
+
+    return steps[0] as TemplateNodeSpec;
+  };
+
+  test("are the ones that use the SMSEagle steps, one for an SMS and one for a call, both for alerts", () => {
+    const usingSMSEagle: Array<string> = templates
+      .filter((template: WorkflowTemplate) => {
+        return specOf(template.id).nodes.some((node: TemplateNodeSpec) => {
+          return (
+            node.metadataId === ComponentID.SMSEagleSendSms ||
+            node.metadataId === ComponentID.SMSEagleMakeCall
+          );
+        });
+      })
+      .map((template: WorkflowTemplate): string => {
+        return template.id;
+      });
+
+    expect([...usingSMSEagle].sort()).toEqual(
+      [...SMSEAGLE_TEMPLATE_IDS].sort(),
+    );
+
+    expect(
+      SMSEAGLE_TEMPLATE_IDS.map((id: string) => {
+        return getWorkflowTemplate(id)?.category;
+      }),
+    ).toEqual([
+      WorkflowTemplateCategory.Alerts,
+      WorkflowTemplateCategory.Alerts,
+    ]);
+  });
+
+  test("each is named for SMSEagle, so a search for it finds them all", () => {
+    for (const id of SMSEAGLE_TEMPLATE_IDS) {
+      const template: WorkflowTemplate = getWorkflowTemplate(
+        id,
+      ) as WorkflowTemplate;
+
+      expect(template.name).toContain("SMSEagle");
+      expect(template.workflowName).toContain("SMSEagle");
+      expect(
+        `${template.name} ${template.description} ${template.workflowName}`,
+      ).not.toMatch(/slack|discord|teams|telegram|irc|mattermost/i);
+    }
+  });
+
+  test("the SMS template asks for the device, its access token and the number: all required, the token secret", () => {
+    const template: WorkflowTemplate = getWorkflowTemplate(
+      "alert-created-smseagle-sms",
+    ) as WorkflowTemplate;
+
+    expect(
+      template.variables.map((variable: WorkflowTemplateVariable) => {
+        return [
+          variable.name,
+          variable.title,
+          variable.required,
+          variable.isSecret,
+        ];
+      }),
+    ).toEqual([
+      ["smsEagleUrl", "SMSEagle URL", true, false],
+      ["smsEagleAccessToken", "SMSEagle Access Token", true, true],
+      ["smsEaglePhoneNumber", "Phone Number", true, false],
+    ]);
+  });
+
+  test("the call template asks for the voice as well", () => {
+    const template: WorkflowTemplate = getWorkflowTemplate(
+      "alert-created-smseagle-call",
+    ) as WorkflowTemplate;
+
+    expect(
+      template.variables.map((variable: WorkflowTemplateVariable) => {
+        return [
+          variable.name,
+          variable.title,
+          variable.required,
+          variable.isSecret,
+        ];
+      }),
+    ).toEqual([
+      ["smsEagleUrl", "SMSEagle URL", true, false],
+      ["smsEagleAccessToken", "SMSEagle Access Token", true, true],
+      ["smsEaglePhoneNumber", "Phone Number", true, false],
+      ["smsEagleVoiceId", "Voice ID", true, false],
+    ]);
+  });
+
+  test("the SMS template sends through those variables", () => {
+    const step: TemplateNodeSpec = smsEagleStep("alert-created-smseagle-sms");
+
+    expect(step.componentId).toBe("smseagle-1");
+    expect(Object.keys(step.args || {}).sort()).toEqual([
+      "access-token",
+      "api-url",
+      "text",
+      "to",
+    ]);
+    expect(step.args?.["api-url"]).toBe("{{local.variables.smsEagleUrl}}");
+    expect(step.args?.["access-token"]).toBe(
+      "{{local.variables.smsEagleAccessToken}}",
+    );
+    expect(step.args?.["to"]).toBe("{{local.variables.smsEaglePhoneNumber}}");
+  });
+
+  test("the call template sends through those variables, the voice too", () => {
+    const step: TemplateNodeSpec = smsEagleStep("alert-created-smseagle-call");
+
+    expect(step.componentId).toBe("smseagle-call-1");
+    expect(Object.keys(step.args || {}).sort()).toEqual([
+      "access-token",
+      "api-url",
+      "text",
+      "to",
+      "voice-id",
+    ]);
+    expect(step.args?.["api-url"]).toBe("{{local.variables.smsEagleUrl}}");
+    expect(step.args?.["access-token"]).toBe(
+      "{{local.variables.smsEagleAccessToken}}",
+    );
+    expect(step.args?.["to"]).toBe("{{local.variables.smsEaglePhoneNumber}}");
+    expect(step.args?.["voice-id"]).toBe("{{local.variables.smsEagleVoiceId}}");
+  });
+
+  test.each(SMSEAGLE_TEMPLATE_IDS)(
+    "%s logs SMSEagle's reason when the message does not get through",
+    (id: string) => {
+      const spec: TemplateSpec = specOf(id);
+      const stepId: string = smsEagleStep(id).componentId;
+      const errorEdges: Array<TemplateEdgeSpec> = spec.edges.filter(
+        (edge: TemplateEdgeSpec) => {
+          return edge.fromComponentId === stepId && edge.fromPort === "error";
+        },
+      );
+
+      expect(errorEdges).toHaveLength(1);
+
+      const log: TemplateNodeSpec | undefined = spec.nodes.find(
+        (node: TemplateNodeSpec) => {
+          return node.componentId === errorEdges[0]?.toComponentId;
+        },
+      );
+
+      expect(log?.metadataId).toBe(ComponentID.Log);
+      expect(String(log?.args?.["value"])).toMatch(
+        /^SMSEagle could not (deliver the alert notification|make the alert call): /,
+      );
+      expect(String(log?.args?.["value"])).toContain(
+        `{{local.components.${stepId}.returnValues.error}}`,
+      );
+    },
+  );
+});

@@ -75,6 +75,7 @@ flowchart TB
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | خروجی | برای هر حادثه OneUptime یک incident در PagerDuty راه می‌اندازد، و آن را همراه با حادثه رفع می‌کند. |
 | [Opsgenie](/docs/integrations/opsgenie) | خروجی | برای هر حادثه OneUptime یک هشدار در Opsgenie می‌سازد، و آن را همراه با حادثه می‌بندد. |
+| [SMSEagle](/docs/integrations/smseagle) | خروجی | پیامک و تماس را از طریق دروازه پیامک SMSEagle خودتان می‌فرستد. |
 
 ### ابزارهای گفتگو
 

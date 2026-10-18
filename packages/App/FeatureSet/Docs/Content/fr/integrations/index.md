@@ -75,6 +75,7 @@ Commencez par le haut du tableau : plus une façon est haute, moins il y a à ma
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | Sortant | Déclenche un incident PagerDuty pour chaque incident OneUptime, et le résout avec l'incident. |
 | [Opsgenie](/docs/integrations/opsgenie) | Sortant | Crée une alerte Opsgenie pour chaque incident OneUptime, et la ferme avec l'incident. |
+| [SMSEagle](/docs/integrations/smseagle) | Sortant | Envoyer des SMS et des appels via votre propre passerelle SMS SMSEagle. |
 
 ### Outils de chat
 

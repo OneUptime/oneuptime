@@ -539,6 +539,27 @@ const MATTERMOST_WEBHOOK_URL: WorkflowTemplateVariable = {
   },
 };
 
+// The device and its access token, the same in both SMSEagle templates.
+const SMSEAGLE_URL: WorkflowTemplateVariable = {
+  name: "smsEagleUrl",
+  title: "SMSEagle URL",
+  description:
+    "Base URL of your SMSEagle device. It must be reachable from your OneUptime server.",
+  placeholder: "https://192.168.0.100",
+  required: true,
+  isSecret: false,
+};
+
+const SMSEAGLE_ACCESS_TOKEN: WorkflowTemplateVariable = {
+  name: "smsEagleAccessToken",
+  title: "SMSEagle Access Token",
+  description:
+    "The API v2 access token from the SMSEagle web GUI (Settings > API > API v2).",
+  placeholder: "your-api-v2-access-token",
+  required: true,
+  isSecret: true,
+};
+
 /*
  * The two Slack channels the severity template posts to. Each is a webhook
  * of its own, since a Slack webhook posts to the one channel it was made for.
@@ -9099,6 +9120,162 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         },
         {
           fromComponentId: "mattermost-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "alert-created-smseagle-sms",
+    name: "Text a phone via SMSEagle when an alert fires",
+    description: "Sends an SMS through SMSEagle whenever an alert is raised.",
+    teaches:
+      "How a template can ask for a device's address and a secret token.",
+    category: WorkflowTemplateCategory.Alerts,
+    icon: IconProp.SMS,
+    workflowName: "Notify via SMSEagle on new alert",
+    workflowDescription:
+      "Sends an SMS through SMSEagle whenever an alert is created in this project.",
+    variables: [
+      SMSEAGLE_URL,
+      SMSEAGLE_ACCESS_TOKEN,
+      {
+        name: "smsEaglePhoneNumber",
+        title: "Phone Number",
+        description: "The phone number to text, in international format.",
+        placeholder: "+15551234567",
+        required: true,
+        isSecret: false,
+      },
+    ],
+    graph: {
+      nodes: [
+        {
+          componentId: "alert-on-create-1",
+          metadataId: "alert-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: ALERT_SELECT },
+        },
+        {
+          componentId: "smseagle-1",
+          metadataId: ComponentID.SMSEagleSendSms,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "api-url": "{{local.variables.smsEagleUrl}}",
+            "access-token": "{{local.variables.smsEagleAccessToken}}",
+            to: "{{local.variables.smsEaglePhoneNumber}}",
+            text: [
+              "Alert {{local.components.alert-on-create-1.returnValues.model.alertNumberWithPrefix}} fired",
+              "Title: {{local.components.alert-on-create-1.returnValues.model.title}}",
+              "Severity: {{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}",
+              "State: {{local.components.alert-on-create-1.returnValues.model.currentAlertState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "SMSEagle could not deliver the alert notification: {{local.components.smseagle-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "alert-on-create-1",
+          toComponentId: "smseagle-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "smseagle-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "alert-created-smseagle-call",
+    name: "Call a phone via SMSEagle when an alert fires",
+    description:
+      "Calls a phone through SMSEagle and reads the alert out whenever an alert is raised.",
+    teaches: "How a step can read an alert out loud in a phone call.",
+    category: WorkflowTemplateCategory.Alerts,
+    icon: IconProp.Call,
+    workflowName: "Call via SMSEagle on new alert",
+    workflowDescription:
+      "Calls a phone through SMSEagle whenever an alert is created in this project.",
+    variables: [
+      SMSEAGLE_URL,
+      SMSEAGLE_ACCESS_TOKEN,
+      {
+        name: "smsEaglePhoneNumber",
+        title: "Phone Number",
+        description: "The phone number to call, in international format.",
+        placeholder: "+15551234567",
+        required: true,
+        isSecret: false,
+      },
+      {
+        name: "smsEagleVoiceId",
+        title: "Voice ID",
+        description: "ID of the text-to-speech voice on the SMSEagle device.",
+        placeholder: "1",
+        required: true,
+        isSecret: false,
+      },
+    ],
+    graph: {
+      nodes: [
+        {
+          componentId: "alert-on-create-1",
+          metadataId: "alert-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: ALERT_SELECT },
+        },
+        {
+          componentId: "smseagle-call-1",
+          metadataId: ComponentID.SMSEagleMakeCall,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "api-url": "{{local.variables.smsEagleUrl}}",
+            "access-token": "{{local.variables.smsEagleAccessToken}}",
+            to: "{{local.variables.smsEaglePhoneNumber}}",
+            "voice-id": "{{local.variables.smsEagleVoiceId}}",
+            text: [
+              "Alert {{local.components.alert-on-create-1.returnValues.model.alertNumberWithPrefix}} fired.",
+              "{{local.components.alert-on-create-1.returnValues.model.title}}.",
+              "Severity: {{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}.",
+            ].join(" "),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "SMSEagle could not make the alert call: {{local.components.smseagle-call-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "alert-on-create-1",
+          toComponentId: "smseagle-call-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "smseagle-call-1",
           toComponentId: "log-delivery-failed",
           fromPort: "error",
         },

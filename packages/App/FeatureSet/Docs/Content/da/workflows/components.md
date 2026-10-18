@@ -18,6 +18,7 @@ Du får sjældent brug for at have den åben, mens du bygger. Hver bloks indstil
 | Poste i et chatværktøj                                        | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) eller [Mattermost](#mattermost) |
 | Sende en e-mail gennem din egen mailserver                    | [Email](#email)                                                   |
 | Tilkalde en person, et team eller den, der har vagt | [Paging](#paging) |
+| Sende en SMS eller ringe til en telefon                       | [SMSEagle](#smseagle)                                             |
 | Kalde enhver anden API eller din egen tjeneste                | [API](#api)                                                       |
 | Opsummere, klassificere eller skrive udkast til tekst         | [Generate Text with AI](#generate-text-with-ai)                   |
 | Tage den ene eller den anden vej afhængigt af en værdi        | [Conditions](#conditions)                                         |
@@ -87,6 +88,23 @@ Forbind **Success** til de blokke, der bruger svaret, og **Error** til en reserv
 
 > [!WARNING]
 > Modellens output er upålidelig tekst. Gennemgå det, før det når kunder, og lad aldrig fri AI-tekst alene afgøre en destruktiv handling. Se [AI-komponenter](/docs/workflows/configuration#ai-komponenter) for, hvad der sendes til udbyderen, hvad der logges, og hvad det koster.
+
+## SMSEagle
+
+Send en SMS eller foretag et tekst-til-tale-opkald gennem en SMSEagle-enhed, en hardware-SMS-gateway på dit eget netværk. **Send SMS via SMSEagle** sender en SMS, og **Make a Call via SMSEagle** ringer til nummeret og læser teksten op.
+
+| Indstilling               | Hvad den gør                                                                                                                                                |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | Enhedens adresse, for eksempel `https://192.168.0.100`. Blokken tilføjer selv API v2-stien.                                                                 |
+| **SMSEagle Access Token** | En API v2-nøgle fra SMSEagles web-GUI under Settings, API, API v2. Den skal have tilladelsen "Send SMS" til SMS og "Make a TTS Advanced Call" til opkald.   |
+| **Telefonnummer**         | Nummeret, der skal have en SMS eller et opkald, i internationalt format, for eksempel `+15551234567`.                                                       |
+| **Message Text**          | Teksten i SMS'en. Kun i **Send SMS via SMSEagle**.                                                                                                          |
+| **Voice ID**              | ID'et på en tekst-til-tale-stemme på enheden. Kun i **Make a Call via SMSEagle**.                                                                           |
+| **Text to Read Out**      | Teksten, som enheden læser op under opkaldet. Kun i **Make a Call via SMSEagle**.                                                                           |
+
+**Success** udløses, når enheden har sat SMS'en eller opkaldet i kø, og returnerer det **Message ID**, enheden gav den. **Error** udløses, når enheden ikke kan nås eller afviser den, og videregiver årsagen, for eksempel SMSEagles `voice_id: Resource with specified ID not found.` En manglende indstilling eller et **Voice ID**, der ikke er et tal, stopper derimod kørslen.
+
+Opbevar adgangstokenet i en [hemmelig global variabel](/docs/workflows/variables#globale-variabler). Det er skjult i kørselsloggene under alle omstændigheder. Forespørgslen sendes fra OneUptime, og en omdirigering følges ikke. En enhed på en loopback- (`localhost`, `127.0.0.1`), link-local- eller cloudmetadata-adresse afvises, og det samme gælder en enhed på en privat netværksadresse, medmindre en administrator af en selvhostet installation tillader det med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Se [Adgang til privat netværk](/docs/self-hosted/private-network-access).
 
 ## Slack
 

@@ -153,6 +153,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Channel",
     "Port",
     "Username",
+    // What the SMSEagle steps return.
+    "Message ID",
     // Send Email.
     "From Email",
     "To Email",
@@ -665,6 +667,7 @@ const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
   "telegram",
   "irc",
   "mattermost",
+  "smsEagle",
   "email",
   "customCode",
   "json",

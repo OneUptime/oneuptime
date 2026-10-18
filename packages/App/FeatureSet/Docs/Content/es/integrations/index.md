@@ -75,6 +75,7 @@ Empieza por arriba de la tabla: cuanto más arriba está una forma, menos hay qu
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | De salida | Dispara un incidente de PagerDuty por cada incidente de OneUptime y lo resuelve con el incidente. |
 | [Opsgenie](/docs/integrations/opsgenie) | De salida | Crea una alerta de Opsgenie por cada incidente de OneUptime y la cierra con el incidente. |
+| [SMSEagle](/docs/integrations/smseagle) | De salida | Envía SMS y llamadas a través de tu propia pasarela SMS de SMSEagle. |
 
 ### Herramientas de chat
 

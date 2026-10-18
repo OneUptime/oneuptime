@@ -18,6 +18,7 @@ Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins ende
 | In einem Chat-Tool zu posten                             | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) oder [Mattermost](#mattermost) |
 | Eine E-Mail über Ihren eigenen Mailserver zu senden      | [E-Mail](#email)                                                  |
 | Eine Person, ein Team oder die Person in Bereitschaft zu alarmieren | [Paging](#paging) |
+| Eine SMS zu senden oder ein Telefon anzurufen            | [SMSEagle](#smseagle)                                             |
 | Jede andere API oder Ihren eigenen Dienst aufzurufen     | [API](#api)                                                       |
 | Text zusammenzufassen, einzuordnen oder zu entwerfen     | [Generate Text with AI](#generate-text-with-ai)                   |
 | Je nach Wert den einen oder anderen Weg zu nehmen        | [Bedingungen](#conditions)                                        |
@@ -87,6 +88,23 @@ Verbinden Sie **Success** mit den Bausteinen, die die Antwort verwenden, und **E
 
 > [!WARNING]
 > Die Ausgabe des Modells ist nicht vertrauenswürdiger Text. Prüfen Sie sie, bevor sie Kunden erreicht, und lassen Sie nie freien KI-Text allein über eine zerstörerische Aktion entscheiden. Unter [KI-Komponenten](/docs/workflows/configuration#ki-komponenten) steht, was an den Anbieter geht, was protokolliert wird und was es kostet.
+
+## SMSEagle
+
+Eine SMS senden oder einen Text-to-Speech-Anruf tätigen, über ein SMSEagle-Gerät, ein Hardware-SMS-Gateway in Ihrem eigenen Netzwerk. **Send SMS via SMSEagle** sendet eine SMS, und **Make a Call via SMSEagle** ruft die Nummer an und liest den Text vor.
+
+| Einstellung               | Was sie tut                                                                                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | Die Adresse des Geräts, etwa `https://192.168.0.100`. Den Pfad der API v2 ergänzt der Baustein selbst.                                                                 |
+| **SMSEagle Access Token** | Ein API-v2-Schlüssel aus der SMSEagle-Web-GUI, unter Settings, API, API v2. Er braucht die Berechtigung "Send SMS" für SMS und "Make a TTS Advanced Call" für Anrufe.  |
+| **Telefonnummer**         | Die Nummer, die eine SMS oder einen Anruf bekommt, im internationalen Format, etwa `+15551234567`.                                                                     |
+| **Message Text**          | Der Text der SMS. Nur in **Send SMS via SMSEagle**.                                                                                                                    |
+| **Voice ID**              | Die ID einer Text-to-Speech-Stimme auf dem Gerät. Nur in **Make a Call via SMSEagle**.                                                                                 |
+| **Text to Read Out**      | Der Text, den das Gerät während des Anrufs vorliest. Nur in **Make a Call via SMSEagle**.                                                                              |
+
+**Success** löst aus, wenn das Gerät die SMS oder den Anruf in die Warteschlange gestellt hat, und gibt die **Message ID** zurück, die das Gerät vergeben hat. **Error** löst aus, wenn das Gerät nicht erreichbar ist oder sie ablehnt, und gibt den Grund weiter, etwa `voice_id: Resource with specified ID not found.` von SMSEagle. Eine fehlende Einstellung oder eine **Voice ID**, die keine Zahl ist, stoppt stattdessen die Ausführung.
+
+Bewahren Sie das Zugriffstoken in einer [geheimen globalen Variable](/docs/workflows/variables#globale-variablen) auf. In den Protokollen der Ausführungen ist es so oder so verborgen. Die Anfrage geht von OneUptime aus, und eine Weiterleitung wird nicht verfolgt. Ein Gerät auf einer Loopback- (`localhost`, `127.0.0.1`), Link-Local- oder Cloud-Metadaten-Adresse wird abgelehnt, ebenso ein Gerät auf einer privaten Netzwerkadresse, es sei denn, ein Administrator einer selbst gehosteten Installation erlaubt es mit `ALLOW_PRIVATE_NETWORK_WEBHOOKS` oder `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
 
 ## Slack
 

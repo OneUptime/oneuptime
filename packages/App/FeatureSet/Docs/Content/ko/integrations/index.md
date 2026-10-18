@@ -75,6 +75,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | 아웃바운드 | OneUptime 인시던트마다 PagerDuty 인시던트를 트리거하고, 인시던트와 함께 해결합니다. |
 | [Opsgenie](/docs/integrations/opsgenie) | 아웃바운드 | OneUptime 인시던트마다 Opsgenie 알림을 만들고, 인시던트와 함께 닫습니다. |
+| [SMSEagle](/docs/integrations/smseagle) | 아웃바운드 | 자체 SMSEagle SMS 게이트웨이로 SMS와 전화를 보냅니다. |
 
 ### 채팅 도구
 

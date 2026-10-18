@@ -178,6 +178,12 @@ const MULTI_LINE_TEXT_ARGUMENTS: Array<[string, ComponentID, string]> = [
     ComponentID.MattermostSendMessageToChannel,
     "text",
   ],
+  ["Send SMS via SMSEagle → Message Text", ComponentID.SMSEagleSendSms, "text"],
+  [
+    "Make a Call via SMSEagle → Text to Read Out",
+    ComponentID.SMSEagleMakeCall,
+    "text",
+  ],
   [
     "Generate Text with AI → System Instructions",
     ComponentID.AIGenerateText,
@@ -379,6 +385,48 @@ const SINGLE_LINE_ARGUMENTS: Array<
     ComponentID.MattermostSendMessageToChannel,
     "icon-url",
     FormFieldSchemaType.URL,
+  ],
+  [
+    "Send SMS via SMSEagle → SMSEagle URL",
+    ComponentID.SMSEagleSendSms,
+    "api-url",
+    FormFieldSchemaType.URL,
+  ],
+  [
+    "Send SMS via SMSEagle → SMSEagle Access Token",
+    ComponentID.SMSEagleSendSms,
+    "access-token",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Send SMS via SMSEagle → Phone Number",
+    ComponentID.SMSEagleSendSms,
+    "to",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Make a Call via SMSEagle → SMSEagle URL",
+    ComponentID.SMSEagleMakeCall,
+    "api-url",
+    FormFieldSchemaType.URL,
+  ],
+  [
+    "Make a Call via SMSEagle → SMSEagle Access Token",
+    ComponentID.SMSEagleMakeCall,
+    "access-token",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Make a Call via SMSEagle → Phone Number",
+    ComponentID.SMSEagleMakeCall,
+    "to",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Make a Call via SMSEagle → Voice ID",
+    ComponentID.SMSEagleMakeCall,
+    "voice-id",
+    FormFieldSchemaType.Number,
   ],
   ["API Get → URL", ComponentID.ApiGet, "url", FormFieldSchemaType.URL],
   [
@@ -629,6 +677,8 @@ describe("Rules that hold for every workflow argument", () => {
       ComponentID.TelegramSendMessageToChat,
       ComponentID.IRCSendMessageToChannel,
       ComponentID.MattermostSendMessageToChannel,
+      ComponentID.SMSEagleSendSms,
+      ComponentID.SMSEagleMakeCall,
     ]) {
       expect(findArgument(componentId, "text").type).toBe(
         ComponentInputType.LongText,

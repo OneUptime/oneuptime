@@ -75,6 +75,7 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | In uscita | Attiva un incidente PagerDuty per ogni incidente di OneUptime e lo risolve insieme all'incidente. |
 | [Opsgenie](/docs/integrations/opsgenie) | In uscita | Crea un alert Opsgenie per ogni incidente di OneUptime e lo chiude insieme all'incidente. |
+| [SMSEagle](/docs/integrations/smseagle) | In uscita | Invia SMS e chiamate tramite il tuo gateway SMS SMSEagle. |
 
 ### Strumenti di chat
 

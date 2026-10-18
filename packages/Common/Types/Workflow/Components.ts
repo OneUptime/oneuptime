@@ -22,6 +22,7 @@ import OnCallComponents, {
 import ScheduleComponents from "./Components/Schedule";
 import SlackComponents from "./Components/Slack";
 import SleepComponents from "./Components/Sleep";
+import SMSEagleComponents from "./Components/SMSEagle";
 import SwitchComponents from "./Components/Switch";
 import TelegramComponents from "./Components/Telegram";
 import WebhookComponents from "./Components/Webhook";
@@ -38,6 +39,7 @@ const components: Array<ComponentMetadata> = [
   ...TelegramComponents,
   ...IRCComponents,
   ...MattermostComponents,
+  ...SMSEagleComponents,
   ...ConditionComponents,
   ...SwitchComponents,
   ...JsonComponents,
@@ -110,6 +112,11 @@ export const Categories: Array<ComponentCategory> = [
     name: "Mattermost",
     description: "Integrate OneUptime with your Mattermost channels.",
     icon: IconProp.SendMessage,
+  },
+  {
+    name: "SMSEagle",
+    description: "Integrate OneUptime with your SMSEagle SMS gateway.",
+    icon: IconProp.SMS,
   },
   {
     name: "Conditions",

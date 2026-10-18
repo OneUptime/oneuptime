@@ -256,6 +256,7 @@
     "Discord": "Discord",
     "Telegram": "Telegram",
     "IRC": "IRC",
+    "SMSEagle": "SMSEagle",
     "Custom Probes": "自訂探針",
     "Incoming Request Ingress": "傳入請求 Ingress",
     "Packet Capture": "封包擷取",

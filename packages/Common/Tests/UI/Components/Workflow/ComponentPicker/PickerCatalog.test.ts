@@ -130,6 +130,7 @@ describe("what the picker leads with", () => {
       "Telegram",
       "IRC",
       "Mattermost",
+      "SMSEagle",
       "JSON",
       "Utils",
     ]);
@@ -152,6 +153,8 @@ describe("what the picker leads with", () => {
       "Send Message to Telegram",
       "Send Message to IRC",
       "Send Message to Mattermost",
+      "Send SMS via SMSEagle",
+      "Make a Call via SMSEagle",
       "JSON to Text",
       "Text to JSON",
       "Merge JSON",

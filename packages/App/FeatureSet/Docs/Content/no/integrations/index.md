@@ -75,6 +75,7 @@ Start fra toppen av tabellen: jo høyere en måte står, jo mindre er det å ved
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | Utgående | Utløser en hendelse i PagerDuty for hver OneUptime-hendelse og løser den sammen med hendelsen. |
 | [Opsgenie](/docs/integrations/opsgenie) | Utgående | Oppretter et Opsgenie-varsel for hver OneUptime-hendelse og lukker det sammen med hendelsen. |
+| [SMSEagle](/docs/integrations/smseagle) | Utgående | Send SMS og anrop gjennom din egen SMSEagle-SMS-gateway. |
 
 ### Chatverktøy
 
