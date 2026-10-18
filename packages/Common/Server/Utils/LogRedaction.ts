@@ -238,8 +238,17 @@ export const isSensitiveLogKey: IsSensitiveLogKeyFunction = (
  * fragment list because a couple of the structural fragments (`salt`, `otp`)
  * are too short to match safely against free-form prose.
  */
-const TEXT_SECRET_WORDS: string =
-  "password|passwd|passphrase|secret|token|credential|credentials|authorization|cookie|api[_-]?key|private[_-]?key|access[_-]?key|cluster[_-]?key|assertion|attestation|signature|raw[_-]?id|client[_-]?data[_-]?json|authenticator[_-]?data|user[_-]?handle|two[_-]?factor[_-]?secret|code[_-]?verifier";
+const OTHER_TEXT_SECRET_WORDS: string =
+  "password|passwd|passphrase|secret|token|credential|credentials|authorization|cookie|api[_-]?key|private[_-]?key|access[_-]?key|assertion|attestation|signature|raw[_-]?id|client[_-]?data[_-]?json|authenticator[_-]?data|user[_-]?handle|two[_-]?factor[_-]?secret|code[_-]?verifier";
+
+/*
+ * The name of the key OneUptime's own services present to each other, in
+ * text: clusterkey, clusterKey, cluster_key, x-clusterkey... Its unquoted
+ * values have a rule of their own (cluster-key-value below).
+ */
+const CLUSTER_KEY_WORD: string = "cluster[_-]?key";
+
+const TEXT_SECRET_WORDS: string = `${OTHER_TEXT_SECRET_WORDS}|${CLUSTER_KEY_WORD}`;
 
 // Bounded, so a long non-matching run cannot blow up on backtracking.
 const KEY_PREFIX: string = "[A-Za-z0-9_.-]{0,40}";
@@ -291,6 +300,25 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
   },
   {
     /*
+     * The key OneUptime's own services present to each other, as it travels:
+     * URI-encoded (ClusterKeyAuthorization.getClusterKey), which leaves
+     * ' ( ) ! * ~ as they are. The rule below ends a value at ' and ), so it
+     * would leave the rest of such a key in the clear. Here an unquoted value
+     * runs to whitespace or a delimiter an encoded key never holds (, ; & ]
+     * } " and a backslash), so a header line (`clusterkey: ...`), a field
+     * (`clusterKey=...`), a console's `{ clusterkey: '...' }` and a raw
+     * request stringified again keep none of it. JSON members are the JSON
+     * rules' above.
+     */
+    name: "cluster-key-value",
+    regex: new RegExp(
+      `\\b(${KEY_PREFIX}${CLUSTER_KEY_WORD}${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"(?:[^"\\\\]|\\\\.)*"|[^\\s,;&\\]}"\\\\]+)`,
+      "gi",
+    ),
+    replacement: `$1$2${REDACTED}`,
+  },
+  {
+    /*
      * Unquoted key/value text: form bodies (`client_secret=abc&...`), query
      * strings, header dumps (`Authorization: Bearer abc`) and prose
      * (`password: hunter2`).
@@ -301,7 +329,7 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
      */
     name: "key-value-text",
     regex: new RegExp(
-      `\\b(${KEY_PREFIX}(?:${TEXT_SECRET_WORDS})${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"[^"]*"|'[^']*'|(?:Bearer|Basic|Token)\\s+[^\\s,;&)\\]}"']+|[^\\s,;&)\\]}"']+)`,
+      `\\b(${KEY_PREFIX}(?:${OTHER_TEXT_SECRET_WORDS})${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"[^"]*"|'[^']*'|(?:Bearer|Basic|Token)\\s+[^\\s,;&)\\]}"']+|[^\\s,;&)\\]}"']+)`,
       "gi",
     ),
     replacement: `$1$2${REDACTED}`,

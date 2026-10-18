@@ -566,6 +566,90 @@ describe("the cluster key OneUptime's services present", () => {
 });
 
 /*
+ * The key travels URI-encoded (ClusterKeyAuthorization.getClusterKey), and
+ * encodeURIComponent leaves ' ( ) ! * ~ as they are - characters that end a
+ * value in prose. However the key's value is written after its name, none of
+ * it stays: not the part before such a character, and not the part after.
+ */
+describe("the cluster key's value, with the characters it travels with", () => {
+  const RAW_KEYS: Array<string> = [
+    "it's-(my)-key!*~Q7dVk2LmX9pR4tWz8NcB1sHf",
+    "a)Q7dVk2LmX9pR4tWz8NcB1sHf6JyG3uAe",
+    "(Q7dVk2LmX9pR4tWz8NcB1sHf6JyG3uAe)",
+    "Q7dVk2LmX9pR4tWz8N'cB1sHf6JyG3uAe",
+    "p@ss/w0rd?&=+%#;: with (spaces)",
+  ];
+
+  // Every run of 12 characters of the value: none may survive.
+  function keptParts(output: string, value: string): Array<string> {
+    const kept: Set<string> = new Set<string>();
+
+    for (let start: number = 0; start + 12 <= value.length; start++) {
+      const part: string = value.slice(start, start + 12);
+
+      if (output.includes(part)) {
+        kept.add(part);
+      }
+    }
+
+    return Array.from(kept);
+  }
+
+  it("leaves none of it in a header line, a field, a quoted value or a raw request stringified again", () => {
+    for (const raw of RAW_KEYS) {
+      const value: string = encodeURIComponent(raw);
+
+      for (const text of [
+        `POST /api/ai-agent/register HTTP/1.1\r\nAccept: application/json\r\nclusterkey: ${value}\r\nHost: oneuptime-app:3002\r\n\r\n`,
+        `POST /api/notification/sms/send HTTP/1.1\r\nX-ClusterKey: ${value}\r\n`,
+        JSON.stringify({
+          _header: `POST /workflow/update/1 HTTP/1.1\r\nclusterkey: ${value}\r\nHost: oneuptime-app:3002\r\n`,
+        }),
+        `http://oneuptime-app:3002/workflow/update/1?clusterKey=${value}&start=0`,
+        `cluster_key=${value}`,
+        `{ clusterkey: '${value}', accept: 'application/json' }`,
+        `{ "x-clusterkey": "${value}" }`,
+        `clusterKey: ${value}`,
+      ]) {
+        const output: string = redactLogString(text);
+
+        expect({ text, kept: keptParts(output, value) }).toEqual({
+          text,
+          kept: [],
+        });
+        expect(output).toContain(REDACTED);
+      }
+    }
+  });
+
+  it("keeps what follows the value", () => {
+    const value: string = encodeURIComponent(RAW_KEYS[0]!);
+
+    expect(
+      redactLogString(
+        `POST /x HTTP/1.1\r\nclusterkey: ${value}\r\nHost: oneuptime-app:3002\r\n`,
+      ),
+    ).toBe(
+      `POST /x HTTP/1.1\r\nclusterkey: ${REDACTED}\r\nHost: oneuptime-app:3002\r\n`,
+    );
+    expect(redactLogString(`clusterKey=${value}&start=0&end=100`)).toBe(
+      `clusterKey=${REDACTED}&start=0&end=100`,
+    );
+    expect(
+      redactLogString(`{ clusterkey: '${value}', accept: 'application/json' }`),
+    ).toBe(`{ clusterkey: ${REDACTED}, accept: 'application/json' }`);
+  });
+
+  it("is left to the JSON rules inside JSON, which keep the member's shape", () => {
+    const value: string = encodeURIComponent(RAW_KEYS[0]!);
+
+    expect(
+      redactLogString(JSON.stringify({ clusterKey: value, runnerName: "a" })),
+    ).toBe(`{"clusterKey":"${REDACTED}","runnerName":"a"}`);
+  });
+});
+
+/*
  * Log lines are text anybody can put a header or a field into, so the
  * cluster key's spellings must keep every rule's time in line with the
  * text's length: about 400,000 characters of each worst case, each read in
@@ -581,6 +665,18 @@ describe("the cluster key's spellings keep redaction linear", () => {
     ["an unterminated JSON member", `"clusterKey":"${"a".repeat(LENGTH)}`],
     ["a header line with a long value", `clusterkey: ${"k".repeat(LENGTH)}`],
     ["a header line of spaces", `clusterkey:${" ".repeat(LENGTH)}`],
+    [
+      "a value of the characters the key travels with",
+      `clusterkey: ${"'()!*~".repeat(LENGTH / 6)}`,
+    ],
+    ["an unterminated quoted value", `clusterkey: "${"a".repeat(LENGTH)}`],
+    [
+      "an unterminated quoted value of escapes",
+      `clusterkey: "${'\\"'.repeat(LENGTH / 2)}`,
+    ],
+    ["names and quotes over and over", 'clusterkey:"'.repeat(LENGTH / 12)],
+    ["names and escaped quotes", 'clusterkey: \\"'.repeat(LENGTH / 14)],
+    ["names with no separator", "x-clusterkey ".repeat(LENGTH / 13)],
   ])("%s", (_label: string, text: string) => {
     const startedAt: number = Date.now();
 

@@ -189,6 +189,28 @@ function everySink(running: Process): Record<string, string> {
   };
 }
 
+/*
+ * Every run of 16 characters of a key (the whole key when it is shorter). A
+ * log that holds any of them holds part of the key: redaction that stopped
+ * at a character it took for the end of the value would leave the rest of
+ * the key in the clear, and the whole key would no longer be found.
+ */
+function partsOf(key: string): Array<string> {
+  const length: number = 16;
+
+  if (key.length <= length) {
+    return [key];
+  }
+
+  const parts: Set<string> = new Set<string>();
+
+  for (let start: number = 0; start + length <= key.length; start++) {
+    parts.add(key.slice(start, start + length));
+  }
+
+  return Array.from(parts);
+}
+
 async function waitFor(condition: () => boolean): Promise<void> {
   for (let attempt: number = 0; attempt < 200; attempt++) {
     if (condition()) {
@@ -224,10 +246,12 @@ describe.each(
 
       for (const [sink, text] of Object.entries(everySink(running))) {
         for (const form of [presented, clusterKey.trim()]) {
-          expect({ sink, holdsTheKey: text.includes(form) }).toStrictEqual({
+          expect({
             sink,
-            holdsTheKey: false,
-          });
+            kept: partsOf(form).filter((part: string): boolean => {
+              return text.includes(part);
+            }),
+          }).toStrictEqual({ sink, kept: [] });
         }
       }
     }
@@ -293,8 +317,16 @@ describe.each(
         `POST /api/ai-agent/register HTTP/1.1\r\nclusterkey: ${presented}\r\nHost: oneuptime\r\n`,
       );
       running.logger.debug(`calling with clusterKey=${presented}&skip=0`);
+      // The raw request again, after something had stringified it.
+      running.logger.error(
+        JSON.stringify({
+          _header: `POST /api/notification/sms/send HTTP/1.1\r\nX-ClusterKey: ${presented}\r\nHost: oneuptime\r\n\r\n`,
+        }),
+      );
+      // The headers as a console prints them.
+      running.logger.error(`{ clusterkey: '${presented}', accept: '*/*' }`);
 
-      expect(running.logger.getRecentLogs()).toHaveLength(6);
+      expect(running.logger.getRecentLogs()).toHaveLength(8);
       expectNoKeyIn(running);
     });
   },

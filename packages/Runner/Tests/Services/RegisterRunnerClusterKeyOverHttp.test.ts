@@ -37,6 +37,31 @@ type LoggerModule = typeof import("Common/Server/Utils/Logger");
 
 const OPERATOR_KEY: string = "Q7dVk2LmX9pR4tWz8NcB1sHf6JyG3uAe";
 const OPERATOR_KEY_WITH_SPECIAL_CHARACTERS: string = "p@ss/w0rd?&=+%#";
+// encodeURIComponent leaves ' ( ) ! * ~ as they are.
+const OPERATOR_KEY_WITH_UNENCODED_CHARACTERS: string =
+  "it's-(my)-key!*~Q7dVk2LmX9pR4tWz8NcB1sHf";
+
+/*
+ * Every run of 12 characters of a key (the whole key when it is shorter). A
+ * log that holds any of them holds part of the key: redaction that stopped
+ * at a character it took for the end of the value would leave the rest of
+ * the key in the clear, and the whole key would no longer be found.
+ */
+function partsOf(key: string): Array<string> {
+  const length: number = 12;
+
+  if (key.length <= length) {
+    return [key];
+  }
+
+  const parts: Set<string> = new Set<string>();
+
+  for (let start: number = 0; start + length <= key.length; start++) {
+    parts.add(key.slice(start, start + length));
+  }
+
+  return Array.from(parts);
+}
 
 interface ReceivedRequest {
   method: string;
@@ -191,6 +216,10 @@ afterEach(() => {
 describe.each([
   ["letters and digits", OPERATOR_KEY],
   ["characters that travel URI-encoded", OPERATOR_KEY_WITH_SPECIAL_CHARACTERS],
+  [
+    "characters that travel as they are",
+    OPERATOR_KEY_WITH_UNENCODED_CHARACTERS,
+  ],
 ])(
   "an in-cluster Runner whose ONEUPTIME_SECRET has %s",
   (_label: string, clusterKey: string) => {
@@ -245,8 +274,13 @@ describe.each([
       expect(recent).toContain("/api/ai-agent/register");
 
       for (const sink of [recent, printed.join("\n")]) {
-        expect(sink).not.toContain(encodeURIComponent(clusterKey));
-        expect(sink).not.toContain(clusterKey);
+        for (const form of [encodeURIComponent(clusterKey), clusterKey]) {
+          expect(
+            partsOf(form).filter((part: string): boolean => {
+              return sink.includes(part);
+            }),
+          ).toStrictEqual([]);
+        }
       }
     });
   },
