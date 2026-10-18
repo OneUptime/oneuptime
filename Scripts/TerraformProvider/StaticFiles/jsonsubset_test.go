@@ -119,3 +119,62 @@ func TestJSONSubsetSemanticEquals_ConflictingValuesStillUnequal(t *testing.T) {
 		t.Fatal("values that disagree on a shared key must stay unequal (reversed)")
 	}
 }
+
+// OneUptime/terraform-provider-oneuptime#11. restriction_times holds DateTime
+// values, and the server writes them back with toISOString(): in UTC, always
+// with milliseconds. A configuration without them - what timeadd() returns -
+// failed every apply with "Provider produced inconsistent result".
+func TestJSONSubsetSemanticEquals_DateTimeWithoutMillisecondsIsTheSameInstant(t *testing.T) {
+	planned := NewJSONSubsetValue(`{"_type":"RestrictionTimes","value":{"restictionType":"Weekly","dayRestrictionTimes":null,"weeklyRestrictionTimes":[{"startDay":"Monday","endDay":"Monday","startTime":{"_type":"DateTime","value":"2026-08-17T07:00:00Z"},"endTime":{"_type":"DateTime","value":"2026-08-17T16:00:00Z"}}]}}`)
+	returned := NewJSONSubsetValue(`{"_type":"RestrictionTimes","value":{"restictionType":"Weekly","dayRestrictionTimes":null,"weeklyRestrictionTimes":[{"startDay":"Monday","endDay":"Monday","startTime":{"_type":"DateTime","value":"2026-08-17T07:00:00.000Z"},"endTime":{"_type":"DateTime","value":"2026-08-17T16:00:00.000Z"}}]}}`)
+
+	equal, diags := returned.StringSemanticEquals(context.Background(), planned)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if !equal {
+		t.Fatal("a DateTime written without milliseconds must equal the server's echo with them")
+	}
+}
+
+func TestJSONSubsetSemanticEquals_DateTimeInAnotherOffsetIsTheSameInstant(t *testing.T) {
+	planned := NewJSONSubsetValue(`{"startTime":{"_type":"DateTime","value":"2026-08-17T09:00:00+02:00"}}`)
+	returned := NewJSONSubsetValue(`{"startTime":{"_type":"DateTime","value":"2026-08-17T07:00:00.000Z"}}`)
+
+	if equal, _ := returned.StringSemanticEquals(context.Background(), planned); !equal {
+		t.Fatal("the same instant written in another offset must be equal")
+	}
+}
+
+func TestJSONSubsetSemanticEquals_DifferentInstantsStayUnequal(t *testing.T) {
+	planned := NewJSONSubsetValue(`{"startTime":{"_type":"DateTime","value":"2026-08-17T07:00:00Z"}}`)
+	returned := NewJSONSubsetValue(`{"startTime":{"_type":"DateTime","value":"2026-08-17T07:00:01.000Z"}}`)
+
+	if equal, _ := returned.StringSemanticEquals(context.Background(), planned); equal {
+		t.Fatal("timestamps a second apart must stay unequal")
+	}
+}
+
+// Only full RFC 3339 timestamps compare as instants: other strings, a date on
+// its own among them, still have to match exactly.
+func TestJSONSubsetSemanticEquals_OtherStringsStillMatchExactly(t *testing.T) {
+	cases := []struct {
+		name     string
+		planned  string
+		returned string
+	}{
+		{"a date without a time", `{"day":"2026-08-17"}`, `{"day":"2026-08-17T00:00:00.000Z"}`},
+		{"a word in another case", `{"startDay":"Monday"}`, `{"startDay":"monday"}`},
+		{"a timestamp and a word", `{"at":"2026-08-17T07:00:00Z"}`, `{"at":"later"}`},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			planned := NewJSONSubsetValue(testCase.planned)
+			returned := NewJSONSubsetValue(testCase.returned)
+			if equal, _ := returned.StringSemanticEquals(context.Background(), planned); equal {
+				t.Fatalf("%s must stay unequal to %s", testCase.planned, testCase.returned)
+			}
+		})
+	}
+}
