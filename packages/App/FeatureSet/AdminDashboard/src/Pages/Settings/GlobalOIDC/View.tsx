@@ -201,26 +201,21 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
         />
 
         {/*
-         * Spans, not divs: a card's description is drawn inside a <p>,
-         * which may hold no block element (React warned of the divs).
+         * The value in the card's body, the line saying what to do with it
+         * as its description: a description is drawn inside a <p>, which
+         * may hold no block element (React warned of the divs).
          */}
         <Card
           title={"Identity Provider URL"}
           description={
-            <span className="block">
-              <span className="mb-3 block">
-                Register this redirect URI (callback URL) with your OIDC
-                identity provider.
-              </span>
-              <span className="block">
-                <span className="block font-semibold">
-                  Redirect URI (Callback URL):
-                </span>
-                <span className="block break-all">{redirectURI}</span>
-              </span>
-            </span>
+            "Register this redirect URI (callback URL) with your OIDC identity provider."
           }
-        />
+        >
+          <div className="text-sm text-gray-700">
+            <div className="font-semibold">Redirect URI (Callback URL):</div>
+            <div className="break-all">{redirectURI}</div>
+          </div>
+        </Card>
 
         <Card
           title={"Test this OIDC provider"}

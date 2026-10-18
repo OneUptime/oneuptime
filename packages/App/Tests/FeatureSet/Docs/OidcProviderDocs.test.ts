@@ -228,7 +228,9 @@ describe("Project SSO: the OpenID Connect section", () => {
     );
 
     const steps: Array<string> = [
-      "**Project Settings** > **Security** > **OIDC**",
+      // OIDC providers sit on the SSO page, under the SAML ones.
+      "**Project Settings** > **Security** > **SSO**",
+      "Under the SAML providers",
       "**Create OIDC**",
       "**Name**",
       "**Issuer URL**",
@@ -242,7 +244,8 @@ describe("Project SSO: the OpenID Connect section", () => {
       "**OIDC Configuration**",
       "**Redirect URI**",
       "**Enabled**",
-      "**Test OpenID Connect (OIDC)**",
+      // One test link for both kinds, on the same page.
+      "**Test Single Sign On (SSO)**",
     ];
 
     let at: number = -1;
@@ -271,7 +274,9 @@ describe("Project SSO: the OpenID Connect section", () => {
 
       expect(section).toContain("`/.well-known/openid-configuration`");
       expect(section).toContain("`openid email profile`");
-      expect(section).toContain("**OIDC**");
+      // Set up from the SSO page: there is no OIDC page of its own.
+      expect(section).toContain("> **SSO**");
+      expect(section).not.toContain("> **OIDC**");
 
       // Six steps.
       expect(section.match(/^\d\. /gm)).toHaveLength(6);

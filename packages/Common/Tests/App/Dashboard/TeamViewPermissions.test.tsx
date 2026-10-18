@@ -269,12 +269,15 @@ afterEach(() => {
 async function renderPage(): Promise<void> {
   render(<TeamViewPermissions {...pageProps} />);
 
-  // Both tables have loaded: each shows its rows or its empty state.
+  /*
+   * Both tables have loaded: each shows its rows (a row's Scope cell says
+   * what it reaches) or its empty state.
+   */
   await waitFor(
     () => {
       expect(
         screen.getAllByText(
-          /This team can do nothing yet|Nothing is blocked for this team|All resources in project/,
+          /This team can do nothing yet|Nothing is blocked for this team|All resources in the project|Only resources they own|Only resources with certain labels/,
         ).length,
       ).toBeGreaterThanOrEqual(2);
     },
@@ -572,9 +575,102 @@ describe("what the team's members can do", () => {
         PermissionHelper.getTitle(Permission.ProjectAdmin),
       ),
     ).toBeInTheDocument();
+    // In the words the Scope choice uses (PermissionScopeChoice).
     expect(
-      within(permissions).getByText("All resources in project"),
+      within(permissions).getByText("All resources in the project"),
     ).toBeInTheDocument();
+  });
+
+  test("Add Role's cards say what each role is for in one line, not its whole description", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      cardButton(card("Permissions"), "Add Role"),
+    );
+
+    const member: HTMLElement = within(modal).getByTestId(
+      `card-select-option-${Permission.ProjectMember}`,
+    );
+
+    expect(member).toHaveTextContent(
+      "Create, change and delete monitors, incidents, status pages and other resources.",
+    );
+    expect(member).not.toHaveTextContent("Member of this project.");
+    expect(
+      within(modal).getByTestId(
+        `card-select-option-${Permission.IncidentViewer}`,
+      ),
+    ).toHaveTextContent("Read incidents. Change nothing.");
+  });
+
+  test("the Scope is three plain answers starting on All; the third asks for labels, and requires them", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      cardButton(card("Permissions"), "Add Role"),
+    );
+
+    fireEvent.click(
+      within(modal).getByTestId(
+        `card-select-option-${Permission.IncidentMember}`,
+      ),
+    );
+    await settleForm();
+
+    const all: HTMLElement = await within(modal).findByRole("radio", {
+      name: "All resources in the project",
+    });
+
+    expect(all).toBeChecked();
+    expect(
+      within(modal).getByRole("radio", { name: "Only resources they own" }),
+    ).not.toBeChecked();
+    expect(
+      within(modal).getByText(
+        "Resources the person, or one of their teams, owns.",
+      ),
+    ).toBeInTheDocument();
+    // No labels asked for until the third answer is picked.
+    expect(within(modal).queryByText("Labels")).toBeNull();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByRole("radio", {
+          name: "Only resources with certain labels",
+        }),
+      );
+    });
+
+    expect(await within(modal).findByText("Labels")).toBeInTheDocument();
+
+    // Picked, but no label chosen: the form asks for one instead of saving.
+    await submitModal(modal);
+    await settleForm();
+
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+
+    // Back to All: the labels are not asked for, and the row saves for every resource.
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByRole("radio", {
+          name: "All resources in the project",
+        }),
+      );
+    });
+    await settleForm();
+
+    expect(within(modal).queryByText("Labels")).toBeNull();
+
+    await submitModal(modal);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request: any = createOrUpdateMock.mock.calls[0]![0];
+
+    expect(request.model.scope).toBe(PermissionScope.All);
+    expect(request.model.labels || []).toEqual([]);
   });
 });
 

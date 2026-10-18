@@ -126,11 +126,16 @@ export const getAutoRechargeSummary: (data: {
   });
 };
 
-const AutoRechargeCard: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
-  const translator: Translator = useTranslator();
-  const columns: AutoRechargeColumns = getAutoRechargeColumns(props.balance);
+/**
+ * The Edit dialog: whether to recharge automatically, then - only once
+ * that is on - how much to add and when. Exported for tests.
+ */
+export const getAutoRechargeFormFields: (
+  balance: ProjectBalanceType,
+) => Array<ModelField<Project>> = (
+  balance: ProjectBalanceType,
+): Array<ModelField<Project>> => {
+  const columns: AutoRechargeColumns = getAutoRechargeColumns(balance);
 
   const isOn: (values: FormValues<Project>) => boolean = (
     values: FormValues<Project>,
@@ -138,7 +143,7 @@ const AutoRechargeCard: FunctionComponent<ComponentProps> = (
     return Boolean((values as Record<string, unknown>)[columns.enable]);
   };
 
-  const formFields: Array<ModelField<Project>> = [
+  return [
     {
       field: selectColumn(columns.enable),
       title: "Enable Auto Recharge",
@@ -165,6 +170,16 @@ const AutoRechargeCard: FunctionComponent<ComponentProps> = (
       showIf: isOn,
     },
   ];
+};
+
+const AutoRechargeCard: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const columns: AutoRechargeColumns = getAutoRechargeColumns(props.balance);
+  const formFields: Array<ModelField<Project>> = getAutoRechargeFormFields(
+    props.balance,
+  );
 
   return (
     <CardModelDetail<Project>

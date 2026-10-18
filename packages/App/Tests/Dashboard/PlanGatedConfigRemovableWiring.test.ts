@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
 
@@ -93,11 +94,6 @@ function readSource(file: string): string {
 
 function readDashboard(relativePath: string): string {
   return readSource(path.join(DASHBOARD_SRC, relativePath));
-}
-
-// A literal piece of source, as a pattern that matches only it.
-function escapeForRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function readLocale(locale: string): Record<string, unknown> {
@@ -197,7 +193,7 @@ describe("the Scale pages draw what is left under their upsell", () => {
 
       expect(source).toMatch(
         new RegExp(
-          `import \\{[^}]*\\b${leftover}\\b[^}]*\\} from "${escapeForRegExp(from)}";`,
+          `import \\{[^}]*\\b${leftover}\\b[^}]*\\} from "${escapeRegExp(from)}";`,
         ),
       );
       expect(source).toMatch(

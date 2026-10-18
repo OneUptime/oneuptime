@@ -59,6 +59,19 @@ export const EMAIL_SERVER_TYPE_CHOICES: Array<RadioButton> = [
   },
 ];
 
+// The answer a stored value reads as, as the card shows it: "SendGrid", not "Sendgrid".
+export const getEmailServerTypeTitle: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const choice: RadioButton | undefined = EMAIL_SERVER_TYPE_CHOICES.find(
+    (candidate: RadioButton): boolean => {
+      return candidate.value === value;
+    },
+  );
+
+  return choice ? choice.title : value ? String(value) : "";
+};
+
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const [emailServerType, setemailServerType] = React.useState<EmailServerType>(
@@ -195,6 +208,8 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Email Server Type",
             fieldType: FormFieldSchemaType.RadioButton,
             radioButtonOptions: EMAIL_SERVER_TYPE_CHOICES,
+            // An instance that never picked one sends through its own server, as this page reads it.
+            defaultValue: EmailServerType.CustomSMTP,
             required: true,
             hideColumnDescription: true,
           },
@@ -208,7 +223,19 @@ const Settings: FunctionComponent = (): ReactElement => {
                 emailServerType: true,
               },
               title: "Email Server Type",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: GlobalConfig): ReactElement => {
+                // Never picked: the mail service sends through Custom SMTP.
+                return (
+                  <span>
+                    {t(
+                      getEmailServerTypeTitle(
+                        item.emailServerType || EmailServerType.CustomSMTP,
+                      ),
+                    )}
+                  </span>
+                );
+              },
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

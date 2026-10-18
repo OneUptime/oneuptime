@@ -393,7 +393,15 @@ describe("the URLs the product hands out are all served", () => {
       prints: [{ head: "idp-login", parameters: 2 }],
     },
     {
-      file: ["FeatureSet", "Dashboard", "src", "Pages", "Settings", "OIDC.tsx"],
+      // A project's OIDC providers, drawn on its SSO page.
+      file: [
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Components",
+        "Sso",
+        "ProjectOidcProviders.tsx",
+      ],
       prints: [{ head: "oidc-callback", parameters: 2 }],
     },
     {

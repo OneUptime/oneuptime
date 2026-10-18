@@ -187,30 +187,30 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
         />
 
         {/*
-         * Spans, not divs: a card's description is drawn inside a <p>,
-         * which may hold no block element (React warned of the divs).
+         * The values in the card's body, the line saying what to do with
+         * them as its description: a description is drawn inside a <p>,
+         * which may hold no block element (React warned of the divs), and
+         * it is a line, not a page.
          */}
         <Card
           title={"Identity Provider URLs"}
           description={
-            <span className="block">
-              <span className="mb-3 block">
-                Paste these values into your SAML identity provider (Okta, Azure
-                AD, OneLogin, JumpCloud and more).
-              </span>
-              <span className="mb-3 block">
-                <span className="block font-semibold">
-                  ACS URL (Assertion Consumer Service / Reply URL):
-                </span>
-                <span className="block break-all">{acsURL}</span>
-              </span>
-              <span className="block">
-                <span className="block font-semibold">Issuer (Entity ID):</span>
-                <span className="block break-all">{issuerURL}</span>
-              </span>
-            </span>
+            "Paste these values into your SAML identity provider (Okta, Microsoft Entra ID, OneLogin, JumpCloud and more)."
           }
-        />
+        >
+          <div className="space-y-3 text-sm text-gray-700">
+            <div>
+              <div className="font-semibold">
+                ACS URL (Assertion Consumer Service / Reply URL):
+              </div>
+              <div className="break-all">{acsURL}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Issuer (Entity ID):</div>
+              <div className="break-all">{issuerURL}</div>
+            </div>
+          </div>
+        </Card>
 
         <Card
           title={"Test this SSO provider"}

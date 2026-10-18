@@ -826,5 +826,203 @@ describe("Admin > Settings > Email > Host Settings", () => {
       within(dialog).getByRole("switch", { name: "TLS erzwingen" }),
     ).toBeVisible();
     expect(within(dialog).getByText(text(GERMAN, "Username"))).toBeVisible();
+
+    // The transport's answers, each with its line, in German too.
+    expect(
+      within(dialog).getByText(text(GERMAN, "Works with most mail servers.")),
+    ).toBeVisible();
+    expect(text(GERMAN, "Works with most mail servers.")).not.toBe(
+      "Works with most mail servers.",
+    );
+  });
+});
+
+/*
+ * How the instance sends its email: two plain answers, each with its line,
+ * where a dropdown listed the enum's names (Sendgrid first) under a
+ * description that only said "Email Server Type" again. The stored values
+ * are the enum's, as before, and the card names the answer the way the
+ * dialog does.
+ */
+describe("Admin > Settings > Email > Email Server Settings", () => {
+  async function serverCard(locale: Locale = ENGLISH): Promise<HTMLElement> {
+    const title: string = text(locale, "pages.settings.email.serverCardTitle");
+    let card: HTMLElement | undefined = undefined;
+
+    await waitFor(
+      () => {
+        card = screen
+          .getAllByTestId("card")
+          .find((candidate: HTMLElement): boolean => {
+            return within(candidate).queryByText(title) !== null;
+          });
+
+        expect(card).toBeDefined();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    return card!;
+  }
+
+  async function openServerDialog(card: HTMLElement): Promise<HTMLElement> {
+    const editButton: string = text(
+      ENGLISH,
+      "pages.settings.email.serverEditButton",
+    );
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByRole("button", { name: editButton }),
+        ).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    fireEvent.click(within(card).getByRole("button", { name: editButton }));
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("modal")).toBeInTheDocument();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    return screen.getByTestId("modal");
+  }
+
+  test("the card names the stored answer as the dialog does", async () => {
+    stored = { ...SMTP_INSTANCE, emailServerType: EmailServerType.Sendgrid };
+
+    await renderPage();
+
+    const card: HTMLElement = await serverCard();
+
+    await waitFor(
+      () => {
+        expect(within(card).getByText("SendGrid")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(within(card).queryByText("Sendgrid")).toBeNull();
+  });
+
+  test("the dialog offers the two answers, each with its line, the stored one picked, and saves the one picked", async () => {
+    stored = { ...SMTP_INSTANCE, emailServerType: EmailServerType.Sendgrid };
+
+    await renderPage();
+
+    const dialog: HTMLElement = await openServerDialog(await serverCard());
+
+    await waitFor(
+      () => {
+        expect(
+          within(dialog).getByRole("radio", { name: "SendGrid" }),
+        ).toBeChecked();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    const answers: Array<string> = within(dialog)
+      .getAllByRole("radio")
+      .map((radio: HTMLElement): string => {
+        return (
+          dialog.querySelector(`label[for="${radio.id}"]`)?.textContent || ""
+        );
+      });
+
+    // Its own mail server first: the default.
+    expect(answers).toEqual(["Custom SMTP", "SendGrid"]);
+    expect(
+      within(dialog).getByText("Send through your own mail server."),
+    ).toBeVisible();
+    expect(
+      within(dialog).getByText("Send through your SendGrid account."),
+    ).toBeVisible();
+    // No dropdown of the enum's names.
+    expect(
+      within(dialog).queryByRole("button", { name: "Pick Sendgrid" }),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("radio", { name: "Custom SMTP" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(
+      () => {
+        expect(mockCreateOrUpdate).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    expect(savedValues()["emailServerType"]).toBe(EmailServerType.CustomSMTP);
+  });
+
+  test("an instance that never picked one reads, and opens on, Custom SMTP: what the mail service sends through", async () => {
+    // The record comes back without the column at all.
+    stored = { ...SMTP_INSTANCE };
+    delete stored["emailServerType"];
+
+    await renderPage();
+
+    const card: HTMLElement = await serverCard();
+
+    await waitFor(
+      () => {
+        expect(within(card).getByText("Custom SMTP")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    const dialog: HTMLElement = await openServerDialog(card);
+
+    await waitFor(
+      () => {
+        expect(
+          within(dialog).getByRole("radio", { name: "Custom SMTP" }),
+        ).toBeChecked();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(
+      within(dialog).getByRole("radio", { name: "SendGrid" }),
+    ).not.toBeChecked();
+  });
+
+  test("a record that holds no answer (null) reads Custom SMTP on the card too", async () => {
+    stored = { ...SMTP_INSTANCE, emailServerType: null };
+
+    await renderPage();
+
+    const card: HTMLElement = await serverCard();
+
+    await waitFor(
+      () => {
+        expect(within(card).getByText("Custom SMTP")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+  });
+
+  test("reads in the Admin Dashboard's languages: German", async () => {
+    await renderPage("de");
+
+    const card: HTMLElement = await serverCard(GERMAN);
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByText(text(GERMAN, "Custom SMTP")),
+        ).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(text(GERMAN, "Custom SMTP")).toBe("Benutzerdefiniertes SMTP");
   });
 });
