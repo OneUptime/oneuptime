@@ -1113,3 +1113,57 @@ describe(`${TERRAFORM_E2E}: runs every night, in a group of its own`, () => {
     expect(nightly).toContain(schedules[0].cron);
   });
 });
+
+/*
+ * HashiCorp also asks partner providers to pass acceptance tests written with
+ * terraform-plugin-testing. Go skips them unless TF_ACC is set, so the job
+ * that runs them must set it, give them the OneUptime and the project key
+ * the test account step writes to test-env.sh, and point them at the
+ * Terraform the job installed instead of letting them download one. A step
+ * that lost any of that would pass while running nothing.
+ */
+describe(`${TERRAFORM_E2E}: runs the provider's acceptance tests`, () => {
+  const suite = readYaml(TERRAFORM_E2E);
+  const steps = suite.jobs["terraform-e2e-tests"].steps;
+  const names = steps.map((step) => {
+    return step.name;
+  });
+  const acceptance = steps.find((step) => {
+    return step.name === "Run provider acceptance tests";
+  });
+
+  test("in a step of its own", () => {
+    expect(acceptance).toBeDefined();
+  });
+
+  test("with TF_ACC set, and the Terraform the job installed", () => {
+    expect(acceptance.env.TF_ACC).toBe("1");
+    expect(acceptance.env.TF_ACC_TERRAFORM_PATH).toBe(
+      "/usr/local/bin/terraform",
+    );
+    expect(names.indexOf(acceptance.name)).toBeGreaterThan(
+      names.indexOf("Install Terraform and OpenTofu"),
+    );
+  });
+
+  test("against the test project, after the end-to-end suite", () => {
+    expect(acceptance.run).toContain(
+      "source ../../packages/E2E/Terraform/e2e-tests/test-env.sh",
+    );
+    expect(names.indexOf(acceptance.name)).toBeGreaterThan(
+      names.indexOf("Set up test account"),
+    );
+    expect(names.indexOf(acceptance.name)).toBeGreaterThan(
+      names.indexOf("Run OpenTofu E2E tests"),
+    );
+  });
+
+  test("running every acceptance test of the generated provider", () => {
+    expect(acceptance["working-directory"]).toBe(
+      "Terraform/terraform-provider-oneuptime",
+    );
+    expect(acceptance.run).toContain(
+      "go test ./internal/provider -run '^TestAcc'",
+    );
+  });
+});

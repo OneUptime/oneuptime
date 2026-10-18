@@ -841,6 +841,14 @@ group, read from `github.event.schedule` (which GitHub sets on scheduled runs
 only), is not the one master's pushes share, so a merge that lands during the
 nightly run neither cancels it nor is cancelled by it.
 
+The same workflow runs the provider's acceptance tests, written with
+terraform-plugin-testing, which HashiCorp also asks partner providers to pass.
+Go skips them unless `TF_ACC` is set, so the suite pins the step that runs
+them: `TF_ACC=1`, `TF_ACC_TERRAFORM_PATH` at the Terraform the job installed
+(so nothing is downloaded), `test-env.sh` sourced for the OneUptime and the
+project key, and a place after the test account step and both end-to-end
+runs.
+
 ### `ReleaseCriticalPath.test.js`
 
 What a release run waits for, and what it no longer does. The organization
@@ -1154,6 +1162,19 @@ only `https://packages.oneuptime.com` swapped, under a root umask of 077:
 Run it with `bash Tests/Ops/package-repository-e2e.sh`; `--apt-image`,
 `--dnf-image`, `--builder-image` and `--server-image` swap the images (for
 example for `mirror.gcr.io/library/...` when public.ecr.aws refuses).
+
+### `ChatGPTPluginPackage.test.js`
+
+`npm run build-chatgpt-plugin` (`Scripts/MCP/BuildChatGPTPlugin.sh`) builds
+the ZIP OneUptime uploads to the ChatGPT plugin directory from
+`packages/App/FeatureSet/MCP/ChatGPTPlugin`. The suite runs the script and
+reads the ZIP back: every file of the package but its README, at the root of
+the archive, byte for byte; a rebuild replaces an earlier ZIP instead of adding
+to it; and a relative output path lands where the command was typed, through
+npm (`INIT_CWD`) as well as bash. It needs `zip` and `unzip`: without them the
+ZIP checks are skipped with the reason logged, except in CI, where they fail.
+What the package says is held by
+`packages/App/FeatureSet/MCP/Tests/ChatGPTPlugin.test.ts`.
 
 ### `agent-ebpf-e2e/`
 
