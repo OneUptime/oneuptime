@@ -4,13 +4,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -20,9 +14,11 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Gray500, Green } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import { FIRST_RUN_GUIDE_DESCRIPTION } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
   CLOUD_PROVIDER_LABELS,
@@ -78,29 +74,27 @@ const TYPE_DROPDOWN_OPTIONS: Array<DropdownOption> = CLOUD_RESOURCE_TYPES.map(
 const CloudMonitoredResources: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<CloudResource>(
+    {
+      modelType: CloudResource,
+      query: { cloudResourceKind: CloudResourceKind.Resource },
+    },
+  );
 
   const { archiveBulkActions } = useBulkArchiveActions<CloudResource>({
     modelType: CloudResource,
   });
 
-  useEffect(() => {
-    ModelAPI.count({
-      modelType: CloudResource,
-      query: { cloudResourceKind: CloudResourceKind.Resource },
-    })
-      .then(setCount)
-      .catch((err: Error) => {
-        setError(API.getFriendlyMessage(err));
-      });
-  }, []);
-
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
-  if (count === null) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -108,6 +102,7 @@ const CloudMonitoredResources: FunctionComponent<
     <Fragment>
       <ModelTable<CloudResource>
         modelType={CloudResource}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="cloud-monitored-resources-table"
         userPreferencesKey="cloud-monitored-resources-table"
         query={{
@@ -339,10 +334,10 @@ const CloudMonitoredResources: FunctionComponent<
           );
         }}
       />
-      {count === 0 && (
+      {firstRecordWatch.count === 0 && (
         <CloudMonitoringDocumentationCard
           title="Discover your cloud resources"
-          description="No cloud resources discovered yet. Run an OpenTelemetry Collector with read-only access to your cloud's monitoring API, using the guide below: every resource it reports on appears here, with its metrics."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
     </Fragment>

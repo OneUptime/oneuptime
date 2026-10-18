@@ -32,7 +32,6 @@ import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
-  ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
@@ -359,27 +358,6 @@ const ServerlessFunctionOverview: FunctionComponent<
     </div>
   );
 
-  const quickLinks: Array<ResourceOverviewQuickLink> = [
-    {
-      title: "Traces",
-      description: "Invocation traces and spans",
-      to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_TRACES),
-      icon: IconProp.Workflow,
-    },
-    {
-      title: "Logs",
-      description: "Function logs",
-      to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_LOGS),
-      icon: IconProp.Terminal,
-    },
-    {
-      title: "Metrics",
-      description: "Function metrics",
-      to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_METRICS),
-      icon: IconProp.ChartBar,
-    },
-  ];
-
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "Function Name (faas.name)", value: fn.functionIdentifier },
     { label: "Cloud Platform", value: fn.cloudPlatform },
@@ -454,7 +432,6 @@ const ServerlessFunctionOverview: FunctionComponent<
             }
           />
         }
-        quickLinks={quickLinks}
         detailRows={detailRows}
         settingsRoute={populate(PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS)}
         labels={fn.labels}

@@ -27,6 +27,13 @@ export interface DockerAlertTemplateArgs {
 export interface DockerAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. The picker and a resource's
+   * Recommendations list show it on the card; `description` (how it is
+   * computed, and its caveats) is shown once a template is picked.
+   */
+  summary: string;
   description: string;
   category: DockerAlertTemplateCategory;
   severity: DockerAlertTemplateSeverity;
@@ -361,6 +368,7 @@ export function buildDockerDeltaMonitorConfig(args: {
 const highCpuTemplate: DockerAlertTemplate = {
   id: "docker-high-cpu",
   name: "High Container CPU Usage",
+  summary: "A container uses more than 80% of one CPU core.",
   description:
     "Alert when a container's CPU usage stays above 80% of ONE CPU core for the whole window. This is the same number `docker stats` prints, so 100% is one full core and a container spread across several cores reads above 100. One alert per container.",
   category: "Resource",
@@ -409,6 +417,7 @@ const highCpuTemplate: DockerAlertTemplate = {
 const highMemoryTemplate: DockerAlertTemplate = {
   id: "docker-high-memory",
   name: "High Container Memory Usage",
+  summary: "A container uses more than 85% of its memory limit.",
   description:
     "Alert when container memory usage stays above 85% of its memory limit — or of HOST memory, when the container was started without a limit. One alert per container.",
   category: "Resource",
@@ -457,6 +466,7 @@ const highMemoryTemplate: DockerAlertTemplate = {
 const containerRestartLoopTemplate: DockerAlertTemplate = {
   id: "docker-restart-loop",
   name: "Container Restart Loop",
+  summary: "A container restarts more than 3 times in 15 minutes.",
   description:
     "Alert when a container's restart count climbs by more than 3 within fifteen minutes, indicating a crash loop. One alert per container.",
   category: "Container",
@@ -542,6 +552,8 @@ const containerRestartLoopTemplate: DockerAlertTemplate = {
 const highCpuThrottlingTemplate: DockerAlertTemplate = {
   id: "docker-cpu-throttling",
   name: "Container CPU Throttling",
+  summary:
+    "A container is held back by its CPU limit for over a second in 5 minutes.",
   description:
     "Alert when a container accumulates more than a second of CPU throttling in five minutes, meaning it is hitting its CPU limit. One alert per container.",
   category: "Resource",
@@ -614,6 +626,7 @@ const highCpuThrottlingTemplate: DockerAlertTemplate = {
 const highProcessCountTemplate: DockerAlertTemplate = {
   id: "docker-high-pids",
   name: "High Container Process Count",
+  summary: "A container runs more than 2000 processes and threads.",
   description:
     "Alert when a container's task count (processes PLUS threads) stays above 2000, which may indicate a fork bomb, a thread leak, or an unbounded worker pool. One alert per container.",
   category: "Container",
@@ -679,6 +692,7 @@ const highProcessCountTemplate: DockerAlertTemplate = {
 const containerUptimeTemplate: DockerAlertTemplate = {
   id: "docker-container-down",
   name: "Container Down (Low Uptime)",
+  summary: "A container stops or crashes.",
   description:
     "Alert when a container's uptime drops to zero, indicating it has stopped or crashed. One alert per container.",
   category: "Container",

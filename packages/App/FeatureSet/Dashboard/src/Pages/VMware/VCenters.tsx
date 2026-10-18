@@ -28,11 +28,16 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import VMwareDocumentationCard from "../../Components/VMware/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -49,22 +54,17 @@ import {
 } from "../../Components/VMware/VMwareConnectionFormFields";
 import { isProbeCollected } from "../../Components/VMware/VMwareProbeCollectionView";
 
-/*
- * While the project has no vCenters yet, re-count on this cadence so the
- * page flips from the install guide to the table the moment the first
- * agent collection lands — no hard refresh.
- */
-const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
-
 const VMwareVCenters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [clusterCount, setClusterCount] = useState<number | null>(null);
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<VMwareVCenter>(
+    {
+      modelType: VMwareVCenter,
+    },
+  );
   // The probes a vCenter can be connected through (the Connect form's picker).
   const [probes, setProbes] = useState<Array<Probe>>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<VMwareVCenter>({ modelType: VMwareVCenter });
@@ -117,25 +117,7 @@ const VMwareVCenters: FunctionComponent<
     extraFacets: vmwareExtraFacets,
   });
 
-  const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: VMwareVCenter,
-        query: {},
-      });
-      setClusterCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
   useEffect(() => {
-    fetchClusterCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-
     ProbeUtil.getAllProbes()
       .then((allProbes: Array<Probe>) => {
         setProbes(allProbes);
@@ -145,54 +127,35 @@ const VMwareVCenters: FunctionComponent<
       });
   }, []);
 
-  /*
-   * Live first-data poll: the one-shot count above paints the empty
-   * state; this effect keeps quietly re-counting every 10s while the
-   * count is zero and flips the page to the table on the first nonzero
-   * result. The interval is cleared on unmount and is not re-armed once
-   * a vCenter exists (the effect re-runs with a nonzero count and
-   * bails). Background failures keep the empty state rather than
-   * replacing the install guide with an error.
-   */
-  useEffect(() => {
-    if (clusterCount !== 0) {
-      return undefined;
-    }
-    const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      ModelAPI.count({
-        modelType: VMwareVCenter,
-        query: {},
-      })
-        .then((count: number) => {
-          if (count > 0) {
-            setClusterCount(count);
-          }
-        })
-        .catch(() => {
-          // Transient background-poll failure — keep polling.
-        });
-    }, FIRST_DATA_POLL_INTERVAL_MS);
-    return () => {
-      clearInterval(timer);
-    };
-  }, [clusterCount]);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
   return (
     <Fragment>
       <ModelTable<VMwareVCenter>
         modelType={VMwareVCenter}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="vmware-vcenters-table"
         userPreferencesKey="vmware-vcenters-table"
-        topContent={filterBar}
-        emptyState={facetEmptyState}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+          isAddedByHand: true,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -200,9 +163,7 @@ const VMwareVCenters: FunctionComponent<
           onResourcesFetched(data);
         }}
         onCreateSuccess={(item: VMwareVCenter): Promise<VMwareVCenter> => {
-          setClusterCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -408,10 +369,10 @@ const VMwareVCenters: FunctionComponent<
           );
         }}
       />
-      {clusterCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <VMwareDocumentationCard
           title="Getting Started with VMware Monitoring"
-          description="No vCenters yet. Connect one above with a read-only account, or install the VMware Agent using the guide below."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

@@ -13,13 +13,7 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -33,8 +27,15 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { FilterChipDropdownOption } from "../../Components/ResourceOwners/FilterChipDropdownTypes";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -147,8 +148,9 @@ function renderHint(
 const MessageQueues: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<MessageQueue>({
+    modelType: MessageQueue,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<MessageQueue>({ modelType: MessageQueue });
@@ -211,26 +213,16 @@ const MessageQueues: FunctionComponent<
     extraFacets: messageQueueExtraFacets,
   });
 
-  useEffect(() => {
-    /*
-     * Count first: the setup guide below the table is shown only while the
-     * project has no queue at all, archived ones included.
-     */
-    ModelAPI.count({
-      modelType: MessageQueue,
-      query: {},
-    })
-      .then(setCount)
-      .catch((err: Error) => {
-        setError(API.getFriendlyMessage(err));
-      });
-  }, []);
-
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
-  if (count === null) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -238,12 +230,20 @@ const MessageQueues: FunctionComponent<
     <Fragment>
       <ModelTable<MessageQueue>
         modelType={MessageQueue}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="message-queues-table"
         userPreferencesKey="message-queues-table"
         isCreateable={true}
         singularName="Queue"
-        topContent={filterBar}
-        emptyState={facetEmptyState}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+          isAddedByHand: true,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -287,9 +287,7 @@ const MessageQueues: FunctionComponent<
           return Promise.resolve(item);
         }}
         onCreateSuccess={(item: MessageQueue): Promise<MessageQueue> => {
-          setCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -659,10 +657,10 @@ const MessageQueues: FunctionComponent<
           );
         }}
       />
-      {count === 0 && (
+      {firstRecordWatch.count === 0 && (
         <MessageQueueDocumentationCard
           title="Getting Started with Queues"
-          description="No queues yet. They appear once your apps use them or your broker's metrics arrive. Add one by hand above, or pick your messaging system below."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

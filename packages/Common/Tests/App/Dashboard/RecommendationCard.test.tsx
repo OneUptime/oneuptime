@@ -90,6 +90,7 @@ const onRestore: MockFunction = getJestMockFunction();
 interface ViewModelOptions {
   status: RecommendationStatus;
   name?: string | undefined;
+  summary?: string | undefined;
   description?: string | undefined;
   severity?: MonitorRecommendationSeverity | undefined;
   dismissalReason?: string | undefined;
@@ -109,6 +110,7 @@ const buildViewModel: BuildViewModelFunction = (
     monitorType: MonitorType.Kubernetes,
     templateId: "k8s-node-not-ready",
     name: options.name || RECOMMENDATION_NAME,
+    ...(options.summary !== undefined ? { summary: options.summary } : {}),
     description: options.description || SHORT_DESCRIPTION,
     category: "Cluster Health",
     severity: options.severity || "Critical",
@@ -734,6 +736,159 @@ describe("RecommendationCard", () => {
       fireEvent.click(screen.getByRole("button", { name: "Show more" }));
 
       expect(onSelectChange).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Every infrastructure template says in one line when it fires (its
+   * summary). The card shows that line, and the full description - how the
+   * value is computed, the metric it reads, the caveats - waits behind Show
+   * more, instead of four clamped lines of formula on every card.
+   */
+  describe("a one-line summary", () => {
+    const SUMMARY: string = "A node reports NotReady.";
+
+    const querySummary: QueryElementFunction = (): HTMLElement | null => {
+      return screen.queryByTestId(
+        `recommendation-summary-${RECOMMENDATION_ID}`,
+      );
+    };
+
+    const queryDescription: QueryElementFunction = (): HTMLElement | null => {
+      return screen.queryByTestId(
+        `recommendation-description-${RECOMMENDATION_ID}`,
+      );
+    };
+
+    test("the card shows the summary and keeps the description back", () => {
+      renderCard({
+        viewModel: buildViewModel({
+          status: RecommendationStatus.Available,
+          summary: SUMMARY,
+          description: OVER_CLAMP_LIMIT_DESCRIPTION,
+        }),
+      });
+
+      expect(querySummary()).toHaveTextContent(SUMMARY);
+      expect(queryDescription()).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(OVER_CLAMP_LIMIT_DESCRIPTION),
+      ).not.toBeInTheDocument();
+    });
+
+    test("even a short description waits behind Show more", () => {
+      renderCard({
+        viewModel: buildViewModel({
+          status: RecommendationStatus.Available,
+          summary: SUMMARY,
+          description: SHORT_DESCRIPTION,
+        }),
+      });
+
+      const toggle: HTMLElement = screen.getByRole("button", {
+        name: "Show more",
+      });
+
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(toggle).not.toHaveAttribute("aria-controls");
+      expect(queryDescription()).not.toBeInTheDocument();
+    });
+
+    test("Show more adds the whole description under the summary, unclamped", () => {
+      renderCard({
+        viewModel: buildViewModel({
+          status: RecommendationStatus.Available,
+          summary: SUMMARY,
+          description: OVER_CLAMP_LIMIT_DESCRIPTION,
+        }),
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+
+      const toggle: HTMLElement = screen.getByRole("button", {
+        name: "Show less",
+      });
+      const description: HTMLElement = queryDescription() as HTMLElement;
+
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(toggle).toHaveAttribute("aria-controls", description.id);
+      expect(description.textContent).toBe(OVER_CLAMP_LIMIT_DESCRIPTION);
+      expect(description.className).not.toContain("line-clamp-3");
+      expect(querySummary()).toHaveTextContent(SUMMARY);
+    });
+
+    test("Show less puts the description away again", () => {
+      renderCard({
+        viewModel: buildViewModel({
+          status: RecommendationStatus.Available,
+          summary: SUMMARY,
+          description: OVER_CLAMP_LIMIT_DESCRIPTION,
+        }),
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+      fireEvent.click(screen.getByRole("button", { name: "Show less" }));
+
+      expect(queryDescription()).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Show more" })).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+    });
+
+    test("reading the details does not select the card", () => {
+      renderCard({
+        viewModel: buildViewModel({
+          status: RecommendationStatus.Available,
+          summary: SUMMARY,
+          description: OVER_CLAMP_LIMIT_DESCRIPTION,
+        }),
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+
+      expect(onSelectChange).not.toHaveBeenCalled();
+    });
+
+    test("a summary that says what the description says is shown once", () => {
+      renderCard({
+        viewModel: buildViewModel({
+          status: RecommendationStatus.Available,
+          summary: SHORT_DESCRIPTION,
+          description: SHORT_DESCRIPTION,
+        }),
+      });
+
+      expect(querySummary()).not.toBeInTheDocument();
+      expect(screen.getAllByText(SHORT_DESCRIPTION)).toHaveLength(1);
+      expect(queryDescriptionToggle()).not.toBeInTheDocument();
+    });
+
+    test("a dismissed card's summary is greyed with the rest of it", () => {
+      renderCard({
+        viewModel: buildViewModel({
+          status: RecommendationStatus.Dismissed,
+          summary: SUMMARY,
+          description: OVER_CLAMP_LIMIT_DESCRIPTION,
+          dismissalReason: DISMISSAL_REASON,
+        }),
+      });
+
+      expect((querySummary() as HTMLElement).className).toContain(
+        "text-gray-400",
+      );
+    });
+
+    test("without a summary the card reads as it always has", () => {
+      renderCard({
+        viewModel: buildViewModel({
+          status: RecommendationStatus.Available,
+          description: OVER_CLAMP_LIMIT_DESCRIPTION,
+        }),
+      });
+
+      expect(querySummary()).not.toBeInTheDocument();
+      expect(isDescriptionClamped()).toBe(true);
     });
   });
 
