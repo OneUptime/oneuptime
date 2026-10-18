@@ -323,7 +323,7 @@ describe("useProjectHasExceptions", () => {
     countSpy.mockResolvedValue(0 as never);
 
     const hook: RenderHookResult<boolean | null, { shouldAsk: boolean }> =
-      renderHook(
+      renderHook<boolean | null, { shouldAsk: boolean }>(
         (props: { shouldAsk: boolean }) => {
           return useProjectHasExceptions(props.shouldAsk);
         },
@@ -384,7 +384,7 @@ describe("useProjectHasExceptions", () => {
     countSpy.mockResolvedValue(0 as never);
 
     const hook: RenderHookResult<boolean | null, { shouldAsk: boolean }> =
-      renderHook(
+      renderHook<boolean | null, { shouldAsk: boolean }>(
         (props: { shouldAsk: boolean }) => {
           return useProjectHasExceptions(props.shouldAsk);
         },
