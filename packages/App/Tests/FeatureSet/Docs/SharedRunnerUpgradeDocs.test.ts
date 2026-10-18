@@ -36,7 +36,12 @@ const NOTE_LEAD: string =
 // The note before it (DatabasePortDocs).
 const PREVIOUS_LEAD: string =
   "**PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.**";
-const LAST_ITEM_START: string = "- See [API and endpoint changes]";
+/*
+ * The note after it: the global-probe and Runner key note
+ * (ProbeRunnerKeyUpgradeDocs), which the endpoint pointer still follows.
+ */
+const NEXT_LEAD: string =
+  "**A global probe and the bundled Runner no longer authenticate with a key the repository ships.**";
 
 const AI_AGENT_PAGE: string = "ai/ai-agent";
 const OWN_RUNNER_HEADING: string = "### Run a Runner of your own";
@@ -192,7 +197,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on the bundled Runner", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on PostgreSQL's port and password and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on PostgreSQL's port and password and before the global-probe and Runner key note", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -204,9 +209,9 @@ describe("the English upgrade note on the bundled Runner", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(LAST_ITEM_START)).toBe(
-      true,
-    );
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("names the Compose service and the chart values it means", () => {

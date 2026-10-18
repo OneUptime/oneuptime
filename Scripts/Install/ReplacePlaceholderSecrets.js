@@ -18,15 +18,31 @@ const fs = require("fs");
  * Only secrets that OneUptime's own containers share, and that nothing stored
  * depends on, are listed: any start may replace their placeholder, and the
  * containers it recreates all get the new value together. That is not true of
- * the others - PostgreSQL takes DATABASE_PASSWORD only when it creates its
- * database, and changing ENCRYPTION_SECRET makes what was encrypted with it
- * unreadable - so they are left to the operator (and the Docker Compose guide
- * shows how to set them all before the first start).
+ * the datastore passwords - PostgreSQL takes DATABASE_PASSWORD only when it
+ * creates its database, and changing ENCRYPTION_SECRET makes what was
+ * encrypted with it unreadable - so they are left to the operator (and the
+ * Docker Compose guide shows how to set them all before the first start).
  *
  *   - ONEUPTIME_SECRET: the cluster key the app and the bundled Runner
  *     present to each other (Common/Server/Middleware/ClusterKeyAuthorization).
+ *   - REGISTER_PROBE_KEY: what a probe presents to register as a global probe
+ *     (Telemetry/API/ProbeIngest/Register). The server refuses a shipped value.
+ *   - GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY: the bundled global probes' own
+ *     keys. A probe re-registers with its key on every start, so a fresh value
+ *     is picked up with no monitoring gap (Register rekeys the same-named
+ *     global probe in place). ProbeService.verifyProbeKey refuses a shipped
+ *     value, so a probe left on a placeholder key cannot authenticate.
+ *   - ONEUPTIME_RUNNER_KEY: the in-cluster Runner's agent key, which it
+ *     presents to register and on every code-fix request. The server refuses
+ *     a shipped value (CodeFixAgentAuth, AIAgentAPI).
  */
-const GENERATED_SECRETS = ["ONEUPTIME_SECRET"];
+const GENERATED_SECRETS = [
+  "ONEUPTIME_SECRET",
+  "REGISTER_PROBE_KEY",
+  "GLOBAL_PROBE_1_KEY",
+  "GLOBAL_PROBE_2_KEY",
+  "ONEUPTIME_RUNNER_KEY",
+];
 
 /*
  * A value OneUptime treats as shipped: "secret", which the code used to fall
@@ -117,8 +133,9 @@ const replacePlaceholderSecrets = (contents, makeSecret = generateSecret) => {
 const describeReplacedSecrets = (replaced) => {
   return (
     `config.env: ${replaced.join(", ")} still held the placeholder from config.example.env, ` +
-    "so it was set to a new random value. OneUptime's own services, the bundled Runner among them, " +
-    "use it to call each other; nothing else needs it."
+    "so each was set to a new random value. These are the keys OneUptime's own services, probes " +
+    "and the bundled Runner present to each other; OneUptime refuses the public placeholder for " +
+    "every one of them, and each container reads its value from config.env."
   );
 };
 
@@ -127,9 +144,10 @@ const describeUnchangedConfig = (action, error) => {
   const reason = error && error.message ? error.message : String(error);
 
   return (
-    `config.env could not be ${action} (${reason}), so ONEUPTIME_SECRET was not given a random value. ` +
-    "OneUptime starts anyway. If ONEUPTIME_SECRET still holds the placeholder from config.example.env, " +
-    "the bundled Runner does not register until it is a long random value (openssl rand -hex 32 makes one)."
+    `config.env could not be ${action} (${reason}), so its placeholder secrets were not given random values. ` +
+    "OneUptime starts anyway, but the bundled probes and Runner do not register while REGISTER_PROBE_KEY, " +
+    "GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_SECRET or ONEUPTIME_RUNNER_KEY still holds the " +
+    "placeholder from config.example.env: set each to a long random value (openssl rand -hex 32 makes one)."
   );
 };
 
@@ -179,9 +197,11 @@ const init = (options = {}) => {
 
 /*
  * Run as a script (`node ./Scripts/Install/ReplacePlaceholderSecrets.js` from
- * the repository root) by `npm start` (its prestart) and by
- * Scripts/Install/configure.sh, which `npm run update` runs. Requiring it,
- * as the tests do, only exports the functions.
+ * the repository root) by `npm start` (a step of the start script, not a
+ * prestart hook: npm skips pre- and post-scripts when ignore-scripts is set,
+ * as many hardened servers do, and the placeholder keys must be replaced on
+ * every install) and by Scripts/Install/configure.sh, which `npm run update`
+ * runs. Requiring it, as the tests do, only exports the functions.
  */
 if (require.main === module) {
   init();

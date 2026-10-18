@@ -20,6 +20,18 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import Version from "../../Types/Version";
+import { isShippedSecretValue } from "../EnvironmentConfig";
+
+/*
+ * The agent key a global AI agent registers and authenticates with is the
+ * in-cluster Runner's ONEUPTIME_RUNNER_KEY. A value this repository ships for
+ * it is public (unset, "secret" or a config.example.env placeholder), so it
+ * proves nothing: it is refused at registration and on the heartbeat, which
+ * is what stops anyone who knows the public value from acting as the shared
+ * Runner for every project. A real key is a long random value.
+ */
+const SHIPPED_AI_AGENT_KEY_MESSAGE: string =
+  "aiAgentKey is a value the OneUptime repository ships, which is public, so it is refused. Set ONEUPTIME_RUNNER_KEY to a long random value on the in-cluster Runner.";
 
 export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
   public constructor() {
@@ -46,6 +58,14 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
           }
 
           const aiAgentKey: string = data["aiAgentKey"] as string;
+
+          if (isShippedSecretValue(aiAgentKey)) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(SHIPPED_AI_AGENT_KEY_MESSAGE),
+            );
+          }
 
           const aiAgent: AIAgent | null = await AIAgentService.findOneBy({
             query: {
@@ -129,6 +149,14 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
 
           const aiAgentId: ObjectID = new ObjectID(data["aiAgentId"] as string);
           const aiAgentKey: string = data["aiAgentKey"] as string;
+
+          if (isShippedSecretValue(aiAgentKey)) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(SHIPPED_AI_AGENT_KEY_MESSAGE),
+            );
+          }
 
           const aiAgent: AIAgent | null = await AIAgentService.findOneBy({
             query: {

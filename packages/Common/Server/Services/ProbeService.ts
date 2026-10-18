@@ -36,7 +36,7 @@ import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import { IsBillingEnabled, isShippedSecretValue } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
@@ -172,6 +172,21 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!data.probeKey) {
       throw new BadDataException("probeKey is required");
+    }
+
+    /*
+     * A key this repository ships is public, so it proves nothing: a probe
+     * whose key is unset, "secret" or a config.example.env placeholder
+     * (EnvironmentConfig.isShippedSecretValue) is refused, whether or not a
+     * row with that key exists. This is the one check every authenticated
+     * probe request passes through, so it covers every probe-ingest route at
+     * once — a global probe anyone could impersonate never authenticates. A
+     * real probe's key is a long random value (ObjectID.generate on create,
+     * REGISTER_PROBE_KEY-gated registration, or the Helm/Compose generated
+     * GLOBAL_PROBE_n_KEY), never a shipped value, so this never refuses one.
+     */
+    if (isShippedSecretValue(data.probeKey)) {
+      return false;
     }
 
     const presentedKeyHash: string = this.hashProbeKey(data.probeKey);

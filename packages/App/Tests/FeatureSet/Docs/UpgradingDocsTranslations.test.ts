@@ -345,6 +345,7 @@ const PROSE_LEADS: Array<string> = [
   "OneUptime refuses a placeholder `ONEUPTIME_SECRET`.",
   "PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.",
   "The bundled Runner no longer runs a repository's commands, and holds only what it needs.",
+  "A global probe and the bundled Runner no longer authenticate with a key the repository ships.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",
