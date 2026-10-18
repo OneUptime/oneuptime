@@ -63,7 +63,7 @@ Du trenger tillatelse til å legge til SSO-leverandører — **Project Owner**, 
 
 2. **Opprett SSO-konfigurasjonen**
 
-   - Klikk på **Opprett SSO**
+   - Klikk på **Legg til SAML-leverandør**
    - Skriv inn et **Navn** for SSO-konfigurasjonen (f.eks. "Keycloak SAML" eller "Okta SAML")
    - Skriv inn **Påloggings-URL** fra identitetsleverandøren din
    - Skriv inn **Utsteder** (Entity ID) fra identitetsleverandøren din
@@ -107,7 +107,7 @@ Keycloak er en populær åpen kildekode-løsning for identitets- og tilgangsstyr
 
 2. **Opprett leverandøren i OneUptime**
 
-   Gå til **Prosjektinnstillinger** > **Sikkerhet** > **SSO**, klikk på **Opprett SSO**, og fyll ut:
+   Gå til **Prosjektinnstillinger** > **Sikkerhet** > **SSO**, klikk på **Legg til SAML-leverandør**, og fyll ut:
    - **Navn**: et beskrivende navn (f.eks. `my-project-oneuptime`)
    - **Påloggings-URL** og **Utsteder**: verdiene ovenfor
    - **Offentlig sertifikat**: sertifikatet, mellom sine egne linjer `BEGIN CERTIFICATE` og `END CERTIFICATE`
@@ -150,7 +150,7 @@ Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts skybase
 
 3. **Opprett leverandøren i OneUptime**
 
-   Gå til **Prosjektinnstillinger** > **Sikkerhet** > **SSO**, klikk på **Opprett SSO**, og fyll ut:
+   Gå til **Prosjektinnstillinger** > **Sikkerhet** > **SSO**, klikk på **Legg til SAML-leverandør**, og fyll ut:
    - **Navn**: et beskrivende navn (f.eks. `Azure AD SAML`)
    - **Påloggings-URL**: **Login URL**
    - **Utsteder**: **Microsoft Entra Identifier**
@@ -202,7 +202,7 @@ Okta er en mye brukt identitetsplattform med SAML-SSO. Du trenger en Okta-organi
 
 3. **Opprett leverandøren i OneUptime**
 
-   Gå til **Prosjektinnstillinger** > **Sikkerhet** > **SSO**, klikk på **Opprett SSO**, og fyll ut:
+   Gå til **Prosjektinnstillinger** > **Sikkerhet** > **SSO**, klikk på **Legg til SAML-leverandør**, og fyll ut:
    - **Navn**: et beskrivende navn (f.eks. `Okta SAML`)
    - **Påloggings-URL** og **Utsteder**: verdiene fra Okta
    - **Offentlig sertifikat**: sertifikatet, inkludert linjene `BEGIN CERTIFICATE` og `END CERTIFICATE`
@@ -244,11 +244,11 @@ Et prosjekt kan også logge inn via en OpenID Connect-leverandør, for eksempel 
 
 :::steps
 1. Registrer en app (en OIDC-klient) hos identitetsleverandøren din som får bruke authorization code-flyten med PKCE, og kopier **Utsteder-URL**, **Klient-ID** og **Klienthemmelighet**.
-2. Gå til **Prosjektinnstillinger** > **Sikkerhet** > **OIDC** i OneUptime, og klikk på **Opprett OIDC**.
+2. Gå til **Prosjektinnstillinger** > **Sikkerhet** > **SSO** i OneUptime. Klikk på **Legg til OIDC-leverandør** under SAML-leverandørene.
 3. Skriv inn et **Navn** (det personer ser på påloggingssiden), **Utsteder-URL**, **Klient-ID** og **Klienthemmelighet**. Du kan også lime inn oppdagelses-URL-en til leverandøren i **Utsteder-URL** i stedet.
 4. I steget **Pålogging** starter **Team** med medlemsteamet i prosjektet: personer som logger inn for første gang, blir med i disse teamene. Resten er allerede fylt ut under **Flere felt**: **Oppdagelses-URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse ("Sign in with" og navnet). Endre dem bare hvis leverandøren din krever det. Bare team du selv kunne invitert noen til, godtas: et team som gir mer tilgang enn du har, nevnes under **Team**.
 5. Lagre. Dialogen **OIDC Configuration** åpnes med **Redirect URI**: legg den til i appens tillatte redirect-URI-er. En ny leverandør starter avslått, så rediger den etterpå og slå på **Aktivert**.
-6. Bruk lenken i kortet **Test OpenID Connect (OIDC)** til å logge inn via leverandøren før du krever SSO for prosjektet.
+6. Åpne lenken i kortet **Test Single Sign On (SSO)**, og velg leverandøren for å logge inn via den før du krever SSO for prosjektet.
 :::
 
 ## Roller og team for SSO-brukere
@@ -308,14 +308,14 @@ Der verken prosjektet eller serveren krever SSO, stopper det nye pålogginger me
 
 ## Leverandører under planen Scale
 
-En SAML- eller OIDC-leverandør som et prosjekt fortsatt har, fortsetter å logge personer inn etter at en Scale-prøveperiode slutter eller planen nedgraderes. Derfor viser sidene **SSO** og **OIDC** under Scale prosjektets leverandører under oppgraderingstilbudet (**SAML-leverandører som fortsatt er satt opp**, **OIDC-leverandører som fortsatt er satt opp**):
+En SAML- eller OIDC-leverandør som et prosjekt fortsatt har, fortsetter å logge personer inn etter at en Scale-prøveperiode slutter eller planen nedgraderes. Derfor viser siden **SSO** under Scale prosjektets leverandører under oppgraderingstilbudet (**SAML-leverandører som fortsatt er satt opp**, **OIDC-leverandører som fortsatt er satt opp**):
 
 - **Slå av** stopper en leverandør med en gang. OneUptime spør først.
 - **Slett** fjerner den.
 
 Å legge til en leverandør, endre en eller slå den på igjen krever **Scale**. Hvem som kan gjøre hva, er det samme som med Scale: å slå av en leverandør krever tillatelse til å redigere den, å slette den krever tillatelse til å slette den.
 
-Så lenge prosjektet fortsatt krever SSO, viser sidene **SSO** og **OIDC** også **Krev SSO for innlogging**: slå det av før du slår av den siste leverandøren. Inntil da kan ikke den siste leverandøren personer kan logge inn med, slås av eller slettes, slik at ingen blir utestengt fra prosjektet.
+Så lenge prosjektet fortsatt krever SSO, viser siden **SSO** også **Krev SSO for innlogging**: slå det av før du slår av den siste leverandøren. Inntil da kan ikke den siste leverandøren personer kan logge inn med, slås av eller slettes, slik at ingen blir utestengt fra prosjektet.
 
 Sidene **SSO** og **OIDC** for en statusside viser statussidens egne leverandører på samme måte. Så lenge statussiden fortsatt krever SSO, viser begge sidene også **Krev SSO for innlogging**: slå det av før du slår av leverandørene, ellers kan de private brukerne ikke logge inn i det hele tatt.
 

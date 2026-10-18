@@ -36,7 +36,7 @@ flowchart LR
 | **Notifikationer** | **Notifikationsindstillinger**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
 | **AI** | **AI Features**, **LLM-udbydere**, **AI-kreditter**, **AI-logs**, **MCP-server** | [LLM-udbydere](/docs/ai/llm-provider), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#omkostningsstyring) |
 | **Avanceret** | **Domæner**, **API-nøgler**, **Funktionsflag** | [Egne domæner](/docs/status-pages/branding-and-domains#brugerdefinerede-domæner), [API-nøgler](/docs/permissions/index#api-nøgler), [Funktionsflag](#funktionsflag) |
-| **Sikkerhed** | **SSO**, **OIDC**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
+| **Sikkerhed** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Brugshistorik**, **Fakturaer** | [Fakturering og forbrug](/docs/configuration/billing) |
 | **Auditlogs** | **Auditlogs**, **Indstillinger** | [Auditlogs](/docs/configuration/audit-logs) |
 | **Farezone** | **Farezone** | [Slet projektet](#slet-projektet) |

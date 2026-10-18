@@ -63,7 +63,7 @@ Sie brauchen die Berechtigung, SSO-Anbieter hinzuzufügen – **Project Owner**,
 
 2. **SSO-Konfiguration erstellen**
 
-   - Klicken Sie auf **SSO erstellen**
+   - Klicken Sie auf **SAML-Anbieter hinzufügen**
    - Geben Sie einen **Name** für die SSO-Konfiguration ein (z. B. "Keycloak SAML" oder "Okta SAML")
    - Geben Sie die **Anmelde-URL** Ihres Identitätsanbieters ein
    - Geben Sie den **Aussteller** (Entity ID) Ihres Identitätsanbieters ein
@@ -107,7 +107,7 @@ Keycloak ist eine verbreitete Open-Source-Lösung für Identitäts- und Zugriffs
 
 2. **Den Anbieter in OneUptime anlegen**
 
-   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SSO erstellen** und füllen Sie aus:
+   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SAML-Anbieter hinzufügen** und füllen Sie aus:
    - **Name**: ein aussagekräftiger Name (z. B. `my-project-oneuptime`)
    - **Anmelde-URL** und **Aussteller**: die Werte oben
    - **Öffentliches Zertifikat**: das Zertifikat, zwischen seinen eigenen Zeilen `BEGIN CERTIFICATE` und `END CERTIFICATE`
@@ -150,7 +150,7 @@ Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitä
 
 3. **Den Anbieter in OneUptime anlegen**
 
-   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SSO erstellen** und füllen Sie aus:
+   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SAML-Anbieter hinzufügen** und füllen Sie aus:
    - **Name**: ein aussagekräftiger Name (z. B. `Azure AD SAML`)
    - **Anmelde-URL**: die **Login URL**
    - **Aussteller**: den **Microsoft Entra Identifier**
@@ -202,7 +202,7 @@ Okta ist eine weit verbreitete Identitätsplattform mit SAML-SSO. Sie brauchen e
 
 3. **Den Anbieter in OneUptime anlegen**
 
-   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SSO erstellen** und füllen Sie aus:
+   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SAML-Anbieter hinzufügen** und füllen Sie aus:
    - **Name**: ein aussagekräftiger Name (z. B. `Okta SAML`)
    - **Anmelde-URL** und **Aussteller**: die Werte von Okta
    - **Öffentliches Zertifikat**: das Zertifikat, einschließlich der Zeilen `BEGIN CERTIFICATE` und `END CERTIFICATE`
@@ -244,11 +244,11 @@ Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Go
 
 :::steps
 1. Registrieren Sie bei Ihrem Identitätsanbieter eine App (einen OIDC-Client), die den Authorization Code Flow mit PKCE nutzen darf, und kopieren Sie ihre **Aussteller-URL**, **Client-ID** und **Client-Secret**.
-2. Gehen Sie in OneUptime zu **Projekteinstellungen** > **Sicherheit** > **OIDC** und klicken Sie auf **OIDC erstellen**.
+2. Gehen Sie in OneUptime zu **Projekteinstellungen** > **Sicherheit** > **SSO**. Klicken Sie unter den SAML-Anbietern auf **OIDC-Anbieter hinzufügen**.
 3. Geben Sie einen **Name** (das, was Personen auf der Anmeldeseite sehen), die **Aussteller-URL**, die **Client-ID** und das **Client-Secret** ein. Sie können stattdessen auch die Discovery-URL des Anbieters in **Aussteller-URL** einfügen.
 4. Im Schritt **Anmeldung** beginnt **Teams** mit dem Mitglieder-Team Ihres Projekts: Wer sich zum ersten Mal anmeldet, kommt in diese Teams. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Discovery-URL** (der Aussteller, gefolgt von `/.well-known/openid-configuration`), die **Geltungsbereiche** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung ("Sign in with" und der Name). Ändern Sie sie nur, wenn Ihr Anbieter es verlangt. Angenommen werden nur Teams, in die Sie selbst jemanden einladen könnten: Ein Team, das mehr Zugriff gibt, als Sie haben, wird unter **Teams** genannt.
 5. Speichern Sie. Der Dialog **OIDC-Konfiguration** öffnet sich mit der **Weiterleitungs-URI**: Fügen Sie sie den erlaubten Weiterleitungs-URIs Ihrer App hinzu. Ein neuer Anbieter ist zunächst ausgeschaltet; bearbeiten Sie ihn deshalb danach und schalten Sie **Aktiviert** ein.
-6. Melden Sie sich über den Link in der Karte **OpenID Connect (OIDC) testen** mit dem Anbieter an, bevor Sie für das Projekt SSO verlangen.
+6. Öffnen Sie den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter, um sich darüber anzumelden, bevor Sie für das Projekt SSO verlangen.
 :::
 
 ## Rollen und Teams für SSO-Benutzer
@@ -308,14 +308,14 @@ Wo weder das Projekt noch der Server SSO verlangt, stoppt das Ausschalten eines 
 
 ## Anbieter unterhalb des Plans Scale
 
-Ein SAML- oder OIDC-Anbieter, den ein Projekt noch hat, meldet weiter Personen an, nachdem eine Scale-Testphase endet oder der Plan herabgestuft wird. Deshalb listen die Seiten **SSO** und **OIDC** unterhalb von Scale die Anbieter des Projekts unter dem Upgrade-Angebot auf (**Noch eingerichtete SAML-Anbieter**, **Noch eingerichtete OIDC-Anbieter**):
+Ein SAML- oder OIDC-Anbieter, den ein Projekt noch hat, meldet weiter Personen an, nachdem eine Scale-Testphase endet oder der Plan herabgestuft wird. Deshalb listet die Seite **SSO** unterhalb von Scale die Anbieter des Projekts unter dem Upgrade-Angebot auf (**Noch eingerichtete SAML-Anbieter**, **Noch eingerichtete OIDC-Anbieter**):
 
 - **Ausschalten** stoppt einen Anbieter sofort. OneUptime fragt vorher nach.
 - **Löschen** entfernt ihn.
 
 Einen Anbieter hinzuzufügen, zu ändern oder wieder einzuschalten erfordert **Scale**. Wer was tun darf, ist dasselbe wie mit Scale: Zum Ausschalten eines Anbieters braucht man die Berechtigung, ihn zu bearbeiten, zum Löschen die Berechtigung, ihn zu löschen.
 
-Solange das Projekt noch SSO verlangt, zeigen seine Seiten **SSO** und **OIDC** auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie den letzten Anbieter ausschalten. Bis dahin lässt sich der letzte Anbieter, mit dem sich Personen anmelden können, weder ausschalten noch löschen, damit niemand aus dem Projekt ausgesperrt wird.
+Solange das Projekt noch SSO verlangt, zeigt seine Seite **SSO** auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie den letzten Anbieter ausschalten. Bis dahin lässt sich der letzte Anbieter, mit dem sich Personen anmelden können, weder ausschalten noch löschen, damit niemand aus dem Projekt ausgesperrt wird.
 
 Die Seiten **SSO** und **OIDC** einer Statusseite listen deren eigene Anbieter auf dieselbe Weise auf. Solange die Statusseite noch SSO verlangt, zeigen beide Seiten auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie ihre Anbieter ausschalten, sonst können sich ihre privaten Benutzer überhaupt nicht mehr anmelden.
 

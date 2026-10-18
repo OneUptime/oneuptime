@@ -139,11 +139,11 @@ const Welcome: FunctionComponent<ComponentProps> = (
           <EmptyState
             id="empty-state-project-creation-restricted"
             icon={IconProp.Lock}
-            title={"Project creation restricted"}
+            title={"Ask to join a project"}
             description={
               <>
                 {translator.translateText(
-                  "Creating new projects is restricted to admin users on this OneUptime Server. Please contact your server admin to be added to an existing project.",
+                  "Only admins can create projects on this server. Ask your server admin to add you to one.",
                 )}
               </>
             }

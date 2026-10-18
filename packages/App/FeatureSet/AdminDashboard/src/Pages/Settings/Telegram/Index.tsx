@@ -107,6 +107,8 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.telegram.configEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.telegram.configEditButton")}
         formFields={[
           {
             field: {

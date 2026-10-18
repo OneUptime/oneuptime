@@ -582,9 +582,10 @@ test.describe("a role's page", () => {
       "Given to 2 teams (4 people). A change here changes what they can do at once.",
     );
     await expect(permissions.locator("tbody tr")).toHaveCount(6);
-    await expect(row(permissions, "Monitor Viewer")).toContainText(
-      "Restricted to labels:",
-    );
+    // The Scope cell reads in the Scope choice's words, with the labels.
+    await expect(
+      row(permissions, "Monitor Viewer").getByTestId("permission-scope-cell"),
+    ).toContainText("Only resources with certain labels");
     await expect(row(permissions, "Monitor Viewer")).toContainText(
       "Production",
     );
@@ -657,20 +658,23 @@ test.describe("a role's page", () => {
 
     const form: Locator = dialog(page);
     await form.getByTestId("card-select-option-IncidentViewer").click();
-    await form.getByRole("combobox", { name: "Scope" }).click();
-    await page
-      .locator(".ou-select__option")
-      .filter({ hasText: "Restrict by labels (advanced)" })
-      .click();
+
+    // The Scope is three plain answers, All picked to start with.
+    await expect(
+      form.getByRole("radio", { name: "All resources in the project" }),
+    ).toBeChecked();
+    await form
+      .getByRole("radio", { name: "Only resources with certain labels" })
+      .check();
     await submitDialog(page);
 
     // Nothing is sent without a label.
-    await expect(form).toContainText("Restrict to Labels is required");
+    await expect(form).toContainText("Labels is required");
     expect(await createsOf(page, "CustomRolePermission")).toEqual([]);
 
     await pickRecord(
       page,
-      form.getByRole("combobox", { name: "Restrict to Labels" }),
+      form.getByRole("combobox", { name: "Labels" }),
       "Production",
     );
     await screenshot(page, "role-add-permission-labels");

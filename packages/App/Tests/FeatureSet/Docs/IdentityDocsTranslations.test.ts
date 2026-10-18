@@ -373,8 +373,13 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Test this SSO provider",
     "Test this OIDC provider",
     "Attached Projects",
-    "Disable Sign Up with SSO",
-    "Restrict to Attached Projects",
+    // The provider's two questions and their answers (SsoProviderFormFields).
+    "People without an account",
+    "Get one on their first sign-in",
+    "Must be invited first",
+    "Where this sign-in counts as SSO",
+    "Every project",
+    "Attached projects only",
     "Require SSO for Login",
   ],
 };
@@ -1016,6 +1021,12 @@ describe("the lists this test keeps", () => {
       "Enabled",
       "More fields",
       "Require SSO for Login",
+      "People without an account",
+      "Get one on their first sign-in",
+      "Must be invited first",
+      "Where this sign-in counts as SSO",
+      "Every project",
+      "Attached projects only",
     ]) {
       expect({ label, inLocale: adminEnglish[label] }).toEqual({
         label,
@@ -1030,7 +1041,6 @@ describe("the lists this test keeps", () => {
       "Sign On URL",
       "Attached Projects",
       "Edit Configuration",
-      "Restrict to Attached Projects",
     ]) {
       expect({ label, inLocale: adminEnglish[label] }).toEqual({
         label,

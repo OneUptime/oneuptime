@@ -1059,7 +1059,9 @@ describe("in the SAML provider form", () => {
             // Not asserted on.
           }}
           submitButtonText={
-            data.formType === FormType.Create ? "Create SSO" : "Save Changes"
+            data.formType === FormType.Create
+              ? "Add SAML Provider"
+              : "Save Changes"
           }
           disableAutofocus={true}
         />,

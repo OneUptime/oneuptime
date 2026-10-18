@@ -36,7 +36,7 @@ flowchart LR
 | **通知** | **通知设置**、**通知日志**、**移动应用** | [通知](#通知) |
 | **人工智能** | **AI Features**、**LLM 提供商**、**AI 积分**、**AI 日志**、**MCP 服务器** | [LLM 提供商](/docs/ai/llm-provider)、[MCP 服务器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |
 | **高级** | **域名**、**API 密钥**、**功能标志** | [自定义域名](/docs/status-pages/branding-and-domains#自定义域名)、[API 密钥](/docs/permissions/index#api-密钥)、[功能标志](#功能标志) |
-| **安全** | **SSO**、**OIDC**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
+| **安全** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **账单和发票** | **账单**、**使用历史**、**发票** | [账单与用量](/docs/configuration/billing) |
 | **审计日志** | **审计日志**、**设置** | [审计日志](/docs/configuration/audit-logs) |
 | **危险区域** | **危险区域** | [删除项目](#删除项目) |

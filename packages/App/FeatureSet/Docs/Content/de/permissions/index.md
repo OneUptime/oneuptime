@@ -192,9 +192,9 @@ Jede Erlaubt-Berechtigung wird mit einem Geltungsbereich vergeben, den Sie beim 
 
 | Geltungsbereich | Bedeutung |
 | --- | --- |
-| Alle Ressourcen im Projekt | Die Voreinstellung. Die Berechtigung gilt für jede passende Ressource. |
-| Im Besitz dieses Teams oder seiner Mitglieder | Die Berechtigung gilt nur für Ressourcen, bei denen dieses Team oder der handelnde Benutzer als Eigentümer eingetragen ist. |
-| Nach Labels einschränken (fortgeschritten) | Die Berechtigung gilt nur für Ressourcen, die mindestens eines der gewählten Labels tragen. |
+| Alle Ressourcen im Projekt | Die Voreinstellung, und was die meisten Teams brauchen. Die Berechtigung gilt für jede passende Ressource. |
+| Nur Ressourcen, die ihnen gehören | Die Berechtigung gilt nur für Ressourcen, die der handelnden Person oder einem ihrer Teams gehören. |
+| Nur Ressourcen mit bestimmten Beschriftungen | Die Berechtigung gilt nur für Ressourcen, die mindestens eine der gewählten Beschriftungen tragen. |
 
 **Eigene** ist der einfachste Weg zu einem Modell nach dem Motto „Ihr kümmert euch um eure eigenen Dienste": Geben Sie einem Team `MonitorAdmin` mit Geltungsbereich „Eigene" und machen Sie dieses Team zum Eigentümer der Monitore, für die es zuständig ist. Eingegrenzt wird jede Ressource, die Eigentümer haben kann — Monitore, Vorfälle, Dashboards, Services, Monitor-Gruppen, Bereitschaftspläne und Ähnliches — samt dem, was zu ihr gehört, etwa den Ebenen eines Bereitschaftsplans. Sonden, Runner, KI-Agenten, Bereitschaftspläne sowie Vorfall- und Wartungsvorlagen sind das, womit andere Ressourcen eingerichtet werden: Eine Berechtigung mit Geltungsbereich „Eigene" liest sie deshalb weiterhin alle, und Sie können jede davon auswählen; ändern und löschen kann sie nur die, die Ihnen oder Ihren Teams gehören. Den Schlüssel eines Runners, mit dem jeder, der ihn hat, als dieser Runner auftreten kann, sieht sie nur bei den Runnern, die Ihnen oder Ihren Teams gehören. Projektkonfiguration (Vorfallzustände, Labels, die Teams selbst) hat keine Eigentümer, dort verhält sich eine „Eigene"-Rolle also ganz normal.
 

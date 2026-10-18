@@ -1371,11 +1371,15 @@ describe("Billing & Usage", () => {
     expect(drawn).toEqual([
       "Product",
       "Day",
-      "Data Ingested (in GB)",
       "Service",
+      "Data Ingested (in GB)",
       "Data Retention (in Days)",
       "Total Cost",
     ]);
+    // Each column once: Data Ingested used to be drawn twice.
+    expect(Array.from(columns.matchAll(TITLE_PROPERTY)).length).toBe(
+      drawn.length,
+    );
     expect(usage).toContain('title: "Telemetry Usage History"');
     expect(usage).toContain("Each day's usage shows up after the day ends.");
 
@@ -1421,8 +1425,20 @@ describe("Billing & Usage", () => {
     expect(
       readDashboardSource("Components/ProjectBalance/ProjectBalanceAccess.ts"),
     ).toContain('title: "Recharge Balance"');
-    expect(settings).toContain('editButtonText="Edit Auto Recharge"');
-    expect(settings).toContain('title: "Enable Auto Recharge"');
+    /*
+     * Both balances draw one Auto Recharge card (Components/ProjectBalance/
+     * AutoRechargeCard), its switch named as the guide names it.
+     */
+    const autoRecharge: string = readDashboardSource(
+      "Components/ProjectBalance/AutoRechargeCard.tsx",
+    );
+
+    expect(settings).toContain("<AutoRechargeCard");
+    expect(readDashboardSource("Pages/Settings/AICredits.tsx")).toContain(
+      "<AutoRechargeCard",
+    );
+    expect(autoRecharge).toContain('editButtonText="Edit Auto Recharge"');
+    expect(autoRecharge).toContain('title: "Enable Auto Recharge"');
 
     const project: Project = new Project();
 
