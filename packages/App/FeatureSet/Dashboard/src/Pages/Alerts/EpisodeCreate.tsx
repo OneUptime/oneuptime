@@ -65,6 +65,8 @@ const EpisodeCreate: FunctionComponent<
                 stepId: "episode-details",
                 required: true,
                 placeholder: "Episode Title",
+                // Its column's description only says the title again.
+                hideColumnDescription: true,
                 validation: {
                   minLength: 2,
                 },
@@ -75,7 +77,7 @@ const EpisodeCreate: FunctionComponent<
                 },
                 title: "Alert Severity",
                 stepId: "episode-details",
-                description: "What severity level is this episode?",
+                description: "How serious is it?",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
                   type: AlertSeverity,
@@ -204,7 +206,7 @@ const EpisodeCreate: FunctionComponent<
                 title: "On-Call Policy",
                 stepId: "on-call",
                 description:
-                  "Select on-call duty policy to execute when this episode is created.",
+                  "The on-call policies to page as soon as the episode is created.",
                 fieldType: FormFieldSchemaType.MultiSelectDropdown,
                 dropdownModal: {
                   type: OnCallDutyPolicy,

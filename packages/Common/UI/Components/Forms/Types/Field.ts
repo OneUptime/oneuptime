@@ -387,6 +387,18 @@ export default interface Field<TEntity> {
   hideOptionalLabel?: boolean | undefined;
 
   /*
+   * Draw no line under the field's title in place of its column's
+   * description. A field with no description of its own shows its column's
+   * (BasicModelForm), which is written for the API and, on a choice whose
+   * answers each say what they mean, says it all again: a reminder rule's
+   * "Stop Reminders When" had a sentence about both answers above the
+   * answers' own lines. Also for a form-only field, whose column only
+   * stands in for its permissions, and for a column whose description only
+   * says its title again ("Title of this incident" under Title).
+   */
+  hideColumnDescription?: boolean | undefined;
+
+  /*
    * Spell check configuration (primarily for Markdown and text fields)
    * Default: false (spell check enabled). Set to true to disable spell check.
    */

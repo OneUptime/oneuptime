@@ -154,6 +154,8 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   stepId: "alert-details",
                   required: true,
                   placeholder: "Alert Title",
+                  // Its column's description only says the title again.
+                  hideColumnDescription: true,
                   validation: {
                     minLength: 2,
                   },
@@ -164,7 +166,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   },
                   title: "Alert Severity",
                   stepId: "alert-details",
-                  description: "What is the severity of this alert?",
+                  description: "How serious is it?",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: AlertSeverity,
@@ -279,7 +281,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   title: "Private Alert",
                   stepId: "alert-details",
                   description:
-                    "If checked, only the alert's owner users and the members of its owner teams (plus project admins and owners) can view this alert.",
+                    "Only the alert's owners, project admins and project owners can see it.",
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: false,
                   required: false,
@@ -608,7 +610,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   title: "On-Call Policy",
                   stepId: "on-call",
                   description:
-                    "Select on-call duty policy to execute when this alert is created.",
+                    "The on-call policies to page as soon as the alert is created.",
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   dropdownModal: {
                     type: OnCallDutyPolicy,

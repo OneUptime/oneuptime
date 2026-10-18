@@ -868,12 +868,24 @@ const FormField: <T extends GenericObject>(
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
+              /*
+               * Each answer in the reader's language, with its one line
+               * under it when it has one - a choice of modes reads as plain
+               * answers (a reminder rule's Resolved / Acknowledged).
+               */
               options={
                 props.field.radioButtonOptions?.map(
                   (option: BasicRadioButtonOption) => {
                     return {
-                      label: option.title,
+                      label: translateString(option.title) || option.title,
                       value: option.value,
+                      ...(option.description
+                        ? {
+                            description:
+                              translateString(option.description) ||
+                              option.description,
+                          }
+                        : {}),
                     };
                   },
                 ) || []

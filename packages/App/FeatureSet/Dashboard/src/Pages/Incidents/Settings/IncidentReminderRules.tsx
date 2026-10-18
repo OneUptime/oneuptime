@@ -5,15 +5,16 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ReminderStopState from "Common/Types/Reminder/ReminderStopState";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import {
+  getReminderRuleActionFields,
+  getReminderRuleFormSteps,
+} from "../../../Utils/Form/EventRuleForm";
 
 const documentationMarkdown: string = `
 ### How Incident Reminder Rules Work
@@ -38,18 +39,19 @@ flowchart TD
 
 | Criteria | Description |
 |----------|-------------|
-| **Severities** | Only incidents with these severity levels. Leave empty to match all severities. |
+| **Severities** | Only incidents with these severity levels. |
+| **Labels** | Only incidents with at least one of these labels. |
 
 Rules are evaluated from the top of the list down - the first matching rule wins. Drag a rule by its handle to change its place; a new rule is added to the end.
 
 ---
 
-### Stop State
+### Stop Reminders When
 
-| State | Description |
-|-------|-------------|
-| **Acknowledged** | Stop reminders once the incident is acknowledged |
-| **Resolved** | Keep reminding until the incident is resolved (default) |
+| Answer | What it does |
+|--------|--------------|
+| **Resolved** | Keep reminding until the incident is resolved. A new rule starts here. |
+| **Acknowledged** | Stop once someone acknowledges the incident. |
 `;
 
 const IncidentReminderRulesPage: FunctionComponent<
@@ -160,62 +162,8 @@ const IncidentReminderRulesPage: FunctionComponent<
           },
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
-        formSteps={
-          [
-            {
-              id: "rule-info",
-              title: "Rule Info",
-            },
-            {
-              id: "match-criteria",
-              title: "Match Criteria",
-            },
-            {
-              id: "reminder-settings",
-              title: "Reminder Settings",
-            },
-          ] as Array<FormStep<IncidentReminderRule>>
-        }
+        formSteps={getReminderRuleFormSteps<IncidentReminderRule>()}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "rule-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Critical Incident Reminders",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "rule-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Remind owners of critical incidents every 30 minutes until resolved",
-          },
-          /*
-           * A rule starts on, so the create form does not ask. Turning it
-           * off is an edit, with the rule's name - not a step of its own.
-           */
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "rule-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            doNotShowWhenCreating: true,
-            description: "Enable or disable this reminder rule.",
-          },
           {
             field: {
               incidentSeverities: true,
@@ -253,32 +201,7 @@ const IncidentReminderRulesPage: FunctionComponent<
             description:
               "Only apply this rule to incidents with these labels. Leave empty to match incidents with any labels.",
           },
-          {
-            field: {
-              reminderIntervalInMinutes: true,
-            },
-            title: "Reminder Interval (minutes)",
-            stepId: "reminder-settings",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "30",
-            description:
-              "How often to remind incident owners while the incident is open.",
-          },
-          {
-            field: {
-              stopRemindersOnState: true,
-            },
-            title: "Stop Reminders When",
-            stepId: "reminder-settings",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(ReminderStopState),
-            required: false,
-            placeholder: "Resolved",
-            description:
-              "Stop sending reminders once the incident reaches this state. Defaults to Resolved.",
-          },
+          ...getReminderRuleActionFields<IncidentReminderRule>("incident"),
         ]}
         showRefreshButton={true}
       />
