@@ -15,6 +15,13 @@ import { darkColors, lightColors } from "../../theme/colors";
 import type { LoginResponse, TwoFactorMethod } from "../../api/auth";
 import type { PendingTwoFactor } from "../../hooks/useAuth";
 import type { MockedFunction } from "jest-mock";
+import { AxiosError, type AxiosResponse } from "axios";
+
+// As the server words a wait after too many wrong codes (TwoFactorWrongCodes).
+const CODE_WAIT_MESSAGE: string =
+  "Too many wrong codes have been entered for this account. Please wait 4 minutes before you try another code, or use a backup code. If you did not enter these codes, reset your password.";
+const BACKUP_CODE_WAIT_MESSAGE: string =
+  "Too many wrong backup codes have been entered for this account. Please wait 1 minute before you try another one. If you did not enter these codes, reset your password.";
 
 /*
  * THE SCREEN THE MOBILE APP DID NOT HAVE.
@@ -534,6 +541,38 @@ describe("Submitting an authenticator code", () => {
     expect(mockCompletePendingLogin).not.toHaveBeenCalled();
   });
 
+  test("a code the server makes wait shows the server's words, keeps the way out, and leaves the field to try again", async () => {
+    /*
+     * After too many wrong codes the server answers 429 and says how long to
+     * wait. The screen must put those words in front of the person, and keep
+     * the backup code route one tap away: it has a count of its own.
+     */
+    mockVerifyTotpAuth.mockRejectedValue(
+      new AxiosError(
+        "Request failed with status code 429",
+        "ERR_BAD_REQUEST",
+        undefined,
+        undefined,
+        {
+          status: 429,
+          statusText: "",
+          data: { message: CODE_WAIT_MESSAGE },
+          headers: { "retry-after": "240" },
+          config: {},
+        } as unknown as AxiosResponse,
+      ),
+    );
+
+    await renderChallenge();
+    await typeCodeAndVerify("123456");
+
+    expect(await screen.findByText(CODE_WAIT_MESSAGE)).toBeTruthy();
+    expect(screen.getByTestId("totp-code-input")).toBeTruthy();
+    expect(screen.getByTestId("lost-access-link")).toBeTruthy();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockCompletePendingLogin).not.toHaveBeenCalled();
+  });
+
   test("and leaves the field on screen to try again", async () => {
     mockVerifyTotpAuth.mockRejectedValue(new Error("Invalid code."));
 
@@ -694,6 +733,32 @@ describe("Signing in with a backup code", () => {
     });
 
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  test("a backup code the server makes wait shows the server's words and signs nobody in", async () => {
+    mockVerifyBackupCode.mockRejectedValue(
+      new AxiosError(
+        "Request failed with status code 429",
+        "ERR_BAD_REQUEST",
+        undefined,
+        undefined,
+        {
+          status: 429,
+          statusText: "",
+          data: { message: BACKUP_CODE_WAIT_MESSAGE },
+          headers: { "retry-after": "60" },
+          config: {},
+        } as unknown as AxiosResponse,
+      ),
+    );
+
+    await renderChallenge(challenge({ backupCodeCount: 5 }));
+    await typeBackupCodeAndSignIn("ABCDE-12345");
+
+    expect(await screen.findByText(BACKUP_CODE_WAIT_MESSAGE)).toBeTruthy();
+    expect(screen.getByTestId("backup-code-input")).toBeTruthy();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockCompletePendingLogin).not.toHaveBeenCalled();
   });
 
   test("a refused backup code says so and does not sign anyone in", async () => {

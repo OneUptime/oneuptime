@@ -148,6 +148,10 @@ Loggar du in igen skickas en ny länk: titta även i skräppostmappen. Kan du in
 I inloggningens andra steg väljer du **Förlorat åtkomsten till din autentiseringsapp?** och anger en av dina reservkoder. Öppna sedan **Säkerhet → Two-factor authentication** och lägg till din nya app. Utan reservkoder ber du en administratör för din OneUptime-installation att återställa tvåfaktorsautentiseringen för ditt konto.
 :::
 
+:::details Inloggningen ber mig vänta innan jag provar en annan kod
+Efter fem felaktiga koder i rad väntar varje nästa kod innan den kontrolleras: en minut, sedan två, sedan fyra och så vidare, upp till en timme. OneUptime räknar felaktiga koder för ditt konto var de än anges, skickar ett e-postmeddelande till dig när väntetiderna börjar och börjar räkna om när du anger en rätt kod. Vänta och försök igen, logga in med en säkerhetsnyckel, eller välj **Förlorat åtkomsten till din autentiseringsapp?** och ange en reservkod. Om det inte var du som angav de koderna känner någon till ditt lösenord: återställ det med **Glömt lösenord?** på inloggningssidan, vilket också avslutar väntan.
+:::
+
 :::details Tiderna i instrumentpanelen är en timme fel
 Instrumentpanelen visar tider i den **Tidszon** som står i din profil, inte i datorns. Kontrollera den under **Användarprofil → Översikt**.
 :::

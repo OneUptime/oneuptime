@@ -1,0 +1,24 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="Wrong two factor codes were entered for your account." }}
+
+{{> InfoBlock info=(concat "Someone entered the password of your " (brandNameHtml) " account, then entered wrong codes at the second step of signing in. To keep your account safe, each next code now waits before it is checked: one minute at first, then longer after each wrong code, up to an hour.")}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Wrong codes in a row:" plainText=wrongCodeCount }}
+{{> DetailBoxField title="Last wrong code at:" plainText=enteredAt }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info="<strong>If this was you</strong>, check that your phone sets its clock automatically, then try again when the wait is over. A backup code or a security key also signs you in."}}
+
+{{> InfoBlock info="<strong>If this was not you</strong>, someone knows your password. Reset it now: the old password stops working, and the wait ends for you."}}
+
+{{> ButtonBlock buttonText="Reset your password" buttonUrl=forgotPasswordUrl }}
+
+{{> SupportBlock this}}
+
+{{> Footer this}}
+
+{{> End this}}
