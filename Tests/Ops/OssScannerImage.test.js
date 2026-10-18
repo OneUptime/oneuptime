@@ -1016,8 +1016,10 @@ describe("the settings the image, its scripts, CI and the Probe image share", ()
     const valkeyPort = SETTINGS.get("VALKEY_PORT");
     const clickhousePort = SETTINGS.get("CLICKHOUSE_PORT");
 
-    expect(devCompose.postgres.ports).toContain(`${databasePort}:5432`);
-    expect(devCompose.valkey.ports).toContain(`${valkeyPort}:6379`);
+    expect(devCompose.postgres.ports).toContain(
+      `127.0.0.1:${databasePort}:5432`,
+    );
+    expect(devCompose.valkey.ports).toContain(`127.0.0.1:${valkeyPort}:6379`);
     expect(clickhousePort).toBe(heredocSetting(template, "CLICKHOUSE_PORT"));
     expect(DOCKERFILE_TEXT).toContain(
       `pg_conftool 15 main set port ${databasePort}`,

@@ -74,10 +74,18 @@ jobs:
       # without asking any registry.
       - name: Warm the base image the real-Docker tests build FROM
         run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/node:26-alpine3.24
+      # RUN_COMPOSE_DATABASE_RUNTIME_TESTS starts PostgreSQL from
+      # docker-compose.yml for real (ComposeDatabaseRuntime.test.js): it
+      # answers on 127.0.0.1 and on no other address of the runner, the way
+      # backup.sh and restore.sh connect reaches it, npm start's first step sees
+      # whether its database exists, and the Docker Compose guide's commands
+      # work as written. It pulls postgres:15, and fails rather than skips
+      # when docker is not usable.
       - run: cd Tests/Ops && npm run test
         env:
           RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"
           RUN_NPM_CLI_UPDATE_TESTS: "1"
+          RUN_COMPOSE_DATABASE_RUNTIME_TESTS: "1"
       # The eBPF end-to-end test (the "Kubernetes Agent eBPF E2E" workflow)
       # needs a cluster and only runs when the chart changes; its assertions
       # do not. These unit tests feed Tests/Ops/agent-ebpf-e2e/analyze.py
