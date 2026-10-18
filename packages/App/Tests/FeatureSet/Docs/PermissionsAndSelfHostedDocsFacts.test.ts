@@ -786,7 +786,7 @@ describe("Push Notifications, against the server, the chart and the mobile app",
     "What it does",
   ]);
 
-  it("lists the five push settings, each with its Helm value, its default and its config.example.env line", () => {
+  it("lists the six push settings, each with its Helm value, its default and its config.example.env line", () => {
     const helpers: string = readSource("chartHelpers");
 
     expect(
@@ -796,6 +796,7 @@ describe("Push Notifications, against the server, the chart and the mobile app",
     ).toEqual([
       "PUSH_NOTIFICATION_RELAY_URL",
       "EXPO_ACCESS_TOKEN",
+      "PUSH_NOTIFICATION_RELAY_SERVER_ENABLED",
       "VAPID_PUBLIC_KEY",
       "VAPID_PRIVATE_KEY",
       "VAPID_SUBJECT",
@@ -838,6 +839,26 @@ describe("Push Notifications, against the server, the chart and the mobile app",
     );
     expect(environment).toMatch(
       /process\.env\["EXPO_ACCESS_TOKEN"\] \|\| undefined/,
+    );
+  });
+
+  it("relays for other servers only where the page says: empty is off unless billing is on, and only true turns it on", () => {
+    const environment: string = readSource("environmentConfig");
+
+    expect(environment).toContain(
+      'value: process.env["PUSH_NOTIFICATION_RELAY_SERVER_ENABLED"],\n    isBillingEnabled: IsBillingEnabled,',
+    );
+    expect(environment).toContain(
+      "  if (!value) {\n    return data.isBillingEnabled;\n  }\n\n  return value === \"true\";",
+    );
+    expect(readSource("pushService")).toContain(
+      "return PushNotificationRelayServerEnabled;",
+    );
+    expect(page).toContain(
+      "Relays mobile pushes for other OneUptime servers, with this server's `EXPO_ACCESS_TOKEN`. Empty means off, unless `BILLING_ENABLED` is `true`.",
+    );
+    expect(page).toContain(
+      "A self-hosted OneUptime server relays pushes for other servers only with `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` and its own `EXPO_ACCESS_TOKEN`; any other server answers 404 at that address.",
     );
   });
 

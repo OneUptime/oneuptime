@@ -44,6 +44,7 @@ Web 推送通知仍然使用 VAPID 密钥和 Web Push 协议。
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | 在未设置 `EXPO_ACCESS_TOKEN` 时，移动推送发往的地址。 |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | 空 | 使用你的 Expo 项目令牌，把移动推送直接发送给 Expo。 |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | 空 | 用本服务器的 `EXPO_ACCESS_TOKEN`，为其他 OneUptime 服务器中继移动推送。为空时，仅在 `BILLING_ENABLED` 为 `true` 时开启。 |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | 空 | 浏览器订阅时使用的密钥对的公钥部分。 |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | 空 | 私钥部分，用于为每条 Web 推送签名。 |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | 浏览器推送服务可以联系到你的联系地址。 |
@@ -81,6 +82,8 @@ expo:
 | 移动应用或浏览器 → OneUptime | 你的 OneUptime 主机名 | HTTPS / TCP 443 | 登录、注册设备并打开通知链接。 |
 
 如果你更改了 `PUSH_NOTIFICATION_RELAY_URL`，请允许其目标主机名和配置的端口。自定义中继必须实现 OneUptime 的中继 API。这些默认值以及中继与直接投递之间的切换，定义在 [OneUptime 的配置](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) 和 [推送服务](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) 中。直接发给 Expo 的请求使用 [Expo 发送指南](https://docs.expo.dev/push-notifications/sending-notifications/) 中记录的端点。OneUptime 在同一地址把 `/send` 换成 `/receipts`，从中继读取投递回执。没有该路由的中继仍会投递推送；但这时，应用已被删除的设备只有在之后发往它的推送被拒绝时才会被发现。
+
+自托管的 OneUptime 服务器只有设置了 `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` 并拥有自己的 `EXPO_ACCESS_TOKEN`，才会为其他服务器中继推送；其他服务器在该地址返回 404。
 
 对于 Web Push，请允许你的团队所用浏览器的实际订阅端点主机。OneUptime 接受 `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com` 和 `push.apple.com`，包括它们的子域名。典型的例子有 `updates.push.services.mozilla.com` 和 `web.push.apple.com`。目标由 [浏览器的推送订阅](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) 提供；只允许 Expo 或 OneUptime 的中继并不能启用 Web Push。
 

@@ -44,6 +44,7 @@ Med den offisielle mobilappen og standardreléet trenger ikke serveren påloggin
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | Hvor mobile pusher går så lenge `EXPO_ACCESS_TOKEN` ikke er satt. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | Tom | Sender mobile pusher direkte til Expo, med tokenet til Expo-prosjektet ditt. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | Tom | Videresender mobile pusher for andre OneUptime-servere, med `EXPO_ACCESS_TOKEN` til denne serveren. Tom betyr av, med mindre `BILLING_ENABLED` er `true`. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | Tom | Den offentlige halvdelen av nøkkelparet som nettlesere abonnerer med. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | Tom | Den private halvdelen, som signerer hver Web Push. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | En kontaktadresse som push-tjenestene til nettleserne kan nå deg på. |
@@ -81,6 +82,8 @@ expo:
 | Mobilapp eller nettleser → OneUptime | Vertsnavnet ditt for OneUptime | HTTPS / TCP 443 | Logge på, registrere enheten og åpne varslingslenker. |
 
 Hvis du endrer `PUSH_NOTIFICATION_RELAY_URL`, tillater du vertsnavnet for målet og den konfigurerte porten. Et eget relé må implementere relé-API-et til OneUptime. Disse standardene og vekslingen mellom relé og direkte levering er definert i [konfigurasjonen til OneUptime](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) og [push-tjenesten](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts). Direkte forespørsler til Expo bruker endepunktet som er dokumentert i [sendeveiledningen til Expo](https://docs.expo.dev/push-notifications/sending-notifications/). OneUptime leser leveringskvitteringer fra reléet på den samme adressen, med `/receipts` i stedet for `/send`. Et relé uten den ruten leverer fortsatt pusher; en enhet der appen er fjernet, blir da først oppdaget når en senere push til den blir avvist.
+
+En selvhostet OneUptime-server videresender pusher for andre servere bare med `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` og sin egen `EXPO_ACCESS_TOKEN`; alle andre servere svarer 404 på den adressen.
 
 For Web Push tillater du de faktiske vertene for abonnementsendepunktene til nettleserne teamet ditt bruker. OneUptime godtar `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` og `push.apple.com`, inkludert underdomenene deres. Typiske eksempler er `updates.push.services.mozilla.com` og `web.push.apple.com`. [Nettleserens push-abonnement](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) gir målet; å tillate bare Expo eller reléet til OneUptime gjør ikke Web Push mulig.
 

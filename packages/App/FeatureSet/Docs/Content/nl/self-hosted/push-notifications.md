@@ -44,6 +44,7 @@ Met de officiële mobiele app en de standaardrelay heeft de server geen Expo-inl
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | Waar mobiele pushes heen gaan zolang `EXPO_ACCESS_TOKEN` niet is ingesteld. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | Leeg | Stuurt mobiele pushes rechtstreeks naar Expo, met het token van uw Expo-project. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | Leeg | Stuurt mobiele pushes van andere OneUptime-servers door, met het `EXPO_ACCESS_TOKEN` van deze server. Leeg betekent uit, tenzij `BILLING_ENABLED` `true` is. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | Leeg | De openbare helft van het sleutelpaar waarmee browsers zich abonneren. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | Leeg | De privéhelft, die elke Web Push ondertekent. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | Een contactadres waarop de pushdiensten van browsers u kunnen bereiken. |
@@ -81,6 +82,8 @@ expo:
 | Mobiele app of browser → OneUptime | Uw OneUptime-hostnaam | HTTPS / TCP 443 | Aanmelden, het apparaat registreren en meldingslinks openen. |
 
 Als u `PUSH_NOTIFICATION_RELAY_URL` wijzigt, sta dan de hostnaam van de bestemming en de ingestelde poort toe. Een eigen relay moet de relay-API van OneUptime implementeren. Deze standaardwaarden en de keuze tussen relay en rechtstreekse aflevering zijn vastgelegd in [de configuratie van OneUptime](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) en [de pushservice](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts). Rechtstreekse verzoeken aan Expo gebruiken het eindpunt dat in [de verzendhandleiding van Expo](https://docs.expo.dev/push-notifications/sending-notifications/) staat. OneUptime leest afleverbewijzen bij de relay op hetzelfde adres, met `/receipts` in plaats van `/send`. Een relay zonder die route levert pushes nog steeds af; een apparaat waarvan de app is verwijderd, valt dan pas op wanneer een latere push ernaar wordt geweigerd.
+
+Een zelf gehoste OneUptime-server stuurt pushes van andere servers alleen door met `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` en een eigen `EXPO_ACCESS_TOKEN`; elke andere server antwoordt op dat adres met 404.
 
 Sta voor Web Push de werkelijke hosts van de abonnementseindpunten toe voor de browsers die uw team gebruikt. OneUptime accepteert `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` en `push.apple.com`, inclusief hun subdomeinen. Typische voorbeelden zijn `updates.push.services.mozilla.com` en `web.push.apple.com`. Het [pushabonnement van de browser](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) levert de bestemming; alleen Expo of de relay van OneUptime toestaan maakt Web Push niet mogelijk.
 

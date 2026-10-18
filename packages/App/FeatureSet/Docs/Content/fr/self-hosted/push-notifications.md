@@ -44,6 +44,7 @@ Aucun identifiant Expo n'est nécessaire sur le serveur avec l'application mobil
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | Où vont les push mobiles tant que `EXPO_ACCESS_TOKEN` n'est pas défini. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | Vide | Envoie les push mobiles directement à Expo, avec le jeton de votre projet Expo. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | Vide | Relaie les push mobiles d'autres serveurs OneUptime, avec le `EXPO_ACCESS_TOKEN` de ce serveur. Vide signifie désactivé, sauf si `BILLING_ENABLED` vaut `true`. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | Vide | La moitié publique de la paire de clés avec laquelle les navigateurs s'abonnent. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | Vide | La moitié privée, qui signe chaque Web Push. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | Une adresse de contact à laquelle les services push des navigateurs peuvent vous joindre. |
@@ -81,6 +82,8 @@ expo:
 | Application mobile ou navigateur → OneUptime | Votre nom d'hôte OneUptime | HTTPS / TCP 443 | Se connecter, enregistrer l'appareil et ouvrir les liens des notifications. |
 
 Si vous modifiez `PUSH_NOTIFICATION_RELAY_URL`, autorisez son nom d'hôte de destination et le port configuré. Un relais personnalisé doit implémenter l'API de relais de OneUptime. Ces valeurs par défaut et le basculement entre relais et livraison directe sont définis dans [la configuration de OneUptime](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) et dans [le service push](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts). Les requêtes directes à Expo utilisent le point de terminaison documenté dans [le guide d'envoi d'Expo](https://docs.expo.dev/push-notifications/sending-notifications/). OneUptime lit les accusés de livraison auprès du relais à la même adresse, avec `/receipts` à la place de `/send`. Un relais sans cette route livre quand même les push ; un appareil dont l'application a été supprimée n'est alors repéré que lorsqu'un push ultérieur vers lui est refusé.
+
+Un serveur OneUptime auto-hébergé ne relaie les push d'autres serveurs qu'avec `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` et son propre `EXPO_ACCESS_TOKEN` ; tout autre serveur répond 404 à cette adresse.
 
 Pour le Web Push, autorisez les hôtes réels des points de terminaison d'abonnement des navigateurs qu'utilise votre équipe. OneUptime accepte `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` et `push.apple.com`, y compris leurs sous-domaines. Des exemples typiques sont `updates.push.services.mozilla.com` et `web.push.apple.com`. L'[abonnement push du navigateur](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) fournit la destination ; n'autoriser qu'Expo ou le relais de OneUptime ne permet pas le Web Push.
 

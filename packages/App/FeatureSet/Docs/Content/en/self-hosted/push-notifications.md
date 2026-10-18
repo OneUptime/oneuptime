@@ -44,6 +44,7 @@ No Expo credentials are required on the server when using the official mobile ap
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | Where mobile pushes go while `EXPO_ACCESS_TOKEN` is unset. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | Empty | Sends mobile pushes to Expo directly, with your Expo project's token. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | Empty | Relays mobile pushes for other OneUptime servers, with this server's `EXPO_ACCESS_TOKEN`. Empty means off, unless `BILLING_ENABLED` is `true`. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | Empty | The public half of the key pair browsers subscribe with. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | Empty | The private half, which signs every web push. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | A contact address the browser push services can reach you on. |
@@ -81,6 +82,8 @@ expo:
 | Mobile app or browser → OneUptime | Your OneUptime hostname | HTTPS / TCP 443 | Sign in, register the device and open notification links. |
 
 If you change `PUSH_NOTIFICATION_RELAY_URL`, allow its destination hostname and configured port. A custom relay must implement OneUptime's relay API. These defaults and the switch between relay and direct delivery are defined in [OneUptime's configuration](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) and [push service](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts). Direct Expo requests use the endpoint documented in [Expo's sending guide](https://docs.expo.dev/push-notifications/sending-notifications/). OneUptime reads delivery receipts from the relay at the same address with `/receipts` in place of `/send`. A relay without that route still delivers pushes; a device whose app was removed is then noticed only when a later push to it is refused.
+
+A self-hosted OneUptime server relays pushes for other servers only with `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` and its own `EXPO_ACCESS_TOKEN`; any other server answers 404 at that address.
 
 For web push, allow the actual subscription endpoint hosts for the browsers your team uses. OneUptime accepts `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` and `push.apple.com`, including their subdomains. Typical examples include `updates.push.services.mozilla.com` and `web.push.apple.com`. The [browser's push subscription](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) supplies the destination; allowing only Expo or OneUptime's relay does not enable web push.
 
