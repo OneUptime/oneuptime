@@ -126,6 +126,8 @@ const BARE_KEY_CALL: RegExp = /\bClusterKeyAuthorization\.getClusterKey\(/;
 
 // What carries the key in a request, as ClusterKeyAuthorization reads it.
 const REQUEST_PARTS: RegExp = /\breq\.(?:query|params|body)\b/;
+const REQUEST_BODY: RegExp = /\breq\.body\b/;
+const REQUEST_URL_PARTS: RegExp = /\breq\.(?:query|params)\b/;
 
 // The code of a file, its comments removed by TypeScript's own printer.
 function codeOf(relativePath: string): string {
@@ -351,7 +353,7 @@ describe("a presented cluster key is read in one place", () => {
     // A body is read in one method, which one middleware alone calls.
     const readsABody: Array<string> = Object.keys(methods).filter(
       (name: string): boolean => {
-        return /\breq\.body\b/.test(methods[name]!);
+        return REQUEST_BODY.test(methods[name]!);
       },
     );
 
@@ -377,7 +379,7 @@ describe("a presented cluster key is read in one place", () => {
     expect(authorize.slice(0, urlCheck)).not.toContain("next(");
     expect(
       Object.keys(methods).filter((name: string): boolean => {
-        return /\breq\.(?:query|params)\b/.test(methods[name]!);
+        return REQUEST_URL_PARTS.test(methods[name]!);
       }),
     ).toEqual(["carriesClusterKeyInUrl"]);
   });

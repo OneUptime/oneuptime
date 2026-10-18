@@ -21,6 +21,7 @@
 import { JSONObject } from "Common/Types/JSON";
 import { createServer, IncomingMessage, Server, ServerResponse } from "http";
 import { AddressInfo } from "net";
+import util from "util";
 
 jest.mock("Common/Types/Sleep", () => {
   return {
@@ -175,7 +176,7 @@ beforeEach(() => {
               return typeof arg === "string"
                 ? arg
                 : // The deepest print a console or log shipper could make.
-                  require("util").inspect(arg, { depth: null });
+                  util.inspect(arg, { depth: null });
             })
             .join(" "),
         );

@@ -518,9 +518,7 @@ describe("the cluster key OneUptime's services present", () => {
 
       expect(output).not.toContain(value);
       expect(output).toContain("/api/notification/email/send");
-      expect(JSON.parse(output).config.headers.Accept).toBe(
-        "application/json",
-      );
+      expect(JSON.parse(output).config.headers.Accept).toBe("application/json");
     }
   });
 

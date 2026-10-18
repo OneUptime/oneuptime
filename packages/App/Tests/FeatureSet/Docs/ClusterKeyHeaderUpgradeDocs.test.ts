@@ -117,10 +117,7 @@ function codeFiles(relativeDirectory: string): Array<string> {
 
 // The path a removed route was served at, as a router would write it.
 function servedPath(written: string): string {
-  return written
-    .replace("GET ", "")
-    .replace(".../", "/")
-    .replace("/...", "/");
+  return written.replace("GET ", "").replace(".../", "/").replace("/...", "/");
 }
 
 /*

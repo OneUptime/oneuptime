@@ -90,12 +90,20 @@ export interface ClusterKeyRouteCaller {
 
 export const CLUSTER_KEY_ROUTE_CALLERS: Array<ClusterKeyRouteCaller> = [
   {
-    route: { file: `${NOTIFICATION_API}/Call.ts`, method: "POST", path: '"/make-call"' },
+    route: {
+      file: `${NOTIFICATION_API}/Call.ts`,
+      method: "POST",
+      path: '"/make-call"',
+    },
     caller: "packages/Common/Server/Services/CallService.ts",
     calls: '"/api/notification/call/make-call"',
   },
   {
-    route: { file: `${NOTIFICATION_API}/Mail.ts`, method: "POST", path: '"/send"' },
+    route: {
+      file: `${NOTIFICATION_API}/Mail.ts`,
+      method: "POST",
+      path: '"/send"',
+    },
     caller: "packages/Common/Server/Services/MailService.ts",
     calls: '"/api/notification/email/send"',
   },
@@ -109,22 +117,38 @@ export const CLUSTER_KEY_ROUTE_CALLERS: Array<ClusterKeyRouteCaller> = [
     calls: '"/api/notification/phone-number/internal/release"',
   },
   {
-    route: { file: `${NOTIFICATION_API}/SMS.ts`, method: "POST", path: '"/send"' },
+    route: {
+      file: `${NOTIFICATION_API}/SMS.ts`,
+      method: "POST",
+      path: '"/send"',
+    },
     caller: "packages/Common/Server/Services/SmsService.ts",
     calls: '"/api/notification/sms/send"',
   },
   {
-    route: { file: `${NOTIFICATION_API}/Telegram.ts`, method: "POST", path: '"/send"' },
+    route: {
+      file: `${NOTIFICATION_API}/Telegram.ts`,
+      method: "POST",
+      path: '"/send"',
+    },
     caller: "packages/Common/Server/Services/TelegramService.ts",
     calls: '"/api/notification/telegram/send"',
   },
   {
-    route: { file: `${NOTIFICATION_API}/Webhook.ts`, method: "POST", path: '"/send"' },
+    route: {
+      file: `${NOTIFICATION_API}/Webhook.ts`,
+      method: "POST",
+      path: '"/send"',
+    },
     caller: "packages/Common/Server/Services/WebhookService.ts",
     calls: '"/api/notification/webhook/send"',
   },
   {
-    route: { file: `${NOTIFICATION_API}/WhatsApp.ts`, method: "POST", path: '"/send"' },
+    route: {
+      file: `${NOTIFICATION_API}/WhatsApp.ts`,
+      method: "POST",
+      path: '"/send"',
+    },
     caller: "packages/Common/Server/Services/WhatsAppService.ts",
     calls: '"/api/notification/whatsapp/send"',
   },

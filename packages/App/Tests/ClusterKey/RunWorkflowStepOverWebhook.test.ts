@@ -107,9 +107,7 @@ async function startWorkflowService(): Promise<WorkflowService> {
 
   try {
     jest.isolateModules(() => {
-      const Express: AnyModule = require_(
-        "Common/Server/Utils/Express",
-      );
+      const Express: AnyModule = require_("Common/Server/Utils/Express");
       const WorkflowServiceModule: AnyModule = require_(
         "Common/Server/Services/WorkflowService",
       ).default;
@@ -251,9 +249,8 @@ describe("a security playbook's Run Workflow step", () => {
   test("starts the workflow through its Webhook trigger, with the case as the body", async () => {
     const before: number = service.runs.length;
 
-    const outcome: AnyModule = await service.SecurityPlaybookActions.execute(
-      runWorkflowStep(),
-    );
+    const outcome: AnyModule =
+      await service.SecurityPlaybookActions.execute(runWorkflowStep());
 
     expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
     expect(service.runs.length).toBe(before + 1);

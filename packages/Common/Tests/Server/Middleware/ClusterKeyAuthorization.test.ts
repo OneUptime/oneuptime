@@ -104,7 +104,8 @@ function loadInstallation(
         require("../../../Server/Utils/TokenSigningKey").default;
       const middlewareModule: JSONObject = require("../../../Server/Middleware/ClusterKeyAuthorization");
       const config: Installation["config"] = require("../../../Server/EnvironmentConfig");
-      const logger: JSONObject = require("../../../Server/Utils/Logger").default;
+      const logger: JSONObject =
+        require("../../../Server/Utils/Logger").default;
       /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
       if (options.installationKey) {

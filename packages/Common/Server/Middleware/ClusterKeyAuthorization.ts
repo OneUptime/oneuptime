@@ -326,8 +326,7 @@ export default class ClusterKeyAuthorization {
         inHeader !== undefined
           ? inHeader
           : ClusterKeyAuthorization.getOlderRunnerClusterKey(req),
-      presentedFrom:
-        inHeader !== undefined ? "header" : "older Runner body",
+      presentedFrom: inHeader !== undefined ? "header" : "older Runner body",
     });
   }
 
