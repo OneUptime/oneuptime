@@ -846,9 +846,11 @@ cost a review round.
   them on 2026-10-18: AWS's product description (a draft lists a placeholder
   version), and what Partner Center answers: it spells `externalId` and
   `jobId`, and answers 400 ("has no published submission"), not 404, for a
-  target the offer was never published to. Not yet: AWS's version change set,
-  and Microsoft's configure request and `azure.bundleRepository`, until their
-  first real run.
+  target the offer was never published to. And `cpa` 1.3.59 reads the ARM
+  template from `clusterArmTemplate`, as Microsoft's samples spell it (the
+  docs' table says `clusterARMTemplate`, which it rejects as missing). Not
+  yet: AWS's version change set, and Microsoft's configure request and
+  `azure.bundleRepository`, until their first real run.
 - `mpdev verify` does not run in the workflow (it needs a GKE cluster); run it
   by hand before submitting a Google version when it matters.
 - Microsoft and Google editions install on `linux/amd64` nodes only.
@@ -871,6 +873,7 @@ rejection, go-live and price change.
 | 2026-10-18 | Microsoft   | Registry `oneuptimemarketplace` (Basic, daily purge); the release app is a Partner Center Manager   | Agent      |
 | 2026-10-18 | Google      | Artifact Registry `oneuptime` (us, keeps 3 releases), the release service account and Workload ID   | Agent      |
 | 2026-10-18 | GitHub      | Release environments (reviewers simlarsen, nawazdhandala) and variables; releases not enabled yet   | Agent      |
+| 2026-10-18 | Microsoft   | First real run: cpa 1.3.59 wants `clusterArmTemplate`, not the docs' `clusterARMTemplate`; fixed    | Agent      |
 
 ## Notes for agents driving the browser
 

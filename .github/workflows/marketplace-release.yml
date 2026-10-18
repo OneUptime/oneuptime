@@ -409,7 +409,7 @@ jobs:
           fi
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "${HOME}/.docker:/root/.docker" \
             -v "${HOME}/.azure:/root/.azure" -v "${OUT}:/data" -w /data --entrypoint /bin/bash \
-            mcr.microsoft.com/container-package-app:latest -c "cpa verify && cpa buildbundle"
+            mcr.microsoft.com/container-package-app:latest -c "cpa verify --telemetryOptOut && cpa buildbundle --telemetryOptOut"
       - name: The bundle's digest
         id: bundle
         if: steps.shipped.outputs.shipped == 'false'
