@@ -99,6 +99,7 @@ const templates: Array<WorkflowTemplate> = getWorkflowTemplates();
 const SPLIT_CATEGORIES: Array<WorkflowTemplateCategory> = [
   WorkflowTemplateCategory.Jira,
   WorkflowTemplateCategory.Dynamics365,
+  WorkflowTemplateCategory.Zabbix,
 ];
 
 /*
@@ -503,7 +504,7 @@ describe("workflow templates", () => {
           "variables",
           "workflowDescription",
           "workflowName",
-          // Only the Jira and Dynamics 365 templates are split into parts.
+          // Only the Jira, Dynamics 365 and Zabbix templates are split into parts.
           ...(SPLIT_CATEGORIES.includes(template.category)
             ? ["subcategory"]
             : []),
@@ -708,7 +709,7 @@ describe("the Jira templates' parts", () => {
     WorkflowTemplateCategory.Jira,
   );
 
-  test("every Jira and Dynamics 365 template is filed under Incidents or Alerts, and no other template has a part", () => {
+  test("every Jira, Dynamics 365 and Zabbix template is filed under Incidents or Alerts, and no other template has a part", () => {
     for (const template of templates) {
       if (SPLIT_CATEGORIES.includes(template.category)) {
         expect(["Incidents", "Alerts"]).toContain(template.subcategory);
@@ -724,6 +725,25 @@ describe("the Jira templates' parts", () => {
         return template.subcategory || "";
       }),
     ).toEqual([...Array(9).fill("Incidents"), ...Array(8).fill("Alerts")]);
+  });
+
+  test("Zabbix's six: three for incidents, then the same three for alerts, as the Zabbix guide lists them", () => {
+    const zabbix: Array<WorkflowTemplate> = getWorkflowTemplatesByCategory(
+      WorkflowTemplateCategory.Zabbix,
+    );
+
+    expect(
+      zabbix.map((template: WorkflowTemplate): string => {
+        return `${template.subcategory} ${template.id}`;
+      }),
+    ).toEqual([
+      "Incidents zabbix-declare-incident-from-problem",
+      "Incidents zabbix-update-problem-on-incident-state",
+      "Incidents zabbix-message-from-incident-private-note",
+      "Alerts zabbix-create-alert-from-problem",
+      "Alerts zabbix-update-problem-on-alert-state",
+      "Alerts zabbix-message-from-alert-private-note",
+    ]);
   });
 
   test("a template's part is the record it works on", () => {

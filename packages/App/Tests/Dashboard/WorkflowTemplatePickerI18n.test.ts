@@ -172,6 +172,8 @@ const NEW_STRINGS: Array<string> = [
   "Jira",
   "Dynamics 365",
   "Integrations",
+  // The Zabbix category, which came later.
+  "Zabbix",
 ];
 
 /*
@@ -202,6 +204,7 @@ const IDENTICAL_TO_ENGLISH: Record<string, Array<string>> = {
   // Product names.
   Jira: NON_ENGLISH_LANGUAGES,
   "Dynamics 365": NON_ENGLISH_LANGUAGES,
+  Zabbix: NON_ENGLISH_LANGUAGES,
   /*
    * The word these languages' workflow docs and tools already use for it.
    * Not German: its Dashboard calls a trigger "Auslöser" on the builder's
@@ -518,6 +521,23 @@ describe("Create a workflow's strings", () => {
       ).description;
 
       expect(locale[line]).toEqual(expect.stringContaining("Dynamics 365"));
+
+      if (file !== "en.json") {
+        expect(locale[line]).not.toBe(line);
+      }
+    },
+  );
+
+  test.each(LOCALE_FILES)(
+    "%s carries the Zabbix category's line, naming the product",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+      const line: string = getWorkflowTemplateCategoryInfo(
+        WorkflowTemplateCategory.Zabbix,
+      ).description;
+
+      expect(locale["Zabbix"]).toBe("Zabbix");
+      expect(locale[line]).toEqual(expect.stringContaining("Zabbix"));
 
       if (file !== "en.json") {
         expect(locale[line]).not.toBe(line);

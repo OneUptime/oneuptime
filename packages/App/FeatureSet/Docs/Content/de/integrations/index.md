@@ -28,7 +28,7 @@ Eine Zwei-Wege-Integration wie Jira oder Dynamics 365 nutzt beide Richtungen: Ei
 | Weg | Am besten für | Beispiele |
 | --- | --- | --- |
 | Eine eingebaute Verbindung | Werkzeuge, mit denen sich OneUptime selbst verbindet. Sie füllen ein Formular aus, und es gibt nichts zu bauen. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), die Verbindungen der [Sicherheitsereignisse](/docs/telemetry/security-events) |
-| Eine Workflow-Vorlage | Ticketwerkzeuge, in beide Richtungen abgeglichen, Sicherheitsvorfallsmeldungen und Chatnachrichten. Sie wählen eine Vorlage und füllen ein paar Einstellungen aus. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
+| Eine Workflow-Vorlage | Ticketwerkzeuge, in beide Richtungen abgeglichen, Monitoring-Probleme, Sicherheitsvorfallsmeldungen und Chatnachrichten. Sie wählen eine Vorlage und füllen ein paar Einstellungen aus. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
 | Ein Monitor für eingehende Anfragen | Alarmierungswerkzeuge, die einen Webhook senden. Sie bekommen einen Vorfall pro Alarm, an die Bereitschaft gemeldet und behoben, wenn sich der Alarm erholt, ganz ohne Workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Ein Workflow, den Sie bauen | Jedes Werkzeug mit einem Webhook oder einer REST-API, und jede eigene Logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 
 | Werkzeug | Richtung | Was es tut |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | Eingehend | Macht aus Zabbix-Problemen Vorfälle und behebt sie, wenn sich Zabbix erholt. |
+| [Zabbix](/docs/integrations/zabbix) | Beide | Macht aus Zabbix-Problemen Vorfälle oder Warnungen, behebt sie bei der Erholung und bestätigt oder schließt die Probleme aus OneUptime heraus. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Eingehend | Macht aus Alertmanager-Benachrichtigungen Vorfälle. |
 | [Grafana](/docs/integrations/grafana) | Eingehend | Macht aus Grafana-Alarmen Vorfälle. |
 | [Datadog](/docs/integrations/datadog) | Eingehend | Macht aus Datadog-Monitoralarmen Vorfälle. |

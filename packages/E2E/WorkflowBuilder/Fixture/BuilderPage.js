@@ -9,6 +9,9 @@
  *                         "Choose what starts this workflow" card
  *   &graph=trigger        a Manual trigger connected to a Log step
  *   &graph=deleted        a Log step whose trigger was deleted
+ *   &template=<id>        the graph a workflow template builds, as Create
+ *                         Workflow saves it: the Builder opens on it right
+ *                         after the dialog closes
  *   &enabled=1            a workflow that is on
  *   &column=430           the width, in pixels, of the column the page is
  *                         drawn in: 430 is the Builder's column on a tablet,
@@ -26,6 +29,7 @@ import Permission from "Common/Types/Permission";
 import { ComponentType, NodeType } from "Common/Types/Workflow/Component";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import { buildGraphForTemplate } from "Common/Types/Workflow/Templates";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
@@ -65,6 +69,22 @@ function savedStep(metadataId, componentType, y, args) {
 
 function savedGraph() {
   const graph = params.get("graph");
+  const templateId = params.get("template");
+
+  if (templateId) {
+    let counter = 0;
+
+    const built = buildGraphForTemplate(templateId, () => {
+      counter++;
+      return `template-${counter}`;
+    });
+
+    if (!built) {
+      throw new Error(`No workflow template ${templateId}`);
+    }
+
+    return built;
+  }
   const log = savedStep("log", ComponentType.Component, 320, {
     value: "Deployment finished",
   });
