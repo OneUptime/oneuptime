@@ -84,7 +84,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | 대시보드, API, 텔레메트리 수집, Let's Encrypt 검증. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | OneUptime이 인증서를 관리할 때 인스턴스의 HTTPS, 그리고 사용자 지정 도메인의 상태 페이지와 대시보드. |
-| 5400 | `postgres` | `docker-compose.yml`에서 설정 | `npm run backup`이 PostgreSQL에 접근하게 합니다. 인터넷에는 닫아 두세요. |
+| 5400 | `postgres` | `docker-compose.yml`에서 설정 | `npm run backup`과 `restore.sh`가 서버 자체에서 PostgreSQL에 접근하게 합니다. `127.0.0.1`에만 게시됩니다. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 프로브 자체의 서버. 서버 바깥에서는 필요하지 않습니다. |
 | 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Runner 자체의 서버. 서버 바깥에서는 필요하지 않습니다. |
 
@@ -141,7 +141,7 @@ grep -c "please-change-this" config.env
 | `ONEUPTIME_RUNNER_KEY` | 함께 제공되는 Runner. |
 
 > [!IMPORTANT]
-> 비밀 값은 처음 시작하기 전에 설정하고, 그 뒤로는 유지하세요. PostgreSQL은 데이터베이스를 만들 때만 비밀번호를 받으며, 나중에 `ENCRYPTION_SECRET`을 바꾸면 이전 값으로 암호화된 모든 값을 읽을 수 없게 됩니다.
+> 비밀 값은 처음 시작하기 전에 설정하고, 그 뒤로는 유지하세요. PostgreSQL은 데이터베이스를 만들 때만 비밀번호를 받으며, 나중에 `ENCRYPTION_SECRET`을 바꾸면 이전 값으로 암호화된 모든 값을 읽을 수 없게 됩니다. 처음 시작할 때 `DATABASE_PASSWORD`가 아직 자리 표시자라면, PostgreSQL이 데이터베이스를 만들기 전에 `npm start`가 임의의 값을 넣습니다.
 
 ### OneUptime 시작
 
@@ -320,15 +320,28 @@ Docker Compose는 서버 한 대에서 각 서비스를 하나씩 실행하므�
 
 | 영역 | 할 일 |
 | --- | --- |
-| **비밀 값** | `config.env`의 어떤 값도 `please-change-this-to-random-value` 자리 표시자로 남아 있지 않습니다. [임의의 비밀 값 생성](#임의의-비밀-값-생성)을 참고하세요. |
+| **비밀 값** | `config.env`의 어떤 값도 `please-change-this-to-random-value` 자리 표시자로 남아 있지 않습니다. [임의의 비밀 값 생성](#임의의-비밀-값-생성)을 참고하세요. 자리 표시자 `DATABASE_PASSWORD`로 시작한 설치는 [데이터베이스 비밀번호 바꾸기](#데이터베이스-비밀번호-바꾸기)를 참고하세요. |
 | **HTTPS** | 사람들이 HTTPS로 OneUptime에 접근하고 `HTTP_PROTOCOL=https`가 설정되어 있습니다. [HTTPS 설정](#https-설정)을 참고하세요. |
 | **가입** | 팀의 계정이 갖춰지면 Admin Dashboard의 **설정 > 인증**에서 **가입 허용**을 끕니다. |
-| **방화벽** | 인터넷에는 포트 80과 443(그리고 SSH)만 열려 있습니다. PostgreSQL은 백업을 위해 포트 5400으로 게시되어 있습니다. `ufw` 규칙은 Docker가 게시하는 포트에 적용되지 않으므로 클라우드 공급자의 방화벽으로 닫으세요. |
+| **방화벽** | 인터넷에는 포트 80과 443(그리고 SSH)만 열려 있습니다. OneUptime은 PostgreSQL의 포트 5400을 `127.0.0.1`에만 게시합니다. 직접 게시하는 다른 포트는 클라우드 공급자의 방화벽으로 닫으세요. `ufw` 규칙은 Docker가 게시하는 포트에 적용되지 않습니다. |
 | **백업** | PostgreSQL을 매일 백업하고 사본을 서버 밖으로 옮깁니다. [백업과 복원](#백업과-복원)을 참고하세요. |
 | **이메일** | OneUptime이 초대와 알림을 보낼 수 있도록 Admin Dashboard의 **설정 > 알림 > 이메일**에 메일 서버가 설정되어 있습니다. [SMTP](/docs/emails/smtp)를 참고하세요. |
 | **디스크** | 여유 공간을 지켜봅니다. ClickHouse는 보관하는 텔레메트리에 따라 커집니다([사이징 및 용량 계획](/docs/installation/sizing) 참고). 각 컨테이너의 로그는 최대 1000 MB로 제한됩니다. |
 | **업데이트** | OneUptime을 적어도 일주일에 한 번 업데이트합니다. 릴리스는 자주 나옵니다. [OneUptime 업데이트](#oneuptime-업데이트)를 참고하세요. |
 | **고가용성** | 필요하다면 Kubernetes의 [Helm 차트](https://artifacthub.io/packages/helm/oneuptime/oneuptime)로 옮기세요. |
+
+### 데이터베이스 비밀번호 바꾸기
+
+PostgreSQL은 처음 만들어질 때의 비밀번호를 그대로 유지하므로, `config.env`의 `DATABASE_PASSWORD`만 바꾸면 OneUptime이 자신의 데이터베이스에 접속하지 못합니다. 자리 표시자로 시작한 설치에 고유한 비밀번호를 주려면 PostgreSQL과 `config.env`에서 함께 바꾼 다음 OneUptime을 다시 시작하세요.
+
+```bash
+NEW_PASSWORD=$(openssl rand -hex 32)
+(export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'")
+sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+npm start
+```
+
+`DATABASE_BACKUP_PASSWORD`와 `DATABASE_RESTORE_PASSWORD`를 설정했다면 여기에도 새 값을 넣으세요.
 
 ## 백업과 복원
 
@@ -350,6 +363,25 @@ sudo 비밀번호를 묻고 `Backups/db-<day of the month>.backup`을 기록하�
 ### 백업을 서버 밖으로 복사
 
 데이터베이스와 같은 디스크에 있는 백업은 그 디스크를 잃으면 함께 사라집니다.
+:::
+
+서버 자신만 PostgreSQL에 접근할 수 있으며, PostgreSQL은 `127.0.0.1`의 포트 5400에서 응답합니다. 다른 컴퓨터에서 백업하려면 그 컴퓨터에서 SSH 터널을 연 다음, 그 컴퓨터 자신의 포트 5400에 연결하세요.
+
+```bash
+ssh -N -L 5400:127.0.0.1:5400 you@oneuptime.example.com
+```
+
+:::details PostgreSQL을 사설 네트워크 주소에 게시하기
+사설 네트워크의 도구가 터널 없이 PostgreSQL에 접근해야 한다면, 그 네트워크에서 서버가 쓰는 주소에도 게시하세요. `docker-compose.yml` 옆에 `docker-compose.override.yml`을 만드세요. `npm start`와 `npm run update`가 이 파일을 읽습니다.
+
+```yaml title="docker-compose.override.yml"
+services:
+  postgres:
+    ports:
+      - "10.0.0.5:5400:5432"
+```
+
+`10.0.0.5` 자리에는 서버 자신의 사설 주소를 넣고, 공인 주소는 절대 쓰지 마세요. 그리고 먼저 PostgreSQL에 고유한 비밀번호를 주세요([데이터베이스 비밀번호 바꾸기](#데이터베이스-비밀번호-바꾸기) 참고). 그런 다음 `npm start`를 실행하세요.
 :::
 
 ClickHouse는 텔레메트리를 Docker 볼륨 `oneuptime_clickhouse`에 보관하며, 이를 백업하는 스크립트는 없습니다. 그 텔레메트리를 남겨야 한다면 [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) 같은 ClickHouse 도구로 볼륨을 백업하거나, OneUptime을 멈춘 상태에서 복사하세요.

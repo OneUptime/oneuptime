@@ -84,7 +84,7 @@ Ti servono anche:
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | La dashboard, l'API, l'ingestione della telemetria e la validazione di Let's Encrypt. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS per la tua istanza quando OneUptime gestisce il certificato, e per le pagine di stato e le dashboard su domini personalizzati. |
-| 5400 | `postgres` | Impostata in `docker-compose.yml` | Permette a `npm run backup` di raggiungere PostgreSQL. Tienila chiusa verso Internet. |
+| 5400 | `postgres` | Impostata in `docker-compose.yml` | Permette a `npm run backup` e a `restore.sh` di raggiungere PostgreSQL dal server stesso. È pubblicata solo su `127.0.0.1`. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Il server proprio della sonda. Niente fuori dal server ne ha bisogno. |
 | 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Il server proprio del Runner. Niente fuori dal server ne ha bisogno. |
 
@@ -141,7 +141,7 @@ L'ultimo comando stampa `0`: non è rimasto alcun segnaposto. Il ciclo usa GNU `
 | `ONEUPTIME_RUNNER_KEY` | Il Runner incluso. |
 
 > [!IMPORTANT]
-> Imposta i secret prima del primo avvio e poi non cambiarli. PostgreSQL prende la sua password solo quando crea il database, e cambiare `ENCRYPTION_SECRET` in seguito rende illeggibile ogni valore cifrato con quello vecchio.
+> Imposta i secret prima del primo avvio e poi non cambiarli. PostgreSQL prende la sua password solo quando crea il database, e cambiare `ENCRYPTION_SECRET` in seguito rende illeggibile ogni valore cifrato con quello vecchio. Se al primo avvio `DATABASE_PASSWORD` è ancora il segnaposto, `npm start` le dà un valore casuale prima che PostgreSQL crei il suo database.
 
 ### Avvia OneUptime
 
@@ -320,15 +320,28 @@ Docker Compose esegue una sola copia di ogni servizio su un unico server, il che
 
 | Ambito | Cosa fare |
 | --- | --- |
-| **Secret** | Nessun valore in `config.env` è ancora un segnaposto `please-change-this-to-random-value`. Vedi [Genera secret casuali](#genera-secret-casuali). |
+| **Secret** | Nessun valore in `config.env` è ancora un segnaposto `please-change-this-to-random-value`. Vedi [Genera secret casuali](#genera-secret-casuali), e [Cambia la password del database](#cambia-la-password-del-database) per un'installazione avviata con il segnaposto in `DATABASE_PASSWORD`. |
 | **HTTPS** | OneUptime si raggiunge in HTTPS e `HTTP_PROTOCOL=https` è impostato. Vedi [Configurare HTTPS](#configurare-https). |
 | **Registrazioni** | Quando il tuo team ha i suoi account, disattiva **Consenti la registrazione** in **Impostazioni > Autenticazione** nell'Admin Dashboard. |
-| **Firewall** | Solo le porte 80 e 443 (e SSH) sono aperte verso Internet. PostgreSQL è pubblicato sulla porta 5400 per i backup: chiudila con il firewall del tuo provider cloud, perché le regole di `ufw` non si applicano alle porte che Docker pubblica. |
+| **Firewall** | Solo le porte 80 e 443 (e SSH) sono aperte verso Internet. OneUptime pubblica la porta 5400 di PostgreSQL solo su `127.0.0.1`. Chiudi ogni altra porta che pubblichi con il firewall del tuo provider cloud: le regole di `ufw` non si applicano alle porte che Docker pubblica. |
 | **Backup** | PostgreSQL viene salvato ogni giorno e le copie lasciano il server. Vedi [Backup e ripristino](#backup-e-ripristino). |
 | **E-mail** | Un server di posta è configurato in **Impostazioni > Notifiche > E-mail** nell'Admin Dashboard, così OneUptime può inviare inviti e notifiche. Vedi [SMTP](/docs/emails/smtp). |
 | **Disco** | Lo spazio libero è tenuto d'occhio. ClickHouse cresce con la telemetria che conservi (vedi [Dimensionamento e pianificazione della capacità](/docs/installation/sizing)); il log di ogni container è limitato a 1000 MB. |
 | **Aggiornamenti** | OneUptime viene aggiornato almeno una volta alla settimana. Le release escono spesso. Vedi [Aggiornare OneUptime](#aggiornare-oneuptime). |
 | **Alta disponibilità** | Se ti serve, passa al [chart Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime) su Kubernetes. |
+
+### Cambia la password del database
+
+PostgreSQL mantiene la password con cui è stato creato, quindi cambiare solo `DATABASE_PASSWORD` in `config.env` lascia OneUptime fuori dal suo database. Per dare una password propria a un'installazione avviata con il segnaposto, cambiala in PostgreSQL e in `config.env` insieme, poi avvia di nuovo OneUptime:
+
+```bash
+NEW_PASSWORD=$(openssl rand -hex 32)
+(export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'")
+sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+npm start
+```
+
+Se hai impostato `DATABASE_BACKUP_PASSWORD` e `DATABASE_RESTORE_PASSWORD`, dai anche a loro il nuovo valore.
 
 ## Backup e ripristino
 
@@ -350,6 +363,25 @@ Chiede la tua password di sudo e scrive `Backups/db-<day of the month>.backup`, 
 ### Copia i backup fuori dal server
 
 Un backup sullo stesso disco del database non sopravvive alla perdita di quel disco.
+:::
+
+Solo il server stesso raggiunge PostgreSQL: risponde sulla porta 5400 di `127.0.0.1`. Per farne il backup da un'altra macchina, apri un tunnel SSH da quella macchina, poi connettiti alla sua porta 5400:
+
+```bash
+ssh -N -L 5400:127.0.0.1:5400 you@oneuptime.example.com
+```
+
+:::details Pubblica PostgreSQL su un indirizzo di una rete privata
+Se uno strumento della tua rete privata deve raggiungere PostgreSQL senza tunnel, pubblicalo anche sull'indirizzo del server in quella rete. Crea `docker-compose.override.yml` accanto a `docker-compose.yml`; `npm start` e `npm run update` lo leggono:
+
+```yaml title="docker-compose.override.yml"
+services:
+  postgres:
+    ports:
+      - "10.0.0.5:5400:5432"
+```
+
+Metti l'indirizzo privato del server stesso al posto di `10.0.0.5`, mai uno pubblico, e prima dai a PostgreSQL una password propria (vedi [Cambia la password del database](#cambia-la-password-del-database)). Poi esegui `npm start`.
 :::
 
 ClickHouse conserva la tua telemetria nel volume Docker `oneuptime_clickhouse`, e nessuno script ne fa il backup. Se devi conservare quella telemetria, fai il backup del volume con uno strumento per ClickHouse come [clickhouse-backup](https://github.com/Altinity/clickhouse-backup), oppure copialo mentre OneUptime è fermo.
