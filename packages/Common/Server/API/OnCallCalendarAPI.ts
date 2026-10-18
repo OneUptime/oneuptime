@@ -7,6 +7,7 @@ import OnCallDutyPolicyScheduleCalendarFeedService from "../Services/OnCallDutyP
 import OnCallDutyPolicyScheduleService from "../Services/OnCallDutyPolicyScheduleService";
 import ProjectOnCallCalendarFeedService from "../Services/ProjectOnCallCalendarFeedService";
 import UserOnCallCalendarFeedService from "../Services/UserOnCallCalendarFeedService";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -42,6 +43,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import ExceptionCode from "../../Types/Exception/ExceptionCode";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import { JSONObject } from "../../Types/JSON";
@@ -1696,6 +1698,44 @@ router.get(
 );
 
 /*
+ * A SCHEDULE'S LINK IS CHANGED ONLY BY SOMEONE WHO MAY CHANGE IT. The update
+ * that stands for the change (publishing a link again, or rotating it) is
+ * made with the caller's props, so it is narrowed to the feeds they may
+ * change: the labels and the owners of the schedule. Someone who may read
+ * the schedule but not change its link - a grant limited to labels it does
+ * not carry, or scoped to Owned on a schedule another team owns - changes
+ * nothing, and is told so before anything else happens: the root rotation
+ * that follows would otherwise go ahead whatever the update reached. A link
+ * gone meanwhile (its schedule deleted) is answered as missing, as every
+ * write by id answers it (DatabaseService.getUnwrittenByIdError).
+ */
+export const SCHEDULE_FEED_CHANGE_REFUSAL: string =
+  "You do not have permission to change the shared link of this on-call schedule.";
+
+async function assertScheduleFeedChanged(data: {
+  changed: number;
+  feedId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}): Promise<void> {
+  if (data.changed) {
+    return;
+  }
+
+  const refusal: Exception =
+    await OnCallDutyPolicyScheduleCalendarFeedService.getUnwrittenByIdError({
+      id: data.feedId,
+      props: data.props,
+      type: DatabaseRequestType.Update,
+    });
+
+  if (refusal instanceof NotFoundException) {
+    throw new NotFoundException("Calendar feed not found.");
+  }
+
+  throw new NotAuthorizedException(SCHEDULE_FEED_CHANGE_REFUSAL);
+}
+
+/*
  * Publish = a NON-root create with the caller's props, so DatabaseService
  * runs the schedule's Create permission check and the service hook mints the
  * token (anything the request carried is discarded). A feed that already
@@ -1725,9 +1765,14 @@ router.post(
         await findScheduleFeedAsCaller({ scheduleId, projectId, props });
 
       if (existing && existing.id) {
-        await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
-          query: { _id: existing.id, projectId },
-          data: { isEnabled: true },
+        await assertScheduleFeedChanged({
+          changed:
+            await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
+              query: { _id: existing.id, projectId },
+              data: { isEnabled: true },
+              props,
+            }),
+          feedId: existing.id,
           props,
         });
       } else {
@@ -1823,9 +1868,13 @@ router.post(
         );
       }
 
-      await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
-        query: { _id: existing.id, projectId },
-        data: { isEnabled: existing.isEnabled !== false },
+      await assertScheduleFeedChanged({
+        changed: await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
+          query: { _id: existing.id, projectId },
+          data: { isEnabled: existing.isEnabled !== false },
+          props,
+        }),
+        feedId: existing.id,
         props,
       });
 

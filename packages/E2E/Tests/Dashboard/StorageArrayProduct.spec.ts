@@ -223,11 +223,21 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
       await expect(page.getByText(templateName, { exact: true })).toBeVisible();
     }
 
-    // Selecting a template auto-configures the monitor step.
+    // Selecting a template sets the monitor step up.
     await page
       .getByText("Critical Array Alert (FlashArray)", { exact: true })
       .click();
-    await expect(page.getByText("Template Configuration")).toBeVisible();
+    /*
+     * The list folds into the picked template, with its Time Range under it.
+     * The pick sets the monitor's platform to FlashArray, whose own list
+     * names the template without "(FlashArray)".
+     */
+    await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
+      "Critical Array Alert",
+    );
+    await expect(
+      page.getByTestId("alert-template-configuration"),
+    ).toBeVisible();
   });
 
   /*

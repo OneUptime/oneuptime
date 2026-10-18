@@ -173,9 +173,15 @@ test.describe.skip("Ceph Product Onboarding", () => {
       await expect(page.getByText(templateName, { exact: true })).toBeVisible();
     }
 
-    // Selecting a template auto-configures the monitor step.
+    // Selecting a template sets the monitor step up.
     await page.getByText("OSD Down", { exact: true }).click();
-    await expect(page.getByText("Template Configuration")).toBeVisible();
+    // The list folds into the picked template, with its Time Range under it.
+    await expect(page.getByTestId("alert-template-picked")).toContainText(
+      "OSD Down",
+    );
+    await expect(
+      page.getByTestId("alert-template-configuration"),
+    ).toBeVisible();
   });
 
   /*

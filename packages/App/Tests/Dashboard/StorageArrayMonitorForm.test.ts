@@ -23,6 +23,13 @@ import {
   getStorageArrayObjectLabel,
 } from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import { STORAGE_ARRAY_TEMPLATE_CATEGORIES } from "../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
+import {
+  AlertTemplateCategory,
+  AlertTemplateGroup,
+  getAlertTemplatesInDrawnOrder,
+  groupAlertTemplates,
+} from "../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 
 /*
  * The Storage Array monitor form is three React components plus one branch
@@ -80,6 +87,11 @@ const metricPickerSource: string = readSource(
   "StorageArrayMonitor",
   "StorageArrayMetricPicker.tsx",
 );
+const categoryLabels: string = STORAGE_ARRAY_TEMPLATE_CATEGORIES.map(
+  (category: AlertTemplateCategory): string => {
+    return category.label;
+  },
+).join(" | ");
 const monitorStepSource: string = readSource("MonitorStep.tsx");
 
 /*
@@ -452,37 +464,56 @@ describe("StorageArrayTemplatePicker", () => {
     }
   });
 
-  test("renders every template through its category block", () => {
-    /*
-     * The picker filters templates by `t.category === cat.category` over a
-     * hard-coded category list. A template whose category is missing from
-     * that list is silently never offered — so every category that any
-     * template uses must appear in the list.
-     */
-    const categoriesInUse: Set<StorageArrayAlertTemplateCategory> = new Set(
-      allTemplates.map((template: StorageArrayAlertTemplate) => {
-        return template.category;
-      }),
+  /*
+   * The shared AlertTemplatePicker lists the templates under the type's
+   * headings (STORAGE_ARRAY_TEMPLATE_CATEGORIES). A template whose category
+   * has no heading is still offered, after the named ones - but under its
+   * raw category value, so every category in use must have a heading.
+   */
+  test("every template is listed under a heading of its own category", () => {
+    expect(templatePickerSource).toContain(
+      "categories={STORAGE_ARRAY_TEMPLATE_CATEGORIES}",
     );
 
-    for (const category of categoriesInUse) {
-      expect(templatePickerSource).toContain(`category: "${category}",`);
+    for (const system of [
+      StorageSystem.PureStorageFlashArray,
+      StorageSystem.PureStorageFlashBlade,
+      undefined,
+    ]) {
+      const offered: Array<StorageArrayAlertTemplate> =
+        getStorageArrayAlertTemplatesForSystem(system);
+      const groups: Array<AlertTemplateGroup<StorageArrayAlertTemplate>> =
+        groupAlertTemplates(offered, STORAGE_ARRAY_TEMPLATE_CATEGORIES);
+
+      expect(getAlertTemplatesInDrawnOrder(groups)).toHaveLength(
+        offered.length,
+      );
+
+      for (const group of groups) {
+        // A named heading, never the fallback for an unknown category.
+        expect(group.icon).toBeDefined();
+
+        for (const template of group.templates) {
+          expect(template.category).toBe(group.category);
+        }
+      }
     }
-    expect(templatePickerSource).toContain(
-      "return t.category === cat.category;",
-    );
   });
 
   test("the picker lists no category that has no templates", () => {
-    const listed: Array<string> = [
-      ...templatePickerSource.matchAll(/category: "([^"]+)",/g),
-    ].map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    });
-    const categoriesInUse: Set<string> = new Set(
-      allTemplates.map((template: StorageArrayAlertTemplate): string => {
-        return template.category;
-      }),
+    const listed: Array<string> = STORAGE_ARRAY_TEMPLATE_CATEGORIES.map(
+      (category: AlertTemplateCategory): string => {
+        return category.category;
+      },
+    );
+    const categoriesInUse: Set<StorageArrayAlertTemplateCategory> = new Set(
+      allTemplates.map(
+        (
+          template: StorageArrayAlertTemplate,
+        ): StorageArrayAlertTemplateCategory => {
+          return template.category;
+        },
+      ),
     );
 
     expect(new Set(listed)).toEqual(categoriesInUse);
@@ -491,10 +522,11 @@ describe("StorageArrayTemplatePicker", () => {
 
   test("uses storage vocabulary, not Ceph's", () => {
     for (const word of ["Ceph", "OSD", "Placement Group", "cluster"]) {
+      expect(categoryLabels).not.toContain(word);
       expect(templatePickerSource).not.toContain(word);
     }
-    expect(templatePickerSource).toContain("Array Health");
-    expect(templatePickerSource).toContain("Replication");
+    expect(categoryLabels).toContain("Array Health");
+    expect(categoryLabels).toContain("Replication");
   });
 });
 

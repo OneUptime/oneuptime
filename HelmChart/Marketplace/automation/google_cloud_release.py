@@ -36,14 +36,9 @@ def producer_portal_steps(edition: Dict[str, Any], version: str, deployer_digest
         "",
         f"1. Open [Producer Portal]({PRODUCER_PORTAL}) and the OneUptime Enterprise product.",
         f"2. Add the version `{version}` on the `{track}` track, from the deployer `{deployer}`{digest}.",
-        "3. Submit it for review. Google tests it and publishes it as the default version for new "
-        "deployments; deployments that exist stay on their version.",
-        "",
-        "To check the deployer on a GKE cluster of your own first:",
-        "",
-        "```bash",
-        f"mpdev verify --deployer={deployer}",
-        "```",
+        "3. Submit it for review. Google's review installs and tests it (no test cluster of ours "
+        "needed), then publishes it as the default version for new deployments; deployments that "
+        "exist stay on their version.",
     ]
     return "\n".join(lines)
 

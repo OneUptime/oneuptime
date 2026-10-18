@@ -196,7 +196,7 @@ Elke toegestane machtiging wordt toegekend met een bereik, gekozen onder **Berei
 | In eigendom van dit team of zijn leden | De machtiging geldt alleen voor resources waarbij dit team, of de handelende gebruiker, als eigenaar staat. |
 | Beperken op labels (geavanceerd) | De machtiging geldt alleen voor resources die minstens één van de gekozen labels dragen. |
 
-**Eigen** is de eenvoudigste manier om een model "jullie zorgen voor je eigen diensten" op te zetten: geef een team `MonitorAdmin` met bereik Eigen en maak dat team eigenaar van de monitors waarvoor het verantwoordelijk is. Het beperkt alleen resources die echt eigenaren kunnen hebben — monitors, incidenten, dashboards, diensten en dergelijke. Projectconfiguratie (incidentstatussen, labels, de teams zelf) heeft geen eigenaar, dus daar gedraagt een rol met bereik Eigen zich normaal.
+**Eigen** is de eenvoudigste manier om een model "jullie zorgen voor je eigen diensten" op te zetten: geef een team `MonitorAdmin` met bereik Eigen en maak dat team eigenaar van de monitors waarvoor het verantwoordelijk is. Het beperkt elke resource die eigenaren kan hebben — monitors, incidenten, dashboards, diensten, monitorgroepen, bereikbaarheidsschema's en dergelijke — en wat erbij hoort, zoals de lagen van een schema. Sondes, Runners, AI-agenten, bereikbaarheidsschema's en incident- en onderhoudssjablonen zijn waarmee andere resources worden ingericht, dus een machtiging met bereik Eigen leest ze nog steeds allemaal en u kunt er elk van kiezen; ze wijzigt en verwijdert alleen die waarvan u of uw teams eigenaar zijn. De sleutel van een Runner, waarmee wie hem heeft als die Runner kan optreden, is alleen te zien bij de Runners waarvan u of uw teams eigenaar zijn. Projectconfiguratie (incidentstatussen, labels, de teams zelf) heeft geen eigenaar, dus daar gedraagt een rol met bereik Eigen zich normaal.
 
 **Labels** is de handmatigere versie van hetzelfde idee: tag resources en ken dan machtigingen toe die tot die tags zijn beperkt.
 
@@ -323,7 +323,7 @@ Opgeloste machtigingen worden per gebruiker en project gecachet en vernieuwd wan
 
 **Een team dat alleen meekijkt.** Maak het team aan met **Kijker** onder **Toegang**. Voor alleen enkele gebieden kiest u **Machtigingen later kiezen** en voegt u de `*Viewer`-rollen per gebied toe die het moet zien.
 
-**Piketengineers die hun eigen diensten beheren.** Geef het team `MonitorAdmin`, `IncidentMember` en `OnCallMember` met bereik **Eigen**, en voeg het team toe als eigenaar van de monitors die het beheert.
+**Piketengineers die hun eigen diensten beheren.** Geef het team `MonitorAdmin`, `IncidentMember` en `OnCallMember` met bereik **Eigen**, en voeg het team toe als eigenaar van de monitors, het bereikbaarheidsbeleid en de schema's die het beheert. Wat de mensen ervan met deze machtigingen aanmaken, is al van hen.
 
 **Externe partijen weg van productie.** Geef het team de rollen die het nodig heeft met bereik **Alle**, en voeg dan een **geblokkeerde machtiging** toe (onder **Meer instellingen** op de pagina Machtigingen van het team) voor de gevoelige vermogens, beperkt tot het label `Production`.
 

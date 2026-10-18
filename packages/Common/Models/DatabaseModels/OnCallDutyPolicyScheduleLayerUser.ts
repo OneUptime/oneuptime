@@ -6,6 +6,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -64,6 +65,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.EditOnCallDutyPolicyScheduleLayer,
   ],
 })
+/*
+ * Who takes turns in a layer of a schedule: held to the schedule's owners as
+ * the layer is (OnCallDutyPolicyScheduleLayer).
+ */
+@OwnedThrough("onCallDutyPolicyScheduleId", OnCallDutyPolicySchedule)
 @CrudApiEndpoint(new Route("/on-call-duty-schedule-layer-user"))
 @TableMetadata({
   tableName: "OnCallDutyPolicyScheduleLayerUser",

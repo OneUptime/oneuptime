@@ -124,10 +124,16 @@ const IoTFleetDeviceRegistry: FunctionComponent<
             },
             title: "Enabled",
             description:
-              "Disabled credentials are rejected at connect and pause silent-death detection for the device.",
+              "When off, the device cannot connect with these credentials and raises no offline alerts.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: true,
+            /*
+             * A device is registered to connect, so it starts on (the
+             * column's default): the switch that revokes it is on its edit
+             * form only.
+             */
+            doNotShowWhenCreating: true,
           },
         ]}
         filters={[]}

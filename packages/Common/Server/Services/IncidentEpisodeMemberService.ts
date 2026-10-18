@@ -60,8 +60,11 @@ import EpisodeSingleMembershipCheck, {
   RecordInAnotherEpisodeException,
 } from "../Utils/Episode/EpisodeSingleMembershipCheck";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import CreateScopeException from "../Types/Database/Permissions/CreateScopeException";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import type { PendingRecord } from "./DatabaseService";
+import EpisodeMemberAddScope from "../Utils/Episode/EpisodeMemberAddScope";
 
 // What adding an incident to an episode it is in already is refused with.
 export const INCIDENT_ALREADY_IN_EPISODE_MESSAGE: string =
@@ -1071,6 +1074,19 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
+      // One the caller may not add as a member of their own. See the helper.
+      const refusal: string | null = await this.getMemberAddRefusal({
+        projectId: projectId,
+        incidentEpisodeId: incidentEpisodeId,
+        incidentId: incidentId,
+        props: data.props,
+      });
+
+      if (refusal) {
+        result.notAdded.push({ id: key, reason: refusal });
+        continue;
+      }
+
       try {
         const wasAdded: boolean = await this.createMemberAddedTogether({
           projectId: projectId,
@@ -1142,6 +1158,8 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     incidentIds: unknown;
     props: DatabaseCommonInteractionProps;
+    // The labels the episode is created with, which its members carry too.
+    labels?: unknown;
   }): Promise<IncidentsForNewEpisode> {
     const incidentIds: Array<ObjectID> = EpisodeMembersAdd.parseIds({
       value: data.incidentIds,
@@ -1193,6 +1211,31 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(
         "Some of the incidents to add to the episode do not exist in this project, or you do not have access to them.",
       );
+    }
+
+    /*
+     * Each one the caller may add as a member of their own, to the episode
+     * as it will be saved (its labels): one they may not refuses the whole
+     * create, as one they cannot see does. See getMemberAddRefusal.
+     */
+    const pendingEpisode: PendingRecord =
+      EpisodeMemberAddScope.getPendingEpisode({
+        episodeModelType: IncidentEpisode,
+        labels: data.labels,
+      });
+
+    for (const incidentId of incidentIds) {
+      const refusal: string | null = await this.getMemberAddRefusal({
+        projectId: data.projectId,
+        incidentEpisodeId: pendingEpisode.id,
+        incidentId: incidentId,
+        props: data.props,
+        pendingEpisode: pendingEpisode,
+      });
+
+      if (refusal) {
+        throw new CreateScopeException(refusal);
+      }
     }
 
     /*
@@ -1433,6 +1476,33 @@ export class Service extends ProjectReferencesService<Model> {
       : IncidentEpisodeMemberAddedBy.API;
 
     ModelPermission.checkCreatePermissions(Model, member, data.props);
+  }
+
+  /*
+   * Why the caller may not add one incident to an episode as a member of
+   * their own - what their permission to create members reaches: its
+   * labels, its Owned scope (the incidents they or their teams own), its
+   * blocks with labels - or null when they may (EpisodeMemberAddScope). The
+   * row is asked about as it will be written.
+   */
+  private async getMemberAddRefusal(data: {
+    projectId: ObjectID;
+    incidentEpisodeId: ObjectID;
+    incidentId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    pendingEpisode?: PendingRecord | undefined;
+  }): Promise<string | null> {
+    const member: Model = new Model();
+    member.projectId = data.projectId;
+    member.incidentEpisodeId = data.incidentEpisodeId;
+    member.incidentId = data.incidentId;
+
+    return await EpisodeMemberAddScope.getRefusal({
+      memberService: this,
+      member: member,
+      props: data.props,
+      pendingEpisode: data.pendingEpisode,
+    });
   }
 
   /*

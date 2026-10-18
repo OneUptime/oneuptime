@@ -142,6 +142,8 @@ export interface MonitorRecommendationResourceTypeDefinition {
 interface StructuralAlertTemplate {
   id: string;
   name: string;
+  // The one-line summary, on the catalogs that write one.
+  summary?: string | undefined;
   description: string;
   category: string;
   severity: MonitorRecommendationSeverity;
@@ -165,6 +167,7 @@ function normalize(data: {
     monitorType: data.monitorType,
     templateId: data.template.id,
     name: data.template.name,
+    summary: data.template.summary,
     description: data.template.description,
     category: data.template.category,
     severity: data.template.severity,

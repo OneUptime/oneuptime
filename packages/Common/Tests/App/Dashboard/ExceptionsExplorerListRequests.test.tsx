@@ -104,6 +104,7 @@ jest.mock("../../../UI/Utils/Telemetry/UseTelemetryEntityNames", () => {
 });
 
 import ExceptionsViewer from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionsViewer";
+import TelemetryFirstStepsEmptyState from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetryFirstStepsEmptyState";
 import { NO_MATCH_FINGERPRINT } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionsAttributeScope";
 import { NO_MATCH_ENTITY_ID } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionsSearchQuery";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
@@ -551,5 +552,263 @@ describe("a real change reads once", () => {
     expect(listReads()).toHaveLength(2);
     expect(histogramReads()).toHaveLength(1);
     expect(facetReads()).toHaveLength(1);
+  });
+});
+
+describe("the Unresolved page asks whether the project has any exception only of a list that came back empty", () => {
+  /*
+   * The Unresolved page offers exception tracking's setup guide when its
+   * list is empty, nothing narrows it, and the project has no exception at
+   * all - one count over everything it ever had (useProjectHasExceptions).
+   *
+   * The list was judged empty before its first read went out: on the first
+   * render nothing is loading yet and there are no rows. So every load of
+   * the page sent that count, rows or not - a seventh count where the
+   * offline suite pins six (ExplorerListRequests.spec.ts).
+   */
+
+  // The explorer as Pages/Exceptions/Unresolved renders it.
+  async function openUnresolved(search: string = ""): Promise<RenderResult> {
+    window.history.replaceState(
+      {},
+      "",
+      `/dashboard/project/exceptions/unresolved${search}`,
+    );
+    return mount(
+      <ExceptionsViewer
+        defaultStatus="unresolved"
+        offersSetupWhenEmpty={true}
+      />,
+    );
+  }
+
+  interface CountArgs {
+    modelType: ModelType;
+    query: Record<string, unknown>;
+  }
+
+  /*
+   * When each count over every exception the project ever had (no state,
+   * time or class) went out, in the mocks' shared call order.
+   */
+  function projectWideCounts(): Array<number> {
+    const orders: Array<number> = [];
+    countMock.mock.calls.forEach((call: Array<unknown>, index: number) => {
+      const args: CountArgs = call[0] as CountArgs;
+      if (
+        args.modelType === TelemetryException &&
+        Object.keys(args.query).length === 0
+      ) {
+        orders.push(countMock.mock.invocationCallOrder[index]!);
+      }
+    });
+    return orders;
+  }
+
+  // When each read of the exception list went out, in the same order.
+  function listReadOrders(): Array<number> {
+    const orders: Array<number> = [];
+    getListMock.mock.calls.forEach((call: Array<unknown>, index: number) => {
+      if ((call[0] as ListArgs).modelType === TelemetryException) {
+        orders.push(getListMock.mock.invocationCallOrder[index]!);
+      }
+    });
+    return orders;
+  }
+
+  function offersSetupGuide(): boolean {
+    return (
+      Boolean(viewerProps.emptyContent) &&
+      viewerProps.emptyContent.type === TelemetryFirstStepsEmptyState
+    );
+  }
+
+  function row(): TelemetryException {
+    const exception: TelemetryException = new TelemetryException();
+    exception.fingerprint = FINGERPRINTS[0]!;
+    exception.message = "checkout timed out";
+    return exception;
+  }
+
+  /*
+   * The exception list answers with `rows` - after `gate` opens, when one is
+   * given - or fails; every other list reads as the suite's default.
+   */
+  function exceptionListAnswers(answer: {
+    rows: Array<TelemetryException>;
+    gate?: Deferred | undefined;
+    fails?: boolean | undefined;
+  }): void {
+    const fallback: ((...args: Array<any>) => any) | undefined =
+      getListMock.getMockImplementation();
+    getListMock.mockImplementation(async (args: unknown) => {
+      if ((args as ListArgs).modelType !== TelemetryException) {
+        return fallback!(args);
+      }
+      if (answer.gate) {
+        await answer.gate.promise;
+      }
+      if (answer.fails) {
+        throw new Error("The exceptions could not be read");
+      }
+      return { data: answer.rows, count: answer.rows.length };
+    });
+  }
+
+  // How many exceptions the project ever had, as the project-wide count says.
+  function projectHasEver(total: number): void {
+    countMock.mockImplementation(async (args: unknown) => {
+      return Object.keys((args as CountArgs).query).length === 0 ? total : 0;
+    });
+  }
+
+  test("REGRESSION: a list with rows never asks, not even on the render before its read goes out", async () => {
+    exceptionListAnswers({ rows: [row()] });
+
+    await openUnresolved("?range=Past%201%20Day");
+    await settle();
+
+    expect(listReads()).toHaveLength(1);
+    // Before the fix: one count over everything, on every page load.
+    expect(projectWideCounts()).toHaveLength(0);
+    expect(offersSetupGuide()).toBe(false);
+  });
+
+  test("while the first list read is out nothing asks, and the list reads as loading, not as empty", async () => {
+    const gate: Deferred = defer();
+    exceptionListAnswers({ rows: [row()], gate });
+
+    await openUnresolved();
+
+    expect(listReads()).toHaveLength(1);
+    expect(viewerProps.isLoading).toBe(true);
+    expect(projectWideCounts()).toHaveLength(0);
+    expect(offersSetupGuide()).toBe(false);
+
+    await act(async () => {
+      gate.resolve();
+    });
+    await settle();
+
+    expect(viewerProps.isLoading).toBe(false);
+    expect(projectWideCounts()).toHaveLength(0);
+    expect(offersSetupGuide()).toBe(false);
+  });
+
+  test("a list that comes back empty asks once, after it answers: a project without a single exception gets the setup guide", async () => {
+    const gate: Deferred = defer();
+    exceptionListAnswers({ rows: [], gate });
+    projectHasEver(0);
+
+    await openUnresolved();
+
+    expect(projectWideCounts()).toHaveLength(0);
+    expect(offersSetupGuide()).toBe(false);
+
+    await act(async () => {
+      gate.resolve();
+    });
+    await settle();
+
+    expect(projectWideCounts()).toHaveLength(1);
+    expect(projectWideCounts()[0]!).toBeGreaterThan(listReadOrders()[0]!);
+    expect(offersSetupGuide()).toBe(true);
+
+    await settle();
+    expect(projectWideCounts()).toHaveLength(1);
+  });
+
+  test("a list that comes back empty on a project with exceptions asks once and keeps its own message: nothing unresolved is good news", async () => {
+    exceptionListAnswers({ rows: [] });
+    projectHasEver(12);
+
+    await openUnresolved();
+
+    expect(projectWideCounts()).toHaveLength(1);
+    expect(offersSetupGuide()).toBe(false);
+    expect(viewerProps.emptyContent).toBeUndefined();
+    expect(viewerProps.emptyMessage).toBe("No exceptions found");
+  });
+
+  test("a list read that fails asks nothing: the error says why, not a setup guide", async () => {
+    exceptionListAnswers({ rows: [], fails: true });
+    projectHasEver(0);
+
+    await openUnresolved();
+
+    expect(listReads()).toHaveLength(1);
+    expect(viewerProps.error).toBe("The exceptions could not be read");
+    expect(projectWideCounts()).toHaveLength(0);
+    expect(offersSetupGuide()).toBe(false);
+  });
+
+  test("a list a filter chip or a search emptied asks nothing", async () => {
+    exceptionListAnswers({ rows: [] });
+    projectHasEver(0);
+
+    await openUnresolved(
+      `?filters=${encodeURIComponent(
+        JSON.stringify([["exceptionType", "TypeError"]]),
+      )}`,
+    );
+
+    expect(listReads()).toHaveLength(1);
+    expect(projectWideCounts()).toHaveLength(0);
+    expect(offersSetupGuide()).toBe(false);
+
+    cleanup();
+    getListMock.mockClear();
+
+    await openUnresolved("?search=timeout");
+
+    expect(listReads()).toHaveLength(1);
+    expect(projectWideCounts()).toHaveLength(0);
+    expect(offersSetupGuide()).toBe(false);
+  });
+
+  test("an embed never asks, even when its list comes back empty", async () => {
+    exceptionListAnswers({ rows: [] });
+    projectHasEver(0);
+
+    await mount(<ExceptionsViewer defaultStatus="unresolved" />);
+
+    expect(listReads()).toHaveLength(1);
+    expect(projectWideCounts()).toHaveLength(0);
+    expect(offersSetupGuide()).toBe(false);
+  });
+
+  test("a list with rows that a new range empties asks once, after that read answers, and never again", async () => {
+    let rows: Array<TelemetryException> = [row()];
+    const fallback: ((...args: Array<any>) => any) | undefined =
+      getListMock.getMockImplementation();
+    getListMock.mockImplementation(async (args: unknown) => {
+      if ((args as ListArgs).modelType !== TelemetryException) {
+        return fallback!(args);
+      }
+      return { data: rows, count: rows.length };
+    });
+    projectHasEver(4);
+
+    await openUnresolved();
+    expect(projectWideCounts()).toHaveLength(0);
+
+    rows = [];
+    await act(async () => {
+      viewerProps.onTimeRangeChange({ range: TimeRange.PAST_ONE_HOUR });
+    });
+    await settle();
+
+    expect(listReads()).toHaveLength(2);
+    expect(projectWideCounts()).toHaveLength(1);
+    expect(projectWideCounts()[0]!).toBeGreaterThan(listReadOrders()[1]!);
+    expect(offersSetupGuide()).toBe(false);
+
+    await act(async () => {
+      viewerProps.onTimeRangeChange({ range: TimeRange.PAST_ONE_DAY });
+    });
+    await settle();
+
+    expect(listReads()).toHaveLength(3);
+    expect(projectWideCounts()).toHaveLength(1);
   });
 });

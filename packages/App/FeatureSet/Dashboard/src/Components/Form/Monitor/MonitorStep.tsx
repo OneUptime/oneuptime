@@ -84,6 +84,7 @@ import MetricMonitorStepForm from "./MetricMonitor/MetricMonitorStepForm";
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import { INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION } from "./AlertTemplatePicker/AlertTemplateGroups";
 import KubernetesMonitorStepForm from "./KubernetesMonitor/KubernetesMonitorStepForm";
 import MonitorStepKubernetesMonitor, {
   MonitorStepKubernetesMonitorUtil,
@@ -1640,7 +1641,7 @@ return {
       {props.monitorType === MonitorType.Kubernetes && (
         <Card
           title="Kubernetes Monitor Configuration"
-          description="Configure your Kubernetes cluster monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <KubernetesMonitorStepForm
             monitorStepKubernetesMonitor={
@@ -1667,7 +1668,7 @@ return {
       {props.monitorType === MonitorType.Docker && (
         <Card
           title="Docker Monitor Configuration"
-          description="Configure your Docker container monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <DockerMonitorStepForm
             monitorStepDockerMonitor={
@@ -1694,7 +1695,7 @@ return {
       {props.monitorType === MonitorType.Host && (
         <Card
           title="Host Monitor Configuration"
-          description="Configure your host monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <HostMonitorStepForm
             monitorStepHostMonitor={
@@ -1721,7 +1722,7 @@ return {
       {props.monitorType === MonitorType.Podman && (
         <Card
           title="Podman Monitor Configuration"
-          description="Configure your Podman container monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <PodmanMonitorStepForm
             monitorStepPodmanMonitor={
@@ -1748,7 +1749,7 @@ return {
       {props.monitorType === MonitorType.Proxmox && (
         <Card
           title="Proxmox Monitor Configuration"
-          description="Configure your Proxmox cluster monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <ProxmoxMonitorStepForm
             monitorStepProxmoxMonitor={
@@ -1775,7 +1776,7 @@ return {
       {props.monitorType === MonitorType.VMware && (
         <Card
           title="VMware Monitor Configuration"
-          description="Configure your vCenter monitoring — ESXi hosts, virtual machines, datastores and clusters — using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <VMwareMonitorStepForm
             monitorStepVMwareMonitor={
@@ -1802,7 +1803,7 @@ return {
       {props.monitorType === MonitorType.IoTDevice && (
         <Card
           title="IoT Monitor Configuration"
-          description="Configure your IoT fleet monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <IoTMonitorStepForm
             monitorStepIoTMonitor={
@@ -1829,7 +1830,7 @@ return {
       {props.monitorType === MonitorType.DockerSwarm && (
         <Card
           title="Docker Swarm Monitor Configuration"
-          description="Configure your Docker Swarm cluster monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <DockerSwarmMonitorStepForm
             monitorStepDockerSwarmMonitor={
@@ -1856,7 +1857,7 @@ return {
       {props.monitorType === MonitorType.Ceph && (
         <Card
           title="Ceph Monitor Configuration"
-          description="Configure your Ceph cluster monitoring using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <CephMonitorStepForm
             monitorStepCephMonitor={
@@ -1883,7 +1884,7 @@ return {
       {props.monitorType === MonitorType.StorageArray && (
         <Card
           title="Storage Array Monitor Configuration"
-          description="Configure your storage array monitoring — capacity, latency, hardware, volumes, hosts, replication, file systems and buckets — using templates, curated metrics, or the advanced query builder."
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
         >
           <StorageArrayMonitorStepForm
             monitorStepStorageArrayMonitor={
