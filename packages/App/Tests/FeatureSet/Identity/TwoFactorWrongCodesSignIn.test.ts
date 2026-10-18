@@ -425,9 +425,6 @@ async function attempt(data: {
     },
   } as unknown as ExpressResponse;
 
-  const errorsBefore: number = sendErrorResponse.mock.calls.length;
-  const entitiesBefore: number = sendEntityResponse.mock.calls.length;
-
   let reachedHandler: boolean = false;
 
   // What the chain handed to next(): an error, or that it went on.
@@ -461,12 +458,22 @@ async function attempt(data: {
     }
   }
 
-  const errorCall: Array<unknown> | undefined =
-    sendErrorResponse.mock.calls.length > errorsBefore
-      ? (sendErrorResponse.mock.calls[
-          sendErrorResponse.mock.calls.length - 1
-        ] as Array<unknown>)
-      : undefined;
+  /*
+   * This attempt's own answers, found by the response object they were
+   * written to: attempts sent at the same moment answer in any order, so
+   * "the last answer written" may be another attempt's.
+   */
+  const isThisAttempt: (call: Array<unknown>) => boolean = (
+    call: Array<unknown>,
+  ): boolean => {
+    return call[1] === res;
+  };
+
+  const errorCall: Array<unknown> | undefined = (
+    sendErrorResponse.mock.calls as Array<Array<unknown>>
+  )
+    .filter(isThisAttempt)
+    .pop();
 
   const error: Exception | undefined = errorCall?.[2] as Exception | undefined;
 
@@ -475,7 +482,9 @@ async function attempt(data: {
     errorCode: error?.code,
     errorMessage: error?.message,
     retryAfter: headers["Retry-After"],
-    signedIn: sendEntityResponse.mock.calls.length > entitiesBefore,
+    signedIn: (sendEntityResponse.mock.calls as Array<Array<unknown>>).some(
+      isThisAttempt,
+    ),
     nextError: passed.nextError,
   };
 }
