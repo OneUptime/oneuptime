@@ -419,6 +419,38 @@ async function pickFirstCustomMetric(): Promise<void> {
   await settle();
 }
 
+describe("the Time Range reads the same on every tab", () => {
+  test.each(FORM_CASES)(
+    "$name: Custom Metric's Time Range says what Quick Setup's does",
+    async (formCase: FormCase) => {
+      formCase.render(getJestMockFunction(), getJestMockFunction());
+      await settle();
+
+      fireEvent.click(
+        screen.getByTestId(`alert-template-${formCase.templates[0]!.id}`),
+      );
+      await settle();
+      expect(
+        within(screen.getByTestId("alert-template-configuration")).getByText(
+          "How far back each check looks.",
+        ),
+      ).toBeInTheDocument();
+
+      await pickFirstCustomMetric();
+
+      const panel: HTMLElement = screen.getByRole("tabpanel");
+
+      expect(within(panel).getByText("Time Range")).toBeInTheDocument();
+      expect(
+        within(panel).getByText("How far back each check looks."),
+      ).toBeInTheDocument();
+      expect(
+        within(panel).queryByText(/^Select the time range for the/),
+      ).not.toBeInTheDocument();
+    },
+  );
+});
+
 function customMetricFieldsShown(): boolean {
   return (
     within(screen.getByRole("tabpanel")).queryByText("Aggregation") !== null

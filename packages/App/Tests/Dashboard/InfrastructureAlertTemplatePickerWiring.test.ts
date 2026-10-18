@@ -207,6 +207,23 @@ describe("one shared template picker for every infrastructure type", () => {
   );
 
   test.each(TYPES)(
+    "$name's every Time Range says in one line what it is, the same on all three tabs",
+    (type: InfrastructureType) => {
+      const form: string = flat(read(`${FORMS}/${type.stepForm}`));
+      const timeRanges: number = form.split('title="Time Range"').length - 1;
+
+      // Custom Metric's and Advanced's; Quick Setup's is the shared field.
+      expect(timeRanges).toBe(2);
+      expect(
+        form.split(
+          `title="Time Range" description={"${ALERT_TEMPLATE_TIME_RANGE_DESCRIPTION}"}`,
+        ).length - 1,
+      ).toBe(timeRanges);
+      expect(form).not.toContain("Select the time range for the");
+    },
+  );
+
+  test.each(TYPES)(
     "$name's resource field does not repeat its title in a description",
     (type: InfrastructureType) => {
       const form: string = flat(read(`${FORMS}/${type.stepForm}`));
@@ -621,6 +638,17 @@ describe("the words, in every language", () => {
     "Select the Kubernetes cluster to monitor.",
     "Select the host to monitor.",
     "Select the storage array to monitor. Its platform decides which metrics and templates are offered.",
+    // The Custom Metric and Advanced tabs' Time Range: now the line Quick Setup's says.
+    "Select the time range for the host monitor.",
+    "Select the time range for the Docker monitor.",
+    "Select the time range for the Podman monitor.",
+    "Select the time range for the Docker Swarm monitor.",
+    "Select the time range for the Kubernetes monitor.",
+    "Select the time range for the Proxmox monitor.",
+    "Select the time range for the VMware monitor.",
+    "Select the time range for the Ceph monitor.",
+    "Select the time range for the storage array monitor.",
+    "Select the time range for the IoT monitor.",
   ];
 
   test.each(RETIRED)("%s is in no language any more", (key: string) => {

@@ -379,7 +379,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Time Range"
-                description={"Select the time range for the Podman monitor."}
+                description={"How far back each check looks."}
                 required={true}
               />
               <RollingTimePicker
@@ -410,7 +410,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div className="mt-3">
           <FieldLabelElement
             title="Time Range"
-            description={"Select the time range for the Podman monitor."}
+            description={"How far back each check looks."}
             required={true}
           />
           <RollingTimePicker
