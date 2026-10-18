@@ -55,6 +55,7 @@ import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "./UserTwoFactorBackupCodeService";
 import UserWebAuthnService from "./UserWebAuthnService";
+import TwoFactorWrongCodes from "../Utils/TwoFactorWrongCodes";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { getPasswordValidationError } from "../../Types/Password";
@@ -787,6 +788,15 @@ export class Service extends DatabaseService<Model> {
           reason: "Password changed",
         });
 
+        /*
+         * A new password ends any wait for wrong two factor codes. Whoever
+         * entered them held the old password, which no longer signs anybody
+         * in; the owner, who just set the new one, signs in at once. Every
+         * way a password changes comes through here: the reset link, the
+         * profile page and a master admin's Set Password.
+         */
+        await TwoFactorWrongCodes.forget(user.id!);
+
         // password changed, send password changed mail
         MailService.sendMail({
           toEmail: user.email!,
@@ -1453,6 +1463,13 @@ export class Service extends DatabaseService<Model> {
     await UserSessionService.revokeAllSessionsByUserId(user.id!, {
       reason: "Two factor auth reset by admin",
     });
+
+    /*
+     * And the wrong codes entered against the authenticators that are gone:
+     * a reset is how an administrator lets somebody in again, so it must not
+     * leave them waiting behind codes for an app they no longer have.
+     */
+    await TwoFactorWrongCodes.forget(user.id!);
 
     logger.info(
       `Two factor auth reset by a master admin for user: ${user.id!.toString()}`,

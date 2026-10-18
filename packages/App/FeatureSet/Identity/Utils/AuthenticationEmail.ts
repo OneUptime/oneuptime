@@ -236,6 +236,49 @@ export default class AuthenticationEmail {
     });
   }
 
+  /**
+   * Tell a user that wrong two factor codes are being entered after their
+   * password: the second step's waits have begun for their account
+   * (TwoFactorWrongCodes). Sent at most once a day, by the sign-in route.
+   *
+   * To the address on the account, not to the browser that entered the
+   * codes: whoever entered them knows the password, and only the owner can
+   * say whether that was them. The mail says what to do either way - a
+   * phone clock that has drifted is the honest cause, a password somebody
+   * else holds the other one - and its button is the way out of the second:
+   * a new password, which also ends the wait.
+   *
+   * Never awaited by the sign-in route, and never allowed to fail it.
+   */
+  public static async sendTwoFactorWrongCodesEmail(data: {
+    user: User;
+    wrongCodesInARow: number;
+  }): Promise<void> {
+    if (!data.user.email) {
+      return;
+    }
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    await MailService.sendMail({
+      toEmail: data.user.email,
+      subject: `Wrong two factor codes were entered for your ${ProductBrandingText.getProductName()} account`,
+      isSubjectLiteral: true,
+      templateType: EmailTemplateType.TwoFactorWrongCodes,
+      vars: {
+        enteredAt: OneUptimeDate.getCurrentDateAsFormattedString(),
+        wrongCodeCount: data.wrongCodesInARow.toString(),
+        forgotPasswordUrl: new URL(
+          httpProtocol,
+          host,
+          new Route(AccountsRoute.toString()).addRoute("/forgot-password"),
+        ).toString(),
+        homeUrl: new URL(httpProtocol, host).toString(),
+      },
+    });
+  }
+
   /*
    * Sent when someone tries to register an address that already has an
    * unclaimed invitation behind it, without the token that proves they own the

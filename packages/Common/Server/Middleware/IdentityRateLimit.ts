@@ -36,8 +36,11 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * steps, +/- 90 seconds) across both entries in SupportedTotpAlgorithms, so
  * fourteen distinct six digit strings are live at once and a single guess
  * lands with probability ~1.4e-5. At a few thousand requests a second that is
- * a bypassed second factor in minutes. Bounded to the budgets below it is
- * years, and the account owner sees the failures.
+ * a bypassed second factor in minutes. The budgets below bound each client;
+ * the account itself is held by its own count of wrong codes, kept by the
+ * handler once the password is right (Utils/TwoFactorWrongCodes): after five
+ * wrong codes in a row each next code waits, wherever it comes from, and the
+ * account's owner is emailed.
  *
  * /login is the same shape one step earlier, against a password rather than a
  * code.
@@ -117,6 +120,12 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * hands every user a remote lockout button, and the distributed case is what
  * the account owner's own failed-login visibility and the network layer are
  * for.
+ *
+ * The second step is the exception, because there the trade comes out the
+ * other way: its attempts are made with the password already accepted, so a
+ * count on the account alone can be moved only by somebody who holds that
+ * password. The handler keeps one (Utils/TwoFactorWrongCodes), on top of the
+ * counters here.
  *
  * AN IPV6 /64 IS COUNTED TOO. One IPv6 host is commonly given a whole /64 and
  * can send every attempt from another address of it, so for an IPv6 client
