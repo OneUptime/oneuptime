@@ -1,0 +1,491 @@
+name: Marketplace Release
+
+# Ships a OneUptime release to the AWS Marketplace, Microsoft Marketplace and Google Cloud
+# Marketplace listings of self-hosted OneUptime Enterprise (HelmChart/Marketplace), as
+# packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md describes:
+#
+#   1. prepare   which release, a dry run or a real one, which marketplaces
+#                (HelmChart/Marketplace/automation/release_plan.py);
+#   2. test      the marketplace chart suite, on the chart as it was released;
+#   3. push      each edition's images, then its chart (AWS), bundle (Microsoft) or deployer
+#                (Google) into that marketplace's registry - which publishes nothing;
+#   4. publish   AWS: the version is added (Catalog API); Microsoft: the plan points at the
+#                bundle and the offer goes to preview (Product Ingestion API). Each publishing
+#                job runs in the marketplace-publish environment, so it waits for a maintainer
+#                to approve it. Google has no API for this step: its job writes what to add in
+#                Producer Portal to the run's summary.
+#
+# Microsoft's preview goes live with a run by hand (action: azure-go-live) once it has passed
+# Microsoft's checks and been tried; AKS then upgrades buyers' clusters to it.
+#
+# After every release it runs on its own once MARKETPLACE_RELEASES is "enabled", for each
+# marketplace editions.json marks ready and the repository variables sign in to (the others are
+# skipped with a notice). By hand it is a dry run unless dry_run is unticked: everything is built
+# and checked, the change set and the configure request are written, nothing is pushed or sent.
+#
+# It signs in to every cloud with GitHub's OIDC token, so it holds no secret: the one-time setup
+# (HelmChart/Marketplace/automation/ci_setup.py) trusts only this repository's
+# marketplace-push and marketplace-publish environments. Tests/Ops/MarketplaceRelease.test.js
+# holds this file to all of that.
+
+on:
+  workflow_run:
+    workflows: ["Push Release Images to Docker Hub and GitHub Container Registry"]
+    types: [completed]
+    branches: [release]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "release: build, push and (once approved) publish. azure-go-live: publish the newest succeeded Microsoft preview to live."
+        type: choice
+        options: [release, azure-go-live]
+        default: release
+      version:
+        description: "The release (#.#.#). Empty takes the VERSION file."
+        type: string
+        default: ""
+      marketplaces:
+        description: "aws, azure, google-cloud (comma-separated). Empty means all three."
+        type: string
+        default: ""
+      dry_run:
+        description: "Build and check everything; push and submit nothing."
+        type: boolean
+        default: true
+
+permissions: {}
+
+# One run at a time, and none cancelled: a publish stopped halfway is worse than a wait.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && vars.MARKETPLACE_RELEASES == 'enabled')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      action: ${{ steps.plan.outputs.action }}
+      version: ${{ steps.plan.outputs.version }}
+      track: ${{ steps.plan.outputs.track }}
+      dry_run: ${{ steps.plan.outputs.dry_run }}
+      release: ${{ steps.plan.outputs.release }}
+      aws: ${{ steps.plan.outputs.aws }}
+      azure: ${{ steps.plan.outputs.azure }}
+      google_cloud: ${{ steps.plan.outputs.google_cloud }}
+      any: ${{ steps.plan.outputs.any }}
+      release_sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Read the release's version
+        id: release
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$RELEASE_SHA" ]]; then
+            git fetch --no-tags --depth 1 origin "$RELEASE_SHA"
+            version="$(git show FETCH_HEAD:VERSION | tr -d ' \n')"
+          else
+            version="$(tr -d ' \n' < VERSION)"
+          fi
+          echo "version_file=${version}" >>"$GITHUB_OUTPUT"
+          echo "sha=${RELEASE_SHA}" >>"$GITHUB_OUTPUT"
+      - name: Plan the run
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ACTION: ${{ inputs.action }}
+          VERSION_INPUT: ${{ inputs.version }}
+          VERSION_FILE: ${{ steps.release.outputs.version_file }}
+          MARKETPLACES_INPUT: ${{ inputs.marketplaces }}
+          DRY_RUN_INPUT: ${{ inputs.dry_run }}
+          MARKETPLACE_RELEASE_AWS_ROLE_ARN: ${{ vars.MARKETPLACE_RELEASE_AWS_ROLE_ARN }}
+          MARKETPLACE_RELEASE_AZURE_CLIENT_ID: ${{ vars.MARKETPLACE_RELEASE_AZURE_CLIENT_ID }}
+          MARKETPLACE_RELEASE_AZURE_TENANT_ID: ${{ vars.MARKETPLACE_RELEASE_AZURE_TENANT_ID }}
+          MARKETPLACE_RELEASE_AZURE_SUBSCRIPTION_ID: ${{ vars.MARKETPLACE_RELEASE_AZURE_SUBSCRIPTION_ID }}
+          MARKETPLACE_RELEASE_GOOGLE_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.MARKETPLACE_RELEASE_GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          MARKETPLACE_RELEASE_GOOGLE_SERVICE_ACCOUNT: ${{ vars.MARKETPLACE_RELEASE_GOOGLE_SERVICE_ACCOUNT }}
+        run: python3 HelmChart/Marketplace/automation/release_plan.py
+
+  # The marketplace suite on the chart as it was released: every edition built, linted,
+  # rendered and checked the way its marketplace checks it, and the automation's unit tests.
+  test:
+    needs: prepare
+    if: needs.prepare.outputs.release == 'true' && needs.prepare.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Take the released chart
+        uses: ./.github/actions/marketplace-edition
+        with:
+          version: ${{ needs.prepare.outputs.version }}
+          release-sha: ${{ needs.prepare.outputs.release_sha }}
+      - name: Run the marketplace chart suite
+        run: bash ./HelmChart/Tests/run.sh marketplace
+
+  # Everything a real run does, but in the open: no sign-in, nothing pushed or submitted.
+  dry-run:
+    needs: [prepare, test]
+    if: needs.prepare.outputs.dry_run == 'true' && needs.prepare.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - marketplace: aws
+            selected: aws
+          - marketplace: azure
+            selected: azure
+          - marketplace: google-cloud
+            selected: google_cloud
+    steps:
+      - name: Checkout repo
+        if: needs.prepare.outputs[matrix.selected] == 'true'
+        uses: actions/checkout@v4
+      - name: Build the edition
+        id: edition
+        if: needs.prepare.outputs[matrix.selected] == 'true'
+        uses: ./.github/actions/marketplace-edition
+        with:
+          version: ${{ needs.prepare.outputs.version }}
+          release-sha: ${{ needs.prepare.outputs.release_sha }}
+          marketplace: ${{ matrix.marketplace }}
+      - name: What the copy would push
+        if: needs.prepare.outputs[matrix.selected] == 'true'
+        env:
+          OUT: ${{ steps.edition.outputs.out }}
+        run: bash HelmChart/Marketplace/mirror-images.sh "$OUT/images.json" --dry-run
+      - name: The AWS change set
+        if: needs.prepare.outputs[matrix.selected] == 'true' && matrix.marketplace == 'aws'
+        env:
+          OUT: ${{ steps.edition.outputs.out }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 HelmChart/Marketplace/automation/aws_catalog.py plan --images-json "$OUT/images.json" \
+            --version "$VERSION" --product-id "$(python3 -c 'import json; print(json.load(open("HelmChart/Marketplace/editions.json"))["aws"]["productId"] or "<product ID>")')" \
+            --out "$OUT/aws-change-set.json"
+          cat "$OUT/aws-change-set.json"
+      - name: The Partner Center request
+        if: needs.prepare.outputs[matrix.selected] == 'true' && matrix.marketplace == 'azure'
+        env:
+          OUT: ${{ steps.edition.outputs.out }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 HelmChart/Marketplace/automation/partner_center.py plan --tag "$VERSION" \
+            --digest "sha256:0000000000000000000000000000000000000000000000000000000000000000" \
+            --out "$OUT/partner-center-configure.json"
+          cat "$OUT/partner-center-configure.json"
+      - name: Set up Docker Buildx
+        if: needs.prepare.outputs[matrix.selected] == 'true' && matrix.marketplace == 'google-cloud'
+        uses: docker/setup-buildx-action@v3
+      - name: Build the Google deployer, without pushing it
+        if: needs.prepare.outputs[matrix.selected] == 'true' && matrix.marketplace == 'google-cloud'
+        env:
+          OUT: ${{ steps.edition.outputs.out }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          registry="$(python3 -c 'import json; print(json.load(open("HelmChart/Marketplace/editions.json"))["google-cloud"]["registry"])')"
+          docker buildx build --platform linux/amd64 --provenance=false \
+            --build-arg REGISTRY="$registry" --build-arg TAG="$VERSION" "$OUT"
+      - name: Keep what a real run would send
+        if: needs.prepare.outputs[matrix.selected] == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: marketplace-dry-run-${{ matrix.marketplace }}
+          path: ${{ steps.edition.outputs.out }}
+          retention-days: 7
+
+  # --- AWS Marketplace -----------------------------------------------------------------------
+
+  aws-push:
+    needs: [prepare, test]
+    if: needs.prepare.outputs.release == 'true' && needs.prepare.outputs.dry_run == 'false' && needs.prepare.outputs.aws == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: marketplace-push
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Build the edition
+        id: edition
+        uses: ./.github/actions/marketplace-edition
+        with:
+          version: ${{ needs.prepare.outputs.version }}
+          release-sha: ${{ needs.prepare.outputs.release_sha }}
+          marketplace: aws
+      - name: Sign in to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.MARKETPLACE_RELEASE_AWS_ROLE_ARN }}
+          role-session-name: marketplace-release-${{ github.run_id }}
+          aws-region: us-east-1
+          role-duration-seconds: 7200
+      - name: Sign in to the AWS Marketplace registry
+        run: |
+          set -euo pipefail
+          aws ecr get-login-password --region us-east-1 | crane auth login 709825985650.dkr.ecr.us-east-1.amazonaws.com -u AWS --password-stdin
+          aws ecr get-login-password --region us-east-1 | helm registry login 709825985650.dkr.ecr.us-east-1.amazonaws.com --username AWS --password-stdin
+      - name: Copy the images
+        env:
+          OUT: ${{ steps.edition.outputs.out }}
+        run: |
+          set -uo pipefail
+          source ./Scripts/GHA/retry.sh
+          retry_with_backoff "Copying the AWS images" bash HelmChart/Marketplace/mirror-images.sh "$OUT/images.json"
+      - name: Push the chart
+        env:
+          OUT: ${{ steps.edition.outputs.out }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          registry="$(python3 -c 'import json; print(json.load(open("HelmChart/Marketplace/editions.json"))["aws"]["registry"])')"
+          helm package "$OUT/oneuptime" --destination "$OUT"
+          helm push "$OUT/oneuptime-${VERSION}.tgz" "oci://${registry}"
+      - name: Keep the edition's images plan for the publishing job
+        uses: actions/upload-artifact@v4
+        with:
+          name: marketplace-aws-images
+          path: ${{ steps.edition.outputs.out }}/images.json
+          retention-days: 7
+
+  aws-publish:
+    needs: [prepare, aws-push]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    environment: marketplace-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Get the edition's images plan
+        uses: actions/download-artifact@v4
+        with:
+          name: marketplace-aws-images
+          path: ${{ runner.temp }}/aws
+      - name: Sign in to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.MARKETPLACE_RELEASE_AWS_ROLE_ARN }}
+          role-session-name: marketplace-release-${{ github.run_id }}
+          aws-region: us-east-1
+          role-duration-seconds: 7200
+      - name: Add the version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          WORK: ${{ runner.temp }}/aws
+        run: |
+          set -euo pipefail
+          gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" --json body --jq .body >"$WORK/notes.md" 2>/dev/null || true
+          python3 HelmChart/Marketplace/automation/aws_catalog.py plan --images-json "$WORK/images.json" \
+            --version "$VERSION" --release-notes-file "$WORK/notes.md" --out "$WORK/change-set.json"
+          python3 HelmChart/Marketplace/automation/aws_catalog.py submit --change-set "$WORK/change-set.json" \
+            --name "OneUptime ${VERSION}" --wait-minutes 100
+
+  # --- Microsoft Marketplace -----------------------------------------------------------------
+
+  azure-push:
+    needs: [prepare, test]
+    if: needs.prepare.outputs.release == 'true' && needs.prepare.outputs.dry_run == 'false' && needs.prepare.outputs.azure == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: marketplace-push
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      digest: ${{ steps.bundle.outputs.digest }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Build the edition
+        id: edition
+        uses: ./.github/actions/marketplace-edition
+        with:
+          version: ${{ needs.prepare.outputs.version }}
+          release-sha: ${{ needs.prepare.outputs.release_sha }}
+          marketplace: azure
+      - name: Sign in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_SUBSCRIPTION_ID }}
+      - name: Sign in to the container registry
+        run: |
+          set -euo pipefail
+          host="$(python3 -c 'import json; print(json.load(open("HelmChart/Marketplace/editions.json"))["azure"]["registry"])')"
+          token="$(az acr login --name "${host%%.*}" --expose-token --output tsv --query accessToken)"
+          echo "::add-mask::${token}"
+          crane auth login "$host" -u 00000000-0000-0000-0000-000000000000 --password-stdin <<<"$token"
+          docker login "$host" -u 00000000-0000-0000-0000-000000000000 --password-stdin <<<"$token"
+      - name: Copy the images
+        env:
+          OUT: ${{ steps.edition.outputs.out }}
+        run: |
+          set -uo pipefail
+          source ./Scripts/GHA/retry.sh
+          retry_with_backoff "Copying the Azure images" bash HelmChart/Marketplace/mirror-images.sh "$OUT/images.json"
+      # Microsoft's packaging tool, in its own image, as Microsoft documents it: it checks the
+      # edition and pushes the bundle (CNAB) to the registry. A version is never pushed twice.
+      - name: Build and push the bundle
+        env:
+          OUT: ${{ steps.edition.outputs.out }}
+        run: |
+          set -euo pipefail
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "${HOME}/.docker:/root/.docker" \
+            -v "${HOME}/.azure:/root/.azure" -v "${OUT}:/data" -w /data --entrypoint /bin/bash \
+            mcr.microsoft.com/container-package-app:latest -c "cpa verify && cpa buildbundle"
+      - name: The bundle's digest
+        id: bundle
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          reference="$(python3 -c 'import json; e=json.load(open("HelmChart/Marketplace/editions.json"))["azure"]; print(e["registry"] + "/" + e["bundleRepository"])')"
+          echo "digest=$(crane digest "${reference}:${VERSION}")" >>"$GITHUB_OUTPUT"
+
+  azure-publish:
+    needs: [prepare, azure-push]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: marketplace-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Sign in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_SUBSCRIPTION_ID }}
+      - name: Point the plan at the bundle, and publish to preview
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          DIGEST: ${{ needs.azure-push.outputs.digest }}
+          AZURE_TENANT_ID: ${{ vars.MARKETPLACE_RELEASE_AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.MARKETPLACE_RELEASE_AZURE_SUBSCRIPTION_ID }}
+        run: |
+          set -euo pipefail
+          PARTNER_CENTER_TOKEN="$(az account get-access-token --scope https://graph.microsoft.com/.default --query accessToken --output tsv)"
+          echo "::add-mask::${PARTNER_CENTER_TOKEN}"
+          export PARTNER_CENTER_TOKEN
+          python3 HelmChart/Marketplace/automation/partner_center.py update-bundle --tag "$VERSION" --digest "$DIGEST"
+          python3 HelmChart/Marketplace/automation/partner_center.py publish --target preview --wait-minutes 45
+
+  azure-go-live:
+    needs: prepare
+    if: needs.prepare.outputs.action == 'azure-go-live' && needs.prepare.outputs.azure == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: marketplace-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Sign in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.MARKETPLACE_RELEASE_AZURE_SUBSCRIPTION_ID }}
+      - name: Publish the newest succeeded preview to live
+        run: |
+          set -euo pipefail
+          PARTNER_CENTER_TOKEN="$(az account get-access-token --scope https://graph.microsoft.com/.default --query accessToken --output tsv)"
+          echo "::add-mask::${PARTNER_CENTER_TOKEN}"
+          export PARTNER_CENTER_TOKEN
+          python3 HelmChart/Marketplace/automation/partner_center.py publish --target live --wait-minutes 45
+
+  # --- Google Cloud Marketplace --------------------------------------------------------------
+
+  google-cloud-push:
+    needs: [prepare, test]
+    if: needs.prepare.outputs.release == 'true' && needs.prepare.outputs.dry_run == 'false' && needs.prepare.outputs.google_cloud == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: marketplace-push
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Build the edition
+        id: edition
+        uses: ./.github/actions/marketplace-edition
+        with:
+          version: ${{ needs.prepare.outputs.version }}
+          release-sha: ${{ needs.prepare.outputs.release_sha }}
+          marketplace: google-cloud
+      - name: Sign in to Google Cloud
+        id: google
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.MARKETPLACE_RELEASE_GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.MARKETPLACE_RELEASE_GOOGLE_SERVICE_ACCOUNT }}
+          token_format: access_token
+      - name: Sign in to Artifact Registry
+        env:
+          TOKEN: ${{ steps.google.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          crane auth login us-docker.pkg.dev -u oauth2accesstoken --password-stdin <<<"$TOKEN"
+          docker login us-docker.pkg.dev -u oauth2accesstoken --password-stdin <<<"$TOKEN"
+      # mirror-images.sh annotates each image with the listing's service and tags it with the
+      # release's track too, as Google requires.
+      - name: Copy the images
+        env:
+          OUT: ${{ steps.edition.outputs.out }}
+        run: |
+          set -uo pipefail
+          source ./Scripts/GHA/retry.sh
+          retry_with_backoff "Copying the Google Cloud images" bash HelmChart/Marketplace/mirror-images.sh "$OUT/images.json"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push the deployer
+        id: deployer
+        env:
+          OUT: ${{ steps.edition.outputs.out }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TRACK: ${{ needs.prepare.outputs.track }}
+        run: |
+          set -euo pipefail
+          registry="$(python3 -c 'import json; print(json.load(open("HelmChart/Marketplace/editions.json"))["google-cloud"]["registry"])')"
+          service="$(python3 -c 'import json; print(json.load(open("HelmChart/Marketplace/editions.json"))["google-cloud"]["serviceName"])')"
+          docker buildx build --platform linux/amd64 --provenance=false \
+            --build-arg REGISTRY="$registry" --build-arg TAG="$VERSION" \
+            --annotation "manifest:com.googleapis.cloudmarketplace.product.service.name=services/${service}" \
+            --tag "${registry}/deployer:${VERSION}" --tag "${registry}/deployer:${TRACK}" \
+            --push "$OUT"
+          echo "digest=$(crane digest "${registry}/deployer:${VERSION}")" >>"$GITHUB_OUTPUT"
+      - name: What to add in Producer Portal
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          DIGEST: ${{ steps.deployer.outputs.digest }}
+        run: python3 HelmChart/Marketplace/automation/google_cloud_release.py summary --version "$VERSION" --deployer-digest "$DIGEST"

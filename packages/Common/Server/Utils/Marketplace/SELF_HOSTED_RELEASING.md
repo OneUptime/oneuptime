@@ -125,6 +125,22 @@ Microsoft locks a plan's billing model and its dimensions (ID, display name,
 unit) once published; Google has one pricing plan per product. Get the
 dimension right the first time: ID `users`, one per product.
 
+## What it costs OneUptime
+
+Besides each marketplace's fee, about USD 5 to 7 a month:
+
+| Cost                       | About                                  | Kept down by                                                                                                                          |
+| -------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Marketplace fees           | AWS 20% (public) or 3% (private); 3%   | Selling to any sizeable buyer on AWS through a private offer, even at the list price                                                  |
+| Azure Container Registry   | USD 5 a month (Basic)                  | The weekly `acr purge` task keeps each repository's 3 newest releases; Microsoft serves buyers from its own registry                  |
+| Google Artifact Registry   | About USD 1 a month                    | The cleanup policy keeps each image's 3 newest releases; Google serves buyers from its own registry                                   |
+| AWS Marketplace's registry | Nothing                                | It is AWS Marketplace's account, not ours                                                                                             |
+| Reporting usage, CI        | Nothing                                | The metering APIs are free; GitHub Actions is free for a public repository                                                            |
+| Test clusters              | About USD 0.10 an hour, plus the nodes | Only for minor and major releases; small, spot nodes; deleted right after. AKS has no cluster fee, GKE's free tier covers one cluster |
+
+Buyers' clusters and their downloads are on the buyers' cloud bills, never on
+ours.
+
 ## Who does what
 
 Agents: these are maintainer decisions and company facts. Never guess them,
@@ -132,17 +148,19 @@ never type banking or tax details, never accept an agreement, and never press a
 final publish / go live / submit button without a maintainer's explicit
 go-ahead in chat for that exact step.
 
-| Step                                                                                                    | Who                                                     |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Seller registration, agreements, tax and bank details, identity verification                            | Maintainer, in their own accounts                       |
-| Signing in: `aws login --profile oneuptime`, `az login`, `gcloud auth login`, the portals               | Maintainer. An agent may then work in that session      |
-| Anything that costs money: the Azure Container Registry, test clusters, Artifact Registry               | Maintainer approves the cost first                      |
-| Prices, dimensions, private offer terms                                                                 | Maintainer, a go-ahead for each exact change            |
-| Building an edition, running the tests, scanning the images                                             | Agent or maintainer                                     |
-| Copying images and pushing charts and bundles to the marketplace registries                             | Agent or maintainer, for a release the maintainer named |
-| Filling in and saving portal drafts: listing copy, plans without prices, technical settings             | Agent                                                   |
-| Submitting a version, **Review and publish**, **Go live**, **Update visibility**, **Submit for review** | Maintainer, a go-ahead for each exact action            |
-| Code changes: the AWS product code, `editions.json`, image pins                                         | Agent, through a pull request                           |
+| Step                                                                                                    | Who                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Seller registration, agreements, tax and bank details, identity verification                            | Maintainer, in their own accounts                                                                                         |
+| Signing in: `aws login --profile oneuptime`, `az login`, `gcloud auth login`, the portals               | Maintainer. An agent may then work in that session                                                                        |
+| Anything that costs money: the Azure Container Registry, test clusters, Artifact Registry               | Maintainer approves the cost first                                                                                        |
+| Prices, dimensions, private offer terms                                                                 | Maintainer, a go-ahead for each exact change                                                                              |
+| Building an edition, running the tests, scanning the images                                             | Agent or maintainer                                                                                                       |
+| Copying images and pushing charts and bundles to the marketplace registries                             | The Marketplace Release workflow, after every release; by hand, an agent or maintainer for a release the maintainer named |
+| Approving each publish the workflow makes (**Review deployments** on the run, `marketplace-publish`)    | Maintainer, a required reviewer of that environment                                                                       |
+| The one-time CI setup (`ci_setup.py`): it prints each script to read first                              | Agent or maintainer, signed in as the maintainer, once the maintainer approved its costs                                  |
+| Filling in and saving portal drafts: listing copy, plans without prices, technical settings             | Agent                                                                                                                     |
+| Submitting a version, **Review and publish**, **Go live**, **Update visibility**, **Submit for review** | Maintainer, a go-ahead for each exact action                                                                              |
+| Code changes: the AWS product code, `editions.json`, image pins                                         | Agent, through a pull request                                                                                             |
 
 **Company facts** are in [RELEASING.md](RELEASING.md#before-you-start-decisions-and-facts-that-are-the-businesss):
 HackerBay, Inc., United States; terms, privacy, sub-processors and support
@@ -156,14 +174,19 @@ marketplace's standard contract, or OneUptime's terms
 Everything lives in [HelmChart/Marketplace](../../../../../HelmChart/Marketplace)
 ([README](../../../../../HelmChart/Marketplace/README.md)):
 
-| File               | What it is                                                                                                                    |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `build.py`         | Builds one edition: `python3 HelmChart/Marketplace/build.py --marketplace aws\|azure\|google-cloud --version X.Y.Z --out DIR` |
-| `images.json`      | The images every edition ships, with the third-party versions pinned                                                          |
-| `editions.json`    | Each marketplace's registry and its own settings                                                                              |
-| `mirror-images.sh` | Copies an edition's images into its marketplace's registry (`crane`; `--dry-run` shows the plan)                              |
-| `azure/`           | The CNAB manifest, the Azure portal's create experience and the ARM template                                                  |
-| `google-cloud/`    | The deployer's Dockerfile, `schema.yaml`, the `Application` resource and the tester                                           |
+| File                       | What it is                                                                                                                                                                                      |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `build.py`                 | Builds one edition: `python3 HelmChart/Marketplace/build.py --marketplace aws\|azure\|google-cloud --version X.Y.Z --out DIR`                                                                   |
+| `images.json`              | The images every edition ships, with the third-party versions pinned                                                                                                                            |
+| `editions.json`            | Each marketplace's registry and its own settings                                                                                                                                                |
+| `mirror-images.sh`         | Copies an edition's images into its marketplace's registry (`crane`; `--dry-run` shows the plan)                                                                                                |
+| `azure/`                   | The CNAB manifest, the Azure portal's create experience and the ARM template                                                                                                                    |
+| `google-cloud/`            | The deployer's Dockerfile, `schema.yaml`, the `Application` resource and the tester                                                                                                             |
+| `aws/delivery-option.json` | The Helm delivery option every AWS version gets: title, description, usage instructions, override parameters                                                                                    |
+| `automation/`              | The release automation the workflow runs (`release_plan.py`, `aws_catalog.py`, `partner_center.py`, `google_cloud_release.py`) and the one-time CI setup (`ci_setup.py`), with their unit tests |
+
+The workflow is [`.github/workflows/marketplace-release.yml`](../../../../../.github/workflows/marketplace-release.yml):
+see [Releasing a version](#releasing-a-version).
 
 Every edition is the public chart with every image (OneUptime's, and the
 PostgreSQL, ClickHouse and Valkey it bundles) taken from the marketplace's
@@ -187,14 +210,17 @@ Some values exist only once the portals have created the products. Each goes
 into the repository through a pull request, before the first release that
 needs it. Record each one in [History](#history).
 
-| Value                                            | Where it comes from                                                                                       | Where it goes                                                                                                                                                                                                                                                                      |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AWS product code                                 | AWS Marketplace Management Portal, when the container product is created                                  | `AWS_SELF_HOSTED_PRODUCT_CODES` in [SelfHostedMarketplaceConfig.ts](SelfHosted/SelfHostedMarketplaceConfig.ts). It is compiled into the image: a OneUptime release made before this change cannot bill AWS, and says "This build of OneUptime has no AWS Marketplace product code" |
-| AWS registry prefix                              | The portal's repository URIs: `709825985650.dkr.ecr.us-east-1.amazonaws.com/<sellerName>`                 | `editions.json`, `aws.registry`                                                                                                                                                                                                                                                    |
-| Azure registry                                   | The Azure Container Registry you create: `<name>.azurecr.io`                                              | `editions.json`, `azure.registry`                                                                                                                                                                                                                                                  |
-| Google registry path and Service Control service | The Artifact Registry repository you create; Producer Portal's **Overview** page, **Service name** column | `editions.json`, `google-cloud.registry` and `google-cloud.serviceName`                                                                                                                                                                                                            |
+| Value                                            | Where it comes from                                                                                        | Where it goes                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AWS product code                                 | AWS Marketplace Management Portal, when the container product is created                                   | `AWS_SELF_HOSTED_PRODUCT_CODES` in [SelfHostedMarketplaceConfig.ts](SelfHosted/SelfHostedMarketplaceConfig.ts). It is compiled into the image: a OneUptime release made before this change cannot bill AWS, and says "This build of OneUptime has no AWS Marketplace product code" |
+| AWS registry prefix                              | The portal's repository URIs: `709825985650.dkr.ecr.us-east-1.amazonaws.com/<sellerName>`                  | `editions.json`, `aws.registry`                                                                                                                                                                                                                                                    |
+| Azure registry                                   | The Azure Container Registry you create: `<name>.azurecr.io`                                               | `editions.json`, `azure.registry`                                                                                                                                                                                                                                                  |
+| Google registry path and Service Control service | The Artifact Registry repository you create; Producer Portal's **Overview** page, **Service name** column  | `editions.json`, `google-cloud.registry` and `google-cloud.serviceName`                                                                                                                                                                                                            |
+| AWS product ID                                   | `python3 HelmChart/Marketplace/automation/aws_catalog.py find-product` (the Catalog API's entity ID)       | `editions.json`, `aws.productId`                                                                                                                                                                                                                                                   |
+| Microsoft offer, plan, extension type, bundle    | Partner Center; the bundle's repository is the one `cpa buildbundle` pushes to (check after the first run) | `editions.json`, `azure.offerId`, `planId`, `clusterExtensionType`, `resourceGroup`, `bundleRepository`                                                                                                                                                                            |
+| Ready                                            | Every value of the edition above is the portal's real one                                                  | `editions.json`, `"ready": true` for that edition. Until then the workflow pushes and submits nothing to that marketplace                                                                                                                                                          |
 
-The values in `editions.json` today are placeholders.
+The values in `editions.json` today are placeholders, and no edition is ready.
 
 ### AWS Marketplace: container product
 
@@ -219,9 +245,12 @@ Seller account `176820170339` already sells OneUptime Cloud (SaaS product
      names it after the chart).
    - **Submit** (maintainer) moves the product to **Limited**: visible only to
      the seller account and the allowlist.
-3. **Repositories**: **Request changes > Add repositories**: `app`, `nginx`,
-   `probe`, `runner`, `postgres`, `clickhouse-server`, `valkey` (the `name`s
-   in `images.json`). Their URIs show the seller prefix AWS generated: put
+3. **Repositories**: with `aws.productId` in `editions.json`,
+   `python3 HelmChart/Marketplace/automation/aws_catalog.py add-repositories`
+   creates them through the Catalog API: `oneuptime` for the chart, and `app`,
+   `nginx`, `probe`, `runner`, `postgres`, `clickhouse-server`, `valkey` (the
+   `name`s in `images.json`). In the portal it is **Request changes > Add
+   repositories**. Their URIs show the seller prefix AWS generated: put
    `709825985650.dkr.ecr.us-east-1.amazonaws.com/<sellerName>` into
    `editions.json` as `aws.registry`.
 4. **The product code into the code** (agent, pull request), then a OneUptime
@@ -235,29 +264,24 @@ OneUptime's Partner Center account and the HackerBay tenant
 (`5ecf4811-0b2d-4001-85dc-d2b2663ea202`) already exist for the SaaS offer
 `oneuptime-cloud`; use the same ones.
 
-1. **A container registry** in a subscription of that tenant (the maintainer
-   approves the cost first; at the time of writing Standard, with 100 GiB, is
-   about USD 20 a month, and Basic's 10 GiB holds only a release or two of the
-   app image):
+1. **The container registry** (the maintainer approves the cost first: Basic,
+   about USD 5 a month). `ci_setup.py azure-registry` creates it in the
+   tenant's subscription with what Microsoft needs: its ingestion app may pull
+   from it, and `Microsoft.PartnerCenterIngestion` is registered. It also adds
+   a weekly ACR task (`acr purge`) that keeps each repository's 3 newest
+   releases: Microsoft serves buyers from its own copy, so Basic's 10 GiB is
+   enough. Read the script, then run it (`az login` first, as an Owner of the
+   subscription):
 
    ```bash
-   az group create --name oneuptime-marketplace --location eastus
-   az acr create --name oneuptimemarketplace --resource-group oneuptime-marketplace --sku Standard
+   python3 HelmChart/Marketplace/automation/ci_setup.py azure-registry
+   python3 HelmChart/Marketplace/automation/ci_setup.py azure-registry --apply
    ```
 
-   Put `oneuptimemarketplace.azurecr.io` (or the name you chose) into
-   `editions.json` as `azure.registry`.
+   The registry is `editions.json`'s `azure.registry`
+   (`oneuptimemarketplace.azurecr.io`).
 
-2. **Let Microsoft pull from it** (needs Owner or User Access Administrator
-   on the registry):
-
-   ```bash
-   az ad sp show --id 32597670-3e15-4def-8851-614ff48c1efa || az ad sp create --id 32597670-3e15-4def-8851-614ff48c1efa
-   az role assignment create --assignee 32597670-3e15-4def-8851-614ff48c1efa --role acrpull --scope "$(az acr show --name oneuptimemarketplace --query id --output tsv)"
-   az provider register --namespace Microsoft.PartnerCenterIngestion --subscription "$(az account show --query id --output tsv)" --wait
-   ```
-
-3. **New offer** in Partner Center: **Marketplace offers > New offer > Azure
+2. **New offer** in Partner Center: **Marketplace offers > New offer > Azure
    Container**. Offer ID `oneuptime-enterprise` (permanent; it shows in URLs),
    alias "OneUptime Enterprise (self-hosted)".
    - **Properties**: categories (monitoring, DevOps: the closest Microsoft
@@ -269,7 +293,7 @@ OneUptime's Partner Center account and the HackerBay tenant
      numbers).
    - **Preview audience**: the Azure subscription IDs of the testers (up to 10
      by hand).
-4. **Plan**: **New plan**, plan ID `enterprise` (permanent), name "OneUptime
+3. **Plan**: **New plan**, plan ID `enterprise` (permanent), name "OneUptime
    Enterprise".
    - **Pricing and availability**: markets (maintainer); billing model
      **Custom**, one dimension: ID `users`, display name "Users", unit of
@@ -307,7 +331,9 @@ Everything lives in the `oneuptime-marketplace` project, never in
    `roles/viewer` to `cloud-commerce-marketplace-onboarding@twosync-src.google.com`,
    and whatever else Producer Portal's technical integration page asks for.
 4. **The registry** (the maintainer approves the cost: Artifact Registry
-   storage, a few dollars a month):
+   storage, about a dollar a month). `ci_setup.py google` creates it, with a
+   cleanup policy that keeps each image's 3 newest releases (Google serves
+   buyers from its own copy), and the workflow's sign-in (below). By hand:
 
    ```bash
    gcloud services enable artifactregistry.googleapis.com servicecontrol.googleapis.com servicemanagement.googleapis.com --project=oneuptime-marketplace
@@ -328,9 +354,80 @@ Everything lives in the `oneuptime-marketplace` project, never in
 7. **Listing**: the copy and media in
    [Listing content](#listing-content-paste-ready); support and legal links.
 
+### The release workflow: one-time setup
+
+The Marketplace Release workflow signs in to every cloud with GitHub's OIDC
+token, so the repository holds no secret. `ci_setup.py` prints each script
+first; read it, then run it with `--apply`, signed in as the maintainer. Each
+script is safe to run again, and prints the repository variables to set.
+
+1. **AWS** (`aws login --profile oneuptime`; needs `aws.productId` and
+   `aws.registry`): `ci_setup.py aws`. A role that only the workflow's two
+   environments can assume, which may push to this product's repositories and
+   add versions (`AddDeliveryOptions`) to this product, and nothing else.
+2. **Microsoft** (`az login`): `ci_setup.py azure-registry` (above), then
+   `ci_setup.py azure`: an Entra app with federated credentials for the two
+   environments and AcrPush on the registry. Then, by hand, once: in Partner
+   Center, **Account settings > User management > Microsoft Entra
+   applications**, add that app with the **Manager** role, so it can update
+   and publish the offer.
+3. **Google** (`gcloud auth login`): `ci_setup.py google`: the registry with
+   its cleanup policy, a service account that can write to it, and Workload
+   Identity Federation that trusts only this repository's two environments.
+4. **GitHub** (`gh auth login`, as a repository admin):
+
+   ```bash
+   python3 HelmChart/Marketplace/automation/ci_setup.py github --reviewer <your login> \
+     --set MARKETPLACE_RELEASE_AWS_ROLE_ARN=... --set MARKETPLACE_RELEASE_AZURE_CLIENT_ID=... (each variable printed above)
+   ```
+
+   It creates the `marketplace-push` environment (master only) and the
+   `marketplace-publish` environment (master only, and every job waits for a
+   reviewer), and sets the variables. Add `--enable` to set
+   `MARKETPLACE_RELEASES=enabled` once a dry run has passed: the workflow
+   then runs after every release.
+
+5. **Each edition**: set `"ready": true` in `editions.json` once its values
+   are real.
+6. **Try it**: run **Marketplace Release** by hand (Actions > Marketplace
+   Release > Run workflow). It is a dry run unless you untick `dry_run`.
+
 ## Releasing a version
 
 Ship the same OneUptime release to all three listings.
+
+### With the Marketplace Release workflow
+
+After every release, once `MARKETPLACE_RELEASES` is `enabled`,
+[the workflow](../../../../../.github/workflows/marketplace-release.yml) does
+everything below for each ready marketplace:
+
+1. **Tests** the marketplace chart suite on the chart as it was released.
+2. **Pushes**, with no approval (pushing publishes nothing): each edition's
+   images, then the chart to AWS Marketplace's registry, the bundle (built
+   with Microsoft's `cpa`) to our Azure registry, and the deployer to
+   Artifact Registry.
+3. **Waits for a maintainer** to approve the publishing jobs (**Review
+   deployments** on the run), then:
+   - **AWS**: adds the version (Catalog API, `AddDeliveryOptions`, with the
+     GitHub release's notes) and follows AWS's scan; the version is public
+     once AWS applies it.
+   - **Microsoft**: points the plan's technical configuration at the new
+     bundle and publishes the offer to **preview** (Product Ingestion API).
+   - **Google**: Google has no API for this step. The run's summary says
+     what to add in Producer Portal: the deployer, its digest and its track.
+4. **Microsoft goes live by hand**: once the preview has passed Microsoft's
+   checks and been tried (see [Checking an installation](#checking-an-installation)),
+   run the workflow with **action: azure-go-live**; after its approval it
+   publishes the newest succeeded preview to live, and AKS then upgrades
+   buyers' clusters to it.
+
+Run it by hand for one marketplace, an older release, or a dry run
+(**version**, **marketplaces**, **dry_run**). A dry run builds and checks
+everything and keeps what a real run would send (the AWS change set, the
+Partner Center request) as the run's artifacts.
+
+The steps below are what the workflow runs, and how to do them by hand.
 
 ### Before every release
 
@@ -380,16 +477,17 @@ version**:
 - One **Helm chart** delivery option:
   - **Helm chart**: `709825985650.dkr.ecr.us-east-1.amazonaws.com/<sellerName>/oneuptime:X.Y.Z`.
   - **Container images**: every `target` in `$OUT/images.json`.
-  - **Delivery option title** "Helm chart for Amazon EKS"; description and
-    **usage instructions** from [Listing content](#listing-content-paste-ready).
+  - **Delivery option title**, description and **usage instructions**: as
+    `HelmChart/Marketplace/aws/delivery-option.json` has them (the workflow
+    sends that file).
   - **Supported services**: Amazon EKS.
   - **Helm release name** `oneuptime`; **Helm installation namespace**
-    `oneuptime`; **Kubernetes service account name** `oneuptime` (the
-    edition's `serviceAccount.name`, which the chart does not create: AWS shows
-    the buyer the `eksctl` command that creates it with an IAM role).
-  - **Override parameters**: `host` ("The domain name people open OneUptime
-    at", default `localhost`) and `httpProtocol` ("http or https", default
-    `http`).
+    `oneuptime`; **Kubernetes service account name** left empty.
+  - **Override parameters**: `host` (default `localhost`), `httpProtocol`
+    (default `http`), and `serviceAccount.name` with the default
+    `${AWSMP_SERVICE_ACCOUNT}`: AWS fills in the service account its launch
+    page has the buyer create with `eksctl` and an IAM role, and the chart,
+    which does not create one, runs OneUptime as it.
 - **Submit**: AWS scans the images and the new version appears to the
   allowlist. A version that is not public yet can still be edited.
 
@@ -724,8 +822,14 @@ cost a review round.
   installation is told about a release before it is on its marketplace. The
   buyer guide tells buyers to upgrade through the marketplace; setting
   `updateCheck.disabled` in the editions (`build.py`) would remove the notice.
-- Releases are built by hand from this guide; a CI workflow could run the
-  build, mirror and push steps once the registries exist.
+- **Google's version is added by hand** in Producer Portal: Google has no API
+  for it. The workflow pushes everything and writes what to add.
+- **The automation has not met the real listings yet.** The Partner Center
+  requests (a preview API) and `azure.bundleRepository` follow Microsoft's
+  documentation, and the AWS change set follows the Catalog API's: check the
+  first real run of each, and correct `editions.json` or the scripts there.
+- `mpdev verify` does not run in the workflow (it needs a GKE cluster); run it
+  by hand before submitting a Google version when it matters.
 - Microsoft and Google editions install on `linux/amd64` nodes only.
 
 ## History
@@ -737,6 +841,7 @@ rejection, go-live and price change.
 | ---------- | ----------- | --------------------------------------------------------------------------------------------------- | ---------- |
 | 2026-10-17 | All three   | Pricing approved: per user-hour, USD 0.10, one public plan per marketplace, deals as private offers | Maintainer |
 | 2026-10-17 | All three   | Billing, licensing and packaging merged with this guide; nothing submitted to any marketplace       | Agent      |
+| 2026-10-17 | All three   | The Marketplace Release workflow and the one-time CI setup added; nothing set up yet                | Agent      |
 
 ## Notes for agents driving the browser
 

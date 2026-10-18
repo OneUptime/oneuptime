@@ -4,7 +4,7 @@
 # OneUptime Enterprise sold on AWS Marketplace (EKS), Microsoft Marketplace
 # (AKS) and Google Cloud Marketplace (GKE), billed per user by the hour.
 #
-# The build script's own unit tests run first. Then each edition is built
+# The unit tests of build.py and of the release automation run first. Then each edition is built
 # from the chart as it is now and rendered with helm, and what each
 # marketplace checks at submission is checked here, so a chart change that
 # would be rejected fails on the pull request instead:
@@ -99,9 +99,9 @@ render() {
 # --- build.py's own unit tests -----------------------------------------------
 
 if python3 -m unittest discover -s "$MARKETPLACE_DIR" -p 'test_*.py' >"${WORK_DIR}/unittest.log" 2>&1; then
-    pass "build.py unit tests ($(grep -oE 'Ran [0-9]+ tests' "${WORK_DIR}/unittest.log"))"
+    pass "unit tests of build.py and the release automation ($(grep -oE 'Ran [0-9]+ tests' "${WORK_DIR}/unittest.log"))"
 else
-    fail "build.py unit tests"
+    fail "unit tests of build.py and the release automation"
     sed 's/^/        /' "${WORK_DIR}/unittest.log" | tail -40
 fi
 
@@ -357,6 +357,55 @@ for marketplace in aws azure google-cloud; do
             assert_present "google-cloud: tags every image with its track" "$MIRROR" "crane tag "
             ;;
     esac
+done
+
+# --- The release automation (HelmChart/Marketplace/automation) --------------------------
+#
+# What the Marketplace Release workflow sends, built from the editions above with no cloud:
+# the AWS change set, the Partner Center request and the Google steps - and the one-time setup
+# scripts parse.
+
+AUTOMATION_DIR="${MARKETPLACE_DIR}/automation"
+ZERO_DIGEST="sha256:$(printf '0%.0s' {1..64})"
+
+if [ -f "${WORK_DIR}/aws/images.json" ]; then
+    if python3 "${AUTOMATION_DIR}/aws_catalog.py" plan --images-json "${WORK_DIR}/aws/images.json" --version "$VERSION" \
+        --product-id prod-test --out "${WORK_DIR}/aws-change-set.json" >/dev/null 2>"${WORK_DIR}/aws-change-set.log"; then
+        CHANGE_SET="$(cat "${WORK_DIR}/aws-change-set.json")"
+        assert_present "aws: the change set adds the version" "$CHANGE_SET" '"ChangeType": "AddDeliveryOptions"'
+        assert_present "aws: the change set ships the chart" "$CHANGE_SET" "\"HelmChartUri\": \"$(edition_value aws registry)/oneuptime:${VERSION}\""
+        assert_present "aws: the buyer's service account reaches the chart" "$CHANGE_SET" '"DefaultValue": "${AWSMP_SERVICE_ACCOUNT}"'
+        CHANGE_SET_IMAGES="$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))[0]["DetailsDocument"]["DeliveryOptions"][0]["Details"]["HelmDeliveryOptionDetails"]["ContainerImages"]))' "${WORK_DIR}/aws-change-set.json")"
+        assert_eq "aws: the change set lists every image" "7" "$CHANGE_SET_IMAGES"
+    else
+        fail "aws: the change set builds"
+        sed 's/^/        /' "${WORK_DIR}/aws-change-set.log" | tail -10
+    fi
+fi
+
+if python3 "${AUTOMATION_DIR}/partner_center.py" plan --tag "$VERSION" --digest "$ZERO_DIGEST" \
+    --out "${WORK_DIR}/partner-center.json" >/dev/null 2>"${WORK_DIR}/partner-center.log"; then
+    REQUEST="$(cat "${WORK_DIR}/partner-center.json")"
+    assert_present "azure: the request points the plan at the release's bundle" "$REQUEST" "\"tag\": \"${VERSION}\""
+    assert_present "azure: the bundle is the one cpa pushes" "$REQUEST" "\"repositoryName\": \"$(edition_value azure bundleRepository)\""
+    assert_present "azure: the cluster extension type is the plan's" "$REQUEST" "\"clusterExtensionType\": \"$(edition_value azure clusterExtensionType)\""
+else
+    fail "azure: the Partner Center request builds"
+    sed 's/^/        /' "${WORK_DIR}/partner-center.log" | tail -10
+fi
+
+GOOGLE_STEPS="$(GITHUB_STEP_SUMMARY='' python3 "${AUTOMATION_DIR}/google_cloud_release.py" summary --version "$VERSION" --deployer-digest "$ZERO_DIGEST" 2>&1 || true)"
+assert_present "google-cloud: the Producer Portal steps name the deployer" "$GOOGLE_STEPS" "$(edition_value google-cloud registry)/deployer:${VERSION}"
+
+for SETUP in google azure azure-registry; do
+    SETUP_SCRIPT="$(python3 "${AUTOMATION_DIR}/ci_setup.py" "$SETUP" 2>/dev/null || true)"
+
+    if [ -n "$SETUP_SCRIPT" ] && bash -n <<<"$SETUP_SCRIPT" 2>"${WORK_DIR}/setup-${SETUP}.log"; then
+        pass "setup: the ${SETUP} script is valid bash"
+    else
+        fail "setup: the ${SETUP} script is valid bash"
+        sed 's/^/        /' "${WORK_DIR}/setup-${SETUP}.log" | tail -5
+    fi
 done
 
 harness_report
