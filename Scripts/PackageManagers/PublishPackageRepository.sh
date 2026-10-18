@@ -113,14 +113,14 @@ if [[ "$URL" == https://* && "$host" != *.github.io ]]; then
 fi
 
 if [[ -z "$(git -C "$SITE" status --porcelain)" ]]; then
-	echo "The site already has oneuptime-infrastructure-agent $VERSION; nothing to push."
+	echo "Nothing on the site changed; nothing to push."
 	exit 0
 fi
 
 git -C "$SITE" checkout --quiet --orphan "publish-$VERSION"
 git -C "$SITE" add --all
 git -C "$SITE" -c user.name="Continuous Integration" -c user.email="hello@oneuptime.com" \
-	commit --quiet -m "oneuptime-infrastructure-agent $VERSION"
+	-c commit.gpgsign=false commit --quiet -m "oneuptime-infrastructure-agent $VERSION"
 git -C "$SITE" push --quiet --force-with-lease="refs/heads/$BRANCH:$BASE" \
 	origin "HEAD:refs/heads/$BRANCH"
 

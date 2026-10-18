@@ -91,7 +91,7 @@ mkdir -p "$TAP/Casks"
 cp "$CASK_FILE" "$TARGET"
 git -C "$TAP" add "Casks/$(basename "$CASK_FILE")"
 git -C "$TAP" -c user.name="Continuous Integration" -c user.email="hello@oneuptime.com" \
-	commit --quiet -m "$(basename "$CASK_FILE" .rb) $VERSION"
+	-c commit.gpgsign=false commit --quiet -m "$(basename "$CASK_FILE" .rb) $VERSION"
 git -C "$TAP" push --quiet origin "HEAD:refs/heads/$BRANCH"
 
 echo "Published $(basename "$CASK_FILE" .rb) $VERSION to $REPOSITORY."

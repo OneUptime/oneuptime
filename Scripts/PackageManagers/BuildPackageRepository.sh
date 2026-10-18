@@ -144,6 +144,42 @@ if [[ "$published" == true ]]; then
 	exit 0
 fi
 
+shopt -s nullglob
+
+deb_version() {
+	local name
+	name="$(basename "$1" .deb)"
+	name="${name#"${PACKAGE}"_}"
+	echo "${name%_*}"
+}
+
+rpm_version() {
+	local name
+	name="$(basename "$1" .rpm)"
+	name="${name#"${PACKAGE}"-}"
+	name="${name%.*}"
+	echo "${name%-*}"
+}
+
+# Every version the repository has, oldest first.
+versions() {
+	{
+		for file in "$POOL"/*.deb; do deb_version "$file"; done
+		for file in "$RPM"/Packages/*.rpm; do rpm_version "$file"; done
+	} | sort --unique --version-sort
+}
+
+# A version older than all the repository keeps would be removed again at
+# once (a re-run of an old release's job): leave the repository as it is.
+mapfile -t VERSIONS < <(versions)
+if ((${#VERSIONS[@]} >= KEEP)); then
+	oldest_kept="${VERSIONS[${#VERSIONS[@]}-KEEP]}"
+	if [[ "$VERSION" != "$oldest_kept" && "$(printf '%s\n%s\n' "$VERSION" "$oldest_kept" | sort --version-sort | head -n 1)" == "$VERSION" ]]; then
+		echo "$PACKAGE $VERSION is older than the $KEEP versions the repository keeps; nothing to do."
+		exit 0
+	fi
+fi
+
 # ─── Add them: the .debs as they are, the .rpms signed ───────────────────
 
 mkdir -p "$POOL" "$RPM/Packages"
@@ -162,28 +198,7 @@ done
 
 # ─── Keep the newest versions ────────────────────────────────────────────
 
-shopt -s nullglob
-
-deb_version() {
-	local name
-	name="$(basename "$1" .deb)"
-	name="${name#"${PACKAGE}"_}"
-	echo "${name%_*}"
-}
-
-rpm_version() {
-	local name
-	name="$(basename "$1" .rpm)"
-	name="${name#"${PACKAGE}"-}"
-	name="${name%.*}"
-	echo "${name%-*}"
-}
-
-mapfile -t VERSIONS < <(
-	for file in "$POOL"/*.deb; do deb_version "$file"; done
-	for file in "$RPM"/Packages/*.rpm; do rpm_version "$file"; done
-)
-mapfile -t VERSIONS < <(printf '%s\n' "${VERSIONS[@]}" | sort --unique --version-sort)
+mapfile -t VERSIONS < <(versions)
 
 if ((${#VERSIONS[@]} > KEEP)); then
 	for old in "${VERSIONS[@]:0:${#VERSIONS[@]}-KEEP}"; do
@@ -300,6 +315,7 @@ cat >"$REPOSITORY/index.html" <<EOF
 <h2>Debian and Ubuntu</h2>
 <pre>sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL $BASE_URL/gpg.key -o /etc/apt/keyrings/oneuptime.asc
+sudo chmod a+r /etc/apt/keyrings/oneuptime.asc
 echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] $BASE_URL/deb $SUITE $COMPONENT" | sudo tee /etc/apt/sources.list.d/oneuptime.list
 sudo apt-get update
 sudo apt-get install $PACKAGE</pre>
