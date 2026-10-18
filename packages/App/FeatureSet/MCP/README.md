@@ -151,7 +151,7 @@ Purpose-built shortcuts for incident/alert response (`packages/App/FeatureSet/MC
 
 ### Annotations and results
 
-All tools carry MCP annotations and titles: `readOnlyHint` on every `get_`/`list_`/`count_` tool and `destructiveHint` on every `delete_` tool, so clients can auto-approve safe calls and confirm destructive ones. Tool results include `structuredContent` alongside the JSON text. Errors come back as in-band tool results (`isError: true`) with `statusCode`, `details`, and a `suggestion` — not as protocol errors.
+All tools carry MCP annotations and titles: `readOnlyHint` on every `get_`/`list_`/`count_` tool and `destructiveHint` on every `delete_` tool, so clients can auto-approve safe calls and confirm destructive ones. MCP directories require them: the Claude Connectors Directory flags any tool without a `title` or a `readOnlyHint`/`destructiveHint`, so `Tests/ToolAnnotationsForDirectories.test.ts` fails on a tool that lacks either, or whose `readOnlyHint` disagrees with what the server lets a read-only sign-in call. Tool results include `structuredContent` alongside the JSON text. Errors come back as in-band tool results (`isError: true`) with `statusCode`, `details`, and a `suggestion` — not as protocol errors.
 
 ## Query, sort, select, and pagination
 
@@ -273,6 +273,36 @@ log through them. The API key or access token is never logged.
 The MCP server ships as part of the App container and is served at `/mcp` behind Nginx — no separate deployment is needed. Its tools call the OneUptime API at the App's internal address - `SERVER_APP_HOSTNAME` and `APP_PORT`, the address Nginx proxies `/api` to (inherited from the App service's environment) - never through the public `HOST`, which the App container cannot always reach (with `HOST=localhost` it is the container itself). API keys are never configured on the server; clients supply them per request.
 
 OAuth sign-in needs nothing configured either, but it does depend on `HOST` and `HTTP_PROTOCOL` being the address people actually use: the issuer, the token audience and every endpoint in the discovery documents are built from them. A reverse proxy in front of OneUptime has to forward `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server` (and everything under them) to the App along with `/mcp`; the bundled Nginx does.
+
+## MCP Registry
+
+OneUptime Cloud's server is listed in the official [MCP Registry](https://registry.modelcontextprotocol.io), which MCP clients and directories read, as `com.oneuptime/mcp`. [`server.json`](server.json) is the entry: streamable HTTP at `https://oneuptime.com/mcp`, signed in to with OAuth, or given a project API key in the optional `x-api-key` header. Its `version` is a placeholder, `0.0.0`.
+
+Every release publishes it at the release's version. The `publish-mcp-registry` job in `.github/workflows/release.yml` runs `Scripts/MCP/PublishToMcpRegistry.sh` once the GitHub release is published, and skips a version the registry already has, so re-running a release publishes nothing twice. A published version cannot be changed.
+
+Only whoever controls `oneuptime.com` may publish under `com.oneuptime`. The job signs in with an Ed25519 private key whose public key is in a TXT record on `oneuptime.com`, and it fails, publishing nothing, until both are in place. To set them up (Ed25519 needs OpenSSL 3; on macOS, `brew install openssl@3` and use its `openssl`, not the system LibreSSL):
+
+1. Make a key pair:
+
+   ```bash
+   openssl genpkey -algorithm Ed25519 -out mcp-registry-key.pem
+   ```
+
+2. Add a TXT record on `oneuptime.com` itself, not on a subdomain such as `_mcp.oneuptime.com`, with the value this prints:
+
+   ```bash
+   echo "v=MCPv1; k=ed25519; p=$(openssl pkey -in mcp-registry-key.pem -pubout -outform DER | tail -c 32 | base64)"
+   ```
+
+3. In the repository's **Settings → Environments**, create `mcp-registry-publish`, limit its deployment branches to `release`, and give it the secret `MCP_REGISTRY_PRIVATE_KEY`: the private key in hex, which this prints:
+
+   ```bash
+   openssl pkey -in mcp-registry-key.pem -noout -text | grep -A3 "priv:" | tail -n +2 | tr -d ' :\n'
+   ```
+
+Then delete `mcp-registry-key.pem`, or keep it somewhere safe: whoever has the key can publish, and overwrite, any entry under `com.oneuptime`. To change the key, replace the TXT record and the secret together; an old record left beside the new one is tried first and fails the sign-in.
+
+To publish before the next release, run the script by hand from the repository root, with [`mcp-publisher`](https://github.com/modelcontextprotocol/registry/releases) and `jq` installed: `PACKAGE_VERSION=<version> MCP_REGISTRY_PRIVATE_KEY=<hex key> bash Scripts/MCP/PublishToMcpRegistry.sh`.
 
 ## Development
 
