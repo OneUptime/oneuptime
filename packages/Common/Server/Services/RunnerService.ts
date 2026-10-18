@@ -23,6 +23,8 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import ComponentKeyWrite from "../Utils/ComponentKeyWrite";
+import { isShippedSecretValue } from "../EnvironmentConfig";
 import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import AiCommandCredentialReach, {
   CredentialReachHold,
@@ -215,6 +217,9 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.key = ObjectID.generate().toString();
     }
 
+    // Never a value this repository ships, whoever writes it (ComponentKeyWrite).
+    ComponentKeyWrite.assertCreatedKey(createBy.data.key, "a Runner");
+
     if (!createBy.data.agentVersion) {
       createBy.data.agentVersion = new Version("1.0.0");
     }
@@ -274,6 +279,12 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    /*
+     * A key it writes is never a value this repository ships, whoever
+     * writes it, root included (ComponentKeyWrite).
+     */
+    ComponentKeyWrite.assertUpdatedKey(updateBy.data, "a Runner");
 
     if (updateBy.props.isRoot) {
       return { updateBy, carryForward: null };
@@ -601,6 +612,19 @@ export class Service extends ProjectReferencesService<Model> {
     agentKey: string;
   }): Promise<Model | null> {
     if (!data.agentId || !data.agentKey) {
+      return null;
+    }
+
+    /*
+     * A key this repository ships never authenticates a Runner: one that is
+     * blank, "secret" or a config.example.env placeholder
+     * (EnvironmentConfig.isShippedSecretValue) is refused before the table is
+     * read, whether or not a row holds it. This is the lookup the runbook
+     * protocol authenticates every request with (RunnerAuthorization), so
+     * the rule holds on every route at once. A real Runner's key is a long
+     * random value the server made, which this never refuses.
+     */
+    if (isShippedSecretValue(data.agentKey)) {
       return null;
     }
 
