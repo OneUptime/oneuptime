@@ -17,7 +17,7 @@ import path from "path";
  * A global probe runs every project's monitors and the bundled Runner serves
  * every project's AI code fixes, so a key that is public in the repository
  * must never let a caller be one of them. The note (installation/upgrading,
- * "Other changes in 14") sits after the bundled-Runner note and before the
+ * "Other changes in 14") sits after the wrong-two-factor-codes note and before the
  * endpoint pointer, names the four keys it is about and where an operator
  * sets them, and every translation carries it in the English note's place
  * with the English note's code. What it claims is what the server and the
@@ -37,9 +37,9 @@ const REPO_ROOT: string = path.resolve(PACKAGES_DIR, "..");
 
 const NOTE_LEAD: string =
   "**A global probe and the bundled Runner no longer authenticate with a key the repository ships.**";
-// The note before it (the bundled-Runner note, SharedRunnerUpgradeDocs).
+// The note before it (the wrong-two-factor-codes note, TwoFactorWrongCodesDocs).
 const PREVIOUS_LEAD: string =
-  "**The bundled Runner no longer runs a repository's commands, and holds only what it needs.**";
+  "**Wrong two-factor codes are counted for the account, wherever they come from.**";
 const POINTER_START: string = "- See [API and endpoint changes]";
 
 const KEYS: Array<string> = [
@@ -69,7 +69,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on the global-probe and Runner keys", () => {
-  it("is a note of the 13 → 14 changes, once, after the bundled-Runner note and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the wrong-two-factor-codes note and before the endpoint pointer", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

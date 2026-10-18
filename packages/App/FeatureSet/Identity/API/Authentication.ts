@@ -29,6 +29,7 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import ServiceUnavailableException from "Common/Types/Exception/ServiceUnavailableException";
+import TooManyRequestsException from "Common/Types/Exception/TooManyRequestsException";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import HashedString from "Common/Types/HashedString";
@@ -76,6 +77,11 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import TotpAuth from "Common/Server/Utils/TotpAuth";
+import TwoFactorWrongCodes, {
+  TwoFactorCodeCheck,
+  TwoFactorCodeCheckOutcome,
+  TwoFactorCodeKind,
+} from "Common/Server/Utils/TwoFactorWrongCodes";
 import UserRegistrationToken from "Common/Server/Utils/UserRegistrationToken";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import User from "Common/Models/DatabaseModels/User";
@@ -89,6 +95,7 @@ import MobilePasskeyLoginService, {
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import IdentityRateLimit, {
+  IDENTITY_COUNTER_UNAVAILABLE_MESSAGE,
   IdentityRateLimitBucket,
   VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
 } from "Common/Server/Middleware/IdentityRateLimit";
@@ -129,6 +136,10 @@ const loginRateLimit: (
  * -- and an unlimited one is a hole in the fence, not merely an unguarded
  * route: an attacker refused at /login simply points the same guesses here.
  * Whatever bounds /login has to bound these too.
+ *
+ * It counts per client. The ACCOUNT is held by the handler, which counts the
+ * account's wrong codes itself once the password is right
+ * (TwoFactorWrongCodes in `login()` below), wherever the codes come from.
  */
 const twoFactorRateLimit: (
   req: ExpressRequest,
@@ -2087,12 +2098,14 @@ router.post(
  *
  * WHY IT IS NOT A WEAKER DOOR
  *
- * It sits on the twoFactorRateLimit bucket like its siblings, but the code
- * space is what actually guards it: ten characters over a 32 symbol alphabet
- * is 2^50, so a caller holding the password guesses one of the user's ten
- * remaining codes with probability ~10/2^50 per attempt. That is roughly ten
- * orders of magnitude further out of reach than the six digit TOTP space the
- * limiter was sized for -- the limiter is a backstop here, not the control.
+ * It sits on a sign-in limiter bucket of its own (backupCodeRateLimit), and
+ * its wrong codes are counted for the account on a count of their own
+ * (TwoFactorWrongCodes), but the code space is what actually guards it: ten
+ * characters over a 32 symbol alphabet is 2^50, so a caller holding the
+ * password guesses one of the user's ten remaining codes with probability
+ * ~10/2^50 per attempt. That is roughly ten orders of magnitude further out
+ * of reach than the six digit TOTP space the limiter was sized for -- the
+ * limits are a backstop here, not the control.
  *
  * Codes are single use and consumed by one conditional UPDATE inside Postgres
  * (UserTwoFactorBackupCodeService.consumeCode), so two requests carrying the
@@ -2300,6 +2313,106 @@ const getOrCreatePendingTotpEnrolment: GetOrCreatePendingTotpEnrolmentFunction =
       },
     });
   };
+
+/*
+ * The answer to a code that was not checked, because the account is waiting
+ * after too many wrong codes in a row (TwoFactorWrongCodes), or because the
+ * count could not be read. Reached only after the password was accepted, so
+ * the waiting message may say what is going on; the unavailable one is the
+ * sign-in limiter's, word for word.
+ */
+type SendCodeNotCheckedFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  kind: TwoFactorCodeKind;
+  check: TwoFactorCodeCheck;
+}) => void;
+
+const sendCodeNotChecked: SendCodeNotCheckedFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  kind: TwoFactorCodeKind;
+  check: TwoFactorCodeCheck;
+}): void => {
+  if (data.check.outcome === TwoFactorCodeCheckOutcome.Waiting) {
+    const setHeader: unknown = (data.res as unknown as Record<string, unknown>)[
+      "setHeader"
+    ];
+
+    if (typeof setHeader === "function") {
+      (setHeader as (name: string, value: string) => void).call(
+        data.res,
+        "Retry-After",
+        String(data.check.waitSeconds),
+      );
+    }
+
+    return Response.sendErrorResponse(
+      data.req,
+      data.res,
+      new TooManyRequestsException(
+        TwoFactorWrongCodes.getWaitingMessage(
+          data.kind,
+          data.check.waitSeconds,
+        ),
+      ),
+    );
+  }
+
+  return Response.sendErrorResponse(
+    data.req,
+    data.res,
+    new ServiceUnavailableException(IDENTITY_COUNTER_UNAVAILABLE_MESSAGE),
+  );
+};
+
+/*
+ * After a counted attempt that did not sign in - a wrong code, an app that
+ * is not the account's, or a request that failed before its code could be
+ * checked: once the waits have begun, the owner is emailed, at most once a
+ * day (TwoFactorWrongCodes.shouldTellOwner), at the address on the account
+ * rather than in the browser that entered the codes.
+ *
+ * Called from a `finally`, so it never throws: the mail is never awaited,
+ * and nothing here may change the answer the caller gets, whatever the mail
+ * server or Valkey says.
+ */
+type TellOwnerAboutWrongCodeFunction = (data: {
+  req: ExpressRequest;
+  user: User;
+  check: TwoFactorCodeCheck;
+}) => Promise<void>;
+
+const tellOwnerAboutWrongCode: TellOwnerAboutWrongCodeFunction = async (data: {
+  req: ExpressRequest;
+  user: User;
+  check: TwoFactorCodeCheck;
+}): Promise<void> => {
+  try {
+    const shouldTellOwner: boolean = await TwoFactorWrongCodes.shouldTellOwner({
+      userId: data.user.id!,
+      wrongCodesInARow: data.check.wrongCodesInARow,
+    });
+
+    if (!shouldTellOwner) {
+      return;
+    }
+
+    logger.warn(
+      `Wrong two factor codes in a row for user ${data.user.id!.toString()}: ${data.check.wrongCodesInARow}. Each next code now waits.`,
+      getLogAttributesFromRequest(data.req as RequestLike),
+    );
+
+    AuthenticationEmail.sendTwoFactorWrongCodesEmail({
+      user: data.user,
+      wrongCodesInARow: data.check.wrongCodesInARow,
+    }).catch((err: Error) => {
+      logger.error(err, getLogAttributesFromRequest(data.req as RequestLike));
+    });
+  } catch (err) {
+    logger.error(err, getLogAttributesFromRequest(data.req as RequestLike));
+  }
+};
 
 /*
  * The three second-step modes this handler serves, on top of a plain password
@@ -2655,12 +2768,43 @@ const login: LoginFunction = async (options: {
 
       if (isSecondStep) {
         if (verifyTotpAuth) {
+          /*
+           * Counted for the account before the code is looked at, wherever
+           * the request came from (TwoFactorWrongCodes): after five wrong
+           * codes in a row, each next code waits, and while it waits no code
+           * is checked, right or wrong. The password has been checked above,
+           * so only somebody who holds it moves this count.
+           */
+          const codeCheck: TwoFactorCodeCheck =
+            await TwoFactorWrongCodes.startCheck({
+              userId: alreadySavedUser.id!,
+              kind: TwoFactorCodeKind.AuthenticatorCode,
+            });
+
+          if (codeCheck.outcome !== TwoFactorCodeCheckOutcome.Allowed) {
+            return sendCodeNotChecked({
+              req,
+              res,
+              kind: TwoFactorCodeKind.AuthenticatorCode,
+              check: codeCheck,
+            });
+          }
+
           // code from req
           const code: string = data["code"] as string;
           const twoFactorAuthId: string = data["twoFactorAuthId"] as string;
 
-          const totpAuth: UserTotpAuth | null =
-            await UserTotpAuthService.findOneBy({
+          let totpAuth: UserTotpAuth | null = null;
+          let isVerified: boolean = false;
+
+          /*
+           * Whatever ends this counted attempt short of the right code - an
+           * app that is not the account's, a wrong code, or an id that is not
+           * one, which the query refuses by throwing - tells the owner once
+           * the waits have begun, as the count already holds it against them.
+           */
+          try {
+            totpAuth = await UserTotpAuthService.findOneBy({
               query: {
                 _id: twoFactorAuthId,
                 userId: alreadySavedUser.id!,
@@ -2675,6 +2819,23 @@ const login: LoginFunction = async (options: {
               },
             });
 
+            if (totpAuth) {
+              isVerified = TotpAuth.verifyToken({
+                token: code,
+                secret: totpAuth.twoFactorSecret!,
+                email: alreadySavedUser.email!,
+              });
+            }
+          } finally {
+            if (!isVerified) {
+              await tellOwnerAboutWrongCode({
+                req,
+                user: alreadySavedUser,
+                check: codeCheck,
+              });
+            }
+          }
+
           if (!totpAuth) {
             return Response.sendErrorResponse(
               req,
@@ -2682,12 +2843,6 @@ const login: LoginFunction = async (options: {
               new BadDataException("Invalid two factor auth id."),
             );
           }
-
-          const isVerified: boolean = TotpAuth.verifyToken({
-            token: code,
-            secret: totpAuth.twoFactorSecret!,
-            email: alreadySavedUser.email!,
-          });
 
           if (!isVerified) {
             return Response.sendErrorResponse(
@@ -2768,11 +2923,49 @@ const login: LoginFunction = async (options: {
            */
           CredentialGuard.assertPresent(backupCode, "Backup code");
 
-          const isBackupCodeConsumed: boolean =
-            await UserTwoFactorBackupCodeService.consumeCode({
+          /*
+           * Counted for the account like an authenticator code, on a count of
+           * its own: somebody whose authenticator codes have stopped working
+           * comes here next, and must not find this way back in waiting
+           * because of them.
+           */
+          const backupCodeCheck: TwoFactorCodeCheck =
+            await TwoFactorWrongCodes.startCheck({
               userId: alreadySavedUser.id!,
-              code: backupCode,
+              kind: TwoFactorCodeKind.BackupCode,
             });
+
+          if (backupCodeCheck.outcome !== TwoFactorCodeCheckOutcome.Allowed) {
+            return sendCodeNotChecked({
+              req,
+              res,
+              kind: TwoFactorCodeKind.BackupCode,
+              check: backupCodeCheck,
+            });
+          }
+
+          let isBackupCodeConsumed: boolean = false;
+
+          /*
+           * A counted attempt that spends no code - a wrong one, or a look-up
+           * that failed - tells the owner once the waits have begun, as a
+           * wrong authenticator code does.
+           */
+          try {
+            isBackupCodeConsumed =
+              await UserTwoFactorBackupCodeService.consumeCode({
+                userId: alreadySavedUser.id!,
+                code: backupCode,
+              });
+          } finally {
+            if (!isBackupCodeConsumed) {
+              await tellOwnerAboutWrongCode({
+                req,
+                user: alreadySavedUser,
+                check: backupCodeCheck,
+              });
+            }
+          }
 
           if (!isBackupCodeConsumed) {
             /*
@@ -3035,6 +3228,14 @@ const login: LoginFunction = async (options: {
             logger.error(backupCodeError);
           }
         }
+
+        /*
+         * The second step passed - a code, a backup code, a security key or
+         * a first enrolment - so the account's wrong codes are forgotten,
+         * the one counted with this request included. Never fails the
+         * sign-in (TwoFactorWrongCodes.forget does not throw).
+         */
+        await TwoFactorWrongCodes.forget(alreadySavedUser.id!);
       } // Refresh Permissions for this user here.
       await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 

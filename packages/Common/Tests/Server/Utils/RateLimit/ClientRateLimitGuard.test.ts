@@ -65,6 +65,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "certificate orders per budget",
   "packages/Common/Server/Utils/Greenlock/CertificateOrderBudget.ts":
     "certificate orders for the instance's ACME account",
+  "packages/Common/Server/Utils/TwoFactorWrongCodes.ts":
+    "wrong two factor codes per account, wherever they come from",
 };
 
 /*

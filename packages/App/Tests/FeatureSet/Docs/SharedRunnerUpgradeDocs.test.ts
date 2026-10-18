@@ -11,10 +11,11 @@ import path from "path";
  * code that decides it:
  *
  *   - the upgrade note (installation/upgrading, "Other changes in 14") sits
- *     after the note on PostgreSQL's port and password and before the
- *     endpoint pointer, says what the bundled Runner no longer runs and what
- *     it starts with, names the Compose service and the chart values it
- *     means, and links to "Run a Runner of your own" on the AI agent page;
+ *     after the note on PostgreSQL's port and password and before the note
+ *     on wrong two-factor codes, says what the bundled Runner no longer runs
+ *     and what it starts with, names the Compose service and the chart
+ *     values it means, and links to "Run a Runner of your own" on the AI
+ *     agent page;
  *   - the AI agent page (ai/ai-agent) says the shared Runners never run the
  *     verification commands, and links to the same section;
  *   - what both say is what the Runner does: the shared (cluster-scoped)
@@ -36,12 +37,9 @@ const NOTE_LEAD: string =
 // The note before it (DatabasePortDocs).
 const PREVIOUS_LEAD: string =
   "**PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.**";
-/*
- * The note after it: the global-probe and Runner key note
- * (ProbeRunnerKeyUpgradeDocs), which the endpoint pointer still follows.
- */
+// The note after it (TwoFactorWrongCodesDocs).
 const NEXT_LEAD: string =
-  "**A global probe and the bundled Runner no longer authenticate with a key the repository ships.**";
+  "**Wrong two-factor codes are counted for the account, wherever they come from.**";
 
 const AI_AGENT_PAGE: string = "ai/ai-agent";
 const OWN_RUNNER_HEADING: string = "### Run a Runner of your own";
@@ -197,7 +195,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on the bundled Runner", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on PostgreSQL's port and password and before the global-probe and Runner key note", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on PostgreSQL's port and password and before the note on wrong two-factor codes", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

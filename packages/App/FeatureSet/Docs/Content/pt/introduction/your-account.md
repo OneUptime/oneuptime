@@ -148,6 +148,10 @@ Entrar de novo envia um link novo: confira também sua pasta de spam. Se você n
 Na segunda etapa do login, escolha **Perdeu o acesso ao seu autenticador?** e digite um dos seus códigos de backup. Depois abra **Segurança → Two-factor authentication** e adicione seu novo aplicativo. Sem códigos de backup, peça a um administrador da sua instalação do OneUptime para redefinir a autenticação em dois fatores da sua conta.
 :::
 
+:::details O login pede que eu espere antes de tentar outro código
+Depois de cinco códigos errados seguidos, cada código seguinte espera antes de ser verificado: um minuto, depois dois, depois quatro, e assim por diante, até uma hora. O OneUptime conta os códigos errados da sua conta de onde quer que sejam digitados, envia um e-mail quando as esperas começam e recomeça a contagem quando você acerta um código. Espere e tente de novo, entre com uma chave de segurança ou escolha **Perdeu o acesso ao seu autenticador?** e digite um código de backup. Se não foi você quem digitou esses códigos, alguém sabe a sua senha: redefina-a com **Esqueceu a senha?** na página de login, o que também encerra a espera.
+:::
+
 :::details Os horários do painel estão uma hora errados
 O painel mostra os horários no **Fuso horário** do seu perfil, não no do seu computador. Confira em **Perfil do usuário → Visão geral**.
 :::
