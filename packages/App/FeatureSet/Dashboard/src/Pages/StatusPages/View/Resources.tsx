@@ -1,7 +1,11 @@
 import AxisValuesInput from "../../../Components/StatusPage/AxisValuesInput";
 import ImportGroupsFromCsvModal from "../../../Components/StatusPage/ImportGroupsFromCsvModal";
 import StatusPageResourcePanel from "../../../Components/StatusPage/StatusPageResourcePanel";
-import { getStatusPageGroupLayoutSection } from "../../../Components/StatusPage/StatusPageGroupFormSections";
+import {
+  STATUS_PAGE_GROUP_NAME_PLACEHOLDER,
+  STATUS_PAGE_GROUP_VIEW_MODE_OPTIONS,
+  getStatusPageGroupLayoutSection,
+} from "../../../Components/StatusPage/StatusPageGroupFormSections";
 import { getStatusPageResourceFormFields } from "../../../Components/StatusPage/StatusPageResourceFormFields";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -778,7 +782,9 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         title: "Group Name",
         fieldType: FormFieldSchemaType.Text,
         required: true,
-        placeholder: "Resource Group Name",
+        placeholder: STATUS_PAGE_GROUP_NAME_PLACEHOLDER,
+        // The title says it; "Name of the Group" says nothing more.
+        hideColumnDescription: true,
       },
       {
         field: {
@@ -797,12 +803,13 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
           viewMode: true,
         },
         title: "View Mode",
-        description:
-          "How this group's resources are laid out: a list, or a grid of rows and columns.",
-        fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-          StatusPageGroupViewMode,
-        ),
+        /*
+         * Two plain answers, each with one line saying what it draws, where
+         * a dropdown under a description of both used to be.
+         */
+        hideColumnDescription: true,
+        fieldType: FormFieldSchemaType.RadioButton,
+        radioButtonOptions: STATUS_PAGE_GROUP_VIEW_MODE_OPTIONS,
         required: false,
         defaultValue: StatusPageGroupViewMode.List,
         collapsibleSection: layoutSection,

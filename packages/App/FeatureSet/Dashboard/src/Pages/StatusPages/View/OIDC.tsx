@@ -8,19 +8,13 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { getOidcProviderFormFields } from "Common/UI/Components/Sso/OidcProviderFormFields";
 import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import {
-  HOST,
-  HTTP_PROTOCOL,
-  IDENTITY_URL,
-  STATUS_PAGE_URL,
-} from "Common/UI/Config";
+import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
 import React, {
@@ -29,11 +23,11 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import Link from "Common/UI/Components/Link/Link";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import StatusPageSignInTestCard from "../../../Components/StatusPage/StatusPageSignInTestCard";
+import { StatusPageSignInCopy } from "../../../Components/StatusPage/StatusPageSignInCopy";
 
 /*
  * The provider the configuration dialog is open for: its id, and whether it
@@ -59,10 +53,11 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const testUrl: string = `${STATUS_PAGE_URL.toString()}/${modelId}/sso`;
 
   const [oidcConfigTarget, setOidcConfigTarget] =
     useState<OidcConfigDialogTarget | null>(null);
+  // How many providers the list holds: Test Sign-In waits for one.
+  const [providerCount, setProviderCount] = useState<number>(0);
   const showOidcConfigId: string = oidcConfigTarget?.id || "";
 
   return (
@@ -93,13 +88,20 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
           isDeleteable={true}
           isEditable={true}
           isCreateable={true}
+          singularName={StatusPageSignInCopy.oidcProvider}
+          pluralName={StatusPageSignInCopy.oidcProviders}
+          createVerb="Add"
           cardProps={{
             title: "OpenID Connect (OIDC)",
-            description:
-              "Configure OpenID Connect identity providers for status page authentication. Private users will be able to sign in using your configured OIDC provider.",
+            description: StatusPageSignInCopy.oidcDescription,
+          }}
+          onFetchSuccess={(
+            _data: Array<StatusPageOIDC>,
+            totalCount: number,
+          ): void => {
+            setProviderCount(totalCount);
           }}
           formSteps={getSsoProviderFormSteps<StatusPageOIDC>()}
-          noItemsMessage={"No OIDC configuration found."}
           viewPageRoute={Navigation.getCurrentRoute()}
           formFields={getOidcProviderFormFields<StatusPageOIDC>()}
           onCreateSuccess={(
@@ -171,23 +173,11 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
           ]}
         />
 
-        <Card
-          title={`Test OpenID Connect (OIDC)`}
-          description={
-            <span>
-              <TranslatedSentence
-                template="Here's a link which will help you test OIDC integration before you force it on your organization: {{link}}"
-                slots={{
-                  link: (
-                    <Link openInNewTab={true} to={URL.fromString(testUrl)}>
-                      <span>{testUrl}</span>
-                    </Link>
-                  ),
-                }}
-              />
-            </span>
-          }
-        />
+        {providerCount > 0 ? (
+          <StatusPageSignInTestCard statusPageId={modelId} />
+        ) : (
+          <></>
+        )}
 
         {showOidcConfigId && (
           <ConfirmModal

@@ -36,6 +36,15 @@ import SubscriberChannelOffPanel from "../../../Components/StatusPage/Subscriber
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
 import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
+import { SubscriberFormCopy } from "../../../Components/StatusPage/SubscriberFormChoices";
+import {
+  SUBSCRIBER_INFO_STEP_ID,
+  getSubscriberInternalNoteField,
+  getSubscriberStatusFields,
+  getSubscriberWelcomeField,
+} from "../../../Components/StatusPage/SubscriberFormFields";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
@@ -232,6 +241,13 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
       return;
     }
 
+    /*
+     * The channel's own fields, its Status on Edit, and under More fields
+     * the welcome message and the internal note (SubscriberFormFields.tsx).
+     */
+    const moreFields: FormFieldCollapsibleSection<StatusPageSubscriber> =
+      getAdvancedFormSection<StatusPageSubscriber>();
+
     const formFields: Array<ModelField<StatusPageSubscriber>> = [
       {
         field: {
@@ -246,34 +262,7 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
         placeholder: "https://example.com/webhook",
         disableSpellCheck: true,
       },
-      {
-        field: {
-          sendYouHaveSubscribedMessage: true,
-        },
-        title: "Send Subscription Notification",
-        stepId: "subscriber-info",
-        description: "Send a webhook notification confirming the subscription.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        doNotShowWhenEditing: true,
-        /*
-         * Off on purpose, though the column defaults to on: someone an admin
-         * adds is sent a "you have subscribed" message only when the admin
-         * asks for one (CreateFormDefaultsGuard lists why).
-         */
-        defaultValue: false,
-      },
-      {
-        field: {
-          isUnsubscribed: true,
-        },
-        title: "Unsubscribe",
-        stepId: "subscriber-info",
-        description: "Unsubscribe this webhook from the status page.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        doNotShowWhenCreating: true,
-      },
+      ...getSubscriberStatusFields({ isEmail: false }),
     ];
 
     if (allowSubscribersToChooseResources) {
@@ -335,17 +324,8 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
       });
     }
 
-    formFields.push({
-      field: {
-        internalNote: true,
-      },
-      title: "Internal Note",
-      stepId: "internal-info",
-      description:
-        "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
-      fieldType: FormFieldSchemaType.Markdown,
-      required: false,
-    });
+    formFields.push(getSubscriberWelcomeField(moreFields));
+    formFields.push(getSubscriberInternalNoteField(moreFields));
 
     setFormFields(formFields);
   }, [isLoading]);
@@ -407,6 +387,9 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
               return Promise.resolve(item);
             }}
             refreshToggle={refreshToggle}
+            singularName="Subscriber"
+            pluralName="Subscribers"
+            createVerb="Add"
             cardProps={{
               title: "Webhook Subscribers",
               description:
@@ -422,7 +405,6 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
                 },
               ],
             }}
-            noItemsMessage={"No webhook subscribers found."}
             /*
              * Who gets the updates, then - when this page lets subscribers
              * choose - what they hear about, as the bulk add form asks it.
@@ -431,14 +413,10 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
               allowSubscribersToChooseResources ||
               allowSubscribersToChooseEventTypes
                 ? [
-                    { title: "Subscriber Info", id: "subscriber-info" },
+                    { title: "Subscriber Info", id: SUBSCRIBER_INFO_STEP_ID },
                     { title: "Notifications", id: "notifications" },
-                    { title: "Internal Info", id: "internal-info" },
                   ]
-                : [
-                    { title: "Subscriber Info", id: "subscriber-info" },
-                    { title: "Internal Info", id: "internal-info" },
-                  ]
+                : undefined
             }
             formFields={formFields}
             showRefreshButton={true}
@@ -540,8 +518,8 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
                 />
                 <div className="pt-2">
                   <Toggle
-                    title="Send Subscription Notification"
-                    description="Send a webhook notification to confirm the subscription."
+                    title={SubscriberFormCopy.welcomeTitle}
+                    description={SubscriberFormCopy.welcomeDescription}
                     value={sendNotification}
                     onChange={(value: boolean) => {
                       setSendNotification(value);
