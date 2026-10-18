@@ -332,6 +332,7 @@ import UsageBilling from "./TelemetryUsageBilling";
 import User from "./User";
 import UserSession from "./UserSession";
 import UserProjectSsoConsent from "./UserProjectSsoConsent";
+import UserProjectSsoIdentity from "./UserProjectSsoIdentity";
 import UserCall from "./UserCall";
 // Notification Methods
 import UserEmail from "./UserEmail";
@@ -932,6 +933,7 @@ const AllModelTypes: Array<{
 
   UserSession,
   UserProjectSsoConsent,
+  UserProjectSsoIdentity,
   UserTotpAuth,
   UserTwoFactorBackupCode,
   UserWebAuthn,

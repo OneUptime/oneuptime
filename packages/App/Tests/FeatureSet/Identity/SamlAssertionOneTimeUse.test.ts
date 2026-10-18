@@ -62,6 +62,7 @@ function assertion(
     issuerUrl: "https://idp.example.com",
     email: new Email("walter.skinner@example.com"),
     name: null,
+    objectId: null,
     assertionId: "_assertion_1",
     acceptableUntil: new Date(NOW.getTime() + 7 * 60 * 1000),
     ...overrides,
