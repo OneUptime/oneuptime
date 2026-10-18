@@ -51,11 +51,10 @@ const mockRouter: MockIdentityRouter = createMockIdentityRouter();
  * from - through the routes of the real router, with the real sign-in limiter
  * in front of them and a real Valkey behind both.
  *
- * The sign-in limiter (IdentityRateLimit) counts per client. A password
- * holder on another network is another client, so before this count every
- * new network meant more codes checked against the same account. Pinned
- * here, on /verify-totp-auth and /verify-backup-code (the routes the
- * dashboard, the mobile app and the MCP sign-in all use):
+ * The sign-in limiter (IdentityRateLimit) counts per client; this count
+ * holds the account. Pinned here, on /verify-totp-auth and
+ * /verify-backup-code (the routes the dashboard, the mobile app and the MCP
+ * sign-in all use):
  *
  *   - five wrong codes in a row are checked, from however many networks;
  *     then each next code waits (a minute, doubling, up to an hour) and is
@@ -663,7 +662,7 @@ afterAll(() => {
 });
 
 describe("wrong authenticator codes are counted for the account, wherever they come from", () => {
-  it("a password holder sending from network after network has five codes checked, and no more", async () => {
+  it("codes entered from network after network: five are checked for the account, and no more", async () => {
     const account: Account = await newAccount();
 
     const results: Array<AttemptResult> = [];

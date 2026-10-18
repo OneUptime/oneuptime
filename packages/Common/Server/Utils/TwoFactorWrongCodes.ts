@@ -7,10 +7,8 @@ import ObjectID from "../../Types/ObjectID";
  *
  * The sign-in limiter (Middleware/IdentityRateLimit) counts attempts per
  * client: per address, per IPv6 /64, and per account together with either.
- * None of those counts holds the ACCOUNT itself, so on its own it lets the
- * codes checked against one account grow with the networks they are sent
- * from. This is the count that holds the account: every wrong code entered
- * at the second step of signing in, wherever it came from.
+ * This count holds the ACCOUNT itself: every wrong code entered at the
+ * second step of signing in, wherever it came from.
  *
  * THE RULE
  *

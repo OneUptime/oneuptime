@@ -137,10 +137,9 @@ const loginRateLimit: (
  * route: an attacker refused at /login simply points the same guesses here.
  * Whatever bounds /login has to bound these too.
  *
- * What it does not bound is the ACCOUNT: it counts per client, and a client
- * on another network is another client. The handler counts the account's
- * wrong codes itself, once the password is right (TwoFactorWrongCodes in
- * `login()` below), and that count holds wherever the codes come from.
+ * It counts per client. The ACCOUNT is held by the handler, which counts the
+ * account's wrong codes itself once the password is right
+ * (TwoFactorWrongCodes in `login()` below), wherever the codes come from.
  */
 const twoFactorRateLimit: (
   req: ExpressRequest,
