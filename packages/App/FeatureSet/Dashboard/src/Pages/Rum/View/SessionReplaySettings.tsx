@@ -8,13 +8,12 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
-import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import { RecordingHealthDiagnosis } from "Common/Types/Rum/SessionReplayHealth";
 import PageMap from "../../../Utils/PageMap";
@@ -27,6 +26,13 @@ import RecordingHealthCard, {
 import PrivacySummaryCard from "../../../Components/SessionReplay/PrivacySummaryCard";
 import InstallationTestPanel from "../../../Components/SessionReplay/InstallationTestPanel";
 import TargetedCapturePanel from "../../../Components/SessionReplay/TargetedCapturePanel";
+import {
+  asksForIgnoredErrorPatterns,
+  CAPTURE_TRIGGER_CHOICES,
+  CONSENT_MODE_CHOICES,
+  fillEmptiedPolicyNumbers,
+  MASKING_MODE_CHOICES,
+} from "../../../Components/SessionReplay/SessionReplayPolicyChoices";
 import {
   formatSessionReplayRetention,
   SESSION_REPLAY_RETENTION_OPTIONS,
@@ -282,9 +288,19 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
           }}
           isEditable={true}
           editButtonText="Edit Policy"
+          /*
+           * The dialog edits the policy, not the application: it said "Edit
+           * RUM Application" over five steps of replay settings.
+           */
+          editModalTitle="Edit Session Replay Policy"
           createEditModalWidth={ModalWidth.Large}
           onSaveSuccess={(item: RumApplication): void => {
             setApplication(item);
+          }}
+          onBeforeUpdate={async (
+            item: RumApplication,
+          ): Promise<RumApplication> => {
+            return fillEmptiedPolicyNumbers(item);
           }}
           /*
            * Privacy was one step of seven settings. Masking asks what a
@@ -308,18 +324,35 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               description:
                 "On by default. Also requires session replay to be allowed for the project.",
             },
+            /*
+             * The three modes of the policy are answers to pick, each saying
+             * in one line what it does (SessionReplayPolicyChoices), so no
+             * description above them names every mode again.
+             */
             {
               field: { sessionReplayCaptureTrigger: true },
               title: "When to upload a recording",
               stepId: "recording",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
-                  SessionReplayCaptureTrigger,
-                ),
+              fieldType: FormFieldSchemaType.RadioButton,
+              radioButtonOptions: CAPTURE_TRIGGER_CHOICES,
+              required: true,
+              hideColumnDescription: true,
+              dataTestId: "session-replay-capture-trigger",
+            },
+            {
+              field: { sessionReplayIgnoreErrorPatterns: true },
+              title: "Ignored error patterns",
+              stepId: "recording",
+              fieldType: FormFieldSchemaType.JSON,
               required: false,
+              placeholder: '["ResizeObserver loop", "third-party-tag\\\\.js"]',
               description:
-                "Always uploads every sampled session. On error or frustration uploads only sessions where something went wrong, at a fraction of the cost.",
+                "A JSON array of regexes for errors that should not trigger an upload, such as a noisy third-party script. They are still recorded.",
+              showIf: (values: FormValues<RumApplication>): boolean => {
+                return asksForIgnoredErrorPatterns(
+                  values.sessionReplayCaptureTrigger,
+                );
+              },
             },
             {
               field: { sessionReplaySamplePercentage: true },
@@ -342,42 +375,27 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               description:
                 "A JSON array of origins that may send recordings. Empty accepts any origin the ingestion key allows; list your domains before production.",
             },
-            {
-              field: { sessionReplayIgnoreErrorPatterns: true },
-              title: "Ignored error patterns",
-              stepId: "recording",
-              fieldType: FormFieldSchemaType.JSON,
-              required: false,
-              placeholder: '["ResizeObserver loop", "third-party-tag\\\\.js"]',
-              description:
-                "A JSON array of regexes for errors that should not trigger an upload, such as a noisy third-party script. They are still recorded.",
-            },
 
             {
               field: { sessionReplayMaskingMode: true },
               title: "Masking mode",
               stepId: "privacy",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
-                  SessionReplayMaskingMode,
-                ),
-              required: false,
+              fieldType: FormFieldSchemaType.RadioButton,
+              radioButtonOptions: MASKING_MODE_CHOICES,
+              required: true,
               description:
-                "Sensitive inputs only (default), every input, or all text. Use a stricter mode or the selectors below for anything else sensitive.",
+                "For other sensitive data, pick a stricter mode or add selectors below.",
+              dataTestId: "session-replay-masking-mode",
             },
             {
               field: { sessionReplayConsentMode: true },
               title: "Consent",
               stepId: "consent",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
-                  SessionReplayConsentMode,
-                ),
-              required: false,
-              description:
-                "Require Explicit uploads nothing until your page calls grantConsent(). Not Required (default) means you have another lawful basis.",
+              fieldType: FormFieldSchemaType.RadioButton,
+              radioButtonOptions: CONSENT_MODE_CHOICES,
+              required: true,
+              hideColumnDescription: true,
+              dataTestId: "session-replay-consent-mode",
             },
             {
               field: { sessionReplayMaskSelectors: true },

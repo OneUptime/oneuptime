@@ -121,6 +121,11 @@ import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlStat
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import {
+  showsTelemetryFirstSteps,
+  TelemetryFirstStepsSignal,
+} from "../Telemetry/TelemetryFirstSteps";
 import {
   ExceptionEntityChipRef,
   ExceptionKnownChipIds,
@@ -468,6 +473,15 @@ export interface ExceptionsViewerProps {
   limit?: number | undefined;
   /** Empty-state copy, so an embed can name the window it searched. */
   emptyMessage?: string | undefined;
+  /*
+   * The Exceptions pages' explorer: while its list is empty and nothing the
+   * reader set narrows it, it asks once whether the project has any
+   * exception at all - in any state, at any time. None, and the empty list
+   * offers exception tracking's setup guide (Telemetry/TelemetryFirstSteps);
+   * some, and an empty list is the good news it looks like, with its own
+   * message. Embeds leave it unset.
+   */
+  offersSetupWhenEmpty?: boolean | undefined;
   /*
    * Embedded hosts own the page URL: when true the viewer neither seeds from
    * nor mirrors state to the query string. Same polarity as TracesViewer's
@@ -1316,6 +1330,54 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * Now each goes out once, with it.
    */
   const holdsReads: boolean = isWaitingForServiceNames || isResolvingScope;
+
+  /*
+   * Whether the project has any exception group at all, asked once - only
+   * on an Exceptions page, and only once its list came back empty with
+   * nothing the reader set narrowing it. Null until asked. A failed count
+   * reads as "has some", so the list keeps its own message rather than
+   * sending someone who has exceptions to a setup guide.
+   */
+  const [projectHasExceptions, setProjectHasExceptions] = useState<
+    boolean | null
+  >(null);
+
+  const isUnnarrowedEmptyList: boolean = showsTelemetryFirstSteps({
+    hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
+    isEmpty: !isLoading && !holdsReads && !error && exceptions.length === 0,
+    filterCount: activeFilters.length,
+    searchText: submittedSearch,
+  });
+
+  useEffect(() => {
+    if (!isUnnarrowedEmptyList || projectHasExceptions !== null) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    void (async (): Promise<void> => {
+      let hasExceptions: boolean = true;
+
+      try {
+        const count: number = await ModelAPI.count<TelemetryException>({
+          modelType: TelemetryException,
+          query: {},
+        });
+        hasExceptions = count > 0;
+      } catch {
+        hasExceptions = true;
+      }
+
+      if (!isCancelled) {
+        setProjectHasExceptions(hasExceptions);
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isUnnarrowedEmptyList, projectHasExceptions]);
 
   const query: Query<TelemetryException> = useMemo(() => {
     const q: Query<TelemetryException> = {};
@@ -2277,6 +2339,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         void fetchHistogram();
       }}
       emptyMessage={props.emptyMessage || "No exceptions found"}
+      emptyContent={
+        isUnnarrowedEmptyList && projectHasExceptions === false ? (
+          <TelemetryFirstStepsEmptyState
+            signal={TelemetryFirstStepsSignal.Exceptions}
+            timeRange={timeRange}
+          />
+        ) : undefined
+      }
       itemLabel="exceptions"
       renderRow={(exception: TelemetryException): ReactElement => {
         const service: Service | undefined = exception.primaryEntityId

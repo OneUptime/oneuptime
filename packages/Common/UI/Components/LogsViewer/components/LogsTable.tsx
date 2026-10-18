@@ -1,4 +1,9 @@
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+} from "react";
 import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
@@ -46,6 +51,11 @@ export interface LogsTableProps {
   resourceEntityMaps?: LogsResourceEntityMaps | undefined;
   isLoading: boolean;
   emptyMessage?: string | undefined;
+  /*
+   * Drawn in place of the empty list's message when set - the Logs page's
+   * first steps (LogsViewer's emptyContentWhenUnfiltered).
+   */
+  emptyContent?: ReactNode | undefined;
   onRowClick: (log: Log, rowId: string) => void;
   selectedLogId?: string | null;
   renderExpandedContent?: (log: Log) => ReactElement | null;
@@ -648,18 +658,31 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
         </div>
       )}
 
-      {showEmptyState && (
-        <div className="flex h-full items-center justify-center px-6 py-12 text-center bg-white">
-          <div className="w-full max-w-xl rounded-md border border-gray-200 bg-white p-6 text-left shadow-sm">
-            <p className="font-mono text-sm uppercase text-gray-500">
-              {translator.translateText("No logs found")}
-            </p>
-            <p className="mt-3 font-mono text-xs text-gray-400">
-              {translator.translateText(
-                props.emptyMessage || "Adjust filters or check again later.",
-              )}
-            </p>
-          </div>
+      {showEmptyState && props.emptyContent !== undefined && (
+        <div className="bg-white" data-testid="logs-table-empty-content">
+          {props.emptyContent}
+        </div>
+      )}
+
+      {/*
+       * Drawn as every other explorer draws an empty list (TelemetryViewer):
+       * a search icon, what is true, and what to try. It was a boxed card of
+       * upper-case monospace text, unlike any other empty list.
+       */}
+      {showEmptyState && props.emptyContent === undefined && (
+        <div
+          className="flex flex-col items-center justify-center gap-2 bg-white px-6 py-12 text-center"
+          data-testid="logs-table-empty"
+        >
+          <Icon icon={IconProp.Search} className="h-8 w-8 text-gray-300" />
+          <p className="text-sm font-medium text-gray-500">
+            {translator.translateText("No logs found")}
+          </p>
+          <p className="max-w-xl text-xs text-gray-400">
+            {translator.translateText(
+              props.emptyMessage || "Adjust filters or check again later.",
+            )}
+          </p>
         </div>
       )}
     </div>

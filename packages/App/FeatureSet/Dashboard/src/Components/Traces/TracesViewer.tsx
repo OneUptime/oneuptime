@@ -77,6 +77,11 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
 import SpanDetailsPanel from "./SpanDetailsPanel";
 import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
+import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import {
+  showsTelemetryFirstSteps,
+  TelemetryFirstStepsSignal,
+} from "../Telemetry/TelemetryFirstSteps";
 import {
   serializeSavedViewTimeRange,
   deserializeSavedViewTimeRange,
@@ -600,6 +605,13 @@ interface Props {
   limit?: number | undefined;
   /** Empty-state copy, so an embed can name the window it searched. */
   emptyMessage?: string | undefined;
+  /*
+   * The Traces page's explorer: an empty list that no filter or search
+   * narrows offers the setup guide and a longer range instead of "try
+   * adjusting filters" (Telemetry/TelemetryFirstSteps). Embeds leave it
+   * unset and keep their emptyMessage.
+   */
+  offersSetupWhenEmpty?: boolean | undefined;
   /*
    * Only the spans one exception group's occurrences were raised in — the
    * exception detail page's span list. Applied to the list, the histogram and
@@ -3285,6 +3297,24 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         </>
       }
       emptyMessage={props.emptyMessage || "No traces found"}
+      emptyContent={
+        showsTelemetryFirstSteps({
+          hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
+          isEmpty: true,
+          filterCount: activeFilters.length,
+          searchText: submittedSearch,
+        }) ? (
+          <TelemetryFirstStepsEmptyState
+            signal={TelemetryFirstStepsSignal.Traces}
+            timeRange={timeRange}
+            onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
+              setTimeRange(value);
+              setPage(1);
+              props.onTimeRangeChange?.(value);
+            }}
+          />
+        ) : undefined
+      }
       /*
        * Each row is a span, so a count of them is a count of spans — called
        * "traces" it read as roughly ten times the traffic it was. Limited to

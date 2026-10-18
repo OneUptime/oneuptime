@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useCallback,
   useEffect,
   useId,
@@ -124,6 +125,15 @@ export interface ComponentProps {
   onRetryFacets?: (() => void) | undefined;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
+  /*
+   * What the list shows when it comes back empty while nothing narrows it -
+   * no filter chip the reader added, no search typed: the Logs page's way
+   * in for a project that may not be sending logs yet (its setup guide).
+   * A list a filter or a search emptied keeps noLogsMessage, and a page
+   * that leaves this unset (a service's or an incident's logs) is
+   * unchanged.
+   */
+  emptyContentWhenUnfiltered?: ReactNode | undefined;
   getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
   getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
   /*
@@ -262,6 +272,21 @@ const severityWeight: Record<string, number> = {
  * Exported so the window it reports can be unit-tested directly - rendering the
  * whole viewer to read one sentence is not worth the setup.
  */
+/**
+ * Whether the reader narrowed the list: a filter chip of their own (the
+ * chips a page pins are passed apart, as baseActiveFilters) or a search in
+ * the bar. Only an unnarrowed empty list shows emptyContentWhenUnfiltered.
+ */
+export function isNarrowedByReader(data: {
+  activeFilters: Array<ActiveFilter> | undefined;
+  searchQuery: string;
+}): boolean {
+  return (
+    (data.activeFilters || []).length > 0 ||
+    data.searchQuery.trim().length > 0
+  );
+}
+
 export function getEmptyMessageWithTimeRange(
   timeRange: RangeStartAndEndDateTime | undefined,
 ): string {
@@ -1425,6 +1450,14 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                   emptyMessage={
                     props.noLogsMessage ||
                     getEmptyMessageWithTimeRange(props.timeRange)
+                  }
+                  emptyContent={
+                    isNarrowedByReader({
+                      activeFilters: props.activeFilters,
+                      searchQuery: searchQuery,
+                    })
+                      ? undefined
+                      : props.emptyContentWhenUnfiltered
                   }
                   onRowClick={(_log: Log, rowId: string) => {
                     setSelectedLogId((currentSelected: string | null) => {

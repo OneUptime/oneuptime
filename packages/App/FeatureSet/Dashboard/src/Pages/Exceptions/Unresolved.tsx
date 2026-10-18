@@ -15,7 +15,10 @@ const UnresolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <ExceptionsViewer defaultStatus="unresolved" />;
+  // A product page: a project with no exception yet is offered the setup guide.
+  return (
+    <ExceptionsViewer defaultStatus="unresolved" offersSetupWhenEmpty={true} />
+  );
 };
 
 export default UnresolvedExceptionsPage;

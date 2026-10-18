@@ -13,9 +13,8 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
+import { getLogDropFilterActionFields } from "../../../Components/Telemetry/DropFilterForm";
 import LogFilterConfig from "../../../Components/FilterQueryBuilder/LogFilterConfig";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
 import {
   isSamplePercentageConfigured,
   MAX_SAMPLE_PERCENTAGE,
@@ -119,48 +118,11 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
             "Choose whether to drop all matching logs or keep a sample.",
         }}
         isEditable={true}
-        formFields={[
-          {
-            field: {
-              action: true,
-            },
-            title: "Action",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: [
-              {
-                label: "Drop — Discard all matching logs",
-                value: "drop",
-              },
-              {
-                label: "Sample — Keep a percentage of matching logs",
-                value: "sample",
-              },
-            ],
-          },
-          {
-            field: {
-              samplePercentage: true,
-            },
-            title: "Sample Percentage",
-            fieldType: FormFieldSchemaType.Number,
-            /*
-             * Required only while the Sample action is selected. Saving a
-             * sample filter with no percentage used to be allowed, and the
-             * engine read the blank as "throw away half".
-             */
-            required: (values: FormValues<LogDropFilter>): boolean => {
-              return values.action === LogDropFilterAction.Sample;
-            },
-            validation: {
-              minValue: MIN_SAMPLE_PERCENTAGE,
-              maxValue: MAX_SAMPLE_PERCENTAGE,
-            },
-            description:
-              "Required when Action is Sample. Percentage of matching logs to keep, between 1 and 99 (e.g. 10 = keep 10%, discard 90%).",
-            placeholder: "e.g. 10",
-          },
-        ]}
+        /*
+         * The create form's Action fields (DropFilterForm): Drop or Sample,
+         * each with its line, and the percentage only for Sample.
+         */
+        formFields={getLogDropFilterActionFields()}
         modelDetailProps={{
           modelType: LogDropFilter,
           id: "model-detail-log-drop-filter-action",
