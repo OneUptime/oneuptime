@@ -1,5 +1,6 @@
 import { TrustedProxyHops } from "../EnvironmentConfig";
 import IP from "../../Types/IP/IP";
+import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
 import express from "express";
 
 /*
@@ -216,6 +217,22 @@ export const resolveClientIp: (
    * corroborated, so use only the peer.
    */
   return peer || undefined;
+};
+
+/*
+ * The client a rate limit counts a request as, given the address
+ * resolveClientIp attributed it to: an IPv4 address on its own, and an IPv6
+ * address by its /64 ("2001:db8:0:1::/64"). One host is commonly given a
+ * whole /64 (RFC 7934), so the /64 is the host, whichever of its addresses
+ * a request comes from.
+ *
+ * Anything that is not an address ("unknown", the bucket of callers that
+ * cannot be placed) is counted as itself.
+ */
+export const getRateLimitClient: (clientIp: string) => string = (
+  clientIp: string,
+): string => {
+  return IpCanonicalUtil.getIpv6Network64(clientIp) || clientIp;
 };
 
 export default resolveClientIp;

@@ -4,7 +4,11 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import { resolveClientIp } from "Common/Server/Utils/ClientIp";
+import {
+  getRateLimitClient,
+  resolveClientIp,
+} from "Common/Server/Utils/ClientIp";
+import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
@@ -18,14 +22,44 @@ import PushNotificationService, {
 
 const router: ExpressRouter = Express.getRouter();
 
-const RATE_LIMIT_WINDOW_MS: number = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS: number = 60; // 60 requests per minute per IP
+/*
+ * What a server that does not relay pushes for other servers answers on
+ * every relay route (404, as for a route it does not have). A server that
+ * relays its pages here logs it as the relay's answer, so its operator
+ * reads why their pushes were not sent.
+ */
+export const PUSH_RELAY_NOT_SERVED_MESSAGE: string =
+  "This server does not relay push notifications for other servers.";
 
 /*
- * A simple in-memory rate limiter by client IP: RATE_LIMIT_MAX_REQUESTS a
- * minute. Each route has its own, so the receipts a server asks for never
- * use up the requests its pages are sent with - a page refused for the
- * relay's rate limit is not delivered.
+ * The relay sends with this server's Expo access token what another server
+ * asks it to, so it answers only on a server that relays for others
+ * (PushNotificationService.isPushRelayServer): OneUptime's cloud, or a
+ * server whose operator turned it on. Everywhere else every route here
+ * answers 404 before it reads anything: an EXPO_ACCESS_TOKEN set for a
+ * server's own pushes is not a relay.
+ *
+ * Mounted first, so a route added below can never answer without it.
+ */
+router.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+  if (!PushNotificationService.isPushRelayServer()) {
+    res.status(404).json({ message: PUSH_RELAY_NOT_SERVED_MESSAGE });
+    return;
+  }
+
+  next();
+});
+
+const RATE_LIMIT_WINDOW_MS: number = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS: number = 60; // 60 requests per minute per client
+
+/*
+ * A simple in-memory rate limiter by client: RATE_LIMIT_MAX_REQUESTS a
+ * minute. A client is an IPv4 address, or an IPv6 /64 (getRateLimitClient):
+ * one host, whichever of its addresses it sends from. Each route has its
+ * own, so the receipts a server asks for never use up the requests its
+ * pages are sent with - a page refused for the relay's rate limit is not
+ * delivered.
  */
 export class RelayRateLimiter {
   private readonly entries: Map<string, { count: number; resetTime: number }> =
@@ -46,6 +80,15 @@ export class RelayRateLimiter {
     entry.count++;
 
     return entry.count > RATE_LIMIT_MAX_REQUESTS;
+  }
+
+  /*
+   * Whether the request just refused was the first refused in its client's
+   * minute: the one refusal of the minute that is logged, so a client that
+   * keeps sending writes one line a minute, not one a request.
+   */
+  public isFirstRefusalInWindow(ip: string): boolean {
+    return this.entries.get(ip)?.count === RATE_LIMIT_MAX_REQUESTS + 1;
   }
 
   // Forget the addresses whose window has passed.
@@ -71,10 +114,45 @@ setInterval(
 );
 
 /*
+ * Counts one request of a route against its client, and answers whether it
+ * is refused. The first refusal of a client's minute is logged: the relay is
+ * where an operator sees who is sending more than any server pages.
+ */
+function isRefusedByRateLimit(data: {
+  limiter: RelayRateLimiter;
+  route: string;
+  req: ExpressRequest;
+}): boolean {
+  /*
+   * Keyed on the resolved client address, not the leftmost X-Forwarded-For
+   * entry. That entry is written by the caller, so a caller who varied it
+   * got a fresh 60/minute bucket every request and the limit did not exist.
+   * An IPv6 address is counted by its /64 (getRateLimitClient): the client
+   * is the host, not each address it has. Callers we cannot place share the
+   * "unknown" bucket, which is the conservative direction for a limiter.
+   */
+  const client: string = getRateLimitClient(
+    resolveClientIp(data.req) || "unknown",
+  );
+
+  if (!data.limiter.isRateLimited(client)) {
+    return false;
+  }
+
+  if (data.limiter.isFirstRefusalInWindow(client)) {
+    logger.warn(
+      `Push relay: more than ${RATE_LIMIT_MAX_REQUESTS} ${data.route} requests in a minute from ${client}. Refusing them until the minute is over.`,
+    );
+  }
+
+  return true;
+}
+
+/*
  * A critical alert is the one payload shape that can ring a silenced phone, so
  * the relay parses `sound` and `interruptionLevel` instead of forwarding
  * whatever arrived. This endpoint is unauthenticated (rate limited by client
- * IP only), and an unvalidated pass-through would let any caller who can reach
+ * only), and an unvalidated pass-through would let any caller who can reach
  * it hand Expo arbitrary structures under this deployment's Expo credentials.
  *
  * Strictness is one-directional on purpose: a malformed value is refused
@@ -217,16 +295,13 @@ router.post(
   "/send",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
-      /*
-       * Key the limiter on the resolved client address, not the leftmost
-       * X-Forwarded-For entry. That entry is written by the caller, so a
-       * caller who varied it got a fresh 60/minute bucket every request and
-       * the limit did not exist. Callers we cannot place share the "unknown"
-       * bucket, which is the conservative direction for a limiter.
-       */
-      const clientIp: string = resolveClientIp(req) || "unknown";
-
-      if (sendRateLimiter.isRateLimited(clientIp)) {
+      if (
+        isRefusedByRateLimit({
+          limiter: sendRateLimiter,
+          route: "send",
+          req: req,
+        })
+      ) {
         res.status(429).json({
           message: "Rate limit exceeded. Please try again later.",
         });
@@ -332,7 +407,7 @@ router.post(
  *
  * The relay keeps nothing about the pushes it sends: each server keeps its
  * own receipt ids and asks for them. Like /send, the route is
- * unauthenticated and rate limited by client IP, in a bucket of its own; a
+ * unauthenticated and rate limited by client, in a bucket of its own; a
  * receipt id is a random UUID only its sender was given, and an answer
  * carries no push token.
  */
@@ -340,9 +415,13 @@ router.post(
   "/receipts",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
-      const clientIp: string = resolveClientIp(req) || "unknown";
-
-      if (receiptsRateLimiter.isRateLimited(clientIp)) {
+      if (
+        isRefusedByRateLimit({
+          limiter: receiptsRateLimiter,
+          route: "receipts",
+          req: req,
+        })
+      ) {
         res.status(429).json({
           message: "Rate limit exceeded. Please try again later.",
         });

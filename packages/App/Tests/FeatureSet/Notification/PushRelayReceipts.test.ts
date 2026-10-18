@@ -309,6 +309,14 @@ beforeEach(() => {
     .spyOn(PushNotificationService, "hasExpoAccessToken")
     .mockReturnValue(true);
 
+  /*
+   * And relays for other servers, as OneUptime's cloud does
+   * (PushRelayServer.test.ts has the servers that do not).
+   */
+  jest
+    .spyOn(PushNotificationService, "isPushRelayServer")
+    .mockReturnValue(true);
+
   jest
     .spyOn(expoClientOf(PushNotificationService), "sendPushNotificationsAsync")
     .mockImplementation((async (messages: Array<ExpoPushMessage>) => {

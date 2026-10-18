@@ -557,6 +557,14 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 - name: PUSH_NOTIFICATION_RELAY_URL
   value: {{ default "https://oneuptime.com/api/notification/push-relay/send" $.Values.pushNotification.relayUrl | quote }}
 
+{{- /*
+Unset renders empty, which the app reads as "only where billing is on". An
+explicit false must stay false, so this cannot be `default`: false is empty
+to `default`, and would render as unset - a relay again where billing is on.
+*/}}
+- name: PUSH_NOTIFICATION_RELAY_SERVER_ENABLED
+  value: {{ if kindIs "bool" ($.Values.pushNotification).relayServerEnabled }}{{ ternary "true" "false" ($.Values.pushNotification).relayServerEnabled | quote }}{{ else }}""{{ end }}
+
 - name: SLACK_APP_CLIENT_SECRET
   {{- if $.Values.slackApp.existingSecret }}
   valueFrom:
