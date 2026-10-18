@@ -342,6 +342,7 @@ const PROSE_LEADS: Array<string> = [
   "A placeholder `ENCRYPTION_SECRET` no longer signs sign-in tokens.",
   "A workflow's field lists have plain names, and a watched related record is heard.",
   "Sign-in cookies stay on HTTPS, and an HTTPS installation tells browsers to stay there.",
+  "OneUptime refuses a placeholder `ONEUPTIME_SECRET`.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",

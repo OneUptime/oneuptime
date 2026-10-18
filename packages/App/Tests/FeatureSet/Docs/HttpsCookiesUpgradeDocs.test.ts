@@ -20,8 +20,8 @@ import path from "path";
  *     domain) and the one the proxy has to send (X-Forwarded-Proto, which
  *     the guide's Nginx example sends and OneUptime's ingress passes on);
  *   - the note sits after the note on workflow field lists and before the
- *     pointer to the endpoint changes, and links to Set up HTTPS - in every
- *     language at that language's own heading;
+ *     note on a placeholder ONEUPTIME_SECRET, and links to Set up HTTPS - in
+ *     every language at that language's own heading;
  *   - every translation carries the note in the English note's place, under
  *     a lead of its own, with the English note's code.
  */
@@ -38,7 +38,9 @@ const NOTE_LEAD: string =
 // The note before it (WorkflowFieldListsUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**A workflow's field lists have plain names, and a watched related record is heard.**";
-const LAST_ITEM_START: string = "- See [API and endpoint changes]";
+// The note after it: a placeholder ONEUPTIME_SECRET (ClusterKeyUpgradeDocs).
+const NEXT_LEAD: string =
+  "**OneUptime refuses a placeholder `ONEUPTIME_SECRET`.**";
 
 const DOCKER_COMPOSE_PAGE: string = "installation/docker-compose";
 const HTTPS_HEADING: string = "## Set up HTTPS";
@@ -126,7 +128,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on sign-in cookies and HTTPS", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on workflow field lists and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on workflow field lists and before the note on a placeholder ONEUPTIME_SECRET", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -138,9 +140,9 @@ describe("the English upgrade note on sign-in cookies and HTTPS", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(LAST_ITEM_START)).toBe(
-      true,
-    );
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("names the setting the server reads, which config.example.env ships at a year", () => {
