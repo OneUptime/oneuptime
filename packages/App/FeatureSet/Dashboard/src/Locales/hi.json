@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "इस एपिसोड के लिए निष्पादित करने हेतु ऑन-कॉल नीति चुनें।",
   "Select the on-call policy to execute for this incident.": "इस घटना के लिए निष्पादित करने हेतु ऑन-कॉल नीति चुनें।",
   "Select the probe you want to run the test on.": "वह प्रोब चुनें जिस पर आप परीक्षण चलाना चाहते हैं।",
-  "Select the scope of resources to monitor.": "मॉनिटर करने के लिए संसाधनों का दायरा चुनें।",
   "Select the severity of the logs you want to monitor.": "जिन लॉग्स को आप मॉनिटर करना चाहते हैं उनकी गंभीरता चुनें।",
   "Select the SNMP protocol version": "SNMP प्रोटोकॉल संस्करण चुनें",
   "Select the start date and time for the override.": "ओवरराइड के लिए प्रारंभ तिथि और समय चुनें।",
@@ -30674,5 +30673,6 @@
   "Alert templates": "अलर्ट टेम्पलेट",
   "Its platform decides which metrics and templates are offered.": "इसका प्लेटफ़ॉर्म तय करता है कि कौन-से मेट्रिक्स और टेम्पलेट दिखाए जाएँ।",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "एक टेम्पलेट चुनें। यह नीचे मेट्रिक, सीमाएँ और मानदंड भर देता है।",
-  "Start from a template, or pick a metric or build a query yourself.": "किसी टेम्पलेट से शुरू करें, या खुद मेट्रिक चुनें या क्वेरी बनाएँ।"
+  "Start from a template, or pick a metric or build a query yourself.": "किसी टेम्पलेट से शुरू करें, या खुद मेट्रिक चुनें या क्वेरी बनाएँ।",
+  "The level the metric is watched at. It decides which filters you see.": "वह स्तर जिस पर मेट्रिक देखा जाता है। इसी से तय होता है कि कौन-से फ़िल्टर दिखेंगे।"
 }

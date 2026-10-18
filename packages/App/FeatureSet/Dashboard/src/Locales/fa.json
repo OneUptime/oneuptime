@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "سیاست آنکالی را که باید برای این اپیزود اجرا شود انتخاب کنید.",
   "Select the on-call policy to execute for this incident.": "سیاست آنکالی را که باید برای این حادثه اجرا شود انتخاب کنید.",
   "Select the probe you want to run the test on.": "پرابی را که می‌خواهید آزمایش روی آن اجرا شود انتخاب کنید.",
-  "Select the scope of resources to monitor.": "دامنه منابعی را که باید پایش شوند انتخاب کنید.",
   "Select the severity of the logs you want to monitor.": "شدت لاگ‌هایی را که می‌خواهید پایش کنید انتخاب کنید.",
   "Select the SNMP protocol version": "نسخه پروتکل SNMP را انتخاب کنید",
   "Select the start date and time for the override.": "تاریخ و زمان شروع جایگزینی را انتخاب کنید.",
@@ -30674,5 +30673,6 @@
   "Alert templates": "قالب‌های هشدار",
   "Its platform decides which metrics and templates are offered.": "بستر آن تعیین می‌کند کدام متریک‌ها و قالب‌ها پیشنهاد شوند.",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "یک قالب انتخاب کنید. متریک، آستانه‌ها و معیارهای زیر را پر می‌کند.",
-  "Start from a template, or pick a metric or build a query yourself.": "با یک قالب شروع کنید، یا خودتان متریکی انتخاب کنید یا کوئری بسازید."
+  "Start from a template, or pick a metric or build a query yourself.": "با یک قالب شروع کنید، یا خودتان متریکی انتخاب کنید یا کوئری بسازید.",
+  "The level the metric is watched at. It decides which filters you see.": "سطحی که متریک در آن پایش می‌شود. تعیین می‌کند کدام فیلترها را ببینید."
 }

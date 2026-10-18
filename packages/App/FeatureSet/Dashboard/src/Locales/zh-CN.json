@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "选择此片段要执行的值班策略。",
   "Select the on-call policy to execute for this incident.": "选择此事件要执行的值班策略。",
   "Select the probe you want to run the test on.": "选择要在其上运行测试的探测器。",
-  "Select the scope of resources to monitor.": "选择要监控的资源范围。",
   "Select the severity of the logs you want to monitor.": "选择要监控的日志的严重程度。",
   "Select the SNMP protocol version": "选择 SNMP 协议版本",
   "Select the start date and time for the override.": "选择此覆盖的开始日期和时间。",
@@ -30674,5 +30673,6 @@
   "Alert templates": "警报模板",
   "Its platform decides which metrics and templates are offered.": "其平台决定提供哪些指标和模板。",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "选择一个模板。它会填好下方的指标、阈值和条件。",
-  "Start from a template, or pick a metric or build a query yourself.": "从模板开始，或自己选择指标或构建查询。"
+  "Start from a template, or pick a metric or build a query yourself.": "从模板开始，或自己选择指标或构建查询。",
+  "The level the metric is watched at. It decides which filters you see.": "监视该指标的层级。它决定你能看到哪些筛选条件。"
 }

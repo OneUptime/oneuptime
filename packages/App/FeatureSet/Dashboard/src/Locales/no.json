@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "Velg vaktretningslinjen som skal utføres for denne episoden.",
   "Select the on-call policy to execute for this incident.": "Velg vaktretningslinjen som skal utføres for denne hendelsen.",
   "Select the probe you want to run the test on.": "Velg sonden du vil kjøre testen på.",
-  "Select the scope of resources to monitor.": "Velg omfanget av ressurser som skal overvåkes.",
   "Select the severity of the logs you want to monitor.": "Velg alvorlighetsgraden for loggene du vil overvåke.",
   "Select the SNMP protocol version": "Velg SNMP-protokollversjon",
   "Select the start date and time for the override.": "Velg startdato og -klokkeslett for overstyringen.",
@@ -30674,5 +30673,6 @@
   "Alert templates": "Varselmaler",
   "Its platform decides which metrics and templates are offered.": "Plattformen avgjør hvilke målinger og maler som tilbys.",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "Velg en mal. Den fyller ut målingen, tersklene og kriteriene nedenfor.",
-  "Start from a template, or pick a metric or build a query yourself.": "Start fra en mal, eller velg selv en måling eller bygg en spørring."
+  "Start from a template, or pick a metric or build a query yourself.": "Start fra en mal, eller velg selv en måling eller bygg en spørring.",
+  "The level the metric is watched at. It decides which filters you see.": "Nivået målingen overvåkes på. Det avgjør hvilke filtre du ser."
 }

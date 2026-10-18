@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "このエピソードに対して実行するオンコールポリシーを選択します。",
   "Select the on-call policy to execute for this incident.": "このインシデントに対して実行するオンコールポリシーを選択します。",
   "Select the probe you want to run the test on.": "テストを実行するプローブを選択します。",
-  "Select the scope of resources to monitor.": "監視するリソースの範囲を選択します。",
   "Select the severity of the logs you want to monitor.": "監視するログの重大度を選択します。",
   "Select the SNMP protocol version": "SNMP プロトコルのバージョンを選択します",
   "Select the start date and time for the override.": "オーバーライドの開始日時を選択します。",
@@ -30674,5 +30673,6 @@
   "Alert templates": "アラートテンプレート",
   "Its platform decides which metrics and templates are offered.": "プラットフォームによって、表示されるメトリクスとテンプレートが決まります。",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "テンプレートを選んでください。下のメトリクス、しきい値、条件が自動で入力されます。",
-  "Start from a template, or pick a metric or build a query yourself.": "テンプレートから始めるか、メトリクスを選んだりクエリを作ったりして自分で設定します。"
+  "Start from a template, or pick a metric or build a query yourself.": "テンプレートから始めるか、メトリクスを選んだりクエリを作ったりして自分で設定します。",
+  "The level the metric is watched at. It decides which filters you see.": "メトリクスを監視する単位です。表示されるフィルターもこれで決まります。"
 }

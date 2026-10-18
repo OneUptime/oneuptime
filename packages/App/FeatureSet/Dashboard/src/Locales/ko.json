@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "이 에피소드에 대해 실행할 온콜 정책을 선택하세요.",
   "Select the on-call policy to execute for this incident.": "이 인시던트에 대해 실행할 온콜 정책을 선택하세요.",
   "Select the probe you want to run the test on.": "테스트를 실행할 프로브를 선택하세요.",
-  "Select the scope of resources to monitor.": "모니터링할 리소스의 범위를 선택하세요.",
   "Select the severity of the logs you want to monitor.": "모니터링할 로그의 심각도를 선택하세요.",
   "Select the SNMP protocol version": "SNMP 프로토콜 버전을 선택하세요",
   "Select the start date and time for the override.": "재정의의 시작 날짜와 시간을 선택하세요.",
@@ -30674,5 +30673,6 @@
   "Alert templates": "알림 템플릿",
   "Its platform decides which metrics and templates are offered.": "플랫폼에 따라 제공되는 메트릭과 템플릿이 정해집니다.",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "템플릿을 선택하세요. 아래의 메트릭, 임계값, 기준이 채워집니다.",
-  "Start from a template, or pick a metric or build a query yourself.": "템플릿으로 시작하거나, 메트릭을 직접 고르거나 쿼리를 직접 만드세요."
+  "Start from a template, or pick a metric or build a query yourself.": "템플릿으로 시작하거나, 메트릭을 직접 고르거나 쿼리를 직접 만드세요.",
+  "The level the metric is watched at. It decides which filters you see.": "메트릭을 지켜보는 수준입니다. 어떤 필터가 보일지도 이것으로 정해집니다."
 }

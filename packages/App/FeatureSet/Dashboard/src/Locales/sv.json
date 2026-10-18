@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "Välj den jourpolicy som ska köras för denna episod.",
   "Select the on-call policy to execute for this incident.": "Välj den jourpolicy som ska köras för denna incident.",
   "Select the probe you want to run the test on.": "Välj den sond du vill köra testet på.",
-  "Select the scope of resources to monitor.": "Välj omfattningen av resurser som ska övervakas.",
   "Select the severity of the logs you want to monitor.": "Välj allvarlighetsgraden för de loggar du vill övervaka.",
   "Select the SNMP protocol version": "Välj SNMP-protokollversion",
   "Select the start date and time for the override.": "Välj startdatum och tid för åsidosättningen.",
@@ -30674,5 +30673,6 @@
   "Alert templates": "Larmmallar",
   "Its platform decides which metrics and templates are offered.": "Plattformen avgör vilka mätvärden och mallar som erbjuds.",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "Välj en mall. Den fyller i mätvärdet, tröskelvärdena och kriterierna nedan.",
-  "Start from a template, or pick a metric or build a query yourself.": "Börja från en mall, eller välj själv ett mätvärde eller bygg en fråga."
+  "Start from a template, or pick a metric or build a query yourself.": "Börja från en mall, eller välj själv ett mätvärde eller bygg en fråga.",
+  "The level the metric is watched at. It decides which filters you see.": "Nivån som mätvärdet bevakas på. Den avgör vilka filter du ser."
 }

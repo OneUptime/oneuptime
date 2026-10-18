@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "Wählen Sie die Bereitschaftsdienst-Richtlinie aus, die für diese Episode ausgeführt werden soll.",
   "Select the on-call policy to execute for this incident.": "Wählen Sie die Bereitschaftsdienst-Richtlinie aus, die für diesen Vorfall ausgeführt werden soll.",
   "Select the probe you want to run the test on.": "Wählen Sie die Sonde aus, auf der Sie den Test ausführen möchten.",
-  "Select the scope of resources to monitor.": "Wählen Sie den Umfang der zu überwachenden Ressourcen aus.",
   "Select the severity of the logs you want to monitor.": "Wählen Sie den Schweregrad der Protokolle aus, die Sie überwachen möchten.",
   "Select the SNMP protocol version": "Wählen Sie die SNMP-Protokollversion aus",
   "Select the start date and time for the override.": "Wählen Sie das Startdatum und die Startzeit für die Außerkraftsetzung aus.",
@@ -30674,5 +30673,6 @@
   "Alert templates": "Warnungsvorlagen",
   "Its platform decides which metrics and templates are offered.": "Die Plattform bestimmt, welche Metriken und Vorlagen angeboten werden.",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "Wähle eine Vorlage. Sie füllt die Metrik, die Schwellenwerte und die Kriterien unten aus.",
-  "Start from a template, or pick a metric or build a query yourself.": "Beginne mit einer Vorlage, oder wähle selbst eine Metrik oder erstelle eine Abfrage."
+  "Start from a template, or pick a metric or build a query yourself.": "Beginne mit einer Vorlage, oder wähle selbst eine Metrik oder erstelle eine Abfrage.",
+  "The level the metric is watched at. It decides which filters you see.": "Die Ebene, auf der die Metrik beobachtet wird. Sie bestimmt, welche Filter du siehst."
 }

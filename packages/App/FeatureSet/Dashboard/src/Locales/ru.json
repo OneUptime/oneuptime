@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "Выберите политику дежурства для выполнения по этому эпизоду.",
   "Select the on-call policy to execute for this incident.": "Выберите политику дежурства для выполнения по этому инциденту.",
   "Select the probe you want to run the test on.": "Выберите зонд, на котором вы хотите запустить тест.",
-  "Select the scope of resources to monitor.": "Выберите область ресурсов для мониторинга.",
   "Select the severity of the logs you want to monitor.": "Выберите уровень важности логов, которые вы хотите отслеживать.",
   "Select the SNMP protocol version": "Выберите версию протокола SNMP",
   "Select the start date and time for the override.": "Выберите дату и время начала замены.",
@@ -30674,5 +30673,6 @@
   "Alert templates": "Шаблоны оповещений",
   "Its platform decides which metrics and templates are offered.": "От его платформы зависит, какие метрики и шаблоны предлагаются.",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "Выберите шаблон. Он заполнит метрику, пороги и критерии ниже.",
-  "Start from a template, or pick a metric or build a query yourself.": "Начните с шаблона или сами выберите метрику либо составьте запрос."
+  "Start from a template, or pick a metric or build a query yourself.": "Начните с шаблона или сами выберите метрику либо составьте запрос.",
+  "The level the metric is watched at. It decides which filters you see.": "Уровень, на котором отслеживается метрика. От него зависит, какие фильтры видны."
 }

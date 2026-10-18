@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "Selecteer het bereikbaarheidsbeleid dat voor deze episode moet worden uitgevoerd.",
   "Select the on-call policy to execute for this incident.": "Selecteer het bereikbaarheidsbeleid dat voor dit incident moet worden uitgevoerd.",
   "Select the probe you want to run the test on.": "Selecteer de sonde waarop u de test wilt uitvoeren.",
-  "Select the scope of resources to monitor.": "Selecteer het bereik van resources om te monitoren.",
   "Select the severity of the logs you want to monitor.": "Selecteer de ernst van de logboeken die u wilt monitoren.",
   "Select the SNMP protocol version": "Selecteer de SNMP-protocolversie",
   "Select the start date and time for the override.": "Selecteer de begindatum en -tijd voor de overschrijving.",
@@ -30674,5 +30673,6 @@
   "Alert templates": "Waarschuwingssjablonen",
   "Its platform decides which metrics and templates are offered.": "Het platform bepaalt welke metrieken en sjablonen worden aangeboden.",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "Kies een sjabloon. Het vult de metriek, de drempels en de criteria hieronder in.",
-  "Start from a template, or pick a metric or build a query yourself.": "Begin met een sjabloon, of kies zelf een metriek of bouw een query."
+  "Start from a template, or pick a metric or build a query yourself.": "Begin met een sjabloon, of kies zelf een metriek of bouw een query.",
+  "The level the metric is watched at. It decides which filters you see.": "Het niveau waarop de metriek wordt bewaakt. Het bepaalt welke filters je ziet."
 }

@@ -4686,7 +4686,6 @@
   "Select the on-call policy to execute for this episode.": "Select the on-call policy to execute for this episode.",
   "Select the on-call policy to execute for this incident.": "Select the on-call policy to execute for this incident.",
   "Select the probe you want to run the test on.": "Select the probe you want to run the test on.",
-  "Select the scope of resources to monitor.": "Select the scope of resources to monitor.",
   "Select the severity of the logs you want to monitor.": "Select the severity of the logs you want to monitor.",
   "Select the SNMP protocol version": "Select the SNMP protocol version",
   "Select the start date and time for the override.": "Select the start date and time for the override.",
@@ -30674,5 +30673,6 @@
   "Alert templates": "Alert templates",
   "Its platform decides which metrics and templates are offered.": "Its platform decides which metrics and templates are offered.",
   "Pick a template. It fills in the metric, thresholds and criteria below.": "Pick a template. It fills in the metric, thresholds and criteria below.",
-  "Start from a template, or pick a metric or build a query yourself.": "Start from a template, or pick a metric or build a query yourself."
+  "Start from a template, or pick a metric or build a query yourself.": "Start from a template, or pick a metric or build a query yourself.",
+  "The level the metric is watched at. It decides which filters you see.": "The level the metric is watched at. It decides which filters you see."
 }
