@@ -23,9 +23,9 @@ const router: ExpressRouter = Express.getRouter();
 
 /*
  * Said when the installation never set a real REGISTER_PROBE_KEY, so no global
- * probe may register. The value the repository ships is public, so accepting
- * it would let anyone register a global probe and read every project's
- * global-probe monitors — credentials included — or feed in fake results.
+ * probe may register: a global probe runs the monitors of every project, so
+ * only the installation's own key makes one, never a value the repository
+ * ships.
  */
 export const REGISTRATION_DISABLED_MESSAGE: string =
   "Global probe registration is turned off on this installation because REGISTER_PROBE_KEY is unset or still a value shipped in the OneUptime repository. Set REGISTER_PROBE_KEY to a long random value on the OneUptime server, and give each global probe the same value, to register one.";
@@ -96,8 +96,8 @@ router.post(
 
       /*
        * A probe authenticates every later request with this key
-       * (ProbeService.verifyProbeKey), so a value the repository ships is
-       * refused here too: it would be a probe anyone could impersonate.
+       * (ProbeService.verifyProbeKey), which never accepts a value the
+       * repository ships, so such a key is refused here too.
        */
       if (isShippedSecretValue(probeKey)) {
         return Response.sendErrorResponse(
@@ -146,37 +146,23 @@ router.post(
       }
 
       /*
-       * The key does not match a global probe. A global probe is named
-       * (GLOBAL_PROBE_n_NAME), and its key is its operator's to rotate — on
-       * the Docker Compose and Helm installs the deployment tool gives every
-       * global probe a fresh random key where it used to ship a placeholder,
-       * so the same bundled probe comes back under a new key. Rekey the
-       * existing global probe of this name rather than mint a second one, so
-       * the monitors already assigned to it keep running under the same id.
-       * Only when exactly one global probe has the name: zero means this is a
-       * new probe, more than one is ambiguous and is left to create a new row.
-       * The caller already proved it holds this installation's
-       * REGISTER_PROBE_KEY, which is all it takes to administer global probes.
+       * No global probe holds this key. A bundled probe that ran on the key
+       * config.example.env ships comes back under the random one npm start
+       * gave it (GLOBAL_PROBE_n_KEY), and the row it ran as is refused from
+       * then on. It takes that row over - the global probe of its name whose
+       * key is a value the repository ships - so it keeps its id, and the
+       * monitors assigned to it keep running. A global probe whose key is
+       * the installation's own is never taken over by its name: only its
+       * key proves which probe it is (ShippedKeyTakeover).
        */
-      if (probeName) {
-        const sameNamedGlobalProbes: Array<Probe> = await ProbeService.findBy({
-          query: {
+      if (typeof probeName === "string" && probeName.trim()) {
+        const existingProbe: Probe | null =
+          await ProbeService.findGlobalProbeToTakeOver({
             name: probeName,
-            isGlobalProbe: true,
-          },
-          select: {
-            _id: true,
-          },
-          limit: 2,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+            presentedKey: probeKey,
+          });
 
-        if (sameNamedGlobalProbes.length === 1) {
-          const existingProbe: Probe = sameNamedGlobalProbes[0]!;
-
+        if (existingProbe) {
           await ProbeService.updateOneById({
             id: existingProbe.id!,
             data: {

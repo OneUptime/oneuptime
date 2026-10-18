@@ -70,14 +70,13 @@ export default class CodeFixAgentAuth {
     const agentKey: string = data["aiAgentKey"] as string;
 
     /*
-     * A key this repository ships is public, so it proves nothing. The
+     * A key this repository ships never authenticates an agent. The
      * in-cluster fleet's global agent registers with ONEUPTIME_RUNNER_KEY,
-     * and an installation that left that at a config.example.env placeholder
-     * would hand every code-fix route — claiming work, reading task data,
-     * minting repository tokens — to anyone who knows the public value. A
-     * real agent or Runner key is a long random value, never a shipped one,
-     * so refusing it here (before either registry is read) never turns away a
-     * legitimate agent while closing this for every code-fix route at once.
+     * which config.example.env ships as a placeholder, and every code-fix
+     * route authenticates here. A real agent or Runner key is a long random
+     * value, never a shipped one, so refusing it here (before either registry
+     * is read) never turns away a legitimate agent, and the rule holds on
+     * every code-fix route at once.
      */
     if (isShippedSecretValue(agentKey)) {
       return null;

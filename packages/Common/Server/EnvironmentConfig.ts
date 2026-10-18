@@ -641,8 +641,7 @@ export const QueueDashboardSecret: string =
  * own secret: the value exactly as the operator set it, and there is no
  * fallback. An installation that left it unset or at a value this repository
  * ships (EnvironmentConfig.isShippedSecretValue) registers no global probe at
- * all, because that public value would let anyone register one and read every
- * project's global-probe monitors, credentials included, or feed in results.
+ * all: a value public in the repository proves nothing.
  *
  * REGISTER_PROBE_KEY is a secret OneUptime's own containers share and that
  * nothing stored depends on, so Docker Compose gives it a random value at

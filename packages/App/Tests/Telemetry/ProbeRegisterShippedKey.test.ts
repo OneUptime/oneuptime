@@ -14,10 +14,10 @@
  *     (and the comparison is constant-time);
  *   - a probe key that is a shipped value is refused;
  *   - with a real register key: a new probe is created, a probe whose key
- *     matches is updated, and — because the deployment tool rotates a global
- *     probe's key where it shipped a placeholder — a probe of the same name
- *     is re-keyed in place (its id, and so its monitors, kept), while an
- *     ambiguous name mints a new probe.
+ *     matches is updated, and a probe coming back under a new key takes over
+ *     the global probe of its name whose key is a shipped value (its id, and
+ *     so its monitors, kept) - never one whose key is the installation's
+ *     own.
  */
 import {
   ExpressApplication,
@@ -340,56 +340,223 @@ describe("an installation whose operator set REGISTER_PROBE_KEY", () => {
     expect(running!.probe.create).not.toHaveBeenCalled();
   });
 
-  test("re-keys the one global probe of the same name, keeping its id", async () => {
-    const existingId: ObjectID = ObjectID.generate();
-    running!.probe.findOneBy.mockResolvedValue(null as never);
-    running!.probe.findBy.mockResolvedValue([
-      { _id: existingId, id: existingId },
-    ] as never);
+  /*
+   * A bundled probe that ran on the config.example.env key comes back under
+   * the random key npm start gave it. It takes over the global probe of its
+   * name whose key is a shipped value - the row it ran as, refused from then
+   * on - so its id, and the monitors assigned to it, stay. A global probe
+   * whose key is the installation's own is never taken over by its name.
+   */
+  describe("a probe coming back under a key no global probe holds", () => {
+    const NEW_KEY: string = "the-new-random-probe-key-6b1f0c2d9e8a";
 
-    const result: PostResult = await post(running!.origin, {
-      registerProbeKey: OPERATOR_KEY,
-      probeKey: "the-new-random-probe-key",
-      probeName: "Probe-1",
+    function mintsWith(newId: ObjectID): void {
+      running!.probe.create.mockImplementation(async (data: JSONObject) => {
+        const created: JSONObject = (data as { data: JSONObject }).data;
+        created["_id"] = newId;
+        created["id"] = newId;
+        return created;
+      });
+    }
+
+    function sameNamed(
+      ...rows: Array<{ key: string | null; lastAlive?: Date }>
+    ): Array<ObjectID> {
+      const ids: Array<ObjectID> = rows.map(() => {
+        return ObjectID.generate();
+      });
+
+      running!.probe.findOneBy.mockResolvedValue(null as never);
+      running!.probe.findBy.mockResolvedValue(
+        rows.map(
+          (each: { key: string | null; lastAlive?: Date }, index: number) => {
+            return {
+              _id: ids[index]!.toString(),
+              id: ids[index],
+              key: each.key,
+              lastAlive: each.lastAlive,
+            };
+          },
+        ) as never,
+      );
+
+      return ids;
+    }
+
+    async function register(probeName: unknown): Promise<PostResult> {
+      return await post(running!.origin, {
+        registerProbeKey: OPERATOR_KEY,
+        probeKey: NEW_KEY,
+        probeName: probeName as string,
+      });
+    }
+
+    test("takes over the global probe of its name whose key is the shipped placeholder, keeping its id", async () => {
+      const [existingId] = sameNamed({ key: PROBE_PLACEHOLDER });
+
+      const result: PostResult = await register("Probe-1");
+
+      expect(result.status).toBe(200);
+      expect(result.body["message"]).toBe("Probe already registered");
+      expect(result.body["_id"]).toBe(existingId!.toString());
+
+      // The row is re-keyed in place; no second probe is created.
+      expect(running!.probe.updateOneById).toHaveBeenCalledTimes(1);
+      const update: JSONObject = running!.probe.updateOneById.mock
+        .calls[0]![0] as JSONObject;
+      expect((update["id"] as ObjectID).toString()).toBe(
+        existingId!.toString(),
+      );
+      expect((update["data"] as JSONObject)["key"]).toBe(NEW_KEY);
+      expect(running!.probe.create).not.toHaveBeenCalled();
     });
 
-    expect(result.status).toBe(200);
-    expect(result.body["message"]).toBe("Probe already registered");
-    expect(result.body["_id"]).toBe(existingId.toString());
+    test("looks only at the global probes of the name it presents, reading their keys", async () => {
+      sameNamed({ key: PROBE_PLACEHOLDER });
 
-    // The existing probe is re-keyed in place; no new probe is created.
-    expect(running!.probe.updateOneById).toHaveBeenCalledTimes(1);
-    const update: JSONObject = running!.probe.updateOneById.mock
-      .calls[0]![0] as JSONObject;
-    expect((update["data"] as JSONObject)["key"]).toBe(
-      "the-new-random-probe-key",
+      await register("Probe-2");
+
+      expect(running!.probe.findBy).toHaveBeenCalledTimes(1);
+      const findBy: JSONObject = running!.probe.findBy.mock
+        .calls[0]![0] as JSONObject;
+      expect(findBy["query"]).toEqual({
+        name: "Probe-2",
+        isGlobalProbe: true,
+      });
+      expect(findBy["select"]).toEqual({
+        _id: true,
+        key: true,
+        lastAlive: true,
+      });
+    });
+
+    test("never takes over a global probe of its name whose key is the installation's own: it registers a new probe", async () => {
+      sameNamed({
+        key: "an-operator-chosen-key-of-a-running-probe",
+        lastAlive: new Date(),
+      });
+      const newId: ObjectID = ObjectID.generate();
+      mintsWith(newId);
+
+      const result: PostResult = await register("Probe-1");
+
+      expect(result.status).toBe(200);
+      expect(result.body["message"]).toBe("Probe registered successfully");
+      expect(result.body["_id"]).toBe(newId.toString());
+      expect(running!.probe.updateOneById).not.toHaveBeenCalled();
+      expect(running!.probe.create).toHaveBeenCalledTimes(1);
+    });
+
+    test("of a live global probe and a dead one of its name, takes over only the dead one", async () => {
+      const [, deadId] = sameNamed(
+        {
+          key: "an-operator-chosen-key-of-a-running-probe",
+          lastAlive: new Date(),
+        },
+        { key: PROBE_PLACEHOLDER },
+      );
+
+      const result: PostResult = await register("Probe-1");
+
+      expect(result.body["_id"]).toBe(deadId!.toString());
+      const update: JSONObject = running!.probe.updateOneById.mock
+        .calls[0]![0] as JSONObject;
+      expect((update["id"] as ObjectID).toString()).toBe(deadId!.toString());
+      expect(running!.probe.create).not.toHaveBeenCalled();
+    });
+
+    test("of two dead global probes of its name, takes over the one that reported in last", async () => {
+      const [, newestId] = sameNamed(
+        { key: "secret", lastAlive: new Date("2026-09-01T00:00:00Z") },
+        { key: PROBE_PLACEHOLDER, lastAlive: new Date("2026-10-17T00:00:00Z") },
+      );
+
+      const result: PostResult = await register("Probe-1");
+
+      expect(result.body["_id"]).toBe(newestId!.toString());
+      expect(running!.probe.create).not.toHaveBeenCalled();
+    });
+
+    test("a global probe of its name that already holds the key is its own, taken over a moment ago by a replica", async () => {
+      const [, ownId] = sameNamed(
+        { key: PROBE_PLACEHOLDER },
+        { key: NEW_KEY, lastAlive: new Date() },
+      );
+
+      const result: PostResult = await register("Probe-1");
+
+      expect(result.body["_id"]).toBe(ownId!.toString());
+      expect(running!.probe.create).not.toHaveBeenCalled();
+    });
+
+    test("registers a new probe when no global probe has its name", async () => {
+      sameNamed();
+      const newId: ObjectID = ObjectID.generate();
+      mintsWith(newId);
+
+      const result: PostResult = await register("Probe-1");
+
+      expect(result.body["message"]).toBe("Probe registered successfully");
+      expect(result.body["_id"]).toBe(newId.toString());
+      expect(running!.probe.updateOneById).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ["no name", undefined],
+      ["a blank name", "   "],
+      ["a name that is not text", { $ne: "" }],
+      ["a list for a name", ["Probe-1"]],
+    ])(
+      "with %s, takes nothing over and never looks a probe up by it",
+      async (_label: string, probeName: unknown) => {
+        sameNamed({ key: PROBE_PLACEHOLDER });
+        mintsWith(ObjectID.generate());
+
+        await register(probeName);
+
+        expect(running!.probe.findBy).not.toHaveBeenCalled();
+        expect(running!.probe.updateOneById).not.toHaveBeenCalled();
+      },
     );
-    expect(running!.probe.create).not.toHaveBeenCalled();
   });
 
-  test("mints a new probe when two global probes share the name", async () => {
-    running!.probe.findOneBy.mockResolvedValue(null as never);
-    running!.probe.findBy.mockResolvedValue([
-      { _id: ObjectID.generate(), id: ObjectID.generate() },
-      { _id: ObjectID.generate(), id: ObjectID.generate() },
-    ] as never);
-    const newId: ObjectID = ObjectID.generate();
-    running!.probe.create.mockImplementation(async (data: JSONObject) => {
-      const created: JSONObject = (data as { data: JSONObject }).data;
-      created["_id"] = newId;
-      created["id"] = newId;
-      return created;
-    });
+  test.each([
+    ["an object", { $ne: "" }],
+    ["a list", [OPERATOR_KEY]],
+    ["a number", 12345],
+    ["true", true],
+  ])(
+    "refuses a register key that is %s, and never reads the probe table",
+    async (_label: string, presented: unknown) => {
+      const result: PostResult = await post(running!.origin, {
+        registerProbeKey: presented as string,
+        probeKey: "an-operator-chosen-probe-key",
+        probeName: "Probe-1",
+      });
 
-    const result: PostResult = await post(running!.origin, {
-      registerProbeKey: OPERATOR_KEY,
-      probeKey: "the-new-random-probe-key",
-      probeName: "Probe-1",
-    });
+      expect(result.status).toBe(400);
+      expect(result.body["message"]).toContain("Invalid or missing");
+      expect(running!.probe.findOneBy).not.toHaveBeenCalled();
+    },
+  );
 
-    expect(result.status).toBe(200);
-    expect(result.body["message"]).toBe("Probe registered successfully");
-    expect(running!.probe.create).toHaveBeenCalledTimes(1);
-    expect(running!.probe.updateOneById).not.toHaveBeenCalled();
-  });
+  test.each([
+    ["an object", { $ne: "" }],
+    ["a list", ["an-operator-chosen-probe-key"]],
+    ["a number", 12345],
+    ["true", true],
+  ])(
+    "refuses a probe key that is %s, and never reads the probe table",
+    async (_label: string, probeKey: unknown) => {
+      const result: PostResult = await post(running!.origin, {
+        registerProbeKey: OPERATOR_KEY,
+        probeKey: probeKey as string,
+        probeName: "Probe-1",
+      });
+
+      expect(result.status).toBe(400);
+      expect(running!.probe.findOneBy).not.toHaveBeenCalled();
+      expect(running!.probe.create).not.toHaveBeenCalled();
+    },
+  );
 });
