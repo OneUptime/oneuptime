@@ -28,7 +28,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | 방법 | 적합한 경우 | 예 |
 | --- | --- | --- |
 | 기본 제공 연결 | OneUptime이 직접 연결하는 도구. 양식만 채우면 되고 만들 것은 없습니다. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [보안 이벤트](/docs/telemetry/security-events) 연결 |
-| 워크플로 템플릿 | 양방향으로 동기화되는 티켓 도구, 보안 인시던트 보고서, 채팅 메시지. 템플릿을 고르고 설정 몇 가지를 채웁니다. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
+| 워크플로 템플릿 | 양방향으로 동기화되는 티켓 도구, 모니터링 문제, 보안 인시던트 보고서, 채팅 메시지. 템플릿을 고르고 설정 몇 가지를 채웁니다. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
 | Incoming Request 모니터 | 웹훅을 보내는 알림 도구. 워크플로 없이 알림마다 인시던트가 하나씩 만들어지고, 온콜에 전달되며, 알림이 복구되면 해결됩니다. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | 직접 만드는 워크플로 | 웹훅이나 REST API가 있는 모든 도구와 모든 자체 로직. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 
 | 도구 | 방향 | 하는 일 |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | 인바운드 | Zabbix 문제를 인시던트로 만들고, Zabbix가 복구되면 해결합니다. |
+| [Zabbix](/docs/integrations/zabbix) | 양방향 | Zabbix 문제를 인시던트나 알림으로 만들고, 복구되면 해결하며, OneUptime에서 문제를 확인하거나 닫습니다. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 인바운드 | Alertmanager 알림을 인시던트로 만듭니다. |
 | [Grafana](/docs/integrations/grafana) | 인바운드 | Grafana 알림을 인시던트로 만듭니다. |
 | [Datadog](/docs/integrations/datadog) | 인바운드 | Datadog 모니터 알림을 인시던트로 만듭니다. |

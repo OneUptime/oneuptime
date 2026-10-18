@@ -1,32 +1,34 @@
 # Zabbix
 
-Invia i problemi di [Zabbix](https://www.zabbix.com) a OneUptime, così ogni problema diventa un incidente che chiama il tuo team reperibile e si risolve quando Zabbix rientra. Zabbix invia ogni problema tramite un tipo di media webhook, quindi non c'è nulla da installare né da una parte né dall'altra.
+Invia i problemi di [Zabbix](https://www.zabbix.com) a OneUptime, così ogni problema diventa un incidente che chiama il tuo team reperibile e si risolve quando Zabbix rientra. Modelli di workflow pronti all'uso mantengono allineate le due parti: ciò che le persone fanno in Zabbix viene annotato sull'incidente, e riconoscere o risolvere l'incidente riconosce o chiude il problema in Zabbix. Zabbix invia ogni problema tramite un tipo di media webhook, quindi non c'è nulla da installare né da una parte né dall'altra.
 
 :::cards
-- [Scegliere come OneUptime riceve i problemi](#scegliere-come-oneuptime-riceve-i-problemi): Un monitor Incoming Request o un workflow tuo.
-- [Ricevere i problemi con un monitor](#ricevere-i-problemi-con-un-monitor): Un incidente per problema, risolto al rientro.
+- [Scegliere come OneUptime riceve i problemi](#scegliere-come-oneuptime-riceve-i-problemi): Modelli di workflow o un monitor Incoming Request.
+- [Partire dai modelli](#partire-dai-modelli): Sei modelli, cosa fanno e cosa chiedono.
 - [Configurare Zabbix](#configurare-zabbix): Un tipo di media, un utente e un'azione.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Quando i problemi non arrivano o gli incidenti restano aperti.
 :::
 
 ## Come funziona
 
-```mermaid title="Da un problema di Zabbix a un incidente"
+```mermaid title="Da un problema di Zabbix a un incidente, e ritorno"
 flowchart TB
     problem["Trigger di Zabbix:<br/>PROBLEM o OK"] --> action["Un'azione lo invia<br/>all'utente OneUptime"]
     action --> media["Il tipo di media invia<br/>JSON a OneUptime"]
-    media --> status{"status"}
-    status -->|"1, un problema"| open["Incidente aperto,<br/>reperibile chiamato"]
-    status -->|"0, rientrato"| resolve["Incidente risolto"]
+    media --> event{"event"}
+    event -->|"problem"| open["Incidente dichiarato,<br/>reperibile chiamato"]
+    event -->|"recovery"| resolve["Incidente risolto"]
+    event -->|"update"| note["Nota privata,<br/>incidente forse<br/>riconosciuto"]
+    open -.->|"riconosciuto<br/>o risolto"| api["API di Zabbix:<br/>riconoscere o chiudere"]
 ```
 
-Zabbix invia un problema a un utente, tramite i media di quell'utente. Qui il media è un tipo di media webhook chiamato **OneUptime**: il suo script invia a OneUptime un piccolo documento JSON con l'ID evento, il nome, l'host, la gravità e lo stato del problema. Lo stato è `1` per un problema e `0` per il suo rientro.
+Zabbix invia un problema a un utente, tramite i media di quell'utente. Qui il media è un tipo di media webhook chiamato **OneUptime**: il suo script invia a OneUptime un piccolo documento JSON per ogni problema, per il suo rientro e per ogni aggiornamento che qualcuno vi fa in Zabbix, con l'ID evento, il nome, l'host e la gravità del problema. È con l'ID evento che OneUptime trova l'incidente aperto da un problema.
 
 ## Prima di iniziare
 
-- Un server Zabbix che amministri. Questa guida è scritta per Zabbix 6.0 LTS e 7.0 LTS. I tipi di media webhook funzionano allo stesso modo da Zabbix 5.0.
-- Un server Zabbix in grado di raggiungere il tuo OneUptime via HTTPS.
-- In OneUptime, il permesso di creare monitor, o workflow se scegli quella strada.
+- Un server Zabbix che amministri. Questa guida è scritta per Zabbix 6.0 LTS e 7.0 LTS. I tipi di media webhook funzionano allo stesso modo da Zabbix 5.0. I modelli che chiamano l'API di Zabbix richiedono Zabbix 6.4 o successivo, oppure [una modifica su Zabbix 6.0](#su-zabbix-60).
+- Un server Zabbix in grado di raggiungere il tuo OneUptime via HTTPS e, per i modelli che chiamano Zabbix, un OneUptime in grado di raggiungere Zabbix.
+- In OneUptime, il permesso di creare workflow, o monitor se scegli quella strada. Su OneUptime Cloud, i workflow richiedono il piano **Growth** o superiore.
 
 ## Scegliere come OneUptime riceve i problemi
 
@@ -34,10 +36,98 @@ Configura prima OneUptime: ti dà l'URL a cui invia Zabbix.
 
 | Modo | Usalo quando |
 | --- | --- |
-| Un monitor Incoming Request (consigliato) | Vuoi che ogni problema di Zabbix sia un incidente che chiama i reperibili e si risolve quando Zabbix rientra. Non c'è nulla da costruire. |
-| Un workflow con un trigger Webhook | Ti serve una logica tua: filtrare i problemi, dar loro un'altra forma o chiamare prima altri sistemi. Un workflow non risolve da solo l'incidente al rientro. |
+| I modelli di workflow (consigliati) | Vuoi ogni problema come un incidente o un avviso alla sua gravità di Zabbix, con i reperibili chiamati per High e Disaster, risolto al rientro, con ciò che le persone fanno in Zabbix annotato sopra, e Zabbix riconosciuto o chiuso da OneUptime. |
+| Un monitor Incoming Request | Vuoi incidenti senza un workflow, con qualsiasi piano, e un monitor il cui stato segue Zabbix. Nulla torna a Zabbix. |
 
 Entrambi ricevono lo stesso JSON dallo stesso tipo di media, quindi puoi iniziare con uno e passare all'altro in seguito cambiando un solo URL in Zabbix.
+
+## Partire dai modelli
+
+La finestra **Crea un flusso di lavoro** ha sei modelli Zabbix, sotto **Zabbix** nel suo elenco di categorie: tre per gli incidenti, poi gli stessi tre per gli avvisi.
+
+| Modello | Cosa fa | Cosa chiede |
+| --- | --- | --- |
+| **Incidenti** | | |
+| Declare an incident for each Zabbix problem | Il workflow a cui Zabbix invia ogni evento. Dichiara un incidente per ogni problema, chiama i reperibili per High e Disaster, annota gli aggiornamenti fatti in Zabbix e risolve l'incidente al rientro. | Zabbix URL |
+| Acknowledge or close the Zabbix problem with the incident | Quando l'incidente viene riconosciuto, riconosce il suo problema. Quando viene risolto, chiude il problema, o lo riconosce dove Zabbix non permette di chiuderlo a mano. | Zabbix URL, Zabbix API Token |
+| Copy incident private notes to the Zabbix problem | Aggiunge ogni nota privata dell'incidente al suo problema come messaggio. | Zabbix URL, Zabbix API Token |
+| **Avvisi** | | |
+| Create an alert for each Zabbix problem | Come per gli incidenti, con un avviso per ogni problema. | Zabbix URL |
+| Acknowledge or close the Zabbix problem with the alert | Come per gli incidenti, in base allo stato dell'avviso. | Zabbix URL, Zabbix API Token |
+| Copy alert private notes to the Zabbix problem | Aggiunge ogni nota privata dell'avviso al suo problema come messaggio. | Zabbix URL, Zabbix API Token |
+
+Inizia con **Declare an incident for each Zabbix problem**, o con **Create an alert for each Zabbix problem** per gli avvisi: l'incidente o l'avviso che apre conserva l'ID evento del problema nel suo campo personalizzato `zabbixEventId`, e gli altri due modelli trovano il problema tramite esso.
+
+### Cosa chiedono i modelli
+
+- **Zabbix URL**: l'indirizzo a cui apri Zabbix, come `https://zabbix.example.com`, o `https://example.com/zabbix` quando Zabbix gira sotto un percorso. I link a un problema portano lì, e i modelli che chiamano Zabbix inviano le loro richieste al suo `api_jsonrpc.php`. Il campo rifiuta l'indirizzo di una pagina dentro Zabbix.
+- **Zabbix API Token**: un token API dell'utente Zabbix con cui agisce il workflow. [Creare il token API](#creare-il-token-api) spiega come. Viene salvato come variabile segreta, e inviato solo nell'header `Authorization`.
+
+### Ricevere i problemi con il modello
+
+:::steps
+1. Vai su **Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. In **Oppure parti da un modello**, scegli **Zabbix** nell'elenco di categorie, fai clic su **Declare an incident for each Zabbix problem** e poi su **Usa questo modello**.
+2. Compila **Zabbix URL** e fai clic su **Crea flusso di lavoro**. Il workflow si apre nel **Costruttore**, disattivato.
+3. Fai clic sul passo **Page an On-Call Policy**, scegli le **Policy di reperibilità** da chiamare e salvalo.
+4. Fai clic sul trigger **Webhook**, poi su **Copia URL**, e conserva l'URL per Zabbix.
+5. Attiva **Abilitato** in cima al **Costruttore**. Un workflow disattivato risponde a Zabbix con `400`.
+:::
+
+Poi [configura Zabbix](#configurare-zabbix) perché invii i suoi problemi a quell'URL.
+
+### Cosa fa il workflow
+
+Dopo il trigger **Webhook**, un blocco **Switch / Case** prende una strada per ogni `event` che il tipo di media invia:
+
+| Evento | Cosa fa il workflow |
+| --- | --- |
+| `problem` | Dichiara un incidente intitolato `Zabbix: <problem> on <host>`, alla gravità a cui corrisponde la gravità di Zabbix, fuori dalle tue pagine di stato. La sua descrizione collega il problema in Zabbix e riporta l'host, la gravità, quando è iniziato, i suoi dati operativi e i suoi tag. Per un problema High o Disaster, chiama la policy di reperibilità che hai scelto. Un problema che Zabbix invia di nuovo, con lo stesso ID evento, non apre un secondo incidente. |
+| `recovery` | Risolve l'incidente del problema, a meno che non sia già risolto. Il motivo è nella sua cronologia. |
+| `update` | Aggiunge all'incidente, come nota privata, ciò che è stato fatto in Zabbix: chi l'ha fatto, cosa ha fatto e cosa ha scritto. Quando l'aggiornamento ha riconosciuto il problema, riconosce anche l'incidente, così la reperibilità smette di inoltrarlo in escalation. |
+
+Tutto il resto, come una richiesta di un altro strumento, viene lasciato com'è, e l'ultimo passo dell'esecuzione dice perché. Ogni esecuzione termina con un passo **Log** che dice cosa è successo: `✅` ha fatto il suo lavoro, `ℹ️` ha saltato l'evento di proposito, `❌` un passo è fallito e il log dell'esecuzione dice perché.
+
+### Gravità
+
+Il modello mappa le sei gravità di Zabbix sulle tue gravità di incidente, dalla più grave in giù:
+
+| Gravità di Zabbix | Gravità dell'incidente (nuovo progetto) | Gravità dell'avviso (nuovo progetto) | Reperibili |
+| --- | --- | --- | --- |
+| Disaster | Critical Incident | High | Chiamati |
+| High | Critical Incident | High | Chiamati |
+| Average | Major Incident | Low | Non chiamati |
+| Warning | Major Incident | Low | Non chiamati |
+| Information | Minor Incident | Low | Non chiamati |
+| Not classified | Minor Incident | Low | Non chiamati |
+
+Con gravità tue, Disaster e High vanno alla più grave, Average e Warning a quella di mezzo, e Information e Not classified alla meno grave. Zabbix numera le sue gravità da 0 (Not classified) a 5 (Disaster), e il modello legge il numero, quindi rinominare una gravità in Zabbix non cambia nulla.
+
+- Per mappare una gravità su una delle tue per nome, modifica `SEVERITY_BY_NAME` nel passo `read-event-1`, ad esempio `{ 2: 'Minor Incident' }` per Warning.
+- Per chiamare i reperibili anche per i problemi Average, imposta **Compare with** del passo `if-page-1` **If / Else** a `3`.
+
+### Rimandare riconoscimenti e note a Zabbix
+
+:::steps
+1. [Crea il token API](#creare-il-token-api).
+2. Crea un workflow da **Acknowledge or close the Zabbix problem with the incident**. Compila **Zabbix URL** e **Zabbix API Token**, fai clic su **Crea flusso di lavoro** e attiva **Abilitato**.
+3. Se vuoi anche le note in Zabbix, fai lo stesso con **Copy incident private notes to the Zabbix problem**.
+:::
+
+Il modello di stato chiede prima a Zabbix del problema, quindi un problema che Zabbix ha già riconosciuto o risolto viene lasciato com'è. Per chiudere un problema, il suo trigger ha bisogno di **Allow manual close** in Zabbix. Senza, il problema viene invece riconosciuto, con un messaggio che dice che l'incidente è stato risolto, e Zabbix lo chiude al rientro. Gli incidenti che nessun problema di Zabbix ha aperto, e quelli segnati come **Incidente privato**, non vengono mai inviati a Zabbix.
+
+### Creare il token API
+
+:::steps
+1. Usa l'utente `OneUptime` che [riceve i problemi](#creare-un-utente-che-riceva-i-problemi). Zabbix non invia a un utente i suoi stessi aggiornamenti, quindi con il token di questo utente i riconoscimenti e i messaggi di OneUptime non tornano mai a OneUptime come aggiornamenti.
+2. Controlla il ruolo dell'utente in **Users → User roles**. Gli serve **Access to API** attivo, e **Acknowledge problems**, **Add problem comments** e **Close problems** consentiti. Lo **User role** li consente, a meno che qualcuno non l'abbia cambiato.
+3. Controlla il gruppo dell'utente in **Users → User groups**. Il permesso **Read** sui gruppi di host basta per riconoscere i problemi e aggiungere messaggi. Per chiudere i problemi, serve **Read-write**.
+4. Vai su **Users → API tokens** e fai clic su **Create API token**. Scegli l'utente `OneUptime`, togli la spunta a **Set expiration date and time** o annota la data, e fai clic su **Add**.
+5. Copia il valore di **Auth token**: Zabbix lo mostra una sola volta. Incollalo in **Zabbix API Token**.
+:::
+
+### Su Zabbix 6.0
+
+Zabbix 6.0 legge il token API dal corpo della richiesta, non dal suo header `Authorization`. In ogni passo API dei modelli che chiamano Zabbix, aggiungi `"auth": "{{local.variables.zabbixApiToken}}",` a **Request Body**, dopo `"jsonrpc": "2.0",`, e rimuovi l'header. Zabbix 7.2 e successivi rifiutano `auth`, quindi rimuovilo di nuovo quando aggiorni.
 
 ## Ricevere i problemi con un monitor
 
@@ -82,44 +172,7 @@ https://oneuptime.com/heartbeat/<secret key>
 Un'installazione self-hosted ha il proprio host al posto di `oneuptime.com`.
 :::
 
-Il monitor legge il JSON della richiesta così com'è scritto: `"status":"1"`, senza spazi. Vedi [Ricevere allerte da un altro sistema](/docs/monitor/incoming-request-monitor#ricevere-avvisi-da-un-altro-sistema) per sapere cosa fa ogni impostazione.
-
-## Ricevere i problemi con un workflow
-
-Usa un [workflow](/docs/workflows/index) quando ti servono passaggi tuoi tra Zabbix e l'incidente.
-
-:::steps
-### Creare il workflow
-
-Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Parti da zero**. Chiamalo `Zabbix problems` e fai clic su **Crea flusso di lavoro**.
-
-### Aggiungere il trigger Webhook
-
-Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **Webhook**. Fai clic sul trigger, poi su **Copia URL**, e conserva l'URL per Zabbix.
-
-### Controllare che sia un problema
-
-Fai clic su **Aggiungi componente**, aggiungi un blocco **If / Else** e collegagli il punto **Out** del trigger. Imposta **Value to check** su `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** su **is equal to** e **Compare with** su `1`.
-
-### Dichiarare l'incidente
-
-Aggiungi un blocco **Create One Incident** e collegagli il lato **Yes** del blocco **If / Else**. In **Incident Template**, scegli un modello che imposti la gravità e le policy di reperibilità da chiamare (vedi [Modelli di incidente](/docs/incidents/settings#modelli-di-incidenti)). In **JSON Object**, imposta ciò che arriva da Zabbix:
-
-```json
-{
-  "title": "Zabbix: {{local.components.webhook-1.returnValues.request-body.name}}",
-  "description": "Host: {{local.components.webhook-1.returnValues.request-body.host}}\nSeverity: {{local.components.webhook-1.returnValues.request-body.severity}}\nZabbix event: {{local.components.webhook-1.returnValues.request-body.event_id}}"
-}
-```
-
-Senza un modello, **JSON Object** richiede anche `incidentSeverityId`, l'ID di una delle gravità di incidente del progetto.
-
-### Attivarlo
-
-Attiva **Abilitato** in cima al **Costruttore**. Un workflow disattivato risponde a Zabbix con `400`.
-:::
-
-Un rientro prende il lato **No** del blocco **If / Else**, dove non è collegato nulla, quindi l'esecuzione finisce lì. Per risolvere gli incidenti al rientro, usa il monitor.
+Il monitor legge il JSON della richiesta così com'è scritto: `"status":"1"`, senza spazi. Vedi [Ricevere allerte da un altro sistema](/docs/monitor/incoming-request-monitor#ricevere-avvisi-da-un-altro-sistema) per sapere cosa fa ogni impostazione. Anche un aggiornamento fatto in Zabbix viene inviato con `"status":"1"`, che il monitor legge di nuovo come il problema, senza aprire un secondo incidente.
 
 ## Configurare Zabbix
 
@@ -139,28 +192,73 @@ Zabbix ha bisogno di tre cose: un tipo di media che invii a OneUptime, un utente
    | `event_name` | `{EVENT.NAME}` |
    | `event_value` | `{EVENT.VALUE}` |
    | `event_severity` | `{EVENT.SEVERITY}` |
+   | `event_nseverity` | `{EVENT.NSEVERITY}` |
    | `host` | `{HOST.NAME}` |
    | `event_date` | `{EVENT.DATE}` |
    | `event_time` | `{EVENT.TIME}` |
+   | `event_opdata` | `{EVENT.OPDATA}` |
+   | `event_tags` | `{EVENT.TAGSJSON}` |
+   | `trigger_id` | `{TRIGGER.ID}` |
+   | `event_update_status` | `{EVENT.UPDATE.STATUS}` |
+   | `event_update_action` | `{EVENT.UPDATE.ACTION}` |
+   | `event_update_message` | `{EVENT.UPDATE.MESSAGE}` |
+   | `event_update_user` | `{USER.FULLNAME}` |
 
 4. Incolla questo in **Script**:
 
    ```javascript
    var params = JSON.parse(value);
-   var request = new HttpRequest();
-   request.addHeader("Content-Type: application/json");
 
+   // Zabbix leaves a macro it has no value for as it is written, such as
+   // {EVENT.UPDATE.MESSAGE} on a problem: it is sent as nothing.
+   function given(text) {
+     var written = String(text === undefined || text === null ? "" : text);
+     return /^\{[A-Z0-9_.]+\}$/.test(written) || written === "*UNKNOWN*"
+       ? ""
+       : written;
+   }
+
+   var isUpdate = given(params.event_update_status) === "1";
    var payload = {
      source: "zabbix",
+     // "problem", "recovery" or "update".
+     event: isUpdate
+       ? "update"
+       : params.event_value === "0"
+         ? "recovery"
+         : "problem",
      event_id: params.event_id,
      name: params.event_name,
      host: params.host,
      severity: params.event_severity,
+     // 0 Not classified, 1 Information, 2 Warning, 3 Average, 4 High, 5 Disaster.
+     severity_number: params.event_nseverity,
      // "1" for a problem, "0" for its recovery.
      status: params.event_value,
      date: params.event_date,
      time: params.event_time,
+     opdata: given(params.event_opdata),
+     tags: [],
+     trigger_id: params.trigger_id,
    };
+
+   try {
+     var tags = JSON.parse(given(params.event_tags) || "[]");
+     payload.tags = Array.isArray(tags) ? tags : [];
+   } catch (error) {
+     payload.tags = [];
+   }
+
+   if (isUpdate) {
+     payload.update = {
+       action: given(params.event_update_action),
+       message: given(params.event_update_message),
+       user: given(params.event_update_user),
+     };
+   }
+
+   var request = new HttpRequest();
+   request.addHeader("Content-Type: application/json");
 
    var response = request.post(params.url, JSON.stringify(payload));
 
@@ -173,7 +271,7 @@ Zabbix ha bisogno di tre cose: un tipo di media che invii a OneUptime, un utente
    return "OK";
    ```
 
-5. Nella scheda **Message templates**, aggiungi un modello per **Problem** e uno per **Problem recovery**. Lascia vuoto il loro testo: lo script costruisce la richiesta. Zabbix usa un tipo di media solo per i tipi di evento per cui ha un modello.
+5. Nella scheda **Message templates**, aggiungi un modello per **Problem**, uno per **Problem recovery** e uno per **Problem update**. Lascia vuoto il loro testo: lo script costruisce la richiesta. Zabbix usa un tipo di media solo per i tipi di evento per cui ha un modello.
 6. Fai clic su **Add**.
 
 ### Creare un utente che riceva i problemi
@@ -187,30 +285,32 @@ Zabbix ha bisogno di tre cose: un tipo di media che invii a OneUptime, un utente
 1. Vai su **Alerts → Actions → Trigger actions**, o su **Configuration → Actions** in Zabbix 6.0, e fai clic su **Create action**. Chiamala `Notify OneUptime`.
 2. In **Conditions**, restringila se vuoi, ad esempio con **Trigger severity is greater than or equals Warning**. Senza condizioni, viene inviato ogni problema.
 3. Nella scheda **Operations**, aggiungi un'operazione che invii all'utente `OneUptime` tramite il tipo di media `OneUptime`.
-4. Aggiungi la stessa operazione in **Recovery operations**, così vengono inviati anche i rientri.
+4. Aggiungi la stessa operazione in **Recovery operations**, così vengono inviati anche i rientri, e in **Update operations**, così vengono inviati i riconoscimenti e i commenti fatti in Zabbix.
 5. Fai clic su **Add** e verifica che l'azione sia abilitata.
 :::
 
+Per inviare alcuni problemi al modello per gli incidenti e altri a quello per gli avvisi, dai all'utente `OneUptime` due media di tipo `OneUptime`: ognuno invia all'URL di un workflow, con le gravità che deve ricevere.
+
 ## Provarlo
 
-1. In Zabbix, apri **Alerts → Media types** e fai clic su **Test** accanto a `OneUptime`. Inserisci l'URL che hai copiato e valori di esempio come `event_id` `12345`, `event_name` `Test problem`, `host` `web-1` e `event_value` `1`. Fai clic su **Test**: Zabbix mostra la risposta dello script, `OK`, o l'errore che ha generato.
-2. In OneUptime, apri il monitor e verifica che si sia aperto un incidente, oppure apri **Registri → Esecuzioni** del workflow e controlla l'esecuzione.
-3. Prova di nuovo con `event_value` `0` e lo stesso `event_id`. Con il monitor, l'incidente viene risolto.
+1. In Zabbix, apri **Alerts → Media types** e fai clic su **Test** accanto a `OneUptime`. Inserisci l'URL che hai copiato e valori di esempio come `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` e `event_value` `1`. Fai clic su **Test**: Zabbix mostra la risposta dello script, `OK`, o l'errore che ha generato.
+2. In OneUptime, apri **Registri → Esecuzioni** del workflow e controlla l'esecuzione, oppure apri il monitor e verifica che si sia aperto un incidente.
+3. Prova di nuovo con `event_value` `0` e lo stesso `event_id`. L'incidente viene risolto.
 
-Poi lascia scattare un trigger reale, ad esempio abbassando per un momento una soglia, e osserva il problema arrivare.
+Poi lascia scattare un trigger reale, ad esempio abbassando per un momento una soglia, e osserva il problema arrivare. Per provare un aggiornamento, riconosci il problema in Zabbix con un messaggio: l'incidente riceve una nota privata e viene riconosciuto.
 
 ## Mappare le gravità di Zabbix
 
 Zabbix invia la gravità come testo: `Not classified`, `Information`, `Warning`, `Average`, `High` o `Disaster`.
 
+- **Con i modelli**, le gravità vengono mappate per te: vedi [Gravità](#gravità).
 - **Con il monitor**, fai clic su **Aggiungi criteri** per ogni gruppo di gravità e trascina il nuovo criterio sopra il primo: i criteri vengono controllati dall'alto, e decide il primo che corrisponde. Dai a ciascuno due filtri, `"status":"1"` e una gravità come `"severity":"Disaster"`, con **Condizione di corrispondenza** su **Tutti**. Dai a ciascuno un incidente con la propria **Gravità** e **Risoluzione automatica dell'incidente**, e le stesse impostazioni di raggruppamento.
-- **Con il workflow**, aggiungi un blocco [Switch / Case](/docs/workflows/components#switch-case) su `{{local.components.webhook-1.returnValues.request-body.severity}}`, con un caso per ogni gravità, e un blocco **Create One Incident**, con il proprio modello, dopo ogni caso.
 
 ## Risoluzione dei problemi
 
 :::details Non arriva nulla in OneUptime
 - In Zabbix, apri **Reports → Action log** e verifica che l'azione abbia inviato il problema, e cosa è tornato indietro.
-- Dal server Zabbix, invia tu stesso una richiesta: `curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"status":"1","event_id":"1","name":"Test","host":"test"}'`.
+- Dal server Zabbix, invia tu stesso una richiesta: `curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"source":"zabbix","event":"problem","event_id":"1","name":"Test","host":"test","severity_number":"4","status":"1"}'`.
 - Il monitor risponde subito `200`, prima di controllare qualsiasi cosa, anche con una chiave segreta sbagliata. Controlla la cronologia del monitor per vedere se le richieste arrivano.
 - Un workflow disattivato risponde `400`. Attiva **Abilitato** in cima al suo **Costruttore**.
 :::
@@ -221,9 +321,17 @@ Apri il tipo di media e usa **Test**: Zabbix mostra il risultato dello script o 
 
 :::details Gli incidenti si aprono ma non vengono mai risolti
 - L'azione ha bisogno di **Recovery operations**, altrimenti Zabbix non invia mai il rientro.
-- L'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**.
-- **Field that signals recovery** deve essere `requestBody.status`, e **Value that means recovered** esattamente `0`.
-- Un workflow non risolve gli incidenti al rientro. Usa il monitor.
+- Con il modello, apri **Registri → Esecuzioni** del workflow e l'esecuzione del rientro: il suo ultimo passo dice perché. Il rientro di un problema che non ha aperto alcun incidente non cambia nulla.
+- Con il monitor, l'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**. **Field that signals recovery** deve essere `requestBody.status`, e **Value that means recovered** esattamente `0`.
+:::
+
+:::details Il problema di Zabbix non viene riconosciuto né chiuso
+Apri l'esecuzione del modello di stato in **Registri → Esecuzioni**: il suo ultimo passo dice cosa ha risposto Zabbix.
+
+- `Not authorized`: il token API è errato, scaduto o disattivato, oppure Zabbix è precedente alla 6.4 (vedi [Su Zabbix 6.0](#su-zabbix-60)).
+- `Cannot close problem: trigger does not allow manual closing`: attiva **Allow manual close** sul trigger. Il modello già riconosce questi problemi invece di chiuderli.
+- `No permissions to referred object or it does not exist!`: l'utente vede il problema, ma ha bisogno del permesso **Read-write** per chiuderlo.
+- `Zabbix has no problem with event ID`: l'utente non vede l'host del problema. Dai al suo gruppo di utenti il permesso **Read** sul gruppo di host.
 :::
 
 :::details L'incidente mostra un riferimento invece di un valore
@@ -231,20 +339,22 @@ Un riferimento a un campo che la richiesta non ha viene lasciato così com'è sc
 :::
 
 :::details Ogni problema arriva due volte
-Probabilmente l'azione ha due operazioni che inviano allo stesso utente, come un primo passo e un passo di escalation. Controlla le **Operations** dell'azione.
+Probabilmente l'azione ha due operazioni che inviano allo stesso utente, come un primo passo e un passo di escalation. Il modello apre un solo incidente per ID evento qualunque cosa arrivi, ma ogni consegna è un'esecuzione. Controlla le **Operations** dell'azione.
 :::
 
 ## Sicurezza
 
-- **Tratta l'URL come una password.** Chiunque lo abbia può aprire incidenti. Se trapela, reimpostalo: **Reimposta la chiave segreta della richiesta in arrivo** nella pagina **Impostazioni** del monitor, o **Reimposta URL** nel trigger **Webhook** del workflow. Poi aggiorna **Send to** nel media dell'utente Zabbix.
+- **Tratta l'URL come una password.** Chiunque lo abbia può aprire incidenti. Se trapela, reimpostalo: **Reimposta URL** nel trigger **Webhook** del workflow, o **Reimposta la chiave segreta della richiesta in arrivo** nella pagina **Impostazioni** del monitor. Poi aggiorna **Send to** nel media dell'utente Zabbix.
+- **I link portano al tuo Zabbix.** Il modello collega un problema sul sito indicato dal suo **Zabbix URL**, qualunque cosa dica una richiesta, e scrive ciò che Zabbix ha inviato come testo.
+- **Limita il token API a ciò che fa il workflow.** È una variabile segreta, oscurata nei log delle esecuzioni e inviata solo nell'header `Authorization`. Dai al suo utente un ruolo con nient'altro che le azioni qui sopra, ed elimina il token in **Users → API tokens** se trapela.
 - **Invia solo ciò che richiede un incidente.** Usa le condizioni dell'azione, o le gravità del media dell'utente, per lasciare in Zabbix i problemi di bassa gravità.
-- **Self-hosted?** Lascia che il tuo server Zabbix raggiunga il tuo OneUptime via HTTPS attraverso il firewall.
+- **Self-hosted?** Lascia che il tuo server Zabbix raggiunga il tuo OneUptime via HTTPS attraverso il firewall. Per chiamare uno Zabbix su una rete privata, il workflow ha bisogno di [accesso di rete in uscita](/docs/workflows/configuration#accesso-alla-rete-in-uscita).
 
 ## Prossimi passi
 
 :::cards
+- [Modelli di workflow](/docs/workflows/authoring): Crea un workflow da un modello e modificalo nel Costruttore.
 - [Monitor richieste in arrivo](/docs/monitor/incoming-request-monitor): Ogni impostazione del monitor che riceve i problemi di Zabbix.
 - [Regole di escalation](/docs/on-call/escalation-rules): Decidi chi chiama una policy di reperibilità, e quando.
-- [Trigger del workflow](/docs/workflows/triggers#webhook): Come funziona l'URL webhook di un workflow.
 - [Panoramica delle integrazioni](/docs/integrations/index): Gli altri strumenti che puoi collegare.
 :::

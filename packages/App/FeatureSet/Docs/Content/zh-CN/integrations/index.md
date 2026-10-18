@@ -28,7 +28,7 @@ flowchart TB
 | 方式 | 最适合 | 示例 |
 | --- | --- | --- |
 | 内置连接 | OneUptime 自己连接的工具。只需填写表单，无需构建任何东西。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[安全事件](/docs/telemetry/security-events) 连接 |
-| 工作流模板 | 双向保持同步的工单工具、安全事件报告，以及聊天消息。选择一个模板并填写几项设置即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress) |
+| 工作流模板 | 双向保持同步的工单工具、监控问题、安全事件报告，以及聊天消息。选择一个模板并填写几项设置即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress)、[Zabbix](/docs/integrations/zabbix) |
 | Incoming Request 监视器 | 发送 Webhook 的告警工具。无需工作流，每条告警对应一个事件，通知值班人员，并在告警恢复时解决。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
 | 你自己构建的工作流 | 任何带有 Webhook 或 REST API 的工具，以及你自己的任何逻辑。 | [PagerDuty](/docs/integrations/pagerduty)、[Opsgenie](/docs/integrations/opsgenie)、[ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ flowchart TB
 
 | 工具 | 方向 | 作用 |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | 入站 | 把 Zabbix 问题转为事件，并在 Zabbix 恢复时解决它们。 |
+| [Zabbix](/docs/integrations/zabbix) | 双向 | 把 Zabbix 问题转为事件或警报，在恢复时解决它们，并从 OneUptime 确认或关闭这些问题。 |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 入站 | 把 Alertmanager 通知转为事件。 |
 | [Grafana](/docs/integrations/grafana) | 入站 | 把 Grafana 告警转为事件。 |
 | [Datadog](/docs/integrations/datadog) | 入站 | 把 Datadog 监控告警转为事件。 |

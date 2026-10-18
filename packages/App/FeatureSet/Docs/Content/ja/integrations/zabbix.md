@@ -1,32 +1,34 @@
 # Zabbix
 
-[Zabbix](https://www.zabbix.com) の問題を OneUptime に送信すると、各問題がオンコールチームを呼び出すインシデントになり、Zabbix が回復すると解決されます。Zabbix は各問題を Webhook のメディアタイプで送信するため、どちら側にもインストールするものはありません。
+[Zabbix](https://www.zabbix.com) の問題を OneUptime に送信すると、各問題がオンコールチームを呼び出すインシデントになり、Zabbix が回復すると解決されます。すぐに使えるワークフローテンプレートが両側を同期させます。Zabbix で行われたことはインシデントに記録され、インシデントを確認または解決すると、Zabbix の問題が確認またはクローズされます。Zabbix は各問題を Webhook のメディアタイプで送信するため、どちら側にもインストールするものはありません。
 
 :::cards
-- [OneUptime で問題を受け取る方法を選ぶ](#oneuptime-で問題を受け取る方法を選ぶ): 受信リクエストモニターか、独自のワークフロー。
-- [モニターで問題を受け取る](#モニターで問題を受け取る): 問題ごとに 1 件のインシデントを作成し、回復時に解決。
+- [OneUptime で問題を受け取る方法を選ぶ](#oneuptime-で問題を受け取る方法を選ぶ): ワークフローテンプレートか、受信リクエストモニター。
+- [テンプレートから始める](#テンプレートから始める): 6 つのテンプレート、その動作と必要な入力。
 - [Zabbix を設定する](#zabbix-を設定する): メディアタイプ、ユーザー、アクション。
 - [トラブルシューティング](#トラブルシューティング): 問題が届かない、またはインシデントが開いたままの場合。
 :::
 
 ## 仕組み
 
-```mermaid title="Zabbix の問題からインシデントへ"
+```mermaid title="Zabbix の問題からインシデントへ、そして戻る"
 flowchart TB
     problem["Zabbix トリガー:<br/>PROBLEM または OK"] --> action["アクションが<br/>OneUptime ユーザー<br/>に送信"]
     action --> media["メディアタイプが<br/>OneUptime に<br/>JSON を送信"]
-    media --> status{"status"}
-    status -->|"1、問題"| open["インシデント作成、<br/>オンコール呼び出し"]
-    status -->|"0、回復"| resolve["インシデント解決"]
+    media --> event{"event"}
+    event -->|"problem"| open["インシデント宣言、<br/>オンコール呼び出し"]
+    event -->|"recovery"| resolve["インシデント解決"]
+    event -->|"update"| note["非公開メモ、<br/>場合により確認"]
+    open -.->|"確認または解決"| api["Zabbix API:<br/>確認またはクローズ"]
 ```
 
-Zabbix は、ユーザーのメディアを通じてそのユーザーに問題を送信します。ここでのメディアは **OneUptime** という名前の Webhook メディアタイプです。そのスクリプトは、問題のイベント ID、名前、ホスト、重大度、ステータスを含む小さな JSON ドキュメントを OneUptime に送信します。ステータスは問題では `1`、回復では `0` です。
+Zabbix は、ユーザーのメディアを通じてそのユーザーに問題を送信します。ここでのメディアは **OneUptime** という名前の Webhook メディアタイプです。そのスクリプトは、問題ごと、その回復ごと、そして Zabbix で誰かが問題を更新するごとに、問題のイベント ID、名前、ホスト、重大度を含む小さな JSON ドキュメントを OneUptime に送信します。OneUptime は、イベント ID を使って問題が作成したインシデントを見つけます。
 
 ## 前提条件
 
-- 自分が管理する Zabbix サーバー。このガイドは Zabbix 6.0 LTS と 7.0 LTS 向けに書かれています。Webhook メディアタイプは Zabbix 5.0 以降で同じように動作します。
-- HTTPS で OneUptime に到達できる Zabbix サーバー。
-- OneUptime では、モニターを作成する権限、またはワークフローの方法を選ぶ場合はワークフローを作成する権限。
+- 自分が管理する Zabbix サーバー。このガイドは Zabbix 6.0 LTS と 7.0 LTS 向けに書かれています。Webhook メディアタイプは Zabbix 5.0 以降で同じように動作します。Zabbix の API を呼び出すテンプレートには、Zabbix 6.4 以降、または [Zabbix 6.0 での 1 か所の変更](#zabbix-60-の場合) が必要です。
+- HTTPS で OneUptime に到達できる Zabbix サーバー。Zabbix を呼び出すテンプレートでは、Zabbix に到達できる OneUptime も必要です。
+- OneUptime では、ワークフローを作成する権限、またはモニターの方法を選ぶ場合はモニターを作成する権限。OneUptime Cloud では、ワークフローに **Growth** プラン以上が必要です。
 
 ## OneUptime で問題を受け取る方法を選ぶ
 
@@ -34,10 +36,98 @@ Zabbix は、ユーザーのメディアを通じてそのユーザーに問題�
 
 | 方法 | 使う場面 |
 | --- | --- |
-| 受信リクエストモニター (推奨) | Zabbix のすべての問題を、オンコールを呼び出し、Zabbix が回復すると解決されるインシデントにしたい場合。構築するものはありません。 |
-| Webhook トリガーを使うワークフロー | 問題の絞り込み、形の変更、先に他のシステムを呼び出すなど、独自のロジックが必要な場合。ワークフローは、回復時にインシデントを自動では解決しません。 |
+| ワークフローテンプレート (推奨) | 各問題を Zabbix の重大度に応じたインシデントまたはアラートにし、High と Disaster ではオンコールを呼び出し、回復で解決し、Zabbix での操作をそこに記録し、OneUptime から Zabbix を確認またはクローズしたい場合。 |
+| 受信リクエストモニター | ワークフローなしで、どのプランでもインシデントを作成し、ステータスが Zabbix に従うモニターが欲しい場合。Zabbix には何も戻りません。 |
 
 どちらも同じメディアタイプから同じ JSON を受け取るため、一方から始めて、後で Zabbix の URL を 1 つ変えるだけで切り替えられます。
+
+## テンプレートから始める
+
+**ワークフローを作成** ダイアログには、カテゴリー一覧の **Zabbix** の下に 6 つの Zabbix テンプレートがあります。インシデント用が 3 つ、次に同じ 3 つのアラート用です。
+
+| テンプレート | 動作 | 必要な入力 |
+| --- | --- | --- |
+| **インシデント** | | |
+| Declare an incident for each Zabbix problem | Zabbix がすべてのイベントを送信するワークフロー。問題ごとにインシデントを宣言し、High と Disaster ではオンコールを呼び出し、Zabbix での更新を記録し、回復でインシデントを解決します。 | Zabbix URL |
+| Acknowledge or close the Zabbix problem with the incident | インシデントが確認されると、その問題を確認します。解決されると問題をクローズし、Zabbix が手動クローズを許可しない場合は確認します。 | Zabbix URL、Zabbix API Token |
+| Copy incident private notes to the Zabbix problem | インシデントの各非公開メモを、その問題にメッセージとして追加します。 | Zabbix URL、Zabbix API Token |
+| **アラート** | | |
+| Create an alert for each Zabbix problem | インシデントと同じですが、問題ごとにアラートを作成します。 | Zabbix URL |
+| Acknowledge or close the Zabbix problem with the alert | インシデントと同じですが、アラートの状態に従います。 | Zabbix URL、Zabbix API Token |
+| Copy alert private notes to the Zabbix problem | アラートの各非公開メモを、その問題にメッセージとして追加します。 | Zabbix URL、Zabbix API Token |
+
+まず **Declare an incident for each Zabbix problem** から始めます。アラートの場合は **Create an alert for each Zabbix problem** から始めます。これが作成するインシデントまたはアラートは、問題のイベント ID をカスタムフィールド `zabbixEventId` に保持し、ほかの 2 つのテンプレートはそれを使って問題を見つけます。
+
+### テンプレートに必要な入力
+
+- **Zabbix URL**: Zabbix を開くときのアドレス。たとえば `https://zabbix.example.com`、Zabbix がパスの下で動いている場合は `https://example.com/zabbix` です。問題へのリンクはそこを指し、Zabbix を呼び出すテンプレートはその `api_jsonrpc.php` にリクエストを送信します。Zabbix 内のページのアドレスは受け付けません。
+- **Zabbix API Token**: ワークフローが操作に使う Zabbix ユーザーの API トークン。作成方法は [API トークンを作成する](#api-トークンを作成する) を参照してください。シークレット変数として保存され、`Authorization` ヘッダーでのみ送信されます。
+
+### テンプレートで問題を受け取る
+
+:::steps
+1. **ワークフロー** に移動し、**ワークフローを作成** をクリックします。**またはテンプレートから始める** で、カテゴリー一覧の **Zabbix** を選び、**Declare an incident for each Zabbix problem** をクリックしてから **このテンプレートを使う** をクリックします。
+2. **Zabbix URL** を入力し、**ワークフローを作成** をクリックします。ワークフローはオフの状態で **ビルダー** に開きます。
+3. **Page an On-Call Policy** ステップをクリックし、呼び出す **オンコールポリシー** を選んで保存します。
+4. **Webhook** トリガーをクリックしてから **URL をコピー** をクリックし、URL を Zabbix 用に控えておきます。
+5. **ビルダー** の上部で **有効** をオンにします。オフのワークフローは Zabbix に `400` で応答します。
+:::
+
+次に、その URL に問題を送信するように [Zabbix を設定します](#zabbix-を設定する)。
+
+### ワークフローの動作
+
+**Webhook** トリガーの後、**Switch / Case** ブロックが、メディアタイプが送信する `event` ごとに経路を選びます:
+
+| イベント | ワークフローの動作 |
+| --- | --- |
+| `problem` | `Zabbix: <problem> on <host>` というタイトルのインシデントを、Zabbix の重大度に対応する重大度で宣言し、ステータスページには表示しません。説明には Zabbix の問題へのリンクと、ホスト、重大度、開始時刻、運用データ、タグを記載します。High または Disaster の問題では、選んだオンコールポリシーを呼び出します。Zabbix が同じイベント ID で再送した問題では、新しいインシデントは作成されません。 |
+| `recovery` | 問題のインシデントがまだ解決されていなければ解決します。理由はタイムラインに残ります。 |
+| `update` | Zabbix で行われたこと (誰が行ったか、何をしたか、何を書いたか) を非公開メモとしてインシデントに追加します。更新で問題が確認された場合はインシデントも確認し、オンコールのエスカレーションが止まります。 |
+
+それ以外のもの (別のツールからのリクエストなど) はそのままにされ、実行の最後のステップがその理由を示します。各実行は、何が起きたかを示す **Log** ステップで終わります。`✅` は処理を完了、`ℹ️` は意図的にイベントをスキップ、`❌` はステップが失敗したことを示し、理由は実行ログにあります。
+
+### 重大度
+
+テンプレートは、Zabbix の 6 つの重大度を、最も重いものから順にインシデントの重大度に対応付けます:
+
+| Zabbix の重大度 | インシデントの重大度 (新しいプロジェクト) | アラートの重大度 (新しいプロジェクト) | オンコール |
+| --- | --- | --- | --- |
+| Disaster | Critical Incident | High | 呼び出す |
+| High | Critical Incident | High | 呼び出す |
+| Average | Major Incident | Low | 呼び出さない |
+| Warning | Major Incident | Low | 呼び出さない |
+| Information | Minor Incident | Low | 呼び出さない |
+| Not classified | Minor Incident | Low | 呼び出さない |
+
+独自の重大度がある場合、Disaster と High は最も重いものに、Average と Warning は中間のものに、Information と Not classified は最も軽いものに対応します。Zabbix は重大度に 0 (Not classified) から 5 (Disaster) までの番号を付けており、テンプレートは番号を読むため、Zabbix で重大度の名前を変えても何も変わりません。
+
+- 重大度を名前で自分の重大度に対応付けるには、`read-event-1` ステップの `SEVERITY_BY_NAME` を編集します。たとえば Warning なら `{ 2: 'Minor Incident' }` です。
+- Average の問題でも呼び出すには、`if-page-1` の **If / Else** ステップの **Compare with** を `3` にします。
+
+### 確認とメモを Zabbix に送り返す
+
+:::steps
+1. [API トークンを作成します](#api-トークンを作成する)。
+2. **Acknowledge or close the Zabbix problem with the incident** からワークフローを作成します。**Zabbix URL** と **Zabbix API Token** を入力し、**ワークフローを作成** をクリックして、**有効** をオンにします。
+3. メモも Zabbix に送りたい場合は、**Copy incident private notes to the Zabbix problem** でも同じようにします。
+:::
+
+状態のテンプレートは先に Zabbix に問題を問い合わせるため、Zabbix ですでに確認または解決された問題はそのままにされます。問題をクローズするには、そのトリガーで Zabbix の **Allow manual close** が必要です。これがない場合、問題は代わりに確認され、インシデントが解決されたことを伝えるメッセージが付き、回復したときに Zabbix がクローズします。Zabbix の問題が作成していないインシデントと、**プライベートインシデント** とマークされたインシデントは、Zabbix に送信されません。
+
+### API トークンを作成する
+
+:::steps
+1. [問題を受け取る](#問題を受け取るユーザーを作成する) `OneUptime` ユーザーを使います。Zabbix はユーザー自身の更新をそのユーザーに送信しないため、このユーザーのトークンを使えば、OneUptime の確認やメッセージが更新として OneUptime に戻ってくることはありません。
+2. **Users → User roles** でユーザーのロールを確認します。**Access to API** が有効で、**Acknowledge problems**、**Add problem comments**、**Close problems** が許可されている必要があります。誰も変更していなければ、**User role** はこれらを許可しています。
+3. **Users → User groups** でユーザーのグループを確認します。問題の確認とメッセージの追加には、ホストグループに対する **Read** 権限で十分です。問題をクローズするには **Read-write** が必要です。
+4. **Users → API tokens** に移動し、**Create API token** をクリックします。`OneUptime` ユーザーを選び、**Set expiration date and time** のチェックを外すか日付を控えて、**Add** をクリックします。
+5. **Auth token** をコピーします。Zabbix はこれを一度しか表示しません。**Zabbix API Token** に貼り付けます。
+:::
+
+### Zabbix 6.0 の場合
+
+Zabbix 6.0 は API トークンを `Authorization` ヘッダーではなく、リクエストの本文から読み取ります。Zabbix を呼び出すテンプレートの各 API ステップで、**Request Body** の `"jsonrpc": "2.0",` の後に `"auth": "{{local.variables.zabbixApiToken}}",` を追加し、ヘッダーを削除します。Zabbix 7.2 以降は `auth` を拒否するため、アップグレード時には再び削除します。
 
 ## モニターで問題を受け取る
 
@@ -82,44 +172,7 @@ https://oneuptime.com/heartbeat/<secret key>
 セルフホストのインストールでは、`oneuptime.com` の代わりに独自のホストになります。
 :::
 
-モニターは、リクエストの JSON を書かれたとおりに読み取ります: `"status":"1"`、スペースなしです。各設定の働きについては、[別のシステムからアラートを受け取る](/docs/monitor/incoming-request-monitor#他システムからのアラート受信) を参照してください。
-
-## ワークフローで問題を受け取る
-
-Zabbix とインシデントの間に独自のステップが必要な場合は、[ワークフロー](/docs/workflows/index) を使います。
-
-:::steps
-### ワークフローを作成する
-
-**ワークフロー** に移動し、**ワークフローを作成** をクリックしてから **ゼロから作成** をクリックします。名前を `Zabbix problems` にして **ワークフローを作成** をクリックします。
-
-### Webhook トリガーを追加する
-
-点線の **このワークフローを開始するものを選択** ブロックをクリックし、**Webhook** を選びます。トリガーをクリックしてから **URL をコピー** をクリックし、URL を Zabbix 用に控えておきます。
-
-### 問題であることを確認する
-
-**コンポーネントを追加** をクリックし、**If / Else** ブロックを追加して、トリガーの **Out** の点をそのブロックに接続します。**Value to check** を `{{local.components.webhook-1.returnValues.request-body.status}}`、**Comparison** を **is equal to**、**Compare with** を `1` に設定します。
-
-### インシデントを宣言する
-
-**Create One Incident** ブロックを追加し、**If / Else** ブロックの **Yes** 側をそのブロックに接続します。**Incident Template** で、重大度と呼び出すオンコールポリシーを設定するテンプレートを選びます ([インシデントテンプレート](/docs/incidents/settings#インシデントテンプレート) を参照)。**JSON Object** には Zabbix から届く内容を設定します:
-
-```json
-{
-  "title": "Zabbix: {{local.components.webhook-1.returnValues.request-body.name}}",
-  "description": "Host: {{local.components.webhook-1.returnValues.request-body.host}}\nSeverity: {{local.components.webhook-1.returnValues.request-body.severity}}\nZabbix event: {{local.components.webhook-1.returnValues.request-body.event_id}}"
-}
-```
-
-テンプレートがない場合、**JSON Object** には、プロジェクトのインシデント重大度のいずれかの ID である `incidentSeverityId` も必要です。
-
-### オンにする
-
-**ビルダー** の上部で **有効** をオンにします。オフのワークフローは Zabbix に `400` で応答します。
-:::
-
-回復は **If / Else** ブロックの **No** 側に進み、そこには何も接続されていないため、実行はそこで終わります。回復時にインシデントを解決するには、モニターを使ってください。
+モニターは、リクエストの JSON を書かれたとおりに読み取ります: `"status":"1"`、スペースなしです。各設定の働きについては、[別のシステムからアラートを受け取る](/docs/monitor/incoming-request-monitor#他システムからのアラート受信) を参照してください。Zabbix で行われた更新も `"status":"1"` で送信され、モニターはそれを再び問題として読み取り、新しいインシデントは作成しません。
 
 ## Zabbix を設定する
 
@@ -139,28 +192,73 @@ Zabbix には 3 つのものが必要です。OneUptime に送信するメディ
    | `event_name` | `{EVENT.NAME}` |
    | `event_value` | `{EVENT.VALUE}` |
    | `event_severity` | `{EVENT.SEVERITY}` |
+   | `event_nseverity` | `{EVENT.NSEVERITY}` |
    | `host` | `{HOST.NAME}` |
    | `event_date` | `{EVENT.DATE}` |
    | `event_time` | `{EVENT.TIME}` |
+   | `event_opdata` | `{EVENT.OPDATA}` |
+   | `event_tags` | `{EVENT.TAGSJSON}` |
+   | `trigger_id` | `{TRIGGER.ID}` |
+   | `event_update_status` | `{EVENT.UPDATE.STATUS}` |
+   | `event_update_action` | `{EVENT.UPDATE.ACTION}` |
+   | `event_update_message` | `{EVENT.UPDATE.MESSAGE}` |
+   | `event_update_user` | `{USER.FULLNAME}` |
 
 4. これを **Script** に貼り付けます:
 
    ```javascript
    var params = JSON.parse(value);
-   var request = new HttpRequest();
-   request.addHeader("Content-Type: application/json");
 
+   // Zabbix leaves a macro it has no value for as it is written, such as
+   // {EVENT.UPDATE.MESSAGE} on a problem: it is sent as nothing.
+   function given(text) {
+     var written = String(text === undefined || text === null ? "" : text);
+     return /^\{[A-Z0-9_.]+\}$/.test(written) || written === "*UNKNOWN*"
+       ? ""
+       : written;
+   }
+
+   var isUpdate = given(params.event_update_status) === "1";
    var payload = {
      source: "zabbix",
+     // "problem", "recovery" or "update".
+     event: isUpdate
+       ? "update"
+       : params.event_value === "0"
+         ? "recovery"
+         : "problem",
      event_id: params.event_id,
      name: params.event_name,
      host: params.host,
      severity: params.event_severity,
+     // 0 Not classified, 1 Information, 2 Warning, 3 Average, 4 High, 5 Disaster.
+     severity_number: params.event_nseverity,
      // "1" for a problem, "0" for its recovery.
      status: params.event_value,
      date: params.event_date,
      time: params.event_time,
+     opdata: given(params.event_opdata),
+     tags: [],
+     trigger_id: params.trigger_id,
    };
+
+   try {
+     var tags = JSON.parse(given(params.event_tags) || "[]");
+     payload.tags = Array.isArray(tags) ? tags : [];
+   } catch (error) {
+     payload.tags = [];
+   }
+
+   if (isUpdate) {
+     payload.update = {
+       action: given(params.event_update_action),
+       message: given(params.event_update_message),
+       user: given(params.event_update_user),
+     };
+   }
+
+   var request = new HttpRequest();
+   request.addHeader("Content-Type: application/json");
 
    var response = request.post(params.url, JSON.stringify(payload));
 
@@ -173,7 +271,7 @@ Zabbix には 3 つのものが必要です。OneUptime に送信するメディ
    return "OK";
    ```
 
-5. **Message templates** タブで、**Problem** 用と **Problem recovery** 用のテンプレートを 1 つずつ追加します。本文は空のままにします。リクエストはスクリプトが組み立てます。Zabbix は、テンプレートがある種類のイベントにのみメディアタイプを使います。
+5. **Message templates** タブで、**Problem** 用、**Problem recovery** 用、**Problem update** 用のテンプレートを 1 つずつ追加します。本文は空のままにします。リクエストはスクリプトが組み立てます。Zabbix は、テンプレートがある種類のイベントにのみメディアタイプを使います。
 6. **Add** をクリックします。
 
 ### 問題を受け取るユーザーを作成する
@@ -187,30 +285,32 @@ Zabbix には 3 つのものが必要です。OneUptime に送信するメディ
 1. **Alerts → Actions → Trigger actions** (Zabbix 6.0 では **Configuration → Actions**) に移動し、**Create action** をクリックします。名前を `Notify OneUptime` にします。
 2. 必要に応じて **Conditions** で絞り込みます。例: **Trigger severity is greater than or equals Warning**。条件がなければ、すべての問題が送信されます。
 3. **Operations** タブで、メディアタイプ `OneUptime` を通じてユーザー `OneUptime` に送信するオペレーションを追加します。
-4. 回復も送信されるように、同じオペレーションを **Recovery operations** にも追加します。
+4. 回復も送信されるように、同じオペレーションを **Recovery operations** にも追加し、Zabbix での確認とコメントも送信されるように **Update operations** にも追加します。
 5. **Add** をクリックし、アクションが有効になっていることを確認します。
 :::
 
+一部の問題をインシデントのテンプレートに、ほかの問題をアラートのテンプレートに送るには、`OneUptime` ユーザーに `OneUptime` タイプのメディアを 2 つ設定します。それぞれが 1 つのワークフローの URL に送信し、受け取るべき重大度を指定します。
+
 ## テストする
 
-1. Zabbix で **Alerts → Media types** を開き、`OneUptime` の横の **Test** をクリックします。コピーした URL と、`event_id` `12345`、`event_name` `Test problem`、`host` `web-1`、`event_value` `1` などのサンプル値を入力します。**Test** をクリックすると、Zabbix がスクリプトの応答 `OK` またはスクリプトが投げたエラーを表示します。
-2. OneUptime でモニターを開いてインシデントが作成されたことを確認するか、ワークフローの **ログ → 実行履歴** を開いて実行を確認します。
-3. `event_value` `0` と同じ `event_id` でもう一度テストします。モニターの場合、インシデントが解決されます。
+1. Zabbix で **Alerts → Media types** を開き、`OneUptime` の横の **Test** をクリックします。コピーした URL と、`event_id` `12345`、`event_name` `Test problem`、`host` `web-1`、`event_nseverity` `4`、`event_value` `1` などのサンプル値を入力します。**Test** をクリックすると、Zabbix がスクリプトの応答 `OK` またはスクリプトが投げたエラーを表示します。
+2. OneUptime でワークフローの **ログ → 実行履歴** を開いて実行を確認するか、モニターを開いてインシデントが作成されたことを確認します。
+3. `event_value` `0` と同じ `event_id` でもう一度テストします。インシデントが解決されます。
 
-その後、たとえばしきい値を一時的に下げて本物のトリガーを発火させ、問題が届くのを確認します。
+その後、たとえばしきい値を一時的に下げて本物のトリガーを発火させ、問題が届くのを確認します。更新を試すには、Zabbix でメッセージを付けて問題を確認します。インシデントに非公開メモが付き、確認済みになります。
 
 ## Zabbix の重大度を対応付ける
 
 Zabbix は重大度をテキストで送信します: `Not classified`、`Information`、`Warning`、`Average`、`High`、`Disaster`。
 
+- **テンプレートの場合**、重大度は自動で対応付けられます。[重大度](#重大度) を参照してください。
 - **モニターの場合** は、重大度のグループごとに **条件を追加** をクリックし、新しい条件を最初の条件より上にドラッグします。条件は上から確認され、最初に一致したものが決め手になります。それぞれに `"status":"1"` と `"severity":"Disaster"` のような重大度の 2 つのフィルターを設定し、**一致条件** を **すべて** にします。それぞれに独自の **重大度** と **インシデントを自動解決**、同じグループ化の設定を持つインシデントを設定します。
-- **ワークフローの場合** は、`{{local.components.webhook-1.returnValues.request-body.severity}}` に対する [Switch / Case](/docs/workflows/components#switch-case) ブロックを重大度ごとのケース付きで追加し、各ケースの後に独自のテンプレートを持つ **Create One Incident** ブロックを置きます。
 
 ## トラブルシューティング
 
 :::details OneUptime に何も届かない
 - Zabbix で **Reports → Action log** を開き、アクションが問題を送信したかどうかと、何が返ってきたかを確認します。
-- Zabbix サーバーから自分でリクエストを送信します: `curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"status":"1","event_id":"1","name":"Test","host":"test"}'`。
+- Zabbix サーバーから自分でリクエストを送信します: `curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"source":"zabbix","event":"problem","event_id":"1","name":"Test","host":"test","severity_number":"4","status":"1"}'`。
 - モニターは、何も確認しないうちに、シークレットキーが間違っていてもすぐに `200` を返します。リクエストが届いているかどうかは、モニターのタイムラインで確認してください。
 - オフのワークフローは `400` を返します。その **ビルダー** の上部で **有効** をオンにします。
 :::
@@ -221,9 +321,17 @@ Zabbix は重大度をテキストで送信します: `Not classified`、`Inform
 
 :::details インシデントは作成されるが解決されない
 - アクションには **Recovery operations** が必要です。ないと Zabbix は回復を送信しません。
-- 条件のインシデントには、**その他の項目** の下の **インシデントを自動解決** が必要です。
-- **回復を示すフィールド** は `requestBody.status`、**回復を意味する値** は正確に `0` でなければなりません。
-- ワークフローは回復時にインシデントを解決しません。モニターを使ってください。
+- テンプレートの場合は、ワークフローの **ログ → 実行履歴** で回復の実行を開きます。最後のステップに理由が示されます。インシデントを作成しなかった問題の回復では何も変わりません。
+- モニターの場合、条件のインシデントには **その他の項目** の **インシデントを自動解決** が必要です。**回復を示すフィールド** は `requestBody.status`、**回復を意味する値** は正確に `0` でなければなりません。
+:::
+
+:::details Zabbix の問題が確認もクローズもされない
+**ログ → 実行履歴** で状態のテンプレートの実行を開きます。最後のステップに Zabbix の応答が示されます。
+
+- `Not authorized`: API トークンが間違っている、期限切れ、または無効になっているか、Zabbix が 6.4 より古いです ([Zabbix 6.0 の場合](#zabbix-60-の場合) を参照)。
+- `Cannot close problem: trigger does not allow manual closing`: トリガーで **Allow manual close** をオンにします。テンプレートはすでに、こうした問題をクローズする代わりに確認しています。
+- `No permissions to referred object or it does not exist!`: ユーザーは問題を参照できますが、クローズするには **Read-write** 権限が必要です。
+- `Zabbix has no problem with event ID`: ユーザーが問題のホストを参照できません。そのユーザーグループに、ホストグループに対する **Read** 権限を付与します。
 :::
 
 :::details インシデントに値ではなく参照が表示される
@@ -231,20 +339,22 @@ Zabbix は重大度をテキストで送信します: `Not classified`、`Inform
 :::
 
 :::details すべての問題が 2 回届く
-おそらくアクションに、同じユーザーに送信するオペレーションが 2 つあります (最初のステップとエスカレーションのステップなど)。アクションの **Operations** を確認してください。
+おそらくアクションに、同じユーザーに送信するオペレーションが 2 つあります (最初のステップとエスカレーションのステップなど)。テンプレートは何が届いてもイベント ID ごとに 1 件のインシデントしか作成しませんが、配信ごとに 1 回の実行になります。アクションの **Operations** を確認してください。
 :::
 
 ## セキュリティ
 
-- **URL はパスワードと同じように扱ってください。** URL を持つ人は誰でもインシデントを作成できます。漏れた場合はリセットします: モニターの **設定** ページの **受信リクエストのシークレットキーをリセット**、またはワークフローの **Webhook** トリガーの **URL をリセット** です。その後、Zabbix ユーザーのメディアの **Send to** を更新します。
+- **URL はパスワードと同じように扱ってください。** URL を持つ人は誰でもインシデントを作成できます。漏れた場合はリセットします: ワークフローの **Webhook** トリガーの **URL をリセット**、またはモニターの **設定** ページの **受信リクエストのシークレットキーをリセット** です。その後、Zabbix ユーザーのメディアの **Send to** を更新します。
+- **リンクは自分の Zabbix を指します。** テンプレートは、リクエストの内容にかかわらず、**Zabbix URL** が示すサイト上の問題にリンクし、Zabbix が送信したものはテキストとして書き込みます。
+- **API トークンはワークフローの処理に必要な範囲に限定してください。** これはシークレット変数で、実行ログでは伏せられ、`Authorization` ヘッダーでのみ送信されます。そのユーザーには上記の操作だけを許可するロールを与え、漏れた場合は **Users → API tokens** でトークンを削除します。
 - **インシデントが必要なものだけを送信してください。** アクションの条件や、ユーザーのメディアの重大度を使って、重大度の低い問題は Zabbix に残します。
-- **セルフホストの場合は?** ファイアウォールを通じて、Zabbix サーバーから OneUptime に HTTPS で到達できるようにします。
+- **セルフホストの場合は?** ファイアウォールを通じて、Zabbix サーバーから OneUptime に HTTPS で到達できるようにします。プライベートネットワーク上の Zabbix を呼び出すには、ワークフローに [アウトバウンドのネットワークアクセス](/docs/workflows/configuration#送信ネットワークアクセス) が必要です。
 
 ## 次のステップ
 
 :::cards
+- [ワークフローテンプレート](/docs/workflows/authoring): テンプレートからワークフローを作成し、ビルダーで変更します。
 - [受信リクエスト モニター](/docs/monitor/incoming-request-monitor): Zabbix の問題を受け取るモニターのすべての設定。
 - [エスカレーションルール](/docs/on-call/escalation-rules): オンコールポリシーが誰をいつ呼び出すかを決めます。
-- [ワークフロー トリガー](/docs/workflows/triggers#webhook): ワークフローの Webhook URL の仕組み。
 - [インテグレーションの概要](/docs/integrations/index): 接続できるその他のツール。
 :::

@@ -35,7 +35,26 @@ import {
   ZabbixEventKind,
   getTemplateGraphSpec,
 } from "../../../Types/Workflow/Templates";
-import { SimulatedReply, SimulatedRequest } from "./WorkflowTemplateSimulator";
+
+/*
+ * A request the fake Zabbix answers, and its answer: the shapes of the
+ * template simulator's SimulatedRequest and SimulatedReply, which this file
+ * does not import. App's docs facts read these fixtures, and the simulator
+ * reaches React through the Builder's component registry, which App's
+ * compile cannot resolve.
+ */
+export interface ZabbixHttpRequest {
+  method: string;
+  url: string;
+  headers: { [name: string]: string };
+  body?: JSONValue | undefined;
+}
+
+export interface ZabbixHttpReply {
+  status: number;
+  body: JSONObject | Array<JSONObject> | string;
+  headers?: { [name: string]: string } | undefined;
+}
 
 export const ZABBIX_URL: string = "https://zabbix.example.com";
 export const ZABBIX_API_URL: string = `${ZABBIX_URL}/api_jsonrpc.php`;
@@ -217,7 +236,7 @@ export interface FakeZabbixCall {
 }
 
 // Zabbix's refusal: HTTP 200, with the reason in the body.
-function refusal(data: string): SimulatedReply {
+function refusal(data: string): ZabbixHttpReply {
   return {
     status: 200,
     body: {
@@ -281,7 +300,7 @@ export class FakeZabbix {
   }
 
   // The HTTP side, for the simulator's http.
-  public answer(request: SimulatedRequest): SimulatedReply {
+  public answer(request: ZabbixHttpRequest): ZabbixHttpReply {
     if (request.method.toUpperCase() !== "POST") {
       return { status: 405, body: "Method Not Allowed" };
     }
@@ -361,7 +380,7 @@ export class FakeZabbix {
     };
   }
 
-  private get(params: JSONObject): SimulatedReply {
+  private get(params: JSONObject): ZabbixHttpReply {
     const ids: Array<string> = (
       (params["eventids"] as Array<JSONValue>) || []
     ).map((id: JSONValue): string => {
@@ -403,13 +422,11 @@ export class FakeZabbix {
     return { status: 200, body: { jsonrpc: "2.0", result: result, id: 1 } };
   }
 
-  private acknowledge(params: JSONObject): SimulatedReply {
+  private acknowledge(params: JSONObject): ZabbixHttpReply {
     const action: number | null = integerOf(params["action"]);
 
     if (action === null) {
-      return refusal(
-        'Invalid parameter "/action": an integer is expected.',
-      );
+      return refusal('Invalid parameter "/action": an integer is expected.');
     }
 
     const ids: Array<string> = (
@@ -439,9 +456,7 @@ export class FakeZabbix {
     }
 
     if (message.length > 2048) {
-      return refusal(
-        'Invalid parameter "/message": value is too long.',
-      );
+      return refusal('Invalid parameter "/message": value is too long.');
     }
 
     if ((action & 1) === 1) {
@@ -619,10 +634,7 @@ export const ALERT: ZabbixKindFixture = {
 
 export const KINDS: Array<ZabbixKindFixture> = [INCIDENT, ALERT];
 
-export function severityIdNamed(
-  kind: ZabbixKindFixture,
-  name: string,
-): string {
+export function severityIdNamed(kind: ZabbixKindFixture, name: string): string {
   const severity: JSONObject | undefined = kind.severities.find(
     (candidate: JSONObject): boolean => {
       return candidate["name"] === name;
@@ -738,7 +750,9 @@ export function scriptOf(templateId: string, componentId: string): string {
   );
 
   if (!node) {
-    throw new Error(`Template ${templateId} has no script step ${componentId}.`);
+    throw new Error(
+      `Template ${templateId} has no script step ${componentId}.`,
+    );
   }
 
   return (node["args"] as JSONObject)["code"] as string;
