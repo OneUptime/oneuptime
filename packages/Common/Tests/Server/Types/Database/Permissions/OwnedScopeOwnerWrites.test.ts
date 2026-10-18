@@ -703,6 +703,63 @@ describe("a member who reads every resource but may add and remove owners only o
       ]);
     },
   );
+
+  /*
+   * Who owns a resource is read through the resource: a read of owners
+   * follows the resource's read, whatever scope the permission on owners
+   * alone carries. A member who reads every resource of the kind by a
+   * permission on the kind alone (Read Monitor), and whose every permission
+   * on its owners is scoped to Owned, reads the owners of every resource.
+   */
+  test.each(OWNER_TABLES)(
+    "$name: reads the owners of every $kind they may read, though every permission on owners is scoped to Owned",
+    async (table: OwnerTable) => {
+      ownsOnly(OWNED_ID);
+
+      const onOwners: Array<Permission> = unique([
+        ...ownerWritePermissions(table),
+        ...scopeable(table.modelType, DatabaseRequestType.Read),
+      ]);
+      const onTheKindAlone: Array<Permission> = scopeable(
+        table.resourceType,
+        DatabaseRequestType.Read,
+      ).filter((permission: Permission): boolean => {
+        return !onOwners.includes(permission);
+      });
+
+      expect([table.name, onTheKindAlone.length > 0]).toEqual([
+        table.name,
+        true,
+      ]);
+
+      const props: DatabaseCommonInteractionProps = memberWith([
+        ...rowsAt(onOwners, PermissionScope.Owned),
+        ...rowsAt(onTheKindAlone, PermissionScope.All),
+      ]);
+
+      expect([
+        table.name,
+        reaches(
+          await recordScopeOf(table, props, DatabaseRequestType.Read),
+          table.fkColumn,
+          OTHER_ID,
+        ),
+      ]).toEqual([table.name, true]);
+
+      // And adds and removes them only on their own.
+      expect([
+        table.name,
+        reaches(
+          await recordScopeOf(table, props, DatabaseRequestType.Delete),
+          table.fkColumn,
+          OTHER_ID,
+        ),
+      ]).toEqual([table.name, false]);
+      await expect(
+        checkOwnerCreate({ table, resourceId: OTHER_ID, props }),
+      ).rejects.toThrow(CreateScopeException);
+    },
+  );
 });
 
 describe("everyone else", () => {

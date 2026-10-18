@@ -1991,6 +1991,26 @@ describePostgres(
           ]);
         },
       ],
+      [
+        /*
+         * Every permission on owners scoped to Owned - Monitor Admin's - and
+         * the read of every monitor from a permission on monitors alone:
+         * owners are read through the monitor, so they read every one.
+         */
+        "Monitor Admin scoped to Owned beside Read Monitor over the whole project",
+        async (): Promise<void> => {
+          await setGrants([
+            {
+              permission: Permission.MonitorAdmin,
+              scope: PermissionScope.Owned,
+            },
+            {
+              permission: Permission.ReadProjectMonitor,
+              scope: PermissionScope.All,
+            },
+          ]);
+        },
+      ],
     ];
 
     // The monitor owner tables, the route that adds to each, and its names.
