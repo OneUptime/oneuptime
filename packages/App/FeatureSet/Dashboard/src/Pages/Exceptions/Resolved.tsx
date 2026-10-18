@@ -15,7 +15,10 @@ const ResolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <ExceptionsViewer defaultStatus="resolved" />;
+  // A product page: a project with no exception yet is offered the setup guide.
+  return (
+    <ExceptionsViewer defaultStatus="resolved" offersSetupWhenEmpty={true} />
+  );
 };
 
 export default ResolvedExceptionsPage;

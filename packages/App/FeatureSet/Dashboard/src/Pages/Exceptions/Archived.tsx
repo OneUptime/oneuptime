@@ -15,7 +15,10 @@ const ArchivedExceptionsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <ExceptionsViewer defaultStatus="archived" />;
+  // A product page: a project with no exception yet is offered the setup guide.
+  return (
+    <ExceptionsViewer defaultStatus="archived" offersSetupWhenEmpty={true} />
+  );
 };
 
 export default ArchivedExceptionsPage;

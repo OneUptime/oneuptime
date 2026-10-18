@@ -229,12 +229,16 @@ test.describe("Log Drop Filters", () => {
 
     await openCreateModalAndFillConditions(ctx.sampleFilterName);
 
-    // Step 2 — Action: switch to Sample, which reveals the percentage field.
+    /*
+     * Step 2 — Action: two plain choices, Drop and Sample. Picking Sample
+     * reveals the percentage field.
+     */
     const form: Locator = page.locator(createFormSelector);
-    const actionDropdown: Locator = form.getByRole("combobox").first();
-    await actionDropdown.waitFor({ state: "visible", timeout: 30000 });
-    await actionDropdown.click();
-    await page.getByRole("option", { name: "Sample", exact: true }).click();
+    const sample: Locator = form
+      .getByTestId("drop-filter-action")
+      .getByRole("radio", { name: "Sample", exact: true });
+    await sample.waitFor({ state: "visible", timeout: 30000 });
+    await sample.click();
 
     const percentage: Locator = form.getByLabel("Sample Percentage");
     await expect(percentage).toBeVisible({ timeout: 30000 });
@@ -325,9 +329,10 @@ test.describe("Log Drop Filters", () => {
     await openCreateModalAndFillConditions(rejectedName);
 
     const form: Locator = page.locator(createFormSelector);
-    const actionDropdown: Locator = form.getByRole("combobox").first();
-    await actionDropdown.click();
-    await page.getByRole("option", { name: "Sample", exact: true }).click();
+    await form
+      .getByTestId("drop-filter-action")
+      .getByRole("radio", { name: "Sample", exact: true })
+      .click();
 
     const percentage: Locator = form.getByLabel("Sample Percentage");
     await percentage.fill("100");

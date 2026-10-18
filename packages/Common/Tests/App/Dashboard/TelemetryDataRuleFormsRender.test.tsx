@@ -570,11 +570,57 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
     await user.click(advancedHeader());
 
     expect(
-      within(dialog()).getByRole("combobox", { name: "Scrub Action" }),
+      within(dialog()).getByRole("radiogroup", { name: /^Scrub Action/ }),
     ).toBeInTheDocument();
     expect(
       within(dialog()).queryByRole("combobox", { name: "Fields to Scrub" }),
     ).toBeNull();
+  });
+
+  /*
+   * Scrub Action was a dropdown under one description explaining all three
+   * actions ("Mask: partially hide ... Hash: ... Redact: ..."). Its answers
+   * are on the form now, each with the line that says what it leaves.
+   */
+  test("asks what a match becomes as three answers, each with its line, Redact first", async () => {
+    const user: UserEvent = await renderPage(page.Page);
+    await screen.findByText(`Create New ${page.singularName}`);
+
+    await pickOption(user, patternTypePicker(), "Email Address");
+    await user.click(advancedHeader());
+
+    const question: HTMLElement = within(dialog()).getByRole("radiogroup", {
+      name: /^Scrub Action/,
+    });
+    const answers: Array<HTMLElement> = within(question).getAllByRole("radio");
+
+    expect(
+      answers.map((radio: HTMLElement): string => {
+        return (
+          question.querySelector(`label[for="${radio.id}"]`)?.textContent || ""
+        ).trim();
+      }),
+    ).toEqual(["Redact", "Mask", "Hash"]);
+    expect(
+      within(question).getByRole("radio", { name: "Redact" }),
+    ).toBeChecked();
+
+    const lineOf: (name: string) => string = (name: string): string => {
+      const id: string | null = within(question)
+        .getByRole("radio", { name: name })
+        .getAttribute("aria-describedby");
+
+      return (document.getElementById(id || "")?.textContent || "").trim();
+    };
+
+    expect(lineOf("Redact")).toBe("Replaces each match with [REDACTED].");
+    expect(lineOf("Mask")).toBe(
+      "Keeps a hint of it, such as j***@***.com or a card's last four digits.",
+    );
+    expect(lineOf("Hash")).toBe(
+      "Replaces it with a short hash, so equal values still look alike.",
+    );
+    expect(within(dialog()).queryByText(/Mask: partially hide/)).toBeNull();
   });
 
   test("says Configured once a folded default is changed, and sends it", async () => {
@@ -583,10 +629,10 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
 
     await pickOption(user, patternTypePicker(), "Email Address");
     await user.click(advancedHeader());
-    await pickOption(
-      user,
-      within(dialog()).getByRole("combobox", { name: "Scrub Action" }),
-      "Mask",
+    await user.click(
+      within(
+        within(dialog()).getByRole("radiogroup", { name: /^Scrub Action/ }),
+      ).getByRole("radio", { name: "Mask" }),
     );
     // Folded again: the summary gives way to the badge.
     await user.click(advancedHeader());
@@ -783,10 +829,14 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
       fireEvent.click(within(dialog()).getByTestId("modal-footer-next-button"));
     });
 
+    const action: HTMLElement = await within(dialog()).findByRole(
+      "radiogroup",
+      { name: /^Action/ },
+    );
+    expect(within(action).getByRole("radio", { name: "Drop" })).toBeChecked();
     expect(
-      await within(dialog()).findByRole("combobox", { name: "Action" }),
-    ).toBeInTheDocument();
-    expect(within(dialog()).getByText("Drop")).toBeInTheDocument();
+      within(action).getByRole("radio", { name: "Sample" }),
+    ).not.toBeChecked();
     expect(within(stepList()).getByText("Action")).toBeInTheDocument();
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
     await waitFor(() => {
@@ -805,7 +855,7 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
     await act(async (): Promise<void> => {
       fireEvent.click(within(dialog()).getByTestId("modal-footer-next-button"));
     });
-    await within(dialog()).findByRole("combobox", { name: "Action" });
+    await within(dialog()).findByRole("radiogroup", { name: /^Action/ });
 
     await submit();
 
@@ -828,7 +878,7 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
     await act(async (): Promise<void> => {
       fireEvent.click(within(dialog()).getByTestId("modal-footer-next-button"));
     });
-    await within(dialog()).findByRole("combobox", { name: "Action" });
+    await within(dialog()).findByRole("radiogroup", { name: /^Action/ });
 
     await user.click(advancedHeader());
     await user.click(within(dialog()).getByRole("switch", { name: "Enabled" }));
@@ -845,6 +895,126 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     });
     expect(sentModel()["isEnabled"]).toBe(false);
+  });
+
+  /*
+   * Action was a dropdown under "Drop permanently discards matching logs.
+   * Sample keeps a percentage of them.": two modes in one sentence. Its two
+   * answers are on the form now, each with its line, and the share to keep
+   * is asked for only under Sample, without the "Required when Action is
+   * Sample" it no longer needs.
+   */
+  test("asks Drop or Sample as two answers, each with its line", async () => {
+    const user: UserEvent = await renderPage(page.Page);
+    await screen.findByText(`Create New ${page.singularName}`);
+    await fillMatch(user, "Noisy records");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(dialog()).getByTestId("modal-footer-next-button"));
+    });
+
+    const action: HTMLElement = await within(dialog()).findByRole(
+      "radiogroup",
+      { name: /^Action/ },
+    );
+    const noun: string = page.singularName.startsWith("Log") ? "log" : "span";
+
+    const lineOf: (name: string) => string = (name: string): string => {
+      const id: string | null = within(action)
+        .getByRole("radio", { name: name })
+        .getAttribute("aria-describedby");
+
+      return (document.getElementById(id || "")?.textContent || "").trim();
+    };
+
+    expect(lineOf("Drop")).toBe(`Discards every matching ${noun} for good.`);
+    expect(lineOf("Sample")).toBe(
+      `Keeps a share of the matching ${noun}s and discards the rest.`,
+    );
+    expect(
+      within(dialog()).queryByText(/permanently discards matching/),
+    ).toBeNull();
+    expect(
+      within(dialog()).queryByRole("combobox", { name: "Action" }),
+    ).toBeNull();
+  });
+
+  test("asks for the share to keep only under Sample, and creates a sampling filter", async () => {
+    const user: UserEvent = await renderPage(page.Page);
+    await screen.findByText(`Create New ${page.singularName}`);
+    await fillMatch(user, "Sampled");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(dialog()).getByTestId("modal-footer-next-button"));
+    });
+
+    const action: HTMLElement = await within(dialog()).findByRole(
+      "radiogroup",
+      { name: /^Action/ },
+    );
+
+    expect(
+      within(dialog()).queryByRole("spinbutton", {
+        name: /^Sample Percentage/,
+      }),
+    ).toBeNull();
+
+    await user.click(within(action).getByRole("radio", { name: "Sample" }));
+
+    const share: HTMLElement = await within(dialog()).findByRole("spinbutton", {
+      name: /^Sample Percentage/,
+    });
+    const noun: string = page.singularName.startsWith("Log") ? "log" : "span";
+
+    expect(
+      within(dialog()).getByText(
+        `The share of matching ${noun}s to keep, from 1 to 99. 10 keeps one in ten.`,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog()).queryByText(/Required when Action is Sample/),
+    ).toBeNull();
+
+    fireEvent.change(share, { target: { value: "10" } });
+
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const model: JSONObject = sentModel();
+    expect(model["action"]).toBe("sample");
+    expect(Number(model["samplePercentage"])).toBe(10);
+
+    // Back to Drop, the share is not asked for any more.
+    await user.click(within(action).getByRole("radio", { name: "Drop" }));
+  });
+
+  test("refuses Sample without a share to keep", async () => {
+    const user: UserEvent = await renderPage(page.Page);
+    await screen.findByText(`Create New ${page.singularName}`);
+    await fillMatch(user, "Sampled");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(dialog()).getByTestId("modal-footer-next-button"));
+    });
+
+    const action: HTMLElement = await within(dialog()).findByRole(
+      "radiogroup",
+      { name: /^Action/ },
+    );
+    await user.click(within(action).getByRole("radio", { name: "Sample" }));
+    await within(dialog()).findByRole("spinbutton", {
+      name: /^Sample Percentage/,
+    });
+
+    await submit();
+
+    expect(
+      await within(dialog()).findByText(/Sample Percentage is required/),
+    ).toBeInTheDocument();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 });
 

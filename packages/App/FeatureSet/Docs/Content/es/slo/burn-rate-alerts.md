@@ -79,7 +79,7 @@ Abre el SLO, ve a **Reglas de tasa de consumo** y haz clic en **Crear Regla de t
 
 ### Ponerle nombre a la regla
 
-En **Regla**, escribe un **Nombre**, como «Fast burn». **Habilitado** está activado.
+En **Regla**, escribe un **Nombre**, como «Fast burn». Una regla nueva está activada; para que deje de dispararse más adelante, desactiva **Habilitado** en su formulario de edición.
 
 ### Fijar la ventana de consumo
 
@@ -87,7 +87,7 @@ En **Ventana de consumo**, fija el **Umbral de tasa de consumo** (por ejemplo `1
 
 ### Elegir qué declara
 
-En **Qué declara**, activa **Crear alerta**, **Declarar incidente** o ambas. **Añadir propietarios del SLO como propietarios** convierte además a los propietarios del SLO en propietarios de todo lo que crea la regla.
+En **Qué declara**, responde a **Cuando se dispara**: **Crear una alerta**, la opción predeterminada, **Declarar un incidente** o **Ambos**. **Añadir propietarios del SLO como propietarios** convierte además a los propietarios del SLO en propietarios de todo lo que crea la regla.
 
 ### Describir la alerta y el incidente
 
@@ -103,18 +103,18 @@ OneUptime comprueba los números de una regla al guardarla:
 | **Ventana larga (minutos)** | Más larga que la ventana corta. |
 | **Supresión de nueva activación (minutos)** | 0 o más. Vacío significa la duración de la ventana larga. |
 
-Una regla debe crear una alerta, declarar un incidente o ambas cosas: una regla con las dos desactivadas se rechaza, porque se comprobaría en cada evaluación sin declarar nunca nada.
+Cada respuesta a **Cuando se dispara** abre algo. La API rechaza una regla que no crearía ninguna alerta ni declararía ningún incidente, porque se comprobaría en cada evaluación sin declarar nunca nada.
 
 La tabla de reglas muestra, para cada regla, su umbral, sus ventanas y su supresión, qué declara (y si la alerta o el incidente solo se resuelve a mano, o es privado), sus gravedades, políticas de guardia, propietarios y etiquetas.
 
 > [!TIP]
-> Un buen comienzo: conserva las dos reglas predeterminadas, envía la regla de consumo rápido a tu política de guardia que avisa con una gravedad alta, y deja que la regla de consumo lento genere una alerta de gravedad más baja para el horario laboral. Si tu equipo lo gestiona todo con incidentes, activa **Declarar incidente** en la regla de consumo rápido, y desactiva en ella **Crear alerta** si prefieres no recibir ambas.
+> Un buen comienzo: conserva las dos reglas predeterminadas, envía la regla de consumo rápido a tu política de guardia que avisa con una gravedad alta, y deja que la regla de consumo lento genere una alerta de gravedad más baja para el horario laboral. Si tu equipo lo gestiona todo con incidentes, elige **Declarar un incidente** para la regla de consumo rápido, o **Ambos** para recibir también una alerta.
 
 ## Qué declara una regla
 
-|  | **Crear alerta** | **Declarar incidente** |
+|  | **Alerta** | **Incidente** |
 | --- | --- | --- |
-| Al empezar | Activada | Desactivada |
+| Lo abre | **Crear una alerta**, la opción predeterminada, o **Ambos** | **Declarar un incidente** o **Ambos** |
 | Qué es | La señal ligera: llega a la lista de alertas. | La señal fuerte: recibe un número de incidente y abre todo el flujo de respuesta. |
 | Título y descripción | Los suyos, o el texto integrado | Los suyos, o el texto integrado |
 | Gravedad | **Gravedad de la alerta**: la más alta del proyecto si está vacía | **Gravedad del incidente**: la más alta del proyecto si está vacía |
@@ -195,7 +195,7 @@ Las etiquetas, los equipos propietarios y las políticas de guardia deben perten
 
 Algunos cambios siempre resuelven lo que una regla tiene abierto, digan lo que digan sus ajustes de resolución automática, para que nada siga escalando por una regla que ya no puede justificarlo:
 
-- desactivar **Crear alerta** o **Declarar incidente** cierra lo que abrió esa salida;
+- cambiar **Cuando se dispara** para quitar la alerta o el incidente cierra lo que abrió esa salida;
 - desactivar la regla o eliminarla;
 - desactivar la evaluación del SLO, archivar el SLO o eliminarlo;
 - que el SLO pase a **Pausado** o **Mal configurado**, porque entonces no mide nada;

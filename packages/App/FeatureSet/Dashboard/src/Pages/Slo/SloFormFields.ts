@@ -5,13 +5,12 @@ import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
 } from "Common/Utils/Slo/SloHealth";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import {
   translateTemplate,
@@ -216,17 +215,37 @@ export const SLO_WINDOW_TYPE_DESCRIPTIONS: Record<SloWindowType, string> = {
   ),
 };
 
-export type GetSloWindowTypeDropdownOptionsFunction =
-  () => Array<DropdownOption>;
+/*
+ * Window Type's two answers, each with one line that says what the window
+ * is and when to pick it. The field was a dropdown under one description
+ * explaining both ("Rolling suits services that should be reliable at
+ * every moment. Calendar Month suits objectives reported, or promised to
+ * customers, per month."), with each answer's own meaning hidden in the
+ * closed list. The answers keep the names the docs and the Settings card
+ * use, and Rolling - what a new SLO starts with - comes first.
+ */
+export const SLO_WINDOW_TYPE_CHOICE_DESCRIPTIONS: Record<
+  SloWindowType,
+  string
+> = {
+  [SloWindowType.Rolling]: translationKey(
+    "The last N days, always up to date. Suits services that must be reliable at every moment.",
+  ),
+  [SloWindowType.CalendarMonth]: translationKey(
+    "Each month on its own, reset on the 1st. Suits targets reported or promised per month.",
+  ),
+};
 
-export const getSloWindowTypeDropdownOptions: GetSloWindowTypeDropdownOptionsFunction =
-  (): Array<DropdownOption> => {
-    return DropdownUtil.getDropdownOptionsFromEnum(SloWindowType).map(
-      (option: DropdownOption): DropdownOption => {
+export type GetSloWindowTypeChoicesFunction = () => Array<RadioButton>;
+
+export const getSloWindowTypeChoices: GetSloWindowTypeChoicesFunction =
+  (): Array<RadioButton> => {
+    return Object.values(SloWindowType).map(
+      (windowType: SloWindowType): RadioButton => {
         return {
-          ...option,
-          description:
-            SLO_WINDOW_TYPE_DESCRIPTIONS[option.value as SloWindowType],
+          title: windowType,
+          value: windowType,
+          description: SLO_WINDOW_TYPE_CHOICE_DESCRIPTIONS[windowType],
         };
       },
     );
@@ -381,12 +400,12 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
         windowType: true,
       },
       title: "Window Type",
-      description:
-        "Rolling suits services that should be reliable at every moment. Calendar Month suits objectives reported, or promised to customers, per month.",
-      fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: getSloWindowTypeDropdownOptions(),
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: getSloWindowTypeChoices(),
       required: true,
-      placeholder: "Rolling",
+      // Each answer says what it is and when to pick it.
+      hideColumnDescription: true,
+      dataTestId: "slo-window-type",
       collapsibleSection: advancedSection,
       /*
        * Switching to Calendar Month hides Window (Days), and hidden fields

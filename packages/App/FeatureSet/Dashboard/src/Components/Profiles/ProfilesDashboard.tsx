@@ -32,6 +32,8 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
 import ServiceElement from "../Service/ServiceElement";
+import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import { TelemetryFirstStepsSignal } from "../Telemetry/TelemetryFirstSteps";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -1479,33 +1481,17 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
   );
 };
 
+/*
+ * A project with no profile anywhere: the Profiler's first steps, drawn and
+ * worded as the empty Logs, Traces, Metrics and Exceptions explorers are
+ * (Telemetry/TelemetryFirstSteps), in the page's card.
+ */
 const EmptyState: FunctionComponent = (): ReactElement => {
-  const translator: Translator = useTranslator();
-
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-16 text-center">
-      <div className="mx-auto w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-5">
-        <Icon icon={IconProp.ChartBar} className="h-7 w-7 text-indigo-500" />
-      </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        {translator.translateText("No profiles yet")}
-      </h3>
-      <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
-        {translator.translateText(
-          "Send continuous profiles with Grafana Alloy (zero-code eBPF profiling for anything running on a host) or a Pyroscope SDK in your application (Go, Node.js, Python, Java, .NET, Ruby, and more). Once samples start arriving, this page shows a merged flame graph and the functions consuming the most resources across every recent recording.",
-        )}
-      </p>
-      <div className="mt-6">
-        <AppLink
-          className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-          to={RouteUtil.populateRouteParams(
-            RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
-          )}
-        >
-          <Icon icon={IconProp.Book} className="h-4 w-4" />
-          <span>{translator.translateText("Set up profiling")}</span>
-        </AppLink>
-      </div>
+    <div className="rounded-xl border border-gray-200 bg-white">
+      <TelemetryFirstStepsEmptyState
+        signal={TelemetryFirstStepsSignal.Profiles}
+      />
     </div>
   );
 };

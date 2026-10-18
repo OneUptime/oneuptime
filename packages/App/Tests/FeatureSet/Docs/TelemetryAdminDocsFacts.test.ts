@@ -1653,8 +1653,12 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
   it("creates a filter on Match then Action, Drop picked, with the description and Enabled under Advanced", () => {
     expect(dropForm).toContain('{ title: "Match", id: "match" },');
     expect(dropForm).toContain('{ title: "Action", id: "action" },');
+    // Action is two plain choices, Drop first, each with its line.
     expect(
-      allMatches(between(dropForm, "dropdownOptions: [", "],"), LABEL_PROPERTY),
+      allMatches(
+        between(dropForm, "radioButtonOptions: [", "],"),
+        TITLE_PROPERTY,
+      ),
     ).toEqual(["Drop", "Sample"]);
     expect(
       readDashboardSource("Pages/Logs/Settings/DropFilters.tsx"),

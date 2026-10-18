@@ -419,9 +419,12 @@ test.describe("SLOs", () => {
     await expect(advancedHeader).toHaveAttribute("aria-expanded", "true");
     await expect(labelsInput).toBeVisible();
     await expect(atRiskInput).toHaveValue("20");
+    // Window Type is two plain choices, Rolling picked.
     await expect(
-      form.getByRole("combobox", { name: /^Window Type\b/ }),
-    ).toBeVisible();
+      form
+        .getByTestId("slo-window-type")
+        .getByRole("radio", { name: "Rolling", exact: true }),
+    ).toBeChecked();
     await expect(
       form.getByRole("combobox", { name: /^Timezone\b/ }),
     ).toHaveCount(0);

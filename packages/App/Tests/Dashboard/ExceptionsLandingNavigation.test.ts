@@ -151,7 +151,13 @@ describe("Exceptions landing navigation", () => {
 
       const page: string = readSquashed(`Pages/Exceptions/${pageName}.tsx`);
 
-      expect(page).toContain(`<ExceptionsViewer defaultStatus="${status}" />`);
+      /*
+       * A product page: a project with no exception yet is offered the
+       * exception tracking setup guide on its empty list.
+       */
+      expect(page).toContain(
+        `<ExceptionsViewer defaultStatus="${status}" offersSetupWhenEmpty={true} />`,
+      );
     },
   );
 

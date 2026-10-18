@@ -79,7 +79,7 @@ Ouvrez le SLO, allez dans **Règles de taux de consommation** et cliquez sur **C
 
 ### Nommer la règle
 
-Dans **Rule**, saisissez un **Nom**, comme « Fast burn ». **Activé** est actif.
+Dans **Rule**, saisissez un **Nom**, comme « Fast burn ». Une nouvelle règle est active ; pour qu'elle cesse plus tard de se déclencher, désactivez **Activé** dans son formulaire de modification.
 
 ### Définir la fenêtre de consommation
 
@@ -87,7 +87,7 @@ Dans **Fenêtre de consommation**, définissez le **Seuil de taux de consommatio
 
 ### Choisir ce qu'elle déclare
 
-Dans **What It Declares**, activez **Créer une alerte**, **Déclarer un incident**, ou les deux. **Ajouter les propriétaires du SLO comme propriétaires** fait aussi des propriétaires du SLO les propriétaires de tout ce que crée la règle.
+Dans **What It Declares**, répondez à **Quand elle se déclenche** : **Créer une alerte**, le choix par défaut, **Déclarer un incident** ou **Les deux**. **Ajouter les propriétaires du SLO comme propriétaires** fait aussi des propriétaires du SLO les propriétaires de tout ce que crée la règle.
 
 ### Décrire l'alerte et l'incident
 
@@ -103,18 +103,18 @@ OneUptime vérifie les nombres d'une règle quand vous l'enregistrez :
 | **Fenêtre longue (minutes)** | Plus longue que la fenêtre courte. |
 | **Re-fire Suppression (Minutes)** | 0 ou plus. Vide signifie la durée de la fenêtre longue. |
 
-Une règle doit créer une alerte, déclarer un incident ou les deux : une règle dont les deux sont désactivés est refusée, car elle serait vérifiée à chaque évaluation sans jamais rien déclarer.
+Chaque réponse à **Quand elle se déclenche** ouvre quelque chose. L'API refuse une règle qui ne créerait aucune alerte et ne déclarerait aucun incident, car elle serait vérifiée à chaque évaluation sans jamais rien déclarer.
 
 Le tableau des règles affiche, pour chaque règle, son seuil, ses fenêtres et sa suppression, ce qu'elle déclare (et si l'alerte ou l'incident n'est résolu qu'à la main, ou est privé), ses gravités, ses politiques d'astreinte, ses propriétaires et ses étiquettes.
 
 > [!TIP]
-> Un bon départ : gardez les deux règles par défaut, envoyez la règle de consommation rapide à votre politique d'astreinte qui alerte, avec une gravité élevée, et laissez la règle de consommation lente déclencher une alerte de gravité plus basse pour les heures de bureau. Si votre équipe gère tout par des incidents, activez **Déclarer un incident** sur la règle de consommation rapide, et désactivez-y **Créer une alerte** si vous préférez ne pas recevoir les deux.
+> Un bon départ : gardez les deux règles par défaut, envoyez la règle de consommation rapide à votre politique d'astreinte qui alerte, avec une gravité élevée, et laissez la règle de consommation lente déclencher une alerte de gravité plus basse pour les heures de bureau. Si votre équipe gère tout par des incidents, choisissez **Déclarer un incident** pour la règle de consommation rapide, ou **Les deux** pour recevoir aussi une alerte.
 
 ## Ce qu'une règle déclare
 
-|  | **Créer une alerte** | **Déclarer un incident** |
+|  | **Alerte** | **Incident** |
 | --- | --- | --- |
-| Au départ | Activé | Désactivé |
+| Ouvert par | **Créer une alerte**, le choix par défaut, ou **Les deux** | **Déclarer un incident** ou **Les deux** |
 | Ce que c'est | Le signal léger : il arrive dans la liste des alertes. | Le signal lourd : il prend un numéro d'incident et lance tout le processus de réponse. |
 | Titre et description | Les siens, ou le texte intégré | Les siens, ou le texte intégré |
 | Gravité | **Gravité de l'alerte** : la plus élevée du projet si vide | **Gravité de l'incident** : la plus élevée du projet si vide |
@@ -195,7 +195,7 @@ Les étiquettes, les équipes propriétaires et les politiques d'astreinte doive
 
 Certains changements résolvent toujours ce qu'une règle a d'ouvert, quels que soient ses réglages de résolution automatique, pour que rien ne continue d'escalader pour une règle qui ne peut plus le justifier :
 
-- désactiver **Créer une alerte** ou **Déclarer un incident** ferme ce que cette sortie avait ouvert ;
+- modifier **Quand elle se déclenche** pour retirer l'alerte ou l'incident ferme ce que cette sortie avait ouvert ;
 - désactiver la règle ou la supprimer ;
 - désactiver l'évaluation du SLO, archiver le SLO ou le supprimer ;
 - le SLO passe **En pause** ou **Mal configuré**, car il ne mesure alors plus rien ;
