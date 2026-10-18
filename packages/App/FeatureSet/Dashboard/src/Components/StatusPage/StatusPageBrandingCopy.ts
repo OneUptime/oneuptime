@@ -55,10 +55,14 @@ export const StatusPageBrandingCopy: {
   headerLinksDescription: string;
   headerLink: string;
   headerLinks: string;
+  headerLinkTitlePlaceholder: string;
   copyrightDescription: string;
   footerLinksDescription: string;
   footerLink: string;
   footerLinks: string;
+  footerLinkTitlePlaceholder: string;
+  // The Title and Description card's dialog, named like the others.
+  titleEditTitle: string;
   // Under the More settings section's title, once it is open.
   advancedDescription: string;
   // The cards under More settings, as its folded header names them.
@@ -108,6 +112,7 @@ export const StatusPageBrandingCopy: {
   ),
   headerLink: translationKey("Header Link"),
   headerLinks: translationKey("Header Links"),
+  headerLinkTitlePlaceholder: translationKey("e.g., Support"),
   copyrightDescription: translationKey(
     "The line at the bottom of your status page, such as Acme, Inc.",
   ),
@@ -116,6 +121,8 @@ export const StatusPageBrandingCopy: {
   ),
   footerLink: translationKey("Footer Link"),
   footerLinks: translationKey("Footer Links"),
+  footerLinkTitlePlaceholder: translationKey("e.g., Privacy Policy"),
+  titleEditTitle: translationKey("Edit Title and Description"),
   advancedDescription: translationKey(
     "History chart colors, languages, and whether search engines may list this page.",
   ),

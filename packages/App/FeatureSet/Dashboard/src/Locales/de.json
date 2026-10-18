@@ -30753,7 +30753,7 @@
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "Der Anteil passender Spans, der behalten wird, von 1 bis 99. 10 behält jeden zehnten.",
   "The small icon in the browser tab.": "Das kleine Symbol im Browser-Tab.",
   "The value to give it.": "Der Wert, den es bekommt.",
-  "They get updates from now on. Nothing is sent to them now.": "Sie erhalten ab jetzt Updates. Jetzt wird ihnen nichts gesendet.",
+  "They get updates from now on. Nothing is sent to them now.": "Sie erhalten ab jetzt Updates. Ihnen wird jetzt nichts gesendet.",
   "This code runs only when the page is opened on one of its custom domains, not at its preview link.": "Dieser Code läuft nur, wenn die Seite über eine ihrer benutzerdefinierten Domains geöffnet wird, nicht über ihren Vorschau-Link.",
   "Times in notifications are shown in these timezones.": "Zeiten in Benachrichtigungen werden in diesen Zeitzonen angezeigt.",
   "Timezones, the email footer, and your own mail server or Twilio account.": "Zeitzonen, die E-Mail-Fußzeile und Ihr eigener Mailserver oder Ihr Twilio-Konto.",
@@ -30803,5 +30803,8 @@
   "Add New Private User": "Neuen privaten Benutzer hinzufügen",
   "Add Private User": "Privaten Benutzer hinzufügen",
   "Create Monitor Rule": "Monitor-Regel erstellen",
-  "Create New Monitor Rule": "Neue Monitor-Regel erstellen"
+  "Create New Monitor Rule": "Neue Monitor-Regel erstellen",
+  "Edit Title and Description": "Titel und Beschreibung bearbeiten",
+  "e.g., Privacy Policy": "z. B. Datenschutzerklärung",
+  "e.g., Support": "z. B. Support"
 }

@@ -314,6 +314,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
             description: SubscriberChoicesCopy.smtpDescription,
           }}
           editButtonText={"Edit SMTP"}
+          editModalTitle={"Edit SMTP"}
           isEditable={true}
           formFields={[
             {
@@ -374,6 +375,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
             description: SubscriberChoicesCopy.twilioDescription,
           }}
           editButtonText={"Edit Twilio Config"}
+          editModalTitle={"Edit Twilio Config"}
           isEditable={true}
           formFields={[
             {

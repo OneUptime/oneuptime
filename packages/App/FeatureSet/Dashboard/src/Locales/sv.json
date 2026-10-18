@@ -30803,5 +30803,8 @@
   "Add New Private User": "Lägg till ny privat användare",
   "Add Private User": "Lägg till privat användare",
   "Create Monitor Rule": "Skapa monitorregel",
-  "Create New Monitor Rule": "Skapa ny monitorregel"
+  "Create New Monitor Rule": "Skapa ny monitorregel",
+  "Edit Title and Description": "Redigera titel och beskrivning",
+  "e.g., Privacy Policy": "t.ex. Integritetspolicy",
+  "e.g., Support": "t.ex. Support"
 }

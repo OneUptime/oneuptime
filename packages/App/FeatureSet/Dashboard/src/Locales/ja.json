@@ -30803,5 +30803,8 @@
   "Add New Private User": "新しいプライベートユーザーを追加",
   "Add Private User": "プライベートユーザーを追加",
   "Create Monitor Rule": "モニタールールを作成",
-  "Create New Monitor Rule": "新しいモニタールールを作成"
+  "Create New Monitor Rule": "新しいモニタールールを作成",
+  "Edit Title and Description": "タイトルと説明を編集",
+  "e.g., Privacy Policy": "例: プライバシーポリシー",
+  "e.g., Support": "例: サポート"
 }

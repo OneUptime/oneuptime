@@ -162,6 +162,10 @@ const NEW_WORDS: Array<string> = [
   StatusPageBrandingCopy.copyrightDescription,
   StatusPageBrandingCopy.footerLinksDescription,
   StatusPageBrandingCopy.footerLink,
+  // The UI review: the links' examples and the title dialog's name.
+  StatusPageBrandingCopy.headerLinkTitlePlaceholder,
+  StatusPageBrandingCopy.footerLinkTitlePlaceholder,
+  StatusPageBrandingCopy.titleEditTitle,
   ...REPORT_PERIOD_TYPE_OPTIONS.map((option: { description: string }) => {
     return option.description;
   }),
@@ -522,6 +526,22 @@ describe("the screens", () => {
     expect(code.indexOf("<AdvancedPageSection")).toBeLessThan(
       code.indexOf("title={EmbeddedStatusCopy.tokenCardTitle}"),
     );
+  });
+
+  test("every Subscriber Settings dialog is named like the button that opens it", () => {
+    const code: string = readCode(
+      "Pages/StatusPages/View/SubscriberSettings.tsx",
+    );
+
+    expect(code).toContain(
+      'editButtonText="Edit Timezones" editModalTitle="Edit Timezones"',
+    );
+
+    for (const button of ["Edit SMTP", "Edit Twilio Config"]) {
+      expect(code).toContain(
+        `editButtonText={"${button}"} editModalTitle={"${button}"}`,
+      );
+    }
   });
 
   test("MCP's address, page ID and Claude Code command wrap rather than run under the copy button; its configs keep their lines", () => {

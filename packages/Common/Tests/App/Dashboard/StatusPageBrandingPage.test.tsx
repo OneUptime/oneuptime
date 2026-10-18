@@ -491,6 +491,55 @@ describe("the cards people set", () => {
     }
   });
 
+  /*
+   * Each dialog is named like the button that opens it (Edit Images, not
+   * the model's "Edit Status Page"), as the custom code cards' are.
+   */
+  test.each([
+    ["Status Page > Branding > Header Style", "Edit Images"],
+    ["Status Page > Branding > Favicon", "Edit Favicon"],
+    ["Status Page > Branding > Overview Page", "Edit Description"],
+    ["Status Page > Branding > Copyright", "Edit Copyright"],
+    ["Status Page > Branding > Default Bar Color", "Edit Default Bar Color"],
+    ["Status Page > Languages", "Edit Languages"],
+  ])(
+    "%s: its dialog is named like its button, %s",
+    async (name: string, title: string) => {
+      await renderPage();
+
+      expect(propsOf(name)["editButtonText"]).toBe(title);
+      expect(propsOf(name)["editModalTitle"]).toBe(title);
+    },
+  );
+
+  test("Title and Description's dialog says what the two are for, so its fields need no help, and no SEO", async () => {
+    await renderPage();
+
+    const name: string = "Status Page > Branding > Title and Description";
+    const props: Record<string, unknown> = propsOf(name);
+
+    expect(props["editModalTitle"]).toBe("Edit Title and Description");
+    expect(StatusPageBrandingCopy.titleEditTitle).toBe(
+      "Edit Title and Description",
+    );
+    expect(props["editModalDescription"]).toBe(
+      StatusPageBrandingCopy.titleDescription,
+    );
+    expect(props["editModalDescription"]).toBe(
+      cardPropsOf(name)["description"],
+    );
+
+    for (const field of formFieldsOf(name) as Array<
+      FieldShape & { hideColumnDescription?: boolean }
+    >) {
+      expect([field.title, field.hideColumnDescription]).toEqual([
+        field.title,
+        true,
+      ]);
+      expect(field.description).toBeUndefined();
+    }
+  });
+
   test("the page title's example is a name, and the detail rows have no stand-in sentences", async () => {
     await renderPage();
 
@@ -571,6 +620,34 @@ describe("the cards people set", () => {
           ] as ObjectID
         ).toString(),
       ).toBe(STATUS_PAGE_ID);
+    },
+  );
+
+  /*
+   * A link's dialog asks for the words visitors click by example, and
+   * neither field repeats the column's help ("Title of this resource",
+   * "URL to a website or any other resource on the internet").
+   */
+  test.each([
+    ["Status Page > Header Links", "e.g., Support"],
+    ["Status Page > Footer Links", "e.g., Privacy Policy"],
+  ])(
+    "%s: a link's title asks by example, and neither field repeats its column's help",
+    async (name: string, placeholder: string) => {
+      await renderPage();
+
+      const [title, link] = formFieldsOf(name) as [
+        FieldShape & { hideColumnDescription?: boolean },
+        FieldShape & { hideColumnDescription?: boolean },
+      ];
+
+      expect(columnsOf([title, link])).toEqual(["title", "link"]);
+      expect(title.placeholder).toBe(placeholder);
+      expect(title.hideColumnDescription).toBe(true);
+      expect(title.description).toBeUndefined();
+      expect(link.hideColumnDescription).toBe(true);
+      expect(link.description).toBeUndefined();
+      expect(link.placeholder).toBe("https://link.com");
     },
   );
 
