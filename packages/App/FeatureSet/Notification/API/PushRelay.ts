@@ -41,7 +41,7 @@ export const PUSH_RELAY_NOT_SERVED_MESSAGE: string =
  *
  * Mounted first, so a route added below can never answer without it.
  */
-router.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+router.use((_req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
   if (!PushNotificationService.isPushRelayServer()) {
     res.status(404).json({ message: PUSH_RELAY_NOT_SERVED_MESSAGE });
     return;

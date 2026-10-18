@@ -849,7 +849,7 @@ describe("Push Notifications, against the server, the chart and the mobile app",
       'value: process.env["PUSH_NOTIFICATION_RELAY_SERVER_ENABLED"],\n    isBillingEnabled: IsBillingEnabled,',
     );
     expect(environment).toContain(
-      "  if (!value) {\n    return data.isBillingEnabled;\n  }\n\n  return value === \"true\";",
+      '  if (!value) {\n    return data.isBillingEnabled;\n  }\n\n  return value === "true";',
     );
     expect(readSource("pushService")).toContain(
       "return PushNotificationRelayServerEnabled;",
