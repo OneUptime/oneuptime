@@ -310,6 +310,10 @@ Then delete `mcp-registry-key.pem`, or keep it somewhere safe: whoever has the k
 
 To publish before the next release, run the script by hand from the repository root, with [`mcp-publisher`](https://github.com/modelcontextprotocol/registry/releases) and `jq` installed: `PACKAGE_VERSION=<version> MCP_REGISTRY_PRIVATE_KEY=<hex key> bash Scripts/MCP/PublishToMcpRegistry.sh`.
 
+## ChatGPT plugin directory
+
+[`ChatGPTPlugin/`](ChatGPTPlugin/README.md) is the package OneUptime uploads to the ChatGPT plugin directory, which ChatGPT and Codex share: the listing, five positive and three negative review test cases, and `mcp.json`, which points at `https://oneuptime.com/mcp` and signs in with OAuth for read and write access. `npm run build-chatgpt-plugin` builds the ZIP. Its README lists what else a submission needs: a verified developer identity, a domain-verification token served at `https://oneuptime.com/.well-known/openai-apps-challenge`, reviewer credentials for a demo project, and a demo video. `Tests/ChatGPTPlugin.test.ts` holds the package to the Agent Plugins schemas and OpenAI's limits, and checks that every tool a test case names is one this server has.
+
 ## Development
 
 The MCP server lives in `packages/App/FeatureSet/MCP` and is mounted into the App service at startup (`packages/App/Index.ts`). Tests live in `packages/App/FeatureSet/MCP/Tests` and run as part of the App test suite:
