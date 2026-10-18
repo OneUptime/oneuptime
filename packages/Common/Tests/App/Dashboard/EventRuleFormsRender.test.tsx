@@ -951,7 +951,7 @@ describe("Scheduled Maintenance > Rules > Reminder Rules", () => {
     expect(
       radios.map((radio: HTMLElement): string => {
         return radio.getAttribute("aria-describedby")
-          ? (radio.labels?.[0]?.textContent || "").trim()
+          ? ((radio as HTMLInputElement).labels?.[0]?.textContent || "").trim()
           : "";
       }),
     ).toEqual([
