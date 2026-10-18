@@ -1,6 +1,8 @@
 import {
   ClientIpRequestLike,
+  getIpv6NetworkRateLimit,
   getRateLimitClient,
+  IPV6_NETWORK_RATE_LIMIT_ROOM_IN_ADDRESSES,
   RateLimitClient,
   resolveClientIp,
 } from "../../../Server/Utils/ClientIp";
@@ -129,5 +131,86 @@ describe("getRateLimitClient", () => {
       address: "2001:db8:5:6::99",
       ipv6Network64: "2001:db8:5:6::/64",
     });
+  });
+
+  test("an IPv4 address handed over IPv4-mapped is that IPv4 address, however it is spelled", () => {
+    for (const spelling of [
+      "::ffff:203.0.113.9",
+      "::FFFF:203.0.113.9",
+      "::ffff:cb00:7109",
+    ]) {
+      expect(getRateLimitClient(spelling)).toEqual({
+        address: "203.0.113.9",
+        ipv6Network64: null,
+      });
+    }
+  });
+
+  test("IPv4 clients behind a translator are each their own IPv4 address, with no shared /64", () => {
+    const clients: Array<RateLimitClient> = [
+      "64:ff9b::203.0.113.9",
+      "64:ff9b::198.51.100.4",
+      "64:ff9b::c000:201",
+    ].map((address: string): RateLimitClient => {
+      return getRateLimitClient(address);
+    });
+
+    expect(clients).toEqual([
+      { address: "203.0.113.9", ipv6Network64: null },
+      { address: "198.51.100.4", ipv6Network64: null },
+      { address: "192.0.2.1", ipv6Network64: null },
+    ]);
+  });
+
+  test("an IPv4 host sending over 6to4 is that IPv4 host, from every /64 of its /48", () => {
+    const clients: Set<string> = new Set<string>();
+
+    for (let subnet: number = 0; subnet < 300; subnet++) {
+      const client: RateLimitClient = getRateLimitClient(
+        `2002:cb00:7109:${subnet.toString(16)}::${(subnet + 1).toString(16)}`,
+      );
+
+      expect(client.ipv6Network64).toBeNull();
+      clients.add(client.address);
+    }
+
+    expect([...clients]).toEqual(["203.0.113.9"]);
+  });
+
+  test("an IPv4 host sending over Teredo is that IPv4 host, whatever server, flags and port its addresses name", () => {
+    const clients: Set<string> = new Set<string>();
+
+    for (let server: number = 0; server < 300; server++) {
+      // Client 203.0.113.9 (cb00:7109), its bits inverted: 34ff:8ef6.
+      const client: RateLimitClient = getRateLimitClient(
+        `2001:0:${(server >> 8).toString(16)}:${(server & 0xff).toString(16)}:${(
+          server * 3
+        ).toString(16)}:${(server * 7).toString(16)}:34ff:8ef6`,
+      );
+
+      expect(client.ipv6Network64).toBeNull();
+      clients.add(client.address);
+    }
+
+    expect([...clients]).toEqual(["203.0.113.9"]);
+  });
+
+  test("an address of any other IPv6 network keeps its own /64", () => {
+    expect(getRateLimitClient("2001:db8:cb00:7109::1")).toEqual({
+      address: "2001:db8:cb00:7109::1",
+      ipv6Network64: "2001:db8:cb00:7109::/64",
+    });
+    expect(getRateLimitClient("2003:cb00:7109:1::1")).toEqual({
+      address: "2003:cb00:7109:1::1",
+      ipv6Network64: "2003:cb00:7109:1::/64",
+    });
+  });
+});
+
+describe("the room a /64 gets under a limit that counts both", () => {
+  test("is ten addresses' worth", () => {
+    expect(IPV6_NETWORK_RATE_LIMIT_ROOM_IN_ADDRESSES).toBe(10);
+    expect(getIpv6NetworkRateLimit(60)).toBe(600);
+    expect(getIpv6NetworkRateLimit(10)).toBe(100);
   });
 });

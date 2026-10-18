@@ -241,7 +241,7 @@ Le flux montre la rotation **telle qu'elle est configurée aujourd'hui**, y comp
 - Les liens sont propres à chaque projet. Un lien personnel divulgué expose les permanences d'un seul projet, pas de tous les projets dont vous êtes membre.
 - Régénérer un lien place l'ancien jeton dans une période de grâce de 30 jours (calendrier vide, puis 404). **Désactiver le lien** sert un calendrier vide. Un lien inconnu ou expiré répond par un simple 404 sans indication. Les calendriers vides poussent les applications abonnées à vider leur copie ; un 404 les fait la conserver, c'est pourquoi désactiver et régénérer servent des calendriers vides.
 - Les jetons sont stockés hachés ; la copie affichée sur la page des paramètres est chiffrée avec `ENCRYPTION_SECRET`. Définissez cette variable avec un vrai secret sur une installation auto-hébergée — le serveur avertit au démarrage lorsqu'elle n'est pas définie ou vaut encore l'une des valeurs d'exemple que fournit ce dépôt (`secret`, ou le `please-change-this-to-random-value` que définit `config.example.env`). Si vous la changez ensuite, la page propose **Régénérer le lien** car la copie stockée ne peut plus être lue ; le flux continue de fonctionner jusqu'à ce que vous le fassiez.
-- Les réponses des flux sont marquées `Cache-Control: private`, exclues des moteurs de recherche (`X-Robots-Tag: noindex`) et limitées en débit par lien et par adresse cliente.
+- Les réponses des flux sont marquées `Cache-Control: private`, exclues des moteurs de recherche (`X-Robots-Tag: noindex`) et limitées en débit par lien et par adresse cliente, et par /64 IPv6 à dix fois les limites d'une adresse.
 
 Le Nginx de OneUptime tient les requêtes de flux hors de ses journaux :
 
@@ -319,7 +319,7 @@ Soit `DISABLE_ON_CALL_CALENDAR_FEED` est défini, soit le serveur est occupé : 
 :::
 
 :::details 429 ou « trop de requêtes »
-De nombreux clients derrière une même adresse — un NAT de bureau, une passerelle VPN — partagent le budget par adresse. Augmentez `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` et vérifiez `TRUSTED_PROXY_HOPS` : s'il est trop bas, chaque client est attribué à votre propre proxy et ils partagent tous un seul budget.
+De nombreux clients derrière une même adresse — un NAT de bureau, une passerelle VPN — partagent le budget par adresse. Les clients d'un même /64 IPv6 partagent aussi dix fois ce budget. Augmentez `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` et vérifiez `TRUSTED_PROXY_HOPS` : s'il est trop bas, chaque client est attribué à votre propre proxy et ils partagent tous un seul budget.
 :::
 
 :::details Erreurs de certificat dans Calendrier Apple, Thunderbird ou Outlook

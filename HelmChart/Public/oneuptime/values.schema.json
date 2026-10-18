@@ -158,6 +158,11 @@
                 "includeTimestampLabel": {
                     "type": "boolean"
                 },
+                "spreadReplicasAcrossNodes": {
+                    "type": "boolean",
+                    "description": "Spread each stateless service's replicas across nodes with a soft topology spread constraint, unless topologySpreadConstraints are set for it.",
+                    "default": true
+                },
                 "replicaCount": {
                     "type": "integer",
                     "minimum": 1
@@ -388,6 +393,21 @@
                         "array",
                         "null"
                     ]
+                },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "sysctlTuning": {
                     "type": "object",
@@ -1191,6 +1211,15 @@
                 },
                 "affinity": {
                     "type": "object"
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "podSecurityContext": {
                     "type": "object"
@@ -2382,6 +2411,21 @@
                                 "null"
                             ]
                         },
+                        "affinity": {
+                            "type": [
+                                "object",
+                                "null"
+                            ]
+                        },
+                        "topologySpreadConstraints": {
+                            "type": [
+                                "array",
+                                "null"
+                            ],
+                            "items": {
+                                "type": "object"
+                            }
+                        },
                         "additionalContainers": {
                             "type": "array"
                         },
@@ -2511,6 +2555,21 @@
                 "nodeSelector": {
                     "type": "object"
                 },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
+                },
                 "podSecurityContext": {
                     "type": "object"
                 },
@@ -2620,6 +2679,15 @@
                 "array",
                 "null"
             ]
+        },
+        "topologySpreadConstraints": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "object"
+            }
         },
         "telemetryWaitForAsyncInsert": {
             "type": "boolean"
@@ -3271,6 +3339,21 @@
                         "null"
                     ]
                 },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
+                },
                 "containerSecurityContext": {
                     "type": "object"
                 },
@@ -3517,6 +3600,21 @@
                         "null"
                     ]
                 },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
+                },
                 "containerSecurityContext": {
                     "type": "object"
                 },
@@ -3734,6 +3832,21 @@
                         "array",
                         "null"
                     ]
+                },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "containerSecurityContext": {
                     "type": "object"
@@ -3998,6 +4111,21 @@
                         "array",
                         "null"
                     ]
+                },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "containerSecurityContext": {
                     "type": "object"
@@ -4649,6 +4777,21 @@
                         "array",
                         "null"
                     ]
+                },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "keda": {
                     "type": "object",

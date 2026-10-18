@@ -117,7 +117,7 @@ The answer names the run it started: `{"runbookExecutionId": "...", "status": "S
 | `404` | No runbook webhook answers at this URL: the runbook ID or the key is wrong, or the URL was reset. |
 | `405` | The request is a `GET`. A `GET` never starts a run, so a link preview in a chat app cannot run it by accident. |
 | `413` | The body is larger than 64 KB. |
-| `429` | The webhook started 30 runs in the last minute, 10 of its runs are still going, or one address made more than 120 calls to runbook webhooks in a minute. The `Retry-After` header says when to try again, where it can. |
+| `429` | The webhook started 30 runs in the last minute, 10 of its runs are still going, or one address made more than 120 calls to runbook webhooks in a minute, or the addresses of one IPv6 /64 more than 1200 together. The `Retry-After` header says when to try again, where it can. |
 | `503` | OneUptime cannot count calls right now. Try again in a minute. |
 
 A refused call starts nothing, and its body says why in a sentence, such as "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

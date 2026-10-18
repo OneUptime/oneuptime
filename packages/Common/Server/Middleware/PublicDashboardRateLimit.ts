@@ -7,6 +7,9 @@ import {
 } from "../Utils/Express";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import resolveTrustedClientIp, { ClientIpRequestLike } from "../Utils/ClientIp";
+import ClientRateLimitCounter, {
+  ClientRateLimitRefusal,
+} from "../Utils/RateLimit/ClientRateLimitCounter";
 import Response from "../Utils/Response";
 import ObjectID from "../../Types/ObjectID";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
@@ -56,6 +59,14 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * standard fixed-window behaviour and it is deliberate: a client that keeps
  * hammering keeps its window pinned rather than being handed a fresh
  * allowance for free.
+ *
+ * For an IPv6 client both are kept for its /64 as well, with room for ten
+ * addresses (ClientRateLimitCounter): one host can send from every address
+ * of its /64, and would otherwise take a fresh allowance from each. The /64
+ * counters count only the requests the address counters let through, so one
+ * address over its own limit never spends the allowance of the viewers
+ * beside it, and a /64 already over its limit is refused before anything is
+ * counted.
  */
 export enum PublicDashboardRateLimitScope {
   /*
@@ -94,6 +105,12 @@ export interface PublicDashboardRateLimitDecision {
 
   /* Which of the two counters rejected, for logs. Unset unless rejected. */
   scope?: PublicDashboardRateLimitScope | undefined;
+
+  /*
+   * The client's IPv6 /64 when the addresses of that /64 together went over
+   * the counter's limit, rather than the client's own address. For logs.
+   */
+  ipv6Network64?: string | undefined;
 
   /*
    * True only on the request that first crossed the line in this window.
@@ -442,84 +459,55 @@ export default class PublicDashboardRateLimit {
 
     const surface: RateLimitedSurface = config.surface;
 
-    const resourceCounterKey: string = `${surface.keyPrefix}${data.bucket}:${surface.resourceKeyTag}:${data.resourceKey}:${data.clientIp}:${windowIndex}`;
-    const ipCounterKey: string = `${surface.keyPrefix}${data.bucket}:i:${data.clientIp}:${windowIndex}`;
-
     try {
-      const pipelineResults: Array<[Error | null, unknown]> | null =
-        (await client
-          .pipeline()
-          .incr(resourceCounterKey)
-          .incr(ipCounterKey)
-          .exec()) as Array<[Error | null, unknown]> | null;
-
-      if (!pipelineResults || pipelineResults.length < 2) {
-        throw new Error("Rate limit pipeline returned no result");
-      }
-
-      const resourceCount: number = PublicDashboardRateLimit.readCounterResult(
-        pipelineResults[0],
-      );
-      const ipCount: number = PublicDashboardRateLimit.readCounterResult(
-        pipelineResults[1],
-      );
-
       /*
-       * Set the expiry only on the write that created the key. Re-issuing
-       * EXPIRE on every increment would slide the window forward for as long
-       * as the load continues, so the counter would never reset and a client
-       * that tripped the limit once could never recover.
-       */
-      const ttlSeconds: number = config.windowSeconds * TTL_MULTIPLIER;
-      const keysToExpire: Array<string> = [];
-
-      if (resourceCount === 1) {
-        keysToExpire.push(resourceCounterKey);
-      }
-
-      if (ipCount === 1) {
-        keysToExpire.push(ipCounterKey);
-      }
-
-      if (keysToExpire.length > 0) {
-        const expirePipeline: ReturnType<ClientType["pipeline"]> =
-          client.pipeline();
-
-        for (const key of keysToExpire) {
-          expirePipeline.expire(key, ttlSeconds);
-        }
-
-        await expirePipeline.exec();
-      }
-
-      const retryAfterSeconds: number =
-        PublicDashboardRateLimit.getSecondsUntilWindowEnd(config.windowSeconds);
-
-      /*
+       * Counted by ClientRateLimitCounter: under the client's address, and
+       * for an IPv6 client under its /64 as well. Each key's expiry is set
+       * only by the request that created it: re-issuing EXPIRE on every
+       * increment would slide the window forward for as long as the load
+       * continues, and a client that tripped the limit once could never
+       * recover.
+       *
        * The per-resource counter is reported first when both are over,
        * because it is the more specific of the two and the more useful thing
        * to see in a log line.
        */
-      if (resourceCount > config.perResourceLimit) {
-        return {
-          outcome: PublicDashboardRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: PublicDashboardRateLimitScope.Dashboard,
-          isFirstRejectionInWindow:
-            resourceCount === config.perResourceLimit + 1,
-        };
+      const refusal: ClientRateLimitRefusal<PublicDashboardRateLimitScope> | null =
+        await ClientRateLimitCounter.count<PublicDashboardRateLimitScope>({
+          redis: client,
+          clientIp: data.clientIp,
+          ttlSeconds: config.windowSeconds * TTL_MULTIPLIER,
+          counters: [
+            {
+              scope: PublicDashboardRateLimitScope.Dashboard,
+              keyFor: (clientKey: string): string => {
+                return `${surface.keyPrefix}${data.bucket}:${surface.resourceKeyTag}:${data.resourceKey}:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perResourceLimit,
+            },
+            {
+              scope: PublicDashboardRateLimitScope.Ip,
+              keyFor: (clientKey: string): string => {
+                return `${surface.keyPrefix}${data.bucket}:i:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perIpLimit,
+            },
+          ],
+        });
+
+      if (!refusal) {
+        return { outcome: PublicDashboardRateLimitOutcome.Allowed };
       }
 
-      if (ipCount > config.perIpLimit) {
-        return {
-          outcome: PublicDashboardRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: PublicDashboardRateLimitScope.Ip,
-          isFirstRejectionInWindow: ipCount === config.perIpLimit + 1,
-        };
-      }
-
-      return { outcome: PublicDashboardRateLimitOutcome.Allowed };
+      return {
+        outcome: PublicDashboardRateLimitOutcome.RateLimited,
+        retryAfterSeconds: PublicDashboardRateLimit.getSecondsUntilWindowEnd(
+          config.windowSeconds,
+        ),
+        scope: refusal.scope,
+        ipv6Network64: refusal.ipv6Network64,
+        isFirstRejectionInWindow: refusal.isFirstRefusalInWindow,
+      };
     } catch (err) {
       /*
        * Throttled for the same reason as the middleware's unavailable branch:
@@ -535,26 +523,6 @@ export default class PublicDashboardRateLimit {
 
       return { outcome: PublicDashboardRateLimitOutcome.CounterUnavailable };
     }
-  }
-
-  private static readCounterResult(
-    result: [Error | null, unknown] | undefined,
-  ): number {
-    if (!result) {
-      throw new Error("Rate limit counter returned no result");
-    }
-
-    const [error, value] = result;
-
-    if (error) {
-      throw error;
-    }
-
-    if (typeof value !== "number") {
-      throw new Error("Rate limit counter returned a non-numeric value");
-    }
-
-    return value;
   }
 
   /*
@@ -614,7 +582,10 @@ export default class PublicDashboardRateLimit {
               : config.surface.resourceLabel;
 
           logger.warn(
-            `PublicDashboardRateLimit: rejected ${bucket} request for ${config.surface.resourceLabel} ${resourceKey} from ${clientIp} (${scopeLabel} limit)`,
+            `PublicDashboardRateLimit: rejected ${bucket} request for ${config.surface.resourceLabel} ${resourceKey} from ${clientIp} (${ClientRateLimitCounter.describeLimit(
+              scopeLabel,
+              decision.ipv6Network64,
+            )})`,
           );
         }
 

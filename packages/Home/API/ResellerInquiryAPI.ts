@@ -22,7 +22,10 @@ import {
   ExpressResponse,
 } from "Common/Server/Utils/Express";
 import MailService from "Common/Server/Services/MailService";
-import resolveClientIp from "Common/Server/Utils/ClientIp";
+import resolveClientIp, {
+  getRateLimitClient,
+  RateLimitClient,
+} from "Common/Server/Utils/ClientIp";
 import logger from "Common/Server/Utils/Logger";
 import SameOriginRequest from "Common/Server/Utils/SameOriginRequest";
 
@@ -37,7 +40,8 @@ import SameOriginRequest from "Common/Server/Utils/SameOriginRequest";
  *  2. The body must be JSON. A plain HTML form on another site can post a
  *     urlencoded body without a preflight; a JSON one it cannot.
  *  3. Each sender (by address, ClientIp) gets PER_SENDER_LIMIT requests an
- *     hour, the refused ones included.
+ *     hour, the refused ones included. An IPv6 sender is its /64
+ *     (getSenderKey): one host can send from every address of its /64.
  *  4. The answers are checked and cleaned (ResellerInquiry.ts). A form a
  *     program filled in (the honeypot) is answered as sent, and not sent.
  *  5. All senders together get OVERALL_LIMIT emails an hour, so a flood
@@ -63,6 +67,25 @@ export const MAIL_TIMEOUT_IN_MS: number = 15000;
 
 // Requests whose address cannot be told share one count.
 export const UNKNOWN_SENDER: string = "unknown";
+
+/*
+ * Who a request is counted as: its address, or for an IPv6 address the /64
+ * it is in (ClientIp getRateLimitClient), so a host that sends from address
+ * after address of its /64 is still one sender. A /64 is one sender rather
+ * than several because the sender's allowance is already far past what a
+ * whole office sends through this form in an hour, and a /64 counted as
+ * more than one would let one host take more of the hour's emails than an
+ * IPv4 address can.
+ */
+export const getSenderKey: (clientIp: string | undefined) => string = (
+  clientIp: string | undefined,
+): string => {
+  const sender: RateLimitClient = getRateLimitClient(
+    clientIp || UNKNOWN_SENDER,
+  );
+
+  return sender.ipv6Network64 || sender.address;
+};
 
 const OVERALL_KEY: string = "all";
 
@@ -151,7 +174,7 @@ export const createResellerInquiryHandler: (
     }
 
     const sender: RateLimitDecision = options.perSender.consume(
-      clientIpOf(req) || UNKNOWN_SENDER,
+      getSenderKey(clientIpOf(req)),
     );
 
     if (!sender.allowed) {

@@ -7,6 +7,9 @@ import {
 } from "../Utils/Express";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import resolveTrustedClientIp, { ClientIpRequestLike } from "../Utils/ClientIp";
+import ClientRateLimitCounter, {
+  ClientRateLimitRefusal,
+} from "../Utils/RateLimit/ClientRateLimitCounter";
 import Response from "../Utils/Response";
 import {
   OnCallCalendarFeedRateLimitPerIpPerWindow,
@@ -53,6 +56,14 @@ import { createHash } from "crypto";
  * Both are incremented on every request including a rejected one, so a client
  * that keeps hammering keeps its window pinned rather than being handed a
  * fresh allowance for free.
+ *
+ * For an IPv6 client both are kept for its /64 as well, with room for ten
+ * addresses (ClientRateLimitCounter): one host can send from every address
+ * of its /64, and would otherwise take a fresh allowance from each. The /64
+ * counters count only the requests the address counters let through, so one
+ * address over its own limit never spends the allowance of the calendar
+ * clients beside it, and a /64 already over its limit is refused before
+ * anything is counted.
  */
 export enum OnCallCalendarFeedRateLimitScope {
   Token = "token",
@@ -73,6 +84,12 @@ export interface OnCallCalendarFeedRateLimitDecision {
 
   /* Which of the two counters rejected, for logs. Unset unless rejected. */
   scope?: OnCallCalendarFeedRateLimitScope | undefined;
+
+  /*
+   * The client's IPv6 /64 when the addresses of that /64 together went over
+   * the counter's limit, rather than the client's own address. For logs.
+   */
+  ipv6Network64?: string | undefined;
 
   /*
    * True only on the request that first crossed the line in this window, so
@@ -255,84 +272,54 @@ export default class OnCallCalendarFeedRateLimit {
     const windowMs: number = config.windowSeconds * 1000;
     const windowIndex: number = Math.floor(Date.now() / windowMs);
 
-    const tokenCounterKey: string = `${KEY_PREFIX}t:${data.tokenKey}:${data.clientIp}:${windowIndex}`;
-    const ipCounterKey: string = `${KEY_PREFIX}i:${data.clientIp}:${windowIndex}`;
-
     try {
-      const pipelineResults: Array<[Error | null, unknown]> | null =
-        (await client
-          .pipeline()
-          .incr(tokenCounterKey)
-          .incr(ipCounterKey)
-          .exec()) as Array<[Error | null, unknown]> | null;
-
-      if (!pipelineResults || pipelineResults.length < 2) {
-        throw new Error("Rate limit pipeline returned no result");
-      }
-
-      const tokenCount: number = OnCallCalendarFeedRateLimit.readCounterResult(
-        pipelineResults[0],
-      );
-      const ipCount: number = OnCallCalendarFeedRateLimit.readCounterResult(
-        pipelineResults[1],
-      );
-
       /*
-       * Set the expiry only on the write that created the key. Re-issuing
-       * EXPIRE on every increment would slide the window forward for as long
-       * as the load continues, so the counter would never reset and a client
-       * that tripped the limit once could never recover.
-       */
-      const ttlSeconds: number = config.windowSeconds * TTL_MULTIPLIER;
-      const keysToExpire: Array<string> = [];
-
-      if (tokenCount === 1) {
-        keysToExpire.push(tokenCounterKey);
-      }
-
-      if (ipCount === 1) {
-        keysToExpire.push(ipCounterKey);
-      }
-
-      if (keysToExpire.length > 0) {
-        const expirePipeline: ReturnType<ClientType["pipeline"]> =
-          client.pipeline();
-
-        for (const key of keysToExpire) {
-          expirePipeline.expire(key, ttlSeconds);
-        }
-
-        await expirePipeline.exec();
-      }
-
-      const retryAfterSeconds: number =
-        OnCallCalendarFeedRateLimit.getSecondsUntilWindowEnd(
-          config.windowSeconds,
-        );
-
-      /*
+       * Counted by ClientRateLimitCounter: under the client's address, and
+       * for an IPv6 client under its /64 as well. Each key's expiry is set
+       * only by the request that created it: re-issuing EXPIRE on every
+       * increment would slide the window forward for as long as the load
+       * continues, and a client that tripped the limit once could never
+       * recover.
+       *
        * Token counter is reported first when both are over: it is the more
        * specific of the two and the more useful thing to see in a log line.
        */
-      if (tokenCount > config.perTokenLimit) {
-        return {
-          outcome: OnCallCalendarFeedRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: OnCallCalendarFeedRateLimitScope.Token,
-          isFirstRejectionInWindow: tokenCount === config.perTokenLimit + 1,
-        };
+      const refusal: ClientRateLimitRefusal<OnCallCalendarFeedRateLimitScope> | null =
+        await ClientRateLimitCounter.count<OnCallCalendarFeedRateLimitScope>({
+          redis: client,
+          clientIp: data.clientIp,
+          ttlSeconds: config.windowSeconds * TTL_MULTIPLIER,
+          counters: [
+            {
+              scope: OnCallCalendarFeedRateLimitScope.Token,
+              keyFor: (clientKey: string): string => {
+                return `${KEY_PREFIX}t:${data.tokenKey}:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perTokenLimit,
+            },
+            {
+              scope: OnCallCalendarFeedRateLimitScope.Ip,
+              keyFor: (clientKey: string): string => {
+                return `${KEY_PREFIX}i:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perIpLimit,
+            },
+          ],
+        });
+
+      if (!refusal) {
+        return { outcome: OnCallCalendarFeedRateLimitOutcome.Allowed };
       }
 
-      if (ipCount > config.perIpLimit) {
-        return {
-          outcome: OnCallCalendarFeedRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: OnCallCalendarFeedRateLimitScope.Ip,
-          isFirstRejectionInWindow: ipCount === config.perIpLimit + 1,
-        };
-      }
-
-      return { outcome: OnCallCalendarFeedRateLimitOutcome.Allowed };
+      return {
+        outcome: OnCallCalendarFeedRateLimitOutcome.RateLimited,
+        retryAfterSeconds: OnCallCalendarFeedRateLimit.getSecondsUntilWindowEnd(
+          config.windowSeconds,
+        ),
+        scope: refusal.scope,
+        ipv6Network64: refusal.ipv6Network64,
+        isFirstRejectionInWindow: refusal.isFirstRefusalInWindow,
+      };
     } catch (err) {
       /*
        * Throttled: whatever broke Redis is unlikely to break it for one
@@ -350,26 +337,6 @@ export default class OnCallCalendarFeedRateLimit {
         outcome: OnCallCalendarFeedRateLimitOutcome.CounterUnavailable,
       };
     }
-  }
-
-  private static readCounterResult(
-    result: [Error | null, unknown] | undefined,
-  ): number {
-    if (!result) {
-      throw new Error("Rate limit counter returned no result");
-    }
-
-    const [error, value] = result;
-
-    if (error) {
-      throw error;
-    }
-
-    if (typeof value !== "number") {
-      throw new Error("Rate limit counter returned a non-numeric value");
-    }
-
-    return value;
   }
 
   /*
@@ -435,7 +402,10 @@ export default class OnCallCalendarFeedRateLimit {
          */
         if (decision.isFirstRejectionInWindow) {
           logger.warn(
-            `OnCallCalendarFeedRateLimit: rejected calendar feed request from ${clientIp} (${decision.scope} limit)`,
+            `OnCallCalendarFeedRateLimit: rejected calendar feed request from ${clientIp} (${ClientRateLimitCounter.describeLimit(
+              String(decision.scope),
+              decision.ipv6Network64,
+            )})`,
           );
         }
 

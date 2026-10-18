@@ -241,7 +241,7 @@ Der Feed zeigt die Rotation, **wie sie jetzt eingerichtet ist**, auch für verga
 - Links gelten pro Projekt. Ein geleakter persönlicher Link legt die Schichten eines Projekts offen, nicht die aller Projekte, denen Sie angehören.
 - Das Neuerzeugen eines Links verschiebt das alte Token in eine 30-tägige Schonfrist (leerer Kalender, danach 404). **Link deaktivieren** liefert einen leeren Kalender. Ein unbekannter oder abgelaufener Link antwortet mit einem schlichten 404 ohne Hinweis. Leere Kalender bringen abonnierte Apps dazu, ihre Kopie zu leeren; ein 404 lässt sie die Kopie behalten — deshalb liefern Deaktivieren und Neuerzeugen leere Kalender.
 - Tokens werden gehasht gespeichert; die auf der Einstellungsseite angezeigte Kopie ist mit `ENCRYPTION_SECRET` verschlüsselt. Setzen Sie diese Variable bei einer selbst gehosteten Installation auf ein echtes Geheimnis — der Server warnt beim Start, wenn sie nicht gesetzt ist oder noch einer der Platzhalter aus diesem Repository ist (`secret` oder das `please-change-this-to-random-value`, das `config.example.env` setzt). Ändern Sie sie später, bietet die Seite **Link neu erzeugen** an, weil die gespeicherte Kopie nicht mehr gelesen werden kann; der Feed funktioniert weiter, bis Sie das tun.
-- Feed-Antworten sind mit `Cache-Control: private` markiert, von Suchmaschinen ausgeschlossen (`X-Robots-Tag: noindex`) und pro Link sowie pro Client-Adresse ratenbegrenzt.
+- Feed-Antworten sind mit `Cache-Control: private` markiert, von Suchmaschinen ausgeschlossen (`X-Robots-Tag: noindex`) und pro Link sowie pro Client-Adresse ratenbegrenzt, pro IPv6-/64 mit dem Zehnfachen der Grenzen einer Adresse.
 
 Der eigene Nginx von OneUptime hält Feed-Anfragen aus seinen Protokollen heraus:
 
@@ -319,7 +319,7 @@ Entweder ist `DISABLE_ON_CALL_CALENDAR_FEED` gesetzt, oder der Server ist ausgel
 :::
 
 :::details 429 oder „zu viele Anfragen“
-Viele Clients hinter einer Adresse — ein Büro-NAT, ein VPN-Gateway — teilen sich das Budget pro Adresse. Erhöhen Sie `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` und prüfen Sie `TRUSTED_PROXY_HOPS`: Ist der Wert zu niedrig, wird jeder Client Ihrem eigenen Proxy zugeordnet und alle teilen sich ein Budget.
+Viele Clients hinter einer Adresse — ein Büro-NAT, ein VPN-Gateway — teilen sich das Budget pro Adresse. Die Clients eines IPv6-/64 teilen sich zusätzlich das Zehnfache davon. Erhöhen Sie `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` und prüfen Sie `TRUSTED_PROXY_HOPS`: Ist der Wert zu niedrig, wird jeder Client Ihrem eigenen Proxy zugeordnet und alle teilen sich ein Budget.
 :::
 
 :::details Zertifikatsfehler in Apple Kalender, Thunderbird oder Outlook

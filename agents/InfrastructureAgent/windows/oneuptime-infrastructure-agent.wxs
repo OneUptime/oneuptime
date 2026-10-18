@@ -1,0 +1,129 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<!--
+  The infrastructure agent's Windows installer, built by build-msi.sh with
+  wixl (msitools) for amd64 and arm64:
+
+    wixl -a x64|x86 -D Arch=amd64|arm64 -D Version=<x.y.z> -D Binary=<exe> \
+      -o oneuptime-infrastructure-agent-<arch>.msi oneuptime-infrastructure-agent.wxs
+
+  wixl cannot build an ARM64 package, so the arm64 MSI is an x86 package
+  (every ARM64 Windows runs x86 installers) carrying the arm64 binary. Both
+  install C:\Program Files\OneUptimeInfrastructureAgent.
+
+  Upgrades. Every build has a ProductCode of its own (Id='*'), and the
+  UpgradeCode never changes: Windows finds the installed agent by it, so a
+  newer MSI removes the older version and installs itself (MajorUpgrade),
+  and an older one refuses to install over a newer. The fixed ProductCode
+  earlier versions of this installer had made Windows refuse a newer version
+  with error 1638. Builds that differ only in a fourth version field (Windows
+  compares three) replace each other too (AllowSameVersionUpgrades).
+
+  The installer installs per machine (ALLUSERS=1), as an agent that runs as a
+  service must. Earlier versions installed per user, and Windows only
+  upgrades a product installed the same way, so a machine with one of those
+  uninstalls it before installing this.
+
+  The service. `oneuptime-infrastructure-agent configure` registers the
+  oneuptime-infrastructure-agent service, not this installer, so:
+    - every uninstall stops it first (ServiceControl), the one a newer
+      version's upgrade runs included, so no file is in use when it is
+      replaced and no restart of Windows is needed;
+    - after an install or an upgrade, StartAgentService starts it again;
+      before `configure` there is no service, and the failure is ignored;
+    - uninstalling the agent (not an upgrade) deletes the service, so none
+      is left pointing at a program that is gone. Its configuration, in
+      %PROGRAMDATA%\oneuptime-infrastructure-agent, is kept.
+  wixl places an action with Before/After only after another custom action,
+  so the actions below give their sequence numbers outright: after
+  StopServices (1900) and before DeleteServices (2000) and RemoveFiles
+  (3500); after InstallFiles (4000).
+
+  The UpgradeCode, the component's Guid and the install directory must not
+  change. Tests/Ops/InfrastructureAgentMsi.test.js holds them, and all of
+  the above.
+-->
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+    <Product
+        Name='OneUptime Infrastructure Agent ($(var.Arch))'
+        Id='*'
+        UpgradeCode='ABCDDCBA-7349-453F-94F6-BCB5110BA8FD'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'
+        Manufacturer='HackerBay, Inc.'>
+
+        <Package
+            Id='*'
+            Keywords='Installer'
+            Description='OneUptime Infrastructure Agent installer'
+            Manufacturer='HackerBay, Inc.'
+            InstallerVersion='500'
+            InstallScope='perMachine'
+            Languages='1033'
+            Compressed='yes'
+            SummaryCodepage='1252'
+        />
+
+        <MajorUpgrade
+            AllowSameVersionUpgrades='yes'
+            DowngradeErrorMessage='A newer version of the OneUptime Infrastructure Agent is already installed.'
+        />
+
+        <Media Id='1' Cabinet='agent.cab' EmbedCab='yes' />
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='ProgramFiles64Folder' Name='PFiles'>
+                <Directory Id='OneUptimeInfrastructureAgent' Name='OneUptimeInfrastructureAgent'>
+                    <Component
+                        Id='MainExecutable'
+                        Guid='ABCDDCBA-83F1-4F22-985B-FDB3C8ABD474'
+                    >
+                        <File
+                            Id='oneuptime-infrastructure-agent'
+                            Name='oneuptime-infrastructure-agent.exe'
+                            DiskId='1'
+                            Source='$(var.Binary)'
+                            KeyPath='yes'
+                        />
+                        <ServiceControl
+                            Id='AgentService'
+                            Name='oneuptime-infrastructure-agent'
+                            Stop='both'
+                            Wait='yes'
+                        />
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <Feature Id='Complete' Level='1'>
+            <ComponentRef Id='MainExecutable' />
+        </Feature>
+
+        <CustomAction Id='SetNetExe' Property='NETEXE' Value='[SystemFolder]net.exe' />
+        <CustomAction Id='SetScExe' Property='SCEXE' Value='[SystemFolder]sc.exe' />
+        <CustomAction
+            Id='DeleteAgentService'
+            Property='SCEXE'
+            ExeCommand='delete oneuptime-infrastructure-agent'
+            Execute='deferred'
+            Impersonate='no'
+            Return='ignore'
+        />
+        <CustomAction
+            Id='StartAgentService'
+            Property='NETEXE'
+            ExeCommand='start oneuptime-infrastructure-agent'
+            Execute='deferred'
+            Impersonate='no'
+            Return='ignore'
+        />
+
+        <InstallExecuteSequence>
+            <Custom Action='SetNetExe' Sequence='1010' />
+            <Custom Action='SetScExe' Sequence='1011' />
+            <Custom Action='DeleteAgentService' Sequence='1950'>REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+            <Custom Action='StartAgentService' Sequence='4010'>NOT REMOVE~="ALL"</Custom>
+        </InstallExecuteSequence>
+    </Product>
+</Wix>
