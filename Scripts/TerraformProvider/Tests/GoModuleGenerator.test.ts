@@ -76,6 +76,48 @@ describe("go.mod", () => {
   });
 });
 
+describe("the acceptance tests", () => {
+  /*
+   * HashiCorp asks the providers it lists as Partner to pass acceptance tests
+   * written with terraform-plugin-testing. Without the module, or without the
+   * copies, `go test` passes on a tree that no longer has them.
+   */
+  test("go.mod requires terraform-plugin-testing", () => {
+    expect(
+      isAtLeast(
+        requiredVersion("github.com/hashicorp/terraform-plugin-testing"),
+        [1, 16, 0],
+      ),
+    ).toBe(true);
+  });
+
+  test("are copied into the generated provider", () => {
+    const helpers: string = path.join(
+      outputDir,
+      "internal/provider",
+      "acceptance_helpers_test.go",
+    );
+    const tests: string = path.join(
+      outputDir,
+      "internal/provider",
+      "acceptance_test.go",
+    );
+
+    expect(fs.readFileSync(helpers, "utf-8")).toContain(
+      "var testAccProtoV6ProviderFactories",
+    );
+    for (const name of [
+      "TestAccIncidentSeverity_lifecycle",
+      "TestAccMonitor_lifecycle",
+      "TestAccStatusPage_lifecycle",
+      "TestAccOnCallPolicy_lifecycle",
+      "TestAccOnCallScheduleAndLayers_lifecycle",
+    ]) {
+      expect(fs.readFileSync(tests, "utf-8")).toContain(`func ${name}(`);
+    }
+  });
+});
+
 describe("the update plan test", () => {
   test("is copied into the generated provider", () => {
     /*

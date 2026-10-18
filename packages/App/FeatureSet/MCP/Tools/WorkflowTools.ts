@@ -8,6 +8,10 @@
 
 import { McpToolInfo, JSONSchema } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
+import {
+  readOnlyToolAnnotations,
+  writeToolAnnotations,
+} from "./ToolAnnotations";
 import ModelType from "../Types/ModelType";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
 import McpCredentialUtil, {
@@ -185,8 +189,8 @@ export function generateWorkflowTools(): McpToolInfo[] {
         description: definition.description,
         inputSchema: definition.inputSchema,
         annotations: definition.readOnly
-          ? { readOnlyHint: true }
-          : { readOnlyHint: false, destructiveHint: false },
+          ? readOnlyToolAnnotations()
+          : writeToolAnnotations(),
         modelName: "Workflow",
         operation: definition.readOnly
           ? OneUptimeOperation.Read

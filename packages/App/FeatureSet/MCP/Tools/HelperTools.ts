@@ -7,6 +7,7 @@ import { McpToolInfo } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { sanitizeToolName } from "./SchemaConverter";
+import { readOnlyToolAnnotations } from "./ToolAnnotations";
 
 export interface ResourceInfo {
   name: string;
@@ -141,7 +142,7 @@ COMMON WORKFLOWS:
       additionalProperties: false,
     },
     title: "OneUptime Help",
-    annotations: { readOnlyHint: true },
+    annotations: readOnlyToolAnnotations(),
     modelName: "Help",
     operation: OneUptimeOperation.Read,
     modelType: ModelType.Database,
@@ -163,7 +164,7 @@ function createResourceInfoTool(_resources: ResourceInfo[]): McpToolInfo {
       additionalProperties: false,
     },
     title: "List OneUptime Resources",
-    annotations: { readOnlyHint: true },
+    annotations: readOnlyToolAnnotations(),
     modelName: "ResourceInfo",
     operation: OneUptimeOperation.List,
     modelType: ModelType.Database,
