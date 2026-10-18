@@ -8463,11 +8463,11 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
    * the Switch / Case's outputs, left to right as they are - problem,
    * recovery, update - with what is ignored at the top right.
    *
-   * The recovery column starts right under its output, and the update
-   * column one row lower than the problem column, so that no two of the
-   * Switch / Case's connections run along the same line: the problem's and
-   * what is ignored turn above the first row, the update's below it, where
-   * nothing is in its way.
+   * The recovery and update columns start a row lower than the problem
+   * column, so that no two of the Switch / Case's connections run along the
+   * same line: the recovery's runs straight down from its output, the
+   * problem's and what is ignored turn above the first row, and the
+   * update's turns below it, where nothing is in its way.
    */
   const P: number = -640;
   const R: number = 0;
