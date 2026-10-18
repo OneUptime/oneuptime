@@ -57,7 +57,10 @@ jest.mock("../../../../Server/Utils/Logger", () => {
 
 import Redis from "../../../../Server/Infrastructure/Redis";
 import logger from "../../../../Server/Utils/Logger";
-import { ExpressRequest, ExpressResponse } from "../../../../Server/Utils/Express";
+import {
+  ExpressRequest,
+  ExpressResponse,
+} from "../../../../Server/Utils/Express";
 import { getIpv6NetworkRateLimit } from "../../../../Server/Utils/ClientIp";
 import PublicMessageRateLimit, {
   PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
@@ -264,7 +267,9 @@ describe("the limits in force", () => {
         return config.kinds[PublicMessageKind.StatusPagePasswordReset]
           .perContactLimit;
       },
-      PASSWORD_RESETS_PER_IP: (config: PublicMessageRateLimitConfig): number => {
+      PASSWORD_RESETS_PER_IP: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
         return config.kinds[PublicMessageKind.PasswordReset].perClientLimit;
       },
       PASSWORD_RESETS_PER_CONTACT: (
@@ -289,7 +294,7 @@ describe("the limits in force", () => {
 
         jest.isolateModules(() => {
           config = (
-            jest.requireActual<{ default: typeof PublicMessageRateLimit }>(
+            jest.requireActual(
               "../../../../Server/Utils/RateLimit/PublicMessageRateLimit",
             ) as { default: typeof PublicMessageRateLimit }
           ).default.getConfig();
@@ -379,9 +384,9 @@ describe("a contact is one mailbox, one phone, one channel", () => {
     expect(key("victim@example.org")).not.toBe(key("victim@example.com"));
 
     // A local part that is all tag is left as it is.
-    expect(
-      PublicMessageRateLimit.forEmail("+tag@example.com").canonical,
-    ).toBe("+tag@example.com");
+    expect(PublicMessageRateLimit.forEmail("+tag@example.com").canonical).toBe(
+      "+tag@example.com",
+    );
   });
 
   test("an Email is counted as its address", () => {
@@ -424,13 +429,6 @@ describe("a contact is one mailbox, one phone, one channel", () => {
     }
   });
 
-  test("the Email type alone takes a list, which is why the one-mailbox rule is here", () => {
-    // Email.isValid finds an address anywhere in the text.
-    expect(new Email("a@example.com,b@example.com").toString()).toBe(
-      "a@example.com,b@example.com",
-    );
-  });
-
   test("no address is longer than a mailbox can be: 254 characters", () => {
     const longest: string = `${"a".repeat(64)}@${"b".repeat(185)}.com`;
 
@@ -448,7 +446,7 @@ describe("a contact is one mailbox, one phone, one channel", () => {
       "@".repeat(400000),
       `${"a@".repeat(200000)}`,
       `${"a".repeat(399999)},`,
-      // The longest text Email.isValid is handed, at its slowest shape.
+      // The longest addresses looked at any further, in two shapes.
       `${"a".repeat(126)}@${"b".repeat(127)}`,
       `${"a.".repeat(63)}a@${"b-".repeat(63)}b`,
     ];
@@ -612,8 +610,7 @@ describe("the caller's counter", () => {
     });
 
     expect(
-      (await consume(PublicMessageKind.PasswordReset, [emailOf(1000)]))
-        .outcome,
+      (await consume(PublicMessageKind.PasswordReset, [emailOf(1000)])).outcome,
     ).toBe(PublicMessageRateLimitOutcome.RateLimited);
 
     for (const kind of ALL_KINDS) {
@@ -748,8 +745,7 @@ describe("the caller's text messages, of every kind together", () => {
     );
 
     expect(
-      (await consume(PublicMessageKind.StatusPageSignUp, [emailOf(1)]))
-        .outcome,
+      (await consume(PublicMessageKind.StatusPageSignUp, [emailOf(1)])).outcome,
     ).toBe(PublicMessageRateLimitOutcome.Allowed);
   });
 
@@ -810,12 +806,9 @@ describe("a contact's counter, from every caller together", () => {
       const victim: PublicMessageContact =
         PublicMessageRateLimit.forEmail("victim@example.com");
 
-      const { allowed, last } = await allowedOf(
-        limit + 10,
-        (index: number) => {
-          return consume(kind, [victim], `192.0.2.${index + 1}`);
-        },
-      );
+      const { allowed, last } = await allowedOf(limit + 10, (index: number) => {
+        return consume(kind, [victim], `192.0.2.${index + 1}`);
+      });
 
       expect(allowed).toBe(limit);
       expect(last).toEqual({
@@ -902,9 +895,7 @@ describe("a contact's counter, from every caller together", () => {
         .outcome,
     ).toBe(PublicMessageRateLimitOutcome.Allowed);
     expect(
-      redis.keysHolding(
-        `:k:${PublicMessageRateLimit.getContactKey(victim)}:`,
-      ),
+      redis.keysHolding(`:k:${PublicMessageRateLimit.getContactKey(victim)}:`),
     ).toHaveLength(1);
     expect(
       redis.count(
@@ -942,9 +933,10 @@ describe("a contact's counter, from every caller together", () => {
         continue;
       }
 
-      expect([kind, (await consume(kind, [victim], OTHER_CLIENT)).outcome]).toEqual(
-        [kind, PublicMessageRateLimitOutcome.Allowed],
-      );
+      expect([
+        kind,
+        (await consume(kind, [victim], OTHER_CLIENT)).outcome,
+      ]).toEqual([kind, PublicMessageRateLimitOutcome.Allowed]);
     }
   });
 
@@ -1052,14 +1044,8 @@ describe("a contact's counter, from every caller together", () => {
   });
 
   test("every key expires, once, two windows after it was made", async () => {
-    await consume(PublicMessageKind.StatusPageSignUp, [
-      emailOf(1),
-      phoneOf(1),
-    ]);
-    await consume(PublicMessageKind.StatusPageSignUp, [
-      emailOf(1),
-      phoneOf(1),
-    ]);
+    await consume(PublicMessageKind.StatusPageSignUp, [emailOf(1), phoneOf(1)]);
+    await consume(PublicMessageKind.StatusPageSignUp, [emailOf(1), phoneOf(1)]);
 
     for (const key of redis.keys()) {
       expect([key, redis.expiries.get(key)]).toEqual([

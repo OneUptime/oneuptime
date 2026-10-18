@@ -4123,11 +4123,15 @@ export default class StatusPageAPI extends BaseAPI<
     const contacts: Array<PublicMessageContact> = [];
 
     if (subscriber.subscriberEmail) {
-      contacts.push(PublicMessageRateLimit.forEmail(subscriber.subscriberEmail));
+      contacts.push(
+        PublicMessageRateLimit.forEmail(subscriber.subscriberEmail),
+      );
     }
 
     if (subscriber.subscriberPhone) {
-      contacts.push(PublicMessageRateLimit.forPhone(subscriber.subscriberPhone));
+      contacts.push(
+        PublicMessageRateLimit.forPhone(subscriber.subscriberPhone),
+      );
     }
 
     if (subscriber.slackIncomingWebhookUrl) {

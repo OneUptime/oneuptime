@@ -86,9 +86,11 @@ function sectionOf(markdown: string, heading: string): string {
 
   expect(start).toBeGreaterThan(0);
 
-  const end: number = lines.findIndex((line: string, index: number): boolean => {
-    return index > start && line.startsWith("## ");
-  });
+  const end: number = lines.findIndex(
+    (line: string, index: number): boolean => {
+      return index > start && line.startsWith("## ");
+    },
+  );
 
   return lines.slice(start, end).join("\n");
 }
@@ -116,9 +118,9 @@ function freshConfig(): PublicMessageRateLimitConfig {
 
   jest.isolateModules(() => {
     const limiter: { default: typeof PublicMessageRateLimit } =
-      jest.requireActual<{ default: typeof PublicMessageRateLimit }>(
+      jest.requireActual(
         "Common/Server/Utils/RateLimit/PublicMessageRateLimit",
-      );
+      ) as { default: typeof PublicMessageRateLimit };
 
     config = limiter.default.getConfig();
   });

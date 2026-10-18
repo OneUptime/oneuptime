@@ -384,9 +384,9 @@ describe("the guard's own reading", () => {
   test("passes a handler whose every branch asks first, for its own kind", () => {
     const code: string = `if (invited) {\n${ask("SignUpEmail")}sendInvitation();\n} else {\n${ask("SignUpEmail")}createAccount();\nsendWelcome();\n}`;
 
-    expect(wiringProblems(code, PublicMessageKind.SignUpEmail, BRANCHES)).toEqual(
-      [],
-    );
+    expect(
+      wiringProblems(code, PublicMessageKind.SignUpEmail, BRANCHES),
+    ).toEqual([]);
   });
 
   test("fails a branch that leans on another branch's ask", () => {

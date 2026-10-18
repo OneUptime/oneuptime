@@ -796,10 +796,9 @@ describe("asking for a subscription's manage link", () => {
       const answers: Array<string> = [];
 
       for (let index: number = 0; index < 7; index++) {
-        const answer: Answer = await askForManageLink(
-          `192.0.2.${index + 1}`,
-          { subscriberEmail: email },
-        );
+        const answer: Answer = await askForManageLink(`192.0.2.${index + 1}`, {
+          subscriberEmail: email,
+        });
 
         answers.push(answer.error ? answer.error.message : "ok");
       }
@@ -807,10 +806,10 @@ describe("asking for a subscription's manage link", () => {
       return answers;
     };
 
-    const subscribed: Array<string> = await answersFor("subscribed@example.com");
-    const notSubscribed: Array<string> = await answersFor(
-      "nobody@example.com",
+    const subscribed: Array<string> = await answersFor(
+      "subscribed@example.com",
     );
+    const notSubscribed: Array<string> = await answersFor("nobody@example.com");
 
     expect(notSubscribed).toEqual(subscribed);
     expect(subscribed.slice(0, 5)).toEqual(["ok", "ok", "ok", "ok", "ok"]);

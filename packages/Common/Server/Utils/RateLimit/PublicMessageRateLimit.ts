@@ -35,11 +35,11 @@ import Phone from "../../../Types/Phone";
  *  - signing up for an account (POST /identity/signup), which emails the
  *    address signed up with.
  *
- * Nothing upstream of them counts anything, so each one would send as many
- * messages as a caller asked for: to people who never asked for them, and
- * - a text message is paid for from the project's balance - on the
- * project's bill. Every one of them therefore asks this limiter right before
- * it sends, and is refused when either of two things has had enough:
+ * Nothing in front of these routes counts what they send, so each of them
+ * asks this limiter right before it sends - a message is a message to
+ * somebody who may never have asked for it, and a text message is paid for
+ * from the project's balance - and is refused when either of two things has
+ * had enough:
  *
  *  - THE CLIENT. The caller's address (and, for an IPv6 caller, its /64,
  *    with room for ten addresses - ClientRateLimitCounter) may send so many
@@ -244,10 +244,16 @@ const CONFIG: PublicMessageRateLimitConfig = {
     "PER_CONTACT_WINDOW_SECONDS",
     60 * 60,
   ),
-  perClientTextMessageLimit: parsePositiveIntFromEnv("TEXT_MESSAGES_PER_IP", 10),
+  perClientTextMessageLimit: parsePositiveIntFromEnv(
+    "TEXT_MESSAGES_PER_IP",
+    10,
+  ),
   kinds: {
     [PublicMessageKind.StatusPageSignUp]: {
-      perClientLimit: parsePositiveIntFromEnv("STATUS_PAGE_SIGN_UPS_PER_IP", 60),
+      perClientLimit: parsePositiveIntFromEnv(
+        "STATUS_PAGE_SIGN_UPS_PER_IP",
+        60,
+      ),
       perContactLimit: parsePositiveIntFromEnv(
         "STATUS_PAGE_SIGN_UPS_PER_CONTACT",
         10,
@@ -282,10 +288,7 @@ const CONFIG: PublicMessageRateLimitConfig = {
     },
     [PublicMessageKind.SignUpEmail]: {
       perClientLimit: parsePositiveIntFromEnv("SIGN_UP_EMAILS_PER_IP", 60),
-      perContactLimit: parsePositiveIntFromEnv(
-        "SIGN_UP_EMAILS_PER_CONTACT",
-        5,
-      ),
+      perContactLimit: parsePositiveIntFromEnv("SIGN_UP_EMAILS_PER_CONTACT", 5),
     },
   },
 };
@@ -314,7 +317,8 @@ const CLIENT_TEXT_MESSAGE_REFUSALS: Record<PublicMessageKind, string> = {
     CLIENT_REFUSALS[PublicMessageKind.StatusPagePasswordReset],
   [PublicMessageKind.PasswordReset]:
     CLIENT_REFUSALS[PublicMessageKind.PasswordReset],
-  [PublicMessageKind.SignUpEmail]: CLIENT_REFUSALS[PublicMessageKind.SignUpEmail],
+  [PublicMessageKind.SignUpEmail]:
+    CLIENT_REFUSALS[PublicMessageKind.SignUpEmail],
 };
 
 // How a refusal names a contact.
@@ -373,17 +377,16 @@ export const PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE: string =
 /*
  * One mailbox, written the way the sign-up and reset forms take it: a local
  * part and a domain, neither holding an @, a separator, white space, a
- * quote, an angle bracket or a backslash. Email.isValid alone finds an
- * address anywhere in the text, so "a@x.com,b@y.com" passes it - a list the
- * mail transport sends to every address on - and would be counted as one
- * contact. Linear: neither class can take the @ the two sides meet at.
+ * quote, an angle bracket or a backslash. A contact is one mailbox, so
+ * anything else - "a@x.com,b@y.com" above all - is refused rather than
+ * counted as one. Linear: neither class can take the @ the two sides meet
+ * at.
  */
 const ONE_MAILBOX: RegExp = /^[^\s@,;<>()"'\\[\]]+@[^\s@,;<>()"'\\[\]]+$/;
 
 /*
  * No mailbox is longer than this (RFC 5321 leaves 254 characters for an
- * address), and nothing longer is handed to Email.isValid, whose pattern
- * takes time that grows faster than the text.
+ * address), and nothing longer is looked at any further.
  */
 const MAX_EMAIL_ADDRESS_LENGTH: number = 254;
 
@@ -736,9 +739,7 @@ export default class PublicMessageRateLimit {
       );
     }
 
-    if (
-      decision.outcome === PublicMessageRateLimitOutcome.CounterUnavailable
-    ) {
+    if (decision.outcome === PublicMessageRateLimitOutcome.CounterUnavailable) {
       const sendsTextMessage: boolean = data.contacts.some(
         (contact: PublicMessageContact): boolean => {
           return contact.channel === PublicMessageChannel.TextMessage;
@@ -881,6 +882,8 @@ export default class PublicMessageRateLimit {
     return true;
   }
 
-  private static counterUnavailableLastLoggedAt: Map<PublicMessageKind, number> =
-    new Map();
+  private static counterUnavailableLastLoggedAt: Map<
+    PublicMessageKind,
+    number
+  > = new Map();
 }
