@@ -9,11 +9,12 @@ Las reglas de runbook inician runbooks automáticamente cuando se crea un **inci
 Las tres páginas editan el mismo tipo de regla, filtrado a las reglas de ese producto.
 
 :::cards
+
 - [Crear una regla de runbook](#crear-una-regla-de-runbook): Cuatro pasos: un nombre, condiciones y los runbooks que iniciar.
 - [Condiciones](#condiciones): Cada criterio y operador que puede usar una regla.
 - [Semántica de coincidencia](#semántica-de-coincidencia): Varias reglas, condiciones de monitor y reglas de etiquetas.
 - [Ejemplos](#ejemplos): Tres reglas para copiar.
-:::
+  :::
 
 ## Cómo inicia una regla un runbook
 
@@ -47,46 +48,43 @@ Puedes ver todas las ejecuciones, las iniciadas por reglas y las demás, en **Ru
 ## Crear una regla de runbook
 
 :::steps
+
 ### Abrir las reglas de runbook
 
 En **Incidentes**, **Alertas** o **Mantenimiento programado**, abre **Reglas → Reglas de runbook** y haz clic en **Crear Regla de runbook**.
 
-### Nombrar la regla
-
-En **Información básica**, escribe un **Nombre**, como «Iniciar el failover de BD en incidentes de base de datos», y, si quieres, una **Descripción**.
-
 ### Añadir condiciones
 
-En **Criterios de coincidencia**, **Se aplica a** empieza en cada evento nuevo de este tipo, por ejemplo **Todos los incidentes**, y la regla inicia sus runbooks en cada uno. Para acotarla, elige la otra respuesta, por ejemplo **Solo los incidentes que cumplen las condiciones**, luego elige un criterio y un operador, y escribe o elige el valor. Haz clic en **Añadir condición** para más condiciones y elige **Coincidir con todas** o **Coincidir con cualquiera**.
+En **Coincidencia**, **Se aplica a** empieza en cada evento nuevo de este tipo, por ejemplo **Todos los incidentes**, y la regla inicia sus runbooks en cada uno. Para acotarla, elige la otra respuesta, por ejemplo **Solo los incidentes que cumplen las condiciones**, luego elige un criterio y un operador, y escribe o elige el valor. Haz clic en **Añadir condición** para más condiciones y elige **Coincidir con todas** o **Coincidir con cualquiera**.
 
 ### Elegir los runbooks
 
-En **Runbooks**, elige uno o más **Runbooks para iniciar** y haz clic en **Crear Regla de runbook**. La regla está activa en cuanto se crea y aparece en la lista con el estado **Habilitado**.
+En **Runbooks**, elige uno o más **Runbooks para iniciar**. El **Nombre** de la regla los sigue, como "Iniciar Database failover", hasta que escribas uno propio, y una **Descripción** espera en **Más campos**. Haz clic en **Crear Regla de runbook**. La regla está activa en cuanto se crea y aparece en la lista con el estado **Habilitado**.
 :::
 
 ## Anatomía de una regla
 
-| Campo | Para qué sirve |
-| --- | --- |
-| **Nombre** | Una etiqueta corta y comprensible para la regla. |
-| **Descripción** | Contexto opcional para el equipo. |
-| **Habilitado** | Activado en una regla nueva. Desactívalo en el formulario de edición de la regla para suspenderla sin eliminarla. |
-| **Condiciones** | Lo que la regla compara, en el paso **Criterios de coincidencia**. Una regla sin condiciones, por ejemplo en **Todos los incidentes**, coincide con cada evento de su tipo. |
-| **Runbooks para iniciar** | Uno o más runbooks que se lanzan cuando la regla se activa. |
+| Campo                     | Para qué sirve                                                                                                                                                 |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nombre**                | Lleva el nombre de los runbooks que inicia, como "Iniciar Database failover", hasta que escribas uno propio.                                                   |
+| **Descripción**           | Contexto opcional para el equipo, en **Más campos**.                                                                                                           |
+| **Habilitado**            | Activado en una regla nueva. Desactívalo en el formulario de edición de la regla para suspenderla sin eliminarla.                                              |
+| **Condiciones**           | Lo que la regla compara, en el paso **Coincidencia**. Una regla sin condiciones, por ejemplo en **Todos los incidentes**, coincide con cada evento de su tipo. |
+| **Runbooks para iniciar** | Uno o más runbooks que se lanzan cuando la regla se activa.                                                                                                    |
 
 ## Condiciones
 
 Cada condición compara una característica del incidente, la alerta o el evento de mantenimiento programado con un valor que tú indicas. Una regla de runbook ofrece los mismos criterios que las demás reglas de su producto: una regla de runbook de incidentes compara lo mismo que una regla de privacidad o de guardia de incidentes.
 
-| Criterio | Qué comprueba |
-| --- | --- |
-| **Monitores** | Los monitores a los que afecta el incidente o el evento de mantenimiento programado, o el monitor que generó la alerta. |
-| **Gravedades de incidente** / **Gravedades de alerta** | La gravedad del incidente o de la alerta. Los eventos de mantenimiento programado no tienen gravedad, así que sus reglas no la ofrecen. |
-| **Etiquetas de incidentes** / **Etiquetas de alertas** / **Etiquetas del evento** | Las etiquetas del propio incidente, alerta o evento, incluidas las que las reglas de etiquetas añadieron al crearlo. |
-| **Etiquetas del monitor** | Las etiquetas de sus monitores. Etiqueta tus monitores como `production` o `staging` para ejecutar un runbook solo en un entorno. |
-| **Título del incidente** / **Título de la alerta** / **Título del evento** | Su título. |
-| **Descripción del incidente** / **Descripción de la alerta** / **Descripción del evento** | Su descripción. |
-| **Nombre del monitor** / **Descripción del monitor** | El nombre o la descripción de sus monitores. |
+| Criterio                                                                                  | Qué comprueba                                                                                                                           |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Monitores**                                                                             | Los monitores a los que afecta el incidente o el evento de mantenimiento programado, o el monitor que generó la alerta.                 |
+| **Gravedades de incidente** / **Gravedades de alerta**                                    | La gravedad del incidente o de la alerta. Los eventos de mantenimiento programado no tienen gravedad, así que sus reglas no la ofrecen. |
+| **Etiquetas de incidentes** / **Etiquetas de alertas** / **Etiquetas del evento**         | Las etiquetas del propio incidente, alerta o evento, incluidas las que las reglas de etiquetas añadieron al crearlo.                    |
+| **Etiquetas del monitor**                                                                 | Las etiquetas de sus monitores. Etiqueta tus monitores como `production` o `staging` para ejecutar un runbook solo en un entorno.       |
+| **Título del incidente** / **Título de la alerta** / **Título del evento**                | Su título.                                                                                                                              |
+| **Descripción del incidente** / **Descripción de la alerta** / **Descripción del evento** | Su descripción.                                                                                                                         |
+| **Nombre del monitor** / **Descripción del monitor**                                      | El nombre o la descripción de sus monitores.                                                                                            |
 
 Elige un operador para cada condición:
 
@@ -162,7 +160,7 @@ Comprueba, en orden:
 - Cada runbook tiene **Ejecutar este runbook** activado, en su página **Ajustes**, y al menos un paso guardado.
 - El incidente o la alerta no se creó ya resuelto.
 - La ejecución del runbook no está simplemente esperando: ábrela desde la página **Runbooks** del evento. Un paso Manual o una aprobación muestra **Esperándote**.
-:::
+  :::
 
 :::details Una regla nunca coincide
 Las reglas ven el evento tal como se creó, con las etiquetas que las reglas de etiquetas añadieron en ese momento. Una etiqueta, una gravedad o un título cambiados después no se ven. Con varias condiciones, revisa **Coincidir con todas** frente a **Coincidir con cualquiera**, y recuerda que las condiciones de monitor deben cumplirse todas en un mismo monitor.
@@ -175,7 +173,8 @@ Un criterio de gravedad pertenece a un solo producto. **Gravedades de alerta** e
 ## Siguientes pasos
 
 :::cards
+
 - [Ejecutar un runbook](/docs/runbooks/running): Qué ven quienes responden cuando una regla inicia una ejecución.
 - [Crear un runbook](/docs/runbooks/authoring): Escribir los runbooks que inician tus reglas.
 - [Declarar un incidente](/docs/incidents/declaring-incidents): Cómo se crean los incidentes y cuándo los ven las reglas.
-:::
+  :::

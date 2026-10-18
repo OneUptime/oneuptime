@@ -30804,5 +30804,11 @@
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Använd det service.name som dina appar skickar, så att deras telemetri visas under den här tjänsten.",
   "No profiles here yet": "Inga profiler här än",
   "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiler visar var din kod lägger tid och minne. De visas här så snart dina appar eller värdar skickar dem.",
-  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} för att importera dess repositorier till det här projektet."
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} för att importera dess repositorier till det här projektet.",
+  "Named after the runbooks it starts until you type a name of your own.": "Namngiven efter de runbooks den startar tills du skriver ett eget namn.",
+  "Start {{runbooks}}": "Starta {{runbooks}}",
+  "Start {{runbooks}} and {{count}} more": "Starta {{runbooks}} och {{count}} till",
+  "Start {{runbooks}} and {{count}} more_one": "Starta {{runbooks}} och {{count}} till",
+  "The runbooks to start when this rule matches.": "De runbooks som startas när den här regeln matchar.",
+  "e.g. Start Database failover": "t.ex. Starta Database failover"
 }

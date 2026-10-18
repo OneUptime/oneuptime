@@ -30804,5 +30804,11 @@
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Укажите service.name, которое отправляют ваши приложения, чтобы их телеметрия появлялась в этом сервисе.",
   "No profiles here yet": "Профилей пока нет",
   "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Профили показывают, на что ваш код тратит время и память. Они появятся здесь, как только ваши приложения или хосты их отправят.",
-  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}, чтобы импортировать её репозитории в этот проект."
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}, чтобы импортировать её репозитории в этот проект.",
+  "Named after the runbooks it starts until you type a name of your own.": "Название дано по запускаемым сценариям, пока вы не введёте своё.",
+  "Start {{runbooks}}": "Запустить {{runbooks}}",
+  "Start {{runbooks}} and {{count}} more": "Запустить {{runbooks}} и ещё {{count}}",
+  "Start {{runbooks}} and {{count}} more_one": "Запустить {{runbooks}} и ещё {{count}}",
+  "The runbooks to start when this rule matches.": "Сценарии, которые запускаются, когда это правило срабатывает.",
+  "e.g. Start Database failover": "напр. Запустить Database failover"
 }

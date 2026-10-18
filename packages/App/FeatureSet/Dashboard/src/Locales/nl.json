@@ -30804,5 +30804,11 @@
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Gebruik de service.name die uw apps versturen, zodat hun telemetrie onder deze service verschijnt.",
   "No profiles here yet": "Nog geen profielen",
   "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profielen tonen waar uw code tijd en geheugen aan besteedt. Ze verschijnen hier zodra uw apps of hosts ze versturen.",
-  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} om de repository's ervan in dit project te importeren."
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} om de repository's ervan in dit project te importeren.",
+  "Named after the runbooks it starts until you type a name of your own.": "Genoemd naar de runbooks die de regel start, totdat u zelf een naam typt.",
+  "Start {{runbooks}}": "{{runbooks}} starten",
+  "Start {{runbooks}} and {{count}} more": "{{runbooks}} en {{count}} andere starten",
+  "Start {{runbooks}} and {{count}} more_one": "{{runbooks}} en {{count}} ander starten",
+  "The runbooks to start when this rule matches.": "De runbooks die worden gestart wanneer deze regel overeenkomt.",
+  "e.g. Start Database failover": "bijv. Database failover starten"
 }

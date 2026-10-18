@@ -30804,5 +30804,11 @@
   "Use the service.name your apps send, so their telemetry shows up under this service.": "앱이 보내는 service.name을 사용하면 해당 텔레메트리가 이 서비스 아래에 표시됩니다.",
   "No profiles here yet": "아직 프로파일이 없습니다",
   "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "프로파일은 코드가 시간과 메모리를 어디에 쓰는지 보여 줍니다. 앱이나 호스트가 보내는 즉시 여기에 표시됩니다.",
-  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}을 눌러 저장소를 이 프로젝트로 가져오세요."
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}을 눌러 저장소를 이 프로젝트로 가져오세요.",
+  "Named after the runbooks it starts until you type a name of your own.": "직접 이름을 입력할 때까지 시작하는 런북에 따라 이름이 지정됩니다.",
+  "Start {{runbooks}}": "{{runbooks}} 시작",
+  "Start {{runbooks}} and {{count}} more": "{{runbooks}} 외 {{count}}개 시작",
+  "Start {{runbooks}} and {{count}} more_one": "{{runbooks}} 외 {{count}}개 시작",
+  "The runbooks to start when this rule matches.": "이 규칙과 일치할 때 시작할 런북입니다.",
+  "e.g. Start Database failover": "예: Database failover 시작"
 }

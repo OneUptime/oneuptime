@@ -9,11 +9,12 @@ Runbook-regels starten runbooks automatisch wanneer een **incident**, een **waar
 Alle drie de pagina's bewerken hetzelfde soort regel, gefilterd op de regels van dat product.
 
 :::cards
+
 - [Een runbook-regel maken](#een-runbook-regel-maken): Vier stappen: een naam, voorwaarden en de te starten runbooks.
 - [Voorwaarden](#voorwaarden): Elk criterium en elke operator die een regel kan gebruiken.
 - [Matchlogica](#matchlogica): Meerdere regels, monitorvoorwaarden en labelregels.
 - [Voorbeelden](#voorbeelden): Drie regels om over te nemen.
-:::
+  :::
 
 ## Hoe een regel een runbook start
 
@@ -47,46 +48,43 @@ Elke uitvoering, door een regel gestart of niet, ziet u onder **Runbooks → Uit
 ## Een runbook-regel maken
 
 :::steps
+
 ### Runbook-regels openen
 
 Open in **Incidenten**, **Waarschuwingen** of **Geplande onderhoud** de pagina **Regels → Runbook-regels** en klik op **Runbook Rule aanmaken**.
 
-### De regel een naam geven
-
-Voer onder **Basisinformatie** een **Naam** in, zoals "DB-failover starten voor database-incidenten", en eventueel een **Beschrijving**.
-
 ### Voorwaarden toevoegen
 
-Onder **Overeenkomstcriteria** begint **Geldt voor** bij elk nieuw evenement van deze soort, bijvoorbeeld **Alle incidenten**, en de regel start zijn runbooks voor elk ervan. Om de regel in te perken, kies het andere antwoord, bijvoorbeeld **Alleen incidenten die aan de voorwaarden voldoen**, kies dan een criterium en een operator en voer de waarde in of kies die. Klik op **Voorwaarde toevoegen** voor meer voorwaarden en kies **Voldoet aan alle** of **Voldoet aan één**.
+Onder **Overeenkomst** begint **Geldt voor** bij elk nieuw evenement van deze soort, bijvoorbeeld **Alle incidenten**, en de regel start zijn runbooks voor elk ervan. Om de regel in te perken, kies het andere antwoord, bijvoorbeeld **Alleen incidenten die aan de voorwaarden voldoen**, kies dan een criterium en een operator en voer de waarde in of kies die. Klik op **Voorwaarde toevoegen** voor meer voorwaarden en kies **Voldoet aan alle** of **Voldoet aan één**.
 
 ### De runbooks kiezen
 
-Kies onder **Runbooks** een of meer **Te starten runbooks** en klik op **Runbook Rule aanmaken**. De regel is actief zodra hij is gemaakt en verschijnt in de lijst met de status **Ingeschakeld**.
+Kies onder **Runbooks** een of meer **Te starten runbooks**. De **Naam** van de regel volgt ze, zoals "Database failover starten", totdat je zelf een naam typt, en een **Beschrijving** wacht onder **Meer velden**. Klik op **Runbook Rule aanmaken**. De regel is actief zodra hij is gemaakt en verschijnt in de lijst met de status **Ingeschakeld**.
 :::
 
 ## Opbouw van een regel
 
-| Veld | Doel |
-| --- | --- |
-| **Naam** | Een korte, duidelijke naam voor de regel. |
-| **Beschrijving** | Optionele context voor teamgenoten. |
-| **Ingeschakeld** | Aan voor een nieuwe regel. Zet het uit in het bewerkformulier van de regel om haar te pauzeren zonder haar te verwijderen. |
-| **Voorwaarden** | Waarop de regel matcht, in de stap **Overeenkomstcriteria**. Een regel zonder voorwaarden, bijvoorbeeld op **Alle incidenten**, matcht bij elk evenement van haar type. |
-| **Te starten runbooks** | Een of meer runbooks die starten wanneer de regel afgaat. |
+| Veld                    | Doel                                                                                                                                                            |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Naam**                | Genoemd naar de runbooks die de regel start, zoals "Database failover starten", totdat je zelf een naam typt.                                                   |
+| **Beschrijving**        | Optionele context voor teamgenoten, onder **Meer velden**.                                                                                                      |
+| **Ingeschakeld**        | Aan voor een nieuwe regel. Zet het uit in het bewerkformulier van de regel om haar te pauzeren zonder haar te verwijderen.                                      |
+| **Voorwaarden**         | Waarop de regel matcht, in de stap **Overeenkomst**. Een regel zonder voorwaarden, bijvoorbeeld op **Alle incidenten**, matcht bij elk evenement van haar type. |
+| **Te starten runbooks** | Een of meer runbooks die starten wanneer de regel afgaat.                                                                                                       |
 
 ## Voorwaarden
 
 Elke voorwaarde vergelijkt één eigenschap van het incident, de waarschuwing of het geplande onderhoudsevenement met een waarde die u opgeeft. Een runbook-regel biedt dezelfde criteria als de andere regels van haar product: een runbook-regel voor incidenten matcht op hetzelfde als een privacy- of dienstregel voor incidenten.
 
-| Criterium | Wat het controleert |
-| --- | --- |
-| **Monitoren** | De monitoren die het incident of het geplande onderhoudsevenement raakt, of de monitor die de waarschuwing gaf. |
-| **Incident Ernsten** / **Waarschuwing Ernsten** | De ernst van het incident of de waarschuwing. Geplande onderhoudsevenementen hebben geen ernst, dus hun regels bieden die niet aan. |
-| **Incident-labels** / **Waarschuwingslabels** / **Gebeurtenislabels** | De labels van het incident, de waarschuwing of het evenement zelf, inclusief de labels die labelregels bij het aanmaken toevoegden. |
-| **Monitorlabels** | De labels van de monitoren. Geef uw monitoren het label `production` of `staging` om een runbook voor één omgeving uit te voeren. |
-| **Incidenttitel** / **Waarschuwingstitel** / **Gebeurtenistitel** | De titel. |
-| **Incidentbeschrijving** / **Waarschuwingsbeschrijving** / **Gebeurtenisbeschrijving** | De beschrijving. |
-| **Monitornaam** / **Monitorbeschrijving** | De naam of beschrijving van de monitoren. |
+| Criterium                                                                              | Wat het controleert                                                                                                                 |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Monitoren**                                                                          | De monitoren die het incident of het geplande onderhoudsevenement raakt, of de monitor die de waarschuwing gaf.                     |
+| **Incident Ernsten** / **Waarschuwing Ernsten**                                        | De ernst van het incident of de waarschuwing. Geplande onderhoudsevenementen hebben geen ernst, dus hun regels bieden die niet aan. |
+| **Incident-labels** / **Waarschuwingslabels** / **Gebeurtenislabels**                  | De labels van het incident, de waarschuwing of het evenement zelf, inclusief de labels die labelregels bij het aanmaken toevoegden. |
+| **Monitorlabels**                                                                      | De labels van de monitoren. Geef uw monitoren het label `production` of `staging` om een runbook voor één omgeving uit te voeren.   |
+| **Incidenttitel** / **Waarschuwingstitel** / **Gebeurtenistitel**                      | De titel.                                                                                                                           |
+| **Incidentbeschrijving** / **Waarschuwingsbeschrijving** / **Gebeurtenisbeschrijving** | De beschrijving.                                                                                                                    |
+| **Monitornaam** / **Monitorbeschrijving**                                              | De naam of beschrijving van de monitoren.                                                                                           |
 
 Kies voor elke voorwaarde een operator:
 
@@ -162,7 +160,7 @@ Controleer, in deze volgorde:
 - Elk runbook heeft **Dit runbook uitvoeren** aan, op de pagina **Instellingen** ervan, en minstens één opgeslagen stap.
 - Het incident of de waarschuwing is niet al opgelost aangemaakt.
 - De uitvoering van het runbook wacht niet gewoon: open haar via de pagina **Runbooks** van het evenement. Een Manual-stap of een goedkeuring toont **Wacht op u**.
-:::
+  :::
 
 :::details Een regel matcht nooit
 Regels zien het evenement zoals het werd aangemaakt, met de labels die labelregels op dat moment toevoegden. Een label, ernst of titel die later is gewijzigd, wordt niet gezien. Controleer bij meerdere voorwaarden **Voldoet aan alle** tegenover **Voldoet aan één**, en bedenk dat monitorvoorwaarden allemaal voor één monitor moeten gelden.
@@ -175,7 +173,8 @@ Een ernstcriterium hoort bij één product. **Waarschuwing Ernsten** in een inci
 ## Volgende stappen
 
 :::cards
+
 - [Een runbook uitvoeren](/docs/runbooks/running): Wat wie reageert ziet zodra een regel een uitvoering start.
 - [Een runbook schrijven](/docs/runbooks/authoring): De runbooks schrijven die uw regels starten.
 - [Een incident melden](/docs/incidents/declaring-incidents): Hoe incidenten ontstaan, en wanneer regels ze zien.
-:::
+  :::

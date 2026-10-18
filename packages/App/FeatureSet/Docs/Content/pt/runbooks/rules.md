@@ -9,11 +9,12 @@ As regras de runbook iniciam runbooks automaticamente quando um **incidente**, u
 As três páginas editam o mesmo tipo de regra, filtrado para as regras daquele produto.
 
 :::cards
+
 - [Criar uma regra de runbook](#criar-uma-regra-de-runbook): Quatro etapas: um nome, condições e os runbooks a iniciar.
 - [Condições](#condições): Cada critério e operador que uma regra pode usar.
 - [Semântica de correspondência](#semântica-de-correspondência): Várias regras, condições de monitor e regras de rótulos.
 - [Exemplos](#exemplos): Três regras para copiar.
-:::
+  :::
 
 ## Como uma regra inicia um runbook
 
@@ -47,46 +48,43 @@ Você vê todas as execuções, iniciadas por regras ou não, em **Runbooks → 
 ## Criar uma regra de runbook
 
 :::steps
+
 ### Abrir as regras de runbook
 
 Em **Incidentes**, **Alertas** ou **Manutenção programada**, abra **Regras → Regras de runbook** e clique em **Criar: Runbook Rule**.
 
-### Dar um nome à regra
-
-Em **Informações básicas**, informe um **Nome**, como "Iniciar failover de BD para incidentes de banco de dados", e, se quiser, uma **Descrição**.
-
 ### Adicionar condições
 
-Em **Critérios de Correspondência**, **Aplica-se a** começa em todo evento novo desse tipo, por exemplo **Todos os incidentes**, e a regra inicia seus runbooks em cada um. Para restringi-la, escolha a outra resposta, por exemplo **Somente os incidentes que atendem às condições**, depois escolha um critério e um operador e digite ou escolha o valor. Clique em **Adicionar condição** para mais condições e escolha **Corresponder a todas** ou **Corresponder a qualquer**.
+Em **Corresponder**, **Aplica-se a** começa em todo evento novo desse tipo, por exemplo **Todos os incidentes**, e a regra inicia seus runbooks em cada um. Para restringi-la, escolha a outra resposta, por exemplo **Somente os incidentes que atendem às condições**, depois escolha um critério e um operador e digite ou escolha o valor. Clique em **Adicionar condição** para mais condições e escolha **Corresponder a todas** ou **Corresponder a qualquer**.
 
 ### Escolher os runbooks
 
-Em **Runbooks**, escolha um ou mais **Runbooks para iniciar** e clique em **Criar: Runbook Rule**. A regra fica ativa assim que é criada e aparece na lista com o status **Habilitado**.
+Em **Runbooks**, escolha um ou mais **Runbooks para iniciar**. O **Nome** da regra os acompanha, como "Iniciar Database failover", até você digitar um próprio, e uma **Descrição** fica em **Mais campos**. Clique em **Criar: Runbook Rule**. A regra fica ativa assim que é criada e aparece na lista com o status **Habilitado**.
 :::
 
 ## Anatomia de uma regra
 
-| Campo | Finalidade |
-| --- | --- |
-| **Nome** | Um rótulo curto e claro para a regra. |
-| **Descrição** | Contexto opcional para a equipe. |
-| **Habilitado** | Ligado em uma regra nova. Desligue-o no formulário de edição da regra para suspendê-la sem excluí-la. |
-| **Condições** | O que a regra compara, na etapa **Critérios de Correspondência**. Uma regra sem condições, por exemplo em **Todos os incidentes**, corresponde a todo evento do seu tipo. |
-| **Runbooks para iniciar** | Um ou mais runbooks lançados quando a regra dispara. |
+| Campo                     | Finalidade                                                                                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nome**                  | Acompanha os runbooks que inicia, como "Iniciar Database failover", até você digitar um próprio.                                                          |
+| **Descrição**             | Contexto opcional para a equipe, em **Mais campos**.                                                                                                      |
+| **Habilitado**            | Ligado em uma regra nova. Desligue-o no formulário de edição da regra para suspendê-la sem excluí-la.                                                     |
+| **Condições**             | O que a regra compara, na etapa **Corresponder**. Uma regra sem condições, por exemplo em **Todos os incidentes**, corresponde a todo evento do seu tipo. |
+| **Runbooks para iniciar** | Um ou mais runbooks lançados quando a regra dispara.                                                                                                      |
 
 ## Condições
 
 Cada condição compara uma característica do incidente, alerta ou evento de manutenção programada com um valor que você informa. Uma regra de runbook oferece os mesmos critérios que as outras regras do seu produto: uma regra de runbook de incidentes compara o mesmo que uma regra de privacidade ou de plantão de incidentes.
 
-| Critério | O que verifica |
-| --- | --- |
-| **Monitores** | Os monitores que o incidente ou o evento de manutenção programada afeta, ou o monitor que gerou o alerta. |
-| **Incidente Severidades** / **Alerta Severidades** | A severidade do incidente ou do alerta. Eventos de manutenção programada não têm severidade, então as regras deles não a oferecem. |
-| **Rótulos de incidentes** / **Rótulos de alerta** / **Rótulos do evento** | Os rótulos do próprio incidente, alerta ou evento, incluindo os que as regras de rótulos adicionaram na criação. |
-| **Rótulos do Monitor** | Os rótulos dos seus monitores. Rotule seus monitores como `production` ou `staging` para executar um runbook só em um ambiente. |
-| **Título do Incidente** / **Título do alerta** / **Título do evento** | O título. |
-| **Descrição do incidente** / **Descrição do alerta** / **Descrição do evento** | A descrição. |
-| **Nome do Monitor** / **Descrição do Monitor** | O nome ou a descrição dos seus monitores. |
+| Critério                                                                       | O que verifica                                                                                                                     |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Monitores**                                                                  | Os monitores que o incidente ou o evento de manutenção programada afeta, ou o monitor que gerou o alerta.                          |
+| **Incidente Severidades** / **Alerta Severidades**                             | A severidade do incidente ou do alerta. Eventos de manutenção programada não têm severidade, então as regras deles não a oferecem. |
+| **Rótulos de incidentes** / **Rótulos de alerta** / **Rótulos do evento**      | Os rótulos do próprio incidente, alerta ou evento, incluindo os que as regras de rótulos adicionaram na criação.                   |
+| **Rótulos do Monitor**                                                         | Os rótulos dos seus monitores. Rotule seus monitores como `production` ou `staging` para executar um runbook só em um ambiente.    |
+| **Título do Incidente** / **Título do alerta** / **Título do evento**          | O título.                                                                                                                          |
+| **Descrição do incidente** / **Descrição do alerta** / **Descrição do evento** | A descrição.                                                                                                                       |
+| **Nome do Monitor** / **Descrição do Monitor**                                 | O nome ou a descrição dos seus monitores.                                                                                          |
 
 Escolha um operador para cada condição:
 
@@ -162,7 +160,7 @@ Verifique, nesta ordem:
 - Cada runbook tem **Executar este runbook** ligado, na página **Configurações** dele, e pelo menos uma etapa salva.
 - O incidente ou alerta não foi criado já resolvido.
 - A execução do runbook não está simplesmente esperando: abra-a pela página **Runbooks** do evento. Uma etapa Manual ou uma aprovação mostra **Aguardando você**.
-:::
+  :::
 
 :::details Uma regra nunca corresponde
 As regras veem o evento como ele foi criado, com os rótulos que as regras de rótulos adicionaram naquele momento. Um rótulo, uma severidade ou um título alterados depois não são vistos. Com várias condições, confira **Corresponder a todas** em comparação com **Corresponder a qualquer**, e lembre que as condições de monitor precisam valer todas para um mesmo monitor.
@@ -175,7 +173,8 @@ Um critério de severidade pertence a um único produto. **Alerta Severidades** 
 ## Próximos passos
 
 :::cards
+
 - [Executar um runbook](/docs/runbooks/running): O que quem responde vê quando uma regra inicia uma execução.
 - [Escrever um runbook](/docs/runbooks/authoring): Escrever os runbooks que suas regras iniciam.
 - [Declarar um incidente](/docs/incidents/declaring-incidents): Como os incidentes são criados e quando as regras os veem.
-:::
+  :::

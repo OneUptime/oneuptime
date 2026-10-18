@@ -30804,5 +30804,11 @@
   "Use the service.name your apps send, so their telemetry shows up under this service.": "使用你的應用程式傳送的 service.name，它們的遙測資料就會顯示在此服務下。",
   "No profiles here yet": "這裡還沒有效能剖析資料",
   "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "效能剖析資料顯示你的程式碼把時間和記憶體花在哪裡。你的應用程式或主機一傳送，就會顯示在這裡。",
-  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}，將其存放庫匯入此專案。"
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}，將其存放庫匯入此專案。",
+  "Named after the runbooks it starts until you type a name of your own.": "在您輸入自己的名稱之前，會依其啟動的執行手冊命名。",
+  "Start {{runbooks}}": "啟動 {{runbooks}}",
+  "Start {{runbooks}} and {{count}} more": "啟動 {{runbooks}} 及另外 {{count}} 個",
+  "Start {{runbooks}} and {{count}} more_one": "啟動 {{runbooks}} 及另外 {{count}} 個",
+  "The runbooks to start when this rule matches.": "此規則符合時要啟動的執行手冊。",
+  "e.g. Start Database failover": "例如 啟動 Database failover"
 }

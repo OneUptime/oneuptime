@@ -9,11 +9,12 @@ Runbook-regler starter runbooks automatisk når en **hendelse**, et **varsel** e
 Alle tre sidene redigerer samme slags regel, filtrert til reglene for det aktuelle produktet.
 
 :::cards
+
 - [Opprett en runbook-regel](#opprett-en-runbook-regel): Fire trinn: et navn, betingelser og runbookene som skal startes.
 - [Betingelser](#betingelser): Hvert kriterium og hver operator en regel kan bruke.
 - [Treffregler](#treffregler): Flere regler, monitorbetingelser og etikettregler.
 - [Eksempler](#eksempler): Tre regler å kopiere.
-:::
+  :::
 
 ## Slik starter en regel et runbook
 
@@ -47,46 +48,43 @@ Du ser alle kjøringer, startet av en regel eller ikke, under **Runbooks → Kj�
 ## Opprett en runbook-regel
 
 :::steps
+
 ### Åpne Runbook-regler
 
 I **Hendelser**, **Varsler** eller **Planlagt vedlikehold** åpner du **Regler → Runbook-regler** og klikker **Opprett Runbook Rule**.
 
-### Gi regelen et navn
-
-Under **Grunnleggende informasjon** skriver du inn et **Navn**, for eksempel "Start DB-failover ved databasehendelser", og eventuelt en **Beskrivelse**.
-
 ### Legg til betingelser
 
-Under **Treffkriterier** starter **Gjelder for** på hver ny begivenhet av denne typen, for eksempel **Alle hendelser**, og regelen starter sine runbooks for hver av dem. For å snevre inn regelen velger du det andre svaret, for eksempel **Bare hendelser som oppfyller betingelsene**, og deretter et kriterium og en operator, og du skriver inn eller velger verdien. Klikk **Legg til betingelse** for flere betingelser, og velg **Samsvar med alle** eller **Samsvar med én**.
+Under **Treff** starter **Gjelder for** på hver ny begivenhet av denne typen, for eksempel **Alle hendelser**, og regelen starter sine runbooks for hver av dem. For å snevre inn regelen velger du det andre svaret, for eksempel **Bare hendelser som oppfyller betingelsene**, og deretter et kriterium og en operator, og du skriver inn eller velger verdien. Klikk **Legg til betingelse** for flere betingelser, og velg **Samsvar med alle** eller **Samsvar med én**.
 
 ### Velg runbooks
 
-Under **Runbooks** velger du ett eller flere **Runbooks å starte** og klikker **Opprett Runbook Rule**. Regelen er aktiv så snart den er opprettet, og vises i listen med statusen **Aktivert**.
+Under **Runbooks** velger du ett eller flere **Runbooks å starte**. Regelens **Navn** følger dem, for eksempel "Kjør Database failover", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Klikk **Opprett Runbook Rule**. Regelen er aktiv så snart den er opprettet, og vises i listen med statusen **Aktivert**.
 :::
 
 ## Hvordan en regel er bygd opp
 
-| Felt | Formål |
-| --- | --- |
-| **Navn** | En kort, lesbar etikett for regelen. |
-| **Beskrivelse** | Valgfri kontekst for kolleger. |
-| **Aktivert** | Slått på for en ny regel. Slå den av i regelens redigeringsskjema for å sette den på pause uten å slette den. |
-| **Betingelser** | Hva regelen treffer, i trinnet **Treffkriterier**. En regel uten betingelser, for eksempel på **Alle hendelser**, treffer hver begivenhet av sin type. |
-| **Runbooks å starte** | Ett eller flere runbooks som startes når regelen utløses. |
+| Felt                  | Formål                                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Navn**              | Navngitt etter runbookene den starter, for eksempel "Kjør Database failover", til du skriver inn ditt eget.                                   |
+| **Beskrivelse**       | Valgfri kontekst for kolleger, under **Flere felt**.                                                                                          |
+| **Aktivert**          | Slått på for en ny regel. Slå den av i regelens redigeringsskjema for å sette den på pause uten å slette den.                                 |
+| **Betingelser**       | Hva regelen treffer, i trinnet **Treff**. En regel uten betingelser, for eksempel på **Alle hendelser**, treffer hver begivenhet av sin type. |
+| **Runbooks å starte** | Ett eller flere runbooks som startes når regelen utløses.                                                                                     |
 
 ## Betingelser
 
 Hver betingelse sammenligner én ting ved hendelsen, varselet eller den planlagte vedlikeholdshendelsen med en verdi du angir. En runbook-regel tilbyr de samme kriteriene som produktets andre regler: en runbook-regel for hendelser treffer på det samme som en personvern- eller vaktregel for hendelser.
 
-| Kriterium | Hva det kontrollerer |
-| --- | --- |
-| **Monitorer** | Monitorene hendelsen eller den planlagte vedlikeholdshendelsen berører, eller monitoren som utløste varselet. |
-| **Hendelse Alvorligheter** / **Varsel Alvorligheter** | Alvorlighetsgraden til hendelsen eller varselet. Planlagte vedlikeholdshendelser har ingen alvorlighetsgrad, så reglene deres tilbyr det ikke. |
-| **Hendelsesetiketter** / **Varseletiketter** | Etikettene på selve hendelsen, varselet eller vedlikeholdshendelsen (for planlagt vedlikehold heter kriteriet også **Hendelsesetiketter**), inkludert dem etikettregler la til ved opprettelsen. |
-| **Overvåkingsetiketter** | Etikettene på monitorene. Gi monitorene dine etiketten `production` eller `staging` for å kjøre et runbook bare i ett miljø. |
-| **Hendelsestittel** / **Varseltittel** | Tittelen (også for planlagt vedlikehold, der dashbordet bruker **Hendelsestittel**). |
-| **Hendelsesbeskrivelse** / **Varselbeskrivelse** | Beskrivelsen (også for planlagt vedlikehold, der dashbordet bruker samme betegnelse). |
-| **Overvåkingsnavn** / **Overvåkingsbeskrivelse** | Navnet eller beskrivelsen til monitorene. |
+| Kriterium                                             | Hva det kontrollerer                                                                                                                                                                             |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Monitorer**                                         | Monitorene hendelsen eller den planlagte vedlikeholdshendelsen berører, eller monitoren som utløste varselet.                                                                                    |
+| **Hendelse Alvorligheter** / **Varsel Alvorligheter** | Alvorlighetsgraden til hendelsen eller varselet. Planlagte vedlikeholdshendelser har ingen alvorlighetsgrad, så reglene deres tilbyr det ikke.                                                   |
+| **Hendelsesetiketter** / **Varseletiketter**          | Etikettene på selve hendelsen, varselet eller vedlikeholdshendelsen (for planlagt vedlikehold heter kriteriet også **Hendelsesetiketter**), inkludert dem etikettregler la til ved opprettelsen. |
+| **Overvåkingsetiketter**                              | Etikettene på monitorene. Gi monitorene dine etiketten `production` eller `staging` for å kjøre et runbook bare i ett miljø.                                                                     |
+| **Hendelsestittel** / **Varseltittel**                | Tittelen (også for planlagt vedlikehold, der dashbordet bruker **Hendelsestittel**).                                                                                                             |
+| **Hendelsesbeskrivelse** / **Varselbeskrivelse**      | Beskrivelsen (også for planlagt vedlikehold, der dashbordet bruker samme betegnelse).                                                                                                            |
+| **Overvåkingsnavn** / **Overvåkingsbeskrivelse**      | Navnet eller beskrivelsen til monitorene.                                                                                                                                                        |
 
 Velg en operator for hver betingelse:
 
@@ -162,7 +160,7 @@ Kontroller i denne rekkefølgen:
 - Hvert runbook har **Kjør dette runbooket** slått på på siden **Innstillinger** og minst ett lagret trinn.
 - Hendelsen eller varselet ble ikke opprettet allerede løst.
 - Kjøringen av runbooket venter ikke bare: åpne den fra begivenhetens side **Runbooks**. Et Manual-trinn eller en godkjenning viser **Venter på deg**.
-:::
+  :::
 
 :::details En regel treffer aldri
 Regler ser begivenheten slik den ble opprettet, med etikettene etikettregler la til i det øyeblikket. En etikett, alvorlighetsgrad eller tittel som endres etterpå, blir ikke sett. Med flere betingelser kontrollerer du **Samsvar med alle** mot **Samsvar med én** og husker at monitorbetingelser alle må gjelde én monitor.
@@ -175,7 +173,8 @@ Et alvorlighetskriterium hører til ett produkt. **Varsel Alvorligheter** i en h
 ## Neste steg
 
 :::cards
+
 - [Kjøre et runbook](/docs/runbooks/running): Hva de som håndterer hendelsen, ser når en regel starter en kjøring.
 - [Skrive et runbook](/docs/runbooks/authoring): Skriv runbookene som reglene dine starter.
 - [Opprette en hendelse](/docs/incidents/declaring-incidents): Hvordan hendelser opprettes, og når regler ser dem.
-:::
+  :::

@@ -204,6 +204,8 @@ const SECRETS_PAGE: string = readDashboard("Pages/Runbook/Secrets.tsx");
 const RULES_TABLE: string = readDashboard(
   "Components/Runbook/RunbookRulesTable.tsx",
 );
+// The shared rule form the runbook rules take their steps and fields from.
+const EVENT_RULE_FORM: string = readDashboard("Utils/Form/EventRuleForm.ts");
 
 // The text of the "## " section with this heading, up to the next "## ".
 function section(markdown: string, heading: string): string {
@@ -1433,26 +1435,68 @@ describe("authoring a runbook", () => {
 
 describe("runbook rules", () => {
   it("walk Create Runbook Rule through the form's steps", () => {
-    expect(formSteps(RULES_TABLE)).toEqual([
-      "Basic Info",
-      "Match Criteria",
-      "Runbooks",
-    ]);
-    expect(RULES_TABLE).toContain('title: "Runbooks to Start",');
+    /*
+     * What the rule matches, then the runbooks it starts, from the shared
+     * rule form (Utils/Form/EventRuleForm): no Basic Info step asks for a
+     * name first.
+     */
+    expect(RULES_TABLE).toContain(
+      "formSteps={getRunbookRuleFormSteps<RunbookRule>()}",
+    );
+    expect(RULES_TABLE).toContain(
+      "...getRunbookRuleActionFields<RunbookRule>()",
+    );
+    expect(formSteps(RULES_TABLE)).toEqual([]);
+    expect(RULES_TABLE).not.toContain('"Basic Info"');
 
-    // A rule starts on; the switch is on its edit form only.
-    const enabled: number = RULES_TABLE.indexOf(
-      'title: "Enabled",\n          stepId: "basic-info",',
+    const stepsStart: number = EVENT_RULE_FORM.indexOf(
+      "export const getRunbookRuleFormSteps",
+    );
+    const fieldsStart: number = EVENT_RULE_FORM.indexOf(
+      "export const getRunbookRuleActionFields",
     );
 
+    expect(stepsStart).toBeGreaterThan(0);
+    expect(fieldsStart).toBeGreaterThan(0);
+    expect(
+      formSteps(EVENT_RULE_FORM.slice(stepsStart, stepsStart + 400)),
+    ).toEqual(["Match", "Runbooks"]);
+
+    const fields: string = EVENT_RULE_FORM.slice(
+      fieldsStart,
+      EVENT_RULE_FORM.indexOf("// ---- Privacy rules", fieldsStart),
+    );
+
+    expect(fields).toContain('title: "Runbooks to Start",');
+    expect(fields).toContain(
+      "onChange: followPicksWithRuleName<TEntity>(getRunbookRuleName),",
+    );
+
+    // A rule starts on; the switch is on its edit form only.
+    const enabled: number = fields.indexOf('title: "Enabled",');
+
     expect(enabled).toBeGreaterThan(0);
-    expect(RULES_TABLE.slice(enabled, enabled + 300)).toContain(
+    expect(fields.slice(enabled, enabled + 300)).toContain(
       "doNotShowWhenCreating: true,",
+    );
+
+    // The description waits under More fields.
+    const description: number = fields.indexOf('title: "Description",');
+
+    expect(description).toBeGreaterThan(0);
+    expect(fields.slice(description, description + 300)).toContain(
+      "collapsibleSection: moreFields,",
+    );
+
+    // The rule is named after its runbooks: "Start Database failover".
+    expect(EVENT_RULE_FORM).toContain(
+      'allPicks: translationKey("Start {{runbooks}}"),',
     );
 
     const create: string = section(RULES, "Create a runbook rule");
 
-    expect(create).toContain("On **Basic Info**, enter a **Name**");
+    expect(create).not.toContain("**Basic Info**");
+    expect(create).not.toContain("### Name the rule");
 
     /*
      * Match Criteria asks what the rule applies to before any condition:
@@ -1467,7 +1511,7 @@ describe("runbook rules", () => {
       "ruleCriteriaSubject={getRunbookRuleAppliesTo(props.triggerEntityType)}",
     );
     expect(create).toContain(
-      `On **Match Criteria**, **${RuleCriteriaCopy.appliesToTitle}** starts on every new event of this kind, such as **${incidents.all}**, and the rule starts its runbooks for each one.`,
+      `On **Match**, **${RuleCriteriaCopy.appliesToTitle}** starts on every new event of this kind, such as **${incidents.all}**, and the rule starts its runbooks for each one.`,
     );
     expect(create).toContain(
       `pick the other answer, such as **${incidents.matching}**, then pick a criterion and an operator`,
@@ -1477,7 +1521,13 @@ describe("runbook rules", () => {
     );
     expect(create).not.toContain("Add none to start the runbooks");
     expect(create).toContain(
-      "On **Runbooks**, choose one or more **Runbooks to Start**, then click **Create Runbook Rule**. The rule is on as soon as it is created, and it appears in the list with the status **Enabled**.",
+      'On **Runbooks**, choose one or more **Runbooks to Start**. The rule\'s **Name** follows them, such as "Start Database failover", until you type your own, and a **Description** waits under **More fields**. Click **Create Runbook Rule**. The rule is on as soon as it is created, and it appears in the list with the status **Enabled**.',
+    );
+    expect(RULES).toContain(
+      "| **Conditions** | What the rule matches, on the **Match** step.",
+    );
+    expect(RULES).toContain(
+      "| **Description** | Optional context for teammates, under **More fields**. |",
     );
     expect(RULES).toContain(
       "| **Enabled** | On for a new rule. Switch it off on the rule's edit form to suspend it without deleting it. |",

@@ -30804,5 +30804,11 @@
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Use o service.name que seus apps enviam, para que a telemetria deles apareça neste serviço.",
   "No profiles here yet": "Nenhum perfil aqui ainda",
   "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Os perfis mostram onde seu código gasta tempo e memória. Eles aparecem aqui assim que seus apps ou hosts os enviam.",
-  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} para importar os repositórios dela neste projeto."
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} para importar os repositórios dela neste projeto.",
+  "Named after the runbooks it starts until you type a name of your own.": "Nomeada a partir dos runbooks que inicia até você digitar um nome próprio.",
+  "Start {{runbooks}}": "Iniciar {{runbooks}}",
+  "Start {{runbooks}} and {{count}} more": "Iniciar {{runbooks}} e mais {{count}}",
+  "Start {{runbooks}} and {{count}} more_one": "Iniciar {{runbooks}} e mais {{count}}",
+  "The runbooks to start when this rule matches.": "Os runbooks a iniciar quando esta regra corresponder.",
+  "e.g. Start Database failover": "ex.: Iniciar Database failover"
 }

@@ -30804,5 +30804,11 @@
   "Use the service.name your apps send, so their telemetry shows up under this service.": "アプリが送信する service.name を使うと、そのテレメトリがこのサービスに表示されます。",
   "No profiles here yet": "プロファイルはまだありません",
   "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "プロファイルは、コードが時間とメモリをどこで使っているかを示します。アプリやホストが送信すると、すぐにここに表示されます。",
-  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}して、リポジトリをこのプロジェクトにインポートしてください。"
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}して、リポジトリをこのプロジェクトにインポートしてください。",
+  "Named after the runbooks it starts until you type a name of your own.": "独自の名前を入力するまで、開始する Runbook に合わせて名前が付きます。",
+  "Start {{runbooks}}": "{{runbooks}} を開始",
+  "Start {{runbooks}} and {{count}} more": "{{runbooks}} ほか {{count}} 件を開始",
+  "Start {{runbooks}} and {{count}} more_one": "{{runbooks}} ほか {{count}} 件を開始",
+  "The runbooks to start when this rule matches.": "このルールに一致したときに開始する Runbook です。",
+  "e.g. Start Database failover": "例: Database failover を開始"
 }
