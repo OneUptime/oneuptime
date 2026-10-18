@@ -307,27 +307,30 @@ describe("the storage array picker", () => {
   test.each([
     StorageSystem.PureStorageFlashArray,
     StorageSystem.PureStorageFlashBlade,
-  ])("offers only %s templates for an array of that platform", (system) => {
-    render(
-      <StorageArrayTemplatePicker
-        storageSystem={system}
-        onTemplateSelected={getJestMockFunction()}
-      />,
-    );
+  ])(
+    "offers only %s templates for an array of that platform",
+    (system: StorageSystem) => {
+      render(
+        <StorageArrayTemplatePicker
+          storageSystem={system}
+          onTemplateSelected={getJestMockFunction()}
+        />,
+      );
 
-    const offered: Array<StorageArrayAlertTemplate> =
-      getStorageArrayAlertTemplatesForSystem(system);
+      const offered: Array<StorageArrayAlertTemplate> =
+        getStorageArrayAlertTemplatesForSystem(system);
 
-    expect(offered.length).toBeGreaterThan(0);
-    expect(offered.length).toBeLessThan(
-      getAllStorageArrayAlertTemplates().length,
-    );
-    expect(rows()).toHaveLength(offered.length);
+      expect(offered.length).toBeGreaterThan(0);
+      expect(offered.length).toBeLessThan(
+        getAllStorageArrayAlertTemplates().length,
+      );
+      expect(rows()).toHaveLength(offered.length);
 
-    for (const template of offered) {
-      expect(rowOf(template)).toBeInTheDocument();
-    }
-  });
+      for (const template of offered) {
+        expect(rowOf(template)).toBeInTheDocument();
+      }
+    },
+  );
 });
 
 describe("the shared picker", () => {

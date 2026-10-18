@@ -362,9 +362,16 @@ describe("a resource's Recommendations use the picker's category names", () => {
     [MonitorRecommendationResourceType.Ceph, "PG", "Placement Groups"],
     [MonitorRecommendationResourceType.Proxmox, "HA", "High Availability"],
     [MonitorRecommendationResourceType.VMware, "Host", "ESXi Host"],
-  ])("%s %s reads %s", (resourceType, category, label) => {
-    expect(getAlertTemplateCategoryLabel(resourceType, category)).toBe(label);
-  });
+  ])(
+    "%s %s reads %s",
+    (
+      resourceType: MonitorRecommendationResourceType,
+      category: string,
+      label: string,
+    ) => {
+      expect(getAlertTemplateCategoryLabel(resourceType, category)).toBe(label);
+    },
+  );
 
   test("a type or category without a heading has no label", () => {
     expect(
