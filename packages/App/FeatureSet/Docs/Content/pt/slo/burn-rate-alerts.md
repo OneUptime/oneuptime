@@ -79,7 +79,7 @@ Abra o SLO, vá para **Burn Rate Rules** e clique em **Criar: SLO Burn Rate Rule
 
 ### Dar um nome à regra
 
-Em **Rule**, informe um **Nome**, como "Fast burn". **Habilitado** está ligado.
+Em **Rule**, informe um **Nome**, como "Fast burn". Uma regra nova fica ligada; para que ela pare de disparar depois, desligue **Habilitado** no formulário de edição dela.
 
 ### Definir a janela de consumo
 
@@ -87,7 +87,7 @@ Em **Burn Window**, defina o **Burn Rate Threshold** (por exemplo `14.4`), a **L
 
 ### Escolher o que ela declara
 
-Em **What It Declares**, ligue **Criar alerta**, **Declarar incidente** ou os dois. **Add SLO Owners as Owners** também torna os proprietários do SLO proprietários de tudo o que a regra cria.
+Em **What It Declares**, responda **Quando dispara**: **Criar um alerta**, o padrão, **Declarar um incidente** ou **Ambos**. **Add SLO Owners as Owners** também torna os proprietários do SLO proprietários de tudo o que a regra cria.
 
 ### Descrever o alerta e o incidente
 
@@ -103,18 +103,18 @@ O OneUptime confere os números de uma regra quando você a salva:
 | **Long Window (Minutes)** | Mais longa que a janela curta. |
 | **Re-fire Suppression (Minutes)** | 0 ou mais. Vazio significa a duração da janela longa. |
 
-Uma regra precisa criar um alerta, declarar um incidente ou os dois: uma regra com os dois desligados é recusada, porque seria verificada a cada avaliação sem nunca declarar nada.
+Toda resposta a **Quando dispara** abre algo. A API recusa uma regra que não criaria nenhum alerta nem declararia nenhum incidente, porque seria verificada a cada avaliação sem nunca declarar nada.
 
 A tabela de regras mostra, para cada regra, o limite, as janelas e a supressão, o que ela declara (e se o alerta ou o incidente só se resolve à mão, ou é privado), as severidades, as políticas de plantão, os proprietários e os rótulos.
 
 > [!TIP]
-> Um bom ponto de partida: mantenha as duas regras padrão, envie a regra de consumo rápido para a política de plantão que aciona as pessoas, com severidade alta, e deixe a regra de consumo lento gerar um alerta de severidade mais baixa para o horário comercial. Se sua equipe trabalha com incidentes, ligue **Declarar incidente** na regra de consumo rápido, e desligue ali **Criar alerta** se preferir não receber os dois.
+> Um bom ponto de partida: mantenha as duas regras padrão, envie a regra de consumo rápido para a política de plantão que aciona as pessoas, com severidade alta, e deixe a regra de consumo lento gerar um alerta de severidade mais baixa para o horário comercial. Se sua equipe trabalha com incidentes, escolha **Declarar um incidente** para a regra de consumo rápido, ou **Ambos** para receber também um alerta.
 
 ## O que uma regra declara
 
-|  | **Criar alerta** | **Declarar incidente** |
+|  | **Alerta** | **Incidente** |
 | --- | --- | --- |
-| No início | Ligado | Desligado |
+| Aberto por | **Criar um alerta**, o padrão, ou **Ambos** | **Declarar um incidente** ou **Ambos** |
 | O que é | O sinal leve: vai para a lista de alertas. | O sinal pesado: recebe um número de incidente e inicia todo o fluxo de resposta. |
 | Título e descrição | Os próprios, ou o texto padrão | Os próprios, ou o texto padrão |
 | Severidade | **Severidade do alerta**: a mais alta do projeto, se vazia | **Severidade do incidente**: a mais alta do projeto, se vazia |
@@ -195,7 +195,7 @@ Rótulos, equipes proprietárias e políticas de plantão precisam pertencer ao 
 
 Algumas mudanças sempre resolvem o que uma regra abriu, não importa o que digam as configurações de resolução automática dela, para que nada continue escalando por uma regra que não pode mais justificar isso:
 
-- desligar **Criar alerta** ou **Declarar incidente** fecha o que essa saída tinha aberto;
+- mudar **Quando dispara** para tirar o alerta ou o incidente fecha o que essa saída tinha aberto;
 - desligar a regra ou excluí-la;
 - desligar a avaliação do SLO, arquivar o SLO ou excluí-lo;
 - o SLO passar para **Pausado** ou **Misconfigured**, porque então ele não mede nada;

@@ -24,6 +24,7 @@ import {
   normalizeFormValue,
 } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { getNameAfterPick } from "Common/UI/Components/Forms/Utils/FollowPickName";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import {
   translateTemplate,
   translateText,
@@ -97,6 +98,36 @@ export const SCRUB_RULE_CUSTOM_REGEX_MATCHES_EMPTY_TEXT: string =
   translationKey(
     "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.",
   );
+
+/*
+ * Scrub Action's three answers, each with the one line that says what it
+ * leaves in the record. The field's description used to explain all three
+ * at once ("Mask: partially hide (e.g. j***@***.com). Hash: replace with
+ * deterministic hash. Redact: replace with [REDACTED].") above a dropdown
+ * that hid them; Redact, what the server stores when none is picked,
+ * comes first.
+ */
+export const SCRUB_ACTION_CHOICES: Array<RadioButton> = [
+  {
+    title: translationKey("Redact"),
+    value: LogScrubAction.Redact,
+    description: translationKey("Replaces each match with [REDACTED]."),
+  },
+  {
+    title: translationKey("Mask"),
+    value: LogScrubAction.Mask,
+    description: translationKey(
+      "Keeps a hint of it, such as j***@***.com or a card's last four digits.",
+    ),
+  },
+  {
+    title: translationKey("Hash"),
+    value: LogScrubAction.Hash,
+    description: translationKey(
+      "Replaces it with a short hash, so equal values still look alike.",
+    ),
+  },
+];
 
 /*
  * What the folded Advanced section says while everything in it is left at
@@ -422,15 +453,12 @@ const getScrubRuleFormFields: (
         scrubAction: true,
       },
       title: "Scrub Action",
-      description:
-        "How to handle matched data. Mask: partially hide (e.g. j***@***.com). Hash: replace with deterministic hash. Redact: replace with [REDACTED].",
-      fieldType: FormFieldSchemaType.Dropdown,
+      fieldType: FormFieldSchemaType.RadioButton,
       required: true,
-      dropdownOptions: [
-        { label: "Redact", value: LogScrubAction.Redact },
-        { label: "Mask", value: LogScrubAction.Mask },
-        { label: "Hash", value: LogScrubAction.Hash },
-      ],
+      // Each answer says what it does; the column's sentence would repeat it.
+      hideColumnDescription: true,
+      dataTestId: "scrub-rule-action",
+      radioButtonOptions: SCRUB_ACTION_CHOICES,
       /*
        * What the server stores when it is left out, written on the field
        * so an Edit form compares with it too: ModelForm gives a field its

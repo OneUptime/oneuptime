@@ -90,6 +90,8 @@ import Select from "Common/Types/BaseDatabase/Select";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import { TelemetryFirstStepsSignal } from "../Telemetry/TelemetryFirstSteps";
 import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
 import useResultTotal, {
   ResultTotalListAnswer,
@@ -186,6 +188,13 @@ export interface ComponentProps {
   sessionIds?: Array<string> | undefined;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
+  /*
+   * The Logs page's explorer: an empty list that no filter or search
+   * narrows offers the setup guide and a longer range instead of "try
+   * adjusting filters" (Telemetry/TelemetryFirstSteps). Embeds leave it
+   * unset and keep their noLogsMessage.
+   */
+  offersSetupWhenEmpty?: boolean | undefined;
   logQuery?: Query<Log> | undefined;
   /*
    * Entity scope with attribute fallback (contract C4): compiles server-side
@@ -2153,6 +2162,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [filterOptions, disableLiveMode, props.onTimeRangeChange],
   );
 
+  /*
+   * What an empty, unnarrowed list shows on the Logs page: the setup guide
+   * and, on a short range, the past week. Embedded viewers (a service's or a
+   * host's logs) keep the plain empty message.
+   */
+  const firstSteps: ReactElement | undefined = props.offersSetupWhenEmpty ? (
+    <TelemetryFirstStepsEmptyState
+      signal={TelemetryFirstStepsSignal.Logs}
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    />
+  ) : undefined;
+
   const rebuildFilterOptionsFromFacets: (
     facets: Map<string, Set<string>>,
   ) => Query<Log> = useCallback(
@@ -2958,6 +2980,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           logs={logs}
           showFilters={props.showFilters}
           noLogsMessage={props.noLogsMessage}
+          emptyContentWhenUnfiltered={firstSteps}
           totalCount={totalCount}
           hasMore={resultTotalListAnswer?.page.hasMore}
           resultTotal={resultTotal}
