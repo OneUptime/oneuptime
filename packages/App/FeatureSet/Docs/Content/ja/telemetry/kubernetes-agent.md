@@ -4,6 +4,7 @@ OneUptime の Kubernetes エージェントは Helm チャートで、クラス�
 
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): Helm で 4 ステップ。
+- [Amazon EKS アドオンとしてインストールする](#amazon-eks-アドオンとしてインストールする): EKS コンソールから、Helm なしで。
 - [設定オプション](#設定オプション): フィルター、サンプリング、コントロールプレーン、サービスメッシュ、コスト、ラベル。
 - [Kubernetes AI エージェント](#kubernetes-ai-エージェント): OneUptime AI 用の読み取り専用の `kubectl` と、許可した場合の修正。
 - [送信量を減らす](#収集するデータ量を減らす): 効果の大きい順に並べた調整手段。
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 **製品 → インフラストラクチャ → Kubernetes → すべてのクラスター** を開きます。数分以内にクラスターが `clusterName` で表示され、ノード、Pod、ワークロードが埋まります。Kubernetes AI エージェントは、クラスターの **AI** の下にある **エージェント** ページに接続済みとして表示されます。
 :::
 
+## Amazon EKS アドオンとしてインストールする
+
+Amazon EKS では、EKS コンソールからエージェントを追加することもできます。EKS コンソールでは、エージェントは AWS Marketplace アドオンの 1 つとして提供されています。料金はかからず、インストール、アップグレード、削除は EKS が代わりに行います。アドオンの実体はこのチャートで、アドオンに必要な形で設定されています:
+
+- 自分の OneUptime の URL を指定しない限り、OneUptime Cloud (`https://oneuptime.com`) に送信します。
+- 取り込みキーは自分で作成した Kubernetes の Secret から読み取り、アドオンの設定からは決して読み取りません。アドオンの設定は EKS で平文のまま表示されるためです。
+- クラスターを EKS でのクラスター名で OneUptime に報告します。
+- `oneuptime-agent` namespace で実行されます。
+
+:::steps
+### 取り込みキーを Secret に格納する
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### アドオンを追加する
+
+EKS コンソールでクラスターを開いて **Add-ons** を選択し、続いて **Get more add-ons** を選択して、AWS Marketplace アドオンの中から OneUptime Kubernetes エージェントを選びます。無料でサブスクライブしてから、アドオンを作成します。AWS CLI で追加することもできます:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### 実行されていることを確認する
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Pod が実行されるとアドオンは `ACTIVE` になり、数分以内にクラスターが EKS でのクラスター名で OneUptime に表示されます。`CreateContainerConfigError` のままの Pod は Secret を見つけられていません。最初のステップのとおりに、`oneuptime-agent` namespace に Secret を作成してください。
+:::
+
+### アドオンの設定値
+
+EKS コンソールの **Optional configuration settings** で設定するか、アドオンの作成時または更新時に `--configuration-values` で設定します。どの値も省略できます:
+
+- `oneuptime.url`: OneUptime のアドレス。既定値は `https://oneuptime.com` です。
+- `oneuptime.existingSecretName`: 取り込みキーを `api-key` として保持している Secret。既定値は `oneuptime-ingestion-key` です。
+- `oneuptime.labels`: このクラスターが送信するすべてのデータに付けるプロジェクトラベル (`{"team": "payments"}` など)。
+- `preset`: Fargate だけで実行されるクラスターでは `eks-fargate`、それ以外では既定値の `standard`。
+- `logs.enabled`、`ebpf.enabled`、`aiAgent.enabled`: Pod のログ、eBPF のトレース、[Kubernetes AI エージェント](#kubernetes-ai-エージェント)。いずれもデフォルトで有効です。
+- `kubeStateMetrics.enabled` と `cost.enabled`: kube-state-metrics と [コストオブザーバビリティ](/docs/telemetry/kubernetes-cost)。いずれもデフォルトで無効です。
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+更新すると設定全体が置き換わり、指定しなかった値は既定値に戻ります。プロファイラー、OneUptime AI による修正、namespace のフィルターなど、チャートのその他の設定には [Helm でのインストール](#エージェントをインストールする) が必要です。クラスターを Helm でのインストールからアドオンに移行するには、先に Helm のリリースをアンインストールしてください。
+
 ## プリセットを選ぶ
 
 `preset` は、プラットフォームで動作する既定値を選びます。Pod のログを `hostPath` 経由でノードから読むか Kubernetes API 経由で読むか、そしてどのワークロードに特権での実行を許すかです。
@@ -169,6 +225,23 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 ## 設定オプション
 
 以下のオプションはすべて Helm の値です。インストール時に設定するか、インストール済みのエージェントに `helm upgrade ... --reset-then-reuse-values --set <value>` で設定します。
+
+### 取り込みキーを Secret に保管する
+
+`--set oneuptime.apiKey` では、キーがリリースの値に保持され、Helm はその値をリビジョンごとに保存します。キーを値に含めないようにするには、エージェントの namespace にある Secret に `api-key` としてキーを格納し、代わりにその Secret の名前を指定します:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+すると、エージェントのすべてのワークロードがその Secret からキーを読み取るようになり、チャートは独自の Secret を作成しなくなります。`oneuptime.apiKey` と `oneuptime.existingSecretName` は、どちらか一方だけを設定してください。チャートは両方の同時指定を拒否します。Secret の作成元は、External Secrets Operator など、Secret を書き込めるものであれば何でもかまいません。
 
 ### namespace によるフィルタリング
 

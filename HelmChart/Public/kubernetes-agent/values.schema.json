@@ -37,6 +37,10 @@
           "type": "string",
           "description": "Telemetry ingestion key from OneUptime (Project Settings > Telemetry & APM > Ingestion Keys), sent as the x-oneuptime-token header. A project API key (Settings > API Keys) does not work here."
         },
+        "existingSecretName": {
+          "type": "string",
+          "description": "Name of a Secret in the release's namespace that holds the ingestion key under `api-key`. Set it instead of apiKey to keep the key out of the values: every workload reads the key from it, and the chart creates no Secret of its own."
+        },
         "labels": {
           "type": "object",
           "description": "Project Labels auto-attached to every record. Each key/value becomes an `oneuptime.label.<key>=<value>` resource attribute, which the OneUptime ingest pipeline promotes to a project Label.",

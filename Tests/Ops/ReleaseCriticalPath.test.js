@@ -645,7 +645,10 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
   /*
    * Each build job, the artifact it keeps, the files the publish job attaches
    * from it, and whether a failed build still lets the release go out (the
-   * apps) or holds it (the rest).
+   * apps) or holds it (the rest). alsoKeeps names what else a job keeps that
+   * is not for the release: the infrastructure agent's Homebrew cask and
+   * winget manifests, which the publish-infrastructure-agent-* jobs publish
+   * after the release.
    */
   const ASSETS = [
     {
@@ -663,6 +666,7 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       attach: "Attach the infrastructure agent to release",
       files: "release-assets/infrastructure-agent/*",
       required: true,
+      alsoKeeps: ["infrastructure-agent-package-manifests"],
     },
     {
       job: "mobile-app-android-build",
@@ -695,7 +699,7 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
 
   describe.each(ASSETS)(
     "$job",
-    ({ job, artifact, directory, attach, files, required }) => {
+    ({ job, artifact, directory, attach, files, required, alsoKeeps = [] }) => {
       const definition = jobs[job];
       const uploads = stepsUsing(definition, "actions/upload-artifact");
       const download = publishSteps.findIndex((step) => {
@@ -745,7 +749,11 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       });
 
       test("keeps what it built as one artifact, replaced on a re-run, failing if there is nothing to keep", () => {
-        expect(uploads).toHaveLength(1);
+        expect(
+          uploads.map((upload) => {
+            return upload.with.name;
+          }),
+        ).toEqual([artifact, ...alsoKeeps]);
         expect(uploads[0].with).toEqual(
           expect.objectContaining({
             name: artifact,
@@ -754,6 +762,20 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
           }),
         );
         expect(uploads[0].with["retention-days"]).toBeGreaterThanOrEqual(30);
+      });
+
+      test("keeps nothing else for the release: the publish job downloads none of its other artifacts", () => {
+        for (const other of alsoKeeps) {
+          expect({
+            other,
+            downloaded: publishSteps.some((step) => {
+              return (
+                (step.uses || "").startsWith("actions/download-artifact@") &&
+                step.with.name === other
+              );
+            }),
+          }).toEqual({ other, downloaded: false });
+        }
       });
 
       test("is downloaded and attached by the publish job, to the draft, at the run's commit, before the publish", () => {

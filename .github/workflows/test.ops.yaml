@@ -179,6 +179,19 @@ jobs:
       - run: bash Tests/Ops/vmware-agent-native-install.sh --image public.ecr.aws/docker/library/rockylinux:8
         env:
           VCSIM_CACHE_DIR: ${{ steps.vcsim.outputs.dir }}
+      # The infrastructure agent's apt and yum repository, end to end:
+      # Scripts/PackageManagers/PublishPackageRepository.sh publishes two
+      # releases of a stand-in package (built by nfpm, as GoReleaser builds
+      # the agent's) to a local stand-in for OneUptime/packages, and the
+      # Server / VM Monitor page's apt and dnf commands install from the site
+      # it pushed, as written, on Ubuntu 24.04 and Rocky Linux 8 (the images
+      # warmed above) under a root umask of 077: signatures checked, by-hash
+      # indexes, downgrade and upgrade, another key refused. release.yml
+      # publishes the real repository only after a release, so this is where
+      # a broken publish shows up first. The site is served by busybox httpd.
+      - name: Warm the image the package repository e2e serves its site from
+        run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/busybox:1.37
+      - run: bash Tests/Ops/package-repository-e2e.sh
       # The App Dockerfile builds the Community and Enterprise editions as
       # targets. BuildKit resolves each target's stage graph and runs its build
       # checks over the production render (default, community, enterprise) and

@@ -4,6 +4,7 @@ OneUptime Kubernetes-agenten är ett Helm-chart som samlar in klustrets mätvär
 
 :::cards
 - [Installera agenten](#installera-agenten): Fyra steg med Helm.
+- [Installera som Amazon EKS-tillägg](#installera-som-amazon-eks-tillägg): Från EKS-konsolen, utan Helm.
 - [Konfigurationsalternativ](#konfigurationsalternativ): Filter, sampling, kontrollplan, service mesh, kostnader och etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivskyddad `kubectl` för OneUptime AI, och åtgärder när du tillåter dem.
 - [Skicka mindre](#minska-mängden-data-som-samlas-in): Spakarna, i ordning efter effekt.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 Öppna **Produkter → Infrastruktur → Kubernetes → Alla kluster**. Klustret visas under sitt `clusterName` inom några minuter, och dess noder, poddar och arbetsbelastningar fylls i. Kubernetes-AI-agenten visas som ansluten på klustrets sida **Agent**, under **AI**.
 :::
 
+## Installera som Amazon EKS-tillägg
+
+På Amazon EKS kan du också lägga till agenten från EKS-konsolen, där den är ett av tilläggen från AWS Marketplace. Den kostar ingenting, och EKS installerar, uppgraderar och tar bort den åt dig. Tillägget är det här chartet, konfigurerat på det sätt som ett tillägg kräver:
+
+- Det skickar till OneUptime Cloud, `https://oneuptime.com`, om du inte ger det URL:en till din egen OneUptime.
+- Det läser intagningsnyckeln från en Kubernetes-Secret som du skapar, aldrig från tilläggets konfiguration, som EKS visar i klartext.
+- Det rapporterar klustret till OneUptime under dess EKS-namn.
+- Det körs i namespacet `oneuptime-agent`.
+
+:::steps
+### Lägg din intagningsnyckel i en Secret
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### Lägg till tillägget
+
+Öppna ditt kluster i EKS-konsolen, klicka på **Add-ons** och sedan på **Get more add-ons**, och välj OneUptime Kubernetes-agenten bland tilläggen från AWS Marketplace. Prenumerera på den, vilket är gratis, och skapa den. Eller med AWS CLI:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### Kontrollera att tillägget körs
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Tillägget är `ACTIVE` så snart dess poddar körs, och klustret visas i OneUptime under sitt EKS-namn inom några minuter. En podd som blir kvar i `CreateContainerConfigError` hittar inte sin Secret: skapa den som i det första steget, i namespacet `oneuptime-agent`.
+:::
+
+### Tilläggets konfigurationsvärden
+
+Sätt dem under **Optional configuration settings** i EKS-konsolen, eller med `--configuration-values` när du skapar eller uppdaterar tillägget. Alla är valfria:
+
+- `oneuptime.url`: adressen till din OneUptime. Standardvärdet är `https://oneuptime.com`.
+- `oneuptime.existingSecretName`: den Secret som innehåller intagningsnyckeln under `api-key`. Standardvärdet är `oneuptime-ingestion-key`.
+- `oneuptime.labels`: projektetiketter för allt som det här klustret skickar, till exempel `{"team": "payments"}`.
+- `preset`: `eks-fargate` för ett kluster som bara körs på Fargate, annars `standard`, som är standardvärdet.
+- `logs.enabled`, `ebpf.enabled` och `aiAgent.enabled`: poddloggar, eBPF-spår och [Kubernetes-AI-agenten](#kubernetes-ai-agent), alla tre på som standard.
+- `kubeStateMetrics.enabled` och `cost.enabled`: kube-state-metrics och [kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost), båda avstängda som standard.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+En uppdatering ersätter hela konfigurationen: ett värde som du utelämnar återgår till sitt standardvärde. Resten av chartets inställningar, som profileraren, OneUptime AI:s åtgärder och namespace-filter, kräver [Helm-installationen](#installera-agenten). För att flytta ett kluster från Helm-installationen till tillägget avinstallerar du först Helm-releasen.
+
 ## Välj ett preset
 
 `preset` väljer de standardvärden som fungerar på din plattform: om poddloggar läses från noden via `hostPath` eller via Kubernetes-API:t, och vilka arbetsbelastningar som får köras privilegierade.
@@ -169,6 +225,23 @@ Om du är osäker, börja med `standard`. Om installationen misslyckas med ett P
 ## Konfigurationsalternativ
 
 Varje alternativ nedan är ett Helm-värde. Sätt det vid installationen, eller på en installerad agent med `helm upgrade ... --reset-then-reuse-values --set <value>`.
+
+### Förvara intagningsnyckeln i en Secret
+
+`--set oneuptime.apiKey` håller nyckeln i releasens värden, som Helm lagrar med varje revision. För att hålla den utanför dem lägger du nyckeln i en Secret i agentens namespace, under `api-key`, och anger i stället den Secret som innehåller nyckeln:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+Alla agentens arbetsbelastningar läser då nyckeln från den Secret du angav, och chartet skapar ingen egen Secret. Sätt `oneuptime.apiKey` eller `oneuptime.existingSecretName`, inte båda: chartet nekar de två tillsammans. Din Secret kan komma från vad som helst som skriver Secrets, till exempel External Secrets Operator.
 
 ### Filtrering efter namespace
 
