@@ -7939,7 +7939,31 @@ const eventIdOf = (record) => {
 // What Zabbix's API said when it refused a request: its message, and the detail in its data.
 const zabbixError = (error) => {
   const parts = [oneLine(error && error.message), oneLine(error && error.data)].filter((part) => part !== '');
-  return defuse(limit(parts.join(' '), 500)) || 'an error with no message';
+  return limit(defuse(parts.join(' ')), 500) || 'an error with no message';
+};
+// The address the workflow's Zabbix URL setting names, without the slash it may end with and with
+// its scheme in lower case, or '' when it names none. SITE_SETTING takes at most LONGEST_SITE
+// characters, and a character is at most two UTF-16 units, so a longer value is refused before
+// any pattern reads it.
+const SITE_SETTING = /${ZABBIX_URL_PATTERN_SOURCE}/u;
+const LONGEST_SITE = 300;
+const siteOfSetting = (setting) => {
+  const text = asText(setting).trim();
+  if (text.length > 2 * LONGEST_SITE || !SITE_SETTING.test(text)) return '';
+  const site = text.charAt(text.length - 1) === '/' ? text.slice(0, -1) : text;
+  const schemeEnd = site.indexOf('://');
+  return site.slice(0, schemeEnd).toLowerCase() + site.slice(schemeEnd);
+};
+// The problem, linked to its page in Zabbix on the site the workflow's Zabbix URL names, whatever a
+// request says: the trigger's and the event's IDs are numbers, so nothing else can ride along. A
+// problem with no trigger ID, or a setting that names no site, is named without a link.
+const problemLinkOf = (setting, triggerId, eventId) => {
+  const problem = 'problem ' + asText(eventId);
+  const site = siteOfSetting(setting);
+  const trigger = oneLine(triggerId);
+  return site && ZABBIX_ID.test(trigger) && ZABBIX_ID.test(asText(eventId))
+    ? '[' + problem + '](' + site + '/tr_events.php?triggerid=' + trigger + '&eventid=' + asText(eventId) + ')'
+    : problem;
 };
 // Zabbix's API answers with HTTP 200 even when it refuses a request, and says why in the body.
 const readAnswer = (value) => {
@@ -7991,20 +8015,6 @@ const KINDS = ${JSON.stringify([
 
 const ignore = (reason) => ({ kind: 'ignored', reason: defuse(asText(reason)) });
 
-// The address the workflow's Zabbix URL setting names, without the slash it may end with and with
-// its scheme in lower case, or '' when it names none. SITE_SETTING takes at most LONGEST_SITE
-// characters, and a character is at most two UTF-16 units, so a longer value is refused before
-// any pattern reads it.
-const SITE_SETTING = /${ZABBIX_URL_PATTERN_SOURCE}/u;
-const LONGEST_SITE = 300;
-const siteOfSetting = (setting) => {
-  const text = asText(setting).trim();
-  if (text.length > 2 * LONGEST_SITE || !SITE_SETTING.test(text)) return '';
-  const site = text.charAt(text.length - 1) === '/' ? text.slice(0, -1) : text;
-  const schemeEnd = site.indexOf('://');
-  return site.slice(0, schemeEnd).toLowerCase() + site.slice(schemeEnd);
-};
-
 const payload = readJson(args.payload) || {};
 if (oneLine(payload.source).toLowerCase() !== 'zabbix') {
   return ignore('The request did not come from the OneUptime media type in Zabbix, so it was ignored.');
@@ -8022,23 +8032,12 @@ if (!kind) {
   return ignore('Zabbix event ' + eventId + ' is not a problem, a recovery or an update, so it was ignored.');
 }
 
-// The problem's page in Zabbix, on the site the workflow's Zabbix URL names, whatever the request
-// says: the trigger's and the event's IDs are numbers, so nothing else can ride along.
-const site = siteOfSetting(args.zabbixUrl);
-const triggerId = oneLine(payload.trigger_id);
+const triggerId = ZABBIX_ID.test(oneLine(payload.trigger_id)) ? oneLine(payload.trigger_id) : '';
 const problem = 'problem ' + eventId;
-const problemLink = site && ZABBIX_ID.test(triggerId)
-  ? '[' + problem + '](' + site + '/tr_events.php?triggerid=' + triggerId + '&eventid=' + eventId + ')'
-  : problem;
+const problemLink = problemLinkOf(args.zabbixUrl, triggerId, eventId);
 
-if (kind === 'recovery') {
-  return {
-    kind: kind,
-    eventId: eventId,
-    target: 'resolved',
-    rootCause: limit(defuse(FROM_ZABBIX + ': ' + problemLink + ' recovered.'), 1000),
-  };
-}
+// A recovery resolves the problem's record (decide-state-1 says why on its timeline).
+if (kind === 'recovery') return { kind: kind, eventId: eventId, triggerId: triggerId, target: 'resolved' };
 
 if (kind === 'update') {
   const update = payload.update && typeof payload.update === 'object' ? payload.update : {};
@@ -8050,16 +8049,19 @@ if (kind === 'update') {
   }
   if (!action && !message) return ignore('The update to Zabbix ' + problem + ' said nothing, so no note was added.');
   // What the person did, and their name, are Zabbix's text, placed as written (asWritten).
-  const who = asWritten(oneLine(update.user)) || 'Someone';
+  const user = oneLine(update.user);
   // Zabbix says what an update did in words: acknowledged, commented, closed and the like.
   const words = ' ' + action.toLowerCase().replace(/[^a-z]+/g, ' ') + ' ';
   const acknowledged = words.indexOf(' acknowledged ') !== -1;
   return {
     kind: kind,
     eventId: eventId,
-    note: limit(defuse(FROM_ZABBIX + ': ' + who + ' updated Zabbix ' + problemLink + (action ? ': ' + asWritten(action) : '') + '.' + (message ? '\n\n' + asWritten(message) : '')), 30000),
+    triggerId: triggerId,
+    note: limit(defuse(FROM_ZABBIX + ': ' + (asWritten(user) || 'Someone') + ' updated Zabbix ' + problemLink + (action ? ': ' + asWritten(action) : '') + '.' + (message ? '\n\n' + asWritten(message) : '')), 30000),
+    // An update that acknowledged the problem acknowledges its record (decide-state-2).
     target: acknowledged ? 'acknowledged' : '',
-    rootCause: limit(defuse(FROM_ZABBIX + ': ' + who + ' acknowledged ' + problemLink + '.'), 1000),
+    // The name of whoever did it, which decide-state-2 places in the cause it writes.
+    user: defuse(limit(user, 300)),
   };
 }
 
@@ -8150,13 +8152,20 @@ if (current.isResolvedState === true || Number(current.order) >= Number(wanted.o
   return skip(number + ' is already ' + (oneLine(current.name) || 'past ' + oneLine(wanted.name)) + ', so it was left as it is.');
 }
 
+// Why, on the ${r}'s timeline. The name of whoever acknowledged the problem is Zabbix's text,
+// placed as written (asWritten); the link to the problem is the template's own.
+const link = problemLinkOf(args.zabbixUrl, event.triggerId, asText(event.eventId));
+const cause = target === 'resolved'
+  ? FROM_ZABBIX + ': ' + link + ' recovered.'
+  : FROM_ZABBIX + ': ' + (asWritten(oneLine(event.user)) || 'Someone') + ' acknowledged ' + link + '.';
+
 return {
   proceed: true,
   ${r}Id: asText(record._id),
   stateId: valueOf(wanted._id),
   stateName: defuse(oneLine(wanted.name)),
   number: defuse(number),
-  rootCause: limit(defuse(asText(event.rootCause)), 1000),
+  rootCause: limit(defuse(cause), 1000),
 };
 `,
   );
@@ -8479,9 +8488,14 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
   ): JSONObject => {
     return {
       code: zabbixDecideStateScript(kind),
+      /*
+       * What read-event-1 read goes last: the name of whoever acknowledged
+       * the problem came from outside.
+       */
       arguments: jsonText({
         [r]: `{{local.components.${findComponentId}.returnValues.model}}`,
         states: `{{local.components.${statesComponentId}.returnValues.models}}`,
+        zabbixUrl: "{{local.variables.zabbixUrl}}",
         event: "{{local.components.read-event-1.returnValues.returnValue}}",
       }),
     };
