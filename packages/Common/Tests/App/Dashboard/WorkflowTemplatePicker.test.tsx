@@ -657,7 +657,9 @@ describe("the category select", () => {
     ).toHaveTextContent("Zabbix URL");
     expect(
       within(details).getByTestId("workflow-template-details-in-builder"),
-    ).toHaveTextContent("An on-call policy to page. You pick it in the Builder.");
+    ).toHaveTextContent(
+      "An on-call policy to page. You pick it in the Builder.",
+    );
   });
 
   test("the ones that call Zabbix ask for its URL and its API token, and only the token is secret", () => {

@@ -63,7 +63,6 @@ import {
   ZabbixKindFixture,
   noteModel,
   recordModel,
-  severityIdNamed,
   stateNamed,
   webhookDelivery,
   zabbixFirstMediaTypeBody,
@@ -231,8 +230,7 @@ async function receive(data: {
     trigger: webhookDelivery(data.body),
     variables: data.variables || VARIABLES,
     settings: (data.settings || PICKED) as never,
-    database:
-      data.database || inboundDatabase(data.kind, {}, data.recordState),
+    database: data.database || inboundDatabase(data.kind, {}, data.recordState),
     editCode: data.editCode as never,
   });
 }
@@ -529,9 +527,9 @@ describe.each(KINDS)(
         recordState: "Acknowledged",
       });
 
-      expect(
-        onlyCall(trace, "change-state-1")[kind.timelineStateColumn],
-      ).toBe(stateNamed(kind, "Resolved")._id);
+      expect(onlyCall(trace, "change-state-1")[kind.timelineStateColumn]).toBe(
+        stateNamed(kind, "Resolved")._id,
+      );
     });
 
     test("a record that is already resolved is left as it is: it never moves back", async () => {
@@ -560,9 +558,11 @@ describe.each(KINDS)(
       expect(callsTo(trace, `find-${r}-1`)[0]!.args["query"]).toEqual({
         customFields: { [ZABBIX_EVENT_ID_CUSTOM_FIELD]: OTHER_EVENT_ID },
       });
-      expect(trace.databaseCalls.map((call: DatabaseCall) => {
-        return call.componentId;
-      })).toEqual(["find-severities-1", `find-${r}-1`]);
+      expect(
+        trace.databaseCalls.map((call: DatabaseCall) => {
+          return call.componentId;
+        }),
+      ).toEqual(["find-severities-1", `find-${r}-1`]);
       expect(trace.logs).toEqual([
         `ℹ️ Zabbix problem ${OTHER_EVENT_ID} has no ${r}, so its recovery changed nothing.`,
       ]);
@@ -716,9 +716,11 @@ describe.each(KINDS)(
       });
 
       expect(trace.ports["switch-1"]).toBe("default");
-      expect(trace.databaseCalls.map((call: DatabaseCall) => {
-        return call.componentId;
-      })).toEqual(["find-severities-1"]);
+      expect(
+        trace.databaseCalls.map((call: DatabaseCall) => {
+          return call.componentId;
+        }),
+      ).toEqual(["find-severities-1"]);
       expect(trace.logs).toEqual([
         `ℹ️ This update to Zabbix problem ${EVENT_ID} came from OneUptime, so it was not copied back.`,
       ]);
@@ -781,9 +783,18 @@ describe.each(KINDS)(
     });
 
     test.each([
-      ["a request from something other than the media type", { event_id: EVENT_ID, status: "1", name: "x" }],
-      ["a Zabbix event without its event ID", { source: "zabbix", status: "1" }],
-      ["a Zabbix event that is neither a problem, a recovery nor an update", { source: "zabbix", event_id: EVENT_ID, status: "7" }],
+      [
+        "a request from something other than the media type",
+        { event_id: EVENT_ID, status: "1", name: "x" },
+      ],
+      [
+        "a Zabbix event without its event ID",
+        { source: "zabbix", status: "1" },
+      ],
+      [
+        "a Zabbix event that is neither a problem, a recovery nor an update",
+        { source: "zabbix", event_id: EVENT_ID, status: "7" },
+      ],
       ["a body that is not JSON", "status=1&event_id=12345"],
     ])(
       "%s is ignored, and the log says why",
@@ -830,7 +841,9 @@ describe.each(KINDS)(
 
 /* ------------------------------- OneUptime -> Zabbix ------------------------------- */
 
-function http(zabbix: FakeZabbix): (request: SimulatedRequest) => SimulatedReply {
+function http(
+  zabbix: FakeZabbix,
+): (request: SimulatedRequest) => SimulatedReply {
   return (request: SimulatedRequest): SimulatedReply => {
     return zabbix.answer(request);
   };
@@ -1396,7 +1409,9 @@ describe("both ways at once, the templates settle instead of echoing each other"
     });
 
     expect(callsTo(echoed, "add-note-2")).toHaveLength(0);
-    expect(echoed.logs[0]).toMatch(/came from OneUptime, so it was not copied back\.$/);
+    expect(echoed.logs[0]).toMatch(
+      /came from OneUptime, so it was not copied back\.$/,
+    );
   });
 
   test("the problem a record was opened for is the one every template finds and updates, by the same event ID", async () => {

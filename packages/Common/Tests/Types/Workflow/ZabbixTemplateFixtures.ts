@@ -504,7 +504,8 @@ export function objectIdJson(value: string): JSONObject {
   return { _type: "ObjectID", value: value };
 }
 
-export interface StateFixture {
+// A state as Find Many hands it back: a JSON object, with the fields a template reads.
+export interface StateFixture extends JSONObject {
   _id: string;
   name: string;
   order: number;
@@ -633,20 +634,6 @@ export const ALERT: ZabbixKindFixture = {
 };
 
 export const KINDS: Array<ZabbixKindFixture> = [INCIDENT, ALERT];
-
-export function severityIdNamed(kind: ZabbixKindFixture, name: string): string {
-  const severity: JSONObject | undefined = kind.severities.find(
-    (candidate: JSONObject): boolean => {
-      return candidate["name"] === name;
-    },
-  );
-
-  if (!severity) {
-    throw new Error(`No ${kind.noun} severity ${name}`);
-  }
-
-  return severity["_id"] as string;
-}
 
 export function stateNamed(
   kind: ZabbixKindFixture,

@@ -8569,7 +8569,8 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
        * argument.
        */
       arguments: jsonText({
-        severities: "{{local.components.find-severities-1.returnValues.models}}",
+        severities:
+          "{{local.components.find-severities-1.returnValues.models}}",
         zabbixUrl: "{{local.variables.zabbixUrl}}",
         payload: `{{local.components.${ZABBIX_WEBHOOK_COMPONENT_ID}.returnValues.request-body}}`,
       }),
@@ -9020,9 +9021,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
      * is said where it is done (the trigger, and the Zabbix guide).
      */
     workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each Zabbix problem sent to this workflow's URL, and pages the on-call policy you pick for High and Disaster problems. Updates made in Zabbix become private notes, acknowledging the problem in Zabbix acknowledges the ${r}, and the problem's recovery resolves it.`,
-    variables: [
-      zabbixUrlVariable("Links to the problem in Zabbix go there."),
-    ],
+    variables: [zabbixUrlVariable("Links to the problem in Zabbix go there.")],
     graph: { nodes: nodes, edges: edges },
   };
 };

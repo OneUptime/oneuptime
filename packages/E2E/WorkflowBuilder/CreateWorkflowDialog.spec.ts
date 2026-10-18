@@ -673,9 +673,9 @@ test.describe("Create a workflow", () => {
     await expect(
       dialog.locator('label[for="workflow-variable-zabbixUrl"]'),
     ).toHaveText("Zabbix URL");
-    await expect(dialog.getByTestId("workflow-variable-zabbixApiToken")).toHaveCount(
-      0,
-    );
+    await expect(
+      dialog.getByTestId("workflow-variable-zabbixApiToken"),
+    ).toHaveCount(0);
 
     await url.fill("https://example.com/zabbix/zabbix.php?action=problem.view");
     await submitButton(dialog).click();
@@ -699,7 +699,10 @@ test.describe("Create a workflow", () => {
         return `${record.kind} ${record.name}`;
       }),
     ).toEqual(["workflow Zabbix problems to incidents", "variable zabbixUrl"]);
-    expect(records[0]).toMatchObject({ isEnabled: false, projectId: PROJECT_ID });
+    expect(records[0]).toMatchObject({
+      isEnabled: false,
+      projectId: PROJECT_ID,
+    });
     expect(records[1]).toEqual({
       kind: "variable",
       name: "zabbixUrl",

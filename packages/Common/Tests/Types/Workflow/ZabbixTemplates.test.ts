@@ -253,10 +253,7 @@ describe("the Zabbix templates, as the picker lists them", () => {
         "Copy incident private notes to the Zabbix problem",
         "Copy incident private notes to Zabbix",
       ],
-      [
-        "Create an alert for each Zabbix problem",
-        "Zabbix problems to alerts",
-      ],
+      ["Create an alert for each Zabbix problem", "Zabbix problems to alerts"],
       [
         "Acknowledge or close the Zabbix problem with the alert",
         "Sync alert state to Zabbix",
@@ -366,16 +363,10 @@ describe("the Zabbix URL the wizard takes", () => {
     ["another scheme", "ftp://zabbix.example.com"],
     ["a script", "javascript:alert(1)"],
     ["a host with no letter or digit", "https://.-"],
-    [
-      "more than five path segments",
-      "https://example.com/a/b/c/d/e/f",
-    ],
+    ["more than five path segments", "https://example.com/a/b/c/d/e/f"],
     ["a space", "https://zabbix.example.com/my zabbix"],
     ["markup", "https://zabbix.example.com/<b>"],
-    [
-      "more than 300 characters",
-      `https://${"z".repeat(300)}.example.com`,
-    ],
+    ["more than 300 characters", `https://${"z".repeat(300)}.example.com`],
   ])("refuses %s", (_name: string, value: string) => {
     expect(ZABBIX_URL_PATTERN.test(value)).toBe(false);
   });
@@ -426,9 +417,12 @@ describe("the Zabbix API token the wizard takes", () => {
   test.each([
     "bbcfce79a2d95037502f7e9a534906d3466c9a1484beb6ea0f4e7be28e8b8ce2",
     "BBCFCE79A2D95037502F7E9A534906D3466C9A1484BEB6EA0F4E7BE28E8B8CE2",
-  ])("takes %s: 64 hexadecimal characters, as Zabbix makes one", (value: string) => {
-    expect(ZABBIX_API_TOKEN_PATTERN.test(value)).toBe(true);
-  });
+  ])(
+    "takes %s: 64 hexadecimal characters, as Zabbix makes one",
+    (value: string) => {
+      expect(ZABBIX_API_TOKEN_PATTERN.test(value)).toBe(true);
+    },
+  );
 
   test.each([
     ["a session ID, half as long", "0424bd59b807674191e7d77572075f33"],
@@ -941,31 +935,33 @@ interface Card {
 
 // Each step as the canvas draws it: its width from its outputs, as Component.tsx does.
 function cardsOf(graph: JSONObject): Array<Card> {
-  return (graph["nodes"] as Array<JSONObject>).map((built: JSONObject): Card => {
-    const data: JSONObject = built["data"] as JSONObject;
-    const position: { x: number; y: number } = built["position"] as {
-      x: number;
-      y: number;
-    };
-    const ports: Array<Port> = getComponentOutPorts({
-      metadata: metadataOf(data["metadataId"] as string),
-      arguments: data["arguments"] as JSONObject,
-    });
-    const width: number =
-      getOutputLayout(
-        ports.map((port: Port): string => {
-          return port.title || "";
-        }),
-      ).widerCardWidth || WORKFLOW_NODE_WIDTH;
+  return (graph["nodes"] as Array<JSONObject>).map(
+    (built: JSONObject): Card => {
+      const data: JSONObject = built["data"] as JSONObject;
+      const position: { x: number; y: number } = built["position"] as {
+        x: number;
+        y: number;
+      };
+      const ports: Array<Port> = getComponentOutPorts({
+        metadata: metadataOf(data["metadataId"] as string),
+        arguments: data["arguments"] as JSONObject,
+      });
+      const width: number =
+        getOutputLayout(
+          ports.map((port: Port): string => {
+            return port.title || "";
+          }),
+        ).widerCardWidth || WORKFLOW_NODE_WIDTH;
 
-    return {
-      id: data["id"] as string,
-      left: position.x,
-      top: position.y,
-      right: position.x + width,
-      bottom: position.y + DEFAULT_NODE_HEIGHT,
-    };
-  });
+      return {
+        id: data["id"] as string,
+        left: position.x,
+        top: position.y,
+        right: position.x + width,
+        bottom: position.y + DEFAULT_NODE_HEIGHT,
+      };
+    },
+  );
 }
 
 function graphOf(templateId: string): JSONObject {
@@ -1028,9 +1024,10 @@ describe("the Zabbix templates on the canvas", () => {
         const from: Card = byNodeId.get(edge["source"] as string) as Card;
         const to: Card = byNodeId.get(edge["target"] as string) as Card;
 
-        expect({ edge: `${from.id} to ${to.id}`, below: to.top > from.top }).toEqual(
-          { edge: `${from.id} to ${to.id}`, below: true },
-        );
+        expect({
+          edge: `${from.id} to ${to.id}`,
+          below: to.top > from.top,
+        }).toEqual({ edge: `${from.id} to ${to.id}`, below: true });
       }
     },
   );
