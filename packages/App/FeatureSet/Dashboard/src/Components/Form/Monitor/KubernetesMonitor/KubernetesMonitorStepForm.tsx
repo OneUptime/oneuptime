@@ -310,10 +310,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="Kubernetes Cluster"
-          required={true}
-        />
+        <FieldLabelElement title="Kubernetes Cluster" required={true} />
         <Dropdown
           options={clusterOptions}
           value={clusterOptions.find((option: DropdownOption) => {

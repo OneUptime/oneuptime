@@ -224,10 +224,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderFleetDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="IoT Fleet"
-          required={true}
-        />
+        <FieldLabelElement title="IoT Fleet" required={true} />
         <Dropdown
           options={fleetOptions}
           value={fleetOptions.find((option: DropdownOption) => {

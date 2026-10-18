@@ -202,10 +202,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderHostDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="Podman Host"
-          required={true}
-        />
+        <FieldLabelElement title="Podman Host" required={true} />
         <Dropdown
           options={hostOptions}
           value={hostOptions.find((option: DropdownOption) => {

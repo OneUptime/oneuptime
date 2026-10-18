@@ -201,10 +201,7 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="Ceph Cluster"
-          required={true}
-        />
+        <FieldLabelElement title="Ceph Cluster" required={true} />
         <Dropdown
           options={clusterOptions}
           value={clusterOptions.find((option: DropdownOption) => {

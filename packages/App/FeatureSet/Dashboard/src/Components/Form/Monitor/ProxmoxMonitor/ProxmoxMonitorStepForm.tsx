@@ -229,10 +229,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="Proxmox Cluster"
-          required={true}
-        />
+        <FieldLabelElement title="Proxmox Cluster" required={true} />
         <Dropdown
           options={clusterOptions}
           value={clusterOptions.find((option: DropdownOption) => {

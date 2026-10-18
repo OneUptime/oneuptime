@@ -202,10 +202,7 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderHostDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="Docker Host"
-          required={true}
-        />
+        <FieldLabelElement title="Docker Host" required={true} />
         <Dropdown
           options={hostOptions}
           value={hostOptions.find((option: DropdownOption) => {
