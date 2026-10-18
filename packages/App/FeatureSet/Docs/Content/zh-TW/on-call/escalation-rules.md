@@ -79,7 +79,7 @@ flowchart TB
 
 以已確認或已解決狀態建立的事件、警示或片段（即事後補登的）不會執行任何策略：不會呼叫任何人，其 Feed 會記下這一點並列出這些策略。請參閱 [宣告時即已確認或已解決](/docs/incidents/declaring-incidents#宣告時即已確認或已解決) 。
 
-若要重複策略，請在 **重複策略** 卡片上點選 **編輯** ，開啟 **Repeat if no one acknowledges** ，並設定 **Number of times to repeat** 。
+若要重複策略，請在 **重複策略** 卡片上點選 **編輯** ，選擇 **從 Level 1 重新開始** ，並設定 **再重複幾次？** 。
 
 ### 上報概要
 

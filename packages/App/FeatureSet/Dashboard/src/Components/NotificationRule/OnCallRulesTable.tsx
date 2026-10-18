@@ -1325,6 +1325,14 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
               notifyAfterMinutes: true,
             },
             title: notifyAfterFieldTitle,
+            /*
+             * Its own line: the column's "How long should we wait before
+             * sending a notification to the user after the event has
+             * occurred?" spoke of "the user" to the user. Worded for both
+             * forms - your own rules and someone else's (onBehalfOfName) -
+             * and "being paged", not "the page", which read as a web page.
+             */
+            description: "How long after being paged to use this method.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Immediately",

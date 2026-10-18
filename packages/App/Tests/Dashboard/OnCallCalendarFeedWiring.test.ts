@@ -290,7 +290,13 @@ describe("Pages and cards", () => {
     );
   });
 
-  test("the schedule page renders the subscribe card between the roster alert and the preview, with the schedule's timezone", () => {
+  /*
+   * The schedule page leads with who is on call - the Final Schedule
+   * (FinalPreview) - now that the roster banner which said it first is gone,
+   * and offers the calendar links after it, once the schedule has layers:
+   * before anybody takes turns there are no shifts to follow.
+   */
+  test("the schedule page renders the subscribe card after the preview, once the schedule has layers, with the schedule's timezone", () => {
     const page: string = readCode(
       "Pages",
       "OnCallDuty",
@@ -302,9 +308,13 @@ describe("Pages and cards", () => {
       "<ScheduleSubscribeCard scheduleId={modelId} scheduleTimezone={ onCallSchedule ? onCallSchedule.timezone?.toString() || null : undefined } />",
     );
     const previewIndex: number = page.indexOf("<FinalPreview");
+    const layersCheckIndex: number = page.indexOf("{hasLayers ? (");
 
     expect(subscribeIndex).toBeGreaterThan(-1);
-    expect(previewIndex).toBeGreaterThan(subscribeIndex);
+    expect(previewIndex).toBeGreaterThan(-1);
+    expect(subscribeIndex).toBeGreaterThan(previewIndex);
+    expect(layersCheckIndex).toBeGreaterThan(previewIndex);
+    expect(subscribeIndex).toBeGreaterThan(layersCheckIndex);
     // The timezone must be SELECTED for the legacy-timezone warning to work.
     expect(page).toContain("timezone: true,");
   });

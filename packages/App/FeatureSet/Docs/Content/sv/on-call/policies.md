@@ -57,14 +57,14 @@ En policy som flera regler lägger till körs en gång. En allvarlighetsgrad kö
 
 ## Upprepa en policy
 
-När den sista nivåns väntetid går ut utan att någon har bekräftat slutar en policy, om den inte upprepas. För att upprepa den öppnar du policyns sida **Eskaleringsregler**, klickar på **Redigera** på kortet **Upprepningspolicy** under reglerna och fyller i **Redigera Upprepningspolicy**:
+När den sista nivåns väntetid går ut utan att någon har bekräftat slutar en policy, om den inte upprepas. För att välja öppnar du policyns sida **Eskaleringsregler** och klickar på **Redigera** på kortet **Upprepningspolicy** under reglerna. **Redigera upprepningspolicy** frågar **Om ingen bekräftar efter den sista nivån**:
 
-| Fält | Vad det gör | För en ny policy |
-| --- | --- | --- |
-| **Repeat if no one acknowledges** | Startar policyn igen från **Level 1** efter dess sista nivå. Så länge det är avstängt körs policyn en gång. | Av |
-| **Number of times to repeat** | Hur många gånger till policyn börjar om. | 0 |
+| Svar | Vad det gör |
+| --- | --- |
+| **Sluta larma** | Ingen larmas igen, så policyn körs en gång. En ny policy börjar med det här svaret. |
+| **Börja om från Level 1** | Varje nivå larmas igen, i tur och ordning. **Hur många gånger till?** anger hur många: 1 eller fler. |
 
-Med reglaget på och tre upprepningar går en policy igenom sina nivåer fyra gånger totalt. **Policy at a glance** på **Översikt** säger samma sak i ord.
+En policy som börjar om tre gånger till går igenom sina nivåer fyra gånger totalt. Kortets rad **Efter den sista nivån** säger vad policyn gör, och **Policy at a glance** på **Översikt** säger samma sak i ord.
 
 ## Exekveringsloggar
 
@@ -119,9 +119,11 @@ Jourpolicyer är resursen `/api/on-call-duty-policy`, och resursen `oneuptime_on
 | --- | --- |
 | **Namn** | `name` |
 | **Beskrivning** | `description` |
-| **Repeat if no one acknowledges** | `repeatPolicyIfNoOneAcknowledges` |
-| **Number of times to repeat** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Om ingen bekräftar efter den sista nivån** | `repeatPolicyIfNoOneAcknowledges` |
+| **Hur många gånger till?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | Arkiverad | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` är `false` för **Sluta larma** och `true` för **Börja om från Level 1**. Med `true` och `repeatPolicyIfNoOneAcknowledgesNoOfTimes` på `0` upprepas en policy aldrig, och instrumentpanelen visar den som **Sluta larma**.
 
 Se [Skapa regler med API:et eller Terraform](/docs/on-call/escalation-rules#skapa-regler-med-apiet-eller-terraform) för att skapa en policy med dess första nivå i en enda begäran.
 

@@ -489,11 +489,11 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
         <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-8 text-center">
           <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-600">
             <TranslatedSentence
-              template="No one is on this policy yet, so there is nobody to check. Add on-call schedules, teams or users on the {{tab}} tab and their readiness shows up here."
+              template="No one is on this policy yet, so there is nobody to check. Add on-call schedules, teams or people on its {{page}} page, and their readiness shows here."
               slots={{
-                tab: (
+                page: (
                   <span className="font-semibold text-gray-900">
-                    {translator.translateText("Escalation")}
+                    {translator.translateText("Escalation Rules")}
                   </span>
                 ),
               }}

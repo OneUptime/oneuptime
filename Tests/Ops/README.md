@@ -1005,6 +1005,30 @@ image: that is about 10 GB, more than a standard runner has to spare, and the
 scanner emails security@oneuptime.com when its build fails. `.oss-scanner/README.md` says how to build it locally
 with the scanner's own tools.
 
+### `MarketplaceRelease.test.js`
+
+`.github/workflows/marketplace-release.yml` ships each release to the AWS
+Marketplace, Microsoft Marketplace and Google Cloud Marketplace listings of
+self-hosted OneUptime Enterprise. What makes it safe is invisible at runtime,
+so the suite pins it:
+
+- it runs after the release workflow (by that workflow's exact `name`), only
+  when that run succeeded and `MARKETPLACE_RELEASES` is `enabled`, or by hand,
+  where `dry_run` defaults to true;
+- it holds no secret; `permissions: {}` at the top, `contents: read` for every
+  job, and `id-token: write` only for the jobs that sign in to a cloud;
+- every job that publishes (adds an AWS version, changes or publishes the
+  Microsoft offer) runs in the `marketplace-publish` environment, so it waits
+  for a maintainer; the jobs that only push run in `marketplace-push`; no other
+  job runs in an environment. The one-time setup
+  (`HelmChart/Marketplace/automation/ci_setup.py`) trusts those two
+  environments and nothing else;
+- no `${{ }}` in a script: values reach scripts through `env`;
+- every edition is built from the chart as it was released, through
+  `.github/actions/marketplace-edition` (which pins crane by its sha256), after
+  the marketplace chart suite passed; runs are never cancelled halfway;
+- every script it runs exists.
+
 ### `agent-ebpf-e2e/`
 
 Not part of `npm test`: it installs the Kubernetes agent chart on a throwaway

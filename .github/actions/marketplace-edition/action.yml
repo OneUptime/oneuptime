@@ -1,0 +1,80 @@
+name: Marketplace edition
+description: >-
+  For the Marketplace Release workflow: installs crane (pinned), puts the chart of the release
+  into the checkout - the chart the release's images were built with, from the release's commit
+  or its tag - and, given a marketplace, builds that edition of it with
+  HelmChart/Marketplace/build.py.
+
+inputs:
+  version:
+    description: The release (#.#.#).
+    required: true
+  release-sha:
+    description: The commit the release was built from. Empty looks for the version's tag.
+    required: false
+    default: ""
+  marketplace:
+    description: aws, azure or google-cloud. Empty only takes the released chart.
+    required: false
+    default: ""
+
+outputs:
+  out:
+    description: The directory build.py wrote the edition to (empty without a marketplace).
+    value: ${{ steps.build.outputs.out }}
+
+runs:
+  using: composite
+  steps:
+    # The release's images, mirrored by mirror-images.sh with crane. Pinned by the sha256 of
+    # the binary, and fetched with backoff (Scripts/GHA/fetch_pinned_artifact.sh).
+    - name: Install crane
+      shell: bash
+      env:
+        CRANE_VERSION: "0.22.1"
+        CRANE_SHA256: 8e75c326adb43b053cfd78b9b987663f8f4fe4557f4d3915905643f25c730992
+      run: |
+        set -euo pipefail
+        if [[ "${RUNNER_OS}/${RUNNER_ARCH}" != "Linux/X64" ]]; then
+          echo "::error title=No pinned crane::crane is pinned as a linux/amd64 build, and this runs on ${RUNNER_OS}/${RUNNER_ARCH}."
+          exit 1
+        fi
+        bash "${GITHUB_WORKSPACE}/Scripts/GHA/fetch_pinned_artifact.sh" --name crane --sha256 "$CRANE_SHA256" \
+          --dest "${RUNNER_TEMP}/marketplace-bin" --mode 0755 \
+          --source tgz:crane "https://github.com/google/go-containerregistry/releases/download/v${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz"
+        echo "${RUNNER_TEMP}/marketplace-bin" >>"$GITHUB_PATH"
+
+    # The workflow runs from master, whose chart may already be ahead of the release. The
+    # edition is built from the chart as it was released (the automation stays master's).
+    - name: Take the released chart
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        RELEASE_SHA: ${{ inputs.release-sha }}
+      run: |
+        set -euo pipefail
+        ref="$RELEASE_SHA"
+        if [[ -z "$ref" ]] && git ls-remote --exit-code --tags origin "refs/tags/${VERSION}" >/dev/null 2>&1; then
+          ref="refs/tags/${VERSION}"
+        fi
+        if [[ -z "$ref" ]]; then
+          echo "::warning title=No released chart::${VERSION} has no tag and no commit here: building from this checkout's chart."
+          exit 0
+        fi
+        git fetch --no-tags --depth 1 origin "$ref"
+        rm -rf HelmChart/Public/oneuptime
+        git checkout FETCH_HEAD -- HelmChart/Public/oneuptime
+        echo "The chart of ${VERSION}, from $(git rev-parse --short FETCH_HEAD)."
+
+    - name: Build the edition
+      id: build
+      if: inputs.marketplace != ''
+      shell: bash
+      env:
+        MARKETPLACE: ${{ inputs.marketplace }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        out="${RUNNER_TEMP}/edition-${MARKETPLACE}"
+        python3 HelmChart/Marketplace/build.py --marketplace "$MARKETPLACE" --version "$VERSION" --out "$out"
+        echo "out=${out}" >>"$GITHUB_OUTPUT"

@@ -53,7 +53,9 @@ export const getOnCallPolicyCreateFormFields: (
       title: "Name",
       fieldType: FormFieldSchemaType.Text,
       required: true,
-      placeholder: "On-Call Duty Name",
+      placeholder: "e.g., Platform on-call",
+      // The title says it; the column's "Any friendly name of this object" adds nothing.
+      hideColumnDescription: true,
       validation: {
         minLength: 2,
       },
@@ -75,6 +77,7 @@ export const getOnCallPolicyCreateFormFields: (
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: "Description",
+      hideColumnDescription: true,
       collapsibleSection: advanced,
     },
     getLabelsFormField<OnCallDutyPolicy>({

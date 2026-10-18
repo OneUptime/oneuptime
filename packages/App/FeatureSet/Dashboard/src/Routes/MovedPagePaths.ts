@@ -74,3 +74,14 @@ export const MOVED_AI_SECTION_PATHS: {
  * …/alerts/: both products used the same path.
  */
 export const MOVED_EPISODE_DOCS_PATH: string = "episodes/documentation";
+
+/*
+ * An incoming call policy had a "Documentation" page in its side menu: a
+ * manual of how incoming calls are routed, drawn in the product, that said
+ * what the docs page (/docs/on-call/incoming-call-policy) says - and had
+ * drifted from it (it offered teams, which a rule cannot ring). The docs are
+ * the one place for it now; the policy list links there (View
+ * Documentation), and the old address forwards to the policy's Overview,
+ * keeping its id. Relative to …/on-call-duty/.
+ */
+export const MOVED_INCOMING_CALL_POLICY_DOCS_PATH: string = `incoming-call-policies/${RouteParams.ModelID}/docs`;
