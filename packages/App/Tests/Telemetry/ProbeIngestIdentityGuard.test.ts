@@ -105,16 +105,80 @@ function stripParentheses(expression: ts.Expression): ts.Expression {
   return current;
 }
 
+// The request itself: `req`, however it is cast or wrapped.
+function isRequest(expression: ts.Expression): boolean {
+  const bare: ts.Expression = stripParentheses(expression);
+
+  return ts.isIdentifier(bare) && bare.text === "req";
+}
+
 function isRequestBody(
   sourceFile: ts.SourceFile,
   expression: ts.Expression,
 ): boolean {
-  const text: string = stripParentheses(expression)
-    .getText(sourceFile)
-    .replace(WHITESPACE, "");
+  const bare: ts.Expression = stripParentheses(expression);
 
-  // req.body itself, or a route's own reader of it (readBody(req)).
-  return text === "req.body" || BODY_READER_CALL.test(text);
+  // req.body, (req as ProbeExpressRequest).body, req!.body, req["body"].
+  if (
+    ts.isPropertyAccessExpression(bare) &&
+    bare.name.text === "body" &&
+    isRequest(bare.expression)
+  ) {
+    return true;
+  }
+
+  if (
+    ts.isElementAccessExpression(bare) &&
+    ts.isStringLiteralLike(bare.argumentExpression) &&
+    bare.argumentExpression.text === "body" &&
+    isRequest(bare.expression)
+  ) {
+    return true;
+  }
+
+  // A route's own reader of it (readBody(req)).
+  return BODY_READER_CALL.test(
+    bare.getText(sourceFile).replace(WHITESPACE, ""),
+  );
+}
+
+/*
+ * The name an element of `{ ... }` destructuring reads: `probeId` in both
+ * `{ probeId }` and `{ probeId: id }`.
+ */
+function destructuredPropertyName(element: ts.BindingElement): string | null {
+  const name: ts.PropertyName | ts.BindingName =
+    element.propertyName || element.name;
+
+  if (ts.isIdentifier(name) || ts.isStringLiteralLike(name)) {
+    return name.text;
+  }
+
+  return null;
+}
+
+/*
+ * Whether a destructuring pattern reads `probeId` off what it is given -
+ * `{ probeId }` - or, given the request itself, off its body:
+ * `{ body: { probeId } }`.
+ */
+function patternReadsProbeId(
+  pattern: ts.ObjectBindingPattern,
+  from: "body" | "request",
+): boolean {
+  return pattern.elements.some((element: ts.BindingElement) => {
+    const propertyName: string | null = destructuredPropertyName(element);
+
+    if (from === "body") {
+      return propertyName === "probeId";
+    }
+
+    return (
+      propertyName === "body" &&
+      ts.isObjectBindingPattern(element.name) &&
+      patternReadsProbeId(element.name, "body")
+    );
+  });
 }
 
 function enclosingFunction(node: ts.Node): ts.Node | null {
@@ -159,10 +223,13 @@ function bodyProbeIdReads(sourceFile: ts.SourceFile): Array<string> {
   const bodyVariables: Array<{ name: string; scope: ts.Node | null }> = [];
 
   walk(sourceFile, (node: ts.Node) => {
+    if (!ts.isVariableDeclaration(node) || !node.initializer) {
+      return;
+    }
+
+    // const data = req.body;
     if (
-      ts.isVariableDeclaration(node) &&
       ts.isIdentifier(node.name) &&
-      node.initializer &&
       isRequestBody(sourceFile, node.initializer)
     ) {
       bodyVariables.push({
@@ -170,9 +237,64 @@ function bodyProbeIdReads(sourceFile: ts.SourceFile): Array<string> {
         scope: enclosingFunction(node),
       });
     }
+
+    // const { body } = req;  const { body: data } = req;
+    if (ts.isObjectBindingPattern(node.name) && isRequest(node.initializer)) {
+      for (const element of node.name.elements) {
+        if (
+          destructuredPropertyName(element) === "body" &&
+          ts.isIdentifier(element.name)
+        ) {
+          bodyVariables.push({
+            name: element.name.text,
+            scope: enclosingFunction(node),
+          });
+        }
+      }
+    }
   });
 
   const reads: Array<string> = [];
+
+  const isBodyHolder: (expression: ts.Expression, at: ts.Node) => boolean = (
+    expression: ts.Expression,
+    at: ts.Node,
+  ): boolean => {
+    const bare: ts.Expression = stripParentheses(expression);
+
+    return (
+      isRequestBody(sourceFile, bare) ||
+      (ts.isIdentifier(bare) &&
+        bodyVariables.some(
+          (variable: { name: string; scope: ts.Node | null }) => {
+            return variable.name === bare.text && isWithin(at, variable.scope);
+          },
+        ))
+    );
+  };
+
+  // const { probeId } = req.body;  const { body: { probeId } } = req;
+  walk(sourceFile, (node: ts.Node) => {
+    if (
+      !ts.isVariableDeclaration(node) ||
+      !ts.isObjectBindingPattern(node.name) ||
+      !node.initializer
+    ) {
+      return;
+    }
+
+    const readsBody: boolean =
+      (isBodyHolder(node.initializer, node) &&
+        patternReadsProbeId(node.name, "body")) ||
+      (isRequest(node.initializer) &&
+        patternReadsProbeId(node.name, "request"));
+
+    if (readsBody) {
+      reads.push(
+        `${path.basename(sourceFile.fileName)}:${lineOf(sourceFile, node)} ${node.getText(sourceFile)}`,
+      );
+    }
+  });
 
   walk(sourceFile, (node: ts.Node) => {
     let holder: ts.Expression | null = null;
@@ -193,20 +315,7 @@ function bodyProbeIdReads(sourceFile: ts.SourceFile): Array<string> {
       return;
     }
 
-    const bare: ts.Expression = stripParentheses(holder);
-
-    const readsBody: boolean =
-      isRequestBody(sourceFile, bare) ||
-      (ts.isIdentifier(bare) &&
-        bodyVariables.some(
-          (variable: { name: string; scope: ts.Node | null }) => {
-            return (
-              variable.name === bare.text && isWithin(node, variable.scope)
-            );
-          },
-        ));
-
-    if (readsBody) {
+    if (isBodyHolder(holder, node)) {
       reads.push(
         `${path.basename(sourceFile.fileName)}:${lineOf(sourceFile, node)} ${node.getText(sourceFile)}`,
       );
@@ -365,6 +474,49 @@ describe("probe ingest: the request is the authenticated probe's", () => {
       '(req.body as JSONObject)["probeId"]',
       'data["probeId"]',
       "fromReader.probeId",
+    ]);
+  });
+
+  test("the scan sees a body read however the request is cast or destructured", () => {
+    const sample: ts.SourceFile = ts.createSourceFile(
+      "Sample.ts",
+      [
+        'const a = (req as ProbeExpressRequest).body["probeId"];',
+        "const b = req!.body.probeId;",
+        'const c = req["body"].probeId;',
+        "const { probeId } = req.body;",
+        "const { probeId: renamed } = (req as ProbeExpressRequest).body;",
+        "const { body: { probeId: nested } } = req;",
+        "function handler(req) {",
+        "  const { body } = req;",
+        "  const d = body.probeId;",
+        "  const { body: payload } = req as ProbeExpressRequest;",
+        "  const { probeId: fromPayload } = payload;",
+        "}",
+        // Not the body: a row, the request's own probe, the body's other fields.
+        "const { probeId: rowProbe } = device;",
+        "const { probe } = req;",
+        "const { probeMonitorResponse } = req.body;",
+        "const { params: { probeId: fromParams } } = req;",
+      ].join("\n"),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
+
+    expect(
+      bodyProbeIdReads(sample).map((read: string) => {
+        return read.split(" ").slice(1).join(" ");
+      }),
+    ).toEqual([
+      "{ probeId } = req.body",
+      "{ probeId: renamed } = (req as ProbeExpressRequest).body",
+      "{ body: { probeId: nested } } = req",
+      "{ probeId: fromPayload } = payload",
+      '(req as ProbeExpressRequest).body["probeId"]',
+      "req!.body.probeId",
+      'req["body"].probeId',
+      "body.probeId",
     ]);
   });
 

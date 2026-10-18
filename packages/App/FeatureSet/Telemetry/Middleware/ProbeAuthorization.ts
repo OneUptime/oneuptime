@@ -3,6 +3,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeService from "Common/Server/Services/ProbeService";
+import ProbeReportIdentity from "Common/Server/Utils/Probe/ProbeReportIdentity";
 import { ExpressResponse, NextFunction } from "Common/Server/Utils/Express";
 import logger, {
   getLogAttributesFromRequest,
@@ -106,7 +107,16 @@ export default class ProbeAuthorization {
         );
       }
 
-      const probeId: ObjectID = new ObjectID(data["probeId"] as string);
+      /*
+       * One spelling of the probe's id - lower-cased, as Postgres stores a
+       * uuid - for everything below: the key check and its cache, the
+       * liveness stamp, and req.probe, which every handler names the probe
+       * by. Postgres reads a uuid in any case; a cache key or a string
+       * comparison does not.
+       */
+      const probeId: ObjectID = ProbeReportIdentity.normalize(
+        new ObjectID(data["probeId"] as string),
+      );
 
       const probeKey: string = data["probeKey"] as string;
 
