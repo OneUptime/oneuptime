@@ -217,7 +217,7 @@ Los propietarios cumplen dos funciones:
 
 La propiedad por sí sola no concede nada. Ser propietario de un monitor no le permite editarlo salvo que algún equipo suyo tenga además un permiso sobre monitores. La propiedad acota el acceso; nunca lo amplía.
 
-Quién es propietario de un recurso se lee a través del recurso. Los propietarios de un monitor o de cualquier otro recurso solo los lista, lee, añade y elimina alguien que puede leer ese recurso, y un permiso solo sobre los propietarios no alcanza a los propietarios de ningún recurso que usted no pueda leer.
+Quién es propietario de un recurso se lee a través del recurso. Los propietarios de un monitor o de cualquier otro recurso solo los lista, lee, añade y elimina alguien que puede leer ese recurso, y un permiso solo sobre los propietarios no alcanza a los propietarios de ningún recurso que usted no pueda leer. Añadir y eliminar propietarios también se ajusta al alcance del permiso que lo permite: con el alcance `Owned`, solo llega a los recursos de los que usted o uno de sus equipos ya son propietarios, por muchos más que pueda leer, así que poder leer un monitor no le permite hacerse su propietario. Un propietario se añade o se elimina, pero nunca se traslada a otro recurso.
 
 ## Etiquetas
 
