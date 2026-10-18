@@ -15,6 +15,17 @@ before:
 env:
     - CGO_ENABLED=0
 
+# The version every package, the Homebrew cask and the winget manifests carry.
+#
+# release.yml runs GoReleaser with --snapshot (it builds; the release jobs
+# publish), and a snapshot's version defaults to <tag>-SNAPSHOT-<commit>. So
+# 14.0.71's .deb said 14.0.71~SNAPSHOT-<commit>, and its .rpm
+# 14.0.71~SNAPSHOT_<commit>. The apt and yum repositories, the cask and the
+# winget manifests name the release, so the packages are versioned as the
+# release is: the tag release.yml passes in GORELEASER_CURRENT_TAG.
+snapshot:
+  version_template: "{{ .Version }}"
+
 nfpms:
   # note that this is an array of nfpm configs
   - #
@@ -37,7 +48,7 @@ nfpms:
     # Your app's homepage.
     #
     # Default: inferred from global metadata.
-    homepage: https:/oneuptime.com/
+    homepage: https://oneuptime.com/
 
     # Your app's maintainer (probably you).
     #
@@ -64,8 +75,10 @@ nfpms:
       - archlinux
 
     # Packages your package depends on. (overridable)
+    #
+    # Not git: the agent runs no other program, and installing the package
+    # pulled git (and perl) onto every server for nothing.
     dependencies:
-      - git
       - bash
       - coreutils
       - systemd
@@ -138,6 +151,87 @@ sboms:
     documents:
       - "{{ .Binary }}_{{ .Os }}_{{ .Arch }}.cdx.json"
     args: ["$artifact", "--output", "cyclonedx-json=$document"]
+
+# The Homebrew cask and the winget manifests, generated here and published by
+# release.yml.
+#
+# GoReleaser runs with --snapshot, which writes both into dist/ (homebrew/ and
+# winget/) and publishes neither; GoReleaser OSS has no way to publish files
+# from an earlier run. They also cannot be published here: they point at this
+# version's GitHub release, which finalize-github-release publishes hours
+# later, and only once the e2e jobs pass. So infrastructure-agent-build keeps
+# them as an artifact, and the publish-infrastructure-agent-homebrew and
+# publish-infrastructure-agent-winget jobs push them once the release is out
+# (Scripts/PackageManagers/). skip_upload says the same thing to anyone who
+# runs GoReleaser without --snapshot.
+#
+# The checksums they carry are those of the archives this run attaches to the
+# release, which is why they are generated in the same run and not rebuilt.
+
+# `brew install oneuptime/tap/oneuptime-infrastructure-agent`, from the
+# OneUptime/homebrew-tap repository.
+homebrew_casks:
+  - name: oneuptime-infrastructure-agent
+    binaries:
+      - oneuptime-infrastructure-agent
+    description: Agent that sends a server's metrics to a OneUptime Server / VM monitor
+    homepage: https://oneuptime.com/docs/monitor/server-monitor
+    license: Apache-2.0
+    url:
+      template: "https://github.com/OneUptime/oneuptime/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+      verified: github.com/OneUptime/oneuptime/
+    directory: Casks
+    skip_upload: true
+    repository:
+      owner: OneUptime
+      name: homebrew-tap
+      branch: main
+    caveats: |
+      Connect the agent to your Server / VM monitor and start it:
+        sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+        sudo oneuptime-infrastructure-agent start
+      After an upgrade, restart it: sudo oneuptime-infrastructure-agent restart
+    # The binary is not notarized, and Homebrew quarantines what a cask
+    # downloads, so Gatekeeper would refuse to run it.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/oneuptime-infrastructure-agent"]
+          end
+
+# `winget install OneUptime.InfrastructureAgent`: the Windows zips as a
+# portable package, which winget puts on the PATH. The publish job opens the
+# pull request to microsoft/winget-pkgs from a fork.
+winget:
+  # GoReleaser writes the name as both PackageName and Moniker, the short
+  # alias people type, so it is the command's name rather than a title.
+  - name: oneuptime-infrastructure-agent
+    package_identifier: OneUptime.InfrastructureAgent
+    publisher: OneUptime
+    publisher_url: https://oneuptime.com
+    publisher_support_url: https://github.com/OneUptime/oneuptime/issues
+    author: HackerBay, Inc.
+    copyright: Copyright (c) HackerBay, Inc.
+    short_description: Agent that sends a server's metrics to a OneUptime Server / VM monitor
+    description: |-
+      The OneUptime Infrastructure Agent runs as a Windows service and reports CPU, memory, disks, network and running processes to a OneUptime Server / VM monitor every 30 seconds.
+    license: Apache-2.0
+    license_url: https://github.com/OneUptime/oneuptime/blob/master/agents/InfrastructureAgent/LICENSE
+    homepage: https://oneuptime.com/docs/monitor/server-monitor
+    release_notes_url: "https://github.com/OneUptime/oneuptime/releases/tag/{{ .Tag }}"
+    installation_notes: "From an Administrator prompt, run: oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com, then: oneuptime-infrastructure-agent start"
+    tags:
+      - agent
+      - infrastructure
+      - metrics
+      - monitoring
+      - oneuptime
+    url_template: "https://github.com/OneUptime/oneuptime/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    skip_upload: true
+    repository:
+      owner: OneUptime
+      name: winget-pkgs
 
 changelog:
   sort: asc
