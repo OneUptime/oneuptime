@@ -60,12 +60,12 @@ Votre CSS et votre HTML personnalisés s'appliquent dans les deux thèmes ; [HTM
 
 ### Titre, description et favicon
 
-- **Titre et description** – la carte précise que cela sert aussi au SEO. **Modifier** ouvre **Titre de la page** (texte indicatif `Please enter page title here.`) et **Description de la page**. Les moteurs de recherche et les aperçus de liens les affichent : écrivez-les pour un client, pas pour votre équipe.
+- **Titre et description** – le nom de la page dans l'onglet du navigateur et dans les e-mails aux abonnés, et la description que montrent les moteurs de recherche. **Modifier** ouvre **Titre de la page** (texte indicatif `e.g., Acme Status`) et **Description de la page**. Les moteurs de recherche et les aperçus de liens les affichent : écrivez-les pour un client, pas pour votre équipe.
 - **Favicon** – **Modifier le favicon** ouvre le téléversement **Favicon** : la petite icône de l'onglet du navigateur.
 
 ### Liens d'en-tête
 
-Le tableau **Liens d'en-tête** contient les liens de l'en-tête de la page de statut, comme votre site web, votre documentation ou un portail de support. Chaque lien a un **Titre** et un **Lien** (une URL, texte indicatif `https://link.com`), et vous les réordonnez par glisser-déposer. Sans lien, le tableau indique **Aucun lien d'en-tête de statut pour cette page de statut**, avec **Créer : Lien de l'en-tête de la page de statut** en dessous.
+Le tableau **Liens d'en-tête** contient les liens de l'en-tête de la page de statut, comme votre site web, votre documentation ou un portail de support. Chaque lien a un **Titre** et un **Lien** (une URL, texte indicatif `https://link.com`), et vous les réordonnez par glisser-déposer. Sans lien, le tableau dit à quoi ils servent, avec **Ajouter : Lien d'en-tête** en dessous.
 
 ### Description de la page de vue d'ensemble
 
@@ -74,7 +74,7 @@ Le tableau **Liens d'en-tête** contient les liens de l'en-tête de la page de s
 ### Pied de page
 
 - **Informations de copyright** – **Modifier le copyright** ouvre un champ, **Informations de copyright**, avec le texte indicatif `Acme, Inc.`.
-- **Liens du pied de page** – la même paire **Titre** et **Lien** que les liens d'en-tête, ordonnés par glisser-déposer. Sans lien, il indique « Aucun lien de pied de page de statut pour cette page de statut. »
+- **Liens du pied de page** – la même paire **Titre** et **Lien** que les liens d'en-tête, ordonnés par glisser-déposer et ajoutés avec **Ajouter : Lien du pied de page**.
 
 Les liens d'en-tête servent à la navigation ; les liens du pied de page aux mentions légales, comme les conditions, la confidentialité et les conditions d'utilisation.
 
@@ -130,8 +130,8 @@ C'étaient autrefois deux cartes à part, **Pourcentage de disponibilité global
 
 | Carte | Colonne | Ce qu'elle contient |
 | ---- | ------ | ------------- |
-| **HTML d'en-tête** | `headerHTML` | Du HTML ajouté à l'en-tête de la page (texte indicatif `Insert Custom HTML here.`). |
-| **HTML du pied de page** | `footerHTML` | Du HTML ajouté au pied de page. |
+| **HTML d'en-tête** | `headerHTML` | Du HTML affiché à la place de l'en-tête de la page, son logo et ses liens d'en-tête (texte indicatif `Insert Custom HTML here.`). |
+| **HTML du pied de page** | `footerHTML` | Du HTML affiché à la place du pied de page, avec ses liens et ses sélecteurs de langue et de thème. |
 | **CSS personnalisé** | `customCSS` | Des styles pour toute la page (texte indicatif `Insert Custom CSS here.`). |
 | **JavaScript personnalisé** | `customJavaScript` | Un script que la page exécute (texte indicatif `Insert Custom JavaScript here.`). |
 

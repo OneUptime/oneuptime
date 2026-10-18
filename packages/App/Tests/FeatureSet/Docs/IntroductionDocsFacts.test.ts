@@ -13,6 +13,7 @@ import {
 import { DEFAULT_MONITORING_INTERVAL } from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitoringIntervalDefault";
 import { getMonitoringIntervalLabel } from "../../../FeatureSet/Dashboard/src/Utils/MonitorIntervalDropdownOptions";
 import { ProjectNotificationChannelsCopy } from "../../../FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannelsCopy";
+import { StatusPageOverviewCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageOverviewCopy";
 import {
   EMPTY_KEYBOARD_SEQUENCE_STATE,
   KEYBOARD_SEQUENCE_TIMEOUT_IN_MS,
@@ -634,9 +635,22 @@ describe("Quickstart", () => {
     expect(
       dashboard("Components/StatusPage/StatusPageResourceFormFields.ts"),
     ).toContain('title: "Display Name"');
+    // The new page opens on its Overview, whose first step is Add Monitors.
+    expect(dashboard("Pages/StatusPages/StatusPages.tsx")).toContain(
+      "RouteMap[PageMap.STATUS_PAGE_VIEW]",
+    );
+    expect(StatusPageOverviewCopy.firstStepButton).toBe("Add Monitors");
+    expect(QUICKSTART).toContain(
+      "and click **Create Status Page**. The new page opens on its **Overview**.",
+    );
+    expect(QUICKSTART).toContain("Click **Add Monitors** on the **Overview**");
     expect(
       dashboard("Pages/StatusPages/View/StatusPagePreviewLink.tsx"),
-    ).toContain("title={`Status Page Preview URL`}");
+    ).toContain("title={StatusPageOverviewCopy.linkCardTitle}");
+    expect(StatusPageOverviewCopy.linkCardTitle).toBe("Status Page Link");
+    expect(QUICKSTART).toContain(
+      "The **Status Page Link** card links to your status page",
+    );
   });
 
   it("invites with the Users page's own form, starting on the members team", () => {

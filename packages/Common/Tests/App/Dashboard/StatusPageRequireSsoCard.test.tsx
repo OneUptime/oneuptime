@@ -134,9 +134,14 @@ describe("Require SSO for Login, on a status page", () => {
     expect(
       screen.getByText(StatusPageRequireSsoCopy.cardTitle),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(StatusPageRequireSsoCopy.cardDescription),
-    ).toBeInTheDocument();
+    /*
+     * No line of its own: testing first is said beside the link, by the Test
+     * Sign-In card above it - which a page with no provider does not draw.
+     */
+    expect(document.body).not.toHaveTextContent("link above");
+    expect(Object.keys(StatusPageRequireSsoCopy)).not.toContain(
+      "cardDescription",
+    );
     expect(
       screen.getByRole("switch", {
         name: StatusPageRequireSsoCopy.switchTitle,

@@ -60,12 +60,12 @@ Din brugerdefinerede CSS og HTML gælder i begge temaer; [Brugerdefineret HTML, 
 
 ### Titel, beskrivelse og favicon
 
-- **Titel og beskrivelse**: kortet bemærker, at det også bruges til SEO. **Rediger** åbner **Sidetitel** (pladsholder `Please enter page title here.`) og **Sidebeskrivelse**. Søgemaskiner og linkforhåndsvisninger viser dem, så skriv dem til en kunde, ikke til dit team.
+- **Titel og beskrivelse**: sidens navn i browserfanen og i e-mails til abonnenter og den beskrivelse, søgemaskiner viser. **Rediger** åbner **Sidetitel** (pladsholder `e.g., Acme Status`) og **Sidebeskrivelse**. Søgemaskiner og linkforhåndsvisninger viser dem, så skriv dem til en kunde, ikke til dit team.
 - **Favicon**: **Edit Favicon** åbner uploaden **Favicon**: det lille ikon i browserfanen.
 
 ### Header-links
 
-Tabellen **Header-links** indeholder linkene i statussidens header, såsom dit websted, din dokumentation eller en supportportal. Hvert link har en **Titel** og et **Link** (en URL, pladsholder `https://link.com`), og du ændrer rækkefølgen ved at trække. Uden links siger tabellen **Intet statusoverskriftslink for denne statusside** med **Opret Statusside Header Link** nedenunder.
+Tabellen **Header-links** indeholder linkene i statussidens header, såsom dit websted, din dokumentation eller en supportportal. Hvert link har en **Titel** og et **Link** (en URL, pladsholder `https://link.com`), og du ændrer rækkefølgen ved at trække. Uden links siger tabellen, hvad de er til, med **Tilføj Header-link** nedenunder.
 
 ### Beskrivelse af oversigtssiden
 
@@ -74,7 +74,7 @@ Tabellen **Header-links** indeholder linkene i statussidens header, såsom dit w
 ### Sidefod
 
 - **Copyright-information**: **Edit Copyright** åbner ét felt, **Copyright-information**, med pladsholderen `Acme, Inc.`.
-- **Sidefodslinks**: det samme par **Titel** og **Link** som header-linkene, sorteret ved at trække. Uden links står der "Intet statusfodlink for denne statusside."
+- **Sidefodslinks**: det samme par **Titel** og **Link** som header-linkene, sorteret ved at trække og tilføjet med **Tilføj Sidefodslink**.
 
 Header-links er til navigation; sidefodslinks er til det med småt, såsom juridiske oplysninger, privatliv og vilkår.
 
@@ -130,8 +130,8 @@ De var tidligere to selvstændige kort, **Samlet oppetidsprocent** og **Nedetids
 
 | Kort | Kolonne | Hvad det indeholder |
 | ---- | ------ | ------------- |
-| **Header-HTML** | `headerHTML` | HTML, der tilføjes sidens header (pladsholder `Insert Custom HTML here.`). |
-| **Sidefods-HTML** | `footerHTML` | HTML, der tilføjes sidens sidefod. |
+| **Header-HTML** | `headerHTML` | HTML, der vises i stedet for sidens header, dens logo og header-links (pladsholder `Insert Custom HTML here.`). |
+| **Sidefods-HTML** | `footerHTML` | HTML, der vises i stedet for sidens sidefod med dens links og skift af sprog og tema. |
 | **Brugerdefineret CSS** | `customCSS` | Typografi for hele siden (pladsholder `Insert Custom CSS here.`). |
 | **Brugerdefineret JavaScript** | `customJavaScript` | Et script, siden kører (pladsholder `Insert Custom JavaScript here.`). |
 

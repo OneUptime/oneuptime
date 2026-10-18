@@ -85,15 +85,15 @@ Se [Eskaleringsregler](/docs/on-call/escalation-rules) och [Jourscheman](/docs/o
 :::steps
 ### Skapa statussidan
 
-Klicka på **Publicera en statussida** i checklistan, eller öppna **Statussidor** från menyn **Produkter**. Klicka på **Skapa statussida**, ange ett **Namn**, till exempel `Acme Status`, och klicka på **Skapa statussida**.
+Klicka på **Publicera en statussida** i checklistan, eller öppna **Statussidor** från menyn **Produkter**. Klicka på **Skapa statussida**, ange ett **Namn**, till exempel `Acme Status`, och klicka på **Skapa statussida**. Den nya sidan öppnas på sin **Översikt**.
 
 ### Lägg till din monitor
 
-Öppna den nya statussidan. I dess sidomeny, under **Resurser**, väljer du **Monitorer**; i projekt med monitorgrupper påslagna heter punkten **Resurser**. Klicka på **Lägg till monitor**, välj din webbplatsmonitor och klicka på **Lägg till monitor**. Raden visar monitorns namn för besökare; ändra det under **Visningsnamn** om du vill.
+Klicka på **Lägg till monitorer** på **Översikt**, eller välj **Monitorer** under **Resurser** i sidans sidomeny; i projekt med monitorgrupper påslagna heter punkten **Resurser**. Klicka på **Lägg till monitor**, välj din webbplatsmonitor och klicka på **Lägg till monitor**. Raden visar monitorns namn för besökare; ändra det under **Visningsnamn** om du vill.
 
 ### Öppna sidan
 
-Välj **Översikt** i sidomenyn. Kortet **Status Page Preview URL** länkar till din statussida: öppna den, så visas din webbplats som fungerande.
+Välj **Översikt** i sidomenyn. Kortet **Länk till statussidan** länkar till din statussida: öppna den, så visas din webbplats som fungerande.
 :::
 
 En ny statussida är offentlig: alla som har adressen kan öppna den. Se [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains) för att ge den din egen domän, logotyp och dina egna färger.

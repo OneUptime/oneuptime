@@ -105,27 +105,10 @@ const ALLOWED: Array<AllowedString> = [
       "Hands over the test sign-in link it carries and says what the link is for.",
   },
   {
-    file: "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SSO.tsx",
-    text: "Here's a link which will help you test SSO integration before you force it on your organization: {{link}}",
-    reason:
-      "Hands over the test sign-in link it carries and says what the link is for.",
-  },
-  {
     file: "packages/App/FeatureSet/Dashboard/src/Pages/Settings/OIDC.tsx",
     text: "Here's a link which will help you test OIDC integration before you force it on your organization: {{link}}",
     reason:
       "Hands over the test sign-in link it carries and says what the link is for.",
-  },
-  {
-    file: "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/OIDC.tsx",
-    text: "Here's a link which will help you test OIDC integration before you force it on your organization: {{link}}",
-    reason:
-      "Hands over the test sign-in link it carries and says what the link is for.",
-  },
-  {
-    file: "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPagePreviewLink.tsx",
-    text: "Here's a link to preview your status page: {{link}}",
-    reason: "Hands over the status page's preview link.",
   },
   {
     file: "packages/App/FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults.ts",

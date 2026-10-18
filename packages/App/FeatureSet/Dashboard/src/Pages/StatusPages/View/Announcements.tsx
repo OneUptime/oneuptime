@@ -23,7 +23,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <AnnouncementTable query={query} statusPageId={modelId} />
+      <AnnouncementTable
+        query={query}
+        statusPageId={modelId}
+        description="Notices on this status page, such as planned work or news."
+      />
     </Fragment>
   );
 };

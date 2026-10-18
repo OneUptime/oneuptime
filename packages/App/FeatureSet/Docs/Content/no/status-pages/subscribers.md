@@ -43,7 +43,7 @@ Bryterne bestemmer hvordan besøkende kan melde seg på selv, og statussiden avv
 
 På OneUptime Cloud står abonnementets navn ved en bryter som abonnementet ditt ikke inkluderer: **Growth** for **SMS** og **Vis abonnentside**, **Scale** for **Slack**, **Microsoft Teams** og **Webhook**. Å slå av en kanal fungerer på alle abonnementer, så en kanal som en prøveperiode slo på, kan alltid slås av igjen; bryteren sier det under seg.
 
-Hver kanal har også sin egen liste i statussidens sidemeny under **Abonnenter**: **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter** og **Webhook-abonnenter**. Det er der du ser hvem som er påmeldt, legger til noen manuelt eller legger igjen et **Notater** (`internalNote`) til deg selv om en bestemt abonnent. Så lenge en kanal er av, sier toppen av listen det, med kanalens bryter rett der, slik at du kan slå den på uten å forlate listen.
+Hver kanal har også sin egen liste i statussidens sidemeny under **Abonnenter**: **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter** og **Webhook-abonnenter**. Det er der du ser hvem som er påmeldt, legger til noen manuelt med **Legg til abonnent** eller legger igjen et **Internt notat** (`internalNote`) til deg selv om en bestemt abonnent, som bare teamet ditt ser. Så lenge en kanal er av, sier toppen av listen det, med kanalens bryter rett der, slik at du kan slå den på uten å forlate listen.
 
 **Én bryter er ikke nok.** Elementet **Abonner** i statussidens navigasjonslinje vises bare når **Vis abonnentside** er på *og* minst én kanal er på. Hvis du slår på **E-post**, men lar **Vis abonnentside** være av, har besøkende ingen måte å komme til skjemaet på.
 
@@ -66,7 +66,7 @@ Ingen av innstillingene sletter en abonnent, og å slå dem av sender til alle i
 
 ## Hva en besøkende ser på abonnementssiden
 
-Siden **Abonner** har en undermeny med én fane per påslått kanal. Hver fane ber om det minste den trenger:
+Siden **Abonner** har en undermeny med én fane per påslått kanal; med bare én kanal på er det ingen undermeny, bare skjemaet for den kanalen. Hver fane ber om det minste den trenger:
 
 | Fane | Adresse | Overskrift | Hva den ber om |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ Innsendingsknappen heter **Abonner**. En påmelding via SMS, Slack, Microsoft Te
 
 ## La abonnentene velge ressurser og hendelsestyper
 
-Som standard får en abonnent alt på siden. To brytere på kortet **Avanserte abonnentinnstillinger** endrer det:
+Som standard får en abonnent alt på siden. To brytere på kortet **Valg for abonnenter** under **Abonnentsinnstillinger** endrer det, og hver lagres så snart du slår den om:
 
 - **Tillat abonnenter å velge ressurser** (`allowSubscribersToChooseResources`) — av som standard. Slå den på, så får påmeldingsskjemaet en bryter **Abonner på alle ressurser**; slå den av, så vises **Velg ressurser å abonnere på**, slik at den besøkende kan velge enkeltressurser.
 - **Tillat abonnenter å velge hendelsestyper** (`allowSubscribersToChooseEventTypes`) — av som standard. Samme form: en bryter **Abonner på alle hendelsestyper**, og **Velg hendelsestyper å abonnere på** under når den er av.
@@ -99,17 +99,17 @@ Valgene havner i abonnentposten som **Is Subscribed to All Resources** (`isSubsc
 
 Nyttig for: en side som dekker flere produkter. En kunde som bare bruker API-et ditt, vil ikke ha et varsel hver gang markedsføringsnettstedet vakler — la dem snevre inn listen selv i stedet for å se dem melde seg av helt.
 
-Det samme kortet inneholder også **Tidssoner for abonnenter**.
+**Tidssoner for abonnenter** ligger under **Flere innstillinger** på samme skjerm (se [nedenfor](#e-postbunntekst-egendefinert-smtp-og-twilio)).
 
 ## Dobbel bekreftelse på e-post
 
 E-postabonnenter bekrefter alltid. Når en abonnent opprettes med en e-postadresse og ikke ble opprettet som allerede bekreftet, tvinges **Is Subscription Confirmed** (`isSubscriptionConfirmed`) til `false`, og et sekssifret **Subscription Confirmation Token** genereres. OneUptime sender deretter en bekreftelseslenke på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Den besøkende havner på en side **Bekreft abonnement** og ser, når det har gått gjennom, *Abonnement bekreftet*.
 
-Abonnenter via SMS, Slack, Microsoft Teams og webhook hopper over dette — de opprettes med `isSubscriptionConfirmed` allerede satt til `true`. Det samme gjør e-postabonnenter som teamet ditt legger til under **E-postabonnenter**: der er **Ikke send bekreftelseslenke** på som standard. Slå den av for å la adressen bekrefte som ved en påmelding.
+Abonnenter via SMS, Slack, Microsoft Teams og webhook hopper over dette — de opprettes med `isSubscriptionConfirmed` allerede satt til `true`. Når teamet ditt legger til en e-postabonnent under **E-postabonnenter**, avgjør **Når du legger dem til** det: **Abonner dem nå** (standard: bekreftet, og ingenting sendes), **Abonner dem nå, og gi beskjed** (bekreftet, og e-posten om at de abonnerer, sendes) eller **Be dem bekrefte først** (de får bekreftelseslenken, som ved en påmelding). **Legg til i bulk** spør om det samme.
 
 **Ubekreftet betyr stille.** Spørringen som henter abonnenter til et varsel, filtrerer på `isUnsubscribed: false` og `isSubscriptionConfirmed: true`. En e-postadresse som aldri klikket på lenken, blir stående i listen **E-postabonnenter** og mottar ingenting. Hvis noen sverger på at de abonnerer, men ikke hører noe, sjekk den kolonnen først.
 
-Det finnes ingen bryter for å slå av e-postbekreftelsen — den er ubetinget for alle som melder seg på via statussiden. En egen kolonne per abonnent, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, standard true), styrer e-posten "du abonnerer" som sendes når en abonnent er bekreftet.
+Det finnes ingen bryter for å slå av e-postbekreftelsen — den er ubetinget for alle som melder seg på via statussiden. En egen kolonne per abonnent, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, standard true), styrer e-posten "du abonnerer" som sendes når en abonnent er bekreftet. I dashbordet setter **Når du legger dem til** den for en e-postabonnent, og **Send en velkomstmelding**, under **Flere felt**, for de andre kanalene.
 
 ## Å administrere og avslutte et abonnement
 
@@ -131,7 +131,7 @@ På en privat statusside krever den en innlogget besøkende, som resten av siden
 
 Endepunktene bak alt dette er `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token` og `GET` og `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. Avmeldings-`GET` beskriver bare lenken. `POST` avslutter abonnementet uansett innhold, også innholdet `List-Unsubscribe=One-Click` i en avmeldingsforespørsel med ett klikk. Alle endepunkter som tar et token, gir det samme svaret for et manglende eller feil token, en slettet abonnent og en abonnent på en annen statusside, så ingen av dem kan brukes til å finne ut hvem som abonnerer.
 
-Avmelding snur et flagg i stedet for å slette en rad, så posten blir stående i kanallisten med **Er avmeldt** satt — nyttig når du senere må forklare hvorfor en bestemt adresse sluttet å få e-post. Den registrerer også **Avsluttet den** (`unsubscribedAt`), uansett hvem som avsluttet abonnementet: abonnenten via lenken eller siden **Oppdater abonnement**, eller en kollega i dashbordet eller via API-et. Hver abonnentliste har en kolonne og et filter **Avsluttet den**. Å slå av **Er avmeldt** igjen fjerner den. Abonnementer som ble avsluttet før OneUptime registrerte dette, har ingen dato.
+Avmelding snur et flagg i stedet for å slette en rad, så posten blir stående i kanallisten med **Er avmeldt** satt — nyttig når du senere må forklare hvorfor en bestemt adresse sluttet å få e-post. Den registrerer også **Avsluttet den** (`unsubscribedAt`), uansett hvem som avsluttet abonnementet: abonnenten via lenken eller siden **Oppdater abonnement**, eller en kollega i dashbordet eller via API-et. Hver abonnentliste har en kolonne og et filter **Avsluttet den**. Å sette **Status** for en abonnent tilbake til **Abonnert** fjerner den. Abonnementer som ble avsluttet før OneUptime registrerte dette, har ingen dato.
 
 En lenke med bare abonnentens ID åpner ikke lenger noe. En lenke til **Oppdater abonnement** i en eldre melding, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, åpner en side som sier at lenken er utløpt, med **Få en ny lenke**, som fører til siden **Abonner**. Veldig gamle meldinger hadde `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, som tidligere meldte av så snart den ble åpnet. Den endrer ikke lenger noe: den fører til avmeldingssiden, som sier at lenken er utdatert, og at man skal bruke den i en nyere melding.
 
@@ -392,9 +392,10 @@ Mens du skriver en mal, fyller **Direkte forhåndsvisning** under malens innhold
 
 ## E-postbunntekst, egendefinert SMTP og Twilio
 
-Tre kort til under **Abonnentsinnstillinger** styrer hvordan meldinger til abonnenter forlater prosjektet ditt:
+Fire avsnitt til, under **Flere innstillinger** nederst på **Abonnentsinnstillinger**, styrer hvordan meldinger til abonnenter forlater prosjektet ditt:
 
-- **Innstillinger for e-postbunntekst** — **Aktiver egendefinert e-postbunntekst** og **Bunntekst for e-postvarsel til abonnenter** setter din egen bunntekst på e-poster til abonnenter.
+- **Tidssoner for abonnenter** — tidssonene tidspunkter i varsler vises i, valgt med **Rediger tidssoner**. Er ingen valgt, vises tidspunkter i UTC og i London-, New York-, Los Angeles-, Kolkata- og Sydney-tid.
+- **E-postbunntekst** — linjen på slutten av hver e-post til sidens abonnenter. **Rediger bunntekst** spør etter **Bunntekst**: **Standardbunnteksten**, en linje som sier at de får e-posten fordi de abonnerer, eller **Din egen tekst**, den **Tekst i bunnteksten** du skriver (`enableCustomSubscriberEmailNotificationFooterText` og `subscriberEmailNotificationFooterText`). Står din egen tekst tom, sendes standardbunnteksten.
 - **Egendefinert SMTP** — **Egendefinert SMTP-konfigurasjon** sender e-post til abonnenter via din egen e-postserver i stedet for standardserveren.
 - **Twilio-konfigurasjon** — **Twilio-konfigurasjon** er Twilio-kontoen som brukes for SMS-abonnenter.
 

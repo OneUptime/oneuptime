@@ -26,6 +26,7 @@ import {
 import {
   ANNOUNCEMENT_FORM_STEPS,
   ANNOUNCEMENT_TEMPLATE_FORM_STEPS,
+  ANNOUNCEMENT_TITLE_PLACEHOLDER,
   getAnnouncementFormFields,
   getAnnouncementTemplateFormFields,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementFormFields";
@@ -510,6 +511,42 @@ describe("the announcement forms", () => {
         ).toBe(`${shape.name} ${id}: true`);
       }
     }
+  });
+
+  /*
+   * The title's column help said "Title of this resource" (an announcement)
+   * and "Title of the announcement" (a template) under the word Title, over
+   * a box whose placeholder was "Announcement Title": three ways of saying
+   * the title. Each form now shows an example instead.
+   */
+  test("ask for the title by an example, without help that only says it is the title", () => {
+    const fields: Array<ModelField<BaseModel>> = [
+      ...getAnnouncementFormFields(AnnouncementFormKind.Create),
+      ...getAnnouncementFormFields(AnnouncementFormKind.Edit),
+      ...getAnnouncementTemplateFormFields(),
+    ] as unknown as Array<ModelField<BaseModel>>;
+
+    const titleFields: Array<ModelField<BaseModel>> = fields.filter(
+      (field: ModelField<BaseModel>): boolean => {
+        const columns: Dictionary<unknown> = (field.field ||
+          {}) as Dictionary<unknown>;
+
+        return Boolean(columns["title"]);
+      },
+    );
+
+    expect(titleFields).toHaveLength(3);
+
+    for (const field of titleFields) {
+      expect(field.title).toBe("Title");
+      expect(field.placeholder).toBe(ANNOUNCEMENT_TITLE_PLACEHOLDER);
+      expect(field.hideColumnDescription).toBe(true);
+      expect(field.description).toBeUndefined();
+    }
+
+    expect(ANNOUNCEMENT_TITLE_PLACEHOLDER).toBe(
+      "e.g., Planned maintenance on Saturday",
+    );
   });
 
   test("fold their fields with the shared sections, built once", () => {

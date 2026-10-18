@@ -1,8 +1,14 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { getStatusPageCreateFormFields } from "../../Components/StatusPage/StatusPageCreateForm";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
@@ -19,7 +25,7 @@ import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTea
 import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
 import { JSONObject } from "Common/Types/JSON";
 import { ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY } from "Common/Utils/StatusPage/HistoryChartBarColors";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import StatusPageElement from "../../Components/StatusPage/StatusPageElement";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
@@ -72,6 +78,16 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
     areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
+  /*
+   * The name, with the description and the labels under More fields
+   * (StatusPageCreateForm.ts). Built once, not on every render.
+   */
+  const createFormFields: Array<ModelField<StatusPage>> = useMemo((): Array<
+    ModelField<StatusPage>
+  > => {
+    return getStatusPageCreateFormFields();
+  }, []);
+
   return (
     <div>
       <ModelTable<StatusPage>
@@ -98,6 +114,25 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           miscDataProps[ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY] = true;
           return Promise.resolve(item);
         }}
+        onCreateSuccess={(
+          item: StatusPage,
+          modalType?: ModalType,
+        ): Promise<StatusPage> => {
+          /*
+           * A new status page opens on its Overview, which starts with its
+           * next step: it shows visitors nothing until monitors are added.
+           */
+          if (modalType === ModalType.Create && item._id) {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
+                { modelId: new ObjectID(item._id.toString()) },
+              ),
+            );
+          }
+
+          return Promise.resolve(item);
+        }}
         enableJsonImportExport={true}
         id="status-page-table"
         userPreferencesKey="status-page-table"
@@ -122,29 +157,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         videoLink={URL.fromString("https://youtu.be/F6BNipy5VCk")}
         showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Status Page Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-        ]}
+        formFields={createFormFields}
         saveFilterProps={{
           tableId: "all-status-pages-table",
         }}
@@ -189,7 +202,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               description: true,
             },
-            noValueMessage: "-",
+            // An empty description is the table's quiet dash, like every cell.
             title: "Description",
             type: FieldType.LongText,
             hideOnMobile: true,

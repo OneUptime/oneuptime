@@ -9,19 +9,13 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
 import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import {
-  HOST,
-  HTTP_PROTOCOL,
-  IDENTITY_URL,
-  STATUS_PAGE_URL,
-} from "Common/UI/Config";
+import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import React, {
@@ -30,11 +24,11 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import Link from "Common/UI/Components/Link/Link";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import StatusPageSignInTestCard from "../../../Components/StatusPage/StatusPageSignInTestCard";
+import { StatusPageSignInCopy } from "../../../Components/StatusPage/StatusPageSignInCopy";
 
 /*
  * The provider the configuration dialog is open for: its id, and whether it
@@ -62,10 +56,11 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const testUrl: string = `${STATUS_PAGE_URL.toString()}/${modelId}/sso`;
 
   const [samlConfigTarget, setSamlConfigTarget] =
     useState<SamlConfigDialogTarget | null>(null);
+  // How many providers the list holds: Test Sign-In waits for one.
+  const [providerCount, setProviderCount] = useState<number>(0);
   const showSingleSignOnUrlId: string = samlConfigTarget?.id || "";
 
   return (
@@ -96,13 +91,20 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           isDeleteable={true}
           isEditable={true}
           isCreateable={true}
+          singularName={StatusPageSignInCopy.ssoProvider}
+          pluralName={StatusPageSignInCopy.ssoProviders}
+          createVerb="Add"
           cardProps={{
             title: "Single Sign On (SSO)",
-            description:
-              "Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.",
+            description: StatusPageSignInCopy.ssoDescription,
           }}
           videoLink={URL.fromString("https://youtu.be/F_h74p38SU0")}
-          noItemsMessage={"No SSO configuration found."}
+          onFetchSuccess={(
+            _data: Array<StatusPageSSO>,
+            totalCount: number,
+          ): void => {
+            setProviderCount(totalCount);
+          }}
           viewPageRoute={Navigation.getCurrentRoute()}
           formSteps={getSsoProviderFormSteps<StatusPageSSO>()}
           formFields={getSamlProviderFormFields<StatusPageSSO>()}
@@ -188,23 +190,11 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           ]}
         />
 
-        <Card
-          title={`Test Single Sign On (SSO)`}
-          description={
-            <span>
-              <TranslatedSentence
-                template="Here's a link which will help you test SSO integration before you force it on your organization: {{link}}"
-                slots={{
-                  link: (
-                    <Link openInNewTab={true} to={URL.fromString(testUrl)}>
-                      <span>{testUrl}</span>
-                    </Link>
-                  ),
-                }}
-              />
-            </span>
-          }
-        />
+        {providerCount > 0 ? (
+          <StatusPageSignInTestCard statusPageId={modelId} />
+        ) : (
+          <></>
+        )}
 
         {/*
          * "Require SSO for Login": one switch that saves when flipped, and

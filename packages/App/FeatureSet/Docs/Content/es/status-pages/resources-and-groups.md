@@ -209,23 +209,19 @@ Una regla de monitores añade monitores a la página por ti: describe los monito
 :::steps
 ### Abrir Reglas de monitores
 
-Abre la página de estado, elige **Reglas de monitores** en la sección **Recursos** de su menú lateral y haz clic en **Crear Regla de monitores de la página de estado**.
-
-### Nombrar la regla
-
-En **Información básica**, escribe un **Nombre**. **Habilitado** está activado de forma predeterminada.
+Abre la página de estado, elige **Reglas de monitores** en la sección **Recursos** de su menú lateral y haz clic en **Crear regla de monitores**.
 
 ### Indicar con qué monitores coincide
 
-En **Criterios de coincidencia**, rellena al menos uno de **Etiquetas del monitor** (coincide un monitor que lleve cualquiera de ellas), **Nombre del monitor** y **Descripción del monitor**. Un monitor tiene que cumplir todos los criterios que rellenes. Los dos patrones admiten una expresión regular que no distingue mayúsculas y minúsculas (`^api-.*`) o un comodín `*` (`*checkout*`); `.*` coincide con todos los monitores.
+En **Coincidencia**, añade al menos una condición sobre **Etiquetas del monitor** (coincide un monitor que lleve cualquiera de ellas), **Nombre del monitor** o **Descripción del monitor**. Con dos condiciones o más, elige si un monitor tiene que cumplirlas todas o solo una. Los dos patrones admiten una expresión regular que no distingue mayúsculas y minúsculas (`^api-.*`) o un comodín `*` (`*checkout*`); `.*` coincide con todos los monitores.
 
 ### Elegir el grupo
 
-En **Grupo**, elige **Añadir monitores al grupo**, o déjalo vacío para añadir los monitores sin grupo. Siguen las mismas opciones de visualización que en un recurso; en una regla, **Mostrar % de tiempo de actividad** empieza activado.
+En **Grupo**, elige **Añadir monitores a**, o déjalo vacío para añadir los monitores en la parte superior de la página. El **Nombre** de la regla se rellena a partir de él, por ejemplo "Añadir monitores a Sitio web", hasta que escribas uno propio. **Más campos** tiene las mismas opciones de visualización que un recurso y la **Descripción** de la regla; en una regla, **Mostrar % de tiempo de actividad** empieza activado.
 
 ### Guardar la regla
 
-La regla se ejecuta al momento sobre todos los monitores que ya existen, y la lista muestra el grupo al que añade monitores en **Añade monitores a**.
+La regla se ejecuta al momento sobre todos los monitores que ya existen, y la lista muestra el grupo al que añade monitores en **Añade monitores a**. Una regla nueva está activada: su interruptor **Habilitado** está en su formulario de edición.
 :::
 
 Después, una regla vuelve a ejecutarse para un monitor cada vez que se crea uno o cambian sus etiquetas, su nombre o su descripción. Una regla solo quita los recursos que añadió: desactivarla o eliminarla los quita de la página, y un monitor que añadiste a mano nunca se toca. Un monitor que ya está en la página nunca se añade dos veces.
