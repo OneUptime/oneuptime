@@ -95,6 +95,8 @@ Ohne winget laden Sie den Agent selbst herunter:
 1. Laden Sie den Agent aus dem [neuesten GitHub-Release](https://github.com/OneUptime/oneuptime/releases/latest) herunter: `oneuptime-infrastructure-agent_windows_amd64.zip` für x64 oder `oneuptime-infrastructure-agent_windows_arm64.zip` für ARM64.
 2. Entpacken Sie die ZIP-Datei. Sie enthält `oneuptime-infrastructure-agent.exe`.
 3. Öffnen Sie die **Eingabeaufforderung** als Administrator in dem Ordner, in den Sie sie entpackt haben.
+
+Um den Agent mit Intune, Configuration Manager oder Gruppenrichtlinien zu verteilen, verwenden Sie `oneuptime-infrastructure-agent-amd64.msi` (oder `oneuptime-infrastructure-agent-arm64.msi`) aus demselben Release. Sie installiert den Agent in `C:\Program Files\OneUptimeInfrastructureAgent`, und eine neuere MSI aktualisiert ihn an Ort und Stelle und startet ihn erneut. Eine MSI aus einem früheren Release lässt sich nicht aktualisieren: Deinstallieren Sie sie zuvor einmal.
 :::
 
 Jeder Weg installiert das neueste Release für Ihr Betriebssystem und Ihren Prozessor (x86-64 oder ARM64). Die apt- und yum-Repositorys enthalten die `.deb`- und `.rpm`-Pakete, die jedem GitHub-Release beiliegen, signiert mit dem Schlüssel unter `https://packages.oneuptime.com/gpg.key`, und die Pakete legen die Binärdatei in `/usr/bin` ab. Das Installationsskript legt die Binärdatei `oneuptime-infrastructure-agent` in `$HOME/bin` ab. Bei einer selbst gehosteten Installation wird das Skript von Ihrer eigenen OneUptime-URL ausgeliefert.
@@ -184,6 +186,7 @@ Aktualisieren Sie den Agent auf dem Weg, auf dem Sie ihn installiert haben:
 | dnf oder yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
 | Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
 | winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | Installieren Sie die neuere MSI. |
 | Installationsskript | Führen Sie das Installationsskript erneut aus. |
 
 Eine Aktualisierung startet den laufenden Agent nicht neu; führen Sie danach `restart` aus. Führen Sie unter Windows vor `winget upgrade` den Befehl `stop` und danach `start` aus: winget kann das Programm nicht ersetzen, während der Dienst es ausführt.

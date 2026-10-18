@@ -95,6 +95,8 @@ Senza winget, scaricate l'agente voi stessi:
 1. Scaricate l'agente dall'[ultima release su GitHub](https://github.com/OneUptime/oneuptime/releases/latest): `oneuptime-infrastructure-agent_windows_amd64.zip` per x64, oppure `oneuptime-infrastructure-agent_windows_arm64.zip` per ARM64.
 2. Estraete il file ZIP. Contiene `oneuptime-infrastructure-agent.exe`.
 3. Aprite il **Prompt dei comandi** come amministratore nella cartella in cui l'avete estratto.
+
+Per distribuire l'agente con Intune, Configuration Manager o Criteri di gruppo, usate `oneuptime-infrastructure-agent-amd64.msi` (o `oneuptime-infrastructure-agent-arm64.msi`) della stessa release. Installa l'agente in `C:\Program Files\OneUptimeInfrastructureAgent`, e un MSI più recente lo aggiorna sul posto e lo riavvia. Un MSI di una release precedente non può essere aggiornato: disinstallatelo prima una volta.
 :::
 
 Ogni metodo installa l'ultima release per il vostro sistema operativo e processore (x86-64 o ARM64). I repository apt e yum contengono i pacchetti `.deb` e `.rpm` allegati a ogni release di GitHub, firmati con la chiave pubblicata in `https://packages.oneuptime.com/gpg.key`, e i pacchetti mettono il binario in `/usr/bin`. Lo script di installazione mette il binario `oneuptime-infrastructure-agent` in `$HOME/bin`. In un'installazione self-hosted, lo script viene servito dal vostro URL di OneUptime.
@@ -184,6 +186,7 @@ Aggiornate l'agente nello stesso modo in cui l'avete installato:
 | dnf o yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
 | Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
 | winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | Installate l'MSI più recente. |
 | Script di installazione | Eseguite di nuovo lo script di installazione. |
 
 Un aggiornamento non riavvia l'agente in esecuzione, quindi eseguite `restart` subito dopo. Su Windows, eseguite `stop` prima di `winget upgrade` e `start` dopo: winget non può sostituire il programma mentre il servizio lo sta eseguendo.

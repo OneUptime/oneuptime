@@ -2515,6 +2515,33 @@ describe(`${SERVER}`, () => {
     );
   });
 
+  it("names the release's MSIs, where they install the agent, and that a newer one upgrades and restarts it", () => {
+    const build: string = source("agents/InfrastructureAgent/build-msi.sh");
+    const installer: string = source(
+      "agents/InfrastructureAgent/windows/oneuptime-infrastructure-agent.wxs",
+    );
+
+    expect(build).toContain('ARCHES=("amd64" "arm64")');
+    expect(build).toContain('MSI_FILE="$OUTPUT_DIR/$APP_NAME-$ARCH.msi"');
+    expect(installer).toContain(
+      "<Directory Id='ProgramFiles64Folder' Name='PFiles'>",
+    );
+    expect(installer).toContain(
+      "<Directory Id='OneUptimeInfrastructureAgent' Name='OneUptimeInfrastructureAgent'>",
+    );
+    expect(installer).toContain("<MajorUpgrade");
+    expect(installer).toContain(
+      "ExeCommand='start oneuptime-infrastructure-agent'",
+    );
+    expect(page).toContain(
+      "`oneuptime-infrastructure-agent-amd64.msi` (or `oneuptime-infrastructure-agent-arm64.msi`)",
+    );
+    expect(page).toContain(
+      "It installs the agent in `C:\\Program Files\\OneUptimeInfrastructureAgent`, and a newer MSI upgrades it in place and starts it again.",
+    );
+    expect(page).toContain("| MSI | Install the newer MSI. |");
+  });
+
   it("the Windows downloads are the release's zip archives", () => {
     const release: string = source(
       "agents/InfrastructureAgent/.goreleaser.yaml",

@@ -95,6 +95,8 @@ winget 없이 설치하려면 에이전트를 직접 내려받습니다.
 1. [최신 GitHub 릴리스](https://github.com/OneUptime/oneuptime/releases/latest)에서 에이전트를 내려받습니다. x64는 `oneuptime-infrastructure-agent_windows_amd64.zip`, ARM64는 `oneuptime-infrastructure-agent_windows_arm64.zip`입니다.
 2. zip 파일의 압축을 풉니다. 안에 `oneuptime-infrastructure-agent.exe`가 있습니다.
 3. 압축을 푼 폴더에서 **명령 프롬프트** 를 관리자 권한으로 엽니다.
+
+Intune, Configuration Manager 또는 그룹 정책으로 에이전트를 배포하려면 같은 릴리스의 `oneuptime-infrastructure-agent-amd64.msi`(또는 `oneuptime-infrastructure-agent-arm64.msi`)를 사용합니다. 에이전트는 `C:\Program Files\OneUptimeInfrastructureAgent`에 설치되며, 새 MSI는 그 자리에서 업그레이드하고 에이전트를 다시 시작합니다. 이전 릴리스의 MSI는 업그레이드할 수 없으므로 먼저 한 번 제거하세요.
 :::
 
 어느 방법이든 사용 중인 운영 체제와 프로세서(x86-64 또는 ARM64)에 맞는 최신 릴리스를 설치합니다. apt와 yum 저장소에는 각 GitHub 릴리스에 첨부된 `.deb`와 `.rpm` 패키지가 `https://packages.oneuptime.com/gpg.key`의 키로 서명되어 있고, 패키지는 바이너리를 `/usr/bin`에 둡니다. 설치 스크립트는 `oneuptime-infrastructure-agent` 바이너리를 `$HOME/bin`에 둡니다. 자체 호스팅에서는 스크립트가 사용자의 OneUptime URL에서 제공됩니다.
@@ -184,6 +186,7 @@ Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령
 | dnf 또는 yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
 | Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
 | winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | 새 MSI를 설치합니다. |
 | 설치 스크립트 | 설치 스크립트를 다시 실행합니다. |
 
 업그레이드해도 실행 중인 에이전트는 다시 시작되지 않으므로, 그 뒤에 `restart`를 실행하세요. Windows에서는 `winget upgrade` 전에 `stop`을, 후에 `start`를 실행합니다. 서비스가 프로그램을 실행하는 동안에는 winget이 프로그램을 바꿀 수 없습니다.

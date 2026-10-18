@@ -95,6 +95,8 @@ winget install --id OneUptime.InfrastructureAgent --exact --scope machine
 1. 从 [最新的 GitHub 版本](https://github.com/OneUptime/oneuptime/releases/latest) 下载代理：x64 使用 `oneuptime-infrastructure-agent_windows_amd64.zip`，ARM64 使用 `oneuptime-infrastructure-agent_windows_arm64.zip`。
 2. 解压 zip 文件。其中包含 `oneuptime-infrastructure-agent.exe`。
 3. 在解压到的文件夹中以管理员身份打开 **命令提示符**。
+
+要用 Intune、Configuration Manager 或组策略部署代理，请使用同一版本中的 `oneuptime-infrastructure-agent-amd64.msi`（或 `oneuptime-infrastructure-agent-arm64.msi`）。它会把代理安装到 `C:\Program Files\OneUptimeInfrastructureAgent`，更新的 MSI 会原地升级代理并重新启动它。早期版本的 MSI 无法升级：请先将其卸载一次。
 :::
 
 每种方式都会安装适用于你的操作系统和处理器（x86-64 或 ARM64）的最新版本。apt 和 yum 软件源提供每个 GitHub 版本附带的 `.deb` 和 `.rpm` 软件包，并用 `https://packages.oneuptime.com/gpg.key` 处的密钥签名，软件包会把二进制文件放到 `/usr/bin`。安装脚本会把 `oneuptime-infrastructure-agent` 二进制文件放到 `$HOME/bin`。在自托管部署中，脚本由你自己的 OneUptime URL 提供。
@@ -184,6 +186,7 @@ oneuptime-infrastructure-agent start
 | dnf 或 yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
 | Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
 | winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | 安装更新的 MSI。 |
 | 安装脚本 | 重新运行安装脚本。 |
 
 升级不会重启正在运行的代理，因此升级后请运行 `restart`。在 Windows 上，请在 `winget upgrade` 之前运行 `stop`，之后运行 `start`：服务运行程序期间，winget 无法替换它。

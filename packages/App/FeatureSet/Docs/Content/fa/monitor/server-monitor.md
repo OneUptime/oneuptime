@@ -95,6 +95,8 @@ winget install --id OneUptime.InfrastructureAgent --exact --scope machine
 1. عامل را از [آخرین انتشار GitHub](https://github.com/OneUptime/oneuptime/releases/latest) دانلود کنید: `oneuptime-infrastructure-agent_windows_amd64.zip` برای x64، یا `oneuptime-infrastructure-agent_windows_arm64.zip` برای ARM64.
 2. فایل zip را از حالت فشرده خارج کنید. درون آن `oneuptime-infrastructure-agent.exe` است.
 3. در پوشه‌ای که فایل را در آن باز کرده‌اید، **خط فرمان** را به‌عنوان Administrator باز کنید.
+
+برای استقرار عامل با Intune، Configuration Manager یا Group Policy، از `oneuptime-infrastructure-agent-amd64.msi` (یا `oneuptime-infrastructure-agent-arm64.msi`) همان انتشار استفاده کنید. این بسته عامل را در `C:\Program Files\OneUptimeInfrastructureAgent` نصب می‌کند و یک MSI جدیدتر آن را در جای خود به‌روز می‌کند و دوباره راه‌اندازی می‌کند. MSI یک انتشار قدیمی‌تر به‌روز نمی‌شود: ابتدا یک بار آن را حذف کنید.
 :::
 
 هر یک از این راه‌ها آخرین انتشار را برای سیستم‌عامل و پردازنده شما (x86-64 یا ARM64) نصب می‌کند. مخزن‌های apt و yum همان بسته‌های `.deb` و `.rpm` پیوست‌شده به هر انتشار GitHub را نگه می‌دارند که با کلید `https://packages.oneuptime.com/gpg.key` امضا شده‌اند، و بسته‌ها فایل اجرایی را در `/usr/bin` قرار می‌دهند. اسکریپت نصب فایل اجرایی `oneuptime-infrastructure-agent` را در `$HOME/bin` قرار می‌دهد. در نصب خودمیزبان، اسکریپت از نشانی OneUptime خود شما ارائه می‌شود.
@@ -184,6 +186,7 @@ oneuptime-infrastructure-agent start
 | dnf یا yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
 | Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
 | winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | MSI جدیدتر را نصب کنید. |
 | اسکریپت نصب | اسکریپت نصب را دوباره اجرا کنید. |
 
 به‌روزرسانی، عاملِ در حال اجرا را دوباره راه‌اندازی نمی‌کند، پس پس از آن `restart` را اجرا کنید. در Windows پیش از `winget upgrade` فرمان `stop` و پس از آن `start` را اجرا کنید: winget نمی‌تواند برنامه را تا وقتی سرویس آن را اجرا می‌کند جایگزین کند.

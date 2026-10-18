@@ -34,6 +34,8 @@ Windows (winget, from an Administrator prompt):
 winget install --id OneUptime.InfrastructureAgent --exact --scope machine
 ```
 
+Intune, Configuration Manager or Group Policy: the release's `oneuptime-infrastructure-agent-amd64.msi` or `oneuptime-infrastructure-agent-arm64.msi`. It installs per machine into `C:\Program Files\OneUptimeInfrastructureAgent`, and a newer MSI upgrades it in place and restarts the agent ([windows/oneuptime-infrastructure-agent.wxs](windows/oneuptime-infrastructure-agent.wxs) says how). An MSI from before that change installed per user and cannot be upgraded: uninstall it once.
+
 Anywhere else, the install script:
 
 ```bash

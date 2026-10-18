@@ -1108,6 +1108,28 @@ pull request open; a branch a stopped run left moved, not made again;
 `WINGET_FORK_OWNER` honoured; no fork, or a fork of something else, and an
 API that keeps failing, each stopping it having written nothing.
 
+### `InfrastructureAgentMsi.test.js`
+
+The infrastructure agent's MSI
+(`agents/InfrastructureAgent/windows/oneuptime-infrastructure-agent.wxs`, built
+by `build-msi.sh` with wixl) is what Intune, Configuration Manager and Group
+Policy deploy, and they upgrade by installing the newer MSI over the older
+one. It had a fixed ProductCode, so Windows refused every newer version with
+error 1638. The suite holds the installer to what upgrading relies on: the
+UpgradeCode, component Guid and directory installed agents have; a new
+ProductCode each build; a per-machine install; a major upgrade that also
+replaces a build of the same version and refuses a downgrade; the agent's
+service (the one `main.go` registers) stopped by every install and uninstall,
+started after an install or upgrade and deleted by an uninstall that is not an
+upgrade's, from deferred actions that run as the local system and whose
+failures are ignored; every custom action placed by sequence number, since
+wixl does not place one After or Before a standard action; `build-msi.sh`
+building both MSIs from that one file (amd64 as an x64 package, arm64 as x86:
+wixl builds no ARM64 package); and the "Infrastructure Agent MSI Test"
+workflow running on every change to the agent, on Windows x64 and Windows on
+Arm, where `windows/test-msi-upgrade.ps1` installs, upgrades over the running
+agent, downgrades and uninstalls two versions for real.
+
 ### `package-repository-e2e.sh`
 
 Not part of `npm test`; needs docker and the distributions' package mirrors.

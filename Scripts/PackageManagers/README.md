@@ -13,6 +13,12 @@ before.
 | Homebrew (macOS) | the `oneuptime-infrastructure-agent` cask in `OneUptime/homebrew-tap` | `brew install oneuptime/tap/oneuptime-infrastructure-agent` |
 | winget (Windows) | `OneUptime.InfrastructureAgent` in `microsoft/winget-pkgs` | `winget install --id OneUptime.InfrastructureAgent` |
 
+Windows fleets managed with Intune, Configuration Manager or Group Policy
+deploy the MSI on each GitHub release instead
+(`agents/InfrastructureAgent/windows/oneuptime-infrastructure-agent.wxs`):
+it installs per machine and a newer MSI upgrades the agent in place. The
+"Infrastructure Agent MSI Test" workflow installs and upgrades it on Windows.
+
 The install commands people follow are on the
 [Server / VM Monitor](../../packages/App/FeatureSet/Docs/Content/en/monitor/server-monitor.md)
 docs page.

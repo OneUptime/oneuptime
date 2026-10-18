@@ -95,6 +95,8 @@ winget を使わない場合は、エージェントを自分でダウンロー�
 1. [GitHub の最新リリース](https://github.com/OneUptime/oneuptime/releases/latest) からエージェントをダウンロードします。x64 は `oneuptime-infrastructure-agent_windows_amd64.zip`、ARM64 は `oneuptime-infrastructure-agent_windows_arm64.zip` です。
 2. zip を展開します。中に `oneuptime-infrastructure-agent.exe` があります。
 3. 展開したフォルダーで **コマンド プロンプト** を管理者として開きます。
+
+Intune、Configuration Manager、グループ ポリシーでエージェントを展開するには、同じリリースの `oneuptime-infrastructure-agent-amd64.msi`（または `oneuptime-infrastructure-agent-arm64.msi`）を使います。エージェントは `C:\Program Files\OneUptimeInfrastructureAgent` にインストールされ、新しい MSI はその場でアップグレードしてエージェントを再び起動します。以前のリリースの MSI はアップグレードできないため、一度アンインストールしてから入れ直してください。
 :::
 
 どの方法でも、お使いのオペレーティングシステムとプロセッサ（x86-64 または ARM64）向けの最新リリースがインストールされます。apt と yum のリポジトリには、各 GitHub リリースに添付された `.deb` と `.rpm` のパッケージが `https://packages.oneuptime.com/gpg.key` の鍵で署名されて置かれており、パッケージはバイナリを `/usr/bin` に配置します。インストールスクリプトは `oneuptime-infrastructure-agent` バイナリを `$HOME/bin` に配置します。セルフホストの場合、スクリプトはお使いの OneUptime の URL から配信されます。
@@ -184,6 +186,7 @@ Linux と macOS では `sudo` を付けて、Windows では管理者の **コマ
 | dnf または yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
 | Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
 | winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | 新しい MSI をインストールします。 |
 | インストールスクリプト | インストールスクリプトをもう一度実行します。 |
 
 アップグレードしても実行中のエージェントは再起動されないため、その後に `restart` を実行してください。Windows では、`winget upgrade` の前に `stop` を、後に `start` を実行します。サービスがプログラムを実行している間、winget はプログラムを置き換えられません。

@@ -95,6 +95,8 @@ Uten winget laster du ned agenten selv:
 1. Last ned agenten fra den [nyeste GitHub-utgivelsen](https://github.com/OneUptime/oneuptime/releases/latest): `oneuptime-infrastructure-agent_windows_amd64.zip` for x64, eller `oneuptime-infrastructure-agent_windows_arm64.zip` for ARM64.
 2. Pakk ut zip-filen. Den inneholder `oneuptime-infrastructure-agent.exe`.
 3. Åpne **Ledetekst** som administrator i mappen du pakket den ut til.
+
+Bruk `oneuptime-infrastructure-agent-amd64.msi` (eller `oneuptime-infrastructure-agent-arm64.msi`) fra samme utgivelse for å rulle ut agenten med Intune, Configuration Manager eller gruppepolicy. Den installerer agenten i `C:\Program Files\OneUptimeInfrastructureAgent`, og en nyere MSI oppgraderer den på stedet og starter den igjen. En MSI fra en tidligere utgivelse kan ikke oppgraderes: avinstaller den én gang først.
 :::
 
 Alle måtene installerer den nyeste utgivelsen for operativsystemet og prosessoren din (x86-64 eller ARM64). apt- og yum-repositoriene inneholder `.deb`- og `.rpm`-pakkene som er vedlagt hver GitHub-utgivelse, signert med nøkkelen på `https://packages.oneuptime.com/gpg.key`, og pakkene legger binærfilen i `/usr/bin`. Installasjonsskriptet legger binærfilen `oneuptime-infrastructure-agent` i `$HOME/bin`. På en selvhostet installasjon leveres skriptet fra din egen OneUptime-URL.
@@ -184,6 +186,7 @@ Oppgrader agenten på samme måte som du installerte den:
 | dnf eller yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
 | Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
 | winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | Installer den nyere MSI-en. |
 | Installasjonsskript | Kjør installasjonsskriptet på nytt. |
 
 En oppgradering starter ikke den kjørende agenten på nytt, så kjør `restart` etterpå. På Windows kjører du `stop` før `winget upgrade` og `start` etterpå: winget kan ikke erstatte programmet mens tjenesten kjører det.

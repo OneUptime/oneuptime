@@ -95,6 +95,8 @@ Sans winget, téléchargez l'agent vous-même :
 1. Téléchargez l'agent depuis la [dernière version GitHub](https://github.com/OneUptime/oneuptime/releases/latest) : `oneuptime-infrastructure-agent_windows_amd64.zip` pour x64, ou `oneuptime-infrastructure-agent_windows_arm64.zip` pour ARM64.
 2. Extrayez le fichier ZIP. Il contient `oneuptime-infrastructure-agent.exe`.
 3. Ouvrez l'**Invite de commandes** en tant qu'administrateur dans le dossier où vous l'avez extrait.
+
+Pour déployer l'agent avec Intune, Configuration Manager ou une stratégie de groupe, utilisez `oneuptime-infrastructure-agent-amd64.msi` (ou `oneuptime-infrastructure-agent-arm64.msi`) de la même version. Il installe l'agent dans `C:\Program Files\OneUptimeInfrastructureAgent`, et un MSI plus récent le met à jour sur place et le redémarre. Un MSI d'une version antérieure ne peut pas être mis à jour : désinstallez-le d'abord une fois.
 :::
 
 Chaque méthode installe la version la plus récente pour votre système d'exploitation et votre processeur (x86-64 ou ARM64). Les dépôts apt et yum contiennent les paquets `.deb` et `.rpm` joints à chaque version GitHub, signés avec la clé publiée à `https://packages.oneuptime.com/gpg.key`, et les paquets placent le binaire dans `/usr/bin`. Le script d'installation place le binaire `oneuptime-infrastructure-agent` dans `$HOME/bin`. Sur une installation auto-hébergée, le script est servi par votre propre URL OneUptime.
@@ -184,6 +186,7 @@ Mettez l'agent à jour de la façon dont vous l'avez installé :
 | dnf ou yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
 | Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
 | winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | Installez le MSI plus récent. |
 | Script d'installation | Relancez le script d'installation. |
 
 Une mise à jour ne redémarre pas l'agent en cours d'exécution : lancez `restart` ensuite. Sous Windows, lancez `stop` avant `winget upgrade` et `start` après : winget ne peut pas remplacer le programme tant que le service l'exécute.
