@@ -43,8 +43,10 @@ import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/Secu
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * How often a new rule runs, as the form starts it (the column's own
- * default, for a rule made through the API, is a minute).
+ * How often a new rule runs, as the form starts it: the
+ * evaluationIntervalInMinutes of createInitialValues below, written out
+ * there as the literal the docs facts read (the column's own default, for
+ * a rule made through the API, is a minute).
  */
 const DETECTION_RULE_FORM_EVALUATION_INTERVAL_IN_MINUTES: number = 5;
 
@@ -124,8 +126,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         noItemsMessage={"No detection rules found."}
         createInitialValues={{
           isEnabled: true,
-          evaluationIntervalInMinutes:
-            DETECTION_RULE_FORM_EVALUATION_INTERVAL_IN_MINUTES,
+          evaluationIntervalInMinutes: 5,
           /*
            * Mirror the DB defaults (DetectionRule.ts): without these the
            * severity dropdowns' showIf sees undefined on a fresh create
