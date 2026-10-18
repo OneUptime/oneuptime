@@ -30738,5 +30738,8 @@
   "Not answering calls": "Не отвечает на звонки",
   "Start answering calls": "Снова отвечать на звонки",
   "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "Пока это снова не включат, каждый, кто звонит на номера этой политики, слышит, что линия недоступна, и никому не звонят.",
-  "How long after being paged to use this method.": "Через сколько времени после оповещения использовать этот способ."
+  "How long after being paged to use this method.": "Через сколько времени после оповещения использовать этот способ.",
+  "Connect the installation": "Подключить установку",
+  "The GitHub App is installed": "Приложение GitHub установлено",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}, чтобы импортировать её репозитории в этот проект."
 }

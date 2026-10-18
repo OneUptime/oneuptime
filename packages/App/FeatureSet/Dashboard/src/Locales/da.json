@@ -30738,5 +30738,8 @@
   "Not answering calls": "Besvarer ikke opkald",
   "Start answering calls": "Besvar opkald igen",
   "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "Indtil dette slås til igen, hører alle, der ringer til denne politiks numre, at linjen ikke er tilgængelig, og ingen bliver ringet op.",
-  "How long after being paged to use this method.": "Hvor længe efter tilkaldet denne metode bruges."
+  "How long after being paged to use this method.": "Hvor længe efter tilkaldet denne metode bruges.",
+  "Connect the installation": "Forbind installationen",
+  "The GitHub App is installed": "GitHub-appen er installeret",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} for at importere dens repositories til dette projekt."
 }

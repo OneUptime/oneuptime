@@ -30738,5 +30738,8 @@
   "Not answering calls": "전화를 받지 않는 중",
   "Start answering calls": "전화 받기 다시 시작",
   "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "다시 켤 때까지 이 정책의 번호로 전화하는 모든 사람은 회선을 사용할 수 없다는 안내를 듣고, 아무에게도 전화가 가지 않습니다.",
-  "How long after being paged to use this method.": "알림 후 얼마 뒤에 이 방법을 쓸지 정합니다."
+  "How long after being paged to use this method.": "알림 후 얼마 뒤에 이 방법을 쓸지 정합니다.",
+  "Connect the installation": "설치 연결",
+  "The GitHub App is installed": "GitHub App이 설치되었습니다",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}을 눌러 저장소를 이 프로젝트로 가져오세요."
 }

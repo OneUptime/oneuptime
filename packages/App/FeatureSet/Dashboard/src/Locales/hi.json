@@ -30738,5 +30738,8 @@
   "Not answering calls": "कॉल का उत्तर नहीं दिया जा रहा",
   "Start answering calls": "कॉल का उत्तर देना फिर शुरू करें",
   "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "जब तक इसे फिर से चालू नहीं किया जाता, इस नीति के नंबरों पर कॉल करने वाले हर व्यक्ति को सुनाई देता है कि लाइन उपलब्ध नहीं है, और किसी को कॉल नहीं किया जाता।",
-  "How long after being paged to use this method.": "सूचित करने के कितनी देर बाद यह तरीका इस्तेमाल हो।"
+  "How long after being paged to use this method.": "सूचित करने के कितनी देर बाद यह तरीका इस्तेमाल हो।",
+  "Connect the installation": "इंस्टॉलेशन कनेक्ट करें",
+  "The GitHub App is installed": "GitHub App इंस्टॉल हो गया है",
+  "{{connectInstallation}} to import its repositories into this project.": "इसकी रिपॉज़िटरी इस प्रोजेक्ट में इम्पोर्ट करने के लिए {{connectInstallation}}।"
 }

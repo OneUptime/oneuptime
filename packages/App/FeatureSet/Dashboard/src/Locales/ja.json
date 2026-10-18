@@ -30738,5 +30738,8 @@
   "Not answering calls": "通話に応答していません",
   "Start answering calls": "通話への応答を再開",
   "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "再びオンにするまで、このポリシーの番号に電話をかけた人には回線が利用できないことが伝えられ、誰も呼び出されません。",
-  "How long after being paged to use this method.": "通知からどれくらい後にこの方法を使うか。"
+  "How long after being paged to use this method.": "通知からどれくらい後にこの方法を使うか。",
+  "Connect the installation": "インストールを接続",
+  "The GitHub App is installed": "GitHub App がインストールされました",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}して、リポジトリをこのプロジェクトにインポートしてください。"
 }

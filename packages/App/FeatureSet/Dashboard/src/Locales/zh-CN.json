@@ -30738,5 +30738,8 @@
   "Not answering calls": "未接听来电",
   "Start answering calls": "恢复接听来电",
   "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "在重新开启之前，拨打此策略号码的每个人都会听到线路不可用，且不会呼叫任何人。",
-  "How long after being paged to use this method.": "通知后多久使用此方式。"
+  "How long after being paged to use this method.": "通知后多久使用此方式。",
+  "Connect the installation": "连接此安装",
+  "The GitHub App is installed": "GitHub App 已安装",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}，将其仓库导入此项目。"
 }

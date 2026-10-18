@@ -30738,5 +30738,8 @@
   "Not answering calls": "به تماس‌ها پاسخ داده نمی‌شود",
   "Start answering calls": "شروع دوباره پاسخ به تماس‌ها",
   "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "تا وقتی این دوباره روشن نشود، هر کسی که با شماره‌های این سیاست تماس بگیرد می‌شنود که خط در دسترس نیست، و با کسی تماس گرفته نمی‌شود.",
-  "How long after being paged to use this method.": "چه مدت پس از خبر دادن از این روش استفاده شود."
+  "How long after being paged to use this method.": "چه مدت پس از خبر دادن از این روش استفاده شود.",
+  "Connect the installation": "نصب را متصل کنید",
+  "The GitHub App is installed": "برنامه GitHub نصب شده است",
+  "{{connectInstallation}} to import its repositories into this project.": "برای وارد کردن مخزن‌های آن به این پروژه، {{connectInstallation}}."
 }
