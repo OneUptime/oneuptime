@@ -307,6 +307,27 @@ describe("an IPv6 /64 has a minute of its own, with room for ten servers", () =>
     expect((await postFrom("2001:db8:12:1::b", "send")).statusCode).toBe(429);
   });
 
+  test("requests refused for their /64's minute are not counted against their address", async () => {
+    for (let host: number = 1; host <= PER_IPV6_NETWORK; host++) {
+      await postFrom(addressIn("2001:db8:15:1", 0x1000 + host), "send");
+    }
+
+    // Half a minute on, a server of the /64 that had sent nothing is refused.
+    jest.spyOn(Date, "now").mockReturnValue(minute + 30 * 1000);
+
+    for (let request: number = 1; request <= PER_ADDRESS + 10; request++) {
+      expect((await postFrom("2001:db8:15:1::1", "send")).statusCode).toBe(429);
+    }
+
+    expect(expoSends).toBe(PER_IPV6_NETWORK);
+
+    // Once its /64's minute is over, its first page goes out.
+    jest.spyOn(Date, "now").mockReturnValue(minute + 61 * 1000);
+
+    expect((await postFrom("2001:db8:15:1::1", "send")).statusCode).toBe(200);
+    expect(expoSends).toBe(PER_IPV6_NETWORK + 1);
+  });
+
   test("another /64 has a minute of its own", async () => {
     for (let host: number = 1; host <= PER_IPV6_NETWORK + 5; host++) {
       await postFrom(addressIn("2001:db8:13:1", host), "send");

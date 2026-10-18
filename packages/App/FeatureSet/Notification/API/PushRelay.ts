@@ -97,6 +97,16 @@ export class RelayRateLimiter {
     return entry.count > this.maxRequests;
   }
 
+  // Whether the key is over its minute already, without counting a request.
+  public isOverLimit(key: string, now: number = Date.now()): boolean {
+    const entry: { count: number; resetTime: number } | undefined =
+      this.entries.get(key);
+
+    return Boolean(
+      entry && now <= entry.resetTime && entry.count > this.maxRequests,
+    );
+  }
+
   /*
    * Whether the request just refused was the first refused in its key's
    * minute: the one refusal of the minute that is logged, so a client that
@@ -191,6 +201,19 @@ function isRefusedByRateLimit(data: {
   const client: RateLimitClient = getRateLimitClient(
     resolveClientIp(data.req) || "unknown",
   );
+
+  /*
+   * A /64 already over its minute is refused before anything is counted:
+   * its addresses are not held to a minute of their own for requests the
+   * relay never served, and a host that sends from a new address every
+   * time is not remembered address by address.
+   */
+  if (
+    client.ipv6Network64 &&
+    data.rateLimit.perIpv6Network.isOverLimit(client.ipv6Network64)
+  ) {
+    return true;
+  }
 
   if (
     isRefusedBy({
