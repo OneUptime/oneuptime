@@ -54,6 +54,8 @@ CONFIGURE_SCHEMA = f"{SCHEMA}/configure/{API_VERSION}"
 SUBMISSION_SCHEMA = f"{SCHEMA}/submission/{API_VERSION}"
 TECHNICAL_CONFIGURATION_SCHEMA = f"{SCHEMA}/container-plan-technical-configuration/2022-03-01-preview3"
 TECHNICAL_CONFIGURATION_TYPE = "container-plan-technical-configuration"
+# What Partner Center says about a target (preview, live) the offer was never published to.
+NEVER_PUBLISHED = "has no published submission"
 
 Opener = Callable[[urllib.request.Request], Any]
 
@@ -96,7 +98,9 @@ class PartnerCenter:
             said: str = error.read().decode("utf-8", "replace")[-2000:]
             error.close()
 
-            if missing_ok and error.code == 404:
+            # A target the offer was never published to: 404, or 400 "...has no published
+            # submission in Preview" (what Partner Center answers for a new offer).
+            if missing_ok and (error.code == 404 or (error.code == 400 and NEVER_PUBLISHED in said)):
                 return None
 
             raise ReleaseError(f"Partner Center answered {error.code} to {method} {path}: {said}")
@@ -151,9 +155,16 @@ def is_type(resource: Dict[str, Any], kind: str) -> bool:
     return f"/schema/{kind}/" in resource.get("$schema", "")
 
 
+def external_id(resource: Dict[str, Any]) -> str:
+    """A resource's own ID: externalId, as the schemas and the API spell it (the docs' examples
+    say externalID)."""
+    identity: Dict[str, Any] = resource.get("identity") or {}
+    return str(identity.get("externalId") or identity.get("externalID") or "")
+
+
 def find_plan(resources: List[Dict[str, Any]], plan_external_id: str) -> str:
     for resource in resources:
-        if is_type(resource, "plan") and (resource.get("identity") or {}).get("externalID") == plan_external_id:
+        if is_type(resource, "plan") and external_id(resource) == plan_external_id:
             return resource["id"]
 
     raise ReleaseError(f"The offer has no plan with the ID {plan_external_id}.")
@@ -286,7 +297,7 @@ def newest_succeeded(submissions: List[Dict[str, Any]], target: str) -> Optional
 def follow(
     center: PartnerCenter, job: Dict[str, Any], wait_minutes: float, sleep: Callable[[float], None] = None
 ) -> Tuple[str, List[str], str]:
-    job_id: str = job.get("jobID", "")
+    job_id: str = str(job.get("jobId") or job.get("jobID") or "")
 
     if not job_id:
         raise ReleaseError(f"Partner Center did not start a job: {json.dumps(job)[:500]}")
